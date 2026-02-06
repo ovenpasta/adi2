@@ -1,0 +1,31 @@
+with "config/adi_config.gpr";
+--with "deps/sdlada/build/gnat/sdlada.gpr";
+--with "deps/gnatcoll-core/minimal/gnatcoll_minimal.gpr";
+project Adi is
+
+   for Library_Name use "Adi";
+   for Library_Version use Project'Library_Name & ".so." & Adi_Config.Crate_Version;
+
+   for Source_Dirs use ("src/", "config/");
+   for Object_Dir use "obj/" & Adi_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Library_Dir use "lib";
+
+   type Library_Type_Type is ("relocatable", "static", "static-pic");
+   Library_Type : Library_Type_Type :=
+     external ("ADI_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
+   for Library_Kind use Library_Type;
+
+   Ada_Switches := ("-gnat2022", "-gnatX0","-gnatef");
+   package Compiler is
+      for Default_Switches ("Ada") use Adi_Config.Ada_Compiler_Switches & Ada_Switches;
+   end Compiler;
+   package Binder is
+      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
+   end Binder;
+
+   package Install is
+      for Artifacts (".") use ("share");
+   end Install;
+
+end Adi;

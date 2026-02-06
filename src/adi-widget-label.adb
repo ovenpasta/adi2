@@ -1,0 +1,402 @@
+with Adi.Font;
+with Adi.Layout_Util; use Adi.Layout_Util;
+with Ada.Text_IO;
+
+package body Adi.Widget.Label is
+
+   ------------
+   -- Create --
+   ------------
+
+   function Create (Text : String := "") return Label_Widget_Access is
+      Result : constant Label_Widget_Access := new Label_Widget;
+   begin
+      Result.Flags := [Visible => True, others => False];
+      if Text /= "" then
+         Result.Text := To_Unbounded_String (Text);
+      end if;
+      return Result;
+   end Create;
+
+   --------------
+   -- Set_Text --
+   --------------
+
+   procedure Set_Text (W : in out Label_Widget; Text : String) is
+   begin
+      W.Text := To_Unbounded_String (Text);
+      Mark_Dirty (W);
+   end Set_Text;
+
+   --------------
+   -- Get_Text --
+   --------------
+
+   function Get_Text (W : Label_Widget) return String is
+   begin
+      return To_String (W.Text);
+   end Get_Text;
+
+   --------------
+   -- Set_Icon --
+   --------------
+
+   procedure Set_Icon (W : in out Label_Widget; Icon : Image_Access) is
+   begin
+      W.Icon := Icon;
+      Mark_Dirty (W);
+   end Set_Icon;
+
+   --------------
+   -- Get_Icon --
+   --------------
+
+   function Get_Icon (W : Label_Widget) return Image_Access is
+   begin
+      return W.Icon;
+   end Get_Icon;
+
+   ---------------------
+   -- Measure_Content --
+   ---------------------
+
+   function Measure_Content (W : Label_Widget) return Size_2D is
+      use Ada.Text_IO;
+      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Label_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Label_Part);
+
+      Has_Icon : constant Boolean := W.Icon /= null;
+      Has_Text : constant Boolean := Length (W.Text) > 0;
+
+      Icon_Size : Size_2D := (0.0, 0.0);
+      Text_Size : Size_2D := (0.0, 0.0);
+      Gap : Pixel_Type := 0.0;
+      Result : Size_2D;
+
+      Pad : constant Edge_Pixels := Get_Padding_Px (Main_Style);
+      Border : constant Edge_Pixels := Get_Border_Width_Px (Main_Style);
+   begin
+      --  Get gap
+      case Main_Style.Gap.Kind is
+         when Gap_Uniform =>
+            Gap := Pixel_Type (Main_Style.Gap.All_Gap.Amount);
+         when Gap_Separate =>
+            if Main_Style.Flex_Direction = Row or Main_Style.Flex_Direction = Row_Reverse then
+               Gap := Pixel_Type (Main_Style.Gap.Column_Gap.Amount);
+            else
+               Gap := Pixel_Type (Main_Style.Gap.Row_Gap.Amount);
+            end if;
+      end case;
+
+      --  Get icon size
+      if Has_Icon and then Is_Valid (W.Icon.all) then
+         Get_Size (W.Icon.all, Icon_Size.Width, Icon_Size.Height);
+      end if;
+
+      --  Get text size from TTF measurement
+      if Has_Text then
+         Text_Size := Adi.Font.Measure_Text
+           (Handle    => Label_Style.Font_Family,
+            Content   => To_String (W.Text),
+            Font_Size => Label_Style.Font_Size.Amount);
+
+         --  When wrapping is allowed, text can shrink in the main axis
+         if Label_Style.Text_Wrap_Mode = TWM_Wrap then
+            Text_Size.Width := 0.0;
+         end if;
+      end if;
+
+      --  Calculate total size based on flex direction
+      if Main_Style.Flex_Direction = Row or Main_Style.Flex_Direction = Row_Reverse then
+         --  Horizontal: widths add, height is max
+         Result.Width := Icon_Size.Width + Text_Size.Width;
+         if Has_Icon and Has_Text then
+            Result.Width := Result.Width + Gap;
+         end if;
+         Result.Height := Pixel_Type'Max (Icon_Size.Height, Text_Size.Height);
+      else
+         --  Vertical: heights add, width is max
+         Result.Width := Pixel_Type'Max (Icon_Size.Width, Text_Size.Width);
+         Result.Height := Icon_Size.Height + Text_Size.Height;
+         if Has_Icon and Has_Text then
+            Result.Height := Result.Height + Gap;
+         end if;
+      end if;
+
+      --  Add padding and border
+      Result.Width := Result.Width + Pad.Left + Pad.Right + Border.Left + Border.Right;
+      Result.Height := Result.Height + Pad.Top + Pad.Bottom + Border.Top + Border.Bottom;
+
+      return Result;
+   end Measure_Content;
+
+   ------------
+   -- Layout --
+   ------------
+
+   overriding procedure Layout (W : in out Label_Widget) is
+      use Ada.Text_IO;
+      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Icon_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Icon_Part);
+
+      Has_Icon : constant Boolean := W.Icon /= null;
+      Has_Text : constant Boolean := Length (W.Text) > 0;
+   begin
+      Put_Line ("--- Label.Layout ---");
+      Put_Line ("  Widget Geometry: X=" & Integer'Image(Integer(W.Geometry.X))
+         & " Y=" & Integer'Image(Integer(W.Geometry.Y))
+         & " W=" & Integer'Image(Integer(W.Geometry.Width))
+         & " H=" & Integer'Image(Integer(W.Geometry.Height)));
+
+      --  Clear previous layout items
+      W.Layout_Items.Clear;
+
+      --  Build layout items list
+      if Has_Icon then
+         declare
+            Icon_Item : Layout_Item;
+            Icon_Size : Size_2D;
+         begin
+            --  Get icon size from style or image
+            if Is_Valid (W.Icon.all) then
+               Get_Size (W.Icon.all, Icon_Size.Width, Icon_Size.Height);
+            else
+               Icon_Size := (16.0, 16.0);  -- Default icon size
+            end if;
+
+            Icon_Item := (
+               Part           => Icon_Part,
+               Min_Width      => Float (Icon_Size.Width),
+               Min_Height     => Float (Icon_Size.Height),
+               Max_Width      => Float (Icon_Size.Width),
+               Max_Height     => Float (Icon_Size.Height),
+               Content_Width  => Float (Icon_Size.Width),
+               Content_Height => Float (Icon_Size.Height),
+               Flex           => (
+                  Grow       => 0.0,   -- Don't grow
+                  Shrink     => 0.0,   -- Don't shrink
+                  Basis      => Float (Icon_Size.Width),
+                  Align_Self => Icon_Style.Align_Self
+               ),
+               Geometry       => <>,
+               Index          => 1  -- Icon is first
+            );
+
+            W.Layout_Items.Append (Icon_Item);
+         end;
+      end if;
+
+      if Has_Text then
+         declare
+            Text_Item   : Layout_Item;
+            Label_Style : constant Resolved_Style :=
+              Get_Resolved_Part_Style (W, Label_Part);
+            Text_Size   : constant Size_2D := Adi.Font.Measure_Text
+              (Handle    => Label_Style.Font_Family,
+               Content   => To_String (W.Text),
+               Font_Size => Label_Style.Font_Size.Amount);
+            Can_Wrap    : constant Boolean :=
+              Label_Style.Text_Wrap_Mode = TWM_Wrap;
+         begin
+            Text_Item := (
+               Part           => Label_Part,
+               Min_Width      => (if Can_Wrap then 0.0
+                                  else Float (Text_Size.Width)),
+               Min_Height     => Float (Text_Size.Height),
+               Max_Width      => Float'Last,
+               Max_Height     => Float'Last,
+               Content_Width  => Float (Text_Size.Width),
+               Content_Height => Float (Text_Size.Height),
+               Flex           => (
+                  Grow       => 1.0,
+                  Shrink     => (if Can_Wrap then 1.0 else 0.0),
+                  Basis      => 0.0,
+                  Align_Self => Label_Style.Align_Self
+               ),
+               Geometry       => <>,
+               Index          => 2
+            );
+
+            W.Layout_Items.Append (Text_Item);
+         end;
+      end if;
+
+      --  Run item-based flex layout
+      if not W.Layout_Items.Is_Empty then
+         --  Use content box (geometry minus padding/border) for flex layout
+         declare
+            Content : constant Rectangle := Content_Box (W.Geometry, Main_Style);
+            Pad : constant Edge_Pixels := Get_Padding_Px (Main_Style);
+            Border : constant Edge_Pixels := Get_Border_Width_Px (Main_Style);
+         begin
+            Put_Line ("  Padding: T=" & Integer'Image(Integer(Pad.Top)) & " R=" & Integer'Image(Integer(Pad.Right))
+               & " B=" & Integer'Image(Integer(Pad.Bottom)) & " L=" & Integer'Image(Integer(Pad.Left)));
+            Put_Line ("  Border: T=" & Integer'Image(Integer(Border.Top)) & " R=" & Integer'Image(Integer(Border.Right))
+               & " B=" & Integer'Image(Integer(Border.Bottom)) & " L=" & Integer'Image(Integer(Border.Left)));
+            Put_Line ("  Content Box: X=" & Integer'Image(Integer(Content.X))
+               & " Y=" & Integer'Image(Integer(Content.Y))
+               & " W=" & Integer'Image(Integer(Content.Width))
+               & " H=" & Integer'Image(Integer(Content.Height)));
+
+            Perform_Item_Flex_Layout (
+               Container_Geom  => Content,
+               Container_Style => Main_Style,
+               Items           => W.Layout_Items
+            );
+
+            --  Re-measure text with assigned width to get wrapped height
+            if Has_Text then
+               declare
+                  Label_Style : constant Resolved_Style :=
+                    Get_Resolved_Part_Style (W, Label_Part);
+                  Wrapped_Changed : Boolean := False;
+               begin
+                  if Label_Style.Text_Wrap_Mode = TWM_Wrap then
+                     for L_Item of W.Layout_Items loop
+                        if L_Item.Part = Label_Part
+                          and then L_Item.Geometry.Width > 0.0
+                        then
+                           declare
+                              Wrapped : constant Size_2D :=
+                                Adi.Font.Measure_Text_Wrapped
+                                  (Handle     => Label_Style.Font_Family,
+                                   Content    => To_String (W.Text),
+                                   Font_Size  =>
+                                     Label_Style.Font_Size.Amount,
+                                   Wrap_Width => L_Item.Geometry.Width);
+                           begin
+                              if Wrapped.Height /= L_Item.Geometry.Height
+                              then
+                                 L_Item.Geometry.Width  := Wrapped.Width;
+                                 L_Item.Geometry.Height := Wrapped.Height;
+                                 L_Item.Content_Height :=
+                                    Float (Wrapped.Height);
+                                 L_Item.Min_Height :=
+                                    Float (Wrapped.Height);
+                                 Wrapped_Changed := True;
+                              end if;
+                           end;
+                           exit;
+                        end if;
+                     end loop;
+                  end if;
+
+                  --  Update widget height to fit wrapped content.
+                  --  Compute needed height directly from content sizes
+                  --  (not from flex-positioned items, which may have been
+                  --  shrunk/packed in a too-small content box).
+                  if Wrapped_Changed then
+                     declare
+                        Content_H : Pixel_Type := 0.0;
+                        Item_Gap  : Pixel_Type := 0.0;
+                        Num_Items : Natural := 0;
+                        Needed    : Pixel_Type;
+                        Reflow_Content : Rectangle;
+                     begin
+                        --  Get gap between items
+                        case Main_Style.Gap.Kind is
+                           when Gap_Uniform =>
+                              Item_Gap := Pixel_Type
+                                (Main_Style.Gap.All_Gap.Amount);
+                           when Gap_Separate =>
+                              if Main_Style.Flex_Direction = Row
+                                or Main_Style.Flex_Direction = Row_Reverse
+                              then
+                                 Item_Gap := Pixel_Type
+                                   (Main_Style.Gap.Column_Gap.Amount);
+                              else
+                                 Item_Gap := Pixel_Type
+                                   (Main_Style.Gap.Row_Gap.Amount);
+                              end if;
+                        end case;
+
+                        --  Sum content sizes based on direction
+                        if Main_Style.Flex_Direction = Row
+                          or Main_Style.Flex_Direction = Row_Reverse
+                        then
+                           --  Row: height = max of content heights
+                           for L_Item of W.Layout_Items loop
+                              Content_H := Pixel_Type'Max
+                                (Content_H,
+                                 Pixel_Type (L_Item.Content_Height));
+                           end loop;
+                        else
+                           --  Column: height = sum + gaps
+                           for L_Item of W.Layout_Items loop
+                              Content_H := Content_H
+                                + Pixel_Type (L_Item.Content_Height);
+                              Num_Items := Num_Items + 1;
+                           end loop;
+                           if Num_Items > 1 then
+                              Content_H := Content_H
+                                + Item_Gap * Pixel_Type (Num_Items - 1);
+                           end if;
+                        end if;
+
+                        Needed := Content_H
+                                  + Pad.Top + Pad.Bottom
+                                  + Border.Top + Border.Bottom;
+                        if Needed > W.Geometry.Height then
+                           W.Geometry.Height := Needed;
+                        end if;
+
+                        --  Re-run flex layout with updated content box
+                        --  so items get properly aligned (centered etc.)
+                        Reflow_Content := Content_Box
+                          (W.Geometry, Main_Style);
+                        Perform_Item_Flex_Layout (
+                           Container_Geom  => Reflow_Content,
+                           Container_Style => Main_Style,
+                           Items           => W.Layout_Items);
+                     end;
+                  end if;
+               end;
+            end if;
+         end;
+      end if;
+   end Layout;
+
+   -----------------
+   -- Build_Items --
+   -----------------
+
+   overriding procedure Build_Items (W : in out Label_Widget) is
+   begin
+      if Item_Count (W) = 0 then
+         --  First build: create items at fixed indices
+         Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));       --  Panel_Idx
+         Add_Item (W, Make_Text (Label_Part, W.Geometry, "", 1));   --  Text_Idx
+         Add_Item (W, Make_Image (Icon_Part, W.Geometry, null, 1)); --  Icon_Idx
+      end if;
+
+      --  Update panel geometry
+      W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
+
+      --  Update text item
+      declare
+         Text_It : Item renames W.Items.Reference (Text_Idx).Element.all;
+      begin
+         Text_It.Text_Content := W.Text;
+         for L_Item of W.Layout_Items loop
+            if L_Item.Part = Label_Part then
+               Text_It.Geometry := L_Item.Geometry;
+               exit;
+            end if;
+         end loop;
+      end;
+
+      --  Update icon item
+      declare
+         Icon_It : Item renames W.Items.Reference (Icon_Idx).Element.all;
+      begin
+         Icon_It.Image_Source := W.Icon;
+         for L_Item of W.Layout_Items loop
+            if L_Item.Part = Icon_Part then
+               Icon_It.Geometry := L_Item.Geometry;
+               exit;
+            end if;
+         end loop;
+      end;
+   end Build_Items;
+
+end Adi.Widget.Label;

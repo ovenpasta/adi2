@@ -1,0 +1,40 @@
+name = "adi"
+description = "The Adi GUI Library"
+version = "0.1.0-dev"
+
+authors = ["Aldo Nicolas Bruno"]
+maintainers = ["Aldo Nicolas Bruno <ovenpasta@pizzahack.eu>"]
+licenses = "custom-proprietary"
+website = ""
+tags = ["gui"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=prova"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=styles"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=flex"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=layout_test"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=ttf_example"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=label_example"]
+
+
+[[depends-on]]
+gnatcoll_minimal = "^26.0.0"
+
+[build-switches]
+"*".style_checks = "No"

@@ -1,0 +1,27 @@
+with "../adi.gpr";  -- Reference your main project
+
+project Examples is
+   type Example_Kind is ("ttf_example", "label_example");
+   Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");
+
+   for Source_Dirs use (".");
+   for Object_Dir use "obj/" & Kind;
+   for Exec_Dir use "bin";
+   for Main use (Kind & ".adb");
+
+   Ada_Switches := ("-gnat2022", "-gnatX0", "-gnatef", "-g", "-gnatwa", "-gnata");
+   package Compiler is
+      for Default_Switches ("Ada") use Ada_Switches;
+   end Compiler;
+
+   package Binder is
+      for Switches ("Ada") use ("-E");  -- Store exception traceback
+   end Binder;
+
+   package Linker is
+      --  Link against SDL3, SDL3_ttf, and SDL3_image
+      for Default_Switches ("Ada") use
+         ("-L/usr/local/lib", "-lSDL3", "-lSDL3_ttf", "-lSDL3_image", "-lm",
+          "-Wl,-rpath,/usr/local/lib");
+   end Linker;
+end Examples;

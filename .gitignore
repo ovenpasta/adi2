@@ -1,0 +1,26 @@
+/obj/
+/lib/
+/alire/
+/config/
+
+# Build artifacts
+/tests/bin/
+/tests/obj/
+/examples/bin/
+/examples/obj/
+
+# IDE / editor settings
+.idea/
+.vscode/
+.zed/
+.dir-locals.el
+.projectile
+
+# Claude Code
+.claude/
+
+# Alire-managed dependencies
+/deps/
+
+# Auto-generated reference bindings
+/bindings/

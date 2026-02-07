@@ -823,19 +823,11 @@ package body Adi.Widget is
             Min_H := 0.0;
       end case;
 
-      --  If auto, use content size
-      if Min_W = 0.0 or Min_H = 0.0 then
-         declare
-            Content : constant Size_2D := Measure_Content(W);
-         begin
-            if Min_W = 0.0 then
-               Min_W := Content.Width;
-            end if;
-            if Min_H = 0.0 then
-               Min_H := Content.Height;
-            end if;
-         end;
-      end if;
+      --  When no explicit min is set, use 0 rather than Measure_Content.
+      --  Measure_Content on containers reads item geometry from the previous
+      --  frame, so during window shrink the stale (larger) size becomes the
+      --  minimum, preventing the flex shrink algorithm from reducing items.
+      --  Explicit min-width/min-height values are still respected above.
 
       return (Min_W, Min_H);
    end Get_Min_Size;

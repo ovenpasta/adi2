@@ -77,16 +77,7 @@ package body Adi.Widget.Label is
       Border : constant Edge_Pixels := Get_Border_Width_Px (Main_Style);
    begin
       --  Get gap
-      case Main_Style.Gap.Kind is
-         when Gap_Uniform =>
-            Gap := Pixel_Type (Main_Style.Gap.All_Gap.Amount);
-         when Gap_Separate =>
-            if Main_Style.Flex_Direction = Row or Main_Style.Flex_Direction = Row_Reverse then
-               Gap := Pixel_Type (Main_Style.Gap.Column_Gap.Amount);
-            else
-               Gap := Pixel_Type (Main_Style.Gap.Row_Gap.Amount);
-            end if;
-      end case;
+      Gap := Get_Main_Gap (Main_Style.Gap, Main_Style.Flex_Direction);
 
       --  Get icon size
       if Has_Icon and then Is_Valid (W.Icon.all) then
@@ -107,21 +98,20 @@ package body Adi.Widget.Label is
       end if;
 
       --  Calculate total size based on flex direction
-      if Main_Style.Flex_Direction = Row or Main_Style.Flex_Direction = Row_Reverse then
-         --  Horizontal: widths add, height is max
-         Result.Width := Icon_Size.Width + Text_Size.Width;
+      declare
+         Dir : constant Flex_Direction_Value := Main_Style.Flex_Direction;
+         Icon_Main  : constant Pixel_Type := Get_Main_Size (Icon_Size, Dir);
+         Icon_Cross : constant Pixel_Type := Get_Cross_Size (Icon_Size, Dir);
+         Text_Main  : constant Pixel_Type := Get_Main_Size (Text_Size, Dir);
+         Text_Cross : constant Pixel_Type := Get_Cross_Size (Text_Size, Dir);
+         Total_Main  : Pixel_Type := Icon_Main + Text_Main;
+         Total_Cross : constant Pixel_Type := Pixel_Type'Max (Icon_Cross, Text_Cross);
+      begin
          if Has_Icon and Has_Text then
-            Result.Width := Result.Width + Gap;
+            Total_Main := Total_Main + Gap;
          end if;
-         Result.Height := Pixel_Type'Max (Icon_Size.Height, Text_Size.Height);
-      else
-         --  Vertical: heights add, width is max
-         Result.Width := Pixel_Type'Max (Icon_Size.Width, Text_Size.Width);
-         Result.Height := Icon_Size.Height + Text_Size.Height;
-         if Has_Icon and Has_Text then
-            Result.Height := Result.Height + Gap;
-         end if;
-      end if;
+         Result := Make_Size (Total_Main, Total_Cross, Dir);
+      end;
 
       --  Add padding and border
       Result.Width := Result.Width + Pad.Left + Pad.Right + Border.Left + Border.Right;
@@ -294,44 +284,33 @@ package body Adi.Widget.Label is
                         Reflow_Content : Rectangle;
                      begin
                         --  Get gap between items
-                        case Main_Style.Gap.Kind is
-                           when Gap_Uniform =>
-                              Item_Gap := Pixel_Type
-                                (Main_Style.Gap.All_Gap.Amount);
-                           when Gap_Separate =>
-                              if Main_Style.Flex_Direction = Row
-                                or Main_Style.Flex_Direction = Row_Reverse
-                              then
-                                 Item_Gap := Pixel_Type
-                                   (Main_Style.Gap.Column_Gap.Amount);
-                              else
-                                 Item_Gap := Pixel_Type
-                                   (Main_Style.Gap.Row_Gap.Amount);
-                              end if;
-                        end case;
+                        Item_Gap := Get_Main_Gap
+                          (Main_Style.Gap, Main_Style.Flex_Direction);
 
                         --  Sum content sizes based on direction
-                        if Main_Style.Flex_Direction = Row
-                          or Main_Style.Flex_Direction = Row_Reverse
-                        then
-                           --  Row: height = max of content heights
+                        declare
+                           Dir       : constant Flex_Direction_Value :=
+                             Main_Style.Flex_Direction;
+                           Main_Sum  : Pixel_Type := 0.0;
+                           Cross_Max : Pixel_Type := 0.0;
+                           Item_S    : Size_2D;
+                        begin
                            for L_Item of W.Layout_Items loop
-                              Content_H := Pixel_Type'Max
-                                (Content_H,
-                                 Pixel_Type (L_Item.Content_Height));
-                           end loop;
-                        else
-                           --  Column: height = sum + gaps
-                           for L_Item of W.Layout_Items loop
-                              Content_H := Content_H
-                                + Pixel_Type (L_Item.Content_Height);
+                              Item_S := (Pixel_Type (L_Item.Content_Width),
+                                         Pixel_Type (L_Item.Content_Height));
+                              Main_Sum  := Main_Sum
+                                + Get_Main_Size (Item_S, Dir);
+                              Cross_Max := Pixel_Type'Max
+                                (Cross_Max, Get_Cross_Size (Item_S, Dir));
                               Num_Items := Num_Items + 1;
                            end loop;
                            if Num_Items > 1 then
-                              Content_H := Content_H
+                              Main_Sum := Main_Sum
                                 + Item_Gap * Pixel_Type (Num_Items - 1);
                            end if;
-                        end if;
+                           Content_H := Make_Size
+                             (Main_Sum, Cross_Max, Dir).Height;
+                        end;
 
                         Needed := Content_H
                                   + Pad.Top + Pad.Bottom

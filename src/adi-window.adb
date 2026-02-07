@@ -76,8 +76,16 @@ package body Adi.Window is
           SDL_Assert (SDL_SetRenderDrawColor (W.Internal.ren, 255, 255, 255, 255), "SDL_SetRenderDrawColor");
           SDL_Assert (SDL_RenderClear (W.Internal.ren), "SDL_RenderClear");
 
-          Layout_Tree(W.Root.all);     -- Recalculate all geometry
-          Update(W.Root.all);          -- Rebuild items with new geometry
+          --  Phase 1: Build items so content measurement works
+          --  (on first render, items don't exist yet, so Measure_Content
+          --  returns 0 for all widgets, causing containers with auto height
+          --  to get 0 height from the flex algorithm)
+          Update(W.Root.all);
+
+          --  Phase 2: Layout with correct content sizes, then rebuild items
+          Mark_Dirty(W.Root.all);
+          Layout_Tree(W.Root.all);
+          Update(W.Root.all);
           Render_Tree(W.Root.all, W.Internal.ren);
 
           --  Present the rendered frame

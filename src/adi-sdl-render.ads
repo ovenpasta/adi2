@@ -54,6 +54,19 @@ package Adi.SDL.Render is
       SDL_SCALEMODE_LINEAR
    ) with Convention => C;
 
+   ----------------------------------------------------------------------------
+   -- Vertex Types (for SDL_RenderGeometry)
+   ----------------------------------------------------------------------------
+
+   type SDL_Vertex is record
+      position  : SDL_FPoint;
+      color     : SDL_FColor;
+      tex_coord : SDL_FPoint;
+   end record with Convention => C_Pass_By_Copy;
+
+   type SDL_Vertex_Array is array (Natural range <>) of aliased SDL_Vertex;
+   type Int_Array is array (Natural range <>) of aliased int;
+
    -- Flip modes
    type SDL_FlipMode is new Uint32;
    SDL_FLIP_NONE       : constant SDL_FlipMode := 16#0000_0000#;
@@ -536,6 +549,21 @@ package Adi.SDL.Render is
       with Import        => True,
            Convention    => C,
            External_Name => "SDL_RenderTexture9Grid";
+
+   ----------------------------------------------------------------------------
+   -- Geometry Rendering
+   ----------------------------------------------------------------------------
+
+   function SDL_RenderGeometry
+      (Renderer     : SDL_Renderer_Ptr;
+       Texture      : SDL_Texture_Ptr;
+       Vertices     : access constant SDL_Vertex;
+       Num_Vertices : int;
+       Indices      : access constant int;
+       Num_Indices  : int) return C_bool
+      with Import        => True,
+           Convention    => C,
+           External_Name => "SDL_RenderGeometry";
 
    ----------------------------------------------------------------------------
    -- Presentation and Flushing

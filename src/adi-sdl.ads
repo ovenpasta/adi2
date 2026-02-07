@@ -34,6 +34,14 @@ package Adi.SDL is
     end record with
        Convention => C_Pass_By_Copy;
 
+    type SDL_FColor is record
+        r : aliased Float;
+        g : aliased Float;
+        b : aliased Float;
+        a : aliased Float;
+    end record with
+       Convention => C_Pass_By_Copy;
+
     type SDL_InitFlags is new Interfaces.Unsigned_32;
     SDL_INIT_AUDIO    : constant SDL_InitFlags :=
        16#0000_0010#;  --  /usr/include/SDL3/SDL_init.h:80

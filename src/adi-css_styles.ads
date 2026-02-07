@@ -138,6 +138,14 @@ package Adi.CSS_Styles is
 
    Default_Radius : constant Border_Radius_Value := Radius (Zero_Length);
 
+   type Corner_Pixels is record
+      Top_Left, Top_Right, Bottom_Right, Bottom_Left : Float;
+   end record;
+
+   Zero_Corners : constant Corner_Pixels := (0.0, 0.0, 0.0, 0.0);
+
+   function Get_Border_Radius_Px (R : Border_Radius_Value) return Corner_Pixels;
+
    -------------------------------------------------
    -- Border Style
    -------------------------------------------------

@@ -1,6 +1,28 @@
 package body Adi.CSS_Styles is
 
    -------------------------------------------------
+   -- Get_Border_Radius_Px
+   -------------------------------------------------
+
+   function Get_Border_Radius_Px (R : Border_Radius_Value) return Corner_Pixels is
+   begin
+      case R.Kind is
+         when Gap_Uniform =>
+            declare
+               V : constant Float := R.All_Corners.Amount;
+            begin
+               return (V, V, V, V);
+            end;
+         when Per_Corner =>
+            return (
+               Top_Left     => R.Corners (Top_Left).Amount,
+               Top_Right    => R.Corners (Top_Right).Amount,
+               Bottom_Right => R.Corners (Bottom_Right).Amount,
+               Bottom_Left  => R.Corners (Bottom_Left).Amount);
+      end case;
+   end Get_Border_Radius_Px;
+
+   -------------------------------------------------
    -- Merge: Combine two Style_Rules (Override wins for set values)
    -------------------------------------------------
 

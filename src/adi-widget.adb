@@ -1,4 +1,5 @@
 
+with Ada.Numerics.Elementary_Functions; use Ada.Numerics.Elementary_Functions;
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Text_IO;
 with Adi.Core; use Adi.Core;
@@ -438,6 +439,155 @@ package body Adi.Widget is
    --  SDL3 Rendering
    ---------------------------------------------------------------------------
 
+   procedure Render_Rounded_Rect
+      (Renderer      : SDL_Renderer_Ptr;
+       Rect          : SDL_FRect;
+       Corner_Radius : Float;
+       R, G, B, A    : Uint8)
+   is
+      --  Clamp radius to half the smallest dimension
+      Max_Radius : constant Float :=
+         Float'Min (Rect.w, Rect.h) / 2.0;
+      Rad : constant Float :=
+         Float'Min (Corner_Radius, Max_Radius);
+
+      --  Number of segments per corner arc
+      Num_Seg : constant Positive :=
+         Positive'Max (8, Natural (Float'Floor (Rad * 0.5)) + 1);
+
+      --  Vertex/index counts:
+      --  Center rect:  4 vertices, 6 indices
+      --  4 edge rects: 4*4=16 vertices, 4*6=24 indices
+      --  4 corners:    4*(Num_Seg+1) vertices at rim + shared center = 4*(Num_Seg+2)
+      --                4*Num_Seg*3 indices
+      Total_Verts   : constant Natural :=
+         4 + 16 + 4 * (Num_Seg + 2);
+      Total_Indices : constant Natural :=
+         6 + 24 + 4 * Num_Seg * 3;
+
+      Verts : SDL_Vertex_Array (0 .. Total_Verts - 1);
+      Idxs  : Int_Array (0 .. Total_Indices - 1);
+
+      VI : Natural := 0;  --  next vertex index
+      II : Natural := 0;  --  next index index
+
+      FC : constant SDL_FColor :=
+         (r => Float (R) / 255.0,
+          g => Float (G) / 255.0,
+          b => Float (B) / 255.0,
+          a => Float (A) / 255.0);
+
+      Zero_TC : constant SDL_FPoint := (x => 0.0, y => 0.0);
+
+      procedure Add_Vertex (X, Y : Float) is
+      begin
+         Verts (VI) := (position  => (x => X, y => Y),
+                        color     => FC,
+                        tex_coord => Zero_TC);
+         VI := VI + 1;
+      end Add_Vertex;
+
+      procedure Add_Triangle (A, B, C : Natural) is
+      begin
+         Idxs (II)     := int (A);
+         Idxs (II + 1) := int (B);
+         Idxs (II + 2) := int (C);
+         II := II + 3;
+      end Add_Triangle;
+
+      procedure Add_Rect (X1, Y1, X2, Y2 : Float) is
+         Base : constant Natural := VI;
+      begin
+         Add_Vertex (X1, Y1);
+         Add_Vertex (X2, Y1);
+         Add_Vertex (X2, Y2);
+         Add_Vertex (X1, Y2);
+         Add_Triangle (Base, Base + 1, Base + 2);
+         Add_Triangle (Base, Base + 2, Base + 3);
+      end Add_Rect;
+
+      procedure Add_Corner_Fan
+         (Cx, Cy : Float;
+          Start_Angle : Float)
+      is
+         Center_Idx : constant Natural := VI;
+         Step       : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
+      begin
+         --  Center vertex of the fan
+         Add_Vertex (Cx, Cy);
+
+         --  Arc vertices
+         for I in 0 .. Num_Seg loop
+            declare
+               Angle : constant Float := Start_Angle + Float (I) * Step;
+            begin
+               Add_Vertex (Cx + Rad * Cos (Angle), Cy + Rad * Sin (Angle));
+            end;
+         end loop;
+
+         --  Fan triangles
+         for I in 0 .. Num_Seg - 1 loop
+            Add_Triangle (Center_Idx, Center_Idx + 1 + I, Center_Idx + 2 + I);
+         end loop;
+      end Add_Corner_Fan;
+
+      --  Rectangle edges
+      X0 : constant Float := Rect.x;
+      Y0 : constant Float := Rect.y;
+      X1 : constant Float := Rect.x + Rect.w;
+      Y1 : constant Float := Rect.y + Rect.h;
+
+      Success : Adi.SDL.C_bool;
+   begin
+      if Rad < 1.0 then
+         --  Fallback to regular rect for very small radii
+         declare
+            R2 : aliased SDL_FRect := Rect;
+         begin
+            SDL_Assert (SDL_SetRenderDrawColor (Renderer, R, G, B, A),
+                        "SDL_SetRenderDrawColor");
+            SDL_Assert (SDL_RenderFillRect (Renderer, R2'Access),
+                        "SDL_RenderFillRect");
+            return;
+         end;
+      end if;
+
+      --  Center rectangle (between all corner circles)
+      Add_Rect (X0 + Rad, Y0 + Rad, X1 - Rad, Y1 - Rad);
+
+      --  Top edge rectangle
+      Add_Rect (X0 + Rad, Y0, X1 - Rad, Y0 + Rad);
+      --  Bottom edge rectangle
+      Add_Rect (X0 + Rad, Y1 - Rad, X1 - Rad, Y1);
+      --  Left edge rectangle
+      Add_Rect (X0, Y0 + Rad, X0 + Rad, Y1 - Rad);
+      --  Right edge rectangle
+      Add_Rect (X1 - Rad, Y0 + Rad, X1, Y1 - Rad);
+
+      --  Corner fans (angles in standard math convention, Y-down)
+      --  Top-left corner: arc from PI to 3*PI/2
+      Add_Corner_Fan (X0 + Rad, Y0 + Rad, Ada.Numerics.Pi);
+      --  Top-right corner: arc from 3*PI/2 to 2*PI
+      Add_Corner_Fan (X1 - Rad, Y0 + Rad, 3.0 * Ada.Numerics.Pi / 2.0);
+      --  Bottom-right corner: arc from 0 to PI/2
+      Add_Corner_Fan (X1 - Rad, Y1 - Rad, 0.0);
+      --  Bottom-left corner: arc from PI/2 to PI
+      Add_Corner_Fan (X0 + Rad, Y1 - Rad, Ada.Numerics.Pi / 2.0);
+
+      --  Set blend mode for alpha support
+      SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
+                  "SDL_SetRenderDrawBlendMode");
+
+      --  Render all geometry in one call
+      Success := SDL_RenderGeometry
+         (Renderer     => Renderer,
+          Texture      => null,
+          Vertices     => Verts (0)'Access,
+          Num_Vertices => int (VI),
+          Indices      => Idxs (0)'Access,
+          Num_Indices  => int (II));
+   end Render_Rounded_Rect;
+
    procedure Render_Panel (
       Renderer : SDL_Renderer_Ptr;
       Geom     : Rectangle;
@@ -446,40 +596,102 @@ package body Adi.Widget is
       Border_W : Edge_Pixels;
       R, G, B, A : Uint8;
       Rect : aliased SDL_FRect;
+      Radius_Px  : Corner_Pixels;
+      Max_Rad    : Float;
+      Has_Radius : Boolean;
+      Has_Border : Boolean;
+      BW_Top     : Float;
    begin
       if Style.Visibility = Visibility_Hidden then
          return;
       end if;
 
       Border_W := Get_Border_Width_Px (Style);
+      Radius_Px := Get_Border_Radius_Px (Style.Border_Radius);
+      Max_Rad := Float'Max
+         (Float'Max (Radius_Px.Top_Left, Radius_Px.Top_Right),
+          Float'Max (Radius_Px.Bottom_Right, Radius_Px.Bottom_Left));
+      Has_Radius := Max_Rad > 0.0;
+      BW_Top := Float (Border_W.Top);
+      Has_Border := BW_Top > 0.0;
 
-      --  Set up rectangle geometry
+      --  Set up outer rectangle geometry
       Rect.x := Float (Geom.X);
       Rect.y := Float (Geom.Y);
       Rect.w := Float (Geom.Width);
       Rect.h := Float (Geom.Height);
 
-      --  Render background if not transparent
-      if Style.Background_Color.Kind /= Named
-         or else Style.Background_Color.Name /= Transparent
-      then
-         CSS_Color_To_SDL (Style.Background_Color, R, G, B, A);
-         SDL_Assert (SDL_SetRenderDrawColor (Renderer, R, G, B, A), "SDL_SetRenderDrawColor");
-         SDL_Assert (SDL_RenderFillRect (Renderer, Rect'Access), "SDL_RenderFillRect");
-      end if;
+      --  Strategy for rounded border: draw the full outer rect in the
+      --  border color first, then draw the inner rect (inset by border
+      --  width) in the background color on top.  This gives clean,
+      --  uniform borders without triangle-strip artefacts.
 
-      --  Render border if present
-      if Border_W.Top > 0.0 then
-         --  Get border color from first edge
-         case Style.Border_Color.Kind is
-            when Gap_Uniform =>
-               CSS_Color_To_SDL (Style.Border_Color.All_Edges, R, G, B, A);
-            when Per_Edge =>
-               CSS_Color_To_SDL (Style.Border_Color.Edges (Top), R, G, B, A);
-         end case;
+      if Has_Radius then
+         --  1) Draw border fill (outer rounded rect with border color)
+         if Has_Border then
+            case Style.Border_Color.Kind is
+               when Gap_Uniform =>
+                  CSS_Color_To_SDL (Style.Border_Color.All_Edges, R, G, B, A);
+               when Per_Edge =>
+                  CSS_Color_To_SDL (Style.Border_Color.Edges (Top), R, G, B, A);
+            end case;
+            Render_Rounded_Rect (Renderer, Rect, Max_Rad, R, G, B, A);
+         end if;
 
-         SDL_Assert (SDL_SetRenderDrawColor (Renderer, R, G, B, A), "SDL_SetRenderDrawColor");
-         SDL_Assert (SDL_RenderRect (Renderer, Rect'Access), "SDL_RenderRect");
+         --  2) Draw background (inner rounded rect)
+         if Style.Background_Color.Kind /= Named
+            or else Style.Background_Color.Name /= Transparent
+         then
+            CSS_Color_To_SDL (Style.Background_Color, R, G, B, A);
+
+            if Has_Border then
+               --  Inset rect by border width on all sides
+               declare
+                  Inner : constant SDL_FRect :=
+                     (x => Rect.x + BW_Top,
+                      y => Rect.y + BW_Top,
+                      w => Float'Max (0.0, Rect.w - 2.0 * BW_Top),
+                      h => Float'Max (0.0, Rect.h - 2.0 * BW_Top));
+                  Inner_Rad : constant Float :=
+                     Float'Max (0.0, Max_Rad - BW_Top);
+               begin
+                  if Inner.w > 0.0 and then Inner.h > 0.0 then
+                     Render_Rounded_Rect
+                        (Renderer, Inner, Inner_Rad, R, G, B, A);
+                  end if;
+               end;
+            else
+               Render_Rounded_Rect (Renderer, Rect, Max_Rad, R, G, B, A);
+            end if;
+         end if;
+
+      else
+         --  No border radius: use fast SDL rect primitives
+
+         --  Background
+         if Style.Background_Color.Kind /= Named
+            or else Style.Background_Color.Name /= Transparent
+         then
+            CSS_Color_To_SDL (Style.Background_Color, R, G, B, A);
+            SDL_Assert (SDL_SetRenderDrawColor (Renderer, R, G, B, A),
+                        "SDL_SetRenderDrawColor");
+            SDL_Assert (SDL_RenderFillRect (Renderer, Rect'Access),
+                        "SDL_RenderFillRect");
+         end if;
+
+         --  Border
+         if Has_Border then
+            case Style.Border_Color.Kind is
+               when Gap_Uniform =>
+                  CSS_Color_To_SDL (Style.Border_Color.All_Edges, R, G, B, A);
+               when Per_Edge =>
+                  CSS_Color_To_SDL (Style.Border_Color.Edges (Top), R, G, B, A);
+            end case;
+            SDL_Assert (SDL_SetRenderDrawColor (Renderer, R, G, B, A),
+                        "SDL_SetRenderDrawColor");
+            SDL_Assert (SDL_RenderRect (Renderer, Rect'Access),
+                        "SDL_RenderRect");
+         end if;
       end if;
    end Render_Panel;
 

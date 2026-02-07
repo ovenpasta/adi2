@@ -26,13 +26,6 @@ package Adi.SDL.TTF.TextEngine is
       h : int;
    end record with Convention => C_Pass_By_Copy;
 
-   type SDL_FColor is record
-      r : C_float;
-      g : C_float;
-      b : C_float;
-      a : C_float;
-   end record with Convention => C_Pass_By_Copy;
-
    type TTF_FillOperation is record
       cmd  : aliased TTF_DrawCommand;
       rect : aliased SDL_Rect;

@@ -67,6 +67,9 @@ begin
          Style
             .Base ((
                Display          => Set (Flex),
+               Background_Image => (if Bg /= null
+                                    then Set_Bg_Image (Background_Image (Bg))
+                                    else Opt_Bg_Image.Unset),
                Flex_Direction   => Set (Column),
                Gap              => Set (Gap_Value (Px (20.0))),
                Padding          => Set (Padding_Box (Px (20.0))),
@@ -91,9 +94,6 @@ begin
          Style
             .Base ((
                Background_Color => Set_Bg (C (Adi.CSS_Styles.White)),
-               Background_Image => (if Bg /= null
-                                    then Set_Bg_Image (Background_Image (Bg))
-                                    else Opt_Bg_Image.Unset),
                Border_Width     => Set (Border_Width (Px (2.0))),
                Border_Color     => Set (Border_Color (RGB (200, 200, 200))),
                Border_Style     => Set (Border_Style (Adi.CSS_Styles.Solid)),

@@ -424,7 +424,27 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    Opacity_Transparent : constant Opacity_Value := 0.0;
    Default_Opacity : constant Opacity_Value := Opacity_Opaque;
 
+   -------------------------------------------------
+   -- Box Shadow
+   -------------------------------------------------
 
+   type Box_Shadow_Value is record
+      Offset_X      : Length_Value := Zero_Length;
+      Offset_Y      : Length_Value := Zero_Length;
+      Blur_Radius   : Length_Value := Zero_Length;
+      Spread_Radius : Length_Value := Zero_Length;
+      Color         : Color_Value  := RGBA (0, 0, 0, 0.25);
+   end record;
+
+   No_Shadow : constant Box_Shadow_Value := (others => <>);
+   Default_Box_Shadow : constant Box_Shadow_Value := No_Shadow;
+
+   function Shadow (Offset_X, Offset_Y, Blur, Spread : Length_Value;
+                    Color : Color_Value) return Box_Shadow_Value is
+      ((Offset_X, Offset_Y, Blur, Spread, Color));
+
+   function Shadow (Blur : Length_Value) return Box_Shadow_Value is
+      ((Blur_Radius => Blur, others => <>));
 
    -------------------------------------------------
    -- Overflow
@@ -608,6 +628,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    package Opt_Object_Pos    is new Optional_Values (Object_Position_Value, Default_Object_Position);
    package Opt_Opacity       is new Optional_Values (Opacity_Value, Default_Opacity);
    package Opt_Overflow      is new Optional_Values (Overflow_Value, Default_Overflow);
+   package Opt_Box_Shadow    is new Optional_Values (Box_Shadow_Value, Default_Box_Shadow);
    package Opt_Cursor        is new Optional_Values (Cursor_Value, Default_Cursor);
    package Opt_Visibility    is new Optional_Values (Visibility_Value, Default_Visibility);
 
@@ -669,6 +690,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       -- Visual
       Opacity          : Opt_Opacity.Optional      := Opt_Opacity.Unset;
       Cursor           : Opt_Cursor.Optional       := Opt_Cursor.Unset;
+      Box_Shadow       : Opt_Box_Shadow.Optional   := Opt_Box_Shadow.Unset;
 
       -- Object/Image properties
       Object_Fit       : Opt_Object_Fit.Optional   := Opt_Object_Fit.Unset;
@@ -745,6 +767,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       -- Visual
       Opacity          : Opacity_Value;
       Cursor           : Cursor_Value;
+      Box_Shadow       : Box_Shadow_Value;
 
       -- Object/Image
       Object_Fit       : Object_Fit_Value;
@@ -818,6 +841,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    -- Visual
    function Set (V : Opacity_Value) return Opt_Opacity.Optional renames Opt_Opacity.Val;
    function Set (V : Cursor_Value) return Opt_Cursor.Optional renames Opt_Cursor.Val;
+   function Set (V : Box_Shadow_Value) return Opt_Box_Shadow.Optional renames Opt_Box_Shadow.Val;
 
    -- Text
    function Set (V : Text_Align_Value) return Opt_Text_Align.Optional renames Opt_Text_Align.Val;

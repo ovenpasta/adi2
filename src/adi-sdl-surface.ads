@@ -150,5 +150,10 @@ package Adi.SDL.Surface is
    with Import => True, 
         Convention => C, 
         External_Name => "SDL_CreateSurface";
-        
+
+   procedure SDL_DestroySurface (Surface : access SDL_Surface)
+      with Import => True,
+           Convention => C,
+           External_Name => "SDL_DestroySurface";
+
 end Adi.SDL.Surface;

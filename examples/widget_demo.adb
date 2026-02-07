@@ -12,8 +12,6 @@ procedure Widget_Demo is
 
    --  Aliases to avoid ambiguity with Adi.CSS_Styles.Box
    function Style return Style_Builder renames Adi.Widget_Styles.Create;
-   function Padding_Box (All_L : Length_Value) return CSS_Box_Value renames Adi.CSS_Styles.CSS_Box;
-   function Padding_Box (Vertical, Horizontal : Length_Value) return CSS_Box_Value renames Adi.CSS_Styles.CSS_Box;
    function Gap_Value (All_L : Length_Value) return Adi.CSS_Styles.Gap_Value renames Adi.CSS_Styles.Gap;
    function Size_Val (L : Length_Value) return Size_Value renames Adi.CSS_Styles.Size;
 
@@ -67,13 +65,14 @@ begin
          Style
             .Base ((
                Display          => Set (Flex),
-               Background_Image => (if Bg /= null
-                                    then Set_Bg_Image (Background_Image (Bg))
-                                    else Opt_Bg_Image.Unset),
+               --Background_Image => (if Bg /= null
+               --                     then Set_Bg_Image (Background_Image (Bg))
+               --                     else Opt_Bg_Image.Unset),
+
                Flex_Direction   => Set (Column),
                Gap              => Set (Gap_Value (Px (20.0))),
-               Padding          => Set (Padding_Box (Px (20.0))),
-               Background_Color => Set_Bg (RGB (30, 30, 40)),
+               Padding          => Set (CSS_Box (Px (20.0))),
+               Background_Color => Set_Bg (RGB (125, 125, 125)),
                others           => <>))
             .Build);
 
@@ -85,11 +84,13 @@ begin
                Flex_Direction   => Set (Row),
                Gap              => Set (Gap_Value (Px (20.0))),
                Align_Items      => Set (Stretch),
+               Background_Color => Set_Bg (RGB (255, 255, 255)),
+               Padding          => Set (CSS_Box (Px (20.0))),
                Flex_Grow        => Set (1.0),
                others           => <>))
             .Build);
 
-      --  Style the card box (white with rounded corners, border, and background image)
+      --  Style the card box (white with rounded corners, border, shadow, and background image)
       Set_Part_Style (Card_Box.all, Main_Part,
          Style
             .Base ((
@@ -98,12 +99,15 @@ begin
                Border_Color     => Set (Border_Color (RGB (200, 200, 200))),
                Border_Style     => Set (Border_Style (Adi.CSS_Styles.Solid)),
                Border_Radius    => Set (Radius (Px (12.0))),
-               Padding          => Set (Padding_Box (Px (20.0))),
+               Padding          => Set (CSS_Box (Px (20.0))),
                Flex_Grow        => Set (1.0),
+               Box_Shadow       => Set (Shadow (Px (0), Px (4), Px (12), Px (0),
+                                               RGBA (0, 0, 0, 0.5))),
+               Margin          => Set (CSS_Box (Px (20.0))),
                others           => <>))
             .Build);
 
-      --  Style card box 2 (orange tint, flex column for inner content)
+      --  Style card box 2 (orange tint, flex column, shadow)
       Set_Part_Style (Card_Box_2.all, Main_Part,
          Style
             .Base ((
@@ -115,8 +119,10 @@ begin
                Border_Color     => Set (Border_Color (RGB (251, 146, 60))),
                Border_Style     => Set (Border_Style (Adi.CSS_Styles.Solid)),
                Border_Radius    => Set (Radius (Px (16.0))),
-               Padding          => Set (Padding_Box (Px (24.0))),
+               Padding          => Set (CSS_Box (Px (24.0))),
                Flex_Grow        => Set (1.0),
+               Box_Shadow       => Set (Shadow (Px (0), Px (4), Px (4), Px (0),
+                                               RGBA (0, 0, 0, 0.25))),
                others           => <>))
             .Build);
 
@@ -149,7 +155,7 @@ begin
                Background_Color => Set_Bg (RGB (59, 130, 246)),
                Border_Radius    => Set (Radius (Px (8.0))),
                Border_Width     => Set (Border_Width (Px (0.0))),
-               Padding          => Set (Padding_Box (Px (12.0), Px (24.0))),
+               Padding          => Set (CSS_Box (Px (12.0), Px (24.0))),
                Min_Width        => Set (Size_Val (Px (150.0))),
                Min_Height       => Set (Size_Val (Px (50.0))),
                others           => <>))
@@ -199,7 +205,7 @@ begin
             .Base ((
                Background_Color => Set_Bg (RGB (240, 240, 250)),
                Border_Radius    => Set (Radius (Px (4.0))),
-               Padding          => Set (Padding_Box (Px (8.0))),
+               Padding          => Set (CSS_Box (Px (8.0))),
                others           => <>))
             .Build);
 

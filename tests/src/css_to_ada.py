@@ -460,17 +460,85 @@ def parse_box_values(value: str) -> Optional[list[ParsedLength]]:
     """Parse 1-4 length values for margin/padding"""
     parts = value.split()
     lengths = []
-    
+
     for part in parts:
         length = parse_length(part)
         if length is None:
             return None
         lengths.append(length)
-    
+
     if len(lengths) == 0:
         return None
-    
+
     return lengths
+
+
+@dataclass
+class ParsedBoxShadow:
+    offset_x: ParsedLength
+    offset_y: ParsedLength
+    blur_radius: ParsedLength
+    spread_radius: ParsedLength
+    color: ParsedColor
+
+
+def parse_box_shadow(value: str) -> Optional[ParsedBoxShadow]:
+    """Parse CSS box-shadow value like '2px 4px 10px rgba(0,0,0,0.25)'"""
+    value = value.strip().lower()
+
+    if value == "none":
+        return None
+
+    # Extract color first (can be at start or end)
+    color = None
+    color_patterns = [
+        (r'rgba?\s*\([^)]+\)', 'func'),
+        (r'#[0-9a-f]{3,8}', 'hex'),
+    ]
+
+    for pattern, kind in color_patterns:
+        match = re.search(pattern, value)
+        if match:
+            color_str = match.group(0)
+            color = parse_color(color_str)
+            value = value.replace(color_str, '').strip()
+            break
+
+    # Check for named color
+    if not color:
+        for name in NAMED_COLORS.keys():
+            if name in value.split():
+                color = parse_color(name)
+                value = value.replace(name, '').strip()
+                break
+
+    # Parse lengths: offset-x offset-y [blur-radius] [spread-radius]
+    parts = value.split()
+    lengths = []
+
+    for part in parts:
+        length = parse_length(part)
+        if length:
+            lengths.append(length)
+
+    if len(lengths) < 2:
+        return None
+
+    offset_x = lengths[0]
+    offset_y = lengths[1]
+    blur_radius = lengths[2] if len(lengths) > 2 else ParsedLength(0.0, "Px")
+    spread_radius = lengths[3] if len(lengths) > 3 else ParsedLength(0.0, "Px")
+
+    if not color:
+        color = ParsedColor(kind="rgba", r=0, g=0, b=0, a=0.25)
+
+    return ParsedBoxShadow(
+        offset_x=offset_x,
+        offset_y=offset_y,
+        blur_radius=blur_radius,
+        spread_radius=spread_radius,
+        color=color
+    )
 
 
 def parse_css(css_content: str) -> list[ParsedRule]:
@@ -903,7 +971,21 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
                 ada_field = f"Order => Set ({val})"
             except ValueError:
                 pass
-        
+
+        # Box shadow
+        elif prop == "box-shadow":
+            if value.lower() == "none":
+                ada_field = "Box_Shadow => Set (No_Shadow)"
+            else:
+                shadow = parse_box_shadow(value)
+                if shadow:
+                    ada_field = (f"Box_Shadow => Set (Shadow ("
+                                f"{generate_length_ada(shadow.offset_x)}, "
+                                f"{generate_length_ada(shadow.offset_y)}, "
+                                f"{generate_length_ada(shadow.blur_radius)}, "
+                                f"{generate_length_ada(shadow.spread_radius)}, "
+                                f"{generate_color_ada(shadow.color)}))")
+
         if ada_field:
             fields.append(f"{indent}{ada_field}")
     

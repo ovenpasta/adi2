@@ -74,6 +74,7 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
 - Color values: Named colors, RGB, RGBA
 - Optional values pattern for style inheritance/cascading
 - Border, padding, margin, background properties
+- Box shadow with blur, spread, offset, and color
 - Comprehensive style properties matching CSS box model
 
 **Adi.Widget_Styles** (`adi-widget_styles.ads`): Widget state-based styling
@@ -217,6 +218,48 @@ python tests/src/css_to_ada.py input.css output.ads --package-name=My_Styles
 ```
 
 This generates Ada package specifications with style constants that can be applied to widgets. See `tests/src/prova_css.ads` for an example.
+
+### Supported CSS Properties
+
+The tool supports a comprehensive set of CSS properties including:
+
+- **Box model**: `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`, `padding`, `margin`
+- **Borders**: `border`, `border-width`, `border-color`, `border-style`, `border-radius`
+- **Colors**: `color`, `background-color` (named colors, hex, rgb, rgba)
+- **Typography**: `font-size`, `font-weight`, `font-style`, `text-align`, `vertical-align`, `text-decoration`, `line-height`, `white-space`, `text-overflow`, `text-wrap-mode`
+- **Layout**: `display`, `position`, `overflow`, `visibility`, `opacity`
+- **Flexbox**: `flex-direction`, `flex-wrap`, `justify-content`, `align-items`, `align-self`, `align-content`, `gap`, `flex-grow`, `flex-shrink`, `flex-basis`, `order`
+- **Effects**: `box-shadow` (with offset, blur, spread, and color), `cursor`
+- **Images**: `object-fit`
+
+### Box Shadow Syntax
+
+The `box-shadow` property follows standard CSS syntax:
+
+```css
+.card {
+  box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.25);
+  /* offset-x offset-y blur-radius [spread-radius] [color] */
+}
+
+.elevated {
+  box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.15);
+}
+
+.no-shadow {
+  box-shadow: none;
+}
+```
+
+Generates Ada code like:
+
+```ada
+Card_Base_Style : constant Style_Rules := (
+   Box_Shadow => Set (Shadow (Px (2.0), Px (4.0), Px (10.0), Px (0.0),
+                              RGBA (0, 0, 0, 0.25))),
+   others => <>
+);
+```
 
 ## Library Build Configuration
 

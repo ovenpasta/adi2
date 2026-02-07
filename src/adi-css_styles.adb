@@ -75,6 +75,7 @@ package body Adi.CSS_Styles is
          -- Visual
          Opacity          => Opt_Opacity.Merge (Base.Opacity, Override.Opacity),
          Cursor           => Opt_Cursor.Merge (Base.Cursor, Override.Cursor),
+         Box_Shadow       => Opt_Box_Shadow.Merge (Base.Box_Shadow, Override.Box_Shadow),
 
          -- Object/Image
          Object_Fit       => Opt_Object_Fit.Merge (Base.Object_Fit, Override.Object_Fit),
@@ -150,6 +151,7 @@ package body Adi.CSS_Styles is
          -- Visual
          Opacity          => Opt_Opacity.Resolve (S.Opacity),
          Cursor           => Opt_Cursor.Resolve (S.Cursor),
+         Box_Shadow       => Opt_Box_Shadow.Resolve (S.Box_Shadow),
 
          -- Object/Image
          Object_Fit       => Opt_Object_Fit.Resolve (S.Object_Fit),

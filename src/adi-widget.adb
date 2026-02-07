@@ -1,22 +1,358 @@
 
+with Ada.Containers.Ordered_Maps;
 with Ada.Numerics.Elementary_Functions; use Ada.Numerics.Elementary_Functions;
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Text_IO;
+with Ada.Unchecked_Conversion;
 with Adi.Core; use Adi.Core;
 with Adi.Font;
 with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.SDL; use Adi.SDL;
 with Adi.SDL.Render; use Adi.SDL.Render;
+with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
 with Adi.SDL.TTF; use Adi.SDL.TTF;
 with Adi.SDL.TTF.TextEngine; use Adi.SDL.TTF.TextEngine;
 with Adi.SDL.Surface; use Adi.SDL.Surface;
 with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings;
+with System;
 
 package body Adi.Widget is
 
    --  Default resolved style for initialization
    Default_Resolved : constant Resolved_Style := Resolve (Empty_Style);
+
+   ---------------------------------------------------------------------------
+   --  Shadow Texture Cache
+   ---------------------------------------------------------------------------
+
+   type Shadow_Cache_Key is record
+      Blur_Px       : Natural;
+      Corner_Radius : Natural;
+      Color_R       : Uint8;
+      Color_G       : Uint8;
+      Color_B       : Uint8;
+      Color_A       : Uint8;
+   end record;
+
+   function "<" (L, R : Shadow_Cache_Key) return Boolean is
+   begin
+      if L.Blur_Px /= R.Blur_Px then return L.Blur_Px < R.Blur_Px; end if;
+      if L.Corner_Radius /= R.Corner_Radius then return L.Corner_Radius < R.Corner_Radius; end if;
+      if L.Color_R /= R.Color_R then return L.Color_R < R.Color_R; end if;
+      if L.Color_G /= R.Color_G then return L.Color_G < R.Color_G; end if;
+      if L.Color_B /= R.Color_B then return L.Color_B < R.Color_B; end if;
+      return L.Color_A < R.Color_A;
+   end "<";
+
+   package Shadow_Maps is new Ada.Containers.Ordered_Maps
+      (Key_Type => Shadow_Cache_Key, Element_Type => SDL_Texture_Ptr);
+
+   Shadow_Cache : Shadow_Maps.Map;
+   Max_Shadow_Cache_Size : constant := 32;
+
+   ---------------------------------------------------------------------------
+   --  Generate_Shadow_Texture
+   ---------------------------------------------------------------------------
+
+   function Generate_Shadow_Texture
+      (Renderer : SDL_Renderer_Ptr;
+       Key      : Shadow_Cache_Key) return SDL_Texture_Ptr
+   is
+      Blur   : constant Natural := Key.Blur_Px;
+      Radius : constant Natural := Key.Corner_Radius;
+
+      --  Texture size: 3-pass box blur extends 3*Blur from shape edge
+      Pad : constant Natural := 3 * Blur;
+      Tex_Size : constant Natural :=
+         Natural'Max (4, 2 * (Pad + Radius) + 4);
+      Total_Px : constant Natural := Tex_Size * Tex_Size;
+
+      Surface : SDL_Surface_Ptr;
+      Texture : SDL_Texture_Ptr;
+      Success : Adi.SDL.C_bool;
+
+      --  Pack pixel from RGBA components (RGBA32 = ABGR8888 on little-endian:
+      --  bytes in memory are R, G, B, A)
+      function Pack_Pixel (R, G, B, A : Uint8) return Uint32 is
+      begin
+         return Uint32 (R)
+            or (Uint32 (G) * 256)
+            or (Uint32 (B) * 65536)
+            or (Uint32 (A) * 16777216);
+      end Pack_Pixel;
+
+      --  Extract alpha byte from packed pixel
+      function Unpack_Alpha (P : Uint32) return Uint8 is
+      begin
+         return Uint8 (P / 16777216);
+      end Unpack_Alpha;
+
+      --  Signed distance from point to rounded rect centered at (cx, cy)
+      --  with half-extents (hx, hy) and corner radius cr.
+      --  Negative inside, positive outside.
+      function SDF_Rounded_Rect
+         (Px, Py : Float;
+          Cx, Cy : Float;
+          Hx, Hy : Float;
+          CR     : Float) return Float
+      is
+         Dx : constant Float := Float'Max (0.0, abs (Px - Cx) - Hx + CR);
+         Dy : constant Float := Float'Max (0.0, abs (Py - Cy) - Hy + CR);
+      begin
+         return Sqrt (Dx * Dx + Dy * Dy) - CR;
+      end SDF_Rounded_Rect;
+
+   begin
+      --  Create surface
+      Surface := SDL_CreateSurface
+         (int (Tex_Size), int (Tex_Size), SDL_PIXELFORMAT_RGBA32);
+      if Surface = null then
+         return null;
+      end if;
+
+      --  Work with pixel buffer via constrained array overlay
+      declare
+         Pitch : constant Natural := Natural (Surface.pitch) / 4;
+
+         --  Constrained pixel buffer matching the surface
+         subtype Pixel_Index is Natural range 0 .. Pitch * Tex_Size - 1;
+         type Pixel_Buffer is array (Pixel_Index) of aliased Uint32
+            with Convention => C;
+         type Pixel_Buffer_Ptr is access all Pixel_Buffer;
+
+         function To_Pixels is new Ada.Unchecked_Conversion
+            (System.Address, Pixel_Buffer_Ptr);
+
+         Pixels : constant Pixel_Buffer_Ptr := To_Pixels (Surface.pixels);
+
+         --  Alpha buffers for blur (heap-allocated)
+         type Alpha_Array is array (0 .. Total_Px - 1) of Float;
+         type Alpha_Ptr is access Alpha_Array;
+         Buf_A : Alpha_Ptr;
+         Buf_B : Alpha_Ptr;
+      begin
+         --  Rasterize: the rounded rect shape is centered in the texture,
+         --  with Blur pixels of padding on each side.
+         declare
+            Pad      : constant Float := Float (3 * Blur);
+            Rect_Sz  : constant Float := Float (Tex_Size) - 2.0 * Pad;
+            Half_X   : constant Float := Rect_Sz / 2.0;
+            Half_Y   : constant Float := Rect_Sz / 2.0;
+            Center_X : constant Float := Float (Tex_Size) / 2.0;
+            Center_Y : constant Float := Float (Tex_Size) / 2.0;
+            CR       : constant Float := Float'Min (Float (Radius),
+                                                    Float'Min (Half_X, Half_Y));
+         begin
+            for Y in 0 .. Tex_Size - 1 loop
+               for X in 0 .. Tex_Size - 1 loop
+                  declare
+                     Dist : constant Float := SDF_Rounded_Rect
+                        (Float (X) + 0.5, Float (Y) + 0.5,
+                         Center_X, Center_Y,
+                         Half_X, Half_Y, CR);
+                     A : Uint8;
+                  begin
+                     if Dist <= 0.0 then
+                        A := Key.Color_A;
+                     else
+                        A := 0;
+                     end if;
+                     Pixels (Y * Pitch + X) :=
+                        Pack_Pixel (Key.Color_R, Key.Color_G, Key.Color_B, A);
+                  end;
+               end loop;
+            end loop;
+         end;
+
+         --  Apply box blur x3 (approximates Gaussian) on alpha channel only
+         if Blur > 0 then
+            Buf_A := new Alpha_Array;
+            Buf_B := new Alpha_Array;
+
+            --  Extract alpha into Buf_A
+            for Y in 0 .. Tex_Size - 1 loop
+               for X in 0 .. Tex_Size - 1 loop
+                  Buf_A (Y * Tex_Size + X) :=
+                     Float (Unpack_Alpha (Pixels (Y * Pitch + X))) / 255.0;
+               end loop;
+            end loop;
+
+            --  Three passes of box blur
+            for Pass in 1 .. 3 loop
+               --  Horizontal blur into Buf_B
+               for Y in 0 .. Tex_Size - 1 loop
+                  for X in 0 .. Tex_Size - 1 loop
+                     declare
+                        Sum : Float := 0.0;
+                        KX  : Integer;
+                     begin
+                        for K in -Blur .. Blur loop
+                           KX := X + K;
+                           if KX >= 0 and then KX < Tex_Size then
+                              Sum := Sum + Buf_A (Y * Tex_Size + KX);
+                           end if;
+                        end loop;
+                        Buf_B (Y * Tex_Size + X) := Sum / Float (2 * Blur + 1);
+                     end;
+                  end loop;
+               end loop;
+
+               --  Vertical blur into Buf_A
+               for Y in 0 .. Tex_Size - 1 loop
+                  for X in 0 .. Tex_Size - 1 loop
+                     declare
+                        Sum : Float := 0.0;
+                        KY  : Integer;
+                     begin
+                        for K in -Blur .. Blur loop
+                           KY := Y + K;
+                           if KY >= 0 and then KY < Tex_Size then
+                              Sum := Sum + Buf_B (KY * Tex_Size + X);
+                           end if;
+                        end loop;
+                        Buf_A (Y * Tex_Size + X) := Sum / Float (2 * Blur + 1);
+                     end;
+                  end loop;
+               end loop;
+            end loop;
+
+            --  Write blurred alpha back into pixels
+            for Y in 0 .. Tex_Size - 1 loop
+               for X in 0 .. Tex_Size - 1 loop
+                  declare
+                     Alpha_F : constant Float :=
+                        Float'Min (1.0, Float'Max (0.0,
+                           Buf_A (Y * Tex_Size + X)));
+                     A : constant Uint8 := Uint8 (Alpha_F * 255.0);
+                  begin
+                     Pixels (Y * Pitch + X) :=
+                        Pack_Pixel (Key.Color_R, Key.Color_G, Key.Color_B, A);
+                  end;
+               end loop;
+            end loop;
+         end if;
+      end;
+
+      --  Upload to GPU texture
+      Texture := SDL_CreateTextureFromSurface (Renderer, Surface);
+      SDL_DestroySurface (Surface);
+
+      if Texture = null then
+         return null;
+      end if;
+
+      --  Enable alpha blending and linear scaling
+      Success := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
+      Success := SDL_SetTextureScaleMode (Texture, SDL_SCALEMODE_LINEAR);
+
+      return Texture;
+   end Generate_Shadow_Texture;
+
+   ---------------------------------------------------------------------------
+   --  Render_Box_Shadow
+   ---------------------------------------------------------------------------
+
+   procedure Render_Box_Shadow
+      (Renderer : SDL_Renderer_Ptr;
+       Geom     : Rectangle;
+       Style    : Resolved_Style)
+   is
+      Shadow   : Box_Shadow_Value renames Style.Box_Shadow;
+
+      --  Convert shadow parameters to pixels
+      Offset_X : constant Float :=
+         Float (Length_To_Px (Shadow.Offset_X, Geom.Width));
+      Offset_Y : constant Float :=
+         Float (Length_To_Px (Shadow.Offset_Y, Geom.Height));
+      Blur_Px  : constant Natural :=
+         Natural'Max (0, Natural (Length_To_Px (Shadow.Blur_Radius, Geom.Width)));
+      Spread_Px : constant Float :=
+         Float (Length_To_Px (Shadow.Spread_Radius, Geom.Width));
+
+      --  Get corner radius from style
+      Radius_Vals : constant Corner_Pixels :=
+         Get_Border_Radius_Px (Style.Border_Radius);
+      Max_Rad : constant Natural :=
+         Natural (Float'Max
+            (Float'Max (Radius_Vals.Top_Left, Radius_Vals.Top_Right),
+             Float'Max (Radius_Vals.Bottom_Right, Radius_Vals.Bottom_Left)));
+
+      --  Get shadow color
+      SR, SG, SB, SA : Uint8;
+
+      Key     : Shadow_Cache_Key;
+      Texture : SDL_Texture_Ptr;
+      Success : Adi.SDL.C_bool;
+
+      --  9-grid border = full blur extent (3*blur) + corner_radius
+      Grid_Border : constant Float := Float (3 * Blur_Px + Max_Rad);
+
+      --  Destination rect: widget rect expanded by spread + blur, offset
+      Dst : aliased SDL_FRect;
+   begin
+      CSS_Color_To_SDL (Shadow.Color, SR, SG, SB, SA);
+
+      if SA = 0 then
+         return;  --  Fully transparent shadow
+      end if;
+
+      Key := (Blur_Px       => Blur_Px,
+              Corner_Radius => Max_Rad,
+              Color_R       => SR,
+              Color_G       => SG,
+              Color_B       => SB,
+              Color_A       => SA);
+
+      --  Cache lookup or generate
+      declare
+         use Shadow_Maps;
+         Pos : constant Cursor := Shadow_Cache.Find (Key);
+      begin
+         if Pos /= No_Element then
+            Texture := Element (Pos);
+         else
+            --  Evict oldest if cache is full
+            if Natural (Shadow_Cache.Length) >= Max_Shadow_Cache_Size then
+               declare
+                  First_Pos : Cursor := Shadow_Cache.First;
+                  Old_Tex   : constant SDL_Texture_Ptr := Element (First_Pos);
+               begin
+                  SDL_DestroyTexture (Old_Tex);
+                  Shadow_Cache.Delete (First_Pos);
+               end;
+            end if;
+
+            Texture := Generate_Shadow_Texture (Renderer, Key);
+            if Texture = null then
+               return;
+            end if;
+            Shadow_Cache.Insert (Key, Texture);
+         end if;
+      end;
+
+      --  Compute destination rect
+      declare
+         Expand_Amt : constant Float := Spread_Px + Float (3 * Blur_Px);
+      begin
+         Dst.x := Float (Geom.X) - Expand_Amt + Offset_X;
+         Dst.y := Float (Geom.Y) - Expand_Amt + Offset_Y;
+         Dst.w := Float (Geom.Width) + 2.0 * Expand_Amt;
+         Dst.h := Float (Geom.Height) + 2.0 * Expand_Amt;
+      end;
+
+      --  Render using 9-grid stretching
+      Success := SDL_RenderTexture9Grid
+         (Renderer      => Renderer,
+          Texture       => Texture,
+          Srcrect       => null,
+          Left_Width    => Grid_Border,
+          Right_Width   => Grid_Border,
+          Top_Height    => Grid_Border,
+          Bottom_Height => Grid_Border,
+          Scale         => 1.0,
+          Dstrect       => Dst'Access);
+   end Render_Box_Shadow;
 
    ---------------------------------------------------------------------------
    --  Widget State Management
@@ -931,6 +1267,9 @@ package body Adi.Widget is
          begin
             case Current.Kind is
                when Panel_Item =>
+                  if Style.Box_Shadow /= No_Shadow then
+                     Render_Box_Shadow (Renderer, Current.Geometry, Style);
+                  end if;
                   Render_Panel (Renderer, Current.Geometry, Style);
                   Render_Background_Image (Renderer, Current.Geometry, Style);
 

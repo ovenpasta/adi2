@@ -562,21 +562,21 @@ def generate_color_ada(color: ParsedColor) -> str:
 def generate_box_ada(lengths: list[ParsedLength]) -> str:
     """Generate Ada code for box values (padding/margin)"""
     if len(lengths) == 1:
-        return f"Box ({generate_length_ada(lengths[0])})"
+        return f"CSS_Box ({generate_length_ada(lengths[0])})"
     elif len(lengths) == 2:
-        return f"Box ({generate_length_ada(lengths[0])}, {generate_length_ada(lengths[1])})"
+        return f"CSS_Box ({generate_length_ada(lengths[0])}, {generate_length_ada(lengths[1])})"
     elif len(lengths) == 4:
-        return (f"Box ({generate_length_ada(lengths[0])}, "
+        return (f"CSS_Box ({generate_length_ada(lengths[0])}, "
                 f"{generate_length_ada(lengths[1])}, "
                 f"{generate_length_ada(lengths[2])}, "
                 f"{generate_length_ada(lengths[3])})")
     elif len(lengths) == 3:
         # top, horizontal, bottom
-        return (f"Box ({generate_length_ada(lengths[0])}, "
+        return (f"CSS_Box ({generate_length_ada(lengths[0])}, "
                 f"{generate_length_ada(lengths[1])}, "
                 f"{generate_length_ada(lengths[2])}, "
                 f"{generate_length_ada(lengths[1])})")
-    return "Box (Zero_Length)"
+    return "CSS_Box (Zero_Length)"
 
 
 def generate_border_width_ada(lengths: list[ParsedLength]) -> str:

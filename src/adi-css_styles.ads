@@ -207,28 +207,28 @@ package Adi.CSS_Styles is
    Default_Border_Style : constant Border_Style_Value := Border_Style (None_Style);
 
    -------------------------------------------------
-   -- Box (padding/margin)
+   -- CSS_Box (padding/margin)
    -------------------------------------------------
 
-   type Box_Sides is array (Edge) of Length_Value;
-   type Box_Kind is (Gap_Uniform, Axis, Per_Side);
+   type CSS_Box_Sides is array (Edge) of Length_Value;
+   type CSS_Box_Kind is (Gap_Uniform, Axis, Per_Side);
 
-   type Box_Value (Kind : Box_Kind := Gap_Uniform) is record
+   type CSS_Box_Value (Kind : CSS_Box_Kind := Gap_Uniform) is record
       case Kind is
          when Gap_Uniform  => All_Sides : Length_Value := Zero_Length;
          when Axis     => Vertical, Horizontal : Length_Value := Zero_Length;
-         when Per_Side => Sides : Box_Sides := [others => Zero_Length];
+         when Per_Side => Sides : CSS_Box_Sides := [others => Zero_Length];
       end case;
    end record;
 
-   function Box (All_L : Length_Value) return Box_Value is
+   function CSS_Box (All_L : Length_Value) return CSS_Box_Value is
       ((Kind => Gap_Uniform, All_Sides => All_L));
-   function Box (Vertical, Horizontal : Length_Value) return Box_Value is
+   function CSS_Box (Vertical, Horizontal : Length_Value) return CSS_Box_Value is
       ((Kind => Axis, Vertical => Vertical, Horizontal => Horizontal));
-   function Box (Top, Right, Bottom, Left : Length_Value) return Box_Value is
+   function CSS_Box (Top, Right, Bottom, Left : Length_Value) return CSS_Box_Value is
       ((Kind => Per_Side, Sides => [Top, Right, Bottom, Left]));
 
-   Default_Box : constant Box_Value := Box (Zero_Length);
+   Default_CSS_Box : constant CSS_Box_Value := CSS_Box (Zero_Length);
 
    -------------------------------------------------
    -- Size (width/height/font-size)
@@ -576,7 +576,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    package Opt_Border_Width  is new Optional_Values (Border_Width_Value, Default_Border_Width);
    package Opt_Border_Color  is new Optional_Values (Border_Color_Value, Default_Border_Color_Val);
    package Opt_Border_Style  is new Optional_Values (Border_Style_Value, Default_Border_Style);
-   package Opt_Box           is new Optional_Values (Box_Value, Default_Box);
+   package Opt_Box           is new Optional_Values (CSS_Box_Value, Default_CSS_Box);
    package Opt_Size          is new Optional_Values (Size_Value, Default_Size);
    package Opt_Font_Size     is new Optional_Values (Length_Value, Default_Font_Size);
    package Opt_Display       is new Optional_Values (Display_Value, Default_Display);
@@ -704,8 +704,8 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Border_Style     : Border_Style_Value;
 
       -- Spacing
-      Padding          : Box_Value;
-      Margin           : Box_Value;
+      Padding          : CSS_Box_Value;
+      Margin           : CSS_Box_Value;
 
       -- Sizing
       Width            : Size_Value;
@@ -783,8 +783,8 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    No_Border_Color : constant Opt_Border_Color.Optional := Opt_Border_Color.Cleared;
    No_Border_Style : constant Opt_Border_Style.Optional := Opt_Border_Style.Cleared;
 
-   -- Box
-   function Set (V : Box_Value) return Opt_Box.Optional renames Opt_Box.Val;
+   -- CSS_Box
+   function Set (V : CSS_Box_Value) return Opt_Box.Optional renames Opt_Box.Val;
    No_Box : constant Opt_Box.Optional := Opt_Box.Cleared;
 
    -- Size
@@ -860,7 +860,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Border_Color     => Set (Border_Color (C (Light_Gray))),
       Border_Style     => Set (Border_Style (Solid)),
       Border_Radius    => Set (Radius (Dip (8))),
-      Padding          => Set (Box (Dip (16))),
+      Padding          => Set (CSS_Box (Dip (16))),
       others           => <>
    );
 
@@ -875,7 +875,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Border_Color     => Set (Border_Color (C (Blue))),
       Border_Style     => Set (Border_Style (Solid)),
       Border_Radius    => Set (Radius (Dip (6))),
-      Padding          => Set (Box (Dip (12), Dip (24))),
+      Padding          => Set (CSS_Box (Dip (12), Dip (24))),
       Font_Size        => Set_Font (Dip (14)),
       Cursor           => Set (Cursor_Pointer),
       others           => <>

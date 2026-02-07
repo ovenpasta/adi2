@@ -5,16 +5,19 @@ with Adi.Widget.Box;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
 with Adi.Widget.Label;
+with Adi.Image;
 
-procedure Main is
+procedure Widget_Demo is
    A : Adi.App.App;
 
    --  Aliases to avoid ambiguity with Adi.CSS_Styles.Box
    function Style return Style_Builder renames Adi.Widget_Styles.Create;
-   function Padding_Box (All_L : Length_Value) return Box_Value renames Adi.CSS_Styles.Box;
-   function Padding_Box (Vertical, Horizontal : Length_Value) return Box_Value renames Adi.CSS_Styles.Box;
+   function Padding_Box (All_L : Length_Value) return CSS_Box_Value renames Adi.CSS_Styles.CSS_Box;
+   function Padding_Box (Vertical, Horizontal : Length_Value) return CSS_Box_Value renames Adi.CSS_Styles.CSS_Box;
    function Gap_Value (All_L : Length_Value) return Adi.CSS_Styles.Gap_Value renames Adi.CSS_Styles.Gap;
    function Size_Val (L : Length_Value) return Size_Value renames Adi.CSS_Styles.Size;
+
+   use type Adi.Image.Image_Access;
 
 begin
    A.Init;
@@ -28,7 +31,7 @@ begin
       --  Top row: two cards side by side
       Top_Row : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
-      --  Card-style box
+      --  Card-style box (will have a background image)
       Card_Box : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
       --  Card 2 with orange border
@@ -52,7 +55,13 @@ begin
       --  Text label
       Title_Label : Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Hello Adi Framework!");
 
+      --  Background image for Card_Box
+      Bg : Adi.Image.Image_Access;
+
    begin
+      --  Try to load a background image
+      Bg := W.Load_Image ("bg.png");
+
       --  Style the root container (dark bg, flex column, fills window)
       Set_Part_Style (Root_Box.all, Main_Part,
          Style
@@ -77,11 +86,14 @@ begin
                others           => <>))
             .Build);
 
-      --  Style the card box (white with rounded corners and border, grows)
+      --  Style the card box (white with rounded corners, border, and background image)
       Set_Part_Style (Card_Box.all, Main_Part,
          Style
             .Base ((
                Background_Color => Set_Bg (C (Adi.CSS_Styles.White)),
+               Background_Image => (if Bg /= null
+                                    then Set_Bg_Image (Background_Image (Bg))
+                                    else Opt_Bg_Image.Unset),
                Border_Width     => Set (Border_Width (Px (2.0))),
                Border_Color     => Set (Border_Color (RGB (200, 200, 200))),
                Border_Style     => Set (Border_Style (Adi.CSS_Styles.Solid)),
@@ -230,4 +242,4 @@ begin
       A.Add_Window (W);
       A.Run;
    end;
-end Main;
+end Widget_Demo;

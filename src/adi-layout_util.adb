@@ -39,10 +39,10 @@ package body Adi.Layout_Util is
    end Size_To_Px;
 
    -------------------------------------------------
-   -- Box to Pixels
+   -- CSS_Box to Pixels
    -------------------------------------------------
 
-   function Box_To_Pixels (B : Box_Value) return Edge_Pixels is
+   function Box_To_Pixels (B : CSS_Box_Value) return Edge_Pixels is
    begin
       case B.Kind is
          when Gap_Uniform =>

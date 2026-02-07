@@ -20,7 +20,7 @@ procedure Label_Example is
    function RGB (R, G, B : Natural) return Color_Value renames Adi.CSS_Styles.RGB;
    function Set_Bg (V : Color_Value) return Opt_Bg_Color.Optional renames Adi.CSS_Styles.Set_Bg;
    function Radius (All_L : Length_Value) return Border_Radius_Value renames Adi.CSS_Styles.Radius;
-   function Padding_Box (All_L : Length_Value) return Box_Value renames Adi.CSS_Styles.Box;
+   function Padding_Box (All_L : Length_Value) return CSS_Box_Value renames Adi.CSS_Styles.CSS_Box;
    function Gap_Value (All_L : Length_Value) return Gap_Value renames Adi.CSS_Styles.Gap;
    function Size_Val (L : Length_Value) return Size_Value renames Adi.CSS_Styles.Size;
 

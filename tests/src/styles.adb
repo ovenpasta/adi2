@@ -106,7 +106,7 @@ procedure Main is
       end case;
    end Print_Border_Width;
 
-   procedure Print_Box (Name : String; B : Box_Value) is
+   procedure Print_Box (Name : String; B : CSS_Box_Value) is
    begin
       Put (Name & ": ");
       case B.Kind is
@@ -162,7 +162,7 @@ procedure Main is
         Align_Items      => Set (Center),
         Background_Color => Set_Bg (C (Blue)),
         Color            => Set (C (White)),
-        Padding          => Set (Box (Dip (12), Dip (24))),
+        Padding          => Set (CSS_Box (Dip (12), Dip (24))),
         Border_Radius    => Set (Radius (Dip (6))),
         Border_Width     => Set (Border_Width (Dip (0))),
         Border_Color     => Set (Border_Color (C (Blue))),

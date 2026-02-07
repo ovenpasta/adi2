@@ -297,7 +297,7 @@ package body Adi.Widget.Part_Styles is
              Background_Color => Set_Bg (C (Blue)),
              Border_Width     => Set (Border_Width (Px (0))),
              Border_Radius    => Set (Radius (Px (6))),
-             Padding          => Set (Box (Px (12), Px (24))),
+             Padding          => Set (CSS_Box (Px (12), Px (24))),
              Cursor           => Set (Cursor_Pointer),
              others           => <>))
           .On_Hover ((
@@ -357,7 +357,7 @@ package body Adi.Widget.Part_Styles is
              Border_Color     => Set (Border_Color (C (Blue))),
              Border_Style     => Set (Border_Style (Solid)),
              Border_Radius    => Set (Radius (Px (6))),
-             Padding          => Set (Box (Px (10), Px (22))),
+             Padding          => Set (CSS_Box (Px (10), Px (22))),
              Cursor           => Set (Cursor_Pointer),
              others           => <>))
           .On_Hover ((
@@ -402,7 +402,7 @@ package body Adi.Widget.Part_Styles is
              Background_Color => Set_Bg (C (Red)),
              Border_Width     => Set (Border_Width (Px (0))),
              Border_Radius    => Set (Radius (Px (6))),
-             Padding          => Set (Box (Px (12), Px (24))),
+             Padding          => Set (CSS_Box (Px (12), Px (24))),
              Cursor           => Set (Cursor_Pointer),
              others           => <>))
           .On_Hover ((
@@ -446,7 +446,7 @@ package body Adi.Widget.Part_Styles is
              Border_Color     => Set (Border_Color (C (Light_Gray))),
              Border_Style     => Set (Border_Style (Solid)),
              Border_Radius    => Set (Radius (Px (8))),
-             Padding          => Set (Box (Px (16))),
+             Padding          => Set (CSS_Box (Px (16))),
              others           => <>))
           .On_Hover ((
              Border_Color => Set (Border_Color (C (Gray))),

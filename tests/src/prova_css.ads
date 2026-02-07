@@ -15,7 +15,7 @@ package Generated_Styles is
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (0, 102, 204)),
       Color => Set (C (White)),
-      Padding => Set (Box (Px (12.0), Px (24.0))),
+      Padding => Set (CSS_Box (Px (12.0), Px (24.0))),
       Border_Radius => Set (Radius (Px (6.0))),
       Border_Width => Set (Border_Width (Px (2.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -62,7 +62,7 @@ package Generated_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (C (Light_Gray))),
       Border_Radius => Set (Radius (Px (8.0))),
-      Padding => Set (Box (Px (16.0))),
+      Padding => Set (CSS_Box (Px (16.0))),
       others => <>
    );
 

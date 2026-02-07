@@ -26,8 +26,8 @@ package Adi.Layout_Util is
    function Get_Margin_Px (Style : Resolved_Style) return Edge_Pixels;
    function Get_Border_Width_Px (Style : Resolved_Style) return Edge_Pixels;
 
-   --  Helper to convert Box_Value to Edge_Pixels
-   function Box_To_Pixels (B : Box_Value) return Edge_Pixels;
+   --  Helper to convert CSS_Box_Value to Edge_Pixels
+   function Box_To_Pixels (B : CSS_Box_Value) return Edge_Pixels;
    function Border_To_Pixels (B : Border_Width_Value) return Edge_Pixels;
 
    -------------------------------------------------

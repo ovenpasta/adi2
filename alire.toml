@@ -10,10 +10,6 @@ tags = ["gui"]
 
 [[actions]]
 type = "post-build"
-command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=prova"]
-
-[[actions]]
-type = "post-build"
 command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=styles"]
 
 [[actions]]
@@ -31,6 +27,10 @@ command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=ttf_exampl
 [[actions]]
 type = "post-build"
 command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=label_example"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=widget_demo"]
 
 
 [[depends-on]]

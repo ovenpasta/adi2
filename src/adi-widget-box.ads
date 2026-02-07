@@ -21,8 +21,9 @@ package Adi.Widget.Box is
 
 private
 
-   --  Fixed item index for Box_Widget items vector
-   Panel_Idx : constant Positive := 1;
+   --  Fixed item indices for Box_Widget items vector
+   Panel_Idx    : constant Positive := 1;
+   Bg_Image_Idx : constant Positive := 2;
 
    type Box_Widget is new Widget with null record;
 

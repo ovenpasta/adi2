@@ -1,0 +1,65 @@
+with Adi.Widget.Label; use Adi.Widget.Label;
+
+package Adi.Widget.Button is
+
+   ---------------------------------------------------------------------------
+   --  Button Widget - Clickable button with optional toggle behavior
+   --
+   --  Inherits from Label_Widget: text, icon, panel items, flex layout.
+   --  Adds click/toggle callbacks and group coordination.
+   ---------------------------------------------------------------------------
+
+   type Button_Widget is new Label_Widget with private;
+   type Button_Widget_Access is access all Button_Widget'Class;
+
+   --  Construction
+   function Create (Text : String := "") return Button_Widget_Access;
+
+   --  Callback types
+   type Click_Callback is access procedure (Btn : Button_Widget_Access);
+   type Toggle_Callback is access procedure
+     (Btn : Button_Widget_Access; Active : Boolean);
+
+   --  Set callbacks
+   procedure Set_On_Clicked (W : in out Button_Widget; CB : Click_Callback);
+   procedure Set_On_Toggled (W : in out Button_Widget; CB : Toggle_Callback);
+
+   --  Toggle mode
+   procedure Set_Toggleable (W : in out Button_Widget;
+                             Value : Boolean := True);
+   function  Is_Toggleable  (W : Button_Widget) return Boolean;
+   function  Is_Toggled     (W : Button_Widget) return Boolean;
+   procedure Set_Toggled    (W : in out Button_Widget; Value : Boolean);
+
+   ---------------------------------------------------------------------------
+   --  Group Handler Interface
+   --
+   --  Used by Option_Group to coordinate radio-button behavior.
+   --  When a button has a Group link, toggle handling is delegated to the
+   --  group instead of being done locally.
+   ---------------------------------------------------------------------------
+
+   type Group_Handler is limited interface;
+   type Group_Handler_Access is access all Group_Handler'Class;
+
+   procedure On_Button_Clicked
+     (H   : in out Group_Handler;
+      Btn : Button_Widget_Access) is abstract;
+
+   --  Link/unlink a button to a group
+   procedure Set_Group (W : in out Button_Widget;
+                        G : Group_Handler_Access);
+
+   --  Click handler (dispatched from base Widget.On_Click)
+   overriding procedure On_Click (W : in out Button_Widget);
+
+private
+
+   type Button_Widget is new Label_Widget with record
+      Toggleable : Boolean := False;
+      On_Clicked : Click_Callback := null;
+      On_Toggled : Toggle_Callback := null;
+      Group      : Group_Handler_Access := null;
+   end record;
+
+end Adi.Widget.Button;

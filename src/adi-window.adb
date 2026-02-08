@@ -243,12 +243,17 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
    -- On_Mouse_Up --
    -----------------
     procedure On_Mouse_Up (W : in out Window; X, Y : Pixel_Type; Button : Mouse_Button) is
-      pragma Unreferenced (X, Y, Button);
+      pragma Unreferenced (Button);
    begin
       W.Mouse_Down := False;
 
-      --  Release pressed widget
+      --  Release pressed widget and dispatch click if applicable
       if W.Pressed_Widget /= null then
+         if Point_In_Widget (W.Pressed_Widget, X, Y)
+            and then Has_Flag (W.Pressed_Widget.all, Clickable)
+         then
+            On_Click (W.Pressed_Widget.all);
+         end if;
          Set_Pressed (W.Pressed_Widget.all, False);
          W.Pressed_Widget := null;
       end if;

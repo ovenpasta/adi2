@@ -315,11 +315,12 @@ package body Adi.Widget.Part_Styles is
       Label_Style : constant Widget_Style :=
         Adi.Widget_Styles.Create
           .Base ((
-             Color      => Set (C (White)),
-             Font_Size  => Set_Font (Px (14)),
-            Font_Weight     => Set (Weight_Medium),
-             Text_Align => Set (Text_Center),
-             others     => <>))
+             Color          => Set (C (White)),
+             Font_Size      => Set_Font (Px (14)),
+             Font_Weight    => Set (Weight_Medium),
+             Text_Align     => Set (Text_Center),
+             Text_Wrap_Mode => Set (TWM_Nowrap),
+             others         => <>))
           .On_Disabled ((
              Color => Set (C (Light_Gray)),
              others => <>))
@@ -375,11 +376,15 @@ package body Adi.Widget.Part_Styles is
       Label_Style : constant Widget_Style :=
         Adi.Widget_Styles.Create
           .Base ((
-             Color      => Set (C (Blue)),
-             Font_Size  => Set_Font (Px (14)),
-               Font_Weight     => Set (Weight_Medium),
-             Text_Align => Set (Text_Center),
-             others     => <>))
+             Color          => Set (C (Blue)),
+             Font_Size      => Set_Font (Px (14)),
+             Font_Weight    => Set (Weight_Medium),
+             Text_Align     => Set (Text_Center),
+             Text_Wrap_Mode => Set (TWM_Nowrap),
+             others         => <>))
+          .On_Hover ((
+             Color => Set (C (White)),
+             others => <>))
           .On_Disabled ((
              Color => Set (C (Gray)),
              others => <>))
@@ -420,11 +425,12 @@ package body Adi.Widget.Part_Styles is
       Label_Style : constant Widget_Style :=
         Adi.Widget_Styles.Create
           .Base ((
-             Color      => Set (C (White)),
-             Font_Size  => Set_Font (Px (14)),
-             Font_Weight     => Set (Weight_Medium),
-             Text_Align => Set (Text_Center),
-             others     => <>))
+             Color          => Set (C (White)),
+             Font_Size      => Set_Font (Px (14)),
+             Font_Weight    => Set (Weight_Medium),
+             Text_Align     => Set (Text_Center),
+             Text_Wrap_Mode => Set (TWM_Nowrap),
+             others         => <>))
           .On_Disabled ((
              Color => Set (C (Light_Gray)),
              others => <>))

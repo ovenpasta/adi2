@@ -32,6 +32,10 @@ command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=label_exam
 type = "post-build"
 command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=widget_demo"]
 
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=button_example"]
+
 
 [[depends-on]]
 gnatcoll_minimal = "^26.0.0"

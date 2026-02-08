@@ -245,6 +245,10 @@ package Adi.Widget is
    --  Handle layout calculation
    procedure Layout (W : in out Widget) is abstract;
 
+   --  Called when the widget is clicked (mouse-up within bounds of clickable widget)
+   --  Default does nothing; override in derived widgets (e.g., Button).
+   procedure On_Click (W : in out Widget) is null;
+
    ---------------------------------------------------------------------------
    --  Optional Overridable Methods
    ---------------------------------------------------------------------------

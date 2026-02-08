@@ -142,6 +142,8 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
 4. **Render Phase**: `Render_Items` draws each item using its computed style, geometry, and a `Render_Context` (which holds the renderer, shadow cache, and text engine)
    - Rounded borders always use `Render_Rounded_Border_Ring` (annulus) + separate background fill
    - Non-rounded borders use fast SDL rect primitives
+   - **Text positions are snapped to integer pixels** (`Float'Floor`) before drawing to prevent sub-pixel blurring from texture interpolation
+   - Font hinting uses `TTF_HINTING_LIGHT_SUBPIXEL` for consistent glyph quality across all font sizes
 
 ### SDL Integration
 

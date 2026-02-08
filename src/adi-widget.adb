@@ -1428,8 +1428,11 @@ package body Adi.Widget is
          Success := TTF_SetTextWrapWidth (Text_Obj, int (Geom.Width));
       end if;
 
-      --  Draw the text
-      Success := TTF_DrawRendererText (Text_Obj, C_float (Geom.X), C_float (Geom.Y));
+      --  Draw the text (snap to integer pixels to avoid sub-pixel blurring)
+      Success := TTF_DrawRendererText
+        (Text_Obj,
+         C_float (Float'Floor (Float (Geom.X))),
+         C_float (Float'Floor (Float (Geom.Y))));
    end Render_Text_Item;
 
    --  Render a texture clipped to a rounded rectangle via UV-mapped

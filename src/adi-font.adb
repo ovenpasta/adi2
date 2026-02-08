@@ -3,6 +3,7 @@ with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Adi.SDL;
+with Adi.SDL.TTF;           use Adi.SDL.TTF;
 with Interfaces.C;          use Interfaces.C;
 with Interfaces.C.Strings;  use Interfaces.C.Strings;
 
@@ -106,6 +107,10 @@ package body Adi.Font is
       C_Path := New_String (Path);
       F := TTF_OpenFont (C_Path, Size);
       Free (C_Path);
+
+      if F /= null then
+         TTF_SetFontHinting (F, TTF_HINTING_LIGHT_SUBPIXEL);
+      end if;
 
       if F = null then
          declare

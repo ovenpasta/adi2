@@ -140,6 +140,8 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
 2. **Style Resolution**: Each item references a `Part_Kind`, which has a `Widget_Style` that resolves to `Resolved_Style` based on current widget states
 3. **Layout Phase**: `Layout` calculates geometry for widget and children
 4. **Render Phase**: `Render_Items` draws each item using its computed style, geometry, and a `Render_Context` (which holds the renderer, shadow cache, and text engine)
+   - Rounded borders always use `Render_Rounded_Border_Ring` (annulus) + separate background fill
+   - Non-rounded borders use fast SDL rect primitives
 
 ### SDL Integration
 

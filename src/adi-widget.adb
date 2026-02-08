@@ -1036,6 +1036,197 @@ package body Adi.Widget is
           Num_Indices  => int (II));
    end Render_Rounded_Rect;
 
+   --  Render a rounded-rectangle border ring (annulus) between an outer and
+   --  inner rounded rect.  Used when the background is transparent so we
+   --  cannot use the "fill outer, overlay inner" approach.
+
+   procedure Render_Rounded_Border_Ring
+      (Renderer       : SDL_Renderer_Ptr;
+       Outer_Rect     : SDL_FRect;
+       Inner_Rect     : SDL_FRect;
+       Outer_Radii    : Corner_Pixels;
+       Inner_Radii    : Corner_Pixels;
+       R, G, B, A     : Uint8)
+   is
+      Max_Dim_O : constant Float := Float'Min (Outer_Rect.w, Outer_Rect.h) / 2.0;
+      O_TL : constant Float := Float'Min (Outer_Radii.Top_Left, Max_Dim_O);
+      O_TR : constant Float := Float'Min (Outer_Radii.Top_Right, Max_Dim_O);
+      O_BR : constant Float := Float'Min (Outer_Radii.Bottom_Right, Max_Dim_O);
+      O_BL : constant Float := Float'Min (Outer_Radii.Bottom_Left, Max_Dim_O);
+
+      Max_Dim_I : constant Float := Float'Min (Inner_Rect.w, Inner_Rect.h) / 2.0;
+      I_TL : constant Float := Float'Min (Float'Max (0.0, Inner_Radii.Top_Left), Max_Dim_I);
+      I_TR : constant Float := Float'Min (Float'Max (0.0, Inner_Radii.Top_Right), Max_Dim_I);
+      I_BR : constant Float := Float'Min (Float'Max (0.0, Inner_Radii.Bottom_Right), Max_Dim_I);
+      I_BL : constant Float := Float'Min (Float'Max (0.0, Inner_Radii.Bottom_Left), Max_Dim_I);
+
+      Max_R : constant Float :=
+         Float'Max (Float'Max (O_TL, O_TR), Float'Max (O_BR, O_BL));
+
+      Num_Seg : constant Positive :=
+         Positive'Max (8, Natural (Float'Floor (Max_R * 0.5)) + 1);
+
+      --  Two outlines (outer + inner), each with 4*(Num_Seg+1) points
+      N_Outline     : constant Natural := 4 * (Num_Seg + 1);
+      Total_Verts   : constant Natural := 2 * N_Outline;
+      Total_Indices : constant Natural := N_Outline * 6;  --  2 triangles per segment
+
+      Verts : SDL_Vertex_Array (0 .. Total_Verts - 1);
+      Idxs  : Int_Array (0 .. Total_Indices - 1);
+
+      VI : Natural := 0;
+      II : Natural := 0;
+
+      FC : constant SDL_FColor :=
+         (r => Float (R) / 255.0,
+          g => Float (G) / 255.0,
+          b => Float (B) / 255.0,
+          a => Float (A) / 255.0);
+
+      Zero_TC : constant SDL_FPoint := (x => 0.0, y => 0.0);
+
+      procedure Add_Vertex (X, Y : Float) is
+      begin
+         Verts (VI) := (position  => (x => X, y => Y),
+                        color     => FC,
+                        tex_coord => Zero_TC);
+         VI := VI + 1;
+      end Add_Vertex;
+
+      procedure Add_Triangle (IA, IB, IC : Natural) is
+      begin
+         Idxs (II)     := int (IA);
+         Idxs (II + 1) := int (IB);
+         Idxs (II + 2) := int (IC);
+         II := II + 3;
+      end Add_Triangle;
+
+      --  Outer rect edges
+      OX0 : constant Float := Outer_Rect.x;
+      OY0 : constant Float := Outer_Rect.y;
+      OX1 : constant Float := Outer_Rect.x + Outer_Rect.w;
+      OY1 : constant Float := Outer_Rect.y + Outer_Rect.h;
+
+      --  Inner rect edges
+      IX0 : constant Float := Inner_Rect.x;
+      IY0 : constant Float := Inner_Rect.y;
+      IX1 : constant Float := Inner_Rect.x + Inner_Rect.w;
+      IY1 : constant Float := Inner_Rect.y + Inner_Rect.h;
+
+      Step : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
+
+      Outer_Start : Natural;
+      Inner_Start : Natural;
+      Success     : Adi.SDL.C_bool;
+   begin
+      --  Generate outer outline points
+      Outer_Start := VI;
+
+      --  Top-left arc
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := Ada.Numerics.Pi + Float (I) * Step;
+         begin
+            Add_Vertex (OX0 + O_TL + O_TL * Cos (Angle),
+                        OY0 + O_TL + O_TL * Sin (Angle));
+         end;
+      end loop;
+      --  Top-right arc
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := 3.0 * Ada.Numerics.Pi / 2.0 + Float (I) * Step;
+         begin
+            Add_Vertex (OX1 - O_TR + O_TR * Cos (Angle),
+                        OY0 + O_TR + O_TR * Sin (Angle));
+         end;
+      end loop;
+      --  Bottom-right arc
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := Float (I) * Step;
+         begin
+            Add_Vertex (OX1 - O_BR + O_BR * Cos (Angle),
+                        OY1 - O_BR + O_BR * Sin (Angle));
+         end;
+      end loop;
+      --  Bottom-left arc
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := Ada.Numerics.Pi / 2.0 + Float (I) * Step;
+         begin
+            Add_Vertex (OX0 + O_BL + O_BL * Cos (Angle),
+                        OY1 - O_BL + O_BL * Sin (Angle));
+         end;
+      end loop;
+
+      --  Generate inner outline points (same arc order)
+      Inner_Start := VI;
+
+      --  Top-left arc
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := Ada.Numerics.Pi + Float (I) * Step;
+         begin
+            Add_Vertex (IX0 + I_TL + I_TL * Cos (Angle),
+                        IY0 + I_TL + I_TL * Sin (Angle));
+         end;
+      end loop;
+      --  Top-right arc
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := 3.0 * Ada.Numerics.Pi / 2.0 + Float (I) * Step;
+         begin
+            Add_Vertex (IX1 - I_TR + I_TR * Cos (Angle),
+                        IY0 + I_TR + I_TR * Sin (Angle));
+         end;
+      end loop;
+      --  Bottom-right arc
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := Float (I) * Step;
+         begin
+            Add_Vertex (IX1 - I_BR + I_BR * Cos (Angle),
+                        IY1 - I_BR + I_BR * Sin (Angle));
+         end;
+      end loop;
+      --  Bottom-left arc
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := Ada.Numerics.Pi / 2.0 + Float (I) * Step;
+         begin
+            Add_Vertex (IX0 + I_BL + I_BL * Cos (Angle),
+                        IY1 - I_BL + I_BL * Sin (Angle));
+         end;
+      end loop;
+
+      --  Build triangle strip between outer and inner outlines
+      for I in 0 .. N_Outline - 1 loop
+         declare
+            Next_I : constant Natural := (I + 1) mod N_Outline;
+         begin
+            --  Triangle 1: outer[i], outer[i+1], inner[i+1]
+            Add_Triangle (Outer_Start + I,
+                          Outer_Start + Next_I,
+                          Inner_Start + Next_I);
+            --  Triangle 2: outer[i], inner[i+1], inner[i]
+            Add_Triangle (Outer_Start + I,
+                          Inner_Start + Next_I,
+                          Inner_Start + I);
+         end;
+      end loop;
+
+      SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
+                  "SDL_SetRenderDrawBlendMode");
+
+      Success := SDL_RenderGeometry
+         (Renderer     => Renderer,
+          Texture      => null,
+          Vertices     => Verts (0)'Access,
+          Num_Vertices => int (VI),
+          Indices      => Idxs (0)'Access,
+          Num_Indices  => int (II));
+   end Render_Rounded_Border_Ring;
+
    procedure Render_Panel (
       Renderer : SDL_Renderer_Ptr;
       Geom     : Rectangle;
@@ -1073,60 +1264,56 @@ package body Adi.Widget is
       Rect.w := Float (Geom.Width);
       Rect.h := Float (Geom.Height);
 
-      --  Strategy for rounded border: draw the full outer rect in the
-      --  border color first, then draw the inner rect (inset by border
-      --  width) in the background color on top.  This gives clean,
-      --  uniform borders without triangle-strip artefacts.
-
       if Has_Radius then
-         --  1) Draw border fill (outer rounded rect with border color)
+
          if Has_Border then
-            case Style.Border_Color.Kind is
-               when Gap_Uniform =>
-                  CSS_Color_To_SDL (Style.Border_Color.All_Edges, R, G, B, A);
-               when Per_Edge =>
-                  CSS_Color_To_SDL (Style.Border_Color.Edges (Top), R, G, B, A);
-            end case;
-            if Uniform then
-               Render_Rounded_Rect (Renderer, Rect, Max_Rad, R, G, B, A);
-            else
-               Render_Rounded_Rect (Renderer, Rect, Radius_Px, R, G, B, A);
-            end if;
-         end if;
+            --  Render border as a ring (annulus), then fill the interior.
+            declare
+               Inner : constant SDL_FRect :=
+                  (x => Rect.x + BW_Top,
+                   y => Rect.y + BW_Top,
+                   w => Float'Max (0.0, Rect.w - 2.0 * BW_Top),
+                   h => Float'Max (0.0, Rect.h - 2.0 * BW_Top));
+               Inner_Radii : constant Corner_Pixels :=
+                  (Top_Left     => Float'Max (0.0, Radius_Px.Top_Left - BW_Top),
+                   Top_Right    => Float'Max (0.0, Radius_Px.Top_Right - BW_Top),
+                   Bottom_Right => Float'Max (0.0, Radius_Px.Bottom_Right - BW_Top),
+                   Bottom_Left  => Float'Max (0.0, Radius_Px.Bottom_Left - BW_Top));
+            begin
+               --  Border ring
+               case Style.Border_Color.Kind is
+                  when Gap_Uniform =>
+                     CSS_Color_To_SDL (Style.Border_Color.All_Edges, R, G, B, A);
+                  when Per_Edge =>
+                     CSS_Color_To_SDL (Style.Border_Color.Edges (Top), R, G, B, A);
+               end case;
+               Render_Rounded_Border_Ring
+                  (Renderer, Rect, Inner, Radius_Px, Inner_Radii, R, G, B, A);
 
-         --  2) Draw background (inner rounded rect)
-         if Style.Background_Color.Kind /= Named
-            or else Style.Background_Color.Name /= Transparent
-         then
-            CSS_Color_To_SDL (Style.Background_Color, R, G, B, A);
-
-            if Has_Border then
-               --  Inset rect by border width on all sides
-               declare
-                  Inner : constant SDL_FRect :=
-                     (x => Rect.x + BW_Top,
-                      y => Rect.y + BW_Top,
-                      w => Float'Max (0.0, Rect.w - 2.0 * BW_Top),
-                      h => Float'Max (0.0, Rect.h - 2.0 * BW_Top));
-                  Inner_Rad : constant Float :=
-                     Float'Max (0.0, Max_Rad - BW_Top);
-                  Inner_Radii : constant Corner_Pixels :=
-                     (Top_Left     => Float'Max (0.0, Radius_Px.Top_Left - BW_Top),
-                      Top_Right    => Float'Max (0.0, Radius_Px.Top_Right - BW_Top),
-                      Bottom_Right => Float'Max (0.0, Radius_Px.Bottom_Right - BW_Top),
-                      Bottom_Left  => Float'Max (0.0, Radius_Px.Bottom_Left - BW_Top));
-               begin
+               --  Background fill (skip for fully transparent)
+               if Style.Background_Color.Kind /= Named
+                  or else Style.Background_Color.Name /= Transparent
+               then
+                  CSS_Color_To_SDL (Style.Background_Color, R, G, B, A);
                   if Inner.w > 0.0 and then Inner.h > 0.0 then
                      if Uniform then
                         Render_Rounded_Rect
-                           (Renderer, Inner, Inner_Rad, R, G, B, A);
+                           (Renderer, Inner,
+                            Float'Max (0.0, Max_Rad - BW_Top), R, G, B, A);
                      else
                         Render_Rounded_Rect
                            (Renderer, Inner, Inner_Radii, R, G, B, A);
                      end if;
                   end if;
-               end;
-            else
+               end if;
+            end;
+
+         else
+            --  No border: just fill background
+            if Style.Background_Color.Kind /= Named
+               or else Style.Background_Color.Name /= Transparent
+            then
+               CSS_Color_To_SDL (Style.Background_Color, R, G, B, A);
                if Uniform then
                   Render_Rounded_Rect (Renderer, Rect, Max_Rad, R, G, B, A);
                else

@@ -1,6 +1,7 @@
 with Adi.Core;       use Adi.Core;
 with Adi.Event;      use Adi.Event;
 with Adi.Widget;     use Adi.Widget;
+with Adi.Render;     use Adi.Render;
 with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.Image;      use Adi.Image;
 with System;
@@ -50,6 +51,7 @@ private
     type Internal_Access is access Internal;
     type Window is new Ada.Finalization.Limited_Controlled with record
         Internal       : Internal_Access;
+        Ctx            : Render_Context;
         Root           : Widget_Access;
         Geometry       : Rectangle;
         Size           : Size_2D;  -- NEW: Track current size

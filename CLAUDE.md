@@ -92,6 +92,13 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
 - Discriminant-based event record with `Mouse_Move` event kind
 - Timestamp and mouse position/speed data
 
+**Adi.Render** (`adi-render.ads`): Per-renderer context and caches
+- `Render_Context`: Bundles an `SDL_Renderer_Ptr` with its per-renderer caches (shadow textures, TTF text engine)
+- Shadow texture cache with `Shadow_Key` lookup and LRU eviction (max 32 entries)
+- Lazy-created TTF text engine via `Get_Text_Engine`
+- Threaded through `Render_Items`, `Render_Tree`, `Update_And_Render` instead of raw `SDL_Renderer_Ptr`
+- Owned by `Adi.Window`; created after the renderer, destroyed before it
+
 **Adi.Image** (`adi-image.ads`): Image resource management
 - SDL texture wrapper with file loading
 - Size queries and lifecycle management
@@ -104,7 +111,7 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
 - Widget flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`
 - Dirty tracking for efficient updates
 - Abstract methods: `Build_Items` (construct renderable items), `Layout` (calculate geometry)
-- Concrete rendering: `Render_Items`, `Render_Tree`, `Update_And_Render`
+- Concrete rendering: `Render_Items`, `Render_Tree`, `Update_And_Render` (take `Render_Context`)
 - Image rendering: `Render_Rounded_Image` clips textures to rounded rects via UV-mapped triangle fans
 - `object-fit` modes: `Fill`, `Cover` (UV cropping), `Contain`, `None`, `Scale_Down`
 - Contain/None/Scale_Down adjust corner radii based on image inset from container edges
@@ -118,6 +125,7 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
 
 **Adi.Window** (`adi-window.ads`): Window management
 - Wraps SDL window and renderer
+- Owns a `Render_Context` for per-renderer caches
 - Root widget container
 - Mouse event handling with widget hit testing
 - Window resize/reshape handling
@@ -131,7 +139,7 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
 1. **Build Phase**: `Build_Items` creates renderable `Item` records for each visual element
 2. **Style Resolution**: Each item references a `Part_Kind`, which has a `Widget_Style` that resolves to `Resolved_Style` based on current widget states
 3. **Layout Phase**: `Layout` calculates geometry for widget and children
-4. **Render Phase**: `Render_Items` draws each item using its computed style and geometry
+4. **Render Phase**: `Render_Items` draws each item using its computed style, geometry, and a `Render_Context` (which holds the renderer, shadow cache, and text engine)
 
 ### SDL Integration
 
@@ -203,6 +211,7 @@ All packages are rooted under `Adi`:
 - `Adi.Font` - Font loading and caching
 - `Adi.Image` - Image resource management
 - `Adi.Layout_Util` - Layout algorithms
+- `Adi.Render` - Per-renderer context and caches
 - `Adi.Window` - Window management
 - `Adi.App` - Application entry point
 - `Adi.SDL.*` - SDL3 bindings (core, Video, Render, Events, Mouse, TTF, Image, Surface, PixelFormat)

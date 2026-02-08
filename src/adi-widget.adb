@@ -1,5 +1,4 @@
 
-with Ada.Containers.Ordered_Maps;
 with Ada.Numerics.Elementary_Functions; use Ada.Numerics.Elementary_Functions;
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Text_IO;
@@ -23,41 +22,12 @@ package body Adi.Widget is
    Default_Resolved : constant Resolved_Style := Resolve (Empty_Style);
 
    ---------------------------------------------------------------------------
-   --  Shadow Texture Cache
-   ---------------------------------------------------------------------------
-
-   type Shadow_Cache_Key is record
-      Blur_Px       : Natural;
-      Corner_Radius : Natural;
-      Color_R       : Uint8;
-      Color_G       : Uint8;
-      Color_B       : Uint8;
-      Color_A       : Uint8;
-   end record;
-
-   function "<" (L, R : Shadow_Cache_Key) return Boolean is
-   begin
-      if L.Blur_Px /= R.Blur_Px then return L.Blur_Px < R.Blur_Px; end if;
-      if L.Corner_Radius /= R.Corner_Radius then return L.Corner_Radius < R.Corner_Radius; end if;
-      if L.Color_R /= R.Color_R then return L.Color_R < R.Color_R; end if;
-      if L.Color_G /= R.Color_G then return L.Color_G < R.Color_G; end if;
-      if L.Color_B /= R.Color_B then return L.Color_B < R.Color_B; end if;
-      return L.Color_A < R.Color_A;
-   end "<";
-
-   package Shadow_Maps is new Ada.Containers.Ordered_Maps
-      (Key_Type => Shadow_Cache_Key, Element_Type => SDL_Texture_Ptr);
-
-   Shadow_Cache : Shadow_Maps.Map;
-   Max_Shadow_Cache_Size : constant := 32;
-
-   ---------------------------------------------------------------------------
    --  Generate_Shadow_Texture
    ---------------------------------------------------------------------------
 
    function Generate_Shadow_Texture
       (Renderer : SDL_Renderer_Ptr;
-       Key      : Shadow_Cache_Key) return SDL_Texture_Ptr
+       Key      : Shadow_Key) return SDL_Texture_Ptr
    is
       Blur   : constant Natural := Key.Blur_Px;
       Radius : constant Natural := Key.Corner_Radius;
@@ -254,10 +224,11 @@ package body Adi.Widget is
    ---------------------------------------------------------------------------
 
    procedure Render_Box_Shadow
-      (Renderer : SDL_Renderer_Ptr;
-       Geom     : Rectangle;
-       Style    : Resolved_Style)
+      (Ctx   : in out Render_Context;
+       Geom  : Rectangle;
+       Style : Resolved_Style)
    is
+      Renderer : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
       Shadow   : Box_Shadow_Value renames Style.Box_Shadow;
 
       --  Convert shadow parameters to pixels
@@ -281,7 +252,7 @@ package body Adi.Widget is
       --  Get shadow color
       SR, SG, SB, SA : Uint8;
 
-      Key     : Shadow_Cache_Key;
+      Key     : Shadow_Key;
       Texture : SDL_Texture_Ptr;
       Success : Adi.SDL.C_bool;
 
@@ -305,31 +276,14 @@ package body Adi.Widget is
               Color_A       => SA);
 
       --  Cache lookup or generate
-      declare
-         use Shadow_Maps;
-         Pos : constant Cursor := Shadow_Cache.Find (Key);
-      begin
-         if Pos /= No_Element then
-            Texture := Element (Pos);
-         else
-            --  Evict oldest if cache is full
-            if Natural (Shadow_Cache.Length) >= Max_Shadow_Cache_Size then
-               declare
-                  First_Pos : Cursor := Shadow_Cache.First;
-                  Old_Tex   : constant SDL_Texture_Ptr := Element (First_Pos);
-               begin
-                  SDL_DestroyTexture (Old_Tex);
-                  Shadow_Cache.Delete (First_Pos);
-               end;
-            end if;
-
-            Texture := Generate_Shadow_Texture (Renderer, Key);
-            if Texture = null then
-               return;
-            end if;
-            Shadow_Cache.Insert (Key, Texture);
+      Texture := Find_Shadow (Ctx, Key);
+      if Texture = null then
+         Texture := Generate_Shadow_Texture (Renderer, Key);
+         if Texture = null then
+            return;
          end if;
-      end;
+         Store_Shadow (Ctx, Key, Texture);
+      end if;
 
       --  Compute destination rect
       declare
@@ -1211,37 +1165,33 @@ package body Adi.Widget is
       end if;
    end Render_Panel;
 
-   --  Global text engine (created once per renderer)
-   Global_Text_Engine : TTF_TextEngine_Access := null;
-
    procedure Render_Text_Item (
-      Renderer : SDL_Renderer_Ptr;
-      It       : in out Item)
+      Ctx : in out Render_Context;
+      It  : in out Item)
    is
       use Interfaces.C;
       use Interfaces.C.Strings;
 
-      Content  : constant String := To_String (It.Text_Content);
-      Style    : Resolved_Style renames It.Computed_Style;
-      Geom     : Rectangle renames It.Geometry;
-      Text_Obj : TTF_Text_Access;
-      Font     : TTF_Font_Access;
-      C_Text   : chars_ptr;
-      Font_Sz  : Float;
+      Content    : constant String := To_String (It.Text_Content);
+      Style      : Resolved_Style renames It.Computed_Style;
+      Geom       : Rectangle renames It.Geometry;
+      Text_Obj   : TTF_Text_Access;
+      Font       : TTF_Font_Access;
+      C_Text     : chars_ptr;
+      Font_Sz    : Float;
       R, G, B, A : Uint8;
-      Success  : Adi.SDL.C_bool;
+      Success    : Adi.SDL.C_bool;
+      Engine     : TTF_TextEngine_Access;
    begin
       if Style.Visibility = Visibility_Hidden or else Content'Length = 0 then
          return;
       end if;
 
-      --  Create text engine if not already created
-      if Global_Text_Engine = null then
-         Global_Text_Engine := TTF_CreateRendererTextEngine (Renderer);
-         if Global_Text_Engine = null then
-            Ada.Text_IO.Put_Line ("ERROR: Failed to create text engine");
-            return;
-         end if;
+      --  Get text engine from render context (created lazily)
+      Engine := Get_Text_Engine (Ctx);
+      if Engine = null then
+         Ada.Text_IO.Put_Line ("ERROR: Failed to create text engine");
+         return;
       end if;
 
       --  Calculate font size
@@ -1262,7 +1212,7 @@ package body Adi.Widget is
       if Text_Obj = null then
          --  First time: create text object
          C_Text := New_String (Content);
-         Text_Obj := TTF_CreateText (Global_Text_Engine, Font, C_Text,
+         Text_Obj := TTF_CreateText (Engine, Font, C_Text,
                                      size_t (Content'Length));
          Free (C_Text);
 
@@ -1679,7 +1629,8 @@ package body Adi.Widget is
    --  Public Rendering Interface
    ---------------------------------------------------------------------------
 
-   procedure Render_Items (W : in out Widget'Class; Renderer : SDL_Renderer_Ptr) is
+   procedure Render_Items (W : in out Widget'Class; Ctx : in out Render_Context) is
+      Renderer : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
    begin
       for I in 1 .. Natural (W.Items.Length) loop
          declare
@@ -1689,12 +1640,12 @@ package body Adi.Widget is
             case Current.Kind is
                when Panel_Item =>
                   if Style.Box_Shadow /= No_Shadow then
-                     Render_Box_Shadow (Renderer, Current.Geometry, Style);
+                     Render_Box_Shadow (Ctx, Current.Geometry, Style);
                   end if;
                   Render_Panel (Renderer, Current.Geometry, Style);
 
                when Text_Item =>
-                  Render_Text_Item (Renderer, Current);
+                  Render_Text_Item (Ctx, Current);
 
                when Image_Item =>
                   Render_Image_Item (
@@ -1707,23 +1658,23 @@ package body Adi.Widget is
       end loop;
    end Render_Items;
 
-   procedure Render_Tree (W : in out Widget'Class; Renderer : SDL_Renderer_Ptr) is
+   procedure Render_Tree (W : in out Widget'Class; Ctx : in out Render_Context) is
    begin
       if not Has_Flag (W, Visible) then
          return;
       end if;
 
-      Render_Items (W, Renderer);
+      Render_Items (W, Ctx);
 
       for Child of W.Children loop
-         Render_Tree (Child.all, Renderer);
+         Render_Tree (Child.all, Ctx);
       end loop;
    end Render_Tree;
 
-   procedure Update_And_Render (W : in out Widget'Class; Renderer : SDL_Renderer_Ptr) is
+   procedure Update_And_Render (W : in out Widget'Class; Ctx : in out Render_Context) is
    begin
       Update (W);
-      Render_Tree (W, Renderer);
+      Render_Tree (W, Ctx);
    end Update_And_Render;
 ---------------------------------------------------------------------------
    --  Content Measurement

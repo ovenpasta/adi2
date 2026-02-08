@@ -37,6 +37,7 @@ package body Adi.Window is
         W.Internal := new Internal;
         W.Internal.win := Win_Ptr;
         W.Internal.ren := Ren_Ptr;
+        Adi.Render.Create (W.Ctx, Ren_Ptr);
         W.Size := S;
         W.Geometry := (0.0, 0.0, S.Width, S.Height);
       end return;
@@ -86,7 +87,7 @@ package body Adi.Window is
           Mark_Dirty(W.Root.all);
           Layout_Tree(W.Root.all);
           Update(W.Root.all);
-          Render_Tree(W.Root.all, W.Internal.ren);
+          Render_Tree(W.Root.all, W.Ctx);
 
           --  Present the rendered frame
           SDL_Assert (SDL_RenderPresent (W.Internal.ren), "SDL_RenderPresent");
@@ -294,6 +295,7 @@ function Get_Size (W : in out Window) return Size_2D is
       use Adi.SDL.Video;
       use Adi.SDL.Render;
    begin
+      Adi.Render.Destroy (W.Ctx);
       if W.Internal /= null then
          if W.Internal.ren /= null then
             SDL_DestroyRenderer (W.Internal.ren);

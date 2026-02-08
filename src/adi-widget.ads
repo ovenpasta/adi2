@@ -7,6 +7,7 @@ with Adi.CSS_Styles;        use Adi.CSS_Styles;
 with Adi.Layout_Util;       use Adi.Layout_Util;
 with Adi.SDL.Render;        use Adi.SDL.Render;
 with Adi.SDL.TTF.TextEngine;
+with Adi.Render;            use Adi.Render;
 with Adi.Image;             use Adi.Image;
 
 package Adi.Widget is
@@ -233,13 +234,13 @@ package Adi.Widget is
    ---------------------------------------------------------------------------
 
    --  Render all items of this widget using SDL renderer
-   procedure Render_Items (W : in out Widget'Class; Renderer : SDL_Renderer_Ptr);
+   procedure Render_Items (W : in out Widget'Class; Ctx : in out Render_Context);
 
    --  Render this widget and all children recursively
-   procedure Render_Tree (W : in out Widget'Class; Renderer : SDL_Renderer_Ptr);
+   procedure Render_Tree (W : in out Widget'Class; Ctx : in out Render_Context);
 
    --  Full update and render cycle
-   procedure Update_And_Render (W : in out Widget'Class; Renderer : SDL_Renderer_Ptr);
+   procedure Update_And_Render (W : in out Widget'Class; Ctx : in out Render_Context);
 
    --  Handle layout calculation
    procedure Layout (W : in out Widget) is abstract;

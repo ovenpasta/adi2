@@ -30,7 +30,8 @@ package body Adi.Widget.Box is
    begin
       if Item_Count (W) = 0 then
          Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));       --  Panel_Idx
-         Add_Item (W, Make_Image (Main_Part, W.Geometry, null, 1)); --  Bg_Image_Idx
+         Add_Item (W, Make_Image (Main_Part, W.Geometry, null, 1,
+                                  Is_Background => True)); --  Bg_Image_Idx
       end if;
 
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
@@ -40,13 +41,20 @@ package body Adi.Widget.Box is
          Bg_It : Item renames W.Items.Reference (Bg_Image_Idx).Element.all;
          Style : constant Resolved_Style :=
             Get_Resolved_Part_Style (W, Main_Part);
+         Border_W : constant Edge_Pixels := Get_Border_Width_Px (Style);
+         BW : constant Pixel_Type := Pixel_Type (Border_W.Top);
       begin
          if Style.Background_Image.Kind = Picture_Image then
             Bg_It.Image_Source := Style.Background_Image.Image;
          else
             Bg_It.Image_Source := null;
          end if;
-         Bg_It.Geometry := W.Geometry;
+         --  Inset by border width so the image doesn't cover the border
+         Bg_It.Geometry :=
+            (X      => W.Geometry.X + BW,
+             Y      => W.Geometry.Y + BW,
+             Width  => Pixel_Type'Max (0.0, W.Geometry.Width - 2.0 * BW),
+             Height => Pixel_Type'Max (0.0, W.Geometry.Height - 2.0 * BW));
       end;
    end Build_Items;
 

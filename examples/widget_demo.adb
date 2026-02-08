@@ -53,12 +53,16 @@ begin
       --  Text label
       Title_Label : Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Hello Adi Framework!");
 
-      --  Background image for Card_Box
+      --  Background image
       Bg : Adi.Image.Image_Access;
+      Bg_Style : Opt_Bg_Image.Optional;
 
    begin
       --  Try to load a background image
       Bg := W.Load_Image ("examples/bg.jpg");
+      if Bg /= null then
+         Bg_Style := Set_Bg_Image (Background_Image (Bg));
+      end if;
 
       --  Style the root container (dark bg, flex column, fills window)
       Set_Part_Style (Root_Box.all, Main_Part,
@@ -98,7 +102,7 @@ begin
                Border_Width     => Set (Border_Width (Px (2.0))),
                Border_Color     => Set (Border_Color (RGB (200, 200, 200))),
                Border_Style     => Set (Border_Style (Adi.CSS_Styles.Solid)),
-               Border_Radius    => Set (Radius (Px (12.0))),
+               Border_Radius    => Set (Radius (Px (4.0), Px (16.0), Px (32.0), Px (8.0))),
                Padding          => Set (CSS_Box (Px (20.0))),
                Flex_Grow        => Set (1.0),
                Box_Shadow       => Set (Shadow (Px (0), Px (4), Px (12), Px (0),
@@ -190,6 +194,8 @@ begin
          Style
             .Base ((
                Background_Color => Set_Bg (RGB (255, 255, 255)),
+               Background_Image => Bg_Style,
+               Object_Fit       => Set (Fit_Contain),
                Border_Radius    => Set (Radius (Px (6.0))),
                Border_Width     => Set (Border_Width (Px (1.0))),
                Border_Color     => Set (Border_Color (RGB (200, 200, 200))),

@@ -105,6 +105,10 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
 - Dirty tracking for efficient updates
 - Abstract methods: `Build_Items` (construct renderable items), `Layout` (calculate geometry)
 - Concrete rendering: `Render_Items`, `Render_Tree`, `Update_And_Render`
+- Image rendering: `Render_Rounded_Image` clips textures to rounded rects via UV-mapped triangle fans
+- `object-fit` modes: `Fill`, `Cover` (UV cropping), `Contain`, `None`, `Scale_Down`
+- Contain/None/Scale_Down adjust corner radii based on image inset from container edges
+- Per-corner border radius: `Render_Rounded_Rect` overload accepts `Corner_Pixels`
 
 **Adi.Layout_Util** (`adi-layout_util.ads`): Layout algorithms
 - Box model calculations: `Content_Box`, `Padding_Box`
@@ -230,7 +234,7 @@ The tool supports a comprehensive set of CSS properties including:
 - **Layout**: `display`, `position`, `overflow`, `visibility`, `opacity`
 - **Flexbox**: `flex-direction`, `flex-wrap`, `justify-content`, `align-items`, `align-self`, `align-content`, `gap`, `flex-grow`, `flex-shrink`, `flex-basis`, `order`
 - **Effects**: `box-shadow` (with offset, blur, spread, and color), `cursor`
-- **Images**: `object-fit`
+- **Images**: `object-fit`, `object-position`
 
 ### Box Shadow Syntax
 
@@ -272,3 +276,8 @@ Set via environment variable or GPR external:
 ```bash
 gprbuild -P adi.gpr -XADI_LIBRARY_TYPE=relocatable
 ```
+
+
+### Git
+Never add co-authored-by: line on commit messages
+

@@ -720,7 +720,8 @@ package body Adi.Widget is
    function Make_Image (Part : Part_Kind;
                         Geometry : Rectangle;
                         Source : Image_Access;
-                        Z_Order : Natural := 0) return Item is
+                        Z_Order : Natural := 0;
+                        Is_Background : Boolean := False) return Item is
    begin
       return (Kind           => Image_Item,
               Geometry       => Geometry,
@@ -728,6 +729,7 @@ package body Adi.Widget is
               Z_Order        => Z_Order,
               Computed_Style => Default_Resolved,
               Image_Source   => Source,
+              Is_Background  => Is_Background,
               others         => <>);
    end Make_Image;
 
@@ -924,6 +926,162 @@ package body Adi.Widget is
           Num_Indices  => int (II));
    end Render_Rounded_Rect;
 
+   --  Rounded rectangle with per-corner radii using center-fan triangulation.
+   --  The outline is built from 4 arcs (one per corner) and filled with
+   --  triangles fanning from the rectangle center.  Corners with radius 0
+   --  collapse to a single point, producing degenerate (zero-area) triangles
+   --  that are harmlessly discarded by the GPU.
+
+   procedure Render_Rounded_Rect
+      (Renderer : SDL_Renderer_Ptr;
+       Rect     : SDL_FRect;
+       Radii    : Corner_Pixels;
+       R, G, B, A : Uint8)
+   is
+      --  Clamp each radius to half the smallest dimension
+      Max_Dim : constant Float := Float'Min (Rect.w, Rect.h) / 2.0;
+      R_TL : constant Float := Float'Min (Radii.Top_Left, Max_Dim);
+      R_TR : constant Float := Float'Min (Radii.Top_Right, Max_Dim);
+      R_BR : constant Float := Float'Min (Radii.Bottom_Right, Max_Dim);
+      R_BL : constant Float := Float'Min (Radii.Bottom_Left, Max_Dim);
+
+      Max_R : constant Float :=
+         Float'Max (Float'Max (R_TL, R_TR), Float'Max (R_BR, R_BL));
+
+      --  Segments per corner arc (based on largest radius)
+      Num_Seg : constant Positive :=
+         Positive'Max (8, Natural (Float'Floor (Max_R * 0.5)) + 1);
+
+      --  Outline: 4 arcs of (Num_Seg + 1) points each
+      --  + 1 center vertex for fan triangulation
+      N_Outline     : constant Natural := 4 * (Num_Seg + 1);
+      Total_Verts   : constant Natural := N_Outline + 1;
+      Total_Indices : constant Natural := N_Outline * 3;
+
+      Verts : SDL_Vertex_Array (0 .. Total_Verts - 1);
+      Idxs  : Int_Array (0 .. Total_Indices - 1);
+
+      VI : Natural := 0;
+      II : Natural := 0;
+
+      FC : constant SDL_FColor :=
+         (r => Float (R) / 255.0,
+          g => Float (G) / 255.0,
+          b => Float (B) / 255.0,
+          a => Float (A) / 255.0);
+
+      Zero_TC : constant SDL_FPoint := (x => 0.0, y => 0.0);
+
+      procedure Add_Vertex (X, Y : Float) is
+      begin
+         Verts (VI) := (position  => (x => X, y => Y),
+                        color     => FC,
+                        tex_coord => Zero_TC);
+         VI := VI + 1;
+      end Add_Vertex;
+
+      procedure Add_Triangle (IA, IB, IC : Natural) is
+      begin
+         Idxs (II)     := int (IA);
+         Idxs (II + 1) := int (IB);
+         Idxs (II + 2) := int (IC);
+         II := II + 3;
+      end Add_Triangle;
+
+      X0 : constant Float := Rect.x;
+      Y0 : constant Float := Rect.y;
+      X1 : constant Float := Rect.x + Rect.w;
+      Y1 : constant Float := Rect.y + Rect.h;
+
+      Center_Idx    : Natural;
+      First_Outline : Natural;
+      Step : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
+      Success : Adi.SDL.C_bool;
+   begin
+      if Max_R < 1.0 then
+         declare
+            R2 : aliased SDL_FRect := Rect;
+         begin
+            SDL_Assert (SDL_SetRenderDrawColor (Renderer, R, G, B, A),
+                        "SDL_SetRenderDrawColor");
+            SDL_Assert (SDL_RenderFillRect (Renderer, R2'Access),
+                        "SDL_RenderFillRect");
+            return;
+         end;
+      end if;
+
+      --  Center vertex for fan
+      Center_Idx := VI;
+      Add_Vertex ((X0 + X1) / 2.0, (Y0 + Y1) / 2.0);
+
+      First_Outline := VI;
+
+      --  Top-left arc: center (X0+R_TL, Y0+R_TL), from PI to 3*PI/2
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float :=
+               Ada.Numerics.Pi + Float (I) * Step;
+         begin
+            Add_Vertex (X0 + R_TL + R_TL * Cos (Angle),
+                        Y0 + R_TL + R_TL * Sin (Angle));
+         end;
+      end loop;
+
+      --  Top-right arc: center (X1-R_TR, Y0+R_TR), from 3*PI/2 to 2*PI
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float :=
+               3.0 * Ada.Numerics.Pi / 2.0 + Float (I) * Step;
+         begin
+            Add_Vertex (X1 - R_TR + R_TR * Cos (Angle),
+                        Y0 + R_TR + R_TR * Sin (Angle));
+         end;
+      end loop;
+
+      --  Bottom-right arc: center (X1-R_BR, Y1-R_BR), from 0 to PI/2
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := Float (I) * Step;
+         begin
+            Add_Vertex (X1 - R_BR + R_BR * Cos (Angle),
+                        Y1 - R_BR + R_BR * Sin (Angle));
+         end;
+      end loop;
+
+      --  Bottom-left arc: center (X0+R_BL, Y1-R_BL), from PI/2 to PI
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float :=
+               Ada.Numerics.Pi / 2.0 + Float (I) * Step;
+         begin
+            Add_Vertex (X0 + R_BL + R_BL * Cos (Angle),
+                        Y1 - R_BL + R_BL * Sin (Angle));
+         end;
+      end loop;
+
+      --  Fan triangles from center to consecutive outline pairs
+      for I in 0 .. N_Outline - 1 loop
+         declare
+            Next_I : constant Natural := (I + 1) mod N_Outline;
+         begin
+            Add_Triangle (Center_Idx,
+                          First_Outline + I,
+                          First_Outline + Next_I);
+         end;
+      end loop;
+
+      SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
+                  "SDL_SetRenderDrawBlendMode");
+
+      Success := SDL_RenderGeometry
+         (Renderer     => Renderer,
+          Texture      => null,
+          Vertices     => Verts (0)'Access,
+          Num_Vertices => int (VI),
+          Indices      => Idxs (0)'Access,
+          Num_Indices  => int (II));
+   end Render_Rounded_Rect;
+
    procedure Render_Panel (
       Renderer : SDL_Renderer_Ptr;
       Geom     : Rectangle;
@@ -937,6 +1095,7 @@ package body Adi.Widget is
       Has_Radius : Boolean;
       Has_Border : Boolean;
       BW_Top     : Float;
+      Uniform    : Boolean;
    begin
       if Style.Visibility = Visibility_Hidden then
          return;
@@ -950,6 +1109,9 @@ package body Adi.Widget is
       Has_Radius := Max_Rad > 0.0;
       BW_Top := Float (Border_W.Top);
       Has_Border := BW_Top > 0.0;
+      Uniform := Radius_Px.Top_Left = Radius_Px.Top_Right
+         and then Radius_Px.Top_Right = Radius_Px.Bottom_Right
+         and then Radius_Px.Bottom_Right = Radius_Px.Bottom_Left;
 
       --  Set up outer rectangle geometry
       Rect.x := Float (Geom.X);
@@ -971,7 +1133,11 @@ package body Adi.Widget is
                when Per_Edge =>
                   CSS_Color_To_SDL (Style.Border_Color.Edges (Top), R, G, B, A);
             end case;
-            Render_Rounded_Rect (Renderer, Rect, Max_Rad, R, G, B, A);
+            if Uniform then
+               Render_Rounded_Rect (Renderer, Rect, Max_Rad, R, G, B, A);
+            else
+               Render_Rounded_Rect (Renderer, Rect, Radius_Px, R, G, B, A);
+            end if;
          end if;
 
          --  2) Draw background (inner rounded rect)
@@ -990,14 +1156,28 @@ package body Adi.Widget is
                       h => Float'Max (0.0, Rect.h - 2.0 * BW_Top));
                   Inner_Rad : constant Float :=
                      Float'Max (0.0, Max_Rad - BW_Top);
+                  Inner_Radii : constant Corner_Pixels :=
+                     (Top_Left     => Float'Max (0.0, Radius_Px.Top_Left - BW_Top),
+                      Top_Right    => Float'Max (0.0, Radius_Px.Top_Right - BW_Top),
+                      Bottom_Right => Float'Max (0.0, Radius_Px.Bottom_Right - BW_Top),
+                      Bottom_Left  => Float'Max (0.0, Radius_Px.Bottom_Left - BW_Top));
                begin
                   if Inner.w > 0.0 and then Inner.h > 0.0 then
-                     Render_Rounded_Rect
-                        (Renderer, Inner, Inner_Rad, R, G, B, A);
+                     if Uniform then
+                        Render_Rounded_Rect
+                           (Renderer, Inner, Inner_Rad, R, G, B, A);
+                     else
+                        Render_Rounded_Rect
+                           (Renderer, Inner, Inner_Radii, R, G, B, A);
+                     end if;
                   end if;
                end;
             else
-               Render_Rounded_Rect (Renderer, Rect, Max_Rad, R, G, B, A);
+               if Uniform then
+                  Render_Rounded_Rect (Renderer, Rect, Max_Rad, R, G, B, A);
+               else
+                  Render_Rounded_Rect (Renderer, Rect, Radius_Px, R, G, B, A);
+               end if;
             end if;
          end if;
 
@@ -1115,6 +1295,173 @@ package body Adi.Widget is
       Success := TTF_DrawRendererText (Text_Obj, C_float (Geom.X), C_float (Geom.Y));
    end Render_Text_Item;
 
+   --  Render a texture clipped to a rounded rectangle via UV-mapped
+   --  triangle-fan geometry.  When all radii are < 1 px the image is
+   --  rendered as a plain textured quad for speed.
+
+   procedure Render_Rounded_Image
+      (Renderer     : SDL_Renderer_Ptr;
+       Rect         : SDL_FRect;
+       Radii        : Corner_Pixels;
+       Texture      : SDL_Texture_Ptr;
+       Src_U0       : Float := 0.0;
+       Src_V0       : Float := 0.0;
+       Src_U1       : Float := 1.0;
+       Src_V1       : Float := 1.0;
+       Opacity      : Float := 1.0)
+   is
+      Max_Dim : constant Float := Float'Min (Rect.w, Rect.h) / 2.0;
+      R_TL : constant Float := Float'Min (Radii.Top_Left, Max_Dim);
+      R_TR : constant Float := Float'Min (Radii.Top_Right, Max_Dim);
+      R_BR : constant Float := Float'Min (Radii.Bottom_Right, Max_Dim);
+      R_BL : constant Float := Float'Min (Radii.Bottom_Left, Max_Dim);
+
+      Max_R : constant Float :=
+         Float'Max (Float'Max (R_TL, R_TR), Float'Max (R_BR, R_BL));
+
+      Num_Seg : constant Positive :=
+         Positive'Max (8, Natural (Float'Floor (Max_R * 0.5)) + 1);
+
+      N_Outline     : constant Natural := 4 * (Num_Seg + 1);
+      Total_Verts   : constant Natural := N_Outline + 1;
+      Total_Indices : constant Natural := N_Outline * 3;
+
+      Verts : SDL_Vertex_Array (0 .. Total_Verts - 1);
+      Idxs  : Int_Array (0 .. Total_Indices - 1);
+
+      VI : Natural := 0;
+      II : Natural := 0;
+
+      FC : constant SDL_FColor := (r => 1.0, g => 1.0, b => 1.0, a => Opacity);
+
+      X0 : constant Float := Rect.x;
+      Y0 : constant Float := Rect.y;
+      X1 : constant Float := Rect.x + Rect.w;
+      Y1 : constant Float := Rect.y + Rect.h;
+
+      Inv_W : constant Float := (if Rect.w > 0.0 then 1.0 / Rect.w else 0.0);
+      Inv_H : constant Float := (if Rect.h > 0.0 then 1.0 / Rect.h else 0.0);
+
+      --  UV range to map across the rect
+      DU : constant Float := Src_U1 - Src_U0;
+      DV : constant Float := Src_V1 - Src_V0;
+
+      procedure Add_Vertex (X, Y : Float) is
+      begin
+         Verts (VI) := (position  => (x => X, y => Y),
+                        color     => FC,
+                        tex_coord => (x => Src_U0 + (X - X0) * Inv_W * DU,
+                                      y => Src_V0 + (Y - Y0) * Inv_H * DV));
+         VI := VI + 1;
+      end Add_Vertex;
+
+      procedure Add_Triangle (IA, IB, IC : Natural) is
+      begin
+         Idxs (II)     := int (IA);
+         Idxs (II + 1) := int (IB);
+         Idxs (II + 2) := int (IC);
+         II := II + 3;
+      end Add_Triangle;
+
+      Center_Idx    : Natural;
+      First_Outline : Natural;
+      Step : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
+      Success : Adi.SDL.C_bool;
+   begin
+      if Max_R < 1.0 then
+         --  No rounding — simple quad with UV mapping
+         declare
+            Q : SDL_Vertex_Array (0 .. 3);
+            QI : Int_Array (0 .. 5) := (0, 1, 2, 0, 2, 3);
+         begin
+            Q (0) := (position => (x => X0, y => Y0), color => FC,
+                      tex_coord => (x => Src_U0, y => Src_V0));
+            Q (1) := (position => (x => X1, y => Y0), color => FC,
+                      tex_coord => (x => Src_U1, y => Src_V0));
+            Q (2) := (position => (x => X1, y => Y1), color => FC,
+                      tex_coord => (x => Src_U1, y => Src_V1));
+            Q (3) := (position => (x => X0, y => Y1), color => FC,
+                      tex_coord => (x => Src_U0, y => Src_V1));
+            Success := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
+            Success := SDL_RenderGeometry
+               (Renderer, Texture, Q (0)'Access, 4, QI (0)'Access, 6);
+            return;
+         end;
+      end if;
+
+      --  Center vertex for fan
+      Center_Idx := VI;
+      Add_Vertex ((X0 + X1) / 2.0, (Y0 + Y1) / 2.0);
+
+      First_Outline := VI;
+
+      --  Top-left arc
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float :=
+               Ada.Numerics.Pi + Float (I) * Step;
+         begin
+            Add_Vertex (X0 + R_TL + R_TL * Cos (Angle),
+                        Y0 + R_TL + R_TL * Sin (Angle));
+         end;
+      end loop;
+
+      --  Top-right arc
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float :=
+               3.0 * Ada.Numerics.Pi / 2.0 + Float (I) * Step;
+         begin
+            Add_Vertex (X1 - R_TR + R_TR * Cos (Angle),
+                        Y0 + R_TR + R_TR * Sin (Angle));
+         end;
+      end loop;
+
+      --  Bottom-right arc
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := Float (I) * Step;
+         begin
+            Add_Vertex (X1 - R_BR + R_BR * Cos (Angle),
+                        Y1 - R_BR + R_BR * Sin (Angle));
+         end;
+      end loop;
+
+      --  Bottom-left arc
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float :=
+               Ada.Numerics.Pi / 2.0 + Float (I) * Step;
+         begin
+            Add_Vertex (X0 + R_BL + R_BL * Cos (Angle),
+                        Y1 - R_BL + R_BL * Sin (Angle));
+         end;
+      end loop;
+
+      --  Fan triangles
+      for I in 0 .. N_Outline - 1 loop
+         declare
+            Next_I : constant Natural := (I + 1) mod N_Outline;
+         begin
+            Add_Triangle (Center_Idx,
+                          First_Outline + I,
+                          First_Outline + Next_I);
+         end;
+      end loop;
+
+      Success := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
+      SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
+                  "SDL_SetRenderDrawBlendMode");
+
+      Success := SDL_RenderGeometry
+         (Renderer     => Renderer,
+          Texture      => Texture,
+          Vertices     => Verts (0)'Access,
+          Num_Vertices => int (VI),
+          Indices      => Idxs (0)'Access,
+          Num_Indices  => int (II));
+   end Render_Rounded_Image;
+
    procedure Render_Image_Item (
       Renderer : SDL_Renderer_Ptr;
       Geom     : Rectangle;
@@ -1127,6 +1474,9 @@ package body Adi.Widget is
       Dst_W, Dst_H     : Pixel_Type;
       Scale_X, Scale_Y : Float;
       Dst_Rect         : aliased SDL_FRect;
+      U0, V0, U1, V1  : Float;
+      Radius_Px        : Corner_Pixels;
+      Max_Rad          : Float;
       Success          : Adi.SDL.C_bool;
    begin
       if Style.Visibility = Visibility_Hidden then
@@ -1137,17 +1487,24 @@ package body Adi.Widget is
          return;
       end if;
 
-      --  Get the SDL texture from the image
       Texture := Get_Texture (Source.all);
       if Texture = null then
          return;
       end if;
 
-      --  Get image size (already cached in the Image object)
       Get_Size (Source.all, Src_W, Src_H);
       if Src_W = 0.0 or Src_H = 0.0 then
          return;
       end if;
+
+      --  Border radius for clipping
+      Radius_Px := Get_Border_Radius_Px (Style.Border_Radius);
+      Max_Rad := Float'Max
+         (Float'Max (Radius_Px.Top_Left, Radius_Px.Top_Right),
+          Float'Max (Radius_Px.Bottom_Right, Radius_Px.Bottom_Left));
+
+      --  Default: full texture
+      U0 := 0.0; V0 := 0.0; U1 := 1.0; V1 := 1.0;
 
       case Style.Object_Fit is
          when Fit_Fill =>
@@ -1156,23 +1513,44 @@ package body Adi.Widget is
             Dst_W := Geom.Width;
             Dst_H := Geom.Height;
 
+         when Fit_Cover =>
+            --  Fill geometry preserving aspect ratio, crop via UV
+            Dst_X := Geom.X;
+            Dst_Y := Geom.Y;
+            Dst_W := Geom.Width;
+            Dst_H := Geom.Height;
+            if Geom.Width > 0.0 and then Geom.Height > 0.0 then
+               declare
+                  Img_Asp  : constant Float :=
+                     Float (Src_W) / Float (Src_H);
+                  Geom_Asp : constant Float :=
+                     Float (Geom.Width) / Float (Geom.Height);
+               begin
+                  if Img_Asp > Geom_Asp then
+                     --  Image wider: crop sides
+                     declare
+                        U_Span : constant Float := Geom_Asp / Img_Asp;
+                     begin
+                        U0 := (1.0 - U_Span) / 2.0;
+                        U1 := U0 + U_Span;
+                     end;
+                  else
+                     --  Image taller: crop top/bottom
+                     declare
+                        V_Span : constant Float := Img_Asp / Geom_Asp;
+                     begin
+                        V0 := (1.0 - V_Span) / 2.0;
+                        V1 := V0 + V_Span;
+                     end;
+                  end if;
+               end;
+            end if;
+
          when Fit_Contain =>
             Scale_X := Float (Geom.Width) / Float (Src_W);
             Scale_Y := Float (Geom.Height) / Float (Src_H);
             declare
                S : constant Float := Float'Min (Scale_X, Scale_Y);
-            begin
-               Dst_W := Pixel_Type (Float (Src_W) * S);
-               Dst_H := Pixel_Type (Float (Src_H) * S);
-            end;
-            Dst_X := Geom.X + (Geom.Width - Dst_W) / 2.0;
-            Dst_Y := Geom.Y + (Geom.Height - Dst_H) / 2.0;
-
-         when Fit_Cover =>
-            Scale_X := Float (Geom.Width) / Float (Src_W);
-            Scale_Y := Float (Geom.Height) / Float (Src_H);
-            declare
-               S : constant Float := Float'Max (Scale_X, Scale_Y);
             begin
                Dst_W := Pixel_Type (Float (Src_W) * S);
                Dst_H := Pixel_Type (Float (Src_H) * S);
@@ -1187,7 +1565,9 @@ package body Adi.Widget is
             Dst_Y := Geom.Y;
 
          when Fit_Scale_Down =>
-            if Pixel_Type (Src_W) > Geom.Width or Pixel_Type (Src_H) > Geom.Height then
+            if Pixel_Type (Src_W) > Geom.Width
+               or Pixel_Type (Src_H) > Geom.Height
+            then
                Scale_X := Float (Geom.Width) / Float (Src_W);
                Scale_Y := Float (Geom.Height) / Float (Src_H);
                declare
@@ -1204,55 +1584,96 @@ package body Adi.Widget is
             Dst_Y := Geom.Y + (Geom.Height - Dst_H) / 2.0;
       end case;
 
-      case Style.Object_Position.Kind is
-         when Keyword_Pos =>
-            case Style.Object_Position.H_Keyword is
-               when Pos_Left   => Dst_X := Geom.X;
-               when Pos_Center => null;
-               when Pos_Right  => Dst_X := Geom.X + Geom.Width - Dst_W;
-               when others     => null;
-            end case;
-            case Style.Object_Position.V_Keyword is
-               when Pos_Top    => Dst_Y := Geom.Y;
-               when Pos_Center => null;
-               when Pos_Bottom => Dst_Y := Geom.Y + Geom.Height - Dst_H;
-               when others     => null;
-            end case;
-         when Length_Pos =>
-            Dst_X := Geom.X + Length_To_Px (Style.Object_Position.X_Offset, Geom.Width);
-            Dst_Y := Geom.Y + Length_To_Px (Style.Object_Position.Y_Offset, Geom.Height);
-      end case;
+      --  Object-position (for non-Cover/Fill modes)
+      if Style.Object_Fit /= Fit_Fill and Style.Object_Fit /= Fit_Cover then
+         case Style.Object_Position.Kind is
+            when Keyword_Pos =>
+               case Style.Object_Position.H_Keyword is
+                  when Pos_Left   => Dst_X := Geom.X;
+                  when Pos_Center => null;
+                  when Pos_Right  => Dst_X := Geom.X + Geom.Width - Dst_W;
+                  when others     => null;
+               end case;
+               case Style.Object_Position.V_Keyword is
+                  when Pos_Top    => Dst_Y := Geom.Y;
+                  when Pos_Center => null;
+                  when Pos_Bottom => Dst_Y := Geom.Y + Geom.Height - Dst_H;
+                  when others     => null;
+               end case;
+            when Length_Pos =>
+               Dst_X := Geom.X +
+                  Length_To_Px (Style.Object_Position.X_Offset, Geom.Width);
+               Dst_Y := Geom.Y +
+                  Length_To_Px (Style.Object_Position.Y_Offset, Geom.Height);
+         end case;
+      end if;
 
-      --  Set up destination rectangle
       Dst_Rect.x := Float (Dst_X);
       Dst_Rect.y := Float (Dst_Y);
       Dst_Rect.w := Float (Dst_W);
       Dst_Rect.h := Float (Dst_H);
 
-      --  Set texture alpha modulation for opacity
-      Success := SDL_SetTextureAlphaModFloat (Texture, Float (Style.Opacity));
+      --  For modes where the image may not fill the container (Contain,
+      --  None, Scale_Down), reduce corner radii based on how much the
+      --  image is inset from each container edge.  If the image edge
+      --  doesn't reach the container's rounded corner region, that
+      --  corner needs no rounding.
+      if Style.Object_Fit /= Fit_Fill
+         and then Style.Object_Fit /= Fit_Cover
+         and then Max_Rad > 0.0
+      then
+         declare
+            Inset_L : constant Float := Float (Dst_X - Geom.X);
+            Inset_T : constant Float := Float (Dst_Y - Geom.Y);
+            Inset_R : constant Float :=
+               Float ((Geom.X + Geom.Width) - (Dst_X + Dst_W));
+            Inset_B : constant Float :=
+               Float ((Geom.Y + Geom.Height) - (Dst_Y + Dst_H));
+         begin
+            Radius_Px.Top_Left := Float'Max (0.0, Float'Min (
+               Radius_Px.Top_Left - Inset_L,
+               Radius_Px.Top_Left - Inset_T));
+            Radius_Px.Top_Right := Float'Max (0.0, Float'Min (
+               Radius_Px.Top_Right - Inset_R,
+               Radius_Px.Top_Right - Inset_T));
+            Radius_Px.Bottom_Right := Float'Max (0.0, Float'Min (
+               Radius_Px.Bottom_Right - Inset_R,
+               Radius_Px.Bottom_Right - Inset_B));
+            Radius_Px.Bottom_Left := Float'Max (0.0, Float'Min (
+               Radius_Px.Bottom_Left - Inset_L,
+               Radius_Px.Bottom_Left - Inset_B));
+            Max_Rad := Float'Max
+               (Float'Max (Radius_Px.Top_Left, Radius_Px.Top_Right),
+                Float'Max (Radius_Px.Bottom_Right, Radius_Px.Bottom_Left));
+         end;
+      end if;
 
-      --  Render the texture
-      Success := SDL_RenderTexture (Renderer, Texture, null, Dst_Rect'Access);
+      if Max_Rad > 0.0 then
+         Render_Rounded_Image
+            (Renderer, Dst_Rect, Radius_Px, Texture,
+             U0, V0, U1, V1, Float (Style.Opacity));
+      else
+         Success := SDL_SetTextureAlphaModFloat (Texture, Float (Style.Opacity));
+         if U0 /= 0.0 or else V0 /= 0.0
+            or else U1 /= 1.0 or else V1 /= 1.0
+         then
+            --  Cropped source (Cover mode without rounding)
+            declare
+               Src_Rect : aliased SDL_FRect :=
+                  (x => U0 * Float (Src_W),
+                   y => V0 * Float (Src_H),
+                   w => (U1 - U0) * Float (Src_W),
+                   h => (V1 - V0) * Float (Src_H));
+            begin
+               Success := SDL_RenderTexture
+                  (Renderer, Texture, Src_Rect'Access, Dst_Rect'Access);
+            end;
+         else
+            Success := SDL_RenderTexture
+               (Renderer, Texture, null, Dst_Rect'Access);
+         end if;
+      end if;
    end Render_Image_Item;
-
-   procedure Render_Background_Image (
-      Renderer : SDL_Renderer_Ptr;
-      Geom     : Rectangle;
-      Style    : Resolved_Style)
-   is
-   begin
-      case Style.Background_Image.Kind is
-         when No_Image =>
-            return;
-         when Picture_Image =>
-            if Style.Background_Image.Image /= null then
-               Render_Image_Item (Renderer, Geom, Style.Background_Image.Image, Style);
-            end if;
-         when Url_Image =>
-            null;
-      end case;
-   end Render_Background_Image;
 
    ---------------------------------------------------------------------------
    --  Public Rendering Interface
@@ -1271,7 +1692,6 @@ package body Adi.Widget is
                      Render_Box_Shadow (Renderer, Current.Geometry, Style);
                   end if;
                   Render_Panel (Renderer, Current.Geometry, Style);
-                  Render_Background_Image (Renderer, Current.Geometry, Style);
 
                when Text_Item =>
                   Render_Text_Item (Renderer, Current);
@@ -1330,8 +1750,11 @@ package body Adi.Widget is
                   Result := Max(Result, (Current.Geometry.Width, Current.Geometry.Height));
 
                when Image_Item =>
-                  --  Get image dimensions
-                  if Current.Image_Source /= null and then Is_Valid(Current.Image_Source.all) then
+                  --  Get image dimensions (skip background images)
+                  if not Current.Is_Background
+                     and then Current.Image_Source /= null
+                     and then Is_Valid(Current.Image_Source.all)
+                  then
                      declare
                         Img_W, Img_H : Pixel_Type;
                      begin

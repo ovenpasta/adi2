@@ -68,6 +68,7 @@ package Adi.Widget is
 
       --  Image_Item fields (unused by other kinds)
       Image_Source   : Image_Access := null;
+      Is_Background  : Boolean := False;
 
       --  Text rendering cache (only used by Text_Item)
       Cached_TTF_Text    : Adi.SDL.TTF.TextEngine.TTF_Text_Access := null;
@@ -279,7 +280,8 @@ package Adi.Widget is
    function Make_Image (Part : Part_Kind;
                         Geometry : Rectangle;
                         Source : Image_Access;
-                        Z_Order : Natural := 0) return Item;
+                        Z_Order : Natural := 0;
+                        Is_Background : Boolean := False) return Item;
 
     ---------------------------------------------------------------------------
    --  Content Measurement

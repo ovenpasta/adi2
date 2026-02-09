@@ -38,6 +38,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=combo_box_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=overflow_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
 ```
 
 ### Running tests
@@ -60,6 +61,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=overflow_example
 ./examples/bin/list_box_example
 ./examples/bin/combo_box_example
 ./examples/bin/overflow_example
+./examples/bin/grid_example
 ```
 
 ### External Dependencies
@@ -104,8 +106,8 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=overflow_example
 **Adi.Widget.Part_Styles** (`adi-widget-part_styles.ads`): Multi-part widget style builder
 - Fluent API for composing per-part styles (Main, Label, Icon, Indicator, etc.)
 - State-dependent styling per part
-- Predefined templates: Button, Checkbox, Scrollbar
-- Theme styles: Primary, Secondary, Danger, Card
+- Predefined templates for part enable/disable composition (Button, Checkbox, Scrollbar, Input, List, Slider)
+- No built-in visual theme defaults in the library; applications/examples provide explicit styles (typically via generated CSS packages)
 
 **Adi.Event** (`adi-event.ads`): Event system
 - Discriminant-based event record with `Mouse_Move` event kind
@@ -159,7 +161,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=overflow_example
 **Adi.Widget.Text_Input** (`adi-widget-text_input.ads`): Single-line text input widget
 - Uses `Adi.Text_Buffer` for text/caret/selection state
 - Supports keyboard navigation/editing (arrows, home/end, backspace/delete, select-all)
-- Receives `On_Key_Down` and `On_Text_Input` through window focus dispatch
+- Receives `On_Key_Down`, `On_Key_Up`, and `On_Text_Input` through window focus dispatch
 - Renders a styled caret via `Cursor_Part`
 - Renders selection highlight via `Selected_Part`
 - Mouse hit-testing uses SDL_ttf measurement (`TTF_MeasureString`) for UTF-8-safe caret/selection placement
@@ -211,7 +213,8 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=overflow_example
 - Box model calculations: `Content_Box`, `Padding_Box`
 - Edge/border pixel extraction
 - Alignment utilities (horizontal/vertical)
-- Flexbox layout support (in progress)
+- Flexbox layout support
+- Grid layout support with reusable core algorithm (`Compute_Grid_Layout` / `Grid_To_Rectangles`)
 
 **Adi.Window** (`adi-window.ads`): Window management
 - Wraps SDL window and renderer
@@ -222,6 +225,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=overflow_example
 - Overlay hit testing is prioritized above the root tree; overlays render after root content
 - Tracks hovered/pressed widget part; updates part states on pointer movement so part-scoped selectors resolve correctly
 - Keyboard focus handling with Tab traversal across focusable/visible widgets (Shift+Tab reverse, wraps around)
+- Forwards both key-down and key-up events to the focused widget
 - `Tick(DT)`: advances animations on the widget tree each frame
 - Optional minimum-size policy can enforce window min size from layout (`Set_Enforce_Layout_Min_Size`, `Apply_Window_Min_Size_From_Layout`)
 - Window resize/reshape handling
@@ -231,6 +235,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=overflow_example
 - Window management
 - Frame rate management: `Set_Target_FPS`, `Get_Delta_Time`
 - Proper frame timing with `Ada.Real_Time` (`delay until`) instead of fixed delay
+- Event loop dispatches mouse, key-down, key-up, and text-input events to `Adi.Window`
 - Each frame: compute delta time, tick animations, render, wait for next frame
 
 ### Widget Rendering Pipeline
@@ -262,6 +267,7 @@ The library provides Ada bindings for SDL3 in `adi-sdl*.ads` files:
 Recent binding additions:
 - `Adi.SDL.Video`: `SDL_SetWindowMinimumSize`
 - `Adi.SDL.Events`: `SDL_SCANCODE_ESCAPE`
+- `Adi.SDL.Events`: `SDL_SCANCODE_SPACE`
 
 **Binding Design Pattern**: These are clean, hand-crafted bindings that:
 - Use native Ada types (`Uint8`, `Uint32`, `C_bool`, `int`, `Float`) instead of raw C imports
@@ -297,6 +303,8 @@ examples/
   list_box_example.adb - List box selection/scrolling demo
   combo_box_example.adb - Combo box example with styled popup/list interactions
   overflow_example.adb - Overflow visible vs hidden clipping behavior demo
+  grid_example.adb     - CSS grid layout demo with rows/columns and spans
+  css/widget_defaults.css - Shared default visual styles used by multiple examples
   css/                - CSS sources for generated example styles
   generated/          - Auto-generated Ada style packages from CSS
   examples.gpr        - Example project file (uses EXAMPLE_KIND scenario)
@@ -370,6 +378,7 @@ The tool supports a comprehensive set of CSS properties including:
 - **Typography**: `font-size`, `font-weight`, `font-style`, `text-align`, `vertical-align`, `text-decoration`, `line-height`, `white-space`, `text-overflow`, `text-wrap-mode`
 - **Layout**: `display`, `position`, `overflow`, `visibility`, `opacity`
 - **Flexbox**: `flex-direction`, `flex-wrap`, `justify-content`, `align-items`, `align-self`, `align-content`, `gap`, `flex-grow`, `flex-shrink`, `flex-basis`, `order`
+- **Grid (first-pass)**: `grid-template-columns`, `grid-template-rows`, `grid-column`, `grid-row`
 - **Effects**: `box-shadow` (with offset, blur, spread, and color), `cursor`
 - **Images**: `object-fit`, `object-position`
 - **Transitions**: `transition` (duration, easing, property filter)

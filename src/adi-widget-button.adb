@@ -1,6 +1,5 @@
-with Adi.Widget.Part_Styles; use Adi.Widget.Part_Styles;
-
 package body Adi.Widget.Button is
+   use type Adi.SDL.Events.SDL_Scancode;
 
    ------------
    -- Create --
@@ -15,9 +14,6 @@ package body Adi.Widget.Button is
       if Text /= "" then
          Set_Text (Result.all, Text);
       end if;
-
-      --  Apply default button template styles
-      Button_Template.Apply_To (Result.all);
 
       return Result;
    end Create;
@@ -110,5 +106,40 @@ package body Adi.Widget.Button is
          W.On_Clicked (Self);
       end if;
    end On_Click;
+
+   overriding procedure On_Key_Down
+     (W        : in out Button_Widget;
+      Scancode : Adi.SDL.Events.SDL_Scancode;
+      Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+      Repeat   : Boolean) is
+      pragma Unreferenced (Key_Mod);
+   begin
+      if Repeat then
+         return;
+      end if;
+
+      if Scancode = Adi.SDL.Events.SDL_SCANCODE_RETURN
+        or else Scancode = Adi.SDL.Events.SDL_SCANCODE_SPACE
+      then
+         Set_Pressed (W, True);
+      end if;
+   end On_Key_Down;
+
+   overriding procedure On_Key_Up
+     (W        : in out Button_Widget;
+      Scancode : Adi.SDL.Events.SDL_Scancode;
+      Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+      Repeat   : Boolean) is
+      pragma Unreferenced (Key_Mod, Repeat);
+   begin
+      if Scancode = Adi.SDL.Events.SDL_SCANCODE_RETURN
+        or else Scancode = Adi.SDL.Events.SDL_SCANCODE_SPACE
+      then
+         if Has_State (W, State_Pressed) then
+            Set_Pressed (W, False);
+            On_Click (W);
+         end if;
+      end if;
+   end On_Key_Up;
 
 end Adi.Widget.Button;

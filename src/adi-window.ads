@@ -63,6 +63,11 @@ package Adi.Window is
         Scancode : Adi.SDL.Events.SDL_Scancode;
         Key_Mod  : Adi.SDL.Events.SDL_Keymod;
         Repeat   : Boolean);
+    procedure On_Key_Up
+       (W        : in out Window;
+        Scancode : Adi.SDL.Events.SDL_Scancode;
+        Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+        Repeat   : Boolean);
     procedure On_Text_Input (W : in out Window; Text : String);
 
     --  Advance animations by DT seconds on all widgets in this window

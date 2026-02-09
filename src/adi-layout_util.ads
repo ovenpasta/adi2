@@ -235,4 +235,47 @@ package Adi.Layout_Util is
    function Get_Main_Size(S : Size_2D; Dir : Flex_Direction_Value) return Pixel_Type;
    function Get_Cross_Size(S : Size_2D; Dir : Flex_Direction_Value) return Pixel_Type;
    function Make_Size(Main, Cross : Pixel_Type; Dir : Flex_Direction_Value) return Size_2D;
+
+   -------------------------------------------------
+   -- Grid Layout Types/Functions
+   -------------------------------------------------
+
+   type Grid_Layout_Context is record
+      Container          : Rectangle;
+      Columns            : Natural := 1;
+      Explicit_Rows      : Natural := 0;  -- 0 => auto
+      Row_Gap            : Pixel_Type := 0.0;
+      Column_Gap         : Pixel_Type := 0.0;
+      Use_Preferred_Floor : Boolean := False;
+   end record;
+
+   type Grid_Child_Info is record
+      -- Input properties
+      Active           : Boolean := True;
+      Grid_Column      : Natural := 0; -- 0 => auto
+      Grid_Row         : Natural := 0; -- 0 => auto
+      Grid_Column_Span : Natural := 1;
+      Grid_Row_Span    : Natural := 1;
+      Min_Width        : Pixel_Type := 0.0;
+      Min_Height       : Pixel_Type := 0.0;
+      Pref_Width       : Pixel_Type := 0.0;
+      Pref_Height      : Pixel_Type := 0.0;
+
+      -- Output (computed by layout)
+      Computed_X       : Pixel_Type := 0.0;
+      Computed_Y       : Pixel_Type := 0.0;
+      Computed_Width   : Pixel_Type := 0.0;
+      Computed_Height  : Pixel_Type := 0.0;
+   end record;
+
+   type Grid_Child_Info_Array is array (Positive range <>) of Grid_Child_Info;
+
+   -- Main entry point for grid layout
+   procedure Compute_Grid_Layout(
+      Context  : Grid_Layout_Context;
+      Children : in out Grid_Child_Info_Array);
+
+   -- Convert computed grid results to rectangles
+   function Grid_To_Rectangles(
+      Children : Grid_Child_Info_Array) return Rectangle_Array;
 end Adi.Layout_Util;

@@ -615,6 +615,21 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    type Order_Value is new Integer;
    Default_Order : constant Order_Value := 0;
 
+   -- Grid container/item properties
+   type Grid_Columns_Value is new Natural;
+   type Grid_Rows_Value is new Natural;
+   type Grid_Column_Value is new Natural;
+   type Grid_Row_Value is new Natural;
+   type Grid_Column_Span_Value is new Natural range 1 .. Natural'Last;
+   type Grid_Row_Span_Value is new Natural range 1 .. Natural'Last;
+
+   Default_Grid_Columns : constant Grid_Columns_Value := 1;
+   Default_Grid_Rows : constant Grid_Rows_Value := 0;  -- 0 => auto
+   Default_Grid_Column : constant Grid_Column_Value := 0; -- 0 => auto
+   Default_Grid_Row : constant Grid_Row_Value := 0;       -- 0 => auto
+   Default_Grid_Column_Span : constant Grid_Column_Span_Value := 1;
+   Default_Grid_Row_Span : constant Grid_Row_Span_Value := 1;
+
    -------------------------------------------------
    -- Display
    -------------------------------------------------
@@ -661,6 +676,12 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    package Opt_Flex_Basis    is new Optional_Values (Flex_Basis_Value, Default_Flex_Basis);
    package Opt_Gap           is new Optional_Values (Gap_Value, Default_Gap);
    package Opt_Order         is new Optional_Values (Order_Value, Default_Order);
+   package Opt_Grid_Cols     is new Optional_Values (Grid_Columns_Value, Default_Grid_Columns);
+   package Opt_Grid_Rows     is new Optional_Values (Grid_Rows_Value, Default_Grid_Rows);
+   package Opt_Grid_Column   is new Optional_Values (Grid_Column_Value, Default_Grid_Column);
+   package Opt_Grid_Row      is new Optional_Values (Grid_Row_Value, Default_Grid_Row);
+   package Opt_Grid_Col_Span is new Optional_Values (Grid_Column_Span_Value, Default_Grid_Column_Span);
+   package Opt_Grid_Row_Span is new Optional_Values (Grid_Row_Span_Value, Default_Grid_Row_Span);
 
    --  New optional wrappers
    package Opt_Text_Align    is new Optional_Values (Text_Align_Value, Default_Text_Align);
@@ -745,6 +766,8 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Align_Items      : Opt_Align_Items.Optional  := Opt_Align_Items.Unset;
       Align_Content    : Opt_Align_Content.Optional := Opt_Align_Content.Unset;
       Gap              : Opt_Gap.Optional          := Opt_Gap.Unset;
+      Grid_Columns     : Opt_Grid_Cols.Optional    := Opt_Grid_Cols.Unset;
+      Grid_Rows        : Opt_Grid_Rows.Optional    := Opt_Grid_Rows.Unset;
 
       -- Flexbox Item
       Align_Self       : Opt_Align_Self.Optional   := Opt_Align_Self.Unset;
@@ -752,6 +775,10 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Flex_Shrink      : Opt_Flex_Shrink.Optional  := Opt_Flex_Shrink.Unset;
       Flex_Basis       : Opt_Flex_Basis.Optional   := Opt_Flex_Basis.Unset;
       Order            : Opt_Order.Optional        := Opt_Order.Unset;
+      Grid_Column      : Opt_Grid_Column.Optional  := Opt_Grid_Column.Unset;
+      Grid_Row         : Opt_Grid_Row.Optional     := Opt_Grid_Row.Unset;
+      Grid_Column_Span : Opt_Grid_Col_Span.Optional := Opt_Grid_Col_Span.Unset;
+      Grid_Row_Span    : Opt_Grid_Row_Span.Optional := Opt_Grid_Row_Span.Unset;
 
       -- Animation
       Transition       : Opt_Transition.Optional   := Opt_Transition.Unset;
@@ -825,6 +852,8 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Align_Items      : Align_Items_Value;
       Align_Content    : Align_Content_Value;
       Gap              : Gap_Value;
+      Grid_Columns     : Grid_Columns_Value;
+      Grid_Rows        : Grid_Rows_Value;
 
       -- Flexbox Item
       Align_Self       : Align_Self_Value;
@@ -832,6 +861,10 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Flex_Shrink      : Flex_Shrink_Value;
       Flex_Basis       : Flex_Basis_Value;
       Order            : Order_Value;
+      Grid_Column      : Grid_Column_Value;
+      Grid_Row         : Grid_Row_Value;
+      Grid_Column_Span : Grid_Column_Span_Value;
+      Grid_Row_Span    : Grid_Row_Span_Value;
 
       -- Animation
       Transition       : Transition_Spec;
@@ -911,6 +944,12 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Set (V : Flex_Basis_Value) return Opt_Flex_Basis.Optional renames Opt_Flex_Basis.Val;
    function Set (V : Gap_Value) return Opt_Gap.Optional renames Opt_Gap.Val;
    function Set (V : Order_Value) return Opt_Order.Optional renames Opt_Order.Val;
+   function Set (V : Grid_Columns_Value) return Opt_Grid_Cols.Optional renames Opt_Grid_Cols.Val;
+   function Set (V : Grid_Rows_Value) return Opt_Grid_Rows.Optional renames Opt_Grid_Rows.Val;
+   function Set (V : Grid_Column_Value) return Opt_Grid_Column.Optional renames Opt_Grid_Column.Val;
+   function Set (V : Grid_Row_Value) return Opt_Grid_Row.Optional renames Opt_Grid_Row.Val;
+   function Set (V : Grid_Column_Span_Value) return Opt_Grid_Col_Span.Optional renames Opt_Grid_Col_Span.Val;
+   function Set (V : Grid_Row_Span_Value) return Opt_Grid_Row_Span.Optional renames Opt_Grid_Row_Span.Val;
 
    -- Animation
    function Set (V : Transition_Spec) return Opt_Transition.Optional renames Opt_Transition.Val;

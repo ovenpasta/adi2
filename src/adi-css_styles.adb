@@ -88,6 +88,8 @@ package body Adi.CSS_Styles is
          Align_Items      => Opt_Align_Items.Merge (Base.Align_Items, Override.Align_Items),
          Align_Content    => Opt_Align_Content.Merge (Base.Align_Content, Override.Align_Content),
          Gap              => Opt_Gap.Merge (Base.Gap, Override.Gap),
+         Grid_Columns     => Opt_Grid_Cols.Merge (Base.Grid_Columns, Override.Grid_Columns),
+         Grid_Rows        => Opt_Grid_Rows.Merge (Base.Grid_Rows, Override.Grid_Rows),
 
          -- Flexbox Item
          Align_Self       => Opt_Align_Self.Merge (Base.Align_Self, Override.Align_Self),
@@ -95,6 +97,10 @@ package body Adi.CSS_Styles is
          Flex_Shrink      => Opt_Flex_Shrink.Merge (Base.Flex_Shrink, Override.Flex_Shrink),
          Flex_Basis       => Opt_Flex_Basis.Merge (Base.Flex_Basis, Override.Flex_Basis),
          Order            => Opt_Order.Merge (Base.Order, Override.Order),
+         Grid_Column      => Opt_Grid_Column.Merge (Base.Grid_Column, Override.Grid_Column),
+         Grid_Row         => Opt_Grid_Row.Merge (Base.Grid_Row, Override.Grid_Row),
+         Grid_Column_Span => Opt_Grid_Col_Span.Merge (Base.Grid_Column_Span, Override.Grid_Column_Span),
+         Grid_Row_Span    => Opt_Grid_Row_Span.Merge (Base.Grid_Row_Span, Override.Grid_Row_Span),
 
          -- Animation
          Transition       => Opt_Transition.Merge (Base.Transition, Override.Transition)
@@ -167,6 +173,8 @@ package body Adi.CSS_Styles is
          Align_Items      => Opt_Align_Items.Resolve (S.Align_Items),
          Align_Content    => Opt_Align_Content.Resolve (S.Align_Content),
          Gap              => Opt_Gap.Resolve (S.Gap),
+         Grid_Columns     => Opt_Grid_Cols.Resolve (S.Grid_Columns),
+         Grid_Rows        => Opt_Grid_Rows.Resolve (S.Grid_Rows),
 
          -- Flexbox Item
          Align_Self       => Opt_Align_Self.Resolve (S.Align_Self),
@@ -174,6 +182,10 @@ package body Adi.CSS_Styles is
          Flex_Shrink      => Opt_Flex_Shrink.Resolve (S.Flex_Shrink),
          Flex_Basis       => Opt_Flex_Basis.Resolve (S.Flex_Basis),
          Order            => Opt_Order.Resolve (S.Order),
+         Grid_Column      => Opt_Grid_Column.Resolve (S.Grid_Column),
+         Grid_Row         => Opt_Grid_Row.Resolve (S.Grid_Row),
+         Grid_Column_Span => Opt_Grid_Col_Span.Resolve (S.Grid_Column_Span),
+         Grid_Row_Span    => Opt_Grid_Row_Span.Resolve (S.Grid_Row_Span),
 
          -- Animation
          Transition       => Opt_Transition.Resolve (S.Transition)

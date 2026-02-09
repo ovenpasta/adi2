@@ -71,10 +71,6 @@ package Adi.Widget.Part_Styles is
    function Enable_Part (B : Part_Style_Builder;
                          P : Part_Kind) return Part_Style_Builder;
 
-   --  Set a default style that applies to all unconfigured parts
-   function With_Default (B : Part_Style_Builder;
-                          S : Widget_Style) return Part_Style_Builder;
-
    --  Build the final Part_Style_Array
    function Build (B : Part_Style_Builder) return Part_Style_Array;
 
@@ -104,31 +100,10 @@ package Adi.Widget.Part_Styles is
    --  Slider styling (main + knob + indicator)
    function Slider_Template return Part_Style_Builder;
 
-   ---------------------------------------------------------------------------
-   --  Predefined Style Themes (using CSS_Styles)
-   ---------------------------------------------------------------------------
-
-   --  Primary button (blue background, white text)
-   function Primary_Button_Style return Part_Style_Array;
-
-   --  Secondary button (outlined)
-   function Secondary_Button_Style return Part_Style_Array;
-
-   --  Danger button (red)
-   function Danger_Button_Style return Part_Style_Array;
-
-   --  Basic card/box style
-   function Card_Style return Part_Style_Array;
-
 private
-
-   type Part_Configured_Array is array (Part_Kind) of Boolean;
 
    type Part_Style_Builder is tagged record
       Styles       : Part_Style_Array := Empty_Part_Styles;
-      Configured   : Part_Configured_Array := [others => False];
-      Default_Set  : Boolean := False;
-      Default_Style : Widget_Style := Empty_Widget_Style;
    end record;
 
 end Adi.Widget.Part_Styles;

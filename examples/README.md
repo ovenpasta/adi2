@@ -32,6 +32,12 @@ Demonstrates overlay-based combo box dropdowns with styled option rows.
 ### overflow_example
 Compares `overflow: visible` and `overflow: hidden` clipping behavior.
 
+### grid_example
+Demonstrates CSS grid layout (`display: grid`) with template rows/columns, gaps, and item spans.
+
+### Shared Widget Defaults
+`css/widget_defaults.css` defines reusable baseline styles for common widgets (`.button`, `.text-input`, `.list-box`, `.list-row`) and is generated as `generated/widget_defaults_styles.ads` for reuse across examples.
+
 ## Adding New Examples
 
 1. Create your example file: `my_example.adb`

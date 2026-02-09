@@ -1,4 +1,5 @@
 with Adi.Widget.Label; use Adi.Widget.Label;
+with Adi.SDL.Events;
 
 package Adi.Widget.Button is
 
@@ -52,6 +53,16 @@ package Adi.Widget.Button is
 
    --  Click handler (dispatched from base Widget.On_Click)
    overriding procedure On_Click (W : in out Button_Widget);
+   overriding procedure On_Key_Down
+     (W        : in out Button_Widget;
+      Scancode : Adi.SDL.Events.SDL_Scancode;
+      Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+      Repeat   : Boolean);
+   overriding procedure On_Key_Up
+     (W        : in out Button_Widget;
+      Scancode : Adi.SDL.Events.SDL_Scancode;
+      Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+      Repeat   : Boolean);
 
 private
 

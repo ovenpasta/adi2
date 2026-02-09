@@ -285,6 +285,13 @@ package Adi.Widget is
       Key_Mod  : Adi.SDL.Events.SDL_Keymod;
       Repeat   : Boolean) is null;
 
+   --  Called for key up events when this widget has focus.
+   procedure On_Key_Up
+     (W        : in out Widget;
+      Scancode : Adi.SDL.Events.SDL_Scancode;
+      Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+      Repeat   : Boolean) is null;
+
    --  Called for text input events when this widget has focus.
    procedure On_Text_Input (W : in out Widget; Text : String) is null;
 

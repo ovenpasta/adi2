@@ -63,6 +63,8 @@ package body Adi.Widget.Box is
       Pad    : constant Edge_Pixels := Get_Padding_Px (Style);
       Border : constant Edge_Pixels := Get_Border_Width_Px (Style);
       Gap    : constant Pixel_Type := Get_Main_Gap (Style.Gap, Style.Flex_Direction);
+      Row_Gap : constant Pixel_Type := Get_Row_Gap (Style.Gap);
+      Col_Gap : constant Pixel_Type := Get_Column_Gap (Style.Gap);
       Count  : Natural := 0;
       Main_Sum  : Pixel_Type := 0.0;
       Cross_Max : Pixel_Type := 0.0;
@@ -90,6 +92,46 @@ package body Adi.Widget.Box is
          end if;
 
          Result := Make_Size (Main_Sum, Cross_Max, Style.Flex_Direction);
+      elsif Style.Display = Grid or else Style.Display = Inline_Grid then
+         declare
+            Cols       : constant Natural := Natural'Max (1, Natural (Style.Grid_Columns));
+            Max_Child_W : Pixel_Type := 0.0;
+            Max_Child_H : Pixel_Type := 0.0;
+            Rows        : Natural := 0;
+         begin
+            for Child of W.Children loop
+               declare
+                  Pref : constant Size_2D := Get_Preferred_Size (Child.all);
+                  Min  : constant Size_2D := Get_Min_Size (Child.all);
+                  Effective : constant Size_2D :=
+                    (Width  => Pixel_Type'Max (Pref.Width, Min.Width),
+                     Height => Pixel_Type'Max (Pref.Height, Min.Height));
+               begin
+                  Max_Child_W := Pixel_Type'Max (Max_Child_W, Effective.Width);
+                  Max_Child_H := Pixel_Type'Max (Max_Child_H, Effective.Height);
+                  Count := Count + 1;
+               end;
+            end loop;
+
+            if Count > 0 then
+               if Natural (Style.Grid_Rows) > 0 then
+                  Rows := Natural (Style.Grid_Rows);
+               else
+                  Rows := (Count + Cols - 1) / Cols;
+               end if;
+            end if;
+
+            if Rows = 0 then
+               Rows := 1;
+            end if;
+
+            Result.Width :=
+              Pixel_Type (Cols) * Max_Child_W
+              + Pixel_Type'Max (0.0, Pixel_Type (Cols - 1) * Col_Gap);
+            Result.Height :=
+              Pixel_Type (Rows) * Max_Child_H
+              + Pixel_Type'Max (0.0, Pixel_Type (Rows - 1) * Row_Gap);
+         end;
       else
          for Child of W.Children loop
             declare
@@ -117,6 +159,73 @@ overriding procedure Layout (W : in out Box_Widget) is
       if Style.Display = Flex or Style.Display = Inline_Flex then
          --  Use flex layout algorithm
          Perform_Flex_Layout(Widget'Class(W));
+      elsif Style.Display = Grid or else Style.Display = Inline_Grid then
+         declare
+            N : constant Natural := Child_Count (W);
+            Content : constant Rectangle := Content_Box (W.Geometry, Style);
+         begin
+            if N = 0 then
+               return;
+            end if;
+
+            declare
+               Context : constant Grid_Layout_Context :=
+                 (Container           => Content,
+                  Columns             => Natural (Style.Grid_Columns),
+                  Explicit_Rows       => Natural (Style.Grid_Rows),
+                  Row_Gap             => Get_Row_Gap (Style.Gap),
+                  Column_Gap          => Get_Column_Gap (Style.Gap),
+                  Use_Preferred_Floor => Style.Overflow = Overflow_Visible);
+               Children_Info : Grid_Child_Info_Array (1 .. N);
+               Rects : Rectangle_Array (1 .. N);
+            begin
+               for I in 1 .. N loop
+                  declare
+                     Child : constant Widget_Access := Get_Child (W, Positive (I));
+                  begin
+                     if Child = null then
+                        Children_Info (Positive (I)) :=
+                          (Active => False, others => <>);
+                     else
+                        declare
+                           Child_Style : constant Resolved_Style :=
+                             Get_Resolved_Part_Style (Child.all, Main_Part);
+                           Child_Pref : constant Size_2D :=
+                             Get_Preferred_Size (Child.all);
+                           Child_Min  : constant Size_2D :=
+                             Get_Min_Size (Child.all);
+                        begin
+                           Children_Info (Positive (I)) :=
+                             (Active           => True,
+                              Grid_Column      => Natural (Child_Style.Grid_Column),
+                              Grid_Row         => Natural (Child_Style.Grid_Row),
+                              Grid_Column_Span => Natural (Child_Style.Grid_Column_Span),
+                              Grid_Row_Span    => Natural (Child_Style.Grid_Row_Span),
+                              Min_Width        => Child_Min.Width,
+                              Min_Height       => Child_Min.Height,
+                              Pref_Width       => Child_Pref.Width,
+                              Pref_Height      => Child_Pref.Height,
+                              others           => <>);
+                        end;
+                     end if;
+                  end;
+               end loop;
+
+               Compute_Grid_Layout (Context, Children_Info);
+               Rects := Grid_To_Rectangles (Children_Info);
+
+               for I in 1 .. N loop
+                  declare
+                     Child : constant Widget_Access := Get_Child (W, Positive (I));
+                  begin
+                     if Child /= null then
+                        Set_Geometry (Child.all, Rects (Positive (I)));
+                        Layout (Child.all);
+                     end if;
+                  end;
+               end loop;
+            end;
+         end;
       else
          --  Simple block layout: stack children or fill content area
          declare

@@ -1,0 +1,112 @@
+.button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 34px;
+  padding: 8px 14px;
+  background-color: rgb(240, 244, 249);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(181, 191, 205);
+  border-radius: 6px;
+}
+
+.button:hover {
+  background-color: rgb(228, 235, 244);
+  border-color: rgb(150, 164, 183);
+}
+
+.button:pressed {
+  background-color: rgb(214, 223, 235);
+}
+
+.button:focus {
+  border-color: rgb(59, 130, 246);
+}
+
+.button:disabled {
+  opacity: 0.6;
+}
+
+.button::label {
+  color: rgb(30, 41, 59);
+  font-size: 14px;
+  font-weight: 500;
+  text-wrap-mode: nowrap;
+}
+
+.text-input {
+  min-height: 38px;
+  padding: 8px 10px;
+  background-color: rgb(255, 255, 255);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(186, 198, 212);
+  border-radius: 7px;
+}
+
+.text-input:focus {
+  border-color: rgb(59, 130, 246);
+}
+
+.text-input::label {
+  color: rgb(15, 23, 42);
+  font-size: 14px;
+}
+
+.text-input::cursor {
+  background-color: rgb(59, 130, 246);
+  width: 1px;
+}
+
+.text-input::selected {
+  background-color: rgba(59, 130, 246, 0.22);
+}
+
+.list-box {
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(198, 208, 220);
+  border-radius: 8px;
+  background-color: rgb(255, 255, 255);
+}
+
+.list-box::scroll {
+  width: 10px;
+  margin: 0px 0px 0px 6px;
+  padding: 2px;
+  background-color: rgba(148, 163, 184, 0.22);
+  border-radius: 6px;
+}
+
+.list-box::knob {
+  width: 10px;
+  min-height: 24px;
+  background-color: rgba(71, 85, 105, 0.85);
+  border-radius: 6px;
+}
+
+.list-row {
+  padding: 8px 10px;
+  background-color: rgb(255, 255, 255);
+  border-width: 1px 0px;
+  border-style: solid;
+  border-color: rgb(222, 229, 238);
+}
+
+.list-row:hover {
+  background-color: rgb(239, 246, 255);
+}
+
+.list-row:selected {
+  background-color: rgb(59, 130, 246);
+}
+
+.list-row::label {
+  color: rgb(30, 41, 59);
+  font-size: 14px;
+}
+
+.list-row::label:selected {
+  color: rgb(255, 255, 255);
+}

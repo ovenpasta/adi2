@@ -778,4 +778,189 @@ package body Adi.Layout_Util is
       return Result;
    end Flex_To_Rectangles;
 
+   -------------------------------------------------
+   -- Grid Layout
+   -------------------------------------------------
+
+   procedure Compute_Grid_Layout(
+      Context  : Grid_Layout_Context;
+      Children : in out Grid_Child_Info_Array)
+   is
+      N : constant Natural := Children'Length;
+      Cols : constant Natural := Natural'Max (1, Context.Columns);
+      type Nat_Array is array (Children'Range) of Natural;
+      Col_Start : Nat_Array;
+      Row_Start : Nat_Array;
+      Col_Span  : Nat_Array;
+      Row_Span  : Nat_Array;
+      Auto_Index : Natural := 0;
+      Needed_Rows : Natural := Context.Explicit_Rows;
+   begin
+      if N = 0 then
+         return;
+      end if;
+
+      for I in Children'Range loop
+         declare
+            Child : Grid_Child_Info renames Children (I);
+            C : Natural := Child.Grid_Column;
+            R : Natural := Child.Grid_Row;
+            CS : Natural := Child.Grid_Column_Span;
+            RS : Natural := Child.Grid_Row_Span;
+         begin
+            if not Child.Active then
+               Col_Start (I) := 1;
+               Row_Start (I) := 1;
+               Col_Span (I) := 1;
+               Row_Span (I) := 1;
+               Needed_Rows := Natural'Max (Needed_Rows, 1);
+            else
+               if CS = 0 then
+                  CS := 1;
+               end if;
+               if RS = 0 then
+                  RS := 1;
+               end if;
+
+               if C = 0 and then R = 0 then
+                  Auto_Index := Auto_Index + 1;
+                  R := ((Auto_Index - 1) / Cols) + 1;
+                  C := ((Auto_Index - 1) mod Cols) + 1;
+               elsif C = 0 then
+                  C := 1;
+               elsif R = 0 then
+                  Auto_Index := Auto_Index + 1;
+                  R := ((Auto_Index - 1) / Cols) + 1;
+               end if;
+
+               C := Natural'Max (1, Natural'Min (C, Cols));
+               CS := Natural'Max (1, Natural'Min (CS, Cols - C + 1));
+
+               Col_Start (I) := C;
+               Row_Start (I) := Natural'Max (1, R);
+               Col_Span (I) := CS;
+               Row_Span (I) := RS;
+
+               Needed_Rows := Natural'Max (Needed_Rows, Row_Start (I) + RS - 1);
+            end if;
+         end;
+      end loop;
+
+      declare
+         Rows : constant Natural := Natural'Max (1, Needed_Rows);
+         Available_W : constant Pixel_Type :=
+           Pixel_Type'Max
+             (0.0, Context.Container.Width - Pixel_Type (Cols - 1) * Context.Column_Gap);
+         Available_H : constant Pixel_Type :=
+           Pixel_Type'Max
+             (0.0, Context.Container.Height - Pixel_Type (Rows - 1) * Context.Row_Gap);
+         Cell_W : constant Pixel_Type := Available_W / Pixel_Type (Cols);
+         Cell_H : constant Pixel_Type := Available_H / Pixel_Type (Rows);
+         Col_Widths : Pixel_Array (1 .. Cols) := [others => Cell_W];
+         Row_Heights : Pixel_Array (1 .. Rows) := [others => Cell_H];
+      begin
+         --  Keep tracks large enough to satisfy child size requirements.
+         for I in Children'Range loop
+            declare
+               Child : Grid_Child_Info renames Children (I);
+               C : constant Natural := Col_Start (I);
+               R : constant Natural := Row_Start (I);
+               CS : constant Natural := Col_Span (I);
+               RS : constant Natural := Row_Span (I);
+            begin
+               if Child.Active then
+                  declare
+                     Req_W : Pixel_Type := Child.Min_Width;
+                     Req_H : Pixel_Type := Child.Min_Height;
+                     Req_Per_Col : Pixel_Type;
+                     Req_Per_Row : Pixel_Type;
+                  begin
+                     if Context.Use_Preferred_Floor then
+                        Req_W := Pixel_Type'Max (Req_W, Child.Pref_Width);
+                        Req_H := Pixel_Type'Max (Req_H, Child.Pref_Height);
+                     end if;
+
+                     Req_Per_Col :=
+                       Pixel_Type'Max
+                         (0.0,
+                          Req_W
+                          - Context.Column_Gap * Pixel_Type'Max (0.0, Pixel_Type (CS - 1)))
+                       / Pixel_Type (CS);
+                     Req_Per_Row :=
+                       Pixel_Type'Max
+                         (0.0,
+                          Req_H
+                          - Context.Row_Gap * Pixel_Type'Max (0.0, Pixel_Type (RS - 1)))
+                       / Pixel_Type (RS);
+
+                     for K in C .. C + CS - 1 loop
+                        Col_Widths (K) := Pixel_Type'Max (Col_Widths (K), Req_Per_Col);
+                     end loop;
+                     for K in R .. R + RS - 1 loop
+                        Row_Heights (K) := Pixel_Type'Max (Row_Heights (K), Req_Per_Row);
+                     end loop;
+                  end;
+               end if;
+            end;
+         end loop;
+
+         for I in Children'Range loop
+            declare
+               Child : Grid_Child_Info renames Children (I);
+               C : constant Natural := Col_Start (I);
+               R : constant Natural := Row_Start (I);
+               CS : constant Natural := Col_Span (I);
+               RS : constant Natural := Row_Span (I);
+               X0 : Pixel_Type := Context.Container.X;
+               Y0 : Pixel_Type := Context.Container.Y;
+               CW : Pixel_Type :=
+                 Context.Column_Gap * Pixel_Type'Max (0.0, Pixel_Type (CS - 1));
+               CH : Pixel_Type :=
+                 Context.Row_Gap * Pixel_Type'Max (0.0, Pixel_Type (RS - 1));
+            begin
+               if Child.Active then
+                  for K in 1 .. C - 1 loop
+                     X0 := X0 + Col_Widths (K) + Context.Column_Gap;
+                  end loop;
+                  for K in 1 .. R - 1 loop
+                     Y0 := Y0 + Row_Heights (K) + Context.Row_Gap;
+                  end loop;
+
+                  for K in C .. C + CS - 1 loop
+                     CW := CW + Col_Widths (K);
+                  end loop;
+                  for K in R .. R + RS - 1 loop
+                     CH := CH + Row_Heights (K);
+                  end loop;
+               else
+                  X0 := 0.0;
+                  Y0 := 0.0;
+                  CW := 0.0;
+                  CH := 0.0;
+               end if;
+
+               Child.Computed_X := X0;
+               Child.Computed_Y := Y0;
+               Child.Computed_Width := CW;
+               Child.Computed_Height := CH;
+            end;
+         end loop;
+      end;
+   end Compute_Grid_Layout;
+
+   function Grid_To_Rectangles(
+      Children : Grid_Child_Info_Array) return Rectangle_Array
+   is
+      Result : Rectangle_Array (Children'Range);
+   begin
+      for I in Children'Range loop
+         Result (I) :=
+           (X => Children (I).Computed_X,
+            Y => Children (I).Computed_Y,
+            Width => Children (I).Computed_Width,
+            Height => Children (I).Computed_Height);
+      end loop;
+      return Result;
+   end Grid_To_Rectangles;
+
 end Adi.Layout_Util;

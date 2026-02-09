@@ -823,6 +823,22 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       end if;
    end On_Key_Down;
 
+   ---------------
+   -- On_Key_Up --
+   ---------------
+
+   procedure On_Key_Up
+     (W        : in out Window;
+      Scancode : Adi.SDL.Events.SDL_Scancode;
+      Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+      Repeat   : Boolean)
+   is
+   begin
+      if W.Focused_Widget /= null then
+         On_Key_Up (W.Focused_Widget.all, Scancode, Key_Mod, Repeat);
+      end if;
+   end On_Key_Up;
+
    -------------------
    -- On_Text_Input --
    -------------------

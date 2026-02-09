@@ -69,6 +69,12 @@ package Button_Example_Styles is
       others => <>
    );
 
+   --  Style for primary when widget State_Focused
+   Primary_Widget_Focused_Style : constant Style_Rules := (
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (0.0), Px (2.0), RGBA (191, 219, 254, 0.9))),
+      others => <>
+   );
+
    --  Base style for primary::label
    Primary_Label_Base_Style : constant Style_Rules := (
       Color => Set (C (White)),
@@ -101,6 +107,12 @@ package Button_Example_Styles is
    --  Style for danger when widget State_Pressed
    Danger_Widget_Pressed_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (153, 27, 27)),
+      others => <>
+   );
+
+   --  Style for danger when widget State_Focused
+   Danger_Widget_Focused_Style : constant Style_Rules := (
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (0.0), Px (2.0), RGBA (254, 202, 202, 0.9))),
       others => <>
    );
 
@@ -137,6 +149,13 @@ package Button_Example_Styles is
    --  Style for outline when widget State_Pressed
    Outline_Widget_Pressed_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.25)),
+      others => <>
+   );
+
+   --  Style for outline when widget State_Focused
+   Outline_Widget_Focused_Style : constant Style_Rules := (
+      Border_Color => Set (Border_Color (RGB (96, 165, 250))),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (0.0), Px (2.0), RGBA (147, 197, 253, 0.4))),
       others => <>
    );
 
@@ -190,6 +209,13 @@ package Button_Example_Styles is
       others => <>
    );
 
+   --  Style for toggle when widget State_Focused
+   Toggle_Widget_Focused_Style : constant Style_Rules := (
+      Border_Color => Set (Border_Color (RGB (147, 197, 253))),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (0.0), Px (2.0), RGBA (96, 165, 250, 0.35))),
+      others => <>
+   );
+
    --  Base style for toggle::label
    Toggle_Label_Base_Style : constant Style_Rules := (
       Color => Set (C (White)),
@@ -224,6 +250,12 @@ package Button_Example_Styles is
    Option_Left_Widget_Selected_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (59, 130, 246)),
       Border_Color => Set (Border_Color (RGB (37, 99, 235))),
+      others => <>
+   );
+
+   --  Style for option-left when widget State_Focused
+   Option_Left_Widget_Focused_Style : constant Style_Rules := (
+      Border_Color => Set (Border_Color (RGB (147, 197, 253))),
       others => <>
    );
 
@@ -263,6 +295,12 @@ package Button_Example_Styles is
       others => <>
    );
 
+   --  Style for option-center when widget State_Focused
+   Option_Center_Widget_Focused_Style : constant Style_Rules := (
+      Border_Color => Set (Border_Color (RGB (147, 197, 253))),
+      others => <>
+   );
+
    --  Base style for option-center::label
    Option_Center_Label_Base_Style : constant Style_Rules := (
       Color => Set (C (White)),
@@ -297,6 +335,12 @@ package Button_Example_Styles is
    Option_Right_Widget_Selected_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (59, 130, 246)),
       Border_Color => Set (Border_Color (RGB (37, 99, 235))),
+      others => <>
+   );
+
+   --  Style for option-right when widget State_Focused
+   Option_Right_Widget_Focused_Style : constant Style_Rules := (
+      Border_Color => Set (Border_Color (RGB (147, 197, 253))),
       others => <>
    );
 
@@ -358,6 +402,7 @@ package Button_Example_Styles is
      From (Primary_Base_Style)
      .On (When_State (State_Hovered), Primary_Widget_Hovered_Style)
      .On (When_State (State_Pressed), Primary_Widget_Pressed_Style)
+     .On (When_State (State_Focused), Primary_Widget_Focused_Style)
      .Build;
 
    --  Complete widget style for primary::label
@@ -377,6 +422,7 @@ package Button_Example_Styles is
      From (Danger_Base_Style)
      .On (When_State (State_Hovered), Danger_Widget_Hovered_Style)
      .On (When_State (State_Pressed), Danger_Widget_Pressed_Style)
+     .On (When_State (State_Focused), Danger_Widget_Focused_Style)
      .Build;
 
    --  Complete widget style for danger::label
@@ -396,6 +442,7 @@ package Button_Example_Styles is
      From (Outline_Base_Style)
      .On (When_State (State_Hovered), Outline_Widget_Hovered_Style)
      .On (When_State (State_Pressed), Outline_Widget_Pressed_Style)
+     .On (When_State (State_Focused), Outline_Widget_Focused_Style)
      .Build;
 
    --  Complete widget style for outline::label
@@ -417,6 +464,7 @@ package Button_Example_Styles is
      .On (When_State (State_Pressed), Toggle_Widget_Pressed_Style)
      .On (When_State (State_Selected), Toggle_Widget_Selected_Style)
      .On (When_State (State_Selected) and When_State (State_Pressed), Toggle_Widget_Selected_Widget_Pressed_Style)
+     .On (When_State (State_Focused), Toggle_Widget_Focused_Style)
      .Build;
 
    --  Complete widget style for toggle::label
@@ -436,6 +484,7 @@ package Button_Example_Styles is
      From (Option_Left_Base_Style)
      .On (When_State (State_Hovered), Option_Left_Widget_Hovered_Style)
      .On (When_State (State_Selected), Option_Left_Widget_Selected_Style)
+     .On (When_State (State_Focused), Option_Left_Widget_Focused_Style)
      .Build;
 
    --  Complete widget style for option-left::label
@@ -455,6 +504,7 @@ package Button_Example_Styles is
      From (Option_Center_Base_Style)
      .On (When_State (State_Hovered), Option_Center_Widget_Hovered_Style)
      .On (When_State (State_Selected), Option_Center_Widget_Selected_Style)
+     .On (When_State (State_Focused), Option_Center_Widget_Focused_Style)
      .Build;
 
    --  Complete widget style for option-center::label
@@ -474,6 +524,7 @@ package Button_Example_Styles is
      From (Option_Right_Base_Style)
      .On (When_State (State_Hovered), Option_Right_Widget_Hovered_Style)
      .On (When_State (State_Selected), Option_Right_Widget_Selected_Style)
+     .On (When_State (State_Focused), Option_Right_Widget_Focused_Style)
      .Build;
 
    --  Complete widget style for option-right::label

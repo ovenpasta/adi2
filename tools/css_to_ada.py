@@ -377,6 +377,61 @@ def parse_length(value: str) -> Optional[ParsedLength]:
     unit = unit_map.get(unit_str, "Px")
     return ParsedLength(amount, unit)
 
+def parse_grid_track_count(value: str) -> Optional[int]:
+    """Parse grid-template-* into a simple track count."""
+    value = value.strip().lower()
+    if not value or value == "none":
+        return None
+
+    m = re.match(r'^repeat\(\s*(\d+)\s*,.*\)$', value)
+    if m:
+        n = int(m.group(1))
+        return n if n > 0 else None
+
+    if re.match(r'^\d+$', value):
+        n = int(value)
+        return n if n > 0 else None
+
+    tokens = [t for t in re.split(r'\s+', value) if t and t != "/"]
+    if tokens:
+        return len(tokens)
+    return None
+
+
+def parse_grid_placement(value: str) -> tuple[Optional[int], Optional[int]]:
+    """Parse grid-row / grid-column into (start, span)."""
+    value = value.strip().lower()
+    if not value or value == "auto":
+        return (None, None)
+
+    start: Optional[int] = None
+    span: Optional[int] = None
+
+    parts = [p.strip() for p in value.split("/", 1)]
+    left = parts[0]
+    right = parts[1] if len(parts) > 1 else None
+
+    m_left_span = re.match(r'^span\s+(\d+)$', left)
+    if m_left_span:
+        span = int(m_left_span.group(1))
+    elif re.match(r'^\d+$', left):
+        start = int(left)
+
+    if right:
+        m_right_span = re.match(r'^span\s+(\d+)$', right)
+        if m_right_span:
+            span = int(m_right_span.group(1))
+        elif re.match(r'^\d+$', right) and start is not None:
+            end_line = int(right)
+            if end_line > start:
+                span = end_line - start
+
+    if start is not None and start <= 0:
+        start = None
+    if span is not None and span <= 0:
+        span = None
+    return (start, span)
+
 
 def parse_color(value: str) -> Optional[ParsedColor]:
     """Parse a CSS color value"""
@@ -1184,6 +1239,34 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
                 ada_field = f"Order => Set ({val})"
             except ValueError:
                 pass
+
+        # Grid container
+        elif prop == "grid-template-columns":
+            tracks = parse_grid_track_count(value)
+            if tracks is not None:
+                ada_field = f"Grid_Columns => Set (Grid_Columns_Value ({tracks}))"
+
+        elif prop == "grid-template-rows":
+            tracks = parse_grid_track_count(value)
+            if tracks is not None:
+                ada_field = f"Grid_Rows => Set (Grid_Rows_Value ({tracks}))"
+
+        # Grid item placement
+        elif prop == "grid-column":
+            start, span = parse_grid_placement(value)
+            if start is not None:
+                fields.append(f"{indent}Grid_Column => Set (Grid_Column_Value ({start}))")
+            if span is not None:
+                fields.append(f"{indent}Grid_Column_Span => Set (Grid_Column_Span_Value ({span}))")
+            continue
+
+        elif prop == "grid-row":
+            start, span = parse_grid_placement(value)
+            if start is not None:
+                fields.append(f"{indent}Grid_Row => Set (Grid_Row_Value ({start}))")
+            if span is not None:
+                fields.append(f"{indent}Grid_Row_Span => Set (Grid_Row_Span_Value ({span}))")
+            continue
 
         # Box shadow
         elif prop == "box-shadow":

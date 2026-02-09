@@ -34,6 +34,7 @@ package Demo_Flex_Styles is
    Row_Base_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
+      Flex_Grow => Set (1.0),
       Justify_Content => Set (Flex_Start),
       Align_Items => Set (Stretch),
       Gap => Set (Gap (Px (15.0))),

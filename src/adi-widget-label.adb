@@ -186,7 +186,8 @@ package body Adi.Widget.Label is
                Min_Height     => Float (Text_Size.Height),
                Max_Width      => Float'Last,
                Max_Height     => Float'Last,
-               Content_Width  => Float (Text_Size.Width),
+               Content_Width  => (if Can_Wrap then 0.0
+                                  else Float (Text_Size.Width)),
                Content_Height => Float (Text_Size.Height),
                Flex           => (
                   Grow       => 1.0,
@@ -239,8 +240,9 @@ package body Adi.Widget.Label is
                            begin
                               if Wrapped.Height /= L_Item.Geometry.Height
                               then
-                                 L_Item.Geometry.Width  := Wrapped.Width;
                                  L_Item.Geometry.Height := Wrapped.Height;
+                                 L_Item.Content_Width :=
+                                   Float (L_Item.Geometry.Width);
                                  L_Item.Content_Height :=
                                     Float (Wrapped.Height);
                                  L_Item.Min_Height :=

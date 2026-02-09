@@ -6,10 +6,7 @@ package body Adi.Widget.Part_Styles is
 
    function Create return Part_Style_Builder is
    begin
-      return (Styles        => Empty_Part_Styles,
-              Configured    => [others => False],
-              Default_Set   => False,
-              Default_Style => Empty_Widget_Style);
+      return (Styles => Empty_Part_Styles);
    end Create;
 
    ---------------------------------------------------------------------------
@@ -22,7 +19,6 @@ package body Adi.Widget.Part_Styles is
       Result : Part_Style_Builder := B;
    begin
       Result.Styles (P) := (Style => S, Enabled => True);
-      Result.Configured (P) := True;
       return Result;
    end With_Part;
 
@@ -158,35 +154,12 @@ package body Adi.Widget.Part_Styles is
    end Enable_Part;
 
    ---------------------------------------------------------------------------
-   --  Default Style
-   ---------------------------------------------------------------------------
-
-   function With_Default (B : Part_Style_Builder;
-                          S : Widget_Style) return Part_Style_Builder is
-      Result : Part_Style_Builder := B;
-   begin
-      Result.Default_Set := True;
-      Result.Default_Style := S;
-      return Result;
-   end With_Default;
-
-   ---------------------------------------------------------------------------
    --  Build and Apply
    ---------------------------------------------------------------------------
 
    function Build (B : Part_Style_Builder) return Part_Style_Array is
-      Result : Part_Style_Array := B.Styles;
    begin
-      --  Apply default style to unconfigured parts if set
-      if B.Default_Set then
-         for P in Part_Kind loop
-            if not B.Configured (P) then
-               Result (P) := (Style => B.Default_Style, Enabled => True);
-            end if;
-         end loop;
-      end if;
-
-      return Result;
+      return B.Styles;
    end Build;
 
    procedure Apply_To (B : Part_Style_Builder; W : in out Widget'Class) is
@@ -281,188 +254,5 @@ package body Adi.Widget.Part_Styles is
         .Disable_Part (Items_Part)
         .Disable_Part (Cursor_Part);
    end Slider_Template;
-
-   ---------------------------------------------------------------------------
-   --  Predefined Style Themes
-   ---------------------------------------------------------------------------
-
-   function Primary_Button_Style return Part_Style_Array is
-      --  Blue button with white text, hover/press states
-      Main_Style : constant Widget_Style :=
-        Adi.Widget_Styles.Create
-          .Base ((
-             Display          => Set (Inline_Flex),
-             Justify_Content  => Set (Center),
-             Align_Items      => Set (Adi.CSS_Styles.Center),
-             Background_Color => Set_Bg (C (Blue)),
-             Border_Width     => Set (Border_Width (Px (0))),
-             Border_Radius    => Set (Radius (Px (6))),
-             Padding          => Set (CSS_Box (Px (12), Px (24))),
-             Cursor           => Set (Cursor_Pointer),
-             others           => <>))
-          .On_Hover ((
-             Background_Color => Set_Bg (RGB (30, 64, 175)),  --  Darker blue
-             others           => <>))
-          .On_Press ((
-             Background_Color => Set_Bg (RGB (29, 58, 145)),  --  Even darker
-             others           => <>))
-          .On_Disabled ((
-             Background_Color => Set_Bg (C (Gray)),
-             Cursor           => Set (Cursor_Not_Allowed),
-             others           => <>))
-          .Build;
-
-      Label_Style : constant Widget_Style :=
-        Adi.Widget_Styles.Create
-          .Base ((
-             Color          => Set (C (White)),
-             Font_Size      => Set_Font (Px (14)),
-             Font_Weight    => Set (Weight_Medium),
-             Text_Align     => Set (Text_Center),
-             Text_Wrap_Mode => Set (TWM_Nowrap),
-             others         => <>))
-          .On_Disabled ((
-             Color => Set (C (Light_Gray)),
-             others => <>))
-          .Build;
-
-      Icon_Style : constant Widget_Style :=
-        Adi.Widget_Styles.Create
-          .Base ((
-             Color      => Set (C (White)),
-             Object_Fit => Set (Fit_Contain),
-             others     => <>))
-          .On_Disabled ((
-             Color   => Set (C (Light_Gray)),
-             Opacity => Set (0.5),
-             others  => <>))
-          .Build;
-   begin
-      return Button_Template
-        .With_Main (Main_Style)
-        .With_Label (Label_Style)
-        .With_Icon (Icon_Style)
-        .Build;
-   end Primary_Button_Style;
-
-   function Secondary_Button_Style return Part_Style_Array is
-      --  Outlined button with blue border
-      Main_Style : constant Widget_Style :=
-        Adi.Widget_Styles.Create
-          .Base ((
-             Display          => Set (Inline_Flex),
-             Justify_Content  => Set (Center),
-             Align_Items      => Set (Adi.CSS_Styles.Center),
-             Background_Color => Set_Bg (C (Transparent)),
-             Border_Width     => Set (Border_Width (Px (2))),
-             Border_Color     => Set (Border_Color (C (Blue))),
-             Border_Style     => Set (Border_Style (Solid)),
-             Border_Radius    => Set (Radius (Px (6))),
-             Padding          => Set (CSS_Box (Px (10), Px (22))),
-             Cursor           => Set (Cursor_Pointer),
-             others           => <>))
-          .On_Hover ((
-             Background_Color => Set_Bg (RGBA (59, 130, 246, 0.1)),
-             others           => <>))
-          .On_Press ((
-             Background_Color => Set_Bg (RGBA (59, 130, 246, 0.2)),
-             others           => <>))
-          .On_Disabled ((
-             Border_Color => Set (Border_Color (C (Gray))),
-             Cursor       => Set (Cursor_Not_Allowed),
-             others       => <>))
-          .Build;
-
-      Label_Style : constant Widget_Style :=
-        Adi.Widget_Styles.Create
-          .Base ((
-             Color          => Set (C (Blue)),
-             Font_Size      => Set_Font (Px (14)),
-             Font_Weight    => Set (Weight_Medium),
-             Text_Align     => Set (Text_Center),
-             Text_Wrap_Mode => Set (TWM_Nowrap),
-             others         => <>))
-          .On_Hover ((
-             Color => Set (C (White)),
-             others => <>))
-          .On_Disabled ((
-             Color => Set (C (Gray)),
-             others => <>))
-          .Build;
-   begin
-      return Button_Template
-        .With_Main (Main_Style)
-        .With_Label (Label_Style)
-        .Build;
-   end Secondary_Button_Style;
-
-   function Danger_Button_Style return Part_Style_Array is
-      --  Red button for destructive actions
-      Main_Style : constant Widget_Style :=
-        Adi.Widget_Styles.Create
-          .Base ((
-             Display          => Set (Inline_Flex),
-             Justify_Content  => Set (Center),
-             Align_Items      => Set (Adi.CSS_Styles.Center),
-             Background_Color => Set_Bg (C (Red)),
-             Border_Width     => Set (Border_Width (Px (0))),
-             Border_Radius    => Set (Radius (Px (6))),
-             Padding          => Set (CSS_Box (Px (12), Px (24))),
-             Cursor           => Set (Cursor_Pointer),
-             others           => <>))
-          .On_Hover ((
-             Background_Color => Set_Bg (RGB (185, 28, 28)),  --  Darker red
-             others           => <>))
-          .On_Press ((
-             Background_Color => Set_Bg (RGB (153, 27, 27)),  --  Even darker
-             others           => <>))
-          .On_Disabled ((
-             Background_Color => Set_Bg (C (Gray)),
-             Cursor           => Set (Cursor_Not_Allowed),
-             others           => <>))
-          .Build;
-
-      Label_Style : constant Widget_Style :=
-        Adi.Widget_Styles.Create
-          .Base ((
-             Color          => Set (C (White)),
-             Font_Size      => Set_Font (Px (14)),
-             Font_Weight    => Set (Weight_Medium),
-             Text_Align     => Set (Text_Center),
-             Text_Wrap_Mode => Set (TWM_Nowrap),
-             others         => <>))
-          .On_Disabled ((
-             Color => Set (C (Light_Gray)),
-             others => <>))
-          .Build;
-   begin
-      return Button_Template
-        .With_Main (Main_Style)
-        .With_Label (Label_Style)
-        .Build;
-   end Danger_Button_Style;
-
-   function Card_Style return Part_Style_Array is
-      --  Basic card with shadow effect (border approximation)
-      Main_Style : constant Widget_Style :=
-        Adi.Widget_Styles.Create
-          .Base ((
-             Background_Color => Set_Bg (C (White)),
-             Border_Width     => Set (Border_Width (Px (1))),
-             Border_Color     => Set (Border_Color (C (Light_Gray))),
-             Border_Style     => Set (Border_Style (Solid)),
-             Border_Radius    => Set (Radius (Px (8))),
-             Padding          => Set (CSS_Box (Px (16))),
-             others           => <>))
-          .On_Hover ((
-             Border_Color => Set (Border_Color (C (Gray))),
-             others       => <>))
-          .Build;
-   begin
-      return Create
-        .Enable_Part (Main_Part)
-        .With_Main (Main_Style)
-        .Build;
-   end Card_Style;
 
 end Adi.Widget.Part_Styles;

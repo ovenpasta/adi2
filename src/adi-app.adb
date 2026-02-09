@@ -154,6 +154,19 @@ package body Adi.App is
                             end;
                         end if;
 
+                    when SDL_EVENT_KEY_UP =>
+                        if A.Main_Window /= null then
+                            declare
+                                Key_Event : constant SDL_KeyboardEvent :=
+                                   To_Keyboard_Event (Event);
+                            begin
+                                A.Main_Window.On_Key_Up
+                                  (Scancode => Key_Event.Scancode,
+                                   Key_Mod  => Key_Event.Key_Mod,
+                                   Repeat   => Boolean (Key_Event.Is_Repeat));
+                            end;
+                        end if;
+
                     when SDL_EVENT_TEXT_INPUT =>
                         if A.Main_Window /= null then
                             declare

@@ -1,0 +1,116 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background-color: rgb(242, 245, 248);
+}
+
+.panels {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  height: 580px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background-color: rgb(255, 255, 255);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(220, 226, 234);
+  border-radius: 10px;
+  width: 476px;
+  height: 580px;
+}
+
+.panel-title::label {
+  color: rgb(41, 49, 64);
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: clip;
+  text-wrap-mode: nowrap;
+}
+
+.status::label {
+  color: rgb(83, 97, 120);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: clip;
+  text-wrap-mode: nowrap;
+}
+
+.listbox {
+  background-color: rgb(247, 249, 252);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(213, 221, 231);
+  border-radius: 8px;
+  height: 500px;
+}
+
+.listbox::scroll {
+  width: 10px;
+  margin: 0px 0px 0px 6px;
+  padding: 2px;
+  background-color: rgba(148, 163, 184, 0.22);
+  border-radius: 6px;
+  transition: background-color 260ms ease-out;
+}
+
+.listbox::knob {
+  width: 10px;
+  min-height: 24px;
+  background-color: rgba(71, 85, 105, 0.78);
+  border-radius: 6px;
+  transition: background-color 260ms ease-out;
+}
+
+.label-row {
+  padding: 8px 10px;
+  background-color: rgb(255, 255, 255);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(220, 228, 236);
+  border-radius: 6px;
+}
+
+.label-row:selected {
+  background-color: rgb(62, 118, 210);
+  border-color: rgb(48, 95, 171);
+}
+
+.label-row::label {
+  color: rgb(43, 52, 67);
+  font-size: 14px;
+}
+
+.label-row::label:selected {
+  color: white;
+}
+
+.card-row {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  background-color: rgb(63, 115, 176);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(28, 33, 45);
+  border-radius: 8px;
+  height: 44px;
+}
+
+.card-row:selected {
+  background-color: rgb(244, 166, 77);
+  border-color: rgb(190, 120, 35);
+}
+
+.card-row-title::label {
+  color: white;
+  font-size: 13px;
+}

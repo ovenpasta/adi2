@@ -1449,6 +1449,7 @@ package body Adi.Widget is
       Had_Clip   : Boolean := False;
       Use_Clip   : constant Boolean :=
         Renderer /= null and then Geom.Width > 0.0 and then Geom.Height > 0.0;
+      X1, Y1, X2, Y2 : Integer;
    begin
       if Style.Visibility = Visibility_Hidden or else Content'Length = 0 then
          return;
@@ -1518,11 +1519,32 @@ package body Adi.Widget is
             Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
          end if;
 
+         X1 := Integer (Float'Floor (Float (Geom.X)));
+         Y1 := Integer (Float'Floor (Float (Geom.Y)));
+         X2 := X1 + Integer (Float'Ceiling (Float (Geom.Width)));
+         Y2 := Y1 + Integer (Float'Ceiling (Float (Geom.Height)));
+
+         if Had_Clip then
+            X1 := Integer'Max (X1, Integer (Prev_Clip.x));
+            Y1 := Integer'Max (Y1, Integer (Prev_Clip.y));
+            X2 := Integer'Min (X2, Integer (Prev_Clip.x + Prev_Clip.w));
+            Y2 := Integer'Min (Y2, Integer (Prev_Clip.y + Prev_Clip.h));
+         end if;
+
+         if X2 <= X1 or else Y2 <= Y1 then
+            if Had_Clip then
+               Success := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
+            else
+               Success := SDL_SetRenderClipRect (Renderer, null);
+            end if;
+            return;
+         end if;
+
          Clip_Rect :=
-           (x => int (Integer (Float'Floor (Float (Geom.X)))),
-            y => int (Integer (Float'Floor (Float (Geom.Y)))),
-            w => int (Integer (Float'Ceiling (Float (Geom.Width)))),
-            h => int (Integer (Float'Ceiling (Float (Geom.Height)))));
+           (x => int (X1),
+            y => int (Y1),
+            w => int (X2 - X1),
+            h => int (Y2 - Y1));
          Success := SDL_SetRenderClipRect (Renderer, Clip_Rect'Access);
       end if;
 
@@ -1955,9 +1977,56 @@ package body Adi.Widget is
    end Render_Items;
 
    procedure Render_Tree (W : in out Widget'Class; Ctx : in out Render_Context) is
+      Renderer : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
+      Prev_Clip  : aliased Adi.SDL.SDL_Rect;
+      Clip_Rect  : aliased Adi.SDL.SDL_Rect;
+      Had_Clip   : Boolean := False;
+      Use_Clip   : Boolean := False;
+      Success    : Adi.SDL.C_bool;
+      X1, Y1, X2, Y2 : Integer;
    begin
       if not Has_Flag (W, Visible) then
          return;
+      end if;
+
+      if Renderer /= null and then Has_Flag (W, Scrollable) then
+         declare
+            Main_Style : constant Resolved_Style :=
+              Get_Resolved_Part_Style (W, Main_Part);
+            Content : constant Rectangle :=
+              Content_Box (Get_Geometry (W), Main_Style);
+         begin
+            if Content.Width > 0.0 and then Content.Height > 0.0 then
+               Use_Clip := True;
+               Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
+               if Had_Clip then
+                  Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
+               end if;
+
+               X1 := Integer (Float'Floor (Float (Content.X)));
+               Y1 := Integer (Float'Floor (Float (Content.Y)));
+               X2 := X1 + Integer (Float'Ceiling (Float (Content.Width)));
+               Y2 := Y1 + Integer (Float'Ceiling (Float (Content.Height)));
+
+               if Had_Clip then
+                  X1 := Integer'Max (X1, Integer (Prev_Clip.x));
+                  Y1 := Integer'Max (Y1, Integer (Prev_Clip.y));
+                  X2 := Integer'Min (X2, Integer (Prev_Clip.x + Prev_Clip.w));
+                  Y2 := Integer'Min (Y2, Integer (Prev_Clip.y + Prev_Clip.h));
+               end if;
+
+               if X2 > X1 and then Y2 > Y1 then
+                  Clip_Rect :=
+                    (x => int (X1),
+                     y => int (Y1),
+                     w => int (X2 - X1),
+                     h => int (Y2 - Y1));
+                  Success := SDL_SetRenderClipRect (Renderer, Clip_Rect'Access);
+               else
+                  Use_Clip := False;
+               end if;
+            end if;
+         end;
       end if;
 
       Render_Items (W, Ctx);
@@ -1965,6 +2034,14 @@ package body Adi.Widget is
       for Child of W.Children loop
          Render_Tree (Child.all, Ctx);
       end loop;
+
+      if Use_Clip then
+         if Had_Clip then
+            Success := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
+         else
+            Success := SDL_SetRenderClipRect (Renderer, null);
+         end if;
+      end if;
    end Render_Tree;
 
    procedure Update_And_Render (W : in out Widget'Class; Ctx : in out Render_Context) is

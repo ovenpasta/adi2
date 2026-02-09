@@ -38,7 +38,9 @@ package Adi.SDL.Events is
    SDL_SCANCODE_DOWN      : constant SDL_Scancode := 81;
    SDL_SCANCODE_UP        : constant SDL_Scancode := 82;
    SDL_SCANCODE_HOME      : constant SDL_Scancode := 74;
+   SDL_SCANCODE_PAGEUP    : constant SDL_Scancode := 75;
    SDL_SCANCODE_END       : constant SDL_Scancode := 77;
+   SDL_SCANCODE_PAGEDOWN  : constant SDL_Scancode := 78;
 
    --  Keyboard modifier masks
    SDL_KMOD_SHIFT : constant SDL_Keymod := 16#0003#;
@@ -557,6 +559,11 @@ package Adi.SDL.Events is
    type SDL_Event is record
       Event_Type : SDL_EventType;
    end record with Convention => C, Size => 128 * 8;
+
+   function SDL_GetModState return SDL_Keymod
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_GetModState";
 
    function SDL_PollEvent (event : access SDL_Event) return C_bool  -- /usr/include/SDL3/SDL_events.h:1270
    with Import => True,

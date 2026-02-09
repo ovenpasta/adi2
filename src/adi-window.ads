@@ -41,6 +41,10 @@ package Adi.Window is
         Clicks : Natural := 1);
     procedure On_Mouse_Up
        (W : in out Window; X, Y : Pixel_Type; Button : Adi.Core.Mouse_Button);
+    procedure On_Mouse_Wheel
+       (W                : in out Window;
+        X, Y             : Pixel_Type;
+        Delta_X, Delta_Y : Pixel_Type);
     procedure On_Key_Down
        (W        : in out Window;
         Scancode : Adi.SDL.Events.SDL_Scancode;

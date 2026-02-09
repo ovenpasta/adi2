@@ -266,6 +266,9 @@ package Adi.Widget is
      (W      : in out Widget;
       X, Y   : Pixel_Type;
       Button : Mouse_Button) is null;
+   procedure On_Mouse_Wheel
+     (W              : in out Widget;
+      Delta_X, Delta_Y : Pixel_Type) is null;
 
    --  Called for key down events when this widget has focus.
    procedure On_Key_Down

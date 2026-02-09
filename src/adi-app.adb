@@ -58,6 +58,8 @@ package body Adi.App is
            (SDL_Event, SDL_MouseMotionEvent);
         function To_Mouse_Button_Event is new Ada.Unchecked_Conversion
            (SDL_Event, SDL_MouseButtonEvent);
+        function To_Mouse_Wheel_Event is new Ada.Unchecked_Conversion
+           (SDL_Event, SDL_MouseWheelEvent);
         function To_Keyboard_Event is new Ada.Unchecked_Conversion
            (SDL_Event, SDL_KeyboardEvent);
         function To_Text_Input_Event is new Ada.Unchecked_Conversion
@@ -122,6 +124,20 @@ package body Adi.App is
                                    (X      => Adi.Core.Pixel_Type (Button_Event.X),
                                     Y      => Adi.Core.Pixel_Type (Button_Event.Y),
                                     Button => To_Mouse_Button (Button_Event.Button));
+                            end;
+                        end if;
+
+                    when SDL_EVENT_MOUSE_WHEEL =>
+                        if A.Main_Window /= null then
+                            declare
+                                Wheel_Event : constant SDL_MouseWheelEvent :=
+                                   To_Mouse_Wheel_Event (Event);
+                            begin
+                                A.Main_Window.On_Mouse_Wheel
+                                   (X       => Adi.Core.Pixel_Type (Wheel_Event.Mouse_X),
+                                    Y       => Adi.Core.Pixel_Type (Wheel_Event.Mouse_Y),
+                                    Delta_X => Adi.Core.Pixel_Type (Wheel_Event.Integer_X),
+                                    Delta_Y => Adi.Core.Pixel_Type (Wheel_Event.Integer_Y));
                             end;
                         end if;
 

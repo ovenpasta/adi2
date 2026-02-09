@@ -13,6 +13,7 @@ This project uses **Alire** (Ada's package manager) with GPR project files:
 ### Building the library
 ```bash
 alr build
+you normally don't use gprbuild directly but through alr exec -- gprbuild
 ```
 
 This automatically builds the library and runs post-build actions to compile all tests and examples.
@@ -20,20 +21,21 @@ This automatically builds the library and runs post-build actions to compile all
 ### Building specific tests
 ```bash
 # Build a specific test by setting TEST_KIND scenario variable
-gprbuild -P tests/tests.gpr -XTEST_KIND=styles
-gprbuild -P tests/tests.gpr -XTEST_KIND=layout_test
+alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=styles
+alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=layout_test
 ```
 
 ### Building specific examples
 ```bash
 # Build a specific example by setting EXAMPLE_KIND scenario variable
-gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=label_example
-gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
-gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=button_example
-gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=transition_example
-gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=text_input_example
-gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=demo_flex
-gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=label_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=button_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=transition_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=text_input_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=demo_flex
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
 ```
 
 ### Running tests
@@ -53,6 +55,7 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./examples/bin/text_input_example
 ./examples/bin/demo_flex
 ./examples/bin/stack_example
+./examples/bin/list_box_example
 ```
 
 ### External Dependencies
@@ -160,6 +163,18 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 - Double-click word selection is deferred until mouse-up; moving past a small threshold converts to normal drag selection
 - `Create` does not apply built-in styles; examples/apps define `Main/Label/Cursor/Selected` part styles explicitly
 
+**Adi.Widget.List_Box** (`adi-widget-list_box.ads`): Generic list container widget
+- Generic over row widget type (`Row_Widget` / `Row_Widget_Access`)
+- Manages rows, row heights, row gaps, and vertical scrolling with wheel + keyboard navigation
+- Selection modes: `No_Selection`, `Single_Selection`, `Multi_Selection`, `Range_Selection`
+- Supports anchor-based range selection (`Shift+Click` / `Shift+Arrow`); `Multi_Selection` also supports toggle (`Ctrl+Click`)
+- Renders scrollbar track/knob parts (`Scroll_Part`, `Knob_Part`) with draggable knob + track paging
+- Scrollbar geometry is style-driven from `::scroll`/`::knob` CSS (`width`, `margin`, `padding`, `min-height`)
+- Focusable + scrollable by default, participates in Tab focus traversal
+- Selection APIs: `Select_Row`, `Toggle_Row_Selected`, `Clear_Selection`, `Get_Selected_Count`
+- Callbacks: `On_Item_Clicked`, `On_Item_Activated`, `On_Selection_Changed`
+- Current limitation: `:hover`/`:pressed` selectors are widget-state scoped; part-scoped selector disambiguation (e.g. `list::scroll:hover` vs `list:hover::scroll`) is deferred for later refactor
+
 **Adi.Widget.Stack** (`adi-widget-stack.ads`): Generic stack container widget
 - Generic over `Page_Id` discrete type (typically an enum)
 - Shows one child at a time; pages keyed by `Page_Id`
@@ -249,6 +264,7 @@ examples/
   text_input_example.adb - Text input widget demo
   demo_flex.adb       - Flexbox layout demo
   stack_example.adb   - Stack container with tab switching
+  list_box_example.adb - List box selection/scrolling demo
   css/                - CSS sources for generated example styles
   generated/          - Auto-generated Ada style packages from CSS
   examples.gpr        - Example project file (uses EXAMPLE_KIND scenario)
@@ -277,7 +293,7 @@ All packages are rooted under `Adi`:
 - `Adi.CSS_Styles` - CSS value types and style resolution
 - `Adi.Widget_Styles` - State-based widget styling
 - `Adi.Widget` - Base widget abstraction
-- `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.Stack` - Concrete widgets
+- `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.List_Box`, `Adi.Widget.Stack` - Concrete widgets
 - `Adi.Widget.Part_Styles` - Multi-part style builder
 - `Adi.Text_Buffer` - Shared text editing model
 - `Adi.Animation` - CSS-like style transitions and interpolation

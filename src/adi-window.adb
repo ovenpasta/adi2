@@ -23,6 +23,10 @@ package body Adi.Window is
    function Prev_Focusable
      (Root    : Widget_Access;
       Current : Widget_Access) return Widget_Access;
+   function Find_Widget_At_With_Flag
+     (W    : Window;
+      X, Y : Pixel_Type;
+      F    : Widget_Flag) return Widget_Access;
 
    type Internal is record
       win : Adi.SDL.Video.SDL_Window_Ptr;
@@ -40,6 +44,10 @@ package body Adi.Window is
       Candidate : Widget_Access;
    begin
       if Root = null then
+         return null;
+      end if;
+
+      if not Has_Flag (Root.all, Visible) then
          return null;
       end if;
 
@@ -61,6 +69,10 @@ package body Adi.Window is
       Candidate : Widget_Access;
    begin
       if Root = null then
+         return null;
+      end if;
+
+      if not Has_Flag (Root.all, Visible) then
          return null;
       end if;
 
@@ -87,6 +99,10 @@ package body Adi.Window is
       procedure Visit (Node : Widget_Access) is
       begin
          if Node = null or else Result /= null then
+            return;
+         end if;
+
+         if not Has_Flag (Node.all, Visible) then
             return;
          end if;
 
@@ -119,6 +135,10 @@ package body Adi.Window is
       procedure Visit (Node : Widget_Access) is
       begin
          if Node = null or else Result /= null then
+            return;
+         end if;
+
+         if not Has_Flag (Node.all, Visible) then
             return;
          end if;
 
@@ -186,6 +206,12 @@ package body Adi.Window is
 
    procedure Update (W : in Out Window) is
    begin
+      if W.Focused_Widget /= null
+        and then not Is_Focus_Candidate (W.Focused_Widget)
+      then
+         Set_Focused_Widget (W, null);
+      end if;
+
       if W.Root /= null then
          Adi.Widget.Update (W.Root.all);
       end if;
@@ -321,6 +347,45 @@ package body Adi.Window is
       return Find_Deepest (W.Root);
    end Find_Widget_At;
 
+   function Find_Widget_At_With_Flag
+     (W    : Window;
+      X, Y : Pixel_Type;
+      F    : Widget_Flag) return Widget_Access
+   is
+      function Find_Deepest_Eligible (Parent : Widget_Access) return Widget_Access is
+         Child : Widget_Access;
+         Found : Widget_Access;
+      begin
+         if Parent = null then
+            return null;
+         end if;
+
+         if not Has_Flag (Parent.all, Visible) then
+            return null;
+         end if;
+
+         if not Point_In_Widget (Parent, X, Y) then
+            return null;
+         end if;
+
+         for I in reverse 1 .. Child_Count (Parent.all) loop
+            Child := Get_Child (Parent.all, I);
+            Found := Find_Deepest_Eligible (Child);
+            if Found /= null then
+               return Found;
+            end if;
+         end loop;
+
+         if Has_Flag (Parent.all, F) then
+            return Parent;
+         end if;
+
+         return null;
+      end Find_Deepest_Eligible;
+   begin
+      return Find_Deepest_Eligible (W.Root);
+   end Find_Widget_At_With_Flag;
+
    ------------------------
    -- Set_Focused_Widget --
    ------------------------
@@ -332,7 +397,7 @@ package body Adi.Window is
       Candidate : Widget_Access := New_Focus;
       Ignore    : Adi.SDL.C_bool;
    begin
-      if Candidate /= null and then not Has_Flag (Candidate.all, Focusable) then
+      if Candidate /= null and then not Is_Focus_Candidate (Candidate) then
          Candidate := null;
       end if;
 
@@ -402,20 +467,23 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
        Button : Adi.Core.Mouse_Button;
        Clicks : Natural := 1)
     is
-      Target : Widget_Access;
+      Click_Target : Widget_Access;
+      Focus_Target : Widget_Access;
    begin
       W.Mouse_Down := True;
       W.Mouse_X := X;
       W.Mouse_Y := Y;
 
-      --  Find widget under cursor
-      Target := Find_Widget_At (W, X, Y);
-      Set_Focused_Widget (W, Target);
+      --  Focus and click routing should target interactive widgets,
+      --  not passive leaf children such as labels inside list rows.
+      Focus_Target := Find_Widget_At_With_Flag (W, X, Y, Focusable);
+      Click_Target := Find_Widget_At_With_Flag (W, X, Y, Clickable);
+      Set_Focused_Widget (W, Focus_Target);
 
-      if Target /= null then
-         Set_Pressed (Target.all, True);
-         W.Pressed_Widget := Target;
-         On_Mouse_Down (Target.all, X, Y, Button, Clicks);
+      if Click_Target /= null then
+         Set_Pressed (Click_Target.all, True);
+         W.Pressed_Widget := Click_Target;
+         On_Mouse_Down (Click_Target.all, X, Y, Button, Clicks);
       else
          W.Pressed_Widget := null;
       end if;
@@ -424,7 +492,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
    -----------------
    -- On_Mouse_Up --
    -----------------
-    procedure On_Mouse_Up
+   procedure On_Mouse_Up
       (W : in out Window; X, Y : Pixel_Type; Button : Adi.Core.Mouse_Button)
     is
    begin
@@ -444,6 +512,34 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
          W.Pressed_Widget := null;
       end if;
    end On_Mouse_Up;
+
+   --------------------
+   -- On_Mouse_Wheel --
+   --------------------
+
+   procedure On_Mouse_Wheel
+      (W                : in out Window;
+       X, Y             : Pixel_Type;
+       Delta_X, Delta_Y : Pixel_Type)
+   is
+      Target : Widget_Access;
+   begin
+      W.Mouse_X := X;
+      W.Mouse_Y := Y;
+
+      Target := Find_Widget_At_With_Flag (W, X, Y, Scrollable);
+      if Target = null then
+         if W.Focused_Widget /= null
+           and then Has_Flag (W.Focused_Widget.all, Scrollable)
+         then
+            Target := W.Focused_Widget;
+         end if;
+      end if;
+
+      if Target /= null then
+         On_Mouse_Wheel (Target.all, Delta_X, Delta_Y);
+      end if;
+   end On_Mouse_Wheel;
 
    -----------------
    -- On_Key_Down --

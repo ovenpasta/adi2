@@ -15,3 +15,4 @@ python3 "$GENERATOR" "$CSS_DIR/button_example.css" "$OUT_DIR/button_example_styl
 python3 "$GENERATOR" "$CSS_DIR/demo_flex.css" "$OUT_DIR/demo_flex_styles.ads" --package-name Demo_Flex_Styles
 python3 "$GENERATOR" "$CSS_DIR/transition_example.css" "$OUT_DIR/transition_example_styles.ads" --package-name Transition_Example_Styles
 python3 "$GENERATOR" "$CSS_DIR/stack_example.css" "$OUT_DIR/stack_example_styles.ads" --package-name Stack_Example_Styles
+python3 "$GENERATOR" "$CSS_DIR/list_box_example.css" "$OUT_DIR/list_box_example_styles.ads" --package-name List_Box_Example_Styles

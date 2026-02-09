@@ -56,6 +56,10 @@ private
       Buffer     : Adi.Text_Buffer.Text_Buffer;
       On_Changed : Change_Callback := null;
       Drag_Selecting : Boolean := False;
+      Pending_Word_Select : Boolean := False;
+      Press_X : Pixel_Type := 0.0;
+      Press_Y : Pixel_Type := 0.0;
+      Horizontal_Scroll : Pixel_Type := 0.0;
    end record;
 
 end Adi.Widget.Text_Input;

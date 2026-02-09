@@ -68,6 +68,8 @@ package Adi.Widget is
 
       --  Text_Item fields (unused by other kinds)
       Text_Content   : Unbounded_String := Null_Unbounded_String;
+      Wrap_Text      : Boolean := True;
+      Text_Offset_X  : Pixel_Type := 0.0;
 
       --  Image_Item fields (unused by other kinds)
       Image_Source   : Image_Access := null;

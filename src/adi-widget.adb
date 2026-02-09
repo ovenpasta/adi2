@@ -1443,6 +1443,12 @@ package body Adi.Widget is
       R, G, B, A : Uint8;
       Success    : Adi.SDL.C_bool;
       Engine     : TTF_TextEngine_Access;
+      Renderer   : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
+      Prev_Clip  : aliased Adi.SDL.SDL_Rect;
+      Clip_Rect  : aliased Adi.SDL.SDL_Rect;
+      Had_Clip   : Boolean := False;
+      Use_Clip   : constant Boolean :=
+        Renderer /= null and then Geom.Width > 0.0 and then Geom.Height > 0.0;
    begin
       if Style.Visibility = Visibility_Hidden or else Content'Length = 0 then
          return;
@@ -1498,16 +1504,41 @@ package body Adi.Widget is
       A := Apply_Opacity (A, Float (Style.Opacity));
       Success := TTF_SetTextColor (Text_Obj, R, G, B, A);
 
-      --  Set wrap width if needed
-      if Geom.Width > 0.0 then
+      --  Configure wrapping per item.
+      if It.Wrap_Text and then Geom.Width > 0.0 then
          Success := TTF_SetTextWrapWidth (Text_Obj, int (Geom.Width));
+      else
+         Success := TTF_SetTextWrapWidth (Text_Obj, 0);
+      end if;
+
+      --  Clip text to item bounds to prevent overflow bleed.
+      if Use_Clip then
+         Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
+         if Had_Clip then
+            Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
+         end if;
+
+         Clip_Rect :=
+           (x => int (Integer (Float'Floor (Float (Geom.X)))),
+            y => int (Integer (Float'Floor (Float (Geom.Y)))),
+            w => int (Integer (Float'Ceiling (Float (Geom.Width)))),
+            h => int (Integer (Float'Ceiling (Float (Geom.Height)))));
+         Success := SDL_SetRenderClipRect (Renderer, Clip_Rect'Access);
       end if;
 
       --  Draw the text (snap to integer pixels to avoid sub-pixel blurring)
       Success := TTF_DrawRendererText
         (Text_Obj,
-         C_float (Float'Floor (Float (Geom.X))),
+         C_float (Float'Floor (Float (Geom.X + It.Text_Offset_X))),
          C_float (Float'Floor (Float (Geom.Y))));
+
+      if Use_Clip then
+         if Had_Clip then
+            Success := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
+         else
+            Success := SDL_SetRenderClipRect (Renderer, null);
+         end if;
+      end if;
    end Render_Text_Item;
 
    --  Render a texture clipped to a rounded rectangle via UV-mapped

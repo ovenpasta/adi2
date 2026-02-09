@@ -153,6 +153,11 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=text_input_example
 - Renders selection highlight via `Selected_Part`
 - Mouse hit-testing uses SDL_ttf measurement (`TTF_MeasureString`) for UTF-8-safe caret/selection placement
 - Click behavior: single click places caret, double click selects word, triple click selects all text
+- Long single-line content does not wrap; it scrolls horizontally to keep the caret visible
+- Text rendering uses a fixed clip region (input content box) with a text X offset for horizontal scrolling
+- Selection highlight is clamped to content bounds (no overflow outside the widget)
+- Dragging selection left of the widget clamps to the start of text (column 0)
+- Double-click word selection is deferred until mouse-up; moving past a small threshold converts to normal drag selection
 - `Create` does not apply built-in styles; examples/apps define `Main/Label/Cursor/Selected` part styles explicitly
 
 **Adi.Layout_Util** (`adi-layout_util.ads`): Layout algorithms

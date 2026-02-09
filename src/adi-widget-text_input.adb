@@ -10,6 +10,8 @@ with Interfaces.C.Strings;    use Interfaces.C.Strings;
 
 package body Adi.Widget.Text_Input is
 
+   Drag_Threshold_Px : constant Pixel_Type := 4.0;
+
    function Is_Mod_Active (Mods : SDL_Keymod; Mask : SDL_Keymod) return Boolean is
    begin
       return (Mods and Mask) /= 0;
@@ -161,16 +163,14 @@ package body Adi.Widget.Text_Input is
       Font_Sz     : constant Float := Float (Label_Style.Font_Size.Amount);
       Font        : constant TTF_Font_Access :=
         Adi.Font.Get_TTF_Font (Label_Style.Font_Family, Font_Sz);
-      Max_Width   : constant int := int (Integer (Pixel_Type'Max (0.0, X - Content.X)));
+      Max_Width   : constant int := int
+        (Integer
+           (Pixel_Type'Max (0.0, X - Content.X + W.Horizontal_Scroll)));
       C_Text      : chars_ptr;
       Measured_W  : aliased int := 0;
       Measured_L  : aliased size_t := 0;
       Ok          : Adi.SDL.C_bool;
    begin
-      if X <= Content.X then
-         return 0;
-      end if;
-
       if Line_Len = 0 or else Font = null then
          return 0;
       end if;
@@ -197,9 +197,17 @@ package body Adi.Widget.Text_Input is
       X                : Pixel_Type;
       Extend_Selection : Boolean)
    is
+      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Content    : constant Rectangle := Content_Box (W.Geometry, Main_Style);
       Line : constant String := Get_Line (W.Buffer, 1);
-      Col  : constant Natural := Normalize_Column (Line, Column_At_X (W, X));
+      Col  : Natural;
    begin
+      if X < Content.X then
+         Col := 0;
+      else
+         Col := Normalize_Column (Line, Column_At_X (W, X));
+      end if;
+
       Set_Caret
         (B                => W.Buffer,
          P                => (Line => 1, Column => Col),
@@ -282,17 +290,33 @@ package body Adi.Widget.Text_Input is
       Caret_Col    : constant Natural := Normalize_Column (First_Line, Caret.Column);
       Prefix_W     : constant Pixel_Type :=
         Prefix_Width_For_Column (Label_Style, First_Line, Caret_Col);
+      Scroll_X     : Pixel_Type := Pixel_Type'Max (0.0, W.Horizontal_Scroll);
+      Max_Scroll   : constant Pixel_Type :=
+        Pixel_Type'Max (0.0, Text_Size.Width - Content.Width);
+      Caret_Right  : constant Pixel_Type := Prefix_W + 1.0;
       Text_Y       : constant Pixel_Type := Content.Y + (Content.Height - Text_Size.Height) / 2.0;
       Cursor_H     : constant Pixel_Type := Pixel_Type'Min (Content.Height, Text_Size.Height);
       Cursor_Y     : constant Pixel_Type := Content.Y + (Content.Height - Cursor_H) / 2.0;
-      Cursor_X     : constant Pixel_Type := Content.X + Prefix_W;
+      Cursor_X     : Pixel_Type;
    begin
+      if Content.Width <= 0.0 then
+         Scroll_X := 0.0;
+      elsif Prefix_W < Scroll_X then
+         Scroll_X := Prefix_W;
+      elsif Caret_Right > Scroll_X + Content.Width then
+         Scroll_X := Caret_Right - Content.Width;
+      end if;
+      Scroll_X := Pixel_Type'Min (Pixel_Type'Max (0.0, Scroll_X), Max_Scroll);
+      W.Horizontal_Scroll := Scroll_X;
+      Cursor_X := Content.X + Prefix_W - Scroll_X;
+
       Get_Selection_Range (W.Buffer, Sel_Start, Sel_Stop, Has_Sel);
 
       if Item_Count (W) = 0 then
          Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));
          Add_Item (W, Make_Panel (Selected_Part, (0.0, 0.0, 0.0, 0.0), 1));
          Add_Item (W, Make_Text (Label_Part, Content, "", 2));
+         W.Items.Reference (Text_Idx).Wrap_Text := False;
          Add_Item (W, Make_Panel (Cursor_Part, (0.0, 0.0, 0.0, 0.0), 3));
       end if;
 
@@ -308,13 +332,17 @@ package body Adi.Widget.Text_Input is
                Stop_Col  : constant Natural :=
                  Normalize_Column (First_Line, Sel_Stop.Column);
                Start_X : constant Pixel_Type :=
-                 Content.X + Prefix_Width_For_Column (Label_Style, First_Line, Start_Col);
+                 Content.X + Prefix_Width_For_Column (Label_Style, First_Line, Start_Col) - Scroll_X;
                Stop_X  : constant Pixel_Type :=
-                 Content.X + Prefix_Width_For_Column (Label_Style, First_Line, Stop_Col);
+                 Content.X + Prefix_Width_For_Column (Label_Style, First_Line, Stop_Col) - Scroll_X;
+               Sel_Left  : constant Pixel_Type :=
+                 Pixel_Type'Max (Content.X, Start_X);
+               Sel_Right : constant Pixel_Type :=
+                 Pixel_Type'Min (Content.X + Content.Width, Stop_X);
             begin
-               Sel_It.Geometry := (X      => Start_X,
+               Sel_It.Geometry := (X      => Sel_Left,
                                    Y      => Text_Y,
-                                   Width  => Pixel_Type'Max (0.0, Stop_X - Start_X),
+                                   Width  => Pixel_Type'Max (0.0, Sel_Right - Sel_Left),
                                    Height => Text_Size.Height);
             end;
          else
@@ -331,6 +359,7 @@ package body Adi.Widget.Text_Input is
                               Y      => Text_Y,
                               Width  => Content.Width,
                               Height => Text_Size.Height);
+         Text_It.Text_Offset_X := -Scroll_X;
       end;
 
       declare
@@ -415,6 +444,7 @@ package body Adi.Widget.Text_Input is
    overriding procedure On_Focus_Lost (W : in out Text_Input_Widget) is
    begin
       W.Drag_Selecting := False;
+      W.Pending_Word_Select := False;
       Mark_Dirty (W);
    end On_Focus_Lost;
 
@@ -430,14 +460,18 @@ package body Adi.Widget.Text_Input is
          return;
       end if;
 
+      W.Press_X := X;
+      W.Press_Y := Y;
       Set_Caret_From_X (W, X, Extend_Selection => False);
       if Clicks >= 3 then
          Select_All (W.Buffer);
+         W.Pending_Word_Select := False;
          W.Drag_Selecting := False;
       elsif Clicks = 2 then
-         Select_Word_At_Caret (W);
+         W.Pending_Word_Select := True;
          W.Drag_Selecting := False;
       else
+         W.Pending_Word_Select := False;
          W.Drag_Selecting := True;
       end if;
       Mark_Dirty (W);
@@ -449,6 +483,17 @@ package body Adi.Widget.Text_Input is
    is
       pragma Unreferenced (Y);
    begin
+      if W.Pending_Word_Select then
+         if abs (X - W.Press_X) > Drag_Threshold_Px
+           or else abs (Y - W.Press_Y) > Drag_Threshold_Px
+         then
+            W.Pending_Word_Select := False;
+            W.Drag_Selecting := True;
+         else
+            return;
+         end if;
+      end if;
+
       if not W.Drag_Selecting then
          return;
       end if;
@@ -465,6 +510,14 @@ package body Adi.Widget.Text_Input is
       pragma Unreferenced (Y);
    begin
       if Button /= Left_Button then
+         return;
+      end if;
+
+      if W.Pending_Word_Select then
+         Select_Word_At_Caret (W);
+         W.Pending_Word_Select := False;
+         W.Drag_Selecting := False;
+         Mark_Dirty (W);
          return;
       end if;
 

@@ -10,12 +10,14 @@
   display: flex;
   flex-direction: row;
   gap: 12px;
+  flex-grow: 1;
   height: 580px;
 }
 
 .panel {
   display: flex;
   flex-direction: column;
+  flex-grow: 1;
   gap: 8px;
   padding: 10px;
   background-color: rgb(255, 255, 255);
@@ -39,9 +41,9 @@
 .status::label {
   color: rgb(83, 97, 120);
   font-size: 13px;
-  white-space: nowrap;
+  white-space: wrap;
   text-overflow: clip;
-  text-wrap-mode: nowrap;
+  text-wrap-mode: wrap;
 }
 
 .listbox {
@@ -51,6 +53,7 @@
   border-color: rgb(213, 221, 231);
   border-radius: 8px;
   height: 500px;
+  flex-grow: 1;
 }
 
 .listbox::scroll {
@@ -62,12 +65,28 @@
   transition: background-color 260ms ease-out;
 }
 
+.listbox::scroll:hover {
+  background-color: rgba(148, 163, 184, 0.38);
+}
+
+.listbox::scroll:pressed {
+  background-color: rgba(148, 163, 184, 0.52);
+}
+
 .listbox::knob {
   width: 10px;
   min-height: 24px;
   background-color: rgba(71, 85, 105, 0.78);
   border-radius: 6px;
   transition: background-color 260ms ease-out;
+}
+
+.listbox::knob:hover {
+  background-color: rgba(71, 85, 105, 0.94);
+}
+
+.listbox::knob:pressed {
+  background-color: rgba(71, 85, 105, 1.0);
 }
 
 .label-row {

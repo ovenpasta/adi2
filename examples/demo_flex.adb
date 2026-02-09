@@ -16,9 +16,7 @@ use Adi;
 
 procedure Demo_Flex is
    use Adi.Core;
-   use Adi.CSS_Styles;
    use Adi.Widget_Styles;
-    use type Adi.Widget.Widget;
    subtype Box_Widget_Access is Adi.Widget.Box.Box_Widget_Access;
 
    App    : Adi.App.App;

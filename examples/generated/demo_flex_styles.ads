@@ -47,10 +47,10 @@ package Demo_Flex_Styles is
      .Build;
 
    --  Part styles bundle for box-base
-   Box_Base_Part_Styles : constant Part_Style_Array := (
+   Box_Base_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Box_Base_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for flex-container
    Flex_Container_Widget : constant Widget_Style :=
@@ -58,10 +58,10 @@ package Demo_Flex_Styles is
      .Build;
 
    --  Part styles bundle for flex-container
-   Flex_Container_Part_Styles : constant Part_Style_Array := (
+   Flex_Container_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Flex_Container_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for row-base
    Row_Base_Widget : constant Widget_Style :=
@@ -69,9 +69,9 @@ package Demo_Flex_Styles is
      .Build;
 
    --  Part styles bundle for row-base
-   Row_Base_Part_Styles : constant Part_Style_Array := (
+   Row_Base_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Row_Base_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
 end Demo_Flex_Styles;

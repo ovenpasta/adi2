@@ -119,10 +119,10 @@ package Transition_Example_Styles is
      .Build;
 
    --  Part styles bundle for root
-   Root_Part_Styles : constant Part_Style_Array := (
+   Root_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Root_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for content
    Content_Widget : constant Widget_Style :=
@@ -130,10 +130,10 @@ package Transition_Example_Styles is
      .Build;
 
    --  Part styles bundle for content
-   Content_Part_Styles : constant Part_Style_Array := (
+   Content_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Content_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for section
    Section_Widget : constant Widget_Style :=
@@ -141,10 +141,10 @@ package Transition_Example_Styles is
      .Build;
 
    --  Part styles bundle for section
-   Section_Part_Styles : constant Part_Style_Array := (
+   Section_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Section_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for section-row
    Section_Row_Widget : constant Widget_Style :=
@@ -152,10 +152,10 @@ package Transition_Example_Styles is
      .Build;
 
    --  Part styles bundle for section-row
-   Section_Row_Part_Styles : constant Part_Style_Array := (
+   Section_Row_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Section_Row_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for col-style
    Col_Style_Widget : constant Widget_Style :=
@@ -163,10 +163,10 @@ package Transition_Example_Styles is
      .Build;
 
    --  Part styles bundle for col-style
-   Col_Style_Part_Styles : constant Part_Style_Array := (
+   Col_Style_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Col_Style_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for white-label
    White_Label_Widget : constant Widget_Style :=
@@ -174,10 +174,10 @@ package Transition_Example_Styles is
      .Build;
 
    --  Part styles bundle for white-label
-   White_Label_Part_Styles : constant Part_Style_Array := (
+   White_Label_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => White_Label_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for dark-label
    Dark_Label_Widget : constant Widget_Style :=
@@ -185,10 +185,10 @@ package Transition_Example_Styles is
      .Build;
 
    --  Part styles bundle for dark-label
-   Dark_Label_Part_Styles : constant Part_Style_Array := (
+   Dark_Label_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Dark_Label_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for title
    Title_Widget : constant Widget_Style :=
@@ -201,11 +201,11 @@ package Transition_Example_Styles is
      .Build;
 
    --  Part styles bundle for title
-   Title_Part_Styles : constant Part_Style_Array := (
+   Title_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Title_Widget, Enabled => True),
       Label_Part => (Style => Title_Label_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for desc
    Desc_Widget : constant Widget_Style :=
@@ -218,11 +218,11 @@ package Transition_Example_Styles is
      .Build;
 
    --  Part styles bundle for desc
-   Desc_Part_Styles : constant Part_Style_Array := (
+   Desc_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Desc_Widget, Enabled => True),
       Label_Part => (Style => Desc_Label_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for demo-base
    Demo_Base_Widget : constant Widget_Style :=
@@ -230,9 +230,9 @@ package Transition_Example_Styles is
      .Build;
 
    --  Part styles bundle for demo-base
-   Demo_Base_Part_Styles : constant Part_Style_Array := (
+   Demo_Base_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Demo_Base_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
 end Transition_Example_Styles;

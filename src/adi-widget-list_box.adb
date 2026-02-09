@@ -1,11 +1,18 @@
 with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.SDL.Events;  use Adi.SDL.Events;
+with Ada.Numerics.Elementary_Functions;
 
 package body Adi.Widget.List_Box is
 
    Default_Row_Height : constant Pixel_Type := 24.0;
    Wheel_Step_Px      : constant Pixel_Type := 36.0;
+   Wheel_Impulse_Px_S : constant Pixel_Type := 820.0;
+   Max_Scroll_Speed   : constant Pixel_Type := 2200.0;
+   Velocity_Epsilon   : constant Pixel_Type := 10.0;
+   Momentum_Friction  : constant Float := 7.0;
+   Launch_Threshold   : constant Pixel_Type := 620.0;
+   Drag_Velocity_Scale : constant Pixel_Type := 55.0;
 
    type Scrollbar_Metrics is record
       Width       : Pixel_Type := 10.0;
@@ -708,6 +715,8 @@ package body Adi.Widget.List_Box is
          if Point_In_Rect (Knob, X, Y) then
             W.Scroll_Dragging := True;
             W.Scroll_Drag_Offset := Y - Knob.Y;
+            W.Last_Drag_Offset := W.Scroll_Offset;
+            W.Scroll_Velocity := 0.0;
          elsif Y < Knob.Y then
             Scroll_By (W, -Content.Height * 0.9);
          else
@@ -801,6 +810,10 @@ package body Adi.Widget.List_Box is
       end if;
 
       Set_Scroll_Offset (W, W.Scroll_Offset - (Delta_Y * Wheel_Step_Px));
+      W.Scroll_Velocity :=
+        Clamp (W.Scroll_Velocity - (Delta_Y * Wheel_Impulse_Px_S),
+               -Max_Scroll_Speed,
+               Max_Scroll_Speed);
    end On_Mouse_Wheel;
 
    overriding procedure On_Mouse_Move
@@ -815,6 +828,7 @@ package body Adi.Widget.List_Box is
       Top_Y       : Pixel_Type;
       Max_Offset  : Pixel_Type;
       Ratio       : Pixel_Type;
+      Prev_Offset : Pixel_Type;
       Metrics     : constant Scrollbar_Metrics := Resolve_Scrollbar_Metrics (W);
    begin
       if not W.Scroll_Dragging then
@@ -836,7 +850,12 @@ package body Adi.Widget.List_Box is
       Top_Y := Clamp (Y - W.Scroll_Drag_Offset, Track.Y, Track.Y + Travel);
       Ratio := (Top_Y - Track.Y) / Travel;
       Max_Offset := Max_Scroll_Offset (W);
+      Prev_Offset := W.Scroll_Offset;
       Set_Scroll_Offset (W, Ratio * Max_Offset);
+      W.Scroll_Velocity :=
+        Clamp ((W.Scroll_Offset - Prev_Offset) * Drag_Velocity_Scale,
+               -Max_Scroll_Speed,
+               Max_Scroll_Speed);
    end On_Mouse_Move;
 
    overriding procedure On_Mouse_Up
@@ -851,6 +870,42 @@ package body Adi.Widget.List_Box is
          Mark_Dirty (W);
       end if;
    end On_Mouse_Up;
+
+   overriding procedure On_Tick
+     (W  : in out List_Box_Widget;
+      DT : Duration)
+   is
+      use Ada.Numerics.Elementary_Functions;
+      DT_Float : constant Float := Float (DT);
+      Max_Offset : constant Pixel_Type := Max_Scroll_Offset (W);
+      Old_Offset : Pixel_Type;
+      Fast : Boolean;
+   begin
+      if not W.Scroll_Dragging and then abs W.Scroll_Velocity > Velocity_Epsilon then
+         Old_Offset := W.Scroll_Offset;
+         Set_Scroll_Offset (W, W.Scroll_Offset + W.Scroll_Velocity * Pixel_Type (DT_Float));
+
+         --  Stop momentum when clamped against bounds.
+         if (W.Scroll_Offset = 0.0 and then W.Scroll_Velocity < 0.0)
+           or else (W.Scroll_Offset = Max_Offset and then W.Scroll_Velocity > 0.0)
+         then
+            W.Scroll_Velocity := 0.0;
+         else
+            W.Scroll_Velocity :=
+              W.Scroll_Velocity * Pixel_Type (Exp (-Momentum_Friction * DT_Float));
+         end if;
+
+         if abs W.Scroll_Velocity < Velocity_Epsilon
+           or else W.Scroll_Offset = Old_Offset
+         then
+            W.Scroll_Velocity := 0.0;
+         end if;
+      end if;
+
+      Fast := W.Scroll_Dragging or else abs W.Scroll_Velocity >= Launch_Threshold;
+      Set_Part_State (W, Scroll_Part, State_Pressed, Fast);
+      Set_Part_State (W, Knob_Part, State_Pressed, Fast);
+   end On_Tick;
 
    overriding procedure On_Key_Down
      (W        : in out List_Box_Widget;

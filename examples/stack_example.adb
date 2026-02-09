@@ -28,33 +28,33 @@ begin
    A.Set_Target_FPS (60);
 
    declare
-      W : Window_Access := Create_Window ("Stack Example", (600.0, 450.0));
+      W : constant Window_Access := Create_Window ("Stack Example", (600.0, 450.0));
 
-      Root    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Tab_Bar : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Root    : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Tab_Bar : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
-      Btn_Red   : Button_Widget_Access := Create ("Red");
-      Btn_Green : Button_Widget_Access := Create ("Green");
-      Btn_Blue  : Button_Widget_Access := Create ("Blue");
+      Btn_Red   : constant Button_Widget_Access := Create ("Red");
+      Btn_Green : constant Button_Widget_Access := Create ("Green");
+      Btn_Blue  : constant Button_Widget_Access := Create ("Blue");
       Tab_Group : aliased Tab_Options.Option_Group;
 
       --  Pages
-      Page1 : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Title1 : Adi.Widget.Label.Label_Widget_Access :=
+      Page1 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Title1 : constant Adi.Widget.Label.Label_Widget_Access :=
          Adi.Widget.Label.Create ("Red Page");
-      Desc1  : Adi.Widget.Label.Label_Widget_Access :=
+      Desc1  : constant Adi.Widget.Label.Label_Widget_Access :=
          Adi.Widget.Label.Create ("This is the first page with a warm red background.");
 
-      Page2 : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Title2 : Adi.Widget.Label.Label_Widget_Access :=
+      Page2 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Title2 : constant Adi.Widget.Label.Label_Widget_Access :=
          Adi.Widget.Label.Create ("Green Page");
-      Desc2  : Adi.Widget.Label.Label_Widget_Access :=
+      Desc2  : constant Adi.Widget.Label.Label_Widget_Access :=
          Adi.Widget.Label.Create ("This is the second page with a natural green background.");
 
-      Page3 : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Title3 : Adi.Widget.Label.Label_Widget_Access :=
+      Page3 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Title3 : constant Adi.Widget.Label.Label_Widget_Access :=
          Adi.Widget.Label.Create ("Blue Page");
-      Desc3  : Adi.Widget.Label.Label_Widget_Access :=
+      Desc3  : constant Adi.Widget.Label.Label_Widget_Access :=
          Adi.Widget.Label.Create ("This is the third page with a deep blue background.");
    begin
       Pages := My_Stack.Create;

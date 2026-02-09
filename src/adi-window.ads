@@ -75,6 +75,8 @@ private
         Mouse_Down     : Boolean       := False;
         Hovered_Widget : Widget_Access := null;
         Pressed_Widget : Widget_Access := null;
+        Hovered_Part   : Part_Kind     := Main_Part;
+        Pressed_Part   : Part_Kind     := Main_Part;
         Focused_Widget : Widget_Access := null;
         Needs_Layout   : Boolean       := True;
     end record;

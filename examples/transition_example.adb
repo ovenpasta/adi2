@@ -7,7 +7,6 @@ with Adi.Widget.Label;  use Adi.Widget.Label;
 with Adi.Widget.Button; use Adi.Widget.Button;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
-with Adi.Core;          use Adi.Core;
 with Transition_Example_Styles; use Transition_Example_Styles;
 
 --  Demonstrates the different transition capabilities:
@@ -22,25 +21,7 @@ procedure Transition_Example is
    A : Adi.App.App;
 
    function Style return Style_Builder renames Adi.Widget_Styles.Create;
-   function Px (V : Float) return Length_Value renames Adi.CSS_Styles.Px;
-   function RGB (R, G, B : Natural) return Color_Value renames Adi.CSS_Styles.RGB;
-   function RGBA (R, G, B : Natural; Alpha : Float) return Color_Value
-     renames Adi.CSS_Styles.RGBA;
-   function Set_Bg (V : Color_Value) return Opt_Bg_Color.Optional
-     renames Adi.CSS_Styles.Set_Bg;
-   function Radius (All_L : Length_Value) return Border_Radius_Value
-     renames Adi.CSS_Styles.Radius;
-   function Radius (TL, TR, BR, BL : Length_Value) return Border_Radius_Value
-     renames Adi.CSS_Styles.Radius;
-   function Pad (All_L : Length_Value) return CSS_Box_Value
-     renames Adi.CSS_Styles.CSS_Box;
-   function Pad (V, H : Length_Value) return CSS_Box_Value
-     renames Adi.CSS_Styles.CSS_Box;
-   function G (All_L : Length_Value) return Gap_Value
-     renames Adi.CSS_Styles.Gap;
-
    White_Label : constant Widget_Style := White_Label_Widget;
-   Dark_Label  : constant Widget_Style := Dark_Label_Widget;
 
    --  Helper: section title label
    function Make_Title (Text : String) return Label_Widget_Access is
@@ -66,65 +47,65 @@ begin
    A.Set_Target_FPS (60);
 
    declare
-      W : Window_Access := Create_Window ("Transition Examples", (900.0, 700.0));
+      W : constant Window_Access := Create_Window ("Transition Examples", (900.0, 700.0));
 
       --  Root container
-      Root : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Root : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
       --  Scrollable content area
-      Content : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Content : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
       -----------------------------------------------------------------------
       --  Section 1: Easing Curves (all transition background-color)
       -----------------------------------------------------------------------
-      Sec1      : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Sec1_Row  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Sec1      : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Sec1_Row  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
       --  One button per easing
-      Btn_Linear   : Button_Widget_Access := Create ("Linear");
-      Btn_EaseIn   : Button_Widget_Access := Create ("Ease In");
-      Btn_EaseOut  : Button_Widget_Access := Create ("Ease Out");
-      Btn_EaseIO   : Button_Widget_Access := Create ("Ease In Out");
+      Btn_Linear   : constant Button_Widget_Access := Create ("Linear");
+      Btn_EaseIn   : constant Button_Widget_Access := Create ("Ease In");
+      Btn_EaseOut  : constant Button_Widget_Access := Create ("Ease Out");
+      Btn_EaseIO   : constant Button_Widget_Access := Create ("Ease In Out");
 
       --  Description boxes
-      Col_Linear  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Col_EaseIn  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Col_EaseOut : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Col_EaseIO  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Col_Linear  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Col_EaseIn  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Col_EaseOut : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Col_EaseIO  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
       -----------------------------------------------------------------------
       --  Section 2: Individual Properties
       -----------------------------------------------------------------------
-      Sec2      : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Sec2_Row  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Sec2      : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Sec2_Row  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
-      Btn_BgColor   : Button_Widget_Access := Create ("Background");
-      Btn_Border    : Button_Widget_Access := Create ("Border Color");
-      Btn_Radius    : Button_Widget_Access := Create ("Radius");
-      Btn_Shadow    : Button_Widget_Access := Create ("Shadow");
-      Btn_Opacity   : Button_Widget_Access := Create ("Opacity");
+      Btn_BgColor   : constant Button_Widget_Access := Create ("Background");
+      Btn_Border    : constant Button_Widget_Access := Create ("Border Color");
+      Btn_Radius    : constant Button_Widget_Access := Create ("Radius");
+      Btn_Shadow    : constant Button_Widget_Access := Create ("Shadow");
+      Btn_Opacity   : constant Button_Widget_Access := Create ("Opacity");
 
-      Col_BgColor  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Col_Border   : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Col_Radius   : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Col_Shadow   : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Col_Opacity  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Col_BgColor  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Col_Border   : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Col_Radius   : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Col_Shadow   : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Col_Opacity  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
       -----------------------------------------------------------------------
       --  Section 3: Combined Properties + Duration
       -----------------------------------------------------------------------
-      Sec3      : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Sec3_Row  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Sec3      : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Sec3_Row  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
-      Btn_Multi    : Button_Widget_Access := Create ("Multi-Property");
-      Btn_All      : Button_Widget_Access := Create ("All Properties");
-      Btn_Fast     : Button_Widget_Access := Create ("Fast (50ms)");
-      Btn_Slow     : Button_Widget_Access := Create ("Slow (800ms)");
+      Btn_Multi    : constant Button_Widget_Access := Create ("Multi-Property");
+      Btn_All      : constant Button_Widget_Access := Create ("All Properties");
+      Btn_Fast     : constant Button_Widget_Access := Create ("Fast (50ms)");
+      Btn_Slow     : constant Button_Widget_Access := Create ("Slow (800ms)");
 
-      Col_Multi : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Col_All   : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Col_Fast  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Col_Slow  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Col_Multi : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Col_All   : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Col_Fast  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Col_Slow  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
    begin
       --  === Root ===
@@ -332,7 +313,7 @@ begin
           Background_Color => Set_Bg (RGB (6, 182, 212)),
           Border_Color     => Set (Border_Color (RGB (34, 211, 238))),
           Border_Radius    => Set (Radius (Px (16.0))),
-          Padding          => Set (Pad (Px (10.0), Px (28.0))),
+          Padding          => Set (CSS_Box (Px (10.0), Px (28.0))),
           Box_Shadow       => Set (Shadow (Px (0.0), Px (4.0), Px (14.0), Px (0.0),
                                            RGBA (6, 182, 212, 0.4))),
           others           => <>))

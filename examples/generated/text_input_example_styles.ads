@@ -79,8 +79,8 @@ package Text_Input_Example_Styles is
       others => <>
    );
 
-   --  Style for input when State_Focused
-   Input_Focused_Style : constant Style_Rules := (
+   --  Style for input when widget State_Focused
+   Input_Widget_Focused_Style : constant Style_Rules := (
       Border_Color => Set (Border_Color (RGB (59, 130, 246))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (2.0), RGBA (59, 130, 246, 0.35))),
       others => <>
@@ -112,10 +112,10 @@ package Text_Input_Example_Styles is
      .Build;
 
    --  Part styles bundle for root
-   Root_Part_Styles : constant Part_Style_Array := (
+   Root_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Root_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for container
    Container_Widget : constant Widget_Style :=
@@ -123,10 +123,10 @@ package Text_Input_Example_Styles is
      .Build;
 
    --  Part styles bundle for container
-   Container_Part_Styles : constant Part_Style_Array := (
+   Container_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Container_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for title::label
    Title_Label_Widget : constant Widget_Style :=
@@ -134,10 +134,10 @@ package Text_Input_Example_Styles is
      .Build;
 
    --  Part styles bundle for title
-   Title_Part_Styles : constant Part_Style_Array := (
+   Title_Part_Styles : constant Part_Style_Array := [
       Label_Part => (Style => Title_Label_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for hint::label
    Hint_Label_Widget : constant Widget_Style :=
@@ -145,10 +145,10 @@ package Text_Input_Example_Styles is
      .Build;
 
    --  Part styles bundle for hint
-   Hint_Part_Styles : constant Part_Style_Array := (
+   Hint_Part_Styles : constant Part_Style_Array := [
       Label_Part => (Style => Hint_Label_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for echo-label::label
    Echo_Label_Label_Widget : constant Widget_Style :=
@@ -156,10 +156,10 @@ package Text_Input_Example_Styles is
      .Build;
 
    --  Part styles bundle for echo-label
-   Echo_Label_Part_Styles : constant Part_Style_Array := (
+   Echo_Label_Part_Styles : constant Part_Style_Array := [
       Label_Part => (Style => Echo_Label_Label_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for length-label::label
    Length_Label_Label_Widget : constant Widget_Style :=
@@ -167,15 +167,15 @@ package Text_Input_Example_Styles is
      .Build;
 
    --  Part styles bundle for length-label
-   Length_Label_Part_Styles : constant Part_Style_Array := (
+   Length_Label_Part_Styles : constant Part_Style_Array := [
       Label_Part => (Style => Length_Label_Label_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for input
    Input_Widget : constant Widget_Style :=
      From (Input_Base_Style)
-     .On (When_State (State_Focused), Input_Focused_Style)
+     .On (When_State (State_Focused), Input_Widget_Focused_Style)
      .Build;
 
    --  Complete widget style for input::cursor
@@ -194,12 +194,12 @@ package Text_Input_Example_Styles is
      .Build;
 
    --  Part styles bundle for input
-   Input_Part_Styles : constant Part_Style_Array := (
+   Input_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Input_Widget, Enabled => True),
       Cursor_Part => (Style => Input_Cursor_Widget, Enabled => True),
       Label_Part => (Style => Input_Label_Widget, Enabled => True),
       Selected_Part => (Style => Input_Selected_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
 end Text_Input_Example_Styles;

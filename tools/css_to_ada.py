@@ -315,14 +315,20 @@ class ParsedColor:
 class ParsedSelector:
     name: str
     part_kind: str = "Main_Part"
-    states: list[WidgetState] = field(default_factory=list)
-    negated_states: list[WidgetState] = field(default_factory=list)
+    widget_states: list[WidgetState] = field(default_factory=list)
+    widget_negated_states: list[WidgetState] = field(default_factory=list)
+    part_states: list[WidgetState] = field(default_factory=list)
+    part_negated_states: list[WidgetState] = field(default_factory=list)
     
     def get_unique_key(self) -> str:
         """Generate unique key for this selector's state combination"""
-        state_parts = sorted([s.name for s in self.states])
-        negated_parts = sorted([f"Not_{s.name}" for s in self.negated_states])
-        return "_".join(state_parts + negated_parts)
+        parts = (
+            sorted([f"Widget_{s.name}" for s in self.widget_states]) +
+            sorted([f"Widget_Not_{s.name}" for s in self.widget_negated_states]) +
+            sorted([f"Part_{s.name}" for s in self.part_states]) +
+            sorted([f"Part_Not_{s.name}" for s in self.part_negated_states])
+        )
+        return "_".join(parts)
 
 
 @dataclass
@@ -427,73 +433,160 @@ def parse_color(value: str) -> Optional[ParsedColor]:
     return None
 
 
+PART_INTERACTION_PSEUDOS = {"hover", "hovered", "active", "pressed"}
+
+
+def append_pseudo_state(
+    pseudo_name: str,
+    is_negated: bool,
+    target_widget_states: list[WidgetState],
+    target_widget_negated_states: list[WidgetState],
+    target_part_states: list[WidgetState],
+    target_part_negated_states: list[WidgetState],
+    part_scope_enabled: bool,
+) -> None:
+    pseudo = pseudo_name.lower()
+    if pseudo not in PSEUDO_CLASS_MAP:
+        return
+
+    state = PSEUDO_CLASS_MAP[pseudo]
+
+    # :enabled is represented as not disabled.
+    if state is None and pseudo == "enabled":
+        state = WidgetState.DISABLED
+        is_negated = not is_negated
+
+    if state is None:
+        return
+
+    use_part_scope = part_scope_enabled and pseudo in PART_INTERACTION_PSEUDOS
+
+    if use_part_scope:
+        if is_negated:
+            target_part_negated_states.append(state)
+        else:
+            target_part_states.append(state)
+    else:
+        if is_negated:
+            target_widget_negated_states.append(state)
+        else:
+            target_widget_states.append(state)
+
+
+def parse_pseudo_classes(
+    pseudo_part: str,
+    part_scope_enabled: bool,
+    widget_states: list[WidgetState],
+    widget_negated_states: list[WidgetState],
+    part_states: list[WidgetState],
+    part_negated_states: list[WidgetState],
+) -> None:
+    
+    # Pattern to match :not(...) or :simple-pseudo
+    pseudo_pattern = re.compile(r':not\s*\(\s*:?(\w+)\s*\)|:(\w+)')
+
+    for match in pseudo_pattern.finditer(pseudo_part):
+        if match.group(1):  # :not(...) matched
+            append_pseudo_state(
+                pseudo_name=match.group(1),
+                is_negated=True,
+                target_widget_states=widget_states,
+                target_widget_negated_states=widget_negated_states,
+                target_part_states=part_states,
+                target_part_negated_states=part_negated_states,
+                part_scope_enabled=part_scope_enabled,
+            )
+        elif match.group(2):  # :pseudo matched
+            append_pseudo_state(
+                pseudo_name=match.group(2),
+                is_negated=False,
+                target_widget_states=widget_states,
+                target_widget_negated_states=widget_negated_states,
+                target_part_states=part_states,
+                target_part_negated_states=part_negated_states,
+                part_scope_enabled=part_scope_enabled,
+            )
+
+
 def parse_selector(selector_str: str) -> Optional[ParsedSelector]:
-    """Parse a selector like '.button', '.button:focus', or '.button::label:focus'."""
+    """Parse selectors like '.button:hover::label' and '.button::label:hover'."""
     selector_str = selector_str.strip()
 
-    # Remove leading . or # (classes/ids treated the same)
     if selector_str.startswith('.') or selector_str.startswith('#'):
         selector_str = selector_str[1:]
 
     part_kind = "Main_Part"
-    pseudo_part = ""
+    widget_pseudo_part = ""
+    part_pseudo_part = ""
+    part_scope_enabled = False
 
-    # Split optional ::part and pseudo classes.
     if "::" in selector_str:
         left, right = selector_str.split("::", 1)
-        name = left.strip()
-        part_name = right
-        first_colon = right.find(":")
-        if first_colon != -1:
-            part_name = right[:first_colon]
-            pseudo_part = right[first_colon:]
+        left = left.strip()
+        right = right.strip()
+
+        left_first_colon = left.find(":")
+        if left_first_colon == -1:
+            name = left
+        else:
+            name = left[:left_first_colon].strip()
+            widget_pseudo_part = left[left_first_colon:]
+
+        right_first_colon = right.find(":")
+        if right_first_colon == -1:
+            part_name = right
+        else:
+            part_name = right[:right_first_colon]
+            part_pseudo_part = right[right_first_colon:]
+
         part_key = part_name.strip().lower()
         if part_key not in PART_MAP:
             return None
         part_kind = PART_MAP[part_key]
+        part_scope_enabled = part_kind != "Main_Part"
     else:
         first_colon = selector_str.find(":")
         if first_colon == -1:
             name = selector_str.strip()
         else:
             name = selector_str[:first_colon].strip()
-            pseudo_part = selector_str[first_colon:]
+            widget_pseudo_part = selector_str[first_colon:]
 
     if not name:
         return None
 
-    states = []
-    negated_states = []
-    
-    # Parse pseudo-classes, handling :not() specially
-    # Pattern to match :not(...) or :simple-pseudo
-    pseudo_pattern = re.compile(r':not\s*\(\s*:?(\w+)\s*\)|:(\w+)')
-    
-    for match in pseudo_pattern.finditer(pseudo_part):
-        if match.group(1):  # :not(...) matched
-            inner = match.group(1).lower()
-            if inner in PSEUDO_CLASS_MAP:
-                state = PSEUDO_CLASS_MAP[inner]
-                if state:
-                    negated_states.append(state)
-                # :not(:enabled) means must be disabled
-                elif inner == "enabled":
-                    states.append(WidgetState.DISABLED)
-        elif match.group(2):  # :pseudo matched
-            pseudo = match.group(2).lower()
-            if pseudo in PSEUDO_CLASS_MAP:
-                state = PSEUDO_CLASS_MAP[pseudo]
-                if state:
-                    states.append(state)
-                elif pseudo == "enabled":
-                    # :enabled means not disabled
-                    negated_states.append(WidgetState.DISABLED)
-    
+    widget_states: list[WidgetState] = []
+    widget_negated_states: list[WidgetState] = []
+    part_states: list[WidgetState] = []
+    part_negated_states: list[WidgetState] = []
+
+    # Pseudos before ::part are always widget-scoped.
+    parse_pseudo_classes(
+        pseudo_part=widget_pseudo_part,
+        part_scope_enabled=False,
+        widget_states=widget_states,
+        widget_negated_states=widget_negated_states,
+        part_states=part_states,
+        part_negated_states=part_negated_states,
+    )
+
+    # Pseudos after ::part are part-scoped only for interactive states on non-main parts.
+    parse_pseudo_classes(
+        pseudo_part=part_pseudo_part,
+        part_scope_enabled=part_scope_enabled,
+        widget_states=widget_states,
+        widget_negated_states=widget_negated_states,
+        part_states=part_states,
+        part_negated_states=part_negated_states,
+    )
+
     return ParsedSelector(
         name=name,
         part_kind=part_kind,
-        states=states,
-        negated_states=negated_states
+        widget_states=widget_states,
+        widget_negated_states=widget_negated_states,
+        part_states=part_states,
+        part_negated_states=part_negated_states,
     )
 
 
@@ -521,6 +614,13 @@ class ParsedBoxShadow:
     blur_radius: ParsedLength
     spread_radius: ParsedLength
     color: ParsedColor
+
+
+@dataclass
+class ParsedTransition:
+    duration_seconds: float
+    easing: str
+    property_set: str
 
 
 def parse_box_shadow(value: str) -> Optional[ParsedBoxShadow]:
@@ -582,6 +682,71 @@ def parse_box_shadow(value: str) -> Optional[ParsedBoxShadow]:
     )
 
 
+TRANSITION_EASING_MAP = {
+    "linear": "Linear",
+    "ease-in": "Ease_In",
+    "ease-out": "Ease_Out",
+    "ease-in-out": "Ease_In_Out",
+    "ease": "Ease_In_Out",
+}
+
+TRANSITION_PROPERTY_MAP = {
+    "all": "All_Properties",
+    "color": "Props (Prop_Color)",
+    "background-color": "Props (Prop_Background_Color)",
+    "border-color": "Props (Prop_Border_Color)",
+    "border-width": "Props (Prop_Border_Width)",
+    "border-radius": "Props (Prop_Border_Radius)",
+    "padding": "Props (Prop_Padding)",
+    "margin": "Props (Prop_Margin)",
+    "opacity": "Props (Prop_Opacity)",
+    "box-shadow": "Props (Prop_Box_Shadow)",
+    "font-size": "Props (Prop_Font_Size)",
+}
+
+
+def parse_transition(value: str) -> Optional[ParsedTransition]:
+    """Parse a simple CSS transition: <property> <duration> [easing]"""
+    value = value.strip().lower()
+    if not value or value == "none":
+        return None
+
+    # Keep first transition when comma-separated values are provided.
+    first = value.split(",", 1)[0].strip()
+    tokens = re.split(r"\s+", first)
+    if not tokens:
+        return None
+
+    property_name = "all"
+    duration_seconds = None
+    easing = "Ease_In_Out"
+
+    for token in tokens:
+        if token.endswith("ms"):
+            try:
+                duration_seconds = float(token[:-2]) / 1000.0
+            except ValueError:
+                return None
+        elif token.endswith("s"):
+            try:
+                duration_seconds = float(token[:-1])
+            except ValueError:
+                return None
+        elif token in TRANSITION_EASING_MAP:
+            easing = TRANSITION_EASING_MAP[token]
+        elif token in TRANSITION_PROPERTY_MAP:
+            property_name = token
+
+    if duration_seconds is None:
+        return None
+
+    return ParsedTransition(
+        duration_seconds=duration_seconds,
+        easing=easing,
+        property_set=TRANSITION_PROPERTY_MAP.get(property_name, "All_Properties"),
+    )
+
+
 def parse_css(css_content: str) -> list[ParsedRule]:
     """Parse CSS content into rules"""
     rules = []
@@ -632,7 +797,10 @@ def group_rules_by_widget(rules: list[ParsedRule]) -> dict[str, WidgetStyleGroup
         part_group = group.parts[part_kind]
         
         # If no states, it's the base rule
-        if not rule.selector.states and not rule.selector.negated_states:
+        if (not rule.selector.widget_states and
+            not rule.selector.widget_negated_states and
+            not rule.selector.part_states and
+            not rule.selector.part_negated_states):
             part_group.base_rule = rule
         else:
             part_group.state_rules.append(rule)
@@ -1031,6 +1199,16 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
                                 f"{generate_length_ada(shadow.spread_radius)}, "
                                 f"{generate_color_ada(shadow.color)}))")
 
+        # Transition
+        elif prop == "transition":
+            transition = parse_transition(value)
+            if transition:
+                ada_field = (
+                    f"Transition => Set ((Duration => {format_float(transition.duration_seconds)}, "
+                    f"Easing => {transition.easing}, "
+                    f"Properties => {transition.property_set}))"
+                )
+
         if ada_field:
             fields.append(f"{indent}{ada_field}")
     
@@ -1041,11 +1219,17 @@ def generate_selector_ada(selector: ParsedSelector) -> str:
     """Generate Ada selector expression"""
     parts = []
     
-    for state in selector.states:
+    for state in selector.widget_states:
         parts.append(f"When_State ({state.value})")
     
-    for state in selector.negated_states:
+    for state in selector.widget_negated_states:
         parts.append(f"When_Not ({state.value})")
+
+    for state in selector.part_states:
+        parts.append(f"When_Part_State ({state.value})")
+
+    for state in selector.part_negated_states:
+        parts.append(f"When_Part_Not ({state.value})")
     
     if not parts:
         return "Any_State"
@@ -1057,11 +1241,17 @@ def generate_state_description(selector: ParsedSelector) -> str:
     """Generate human-readable description of states"""
     parts = []
     
-    for state in selector.states:
-        parts.append(state.value)
+    for state in selector.widget_states:
+        parts.append(f"widget {state.value}")
     
-    for state in selector.negated_states:
-        parts.append(f"not {state.value}")
+    for state in selector.widget_negated_states:
+        parts.append(f"widget not {state.value}")
+
+    for state in selector.part_states:
+        parts.append(f"part {state.value}")
+
+    for state in selector.part_negated_states:
+        parts.append(f"part not {state.value}")
     
     return ", ".join(parts) if parts else "base"
 
@@ -1086,21 +1276,29 @@ def widget_style_const_name(ada_name: str, part_kind: str) -> str:
 
 def generate_variable_name(name_prefix: str, selector: ParsedSelector) -> str:
     """Generate unique variable name for a state rule"""
-    if not selector.states and not selector.negated_states:
+    if (not selector.widget_states and
+        not selector.widget_negated_states and
+        not selector.part_states and
+        not selector.part_negated_states):
         return f"{name_prefix}_Base_Style"
     
     parts = []
     
-    # Add required states
-    for state in selector.states:
-        # Convert State_Hovered -> Hovered
+    for state in selector.widget_states:
         state_name = state.value.replace("State_", "")
-        parts.append(state_name)
+        parts.append(f"Widget_{state_name}")
     
-    # Add negated states
-    for state in selector.negated_states:
+    for state in selector.widget_negated_states:
         state_name = state.value.replace("State_", "")
-        parts.append(f"Not_{state_name}")
+        parts.append(f"Widget_Not_{state_name}")
+
+    for state in selector.part_states:
+        state_name = state.value.replace("State_", "")
+        parts.append(f"Part_{state_name}")
+
+    for state in selector.part_negated_states:
+        state_name = state.value.replace("State_", "")
+        parts.append(f"Part_Not_{state_name}")
     
     suffix = "_".join(parts)
     return f"{name_prefix}_{suffix}_Style"
@@ -1201,14 +1399,14 @@ def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str)
 
         # Bundle all known parts for one-call Set_Part_Styles.
         lines.append(f"   --  Part styles bundle for {widget_name}")
-        lines.append(f"   {ada_name}_Part_Styles : constant Part_Style_Array := (")
+        lines.append(f"   {ada_name}_Part_Styles : constant Part_Style_Array := [")
         for part_kind, _part_group in part_items:
             style_name = widget_style_const_name(ada_name, part_kind)
             lines.append(
                 f"      {part_kind} => (Style => {style_name}, Enabled => True),"
             )
         lines.append(f"      others => <>")
-        lines.append(f"   );")
+        lines.append(f"   ];")
         lines.append(f"")
     
     lines.append(f"end {package_name};")
@@ -1259,8 +1457,10 @@ def main():
                 print(f"    {part_desc} base: {len(part_group.base_rule.properties)} properties")
             for rule in part_group.state_rules:
                 print(
-                    f"    {part_desc} states={[s.value for s in rule.selector.states]}, "
-                    f"negated={[s.value for s in rule.selector.negated_states]}"
+                    f"    {part_desc} widget_states={[s.value for s in rule.selector.widget_states]}, "
+                    f"widget_negated={[s.value for s in rule.selector.widget_negated_states]}, "
+                    f"part_states={[s.value for s in rule.selector.part_states]}, "
+                    f"part_negated={[s.value for s in rule.selector.part_negated_states]}"
                 )
     
     # Generate Ada

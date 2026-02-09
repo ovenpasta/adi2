@@ -12,7 +12,9 @@ package body Adi.Widget_Styles is
       WS.Rules (WS.Rule_Count) := Rule;
    end Add_Rule;
 
-   function Compute_Style (WS : Widget_Style; Active : Widget_States) return Style_Rules is
+   function Compute_Style (WS : Widget_Style;
+                           Active_Widget : Widget_States;
+                           Active_Part   : Widget_States) return Style_Rules is
       Result : Style_Rules := WS.Base;
       
       --  Collect matching rules with their effective priority
@@ -28,7 +30,7 @@ package body Adi.Widget_Styles is
    begin
       --  Find all matching rules
       for I in 1 .. WS.Rule_Count loop
-         if Matches (WS.Rules (I).Selector, Active) then
+         if Matches (WS.Rules (I).Selector, Active_Widget, Active_Part) then
             Match_Count := Match_Count + 1;
             Matched (Match_Count) := (
                Index    => I,
@@ -60,6 +62,18 @@ package body Adi.Widget_Styles is
       
       return Result;
    end Compute_Style;
+
+   function Compute_Style (WS : Widget_Style; Active : Widget_States) return Style_Rules is
+   begin
+      return Compute_Style (WS, Active, No_States);
+   end Compute_Style;
+
+   function Compute_Resolved (WS : Widget_Style;
+                              Active_Widget : Widget_States;
+                              Active_Part   : Widget_States) return Resolved_Style is
+   begin
+      return Resolve (Compute_Style (WS, Active_Widget, Active_Part));
+   end Compute_Resolved;
 
    function Compute_Resolved (WS : Widget_Style; Active : Widget_States) return Resolved_Style is
    begin

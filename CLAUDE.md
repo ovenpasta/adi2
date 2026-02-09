@@ -94,6 +94,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
 - State-specific styles: `Normal`, `Hovered`, `Pressed`, `Focused`, `Disabled`, `Selected`
 - Style builder pattern for fluent API
 - Resolves CSS styles to final computed values
+- Selector scopes: widget-state and part-state are distinct (`When_State`/`When_Not` vs `When_Part_State`/`When_Part_Not`)
 - `With_Transition(Duration, [Properties], [Easing])`: sets transition on base style
 
 **Adi.Widget.Part_Styles** (`adi-widget-part_styles.ads`): Multi-part widget style builder
@@ -139,6 +140,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
 - Contain/None/Scale_Down adjust corner radii based on image inset from container edges
 - Per-corner border radius: `Render_Rounded_Rect` overload accepts `Corner_Pixels`
 - **Animation**: Per-part `Part_Transition_Array` tracks active transitions; `Tick_Animations` advances them each frame; `Apply_Styles_To_Items` starts transitions when resolved style targets change
+- **Per-frame hook**: `On_Tick(DT)` (default null) runs from `Tick_Animations` for widget-specific time-based behavior (e.g. inertial scrolling)
 
 **Adi.Text_Buffer** (`adi-text_buffer.ads`): Shared text editing core
 - Line-oriented text storage for editing widgets
@@ -170,10 +172,13 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
 - Supports anchor-based range selection (`Shift+Click` / `Shift+Arrow`); `Multi_Selection` also supports toggle (`Ctrl+Click`)
 - Renders scrollbar track/knob parts (`Scroll_Part`, `Knob_Part`) with draggable knob + track paging
 - Scrollbar geometry is style-driven from `::scroll`/`::knob` CSS (`width`, `margin`, `padding`, `min-height`)
+- Supports part-scoped selectors for scrollbars (e.g. `list::scroll:hover`, `list::knob:pressed`) distinct from widget-scoped selectors (e.g. `list:hover::scroll`)
+- Hovering the knob also highlights the track (knob-hover propagates to `Scroll_Part`)
+- Inertial scrolling: wheel/drag input feeds velocity with friction-based decay for momentum
+- Launch effect: high scroll velocity/active drag sets scrollbar parts to pressed state for stronger visual feedback
 - Focusable + scrollable by default, participates in Tab focus traversal
 - Selection APIs: `Select_Row`, `Toggle_Row_Selected`, `Clear_Selection`, `Get_Selected_Count`
 - Callbacks: `On_Item_Clicked`, `On_Item_Activated`, `On_Selection_Changed`
-- Current limitation: `:hover`/`:pressed` selectors are widget-state scoped; part-scoped selector disambiguation (e.g. `list::scroll:hover` vs `list:hover::scroll`) is deferred for later refactor
 
 **Adi.Widget.Stack** (`adi-widget-stack.ads`): Generic stack container widget
 - Generic over `Page_Id` discrete type (typically an enum)
@@ -198,6 +203,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
 - Owns a `Render_Context` for per-renderer caches
 - Root widget container
 - Mouse event handling with widget hit testing
+- Tracks hovered/pressed widget part; updates part states on pointer movement so part-scoped selectors resolve correctly
 - Keyboard focus handling with Tab traversal across focusable/visible widgets (Shift+Tab reverse, wraps around)
 - `Tick(DT)`: advances animations on the widget tree each frame
 - Window resize/reshape handling
@@ -340,6 +346,11 @@ The tool supports a comprehensive set of CSS properties including:
 - **Effects**: `box-shadow` (with offset, blur, spread, and color), `cursor`
 - **Images**: `object-fit`, `object-position`
 - **Transitions**: `transition` (duration, easing, property filter)
+
+Selector pseudo-class placement:
+- Before `::part` => widget-scoped state (`.list:hover::scroll`)
+- After `::part` => part-scoped interaction state for non-main parts (`.list::scroll:hover`, `.list::knob:pressed`)
+- For `::main`, interactive pseudos remain widget-scoped (`.button::main:hover` behaves like button hover, not child-part hover)
 
 ### Box Shadow Syntax
 

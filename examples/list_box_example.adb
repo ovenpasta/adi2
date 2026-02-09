@@ -82,41 +82,39 @@ begin
    A.Set_Target_FPS (60);
 
    declare
-      W : Window_Access := Create_Window ("List Box Example", (1980.0, 640.0));
+      W : constant Window_Access := Create_Window ("List Box Example", (1980.0, 640.0));
 
-      Root : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Panels : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Root : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Panels : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
-      No_Panel     : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Single_Panel : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Multi_Panel  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Range_Panel  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      No_Panel     : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Single_Panel : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Multi_Panel  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Range_Panel  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
-      No_Title     : Adi.Widget.Label.Label_Widget_Access :=
+      No_Title     : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("No Selection");
-      Single_Title : Adi.Widget.Label.Label_Widget_Access :=
+      Single_Title : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("Single Selection");
-      Multi_Title  : Adi.Widget.Label.Label_Widget_Access :=
+      Multi_Title  : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("Multi Selection");
-      Range_Title  : Adi.Widget.Label.Label_Widget_Access :=
+      Range_Title  : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("Range Selection");
 
-      No_Listbox     : Label_List.List_Box_Widget_Access := Label_List.Create;
-      Single_Listbox : Label_List.List_Box_Widget_Access := Label_List.Create;
-      Multi_Listbox  : Box_List.List_Box_Widget_Access := Box_List.Create;
-      Range_Listbox  : Label_List.List_Box_Widget_Access := Label_List.Create;
+      No_Listbox     : constant Label_List.List_Box_Widget_Access := Label_List.Create;
+      Single_Listbox : constant Label_List.List_Box_Widget_Access := Label_List.Create;
+      Multi_Listbox  : constant Box_List.List_Box_Widget_Access := Box_List.Create;
+      Range_Listbox  : constant Label_List.List_Box_Widget_Access := Label_List.Create;
 
-      No_Status    : Adi.Widget.Label.Label_Widget_Access;
-      Range_Status : Adi.Widget.Label.Label_Widget_Access;
-   begin
-      No_Status := Adi.Widget.Label.Create
+      No_Status    : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create
         ("Click rows: focus/activate works, selection stays off");
+      Range_Status : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create
+        ("Shift+click/Shift+arrows selects contiguous ranges");
+   begin
       Single_Status := Adi.Widget.Label.Create
         ("Label list: click, double-click, arrows, page up/down, mouse wheel");
       Multi_Status := Adi.Widget.Label.Create
         ("Box list: multi-select toggle, wheel scroll, keyboard navigation");
-      Range_Status := Adi.Widget.Label.Create
-        ("Shift+click/Shift+arrows selects contiguous ranges");
 
       Set_Part_Styles (Root.all, Root_Part_Styles);
       Set_Part_Styles (Panels.all, Panels_Part_Styles);
@@ -163,11 +161,11 @@ begin
       --  Fill no/single/range label lists
       for I in 1 .. 40 loop
          declare
-            Row : Adi.Widget.Label.Label_Widget_Access :=
+            Row : constant Adi.Widget.Label.Label_Widget_Access :=
               Adi.Widget.Label.Create ("Label row" & I'Image);
-            Row_No : Adi.Widget.Label.Label_Widget_Access :=
+            Row_No : constant Adi.Widget.Label.Label_Widget_Access :=
               Adi.Widget.Label.Create ("Label row" & I'Image);
-            Row_Range : Adi.Widget.Label.Label_Widget_Access :=
+            Row_Range : constant Adi.Widget.Label.Label_Widget_Access :=
               Adi.Widget.Label.Create ("Label row" & I'Image);
          begin
             Set_Part_Styles (Row.all, Label_Row_Part_Styles);
@@ -183,8 +181,8 @@ begin
       --  Fill box list with more complex row widgets
       for I in 1 .. 35 loop
          declare
-            Row : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-            Title : Adi.Widget.Label.Label_Widget_Access :=
+            Row : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+            Title : constant Adi.Widget.Label.Label_Widget_Access :=
               Adi.Widget.Label.Create ("Card row" & I'Image & "  (double-click to activate)");
          begin
             Set_Part_Styles (Row.all, Card_Row_Part_Styles);

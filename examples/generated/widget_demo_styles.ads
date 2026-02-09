@@ -90,14 +90,14 @@ package Widget_Demo_Styles is
       others => <>
    );
 
-   --  Style for button-box when State_Hovered
-   Button_Box_Hovered_Style : constant Style_Rules := (
+   --  Style for button-box when widget State_Hovered
+   Button_Box_Widget_Hovered_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (37, 99, 235)),
       others => <>
    );
 
-   --  Style for button-box when State_Pressed
-   Button_Box_Pressed_Style : constant Style_Rules := (
+   --  Style for button-box when widget State_Pressed
+   Button_Box_Widget_Pressed_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       others => <>
    );
@@ -114,8 +114,8 @@ package Widget_Demo_Styles is
       others => <>
    );
 
-   --  Style for hover-box when State_Hovered
-   Hover_Box_Hovered_Style : constant Style_Rules := (
+   --  Style for hover-box when widget State_Hovered
+   Hover_Box_Widget_Hovered_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (255, 0, 0)),
       Border_Color => Set (Border_Color (RGB (21, 128, 61))),
       others => <>
@@ -157,10 +157,10 @@ package Widget_Demo_Styles is
      .Build;
 
    --  Part styles bundle for root-box
-   Root_Box_Part_Styles : constant Part_Style_Array := (
+   Root_Box_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Root_Box_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for top-row
    Top_Row_Widget : constant Widget_Style :=
@@ -168,10 +168,10 @@ package Widget_Demo_Styles is
      .Build;
 
    --  Part styles bundle for top-row
-   Top_Row_Part_Styles : constant Part_Style_Array := (
+   Top_Row_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Top_Row_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for card-box
    Card_Box_Widget : constant Widget_Style :=
@@ -179,10 +179,10 @@ package Widget_Demo_Styles is
      .Build;
 
    --  Part styles bundle for card-box
-   Card_Box_Part_Styles : constant Part_Style_Array := (
+   Card_Box_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Card_Box_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for card-box-2
    Card_Box_2_Widget : constant Widget_Style :=
@@ -190,10 +190,10 @@ package Widget_Demo_Styles is
      .Build;
 
    --  Part styles bundle for card-box-2
-   Card_Box_2_Part_Styles : constant Part_Style_Array := (
+   Card_Box_2_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Card_Box_2_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for inner-box
    Inner_Box_Widget : constant Widget_Style :=
@@ -201,10 +201,10 @@ package Widget_Demo_Styles is
      .Build;
 
    --  Part styles bundle for inner-box
-   Inner_Box_Part_Styles : constant Part_Style_Array := (
+   Inner_Box_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Inner_Box_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for bottom-row
    Bottom_Row_Widget : constant Widget_Style :=
@@ -212,35 +212,35 @@ package Widget_Demo_Styles is
      .Build;
 
    --  Part styles bundle for bottom-row
-   Bottom_Row_Part_Styles : constant Part_Style_Array := (
+   Bottom_Row_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Bottom_Row_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for button-box
    Button_Box_Widget : constant Widget_Style :=
      From (Button_Box_Base_Style)
-     .On (When_State (State_Hovered), Button_Box_Hovered_Style)
-     .On (When_State (State_Pressed), Button_Box_Pressed_Style)
+     .On (When_State (State_Hovered), Button_Box_Widget_Hovered_Style)
+     .On (When_State (State_Pressed), Button_Box_Widget_Pressed_Style)
      .Build;
 
    --  Part styles bundle for button-box
-   Button_Box_Part_Styles : constant Part_Style_Array := (
+   Button_Box_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Button_Box_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for hover-box
    Hover_Box_Widget : constant Widget_Style :=
      From (Hover_Box_Base_Style)
-     .On (When_State (State_Hovered), Hover_Box_Hovered_Style)
+     .On (When_State (State_Hovered), Hover_Box_Widget_Hovered_Style)
      .Build;
 
    --  Part styles bundle for hover-box
-   Hover_Box_Part_Styles : constant Part_Style_Array := (
+   Hover_Box_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Hover_Box_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for label-box
    Label_Box_Widget : constant Widget_Style :=
@@ -248,10 +248,10 @@ package Widget_Demo_Styles is
      .Build;
 
    --  Part styles bundle for label-box
-   Label_Box_Part_Styles : constant Part_Style_Array := (
+   Label_Box_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Label_Box_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for title-label
    Title_Label_Widget : constant Widget_Style :=
@@ -264,10 +264,10 @@ package Widget_Demo_Styles is
      .Build;
 
    --  Part styles bundle for title-label
-   Title_Label_Part_Styles : constant Part_Style_Array := (
+   Title_Label_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Title_Label_Widget, Enabled => True),
       Label_Part => (Style => Title_Label_Label_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
 end Widget_Demo_Styles;

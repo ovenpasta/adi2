@@ -15,11 +15,13 @@ procedure Button_Example is
    package Align_Options is new Adi.Widget.Button.Options (Align_Option);
 
    procedure On_Simple_Click (Btn : Button_Widget_Access) is
+      pragma Unreferenced (Btn);
    begin
       Put_Line ("Simple button clicked!");
    end On_Simple_Click;
 
    procedure On_Toggle (Btn : Button_Widget_Access; Active : Boolean) is
+      pragma Unreferenced (Btn);
    begin
       Put_Line ("Toggle button: " & Active'Image);
    end On_Toggle;
@@ -34,23 +36,23 @@ begin
    A.Set_Target_FPS (60);
 
    declare
-      W : Window_Access := Create_Window ("Button Example", (700.0, 500.0));
+      W : constant Window_Access := Create_Window ("Button Example", (700.0, 500.0));
 
-      Root      : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Container : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Root      : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Container : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
-      Section1 : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Btn_Primary : Button_Widget_Access := Create ("Primary");
-      Btn_Danger  : Button_Widget_Access := Create ("Delete");
-      Btn_Outline : Button_Widget_Access := Create ("Cancel");
+      Section1 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Btn_Primary : constant Button_Widget_Access := Create ("Primary");
+      Btn_Danger  : constant Button_Widget_Access := Create ("Delete");
+      Btn_Outline : constant Button_Widget_Access := Create ("Cancel");
 
-      Section2 : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Btn_Toggle : Button_Widget_Access := Create ("Bold");
+      Section2 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Btn_Toggle : constant Button_Widget_Access := Create ("Bold");
 
-      Section3 : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Btn_Left   : Button_Widget_Access := Create ("Left");
-      Btn_Center : Button_Widget_Access := Create ("Center");
-      Btn_Right  : Button_Widget_Access := Create ("Right");
+      Section3 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Btn_Left   : constant Button_Widget_Access := Create ("Left");
+      Btn_Center : constant Button_Widget_Access := Create ("Center");
+      Btn_Right  : constant Button_Widget_Access := Create ("Right");
       Align_Group : aliased Align_Options.Option_Group;
    begin
       Btn_Primary.Set_On_Clicked (On_Simple_Click'Unrestricted_Access);

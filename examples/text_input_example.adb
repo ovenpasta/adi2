@@ -37,15 +37,15 @@ begin
    A.Set_Target_FPS (60);
 
    declare
-      W : Window_Access := Create_Window ("Text Input Example", (760.0, 420.0));
+      W : constant Window_Access := Create_Window ("Text Input Example", (760.0, 420.0));
 
-      Root      : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Container : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Title     : Label_Widget_Access := Adi.Widget.Label.Create ("Text Input Widget Demo");
-      Hint      : Label_Widget_Access := Adi.Widget.Label.Create
+      Root      : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Container : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Title     : constant Label_Widget_Access := Adi.Widget.Label.Create ("Text Input Widget Demo");
+      Hint      : constant Label_Widget_Access := Adi.Widget.Label.Create
         ("Click the field below and type. Use arrows/Home/End/Backspace/Delete.");
-      Input     : Text_Input_Widget_Access := Adi.Widget.Text_Input.Create ("Hello Adi");
-      Input_2   : Text_Input_Widget_Access := Adi.Widget.Text_Input.Create ("Second field");
+      Input     : constant Text_Input_Widget_Access := Adi.Widget.Text_Input.Create ("Hello Adi");
+      Input_2   : constant Text_Input_Widget_Access := Adi.Widget.Text_Input.Create ("Second field");
    begin
       Echo_Label := Adi.Widget.Label.Create ("You typed: Hello Adi");
       Length_Label := Adi.Widget.Label.Create ("Length: 9");

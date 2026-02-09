@@ -119,10 +119,10 @@ package Label_Example_Styles is
      .Build;
 
    --  Part styles bundle for root
-   Root_Part_Styles : constant Part_Style_Array := (
+   Root_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Root_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for container
    Container_Widget : constant Widget_Style :=
@@ -130,10 +130,10 @@ package Label_Example_Styles is
      .Build;
 
    --  Part styles bundle for container
-   Container_Part_Styles : constant Part_Style_Array := (
+   Container_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Container_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for label1
    Label1_Widget : constant Widget_Style :=
@@ -146,11 +146,11 @@ package Label_Example_Styles is
      .Build;
 
    --  Part styles bundle for label1
-   Label1_Part_Styles : constant Part_Style_Array := (
+   Label1_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Label1_Widget, Enabled => True),
       Label_Part => (Style => Label1_Label_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for label2
    Label2_Widget : constant Widget_Style :=
@@ -163,11 +163,11 @@ package Label_Example_Styles is
      .Build;
 
    --  Part styles bundle for label2
-   Label2_Part_Styles : constant Part_Style_Array := (
+   Label2_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Label2_Widget, Enabled => True),
       Icon_Part => (Style => Label2_Icon_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for label3
    Label3_Widget : constant Widget_Style :=
@@ -185,12 +185,12 @@ package Label_Example_Styles is
      .Build;
 
    --  Part styles bundle for label3
-   Label3_Part_Styles : constant Part_Style_Array := (
+   Label3_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Label3_Widget, Enabled => True),
       Icon_Part => (Style => Label3_Icon_Widget, Enabled => True),
       Label_Part => (Style => Label3_Label_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
    --  Complete widget style for label4
    Label4_Widget : constant Widget_Style :=
@@ -208,11 +208,11 @@ package Label_Example_Styles is
      .Build;
 
    --  Part styles bundle for label4
-   Label4_Part_Styles : constant Part_Style_Array := (
+   Label4_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Label4_Widget, Enabled => True),
       Icon_Part => (Style => Label4_Icon_Widget, Enabled => True),
       Label_Part => (Style => Label4_Label_Widget, Enabled => True),
       others => <>
-   );
+   ];
 
 end Label_Example_Styles;

@@ -143,7 +143,13 @@ package Adi.Widget is
    procedure Set_State (W : in out Widget'Class; S : Widget_State; Active : Boolean);
    function  Has_State (W : Widget'Class; S : Widget_State) return Boolean;
    function  Get_States (W : Widget'Class) return Widget_States;
+   procedure Set_Part_State (W : in out Widget'Class;
+                             P : Part_Kind;
+                             S : Widget_State;
+                             Active : Boolean);
+   function Get_Part_States (W : Widget'Class; P : Part_Kind) return Widget_States;
    procedure Clear_States (W : in out Widget'Class);
+   procedure Clear_Part_States (W : in out Widget'Class);
 
    --  Convenience state setters
    procedure Set_Hovered (W : in out Widget'Class; Value : Boolean := True);
@@ -192,6 +198,8 @@ package Adi.Widget is
    --  Get items filtered by part
    function Get_Items_For_Part (W : Widget'Class;
                                 P : Part_Kind) return Items_List.Vector;
+   function Get_Part_At (W : Widget'Class;
+                         X, Y : Pixel_Type) return Part_Kind;
 
    ---------------------------------------------------------------------------
    --  Hierarchy Management
@@ -296,6 +304,9 @@ package Adi.Widget is
    --  Called when geometry changes (default: marks dirty)
    procedure On_Geometry_Changed (W : in out Widget'Class);
 
+   --  Per-frame callback (default: no-op). DT is in seconds.
+   procedure On_Tick (W : in out Widget; DT : Duration) is null;
+
    ---------------------------------------------------------------------------
    --  Update/Render Cycle
    ---------------------------------------------------------------------------
@@ -376,6 +387,7 @@ private
    type Part_Transition_Array is array (Part_Kind) of Part_Transition;
    type Part_Resolved_Array is array (Part_Kind) of Resolved_Style;
    type Part_Initialized_Array is array (Part_Kind) of Boolean;
+   type Part_State_Array is array (Part_Kind) of Widget_States;
 
    type Widget is abstract tagged limited record
       --  Hierarchy
@@ -386,9 +398,10 @@ private
       Geometry : Rectangle := (0.0, 0.0, 100.0, 100.0);
 
       --  State
-      States : Widget_States := No_States;
-      Dirty  : Boolean := True;
-      Flags  : Widget_Flags := Default_Flags;
+      States      : Widget_States := No_States;
+      Part_States : Part_State_Array := [others => No_States];
+      Dirty       : Boolean := True;
+      Flags       : Widget_Flags := Default_Flags;
 
       --  Styling - each part has its own Widget_Style
       Part_Styles : Part_Style_Array := Empty_Part_Styles;

@@ -80,6 +80,9 @@ package Adi.Widget.List_Box is
      (W      : in out List_Box_Widget;
       X, Y   : Pixel_Type;
       Button : Mouse_Button);
+   overriding procedure On_Tick
+     (W  : in out List_Box_Widget;
+      DT : Duration);
    overriding procedure On_Key_Down
      (W        : in out List_Box_Widget;
       Scancode : Adi.SDL.Events.SDL_Scancode;
@@ -106,6 +109,8 @@ private
       Mode           : Selection_Mode := Single_Selection;
       Scroll_Dragging     : Boolean := False;
       Scroll_Drag_Offset  : Pixel_Type := 0.0;
+      Scroll_Velocity     : Pixel_Type := 0.0;
+      Last_Drag_Offset    : Pixel_Type := 0.0;
       On_Item_Click  : Item_Clicked_Callback := null;
       On_Item_Act    : Item_Activated_Callback := null;
       On_Select      : Selection_Changed_Callback := null;

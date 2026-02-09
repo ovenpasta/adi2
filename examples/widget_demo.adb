@@ -15,19 +15,19 @@ begin
    A.Init;
 
    declare
-      W : Adi.Window.Window_Access := Adi.Window.Create_Window ("Widget Demo", (800.0, 600.0));
+      W : constant Adi.Window.Window_Access := Adi.Window.Create_Window ("Widget Demo", (800.0, 600.0));
 
-      Root_Box   : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Top_Row    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Card_Box   : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Card_Box_2 : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Inner_Box  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Bottom_Row : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Button_Box : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Hover_Box  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_Box  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Root_Box   : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Top_Row    : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Card_Box   : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Card_Box_2 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Inner_Box  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Bottom_Row : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Button_Box : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Hover_Box  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Label_Box  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
-      Title_Label : Adi.Widget.Label.Label_Widget_Access :=
+      Title_Label : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("Hello Adi Framework!");
       Bg : Adi.Image.Image_Access;
       Bg_Style : Opt_Bg_Image.Optional;

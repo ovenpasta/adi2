@@ -336,11 +336,34 @@ package body Adi.Widget is
       return W.States;
    end Get_States;
 
+   procedure Set_Part_State (W : in out Widget'Class;
+                             P : Part_Kind;
+                             S : Widget_State;
+                             Active : Boolean) is
+      Was_Active : constant Boolean := W.Part_States (P) (S);
+   begin
+      if Was_Active /= Active then
+         W.Part_States (P) (S) := Active;
+      end if;
+      Mark_Dirty (W);
+   end Set_Part_State;
+
+   function Get_Part_States (W : Widget'Class; P : Part_Kind) return Widget_States is
+   begin
+      return W.Part_States (P);
+   end Get_Part_States;
+
    procedure Clear_States (W : in out Widget'Class) is
    begin
       W.States := No_States;
       Mark_Dirty (W);
    end Clear_States;
+
+   procedure Clear_Part_States (W : in out Widget'Class) is
+   begin
+      W.Part_States := [others => No_States];
+      Mark_Dirty (W);
+   end Clear_Part_States;
 
    --  Convenience state setters
    procedure Set_Hovered (W : in out Widget'Class; Value : Boolean := True) is
@@ -400,10 +423,14 @@ package body Adi.Widget is
         and then P /= Any_Part
         and then W.Part_Styles (Any_Part).Style /= Empty_Widget_Style
       then
-         return Compute_Style (W.Part_Styles (Any_Part).Style, W.States);
+         return Compute_Style (W.Part_Styles (Any_Part).Style,
+                               W.States,
+                               W.Part_States (P));
       end if;
 
-      return Compute_Style (W.Part_Styles (P).Style, W.States);
+      return Compute_Style (W.Part_Styles (P).Style,
+                            W.States,
+                            W.Part_States (P));
    end Get_Part_Style_Rules;
 
    function Get_Resolved_Part_Style (W : Widget'Class;
@@ -541,6 +568,24 @@ package body Adi.Widget is
       end loop;
       return Result;
    end Get_Items_For_Part;
+
+   function Get_Part_At (W : Widget'Class;
+                         X, Y : Pixel_Type) return Part_Kind is
+   begin
+      for I in reverse 1 .. Natural (W.Items.Length) loop
+         declare
+            Current : constant Item := W.Items.Element (I);
+            G       : constant Rectangle := Current.Geometry;
+         begin
+            if X >= G.X and then X <= G.X + G.Width
+              and then Y >= G.Y and then Y <= G.Y + G.Height
+            then
+               return Current.Part;
+            end if;
+         end;
+      end loop;
+      return Main_Part;
+   end Get_Part_At;
 
    ---------------------------------------------------------------------------
    --  Hierarchy Management
@@ -2535,6 +2580,8 @@ procedure Tick_Animations (W : in out Widget'Class; DT : Duration) is
    Any_Active : Boolean := False;
    DT_Float   : constant Float := Float (DT);
 begin
+   On_Tick (W, DT);
+
    for P in Part_Kind loop
       if W.Transitions (P).Active then
          declare

@@ -7,6 +7,7 @@ with Adi.Core;
 with Adi.SDL; use Adi.SDL;
 with Adi.SDL.Video;
 with Adi.SDL.Render;
+with Adi.Widget_Styles;
 
 package body Adi.Window is
 
@@ -425,8 +426,29 @@ package body Adi.Window is
    -- On_Mouse_Move --
    -------------------
 procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
-      use Ada.Text_IO;
       New_Hovered : Widget_Access;
+      New_Part    : Part_Kind;
+      procedure Clear_Hover_For_Part
+        (Target : in out Adi.Widget.Widget'Class;
+         P      : Part_Kind) is
+      begin
+         Set_Part_State (Target, P, Adi.Widget_Styles.State_Hovered, False);
+         --  Knob sits on top of scroll track; clear both when leaving knob.
+         if P = Knob_Part then
+            Set_Part_State (Target, Scroll_Part, Adi.Widget_Styles.State_Hovered, False);
+         end if;
+      end Clear_Hover_For_Part;
+
+      procedure Set_Hover_For_Part
+        (Target : in out Adi.Widget.Widget'Class;
+         P      : Part_Kind) is
+      begin
+         Set_Part_State (Target, P, Adi.Widget_Styles.State_Hovered, True);
+         --  Hovering knob should also visually highlight the track beneath it.
+         if P = Knob_Part then
+            Set_Part_State (Target, Scroll_Part, Adi.Widget_Styles.State_Hovered, True);
+         end if;
+      end Set_Hover_For_Part;
    begin
       W.Mouse_X := X;
       W.Mouse_Y := Y;
@@ -438,17 +460,28 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       if New_Hovered /= W.Hovered_Widget then
          --  Remove hover from old widget
          if W.Hovered_Widget /= null then
-            Ada.Text_IO.Put_Line ("Unhover widget");
             Set_Hovered (W.Hovered_Widget.all, False);
+            Clear_Hover_For_Part (W.Hovered_Widget.all, W.Hovered_Part);
          end if;
 
          --  Set hover on new widget
          if New_Hovered /= null then
-            Ada.Text_IO.Put_Line ("Hover widget at " & X'Image & "," & Y'Image);
+            New_Part := Get_Part_At (New_Hovered.all, X, Y);
             Set_Hovered (New_Hovered.all, True);
+            Set_Hover_For_Part (New_Hovered.all, New_Part);
+            W.Hovered_Part := New_Part;
+         else
+            W.Hovered_Part := Main_Part;
          end if;
 
          W.Hovered_Widget := New_Hovered;
+      elsif W.Hovered_Widget /= null then
+         New_Part := Get_Part_At (W.Hovered_Widget.all, X, Y);
+         if New_Part /= W.Hovered_Part then
+            Clear_Hover_For_Part (W.Hovered_Widget.all, W.Hovered_Part);
+            Set_Hover_For_Part (W.Hovered_Widget.all, New_Part);
+            W.Hovered_Part := New_Part;
+         end if;
       end if;
 
       --  Route drag motion to the pressed widget (for text selection, etc.)
@@ -481,11 +514,17 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       Set_Focused_Widget (W, Focus_Target);
 
       if Click_Target /= null then
+         W.Pressed_Part := Get_Part_At (Click_Target.all, X, Y);
          Set_Pressed (Click_Target.all, True);
+         Set_Part_State (Click_Target.all,
+                         W.Pressed_Part,
+                         Adi.Widget_Styles.State_Pressed,
+                         True);
          W.Pressed_Widget := Click_Target;
          On_Mouse_Down (Click_Target.all, X, Y, Button, Clicks);
       else
          W.Pressed_Widget := null;
+         W.Pressed_Part := Main_Part;
       end if;
    end On_Mouse_Down;
 
@@ -508,8 +547,13 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
          then
             On_Click (W.Pressed_Widget.all);
          end if;
+         Set_Part_State (W.Pressed_Widget.all,
+                         W.Pressed_Part,
+                         Adi.Widget_Styles.State_Pressed,
+                         False);
          Set_Pressed (W.Pressed_Widget.all, False);
          W.Pressed_Widget := null;
+         W.Pressed_Part := Main_Part;
       end if;
    end On_Mouse_Up;
 

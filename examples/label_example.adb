@@ -4,7 +4,6 @@ with Adi.Window;        use Adi.Window;
 with Adi.Widget;        use Adi.Widget;
 with Adi.Widget.Box;
 with Adi.Widget.Label;
-with Adi.Core;          use Adi.Core;
 with Adi.Image;
 with Label_Example_Styles; use Label_Example_Styles;
 
@@ -17,30 +16,30 @@ begin
    A.Init;
 
    declare
-      W : Window_Access := Create_Window ("Label Example", (600.0, 500.0));
+      W : constant Window_Access := Create_Window ("Label Example", (600.0, 500.0));
 
       --  Root container
-      Root : Adi.Widget.Box.Box_Widget_Access :=
+      Root : constant Adi.Widget.Box.Box_Widget_Access :=
          Adi.Widget.Box.Create (0.0, 0.0, 600.0, 500.0);
 
       --  Container for labels
-      Container : Adi.Widget.Box.Box_Widget_Access :=
+      Container : constant Adi.Widget.Box.Box_Widget_Access :=
          Adi.Widget.Box.Create;
 
       --  Label 1: Text only
-      Label1 : Adi.Widget.Label.Label_Widget_Access :=
+      Label1 : constant Adi.Widget.Label.Label_Widget_Access :=
          Adi.Widget.Label.Create ("Hello World!");
 
       --  Label 2: Icon only
-      Label2 : Adi.Widget.Label.Label_Widget_Access :=
+      Label2 : constant Adi.Widget.Label.Label_Widget_Access :=
          Adi.Widget.Label.Create;
 
       --  Label 3: Icon + Text (horizontal)
-      Label3 : Adi.Widget.Label.Label_Widget_Access :=
+      Label3 : constant Adi.Widget.Label.Label_Widget_Access :=
          Adi.Widget.Label.Create ("Save Document");
 
       --  Label 4: Icon + Text (vertical)
-      Label4 : Adi.Widget.Label.Label_Widget_Access :=
+      Label4 : constant Adi.Widget.Label.Label_Widget_Access :=
          Adi.Widget.Label.Create ("Settings");
 
       --  Load an icon

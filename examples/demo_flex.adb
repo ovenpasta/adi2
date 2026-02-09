@@ -11,6 +11,7 @@ with Adi.Widget.Box;
 with Adi.Widget_Styles;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Core;
+with Demo_Flex_Styles; use Demo_Flex_Styles;
 use Adi;
 
 procedure Demo_Flex is
@@ -36,19 +37,12 @@ procedure Demo_Flex is
       Style : Widget_Style;
    begin
       Style := Adi.Widget_Styles.Create
-         .Base ((
+         .Base ((Box_Base_Base_Style with delta
             Background_Color => Set_Bg (Color),
-            Border_Width     => Set (Border_Width (Px (1))),
-            Border_Color     => Set (Border_Color (C (Dark_Gray))),
-            Border_Style     => Set (Border_Style (Solid)),
-            Border_Radius    => Set (Radius (Px (4.0))),
-            Width            => (if W > 0.0 then Set (Size (Px (Float(W)))) else Opt_Size.Unset),
-            Height           => (if H > 0.0 then Set (Size (Px (Float(H)))) else Opt_Size.Unset),
+            Width            => (if W > 0.0 then Set (Size (Px (Float (W)))) else Opt_Size.Unset),
+            Height           => (if H > 0.0 then Set (Size (Px (Float (H)))) else Opt_Size.Unset),
             Flex_Grow        => Set (Flex_Grow_Value (Grow)),
-            Flex_Shrink      => Set (Flex_Shrink_Value (Shrink)),
-            Min_Width        => Set (Size (Px (20.0))),
-            Min_Height       => Set (Size (Px (20.0))),
-            others           => <>))
+            Flex_Shrink      => Set (Flex_Shrink_Value (Shrink))))
          .Build;
 
       Set_Part_Style (B.all, Main_Part, Style);
@@ -70,19 +64,13 @@ procedure Demo_Flex is
       Style : Widget_Style;
    begin
       Style := Adi.Widget_Styles.Create
-         .Base ((
-            Display          => Set (Flex),
+         .Base ((Flex_Container_Base_Style with delta
             Flex_Direction   => Set (Direction),
             Justify_Content  => Set (Justify),
             Align_Items      => Set (Align),
             Gap              => Set (Gap (Px (Gap_Px))),
             Padding          => Set (CSS_Styles.CSS_Box (Px (Padding_Px))),
-            Background_Color => Set_Bg (Bg_Color),
-            Border_Width     => Set (Border_Width (Px (2.0))),
-            Border_Color     => Set (Border_Color (C (Gray))),
-            Border_Style     => Set (Border_Style (Solid)),
-            Border_Radius    => Set (Radius (Px (8.0))),
-            others           => <>))
+            Background_Color => Set_Bg (Bg_Color)))
          .Build;
 
       Set_Part_Style (Container.all, Main_Part, Style);
@@ -439,20 +427,8 @@ procedure Demo_Flex is
 
       --  Helper to set flex grow on row containers
       procedure Set_Row_Flex (R : Box_Widget_Access) is
-         Style : Widget_Style;
       begin
-         Style := Adi.Widget_Styles.Create
-            .Base ((
-               Display          => Set (Flex),
-               Flex_Direction   => Set (Row),
-               Justify_Content  => Set (Flex_Start),
-               Align_Items      => Set (Stretch),
-               Gap              => Set (Gap (Px (15.0))),
-               Background_Color => Set_Bg (C (Transparent)),
-               Flex_Grow        => Set (0.0),  -- Rows don't grow
-               others           => <>))
-            .Build;
-         Set_Part_Style (R.all, Main_Part, Style);
+         Set_Part_Style (R.all, Main_Part, Row_Base_Widget);
       end Set_Row_Flex;
 
       --  Helper to make demo containers equal width

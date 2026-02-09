@@ -1,0 +1,231 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  background-color: rgb(30, 30, 36);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 24px;
+  padding: 30px;
+}
+
+.section-row {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  align-items: center;
+}
+
+.section-row-2 {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.primary::main {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(59, 130, 246);
+  border-width: 0px;
+  border-radius: 6px;
+  padding: 12px 24px;
+  cursor: pointer;
+}
+
+.primary::main:hover {
+  background-color: rgb(37, 99, 235);
+}
+
+.primary::main:pressed {
+  background-color: rgb(29, 58, 145);
+}
+
+.primary::label {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  text-wrap-mode: nowrap;
+}
+
+.danger::main {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(220, 38, 38);
+  border-width: 0px;
+  border-radius: 6px;
+  padding: 12px 24px;
+  cursor: pointer;
+}
+
+.danger::main:hover {
+  background-color: rgb(185, 28, 28);
+}
+
+.danger::main:pressed {
+  background-color: rgb(153, 27, 27);
+}
+
+.danger::label {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  text-wrap-mode: nowrap;
+}
+
+.outline::main {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.0);
+  border-width: 1px;
+  border-color: rgb(148, 163, 184);
+  border-style: solid;
+  border-radius: 6px;
+  padding: 12px 24px;
+  cursor: pointer;
+}
+
+.outline::main:hover {
+  background-color: rgba(148, 163, 184, 0.15);
+}
+
+.outline::main:pressed {
+  background-color: rgba(148, 163, 184, 0.25);
+}
+
+.outline::label {
+  color: rgb(226, 232, 240);
+  font-size: 14px;
+  font-weight: 500;
+  text-wrap-mode: nowrap;
+}
+
+.toggle::main {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(75, 85, 99);
+  border-width: 2px;
+  border-color: rgb(107, 114, 128);
+  border-style: solid;
+  border-radius: 6px;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.toggle::main:hover {
+  background-color: rgb(90, 100, 114);
+}
+
+.toggle::main:pressed {
+  background-color: rgb(55, 65, 81);
+}
+
+.toggle::main:selected {
+  background-color: rgb(22, 163, 74);
+  border-color: rgb(21, 128, 61);
+}
+
+.toggle::main:selected:pressed {
+  background-color: rgb(21, 128, 61);
+  border-color: rgb(20, 110, 55);
+}
+
+.toggle::label {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  text-wrap-mode: nowrap;
+}
+
+.option-left::main {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(55, 65, 81);
+  border-width: 1px;
+  border-color: rgb(75, 85, 99);
+  border-style: solid;
+  border-radius: 6px 0px 0px 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.option-left::main:hover {
+  background-color: rgb(75, 85, 99);
+}
+
+.option-left::main:selected {
+  background-color: rgb(59, 130, 246);
+  border-color: rgb(37, 99, 235);
+}
+
+.option-center::main {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(55, 65, 81);
+  border-width: 1px;
+  border-color: rgb(75, 85, 99);
+  border-style: solid;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.option-center::main:hover {
+  background-color: rgb(75, 85, 99);
+}
+
+.option-center::main:selected {
+  background-color: rgb(59, 130, 246);
+  border-color: rgb(37, 99, 235);
+}
+
+.option-right::main {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(55, 65, 81);
+  border-width: 1px;
+  border-color: rgb(75, 85, 99);
+  border-style: solid;
+  border-radius: 0px 6px 6px 0px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.option-right::main:hover {
+  background-color: rgb(75, 85, 99);
+}
+
+.option-right::main:selected {
+  background-color: rgb(59, 130, 246);
+  border-color: rgb(37, 99, 235);
+}
+
+.option-left::label {
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  text-wrap-mode: nowrap;
+}
+
+.option-center::label {
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  text-wrap-mode: nowrap;
+}
+
+.option-right::label {
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  text-wrap-mode: nowrap;
+}

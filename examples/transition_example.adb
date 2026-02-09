@@ -8,6 +8,7 @@ with Adi.Widget.Button; use Adi.Widget.Button;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
 with Adi.Core;          use Adi.Core;
+with Transition_Example_Styles; use Transition_Example_Styles;
 
 --  Demonstrates the different transition capabilities:
 --    1. Background color transitions with each easing curve
@@ -38,33 +39,14 @@ procedure Transition_Example is
    function G (All_L : Length_Value) return Gap_Value
      renames Adi.CSS_Styles.Gap;
 
-   --  Shared label style
-   White_Label : constant Widget_Style := Style.Base ((
-      Color          => Set (C (White)),
-      Font_Size      => Set_Font (Px (13.0)),
-      Font_Weight    => Set (Weight_Medium),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others         => <>)).Build;
-
-   Dark_Label : constant Widget_Style := Style.Base ((
-      Color          => Set (RGB (200, 200, 210)),
-      Font_Size      => Set_Font (Px (11.0)),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others         => <>)).Build;
+   White_Label : constant Widget_Style := White_Label_Widget;
+   Dark_Label  : constant Widget_Style := Dark_Label_Widget;
 
    --  Helper: section title label
    function Make_Title (Text : String) return Label_Widget_Access is
       L : constant Label_Widget_Access := Adi.Widget.Label.Create (Text);
    begin
-      Set_Part_Style (L.all, Main_Part, Style.Base ((
-         Padding => Set (Pad (Px (0.0), Px (4.0))),
-         others  => <>)).Build);
-      Set_Part_Style (L.all, Label_Part, Style.Base ((
-         Color       => Set (RGB (160, 170, 190)),
-         Font_Size   => Set_Font (Px (12.0)),
-         Font_Weight => Set (Weight_Semi_Bold),
-         Text_Wrap_Mode => Set (TWM_Nowrap),
-         others      => <>)).Build);
+      Set_Part_Styles (L.all, Title_Part_Styles);
       return L;
    end Make_Title;
 
@@ -72,30 +54,12 @@ procedure Transition_Example is
    function Make_Desc (Text : String) return Label_Widget_Access is
       L : constant Label_Widget_Access := Adi.Widget.Label.Create (Text);
    begin
-      Set_Part_Style (L.all, Main_Part, Style.Base ((
-         Padding => Set (Pad (Px (2.0), Px (4.0))),
-         others  => <>)).Build);
-      Set_Part_Style (L.all, Label_Part, Style.Base ((
-         Color       => Set (RGB (120, 130, 150)),
-         Font_Size   => Set_Font (Px (10.0)),
-         Text_Wrap_Mode => Set (TWM_Nowrap),
-         others      => <>)).Build);
+      Set_Part_Styles (L.all, Desc_Part_Styles);
       return L;
    end Make_Desc;
 
    --  Common base style for demo buttons
-   Demo_Base : constant Style_Rules := (
-      Display          => Set (Inline_Flex),
-      Justify_Content  => Set (Adi.CSS_Styles.Center),
-      Align_Items      => Set (Adi.CSS_Styles.Center),
-      Background_Color => Set_Bg (RGB (55, 65, 81)),
-      Border_Width     => Set (Border_Width (Px (2.0))),
-      Border_Color     => Set (Border_Color (RGB (75, 85, 99))),
-      Border_Style     => Set (Border_Style (Solid)),
-      Border_Radius    => Set (Radius (Px (6.0))),
-      Padding          => Set (Pad (Px (10.0), Px (20.0))),
-      Cursor           => Set (Cursor_Pointer),
-      others           => <>);
+   Demo_Base : constant Style_Rules := Demo_Base_Base_Style;
 
 begin
    A.Init;
@@ -162,58 +126,28 @@ begin
       Col_Fast  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Col_Slow  : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
-      --  Column flex style for button+desc groupings
-      Col_Style : constant Widget_Style := Style.Base ((
-         Display        => Set (Flex),
-         Flex_Direction => Set (Column),
-         Align_Items    => Set (Adi.CSS_Styles.Center),
-         others         => <>)).Build;
-
    begin
       --  === Root ===
-      Set_Part_Style (Root.all, Main_Part,
-        Style.Base ((
-          Display          => Set (Flex),
-          Flex_Direction   => Set (Column),
-          Background_Color => Set_Bg (RGB (24, 24, 30)),
-          others           => <>)).Build);
+      Set_Part_Styles (Root.all, Root_Part_Styles);
 
       --  === Content ===
-      Set_Part_Style (Content.all, Main_Part,
-        Style.Base ((
-          Display        => Set (Flex),
-          Flex_Direction => Set (Column),
-          Flex_Grow      => Set (1.0),
-          Gap            => Set (G (Px (28.0))),
-          Padding        => Set (Pad (Px (28.0), Px (32.0))),
-          others         => <>)).Build);
+      Set_Part_Styles (Content.all, Content_Part_Styles);
 
       --  =====================================================================
       --  Section 1: Easing Curves
       --  =====================================================================
 
       --  Section container
-      Set_Part_Style (Sec1.all, Main_Part,
-        Style.Base ((
-          Display        => Set (Flex),
-          Flex_Direction => Set (Column),
-          Gap            => Set (G (Px (10.0))),
-          others         => <>)).Build);
+      Set_Part_Styles (Sec1.all, Section_Part_Styles);
 
       --  Row of buttons
-      Set_Part_Style (Sec1_Row.all, Main_Part,
-        Style.Base ((
-          Display        => Set (Flex),
-          Flex_Direction => Set (Row),
-          Gap            => Set (G (Px (16.0))),
-          Align_Items    => Set (Flex_Start),
-          others         => <>)).Build);
+      Set_Part_Styles (Sec1_Row.all, Section_Row_Part_Styles);
 
       --  Column containers for button+desc
-      Set_Part_Style (Col_Linear.all, Main_Part, Col_Style);
-      Set_Part_Style (Col_EaseIn.all, Main_Part, Col_Style);
-      Set_Part_Style (Col_EaseOut.all, Main_Part, Col_Style);
-      Set_Part_Style (Col_EaseIO.all, Main_Part, Col_Style);
+      Set_Part_Styles (Col_Linear.all, Col_Style_Part_Styles);
+      Set_Part_Styles (Col_EaseIn.all, Col_Style_Part_Styles);
+      Set_Part_Styles (Col_EaseOut.all, Col_Style_Part_Styles);
+      Set_Part_Styles (Col_EaseIO.all, Col_Style_Part_Styles);
 
       --  Linear: constant speed, no acceleration
       Set_Part_Style (Btn_Linear.all, Main_Part,
@@ -279,26 +213,15 @@ begin
       --  Section 2: Individual Properties
       --  =====================================================================
 
-      Set_Part_Style (Sec2.all, Main_Part,
-        Style.Base ((
-          Display        => Set (Flex),
-          Flex_Direction => Set (Column),
-          Gap            => Set (G (Px (10.0))),
-          others         => <>)).Build);
+      Set_Part_Styles (Sec2.all, Section_Part_Styles);
 
-      Set_Part_Style (Sec2_Row.all, Main_Part,
-        Style.Base ((
-          Display        => Set (Flex),
-          Flex_Direction => Set (Row),
-          Gap            => Set (G (Px (16.0))),
-          Align_Items    => Set (Flex_Start),
-          others         => <>)).Build);
+      Set_Part_Styles (Sec2_Row.all, Section_Row_Part_Styles);
 
-      Set_Part_Style (Col_BgColor.all, Main_Part, Col_Style);
-      Set_Part_Style (Col_Border.all, Main_Part, Col_Style);
-      Set_Part_Style (Col_Radius.all, Main_Part, Col_Style);
-      Set_Part_Style (Col_Shadow.all, Main_Part, Col_Style);
-      Set_Part_Style (Col_Opacity.all, Main_Part, Col_Style);
+      Set_Part_Styles (Col_BgColor.all, Col_Style_Part_Styles);
+      Set_Part_Styles (Col_Border.all, Col_Style_Part_Styles);
+      Set_Part_Styles (Col_Radius.all, Col_Style_Part_Styles);
+      Set_Part_Styles (Col_Shadow.all, Col_Style_Part_Styles);
+      Set_Part_Styles (Col_Opacity.all, Col_Style_Part_Styles);
 
       --  Background color only
       Set_Part_Style (Btn_BgColor.all, Main_Part,
@@ -371,25 +294,14 @@ begin
       --  Section 3: Combined + Duration Variants
       --  =====================================================================
 
-      Set_Part_Style (Sec3.all, Main_Part,
-        Style.Base ((
-          Display        => Set (Flex),
-          Flex_Direction => Set (Column),
-          Gap            => Set (G (Px (10.0))),
-          others         => <>)).Build);
+      Set_Part_Styles (Sec3.all, Section_Part_Styles);
 
-      Set_Part_Style (Sec3_Row.all, Main_Part,
-        Style.Base ((
-          Display        => Set (Flex),
-          Flex_Direction => Set (Row),
-          Gap            => Set (G (Px (16.0))),
-          Align_Items    => Set (Flex_Start),
-          others         => <>)).Build);
+      Set_Part_Styles (Sec3_Row.all, Section_Row_Part_Styles);
 
-      Set_Part_Style (Col_Multi.all, Main_Part, Col_Style);
-      Set_Part_Style (Col_All.all, Main_Part, Col_Style);
-      Set_Part_Style (Col_Fast.all, Main_Part, Col_Style);
-      Set_Part_Style (Col_Slow.all, Main_Part, Col_Style);
+      Set_Part_Styles (Col_Multi.all, Col_Style_Part_Styles);
+      Set_Part_Styles (Col_All.all, Col_Style_Part_Styles);
+      Set_Part_Styles (Col_Fast.all, Col_Style_Part_Styles);
+      Set_Part_Styles (Col_Slow.all, Col_Style_Part_Styles);
 
       --  Multiple specific properties: bg + border + shadow
       Set_Part_Style (Btn_Multi.all, Main_Part,

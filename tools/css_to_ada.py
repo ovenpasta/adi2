@@ -279,6 +279,21 @@ VISIBILITY_MAP = {
     "collapse": "Visibility_Collapse",
 }
 
+# CSS part selector to Ada Part_Kind mapping
+PART_MAP = {
+    "main": "Main_Part",
+    "label": "Label_Part",
+    "cursor": "Cursor_Part",
+    "selected": "Selected_Part",
+    "icon": "Icon_Part",
+    "indicator": "Indicator_Part",
+    "scroll": "Scroll_Part",
+    "knob": "Knob_Part",
+    "items": "Items_Part",
+    "any": "Any_Part",
+    "custom": "Custom_Part",
+}
+
 
 @dataclass
 class ParsedLength:
@@ -299,6 +314,7 @@ class ParsedColor:
 @dataclass
 class ParsedSelector:
     name: str
+    part_kind: str = "Main_Part"
     states: list[WidgetState] = field(default_factory=list)
     negated_states: list[WidgetState] = field(default_factory=list)
     
@@ -316,11 +332,18 @@ class ParsedRule:
 
 
 @dataclass
-class WidgetStyleGroup:
-    """Groups rules for the same widget (base + state variants)"""
-    name: str
+class PartStyleGroup:
+    """Rules for a single widget part"""
+    part_kind: str
     base_rule: Optional[ParsedRule] = None
     state_rules: list[ParsedRule] = field(default_factory=list)
+
+
+@dataclass
+class WidgetStyleGroup:
+    """Groups rules for the same widget, split by part"""
+    name: str
+    parts: dict[str, PartStyleGroup] = field(default_factory=dict)
 
 
 def parse_length(value: str) -> Optional[ParsedLength]:
@@ -405,27 +428,40 @@ def parse_color(value: str) -> Optional[ParsedColor]:
 
 
 def parse_selector(selector_str: str) -> Optional[ParsedSelector]:
-    """Parse a CSS selector like '.button:hover:disabled' or '.button:hover:not(:disabled)'"""
+    """Parse a selector like '.button', '.button:focus', or '.button::label:focus'."""
     selector_str = selector_str.strip()
-    
-    # Remove leading . or # (we treat classes and IDs the same)
+
+    # Remove leading . or # (classes/ids treated the same)
     if selector_str.startswith('.') or selector_str.startswith('#'):
         selector_str = selector_str[1:]
-    
-    # First, extract the name (everything before the first :)
-    # But we need to be careful with :not() which contains :
-    
-    # Find the base name
-    first_colon = selector_str.find(':')
-    if first_colon == -1:
-        return ParsedSelector(name=selector_str.strip())
-    
-    name = selector_str[:first_colon].strip()
-    pseudo_part = selector_str[first_colon:]
-    
+
+    part_kind = "Main_Part"
+    pseudo_part = ""
+
+    # Split optional ::part and pseudo classes.
+    if "::" in selector_str:
+        left, right = selector_str.split("::", 1)
+        name = left.strip()
+        part_name = right
+        first_colon = right.find(":")
+        if first_colon != -1:
+            part_name = right[:first_colon]
+            pseudo_part = right[first_colon:]
+        part_key = part_name.strip().lower()
+        if part_key not in PART_MAP:
+            return None
+        part_kind = PART_MAP[part_key]
+    else:
+        first_colon = selector_str.find(":")
+        if first_colon == -1:
+            name = selector_str.strip()
+        else:
+            name = selector_str[:first_colon].strip()
+            pseudo_part = selector_str[first_colon:]
+
     if not name:
         return None
-    
+
     states = []
     negated_states = []
     
@@ -453,7 +489,12 @@ def parse_selector(selector_str: str) -> Optional[ParsedSelector]:
                     # :enabled means not disabled
                     negated_states.append(WidgetState.DISABLED)
     
-    return ParsedSelector(name=name, states=states, negated_states=negated_states)
+    return ParsedSelector(
+        name=name,
+        part_kind=part_kind,
+        states=states,
+        negated_states=negated_states
+    )
 
 
 def parse_box_values(value: str) -> Optional[list[ParsedLength]]:
@@ -580,17 +621,21 @@ def group_rules_by_widget(rules: list[ParsedRule]) -> dict[str, WidgetStyleGroup
     
     for rule in rules:
         name = rule.selector.name
+        part_kind = rule.selector.part_kind
         
         if name not in groups:
             groups[name] = WidgetStyleGroup(name=name)
         
         group = groups[name]
+        if part_kind not in group.parts:
+            group.parts[part_kind] = PartStyleGroup(part_kind=part_kind)
+        part_group = group.parts[part_kind]
         
         # If no states, it's the base rule
         if not rule.selector.states and not rule.selector.negated_states:
-            group.base_rule = rule
+            part_group.base_rule = rule
         else:
-            group.state_rules.append(rule)
+            part_group.state_rules.append(rule)
     
     return groups
 
@@ -1021,10 +1066,28 @@ def generate_state_description(selector: ParsedSelector) -> str:
     return ", ".join(parts) if parts else "base"
 
 
-def generate_variable_name(ada_name: str, selector: ParsedSelector) -> str:
+def part_label(part_kind: str) -> str:
+    """Convert Part_Kind name to a compact label, e.g. Label_Part -> Label."""
+    if part_kind.endswith("_Part"):
+        return part_kind[:-5]
+    return part_kind
+
+
+def style_name_prefix(ada_name: str, part_kind: str) -> str:
+    """Name prefix for generated style constants."""
+    return ada_name if part_kind == "Main_Part" else f"{ada_name}_{part_label(part_kind)}"
+
+
+def widget_style_const_name(ada_name: str, part_kind: str) -> str:
+    """Generated Widget_Style constant name for this widget part."""
+    prefix = style_name_prefix(ada_name, part_kind)
+    return f"{prefix}_Widget"
+
+
+def generate_variable_name(name_prefix: str, selector: ParsedSelector) -> str:
     """Generate unique variable name for a state rule"""
     if not selector.states and not selector.negated_states:
-        return f"{ada_name}_Base_Style"
+        return f"{name_prefix}_Base_Style"
     
     parts = []
     
@@ -1040,7 +1103,7 @@ def generate_variable_name(ada_name: str, selector: ParsedSelector) -> str:
         parts.append(f"Not_{state_name}")
     
     suffix = "_".join(parts)
-    return f"{ada_name}_{suffix}_Style"
+    return f"{name_prefix}_{suffix}_Style"
 
 
 def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str) -> str:
@@ -1052,6 +1115,7 @@ def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str)
         f"pragma Ada_2022;",
         f"",
         f"with Adi.CSS_Styles;   use Adi.CSS_Styles;",
+        f"with Adi.Widget;       use Adi.Widget;",
         f"with Adi.Widget_Styles; use Adi.Widget_Styles;",
         f"",
         f"package {package_name} is",
@@ -1063,68 +1127,88 @@ def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str)
     
     for widget_name, group in groups.items():
         ada_name = to_ada_identifier(widget_name)
-        
-        # Base rule
-        if group.base_rule:
-            var_name = f"{ada_name}_Base_Style"
-            generated_names.add(var_name)
-            
-            fields = generate_style_rules_ada(group.base_rule.properties)
-            
-            lines.append(f"   --  Base style for {widget_name}")
-            lines.append(f"   {var_name} : constant Style_Rules := (")
-            if fields:
-                lines.append(",\n".join(fields) + ",")
-            lines.append(f"      others => <>");
-            lines.append(f"   );")
-            lines.append(f"")
-        
-        # State rules
-        for rule in group.state_rules:
-            var_name = generate_variable_name(ada_name, rule.selector)
-            
-            # Handle duplicate names by appending a number
-            original_var_name = var_name
-            counter = 2
-            while var_name in generated_names:
-                var_name = f"{original_var_name}_{counter}"
-                counter += 1
-            generated_names.add(var_name)
-            
-            # Store the actual variable name in the rule for later reference
-            rule._var_name = var_name  # type: ignore
-            
-            fields = generate_style_rules_ada(rule.properties)
-            state_desc = generate_state_description(rule.selector)
-            
-            lines.append(f"   --  Style for {widget_name} when {state_desc}")
-            lines.append(f"   {var_name} : constant Style_Rules := (")
-            if fields:
-                lines.append(",\n".join(fields) + ",")
-            lines.append(f"      others => <>");
-            lines.append(f"   );")
-            lines.append(f"")
+        part_items = sorted(
+            group.parts.items(),
+            key=lambda kv: (0 if kv[0] == "Main_Part" else 1, kv[0])
+        )
+
+        for part_kind, part_group in part_items:
+            part_suffix = "" if part_kind == "Main_Part" else f"::{part_label(part_kind).lower()}"
+            name_prefix = style_name_prefix(ada_name, part_kind)
+
+            if part_group.base_rule:
+                var_name = f"{name_prefix}_Base_Style"
+                generated_names.add(var_name)
+                fields = generate_style_rules_ada(part_group.base_rule.properties)
+
+                lines.append(f"   --  Base style for {widget_name}{part_suffix}")
+                lines.append(f"   {var_name} : constant Style_Rules := (")
+                if fields:
+                    lines.append(",\n".join(fields) + ",")
+                lines.append(f"      others => <>")
+                lines.append(f"   );")
+                lines.append(f"")
+
+            for rule in part_group.state_rules:
+                var_name = generate_variable_name(name_prefix, rule.selector)
+                original_var_name = var_name
+                counter = 2
+                while var_name in generated_names:
+                    var_name = f"{original_var_name}_{counter}"
+                    counter += 1
+                generated_names.add(var_name)
+                rule._var_name = var_name  # type: ignore
+
+                fields = generate_style_rules_ada(rule.properties)
+                state_desc = generate_state_description(rule.selector)
+
+                lines.append(f"   --  Style for {widget_name}{part_suffix} when {state_desc}")
+                lines.append(f"   {var_name} : constant Style_Rules := (")
+                if fields:
+                    lines.append(",\n".join(fields) + ",")
+                lines.append(f"      others => <>")
+                lines.append(f"   );")
+                lines.append(f"")
     
     # Generate combined Widget_Style using fluent builder
     for widget_name, group in groups.items():
         ada_name = to_ada_identifier(widget_name)
-        
-        lines.append(f"   --  Complete widget style for {widget_name}")
-        lines.append(f"   {ada_name}_Widget : constant Widget_Style :=")
-        
-        # Start with base or empty
-        if group.base_rule:
-            lines.append(f"     From ({ada_name}_Base_Style)")
-        else:
-            lines.append(f"     Create")
-        
-        # Add state rules
-        for rule in group.state_rules:
-            var_name = rule._var_name  # type: ignore
-            selector_ada = generate_selector_ada(rule.selector)
-            lines.append(f"     .On ({selector_ada}, {var_name})")
-        
-        lines.append(f"     .Build;")
+        part_items = sorted(
+            group.parts.items(),
+            key=lambda kv: (0 if kv[0] == "Main_Part" else 1, kv[0])
+        )
+
+        for part_kind, part_group in part_items:
+            part_suffix = "" if part_kind == "Main_Part" else f"::{part_label(part_kind).lower()}"
+            name_prefix = style_name_prefix(ada_name, part_kind)
+            widget_style_name = widget_style_const_name(ada_name, part_kind)
+
+            lines.append(f"   --  Complete widget style for {widget_name}{part_suffix}")
+            lines.append(f"   {widget_style_name} : constant Widget_Style :=")
+
+            if part_group.base_rule:
+                lines.append(f"     From ({name_prefix}_Base_Style)")
+            else:
+                lines.append(f"     Create")
+
+            for rule in part_group.state_rules:
+                var_name = rule._var_name  # type: ignore
+                selector_ada = generate_selector_ada(rule.selector)
+                lines.append(f"     .On ({selector_ada}, {var_name})")
+
+            lines.append(f"     .Build;")
+            lines.append(f"")
+
+        # Bundle all known parts for one-call Set_Part_Styles.
+        lines.append(f"   --  Part styles bundle for {widget_name}")
+        lines.append(f"   {ada_name}_Part_Styles : constant Part_Style_Array := (")
+        for part_kind, _part_group in part_items:
+            style_name = widget_style_const_name(ada_name, part_kind)
+            lines.append(
+                f"      {part_kind} => (Style => {style_name}, Enabled => True),"
+            )
+        lines.append(f"      others => <>")
+        lines.append(f"   );")
         lines.append(f"")
     
     lines.append(f"end {package_name};")
@@ -1169,11 +1253,15 @@ def main():
     # Debug: print parsed selectors
     for widget_name, group in groups.items():
         print(f"  {widget_name}:")
-        if group.base_rule:
-            print(f"    base: {len(group.base_rule.properties)} properties")
-        for rule in group.state_rules:
-            print(f"    states={[s.value for s in rule.selector.states]}, "
-                  f"negated={[s.value for s in rule.selector.negated_states]}")
+        for part_kind, part_group in sorted(group.parts.items()):
+            part_desc = "main" if part_kind == "Main_Part" else part_kind
+            if part_group.base_rule:
+                print(f"    {part_desc} base: {len(part_group.base_rule.properties)} properties")
+            for rule in part_group.state_rules:
+                print(
+                    f"    {part_desc} states={[s.value for s in rule.selector.states]}, "
+                    f"negated={[s.value for s in rule.selector.negated_states]}"
+                )
     
     # Generate Ada
     ada_code = generate_ada_package(groups, args.package_name)

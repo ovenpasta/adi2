@@ -1,10 +1,10 @@
 with "../adi.gpr";  -- Reference your main project
 
 project Examples is
-   type Example_Kind is ("ttf_example", "label_example", "widget_demo", "button_example", "transition_example", "text_input_example");
+   type Example_Kind is ("label_example", "widget_demo", "button_example", "transition_example", "text_input_example", "demo_flex");
    Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");
 
-   for Source_Dirs use (".");
+   for Source_Dirs use (".", "generated");
    for Object_Dir use "obj/" & Kind;
    for Exec_Dir use "bin";
    for Main use (Kind & ".adb");

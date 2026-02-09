@@ -1,0 +1,113 @@
+.root-box {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background-color: rgb(125, 125, 125);
+}
+
+.top-row {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  align-items: stretch;
+  background-color: rgb(255, 255, 255);
+  padding: 20px;
+  flex-grow: 1;
+}
+
+.card-box {
+  background-color: white;
+  border-width: 2px;
+  border-color: rgb(200, 200, 200);
+  border-style: solid;
+  border-radius: 4px 16px 32px 8px;
+  padding: 20px;
+  margin: 20px;
+  flex-grow: 1;
+  box-shadow: 0px 4px 12px 0px rgba(0, 0, 0, 0.5);
+}
+
+.card-box-2 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: rgb(255, 247, 237);
+  border-width: 3px;
+  border-color: rgb(251, 146, 60);
+  border-style: solid;
+  border-radius: 16px;
+  padding: 24px;
+  flex-grow: 1;
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+}
+
+.inner-box {
+  background-color: rgb(251, 146, 60);
+  border-radius: 8px;
+  width: 100px;
+  height: 100px;
+}
+
+.bottom-row {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.button-box {
+  background-color: rgb(59, 130, 246);
+  border-radius: 8px;
+  border-width: 0px;
+  padding: 12px 24px;
+  min-width: 150px;
+  min-height: 50px;
+}
+
+.button-box:hover {
+  background-color: rgb(37, 99, 235);
+}
+
+.button-box:pressed {
+  background-color: rgb(255, 255, 255);
+}
+
+.hover-box {
+  background-color: rgb(0, 255, 0);
+  border-radius: 10px;
+  border-width: 2px;
+  border-color: rgb(22, 163, 74);
+  border-style: solid;
+  flex-grow: 1;
+  min-height: 80px;
+}
+
+.hover-box:hover {
+  background-color: rgb(255, 0, 0);
+  border-color: rgb(21, 128, 61);
+}
+
+.label-box {
+  background-color: rgb(255, 255, 255);
+  object-fit: contain;
+  border-radius: 6px;
+  border-width: 1px;
+  border-color: rgb(200, 200, 200);
+  border-style: solid;
+  flex-grow: 1;
+  min-height: 50px;
+}
+
+.title-label::main {
+  background-color: rgb(240, 240, 250);
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.title-label::label {
+  color: rgb(30, 30, 30);
+  font-size: 18px;
+  text-align: center;
+  vertical-align: middle;
+}

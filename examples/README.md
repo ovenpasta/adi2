@@ -11,30 +11,26 @@ alr build
 
 ### Build a specific example
 ```bash
-gprbuild -P examples.gpr -XEXAMPLE_KIND=ttf_example
+gprbuild -P examples.gpr -XEXAMPLE_KIND=label_example
 ```
 
 ## Running Examples
 
 Examples are built to `examples/bin/`:
 ```bash
-./bin/ttf_example
+./bin/label_example
 ```
 
 ## Available Examples
 
-### ttf_example
-Demonstrates how to use the SDL_TTF binding for TrueType font rendering:
-- Font loading
-- Font properties (size, style, metrics)
-- Text rendering (Solid, Shaded, Blended modes)
-- Text size calculation
+### label_example
+Demonstrates label widget styling and icon usage.
 
 ## Adding New Examples
 
 1. Create your example file: `my_example.adb`
 2. Update `examples.gpr`:
-   - Add to the `Example_Kind` type: `type Example_Kind is ("ttf_example", "my_example");`
+   - Add to the `Example_Kind` type: `type Example_Kind is ("label_example", "my_example");`
 3. Update `alire.toml`:
    - Add a post-build action:
      ```toml

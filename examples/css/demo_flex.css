@@ -1,0 +1,25 @@
+.box-base {
+  border-width: 1px;
+  border-color: gray;
+  border-style: solid;
+  border-radius: 4px;
+  min-width: 20px;
+  min-height: 20px;
+}
+
+.flex-container {
+  display: flex;
+  border-width: 2px;
+  border-color: gray;
+  border-style: solid;
+  border-radius: 8px;
+}
+
+.row-base {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 15px;
+  background-color: transparent;
+}

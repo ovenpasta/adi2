@@ -1,0 +1,74 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 24px;
+  gap: 12px;
+  background-color: rgb(20, 24, 31);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  flex-grow: 1;
+  gap: 12px;
+  padding: 24px;
+  background-color: rgb(31, 41, 55);
+  border-radius: 10px;
+}
+
+.title::label {
+  color: white;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.hint::label {
+  color: rgb(191, 219, 254);
+  font-size: 13px;
+  text-wrap-mode: wrap;
+}
+
+.echo-label::label {
+  color: rgb(165, 243, 252);
+  font-size: 14px;
+}
+
+.length-label::label {
+  color: rgb(147, 197, 253);
+  font-size: 12px;
+}
+
+.input {
+  height: 42px;
+  padding: 10px 12px;
+  cursor: text;
+  background-color: white;
+  border-width: 1px;
+  border-color: rgb(191, 219, 254);
+  border-style: solid;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.input:focus {
+  border-color: rgb(59, 130, 246);
+  box-shadow: 0px 0px 10px 2px rgba(59, 130, 246, 0.35);
+}
+
+.input::label {
+  color: rgb(15, 23, 42);
+  font-size: 14px;
+  text-wrap-mode: nowrap;
+}
+
+.input::cursor {
+  background-color: rgb(37, 99, 235);
+}
+
+.input::selected {
+  background-color: rgba(191, 219, 254, 0.85);
+}

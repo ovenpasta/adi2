@@ -14,7 +14,7 @@ command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=styles"]
 
 [[actions]]
 type = "post-build"
-command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=flex"]
+command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=demo_flex"]
 
 [[actions]]
 type = "post-build"
@@ -22,7 +22,7 @@ command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=layout_test"]
 
 [[actions]]
 type = "post-build"
-command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=ttf_example"]
+command = ["bash", "tools/generate_example_styles.sh"]
 
 [[actions]]
 type = "post-build"

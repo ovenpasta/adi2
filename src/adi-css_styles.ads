@@ -447,6 +447,47 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       ((Blur_Radius => Blur, others => <>));
 
    -------------------------------------------------
+   -- Transition
+   -------------------------------------------------
+
+   type Easing_Kind is (Linear, Ease_In, Ease_Out, Ease_In_Out);
+
+   --  Animatable properties that can be individually targeted
+   type Animatable_Property is (
+      Prop_Color,
+      Prop_Background_Color,
+      Prop_Border_Color,
+      Prop_Border_Width,
+      Prop_Border_Radius,
+      Prop_Padding,
+      Prop_Margin,
+      Prop_Opacity,
+      Prop_Box_Shadow,
+      Prop_Font_Size);
+
+   type Property_Set is array (Animatable_Property) of Boolean;
+
+   All_Properties : constant Property_Set := [others => True];
+   No_Properties  : constant Property_Set := [others => False];
+
+   --  Helpers to build property sets
+   function Props (P : Animatable_Property) return Property_Set is
+      [for I in Animatable_Property => I = P];
+   function "+" (L, R : Property_Set) return Property_Set is
+      [for P in Animatable_Property => L (P) or R (P)];
+   function "+" (L : Property_Set; R : Animatable_Property) return Property_Set is
+      [L with delta R => True];
+
+   type Transition_Spec is record
+      Duration   : Float := 0.0;          --  Duration in seconds
+      Easing     : Easing_Kind := Linear;
+      Properties : Property_Set := All_Properties;  --  Which properties to animate
+   end record;
+
+   No_Transition : constant Transition_Spec := (0.0, Linear, All_Properties);
+   Default_Transition : constant Transition_Spec := No_Transition;
+
+   -------------------------------------------------
    -- Overflow
    -------------------------------------------------
 
@@ -640,6 +681,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
     package Opt_Text_Overflow   is new Optional_Values (Text_Overflow_Value, Default_Text_Overflow);
     package Opt_Line_Height     is new Optional_Values (Line_Height_Value, Default_Line_Height);
     package Opt_Text_Wrap_Mode  is new Optional_Values (Text_Wrap_Mode_Value, Default_Text_Wrap_Mode);
+    package Opt_Transition      is new Optional_Values (Transition_Spec, Default_Transition);
    -------------------------------------------------
    -- Style Rules Record
    -------------------------------------------------
@@ -710,6 +752,9 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Flex_Shrink      : Opt_Flex_Shrink.Optional  := Opt_Flex_Shrink.Unset;
       Flex_Basis       : Opt_Flex_Basis.Optional   := Opt_Flex_Basis.Unset;
       Order            : Opt_Order.Optional        := Opt_Order.Unset;
+
+      -- Animation
+      Transition       : Opt_Transition.Optional   := Opt_Transition.Unset;
 
    end record;
 
@@ -788,6 +833,9 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Flex_Basis       : Flex_Basis_Value;
       Order            : Order_Value;
 
+      -- Animation
+      Transition       : Transition_Spec;
+
    end record;
 
    function Resolve (S : Style_Rules) return Resolved_Style;
@@ -863,6 +911,17 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Set (V : Flex_Basis_Value) return Opt_Flex_Basis.Optional renames Opt_Flex_Basis.Val;
    function Set (V : Gap_Value) return Opt_Gap.Optional renames Opt_Gap.Val;
    function Set (V : Order_Value) return Opt_Order.Optional renames Opt_Order.Val;
+
+   -- Animation
+   function Set (V : Transition_Spec) return Opt_Transition.Optional renames Opt_Transition.Val;
+
+   -------------------------------------------------
+   -- Color Normalization Helper
+   -------------------------------------------------
+
+   procedure Normalize_Color (C : Color_Value;
+                              R, G, B : out Natural;
+                              A : out Float);
 
    -------------------------------------------------
    -- Example declarations

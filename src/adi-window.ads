@@ -41,6 +41,9 @@ package Adi.Window is
     procedure On_Mouse_Up
        (W : in out Window; X, Y : Pixel_Type; Button : Mouse_Button);
 
+    --  Advance animations by DT seconds on all widgets in this window
+    procedure Tick (W : in out Window; DT : Duration);
+
     procedure Reshape (W : in out Window; SZ : Size_2D);
     function Get_Size (W : in out Window) return Size_2D;
     function Actual_Size (W : in out Window) return Size_2D;

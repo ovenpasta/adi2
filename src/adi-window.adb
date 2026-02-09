@@ -259,6 +259,17 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       end if;
    end On_Mouse_Up;
 
+   ----------
+   -- Tick --
+   ----------
+
+   procedure Tick (W : in out Window; DT : Duration) is
+   begin
+      if W.Root /= null then
+         Tick_Animations (W.Root.all, DT);
+      end if;
+   end Tick;
+
    -------------
    -- Reshape --
    -------------

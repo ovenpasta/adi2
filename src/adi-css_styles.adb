@@ -94,7 +94,10 @@ package body Adi.CSS_Styles is
          Flex_Grow        => Opt_Flex_Grow.Merge (Base.Flex_Grow, Override.Flex_Grow),
          Flex_Shrink      => Opt_Flex_Shrink.Merge (Base.Flex_Shrink, Override.Flex_Shrink),
          Flex_Basis       => Opt_Flex_Basis.Merge (Base.Flex_Basis, Override.Flex_Basis),
-         Order            => Opt_Order.Merge (Base.Order, Override.Order)
+         Order            => Opt_Order.Merge (Base.Order, Override.Order),
+
+         -- Animation
+         Transition       => Opt_Transition.Merge (Base.Transition, Override.Transition)
       );
    end Merge;
 
@@ -170,8 +173,45 @@ package body Adi.CSS_Styles is
          Flex_Grow        => Opt_Flex_Grow.Resolve (S.Flex_Grow),
          Flex_Shrink      => Opt_Flex_Shrink.Resolve (S.Flex_Shrink),
          Flex_Basis       => Opt_Flex_Basis.Resolve (S.Flex_Basis),
-         Order            => Opt_Order.Resolve (S.Order)
+         Order            => Opt_Order.Resolve (S.Order),
+
+         -- Animation
+         Transition       => Opt_Transition.Resolve (S.Transition)
       );
    end Resolve;
+
+   -------------------------------------------------
+   -- Normalize_Color
+   -------------------------------------------------
+
+   procedure Normalize_Color (C : Color_Value;
+                              R, G, B : out Natural;
+                              A : out Float) is
+   begin
+      case C.Kind is
+         when Named =>
+            A := 1.0;
+            case C.Name is
+               when Black       => R := 0;   G := 0;   B := 0;
+               when White       => R := 255; G := 255; B := 255;
+               when Red         => R := 255; G := 0;   B := 0;
+               when Green       => R := 0;   G := 128; B := 0;
+               when Blue        => R := 0;   G := 0;   B := 255;
+               when Yellow      => R := 255; G := 255; B := 0;
+               when Orange      => R := 255; G := 165; B := 0;
+               when Purple      => R := 128; G := 0;   B := 128;
+               when Gray        => R := 128; G := 128; B := 128;
+               when Light_Gray  => R := 211; G := 211; B := 211;
+               when Dark_Gray   => R := 64;  G := 64;  B := 64;
+               when Transparent => R := 0;   G := 0;   B := 0; A := 0.0;
+               when Inherit | Current_Color =>
+                  R := 0; G := 0; B := 0;
+            end case;
+         when RGB =>
+            R := C.R; G := C.G; B := C.B; A := 1.0;
+         when RGBA =>
+            R := C.RA; G := C.GA; B := C.BA; A := C.Alpha;
+      end case;
+   end Normalize_Color;
 
 end Adi.CSS_Styles;

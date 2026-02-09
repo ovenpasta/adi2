@@ -55,6 +55,7 @@ procedure Button_Example is
 
 begin
    A.Init;
+   A.Set_Target_FPS (60);
 
    declare
       W : Window_Access := Create_Window ("Button Example", (700.0, 500.0));
@@ -152,8 +153,36 @@ begin
           Align_Items    => Set (Adi.CSS_Styles.Center),
           others         => <>)).Build);
 
-      --  Primary button style
-      Set_Part_Styles (Btn_Primary.all, Primary_Button_Style);
+      --  Primary button style (with smooth transition on hover)
+      Set_Part_Style (Btn_Primary.all, Main_Part,
+        Style.Base ((
+          Display          => Set (Inline_Flex),
+          Justify_Content  => Set (Adi.CSS_Styles.Center),
+          Align_Items      => Set (Adi.CSS_Styles.Center),
+          Background_Color => Set_Bg (RGB (59, 130, 246)),
+          Border_Width     => Set (Border_Width (Px (0.0))),
+          Border_Radius    => Set (Radius (Px (6.0))),
+          Padding          => Set (Padding_Box (Px (12.0), Px (24.0))),
+          Cursor           => Set (Cursor_Pointer),
+          Transition       => Set ((Duration   => 0.15,
+                                     Easing     => Ease_In_Out,
+                                     Properties => Props (Prop_Background_Color))),
+          others           => <>))
+        .On_Hover ((
+          Background_Color => Set_Bg (RGB (37, 99, 235)),
+          others           => <>))
+        .On_Press ((
+          Background_Color => Set_Bg (RGB (29, 58, 145)),
+          others           => <>))
+        .Build);
+      Set_Part_Style (Btn_Primary.all, Label_Part,
+        Style.Base ((
+          Color          => Set (C (White)),
+          Font_Size      => Set_Font (Px (14.0)),
+          Font_Weight    => Set (Weight_Medium),
+          Text_Align     => Set (Text_Center),
+          Text_Wrap_Mode => Set (TWM_Nowrap),
+          others         => <>)).Build);
 
       --  Danger button style
       Set_Part_Styles (Btn_Danger.all, Danger_Button_Style);

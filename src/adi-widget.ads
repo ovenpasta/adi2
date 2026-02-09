@@ -4,6 +4,7 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Adi.Core;              use Adi.Core;
 with Adi.Widget_Styles;     use Adi.Widget_Styles;
 with Adi.CSS_Styles;        use Adi.CSS_Styles;
+with Adi.Animation;         use Adi.Animation;
 with Adi.Layout_Util;       use Adi.Layout_Util;
 with Adi.SDL.Render;        use Adi.SDL.Render;
 with Adi.SDL.TTF.TextEngine;
@@ -314,6 +315,13 @@ package Adi.Widget is
    function Is_Flex_Container(W : Widget'Class) return Boolean;
    procedure Rebuild_All_Items (W : in out Widget'Class);
    procedure Layout_Tree (W : in out Widget'Class);
+
+   ---------------------------------------------------------------------------
+   --  Animation
+   ---------------------------------------------------------------------------
+
+   --  Advance all active transitions by DT seconds, recursing to children
+   procedure Tick_Animations (W : in out Widget'Class; DT : Duration);
 private
 
    ---------------------------------------------------------------------------
@@ -329,6 +337,11 @@ private
    ---------------------------------------------------------------------------
    --  Widget Record
    ---------------------------------------------------------------------------
+
+   --  Animation state per part
+   type Part_Transition_Array is array (Part_Kind) of Part_Transition;
+   type Part_Resolved_Array is array (Part_Kind) of Resolved_Style;
+   type Part_Initialized_Array is array (Part_Kind) of Boolean;
 
    type Widget is abstract tagged limited record
       --  Hierarchy
@@ -351,6 +364,12 @@ private
 
       --  Cached images for rendering
       Images : Image_List.List;
+
+      --  Animation state
+      Transitions       : Part_Transition_Array := [others => No_Part_Transition];
+      Last_Target       : Part_Resolved_Array;
+      Last_Target_Init  : Part_Initialized_Array := [others => False];
+      Has_Any_Animation : Boolean := False;
    end record;
 
    --  Color conversion helpers (CSS Color_Value to SDL RGBA)

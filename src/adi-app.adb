@@ -6,6 +6,7 @@ with Adi.SDL.Events;
 with Adi.SDL.Mouse;
 with Interfaces.C; use Interfaces.C;
 with Ada.Unchecked_Conversion;
+with Ada.Real_Time; use Ada.Real_Time;
 
 package body Adi.App is
 
@@ -55,7 +56,13 @@ package body Adi.App is
            (SDL_Event, SDL_MouseMotionEvent);
         function To_Mouse_Button_Event is new Ada.Unchecked_Conversion
            (SDL_Event, SDL_MouseButtonEvent);
+
+        Now        : Time;
+        Next_Frame : Time;
+        DT         : Duration;
     begin
+        A.Last_Frame := Clock;
+
         while not Should_Quit loop
             Poll_Events :
             while SDL_PollEvent (Event'Access) loop
@@ -64,7 +71,6 @@ package body Adi.App is
                         Should_Quit := True;
 
                     when SDL_EVENT_WINDOW_RESIZED | SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED =>
-                        --  Handle window resize events
                         if A.Main_Window /= null then
                             declare
                                 Actual_Size : constant Size_2D :=
@@ -75,7 +81,6 @@ package body Adi.App is
                         end if;
 
                     when SDL_EVENT_MOUSE_MOTION =>
-                        --  Mouse move event
                         if A.Main_Window /= null then
                             declare
                                 Motion_Event : constant SDL_MouseMotionEvent :=
@@ -88,7 +93,6 @@ package body Adi.App is
                         end if;
 
                     when SDL_EVENT_MOUSE_BUTTON_DOWN =>
-                        --  Mouse button down event
                         if A.Main_Window /= null then
                             declare
                                 Button_Event : constant SDL_MouseButtonEvent :=
@@ -102,7 +106,6 @@ package body Adi.App is
                         end if;
 
                     when SDL_EVENT_MOUSE_BUTTON_UP =>
-                        --  Mouse button up event
                         if A.Main_Window /= null then
                             declare
                                 Button_Event : constant SDL_MouseButtonEvent :=
@@ -120,12 +123,25 @@ package body Adi.App is
                 end case;
             end loop Poll_Events;
 
+            --  Compute delta time
+            Now := Clock;
+            DT := To_Duration (Now - A.Last_Frame);
+            A.Current_Delta := DT;
+            A.Last_Frame := Now;
+
+            --  Tick animations before rendering
+            if A.Main_Window /= null then
+                A.Main_Window.Tick (DT);
+            end if;
+
             --  Render the main window
             if A.Main_Window /= null then
                 A.Main_Window.Render;
             end if;
 
-            delay 1.0 / 20.0;  -- ~60 FPS
+            --  Frame rate limiting: delay until next frame
+            Next_Frame := Now + A.Frame_Period;
+            delay until Next_Frame;
         end loop;
     end Run;
 
@@ -137,5 +153,33 @@ package body Adi.App is
     begin
         A.Main_Window := W;
     end Add_Window;
+
+    ---------------------
+    -- Set_Target_FPS --
+    ---------------------
+
+    procedure Set_Target_FPS (A : in out App; FPS : Positive) is
+    begin
+        A.Target_FPS := FPS;
+        A.Frame_Period := Microseconds (1_000_000 / FPS);
+    end Set_Target_FPS;
+
+    --------------------
+    -- Get_Target_FPS --
+    --------------------
+
+    function Get_Target_FPS (A : App) return Positive is
+    begin
+        return A.Target_FPS;
+    end Get_Target_FPS;
+
+    --------------------
+    -- Get_Delta_Time --
+    --------------------
+
+    function Get_Delta_Time (A : App) return Duration is
+    begin
+        return A.Current_Delta;
+    end Get_Delta_Time;
 
 end Adi.App;

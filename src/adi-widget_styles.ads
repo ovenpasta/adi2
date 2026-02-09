@@ -132,6 +132,17 @@ package Adi.Widget_Styles is
    function On_Hover_Not_Disabled (B : Style_Builder; S : Style_Rules) return Style_Builder;
    function On_Selected_And_Focus (B : Style_Builder; S : Style_Rules) return Style_Builder;
 
+   --  Set transition on the base style (all properties)
+   function With_Transition (B : Style_Builder;
+                             Duration : Float;
+                             Easing   : Easing_Kind := Ease_In_Out) return Style_Builder;
+
+   --  Set transition on the base style (specific properties)
+   function With_Transition (B          : Style_Builder;
+                             Duration   : Float;
+                             Properties : Property_Set;
+                             Easing     : Easing_Kind := Ease_In_Out) return Style_Builder;
+
    --  Finalize
    function Build (B : Style_Builder) return Widget_Style;
 

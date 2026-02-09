@@ -154,6 +154,29 @@ package body Adi.Widget_Styles is
       return B.On (When_State (State_Selected) and When_State (State_Focused), S);
    end On_Selected_And_Focus;
 
+   function With_Transition (B : Style_Builder;
+                             Duration : Float;
+                             Easing   : Easing_Kind := Ease_In_Out) return Style_Builder is
+      Result : Style_Builder := B;
+   begin
+      Result.WS.Base.Transition := Set ((Duration   => Duration,
+                                         Easing     => Easing,
+                                         Properties => All_Properties));
+      return Result;
+   end With_Transition;
+
+   function With_Transition (B          : Style_Builder;
+                             Duration   : Float;
+                             Properties : Property_Set;
+                             Easing     : Easing_Kind := Ease_In_Out) return Style_Builder is
+      Result : Style_Builder := B;
+   begin
+      Result.WS.Base.Transition := Set ((Duration   => Duration,
+                                         Easing     => Easing,
+                                         Properties => Properties));
+      return Result;
+   end With_Transition;
+
    function Build (B : Style_Builder) return Widget_Style is
    begin
       return B.WS;

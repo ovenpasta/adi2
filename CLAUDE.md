@@ -76,11 +76,15 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
 - Border, padding, margin, background properties
 - Box shadow with blur, spread, offset, and color
 - Comprehensive style properties matching CSS box model
+- Transition support: `Transition_Spec` with duration, easing, and property filter
+- `Animatable_Property` enum and `Property_Set` for targeting specific properties
+- `Normalize_Color` helper for extracting RGBA from any `Color_Value` variant
 
 **Adi.Widget_Styles** (`adi-widget_styles.ads`): Widget state-based styling
 - State-specific styles: `Normal`, `Hovered`, `Pressed`, `Focused`, `Disabled`, `Selected`
 - Style builder pattern for fluent API
 - Resolves CSS styles to final computed values
+- `With_Transition(Duration, [Properties], [Easing])`: sets transition on base style
 
 **Adi.Widget.Part_Styles** (`adi-widget-part_styles.ads`): Multi-part widget style builder
 - Fluent API for composing per-part styles (Main, Label, Icon, Indicator, etc.)
@@ -99,6 +103,14 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
 - Threaded through `Render_Items`, `Render_Tree`, `Update_And_Render` instead of raw `SDL_Renderer_Ptr`
 - Owned by `Adi.Window`; created after the renderer, destroyed before it
 
+**Adi.Animation** (`adi-animation.ads`): CSS-like style transitions
+- `Part_Transition` record: tracks active animation state per widget part
+- `Advance`: steps a transition forward by delta time, outputs interpolated style
+- `Interpolate`: field-by-field lerp between two `Resolved_Style` values
+- Lerp helpers: `Lerp_Color`, `Lerp_Length`, `Lerp_Box`, `Lerp_Border_*`, `Lerp_Box_Shadow`
+- Easing functions: `Linear`, `Ease_In` (cubic), `Ease_Out`, `Ease_In_Out`
+- Property filtering: only properties in `Transition_Spec.Properties` are interpolated; others snap
+
 **Adi.Image** (`adi-image.ads`): Image resource management
 - SDL texture wrapper with file loading
 - Size queries and lifecycle management
@@ -116,6 +128,7 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
 - `object-fit` modes: `Fill`, `Cover` (UV cropping), `Contain`, `None`, `Scale_Down`
 - Contain/None/Scale_Down adjust corner radii based on image inset from container edges
 - Per-corner border radius: `Render_Rounded_Rect` overload accepts `Corner_Pixels`
+- **Animation**: Per-part `Part_Transition_Array` tracks active transitions; `Tick_Animations` advances them each frame; `Apply_Styles_To_Items` starts transitions when resolved style targets change
 
 **Adi.Layout_Util** (`adi-layout_util.ads`): Layout algorithms
 - Box model calculations: `Content_Box`, `Padding_Box`
@@ -128,11 +141,15 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
 - Owns a `Render_Context` for per-renderer caches
 - Root widget container
 - Mouse event handling with widget hit testing
+- `Tick(DT)`: advances animations on the widget tree each frame
 - Window resize/reshape handling
 
 **Adi.App** (`adi-app.ads`): Application entry point
 - Initialization and main loop
 - Window management
+- Frame rate management: `Set_Target_FPS`, `Get_Delta_Time`
+- Proper frame timing with `Ada.Real_Time` (`delay until`) instead of fixed delay
+- Each frame: compute delta time, tick animations, render, wait for next frame
 
 ### Widget Rendering Pipeline
 
@@ -174,6 +191,7 @@ Note: These are custom bindings, not the SDLAda project (which is commented out 
 src/                  - Main library source files
   adi-*.ad[bs]        - All library modules follow Ada package naming
   adi-widget-*.ad[bs] - Widget implementations (Box, Label)
+  adi-animation.ad[bs] - Style transition animation and interpolation
   adi-sdl-*.ad[bs]    - SDL3 bindings (core, video, render, events, mouse, ttf, image, surface)
 tests/
   src/                - Test programs
@@ -211,6 +229,7 @@ All packages are rooted under `Adi`:
 - `Adi.Widget` - Base widget abstraction
 - `Adi.Widget.Box`, `Adi.Widget.Label` - Concrete widgets
 - `Adi.Widget.Part_Styles` - Multi-part style builder
+- `Adi.Animation` - CSS-like style transitions and interpolation
 - `Adi.Event` - Event types
 - `Adi.Font` - Font loading and caching
 - `Adi.Image` - Image resource management
@@ -248,6 +267,7 @@ The tool supports a comprehensive set of CSS properties including:
 - **Flexbox**: `flex-direction`, `flex-wrap`, `justify-content`, `align-items`, `align-self`, `align-content`, `gap`, `flex-grow`, `flex-shrink`, `flex-basis`, `order`
 - **Effects**: `box-shadow` (with offset, blur, spread, and color), `cursor`
 - **Images**: `object-fit`, `object-position`
+- **Transitions**: `transition` (duration, easing, property filter)
 
 ### Box Shadow Syntax
 

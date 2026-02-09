@@ -3,6 +3,7 @@ with Ada.Numerics.Elementary_Functions; use Ada.Numerics.Elementary_Functions;
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
+with Adi.Animation; use Adi.Animation;
 with Adi.Core; use Adi.Core;
 with Adi.Font;
 with Adi.Layout_Util; use Adi.Layout_Util;
@@ -463,12 +464,67 @@ package body Adi.Widget is
    end Get_Item;
 
    procedure Apply_Styles_To_Items (W : in out Widget'Class) is
+      Parts_Seen : array (Part_Kind) of Boolean := [others => False];
    begin
+      --  First pass: for each part encountered, check if target changed
       for I in 1 .. Natural (W.Items.Length) loop
          declare
             Current_Item : Item := W.Items.Element (I);
+            P : constant Part_Kind := Current_Item.Part;
          begin
-            Current_Item.Computed_Style := Get_Resolved_Part_Style (W, Current_Item.Part);
+            if not Parts_Seen (P) then
+               Parts_Seen (P) := True;
+               declare
+                  New_Target : constant Resolved_Style :=
+                     Get_Resolved_Part_Style (W, P);
+               begin
+                  if not W.Last_Target_Init (P) then
+                     --  First time: no transition, just snap
+                     W.Last_Target (P) := New_Target;
+                     W.Last_Target_Init (P) := True;
+                  elsif New_Target.Transition.Duration > 0.0
+                     and then New_Target /= W.Last_Target (P)
+                  then
+                     --  Target changed and transition configured: start animation.
+                     --  From_Style is current interpolated position if a transition
+                     --  is already running, otherwise the previous target.
+                     declare
+                        From : Resolved_Style;
+                     begin
+                        if W.Transitions (P).Active then
+                           Advance (W.Transitions (P), 0.0, From);
+                        else
+                           From := W.Last_Target (P);
+                        end if;
+                        W.Transitions (P) := (
+                           Active       => True,
+                           Elapsed      => 0.0,
+                           Duration     => New_Target.Transition.Duration,
+                           Easing       => New_Target.Transition.Easing,
+                           From_Style   => From,
+                           Target_Style => New_Target);
+                        W.Has_Any_Animation := True;
+                     end;
+                  elsif New_Target /= W.Last_Target (P) then
+                     --  Changed but no transition: snap and cancel any running transition
+                     W.Transitions (P).Active := False;
+                  end if;
+                  W.Last_Target (P) := New_Target;
+               end;
+            end if;
+
+            --  Apply the current visual style to this item
+            if W.Transitions (P).Active then
+               declare
+                  Interpolated : Resolved_Style;
+               begin
+                  Advance (W.Transitions (P), 0.0, Interpolated);
+                  Current_Item.Computed_Style := Interpolated;
+               end;
+            else
+               Current_Item.Computed_Style := W.Last_Target (P);
+            end if;
+
             W.Items.Replace_Element (I, Current_Item);
          end;
       end loop;
@@ -1227,6 +1283,18 @@ package body Adi.Widget is
           Num_Indices  => int (II));
    end Render_Rounded_Border_Ring;
 
+   --  Apply opacity to an alpha byte
+   function Apply_Opacity (A : Uint8; O : Float) return Uint8 is
+   begin
+      if O >= 1.0 then
+         return A;
+      elsif O <= 0.0 then
+         return 0;
+      else
+         return Uint8 (Float (A) * O);
+      end if;
+   end Apply_Opacity;
+
    procedure Render_Panel (
       Renderer : SDL_Renderer_Ptr;
       Geom     : Rectangle;
@@ -1241,6 +1309,7 @@ package body Adi.Widget is
       Has_Border : Boolean;
       BW_Top     : Float;
       Uniform    : Boolean;
+      Op         : constant Float := Float (Style.Opacity);
    begin
       if Style.Visibility = Visibility_Hidden then
          return;
@@ -1287,6 +1356,7 @@ package body Adi.Widget is
                   when Per_Edge =>
                      CSS_Color_To_SDL (Style.Border_Color.Edges (Top), R, G, B, A);
                end case;
+               A := Apply_Opacity (A, Op);
                Render_Rounded_Border_Ring
                   (Renderer, Rect, Inner, Radius_Px, Inner_Radii, R, G, B, A);
 
@@ -1295,6 +1365,7 @@ package body Adi.Widget is
                   or else Style.Background_Color.Name /= Transparent
                then
                   CSS_Color_To_SDL (Style.Background_Color, R, G, B, A);
+                  A := Apply_Opacity (A, Op);
                   if Inner.w > 0.0 and then Inner.h > 0.0 then
                      if Uniform then
                         Render_Rounded_Rect
@@ -1314,6 +1385,7 @@ package body Adi.Widget is
                or else Style.Background_Color.Name /= Transparent
             then
                CSS_Color_To_SDL (Style.Background_Color, R, G, B, A);
+               A := Apply_Opacity (A, Op);
                if Uniform then
                   Render_Rounded_Rect (Renderer, Rect, Max_Rad, R, G, B, A);
                else
@@ -1330,6 +1402,7 @@ package body Adi.Widget is
             or else Style.Background_Color.Name /= Transparent
          then
             CSS_Color_To_SDL (Style.Background_Color, R, G, B, A);
+            A := Apply_Opacity (A, Op);
             SDL_Assert (SDL_SetRenderDrawColor (Renderer, R, G, B, A),
                         "SDL_SetRenderDrawColor");
             SDL_Assert (SDL_RenderFillRect (Renderer, Rect'Access),
@@ -1344,6 +1417,7 @@ package body Adi.Widget is
                when Per_Edge =>
                   CSS_Color_To_SDL (Style.Border_Color.Edges (Top), R, G, B, A);
             end case;
+            A := Apply_Opacity (A, Op);
             SDL_Assert (SDL_SetRenderDrawColor (Renderer, R, G, B, A),
                         "SDL_SetRenderDrawColor");
             SDL_Assert (SDL_RenderRect (Renderer, Rect'Access),
@@ -1419,8 +1493,9 @@ package body Adi.Widget is
          It.Cached_Text_String := It.Text_Content;
       end if;
 
-      --  Set text color
+      --  Set text color (with opacity)
       CSS_Color_To_SDL (Style.Color, R, G, B, A);
+      A := Apply_Opacity (A, Float (Style.Opacity));
       Success := TTF_SetTextColor (Text_Obj, R, G, B, A);
 
       --  Set wrap width if needed
@@ -2116,7 +2191,6 @@ package body Adi.Widget is
                Any_Grew    : Boolean := False;
                Recheck_Idx : Positive := 1;
             begin
-               Ada.Text_IO.Put_Line ("  == Second pass check ==");
                for Child of W.Children loop
                   declare
                      Child_Geom : constant Rectangle :=
@@ -2129,17 +2203,7 @@ package body Adi.Widget is
                          Assigned(Recheck_Idx).Height),
                         Style.Flex_Direction);
                   begin
-                     Ada.Text_IO.Put_Line
-                       ("    child" & Recheck_Idx'Image
-                        & " assigned_main=" & Integer'Image (Integer (Assigned_Main))
-                        & " actual_main=" & Integer'Image (Integer (Actual_Main))
-                        & " geom=(" & Integer'Image (Integer (Child_Geom.X))
-                        & "," & Integer'Image (Integer (Child_Geom.Y))
-                        & "," & Integer'Image (Integer (Child_Geom.Width))
-                        & "," & Integer'Image (Integer (Child_Geom.Height)) & ")");
                      if Actual_Main > Assigned_Main then
-                        Ada.Text_IO.Put_Line
-                          ("    >>> GREW: updating basis/min/content");
                         Children_Info(Recheck_Idx).Flex_Basis :=
                            Actual_Main;
                         Children_Info(Recheck_Idx).Min_Main :=
@@ -2152,9 +2216,6 @@ package body Adi.Widget is
                   Recheck_Idx := Recheck_Idx + 1;
                end loop;
 
-               Ada.Text_IO.Put_Line
-                 ("  == Any_Grew=" & Any_Grew'Image & " ==");
-
                if Any_Grew then
                   Compute_Flex_Layout(Context, Children_Info);
                   declare
@@ -2163,12 +2224,6 @@ package body Adi.Widget is
                      Rect_Idx2 : Positive := 1;
                   begin
                      for Child of W.Children loop
-                        Ada.Text_IO.Put_Line
-                          ("    re-assign child" & Rect_Idx2'Image
-                           & " rect=(" & Integer'Image (Integer (Rects2(Rect_Idx2).X))
-                           & "," & Integer'Image (Integer (Rects2(Rect_Idx2).Y))
-                           & "," & Integer'Image (Integer (Rects2(Rect_Idx2).Width))
-                           & "," & Integer'Image (Integer (Rects2(Rect_Idx2).Height)) & ")");
                         Set_Geometry(Child.all, Rects2(Rect_Idx2));
                         Layout(Child.all);
                         Rect_Idx2 := Rect_Idx2 + 1;
@@ -2190,7 +2245,6 @@ package body Adi.Widget is
        Items           : in out Layout_Item_List.Vector)
    is
       use Adi.Layout_Util;
-      use Ada.Text_IO;
 
       Num_Items : constant Natural := Natural (Items.Length);
    begin
@@ -2199,15 +2253,6 @@ package body Adi.Widget is
          "Container width must be non-negative");
       pragma Assert (Container_Geom.Height >= 0.0,
          "Container height must be non-negative");
-
-      --  Debug output
-      Put_Line ("=== Perform_Item_Flex_Layout ===");
-      Put_Line ("  Container: X=" & Integer'Image(Integer(Container_Geom.X))
-         & " Y=" & Integer'Image(Integer(Container_Geom.Y))
-         & " W=" & Integer'Image(Integer(Container_Geom.Width))
-         & " H=" & Integer'Image(Integer(Container_Geom.Height)));
-      Put_Line ("  Direction: " & Container_Style.Flex_Direction'Image);
-      Put_Line ("  Num Items: " & Num_Items'Image);
 
       if Num_Items = 0 then
          return;
@@ -2293,15 +2338,6 @@ package body Adi.Widget is
          for Item of Items loop
             Item.Geometry := Rectangles (Index);
 
-            --  Debug output for each item
-            Put_Line ("  Item " & Index'Image & ":");
-            Put_Line ("    Input: Content=" & Integer'Image(Integer(Item.Content_Width))
-               & "x" & Integer'Image(Integer(Item.Content_Height)));
-            Put_Line ("    Output: X=" & Integer'Image(Integer(Item.Geometry.X))
-               & " Y=" & Integer'Image(Integer(Item.Geometry.Y))
-               & " W=" & Integer'Image(Integer(Item.Geometry.Width))
-               & " H=" & Integer'Image(Integer(Item.Geometry.Height)));
-
             --  Postconditions for each item
             pragma Assert (Item.Geometry.Width >= 0.0,
                "Item width must be non-negative");
@@ -2374,14 +2410,58 @@ begin
 end Rebuild_All_Items;
 
 
--- Add to Adi.Widget body:
 procedure Layout_Tree (W : in out Widget'Class) is
 begin
-   Layout (W);  -- Layout this widget (computes children geometry)
+   Layout (W);
    for Child of W.Children loop
-      Layout_Tree (Child.all);  -- Recurse
+      Layout_Tree (Child.all);
    end loop;
    Mark_Clean (W);
 end Layout_Tree;
+
+---------------------------------------------------------------------------
+--  Tick_Animations
+---------------------------------------------------------------------------
+
+procedure Tick_Animations (W : in out Widget'Class; DT : Duration) is
+   Any_Active : Boolean := False;
+   DT_Float   : constant Float := Float (DT);
+begin
+   for P in Part_Kind loop
+      if W.Transitions (P).Active then
+         declare
+            Interpolated : Resolved_Style;
+         begin
+            Advance (W.Transitions (P), DT_Float, Interpolated);
+
+            --  Apply interpolated style to all items of this part
+            for I in 1 .. Natural (W.Items.Length) loop
+               declare
+                  Current_Item : Item := W.Items.Element (I);
+               begin
+                  if Current_Item.Part = P then
+                     Current_Item.Computed_Style := Interpolated;
+                     W.Items.Replace_Element (I, Current_Item);
+                  end if;
+               end;
+            end loop;
+
+            if W.Transitions (P).Active then
+               Any_Active := True;
+            end if;
+         end;
+      end if;
+   end loop;
+
+   W.Has_Any_Animation := Any_Active;
+   if Any_Active then
+      Mark_Dirty (W);
+   end if;
+
+   --  Recurse to children
+   for Child of W.Children loop
+      Tick_Animations (Child.all, DT);
+   end loop;
+end Tick_Animations;
 
 end Adi.Widget;

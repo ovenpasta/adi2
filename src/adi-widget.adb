@@ -18,7 +18,6 @@ with Interfaces.C.Strings;
 with System;
 
 package body Adi.Widget is
-
    --  Default resolved style for initialization
    Default_Resolved : constant Resolved_Style := Resolve (Empty_Style);
 
@@ -259,6 +258,10 @@ package body Adi.Widget is
 
       --  9-grid border = full blur extent (3*blur) + corner_radius
       Grid_Border : constant Float := Float (3 * Blur_Px + Max_Rad);
+      Grid_Left   : Float;
+      Grid_Right  : Float;
+      Grid_Top    : Float;
+      Grid_Bottom : Float;
 
       --  Destination rect: widget rect expanded by spread + blur, offset
       Dst : aliased SDL_FRect;
@@ -296,15 +299,27 @@ package body Adi.Widget is
          Dst.h := Float (Geom.Height) + 2.0 * Expand_Amt;
       end;
 
+      if Dst.w <= 0.0 or else Dst.h <= 0.0 then
+         return;
+      end if;
+
+      --  Clamp 9-grid edges so they never overlap on very small widgets.
+      --  Without this, corners can cross and alpha blends twice, causing
+      --  dark seams/sharp artifacts.
+      Grid_Left := Float'Min (Grid_Border, Dst.w / 2.0);
+      Grid_Right := Grid_Left;
+      Grid_Top := Float'Min (Grid_Border, Dst.h / 2.0);
+      Grid_Bottom := Grid_Top;
+
       --  Render using 9-grid stretching
       Success := SDL_RenderTexture9Grid
          (Renderer      => Renderer,
           Texture       => Texture,
           Srcrect       => null,
-          Left_Width    => Grid_Border,
-          Right_Width   => Grid_Border,
-          Top_Height    => Grid_Border,
-          Bottom_Height => Grid_Border,
+          Left_Width    => Grid_Left,
+          Right_Width   => Grid_Right,
+          Top_Height    => Grid_Top,
+          Bottom_Height => Grid_Bottom,
           Scale         => 1.0,
           Dstrect       => Dst'Access);
    end Render_Box_Shadow;
@@ -1352,9 +1367,41 @@ package body Adi.Widget is
       Max_Rad    : Float;
       Has_Radius : Boolean;
       Has_Border : Boolean;
+      Uniform_Border_Width : Boolean;
       BW_Top     : Float;
+      BW_Right   : Float;
+      BW_Bottom  : Float;
+      BW_Left    : Float;
       Uniform    : Boolean;
       Op         : constant Float := Float (Style.Opacity);
+      function Edge_Style (E : Edge) return Border_Style_Kind is
+      begin
+         case Style.Border_Style.Kind is
+            when Gap_Uniform =>
+               return Style.Border_Style.All_Edges;
+            when Per_Edge =>
+               return Style.Border_Style.Edges (E);
+         end case;
+      end Edge_Style;
+
+      function Is_Visible_Edge (E : Edge; Width : Float) return Boolean is
+         S : constant Border_Style_Kind := Edge_Style (E);
+      begin
+         return Width > 0.0 and then S /= None_Style and then S /= Hidden;
+      end Is_Visible_Edge;
+
+      procedure Set_Edge_Color (E : Edge) is
+      begin
+         case Style.Border_Color.Kind is
+            when Gap_Uniform =>
+               CSS_Color_To_SDL (Style.Border_Color.All_Edges, R, G, B, A);
+            when Per_Edge =>
+               CSS_Color_To_SDL (Style.Border_Color.Edges (E), R, G, B, A);
+         end case;
+         A := Apply_Opacity (A, Op);
+         SDL_Assert (SDL_SetRenderDrawColor (Renderer, R, G, B, A),
+                     "SDL_SetRenderDrawColor");
+      end Set_Edge_Color;
    begin
       if Style.Visibility = Visibility_Hidden then
          return;
@@ -1367,7 +1414,16 @@ package body Adi.Widget is
           Float'Max (Radius_Px.Bottom_Right, Radius_Px.Bottom_Left));
       Has_Radius := Max_Rad > 0.0;
       BW_Top := Float (Border_W.Top);
-      Has_Border := BW_Top > 0.0;
+      BW_Right := Float (Border_W.Right);
+      BW_Bottom := Float (Border_W.Bottom);
+      BW_Left := Float (Border_W.Left);
+      Has_Border :=
+        Is_Visible_Edge (Top, BW_Top)
+        or else Is_Visible_Edge (Right, BW_Right)
+        or else Is_Visible_Edge (Bottom, BW_Bottom)
+        or else Is_Visible_Edge (Left, BW_Left);
+      Uniform_Border_Width :=
+        BW_Top = BW_Right and then BW_Right = BW_Bottom and then BW_Bottom = BW_Left;
       Uniform := Radius_Px.Top_Left = Radius_Px.Top_Right
          and then Radius_Px.Top_Right = Radius_Px.Bottom_Right
          and then Radius_Px.Bottom_Right = Radius_Px.Bottom_Left;
@@ -1380,7 +1436,7 @@ package body Adi.Widget is
 
       if Has_Radius then
 
-         if Has_Border then
+         if Has_Border and then Uniform_Border_Width and then BW_Top > 0.0 then
             --  Render border as a ring (annulus), then fill the interior.
             declare
                Inner : constant SDL_FRect :=
@@ -1395,13 +1451,7 @@ package body Adi.Widget is
                    Bottom_Left  => Float'Max (0.0, Radius_Px.Bottom_Left - BW_Top));
             begin
                --  Border ring
-               case Style.Border_Color.Kind is
-                  when Gap_Uniform =>
-                     CSS_Color_To_SDL (Style.Border_Color.All_Edges, R, G, B, A);
-                  when Per_Edge =>
-                     CSS_Color_To_SDL (Style.Border_Color.Edges (Top), R, G, B, A);
-               end case;
-               A := Apply_Opacity (A, Op);
+               Set_Edge_Color (Top);
                Render_Rounded_Border_Ring
                   (Renderer, Rect, Inner, Radius_Px, Inner_Radii, R, G, B, A);
 
@@ -1456,17 +1506,53 @@ package body Adi.Widget is
 
          --  Border
          if Has_Border then
-            case Style.Border_Color.Kind is
-               when Gap_Uniform =>
-                  CSS_Color_To_SDL (Style.Border_Color.All_Edges, R, G, B, A);
-               when Per_Edge =>
-                  CSS_Color_To_SDL (Style.Border_Color.Edges (Top), R, G, B, A);
-            end case;
-            A := Apply_Opacity (A, Op);
-            SDL_Assert (SDL_SetRenderDrawColor (Renderer, R, G, B, A),
-                        "SDL_SetRenderDrawColor");
-            SDL_Assert (SDL_RenderRect (Renderer, Rect'Access),
-                        "SDL_RenderRect");
+            declare
+               Edge_Rect : aliased SDL_FRect;
+            begin
+               if Is_Visible_Edge (Top, BW_Top) then
+                  Set_Edge_Color (Top);
+                  Edge_Rect :=
+                    (x => Rect.x,
+                     y => Rect.y,
+                     w => Rect.w,
+                     h => BW_Top);
+                  SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
+                              "SDL_RenderFillRect");
+               end if;
+
+               if Is_Visible_Edge (Bottom, BW_Bottom) then
+                  Set_Edge_Color (Bottom);
+                  Edge_Rect :=
+                    (x => Rect.x,
+                     y => Rect.y + Float'Max (0.0, Rect.h - BW_Bottom),
+                     w => Rect.w,
+                     h => BW_Bottom);
+                  SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
+                              "SDL_RenderFillRect");
+               end if;
+
+               if Is_Visible_Edge (Left, BW_Left) then
+                  Set_Edge_Color (Left);
+                  Edge_Rect :=
+                    (x => Rect.x,
+                     y => Rect.y,
+                     w => BW_Left,
+                     h => Rect.h);
+                  SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
+                              "SDL_RenderFillRect");
+               end if;
+
+               if Is_Visible_Edge (Right, BW_Right) then
+                  Set_Edge_Color (Right);
+                  Edge_Rect :=
+                    (x => Rect.x + Float'Max (0.0, Rect.w - BW_Right),
+                     y => Rect.y,
+                     w => BW_Right,
+                     h => Rect.h);
+                  SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
+                              "SDL_RenderFillRect");
+               end if;
+            end;
          end if;
       end if;
    end Render_Panel;
@@ -2034,14 +2120,20 @@ package body Adi.Widget is
          return;
       end if;
 
-      if Renderer /= null and then Has_Flag (W, Scrollable) then
+      if Renderer /= null then
          declare
             Main_Style : constant Resolved_Style :=
               Get_Resolved_Part_Style (W, Main_Part);
+            Clip_By_Overflow : constant Boolean :=
+              Main_Style.Overflow in Overflow_Hidden | Overflow_Scroll | Overflow_Auto;
+            Clip_By_Scrollable : constant Boolean := Has_Flag (W, Scrollable);
             Content : constant Rectangle :=
               Content_Box (Get_Geometry (W), Main_Style);
          begin
-            if Content.Width > 0.0 and then Content.Height > 0.0 then
+            if (Clip_By_Overflow or else Clip_By_Scrollable)
+              and then Content.Width > 0.0
+              and then Content.Height > 0.0
+            then
                Use_Clip := True;
                Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
                if Had_Clip then
@@ -2284,6 +2376,14 @@ package body Adi.Widget is
                Info.Min_Main := Get_Main_Size(Child_Min, Style.Flex_Direction);
                Info.Min_Cross := Get_Cross_Size(Child_Min, Style.Flex_Direction);
 
+               --  For visible overflow, keep items at least at preferred
+               --  main size so constrained containers overflow instead of
+               --  compressing children into visual overlap.
+               if Style.Overflow = Overflow_Visible then
+                  Info.Min_Main := Pixel_Type'Max
+                    (Info.Min_Main, Get_Main_Size(Child_Pref, Style.Flex_Direction));
+               end if;
+
                --  Max constraints
                declare
                   Max_W : Pixel_Type := Pixel_Type'Last;
@@ -2470,6 +2570,10 @@ package body Adi.Widget is
                   Info.Max_Cross   := Pixel_Type (Item.Max_Width);
                   Info.Content_Main  := Pixel_Type (Item.Content_Height);
                   Info.Content_Cross := Pixel_Type (Item.Content_Width);
+               end if;
+
+               if Container_Style.Overflow = Overflow_Visible then
+                  Info.Min_Main := Pixel_Type'Max (Info.Min_Main, Info.Content_Main);
                end if;
 
                --  No margins for items (can be added later if needed)

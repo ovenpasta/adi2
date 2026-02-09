@@ -10,6 +10,7 @@ with Adi.SDL.Render;
 with Adi.Widget_Styles;
 
 package body Adi.Window is
+   use type Adi.SDL.Video.SDL_Window_Ptr;
 
    procedure Set_Focused_Widget
      (W         : in out Window;
@@ -24,6 +25,11 @@ package body Adi.Window is
    function Prev_Focusable
      (Root    : Widget_Access;
       Current : Widget_Access) return Widget_Access;
+   procedure Apply_Window_Min_Size_From_Layout (W : in out Window);
+   function Is_Any_Overlay_Dirty (W : Window) return Boolean;
+   function Overlay_Index
+     (W       : Window;
+      Overlay : Widget_Access) return Natural;
    function Find_Widget_At_With_Flag
      (W    : Window;
       X, Y : Pixel_Type;
@@ -162,6 +168,67 @@ package body Adi.Window is
       return Result;
    end Prev_Focusable;
 
+   function Overlay_Index
+     (W       : Window;
+      Overlay : Widget_Access) return Natural
+   is
+   begin
+      if Overlay = null then
+         return 0;
+      end if;
+
+      for I in 1 .. Natural (W.Overlays.Length) loop
+         if W.Overlays.Element (I) = Overlay then
+            return I;
+         end if;
+      end loop;
+      return 0;
+   end Overlay_Index;
+
+   function Is_Any_Overlay_Dirty (W : Window) return Boolean is
+   begin
+      for I in 1 .. Natural (W.Overlays.Length) loop
+         declare
+            Overlay : constant Widget_Access := W.Overlays.Element (I);
+         begin
+            if Overlay /= null
+              and then Has_Flag (Overlay.all, Visible)
+              and then Is_Dirty (Overlay.all)
+            then
+               return True;
+            end if;
+         end;
+      end loop;
+      return False;
+   end Is_Any_Overlay_Dirty;
+
+   procedure Apply_Window_Min_Size_From_Layout (W : in out Window) is
+      Min_W : int := 1;
+      Min_H : int := 1;
+      Success : Adi.SDL.C_bool;
+   begin
+      if not W.Enforce_Layout_Min_Size
+        or else W.Internal = null
+        or else W.Internal.win = null
+      then
+         return;
+      end if;
+
+      if W.Root /= null then
+         declare
+            Pref : constant Size_2D := Get_Preferred_Size (W.Root.all);
+            Wf   : constant Float := Float'Max (1.0, Float (Pref.Width));
+            Hf   : constant Float := Float'Max (1.0, Float (Pref.Height));
+         begin
+            Min_W := int (Integer (Float'Ceiling (Wf)));
+            Min_H := int (Integer (Float'Ceiling (Hf)));
+         end;
+      end if;
+
+      Success := Adi.SDL.Video.SDL_SetWindowMinimumSize (W.Internal.win, Min_W, Min_H);
+      SDL_Assert (Success, "SDL_SetWindowMinimumSize");
+   end Apply_Window_Min_Size_From_Layout;
+
    -------------------
    -- Create_Window --
    -------------------
@@ -216,6 +283,16 @@ package body Adi.Window is
       if W.Root /= null then
          Adi.Widget.Update (W.Root.all);
       end if;
+
+      for I in 1 .. Natural (W.Overlays.Length) loop
+         declare
+            Overlay : constant Widget_Access := W.Overlays.Element (I);
+         begin
+            if Overlay /= null then
+               Adi.Widget.Update (Overlay.all);
+            end if;
+         end;
+      end loop;
    end Update;
 
     procedure Render (W : in Out Window) is
@@ -223,7 +300,9 @@ package body Adi.Window is
        use Ada.Text_IO;
     begin
        --  Only render if something changed
-       if W.Root /= null and then Is_Dirty(W.Root.all) then
+       if (W.Root /= null and then Is_Dirty (W.Root.all))
+         or else Is_Any_Overlay_Dirty (W)
+       then
           Put_Line ("*** RENDERING (root is dirty) ***");
 
           --  Clear the screen
@@ -234,13 +313,25 @@ package body Adi.Window is
           --  (on first render, items don't exist yet, so Measure_Content
           --  returns 0 for all widgets, causing containers with auto height
           --  to get 0 height from the flex algorithm)
-          Update(W.Root.all);
+          Update (W);
 
           --  Phase 2: Layout with correct content sizes, then rebuild items
-          Mark_Dirty(W.Root.all);
-          Layout_Tree(W.Root.all);
-          Update(W.Root.all);
-          Render_Tree(W.Root.all, W.Ctx);
+          if W.Root /= null then
+             Mark_Dirty (W.Root.all);
+             Layout_Tree (W.Root.all);
+             Update (W);
+             Render_Tree (W.Root.all, W.Ctx);
+          end if;
+
+          for I in 1 .. Natural (W.Overlays.Length) loop
+             declare
+                Overlay : constant Widget_Access := W.Overlays.Element (I);
+             begin
+                if Overlay /= null then
+                   Render_Tree (Overlay.all, W.Ctx);
+                end if;
+             end;
+          end loop;
 
           --  Present the rendered frame
           SDL_Assert (SDL_RenderPresent (W.Internal.ren), "SDL_RenderPresent");
@@ -254,6 +345,7 @@ package body Adi.Window is
           Set_Geometry (Root.all, W.Geometry);
           W.Needs_Layout := True;  -- Initial layout needed
        end if;
+       Apply_Window_Min_Size_From_Layout (W);
     end Set_Root;
 
 
@@ -265,6 +357,79 @@ package body Adi.Window is
    begin
       return W.Root;
    end Get_Root;
+
+   procedure Set_Enforce_Layout_Min_Size
+     (W       : in out Window;
+      Enabled : Boolean := True)
+   is
+      Success : Adi.SDL.C_bool;
+   begin
+      W.Enforce_Layout_Min_Size := Enabled;
+      if Enabled then
+         Apply_Window_Min_Size_From_Layout (W);
+      elsif W.Internal /= null and then W.Internal.win /= null then
+         --  Restore permissive minimum when enforcement is disabled.
+         Success := Adi.SDL.Video.SDL_SetWindowMinimumSize (W.Internal.win, 1, 1);
+         SDL_Assert (Success, "SDL_SetWindowMinimumSize");
+      end if;
+   end Set_Enforce_Layout_Min_Size;
+
+   function Get_Enforce_Layout_Min_Size (W : Window) return Boolean is
+   begin
+      return W.Enforce_Layout_Min_Size;
+   end Get_Enforce_Layout_Min_Size;
+
+   procedure Add_Overlay (W : in out Window; Overlay : Widget_Access) is
+   begin
+      if Overlay = null then
+         return;
+      end if;
+
+      declare
+         Existing : constant Natural := Overlay_Index (W, Overlay);
+      begin
+         if Existing > 0 then
+            W.Overlays.Delete (Existing);
+         end if;
+      end;
+
+      W.Overlays.Append (Overlay);
+      Mark_Dirty (Overlay.all);
+      if W.Root /= null then
+         Mark_Dirty (W.Root.all);
+      end if;
+   end Add_Overlay;
+
+   procedure Remove_Overlay (W : in out Window; Overlay : Widget_Access) is
+      Existing : Natural;
+   begin
+      Existing := Overlay_Index (W, Overlay);
+      if Existing = 0 then
+         return;
+      end if;
+
+      W.Overlays.Delete (Existing);
+      if W.Root /= null then
+         Mark_Dirty (W.Root.all);
+      end if;
+   end Remove_Overlay;
+
+   procedure Clear_Overlays (W : in out Window) is
+   begin
+      if W.Overlays.Is_Empty then
+         return;
+      end if;
+
+      W.Overlays.Clear;
+      if W.Root /= null then
+         Mark_Dirty (W.Root.all);
+      end if;
+   end Clear_Overlays;
+
+   function Overlay_Count (W : Window) return Natural is
+   begin
+      return Natural (W.Overlays.Length);
+   end Overlay_Count;
 
    ------------------
    -- Get_Renderer --
@@ -345,6 +510,22 @@ package body Adi.Window is
       end Find_Deepest;
 
    begin
+      for I in reverse 1 .. Natural (W.Overlays.Length) loop
+         declare
+            Overlay : constant Widget_Access := W.Overlays.Element (I);
+            Found   : Widget_Access;
+         begin
+            if Overlay = null then
+               null;
+            else
+               Found := Find_Deepest (Overlay);
+               if Found /= null then
+                  return Found;
+               end if;
+            end if;
+         end;
+      end loop;
+
       return Find_Deepest (W.Root);
    end Find_Widget_At;
 
@@ -384,6 +565,22 @@ package body Adi.Window is
          return null;
       end Find_Deepest_Eligible;
    begin
+      for I in reverse 1 .. Natural (W.Overlays.Length) loop
+         declare
+            Overlay : constant Widget_Access := W.Overlays.Element (I);
+            Found   : Widget_Access;
+         begin
+            if Overlay = null then
+               null;
+            else
+               Found := Find_Deepest_Eligible (Overlay);
+               if Found /= null then
+                  return Found;
+               end if;
+            end if;
+         end;
+      end loop;
+
       return Find_Deepest_Eligible (W.Root);
    end Find_Widget_At_With_Flag;
 
@@ -511,7 +708,6 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       --  not passive leaf children such as labels inside list rows.
       Focus_Target := Find_Widget_At_With_Flag (W, X, Y, Focusable);
       Click_Target := Find_Widget_At_With_Flag (W, X, Y, Clickable);
-      Set_Focused_Widget (W, Focus_Target);
 
       if Click_Target /= null then
          W.Pressed_Part := Get_Part_At (Click_Target.all, X, Y);
@@ -526,6 +722,8 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
          W.Pressed_Widget := null;
          W.Pressed_Part := Main_Part;
       end if;
+
+      Set_Focused_Widget (W, Focus_Target);
    end On_Mouse_Down;
 
    -----------------
@@ -645,6 +843,16 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       if W.Root /= null then
          Tick_Animations (W.Root.all, DT);
       end if;
+
+      for I in 1 .. Natural (W.Overlays.Length) loop
+         declare
+            Overlay : constant Widget_Access := W.Overlays.Element (I);
+         begin
+            if Overlay /= null then
+               Tick_Animations (Overlay.all, DT);
+            end if;
+         end;
+      end loop;
    end Tick;
 
    -------------
@@ -688,6 +896,7 @@ function Get_Size (W : in out Window) return Size_2D is
       use Adi.SDL.Video;
       use Adi.SDL.Render;
    begin
+      W.Overlays.Clear;
       Adi.Render.Destroy (W.Ctx);
       if W.Internal /= null then
          if W.Internal.ren /= null then

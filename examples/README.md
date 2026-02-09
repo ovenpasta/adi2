@@ -26,6 +26,12 @@ Examples are built to `examples/bin/`:
 ### label_example
 Demonstrates label widget styling and icon usage.
 
+### combo_box_example
+Demonstrates overlay-based combo box dropdowns with styled option rows.
+
+### overflow_example
+Compares `overflow: visible` and `overflow: hidden` clipping behavior.
+
 ## Adding New Examples
 
 1. Create your example file: `my_example.adb`

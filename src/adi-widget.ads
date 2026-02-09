@@ -395,7 +395,7 @@ private
       Children : Widget_List.List;
 
       --  Geometry
-      Geometry : Rectangle := (0.0, 0.0, 100.0, 100.0);
+      Geometry : Rectangle := (0.0, 0.0, 0.0, 0.0);
 
       --  State
       States      : Widget_States := No_States;

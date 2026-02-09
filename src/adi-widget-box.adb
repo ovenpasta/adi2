@@ -58,6 +58,58 @@ package body Adi.Widget.Box is
       end;
    end Build_Items;
 
+   overriding function Measure_Content (W : Box_Widget) return Size_2D is
+      Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Pad    : constant Edge_Pixels := Get_Padding_Px (Style);
+      Border : constant Edge_Pixels := Get_Border_Width_Px (Style);
+      Gap    : constant Pixel_Type := Get_Main_Gap (Style.Gap, Style.Flex_Direction);
+      Count  : Natural := 0;
+      Main_Sum  : Pixel_Type := 0.0;
+      Cross_Max : Pixel_Type := 0.0;
+      Result : Size_2D := (0.0, 0.0);
+   begin
+      if Style.Display = Flex or else Style.Display = Inline_Flex then
+         for Child of W.Children loop
+            declare
+               Pref : constant Size_2D := Get_Preferred_Size (Child.all);
+               Min  : constant Size_2D := Get_Min_Size (Child.all);
+               Effective : constant Size_2D :=
+                 (Width  => Pixel_Type'Max (Pref.Width, Min.Width),
+                  Height => Pixel_Type'Max (Pref.Height, Min.Height));
+            begin
+               Main_Sum := Main_Sum + Get_Main_Size (Effective, Style.Flex_Direction);
+               Cross_Max :=
+                 Pixel_Type'Max
+                   (Cross_Max, Get_Cross_Size (Effective, Style.Flex_Direction));
+               Count := Count + 1;
+            end;
+         end loop;
+
+         if Count > 1 then
+            Main_Sum := Main_Sum + Gap * Pixel_Type (Count - 1);
+         end if;
+
+         Result := Make_Size (Main_Sum, Cross_Max, Style.Flex_Direction);
+      else
+         for Child of W.Children loop
+            declare
+               Pref : constant Size_2D := Get_Preferred_Size (Child.all);
+               Min  : constant Size_2D := Get_Min_Size (Child.all);
+               Effective : constant Size_2D :=
+                 (Width  => Pixel_Type'Max (Pref.Width, Min.Width),
+                  Height => Pixel_Type'Max (Pref.Height, Min.Height));
+            begin
+               Result.Width := Pixel_Type'Max (Result.Width, Effective.Width);
+               Result.Height := Result.Height + Effective.Height;
+            end;
+         end loop;
+      end if;
+
+      Result.Width := Result.Width + Pad.Left + Pad.Right + Border.Left + Border.Right;
+      Result.Height := Result.Height + Pad.Top + Pad.Bottom + Border.Top + Border.Bottom;
+      return Result;
+   end Measure_Content;
+
 overriding procedure Layout (W : in out Box_Widget) is
       Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
    begin

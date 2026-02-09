@@ -73,6 +73,7 @@ begin
       Set_Flag (Inner_Box.all, Clickable, True);
 
       Set_Root (W.all, Widget_Access (Root_Box));
+      Set_Enforce_Layout_Min_Size (W.all, True);
       A.Add_Window (W);
       A.Run;
    end;

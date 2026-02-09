@@ -618,6 +618,8 @@ package body Adi.Layout_Util is
       end;
 
       --  Step 5: Position items based on justify-content
+      --  When content overflows (Free_Space < 0), keep spacing non-negative
+      --  so items overflow instead of collapsing/overlapping.
       case Context.Justify_Content is
          when Flex_Start =>
             Current_Pos := 0.0;
@@ -625,34 +627,37 @@ package body Adi.Layout_Util is
             Initial_Space := 0.0;
 
          when Flex_End =>
-            Current_Pos := Free_Space;
+            Current_Pos := Pixel_Type'Max (0.0, Free_Space);
             Space_Per_Item := 0.0;
-            Initial_Space := Free_Space;
+            Initial_Space := Current_Pos;
 
          when Center =>
-            Current_Pos := Free_Space / 2.0;
+            Current_Pos := Pixel_Type'Max (0.0, Free_Space) / 2.0;
             Space_Per_Item := 0.0;
-            Initial_Space := Free_Space / 2.0;
+            Initial_Space := Current_Pos;
 
          when Space_Between =>
             Current_Pos := 0.0;
             Initial_Space := 0.0;
             if Num_Children > 1 then
-               Space_Per_Item := Free_Space / Pixel_Type(Num_Children - 1);
+               Space_Per_Item := Pixel_Type'Max (0.0, Free_Space)
+                 / Pixel_Type (Num_Children - 1);
             else
                Space_Per_Item := 0.0;
             end if;
 
          when Space_Around =>
             if Num_Children > 0 then
-               Space_Per_Item := Free_Space / Pixel_Type(Num_Children);
+               Space_Per_Item := Pixel_Type'Max (0.0, Free_Space)
+                 / Pixel_Type (Num_Children);
                Initial_Space := Space_Per_Item / 2.0;
                Current_Pos := Initial_Space;
             end if;
 
          when Space_Evenly =>
             if Num_Children > 0 then
-               Space_Per_Item := Free_Space / Pixel_Type(Num_Children + 1);
+               Space_Per_Item := Pixel_Type'Max (0.0, Free_Space)
+                 / Pixel_Type (Num_Children + 1);
                Initial_Space := Space_Per_Item;
                Current_Pos := Space_Per_Item;
             end if;

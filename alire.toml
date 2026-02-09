@@ -52,6 +52,14 @@ command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=stack_exam
 type = "post-build"
 command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=list_box_example"]
 
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=combo_box_example"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=overflow_example"]
+
 
 [[depends-on]]
 gnatcoll_minimal = "^26.0.0"

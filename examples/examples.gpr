@@ -1,7 +1,7 @@
 with "../adi.gpr";  -- Reference your main project
 
 project Examples is
-   type Example_Kind is ("label_example", "widget_demo", "button_example", "transition_example", "text_input_example", "demo_flex", "stack_example", "list_box_example");
+   type Example_Kind is ("label_example", "widget_demo", "button_example", "transition_example", "text_input_example", "demo_flex", "stack_example", "list_box_example", "combo_box_example", "overflow_example");
    Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");
 
    for Source_Dirs use (".", "generated");

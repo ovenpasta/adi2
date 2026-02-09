@@ -1,0 +1,154 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 24px;
+  gap: 12px;
+  background-color: rgb(19, 26, 38);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 22px;
+  background-color: rgb(30, 41, 59);
+  border-radius: 10px;
+}
+
+.title::label {
+  color: white;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.hint::label {
+  color: rgb(186, 204, 230);
+  font-size: 13px;
+  text-wrap-mode: wrap;
+}
+
+.status::label {
+  color: rgb(147, 197, 253);
+  font-size: 14px;
+}
+
+.combo {
+  height: 40px;
+  padding: 9px 10px;
+  background-color: rgb(248, 250, 252);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(148, 163, 184);
+  border-radius: 8px;
+  transition: border-color 180ms ease-out, box-shadow 180ms ease-out, background-color 180ms ease-out;
+}
+
+.combo:hover {
+  background-color: rgb(255, 255, 255);
+  border-color: rgb(96, 165, 250);
+}
+
+.combo:focus {
+  border-color: rgb(37, 99, 235);
+  box-shadow: 0px 0px 8px 2px rgba(37, 99, 235, 0.3);
+}
+
+.combo::label {
+  color: rgb(15, 23, 42);
+  font-size: 14px;
+}
+
+.combo::indicator {
+  color: rgb(71, 85, 105);
+  font-size: 13px;
+  text-align: center;
+  transition: color 180ms ease-out;
+}
+
+.combo:hover::indicator {
+  color: rgb(30, 64, 175);
+}
+
+.combo:focus::indicator {
+  color: rgb(30, 58, 138);
+}
+
+.dropdown {
+  background-color: rgb(246, 248, 252);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(191, 201, 216);
+  border-radius: 8px;
+  box-shadow: 0px 10px 24px 0px rgba(2, 8, 23, 0.22);
+}
+
+.dropdown::scroll {
+  width: 10px;
+  margin: 0px 0px 0px 6px;
+  padding: 2px;
+  background-color: rgba(148, 163, 184, 0.22);
+  border-radius: 6px;
+  transition: background-color 180ms ease-out;
+}
+
+.dropdown::scroll:hover {
+  background-color: rgba(148, 163, 184, 0.42);
+}
+
+.dropdown::scroll:pressed {
+  background-color: rgba(148, 163, 184, 0.58);
+}
+
+.dropdown::knob {
+  width: 10px;
+  min-height: 24px;
+  background-color: rgba(71, 85, 105, 0.85);
+  border-radius: 6px;
+  transition: background-color 180ms ease-out;
+}
+
+.dropdown::knob:hover {
+  background-color: rgba(51, 65, 85, 0.95);
+}
+
+.dropdown::knob:pressed {
+  background-color: rgba(30, 41, 59, 1.0);
+}
+
+.option-row {
+  padding: 8px 10px;
+  background-color: white;
+  border-width: 1px 0px;
+  border-style: solid;
+  border-color: rgb(222, 229, 238);
+  border-radius: 0px;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.option-row:hover {
+  background-color: rgb(239, 246, 255);
+  border-color: rgb(147, 197, 253);
+}
+
+.option-row:selected {
+  background-color: rgb(59, 130, 246);
+  border-color: rgb(29, 78, 216);
+}
+
+.option-row::label {
+  color: rgb(30, 41, 59);
+  font-size: 14px;
+  transition: color 150ms ease-out;
+}
+
+.option-row::label:hover {
+  color: rgb(15, 23, 42);
+}
+
+.option-row::label:selected {
+  color: white;
+}

@@ -36,6 +36,8 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=text_input_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=demo_flex
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=combo_box_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=overflow_example
 ```
 
 ### Running tests
@@ -56,6 +58,8 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
 ./examples/bin/demo_flex
 ./examples/bin/stack_example
 ./examples/bin/list_box_example
+./examples/bin/combo_box_example
+./examples/bin/overflow_example
 ```
 
 ### External Dependencies
@@ -139,6 +143,8 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
 - `object-fit` modes: `Fill`, `Cover` (UV cropping), `Contain`, `None`, `Scale_Down`
 - Contain/None/Scale_Down adjust corner radii based on image inset from container edges
 - Per-corner border radius: `Render_Rounded_Rect` overload accepts `Corner_Pixels`
+- Default geometry initializes to `(0, 0, 0, 0)` (no synthetic default size)
+- Non-rounded panel border rendering supports per-edge widths/colors/styles (e.g. horizontal-only separators)
 - **Animation**: Per-part `Part_Transition_Array` tracks active transitions; `Tick_Animations` advances them each frame; `Apply_Styles_To_Items` starts transitions when resolved style targets change
 - **Per-frame hook**: `On_Tick(DT)` (default null) runs from `Tick_Animations` for widget-specific time-based behavior (e.g. inertial scrolling)
 
@@ -163,6 +169,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
 - Selection highlight is clamped to content bounds (no overflow outside the widget)
 - Dragging selection left of the widget clamps to the start of text (column 0)
 - Double-click word selection is deferred until mouse-up; moving past a small threshold converts to normal drag selection
+- `Create` sets `Clickable` and `Focusable` so caret placement/selection works with mouse routing
 - `Create` does not apply built-in styles; examples/apps define `Main/Label/Cursor/Selected` part styles explicitly
 
 **Adi.Widget.List_Box** (`adi-widget-list_box.ads`): Generic list container widget
@@ -179,6 +186,14 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
 - Focusable + scrollable by default, participates in Tab focus traversal
 - Selection APIs: `Select_Row`, `Toggle_Row_Selected`, `Clear_Selection`, `Get_Selected_Count`
 - Callbacks: `On_Item_Clicked`, `On_Item_Activated`, `On_Selection_Changed`
+
+**Adi.Widget.Combo_Box** (`adi-widget-combo_box.ads`): Select/dropdown widget built from reusable parts
+- Main control uses `Main/Label/Indicator` parts and popup content is a `List_Box` overlay
+- Popup close behavior supports outside click dismissal via a transparent dismiss overlay behind the list
+- Keyboard interaction supports `Up/Down`, `Return`, and `Escape`
+- Row widgets are `Label`s so row visuals reuse existing part-style APIs
+- Popup height is style-driven from CSS (`min-height`/`max-height`) plus row preferred heights, gaps, padding, and border
+- APIs include item management, selection callbacks, popup open/close, and per-part style injection for dropdown/rows
 
 **Adi.Widget.Stack** (`adi-widget-stack.ads`): Generic stack container widget
 - Generic over `Page_Id` discrete type (typically an enum)
@@ -203,9 +218,12 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
 - Owns a `Render_Context` for per-renderer caches
 - Root widget container
 - Mouse event handling with widget hit testing
+- Overlay support for top-level floating widgets (`Add_Overlay`, `Remove_Overlay`, `Clear_Overlays`, `Overlay_Count`)
+- Overlay hit testing is prioritized above the root tree; overlays render after root content
 - Tracks hovered/pressed widget part; updates part states on pointer movement so part-scoped selectors resolve correctly
 - Keyboard focus handling with Tab traversal across focusable/visible widgets (Shift+Tab reverse, wraps around)
 - `Tick(DT)`: advances animations on the widget tree each frame
+- Optional minimum-size policy can enforce window min size from layout (`Set_Enforce_Layout_Min_Size`, `Apply_Window_Min_Size_From_Layout`)
 - Window resize/reshape handling
 
 **Adi.App** (`adi-app.ads`): Application entry point
@@ -222,7 +240,8 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
 3. **Layout Phase**: `Layout` calculates geometry for widget and children
 4. **Render Phase**: `Render_Items` draws each item using its computed style, geometry, and a `Render_Context` (which holds the renderer, shadow cache, and text engine)
    - Rounded borders always use `Render_Rounded_Border_Ring` (annulus) + separate background fill
-   - Non-rounded borders use fast SDL rect primitives
+   - Non-rounded borders render per-edge fills (supports asymmetric border widths/colors/styles)
+   - Overflow clipping follows CSS overflow (`visible` does not clip, `hidden/scroll/auto` clip)
    - **Text positions are snapped to integer pixels** (`Float'Floor`) before drawing to prevent sub-pixel blurring from texture interpolation
    - Font hinting uses `TTF_HINTING_LIGHT_SUBPIXEL` for consistent glyph quality across all font sizes
 
@@ -240,6 +259,10 @@ The library provides Ada bindings for SDL3 in `adi-sdl*.ads` files:
 - `Adi.SDL.Surface`: Low-level pixel buffer and surface bindings
 - `Adi.SDL.PixelFormat`: Pixel format constant enumerations
 
+Recent binding additions:
+- `Adi.SDL.Video`: `SDL_SetWindowMinimumSize`
+- `Adi.SDL.Events`: `SDL_SCANCODE_ESCAPE`
+
 **Binding Design Pattern**: These are clean, hand-crafted bindings that:
 - Use native Ada types (`Uint8`, `Uint32`, `C_bool`, `int`, `Float`) instead of raw C imports
 - Avoid dependencies on auto-generated bindings (no `stddef_h`, `SDL3_SDL_stdinc_h`, etc.)
@@ -255,6 +278,7 @@ Note: These are custom bindings, not the SDLAda project (which is commented out 
 src/                  - Main library source files
   adi-*.ad[bs]        - All library modules follow Ada package naming
   adi-widget-*.ad[bs] - Widget implementations (Box, Label)
+  adi-widget-combo_box.ad[bs] - Combo box widget with overlay popup list
   adi-animation.ad[bs] - Style transition animation and interpolation
   adi-sdl-*.ad[bs]    - SDL3 bindings (core, video, render, events, mouse, ttf, image, surface)
 tests/
@@ -271,6 +295,8 @@ examples/
   demo_flex.adb       - Flexbox layout demo
   stack_example.adb   - Stack container with tab switching
   list_box_example.adb - List box selection/scrolling demo
+  combo_box_example.adb - Combo box example with styled popup/list interactions
+  overflow_example.adb - Overflow visible vs hidden clipping behavior demo
   css/                - CSS sources for generated example styles
   generated/          - Auto-generated Ada style packages from CSS
   examples.gpr        - Example project file (uses EXAMPLE_KIND scenario)
@@ -299,7 +325,7 @@ All packages are rooted under `Adi`:
 - `Adi.CSS_Styles` - CSS value types and style resolution
 - `Adi.Widget_Styles` - State-based widget styling
 - `Adi.Widget` - Base widget abstraction
-- `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.List_Box`, `Adi.Widget.Stack` - Concrete widgets
+- `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.List_Box`, `Adi.Widget.Stack`, `Adi.Widget.Combo_Box` - Concrete widgets
 - `Adi.Widget.Part_Styles` - Multi-part style builder
 - `Adi.Text_Buffer` - Shared text editing model
 - `Adi.Animation` - CSS-like style transitions and interpolation
@@ -327,6 +353,7 @@ python tools/css_to_ada.py input.css output.ads --package-name=My_Styles
 ```
 
 This generates Ada package specifications with style constants that can be applied to widgets.
+Example style generation via `tools/generate_example_styles.sh` is incremental: files are regenerated only when the source CSS or generator script changed.
 
 Selector conventions:
 - `.widget` applies to `Main_Part`

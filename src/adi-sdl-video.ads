@@ -97,6 +97,14 @@ package Adi.SDL.Video is
         Convention => C,
         External_Name => "SDL_GetWindowSize";
 
+   function SDL_SetWindowMinimumSize
+      (window : SDL_Window_Ptr;
+       min_w  : int;
+       min_h  : int) return C_bool
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_SetWindowMinimumSize";
+
    function SDL_StartTextInput (window : SDL_Window_Ptr) return C_bool
    with Import => True,
         Convention => C,

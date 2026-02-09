@@ -1,3 +1,4 @@
+with Ada.Containers.Vectors;
 with Adi.Core;       use Adi.Core;
 with Adi.Event;      use Adi.Event;
 with Adi.Widget;     use Adi.Widget;
@@ -22,6 +23,18 @@ package Adi.Window is
     --  Set the root widget for this window
     procedure Set_Root (W : in out Window; Root : Widget_Access);
     function Get_Root (W : Window) return Widget_Access;
+
+    --  Optional policy: derive window minimum size from root layout preferred size.
+    procedure Set_Enforce_Layout_Min_Size
+      (W       : in out Window;
+       Enabled : Boolean := True);
+    function Get_Enforce_Layout_Min_Size (W : Window) return Boolean;
+
+    --  Overlay widgets render above the root tree and are hit-tested first.
+    procedure Add_Overlay (W : in out Window; Overlay : Widget_Access);
+    procedure Remove_Overlay (W : in out Window; Overlay : Widget_Access);
+    procedure Clear_Overlays (W : in out Window);
+    function Overlay_Count (W : Window) return Natural;
 
     --  Get the SDL renderer for direct rendering
     function Get_Renderer (W : in out Window) return SDL_Renderer_Ptr;
@@ -61,6 +74,8 @@ package Adi.Window is
     --  Resize handling
     procedure Handle_Resize (W : in out Window; New_Size : Size_2D);
 private
+    package Overlay_Vectors is new Ada.Containers.Vectors (Positive, Widget_Access);
+
     type Internal;
     type Internal_Access is access Internal;
     type Window is new Ada.Finalization.Limited_Controlled with record
@@ -78,6 +93,8 @@ private
         Hovered_Part   : Part_Kind     := Main_Part;
         Pressed_Part   : Part_Kind     := Main_Part;
         Focused_Widget : Widget_Access := null;
+        Overlays       : Overlay_Vectors.Vector;
+        Enforce_Layout_Min_Size : Boolean := False;
         Needs_Layout   : Boolean       := True;
     end record;
 

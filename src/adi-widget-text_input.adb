@@ -227,6 +227,7 @@ package body Adi.Widget.Text_Input is
       Result : constant Text_Input_Widget_Access := new Text_Input_Widget;
    begin
       Set_Flag (Result.all, Visible, True);
+      Set_Flag (Result.all, Clickable, True);
       Set_Flag (Result.all, Focusable, True);
 
       if Text'Length > 0 then

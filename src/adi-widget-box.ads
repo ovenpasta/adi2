@@ -18,6 +18,7 @@ package Adi.Widget.Box is
    --  Implement abstract methods
    overriding procedure Build_Items (W : in out Box_Widget);
    overriding procedure Layout (W : in out Box_Widget);
+   overriding function Measure_Content (W : Box_Widget) return Size_2D;
 
 private
 

@@ -4,14 +4,12 @@ with Adi.Widget;     use Adi.Widget;
 with Adi.Render;     use Adi.Render;
 with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.Image;      use Adi.Image;
+with Adi.SDL.Events;
 with System;
 
 package Adi.Window is
     type Window is new Ada.Finalization.Limited_Controlled with private;
     type Window_Access is access all Window;
-
-    type Mouse_Button is
-       (Left_Button, Middle_Button, Right_Button, X1_Button, X2_Button);
 
     function Create_Window (Title : String; S : Size_2D) return Window_Access;
 
@@ -37,9 +35,18 @@ package Adi.Window is
     --  Mouse event handling
     procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type);
     procedure On_Mouse_Down
-       (W : in out Window; X, Y : Pixel_Type; Button : Mouse_Button);
+       (W      : in out Window;
+        X, Y   : Pixel_Type;
+        Button : Adi.Core.Mouse_Button;
+        Clicks : Natural := 1);
     procedure On_Mouse_Up
-       (W : in out Window; X, Y : Pixel_Type; Button : Mouse_Button);
+       (W : in out Window; X, Y : Pixel_Type; Button : Adi.Core.Mouse_Button);
+    procedure On_Key_Down
+       (W        : in out Window;
+        Scancode : Adi.SDL.Events.SDL_Scancode;
+        Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+        Repeat   : Boolean);
+    procedure On_Text_Input (W : in out Window; Text : String);
 
     --  Advance animations by DT seconds on all widgets in this window
     procedure Tick (W : in out Window; DT : Duration);
@@ -64,6 +71,7 @@ private
         Mouse_Down     : Boolean       := False;
         Hovered_Widget : Widget_Access := null;
         Pressed_Widget : Widget_Access := null;
+        Focused_Widget : Widget_Access := null;
         Needs_Layout   : Boolean       := True;
     end record;
 

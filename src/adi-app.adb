@@ -4,7 +4,9 @@ with Adi.SDL;
 with Adi.SDL.TTF;
 with Adi.SDL.Events;
 with Adi.SDL.Mouse;
+with Adi.Widget;
 with Interfaces.C; use Interfaces.C;
+with Interfaces.C.Strings;
 with Ada.Unchecked_Conversion;
 with Ada.Real_Time; use Ada.Real_Time;
 
@@ -21,21 +23,21 @@ package body Adi.App is
       SDL_Assert (Adi.SDL.TTF.TTF_Init,"TTF_Init");
     end Init;
 
-    function To_Mouse_Button (B : Adi.SDL.Uint8) return Adi.Window.Mouse_Button is
+    function To_Mouse_Button (B : Adi.SDL.Uint8) return Adi.Core.Mouse_Button is
     begin
        case B is
           when Adi.SDL.Mouse.SDL_BUTTON_LEFT =>
-             return Adi.Window.Left_Button;
+             return Adi.Core.Left_Button;
           when Adi.SDL.Mouse.SDL_BUTTON_MIDDLE =>
-             return Adi.Window.Middle_Button;
+             return Adi.Core.Middle_Button;
           when Adi.SDL.Mouse.SDL_BUTTON_RIGHT =>
-             return Adi.Window.Right_Button;
+             return Adi.Core.Right_Button;
           when Adi.SDL.Mouse.SDL_BUTTON_X1 =>
-             return Adi.Window.X1_Button;
+             return Adi.Core.X1_Button;
           when Adi.SDL.Mouse.SDL_BUTTON_X2 =>
-             return Adi.Window.X2_Button;
+             return Adi.Core.X2_Button;
           when others =>
-             return Adi.Window.Left_Button;
+             return Adi.Core.Left_Button;
        end case;
     end To_Mouse_Button;
 
@@ -56,6 +58,10 @@ package body Adi.App is
            (SDL_Event, SDL_MouseMotionEvent);
         function To_Mouse_Button_Event is new Ada.Unchecked_Conversion
            (SDL_Event, SDL_MouseButtonEvent);
+        function To_Keyboard_Event is new Ada.Unchecked_Conversion
+           (SDL_Event, SDL_KeyboardEvent);
+        function To_Text_Input_Event is new Ada.Unchecked_Conversion
+           (SDL_Event, SDL_TextInputEvent);
 
         Now        : Time;
         Next_Frame : Time;
@@ -101,7 +107,8 @@ package body Adi.App is
                                 A.Main_Window.On_Mouse_Down
                                    (X      => Adi.Core.Pixel_Type (Button_Event.X),
                                     Y      => Adi.Core.Pixel_Type (Button_Event.Y),
-                                    Button => To_Mouse_Button (Button_Event.Button));
+                                    Button => To_Mouse_Button (Button_Event.Button),
+                                    Clicks => Natural (Button_Event.Clicks));
                             end;
                         end if;
 
@@ -115,6 +122,36 @@ package body Adi.App is
                                    (X      => Adi.Core.Pixel_Type (Button_Event.X),
                                     Y      => Adi.Core.Pixel_Type (Button_Event.Y),
                                     Button => To_Mouse_Button (Button_Event.Button));
+                            end;
+                        end if;
+
+                    when SDL_EVENT_KEY_DOWN =>
+                        if A.Main_Window /= null then
+                            declare
+                                Key_Event : constant SDL_KeyboardEvent :=
+                                   To_Keyboard_Event (Event);
+                            begin
+                                A.Main_Window.On_Key_Down
+                                  (Scancode => Key_Event.Scancode,
+                                   Key_Mod  => Key_Event.Key_Mod,
+                                   Repeat   => Boolean (Key_Event.Is_Repeat));
+                            end;
+                        end if;
+
+                    when SDL_EVENT_TEXT_INPUT =>
+                        if A.Main_Window /= null then
+                            declare
+                                use Interfaces.C.Strings;
+                                Text_Event : constant SDL_TextInputEvent :=
+                                  To_Text_Input_Event (Event);
+                                Input_Text : constant String :=
+                                  (if Text_Event.Text = Null_Ptr
+                                   then ""
+                                   else Value (Text_Event.Text));
+                            begin
+                                if Input_Text'Length > 0 then
+                                   A.Main_Window.On_Text_Input (Input_Text);
+                                end if;
                             end;
                         end if;
 

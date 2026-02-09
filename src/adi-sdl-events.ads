@@ -24,6 +24,26 @@ package Adi.SDL.Events is
    type SDL_PenInputFlags is new Uint32;
    type SDL_PenAxis is new Uint32;
 
+   --  Common scancodes used by text editing widgets
+   SDL_SCANCODE_A         : constant SDL_Scancode := 4;
+   SDL_SCANCODE_C         : constant SDL_Scancode := 6;
+   SDL_SCANCODE_V         : constant SDL_Scancode := 25;
+   SDL_SCANCODE_X         : constant SDL_Scancode := 27;
+   SDL_SCANCODE_RETURN    : constant SDL_Scancode := 40;
+   SDL_SCANCODE_TAB       : constant SDL_Scancode := 43;
+   SDL_SCANCODE_BACKSPACE : constant SDL_Scancode := 42;
+   SDL_SCANCODE_DELETE    : constant SDL_Scancode := 76;
+   SDL_SCANCODE_RIGHT     : constant SDL_Scancode := 79;
+   SDL_SCANCODE_LEFT      : constant SDL_Scancode := 80;
+   SDL_SCANCODE_DOWN      : constant SDL_Scancode := 81;
+   SDL_SCANCODE_UP        : constant SDL_Scancode := 82;
+   SDL_SCANCODE_HOME      : constant SDL_Scancode := 74;
+   SDL_SCANCODE_END       : constant SDL_Scancode := 77;
+
+   --  Keyboard modifier masks
+   SDL_KMOD_SHIFT : constant SDL_Keymod := 16#0003#;
+   SDL_KMOD_CTRL  : constant SDL_Keymod := 16#00C0#;
+
    SDL_EVENT_FIRST : constant SDL_EventType := 0;
    SDL_EVENT_QUIT : constant SDL_EventType := 256;
    SDL_EVENT_TERMINATING : constant SDL_EventType := 257;

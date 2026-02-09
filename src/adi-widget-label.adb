@@ -1,6 +1,5 @@
 with Adi.Font;
 with Adi.Layout_Util; use Adi.Layout_Util;
-with Ada.Text_IO;
 
 package body Adi.Widget.Label is
 
@@ -61,7 +60,6 @@ package body Adi.Widget.Label is
    ---------------------
 
    function Measure_Content (W : Label_Widget) return Size_2D is
-      use Ada.Text_IO;
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Label_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Label_Part);
 
@@ -125,19 +123,12 @@ package body Adi.Widget.Label is
    ------------
 
    overriding procedure Layout (W : in out Label_Widget) is
-      use Ada.Text_IO;
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Icon_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Icon_Part);
 
       Has_Icon : constant Boolean := W.Icon /= null;
       Has_Text : constant Boolean := Length (W.Text) > 0;
    begin
-      Put_Line ("--- Label.Layout ---");
-      Put_Line ("  Widget Geometry: X=" & Integer'Image(Integer(W.Geometry.X))
-         & " Y=" & Integer'Image(Integer(W.Geometry.Y))
-         & " W=" & Integer'Image(Integer(W.Geometry.Width))
-         & " H=" & Integer'Image(Integer(W.Geometry.Height)));
-
       --  Clear previous layout items
       W.Layout_Items.Clear;
 
@@ -219,15 +210,6 @@ package body Adi.Widget.Label is
             Pad : constant Edge_Pixels := Get_Padding_Px (Main_Style);
             Border : constant Edge_Pixels := Get_Border_Width_Px (Main_Style);
          begin
-            Put_Line ("  Padding: T=" & Integer'Image(Integer(Pad.Top)) & " R=" & Integer'Image(Integer(Pad.Right))
-               & " B=" & Integer'Image(Integer(Pad.Bottom)) & " L=" & Integer'Image(Integer(Pad.Left)));
-            Put_Line ("  Border: T=" & Integer'Image(Integer(Border.Top)) & " R=" & Integer'Image(Integer(Border.Right))
-               & " B=" & Integer'Image(Integer(Border.Bottom)) & " L=" & Integer'Image(Integer(Border.Left)));
-            Put_Line ("  Content Box: X=" & Integer'Image(Integer(Content.X))
-               & " Y=" & Integer'Image(Integer(Content.Y))
-               & " W=" & Integer'Image(Integer(Content.Width))
-               & " H=" & Integer'Image(Integer(Content.Height)));
-
             Perform_Item_Flex_Layout (
                Container_Geom  => Content,
                Container_Style => Main_Style,

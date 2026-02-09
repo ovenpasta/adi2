@@ -10,6 +10,9 @@ package Adi.Core is
       Y : Pixel_Type := 0.0;
    end record;
 
+   type Mouse_Button is
+     (Left_Button, Middle_Button, Right_Button, X1_Button, X2_Button);
+
    type Size_2D is record
       Width : Pixel_Type := 0.0;
       Height : Pixel_Type := 0.0;

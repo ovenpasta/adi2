@@ -10,10 +10,136 @@ with Adi.SDL.Render;
 
 package body Adi.Window is
 
+   procedure Set_Focused_Widget
+     (W         : in out Window;
+      New_Focus : Widget_Access);
+
+   function Is_Focus_Candidate (Wgt : Widget_Access) return Boolean;
+   function First_Focusable (Root : Widget_Access) return Widget_Access;
+   function Last_Focusable (Root : Widget_Access) return Widget_Access;
+   function Next_Focusable
+     (Root    : Widget_Access;
+      Current : Widget_Access) return Widget_Access;
+   function Prev_Focusable
+     (Root    : Widget_Access;
+      Current : Widget_Access) return Widget_Access;
+
    type Internal is record
       win : Adi.SDL.Video.SDL_Window_Ptr;
       ren : Adi.SDL.Render.SDL_Renderer_Ptr;
    end record;
+
+   function Is_Focus_Candidate (Wgt : Widget_Access) return Boolean is
+   begin
+      return Wgt /= null
+        and then Has_Flag (Wgt.all, Focusable)
+        and then Has_Flag (Wgt.all, Visible);
+   end Is_Focus_Candidate;
+
+   function First_Focusable (Root : Widget_Access) return Widget_Access is
+      Candidate : Widget_Access;
+   begin
+      if Root = null then
+         return null;
+      end if;
+
+      if Is_Focus_Candidate (Root) then
+         return Root;
+      end if;
+
+      for I in 1 .. Child_Count (Root.all) loop
+         Candidate := First_Focusable (Get_Child (Root.all, I));
+         if Candidate /= null then
+            return Candidate;
+         end if;
+      end loop;
+
+      return null;
+   end First_Focusable;
+
+   function Last_Focusable (Root : Widget_Access) return Widget_Access is
+      Candidate : Widget_Access;
+   begin
+      if Root = null then
+         return null;
+      end if;
+
+      for I in reverse 1 .. Child_Count (Root.all) loop
+         Candidate := Last_Focusable (Get_Child (Root.all, I));
+         if Candidate /= null then
+            return Candidate;
+         end if;
+      end loop;
+
+      if Is_Focus_Candidate (Root) then
+         return Root;
+      end if;
+      return null;
+   end Last_Focusable;
+
+   function Next_Focusable
+     (Root    : Widget_Access;
+      Current : Widget_Access) return Widget_Access
+   is
+      Result       : Widget_Access := null;
+      Seen_Current : Boolean := Current = null;
+
+      procedure Visit (Node : Widget_Access) is
+      begin
+         if Node = null or else Result /= null then
+            return;
+         end if;
+
+         if Seen_Current and then Is_Focus_Candidate (Node) then
+            Result := Node;
+            return;
+         end if;
+
+         if Node = Current then
+            Seen_Current := True;
+         end if;
+
+         for I in 1 .. Child_Count (Node.all) loop
+            Visit (Get_Child (Node.all, I));
+            exit when Result /= null;
+         end loop;
+      end Visit;
+   begin
+      Visit (Root);
+      return Result;
+   end Next_Focusable;
+
+   function Prev_Focusable
+     (Root    : Widget_Access;
+      Current : Widget_Access) return Widget_Access
+   is
+      Result : Widget_Access := null;
+      Prev   : Widget_Access := null;
+
+      procedure Visit (Node : Widget_Access) is
+      begin
+         if Node = null or else Result /= null then
+            return;
+         end if;
+
+         if Node = Current then
+            Result := Prev;
+            return;
+         end if;
+
+         if Is_Focus_Candidate (Node) then
+            Prev := Node;
+         end if;
+
+         for I in 1 .. Child_Count (Node.all) loop
+            Visit (Get_Child (Node.all, I));
+            exit when Result /= null;
+         end loop;
+      end Visit;
+   begin
+      Visit (Root);
+      return Result;
+   end Prev_Focusable;
 
    -------------------
    -- Create_Window --
@@ -158,7 +284,7 @@ package body Adi.Window is
    end Point_In_Widget;
 
 
-    function Find_Widget_At (W : Window; X, Y : Pixel_Type) return Widget_Access is
+   function Find_Widget_At (W : Window; X, Y : Pixel_Type) return Widget_Access is
 
       function Find_Deepest (Parent : Widget_Access) return Widget_Access is
          Child  : Widget_Access;
@@ -189,6 +315,42 @@ package body Adi.Window is
    begin
       return Find_Deepest (W.Root);
    end Find_Widget_At;
+
+   ------------------------
+   -- Set_Focused_Widget --
+   ------------------------
+
+   procedure Set_Focused_Widget
+     (W         : in out Window;
+      New_Focus : Widget_Access)
+   is
+      Candidate : Widget_Access := New_Focus;
+      Ignore    : Adi.SDL.C_bool;
+   begin
+      if Candidate /= null and then not Has_Flag (Candidate.all, Focusable) then
+         Candidate := null;
+      end if;
+
+      if Candidate = W.Focused_Widget then
+         return;
+      end if;
+
+      if W.Focused_Widget /= null then
+         Set_Focused (W.Focused_Widget.all, False);
+         On_Focus_Lost (W.Focused_Widget.all);
+      end if;
+
+      W.Focused_Widget := Candidate;
+
+      if W.Focused_Widget /= null then
+         Ignore := Adi.SDL.Video.SDL_StartTextInput (W.Internal.win);
+         Set_Focused (W.Focused_Widget.all, True);
+         On_Focus_Gained (W.Focused_Widget.all);
+      else
+         Ignore := Adi.SDL.Video.SDL_StopTextInput (W.Internal.win);
+      end if;
+   end Set_Focused_Widget;
+
    -------------------
    -- On_Mouse_Move --
    -------------------
@@ -218,37 +380,56 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
 
          W.Hovered_Widget := New_Hovered;
       end if;
+
+      --  Route drag motion to the pressed widget (for text selection, etc.)
+      if W.Mouse_Down and then W.Pressed_Widget /= null then
+         On_Mouse_Move (W.Pressed_Widget.all, X, Y);
+      end if;
    end On_Mouse_Move;
 
    -------------------
    -- On_Mouse_Down --
    -------------------
 
-    procedure On_Mouse_Down (W : in out Window; X, Y : Pixel_Type; Button : Mouse_Button) is
-      pragma Unreferenced (Button);
+    procedure On_Mouse_Down
+      (W      : in out Window;
+       X, Y   : Pixel_Type;
+       Button : Adi.Core.Mouse_Button;
+       Clicks : Natural := 1)
+    is
       Target : Widget_Access;
    begin
       W.Mouse_Down := True;
+      W.Mouse_X := X;
+      W.Mouse_Y := Y;
 
       --  Find widget under cursor
       Target := Find_Widget_At (W, X, Y);
+      Set_Focused_Widget (W, Target);
 
       if Target /= null then
          Set_Pressed (Target.all, True);
          W.Pressed_Widget := Target;
+         On_Mouse_Down (Target.all, X, Y, Button, Clicks);
+      else
+         W.Pressed_Widget := null;
       end if;
    end On_Mouse_Down;
 
    -----------------
    -- On_Mouse_Up --
    -----------------
-    procedure On_Mouse_Up (W : in out Window; X, Y : Pixel_Type; Button : Mouse_Button) is
-      pragma Unreferenced (Button);
+    procedure On_Mouse_Up
+      (W : in out Window; X, Y : Pixel_Type; Button : Adi.Core.Mouse_Button)
+    is
    begin
       W.Mouse_Down := False;
+      W.Mouse_X := X;
+      W.Mouse_Y := Y;
 
       --  Release pressed widget and dispatch click if applicable
       if W.Pressed_Widget /= null then
+         On_Mouse_Up (W.Pressed_Widget.all, X, Y, Button);
          if Point_In_Widget (W.Pressed_Widget, X, Y)
             and then Has_Flag (W.Pressed_Widget.all, Clickable)
          then
@@ -258,6 +439,57 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
          W.Pressed_Widget := null;
       end if;
    end On_Mouse_Up;
+
+   -----------------
+   -- On_Key_Down --
+   -----------------
+
+   procedure On_Key_Down
+     (W        : in out Window;
+      Scancode : Adi.SDL.Events.SDL_Scancode;
+      Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+      Repeat   : Boolean)
+   is
+      use type Adi.SDL.Events.SDL_Keymod;
+      use type Adi.SDL.Events.SDL_Scancode;
+      Shift_Mod : constant Boolean :=
+        (Key_Mod and Adi.SDL.Events.SDL_KMOD_SHIFT) /= 0;
+      Next_Focus : Widget_Access := null;
+   begin
+      if Scancode = Adi.SDL.Events.SDL_SCANCODE_TAB then
+         if Shift_Mod then
+            Next_Focus := Prev_Focusable (W.Root, W.Focused_Widget);
+            if Next_Focus = null then
+               Next_Focus := Last_Focusable (W.Root);
+            end if;
+         else
+            Next_Focus := Next_Focusable (W.Root, W.Focused_Widget);
+            if Next_Focus = null then
+               Next_Focus := First_Focusable (W.Root);
+            end if;
+         end if;
+
+         if Next_Focus /= null then
+            Set_Focused_Widget (W, Next_Focus);
+         end if;
+         return;
+      end if;
+
+      if W.Focused_Widget /= null then
+         On_Key_Down (W.Focused_Widget.all, Scancode, Key_Mod, Repeat);
+      end if;
+   end On_Key_Down;
+
+   -------------------
+   -- On_Text_Input --
+   -------------------
+
+   procedure On_Text_Input (W : in out Window; Text : String) is
+   begin
+      if W.Focused_Widget /= null then
+         On_Text_Input (W.Focused_Widget.all, Text);
+      end if;
+   end On_Text_Input;
 
    ----------
    -- Tick --

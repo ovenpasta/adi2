@@ -97,6 +97,16 @@ package Adi.SDL.Video is
         Convention => C,
         External_Name => "SDL_GetWindowSize";
 
+   function SDL_StartTextInput (window : SDL_Window_Ptr) return C_bool
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_StartTextInput";
+
+   function SDL_StopTextInput (window : SDL_Window_Ptr) return C_bool
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_StopTextInput";
+
    procedure SDL_DestroyWindow (window : SDL_Window_Ptr)
    with Import => True,
         Convention => C,

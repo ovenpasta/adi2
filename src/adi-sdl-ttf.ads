@@ -333,6 +333,17 @@ package Adi.SDL.TTF is
            Convention    => C,
            External_Name => "TTF_GetStringSizeWrapped";
 
+   function TTF_MeasureString
+      (Font            : TTF_Font_Access;
+       Text            : Interfaces.C.Strings.chars_ptr;
+       Length          : Interfaces.C.size_t;
+       Max_Width       : int;
+       Measured_Width  : access int;
+       Measured_Length : access Interfaces.C.size_t) return C_bool
+      with Import        => True,
+           Convention    => C,
+           External_Name => "TTF_MeasureString";
+
    ----------------------------------------------------------------------------
    -- Text Rendering (Solid - Quick and Dirty)
    ----------------------------------------------------------------------------

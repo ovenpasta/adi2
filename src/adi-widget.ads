@@ -8,6 +8,7 @@ with Adi.Animation;         use Adi.Animation;
 with Adi.Layout_Util;       use Adi.Layout_Util;
 with Adi.SDL.Render;        use Adi.SDL.Render;
 with Adi.SDL.TTF.TextEngine;
+with Adi.SDL.Events;
 with Adi.Render;            use Adi.Render;
 with Adi.Image;             use Adi.Image;
 
@@ -249,6 +250,34 @@ package Adi.Widget is
    --  Called when the widget is clicked (mouse-up within bounds of clickable widget)
    --  Default does nothing; override in derived widgets (e.g., Button).
    procedure On_Click (W : in out Widget) is null;
+
+   --  Called for mouse interaction routed by the window.
+   procedure On_Mouse_Down
+     (W      : in out Widget;
+      X, Y   : Pixel_Type;
+      Button : Mouse_Button;
+      Clicks : Natural := 1) is null;
+   procedure On_Mouse_Move
+     (W    : in out Widget;
+      X, Y : Pixel_Type) is null;
+   procedure On_Mouse_Up
+     (W      : in out Widget;
+      X, Y   : Pixel_Type;
+      Button : Mouse_Button) is null;
+
+   --  Called for key down events when this widget has focus.
+   procedure On_Key_Down
+     (W        : in out Widget;
+      Scancode : Adi.SDL.Events.SDL_Scancode;
+      Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+      Repeat   : Boolean) is null;
+
+   --  Called for text input events when this widget has focus.
+   procedure On_Text_Input (W : in out Widget; Text : String) is null;
+
+   --  Called when this widget gains/loses keyboard focus.
+   procedure On_Focus_Gained (W : in out Widget) is null;
+   procedure On_Focus_Lost (W : in out Widget) is null;
 
    ---------------------------------------------------------------------------
    --  Optional Overridable Methods

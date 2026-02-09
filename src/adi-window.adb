@@ -294,6 +294,11 @@ package body Adi.Window is
             return null;
          end if;
 
+         --  Skip invisible widgets (matches Render_Tree behavior)
+         if not Has_Flag (Parent.all, Visible) then
+            return null;
+         end if;
+
          --  Check if point is in parent first
          if not Point_In_Widget (Parent, X, Y) then
             return null;

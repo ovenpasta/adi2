@@ -33,6 +33,7 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=button_example
 gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=transition_example
 gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=text_input_example
 gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=demo_flex
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ```
 
 ### Running tests
@@ -51,6 +52,7 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=demo_flex
 ./examples/bin/transition_example
 ./examples/bin/text_input_example
 ./examples/bin/demo_flex
+./examples/bin/stack_example
 ```
 
 ### External Dependencies
@@ -158,6 +160,18 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=demo_flex
 - Double-click word selection is deferred until mouse-up; moving past a small threshold converts to normal drag selection
 - `Create` does not apply built-in styles; examples/apps define `Main/Label/Cursor/Selected` part styles explicitly
 
+**Adi.Widget.Stack** (`adi-widget-stack.ads`): Generic stack container widget
+- Generic over `Page_Id` discrete type (typically an enum)
+- Shows one child at a time; pages keyed by `Page_Id`
+- `Add_Page(Id, Page)`: registers a page; first page added auto-activates
+- `Set_Active(Id)`: hides old page, shows new, fires callback
+- `Get_Page(Id)`: returns page widget (null if never added)
+- All children receive full layout so page switching is instant
+- Rendering/hit-testing of hidden pages excluded via `Visible` flag checks in `Render_Tree` and `Find_Widget_At`
+- Single item: `Panel_Item` (Main_Part) background
+- Type-safe binding with `Button.Options`: instantiate both over the same enum, wire `On_Changed` to `Set_Active`
+- Internally stores `array (Page_Id) of Widget_Access` — enum is the key, no index tracking
+
 **Adi.Layout_Util** (`adi-layout_util.ads`): Layout algorithms
 - Box model calculations: `Content_Box`, `Padding_Box`
 - Edge/border pixel extraction
@@ -234,6 +248,7 @@ examples/
   transition_example.adb - Transition/easing showcase
   text_input_example.adb - Text input widget demo
   demo_flex.adb       - Flexbox layout demo
+  stack_example.adb   - Stack container with tab switching
   css/                - CSS sources for generated example styles
   generated/          - Auto-generated Ada style packages from CSS
   examples.gpr        - Example project file (uses EXAMPLE_KIND scenario)
@@ -262,7 +277,7 @@ All packages are rooted under `Adi`:
 - `Adi.CSS_Styles` - CSS value types and style resolution
 - `Adi.Widget_Styles` - State-based widget styling
 - `Adi.Widget` - Base widget abstraction
-- `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input` - Concrete widgets
+- `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.Stack` - Concrete widgets
 - `Adi.Widget.Part_Styles` - Multi-part style builder
 - `Adi.Text_Buffer` - Shared text editing model
 - `Adi.Animation` - CSS-like style transitions and interpolation

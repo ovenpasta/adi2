@@ -1,0 +1,137 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 24px;
+  gap: 12px;
+  background-color: rgb(19, 26, 38);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 16px;
+  padding: 24px;
+  background-color: rgb(30, 41, 59);
+  border-radius: 10px;
+}
+
+.title::label {
+  color: white;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.hint::label {
+  color: rgb(186, 204, 230);
+  font-size: 13px;
+  text-wrap-mode: wrap;
+}
+
+.status::label {
+  color: rgb(147, 197, 253);
+  font-size: 14px;
+}
+
+.btn-primary {
+  height: 40px;
+  padding: 9px 16px;
+  background-color: rgb(37, 99, 235);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(29, 78, 216);
+  border-radius: 8px;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.btn-primary:hover {
+  background-color: rgb(59, 130, 246);
+  border-color: rgb(37, 99, 235);
+}
+
+.btn-primary:pressed {
+  background-color: rgb(29, 78, 216);
+  border-color: rgb(30, 64, 175);
+}
+
+.btn-primary::label {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.backdrop {
+  background-color: rgba(0, 0, 0, 0.45);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  padding: 24px;
+  min-width: 340px;
+  max-width: 480px;
+  background-color: rgb(255, 255, 255);
+  border-radius: 12px;
+  box-shadow: 0px 16px 48px 0px rgba(0, 0, 0, 0.30);
+}
+
+.dialog-title::label {
+  color: rgb(15, 23, 42);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.dialog-message::label {
+  color: rgb(71, 85, 105);
+  font-size: 14px;
+  text-wrap-mode: wrap;
+}
+
+.button-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialog-btn {
+  height: 36px;
+  padding: 7px 16px;
+  background-color: rgb(241, 245, 249);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(203, 213, 225);
+  border-radius: 6px;
+  transition: background-color 120ms ease-out, border-color 120ms ease-out;
+}
+
+.dialog-btn:hover {
+  background-color: rgb(226, 232, 240);
+  border-color: rgb(148, 163, 184);
+}
+
+.dialog-btn:pressed {
+  background-color: rgb(203, 213, 225);
+  border-color: rgb(100, 116, 139);
+}
+
+.dialog-btn:focus {
+  border-color: rgb(59, 130, 246);
+  box-shadow: 0px 0px 0px 2px rgba(59, 130, 246, 0.3);
+}
+
+.dialog-btn::label {
+  color: rgb(30, 41, 59);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+}

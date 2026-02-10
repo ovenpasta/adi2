@@ -84,15 +84,21 @@ package body Adi.Widget.Label is
 
       --  Get text size from TTF measurement
       if Has_Text then
-         Text_Size := Adi.Font.Measure_Text
-           (Handle    => Label_Style.Font_Family,
-            Content   => To_String (W.Text),
-            Font_Size => Label_Style.Font_Size.Amount);
+         declare
+            Can_Wrap : constant Boolean :=
+              Label_Style.Text_Wrap_Mode = TWM_Wrap
+              and then Label_Style.White_Space /= WS_NoWrap;
+         begin
+            Text_Size := Adi.Font.Measure_Text
+              (Handle    => Label_Style.Font_Family,
+               Content   => To_String (W.Text),
+               Font_Size => Label_Style.Font_Size.Amount);
 
-         --  When wrapping is allowed, text can shrink in the main axis
-         if Label_Style.Text_Wrap_Mode = TWM_Wrap then
-            Text_Size.Width := 0.0;
-         end if;
+            --  When wrapping is allowed, text can shrink in the main axis.
+            if Can_Wrap then
+               Text_Size.Width := 0.0;
+            end if;
+         end;
       end if;
 
       --  Calculate total size based on flex direction

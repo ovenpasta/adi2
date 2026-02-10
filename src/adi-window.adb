@@ -34,6 +34,10 @@ package body Adi.Window is
      (W    : Window;
       X, Y : Pixel_Type;
       F    : Widget_Flag) return Widget_Access;
+   function Is_In_Subtree
+     (Root : Widget_Access;
+      Node : Widget_Access) return Boolean;
+   function Active_Key_Root (W : Window) return Widget_Access;
 
    type Internal is record
       win : Adi.SDL.Video.SDL_Window_Ptr;
@@ -167,6 +171,43 @@ package body Adi.Window is
       Visit (Root);
       return Result;
    end Prev_Focusable;
+
+   function Is_In_Subtree
+     (Root : Widget_Access;
+      Node : Widget_Access) return Boolean
+   is
+   begin
+      if Root = null or else Node = null then
+         return False;
+      end if;
+
+      if Root = Node then
+         return True;
+      end if;
+
+      for I in 1 .. Child_Count (Root.all) loop
+         if Is_In_Subtree (Get_Child (Root.all, I), Node) then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Is_In_Subtree;
+
+   function Active_Key_Root (W : Window) return Widget_Access is
+   begin
+      for I in reverse 1 .. Natural (W.Overlays.Length) loop
+         declare
+            Overlay : constant Widget_Access := W.Overlays.Element (I);
+         begin
+            if Overlay /= null and then Has_Flag (Overlay.all, Visible) then
+               return Overlay;
+            end if;
+         end;
+      end loop;
+
+      return W.Root;
+   end Active_Key_Root;
 
    function Overlay_Index
      (W       : Window;
@@ -800,17 +841,18 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       Shift_Mod : constant Boolean :=
         (Key_Mod and Adi.SDL.Events.SDL_KMOD_SHIFT) /= 0;
       Next_Focus : Widget_Access := null;
+      Key_Root   : constant Widget_Access := Active_Key_Root (W);
    begin
       if Scancode = Adi.SDL.Events.SDL_SCANCODE_TAB then
          if Shift_Mod then
-            Next_Focus := Prev_Focusable (W.Root, W.Focused_Widget);
+            Next_Focus := Prev_Focusable (Key_Root, W.Focused_Widget);
             if Next_Focus = null then
-               Next_Focus := Last_Focusable (W.Root);
+               Next_Focus := Last_Focusable (Key_Root);
             end if;
          else
-            Next_Focus := Next_Focusable (W.Root, W.Focused_Widget);
+            Next_Focus := Next_Focusable (Key_Root, W.Focused_Widget);
             if Next_Focus = null then
-               Next_Focus := First_Focusable (W.Root);
+               Next_Focus := First_Focusable (Key_Root);
             end if;
          end if;
 
@@ -820,8 +862,12 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
          return;
       end if;
 
-      if W.Focused_Widget /= null then
+      if W.Focused_Widget /= null
+        and then Is_In_Subtree (Key_Root, W.Focused_Widget)
+      then
          On_Key_Down (W.Focused_Widget.all, Scancode, Key_Mod, Repeat);
+      elsif Key_Root /= null then
+         On_Key_Down (Key_Root.all, Scancode, Key_Mod, Repeat);
       end if;
    end On_Key_Down;
 

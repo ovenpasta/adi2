@@ -58,6 +58,13 @@ package Adi.Layout_Util is
                       H : H_Alignment := H_Left;
                       V : V_Alignment := V_Top) return Rectangle;
 
+   --  Clamp preferred size between min/max and center within container.
+   function Clamp_And_Center
+     (Container : Rectangle;
+      Preferred : Size_2D;
+      Min_Size  : Size_2D;
+      Max_Size  : Size_2D) return Rectangle;
+
    --  Align using CSS text-align value
    function Align_H_From_CSS (Align : Text_Align_Value) return H_Alignment;
 

@@ -32,4 +32,5 @@ generate_if_needed "$CSS_DIR/list_box_example.css" "$OUT_DIR/list_box_example_st
 generate_if_needed "$CSS_DIR/combo_box_example.css" "$OUT_DIR/combo_box_example_styles.ads" "Combo_Box_Example_Styles"
 generate_if_needed "$CSS_DIR/overflow_example.css" "$OUT_DIR/overflow_example_styles.ads" "Overflow_Example_Styles"
 generate_if_needed "$CSS_DIR/grid_example.css" "$OUT_DIR/grid_example_styles.ads" "Grid_Example_Styles"
+generate_if_needed "$CSS_DIR/dialog_example.css" "$OUT_DIR/dialog_example_styles.ads" "Dialog_Example_Styles"
 generate_if_needed "$CSS_DIR/widget_defaults.css" "$OUT_DIR/widget_defaults_styles.ads" "Widget_Defaults_Styles"

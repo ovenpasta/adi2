@@ -184,6 +184,36 @@ package body Adi.Layout_Util is
       return (Result_X, Result_Y, Result_W, Result_H);
    end Align_In;
 
+   function Clamp_And_Center
+     (Container : Rectangle;
+      Preferred : Size_2D;
+      Min_Size  : Size_2D;
+      Max_Size  : Size_2D) return Rectangle
+   is
+      Min_W : Pixel_Type := Pixel_Type'Max (0.0, Min_Size.Width);
+      Min_H : Pixel_Type := Pixel_Type'Max (0.0, Min_Size.Height);
+      Max_W : Pixel_Type := Pixel_Type'Max (0.0, Max_Size.Width);
+      Max_H : Pixel_Type := Pixel_Type'Max (0.0, Max_Size.Height);
+      Final_W : Pixel_Type;
+      Final_H : Pixel_Type;
+   begin
+      if Max_W < Min_W then
+         Max_W := Min_W;
+      end if;
+      if Max_H < Min_H then
+         Max_H := Min_H;
+      end if;
+
+      Final_W := Pixel_Type'Max (Min_W, Pixel_Type'Min (Max_W, Preferred.Width));
+      Final_H := Pixel_Type'Max (Min_H, Pixel_Type'Min (Max_H, Preferred.Height));
+
+      return
+        (X      => Container.X + (Container.Width - Final_W) / 2.0,
+         Y      => Container.Y + (Container.Height - Final_H) / 2.0,
+         Width  => Final_W,
+         Height => Final_H);
+   end Clamp_And_Center;
+
    function Align_H_From_CSS (Align : Text_Align_Value) return H_Alignment is
    begin
       case Align is

@@ -39,6 +39,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=combo_box_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=overflow_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=dialog_example
 ```
 
 ### Running tests
@@ -62,6 +63,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
 ./examples/bin/combo_box_example
 ./examples/bin/overflow_example
 ./examples/bin/grid_example
+./examples/bin/dialog_example
 ```
 
 ### External Dependencies
@@ -200,6 +202,17 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
 - Popup height is style-driven from CSS (`min-height`/`max-height`) plus row preferred heights, gaps, padding, and border
 - APIs include item management, selection callbacks, popup open/close, and per-part style injection for dropdown/rows
 
+**Adi.Widget.Dialog** (`adi-widget-dialog.ads`): Modal dialog/alert widget
+- Single overlay widget: renders a full-window semi-transparent backdrop (`Main_Part` panel) with a centered content panel
+- Content panel is a `Box_Widget` child containing title label, message label, and button row (flex row)
+- Buttons are internal `Dialog_Button_Widget` (extends `Button_Widget`) that forward Escape key to parent dialog
+- Dismiss policies: `Set_Dismiss_On_Backdrop` and `Set_Dismiss_On_Escape` (both default `True`)
+- Button presets: `Set_OK_Button`, `Set_OK_Cancel`, `Set_Yes_No`, `Set_Yes_No_Cancel`
+- Result callback: `Dialog_Result_Callback` receives button index (1-based) and text; index 0 means dismissed
+- Style injection: `Set_Panel_Style`, `Set_Title_Style`, `Set_Message_Style`, `Set_Button_Row_Style`, `Set_Button_Style`
+- Layout handled in `Build_Items` (overlays bypass `Layout_Tree`): measures content, clamps to min/max width from panel style, centers in window
+- `Show`/`Hide` add/remove self as window overlay via `Attach_Window` host
+
 **Adi.Widget.Stack** (`adi-widget-stack.ads`): Generic stack container widget
 - Generic over `Page_Id` discrete type (typically an enum)
 - Shows one child at a time; pages keyed by `Page_Id`
@@ -216,6 +229,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
 - Box model calculations: `Content_Box`, `Padding_Box`
 - Edge/border pixel extraction
 - Alignment utilities (horizontal/vertical)
+- Floating panel helper: `Clamp_And_Center` clamps preferred size to min/max and centers within a container
 - Flexbox layout support
 - Grid layout support with reusable core algorithm (`Compute_Grid_Layout` / `Grid_To_Rectangles`)
 
@@ -229,6 +243,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
 - Overlay hit testing is prioritized above the root tree; overlays render after root content
 - Tracks hovered/pressed widget part; updates part states on pointer movement so part-scoped selectors resolve correctly
 - Keyboard focus handling with Tab traversal across focusable/visible widgets (Shift+Tab reverse, wraps around)
+- When overlays are present, keyboard traversal/routing is scoped to the topmost visible overlay (e.g. dialog buttons receive Tab navigation and Escape reaches dialog dismiss handlers)
 - Forwards both key-down and key-up events to the focused widget
 - `Tick(DT)`: advances animations on the widget tree each frame
 - Optional minimum-size policy can enforce window min size from layout (`Set_Enforce_Layout_Min_Size`, `Apply_Window_Min_Size_From_Layout`)
@@ -289,6 +304,7 @@ src/                  - Main library source files
   adi-*.ad[bs]        - All library modules follow Ada package naming
   adi-widget-*.ad[bs] - Widget implementations (Box, Label)
   adi-widget-combo_box.ad[bs] - Combo box widget with overlay popup list
+  adi-widget-dialog.ad[bs] - Modal dialog/alert widget with overlay backdrop
   adi-animation.ad[bs] - Style transition animation and interpolation
   adi-sdl-*.ad[bs]    - SDL3 bindings (core, video, render, events, mouse, ttf, image, surface)
 tests/
@@ -308,6 +324,7 @@ examples/
   combo_box_example.adb - Combo box example with styled popup/list interactions
   overflow_example.adb - Overflow demo with 3 rows: block overflow, horizontal text overflow, and wrapped-text vertical overflow (`visible` vs `hidden`)
   grid_example.adb     - CSS grid layout demo with rows/columns and spans
+  dialog_example.adb   - Modal dialog/alert demo with alert and confirm dialogs
   css/widget_defaults.css - Shared default visual styles used by multiple examples
   css/                - CSS sources for generated example styles
   generated/          - Auto-generated Ada style packages from CSS
@@ -337,7 +354,7 @@ All packages are rooted under `Adi`:
 - `Adi.CSS_Styles` - CSS value types and style resolution
 - `Adi.Widget_Styles` - State-based widget styling
 - `Adi.Widget` - Base widget abstraction
-- `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.List_Box`, `Adi.Widget.Stack`, `Adi.Widget.Combo_Box` - Concrete widgets
+- `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.List_Box`, `Adi.Widget.Stack`, `Adi.Widget.Combo_Box`, `Adi.Widget.Dialog` - Concrete widgets
 - `Adi.Widget.Part_Styles` - Multi-part style builder
 - `Adi.Text_Buffer` - Shared text editing model
 - `Adi.Animation` - CSS-like style transitions and interpolation

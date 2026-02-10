@@ -3,6 +3,9 @@ with Adi.CSS_Styles; use Adi.CSS_Styles;
 
 package Adi.Layout_Util is
 
+   Default_Root_Font_Size_Px : constant Pixel_Type :=
+     Pixel_Type (Default_Font_Size.Amount);
+
 
    -------------------------------------------------
    -- Alignment Types
@@ -144,12 +147,14 @@ package Adi.Layout_Util is
    --  Convert Length to pixels (simplified - assumes Px or does basic conversion)
    function Length_To_Px (L : CSS_Styles.Length_Value;
                           Container_Size : Pixel_Type := 0.0;
-                          Font_Size : Pixel_Type := 16.0) return Pixel_Type;
+                          Font_Size : Pixel_Type := Default_Root_Font_Size_Px)
+      return Pixel_Type;
 
    --  Get size from Size_Value
    function Size_To_Px (S : Size_Value;
                         Container_Size : Pixel_Type := 0.0;
-                        Font_Size : Pixel_Type := 16.0) return Pixel_Type;
+                        Font_Size : Pixel_Type := Default_Root_Font_Size_Px)
+      return Pixel_Type;
 
 -------------------------------------------------
    -- Flex Layout Types

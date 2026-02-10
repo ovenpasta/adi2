@@ -40,6 +40,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=combo_box_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=overflow_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=dialog_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
 ```
 
 ### Running tests
@@ -64,6 +65,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=dialog_example
 ./examples/bin/overflow_example
 ./examples/bin/grid_example
 ./examples/bin/dialog_example
+./examples/bin/font_example
 ```
 
 ### External Dependencies
@@ -152,6 +154,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=dialog_example
 - Default geometry initializes to `(0, 0, 0, 0)` (no synthetic default size)
 - Non-rounded panel border rendering supports per-edge widths/colors/styles (e.g. horizontal-only separators)
 - Label text wrapping honors both `text-wrap-mode` and `white-space` (`white-space: nowrap` prevents wrapping)
+- Text rendering applies `font-weight`, `font-style`, and `text-decoration` (`underline`/`line-through`); `overline` is parsed but intentionally not rendered yet
 - **Animation**: Per-part `Part_Transition_Array` tracks active transitions; `Tick_Animations` advances them each frame; `Apply_Styles_To_Items` starts transitions when resolved style targets change
 - **Per-frame hook**: `On_Tick(DT)` (default null) runs from `Tick_Animations` for widget-specific time-based behavior (e.g. inertial scrolling)
 
@@ -232,6 +235,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=dialog_example
 - Floating panel helper: `Clamp_And_Center` clamps preferred size to min/max and centers within a container
 - Flexbox layout support
 - Grid layout support with reusable core algorithm (`Compute_Grid_Layout` / `Grid_To_Rectangles`)
+- Named root font-size default is used for `em/root-em` conversions (no hardcoded magic font-size literals)
 
 **Adi.Window** (`adi-window.ads`): Window management
 - Wraps SDL window and renderer
@@ -325,6 +329,7 @@ examples/
   overflow_example.adb - Overflow demo with 3 rows: block overflow, horizontal text overflow, and wrapped-text vertical overflow (`visible` vs `hidden`)
   grid_example.adb     - CSS grid layout demo with rows/columns and spans
   dialog_example.adb   - Modal dialog/alert demo with alert and confirm dialogs
+  font_example.adb     - Typography demo for weight/style/decoration and wrapping
   css/widget_defaults.css - Shared default visual styles used by multiple examples
   css/                - CSS sources for generated example styles
   generated/          - Auto-generated Ada style packages from CSS
@@ -360,6 +365,9 @@ All packages are rooted under `Adi`:
 - `Adi.Animation` - CSS-like style transitions and interpolation
 - `Adi.Event` - Event types
 - `Adi.Font` - Font loading and caching
+  - `Font_Attributes` record groups family/size/weight/style/decoration
+  - Variant-aware font cache and `Register_Variant` API
+  - Fallback font variant probing for Linux-style suffixes (`Regular`, `Medium`, `Light`, `Thin`, `Black`, `Bold`, with italic/oblique combinations)
 - `Adi.Image` - Image resource management
 - `Adi.Layout_Util` - Layout algorithms
 - `Adi.Render` - Per-renderer context and caches

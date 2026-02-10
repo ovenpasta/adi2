@@ -204,6 +204,14 @@ procedure Main is
           Priority => 100)
      .Build;
 
+   Typography_Widget : constant Widget_Style :=
+     Create
+     .Base ((Font_Weight => Set (Weight_Semi_Bold),
+             Font_Style => Set (Style_Italic),
+             Text_Decoration => Set (Decoration_Underline),
+             others => <>))
+     .Build;
+
    -------------------------------------------------
    -- Test procedures
    -------------------------------------------------
@@ -473,6 +481,19 @@ procedure Main is
       New_Line;
    end Test_Complex_All_States;
 
+   procedure Test_Typography_Resolve is
+      R : constant Resolved_Style := Compute_Resolved (Typography_Widget, (others => False));
+   begin
+      Put_Line ("Test: Typography Resolve");
+      Assert (R.Font_Weight = Weight_Semi_Bold,
+              "Font weight should resolve to Weight_Semi_Bold");
+      Assert (R.Font_Style = Style_Italic,
+              "Font style should resolve to Style_Italic");
+      Assert (R.Text_Decoration = Decoration_Underline,
+              "Text decoration should resolve to Decoration_Underline");
+      New_Line;
+   end Test_Typography_Resolve;
+
 begin
    Put_Line ("========================================");
    Put_Line ("   Widget Style System Tests");
@@ -505,6 +526,11 @@ begin
    Test_Complex_Hovered_And_Disabled;
    Test_Complex_Selected_And_Focused;
    Test_Complex_All_States;
+
+   --  Typography style-field tests
+   Put_Line ("*** TYPOGRAPHY TESTS ***");
+   New_Line;
+   Test_Typography_Resolve;
 
    --  Summary
    Put_Line ("========================================");

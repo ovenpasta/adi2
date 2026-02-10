@@ -3,6 +3,8 @@ with Adi.Layout_Util; use Adi.Layout_Util;
 
 package body Adi.Widget.Label is
 
+   Default_Icon_Size : constant Size_2D := (16.0, 16.0);
+
    ------------
    -- Create --
    ------------
@@ -148,7 +150,7 @@ package body Adi.Widget.Label is
             if Is_Valid (W.Icon.all) then
                Get_Size (W.Icon.all, Icon_Size.Width, Icon_Size.Height);
             else
-               Icon_Size := (16.0, 16.0);  -- Default icon size
+               Icon_Size := Default_Icon_Size;
             end if;
 
             Icon_Item := (
@@ -178,10 +180,16 @@ package body Adi.Widget.Label is
             Text_Item   : Layout_Item;
             Label_Style : constant Resolved_Style :=
               Get_Resolved_Part_Style (W, Label_Part);
-            Text_Size   : constant Size_2D := Adi.Font.Measure_Text
-              (Handle    => Label_Style.Font_Family,
-               Content   => To_String (W.Text),
-               Font_Size => Label_Style.Font_Size.Amount);
+            Font_Attrs  : constant Adi.Font.Font_Attributes :=
+              Adi.Font.Make_Attributes
+                (Family     => Label_Style.Font_Family,
+                 Size       => Label_Style.Font_Size.Amount,
+                 Weight     => Label_Style.Font_Weight,
+                 Style      => Label_Style.Font_Style,
+                 Decoration => Label_Style.Text_Decoration);
+            Text_Size   : constant Size_2D :=
+              Adi.Font.Measure_Text (Attrs => Font_Attrs,
+                                     Content => To_String (W.Text));
             Can_Wrap    : constant Boolean :=
               Label_Style.Text_Wrap_Mode = TWM_Wrap
               and then Label_Style.White_Space /= WS_NoWrap;
@@ -236,12 +244,17 @@ package body Adi.Widget.Label is
                           and then L_Item.Geometry.Width > 0.0
                         then
                            declare
+                              Font_Attrs : constant Adi.Font.Font_Attributes :=
+                                Adi.Font.Make_Attributes
+                                  (Family     => Label_Style.Font_Family,
+                                   Size       => Label_Style.Font_Size.Amount,
+                                   Weight     => Label_Style.Font_Weight,
+                                   Style      => Label_Style.Font_Style,
+                                   Decoration => Label_Style.Text_Decoration);
                               Wrapped : constant Size_2D :=
                                 Adi.Font.Measure_Text_Wrapped
-                                  (Handle     => Label_Style.Font_Family,
+                                  (Attrs      => Font_Attrs,
                                    Content    => To_String (W.Text),
-                                   Font_Size  =>
-                                     Label_Style.Font_Size.Amount,
                                    Wrap_Width => L_Item.Geometry.Width);
                            begin
                               if Wrapped.Height /= L_Item.Geometry.Height

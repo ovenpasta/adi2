@@ -5,8 +5,10 @@ with Adi.Core;              use Adi.Core;
 with Adi.Widget_Styles;     use Adi.Widget_Styles;
 with Adi.CSS_Styles;        use Adi.CSS_Styles;
 with Adi.Animation;         use Adi.Animation;
+with Adi.Font;
 with Adi.Layout_Util;       use Adi.Layout_Util;
 with Adi.SDL.Render;        use Adi.SDL.Render;
+with Adi.SDL.TTF;
 with Adi.SDL.TTF.TextEngine;
 with Adi.SDL.Events;
 with Adi.Render;            use Adi.Render;
@@ -78,6 +80,9 @@ package Adi.Widget is
       --  Text rendering cache (only used by Text_Item)
       Cached_TTF_Text    : Adi.SDL.TTF.TextEngine.TTF_Text_Access := null;
       Cached_Text_String : Unbounded_String := Null_Unbounded_String;
+      Cached_Font        : Adi.SDL.TTF.TTF_Font_Access := null;
+      Cached_Font_Attrs  : Adi.Font.Font_Attributes :=
+        Adi.Font.Default_Font_Attributes;
    end record;
 
    package Items_List is new

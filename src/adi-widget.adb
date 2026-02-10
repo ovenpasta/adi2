@@ -1576,14 +1576,18 @@ package body Adi.Widget is
    is
       use Interfaces.C;
       use Interfaces.C.Strings;
+      use type Adi.Font.Font_Attributes;
 
       Content    : constant String := To_String (It.Text_Content);
       Style      : Resolved_Style renames It.Computed_Style;
       Geom       : Rectangle renames It.Geometry;
       Text_Obj   : TTF_Text_Access;
       Font       : TTF_Font_Access;
+      Prev_Font  : constant TTF_Font_Access := It.Cached_Font;
       C_Text     : chars_ptr;
       Font_Sz    : Float;
+      Font_Attrs : Adi.Font.Font_Attributes;
+      Font_Key_Changed : Boolean;
       R, G, B, A : Uint8;
       Success    : Adi.SDL.C_bool;
       Engine     : TTF_TextEngine_Access;
@@ -1609,17 +1613,44 @@ package body Adi.Widget is
       --  Calculate font size
       Font_Sz := Float (Length_To_Px (Style.Font_Size, Container_Size => Geom.Height));
       if Font_Sz = 0.0 then
-         Font_Sz := 16.0;
+         Font_Sz := Adi.Font.Default_Font_Size_Px;
       end if;
 
-      --  Get the correctly-sized font from the cache
-      Font := Adi.Font.Get_TTF_Font (Style.Font_Family, Font_Sz);
-      if Font = null then
-         return;
+      Font_Attrs := Adi.Font.Make_Attributes
+        (Family     => Style.Font_Family,
+         Size       => Font_Sz,
+         Weight     => Style.Font_Weight,
+         Style      => Style.Font_Style,
+         Decoration => Style.Text_Decoration);
+
+      Font_Key_Changed :=
+        It.Cached_Font = null
+        or else It.Cached_Font_Attrs /= Font_Attrs;
+
+      if Font_Key_Changed then
+         Font := Adi.Font.Get_TTF_Font (Font_Attrs);
+         if Font = null then
+            return;
+         end if;
+
+         It.Cached_Font := Font;
+         It.Cached_Font_Attrs := Font_Attrs;
+      else
+         Font := It.Cached_Font;
       end if;
 
       --  Reuse or create cached text object
       Text_Obj := It.Cached_TTF_Text;
+
+      if Text_Obj /= null and then (Font_Key_Changed or else Prev_Font /= Font) then
+         Success := TTF_SetTextFont (Text_Obj, Font);
+         if not Boolean (Success) then
+            TTF_DestroyText (Text_Obj);
+            Text_Obj := null;
+            It.Cached_TTF_Text := null;
+            It.Cached_Text_String := Null_Unbounded_String;
+         end if;
+      end if;
 
       if Text_Obj = null then
          --  First time: create text object

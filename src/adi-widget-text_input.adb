@@ -128,9 +128,14 @@ package body Adi.Widget.Text_Input is
       Prefix   : constant String :=
         (if Safe_Col = 0 then ""
          else Line (1 .. Integer (Safe_Col)));
-      Font_Sz  : constant Float := Float (Label_Style.Font_Size.Amount);
-      Font     : constant TTF_Font_Access :=
-        Adi.Font.Get_TTF_Font (Label_Style.Font_Family, Font_Sz);
+      Font_Attrs : constant Adi.Font.Font_Attributes :=
+        Adi.Font.Make_Attributes
+          (Family     => Label_Style.Font_Family,
+           Size       => Float (Label_Style.Font_Size.Amount),
+           Weight     => Label_Style.Font_Weight,
+           Style      => Label_Style.Font_Style,
+           Decoration => Label_Style.Text_Decoration);
+      Font     : constant TTF_Font_Access := Adi.Font.Get_TTF_Font (Font_Attrs);
       C_Text   : chars_ptr;
       W, H     : aliased int;
       Ok       : Adi.SDL.C_bool;
@@ -160,9 +165,14 @@ package body Adi.Widget.Text_Input is
       Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
       Line        : constant String := Get_Line (W.Buffer, 1);
       Line_Len    : constant Natural := Line'Length;
-      Font_Sz     : constant Float := Float (Label_Style.Font_Size.Amount);
-      Font        : constant TTF_Font_Access :=
-        Adi.Font.Get_TTF_Font (Label_Style.Font_Family, Font_Sz);
+      Font_Attrs  : constant Adi.Font.Font_Attributes :=
+        Adi.Font.Make_Attributes
+          (Family     => Label_Style.Font_Family,
+           Size       => Float (Label_Style.Font_Size.Amount),
+           Weight     => Label_Style.Font_Weight,
+           Style      => Label_Style.Font_Style,
+           Decoration => Label_Style.Text_Decoration);
+      Font        : constant TTF_Font_Access := Adi.Font.Get_TTF_Font (Font_Attrs);
       Max_Width   : constant int := int
         (Integer
            (Pixel_Type'Max (0.0, X - Content.X + W.Horizontal_Scroll)));
@@ -259,10 +269,15 @@ package body Adi.Widget.Text_Input is
       Main_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Label_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Label_Part);
       Sample      : constant String := (if Get_Text (W)'Length = 0 then "M" else Get_Text (W));
-      Text_Size   : constant Size_2D := Adi.Font.Measure_Text
-        (Handle    => Label_Style.Font_Family,
-         Content   => Sample,
-         Font_Size => Label_Style.Font_Size.Amount);
+      Font_Attrs  : constant Adi.Font.Font_Attributes :=
+        Adi.Font.Make_Attributes
+          (Family     => Label_Style.Font_Family,
+           Size       => Label_Style.Font_Size.Amount,
+           Weight     => Label_Style.Font_Weight,
+           Style      => Label_Style.Font_Style,
+           Decoration => Label_Style.Text_Decoration);
+      Text_Size   : constant Size_2D :=
+        Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => Sample);
       Pad    : constant Edge_Pixels := Get_Padding_Px (Main_Style);
       Border : constant Edge_Pixels := Get_Border_Width_Px (Main_Style);
    begin
@@ -285,10 +300,15 @@ package body Adi.Widget.Text_Input is
       Sel_Start    : Position;
       Sel_Stop     : Position;
       Has_Sel      : Boolean;
-      Text_Size    : constant Size_2D := Adi.Font.Measure_Text
-        (Handle    => Label_Style.Font_Family,
-         Content   => First_Line,
-         Font_Size => Label_Style.Font_Size.Amount);
+      Font_Attrs   : constant Adi.Font.Font_Attributes :=
+        Adi.Font.Make_Attributes
+          (Family     => Label_Style.Font_Family,
+           Size       => Label_Style.Font_Size.Amount,
+           Weight     => Label_Style.Font_Weight,
+           Style      => Label_Style.Font_Style,
+           Decoration => Label_Style.Text_Decoration);
+      Text_Size    : constant Size_2D :=
+        Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => First_Line);
       Caret_Col    : constant Natural := Normalize_Column (First_Line, Caret.Column);
       Prefix_W     : constant Pixel_Type :=
         Prefix_Width_For_Column (Label_Style, First_Line, Caret_Col);

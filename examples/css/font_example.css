@@ -1,0 +1,122 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 20px;
+  background-color: rgb(17, 24, 39);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 16px;
+  background-color: rgb(31, 41, 55);
+  border-radius: 10px;
+}
+
+.title::label {
+  color: white;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.hint::label {
+  color: rgb(191, 219, 254);
+  font-size: 13px;
+}
+
+.section_title::label {
+  color: rgb(147, 197, 253);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sample {
+  padding: 8px 10px;
+  background-color: rgb(15, 23, 42);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(71, 85, 105);
+  border-radius: 8px;
+}
+
+.sample::label {
+  color: rgb(226, 232, 240);
+  font-size: 18px;
+  text-wrap-mode: nowrap;
+}
+
+.weight_normal::label {
+  font-weight: 400;
+}
+
+.weight_light::label {
+  font-weight: 300;
+}
+
+.weight_medium::label {
+  font-weight: 500;
+}
+
+.weight_semibold::label {
+  font-weight: 600;
+}
+
+.weight_bold::label {
+  font-weight: 700;
+}
+
+.weight_black::label {
+  font-weight: 900;
+}
+
+.style_italic::label {
+  font-style: italic;
+}
+
+.style_oblique::label {
+  font-style: oblique;
+}
+
+.size_small::label {
+  font-size: 12px;
+}
+
+.size_base::label {
+  font-size: 18px;
+}
+
+.size_large::label {
+  font-size: 28px;
+}
+
+.decor_underline::label {
+  text-decoration: underline;
+}
+
+.decor_strike::label {
+  text-decoration: line-through;
+}
+
+.decor_overline::label {
+  text-decoration: overline;
+}
+
+.wrap_sample {
+  padding: 8px 10px;
+  background-color: rgb(30, 41, 59);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(100, 116, 139);
+  border-radius: 8px;
+  min-height: 56px;
+}
+
+.wrap_sample::label {
+  color: rgb(219, 234, 254);
+  font-size: 14px;
+  text-wrap-mode: wrap;
+}

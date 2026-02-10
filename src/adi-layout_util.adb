@@ -6,7 +6,9 @@ package body Adi.Layout_Util is
 
    function Length_To_Px (L : Length_Value;
                           Container_Size : Pixel_Type := 0.0;
-                          Font_Size : Pixel_Type := 16.0) return Pixel_Type is
+                          Font_Size : Pixel_Type := Default_Root_Font_Size_Px)
+      return Pixel_Type
+   is
    begin
       case L.Unit is
          when Px =>
@@ -17,8 +19,7 @@ package body Adi.Layout_Util is
          when Em =>
             return Pixel_Type (L.Amount * Float (Font_Size));
          when Root_Em =>
-            --  Assume root font size = 16
-            return Pixel_Type (L.Amount * 16.0);
+            return Pixel_Type (L.Amount * Float (Default_Root_Font_Size_Px));
          when Pct =>
             return Pixel_Type (L.Amount / 100.0 * Float (Container_Size));
       end case;
@@ -27,7 +28,9 @@ package body Adi.Layout_Util is
 
    function Size_To_Px (S : Size_Value;
                         Container_Size : Pixel_Type := 0.0;
-                        Font_Size : Pixel_Type := 16.0) return Pixel_Type is
+                        Font_Size : Pixel_Type := Default_Root_Font_Size_Px)
+      return Pixel_Type
+   is
    begin
       case S.Kind is
          when Fixed =>

@@ -75,7 +75,7 @@ package Overflow_Example_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Overflow => Set (Overflow_Visible),
-      Height => Set (Size (Px (170.0))),
+      Height => Set (Size (Px (120.0))),
       Padding => Set (CSS_Box (Px (10.0))),
       Gap => Set (Gap (Px (8.0))),
       Background_Color => Set_Bg (RGBA (96, 165, 250, 0.16)),
@@ -83,6 +83,7 @@ package Overflow_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (96, 165, 250))),
       Border_Radius => Set (Radius (Px (8.0))),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>
    );
 
@@ -91,7 +92,7 @@ package Overflow_Example_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Overflow => Set (Overflow_Hidden),
-      Height => Set (Size (Px (170.0))),
+      Height => Set (Size (Px (120.0))),
       Padding => Set (CSS_Box (Px (10.0))),
       Gap => Set (Gap (Px (8.0))),
       Background_Color => Set_Bg (RGBA (74, 222, 128, 0.16)),
@@ -99,6 +100,7 @@ package Overflow_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (74, 222, 128))),
       Border_Radius => Set (Radius (Px (8.0))),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>
    );
 
@@ -107,6 +109,47 @@ package Overflow_Example_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (8.0))),
+      others => <>
+   );
+
+   --  Base style for long-line
+   Long_Line_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (430.0))),
+      Padding => Set (CSS_Box (Px (8.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (148, 163, 184))),
+      Background_Color => Set_Bg (RGBA (15, 23, 42, 0.45)),
+      Border_Radius => Set (Radius (Px (6.0))),
+      others => <>
+   );
+
+   --  Base style for long-line::label
+   Long_Line_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (241, 245, 249)),
+      Font_Size => Set_Font (Px (12.0)),
+      White_Space => Set (WS_Nowrap),
+      others => <>
+   );
+
+   --  Base style for wrap-line
+   Wrap_Line_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Pct (100.0))),
+      Padding => Set (CSS_Box (Px (8.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (100, 116, 139))),
+      Background_Color => Set_Bg (RGBA (15, 23, 42, 0.3)),
+      Border_Radius => Set (Radius (Px (6.0))),
+      others => <>
+   );
+
+   --  Base style for wrap-line::label
+   Wrap_Line_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (241, 245, 249)),
+      Font_Size => Set_Font (Px (12.0)),
+      Text_Wrap_Mode => Set (TWM_Wrap),
+      White_Space => Set (WS_Normal),
       others => <>
    );
 
@@ -238,6 +281,40 @@ package Overflow_Example_Styles is
    --  Part styles bundle for content-stack
    Content_Stack_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Content_Stack_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for long-line
+   Long_Line_Widget : constant Widget_Style :=
+     From (Long_Line_Base_Style)
+     .Build;
+
+   --  Complete widget style for long-line::label
+   Long_Line_Label_Widget : constant Widget_Style :=
+     From (Long_Line_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for long-line
+   Long_Line_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Long_Line_Widget, Enabled => True),
+      Label_Part => (Style => Long_Line_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for wrap-line
+   Wrap_Line_Widget : constant Widget_Style :=
+     From (Wrap_Line_Base_Style)
+     .Build;
+
+   --  Complete widget style for wrap-line::label
+   Wrap_Line_Label_Widget : constant Widget_Style :=
+     From (Wrap_Line_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for wrap-line
+   Wrap_Line_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Wrap_Line_Widget, Enabled => True),
+      Label_Part => (Style => Wrap_Line_Label_Widget, Enabled => True),
       others => <>
    ];
 

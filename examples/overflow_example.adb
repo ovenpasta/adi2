@@ -30,8 +30,10 @@ begin
         Adi.Widget.Label.Create ("Overflow Behavior: visible vs hidden");
       Hint       : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create
-          ("Left container is overflow: visible (spills out). Right is overflow: hidden (clipped).");
-      Panels     : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+          ("Row 1: block overflow. Row 2: horizontal text overflow. Row 3: wrapped text vertical overflow.");
+      Panels_Row_1 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Panels_Row_2 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Panels_Row_3 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
       Visible_Panel : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Hidden_Panel  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
@@ -46,11 +48,55 @@ begin
 
       Visible_Content : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Hidden_Content  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+
+      Text_Visible_Panel : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Text_Hidden_Panel  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Text_Visible_Title : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("text overflow: visible");
+      Text_Hidden_Title  : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("text overflow: hidden");
+      Text_Visible_Clip : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Text_Hidden_Clip  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Text_Visible_Content : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Text_Hidden_Content  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+
+      Wrap_Visible_Panel : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Wrap_Hidden_Panel  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Wrap_Visible_Title : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("wrapped text vertical overflow: visible");
+      Wrap_Hidden_Title  : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("wrapped text vertical overflow: hidden");
+      Wrap_Visible_Clip : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Wrap_Hidden_Clip  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Wrap_Visible_Content : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Wrap_Hidden_Content  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+
+      Visible_Long_Line : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create
+          ("LONG TEXT: The quick brown fox jumps over the lazy dog while this line should overflow horizontally.");
+      Hidden_Long_Line  : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create
+          ("LONG TEXT: The quick brown fox jumps over the lazy dog while this line should overflow horizontally.");
+
+      Wrap_Line_Visible : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create
+          ("WRAPPED TEXT: This is a single very long paragraph designed to wrap across many lines so the rendered text becomes taller than the clip container height. "
+           & "When overflow is visible, the bottom lines should continue outside the panel boundary. "
+           & "When overflow is hidden, those extra wrapped lines should be clipped and not visible. "
+           & "This sentence continues with additional words to ensure enough vertical text overflow for clear comparison.");
+      Wrap_Line_Hidden : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create
+          ("WRAPPED TEXT: This is a single very long paragraph designed to wrap across many lines so the rendered text becomes taller than the clip container height. "
+           & "When overflow is visible, the bottom lines should continue outside the panel boundary. "
+           & "When overflow is hidden, those extra wrapped lines should be clipped and not visible. "
+           & "This sentence continues with additional words to ensure enough vertical text overflow for clear comparison.");
    begin
       Set_Part_Styles (Root.all, Root_Part_Styles);
       Set_Part_Styles (Title.all, Title_Part_Styles);
       Set_Part_Styles (Hint.all, Hint_Part_Styles);
-      Set_Part_Styles (Panels.all, Panels_Part_Styles);
+      Set_Part_Styles (Panels_Row_1.all, Panels_Part_Styles);
+      Set_Part_Styles (Panels_Row_2.all, Panels_Part_Styles);
+      Set_Part_Styles (Panels_Row_3.all, Panels_Part_Styles);
 
       Set_Part_Styles (Visible_Panel.all, Panel_Part_Styles);
       Set_Part_Styles (Hidden_Panel.all, Panel_Part_Styles);
@@ -61,6 +107,29 @@ begin
       Set_Part_Styles (Hidden_Clip.all, Clip_Hidden_Part_Styles);
       Set_Part_Styles (Visible_Content.all, Content_Stack_Part_Styles);
       Set_Part_Styles (Hidden_Content.all, Content_Stack_Part_Styles);
+
+      Set_Part_Styles (Text_Visible_Panel.all, Panel_Part_Styles);
+      Set_Part_Styles (Text_Hidden_Panel.all, Panel_Part_Styles);
+      Set_Part_Styles (Text_Visible_Title.all, Panel_Title_Part_Styles);
+      Set_Part_Styles (Text_Hidden_Title.all, Panel_Title_Part_Styles);
+      Set_Part_Styles (Text_Visible_Clip.all, Clip_Visible_Part_Styles);
+      Set_Part_Styles (Text_Hidden_Clip.all, Clip_Hidden_Part_Styles);
+      Set_Part_Styles (Text_Visible_Content.all, Content_Stack_Part_Styles);
+      Set_Part_Styles (Text_Hidden_Content.all, Content_Stack_Part_Styles);
+
+      Set_Part_Styles (Wrap_Visible_Panel.all, Panel_Part_Styles);
+      Set_Part_Styles (Wrap_Hidden_Panel.all, Panel_Part_Styles);
+      Set_Part_Styles (Wrap_Visible_Title.all, Panel_Title_Part_Styles);
+      Set_Part_Styles (Wrap_Hidden_Title.all, Panel_Title_Part_Styles);
+      Set_Part_Styles (Wrap_Visible_Clip.all, Clip_Visible_Part_Styles);
+      Set_Part_Styles (Wrap_Hidden_Clip.all, Clip_Hidden_Part_Styles);
+      Set_Part_Styles (Wrap_Visible_Content.all, Content_Stack_Part_Styles);
+      Set_Part_Styles (Wrap_Hidden_Content.all, Content_Stack_Part_Styles);
+
+      Set_Part_Styles (Visible_Long_Line.all, Long_Line_Part_Styles);
+      Set_Part_Styles (Hidden_Long_Line.all, Long_Line_Part_Styles);
+      Set_Part_Styles (Wrap_Line_Visible.all, Wrap_Line_Part_Styles);
+      Set_Part_Styles (Wrap_Line_Hidden.all, Wrap_Line_Part_Styles);
 
       --  Add intentionally oversized content to both containers.
       Add_Child (Visible_Content.all, Widget_Access (New_Item (Item_A_Part_Styles)));
@@ -81,12 +150,36 @@ begin
       Add_Child (Hidden_Panel.all, Widget_Access (Hidden_Title));
       Add_Child (Hidden_Panel.all, Widget_Access (Hidden_Clip));
 
-      Add_Child (Panels.all, Widget_Access (Visible_Panel));
-      Add_Child (Panels.all, Widget_Access (Hidden_Panel));
+      Add_Child (Text_Visible_Content.all, Widget_Access (Visible_Long_Line));
+      Add_Child (Text_Hidden_Content.all, Widget_Access (Hidden_Long_Line));
+      Add_Child (Text_Visible_Clip.all, Widget_Access (Text_Visible_Content));
+      Add_Child (Text_Hidden_Clip.all, Widget_Access (Text_Hidden_Content));
+      Add_Child (Text_Visible_Panel.all, Widget_Access (Text_Visible_Title));
+      Add_Child (Text_Visible_Panel.all, Widget_Access (Text_Visible_Clip));
+      Add_Child (Text_Hidden_Panel.all, Widget_Access (Text_Hidden_Title));
+      Add_Child (Text_Hidden_Panel.all, Widget_Access (Text_Hidden_Clip));
+
+      Add_Child (Wrap_Visible_Content.all, Widget_Access (Wrap_Line_Visible));
+      Add_Child (Wrap_Hidden_Content.all, Widget_Access (Wrap_Line_Hidden));
+      Add_Child (Wrap_Visible_Clip.all, Widget_Access (Wrap_Visible_Content));
+      Add_Child (Wrap_Hidden_Clip.all, Widget_Access (Wrap_Hidden_Content));
+      Add_Child (Wrap_Visible_Panel.all, Widget_Access (Wrap_Visible_Title));
+      Add_Child (Wrap_Visible_Panel.all, Widget_Access (Wrap_Visible_Clip));
+      Add_Child (Wrap_Hidden_Panel.all, Widget_Access (Wrap_Hidden_Title));
+      Add_Child (Wrap_Hidden_Panel.all, Widget_Access (Wrap_Hidden_Clip));
+
+      Add_Child (Panels_Row_1.all, Widget_Access (Visible_Panel));
+      Add_Child (Panels_Row_1.all, Widget_Access (Hidden_Panel));
+      Add_Child (Panels_Row_2.all, Widget_Access (Text_Visible_Panel));
+      Add_Child (Panels_Row_2.all, Widget_Access (Text_Hidden_Panel));
+      Add_Child (Panels_Row_3.all, Widget_Access (Wrap_Visible_Panel));
+      Add_Child (Panels_Row_3.all, Widget_Access (Wrap_Hidden_Panel));
 
       Add_Child (Root.all, Widget_Access (Title));
       Add_Child (Root.all, Widget_Access (Hint));
-      Add_Child (Root.all, Widget_Access (Panels));
+      Add_Child (Root.all, Widget_Access (Panels_Row_1));
+      Add_Child (Root.all, Widget_Access (Panels_Row_2));
+      Add_Child (Root.all, Widget_Access (Panels_Row_3));
 
       W.Set_Root (Widget_Access (Root));
       A.Add_Window (W);

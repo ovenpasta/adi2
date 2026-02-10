@@ -148,6 +148,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
 - Per-corner border radius: `Render_Rounded_Rect` overload accepts `Corner_Pixels`
 - Default geometry initializes to `(0, 0, 0, 0)` (no synthetic default size)
 - Non-rounded panel border rendering supports per-edge widths/colors/styles (e.g. horizontal-only separators)
+- Label text wrapping honors both `text-wrap-mode` and `white-space` (`white-space: nowrap` prevents wrapping)
 - **Animation**: Per-part `Part_Transition_Array` tracks active transitions; `Tick_Animations` advances them each frame; `Apply_Styles_To_Items` starts transitions when resolved style targets change
 - **Per-frame hook**: `On_Tick(DT)` (default null) runs from `Tick_Animations` for widget-specific time-based behavior (e.g. inertial scrolling)
 
@@ -303,7 +304,7 @@ examples/
   stack_example.adb   - Stack container with tab switching
   list_box_example.adb - List box selection/scrolling demo
   combo_box_example.adb - Combo box example with styled popup/list interactions
-  overflow_example.adb - Overflow visible vs hidden clipping behavior demo
+  overflow_example.adb - Overflow demo with 3 rows: block overflow, horizontal text overflow, and wrapped-text vertical overflow (`visible` vs `hidden`)
   grid_example.adb     - CSS grid layout demo with rows/columns and spans
   css/widget_defaults.css - Shared default visual styles used by multiple examples
   css/                - CSS sources for generated example styles

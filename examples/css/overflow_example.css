@@ -51,7 +51,7 @@
   display: flex;
   flex-direction: column;
   overflow: visible;
-  height: 170px;
+  height: 120px;
   padding: 10px;
   gap: 8px;
   background-color: rgba(96, 165, 250, 0.16);
@@ -59,13 +59,14 @@
   border-style: solid;
   border-color: rgb(96, 165, 250);
   border-radius: 8px;
+  text-wrap-mode: nowrap;
 }
 
 .clip-hidden {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  height: 170px;
+  height: 120px;
   padding: 10px;
   gap: 8px;
   background-color: rgba(74, 222, 128, 0.16);
@@ -73,12 +74,46 @@
   border-style: solid;
   border-color: rgb(74, 222, 128);
   border-radius: 8px;
+  text-wrap-mode: nowrap;
 }
 
 .content-stack {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.long-line {
+  width: 430px;
+  padding: 8px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(148, 163, 184);
+  background-color: rgba(15, 23, 42, 0.45);
+  border-radius: 6px;
+}
+
+.long-line::label {
+  color: rgb(241, 245, 249);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.wrap-line {
+  width: 100%;
+  padding: 8px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(100, 116, 139);
+  background-color: rgba(15, 23, 42, 0.30);
+  border-radius: 6px;
+}
+
+.wrap-line::label {
+  color: rgb(241, 245, 249);
+  font-size: 12px;
+  text-wrap-mode: wrap;
+  white-space: normal;
 }
 
 .item-a {

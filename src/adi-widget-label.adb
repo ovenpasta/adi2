@@ -177,7 +177,8 @@ package body Adi.Widget.Label is
                Content   => To_String (W.Text),
                Font_Size => Label_Style.Font_Size.Amount);
             Can_Wrap    : constant Boolean :=
-              Label_Style.Text_Wrap_Mode = TWM_Wrap;
+              Label_Style.Text_Wrap_Mode = TWM_Wrap
+              and then Label_Style.White_Space /= WS_NoWrap;
          begin
             Text_Item := (
                Part           => Label_Part,
@@ -186,8 +187,7 @@ package body Adi.Widget.Label is
                Min_Height     => Float (Text_Size.Height),
                Max_Width      => Float'Last,
                Max_Height     => Float'Last,
-               Content_Width  => (if Can_Wrap then 0.0
-                                  else Float (Text_Size.Width)),
+               Content_Width  => Float (Text_Size.Width),
                Content_Height => Float (Text_Size.Height),
                Flex           => (
                   Grow       => 1.0,
@@ -338,8 +338,13 @@ package body Adi.Widget.Label is
       --  Update text item
       declare
          Text_It : Item renames W.Items.Reference (Text_Idx).Element.all;
+         Label_Style : constant Resolved_Style :=
+           Get_Resolved_Part_Style (W, Label_Part);
       begin
          Text_It.Text_Content := W.Text;
+         Text_It.Wrap_Text :=
+           Label_Style.Text_Wrap_Mode = TWM_Wrap
+           and then Label_Style.White_Space /= WS_NoWrap;
          for L_Item of W.Layout_Items loop
             if L_Item.Part = Label_Part then
                Text_It.Geometry := L_Item.Geometry;

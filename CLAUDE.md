@@ -89,6 +89,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
 - Length units: `Px`, `Dip`, `Em`, `Root_Em`, `Pct`
 - Color values: Named colors, RGB, RGBA
 - Optional values pattern for style inheritance/cascading
+- `Style_Rules` carries optional/unset values for CSS cascade/override semantics; `Resolved_Style` is fully concrete with defaults (safe to read directly)
 - Border, padding, margin, background properties
 - Box shadow with blur, spread, offset, and color
 - Comprehensive style properties matching CSS box model

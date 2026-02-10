@@ -795,79 +795,79 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
 
    type Resolved_Style is record
       -- Colors
-      Color            : Color_Value;
-      Background_Color : Color_Value;
-      Background_Image : Background_Image_Value;
+      Color            : Color_Value := Default_Color;
+      Background_Color : Color_Value := Default_Background;
+      Background_Image : Background_Image_Value := Default_Background_Image;
 
       -- Border
-      Border_Radius    : Border_Radius_Value;
-      Border_Width     : Border_Width_Value;
-      Border_Color     : Border_Color_Value;
-      Border_Style     : Border_Style_Value;
+      Border_Radius    : Border_Radius_Value := Default_Radius;
+      Border_Width     : Border_Width_Value := Default_Border_Width;
+      Border_Color     : Border_Color_Value := Default_Border_Color_Val;
+      Border_Style     : Border_Style_Value := Default_Border_Style;
 
       -- Spacing
-      Padding          : CSS_Box_Value;
-      Margin           : CSS_Box_Value;
+      Padding          : CSS_Box_Value := Default_CSS_Box;
+      Margin           : CSS_Box_Value := Default_CSS_Box;
 
       -- Sizing
-      Width            : Size_Value;
-      Height           : Size_Value;
-      Min_Width        : Size_Value;
-      Max_Width        : Size_Value;
-      Min_Height       : Size_Value;
-      Max_Height       : Size_Value;
+      Width            : Size_Value := Default_Size;
+      Height           : Size_Value := Default_Size;
+      Min_Width        : Size_Value := Default_Size;
+      Max_Width        : Size_Value := Default_Size;
+      Min_Height       : Size_Value := Default_Size;
+      Max_Height       : Size_Value := Default_Size;
 
       -- Typography
-    Font_Family      : Font_Handle;
-    Font_Size        : Length_Value;
-    Font_Weight      : Font_Weight_Value;
-    Font_Style       : Font_Style_Value;
-    Text_Align       : Text_Align_Value;
-    Vertical_Align   : Vertical_Align_Value;
-    Text_Decoration  : Text_Decoration_Value;
-    White_Space      : White_Space_Value;
-    Text_Overflow    : Text_Overflow_Value;
-    Text_Wrap_Mode   : Text_Wrap_Mode_Value;
-    Line_Height      : Line_Height_Value;
+      Font_Family      : Font_Handle := Default_Font;
+      Font_Size        : Length_Value := Default_Font_Size;
+      Font_Weight      : Font_Weight_Value := Default_Font_Weight;
+      Font_Style       : Font_Style_Value := Default_Font_Style;
+      Text_Align       : Text_Align_Value := Default_Text_Align;
+      Vertical_Align   : Vertical_Align_Value := Default_Vertical_Align;
+      Text_Decoration  : Text_Decoration_Value := Default_Text_Decoration;
+      White_Space      : White_Space_Value := Default_White_Space;
+      Text_Overflow    : Text_Overflow_Value := Default_Text_Overflow;
+      Text_Wrap_Mode   : Text_Wrap_Mode_Value := Default_Text_Wrap_Mode;
+      Line_Height      : Line_Height_Value := Default_Line_Height;
 
       -- Layout
-      Display          : Display_Value;
-      Position         : Position_Value;
-      Overflow         : Overflow_Value;
-      Visibility       : Visibility_Value;
+      Display          : Display_Value := Default_Display;
+      Position         : Position_Value := Default_Position;
+      Overflow         : Overflow_Value := Default_Overflow;
+      Visibility       : Visibility_Value := Default_Visibility;
 
       -- Visual
-      Opacity          : Opacity_Value;
-      Cursor           : Cursor_Value;
-      Box_Shadow       : Box_Shadow_Value;
+      Opacity          : Opacity_Value := Default_Opacity;
+      Cursor           : Cursor_Value := Default_Cursor;
+      Box_Shadow       : Box_Shadow_Value := Default_Box_Shadow;
 
       -- Object/Image
-      Object_Fit       : Object_Fit_Value;
-      Object_Position  : Object_Position_Value;
+      Object_Fit       : Object_Fit_Value := Default_Object_Fit;
+      Object_Position  : Object_Position_Value := Default_Object_Position;
 
       -- Flexbox Container
-      Flex_Direction   : Flex_Direction_Value;
-      Flex_Wrap        : Flex_Wrap_Value;
-      Justify_Content  : Justify_Content_Value;
-      Align_Items      : Align_Items_Value;
-      Align_Content    : Align_Content_Value;
-      Gap              : Gap_Value;
-      Grid_Columns     : Grid_Columns_Value;
-      Grid_Rows        : Grid_Rows_Value;
+      Flex_Direction   : Flex_Direction_Value := Default_Flex_Direction;
+      Flex_Wrap        : Flex_Wrap_Value := Default_Flex_Wrap;
+      Justify_Content  : Justify_Content_Value := Default_Justify_Content;
+      Align_Items      : Align_Items_Value := Default_Align_Items;
+      Align_Content    : Align_Content_Value := Default_Align_Content;
+      Gap              : Gap_Value := Default_Gap;
+      Grid_Columns     : Grid_Columns_Value := Default_Grid_Columns;
+      Grid_Rows        : Grid_Rows_Value := Default_Grid_Rows;
 
       -- Flexbox Item
-      Align_Self       : Align_Self_Value;
-      Flex_Grow        : Flex_Grow_Value;
-      Flex_Shrink      : Flex_Shrink_Value;
-      Flex_Basis       : Flex_Basis_Value;
-      Order            : Order_Value;
-      Grid_Column      : Grid_Column_Value;
-      Grid_Row         : Grid_Row_Value;
-      Grid_Column_Span : Grid_Column_Span_Value;
-      Grid_Row_Span    : Grid_Row_Span_Value;
+      Align_Self       : Align_Self_Value := Default_Align_Self;
+      Flex_Grow        : Flex_Grow_Value := Default_Flex_Grow;
+      Flex_Shrink      : Flex_Shrink_Value := Default_Flex_Shrink;
+      Flex_Basis       : Flex_Basis_Value := Default_Flex_Basis;
+      Order            : Order_Value := Default_Order;
+      Grid_Column      : Grid_Column_Value := Default_Grid_Column;
+      Grid_Row         : Grid_Row_Value := Default_Grid_Row;
+      Grid_Column_Span : Grid_Column_Span_Value := Default_Grid_Column_Span;
+      Grid_Row_Span    : Grid_Row_Span_Value := Default_Grid_Row_Span;
 
       -- Animation
-      Transition       : Transition_Spec;
+      Transition       : Transition_Spec := Default_Transition;
 
    end record;
 

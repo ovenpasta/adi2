@@ -925,6 +925,30 @@ def generate_box_ada(lengths: list[ParsedLength]) -> str:
     return "CSS_Box (Zero_Length)"
 
 
+def box_lengths_to_four(lengths: list[ParsedLength]) -> list[ParsedLength]:
+    """Expand 1-4 CSS box shorthand lengths to [top, right, bottom, left]."""
+    if len(lengths) == 1:
+        return [lengths[0], lengths[0], lengths[0], lengths[0]]
+    if len(lengths) == 2:
+        return [lengths[0], lengths[1], lengths[0], lengths[1]]
+    if len(lengths) == 3:
+        return [lengths[0], lengths[1], lengths[2], lengths[1]]
+    if len(lengths) >= 4:
+        return [lengths[0], lengths[1], lengths[2], lengths[3]]
+    z = ParsedLength(0, "px")
+    return [z, z, z, z]
+
+
+def generate_box_from_four_ada(sides: list[ParsedLength]) -> str:
+    """Generate CSS_Box Ada expression from [top, right, bottom, left]."""
+    return (
+        f"CSS_Box ({generate_length_ada(sides[0])}, "
+        f"{generate_length_ada(sides[1])}, "
+        f"{generate_length_ada(sides[2])}, "
+        f"{generate_length_ada(sides[3])})"
+    )
+
+
 def generate_border_width_ada(lengths: list[ParsedLength]) -> str:
     """Generate Ada code for border-width"""
     if len(lengths) == 1:
@@ -956,6 +980,22 @@ def generate_border_radius_ada(lengths: list[ParsedLength]) -> str:
 def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ") -> list[str]:
     """Generate Ada Style_Rules record fields from CSS properties"""
     fields = []
+    padding_sides = None
+    margin_sides = None
+
+    def ensure_padding_sides():
+        nonlocal padding_sides
+        if padding_sides is None:
+            z = ParsedLength(0, "px")
+            padding_sides = [z, z, z, z]
+        return padding_sides
+
+    def ensure_margin_sides():
+        nonlocal margin_sides
+        if margin_sides is None:
+            z = ParsedLength(0, "px")
+            margin_sides = [z, z, z, z]
+        return margin_sides
     
     for prop, value in properties.items():
         ada_field = None
@@ -976,13 +1016,46 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         elif prop == "padding":
             lengths = parse_box_values(value)
             if lengths:
-                ada_field = f"Padding => Set ({generate_box_ada(lengths)})"
+                padding_sides = box_lengths_to_four(lengths)
+        
+        elif prop == "padding-top":
+            length = parse_length(value)
+            if length:
+                ensure_padding_sides()[0] = length
+        elif prop == "padding-right":
+            length = parse_length(value)
+            if length:
+                ensure_padding_sides()[1] = length
+        elif prop == "padding-bottom":
+            length = parse_length(value)
+            if length:
+                ensure_padding_sides()[2] = length
+        elif prop == "padding-left":
+            length = parse_length(value)
+            if length:
+                ensure_padding_sides()[3] = length
         
         # Margin
         elif prop == "margin":
             lengths = parse_box_values(value)
             if lengths:
-                ada_field = f"Margin => Set ({generate_box_ada(lengths)})"
+                margin_sides = box_lengths_to_four(lengths)
+        elif prop == "margin-top":
+            length = parse_length(value)
+            if length:
+                ensure_margin_sides()[0] = length
+        elif prop == "margin-right":
+            length = parse_length(value)
+            if length:
+                ensure_margin_sides()[1] = length
+        elif prop == "margin-bottom":
+            length = parse_length(value)
+            if length:
+                ensure_margin_sides()[2] = length
+        elif prop == "margin-left":
+            length = parse_length(value)
+            if length:
+                ensure_margin_sides()[3] = length
         
         # Border width
         elif prop == "border-width":
@@ -1304,6 +1377,11 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
 
         if ada_field:
             fields.append(f"{indent}{ada_field}")
+
+    if padding_sides is not None:
+        fields.append(f"{indent}Padding => Set ({generate_box_from_four_ada(padding_sides)})")
+    if margin_sides is not None:
+        fields.append(f"{indent}Margin => Set ({generate_box_from_four_ada(margin_sides)})")
     
     return fields
 

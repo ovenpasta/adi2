@@ -104,7 +104,8 @@ procedure Css_Parser_Test is
      ".card::label:focus { color: rgb(88, 77, 66); }" & ASCII.LF &
      "#submit { background-color: rgb(12, 34, 56); }" & ASCII.LF &
      "button { color: rgb(9, 8, 7); }" & ASCII.LF &
-     ".seconds { transition: opacity 1.25s linear; }" & ASCII.LF;
+     ".seconds { transition: opacity 1.25s linear; }" & ASCII.LF &
+     ".sides { padding: 1px 2px 3px 4px; padding-left: 11px; margin: 5px; margin-top: 9px; }" & ASCII.LF;
 
 begin
    Put_Line ("CSS parser test");
@@ -133,6 +134,7 @@ begin
       Submit_Styles  : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Id (Sheet, "submit");
       Tag_Styles     : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Tag (Sheet, "button");
       Seconds_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "seconds");
+      Sides_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "sides");
       Missing_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For (Sheet, "missing");
 
       Main_Normal : constant Resolved_Style := Compute_Resolved (Styles (Main_Part).Style, No_States, No_States);
@@ -175,6 +177,7 @@ begin
       Submit_Main : constant Resolved_Style := Compute_Resolved (Submit_Styles (Main_Part).Style, No_States, No_States);
       Tag_Main : constant Resolved_Style := Compute_Resolved (Tag_Styles (Main_Part).Style, No_States, No_States);
       Seconds_Main : constant Resolved_Style := Compute_Resolved (Seconds_Styles (Main_Part).Style, No_States, No_States);
+      Sides_Main : constant Resolved_Style := Compute_Resolved (Sides_Styles (Main_Part).Style, No_States, No_States);
       Missing_Main : constant Resolved_Style := Compute_Resolved (Missing_Styles (Main_Part).Style, No_States, No_States);
    begin
       Assert (Is_RGBA_Color (Main_Normal.Background_Color, 16, 34, 51, 0.8),
@@ -296,6 +299,18 @@ begin
               and then Seconds_Main.Transition.Properties (Prop_Opacity)
               and then not Seconds_Main.Transition.Properties (Prop_Background_Color),
               "Transition should parse seconds duration and linear easing");
+      Assert (Sides_Main.Padding.Kind = Per_Side
+              and then Sides_Main.Padding.Sides (Top).Amount = 1.0
+              and then Sides_Main.Padding.Sides (Right).Amount = 2.0
+              and then Sides_Main.Padding.Sides (Bottom).Amount = 3.0
+              and then Sides_Main.Padding.Sides (Left).Amount = 11.0,
+              "Padding side longhands should override shorthand per side");
+      Assert (Sides_Main.Margin.Kind = Per_Side
+              and then Sides_Main.Margin.Sides (Top).Amount = 9.0
+              and then Sides_Main.Margin.Sides (Right).Amount = 5.0
+              and then Sides_Main.Margin.Sides (Bottom).Amount = 5.0
+              and then Sides_Main.Margin.Sides (Left).Amount = 5.0,
+              "Margin side longhands should override shorthand per side");
       Assert (Missing_Main.Background_Color.Kind = Named
               and then Missing_Main.Background_Color.Name = Transparent,
               "Unknown class should return default/empty styles");

@@ -451,6 +451,31 @@ package body Adi.CSS_Parser is
       return False;
    end Parse_Size_Value;
 
+   function Box_To_Sides (B : CSS_Box_Value) return CSS_Box_Sides is
+   begin
+      case B.Kind is
+         when Gap_Uniform =>
+            return [others => B.All_Sides];
+         when Axis =>
+            return (
+              Top => B.Vertical,
+              Right => B.Horizontal,
+              Bottom => B.Vertical,
+              Left => B.Horizontal);
+         when Per_Side =>
+            return B.Sides;
+      end case;
+   end Box_To_Sides;
+
+   function Set_Box_Side (B : CSS_Box_Value;
+                          Side : Edge;
+                          Value : Length_Value) return CSS_Box_Value is
+      Sides : CSS_Box_Sides := Box_To_Sides (B);
+   begin
+      Sides (Side) := Value;
+      return CSS_Box (Sides (Top), Sides (Right), Sides (Bottom), Sides (Left));
+   end Set_Box_Side;
+
    function Parse_Box_Shadow (Input : String; Out_Shadow : out Box_Shadow_Value) return Boolean is
       V : constant String := Lower (Trimmed (Input));
       Color_Start : Natural := 0;
@@ -898,8 +923,88 @@ package body Adi.CSS_Parser is
          if Parse_Color (V, CVal) then Rules.Background_Color := Set_Bg (CVal); end if;
       elsif P = "padding" then
          if Parse_Box (V, Box) then Rules.Padding := Set (Box); end if;
+      elsif P = "padding-top" then
+         if Parse_Length (V, LVal) then
+            Rules.Padding := Set (
+              Set_Box_Side (
+                (if Opt_Box.Is_Set (Rules.Padding)
+                 then Opt_Box.Resolve (Rules.Padding)
+                 else Default_CSS_Box),
+                Top,
+                To_Length (LVal)));
+         end if;
+      elsif P = "padding-right" then
+         if Parse_Length (V, LVal) then
+            Rules.Padding := Set (
+              Set_Box_Side (
+                (if Opt_Box.Is_Set (Rules.Padding)
+                 then Opt_Box.Resolve (Rules.Padding)
+                 else Default_CSS_Box),
+                Right,
+                To_Length (LVal)));
+         end if;
+      elsif P = "padding-bottom" then
+         if Parse_Length (V, LVal) then
+            Rules.Padding := Set (
+              Set_Box_Side (
+                (if Opt_Box.Is_Set (Rules.Padding)
+                 then Opt_Box.Resolve (Rules.Padding)
+                 else Default_CSS_Box),
+                Bottom,
+                To_Length (LVal)));
+         end if;
+      elsif P = "padding-left" then
+         if Parse_Length (V, LVal) then
+            Rules.Padding := Set (
+              Set_Box_Side (
+                (if Opt_Box.Is_Set (Rules.Padding)
+                 then Opt_Box.Resolve (Rules.Padding)
+                 else Default_CSS_Box),
+                Left,
+                To_Length (LVal)));
+         end if;
       elsif P = "margin" then
          if Parse_Box (V, Box) then Rules.Margin := Set (Box); end if;
+      elsif P = "margin-top" then
+         if Parse_Length (V, LVal) then
+            Rules.Margin := Set (
+              Set_Box_Side (
+                (if Opt_Box.Is_Set (Rules.Margin)
+                 then Opt_Box.Resolve (Rules.Margin)
+                 else Default_CSS_Box),
+                Top,
+                To_Length (LVal)));
+         end if;
+      elsif P = "margin-right" then
+         if Parse_Length (V, LVal) then
+            Rules.Margin := Set (
+              Set_Box_Side (
+                (if Opt_Box.Is_Set (Rules.Margin)
+                 then Opt_Box.Resolve (Rules.Margin)
+                 else Default_CSS_Box),
+                Right,
+                To_Length (LVal)));
+         end if;
+      elsif P = "margin-bottom" then
+         if Parse_Length (V, LVal) then
+            Rules.Margin := Set (
+              Set_Box_Side (
+                (if Opt_Box.Is_Set (Rules.Margin)
+                 then Opt_Box.Resolve (Rules.Margin)
+                 else Default_CSS_Box),
+                Bottom,
+                To_Length (LVal)));
+         end if;
+      elsif P = "margin-left" then
+         if Parse_Length (V, LVal) then
+            Rules.Margin := Set (
+              Set_Box_Side (
+                (if Opt_Box.Is_Set (Rules.Margin)
+                 then Opt_Box.Resolve (Rules.Margin)
+                 else Default_CSS_Box),
+                Left,
+                To_Length (LVal)));
+         end if;
       elsif P = "border-width" then
          if Parse_Border_Width (V, BW) then Rules.Border_Width := Set (BW); end if;
       elsif P = "border-color" then

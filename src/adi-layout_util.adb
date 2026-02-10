@@ -563,6 +563,16 @@ package body Adi.Layout_Util is
       --  For space distribution
       Space_Per_Item   : Pixel_Type := 0.0;
       Initial_Space    : Pixel_Type := 0.0;
+      Total_Main_Margins : Pixel_Type := 0.0;
+
+      function Main_Before (M : Edge_Pixels) return Pixel_Type is
+        (if Is_Row_Direction (Context.Direction) then M.Left else M.Top);
+      function Main_After (M : Edge_Pixels) return Pixel_Type is
+        (if Is_Row_Direction (Context.Direction) then M.Right else M.Bottom);
+      function Cross_Before (M : Edge_Pixels) return Pixel_Type is
+        (if Is_Row_Direction (Context.Direction) then M.Top else M.Left);
+      function Cross_After (M : Edge_Pixels) return Pixel_Type is
+        (if Is_Row_Direction (Context.Direction) then M.Bottom else M.Right);
    begin
       if Num_Children = 0 then
          return;
@@ -594,11 +604,13 @@ package body Adi.Layout_Util is
             Total_Flex_Basis := Total_Flex_Basis + Basis;
             Total_Grow := Total_Grow + Child.Flex_Grow;
             Total_Shrink := Total_Shrink + Child.Flex_Shrink * Float(Basis);
+            Total_Main_Margins :=
+              Total_Main_Margins + Main_Before (Child.Margin) + Main_After (Child.Margin);
          end;
       end loop;
 
       --  Step 2: Calculate free space
-      Available_Space := Container_Main - Total_Gaps;
+      Available_Space := Container_Main - Total_Gaps - Total_Main_Margins;
       Free_Space := Available_Space - Total_Flex_Basis;
 
       --  Step 3: Distribute free space (grow or shrink)
@@ -645,9 +657,11 @@ package body Adi.Layout_Util is
          Actual_Used : Pixel_Type := 0.0;
       begin
          for I in Children'Range loop
-            Actual_Used := Actual_Used + Children(I).Computed_Main;
+            Actual_Used := Actual_Used + Children (I).Computed_Main
+              + Main_Before (Children (I).Margin)
+              + Main_After (Children (I).Margin);
          end loop;
-         Free_Space := Available_Space - Actual_Used;
+         Free_Space := (Container_Main - Total_Gaps) - Actual_Used;
       end;
 
       --  Step 5: Position items based on justify-content
@@ -707,19 +721,28 @@ package body Adi.Layout_Util is
             Child : Flex_Child_Info renames Children(I);
             Cross_Start : Pixel_Type := 0.0;
             Effective_Align : Align_Items_Value;
+            Main_Before_Margin : constant Pixel_Type := Main_Before (Child.Margin);
+            Main_After_Margin  : constant Pixel_Type := Main_After (Child.Margin);
+            Cross_Before_Margin : constant Pixel_Type := Cross_Before (Child.Margin);
+            Cross_After_Margin  : constant Pixel_Type := Cross_After (Child.Margin);
+            Cross_Available : Pixel_Type := 0.0;
          begin
             --  Main axis position
             if Is_Reversed(Context.Direction) then
-               Current_Pos := Current_Pos - Child.Computed_Main;
+               Current_Pos := Current_Pos - Main_After_Margin - Child.Computed_Main;
                Child.Computed_Pos_Main := Current_Pos;
+               Current_Pos := Current_Pos - Main_Before_Margin;
                if I < Children'Last then
                   Current_Pos := Current_Pos - Main_Gap - Space_Per_Item;
                end if;
             else
-               Child.Computed_Pos_Main := Current_Pos;
-               Current_Pos := Current_Pos + Child.Computed_Main + Main_Gap;
-               if Context.Justify_Content in Space_Between | Space_Around | Space_Evenly then
-                  Current_Pos := Current_Pos + Space_Per_Item;
+               Child.Computed_Pos_Main := Current_Pos + Main_Before_Margin;
+               Current_Pos := Child.Computed_Pos_Main + Child.Computed_Main + Main_After_Margin;
+               if I < Children'Last then
+                  Current_Pos := Current_Pos + Main_Gap;
+                  if Context.Justify_Content in Space_Between | Space_Around | Space_Evenly then
+                     Current_Pos := Current_Pos + Space_Per_Item;
+                  end if;
                end if;
             end if;
 
@@ -739,37 +762,41 @@ package body Adi.Layout_Util is
                end case;
             end if;
 
+            Cross_Available :=
+              Pixel_Type'Max (0.0, Container_Cross - Cross_Before_Margin - Cross_After_Margin);
+
             case Effective_Align is
                when Adi.CSS_Styles.Flex_Start =>
                   Child.Computed_Cross := Child.Content_Cross;
                   Child.Computed_Cross := Pixel_Type'Max(Child.Min_Cross,
                      Pixel_Type'Min(Child.Max_Cross, Child.Computed_Cross));
-                  Cross_Start := 0.0;
+                  Cross_Start := Cross_Before_Margin;
 
                when Adi.CSS_Styles.Flex_End =>
                   Child.Computed_Cross := Child.Content_Cross;
                   Child.Computed_Cross := Pixel_Type'Max(Child.Min_Cross,
                      Pixel_Type'Min(Child.Max_Cross, Child.Computed_Cross));
-                  Cross_Start := Container_Cross - Child.Computed_Cross;
+                  Cross_Start := Container_Cross - Cross_After_Margin - Child.Computed_Cross;
 
                when Adi.CSS_Styles.Center =>
                   Child.Computed_Cross := Child.Content_Cross;
                   Child.Computed_Cross := Pixel_Type'Max(Child.Min_Cross,
                      Pixel_Type'Min(Child.Max_Cross, Child.Computed_Cross));
-                  Cross_Start := (Container_Cross - Child.Computed_Cross) / 2.0;
+                  Cross_Start := Cross_Before_Margin
+                    + (Cross_Available - Child.Computed_Cross) / 2.0;
 
                when Adi.CSS_Styles.Stretch =>
-                  Child.Computed_Cross := Container_Cross;
+                  Child.Computed_Cross := Cross_Available;
                   Child.Computed_Cross := Pixel_Type'Max(Child.Min_Cross,
                      Pixel_Type'Min(Child.Max_Cross, Child.Computed_Cross));
-                  Cross_Start := 0.0;
+                  Cross_Start := Cross_Before_Margin;
 
                when Adi.CSS_Styles.Baseline =>
                   --  Simplified: treat as flex-start
                   Child.Computed_Cross := Child.Content_Cross;
                   Child.Computed_Cross := Pixel_Type'Max(Child.Min_Cross,
                      Pixel_Type'Min(Child.Max_Cross, Child.Computed_Cross));
-                  Cross_Start := 0.0;
+                  Cross_Start := Cross_Before_Margin;
             end case;
 
             Child.Computed_Pos_Cross := Cross_Start;

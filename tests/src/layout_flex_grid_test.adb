@@ -103,6 +103,60 @@ procedure Layout_Flex_Grid_Test is
                    "flex items remain non-overlapping in order");
    end Test_Flex_Shrink_Min;
 
+   procedure Test_Flex_Margins is
+      Ctx : Flex_Layout_Context := (
+         Container       => (0.0, 0.0, 200.0, 80.0),
+         Direction       => Row,
+         Wrap            => No_Wrap,
+         Justify_Content => Flex_Start,
+         Align_Items     => Stretch,
+         Align_Content   => Stretch,
+         Row_Gap         => 10.0,
+         Column_Gap      => 0.0
+      );
+      Kids : Flex_Child_Info_Array (1 .. 2);
+      Rects : Rectangle_Array (1 .. 2);
+   begin
+      Kids (1) := (
+         Flex_Grow => 0.0,
+         Flex_Shrink => 0.0,
+         Flex_Basis => 50.0,
+         Min_Main => 0.0,
+         Max_Main => Pixel_Type'Last,
+         Min_Cross => 0.0,
+         Max_Cross => Pixel_Type'Last,
+         Content_Main => 50.0,
+         Content_Cross => 12.0,
+         Margin => (Top => 5.0, Right => 20.0, Bottom => 7.0, Left => 10.0),
+         others => <>);
+
+      Kids (2) := (
+         Flex_Grow => 0.0,
+         Flex_Shrink => 0.0,
+         Flex_Basis => 50.0,
+         Min_Main => 0.0,
+         Max_Main => Pixel_Type'Last,
+         Min_Cross => 0.0,
+         Max_Cross => Pixel_Type'Last,
+         Content_Main => 50.0,
+         Content_Cross => 12.0,
+         Margin => (Top => 2.0, Right => 6.0, Bottom => 3.0, Left => 4.0),
+         others => <>);
+
+      Compute_Flex_Layout (Ctx, Kids);
+      Rects := Flex_To_Rectangles (Ctx, Kids);
+
+      Assert_Close (Rects (1).X, 10.0, "flex margins row first x");
+      Assert_Close (Rects (1).Width, 50.0, "flex margins row first width");
+      Assert_Close (Rects (1).Y, 5.0, "flex margins row first y");
+      Assert_Close (Rects (1).Height, 68.0, "flex margins row first stretched height");
+
+      Assert_Close (Rects (2).X, 94.0, "flex margins row second x includes first right+gap+own left");
+      Assert_Close (Rects (2).Width, 50.0, "flex margins row second width");
+      Assert_Close (Rects (2).Y, 2.0, "flex margins row second y");
+      Assert_Close (Rects (2).Height, 75.0, "flex margins row second stretched height");
+   end Test_Flex_Margins;
+
    procedure Test_Grid_Auto_And_Span is
       Ctx : Grid_Layout_Context := (
          Container => (0.0, 0.0, 300.0, 150.0),
@@ -189,6 +243,7 @@ begin
 
    Test_Flex_Grow_Resize;
    Test_Flex_Shrink_Min;
+   Test_Flex_Margins;
    Test_Grid_Auto_And_Span;
    Test_Grid_Resize_And_Overflow_Policy;
 

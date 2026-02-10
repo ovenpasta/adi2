@@ -73,16 +73,29 @@ package body Adi.Widget.Box is
       if Style.Display = Flex or else Style.Display = Inline_Flex then
          for Child of W.Children loop
             declare
+               Child_Style : constant Resolved_Style :=
+                 Get_Resolved_Part_Style (Child.all, Main_Part);
+               Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
                Pref : constant Size_2D := Get_Preferred_Size (Child.all);
                Min  : constant Size_2D := Get_Min_Size (Child.all);
                Effective : constant Size_2D :=
                  (Width  => Pixel_Type'Max (Pref.Width, Min.Width),
                   Height => Pixel_Type'Max (Pref.Height, Min.Height));
+               Main_Margins : constant Pixel_Type :=
+                 (if Is_Row_Direction (Style.Flex_Direction)
+                  then Margin.Left + Margin.Right
+                  else Margin.Top + Margin.Bottom);
+               Cross_Margins : constant Pixel_Type :=
+                 (if Is_Row_Direction (Style.Flex_Direction)
+                  then Margin.Top + Margin.Bottom
+                  else Margin.Left + Margin.Right);
             begin
-               Main_Sum := Main_Sum + Get_Main_Size (Effective, Style.Flex_Direction);
+               Main_Sum := Main_Sum
+                 + Get_Main_Size (Effective, Style.Flex_Direction)
+                 + Main_Margins;
                Cross_Max :=
                  Pixel_Type'Max
-                   (Cross_Max, Get_Cross_Size (Effective, Style.Flex_Direction));
+                   (Cross_Max, Get_Cross_Size (Effective, Style.Flex_Direction) + Cross_Margins);
                Count := Count + 1;
             end;
          end loop;
@@ -101,14 +114,19 @@ package body Adi.Widget.Box is
          begin
             for Child of W.Children loop
                declare
+                  Child_Style : constant Resolved_Style :=
+                    Get_Resolved_Part_Style (Child.all, Main_Part);
+                  Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
                   Pref : constant Size_2D := Get_Preferred_Size (Child.all);
                   Min  : constant Size_2D := Get_Min_Size (Child.all);
                   Effective : constant Size_2D :=
                     (Width  => Pixel_Type'Max (Pref.Width, Min.Width),
                      Height => Pixel_Type'Max (Pref.Height, Min.Height));
-               begin
-                  Max_Child_W := Pixel_Type'Max (Max_Child_W, Effective.Width);
-                  Max_Child_H := Pixel_Type'Max (Max_Child_H, Effective.Height);
+                begin
+                  Max_Child_W := Pixel_Type'Max
+                    (Max_Child_W, Effective.Width + Margin.Left + Margin.Right);
+                  Max_Child_H := Pixel_Type'Max
+                    (Max_Child_H, Effective.Height + Margin.Top + Margin.Bottom);
                   Count := Count + 1;
                end;
             end loop;
@@ -135,14 +153,18 @@ package body Adi.Widget.Box is
       else
          for Child of W.Children loop
             declare
+               Child_Style : constant Resolved_Style :=
+                 Get_Resolved_Part_Style (Child.all, Main_Part);
+               Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
                Pref : constant Size_2D := Get_Preferred_Size (Child.all);
                Min  : constant Size_2D := Get_Min_Size (Child.all);
                Effective : constant Size_2D :=
                  (Width  => Pixel_Type'Max (Pref.Width, Min.Width),
                   Height => Pixel_Type'Max (Pref.Height, Min.Height));
             begin
-               Result.Width := Pixel_Type'Max (Result.Width, Effective.Width);
-               Result.Height := Result.Height + Effective.Height;
+               Result.Width := Pixel_Type'Max
+                 (Result.Width, Effective.Width + Margin.Left + Margin.Right);
+               Result.Height := Result.Height + Effective.Height + Margin.Top + Margin.Bottom;
             end;
          end loop;
       end if;
@@ -247,21 +269,31 @@ overriding procedure Layout (W : in out Box_Widget) is
             --  Simple vertical stacking for block layout
             for Child of W.Children loop
                declare
+                  Child_Style : constant Resolved_Style :=
+                    Get_Resolved_Part_Style (Child.all, Main_Part);
+                  Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
                   Child_Pref : constant Size_2D := Get_Preferred_Size(Child.all);
                   Child_H : Pixel_Type := Child_Pref.Height;
+                  Child_X : Pixel_Type;
+                  Child_Y : Pixel_Type;
+                  Child_W : Pixel_Type;
                begin
                   --  Child takes full width, preferred height
                   if Child_H = 0.0 then
-                     Child_H := Content_H;  -- Fallback to container height
+                     Child_H := Pixel_Type'Max (0.0, Content_H - Margin.Top - Margin.Bottom);
                   end if;
 
+                  Child_X := Content_X + Margin.Left;
+                  Child_Y := Current_Y + Margin.Top;
+                  Child_W := Pixel_Type'Max (0.0, Content_W - Margin.Left - Margin.Right);
+
                   Set_Geometry(Child.all, (
-                     X      => Content_X,
-                     Y      => Current_Y,
-                     Width  => Content_W,
+                     X      => Child_X,
+                     Y      => Child_Y,
+                     Width  => Child_W,
                      Height => Child_H));
 
-                  Current_Y := Current_Y + Child_H;
+                  Current_Y := Current_Y + Margin.Top + Child_H + Margin.Bottom;
 
                   --  Recursively layout child
                   Layout(Child.all);

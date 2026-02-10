@@ -259,7 +259,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 - Edge/border pixel extraction
 - Alignment utilities (horizontal/vertical)
 - Floating panel helper: `Clamp_And_Center` clamps preferred size to min/max and centers within a container
-- Flexbox layout support
+- Flexbox layout support (child margins are applied on main/cross axes)
 - Grid layout support with reusable core algorithm (`Compute_Grid_Layout` / `Grid_To_Rectangles`)
 - Named root font-size default is used for `em/root-em` conversions (no hardcoded magic font-size literals)
 
@@ -471,7 +471,8 @@ Binding behavior:
 
 The tool supports a comprehensive set of CSS properties including:
 
-- **Box model**: `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`, `padding`, `margin`
+- **Box model**: `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`,
+  `padding`, `margin`, `padding-top/right/bottom/left`, `margin-top/right/bottom/left`
 - **Borders**: `border`, `border-width`, `border-color`, `border-style`, `border-radius`
 - **Colors**: `color`, `background-color` (named colors, hex, rgb, rgba)
 - **Typography**: `font-size`, `font-weight`, `font-style`, `text-align`, `vertical-align`, `text-decoration`, `line-height`, `white-space`, `text-overflow`, `text-wrap-mode`

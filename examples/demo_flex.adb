@@ -86,9 +86,9 @@ procedure Demo_Flex is
          Gap_Px    => 10.0);
    begin
       Put_Line ("Demo 1: Row with fixed size boxes");
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Red), W => 60.0, H => 40.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Green), W => 80.0, H => 60.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Blue), W => 50.0, H => 50.0)));
+      Container.Add_Child (Create_Box (C (Red), W => 60.0, H => 40.0));
+      Container.Add_Child (Create_Box (C (Green), W => 80.0, H => 60.0));
+      Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 50.0));
       return Container;
    end Demo_Row_Fixed;
 
@@ -103,9 +103,9 @@ procedure Demo_Flex is
          Gap_Px    => 10.0);
    begin
       Put_Line ("Demo 2: Row with flex-grow (1:2:1 ratio)");
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Red), H => 50.0, Grow => 1.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Green), H => 50.0, Grow => 2.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Blue), H => 50.0, Grow => 1.0)));
+      Container.Add_Child (Create_Box (C (Red), H => 50.0, Grow => 1.0));
+      Container.Add_Child (Create_Box (C (Green), H => 50.0, Grow => 2.0));
+      Container.Add_Child (Create_Box (C (Blue), H => 50.0, Grow => 1.0));
       return Container;
    end Demo_Row_Grow;
 
@@ -120,9 +120,9 @@ procedure Demo_Flex is
          Gap_Px    => 8.0);
    begin
       Put_Line ("Demo 3: Column layout with stretch");
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Orange), H => 30.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Purple), H => 40.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Yellow), H => 35.0)));
+      Container.Add_Child (Create_Box (C (Orange), H => 30.0));
+      Container.Add_Child (Create_Box (C (Purple), H => 40.0));
+      Container.Add_Child (Create_Box (C (Yellow), H => 35.0));
       return Container;
    end Demo_Column;
 
@@ -137,9 +137,9 @@ procedure Demo_Flex is
          Gap_Px    => 0.0);  -- Gap not used with space-between
    begin
       Put_Line ("Demo 4: Space-between distribution");
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Red), W => 50.0, H => 40.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Green), W => 50.0, H => 40.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Blue), W => 50.0, H => 40.0)));
+      Container.Add_Child (Create_Box (C (Red), W => 50.0, H => 40.0));
+      Container.Add_Child (Create_Box (C (Green), W => 50.0, H => 40.0));
+      Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 40.0));
       return Container;
    end Demo_Space_Between;
 
@@ -154,9 +154,9 @@ procedure Demo_Flex is
          Gap_Px    => 0.0);
    begin
       Put_Line ("Demo 5: Space-around distribution");
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Red), W => 40.0, H => 40.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Green), W => 40.0, H => 40.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Blue), W => 40.0, H => 40.0)));
+      Container.Add_Child (Create_Box (C (Red), W => 40.0, H => 40.0));
+      Container.Add_Child (Create_Box (C (Green), W => 40.0, H => 40.0));
+      Container.Add_Child (Create_Box (C (Blue), W => 40.0, H => 40.0));
       return Container;
    end Demo_Space_Around;
 
@@ -171,9 +171,9 @@ procedure Demo_Flex is
          Gap_Px    => 0.0);
    begin
       Put_Line ("Demo 6: Space-evenly distribution");
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Orange), W => 40.0, H => 40.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Purple), W => 40.0, H => 40.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Yellow), W => 40.0, H => 40.0)));
+      Container.Add_Child (Create_Box (C (Orange), W => 40.0, H => 40.0));
+      Container.Add_Child (Create_Box (C (Purple), W => 40.0, H => 40.0));
+      Container.Add_Child (Create_Box (C (Yellow), W => 40.0, H => 40.0));
       return Container;
    end Demo_Space_Evenly;
 
@@ -188,9 +188,9 @@ procedure Demo_Flex is
          Gap_Px    => 10.0);
    begin
       Put_Line ("Demo 7: Align-items: flex-start");
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Red), W => 50.0, H => 30.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Green), W => 50.0, H => 50.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Blue), W => 50.0, H => 40.0)));
+      Container.Add_Child (Create_Box (C (Red), W => 50.0, H => 30.0));
+      Container.Add_Child (Create_Box (C (Green), W => 50.0, H => 50.0));
+      Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 40.0));
       return Container;
    end Demo_Align_Start;
 
@@ -205,9 +205,9 @@ procedure Demo_Flex is
          Gap_Px    => 10.0);
    begin
       Put_Line ("Demo 8: Align-items: flex-end");
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Red), W => 50.0, H => 30.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Green), W => 50.0, H => 50.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Blue), W => 50.0, H => 40.0)));
+      Container.Add_Child (Create_Box (C (Red), W => 50.0, H => 30.0));
+      Container.Add_Child (Create_Box (C (Green), W => 50.0, H => 50.0));
+      Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 40.0));
       return Container;
    end Demo_Align_End;
 
@@ -222,9 +222,9 @@ procedure Demo_Flex is
          Gap_Px    => 10.0);
    begin
       Put_Line ("Demo 9: Align-items: center");
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Red), W => 50.0, H => 30.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Green), W => 50.0, H => 60.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Blue), W => 50.0, H => 45.0)));
+      Container.Add_Child (Create_Box (C (Red), W => 50.0, H => 30.0));
+      Container.Add_Child (Create_Box (C (Green), W => 50.0, H => 60.0));
+      Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 45.0));
       return Container;
    end Demo_Align_Center;
 
@@ -239,9 +239,9 @@ procedure Demo_Flex is
          Gap_Px    => 10.0);
    begin
       Put_Line ("Demo 10: Row-reverse (RGB should appear as BGR)");
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Red), W => 60.0, H => 40.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Green), W => 60.0, H => 40.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Blue), W => 60.0, H => 40.0)));
+      Container.Add_Child (Create_Box (C (Red), W => 60.0, H => 40.0));
+      Container.Add_Child (Create_Box (C (Green), W => 60.0, H => 40.0));
+      Container.Add_Child (Create_Box (C (Blue), W => 60.0, H => 40.0));
       return Container;
    end Demo_Row_Reverse;
 
@@ -256,9 +256,9 @@ procedure Demo_Flex is
          Gap_Px    => 8.0);
    begin
       Put_Line ("Demo 11: Column-reverse");
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Red), W => 80.0, H => 25.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Green), W => 80.0, H => 25.0)));
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Blue), W => 80.0, H => 25.0)));
+      Container.Add_Child (Create_Box (C (Red), W => 80.0, H => 25.0));
+      Container.Add_Child (Create_Box (C (Green), W => 80.0, H => 25.0));
+      Container.Add_Child (Create_Box (C (Blue), W => 80.0, H => 25.0));
       return Container;
    end Demo_Column_Reverse;
 
@@ -290,9 +290,9 @@ procedure Demo_Flex is
       Put_Line ("Demo 12: Nested flex containers");
 
       --  Left column children
-      Add_Child (Left_Column.all, Widget_Access (Create_Box (C (Blue), H => 30.0)));
-      Add_Child (Left_Column.all, Widget_Access (Create_Box (C (Blue), H => 30.0)));
-      Add_Child (Left_Column.all, Widget_Access (Create_Box (C (Blue), H => 30.0)));
+      Left_Column.Add_Child (Create_Box (C (Blue), H => 30.0));
+      Left_Column.Add_Child (Create_Box (C (Blue), H => 30.0));
+      Left_Column.Add_Child (Create_Box (C (Blue), H => 30.0));
 
       --  Make left column grow
       declare
@@ -318,9 +318,9 @@ procedure Demo_Flex is
       end;
 
       --  Right column children
-      Add_Child (Right_Column.all, Widget_Access (Create_Box (C (Red), W => 40.0, H => 40.0)));
-      Add_Child (Right_Column.all, Widget_Access (Create_Box (C (Red), W => 50.0, H => 50.0)));
-      Add_Child (Right_Column.all, Widget_Access (Create_Box (C (Red), W => 45.0, H => 45.0)));
+      Right_Column.Add_Child (Create_Box (C (Red), W => 40.0, H => 40.0));
+      Right_Column.Add_Child (Create_Box (C (Red), W => 50.0, H => 50.0));
+      Right_Column.Add_Child (Create_Box (C (Red), W => 45.0, H => 45.0));
 
       --  Make right column grow
       declare
@@ -345,8 +345,8 @@ procedure Demo_Flex is
          Set_Part_Style (Right_Column.all, Main_Part, Right_Style);
       end;
 
-      Add_Child (Outer.all, Widget_Access (Left_Column));
-      Add_Child (Outer.all, Widget_Access (Right_Column));
+      Outer.Add_Child (Left_Column);
+      Outer.Add_Child (Right_Column);
 
       return Outer;
    end Demo_Nested;
@@ -363,11 +363,11 @@ procedure Demo_Flex is
    begin
       Put_Line ("Demo 13: Fixed sidebar + flexible content");
       --  Fixed left sidebar
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Gray), W => 80.0, H => 60.0, Grow => 0.0)));
+      Container.Add_Child (Create_Box (C (Gray), W => 80.0, H => 60.0, Grow => 0.0));
       --  Flexible main content
-      Add_Child (Container.all, Widget_Access (Create_Box (C (White), Grow => 1.0)));
+      Container.Add_Child (Create_Box (C (White), Grow => 1.0));
       --  Fixed right sidebar
-      Add_Child (Container.all, Widget_Access (Create_Box (C (Gray), W => 60.0, H => 60.0, Grow => 0.0)));
+      Container.Add_Child (Create_Box (C (Gray), W => 60.0, H => 60.0, Grow => 0.0));
       return Container;
    end Demo_Mixed;
 
@@ -484,34 +484,34 @@ procedure Demo_Flex is
       Set_Row_Flex (Row5);
 
       --  Assemble Row 1
-      Add_Child (Row1.all, Widget_Access (D1));
-      Add_Child (Row1.all, Widget_Access (D2));
-      Add_Child (Row1.all, Widget_Access (D3));
+      Row1.Add_Child (D1);
+      Row1.Add_Child (D2);
+      Row1.Add_Child (D3);
 
       --  Assemble Row 2
-      Add_Child (Row2.all, Widget_Access (D4));
-      Add_Child (Row2.all, Widget_Access (D5));
-      Add_Child (Row2.all, Widget_Access (D6));
+      Row2.Add_Child (D4);
+      Row2.Add_Child (D5);
+      Row2.Add_Child (D6);
 
       --  Assemble Row 3
-      Add_Child (Row3.all, Widget_Access (D7));
-      Add_Child (Row3.all, Widget_Access (D8));
-      Add_Child (Row3.all, Widget_Access (D9));
+      Row3.Add_Child (D7);
+      Row3.Add_Child (D8);
+      Row3.Add_Child (D9);
 
       --  Assemble Row 4
-      Add_Child (Row4.all, Widget_Access (D10));
-      Add_Child (Row4.all, Widget_Access (D11));
+      Row4.Add_Child (D10);
+      Row4.Add_Child (D11);
 
       --  Assemble Row 5
-      Add_Child (Row5.all, Widget_Access (D12));
-      Add_Child (Row5.all, Widget_Access (D13));
+      Row5.Add_Child (D12);
+      Row5.Add_Child (D13);
 
       --  Main layout
-      Add_Child (Main.all, Widget_Access (Row1));
-      Add_Child (Main.all, Widget_Access (Row2));
-      Add_Child (Main.all, Widget_Access (Row3));
-      Add_Child (Main.all, Widget_Access (Row4));
-      Add_Child (Main.all, Widget_Access (Row5));
+      Main.Add_Child (Row1);
+      Main.Add_Child (Row2);
+      Main.Add_Child (Row3);
+      Main.Add_Child (Row4);
+      Main.Add_Child (Row5);
 
       Put_Line ("================================");
       Put_Line ("Demo layout created. Resize window to test responsive behavior.");
@@ -545,7 +545,7 @@ begin
    --  Set as window root (need to add this to Window)
    --  For now, we manually update
 --   Window.Root := Widget_Access (Root);
-   Set_Root (Window.all, Widget_Access (Root));
+   Window.Set_Root (Root);
 
    --  Add window to app
    App.Add_Window (Window);

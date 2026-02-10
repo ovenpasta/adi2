@@ -19,7 +19,7 @@ procedure Grid_Example is
    begin
       Set_Part_Styles (Tile.all, Tile_Part_Styles);
       Set_Part_Styles (Tile.all, Styles);
-      Add_Child (Tile.all, Widget_Access (Label));
+      Tile.Add_Child (Label);
       return Tile;
    end New_Tile;
 begin
@@ -42,19 +42,19 @@ begin
       Set_Part_Styles (Hint.all, Hint_Part_Styles);
       Set_Part_Styles (Grid.all, Grid_Part_Styles);
 
-      Add_Child (Grid.all, Widget_Access (New_Tile ("A (1 / span 2)", Tile_A_Part_Styles)));
-      Add_Child (Grid.all, Widget_Access (New_Tile ("B (row span 2)", Tile_B_Part_Styles)));
-      Add_Child (Grid.all, Widget_Access (New_Tile ("C", Tile_C_Part_Styles)));
-      Add_Child (Grid.all, Widget_Access (New_Tile ("D (row span 2)", Tile_D_Part_Styles)));
-      Add_Child (Grid.all, Widget_Access (New_Tile ("E", Tile_E_Part_Styles)));
-      Add_Child (Grid.all, Widget_Access (New_Tile ("F", Tile_F_Part_Styles)));
-      Add_Child (Grid.all, Widget_Access (New_Tile ("G (2 / span 3)", Tile_G_Part_Styles)));
+      Grid.Add_Child (New_Tile ("A (1 / span 2)", Tile_A_Part_Styles));
+      Grid.Add_Child (New_Tile ("B (row span 2)", Tile_B_Part_Styles));
+      Grid.Add_Child (New_Tile ("C", Tile_C_Part_Styles));
+      Grid.Add_Child (New_Tile ("D (row span 2)", Tile_D_Part_Styles));
+      Grid.Add_Child (New_Tile ("E", Tile_E_Part_Styles));
+      Grid.Add_Child (New_Tile ("F", Tile_F_Part_Styles));
+      Grid.Add_Child (New_Tile ("G (2 / span 3)", Tile_G_Part_Styles));
 
-      Add_Child (Root.all, Widget_Access (Title));
-      Add_Child (Root.all, Widget_Access (Hint));
-      Add_Child (Root.all, Widget_Access (Grid));
+      Root.Add_Child (Title);
+      Root.Add_Child (Hint);
+      Root.Add_Child (Grid);
 
-      W.Set_Root (Widget_Access (Root));
+      W.Set_Root (Root);
       A.Add_Window (W);
       A.Run;
    end;

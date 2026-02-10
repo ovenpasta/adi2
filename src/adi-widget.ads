@@ -205,8 +205,8 @@ package Adi.Widget is
    --  Hierarchy Management
    ---------------------------------------------------------------------------
 
-   procedure Add_Child (W : in out Widget'Class; C : Widget_Access);
-   procedure Remove_Child (W : in out Widget'Class; C : Widget_Access);
+   procedure Add_Child (W : in out Widget'Class; C : access Widget'Class);
+   procedure Remove_Child (W : in out Widget'Class; C : access Widget'Class);
    procedure Set_Parent (W : in out Widget'Class; P : access Widget'Class);
    function  Get_Parent (W : Widget'Class) return access Widget'Class;
    function  Child_Count (W : Widget'Class) return Natural;

@@ -249,7 +249,8 @@ package body Adi.Widget.Text_Input is
       return Get_Text (W.Buffer);
    end Get_Text;
 
-   procedure Set_On_Changed (W : in out Text_Input_Widget; CB : Change_Callback) is
+   procedure Set_On_Changed (W : in out Text_Input_Widget;
+                             CB : Change_Callback) is
    begin
       W.On_Changed := CB;
    end Set_On_Changed;

@@ -134,6 +134,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
 - Size queries and lifecycle management
 
 **Adi.Widget** (`adi-widget.ads`): Base widget abstraction
+- `Add_Child`/`Remove_Child` accept `access Widget'Class` (no `Widget_Access` cast needed at call sites)
 - Abstract tagged type with hierarchy management (parent/children)
 - **Part system**: Widgets are composed of styleable parts (`Main_Part`, `Indicator_Part`, `Label_Part`, etc.)
 - **Item system**: Renderable primitives (`Panel_Item`, `Text_Item`, `Image_Item`) that compose a widget
@@ -202,7 +203,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
 **Adi.Widget.Stack** (`adi-widget-stack.ads`): Generic stack container widget
 - Generic over `Page_Id` discrete type (typically an enum)
 - Shows one child at a time; pages keyed by `Page_Id`
-- `Add_Page(Id, Page)`: registers a page; first page added auto-activates
+- `Add_Page(Id, Page)`: accepts `access Widget'Class`; registers a page; first page added auto-activates
 - `Set_Active(Id)`: hides old page, shows new, fires callback
 - `Get_Page(Id)`: returns page widget (null if never added)
 - All children receive full layout so page switching is instant
@@ -222,6 +223,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
 - Wraps SDL window and renderer
 - Owns a `Render_Context` for per-renderer caches
 - Root widget container
+- `Set_Root`, `Add_Overlay`, `Remove_Overlay` accept `access Adi.Widget.Widget'Class` (fully qualified to avoid package/type ambiguity)
 - Mouse event handling with widget hit testing
 - Overlay support for top-level floating widgets (`Add_Overlay`, `Remove_Overlay`, `Clear_Overlays`, `Overlay_Count`)
 - Overlay hit testing is prioritized above the root tree; overlays render after root content
@@ -353,6 +355,12 @@ All packages are rooted under `Adi`:
 - Access types: `Widget_Access`, `Window_Access`
 - Functions returning accessors: `Create`, `Get_*`
 - Procedures for mutation: `Set_*`, `Add_*`, `Remove_*`
+
+### Widget API Conventions
+- **Hierarchy calls use `access Widget'Class`**: `Add_Child`, `Remove_Child`, `Set_Root`, `Add_Overlay`, `Remove_Overlay`, `Add_Page` all accept anonymous access parameters so callers don't need `Widget_Access(...)` casts
+- **Dot notation in examples**: `Root.Add_Child (Label1)` instead of `Add_Child (Root.all, Widget_Access (Label1))`
+- **Callbacks use named access types**: e.g. `Click_Callback`, `Toggle_Callback`, `Change_Callback` — Ada accessibility rules (RM 3.10.2) prevent using anonymous access-to-subprogram in record fields
+- **`'Unrestricted_Access` for callbacks in examples**: callbacks declared inside `main` have deeper accessibility than library-level named access types, so `'Access` won't compile; `'Unrestricted_Access` (GNAT extension) is required
 
 ## CSS Style Generation
 

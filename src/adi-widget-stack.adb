@@ -18,10 +18,11 @@ package body Adi.Widget.Stack is
    --  Page Management
    ---------------------------------------------------------------------------
 
-   procedure Add_Page (W : in out Stack_Widget; Id : Page_Id; Page : Widget_Access) is
+   procedure Add_Page (W : in out Stack_Widget; Id : Page_Id; Page : access Widget'Class) is
+      PA : constant Widget_Access := Widget_Access (Page);
    begin
       Add_Child (W, Page);
-      W.Pages (Id) := Page;
+      W.Pages (Id) := PA;
 
       if not W.Has_Active then
          W.Active := Id;

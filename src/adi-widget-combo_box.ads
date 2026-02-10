@@ -12,11 +12,6 @@ package Adi.Widget.Combo_Box is
    type Combo_Box_Widget is new Widget with private;
    type Combo_Box_Widget_Access is access all Combo_Box_Widget'Class;
 
-   type Selection_Changed_Callback is access procedure
-     (W     : Combo_Box_Widget_Access;
-      Index : Natural;
-      Text  : String);
-
    function Create return Combo_Box_Widget_Access;
 
    procedure Attach_Window
@@ -31,6 +26,8 @@ package Adi.Widget.Combo_Box is
    function Get_Selected_Index (W : Combo_Box_Widget) return Natural;
    function Get_Selected_Text (W : Combo_Box_Widget) return String;
 
+   type Selection_Changed_Callback is access procedure
+     (W : Combo_Box_Widget_Access; Index : Natural; Text : String);
    procedure Set_On_Selection_Changed
      (W  : in out Combo_Box_Widget;
       CB : Selection_Changed_Callback);

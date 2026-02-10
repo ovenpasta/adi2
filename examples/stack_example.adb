@@ -88,34 +88,30 @@ begin
       Set_Part_Styles (Desc3.all, Page_Desc_Part_Styles);
 
       --  Build page content
-      Add_Child (Page1.all, Widget_Access (Title1));
-      Add_Child (Page1.all, Widget_Access (Desc1));
+      Page1.Add_Child (Title1);
+      Page1.Add_Child (Desc1);
 
-      Add_Child (Page2.all, Widget_Access (Title2));
-      Add_Child (Page2.all, Widget_Access (Desc2));
+      Page2.Add_Child (Title2);
+      Page2.Add_Child (Desc2);
 
-      Add_Child (Page3.all, Widget_Access (Title3));
-      Add_Child (Page3.all, Widget_Access (Desc3));
+      Page3.Add_Child (Title3);
+      Page3.Add_Child (Desc3);
 
       --  Add pages to stack by enum key
-      Pages.Add_Page (Red,   Widget_Access (Page1));
-      Pages.Add_Page (Green, Widget_Access (Page2));
-      Pages.Add_Page (Blue,  Widget_Access (Page3));
+      Pages.Add_Page (Red,   Page1);
+      Pages.Add_Page (Green, Page2);
+      Pages.Add_Page (Blue,  Page3);
 
       --  Build tab bar
-      Add_Child (Tab_Bar.all, Widget_Access (Btn_Red));
-      Add_Child (Tab_Bar.all, Widget_Access (Btn_Green));
-      Add_Child (Tab_Bar.all, Widget_Access (Btn_Blue));
+      Tab_Bar.Add_Child (Btn_Red);
+      Tab_Bar.Add_Child (Btn_Green);
+      Tab_Bar.Add_Child (Btn_Blue);
 
       --  Assemble hierarchy
-      Add_Child (Root.all, Widget_Access (Tab_Bar));
-      declare
-         P : constant access Widget'Class := Pages.all'Unchecked_Access;
-      begin
-         Add_Child (Root.all, Widget_Access (P));
-      end;
+      Root.Add_Child (Tab_Bar);
+      Root.Add_Child (Pages);
 
-      W.Set_Root (Widget_Access (Root));
+      W.Set_Root (Root);
       A.Add_Window (W);
       A.Run;
    end;

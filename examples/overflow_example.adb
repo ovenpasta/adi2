@@ -132,56 +132,56 @@ begin
       Set_Part_Styles (Wrap_Line_Hidden.all, Wrap_Line_Part_Styles);
 
       --  Add intentionally oversized content to both containers.
-      Add_Child (Visible_Content.all, Widget_Access (New_Item (Item_A_Part_Styles)));
-      Add_Child (Visible_Content.all, Widget_Access (New_Item (Item_B_Part_Styles)));
-      Add_Child (Visible_Content.all, Widget_Access (New_Item (Item_C_Part_Styles)));
-      Add_Child (Visible_Content.all, Widget_Access (New_Item (Item_D_Part_Styles)));
+      Visible_Content.Add_Child (New_Item (Item_A_Part_Styles));
+      Visible_Content.Add_Child (New_Item (Item_B_Part_Styles));
+      Visible_Content.Add_Child (New_Item (Item_C_Part_Styles));
+      Visible_Content.Add_Child (New_Item (Item_D_Part_Styles));
 
-      Add_Child (Hidden_Content.all, Widget_Access (New_Item (Item_A_Part_Styles)));
-      Add_Child (Hidden_Content.all, Widget_Access (New_Item (Item_B_Part_Styles)));
-      Add_Child (Hidden_Content.all, Widget_Access (New_Item (Item_C_Part_Styles)));
-      Add_Child (Hidden_Content.all, Widget_Access (New_Item (Item_D_Part_Styles)));
+      Hidden_Content.Add_Child (New_Item (Item_A_Part_Styles));
+      Hidden_Content.Add_Child (New_Item (Item_B_Part_Styles));
+      Hidden_Content.Add_Child (New_Item (Item_C_Part_Styles));
+      Hidden_Content.Add_Child (New_Item (Item_D_Part_Styles));
 
-      Add_Child (Visible_Clip.all, Widget_Access (Visible_Content));
-      Add_Child (Hidden_Clip.all, Widget_Access (Hidden_Content));
+      Visible_Clip.Add_Child (Visible_Content);
+      Hidden_Clip.Add_Child (Hidden_Content);
 
-      Add_Child (Visible_Panel.all, Widget_Access (Visible_Title));
-      Add_Child (Visible_Panel.all, Widget_Access (Visible_Clip));
-      Add_Child (Hidden_Panel.all, Widget_Access (Hidden_Title));
-      Add_Child (Hidden_Panel.all, Widget_Access (Hidden_Clip));
+      Visible_Panel.Add_Child (Visible_Title);
+      Visible_Panel.Add_Child (Visible_Clip);
+      Hidden_Panel.Add_Child (Hidden_Title);
+      Hidden_Panel.Add_Child (Hidden_Clip);
 
-      Add_Child (Text_Visible_Content.all, Widget_Access (Visible_Long_Line));
-      Add_Child (Text_Hidden_Content.all, Widget_Access (Hidden_Long_Line));
-      Add_Child (Text_Visible_Clip.all, Widget_Access (Text_Visible_Content));
-      Add_Child (Text_Hidden_Clip.all, Widget_Access (Text_Hidden_Content));
-      Add_Child (Text_Visible_Panel.all, Widget_Access (Text_Visible_Title));
-      Add_Child (Text_Visible_Panel.all, Widget_Access (Text_Visible_Clip));
-      Add_Child (Text_Hidden_Panel.all, Widget_Access (Text_Hidden_Title));
-      Add_Child (Text_Hidden_Panel.all, Widget_Access (Text_Hidden_Clip));
+      Text_Visible_Content.Add_Child (Visible_Long_Line);
+      Text_Hidden_Content.Add_Child (Hidden_Long_Line);
+      Text_Visible_Clip.Add_Child (Text_Visible_Content);
+      Text_Hidden_Clip.Add_Child (Text_Hidden_Content);
+      Text_Visible_Panel.Add_Child (Text_Visible_Title);
+      Text_Visible_Panel.Add_Child (Text_Visible_Clip);
+      Text_Hidden_Panel.Add_Child (Text_Hidden_Title);
+      Text_Hidden_Panel.Add_Child (Text_Hidden_Clip);
 
-      Add_Child (Wrap_Visible_Content.all, Widget_Access (Wrap_Line_Visible));
-      Add_Child (Wrap_Hidden_Content.all, Widget_Access (Wrap_Line_Hidden));
-      Add_Child (Wrap_Visible_Clip.all, Widget_Access (Wrap_Visible_Content));
-      Add_Child (Wrap_Hidden_Clip.all, Widget_Access (Wrap_Hidden_Content));
-      Add_Child (Wrap_Visible_Panel.all, Widget_Access (Wrap_Visible_Title));
-      Add_Child (Wrap_Visible_Panel.all, Widget_Access (Wrap_Visible_Clip));
-      Add_Child (Wrap_Hidden_Panel.all, Widget_Access (Wrap_Hidden_Title));
-      Add_Child (Wrap_Hidden_Panel.all, Widget_Access (Wrap_Hidden_Clip));
+      Wrap_Visible_Content.Add_Child (Wrap_Line_Visible);
+      Wrap_Hidden_Content.Add_Child (Wrap_Line_Hidden);
+      Wrap_Visible_Clip.Add_Child (Wrap_Visible_Content);
+      Wrap_Hidden_Clip.Add_Child (Wrap_Hidden_Content);
+      Wrap_Visible_Panel.Add_Child (Wrap_Visible_Title);
+      Wrap_Visible_Panel.Add_Child (Wrap_Visible_Clip);
+      Wrap_Hidden_Panel.Add_Child (Wrap_Hidden_Title);
+      Wrap_Hidden_Panel.Add_Child (Wrap_Hidden_Clip);
 
-      Add_Child (Panels_Row_1.all, Widget_Access (Visible_Panel));
-      Add_Child (Panels_Row_1.all, Widget_Access (Hidden_Panel));
-      Add_Child (Panels_Row_2.all, Widget_Access (Text_Visible_Panel));
-      Add_Child (Panels_Row_2.all, Widget_Access (Text_Hidden_Panel));
-      Add_Child (Panels_Row_3.all, Widget_Access (Wrap_Visible_Panel));
-      Add_Child (Panels_Row_3.all, Widget_Access (Wrap_Hidden_Panel));
+      Panels_Row_1.Add_Child (Visible_Panel);
+      Panels_Row_1.Add_Child (Hidden_Panel);
+      Panels_Row_2.Add_Child (Text_Visible_Panel);
+      Panels_Row_2.Add_Child (Text_Hidden_Panel);
+      Panels_Row_3.Add_Child (Wrap_Visible_Panel);
+      Panels_Row_3.Add_Child (Wrap_Hidden_Panel);
 
-      Add_Child (Root.all, Widget_Access (Title));
-      Add_Child (Root.all, Widget_Access (Hint));
-      Add_Child (Root.all, Widget_Access (Panels_Row_1));
-      Add_Child (Root.all, Widget_Access (Panels_Row_2));
-      Add_Child (Root.all, Widget_Access (Panels_Row_3));
+      Root.Add_Child (Title);
+      Root.Add_Child (Hint);
+      Root.Add_Child (Panels_Row_1);
+      Root.Add_Child (Panels_Row_2);
+      Root.Add_Child (Panels_Row_3);
 
-      W.Set_Root (Widget_Access (Root));
+      W.Set_Root (Root);
       A.Add_Window (W);
       A.Run;
    end;

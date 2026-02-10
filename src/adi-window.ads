@@ -21,7 +21,7 @@ package Adi.Window is
     procedure Render (W : in out Window);
 
     --  Set the root widget for this window
-    procedure Set_Root (W : in out Window; Root : Widget_Access);
+    procedure Set_Root (W : in out Window; Root : access Adi.Widget.Widget'Class);
     function Get_Root (W : Window) return Widget_Access;
 
     --  Optional policy: derive window minimum size from root layout preferred size.
@@ -31,8 +31,8 @@ package Adi.Window is
     function Get_Enforce_Layout_Min_Size (W : Window) return Boolean;
 
     --  Overlay widgets render above the root tree and are hit-tested first.
-    procedure Add_Overlay (W : in out Window; Overlay : Widget_Access);
-    procedure Remove_Overlay (W : in out Window; Overlay : Widget_Access);
+    procedure Add_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class);
+    procedure Remove_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class);
     procedure Clear_Overlays (W : in out Window);
     function Overlay_Count (W : Window) return Natural;
 

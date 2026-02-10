@@ -19,13 +19,11 @@ package Adi.Widget.Stack is
    type Stack_Widget is new Widget with private;
    type Stack_Widget_Access is access all Stack_Widget'Class;
 
-   type Page_Changed_Callback is access procedure (Id : Page_Id);
-
    --  Construction
    function Create return Stack_Widget_Access;
 
    --  Add a page keyed by its Id. First page added becomes active.
-   procedure Add_Page (W : in out Stack_Widget; Id : Page_Id; Page : Widget_Access);
+   procedure Add_Page (W : in out Stack_Widget; Id : Page_Id; Page : access Widget'Class);
 
    --  Active page management
    procedure Set_Active (W : in out Stack_Widget; Id : Page_Id);
@@ -36,6 +34,7 @@ package Adi.Widget.Stack is
    function  Get_Page (W : Stack_Widget; Id : Page_Id) return Widget_Access;
 
    --  Callback when active page changes
+   type Page_Changed_Callback is access procedure (Id : Page_Id);
    procedure Set_On_Changed (W  : in out Stack_Widget;
                               CB : Page_Changed_Callback);
 

@@ -348,77 +348,77 @@ begin
       --  Build Hierarchy
       --  =====================================================================
 
-      Add_Child (Root.all, Widget_Access (Content));
+      Root.Add_Child (Content);
 
       --  Section 1: Easing Curves
-      Add_Child (Content.all, Widget_Access (Sec1));
-      Add_Child (Sec1.all, Widget_Access (Make_Title ("EASING CURVES")));
-      Add_Child (Sec1.all, Widget_Access (Sec1_Row));
+      Content.Add_Child (Sec1);
+      Sec1.Add_Child (Make_Title ("EASING CURVES"));
+      Sec1.Add_Child (Sec1_Row);
 
-      Add_Child (Sec1_Row.all, Widget_Access (Col_Linear));
-      Add_Child (Col_Linear.all, Widget_Access (Btn_Linear));
-      Add_Child (Col_Linear.all, Widget_Access (Make_Desc ("Constant speed")));
+      Sec1_Row.Add_Child (Col_Linear);
+      Col_Linear.Add_Child (Btn_Linear);
+      Col_Linear.Add_Child (Make_Desc ("Constant speed"));
 
-      Add_Child (Sec1_Row.all, Widget_Access (Col_EaseIn));
-      Add_Child (Col_EaseIn.all, Widget_Access (Btn_EaseIn));
-      Add_Child (Col_EaseIn.all, Widget_Access (Make_Desc ("Slow start")));
+      Sec1_Row.Add_Child (Col_EaseIn);
+      Col_EaseIn.Add_Child (Btn_EaseIn);
+      Col_EaseIn.Add_Child (Make_Desc ("Slow start"));
 
-      Add_Child (Sec1_Row.all, Widget_Access (Col_EaseOut));
-      Add_Child (Col_EaseOut.all, Widget_Access (Btn_EaseOut));
-      Add_Child (Col_EaseOut.all, Widget_Access (Make_Desc ("Fast start")));
+      Sec1_Row.Add_Child (Col_EaseOut);
+      Col_EaseOut.Add_Child (Btn_EaseOut);
+      Col_EaseOut.Add_Child (Make_Desc ("Fast start"));
 
-      Add_Child (Sec1_Row.all, Widget_Access (Col_EaseIO));
-      Add_Child (Col_EaseIO.all, Widget_Access (Btn_EaseIO));
-      Add_Child (Col_EaseIO.all, Widget_Access (Make_Desc ("Smooth both")));
+      Sec1_Row.Add_Child (Col_EaseIO);
+      Col_EaseIO.Add_Child (Btn_EaseIO);
+      Col_EaseIO.Add_Child (Make_Desc ("Smooth both"));
 
       --  Section 2: Individual Properties
-      Add_Child (Content.all, Widget_Access (Sec2));
-      Add_Child (Sec2.all, Widget_Access (Make_Title ("INDIVIDUAL PROPERTIES")));
-      Add_Child (Sec2.all, Widget_Access (Sec2_Row));
+      Content.Add_Child (Sec2);
+      Sec2.Add_Child (Make_Title ("INDIVIDUAL PROPERTIES"));
+      Sec2.Add_Child (Sec2_Row);
 
-      Add_Child (Sec2_Row.all, Widget_Access (Col_BgColor));
-      Add_Child (Col_BgColor.all, Widget_Access (Btn_BgColor));
-      Add_Child (Col_BgColor.all, Widget_Access (Make_Desc ("Prop_Background_Color")));
+      Sec2_Row.Add_Child (Col_BgColor);
+      Col_BgColor.Add_Child (Btn_BgColor);
+      Col_BgColor.Add_Child (Make_Desc ("Prop_Background_Color"));
 
-      Add_Child (Sec2_Row.all, Widget_Access (Col_Border));
-      Add_Child (Col_Border.all, Widget_Access (Btn_Border));
-      Add_Child (Col_Border.all, Widget_Access (Make_Desc ("Prop_Border_Color")));
+      Sec2_Row.Add_Child (Col_Border);
+      Col_Border.Add_Child (Btn_Border);
+      Col_Border.Add_Child (Make_Desc ("Prop_Border_Color"));
 
-      Add_Child (Sec2_Row.all, Widget_Access (Col_Radius));
-      Add_Child (Col_Radius.all, Widget_Access (Btn_Radius));
-      Add_Child (Col_Radius.all, Widget_Access (Make_Desc ("Prop_Border_Radius")));
+      Sec2_Row.Add_Child (Col_Radius);
+      Col_Radius.Add_Child (Btn_Radius);
+      Col_Radius.Add_Child (Make_Desc ("Prop_Border_Radius"));
 
-      Add_Child (Sec2_Row.all, Widget_Access (Col_Shadow));
-      Add_Child (Col_Shadow.all, Widget_Access (Btn_Shadow));
-      Add_Child (Col_Shadow.all, Widget_Access (Make_Desc ("Prop_Box_Shadow")));
+      Sec2_Row.Add_Child (Col_Shadow);
+      Col_Shadow.Add_Child (Btn_Shadow);
+      Col_Shadow.Add_Child (Make_Desc ("Prop_Box_Shadow"));
 
-      Add_Child (Sec2_Row.all, Widget_Access (Col_Opacity));
-      Add_Child (Col_Opacity.all, Widget_Access (Btn_Opacity));
-      Add_Child (Col_Opacity.all, Widget_Access (Make_Desc ("Prop_Opacity")));
+      Sec2_Row.Add_Child (Col_Opacity);
+      Col_Opacity.Add_Child (Btn_Opacity);
+      Col_Opacity.Add_Child (Make_Desc ("Prop_Opacity"));
 
       --  Section 3: Combined + Duration
-      Add_Child (Content.all, Widget_Access (Sec3));
-      Add_Child (Sec3.all, Widget_Access (Make_Title ("COMBINED & DURATION")));
-      Add_Child (Sec3.all, Widget_Access (Sec3_Row));
+      Content.Add_Child (Sec3);
+      Sec3.Add_Child (Make_Title ("COMBINED & DURATION"));
+      Sec3.Add_Child (Sec3_Row);
 
-      Add_Child (Sec3_Row.all, Widget_Access (Col_Multi));
-      Add_Child (Col_Multi.all, Widget_Access (Btn_Multi));
-      Add_Child (Col_Multi.all, Widget_Access (Make_Desc ("bg + border + shadow")));
+      Sec3_Row.Add_Child (Col_Multi);
+      Col_Multi.Add_Child (Btn_Multi);
+      Col_Multi.Add_Child (Make_Desc ("bg + border + shadow"));
 
-      Add_Child (Sec3_Row.all, Widget_Access (Col_All));
-      Add_Child (Col_All.all, Widget_Access (Btn_All));
-      Add_Child (Col_All.all, Widget_Access (Make_Desc ("All_Properties")));
+      Sec3_Row.Add_Child (Col_All);
+      Col_All.Add_Child (Btn_All);
+      Col_All.Add_Child (Make_Desc ("All_Properties"));
 
-      Add_Child (Sec3_Row.all, Widget_Access (Col_Fast));
-      Add_Child (Col_Fast.all, Widget_Access (Btn_Fast));
-      Add_Child (Col_Fast.all, Widget_Access (Make_Desc ("50ms linear")));
+      Sec3_Row.Add_Child (Col_Fast);
+      Col_Fast.Add_Child (Btn_Fast);
+      Col_Fast.Add_Child (Make_Desc ("50ms linear"));
 
-      Add_Child (Sec3_Row.all, Widget_Access (Col_Slow));
-      Add_Child (Col_Slow.all, Widget_Access (Btn_Slow));
-      Add_Child (Col_Slow.all, Widget_Access (Make_Desc ("800ms ease-in-out")));
+      Sec3_Row.Add_Child (Col_Slow);
+      Col_Slow.Add_Child (Btn_Slow);
+      Col_Slow.Add_Child (Make_Desc ("800ms ease-in-out"));
 
       --  Set root and run
-      W.Set_Root (Widget_Access (Root));
+      W.Set_Root (Root);
       A.Add_Window (W);
       A.Run;
    end;

@@ -14,17 +14,6 @@ package Adi.Widget.List_Box is
    type List_Box_Widget is new Widget with private;
    type List_Box_Widget_Access is access all List_Box_Widget'Class;
 
-   type Item_Clicked_Callback is access procedure
-     (W      : List_Box_Widget_Access;
-      Index  : Positive;
-      Clicks : Natural);
-
-   type Item_Activated_Callback is access procedure
-     (W     : List_Box_Widget_Access;
-      Index : Positive);
-
-   type Selection_Changed_Callback is access procedure
-     (W : List_Box_Widget_Access);
 
    function Create return List_Box_Widget_Access;
 
@@ -52,6 +41,13 @@ package Adi.Widget.List_Box is
 
    procedure Set_Current_Row (W : in out List_Box_Widget; Index : Positive);
    function Get_Current_Row (W : List_Box_Widget) return Natural;
+
+   type Item_Clicked_Callback is access procedure
+     (W : List_Box_Widget_Access; Index : Positive; Clicks : Natural);
+   type Item_Activated_Callback is access procedure
+     (W : List_Box_Widget_Access; Index : Positive);
+   type Selection_Changed_Callback is access procedure
+     (W : List_Box_Widget_Access);
 
    procedure Set_On_Item_Clicked
      (W  : in out List_Box_Widget;

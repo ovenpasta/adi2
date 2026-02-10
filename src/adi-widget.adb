@@ -606,18 +606,18 @@ package body Adi.Widget is
    --  Hierarchy Management
    ---------------------------------------------------------------------------
 
-   procedure Add_Child (W : in out Widget'Class; C : Widget_Access) is
+   procedure Add_Child (W : in out Widget'Class; C : access Widget'Class) is
    begin
       if C /= null then
-         W.Children.Append (C);
+         W.Children.Append (Widget_Access (C));
          C.Parent := W'Unchecked_Access;
          Mark_Dirty (W);
       end if;
    end Add_Child;
 
-   procedure Remove_Child (W : in out Widget'Class; C : Widget_Access) is
+   procedure Remove_Child (W : in out Widget'Class; C : access Widget'Class) is
       use Widget_List;
-      Cursor : Widget_List.Cursor := W.Children.Find (C);
+      Cursor : Widget_List.Cursor := W.Children.Find (Widget_Access (C));
    begin
       if Cursor /= No_Element then
          C.Parent := null;
@@ -635,7 +635,11 @@ package body Adi.Widget is
       W.Parent := P;
 
       if P /= null then
-         P.Children.Append (W'Unchecked_Access);
+         declare
+            WA : constant Widget_Access := W'Unchecked_Access;
+         begin
+            P.Children.Append (WA);
+         end;
       end if;
 
       Mark_Dirty (W);

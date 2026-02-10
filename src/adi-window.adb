@@ -338,9 +338,9 @@ package body Adi.Window is
        end if;
     end Render;
 
-    procedure Set_Root (W : in Out Window; Root : Widget_Access) is
+    procedure Set_Root (W : in Out Window; Root : access Adi.Widget.Widget'Class) is
     begin
-       W.Root := Root;
+       W.Root := Widget_Access (Root);
        if Root /= null then
           Set_Geometry (Root.all, W.Geometry);
           W.Needs_Layout := True;  -- Initial layout needed
@@ -379,31 +379,33 @@ package body Adi.Window is
       return W.Enforce_Layout_Min_Size;
    end Get_Enforce_Layout_Min_Size;
 
-   procedure Add_Overlay (W : in out Window; Overlay : Widget_Access) is
+   procedure Add_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class) is
+      OA : constant Widget_Access := Widget_Access (Overlay);
    begin
-      if Overlay = null then
+      if OA = null then
          return;
       end if;
 
       declare
-         Existing : constant Natural := Overlay_Index (W, Overlay);
+         Existing : constant Natural := Overlay_Index (W, OA);
       begin
          if Existing > 0 then
             W.Overlays.Delete (Existing);
          end if;
       end;
 
-      W.Overlays.Append (Overlay);
-      Mark_Dirty (Overlay.all);
+      W.Overlays.Append (OA);
+      Mark_Dirty (OA.all);
       if W.Root /= null then
          Mark_Dirty (W.Root.all);
       end if;
    end Add_Overlay;
 
-   procedure Remove_Overlay (W : in out Window; Overlay : Widget_Access) is
+   procedure Remove_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class) is
+      OA       : constant Widget_Access := Widget_Access (Overlay);
       Existing : Natural;
    begin
-      Existing := Overlay_Index (W, Overlay);
+      Existing := Overlay_Index (W, OA);
       if Existing = 0 then
          return;
       end if;

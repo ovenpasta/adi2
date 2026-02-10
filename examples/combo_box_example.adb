@@ -66,8 +66,8 @@ begin
       Set_Option_Row_Part_Styles (Color_Combo.all, Option_Row_Part_Styles);
       Set_Option_Row_Part_Styles (City_Combo.all, Option_Row_Part_Styles);
 
-      Set_On_Selection_Changed (Color_Combo.all, On_Combo_Changed'Unrestricted_Access);
-      Set_On_Selection_Changed (City_Combo.all, On_Combo_Changed'Unrestricted_Access);
+      Color_Combo.Set_On_Selection_Changed (On_Combo_Changed'Unrestricted_Access);
+      City_Combo.Set_On_Selection_Changed (On_Combo_Changed'Unrestricted_Access);
 
       Add_Item (Color_Combo.all, "Crimson");
       Add_Item (Color_Combo.all, "Emerald");
@@ -86,14 +86,14 @@ begin
       Add_Item (City_Combo.all, "Portland");
       Set_Selected_Index (City_Combo.all, 2);
 
-      Add_Child (Root.all, Widget_Access (Container));
-      Add_Child (Container.all, Widget_Access (Title));
-      Add_Child (Container.all, Widget_Access (Hint));
-      Add_Child (Container.all, Widget_Access (Color_Combo));
-      Add_Child (Container.all, Widget_Access (City_Combo));
-      Add_Child (Container.all, Widget_Access (Status_Label));
+      Root.Add_Child (Container);
+      Container.Add_Child (Title);
+      Container.Add_Child (Hint);
+      Container.Add_Child (Color_Combo);
+      Container.Add_Child (City_Combo);
+      Container.Add_Child (Status_Label);
 
-      W.Set_Root (Widget_Access (Root));
+      W.Set_Root (Root);
       A.Add_Window (W);
       A.Run;
    end;

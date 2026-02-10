@@ -53,18 +53,18 @@ begin
         .Build);
       Set_Part_Styles (Title_Label.all, Title_Label_Part_Styles);
 
-      Add_Child (Card_Box_2.all, Widget_Access (Inner_Box));
+      Card_Box_2.Add_Child (Inner_Box);
 
-      Add_Child (Top_Row.all, Widget_Access (Card_Box));
-      Add_Child (Top_Row.all, Widget_Access (Card_Box_2));
+      Top_Row.Add_Child (Card_Box);
+      Top_Row.Add_Child (Card_Box_2);
 
-      Add_Child (Bottom_Row.all, Widget_Access (Button_Box));
-      Add_Child (Bottom_Row.all, Widget_Access (Hover_Box));
-      Add_Child (Bottom_Row.all, Widget_Access (Label_Box));
+      Bottom_Row.Add_Child (Button_Box);
+      Bottom_Row.Add_Child (Hover_Box);
+      Bottom_Row.Add_Child (Label_Box);
 
-      Add_Child (Root_Box.all, Widget_Access (Top_Row));
-      Add_Child (Root_Box.all, Widget_Access (Bottom_Row));
-      Add_Child (Root_Box.all, Widget_Access (Title_Label));
+      Root_Box.Add_Child (Top_Row);
+      Root_Box.Add_Child (Bottom_Row);
+      Root_Box.Add_Child (Title_Label);
 
       Set_Flag (Button_Box.all, Clickable, True);
       Set_Flag (Hover_Box.all, Clickable, True);
@@ -72,7 +72,7 @@ begin
       Set_Flag (Card_Box_2.all, Clickable, True);
       Set_Flag (Inner_Box.all, Clickable, True);
 
-      Set_Root (W.all, Widget_Access (Root_Box));
+      W.Set_Root (Root_Box);
       Set_Enforce_Layout_Min_Size (W.all, True);
       A.Add_Window (W);
       A.Run;

@@ -32,26 +32,6 @@ package body Adi.Widget.Combo_Box is
    Default_Popup_Max_Height : constant Pixel_Type := 240.0;
    Default_Popup_Row_Height : constant Pixel_Type := 24.0;
 
-   function Popup_As_Widget_Access
-     (Popup : Popup_Lists.List_Box_Widget_Access) return Widget_Access
-   is
-   begin
-      if Popup = null then
-         return null;
-      end if;
-      return Widget_Access'(Popup.all'Unchecked_Access);
-   end Popup_As_Widget_Access;
-
-   function Dismiss_As_Widget_Access
-     (Dismiss : Dismiss_Layer_Widget_Access) return Widget_Access
-   is
-   begin
-      if Dismiss = null then
-         return null;
-      end if;
-      return Widget_Access'(Dismiss.all'Unchecked_Access);
-   end Dismiss_As_Widget_Access;
-
    function Find_Owner
      (Popup : Popup_Lists.List_Box_Widget_Access) return Combo_Box_Widget_Access
    is
@@ -491,9 +471,9 @@ package body Adi.Widget.Combo_Box is
       end if;
 
       if Dismiss /= null then
-         Adi.Window.Add_Overlay (W.Host_Window.all, Dismiss_As_Widget_Access (Dismiss));
+         Adi.Window.Add_Overlay (W.Host_Window.all, Dismiss);
       end if;
-      Adi.Window.Add_Overlay (W.Host_Window.all, Popup_As_Widget_Access (W.Popup));
+      Adi.Window.Add_Overlay (W.Host_Window.all, W.Popup);
       W.Open := True;
       if Dismiss /= null then
          Mark_Dirty (Dismiss.all);
@@ -516,10 +496,9 @@ package body Adi.Widget.Combo_Box is
          end if;
       end loop;
 
-      Adi.Window.Remove_Overlay
-        (W.Host_Window.all, Popup_As_Widget_Access (W.Popup));
+      Adi.Window.Remove_Overlay (W.Host_Window.all, W.Popup);
       if Dismiss /= null then
-         Adi.Window.Remove_Overlay (W.Host_Window.all, Dismiss_As_Widget_Access (Dismiss));
+         Adi.Window.Remove_Overlay (W.Host_Window.all, Dismiss);
       end if;
       W.Open := False;
       Mark_Dirty (W);

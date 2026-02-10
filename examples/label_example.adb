@@ -67,14 +67,14 @@ begin
       Set_Part_Styles (Label4.all, Label4_Part_Styles);
 
       --  Build widget hierarchy
-      Add_Child (Root.all, Widget_Access (Container));
-      Add_Child (Container.all, Widget_Access (Label1));
-      Add_Child (Container.all, Widget_Access (Label2));
-      Add_Child (Container.all, Widget_Access (Label3));
-      Add_Child (Container.all, Widget_Access (Label4));
+      Root.Add_Child (Container);
+      Container.Add_Child (Label1);
+      Container.Add_Child (Label2);
+      Container.Add_Child (Label3);
+      Container.Add_Child (Label4);
 
       --  Set root and run
-      W.Set_Root (Widget_Access (Root));
+      W.Set_Root (Root);
       A.Add_Window (W);
       A.Run;
    end;

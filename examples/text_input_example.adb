@@ -50,7 +50,7 @@ begin
       Echo_Label := Adi.Widget.Label.Create ("You typed: Hello Adi");
       Length_Label := Adi.Widget.Label.Create ("Length: 9");
 
-      Set_On_Changed (Input.all, On_Input_Changed'Unrestricted_Access);
+      Input.Set_On_Changed (On_Input_Changed'Unrestricted_Access);
 
       Set_Part_Styles (Root.all, Root_Part_Styles);
       Set_Part_Styles (Container.all, Container_Part_Styles);
@@ -62,15 +62,15 @@ begin
       Set_Part_Styles (Input.all, Input_Part_Styles);
       Set_Part_Styles (Input_2.all, Input_Part_Styles);
 
-      Add_Child (Root.all, Widget_Access (Container));
-      Add_Child (Container.all, Widget_Access (Title));
-      Add_Child (Container.all, Widget_Access (Hint));
-      Add_Child (Container.all, Widget_Access (Input));
-      Add_Child (Container.all, Widget_Access (Input_2));
-      Add_Child (Container.all, Widget_Access (Echo_Label));
-      Add_Child (Container.all, Widget_Access (Length_Label));
+      Root.Add_Child (Container);
+      Container.Add_Child (Title);
+      Container.Add_Child (Hint);
+      Container.Add_Child (Input);
+      Container.Add_Child (Input_2);
+      Container.Add_Child (Echo_Label);
+      Container.Add_Child (Length_Label);
 
-      W.Set_Root (Widget_Access (Root));
+      W.Set_Root (Root);
       A.Add_Window (W);
       A.Run;
    end;

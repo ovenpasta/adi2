@@ -83,22 +83,22 @@ begin
       Set_Part_Styles (Btn_Center.all, Option_Center_Part_Styles);
       Set_Part_Styles (Btn_Right.all, Option_Right_Part_Styles);
 
-      Add_Child (Root.all, Widget_Access (Container));
+      Root.Add_Child (Container);
 
-      Add_Child (Container.all, Widget_Access (Section1));
-      Add_Child (Section1.all, Widget_Access (Btn_Primary));
-      Add_Child (Section1.all, Widget_Access (Btn_Danger));
-      Add_Child (Section1.all, Widget_Access (Btn_Outline));
+      Container.Add_Child (Section1);
+      Section1.Add_Child (Btn_Primary);
+      Section1.Add_Child (Btn_Danger);
+      Section1.Add_Child (Btn_Outline);
 
-      Add_Child (Container.all, Widget_Access (Section2));
-      Add_Child (Section2.all, Widget_Access (Btn_Toggle));
+      Container.Add_Child (Section2);
+      Section2.Add_Child (Btn_Toggle);
 
-      Add_Child (Container.all, Widget_Access (Section3));
-      Add_Child (Section3.all, Widget_Access (Btn_Left));
-      Add_Child (Section3.all, Widget_Access (Btn_Center));
-      Add_Child (Section3.all, Widget_Access (Btn_Right));
+      Container.Add_Child (Section3);
+      Section3.Add_Child (Btn_Left);
+      Section3.Add_Child (Btn_Center);
+      Section3.Add_Child (Btn_Right);
 
-      W.Set_Root (Widget_Access (Root));
+      W.Set_Root (Root);
       A.Add_Window (W);
       A.Run;
    end;

@@ -15,10 +15,9 @@ package Adi.Widget.Text_Input is
    function Get_Text (W : Text_Input_Widget) return String;
 
    type Change_Callback is access procedure
-     (W    : Text_Input_Widget_Access;
-      Text : String);
-
-   procedure Set_On_Changed (W : in out Text_Input_Widget; CB : Change_Callback);
+     (W : Text_Input_Widget_Access; Text : String);
+   procedure Set_On_Changed (W : in out Text_Input_Widget;
+                             CB : Change_Callback);
 
    overriding procedure Build_Items (W : in out Text_Input_Widget);
    overriding procedure Layout (W : in out Text_Input_Widget);

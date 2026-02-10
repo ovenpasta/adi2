@@ -188,33 +188,33 @@ begin
             Set_Part_Styles (Row.all, Card_Row_Part_Styles);
             Set_Part_Styles (Title.all, Card_Row_Title_Part_Styles);
 
-            Add_Child (Row.all, Widget_Access (Title));
+            Row.Add_Child (Title);
             Multi_Listbox.Append_Row (Row);
          end;
       end loop;
 
       --  Assemble hierarchy
-      Add_Child (No_Panel.all, Widget_Access (No_Title));
-      Add_Child (No_Panel.all, Widget_Access (No_Status));
-      Add_Child (No_Panel.all, Widget_Access'(No_Listbox.all'Unchecked_Access));
+      No_Panel.Add_Child (No_Title);
+      No_Panel.Add_Child (No_Status);
+      No_Panel.Add_Child (No_Listbox);
 
-      Add_Child (Single_Panel.all, Widget_Access (Single_Title));
-      Add_Child (Single_Panel.all, Widget_Access (Single_Status));
-      Add_Child (Single_Panel.all, Widget_Access'(Single_Listbox.all'Unchecked_Access));
+      Single_Panel.Add_Child (Single_Title);
+      Single_Panel.Add_Child (Single_Status);
+      Single_Panel.Add_Child (Single_Listbox);
 
-      Add_Child (Multi_Panel.all, Widget_Access (Multi_Title));
-      Add_Child (Multi_Panel.all, Widget_Access (Multi_Status));
-      Add_Child (Multi_Panel.all, Widget_Access'(Multi_Listbox.all'Unchecked_Access));
+      Multi_Panel.Add_Child (Multi_Title);
+      Multi_Panel.Add_Child (Multi_Status);
+      Multi_Panel.Add_Child (Multi_Listbox);
 
-      Add_Child (Range_Panel.all, Widget_Access (Range_Title));
-      Add_Child (Range_Panel.all, Widget_Access (Range_Status));
-      Add_Child (Range_Panel.all, Widget_Access'(Range_Listbox.all'Unchecked_Access));
+      Range_Panel.Add_Child (Range_Title);
+      Range_Panel.Add_Child (Range_Status);
+      Range_Panel.Add_Child (Range_Listbox);
 
-      Add_Child (Panels.all, Widget_Access (No_Panel));
-      Add_Child (Panels.all, Widget_Access (Single_Panel));
-      Add_Child (Panels.all, Widget_Access (Multi_Panel));
-      Add_Child (Panels.all, Widget_Access (Range_Panel));
-      Add_Child (Root.all, Widget_Access (Panels));
+      Panels.Add_Child (No_Panel);
+      Panels.Add_Child (Single_Panel);
+      Panels.Add_Child (Multi_Panel);
+      Panels.Add_Child (Range_Panel);
+      Root.Add_Child (Panels);
 
       --  Initial selection
       Single_Listbox.Select_Row (2);
@@ -222,7 +222,7 @@ begin
       Multi_Listbox.Toggle_Row_Selected (3);
       Range_Listbox.Select_Row (4);
 
-      W.Set_Root (Widget_Access (Root));
+      W.Set_Root (Root);
       A.Add_Window (W);
       A.Run;
    end;

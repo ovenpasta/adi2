@@ -1,0 +1,103 @@
+pragma Ada_2022;
+
+with Adi.CSS_Parser;
+with Adi.Widget;
+with Ada.Strings.Unbounded;
+
+package Adi.CSS_Source is
+
+   pragma Elaborate_Body;
+
+   type Source_Mode is (Dynamic_Mode, Static_Mode);
+
+   type Static_Style_Entry is private;
+   type Static_Style_Entry_Array is array (Positive range <>) of Static_Style_Entry;
+
+   function Class_Entry (Name : String;
+                         Styles : Adi.Widget.Part_Style_Array) return Static_Style_Entry;
+   function Id_Entry (Name : String;
+                      Styles : Adi.Widget.Part_Style_Array) return Static_Style_Entry;
+   function Tag_Entry (Name : String;
+                       Styles : Adi.Widget.Part_Style_Array) return Static_Style_Entry;
+
+   type Style_Source is tagged private;
+
+   procedure Set_Static_Entries (Source  : in out Style_Source;
+                                 Entries : Static_Style_Entry_Array);
+
+   procedure Set_Dynamic_File (Source  : in out Style_Source;
+                               Path    : String;
+                               Success : out Boolean);
+
+   procedure Set_Auto_Reload (Source : in out Style_Source;
+                              Enabled : Boolean);
+   function Auto_Reload_Enabled (Source : Style_Source) return Boolean;
+
+   procedure Set_Mode (Source  : in out Style_Source;
+                       Mode    : Source_Mode;
+                       Success : out Boolean);
+   function Get_Mode (Source : Style_Source) return Source_Mode;
+
+   procedure Tick (Source   : in out Style_Source;
+                   Reloaded : out Boolean;
+                   Success  : out Boolean);
+
+   procedure Apply (Source : Style_Source;
+                    Kind   : Adi.CSS_Parser.Selector_Kind;
+                    Name   : String;
+                    W      : in out Adi.Widget.Widget'Class);
+
+   procedure Apply_Class (Source : Style_Source;
+                          Name   : String;
+                          W      : in out Adi.Widget.Widget'Class);
+   procedure Apply_Id (Source : Style_Source;
+                       Name   : String;
+                       W      : in out Adi.Widget.Widget'Class);
+   procedure Apply_Tag (Source : Style_Source;
+                        Name   : String;
+                        W      : in out Adi.Widget.Widget'Class);
+   procedure Apply_Selector_Set (Source     : Style_Source;
+                                 W          : in out Adi.Widget.Widget'Class;
+                                 Tag_Name   : String := "";
+                                 Class_Name : String := "";
+                                 Id_Name    : String := "");
+
+   procedure Bind (Source : in out Style_Source;
+                   Kind   : Adi.CSS_Parser.Selector_Kind;
+                   Name   : String;
+                   W      : access Adi.Widget.Widget'Class);
+
+   procedure Bind_Class (Source : in out Style_Source;
+                         Name   : String;
+                         W      : access Adi.Widget.Widget'Class);
+   procedure Bind_Id (Source : in out Style_Source;
+                      Name   : String;
+                      W      : access Adi.Widget.Widget'Class);
+   procedure Bind_Tag (Source : in out Style_Source;
+                       Name   : String;
+                       W      : access Adi.Widget.Widget'Class);
+   procedure Bind_Selector_Set (Source     : in out Style_Source;
+                                W          : access Adi.Widget.Widget'Class;
+                                Tag_Name   : String := "";
+                                Class_Name : String := "";
+                                Id_Name    : String := "");
+
+   function Get_Last_Error (Source : Style_Source) return String;
+   function Get_Dynamic_Path (Source : Style_Source) return String;
+
+private
+
+   type Static_Style_Entry is record
+      Kind   : Adi.CSS_Parser.Selector_Kind := Adi.CSS_Parser.Class_Selector;
+      Name   : Ada.Strings.Unbounded.Unbounded_String;
+      Styles : Adi.Widget.Part_Style_Array := Adi.Widget.Empty_Part_Styles;
+   end record;
+
+   type Style_Source_Impl;
+   type Style_Source_Impl_Access is access all Style_Source_Impl;
+
+   type Style_Source is tagged record
+      Impl : Style_Source_Impl_Access := null;
+   end record;
+
+end Adi.CSS_Source;

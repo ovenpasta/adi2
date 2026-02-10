@@ -34,4 +34,5 @@ generate_if_needed "$CSS_DIR/overflow_example.css" "$OUT_DIR/overflow_example_st
 generate_if_needed "$CSS_DIR/grid_example.css" "$OUT_DIR/grid_example_styles.ads" "Grid_Example_Styles"
 generate_if_needed "$CSS_DIR/dialog_example.css" "$OUT_DIR/dialog_example_styles.ads" "Dialog_Example_Styles"
 generate_if_needed "$CSS_DIR/font_example.css" "$OUT_DIR/font_example_styles.ads" "Font_Example_Styles"
+generate_if_needed "$CSS_DIR/runtime_css_example.css" "$OUT_DIR/runtime_css_example_styles.ads" "Runtime_Css_Example_Styles"
 generate_if_needed "$CSS_DIR/widget_defaults.css" "$OUT_DIR/widget_defaults_styles.ads" "Widget_Defaults_Styles"

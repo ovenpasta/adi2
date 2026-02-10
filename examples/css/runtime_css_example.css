@@ -9,7 +9,7 @@
 .header {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 18px;
   padding: 18px 20px;
   background-color: rgba(30, 41, 59, 0.55);
   border-width: 1px;
@@ -22,7 +22,7 @@
 .content {
   display: flex;
   flex-direction: row;
-  gap: 20px;
+  gap: 40px;
 }
 
 .card-left {
@@ -98,6 +98,46 @@
   font-weight: 700;
   text-align: center;
   text-wrap-mode: nowrap;
+}
+
+.mode-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 220px;
+  margin: 8px 0px 0px 0px;
+  padding: 8px 12px;
+  background-color: rgba(30, 64, 175, 0.35);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(96, 165, 250, 0.7);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 200ms ease-in-out;
+}
+
+.mode-button:hover {
+  background-color: rgba(30, 64, 175, 0.55);
+}
+
+.mode-button:pressed {
+  background-color: rgba(30, 64, 175, 0.7);
+}
+
+.mode-button::label {
+  color: rgb(219, 234, 254);
+  font-size: 13px;
+  font-weight: 700;
+  text-wrap-mode: nowrap;
+  text-align: center;
+}
+
+button {
+  transition: background-color 220ms ease-in-out;
+}
+
+#mode-switch {
+  border-color: rgba(147, 197, 253, 0.95);
 }
 
 .card-title::label {

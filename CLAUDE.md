@@ -144,6 +144,11 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
 - **Item system**: Renderable primitives (`Panel_Item`, `Text_Item`, `Image_Item`) that compose a widget
 - Each part has its own `Widget_Style` that resolves based on widget states
 - Widget flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`
+- Shared vertical overflow scrolling for any widget:
+  - `overflow: auto|scroll` (or `Scrollable` flag) enables wheel/drag scrolling
+  - Shared scrollbar parts (`Scroll_Part`/`Knob_Part`) are rendered by base `Render_Tree`
+  - Shared helpers: `Set/Get_Scroll_Offset_Y`, `Get_Scroll_Content_Height`, `Get_Scroll_Max_Offset_Y`
+  - Shared input/tick hooks: `Handle_Scroll_Mouse_*`, `Tick_Scroll_Animations`
 - Dirty tracking for efficient updates
 - Abstract methods: `Build_Items` (construct renderable items), `Layout` (calculate geometry)
 - Concrete rendering: `Render_Items`, `Render_Tree`, `Update_And_Render` (take `Render_Context`)
@@ -156,6 +161,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
 - Label text wrapping honors both `text-wrap-mode` and `white-space` (`white-space: nowrap` prevents wrapping)
 - Text rendering applies `font-weight`, `font-style`, and `text-decoration` (`underline`/`line-through`); `overline` is parsed but intentionally not rendered yet
 - **Animation**: Per-part `Part_Transition_Array` tracks active transitions; `Tick_Animations` advances them each frame; `Apply_Styles_To_Items` starts transitions when resolved style targets change
+- State invalidation is style-aware: widget/part state changes only mark dirty when resolved style output actually changes (prevents unnecessary rerenders for no-op hover/focus changes)
 - **Per-frame hook**: `On_Tick(DT)` (default null) runs from `Tick_Animations` for widget-specific time-based behavior (e.g. inertial scrolling)
 
 **Adi.Text_Buffer** (`adi-text_buffer.ads`): Shared text editing core
@@ -187,7 +193,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
 - Manages rows, row heights, row gaps, and vertical scrolling with wheel + keyboard navigation
 - Selection modes: `No_Selection`, `Single_Selection`, `Multi_Selection`, `Range_Selection`
 - Supports anchor-based range selection (`Shift+Click` / `Shift+Arrow`); `Multi_Selection` also supports toggle (`Ctrl+Click`)
-- Renders scrollbar track/knob parts (`Scroll_Part`, `Knob_Part`) with draggable knob + track paging
+- Reuses base shared overflow-scroll logic (scrollbar rendering, drag, wheel momentum, pressed-state launch effect)
 - Scrollbar geometry is style-driven from `::scroll`/`::knob` CSS (`width`, `margin`, `padding`, `min-height`)
 - Supports part-scoped selectors for scrollbars (e.g. `list::scroll:hover`, `list::knob:pressed`) distinct from widget-scoped selectors (e.g. `list:hover::scroll`)
 - Hovering the knob also highlights the track (knob-hover propagates to `Scroll_Part`)
@@ -246,10 +252,12 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
 - Overlay support for top-level floating widgets (`Add_Overlay`, `Remove_Overlay`, `Clear_Overlays`, `Overlay_Count`)
 - Overlay hit testing is prioritized above the root tree; overlays render after root content
 - Tracks hovered/pressed widget part; updates part states on pointer movement so part-scoped selectors resolve correctly
+- Scrollbar hit routing prefers the nearest ancestor widget whose part-at-point is `Scroll_Part`/`Knob_Part`, so scrollbar hover/press/drag works even when deepest child under cursor is not scrollable/clickable
 - Keyboard focus handling with Tab traversal across focusable/visible widgets (Shift+Tab reverse, wraps around)
 - When overlays are present, keyboard traversal/routing is scoped to the topmost visible overlay (e.g. dialog buttons receive Tab navigation and Escape reaches dialog dismiss handlers)
 - Forwards both key-down and key-up events to the focused widget
 - `Tick(DT)`: advances animations on the widget tree each frame
+- Optional loop diagnostics: set `ADI_DEBUG_LOOP=1` to log tick dirty transitions and render/relayout triggers
 - Optional minimum-size policy can enforce window min size from layout (`Set_Enforce_Layout_Min_Size`, `Apply_Window_Min_Size_From_Layout`)
 - Window resize/reshape handling
 
@@ -269,7 +277,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
 4. **Render Phase**: `Render_Items` draws each item using its computed style, geometry, and a `Render_Context` (which holds the renderer, shadow cache, and text engine)
    - Rounded borders always use `Render_Rounded_Border_Ring` (annulus) + separate background fill
    - Non-rounded borders render per-edge fills (supports asymmetric border widths/colors/styles)
-   - Overflow clipping follows CSS overflow (`visible` does not clip, `hidden/scroll/auto` clip)
+   - Overflow clipping follows CSS overflow (`visible` does not clip, `hidden/scroll/auto` clip) and applies to descendants; widget own background/border render before clip
    - **Text positions are snapped to integer pixels** (`Float'Floor`) before drawing to prevent sub-pixel blurring from texture interpolation
    - Font hinting uses `TTF_HINTING_LIGHT_SUBPIXEL` for consistent glyph quality across all font sizes
 

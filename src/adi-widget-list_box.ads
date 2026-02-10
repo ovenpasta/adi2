@@ -98,15 +98,9 @@ private
       Selected       : Bool_Vectors.Vector;
       Row_Heights    : Height_Vectors.Vector;
       Row_Gap        : Pixel_Type := 0.0;
-      Scroll_Offset  : Pixel_Type := 0.0;
-      Content_Height : Pixel_Type := 0.0;
       Current_Row    : Natural := 0;
       Anchor_Row     : Natural := 0;
       Mode           : Selection_Mode := Single_Selection;
-      Scroll_Dragging     : Boolean := False;
-      Scroll_Drag_Offset  : Pixel_Type := 0.0;
-      Scroll_Velocity     : Pixel_Type := 0.0;
-      Last_Drag_Offset    : Pixel_Type := 0.0;
       On_Item_Click  : Item_Clicked_Callback := null;
       On_Item_Act    : Item_Activated_Callback := null;
       On_Select      : Selection_Changed_Callback := null;

@@ -125,6 +125,7 @@ package List_Box_Example_Styles is
 
    --  Base style for label-row
    Label_Row_Base_Style : constant Style_Rules := (
+      Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0))),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       Border_Width => Set (Border_Width (Px (1.0))),
@@ -156,6 +157,7 @@ package List_Box_Example_Styles is
 
    --  Base style for card-row
    Card_Row_Base_Style : constant Style_Rules := (
+      Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0))),

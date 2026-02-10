@@ -2,9 +2,43 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  overflow: auto;
   gap: 12px;
   padding: 20px;
   background-color: rgb(17, 24, 39);
+}
+
+.root::scroll {
+  width: 10px;
+  margin: 0px 0px 0px 8px;
+  padding: 2px;
+  background-color: rgba(148, 163, 184, 0.24);
+  border-radius: 6px;
+  transition: background-color 220ms ease-out;
+}
+
+.root::scroll:hover {
+  background-color: rgba(148, 163, 184, 0.42);
+}
+
+.root::scroll:pressed {
+  background-color: rgba(148, 163, 184, 0.62);
+}
+
+.root::knob {
+  width: 10px;
+  min-height: 24px;
+  background-color: rgba(226, 232, 240, 0.8);
+  border-radius: 6px;
+  transition: background-color 220ms ease-out;
+}
+
+.root::knob:hover {
+  background-color: rgba(241, 245, 249, 0.94);
+}
+
+.root::knob:pressed {
+  background-color: rgba(248, 250, 252, 1.0);
 }
 
 .container {

@@ -20,6 +20,25 @@ with System;
 package body Adi.Widget is
    --  Default resolved style for initialization
    Default_Resolved : constant Resolved_Style := Resolve (Empty_Style);
+   Wheel_Step_Px       : constant Pixel_Type := 36.0;
+   Wheel_Impulse_Px_S  : constant Pixel_Type := 820.0;
+   Max_Scroll_Speed    : constant Pixel_Type := 2200.0;
+   Velocity_Epsilon    : constant Pixel_Type := 10.0;
+   Momentum_Friction   : constant Float := 7.0;
+   Launch_Threshold    : constant Pixel_Type := 620.0;
+   Drag_Velocity_Scale : constant Pixel_Type := 55.0;
+
+   type Scrollbar_Metrics is record
+      Width       : Pixel_Type := 10.0;
+      Before_Gap  : Pixel_Type := 6.0;
+      Inset_Top   : Pixel_Type := 2.0;
+      Inset_Right : Pixel_Type := 2.0;
+      Inset_Bot   : Pixel_Type := 2.0;
+      Knob_Width  : Pixel_Type := 10.0;
+      Min_Knob_H  : Pixel_Type := 24.0;
+   end record;
+
+   function Point_In_Rect (R : Rectangle; X, Y : Pixel_Type) return Boolean;
 
    ---------------------------------------------------------------------------
    --  Generate_Shadow_Texture
@@ -328,17 +347,89 @@ package body Adi.Widget is
    --  Widget State Management
    ---------------------------------------------------------------------------
 
+   function Effective_Part_Style
+     (W : Widget'Class;
+      P : Part_Kind) return Widget_Style
+   is
+   begin
+      if W.Part_Styles (P).Style = Empty_Widget_Style
+        and then P /= Any_Part
+        and then W.Part_Styles (Any_Part).Style /= Empty_Widget_Style
+      then
+         return W.Part_Styles (Any_Part).Style;
+      end if;
+      return W.Part_Styles (P).Style;
+   end Effective_Part_Style;
+
+   function Widget_State_Affects_Resolved_Styles
+     (W          : Widget'Class;
+      Old_States : Widget_States) return Boolean
+   is
+      WS : Widget_Style;
+   begin
+      for P in Part_Kind loop
+         if W.Part_Styles (P).Enabled then
+            WS := Effective_Part_Style (W, P);
+            if WS /= Empty_Widget_Style then
+               declare
+                  Old_Resolved : constant Resolved_Style :=
+                    Resolve (Compute_Style (WS, Old_States, W.Part_States (P)));
+                  New_Resolved : constant Resolved_Style :=
+                    Resolve (Compute_Style (WS, W.States, W.Part_States (P)));
+               begin
+                  if Old_Resolved /= New_Resolved then
+                     return True;
+                  end if;
+               end;
+            end if;
+         end if;
+      end loop;
+      return False;
+   end Widget_State_Affects_Resolved_Styles;
+
+   function Part_State_Affects_Resolved_Styles
+     (W          : Widget'Class;
+      Changed    : Part_Kind;
+      Old_States : Widget_States) return Boolean
+   is
+      WS : Widget_Style;
+   begin
+      for P in Part_Kind loop
+         if W.Part_Styles (P).Enabled then
+            WS := Effective_Part_Style (W, P);
+            if WS /= Empty_Widget_Style then
+               declare
+                  Old_Part_States : constant Widget_States :=
+                    (if P = Changed then Old_States else W.Part_States (P));
+                  Old_Resolved : constant Resolved_Style :=
+                    Resolve (Compute_Style (WS, W.States, Old_Part_States));
+                  New_Resolved : constant Resolved_Style :=
+                    Resolve (Compute_Style (WS, W.States, W.Part_States (P)));
+               begin
+                  if Old_Resolved /= New_Resolved then
+                     return True;
+                  end if;
+               end;
+            end if;
+         end if;
+      end loop;
+      return False;
+   end Part_State_Affects_Resolved_Styles;
+
    procedure Set_State (W : in out Widget'Class;
                         S : Widget_State;
                         Active : Boolean) is
       Was_Active : constant Boolean := W.States (S);
+      Old_States : Widget_States;
    begin
       if Was_Active /= Active then
+         Old_States := W.States;
          W.States (S) := Active;
          On_State_Changed (W, S, Active);
+         if Widget_State_Affects_Resolved_Styles (W, Old_States) then
+            Mark_Dirty (W);
+         end if;
       end if;
-
-      Mark_Dirty (W);
    end Set_State;
 
    function Has_State (W : Widget'Class; S : Widget_State) return Boolean is
@@ -356,11 +447,15 @@ package body Adi.Widget is
                              S : Widget_State;
                              Active : Boolean) is
       Was_Active : constant Boolean := W.Part_States (P) (S);
+      Old_States : Widget_States;
    begin
       if Was_Active /= Active then
+         Old_States := W.Part_States (P);
          W.Part_States (P) (S) := Active;
+         if Part_State_Affects_Resolved_Styles (W, P, Old_States) then
+            Mark_Dirty (W);
+         end if;
       end if;
-      Mark_Dirty (W);
    end Set_Part_State;
 
    function Get_Part_States (W : Widget'Class; P : Part_Kind) return Widget_States is
@@ -587,6 +682,14 @@ package body Adi.Widget is
    function Get_Part_At (W : Widget'Class;
                          X, Y : Pixel_Type) return Part_Kind is
    begin
+      if W.Scroll_Show_Bar then
+         if Point_In_Rect (W.Scroll_Knob_Geom, X, Y) then
+            return Knob_Part;
+         elsif Point_In_Rect (W.Scroll_Track_Geom, X, Y) then
+            return Scroll_Part;
+         end if;
+      end if;
+
       for I in reverse 1 .. Natural (W.Items.Length) loop
          declare
             Current : constant Item := W.Items.Element (I);
@@ -714,6 +817,244 @@ package body Adi.Widget is
       return W.Geometry;
    end Get_Geometry;
 
+   function Clamp (Value, Lo, Hi : Pixel_Type) return Pixel_Type is
+   begin
+      if Value < Lo then
+         return Lo;
+      elsif Value > Hi then
+         return Hi;
+      else
+         return Value;
+      end if;
+   end Clamp;
+
+   function Point_In_Rect (R : Rectangle; X, Y : Pixel_Type) return Boolean is
+   begin
+      return X >= R.X and then X <= R.X + R.Width
+        and then Y >= R.Y and then Y <= R.Y + R.Height;
+   end Point_In_Rect;
+
+   function Get_Content_Box (W : Widget'Class) return Rectangle is
+      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+   begin
+      return Content_Box (W.Geometry, Style);
+   end Get_Content_Box;
+
+   function Supports_Scrollbar (W : Widget'Class) return Boolean is
+      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+   begin
+      return Style.Overflow in Overflow_Scroll | Overflow_Auto;
+   end Supports_Scrollbar;
+
+   function Is_Scroll_Enabled (W : Widget'Class) return Boolean is
+   begin
+      return Supports_Scrollbar (W) or else Has_Flag (W, Scrollable);
+   end Is_Scroll_Enabled;
+
+   procedure Clamp_Scroll_Offset (W : in out Widget'Class) is
+      Max_Offset : constant Pixel_Type :=
+        Pixel_Type'Max (0.0, W.Scroll_Content_H - W.Scroll_Viewport_H);
+   begin
+      W.Scroll_Offset_Y := Clamp (W.Scroll_Offset_Y, 0.0, Max_Offset);
+   end Clamp_Scroll_Offset;
+
+   function Get_Scroll_Max_Offset_Y (W : Widget'Class) return Pixel_Type is
+   begin
+      return Pixel_Type'Max (0.0, W.Scroll_Content_H - W.Scroll_Viewport_H);
+   end Get_Scroll_Max_Offset_Y;
+
+   procedure Set_Scroll_Offset_Y (W : in out Widget'Class; Offset : Pixel_Type) is
+      Old : constant Pixel_Type := W.Scroll_Offset_Y;
+   begin
+      W.Scroll_Offset_Y := Offset;
+      Clamp_Scroll_Offset (W);
+      if W.Scroll_Offset_Y /= Old then
+         Mark_Dirty (W);
+      end if;
+   end Set_Scroll_Offset_Y;
+
+   function Get_Scroll_Offset_Y (W : Widget'Class) return Pixel_Type is
+   begin
+      return W.Scroll_Offset_Y;
+   end Get_Scroll_Offset_Y;
+
+   procedure Scroll_By_Y (W : in out Widget'Class; Delta_Y : Pixel_Type) is
+   begin
+      Set_Scroll_Offset_Y (W, W.Scroll_Offset_Y + Delta_Y);
+   end Scroll_By_Y;
+
+   function Get_Scroll_Content_Height (W : Widget'Class) return Pixel_Type is
+   begin
+      return W.Scroll_Content_H;
+   end Get_Scroll_Content_Height;
+
+   function Resolve_Scrollbar_Metrics (W : Widget'Class) return Scrollbar_Metrics is
+      Content        : constant Rectangle := Get_Content_Box (W);
+      Scroll_Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Scroll_Part);
+      Knob_Style     : constant Resolved_Style := Get_Resolved_Part_Style (W, Knob_Part);
+      Scroll_Margin  : constant Edge_Pixels := Get_Margin_Px (Scroll_Style);
+      Scroll_Padding : constant Edge_Pixels := Get_Padding_Px (Scroll_Style);
+      Result         : Scrollbar_Metrics;
+      W_Px           : Pixel_Type;
+      Knob_W_Px      : Pixel_Type;
+      Min_H_Px       : Pixel_Type;
+   begin
+      W_Px := Size_To_Px (Scroll_Style.Width, Container_Size => Content.Width);
+      if W_Px <= 0.0 then
+         W_Px := Size_To_Px (Knob_Style.Width, Container_Size => Content.Width);
+      end if;
+      if W_Px > 0.0 then
+         Result.Width := W_Px;
+      end if;
+
+      Result.Before_Gap :=
+        Pixel_Type'Max (0.0, Scroll_Margin.Left + Scroll_Padding.Left);
+      Result.Inset_Top :=
+        Pixel_Type'Max (0.0, Scroll_Margin.Top + Scroll_Padding.Top);
+      Result.Inset_Right :=
+        Pixel_Type'Max (0.0, Scroll_Margin.Right + Scroll_Padding.Right);
+      Result.Inset_Bot :=
+        Pixel_Type'Max (0.0, Scroll_Margin.Bottom + Scroll_Padding.Bottom);
+
+      Knob_W_Px := Size_To_Px (Knob_Style.Width, Container_Size => Result.Width);
+      if Knob_W_Px > 0.0 then
+         Result.Knob_Width := Knob_W_Px;
+      else
+         Result.Knob_Width := Result.Width;
+      end if;
+
+      Min_H_Px := Size_To_Px (Knob_Style.Min_Height, Container_Size => Content.Height);
+      if Min_H_Px <= 0.0 then
+         Min_H_Px := Size_To_Px (Knob_Style.Height, Container_Size => Content.Height);
+      end if;
+      if Min_H_Px > 0.0 then
+         Result.Min_Knob_H := Min_H_Px;
+      end if;
+
+      return Result;
+   end Resolve_Scrollbar_Metrics;
+
+   procedure Update_Scrollbar_Geometry (W : in out Widget'Class) is
+      Content    : constant Rectangle := Get_Content_Box (W);
+      Style      : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Max_Offset : constant Pixel_Type := Get_Scroll_Max_Offset_Y (W);
+      Metrics    : constant Scrollbar_Metrics := Resolve_Scrollbar_Metrics (W);
+      Ratio      : Float;
+      Knob_H     : Pixel_Type;
+      Knob_Y     : Pixel_Type;
+      Track_H    : Pixel_Type;
+      Want_Bar   : Boolean := False;
+   begin
+      W.Scroll_Track_Geom := (0.0, 0.0, 0.0, 0.0);
+      W.Scroll_Knob_Geom := (0.0, 0.0, 0.0, 0.0);
+      W.Scroll_Show_Bar := False;
+
+      if not Is_Scroll_Enabled (W) or else Content.Width <= 0.0 or else Content.Height <= 0.0 then
+         return;
+      end if;
+
+      if Supports_Scrollbar (W) then
+         case Style.Overflow is
+            when Overflow_Scroll =>
+               Want_Bar := True;
+            when Overflow_Auto =>
+               Want_Bar := Max_Offset > 0.0;
+            when others =>
+               Want_Bar := False;
+         end case;
+      else
+         Want_Bar := Max_Offset > 0.0;
+      end if;
+
+      if not Want_Bar then
+         return;
+      end if;
+
+      Track_H :=
+        Pixel_Type'Max (0.0, Content.Height - Metrics.Inset_Top - Metrics.Inset_Bot);
+      if Track_H <= 0.0 or else Metrics.Width <= 0.0 then
+         return;
+      end if;
+
+      W.Scroll_Track_Geom :=
+        (X      => Content.X + Content.Width - Metrics.Width - Metrics.Inset_Right,
+         Y      => Content.Y + Metrics.Inset_Top,
+         Width  => Metrics.Width,
+         Height => Track_H);
+
+      Ratio := Float'Min (1.0, Float (W.Scroll_Viewport_H / Pixel_Type'Max (1.0, W.Scroll_Content_H)));
+      Knob_H := Pixel_Type'Max (Metrics.Min_Knob_H, Track_H * Pixel_Type (Ratio));
+      Knob_H := Pixel_Type'Min (Track_H, Knob_H);
+
+      if Max_Offset > 0.0 and then Track_H > Knob_H then
+         Knob_Y := W.Scroll_Track_Geom.Y + (W.Scroll_Offset_Y / Max_Offset) * (Track_H - Knob_H);
+      else
+         Knob_Y := W.Scroll_Track_Geom.Y;
+      end if;
+
+      W.Scroll_Knob_Geom :=
+        (X      => W.Scroll_Track_Geom.X
+                     + (W.Scroll_Track_Geom.Width - Pixel_Type'Min (W.Scroll_Track_Geom.Width, Metrics.Knob_Width)) / 2.0,
+         Y      => Knob_Y,
+         Width  => Pixel_Type'Min (W.Scroll_Track_Geom.Width, Metrics.Knob_Width),
+         Height => Knob_H);
+      W.Scroll_Show_Bar := True;
+   end Update_Scrollbar_Geometry;
+
+   procedure Update_Shared_Scroll_Layout (W : in out Widget'Class) is
+      Content        : constant Rectangle := Get_Content_Box (W);
+      Content_Bottom : Pixel_Type := Content.Y;
+      Min_Top        : Pixel_Type := Content.Y;
+      Has_Content    : Boolean := False;
+      Max_Offset     : Pixel_Type;
+      Shift_Y        : constant Pixel_Type := -W.Scroll_Offset_Y;
+   begin
+      W.Scroll_Viewport_H := Pixel_Type'Max (0.0, Content.Height);
+      if Is_Scroll_Enabled (W) then
+         W.Flags (Scrollable) := True;
+      end if;
+      for Child of W.Children loop
+         declare
+            G : constant Rectangle := Get_Geometry (Child.all);
+            Pref : constant Size_2D := Get_Preferred_Size (Child.all);
+            Effective_H : constant Pixel_Type := Pixel_Type'Max (G.Height, Pref.Height);
+         begin
+            Has_Content := True;
+            Min_Top := Pixel_Type'Min (Min_Top, G.Y);
+            Content_Bottom := Pixel_Type'Max (Content_Bottom, G.Y + Effective_H);
+         end;
+      end loop;
+
+      if Has_Content then
+         W.Scroll_Content_H := Pixel_Type'Max (W.Scroll_Viewport_H, Content_Bottom - Min_Top);
+      else
+         W.Scroll_Content_H := W.Scroll_Viewport_H;
+      end if;
+
+      Clamp_Scroll_Offset (W);
+      Max_Offset := Get_Scroll_Max_Offset_Y (W);
+      if Max_Offset <= 0.0 then
+         W.Scroll_Dragging := False;
+      end if;
+
+      if Is_Scroll_Enabled (W) and then W.Scroll_Offset_Y > 0.0 then
+         for I in 1 .. Child_Count (W) loop
+            declare
+               Child   : constant Widget_Access := Get_Child (W, I);
+               Child_G : Rectangle;
+            begin
+               if Child /= null then
+                  Child_G := Get_Geometry (Child.all);
+                  Child_G.Y := Child_G.Y + Shift_Y;
+                  Set_Geometry (Child.all, Child_G);
+               end if;
+            end;
+         end loop;
+      end if;
+
+      Update_Scrollbar_Geometry (W);
+   end Update_Shared_Scroll_Layout;
+
    ---------------------------------------------------------------------------
    --  Flags
    ---------------------------------------------------------------------------
@@ -761,13 +1102,194 @@ package body Adi.Widget is
                                Active : Boolean) is
       pragma Unreferenced (S, Active);
    begin
-      W.Dirty := True;
+      null;
    end On_State_Changed;
 
    procedure On_Geometry_Changed (W : in out Widget'Class) is
    begin
       Mark_Dirty (W);
    end On_Geometry_Changed;
+
+   function Handle_Scroll_Mouse_Down
+     (W      : in out Widget'Class;
+      X, Y   : Pixel_Type;
+      Button : Mouse_Button) return Boolean
+   is
+      Content : constant Rectangle := Get_Content_Box (W);
+   begin
+      if Button /= Left_Button or else not W.Scroll_Show_Bar then
+         return False;
+      end if;
+
+      if not Point_In_Rect (W.Scroll_Track_Geom, X, Y) then
+         return False;
+      end if;
+
+      if Point_In_Rect (W.Scroll_Knob_Geom, X, Y) then
+         W.Scroll_Dragging := True;
+         W.Scroll_Drag_Offset := Y - W.Scroll_Knob_Geom.Y;
+         W.Scroll_Velocity_Y := 0.0;
+      elsif Y < W.Scroll_Knob_Geom.Y then
+         Scroll_By_Y (W, -Content.Height * 0.9);
+      else
+         Scroll_By_Y (W, Content.Height * 0.9);
+      end if;
+
+      Mark_Dirty (W);
+      return True;
+   end Handle_Scroll_Mouse_Down;
+
+   procedure Handle_Scroll_Mouse_Move
+     (W    : in out Widget'Class;
+      X, Y : Pixel_Type)
+   is
+      pragma Unreferenced (X);
+      Travel      : Pixel_Type;
+      Top_Y       : Pixel_Type;
+      Max_Offset  : Pixel_Type;
+      Ratio       : Pixel_Type;
+      Prev_Offset : Pixel_Type;
+   begin
+      if not W.Scroll_Dragging then
+         return;
+      end if;
+
+      if not W.Scroll_Show_Bar then
+         W.Scroll_Dragging := False;
+         return;
+      end if;
+
+      Travel := Pixel_Type'Max (0.0, W.Scroll_Track_Geom.Height - W.Scroll_Knob_Geom.Height);
+      if Travel <= 0.0 then
+         Set_Scroll_Offset_Y (W, 0.0);
+         return;
+      end if;
+
+      Top_Y := Clamp (Y - W.Scroll_Drag_Offset,
+                      W.Scroll_Track_Geom.Y,
+                      W.Scroll_Track_Geom.Y + Travel);
+      Ratio := (Top_Y - W.Scroll_Track_Geom.Y) / Travel;
+      Max_Offset := Get_Scroll_Max_Offset_Y (W);
+      Prev_Offset := W.Scroll_Offset_Y;
+      Set_Scroll_Offset_Y (W, Ratio * Max_Offset);
+      W.Scroll_Velocity_Y :=
+        Clamp ((W.Scroll_Offset_Y - Prev_Offset) * Drag_Velocity_Scale,
+               -Max_Scroll_Speed,
+               Max_Scroll_Speed);
+   end Handle_Scroll_Mouse_Move;
+
+   procedure Handle_Scroll_Mouse_Up
+     (W      : in out Widget'Class;
+      Button : Mouse_Button)
+   is
+   begin
+      if Button = Left_Button and then W.Scroll_Dragging then
+         W.Scroll_Dragging := False;
+         Mark_Dirty (W);
+      end if;
+   end Handle_Scroll_Mouse_Up;
+
+   procedure Handle_Scroll_Mouse_Wheel
+     (W                : in out Widget'Class;
+      Delta_X, Delta_Y : Pixel_Type)
+   is
+      pragma Unreferenced (Delta_X);
+   begin
+      if Delta_Y = 0.0 or else not Is_Scroll_Enabled (W) then
+         return;
+      end if;
+
+      Set_Scroll_Offset_Y (W, W.Scroll_Offset_Y - (Delta_Y * Wheel_Step_Px));
+      W.Scroll_Velocity_Y :=
+        Clamp (W.Scroll_Velocity_Y - (Delta_Y * Wheel_Impulse_Px_S),
+               -Max_Scroll_Speed,
+               Max_Scroll_Speed);
+   end Handle_Scroll_Mouse_Wheel;
+
+   procedure Tick_Scroll_Animations (W : in out Widget'Class; DT : Duration) is
+      DT_Float   : constant Float := Float (DT);
+      Max_Offset : constant Pixel_Type := Get_Scroll_Max_Offset_Y (W);
+      Old_Offset : Pixel_Type;
+      Fast       : Boolean;
+   begin
+      if not Is_Scroll_Enabled (W) then
+         if W.Scroll_Dragging or else W.Scroll_Velocity_Y /= 0.0 then
+            W.Scroll_Dragging := False;
+            W.Scroll_Velocity_Y := 0.0;
+            Set_Part_State (W, Scroll_Part, State_Pressed, False);
+            Set_Part_State (W, Knob_Part, State_Pressed, False);
+         end if;
+         return;
+      end if;
+
+      if not W.Scroll_Dragging and then abs W.Scroll_Velocity_Y > Velocity_Epsilon then
+         Old_Offset := W.Scroll_Offset_Y;
+         Set_Scroll_Offset_Y (W, W.Scroll_Offset_Y + W.Scroll_Velocity_Y * Pixel_Type (DT_Float));
+
+         if (W.Scroll_Offset_Y = 0.0 and then W.Scroll_Velocity_Y < 0.0)
+           or else (W.Scroll_Offset_Y = Max_Offset and then W.Scroll_Velocity_Y > 0.0)
+         then
+            W.Scroll_Velocity_Y := 0.0;
+         else
+            W.Scroll_Velocity_Y :=
+              W.Scroll_Velocity_Y * Pixel_Type (Exp (-Momentum_Friction * DT_Float));
+         end if;
+
+         if abs W.Scroll_Velocity_Y < Velocity_Epsilon
+           or else W.Scroll_Offset_Y = Old_Offset
+         then
+            W.Scroll_Velocity_Y := 0.0;
+         end if;
+      end if;
+
+      Fast := W.Scroll_Dragging or else abs W.Scroll_Velocity_Y >= Launch_Threshold;
+      Set_Part_State (W, Scroll_Part, State_Pressed, Fast);
+      Set_Part_State (W, Knob_Part, State_Pressed, Fast);
+   end Tick_Scroll_Animations;
+
+   procedure On_Mouse_Down
+     (W      : in out Widget;
+      X, Y   : Pixel_Type;
+      Button : Mouse_Button;
+      Clicks : Natural := 1)
+   is
+      pragma Unreferenced (Clicks);
+   begin
+      if Handle_Scroll_Mouse_Down (W, X, Y, Button) then
+         return;
+      end if;
+   end On_Mouse_Down;
+
+   procedure On_Mouse_Move
+     (W    : in out Widget;
+      X, Y : Pixel_Type)
+   is
+   begin
+      Handle_Scroll_Mouse_Move (W, X, Y);
+   end On_Mouse_Move;
+
+   procedure On_Mouse_Up
+     (W      : in out Widget;
+      X, Y   : Pixel_Type;
+      Button : Mouse_Button)
+   is
+      pragma Unreferenced (X, Y);
+   begin
+      Handle_Scroll_Mouse_Up (W, Button);
+   end On_Mouse_Up;
+
+   procedure On_Mouse_Wheel
+     (W                : in out Widget;
+      Delta_X, Delta_Y : Pixel_Type)
+   is
+   begin
+      Handle_Scroll_Mouse_Wheel (W, Delta_X, Delta_Y);
+   end On_Mouse_Wheel;
+
+   procedure On_Tick (W : in out Widget; DT : Duration) is
+   begin
+      Tick_Scroll_Animations (W, DT);
+   end On_Tick;
 
 
    ---------------------------------------------------------------------------
@@ -2151,6 +2673,22 @@ package body Adi.Widget is
       end loop;
    end Render_Items;
 
+   procedure Render_Shared_Scrollbar
+     (W   : in out Widget'Class;
+      Ctx : in out Render_Context)
+   is
+      Renderer     : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
+      Scroll_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Scroll_Part);
+      Knob_Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Knob_Part);
+   begin
+      if Renderer = null or else not W.Scroll_Show_Bar then
+         return;
+      end if;
+
+      Render_Panel (Renderer, W.Scroll_Track_Geom, Scroll_Style);
+      Render_Panel (Renderer, W.Scroll_Knob_Geom, Knob_Style);
+   end Render_Shared_Scrollbar;
+
    procedure Render_Tree (W : in out Widget'Class; Ctx : in out Render_Context) is
       Renderer : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
       Prev_Clip  : aliased Adi.SDL.SDL_Rect;
@@ -2164,6 +2702,10 @@ package body Adi.Widget is
          return;
       end if;
 
+      --  Render this widget's own visuals first; overflow clipping applies to
+      --  descendant content, not the widget's own background/border panel.
+      Render_Items (W, Ctx);
+
       if Renderer /= null then
          declare
             Main_Style : constant Resolved_Style :=
@@ -2172,7 +2714,7 @@ package body Adi.Widget is
               Main_Style.Overflow in Overflow_Hidden | Overflow_Scroll | Overflow_Auto;
             Clip_By_Scrollable : constant Boolean := Has_Flag (W, Scrollable);
             Content : constant Rectangle :=
-              Content_Box (Get_Geometry (W), Main_Style);
+              Padding_Box (Get_Geometry (W), Main_Style);
          begin
             if (Clip_By_Overflow or else Clip_By_Scrollable)
               and then Content.Width > 0.0
@@ -2210,8 +2752,6 @@ package body Adi.Widget is
          end;
       end if;
 
-      Render_Items (W, Ctx);
-
       for Child of W.Children loop
          Render_Tree (Child.all, Ctx);
       end loop;
@@ -2223,6 +2763,8 @@ package body Adi.Widget is
             Success := SDL_SetRenderClipRect (Renderer, null);
          end if;
       end if;
+
+      Render_Shared_Scrollbar (W, Ctx);
    end Render_Tree;
 
    procedure Update_And_Render (W : in out Widget'Class; Ctx : in out Render_Context) is
@@ -2719,6 +3261,7 @@ end Rebuild_All_Items;
 procedure Layout_Tree (W : in out Widget'Class) is
 begin
    Layout (W);
+   Update_Shared_Scroll_Layout (W);
    for Child of W.Children loop
       Layout_Tree (Child.all);
    end loop;

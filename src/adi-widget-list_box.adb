@@ -1,40 +1,8 @@
-with Adi.CSS_Styles;  use Adi.CSS_Styles;
-with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.SDL.Events;  use Adi.SDL.Events;
-with Ada.Numerics.Elementary_Functions;
 
 package body Adi.Widget.List_Box is
 
    Default_Row_Height : constant Pixel_Type := 24.0;
-   Wheel_Step_Px      : constant Pixel_Type := 36.0;
-   Wheel_Impulse_Px_S : constant Pixel_Type := 820.0;
-   Max_Scroll_Speed   : constant Pixel_Type := 2200.0;
-   Velocity_Epsilon   : constant Pixel_Type := 10.0;
-   Momentum_Friction  : constant Float := 7.0;
-   Launch_Threshold   : constant Pixel_Type := 620.0;
-   Drag_Velocity_Scale : constant Pixel_Type := 55.0;
-
-   type Scrollbar_Metrics is record
-      Width       : Pixel_Type := 10.0;
-      Before_Gap  : Pixel_Type := 6.0;
-      Inset_Top   : Pixel_Type := 2.0;
-      Inset_Right : Pixel_Type := 2.0;
-      Inset_Bot   : Pixel_Type := 2.0;
-      Knob_Width  : Pixel_Type := 10.0;
-      Min_Knob_H  : Pixel_Type := 24.0;
-   end record;
-
-   function Clamp (Value, Lo, Hi : Pixel_Type) return Pixel_Type is
-   begin
-      if Value < Lo then
-         return Lo;
-      elsif Value > Hi then
-         return Hi;
-      else
-         return Value;
-      end if;
-   end Clamp;
-
    function Clamp (Value, Lo, Hi : Integer) return Integer is
    begin
       if Value < Lo then
@@ -73,117 +41,9 @@ package body Adi.Widget.List_Box is
    end Sync_Row_Selection_State;
 
    function Main_Content_Box (W : List_Box_Widget) return Rectangle is
-      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
    begin
-      return Content_Box (W.Geometry, Style);
+      return Get_Content_Box (W);
    end Main_Content_Box;
-
-   function Max_Scroll_Offset (W : List_Box_Widget) return Pixel_Type is
-      Content : constant Rectangle := Main_Content_Box (W);
-   begin
-      return Pixel_Type'Max (0.0, W.Content_Height - Content.Height);
-   end Max_Scroll_Offset;
-
-   function Point_In_Rect (R : Rectangle; X, Y : Pixel_Type) return Boolean is
-   begin
-      return X >= R.X and then X <= R.X + R.Width
-        and then Y >= R.Y and then Y <= R.Y + R.Height;
-   end Point_In_Rect;
-
-   procedure Compute_Scrollbar_Geometry
-     (W        : List_Box_Widget;
-      Metrics  : Scrollbar_Metrics;
-      Visible  : out Boolean;
-      Track    : out Rectangle;
-      Knob     : out Rectangle)
-   is
-      Content    : constant Rectangle := Main_Content_Box (W);
-      Max_Offset : constant Pixel_Type := Max_Scroll_Offset (W);
-      Ratio      : Float;
-      Knob_H     : Pixel_Type;
-      Knob_Y     : Pixel_Type;
-   begin
-      Visible := W.Content_Height > Content.Height and then Content.Height > 0.0;
-      Track := (0.0, 0.0, 0.0, 0.0);
-      Knob := (0.0, 0.0, 0.0, 0.0);
-
-      if not Visible then
-         return;
-      end if;
-
-      Track :=
-        (X      => Content.X + Content.Width - Metrics.Width - Metrics.Inset_Right,
-         Y      => Content.Y + Metrics.Inset_Top,
-         Width  => Metrics.Width,
-         Height => Pixel_Type'Max
-           (0.0, Content.Height - Metrics.Inset_Top - Metrics.Inset_Bot));
-
-      Ratio := Float'Min (1.0, Float (Content.Height / W.Content_Height));
-      Knob_H := Pixel_Type'Max (Metrics.Min_Knob_H, Track.Height * Pixel_Type (Ratio));
-
-      if Max_Offset > 0.0 and then Track.Height > Knob_H then
-         Knob_Y := Track.Y + (W.Scroll_Offset / Max_Offset) * (Track.Height - Knob_H);
-      else
-         Knob_Y := Track.Y;
-      end if;
-
-      Knob :=
-        (X      => Track.X + (Track.Width - Pixel_Type'Min (Track.Width, Metrics.Knob_Width)) / 2.0,
-         Y      => Knob_Y,
-         Width  => Pixel_Type'Min (Track.Width, Metrics.Knob_Width),
-         Height => Pixel_Type'Min (Track.Height, Knob_H));
-   end Compute_Scrollbar_Geometry;
-
-   function Resolve_Scrollbar_Metrics (W : List_Box_Widget) return Scrollbar_Metrics is
-      Content : constant Rectangle := Main_Content_Box (W);
-      Scroll_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Scroll_Part);
-      Knob_Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Knob_Part);
-      Scroll_Margin : constant Edge_Pixels := Get_Margin_Px (Scroll_Style);
-      Scroll_Padding : constant Edge_Pixels := Get_Padding_Px (Scroll_Style);
-      Result : Scrollbar_Metrics;
-      W_Px : Pixel_Type;
-      Knob_W_Px : Pixel_Type;
-      Min_H_Px : Pixel_Type;
-   begin
-      W_Px := Size_To_Px (Scroll_Style.Width, Container_Size => Content.Width);
-      if W_Px <= 0.0 then
-         W_Px := Size_To_Px (Knob_Style.Width, Container_Size => Content.Width);
-      end if;
-      if W_Px > 0.0 then
-         Result.Width := W_Px;
-      end if;
-
-      Result.Before_Gap :=
-        Pixel_Type'Max (0.0, Scroll_Margin.Left + Scroll_Padding.Left);
-      Result.Inset_Top :=
-        Pixel_Type'Max (0.0, Scroll_Margin.Top + Scroll_Padding.Top);
-      Result.Inset_Right :=
-        Pixel_Type'Max (0.0, Scroll_Margin.Right + Scroll_Padding.Right);
-      Result.Inset_Bot :=
-        Pixel_Type'Max (0.0, Scroll_Margin.Bottom + Scroll_Padding.Bottom);
-
-      Knob_W_Px := Size_To_Px (Knob_Style.Width, Container_Size => Result.Width);
-      if Knob_W_Px > 0.0 then
-         Result.Knob_Width := Knob_W_Px;
-      else
-         Result.Knob_Width := Result.Width;
-      end if;
-
-      Min_H_Px := Size_To_Px (Knob_Style.Min_Height, Container_Size => Content.Height);
-      if Min_H_Px <= 0.0 then
-         Min_H_Px := Size_To_Px (Knob_Style.Height, Container_Size => Content.Height);
-      end if;
-      if Min_H_Px > 0.0 then
-         Result.Min_Knob_H := Min_H_Px;
-      end if;
-
-      return Result;
-   end Resolve_Scrollbar_Metrics;
-
-   procedure Clamp_Scroll (W : in out List_Box_Widget) is
-   begin
-      W.Scroll_Offset := Clamp (W.Scroll_Offset, 0.0, Max_Scroll_Offset (W));
-   end Clamp_Scroll;
 
    function Row_Index_At_Y (W : List_Box_Widget; Y : Pixel_Type) return Natural is
       Content : constant Rectangle := Main_Content_Box (W);
@@ -194,7 +54,7 @@ package body Adi.Widget.List_Box is
          return 0;
       end if;
 
-      Local_Y := Y - Content.Y + W.Scroll_Offset;
+      Local_Y := Y - Content.Y + Get_Scroll_Offset_Y (W);
 
       for I in 1 .. Natural (W.Rows.Length) loop
          declare
@@ -373,8 +233,7 @@ package body Adi.Widget.List_Box is
       W.Rows.Clear;
       W.Selected.Clear;
       W.Row_Heights.Clear;
-      W.Content_Height := 0.0;
-      W.Scroll_Offset := 0.0;
+      Set_Scroll_Offset_Y (W, 0.0);
       W.Current_Row := 0;
       W.Anchor_Row := 0;
       Mark_Dirty (W);
@@ -407,24 +266,22 @@ package body Adi.Widget.List_Box is
 
    procedure Set_Scroll_Offset (W : in out List_Box_Widget; Offset : Pixel_Type) is
    begin
-      W.Scroll_Offset := Offset;
-      Clamp_Scroll (W);
-      Mark_Dirty (W);
+      Set_Scroll_Offset_Y (W, Offset);
    end Set_Scroll_Offset;
 
    function Get_Scroll_Offset (W : List_Box_Widget) return Pixel_Type is
    begin
-      return W.Scroll_Offset;
+      return Get_Scroll_Offset_Y (W);
    end Get_Scroll_Offset;
 
    function Get_Content_Height (W : List_Box_Widget) return Pixel_Type is
    begin
-      return W.Content_Height;
+      return Get_Scroll_Content_Height (W);
    end Get_Content_Height;
 
    procedure Scroll_By (W : in out List_Box_Widget; Delta_Y : Pixel_Type) is
    begin
-      Set_Scroll_Offset (W, W.Scroll_Offset + Delta_Y);
+      Scroll_By_Y (W, Delta_Y);
    end Scroll_By;
 
    procedure Ensure_Row_Visible (W : in out List_Box_Widget; Index : Positive) is
@@ -446,14 +303,11 @@ package body Adi.Widget.List_Box is
       Row_Top := Cursor;
       Row_Bot := Cursor + H;
 
-      if Row_Top < W.Scroll_Offset then
-         W.Scroll_Offset := Row_Top;
-      elsif Row_Bot > W.Scroll_Offset + Content.Height then
-         W.Scroll_Offset := Row_Bot - Content.Height;
+      if Row_Top < Get_Scroll_Offset_Y (W) then
+         Set_Scroll_Offset_Y (W, Row_Top);
+      elsif Row_Bot > Get_Scroll_Offset_Y (W) + Content.Height then
+         Set_Scroll_Offset_Y (W, Row_Bot - Content.Height);
       end if;
-
-      Clamp_Scroll (W);
-      Mark_Dirty (W);
    end Ensure_Row_Visible;
 
    procedure Set_Selection_Mode (W : in out List_Box_Widget; Mode : Selection_Mode) is
@@ -595,12 +449,9 @@ package body Adi.Widget.List_Box is
    end Set_On_Selection_Changed;
 
    overriding procedure Build_Items (W : in out List_Box_Widget) is
-      Scroll_Geom : constant Rectangle := (0.0, 0.0, 0.0, 0.0);
    begin
       if Item_Count (W) = 0 then
          Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));
-         Add_Item (W, Make_Panel (Scroll_Part, Scroll_Geom, 1));
-         Add_Item (W, Make_Panel (Knob_Part, Scroll_Geom, 2));
       end if;
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
    end Build_Items;
@@ -610,12 +461,7 @@ package body Adi.Widget.List_Box is
       Height_Sum : Pixel_Type := 0.0;
       Row_H : Pixel_Type;
       Cursor_Y : Pixel_Type;
-      Overflow : Boolean := False;
       Rows_Width : Pixel_Type := Content.Width;
-      Track : Rectangle := (0.0, 0.0, 0.0, 0.0);
-      Knob  : Rectangle := (0.0, 0.0, 0.0, 0.0);
-      Show_Scroll : Boolean;
-      Metrics : Scrollbar_Metrics;
    begin
       if Natural (W.Row_Heights.Length) /= Natural (W.Rows.Length) then
          W.Row_Heights.Clear;
@@ -645,20 +491,10 @@ package body Adi.Widget.List_Box is
          end;
       end loop;
 
-      W.Content_Height := Height_Sum;
-      Clamp_Scroll (W);
-      Metrics := Resolve_Scrollbar_Metrics (W);
-
-      Overflow := W.Content_Height > Content.Height;
-      if Overflow then
-         Rows_Width :=
-           Pixel_Type'Max
-             (0.0,
-              Content.Width - (Metrics.Width + Metrics.Inset_Right + Metrics.Before_Gap));
-      end if;
+      Rows_Width := Content.Width;
 
       --  Second pass: place rows using final viewport width.
-      Cursor_Y := Content.Y - W.Scroll_Offset;
+      Cursor_Y := Content.Y;
       for I in 1 .. Natural (W.Rows.Length) loop
          declare
             Row : constant Row_Widget_Access := W.Rows.Element (I);
@@ -676,14 +512,6 @@ package body Adi.Widget.List_Box is
             Cursor_Y := Cursor_Y + Row_H + W.Row_Gap;
          end;
       end loop;
-
-      --  Scrollbar track + knob use dedicated parts.
-      Compute_Scrollbar_Geometry (W, Metrics, Show_Scroll, Track, Knob);
-
-      if Item_Count (W) >= 3 then
-         W.Items.Reference (2).Geometry := Track;
-         W.Items.Reference (3).Geometry := Knob;
-      end if;
    end Layout;
 
    overriding procedure On_Mouse_Down
@@ -698,31 +526,12 @@ package body Adi.Widget.List_Box is
       Mods  : constant SDL_Keymod := SDL_GetModState;
       Shift : constant Boolean := Is_Mod_Active (Mods, SDL_KMOD_SHIFT);
       Ctrl  : constant Boolean := Is_Mod_Active (Mods, SDL_KMOD_CTRL);
-      Show_Scroll : Boolean;
-      Track       : Rectangle;
-      Knob        : Rectangle;
-      Content     : constant Rectangle := Main_Content_Box (W);
-      Metrics     : constant Scrollbar_Metrics := Resolve_Scrollbar_Metrics (W);
    begin
       if Button /= Left_Button then
          return;
       end if;
 
-      W.Scroll_Dragging := False;
-      Compute_Scrollbar_Geometry (W, Metrics, Show_Scroll, Track, Knob);
-
-      if Show_Scroll and then Point_In_Rect (Track, X, Y) then
-         if Point_In_Rect (Knob, X, Y) then
-            W.Scroll_Dragging := True;
-            W.Scroll_Drag_Offset := Y - Knob.Y;
-            W.Last_Drag_Offset := W.Scroll_Offset;
-            W.Scroll_Velocity := 0.0;
-         elsif Y < Knob.Y then
-            Scroll_By (W, -Content.Height * 0.9);
-         else
-            Scroll_By (W, Content.Height * 0.9);
-         end if;
-         Mark_Dirty (W);
+      if Handle_Scroll_Mouse_Down (W, X, Y, Button) then
          return;
       end if;
 
@@ -803,59 +612,16 @@ package body Adi.Widget.List_Box is
      (W                : in out List_Box_Widget;
       Delta_X, Delta_Y : Pixel_Type)
    is
-      pragma Unreferenced (Delta_X);
    begin
-      if Delta_Y = 0.0 then
-         return;
-      end if;
-
-      Set_Scroll_Offset (W, W.Scroll_Offset - (Delta_Y * Wheel_Step_Px));
-      W.Scroll_Velocity :=
-        Clamp (W.Scroll_Velocity - (Delta_Y * Wheel_Impulse_Px_S),
-               -Max_Scroll_Speed,
-               Max_Scroll_Speed);
+      Handle_Scroll_Mouse_Wheel (W, Delta_X, Delta_Y);
    end On_Mouse_Wheel;
 
    overriding procedure On_Mouse_Move
      (W    : in out List_Box_Widget;
       X, Y : Pixel_Type)
    is
-      pragma Unreferenced (X);
-      Show_Scroll : Boolean;
-      Track       : Rectangle;
-      Knob        : Rectangle;
-      Travel      : Pixel_Type;
-      Top_Y       : Pixel_Type;
-      Max_Offset  : Pixel_Type;
-      Ratio       : Pixel_Type;
-      Prev_Offset : Pixel_Type;
-      Metrics     : constant Scrollbar_Metrics := Resolve_Scrollbar_Metrics (W);
    begin
-      if not W.Scroll_Dragging then
-         return;
-      end if;
-
-      Compute_Scrollbar_Geometry (W, Metrics, Show_Scroll, Track, Knob);
-      if not Show_Scroll then
-         W.Scroll_Dragging := False;
-         return;
-      end if;
-
-      Travel := Pixel_Type'Max (0.0, Track.Height - Knob.Height);
-      if Travel <= 0.0 then
-         Set_Scroll_Offset (W, 0.0);
-         return;
-      end if;
-
-      Top_Y := Clamp (Y - W.Scroll_Drag_Offset, Track.Y, Track.Y + Travel);
-      Ratio := (Top_Y - Track.Y) / Travel;
-      Max_Offset := Max_Scroll_Offset (W);
-      Prev_Offset := W.Scroll_Offset;
-      Set_Scroll_Offset (W, Ratio * Max_Offset);
-      W.Scroll_Velocity :=
-        Clamp ((W.Scroll_Offset - Prev_Offset) * Drag_Velocity_Scale,
-               -Max_Scroll_Speed,
-               Max_Scroll_Speed);
+      Handle_Scroll_Mouse_Move (W, X, Y);
    end On_Mouse_Move;
 
    overriding procedure On_Mouse_Up
@@ -865,46 +631,15 @@ package body Adi.Widget.List_Box is
    is
       pragma Unreferenced (X, Y);
    begin
-      if Button = Left_Button and then W.Scroll_Dragging then
-         W.Scroll_Dragging := False;
-         Mark_Dirty (W);
-      end if;
+      Handle_Scroll_Mouse_Up (W, Button);
    end On_Mouse_Up;
 
    overriding procedure On_Tick
      (W  : in out List_Box_Widget;
       DT : Duration)
    is
-      use Ada.Numerics.Elementary_Functions;
-      DT_Float : constant Float := Float (DT);
-      Max_Offset : constant Pixel_Type := Max_Scroll_Offset (W);
-      Old_Offset : Pixel_Type;
-      Fast : Boolean;
    begin
-      if not W.Scroll_Dragging and then abs W.Scroll_Velocity > Velocity_Epsilon then
-         Old_Offset := W.Scroll_Offset;
-         Set_Scroll_Offset (W, W.Scroll_Offset + W.Scroll_Velocity * Pixel_Type (DT_Float));
-
-         --  Stop momentum when clamped against bounds.
-         if (W.Scroll_Offset = 0.0 and then W.Scroll_Velocity < 0.0)
-           or else (W.Scroll_Offset = Max_Offset and then W.Scroll_Velocity > 0.0)
-         then
-            W.Scroll_Velocity := 0.0;
-         else
-            W.Scroll_Velocity :=
-              W.Scroll_Velocity * Pixel_Type (Exp (-Momentum_Friction * DT_Float));
-         end if;
-
-         if abs W.Scroll_Velocity < Velocity_Epsilon
-           or else W.Scroll_Offset = Old_Offset
-         then
-            W.Scroll_Velocity := 0.0;
-         end if;
-      end if;
-
-      Fast := W.Scroll_Dragging or else abs W.Scroll_Velocity >= Launch_Threshold;
-      Set_Part_State (W, Scroll_Part, State_Pressed, Fast);
-      Set_Part_State (W, Knob_Part, State_Pressed, Fast);
+      Tick_Scroll_Animations (W, DT);
    end On_Tick;
 
    overriding procedure On_Key_Down
@@ -919,7 +654,7 @@ package body Adi.Widget.List_Box is
       Count : constant Natural := Natural (W.Rows.Length);
       Content : constant Rectangle := Main_Content_Box (W);
       Avg_Row_H : Pixel_Type :=
-        (if Count > 0 then W.Content_Height / Pixel_Type (Count) else Default_Row_Height);
+        (if Count > 0 then Get_Scroll_Content_Height (W) / Pixel_Type (Count) else Default_Row_Height);
       Page_Rows : Integer :=
         Integer'Max (1, Integer (Float (Content.Height / Pixel_Type'Max (1.0, Avg_Row_H))));
    begin

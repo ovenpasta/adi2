@@ -14,9 +14,55 @@ package Font_Example_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Align_Items => Set (Stretch),
+      Overflow => Set (Overflow_Auto),
       Gap => Set (Gap (Px (12.0))),
       Padding => Set (CSS_Box (Px (20.0))),
       Background_Color => Set_Bg (RGB (17, 24, 39)),
+      others => <>
+   );
+
+   --  Base style for root::knob
+   Root_Knob_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (10.0))),
+      Min_Height => Set (Size (Px (24.0))),
+      Background_Color => Set_Bg (RGBA (226, 232, 240, 0.8)),
+      Border_Radius => Set (Radius (Px (6.0))),
+      Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      others => <>
+   );
+
+   --  Style for root::knob when part State_Hovered
+   Root_Knob_Part_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGBA (241, 245, 249, 0.94)),
+      others => <>
+   );
+
+   --  Style for root::knob when part State_Pressed
+   Root_Knob_Part_Pressed_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGBA (248, 250, 252, 1.0)),
+      others => <>
+   );
+
+   --  Base style for root::scroll
+   Root_Scroll_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (10.0))),
+      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (8.0))),
+      Padding => Set (CSS_Box (Px (2.0))),
+      Background_Color => Set_Bg (RGBA (148, 163, 184, 0.24)),
+      Border_Radius => Set (Radius (Px (6.0))),
+      Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      others => <>
+   );
+
+   --  Style for root::scroll when part State_Hovered
+   Root_Scroll_Part_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGBA (148, 163, 184, 0.42)),
+      others => <>
+   );
+
+   --  Style for root::scroll when part State_Pressed
+   Root_Scroll_Part_Pressed_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGBA (148, 163, 184, 0.62)),
       others => <>
    );
 
@@ -183,9 +229,25 @@ package Font_Example_Styles is
      From (Root_Base_Style)
      .Build;
 
+   --  Complete widget style for root::knob
+   Root_Knob_Widget : constant Widget_Style :=
+     From (Root_Knob_Base_Style)
+     .On (When_Part_State (State_Hovered), Root_Knob_Part_Hovered_Style)
+     .On (When_Part_State (State_Pressed), Root_Knob_Part_Pressed_Style)
+     .Build;
+
+   --  Complete widget style for root::scroll
+   Root_Scroll_Widget : constant Widget_Style :=
+     From (Root_Scroll_Base_Style)
+     .On (When_Part_State (State_Hovered), Root_Scroll_Part_Hovered_Style)
+     .On (When_Part_State (State_Pressed), Root_Scroll_Part_Pressed_Style)
+     .Build;
+
    --  Part styles bundle for root
    Root_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Root_Widget, Enabled => True),
+      Knob_Part => (Style => Root_Knob_Widget, Enabled => True),
+      Scroll_Part => (Style => Root_Scroll_Widget, Enabled => True),
       others => <>
    ];
 

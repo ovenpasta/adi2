@@ -90,6 +90,7 @@
 }
 
 .label-row {
+  margin: 0px 10px 0px 0px;
   padding: 8px 10px;
   background-color: rgb(255, 255, 255);
   border-width: 1px;
@@ -113,6 +114,7 @@
 }
 
 .card-row {
+  margin: 0px 10px 0px 0px;
   display: flex;
   flex-direction: column;
   padding: 8px 10px;

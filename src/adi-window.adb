@@ -1,6 +1,7 @@
 pragma Ada_2022;
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Text_IO;
+with Ada.Environment_Variables;
 with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings;
 with Adi.Core;
@@ -11,6 +12,33 @@ with Adi.Widget_Styles;
 
 package body Adi.Window is
    use type Adi.SDL.Video.SDL_Window_Ptr;
+
+   Debug_Checked : Boolean := False;
+   Debug_On      : Boolean := False;
+   Debug_Tick_No : Natural := 0;
+
+   function Debug_Enabled return Boolean is
+      use Ada.Environment_Variables;
+   begin
+      if not Debug_Checked then
+         Debug_Checked := True;
+         if Exists ("ADI_DEBUG_LOOP") then
+            declare
+               V : constant String := Value ("ADI_DEBUG_LOOP");
+            begin
+               Debug_On := V /= "0" and then V /= "false" and then V /= "FALSE";
+            end;
+         end if;
+      end if;
+      return Debug_On;
+   end Debug_Enabled;
+
+   procedure Debug_Log (Msg : String) is
+   begin
+      if Debug_Enabled then
+         Ada.Text_IO.Put_Line ("[ADI-DBG] " & Msg);
+      end if;
+   end Debug_Log;
 
    procedure Set_Focused_Widget
      (W         : in out Window;
@@ -34,6 +62,9 @@ package body Adi.Window is
      (W    : Window;
       X, Y : Pixel_Type;
       F    : Widget_Flag) return Widget_Access;
+   function Find_Scroll_Widget_At
+     (W    : Window;
+      X, Y : Pixel_Type) return Widget_Access;
    function Is_In_Subtree
      (Root : Widget_Access;
       Node : Widget_Access) return Boolean;
@@ -329,11 +360,17 @@ package body Adi.Window is
 
     procedure Render (W : in Out Window) is
        use Adi.SDL.Render;
+       Root_Dirty    : constant Boolean := (W.Root /= null and then Is_Dirty (W.Root.all));
+       Overlay_Dirty : constant Boolean := Is_Any_Overlay_Dirty (W);
     begin
        --  Only render if something changed
-       if (W.Root /= null and then Is_Dirty (W.Root.all))
-         or else Is_Any_Overlay_Dirty (W)
+       if Root_Dirty or else Overlay_Dirty
        then
+          Debug_Log
+            ("render tick=" & Natural'Image (Debug_Tick_No)
+             & " root_dirty=" & Boolean'Image (Root_Dirty)
+             & " overlay_dirty=" & Boolean'Image (Overlay_Dirty));
+
           --  Clear the screen
           SDL_Assert (SDL_SetRenderDrawColor (W.Internal.ren, 255, 255, 255, 255), "SDL_SetRenderDrawColor");
           SDL_Assert (SDL_RenderClear (W.Internal.ren), "SDL_RenderClear");
@@ -346,6 +383,7 @@ package body Adi.Window is
 
           --  Phase 2: Layout with correct content sizes, then rebuild items
           if W.Root /= null then
+             Debug_Log ("relayout tick=" & Natural'Image (Debug_Tick_No));
              Mark_Dirty (W.Root.all);
              Layout_Tree (W.Root.all);
              Update (W);
@@ -615,6 +653,33 @@ package body Adi.Window is
       return Find_Deepest_Eligible (W.Root);
    end Find_Widget_At_With_Flag;
 
+   function Find_Scroll_Widget_At
+     (W    : Window;
+      X, Y : Pixel_Type) return Widget_Access
+   is
+      Node : Widget_Access := Find_Widget_At (W, X, Y);
+      Parent : access Adi.Widget.Widget'Class;
+   begin
+      while Node /= null loop
+         declare
+            P : constant Part_Kind := Get_Part_At (Node.all, X, Y);
+         begin
+            if P in Scroll_Part | Knob_Part then
+               return Node;
+            end if;
+         end;
+
+         Parent := Get_Parent (Node.all);
+         if Parent = null then
+            Node := null;
+         else
+            Node := Parent.all'Unchecked_Access;
+         end if;
+      end loop;
+
+      return null;
+   end Find_Scroll_Widget_At;
+
    ------------------------
    -- Set_Focused_Widget --
    ------------------------
@@ -682,7 +747,10 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       W.Mouse_Y := Y;
 
       --  Find widget under cursor
-      New_Hovered := Find_Widget_At (W, X, Y);
+      New_Hovered := Find_Scroll_Widget_At (W, X, Y);
+      if New_Hovered = null then
+         New_Hovered := Find_Widget_At (W, X, Y);
+      end if;
 
       --  Handle hover state changes
       if New_Hovered /= W.Hovered_Widget then
@@ -714,7 +782,11 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
 
       --  Route drag motion to the pressed widget (for text selection, etc.)
       if W.Mouse_Down and then W.Pressed_Widget /= null then
-         On_Mouse_Move (W.Pressed_Widget.all, X, Y);
+         if W.Pressed_Part in Scroll_Part | Knob_Part then
+            Handle_Scroll_Mouse_Move (W.Pressed_Widget.all, X, Y);
+         else
+            On_Mouse_Move (W.Pressed_Widget.all, X, Y);
+         end if;
       end if;
    end On_Mouse_Move;
 
@@ -730,6 +802,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
     is
       Click_Target : Widget_Access;
       Focus_Target : Widget_Access;
+      Scroll_Target : Widget_Access;
    begin
       W.Mouse_Down := True;
       W.Mouse_X := X;
@@ -739,6 +812,19 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       --  not passive leaf children such as labels inside list rows.
       Focus_Target := Find_Widget_At_With_Flag (W, X, Y, Focusable);
       Click_Target := Find_Widget_At_With_Flag (W, X, Y, Clickable);
+      Scroll_Target := Find_Scroll_Widget_At (W, X, Y);
+
+      --  Allow dragging scrollbar parts on non-clickable containers
+      --  (e.g. a scrollable root panel).
+      if Click_Target = null and then Scroll_Target /= null then
+         declare
+            P : constant Part_Kind := Get_Part_At (Scroll_Target.all, X, Y);
+         begin
+            if P in Scroll_Part | Knob_Part then
+               Click_Target := Scroll_Target;
+            end if;
+         end;
+      end if;
 
       if Click_Target /= null then
          W.Pressed_Part := Get_Part_At (Click_Target.all, X, Y);
@@ -748,7 +834,13 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
                          Adi.Widget_Styles.State_Pressed,
                          True);
          W.Pressed_Widget := Click_Target;
-         On_Mouse_Down (Click_Target.all, X, Y, Button, Clicks);
+         if W.Pressed_Part in Scroll_Part | Knob_Part then
+            if not Handle_Scroll_Mouse_Down (Click_Target.all, X, Y, Button) then
+               On_Mouse_Down (Click_Target.all, X, Y, Button, Clicks);
+            end if;
+         else
+            On_Mouse_Down (Click_Target.all, X, Y, Button, Clicks);
+         end if;
       else
          W.Pressed_Widget := null;
          W.Pressed_Part := Main_Part;
@@ -770,7 +862,11 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
 
       --  Release pressed widget and dispatch click if applicable
       if W.Pressed_Widget /= null then
-         On_Mouse_Up (W.Pressed_Widget.all, X, Y, Button);
+         if W.Pressed_Part in Scroll_Part | Knob_Part then
+            Handle_Scroll_Mouse_Up (W.Pressed_Widget.all, Button);
+         else
+            On_Mouse_Up (W.Pressed_Widget.all, X, Y, Button);
+         end if;
          if Point_In_Widget (W.Pressed_Widget, X, Y)
             and then Has_Flag (W.Pressed_Widget.all, Clickable)
          then
@@ -899,7 +995,14 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
    ----------
 
    procedure Tick (W : in out Window; DT : Duration) is
+      Root_Dirty_Before    : constant Boolean :=
+        (W.Root /= null and then Is_Dirty (W.Root.all));
+      Overlay_Dirty_Before : constant Boolean := Is_Any_Overlay_Dirty (W);
+      Root_Dirty_After     : Boolean;
+      Overlay_Dirty_After  : Boolean;
    begin
+      Debug_Tick_No := Debug_Tick_No + 1;
+
       if W.Root /= null then
          Tick_Animations (W.Root.all, DT);
       end if;
@@ -913,6 +1016,20 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
             end if;
          end;
       end loop;
+
+      Root_Dirty_After := (W.Root /= null and then Is_Dirty (W.Root.all));
+      Overlay_Dirty_After := Is_Any_Overlay_Dirty (W);
+      if Root_Dirty_After /= Root_Dirty_Before
+        or else Overlay_Dirty_After /= Overlay_Dirty_Before
+      then
+         Debug_Log
+           ("tick=" & Natural'Image (Debug_Tick_No)
+            & " dt=" & Duration'Image (DT)
+            & " root_dirty " & Boolean'Image (Root_Dirty_Before)
+            & "->" & Boolean'Image (Root_Dirty_After)
+            & " overlay_dirty " & Boolean'Image (Overlay_Dirty_Before)
+            & "->" & Boolean'Image (Overlay_Dirty_After));
+      end if;
    end Tick;
 
    -------------

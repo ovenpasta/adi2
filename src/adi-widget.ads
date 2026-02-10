@@ -223,6 +223,34 @@ package Adi.Widget is
 
    procedure Set_Geometry (W : in out Widget'Class; G : Rectangle);
    function  Get_Geometry (W : Widget'Class) return Rectangle;
+   function  Get_Content_Box (W : Widget'Class) return Rectangle;
+
+   ---------------------------------------------------------------------------
+   --  Shared Vertical Scrolling (overflow-y)
+   ---------------------------------------------------------------------------
+
+   procedure Set_Scroll_Offset_Y (W : in out Widget'Class; Offset : Pixel_Type);
+   function  Get_Scroll_Offset_Y (W : Widget'Class) return Pixel_Type;
+   procedure Scroll_By_Y (W : in out Widget'Class; Delta_Y : Pixel_Type);
+   function  Get_Scroll_Content_Height (W : Widget'Class) return Pixel_Type;
+   function  Get_Scroll_Max_Offset_Y (W : Widget'Class) return Pixel_Type;
+
+   --  Reusable input hooks for widgets that override mouse handlers but still
+   --  want the shared scrollbar behavior.
+   function Handle_Scroll_Mouse_Down
+     (W      : in out Widget'Class;
+      X, Y   : Pixel_Type;
+      Button : Mouse_Button) return Boolean;
+   procedure Handle_Scroll_Mouse_Move
+     (W    : in out Widget'Class;
+      X, Y : Pixel_Type);
+   procedure Handle_Scroll_Mouse_Up
+     (W      : in out Widget'Class;
+      Button : Mouse_Button);
+   procedure Handle_Scroll_Mouse_Wheel
+     (W                : in out Widget'Class;
+      Delta_X, Delta_Y : Pixel_Type);
+   procedure Tick_Scroll_Animations (W : in out Widget'Class; DT : Duration);
 
    ---------------------------------------------------------------------------
    --  Flags
@@ -271,17 +299,17 @@ package Adi.Widget is
      (W      : in out Widget;
       X, Y   : Pixel_Type;
       Button : Mouse_Button;
-      Clicks : Natural := 1) is null;
+      Clicks : Natural := 1);
    procedure On_Mouse_Move
      (W    : in out Widget;
-      X, Y : Pixel_Type) is null;
+      X, Y : Pixel_Type);
    procedure On_Mouse_Up
      (W      : in out Widget;
       X, Y   : Pixel_Type;
-      Button : Mouse_Button) is null;
+      Button : Mouse_Button);
    procedure On_Mouse_Wheel
      (W              : in out Widget;
-      Delta_X, Delta_Y : Pixel_Type) is null;
+      Delta_X, Delta_Y : Pixel_Type);
 
    --  Called for key down events when this widget has focus.
    procedure On_Key_Down
@@ -317,7 +345,7 @@ package Adi.Widget is
    procedure On_Geometry_Changed (W : in out Widget'Class);
 
    --  Per-frame callback (default: no-op). DT is in seconds.
-   procedure On_Tick (W : in out Widget; DT : Duration) is null;
+   procedure On_Tick (W : in out Widget; DT : Duration);
 
    ---------------------------------------------------------------------------
    --  Update/Render Cycle
@@ -429,6 +457,17 @@ private
       Last_Target       : Part_Resolved_Array;
       Last_Target_Init  : Part_Initialized_Array := [others => False];
       Has_Any_Animation : Boolean := False;
+
+      --  Shared vertical scrolling state for overflow:auto/scroll
+      Scroll_Offset_Y     : Pixel_Type := 0.0;
+      Scroll_Content_H    : Pixel_Type := 0.0;
+      Scroll_Viewport_H   : Pixel_Type := 0.0;
+      Scroll_Track_Geom   : Rectangle := (0.0, 0.0, 0.0, 0.0);
+      Scroll_Knob_Geom    : Rectangle := (0.0, 0.0, 0.0, 0.0);
+      Scroll_Show_Bar     : Boolean := False;
+      Scroll_Dragging     : Boolean := False;
+      Scroll_Drag_Offset  : Pixel_Type := 0.0;
+      Scroll_Velocity_Y   : Pixel_Type := 0.0;
    end record;
 
    --  Color conversion helpers (CSS Color_Value to SDL RGBA)

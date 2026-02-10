@@ -5,18 +5,12 @@ with Adi.SDL.TTF.TextEngine; use Adi.SDL.TTF.TextEngine;
 
 package body Adi.Render is
 
-   Max_Shadow_Cache_Size : constant := 32;
+   Max_Shadow_Cache_Size : constant := 256;
 
    function "<" (L, R : Shadow_Key) return Boolean is
    begin
       if L.Blur_Px /= R.Blur_Px then return L.Blur_Px < R.Blur_Px; end if;
-      if L.Corner_Radius /= R.Corner_Radius then
-         return L.Corner_Radius < R.Corner_Radius;
-      end if;
-      if L.Color_R /= R.Color_R then return L.Color_R < R.Color_R; end if;
-      if L.Color_G /= R.Color_G then return L.Color_G < R.Color_G; end if;
-      if L.Color_B /= R.Color_B then return L.Color_B < R.Color_B; end if;
-      return L.Color_A < R.Color_A;
+      return L.Corner_Radius < R.Corner_Radius;
    end "<";
 
    package Shadow_Maps is new Ada.Containers.Ordered_Maps

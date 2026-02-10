@@ -15,9 +15,9 @@ package Combo_Box_Example_Styles is
       Flex_Direction => Set (Column),
       Align_Items => Set (Stretch),
       Justify_Content => Set (Flex_Start),
-      Padding => Set (CSS_Box (Px (24.0))),
       Gap => Set (Gap (Px (12.0))),
       Background_Color => Set_Bg (RGB (19, 26, 38)),
+      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
       others => <>
    );
 
@@ -28,9 +28,9 @@ package Combo_Box_Example_Styles is
       Align_Items => Set (Stretch),
       Justify_Content => Set (Flex_Start),
       Gap => Set (Gap (Px (12.0))),
-      Padding => Set (CSS_Box (Px (22.0))),
       Background_Color => Set_Bg (RGB (30, 41, 59)),
       Border_Radius => Set (Radius (Px (10.0))),
+      Padding => Set (CSS_Box (Px (22.0), Px (22.0), Px (22.0), Px (22.0))),
       others => <>
    );
 
@@ -60,13 +60,13 @@ package Combo_Box_Example_Styles is
    --  Base style for class 'combo'
    Combo_Class_Base_Style : constant Style_Rules := (
       Height => Set (Size (Px (40.0))),
-      Padding => Set (CSS_Box (Px (9.0), Px (10.0))),
       Background_Color => Set_Bg (RGB (248, 250, 252)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (148, 163, 184))),
       Border_Radius => Set (Radius (Px (8.0))),
       Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Border_Color))),
+      Padding => Set (CSS_Box (Px (9.0), Px (10.0), Px (9.0), Px (10.0))),
       others => <>
    );
 
@@ -148,11 +148,11 @@ package Combo_Box_Example_Styles is
    --  Base style for class 'dropdown'::scroll
    Dropdown_Class_Scroll_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (10.0))),
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
-      Padding => Set (CSS_Box (Px (2.0))),
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.22)),
       Border_Radius => Set (Radius (Px (6.0))),
       Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
+      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
       others => <>
    );
 
@@ -170,13 +170,13 @@ package Combo_Box_Example_Styles is
 
    --  Base style for class 'option-row'
    Option_Row_Class_Base_Style : constant Style_Rules := (
-      Padding => Set (CSS_Box (Px (8.0), Px (10.0))),
       Background_Color => Set_Bg (C (White)),
       Border_Width => Set (Border_Width (Px (1.0), Px (0.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (222, 229, 238))),
       Border_Radius => Set (Radius (Px (0.0))),
       Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       others => <>
    );
 

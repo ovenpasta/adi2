@@ -14,8 +14,8 @@ package Grid_Example_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (12.0))),
-      Padding => Set (CSS_Box (Px (20.0))),
       Background_Color => Set_Bg (RGB (17, 24, 39)),
+      Padding => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
       others => <>
    );
 
@@ -41,12 +41,12 @@ package Grid_Example_Styles is
       Grid_Columns => Set (Grid_Columns_Value (4)),
       Grid_Rows => Set (Grid_Rows_Value (3)),
       Gap => Set (Gap (Px (10.0))),
-      Padding => Set (CSS_Box (Px (10.0))),
       Background_Color => Set_Bg (RGB (30, 41, 59)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (71, 85, 105))),
       Border_Radius => Set (Radius (Px (10.0))),
+      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       others => <>
    );
 

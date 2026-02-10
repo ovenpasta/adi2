@@ -16,8 +16,8 @@ package Overflow_Example_Styles is
       Align_Items => Set (Stretch),
       Justify_Content => Set (Flex_Start),
       Gap => Set (Gap (Px (12.0))),
-      Padding => Set (CSS_Box (Px (18.0))),
       Background_Color => Set_Bg (RGB (20, 24, 31)),
+      Padding => Set (CSS_Box (Px (18.0), Px (18.0), Px (18.0), Px (18.0))),
       others => <>
    );
 
@@ -53,12 +53,12 @@ package Overflow_Example_Styles is
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (10.0))),
       Flex_Grow => Set (1.0),
-      Padding => Set (CSS_Box (Px (12.0))),
       Background_Color => Set_Bg (RGB (31, 41, 55)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (75, 85, 99))),
       Border_Radius => Set (Radius (Px (10.0))),
+      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
       others => <>
    );
 
@@ -76,7 +76,6 @@ package Overflow_Example_Styles is
       Flex_Direction => Set (Column),
       Overflow => Set (Overflow_Visible),
       Height => Set (Size (Px (120.0))),
-      Padding => Set (CSS_Box (Px (10.0))),
       Gap => Set (Gap (Px (8.0))),
       Background_Color => Set_Bg (RGBA (96, 165, 250, 0.16)),
       Border_Width => Set (Border_Width (Px (1.0))),
@@ -84,6 +83,7 @@ package Overflow_Example_Styles is
       Border_Color => Set (Border_Color (RGB (96, 165, 250))),
       Border_Radius => Set (Radius (Px (8.0))),
       Text_Wrap_Mode => Set (TWM_Nowrap),
+      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       others => <>
    );
 
@@ -93,7 +93,6 @@ package Overflow_Example_Styles is
       Flex_Direction => Set (Column),
       Overflow => Set (Overflow_Hidden),
       Height => Set (Size (Px (120.0))),
-      Padding => Set (CSS_Box (Px (10.0))),
       Gap => Set (Gap (Px (8.0))),
       Background_Color => Set_Bg (RGBA (74, 222, 128, 0.16)),
       Border_Width => Set (Border_Width (Px (1.0))),
@@ -101,6 +100,7 @@ package Overflow_Example_Styles is
       Border_Color => Set (Border_Color (RGB (74, 222, 128))),
       Border_Radius => Set (Radius (Px (8.0))),
       Text_Wrap_Mode => Set (TWM_Nowrap),
+      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       others => <>
    );
 
@@ -115,12 +115,12 @@ package Overflow_Example_Styles is
    --  Base style for class 'long-line'
    Long_Line_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (430.0))),
-      Padding => Set (CSS_Box (Px (8.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (148, 163, 184))),
       Background_Color => Set_Bg (RGBA (15, 23, 42, 0.45)),
       Border_Radius => Set (Radius (Px (6.0))),
+      Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
       others => <>
    );
 
@@ -135,12 +135,12 @@ package Overflow_Example_Styles is
    --  Base style for class 'wrap-line'
    Wrap_Line_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Pct (100.0))),
-      Padding => Set (CSS_Box (Px (8.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (100, 116, 139))),
       Background_Color => Set_Bg (RGBA (15, 23, 42, 0.3)),
       Border_Radius => Set (Radius (Px (6.0))),
+      Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
       others => <>
    );
 

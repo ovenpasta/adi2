@@ -23,7 +23,7 @@ package Transition_Example_Styles is
       Flex_Direction => Set (Column),
       Flex_Grow => Set (1.0),
       Gap => Set (Gap (Px (28.0))),
-      Padding => Set (CSS_Box (Px (28.0), Px (32.0))),
+      Padding => Set (CSS_Box (Px (28.0), Px (32.0), Px (28.0), Px (32.0))),
       others => <>
    );
 
@@ -71,7 +71,7 @@ package Transition_Example_Styles is
 
    --  Base style for class 'title'
    Title_Class_Base_Style : constant Style_Rules := (
-      Padding => Set (CSS_Box (Px (0.0), Px (4.0))),
+      Padding => Set (CSS_Box (Px (0.0), Px (4.0), Px (0.0), Px (4.0))),
       others => <>
    );
 
@@ -86,7 +86,7 @@ package Transition_Example_Styles is
 
    --  Base style for class 'desc'
    Desc_Class_Base_Style : constant Style_Rules := (
-      Padding => Set (CSS_Box (Px (2.0), Px (4.0))),
+      Padding => Set (CSS_Box (Px (2.0), Px (4.0), Px (2.0), Px (4.0))),
       others => <>
    );
 
@@ -108,8 +108,8 @@ package Transition_Example_Styles is
       Border_Color => Set (Border_Color (RGB (75, 85, 99))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Radius => Set (Radius (Px (6.0))),
-      Padding => Set (CSS_Box (Px (10.0), Px (20.0))),
       Cursor => Set (Cursor_Pointer),
+      Padding => Set (CSS_Box (Px (10.0), Px (20.0), Px (10.0), Px (20.0))),
       others => <>
    );
 

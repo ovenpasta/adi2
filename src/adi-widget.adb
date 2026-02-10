@@ -56,6 +56,14 @@ package body Adi.Widget is
       Tex_Size : constant Natural :=
          Natural'Max (4, 2 * (Pad + Radius) + 4);
       Total_Px : constant Natural := Tex_Size * Tex_Size;
+      Pad_F    : constant Float := Float (Pad);
+      Rect_Sz  : constant Float := Float (Tex_Size) - 2.0 * Pad_F;
+      Half_X   : constant Float := Rect_Sz / 2.0;
+      Half_Y   : constant Float := Rect_Sz / 2.0;
+      Center_X : constant Float := Float (Tex_Size) / 2.0;
+      Center_Y : constant Float := Float (Tex_Size) / 2.0;
+      CR       : constant Float := Float'Min (Float (Radius),
+                                              Float'Min (Half_X, Half_Y));
 
       Surface : SDL_Surface_Ptr;
       Texture : SDL_Texture_Ptr;
@@ -121,38 +129,26 @@ package body Adi.Widget is
          Buf_A : Alpha_Ptr;
          Buf_B : Alpha_Ptr;
       begin
-         --  Rasterize: the rounded rect shape is centered in the texture,
-         --  with Blur pixels of padding on each side.
-         declare
-            Pad      : constant Float := Float (3 * Blur);
-            Rect_Sz  : constant Float := Float (Tex_Size) - 2.0 * Pad;
-            Half_X   : constant Float := Rect_Sz / 2.0;
-            Half_Y   : constant Float := Rect_Sz / 2.0;
-            Center_X : constant Float := Float (Tex_Size) / 2.0;
-            Center_Y : constant Float := Float (Tex_Size) / 2.0;
-            CR       : constant Float := Float'Min (Float (Radius),
-                                                    Float'Min (Half_X, Half_Y));
-         begin
-            for Y in 0 .. Tex_Size - 1 loop
-               for X in 0 .. Tex_Size - 1 loop
-                  declare
-                     Dist : constant Float := SDF_Rounded_Rect
-                        (Float (X) + 0.5, Float (Y) + 0.5,
-                         Center_X, Center_Y,
-                         Half_X, Half_Y, CR);
-                     A : Uint8;
-                  begin
-                     if Dist <= 0.0 then
-                        A := Key.Color_A;
-                     else
-                        A := 0;
-                     end if;
-                     Pixels (Y * Pitch + X) :=
-                        Pack_Pixel (Key.Color_R, Key.Color_G, Key.Color_B, A);
-                  end;
-               end loop;
+         --  Rasterize: rounded-rect mask centered in texture.
+         for Y in 0 .. Tex_Size - 1 loop
+            for X in 0 .. Tex_Size - 1 loop
+               declare
+                  Dist : constant Float := SDF_Rounded_Rect
+                     (Float (X) + 0.5, Float (Y) + 0.5,
+                      Center_X, Center_Y,
+                      Half_X, Half_Y, CR);
+                  A : Uint8;
+               begin
+                  if Dist <= 0.0 then
+                     A := 255;
+                  else
+                     A := 0;
+                  end if;
+                  Pixels (Y * Pitch + X) :=
+                     Pack_Pixel (255, 255, 255, A);
+               end;
             end loop;
-         end;
+         end loop;
 
          --  Apply box blur x3 (approximates Gaussian) on alpha channel only
          if Blur > 0 then
@@ -216,11 +212,12 @@ package body Adi.Widget is
                      A : constant Uint8 := Uint8 (Alpha_F * 255.0);
                   begin
                      Pixels (Y * Pitch + X) :=
-                        Pack_Pixel (Key.Color_R, Key.Color_G, Key.Color_B, A);
+                        Pack_Pixel (255, 255, 255, A);
                   end;
                end loop;
             end loop;
          end if;
+
       end;
 
       --  Upload to GPU texture
@@ -267,6 +264,13 @@ package body Adi.Widget is
          Natural (Float'Max
             (Float'Max (Radius_Vals.Top_Left, Radius_Vals.Top_Right),
              Float'Max (Radius_Vals.Bottom_Right, Radius_Vals.Bottom_Left)));
+      Max_Geom_Rad : constant Natural :=
+         (if Geom.Width > 0.0 and then Geom.Height > 0.0 then
+             Natural (Float'Max (0.0,
+                Float'Min (Float (Geom.Width), Float (Geom.Height)) / 2.0))
+          else
+             0);
+      Effective_Rad : constant Natural := Natural'Min (Max_Rad, Max_Geom_Rad);
 
       --  Get shadow color
       SR, SG, SB, SA : Uint8;
@@ -276,7 +280,7 @@ package body Adi.Widget is
       Success : Adi.SDL.C_bool;
 
       --  9-grid border = full blur extent (3*blur) + corner_radius
-      Grid_Border : constant Float := Float (3 * Blur_Px + Max_Rad);
+      Grid_Border : constant Float := Float (3 * Blur_Px + Effective_Rad);
       Grid_Left   : Float;
       Grid_Right  : Float;
       Grid_Top    : Float;
@@ -292,11 +296,7 @@ package body Adi.Widget is
       end if;
 
       Key := (Blur_Px       => Blur_Px,
-              Corner_Radius => Max_Rad,
-              Color_R       => SR,
-              Color_G       => SG,
-              Color_B       => SB,
-              Color_A       => SA);
+              Corner_Radius => Effective_Rad);
 
       --  Cache lookup or generate
       Texture := Find_Shadow (Ctx, Key);
@@ -329,6 +329,10 @@ package body Adi.Widget is
       Grid_Right := Grid_Left;
       Grid_Top := Float'Min (Grid_Border, Dst.h / 2.0);
       Grid_Bottom := Grid_Top;
+
+      --  Texture stores only alpha; tint and alpha are applied at draw time.
+      Success := SDL_SetTextureColorMod (Texture, SR, SG, SB);
+      Success := SDL_SetTextureAlphaMod (Texture, SA);
 
       --  Render using 9-grid stretching
       Success := SDL_RenderTexture9Grid

@@ -15,9 +15,9 @@ package Text_Input_Example_Styles is
       Flex_Direction => Set (Column),
       Align_Items => Set (Stretch),
       Justify_Content => Set (Flex_Start),
-      Padding => Set (CSS_Box (Px (24.0))),
       Gap => Set (Gap (Px (12.0))),
       Background_Color => Set_Bg (RGB (20, 24, 31)),
+      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
       others => <>
    );
 
@@ -29,9 +29,9 @@ package Text_Input_Example_Styles is
       Justify_Content => Set (Flex_Start),
       Flex_Grow => Set (1.0),
       Gap => Set (Gap (Px (12.0))),
-      Padding => Set (CSS_Box (Px (24.0))),
       Background_Color => Set_Bg (RGB (31, 41, 55)),
       Border_Radius => Set (Radius (Px (10.0))),
+      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
       others => <>
    );
 
@@ -68,7 +68,6 @@ package Text_Input_Example_Styles is
    --  Base style for class 'input'
    Input_Class_Base_Style : constant Style_Rules := (
       Height => Set (Size (Px (42.0))),
-      Padding => Set (CSS_Box (Px (10.0), Px (12.0))),
       Cursor => Set (Cursor_Text),
       Background_Color => Set_Bg (C (White)),
       Border_Width => Set (Border_Width (Px (1.0))),
@@ -76,6 +75,7 @@ package Text_Input_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Radius => Set (Radius (Px (8.0))),
       Box_Shadow => Set (No_Shadow),
+      Padding => Set (CSS_Box (Px (10.0), Px (12.0), Px (10.0), Px (12.0))),
       others => <>
    );
 

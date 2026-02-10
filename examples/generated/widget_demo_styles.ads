@@ -14,8 +14,8 @@ package Widget_Demo_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (20.0))),
-      Padding => Set (CSS_Box (Px (20.0))),
       Background_Color => Set_Bg (RGB (125, 125, 125)),
+      Padding => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
       others => <>
    );
 
@@ -26,8 +26,8 @@ package Widget_Demo_Styles is
       Gap => Set (Gap (Px (20.0))),
       Align_Items => Set (Stretch),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
-      Padding => Set (CSS_Box (Px (20.0))),
       Flex_Grow => Set (1.0),
+      Padding => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
       others => <>
    );
 
@@ -38,10 +38,10 @@ package Widget_Demo_Styles is
       Border_Color => Set (Border_Color (RGB (200, 200, 200))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Radius => Set (Radius (Px (4.0), Px (16.0), Px (32.0), Px (8.0))),
-      Padding => Set (CSS_Box (Px (20.0))),
-      Margin => Set (CSS_Box (Px (20.0))),
       Flex_Grow => Set (1.0),
       Box_Shadow => Set (Shadow (Px (0.0), Px (4.0), Px (12.0), Px (0.0), RGBA (0, 0, 0, 0.5))),
+      Padding => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
+      Margin => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
       others => <>
    );
 
@@ -55,9 +55,9 @@ package Widget_Demo_Styles is
       Border_Color => Set (Border_Color (RGB (251, 146, 60))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Radius => Set (Radius (Px (16.0))),
-      Padding => Set (CSS_Box (Px (24.0))),
       Flex_Grow => Set (1.0),
       Box_Shadow => Set (Shadow (Px (0.0), Px (4.0), Px (4.0), Px (0.0), RGBA (0, 0, 0, 0.25))),
+      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
       others => <>
    );
 
@@ -84,9 +84,9 @@ package Widget_Demo_Styles is
       Background_Color => Set_Bg (RGB (59, 130, 246)),
       Border_Radius => Set (Radius (Px (8.0))),
       Border_Width => Set (Border_Width (Px (0.0))),
-      Padding => Set (CSS_Box (Px (12.0), Px (24.0))),
       Min_Width => Set (Size (Px (150.0))),
       Min_Height => Set (Size (Px (50.0))),
+      Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
       others => <>
    );
 
@@ -138,7 +138,7 @@ package Widget_Demo_Styles is
    Title_Label_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (240, 240, 250)),
       Border_Radius => Set (Radius (Px (4.0))),
-      Padding => Set (CSS_Box (Px (8.0))),
+      Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
       others => <>
    );
 

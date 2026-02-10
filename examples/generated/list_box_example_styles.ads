@@ -14,8 +14,8 @@ package List_Box_Example_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (12.0))),
-      Padding => Set (CSS_Box (Px (12.0))),
       Background_Color => Set_Bg (RGB (242, 245, 248)),
+      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
       others => <>
    );
 
@@ -35,7 +35,6 @@ package List_Box_Example_Styles is
       Flex_Direction => Set (Column),
       Flex_Grow => Set (1.0),
       Gap => Set (Gap (Px (8.0))),
-      Padding => Set (CSS_Box (Px (10.0))),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -43,6 +42,7 @@ package List_Box_Example_Styles is
       Border_Radius => Set (Radius (Px (10.0))),
       Width => Set (Size (Px (476.0))),
       Height => Set (Size (Px (580.0))),
+      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       others => <>
    );
 
@@ -103,11 +103,11 @@ package List_Box_Example_Styles is
    --  Base style for class 'listbox'::scroll
    Listbox_Class_Scroll_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (10.0))),
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
-      Padding => Set (CSS_Box (Px (2.0))),
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.22)),
       Border_Radius => Set (Radius (Px (6.0))),
       Transition => Set ((Duration => 0.26, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
+      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
       others => <>
    );
 
@@ -125,13 +125,13 @@ package List_Box_Example_Styles is
 
    --  Base style for class 'label-row'
    Label_Row_Class_Base_Style : constant Style_Rules := (
-      Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (10.0))),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (220, 228, 236))),
       Border_Radius => Set (Radius (Px (6.0))),
+      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
+      Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
       others => <>
    );
 
@@ -157,16 +157,16 @@ package List_Box_Example_Styles is
 
    --  Base style for class 'card-row'
    Card_Row_Class_Base_Style : constant Style_Rules := (
-      Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
       Display => Set (Flex),
       Flex_Direction => Set (Column),
-      Padding => Set (CSS_Box (Px (8.0), Px (10.0))),
       Background_Color => Set_Bg (RGB (63, 115, 176)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (28, 33, 45))),
       Border_Radius => Set (Radius (Px (8.0))),
       Height => Set (Size (Px (44.0))),
+      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
+      Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
       others => <>
    );
 

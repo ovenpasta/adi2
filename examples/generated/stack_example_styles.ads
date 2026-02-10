@@ -36,8 +36,8 @@ package Stack_Example_Styles is
       Border_Color => Set (Border_Color (RGB (75, 85, 99))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Radius => Set (Radius (Px (8.0), Px (0.0), Px (0.0), Px (8.0))),
-      Padding => Set (CSS_Box (Px (10.0), Px (20.0))),
       Cursor => Set (Cursor_Pointer),
+      Padding => Set (CSS_Box (Px (10.0), Px (20.0), Px (10.0), Px (20.0))),
       others => <>
    );
 
@@ -72,8 +72,8 @@ package Stack_Example_Styles is
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Color => Set (Border_Color (RGB (75, 85, 99))),
       Border_Style => Set (Border_Style (Solid)),
-      Padding => Set (CSS_Box (Px (10.0), Px (20.0))),
       Cursor => Set (Cursor_Pointer),
+      Padding => Set (CSS_Box (Px (10.0), Px (20.0), Px (10.0), Px (20.0))),
       others => <>
    );
 
@@ -109,8 +109,8 @@ package Stack_Example_Styles is
       Border_Color => Set (Border_Color (RGB (75, 85, 99))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Radius => Set (Radius (Px (0.0), Px (8.0), Px (8.0), Px (0.0))),
-      Padding => Set (CSS_Box (Px (10.0), Px (20.0))),
       Cursor => Set (Cursor_Pointer),
+      Padding => Set (CSS_Box (Px (10.0), Px (20.0), Px (10.0), Px (20.0))),
       others => <>
    );
 
@@ -139,7 +139,7 @@ package Stack_Example_Styles is
    --  Base style for class 'stack'
    Stack_Class_Base_Style : constant Style_Rules := (
       Flex_Grow => Set (1.0),
-      Padding => Set (CSS_Box (Px (16.0))),
+      Padding => Set (CSS_Box (Px (16.0), Px (16.0), Px (16.0), Px (16.0))),
       others => <>
    );
 
@@ -149,8 +149,8 @@ package Stack_Example_Styles is
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (127, 29, 29)),
       Border_Radius => Set (Radius (Px (12.0))),
-      Padding => Set (CSS_Box (Px (30.0))),
       Gap => Set (Gap (Px (8.0))),
+      Padding => Set (CSS_Box (Px (30.0), Px (30.0), Px (30.0), Px (30.0))),
       others => <>
    );
 
@@ -160,8 +160,8 @@ package Stack_Example_Styles is
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (20, 83, 45)),
       Border_Radius => Set (Radius (Px (12.0))),
-      Padding => Set (CSS_Box (Px (30.0))),
       Gap => Set (Gap (Px (8.0))),
+      Padding => Set (CSS_Box (Px (30.0), Px (30.0), Px (30.0), Px (30.0))),
       others => <>
    );
 
@@ -171,8 +171,8 @@ package Stack_Example_Styles is
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (30, 58, 138)),
       Border_Radius => Set (Radius (Px (12.0))),
-      Padding => Set (CSS_Box (Px (30.0))),
       Gap => Set (Gap (Px (8.0))),
+      Padding => Set (CSS_Box (Px (30.0), Px (30.0), Px (30.0), Px (30.0))),
       others => <>
    );
 

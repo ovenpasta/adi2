@@ -5,6 +5,7 @@ with Adi.Window;        use Adi.Window;
 with Adi.Widget;        use Adi.Widget;
 with Adi.Widget.Box;
 with Adi.Widget.Button; use Adi.Widget.Button;
+with Adi.Widget.Button.Switch;
 with Adi.Widget.Button.Options;
 with Button_Example_Styles; use Button_Example_Styles;
 
@@ -48,6 +49,8 @@ begin
 
       Section2 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Btn_Toggle : constant Button_Widget_Access := Create ("Bold");
+      Btn_Switch : constant Adi.Widget.Button.Switch.Switch_Widget_Access :=
+        Adi.Widget.Button.Switch.Create (False);
 
       Section3 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Btn_Left   : constant Button_Widget_Access := Create ("Left");
@@ -61,6 +64,7 @@ begin
 
       Btn_Toggle.Set_Toggleable;
       Btn_Toggle.Set_On_Toggled (On_Toggle'Unrestricted_Access);
+      Btn_Switch.Set_On_Toggled (On_Toggle'Unrestricted_Access);
 
       Align_Group.Set_Button (Left, Btn_Left);
       Align_Group.Set_Button (Center, Btn_Center);
@@ -78,6 +82,7 @@ begin
       Set_Part_Styles (Btn_Danger.all, Danger_Class_Part_Styles);
       Set_Part_Styles (Btn_Outline.all, Outline_Class_Part_Styles);
       Set_Part_Styles (Btn_Toggle.all, Toggle_Class_Part_Styles);
+      Set_Part_Styles (Btn_Switch.all, Switch_Class_Part_Styles);
 
       Set_Part_Styles (Btn_Left.all, Option_Left_Class_Part_Styles);
       Set_Part_Styles (Btn_Center.all, Option_Center_Class_Part_Styles);
@@ -92,6 +97,7 @@ begin
 
       Container.Add_Child (Section2);
       Section2.Add_Child (Btn_Toggle);
+      Section2.Add_Child (Btn_Switch);
 
       Container.Add_Child (Section3);
       Section3.Add_Child (Btn_Left);

@@ -16,8 +16,8 @@ package Font_Example_Styles is
       Align_Items => Set (Stretch),
       Overflow => Set (Overflow_Auto),
       Gap => Set (Gap (Px (12.0))),
-      Padding => Set (CSS_Box (Px (20.0))),
       Background_Color => Set_Bg (RGB (17, 24, 39)),
+      Padding => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
       others => <>
    );
 
@@ -46,11 +46,11 @@ package Font_Example_Styles is
    --  Base style for class 'root'::scroll
    Root_Class_Scroll_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (10.0))),
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (8.0))),
-      Padding => Set (CSS_Box (Px (2.0))),
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.24)),
       Border_Radius => Set (Radius (Px (6.0))),
       Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
+      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (8.0))),
       others => <>
    );
 
@@ -72,9 +72,9 @@ package Font_Example_Styles is
       Flex_Direction => Set (Column),
       Align_Items => Set (Stretch),
       Gap => Set (Gap (Px (10.0))),
-      Padding => Set (CSS_Box (Px (16.0))),
       Background_Color => Set_Bg (RGB (31, 41, 55)),
       Border_Radius => Set (Radius (Px (10.0))),
+      Padding => Set (CSS_Box (Px (16.0), Px (16.0), Px (16.0), Px (16.0))),
       others => <>
    );
 
@@ -103,12 +103,12 @@ package Font_Example_Styles is
 
    --  Base style for class 'sample'
    Sample_Class_Base_Style : constant Style_Rules := (
-      Padding => Set (CSS_Box (Px (8.0), Px (10.0))),
       Background_Color => Set_Bg (RGB (15, 23, 42)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (71, 85, 105))),
       Border_Radius => Set (Radius (Px (8.0))),
+      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       others => <>
    );
 
@@ -206,13 +206,13 @@ package Font_Example_Styles is
 
    --  Base style for class 'wrap_sample'
    Wrap_Sample_Class_Base_Style : constant Style_Rules := (
-      Padding => Set (CSS_Box (Px (8.0), Px (10.0))),
       Background_Color => Set_Bg (RGB (30, 41, 59)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (100, 116, 139))),
       Border_Radius => Set (Radius (Px (8.0))),
       Min_Height => Set (Size (Px (56.0))),
+      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       others => <>
    );
 

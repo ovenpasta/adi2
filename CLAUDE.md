@@ -140,7 +140,8 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 
 **Adi.Render** (`adi-render.ads`): Per-renderer context and caches
 - `Render_Context`: Bundles an `SDL_Renderer_Ptr` with its per-renderer caches (shadow textures, TTF text engine)
-- Shadow texture cache with `Shadow_Key` lookup and LRU eviction (max 32 entries)
+- Shadow texture cache with `Shadow_Key` lookup and bounded eviction (max 256 entries)
+- `Shadow_Key` is shape-based (`blur + corner radius`); shadow color/alpha is applied via texture modulation at draw time
 - Lazy-created TTF text engine via `Get_Text_Engine`
 - Threaded through `Render_Items`, `Render_Tree`, `Update_And_Render` instead of raw `SDL_Renderer_Ptr`
 - Owned by `Adi.Window`; created after the renderer, destroyed before it
@@ -391,7 +392,7 @@ All packages are rooted under `Adi`:
 - `Adi.CSS_Styles` - CSS value types and style resolution
 - `Adi.Widget_Styles` - State-based widget styling
 - `Adi.Widget` - Base widget abstraction
-- `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.List_Box`, `Adi.Widget.Stack`, `Adi.Widget.Combo_Box`, `Adi.Widget.Dialog` - Concrete widgets
+- `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.List_Box`, `Adi.Widget.Stack`, `Adi.Widget.Combo_Box`, `Adi.Widget.Dialog`, `Adi.Widget.Button.Switch` - Concrete widgets
 - `Adi.Widget.Part_Styles` - Multi-part style builder
 - `Adi.Text_Buffer` - Shared text editing model
 - `Adi.Animation` - CSS-like style transitions and interpolation

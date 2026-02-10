@@ -15,12 +15,12 @@ package Widget_Defaults_Styles is
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
       Min_Height => Set (Size (Px (34.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (14.0))),
       Background_Color => Set_Bg (RGB (240, 244, 249)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (181, 191, 205))),
       Border_Radius => Set (Radius (Px (6.0))),
+      Padding => Set (CSS_Box (Px (8.0), Px (14.0), Px (8.0), Px (14.0))),
       others => <>
    );
 
@@ -61,12 +61,12 @@ package Widget_Defaults_Styles is
    --  Base style for class 'text-input'
    Text_Input_Class_Base_Style : constant Style_Rules := (
       Min_Height => Set (Size (Px (38.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (10.0))),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (186, 198, 212))),
       Border_Radius => Set (Radius (Px (7.0))),
+      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       others => <>
    );
 
@@ -118,20 +118,20 @@ package Widget_Defaults_Styles is
    --  Base style for class 'list-box'::scroll
    List_Box_Class_Scroll_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (10.0))),
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
-      Padding => Set (CSS_Box (Px (2.0))),
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.22)),
       Border_Radius => Set (Radius (Px (6.0))),
+      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
+      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
       others => <>
    );
 
    --  Base style for class 'list-row'
    List_Row_Class_Base_Style : constant Style_Rules := (
-      Padding => Set (CSS_Box (Px (8.0), Px (10.0))),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       Border_Width => Set (Border_Width (Px (1.0), Px (0.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (222, 229, 238))),
+      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       others => <>
    );
 

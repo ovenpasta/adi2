@@ -7,10 +7,6 @@ package Adi.Render is
    type Shadow_Key is record
       Blur_Px       : Natural;
       Corner_Radius : Natural;
-      Color_R       : Adi.SDL.Uint8;
-      Color_G       : Adi.SDL.Uint8;
-      Color_B       : Adi.SDL.Uint8;
-      Color_A       : Adi.SDL.Uint8;
    end record;
 
    type Render_Context is limited private;

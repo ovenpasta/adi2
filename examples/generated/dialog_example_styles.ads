@@ -15,9 +15,9 @@ package Dialog_Example_Styles is
       Flex_Direction => Set (Column),
       Align_Items => Set (Stretch),
       Justify_Content => Set (Flex_Start),
-      Padding => Set (CSS_Box (Px (24.0))),
       Gap => Set (Gap (Px (12.0))),
       Background_Color => Set_Bg (RGB (19, 26, 38)),
+      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
       others => <>
    );
 
@@ -28,9 +28,9 @@ package Dialog_Example_Styles is
       Align_Items => Set (Stretch),
       Justify_Content => Set (Flex_Start),
       Gap => Set (Gap (Px (16.0))),
-      Padding => Set (CSS_Box (Px (24.0))),
       Background_Color => Set_Bg (RGB (30, 41, 59)),
       Border_Radius => Set (Radius (Px (10.0))),
+      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
       others => <>
    );
 
@@ -60,13 +60,13 @@ package Dialog_Example_Styles is
    --  Base style for class 'btn-primary'
    Btn_Primary_Class_Base_Style : constant Style_Rules := (
       Height => Set (Size (Px (40.0))),
-      Padding => Set (CSS_Box (Px (9.0), Px (16.0))),
       Background_Color => Set_Bg (RGB (37, 99, 235)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (29, 78, 216))),
       Border_Radius => Set (Radius (Px (8.0))),
       Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (9.0), Px (16.0), Px (9.0), Px (16.0))),
       others => <>
    );
 
@@ -106,12 +106,12 @@ package Dialog_Example_Styles is
       Flex_Direction => Set (Column),
       Align_Items => Set (Stretch),
       Gap => Set (Gap (Px (16.0))),
-      Padding => Set (CSS_Box (Px (24.0))),
       Min_Width => Set (Size (Px (340.0))),
       Max_Width => Set (Size (Px (480.0))),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       Border_Radius => Set (Radius (Px (12.0))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (16.0), Px (48.0), Px (0.0), RGBA (0, 0, 0, 0.3))),
+      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
       others => <>
    );
 
@@ -144,13 +144,13 @@ package Dialog_Example_Styles is
    --  Base style for class 'dialog-btn'
    Dialog_Btn_Class_Base_Style : constant Style_Rules := (
       Height => Set (Size (Px (36.0))),
-      Padding => Set (CSS_Box (Px (7.0), Px (16.0))),
       Background_Color => Set_Bg (RGB (241, 245, 249)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (203, 213, 225))),
       Border_Radius => Set (Radius (Px (6.0))),
       Transition => Set ((Duration => 0.12, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (7.0), Px (16.0), Px (7.0), Px (16.0))),
       others => <>
    );
 

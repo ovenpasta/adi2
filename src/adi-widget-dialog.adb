@@ -161,19 +161,19 @@ package body Adi.Widget.Dialog is
 
       --  Title label
       Result.Title_Label := Adi.Widget.Label.Create ("");
-      Result.Content_Panel.Add_Child (Result.Title_Label);
+      Add_Child (Result.Content_Panel.all, Widget_Access (Result.Title_Label));
 
       --  Message label
       Result.Message_Label := Adi.Widget.Label.Create ("");
-      Result.Content_Panel.Add_Child (Result.Message_Label);
+      Add_Child (Result.Content_Panel.all, Widget_Access (Result.Message_Label));
 
       --  Button row: flex row
       Result.Button_Row := Adi.Widget.Box.Create;
-      Result.Content_Panel.Add_Child (Result.Button_Row);
+      Add_Child (Result.Content_Panel.all, Widget_Access (Result.Button_Row));
 
       --  Content panel must be part of the dialog tree so overlay rendering
       --  traverses and draws title/message/buttons above the backdrop.
-      Result.Add_Child (Result.Content_Panel);
+      Add_Child (Result.all, Widget_Access (Result.Content_Panel));
 
       return Result;
    end Create;
@@ -232,7 +232,7 @@ package body Adi.Widget.Dialog is
       end if;
 
       Register_Button_Binding (Btn_As_Widget, W'Unchecked_Access);
-      W.Button_Row.Add_Child (Btn);
+      Add_Child (W.Button_Row.all, Widget_Access (Btn));
       W.Buttons.Append
         (Button_Info'(Text   => To_Unbounded_String (Text),
                       Widget => Btn_As_Widget));
@@ -252,7 +252,7 @@ package body Adi.Widget.Dialog is
       --  Remove button widgets from button row
       for Info of W.Buttons loop
          if Info.Widget /= null then
-            W.Button_Row.Remove_Child (Info.Widget);
+            Remove_Child (W.Button_Row.all, Info.Widget);
          end if;
       end loop;
       W.Buttons.Clear;
@@ -307,7 +307,7 @@ package body Adi.Widget.Dialog is
          Set_Geometry (W, (0.0, 0.0, Win_Size.Width, Win_Size.Height));
       end;
 
-      Adi.Window.Add_Overlay (W.Host_Window.all, W'Unchecked_Access);
+      Adi.Window.Add_Overlay (W.Host_Window.all, Widget_Access'(W'Unchecked_Access));
       W.Shown := True;
       Mark_Dirty (W);
    end Show;
@@ -318,7 +318,7 @@ package body Adi.Widget.Dialog is
          return;
       end if;
 
-      Adi.Window.Remove_Overlay (W.Host_Window.all, W'Unchecked_Access);
+      Adi.Window.Remove_Overlay (W.Host_Window.all, Widget_Access'(W'Unchecked_Access));
       W.Shown := False;
       Mark_Dirty (W);
    end Hide;

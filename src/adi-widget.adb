@@ -607,9 +607,13 @@ package body Adi.Widget is
    ---------------------------------------------------------------------------
 
    procedure Add_Child (W : in out Widget'Class; C : access Widget'Class) is
+      CA : Widget_Access := null;
    begin
       if C /= null then
-         W.Children.Append (Widget_Access (C));
+         --  Capture a stable class-wide pointer without triggering
+         --  anonymous-to-named access runtime accessibility checks.
+         CA := C.all'Unchecked_Access;
+         W.Children.Append (CA);
          C.Parent := W'Unchecked_Access;
          Mark_Dirty (W);
       end if;
@@ -617,8 +621,13 @@ package body Adi.Widget is
 
    procedure Remove_Child (W : in out Widget'Class; C : access Widget'Class) is
       use Widget_List;
-      Cursor : Widget_List.Cursor := W.Children.Find (Widget_Access (C));
+      CA     : Widget_Access := null;
+      Cursor : Widget_List.Cursor;
    begin
+      if C /= null then
+         CA := C.all'Unchecked_Access;
+      end if;
+      Cursor := W.Children.Find (CA);
       if Cursor /= No_Element then
          C.Parent := null;
          W.Children.Delete (Cursor);

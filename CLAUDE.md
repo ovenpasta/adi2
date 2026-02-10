@@ -376,6 +376,7 @@ All packages are rooted under `Adi`:
 ### Widget API Conventions
 - **Hierarchy calls use `access Widget'Class`**: `Add_Child`, `Remove_Child`, `Set_Root`, `Add_Overlay`, `Remove_Overlay`, `Add_Page` all accept anonymous access parameters so callers don't need `Widget_Access(...)` casts
 - **Dot notation in examples**: `Root.Add_Child (Label1)` instead of `Add_Child (Root.all, Widget_Access (Label1))`
+- **Implementation detail for hierarchy storage**: when converting anonymous access params to stored `Widget_Access` inside internals (children/overlay lists), use `C.all'Unchecked_Access` on the designated object rather than `Widget_Access (C)` to avoid runtime accessibility `PROGRAM_ERROR` checks
 - **Callbacks use named access types**: e.g. `Click_Callback`, `Toggle_Callback`, `Change_Callback` — Ada accessibility rules (RM 3.10.2) prevent using anonymous access-to-subprogram in record fields
 - **`'Unrestricted_Access` for callbacks in examples**: callbacks declared inside `main` have deeper accessibility than library-level named access types, so `'Access` won't compile; `'Unrestricted_Access` (GNAT extension) is required
 

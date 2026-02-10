@@ -471,9 +471,9 @@ package body Adi.Widget.Combo_Box is
       end if;
 
       if Dismiss /= null then
-         Adi.Window.Add_Overlay (W.Host_Window.all, Dismiss);
+         Adi.Window.Add_Overlay (W.Host_Window.all, Widget_Access (Dismiss));
       end if;
-      Adi.Window.Add_Overlay (W.Host_Window.all, W.Popup);
+      Adi.Window.Add_Overlay (W.Host_Window.all, Widget_Access (W.Popup));
       W.Open := True;
       if Dismiss /= null then
          Mark_Dirty (Dismiss.all);
@@ -496,9 +496,9 @@ package body Adi.Widget.Combo_Box is
          end if;
       end loop;
 
-      Adi.Window.Remove_Overlay (W.Host_Window.all, W.Popup);
+      Adi.Window.Remove_Overlay (W.Host_Window.all, Widget_Access (W.Popup));
       if Dismiss /= null then
-         Adi.Window.Remove_Overlay (W.Host_Window.all, Dismiss);
+         Adi.Window.Remove_Overlay (W.Host_Window.all, Widget_Access (Dismiss));
       end if;
       W.Open := False;
       Mark_Dirty (W);

@@ -287,6 +287,7 @@ package body Adi.Window is
          Adi.SDL.Video.SDL_WINDOW_RESIZABLE,
          Win_Ptr,
          Ren_Ptr);
+      Free (C_Title_Str);
       SDL_Assert (Success, "SDL_CreateWindowAndRenderer");
       return W : Window_Access := new Window do
         W.Internal := new Internal;
@@ -298,16 +299,6 @@ package body Adi.Window is
       end return;
    end Create_Window;
 
-
-   --------------
-   -- On_Event --
-   --------------
-
-   procedure On_Event (W : in Out Window; E : Event.Event) is
-   begin
-      --  Generic event handler (can be extended)
-      null;
-   end On_Event;
 
    ------------
    -- Update --
@@ -338,14 +329,11 @@ package body Adi.Window is
 
     procedure Render (W : in Out Window) is
        use Adi.SDL.Render;
-       use Ada.Text_IO;
     begin
        --  Only render if something changed
        if (W.Root /= null and then Is_Dirty (W.Root.all))
          or else Is_Any_Overlay_Dirty (W)
        then
-          Put_Line ("*** RENDERING (root is dirty) ***");
-
           --  Clear the screen
           SDL_Assert (SDL_SetRenderDrawColor (W.Internal.ren, 255, 255, 255, 255), "SDL_SetRenderDrawColor");
           SDL_Assert (SDL_RenderClear (W.Internal.ren), "SDL_RenderClear");
@@ -882,8 +870,12 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       Repeat   : Boolean)
    is
    begin
-      if W.Focused_Widget /= null then
+      if W.Focused_Widget /= null
+        and then Is_In_Subtree (Active_Key_Root (W), W.Focused_Widget)
+      then
          On_Key_Up (W.Focused_Widget.all, Scancode, Key_Mod, Repeat);
+      elsif Active_Key_Root (W) /= null then
+         On_Key_Up (Active_Key_Root (W).all, Scancode, Key_Mod, Repeat);
       end if;
    end On_Key_Up;
 
@@ -893,8 +885,12 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
 
    procedure On_Text_Input (W : in out Window; Text : String) is
    begin
-      if W.Focused_Widget /= null then
+      if W.Focused_Widget /= null
+        and then Is_In_Subtree (Active_Key_Root (W), W.Focused_Widget)
+      then
          On_Text_Input (W.Focused_Widget.all, Text);
+      elsif Active_Key_Root (W) /= null then
+         On_Text_Input (Active_Key_Root (W).all, Text);
       end if;
    end On_Text_Input;
 
@@ -974,19 +970,9 @@ function Get_Size (W : in out Window) return Size_2D is
 
     procedure Handle_Resize (W : in out Window; New_Size : Size_2D) is
     begin
-       Ada.Text_IO.Put_Line
-	 ("Handle_Resize called: "
-	  & New_Size.Width'Image
-	  & "x"
-	  & New_Size.Height'Image);
-       Ada.Text_IO.Put_Line
-	 ("  Old size: " & W.Size.Width'Image & "x" & W.Size.Height'Image);
        if W.Size.Width = New_Size.Width and W.Size.Height = New_Size.Height then
-	  Ada.Text_IO.Put_Line ("  Skipping - same size");
 	  return;  -- No change
-
        end if;
-       Ada.Text_IO.Put_Line ("  Processing resize...");
 
        W.Size := New_Size;
        W.Geometry := (0.0, 0.0, New_Size.Width, New_Size.Height);
@@ -997,7 +983,6 @@ function Get_Size (W : in out Window) return Size_2D is
 	  Mark_Dirty (W.Root.all);
        end if;
        W.Needs_Layout := True;  -- Flag for layout recalculation
-       Render(W);
     end Handle_Resize;
 
 

@@ -1,6 +1,5 @@
 with Ada.Containers.Vectors;
 with Adi.Core;       use Adi.Core;
-with Adi.Event;      use Adi.Event;
 with Adi.Widget;     use Adi.Widget;
 with Adi.Render;     use Adi.Render;
 with Adi.SDL.Render; use Adi.SDL.Render;
@@ -14,7 +13,6 @@ package Adi.Window is
 
     function Create_Window (Title : String; S : Size_2D) return Window_Access;
 
-    procedure On_Event (W : in out Window; E : Event.Event);
     procedure Update (W : in out Window);
 
     --  Render the window (draws all widgets)

@@ -345,7 +345,7 @@ package body Adi.Widget.List_Box is
          return;
       end if;
 
-      Add_Child (W, Row);
+      Add_Child (W, Widget_Access (Row));
       W.Rows.Append (Row);
       W.Selected.Append (False);
       W.Row_Heights.Append (Default_Row_Height);
@@ -365,7 +365,7 @@ package body Adi.Widget.List_Box is
             Row : constant Row_Widget_Access := W.Rows.Element (I);
          begin
             if Row /= null then
-               Remove_Child (W, Row);
+               Remove_Child (W, Widget_Access (Row));
             end if;
          end;
       end loop;

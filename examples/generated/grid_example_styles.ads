@@ -9,8 +9,8 @@ with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 package Grid_Example_Styles is
 
-   --  Base style for root
-   Root_Base_Style : constant Style_Rules := (
+   --  Base style for class 'root'
+   Root_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (12.0))),
@@ -19,23 +19,23 @@ package Grid_Example_Styles is
       others => <>
    );
 
-   --  Base style for title::label
-   Title_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'title'::label
+   Title_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (241, 245, 249)),
       Font_Size => Set_Font (Px (22.0)),
       Font_Weight => Set (Weight_Bold),
       others => <>
    );
 
-   --  Base style for hint::label
-   Hint_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'hint'::label
+   Hint_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (191, 204, 224)),
       Font_Size => Set_Font (Px (13.0)),
       others => <>
    );
 
-   --  Base style for grid
-   Grid_Base_Style : constant Style_Rules := (
+   --  Base style for class 'grid'
+   Grid_Class_Base_Style : constant Style_Rules := (
       Display => Set (Grid),
       Flex_Grow => Set (1.0),
       Grid_Columns => Set (Grid_Columns_Value (4)),
@@ -50,8 +50,8 @@ package Grid_Example_Styles is
       others => <>
    );
 
-   --  Base style for tile
-   Tile_Base_Style : constant Style_Rules := (
+   --  Base style for class 'tile'
+   Tile_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
@@ -63,16 +63,16 @@ package Grid_Example_Styles is
       others => <>
    );
 
-   --  Base style for tile::label
-   Tile_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'tile'::label
+   Tile_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (C (White)),
       Font_Size => Set_Font (Px (15.0)),
       Font_Weight => Set (Weight_Semi_Bold),
       others => <>
    );
 
-   --  Base style for tile-a
-   Tile_A_Base_Style : constant Style_Rules := (
+   --  Base style for class 'tile-a'
+   Tile_A_Class_Base_Style : constant Style_Rules := (
       Grid_Column => Set (Grid_Column_Value (1)),
       Grid_Column_Span => Set (Grid_Column_Span_Value (2)),
       Grid_Row => Set (Grid_Row_Value (1)),
@@ -80,8 +80,8 @@ package Grid_Example_Styles is
       others => <>
    );
 
-   --  Base style for tile-b
-   Tile_B_Base_Style : constant Style_Rules := (
+   --  Base style for class 'tile-b'
+   Tile_B_Class_Base_Style : constant Style_Rules := (
       Grid_Column => Set (Grid_Column_Value (3)),
       Grid_Row => Set (Grid_Row_Value (1)),
       Grid_Row_Span => Set (Grid_Row_Span_Value (2)),
@@ -89,16 +89,16 @@ package Grid_Example_Styles is
       others => <>
    );
 
-   --  Base style for tile-c
-   Tile_C_Base_Style : constant Style_Rules := (
+   --  Base style for class 'tile-c'
+   Tile_C_Class_Base_Style : constant Style_Rules := (
       Grid_Column => Set (Grid_Column_Value (4)),
       Grid_Row => Set (Grid_Row_Value (1)),
       Background_Color => Set_Bg (RGB (245, 158, 11)),
       others => <>
    );
 
-   --  Base style for tile-d
-   Tile_D_Base_Style : constant Style_Rules := (
+   --  Base style for class 'tile-d'
+   Tile_D_Class_Base_Style : constant Style_Rules := (
       Grid_Column => Set (Grid_Column_Value (1)),
       Grid_Row => Set (Grid_Row_Value (2)),
       Grid_Row_Span => Set (Grid_Row_Span_Value (2)),
@@ -106,24 +106,24 @@ package Grid_Example_Styles is
       others => <>
    );
 
-   --  Base style for tile-e
-   Tile_E_Base_Style : constant Style_Rules := (
+   --  Base style for class 'tile-e'
+   Tile_E_Class_Base_Style : constant Style_Rules := (
       Grid_Column => Set (Grid_Column_Value (2)),
       Grid_Row => Set (Grid_Row_Value (2)),
       Background_Color => Set_Bg (RGB (168, 85, 247)),
       others => <>
    );
 
-   --  Base style for tile-f
-   Tile_F_Base_Style : constant Style_Rules := (
+   --  Base style for class 'tile-f'
+   Tile_F_Class_Base_Style : constant Style_Rules := (
       Grid_Column => Set (Grid_Column_Value (4)),
       Grid_Row => Set (Grid_Row_Value (2)),
       Background_Color => Set_Bg (RGB (6, 182, 212)),
       others => <>
    );
 
-   --  Base style for tile-g
-   Tile_G_Base_Style : constant Style_Rules := (
+   --  Base style for class 'tile-g'
+   Tile_G_Class_Base_Style : constant Style_Rules := (
       Grid_Column => Set (Grid_Column_Value (2)),
       Grid_Column_Span => Set (Grid_Column_Span_Value (3)),
       Grid_Row => Set (Grid_Row_Value (3)),
@@ -131,141 +131,141 @@ package Grid_Example_Styles is
       others => <>
    );
 
-   --  Complete widget style for root
-   Root_Widget : constant Widget_Style :=
-     From (Root_Base_Style)
+   --  Complete widget style for class 'root'
+   Root_Class_Widget : constant Widget_Style :=
+     From (Root_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for root
-   Root_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Root_Widget, Enabled => True),
+   --  Part styles bundle for class 'root'
+   Root_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Root_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for title::label
-   Title_Label_Widget : constant Widget_Style :=
-     From (Title_Label_Base_Style)
+   --  Complete widget style for class 'title'::label
+   Title_Class_Label_Widget : constant Widget_Style :=
+     From (Title_Class_Label_Base_Style)
      .Build;
 
-   --  Part styles bundle for title
-   Title_Part_Styles : constant Part_Style_Array := [
-      Label_Part => (Style => Title_Label_Widget, Enabled => True),
+   --  Part styles bundle for class 'title'
+   Title_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Title_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for hint::label
-   Hint_Label_Widget : constant Widget_Style :=
-     From (Hint_Label_Base_Style)
+   --  Complete widget style for class 'hint'::label
+   Hint_Class_Label_Widget : constant Widget_Style :=
+     From (Hint_Class_Label_Base_Style)
      .Build;
 
-   --  Part styles bundle for hint
-   Hint_Part_Styles : constant Part_Style_Array := [
-      Label_Part => (Style => Hint_Label_Widget, Enabled => True),
+   --  Part styles bundle for class 'hint'
+   Hint_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Hint_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for grid
-   Grid_Widget : constant Widget_Style :=
-     From (Grid_Base_Style)
+   --  Complete widget style for class 'grid'
+   Grid_Class_Widget : constant Widget_Style :=
+     From (Grid_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for grid
-   Grid_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Grid_Widget, Enabled => True),
+   --  Part styles bundle for class 'grid'
+   Grid_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Grid_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for tile
-   Tile_Widget : constant Widget_Style :=
-     From (Tile_Base_Style)
+   --  Complete widget style for class 'tile'
+   Tile_Class_Widget : constant Widget_Style :=
+     From (Tile_Class_Base_Style)
      .Build;
 
-   --  Complete widget style for tile::label
-   Tile_Label_Widget : constant Widget_Style :=
-     From (Tile_Label_Base_Style)
+   --  Complete widget style for class 'tile'::label
+   Tile_Class_Label_Widget : constant Widget_Style :=
+     From (Tile_Class_Label_Base_Style)
      .Build;
 
-   --  Part styles bundle for tile
-   Tile_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Tile_Widget, Enabled => True),
-      Label_Part => (Style => Tile_Label_Widget, Enabled => True),
+   --  Part styles bundle for class 'tile'
+   Tile_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tile_Class_Widget, Enabled => True),
+      Label_Part => (Style => Tile_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for tile-a
-   Tile_A_Widget : constant Widget_Style :=
-     From (Tile_A_Base_Style)
+   --  Complete widget style for class 'tile-a'
+   Tile_A_Class_Widget : constant Widget_Style :=
+     From (Tile_A_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for tile-a
-   Tile_A_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Tile_A_Widget, Enabled => True),
+   --  Part styles bundle for class 'tile-a'
+   Tile_A_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tile_A_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for tile-b
-   Tile_B_Widget : constant Widget_Style :=
-     From (Tile_B_Base_Style)
+   --  Complete widget style for class 'tile-b'
+   Tile_B_Class_Widget : constant Widget_Style :=
+     From (Tile_B_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for tile-b
-   Tile_B_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Tile_B_Widget, Enabled => True),
+   --  Part styles bundle for class 'tile-b'
+   Tile_B_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tile_B_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for tile-c
-   Tile_C_Widget : constant Widget_Style :=
-     From (Tile_C_Base_Style)
+   --  Complete widget style for class 'tile-c'
+   Tile_C_Class_Widget : constant Widget_Style :=
+     From (Tile_C_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for tile-c
-   Tile_C_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Tile_C_Widget, Enabled => True),
+   --  Part styles bundle for class 'tile-c'
+   Tile_C_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tile_C_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for tile-d
-   Tile_D_Widget : constant Widget_Style :=
-     From (Tile_D_Base_Style)
+   --  Complete widget style for class 'tile-d'
+   Tile_D_Class_Widget : constant Widget_Style :=
+     From (Tile_D_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for tile-d
-   Tile_D_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Tile_D_Widget, Enabled => True),
+   --  Part styles bundle for class 'tile-d'
+   Tile_D_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tile_D_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for tile-e
-   Tile_E_Widget : constant Widget_Style :=
-     From (Tile_E_Base_Style)
+   --  Complete widget style for class 'tile-e'
+   Tile_E_Class_Widget : constant Widget_Style :=
+     From (Tile_E_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for tile-e
-   Tile_E_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Tile_E_Widget, Enabled => True),
+   --  Part styles bundle for class 'tile-e'
+   Tile_E_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tile_E_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for tile-f
-   Tile_F_Widget : constant Widget_Style :=
-     From (Tile_F_Base_Style)
+   --  Complete widget style for class 'tile-f'
+   Tile_F_Class_Widget : constant Widget_Style :=
+     From (Tile_F_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for tile-f
-   Tile_F_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Tile_F_Widget, Enabled => True),
+   --  Part styles bundle for class 'tile-f'
+   Tile_F_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tile_F_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for tile-g
-   Tile_G_Widget : constant Widget_Style :=
-     From (Tile_G_Base_Style)
+   --  Complete widget style for class 'tile-g'
+   Tile_G_Class_Widget : constant Widget_Style :=
+     From (Tile_G_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for tile-g
-   Tile_G_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Tile_G_Widget, Enabled => True),
+   --  Part styles bundle for class 'tile-g'
+   Tile_G_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tile_G_Class_Widget, Enabled => True),
       others => <>
    ];
 

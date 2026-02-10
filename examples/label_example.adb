@@ -59,12 +59,12 @@ begin
       --  Set geometries
       Set_Geometry (Container.all, (50.0, 50.0, 500.0, 400.0));
 
-      Set_Part_Styles (Root.all, Root_Part_Styles);
-      Set_Part_Styles (Container.all, Container_Part_Styles);
-      Set_Part_Styles (Label1.all, Label1_Part_Styles);
-      Set_Part_Styles (Label2.all, Label2_Part_Styles);
-      Set_Part_Styles (Label3.all, Label3_Part_Styles);
-      Set_Part_Styles (Label4.all, Label4_Part_Styles);
+      Set_Part_Styles (Root.all, Root_Class_Part_Styles);
+      Set_Part_Styles (Container.all, Container_Class_Part_Styles);
+      Set_Part_Styles (Label1.all, Label1_Class_Part_Styles);
+      Set_Part_Styles (Label2.all, Label2_Class_Part_Styles);
+      Set_Part_Styles (Label3.all, Label3_Class_Part_Styles);
+      Set_Part_Styles (Label4.all, Label4_Class_Part_Styles);
 
       --  Build widget hierarchy
       Root.Add_Child (Container);

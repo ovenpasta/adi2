@@ -1,7 +1,7 @@
 with "../adi.gpr";  -- Reference your main project
 
 project Tests is
-   type Test_Kind is ("styles", "layout_test", "layout_flex_grid_test");
+   type Test_Kind is ("styles", "layout_test", "layout_flex_grid_test", "css_parser_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("src");

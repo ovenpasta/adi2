@@ -52,15 +52,15 @@ begin
 
       Input.Set_On_Changed (On_Input_Changed'Unrestricted_Access);
 
-      Set_Part_Styles (Root.all, Root_Part_Styles);
-      Set_Part_Styles (Container.all, Container_Part_Styles);
-      Set_Part_Styles (Title.all, Title_Part_Styles);
-      Set_Part_Styles (Hint.all, Hint_Part_Styles);
-      Set_Part_Styles (Echo_Label.all, Echo_Label_Part_Styles);
-      Set_Part_Styles (Length_Label.all, Length_Label_Part_Styles);
+      Set_Part_Styles (Root.all, Root_Class_Part_Styles);
+      Set_Part_Styles (Container.all, Container_Class_Part_Styles);
+      Set_Part_Styles (Title.all, Title_Class_Part_Styles);
+      Set_Part_Styles (Hint.all, Hint_Class_Part_Styles);
+      Set_Part_Styles (Echo_Label.all, Echo_Label_Class_Part_Styles);
+      Set_Part_Styles (Length_Label.all, Length_Label_Class_Part_Styles);
 
-      Set_Part_Styles (Input.all, Input_Part_Styles);
-      Set_Part_Styles (Input_2.all, Input_Part_Styles);
+      Set_Part_Styles (Input.all, Input_Class_Part_Styles);
+      Set_Part_Styles (Input_2.all, Input_Class_Part_Styles);
 
       Root.Add_Child (Container);
       Container.Add_Child (Title);

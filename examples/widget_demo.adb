@@ -39,19 +39,19 @@ begin
          Bg_Style := Opt_Bg_Image.Unset;
       end if;
 
-      Set_Part_Styles (Root_Box.all, Root_Box_Part_Styles);
-      Set_Part_Styles (Top_Row.all, Top_Row_Part_Styles);
-      Set_Part_Styles (Card_Box.all, Card_Box_Part_Styles);
-      Set_Part_Styles (Card_Box_2.all, Card_Box_2_Part_Styles);
-      Set_Part_Styles (Inner_Box.all, Inner_Box_Part_Styles);
-      Set_Part_Styles (Bottom_Row.all, Bottom_Row_Part_Styles);
-      Set_Part_Styles (Button_Box.all, Button_Box_Part_Styles);
-      Set_Part_Styles (Hover_Box.all, Hover_Box_Part_Styles);
+      Set_Part_Styles (Root_Box.all, Root_Box_Class_Part_Styles);
+      Set_Part_Styles (Top_Row.all, Top_Row_Class_Part_Styles);
+      Set_Part_Styles (Card_Box.all, Card_Box_Class_Part_Styles);
+      Set_Part_Styles (Card_Box_2.all, Card_Box_2_Class_Part_Styles);
+      Set_Part_Styles (Inner_Box.all, Inner_Box_Class_Part_Styles);
+      Set_Part_Styles (Bottom_Row.all, Bottom_Row_Class_Part_Styles);
+      Set_Part_Styles (Button_Box.all, Button_Box_Class_Part_Styles);
+      Set_Part_Styles (Hover_Box.all, Hover_Box_Class_Part_Styles);
       Set_Part_Style (Label_Box.all, Main_Part,
-        Create.Base ((Label_Box_Base_Style with delta
+        Create.Base ((Label_Box_Class_Base_Style with delta
           Background_Image => Bg_Style))
         .Build);
-      Set_Part_Styles (Title_Label.all, Title_Label_Part_Styles);
+      Set_Part_Styles (Title_Label.all, Title_Label_Class_Part_Styles);
 
       Card_Box_2.Add_Child (Inner_Box);
 

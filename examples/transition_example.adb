@@ -21,13 +21,13 @@ procedure Transition_Example is
    A : Adi.App.App;
 
    function Style return Style_Builder renames Adi.Widget_Styles.Create;
-   White_Label : constant Widget_Style := White_Label_Widget;
+   White_Label : constant Widget_Style := White_Label_Class_Widget;
 
    --  Helper: section title label
    function Make_Title (Text : String) return Label_Widget_Access is
       L : constant Label_Widget_Access := Adi.Widget.Label.Create (Text);
    begin
-      Set_Part_Styles (L.all, Title_Part_Styles);
+      Set_Part_Styles (L.all, Title_Class_Part_Styles);
       return L;
    end Make_Title;
 
@@ -35,12 +35,12 @@ procedure Transition_Example is
    function Make_Desc (Text : String) return Label_Widget_Access is
       L : constant Label_Widget_Access := Adi.Widget.Label.Create (Text);
    begin
-      Set_Part_Styles (L.all, Desc_Part_Styles);
+      Set_Part_Styles (L.all, Desc_Class_Part_Styles);
       return L;
    end Make_Desc;
 
    --  Common base style for demo buttons
-   Demo_Base : constant Style_Rules := Demo_Base_Base_Style;
+   Demo_Base : constant Style_Rules := Demo_Base_Class_Base_Style;
 
 begin
    A.Init;
@@ -109,26 +109,26 @@ begin
 
    begin
       --  === Root ===
-      Set_Part_Styles (Root.all, Root_Part_Styles);
+      Set_Part_Styles (Root.all, Root_Class_Part_Styles);
 
       --  === Content ===
-      Set_Part_Styles (Content.all, Content_Part_Styles);
+      Set_Part_Styles (Content.all, Content_Class_Part_Styles);
 
       --  =====================================================================
       --  Section 1: Easing Curves
       --  =====================================================================
 
       --  Section container
-      Set_Part_Styles (Sec1.all, Section_Part_Styles);
+      Set_Part_Styles (Sec1.all, Section_Class_Part_Styles);
 
       --  Row of buttons
-      Set_Part_Styles (Sec1_Row.all, Section_Row_Part_Styles);
+      Set_Part_Styles (Sec1_Row.all, Section_Row_Class_Part_Styles);
 
       --  Column containers for button+desc
-      Set_Part_Styles (Col_Linear.all, Col_Style_Part_Styles);
-      Set_Part_Styles (Col_EaseIn.all, Col_Style_Part_Styles);
-      Set_Part_Styles (Col_EaseOut.all, Col_Style_Part_Styles);
-      Set_Part_Styles (Col_EaseIO.all, Col_Style_Part_Styles);
+      Set_Part_Styles (Col_Linear.all, Col_Style_Class_Part_Styles);
+      Set_Part_Styles (Col_EaseIn.all, Col_Style_Class_Part_Styles);
+      Set_Part_Styles (Col_EaseOut.all, Col_Style_Class_Part_Styles);
+      Set_Part_Styles (Col_EaseIO.all, Col_Style_Class_Part_Styles);
 
       --  Linear: constant speed, no acceleration
       Set_Part_Style (Btn_Linear.all, Main_Part,
@@ -194,15 +194,15 @@ begin
       --  Section 2: Individual Properties
       --  =====================================================================
 
-      Set_Part_Styles (Sec2.all, Section_Part_Styles);
+      Set_Part_Styles (Sec2.all, Section_Class_Part_Styles);
 
-      Set_Part_Styles (Sec2_Row.all, Section_Row_Part_Styles);
+      Set_Part_Styles (Sec2_Row.all, Section_Row_Class_Part_Styles);
 
-      Set_Part_Styles (Col_BgColor.all, Col_Style_Part_Styles);
-      Set_Part_Styles (Col_Border.all, Col_Style_Part_Styles);
-      Set_Part_Styles (Col_Radius.all, Col_Style_Part_Styles);
-      Set_Part_Styles (Col_Shadow.all, Col_Style_Part_Styles);
-      Set_Part_Styles (Col_Opacity.all, Col_Style_Part_Styles);
+      Set_Part_Styles (Col_BgColor.all, Col_Style_Class_Part_Styles);
+      Set_Part_Styles (Col_Border.all, Col_Style_Class_Part_Styles);
+      Set_Part_Styles (Col_Radius.all, Col_Style_Class_Part_Styles);
+      Set_Part_Styles (Col_Shadow.all, Col_Style_Class_Part_Styles);
+      Set_Part_Styles (Col_Opacity.all, Col_Style_Class_Part_Styles);
 
       --  Background color only
       Set_Part_Style (Btn_BgColor.all, Main_Part,
@@ -275,14 +275,14 @@ begin
       --  Section 3: Combined + Duration Variants
       --  =====================================================================
 
-      Set_Part_Styles (Sec3.all, Section_Part_Styles);
+      Set_Part_Styles (Sec3.all, Section_Class_Part_Styles);
 
-      Set_Part_Styles (Sec3_Row.all, Section_Row_Part_Styles);
+      Set_Part_Styles (Sec3_Row.all, Section_Row_Class_Part_Styles);
 
-      Set_Part_Styles (Col_Multi.all, Col_Style_Part_Styles);
-      Set_Part_Styles (Col_All.all, Col_Style_Part_Styles);
-      Set_Part_Styles (Col_Fast.all, Col_Style_Part_Styles);
-      Set_Part_Styles (Col_Slow.all, Col_Style_Part_Styles);
+      Set_Part_Styles (Col_Multi.all, Col_Style_Class_Part_Styles);
+      Set_Part_Styles (Col_All.all, Col_Style_Class_Part_Styles);
+      Set_Part_Styles (Col_Fast.all, Col_Style_Class_Part_Styles);
+      Set_Part_Styles (Col_Slow.all, Col_Style_Class_Part_Styles);
 
       --  Multiple specific properties: bg + border + shadow
       Set_Part_Style (Btn_Multi.all, Main_Part,

@@ -116,27 +116,27 @@ begin
       Multi_Status := Adi.Widget.Label.Create
         ("Box list: multi-select toggle, wheel scroll, keyboard navigation");
 
-      Set_Part_Styles (Root.all, Root_Part_Styles);
-      Set_Part_Styles (Panels.all, Panels_Part_Styles);
-      Set_Part_Styles (No_Panel.all, Panel_Part_Styles);
-      Set_Part_Styles (Single_Panel.all, Panel_Part_Styles);
-      Set_Part_Styles (Multi_Panel.all, Panel_Part_Styles);
-      Set_Part_Styles (Range_Panel.all, Panel_Part_Styles);
+      Set_Part_Styles (Root.all, Root_Class_Part_Styles);
+      Set_Part_Styles (Panels.all, Panels_Class_Part_Styles);
+      Set_Part_Styles (No_Panel.all, Panel_Class_Part_Styles);
+      Set_Part_Styles (Single_Panel.all, Panel_Class_Part_Styles);
+      Set_Part_Styles (Multi_Panel.all, Panel_Class_Part_Styles);
+      Set_Part_Styles (Range_Panel.all, Panel_Class_Part_Styles);
 
-      Set_Part_Styles (No_Title.all, Panel_Title_Part_Styles);
-      Set_Part_Styles (Single_Title.all, Panel_Title_Part_Styles);
-      Set_Part_Styles (Multi_Title.all, Panel_Title_Part_Styles);
-      Set_Part_Styles (Range_Title.all, Panel_Title_Part_Styles);
+      Set_Part_Styles (No_Title.all, Panel_Title_Class_Part_Styles);
+      Set_Part_Styles (Single_Title.all, Panel_Title_Class_Part_Styles);
+      Set_Part_Styles (Multi_Title.all, Panel_Title_Class_Part_Styles);
+      Set_Part_Styles (Range_Title.all, Panel_Title_Class_Part_Styles);
 
-      Set_Part_Styles (No_Status.all, Status_Part_Styles);
-      Set_Part_Styles (Single_Status.all, Status_Part_Styles);
-      Set_Part_Styles (Multi_Status.all, Status_Part_Styles);
-      Set_Part_Styles (Range_Status.all, Status_Part_Styles);
+      Set_Part_Styles (No_Status.all, Status_Class_Part_Styles);
+      Set_Part_Styles (Single_Status.all, Status_Class_Part_Styles);
+      Set_Part_Styles (Multi_Status.all, Status_Class_Part_Styles);
+      Set_Part_Styles (Range_Status.all, Status_Class_Part_Styles);
 
-      Set_Part_Styles (No_Listbox.all, Listbox_Part_Styles);
-      Set_Part_Styles (Single_Listbox.all, Listbox_Part_Styles);
-      Set_Part_Styles (Multi_Listbox.all, Listbox_Part_Styles);
-      Set_Part_Styles (Range_Listbox.all, Listbox_Part_Styles);
+      Set_Part_Styles (No_Listbox.all, Listbox_Class_Part_Styles);
+      Set_Part_Styles (Single_Listbox.all, Listbox_Class_Part_Styles);
+      Set_Part_Styles (Multi_Listbox.all, Listbox_Class_Part_Styles);
+      Set_Part_Styles (Range_Listbox.all, Listbox_Class_Part_Styles);
 
       No_Listbox.Set_Row_Gap (4.0);
       Single_Listbox.Set_Row_Gap (4.0);
@@ -168,9 +168,9 @@ begin
             Row_Range : constant Adi.Widget.Label.Label_Widget_Access :=
               Adi.Widget.Label.Create ("Label row" & I'Image);
          begin
-            Set_Part_Styles (Row.all, Label_Row_Part_Styles);
-            Set_Part_Styles (Row_No.all, Label_Row_Part_Styles);
-            Set_Part_Styles (Row_Range.all, Label_Row_Part_Styles);
+            Set_Part_Styles (Row.all, Label_Row_Class_Part_Styles);
+            Set_Part_Styles (Row_No.all, Label_Row_Class_Part_Styles);
+            Set_Part_Styles (Row_Range.all, Label_Row_Class_Part_Styles);
 
             Single_Listbox.Append_Row (Row);
             No_Listbox.Append_Row (Row_No);
@@ -185,8 +185,8 @@ begin
             Title : constant Adi.Widget.Label.Label_Widget_Access :=
               Adi.Widget.Label.Create ("Card row" & I'Image & "  (double-click to activate)");
          begin
-            Set_Part_Styles (Row.all, Card_Row_Part_Styles);
-            Set_Part_Styles (Title.all, Card_Row_Title_Part_Styles);
+            Set_Part_Styles (Row.all, Card_Row_Class_Part_Styles);
+            Set_Part_Styles (Title.all, Card_Row_Title_Class_Part_Styles);
 
             Row.Add_Child (Title);
             Multi_Listbox.Append_Row (Row);

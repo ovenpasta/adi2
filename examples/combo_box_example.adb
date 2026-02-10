@@ -49,22 +49,22 @@ begin
    begin
       Status_Label := Adi.Widget.Label.Create ("Selected #1: Crimson");
 
-      Set_Part_Styles (Root.all, Root_Part_Styles);
-      Set_Part_Styles (Container.all, Container_Part_Styles);
-      Set_Part_Styles (Title.all, Title_Part_Styles);
-      Set_Part_Styles (Hint.all, Hint_Part_Styles);
-      Set_Part_Styles (Status_Label.all, Status_Part_Styles);
+      Set_Part_Styles (Root.all, Root_Class_Part_Styles);
+      Set_Part_Styles (Container.all, Container_Class_Part_Styles);
+      Set_Part_Styles (Title.all, Title_Class_Part_Styles);
+      Set_Part_Styles (Hint.all, Hint_Class_Part_Styles);
+      Set_Part_Styles (Status_Label.all, Status_Class_Part_Styles);
 
-      Set_Part_Styles (Color_Combo.all, Combo_Part_Styles);
-      Set_Part_Styles (City_Combo.all, Combo_Part_Styles);
+      Set_Part_Styles (Color_Combo.all, Combo_Class_Part_Styles);
+      Set_Part_Styles (City_Combo.all, Combo_Class_Part_Styles);
 
       Attach_Window (Color_Combo.all, W);
       Attach_Window (City_Combo.all, W);
 
-      Set_Dropdown_Part_Styles (Color_Combo.all, Dropdown_Part_Styles);
-      Set_Dropdown_Part_Styles (City_Combo.all, Dropdown_Part_Styles);
-      Set_Option_Row_Part_Styles (Color_Combo.all, Option_Row_Part_Styles);
-      Set_Option_Row_Part_Styles (City_Combo.all, Option_Row_Part_Styles);
+      Set_Dropdown_Part_Styles (Color_Combo.all, Dropdown_Class_Part_Styles);
+      Set_Dropdown_Part_Styles (City_Combo.all, Dropdown_Class_Part_Styles);
+      Set_Option_Row_Part_Styles (Color_Combo.all, Option_Row_Class_Part_Styles);
+      Set_Option_Row_Part_Styles (City_Combo.all, Option_Row_Class_Part_Styles);
 
       Color_Combo.Set_On_Selection_Changed (On_Combo_Changed'Unrestricted_Access);
       City_Combo.Set_On_Selection_Changed (On_Combo_Changed'Unrestricted_Access);

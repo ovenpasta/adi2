@@ -405,15 +405,19 @@ package body Adi.Window is
        end if;
     end Render;
 
-    procedure Set_Root (W : in Out Window; Root : access Adi.Widget.Widget'Class) is
-    begin
-       W.Root := Widget_Access (Root);
-       if Root /= null then
-          Set_Geometry (Root.all, W.Geometry);
-          W.Needs_Layout := True;  -- Initial layout needed
-       end if;
-       Apply_Window_Min_Size_From_Layout (W);
-    end Set_Root;
+   procedure Set_Root (W : in Out Window; Root : access Adi.Widget.Widget'Class) is
+   begin
+      if Root = null then
+         W.Root := null;
+      else
+         W.Root := Root.all'Unchecked_Access;
+      end if;
+      if Root /= null then
+         Set_Geometry (Root.all, W.Geometry);
+         W.Needs_Layout := True;  -- Initial layout needed
+      end if;
+      Apply_Window_Min_Size_From_Layout (W);
+   end Set_Root;
 
 
    --------------
@@ -447,11 +451,12 @@ package body Adi.Window is
    end Get_Enforce_Layout_Min_Size;
 
    procedure Add_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class) is
-      OA : constant Widget_Access := Widget_Access (Overlay);
+      OA : Widget_Access := null;
    begin
-      if OA = null then
+      if Overlay = null then
          return;
       end if;
+      OA := Overlay.all'Unchecked_Access;
 
       declare
          Existing : constant Natural := Overlay_Index (W, OA);
@@ -469,9 +474,14 @@ package body Adi.Window is
    end Add_Overlay;
 
    procedure Remove_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class) is
-      OA       : constant Widget_Access := Widget_Access (Overlay);
+      OA       : Widget_Access := null;
       Existing : Natural;
    begin
+      if Overlay = null then
+         return;
+      end if;
+      OA := Overlay.all'Unchecked_Access;
+
       Existing := Overlay_Index (W, OA);
       if Existing = 0 then
          return;
@@ -721,6 +731,68 @@ package body Adi.Window is
 procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       New_Hovered : Widget_Access;
       New_Part    : Part_Kind;
+      Max_Ancestor_Depth : constant := 64;
+      type Widget_Chain is array (Positive range <>) of Widget_Access;
+
+      procedure Build_Hover_Chain
+        (Start : Widget_Access;
+         Chain : out Widget_Chain;
+         Count : out Natural) is
+         Node   : Widget_Access := Start;
+         Parent : access Adi.Widget.Widget'Class;
+      begin
+         Count := 0;
+         while Node /= null and then Count < Chain'Length loop
+            Count := Count + 1;
+            Chain (Count) := Node;
+            Parent := Get_Parent (Node.all);
+            if Parent = null then
+               Node := null;
+            else
+               Node := Parent.all'Unchecked_Access;
+            end if;
+         end loop;
+      end Build_Hover_Chain;
+
+      function In_Chain
+        (Node  : Widget_Access;
+         Chain : Widget_Chain;
+         Count : Natural) return Boolean is
+      begin
+         for I in 1 .. Count loop
+            if Chain (I) = Node then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end In_Chain;
+
+      procedure Update_Hover_Ancestors
+        (Old_Node : Widget_Access;
+         New_Node : Widget_Access) is
+         Old_Chain : Widget_Chain (1 .. Max_Ancestor_Depth);
+         New_Chain : Widget_Chain (1 .. Max_Ancestor_Depth);
+         Old_Count : Natural := 0;
+         New_Count : Natural := 0;
+      begin
+         Build_Hover_Chain (Old_Node, Old_Chain, Old_Count);
+         Build_Hover_Chain (New_Node, New_Chain, New_Count);
+
+         --  Clear hover only for nodes that are not common ancestors anymore.
+         for I in 1 .. Old_Count loop
+            if not In_Chain (Old_Chain (I), New_Chain, New_Count) then
+               Set_Hovered (Old_Chain (I).all, False);
+            end if;
+         end loop;
+
+         --  Set hover for newly entered nodes.
+         for I in 1 .. New_Count loop
+            if not In_Chain (New_Chain (I), Old_Chain, Old_Count) then
+               Set_Hovered (New_Chain (I).all, True);
+            end if;
+         end loop;
+      end Update_Hover_Ancestors;
+
       procedure Clear_Hover_For_Part
         (Target : in out Adi.Widget.Widget'Class;
          P      : Part_Kind) is
@@ -754,16 +826,16 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
 
       --  Handle hover state changes
       if New_Hovered /= W.Hovered_Widget then
-         --  Remove hover from old widget
+         --  Update widget hover state across ancestor chains.
+         Update_Hover_Ancestors (W.Hovered_Widget, New_Hovered);
+
          if W.Hovered_Widget /= null then
-            Set_Hovered (W.Hovered_Widget.all, False);
             Clear_Hover_For_Part (W.Hovered_Widget.all, W.Hovered_Part);
          end if;
 
          --  Set hover on new widget
          if New_Hovered /= null then
             New_Part := Get_Part_At (New_Hovered.all, X, Y);
-            Set_Hovered (New_Hovered.all, True);
             Set_Hover_For_Part (New_Hovered.all, New_Part);
             W.Hovered_Part := New_Part;
          else

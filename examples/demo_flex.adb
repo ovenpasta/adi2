@@ -35,7 +35,7 @@ procedure Demo_Flex is
       Style : Widget_Style;
    begin
       Style := Adi.Widget_Styles.Create
-         .Base ((Box_Base_Base_Style with delta
+         .Base ((Box_Base_Class_Base_Style with delta
             Background_Color => Set_Bg (Color),
             Width            => (if W > 0.0 then Set (Size (Px (Float (W)))) else Opt_Size.Unset),
             Height           => (if H > 0.0 then Set (Size (Px (Float (H)))) else Opt_Size.Unset),
@@ -62,7 +62,7 @@ procedure Demo_Flex is
       Style : Widget_Style;
    begin
       Style := Adi.Widget_Styles.Create
-         .Base ((Flex_Container_Base_Style with delta
+         .Base ((Flex_Container_Class_Base_Style with delta
             Flex_Direction   => Set (Direction),
             Justify_Content  => Set (Justify),
             Align_Items      => Set (Align),
@@ -426,7 +426,7 @@ procedure Demo_Flex is
       --  Helper to set flex grow on row containers
       procedure Set_Row_Flex (R : Box_Widget_Access) is
       begin
-         Set_Part_Style (R.all, Main_Part, Row_Base_Widget);
+         Set_Part_Style (R.all, Main_Part, Row_Base_Class_Widget);
       end Set_Row_Flex;
 
       --  Helper to make demo containers equal width

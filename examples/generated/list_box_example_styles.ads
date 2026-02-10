@@ -9,8 +9,8 @@ with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 package List_Box_Example_Styles is
 
-   --  Base style for root
-   Root_Base_Style : constant Style_Rules := (
+   --  Base style for class 'root'
+   Root_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (12.0))),
@@ -19,8 +19,8 @@ package List_Box_Example_Styles is
       others => <>
    );
 
-   --  Base style for panels
-   Panels_Base_Style : constant Style_Rules := (
+   --  Base style for class 'panels'
+   Panels_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Gap => Set (Gap (Px (12.0))),
@@ -29,8 +29,8 @@ package List_Box_Example_Styles is
       others => <>
    );
 
-   --  Base style for panel
-   Panel_Base_Style : constant Style_Rules := (
+   --  Base style for class 'panel'
+   Panel_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Flex_Grow => Set (1.0),
@@ -46,8 +46,8 @@ package List_Box_Example_Styles is
       others => <>
    );
 
-   --  Base style for panel-title::label
-   Panel_Title_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'panel-title'::label
+   Panel_Title_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (41, 49, 64)),
       Font_Size => Set_Font (Px (18.0)),
       Font_Weight => Set (Weight_Bold),
@@ -57,8 +57,8 @@ package List_Box_Example_Styles is
       others => <>
    );
 
-   --  Base style for status::label
-   Status_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'status'::label
+   Status_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (83, 97, 120)),
       Font_Size => Set_Font (Px (13.0)),
       Text_Overflow => Set (Overflow_Clip),
@@ -66,8 +66,8 @@ package List_Box_Example_Styles is
       others => <>
    );
 
-   --  Base style for listbox
-   Listbox_Base_Style : constant Style_Rules := (
+   --  Base style for class 'listbox'
+   Listbox_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (247, 249, 252)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -78,8 +78,8 @@ package List_Box_Example_Styles is
       others => <>
    );
 
-   --  Base style for listbox::knob
-   Listbox_Knob_Base_Style : constant Style_Rules := (
+   --  Base style for class 'listbox'::knob
+   Listbox_Class_Knob_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (10.0))),
       Min_Height => Set (Size (Px (24.0))),
       Background_Color => Set_Bg (RGBA (71, 85, 105, 0.78)),
@@ -88,20 +88,20 @@ package List_Box_Example_Styles is
       others => <>
    );
 
-   --  Style for listbox::knob when part State_Hovered
-   Listbox_Knob_Part_Hovered_Style : constant Style_Rules := (
+   --  Style for class 'listbox'::knob when part State_Hovered
+   Listbox_Class_Knob_Part_Hovered_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGBA (71, 85, 105, 0.94)),
       others => <>
    );
 
-   --  Style for listbox::knob when part State_Pressed
-   Listbox_Knob_Part_Pressed_Style : constant Style_Rules := (
+   --  Style for class 'listbox'::knob when part State_Pressed
+   Listbox_Class_Knob_Part_Pressed_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGBA (71, 85, 105, 1.0)),
       others => <>
    );
 
-   --  Base style for listbox::scroll
-   Listbox_Scroll_Base_Style : constant Style_Rules := (
+   --  Base style for class 'listbox'::scroll
+   Listbox_Class_Scroll_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (10.0))),
       Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
       Padding => Set (CSS_Box (Px (2.0))),
@@ -111,20 +111,20 @@ package List_Box_Example_Styles is
       others => <>
    );
 
-   --  Style for listbox::scroll when part State_Hovered
-   Listbox_Scroll_Part_Hovered_Style : constant Style_Rules := (
+   --  Style for class 'listbox'::scroll when part State_Hovered
+   Listbox_Class_Scroll_Part_Hovered_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.38)),
       others => <>
    );
 
-   --  Style for listbox::scroll when part State_Pressed
-   Listbox_Scroll_Part_Pressed_Style : constant Style_Rules := (
+   --  Style for class 'listbox'::scroll when part State_Pressed
+   Listbox_Class_Scroll_Part_Pressed_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.52)),
       others => <>
    );
 
-   --  Base style for label-row
-   Label_Row_Base_Style : constant Style_Rules := (
+   --  Base style for class 'label-row'
+   Label_Row_Class_Base_Style : constant Style_Rules := (
       Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0))),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
@@ -135,28 +135,28 @@ package List_Box_Example_Styles is
       others => <>
    );
 
-   --  Style for label-row when widget State_Selected
-   Label_Row_Widget_Selected_Style : constant Style_Rules := (
+   --  Style for class 'label-row' when widget State_Selected
+   Label_Row_Class_Widget_Selected_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (62, 118, 210)),
       Border_Color => Set (Border_Color (RGB (48, 95, 171))),
       others => <>
    );
 
-   --  Base style for label-row::label
-   Label_Row_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'label-row'::label
+   Label_Row_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (43, 52, 67)),
       Font_Size => Set_Font (Px (14.0)),
       others => <>
    );
 
-   --  Style for label-row::label when widget State_Selected
-   Label_Row_Label_Widget_Selected_Style : constant Style_Rules := (
+   --  Style for class 'label-row'::label when widget State_Selected
+   Label_Row_Class_Label_Widget_Selected_Style : constant Style_Rules := (
       Color => Set (C (White)),
       others => <>
    );
 
-   --  Base style for card-row
-   Card_Row_Base_Style : constant Style_Rules := (
+   --  Base style for class 'card-row'
+   Card_Row_Class_Base_Style : constant Style_Rules := (
       Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
       Display => Set (Flex),
       Flex_Direction => Set (Column),
@@ -170,141 +170,141 @@ package List_Box_Example_Styles is
       others => <>
    );
 
-   --  Style for card-row when widget State_Selected
-   Card_Row_Widget_Selected_Style : constant Style_Rules := (
+   --  Style for class 'card-row' when widget State_Selected
+   Card_Row_Class_Widget_Selected_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (244, 166, 77)),
       Border_Color => Set (Border_Color (RGB (190, 120, 35))),
       others => <>
    );
 
-   --  Base style for card-row-title::label
-   Card_Row_Title_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'card-row-title'::label
+   Card_Row_Title_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (C (White)),
       Font_Size => Set_Font (Px (13.0)),
       others => <>
    );
 
-   --  Complete widget style for root
-   Root_Widget : constant Widget_Style :=
-     From (Root_Base_Style)
+   --  Complete widget style for class 'root'
+   Root_Class_Widget : constant Widget_Style :=
+     From (Root_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for root
-   Root_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Root_Widget, Enabled => True),
+   --  Part styles bundle for class 'root'
+   Root_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Root_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for panels
-   Panels_Widget : constant Widget_Style :=
-     From (Panels_Base_Style)
+   --  Complete widget style for class 'panels'
+   Panels_Class_Widget : constant Widget_Style :=
+     From (Panels_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for panels
-   Panels_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Panels_Widget, Enabled => True),
+   --  Part styles bundle for class 'panels'
+   Panels_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Panels_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for panel
-   Panel_Widget : constant Widget_Style :=
-     From (Panel_Base_Style)
+   --  Complete widget style for class 'panel'
+   Panel_Class_Widget : constant Widget_Style :=
+     From (Panel_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for panel
-   Panel_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Panel_Widget, Enabled => True),
+   --  Part styles bundle for class 'panel'
+   Panel_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Panel_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for panel-title::label
-   Panel_Title_Label_Widget : constant Widget_Style :=
-     From (Panel_Title_Label_Base_Style)
+   --  Complete widget style for class 'panel-title'::label
+   Panel_Title_Class_Label_Widget : constant Widget_Style :=
+     From (Panel_Title_Class_Label_Base_Style)
      .Build;
 
-   --  Part styles bundle for panel-title
-   Panel_Title_Part_Styles : constant Part_Style_Array := [
-      Label_Part => (Style => Panel_Title_Label_Widget, Enabled => True),
+   --  Part styles bundle for class 'panel-title'
+   Panel_Title_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Panel_Title_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for status::label
-   Status_Label_Widget : constant Widget_Style :=
-     From (Status_Label_Base_Style)
+   --  Complete widget style for class 'status'::label
+   Status_Class_Label_Widget : constant Widget_Style :=
+     From (Status_Class_Label_Base_Style)
      .Build;
 
-   --  Part styles bundle for status
-   Status_Part_Styles : constant Part_Style_Array := [
-      Label_Part => (Style => Status_Label_Widget, Enabled => True),
+   --  Part styles bundle for class 'status'
+   Status_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Status_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for listbox
-   Listbox_Widget : constant Widget_Style :=
-     From (Listbox_Base_Style)
+   --  Complete widget style for class 'listbox'
+   Listbox_Class_Widget : constant Widget_Style :=
+     From (Listbox_Class_Base_Style)
      .Build;
 
-   --  Complete widget style for listbox::knob
-   Listbox_Knob_Widget : constant Widget_Style :=
-     From (Listbox_Knob_Base_Style)
-     .On (When_Part_State (State_Hovered), Listbox_Knob_Part_Hovered_Style)
-     .On (When_Part_State (State_Pressed), Listbox_Knob_Part_Pressed_Style)
+   --  Complete widget style for class 'listbox'::knob
+   Listbox_Class_Knob_Widget : constant Widget_Style :=
+     From (Listbox_Class_Knob_Base_Style)
+     .On (When_Part_State (State_Hovered), Listbox_Class_Knob_Part_Hovered_Style)
+     .On (When_Part_State (State_Pressed), Listbox_Class_Knob_Part_Pressed_Style)
      .Build;
 
-   --  Complete widget style for listbox::scroll
-   Listbox_Scroll_Widget : constant Widget_Style :=
-     From (Listbox_Scroll_Base_Style)
-     .On (When_Part_State (State_Hovered), Listbox_Scroll_Part_Hovered_Style)
-     .On (When_Part_State (State_Pressed), Listbox_Scroll_Part_Pressed_Style)
+   --  Complete widget style for class 'listbox'::scroll
+   Listbox_Class_Scroll_Widget : constant Widget_Style :=
+     From (Listbox_Class_Scroll_Base_Style)
+     .On (When_Part_State (State_Hovered), Listbox_Class_Scroll_Part_Hovered_Style)
+     .On (When_Part_State (State_Pressed), Listbox_Class_Scroll_Part_Pressed_Style)
      .Build;
 
-   --  Part styles bundle for listbox
-   Listbox_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Listbox_Widget, Enabled => True),
-      Knob_Part => (Style => Listbox_Knob_Widget, Enabled => True),
-      Scroll_Part => (Style => Listbox_Scroll_Widget, Enabled => True),
+   --  Part styles bundle for class 'listbox'
+   Listbox_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Listbox_Class_Widget, Enabled => True),
+      Knob_Part => (Style => Listbox_Class_Knob_Widget, Enabled => True),
+      Scroll_Part => (Style => Listbox_Class_Scroll_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for label-row
-   Label_Row_Widget : constant Widget_Style :=
-     From (Label_Row_Base_Style)
-     .On (When_State (State_Selected), Label_Row_Widget_Selected_Style)
+   --  Complete widget style for class 'label-row'
+   Label_Row_Class_Widget : constant Widget_Style :=
+     From (Label_Row_Class_Base_Style)
+     .On (When_State (State_Selected), Label_Row_Class_Widget_Selected_Style)
      .Build;
 
-   --  Complete widget style for label-row::label
-   Label_Row_Label_Widget : constant Widget_Style :=
-     From (Label_Row_Label_Base_Style)
-     .On (When_State (State_Selected), Label_Row_Label_Widget_Selected_Style)
+   --  Complete widget style for class 'label-row'::label
+   Label_Row_Class_Label_Widget : constant Widget_Style :=
+     From (Label_Row_Class_Label_Base_Style)
+     .On (When_State (State_Selected), Label_Row_Class_Label_Widget_Selected_Style)
      .Build;
 
-   --  Part styles bundle for label-row
-   Label_Row_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Label_Row_Widget, Enabled => True),
-      Label_Part => (Style => Label_Row_Label_Widget, Enabled => True),
+   --  Part styles bundle for class 'label-row'
+   Label_Row_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Label_Row_Class_Widget, Enabled => True),
+      Label_Part => (Style => Label_Row_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for card-row
-   Card_Row_Widget : constant Widget_Style :=
-     From (Card_Row_Base_Style)
-     .On (When_State (State_Selected), Card_Row_Widget_Selected_Style)
+   --  Complete widget style for class 'card-row'
+   Card_Row_Class_Widget : constant Widget_Style :=
+     From (Card_Row_Class_Base_Style)
+     .On (When_State (State_Selected), Card_Row_Class_Widget_Selected_Style)
      .Build;
 
-   --  Part styles bundle for card-row
-   Card_Row_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Card_Row_Widget, Enabled => True),
+   --  Part styles bundle for class 'card-row'
+   Card_Row_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Card_Row_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for card-row-title::label
-   Card_Row_Title_Label_Widget : constant Widget_Style :=
-     From (Card_Row_Title_Label_Base_Style)
+   --  Complete widget style for class 'card-row-title'::label
+   Card_Row_Title_Class_Label_Widget : constant Widget_Style :=
+     From (Card_Row_Title_Class_Label_Base_Style)
      .Build;
 
-   --  Part styles bundle for card-row-title
-   Card_Row_Title_Part_Styles : constant Part_Style_Array := [
-      Label_Part => (Style => Card_Row_Title_Label_Widget, Enabled => True),
+   --  Part styles bundle for class 'card-row-title'
+   Card_Row_Title_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Card_Row_Title_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 

@@ -66,26 +66,26 @@ begin
       Tab_Group.Set_On_Changed (On_Tab'Unrestricted_Access);
 
       --  Apply styles
-      Set_Part_Styles (Root.all, Root_Part_Styles);
-      Set_Part_Styles (Tab_Bar.all, Tab_Bar_Part_Styles);
+      Set_Part_Styles (Root.all, Root_Class_Part_Styles);
+      Set_Part_Styles (Tab_Bar.all, Tab_Bar_Class_Part_Styles);
 
-      Set_Part_Styles (Btn_Red.all, Tab_Left_Part_Styles);
-      Set_Part_Styles (Btn_Green.all, Tab_Center_Part_Styles);
-      Set_Part_Styles (Btn_Blue.all, Tab_Right_Part_Styles);
+      Set_Part_Styles (Btn_Red.all, Tab_Left_Class_Part_Styles);
+      Set_Part_Styles (Btn_Green.all, Tab_Center_Class_Part_Styles);
+      Set_Part_Styles (Btn_Blue.all, Tab_Right_Class_Part_Styles);
 
-      Set_Part_Styles (Pages.all, Stack_Part_Styles);
+      Set_Part_Styles (Pages.all, Stack_Class_Part_Styles);
 
-      Set_Part_Styles (Page1.all, Page_Red_Part_Styles);
-      Set_Part_Styles (Page2.all, Page_Green_Part_Styles);
-      Set_Part_Styles (Page3.all, Page_Blue_Part_Styles);
+      Set_Part_Styles (Page1.all, Page_Red_Class_Part_Styles);
+      Set_Part_Styles (Page2.all, Page_Green_Class_Part_Styles);
+      Set_Part_Styles (Page3.all, Page_Blue_Class_Part_Styles);
 
-      Set_Part_Styles (Title1.all, Page_Title_Part_Styles);
-      Set_Part_Styles (Title2.all, Page_Title_Part_Styles);
-      Set_Part_Styles (Title3.all, Page_Title_Part_Styles);
+      Set_Part_Styles (Title1.all, Page_Title_Class_Part_Styles);
+      Set_Part_Styles (Title2.all, Page_Title_Class_Part_Styles);
+      Set_Part_Styles (Title3.all, Page_Title_Class_Part_Styles);
 
-      Set_Part_Styles (Desc1.all, Page_Desc_Part_Styles);
-      Set_Part_Styles (Desc2.all, Page_Desc_Part_Styles);
-      Set_Part_Styles (Desc3.all, Page_Desc_Part_Styles);
+      Set_Part_Styles (Desc1.all, Page_Desc_Class_Part_Styles);
+      Set_Part_Styles (Desc2.all, Page_Desc_Class_Part_Styles);
+      Set_Part_Styles (Desc3.all, Page_Desc_Class_Part_Styles);
 
       --  Build page content
       Page1.Add_Child (Title1);

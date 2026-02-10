@@ -92,13 +92,13 @@ begin
       Status_Label := Adi.Widget.Label.Create ("(no dialog opened yet)");
 
       --  Page styles
-      Set_Part_Styles (Root.all, Root_Part_Styles);
-      Set_Part_Styles (Container.all, Container_Part_Styles);
-      Set_Part_Styles (Title.all, Title_Part_Styles);
-      Set_Part_Styles (Hint.all, Hint_Part_Styles);
-      Set_Part_Styles (Status_Label.all, Status_Part_Styles);
-      Set_Part_Styles (Alert_Btn.all, Btn_Primary_Part_Styles);
-      Set_Part_Styles (Confirm_Btn.all, Btn_Primary_Part_Styles);
+      Set_Part_Styles (Root.all, Root_Class_Part_Styles);
+      Set_Part_Styles (Container.all, Container_Class_Part_Styles);
+      Set_Part_Styles (Title.all, Title_Class_Part_Styles);
+      Set_Part_Styles (Hint.all, Hint_Class_Part_Styles);
+      Set_Part_Styles (Status_Label.all, Status_Class_Part_Styles);
+      Set_Part_Styles (Alert_Btn.all, Btn_Primary_Class_Part_Styles);
+      Set_Part_Styles (Confirm_Btn.all, Btn_Primary_Class_Part_Styles);
 
       --  Button callbacks
       Set_On_Clicked (Alert_Btn.all, On_Show_Alert'Unrestricted_Access);
@@ -115,12 +115,12 @@ begin
       --  Create alert dialog
       Alert_Dialog := Adi.Widget.Dialog.Create;
       Attach_Window (Alert_Dialog.all, W);
-      Set_Part_Styles (Alert_Dialog.all, Backdrop_Part_Styles);
-      Set_Panel_Style (Alert_Dialog.all, Panel_Part_Styles);
-      Set_Title_Style (Alert_Dialog.all, Dialog_Title_Part_Styles);
-      Set_Message_Style (Alert_Dialog.all, Dialog_Message_Part_Styles);
-      Set_Button_Row_Style (Alert_Dialog.all, Button_Row_Part_Styles);
-      Set_Button_Style (Alert_Dialog.all, Dialog_Btn_Part_Styles);
+      Set_Part_Styles (Alert_Dialog.all, Backdrop_Class_Part_Styles);
+      Set_Panel_Style (Alert_Dialog.all, Panel_Class_Part_Styles);
+      Set_Title_Style (Alert_Dialog.all, Dialog_Title_Class_Part_Styles);
+      Set_Message_Style (Alert_Dialog.all, Dialog_Message_Class_Part_Styles);
+      Set_Button_Row_Style (Alert_Dialog.all, Button_Row_Class_Part_Styles);
+      Set_Button_Style (Alert_Dialog.all, Dialog_Btn_Class_Part_Styles);
       Set_Title (Alert_Dialog.all, "Information");
       Set_Message (Alert_Dialog.all,
                    "This is a simple alert dialog with a single OK button. "
@@ -131,12 +131,12 @@ begin
       --  Create confirm dialog
       Confirm_Dialog := Adi.Widget.Dialog.Create;
       Attach_Window (Confirm_Dialog.all, W);
-      Set_Part_Styles (Confirm_Dialog.all, Backdrop_Part_Styles);
-      Set_Panel_Style (Confirm_Dialog.all, Panel_Part_Styles);
-      Set_Title_Style (Confirm_Dialog.all, Dialog_Title_Part_Styles);
-      Set_Message_Style (Confirm_Dialog.all, Dialog_Message_Part_Styles);
-      Set_Button_Row_Style (Confirm_Dialog.all, Button_Row_Part_Styles);
-      Set_Button_Style (Confirm_Dialog.all, Dialog_Btn_Part_Styles);
+      Set_Part_Styles (Confirm_Dialog.all, Backdrop_Class_Part_Styles);
+      Set_Panel_Style (Confirm_Dialog.all, Panel_Class_Part_Styles);
+      Set_Title_Style (Confirm_Dialog.all, Dialog_Title_Class_Part_Styles);
+      Set_Message_Style (Confirm_Dialog.all, Dialog_Message_Class_Part_Styles);
+      Set_Button_Row_Style (Confirm_Dialog.all, Button_Row_Class_Part_Styles);
+      Set_Button_Style (Confirm_Dialog.all, Dialog_Btn_Class_Part_Styles);
       Set_Title (Confirm_Dialog.all, "Confirm Action");
       Set_Message (Confirm_Dialog.all,
                    "Are you sure you want to proceed? "

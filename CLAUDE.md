@@ -23,6 +23,7 @@ This automatically builds the library and runs post-build actions to compile all
 # Build a specific test by setting TEST_KIND scenario variable
 alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=styles
 alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=layout_test
+alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=css_parser_test
 ```
 
 ### Building specific examples
@@ -41,6 +42,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=overflow_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=dialog_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 ```
 
 ### Running tests
@@ -48,6 +50,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
 # Tests are built to tests/bin/
 ./tests/bin/styles
 ./tests/bin/layout_test
+./tests/bin/css_parser_test
 ```
 
 ### Running examples
@@ -66,6 +69,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
 ./examples/bin/grid_example
 ./examples/bin/dialog_example
 ./examples/bin/font_example
+./examples/bin/runtime_css_example
 ```
 
 ### External Dependencies
@@ -100,6 +104,13 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
 - Transition support: `Transition_Spec` with duration, easing, and property filter
 - `Animatable_Property` enum and `Property_Set` for targeting specific properties
 - `Normalize_Color` helper for extracting RGBA from any `Color_Value` variant
+
+**Adi.CSS_Parser** (`adi-css_parser.ads`): Runtime CSS loader/parser
+- Loads stylesheet text from strings/files into `Part_Style_Array` maps
+- Supports selector kinds: class (`.x`), id (`#x`), and tag (`button`)
+- Public lookup/apply APIs are selector-kind aware (`Has/Styles_For/Apply/Bind` + class/id/tag convenience wrappers)
+- Supports file watching reload flow via `Reload_If_Changed`, reapplying styles to bound widgets
+- Parses `transition` with duration (`ms`/`s`), easing, and property filter
 
 **Adi.Widget_Styles** (`adi-widget_styles.ads`): Widget state-based styling
 - State-specific styles: `Normal`, `Hovered`, `Pressed`, `Focused`, `Disabled`, `Selected`
@@ -323,6 +334,7 @@ tests/
   src/                - Test programs
     styles.adb        - Style system test
     layout_test.adb   - Flexbox layout unit test
+    css_parser_test.adb - Runtime CSS parser test coverage (selectors, properties, reload, malformed input)
   tests.gpr           - Test project file (uses TEST_KIND scenario)
 examples/
   label_example.adb   - Label widget example with styling
@@ -338,7 +350,9 @@ examples/
   grid_example.adb     - CSS grid layout demo with rows/columns and spans
   dialog_example.adb   - Modal dialog/alert demo with alert and confirm dialogs
   font_example.adb     - Typography demo for weight/style/decoration and wrapping
+  runtime_css_example.adb - Runtime CSS loading demo (hot-reload flow without generated Ada style package)
   css/widget_defaults.css - Shared default visual styles used by multiple examples
+  css/runtime_css_example.css - Runtime stylesheet used by runtime_css_example
   css/                - CSS sources for generated example styles
   generated/          - Auto-generated Ada style packages from CSS
   examples.gpr        - Example project file (uses EXAMPLE_KIND scenario)
@@ -410,7 +424,25 @@ Example style generation via `tools/generate_example_styles.sh` is incremental: 
 Selector conventions:
 - `.widget` applies to `Main_Part`
 - `.widget::label`, `.widget::cursor`, `.widget::selected`, etc. target specific parts
-- Generated packages include both per-style `*_Widget` constants and grouped `*_Part_Styles` arrays for convenient `Set_Part_Styles` calls
+- Generated packages include selector-type distinction in constants:
+  - `*_Class_Part_Styles`
+  - `*_Id_Part_Styles`
+  - `*_Tag_Part_Styles`
+  (plus per-style `*_Widget` constants)
+
+## Runtime CSS Parser
+
+`Adi.CSS_Parser` provides runtime stylesheet loading from strings/files, with optional file-change reload and rebinding.
+
+Selector API conventions:
+- Class selector API: `Has_Class`, `Styles_For_Class`, `Apply_Class`, `Bind_Class`
+- Id selector API: `Has_Id`, `Styles_For_Id`, `Apply_Id`, `Bind_Id`
+- Tag selector API: `Has_Tag`, `Styles_For_Tag`, `Apply_Tag`, `Bind_Tag`
+- Generic selector API: `Has/Styles_For/Apply/Bind` with `Selector_Kind`
+
+State selector behavior matches generator semantics:
+- Pseudo before `::part` => widget-scoped state
+- Pseudo after `::part` => part-scoped state for non-main parts
 
 ### Supported CSS Properties
 

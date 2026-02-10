@@ -91,56 +91,56 @@ begin
            & "When overflow is hidden, those extra wrapped lines should be clipped and not visible. "
            & "This sentence continues with additional words to ensure enough vertical text overflow for clear comparison.");
    begin
-      Set_Part_Styles (Root.all, Root_Part_Styles);
-      Set_Part_Styles (Title.all, Title_Part_Styles);
-      Set_Part_Styles (Hint.all, Hint_Part_Styles);
-      Set_Part_Styles (Panels_Row_1.all, Panels_Part_Styles);
-      Set_Part_Styles (Panels_Row_2.all, Panels_Part_Styles);
-      Set_Part_Styles (Panels_Row_3.all, Panels_Part_Styles);
+      Set_Part_Styles (Root.all, Root_Class_Part_Styles);
+      Set_Part_Styles (Title.all, Title_Class_Part_Styles);
+      Set_Part_Styles (Hint.all, Hint_Class_Part_Styles);
+      Set_Part_Styles (Panels_Row_1.all, Panels_Class_Part_Styles);
+      Set_Part_Styles (Panels_Row_2.all, Panels_Class_Part_Styles);
+      Set_Part_Styles (Panels_Row_3.all, Panels_Class_Part_Styles);
 
-      Set_Part_Styles (Visible_Panel.all, Panel_Part_Styles);
-      Set_Part_Styles (Hidden_Panel.all, Panel_Part_Styles);
-      Set_Part_Styles (Visible_Title.all, Panel_Title_Part_Styles);
-      Set_Part_Styles (Hidden_Title.all, Panel_Title_Part_Styles);
+      Set_Part_Styles (Visible_Panel.all, Panel_Class_Part_Styles);
+      Set_Part_Styles (Hidden_Panel.all, Panel_Class_Part_Styles);
+      Set_Part_Styles (Visible_Title.all, Panel_Title_Class_Part_Styles);
+      Set_Part_Styles (Hidden_Title.all, Panel_Title_Class_Part_Styles);
 
-      Set_Part_Styles (Visible_Clip.all, Clip_Visible_Part_Styles);
-      Set_Part_Styles (Hidden_Clip.all, Clip_Hidden_Part_Styles);
-      Set_Part_Styles (Visible_Content.all, Content_Stack_Part_Styles);
-      Set_Part_Styles (Hidden_Content.all, Content_Stack_Part_Styles);
+      Set_Part_Styles (Visible_Clip.all, Clip_Visible_Class_Part_Styles);
+      Set_Part_Styles (Hidden_Clip.all, Clip_Hidden_Class_Part_Styles);
+      Set_Part_Styles (Visible_Content.all, Content_Stack_Class_Part_Styles);
+      Set_Part_Styles (Hidden_Content.all, Content_Stack_Class_Part_Styles);
 
-      Set_Part_Styles (Text_Visible_Panel.all, Panel_Part_Styles);
-      Set_Part_Styles (Text_Hidden_Panel.all, Panel_Part_Styles);
-      Set_Part_Styles (Text_Visible_Title.all, Panel_Title_Part_Styles);
-      Set_Part_Styles (Text_Hidden_Title.all, Panel_Title_Part_Styles);
-      Set_Part_Styles (Text_Visible_Clip.all, Clip_Visible_Part_Styles);
-      Set_Part_Styles (Text_Hidden_Clip.all, Clip_Hidden_Part_Styles);
-      Set_Part_Styles (Text_Visible_Content.all, Content_Stack_Part_Styles);
-      Set_Part_Styles (Text_Hidden_Content.all, Content_Stack_Part_Styles);
+      Set_Part_Styles (Text_Visible_Panel.all, Panel_Class_Part_Styles);
+      Set_Part_Styles (Text_Hidden_Panel.all, Panel_Class_Part_Styles);
+      Set_Part_Styles (Text_Visible_Title.all, Panel_Title_Class_Part_Styles);
+      Set_Part_Styles (Text_Hidden_Title.all, Panel_Title_Class_Part_Styles);
+      Set_Part_Styles (Text_Visible_Clip.all, Clip_Visible_Class_Part_Styles);
+      Set_Part_Styles (Text_Hidden_Clip.all, Clip_Hidden_Class_Part_Styles);
+      Set_Part_Styles (Text_Visible_Content.all, Content_Stack_Class_Part_Styles);
+      Set_Part_Styles (Text_Hidden_Content.all, Content_Stack_Class_Part_Styles);
 
-      Set_Part_Styles (Wrap_Visible_Panel.all, Panel_Part_Styles);
-      Set_Part_Styles (Wrap_Hidden_Panel.all, Panel_Part_Styles);
-      Set_Part_Styles (Wrap_Visible_Title.all, Panel_Title_Part_Styles);
-      Set_Part_Styles (Wrap_Hidden_Title.all, Panel_Title_Part_Styles);
-      Set_Part_Styles (Wrap_Visible_Clip.all, Clip_Visible_Part_Styles);
-      Set_Part_Styles (Wrap_Hidden_Clip.all, Clip_Hidden_Part_Styles);
-      Set_Part_Styles (Wrap_Visible_Content.all, Content_Stack_Part_Styles);
-      Set_Part_Styles (Wrap_Hidden_Content.all, Content_Stack_Part_Styles);
+      Set_Part_Styles (Wrap_Visible_Panel.all, Panel_Class_Part_Styles);
+      Set_Part_Styles (Wrap_Hidden_Panel.all, Panel_Class_Part_Styles);
+      Set_Part_Styles (Wrap_Visible_Title.all, Panel_Title_Class_Part_Styles);
+      Set_Part_Styles (Wrap_Hidden_Title.all, Panel_Title_Class_Part_Styles);
+      Set_Part_Styles (Wrap_Visible_Clip.all, Clip_Visible_Class_Part_Styles);
+      Set_Part_Styles (Wrap_Hidden_Clip.all, Clip_Hidden_Class_Part_Styles);
+      Set_Part_Styles (Wrap_Visible_Content.all, Content_Stack_Class_Part_Styles);
+      Set_Part_Styles (Wrap_Hidden_Content.all, Content_Stack_Class_Part_Styles);
 
-      Set_Part_Styles (Visible_Long_Line.all, Long_Line_Part_Styles);
-      Set_Part_Styles (Hidden_Long_Line.all, Long_Line_Part_Styles);
-      Set_Part_Styles (Wrap_Line_Visible.all, Wrap_Line_Part_Styles);
-      Set_Part_Styles (Wrap_Line_Hidden.all, Wrap_Line_Part_Styles);
+      Set_Part_Styles (Visible_Long_Line.all, Long_Line_Class_Part_Styles);
+      Set_Part_Styles (Hidden_Long_Line.all, Long_Line_Class_Part_Styles);
+      Set_Part_Styles (Wrap_Line_Visible.all, Wrap_Line_Class_Part_Styles);
+      Set_Part_Styles (Wrap_Line_Hidden.all, Wrap_Line_Class_Part_Styles);
 
       --  Add intentionally oversized content to both containers.
-      Visible_Content.Add_Child (New_Item (Item_A_Part_Styles));
-      Visible_Content.Add_Child (New_Item (Item_B_Part_Styles));
-      Visible_Content.Add_Child (New_Item (Item_C_Part_Styles));
-      Visible_Content.Add_Child (New_Item (Item_D_Part_Styles));
+      Visible_Content.Add_Child (New_Item (Item_A_Class_Part_Styles));
+      Visible_Content.Add_Child (New_Item (Item_B_Class_Part_Styles));
+      Visible_Content.Add_Child (New_Item (Item_C_Class_Part_Styles));
+      Visible_Content.Add_Child (New_Item (Item_D_Class_Part_Styles));
 
-      Hidden_Content.Add_Child (New_Item (Item_A_Part_Styles));
-      Hidden_Content.Add_Child (New_Item (Item_B_Part_Styles));
-      Hidden_Content.Add_Child (New_Item (Item_C_Part_Styles));
-      Hidden_Content.Add_Child (New_Item (Item_D_Part_Styles));
+      Hidden_Content.Add_Child (New_Item (Item_A_Class_Part_Styles));
+      Hidden_Content.Add_Child (New_Item (Item_B_Class_Part_Styles));
+      Hidden_Content.Add_Child (New_Item (Item_C_Class_Part_Styles));
+      Hidden_Content.Add_Child (New_Item (Item_D_Class_Part_Styles));
 
       Visible_Clip.Add_Child (Visible_Content);
       Hidden_Clip.Add_Child (Hidden_Content);

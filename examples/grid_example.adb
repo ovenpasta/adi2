@@ -17,7 +17,7 @@ procedure Grid_Example is
       Tile  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Label : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Text);
    begin
-      Set_Part_Styles (Tile.all, Tile_Part_Styles);
+      Set_Part_Styles (Tile.all, Tile_Class_Part_Styles);
       Set_Part_Styles (Tile.all, Styles);
       Tile.Add_Child (Label);
       return Tile;
@@ -37,18 +37,18 @@ begin
           ("Grid supports template columns/rows, gap, and item placement with row/column spans.");
       Grid  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
    begin
-      Set_Part_Styles (Root.all, Root_Part_Styles);
-      Set_Part_Styles (Title.all, Title_Part_Styles);
-      Set_Part_Styles (Hint.all, Hint_Part_Styles);
-      Set_Part_Styles (Grid.all, Grid_Part_Styles);
+      Set_Part_Styles (Root.all, Root_Class_Part_Styles);
+      Set_Part_Styles (Title.all, Title_Class_Part_Styles);
+      Set_Part_Styles (Hint.all, Hint_Class_Part_Styles);
+      Set_Part_Styles (Grid.all, Grid_Class_Part_Styles);
 
-      Grid.Add_Child (New_Tile ("A (1 / span 2)", Tile_A_Part_Styles));
-      Grid.Add_Child (New_Tile ("B (row span 2)", Tile_B_Part_Styles));
-      Grid.Add_Child (New_Tile ("C", Tile_C_Part_Styles));
-      Grid.Add_Child (New_Tile ("D (row span 2)", Tile_D_Part_Styles));
-      Grid.Add_Child (New_Tile ("E", Tile_E_Part_Styles));
-      Grid.Add_Child (New_Tile ("F", Tile_F_Part_Styles));
-      Grid.Add_Child (New_Tile ("G (2 / span 3)", Tile_G_Part_Styles));
+      Grid.Add_Child (New_Tile ("A (1 / span 2)", Tile_A_Class_Part_Styles));
+      Grid.Add_Child (New_Tile ("B (row span 2)", Tile_B_Class_Part_Styles));
+      Grid.Add_Child (New_Tile ("C", Tile_C_Class_Part_Styles));
+      Grid.Add_Child (New_Tile ("D (row span 2)", Tile_D_Class_Part_Styles));
+      Grid.Add_Child (New_Tile ("E", Tile_E_Class_Part_Styles));
+      Grid.Add_Child (New_Tile ("F", Tile_F_Class_Part_Styles));
+      Grid.Add_Child (New_Tile ("G (2 / span 3)", Tile_G_Class_Part_Styles));
 
       Root.Add_Child (Title);
       Root.Add_Child (Hint);

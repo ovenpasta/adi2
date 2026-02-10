@@ -67,21 +67,21 @@ begin
       Align_Group.Set_Button (Right, Btn_Right);
       Align_Group.Set_On_Changed (On_Align_Changed'Unrestricted_Access);
 
-      Set_Part_Styles (Root.all, Root_Part_Styles);
-      Set_Part_Styles (Container.all, Container_Part_Styles);
+      Set_Part_Styles (Root.all, Root_Class_Part_Styles);
+      Set_Part_Styles (Container.all, Container_Class_Part_Styles);
 
-      Set_Part_Styles (Section1.all, Section_Row_Part_Styles);
-      Set_Part_Styles (Section2.all, Section_Row_Part_Styles);
-      Set_Part_Styles (Section3.all, Section_Row_2_Part_Styles);
+      Set_Part_Styles (Section1.all, Section_Row_Class_Part_Styles);
+      Set_Part_Styles (Section2.all, Section_Row_Class_Part_Styles);
+      Set_Part_Styles (Section3.all, Section_Row_2_Class_Part_Styles);
 
-      Set_Part_Styles (Btn_Primary.all, Primary_Part_Styles);
-      Set_Part_Styles (Btn_Danger.all, Danger_Part_Styles);
-      Set_Part_Styles (Btn_Outline.all, Outline_Part_Styles);
-      Set_Part_Styles (Btn_Toggle.all, Toggle_Part_Styles);
+      Set_Part_Styles (Btn_Primary.all, Primary_Class_Part_Styles);
+      Set_Part_Styles (Btn_Danger.all, Danger_Class_Part_Styles);
+      Set_Part_Styles (Btn_Outline.all, Outline_Class_Part_Styles);
+      Set_Part_Styles (Btn_Toggle.all, Toggle_Class_Part_Styles);
 
-      Set_Part_Styles (Btn_Left.all, Option_Left_Part_Styles);
-      Set_Part_Styles (Btn_Center.all, Option_Center_Part_Styles);
-      Set_Part_Styles (Btn_Right.all, Option_Right_Part_Styles);
+      Set_Part_Styles (Btn_Left.all, Option_Left_Class_Part_Styles);
+      Set_Part_Styles (Btn_Center.all, Option_Center_Class_Part_Styles);
+      Set_Part_Styles (Btn_Right.all, Option_Right_Class_Part_Styles);
 
       Root.Add_Child (Container);
 

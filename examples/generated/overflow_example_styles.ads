@@ -9,8 +9,8 @@ with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 package Overflow_Example_Styles is
 
-   --  Base style for root
-   Root_Base_Style : constant Style_Rules := (
+   --  Base style for class 'root'
+   Root_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Align_Items => Set (Stretch),
@@ -21,24 +21,24 @@ package Overflow_Example_Styles is
       others => <>
    );
 
-   --  Base style for title::label
-   Title_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'title'::label
+   Title_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (C (White)),
       Font_Size => Set_Font (Px (22.0)),
       Font_Weight => Set (Weight_Bold),
       others => <>
    );
 
-   --  Base style for hint::label
-   Hint_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'hint'::label
+   Hint_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (189, 205, 230)),
       Font_Size => Set_Font (Px (13.0)),
       Text_Wrap_Mode => Set (TWM_Wrap),
       others => <>
    );
 
-   --  Base style for panels
-   Panels_Base_Style : constant Style_Rules := (
+   --  Base style for class 'panels'
+   Panels_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Gap => Set (Gap (Px (18.0))),
@@ -47,8 +47,8 @@ package Overflow_Example_Styles is
       others => <>
    );
 
-   --  Base style for panel
-   Panel_Base_Style : constant Style_Rules := (
+   --  Base style for class 'panel'
+   Panel_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (10.0))),
@@ -62,16 +62,16 @@ package Overflow_Example_Styles is
       others => <>
    );
 
-   --  Base style for panel-title::label
-   Panel_Title_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'panel-title'::label
+   Panel_Title_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (224, 231, 255)),
       Font_Size => Set_Font (Px (14.0)),
       Font_Weight => Set (Weight_Bold),
       others => <>
    );
 
-   --  Base style for clip-visible
-   Clip_Visible_Base_Style : constant Style_Rules := (
+   --  Base style for class 'clip-visible'
+   Clip_Visible_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Overflow => Set (Overflow_Visible),
@@ -87,8 +87,8 @@ package Overflow_Example_Styles is
       others => <>
    );
 
-   --  Base style for clip-hidden
-   Clip_Hidden_Base_Style : constant Style_Rules := (
+   --  Base style for class 'clip-hidden'
+   Clip_Hidden_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Overflow => Set (Overflow_Hidden),
@@ -104,16 +104,16 @@ package Overflow_Example_Styles is
       others => <>
    );
 
-   --  Base style for content-stack
-   Content_Stack_Base_Style : constant Style_Rules := (
+   --  Base style for class 'content-stack'
+   Content_Stack_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (8.0))),
       others => <>
    );
 
-   --  Base style for long-line
-   Long_Line_Base_Style : constant Style_Rules := (
+   --  Base style for class 'long-line'
+   Long_Line_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (430.0))),
       Padding => Set (CSS_Box (Px (8.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
@@ -124,16 +124,16 @@ package Overflow_Example_Styles is
       others => <>
    );
 
-   --  Base style for long-line::label
-   Long_Line_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'long-line'::label
+   Long_Line_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (241, 245, 249)),
       Font_Size => Set_Font (Px (12.0)),
       White_Space => Set (WS_Nowrap),
       others => <>
    );
 
-   --  Base style for wrap-line
-   Wrap_Line_Base_Style : constant Style_Rules := (
+   --  Base style for class 'wrap-line'
+   Wrap_Line_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Pct (100.0))),
       Padding => Set (CSS_Box (Px (8.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
@@ -144,8 +144,8 @@ package Overflow_Example_Styles is
       others => <>
    );
 
-   --  Base style for wrap-line::label
-   Wrap_Line_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'wrap-line'::label
+   Wrap_Line_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (241, 245, 249)),
       Font_Size => Set_Font (Px (12.0)),
       Text_Wrap_Mode => Set (TWM_Wrap),
@@ -153,212 +153,212 @@ package Overflow_Example_Styles is
       others => <>
    );
 
-   --  Base style for item-a
-   Item_A_Base_Style : constant Style_Rules := (
+   --  Base style for class 'item-a'
+   Item_A_Class_Base_Style : constant Style_Rules := (
       Height => Set (Size (Px (56.0))),
       Border_Radius => Set (Radius (Px (6.0))),
       Background_Color => Set_Bg (RGB (239, 68, 68)),
       others => <>
    );
 
-   --  Base style for item-b
-   Item_B_Base_Style : constant Style_Rules := (
+   --  Base style for class 'item-b'
+   Item_B_Class_Base_Style : constant Style_Rules := (
       Height => Set (Size (Px (56.0))),
       Border_Radius => Set (Radius (Px (6.0))),
       Background_Color => Set_Bg (RGB (245, 158, 11)),
       others => <>
    );
 
-   --  Base style for item-c
-   Item_C_Base_Style : constant Style_Rules := (
+   --  Base style for class 'item-c'
+   Item_C_Class_Base_Style : constant Style_Rules := (
       Height => Set (Size (Px (56.0))),
       Border_Radius => Set (Radius (Px (6.0))),
       Background_Color => Set_Bg (RGB (59, 130, 246)),
       others => <>
    );
 
-   --  Base style for item-d
-   Item_D_Base_Style : constant Style_Rules := (
+   --  Base style for class 'item-d'
+   Item_D_Class_Base_Style : constant Style_Rules := (
       Height => Set (Size (Px (56.0))),
       Border_Radius => Set (Radius (Px (6.0))),
       Background_Color => Set_Bg (RGB (16, 185, 129)),
       others => <>
    );
 
-   --  Complete widget style for root
-   Root_Widget : constant Widget_Style :=
-     From (Root_Base_Style)
+   --  Complete widget style for class 'root'
+   Root_Class_Widget : constant Widget_Style :=
+     From (Root_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for root
-   Root_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Root_Widget, Enabled => True),
+   --  Part styles bundle for class 'root'
+   Root_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Root_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for title::label
-   Title_Label_Widget : constant Widget_Style :=
-     From (Title_Label_Base_Style)
+   --  Complete widget style for class 'title'::label
+   Title_Class_Label_Widget : constant Widget_Style :=
+     From (Title_Class_Label_Base_Style)
      .Build;
 
-   --  Part styles bundle for title
-   Title_Part_Styles : constant Part_Style_Array := [
-      Label_Part => (Style => Title_Label_Widget, Enabled => True),
+   --  Part styles bundle for class 'title'
+   Title_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Title_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for hint::label
-   Hint_Label_Widget : constant Widget_Style :=
-     From (Hint_Label_Base_Style)
+   --  Complete widget style for class 'hint'::label
+   Hint_Class_Label_Widget : constant Widget_Style :=
+     From (Hint_Class_Label_Base_Style)
      .Build;
 
-   --  Part styles bundle for hint
-   Hint_Part_Styles : constant Part_Style_Array := [
-      Label_Part => (Style => Hint_Label_Widget, Enabled => True),
+   --  Part styles bundle for class 'hint'
+   Hint_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Hint_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for panels
-   Panels_Widget : constant Widget_Style :=
-     From (Panels_Base_Style)
+   --  Complete widget style for class 'panels'
+   Panels_Class_Widget : constant Widget_Style :=
+     From (Panels_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for panels
-   Panels_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Panels_Widget, Enabled => True),
+   --  Part styles bundle for class 'panels'
+   Panels_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Panels_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for panel
-   Panel_Widget : constant Widget_Style :=
-     From (Panel_Base_Style)
+   --  Complete widget style for class 'panel'
+   Panel_Class_Widget : constant Widget_Style :=
+     From (Panel_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for panel
-   Panel_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Panel_Widget, Enabled => True),
+   --  Part styles bundle for class 'panel'
+   Panel_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Panel_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for panel-title::label
-   Panel_Title_Label_Widget : constant Widget_Style :=
-     From (Panel_Title_Label_Base_Style)
+   --  Complete widget style for class 'panel-title'::label
+   Panel_Title_Class_Label_Widget : constant Widget_Style :=
+     From (Panel_Title_Class_Label_Base_Style)
      .Build;
 
-   --  Part styles bundle for panel-title
-   Panel_Title_Part_Styles : constant Part_Style_Array := [
-      Label_Part => (Style => Panel_Title_Label_Widget, Enabled => True),
+   --  Part styles bundle for class 'panel-title'
+   Panel_Title_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Panel_Title_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for clip-visible
-   Clip_Visible_Widget : constant Widget_Style :=
-     From (Clip_Visible_Base_Style)
+   --  Complete widget style for class 'clip-visible'
+   Clip_Visible_Class_Widget : constant Widget_Style :=
+     From (Clip_Visible_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for clip-visible
-   Clip_Visible_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Clip_Visible_Widget, Enabled => True),
+   --  Part styles bundle for class 'clip-visible'
+   Clip_Visible_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Clip_Visible_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for clip-hidden
-   Clip_Hidden_Widget : constant Widget_Style :=
-     From (Clip_Hidden_Base_Style)
+   --  Complete widget style for class 'clip-hidden'
+   Clip_Hidden_Class_Widget : constant Widget_Style :=
+     From (Clip_Hidden_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for clip-hidden
-   Clip_Hidden_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Clip_Hidden_Widget, Enabled => True),
+   --  Part styles bundle for class 'clip-hidden'
+   Clip_Hidden_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Clip_Hidden_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for content-stack
-   Content_Stack_Widget : constant Widget_Style :=
-     From (Content_Stack_Base_Style)
+   --  Complete widget style for class 'content-stack'
+   Content_Stack_Class_Widget : constant Widget_Style :=
+     From (Content_Stack_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for content-stack
-   Content_Stack_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Content_Stack_Widget, Enabled => True),
+   --  Part styles bundle for class 'content-stack'
+   Content_Stack_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Content_Stack_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for long-line
-   Long_Line_Widget : constant Widget_Style :=
-     From (Long_Line_Base_Style)
+   --  Complete widget style for class 'long-line'
+   Long_Line_Class_Widget : constant Widget_Style :=
+     From (Long_Line_Class_Base_Style)
      .Build;
 
-   --  Complete widget style for long-line::label
-   Long_Line_Label_Widget : constant Widget_Style :=
-     From (Long_Line_Label_Base_Style)
+   --  Complete widget style for class 'long-line'::label
+   Long_Line_Class_Label_Widget : constant Widget_Style :=
+     From (Long_Line_Class_Label_Base_Style)
      .Build;
 
-   --  Part styles bundle for long-line
-   Long_Line_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Long_Line_Widget, Enabled => True),
-      Label_Part => (Style => Long_Line_Label_Widget, Enabled => True),
+   --  Part styles bundle for class 'long-line'
+   Long_Line_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Long_Line_Class_Widget, Enabled => True),
+      Label_Part => (Style => Long_Line_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for wrap-line
-   Wrap_Line_Widget : constant Widget_Style :=
-     From (Wrap_Line_Base_Style)
+   --  Complete widget style for class 'wrap-line'
+   Wrap_Line_Class_Widget : constant Widget_Style :=
+     From (Wrap_Line_Class_Base_Style)
      .Build;
 
-   --  Complete widget style for wrap-line::label
-   Wrap_Line_Label_Widget : constant Widget_Style :=
-     From (Wrap_Line_Label_Base_Style)
+   --  Complete widget style for class 'wrap-line'::label
+   Wrap_Line_Class_Label_Widget : constant Widget_Style :=
+     From (Wrap_Line_Class_Label_Base_Style)
      .Build;
 
-   --  Part styles bundle for wrap-line
-   Wrap_Line_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Wrap_Line_Widget, Enabled => True),
-      Label_Part => (Style => Wrap_Line_Label_Widget, Enabled => True),
+   --  Part styles bundle for class 'wrap-line'
+   Wrap_Line_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Wrap_Line_Class_Widget, Enabled => True),
+      Label_Part => (Style => Wrap_Line_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for item-a
-   Item_A_Widget : constant Widget_Style :=
-     From (Item_A_Base_Style)
+   --  Complete widget style for class 'item-a'
+   Item_A_Class_Widget : constant Widget_Style :=
+     From (Item_A_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for item-a
-   Item_A_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Item_A_Widget, Enabled => True),
+   --  Part styles bundle for class 'item-a'
+   Item_A_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Item_A_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for item-b
-   Item_B_Widget : constant Widget_Style :=
-     From (Item_B_Base_Style)
+   --  Complete widget style for class 'item-b'
+   Item_B_Class_Widget : constant Widget_Style :=
+     From (Item_B_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for item-b
-   Item_B_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Item_B_Widget, Enabled => True),
+   --  Part styles bundle for class 'item-b'
+   Item_B_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Item_B_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for item-c
-   Item_C_Widget : constant Widget_Style :=
-     From (Item_C_Base_Style)
+   --  Complete widget style for class 'item-c'
+   Item_C_Class_Widget : constant Widget_Style :=
+     From (Item_C_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for item-c
-   Item_C_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Item_C_Widget, Enabled => True),
+   --  Part styles bundle for class 'item-c'
+   Item_C_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Item_C_Class_Widget, Enabled => True),
       others => <>
    ];
 
-   --  Complete widget style for item-d
-   Item_D_Widget : constant Widget_Style :=
-     From (Item_D_Base_Style)
+   --  Complete widget style for class 'item-d'
+   Item_D_Class_Widget : constant Widget_Style :=
+     From (Item_D_Class_Base_Style)
      .Build;
 
-   --  Part styles bundle for item-d
-   Item_D_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Item_D_Widget, Enabled => True),
+   --  Part styles bundle for class 'item-d'
+   Item_D_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Item_D_Class_Widget, Enabled => True),
       others => <>
    ];
 

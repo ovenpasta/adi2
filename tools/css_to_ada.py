@@ -314,6 +314,7 @@ class ParsedColor:
 @dataclass
 class ParsedSelector:
     name: str
+    selector_type: str = "class"  # "class", "id", "tag"
     part_kind: str = "Main_Part"
     widget_states: list[WidgetState] = field(default_factory=list)
     widget_negated_states: list[WidgetState] = field(default_factory=list)
@@ -349,6 +350,7 @@ class PartStyleGroup:
 class WidgetStyleGroup:
     """Groups rules for the same widget, split by part"""
     name: str
+    selector_type: str = "class"
     parts: dict[str, PartStyleGroup] = field(default_factory=dict)
 
 
@@ -567,7 +569,12 @@ def parse_selector(selector_str: str) -> Optional[ParsedSelector]:
     """Parse selectors like '.button:hover::label' and '.button::label:hover'."""
     selector_str = selector_str.strip()
 
-    if selector_str.startswith('.') or selector_str.startswith('#'):
+    selector_type = "tag"
+    if selector_str.startswith('.'):
+        selector_type = "class"
+        selector_str = selector_str[1:]
+    elif selector_str.startswith('#'):
+        selector_type = "id"
         selector_str = selector_str[1:]
 
     part_kind = "Main_Part"
@@ -637,6 +644,7 @@ def parse_selector(selector_str: str) -> Optional[ParsedSelector]:
 
     return ParsedSelector(
         name=name,
+        selector_type=selector_type,
         part_kind=part_kind,
         widget_states=widget_states,
         widget_negated_states=widget_negated_states,
@@ -836,17 +844,19 @@ def parse_css(css_content: str) -> list[ParsedRule]:
 
 
 def group_rules_by_widget(rules: list[ParsedRule]) -> dict[str, WidgetStyleGroup]:
-    """Group rules by widget name"""
+    """Group rules by selector type + widget name"""
     groups: dict[str, WidgetStyleGroup] = {}
     
     for rule in rules:
         name = rule.selector.name
+        selector_type = rule.selector.selector_type
         part_kind = rule.selector.part_kind
+        key = f"{selector_type}:{name}"
         
-        if name not in groups:
-            groups[name] = WidgetStyleGroup(name=name)
+        if key not in groups:
+            groups[key] = WidgetStyleGroup(name=name, selector_type=selector_type)
         
-        group = groups[name]
+        group = groups[key]
         if part_kind not in group.parts:
             group.parts[part_kind] = PartStyleGroup(part_kind=part_kind)
         part_group = group.parts[part_kind]
@@ -1346,14 +1356,23 @@ def part_label(part_kind: str) -> str:
     return part_kind
 
 
-def style_name_prefix(ada_name: str, part_kind: str) -> str:
+def selector_label(selector_type: str) -> str:
+    if selector_type == "id":
+        return "Id"
+    if selector_type == "tag":
+        return "Tag"
+    return "Class"
+
+
+def style_name_prefix(ada_name: str, selector_type: str, part_kind: str) -> str:
     """Name prefix for generated style constants."""
-    return ada_name if part_kind == "Main_Part" else f"{ada_name}_{part_label(part_kind)}"
+    base = f"{ada_name}_{selector_label(selector_type)}"
+    return base if part_kind == "Main_Part" else f"{base}_{part_label(part_kind)}"
 
 
-def widget_style_const_name(ada_name: str, part_kind: str) -> str:
+def widget_style_const_name(ada_name: str, selector_type: str, part_kind: str) -> str:
     """Generated Widget_Style constant name for this widget part."""
-    prefix = style_name_prefix(ada_name, part_kind)
+    prefix = style_name_prefix(ada_name, selector_type, part_kind)
     return f"{prefix}_Widget"
 
 
@@ -1406,7 +1425,8 @@ def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str)
     # Track generated variable names to avoid duplicates
     generated_names: set[str] = set()
     
-    for widget_name, group in groups.items():
+    for _group_key, group in groups.items():
+        widget_name = group.name
         ada_name = to_ada_identifier(widget_name)
         part_items = sorted(
             group.parts.items(),
@@ -1415,14 +1435,14 @@ def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str)
 
         for part_kind, part_group in part_items:
             part_suffix = "" if part_kind == "Main_Part" else f"::{part_label(part_kind).lower()}"
-            name_prefix = style_name_prefix(ada_name, part_kind)
+            name_prefix = style_name_prefix(ada_name, group.selector_type, part_kind)
 
             if part_group.base_rule:
                 var_name = f"{name_prefix}_Base_Style"
                 generated_names.add(var_name)
                 fields = generate_style_rules_ada(part_group.base_rule.properties)
 
-                lines.append(f"   --  Base style for {widget_name}{part_suffix}")
+                lines.append(f"   --  Base style for {group.selector_type} '{widget_name}'{part_suffix}")
                 lines.append(f"   {var_name} : constant Style_Rules := (")
                 if fields:
                     lines.append(",\n".join(fields) + ",")
@@ -1443,7 +1463,7 @@ def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str)
                 fields = generate_style_rules_ada(rule.properties)
                 state_desc = generate_state_description(rule.selector)
 
-                lines.append(f"   --  Style for {widget_name}{part_suffix} when {state_desc}")
+                lines.append(f"   --  Style for {group.selector_type} '{widget_name}'{part_suffix} when {state_desc}")
                 lines.append(f"   {var_name} : constant Style_Rules := (")
                 if fields:
                     lines.append(",\n".join(fields) + ",")
@@ -1452,7 +1472,9 @@ def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str)
                 lines.append(f"")
     
     # Generate combined Widget_Style using fluent builder
-    for widget_name, group in groups.items():
+    for _group_key, group in groups.items():
+        widget_name = group.name
+        sel_label = selector_label(group.selector_type)
         ada_name = to_ada_identifier(widget_name)
         part_items = sorted(
             group.parts.items(),
@@ -1461,10 +1483,10 @@ def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str)
 
         for part_kind, part_group in part_items:
             part_suffix = "" if part_kind == "Main_Part" else f"::{part_label(part_kind).lower()}"
-            name_prefix = style_name_prefix(ada_name, part_kind)
-            widget_style_name = widget_style_const_name(ada_name, part_kind)
+            name_prefix = style_name_prefix(ada_name, group.selector_type, part_kind)
+            widget_style_name = widget_style_const_name(ada_name, group.selector_type, part_kind)
 
-            lines.append(f"   --  Complete widget style for {widget_name}{part_suffix}")
+            lines.append(f"   --  Complete widget style for {group.selector_type} '{widget_name}'{part_suffix}")
             lines.append(f"   {widget_style_name} : constant Widget_Style :=")
 
             if part_group.base_rule:
@@ -1481,10 +1503,10 @@ def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str)
             lines.append(f"")
 
         # Bundle all known parts for one-call Set_Part_Styles.
-        lines.append(f"   --  Part styles bundle for {widget_name}")
-        lines.append(f"   {ada_name}_Part_Styles : constant Part_Style_Array := [")
+        lines.append(f"   --  Part styles bundle for {group.selector_type} '{widget_name}'")
+        lines.append(f"   {ada_name}_{sel_label}_Part_Styles : constant Part_Style_Array := [")
         for part_kind, _part_group in part_items:
-            style_name = widget_style_const_name(ada_name, part_kind)
+            style_name = widget_style_const_name(ada_name, group.selector_type, part_kind)
             lines.append(
                 f"      {part_kind} => (Style => {style_name}, Enabled => True),"
             )
@@ -1529,11 +1551,15 @@ def main():
     
     # Group by widget
     groups = group_rules_by_widget(rules)
-    print(f"Found {len(groups)} widgets: {', '.join(groups.keys())}")
+    print(
+        f"Found {len(groups)} selectors: "
+        + ", ".join([f"{g.selector_type}:{g.name}" for g in groups.values()])
+    )
     
     # Debug: print parsed selectors
-    for widget_name, group in groups.items():
-        print(f"  {widget_name}:")
+    for _group_key, group in groups.items():
+        widget_name = group.name
+        print(f"  {group.selector_type}:{widget_name}:")
         for part_kind, part_group in sorted(group.parts.items()):
             part_desc = "main" if part_kind == "Main_Part" else part_kind
             if part_group.base_rule:

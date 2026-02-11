@@ -47,6 +47,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=dialog_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=animated_image_example
 ```
 
 ### Running tests
@@ -78,6 +79,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 ./examples/bin/dialog_example
 ./examples/bin/font_example
 ./examples/bin/runtime_css_example
+./examples/bin/animated_image_example
 ```
 
 ### External Dependencies
@@ -163,6 +165,12 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 **Adi.Image** (`adi-image.ads`): Image resource management
 - SDL texture wrapper with file loading
 - Size queries and lifecycle management
+
+**Adi.Animated_Image** (`adi-animated_image.ads`): Animated image resource management
+- Loads multi-frame animations via `SDL3_image` (`IMG_LoadAnimation`)
+- Converts decoded frames to SDL textures (`Image_Access` per frame)
+- Playback controls: `Start`, `Stop`, `Reset`, `Set_Looping`, `Advance`
+- Uses per-frame delay metadata from source animation (`delays[]` in milliseconds)
 
 **Adi.Widget** (`adi-widget.ads`): Base widget abstraction
 - `Add_Child`/`Remove_Child` accept `access Widget'Class` (no `Widget_Access` cast needed at call sites)
@@ -306,6 +314,12 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 - Type-safe binding with `Button.Options`: instantiate both over the same enum, wire `On_Changed` to `Set_Active`
 - Internally stores `array (Page_Id) of Widget_Access` — enum is the key, no index tracking
 
+**Adi.Widget.Animated_Image** (`adi-widget-animated_image.ads`): Animated image display widget
+- Renders animated frames through `Icon_Part` (image) and `Main_Part` (container)
+- Supports widget-level playback controls: `Start`, `Stop`, `Reset`, loop toggle
+- `On_Tick` advances animation by delta time and marks dirty only when frame changes
+- Can load from file directly (`Load_From_File`) or consume preloaded `Animated_Image_Access`
+
 **Adi.Layout_Util** (`adi-layout_util.ads`): Layout algorithms
 - Box model calculations: `Content_Box`, `Padding_Box`
 - Edge/border pixel extraction
@@ -334,6 +348,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 - Optional loop diagnostics: set `ADI_DEBUG_LOOP=1` to log tick dirty transitions and render/relayout triggers
 - Optional minimum-size policy can enforce window min size from layout (`Set_Enforce_Layout_Min_Size`, `Apply_Window_Min_Size_From_Layout`)
 - Window resize/reshape handling
+- Image convenience loaders: `Load_Image` and `Load_Animated_Image`
 
 **Adi.App** (`adi-app.ads`): Application entry point
 - Initialization and main loop
@@ -413,6 +428,7 @@ examples/
   transition_example.adb - Transition/easing showcase
   text_input_example.adb - Text input widget demo
   text_editor_example.adb - Multiline text editor demo with scrolling and selection
+  animated_image_example.adb - Animated image widget demo with start/stop/reset/loop controls
   demo_flex.adb       - Flexbox layout demo
   stack_example.adb   - Stack container with tab switching
   list_box_example.adb - List box selection/scrolling demo
@@ -425,6 +441,7 @@ examples/
   css/widget_defaults.css - Shared default visual styles used by multiple examples
   css/runtime_css_example.css - Runtime stylesheet used by runtime_css_example
   css/text_editor_example.css - Text editor widget styles
+  css/animated_image_example.css - Animated image example styles
   css/                - CSS sources for generated example styles
   generated/          - Auto-generated Ada style packages from CSS
   examples.gpr        - Example project file (uses EXAMPLE_KIND scenario)
@@ -454,6 +471,7 @@ All packages are rooted under `Adi`:
 - `Adi.Widget_Styles` - State-based widget styling
 - `Adi.Widget` - Base widget abstraction
 - `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.Text_Editor`, `Adi.Widget.List_Box`, `Adi.Widget.Stack`, `Adi.Widget.Combo_Box`, `Adi.Widget.Dialog`, `Adi.Widget.Button.Switch` - Concrete widgets
+- `Adi.Widget.Animated_Image` - Animated image display widget
 - `Adi.Widget.Context_Menu` - Generic context menu overlay widget
 - `Adi.Widget.Text_Context_Menu` - Shared factory for buffer-backed text context menus
 - `Adi.Widget.Part_Styles` - Multi-part style builder
@@ -466,6 +484,7 @@ All packages are rooted under `Adi`:
   - Variant-aware font cache and `Register_Variant` API
   - Fallback font variant probing for Linux-style suffixes (`Regular`, `Medium`, `Light`, `Thin`, `Black`, `Bold`, with italic/oblique combinations)
 - `Adi.Image` - Image resource management
+- `Adi.Animated_Image` - Animated image resource management
 - `Adi.Layout_Util` - Layout algorithms
 - `Adi.Render` - Per-renderer context and caches
 - `Adi.Window` - Window management

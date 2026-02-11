@@ -35,6 +35,9 @@ Compares `overflow: visible` and `overflow: hidden` clipping behavior.
 ### grid_example
 Demonstrates CSS grid layout (`display: grid`) with template rows/columns, gaps, and item spans.
 
+### animated_image_example
+Demonstrates `Adi.Widget.Animated_Image` playback controls (`Start`, `Stop`, `Reset`, looping) using `examples/animhorse.gif`.
+
 ### Shared Widget Defaults
 `css/widget_defaults.css` defines reusable baseline styles for common widgets (`.button`, `.text-input`, `.list-box`, `.list-row`) and is generated as `generated/widget_defaults_styles.ads` for reuse across examples.
 

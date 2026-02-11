@@ -9,6 +9,7 @@ with Adi.SDL; use Adi.SDL;
 with Adi.SDL.Video;
 with Adi.SDL.Render;
 with Adi.Widget_Styles;
+with Adi.Animated_Image;
 
 package body Adi.Window is
    use type Adi.SDL.Video.SDL_Window_Ptr;
@@ -537,6 +538,26 @@ package body Adi.Window is
 
       return Adi.Image.Load_From_File (Renderer, Path);
    end Load_Image;
+
+   ---------------------------
+   -- Load_Animated_Image --
+   ---------------------------
+
+   function Load_Animated_Image
+      (W    : in out Window;
+       Path : String) return Animated_Image_Access
+   is
+      Renderer : SDL_Renderer_Ptr;
+   begin
+      Renderer := Get_Renderer (W);
+      if Renderer = null then
+         Ada.Text_IO.Put_Line
+           ("ERROR: Cannot load animated image, window has no renderer");
+         return null;
+      end if;
+
+      return Adi.Animated_Image.Load_From_File (Renderer, Path);
+   end Load_Animated_Image;
 
    ---------------------
    -- Point_In_Widget --

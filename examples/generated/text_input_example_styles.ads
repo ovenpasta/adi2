@@ -106,6 +106,41 @@ package Text_Input_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'context-menu'
+   Context_Menu_Class_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (180.0))),
+      Background_Color => Set_Bg (RGB (15, 23, 42)),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Color => Set (Border_Color (RGB (59, 130, 246))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Radius => Set (Radius (Px (8.0))),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (24.0), Px (0.0), RGBA (2, 6, 23, 0.45))),
+      Padding => Set (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0))),
+      others => <>
+   );
+
+   --  Base style for class 'context-menu-item'
+   Context_Menu_Item_Class_Base_Style : constant Style_Rules := (
+      Min_Height => Set (Size (Px (28.0))),
+      Background_Color => Set_Bg (RGBA (15, 23, 42, 0.0)),
+      Border_Radius => Set (Radius (Px (6.0))),
+      Padding => Set (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0))),
+      others => <>
+   );
+
+   --  Style for class 'context-menu-item' when widget State_Hovered
+   Context_Menu_Item_Class_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGBA (37, 99, 235, 0.35)),
+      others => <>
+   );
+
+   --  Base style for class 'context-menu-item'::label
+   Context_Menu_Item_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (219, 234, 254)),
+      Font_Size => Set_Font (Px (13.0)),
+      others => <>
+   );
+
    --  Complete widget style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
      From (Root_Class_Base_Style)
@@ -199,6 +234,35 @@ package Text_Input_Example_Styles is
       Cursor_Part => (Style => Input_Class_Cursor_Widget, Enabled => True),
       Label_Part => (Style => Input_Class_Label_Widget, Enabled => True),
       Selected_Part => (Style => Input_Class_Selected_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'context-menu'
+   Context_Menu_Class_Widget : constant Widget_Style :=
+     From (Context_Menu_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'context-menu'
+   Context_Menu_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Context_Menu_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'context-menu-item'
+   Context_Menu_Item_Class_Widget : constant Widget_Style :=
+     From (Context_Menu_Item_Class_Base_Style)
+     .On (When_State (State_Hovered), Context_Menu_Item_Class_Widget_Hovered_Style)
+     .Build;
+
+   --  Complete widget style for class 'context-menu-item'::label
+   Context_Menu_Item_Class_Label_Widget : constant Widget_Style :=
+     From (Context_Menu_Item_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'context-menu-item'
+   Context_Menu_Item_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Context_Menu_Item_Class_Widget, Enabled => True),
+      Label_Part => (Style => Context_Menu_Item_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 

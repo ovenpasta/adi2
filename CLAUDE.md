@@ -169,9 +169,11 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 - **Item system**: Renderable primitives (`Panel_Item`, `Text_Item`, `Image_Item`) that compose a widget
 - Each part has its own `Widget_Style` that resolves based on widget states
 - Widget flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`
+- Generic context-menu hook for any widget: `Set_On_Context_Menu` with ancestor bubbling via `Bubble_Context_Menu` (menu UI/styling is app-defined)
 - Shared vertical overflow scrolling for any widget:
   - `overflow: auto|scroll` (or `Scrollable` flag) enables wheel/drag scrolling
   - Shared scrollbar parts (`Scroll_Part`/`Knob_Part`) are rendered by base `Render_Tree`
+  - Knob hit-testing uses a small slop margin to avoid accidental track page-jumps on near-knob clicks
   - Shared helpers: `Set/Get_Scroll_Offset_Y`, `Get_Scroll_Content_Height`, `Get_Scroll_Max_Offset_Y`
   - Shared input/tick hooks: `Handle_Scroll_Mouse_*`, `Tick_Scroll_Animations`
 - Dirty tracking for efficient updates
@@ -199,12 +201,15 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 - Extended navigation: `Move_Page_Up`, `Move_Page_Down`, `Move_To_Start`, `Move_To_End`
 - Undo/redo history with snapshot restore of text, caret, and selection (`Undo`, `Redo`, `Can_Undo`, `Can_Redo`)
 - History is capped (200 edits) and redo history is invalidated by new edits after undo
+- Clipboard edit commands live in the buffer: `Copy_Selection_To_Clipboard`, `Cut_Selection_To_Clipboard`, `Paste_From_Clipboard([Single_Line])`
 
 **Adi.Widget.Text_Input** (`adi-widget-text_input.ads`): Single-line text input widget
 - Uses `Adi.Text_Buffer` for text/caret/selection state
 - Supports keyboard navigation/editing (arrows, home/end, backspace/delete, select-all, undo/redo)
-- Clipboard support: Ctrl+C (copy), Ctrl+X (cut), Ctrl+V (paste; strips newlines for single-line)
-- Undo/redo shortcuts: Ctrl+Z / Ctrl+Y
+- Clipboard support is delegated to `Adi.Text_Buffer` APIs (single-line paste strips LF/CR)
+- Undo/redo shortcuts: Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z
+- Shared text context menu support: `Attach_Window` wires a factory-built menu with Undo/Redo/Cut/Copy/Paste/Select All
+- Menu visuals are app-supplied via `Set_Context_Menu_Part_Styles` and `Set_Context_Menu_Item_Part_Styles`
 - Receives `On_Key_Down`, `On_Key_Up`, and `On_Text_Input` through window focus dispatch
 - Renders a styled caret via `Cursor_Part`
 - Renders selection highlight via `Selected_Part`
@@ -222,8 +227,10 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 **Adi.Widget.Text_Editor** (`adi-widget-text_editor.ads`): Multiline plain-text editor widget
 - Uses `Adi.Text_Buffer` for multiline text storage, caret, and selection state
 - Supports full keyboard navigation: arrows, Home/End, Ctrl+Home/End, Page Up/Down, Shift+arrows for selection, Ctrl+A select-all
-- Clipboard support: Ctrl+C (copy), Ctrl+X (cut), Ctrl+V (paste; multiline supported)
-- Undo/redo shortcuts: Ctrl+Z / Ctrl+Y
+- Clipboard support is delegated to `Adi.Text_Buffer` APIs (multiline paste preserved)
+- Undo/redo shortcuts: Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z
+- Shared text context menu support: `Attach_Window` wires a factory-built menu with Undo/Redo/Cut/Copy/Paste/Select All
+- Menu visuals are app-supplied via `Set_Context_Menu_Part_Styles` and `Set_Context_Menu_Item_Part_Styles`
 - Enter inserts newline, Tab inserts spaces, Backspace/Delete work across lines
 - Renders all text in a single `Text_Item` with `Text_Offset_Y` for vertical scrolling
 - Selection highlights are per-visible-line `Selected_Part` panels, dynamically sized
@@ -234,6 +241,15 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 - Mouse wheel scrolls, scrollbar drag supported
 - `Create` sets `Clickable`, `Focusable`, `Scrollable` flags
 - Parts used: `Main_Part` (background), `Label_Part` (text), `Cursor_Part` (caret), `Selected_Part` (selection), `Scroll_Part`/`Knob_Part` (scrollbar)
+
+**Adi.Widget.Context_Menu** (`adi-widget-context_menu.ads`): Generic popup context menu overlay
+- Reusable overlay popup menu with dismiss layer and row callbacks
+- No theme defaults required; applications can inject menu and row part styles
+
+**Adi.Widget.Text_Context_Menu** (`adi-widget-text_context_menu.ads`): Shared text-menu factory
+- Builds the standard text menu once (`Undo/Redo/Cut/Copy/Paste/Select All`)
+- Binds menu commands to any `Adi.Text_Buffer` (`Single_Line` mode supported)
+- Binds right-click request handling to any widget via `Bind_Widget_Request`
 
 **Adi.Widget.List_Box** (`adi-widget-list_box.ads`): Generic list container widget
 - Generic over row widget type (`Row_Widget` / `Row_Widget_Access`)
@@ -298,11 +314,13 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 - Mouse event handling with widget hit testing
 - Overlay support for top-level floating widgets (`Add_Overlay`, `Remove_Overlay`, `Clear_Overlays`, `Overlay_Count`)
 - Overlay hit testing is prioritized above the root tree; overlays render after root content
+- Right-click routes context-menu requests from the hit widget upward through ancestors (`Bubble_Context_Menu`)
 - Tracks hovered/pressed widget part; updates part states on pointer movement so part-scoped selectors resolve correctly
 - Scrollbar hit routing prefers the nearest ancestor widget whose part-at-point is `Scroll_Part`/`Knob_Part`, so scrollbar hover/press/drag works even when deepest child under cursor is not scrollable/clickable
 - Keyboard focus handling with Tab traversal across focusable/visible widgets (Shift+Tab reverse, wraps around)
 - When overlays are present, keyboard traversal/routing is scoped to the topmost visible overlay (e.g. dialog buttons receive Tab navigation and Escape reaches dialog dismiss handlers)
 - Forwards both key-down and key-up events to the focused widget
+- Click activation (`On_Click`) is dispatched on left mouse button release (right-click no longer triggers click callbacks)
 - `Tick(DT)`: advances animations on the widget tree each frame
 - Optional loop diagnostics: set `ADI_DEBUG_LOOP=1` to log tick dirty transitions and render/relayout triggers
 - Optional minimum-size policy can enforce window min size from layout (`Set_Enforce_Layout_Min_Size`, `Apply_Window_Min_Size_From_Layout`)
@@ -363,6 +381,8 @@ src/                  - Main library source files
   adi-*.ad[bs]        - All library modules follow Ada package naming
   adi-widget-*.ad[bs] - Widget implementations (Box, Label)
   adi-widget-combo_box.ad[bs] - Combo box widget with overlay popup list
+  adi-widget-context_menu.ad[bs] - Generic context menu popup overlay
+  adi-widget-text_context_menu.ad[bs] - Factory/binding for text-buffer context menus
   adi-widget-text_editor.ad[bs] - Multiline plain-text editor widget
   adi-widget-dialog.ad[bs] - Modal dialog/alert widget with overlay backdrop
   adi-animation.ad[bs] - Style transition animation and interpolation
@@ -373,6 +393,7 @@ tests/
     layout_test.adb   - Flexbox layout unit test
     css_parser_test.adb - Runtime CSS parser test coverage (selectors, properties, reload, malformed input)
     css_source_test.adb - CSS source mode/specificity test coverage (dynamic/static + tag/class/id precedence)
+    text_buffer_test.adb - Text buffer undo/redo edge-case coverage
   tests.gpr           - Test project file (uses TEST_KIND scenario)
 examples/
   label_example.adb   - Label widget example with styling
@@ -422,6 +443,8 @@ All packages are rooted under `Adi`:
 - `Adi.Widget_Styles` - State-based widget styling
 - `Adi.Widget` - Base widget abstraction
 - `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.Text_Editor`, `Adi.Widget.List_Box`, `Adi.Widget.Stack`, `Adi.Widget.Combo_Box`, `Adi.Widget.Dialog`, `Adi.Widget.Button.Switch` - Concrete widgets
+- `Adi.Widget.Context_Menu` - Generic context menu overlay widget
+- `Adi.Widget.Text_Context_Menu` - Shared factory for buffer-backed text context menus
 - `Adi.Widget.Part_Styles` - Multi-part style builder
 - `Adi.Text_Buffer` - Shared text editing model
 - `Adi.Animation` - CSS-like style transitions and interpolation

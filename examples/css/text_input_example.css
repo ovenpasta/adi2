@@ -72,3 +72,30 @@
 .input::selected {
   background-color: rgba(191, 219, 254, 0.85);
 }
+
+.context-menu {
+  width: 180px;
+  padding: 6px;
+  background-color: rgb(15, 23, 42);
+  border-width: 1px;
+  border-color: rgb(59, 130, 246);
+  border-style: solid;
+  border-radius: 8px;
+  box-shadow: 0px 8px 24px 0px rgba(2, 6, 23, 0.45);
+}
+
+.context-menu-item {
+  min-height: 28px;
+  padding: 6px 10px;
+  background-color: rgba(15, 23, 42, 0.0);
+  border-radius: 6px;
+}
+
+.context-menu-item:hover {
+  background-color: rgba(37, 99, 235, 0.35);
+}
+
+.context-menu-item::label {
+  color: rgb(219, 234, 254);
+  font-size: 13px;
+}

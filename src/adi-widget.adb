@@ -1073,6 +1073,56 @@ package body Adi.Widget is
       return W.Flags (F);
    end Has_Flag;
 
+   procedure Set_On_Context_Menu
+     (W  : in out Widget'Class;
+      CB : Context_Menu_Callback)
+   is
+   begin
+      W.On_Context_Menu := CB;
+   end Set_On_Context_Menu;
+
+   function Has_Context_Menu (W : Widget'Class) return Boolean is
+   begin
+      return W.On_Context_Menu /= null;
+   end Has_Context_Menu;
+
+   function Show_Context_Menu
+     (W    : in out Widget'Class;
+      X, Y : Pixel_Type) return Boolean
+   is
+      Self : constant Widget_Access := W'Unchecked_Access;
+   begin
+      if W.On_Context_Menu = null then
+         return False;
+      end if;
+
+      W.On_Context_Menu (Self, X, Y);
+      return True;
+   end Show_Context_Menu;
+
+   function Bubble_Context_Menu
+     (Start : Widget_Access;
+      X, Y  : Pixel_Type) return Boolean
+   is
+      Node         : Widget_Access := Start;
+      Parent_Access : access Widget'Class;
+   begin
+      while Node /= null loop
+         if Show_Context_Menu (Node.all, X, Y) then
+            return True;
+         end if;
+
+         Parent_Access := Get_Parent (Node.all);
+         if Parent_Access = null then
+            Node := null;
+         else
+            Node := Parent_Access.all'Unchecked_Access;
+         end if;
+      end loop;
+
+      return False;
+   end Bubble_Context_Menu;
+
    ---------------------------------------------------------------------------
    --  Dirty/Update Tracking
    ---------------------------------------------------------------------------
@@ -1118,6 +1168,9 @@ package body Adi.Widget is
       Button : Mouse_Button) return Boolean
    is
       Content : constant Rectangle := Get_Content_Box (W);
+      Knob_Hit_Slop_Px : constant Pixel_Type := 4.0;
+      Knob_Hit : Rectangle;
+      Offset_Y : Pixel_Type;
    begin
       if Button /= Left_Button or else not W.Scroll_Show_Bar then
          return False;
@@ -1127,9 +1180,17 @@ package body Adi.Widget is
          return False;
       end if;
 
-      if Point_In_Rect (W.Scroll_Knob_Geom, X, Y) then
+      Knob_Hit :=
+        (X      => W.Scroll_Knob_Geom.X - Knob_Hit_Slop_Px,
+         Y      => W.Scroll_Knob_Geom.Y - Knob_Hit_Slop_Px,
+         Width  => W.Scroll_Knob_Geom.Width + 2.0 * Knob_Hit_Slop_Px,
+         Height => W.Scroll_Knob_Geom.Height + 2.0 * Knob_Hit_Slop_Px);
+
+      if Point_In_Rect (Knob_Hit, X, Y) then
          W.Scroll_Dragging := True;
-         W.Scroll_Drag_Offset := Y - W.Scroll_Knob_Geom.Y;
+         Offset_Y := Y - W.Scroll_Knob_Geom.Y;
+         W.Scroll_Drag_Offset :=
+           Clamp (Offset_Y, 0.0, Pixel_Type'Max (0.0, W.Scroll_Knob_Geom.Height));
          W.Scroll_Velocity_Y := 0.0;
       elsif Y < W.Scroll_Knob_Geom.Y then
          Scroll_By_Y (W, -Content.Height * 0.9);

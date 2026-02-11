@@ -875,14 +875,27 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       Click_Target : Widget_Access;
       Focus_Target : Widget_Access;
       Scroll_Target : Widget_Access;
+      Any_Target : Widget_Access;
    begin
-      W.Mouse_Down := True;
       W.Mouse_X := X;
       W.Mouse_Y := Y;
+      W.Mouse_Down := (Button = Left_Button);
 
       --  Focus and click routing should target interactive widgets,
       --  not passive leaf children such as labels inside list rows.
       Focus_Target := Find_Widget_At_With_Flag (W, X, Y, Focusable);
+
+      --  Right-click opens context menus without entering pressed/drag state.
+      if Button = Right_Button then
+         Any_Target := Find_Widget_At (W, X, Y);
+         if Any_Target /= null then
+            if Bubble_Context_Menu (Any_Target, X, Y) then
+               return;
+            end if;
+         end if;
+         return;
+      end if;
+
       Click_Target := Find_Widget_At_With_Flag (W, X, Y, Clickable);
       Scroll_Target := Find_Scroll_Widget_At (W, X, Y);
 
@@ -941,6 +954,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
          end if;
          if Point_In_Widget (W.Pressed_Widget, X, Y)
             and then Has_Flag (W.Pressed_Widget.all, Clickable)
+            and then Button = Left_Button
          then
             On_Click (W.Pressed_Widget.all);
          end if;

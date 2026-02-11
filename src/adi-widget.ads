@@ -262,6 +262,25 @@ package Adi.Widget is
    function  Has_Flag (W : Widget'Class; F : Widget_Flag) return Boolean;
 
    ---------------------------------------------------------------------------
+   --  Context Menu Routing
+   ---------------------------------------------------------------------------
+
+   type Context_Menu_Callback is access procedure
+     (W    : Widget_Access;
+      X, Y : Pixel_Type);
+
+   procedure Set_On_Context_Menu
+     (W  : in out Widget'Class;
+      CB : Context_Menu_Callback);
+   function Has_Context_Menu (W : Widget'Class) return Boolean;
+   function Show_Context_Menu
+     (W    : in out Widget'Class;
+      X, Y : Pixel_Type) return Boolean;
+   function Bubble_Context_Menu
+     (Start : Widget_Access;
+      X, Y  : Pixel_Type) return Boolean;
+
+   ---------------------------------------------------------------------------
    --  Dirty/Update Tracking
    ---------------------------------------------------------------------------
 
@@ -470,6 +489,7 @@ private
       Scroll_Dragging     : Boolean := False;
       Scroll_Drag_Offset  : Pixel_Type := 0.0;
       Scroll_Velocity_Y   : Pixel_Type := 0.0;
+      On_Context_Menu     : Context_Menu_Callback := null;
    end record;
 
    --  Color conversion helpers (CSS Color_Value to SDL RGBA)

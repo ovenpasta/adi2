@@ -61,6 +61,12 @@ begin
 
       Set_Part_Styles (Input.all, Input_Class_Part_Styles);
       Set_Part_Styles (Input_2.all, Input_Class_Part_Styles);
+      Attach_Window (Input.all, W);
+      Attach_Window (Input_2.all, W);
+      Set_Context_Menu_Part_Styles (Input.all, Context_Menu_Class_Part_Styles);
+      Set_Context_Menu_Item_Part_Styles (Input.all, Context_Menu_Item_Class_Part_Styles);
+      Set_Context_Menu_Part_Styles (Input_2.all, Context_Menu_Class_Part_Styles);
+      Set_Context_Menu_Item_Part_Styles (Input_2.all, Context_Menu_Item_Class_Part_Styles);
 
       Root.Add_Child (Container);
       Container.Add_Child (Title);

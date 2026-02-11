@@ -1,4 +1,5 @@
 with Ada.Characters.Latin_1;
+with Ada.Containers.Vectors;
 with Adi.CSS_Styles;          use Adi.CSS_Styles;
 with Adi.Font;
 with Adi.Layout_Util;         use Adi.Layout_Util;
@@ -6,12 +7,60 @@ with Adi.SDL;
 with Adi.SDL.Events;          use Adi.SDL.Events;
 with Adi.SDL.TTF;             use Adi.SDL.TTF;
 with Adi.Text_Buffer;         use Adi.Text_Buffer;
+with Adi.Widget.Context_Menu;
+with Adi.Widget.Text_Context_Menu;
+with Adi.Window;
 with Interfaces.C;            use Interfaces.C;
 with Interfaces.C.Strings;    use Interfaces.C.Strings;
 
 package body Adi.Widget.Text_Editor is
 
    Drag_Threshold_Px : constant Pixel_Type := 4.0;
+
+   use type Adi.Widget.Context_Menu.Context_Menu_Access;
+
+   type Menu_Binding is record
+      Menu  : Adi.Widget.Context_Menu.Context_Menu_Access := null;
+      Owner : Text_Editor_Widget_Access := null;
+   end record;
+
+   package Menu_Binding_Vectors is new Ada.Containers.Vectors
+     (Positive, Menu_Binding);
+
+   Menu_Bindings : Menu_Binding_Vectors.Vector;
+
+   function Find_Owner_By_Menu
+     (Menu : Adi.Widget.Context_Menu.Context_Menu_Access)
+      return Text_Editor_Widget_Access
+   is
+   begin
+      for I in 1 .. Natural (Menu_Bindings.Length) loop
+         if Menu_Bindings.Element (I).Menu = Menu then
+            return Menu_Bindings.Element (I).Owner;
+         end if;
+      end loop;
+      return null;
+   end Find_Owner_By_Menu;
+
+   procedure Register_Menu_Binding
+     (Menu  : Adi.Widget.Context_Menu.Context_Menu_Access;
+      Owner : Text_Editor_Widget_Access)
+   is
+   begin
+      if Menu = null then
+         return;
+      end if;
+
+      for I in 1 .. Natural (Menu_Bindings.Length) loop
+         if Menu_Bindings.Element (I).Menu = Menu then
+            Menu_Bindings.Replace_Element (I, (Menu => Menu, Owner => Owner));
+            return;
+         end if;
+      end loop;
+
+      Menu_Bindings.Append
+        (New_Item => Menu_Binding'(Menu => Menu, Owner => Owner));
+   end Register_Menu_Binding;
 
    function Is_Mod_Active (Mods : SDL_Keymod; Mask : SDL_Keymod) return Boolean
    is
@@ -260,7 +309,7 @@ package body Adi.Widget.Text_Editor is
                  Extend_Selection => True);
    end Select_Word_At_Caret;
 
-   procedure Fire_Changed (W : in out Text_Editor_Widget) is
+   procedure Fire_Changed (W : in out Text_Editor_Widget'Class) is
       Self : constant Text_Editor_Widget_Access := W'Unchecked_Access;
    begin
       Mark_Dirty (W);
@@ -268,6 +317,41 @@ package body Adi.Widget.Text_Editor is
          W.On_Changed (Self, Get_Text (W));
       end if;
    end Fire_Changed;
+
+   procedure On_Menu_Command_Applied
+     (Menu         : Adi.Widget.Context_Menu.Context_Menu_Access;
+      Command      : Adi.Widget.Text_Context_Menu.Text_Menu_Command;
+      Changed_Text : Boolean)
+   is
+      pragma Unreferenced (Command);
+      Owner : constant Text_Editor_Widget_Access := Find_Owner_By_Menu (Menu);
+   begin
+      if Owner = null then
+         return;
+      end if;
+
+      if Changed_Text then
+         Fire_Changed (Owner.all);
+      else
+         Mark_Dirty (Owner.all);
+      end if;
+   end On_Menu_Command_Applied;
+
+   procedure Apply_Context_Menu_Styles (W : in out Text_Editor_Widget) is
+   begin
+      if W.Context_Menu = null then
+         return;
+      end if;
+
+      if W.Has_Context_Menu_Styles then
+         Adi.Widget.Context_Menu.Set_Menu_Part_Styles
+           (W.Context_Menu.all, W.Context_Menu_Styles);
+      end if;
+      if W.Has_Context_Item_Styles then
+         Adi.Widget.Context_Menu.Set_Item_Part_Styles
+           (W.Context_Menu.all, W.Context_Item_Styles);
+      end if;
+   end Apply_Context_Menu_Styles;
 
    ---------------------------------------------------------------------------
    --  Public API
@@ -289,6 +373,27 @@ package body Adi.Widget.Text_Editor is
       return Result;
    end Create;
 
+   procedure Attach_Window
+     (W    : in out Text_Editor_Widget;
+      Host : Adi.Window.Window_Access)
+   is
+      Self : constant Text_Editor_Widget_Access := W'Unchecked_Access;
+   begin
+      if W.Context_Menu = null then
+         W.Context_Menu := Adi.Widget.Text_Context_Menu.Create_Default
+           (Buffer      => W.Buffer'Unchecked_Access,
+            Host        => Host,
+            Single_Line => False,
+            On_Applied  => On_Menu_Command_Applied'Access);
+         Register_Menu_Binding (W.Context_Menu, Self);
+         Adi.Widget.Text_Context_Menu.Bind_Widget_Request (W, W.Context_Menu);
+      else
+         Adi.Widget.Context_Menu.Attach_Window (W.Context_Menu.all, Host);
+      end if;
+
+      Apply_Context_Menu_Styles (W);
+   end Attach_Window;
+
    procedure Set_Text (W : in out Text_Editor_Widget; Text : String) is
    begin
       Adi.Text_Buffer.Set_Text (W.Buffer, Text);
@@ -299,6 +404,26 @@ package body Adi.Widget.Text_Editor is
    begin
       return Adi.Text_Buffer.Get_Text (W.Buffer);
    end Get_Text;
+
+   procedure Set_Context_Menu_Part_Styles
+     (W      : in out Text_Editor_Widget;
+      Styles : Part_Style_Array)
+   is
+   begin
+      W.Context_Menu_Styles := Styles;
+      W.Has_Context_Menu_Styles := True;
+      Apply_Context_Menu_Styles (W);
+   end Set_Context_Menu_Part_Styles;
+
+   procedure Set_Context_Menu_Item_Part_Styles
+     (W      : in out Text_Editor_Widget;
+      Styles : Part_Style_Array)
+   is
+   begin
+      W.Context_Item_Styles := Styles;
+      W.Has_Context_Item_Styles := True;
+      Apply_Context_Menu_Styles (W);
+   end Set_Context_Menu_Item_Part_Styles;
 
    procedure Set_On_Changed (W : in out Text_Editor_Widget;
                              CB : Change_Callback) is
@@ -563,15 +688,18 @@ package body Adi.Widget.Text_Editor is
       Ctrl  : constant Boolean := Is_Mod_Active (Key_Mod, SDL_KMOD_CTRL);
       Lines_Per_Page : Positive;
    begin
-      if Ctrl and then Scancode = SDL_SCANCODE_Z then
-         if Undo (W.Buffer) then
+      if Ctrl
+        and then (Scancode = SDL_SCANCODE_Y
+                  or else (Shift and then Scancode = SDL_SCANCODE_Z))
+      then
+         if Redo (W.Buffer) then
             Fire_Changed (W);
          end if;
          return;
       end if;
 
-      if Ctrl and then Scancode = SDL_SCANCODE_Y then
-         if Redo (W.Buffer) then
+      if Ctrl and then Scancode = SDL_SCANCODE_Z then
+         if Undo (W.Buffer) then
             Fire_Changed (W);
          end if;
          return;
@@ -586,31 +714,15 @@ package body Adi.Widget.Text_Editor is
 
       --  Ctrl+C: Copy
       if Ctrl and then Scancode = SDL_SCANCODE_C then
-         if Has_Selection (W.Buffer) then
-            declare
-               Txt    : constant String := Get_Selected_Text (W.Buffer);
-               C_Txt  : chars_ptr := New_String (Txt);
-               Ignore : Adi.SDL.C_bool;
-            begin
-               Ignore := Adi.SDL.SDL_SetClipboardText (C_Txt);
-               Free (C_Txt);
-            end;
+         if Copy_Selection_To_Clipboard (W.Buffer) then
+            null;
          end if;
          return;
       end if;
 
       --  Ctrl+X: Cut
       if Ctrl and then Scancode = SDL_SCANCODE_X then
-         if Has_Selection (W.Buffer) then
-            declare
-               Txt    : constant String := Get_Selected_Text (W.Buffer);
-               C_Txt  : chars_ptr := New_String (Txt);
-               Ignore : Adi.SDL.C_bool;
-            begin
-               Ignore := Adi.SDL.SDL_SetClipboardText (C_Txt);
-               Free (C_Txt);
-            end;
-            Delete_Backward (W.Buffer);
+         if Cut_Selection_To_Clipboard (W.Buffer) then
             Fire_Changed (W);
          end if;
          return;
@@ -618,21 +730,9 @@ package body Adi.Widget.Text_Editor is
 
       --  Ctrl+V: Paste
       if Ctrl and then Scancode = SDL_SCANCODE_V then
-         declare
-            C_Txt : constant chars_ptr := Adi.SDL.SDL_GetClipboardText;
-         begin
-            if C_Txt /= Null_Ptr then
-               declare
-                  Txt : constant String := Value (C_Txt);
-               begin
-                  Adi.SDL.SDL_free (C_Txt);
-                  if Txt'Length > 0 then
-                     Insert_Text (W.Buffer, Txt);
-                     Fire_Changed (W);
-                  end if;
-               end;
-            end if;
-         end;
+         if Paste_From_Clipboard (W.Buffer) then
+            Fire_Changed (W);
+         end if;
          return;
       end if;
 

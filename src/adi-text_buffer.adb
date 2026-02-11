@@ -1,4 +1,7 @@
 with Ada.Characters.Latin_1;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Adi.SDL;
+with Interfaces.C.Strings; use Interfaces.C.Strings;
 
 package body Adi.Text_Buffer is
 
@@ -519,6 +522,75 @@ package body Adi.Text_Buffer is
          end if;
       end;
    end Delete_Forward;
+
+   function Copy_Selection_To_Clipboard (B : Text_Buffer) return Boolean is
+      Txt    : constant String := Get_Selected_Text (B);
+      C_Txt  : chars_ptr;
+      Ignore : Adi.SDL.C_bool;
+   begin
+      if Txt'Length = 0 then
+         return False;
+      end if;
+
+      C_Txt := New_String (Txt);
+      Ignore := Adi.SDL.SDL_SetClipboardText (C_Txt);
+      Free (C_Txt);
+      return True;
+   end Copy_Selection_To_Clipboard;
+
+   function Cut_Selection_To_Clipboard (B : in out Text_Buffer) return Boolean is
+   begin
+      if not Has_Selection (B) then
+         return False;
+      end if;
+
+      if not Copy_Selection_To_Clipboard (B) then
+         return False;
+      end if;
+
+      Delete_Backward (B);
+      return True;
+   end Cut_Selection_To_Clipboard;
+
+   function Paste_From_Clipboard
+     (B           : in out Text_Buffer;
+      Single_Line : Boolean := False) return Boolean
+   is
+      C_Txt : constant chars_ptr := Adi.SDL.SDL_GetClipboardText;
+      Clean : Unbounded_String := Null_Unbounded_String;
+   begin
+      if C_Txt = Null_Ptr then
+         return False;
+      end if;
+
+      declare
+         Raw : constant String := Value (C_Txt);
+      begin
+         Adi.SDL.SDL_free (C_Txt);
+         if Raw'Length = 0 then
+            return False;
+         end if;
+
+         if Single_Line then
+            for C of Raw loop
+               if C /= Ada.Characters.Latin_1.LF
+                 and then C /= Ada.Characters.Latin_1.CR
+               then
+                  Append (Clean, C);
+               end if;
+            end loop;
+         else
+            Clean := To_Unbounded_String (Raw);
+         end if;
+      end;
+
+      if Length (Clean) = 0 then
+         return False;
+      end if;
+
+      Insert_Text (B, To_String (Clean));
+      return True;
+   end Paste_From_Clipboard;
 
    function Undo (B : in out Text_Buffer) return Boolean is
       Previous : Buffer_Snapshot;

@@ -9,6 +9,7 @@ package Adi.Text_Buffer is
    end record;
 
    type Text_Buffer is tagged private;
+   type Text_Buffer_Access is access all Text_Buffer;
 
    procedure Clear (B : in out Text_Buffer);
    procedure Set_Text (B : in out Text_Buffer; Text : String);
@@ -36,6 +37,11 @@ package Adi.Text_Buffer is
    procedure Insert_Text (B : in out Text_Buffer; Text : String);
    procedure Delete_Backward (B : in out Text_Buffer);
    procedure Delete_Forward (B : in out Text_Buffer);
+   function Copy_Selection_To_Clipboard (B : Text_Buffer) return Boolean;
+   function Cut_Selection_To_Clipboard (B : in out Text_Buffer) return Boolean;
+   function Paste_From_Clipboard
+     (B           : in out Text_Buffer;
+      Single_Line : Boolean := False) return Boolean;
    function Undo (B : in out Text_Buffer) return Boolean;
    function Redo (B : in out Text_Buffer) return Boolean;
    function Can_Undo (B : Text_Buffer) return Boolean;

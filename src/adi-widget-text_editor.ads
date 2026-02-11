@@ -1,5 +1,7 @@
 with Adi.SDL.Events;
 with Adi.Text_Buffer;
+with Adi.Widget.Context_Menu;
+with Adi.Window;
 
 package Adi.Widget.Text_Editor is
 
@@ -7,9 +9,18 @@ package Adi.Widget.Text_Editor is
    type Text_Editor_Widget_Access is access all Text_Editor_Widget'Class;
 
    function Create (Text : String := "") return Text_Editor_Widget_Access;
+   procedure Attach_Window
+     (W    : in out Text_Editor_Widget;
+      Host : Adi.Window.Window_Access);
 
    procedure Set_Text (W : in out Text_Editor_Widget; Text : String);
    function Get_Text (W : Text_Editor_Widget) return String;
+   procedure Set_Context_Menu_Part_Styles
+     (W      : in out Text_Editor_Widget;
+      Styles : Part_Style_Array);
+   procedure Set_Context_Menu_Item_Part_Styles
+     (W      : in out Text_Editor_Widget;
+      Styles : Part_Style_Array);
 
    type Change_Callback is access procedure
      (W : Text_Editor_Widget_Access; Text : String);
@@ -53,7 +64,7 @@ private
    Panel_Idx  : constant Positive := 1;
 
    type Text_Editor_Widget is new Widget with record
-      Buffer              : Adi.Text_Buffer.Text_Buffer;
+      Buffer              : aliased Adi.Text_Buffer.Text_Buffer;
       On_Changed          : Change_Callback := null;
       Drag_Selecting      : Boolean := False;
       Pending_Word_Select : Boolean := False;
@@ -65,6 +76,11 @@ private
       Cursor_Item_Idx     : Positive := 3;
       Caret_Changed       : Boolean := False;
       Last_Caret          : Adi.Text_Buffer.Position := (Line => 1, Column => 0);
+      Context_Menu        : Adi.Widget.Context_Menu.Context_Menu_Access := null;
+      Context_Menu_Styles : Part_Style_Array := Empty_Part_Styles;
+      Has_Context_Menu_Styles : Boolean := False;
+      Context_Item_Styles : Part_Style_Array := Empty_Part_Styles;
+      Has_Context_Item_Styles : Boolean := False;
    end record;
 
 end Adi.Widget.Text_Editor;

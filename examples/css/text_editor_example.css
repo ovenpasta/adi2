@@ -1,0 +1,74 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 24px;
+  gap: 12px;
+  background-color: rgb(20, 24, 31);
+  overflow: hidden;
+}
+
+.title::label {
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.editor {
+  flex-grow: 1;
+  padding: 12px;
+  cursor: text;
+  background-color: rgb(30, 30, 46);
+  border-width: 1px;
+  border-color: rgb(69, 71, 90);
+  border-style: solid;
+  border-radius: 8px;
+  overflow: auto;
+  box-shadow: none;
+}
+
+.editor:focus {
+  border-color: rgb(137, 180, 250);
+  box-shadow: 0px 0px 8px 2px rgba(137, 180, 250, 0.25);
+}
+
+.editor::label {
+  color: rgb(205, 214, 244);
+  font-size: 14px;
+  text-wrap-mode: nowrap;
+}
+
+.editor::cursor {
+  background-color: rgb(245, 224, 220);
+}
+
+.editor::selected {
+  background-color: rgba(137, 180, 250, 0.30);
+}
+
+.editor::scroll {
+  width: 8px;
+  padding: 2px;
+  background-color: rgba(69, 71, 90, 0.3);
+  border-radius: 4px;
+}
+
+.editor::scroll:hover {
+  background-color: rgba(69, 71, 90, 0.6);
+}
+
+.editor::knob {
+  width: 6px;
+  min-height: 24px;
+  background-color: rgba(137, 180, 250, 0.4);
+  border-radius: 3px;
+}
+
+.editor::knob:hover {
+  background-color: rgba(137, 180, 250, 0.6);
+}
+
+.editor::knob:pressed {
+  background-color: rgba(137, 180, 250, 0.8);
+}

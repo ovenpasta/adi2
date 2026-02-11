@@ -83,6 +83,26 @@ package Adi.SDL is
          External_Name => "SDL_ClearError";
 
     ---------------------------------------------------------------------------
+    --  SDL Clipboard
+    ---------------------------------------------------------------------------
+
+    function SDL_SetClipboardText
+      (Text : Interfaces.C.Strings.chars_ptr) return C_bool
+    with Import        => True,
+         Convention    => C,
+         External_Name => "SDL_SetClipboardText";
+
+    function SDL_GetClipboardText return Interfaces.C.Strings.chars_ptr
+    with Import        => True,
+         Convention    => C,
+         External_Name => "SDL_GetClipboardText";
+
+    procedure SDL_free (Mem : Interfaces.C.Strings.chars_ptr)
+    with Import        => True,
+         Convention    => C,
+         External_Name => "SDL_free";
+
+    ---------------------------------------------------------------------------
     --  SDL Helper Utilities
     ---------------------------------------------------------------------------
 

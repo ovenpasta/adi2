@@ -24,6 +24,7 @@ package Adi.Text_Buffer is
       Extend_Selection : Boolean := False);
 
    function Has_Selection (B : Text_Buffer) return Boolean;
+   function Get_Selected_Text (B : Text_Buffer) return String;
    procedure Get_Selection_Range
      (B      : Text_Buffer;
       Start  : out Position;
@@ -35,6 +36,10 @@ package Adi.Text_Buffer is
    procedure Insert_Text (B : in out Text_Buffer; Text : String);
    procedure Delete_Backward (B : in out Text_Buffer);
    procedure Delete_Forward (B : in out Text_Buffer);
+   function Undo (B : in out Text_Buffer) return Boolean;
+   function Redo (B : in out Text_Buffer) return Boolean;
+   function Can_Undo (B : Text_Buffer) return Boolean;
+   function Can_Redo (B : Text_Buffer) return Boolean;
 
    procedure Move_Left  (B : in out Text_Buffer; Extend_Selection : Boolean := False);
    procedure Move_Right (B : in out Text_Buffer; Extend_Selection : Boolean := False);
@@ -42,6 +47,19 @@ package Adi.Text_Buffer is
    procedure Move_End   (B : in out Text_Buffer; Extend_Selection : Boolean := False);
    procedure Move_Up    (B : in out Text_Buffer; Extend_Selection : Boolean := False);
    procedure Move_Down  (B : in out Text_Buffer; Extend_Selection : Boolean := False);
+
+   procedure Move_Page_Up
+     (B              : in out Text_Buffer;
+      Lines_Per_Page : Positive;
+      Extend_Selection : Boolean := False);
+   procedure Move_Page_Down
+     (B              : in out Text_Buffer;
+      Lines_Per_Page : Positive;
+      Extend_Selection : Boolean := False);
+   procedure Move_To_Start
+     (B : in out Text_Buffer; Extend_Selection : Boolean := False);
+   procedure Move_To_End
+     (B : in out Text_Buffer; Extend_Selection : Boolean := False);
 
 private
    package Line_Vectors is new Ada.Containers.Vectors
@@ -53,10 +71,22 @@ private
       Anchor : Position := (Line => 1, Column => 0);
    end record;
 
+   type Buffer_Snapshot is record
+      Lines     : Line_Vectors.Vector;
+      Caret     : Position := (Line => 1, Column => 0);
+      Selection : Selection_State;
+   end record;
+
+   package Snapshot_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Natural,
+      Element_Type => Buffer_Snapshot);
+
    type Text_Buffer is tagged record
       Lines     : Line_Vectors.Vector;
       Caret     : Position := (Line => 1, Column => 0);
       Selection : Selection_State;
+      Undo_Stack : Snapshot_Vectors.Vector;
+      Redo_Stack : Snapshot_Vectors.Vector;
    end record;
 
 end Adi.Text_Buffer;

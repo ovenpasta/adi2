@@ -72,6 +72,7 @@ package Adi.Widget is
       Text_Content   : Unbounded_String := Null_Unbounded_String;
       Wrap_Text      : Boolean := True;
       Text_Offset_X  : Pixel_Type := 0.0;
+      Text_Offset_Y  : Pixel_Type := 0.0;
 
       --  Image_Item fields (unused by other kinds)
       Image_Source   : Image_Access := null;
@@ -251,6 +252,7 @@ package Adi.Widget is
      (W                : in out Widget'Class;
       Delta_X, Delta_Y : Pixel_Type);
    procedure Tick_Scroll_Animations (W : in out Widget'Class; DT : Duration);
+   procedure Update_Scrollbar_Geometry (W : in out Widget'Class);
 
    ---------------------------------------------------------------------------
    --  Flags

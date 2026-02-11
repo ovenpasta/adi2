@@ -2,6 +2,8 @@ with Ada.Characters.Latin_1;
 
 package body Adi.Text_Buffer is
 
+   Max_History_Depth : constant Natural := 200;
+
    function Is_UTF8_Continuation_Byte (C : Character) return Boolean is
       V : constant Natural := Character'Pos (C);
    begin
@@ -95,6 +97,42 @@ package body Adi.Text_Buffer is
       return L.Line < R.Line or else (L.Line = R.Line and then L.Column < R.Column);
    end "<";
 
+   function Make_Snapshot (B : Text_Buffer) return Buffer_Snapshot is
+   begin
+      return (Lines     => B.Lines,
+              Caret     => B.Caret,
+              Selection => B.Selection);
+   end Make_Snapshot;
+
+   procedure Trim_History (Stack : in out Snapshot_Vectors.Vector) is
+   begin
+      while Natural (Stack.Length) > Max_History_Depth loop
+         Stack.Delete_First;
+      end loop;
+   end Trim_History;
+
+   procedure Record_Edit (B : in out Text_Buffer) is
+   begin
+      B.Undo_Stack.Append (Make_Snapshot (B));
+      Trim_History (B.Undo_Stack);
+      B.Redo_Stack.Clear;
+   end Record_Edit;
+
+   procedure Restore_Snapshot
+     (B : in out Text_Buffer;
+      S : Buffer_Snapshot)
+   is
+   begin
+      B.Lines := S.Lines;
+      B.Caret := S.Caret;
+      B.Selection := S.Selection;
+      Ensure_Not_Empty (B);
+      B.Caret := To_Pos (B, B.Caret);
+      if B.Selection.Active then
+         B.Selection.Anchor := To_Pos (B, B.Selection.Anchor);
+      end if;
+   end Restore_Snapshot;
+
    procedure Get_Selection_Bounds
      (B : Text_Buffer;
       A : out Position;
@@ -173,6 +211,7 @@ package body Adi.Text_Buffer is
 
    procedure Clear (B : in out Text_Buffer) is
    begin
+      Record_Edit (B);
       B.Lines.Clear;
       B.Lines.Append (To_Unbounded_String (""));
       B.Caret := (Line => 1, Column => 0);
@@ -182,6 +221,7 @@ package body Adi.Text_Buffer is
    procedure Set_Text (B : in out Text_Buffer; Text : String) is
       Start : Positive := Text'First;
    begin
+      Record_Edit (B);
       B.Lines.Clear;
 
       if Text'Length = 0 then
@@ -258,6 +298,42 @@ package body Adi.Text_Buffer is
       return B.Selection.Active and then B.Selection.Anchor /= B.Caret;
    end Has_Selection;
 
+   function Get_Selected_Text (B : Text_Buffer) return String is
+      LF    : constant Character := Ada.Characters.Latin_1.LF;
+      Start : Position;
+      Stop  : Position;
+   begin
+      if not Has_Selection (B) then
+         return "";
+      end if;
+      Get_Selection_Bounds (B, Start, Stop);
+
+      if Start.Line = Stop.Line then
+         declare
+            L : constant String := Get_Line (B, Start.Line);
+         begin
+            return L (L'First + Start.Column .. L'First + Stop.Column - 1);
+         end;
+      end if;
+
+      --  Multi-line: first partial + middle full lines + last partial
+      declare
+         use Ada.Strings.Unbounded;
+         Result : Unbounded_String;
+         First_L : constant String := Get_Line (B, Start.Line);
+         Last_L  : constant String := Get_Line (B, Stop.Line);
+      begin
+         Append (Result, First_L (First_L'First + Start.Column .. First_L'Last));
+         for L in Start.Line + 1 .. Stop.Line - 1 loop
+            Append (Result, LF);
+            Append (Result, Get_Line (B, L));
+         end loop;
+         Append (Result, LF);
+         Append (Result, Last_L (Last_L'First .. Last_L'First + Stop.Column - 1));
+         return To_String (Result);
+      end;
+   end Get_Selected_Text;
+
    procedure Get_Selection_Range
      (B      : Text_Buffer;
       Start  : out Position;
@@ -313,6 +389,7 @@ package body Adi.Text_Buffer is
          return;
       end if;
 
+      Record_Edit (B);
       if Has_Selection (B) then
          Delete_Selection (B);
       end if;
@@ -370,12 +447,14 @@ package body Adi.Text_Buffer is
       Ensure_Not_Empty (B);
 
       if Has_Selection (B) then
+         Record_Edit (B);
          Delete_Selection (B);
          return;
       end if;
 
       Cur := B.Caret;
       if Cur.Column > 0 then
+         Record_Edit (B);
          declare
             Line_Text : constant String := To_String (B.Lines.Element (Cur.Line));
             Prev_Col  : constant Natural := Prev_UTF8_Column (Line_Text, Cur.Column);
@@ -388,6 +467,7 @@ package body Adi.Text_Buffer is
             B.Caret.Column := Prev_Col;
          end;
       elsif Cur.Line > 1 then
+         Record_Edit (B);
          declare
             Prev_Text : constant String := To_String (B.Lines.Element (Cur.Line - 1));
             Line_Text : constant String := To_String (B.Lines.Element (Cur.Line));
@@ -406,6 +486,7 @@ package body Adi.Text_Buffer is
       Ensure_Not_Empty (B);
 
       if Has_Selection (B) then
+         Record_Edit (B);
          Delete_Selection (B);
          return;
       end if;
@@ -415,6 +496,7 @@ package body Adi.Text_Buffer is
          Line_Text : constant String := To_String (B.Lines.Element (Cur.Line));
       begin
          if Cur.Column < Line_Text'Length then
+         Record_Edit (B);
          declare
             Next_Col : constant Natural := Next_UTF8_Column (Line_Text, Cur.Column);
             Left_Part  : constant String :=
@@ -426,6 +508,7 @@ package body Adi.Text_Buffer is
             B.Lines.Replace_Element (Cur.Line, To_Unbounded_String (Left_Part & Right_Part));
          end;
          elsif Cur.Line < B.Lines.Last_Index then
+            Record_Edit (B);
             declare
                Next_Text : constant String := To_String (B.Lines.Element (Cur.Line + 1));
             begin
@@ -436,6 +519,46 @@ package body Adi.Text_Buffer is
          end if;
       end;
    end Delete_Forward;
+
+   function Undo (B : in out Text_Buffer) return Boolean is
+      Previous : Buffer_Snapshot;
+   begin
+      if B.Undo_Stack.Is_Empty then
+         return False;
+      end if;
+
+      Previous := B.Undo_Stack.Last_Element;
+      B.Undo_Stack.Delete_Last;
+      B.Redo_Stack.Append (Make_Snapshot (B));
+      Trim_History (B.Redo_Stack);
+      Restore_Snapshot (B, Previous);
+      return True;
+   end Undo;
+
+   function Redo (B : in out Text_Buffer) return Boolean is
+      Next : Buffer_Snapshot;
+   begin
+      if B.Redo_Stack.Is_Empty then
+         return False;
+      end if;
+
+      Next := B.Redo_Stack.Last_Element;
+      B.Redo_Stack.Delete_Last;
+      B.Undo_Stack.Append (Make_Snapshot (B));
+      Trim_History (B.Undo_Stack);
+      Restore_Snapshot (B, Next);
+      return True;
+   end Redo;
+
+   function Can_Undo (B : Text_Buffer) return Boolean is
+   begin
+      return not B.Undo_Stack.Is_Empty;
+   end Can_Undo;
+
+   function Can_Redo (B : Text_Buffer) return Boolean is
+   begin
+      return not B.Redo_Stack.Is_Empty;
+   end Can_Redo;
 
    procedure Move_Left (B : in out Text_Buffer; Extend_Selection : Boolean := False) is
       A, Z : Position;
@@ -522,5 +645,64 @@ package body Adi.Text_Buffer is
            (B.Caret.Column, To_String (B.Lines.Element (B.Caret.Line))'Length);
       end if;
    end Move_Down;
+
+   procedure Move_Page_Up
+     (B              : in out Text_Buffer;
+      Lines_Per_Page : Positive;
+      Extend_Selection : Boolean := False)
+   is
+      Target_Line : Positive;
+   begin
+      Ensure_Not_Empty (B);
+      Set_Selection_Mode (B, Extend_Selection);
+      if B.Caret.Line > Lines_Per_Page then
+         Target_Line := B.Caret.Line - Lines_Per_Page;
+      else
+         Target_Line := 1;
+      end if;
+      B.Caret.Line := Target_Line;
+      B.Caret.Column := Natural'Min
+        (B.Caret.Column, To_String (B.Lines.Element (B.Caret.Line))'Length);
+   end Move_Page_Up;
+
+   procedure Move_Page_Down
+     (B              : in out Text_Buffer;
+      Lines_Per_Page : Positive;
+      Extend_Selection : Boolean := False)
+   is
+      Last : Positive;
+   begin
+      Ensure_Not_Empty (B);
+      Set_Selection_Mode (B, Extend_Selection);
+      Last := Positive (B.Lines.Last_Index);
+      if B.Caret.Line + Lines_Per_Page <= Last then
+         B.Caret.Line := B.Caret.Line + Lines_Per_Page;
+      else
+         B.Caret.Line := Last;
+      end if;
+      B.Caret.Column := Natural'Min
+        (B.Caret.Column, To_String (B.Lines.Element (B.Caret.Line))'Length);
+   end Move_Page_Down;
+
+   procedure Move_To_Start
+     (B : in out Text_Buffer; Extend_Selection : Boolean := False)
+   is
+   begin
+      Set_Caret (B, (Line => 1, Column => 0),
+                 Extend_Selection => Extend_Selection);
+   end Move_To_Start;
+
+   procedure Move_To_End
+     (B : in out Text_Buffer; Extend_Selection : Boolean := False)
+   is
+      Last_Line : Positive;
+      Last_Col  : Natural;
+   begin
+      Ensure_Not_Empty (B);
+      Last_Line := Positive (B.Lines.Last_Index);
+      Last_Col := To_String (B.Lines.Element (Last_Line))'Length;
+      Set_Caret (B, (Line => Last_Line, Column => Last_Col),
+                 Extend_Selection => Extend_Selection);
+   end Move_To_End;
 
 end Adi.Text_Buffer;

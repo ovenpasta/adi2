@@ -25,6 +25,7 @@ alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=styles
 alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=layout_test
 alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=css_parser_test
 alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=css_source_test
+alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=text_buffer_test
 ```
 
 ### Building specific examples
@@ -35,6 +36,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=button_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=transition_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=text_input_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=text_editor_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=demo_flex
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
@@ -53,6 +55,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 ./tests/bin/layout_test
 ./tests/bin/css_parser_test
 ./tests/bin/css_source_test
+./tests/bin/text_buffer_test
 ```
 
 ### Running examples
@@ -63,6 +66,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 ./examples/bin/button_example
 ./examples/bin/transition_example
 ./examples/bin/text_input_example
+./examples/bin/text_editor_example
 ./examples/bin/demo_flex
 ./examples/bin/stack_example
 ./examples/bin/list_box_example
@@ -189,13 +193,18 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 - Line-oriented text storage for editing widgets
 - Caret model with line/column positions
 - Selection support and editing/navigation operations (`Insert_Text`, `Delete_Backward`, `Move_Left`, etc.)
-- Reusable foundation for single-line and future multiline text editors
+- Reusable foundation for single-line and multiline text editors
 - UTF-8 aware caret movement/editing: left/right/delete/backspace operate on character boundaries (not raw bytes)
-- Selection introspection API: `Get_Selection_Range`
+- Selection introspection API: `Get_Selection_Range`, `Get_Selected_Text`
+- Extended navigation: `Move_Page_Up`, `Move_Page_Down`, `Move_To_Start`, `Move_To_End`
+- Undo/redo history with snapshot restore of text, caret, and selection (`Undo`, `Redo`, `Can_Undo`, `Can_Redo`)
+- History is capped (200 edits) and redo history is invalidated by new edits after undo
 
 **Adi.Widget.Text_Input** (`adi-widget-text_input.ads`): Single-line text input widget
 - Uses `Adi.Text_Buffer` for text/caret/selection state
-- Supports keyboard navigation/editing (arrows, home/end, backspace/delete, select-all)
+- Supports keyboard navigation/editing (arrows, home/end, backspace/delete, select-all, undo/redo)
+- Clipboard support: Ctrl+C (copy), Ctrl+X (cut), Ctrl+V (paste; strips newlines for single-line)
+- Undo/redo shortcuts: Ctrl+Z / Ctrl+Y
 - Receives `On_Key_Down`, `On_Key_Up`, and `On_Text_Input` through window focus dispatch
 - Renders a styled caret via `Cursor_Part`
 - Renders selection highlight via `Selected_Part`
@@ -206,8 +215,25 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 - Selection highlight is clamped to content bounds (no overflow outside the widget)
 - Dragging selection left of the widget clamps to the start of text (column 0)
 - Double-click word selection is deferred until mouse-up; moving past a small threshold converts to normal drag selection
+- Empty text still shows caret with proper line-height fallback metrics (caret no longer disappears)
 - `Create` sets `Clickable` and `Focusable` so caret placement/selection works with mouse routing
 - `Create` does not apply built-in styles; examples/apps define `Main/Label/Cursor/Selected` part styles explicitly
+
+**Adi.Widget.Text_Editor** (`adi-widget-text_editor.ads`): Multiline plain-text editor widget
+- Uses `Adi.Text_Buffer` for multiline text storage, caret, and selection state
+- Supports full keyboard navigation: arrows, Home/End, Ctrl+Home/End, Page Up/Down, Shift+arrows for selection, Ctrl+A select-all
+- Clipboard support: Ctrl+C (copy), Ctrl+X (cut), Ctrl+V (paste; multiline supported)
+- Undo/redo shortcuts: Ctrl+Z / Ctrl+Y
+- Enter inserts newline, Tab inserts spaces, Backspace/Delete work across lines
+- Renders all text in a single `Text_Item` with `Text_Offset_Y` for vertical scrolling
+- Selection highlights are per-visible-line `Selected_Part` panels, dynamically sized
+- Caret rendered via `Cursor_Part`, hidden when not focused or offscreen
+- Shared vertical scrollbar via `Scroll_Part`/`Knob_Part` (reuses base overflow-scroll system)
+- Widget manages its own `Scroll_Content_H` (not derived from children); `Update_Shared_Scroll_Layout` skips content-height override when widget has no children
+- Mouse interaction: click places caret, drag selects, double-click selects word, triple-click selects line
+- Mouse wheel scrolls, scrollbar drag supported
+- `Create` sets `Clickable`, `Focusable`, `Scrollable` flags
+- Parts used: `Main_Part` (background), `Label_Part` (text), `Cursor_Part` (caret), `Selected_Part` (selection), `Scroll_Part`/`Knob_Part` (scrollbar)
 
 **Adi.Widget.List_Box** (`adi-widget-list_box.ads`): Generic list container widget
 - Generic over row widget type (`Row_Widget` / `Row_Widget_Access`)
@@ -305,7 +331,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 ### SDL Integration
 
 The library provides Ada bindings for SDL3 in `adi-sdl*.ads` files:
-- `Adi.SDL`: Core SDL types and initialization (defines `Uint8`, `Uint32`, `C_bool`, `SDL_Rect`, etc.)
+- `Adi.SDL`: Core SDL types, initialization, clipboard (`SDL_SetClipboardText`, `SDL_GetClipboardText`, `SDL_free`)
 - `Adi.SDL.Video`: Window management bindings
 - `Adi.SDL.Render`: Renderer bindings
 - `Adi.SDL.Events`: Event handling bindings
@@ -317,9 +343,9 @@ The library provides Ada bindings for SDL3 in `adi-sdl*.ads` files:
 - `Adi.SDL.PixelFormat`: Pixel format constant enumerations
 
 Recent binding additions:
+- `Adi.SDL`: `SDL_SetClipboardText`, `SDL_GetClipboardText`, `SDL_free`
 - `Adi.SDL.Video`: `SDL_SetWindowMinimumSize`
-- `Adi.SDL.Events`: `SDL_SCANCODE_ESCAPE`
-- `Adi.SDL.Events`: `SDL_SCANCODE_SPACE`
+- `Adi.SDL.Events`: `SDL_SCANCODE_ESCAPE`, `SDL_SCANCODE_SPACE`, `SDL_SCANCODE_Y`, `SDL_SCANCODE_Z`
 
 **Binding Design Pattern**: These are clean, hand-crafted bindings that:
 - Use native Ada types (`Uint8`, `Uint32`, `C_bool`, `int`, `Float`) instead of raw C imports
@@ -337,6 +363,7 @@ src/                  - Main library source files
   adi-*.ad[bs]        - All library modules follow Ada package naming
   adi-widget-*.ad[bs] - Widget implementations (Box, Label)
   adi-widget-combo_box.ad[bs] - Combo box widget with overlay popup list
+  adi-widget-text_editor.ad[bs] - Multiline plain-text editor widget
   adi-widget-dialog.ad[bs] - Modal dialog/alert widget with overlay backdrop
   adi-animation.ad[bs] - Style transition animation and interpolation
   adi-sdl-*.ad[bs]    - SDL3 bindings (core, video, render, events, mouse, ttf, image, surface)
@@ -353,6 +380,7 @@ examples/
   button_example.adb  - Button states, callbacks, and option groups
   transition_example.adb - Transition/easing showcase
   text_input_example.adb - Text input widget demo
+  text_editor_example.adb - Multiline text editor demo with scrolling and selection
   demo_flex.adb       - Flexbox layout demo
   stack_example.adb   - Stack container with tab switching
   list_box_example.adb - List box selection/scrolling demo
@@ -364,6 +392,7 @@ examples/
   runtime_css_example.adb - Runtime CSS demo using `Adi.CSS_Source` with button toggle between dynamic and static sources
   css/widget_defaults.css - Shared default visual styles used by multiple examples
   css/runtime_css_example.css - Runtime stylesheet used by runtime_css_example
+  css/text_editor_example.css - Text editor widget styles
   css/                - CSS sources for generated example styles
   generated/          - Auto-generated Ada style packages from CSS
   examples.gpr        - Example project file (uses EXAMPLE_KIND scenario)
@@ -392,7 +421,7 @@ All packages are rooted under `Adi`:
 - `Adi.CSS_Styles` - CSS value types and style resolution
 - `Adi.Widget_Styles` - State-based widget styling
 - `Adi.Widget` - Base widget abstraction
-- `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.List_Box`, `Adi.Widget.Stack`, `Adi.Widget.Combo_Box`, `Adi.Widget.Dialog`, `Adi.Widget.Button.Switch` - Concrete widgets
+- `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.Text_Editor`, `Adi.Widget.List_Box`, `Adi.Widget.Stack`, `Adi.Widget.Combo_Box`, `Adi.Widget.Dialog`, `Adi.Widget.Button.Switch` - Concrete widgets
 - `Adi.Widget.Part_Styles` - Multi-part style builder
 - `Adi.Text_Buffer` - Shared text editing model
 - `Adi.Animation` - CSS-like style transitions and interpolation

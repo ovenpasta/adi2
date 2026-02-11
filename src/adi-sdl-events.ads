@@ -29,6 +29,8 @@ package Adi.SDL.Events is
    SDL_SCANCODE_C         : constant SDL_Scancode := 6;
    SDL_SCANCODE_V         : constant SDL_Scancode := 25;
    SDL_SCANCODE_X         : constant SDL_Scancode := 27;
+   SDL_SCANCODE_Y         : constant SDL_Scancode := 28;
+   SDL_SCANCODE_Z         : constant SDL_Scancode := 29;
    SDL_SCANCODE_RETURN    : constant SDL_Scancode := 40;
    SDL_SCANCODE_ESCAPE    : constant SDL_Scancode := 41;
    SDL_SCANCODE_SPACE     : constant SDL_Scancode := 44;

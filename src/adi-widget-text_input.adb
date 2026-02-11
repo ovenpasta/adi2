@@ -2,6 +2,7 @@ with Ada.Characters.Latin_1;
 with Adi.CSS_Styles;          use Adi.CSS_Styles;
 with Adi.Font;
 with Adi.Layout_Util;         use Adi.Layout_Util;
+with Adi.SDL;
 with Adi.SDL.Events;          use Adi.SDL.Events;
 with Adi.SDL.TTF;             use Adi.SDL.TTF;
 with Adi.Text_Buffer;         use Adi.Text_Buffer;
@@ -309,6 +310,10 @@ package body Adi.Widget.Text_Input is
            Decoration => Label_Style.Text_Decoration);
       Text_Size    : constant Size_2D :=
         Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => First_Line);
+      Metric_Text  : constant String :=
+        (if First_Line'Length = 0 then "M" else First_Line);
+      Line_Height  : constant Pixel_Type :=
+        Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => Metric_Text).Height;
       Caret_Col    : constant Natural := Normalize_Column (First_Line, Caret.Column);
       Prefix_W     : constant Pixel_Type :=
         Prefix_Width_For_Column (Label_Style, First_Line, Caret_Col);
@@ -316,8 +321,8 @@ package body Adi.Widget.Text_Input is
       Max_Scroll   : constant Pixel_Type :=
         Pixel_Type'Max (0.0, Text_Size.Width - Content.Width);
       Caret_Right  : constant Pixel_Type := Prefix_W + 1.0;
-      Text_Y       : constant Pixel_Type := Content.Y + (Content.Height - Text_Size.Height) / 2.0;
-      Cursor_H     : constant Pixel_Type := Pixel_Type'Min (Content.Height, Text_Size.Height);
+      Text_Y       : constant Pixel_Type := Content.Y + (Content.Height - Line_Height) / 2.0;
+      Cursor_H     : constant Pixel_Type := Pixel_Type'Min (Content.Height, Line_Height);
       Cursor_Y     : constant Pixel_Type := Content.Y + (Content.Height - Cursor_H) / 2.0;
       Cursor_X     : Pixel_Type;
    begin
@@ -365,7 +370,7 @@ package body Adi.Widget.Text_Input is
                Sel_It.Geometry := (X      => Sel_Left,
                                    Y      => Text_Y,
                                    Width  => Pixel_Type'Max (0.0, Sel_Right - Sel_Left),
-                                   Height => Text_Size.Height);
+                                   Height => Line_Height);
             end;
          else
             Sel_It.Geometry := (0.0, 0.0, 0.0, 0.0);
@@ -380,7 +385,7 @@ package body Adi.Widget.Text_Input is
          Text_It.Geometry := (X      => Content.X,
                               Y      => Text_Y,
                               Width  => Content.Width,
-                              Height => Text_Size.Height);
+                              Height => Line_Height);
          Text_It.Text_Offset_X := -Scroll_X;
       end;
 
@@ -408,9 +413,87 @@ package body Adi.Widget.Text_Input is
       Shift : constant Boolean := Is_Mod_Active (Key_Mod, SDL_KMOD_SHIFT);
       Ctrl  : constant Boolean := Is_Mod_Active (Key_Mod, SDL_KMOD_CTRL);
    begin
+      if Ctrl and then Scancode = SDL_SCANCODE_Z then
+         if Undo (W.Buffer) then
+            Fire_Changed (W);
+         end if;
+         return;
+      end if;
+
+      if Ctrl and then Scancode = SDL_SCANCODE_Y then
+         if Redo (W.Buffer) then
+            Fire_Changed (W);
+         end if;
+         return;
+      end if;
+
       if Ctrl and then Scancode = SDL_SCANCODE_A then
          Select_All (W.Buffer);
          Mark_Dirty (W);
+         return;
+      end if;
+
+      --  Ctrl+C: Copy
+      if Ctrl and then Scancode = SDL_SCANCODE_C then
+         if Has_Selection (W.Buffer) then
+            declare
+               Txt    : constant String := Get_Selected_Text (W.Buffer);
+               C_Txt  : chars_ptr := New_String (Txt);
+               Ignore : Adi.SDL.C_bool;
+            begin
+               Ignore := Adi.SDL.SDL_SetClipboardText (C_Txt);
+               Free (C_Txt);
+            end;
+         end if;
+         return;
+      end if;
+
+      --  Ctrl+X: Cut
+      if Ctrl and then Scancode = SDL_SCANCODE_X then
+         if Has_Selection (W.Buffer) then
+            declare
+               Txt    : constant String := Get_Selected_Text (W.Buffer);
+               C_Txt  : chars_ptr := New_String (Txt);
+               Ignore : Adi.SDL.C_bool;
+            begin
+               Ignore := Adi.SDL.SDL_SetClipboardText (C_Txt);
+               Free (C_Txt);
+            end;
+            Delete_Backward (W.Buffer);
+            Fire_Changed (W);
+         end if;
+         return;
+      end if;
+
+      --  Ctrl+V: Paste (strip newlines for single-line input)
+      if Ctrl and then Scancode = SDL_SCANCODE_V then
+         declare
+            C_Txt : constant chars_ptr := Adi.SDL.SDL_GetClipboardText;
+         begin
+            if C_Txt /= Null_Ptr then
+               declare
+                  Raw : constant String := Value (C_Txt);
+                  Txt : String (Raw'Range);
+                  Len : Natural := 0;
+               begin
+                  Adi.SDL.SDL_free (C_Txt);
+                  --  Replace LF/CR with spaces for single-line
+                  for C of Raw loop
+                     if C /= Ada.Characters.Latin_1.LF
+                       and then C /= Ada.Characters.Latin_1.CR
+                     then
+                        Len := Len + 1;
+                        Txt (Txt'First + Len - 1) := C;
+                     end if;
+                  end loop;
+                  if Len > 0 then
+                     Insert_Text (W.Buffer,
+                                  Txt (Txt'First .. Txt'First + Len - 1));
+                     Fire_Changed (W);
+                  end if;
+               end;
+            end if;
+         end;
          return;
       end if;
 

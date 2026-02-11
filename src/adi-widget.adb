@@ -1031,8 +1031,6 @@ package body Adi.Widget is
 
       if Has_Content then
          W.Scroll_Content_H := Pixel_Type'Max (W.Scroll_Viewport_H, Content_Bottom - Min_Top);
-      else
-         W.Scroll_Content_H := W.Scroll_Viewport_H;
       end if;
 
       Clamp_Scroll_Offset (W);
@@ -2253,7 +2251,7 @@ package body Adi.Widget is
       Success := TTF_DrawRendererText
         (Text_Obj,
          C_float (Float'Floor (Float (Geom.X + It.Text_Offset_X))),
-         C_float (Float'Floor (Float (Geom.Y))));
+         C_float (Float'Floor (Float (Geom.Y + It.Text_Offset_Y))));
 
       if Use_Clip then
          if Had_Clip then

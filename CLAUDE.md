@@ -48,6 +48,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=dialog_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=animated_image_example
+alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=rlottie_example
 ```
 
 ### Running tests
@@ -80,12 +81,14 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=animated_image_exam
 ./examples/bin/font_example
 ./examples/bin/runtime_css_example
 ./examples/bin/animated_image_example
+./examples/bin/rlottie_example
 ```
 
 ### External Dependencies
 - **SDL3**: Required for windowing and event handling (linked via `-lSDL3`)
 - **SDL3_ttf**: Required for TrueType font rendering (linked via `-lSDL3_ttf`)
 - **SDL3_image**: Required for image loading (linked via `-lSDL3_image`)
+- **rlottie**: Required only by `rlottie_example` (linked via `-lrlottie` in `examples/examples.gpr` for that example kind)
 - **gnatcoll_minimal**: Ada library dependency managed by Alire
 
 ## Architecture
@@ -171,6 +174,14 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=animated_image_exam
 - Converts decoded frames to SDL textures (`Image_Access` per frame)
 - Playback controls: `Start`, `Stop`, `Reset`, `Set_Looping`, `Advance`
 - Uses per-frame delay metadata from source animation (`delays[]` in milliseconds)
+
+**Adi.RLottie** (`adi-rlottie.ads`): Lottie animation resource management
+- Loads Lottie JSON animations through the rlottie C API
+- CPU-renders frames into ARGB `SDL_Surface` frame caches
+- Background preload task fills frame surface cache; playback can stall while waiting for ready frames
+- Uploads current ready frame surface to a streaming SDL texture for display
+- Playback controls: `Start`, `Stop`, `Reset`, `Set_Looping`, `Set_Playback_Speed`, `Advance`
+- Preload controls: `Set_Preload_Threshold`, `Get_Preloaded_Frame_Count`, `Is_Preload_Complete`
 
 **Adi.Widget** (`adi-widget.ads`): Base widget abstraction
 - `Add_Child`/`Remove_Child` accept `access Widget'Class` (no `Widget_Access` cast needed at call sites)
@@ -314,11 +325,16 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=animated_image_exam
 - Type-safe binding with `Button.Options`: instantiate both over the same enum, wire `On_Changed` to `Set_Active`
 - Internally stores `array (Page_Id) of Widget_Access` — enum is the key, no index tracking
 
-**Adi.Widget.Animated_Image** (`adi-widget-animated_image.ads`): Animated image display widget
-- Renders animated frames through `Icon_Part` (image) and `Main_Part` (container)
-- Supports widget-level playback controls: `Start`, `Stop`, `Reset`, loop toggle
-- `On_Tick` advances animation by delta time and marks dirty only when frame changes
-- Can load from file directly (`Load_From_File`) or consume preloaded `Animated_Image_Access`
+**Adi.Widget.Animated_Widget** (`adi-widget-animated_widget.ads`): Unified animated display widget
+- Single widget type for animated image and Lottie playback
+- Common controls: `Start`, `Stop`, `Reset`, `Set_Looping`, `Set_Playback_Speed`, `Set_Max_Size`
+- Uses a safe typed backend abstraction (abstract tagged backend + dispatch), without `System.Address` bridges or `Unchecked_Conversion`
+- Parent package provides image path (`Set_Animation` with `Animated_Image_Access`, `Load_Image_From_File`)
+- `On_Tick` advances backend animation and marks dirty only when frame changes
+
+**Adi.Widget.Animated_Widget.RLottie** (`adi-widget-animated_widget-rlottie.ads`): RLottie adapter for unified widget
+- RLottie-specific binding helpers for `Animated_Widget` (`Set_Animation`, `Load_From_File`, `Create`, `Get_Animation`)
+- Keeps RLottie coupling isolated in child package while preserving one common animated widget API
 
 **Adi.Layout_Util** (`adi-layout_util.ads`): Layout algorithms
 - Box model calculations: `Content_Box`, `Padding_Box`
@@ -349,7 +365,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=animated_image_exam
 - Optional loop diagnostics: set `ADI_DEBUG_LOOP=1` to log tick dirty transitions and render/relayout triggers
 - Optional minimum-size policy can enforce window min size from layout (`Set_Enforce_Layout_Min_Size`, `Apply_Window_Min_Size_From_Layout`)
 - Window resize/reshape handling
-- Image convenience loaders: `Load_Image` and `Load_Animated_Image`
+- Image convenience loaders: `Load_Image` and `Load_Animated_Image` (`Load_RLottie` convenience removed; use `Adi.RLottie.Load_From_File` with `Get_Renderer`)
 
 **Adi.App** (`adi-app.ads`): Application entry point
 - Initialization and main loop
@@ -430,6 +446,8 @@ examples/
   text_input_example.adb - Text input widget demo
   text_editor_example.adb - Multiline text editor demo with scrolling and selection
   animated_image_example.adb - Animated image widget demo with start/stop/reset/loop controls
+  rlottie_example.adb - RLottie widget demo with transport controls and CSS styling
+  assets/lottie_sample.json - RLottie example animation asset
   demo_flex.adb       - Flexbox layout demo
   stack_example.adb   - Stack container with tab switching
   list_box_example.adb - List box selection/scrolling demo
@@ -443,6 +461,7 @@ examples/
   css/runtime_css_example.css - Runtime stylesheet used by runtime_css_example
   css/text_editor_example.css - Text editor widget styles
   css/animated_image_example.css - Animated image example styles
+  css/rlottie_example.css - RLottie example styles
   css/                - CSS sources for generated example styles
   generated/          - Auto-generated Ada style packages from CSS
   examples.gpr        - Example project file (uses EXAMPLE_KIND scenario)
@@ -471,8 +490,8 @@ All packages are rooted under `Adi`:
 - `Adi.CSS_Styles` - CSS value types and style resolution
 - `Adi.Widget_Styles` - State-based widget styling
 - `Adi.Widget` - Base widget abstraction
-- `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.Text_Editor`, `Adi.Widget.List_Box`, `Adi.Widget.Stack`, `Adi.Widget.Combo_Box`, `Adi.Widget.Dialog`, `Adi.Widget.Button.Switch` - Concrete widgets
-- `Adi.Widget.Animated_Image` - Animated image display widget
+- `Adi.Widget.Box`, `Adi.Widget.Label`, `Adi.Widget.Text_Input`, `Adi.Widget.Text_Editor`, `Adi.Widget.List_Box`, `Adi.Widget.Stack`, `Adi.Widget.Combo_Box`, `Adi.Widget.Dialog`, `Adi.Widget.Button.Switch`, `Adi.Widget.Animated_Widget` - Concrete widgets
+- `Adi.Widget.Animated_Widget.RLottie` - RLottie adapter for unified animated widget
 - `Adi.Widget.Context_Menu` - Generic context menu overlay widget
 - `Adi.Widget.Text_Context_Menu` - Shared factory for buffer-backed text context menus
 - `Adi.Widget.Part_Styles` - Multi-part style builder
@@ -486,6 +505,7 @@ All packages are rooted under `Adi`:
   - Fallback font variant probing for Linux-style suffixes (`Regular`, `Medium`, `Light`, `Thin`, `Black`, `Bold`, with italic/oblique combinations)
 - `Adi.Image` - Image resource management
 - `Adi.Animated_Image` - Animated image resource management
+- `Adi.RLottie` - Lottie animation resource management
 - `Adi.Layout_Util` - Layout algorithms
 - `Adi.Render` - Per-renderer context and caches
 - `Adi.Window` - Window management

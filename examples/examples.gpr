@@ -1,7 +1,7 @@
 with "../adi.gpr";  -- Reference your main project
 
 project Examples is
-   type Example_Kind is ("label_example", "widget_demo", "button_example", "transition_example", "text_input_example", "text_editor_example", "demo_flex", "stack_example", "list_box_example", "combo_box_example", "overflow_example", "grid_example", "dialog_example", "font_example", "runtime_css_example", "animated_image_example");
+   type Example_Kind is ("label_example", "widget_demo", "button_example", "transition_example", "text_input_example", "text_editor_example", "demo_flex", "stack_example", "list_box_example", "combo_box_example", "overflow_example", "grid_example", "dialog_example", "font_example", "runtime_css_example", "animated_image_example", "rlottie_example");
    Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");
 
    for Source_Dirs use (".", "generated");
@@ -19,9 +19,15 @@ project Examples is
    end Binder;
 
    package Linker is
-      --  Link against SDL3, SDL3_ttf, and SDL3_image
-      for Default_Switches ("Ada") use
-         ("-L/usr/local/lib", "-lSDL3", "-lSDL3_ttf", "-lSDL3_image", "-lm",
-          "-Wl,-rpath,/usr/local/lib");
+      case Kind is
+         when "rlottie_example" =>
+            for Default_Switches ("Ada") use
+              ("-L/usr/local/lib", "-lSDL3", "-lSDL3_ttf", "-lSDL3_image", "-lrlottie", "-lm",
+               "-Wl,-rpath,/usr/local/lib");
+         when others =>
+            for Default_Switches ("Ada") use
+              ("-L/usr/local/lib", "-lSDL3", "-lSDL3_ttf", "-lSDL3_image", "-lm",
+               "-Wl,-rpath,/usr/local/lib");
+      end case;
    end Linker;
 end Examples;

@@ -7,7 +7,7 @@ with Adi.Widget;
 with Adi.Widget.Box;
 with Adi.Widget.Label;
 with Adi.Widget.Button;          use Adi.Widget.Button;
-with Adi.Widget.Animated_Image;
+with Adi.Widget.Animated_Widget;
 with Adi.Animated_Image;         use Adi.Animated_Image;
 with Animated_Image_Example_Styles; use Animated_Image_Example_Styles;
 
@@ -46,8 +46,8 @@ begin
           ("Animhorse.gif from Wikimedia Commons with live playback controls");
       Viewer_Frame : constant Adi.Widget.Box.Box_Widget_Access :=
         Adi.Widget.Box.Create;
-      Viewer : constant Adi.Widget.Animated_Image.Animated_Image_Widget_Access :=
-        Adi.Widget.Animated_Image.Create;
+      Viewer : constant Adi.Widget.Animated_Widget.Animated_Widget_Access :=
+        Adi.Widget.Animated_Widget.Create;
       Controls : constant Adi.Widget.Box.Box_Widget_Access :=
         Adi.Widget.Box.Create;
       Status : constant Adi.Widget.Label.Label_Widget_Access :=

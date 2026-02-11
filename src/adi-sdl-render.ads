@@ -1,4 +1,5 @@
 with Interfaces.C.Strings;
+with System;
 with Adi.SDL.Video;       use Adi.SDL.Video;
 with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
 with Adi.SDL.Surface;     use Adi.SDL.Surface;
@@ -214,6 +215,15 @@ package Adi.SDL.Render is
       with Import        => True,
            Convention    => C,
            External_Name => "SDL_GetTextureSize";
+
+   function SDL_UpdateTexture
+      (Texture : SDL_Texture_Ptr;
+       Rect    : access constant SDL_Rect;
+       Pixels  : System.Address;
+       Pitch   : int) return C_bool
+      with Import        => True,
+           Convention    => C,
+           External_Name => "SDL_UpdateTexture";
 
    ----------------------------------------------------------------------------
    -- Texture Properties

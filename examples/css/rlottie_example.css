@@ -1,0 +1,193 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 24px;
+  background-color: rgb(36, 41, 62);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background-color: rgb(90, 98, 132);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(164, 171, 196);
+  border-radius: 8px;
+}
+
+.title::label {
+  color: rgb(239, 244, 255);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.subtitle::label {
+  color: rgb(214, 220, 236);
+  font-size: 13px;
+}
+
+.deck {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 12px;
+  padding: 12px;
+  background-color: rgb(62, 69, 102);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(170, 177, 205);
+  border-radius: 8px;
+}
+
+.viewer-shell {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 330px;
+  padding: 10px;
+  background-color: rgb(20, 24, 36);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(102, 111, 144);
+  border-radius: 6px;
+}
+
+.viewer {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  padding: 8px;
+  background-color: rgb(8, 10, 18);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(72, 82, 112);
+  border-radius: 4px;
+}
+
+.viewer::icon {
+  object-fit: contain;
+  object-position: center center;
+}
+
+.transport {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background-color: rgb(58, 66, 96);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(154, 162, 192);
+  border-radius: 6px;
+}
+
+.play-button::main,
+.stop-button::main,
+.rew-button::main,
+.loop-button::main {
+  width: 128px;
+  padding: 8px 12px;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 120ms ease-in-out, border-color 120ms ease-in-out;
+}
+
+.play-button::main {
+  background-color: rgb(106, 186, 92);
+  border-color: rgb(198, 247, 180);
+}
+
+.play-button::main:hover {
+  background-color: rgb(122, 204, 108);
+}
+
+.play-button::main:pressed {
+  background-color: rgb(92, 166, 78);
+}
+
+.stop-button::main {
+  background-color: rgb(201, 102, 92);
+  border-color: rgb(255, 189, 177);
+}
+
+.stop-button::main:hover {
+  background-color: rgb(216, 116, 106);
+}
+
+.stop-button::main:pressed {
+  background-color: rgb(184, 88, 78);
+}
+
+.rew-button::main {
+  background-color: rgb(106, 134, 199);
+  border-color: rgb(180, 203, 255);
+}
+
+.rew-button::main:hover {
+  background-color: rgb(122, 150, 215);
+}
+
+.rew-button::main:pressed {
+  background-color: rgb(91, 118, 179);
+}
+
+.loop-button::main {
+  background-color: rgb(130, 108, 194);
+  border-color: rgb(210, 189, 255);
+}
+
+.loop-button::main:hover {
+  background-color: rgb(148, 126, 212);
+}
+
+.loop-button::main:pressed {
+  background-color: rgb(113, 92, 176);
+}
+
+.loop-button::main:selected {
+  background-color: rgb(90, 177, 122);
+  border-color: rgb(176, 245, 202);
+}
+
+.loop-button::main:selected:hover {
+  background-color: rgb(104, 191, 136);
+}
+
+.loop-button::main:selected:pressed {
+  background-color: rgb(76, 160, 108);
+}
+
+.play-button::label,
+.stop-button::label,
+.rew-button::label,
+.loop-button::label {
+  color: rgb(248, 250, 255);
+  font-size: 13px;
+  font-weight: 800;
+  text-wrap-mode: nowrap;
+  text-align: center;
+}
+
+.status {
+  padding: 8px 12px;
+  background-color: rgb(15, 22, 16);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(89, 161, 96);
+  border-radius: 4px;
+}
+
+.status::label {
+  color: rgb(135, 233, 125);
+  font-size: 13px;
+  font-weight: 700;
+}

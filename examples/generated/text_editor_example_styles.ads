@@ -30,6 +30,53 @@ package Text_Editor_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'controls'
+   Controls_Class_Base_Style : constant Style_Rules := (
+      Display => Set (Flex),
+      Flex_Direction => Set (Row),
+      Align_Items => Set (Center),
+      Gap => Set (Gap (Px (10.0))),
+      others => <>
+   );
+
+   --  Base style for class 'wrap-status'::label
+   Wrap_Status_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (166, 173, 200)),
+      Font_Size => Set_Font (Px (13.0)),
+      White_Space => Set (WS_Nowrap),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
+      others => <>
+   );
+
+   --  Base style for class 'wrap-switch'
+   Wrap_Switch_Class_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (56.0))),
+      Height => Set (Size (Px (28.0))),
+      Background_Color => Set_Bg (RGB (88, 91, 112)),
+      Border_Radius => Set (Radius (Px (14.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Color => Set (Border_Color (RGB (108, 112, 134))),
+      Border_Style => Set (Border_Style (Solid)),
+      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
+      others => <>
+   );
+
+   --  Style for class 'wrap-switch' when widget State_Selected
+   Wrap_Switch_Class_Widget_Selected_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (116, 199, 236)),
+      Border_Color => Set (Border_Color (RGB (137, 220, 255))),
+      others => <>
+   );
+
+   --  Base style for class 'wrap-switch'::knob
+   Wrap_Switch_Class_Knob_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (24.0))),
+      Height => Set (Size (Px (24.0))),
+      Background_Color => Set_Bg (RGB (239, 241, 245)),
+      Border_Radius => Set (Radius (Px (12.0))),
+      others => <>
+   );
+
    --  Base style for class 'editor'
    Editor_Class_Base_Style : constant Style_Rules := (
       Flex_Grow => Set (1.0),
@@ -163,6 +210,46 @@ package Text_Editor_Example_Styles is
    --  Part styles bundle for class 'title'
    Title_Class_Part_Styles : constant Part_Style_Array := [
       Label_Part => (Style => Title_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'controls'
+   Controls_Class_Widget : constant Widget_Style :=
+     From (Controls_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'controls'
+   Controls_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Controls_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'wrap-status'::label
+   Wrap_Status_Class_Label_Widget : constant Widget_Style :=
+     From (Wrap_Status_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'wrap-status'
+   Wrap_Status_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Wrap_Status_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'wrap-switch'
+   Wrap_Switch_Class_Widget : constant Widget_Style :=
+     From (Wrap_Switch_Class_Base_Style)
+     .On (When_State (State_Selected), Wrap_Switch_Class_Widget_Selected_Style)
+     .Build;
+
+   --  Complete widget style for class 'wrap-switch'::knob
+   Wrap_Switch_Class_Knob_Widget : constant Widget_Style :=
+     From (Wrap_Switch_Class_Knob_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'wrap-switch'
+   Wrap_Switch_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Wrap_Switch_Class_Widget, Enabled => True),
+      Knob_Part => (Style => Wrap_Switch_Class_Knob_Widget, Enabled => True),
       others => <>
    ];
 

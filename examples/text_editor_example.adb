@@ -1,11 +1,15 @@
 pragma Ada_2022;
 
 with Adi.App;
+with Adi.CSS_Styles;          use Adi.CSS_Styles;
 with Adi.Window;              use Adi.Window;
 with Adi.Widget;              use Adi.Widget;
 with Adi.Widget.Box;
+with Adi.Widget.Button;       use Adi.Widget.Button;
+with Adi.Widget.Button.Switch;
 with Adi.Widget.Label;        use Adi.Widget.Label;
 with Adi.Widget.Text_Editor;  use Adi.Widget.Text_Editor;
+with Adi.Widget_Styles;       use Adi.Widget_Styles;
 with Text_Editor_Example_Styles; use Text_Editor_Example_Styles;
 
 procedure Text_Editor_Example is
@@ -13,42 +17,25 @@ procedure Text_Editor_Example is
 
    Sample_Text : constant String :=
      "-- Multiline Text Editor Demo" & ASCII.LF &
-     "-- Try editing this content to explore every feature." & ASCII.LF &
+     "-- Use the Wrap switch above to toggle wrapped rows on/off." & ASCII.LF &
      "" & ASCII.LF &
-     "with Ada.Text_IO; use Ada.Text_IO;" & ASCII.LF &
-     "with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;" & ASCII.LF &
+     "Paragraph 1:" & ASCII.LF &
+     "This paragraph is intentionally long and includes enough words to wrap across multiple visual rows when wrap is enabled, letting you test caret movement with Up and Down, selection highlighting across wrapped segments, and smooth scrolling behavior." & ASCII.LF &
      "" & ASCII.LF &
-     "procedure Hello is" & ASCII.LF &
-     "   type Item is record" & ASCII.LF &
-     "      Id   : Positive;" & ASCII.LF &
-     "      Name : String (1 .. 8);" & ASCII.LF &
-     "   end record;" & ASCII.LF &
+     "Paragraph 2:" & ASCII.LF &
+     "When wrap is disabled this same paragraph should stay as a single logical line, forcing horizontal overflow so you can validate that navigation still works as expected and that vertical movement follows logical lines rather than visual rows." & ASCII.LF &
      "" & ASCII.LF &
-     "   Items : constant array (1 .. 5) of Item := (" & ASCII.LF &
-     "      (Id => 1, Name => ""Alpha   "")," & ASCII.LF &
-     "      (Id => 2, Name => ""Beta    "")," & ASCII.LF &
-     "      (Id => 3, Name => ""Gamma   "")," & ASCII.LF &
-     "      (Id => 4, Name => ""Delta   "")," & ASCII.LF &
-     "      (Id => 5, Name => ""Epsilon ""));" & ASCII.LF &
-     "begin" & ASCII.LF &
-     "   Put_Line (""Hello, world!"");" & ASCII.LF &
+     "Long single token (no spaces):" & ASCII.LF &
+     "WrapToggleStressToken_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789_end" & ASCII.LF &
      "" & ASCII.LF &
-     "   for I in Items'Range loop" & ASCII.LF &
-     "      Put_Line (""  Item"" & Integer'Image (Items (I).Id) & "": "" & Items (I).Name);" & ASCII.LF &
-     "   end loop;" & ASCII.LF &
+     "Pseudo-code block:" & ASCII.LF &
+     "for Line in 1 .. 4 loop" & ASCII.LF &
+     "   Put_Line (""This line is intentionally expanded to cover a very wide width and force wrapping behavior in the visual row model."");" & ASCII.LF &
+     "end loop;" & ASCII.LF &
      "" & ASCII.LF &
-     "   declare" & ASCII.LF &
-     "      X : constant Integer := 42;" & ASCII.LF &
-     "      Y : constant Integer := X * 2;" & ASCII.LF &
-     "      Z : constant Integer := Y - 7;" & ASCII.LF &
-     "   begin" & ASCII.LF &
-     "      Put_Line (""X="" & Integer'Image (X));" & ASCII.LF &
-     "      Put_Line (""Y="" & Integer'Image (Y));" & ASCII.LF &
-     "      Put_Line (""Z="" & Integer'Image (Z));" & ASCII.LF &
-     "   end;" & ASCII.LF &
+     "Paragraph 3 (editing checklist): place caret with mouse, drag selection over multiple wrapped rows, double-click a word, triple-click a line, then toggle wrap and verify caret/selection mapping still feels correct." & ASCII.LF &
      "" & ASCII.LF &
-     "   -- UTF-8 test line: cafe, naive, resume, jalapeno, facade" & ASCII.LF &
-     "   -- Add/replace text here and test caret movement on multibyte chars." & ASCII.LF &
+     "UTF-8 sample: cafe naive resume jalapeno facade; replace text around multibyte characters and verify delete/backspace boundaries." & ASCII.LF &
      "" & ASCII.LF &
      "   -- Keyboard shortcuts:" & ASCII.LF &
      "   --   Navigation: arrows, Home/End, Ctrl+Home/End, Page Up/Down" & ASCII.LF &
@@ -63,8 +50,6 @@ procedure Text_Editor_Example is
      "   --   Double click: select word" & ASCII.LF &
      "   --   Triple click: select line" & ASCII.LF &
      "   --   Wheel/scrollbar: vertical scrolling" & ASCII.LF &
-     "" & ASCII.LF &
-     "end Hello;" & ASCII.LF &
      "" & ASCII.LF &
      "-- Extra filler lines for scrolling and page navigation tests" & ASCII.LF &
      "Line 01: quick brown fox jumps over the lazy dog." & ASCII.LF &
@@ -100,17 +85,62 @@ begin
         Adi.Widget.Box.Create;
       Title  : constant Label_Widget_Access :=
         Adi.Widget.Label.Create ("Multiline Text Editor");
+      Controls : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Wrap_Status : constant Label_Widget_Access :=
+        Adi.Widget.Label.Create ("Wrap: ON");
+      Wrap_Switch : constant Adi.Widget.Button.Switch.Switch_Widget_Access :=
+        Adi.Widget.Button.Switch.Create (True);
       Editor : constant Text_Editor_Widget_Access :=
         Adi.Widget.Text_Editor.Create (Sample_Text);
+
+      Wrap_On_Label_Widget : constant Widget_Style :=
+        From (Editor_Class_Label_Base_Style).Build;
+      Wrap_Off_Label_Widget : constant Widget_Style :=
+        From
+          (Merge
+             (Editor_Class_Label_Base_Style,
+              (White_Space    => Set (WS_Nowrap),
+               Text_Wrap_Mode => Set (TWM_Nowrap),
+               others => <>)))
+        .Build;
+
+      procedure Apply_Wrap (Active : Boolean) is
+      begin
+         if Active then
+            Set_Part_Style (Editor.all, Label_Part, Wrap_On_Label_Widget);
+            Set_Text (Wrap_Status.all, "Wrap: ON");
+         else
+            Set_Part_Style (Editor.all, Label_Part, Wrap_Off_Label_Widget);
+            Set_Text (Wrap_Status.all, "Wrap: OFF");
+         end if;
+      end Apply_Wrap;
+
+      procedure On_Wrap_Toggled
+        (Btn    : Button_Widget_Access;
+         Active : Boolean)
+      is
+         pragma Unreferenced (Btn);
+      begin
+         Apply_Wrap (Active);
+      end On_Wrap_Toggled;
    begin
       Set_Part_Styles (Root.all, Root_Class_Part_Styles);
       Set_Part_Styles (Title.all, Title_Class_Part_Styles);
+      Set_Part_Styles (Controls.all, Controls_Class_Part_Styles);
+      Set_Part_Styles (Wrap_Status.all, Wrap_Status_Class_Part_Styles);
+      Set_Part_Styles (Wrap_Switch.all, Wrap_Switch_Class_Part_Styles);
       Set_Part_Styles (Editor.all, Editor_Class_Part_Styles);
+      Wrap_Switch.Set_On_Toggled (On_Wrap_Toggled'Unrestricted_Access);
+      Apply_Wrap (True);
       Attach_Window (Editor.all, W);
       Set_Context_Menu_Part_Styles (Editor.all, Context_Menu_Class_Part_Styles);
       Set_Context_Menu_Item_Part_Styles (Editor.all, Context_Menu_Item_Class_Part_Styles);
 
       Root.Add_Child (Title);
+      Root.Add_Child (Controls);
+      Controls.Add_Child (Wrap_Status);
+      Controls.Add_Child (Wrap_Switch);
       Root.Add_Child (Editor);
 
       W.Set_Root (Root);

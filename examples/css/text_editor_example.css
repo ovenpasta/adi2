@@ -15,6 +15,43 @@
   font-weight: 600;
 }
 
+.controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.wrap-status::label {
+  color: rgb(166, 173, 200);
+  font-size: 13px;
+  white-space: nowrap;
+  text-wrap-mode: nowrap;
+}
+
+.wrap-switch {
+  width: 56px;
+  height: 28px;
+  padding: 2px;
+  background-color: rgb(88, 91, 112);
+  border-radius: 14px;
+  border-width: 1px;
+  border-color: rgb(108, 112, 134);
+  border-style: solid;
+}
+
+.wrap-switch:selected {
+  background-color: rgb(116, 199, 236);
+  border-color: rgb(137, 220, 255);
+}
+
+.wrap-switch::knob {
+  width: 24px;
+  height: 24px;
+  background-color: rgb(239, 241, 245);
+  border-radius: 12px;
+}
+
 .editor {
   flex-grow: 1;
   padding: 12px;

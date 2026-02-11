@@ -1,4 +1,5 @@
 with Adi.SDL.Events;
+with Adi.Text_Layout;
 with Adi.Text_Buffer;
 with Adi.Widget.Context_Menu;
 with Adi.Window;
@@ -70,11 +71,14 @@ private
       Pending_Word_Select : Boolean := False;
       Press_X             : Pixel_Type := 0.0;
       Press_Y             : Pixel_Type := 0.0;
+      Layout              : Adi.Text_Layout.Text_Layout;
       Line_Skip           : Pixel_Type := 0.0;
       Sel_Item_Count      : Natural := 0;
-      Text_Item_Idx       : Positive := 2;
+      Row_Item_Count      : Natural := 0;
+      First_Row_Item_Idx  : Positive := 2;
       Cursor_Item_Idx     : Positive := 3;
-      Caret_Changed       : Boolean := False;
+      Preferred_Caret_X   : Pixel_Type := 0.0;
+      Has_Preferred_X     : Boolean := False;
       Last_Caret          : Adi.Text_Buffer.Position := (Line => 1, Column => 0);
       Context_Menu        : Adi.Widget.Context_Menu.Context_Menu_Access := null;
       Context_Menu_Styles : Part_Style_Array := Empty_Part_Styles;

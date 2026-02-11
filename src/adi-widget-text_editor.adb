@@ -1,17 +1,17 @@
 with Ada.Characters.Latin_1;
 with Ada.Containers.Vectors;
+with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Adi.CSS_Styles;          use Adi.CSS_Styles;
 with Adi.Font;
 with Adi.Layout_Util;         use Adi.Layout_Util;
 with Adi.SDL;
 with Adi.SDL.Events;          use Adi.SDL.Events;
 with Adi.SDL.TTF;             use Adi.SDL.TTF;
+with Adi.Text_Layout;         use Adi.Text_Layout;
 with Adi.Text_Buffer;         use Adi.Text_Buffer;
 with Adi.Widget.Context_Menu;
 with Adi.Widget.Text_Context_Menu;
 with Adi.Window;
-with Interfaces.C;            use Interfaces.C;
-with Interfaces.C.Strings;    use Interfaces.C.Strings;
 
 package body Adi.Widget.Text_Editor is
 
@@ -26,6 +26,7 @@ package body Adi.Widget.Text_Editor is
 
    package Menu_Binding_Vectors is new Ada.Containers.Vectors
      (Positive, Menu_Binding);
+   package Positive_Vectors is new Ada.Containers.Vectors (Positive, Positive);
 
    Menu_Bindings : Menu_Binding_Vectors.Vector;
 
@@ -136,119 +137,10 @@ package body Adi.Widget.Text_Editor is
         or else C = '_';
    end Is_Word_Char_At;
 
-   function Prefix_Width_For_Column
-     (Label_Style : Resolved_Style;
-      Line        : String;
-      Col         : Natural) return Pixel_Type
-   is
-      Safe_Col : constant Natural := Normalize_Column (Line, Col);
-      Prefix   : constant String :=
-        (if Safe_Col = 0 then ""
-         else Line (Line'First .. Line'First + Integer (Safe_Col) - 1));
-      Font_Attrs : constant Adi.Font.Font_Attributes :=
-        Adi.Font.Make_Attributes
-          (Family     => Label_Style.Font_Family,
-           Size       => Label_Style.Font_Size.Amount,
-           Weight     => Label_Style.Font_Weight,
-           Style      => Label_Style.Font_Style,
-           Decoration => Label_Style.Text_Decoration);
-      Font     : constant TTF_Font_Access := Adi.Font.Get_TTF_Font (Font_Attrs);
-      C_Text   : chars_ptr;
-      W, H     : aliased int;
-      Ok       : Adi.SDL.C_bool;
-   begin
-      if Prefix'Length = 0 or else Font = null then
-         return 0.0;
-      end if;
-
-      C_Text := New_String (Prefix);
-      Ok := TTF_GetStringSize
-        (Font, C_Text, size_t (Prefix'Length), W'Access, H'Access);
-      Free (C_Text);
-
-      if not Boolean (Ok) then
-         return 0.0;
-      end if;
-      return Pixel_Type (W);
-   end Prefix_Width_For_Column;
-
-   function Column_At_X
-     (W          : Text_Editor_Widget;
-      Line_Text  : String;
-      X          : Pixel_Type) return Natural
-   is
-      Label_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Label_Part);
-      Font_Attrs  : constant Adi.Font.Font_Attributes :=
-        Adi.Font.Make_Attributes
-          (Family     => Label_Style.Font_Family,
-           Size       => Label_Style.Font_Size.Amount,
-           Weight     => Label_Style.Font_Weight,
-           Style      => Label_Style.Font_Style,
-           Decoration => Label_Style.Text_Decoration);
-      Font        : constant TTF_Font_Access :=
-        Adi.Font.Get_TTF_Font (Font_Attrs);
-      Main_Style  : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
-      Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
-      Max_Width   : constant int := int
-        (Integer (Pixel_Type'Max (0.0, X - Content.X)));
-      C_Text      : chars_ptr;
-      Measured_W  : aliased int := 0;
-      Measured_L  : aliased size_t := 0;
-      Ok          : Adi.SDL.C_bool;
-   begin
-      if Line_Text'Length = 0 or else Font = null or else Max_Width <= 0 then
-         return 0;
-      end if;
-
-      C_Text := New_String (Line_Text);
-      Ok := TTF_MeasureString
-        (Font            => Font,
-         Text            => C_Text,
-         Length          => size_t (Line_Text'Length),
-         Max_Width       => Max_Width,
-         Measured_Width  => Measured_W'Access,
-         Measured_Length => Measured_L'Access);
-      Free (C_Text);
-
-      if not Boolean (Ok) then
-         return 0;
-      end if;
-
-      return Normalize_Column (Line_Text, Natural (Measured_L));
-   end Column_At_X;
-
-   function Line_At_Y
-     (W : Text_Editor_Widget;
-      Y : Pixel_Type) return Positive
-   is
-      Main_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
-      Content    : constant Rectangle := Content_Box (W.Geometry, Main_Style);
-      Local_Y    : constant Pixel_Type :=
-        Y - Content.Y + Get_Scroll_Offset_Y (W);
-      Line_Count : constant Natural := Get_Line_Count (W.Buffer);
-      Result     : Integer;
-   begin
-      if W.Line_Skip <= 0.0 or else Line_Count = 0 then
-         return 1;
-      end if;
-      Result := Integer (Float'Floor (Float (Local_Y / W.Line_Skip))) + 1;
-      if Result < 1 then
-         return 1;
-      elsif Result > Line_Count then
-         return Line_Count;
-      else
-         return Result;
-      end if;
-   end Line_At_Y;
-
-   procedure Ensure_Caret_Visible (W : in out Text_Editor_Widget) is
-      Caret      : constant Position := Get_Caret (W.Buffer);
-      Main_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
-      Content    : constant Rectangle := Content_Box (W.Geometry, Main_Style);
+   procedure Ensure_Caret_Visible
+     (W         : in out Text_Editor_Widget;
+      Caret_Row : Positive;
+      Content   : Rectangle) is
       Caret_Top  : Pixel_Type;
       Caret_Bot  : Pixel_Type;
       Offset     : Pixel_Type := Get_Scroll_Offset_Y (W);
@@ -258,7 +150,7 @@ package body Adi.Widget.Text_Editor is
          return;
       end if;
 
-      Caret_Top := Pixel_Type (Caret.Line - 1) * W.Line_Skip;
+      Caret_Top := Pixel_Type (Caret_Row - 1) * W.Line_Skip;
       Caret_Bot := Caret_Top + W.Line_Skip;
 
       if Caret_Top < Offset then
@@ -272,6 +164,93 @@ package body Adi.Widget.Text_Editor is
       Offset := Pixel_Type'Max (0.0, Pixel_Type'Min (Offset, Max_Offset));
       Set_Scroll_Offset_Y (W, Offset);
    end Ensure_Caret_Visible;
+
+   procedure Refresh_Layout
+     (W           : in out Text_Editor_Widget;
+      Label_Style : Resolved_Style;
+      Content     : Rectangle) is
+   begin
+      Rebuild (W.Layout, W.Buffer, Label_Style, Content.Width);
+   end Refresh_Layout;
+
+   procedure Move_Caret_By_Visual_Rows
+     (W                : in out Text_Editor_Widget;
+      Label_Style      : Resolved_Style;
+      Content          : Rectangle;
+      Delta_Rows       : Integer;
+      Extend_Selection : Boolean)
+   is
+      Caret       : constant Position := Get_Caret (W.Buffer);
+      Current_Row : Positive;
+      Target_Row  : Positive;
+      Row_Count_V : Natural;
+      New_Pos     : Position;
+   begin
+      Refresh_Layout (W, Label_Style, Content);
+      Row_Count_V := Row_Count (W.Layout);
+      if Row_Count_V = 0 then
+         return;
+      end if;
+
+      Current_Row := Row_Index_For_Position (W.Layout, W.Buffer, Caret);
+
+      if not W.Has_Preferred_X then
+         W.Preferred_Caret_X :=
+           X_Offset_For_Column
+             (W.Layout, W.Buffer, Label_Style, Current_Row, Caret.Column);
+         W.Has_Preferred_X := True;
+      end if;
+
+      declare
+         Target_I : Integer := Integer (Current_Row) + Delta_Rows;
+      begin
+         Target_I := Integer'Max (1, Integer'Min (Target_I, Integer (Row_Count_V)));
+         Target_Row := Positive (Target_I);
+      end;
+
+      New_Pos :=
+        Position_At_Row_X
+          (W.Layout, W.Buffer, Label_Style, Target_Row, W.Preferred_Caret_X);
+      Set_Caret (W.Buffer, New_Pos, Extend_Selection => Extend_Selection);
+      Mark_Dirty (W);
+   end Move_Caret_By_Visual_Rows;
+
+   procedure Selection_Columns_For_Row
+     (Row       : Visual_Row;
+      Sel_Start : Position;
+      Sel_Stop  : Position;
+      Has_Sel   : Boolean;
+      Show      : out Boolean;
+      Start_Col : out Natural;
+      End_Col   : out Natural)
+   is
+   begin
+      Show := False;
+      Start_Col := Row.Start_Column;
+      End_Col := Row.Start_Column;
+
+      if not Has_Sel then
+         return;
+      end if;
+
+      if Row.Buffer_Line < Sel_Start.Line or else Row.Buffer_Line > Sel_Stop.Line then
+         return;
+      end if;
+
+      if Row.Buffer_Line = Sel_Start.Line then
+         Start_Col := Natural'Max (Row.Start_Column, Sel_Start.Column);
+      end if;
+
+      if Row.Buffer_Line = Sel_Stop.Line then
+         End_Col := Natural'Min (Row.End_Column, Sel_Stop.Column);
+      else
+         End_Col := Row.End_Column;
+      end if;
+
+      if End_Col > Start_Col then
+         Show := True;
+      end if;
+   end Selection_Columns_For_Row;
 
    procedure Select_Word_At_Caret (W : in out Text_Editor_Widget) is
       Caret : constant Position := Get_Caret (W.Buffer);
@@ -397,6 +376,7 @@ package body Adi.Widget.Text_Editor is
    procedure Set_Text (W : in out Text_Editor_Widget; Text : String) is
    begin
       Adi.Text_Buffer.Set_Text (W.Buffer, Text);
+      W.Has_Preferred_X := False;
       Mark_Dirty (W);
    end Set_Text;
 
@@ -441,7 +421,6 @@ package body Adi.Widget.Text_Editor is
       Label_Style  : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Label_Part);
       Content      : constant Rectangle := Content_Box (W.Geometry, Main_Style);
-      Line_Count   : constant Natural := Get_Line_Count (W.Buffer);
       Caret        : constant Position := Get_Caret (W.Buffer);
 
       Font_Attrs   : constant Adi.Font.Font_Attributes :=
@@ -454,15 +433,17 @@ package body Adi.Widget.Text_Editor is
       Font         : constant TTF_Font_Access :=
         Adi.Font.Get_TTF_Font (Font_Attrs);
       LS           : Pixel_Type;
-      Total_H      : Pixel_Type;
       Sel_Start    : Position;
       Sel_Stop     : Position;
       Has_Sel      : Boolean;
       Vis_Sel      : Natural := 0;
-      Full_Text    : Unbounded_String;
+      Visible_Rows : Positive_Vectors.Vector;
       Cursor_X     : Pixel_Type;
       Cursor_Y     : Pixel_Type;
-      Caret_Line_Text : constant String := Get_Line (W.Buffer, Caret.Line);
+      Total_Rows   : Natural;
+      Caret_Row    : Positive;
+      Row_It       : Visual_Row;
+      Desired_Row_Items : Natural;
    begin
       --  Compute line skip
       if Font /= null then
@@ -475,9 +456,14 @@ package body Adi.Widget.Text_Editor is
       end if;
       W.Line_Skip := LS;
 
+      Refresh_Layout (W, Label_Style, Content);
+      Total_Rows := Row_Count (W.Layout);
+      if Total_Rows = 0 then
+         Total_Rows := 1;
+      end if;
+
       --  Total content height and scroll metrics
-      Total_H := Pixel_Type (Line_Count) * LS;
-      W.Scroll_Content_H := Pixel_Type'Max (Total_H, Content.Height);
+      W.Scroll_Content_H := Pixel_Type'Max (Pixel_Type (Total_Rows) * LS, Content.Height);
       W.Scroll_Viewport_H := Content.Height;
 
       --  Only snap scroll to caret when the caret actually moved (keyboard
@@ -485,113 +471,115 @@ package body Adi.Widget.Text_Editor is
       --  wheel / scrollbar scrolling).
       if Caret /= W.Last_Caret then
          W.Last_Caret := Caret;
-         Ensure_Caret_Visible (W);
+         Caret_Row := Row_Index_For_Position (W.Layout, W.Buffer, Caret);
+         Ensure_Caret_Visible (W, Caret_Row, Content);
       end if;
 
       --  Selection info
       Get_Selection_Range (W.Buffer, Sel_Start, Sel_Stop, Has_Sel);
 
-      --  Count visible selection lines
-      if Has_Sel then
-         for L in Sel_Start.Line .. Sel_Stop.Line loop
-            declare
-               Line_Top : constant Pixel_Type :=
-                 Pixel_Type (L - 1) * LS - Get_Scroll_Offset_Y (W);
-               Line_Bot : constant Pixel_Type := Line_Top + LS;
-            begin
-               if Line_Bot > 0.0 and then Line_Top < Content.Height then
+      for I in 1 .. Row_Count (W.Layout) loop
+         declare
+            Top : constant Pixel_Type :=
+              Pixel_Type (I - 1) * LS - Get_Scroll_Offset_Y (W);
+            Bot : constant Pixel_Type := Top + LS;
+            Show_Sel  : Boolean;
+            Sel_From  : Natural;
+            Sel_To    : Natural;
+         begin
+            if Bot > 0.0 and then Top < Content.Height then
+               Visible_Rows.Append (I);
+               Selection_Columns_For_Row
+                 (Row       => Row_At (W.Layout, I),
+                  Sel_Start => Sel_Start,
+                  Sel_Stop  => Sel_Stop,
+                  Has_Sel   => Has_Sel,
+                  Show      => Show_Sel,
+                  Start_Col => Sel_From,
+                  End_Col   => Sel_To);
+               if Show_Sel then
                   Vis_Sel := Vis_Sel + 1;
                end if;
-            end;
-         end loop;
-      end if;
-
-      --  Items layout:
-      --  [1]           Panel (Main_Part)
-      --  [2..1+Vis_Sel] Selection highlights (Selected_Part)
-      --  [2+Vis_Sel]   Text (Label_Part)
-      --  [3+Vis_Sel]   Cursor (Cursor_Part)
-
-      --  Build full text with LF separators
-      declare
-         Buf : Unbounded_String;
-      begin
-         for L in 1 .. Line_Count loop
-            if L > 1 then
-               Append (Buf, Ada.Characters.Latin_1.LF);
             end if;
-            Append (Buf, Get_Line (W.Buffer, L));
-         end loop;
-         Full_Text := Buf;
-      end;
+         end;
+      end loop;
+      Desired_Row_Items := Natural (Visible_Rows.Length);
 
       --  Resize items vector if needed
       if Item_Count (W) = 0 then
-         --  First build: create all items
          Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));
          for I in 1 .. Vis_Sel loop
             Add_Item (W, Make_Panel (Selected_Part, (0.0, 0.0, 0.0, 0.0), 1));
          end loop;
-         Add_Item (W, Make_Text (Label_Part, Content, "", 2));
-         W.Items.Reference (1 + Vis_Sel + 1).Wrap_Text := False;
+         for I in 1 .. Desired_Row_Items loop
+            Add_Item (W, Make_Text (Label_Part, Content, "", 2));
+            W.Items.Reference (1 + Vis_Sel + I).Wrap_Text := False;
+         end loop;
          Add_Item (W, Make_Panel (Cursor_Part, (0.0, 0.0, 0.0, 0.0), 3));
          W.Sel_Item_Count := Vis_Sel;
-         W.Text_Item_Idx := 2 + Vis_Sel;
-         W.Cursor_Item_Idx := 3 + Vis_Sel;
-      elsif Vis_Sel /= W.Sel_Item_Count then
-         --  Selection count changed: rebuild the vector
+         W.Row_Item_Count := Desired_Row_Items;
+         W.First_Row_Item_Idx := 2 + Vis_Sel;
+         W.Cursor_Item_Idx := W.First_Row_Item_Idx + Desired_Row_Items;
+      elsif Vis_Sel /= W.Sel_Item_Count or else Desired_Row_Items /= W.Row_Item_Count then
          Clear_Items (W);
          Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));
          for I in 1 .. Vis_Sel loop
             Add_Item (W, Make_Panel (Selected_Part, (0.0, 0.0, 0.0, 0.0), 1));
          end loop;
-         Add_Item (W, Make_Text (Label_Part, Content, "", 2));
-         W.Items.Reference (1 + Vis_Sel + 1).Wrap_Text := False;
+         for I in 1 .. Desired_Row_Items loop
+            Add_Item (W, Make_Text (Label_Part, Content, "", 2));
+            W.Items.Reference (1 + Vis_Sel + I).Wrap_Text := False;
+         end loop;
          Add_Item (W, Make_Panel (Cursor_Part, (0.0, 0.0, 0.0, 0.0), 3));
          W.Sel_Item_Count := Vis_Sel;
-         W.Text_Item_Idx := 2 + Vis_Sel;
-         W.Cursor_Item_Idx := 3 + Vis_Sel;
+         W.Row_Item_Count := Desired_Row_Items;
+         W.First_Row_Item_Idx := 2 + Vis_Sel;
+         W.Cursor_Item_Idx := W.First_Row_Item_Idx + Desired_Row_Items;
       end if;
 
-      --  Update panel geometry
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
 
-      --  Update selection highlight items
       if Has_Sel and then Vis_Sel > 0 then
          declare
             Sel_Idx : Natural := 0;
          begin
-            for L in Sel_Start.Line .. Sel_Stop.Line loop
+            for I in 1 .. Desired_Row_Items loop
                declare
-                  Line_Top : constant Pixel_Type :=
-                    Pixel_Type (L - 1) * LS - Get_Scroll_Offset_Y (W);
-                  Line_Bot : constant Pixel_Type := Line_Top + LS;
-                  Line_Text : constant String := Get_Line (W.Buffer, L);
-                  SX : Pixel_Type;
-                  EX : Pixel_Type;
+                  R_Idx     : constant Positive := Visible_Rows.Element (I);
+                  R         : constant Visual_Row := Row_At (W.Layout, R_Idx);
+                  Row_Top   : constant Pixel_Type :=
+                    Pixel_Type (R_Idx - 1) * LS - Get_Scroll_Offset_Y (W);
+                  Show_Sel  : Boolean;
+                  Sel_From  : Natural;
+                  Sel_To    : Natural;
+                  SX        : Pixel_Type;
+                  EX        : Pixel_Type;
+                  Line_Text : constant String := Get_Line (W.Buffer, R.Buffer_Line);
                begin
-                  if Line_Bot > 0.0 and then Line_Top < Content.Height then
+                  Selection_Columns_For_Row
+                    (Row       => R,
+                     Sel_Start => Sel_Start,
+                     Sel_Stop  => Sel_Stop,
+                     Has_Sel   => Has_Sel,
+                     Show      => Show_Sel,
+                     Start_Col => Sel_From,
+                     End_Col   => Sel_To);
+
+                  if Show_Sel then
                      Sel_Idx := Sel_Idx + 1;
 
-                     --  Compute selection X range for this line
-                     if L = Sel_Start.Line then
-                        SX := Content.X + Prefix_Width_For_Column
-                          (Label_Style, Line_Text, Sel_Start.Column);
-                     else
-                        SX := Content.X;
-                     end if;
+                     SX := Content.X + X_Offset_For_Column
+                       (W.Layout, W.Buffer, Label_Style, R_Idx, Sel_From);
+                     EX := Content.X + X_Offset_For_Column
+                       (W.Layout, W.Buffer, Label_Style, R_Idx, Sel_To);
 
-                     if L = Sel_Stop.Line then
-                        EX := Content.X + Prefix_Width_For_Column
-                          (Label_Style, Line_Text, Sel_Stop.Column);
-                     else
-                        EX := Content.X + Prefix_Width_For_Column
-                          (Label_Style, Line_Text, Line_Text'Length);
-                        --  Add a small extra width for end-of-line selection
+                     if R.Buffer_Line < Sel_Stop.Line
+                       and then Sel_To = R.End_Column
+                       and then R.End_Column = Line_Text'Length
+                     then
                         EX := EX + LS * 0.3;
                      end if;
 
-                     --  Clamp to content box
                      SX := Pixel_Type'Max (Content.X, SX);
                      EX := Pixel_Type'Min (Content.X + Content.Width, EX);
 
@@ -601,7 +589,7 @@ package body Adi.Widget.Text_Editor is
                      begin
                         S_It.Geometry :=
                           (X      => SX,
-                           Y      => Content.Y + Line_Top,
+                           Y      => Content.Y + Row_Top,
                            Width  => Pixel_Type'Max (0.0, EX - SX),
                            Height => LS);
                      end;
@@ -611,25 +599,30 @@ package body Adi.Widget.Text_Editor is
          end;
       end if;
 
-      --  Update text item
-      declare
-         Text_It : Item renames
-           W.Items.Reference (W.Text_Item_Idx).Element.all;
-      begin
-         Text_It.Text_Content := Full_Text;
-         Text_It.Geometry :=
-           (X      => Content.X,
-            Y      => Content.Y,
-            Width  => Content.Width,
-            Height => Content.Height);
-         Text_It.Text_Offset_Y := -Get_Scroll_Offset_Y (W);
-      end;
+      for I in 1 .. Desired_Row_Items loop
+         declare
+            R_Idx  : constant Positive := Visible_Rows.Element (I);
+            Top    : constant Pixel_Type :=
+              Pixel_Type (R_Idx - 1) * LS - Get_Scroll_Offset_Y (W);
+            Text_It : Item renames
+              W.Items.Reference (W.First_Row_Item_Idx + I - 1).Element.all;
+         begin
+            Row_It := Row_At (W.Layout, R_Idx);
+            Text_It.Text_Content := To_Unbounded_String (Row_Text (W.Layout, W.Buffer, Row_It));
+            Text_It.Geometry :=
+              (X      => Content.X,
+               Y      => Content.Y + Top,
+               Width  => Content.Width,
+               Height => LS);
+            Text_It.Text_Offset_Y := 0.0;
+            Text_It.Wrap_Text := False;
+         end;
+      end loop;
 
-      --  Update cursor item
-      Cursor_X := Content.X + Prefix_Width_For_Column
-        (Label_Style, Caret_Line_Text, Caret.Column);
-      Cursor_Y := Content.Y +
-        Pixel_Type (Caret.Line - 1) * LS - Get_Scroll_Offset_Y (W);
+      Caret_Row := Row_Index_For_Position (W.Layout, W.Buffer, Caret);
+      Cursor_X := Content.X + X_Offset_For_Column
+        (W.Layout, W.Buffer, Label_Style, Caret_Row, Caret.Column);
+      Cursor_Y := Content.Y + Pixel_Type (Caret_Row - 1) * LS - Get_Scroll_Offset_Y (W);
 
       declare
          Cur_It : Item renames
@@ -649,7 +642,6 @@ package body Adi.Widget.Text_Editor is
          end if;
       end;
 
-      --  Update scrollbar
       Update_Scrollbar_Geometry (W);
    end Build_Items;
 
@@ -693,6 +685,7 @@ package body Adi.Widget.Text_Editor is
                   or else (Shift and then Scancode = SDL_SCANCODE_Z))
       then
          if Redo (W.Buffer) then
+            W.Has_Preferred_X := False;
             Fire_Changed (W);
          end if;
          return;
@@ -700,6 +693,7 @@ package body Adi.Widget.Text_Editor is
 
       if Ctrl and then Scancode = SDL_SCANCODE_Z then
          if Undo (W.Buffer) then
+            W.Has_Preferred_X := False;
             Fire_Changed (W);
          end if;
          return;
@@ -708,6 +702,7 @@ package body Adi.Widget.Text_Editor is
       --  Ctrl+A: Select All
       if Ctrl and then Scancode = SDL_SCANCODE_A then
          Select_All (W.Buffer);
+         W.Has_Preferred_X := False;
          Mark_Dirty (W);
          return;
       end if;
@@ -723,6 +718,7 @@ package body Adi.Widget.Text_Editor is
       --  Ctrl+X: Cut
       if Ctrl and then Scancode = SDL_SCANCODE_X then
          if Cut_Selection_To_Clipboard (W.Buffer) then
+            W.Has_Preferred_X := False;
             Fire_Changed (W);
          end if;
          return;
@@ -731,6 +727,7 @@ package body Adi.Widget.Text_Editor is
       --  Ctrl+V: Paste
       if Ctrl and then Scancode = SDL_SCANCODE_V then
          if Paste_From_Clipboard (W.Buffer) then
+            W.Has_Preferred_X := False;
             Fire_Changed (W);
          end if;
          return;
@@ -739,37 +736,80 @@ package body Adi.Widget.Text_Editor is
       case Scancode is
          when SDL_SCANCODE_BACKSPACE =>
             Delete_Backward (W.Buffer);
+            W.Has_Preferred_X := False;
             Fire_Changed (W);
 
          when SDL_SCANCODE_DELETE =>
             Delete_Forward (W.Buffer);
+            W.Has_Preferred_X := False;
             Fire_Changed (W);
 
          when SDL_SCANCODE_RETURN =>
             Insert_Text (W.Buffer, [1 => Ada.Characters.Latin_1.LF]);
+            W.Has_Preferred_X := False;
             Fire_Changed (W);
 
          when SDL_SCANCODE_TAB =>
             Insert_Text (W.Buffer, "   ");
+            W.Has_Preferred_X := False;
             Fire_Changed (W);
 
          when SDL_SCANCODE_LEFT =>
+            W.Has_Preferred_X := False;
             Move_Left (W.Buffer, Extend_Selection => Shift);
             Mark_Dirty (W);
 
          when SDL_SCANCODE_RIGHT =>
+            W.Has_Preferred_X := False;
             Move_Right (W.Buffer, Extend_Selection => Shift);
             Mark_Dirty (W);
 
          when SDL_SCANCODE_UP =>
-            Move_Up (W.Buffer, Extend_Selection => Shift);
-            Mark_Dirty (W);
+            declare
+               Main_Style  : constant Resolved_Style :=
+                 Get_Resolved_Part_Style (W, Main_Part);
+               Label_Style : constant Resolved_Style :=
+                 Get_Resolved_Part_Style (W, Label_Part);
+               Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
+            begin
+               if Wrap_Enabled (Label_Style) then
+                  Move_Caret_By_Visual_Rows
+                    (W                => W,
+                     Label_Style      => Label_Style,
+                     Content          => Content,
+                     Delta_Rows       => -1,
+                     Extend_Selection => Shift);
+               else
+                  W.Has_Preferred_X := False;
+                  Move_Up (W.Buffer, Extend_Selection => Shift);
+                  Mark_Dirty (W);
+               end if;
+            end;
 
          when SDL_SCANCODE_DOWN =>
-            Move_Down (W.Buffer, Extend_Selection => Shift);
-            Mark_Dirty (W);
+            declare
+               Main_Style  : constant Resolved_Style :=
+                 Get_Resolved_Part_Style (W, Main_Part);
+               Label_Style : constant Resolved_Style :=
+                 Get_Resolved_Part_Style (W, Label_Part);
+               Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
+            begin
+               if Wrap_Enabled (Label_Style) then
+                  Move_Caret_By_Visual_Rows
+                    (W                => W,
+                     Label_Style      => Label_Style,
+                     Content          => Content,
+                     Delta_Rows       => 1,
+                     Extend_Selection => Shift);
+               else
+                  W.Has_Preferred_X := False;
+                  Move_Down (W.Buffer, Extend_Selection => Shift);
+                  Mark_Dirty (W);
+               end if;
+            end;
 
          when SDL_SCANCODE_HOME =>
+            W.Has_Preferred_X := False;
             if Ctrl then
                Move_To_Start (W.Buffer, Extend_Selection => Shift);
             else
@@ -778,6 +818,7 @@ package body Adi.Widget.Text_Editor is
             Mark_Dirty (W);
 
          when SDL_SCANCODE_END =>
+            W.Has_Preferred_X := False;
             if Ctrl then
                Move_To_End (W.Buffer, Extend_Selection => Shift);
             else
@@ -793,9 +834,27 @@ package body Adi.Widget.Text_Editor is
             else
                Lines_Per_Page := 10;
             end if;
-            Move_Page_Up (W.Buffer, Lines_Per_Page,
-                          Extend_Selection => Shift);
-            Mark_Dirty (W);
+            declare
+               Main_Style  : constant Resolved_Style :=
+                 Get_Resolved_Part_Style (W, Main_Part);
+               Label_Style : constant Resolved_Style :=
+                 Get_Resolved_Part_Style (W, Label_Part);
+               Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
+            begin
+               if Wrap_Enabled (Label_Style) then
+                  Move_Caret_By_Visual_Rows
+                    (W                => W,
+                     Label_Style      => Label_Style,
+                     Content          => Content,
+                     Delta_Rows       => -Integer (Lines_Per_Page),
+                     Extend_Selection => Shift);
+               else
+                  W.Has_Preferred_X := False;
+                  Move_Page_Up (W.Buffer, Lines_Per_Page,
+                                Extend_Selection => Shift);
+                  Mark_Dirty (W);
+               end if;
+            end;
 
          when SDL_SCANCODE_PAGEDOWN =>
             if W.Line_Skip > 0.0 then
@@ -805,9 +864,27 @@ package body Adi.Widget.Text_Editor is
             else
                Lines_Per_Page := 10;
             end if;
-            Move_Page_Down (W.Buffer, Lines_Per_Page,
-                            Extend_Selection => Shift);
-            Mark_Dirty (W);
+            declare
+               Main_Style  : constant Resolved_Style :=
+                 Get_Resolved_Part_Style (W, Main_Part);
+               Label_Style : constant Resolved_Style :=
+                 Get_Resolved_Part_Style (W, Label_Part);
+               Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
+            begin
+               if Wrap_Enabled (Label_Style) then
+                  Move_Caret_By_Visual_Rows
+                    (W                => W,
+                     Label_Style      => Label_Style,
+                     Content          => Content,
+                     Delta_Rows       => Integer (Lines_Per_Page),
+                     Extend_Selection => Shift);
+               else
+                  W.Has_Preferred_X := False;
+                  Move_Page_Down (W.Buffer, Lines_Per_Page,
+                                  Extend_Selection => Shift);
+                  Mark_Dirty (W);
+               end if;
+            end;
 
          when others =>
             null;
@@ -823,6 +900,7 @@ package body Adi.Widget.Text_Editor is
       end if;
 
       Insert_Text (W.Buffer, Text);
+      W.Has_Preferred_X := False;
       Fire_Changed (W);
    end On_Text_Input;
 
@@ -835,6 +913,7 @@ package body Adi.Widget.Text_Editor is
    begin
       W.Drag_Selecting := False;
       W.Pending_Word_Select := False;
+      W.Has_Preferred_X := False;
       Mark_Dirty (W);
    end On_Focus_Lost;
 
@@ -848,6 +927,12 @@ package body Adi.Widget.Text_Editor is
       Button : Adi.Core.Mouse_Button;
       Clicks : Natural := 1)
    is
+      Main_Style  : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Main_Part);
+      Label_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Label_Part);
+      Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
+      P           : Position;
    begin
       if Button /= Left_Button then
          return;
@@ -860,32 +945,39 @@ package body Adi.Widget.Text_Editor is
 
       W.Press_X := X;
       W.Press_Y := Y;
+      W.Has_Preferred_X := False;
 
-      --  Convert mouse position to buffer position
-      declare
-         L   : constant Positive := Line_At_Y (W, Y);
-         LT  : constant String := Get_Line (W.Buffer, L);
-         Col : constant Natural := Column_At_X (W, LT, X);
-      begin
-         if Clicks >= 3 then
-            --  Triple click: select entire line
-            Set_Caret (W.Buffer, (Line => L, Column => 0));
-            Set_Caret (W.Buffer, (Line => L, Column => LT'Length),
+      Refresh_Layout (W, Label_Style, Content);
+      P :=
+        Position_At_Point
+          (L               => W.Layout,
+           B               => W.Buffer,
+           Label_Style     => Label_Style,
+           Content_X       => Content.X,
+           X               => X,
+           Y               => Y - Content.Y,
+           Scroll_Offset_Y => Get_Scroll_Offset_Y (W),
+           Line_Skip       => W.Line_Skip);
+
+      if Clicks >= 3 then
+         declare
+            LT : constant String := Get_Line (W.Buffer, P.Line);
+         begin
+            Set_Caret (W.Buffer, (Line => P.Line, Column => 0));
+            Set_Caret (W.Buffer, (Line => P.Line, Column => LT'Length),
                        Extend_Selection => True);
-            W.Pending_Word_Select := False;
-            W.Drag_Selecting := False;
-         elsif Clicks = 2 then
-            --  Double click: defer word select
-            Set_Caret (W.Buffer, (Line => L, Column => Col));
-            W.Pending_Word_Select := True;
-            W.Drag_Selecting := False;
-         else
-            --  Single click: place caret
-            Set_Caret (W.Buffer, (Line => L, Column => Col));
-            W.Pending_Word_Select := False;
-            W.Drag_Selecting := True;
-         end if;
-      end;
+         end;
+         W.Pending_Word_Select := False;
+         W.Drag_Selecting := False;
+      elsif Clicks = 2 then
+         Set_Caret (W.Buffer, P);
+         W.Pending_Word_Select := True;
+         W.Drag_Selecting := False;
+      else
+         Set_Caret (W.Buffer, P);
+         W.Pending_Word_Select := False;
+         W.Drag_Selecting := True;
+      end if;
       Mark_Dirty (W);
    end On_Mouse_Down;
 
@@ -893,6 +985,11 @@ package body Adi.Widget.Text_Editor is
      (W    : in out Text_Editor_Widget;
       X, Y : Pixel_Type)
    is
+      Main_Style  : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Main_Part);
+      Label_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Label_Part);
+      Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
    begin
       Handle_Scroll_Mouse_Move (W, X, Y);
 
@@ -911,14 +1008,19 @@ package body Adi.Widget.Text_Editor is
          return;
       end if;
 
-      declare
-         L   : constant Positive := Line_At_Y (W, Y);
-         LT  : constant String := Get_Line (W.Buffer, L);
-         Col : constant Natural := Column_At_X (W, LT, X);
-      begin
-         Set_Caret (W.Buffer, (Line => L, Column => Col),
-                    Extend_Selection => True);
-      end;
+      Refresh_Layout (W, Label_Style, Content);
+      Set_Caret
+        (W.Buffer,
+         Position_At_Point
+           (L               => W.Layout,
+            B               => W.Buffer,
+            Label_Style     => Label_Style,
+            Content_X       => Content.X,
+            X               => X,
+            Y               => Y - Content.Y,
+            Scroll_Offset_Y => Get_Scroll_Offset_Y (W),
+            Line_Skip       => W.Line_Skip),
+         Extend_Selection => True);
       Mark_Dirty (W);
    end On_Mouse_Move;
 
@@ -937,6 +1039,7 @@ package body Adi.Widget.Text_Editor is
 
       if W.Pending_Word_Select then
          Select_Word_At_Caret (W);
+         W.Has_Preferred_X := False;
          W.Pending_Word_Select := False;
          W.Drag_Selecting := False;
          Mark_Dirty (W);

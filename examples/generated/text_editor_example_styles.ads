@@ -83,7 +83,8 @@ package Text_Editor_Example_Styles is
    Editor_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (205, 214, 244)),
       Font_Size => Set_Font (Px (14.0)),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
+      Text_Wrap_Mode => Set (TWM_Wrap),
+      White_Space => Set (WS_Normal),
       others => <>
    );
 

@@ -36,7 +36,8 @@
 .editor::label {
   color: rgb(205, 214, 244);
   font-size: 14px;
-  text-wrap-mode: nowrap;
+  text-wrap-mode: wrap;
+  white-space: normal;
 }
 
 .editor::cursor {

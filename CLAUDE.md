@@ -26,6 +26,7 @@ alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=layout_test
 alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=css_parser_test
 alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=css_source_test
 alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=text_buffer_test
+alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=text_layout_test
 ```
 
 ### Building specific examples
@@ -56,6 +57,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 ./tests/bin/css_parser_test
 ./tests/bin/css_source_test
 ./tests/bin/text_buffer_test
+./tests/bin/text_layout_test
 ```
 
 ### Running examples
@@ -203,6 +205,12 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 - History is capped (200 edits) and redo history is invalidated by new edits after undo
 - Clipboard edit commands live in the buffer: `Copy_Selection_To_Clipboard`, `Cut_Selection_To_Clipboard`, `Paste_From_Clipboard([Single_Line])`
 
+**Adi.Text_Layout** (`adi-text_layout.ads`): Visual-row layout helper for text widgets
+- Converts logical buffer lines into visual rows using style-aware wrapping (`white-space`, `text-wrap-mode`, viewport width)
+- UTF-8-safe row slicing and row text extraction
+- Caret/point mapping helpers: position -> row index, row+x -> position, point -> position
+- Column-to-pixel helper (`X_Offset_For_Column`) used for caret/selection geometry in wrapped editors
+
 **Adi.Widget.Text_Input** (`adi-widget-text_input.ads`): Single-line text input widget
 - Uses `Adi.Text_Buffer` for text/caret/selection state
 - Supports keyboard navigation/editing (arrows, home/end, backspace/delete, select-all, undo/redo)
@@ -232,9 +240,10 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 - Shared text context menu support: `Attach_Window` wires a factory-built menu with Undo/Redo/Cut/Copy/Paste/Select All
 - Menu visuals are app-supplied via `Set_Context_Menu_Part_Styles` and `Set_Context_Menu_Item_Part_Styles`
 - Enter inserts newline, Tab inserts spaces, Backspace/Delete work across lines
-- Renders all text in a single `Text_Item` with `Text_Offset_Y` for vertical scrolling
+- Uses `Adi.Text_Layout` to render per-visible visual rows (supports wrapped text without widget-level wrap math)
 - Selection highlights are per-visible-line `Selected_Part` panels, dynamically sized
 - Caret rendered via `Cursor_Part`, hidden when not focused or offscreen
+- In wrap mode, `Up/Down/PageUp/PageDown` move by visual rows while preserving preferred caret X
 - Shared vertical scrollbar via `Scroll_Part`/`Knob_Part` (reuses base overflow-scroll system)
 - Widget manages its own `Scroll_Content_H` (not derived from children); `Update_Shared_Scroll_Layout` skips content-height override when widget has no children
 - Mouse interaction: click places caret, drag selects, double-click selects word, triple-click selects line
@@ -379,6 +388,7 @@ Note: These are custom bindings, not the SDLAda project (which is commented out 
 ```
 src/                  - Main library source files
   adi-*.ad[bs]        - All library modules follow Ada package naming
+  adi-text_layout.ad[bs] - Shared visual-row text layout/mapping helpers
   adi-widget-*.ad[bs] - Widget implementations (Box, Label)
   adi-widget-combo_box.ad[bs] - Combo box widget with overlay popup list
   adi-widget-context_menu.ad[bs] - Generic context menu popup overlay
@@ -394,6 +404,7 @@ tests/
     css_parser_test.adb - Runtime CSS parser test coverage (selectors, properties, reload, malformed input)
     css_source_test.adb - CSS source mode/specificity test coverage (dynamic/static + tag/class/id precedence)
     text_buffer_test.adb - Text buffer undo/redo edge-case coverage
+    text_layout_test.adb - Text layout row mapping and wrap-mode behavior coverage
   tests.gpr           - Test project file (uses TEST_KIND scenario)
 examples/
   label_example.adb   - Label widget example with styling
@@ -447,6 +458,7 @@ All packages are rooted under `Adi`:
 - `Adi.Widget.Text_Context_Menu` - Shared factory for buffer-backed text context menus
 - `Adi.Widget.Part_Styles` - Multi-part style builder
 - `Adi.Text_Buffer` - Shared text editing model
+- `Adi.Text_Layout` - Visual-row text layout/mapping abstraction for wrapped editing
 - `Adi.Animation` - CSS-like style transitions and interpolation
 - `Adi.Event` - Event types
 - `Adi.Font` - Font loading and caching

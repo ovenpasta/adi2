@@ -337,6 +337,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=animated_image_exam
 - Mouse event handling with widget hit testing
 - Overlay support for top-level floating widgets (`Add_Overlay`, `Remove_Overlay`, `Clear_Overlays`, `Overlay_Count`)
 - Overlay hit testing is prioritized above the root tree; overlays render after root content
+- During render, overlays are laid out/updated before `Render_Tree`; this keeps popup widgets (e.g. combo dropdown list scrollbars) in sync with current geometry/content
 - Right-click routes context-menu requests from the hit widget upward through ancestors (`Bubble_Context_Menu`)
 - Tracks hovered/pressed widget part; updates part states on pointer movement so part-scoped selectors resolve correctly
 - Scrollbar hit routing prefers the nearest ancestor widget whose part-at-point is `Scroll_Part`/`Knob_Part`, so scrollbar hover/press/drag works even when deepest child under cursor is not scrollable/clickable

@@ -78,6 +78,9 @@
 }
 
 .dropdown {
+  max-height: 240px;
+  overflow: auto;
+  padding: 4px;
   background-color: rgb(246, 248, 252);
   border-width: 1px;
   border-style: solid;
@@ -121,11 +124,12 @@
 
 .option-row {
   padding: 8px 10px;
+  margin: 2px 0px;
   background-color: white;
-  border-width: 1px 0px;
+  border-width: 0px;
   border-style: solid;
   border-color: rgb(222, 229, 238);
-  border-radius: 0px;
+  border-radius: 6px;
   transition: background-color 150ms ease-out, border-color 150ms ease-out;
 }
 

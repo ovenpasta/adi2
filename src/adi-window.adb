@@ -396,6 +396,9 @@ package body Adi.Window is
                 Overlay : constant Widget_Access := W.Overlays.Element (I);
              begin
                 if Overlay /= null then
+                   Mark_Dirty (Overlay.all);
+                   Layout_Tree (Overlay.all);
+                   Adi.Widget.Update (Overlay.all);
                    Render_Tree (Overlay.all, W.Ctx);
                 end if;
              end;

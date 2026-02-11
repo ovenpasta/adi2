@@ -114,12 +114,15 @@ package Combo_Box_Example_Styles is
 
    --  Base style for class 'dropdown'
    Dropdown_Class_Base_Style : constant Style_Rules := (
+      Max_Height => Set (Size (Px (240.0))),
+      Overflow => Set (Overflow_Auto),
       Background_Color => Set_Bg (RGB (246, 248, 252)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (191, 201, 216))),
       Border_Radius => Set (Radius (Px (8.0))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (10.0), Px (24.0), Px (0.0), RGBA (2, 8, 23, 0.22))),
+      Padding => Set (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0))),
       others => <>
    );
 
@@ -171,12 +174,13 @@ package Combo_Box_Example_Styles is
    --  Base style for class 'option-row'
    Option_Row_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (C (White)),
-      Border_Width => Set (Border_Width (Px (1.0), Px (0.0))),
+      Border_Width => Set (Border_Width (Px (0.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (222, 229, 238))),
-      Border_Radius => Set (Radius (Px (0.0))),
+      Border_Radius => Set (Radius (Px (6.0))),
       Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
+      Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (2.0), Px (0.0))),
       others => <>
    );
 

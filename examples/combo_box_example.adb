@@ -84,6 +84,22 @@ begin
       Add_Item (City_Combo.all, "Chicago");
       Add_Item (City_Combo.all, "Denver");
       Add_Item (City_Combo.all, "Portland");
+      Add_Item (City_Combo.all, "Los Angeles");
+      Add_Item (City_Combo.all, "San Diego");
+      Add_Item (City_Combo.all, "Las Vegas");
+      Add_Item (City_Combo.all, "Phoenix");
+      Add_Item (City_Combo.all, "Dallas");
+      Add_Item (City_Combo.all, "Houston");
+      Add_Item (City_Combo.all, "Atlanta");
+      Add_Item (City_Combo.all, "Miami");
+      Add_Item (City_Combo.all, "Nashville");
+      Add_Item (City_Combo.all, "Philadelphia");
+      Add_Item (City_Combo.all, "Washington, DC");
+      Add_Item (City_Combo.all, "Minneapolis");
+      Add_Item (City_Combo.all, "Detroit");
+      Add_Item (City_Combo.all, "Toronto");
+      Add_Item (City_Combo.all, "Vancouver");
+      Add_Item (City_Combo.all, "Montreal");
       Set_Selected_Index (City_Combo.all, 2);
 
       Root.Add_Child (Container);

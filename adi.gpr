@@ -10,10 +10,23 @@ project Adi is
    for Library_Version use Project'Library_Name & ".so." & Crate_Version;
 
    case Canonical_Target_Name is
-      when "x86-windows" | "x86_64-windows" =>
+      when "x86-windows"
+         | "x86_64-windows"
+         | "i686-w64-mingw32"
+         | "x86_64-w64-mingw32"
+         | "i686-w64-mingw32.static"
+         | "x86_64-w64-mingw32.static" =>
          for Source_Dirs use ("src/", "config/windows");
       when others =>
-         for Source_Dirs use ("src/", "config/posix");
+         case Target_Name is
+            when "i686-w64-mingw32"
+               | "x86_64-w64-mingw32"
+               | "i686-w64-mingw32.static"
+               | "x86_64-w64-mingw32.static" =>
+               for Source_Dirs use ("src/", "config/windows");
+            when others =>
+               for Source_Dirs use ("src/", "config/posix");
+         end case;
    end case;
    for Object_Dir use "obj/" & Build_Profile;
    for Create_Missing_Dirs use "True";

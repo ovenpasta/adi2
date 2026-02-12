@@ -108,16 +108,41 @@ package body Adi.Font is
    Fallback_Found : Boolean := False;
 
    type Search_Path_Array is array (Positive range <>) of access constant String;
+   type Fallback_Face_Kind is
+     (Face_Regular, Face_Italic, Face_Bold, Face_Bold_Italic, Face_Black);
+   type Windows_Font_Family_Kind is
+     (Windows_Segoe_UI, Windows_Arial);
 
    Posix_Fallback_Search_Paths : constant Search_Path_Array (1 .. 3) :=
      (new String'("/usr/share/fonts/TTF/DejaVuSans.ttf"),
       new String'("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
       new String'("/usr/share/fonts/noto/NotoSans-Regular.ttf"));
 
-   Windows_Fallback_Search_Paths : constant Search_Path_Array (1 .. 3) :=
-     (new String'("C:\Windows\Fonts\segoeui.ttf"),
-      new String'("C:\Windows\Fonts\arial.ttf"),
-      new String'("C:\Windows\Fonts\tahoma.ttf"));
+   Windows_Font_Dirs : constant Search_Path_Array (1 .. 2) :=
+     (new String'("C:\Windows\Fonts"),
+      new String'("C:\WINNT\Fonts"));
+
+   Windows_Font_Extension : constant String := ".ttf";
+
+   Windows_Font_Base_Name : constant array (Windows_Font_Family_Kind) of access constant String :=
+     (Windows_Segoe_UI => new String'("segoeui"),
+      Windows_Arial    => new String'("arial"));
+
+   Windows_Face_Suffix : constant array (Windows_Font_Family_Kind, Fallback_Face_Kind) of access constant String :=
+     (Windows_Segoe_UI =>
+        (Face_Regular     => new String'(""),
+         Face_Italic      => new String'("i"),
+         Face_Bold        => new String'("b"),
+         Face_Bold_Italic => new String'("z"),
+         Face_Black       => new String'("b")),
+      Windows_Arial =>
+        (Face_Regular     => new String'(""),
+         Face_Italic      => new String'("i"),
+         Face_Bold        => new String'("bd"),
+         Face_Bold_Italic => new String'("bi"),
+         Face_Black       => new String'("bd")));
+
+   Selected_Windows_Family : Windows_Font_Family_Kind := Windows_Segoe_UI;
 
    function Is_Valid_Handle (Handle : Font_Handle) return Boolean is
    begin
@@ -142,7 +167,7 @@ package body Adi.Font is
    function Last_Slash (S : String) return Natural is
    begin
       for I in reverse S'Range loop
-         if S (I) = '/' then
+         if S (I) = '/' or else S (I) = '\' then
             return Natural (I);
          end if;
       end loop;
@@ -242,6 +267,20 @@ package body Adi.Font is
       return Dir & "/" & Base_Stem & Suffix & Ext;
    end Build_Variant_Path;
 
+   function Build_Windows_Variant_Path
+     (Base_Path : String;
+      Family    : Windows_Font_Family_Kind;
+      Face      : Fallback_Face_Kind) return String
+   is
+      Dir : constant String := Dir_Of (Base_Path);
+   begin
+      return Dir
+        & "\"
+        & Windows_Font_Base_Name (Family).all
+        & Windows_Face_Suffix (Family, Face).all
+        & Windows_Font_Extension;
+   end Build_Windows_Variant_Path;
+
    procedure Find_Fallback is
       C_Path : chars_ptr;
       F      : TTF_Font_Access;
@@ -261,13 +300,42 @@ package body Adi.Font is
             end if;
          end loop;
       end Try_Paths;
+
+      procedure Try_Windows_Font_Dirs (Dirs : Search_Path_Array) is
+      begin
+         for D of Dirs loop
+            for Family in Windows_Font_Family_Kind loop
+               declare
+                  Candidate : constant String :=
+                    D.all
+                    & "\"
+                    & Windows_Font_Base_Name (Family).all
+                    & Windows_Face_Suffix (Family, Face_Regular).all
+                    & Windows_Font_Extension;
+               begin
+                  C_Path := New_String (Candidate);
+                  F := TTF_OpenFont (C_Path, Default_Font_Size_Px);
+                  Free (C_Path);
+                  if F /= null then
+                     TTF_CloseFont (F);
+                     Fallback_Path := To_Unbounded_String (Candidate);
+                     Fallback_Found := True;
+                     Fallback_Variant_Cache.Clear;
+                     Selected_Windows_Family := Family;
+                     Log ("fallback base selected: " & Candidate);
+                     return;
+                  end if;
+               end;
+            end loop;
+         end loop;
+      end Try_Windows_Font_Dirs;
    begin
       if Fallback_Found then
          return;
       end if;
 
       if Adi.Build_Target.Is_Windows then
-         Try_Paths (Windows_Fallback_Search_Paths);
+         Try_Windows_Font_Dirs (Windows_Font_Dirs);
       else
          Try_Paths (Posix_Fallback_Search_Paths);
       end if;
@@ -332,6 +400,79 @@ package body Adi.Font is
             Try_Candidate (Base_Suffix & "-Oblique", True, True);
          end if;
       end Try_Weight_With_Style;
+
+      procedure Try_Windows_Face (Face      : Fallback_Face_Kind;
+                                  Weight_OK : Boolean;
+                                  Style_OK  : Boolean) is
+         Candidate : constant String := Build_Windows_Variant_Path (Base_Path, Selected_Windows_Family, Face);
+      begin
+         if Found then
+            return;
+         end if;
+         if Is_Usable_Font_File (Candidate) then
+            Result := (Path => To_Unbounded_String (Candidate),
+                       Weight_Matched => Weight_OK,
+                       Style_Matched  => Style_OK);
+            Found := True;
+         end if;
+      end Try_Windows_Face;
+
+      procedure Try_Windows_Custom_Suffix (Suffix    : String;
+                                           Weight_OK : Boolean;
+                                           Style_OK  : Boolean) is
+         Candidate : constant String :=
+           Dir_Of (Base_Path)
+           & "\"
+           & Windows_Font_Base_Name (Selected_Windows_Family).all
+           & Suffix
+           & Windows_Font_Extension;
+      begin
+         if Found then
+            return;
+         end if;
+         if Is_Usable_Font_File (Candidate) then
+            Result := (Path => To_Unbounded_String (Candidate),
+                       Weight_Matched => Weight_OK,
+                       Style_Matched  => Style_OK);
+            Found := True;
+         end if;
+      end Try_Windows_Custom_Suffix;
+
+      procedure Resolve_Windows_Variant is
+         Is_Italic : constant Boolean := Style /= Style_Normal;
+      begin
+         case Weight is
+            when Weight_Thin | Weight_Extra_Light | Weight_Light =>
+               Try_Windows_Custom_Suffix ("l", True, not Is_Italic);
+               Try_Windows_Custom_Suffix ("sl", True, not Is_Italic);
+               if Is_Italic then
+                  Try_Windows_Face (Face_Italic, False, True);
+               end if;
+               Try_Windows_Face (Face_Regular, False, not Is_Italic);
+            when Weight_Medium | Weight_Normal =>
+               if Is_Italic then
+                  Try_Windows_Face (Face_Italic, Weight = Weight_Normal, True);
+               else
+                  Try_Windows_Face (Face_Regular, Weight = Weight_Normal, True);
+               end if;
+            when Weight_Black =>
+               if Is_Italic then
+                  Try_Windows_Face (Face_Bold_Italic, False, True);
+               end if;
+               Try_Windows_Face (Face_Bold, True, not Is_Italic);
+            when Weight_Semi_Bold | Weight_Bold | Weight_Extra_Bold =>
+               if Is_Italic then
+                  Try_Windows_Face (Face_Bold_Italic, True, True);
+                  Try_Windows_Face (Face_Bold, True, False);
+               else
+                  Try_Windows_Face (Face_Bold, True, True);
+               end if;
+         end case;
+
+         if not Found then
+            Try_Windows_Face (Face_Regular, False, False);
+         end if;
+      end Resolve_Windows_Variant;
    begin
       if Fallback_Variant_Maps.Has_Element (Cursor) then
          Log ("fallback variant cache hit for "
@@ -346,33 +487,37 @@ package body Adi.Font is
          return Result;
       end if;
 
-      case Weight is
-         when Weight_Thin =>
-            Try_Weight_With_Style ("-Thin");
-         when Weight_Extra_Light | Weight_Light =>
-            Try_Weight_With_Style ("-ExtraLight");
-            Try_Weight_With_Style ("-UltraLight");
-            Try_Weight_With_Style ("-Light");
-         when Weight_Normal =>
-            Try_Weight_Normal (Style /= Style_Normal);
-         when Weight_Medium =>
-            Try_Weight_With_Style ("-Medium");
-         when Weight_Semi_Bold =>
-            Try_Weight_With_Style ("-SemiBold");
-            Try_Weight_With_Style ("-DemiBold");
-         when Weight_Bold =>
-            Try_Weight_With_Style ("-Bold");
-         when Weight_Extra_Bold =>
-            Try_Weight_With_Style ("-ExtraBold");
-            Try_Weight_With_Style ("-UltraBold");
-         when Weight_Black =>
-            Try_Weight_With_Style ("-Black");
-            Try_Weight_With_Style ("-Heavy");
-      end case;
+      if Adi.Build_Target.Is_Windows then
+         Resolve_Windows_Variant;
+      else
+         case Weight is
+            when Weight_Thin =>
+               Try_Weight_With_Style ("-Thin");
+            when Weight_Extra_Light | Weight_Light =>
+               Try_Weight_With_Style ("-ExtraLight");
+               Try_Weight_With_Style ("-UltraLight");
+               Try_Weight_With_Style ("-Light");
+            when Weight_Normal =>
+               Try_Weight_Normal (Style /= Style_Normal);
+            when Weight_Medium =>
+               Try_Weight_With_Style ("-Medium");
+            when Weight_Semi_Bold =>
+               Try_Weight_With_Style ("-SemiBold");
+               Try_Weight_With_Style ("-DemiBold");
+            when Weight_Bold =>
+               Try_Weight_With_Style ("-Bold");
+            when Weight_Extra_Bold =>
+               Try_Weight_With_Style ("-ExtraBold");
+               Try_Weight_With_Style ("-UltraBold");
+            when Weight_Black =>
+               Try_Weight_With_Style ("-Black");
+               Try_Weight_With_Style ("-Heavy");
+         end case;
 
-      if not Found and then Style /= Style_Normal then
-         Try_Candidate ("-Italic", False, True);
-         Try_Candidate ("-Oblique", False, True);
+         if not Found and then Style /= Style_Normal then
+            Try_Candidate ("-Italic", False, True);
+            Try_Candidate ("-Oblique", False, True);
+         end if;
       end if;
 
       if not Found and then Weight = Weight_Normal and then Style = Style_Normal then

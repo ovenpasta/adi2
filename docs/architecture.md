@@ -1,0 +1,141 @@
+# Architecture
+
+## Core Components
+
+**Adi.Core** (`adi-core.ads`): Foundational types — geometric primitives (`Point`, `Size_2D`, `Rectangle`, `Pixel_Type`), color types (`Color` 0.0-1.0, `Color_8` 0-255), input enums (`Mouse_Button`).
+
+**Adi.Style** (`adi-style.ads`): CSS-like style system — dimension values (px, dip, %, fr), box model, flexbox, grid layout, typography, color constants, widget states, style rule management.
+
+**Adi.CSS_Styles** (`adi-css_styles.ads`): CSS value types and style resolution.
+- Length units: `Px`, `Dip`, `Em`, `Root_Em`, `Pct`
+- `Style_Rules`: optional/unset values for CSS cascade/override semantics
+- `Resolved_Style`: fully concrete with defaults (safe to read directly)
+- `Transition_Spec` with duration, easing, and `Property_Set` filter
+- `Animatable_Property` enum for targeting specific lerpable fields
+- `Normalize_Color` helper for extracting RGBA from any `Color_Value` variant
+
+**Adi.CSS_Parser** (`adi-css_parser.ads`): Runtime CSS loader/parser.
+- Loads stylesheets from strings/files into `Part_Style_Array` maps
+- Selector kinds: class (`.x`), id (`#x`), tag (`button`)
+- Public APIs: `Has/Styles_For/Apply/Bind` + `_Class`/`_Id`/`_Tag` convenience wrappers
+- File watching reload: `Reload_If_Changed`, reapplying to bound widgets
+- Parses `transition` with duration (`ms`/`s`), easing, property filter
+- `dp` accepted as alias of `dip`
+
+**Adi.CSS_Source** (`adi-css_source.ads`): Dynamic/static style source switcher.
+- `Dynamic_Mode`: file-backed, optional auto-reload
+- `Static_Mode`: compiled constant style entries
+- Single selector bind/apply (`class`, `id`, `tag`) and composite selector-set bind/apply
+- Composite specificity: tag < class < id
+
+**Adi.Widget_Styles** (`adi-widget_styles.ads`): Widget state-based styling.
+- States: Normal, Hovered, Pressed, Focused, Disabled, Selected
+- Style builder pattern (fluent API)
+- Widget-state vs part-state scopes (`When_State`/`When_Not` vs `When_Part_State`/`When_Part_Not`)
+- `With_Transition(Duration, [Properties], [Easing])`
+
+**Adi.Widget.Part_Styles** (`adi-widget-part_styles.ads`): Multi-part style builder.
+- Fluent API for per-part styles (Main, Label, Icon, Indicator, etc.)
+- Predefined templates: Button, Checkbox, Scrollbar, Input, List, Slider
+- No built-in visual theme — apps provide explicit styles
+
+**Adi.Event** (`adi-event.ads`): Discriminant-based event record with mouse/keyboard data.
+
+**Adi.Render** (`adi-render.ads`): Per-renderer context and caches.
+- `Render_Context`: bundles `SDL_Renderer_Ptr` with shadow texture cache and TTF text engine
+- Shadow cache: shape-based `Shadow_Key` (blur + corner radius), color applied via texture modulation
+- Owned by `Adi.Window`; threaded through render calls
+
+**Adi.Animation** (`adi-animation.ads`): CSS-like style transitions.
+- `Part_Transition`: per-widget-part animation state
+- `Advance`/`Interpolate`: field-by-field lerp between `Resolved_Style` values
+- Easing: Linear, Ease_In (cubic), Ease_Out, Ease_In_Out
+- Property filtering: only properties in `Transition_Spec.Properties` are interpolated
+
+**Adi.Image** (`adi-image.ads`): SDL texture wrapper with file loading.
+
+**Adi.Animated_Image** (`adi-animated_image.ads`): Multi-frame animation via `IMG_LoadAnimation`, per-frame delay, playback controls.
+
+**Adi.RLottie** (`adi-rlottie.ads`): Lottie JSON via rlottie C API, CPU-rendered frame cache with background preload task, streaming SDL texture upload.
+
+**Adi.Font** (`adi-font.ads`): Font loading and caching.
+- `Font_Handle` = font family (file path)
+- `Font_Attributes` groups family/size/weight/style/decoration
+- Sized `TTF_Font` instances cached per `(handle, size)` pair
+- Variant-aware cache with `Register_Variant` and fallback probing
+- Platform font paths selected via `Adi.Build_Target.Is_Windows`
+
+**Adi.Text_Buffer** (`adi-text_buffer.ads`): Shared text editing core.
+- Line-oriented storage, caret with line/column, selection
+- UTF-8 aware navigation and editing
+- Undo/redo (200-entry cap), clipboard integration
+
+**Adi.Text_Layout** (`adi-text_layout.ads`): Visual-row layout for text widgets.
+- Converts logical lines to visual rows with style-aware wrapping
+- Caret/point mapping helpers, column-to-pixel offset
+
+**Adi.Layout_Util** (`adi-layout_util.ads`): Layout algorithms.
+- Box model, edge/border extraction, alignment
+- Flexbox and grid layout (`Compute_Grid_Layout` / `Grid_To_Rectangles`)
+- DIP scaling: `Set/Get_Active_DIP_Scale`; `Length_To_Px` scales `dip` by active value
+
+**Adi.Window** (`adi-window.ads`): Window management.
+- Wraps SDL window/renderer, owns `Render_Context`
+- `Set_Root`, `Add_Overlay`, `Remove_Overlay` accept `access Adi.Widget.Widget'Class`
+- Overlay hit testing prioritized above root; overlays render after root
+- Widget part tracking for hover/press; scrollbar hit routing prefers nearest scrollable ancestor
+- Tab focus traversal (wraps, Shift+Tab reverse); overlay-scoped when overlays present
+- Click dispatch on left button release only
+- DIP scale refresh from `SDL_GetWindowDisplayScale`
+- Debug: `ADI_DEBUG_LOOP=1` for tick/render diagnostics
+
+**Adi.App** (`adi-app.ads`): Application entry point, main loop, frame timing (`Ada.Real_Time`), `Set_Target_FPS`.
+
+## Widgets
+
+**Adi.Widget** (`adi-widget.ads`): Base abstraction.
+- Part system: `Main_Part`, `Indicator_Part`, `Label_Part`, `Icon_Part`, `Cursor_Part`, `Selected_Part`, `Scroll_Part`, `Knob_Part`
+- Item system: `Panel_Item`, `Text_Item`, `Image_Item`
+- Flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`
+- Abstract: `Build_Items`, `Layout`; Concrete: `Render_Items`, `Render_Tree`, `Update_And_Render`
+- Shared overflow scrolling with scrollbar parts
+- Context menu hook with ancestor bubbling
+- Per-part transitions; `Tick_Animations` advances each frame
+- Style-aware state invalidation (dirty only when resolved output changes)
+- `On_Tick(DT)` per-frame hook
+- Image rendering: `object-fit` modes (Fill, Cover, Contain, None, Scale_Down), rounded clipping
+
+**Text_Input**: Single-line editor using `Text_Buffer`. Horizontal scroll, caret, selection, context menu. Double-click word select, triple-click select all.
+
+**Text_Editor**: Multiline editor using `Text_Buffer` + `Text_Layout`. Vertical scrollbar, visual-row navigation, word/line selection.
+
+**List_Box** (generic over row widget): Selection modes (None/Single/Multi/Range), anchor-based range, inertial scrolling, style-driven scrollbar.
+
+**Combo_Box**: Dropdown using Main/Label/Indicator parts + List_Box overlay popup.
+
+**Dialog**: Modal overlay with backdrop, title/message/buttons, dismiss policies, button presets.
+
+**Stack** (generic over `Page_Id` enum): One visible child at a time, type-safe page switching, binds to `Button.Options`.
+
+**Animated_Widget**: Unified animated image/Lottie display. Child package `RLottie` isolates rlottie coupling.
+
+**Context_Menu** / **Text_Context_Menu**: Popup overlay menu; shared factory for Undo/Redo/Cut/Copy/Paste/Select All.
+
+## Widget Rendering Pipeline
+
+1. **Build**: `Build_Items` creates `Item` records
+2. **Style**: Each item's `Part_Kind` resolves to `Resolved_Style` via widget states
+3. **Layout**: Calculate geometry for widget and children
+4. **Render**: Draw items via `Render_Context`
+   - Rounded borders: annulus ring + background fill
+   - Non-rounded: per-edge fills (asymmetric widths/colors supported)
+   - Overflow clipping follows CSS (`visible` = no clip, `hidden/scroll/auto` = clip)
+   - Text positions snapped to integer pixels
+   - Font hinting: `TTF_HINTING_LIGHT_SUBPIXEL`
+
+## SDL Bindings
+
+Hand-crafted Ada bindings in `adi-sdl*.ads`:
+- `Adi.SDL` (core, clipboard), `.Video`, `.Render`, `.Events`, `.Mouse`, `.TTF`, `.TTF.TextEngine`, `.Image`, `.Surface`, `.PixelFormat`
+- Native Ada types, incomplete types for opaque C structs, proper enumerations
+- Not SDLAda (which is commented out in `adi.gpr`)

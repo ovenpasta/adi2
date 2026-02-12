@@ -6,6 +6,11 @@ package Adi.Layout_Util is
    Default_Root_Font_Size_Px : constant Pixel_Type :=
      Pixel_Type (Default_Font_Size.Amount);
 
+   --  Active DIP scale used by Length_To_Px for Dip units.
+   --  Window code updates this based on SDL window display scale.
+   procedure Set_Active_DIP_Scale (Scale : Pixel_Type);
+   function Get_Active_DIP_Scale return Pixel_Type;
+
 
    -------------------------------------------------
    -- Alignment Types

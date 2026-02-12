@@ -3,6 +3,7 @@ with Adi.Core; use Adi.Core;
 with Adi.SDL;
 with Adi.SDL.TTF;
 with Adi.SDL.Events;
+with Adi.SDL.Render;
 with Adi.SDL.Mouse;
 with Adi.Widget;
 with Interfaces.C; use Interfaces.C;
@@ -11,6 +12,8 @@ with Ada.Unchecked_Conversion;
 with Ada.Real_Time; use Ada.Real_Time;
 
 package body Adi.App is
+
+    use type Adi.SDL.Render.SDL_Renderer_Ptr;
 
     ----------
     -- Init --
@@ -52,8 +55,6 @@ package body Adi.App is
         Should_Quit : Boolean := False;
 
         --  Unchecked conversions to access specific event data
-        function To_Window_Event is new Ada.Unchecked_Conversion
-           (SDL_Event, SDL_WindowEvent);
         function To_Mouse_Motion_Event is new Ada.Unchecked_Conversion
            (SDL_Event, SDL_MouseMotionEvent);
         function To_Mouse_Button_Event is new Ada.Unchecked_Conversion
@@ -68,6 +69,24 @@ package body Adi.App is
         Now        : Time;
         Next_Frame : Time;
         DT         : Duration;
+
+        procedure Convert_Event_To_Render_Coordinates is
+           Renderer  : Adi.SDL.Render.SDL_Renderer_Ptr := null;
+           Converted : Adi.SDL.C_bool;
+           pragma Unreferenced (Converted);
+        begin
+           if A.Main_Window = null then
+              return;
+           end if;
+
+           Renderer := A.Main_Window.Get_Renderer;
+           if Renderer = null then
+              return;
+           end if;
+
+           Converted := Adi.SDL.Render.SDL_ConvertEventToRenderCoordinates
+             (Renderer, Event'Access);
+        end Convert_Event_To_Render_Coordinates;
     begin
         A.Last_Frame := Clock;
 
@@ -78,7 +97,9 @@ package body Adi.App is
                     when SDL_EVENT_QUIT =>
                         Should_Quit := True;
 
-                    when SDL_EVENT_WINDOW_RESIZED | SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED =>
+                    when SDL_EVENT_WINDOW_RESIZED
+                       | SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED
+                       | SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED =>
                         if A.Main_Window /= null then
                             declare
                                 Actual_Size : constant Size_2D :=
@@ -90,6 +111,7 @@ package body Adi.App is
 
                     when SDL_EVENT_MOUSE_MOTION =>
                         if A.Main_Window /= null then
+                            Convert_Event_To_Render_Coordinates;
                             declare
                                 Motion_Event : constant SDL_MouseMotionEvent :=
                                    To_Mouse_Motion_Event (Event);
@@ -102,6 +124,7 @@ package body Adi.App is
 
                     when SDL_EVENT_MOUSE_BUTTON_DOWN =>
                         if A.Main_Window /= null then
+                            Convert_Event_To_Render_Coordinates;
                             declare
                                 Button_Event : constant SDL_MouseButtonEvent :=
                                    To_Mouse_Button_Event (Event);
@@ -116,6 +139,7 @@ package body Adi.App is
 
                     when SDL_EVENT_MOUSE_BUTTON_UP =>
                         if A.Main_Window /= null then
+                            Convert_Event_To_Render_Coordinates;
                             declare
                                 Button_Event : constant SDL_MouseButtonEvent :=
                                    To_Mouse_Button_Event (Event);
@@ -129,6 +153,7 @@ package body Adi.App is
 
                     when SDL_EVENT_MOUSE_WHEEL =>
                         if A.Main_Window /= null then
+                            Convert_Event_To_Render_Coordinates;
                             declare
                                 Wheel_Event : constant SDL_MouseWheelEvent :=
                                    To_Mouse_Wheel_Event (Event);

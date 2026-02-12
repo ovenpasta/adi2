@@ -124,6 +124,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=rlottie_example
 - Public lookup/apply APIs are selector-kind aware (`Has/Styles_For/Apply/Bind` + class/id/tag convenience wrappers)
 - Supports file watching reload flow via `Reload_If_Changed`, reapplying styles to bound widgets
 - Parses `transition` with duration (`ms`/`s`), easing, and property filter
+- Accepts `dp` as an alias of `dip` for length values
 
 **Adi.CSS_Source** (`adi-css_source.ads`): Dynamic/static style source switcher
 - Unifies runtime dynamic CSS (`Adi.CSS_Parser`) and compiled static style arrays
@@ -344,11 +345,15 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=rlottie_example
 - Flexbox layout support (child margins are applied on main/cross axes)
 - Grid layout support with reusable core algorithm (`Compute_Grid_Layout` / `Grid_To_Rectangles`)
 - Named root font-size default is used for `em/root-em` conversions (no hardcoded magic font-size literals)
+- Active DIP scaling for unit conversion: `Set/Get_Active_DIP_Scale`; `Length_To_Px` scales `dip` lengths by the active value while keeping `px` raw
 
 **Adi.Window** (`adi-window.ads`): Window management
 - Wraps SDL window and renderer
 - Owns a `Render_Context` for per-renderer caches
 - Root widget container
+- Creates windows with `SDL_WINDOW_HIGH_PIXEL_DENSITY`
+- Applies renderer logical presentation (`SDL_SetRenderLogicalPresentation`) on create/resize
+- Refreshes active DIP scale from `SDL_GetWindowDisplayScale` and marks layout dirty when scale changes
 - `Set_Root`, `Add_Overlay`, `Remove_Overlay` accept `access Adi.Widget.Widget'Class` (fully qualified to avoid package/type ambiguity)
 - Mouse event handling with widget hit testing
 - Overlay support for top-level floating widgets (`Add_Overlay`, `Remove_Overlay`, `Clear_Overlays`, `Overlay_Count`)
@@ -373,6 +378,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=rlottie_example
 - Frame rate management: `Set_Target_FPS`, `Get_Delta_Time`
 - Proper frame timing with `Ada.Real_Time` (`delay until`) instead of fixed delay
 - Event loop dispatches mouse, key-down, key-up, and text-input events to `Adi.Window`
+- Mouse events are converted to renderer coordinates via `SDL_ConvertEventToRenderCoordinates` before dispatch
 - Each frame: compute delta time, tick animations, render, wait for next frame
 
 ### Widget Rendering Pipeline
@@ -405,6 +411,8 @@ Recent binding additions:
 - `Adi.SDL`: `SDL_SetClipboardText`, `SDL_GetClipboardText`, `SDL_free`
 - `Adi.SDL.Video`: `SDL_SetWindowMinimumSize`
 - `Adi.SDL.Events`: `SDL_SCANCODE_ESCAPE`, `SDL_SCANCODE_SPACE`, `SDL_SCANCODE_Y`, `SDL_SCANCODE_Z`
+- `Adi.SDL.Video`: `SDL_GetWindowDisplayScale`, `SDL_GetWindowSizeInPixels`
+- `Adi.SDL.Render`: `SDL_ConvertEventToRenderCoordinates`
 
 **Binding Design Pattern**: These are clean, hand-crafted bindings that:
 - Use native Ada types (`Uint8`, `Uint32`, `C_bool`, `int`, `Float`) instead of raw C imports
@@ -455,7 +463,7 @@ examples/
   overflow_example.adb - Overflow demo with 3 rows: block overflow, horizontal text overflow, and wrapped-text vertical overflow (`visible` vs `hidden`)
   grid_example.adb     - CSS grid layout demo with rows/columns and spans
   dialog_example.adb   - Modal dialog/alert demo with alert and confirm dialogs
-  font_example.adb     - Typography demo for weight/style/decoration and wrapping
+  font_example.adb     - Typography demo for weight/style/decoration, wrapping, and DPI unit sizing (`px` vs `dip`) with current active DIP scale readout
   runtime_css_example.adb - Runtime CSS demo using `Adi.CSS_Source` with button toggle between dynamic and static sources
   css/widget_defaults.css - Shared default visual styles used by multiple examples
   css/runtime_css_example.css - Runtime stylesheet used by runtime_css_example

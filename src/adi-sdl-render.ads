@@ -3,6 +3,7 @@ with System;
 with Adi.SDL.Video;       use Adi.SDL.Video;
 with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
 with Adi.SDL.Surface;     use Adi.SDL.Surface;
+with Adi.SDL.Events;
 
 package Adi.SDL.Render is
 
@@ -167,6 +168,13 @@ package Adi.SDL.Render is
       with Import        => True,
            Convention    => C,
            External_Name => "SDL_GetRenderLogicalPresentation";
+
+   function SDL_ConvertEventToRenderCoordinates
+      (Renderer : SDL_Renderer_Ptr;
+       Event    : access Adi.SDL.Events.SDL_Event) return C_bool
+      with Import        => True,
+           Convention    => C,
+           External_Name => "SDL_ConvertEventToRenderCoordinates";
 
    function SDL_SetRenderVSync
       (Renderer : SDL_Renderer_Ptr;

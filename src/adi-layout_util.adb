@@ -1,5 +1,17 @@
 package body Adi.Layout_Util is
 
+   Active_DIP_Scale : Pixel_Type := 1.0;
+
+   procedure Set_Active_DIP_Scale (Scale : Pixel_Type) is
+   begin
+      Active_DIP_Scale := Pixel_Type'Max (0.01, Scale);
+   end Set_Active_DIP_Scale;
+
+   function Get_Active_DIP_Scale return Pixel_Type is
+   begin
+      return Active_DIP_Scale;
+   end Get_Active_DIP_Scale;
+
    -------------------------------------------------
    -- Length Conversion
    -------------------------------------------------
@@ -14,8 +26,7 @@ package body Adi.Layout_Util is
          when Px =>
             return Pixel_Type (L.Amount);
          when Dip =>
-            --  Assume 1 DIP = 1 Px for now (should use display density)
-            return Pixel_Type (L.Amount);
+            return Pixel_Type (L.Amount) * Active_DIP_Scale;
          when Em =>
             return Pixel_Type (L.Amount * Float (Font_Size));
          when Root_Em =>

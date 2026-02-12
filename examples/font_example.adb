@@ -1,9 +1,11 @@
 pragma Ada_2022;
 
 with Ada.Directories;
+with Ada.Strings.Fixed;
 with Adi.App;
 with Adi.CSS_Styles;       use Adi.CSS_Styles;
 with Adi.Font;
+with Adi.Layout_Util;      use Adi.Layout_Util;
 with Adi.Window;           use Adi.Window;
 with Adi.Widget;           use Adi.Widget;
 with Adi.Widget.Box;
@@ -119,6 +121,8 @@ begin
         Adi.Widget.Label.Create ("Decorations");
       Section_Wrap : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("Wrapping");
+      Section_DPI : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("DPI Units (px vs dip)");
 
       Body_Font : constant Font_Handle := Load_Font_With_Variants;
 
@@ -160,6 +164,28 @@ begin
           ("This is a wrapping sample using the same font pipeline. "
            & "It should wrap naturally and keep typography style settings.",
            Body_Font);
+
+      DPI_Intro : constant Adi.Widget.Label.Label_Widget_Access :=
+        Create_Sample
+          ("These two labels use numeric size 18 with different units.",
+           (Font_Size => Set_Font (Px (14)), Color => Set (RGB (191, 219, 254)), others => <>),
+           Body_Font);
+      DPI_Status : constant Adi.Widget.Label.Label_Widget_Access :=
+        Create_Sample ("", (Font_Size => Set_Font (Px (13)),
+                            Color => Set (RGB (125, 211, 252)),
+                            others => <>), Body_Font);
+      DPI_PX_Sample : constant Adi.Widget.Label.Label_Widget_Access :=
+        Create_Sample
+          ("font-size: 18px (fixed pixels)",
+           (Font_Size => Set_Font (Px (18)), others => <>),
+           Body_Font);
+      DPI_DIP_Sample : constant Adi.Widget.Label.Label_Widget_Access :=
+        Create_Sample
+          ("font-size: 18dip (display-scale aware)",
+           (Font_Size => Set_Font (Dip (18)),
+            Color     => Set (RGB (147, 197, 253)),
+            others    => <>),
+           Body_Font);
    begin
       Set_Part_Styles (Root.all, Root_Class_Part_Styles);
       Set_Part_Styles (Container.all, Container_Class_Part_Styles);
@@ -171,6 +197,7 @@ begin
       Set_Part_Styles (Section_Size.all, Section_Title_Class_Part_Styles);
       Set_Part_Styles (Section_Deco.all, Section_Title_Class_Part_Styles);
       Set_Part_Styles (Section_Wrap.all, Section_Title_Class_Part_Styles);
+      Set_Part_Styles (Section_DPI.all, Section_Title_Class_Part_Styles);
 
       if Body_Font /= Null_Font then
          Set_Part_Style (Title.all, Label_Part,
@@ -186,6 +213,8 @@ begin
          Set_Part_Style (Section_Deco.all, Label_Part,
            Build_Label_Widget (Section_Title_Class_Label_Base_Style, Empty_Style, Body_Font));
          Set_Part_Style (Section_Wrap.all, Label_Part,
+           Build_Label_Widget (Section_Title_Class_Label_Base_Style, Empty_Style, Body_Font));
+         Set_Part_Style (Section_DPI.all, Label_Part,
            Build_Label_Widget (Section_Title_Class_Label_Base_Style, Empty_Style, Body_Font));
       end if;
 
@@ -218,6 +247,17 @@ begin
 
       Container.Add_Child (Section_Wrap);
       Container.Add_Child (Wrap_Sample);
+
+      Container.Add_Child (Section_DPI);
+      Container.Add_Child (DPI_Intro);
+      Adi.Widget.Label.Set_Text
+        (DPI_Status.all,
+         "Current active DIP scale: "
+         & Ada.Strings.Fixed.Trim
+           (Float'Image (Float (Get_Active_DIP_Scale)), Ada.Strings.Both));
+      Container.Add_Child (DPI_Status);
+      Container.Add_Child (DPI_PX_Sample);
+      Container.Add_Child (DPI_DIP_Sample);
 
       W.Set_Root (Root);
       A.Add_Window (W);

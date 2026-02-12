@@ -105,7 +105,8 @@ procedure Css_Parser_Test is
      "#submit { background-color: rgb(12, 34, 56); }" & ASCII.LF &
      "button { color: rgb(9, 8, 7); }" & ASCII.LF &
      ".seconds { transition: opacity 1.25s linear; }" & ASCII.LF &
-     ".sides { padding: 1px 2px 3px 4px; padding-left: 11px; margin: 5px; margin-top: 9px; }" & ASCII.LF;
+     ".sides { padding: 1px 2px 3px 4px; padding-left: 11px; margin: 5px; margin-top: 9px; }" & ASCII.LF &
+     ".dpunit { padding: 7dp; }" & ASCII.LF;
 
 begin
    Put_Line ("CSS parser test");
@@ -125,6 +126,7 @@ begin
            "Has(kind,name) should find class selector");
    Assert (Adi.CSS_Parser.Has (Sheet, Adi.CSS_Parser.Id_Selector, "submit"),
            "Has(kind,name) should find id selector");
+   Assert (Adi.CSS_Parser.Has_Class (Sheet, "dpunit"), "Has_Class should parse '.dpunit'");
    Assert (not Adi.CSS_Parser.Has_Class (Sheet, "missing"), "Has_Class should be false for unknown class");
    Assert (not Adi.CSS_Parser.Has_Id (Sheet, "card"), "Has_Id should not match class selector");
 
@@ -136,6 +138,7 @@ begin
       Seconds_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "seconds");
       Sides_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "sides");
       Missing_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For (Sheet, "missing");
+      DP_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "dpunit");
 
       Main_Normal : constant Resolved_Style := Compute_Resolved (Styles (Main_Part).Style, No_States, No_States);
       Main_Hover  : constant Resolved_Style := Compute_Resolved (
@@ -179,6 +182,7 @@ begin
       Seconds_Main : constant Resolved_Style := Compute_Resolved (Seconds_Styles (Main_Part).Style, No_States, No_States);
       Sides_Main : constant Resolved_Style := Compute_Resolved (Sides_Styles (Main_Part).Style, No_States, No_States);
       Missing_Main : constant Resolved_Style := Compute_Resolved (Missing_Styles (Main_Part).Style, No_States, No_States);
+      DP_Main      : constant Resolved_Style := Compute_Resolved (DP_Styles (Main_Part).Style, No_States, No_States);
    begin
       Assert (Is_RGBA_Color (Main_Normal.Background_Color, 16, 34, 51, 0.8),
               "RGBA background-color should parse");
@@ -216,6 +220,10 @@ begin
               "Min-height should parse fixed size");
       Assert (Main_Normal.Font_Size.Amount = 13.0 and then Main_Normal.Font_Size.Unit = Px,
               "Font-size should parse");
+      Assert (DP_Main.Padding.Kind = Gap_Uniform
+              and then DP_Main.Padding.All_Sides.Unit = Dip
+              and then DP_Main.Padding.All_Sides.Amount = 7.0,
+              "dp length unit should parse as Dip");
       Assert (Main_Normal.Font_Weight = Weight_Bold,
               "Font-weight 700 should parse to Weight_Bold");
       Assert (Main_Normal.Font_Style = Style_Italic,

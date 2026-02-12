@@ -94,7 +94,7 @@ package body Adi.Widget.Label is
             Text_Size := Adi.Font.Measure_Text
               (Handle    => Label_Style.Font_Family,
                Content   => To_String (W.Text),
-               Font_Size => Label_Style.Font_Size.Amount);
+               Font_Size => Float (Length_To_Px (Label_Style.Font_Size)));
 
             --  When wrapping is allowed, text can shrink in the main axis.
             if Can_Wrap then
@@ -183,7 +183,7 @@ package body Adi.Widget.Label is
             Font_Attrs  : constant Adi.Font.Font_Attributes :=
               Adi.Font.Make_Attributes
                 (Family     => Label_Style.Font_Family,
-                 Size       => Label_Style.Font_Size.Amount,
+                 Size       => Float (Length_To_Px (Label_Style.Font_Size)),
                  Weight     => Label_Style.Font_Weight,
                  Style      => Label_Style.Font_Style,
                  Decoration => Label_Style.Text_Decoration);
@@ -247,7 +247,7 @@ package body Adi.Widget.Label is
                               Font_Attrs : constant Adi.Font.Font_Attributes :=
                                 Adi.Font.Make_Attributes
                                   (Family     => Label_Style.Font_Family,
-                                   Size       => Label_Style.Font_Size.Amount,
+                                   Size       => Float (Length_To_Px (Label_Style.Font_Size)),
                                    Weight     => Label_Style.Font_Weight,
                                    Style      => Label_Style.Font_Style,
                                    Decoration => Label_Style.Text_Decoration);

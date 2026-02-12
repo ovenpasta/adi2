@@ -1,5 +1,7 @@
 with Ada.Text_IO; use Ada.Text_IO;
+with Adi.Core;         use Adi.Core;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
+with Adi.Layout_Util;  use Adi.Layout_Util;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 procedure Main is
@@ -494,6 +496,22 @@ procedure Main is
       New_Line;
    end Test_Typography_Resolve;
 
+   procedure Test_DIP_Scaling is
+      Saved : constant Pixel_Type := Get_Active_DIP_Scale;
+      V_Px  : Float;
+      V_Dip : Float;
+   begin
+      Put_Line ("Test: DIP Scaling");
+      Set_Active_DIP_Scale (2.0);
+      V_Px := Float (Length_To_Px (Px (10)));
+      V_Dip := Float (Length_To_Px (Dip (10)));
+      Set_Active_DIP_Scale (Saved);
+
+      Assert (V_Px = 10.0, "Px should be unchanged by active DIP scale");
+      Assert (V_Dip = 20.0, "Dip should scale with active DIP scale");
+      New_Line;
+   end Test_DIP_Scaling;
+
 begin
    Put_Line ("========================================");
    Put_Line ("   Widget Style System Tests");
@@ -531,6 +549,10 @@ begin
    Put_Line ("*** TYPOGRAPHY TESTS ***");
    New_Line;
    Test_Typography_Resolve;
+
+   Put_Line ("*** DIP SCALING TESTS ***");
+    New_Line;
+   Test_DIP_Scaling;
 
    --  Summary
    Put_Line ("========================================");

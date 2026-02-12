@@ -1,4 +1,5 @@
 with Adi.Font;
+with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.SDL;
 with Adi.SDL.TTF;      use Adi.SDL.TTF;
 with Ada.Containers;   use type Ada.Containers.Count_Type;
@@ -50,7 +51,7 @@ package body Adi.Text_Layout is
    begin
       return Adi.Font.Make_Attributes
         (Family     => Label_Style.Font_Family,
-         Size       => Label_Style.Font_Size.Amount,
+         Size       => Float (Length_To_Px (Label_Style.Font_Size)),
          Weight     => Label_Style.Font_Weight,
          Style      => Label_Style.Font_Style,
          Decoration => Label_Style.Text_Decoration);

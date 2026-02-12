@@ -8,11 +8,13 @@ with Adi.Core;
 with Adi.SDL; use Adi.SDL;
 with Adi.SDL.Video;
 with Adi.SDL.Render;
+with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.Widget_Styles;
 with Adi.Animated_Image;
 
 package body Adi.Window is
    use type Adi.SDL.Video.SDL_Window_Ptr;
+   use type Adi.SDL.Video.SDL_WindowFlags;
 
    Debug_Checked : Boolean := False;
    Debug_On      : Boolean := False;
@@ -70,11 +72,40 @@ package body Adi.Window is
      (Root : Widget_Access;
       Node : Widget_Access) return Boolean;
    function Active_Key_Root (W : Window) return Widget_Access;
+   procedure Apply_Render_Logical_Presentation (W : in out Window);
+   function Refresh_DIP_Scale (W : in out Window) return Boolean;
 
    type Internal is record
       win : Adi.SDL.Video.SDL_Window_Ptr;
       ren : Adi.SDL.Render.SDL_Renderer_Ptr;
    end record;
+
+   procedure Apply_Render_Logical_Presentation (W : in out Window) is
+      Success : Adi.SDL.C_bool;
+   begin
+      if W.Internal = null
+        or else W.Internal.ren = null
+      then
+         return;
+      end if;
+
+      Success := Adi.SDL.Render.SDL_SetRenderLogicalPresentation
+        (Renderer => W.Internal.ren,
+         W        => int (Integer (Float'Ceiling (Float (W.Size.Width)))),
+         H        => int (Integer (Float'Ceiling (Float (W.Size.Height)))),
+         Mode     => Adi.SDL.Render.SDL_LOGICAL_PRESENTATION_STRETCH);
+      SDL_Assert (Success, "SDL_SetRenderLogicalPresentation");
+   end Apply_Render_Logical_Presentation;
+
+   function Refresh_DIP_Scale (W : in out Window) return Boolean is
+      Raw    : constant Pixel_Type :=
+        Pixel_Type (Adi.SDL.Video.SDL_GetWindowDisplayScale (W.Internal.win));
+      Scale  : constant Pixel_Type := Pixel_Type'Max (1.0, Raw);
+      Before : constant Pixel_Type := Get_Active_DIP_Scale;
+   begin
+      Set_Active_DIP_Scale (Scale);
+      return abs (Get_Active_DIP_Scale - Before) > 0.0001;
+   end Refresh_DIP_Scale;
 
    function Is_Focus_Candidate (Wgt : Widget_Access) return Boolean is
    begin
@@ -316,7 +347,8 @@ package body Adi.Window is
          C_Title_Str,
          int(S.Width),
          int(S.Height),
-         Adi.SDL.Video.SDL_WINDOW_RESIZABLE,
+         Adi.SDL.Video.SDL_WINDOW_RESIZABLE
+           or Adi.SDL.Video.SDL_WINDOW_HIGH_PIXEL_DENSITY,
          Win_Ptr,
          Ren_Ptr);
       Free (C_Title_Str);
@@ -328,6 +360,10 @@ package body Adi.Window is
         Adi.Render.Create (W.Ctx, Ren_Ptr);
         W.Size := S;
         W.Geometry := (0.0, 0.0, S.Width, S.Height);
+        Apply_Render_Logical_Presentation (W.all);
+        if Refresh_DIP_Scale (W.all) then
+           null;
+        end if;
       end return;
    end Create_Window;
 
@@ -364,6 +400,13 @@ package body Adi.Window is
        Root_Dirty    : constant Boolean := (W.Root /= null and then Is_Dirty (W.Root.all));
        Overlay_Dirty : constant Boolean := Is_Any_Overlay_Dirty (W);
     begin
+       --  Keep DIP conversion in sync with the current window scale.
+       if W.Internal /= null and then W.Internal.win /= null then
+          Set_Active_DIP_Scale
+            (Pixel_Type'Max
+               (1.0, Pixel_Type (Adi.SDL.Video.SDL_GetWindowDisplayScale (W.Internal.win))));
+       end if;
+
        --  Only render if something changed
        if Root_Dirty or else Overlay_Dirty
        then
@@ -1196,20 +1239,39 @@ function Get_Size (W : in out Window) return Size_2D is
    end Finalize;
 
     procedure Handle_Resize (W : in out Window; New_Size : Size_2D) is
+      Size_Changed  : constant Boolean :=
+        W.Size.Width /= New_Size.Width or else W.Size.Height /= New_Size.Height;
+      Scale_Changed : Boolean := False;
     begin
-       if W.Size.Width = New_Size.Width and W.Size.Height = New_Size.Height then
-	  return;  -- No change
+       if Size_Changed then
+          W.Size := New_Size;
+          W.Geometry := (0.0, 0.0, New_Size.Width, New_Size.Height);
+
+          --  Re-layout root widget if exists
+          if W.Root /= null then
+             Set_Geometry (W.Root.all, W.Geometry);
+             Mark_Dirty (W.Root.all);
+          end if;
+          W.Needs_Layout := True;  -- Flag for layout recalculation
        end if;
 
-       W.Size := New_Size;
-       W.Geometry := (0.0, 0.0, New_Size.Width, New_Size.Height);
-
-       --  Re-layout root widget if exists
-       if W.Root /= null then
-	  Set_Geometry (W.Root.all, W.Geometry);
-	  Mark_Dirty (W.Root.all);
+       Apply_Render_Logical_Presentation (W);
+       Scale_Changed := Refresh_DIP_Scale (W);
+       if Scale_Changed then
+          if W.Root /= null then
+             Mark_Dirty (W.Root.all);
+          end if;
+          for I in 1 .. Natural (W.Overlays.Length) loop
+             declare
+                Overlay : constant Widget_Access := W.Overlays.Element (I);
+             begin
+                if Overlay /= null then
+                   Mark_Dirty (Overlay.all);
+                end if;
+             end;
+          end loop;
+          W.Needs_Layout := True;
        end if;
-       W.Needs_Layout := True;  -- Flag for layout recalculation
     end Handle_Resize;
 
 

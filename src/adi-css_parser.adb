@@ -167,6 +167,9 @@ package body Adi.CSS_Parser is
       if V = "0" then
          L := (Amount => 0.0, Unit => Px);
          return True;
+      elsif Ends_With (V, "dp") then
+         Number := To_Unbounded_String (V (V'First .. V'Last - 2));
+         L.Unit := Dip;
       elsif Ends_With (V, "dip") then
          Number := To_Unbounded_String (V (V'First .. V'Last - 3));
          L.Unit := Dip;

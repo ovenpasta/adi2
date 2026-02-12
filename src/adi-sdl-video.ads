@@ -97,6 +97,20 @@ package Adi.SDL.Video is
         Convention => C,
         External_Name => "SDL_GetWindowSize";
 
+   function SDL_GetWindowSizeInPixels
+      (window : SDL_Window_Ptr;
+       w      : access int;
+       h      : access int) return C_bool
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_GetWindowSizeInPixels";
+
+   function SDL_GetWindowDisplayScale
+      (window : SDL_Window_Ptr) return Float
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_GetWindowDisplayScale";
+
    function SDL_SetWindowMinimumSize
       (window : SDL_Window_Ptr;
        min_w  : int;

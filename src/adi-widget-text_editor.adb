@@ -426,7 +426,7 @@ package body Adi.Widget.Text_Editor is
       Font_Attrs   : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Label_Style.Font_Family,
-           Size       => Label_Style.Font_Size.Amount,
+           Size       => Float (Length_To_Px (Label_Style.Font_Size)),
            Weight     => Label_Style.Font_Weight,
            Style      => Label_Style.Font_Style,
            Decoration => Label_Style.Text_Decoration);
@@ -449,10 +449,10 @@ package body Adi.Widget.Text_Editor is
       if Font /= null then
          LS := Pixel_Type (TTF_GetFontLineSkip (Font));
       else
-         LS := Pixel_Type (Label_Style.Font_Size.Amount);
+         LS := Length_To_Px (Label_Style.Font_Size);
       end if;
       if LS < 1.0 then
-         LS := Pixel_Type (Label_Style.Font_Size.Amount);
+         LS := Length_To_Px (Label_Style.Font_Size);
       end if;
       W.Line_Skip := LS;
 

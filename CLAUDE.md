@@ -29,8 +29,13 @@ gprbuild --config=path/to/target.cgpr -P build-linux/projects/adi_build.gpr
 
 ### Full build shortcut
 ```bash
-tools/build_all.sh --build-dir build-linux --source-dir .
-tools/build_all.sh --build-dir build-win32 --source-dir . --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config --gpr-config path/to/win32.cgpr
+# configure generates build-linux/build_all.sh
+tools/configure.sh --build-dir build-linux
+build-linux/build_all.sh
+
+# configure with cross toolchain and cgpr
+tools/configure.sh --build-dir build-win32 --source-dir . --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config --cgpr path/to/win32.cgpr
+build-win32/build_all.sh
 ```
 
 ### Configure script (pkg-config + generated GPR files)
@@ -38,6 +43,7 @@ tools/build_all.sh --build-dir build-win32 --source-dir . --pkg-config /usr/bin/
 tools/configure.sh --build-dir build-linux
 tools/configure.sh --build-dir build-win32 --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config
 tools/configure.sh --source-dir /path/to/adi --build-dir /tmp/adi-build
+tools/configure.sh --build-dir build-win32 --cgpr path/to/win32.cgpr
 ```
 
 The configure step writes only under `--build-dir`:

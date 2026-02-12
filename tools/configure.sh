@@ -4,19 +4,21 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  tools/configure.sh --build-dir <dir> [--source-dir <dir>] [--pkg-config <bin>]
+  tools/configure.sh --build-dir <dir> [--source-dir <dir>] [--pkg-config <bin>] [--cgpr <file>]
 
 Generates build files in <build-dir> (no writes to source dir):
   <build-dir>/config/adi_linker_config.gpr
   <build-dir>/projects/adi_build.gpr
   <build-dir>/projects/tests_build.gpr
   <build-dir>/projects/examples_build.gpr
+  <build-dir>/build_all.sh
 EOF
 }
 
 BUILD_DIR=""
 SOURCE_DIR=""
 PKG_CONFIG_BIN="${PKG_CONFIG:-pkg-config}"
+CGPR_FILE=""
 
 while (($#)); do
   case "$1" in
@@ -31,6 +33,10 @@ while (($#)); do
     --pkg-config)
       shift
       PKG_CONFIG_BIN="${1:-}"
+      ;;
+    --cgpr)
+      shift
+      CGPR_FILE="${1:-}"
       ;;
     -h|--help)
       usage
@@ -63,6 +69,14 @@ mkdir -p "${BUILD_DIR}/config" "${BUILD_DIR}/projects"
 mkdir -p "${BUILD_DIR}/adi/obj" "${BUILD_DIR}/adi/lib"
 mkdir -p "${BUILD_DIR}/tests/obj" "${BUILD_DIR}/tests/bin"
 mkdir -p "${BUILD_DIR}/examples/obj" "${BUILD_DIR}/examples/bin"
+
+if [[ -n "${CGPR_FILE}" ]]; then
+  if [[ ! -f "${CGPR_FILE}" ]]; then
+    echo "--cgpr file not found: ${CGPR_FILE}" >&2
+    exit 1
+  fi
+  CGPR_FILE="$(cd "$(dirname "${CGPR_FILE}")" && pwd)/$(basename "${CGPR_FILE}")"
+fi
 
 to_gpr_list() {
   local flags="$1"
@@ -217,6 +231,70 @@ project Examples_Build is
 end Examples_Build;
 EOF
 
+cat > "${BUILD_DIR}/build_all.sh" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+SOURCE_DIR="${SOURCE_DIR}"
+BUILD_DIR="${BUILD_DIR}"
+CGPR_FILE="${CGPR_FILE}"
+
+GPR_ARGS=()
+if [[ -n "\${CGPR_FILE}" ]]; then
+  GPR_ARGS+=(--config="\${CGPR_FILE}")
+fi
+
+echo "[build_all] generate CSS Ada packages"
+bash "\${SOURCE_DIR}/tools/generate_example_styles.sh"
+
+echo "[build_all] build library"
+gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/adi_build.gpr"
+
+TEST_KINDS=(
+  styles
+  layout_test
+  layout_flex_grid_test
+  css_parser_test
+  css_source_test
+  text_buffer_test
+  text_layout_test
+)
+
+for kind in "\${TEST_KINDS[@]}"; do
+  echo "[build_all] build test: \${kind}"
+  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/tests_build.gpr" -XTEST_KIND="\${kind}"
+done
+
+EXAMPLE_KINDS=(
+  label_example
+  widget_demo
+  button_example
+  transition_example
+  text_input_example
+  text_editor_example
+  demo_flex
+  stack_example
+  list_box_example
+  combo_box_example
+  overflow_example
+  grid_example
+  dialog_example
+  font_example
+  runtime_css_example
+  animated_image_example
+  rlottie_example
+)
+
+for kind in "\${EXAMPLE_KINDS[@]}"; do
+  echo "[build_all] build example: \${kind}"
+  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/examples_build.gpr" -XEXAMPLE_KIND="\${kind}"
+done
+
+echo "[build_all] complete"
+EOF
+
+chmod +x "${BUILD_DIR}/build_all.sh"
+
 cat > "${BUILD_DIR}/BUILDING.md" <<EOF
 # Build commands
 
@@ -224,11 +302,17 @@ gprbuild -P "${BUILD_DIR}/projects/adi_build.gpr"
 gprbuild -P "${BUILD_DIR}/projects/tests_build.gpr" -XTEST_KIND=styles
 gprbuild -P "${BUILD_DIR}/projects/examples_build.gpr" -XEXAMPLE_KIND=font_example
 
-Cross-target example:
-gprbuild --config=path/to/target.cgpr -P "${BUILD_DIR}/projects/adi_build.gpr"
+One-command full build:
+"${BUILD_DIR}/build_all.sh"
 EOF
 
 echo "[configure] source dir: ${SOURCE_DIR}"
 echo "[configure] build dir: ${BUILD_DIR}"
 echo "[configure] pkg-config: ${PKG_CONFIG_BIN}"
+if [[ -n "${CGPR_FILE}" ]]; then
+  echo "[configure] cgpr: ${CGPR_FILE}"
+else
+  echo "[configure] cgpr: (none)"
+fi
 echo "[configure] generated projects in ${BUILD_DIR}/projects"
+echo "[configure] generated build script: ${BUILD_DIR}/build_all.sh"

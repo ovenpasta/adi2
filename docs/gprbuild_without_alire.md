@@ -2,22 +2,6 @@
 
 This flow is file-based and fish-friendly: run `configure` once, then build from generated projects.
 
-## One-command full build
-
-```bash
-tools/build_all.sh --build-dir build-linux --source-dir .
-```
-
-Cross toolchain example:
-
-```bash
-tools/build_all.sh \
-  --build-dir build-win32 \
-  --source-dir . \
-  --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config \
-  --gpr-config path/to/win32.cgpr
-```
-
 ## 1) Configure build dir
 
 ```bash
@@ -29,7 +13,8 @@ Cross toolchain example:
 ```bash
 tools/configure.sh \
   --build-dir build-win32 \
-  --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config
+  --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config \
+  --cgpr path/to/win32.cgpr
 ```
 
 Optional explicit source dir:
@@ -43,6 +28,14 @@ Generated files:
 - `<build-dir>/projects/adi_build.gpr`
 - `<build-dir>/projects/tests_build.gpr`
 - `<build-dir>/projects/examples_build.gpr`
+- `<build-dir>/build_all.sh` (full build command using configured paths/options)
+
+## One-command full build (from build dir)
+
+```bash
+build-linux/build_all.sh
+build-win32/build_all.sh
+```
 
 ## 2) Build using generated projects
 

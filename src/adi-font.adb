@@ -1,8 +1,8 @@
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-with Ada.Text_IO;
 with Adi.Build_Target;
+with Adi.Log;
 with Adi.SDL;
 with Adi.SDL.TTF;           use Adi.SDL.TTF;
 with Interfaces.C;          use Interfaces.C;
@@ -14,7 +14,7 @@ package body Adi.Font is
    procedure Log (Msg : String) is
    begin
       if Debug_Font_Loading then
-         Ada.Text_IO.Put_Line ("[Adi.Font] " & Msg);
+         Adi.Log.Debug ("[Adi.Font] " & Msg);
       end if;
    end Log;
 
@@ -110,221 +110,206 @@ package body Adi.Font is
    type Source_Profile_Kind is
      (Profile_Generic, Profile_Windows_Segoe, Profile_Windows_Arial);
 
-   type Font_Source is record
-      Path      : access constant String;
-      Name      : access constant String;
-      Suffix    : access constant String;
-      Extension : access constant String;
-      Profile   : Source_Profile_Kind := Profile_Generic;
+   type Fallback_Source is record
+      Profile        : Source_Profile_Kind := Profile_Generic;
+      Path_Id        : Positive;
+      Name_Id        : Positive;
+      Extension_Id   : Positive;
+      Regular_Suffix : access constant String;
    end record;
 
-   type Font_Source_Array is array (Positive range <>) of Font_Source;
+   type Fallback_Source_Array is array (Positive range <>) of Fallback_Source;
 
-   Empty_Text : aliased constant String := "";
+   Fallback_Paths : constant array (Positive range 1 .. 5) of access constant String :=
+     (1 => new String'("/usr/share/fonts/TTF"),
+      2 => new String'("/usr/share/fonts/truetype/dejavu"),
+      3 => new String'("/usr/share/fonts/noto"),
+      4 => new String'("C:\Windows\Fonts"),
+      5 => new String'("C:\WINNT\Fonts"));
 
-   Posix_Fallback_Sources : constant Font_Source_Array (1 .. 5) :=
-     ((Path      => new String'("/usr/share/fonts/TTF"),
-       Name      => new String'("DejaVuSans"),
-       Suffix    => new String'("-Regular"),
-       Extension => new String'(".ttf"),
-       Profile   => Profile_Generic),
-      (Path      => new String'("/usr/share/fonts/TTF"),
-       Name      => new String'("DejaVuSans"),
-       Suffix    => new String'(""),
-       Extension => new String'(".ttf"),
-       Profile   => Profile_Generic),
-      (Path      => new String'("/usr/share/fonts/truetype/dejavu"),
-       Name      => new String'("DejaVuSans"),
-       Suffix    => new String'("-Regular"),
-       Extension => new String'(".ttf"),
-       Profile   => Profile_Generic),
-      (Path      => new String'("/usr/share/fonts/truetype/dejavu"),
-       Name      => new String'("DejaVuSans"),
-       Suffix    => new String'(""),
-       Extension => new String'(".ttf"),
-       Profile   => Profile_Generic),
-      (Path      => new String'("/usr/share/fonts/noto"),
-       Name      => new String'("NotoSans"),
-       Suffix    => new String'("-Regular"),
-       Extension => new String'(".ttf"),
-       Profile   => Profile_Generic));
+   Fallback_Font_Names : constant array (Positive range 1 .. 4) of access constant String :=
+     (1 => new String'("DejaVuSans"),
+      2 => new String'("NotoSans"),
+      3 => new String'("segoeui"),
+      4 => new String'("arial"));
 
-   Windows_Fallback_Sources : constant Font_Source_Array (1 .. 4) :=
-     ((Path      => new String'("C:\Windows\Fonts"),
-       Name      => new String'("segoeui"),
-       Suffix    => new String'(""),
-       Extension => new String'(".ttf"),
-       Profile   => Profile_Windows_Segoe),
-      (Path      => new String'("C:\WINNT\Fonts"),
-       Name      => new String'("segoeui"),
-       Suffix    => new String'(""),
-       Extension => new String'(".ttf"),
-       Profile   => Profile_Windows_Segoe),
-      (Path      => new String'("C:\Windows\Fonts"),
-       Name      => new String'("arial"),
-       Suffix    => new String'(""),
-       Extension => new String'(".ttf"),
-       Profile   => Profile_Windows_Arial),
-      (Path      => new String'("C:\WINNT\Fonts"),
-       Name      => new String'("arial"),
-       Suffix    => new String'(""),
-       Extension => new String'(".ttf"),
-       Profile   => Profile_Windows_Arial));
+   Fallback_Extensions : constant array (Positive range 1 .. 1) of access constant String :=
+     (1 => new String'(".ttf"));
 
-   Selected_Fallback_Source : Font_Source :=
-     (Path      => Empty_Text'Access,
-      Name      => Empty_Text'Access,
-      Suffix    => Empty_Text'Access,
-      Extension => Empty_Text'Access,
-      Profile   => Profile_Generic);
+   Posix_Fallback_Sources : constant Fallback_Source_Array (1 .. 5) :=
+     ((Profile => Profile_Generic, Path_Id => 1, Name_Id => 1, Extension_Id => 1, Regular_Suffix => new String'("-Regular")),
+      (Profile => Profile_Generic, Path_Id => 1, Name_Id => 1, Extension_Id => 1, Regular_Suffix => new String'("")),
+      (Profile => Profile_Generic, Path_Id => 2, Name_Id => 1, Extension_Id => 1, Regular_Suffix => new String'("-Regular")),
+      (Profile => Profile_Generic, Path_Id => 2, Name_Id => 1, Extension_Id => 1, Regular_Suffix => new String'("")),
+      (Profile => Profile_Generic, Path_Id => 3, Name_Id => 2, Extension_Id => 1, Regular_Suffix => new String'("-Regular")));
 
-   type Suffix_List is array (Natural range <>) of access constant String;
-   type Suffix_List_Access is access constant Suffix_List;
+   Windows_Fallback_Sources : constant Fallback_Source_Array (1 .. 4) :=
+     ((Profile => Profile_Windows_Segoe, Path_Id => 4, Name_Id => 3, Extension_Id => 1, Regular_Suffix => new String'("")),
+      (Profile => Profile_Windows_Segoe, Path_Id => 5, Name_Id => 3, Extension_Id => 1, Regular_Suffix => new String'("")),
+      (Profile => Profile_Windows_Arial, Path_Id => 4, Name_Id => 4, Extension_Id => 1, Regular_Suffix => new String'("")),
+      (Profile => Profile_Windows_Arial, Path_Id => 5, Name_Id => 4, Extension_Id => 1, Regular_Suffix => new String'("")));
 
-   type Ranked_Suffix is record
+   Selected_Fallback_Source : Fallback_Source := Posix_Fallback_Sources (1);
+
+   type Suffix_Rule is record
+      Profile        : Source_Profile_Kind;
+      Weight         : Font_Weight_Value;
+      Style          : Font_Style_Value;
       Suffix         : access constant String;
       Weight_Matched : Boolean;
       Style_Matched  : Boolean;
    end record;
 
-   type Ranked_Suffix_List is array (Natural range <>) of Ranked_Suffix;
-   type Ranked_Suffix_List_Access is access constant Ranked_Suffix_List;
+   type Suffix_Rule_Array is array (Positive range <>) of Suffix_Rule;
 
-   type Windows_Suffix_Kind is
-     (Win_Regular, Win_Italic, Win_Bold, Win_Bold_Italic, Win_Light, Win_Semi_Light);
+   Fallback_Suffix_Rules : constant Suffix_Rule_Array :=
+     (
+      -- Generic normal style
+      (Profile_Generic, Weight_Thin,        Style_Normal, new String'("-Thin"),      True, True),
+      (Profile_Generic, Weight_Extra_Light, Style_Normal, new String'("-ExtraLight"), True, True),
+      (Profile_Generic, Weight_Extra_Light, Style_Normal, new String'("-UltraLight"), True, True),
+      (Profile_Generic, Weight_Extra_Light, Style_Normal, new String'("-Light"),      True, True),
+      (Profile_Generic, Weight_Light,       Style_Normal, new String'("-ExtraLight"), True, True),
+      (Profile_Generic, Weight_Light,       Style_Normal, new String'("-UltraLight"), True, True),
+      (Profile_Generic, Weight_Light,       Style_Normal, new String'("-Light"),      True, True),
+      (Profile_Generic, Weight_Medium,      Style_Normal, new String'("-Medium"),     True, True),
+      (Profile_Generic, Weight_Semi_Bold,   Style_Normal, new String'("-SemiBold"),   True, True),
+      (Profile_Generic, Weight_Semi_Bold,   Style_Normal, new String'("-DemiBold"),   True, True),
+      (Profile_Generic, Weight_Bold,        Style_Normal, new String'("-Bold"),       True, True),
+      (Profile_Generic, Weight_Extra_Bold,  Style_Normal, new String'("-ExtraBold"),  True, True),
+      (Profile_Generic, Weight_Extra_Bold,  Style_Normal, new String'("-UltraBold"),  True, True),
+      (Profile_Generic, Weight_Black,       Style_Normal, new String'("-Black"),      True, True),
+      (Profile_Generic, Weight_Black,       Style_Normal, new String'("-Heavy"),      True, True),
 
-   type Windows_Ranked_Suffix is record
-      Kind           : Windows_Suffix_Kind;
-      Weight_Matched : Boolean;
-      Style_Matched  : Boolean;
-   end record;
+      -- Generic normal-weight italic/oblique forms
+      (Profile_Generic, Weight_Normal, Style_Italic, new String'("-Italic"),          False, True),
+      (Profile_Generic, Weight_Normal, Style_Italic, new String'("-Oblique"),         False, True),
+      (Profile_Generic, Weight_Normal, Style_Italic, new String'("-RegularItalic"),    True, True),
+      (Profile_Generic, Weight_Normal, Style_Italic, new String'("-RegularOblique"),   True, True),
+      (Profile_Generic, Weight_Normal, Style_Italic, new String'("-BookItalic"),       True, True),
+      (Profile_Generic, Weight_Normal, Style_Italic, new String'("-BookOblique"),      True, True),
 
-   type Windows_Ranked_Suffix_List is array (Natural range <>) of Windows_Ranked_Suffix;
-   type Windows_Ranked_Suffix_List_Access is access constant Windows_Ranked_Suffix_List;
+      -- Generic weighted italic/oblique forms
+      (Profile_Generic, Weight_Thin,        Style_Italic, new String'("-ThinItalic"),       True, True),
+      (Profile_Generic, Weight_Thin,        Style_Italic, new String'("-ThinOblique"),      True, True),
+      (Profile_Generic, Weight_Thin,        Style_Italic, new String'("-Thin-Italic"),      True, True),
+      (Profile_Generic, Weight_Thin,        Style_Italic, new String'("-Thin-Oblique"),     True, True),
+      (Profile_Generic, Weight_Extra_Light, Style_Italic, new String'("-ExtraLightItalic"), True, True),
+      (Profile_Generic, Weight_Extra_Light, Style_Italic, new String'("-ExtraLightOblique"), True, True),
+      (Profile_Generic, Weight_Extra_Light, Style_Italic, new String'("-UltraLightItalic"), True, True),
+      (Profile_Generic, Weight_Extra_Light, Style_Italic, new String'("-UltraLightOblique"), True, True),
+      (Profile_Generic, Weight_Extra_Light, Style_Italic, new String'("-LightItalic"),      True, True),
+      (Profile_Generic, Weight_Extra_Light, Style_Italic, new String'("-LightOblique"),     True, True),
+      (Profile_Generic, Weight_Light,       Style_Italic, new String'("-ExtraLightItalic"), True, True),
+      (Profile_Generic, Weight_Light,       Style_Italic, new String'("-ExtraLightOblique"), True, True),
+      (Profile_Generic, Weight_Light,       Style_Italic, new String'("-UltraLightItalic"), True, True),
+      (Profile_Generic, Weight_Light,       Style_Italic, new String'("-UltraLightOblique"), True, True),
+      (Profile_Generic, Weight_Light,       Style_Italic, new String'("-LightItalic"),      True, True),
+      (Profile_Generic, Weight_Light,       Style_Italic, new String'("-LightOblique"),     True, True),
+      (Profile_Generic, Weight_Medium,      Style_Italic, new String'("-MediumItalic"),     True, True),
+      (Profile_Generic, Weight_Medium,      Style_Italic, new String'("-MediumOblique"),    True, True),
+      (Profile_Generic, Weight_Medium,      Style_Italic, new String'("-Medium-Italic"),    True, True),
+      (Profile_Generic, Weight_Medium,      Style_Italic, new String'("-Medium-Oblique"),   True, True),
+      (Profile_Generic, Weight_Semi_Bold,   Style_Italic, new String'("-SemiBoldItalic"),   True, True),
+      (Profile_Generic, Weight_Semi_Bold,   Style_Italic, new String'("-SemiBoldOblique"),  True, True),
+      (Profile_Generic, Weight_Semi_Bold,   Style_Italic, new String'("-DemiBoldItalic"),   True, True),
+      (Profile_Generic, Weight_Semi_Bold,   Style_Italic, new String'("-DemiBoldOblique"),  True, True),
+      (Profile_Generic, Weight_Bold,        Style_Italic, new String'("-BoldItalic"),       True, True),
+      (Profile_Generic, Weight_Bold,        Style_Italic, new String'("-BoldOblique"),      True, True),
+      (Profile_Generic, Weight_Bold,        Style_Italic, new String'("-Bold-Italic"),      True, True),
+      (Profile_Generic, Weight_Bold,        Style_Italic, new String'("-Bold-Oblique"),     True, True),
+      (Profile_Generic, Weight_Extra_Bold,  Style_Italic, new String'("-ExtraBoldItalic"),  True, True),
+      (Profile_Generic, Weight_Extra_Bold,  Style_Italic, new String'("-ExtraBoldOblique"), True, True),
+      (Profile_Generic, Weight_Extra_Bold,  Style_Italic, new String'("-UltraBoldItalic"),  True, True),
+      (Profile_Generic, Weight_Extra_Bold,  Style_Italic, new String'("-UltraBoldOblique"), True, True),
+      (Profile_Generic, Weight_Black,       Style_Italic, new String'("-BlackItalic"),      True, True),
+      (Profile_Generic, Weight_Black,       Style_Italic, new String'("-BlackOblique"),     True, True),
+      (Profile_Generic, Weight_Black,       Style_Italic, new String'("-HeavyItalic"),      True, True),
+      (Profile_Generic, Weight_Black,       Style_Italic, new String'("-HeavyOblique"),     True, True),
 
-   type Requested_Style_Kind is (Request_Normal, Request_Italic);
+      -- Generic style fallback (all weights)
+      (Profile_Generic, Weight_Thin,        Style_Italic, new String'("-Italic"), False, True),
+      (Profile_Generic, Weight_Thin,        Style_Italic, new String'("-Oblique"), False, True),
+      (Profile_Generic, Weight_Extra_Light, Style_Italic, new String'("-Italic"), False, True),
+      (Profile_Generic, Weight_Extra_Light, Style_Italic, new String'("-Oblique"), False, True),
+      (Profile_Generic, Weight_Light,       Style_Italic, new String'("-Italic"), False, True),
+      (Profile_Generic, Weight_Light,       Style_Italic, new String'("-Oblique"), False, True),
+      (Profile_Generic, Weight_Normal,      Style_Italic, new String'("-Italic"), False, True),
+      (Profile_Generic, Weight_Normal,      Style_Italic, new String'("-Oblique"), False, True),
+      (Profile_Generic, Weight_Medium,      Style_Italic, new String'("-Italic"), False, True),
+      (Profile_Generic, Weight_Medium,      Style_Italic, new String'("-Oblique"), False, True),
+      (Profile_Generic, Weight_Semi_Bold,   Style_Italic, new String'("-Italic"), False, True),
+      (Profile_Generic, Weight_Semi_Bold,   Style_Italic, new String'("-Oblique"), False, True),
+      (Profile_Generic, Weight_Bold,        Style_Italic, new String'("-Italic"), False, True),
+      (Profile_Generic, Weight_Bold,        Style_Italic, new String'("-Oblique"), False, True),
+      (Profile_Generic, Weight_Extra_Bold,  Style_Italic, new String'("-Italic"), False, True),
+      (Profile_Generic, Weight_Extra_Bold,  Style_Italic, new String'("-Oblique"), False, True),
+      (Profile_Generic, Weight_Black,       Style_Italic, new String'("-Italic"), False, True),
+      (Profile_Generic, Weight_Black,       Style_Italic, new String'("-Oblique"), False, True),
 
-   type Windows_Suffix_Set is record
-      Regular     : access constant String;
-      Italic      : access constant String;
-      Bold        : access constant String;
-      Bold_Italic : access constant String;
-      Light       : access constant String;
-      Semi_Light  : access constant String;
-   end record;
+      -- Windows Segoe rules
+      (Profile_Windows_Segoe, Weight_Thin,        Style_Normal, new String'("l"),  True, True),
+      (Profile_Windows_Segoe, Weight_Thin,        Style_Normal, new String'("sl"), True, True),
+      (Profile_Windows_Segoe, Weight_Thin,        Style_Normal, new String'(""),   False, True),
+      (Profile_Windows_Segoe, Weight_Extra_Light, Style_Normal, new String'("l"),  True, True),
+      (Profile_Windows_Segoe, Weight_Extra_Light, Style_Normal, new String'("sl"), True, True),
+      (Profile_Windows_Segoe, Weight_Extra_Light, Style_Normal, new String'(""),   False, True),
+      (Profile_Windows_Segoe, Weight_Light,       Style_Normal, new String'("l"),  True, True),
+      (Profile_Windows_Segoe, Weight_Light,       Style_Normal, new String'("sl"), True, True),
+      (Profile_Windows_Segoe, Weight_Light,       Style_Normal, new String'(""),   False, True),
+      (Profile_Windows_Segoe, Weight_Thin,        Style_Italic, new String'("l"),  True, False),
+      (Profile_Windows_Segoe, Weight_Thin,        Style_Italic, new String'("sl"), True, False),
+      (Profile_Windows_Segoe, Weight_Thin,        Style_Italic, new String'("i"),  False, True),
+      (Profile_Windows_Segoe, Weight_Thin,        Style_Italic, new String'(""),   False, False),
+      (Profile_Windows_Segoe, Weight_Extra_Light, Style_Italic, new String'("l"),  True, False),
+      (Profile_Windows_Segoe, Weight_Extra_Light, Style_Italic, new String'("sl"), True, False),
+      (Profile_Windows_Segoe, Weight_Extra_Light, Style_Italic, new String'("i"),  False, True),
+      (Profile_Windows_Segoe, Weight_Extra_Light, Style_Italic, new String'(""),   False, False),
+      (Profile_Windows_Segoe, Weight_Light,       Style_Italic, new String'("l"),  True, False),
+      (Profile_Windows_Segoe, Weight_Light,       Style_Italic, new String'("sl"), True, False),
+      (Profile_Windows_Segoe, Weight_Light,       Style_Italic, new String'("i"),  False, True),
+      (Profile_Windows_Segoe, Weight_Light,       Style_Italic, new String'(""),   False, False),
+      (Profile_Windows_Segoe, Weight_Medium,      Style_Normal, new String'(""),   False, True),
+      (Profile_Windows_Segoe, Weight_Medium,      Style_Italic, new String'("i"),  False, True),
+      (Profile_Windows_Segoe, Weight_Normal,      Style_Normal, new String'(""),   True, True),
+      (Profile_Windows_Segoe, Weight_Normal,      Style_Italic, new String'("i"),  True, True),
+      (Profile_Windows_Segoe, Weight_Black,       Style_Normal, new String'("b"),  True, True),
+      (Profile_Windows_Segoe, Weight_Black,       Style_Italic, new String'("z"),  False, True),
+      (Profile_Windows_Segoe, Weight_Black,       Style_Italic, new String'("b"),  True, False),
+      (Profile_Windows_Segoe, Weight_Semi_Bold,   Style_Normal, new String'("b"),  True, True),
+      (Profile_Windows_Segoe, Weight_Semi_Bold,   Style_Italic, new String'("z"),  True, True),
+      (Profile_Windows_Segoe, Weight_Semi_Bold,   Style_Italic, new String'("b"),  True, False),
+      (Profile_Windows_Segoe, Weight_Bold,        Style_Normal, new String'("b"),  True, True),
+      (Profile_Windows_Segoe, Weight_Bold,        Style_Italic, new String'("z"),  True, True),
+      (Profile_Windows_Segoe, Weight_Bold,        Style_Italic, new String'("b"),  True, False),
+      (Profile_Windows_Segoe, Weight_Extra_Bold,  Style_Normal, new String'("b"),  True, True),
+      (Profile_Windows_Segoe, Weight_Extra_Bold,  Style_Italic, new String'("z"),  True, True),
+      (Profile_Windows_Segoe, Weight_Extra_Bold,  Style_Italic, new String'("b"),  True, False),
 
-   Generic_No_Bases : aliased constant Suffix_List := (1 .. 0 => null);
-   Generic_Thin_Bases : aliased constant Suffix_List := (1 => new String'("-Thin"));
-   Generic_Extra_Light_Bases : aliased constant Suffix_List :=
-     (1 => new String'("-ExtraLight"),
-      2 => new String'("-UltraLight"),
-      3 => new String'("-Light"));
-   Generic_Medium_Bases : aliased constant Suffix_List := (1 => new String'("-Medium"));
-   Generic_Semi_Bold_Bases : aliased constant Suffix_List :=
-     (1 => new String'("-SemiBold"),
-      2 => new String'("-DemiBold"));
-   Generic_Bold_Bases : aliased constant Suffix_List := (1 => new String'("-Bold"));
-   Generic_Extra_Bold_Bases : aliased constant Suffix_List :=
-     (1 => new String'("-ExtraBold"),
-      2 => new String'("-UltraBold"));
-   Generic_Black_Bases : aliased constant Suffix_List :=
-     (1 => new String'("-Black"),
-      2 => new String'("-Heavy"));
-
-   Generic_Weight_Bases : constant array (Font_Weight_Value) of Suffix_List_Access :=
-     (Weight_Thin        => Generic_Thin_Bases'Access,
-      Weight_Extra_Light => Generic_Extra_Light_Bases'Access,
-      Weight_Light       => Generic_Extra_Light_Bases'Access,
-      Weight_Normal      => Generic_No_Bases'Access,
-      Weight_Medium      => Generic_Medium_Bases'Access,
-      Weight_Semi_Bold   => Generic_Semi_Bold_Bases'Access,
-      Weight_Bold        => Generic_Bold_Bases'Access,
-      Weight_Extra_Bold  => Generic_Extra_Bold_Bases'Access,
-      Weight_Black       => Generic_Black_Bases'Access);
-
-   Generic_Normal_Italic_Candidates : aliased constant Ranked_Suffix_List :=
-     ((Suffix => new String'("-Italic"),         Weight_Matched => False, Style_Matched => True),
-      (Suffix => new String'("-Oblique"),        Weight_Matched => False, Style_Matched => True),
-      (Suffix => new String'("-RegularItalic"),  Weight_Matched => True,  Style_Matched => True),
-      (Suffix => new String'("-RegularOblique"), Weight_Matched => True,  Style_Matched => True),
-      (Suffix => new String'("-BookItalic"),     Weight_Matched => True,  Style_Matched => True),
-      (Suffix => new String'("-BookOblique"),    Weight_Matched => True,  Style_Matched => True));
-
-   Generic_Italic_Fallback_Candidates : aliased constant Ranked_Suffix_List :=
-     ((Suffix => new String'("-Italic"),  Weight_Matched => False, Style_Matched => True),
-      (Suffix => new String'("-Oblique"), Weight_Matched => False, Style_Matched => True));
-
-   Windows_Profile_Suffixes : constant array
-     (Source_Profile_Kind range Profile_Windows_Segoe .. Profile_Windows_Arial)
-     of Windows_Suffix_Set :=
-     (Profile_Windows_Segoe =>
-        (Regular     => new String'(""),
-         Italic      => new String'("i"),
-         Bold        => new String'("b"),
-         Bold_Italic => new String'("z"),
-         Light       => new String'("l"),
-         Semi_Light  => new String'("sl")),
-      Profile_Windows_Arial =>
-        (Regular     => new String'(""),
-         Italic      => new String'("i"),
-         Bold        => new String'("bd"),
-         Bold_Italic => new String'("bi"),
-         Light       => Empty_Text'Access,
-         Semi_Light  => Empty_Text'Access));
-
-   Windows_Thin_Normal_Candidates : aliased constant Windows_Ranked_Suffix_List :=
-     ((Kind => Win_Light,      Weight_Matched => True,  Style_Matched => True),
-      (Kind => Win_Semi_Light, Weight_Matched => True,  Style_Matched => True),
-      (Kind => Win_Regular,    Weight_Matched => False, Style_Matched => True));
-
-   Windows_Thin_Italic_Candidates : aliased constant Windows_Ranked_Suffix_List :=
-     ((Kind => Win_Light,      Weight_Matched => True,  Style_Matched => False),
-      (Kind => Win_Semi_Light, Weight_Matched => True,  Style_Matched => False),
-      (Kind => Win_Italic,     Weight_Matched => False, Style_Matched => True),
-      (Kind => Win_Regular,    Weight_Matched => False, Style_Matched => False));
-
-   Windows_Medium_Normal_Candidates : aliased constant Windows_Ranked_Suffix_List :=
-     (1 => (Kind => Win_Regular, Weight_Matched => False, Style_Matched => True));
-   Windows_Medium_Italic_Candidates : aliased constant Windows_Ranked_Suffix_List :=
-     (1 => (Kind => Win_Italic, Weight_Matched => False, Style_Matched => True));
-
-   Windows_Normal_Normal_Candidates : aliased constant Windows_Ranked_Suffix_List :=
-     (1 => (Kind => Win_Regular, Weight_Matched => True, Style_Matched => True));
-   Windows_Normal_Italic_Candidates : aliased constant Windows_Ranked_Suffix_List :=
-     (1 => (Kind => Win_Italic, Weight_Matched => True, Style_Matched => True));
-
-   Windows_Black_Normal_Candidates : aliased constant Windows_Ranked_Suffix_List :=
-     (1 => (Kind => Win_Bold, Weight_Matched => True, Style_Matched => True));
-   Windows_Black_Italic_Candidates : aliased constant Windows_Ranked_Suffix_List :=
-     ((Kind => Win_Bold_Italic, Weight_Matched => False, Style_Matched => True),
-      (Kind => Win_Bold,        Weight_Matched => True,  Style_Matched => False));
-
-   Windows_Bold_Normal_Candidates : aliased constant Windows_Ranked_Suffix_List :=
-     (1 => (Kind => Win_Bold, Weight_Matched => True, Style_Matched => True));
-   Windows_Bold_Italic_Candidates : aliased constant Windows_Ranked_Suffix_List :=
-     ((Kind => Win_Bold_Italic, Weight_Matched => True, Style_Matched => True),
-      (Kind => Win_Bold,        Weight_Matched => True, Style_Matched => False));
-
-   Windows_Weight_Candidates : constant array (Font_Weight_Value, Requested_Style_Kind)
-     of Windows_Ranked_Suffix_List_Access :=
-     (Weight_Thin        => (Request_Normal => Windows_Thin_Normal_Candidates'Access,
-                             Request_Italic => Windows_Thin_Italic_Candidates'Access),
-      Weight_Extra_Light => (Request_Normal => Windows_Thin_Normal_Candidates'Access,
-                             Request_Italic => Windows_Thin_Italic_Candidates'Access),
-      Weight_Light       => (Request_Normal => Windows_Thin_Normal_Candidates'Access,
-                             Request_Italic => Windows_Thin_Italic_Candidates'Access),
-      Weight_Normal      => (Request_Normal => Windows_Normal_Normal_Candidates'Access,
-                             Request_Italic => Windows_Normal_Italic_Candidates'Access),
-      Weight_Medium      => (Request_Normal => Windows_Medium_Normal_Candidates'Access,
-                             Request_Italic => Windows_Medium_Italic_Candidates'Access),
-      Weight_Semi_Bold   => (Request_Normal => Windows_Bold_Normal_Candidates'Access,
-                             Request_Italic => Windows_Bold_Italic_Candidates'Access),
-      Weight_Bold        => (Request_Normal => Windows_Bold_Normal_Candidates'Access,
-                             Request_Italic => Windows_Bold_Italic_Candidates'Access),
-      Weight_Extra_Bold  => (Request_Normal => Windows_Bold_Normal_Candidates'Access,
-                             Request_Italic => Windows_Bold_Italic_Candidates'Access),
-      Weight_Black       => (Request_Normal => Windows_Black_Normal_Candidates'Access,
-                             Request_Italic => Windows_Black_Italic_Candidates'Access));
+      -- Windows Arial rules
+      (Profile_Windows_Arial, Weight_Thin,        Style_Normal, new String'(""),   False, True),
+      (Profile_Windows_Arial, Weight_Extra_Light, Style_Normal, new String'(""),   False, True),
+      (Profile_Windows_Arial, Weight_Light,       Style_Normal, new String'(""),   False, True),
+      (Profile_Windows_Arial, Weight_Thin,        Style_Italic, new String'("i"),  False, True),
+      (Profile_Windows_Arial, Weight_Extra_Light, Style_Italic, new String'("i"),  False, True),
+      (Profile_Windows_Arial, Weight_Light,       Style_Italic, new String'("i"),  False, True),
+      (Profile_Windows_Arial, Weight_Medium,      Style_Normal, new String'(""),   False, True),
+      (Profile_Windows_Arial, Weight_Medium,      Style_Italic, new String'("i"),  False, True),
+      (Profile_Windows_Arial, Weight_Normal,      Style_Normal, new String'(""),   True, True),
+      (Profile_Windows_Arial, Weight_Normal,      Style_Italic, new String'("i"),  True, True),
+      (Profile_Windows_Arial, Weight_Black,       Style_Normal, new String'("bd"), True, True),
+      (Profile_Windows_Arial, Weight_Black,       Style_Italic, new String'("bi"), False, True),
+      (Profile_Windows_Arial, Weight_Black,       Style_Italic, new String'("bd"), True, False),
+      (Profile_Windows_Arial, Weight_Semi_Bold,   Style_Normal, new String'("bd"), True, True),
+      (Profile_Windows_Arial, Weight_Semi_Bold,   Style_Italic, new String'("bi"), True, True),
+      (Profile_Windows_Arial, Weight_Semi_Bold,   Style_Italic, new String'("bd"), True, False),
+      (Profile_Windows_Arial, Weight_Bold,        Style_Normal, new String'("bd"), True, True),
+      (Profile_Windows_Arial, Weight_Bold,        Style_Italic, new String'("bi"), True, True),
+      (Profile_Windows_Arial, Weight_Bold,        Style_Italic, new String'("bd"), True, False),
+      (Profile_Windows_Arial, Weight_Extra_Bold,  Style_Normal, new String'("bd"), True, True),
+      (Profile_Windows_Arial, Weight_Extra_Bold,  Style_Italic, new String'("bi"), True, True),
+      (Profile_Windows_Arial, Weight_Extra_Bold,  Style_Italic, new String'("bd"), True, False)
+     );
 
    function Is_Valid_Handle (Handle : Font_Handle) return Boolean is
    begin
@@ -369,34 +354,30 @@ package body Adi.Font is
       return False;
    end Is_Usable_Font_File;
 
-   function Build_Font_Path (Source : Font_Source) return String is
-      Sep : constant String := Path_Separator (Source.Path.all);
-   begin
-      return Source.Path.all
-        & Sep
-        & Source.Name.all
-        & Source.Suffix.all
-        & Source.Extension.all;
-   end Build_Font_Path;
-
-   function Build_Font_Path (Source : Font_Source;
+   function Build_Font_Path (Source : Fallback_Source;
                              Suffix : String) return String
    is
-      Sep : constant String := Path_Separator (Source.Path.all);
+      Path : constant String := Fallback_Paths (Source.Path_Id).all;
+      Sep  : constant String := Path_Separator (Path);
    begin
-      return Source.Path.all
+      return Path
         & Sep
-        & Source.Name.all
+        & Fallback_Font_Names (Source.Name_Id).all
         & Suffix
-        & Source.Extension.all;
+        & Fallback_Extensions (Source.Extension_Id).all;
    end Build_Font_Path;
 
+   function Build_Regular_Font_Path (Source : Fallback_Source) return String is
+   begin
+      return Build_Font_Path (Source, Source.Regular_Suffix.all);
+   end Build_Regular_Font_Path;
+
    procedure Find_Fallback is
-      procedure Try_Sources (Sources : Font_Source_Array) is
+      procedure Try_Sources (Sources : Fallback_Source_Array) is
       begin
          for Source of Sources loop
             declare
-               Candidate : constant String := Build_Font_Path (Source);
+               Candidate : constant String := Build_Regular_Font_Path (Source);
             begin
                if Is_Usable_Font_File (Candidate) then
                   Fallback_Path := To_Unbounded_String (Candidate);
@@ -436,10 +417,12 @@ package body Adi.Font is
       Key    : constant Weight_Style_Key := (Weight => Weight, Style => Style);
       Cursor : constant Fallback_Variant_Maps.Cursor :=
         Fallback_Variant_Cache.Find (Key);
-      Source : constant Font_Source := Selected_Fallback_Source;
+      Source : constant Fallback_Source := Selected_Fallback_Source;
       Result : Fallback_Variant_Result :=
         (Path => Fallback_Path, Weight_Matched => False, Style_Matched => False);
       Found : Boolean := False;
+      Requested_Style : constant Font_Style_Value :=
+        (if Style = Style_Normal then Style_Normal else Style_Italic);
 
       procedure Try_Candidate (Suffix    : String;
                                Weight_OK : Boolean;
@@ -457,87 +440,19 @@ package body Adi.Font is
          end if;
       end Try_Candidate;
 
-      procedure Try_Ranked_Candidates (Candidates : Ranked_Suffix_List) is
+      procedure Apply_Suffix_Rules is
       begin
-         for Candidate of Candidates loop
-            Try_Candidate (Suffix    => Candidate.Suffix.all,
-                           Weight_OK => Candidate.Weight_Matched,
-                           Style_OK  => Candidate.Style_Matched);
+         for Rule of Fallback_Suffix_Rules loop
+            if Rule.Profile = Source.Profile
+              and then Rule.Weight = Weight
+              and then Rule.Style = Requested_Style
+            then
+               Try_Candidate (Suffix    => Rule.Suffix.all,
+                              Weight_OK => Rule.Weight_Matched,
+                              Style_OK  => Rule.Style_Matched);
+            end if;
          end loop;
-      end Try_Ranked_Candidates;
-
-      procedure Try_Generic_Base (Base_Suffix : String;
-                                  Is_Italic   : Boolean) is
-      begin
-         if Is_Italic then
-            Try_Candidate (Base_Suffix & "Italic",  True, True);
-            Try_Candidate (Base_Suffix & "Oblique", True, True);
-            Try_Candidate (Base_Suffix & "-Italic", True, True);
-            Try_Candidate (Base_Suffix & "-Oblique", True, True);
-         else
-            Try_Candidate (Base_Suffix, True, True);
-         end if;
-      end Try_Generic_Base;
-
-      procedure Resolve_Generic_Variant is
-         Is_Italic : constant Boolean := Style /= Style_Normal;
-         Bases     : constant Suffix_List_Access := Generic_Weight_Bases (Weight);
-      begin
-         if Weight = Weight_Normal and then Is_Italic then
-            Try_Ranked_Candidates (Generic_Normal_Italic_Candidates);
-         else
-            for Base of Bases.all loop
-               Try_Generic_Base (Base_Suffix => Base.all,
-                                 Is_Italic   => Is_Italic);
-            end loop;
-         end if;
-
-         if not Found and then Is_Italic then
-            Try_Ranked_Candidates (Generic_Italic_Fallback_Candidates);
-         end if;
-      end Resolve_Generic_Variant;
-
-      procedure Resolve_Windows_Variant is
-         Style_Key : constant Requested_Style_Kind :=
-           (if Style = Style_Normal then Request_Normal else Request_Italic);
-         Rules : constant Windows_Ranked_Suffix_List_Access :=
-           Windows_Weight_Candidates (Weight, Style_Key);
-         Suffixes : constant Windows_Suffix_Set := Windows_Profile_Suffixes (Source.Profile);
-
-         function Resolve_Suffix (Kind : Windows_Suffix_Kind) return String is
-         begin
-            case Kind is
-               when Win_Regular =>
-                  return Suffixes.Regular.all;
-               when Win_Italic =>
-                  return Suffixes.Italic.all;
-               when Win_Bold =>
-                  return Suffixes.Bold.all;
-               when Win_Bold_Italic =>
-                  return Suffixes.Bold_Italic.all;
-               when Win_Light =>
-                  return Suffixes.Light.all;
-               when Win_Semi_Light =>
-                  return Suffixes.Semi_Light.all;
-            end case;
-         end Resolve_Suffix;
-      begin
-         for Candidate of Rules.all loop
-            declare
-               Suffix : constant String := Resolve_Suffix (Candidate.Kind);
-            begin
-               if Suffix'Length > 0 or else Candidate.Kind = Win_Regular then
-                  Try_Candidate (Suffix    => Suffix,
-                                 Weight_OK => Candidate.Weight_Matched,
-                                 Style_OK  => Candidate.Style_Matched);
-               end if;
-            end;
-         end loop;
-
-         if not Found then
-            Try_Candidate (Suffixes.Regular.all, False, False);
-         end if;
-      end Resolve_Windows_Variant;
+      end Apply_Suffix_Rules;
    begin
       if Fallback_Variant_Maps.Has_Element (Cursor) then
          Log ("fallback variant cache hit for "
@@ -552,12 +467,13 @@ package body Adi.Font is
          return Result;
       end if;
 
-      case Source.Profile is
-         when Profile_Windows_Segoe | Profile_Windows_Arial =>
-            Resolve_Windows_Variant;
-         when others =>
-            Resolve_Generic_Variant;
-      end case;
+      Apply_Suffix_Rules;
+
+      if not Found then
+         Try_Candidate (Suffix    => Source.Regular_Suffix.all,
+                        Weight_OK => False,
+                        Style_OK  => (Style = Style_Normal));
+      end if;
 
       if not Found and then Weight = Weight_Normal and then Style = Style_Normal then
          Result := (Path => Fallback_Path, Weight_Matched => True, Style_Matched => True);

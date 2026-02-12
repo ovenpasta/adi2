@@ -14,6 +14,11 @@
 ## Package Hierarchy
 All packages rooted under `Adi`. Core types in `Adi.Core`, styles in `Adi.Style`/`Adi.CSS_Styles`/`Adi.Widget_Styles`, widgets in `Adi.Widget.*`, SDL bindings in `Adi.SDL.*`.
 
+## Logging
+- Use `Adi.Log` for runtime diagnostics (`Debug`, `Info`, `Warning`, `Error`).
+- Do not call `Ada.Text_IO.Put_Line` directly from library runtime paths.
+- Rationale: Windows GUI builds may not have a console; `Adi.Log` safely redirects to `debug.log` on Windows.
+
 ## Widget API Conventions
 
 ### Hierarchy calls use `access Widget'Class`

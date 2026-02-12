@@ -1,12 +1,12 @@
 
 with Ada.Numerics.Elementary_Functions; use Ada.Numerics.Elementary_Functions;
 with Ada.Real_Time; use Ada.Real_Time;
-with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Adi.Animation; use Adi.Animation;
 with Adi.Core; use Adi.Core;
 with Adi.Font;
 with Adi.Layout_Util; use Adi.Layout_Util;
+with Adi.Log;
 with Adi.SDL; use Adi.SDL;
 with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
@@ -2191,7 +2191,7 @@ package body Adi.Widget is
       --  Get text engine from render context (created lazily)
       Engine := Get_Text_Engine (Ctx);
       if Engine = null then
-         Ada.Text_IO.Put_Line ("ERROR: Failed to create text engine");
+         Adi.Log.Error ("Failed to create text engine");
          return;
       end if;
 
@@ -2245,7 +2245,7 @@ package body Adi.Widget is
          Free (C_Text);
 
          if Text_Obj = null then
-            Ada.Text_IO.Put_Line ("ERROR: Failed to create text object");
+            Adi.Log.Error ("Failed to create text object");
             return;
          end if;
 

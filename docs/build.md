@@ -70,3 +70,8 @@ Target selection:
 - generated build scripts pass `-XADI_PLATFORM=<target>`
 
 See also: [docs/gprbuild_without_alire.md](gprbuild_without_alire.md)
+
+## Runtime Logging
+- Library/runtime logging goes through `Adi.Log`.
+- On Windows targets (`-XADI_PLATFORM=windows`), logs are written to `debug.log` to avoid crashes from missing console output handles in GUI apps.
+- On Linux targets (`-XADI_PLATFORM=linux`), logs go to standard output.

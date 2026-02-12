@@ -1,10 +1,10 @@
 pragma Ada_2022;
 with Ada.Real_Time; use Ada.Real_Time;
-with Ada.Text_IO;
 with Ada.Environment_Variables;
 with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings;
 with Adi.Core;
+with Adi.Log;
 with Adi.SDL; use Adi.SDL;
 with Adi.SDL.Video;
 with Adi.SDL.Render;
@@ -39,7 +39,7 @@ package body Adi.Window is
    procedure Debug_Log (Msg : String) is
    begin
       if Debug_Enabled then
-         Ada.Text_IO.Put_Line ("[ADI-DBG] " & Msg);
+         Adi.Log.Debug ("[ADI-DBG] " & Msg);
       end if;
    end Debug_Log;
 
@@ -578,7 +578,7 @@ package body Adi.Window is
    begin
       Renderer := Get_Renderer (W);
       if Renderer = null then
-         Ada.Text_IO.Put_Line ("ERROR: Cannot load image, window has no renderer");
+         Adi.Log.Error ("Cannot load image, window has no renderer");
          return null;
       end if;
 
@@ -597,8 +597,7 @@ package body Adi.Window is
    begin
       Renderer := Get_Renderer (W);
       if Renderer = null then
-         Ada.Text_IO.Put_Line
-           ("ERROR: Cannot load animated image, window has no renderer");
+         Adi.Log.Error ("Cannot load animated image, window has no renderer");
          return null;
       end if;
 

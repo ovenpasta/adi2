@@ -1,5 +1,5 @@
 pragma Ada_2022;
-with Ada.Text_IO;            use Ada.Text_IO;
+with Adi.Log;
 with Adi.App;
 with Adi.Window;             use Adi.Window;
 with Adi.Widget;             use Adi.Widget;
@@ -31,7 +31,7 @@ procedure List_Box_Example is
    begin
       Single_Status.Set_Text
         ("Label list: clicked " & Index'Image & " (" & Clicks'Image & "x)");
-      Put_Line ("Label list click: row" & Index'Image & ", clicks=" & Clicks'Image);
+      Adi.Log.Info ("Label list click: row" & Index'Image & ", clicks=" & Clicks'Image);
    end On_Label_Click;
 
    procedure On_Label_Activate
@@ -41,7 +41,7 @@ procedure List_Box_Example is
       pragma Unreferenced (W);
    begin
       Single_Status.Set_Text ("Label list: activated row" & Index'Image);
-      Put_Line ("Label list activated row" & Index'Image);
+      Adi.Log.Info ("Label list activated row" & Index'Image);
    end On_Label_Activate;
 
    procedure On_Label_Selection_Changed (W : Label_List.List_Box_Widget_Access) is
@@ -68,7 +68,7 @@ procedure List_Box_Example is
       pragma Unreferenced (W);
    begin
       Multi_Status.Set_Text ("Box list: activated row" & Index'Image);
-      Put_Line ("Box list activated row" & Index'Image);
+      Adi.Log.Info ("Box list activated row" & Index'Image);
    end On_Box_Activate;
 
    procedure On_Box_Selection_Changed (W : Box_List.List_Box_Widget_Access) is

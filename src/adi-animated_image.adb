@@ -1,10 +1,10 @@
-with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings;
 with System;
 with System.Storage_Elements; use System.Storage_Elements;
+with Adi.Log;
 with Adi.SDL.Surface;      use Adi.SDL.Surface;
 with Adi.SDL.Image;        use Adi.SDL.Image;
 
@@ -89,8 +89,7 @@ package body Adi.Animated_Image is
       Delay_Base  : System.Address := System.Null_Address;
    begin
       if Renderer = null then
-         Ada.Text_IO.Put_Line
-           ("ERROR: Cannot load animated image, renderer is null");
+         Adi.Log.Error ("Cannot load animated image, renderer is null");
          return null;
       end if;
 
@@ -99,16 +98,14 @@ package body Adi.Animated_Image is
       Free (C_Path);
 
       if Raw_Anim = null then
-         Ada.Text_IO.Put_Line
-           ("ERROR: Failed to load animated image: " & Path);
+         Adi.Log.Error ("Failed to load animated image: " & Path);
          return null;
       end if;
 
       Frame_Count := (if Raw_Anim.count > 0 then Natural (Raw_Anim.count) else 0);
       if Frame_Count = 0 then
          IMG_FreeAnimation (Raw_Anim);
-         Ada.Text_IO.Put_Line
-           ("ERROR: Animated image has no frames: " & Path);
+         Adi.Log.Error ("Animated image has no frames: " & Path);
          return null;
       end if;
 
@@ -157,8 +154,7 @@ package body Adi.Animated_Image is
       IMG_FreeAnimation (Raw_Anim);
 
       if Result.Frames.Is_Empty then
-         Ada.Text_IO.Put_Line
-           ("ERROR: Failed to create any animation frame textures: " & Path);
+         Adi.Log.Error ("Failed to create any animation frame textures: " & Path);
          Free_Animated (Result);
          return null;
       end if;

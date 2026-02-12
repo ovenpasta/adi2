@@ -1,5 +1,5 @@
 pragma Ada_2022;
-with Ada.Text_IO;       use Ada.Text_IO;
+with Adi.Log;
 with Adi.App;
 with Adi.Window;        use Adi.Window;
 with Adi.Widget;        use Adi.Widget;
@@ -18,18 +18,18 @@ procedure Button_Example is
    procedure On_Simple_Click (Btn : Button_Widget_Access) is
       pragma Unreferenced (Btn);
    begin
-      Put_Line ("Simple button clicked!");
+      Adi.Log.Info ("Simple button clicked!");
    end On_Simple_Click;
 
    procedure On_Toggle (Btn : Button_Widget_Access; Active : Boolean) is
       pragma Unreferenced (Btn);
    begin
-      Put_Line ("Toggle button: " & Active'Image);
+      Adi.Log.Info ("Toggle button: " & Active'Image);
    end On_Toggle;
 
    procedure On_Align_Changed (Value : Align_Option) is
    begin
-      Put_Line ("Alignment changed to: " & Value'Image);
+      Adi.Log.Info ("Alignment changed to: " & Value'Image);
    end On_Align_Changed;
 
 begin

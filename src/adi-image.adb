@@ -1,6 +1,6 @@
-with Ada.Text_IO;
 with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings;
+with Adi.Log;
 with Adi.SDL;       use Adi.SDL;
 with Adi.SDL.Image; use Adi.SDL.Image;
 
@@ -23,7 +23,7 @@ package body Adi.Image is
       Success : Adi.SDL.C_bool;
    begin
       if Renderer = null then
-         Ada.Text_IO.Put_Line ("ERROR: Cannot load image, renderer is null");
+         Adi.Log.Error ("Cannot load image, renderer is null");
          return null;
       end if;
 
@@ -35,14 +35,14 @@ package body Adi.Image is
       Free (C_Path);
 
       if Texture = null then
-         Ada.Text_IO.Put_Line ("ERROR: Failed to load image: " & Path);
+         Adi.Log.Error ("Failed to load image: " & Path);
          return null;
       end if;
 
       -- Get texture dimensions
       Success := SDL_GetTextureSize (Texture, W'Access, H'Access);
       if not Success then
-         Ada.Text_IO.Put_Line ("WARNING: Could not get texture size for: " & Path);
+         Adi.Log.Warning ("Could not get texture size for: " & Path);
          W := 0.0;
          H := 0.0;
       end if;

@@ -1,6 +1,6 @@
 --  file: demo_flex.adb
 --  Flex Layout Demo - Tests various flex configurations
-with Ada.Text_IO; use Ada.Text_IO;
+with Adi.Log;
 with Ada.Exceptions; use Ada.Exceptions;
 with GNAT.Traceback.Symbolic;
 
@@ -85,7 +85,7 @@ procedure Demo_Flex is
          Align     => Center,
          Gap_Px    => 10.0);
    begin
-      Put_Line ("Demo 1: Row with fixed size boxes");
+      Adi.Log.Info ("Demo 1: Row with fixed size boxes");
       Container.Add_Child (Create_Box (C (Red), W => 60.0, H => 40.0));
       Container.Add_Child (Create_Box (C (Green), W => 80.0, H => 60.0));
       Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 50.0));
@@ -102,7 +102,7 @@ procedure Demo_Flex is
          Align     => Stretch,
          Gap_Px    => 10.0);
    begin
-      Put_Line ("Demo 2: Row with flex-grow (1:2:1 ratio)");
+      Adi.Log.Info ("Demo 2: Row with flex-grow (1:2:1 ratio)");
       Container.Add_Child (Create_Box (C (Red), H => 50.0, Grow => 1.0));
       Container.Add_Child (Create_Box (C (Green), H => 50.0, Grow => 2.0));
       Container.Add_Child (Create_Box (C (Blue), H => 50.0, Grow => 1.0));
@@ -119,7 +119,7 @@ procedure Demo_Flex is
          Align     => Stretch,
          Gap_Px    => 8.0);
    begin
-      Put_Line ("Demo 3: Column layout with stretch");
+      Adi.Log.Info ("Demo 3: Column layout with stretch");
       Container.Add_Child (Create_Box (C (Orange), H => 30.0));
       Container.Add_Child (Create_Box (C (Purple), H => 40.0));
       Container.Add_Child (Create_Box (C (Yellow), H => 35.0));
@@ -136,7 +136,7 @@ procedure Demo_Flex is
          Align     => Center,
          Gap_Px    => 0.0);  -- Gap not used with space-between
    begin
-      Put_Line ("Demo 4: Space-between distribution");
+      Adi.Log.Info ("Demo 4: Space-between distribution");
       Container.Add_Child (Create_Box (C (Red), W => 50.0, H => 40.0));
       Container.Add_Child (Create_Box (C (Green), W => 50.0, H => 40.0));
       Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 40.0));
@@ -153,7 +153,7 @@ procedure Demo_Flex is
          Align     => Center,
          Gap_Px    => 0.0);
    begin
-      Put_Line ("Demo 5: Space-around distribution");
+      Adi.Log.Info ("Demo 5: Space-around distribution");
       Container.Add_Child (Create_Box (C (Red), W => 40.0, H => 40.0));
       Container.Add_Child (Create_Box (C (Green), W => 40.0, H => 40.0));
       Container.Add_Child (Create_Box (C (Blue), W => 40.0, H => 40.0));
@@ -170,7 +170,7 @@ procedure Demo_Flex is
          Align     => Center,
          Gap_Px    => 0.0);
    begin
-      Put_Line ("Demo 6: Space-evenly distribution");
+      Adi.Log.Info ("Demo 6: Space-evenly distribution");
       Container.Add_Child (Create_Box (C (Orange), W => 40.0, H => 40.0));
       Container.Add_Child (Create_Box (C (Purple), W => 40.0, H => 40.0));
       Container.Add_Child (Create_Box (C (Yellow), W => 40.0, H => 40.0));
@@ -187,7 +187,7 @@ procedure Demo_Flex is
          Align     => Adi.CSS_Styles.Flex_Start,
          Gap_Px    => 10.0);
    begin
-      Put_Line ("Demo 7: Align-items: flex-start");
+      Adi.Log.Info ("Demo 7: Align-items: flex-start");
       Container.Add_Child (Create_Box (C (Red), W => 50.0, H => 30.0));
       Container.Add_Child (Create_Box (C (Green), W => 50.0, H => 50.0));
       Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 40.0));
@@ -204,7 +204,7 @@ procedure Demo_Flex is
          Align     => Adi.CSS_Styles.Flex_End,
          Gap_Px    => 10.0);
    begin
-      Put_Line ("Demo 8: Align-items: flex-end");
+      Adi.Log.Info ("Demo 8: Align-items: flex-end");
       Container.Add_Child (Create_Box (C (Red), W => 50.0, H => 30.0));
       Container.Add_Child (Create_Box (C (Green), W => 50.0, H => 50.0));
       Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 40.0));
@@ -221,7 +221,7 @@ procedure Demo_Flex is
          Align     => Adi.CSS_Styles.Center,
          Gap_Px    => 10.0);
    begin
-      Put_Line ("Demo 9: Align-items: center");
+      Adi.Log.Info ("Demo 9: Align-items: center");
       Container.Add_Child (Create_Box (C (Red), W => 50.0, H => 30.0));
       Container.Add_Child (Create_Box (C (Green), W => 50.0, H => 60.0));
       Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 45.0));
@@ -238,7 +238,7 @@ procedure Demo_Flex is
          Align     => Center,
          Gap_Px    => 10.0);
    begin
-      Put_Line ("Demo 10: Row-reverse (RGB should appear as BGR)");
+      Adi.Log.Info ("Demo 10: Row-reverse (RGB should appear as BGR)");
       Container.Add_Child (Create_Box (C (Red), W => 60.0, H => 40.0));
       Container.Add_Child (Create_Box (C (Green), W => 60.0, H => 40.0));
       Container.Add_Child (Create_Box (C (Blue), W => 60.0, H => 40.0));
@@ -255,7 +255,7 @@ procedure Demo_Flex is
          Align     => Adi.CSS_Styles.Center,
          Gap_Px    => 8.0);
    begin
-      Put_Line ("Demo 11: Column-reverse");
+      Adi.Log.Info ("Demo 11: Column-reverse");
       Container.Add_Child (Create_Box (C (Red), W => 80.0, H => 25.0));
       Container.Add_Child (Create_Box (C (Green), W => 80.0, H => 25.0));
       Container.Add_Child (Create_Box (C (Blue), W => 80.0, H => 25.0));
@@ -287,7 +287,7 @@ procedure Demo_Flex is
          Gap_Px    => 5.0,
          Bg_Color  => RGB (255, 240, 240));
    begin
-      Put_Line ("Demo 12: Nested flex containers");
+      Adi.Log.Info ("Demo 12: Nested flex containers");
 
       --  Left column children
       Left_Column.Add_Child (Create_Box (C (Blue), H => 30.0));
@@ -361,7 +361,7 @@ procedure Demo_Flex is
          Align     => Stretch,
          Gap_Px    => 10.0);
    begin
-      Put_Line ("Demo 13: Fixed sidebar + flexible content");
+      Adi.Log.Info ("Demo 13: Fixed sidebar + flexible content");
       --  Fixed left sidebar
       Container.Add_Child (Create_Box (C (Gray), W => 80.0, H => 60.0, Grow => 0.0));
       --  Flexible main content
@@ -443,8 +443,8 @@ procedure Demo_Flex is
 
       D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12, D13 : Box_Widget_Access;
    begin
-      Put_Line ("Creating flex layout demos...");
-      Put_Line ("================================");
+      Adi.Log.Info ("Creating flex layout demos...");
+      Adi.Log.Info ("================================");
 
       --  Create all demos
       D1 := Demo_Row_Fixed;
@@ -513,8 +513,8 @@ procedure Demo_Flex is
       Main.Add_Child (Row4);
       Main.Add_Child (Row5);
 
-      Put_Line ("================================");
-      Put_Line ("Demo layout created. Resize window to test responsive behavior.");
+      Adi.Log.Info ("================================");
+      Adi.Log.Info ("Demo layout created. Resize window to test responsive behavior.");
 
       return Main;
    end Create_Main_Layout;
@@ -522,9 +522,9 @@ procedure Demo_Flex is
    Root : Box_Widget_Access;
 
 begin
-   Put_Line ("Flex Layout Demo");
-   Put_Line ("================");
-   Put_Line ("");
+   Adi.Log.Info ("Flex Layout Demo");
+   Adi.Log.Info ("================");
+   Adi.Log.Info ("");
 
    --  Initialize
    App.Init;
@@ -550,20 +550,20 @@ begin
    --  Add window to app
    App.Add_Window (Window);
 
-   Put_Line ("");
-   Put_Line ("Running... Close window to exit.");
+   Adi.Log.Info ("");
+   Adi.Log.Info ("Running... Close window to exit.");
 
    --  Run event loop
    App.Run;
 
-   Put_Line ("Demo finished.");
+   Adi.Log.Info ("Demo finished.");
 
 exception
    when E : others =>
-      Put_Line ("Error occurred!");
-      Put_Line ("Exception: " & Exception_Name (E));
-      Put_Line ("Message: " & Exception_Message (E));
-      Put_Line ("Traceback:");
-      Put_Line (GNAT.Traceback.Symbolic.Symbolic_Traceback (E));
+      Adi.Log.Info ("Error occurred!");
+      Adi.Log.Info ("Exception: " & Exception_Name (E));
+      Adi.Log.Info ("Message: " & Exception_Message (E));
+      Adi.Log.Info ("Traceback:");
+      Adi.Log.Info (GNAT.Traceback.Symbolic.Symbolic_Traceback (E));
       raise;
 end Demo_Flex;

@@ -1,10 +1,10 @@
-with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 with Interfaces;
 with Interfaces.C;
 with Interfaces.C.Strings;
 with System;
+with Adi.Log;
 with Adi.SDL;
 with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
 
@@ -278,7 +278,7 @@ package body Adi.RLottie is
       Surf     : SDL_Surface_Ptr;
    begin
       if Renderer = null then
-         Ada.Text_IO.Put_Line ("ERROR: Cannot load rlottie animation, renderer is null");
+         Adi.Log.Error ("Cannot load rlottie animation, renderer is null");
          return null;
       end if;
 
@@ -289,14 +289,14 @@ package body Adi.RLottie is
       Free (C_Path);
 
       if Handle = null then
-         Ada.Text_IO.Put_Line ("ERROR: Failed to load rlottie animation: " & Path);
+         Adi.Log.Error ("Failed to load rlottie animation: " & Path);
          return null;
       end if;
 
       Animation_Get_Size (Handle, W'Access, H'Access);
       if W = 0 or else H = 0 then
          Animation_Destroy (Handle);
-         Ada.Text_IO.Put_Line ("ERROR: rlottie animation reports invalid size: " & Path);
+         Adi.Log.Error ("rlottie animation reports invalid size: " & Path);
          return null;
       end if;
 
@@ -308,7 +308,7 @@ package body Adi.RLottie is
 
       if Count = 0 then
          Animation_Destroy (Handle);
-         Ada.Text_IO.Put_Line ("ERROR: rlottie animation has zero frames: " & Path);
+         Adi.Log.Error ("rlottie animation has zero frames: " & Path);
          return null;
       end if;
 
@@ -320,7 +320,7 @@ package body Adi.RLottie is
          H           => Interfaces.C.int (H));
       if Tex = null then
          Animation_Destroy (Handle);
-         Ada.Text_IO.Put_Line ("ERROR: Failed to create rlottie texture: " & Path);
+         Adi.Log.Error ("Failed to create rlottie texture: " & Path);
          return null;
       end if;
 
@@ -337,8 +337,8 @@ package body Adi.RLottie is
       Result.Active_Backend := Texture_Backend;
 
       if Backend = Primitive_Backend then
-         Ada.Text_IO.Put_Line
-           ("WARNING: RLottie primitive backend is not implemented; using texture backend.");
+         Adi.Log.Warning
+           ("RLottie primitive backend is not implemented; using texture backend.");
       end if;
 
       Result.Frame_Surfaces := new Surface_Array (1 .. Natural (Count));
@@ -350,9 +350,8 @@ package body Adi.RLottie is
                  height => Interfaces.C.int (Height_N),
                  format => SDL_PIXELFORMAT_ARGB8888));
          if Surf = null then
-            Ada.Text_IO.Put_Line
-              ("ERROR: Failed to allocate rlottie surface frame "
-               & Natural'Image (I));
+            Adi.Log.Error ("Failed to allocate rlottie surface frame "
+                           & Natural'Image (I));
             Destroy (Result.all);
             Free_RLottie (Result);
             return null;
@@ -363,7 +362,7 @@ package body Adi.RLottie is
       Result.Frame_Image := Create_From_Texture (Tex);
       if Result.Frame_Image = null then
          SDL_DestroyTexture (Tex);
-         Ada.Text_IO.Put_Line ("ERROR: Failed to wrap rlottie texture.");
+         Adi.Log.Error ("Failed to wrap rlottie texture.");
          Destroy (Result.all);
          Free_RLottie (Result);
          return null;

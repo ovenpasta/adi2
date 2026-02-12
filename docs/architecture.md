@@ -58,6 +58,12 @@
 
 **Adi.RLottie** (`adi-rlottie.ads`): Lottie JSON via rlottie C API, CPU-rendered frame cache with background preload task, streaming SDL texture upload.
 
+**Adi.Log** (`adi-log.ads`): Central runtime logging.
+- Safe logging entry points: `Write`, `Debug`, `Info`, `Warning`, `Error`
+- Windows behavior: writes to `debug.log` (append/create), avoids GUI-crash risk from missing console handles
+- Non-Windows behavior: writes to standard output
+- Library runtime modules use this instead of direct `Ada.Text_IO.Put_Line`
+
 **Adi.Font** (`adi-font.ads`): Font loading and caching.
 - `Font_Handle` = font family (file path)
 - `Font_Attributes` groups family/size/weight/style/decoration

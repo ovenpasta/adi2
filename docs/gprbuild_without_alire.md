@@ -1,51 +1,64 @@
 # Building Without Alire
 
-This project can be built directly with `gprbuild` and optional `.cgpr` target files.
+This flow is file-based and fish-friendly: run `configure` once, then build from generated projects.
 
-## 1) Configure linker flags
-
-Preferred (uses `pkg-config`):
+## One-command full build
 
 ```bash
-source tools/setup_pkg_config_env.sh
+tools/build_all.sh --build-dir build-linux --source-dir .
 ```
 
-If building `rlottie_example`:
+Cross toolchain example:
 
 ```bash
-source tools/setup_pkg_config_env.sh --with-rlottie
+tools/build_all.sh \
+  --build-dir build-win32 \
+  --source-dir . \
+  --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config \
+  --gpr-config path/to/win32.cgpr
 ```
 
-Manual overrides (if `pkg-config` is not available):
+## 1) Configure build dir
 
 ```bash
-export ADI_SDL_LINKER_FLAGS="-lSDL3 -lSDL3_ttf -lSDL3_image -lm"
-export ADI_RLOTTIE_LINKER_FLAGS="-lrlottie"
-export ADI_PLATFORM_LINKER_FLAGS=""
+tools/configure.sh --build-dir build-linux
 ```
 
-## 2) Build library/tests/examples
+Cross toolchain example:
 
 ```bash
-gprbuild -P adi.gpr
-gprbuild -P tests/tests.gpr -XTEST_KIND=styles
-gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=label_example
+tools/configure.sh \
+  --build-dir build-win32 \
+  --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config
+```
+
+Optional explicit source dir:
+
+```bash
+tools/configure.sh --source-dir /path/to/adi --build-dir /tmp/adi-build
+```
+
+Generated files:
+- `<build-dir>/config/adi_linker_config.gpr` (link flags from pkg-config, with defaults if unavailable)
+- `<build-dir>/projects/adi_build.gpr`
+- `<build-dir>/projects/tests_build.gpr`
+- `<build-dir>/projects/examples_build.gpr`
+
+## 2) Build using generated projects
+
+```bash
+gprbuild -P build-linux/projects/adi_build.gpr
+gprbuild -P build-linux/projects/tests_build.gpr -XTEST_KIND=styles
+gprbuild -P build-linux/projects/examples_build.gpr -XEXAMPLE_KIND=label_example
 ```
 
 ## 3) Cross-target with `.cgpr`
 
-Use GPR's target config directly:
-
 ```bash
-gprbuild --config=path/to/target.cgpr -P adi.gpr
-gprbuild --config=path/to/target.cgpr -P tests/tests.gpr -XTEST_KIND=styles
+gprbuild --config=path/to/target.cgpr -P build-win32/projects/adi_build.gpr
+gprbuild --config=path/to/target.cgpr -P build-win32/projects/tests_build.gpr -XTEST_KIND=styles
 ```
 
-## Useful project variables
-
-- `-XADI_BUILD_PROFILE=development|validation|release`
-- `-XADI_LIBRARY_VERSION=<version>`
-
 Notes:
-- `config/adi_config.gpr` is no longer required for direct builds.
+- No writes to source `config/`; all generated files live under `--build-dir`.
 - Alire builds remain supported (`alr build`, `alr exec -- gprbuild ...`).

@@ -17,27 +17,32 @@ alr build
 
 ### Building the library (direct gprbuild)
 ```bash
-gprbuild -P adi.gpr
-# Optional profile/version overrides:
-gprbuild -P adi.gpr -XADI_BUILD_PROFILE=release -XADI_LIBRARY_VERSION=0.1.0
+# Configure once per output/target directory:
+tools/configure.sh --build-dir build-linux
+
+# Build from generated project:
+gprbuild -P build-linux/projects/adi_build.gpr
+
 # Optional target config:
-gprbuild --config=path/to/target.cgpr -P adi.gpr
+gprbuild --config=path/to/target.cgpr -P build-linux/projects/adi_build.gpr
 ```
 
-### Linker flags via pkg-config (recommended for direct gprbuild)
+### Full build shortcut
 ```bash
-source tools/setup_pkg_config_env.sh
-# For rlottie builds:
-source tools/setup_pkg_config_env.sh --with-rlottie
+tools/build_all.sh --build-dir build-linux --source-dir .
+tools/build_all.sh --build-dir build-win32 --source-dir . --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config --gpr-config path/to/win32.cgpr
 ```
 
-The script exports:
-- `ADI_SDL_LINKER_FLAGS` from `pkg-config --libs sdl3 sdl3_ttf sdl3_image`
-- `ADI_RLOTTIE_LINKER_FLAGS` from `pkg-config --libs rlottie` (optional)
+### Configure script (pkg-config + generated GPR files)
+```bash
+tools/configure.sh --build-dir build-linux
+tools/configure.sh --build-dir build-win32 --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config
+tools/configure.sh --source-dir /path/to/adi --build-dir /tmp/adi-build
+```
 
-Fallbacks:
-- If `pkg-config` is unavailable/missing packages, `tests/examples` use default linker names (`-lSDL3 -lSDL3_ttf -lSDL3_image -lm`, plus `-lrlottie` for `rlottie_example`)
-- You can always override with env vars: `ADI_SDL_LINKER_FLAGS`, `ADI_RLOTTIE_LINKER_FLAGS`, `ADI_PLATFORM_LINKER_FLAGS`
+The configure step writes only under `--build-dir`:
+- `<build-dir>/config/adi_linker_config.gpr` with linker switches resolved from `pkg-config` (`sdl3`, `sdl3-ttf`, `sdl3-image`, `rlottie`) or defaults when unavailable
+- `<build-dir>/projects/{adi_build.gpr,tests_build.gpr,examples_build.gpr}`
 
 ### Building specific tests
 ```bash
@@ -49,6 +54,8 @@ gprbuild -P tests/tests.gpr -XTEST_KIND=css_source_test
 gprbuild -P tests/tests.gpr -XTEST_KIND=text_buffer_test
 gprbuild -P tests/tests.gpr -XTEST_KIND=text_layout_test
 # Alire-wrapped equivalent: alr exec -- gprbuild ...
+# Configure-based equivalent:
+gprbuild -P build-linux/projects/tests_build.gpr -XTEST_KIND=styles
 ```
 
 ### Building specific examples
@@ -72,6 +79,8 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=animated_image_example
 gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=rlottie_example
 # Alire-wrapped equivalent: alr exec -- gprbuild ...
+# Configure-based equivalent:
+gprbuild -P build-linux/projects/examples_build.gpr -XEXAMPLE_KIND=font_example
 ```
 
 ### Running tests
@@ -112,7 +121,7 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=rlottie_example
 - **SDL3_ttf**: Required for TrueType font rendering
 - **SDL3_image**: Required for image loading
 - **rlottie**: Required only by `rlottie_example`
-- Direct gprbuild mode resolves linker flags via `pkg-config` (recommended) or env overrides
+- Direct gprbuild mode resolves linker flags during `tools/configure.sh` into `<build-dir>/config/adi_linker_config.gpr`
 
 ## Architecture
 

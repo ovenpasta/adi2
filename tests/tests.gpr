@@ -26,13 +26,9 @@ project Tests is
     end Binder;
 
    Default_SDL_Linker_Switches := ("-lSDL3", "-lSDL3_ttf", "-lSDL3_image", "-lm");
-   Pkg_Config_SDL_Linker_Switches := External_As_List ("ADI_SDL_LINKER_FLAGS", " ");
-   Platform_Linker_Switches := External_As_List ("ADI_PLATFORM_LINKER_FLAGS", " ");
 
    package Linker is
       for Default_Switches ("Ada") use
-        Default_SDL_Linker_Switches &
-        Pkg_Config_SDL_Linker_Switches &
-        Platform_Linker_Switches;
+        Default_SDL_Linker_Switches;
    end Linker;
 end Tests;

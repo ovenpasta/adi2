@@ -19,25 +19,17 @@ project Examples is
    end Binder;
 
    Default_SDL_Linker_Switches := ("-lSDL3", "-lSDL3_ttf", "-lSDL3_image", "-lm");
-   Pkg_Config_SDL_Linker_Switches := External_As_List ("ADI_SDL_LINKER_FLAGS", " ");
-   Platform_Linker_Switches := External_As_List ("ADI_PLATFORM_LINKER_FLAGS", " ");
    Default_RLottie_Linker_Switches := ("-lrlottie");
-   Pkg_Config_RLottie_Linker_Switches := External_As_List ("ADI_RLOTTIE_LINKER_FLAGS", " ");
 
    package Linker is
       case Kind is
          when "rlottie_example" =>
             for Default_Switches ("Ada") use
               Default_SDL_Linker_Switches &
-              Pkg_Config_SDL_Linker_Switches &
-              Default_RLottie_Linker_Switches &
-              Pkg_Config_RLottie_Linker_Switches &
-              Platform_Linker_Switches;
+              Default_RLottie_Linker_Switches;
          when others =>
             for Default_Switches ("Ada") use
-              Default_SDL_Linker_Switches &
-              Pkg_Config_SDL_Linker_Switches &
-              Platform_Linker_Switches;
+              Default_SDL_Linker_Switches;
       end case;
    end Linker;
 end Examples;

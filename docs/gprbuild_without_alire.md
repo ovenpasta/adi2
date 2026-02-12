@@ -5,7 +5,7 @@ This flow is file-based and fish-friendly: run `configure` once, then build from
 ## 1) Configure build dir
 
 ```bash
-tools/configure.sh --build-dir build-linux
+tools/configure.sh --build-dir build-linux --target linux
 ```
 
 Cross toolchain example:
@@ -13,6 +13,7 @@ Cross toolchain example:
 ```bash
 tools/configure.sh \
   --build-dir build-win32 \
+  --target windows \
   --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config \
   --cgpr path/to/win32.cgpr
 ```
@@ -40,18 +41,19 @@ build-win32/build_all.sh
 ## 2) Build using generated projects
 
 ```bash
-gprbuild -P build-linux/projects/adi_build.gpr
-gprbuild -P build-linux/projects/tests_build.gpr -XTEST_KIND=styles
-gprbuild -P build-linux/projects/examples_build.gpr -XEXAMPLE_KIND=label_example
+gprbuild -P build-linux/projects/adi_build.gpr -XADI_PLATFORM=linux
+gprbuild -P build-linux/projects/tests_build.gpr -XADI_PLATFORM=linux -XTEST_KIND=styles
+gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMPLE_KIND=label_example
 ```
 
 ## 3) Cross-target with `.cgpr`
 
 ```bash
-gprbuild --config=path/to/target.cgpr -P build-win32/projects/adi_build.gpr
-gprbuild --config=path/to/target.cgpr -P build-win32/projects/tests_build.gpr -XTEST_KIND=styles
+gprbuild --config=path/to/target.cgpr -P build-win32/projects/adi_build.gpr -XADI_PLATFORM=windows
+gprbuild --config=path/to/target.cgpr -P build-win32/projects/tests_build.gpr -XADI_PLATFORM=windows -XTEST_KIND=styles
 ```
 
 Notes:
 - No writes to source `config/`; all generated files live under `--build-dir`.
+- Platform is explicit: `--target linux|windows` in `configure.sh` and `-XADI_PLATFORM=<linux|windows>` in manual `gprbuild`.
 - Alire builds remain supported (`alr build`, `alr exec -- gprbuild ...`).

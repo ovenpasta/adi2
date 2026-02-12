@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  tools/configure.sh --build-dir <dir> [--source-dir <dir>] [--pkg-config <bin>] [--cgpr <file>]
+  tools/configure.sh --build-dir <dir> [--source-dir <dir>] [--pkg-config <bin>] [--cgpr <file>] [--target <linux|windows>]
 
 Generates build files in <build-dir> (no writes to source dir):
   <build-dir>/config/adi_linker_config.gpr
@@ -19,6 +19,7 @@ BUILD_DIR=""
 SOURCE_DIR=""
 PKG_CONFIG_BIN="${PKG_CONFIG:-pkg-config}"
 CGPR_FILE=""
+TARGET_PLATFORM="linux"
 
 while (($#)); do
   case "$1" in
@@ -37,6 +38,10 @@ while (($#)); do
     --cgpr)
       shift
       CGPR_FILE="${1:-}"
+      ;;
+    --target)
+      shift
+      TARGET_PLATFORM="${1:-}"
       ;;
     -h|--help)
       usage
@@ -76,6 +81,11 @@ if [[ -n "${CGPR_FILE}" ]]; then
     exit 1
   fi
   CGPR_FILE="$(cd "$(dirname "${CGPR_FILE}")" && pwd)/$(basename "${CGPR_FILE}")"
+fi
+
+if [[ "${TARGET_PLATFORM}" != "linux" && "${TARGET_PLATFORM}" != "windows" ]]; then
+  echo "--target must be either linux or windows" >&2
+  exit 1
 fi
 
 to_gpr_list() {
@@ -238,6 +248,7 @@ set -euo pipefail
 SOURCE_DIR="${SOURCE_DIR}"
 BUILD_DIR="${BUILD_DIR}"
 CGPR_FILE="${CGPR_FILE}"
+TARGET_PLATFORM="${TARGET_PLATFORM}"
 
 GPR_ARGS=()
 if [[ -n "\${CGPR_FILE}" ]]; then
@@ -248,7 +259,7 @@ echo "[build_all] generate CSS Ada packages"
 bash "\${SOURCE_DIR}/tools/generate_example_styles.sh"
 
 echo "[build_all] build library"
-gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/adi_build.gpr"
+gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}"
 
 TEST_KINDS=(
   styles
@@ -262,7 +273,7 @@ TEST_KINDS=(
 
 for kind in "\${TEST_KINDS[@]}"; do
   echo "[build_all] build test: \${kind}"
-  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/tests_build.gpr" -XTEST_KIND="\${kind}"
+  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XTEST_KIND="\${kind}"
 done
 
 EXAMPLE_KINDS=(
@@ -287,7 +298,7 @@ EXAMPLE_KINDS=(
 
 for kind in "\${EXAMPLE_KINDS[@]}"; do
   echo "[build_all] build example: \${kind}"
-  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/examples_build.gpr" -XEXAMPLE_KIND="\${kind}"
+  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/examples_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XEXAMPLE_KIND="\${kind}"
 done
 
 echo "[build_all] complete"
@@ -298,9 +309,9 @@ chmod +x "${BUILD_DIR}/build_all.sh"
 cat > "${BUILD_DIR}/BUILDING.md" <<EOF
 # Build commands
 
-gprbuild -P "${BUILD_DIR}/projects/adi_build.gpr"
-gprbuild -P "${BUILD_DIR}/projects/tests_build.gpr" -XTEST_KIND=styles
-gprbuild -P "${BUILD_DIR}/projects/examples_build.gpr" -XEXAMPLE_KIND=font_example
+gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}"
+gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XTEST_KIND=styles
+gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/examples_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XEXAMPLE_KIND=font_example
 
 One-command full build:
 "${BUILD_DIR}/build_all.sh"
@@ -314,5 +325,6 @@ if [[ -n "${CGPR_FILE}" ]]; then
 else
   echo "[configure] cgpr: (none)"
 fi
+echo "[configure] target: ${TARGET_PLATFORM}"
 echo "[configure] generated projects in ${BUILD_DIR}/projects"
 echo "[configure] generated build script: ${BUILD_DIR}/build_all.sh"

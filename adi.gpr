@@ -3,30 +3,16 @@ project Adi is
    Build_Profile := external ("ADI_BUILD_PROFILE", "development");
    Crate_Version := external ("ADI_LIBRARY_VERSION", "0.1.0-dev");
    User_Ada_Compiler_Switches := External_As_List ("ADAFLAGS", " ");
-   Target_Name := project'Target;
-   Canonical_Target_Name := project'Canonical_Target;
+   Platform_Name := external ("ADI_PLATFORM", "linux");
 
    for Library_Name use "Adi";
    for Library_Version use Project'Library_Name & ".so." & Crate_Version;
 
-   case Canonical_Target_Name is
-      when "x86-windows"
-         | "x86_64-windows"
-         | "i686-w64-mingw32"
-         | "x86_64-w64-mingw32"
-         | "i686-w64-mingw32.static"
-         | "x86_64-w64-mingw32.static" =>
+   case Platform_Name is
+      when "windows" =>
          for Source_Dirs use ("src/", "config/windows");
       when others =>
-         case Target_Name is
-            when "i686-w64-mingw32"
-               | "x86_64-w64-mingw32"
-               | "i686-w64-mingw32.static"
-               | "x86_64-w64-mingw32.static" =>
-               for Source_Dirs use ("src/", "config/windows");
-            when others =>
-               for Source_Dirs use ("src/", "config/posix");
-         end case;
+         for Source_Dirs use ("src/", "config/posix");
    end case;
    for Object_Dir use "obj/" & Build_Profile;
    for Create_Missing_Dirs use "True";

@@ -107,42 +107,224 @@ package body Adi.Font is
    Fallback_Path  : Unbounded_String := Null_Unbounded_String;
    Fallback_Found : Boolean := False;
 
-   type Search_Path_Array is array (Positive range <>) of access constant String;
-   type Fallback_Face_Kind is
-     (Face_Regular, Face_Italic, Face_Bold, Face_Bold_Italic, Face_Black);
-   type Windows_Font_Family_Kind is
-     (Windows_Segoe_UI, Windows_Arial);
+   type Source_Profile_Kind is
+     (Profile_Generic, Profile_Windows_Segoe, Profile_Windows_Arial);
 
-   Posix_Fallback_Search_Paths : constant Search_Path_Array (1 .. 3) :=
-     (new String'("/usr/share/fonts/TTF/DejaVuSans.ttf"),
-      new String'("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
-      new String'("/usr/share/fonts/noto/NotoSans-Regular.ttf"));
+   type Font_Source is record
+      Path      : access constant String;
+      Name      : access constant String;
+      Suffix    : access constant String;
+      Extension : access constant String;
+      Profile   : Source_Profile_Kind := Profile_Generic;
+   end record;
 
-   Windows_Font_Dirs : constant Search_Path_Array (1 .. 2) :=
-     (new String'("C:\Windows\Fonts"),
-      new String'("C:\WINNT\Fonts"));
+   type Font_Source_Array is array (Positive range <>) of Font_Source;
 
-   Windows_Font_Extension : constant String := ".ttf";
+   Empty_Text : aliased constant String := "";
 
-   Windows_Font_Base_Name : constant array (Windows_Font_Family_Kind) of access constant String :=
-     (Windows_Segoe_UI => new String'("segoeui"),
-      Windows_Arial    => new String'("arial"));
+   Posix_Fallback_Sources : constant Font_Source_Array (1 .. 5) :=
+     ((Path      => new String'("/usr/share/fonts/TTF"),
+       Name      => new String'("DejaVuSans"),
+       Suffix    => new String'("-Regular"),
+       Extension => new String'(".ttf"),
+       Profile   => Profile_Generic),
+      (Path      => new String'("/usr/share/fonts/TTF"),
+       Name      => new String'("DejaVuSans"),
+       Suffix    => new String'(""),
+       Extension => new String'(".ttf"),
+       Profile   => Profile_Generic),
+      (Path      => new String'("/usr/share/fonts/truetype/dejavu"),
+       Name      => new String'("DejaVuSans"),
+       Suffix    => new String'("-Regular"),
+       Extension => new String'(".ttf"),
+       Profile   => Profile_Generic),
+      (Path      => new String'("/usr/share/fonts/truetype/dejavu"),
+       Name      => new String'("DejaVuSans"),
+       Suffix    => new String'(""),
+       Extension => new String'(".ttf"),
+       Profile   => Profile_Generic),
+      (Path      => new String'("/usr/share/fonts/noto"),
+       Name      => new String'("NotoSans"),
+       Suffix    => new String'("-Regular"),
+       Extension => new String'(".ttf"),
+       Profile   => Profile_Generic));
 
-   Windows_Face_Suffix : constant array (Windows_Font_Family_Kind, Fallback_Face_Kind) of access constant String :=
-     (Windows_Segoe_UI =>
-        (Face_Regular     => new String'(""),
-         Face_Italic      => new String'("i"),
-         Face_Bold        => new String'("b"),
-         Face_Bold_Italic => new String'("z"),
-         Face_Black       => new String'("b")),
-      Windows_Arial =>
-        (Face_Regular     => new String'(""),
-         Face_Italic      => new String'("i"),
-         Face_Bold        => new String'("bd"),
-         Face_Bold_Italic => new String'("bi"),
-         Face_Black       => new String'("bd")));
+   Windows_Fallback_Sources : constant Font_Source_Array (1 .. 4) :=
+     ((Path      => new String'("C:\Windows\Fonts"),
+       Name      => new String'("segoeui"),
+       Suffix    => new String'(""),
+       Extension => new String'(".ttf"),
+       Profile   => Profile_Windows_Segoe),
+      (Path      => new String'("C:\WINNT\Fonts"),
+       Name      => new String'("segoeui"),
+       Suffix    => new String'(""),
+       Extension => new String'(".ttf"),
+       Profile   => Profile_Windows_Segoe),
+      (Path      => new String'("C:\Windows\Fonts"),
+       Name      => new String'("arial"),
+       Suffix    => new String'(""),
+       Extension => new String'(".ttf"),
+       Profile   => Profile_Windows_Arial),
+      (Path      => new String'("C:\WINNT\Fonts"),
+       Name      => new String'("arial"),
+       Suffix    => new String'(""),
+       Extension => new String'(".ttf"),
+       Profile   => Profile_Windows_Arial));
 
-   Selected_Windows_Family : Windows_Font_Family_Kind := Windows_Segoe_UI;
+   Selected_Fallback_Source : Font_Source :=
+     (Path      => Empty_Text'Access,
+      Name      => Empty_Text'Access,
+      Suffix    => Empty_Text'Access,
+      Extension => Empty_Text'Access,
+      Profile   => Profile_Generic);
+
+   type Suffix_List is array (Natural range <>) of access constant String;
+   type Suffix_List_Access is access constant Suffix_List;
+
+   type Ranked_Suffix is record
+      Suffix         : access constant String;
+      Weight_Matched : Boolean;
+      Style_Matched  : Boolean;
+   end record;
+
+   type Ranked_Suffix_List is array (Natural range <>) of Ranked_Suffix;
+   type Ranked_Suffix_List_Access is access constant Ranked_Suffix_List;
+
+   type Windows_Suffix_Kind is
+     (Win_Regular, Win_Italic, Win_Bold, Win_Bold_Italic, Win_Light, Win_Semi_Light);
+
+   type Windows_Ranked_Suffix is record
+      Kind           : Windows_Suffix_Kind;
+      Weight_Matched : Boolean;
+      Style_Matched  : Boolean;
+   end record;
+
+   type Windows_Ranked_Suffix_List is array (Natural range <>) of Windows_Ranked_Suffix;
+   type Windows_Ranked_Suffix_List_Access is access constant Windows_Ranked_Suffix_List;
+
+   type Requested_Style_Kind is (Request_Normal, Request_Italic);
+
+   type Windows_Suffix_Set is record
+      Regular     : access constant String;
+      Italic      : access constant String;
+      Bold        : access constant String;
+      Bold_Italic : access constant String;
+      Light       : access constant String;
+      Semi_Light  : access constant String;
+   end record;
+
+   Generic_No_Bases : aliased constant Suffix_List := (1 .. 0 => null);
+   Generic_Thin_Bases : aliased constant Suffix_List := (1 => new String'("-Thin"));
+   Generic_Extra_Light_Bases : aliased constant Suffix_List :=
+     (1 => new String'("-ExtraLight"),
+      2 => new String'("-UltraLight"),
+      3 => new String'("-Light"));
+   Generic_Medium_Bases : aliased constant Suffix_List := (1 => new String'("-Medium"));
+   Generic_Semi_Bold_Bases : aliased constant Suffix_List :=
+     (1 => new String'("-SemiBold"),
+      2 => new String'("-DemiBold"));
+   Generic_Bold_Bases : aliased constant Suffix_List := (1 => new String'("-Bold"));
+   Generic_Extra_Bold_Bases : aliased constant Suffix_List :=
+     (1 => new String'("-ExtraBold"),
+      2 => new String'("-UltraBold"));
+   Generic_Black_Bases : aliased constant Suffix_List :=
+     (1 => new String'("-Black"),
+      2 => new String'("-Heavy"));
+
+   Generic_Weight_Bases : constant array (Font_Weight_Value) of Suffix_List_Access :=
+     (Weight_Thin        => Generic_Thin_Bases'Access,
+      Weight_Extra_Light => Generic_Extra_Light_Bases'Access,
+      Weight_Light       => Generic_Extra_Light_Bases'Access,
+      Weight_Normal      => Generic_No_Bases'Access,
+      Weight_Medium      => Generic_Medium_Bases'Access,
+      Weight_Semi_Bold   => Generic_Semi_Bold_Bases'Access,
+      Weight_Bold        => Generic_Bold_Bases'Access,
+      Weight_Extra_Bold  => Generic_Extra_Bold_Bases'Access,
+      Weight_Black       => Generic_Black_Bases'Access);
+
+   Generic_Normal_Italic_Candidates : aliased constant Ranked_Suffix_List :=
+     ((Suffix => new String'("-Italic"),         Weight_Matched => False, Style_Matched => True),
+      (Suffix => new String'("-Oblique"),        Weight_Matched => False, Style_Matched => True),
+      (Suffix => new String'("-RegularItalic"),  Weight_Matched => True,  Style_Matched => True),
+      (Suffix => new String'("-RegularOblique"), Weight_Matched => True,  Style_Matched => True),
+      (Suffix => new String'("-BookItalic"),     Weight_Matched => True,  Style_Matched => True),
+      (Suffix => new String'("-BookOblique"),    Weight_Matched => True,  Style_Matched => True));
+
+   Generic_Italic_Fallback_Candidates : aliased constant Ranked_Suffix_List :=
+     ((Suffix => new String'("-Italic"),  Weight_Matched => False, Style_Matched => True),
+      (Suffix => new String'("-Oblique"), Weight_Matched => False, Style_Matched => True));
+
+   Windows_Profile_Suffixes : constant array
+     (Source_Profile_Kind range Profile_Windows_Segoe .. Profile_Windows_Arial)
+     of Windows_Suffix_Set :=
+     (Profile_Windows_Segoe =>
+        (Regular     => new String'(""),
+         Italic      => new String'("i"),
+         Bold        => new String'("b"),
+         Bold_Italic => new String'("z"),
+         Light       => new String'("l"),
+         Semi_Light  => new String'("sl")),
+      Profile_Windows_Arial =>
+        (Regular     => new String'(""),
+         Italic      => new String'("i"),
+         Bold        => new String'("bd"),
+         Bold_Italic => new String'("bi"),
+         Light       => Empty_Text'Access,
+         Semi_Light  => Empty_Text'Access));
+
+   Windows_Thin_Normal_Candidates : aliased constant Windows_Ranked_Suffix_List :=
+     ((Kind => Win_Light,      Weight_Matched => True,  Style_Matched => True),
+      (Kind => Win_Semi_Light, Weight_Matched => True,  Style_Matched => True),
+      (Kind => Win_Regular,    Weight_Matched => False, Style_Matched => True));
+
+   Windows_Thin_Italic_Candidates : aliased constant Windows_Ranked_Suffix_List :=
+     ((Kind => Win_Light,      Weight_Matched => True,  Style_Matched => False),
+      (Kind => Win_Semi_Light, Weight_Matched => True,  Style_Matched => False),
+      (Kind => Win_Italic,     Weight_Matched => False, Style_Matched => True),
+      (Kind => Win_Regular,    Weight_Matched => False, Style_Matched => False));
+
+   Windows_Medium_Normal_Candidates : aliased constant Windows_Ranked_Suffix_List :=
+     (1 => (Kind => Win_Regular, Weight_Matched => False, Style_Matched => True));
+   Windows_Medium_Italic_Candidates : aliased constant Windows_Ranked_Suffix_List :=
+     (1 => (Kind => Win_Italic, Weight_Matched => False, Style_Matched => True));
+
+   Windows_Normal_Normal_Candidates : aliased constant Windows_Ranked_Suffix_List :=
+     (1 => (Kind => Win_Regular, Weight_Matched => True, Style_Matched => True));
+   Windows_Normal_Italic_Candidates : aliased constant Windows_Ranked_Suffix_List :=
+     (1 => (Kind => Win_Italic, Weight_Matched => True, Style_Matched => True));
+
+   Windows_Black_Normal_Candidates : aliased constant Windows_Ranked_Suffix_List :=
+     (1 => (Kind => Win_Bold, Weight_Matched => True, Style_Matched => True));
+   Windows_Black_Italic_Candidates : aliased constant Windows_Ranked_Suffix_List :=
+     ((Kind => Win_Bold_Italic, Weight_Matched => False, Style_Matched => True),
+      (Kind => Win_Bold,        Weight_Matched => True,  Style_Matched => False));
+
+   Windows_Bold_Normal_Candidates : aliased constant Windows_Ranked_Suffix_List :=
+     (1 => (Kind => Win_Bold, Weight_Matched => True, Style_Matched => True));
+   Windows_Bold_Italic_Candidates : aliased constant Windows_Ranked_Suffix_List :=
+     ((Kind => Win_Bold_Italic, Weight_Matched => True, Style_Matched => True),
+      (Kind => Win_Bold,        Weight_Matched => True, Style_Matched => False));
+
+   Windows_Weight_Candidates : constant array (Font_Weight_Value, Requested_Style_Kind)
+     of Windows_Ranked_Suffix_List_Access :=
+     (Weight_Thin        => (Request_Normal => Windows_Thin_Normal_Candidates'Access,
+                             Request_Italic => Windows_Thin_Italic_Candidates'Access),
+      Weight_Extra_Light => (Request_Normal => Windows_Thin_Normal_Candidates'Access,
+                             Request_Italic => Windows_Thin_Italic_Candidates'Access),
+      Weight_Light       => (Request_Normal => Windows_Thin_Normal_Candidates'Access,
+                             Request_Italic => Windows_Thin_Italic_Candidates'Access),
+      Weight_Normal      => (Request_Normal => Windows_Normal_Normal_Candidates'Access,
+                             Request_Italic => Windows_Normal_Italic_Candidates'Access),
+      Weight_Medium      => (Request_Normal => Windows_Medium_Normal_Candidates'Access,
+                             Request_Italic => Windows_Medium_Italic_Candidates'Access),
+      Weight_Semi_Bold   => (Request_Normal => Windows_Bold_Normal_Candidates'Access,
+                             Request_Italic => Windows_Bold_Italic_Candidates'Access),
+      Weight_Bold        => (Request_Normal => Windows_Bold_Normal_Candidates'Access,
+                             Request_Italic => Windows_Bold_Italic_Candidates'Access),
+      Weight_Extra_Bold  => (Request_Normal => Windows_Bold_Normal_Candidates'Access,
+                             Request_Italic => Windows_Bold_Italic_Candidates'Access),
+      Weight_Black       => (Request_Normal => Windows_Black_Normal_Candidates'Access,
+                             Request_Italic => Windows_Black_Italic_Candidates'Access));
 
    function Is_Valid_Handle (Handle : Font_Handle) return Boolean is
    begin
@@ -158,82 +340,15 @@ package body Adi.Font is
       return Null_Font;
    end Canonical_Handle;
 
-   function Ends_With (S, Suffix : String) return Boolean is
+   function Path_Separator (Path : String) return String is
    begin
-      return Suffix'Length <= S'Length
-        and then S (S'Last - Suffix'Length + 1 .. S'Last) = Suffix;
-   end Ends_With;
-
-   function Last_Slash (S : String) return Natural is
-   begin
-      for I in reverse S'Range loop
-         if S (I) = '/' or else S (I) = '\' then
-            return Natural (I);
+      for C of Path loop
+         if C = '\' then
+            return "\";
          end if;
       end loop;
-      return 0;
-   end Last_Slash;
-
-   function Last_Dot_After (S : String; Pos : Natural) return Natural is
-   begin
-      for I in reverse S'Range loop
-         if Natural (I) <= Pos then
-            return 0;
-         elsif S (I) = '.' then
-            return Natural (I);
-         end if;
-      end loop;
-      return 0;
-   end Last_Dot_After;
-
-   function Dir_Of (Path : String) return String is
-      Slash : constant Natural := Last_Slash (Path);
-   begin
-      if Slash = 0 then
-         return ".";
-      end if;
-      return Path (Path'First .. Integer (Slash - 1));
-   end Dir_Of;
-
-   function Name_Of (Path : String) return String is
-      Slash : constant Natural := Last_Slash (Path);
-   begin
-      if Slash = 0 then
-         return Path;
-      end if;
-      return Path (Integer (Slash + 1) .. Path'Last);
-   end Name_Of;
-
-   function Stem_Of (Name : String) return String is
-      Dot : constant Natural := Last_Dot_After (Name, 0);
-   begin
-      if Dot = 0 then
-         return Name;
-      end if;
-      return Name (Name'First .. Integer (Dot - 1));
-   end Stem_Of;
-
-   function Ext_Of (Name : String) return String is
-      Dot : constant Natural := Last_Dot_After (Name, 0);
-   begin
-      if Dot = 0 then
-         return "";
-      end if;
-      return Name (Integer (Dot) .. Name'Last);
-   end Ext_Of;
-
-   function Variant_Base_Stem (Stem : String) return String is
-   begin
-      if Ends_With (Stem, "-Regular") then
-         return Stem (Stem'First .. Stem'Last - 8);
-      elsif Ends_With (Stem, "-Book") then
-         return Stem (Stem'First .. Stem'Last - 5);
-      elsif Ends_With (Stem, "-Roman") then
-         return Stem (Stem'First .. Stem'Last - 6);
-      else
-         return Stem;
-      end if;
-   end Variant_Base_Stem;
+      return "/";
+   end Path_Separator;
 
    function Is_Usable_Font_File (Path : String) return Boolean is
       C_Path : chars_ptr;
@@ -254,90 +369,59 @@ package body Adi.Font is
       return False;
    end Is_Usable_Font_File;
 
-   function Build_Variant_Path (Base_Path, Suffix : String) return String is
-      Dir       : constant String := Dir_Of (Base_Path);
-      Name      : constant String := Name_Of (Base_Path);
-      Stem      : constant String := Stem_Of (Name);
-      Ext       : constant String := Ext_Of (Name);
-      Base_Stem : constant String := Variant_Base_Stem (Stem);
+   function Build_Font_Path (Source : Font_Source) return String is
+      Sep : constant String := Path_Separator (Source.Path.all);
    begin
-      if Suffix'Length = 0 then
-         return Base_Path;
-      end if;
-      return Dir & "/" & Base_Stem & Suffix & Ext;
-   end Build_Variant_Path;
+      return Source.Path.all
+        & Sep
+        & Source.Name.all
+        & Source.Suffix.all
+        & Source.Extension.all;
+   end Build_Font_Path;
 
-   function Build_Windows_Variant_Path
-     (Base_Path : String;
-      Family    : Windows_Font_Family_Kind;
-      Face      : Fallback_Face_Kind) return String
+   function Build_Font_Path (Source : Font_Source;
+                             Suffix : String) return String
    is
-      Dir : constant String := Dir_Of (Base_Path);
+      Sep : constant String := Path_Separator (Source.Path.all);
    begin
-      return Dir
-        & "\"
-        & Windows_Font_Base_Name (Family).all
-        & Windows_Face_Suffix (Family, Face).all
-        & Windows_Font_Extension;
-   end Build_Windows_Variant_Path;
+      return Source.Path.all
+        & Sep
+        & Source.Name.all
+        & Suffix
+        & Source.Extension.all;
+   end Build_Font_Path;
 
    procedure Find_Fallback is
-      C_Path : chars_ptr;
-      F      : TTF_Font_Access;
-      procedure Try_Paths (Paths : Search_Path_Array) is
+      procedure Try_Sources (Sources : Font_Source_Array) is
       begin
-         for P of Paths loop
-            C_Path := New_String (P.all);
-            F := TTF_OpenFont (C_Path, Default_Font_Size_Px);
-            Free (C_Path);
-            if F /= null then
-               TTF_CloseFont (F);
-               Fallback_Path := To_Unbounded_String (P.all);
-               Fallback_Found := True;
-               Fallback_Variant_Cache.Clear;
-               Log ("fallback base selected: " & P.all);
-               return;
-            end if;
+         for Source of Sources loop
+            declare
+               Candidate : constant String := Build_Font_Path (Source);
+            begin
+               if Is_Usable_Font_File (Candidate) then
+                  Fallback_Path := To_Unbounded_String (Candidate);
+                  Selected_Fallback_Source := Source;
+                  Fallback_Found := True;
+                  Fallback_Variant_Cache.Clear;
+                  Log ("fallback base selected: " & Candidate);
+                  return;
+               end if;
+            end;
          end loop;
-      end Try_Paths;
-
-      procedure Try_Windows_Font_Dirs (Dirs : Search_Path_Array) is
-      begin
-         for D of Dirs loop
-            for Family in Windows_Font_Family_Kind loop
-               declare
-                  Candidate : constant String :=
-                    D.all
-                    & "\"
-                    & Windows_Font_Base_Name (Family).all
-                    & Windows_Face_Suffix (Family, Face_Regular).all
-                    & Windows_Font_Extension;
-               begin
-                  C_Path := New_String (Candidate);
-                  F := TTF_OpenFont (C_Path, Default_Font_Size_Px);
-                  Free (C_Path);
-                  if F /= null then
-                     TTF_CloseFont (F);
-                     Fallback_Path := To_Unbounded_String (Candidate);
-                     Fallback_Found := True;
-                     Fallback_Variant_Cache.Clear;
-                     Selected_Windows_Family := Family;
-                     Log ("fallback base selected: " & Candidate);
-                     return;
-                  end if;
-               end;
-            end loop;
-         end loop;
-      end Try_Windows_Font_Dirs;
+      end Try_Sources;
    begin
       if Fallback_Found then
          return;
       end if;
 
       if Adi.Build_Target.Is_Windows then
-         Try_Windows_Font_Dirs (Windows_Font_Dirs);
+         Try_Sources (Windows_Fallback_Sources);
       else
-         Try_Paths (Posix_Fallback_Search_Paths);
+         Try_Sources (Posix_Fallback_Sources);
+      end if;
+
+      if Fallback_Found then
+         return;
       end if;
 
       Log ("ERROR: No fallback font found");
@@ -352,15 +436,15 @@ package body Adi.Font is
       Key    : constant Weight_Style_Key := (Weight => Weight, Style => Style);
       Cursor : constant Fallback_Variant_Maps.Cursor :=
         Fallback_Variant_Cache.Find (Key);
-      Base_Path : constant String := To_String (Fallback_Path);
+      Source : constant Font_Source := Selected_Fallback_Source;
       Result : Fallback_Variant_Result :=
         (Path => Fallback_Path, Weight_Matched => False, Style_Matched => False);
       Found : Boolean := False;
 
-      procedure Try_Candidate (Suffix : String;
+      procedure Try_Candidate (Suffix    : String;
                                Weight_OK : Boolean;
                                Style_OK  : Boolean) is
-         Candidate : constant String := Build_Variant_Path (Base_Path, Suffix);
+         Candidate : constant String := Build_Font_Path (Source, Suffix);
       begin
          if Found then
             return;
@@ -373,104 +457,85 @@ package body Adi.Font is
          end if;
       end Try_Candidate;
 
-      procedure Try_Weight_Normal (Italic : Boolean) is
+      procedure Try_Ranked_Candidates (Candidates : Ranked_Suffix_List) is
       begin
-         if Italic then
-            Try_Candidate ("-Italic", False, True);
-            Try_Candidate ("-Oblique", False, True);
-            Try_Candidate ("-RegularItalic", True, True);
-            Try_Candidate ("-RegularOblique", True, True);
-            Try_Candidate ("-BookItalic", True, True);
-            Try_Candidate ("-BookOblique", True, True);
-         else
-            Try_Candidate ("-Regular", True, True);
-            Try_Candidate ("-Book", True, True);
-            Try_Candidate ("-Roman", True, True);
-         end if;
-      end Try_Weight_Normal;
+         for Candidate of Candidates loop
+            Try_Candidate (Suffix    => Candidate.Suffix.all,
+                           Weight_OK => Candidate.Weight_Matched,
+                           Style_OK  => Candidate.Style_Matched);
+         end loop;
+      end Try_Ranked_Candidates;
 
-      procedure Try_Weight_With_Style (Base_Suffix : String) is
+      procedure Try_Generic_Base (Base_Suffix : String;
+                                  Is_Italic   : Boolean) is
       begin
-         if Style = Style_Normal then
-            Try_Candidate (Base_Suffix, True, True);
-         else
-            Try_Candidate (Base_Suffix & "Italic", True, True);
+         if Is_Italic then
+            Try_Candidate (Base_Suffix & "Italic",  True, True);
             Try_Candidate (Base_Suffix & "Oblique", True, True);
             Try_Candidate (Base_Suffix & "-Italic", True, True);
             Try_Candidate (Base_Suffix & "-Oblique", True, True);
+         else
+            Try_Candidate (Base_Suffix, True, True);
          end if;
-      end Try_Weight_With_Style;
+      end Try_Generic_Base;
 
-      procedure Try_Windows_Face (Face      : Fallback_Face_Kind;
-                                  Weight_OK : Boolean;
-                                  Style_OK  : Boolean) is
-         Candidate : constant String := Build_Windows_Variant_Path (Base_Path, Selected_Windows_Family, Face);
+      procedure Resolve_Generic_Variant is
+         Is_Italic : constant Boolean := Style /= Style_Normal;
+         Bases     : constant Suffix_List_Access := Generic_Weight_Bases (Weight);
       begin
-         if Found then
-            return;
+         if Weight = Weight_Normal and then Is_Italic then
+            Try_Ranked_Candidates (Generic_Normal_Italic_Candidates);
+         else
+            for Base of Bases.all loop
+               Try_Generic_Base (Base_Suffix => Base.all,
+                                 Is_Italic   => Is_Italic);
+            end loop;
          end if;
-         if Is_Usable_Font_File (Candidate) then
-            Result := (Path => To_Unbounded_String (Candidate),
-                       Weight_Matched => Weight_OK,
-                       Style_Matched  => Style_OK);
-            Found := True;
-         end if;
-      end Try_Windows_Face;
 
-      procedure Try_Windows_Custom_Suffix (Suffix    : String;
-                                           Weight_OK : Boolean;
-                                           Style_OK  : Boolean) is
-         Candidate : constant String :=
-           Dir_Of (Base_Path)
-           & "\"
-           & Windows_Font_Base_Name (Selected_Windows_Family).all
-           & Suffix
-           & Windows_Font_Extension;
-      begin
-         if Found then
-            return;
+         if not Found and then Is_Italic then
+            Try_Ranked_Candidates (Generic_Italic_Fallback_Candidates);
          end if;
-         if Is_Usable_Font_File (Candidate) then
-            Result := (Path => To_Unbounded_String (Candidate),
-                       Weight_Matched => Weight_OK,
-                       Style_Matched  => Style_OK);
-            Found := True;
-         end if;
-      end Try_Windows_Custom_Suffix;
+      end Resolve_Generic_Variant;
 
       procedure Resolve_Windows_Variant is
-         Is_Italic : constant Boolean := Style /= Style_Normal;
+         Style_Key : constant Requested_Style_Kind :=
+           (if Style = Style_Normal then Request_Normal else Request_Italic);
+         Rules : constant Windows_Ranked_Suffix_List_Access :=
+           Windows_Weight_Candidates (Weight, Style_Key);
+         Suffixes : constant Windows_Suffix_Set := Windows_Profile_Suffixes (Source.Profile);
+
+         function Resolve_Suffix (Kind : Windows_Suffix_Kind) return String is
+         begin
+            case Kind is
+               when Win_Regular =>
+                  return Suffixes.Regular.all;
+               when Win_Italic =>
+                  return Suffixes.Italic.all;
+               when Win_Bold =>
+                  return Suffixes.Bold.all;
+               when Win_Bold_Italic =>
+                  return Suffixes.Bold_Italic.all;
+               when Win_Light =>
+                  return Suffixes.Light.all;
+               when Win_Semi_Light =>
+                  return Suffixes.Semi_Light.all;
+            end case;
+         end Resolve_Suffix;
       begin
-         case Weight is
-            when Weight_Thin | Weight_Extra_Light | Weight_Light =>
-               Try_Windows_Custom_Suffix ("l", True, not Is_Italic);
-               Try_Windows_Custom_Suffix ("sl", True, not Is_Italic);
-               if Is_Italic then
-                  Try_Windows_Face (Face_Italic, False, True);
+         for Candidate of Rules.all loop
+            declare
+               Suffix : constant String := Resolve_Suffix (Candidate.Kind);
+            begin
+               if Suffix'Length > 0 or else Candidate.Kind = Win_Regular then
+                  Try_Candidate (Suffix    => Suffix,
+                                 Weight_OK => Candidate.Weight_Matched,
+                                 Style_OK  => Candidate.Style_Matched);
                end if;
-               Try_Windows_Face (Face_Regular, False, not Is_Italic);
-            when Weight_Medium | Weight_Normal =>
-               if Is_Italic then
-                  Try_Windows_Face (Face_Italic, Weight = Weight_Normal, True);
-               else
-                  Try_Windows_Face (Face_Regular, Weight = Weight_Normal, True);
-               end if;
-            when Weight_Black =>
-               if Is_Italic then
-                  Try_Windows_Face (Face_Bold_Italic, False, True);
-               end if;
-               Try_Windows_Face (Face_Bold, True, not Is_Italic);
-            when Weight_Semi_Bold | Weight_Bold | Weight_Extra_Bold =>
-               if Is_Italic then
-                  Try_Windows_Face (Face_Bold_Italic, True, True);
-                  Try_Windows_Face (Face_Bold, True, False);
-               else
-                  Try_Windows_Face (Face_Bold, True, True);
-               end if;
-         end case;
+            end;
+         end loop;
 
          if not Found then
-            Try_Windows_Face (Face_Regular, False, False);
+            Try_Candidate (Suffixes.Regular.all, False, False);
          end if;
       end Resolve_Windows_Variant;
    begin
@@ -487,38 +552,12 @@ package body Adi.Font is
          return Result;
       end if;
 
-      if Adi.Build_Target.Is_Windows then
-         Resolve_Windows_Variant;
-      else
-         case Weight is
-            when Weight_Thin =>
-               Try_Weight_With_Style ("-Thin");
-            when Weight_Extra_Light | Weight_Light =>
-               Try_Weight_With_Style ("-ExtraLight");
-               Try_Weight_With_Style ("-UltraLight");
-               Try_Weight_With_Style ("-Light");
-            when Weight_Normal =>
-               Try_Weight_Normal (Style /= Style_Normal);
-            when Weight_Medium =>
-               Try_Weight_With_Style ("-Medium");
-            when Weight_Semi_Bold =>
-               Try_Weight_With_Style ("-SemiBold");
-               Try_Weight_With_Style ("-DemiBold");
-            when Weight_Bold =>
-               Try_Weight_With_Style ("-Bold");
-            when Weight_Extra_Bold =>
-               Try_Weight_With_Style ("-ExtraBold");
-               Try_Weight_With_Style ("-UltraBold");
-            when Weight_Black =>
-               Try_Weight_With_Style ("-Black");
-               Try_Weight_With_Style ("-Heavy");
-         end case;
-
-         if not Found and then Style /= Style_Normal then
-            Try_Candidate ("-Italic", False, True);
-            Try_Candidate ("-Oblique", False, True);
-         end if;
-      end if;
+      case Source.Profile is
+         when Profile_Windows_Segoe | Profile_Windows_Arial =>
+            Resolve_Windows_Variant;
+         when others =>
+            Resolve_Generic_Variant;
+      end case;
 
       if not Found and then Weight = Weight_Normal and then Style = Style_Normal then
          Result := (Path => Fallback_Path, Weight_Matched => True, Style_Matched => True);

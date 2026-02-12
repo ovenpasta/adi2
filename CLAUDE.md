@@ -8,47 +8,70 @@ Adi is a GUI library written in Ada 2022 that provides a widget-based UI framewo
 
 ## Build System
 
-This project uses **Alire** (Ada's package manager) with GPR project files:
+This project supports both **Alire** and direct **gprbuild** usage.
 
-### Building the library
+### Building the library (Alire)
 ```bash
 alr build
-you normally don't use gprbuild directly but through alr exec -- gprbuild
 ```
 
-This automatically builds the library and runs post-build actions to compile all tests and examples.
+### Building the library (direct gprbuild)
+```bash
+gprbuild -P adi.gpr
+# Optional profile/version overrides:
+gprbuild -P adi.gpr -XADI_BUILD_PROFILE=release -XADI_LIBRARY_VERSION=0.1.0
+# Optional target config:
+gprbuild --config=path/to/target.cgpr -P adi.gpr
+```
+
+### Linker flags via pkg-config (recommended for direct gprbuild)
+```bash
+source tools/setup_pkg_config_env.sh
+# For rlottie builds:
+source tools/setup_pkg_config_env.sh --with-rlottie
+```
+
+The script exports:
+- `ADI_SDL_LINKER_FLAGS` from `pkg-config --libs sdl3 sdl3_ttf sdl3_image`
+- `ADI_RLOTTIE_LINKER_FLAGS` from `pkg-config --libs rlottie` (optional)
+
+Fallbacks:
+- If `pkg-config` is unavailable/missing packages, `tests/examples` use default linker names (`-lSDL3 -lSDL3_ttf -lSDL3_image -lm`, plus `-lrlottie` for `rlottie_example`)
+- You can always override with env vars: `ADI_SDL_LINKER_FLAGS`, `ADI_RLOTTIE_LINKER_FLAGS`, `ADI_PLATFORM_LINKER_FLAGS`
 
 ### Building specific tests
 ```bash
 # Build a specific test by setting TEST_KIND scenario variable
-alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=styles
-alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=layout_test
-alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=css_parser_test
-alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=css_source_test
-alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=text_buffer_test
-alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=text_layout_test
+gprbuild -P tests/tests.gpr -XTEST_KIND=styles
+gprbuild -P tests/tests.gpr -XTEST_KIND=layout_test
+gprbuild -P tests/tests.gpr -XTEST_KIND=css_parser_test
+gprbuild -P tests/tests.gpr -XTEST_KIND=css_source_test
+gprbuild -P tests/tests.gpr -XTEST_KIND=text_buffer_test
+gprbuild -P tests/tests.gpr -XTEST_KIND=text_layout_test
+# Alire-wrapped equivalent: alr exec -- gprbuild ...
 ```
 
 ### Building specific examples
 ```bash
 # Build a specific example by setting EXAMPLE_KIND scenario variable
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=label_example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=button_example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=transition_example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=text_input_example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=text_editor_example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=demo_flex
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=combo_box_example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=overflow_example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=dialog_example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=animated_image_example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=rlottie_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=label_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=widget_demo
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=button_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=transition_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=text_input_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=text_editor_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=demo_flex
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=list_box_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=combo_box_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=overflow_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=grid_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=dialog_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=animated_image_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=rlottie_example
+# Alire-wrapped equivalent: alr exec -- gprbuild ...
 ```
 
 ### Running tests
@@ -85,11 +108,11 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=rlottie_example
 ```
 
 ### External Dependencies
-- **SDL3**: Required for windowing and event handling (linked via `-lSDL3`)
-- **SDL3_ttf**: Required for TrueType font rendering (linked via `-lSDL3_ttf`)
-- **SDL3_image**: Required for image loading (linked via `-lSDL3_image`)
-- **rlottie**: Required only by `rlottie_example` (linked via `-lrlottie` in `examples/examples.gpr` for that example kind)
-- **gnatcoll_minimal**: Ada library dependency managed by Alire
+- **SDL3**: Required for windowing and event handling
+- **SDL3_ttf**: Required for TrueType font rendering
+- **SDL3_image**: Required for image loading
+- **rlottie**: Required only by `rlottie_example`
+- Direct gprbuild mode resolves linker flags via `pkg-config` (recommended) or env overrides
 
 ## Architecture
 
@@ -478,7 +501,6 @@ tools/
   generate_example_styles.sh - Generates example style packages before examples build
 config/               - Build configuration
   adi_config.ads/gpr  - Generated by Alire
-deps/                 - Alire-managed dependencies
 alire.toml            - Alire project manifest
 adi.gpr               - Main GPR project file
 ```

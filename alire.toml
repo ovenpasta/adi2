@@ -80,9 +80,5 @@ command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=text_edito
 type = "post-build"
 command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=animated_image_example"]
 
-
-[[depends-on]]
-gnatcoll_minimal = "^26.0.0"
-
 [build-switches]
 "*".style_checks = "No"

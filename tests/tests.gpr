@@ -25,10 +25,14 @@ project Tests is
       for Switches ("Ada") use ("-E");  -- Store exception traceback
     end Binder;
 
+   Default_SDL_Linker_Switches := ("-lSDL3", "-lSDL3_ttf", "-lSDL3_image", "-lm");
+   Pkg_Config_SDL_Linker_Switches := External_As_List ("ADI_SDL_LINKER_FLAGS", " ");
+   Platform_Linker_Switches := External_As_List ("ADI_PLATFORM_LINKER_FLAGS", " ");
+
    package Linker is
-      --  Link against SDL3, SDL3_ttf, and SDL3_image
       for Default_Switches ("Ada") use
-         ("-L/usr/local/lib", "-lSDL3", "-lSDL3_ttf","-lSDL3_image","-lm",
-          "-Wl,-rpath,/usr/local/lib");
+        Default_SDL_Linker_Switches &
+        Pkg_Config_SDL_Linker_Switches &
+        Platform_Linker_Switches;
    end Linker;
 end Tests;

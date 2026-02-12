@@ -2,6 +2,7 @@ with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;
+with Adi.Build_Target;
 with Adi.SDL;
 with Adi.SDL.TTF;           use Adi.SDL.TTF;
 with Interfaces.C;          use Interfaces.C;
@@ -106,10 +107,17 @@ package body Adi.Font is
    Fallback_Path  : Unbounded_String := Null_Unbounded_String;
    Fallback_Found : Boolean := False;
 
-   Fallback_Search_Paths : constant array (1 .. 3) of access constant String :=
+   type Search_Path_Array is array (Positive range <>) of access constant String;
+
+   Posix_Fallback_Search_Paths : constant Search_Path_Array (1 .. 3) :=
      (new String'("/usr/share/fonts/TTF/DejaVuSans.ttf"),
       new String'("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
       new String'("/usr/share/fonts/noto/NotoSans-Regular.ttf"));
+
+   Windows_Fallback_Search_Paths : constant Search_Path_Array (1 .. 3) :=
+     (new String'("C:\Windows\Fonts\segoeui.ttf"),
+      new String'("C:\Windows\Fonts\arial.ttf"),
+      new String'("C:\Windows\Fonts\tahoma.ttf"));
 
    function Is_Valid_Handle (Handle : Font_Handle) return Boolean is
    begin
@@ -237,24 +245,32 @@ package body Adi.Font is
    procedure Find_Fallback is
       C_Path : chars_ptr;
       F      : TTF_Font_Access;
+      procedure Try_Paths (Paths : Search_Path_Array) is
+      begin
+         for P of Paths loop
+            C_Path := New_String (P.all);
+            F := TTF_OpenFont (C_Path, Default_Font_Size_Px);
+            Free (C_Path);
+            if F /= null then
+               TTF_CloseFont (F);
+               Fallback_Path := To_Unbounded_String (P.all);
+               Fallback_Found := True;
+               Fallback_Variant_Cache.Clear;
+               Log ("fallback base selected: " & P.all);
+               return;
+            end if;
+         end loop;
+      end Try_Paths;
    begin
       if Fallback_Found then
          return;
       end if;
 
-      for P of Fallback_Search_Paths loop
-         C_Path := New_String (P.all);
-         F := TTF_OpenFont (C_Path, Default_Font_Size_Px);
-         Free (C_Path);
-         if F /= null then
-            TTF_CloseFont (F);
-            Fallback_Path := To_Unbounded_String (P.all);
-            Fallback_Found := True;
-            Fallback_Variant_Cache.Clear;
-            Log ("fallback base selected: " & P.all);
-            return;
-         end if;
-      end loop;
+      if Adi.Build_Target.Is_Windows then
+         Try_Paths (Windows_Fallback_Search_Paths);
+      else
+         Try_Paths (Posix_Fallback_Search_Paths);
+      end if;
 
       Log ("ERROR: No fallback font found");
       Fallback_Found := True;

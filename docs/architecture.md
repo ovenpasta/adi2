@@ -126,6 +126,13 @@
 
 **Animated_Widget**: Unified animated image/Lottie display. Child package `RLottie` isolates rlottie coupling.
 
+**Html_View**: Minimal documentation-oriented HTML widget (`Adi.Widget.Html_View`).
+- Supported v1 tags include block/inline text tags, `img`, `hr`, and `a`
+- Hyperlink interaction via `Set_On_Link_Click`
+- Asset loading hook for image sources via `Set_On_Load_Asset` (callback-driven)
+- Embedded stylesheet support via `<style> ... </style>` blocks, parsed with `Adi.CSS_Parser`
+- Linked stylesheet support via `<link rel="stylesheet" href="...">` resolved with `Set_On_Load_Resource`
+
 **Context_Menu** / **Text_Context_Menu**: Popup overlay menu; shared factory for Undo/Redo/Cut/Copy/Paste/Select All.
 
 ## Widget Rendering Pipeline

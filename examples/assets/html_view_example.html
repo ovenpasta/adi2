@@ -1,0 +1,63 @@
+<link rel="stylesheet" href="app://html/theme.css">
+
+<style>
+  body {
+    background-color: rgb(255, 252, 247);
+    color: rgb(51, 46, 39);
+    font-size: 15px;
+  }
+
+  h1 {
+    color: rgb(35, 31, 27);
+    font-size: 30px;
+    font-weight: 700;
+  }
+
+  h2 {
+    color: rgb(72, 62, 51);
+    font-size: 21px;
+    font-weight: 600;
+  }
+
+  code {
+    color: rgb(66, 57, 46);
+    font-size: 14px;
+  }
+
+  hr {
+    background-color: rgba(127, 103, 75, 0.55);
+    height: 1px;
+  }
+
+  a {
+    color: rgb(26, 95, 180);
+    text-decoration: underline;
+  }
+</style>
+
+<div>
+  <h1>HTML View Example</h1>
+  <p>
+    This content is loaded from <code>examples/assets/html_view_example.html</code>.
+    Links are interactive: <a href="https://example.com">external docs</a> and
+    <a href="app://section/getting-started">internal section</a>.
+  </p>
+
+  <h2>Formatting</h2>
+  <p>
+    Inline tags: <strong>strong</strong>, <em>emphasis</em>, <span>span text</span>,
+    line break below:<br>first line<br>second line.
+  </p>
+
+  <h2>List + Image</h2>
+  <ul>
+    <li>Simple list item</li>
+    <li>Inline image from custom asset callback: <img src="app://happycat" alt="happy cat"></li>
+    <li>Missing asset fallback alt text: <img src="app://missing" alt="(missing image fallback)"></li>
+  </ul>
+
+  <hr>
+  <p>
+    The renderer intentionally supports a small docs-focused subset of HTML.
+  </p>
+</div>

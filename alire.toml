@@ -80,5 +80,9 @@ command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=text_edito
 type = "post-build"
 command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=animated_image_example"]
 
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=html_view_example"]
+
 [build-switches]
 "*".style_checks = "No"

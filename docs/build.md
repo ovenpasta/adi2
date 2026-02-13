@@ -9,6 +9,9 @@ alr build                    # builds library + all tests + examples (and runs i
 
 ### Direct gprbuild (configure once, build from generated projects)
 ```bash
+# Prefer Alire environment wrapping for direct gprbuild invocations:
+alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=styles
+
 tools/configure.sh --build-dir build-linux --target linux --build-profile development
 build-linux/build_all.sh
 ```
@@ -37,10 +40,10 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 ```
 
 ### Valid TEST_KIND values
-`styles`, `layout_test`, `css_parser_test`, `css_source_test`, `text_buffer_test`, `text_layout_test`
+`styles`, `layout_test`, `css_parser_test`, `css_source_test`, `text_buffer_test`, `text_layout_test`, `html_view_test`
 
 ### Valid EXAMPLE_KIND values
-`label_example`, `widget_demo`, `button_example`, `transition_example`, `text_input_example`, `text_editor_example`, `demo_flex`, `stack_example`, `list_box_example`, `combo_box_example`, `overflow_example`, `grid_example`, `dialog_example`, `font_example`, `runtime_css_example`, `animated_image_example`, `rlottie_example`
+`label_example`, `widget_demo`, `button_example`, `transition_example`, `text_input_example`, `text_editor_example`, `demo_flex`, `stack_example`, `list_box_example`, `combo_box_example`, `overflow_example`, `grid_example`, `dialog_example`, `font_example`, `runtime_css_example`, `animated_image_example`, `rlottie_example`, `html_view_example`
 
 ## Running
 

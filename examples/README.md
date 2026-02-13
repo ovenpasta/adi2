@@ -39,11 +39,15 @@ Demonstrates CSS grid layout (`display: grid`) with template rows/columns, gaps,
 ### animated_image_example
 Demonstrates `Adi.Widget.Animated_Image` playback controls (`Start`, `Stop`, `Reset`, looping) using `examples/assets/animhorse.gif`.
 
+### html_view_example
+Demonstrates `Adi.Widget.Html_View` with HTML loaded from assets, styles provided by embedded `<style>` and linked stylesheet resources, hyperlink callbacks, and custom image asset loading.
+
 ### Example Assets
 - `examples/assets/bg.jpg` (widget demo background)
 - `examples/assets/animhorse.gif` (animated image demo)
 - `examples/assets/happycat.png` (label example icon)
 - `examples/assets/lottie_sample.json` (rlottie demo animation)
+- `examples/assets/html_view_example.html` (HTML view demo content)
 
 ### Shared Widget Defaults
 `css/widget_defaults.css` defines reusable baseline styles for common widgets (`.button`, `.text-input`, `.list-box`, `.list-row`) and is generated as `generated/widget_defaults_styles.ads` for reuse across examples.

@@ -38,4 +38,5 @@ generate_if_needed "$CSS_DIR/runtime_css_example.css" "$OUT_DIR/runtime_css_exam
 generate_if_needed "$CSS_DIR/text_editor_example.css" "$OUT_DIR/text_editor_example_styles.ads" "Text_Editor_Example_Styles"
 generate_if_needed "$CSS_DIR/animated_image_example.css" "$OUT_DIR/animated_image_example_styles.ads" "Animated_Image_Example_Styles"
 generate_if_needed "$CSS_DIR/rlottie_example.css" "$OUT_DIR/rlottie_example_styles.ads" "RLottie_Example_Styles"
+generate_if_needed "$CSS_DIR/html_view_example.css" "$OUT_DIR/html_view_example_styles.ads" "Html_View_Example_Styles"
 generate_if_needed "$CSS_DIR/widget_defaults.css" "$OUT_DIR/widget_defaults_styles.ads" "Widget_Defaults_Styles"

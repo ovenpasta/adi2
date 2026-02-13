@@ -1,0 +1,169 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: rgb(244, 239, 231);
+}
+
+.title {
+  flex-shrink: 0;
+}
+
+.title::label {
+  color: rgb(54, 46, 37);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.subtitle {
+  flex-shrink: 0;
+}
+
+.subtitle::label {
+  color: rgb(97, 88, 77);
+  font-size: 14px;
+}
+
+.tab-bar {
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+}
+
+.tab-left,
+.tab-right {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(178, 159, 136);
+  background-color: rgb(224, 212, 194);
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.tab-left {
+  border-radius: 8px 0px 0px 8px;
+}
+
+.tab-right {
+  border-radius: 0px 8px 8px 0px;
+}
+
+.tab-left::label,
+.tab-right::label {
+  color: rgb(70, 61, 50);
+  font-size: 13px;
+  font-weight: 600;
+  text-wrap-mode: nowrap;
+}
+
+.tab-left:hover,
+.tab-right:hover {
+  background-color: rgb(233, 221, 205);
+}
+
+.tab-left:selected,
+.tab-right:selected {
+  background-color: rgb(120, 96, 71);
+  border-color: rgb(100, 80, 58);
+}
+
+.tab-left:selected::label,
+.tab-right:selected::label {
+  color: rgb(255, 250, 242);
+}
+
+.stack {
+  flex-grow: 1;
+  min-height: 0px;
+}
+
+.page-preview,
+.page-source {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0px;
+}
+
+.html-view {
+  flex-grow: 1;
+  min-height: 0px;
+  overflow: auto;
+  background-color: rgb(255, 252, 247);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(212, 199, 183);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.html-view::scroll {
+  width: 9px;
+  background-color: rgba(127, 103, 75, 0.55);
+  border-radius: 5px;
+  padding: 2px;
+}
+
+.html-view::knob {
+  min-height: 26px;
+  background-color: rgba(112, 92, 69, 0.70);
+  border-radius: 4px;
+}
+
+.source-editor {
+  flex-grow: 1;
+  min-height: 0px;
+  background-color: rgb(252, 248, 242);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(212, 199, 183);
+  border-radius: 10px;
+  padding: 12px;
+  overflow: auto;
+}
+
+.source-editor::label {
+  color: rgb(58, 52, 45);
+  font-size: 14px;
+}
+
+.source-editor::cursor {
+  background-color: rgb(86, 69, 49);
+}
+
+.source-editor::selected {
+  background-color: rgba(134, 111, 86, 0.28);
+}
+
+.source-editor::scroll {
+  width: 8px;
+  background-color: rgba(160, 142, 121, 0.28);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.source-editor::knob {
+  min-height: 26px;
+  background-color: rgba(112, 92, 69, 0.66);
+  border-radius: 4px;
+}
+
+.status {
+  min-height: 34px;
+  flex-shrink: 0;
+  background-color: rgb(236, 229, 218);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(212, 199, 183);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.status::label {
+  color: rgb(72, 65, 55);
+  font-size: 13px;
+}

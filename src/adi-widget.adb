@@ -2535,6 +2535,7 @@ package body Adi.Widget is
       Source   : Image_Access;
       Style    : Resolved_Style)
    is
+      use Interfaces.C;
       Texture          : SDL_Texture_Ptr;
       Src_W, Src_H     : Pixel_Type;
       Dst_X, Dst_Y     : Pixel_Type;
@@ -2545,6 +2546,12 @@ package body Adi.Widget is
       Radius_Px        : Corner_Pixels;
       Max_Rad          : Float;
       Success          : Adi.SDL.C_bool;
+      Prev_Clip        : aliased Adi.SDL.SDL_Rect;
+      Clip_Rect        : aliased Adi.SDL.SDL_Rect;
+      Had_Clip         : Boolean := False;
+      Use_Clip         : constant Boolean :=
+        Renderer /= null and then Geom.Width > 0.0 and then Geom.Height > 0.0;
+      X1, Y1, X2, Y2   : Integer;
    begin
       if Style.Visibility = Visibility_Hidden then
          return;
@@ -2680,6 +2687,43 @@ package body Adi.Widget is
       Dst_Rect.w := Float (Dst_W);
       Dst_Rect.h := Float (Dst_H);
 
+      --  Clip image rendering to item bounds so object-fit:none and oversized
+      --  images are cropped instead of bleeding outside the widget viewport.
+      if Use_Clip then
+         Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
+         if Had_Clip then
+            Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
+         end if;
+
+         X1 := Integer (Float'Floor (Float (Geom.X)));
+         Y1 := Integer (Float'Floor (Float (Geom.Y)));
+         X2 := X1 + Integer (Float'Ceiling (Float (Geom.Width)));
+         Y2 := Y1 + Integer (Float'Ceiling (Float (Geom.Height)));
+
+         if Had_Clip then
+            X1 := Integer'Max (X1, Integer (Prev_Clip.x));
+            Y1 := Integer'Max (Y1, Integer (Prev_Clip.y));
+            X2 := Integer'Min (X2, Integer (Prev_Clip.x + Prev_Clip.w));
+            Y2 := Integer'Min (Y2, Integer (Prev_Clip.y + Prev_Clip.h));
+         end if;
+
+         if X2 <= X1 or else Y2 <= Y1 then
+            if Had_Clip then
+               Success := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
+            else
+               Success := SDL_SetRenderClipRect (Renderer, null);
+            end if;
+            return;
+         end if;
+
+         Clip_Rect :=
+           (x => int (X1),
+            y => int (Y1),
+            w => int (X2 - X1),
+            h => int (Y2 - Y1));
+         Success := SDL_SetRenderClipRect (Renderer, Clip_Rect'Access);
+      end if;
+
       --  For modes where the image may not fill the container (Contain,
       --  None, Scale_Down), reduce corner radii based on how much the
       --  image is inset from each container edge.  If the image edge
@@ -2740,6 +2784,14 @@ package body Adi.Widget is
                (Renderer, Texture, null, Dst_Rect'Access);
          end if;
       end if;
+
+      if Use_Clip then
+         if Had_Clip then
+            Success := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
+         else
+            Success := SDL_SetRenderClipRect (Renderer, null);
+         end if;
+      end if;
    end Render_Image_Item;
 
    ---------------------------------------------------------------------------
@@ -2792,41 +2844,128 @@ package body Adi.Widget is
 
    procedure Render_Items (W : in out Widget'Class; Ctx : in out Render_Context) is
       Renderer : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
+      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Content    : constant Rectangle := Padding_Box (Get_Geometry (W), Main_Style);
+      Clip_By_Overflow : constant Boolean :=
+        Main_Style.Overflow in Overflow_Hidden | Overflow_Scroll | Overflow_Auto;
+      Clip_By_Scrollable : constant Boolean := Has_Flag (W, Scrollable);
+      Prev_Clip : aliased Adi.SDL.SDL_Rect;
+      Clip_Rect : aliased Adi.SDL.SDL_Rect;
+      Had_Clip  : Boolean := False;
+      Use_Clip  : Boolean := False;
+      Clip_Valid : Boolean := False;
+      Clip_Active : Boolean := False;
+      Success : Adi.SDL.C_bool;
+      X1, Y1, X2, Y2 : Integer;
+
+      procedure Restore_Previous_Clip is
+      begin
+         if Renderer = null then
+            return;
+         end if;
+
+         if Had_Clip then
+            Success := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
+         else
+            Success := SDL_SetRenderClipRect (Renderer, null);
+         end if;
+         Clip_Active := False;
+      end Restore_Previous_Clip;
+
+      procedure Set_Item_Clip (Need_Clip : Boolean) is
+      begin
+         if not Use_Clip or else Renderer = null then
+            return;
+         end if;
+
+         if Need_Clip and then not Clip_Active then
+            if Clip_Valid then
+               Success := SDL_SetRenderClipRect (Renderer, Clip_Rect'Access);
+               Clip_Active := True;
+            end if;
+         elsif not Need_Clip and then Clip_Active then
+            Restore_Previous_Clip;
+         end if;
+      end Set_Item_Clip;
    begin
+      if Renderer /= null and then (Clip_By_Overflow or else Clip_By_Scrollable) then
+         if Content.Width > 0.0 and then Content.Height > 0.0 then
+            Use_Clip := True;
+            Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
+            if Had_Clip then
+               Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
+            end if;
+
+            X1 := Integer (Float'Floor (Float (Content.X)));
+            Y1 := Integer (Float'Floor (Float (Content.Y)));
+            X2 := X1 + Integer (Float'Ceiling (Float (Content.Width)));
+            Y2 := Y1 + Integer (Float'Ceiling (Float (Content.Height)));
+
+            if Had_Clip then
+               X1 := Integer'Max (X1, Integer (Prev_Clip.x));
+               Y1 := Integer'Max (Y1, Integer (Prev_Clip.y));
+               X2 := Integer'Min (X2, Integer (Prev_Clip.x + Prev_Clip.w));
+               Y2 := Integer'Min (Y2, Integer (Prev_Clip.y + Prev_Clip.h));
+            end if;
+
+            if X2 > X1 and then Y2 > Y1 then
+               Clip_Rect :=
+                 (x => int (X1),
+                  y => int (Y1),
+                  w => int (X2 - X1),
+                  h => int (Y2 - Y1));
+               Clip_Valid := True;
+            end if;
+         end if;
+      end if;
+
       for I in 1 .. Natural (W.Items.Length) loop
          declare
             Current : Item renames W.Items.Reference (I).Element.all;
             Style   : Resolved_Style renames Current.Computed_Style;
+            Need_Item_Clip : constant Boolean :=
+              Use_Clip and then not
+                (Current.Kind = Panel_Item and then Current.Part = Main_Part);
          begin
-            case Current.Kind is
-               when Panel_Item =>
-                  if Style.Box_Shadow /= No_Shadow then
-                     Render_Box_Shadow (Ctx, Current.Geometry, Style);
-                  end if;
-                  Render_Panel (Renderer, Current.Geometry, Style);
+            if Need_Item_Clip and then not Clip_Valid then
+               null;
+            else
+               Set_Item_Clip (Need_Item_Clip);
 
-               when Text_Item =>
-                  Render_Text_Item (Ctx, Current);
+               case Current.Kind is
+                  when Panel_Item =>
+                     if Style.Box_Shadow /= No_Shadow then
+                        Render_Box_Shadow (Ctx, Current.Geometry, Style);
+                     end if;
+                     Render_Panel (Renderer, Current.Geometry, Style);
 
-               when Image_Item =>
-                  Render_Image_Item (
-                     Renderer,
-                     Current.Geometry,
-                     Current.Image_Source,
-                     Style);
-            end case;
+                  when Text_Item =>
+                     Render_Text_Item (Ctx, Current);
 
-            if Debug_Layout_Overlay_Enabled and then Renderer /= null then
-               declare
-                  R, G, B : Uint8;
-               begin
-                  Debug_Item_Color (I, Current.Kind, R, G, B);
-                  Draw_Debug_Rect (Renderer, Current.Geometry, R, G, B, 26, True);
-                  Draw_Debug_Rect (Renderer, Current.Geometry, R, G, B, 170, False);
-               end;
+                  when Image_Item =>
+                     Render_Image_Item (
+                        Renderer,
+                        Current.Geometry,
+                        Current.Image_Source,
+                        Style);
+               end case;
+
+               if Debug_Layout_Overlay_Enabled and then Renderer /= null then
+                  declare
+                     R, G, B : Uint8;
+                  begin
+                     Debug_Item_Color (I, Current.Kind, R, G, B);
+                     Draw_Debug_Rect (Renderer, Current.Geometry, R, G, B, 26, True);
+                     Draw_Debug_Rect (Renderer, Current.Geometry, R, G, B, 170, False);
+                  end;
+               end if;
             end if;
          end;
       end loop;
+
+      if Clip_Active then
+         Restore_Previous_Clip;
+      end if;
    end Render_Items;
 
    procedure Render_Shared_Scrollbar

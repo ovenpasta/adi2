@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -9,6 +9,7 @@ Adi is a GUI library written in Ada 2022 that provides a widget-based UI framewo
 ## Build System
 
 This project supports both **Alire** and direct **gprbuild** usage.
+For direct `gprbuild` invocations in this repository, use `alr exec -- gprbuild ...`.
 
 ### Building the library (Alire)
 ```bash
@@ -62,7 +63,8 @@ gprbuild -P tests/tests.gpr -XTEST_KIND=css_parser_test
 gprbuild -P tests/tests.gpr -XTEST_KIND=css_source_test
 gprbuild -P tests/tests.gpr -XTEST_KIND=text_buffer_test
 gprbuild -P tests/tests.gpr -XTEST_KIND=text_layout_test
-# Alire-wrapped equivalent: alr exec -- gprbuild ...
+gprbuild -P tests/tests.gpr -XTEST_KIND=html_view_test
+# Prefer Alire-wrapped invocation: alr exec -- gprbuild ...
 # Configure-based equivalent:
 gprbuild -P tests/tests.gpr -XADI_PLATFORM=linux -XTEST_KIND=styles
 gprbuild -P build-linux/projects/tests_build.gpr -XADI_PLATFORM=linux -XTEST_KIND=styles
@@ -88,6 +90,8 @@ gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=font_example
 gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=runtime_css_example
 gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=animated_image_example
 gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=rlottie_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=html_view_example
+gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=html_view_example
 # Alire-wrapped equivalent: alr exec -- gprbuild ...
 # Configure-based equivalent:
 gprbuild -P examples/examples.gpr -XADI_PLATFORM=linux -XEXAMPLE_KIND=font_example
@@ -103,6 +107,7 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 ./tests/bin/css_source_test
 ./tests/bin/text_buffer_test
 ./tests/bin/text_layout_test
+./tests/bin/html_view_test
 ```
 
 ### Running examples
@@ -125,6 +130,8 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 ./examples/bin/runtime_css_example
 ./examples/bin/animated_image_example
 ./examples/bin/rlottie_example
+./examples/bin/html_view_example
+./examples/bin/html_view_example
 ```
 
 ### External Dependencies
@@ -382,6 +389,14 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 - Parent package provides image path (`Set_Animation` with `Animated_Image_Access`, `Load_Image_From_File`)
 - `On_Tick` advances backend animation and marks dirty only when frame changes
 
+**Adi.Widget.Html_View** (`adi-widget-html_view.ads`): Minimal documentation-oriented HTML widget
+- Lightweight HTML rendering for documentation-style content
+- Hyperlink callback support via `Set_On_Link_Click`
+- Asset loading callback for `img` resources via `Set_On_Load_Asset`
+- Linked stylesheet callback for `<link rel="stylesheet">` via `Set_On_Load_Resource`
+- Embedded `<style>` blocks are parsed with `Adi.CSS_Parser` and applied to supported tags
+- Resource loading is callback-driven for both images and linked stylesheets
+
 **Adi.Widget.Animated_Widget.RLottie** (`adi-widget-animated_widget-rlottie.ads`): RLottie adapter for unified widget
 - RLottie-specific binding helpers for `Animated_Widget` (`Set_Animation`, `Load_From_File`, `Create`, `Get_Animation`)
 - Keeps RLottie coupling isolated in child package while preserving one common animated widget API
@@ -484,6 +499,7 @@ src/                  - Main library source files
   adi-widget-context_menu.ad[bs] - Generic context menu popup overlay
   adi-widget-text_context_menu.ad[bs] - Factory/binding for text-buffer context menus
   adi-widget-text_editor.ad[bs] - Multiline plain-text editor widget
+  adi-widget-html_view.ad[bs] - Minimal HTML documentation view widget
   adi-widget-dialog.ad[bs] - Modal dialog/alert widget with overlay backdrop
   adi-animation.ad[bs] - Style transition animation and interpolation
   adi-sdl-*.ad[bs]    - SDL3 bindings (core, video, render, events, mouse, ttf, image, surface)
@@ -495,6 +511,7 @@ tests/
     css_source_test.adb - CSS source mode/specificity test coverage (dynamic/static + tag/class/id precedence)
     text_buffer_test.adb - Text buffer undo/redo edge-case coverage
     text_layout_test.adb - Text layout row mapping and wrap-mode behavior coverage
+    html_view_test.adb - HTML view widget API/smoke coverage
   tests.gpr           - Test project file (uses TEST_KIND scenario)
 examples/
   label_example.adb   - Label widget example with styling
@@ -518,6 +535,7 @@ examples/
   dialog_example.adb   - Modal dialog/alert demo with alert and confirm dialogs
   font_example.adb     - Typography demo for weight/style/decoration, wrapping, and DPI unit sizing (`px` vs `dip`) with current active DIP scale readout
   runtime_css_example.adb - Runtime CSS demo using `Adi.CSS_Source` with button toggle between dynamic and static sources
+  html_view_example.adb - HTML view widget demo with asset-loaded HTML, embedded/linked CSS, and hyperlink callbacks
   css/widget_defaults.css - Shared default visual styles used by multiple examples
   css/runtime_css_example.css - Runtime stylesheet used by runtime_css_example
   css/text_editor_example.css - Text editor widget styles

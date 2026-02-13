@@ -4,6 +4,8 @@ with Adi.App;
 with Adi.Window;             use Adi.Window;
 with Adi.Widget;             use Adi.Widget;
 with Adi.Widget.Box;
+with Adi.Widget.Button;      use Adi.Widget.Button;
+with Adi.Widget.Button.Switch;
 with Adi.Widget.Label;
 with Adi.Widget.List_Box;
 with List_Box_Example_Styles; use List_Box_Example_Styles;
@@ -77,6 +79,31 @@ procedure List_Box_Example is
         ("Box list: selected " & W.Get_Selected_Count'Image & " row(s)");
    end On_Box_Selection_Changed;
 
+   procedure On_Inertia_Toggled (Btn : Button_Widget_Access; Active : Boolean) is
+      pragma Unreferenced (Btn);
+   begin
+      Set_Scroll_Inertia_Enabled (Active);
+      if Active then
+         Adi.Log.Info ("Scroll inertia enabled");
+      else
+         Adi.Log.Info ("Scroll inertia disabled");
+      end if;
+   end On_Inertia_Toggled;
+
+   procedure On_Debug_Overlay_Toggled
+     (Btn : Button_Widget_Access;
+      Active : Boolean)
+   is
+      pragma Unreferenced (Btn);
+   begin
+      Set_Debug_Layout_Overlay_Enabled (Active);
+      if Active then
+         Adi.Log.Info ("Layout debug overlay enabled");
+      else
+         Adi.Log.Info ("Layout debug overlay disabled");
+      end if;
+   end On_Debug_Overlay_Toggled;
+
 begin
    A.Init;
    A.Set_Target_FPS (60);
@@ -85,6 +112,7 @@ begin
       W : constant Window_Access := Create_Window ("List Box Example", (1980.0, 640.0));
 
       Root : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Controls_Row : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Panels : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
       No_Panel     : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
@@ -94,6 +122,14 @@ begin
 
       No_Title     : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("No Selection");
+      Inertia_Switch_Label : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("Scroll inertia");
+      Inertia_Switch : constant Adi.Widget.Button.Switch.Switch_Widget_Access :=
+        Adi.Widget.Button.Switch.Create (False);
+      Debug_Overlay_Label : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("Layout debug");
+      Debug_Overlay_Switch : constant Adi.Widget.Button.Switch.Switch_Widget_Access :=
+        Adi.Widget.Button.Switch.Create (False);
       Single_Title : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("Single Selection");
       Multi_Title  : constant Adi.Widget.Label.Label_Widget_Access :=
@@ -115,8 +151,15 @@ begin
         ("Label list: click, double-click, arrows, page up/down, mouse wheel");
       Multi_Status := Adi.Widget.Label.Create
         ("Box list: multi-select toggle, wheel scroll, keyboard navigation");
+      Set_Scroll_Inertia_Enabled (False);
+      Set_Debug_Layout_Overlay_Enabled (False);
+
+      Inertia_Switch.Set_On_Toggled (On_Inertia_Toggled'Unrestricted_Access);
+      Debug_Overlay_Switch.Set_On_Toggled
+        (On_Debug_Overlay_Toggled'Unrestricted_Access);
 
       Set_Part_Styles (Root.all, Root_Class_Part_Styles);
+      Set_Part_Styles (Controls_Row.all, Controls_Row_Class_Part_Styles);
       Set_Part_Styles (Panels.all, Panels_Class_Part_Styles);
       Set_Part_Styles (No_Panel.all, Panel_Class_Part_Styles);
       Set_Part_Styles (Single_Panel.all, Panel_Class_Part_Styles);
@@ -124,6 +167,10 @@ begin
       Set_Part_Styles (Range_Panel.all, Panel_Class_Part_Styles);
 
       Set_Part_Styles (No_Title.all, Panel_Title_Class_Part_Styles);
+      Set_Part_Styles (Inertia_Switch_Label.all, Inertia_Label_Class_Part_Styles);
+      Set_Part_Styles (Inertia_Switch.all, Inertia_Switch_Class_Part_Styles);
+      Set_Part_Styles (Debug_Overlay_Label.all, Debug_Label_Class_Part_Styles);
+      Set_Part_Styles (Debug_Overlay_Switch.all, Debug_Switch_Class_Part_Styles);
       Set_Part_Styles (Single_Title.all, Panel_Title_Class_Part_Styles);
       Set_Part_Styles (Multi_Title.all, Panel_Title_Class_Part_Styles);
       Set_Part_Styles (Range_Title.all, Panel_Title_Class_Part_Styles);
@@ -194,6 +241,11 @@ begin
       end loop;
 
       --  Assemble hierarchy
+      Controls_Row.Add_Child (Inertia_Switch_Label);
+      Controls_Row.Add_Child (Inertia_Switch);
+      Controls_Row.Add_Child (Debug_Overlay_Label);
+      Controls_Row.Add_Child (Debug_Overlay_Switch);
+
       No_Panel.Add_Child (No_Title);
       No_Panel.Add_Child (No_Status);
       No_Panel.Add_Child (No_Listbox);
@@ -214,6 +266,7 @@ begin
       Panels.Add_Child (Single_Panel);
       Panels.Add_Child (Multi_Panel);
       Panels.Add_Child (Range_Panel);
+      Root.Add_Child (Controls_Row);
       Root.Add_Child (Panels);
 
       --  Initial selection

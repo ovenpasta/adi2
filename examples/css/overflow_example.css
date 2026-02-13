@@ -14,10 +14,18 @@
   font-weight: 700;
 }
 
+.title {
+  flex-shrink: 0;
+}
+
 .hint::label {
   color: rgb(189, 205, 230);
   font-size: 13px;
   text-wrap-mode: wrap;
+}
+
+.hint {
+  flex-shrink: 0;
 }
 
 .panels {
@@ -45,6 +53,10 @@
   color: rgb(224, 231, 255);
   font-size: 14px;
   font-weight: 700;
+}
+
+.panel-title {
+  flex-shrink: 0;
 }
 
 .clip-visible {

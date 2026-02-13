@@ -89,3 +89,11 @@
   grid-row: 3;
   background-color: rgb(99, 102, 241);
 }
+
+.title {
+  flex-shrink: 0;
+}
+
+.hint {
+  flex-shrink: 0;
+}

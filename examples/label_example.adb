@@ -47,7 +47,7 @@ begin
 
    begin
       --  Try to load an icon
-      Icon := W.Load_Image ("/usr/share/pixmaps/calculator.png");
+      Icon := W.Load_Image ("examples/assets/happycat.png");
 
       --  If icon loaded, set it on labels 2, 3, and 4
       if Icon /= null then

@@ -64,6 +64,7 @@ package body Adi.Widget.Label is
    function Measure_Content (W : Label_Widget) return Size_2D is
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Label_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Label_Part);
+      Icon_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Icon_Part);
 
       Has_Icon : constant Boolean := W.Icon /= null;
       Has_Text : constant Boolean := Length (W.Text) > 0;
@@ -82,19 +83,51 @@ package body Adi.Widget.Label is
       --  Get icon size
       if Has_Icon and then Is_Valid (W.Icon.all) then
          Get_Size (W.Icon.all, Icon_Size.Width, Icon_Size.Height);
+      elsif Has_Icon then
+         Icon_Size := Default_Icon_Size;
+      end if;
+
+      if Has_Icon then
+         declare
+            Intrinsic : constant Size_2D := Icon_Size;
+            Width_Fixed  : constant Boolean := Icon_Style.Width.Kind = Fixed;
+            Height_Fixed : constant Boolean := Icon_Style.Height.Kind = Fixed;
+         begin
+            if Width_Fixed then
+               Icon_Size.Width := Size_To_Px (Icon_Style.Width, W.Geometry.Width);
+            end if;
+            if Height_Fixed then
+               Icon_Size.Height := Size_To_Px (Icon_Style.Height, W.Geometry.Height);
+            end if;
+
+            if Width_Fixed and then not Height_Fixed and then Intrinsic.Width > 0.0 then
+               Icon_Size.Height := Icon_Size.Width * Intrinsic.Height / Intrinsic.Width;
+            elsif Height_Fixed and then not Width_Fixed and then Intrinsic.Height > 0.0 then
+               Icon_Size.Width := Icon_Size.Height * Intrinsic.Width / Intrinsic.Height;
+            end if;
+
+            Icon_Size.Width := Pixel_Type'Max (0.0, Icon_Size.Width);
+            Icon_Size.Height := Pixel_Type'Max (0.0, Icon_Size.Height);
+         end;
       end if;
 
       --  Get text size from TTF measurement
       if Has_Text then
          declare
+            Font_Attrs : constant Adi.Font.Font_Attributes :=
+              Adi.Font.Make_Attributes
+                (Family     => Label_Style.Font_Family,
+                 Size       => Float (Length_To_Px (Label_Style.Font_Size)),
+                 Weight     => Label_Style.Font_Weight,
+                 Style      => Label_Style.Font_Style,
+                 Decoration => Label_Style.Text_Decoration);
             Can_Wrap : constant Boolean :=
               Label_Style.Text_Wrap_Mode = TWM_Wrap
               and then Label_Style.White_Space /= WS_NoWrap;
          begin
             Text_Size := Adi.Font.Measure_Text
-              (Handle    => Label_Style.Font_Family,
-               Content   => To_String (W.Text),
-               Font_Size => Float (Length_To_Px (Label_Style.Font_Size)));
+              (Attrs   => Font_Attrs,
+               Content => To_String (W.Text));
 
             --  When wrapping is allowed, text can shrink in the main axis.
             if Can_Wrap then
@@ -145,13 +178,40 @@ package body Adi.Widget.Label is
          declare
             Icon_Item : Layout_Item;
             Icon_Size : Size_2D;
+            Intrinsic : Size_2D;
+            Width_Fixed  : constant Boolean := Icon_Style.Width.Kind = Fixed;
+            Height_Fixed : constant Boolean := Icon_Style.Height.Kind = Fixed;
          begin
             --  Get icon size from style or image
             if Is_Valid (W.Icon.all) then
-               Get_Size (W.Icon.all, Icon_Size.Width, Icon_Size.Height);
+               Get_Size (W.Icon.all, Intrinsic.Width, Intrinsic.Height);
             else
-               Icon_Size := Default_Icon_Size;
+               Intrinsic := Default_Icon_Size;
             end if;
+
+            Icon_Size := Intrinsic;
+
+            --  Honor fixed icon size from Icon_Part style.
+            if Width_Fixed then
+               Icon_Size.Width := Size_To_Px (Icon_Style.Width, W.Geometry.Width);
+            end if;
+            if Height_Fixed then
+               Icon_Size.Height := Size_To_Px (Icon_Style.Height, W.Geometry.Height);
+            end if;
+
+            --  If only one dimension is fixed, preserve intrinsic aspect ratio.
+            if Width_Fixed and then not Height_Fixed
+              and then Intrinsic.Width > 0.0
+            then
+               Icon_Size.Height := Icon_Size.Width * Intrinsic.Height / Intrinsic.Width;
+            elsif Height_Fixed and then not Width_Fixed
+              and then Intrinsic.Height > 0.0
+            then
+               Icon_Size.Width := Icon_Size.Height * Intrinsic.Width / Intrinsic.Height;
+            end if;
+
+            Icon_Size.Width := Pixel_Type'Max (0.0, Icon_Size.Width);
+            Icon_Size.Height := Pixel_Type'Max (0.0, Icon_Size.Height);
 
             Icon_Item := (
                Part           => Icon_Part,
@@ -343,6 +403,21 @@ package body Adi.Widget.Label is
    -----------------
 
    overriding procedure Build_Items (W : in out Label_Widget) is
+      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Content    : constant Rectangle := Content_Box (W.Geometry, Main_Style);
+
+      function Clamp_Horizontal_To_Content (R : Rectangle) return Rectangle is
+         X1 : constant Pixel_Type := Pixel_Type'Max (R.X, Content.X);
+         Y1 : constant Pixel_Type := Pixel_Type'Max (R.Y, Content.Y);
+         X2 : constant Pixel_Type := Pixel_Type'Min (R.X + R.Width,
+                                                     Content.X + Content.Width);
+      begin
+         if X2 <= X1 then
+            return (X => X1, Y => Y1, Width => 0.0, Height => R.Height);
+         end if;
+         return (X => X1, Y => R.Y, Width => X2 - X1, Height => R.Height);
+      end Clamp_Horizontal_To_Content;
+
    begin
       if Item_Count (W) = 0 then
          --  First build: create items at fixed indices
@@ -366,7 +441,7 @@ package body Adi.Widget.Label is
            and then Label_Style.White_Space /= WS_NoWrap;
          for L_Item of W.Layout_Items loop
             if L_Item.Part = Label_Part then
-               Text_It.Geometry := L_Item.Geometry;
+               Text_It.Geometry := Clamp_Horizontal_To_Content (L_Item.Geometry);
                exit;
             end if;
          end loop;

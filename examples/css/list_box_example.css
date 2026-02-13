@@ -14,6 +14,20 @@
   height: 580px;
 }
 
+.controls-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 10px;
+  background-color: rgb(255, 255, 255);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(220, 226, 234);
+  border-radius: 10px;
+}
+
 .panel {
   display: flex;
   flex-direction: column;
@@ -44,6 +58,86 @@
   white-space: wrap;
   text-overflow: clip;
   text-wrap-mode: wrap;
+}
+
+.inertia-label::label {
+  color: rgb(41, 49, 64);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: clip;
+  text-wrap-mode: nowrap;
+}
+
+.debug-label::label {
+  color: rgb(41, 49, 64);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: clip;
+  text-wrap-mode: nowrap;
+}
+
+.inertia-switch {
+  padding: 2px;
+  background-color: rgb(203, 213, 225);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(148, 163, 184);
+  border-radius: 16px;
+  transition: background-color 220ms ease-out, border-color 220ms ease-out;
+}
+
+.inertia-switch:hover {
+  background-color: rgb(191, 201, 216);
+}
+
+.inertia-switch:selected {
+  background-color: rgb(59, 130, 246);
+  border-color: rgb(37, 99, 235);
+}
+
+.inertia-switch:selected:hover {
+  background-color: rgb(37, 99, 235);
+}
+
+.inertia-switch::knob {
+  background-color: white;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(203, 213, 225);
+  border-radius: 13px;
+}
+
+.debug-switch {
+  padding: 2px;
+  background-color: rgb(203, 213, 225);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(148, 163, 184);
+  border-radius: 16px;
+  transition: background-color 220ms ease-out, border-color 220ms ease-out;
+}
+
+.debug-switch:hover {
+  background-color: rgb(191, 201, 216);
+}
+
+.debug-switch:selected {
+  background-color: rgb(22, 163, 74);
+  border-color: rgb(21, 128, 61);
+}
+
+.debug-switch:selected:hover {
+  background-color: rgb(21, 128, 61);
+}
+
+.debug-switch::knob {
+  background-color: white;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(203, 213, 225);
+  border-radius: 13px;
 }
 
 .listbox {
@@ -134,4 +228,8 @@
 .card-row-title::label {
   color: white;
   font-size: 13px;
+}
+
+.panel-title {
+  flex-shrink: 0;
 }

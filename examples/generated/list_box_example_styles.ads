@@ -29,6 +29,22 @@ package List_Box_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'controls-row'
+   Controls_Row_Class_Base_Style : constant Style_Rules := (
+      Display => Set (Flex),
+      Flex_Direction => Set (Row),
+      Justify_Content => Set (Flex_Start),
+      Align_Items => Set (Center),
+      Gap => Set (Gap (Px (14.0))),
+      Background_Color => Set_Bg (RGB (255, 255, 255)),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (220, 226, 234))),
+      Border_Radius => Set (Radius (Px (10.0))),
+      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
+      others => <>
+   );
+
    --  Base style for class 'panel'
    Panel_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
@@ -43,6 +59,12 @@ package List_Box_Example_Styles is
       Width => Set (Size (Px (476.0))),
       Height => Set (Size (Px (580.0))),
       Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
+      others => <>
+   );
+
+   --  Base style for class 'panel-title'
+   Panel_Title_Class_Base_Style : constant Style_Rules := (
+      Flex_Shrink => Set (0.0),
       others => <>
    );
 
@@ -63,6 +85,110 @@ package List_Box_Example_Styles is
       Font_Size => Set_Font (Px (13.0)),
       Text_Overflow => Set (Overflow_Clip),
       Text_Wrap_Mode => Set (TWM_Wrap),
+      others => <>
+   );
+
+   --  Base style for class 'inertia-label'::label
+   Inertia_Label_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (41, 49, 64)),
+      Font_Size => Set_Font (Px (14.0)),
+      Font_Weight => Set (Weight_Semi_Bold),
+      White_Space => Set (WS_Nowrap),
+      Text_Overflow => Set (Overflow_Clip),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
+      others => <>
+   );
+
+   --  Base style for class 'debug-label'::label
+   Debug_Label_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (41, 49, 64)),
+      Font_Size => Set_Font (Px (14.0)),
+      Font_Weight => Set (Weight_Semi_Bold),
+      White_Space => Set (WS_Nowrap),
+      Text_Overflow => Set (Overflow_Clip),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
+      others => <>
+   );
+
+   --  Base style for class 'inertia-switch'
+   Inertia_Switch_Class_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (203, 213, 225)),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (148, 163, 184))),
+      Border_Radius => Set (Radius (Px (16.0))),
+      Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
+      others => <>
+   );
+
+   --  Style for class 'inertia-switch' when widget State_Hovered
+   Inertia_Switch_Class_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (191, 201, 216)),
+      others => <>
+   );
+
+   --  Style for class 'inertia-switch' when widget State_Selected
+   Inertia_Switch_Class_Widget_Selected_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (59, 130, 246)),
+      Border_Color => Set (Border_Color (RGB (37, 99, 235))),
+      others => <>
+   );
+
+   --  Style for class 'inertia-switch' when widget State_Selected, widget State_Hovered
+   Inertia_Switch_Class_Widget_Selected_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (37, 99, 235)),
+      others => <>
+   );
+
+   --  Base style for class 'inertia-switch'::knob
+   Inertia_Switch_Class_Knob_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (C (White)),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (203, 213, 225))),
+      Border_Radius => Set (Radius (Px (13.0))),
+      others => <>
+   );
+
+   --  Base style for class 'debug-switch'
+   Debug_Switch_Class_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (203, 213, 225)),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (148, 163, 184))),
+      Border_Radius => Set (Radius (Px (16.0))),
+      Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
+      others => <>
+   );
+
+   --  Style for class 'debug-switch' when widget State_Hovered
+   Debug_Switch_Class_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (191, 201, 216)),
+      others => <>
+   );
+
+   --  Style for class 'debug-switch' when widget State_Selected
+   Debug_Switch_Class_Widget_Selected_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (22, 163, 74)),
+      Border_Color => Set (Border_Color (RGB (21, 128, 61))),
+      others => <>
+   );
+
+   --  Style for class 'debug-switch' when widget State_Selected, widget State_Hovered
+   Debug_Switch_Class_Widget_Selected_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (21, 128, 61)),
+      others => <>
+   );
+
+   --  Base style for class 'debug-switch'::knob
+   Debug_Switch_Class_Knob_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (C (White)),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (203, 213, 225))),
+      Border_Radius => Set (Radius (Px (13.0))),
       others => <>
    );
 
@@ -206,6 +332,17 @@ package List_Box_Example_Styles is
       others => <>
    ];
 
+   --  Complete widget style for class 'controls-row'
+   Controls_Row_Class_Widget : constant Widget_Style :=
+     From (Controls_Row_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'controls-row'
+   Controls_Row_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Controls_Row_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
    --  Complete widget style for class 'panel'
    Panel_Class_Widget : constant Widget_Style :=
      From (Panel_Class_Base_Style)
@@ -217,6 +354,11 @@ package List_Box_Example_Styles is
       others => <>
    ];
 
+   --  Complete widget style for class 'panel-title'
+   Panel_Title_Class_Widget : constant Widget_Style :=
+     From (Panel_Title_Class_Base_Style)
+     .Build;
+
    --  Complete widget style for class 'panel-title'::label
    Panel_Title_Class_Label_Widget : constant Widget_Style :=
      From (Panel_Title_Class_Label_Base_Style)
@@ -224,6 +366,7 @@ package List_Box_Example_Styles is
 
    --  Part styles bundle for class 'panel-title'
    Panel_Title_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Panel_Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Panel_Title_Class_Label_Widget, Enabled => True),
       others => <>
    ];
@@ -236,6 +379,68 @@ package List_Box_Example_Styles is
    --  Part styles bundle for class 'status'
    Status_Class_Part_Styles : constant Part_Style_Array := [
       Label_Part => (Style => Status_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'inertia-label'::label
+   Inertia_Label_Class_Label_Widget : constant Widget_Style :=
+     From (Inertia_Label_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'inertia-label'
+   Inertia_Label_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Inertia_Label_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'debug-label'::label
+   Debug_Label_Class_Label_Widget : constant Widget_Style :=
+     From (Debug_Label_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'debug-label'
+   Debug_Label_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Debug_Label_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'inertia-switch'
+   Inertia_Switch_Class_Widget : constant Widget_Style :=
+     From (Inertia_Switch_Class_Base_Style)
+     .On (When_State (State_Hovered), Inertia_Switch_Class_Widget_Hovered_Style)
+     .On (When_State (State_Selected), Inertia_Switch_Class_Widget_Selected_Style)
+     .On (When_State (State_Selected) and When_State (State_Hovered), Inertia_Switch_Class_Widget_Selected_Widget_Hovered_Style)
+     .Build;
+
+   --  Complete widget style for class 'inertia-switch'::knob
+   Inertia_Switch_Class_Knob_Widget : constant Widget_Style :=
+     From (Inertia_Switch_Class_Knob_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'inertia-switch'
+   Inertia_Switch_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Inertia_Switch_Class_Widget, Enabled => True),
+      Knob_Part => (Style => Inertia_Switch_Class_Knob_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'debug-switch'
+   Debug_Switch_Class_Widget : constant Widget_Style :=
+     From (Debug_Switch_Class_Base_Style)
+     .On (When_State (State_Hovered), Debug_Switch_Class_Widget_Hovered_Style)
+     .On (When_State (State_Selected), Debug_Switch_Class_Widget_Selected_Style)
+     .On (When_State (State_Selected) and When_State (State_Hovered), Debug_Switch_Class_Widget_Selected_Widget_Hovered_Style)
+     .Build;
+
+   --  Complete widget style for class 'debug-switch'::knob
+   Debug_Switch_Class_Knob_Widget : constant Widget_Style :=
+     From (Debug_Switch_Class_Knob_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'debug-switch'
+   Debug_Switch_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Debug_Switch_Class_Widget, Enabled => True),
+      Knob_Part => (Style => Debug_Switch_Class_Knob_Widget, Enabled => True),
       others => <>
    ];
 

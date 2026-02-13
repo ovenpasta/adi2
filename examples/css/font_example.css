@@ -68,6 +68,10 @@
   font-weight: 600;
 }
 
+.section_title {
+  flex-shrink: 0;
+}
+
 .sample {
   padding: 8px 10px;
   background-color: rgb(15, 23, 42);
@@ -75,6 +79,7 @@
   border-style: solid;
   border-color: rgb(71, 85, 105);
   border-radius: 8px;
+  flex-shrink: 0;
 }
 
 .sample::label {
@@ -147,10 +152,19 @@
   border-color: rgb(100, 116, 139);
   border-radius: 8px;
   min-height: 56px;
+  flex-shrink: 0;
 }
 
 .wrap_sample::label {
   color: rgb(219, 234, 254);
   font-size: 14px;
   text-wrap-mode: wrap;
+}
+
+.title {
+  flex-shrink: 0;
+}
+
+.hint {
+  flex-shrink: 0;
 }

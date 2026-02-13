@@ -1,6 +1,7 @@
 project Adi is
 
-   Build_Profile := external ("ADI_BUILD_PROFILE", "development");
+   type Build_Profile_Kind is ("release", "validation", "development");
+   Build_Profile : Build_Profile_Kind := external ("ADI_BUILD_PROFILE", "development");
    Crate_Version := external ("ADI_LIBRARY_VERSION", "0.1.0-dev");
    User_Ada_Compiler_Switches := External_As_List ("ADAFLAGS", " ");
    Platform_Name := external ("ADI_PLATFORM", "linux");
@@ -23,9 +24,19 @@ project Adi is
      external ("ADI_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
    for Library_Kind use Library_Type;
 
-   Ada_Switches := ("-gnat2022", "-gnatX0","-gnatef");
+   Profile_Ada_Compiler_Switches := ();
+   case Build_Profile is
+      when "release" =>
+         Profile_Ada_Compiler_Switches := ("-O2", "-gnatn");
+      when "validation" =>
+         Profile_Ada_Compiler_Switches := ("-O2", "-g", "-gnata");
+      when "development" =>
+         Profile_Ada_Compiler_Switches := ("-Og", "-g", "-gnatwa", "-gnatw.X", "-gnatVa", "-gnatW8");
+   end case;
+   Ada_Switches := ("-gnat2022", "-gnatX0", "-gnatef");
    package Compiler is
-      for Default_Switches ("Ada") use User_Ada_Compiler_Switches & Ada_Switches;
+      for Default_Switches ("Ada") use
+        Profile_Ada_Compiler_Switches & User_Ada_Compiler_Switches & Ada_Switches;
    end Compiler;
    package Binder is
       for Switches ("Ada") use ("-Es"); --  Symbolic traceback

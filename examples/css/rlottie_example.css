@@ -191,3 +191,11 @@
   font-size: 13px;
   font-weight: 700;
 }
+
+.title {
+  flex-shrink: 0;
+}
+
+.subtitle {
+  flex-shrink: 0;
+}

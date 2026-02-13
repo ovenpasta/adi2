@@ -27,6 +27,8 @@ package body Adi.Widget is
    Momentum_Friction   : constant Float := 7.0;
    Launch_Threshold    : constant Pixel_Type := 620.0;
    Drag_Velocity_Scale : constant Pixel_Type := 55.0;
+   Scroll_Inertia_Enabled : Boolean := True;
+   Debug_Layout_Overlay_Enabled : Boolean := False;
 
    type Scrollbar_Metrics is record
       Width       : Pixel_Type := 10.0;
@@ -1235,10 +1237,14 @@ package body Adi.Widget is
       Max_Offset := Get_Scroll_Max_Offset_Y (W);
       Prev_Offset := W.Scroll_Offset_Y;
       Set_Scroll_Offset_Y (W, Ratio * Max_Offset);
-      W.Scroll_Velocity_Y :=
-        Clamp ((W.Scroll_Offset_Y - Prev_Offset) * Drag_Velocity_Scale,
-               -Max_Scroll_Speed,
-               Max_Scroll_Speed);
+      if Scroll_Inertia_Enabled then
+         W.Scroll_Velocity_Y :=
+           Clamp ((W.Scroll_Offset_Y - Prev_Offset) * Drag_Velocity_Scale,
+                  -Max_Scroll_Speed,
+                  Max_Scroll_Speed);
+      else
+         W.Scroll_Velocity_Y := 0.0;
+      end if;
    end Handle_Scroll_Mouse_Move;
 
    procedure Handle_Scroll_Mouse_Up
@@ -1263,10 +1269,14 @@ package body Adi.Widget is
       end if;
 
       Set_Scroll_Offset_Y (W, W.Scroll_Offset_Y - (Delta_Y * Wheel_Step_Px));
-      W.Scroll_Velocity_Y :=
-        Clamp (W.Scroll_Velocity_Y - (Delta_Y * Wheel_Impulse_Px_S),
-               -Max_Scroll_Speed,
-               Max_Scroll_Speed);
+      if Scroll_Inertia_Enabled then
+         W.Scroll_Velocity_Y :=
+           Clamp (W.Scroll_Velocity_Y - (Delta_Y * Wheel_Impulse_Px_S),
+                  -Max_Scroll_Speed,
+                  Max_Scroll_Speed);
+      else
+         W.Scroll_Velocity_Y := 0.0;
+      end if;
    end Handle_Scroll_Mouse_Wheel;
 
    procedure Tick_Scroll_Animations (W : in out Widget'Class; DT : Duration) is
@@ -1285,7 +1295,9 @@ package body Adi.Widget is
          return;
       end if;
 
-      if not W.Scroll_Dragging and then abs W.Scroll_Velocity_Y > Velocity_Epsilon then
+      if not Scroll_Inertia_Enabled then
+         W.Scroll_Velocity_Y := 0.0;
+      elsif not W.Scroll_Dragging and then abs W.Scroll_Velocity_Y > Velocity_Epsilon then
          Old_Offset := W.Scroll_Offset_Y;
          Set_Scroll_Offset_Y (W, W.Scroll_Offset_Y + W.Scroll_Velocity_Y * Pixel_Type (DT_Float));
 
@@ -1305,10 +1317,31 @@ package body Adi.Widget is
          end if;
       end if;
 
-      Fast := W.Scroll_Dragging or else abs W.Scroll_Velocity_Y >= Launch_Threshold;
+      Fast := W.Scroll_Dragging
+        or else (Scroll_Inertia_Enabled and then abs W.Scroll_Velocity_Y >= Launch_Threshold);
       Set_Part_State (W, Scroll_Part, State_Pressed, Fast);
       Set_Part_State (W, Knob_Part, State_Pressed, Fast);
    end Tick_Scroll_Animations;
+
+   procedure Set_Scroll_Inertia_Enabled (Enabled : Boolean := True) is
+   begin
+      Scroll_Inertia_Enabled := Enabled;
+   end Set_Scroll_Inertia_Enabled;
+
+   function Get_Scroll_Inertia_Enabled return Boolean is
+   begin
+      return Scroll_Inertia_Enabled;
+   end Get_Scroll_Inertia_Enabled;
+
+   procedure Set_Debug_Layout_Overlay_Enabled (Enabled : Boolean := True) is
+   begin
+      Debug_Layout_Overlay_Enabled := Enabled;
+   end Set_Debug_Layout_Overlay_Enabled;
+
+   function Get_Debug_Layout_Overlay_Enabled return Boolean is
+   begin
+      return Debug_Layout_Overlay_Enabled;
+   end Get_Debug_Layout_Overlay_Enabled;
 
    procedure On_Mouse_Down
      (W      : in out Widget;
@@ -2188,6 +2221,12 @@ package body Adi.Widget is
          return;
       end if;
 
+      --  Zero/negative text geometry must render nothing; otherwise clip can
+      --  be skipped and text may reappear when constrained to height 0.
+      if Geom.Width <= 0.0 or else Geom.Height <= 0.0 then
+         return;
+      end if;
+
       --  Get text engine from render context (created lazily)
       Engine := Get_Text_Engine (Ctx);
       if Engine = null then
@@ -2707,6 +2746,50 @@ package body Adi.Widget is
    --  Public Rendering Interface
    ---------------------------------------------------------------------------
 
+   procedure Draw_Debug_Rect
+     (Renderer : SDL_Renderer_Ptr;
+      Geom     : Rectangle;
+      R, G, B, A : Uint8;
+      Filled   : Boolean := False)
+   is
+      Rect : aliased SDL_FRect :=
+        (x => Float (Geom.X),
+         y => Float (Geom.Y),
+         w => Float (Geom.Width),
+         h => Float (Geom.Height));
+   begin
+      if Renderer = null
+        or else Geom.Width <= 0.0
+        or else Geom.Height <= 0.0
+      then
+         return;
+      end if;
+
+      SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
+                  "SDL_SetRenderDrawBlendMode");
+      SDL_Assert (SDL_SetRenderDrawColor (Renderer, R, G, B, A),
+                  "SDL_SetRenderDrawColor");
+      if Filled then
+         SDL_Assert (SDL_RenderFillRect (Renderer, Rect'Access),
+                     "SDL_RenderFillRect");
+      else
+         SDL_Assert (SDL_RenderRect (Renderer, Rect'Access),
+                     "SDL_RenderRect");
+      end if;
+   end Draw_Debug_Rect;
+
+   procedure Debug_Item_Color
+     (Index : Positive;
+      Kind  : Item_Kind;
+      R, G, B : out Uint8)
+   is
+      Seed : constant Natural := Index * 67 + Item_Kind'Pos (Kind) * 97;
+   begin
+      R := Uint8 (45 + ((Seed * 29) mod 160));
+      G := Uint8 (45 + ((Seed * 53) mod 160));
+      B := Uint8 (45 + ((Seed * 83) mod 160));
+   end Debug_Item_Color;
+
    procedure Render_Items (W : in out Widget'Class; Ctx : in out Render_Context) is
       Renderer : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
    begin
@@ -2732,6 +2815,16 @@ package body Adi.Widget is
                      Current.Image_Source,
                      Style);
             end case;
+
+            if Debug_Layout_Overlay_Enabled and then Renderer /= null then
+               declare
+                  R, G, B : Uint8;
+               begin
+                  Debug_Item_Color (I, Current.Kind, R, G, B);
+                  Draw_Debug_Rect (Renderer, Current.Geometry, R, G, B, 26, True);
+                  Draw_Debug_Rect (Renderer, Current.Geometry, R, G, B, 170, False);
+               end;
+            end if;
          end;
       end loop;
    end Render_Items;
@@ -2758,6 +2851,7 @@ package body Adi.Widget is
       Clip_Rect  : aliased Adi.SDL.SDL_Rect;
       Had_Clip   : Boolean := False;
       Use_Clip   : Boolean := False;
+      Skip_Children : Boolean := False;
       Success    : Adi.SDL.C_bool;
       X1, Y1, X2, Y2 : Integer;
    begin
@@ -2769,6 +2863,31 @@ package body Adi.Widget is
       --  descendant content, not the widget's own background/border panel.
       Render_Items (W, Ctx);
 
+      if Debug_Layout_Overlay_Enabled and then Renderer /= null then
+         declare
+            Main_Style : constant Resolved_Style :=
+              Get_Resolved_Part_Style (W, Main_Part);
+            Geom : constant Rectangle := Get_Geometry (W);
+            Margin : constant Edge_Pixels := Get_Margin_Px (Main_Style);
+            Margin_Box : constant Rectangle :=
+              (X => Geom.X - Margin.Left,
+               Y => Geom.Y - Margin.Top,
+               Width => Geom.Width + Margin.Left + Margin.Right,
+               Height => Geom.Height + Margin.Top + Margin.Bottom);
+            Padding : constant Rectangle := Padding_Box (Geom, Main_Style);
+            Content : constant Rectangle := Content_Box (Geom, Main_Style);
+         begin
+            Draw_Debug_Rect (Renderer, Margin_Box, 219, 153, 62, 20, True);
+            Draw_Debug_Rect (Renderer, Padding, 59, 130, 246, 24, True);
+            Draw_Debug_Rect (Renderer, Content, 34, 197, 94, 28, True);
+
+            Draw_Debug_Rect (Renderer, Margin_Box, 219, 153, 62, 140, False);
+            Draw_Debug_Rect (Renderer, Geom, 234, 88, 12, 170, False);
+            Draw_Debug_Rect (Renderer, Padding, 59, 130, 246, 160, False);
+            Draw_Debug_Rect (Renderer, Content, 34, 197, 94, 180, False);
+         end;
+      end if;
+
       if Renderer /= null then
          declare
             Main_Style : constant Resolved_Style :=
@@ -2779,45 +2898,49 @@ package body Adi.Widget is
             Content : constant Rectangle :=
               Padding_Box (Get_Geometry (W), Main_Style);
          begin
-            if (Clip_By_Overflow or else Clip_By_Scrollable)
-              and then Content.Width > 0.0
-              and then Content.Height > 0.0
-            then
-               Use_Clip := True;
-               Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
-               if Had_Clip then
-                  Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
-               end if;
-
-               X1 := Integer (Float'Floor (Float (Content.X)));
-               Y1 := Integer (Float'Floor (Float (Content.Y)));
-               X2 := X1 + Integer (Float'Ceiling (Float (Content.Width)));
-               Y2 := Y1 + Integer (Float'Ceiling (Float (Content.Height)));
-
-               if Had_Clip then
-                  X1 := Integer'Max (X1, Integer (Prev_Clip.x));
-                  Y1 := Integer'Max (Y1, Integer (Prev_Clip.y));
-                  X2 := Integer'Min (X2, Integer (Prev_Clip.x + Prev_Clip.w));
-                  Y2 := Integer'Min (Y2, Integer (Prev_Clip.y + Prev_Clip.h));
-               end if;
-
-               if X2 > X1 and then Y2 > Y1 then
-                  Clip_Rect :=
-                    (x => int (X1),
-                     y => int (Y1),
-                     w => int (X2 - X1),
-                     h => int (Y2 - Y1));
-                  Success := SDL_SetRenderClipRect (Renderer, Clip_Rect'Access);
+            if Clip_By_Overflow or else Clip_By_Scrollable then
+               if Content.Width <= 0.0 or else Content.Height <= 0.0 then
+                  Skip_Children := True;
                else
-                  Use_Clip := False;
+                  Use_Clip := True;
+                  Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
+                  if Had_Clip then
+                     Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
+                  end if;
+
+                  X1 := Integer (Float'Floor (Float (Content.X)));
+                  Y1 := Integer (Float'Floor (Float (Content.Y)));
+                  X2 := X1 + Integer (Float'Ceiling (Float (Content.Width)));
+                  Y2 := Y1 + Integer (Float'Ceiling (Float (Content.Height)));
+
+                  if Had_Clip then
+                     X1 := Integer'Max (X1, Integer (Prev_Clip.x));
+                     Y1 := Integer'Max (Y1, Integer (Prev_Clip.y));
+                     X2 := Integer'Min (X2, Integer (Prev_Clip.x + Prev_Clip.w));
+                     Y2 := Integer'Min (Y2, Integer (Prev_Clip.y + Prev_Clip.h));
+                  end if;
+
+                  if X2 > X1 and then Y2 > Y1 then
+                     Clip_Rect :=
+                       (x => int (X1),
+                        y => int (Y1),
+                        w => int (X2 - X1),
+                        h => int (Y2 - Y1));
+                     Success := SDL_SetRenderClipRect (Renderer, Clip_Rect'Access);
+                  else
+                     Use_Clip := False;
+                     Skip_Children := True;
+                  end if;
                end if;
             end if;
          end;
       end if;
 
-      for Child of W.Children loop
-         Render_Tree (Child.all, Ctx);
-      end loop;
+      if not Skip_Children then
+         for Child of W.Children loop
+            Render_Tree (Child.all, Ctx);
+         end loop;
+      end if;
 
       if Use_Clip then
          if Had_Clip then
@@ -3025,12 +3148,14 @@ package body Adi.Widget is
                Info.Min_Main := Get_Main_Size(Child_Min, Style.Flex_Direction);
                Info.Min_Cross := Get_Cross_Size(Child_Min, Style.Flex_Direction);
 
-               --  For visible overflow, keep items at least at preferred
-               --  main size so constrained containers overflow instead of
-               --  compressing children into visual overlap.
-               if Style.Overflow = Overflow_Visible then
+               --  For visible overflow, preserve preferred main size only for
+               --  non-shrinkable children. Shrinkable children must be allowed
+               --  to contract (and rely on their own clipping/wrapping rules).
+               if Style.Overflow = Overflow_Visible
+                 and then Float (Child_Style.Flex_Shrink) = 0.0
+               then
                   Info.Min_Main := Pixel_Type'Max
-                    (Info.Min_Main, Get_Main_Size(Child_Pref, Style.Flex_Direction));
+                    (Info.Min_Main, Get_Main_Size (Child_Pref, Style.Flex_Direction));
                end if;
 
                --  Max constraints

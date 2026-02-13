@@ -32,7 +32,7 @@ begin
       Bg : Adi.Image.Image_Access;
       Bg_Style : Opt_Bg_Image.Optional;
    begin
-      Bg := W.Load_Image ("examples/bg.jpg");
+      Bg := W.Load_Image ("examples/assets/bg.jpg");
       if Bg /= null then
          Bg_Style := Set_Bg_Image (Background_Image (Bg));
       else

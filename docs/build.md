@@ -4,7 +4,7 @@
 
 ### Alire
 ```bash
-alr build                    # builds library + all tests + examples
+alr build                    # builds library + all tests + examples (and runs incremental example CSS generation)
 ```
 
 ### Direct gprbuild (configure once, build from generated projects)

@@ -48,6 +48,12 @@ Higher-level entry point unifying dev-time and release-time styling.
 - **Images**: object-fit, object-position
 - **Transitions**: transition (duration, easing, property filter)
 
+## Practical Flex Guidance
+
+- Structural labels (titles, hints, panel headers) should usually set `flex-shrink: 0` to avoid undesired text compression in constrained containers.
+- Interactive input rows (for example `.input` in text input demos) should set `flex-shrink: 0` when they must keep a stable control height.
+- Keep grow/shrink responsibility on the intended containers (`flex-grow` / `flex-shrink`) instead of relying on incidental default behavior.
+
 ### Box Shadow Syntax
 Standard CSS: `box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.25);`
 With spread: `box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.15);`

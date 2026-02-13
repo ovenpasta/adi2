@@ -1,6 +1,5 @@
 pragma Ada_2022;
 
-with Ada.Directories;
 with Adi.App;
 with Adi.Window;                 use Adi.Window;
 with Adi.Widget;
@@ -13,19 +12,6 @@ with Animated_Image_Example_Styles; use Animated_Image_Example_Styles;
 
 procedure Animated_Image_Example is
    A : Adi.App.App;
-
-   function Resolve_Gif_Path return String is
-   begin
-      if Ada.Directories.Exists ("examples/animhorse.gif") then
-         return "examples/animhorse.gif";
-      elsif Ada.Directories.Exists ("animhorse.gif") then
-         return "animhorse.gif";
-      elsif Ada.Directories.Exists ("../examples/animhorse.gif") then
-         return "../examples/animhorse.gif";
-      else
-         return "examples/animhorse.gif";
-      end if;
-   end Resolve_Gif_Path;
 
 begin
    A.Init;
@@ -135,7 +121,7 @@ begin
 
       Root.Add_Child (Status);
 
-      Animation := W.Load_Animated_Image (Resolve_Gif_Path);
+      Animation := W.Load_Animated_Image ("examples/assets/animhorse.gif");
       if Animation = null then
          Status.Set_Text ("Failed to load animhorse.gif");
       else

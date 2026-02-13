@@ -78,6 +78,12 @@ package Font_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'title'
+   Title_Class_Base_Style : constant Style_Rules := (
+      Flex_Shrink => Set (0.0),
+      others => <>
+   );
+
    --  Base style for class 'title'::label
    Title_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (C (White)),
@@ -86,10 +92,22 @@ package Font_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'hint'
+   Hint_Class_Base_Style : constant Style_Rules := (
+      Flex_Shrink => Set (0.0),
+      others => <>
+   );
+
    --  Base style for class 'hint'::label
    Hint_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (191, 219, 254)),
       Font_Size => Set_Font (Px (13.0)),
+      others => <>
+   );
+
+   --  Base style for class 'section_title'
+   Section_Title_Class_Base_Style : constant Style_Rules := (
+      Flex_Shrink => Set (0.0),
       others => <>
    );
 
@@ -108,6 +126,7 @@ package Font_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (71, 85, 105))),
       Border_Radius => Set (Radius (Px (8.0))),
+      Flex_Shrink => Set (0.0),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       others => <>
    );
@@ -212,6 +231,7 @@ package Font_Example_Styles is
       Border_Color => Set (Border_Color (RGB (100, 116, 139))),
       Border_Radius => Set (Radius (Px (8.0))),
       Min_Height => Set (Size (Px (56.0))),
+      Flex_Shrink => Set (0.0),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       others => <>
    );
@@ -262,6 +282,11 @@ package Font_Example_Styles is
       others => <>
    ];
 
+   --  Complete widget style for class 'title'
+   Title_Class_Widget : constant Widget_Style :=
+     From (Title_Class_Base_Style)
+     .Build;
+
    --  Complete widget style for class 'title'::label
    Title_Class_Label_Widget : constant Widget_Style :=
      From (Title_Class_Label_Base_Style)
@@ -269,9 +294,15 @@ package Font_Example_Styles is
 
    --  Part styles bundle for class 'title'
    Title_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Title_Class_Label_Widget, Enabled => True),
       others => <>
    ];
+
+   --  Complete widget style for class 'hint'
+   Hint_Class_Widget : constant Widget_Style :=
+     From (Hint_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'hint'::label
    Hint_Class_Label_Widget : constant Widget_Style :=
@@ -280,9 +311,15 @@ package Font_Example_Styles is
 
    --  Part styles bundle for class 'hint'
    Hint_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Hint_Class_Widget, Enabled => True),
       Label_Part => (Style => Hint_Class_Label_Widget, Enabled => True),
       others => <>
    ];
+
+   --  Complete widget style for class 'section_title'
+   Section_Title_Class_Widget : constant Widget_Style :=
+     From (Section_Title_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'section_title'::label
    Section_Title_Class_Label_Widget : constant Widget_Style :=
@@ -291,6 +328,7 @@ package Font_Example_Styles is
 
    --  Part styles bundle for class 'section_title'
    Section_Title_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Section_Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Section_Title_Class_Label_Widget, Enabled => True),
       others => <>
    ];

@@ -34,11 +34,23 @@ package Dialog_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'title'
+   Title_Class_Base_Style : constant Style_Rules := (
+      Flex_Shrink => Set (0.0),
+      others => <>
+   );
+
    --  Base style for class 'title'::label
    Title_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (C (White)),
       Font_Size => Set_Font (Px (22.0)),
       Font_Weight => Set (Weight_Bold),
+      others => <>
+   );
+
+   --  Base style for class 'hint'
+   Hint_Class_Base_Style : constant Style_Rules := (
+      Flex_Shrink => Set (0.0),
       others => <>
    );
 
@@ -112,6 +124,12 @@ package Dialog_Example_Styles is
       Border_Radius => Set (Radius (Px (12.0))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (16.0), Px (48.0), Px (0.0), RGBA (0, 0, 0, 0.3))),
       Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
+      others => <>
+   );
+
+   --  Base style for class 'dialog-title'
+   Dialog_Title_Class_Base_Style : constant Style_Rules := (
+      Flex_Shrink => Set (0.0),
       others => <>
    );
 
@@ -207,6 +225,11 @@ package Dialog_Example_Styles is
       others => <>
    ];
 
+   --  Complete widget style for class 'title'
+   Title_Class_Widget : constant Widget_Style :=
+     From (Title_Class_Base_Style)
+     .Build;
+
    --  Complete widget style for class 'title'::label
    Title_Class_Label_Widget : constant Widget_Style :=
      From (Title_Class_Label_Base_Style)
@@ -214,9 +237,15 @@ package Dialog_Example_Styles is
 
    --  Part styles bundle for class 'title'
    Title_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Title_Class_Label_Widget, Enabled => True),
       others => <>
    ];
+
+   --  Complete widget style for class 'hint'
+   Hint_Class_Widget : constant Widget_Style :=
+     From (Hint_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'hint'::label
    Hint_Class_Label_Widget : constant Widget_Style :=
@@ -225,6 +254,7 @@ package Dialog_Example_Styles is
 
    --  Part styles bundle for class 'hint'
    Hint_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Hint_Class_Widget, Enabled => True),
       Label_Part => (Style => Hint_Class_Label_Widget, Enabled => True),
       others => <>
    ];
@@ -281,6 +311,11 @@ package Dialog_Example_Styles is
       others => <>
    ];
 
+   --  Complete widget style for class 'dialog-title'
+   Dialog_Title_Class_Widget : constant Widget_Style :=
+     From (Dialog_Title_Class_Base_Style)
+     .Build;
+
    --  Complete widget style for class 'dialog-title'::label
    Dialog_Title_Class_Label_Widget : constant Widget_Style :=
      From (Dialog_Title_Class_Label_Base_Style)
@@ -288,6 +323,7 @@ package Dialog_Example_Styles is
 
    --  Part styles bundle for class 'dialog-title'
    Dialog_Title_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Dialog_Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Dialog_Title_Class_Label_Widget, Enabled => True),
       others => <>
    ];

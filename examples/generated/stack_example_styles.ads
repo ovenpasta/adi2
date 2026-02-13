@@ -178,7 +178,7 @@ package Stack_Example_Styles is
 
    --  Base style for class 'page-title'
    Page_Title_Class_Base_Style : constant Style_Rules := (
-      Display => Set (Inline_Flex),
+      Flex_Shrink => Set (0.0),
       others => <>
    );
 

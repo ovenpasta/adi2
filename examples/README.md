@@ -8,6 +8,7 @@ This directory contains example programs demonstrating how to use the Adi GUI li
 ```bash
 alr build
 ```
+`alr build` also runs incremental example CSS generation before compiling examples.
 
 ### Build a specific example
 ```bash
@@ -36,7 +37,13 @@ Compares `overflow: visible` and `overflow: hidden` clipping behavior.
 Demonstrates CSS grid layout (`display: grid`) with template rows/columns, gaps, and item spans.
 
 ### animated_image_example
-Demonstrates `Adi.Widget.Animated_Image` playback controls (`Start`, `Stop`, `Reset`, looping) using `examples/animhorse.gif`.
+Demonstrates `Adi.Widget.Animated_Image` playback controls (`Start`, `Stop`, `Reset`, looping) using `examples/assets/animhorse.gif`.
+
+### Example Assets
+- `examples/assets/bg.jpg` (widget demo background)
+- `examples/assets/animhorse.gif` (animated image demo)
+- `examples/assets/happycat.png` (label example icon)
+- `examples/assets/lottie_sample.json` (rlottie demo animation)
 
 ### Shared Widget Defaults
 `css/widget_defaults.css` defines reusable baseline styles for common widgets (`.button`, `.text-input`, `.list-box`, `.list-row`) and is generated as `generated/widget_defaults_styles.ads` for reuse across examples.

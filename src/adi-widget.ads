@@ -253,6 +253,14 @@ package Adi.Widget is
       Delta_X, Delta_Y : Pixel_Type);
    procedure Tick_Scroll_Animations (W : in out Widget'Class; DT : Duration);
    procedure Update_Scrollbar_Geometry (W : in out Widget'Class);
+   --  Controls inertial/momentum continuation after wheel/drag input.
+   --  When disabled, scrolling remains immediate and deterministic.
+   procedure Set_Scroll_Inertia_Enabled (Enabled : Boolean := True);
+   function Get_Scroll_Inertia_Enabled return Boolean;
+   --  Draws widget/item debug overlays (margin/padding/content outlines).
+   --  Disabled by default and intended for interactive diagnostics only.
+   procedure Set_Debug_Layout_Overlay_Enabled (Enabled : Boolean := True);
+   function Get_Debug_Layout_Overlay_Enabled return Boolean;
 
    ---------------------------------------------------------------------------
    --  Flags

@@ -159,3 +159,11 @@
   color: rgb(125, 211, 252);
   font-size: 13px;
 }
+
+.title {
+  flex-shrink: 0;
+}
+
+.subtitle {
+  flex-shrink: 0;
+}

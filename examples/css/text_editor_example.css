@@ -137,3 +137,7 @@
   color: rgb(205, 214, 244);
   font-size: 13px;
 }
+
+.title {
+  flex-shrink: 0;
+}

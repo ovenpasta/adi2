@@ -44,6 +44,7 @@
 
 .input {
   height: 42px;
+  flex-shrink: 0;
   padding: 10px 12px;
   cursor: text;
   background-color: white;
@@ -98,4 +99,12 @@
 .context-menu-item::label {
   color: rgb(219, 234, 254);
   font-size: 13px;
+}
+
+.title {
+  flex-shrink: 0;
+}
+
+.hint {
+  flex-shrink: 0;
 }

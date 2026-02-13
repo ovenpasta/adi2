@@ -22,6 +22,12 @@ package Text_Editor_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'title'
+   Title_Class_Base_Style : constant Style_Rules := (
+      Flex_Shrink => Set (0.0),
+      others => <>
+   );
+
    --  Base style for class 'title'::label
    Title_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (C (White)),
@@ -202,6 +208,11 @@ package Text_Editor_Example_Styles is
       others => <>
    ];
 
+   --  Complete widget style for class 'title'
+   Title_Class_Widget : constant Widget_Style :=
+     From (Title_Class_Base_Style)
+     .Build;
+
    --  Complete widget style for class 'title'::label
    Title_Class_Label_Widget : constant Widget_Style :=
      From (Title_Class_Label_Base_Style)
@@ -209,6 +220,7 @@ package Text_Editor_Example_Styles is
 
    --  Part styles bundle for class 'title'
    Title_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Title_Class_Label_Widget, Enabled => True),
       others => <>
    ];

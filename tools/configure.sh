@@ -185,9 +185,22 @@ project Tests_Build is
    for Main use (Kind & ".adb");
    for Create_Missing_Dirs use "True";
 
-   Ada_Switches := ("-gnat2022", "-gnatX0","-gnatef","-g", "-gnatwa", "-gnata");
+   type Build_Profile_Kind is ("release", "validation", "development");
+   Build_Profile : Build_Profile_Kind := external ("ADI_BUILD_PROFILE", "development");
+   User_Ada_Compiler_Switches := External_As_List ("ADAFLAGS", " ");
+   Profile_Ada_Compiler_Switches := ();
+   case Build_Profile is
+      when "release" =>
+         Profile_Ada_Compiler_Switches := ("-O2", "-gnatn");
+      when "validation" =>
+         Profile_Ada_Compiler_Switches := ("-O2", "-g", "-gnata");
+      when "development" =>
+         Profile_Ada_Compiler_Switches := ("-Og", "-g", "-gnatwa", "-gnatw.X", "-gnatVa", "-gnatW8");
+   end case;
+   Ada_Switches := ("-gnat2022", "-gnatX0","-gnatef");
    package Compiler is
-      for Default_Switches ("Ada") use Ada_Switches;
+      for Default_Switches ("Ada") use
+        Profile_Ada_Compiler_Switches & User_Ada_Compiler_Switches & Ada_Switches;
    end Compiler;
 
    package Binder is
@@ -216,9 +229,22 @@ project Examples_Build is
    for Main use (Kind & ".adb");
    for Create_Missing_Dirs use "True";
 
-   Ada_Switches := ("-gnat2022", "-gnatX0", "-gnatef", "-g", "-gnatwa", "-gnata");
+   type Build_Profile_Kind is ("release", "validation", "development");
+   Build_Profile : Build_Profile_Kind := external ("ADI_BUILD_PROFILE", "development");
+   User_Ada_Compiler_Switches := External_As_List ("ADAFLAGS", " ");
+   Profile_Ada_Compiler_Switches := ();
+   case Build_Profile is
+      when "release" =>
+         Profile_Ada_Compiler_Switches := ("-O2", "-gnatn");
+      when "validation" =>
+         Profile_Ada_Compiler_Switches := ("-O2", "-g", "-gnata");
+      when "development" =>
+         Profile_Ada_Compiler_Switches := ("-Og", "-g", "-gnatwa", "-gnatw.X", "-gnatVa", "-gnatW8");
+   end case;
+   Ada_Switches := ("-gnat2022", "-gnatX0", "-gnatef");
    package Compiler is
-      for Default_Switches ("Ada") use Ada_Switches;
+      for Default_Switches ("Ada") use
+        Profile_Ada_Compiler_Switches & User_Ada_Compiler_Switches & Ada_Switches;
    end Compiler;
 
    package Binder is
@@ -249,6 +275,7 @@ SOURCE_DIR="${SOURCE_DIR}"
 BUILD_DIR="${BUILD_DIR}"
 CGPR_FILE="${CGPR_FILE}"
 TARGET_PLATFORM="${TARGET_PLATFORM}"
+BUILD_PROFILE="${ADI_BUILD_PROFILE:-development}"
 
 GPR_ARGS=()
 if [[ -n "\${CGPR_FILE}" ]]; then
@@ -259,7 +286,7 @@ echo "[build_all] generate CSS Ada packages"
 bash "\${SOURCE_DIR}/tools/generate_example_styles.sh"
 
 echo "[build_all] build library"
-gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}"
+gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}"
 
 TEST_KINDS=(
   styles
@@ -273,7 +300,7 @@ TEST_KINDS=(
 
 for kind in "\${TEST_KINDS[@]}"; do
   echo "[build_all] build test: \${kind}"
-  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XTEST_KIND="\${kind}"
+  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}" -XTEST_KIND="\${kind}"
 done
 
 EXAMPLE_KINDS=(
@@ -298,7 +325,7 @@ EXAMPLE_KINDS=(
 
 for kind in "\${EXAMPLE_KINDS[@]}"; do
   echo "[build_all] build example: \${kind}"
-  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/examples_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XEXAMPLE_KIND="\${kind}"
+  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/examples_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}" -XEXAMPLE_KIND="\${kind}"
 done
 
 echo "[build_all] complete"
@@ -309,9 +336,9 @@ chmod +x "${BUILD_DIR}/build_all.sh"
 cat > "${BUILD_DIR}/BUILDING.md" <<EOF
 # Build commands
 
-gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}"
-gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XTEST_KIND=styles
-gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/examples_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XEXAMPLE_KIND=font_example
+gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=development
+gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=development -XTEST_KIND=styles
+gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/examples_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=development -XEXAMPLE_KIND=font_example
 
 One-command full build:
 "${BUILD_DIR}/build_all.sh"

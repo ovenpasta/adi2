@@ -33,11 +33,23 @@ package RLottie_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'title'
+   Title_Class_Base_Style : constant Style_Rules := (
+      Flex_Shrink => Set (0.0),
+      others => <>
+   );
+
    --  Base style for class 'title'::label
    Title_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (239, 244, 255)),
       Font_Size => Set_Font (Px (24.0)),
       Font_Weight => Set (Weight_Extra_Bold),
+      others => <>
+   );
+
+   --  Base style for class 'subtitle'
+   Subtitle_Class_Base_Style : constant Style_Rules := (
+      Flex_Shrink => Set (0.0),
       others => <>
    );
 
@@ -292,6 +304,11 @@ package RLottie_Example_Styles is
       others => <>
    ];
 
+   --  Complete widget style for class 'title'
+   Title_Class_Widget : constant Widget_Style :=
+     From (Title_Class_Base_Style)
+     .Build;
+
    --  Complete widget style for class 'title'::label
    Title_Class_Label_Widget : constant Widget_Style :=
      From (Title_Class_Label_Base_Style)
@@ -299,9 +316,15 @@ package RLottie_Example_Styles is
 
    --  Part styles bundle for class 'title'
    Title_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Title_Class_Label_Widget, Enabled => True),
       others => <>
    ];
+
+   --  Complete widget style for class 'subtitle'
+   Subtitle_Class_Widget : constant Widget_Style :=
+     From (Subtitle_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'subtitle'::label
    Subtitle_Class_Label_Widget : constant Widget_Style :=
@@ -310,6 +333,7 @@ package RLottie_Example_Styles is
 
    --  Part styles bundle for class 'subtitle'
    Subtitle_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Subtitle_Class_Widget, Enabled => True),
       Label_Part => (Style => Subtitle_Class_Label_Widget, Enabled => True),
       others => <>
    ];

@@ -156,3 +156,11 @@
 .option-row::label:selected {
   color: white;
 }
+
+.title {
+  flex-shrink: 0;
+}
+
+.hint {
+  flex-shrink: 0;
+}

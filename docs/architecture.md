@@ -110,6 +110,7 @@
 - Style-aware state invalidation (dirty only when resolved output changes)
 - `On_Tick(DT)` per-frame hook
 - Image rendering: `object-fit` modes (Fill, Cover, Contain, None, Scale_Down), rounded clipping
+- Label icon sizing honors `Icon_Part` `width`/`height` styles in both measurement and layout
 
 **Text_Input**: Single-line editor using `Text_Buffer`. Horizontal scroll, caret, selection, context menu. Double-click word select, triple-click select all.
 
@@ -136,6 +137,7 @@
    - Rounded borders: annulus ring + background fill
    - Non-rounded: per-edge fills (asymmetric widths/colors supported)
    - Overflow clipping follows CSS (`visible` = no clip, `hidden/scroll/auto` = clip)
+   - For clipped containers, descendants are skipped when the effective clip region is non-positive
    - Text positions snapped to integer pixels
    - Font hinting: `TTF_HINTING_LIGHT_SUBPIXEL`
 

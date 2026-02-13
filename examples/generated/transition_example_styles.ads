@@ -72,6 +72,7 @@ package Transition_Example_Styles is
    --  Base style for class 'title'
    Title_Class_Base_Style : constant Style_Rules := (
       Flex_Shrink => Set (0.0),
+      Padding => Set (CSS_Box (Px (0.0), Px (4.0), Px (0.0), Px (4.0))),
       others => <>
    );
 

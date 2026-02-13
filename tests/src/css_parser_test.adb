@@ -104,9 +104,11 @@ procedure Css_Parser_Test is
      ".card::label:focus { color: rgb(88, 77, 66); }" & ASCII.LF &
      "#submit { background-color: rgb(12, 34, 56); }" & ASCII.LF &
      "button { color: rgb(9, 8, 7); }" & ASCII.LF &
-     ".seconds { transition: opacity 1.25s linear; }" & ASCII.LF &
-     ".sides { padding: 1px 2px 3px 4px; padding-left: 11px; margin: 5px; margin-top: 9px; }" & ASCII.LF &
-     ".dpunit { padding: 7dp; }" & ASCII.LF;
+      ".seconds { transition: opacity 1.25s linear; }" & ASCII.LF &
+      ".sides { padding: 1px 2px 3px 4px; padding-left: 11px; margin: 5px; margin-top: 9px; }" & ASCII.LF &
+      ".dpunit { padding: 7dp; }" & ASCII.LF &
+      "li, ul, p { color: red; }" & ASCII.LF &
+      "li, ul, p { padding: 2px; }" & ASCII.LF;
 
 begin
    Put_Line ("CSS parser test");
@@ -127,6 +129,9 @@ begin
    Assert (Adi.CSS_Parser.Has (Sheet, Adi.CSS_Parser.Id_Selector, "submit"),
            "Has(kind,name) should find id selector");
    Assert (Adi.CSS_Parser.Has_Class (Sheet, "dpunit"), "Has_Class should parse '.dpunit'");
+   Assert (Adi.CSS_Parser.Has_Tag (Sheet, "li"), "Has_Tag should parse grouped tag selector 'li'");
+   Assert (Adi.CSS_Parser.Has_Tag (Sheet, "ul"), "Has_Tag should parse grouped tag selector 'ul'");
+   Assert (Adi.CSS_Parser.Has_Tag (Sheet, "p"), "Has_Tag should parse grouped tag selector 'p'");
    Assert (not Adi.CSS_Parser.Has_Class (Sheet, "missing"), "Has_Class should be false for unknown class");
    Assert (not Adi.CSS_Parser.Has_Id (Sheet, "card"), "Has_Id should not match class selector");
 
@@ -137,6 +142,7 @@ begin
       Tag_Styles     : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Tag (Sheet, "button");
       Seconds_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "seconds");
       Sides_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "sides");
+      UL_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Tag (Sheet, "ul");
       Missing_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For (Sheet, "missing");
       DP_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "dpunit");
 
@@ -181,6 +187,7 @@ begin
       Tag_Main : constant Resolved_Style := Compute_Resolved (Tag_Styles (Main_Part).Style, No_States, No_States);
       Seconds_Main : constant Resolved_Style := Compute_Resolved (Seconds_Styles (Main_Part).Style, No_States, No_States);
       Sides_Main : constant Resolved_Style := Compute_Resolved (Sides_Styles (Main_Part).Style, No_States, No_States);
+      UL_Main    : constant Resolved_Style := Compute_Resolved (UL_Styles (Main_Part).Style, No_States, No_States);
       Missing_Main : constant Resolved_Style := Compute_Resolved (Missing_Styles (Main_Part).Style, No_States, No_States);
       DP_Main      : constant Resolved_Style := Compute_Resolved (DP_Styles (Main_Part).Style, No_States, No_States);
    begin
@@ -302,6 +309,11 @@ begin
               "#id selector should map to id-style lookup");
       Assert (Is_RGB_Color (Tag_Main.Color, 9, 8, 7),
               "Tag selector should map to tag-style lookup");
+      Assert (Is_Named_Color (UL_Main.Color, Red),
+              "Grouped tag selector should apply base declarations");
+      Assert (UL_Main.Padding.Kind = Gap_Uniform
+              and then UL_Main.Padding.All_Sides.Amount = 2.0,
+              "Repeated grouped tag selector blocks should merge declarations");
       Assert (Nearly_Equal (Seconds_Main.Transition.Duration, 1.25)
               and then Seconds_Main.Transition.Easing = Linear
               and then Seconds_Main.Transition.Properties (Prop_Opacity)

@@ -130,8 +130,15 @@ package RLottie_Example_Styles is
 
    --  Base style for class 'play-button'
    Play_Button_Class_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (128.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Radius => Set (Radius (Px (4.0))),
+      Cursor => Set (Cursor_Pointer),
+      Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Background_Color => Set_Bg (RGB (106, 186, 92)),
       Border_Color => Set (Border_Color (RGB (198, 247, 180))),
+      Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
       others => <>
    );
 
@@ -159,8 +166,15 @@ package RLottie_Example_Styles is
 
    --  Base style for class 'stop-button'
    Stop_Button_Class_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (128.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Radius => Set (Radius (Px (4.0))),
+      Cursor => Set (Cursor_Pointer),
+      Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Background_Color => Set_Bg (RGB (201, 102, 92)),
       Border_Color => Set (Border_Color (RGB (255, 189, 177))),
+      Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
       others => <>
    );
 
@@ -188,8 +202,15 @@ package RLottie_Example_Styles is
 
    --  Base style for class 'rew-button'
    Rew_Button_Class_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (128.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Radius => Set (Radius (Px (4.0))),
+      Cursor => Set (Cursor_Pointer),
+      Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Background_Color => Set_Bg (RGB (106, 134, 199)),
       Border_Color => Set (Border_Color (RGB (180, 203, 255))),
+      Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
       others => <>
    );
 
@@ -217,8 +238,15 @@ package RLottie_Example_Styles is
 
    --  Base style for class 'loop-button'
    Loop_Button_Class_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (128.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Radius => Set (Radius (Px (4.0))),
+      Cursor => Set (Cursor_Pointer),
+      Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Background_Color => Set_Bg (RGB (130, 108, 194)),
       Border_Color => Set (Border_Color (RGB (210, 189, 255))),
+      Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
       others => <>
    );
 

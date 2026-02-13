@@ -17,6 +17,7 @@
 **Adi.CSS_Parser** (`adi-css_parser.ads`): Runtime CSS loader/parser.
 - Loads stylesheets from strings/files into `Part_Style_Array` maps
 - Selector kinds: class (`.x`), id (`#x`), tag (`button`)
+- Comma-separated selector groups are supported (for example `li, ul, p { ... }`)
 - Public APIs: `Has/Styles_For/Apply/Bind` + `_Class`/`_Id`/`_Tag` convenience wrappers
 - File watching reload: `Reload_If_Changed`, reapplying to bound widgets
 - Parses `transition` with duration (`ms`/`s`), easing, property filter
@@ -25,6 +26,7 @@
 **Adi.CSS_Source** (`adi-css_source.ads`): Dynamic/static style source switcher.
 - `Dynamic_Mode`: file-backed, optional auto-reload
 - `Static_Mode`: compiled constant style entries
+- In `Static_Mode`, repeated entries for the same selector are merged in insertion order
 - Single selector bind/apply (`class`, `id`, `tag`) and composite selector-set bind/apply
 - Composite specificity: tag < class < id
 

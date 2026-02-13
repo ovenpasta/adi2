@@ -810,6 +810,22 @@ def parse_transition(value: str) -> Optional[ParsedTransition]:
     )
 
 
+def set_css_property(properties: dict[str, str], name: str, value: str) -> None:
+    """Set/override a CSS property while preserving declaration order semantics."""
+    # Python dict updates keep the original key position. For CSS cascade semantics
+    # (especially shorthand/longhand interactions), move existing keys to the end
+    # when overridden so later declarations are emitted later.
+    if name in properties:
+        del properties[name]
+    properties[name] = value
+
+
+def merge_css_properties(target: dict[str, str], source: dict[str, str]) -> None:
+    """Merge properties into target, preserving source declaration order."""
+    for prop_name, prop_value in source.items():
+        set_css_property(target, prop_name, prop_value)
+
+
 def parse_css(css_content: str) -> list[ParsedRule]:
     """Parse CSS content into rules"""
     rules = []
@@ -835,8 +851,8 @@ def parse_css(css_content: str) -> list[ParsedRule]:
             for prop_match in re.finditer(r'([\w-]+)\s*:\s*([^;]+);?', properties_str):
                 prop_name = prop_match.group(1).strip().lower()
                 prop_value = prop_match.group(2).strip()
-                properties[prop_name] = prop_value
-            
+                set_css_property(properties, prop_name, prop_value)
+
             if properties:
                 rules.append(ParsedRule(selector=selector, properties=properties))
     
@@ -866,10 +882,26 @@ def group_rules_by_widget(rules: list[ParsedRule]) -> dict[str, WidgetStyleGroup
             not rule.selector.widget_negated_states and
             not rule.selector.part_states and
             not rule.selector.part_negated_states):
-            part_group.base_rule = rule
+            if part_group.base_rule is None:
+                part_group.base_rule = rule
+            else:
+                merge_css_properties(part_group.base_rule.properties, rule.properties)
         else:
-            part_group.state_rules.append(rule)
-    
+            state_key = rule.selector.get_unique_key()
+            existing_rule = next(
+                (
+                    existing
+                    for existing in part_group.state_rules
+                    if existing.selector.get_unique_key() == state_key
+                ),
+                None,
+            )
+
+            if existing_rule is None:
+                part_group.state_rules.append(rule)
+            else:
+                merge_css_properties(existing_rule.properties, rule.properties)
+
     return groups
 
 

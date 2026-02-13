@@ -97,6 +97,49 @@ begin
       Source : Adi.CSS_Source.Style_Source;
       Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       OK     : Boolean := False;
+
+      Static_Entries : constant Adi.CSS_Source.Static_Style_Entry_Array := [
+        Adi.CSS_Source.Tag_Entry (
+          "li",
+          Main_Styles ((
+            Background_Color => Set_Bg (RGB (10, 20, 30)),
+            Padding          => Set (CSS_Box (Px (2.0))),
+            others           => <>))),
+        Adi.CSS_Source.Tag_Entry (
+          "li",
+          Main_Styles ((
+            Padding      => Set (CSS_Box (Px (6.0))),
+            Border_Width => Set (Border_Width (Px (1.0))),
+            others       => <>))),
+        Adi.CSS_Source.Tag_Entry (
+          "li",
+          Main_Styles ((
+            Background_Color => Set_Bg (RGB (70, 80, 90)),
+            others           => <>)))
+      ];
+   begin
+      Adi.CSS_Source.Set_Static_Entries (Source, Static_Entries);
+      Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, OK);
+      Assert (OK, "Set_Mode static should succeed with repeated selector entries");
+
+      Adi.CSS_Source.Bind_Tag (Source, "li", Box);
+
+      declare
+         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+      begin
+         Assert (Is_RGB_Color (R.Background_Color, 70, 80, 90),
+                 "Static mode should merge repeated tag entries and keep last override");
+         Assert (R.Padding.Kind = Gap_Uniform and then R.Padding.All_Sides.Amount = 6.0,
+                 "Static mode should merge repeated tag entries and keep middle properties");
+         Assert (R.Border_Width.Kind = Gap_Uniform and then R.Border_Width.All_Edges.Amount = 1.0,
+                 "Static mode should preserve properties introduced by any repeated entry");
+      end;
+   end;
+
+   declare
+      Source : Adi.CSS_Source.Style_Source;
+      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      OK     : Boolean := False;
       Reloaded : Boolean := False;
       Tick_OK  : Boolean := False;
       Css_Path : constant String := "/tmp/adi_css_source_test.css";

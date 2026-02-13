@@ -56,7 +56,16 @@ package Html_View_Example_Styles is
 
    --  Base style for class 'tab-left'
    Tab_Left_Class_Base_Style : constant Style_Rules := (
+      Display => Set (Inline_Flex),
+      Align_Items => Set (Center),
+      Justify_Content => Set (Center),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (178, 159, 136))),
+      Background_Color => Set_Bg (RGB (224, 212, 194)),
+      Cursor => Set (Cursor_Pointer),
       Border_Radius => Set (Radius (Px (8.0), Px (0.0), Px (0.0), Px (8.0))),
+      Padding => Set (CSS_Box (Px (8.0), Px (14.0), Px (8.0), Px (14.0))),
       others => <>
    );
 
@@ -90,7 +99,16 @@ package Html_View_Example_Styles is
 
    --  Base style for class 'tab-right'
    Tab_Right_Class_Base_Style : constant Style_Rules := (
+      Display => Set (Inline_Flex),
+      Align_Items => Set (Center),
+      Justify_Content => Set (Center),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (178, 159, 136))),
+      Background_Color => Set_Bg (RGB (224, 212, 194)),
+      Cursor => Set (Cursor_Pointer),
       Border_Radius => Set (Radius (Px (0.0), Px (8.0), Px (8.0), Px (0.0))),
+      Padding => Set (CSS_Box (Px (8.0), Px (14.0), Px (8.0), Px (14.0))),
       others => <>
    );
 

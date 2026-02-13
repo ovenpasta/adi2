@@ -56,21 +56,6 @@ package body Adi.CSS_Source is
       end if;
    end Ensure_Impl;
 
-   function Find_Static (Impl : Style_Source_Impl;
-                         Kind : Adi.CSS_Parser.Selector_Kind;
-                         Name : String) return Natural is
-      N : constant String := Normalize_Name (Name);
-   begin
-      for I in 1 .. Natural (Impl.Static_Styles.Length) loop
-         if Impl.Static_Styles (I).Kind = Kind
-           and then To_String (Impl.Static_Styles (I).Name) = N
-         then
-            return I;
-         end if;
-      end loop;
-      return 0;
-   end Find_Static;
-
    function Merge_Widget_Style (Base, Override : Widget_Style) return Widget_Style is
       Result : Widget_Style := Base;
       Rule_Index : Natural := 0;
@@ -114,18 +99,25 @@ package body Adi.CSS_Source is
    function Selector_Styles (Source : Style_Source;
                              Kind   : Adi.CSS_Parser.Selector_Kind;
                              Name   : String) return Part_Style_Array is
-      Idx : Natural := 0;
+      N : constant String := Normalize_Name (Name);
+      Result : Part_Style_Array := Empty_Part_Styles;
    begin
       if Source.Impl = null then
          return Empty_Part_Styles;
       end if;
 
       if Source.Impl.Mode = Static_Mode then
-         Idx := Find_Static (Source.Impl.all, Kind, Name);
-         if Idx > 0 then
-            return Source.Impl.Static_Styles (Idx).Styles;
-         end if;
-         return Empty_Part_Styles;
+         for I in 1 .. Natural (Source.Impl.Static_Styles.Length) loop
+            if Source.Impl.Static_Styles (I).Kind = Kind
+              and then To_String (Source.Impl.Static_Styles (I).Name) = N
+            then
+               Result := Merge_Part_Styles (
+                 Result,
+                 Source.Impl.Static_Styles (I).Styles);
+            end if;
+         end loop;
+
+         return Result;
       end if;
 
       if not Source.Impl.Dynamic_Loaded then

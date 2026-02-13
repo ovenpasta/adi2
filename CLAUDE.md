@@ -711,3 +711,6 @@ For focused reference and up-to-date details:
 
 ### Git
 Never add co-authored-by: line on commit messages
+When creating commits, always provide both:
+- a short subject line (commit message title), and
+- a brief multi-line body describing what changed and why.

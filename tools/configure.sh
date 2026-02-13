@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  tools/configure.sh --build-dir <dir> [--source-dir <dir>] [--pkg-config <bin>] [--cgpr <file>] [--target <linux|windows>]
+  tools/configure.sh --build-dir <dir> [--source-dir <dir>] [--pkg-config <bin>] [--cgpr <file>] [--target <linux|windows>] [--build-profile <development|validation|release>]
 
 Generates build files in <build-dir> (no writes to source dir):
   <build-dir>/config/adi_linker_config.gpr
@@ -20,6 +20,7 @@ SOURCE_DIR=""
 PKG_CONFIG_BIN="${PKG_CONFIG:-pkg-config}"
 CGPR_FILE=""
 TARGET_PLATFORM="linux"
+BUILD_PROFILE_DEFAULT="development"
 
 while (($#)); do
   case "$1" in
@@ -42,6 +43,10 @@ while (($#)); do
     --target)
       shift
       TARGET_PLATFORM="${1:-}"
+      ;;
+    --build-profile)
+      shift
+      BUILD_PROFILE_DEFAULT="${1:-}"
       ;;
     -h|--help)
       usage
@@ -85,6 +90,13 @@ fi
 
 if [[ "${TARGET_PLATFORM}" != "linux" && "${TARGET_PLATFORM}" != "windows" ]]; then
   echo "--target must be either linux or windows" >&2
+  exit 1
+fi
+
+if [[ "${BUILD_PROFILE_DEFAULT}" != "development" \
+   && "${BUILD_PROFILE_DEFAULT}" != "validation" \
+   && "${BUILD_PROFILE_DEFAULT}" != "release" ]]; then
+  echo "--build-profile must be one of development, validation, release" >&2
   exit 1
 fi
 
@@ -275,7 +287,7 @@ SOURCE_DIR="${SOURCE_DIR}"
 BUILD_DIR="${BUILD_DIR}"
 CGPR_FILE="${CGPR_FILE}"
 TARGET_PLATFORM="${TARGET_PLATFORM}"
-BUILD_PROFILE="${ADI_BUILD_PROFILE:-development}"
+BUILD_PROFILE="${ADI_BUILD_PROFILE:-${BUILD_PROFILE_DEFAULT}}"
 
 GPR_ARGS=()
 if [[ -n "\${CGPR_FILE}" ]]; then
@@ -336,9 +348,9 @@ chmod +x "${BUILD_DIR}/build_all.sh"
 cat > "${BUILD_DIR}/BUILDING.md" <<EOF
 # Build commands
 
-gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=development
-gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=development -XTEST_KIND=styles
-gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/examples_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=development -XEXAMPLE_KIND=font_example
+gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=${BUILD_PROFILE_DEFAULT}
+gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=${BUILD_PROFILE_DEFAULT} -XTEST_KIND=styles
+gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/examples_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=${BUILD_PROFILE_DEFAULT} -XEXAMPLE_KIND=font_example
 
 One-command full build:
 "${BUILD_DIR}/build_all.sh"
@@ -353,5 +365,6 @@ else
   echo "[configure] cgpr: (none)"
 fi
 echo "[configure] target: ${TARGET_PLATFORM}"
+echo "[configure] build profile: ${BUILD_PROFILE_DEFAULT}"
 echo "[configure] generated projects in ${BUILD_DIR}/projects"
 echo "[configure] generated build script: ${BUILD_DIR}/build_all.sh"

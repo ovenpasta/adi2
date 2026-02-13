@@ -9,7 +9,7 @@ alr build                    # builds library + all tests + examples (and runs i
 
 ### Direct gprbuild (configure once, build from generated projects)
 ```bash
-tools/configure.sh --build-dir build-linux --target linux
+tools/configure.sh --build-dir build-linux --target linux --build-profile development
 build-linux/build_all.sh
 ```
 
@@ -17,6 +17,7 @@ build-linux/build_all.sh
 ```bash
 tools/configure.sh --build-dir build-win32 \
   --target windows \
+  --build-profile release \
   --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config \
   --cgpr path/to/win32.cgpr
 build-win32/build_all.sh
@@ -67,6 +68,7 @@ Writes only under `--build-dir`:
 Target selection:
 - `--target linux` uses `config/posix`
 - `--target windows` uses `config/windows`
+- `--build-profile` sets default profile for generated `build_all.sh`: `development`, `validation`, or `release`
 - generated build scripts pass `-XADI_PLATFORM=<target>`
 
 See also: [docs/gprbuild_without_alire.md](gprbuild_without_alire.md)

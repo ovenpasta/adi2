@@ -19,7 +19,7 @@ alr build
 ### Building the library (direct gprbuild)
 ```bash
 # Configure once per output/target directory:
-tools/configure.sh --build-dir build-linux --target linux
+tools/configure.sh --build-dir build-linux --target linux --build-profile development
 
 # Build from generated project:
 gprbuild -P build-linux/projects/adi_build.gpr -XADI_PLATFORM=linux
@@ -31,26 +31,27 @@ gprbuild --config=path/to/target.cgpr -P build-linux/projects/adi_build.gpr -XAD
 ### Full build shortcut
 ```bash
 # configure generates build-linux/build_all.sh
-tools/configure.sh --build-dir build-linux --target linux
+tools/configure.sh --build-dir build-linux --target linux --build-profile development
 build-linux/build_all.sh
 
 # configure with cross toolchain and cgpr
-tools/configure.sh --build-dir build-win32 --target windows --source-dir . --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config --cgpr path/to/win32.cgpr
+tools/configure.sh --build-dir build-win32 --target windows --build-profile release --source-dir . --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config --cgpr path/to/win32.cgpr
 build-win32/build_all.sh
 ```
 
 ### Configure script (pkg-config + generated GPR files)
 ```bash
-tools/configure.sh --build-dir build-linux --target linux
-tools/configure.sh --build-dir build-win32 --target windows --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config
+tools/configure.sh --build-dir build-linux --target linux --build-profile development
+tools/configure.sh --build-dir build-win32 --target windows --build-profile release --pkg-config /usr/bin/i686-w64-mingw32.static-pkg-config
 tools/configure.sh --source-dir /path/to/adi --build-dir /tmp/adi-build
-tools/configure.sh --build-dir build-win32 --target windows --cgpr path/to/win32.cgpr
+tools/configure.sh --build-dir build-win32 --target windows --build-profile validation --cgpr path/to/win32.cgpr
 ```
 
 The configure step writes only under `--build-dir`:
 - `<build-dir>/config/adi_linker_config.gpr` with linker switches resolved from `pkg-config` (`sdl3`, `sdl3-ttf`, `sdl3-image`, `rlottie`) or defaults when unavailable
 - `<build-dir>/projects/{adi_build.gpr,tests_build.gpr,examples_build.gpr}`
 - Platform selection is explicit: `--target linux|windows` in `configure.sh` and `-XADI_PLATFORM=<linux|windows>` for manual `gprbuild`
+- Build profile can be selected in configure via `--build-profile development|validation|release` (used as default in generated `build_all.sh`; still overridable via `ADI_BUILD_PROFILE`)
 
 ### Building specific tests
 ```bash

@@ -122,6 +122,12 @@ package body Adi.App is
                             end;
                         end if;
 
+                    when SDL_EVENT_WINDOW_MOUSE_LEAVE =>
+                        if A.Main_Window /= null then
+                            --  Force hover clear when cursor leaves window.
+                            A.Main_Window.On_Mouse_Move (X => -1.0, Y => -1.0);
+                        end if;
+
                     when SDL_EVENT_MOUSE_BUTTON_DOWN =>
                         if A.Main_Window /= null then
                             Convert_Event_To_Render_Coordinates;

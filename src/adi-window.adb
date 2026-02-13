@@ -1171,6 +1171,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
 
       Root_Dirty_After := (W.Root /= null and then Is_Dirty (W.Root.all));
       Overlay_Dirty_After := Is_Any_Overlay_Dirty (W);
+
       if Root_Dirty_After /= Root_Dirty_Before
         or else Overlay_Dirty_After /= Overlay_Dirty_Before
       then

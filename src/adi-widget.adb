@@ -3462,12 +3462,14 @@ end Layout_Tree;
 
 procedure Tick_Animations (W : in out Widget'Class; DT : Duration) is
    Any_Active : Boolean := False;
+   Had_Active : Boolean := False;
    DT_Float   : constant Float := Float (DT);
 begin
    On_Tick (W, DT);
 
    for P in Part_Kind loop
       if W.Transitions (P).Active then
+         Had_Active := True;
          declare
             Interpolated : Resolved_Style;
          begin
@@ -3493,7 +3495,7 @@ begin
    end loop;
 
    W.Has_Any_Animation := Any_Active;
-   if Any_Active then
+   if Any_Active or else Had_Active then
       Mark_Dirty (W);
    end if;
 

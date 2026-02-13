@@ -68,6 +68,12 @@ package Adi.Widget is
       --  Computed style (resolved from part style + widget states)
       Computed_Style : Resolved_Style;
 
+      --  Optional explicit per-item style. When enabled, this style is used
+      --  directly and part-based style resolution/animation does not override
+      --  the item's computed style.
+      Has_Style_Override : Boolean := False;
+      Style_Override     : Resolved_Style := Resolve (Empty_Style);
+
       --  Text_Item fields (unused by other kinds)
       Text_Content   : Unbounded_String := Null_Unbounded_String;
       Wrap_Text      : Boolean := True;

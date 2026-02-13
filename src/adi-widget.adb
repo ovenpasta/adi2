@@ -562,7 +562,11 @@ package body Adi.Widget is
    procedure Add_Item (W : in out Widget'Class; I : Item) is
       New_Item : Item := I;
    begin
-      New_Item.Computed_Style := Get_Resolved_Part_Style (W, I.Part);
+      if New_Item.Has_Style_Override then
+         New_Item.Computed_Style := New_Item.Style_Override;
+      else
+         New_Item.Computed_Style := Get_Resolved_Part_Style (W, I.Part);
+      end if;
       W.Items.Append (New_Item);
       Mark_Dirty (W);
    end Add_Item;
@@ -590,7 +594,11 @@ package body Adi.Widget is
       New_Item : Item := I;
    begin
       if Index <= Positive (W.Items.Length) then
-         New_Item.Computed_Style := Get_Resolved_Part_Style (W, I.Part);
+         if New_Item.Has_Style_Override then
+            New_Item.Computed_Style := New_Item.Style_Override;
+         else
+            New_Item.Computed_Style := Get_Resolved_Part_Style (W, I.Part);
+         end if;
          W.Items.Replace_Element (Index, New_Item);
          Mark_Dirty (W);
       end if;
@@ -615,57 +623,61 @@ package body Adi.Widget is
             Current_Item : Item := W.Items.Element (I);
             P : constant Part_Kind := Current_Item.Part;
          begin
-            if not Parts_Seen (P) then
-               Parts_Seen (P) := True;
-               declare
-                  New_Target : constant Resolved_Style :=
-                     Get_Resolved_Part_Style (W, P);
-               begin
-                  if not W.Last_Target_Init (P) then
-                     --  First time: no transition, just snap
-                     W.Last_Target (P) := New_Target;
-                     W.Last_Target_Init (P) := True;
-                  elsif New_Target.Transition.Duration > 0.0
-                     and then New_Target /= W.Last_Target (P)
-                  then
-                     --  Target changed and transition configured: start animation.
-                     --  From_Style is current interpolated position if a transition
-                     --  is already running, otherwise the previous target.
-                     declare
-                        From : Resolved_Style;
-                     begin
-                        if W.Transitions (P).Active then
-                           Advance (W.Transitions (P), 0.0, From);
-                        else
-                           From := W.Last_Target (P);
-                        end if;
-                        W.Transitions (P) := (
-                           Active       => True,
-                           Elapsed      => 0.0,
-                           Duration     => New_Target.Transition.Duration,
-                           Easing       => New_Target.Transition.Easing,
-                           From_Style   => From,
-                           Target_Style => New_Target);
-                        W.Has_Any_Animation := True;
-                     end;
-                  elsif New_Target /= W.Last_Target (P) then
-                     --  Changed but no transition: snap and cancel any running transition
-                     W.Transitions (P).Active := False;
-                  end if;
-                  W.Last_Target (P) := New_Target;
-               end;
-            end if;
-
-            --  Apply the current visual style to this item
-            if W.Transitions (P).Active then
-               declare
-                  Interpolated : Resolved_Style;
-               begin
-                  Advance (W.Transitions (P), 0.0, Interpolated);
-                  Current_Item.Computed_Style := Interpolated;
-               end;
+            if Current_Item.Has_Style_Override then
+               Current_Item.Computed_Style := Current_Item.Style_Override;
             else
-               Current_Item.Computed_Style := W.Last_Target (P);
+               if not Parts_Seen (P) then
+                  Parts_Seen (P) := True;
+                  declare
+                     New_Target : constant Resolved_Style :=
+                        Get_Resolved_Part_Style (W, P);
+                  begin
+                     if not W.Last_Target_Init (P) then
+                        --  First time: no transition, just snap
+                        W.Last_Target (P) := New_Target;
+                        W.Last_Target_Init (P) := True;
+                     elsif New_Target.Transition.Duration > 0.0
+                        and then New_Target /= W.Last_Target (P)
+                     then
+                        --  Target changed and transition configured: start animation.
+                        --  From_Style is current interpolated position if a transition
+                        --  is already running, otherwise the previous target.
+                        declare
+                           From : Resolved_Style;
+                        begin
+                           if W.Transitions (P).Active then
+                              Advance (W.Transitions (P), 0.0, From);
+                           else
+                              From := W.Last_Target (P);
+                           end if;
+                           W.Transitions (P) := (
+                              Active       => True,
+                              Elapsed      => 0.0,
+                              Duration     => New_Target.Transition.Duration,
+                              Easing       => New_Target.Transition.Easing,
+                              From_Style   => From,
+                              Target_Style => New_Target);
+                           W.Has_Any_Animation := True;
+                        end;
+                     elsif New_Target /= W.Last_Target (P) then
+                        --  Changed but no transition: snap and cancel any running transition
+                        W.Transitions (P).Active := False;
+                     end if;
+                     W.Last_Target (P) := New_Target;
+                  end;
+               end if;
+
+               --  Apply the current visual style to this item
+               if W.Transitions (P).Active then
+                  declare
+                     Interpolated : Resolved_Style;
+                  begin
+                     Advance (W.Transitions (P), 0.0, Interpolated);
+                     Current_Item.Computed_Style := Interpolated;
+                  end;
+               else
+                  Current_Item.Computed_Style := W.Last_Target (P);
+               end if;
             end if;
 
             W.Items.Replace_Element (I, Current_Item);
@@ -3619,7 +3631,9 @@ begin
                declare
                   Current_Item : Item := W.Items.Element (I);
                begin
-                  if Current_Item.Part = P then
+                  if Current_Item.Part = P
+                    and then not Current_Item.Has_Style_Override
+                  then
                      Current_Item.Computed_Style := Interpolated;
                      W.Items.Replace_Element (I, Current_Item);
                   end if;

@@ -10,6 +10,10 @@
 - No complex CSS selectors/combinators (v1 remains tag/class/id + inline style).
 - No full HTML5 parsing compliance; deterministic, documented recovery rules are enough.
 
+## Implementation Status
+- Next-phase milestone completed on 2026-02-13.
+- Renderer now uses an internal element tree (`Element`, `Text`, `Break`) with per-element attribute-driven cascade and line-box layout.
+
 ## Supported Tags (v1)
 - Block: `div`, `p`, `h1`, `h2`, `ul`, `ol`, `li`, `hr`, `center`
 - Inline: `span`, `b`, `strong`, `em`, `code`, `a`, `img` (inline atomic box), `br`
@@ -151,9 +155,10 @@ Package: `Adi.Widget.Html_View`
   1. Tag defaults (widget internal defaults)
   2. CSS extracted from embedded `<style> ... </style>` blocks
   3. CSS extracted from `<link rel="stylesheet" href="...">` resources (via callback)
-  4. Tag selector mapping into internal html-view parts
-- Precedence in v1 implementation: defaults merged with parsed tag selectors (later merges win by selector order in parser output).
-- Selectors currently applied in v1 implementation: tag selectors.
+  4. Tag/class/id selectors from parsed stylesheets
+  5. Inline `style` attributes
+- Implemented precedence: `defaults < tag < class < id < inline`.
+- Inline style declarations are parsed once and cached by normalized declaration text.
 
 ## Parser Recovery Rules
 - Best-effort tree construction for malformed input.
@@ -165,8 +170,8 @@ Package: `Adi.Widget.Html_View`
 
 ## Images (`img`) and `hr`
 - `img`:
-  - Source resolution supports both callback-provided assets and default file loading.
-  - Missing/failed `src` load -> render `alt` text if present, else empty inline placeholder.
+  - Source resolution is callback-driven through `Set_On_Load_Asset` (no widget-side filesystem fallback).
+  - Missing/failed `src` load renders `alt` text when present, otherwise empty inline placeholder.
   - `width`/`height` attributes override intrinsic size when provided.
   - If only one dimension is provided, preserve intrinsic aspect ratio.
   - Final painted size is clamped by available line width (inline) or container width policy.
@@ -183,9 +188,10 @@ Package: `Adi.Widget.Html_View`
 ## Performance and Caching
 - `Set_HTML` reparses and rebuilds internal run/tree caches, then marks widget dirty.
 - Re-layout only when width or style-affecting state changes.
-- Optional image cache keyed by `src` (and/or callback keying policy) should reuse existing image resource model where possible.
+- Image cache is keyed by `src` within the widget instance to avoid repeated callback loads.
+- Inline style declarations are cached to reduce repeated parse cost.
 
-## Testing Plan (`tests/src/html_view_test.adb`)
+## Testing Coverage (`tests/src/html_view_test.adb`)
 - Parsing and recovery:
   - Case-insensitive tag names, unknown tag transparency, malformed close handling.
   - Entity decoding for supported entities.
@@ -197,11 +203,15 @@ Package: `Adi.Widget.Html_View`
   - `code` whitespace preservation and wrapping.
   - List marker placement and wrapped-line indentation.
 - Styling/cascade:
-  - `tag < class < id < inline style` precedence.
+  - `tag < class < id < inline style` precedence assertions.
+- Line metrics:
+  - mixed-inline baseline alignment and heading isolation checks.
 - Link behavior:
   - `<a href>` fragment hit-test mapping.
   - Click callback called with exact `href`.
   - No callback call when pointer down/up are on different fragments.
+- Clipping:
+  - visible clipped link fragments clickable, scrolled-out fragments not clickable.
 - Image behavior:
   - Callback-first asset loading path and fallback path.
   - Missing source fallback (`alt` path).

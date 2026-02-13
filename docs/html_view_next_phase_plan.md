@@ -1,72 +1,67 @@
-# HTML View Next Phase Plan
+# HTML View Next Phase Plan (Completed Milestone)
 
-This phase focuses on moving from a token-stream renderer to an element-driven HTML/CSS model while keeping the widget lightweight and documentation-oriented.
+This phase is now complete. The HTML view moved from a token-stream renderer to an element-driven model while staying lightweight and documentation-focused.
 
-## Goals
+Milestone completed: 2026-02-13
 
-- Improve style correctness for mixed inline/block content.
-- Make CSS application deterministic and closer to CSS cascade expectations.
-- Preserve current callback-only resource loading model for images and linked stylesheets.
-- Keep rendering and input stable under scrolling/overflow clipping.
+## Delivered Goals
 
-## Scope
+- Improved style correctness for mixed inline/block content with line-local metrics.
+- Deterministic CSS cascade per element.
+- Callback-only resource loading preserved for images and linked stylesheets.
+- Stable rendering/input behavior under scrolling and overflow clipping.
+
+## Delivered Scope
 
 ### 1) Element Tree + Attributes
 
-- Introduce a small internal node model (`Element`, `Text`, `Break`) instead of direct token-only flow.
-- Track per-element attributes needed in v1.5:
+- Added internal node model (`Element`, `Text`, `Break`) instead of direct token-only layout.
+- Added per-element attributes used by the renderer:
   - `id`, `class`, `style`
   - `href` for links
   - `src`/`alt` for images
-- Keep parser recovery behavior permissive for malformed HTML.
+- Kept permissive recovery for malformed HTML.
 
 ### 2) CSS Cascade per Element
 
-- Use `Adi.CSS_Parser` output to compute effective style in this order:
+- Implemented per-element style resolution in this order:
   - internal defaults
   - tag selector
   - class selector(s)
   - id selector
   - inline `style`
-- Apply resolved styles to element parts (`main`, `label`, `indicator`, heading/code/inline emphasis parts) before layout.
-- Keep support for embedded `<style>` and callback-loaded `<link rel="stylesheet">`.
+- Kept support for embedded `<style>` and callback-loaded `<link rel="stylesheet">`.
+- Added inline-style parse caching to avoid reparsing identical inline declarations.
 
 ### 3) Line-Box Layout Pass
 
-- Build line boxes from inline runs so baseline, ascent/descent, and vertical metrics are line-local.
-- Separate block spacing from inline metrics to prevent heading metrics from affecting following paragraph lines.
-- Keep wrapping behavior deterministic for spaces, `br`, and inline images.
+- Added line-box layout with local ascent/descent/line-height handling.
+- Isolated block boundaries so heading metrics do not leak into following paragraph lines.
+- Kept deterministic wrapping around spaces, `br`, and inline images.
 
 ### 4) Interaction + Hit Testing
 
-- Derive link hit regions from final laid out run boxes.
-- Ensure click behavior remains press/release-on-same-link.
-- Maintain clipping-aware interaction when content is partially visible.
+- Link hit regions are derived from final laid out run/image boxes.
+- Click behavior remains press/release-on-same-link.
+- Link hit regions are clipped to the visible content viewport.
 
-### 5) Rendering + Clipping Validation
+### 5) Core Rendering Support
 
-- Keep clipping centralized in base rendering (`Adi.Widget`) for overflow/scroll contexts.
-- Validate that text and images clip consistently when partially out of viewport.
-- Ensure no glyph truncation regressions from clip behavior.
+- Extended `Adi.Widget.Item` with optional explicit per-item style override.
+- Html view now uses per-item resolved styles without part-style flattening.
 
-## Tests
+## Tests and Validation
 
-- Add targeted tests in `tests/src/html_view_test.adb` for:
+- Added targeted html tests in `tests/src/html_view_test.adb` for:
   - cascade precedence (`tag < class < id < inline`)
-  - baseline alignment in mixed inline styles
-  - heading metrics isolation from subsequent normal paragraphs
-  - clipping behavior for partially visible text and images
-  - callback-only resource loading paths (`img` and linked CSS)
+  - mixed-inline baseline alignment
+  - heading metric isolation
+  - clipping-aware link hit testing
+  - callback-only resource loading (`img` and linked CSS)
+- Stress corpus parsing/build remains green for `tests/html/*.html` malformed and nested cases.
 
-## Example Update
+## Example Coverage
 
-- Keep `examples/html_view_example.adb` as the manual QA harness.
-- Continue using generated CSS package (`examples/css/html_view_example.css`) for non-content UI (root/tabs/editor/status + html-view main/scroll/knob).
-- Keep content styling inside HTML via `<style>` and callback-linked stylesheet.
-
-## Exit Criteria
-
-- No baseline drift in mixed inline styling (`strong`, `em`, `code`, links).
-- CSS precedence tests pass for tag/class/id/inline styles.
-- Partial overflow clipping is correct for both text and images.
-- `html_view_test` suite remains green and example behavior matches expected interactions.
+- `examples/html_view_example.adb` remains the manual QA harness.
+- Expanded `examples/assets/html_view_example.html` to exercise a wider feature set:
+  - cascade layers, nested lists, unknown tags, inline formatting, links, images, and long scroll content.

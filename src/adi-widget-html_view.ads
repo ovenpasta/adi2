@@ -1,8 +1,8 @@
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-with Ada.Containers.Indefinite_Vectors;
 with Ada.Containers.Vectors;
 with Adi.Core;              use Adi.Core;
 with Adi.CSS_Parser;
+with Adi.CSS_Styles;
 with Adi.Image;
 with Adi.Widget;            use Adi.Widget;
 with Adi.Window;
@@ -66,33 +66,38 @@ package Adi.Widget.Html_View is
       Button : Mouse_Button);
 
 private
-   type Token_Kind is (Text_Token, Break_Token, Hr_Token, Image_Token);
-   type Text_Style_Kind is
-     (Normal_Text,
-      Heading_1_Text,
-      Heading_2_Text,
-      Code_Text,
-      Bold_Text,
-      Italic_Text,
-      Bold_Italic_Text);
+   type Node_Kind is (Element_Node, Text_Node, Break_Node);
 
-   type Token (Kind : Token_Kind := Text_Token) is record
-      Link_Href : Unbounded_String := Null_Unbounded_String;
+   type Element_Attributes is record
+      Id_Attr    : Unbounded_String := Null_Unbounded_String;
+      Class_Attr : Unbounded_String := Null_Unbounded_String;
+      Style_Attr : Unbounded_String := Null_Unbounded_String;
+      Href_Attr  : Unbounded_String := Null_Unbounded_String;
+      Src_Attr   : Unbounded_String := Null_Unbounded_String;
+      Alt_Attr   : Unbounded_String := Null_Unbounded_String;
+   end record;
+
+   package Node_Index_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Natural);
+
+   type Node (Kind : Node_Kind := Text_Node) is record
+      Parent : Natural := 0;
       case Kind is
-         when Text_Token =>
+         when Element_Node =>
+            Tag_Name : Unbounded_String := Null_Unbounded_String;
+            Attrs    : Element_Attributes;
+            Children : Node_Index_Vectors.Vector;
+         when Text_Node =>
             Text : Unbounded_String := Null_Unbounded_String;
-            Style_Kind : Text_Style_Kind := Normal_Text;
-         when Image_Token =>
-            Src : Unbounded_String := Null_Unbounded_String;
-            Alt : Unbounded_String := Null_Unbounded_String;
-         when others =>
+         when Break_Node =>
             null;
       end case;
    end record;
 
-   package Token_Vectors is new Ada.Containers.Indefinite_Vectors
+   package Node_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
-      Element_Type => Token);
+      Element_Type => Node);
 
    type Link_Fragment is record
       Geometry : Rectangle := (0.0, 0.0, 0.0, 0.0);
@@ -112,11 +117,21 @@ private
      (Index_Type   => Positive,
       Element_Type => Cached_Image);
 
+   type Inline_Style_Cache_Entry is record
+      Inline_Text : Unbounded_String := Null_Unbounded_String;
+      Rules       : Adi.CSS_Styles.Style_Rules := Adi.CSS_Styles.Empty_Style;
+   end record;
+
+   package Inline_Style_Cache_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Inline_Style_Cache_Entry);
+
    type Html_View is new Widget with record
       Source          : Unbounded_String := Null_Unbounded_String;
-      Tokens          : Token_Vectors.Vector;
+      Nodes           : Node_Vectors.Vector;
       Links           : Link_Fragment_Vectors.Vector;
       Image_Cache     : Cached_Image_Vectors.Vector;
+      Inline_Style_Cache : Inline_Style_Cache_Vectors.Vector;
       Host            : Adi.Window.Window_Access := null;
       On_Link_Click   : Link_Click_Callback := null;
       On_Load_Asset   : Asset_Load_Callback := null;

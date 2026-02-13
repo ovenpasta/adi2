@@ -128,19 +128,20 @@
 
 **Animated_Widget**: Unified animated image/Lottie display. Child package `RLottie` isolates rlottie coupling.
 
-**Html_View**: Minimal documentation-oriented HTML widget (`Adi.Widget.Html_View`).
-- Supported v1 tags include block/inline text tags, `img`, `hr`, and `a`
-- Hyperlink interaction via `Set_On_Link_Click`
-- Asset loading hook for image sources via `Set_On_Load_Asset` (callback-driven)
-- Embedded stylesheet support via `<style> ... </style>` blocks, parsed with `Adi.CSS_Parser`
-- Linked stylesheet support via `<link rel="stylesheet" href="...">` resolved with `Set_On_Load_Resource`
+**Html_View**: Documentation-oriented HTML widget (`Adi.Widget.Html_View`).
+- Internal parse model uses `Element`/`Text`/`Break` nodes with permissive malformed HTML recovery
+- Per-element cascade is deterministic: `defaults < tag < class < id < inline`
+- Line-box layout keeps ascent/descent/baseline local to each line to avoid cross-block metric leakage
+- Hyperlink interaction via `Set_On_Link_Click` with clipping-aware hit regions from final laid-out runs
+- Resource loading is callback-driven: `Set_On_Load_Asset` for `img`, `Set_On_Load_Resource` for linked stylesheets
+- Embedded `<style>` and callback-loaded `<link rel="stylesheet">` are parsed with `Adi.CSS_Parser`
 
 **Context_Menu** / **Text_Context_Menu**: Popup overlay menu; shared factory for Undo/Redo/Cut/Copy/Paste/Select All.
 
 ## Widget Rendering Pipeline
 
 1. **Build**: `Build_Items` creates `Item` records
-2. **Style**: Each item's `Part_Kind` resolves to `Resolved_Style` via widget states
+2. **Style**: Each item either resolves from `Part_Kind` via widget states or uses an explicit per-item style override
 3. **Layout**: Calculate geometry for widget and children
 4. **Render**: Draw items via `Render_Context`
    - Rounded borders: annulus ring + background fill

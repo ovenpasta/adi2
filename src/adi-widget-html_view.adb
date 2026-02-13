@@ -1,5 +1,6 @@
 with Ada.Characters.Handling;
 with Ada.Containers.Vectors;
+with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Adi.CSS_Styles;        use Adi.CSS_Styles;
@@ -13,18 +14,22 @@ package body Adi.Widget.Html_View is
 
    package Fix renames Ada.Strings.Fixed;
    package Char renames Ada.Characters.Handling;
-   use type Adi.Window.Window_Access;
 
    Panel_Idx : constant Positive := 1;
 
    function Lower (S : String) return String is (Char.To_Lower (S));
+
+   function Trimmed (S : String) return String is
+     (Fix.Trim (S, Ada.Strings.Both));
 
    function Is_Whitespace (C : Character) return Boolean is
      (C = ' ' or else C = ASCII.HT or else C = ASCII.LF or else C = ASCII.CR);
 
    function Is_Block_Tag (Name : String) return Boolean is
    begin
-      return Name = "div"
+      return Name = "html"
+        or else Name = "body"
+        or else Name = "div"
         or else Name = "p"
         or else Name = "h1"
         or else Name = "h2"
@@ -33,6 +38,53 @@ package body Adi.Widget.Html_View is
         or else Name = "li"
         or else Name = "center";
    end Is_Block_Tag;
+
+   function Is_Void_Tag (Name : String) return Boolean is
+   begin
+      return Name = "br"
+        or else Name = "hr"
+        or else Name = "img"
+        or else Name = "link"
+        or else Name = "meta"
+        or else Name = "input";
+   end Is_Void_Tag;
+
+   function Is_Self_Closing
+     (Raw_Tag : String;
+      Name    : String) return Boolean
+   is
+      T : constant String := Trimmed (Raw_Tag);
+   begin
+      if Is_Void_Tag (Name) then
+         return True;
+      end if;
+
+      return T'Length > 0 and then T (T'Last) = '/';
+   end Is_Self_Closing;
+
+   function Find_Tag_End
+     (Source   : String;
+      Open_Pos : Positive) return Natural
+   is
+      I        : Positive := Open_Pos;
+      In_Quote : Character := ASCII.NUL;
+   begin
+      while I <= Source'Last loop
+         if In_Quote = ASCII.NUL then
+            if Source (I) = '"' or else Source (I) = ''' then
+               In_Quote := Source (I);
+            elsif Source (I) = '>' then
+               return I;
+            end if;
+         elsif Source (I) = In_Quote then
+            In_Quote := ASCII.NUL;
+         end if;
+
+         I := I + 1;
+      end loop;
+
+      return 0;
+   end Find_Tag_End;
 
    function Extract_Tag_Name (S : String) return String is
       I : Positive := S'First;
@@ -67,10 +119,14 @@ package body Adi.Widget.Html_View is
       while I <= S'Last and then Is_Whitespace (S (I)) loop
          I := I + 1;
       end loop;
+
       return I <= S'Last and then S (I) = '/';
    end Is_Closing_Tag;
 
-   function Extract_Attribute (Tag_Content : String; Name : String) return String is
+   function Extract_Attribute
+     (Tag_Content : String;
+      Name        : String) return String
+   is
       Name_Low : constant String := Lower (Name);
       I        : Integer := Tag_Content'First;
 
@@ -94,6 +150,7 @@ package body Adi.Widget.Html_View is
          if Start > Tag_Content'Last or else I <= Start then
             return "";
          end if;
+
          return Lower (Tag_Content (Start .. I - 1));
       end Read_Ident;
 
@@ -112,9 +169,11 @@ package body Adi.Widget.Html_View is
             while I <= Tag_Content'Last and then Tag_Content (I) /= Quote loop
                I := I + 1;
             end loop;
+
             if I <= Tag_Content'Last then
                return Tag_Content (Start .. I - 1);
             end if;
+
             return "";
          end if;
 
@@ -127,6 +186,7 @@ package body Adi.Widget.Html_View is
          if I <= Start then
             return "";
          end if;
+
          return Tag_Content (Start .. I - 1);
       end Read_Value;
    begin
@@ -163,33 +223,191 @@ package body Adi.Widget.Html_View is
          return "";
    end Extract_Attribute;
 
-   function Merge_Widget_Style (Base, Override : Widget_Style) return Widget_Style is
-      Result : Widget_Style := Base;
-      Rule_Index : Natural := 0;
-   begin
-      Result.Base := Merge (Result.Base, Override.Base);
+   function Decode_Entities (S : String) return String is
+      Result : Unbounded_String := Null_Unbounded_String;
+      I      : Positive := S'First;
 
-      for I in 1 .. Override.Rule_Count loop
-         Rule_Index := 0;
-         for J in 1 .. Result.Rule_Count loop
-            if Result.Rules (J).Selector = Override.Rules (I).Selector then
-               Rule_Index := J;
-               exit;
-            end if;
-         end loop;
-
-         if Rule_Index = 0 then
-            if Result.Rule_Count < Max_Style_Rules then
-               Add_Rule (Result, Override.Rules (I));
-            end if;
+      function Hex_Value (C : Character) return Integer is
+      begin
+         if C in '0' .. '9' then
+            return Character'Pos (C) - Character'Pos ('0');
+         elsif C in 'a' .. 'f' then
+            return 10 + Character'Pos (C) - Character'Pos ('a');
+         elsif C in 'A' .. 'F' then
+            return 10 + Character'Pos (C) - Character'Pos ('A');
          else
-            Result.Rules (Rule_Index).Style :=
-              Merge (Result.Rules (Rule_Index).Style, Override.Rules (I).Style);
+            return -1;
+         end if;
+      end Hex_Value;
+
+      procedure Append_Entity_Literal (Semi : Natural) is
+      begin
+         if Semi > 0 then
+            Append (Result, S (I .. Semi));
+            I := Semi + 1;
+         else
+            Append (Result, S (I));
+            I := I + 1;
+         end if;
+      end Append_Entity_Literal;
+   begin
+      while I <= S'Last loop
+         if S (I) /= '&' then
+            Append (Result, S (I));
+            I := I + 1;
+         else
+            declare
+               Semi : constant Natural := Fix.Index (S, ";", From => I + 1);
+            begin
+               if Semi = 0 or else Semi <= I + 1 or else Semi - I > 16 then
+                  Append_Entity_Literal (Semi);
+               else
+                  declare
+                     Entity  : constant String := Lower (S (I + 1 .. Semi - 1));
+                     Decoded : Character := ASCII.NUL;
+                     Valid   : Boolean := True;
+                  begin
+                     if Entity = "amp" then
+                        Decoded := '&';
+                     elsif Entity = "lt" then
+                        Decoded := '<';
+                     elsif Entity = "gt" then
+                        Decoded := '>';
+                     elsif Entity = "quot" then
+                        Decoded := '"';
+                     elsif Entity = "apos" or else Entity = "#39" then
+                        Decoded := ''';
+                     elsif Entity'Length > 1 and then Entity (Entity'First) = '#' then
+                        declare
+                           Code : Integer := -1;
+                        begin
+                           if Entity'Length > 2
+                             and then (Entity (Entity'First + 1) = 'x'
+                                       or else Entity (Entity'First + 1) = 'X')
+                           then
+                              Code := 0;
+                              for K in Entity'First + 2 .. Entity'Last loop
+                                 declare
+                                    H : constant Integer := Hex_Value (Entity (K));
+                                 begin
+                                    if H < 0 then
+                                       Code := -1;
+                                       exit;
+                                    end if;
+                                    Code := Code * 16 + H;
+                                 end;
+                              end loop;
+                           else
+                              begin
+                                 Code := Integer'Value (Entity (Entity'First + 1 .. Entity'Last));
+                              exception
+                                 when others =>
+                                    Code := -1;
+                              end;
+                           end if;
+
+                           if Code >= 0 and then Code <= 255 then
+                              Decoded := Character'Val (Code);
+                           else
+                              Valid := False;
+                           end if;
+                        end;
+                     else
+                        Valid := False;
+                     end if;
+
+                     if Valid and then Decoded /= ASCII.NUL then
+                        Append (Result, Decoded);
+                        I := Semi + 1;
+                     else
+                        Append_Entity_Literal (Semi);
+                     end if;
+                  end;
+               end if;
+            end;
          end if;
       end loop;
 
-      return Result;
-   end Merge_Widget_Style;
+      return To_String (Result);
+   end Decode_Entities;
+
+   procedure Append_Child
+     (Self         : in out Html_View;
+      Parent_Index : Positive;
+      Child_Index  : Positive)
+   is
+      Parent_Node : Node := Self.Nodes.Element (Parent_Index);
+   begin
+      if Parent_Node.Kind /= Element_Node then
+         return;
+      end if;
+
+      Parent_Node.Children.Append (Natural (Child_Index));
+      Self.Nodes.Replace_Element (Parent_Index, Parent_Node);
+   end Append_Child;
+
+   function Append_Element_Node
+     (Self   : in out Html_View;
+      Parent : Natural;
+      Tag    : String;
+      Attrs  : Element_Attributes) return Positive
+   is
+      Idx : Positive;
+   begin
+      Self.Nodes.Append
+        (New_Item =>
+           Node'
+             (Kind     => Element_Node,
+              Parent   => Parent,
+              Tag_Name => To_Unbounded_String (Lower (Tag)),
+              Attrs    => Attrs,
+              Children => <>));
+
+      Idx := Positive (Self.Nodes.Last_Index);
+
+      if Parent > 0 then
+         Append_Child (Self, Positive (Parent), Idx);
+      end if;
+
+      return Idx;
+   end Append_Element_Node;
+
+   procedure Append_Text_Node
+     (Self         : in out Html_View;
+      Parent_Index : Positive;
+      S            : String)
+   is
+      Decoded : constant String := Decode_Entities (S);
+      Idx     : Positive;
+   begin
+      if Decoded'Length = 0 then
+         return;
+      end if;
+
+      Self.Nodes.Append
+        (New_Item =>
+           Node'
+             (Kind   => Text_Node,
+              Parent => Natural (Parent_Index),
+              Text   => To_Unbounded_String (Decoded)));
+      Idx := Positive (Self.Nodes.Last_Index);
+      Append_Child (Self, Parent_Index, Idx);
+   end Append_Text_Node;
+
+   procedure Append_Break_Node
+     (Self         : in out Html_View;
+      Parent_Index : Positive)
+   is
+      Idx : Positive;
+   begin
+      Self.Nodes.Append
+        (New_Item =>
+           Node'
+             (Kind   => Break_Node,
+              Parent => Natural (Parent_Index)));
+      Idx := Positive (Self.Nodes.Last_Index);
+      Append_Child (Self, Parent_Index, Idx);
+   end Append_Break_Node;
 
    function Default_Internal_Part_Styles return Part_Style_Array is
       Main_Base : constant Style_Rules := (
@@ -215,37 +433,6 @@ package body Adi.Widget.Html_View is
         Font_Size => Set_Font (Px (15.0)),
         others => <>);
 
-      H1_Base : constant Style_Rules := (
-        Color => Set (RGB (35, 31, 27)),
-        Font_Size => Set_Font (Px (28.0)),
-        Font_Weight => Set (Weight_Bold),
-        others => <>);
-
-      H2_Base : constant Style_Rules := (
-        Color => Set (RGB (48, 43, 37)),
-        Font_Size => Set_Font (Px (20.0)),
-        Font_Weight => Set (Weight_Semi_Bold),
-        others => <>);
-
-      Code_Base : constant Style_Rules := (
-        Color => Set (RGB (66, 57, 46)),
-        Font_Size => Set_Font (Px (14.0)),
-        others => <>);
-
-      Bold_Base : constant Style_Rules := (
-        Color => Set (RGB (40, 35, 30)),
-        Font_Weight => Set (Weight_Bold),
-        others => <>);
-
-      Italic_Base : constant Style_Rules := (
-        Color => Set (RGB (74, 66, 56)),
-        Font_Style => Set (Style_Italic),
-        others => <>);
-
-      Icon_Base : constant Style_Rules := (
-        Object_Fit => Set (Fit_None),
-        others => <>);
-
       Scroll_Base : constant Style_Rules := (
         Width => Set (Size (Px (9.0))),
         Background_Color => Set_Bg (RGBA (127, 103, 75, 0.55)),
@@ -263,16 +450,249 @@ package body Adi.Widget.Html_View is
         Main_Part      => (Style => From (Main_Base).Build, Enabled => True),
         Label_Part     => (Style => From (Label_Base).Build, Enabled => True),
         Indicator_Part => (Style => From (Link_Base).Build, Enabled => True),
-        Cursor_Part    => (Style => From (H1_Base).Build, Enabled => True),
-        Items_Part     => (Style => From (H2_Base).Build, Enabled => True),
-        Any_Part       => (Style => From (Code_Base).Build, Enabled => True),
-        Selected_Part  => (Style => From (Bold_Base).Build, Enabled => True),
-        Custom_Part    => (Style => From (Italic_Base).Build, Enabled => True),
-        Icon_Part      => (Style => From (Icon_Base).Build, Enabled => True),
         Scroll_Part    => (Style => From (Scroll_Base).Build, Enabled => True),
         Knob_Part      => (Style => From (Knob_Base).Build, Enabled => True),
         others         => <>];
    end Default_Internal_Part_Styles;
+
+   function Default_Content_Style return Style_Rules is
+   begin
+      return
+        (Display => Set (Inline),
+         Color => Set (RGB (51, 46, 39)),
+         Font_Size => Set_Font (Px (15.0)),
+         others => <>);
+   end Default_Content_Style;
+
+   function Tag_Default_Style (Tag : String) return Style_Rules is
+      Inline_Base : constant Style_Rules := (Display => Set (Inline), others => <>);
+      Block_Base  : constant Style_Rules := (Display => Set (Block), others => <>);
+      Link_Base   : constant Style_Rules := (
+        Display => Set (Inline),
+        Color => Set (RGB (24, 96, 186)),
+        Text_Decoration => Set (Decoration_Underline),
+        others => <>);
+      H1_Base     : constant Style_Rules := (
+        Display => Set (Block),
+        Color => Set (RGB (35, 31, 27)),
+        Font_Size => Set_Font (Px (28.0)),
+        Font_Weight => Set (Weight_Bold),
+        others => <>);
+      H2_Base     : constant Style_Rules := (
+        Display => Set (Block),
+        Color => Set (RGB (48, 43, 37)),
+        Font_Size => Set_Font (Px (20.0)),
+        Font_Weight => Set (Weight_Semi_Bold),
+        others => <>);
+      Strong_Base : constant Style_Rules := (
+        Display => Set (Inline),
+        Font_Weight => Set (Weight_Bold),
+        others => <>);
+      Em_Base     : constant Style_Rules := (
+        Display => Set (Inline),
+        Font_Style => Set (Style_Italic),
+        others => <>);
+      Code_Base   : constant Style_Rules := (
+        Display => Set (Inline),
+        Color => Set (RGB (66, 57, 46)),
+        Font_Size => Set_Font (Px (14.0)),
+        others => <>);
+      Hr_Base     : constant Style_Rules := (
+        Display => Set (Block),
+        Height => Set (Size (Px (1.0))),
+        Background_Color => Set_Bg (RGBA (127, 103, 75, 0.55)),
+        others => <>);
+      Img_Base    : constant Style_Rules := (
+        Display => Set (Inline_Block),
+        Object_Fit => Set (Fit_None),
+        others => <>);
+      Center_Base : constant Style_Rules := (
+        Display => Set (Block),
+        Text_Align => Set (Text_Center),
+        others => <>);
+   begin
+      if Tag = "html" or else Tag = "body" then
+         return Merge (Block_Base, Default_Content_Style);
+      elsif Tag = "div" or else Tag = "p" or else Tag = "ul" or else Tag = "ol" or else Tag = "li" then
+         return Merge (Block_Base, Default_Content_Style);
+      elsif Tag = "h1" then
+         return Merge (Default_Content_Style, H1_Base);
+      elsif Tag = "h2" then
+         return Merge (Default_Content_Style, H2_Base);
+      elsif Tag = "a" then
+         return Merge (Default_Content_Style, Link_Base);
+      elsif Tag = "strong" or else Tag = "b" then
+         return Merge (Default_Content_Style, Strong_Base);
+      elsif Tag = "em" or else Tag = "i" then
+         return Merge (Default_Content_Style, Em_Base);
+      elsif Tag = "code" then
+         return Merge (Default_Content_Style, Code_Base);
+      elsif Tag = "hr" then
+         return Hr_Base;
+      elsif Tag = "img" then
+         return Img_Base;
+      elsif Tag = "center" then
+         return Merge (Default_Content_Style, Center_Base);
+      elsif Tag = "span" then
+         return Merge (Default_Content_Style, Inline_Base);
+      else
+         return Default_Content_Style;
+      end if;
+   end Tag_Default_Style;
+
+   function Selector_Base_Rules (Styles : Part_Style_Array) return Style_Rules is
+   begin
+      return Styles (Main_Part).Style.Base;
+   end Selector_Base_Rules;
+
+   function Parse_Inline_Style_Rules
+     (Self        : in out Html_View;
+      Inline_Text : String) return Style_Rules
+   is
+      Key : constant String := Trimmed (Inline_Text);
+      Tmp : Adi.CSS_Parser.Stylesheet;
+      Ok  : Boolean := True;
+      Out_Rules : Style_Rules := Empty_Style;
+   begin
+      if Key'Length = 0 then
+         return Empty_Style;
+      end if;
+
+      for Cache_Entry of Self.Inline_Style_Cache loop
+         if To_String (Cache_Entry.Inline_Text) = Key then
+            return Cache_Entry.Rules;
+         end if;
+      end loop;
+
+      Adi.CSS_Parser.Load_String
+        (Tmp,
+         ".__inline__ { " & Key & " }",
+         Ok);
+
+      if Ok then
+         Out_Rules := Selector_Base_Rules (Adi.CSS_Parser.Styles_For_Class (Tmp, "__inline__"));
+      else
+         Adi.Log.Debug ("Html_View: inline style parse failed: " & Key);
+      end if;
+
+      Self.Inline_Style_Cache.Append
+        (New_Item =>
+           Inline_Style_Cache_Entry'
+             (Inline_Text => To_Unbounded_String (Key),
+              Rules       => Out_Rules));
+      return Out_Rules;
+   end Parse_Inline_Style_Rules;
+
+   function Element_Cascade_Rules
+     (Self  : in out Html_View;
+      Tag   : String;
+      Attrs : Element_Attributes) return Style_Rules
+   is
+      Result      : Style_Rules := Tag_Default_Style (Tag);
+      Class_Value : constant String := To_String (Attrs.Class_Attr);
+      Id_Value    : constant String := Lower (Trimmed (To_String (Attrs.Id_Attr)));
+      I           : Integer := Class_Value'First;
+   begin
+      if Adi.CSS_Parser.Has_Tag (Self.CSS_Sheet, Tag) then
+         Result := Merge (Result, Selector_Base_Rules (Adi.CSS_Parser.Styles_For_Tag (Self.CSS_Sheet, Tag)));
+      end if;
+
+      while I <= Class_Value'Last loop
+         while I <= Class_Value'Last and then Is_Whitespace (Class_Value (I)) loop
+            I := I + 1;
+         end loop;
+         exit when I > Class_Value'Last;
+
+         declare
+            Start : constant Integer := I;
+         begin
+            while I <= Class_Value'Last and then not Is_Whitespace (Class_Value (I)) loop
+               I := I + 1;
+            end loop;
+
+            if I > Start then
+               declare
+                  Name : constant String := Lower (Class_Value (Start .. I - 1));
+               begin
+                  if Adi.CSS_Parser.Has_Class (Self.CSS_Sheet, Name) then
+                     Result := Merge
+                       (Result,
+                        Selector_Base_Rules (Adi.CSS_Parser.Styles_For_Class (Self.CSS_Sheet, Name)));
+                  end if;
+               end;
+            end if;
+         end;
+      end loop;
+
+      if Id_Value'Length > 0 and then Adi.CSS_Parser.Has_Id (Self.CSS_Sheet, Id_Value) then
+         Result := Merge (Result, Selector_Base_Rules (Adi.CSS_Parser.Styles_For_Id (Self.CSS_Sheet, Id_Value)));
+      end if;
+
+      if Length (Attrs.Style_Attr) > 0 then
+         Result := Merge (Result, Parse_Inline_Style_Rules (Self, To_String (Attrs.Style_Attr)));
+      end if;
+
+      return Result;
+   end Element_Cascade_Rules;
+
+   function Resolve_Element_Style
+     (Rules      : Style_Rules;
+      Parent     : Resolved_Style;
+      Has_Parent : Boolean) return Resolved_Style
+   is
+      Result : Resolved_Style := Resolve (Rules);
+
+      function Color_Is_Inherit (C : Color_Value) return Boolean is
+      begin
+         return C.Kind = Named and then C.Name = Inherit;
+      end Color_Is_Inherit;
+   begin
+      if not Has_Parent then
+         return Result;
+      end if;
+
+      if (not Opt_Text_Color.Is_Set (Rules.Color)) or else Color_Is_Inherit (Result.Color) then
+         Result.Color := Parent.Color;
+      end if;
+
+      if not Opt_Font.Is_Set (Rules.Font_Family) then
+         Result.Font_Family := Parent.Font_Family;
+      end if;
+
+      if not Opt_Font_Size.Is_Set (Rules.Font_Size) then
+         Result.Font_Size := Parent.Font_Size;
+      end if;
+
+      if not Opt_Font_Weight.Is_Set (Rules.Font_Weight) then
+         Result.Font_Weight := Parent.Font_Weight;
+      end if;
+
+      if not Opt_Font_Style.Is_Set (Rules.Font_Style) then
+         Result.Font_Style := Parent.Font_Style;
+      end if;
+
+      if not Opt_Text_Decoration.Is_Set (Rules.Text_Decoration) then
+         Result.Text_Decoration := Parent.Text_Decoration;
+      end if;
+
+      if not Opt_Text_Align.Is_Set (Rules.Text_Align) then
+         Result.Text_Align := Parent.Text_Align;
+      end if;
+
+      if not Opt_White_Space.Is_Set (Rules.White_Space) then
+         Result.White_Space := Parent.White_Space;
+      end if;
+
+      if not Opt_Text_Wrap_Mode.Is_Set (Rules.Text_Wrap_Mode) then
+         Result.Text_Wrap_Mode := Parent.Text_Wrap_Mode;
+      end if;
+
+      if not Opt_Line_Height.Is_Set (Rules.Line_Height) then
+         Result.Line_Height := Parent.Line_Height;
+      end if;
+
+      return Result;
+   end Resolve_Element_Style;
 
    function Load_Text_Resource
      (Self : in out Html_View;
@@ -292,308 +712,219 @@ package body Adi.Widget.Html_View is
       return "";
    end Load_Text_Resource;
 
-   procedure Apply_Embedded_CSS
-     (Self    : in out Html_View;
+   procedure Load_Combined_CSS
+     (Self     : in out Html_View;
       CSS_Text : String)
    is
-      Combined : Part_Style_Array := Default_Internal_Part_Styles;
-      Success  : Boolean := True;
-
-      procedure Merge_Tag_Main
-        (Tag  : String;
-         Part : Part_Kind)
-      is
-      begin
-         if not Adi.CSS_Parser.Has_Tag (Self.CSS_Sheet, Tag) then
-            return;
-         end if;
-
-         declare
-            Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Tag (Self.CSS_Sheet, Tag);
-         begin
-            Combined (Part).Style :=
-              Merge_Widget_Style (Combined (Part).Style, Styles (Main_Part).Style);
-         end;
-      end Merge_Tag_Main;
+      Success : Boolean := True;
    begin
-      if CSS_Text'Length > 0 then
-         Adi.CSS_Parser.Load_String (Self.CSS_Sheet, CSS_Text, Success);
-         if not Success then
-            Adi.Log.Error
-              ("Html_View CSS parse failed: " & Adi.CSS_Parser.Get_Last_Error (Self.CSS_Sheet));
-         else
-            Merge_Tag_Main ("html", Main_Part);
-            Merge_Tag_Main ("body", Main_Part);
-            Merge_Tag_Main ("p", Label_Part);
-            Merge_Tag_Main ("div", Label_Part);
-            Merge_Tag_Main ("span", Label_Part);
-            Merge_Tag_Main ("li", Label_Part);
-            Merge_Tag_Main ("a", Indicator_Part);
-            Merge_Tag_Main ("h1", Cursor_Part);
-            Merge_Tag_Main ("h2", Items_Part);
-            Merge_Tag_Main ("code", Any_Part);
-            Merge_Tag_Main ("strong", Selected_Part);
-            Merge_Tag_Main ("b", Selected_Part);
-            Merge_Tag_Main ("em", Custom_Part);
-            Merge_Tag_Main ("i", Custom_Part);
-            Merge_Tag_Main ("img", Icon_Part);
-            Merge_Tag_Main ("hr", Scroll_Part);
-         end if;
+      Adi.CSS_Parser.Load_String (Self.CSS_Sheet, CSS_Text, Success);
+      if not Success then
+         Adi.Log.Error
+           ("Html_View CSS parse failed: " & Adi.CSS_Parser.Get_Last_Error (Self.CSS_Sheet));
       end if;
-
-      Set_Part_Styles (Self, Combined);
-   end Apply_Embedded_CSS;
-
-   procedure Append_Token
-     (Self  : in out Html_View;
-      Value : Token)
-   is
-   begin
-      Self.Tokens.Append (Value);
-   end Append_Token;
-
-   procedure Append_Text
-     (Self : in out Html_View;
-      S    : String;
-      Href : String;
-      Style_Kind : Text_Style_Kind)
-   is
-   begin
-      if S'Length = 0 then
-         return;
-      end if;
-
-      Append_Token
-        (Self,
-         (Kind      => Text_Token,
-          Link_Href => To_Unbounded_String (Href),
-          Text      => To_Unbounded_String (S),
-          Style_Kind => Style_Kind));
-   end Append_Text;
-
-   procedure Append_Break (Self : in out Html_View) is
-   begin
-      Append_Token (Self, (Kind => Break_Token, Link_Href => Null_Unbounded_String));
-   end Append_Break;
+   end Load_Combined_CSS;
 
    procedure Parse_HTML (Self : in out Html_View; Source : String) is
-      I            : Positive := Source'First;
-      Text_Start   : Positive := Source'First;
-      Lower_Source : constant String := Lower (Source);
-      CSS_Buffer   : Unbounded_String := Null_Unbounded_String;
-      Active_Href  : Unbounded_String := Null_Unbounded_String;
-      H1_Depth     : Natural := 0;
-      H2_Depth     : Natural := 0;
-      Code_Depth   : Natural := 0;
-      Bold_Depth   : Natural := 0;
-      Italic_Depth : Natural := 0;
-      Last_Was_Brk : Boolean := False;
-
-      function Current_Text_Style return Text_Style_Kind is
-      begin
-         if Code_Depth > 0 then
-            return Code_Text;
-         elsif H1_Depth > 0 then
-            return Heading_1_Text;
-         elsif H2_Depth > 0 then
-            return Heading_2_Text;
-         elsif Bold_Depth > 0 and then Italic_Depth > 0 then
-            return Bold_Italic_Text;
-         elsif Bold_Depth > 0 then
-            return Bold_Text;
-         elsif Italic_Depth > 0 then
-            return Italic_Text;
-         else
-            return Normal_Text;
-         end if;
-      end Current_Text_Style;
-
-      procedure Flush_Text (Stop_At : Natural) is
-      begin
-         if Stop_At >= Text_Start then
-            Append_Text
-              (Self,
-               Source (Text_Start .. Stop_At),
-               To_String (Active_Href),
-               Current_Text_Style);
-            Last_Was_Brk := False;
-         end if;
-      end Flush_Text;
-
-      procedure Ensure_Break is
-      begin
-         if not Last_Was_Brk then
-            Append_Break (Self);
-            Last_Was_Brk := True;
-         end if;
-      end Ensure_Break;
+      Stack      : Node_Index_Vectors.Vector;
+      CSS_Buffer : Unbounded_String := Null_Unbounded_String;
 
       procedure Append_CSS (S : String) is
       begin
          if S'Length = 0 then
             return;
          end if;
+
          Append (CSS_Buffer, S);
          Append (CSS_Buffer, ASCII.LF);
       end Append_CSS;
+
+      function Current_Parent return Positive is
+      begin
+         return Positive (Stack.Element (Positive (Stack.Last_Index)));
+      end Current_Parent;
    begin
-      Self.Tokens.Clear;
+      Self.Nodes.Clear;
 
-      while I <= Source'Last loop
-         if Source (I) = '<' then
-            declare
-               Close_I : constant Natural := Fix.Index (Source, ">", From => I);
-               End_Pos : Natural;
-            begin
-               if Close_I = 0 then
-                  exit;
-               end if;
+      Self.Nodes.Append
+        (New_Item =>
+           Node'
+             (Kind     => Element_Node,
+              Parent   => 0,
+              Tag_Name => To_Unbounded_String ("__root__"),
+              Attrs    => (others => Null_Unbounded_String),
+              Children => <>));
+      Stack.Append (New_Item => 1);
 
-               End_Pos := Close_I;
+      if Source'Length = 0 then
+         Load_Combined_CSS (Self, "");
+         return;
+      end if;
+
+      declare
+         I            : Positive := Source'First;
+         Text_Start   : Positive := Source'First;
+         Lower_Source : constant String := Lower (Source);
+
+         procedure Flush_Text (Stop_At : Natural) is
+         begin
+            if Stop_At >= Text_Start and then Text_Start <= Source'Last then
+               Append_Text_Node (Self, Current_Parent, Source (Text_Start .. Stop_At));
+            end if;
+         end Flush_Text;
+      begin
+         while I <= Source'Last loop
+            if Source (I) /= '<' then
+               I := I + 1;
+            else
                if I > Text_Start then
                   Flush_Text (I - 1);
                end if;
 
-               if End_Pos > I + 1 then
+               if I + 3 <= Source'Last and then Source (I + 1 .. I + 3) = "!--" then
                   declare
-                     Raw_Tag : constant String := Source (I + 1 .. End_Pos - 1);
-                     Name    : constant String := Extract_Tag_Name (Raw_Tag);
-                     Closing : constant Boolean := Is_Closing_Tag (Raw_Tag);
-                     Consumed_Style_Block : Boolean := False;
+                     Comment_End : constant Natural := Fix.Index (Source, "-->", From => I + 4);
                   begin
-                     if Name = "br" then
-                        Ensure_Break;
-                     elsif Name = "style" and then not Closing then
+                     if Comment_End = 0 then
+                        exit;
+                     end if;
+
+                     I := Comment_End + 3;
+                     Text_Start := I;
+                  end;
+               else
+                  declare
+                     End_Pos : Natural := Find_Tag_End (Source, I + 1);
+                  begin
+                     if End_Pos = 0 then
+                        End_Pos := Fix.Index (Source, ">", From => I + 1);
+                     end if;
+
+                     if End_Pos = 0 then
+                        Append_Text_Node (Self, Current_Parent, Source (I .. Source'Last));
+                        exit;
+                     elsif End_Pos <= I + 1 then
+                        I := End_Pos + 1;
+                        Text_Start := I;
+                     else
                         declare
-                           Close_Pos : constant Natural :=
-                             Fix.Index (Lower_Source, "</style>", From => End_Pos + 1);
+                           Raw_Tag      : constant String := Source (I + 1 .. End_Pos - 1);
+                           Name         : constant String := Extract_Tag_Name (Raw_Tag);
+                           Closing      : constant Boolean := Is_Closing_Tag (Raw_Tag);
+                           Consumed_Tag : Boolean := False;
                         begin
-                           if Close_Pos > 0 then
-                              if Close_Pos > End_Pos + 1 then
-                                 Append_CSS (Source (End_Pos + 1 .. Close_Pos - 1));
-                              end if;
-                              I := Close_Pos + 8;
-                              Text_Start := I;
-                              Consumed_Style_Block := True;
-                           end if;
-                        end;
-                     elsif Name = "link" and then not Closing then
-                        declare
-                           Rel  : constant String := Lower (Extract_Attribute (Raw_Tag, "rel"));
-                           Href : constant String := Extract_Attribute (Raw_Tag, "href");
-                        begin
-                           if Rel = "stylesheet" and then Href'Length > 0 then
+                           if Name'Length = 0 then
+                              Append_Text_Node (Self, Current_Parent, Source (I .. End_Pos));
+
+                           elsif Name = "style" and then not Closing then
                               declare
-                                 CSS_Text : constant String := Load_Text_Resource (Self, Href);
+                                 Close_Pos : constant Natural :=
+                                   Fix.Index (Lower_Source, "</style>", From => End_Pos + 1);
                               begin
-                                 if CSS_Text'Length > 0 then
-                                    Append_CSS (CSS_Text);
-                                 else
-                                    Adi.Log.Debug ("Html_View: stylesheet not found: " & Href);
+                                 if Close_Pos = 0 then
+                                    if End_Pos + 1 <= Source'Last then
+                                       Append_CSS (Source (End_Pos + 1 .. Source'Last));
+                                    end if;
+                                    exit;
+                                 end if;
+
+                                 if Close_Pos > End_Pos + 1 then
+                                    Append_CSS (Source (End_Pos + 1 .. Close_Pos - 1));
+                                 end if;
+
+                                 I := Close_Pos + 8;
+                                 Text_Start := I;
+                                 Consumed_Tag := True;
+                              end;
+
+                           elsif Name = "link" and then not Closing then
+                              declare
+                                 Rel  : constant String := Lower (Extract_Attribute (Raw_Tag, "rel"));
+                                 Href : constant String := Extract_Attribute (Raw_Tag, "href");
+                              begin
+                                 if Rel = "stylesheet" and then Href'Length > 0 then
+                                    declare
+                                       CSS_Text : constant String := Load_Text_Resource (Self, Href);
+                                    begin
+                                       if CSS_Text'Length > 0 then
+                                          Append_CSS (CSS_Text);
+                                       else
+                                          Adi.Log.Debug ("Html_View: stylesheet not found: " & Href);
+                                       end if;
+                                    end;
+                                 end if;
+                              end;
+
+                           elsif Name = "br" and then not Closing then
+                              Append_Break_Node (Self, Current_Parent);
+
+                           elsif Closing then
+                              declare
+                                 Match_Pos : Natural := 0;
+                              begin
+                                 for S_Pos in reverse 1 .. Natural (Stack.Length) loop
+                                    declare
+                                       Candidate_Idx : constant Positive :=
+                                         Positive (Stack.Element (Positive (S_Pos)));
+                                       Candidate : constant Node := Self.Nodes.Element (Candidate_Idx);
+                                    begin
+                                       if Candidate.Kind = Element_Node
+                                         and then To_String (Candidate.Tag_Name) = Name
+                                       then
+                                          Match_Pos := S_Pos;
+                                          exit;
+                                       end if;
+                                    end;
+                                 end loop;
+
+                                 if Match_Pos > 1 then
+                                    while Natural (Stack.Length) >= Match_Pos loop
+                                       Stack.Delete_Last;
+                                    end loop;
+                                 end if;
+                              end;
+
+                           else
+                              declare
+                                 Attrs : constant Element_Attributes :=
+                                   (Id_Attr    => To_Unbounded_String (Extract_Attribute (Raw_Tag, "id")),
+                                    Class_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "class")),
+                                    Style_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "style")),
+                                    Href_Attr  => To_Unbounded_String (Extract_Attribute (Raw_Tag, "href")),
+                                    Src_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "src")),
+                                    Alt_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "alt")));
+                                 New_Node_Idx : Positive;
+                              begin
+                                 New_Node_Idx :=
+                                   Append_Element_Node
+                                     (Self,
+                                      Parent => Natural (Current_Parent),
+                                      Tag    => Name,
+                                      Attrs  => Attrs);
+
+                                 if not Is_Self_Closing (Raw_Tag, Name) then
+                                    Stack.Append (New_Item => Natural (New_Node_Idx));
                                  end if;
                               end;
                            end if;
-                        end;
-                     elsif Name = "hr" then
-                        Ensure_Break;
-                        Append_Token (Self, (Kind => Hr_Token, Link_Href => Null_Unbounded_String));
-                        Ensure_Break;
-                     elsif Name = "img" and then not Closing then
-                        declare
-                           Src : constant String := Extract_Attribute (Raw_Tag, "src");
-                           Alt : constant String := Extract_Attribute (Raw_Tag, "alt");
-                        begin
-                           if Src'Length = 0 then
-                              Adi.Log.Debug ("Html_View: img tag without src");
-                           end if;
-                           Append_Token
-                             (Self,
-                              (Kind      => Image_Token,
-                               Link_Href => Active_Href,
-                               Src       => To_Unbounded_String (Src),
-                               Alt       => To_Unbounded_String (Alt)));
-                           Last_Was_Brk := False;
-                        end;
-                     elsif Name = "a" then
-                        if Closing then
-                           Active_Href := Null_Unbounded_String;
-                        else
-                           Active_Href := To_Unbounded_String (Extract_Attribute (Raw_Tag, "href"));
-                           if Length (Active_Href) = 0 then
-                              Adi.Log.Debug ("Html_View: a tag without href");
-                           end if;
-                        end if;
-                     elsif Name = "h1" then
-                        Ensure_Break;
-                        if Closing then
-                           if H1_Depth > 0 then
-                              H1_Depth := H1_Depth - 1;
-                           end if;
-                        else
-                           H1_Depth := H1_Depth + 1;
-                        end if;
-                     elsif Name = "h2" then
-                        Ensure_Break;
-                        if Closing then
-                           if H2_Depth > 0 then
-                              H2_Depth := H2_Depth - 1;
-                           end if;
-                        else
-                           H2_Depth := H2_Depth + 1;
-                        end if;
-                     elsif Name = "code" then
-                        if Closing then
-                           if Code_Depth > 0 then
-                              Code_Depth := Code_Depth - 1;
-                           end if;
-                        else
-                           Code_Depth := Code_Depth + 1;
-                        end if;
-                     elsif Name = "b" or else Name = "strong" then
-                        if Closing then
-                           if Bold_Depth > 0 then
-                              Bold_Depth := Bold_Depth - 1;
-                           end if;
-                        else
-                           Bold_Depth := Bold_Depth + 1;
-                        end if;
-                     elsif Name = "em" or else Name = "i" then
-                        if Closing then
-                           if Italic_Depth > 0 then
-                              Italic_Depth := Italic_Depth - 1;
-                           end if;
-                        else
-                           Italic_Depth := Italic_Depth + 1;
-                        end if;
-                     elsif Is_Block_Tag (Name) then
-                        Ensure_Break;
-                        if not Closing and then Name = "li" then
-                           Append_Text (Self, "* ", "", Current_Text_Style);
-                        end if;
-                     end if;
 
-                     if not Consumed_Style_Block then
-                        I := End_Pos + 1;
-                        Text_Start := I;
+                           if not Consumed_Tag then
+                              I := End_Pos + 1;
+                              Text_Start := I;
+                           end if;
+                        end;
                      end if;
                   end;
                end if;
+            end if;
+         end loop;
 
-               if I <= End_Pos then
-                  I := End_Pos + 1;
-                  Text_Start := I;
-               end if;
-            end;
-         else
-            I := I + 1;
+         if Text_Start <= Source'Last then
+            Flush_Text (Source'Last);
          end if;
-      end loop;
+      end;
 
-      if Text_Start <= Source'Last then
-         Flush_Text (Source'Last);
-      end if;
-
-      Apply_Embedded_CSS (Self, To_String (CSS_Buffer));
+      Load_Combined_CSS (Self, To_String (CSS_Buffer));
    end Parse_HTML;
 
    function Lookup_Image
@@ -603,7 +934,7 @@ package body Adi.Widget.Html_View is
    begin
       for I in 1 .. Natural (Self.Image_Cache.Length) loop
          declare
-            Cache_Entry : constant Cached_Image := Self.Image_Cache.Element (I);
+            Cache_Entry : constant Cached_Image := Self.Image_Cache.Element (Positive (I));
          begin
             if To_String (Cache_Entry.Src) = Src then
                return Cache_Entry.Img;
@@ -634,7 +965,7 @@ package body Adi.Widget.Html_View is
       end if;
 
       Self.Image_Cache.Append
-        (Cached_Image'(Src => To_Unbounded_String (Src), Img => Img));
+        (New_Item => Cached_Image'(Src => To_Unbounded_String (Src), Img => Img));
       return Img;
    end Resolve_Image;
 
@@ -649,8 +980,18 @@ package body Adi.Widget.Html_View is
            Weight     => Style.Font_Weight,
            Style      => Style.Font_Style,
            Decoration => Style.Text_Decoration);
+      Measured : Size_2D;
+      Font_Px  : constant Pixel_Type := Pixel_Type'Max (1.0, Length_To_Px (Style.Font_Size));
    begin
-      return Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => S);
+      Measured := Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => S);
+
+      if S'Length > 0 and then (Measured.Width <= 0.0 or else Measured.Height <= 0.0) then
+         return
+           (Width  => Pixel_Type'Max (1.0, Pixel_Type (S'Length) * Font_Px * 0.55),
+            Height => Pixel_Type'Max (1.0, Font_Px * 1.2));
+      end if;
+
+      return Measured;
    end Measure_Text;
 
    function Measure_Line_Height
@@ -665,12 +1006,26 @@ package body Adi.Widget.Html_View is
            Decoration => Style.Text_Decoration);
       Font : constant TTF_Font_Access := Adi.Font.Get_TTF_Font (Font_Attrs);
       M_H  : constant Pixel_Type := Measure_Text (Style, "M").Height;
+      Natural_Line : Pixel_Type := Pixel_Type'Max (1.0, M_H);
+      Result : Pixel_Type := 0.0;
    begin
-      if Font = null then
-         return Pixel_Type'Max (1.0, M_H);
+      if Font /= null then
+         Natural_Line := Pixel_Type'Max (Natural_Line, Pixel_Type (TTF_GetFontLineSkip (Font)));
       end if;
 
-      return Pixel_Type'Max (Pixel_Type (TTF_GetFontLineSkip (Font)), Pixel_Type'Max (1.0, M_H));
+      case Style.Line_Height.Kind is
+         when LH_Normal =>
+            Result := Natural_Line;
+         when LH_Number =>
+            Result := Pixel_Type'Max (1.0, Natural_Line * Pixel_Type (Style.Line_Height.Multiplier));
+         when LH_Length =>
+            Result := Pixel_Type'Max
+              (1.0,
+               Length_To_Px (Style.Line_Height.Height,
+                             Container_Size => Natural_Line));
+      end case;
+
+      return Pixel_Type'Max (1.0, Result);
    end Measure_Line_Height;
 
    function Measure_Ascent
@@ -683,20 +1038,49 @@ package body Adi.Widget.Html_View is
            Weight     => Style.Font_Weight,
            Style      => Style.Font_Style,
            Decoration => Style.Text_Decoration);
-      Font : constant TTF_Font_Access := Adi.Font.Get_TTF_Font (Font_Attrs);
+      Font   : constant TTF_Font_Access := Adi.Font.Get_TTF_Font (Font_Attrs);
       Line_H : constant Pixel_Type := Measure_Line_Height (Style);
+      Asc    : Pixel_Type := Line_H * 0.8;
    begin
-      if Font = null then
-         return Pixel_Type'Max (1.0, Line_H * 0.8);
+      if Font /= null then
+         Asc := Pixel_Type (TTF_GetFontAscent (Font));
+         if Asc <= 0.0 then
+            Asc := Line_H * 0.8;
+         end if;
       end if;
 
-      return
-        Pixel_Type'Max
-          (1.0,
-           Pixel_Type'Max
-             (Pixel_Type (TTF_GetFontAscent (Font)),
-              Line_H * 0.6));
+      return Pixel_Type'Min (Line_H, Pixel_Type'Max (1.0, Asc));
    end Measure_Ascent;
+
+   function Measure_Descent
+     (Style : Resolved_Style) return Pixel_Type
+   is
+      Font_Attrs : constant Adi.Font.Font_Attributes :=
+        Adi.Font.Make_Attributes
+          (Family     => Style.Font_Family,
+           Size       => Float (Length_To_Px (Style.Font_Size)),
+           Weight     => Style.Font_Weight,
+           Style      => Style.Font_Style,
+           Decoration => Style.Text_Decoration);
+      Font   : constant TTF_Font_Access := Adi.Font.Get_TTF_Font (Font_Attrs);
+      Line_H : constant Pixel_Type := Measure_Line_Height (Style);
+      Desc   : Pixel_Type := 0.0;
+   begin
+      if Font = null then
+         return Pixel_Type'Max (0.0, Line_H - Measure_Ascent (Style));
+      end if;
+
+      Desc := Pixel_Type (TTF_GetFontDescent (Font));
+      if Desc < 0.0 then
+         Desc := -Desc;
+      end if;
+
+      if Desc <= 0.0 then
+         Desc := Pixel_Type'Max (0.0, Line_H - Measure_Ascent (Style));
+      end if;
+
+      return Pixel_Type'Min (Line_H, Pixel_Type'Max (0.0, Desc));
+   end Measure_Descent;
 
    function Find_Link_At
      (Self : Html_View;
@@ -705,7 +1089,7 @@ package body Adi.Widget.Html_View is
    begin
       for I in 1 .. Natural (Self.Links.Length) loop
          declare
-            Frag : constant Link_Fragment := Self.Links.Element (I);
+            Frag : constant Link_Fragment := Self.Links.Element (Positive (I));
             G    : constant Rectangle := Frag.Geometry;
          begin
             if X >= G.X and then X <= G.X + G.Width
@@ -720,28 +1104,27 @@ package body Adi.Widget.Html_View is
    end Find_Link_At;
 
    procedure Layout_And_Build (Self : in out Html_View) is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (Self, Main_Part);
-      Text_Style : constant Resolved_Style := Get_Resolved_Part_Style (Self, Label_Part);
-      Link_Style : constant Resolved_Style := Get_Resolved_Part_Style (Self, Indicator_Part);
-      H1_Style   : constant Resolved_Style := Get_Resolved_Part_Style (Self, Cursor_Part);
-      H2_Style   : constant Resolved_Style := Get_Resolved_Part_Style (Self, Items_Part);
-      Code_Style : constant Resolved_Style := Get_Resolved_Part_Style (Self, Any_Part);
-      Bold_Style : constant Resolved_Style := Get_Resolved_Part_Style (Self, Selected_Part);
-      Italic_Style : constant Resolved_Style := Get_Resolved_Part_Style (Self, Custom_Part);
-      Content    : constant Rectangle := Content_Box (Self.Geometry, Main_Style);
+      Main_Style       : constant Resolved_Style := Get_Resolved_Part_Style (Self, Main_Part);
+      Label_Part_Style : constant Resolved_Style := Get_Resolved_Part_Style (Self, Label_Part);
+      Content          : constant Rectangle := Content_Box (Self.Geometry, Main_Style);
+
+      Document_Rules   : Style_Rules := Tag_Default_Style ("body");
+      Document_Style   : Resolved_Style;
 
       X : Pixel_Type := Content.X;
       Y : Pixel_Type := Content.Y - Get_Scroll_Offset_Y (Self);
-      Base_Line_H : constant Pixel_Type :=
-        Pixel_Type'Max (1.0, Measure_Line_Height (Text_Style));
-      Base_Ascent : constant Pixel_Type :=
-        Pixel_Type'Max (1.0, Measure_Ascent (Text_Style));
-      Current_Line_H : Pixel_Type := Base_Line_H;
-      Current_Line_Ascent : Pixel_Type := Base_Ascent;
+
+      Line_Base_H       : Pixel_Type := 1.0;
+      Line_Base_Ascent  : Pixel_Type := 1.0;
+      Line_Base_Descent : Pixel_Type := 0.0;
+      Current_Line_H       : Pixel_Type := 1.0;
+      Current_Line_Ascent  : Pixel_Type := 1.0;
+      Current_Line_Descent : Pixel_Type := 0.0;
       Pending_Space : Boolean := False;
 
       type Line_Run_Record is record
          Item_Index : Positive := 1;
+         Link_Index : Natural := 0;
       end record;
 
       package Line_Run_Vectors is new Ada.Containers.Vectors
@@ -763,140 +1146,566 @@ package body Adi.Widget.Html_View is
             Height => Pixel_Type'Max (0.0, Y2 - Y1));
       end Clip_To_Content;
 
+      function Has_Line_Content return Boolean is
+      begin
+         return X > Content.X or else Natural (Line_Runs.Length) > 0;
+      end Has_Line_Content;
+
+      procedure Sync_Line_Heights is
+      begin
+         for Run of Line_Runs loop
+            declare
+               Item_Ref : Item renames Self.Items.Reference (Run.Item_Index).Element.all;
+            begin
+               Item_Ref.Geometry.Height := Pixel_Type'Max (Item_Ref.Geometry.Height, Current_Line_H);
+            end;
+         end loop;
+      end Sync_Line_Heights;
+
+      procedure Shift_Line (Delta_Y : Pixel_Type) is
+      begin
+         if Delta_Y <= 0.0 then
+            return;
+         end if;
+
+         for Run of Line_Runs loop
+            declare
+               Item_Ref : Item renames Self.Items.Reference (Run.Item_Index).Element.all;
+            begin
+               if Item_Ref.Kind = Text_Item then
+                  Item_Ref.Text_Offset_Y := Item_Ref.Text_Offset_Y + Delta_Y;
+               else
+                  Item_Ref.Geometry.Y := Item_Ref.Geometry.Y + Delta_Y;
+               end if;
+            end;
+
+            if Run.Link_Index > 0 and then Run.Link_Index <= Natural (Self.Links.Length) then
+               declare
+                  Link_Ref : Link_Fragment renames
+                    Self.Links.Reference (Positive (Run.Link_Index)).Element.all;
+               begin
+                  Link_Ref.Geometry.Y := Link_Ref.Geometry.Y + Delta_Y;
+               end;
+            end if;
+         end loop;
+      end Shift_Line;
+
       procedure New_Line is
       begin
+         Sync_Line_Heights;
          X := Content.X;
          Y := Y + Current_Line_H;
-         Current_Line_H := Base_Line_H;
-         Current_Line_Ascent := Base_Ascent;
+         Current_Line_H := Line_Base_H;
+         Current_Line_Ascent := Line_Base_Ascent;
+         Current_Line_Descent := Line_Base_Descent;
          Line_Runs.Clear;
          Pending_Space := False;
       end New_Line;
 
-      procedure Add_Link_Fragment
-        (Geom : Rectangle;
-         Href : String)
-      is
+      function Wrap_Allowed (Style : Resolved_Style) return Boolean is
       begin
-         if Href'Length = 0 or else Geom.Width <= 0.0 or else Geom.Height <= 0.0 then
-            return;
+         return Style.Text_Wrap_Mode = TWM_Wrap
+           and then Style.White_Space /= WS_Nowrap
+           and then Style.White_Space /= WS_Pre;
+      end Wrap_Allowed;
+
+      function Add_Link_Fragment
+        (Geom : Rectangle;
+         Href : String) return Natural
+      is
+         Clipped : constant Rectangle := Clip_To_Content (Geom);
+      begin
+         if Href'Length = 0
+           or else Clipped.Width <= 0.0
+           or else Clipped.Height <= 0.0
+         then
+            return 0;
          end if;
 
          Self.Links.Append
-           (Link_Fragment'(Geometry => Geom, Href => To_Unbounded_String (Href)));
+           (New_Item => Link_Fragment'(Geometry => Clipped, Href => To_Unbounded_String (Href)));
+         return Natural (Self.Links.Last_Index);
       end Add_Link_Fragment;
 
       procedure Add_Text_Run
-        (Text : String;
-         Href : String;
-         Style_Kind : Text_Style_Kind)
+        (Text  : String;
+         Href  : String;
+         Style : Resolved_Style)
       is
-         Style       : constant Resolved_Style :=
-           (if Href'Length > 0 then
-               Link_Style
-            elsif Style_Kind = Heading_1_Text then
-               H1_Style
-            elsif Style_Kind = Heading_2_Text then
-               H2_Style
-            elsif Style_Kind = Code_Text then
-               Code_Style
-            elsif Style_Kind = Bold_Text then
-               Bold_Style
-            elsif Style_Kind = Italic_Text then
-               Italic_Style
-            elsif Style_Kind = Bold_Italic_Text then
-               (Bold_Style with delta Font_Style => Italic_Style.Font_Style)
-            else
-               Text_Style);
          Slice_First : Integer := Text'First;
-         Run_W       : Pixel_Type := Measure_Text (Style, Text).Width;
-         Geom        : Rectangle;
-         Text_Part   : Part_Kind := Label_Part;
+         Slice_Last  : constant Integer := Text'Last;
+         Draw_Text   : Unbounded_String := Null_Unbounded_String;
+         Run_W       : Pixel_Type := 0.0;
+         Run_H       : Pixel_Type := 1.0;
+         Run_Ascent  : Pixel_Type := 1.0;
+         Run_Descent : Pixel_Type := 0.0;
+         Full_Geom   : Rectangle := (0.0, 0.0, 0.0, 0.0);
       begin
          if Text'Length = 0 then
             return;
          end if;
 
-         if X > Content.X and then X + Run_W > Content.X + Content.Width then
+         if Wrap_Allowed (Style)
+           and then X > Content.X
+           and then X + Measure_Text (Style, Text).Width > Content.X + Content.Width
+         then
             New_Line;
-            if Slice_First <= Text'Last and then Text (Slice_First) = ' ' then
+            while Slice_First <= Slice_Last and then Text (Slice_First) = ' ' loop
                Slice_First := Slice_First + 1;
-               if Slice_First > Text'Last then
-                  return;
-               end if;
-               Run_W := Measure_Text (Style, Text (Slice_First .. Text'Last)).Width;
-            end if;
+            end loop;
          end if;
 
-         if Href'Length > 0 then
-            Text_Part := Indicator_Part;
-         elsif Style_Kind = Heading_1_Text then
-            Text_Part := Cursor_Part;
-         elsif Style_Kind = Heading_2_Text then
-            Text_Part := Items_Part;
-         elsif Style_Kind = Code_Text then
-            Text_Part := Any_Part;
-         elsif Style_Kind = Bold_Text then
-            Text_Part := Selected_Part;
-         elsif Style_Kind = Italic_Text or else Style_Kind = Bold_Italic_Text then
-            Text_Part := Custom_Part;
-         else
-            Text_Part := Label_Part;
+         if Slice_First > Slice_Last then
+            return;
          end if;
 
          declare
-            Draw_This : constant String := Text (Slice_First .. Text'Last);
-            Run_H     : constant Pixel_Type := Measure_Line_Height (Style);
-            Run_Ascent : constant Pixel_Type := Measure_Ascent (Style);
-            Full_Geom : Rectangle;
-            Hit_Geom  : Rectangle;
-            Baseline_Shift : Pixel_Type := 0.0;
+            S : constant String := Text (Slice_First .. Slice_Last);
          begin
-            if Run_Ascent > Current_Line_Ascent then
-               Baseline_Shift := Run_Ascent - Current_Line_Ascent;
-               Current_Line_Ascent := Run_Ascent;
-
-               for J in 1 .. Natural (Line_Runs.Length) loop
-                  declare
-                     Idx : constant Positive := Line_Runs.Element (J).Item_Index;
-                  begin
-                     Self.Items.Reference (Idx).Text_Offset_Y :=
-                       Self.Items.Reference (Idx).Text_Offset_Y + Baseline_Shift;
-                  end;
-               end loop;
-            end if;
-
-            Full_Geom :=
-              (X      => X,
-               Y      => Y,
-               Width  => Run_W,
-               Height => Run_H);
-            Hit_Geom := Clip_To_Content (Full_Geom);
-
-            if Hit_Geom.Width > 0.0 and then Hit_Geom.Height > 0.0 then
-               Geom := Full_Geom;
-               Add_Item (Self,
-                         Make_Text (Text_Part,
-                                    Geom,
-                                    Draw_This,
-                                    1));
-               Self.Items.Reference (Positive (Self.Items.Last_Index)).Text_Offset_Y :=
-                 Current_Line_Ascent - Run_Ascent;
-               Self.Items.Reference (Positive (Self.Items.Last_Index)).Wrap_Text := False;
-               Line_Runs.Append
-                 (Line_Run_Record'(Item_Index => Positive (Self.Items.Last_Index)));
-               Add_Link_Fragment (Hit_Geom, Href);
-            end if;
-
-            Current_Line_H := Pixel_Type'Max (Current_Line_H, Run_H);
-
-            X := X + Run_W;
+            Draw_Text := To_Unbounded_String (S);
          end;
+
+         Run_W := Measure_Text (Style, To_String (Draw_Text)).Width;
+         Run_H := Measure_Line_Height (Style);
+         Run_Ascent := Measure_Ascent (Style);
+         Run_Descent := Measure_Descent (Style);
+
+         if Run_Ascent > Current_Line_Ascent then
+            declare
+               Shift_Amount : constant Pixel_Type := Run_Ascent - Current_Line_Ascent;
+            begin
+               Current_Line_Ascent := Run_Ascent;
+               Shift_Line (Shift_Amount);
+            end;
+         end if;
+
+         if Run_Descent > Current_Line_Descent then
+            Current_Line_Descent := Run_Descent;
+         end if;
+
+         Current_Line_H :=
+           Pixel_Type'Max
+             (Current_Line_H,
+              Pixel_Type'Max (Run_H, Current_Line_Ascent + Current_Line_Descent));
+
+         Full_Geom :=
+           (X      => X,
+            Y      => Y,
+            Width  => Run_W,
+            Height => Current_Line_H);
+
+         declare
+            Clipped : constant Rectangle := Clip_To_Content (Full_Geom);
+         begin
+            if Clipped.Width > 0.0 and then Clipped.Height > 0.0 then
+               declare
+                  It : Item :=
+                    Make_Text
+                       ((if Href'Length > 0 then Indicator_Part else Label_Part),
+                        Full_Geom,
+                        To_String (Draw_Text),
+                        1);
+                  Item_Index : Positive;
+                  Link_Index : Natural := 0;
+               begin
+                  It.Wrap_Text := False;
+                  It.Text_Offset_Y := Current_Line_Ascent - Run_Ascent;
+                  It.Has_Style_Override := True;
+                  It.Style_Override := Style;
+                  Add_Item (Self, It);
+
+                  Item_Index := Positive (Self.Items.Last_Index);
+                  Link_Index := Add_Link_Fragment (Full_Geom, Href);
+                  Line_Runs.Append
+                    (New_Item =>
+                       Line_Run_Record'
+                         (Item_Index => Item_Index,
+                          Link_Index => Link_Index));
+               end;
+            end if;
+         end;
+
+         X := X + Run_W;
       end Add_Text_Run;
+
+      procedure Add_Image_Run
+        (Img   : Adi.Image.Image_Access;
+         Width : Pixel_Type;
+         Height : Pixel_Type;
+         Href  : String;
+         Style : Resolved_Style)
+      is
+         Run_Ascent  : constant Pixel_Type := Height;
+         Run_Descent : constant Pixel_Type := 0.0;
+         Top_Y       : Pixel_Type := 0.0;
+         Full_Geom   : Rectangle := (0.0, 0.0, 0.0, 0.0);
+      begin
+         if Width <= 0.0 or else Height <= 0.0 then
+            return;
+         end if;
+
+         if Wrap_Allowed (Style)
+           and then X > Content.X
+           and then X + Width > Content.X + Content.Width
+         then
+            New_Line;
+         end if;
+
+         if Run_Ascent > Current_Line_Ascent then
+            declare
+               Shift_Amount : constant Pixel_Type := Run_Ascent - Current_Line_Ascent;
+            begin
+               Current_Line_Ascent := Run_Ascent;
+               Shift_Line (Shift_Amount);
+            end;
+         end if;
+
+         if Run_Descent > Current_Line_Descent then
+            Current_Line_Descent := Run_Descent;
+         end if;
+
+         Current_Line_H :=
+           Pixel_Type'Max
+             (Current_Line_H,
+              Pixel_Type'Max (Height, Current_Line_Ascent + Current_Line_Descent));
+
+         Top_Y := Y + (Current_Line_Ascent - Run_Ascent);
+         Full_Geom :=
+           (X      => X,
+            Y      => Top_Y,
+            Width  => Width,
+            Height => Height);
+
+         declare
+            Clipped : constant Rectangle := Clip_To_Content (Full_Geom);
+         begin
+            if Clipped.Width > 0.0 and then Clipped.Height > 0.0 then
+               declare
+                  It : Item := Make_Image (Icon_Part, Full_Geom, Img, 1);
+                  Item_Index : Positive;
+                  Link_Index : Natural := 0;
+               begin
+                  It.Has_Style_Override := True;
+                  It.Style_Override := Style;
+                  Add_Item (Self, It);
+
+                  Item_Index := Positive (Self.Items.Last_Index);
+                  Link_Index := Add_Link_Fragment (Full_Geom, Href);
+                  Line_Runs.Append
+                    (New_Item =>
+                       Line_Run_Record'
+                         (Item_Index => Item_Index,
+                          Link_Index => Link_Index));
+               end;
+            end if;
+         end;
+
+         X := X + Width;
+      end Add_Image_Run;
+
+      procedure Add_Horizontal_Rule (Style : Resolved_Style) is
+         Rule_H : Pixel_Type := 1.0;
+         Rule_Geom : Rectangle;
+      begin
+         if Has_Line_Content or else Pending_Space then
+            New_Line;
+         end if;
+
+         if Style.Height.Kind = Fixed then
+            Rule_H := Pixel_Type'Max
+              (1.0,
+               Length_To_Px (Style.Height.Size,
+                             Container_Size => Content.Height));
+         end if;
+
+         Current_Line_H := Pixel_Type'Max (Current_Line_H, Rule_H);
+         Rule_Geom :=
+           (X      => Content.X,
+            Y      => Y + (Current_Line_H - Rule_H) / 2.0,
+            Width  => Content.Width,
+            Height => Rule_H);
+
+         declare
+            Clipped : constant Rectangle := Clip_To_Content (Rule_Geom);
+         begin
+            if Clipped.Width > 0.0 and then Clipped.Height > 0.0 then
+               declare
+                  It : Item := Make_Panel (Any_Part, Rule_Geom, 1);
+               begin
+                  It.Has_Style_Override := True;
+                  It.Style_Override := Style;
+                  Add_Item (Self, It);
+               end;
+            end if;
+         end;
+
+         New_Line;
+      end Add_Horizontal_Rule;
+
+      procedure Process_Collapsed_Text
+        (Text  : String;
+         Href  : String;
+         Style : Resolved_Style)
+      is
+         Start : Integer := Text'First;
+         Stop  : Integer := Text'First;
+      begin
+         while Start <= Text'Last loop
+            if Is_Whitespace (Text (Start)) then
+               Pending_Space := True;
+               Start := Start + 1;
+            else
+               Stop := Start;
+               while Stop <= Text'Last and then not Is_Whitespace (Text (Stop)) loop
+                  Stop := Stop + 1;
+               end loop;
+
+               declare
+                  Prefix : constant String :=
+                    (if Pending_Space and then X > Content.X then " " else "");
+                  Word : constant String := Text (Start .. Stop - 1);
+               begin
+                  Add_Text_Run (Prefix & Word, Href, Style);
+               end;
+
+               Pending_Space := False;
+               Start := Stop;
+            end if;
+         end loop;
+      end Process_Collapsed_Text;
+
+      procedure Process_Pre_Text
+        (Text  : String;
+         Href  : String;
+         Style : Resolved_Style)
+      is
+         Buffer : Unbounded_String := Null_Unbounded_String;
+      begin
+         for C of Text loop
+            if C = ASCII.CR then
+               null;
+            elsif C = ASCII.LF then
+               if Length (Buffer) > 0 then
+                  Add_Text_Run (To_String (Buffer), Href, Style);
+                  Buffer := Null_Unbounded_String;
+               end if;
+               New_Line;
+            else
+               Append (Buffer, C);
+            end if;
+         end loop;
+
+         if Length (Buffer) > 0 then
+            Add_Text_Run (To_String (Buffer), Href, Style);
+         end if;
+
+         Pending_Space := False;
+      end Process_Pre_Text;
+
+      procedure Process_Pre_Line_Text
+        (Text  : String;
+         Href  : String;
+         Style : Resolved_Style)
+      is
+         Segment_Start : Integer := Text'First;
+         I             : Integer := Text'First;
+      begin
+         while I <= Text'Last loop
+            if Text (I) = ASCII.LF or else Text (I) = ASCII.CR then
+               if I > Segment_Start then
+                  Process_Collapsed_Text (Text (Segment_Start .. I - 1), Href, Style);
+               end if;
+
+               New_Line;
+               Pending_Space := False;
+
+               if Text (I) = ASCII.CR and then I < Text'Last and then Text (I + 1) = ASCII.LF then
+                  I := I + 1;
+               end if;
+               Segment_Start := I + 1;
+            end if;
+
+            I := I + 1;
+         end loop;
+
+         if Segment_Start <= Text'Last then
+            Process_Collapsed_Text (Text (Segment_Start .. Text'Last), Href, Style);
+         end if;
+      end Process_Pre_Line_Text;
+
+      procedure Process_Text_Node
+        (Text  : String;
+         Href  : String;
+         Style : Resolved_Style)
+      is
+      begin
+         if Text'Length = 0 then
+            return;
+         end if;
+
+         case Style.White_Space is
+            when WS_Pre | WS_Pre_Wrap =>
+               Process_Pre_Text (Text, Href, Style);
+            when WS_Pre_Line =>
+               Process_Pre_Line_Text (Text, Href, Style);
+            when others =>
+               Process_Collapsed_Text (Text, Href, Style);
+         end case;
+      end Process_Text_Node;
+
+      function Is_Block_Element
+        (Tag   : String;
+         Rules : Style_Rules;
+         Style : Resolved_Style) return Boolean
+      is
+      begin
+         if Opt_Display.Is_Set (Rules.Display) then
+            return Style.Display in Block | Flex | Grid;
+         end if;
+
+         return Is_Block_Tag (Tag);
+      end Is_Block_Element;
+
+      function List_Marker (Node_Index : Positive) return String is
+         N : constant Node := Self.Nodes.Element (Node_Index);
+      begin
+         if N.Parent = 0 then
+            return "* ";
+         end if;
+
+         declare
+            Parent_Node : constant Node := Self.Nodes.Element (Positive (N.Parent));
+            Parent_Tag  : constant String :=
+              (if Parent_Node.Kind = Element_Node
+               then To_String (Parent_Node.Tag_Name)
+               else "");
+            Count : Natural := 0;
+         begin
+            if Parent_Tag /= "ol" then
+               return "* ";
+            end if;
+
+            for Child_Idx of Parent_Node.Children loop
+               exit when Child_Idx = Natural (Node_Index);
+
+               if Child_Idx > 0 then
+                  declare
+                     C : constant Node := Self.Nodes.Element (Positive (Child_Idx));
+                  begin
+                     if C.Kind = Element_Node and then To_String (C.Tag_Name) = "li" then
+                        Count := Count + 1;
+                     end if;
+                  end;
+               end if;
+            end loop;
+
+            return Trimmed (Natural'Image (Count + 1)) & ". ";
+         end;
+      end List_Marker;
+
+      procedure Layout_Node
+        (Node_Index   : Positive;
+         Parent_Style : Resolved_Style;
+         Active_Link  : String)
+      is
+         N : constant Node := Self.Nodes.Element (Node_Index);
+      begin
+         case N.Kind is
+            when Text_Node =>
+               Process_Text_Node (To_String (N.Text), Active_Link, Parent_Style);
+
+            when Break_Node =>
+               New_Line;
+
+            when Element_Node =>
+               declare
+                  Tag : constant String := To_String (N.Tag_Name);
+                  Rules : constant Style_Rules := Element_Cascade_Rules (Self, Tag, N.Attrs);
+                  Style : constant Resolved_Style := Resolve_Element_Style (Rules, Parent_Style, True);
+                  Link_Href : constant String :=
+                    (if Tag = "a" then To_String (N.Attrs.Href_Attr) else Active_Link);
+               begin
+                  if Tag = "img" then
+                     declare
+                        Src : constant String := To_String (N.Attrs.Src_Attr);
+                        Alt : constant String := To_String (N.Attrs.Alt_Attr);
+                        Img : constant Adi.Image.Image_Access := Resolve_Image (Self, Src);
+                        W   : Pixel_Type := 0.0;
+                        H   : Pixel_Type := 0.0;
+                     begin
+                        if Img /= null and then Adi.Image.Is_Valid (Img.all) then
+                           Adi.Image.Get_Size (Img.all, W, H);
+                           if H <= 0.0 then
+                              H := Pixel_Type'Max (1.0, Measure_Line_Height (Style));
+                           end if;
+                        end if;
+
+                        if W > 0.0 then
+                           Add_Image_Run (Img, W, H, Link_Href, Style);
+                        elsif Alt'Length > 0 then
+                           Add_Text_Run (Alt, Link_Href, Style);
+                        end if;
+
+                        Pending_Space := True;
+                     end;
+
+                  elsif Tag = "hr" then
+                     Add_Horizontal_Rule (Style);
+
+                  else
+                     declare
+                        Block_Flow : constant Boolean := Is_Block_Element (Tag, Rules, Style);
+                        Prev_Base_H       : constant Pixel_Type := Line_Base_H;
+                        Prev_Base_Ascent  : constant Pixel_Type := Line_Base_Ascent;
+                        Prev_Base_Descent : constant Pixel_Type := Line_Base_Descent;
+                     begin
+                        if Block_Flow then
+                           if Has_Line_Content or else Pending_Space then
+                              New_Line;
+                           end if;
+
+                           Line_Base_H := Pixel_Type'Max (1.0, Measure_Line_Height (Style));
+                           Line_Base_Ascent := Pixel_Type'Max (1.0, Measure_Ascent (Style));
+                           Line_Base_Descent := Pixel_Type'Max (0.0, Measure_Descent (Style));
+                           Current_Line_H := Line_Base_H;
+                           Current_Line_Ascent := Line_Base_Ascent;
+                           Current_Line_Descent := Line_Base_Descent;
+                           Pending_Space := False;
+
+                           if Tag = "li" then
+                              Add_Text_Run (List_Marker (Node_Index), "", Style);
+                           end if;
+                        end if;
+
+                        for Child_Idx of N.Children loop
+                           if Child_Idx > 0 then
+                              Layout_Node (Positive (Child_Idx), Style, Link_Href);
+                           end if;
+                        end loop;
+
+                        if Block_Flow then
+                           if Has_Line_Content or else Pending_Space then
+                              New_Line;
+                           end if;
+
+                           Line_Base_H := Prev_Base_H;
+                           Line_Base_Ascent := Prev_Base_Ascent;
+                           Line_Base_Descent := Prev_Base_Descent;
+                           Current_Line_H := Line_Base_H;
+                           Current_Line_Ascent := Line_Base_Ascent;
+                           Current_Line_Descent := Line_Base_Descent;
+                           Pending_Space := False;
+                        end if;
+                     end;
+                  end if;
+               end;
+         end case;
+      end Layout_Node;
    begin
       if Item_Count (Self) = 0 then
          Add_Item (Self, Make_Panel (Main_Part, Self.Geometry, 0));
       end if;
+
       Self.Items.Reference (Panel_Idx).Geometry := Self.Geometry;
       while Item_Count (Self) > 1 loop
          Self.Items.Delete_Last;
@@ -908,114 +1717,52 @@ package body Adi.Widget.Html_View is
          return;
       end if;
 
-      for I in 1 .. Natural (Self.Tokens.Length) loop
+      if Adi.CSS_Parser.Has_Tag (Self.CSS_Sheet, "html") then
+         Document_Rules :=
+           Merge
+             (Document_Rules,
+              Selector_Base_Rules (Adi.CSS_Parser.Styles_For_Tag (Self.CSS_Sheet, "html")));
+      end if;
+
+      if Adi.CSS_Parser.Has_Tag (Self.CSS_Sheet, "body") then
+         Document_Rules :=
+           Merge
+             (Document_Rules,
+              Selector_Base_Rules (Adi.CSS_Parser.Styles_For_Tag (Self.CSS_Sheet, "body")));
+      end if;
+
+      Document_Style := Resolve_Element_Style (Document_Rules, Label_Part_Style, True);
+
+      Line_Base_H := Pixel_Type'Max (1.0, Measure_Line_Height (Document_Style));
+      Line_Base_Ascent := Pixel_Type'Max (1.0, Measure_Ascent (Document_Style));
+      Line_Base_Descent := Pixel_Type'Max (0.0, Measure_Descent (Document_Style));
+      Current_Line_H := Line_Base_H;
+      Current_Line_Ascent := Line_Base_Ascent;
+      Current_Line_Descent := Line_Base_Descent;
+
+      if Natural (Self.Nodes.Length) > 0 then
          declare
-            T : constant Token := Self.Tokens.Element (I);
+            Root : constant Node := Self.Nodes.Element (1);
          begin
-            case T.Kind is
-               when Break_Token =>
-                  New_Line;
-
-               when Hr_Token =>
-                  if X > Content.X then
-                     New_Line;
+            if Root.Kind = Element_Node then
+               for Child_Idx of Root.Children loop
+                  if Child_Idx > 0 then
+                     Layout_Node (Positive (Child_Idx), Document_Style, "");
                   end if;
-                  Add_Item
-                    (Self,
-                     Make_Panel
-                        (Scroll_Part,
-                         (X      => Content.X,
-                          Y      => Y + 2.0,
-                          Width  => Content.Width,
-                          Height => 1.0),
-                         1));
-                  Y := Y + Current_Line_H;
-                  Current_Line_H := Base_Line_H;
-                  Current_Line_Ascent := Base_Ascent;
-                  Line_Runs.Clear;
-                  X := Content.X;
-                  Pending_Space := False;
-
-               when Image_Token =>
-                  declare
-                     Src : constant String := To_String (T.Src);
-                     Alt : constant String := To_String (T.Alt);
-                     Href : constant String := To_String (T.Link_Href);
-                     Img : constant Adi.Image.Image_Access := Resolve_Image (Self, Src);
-                     Img_W : Pixel_Type := 0.0;
-                     Img_H : Pixel_Type := 0.0;
-                  begin
-                     if Img /= null and then Adi.Image.Is_Valid (Img.all) then
-                        Adi.Image.Get_Size (Img.all, Img_W, Img_H);
-                        if Img_H <= 0.0 then
-                           Img_H := Base_Line_H;
-                        end if;
-                     else
-                        Img_W := 0.0;
-                        Img_H := Base_Line_H;
-                     end if;
-
-                     if Img_W > 0.0 then
-                        if X > Content.X and then X + Img_W > Content.X + Content.Width then
-                           New_Line;
-                        end if;
-                        declare
-                           Full_Geom : constant Rectangle :=
-                              (X => X,
-                               Y => Y,
-                               Width => Img_W,
-                               Height => Img_H);
-                           Geom : constant Rectangle := Clip_To_Content (Full_Geom);
-                        begin
-                           if Geom.Width > 0.0 and then Geom.Height > 0.0 then
-                              Add_Item (Self, Make_Image (Icon_Part, Full_Geom, Img, 1));
-                              Add_Link_Fragment (Geom, Href);
-                           end if;
-                           X := X + Img_W;
-                           Current_Line_H := Pixel_Type'Max (Current_Line_H, Img_H);
-                        end;
-                     elsif Alt'Length > 0 then
-                        Add_Text_Run (Alt, Href, Normal_Text);
-                     end if;
-
-                     Pending_Space := True;
-                  end;
-
-               when Text_Token =>
-                  declare
-                     S : constant String := To_String (T.Text);
-                     Href : constant String := To_String (T.Link_Href);
-                     Token_Style : constant Text_Style_Kind := T.Style_Kind;
-                     Start : Natural := S'First;
-                     Stop  : Natural := S'First;
-                  begin
-                     while Start <= S'Last loop
-                        if Is_Whitespace (S (Start)) then
-                           Pending_Space := True;
-                           Start := Start + 1;
-                        else
-                           Stop := Start;
-                           while Stop <= S'Last and then not Is_Whitespace (S (Stop)) loop
-                              Stop := Stop + 1;
-                           end loop;
-
-                           declare
-                              Prefix : constant String :=
-                                 (if Pending_Space and then X > Content.X then " " else "");
-                              Word : constant String := S (Start .. Stop - 1);
-                           begin
-                              Add_Text_Run (Prefix & Word, Href, Token_Style);
-                           end;
-                           Pending_Space := False;
-                           Start := Stop;
-                        end if;
-                     end loop;
-                  end;
-            end case;
+               end loop;
+            end if;
          end;
-      end loop;
+      end if;
 
-      Self.Scroll_Content_H := Pixel_Type'Max (Content.Height, (Y + Current_Line_H) - Content.Y);
+      Sync_Line_Heights;
+
+      declare
+         Content_End_Y : constant Pixel_Type :=
+           (if Has_Line_Content then Y + Current_Line_H else Y);
+      begin
+         Self.Scroll_Content_H := Pixel_Type'Max (Content.Height, Content_End_Y - Content.Y);
+      end;
+
       Self.Scroll_Viewport_H := Content.Height;
       Update_Scrollbar_Geometry (Self);
    end Layout_And_Build;
@@ -1045,8 +1792,9 @@ package body Adi.Widget.Html_View is
    is
    begin
       Self.Source := To_Unbounded_String (Source);
-      Parse_HTML (Self, Source);
       Self.Image_Cache.Clear;
+      Self.Inline_Style_Cache.Clear;
+      Parse_HTML (Self, Source);
       Mark_Dirty (Self);
    end Set_HTML;
 
@@ -1058,9 +1806,11 @@ package body Adi.Widget.Html_View is
    procedure Clear (Self : in out Html_View) is
    begin
       Self.Source := Null_Unbounded_String;
-      Self.Tokens.Clear;
+      Self.Nodes.Clear;
       Self.Links.Clear;
       Self.Image_Cache.Clear;
+      Self.Inline_Style_Cache.Clear;
+      Load_Combined_CSS (Self, "");
       Set_Part_Styles (Self, Default_Internal_Part_Styles);
       Mark_Dirty (Self);
    end Clear;
@@ -1089,6 +1839,9 @@ package body Adi.Widget.Html_View is
    is
    begin
       Self.On_Load_Resource := Callback;
+      if Length (Self.Source) > 0 then
+         Parse_HTML (Self, To_String (Self.Source));
+      end if;
       Mark_Dirty (Self);
    end Set_On_Load_Resource;
 

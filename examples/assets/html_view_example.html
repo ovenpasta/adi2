@@ -19,6 +19,23 @@
     font-weight: 600;
   }
 
+  p {
+    color: rgb(56, 49, 40);
+  }
+
+  .callout {
+    background-color: rgb(246, 238, 226);
+    color: rgb(63, 52, 40);
+  }
+
+  .note {
+    color: rgb(110, 61, 53);
+  }
+
+  #cascade-id {
+    color: rgb(36, 104, 150);
+  }
+
   code {
     color: rgb(66, 57, 46);
     font-size: 14px;
@@ -35,29 +52,108 @@
   }
 </style>
 
-<div>
-  <h1>HTML View Example</h1>
+<div id="html-doc-root" class="doc">
+  <h1>HTML View Example (Feature Sweep)</h1>
+
   <p>
-    This content is loaded from <code>examples/assets/html_view_example.html</code>.
-    Links are interactive: <a href="https://example.com">external docs</a> and
-    <a href="app://section/getting-started">internal section</a>.
+    This file stress-tests parser, cascade, layout, clipping, links, images, and list handling.
+    Source path: <code>examples/assets/html_view_example.html</code>.
   </p>
 
-  <h2>Formatting</h2>
+  <p class="callout">
+    Link interactions should report in the status bar:
+    <a href="https://example.com/docs/html-view">external docs</a>,
+    <a href="app://section/getting-started">internal route</a>,
+    and <a href="app://section/layout/line-box">line-box notes</a>.
+  </p>
+
+  <h2>Inline + Line Breaks</h2>
   <p>
     Inline tags: <strong>strong</strong>, <em>emphasis</em>, <span>span text</span>,
-    line break below:<br>first line<br>second line.
+    plus multiple breaks:<br>first line<br/>second line<br>third line.
   </p>
 
-  <h2>List + Image</h2>
+  <h2>Cascade (tag &lt; class &lt; id &lt; inline)</h2>
+  <p class="note" id="cascade-id" style="color: rgb(24, 150, 92);">
+    This line uses tag + class + id + inline style. Inline color should win.
+  </p>
+  <p class="note" id="cascade-id">
+    This line drops inline style. Id should win over class and tag.
+  </p>
+  <p class="note">
+    This line uses class + tag only. Class should win over tag.
+  </p>
+
+  <h2>Code + Whitespace</h2>
+  <p>
+    Regular text around code:
+    <code>for i in 1 .. 3 loop</code>
+    <code>Put_Line("hello");</code>
+    <code>end loop;</code>
+  </p>
+  <p>
+    Preserved-looking spaces in code sample:
+    <code>  keep   visible   spacing   near   code  </code>
+  </p>
+
+  <h2>Lists + Nesting</h2>
   <ul>
-    <li>Simple list item</li>
-    <li>Inline image from custom asset callback: <img src="app://happycat" alt="happy cat"></li>
-    <li>Missing asset fallback alt text: <img src="app://missing" alt="(missing image fallback)"></li>
+    <li>Simple list item with <strong>strong</strong> text.</li>
+    <li>
+      Mixed inline content with <em>emphasis</em> and
+      <a href="app://list/item/2">list link</a>.
+    </li>
+    <li>
+      Nested list starts below:
+      <ol>
+        <li>first nested ordered item</li>
+        <li>second nested ordered item with <code>inline_code()</code></li>
+      </ol>
+    </li>
   </ul>
 
-  <hr>
+  <h2>Images + Alt Fallback</h2>
   <p>
-    The renderer intentionally supports a small docs-focused subset of HTML.
+    Asset callback image: <img src="app://happycat" alt="happy cat image">.
+  </p>
+  <p>
+    Missing image with alt fallback:
+    <img src="app://missing-image" alt="(missing image fallback text)">.
+  </p>
+  <p>
+    Linked image fragment:
+    <a href="app://open/cat"><img src="app://happycat" alt="linked cat"></a>
+  </p>
+
+  <h2>Unknown Tags Are Transparent</h2>
+  <custom-panel data-kind="demo">
+    <p>
+      Children of unknown tags should still render.
+      <a href="app://unknown-tag/child">Click me</a>
+    </p>
+  </custom-panel>
+
+  <h2>Center Block</h2>
+  <center>
+    Centered content block with <strong>theme.css strong</strong> and
+    <em>theme.css em</em> overrides from linked stylesheet.
+  </center>
+
+  <hr>
+
+  <h2>Scroll / Long Content</h2>
+  <p>Paragraph 01: The quick brown fox jumps over the lazy dog.</p>
+  <p>Paragraph 02: Pack my box with five dozen liquor jugs.</p>
+  <p>Paragraph 03: Sphinx of black quartz, judge my vow.</p>
+  <p>Paragraph 04: Waltz, bad nymph, for quick jigs vex.</p>
+  <p>Paragraph 05: Glib jocks quiz nymph to vex dwarf.</p>
+  <p>Paragraph 06: Bright vixens jump; dozy fowl quack.</p>
+  <p>Paragraph 07: Quick zephyrs blow, vexing daft Jim.</p>
+  <p>Paragraph 08: How razorback-jumping frogs can level six piqued gymnasts.</p>
+  <p>Paragraph 09: Cozy lummox gives smart squid who asks for job pen.</p>
+  <p>Paragraph 10: A wizard's job is to vex chumps quickly in fog.</p>
+
+  <p>
+    End of document. Try switching to Source, edit values, then switch back to Preview.
   </p>
 </div>

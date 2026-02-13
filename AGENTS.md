@@ -248,6 +248,7 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 - **Part system**: Widgets are composed of styleable parts (`Main_Part`, `Indicator_Part`, `Label_Part`, etc.)
 - **Item system**: Renderable primitives (`Panel_Item`, `Text_Item`, `Image_Item`) that compose a widget
 - Each part has its own `Widget_Style` that resolves based on widget states
+- Items may optionally carry explicit `Resolved_Style` overrides (`Has_Style_Override`/`Style_Override`) for per-element rendering flows (used by `Html_View`)
 - Widget flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`
 - Generic context-menu hook for any widget: `Set_On_Context_Menu` with ancestor bubbling via `Bubble_Context_Menu` (menu UI/styling is app-defined)
 - Shared vertical overflow scrolling for any widget:
@@ -391,13 +392,14 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 - Parent package provides image path (`Set_Animation` with `Animated_Image_Access`, `Load_Image_From_File`)
 - `On_Tick` advances backend animation and marks dirty only when frame changes
 
-**Adi.Widget.Html_View** (`adi-widget-html_view.ads`): Minimal documentation-oriented HTML widget
-- Lightweight HTML rendering for documentation-style content
-- Hyperlink callback support via `Set_On_Link_Click`
-- Asset loading callback for `img` resources via `Set_On_Load_Asset`
-- Linked stylesheet callback for `<link rel="stylesheet">` via `Set_On_Load_Resource`
-- Embedded `<style>` blocks are parsed with `Adi.CSS_Parser` and applied to supported tags
-- Resource loading is callback-driven for both images and linked stylesheets
+**Adi.Widget.Html_View** (`adi-widget-html_view.ads`): Documentation-oriented HTML widget
+- Next-phase milestone completed (2026-02-13): renderer moved from token-stream flow to an element tree model
+- Internal nodes: `Element` / `Text` / `Break`, with tracked attributes (`id`, `class`, `style`, `href`, `src`, `alt`)
+- Per-element cascade order is deterministic: `defaults < tag < class < id < inline`
+- Embedded `<style>` and callback-loaded `<link rel="stylesheet">` are parsed with `Adi.CSS_Parser`
+- Resource loading remains callback-driven (`Set_On_Load_Asset`, `Set_On_Load_Resource`)
+- Line-box layout computes ascent/descent locally to avoid heading metric leakage into following paragraphs
+- Link hit regions are generated from final laid-out runs and clipped to the visible content viewport
 
 **Adi.Widget.Animated_Widget.RLottie** (`adi-widget-animated_widget-rlottie.ads`): RLottie adapter for unified widget
 - RLottie-specific binding helpers for `Animated_Widget` (`Set_Animation`, `Load_From_File`, `Create`, `Get_Animation`)
@@ -450,7 +452,7 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 ### Widget Rendering Pipeline
 
 1. **Build Phase**: `Build_Items` creates renderable `Item` records for each visual element
-2. **Style Resolution**: Each item references a `Part_Kind`, which has a `Widget_Style` that resolves to `Resolved_Style` based on current widget states
+2. **Style Resolution**: Each item either resolves from `Part_Kind` state styles or uses an explicit per-item `Resolved_Style` override
 3. **Layout Phase**: `Layout` calculates geometry for widget and children
 4. **Render Phase**: `Render_Items` draws each item using its computed style, geometry, and a `Render_Context` (which holds the renderer, shadow cache, and text engine)
    - Rounded borders always use `Render_Rounded_Border_Ring` (annulus) + separate background fill

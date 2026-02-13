@@ -1,8 +1,10 @@
 pragma Ada_2022;
 
 with Ada.Exceptions;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
+with Adi.CSS_Styles;
 with Adi.Core;
 with Adi.Image;
 with Adi.Widget;
@@ -10,6 +12,8 @@ with Adi.Widget.Html_View;
 
 procedure Html_View_Test is
    use type Adi.Widget.Html_View.Html_View_Access;
+   use type Adi.CSS_Styles.Color_Kind;
+   use type Adi.Core.Pixel_Type;
 
    Test_Count : Natural := 0;
    Pass_Count : Natural := 0;
@@ -24,6 +28,50 @@ procedure Html_View_Test is
          Put_Line ("  [FAIL] " & Msg);
       end if;
    end Assert;
+
+   function Find_Text_Item_Index
+     (W      : Adi.Widget.Html_View.Html_View_Access;
+      Needle : String) return Natural
+   is
+      use type Adi.Widget.Item_Kind;
+   begin
+      for I in 1 .. Adi.Widget.Item_Count (W.all) loop
+         declare
+            It : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, I);
+         begin
+            if It.Kind = Adi.Widget.Text_Item
+              and then Ada.Strings.Fixed.Index (To_String (It.Text_Content), Needle) > 0
+            then
+               return I;
+            end if;
+         end;
+      end loop;
+
+      return 0;
+   end Find_Text_Item_Index;
+
+   function Is_RGB
+     (C       : Adi.CSS_Styles.Color_Value;
+      R, G, B : Natural) return Boolean
+   is
+   begin
+      if C.Kind = Adi.CSS_Styles.RGB then
+         return C.R = R and then C.G = G and then C.B = B;
+      elsif C.Kind = Adi.CSS_Styles.RGBA then
+         return C.RA = R and then C.GA = G and then C.BA = B;
+      end if;
+
+      return False;
+   end Is_RGB;
+
+   function Nearly_Equal
+     (L, R : Adi.Core.Pixel_Type;
+      Eps  : Adi.Core.Pixel_Type := 0.5) return Boolean
+   is
+      Diff : constant Adi.Core.Pixel_Type := (if L > R then L - R else R - L);
+   begin
+      return Diff <= Eps;
+   end Nearly_Equal;
 
    function Read_File (Path : String) return String is
       F      : File_Type;
@@ -196,6 +244,181 @@ procedure Html_View_Test is
          New_Line;
    end Test_Heading_Line_Height_Is_Local;
 
+   procedure Test_Cascade_Precedence is
+      W : constant Adi.Widget.Html_View.Html_View_Access :=
+        Adi.Widget.Html_View.Create;
+      Idx : Natural := 0;
+   begin
+      Put_Line ("Test: CSS cascade precedence");
+
+      Adi.Widget.Set_Geometry
+        (W.all, (X => 0.0, Y => 0.0, Width => 640.0, Height => 300.0));
+
+      Adi.Widget.Html_View.Set_HTML
+        (W.all,
+         "<style>" &
+         "p { color: rgb(10, 20, 30); }" &
+         ".note { color: rgb(20, 40, 60); }" &
+         "#lead { color: rgb(30, 60, 90); }" &
+         "</style>" &
+         "<p id='lead' class='note' style='color: rgb(77, 88, 99);'>inline wins</p>");
+      Adi.Widget.Html_View.Build_Items (W.all);
+
+      Idx := Find_Text_Item_Index (W, "inline");
+      Assert (Idx > 0, "inline-style paragraph text item exists");
+      if Idx > 0 then
+         declare
+            It : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, Positive (Idx));
+         begin
+            Assert
+              (Is_RGB (It.Computed_Style.Color, 77, 88, 99),
+               "inline style overrides id/class/tag");
+         end;
+      end if;
+
+      Adi.Widget.Html_View.Set_HTML
+        (W.all,
+         "<style>" &
+         "p { color: rgb(10, 20, 30); }" &
+         ".note { color: rgb(20, 40, 60); }" &
+         "#lead { color: rgb(30, 60, 90); }" &
+         "</style>" &
+         "<p id='lead' class='note'>id wins</p>");
+      Adi.Widget.Html_View.Build_Items (W.all);
+
+      Idx := Find_Text_Item_Index (W, "id");
+      Assert (Idx > 0, "id-style paragraph text item exists");
+      if Idx > 0 then
+         declare
+            It : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, Positive (Idx));
+         begin
+            Assert
+              (Is_RGB (It.Computed_Style.Color, 30, 60, 90),
+               "id selector overrides class and tag");
+         end;
+      end if;
+
+      Adi.Widget.Html_View.Set_HTML
+        (W.all,
+         "<style>" &
+         "p { color: rgb(10, 20, 30); }" &
+         ".note { color: rgb(20, 40, 60); }" &
+         "</style>" &
+         "<p class='note'>class wins</p>");
+      Adi.Widget.Html_View.Build_Items (W.all);
+
+      Idx := Find_Text_Item_Index (W, "class");
+      Assert (Idx > 0, "class-style paragraph text item exists");
+      if Idx > 0 then
+         declare
+            It : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, Positive (Idx));
+         begin
+            Assert
+              (Is_RGB (It.Computed_Style.Color, 20, 40, 60),
+               "class selector overrides tag");
+         end;
+      end if;
+
+      New_Line;
+   end Test_Cascade_Precedence;
+
+   procedure Test_Mixed_Inline_Baseline is
+      W : constant Adi.Widget.Html_View.Html_View_Access :=
+        Adi.Widget.Html_View.Create;
+      A_Idx : Natural := 0;
+      B_Idx : Natural := 0;
+      C_Idx : Natural := 0;
+   begin
+      Put_Line ("Test: Mixed inline baseline alignment");
+
+      Adi.Widget.Html_View.Set_HTML
+        (W.all,
+         "<style>" &
+         "p { font-size: 16px; }" &
+         "strong { font-size: 34px; }" &
+         "em { font-size: 12px; }" &
+         "</style>" &
+         "<p>alpha <strong>BETA</strong> <em>gamma</em></p>");
+      Adi.Widget.Set_Geometry
+        (W.all, (X => 0.0, Y => 0.0, Width => 700.0, Height => 260.0));
+      Adi.Widget.Html_View.Build_Items (W.all);
+
+      A_Idx := Find_Text_Item_Index (W, "alpha");
+      B_Idx := Find_Text_Item_Index (W, "BETA");
+      C_Idx := Find_Text_Item_Index (W, "gamma");
+
+      Assert (A_Idx > 0 and then B_Idx > 0 and then C_Idx > 0,
+              "mixed inline runs are present");
+
+      if A_Idx > 0 and then B_Idx > 0 and then C_Idx > 0 then
+         declare
+            A : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, Positive (A_Idx));
+            B : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, Positive (B_Idx));
+            C : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, Positive (C_Idx));
+         begin
+            Assert
+              (Nearly_Equal (A.Geometry.Y, B.Geometry.Y)
+               and then Nearly_Equal (B.Geometry.Y, C.Geometry.Y),
+               "mixed inline runs share the same line-box top");
+
+            Assert
+              (A.Text_Offset_Y > 0.0 and then C.Text_Offset_Y > 0.0,
+               "smaller inline runs are baseline-shifted within line");
+
+            Assert
+              (B.Text_Offset_Y <= A.Text_Offset_Y,
+               "larger inline run anchors line baseline");
+         end;
+      end if;
+
+      New_Line;
+   end Test_Mixed_Inline_Baseline;
+
+   procedure Test_Clipping_Aware_Link_Hit_Test is
+      W : constant Adi.Widget.Html_View.Html_View_Access :=
+        Adi.Widget.Html_View.Create;
+      Clicks : Natural := 0;
+
+      procedure On_Link_Click
+        (Self : access Adi.Widget.Html_View.Html_View;
+         Href : String)
+      is
+         pragma Unreferenced (Self, Href);
+      begin
+         Clicks := Clicks + 1;
+      end On_Link_Click;
+   begin
+      Put_Line ("Test: Clipping-aware link hit testing");
+
+      Adi.Widget.Html_View.Set_On_Link_Click
+        (W.all, On_Link_Click'Unrestricted_Access);
+      Adi.Widget.Html_View.Set_HTML
+        (W.all,
+         "<p><a href='app://clip'>clip target link text for hit testing</a></p>" &
+         "<p>second line</p>");
+
+      Adi.Widget.Set_Geometry
+        (W.all, (X => 0.0, Y => 0.0, Width => 360.0, Height => 52.0));
+      Adi.Widget.Html_View.Build_Items (W.all);
+
+      Adi.Widget.Html_View.On_Mouse_Down
+        (W.all, X => 26.0, Y => 26.0, Button => Adi.Core.Left_Button, Clicks => 1);
+      Adi.Widget.Html_View.On_Mouse_Up
+        (W.all, X => 26.0, Y => 26.0, Button => Adi.Core.Left_Button);
+      Assert (Clicks = 1, "visible clipped link area remains clickable");
+
+      Adi.Widget.Set_Scroll_Offset_Y (W.all, 28.0);
+      Adi.Widget.Html_View.Build_Items (W.all);
+
+      Adi.Widget.Html_View.On_Mouse_Down
+        (W.all, X => 26.0, Y => 20.0, Button => Adi.Core.Left_Button, Clicks => 1);
+      Adi.Widget.Html_View.On_Mouse_Up
+        (W.all, X => 26.0, Y => 20.0, Button => Adi.Core.Left_Button);
+      Assert (Clicks = 1, "scrolled-out link area is not clickable");
+
+      New_Line;
+   end Test_Clipping_Aware_Link_Hit_Test;
+
    procedure Test_HTML_Folder_Stress is
       W : constant Adi.Widget.Html_View.Html_View_Access :=
         Adi.Widget.Html_View.Create;
@@ -256,6 +479,9 @@ begin
    Test_Callback_Registration_And_Mouse_Safety;
    Test_Embedded_And_Linked_CSS;
    Test_Heading_Line_Height_Is_Local;
+   Test_Cascade_Precedence;
+   Test_Mixed_Inline_Baseline;
+   Test_Clipping_Aware_Link_Hit_Test;
    Test_HTML_Folder_Stress;
 
    Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");

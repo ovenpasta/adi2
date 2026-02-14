@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+Subject: [PATCH] renderer text engine: keep fill ops in text color
+
+In TTF_DrawRendererText(), underline/strikethrough draw operations can be
+batched as fill sequences (texture == NULL, image_type invalid). The current
+color branch treats all non-alpha sequences as color glyph images and forces
+RGB to white, so decoration lines render white for non-white text.
+
+Use text color for fill sequences, while preserving the existing behavior for
+color glyph textures.
+
+diff --git a/src/SDL_renderer_textengine.c b/src/SDL_renderer_textengine.c
+--- a/src/SDL_renderer_textengine.c
++++ b/src/SDL_renderer_textengine.c
+@@
+         SDL_FColor color;
+-        if (sequence->image_type == TTF_IMAGE_ALPHA) {
++        if (sequence->image_type == TTF_IMAGE_ALPHA || sequence->texture == NULL) {
+             SDL_copyp(&color, &text->internal->color);
+         } else {
+             // Don't alter the color data in the image
+             color.r = 1.0f;
+             color.g = 1.0f;

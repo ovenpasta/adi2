@@ -2234,6 +2234,27 @@ package body Adi.Widget is
       Font_Key_Changed : Boolean;
       R, G, B, A : Uint8;
       Success    : Adi.SDL.C_bool;
+      Text_Size  : Size_2D;
+      Deco_Rect  : aliased SDL_FRect;
+      Text_Draw_X : Pixel_Type;
+      Text_Draw_Y : Pixel_Type;
+      Deco_X     : Pixel_Type;
+      Deco_W     : Pixel_Type;
+      Deco_H     : Pixel_Type;
+      Deco_Y     : Pixel_Type;
+      Deco_Offset_Y : Pixel_Type;
+      Deco_Y_Raw : Pixel_Type;
+      Ascent_Px  : Pixel_Type;
+      Descent_Px : Pixel_Type;
+      Baseline_Y_I : Integer;
+      Deco_Y_I     : Integer;
+      Deco_H_I     : Integer;
+      Draw_Underline : constant Boolean :=
+        (Style.Text_Decoration = Decoration_Underline);
+      Draw_Strike : constant Boolean :=
+        (Style.Text_Decoration = Decoration_Line_Through);
+      Manual_Decoration : constant Boolean :=
+        Draw_Underline or else Draw_Strike;
       Engine     : TTF_TextEngine_Access;
       Renderer   : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
       Prev_Clip  : aliased Adi.SDL.SDL_Rect;
@@ -2271,7 +2292,8 @@ package body Adi.Widget is
          Size       => Font_Sz,
          Weight     => Style.Font_Weight,
          Style      => Style.Font_Style,
-         Decoration => Style.Text_Decoration);
+         Decoration =>
+           (if Manual_Decoration then Decoration_None else Style.Text_Decoration));
 
       Font_Key_Changed :=
         It.Cached_Font = null
@@ -2374,10 +2396,91 @@ package body Adi.Widget is
       end if;
 
       --  Draw the text (snap to integer pixels to avoid sub-pixel blurring)
+      Text_Draw_X := Pixel_Type (Float'Floor (Float (Geom.X + It.Text_Offset_X)));
+      Text_Draw_Y := Pixel_Type (Float'Floor (Float (Geom.Y + It.Text_Offset_Y)));
+
+      --  SDL_ttf text decorations (underline/strikethrough) can render with
+      --  incorrect RGB in renderer text-engine path; keep draw color aligned.
+      SDL_Assert (SDL_SetRenderDrawColor (Renderer, R, G, B, A),
+                  "SDL_SetRenderDrawColor");
       Success := TTF_DrawRendererText
         (Text_Obj,
-         C_float (Float'Floor (Float (Geom.X + It.Text_Offset_X))),
-         C_float (Float'Floor (Float (Geom.Y + It.Text_Offset_Y))));
+         C_float (Text_Draw_X),
+         C_float (Text_Draw_Y));
+
+      --  Workaround for SDL_ttf renderer text engine decoration color handling:
+      --  in current upstream versions, underline/strikethrough draw ops can be
+      --  emitted as non-alpha fill sequences that render with white RGB.
+      --  Draw these two decorations manually using the resolved text color.
+      if Manual_Decoration then
+         Text_Size := Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => Content);
+         Deco_W := Pixel_Type'Min (Geom.Width, Pixel_Type'Max (0.0, Text_Size.Width));
+         Deco_H := Pixel_Type'Max
+           (1.0,
+            Pixel_Type
+                  (Float'Ceiling
+                     (Float (Pixel_Type'Max (1.0, Pixel_Type (Font_Sz) / 14.0)))));
+         Deco_H_I := Integer (Float'Ceiling (Float (Deco_H)));
+         if Deco_H_I < 1 then
+            Deco_H_I := 1;
+         end if;
+         Deco_H := Pixel_Type (Deco_H_I);
+
+         Ascent_Px := Pixel_Type (TTF_GetFontAscent (Font));
+         Descent_Px := Pixel_Type (TTF_GetFontDescent (Font));
+         if Descent_Px < 0.0 then
+            Descent_Px := -Descent_Px;
+         end if;
+
+         if Draw_Underline then
+            Deco_Y_Raw :=
+              Ascent_Px
+              + Pixel_Type'Max (1.0, Descent_Px * 0.55)
+              - Deco_H / 2.0;
+         else
+            Deco_Y_Raw :=
+              --  Place strike-through around the visual middle of lowercase
+              --  glyph bodies (closer to x-height center than ascent top).
+              Ascent_Px * 0.72
+              - Deco_H / 2.0;
+         end if;
+
+         if Deco_W > 0.0 and then Deco_H > 0.0 then
+            --  Clamp relative offset against already clamped text origin, then
+            --  clamp again for final target placement to avoid scroll jitter.
+            Deco_Offset_Y := Pixel_Type (Float'Floor (Float (Deco_Y_Raw)));
+            Deco_X := Pixel_Type (Float'Floor (Float (Text_Draw_X)));
+            Deco_Y_I := Integer (Float'Floor (Float (Text_Draw_Y + Deco_Offset_Y)));
+
+            if Draw_Underline then
+               Baseline_Y_I := Integer (Float'Floor (Float (Text_Draw_Y + Ascent_Px)));
+               --  After all integer roundings, keep at least 1 px gap from
+               --  text baseline to underline top.
+               if Deco_Y_I - Baseline_Y_I < 1 then
+                  Deco_Y_I := Baseline_Y_I + 1;
+               end if;
+            end if;
+
+            Deco_Y := Pixel_Type (Deco_Y_I);
+
+            Deco_W := Pixel_Type'Max (1.0, Pixel_Type (Float'Ceiling (Float (Deco_W))));
+
+            Deco_Rect :=
+              (x => Float (Deco_X),
+               y => Float (Deco_Y),
+               w => Float (Deco_W),
+               h => Float (Deco_H));
+
+            SDL_Assert
+              (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
+               "SDL_SetRenderDrawBlendMode");
+            SDL_Assert
+              (SDL_SetRenderDrawColor (Renderer, R, G, B, A),
+               "SDL_SetRenderDrawColor");
+            SDL_Assert (SDL_RenderFillRect (Renderer, Deco_Rect'Access),
+                        "SDL_RenderFillRect");
+         end if;
+      end if;
 
       if Use_Clip then
          if Had_Clip then

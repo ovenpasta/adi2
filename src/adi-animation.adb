@@ -242,6 +242,9 @@ package body Adi.Animation is
          Result.Text_Align       := From.Text_Align;
          Result.Vertical_Align   := From.Vertical_Align;
          Result.Text_Decoration  := From.Text_Decoration;
+         Result.List_Style_Type  := From.List_Style_Type;
+         Result.List_Style_Image := From.List_Style_Image;
+         Result.List_Style_Position := From.List_Style_Position;
          Result.White_Space      := From.White_Space;
          Result.Text_Overflow    := From.Text_Overflow;
          Result.Text_Wrap_Mode   := From.Text_Wrap_Mode;

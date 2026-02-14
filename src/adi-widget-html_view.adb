@@ -2,6 +2,7 @@ with Ada.Characters.Handling;
 with Ada.Containers.Vectors;
 with Ada.Strings;
 with Ada.Strings.Fixed;
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Adi.CSS_Styles;        use Adi.CSS_Styles;
 with Adi.Widget_Styles;     use Adi.Widget_Styles;
@@ -14,6 +15,7 @@ package body Adi.Widget.Html_View is
 
    package Fix renames Ada.Strings.Fixed;
    package Char renames Ada.Characters.Handling;
+   package WW_Encode renames Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 
    Panel_Idx : constant Positive := 1;
 
@@ -470,6 +472,16 @@ package body Adi.Widget.Html_View is
         Color => Set (RGB (51, 46, 39)),
         Font_Size => Set_Font (Px (15.0)),
         others => <>);
+      UL_Base     : constant Style_Rules := (
+        Display => Set (Block),
+        List_Style_Type => Set ((Kind => List_Style_Disc)),
+        List_Style_Position => Set (List_Outside),
+        others => <>);
+      OL_Base     : constant Style_Rules := (
+        Display => Set (Block),
+        List_Style_Type => Set ((Kind => List_Style_Decimal)),
+        List_Style_Position => Set (List_Outside),
+        others => <>);
       Link_Base   : constant Style_Rules := (
         Display => Set (Inline),
         Color => Set (RGB (24, 96, 186)),
@@ -515,8 +527,12 @@ package body Adi.Widget.Html_View is
    begin
       if Tag = "html" or else Tag = "body" then
          return Body_Base;
-      elsif Tag = "div" or else Tag = "p" or else Tag = "ul" or else Tag = "ol" or else Tag = "li" then
+      elsif Tag = "div" or else Tag = "p" or else Tag = "li" then
          return Block_Base;
+      elsif Tag = "ul" then
+         return UL_Base;
+      elsif Tag = "ol" then
+         return OL_Base;
       elsif Tag = "h1" then
          return Merge (Default_Content_Style, H1_Base);
       elsif Tag = "h2" then
@@ -675,6 +691,18 @@ package body Adi.Widget.Html_View is
 
       if not Opt_Text_Decoration.Is_Set (Rules.Text_Decoration) then
          Result.Text_Decoration := Parent.Text_Decoration;
+      end if;
+
+      if not Opt_List_Style_Type.Is_Set (Rules.List_Style_Type) then
+         Result.List_Style_Type := Parent.List_Style_Type;
+      end if;
+
+      if not Opt_List_Style_Image.Is_Set (Rules.List_Style_Image) then
+         Result.List_Style_Image := Parent.List_Style_Image;
+      end if;
+
+      if not Opt_List_Style_Position.Is_Set (Rules.List_Style_Position) then
+         Result.List_Style_Position := Parent.List_Style_Position;
       end if;
 
       if not Opt_Text_Align.Is_Set (Rules.Text_Align) then
@@ -894,7 +922,8 @@ package body Adi.Widget.Html_View is
                                     Style_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "style")),
                                     Href_Attr  => To_Unbounded_String (Extract_Attribute (Raw_Tag, "href")),
                                     Src_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "src")),
-                                    Alt_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "alt")));
+                                    Alt_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "alt")),
+                                    Value_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "value")));
                                  New_Node_Idx : Positive;
                               begin
                                  New_Node_Idx :=
@@ -1216,6 +1245,31 @@ package body Adi.Widget.Html_View is
       Current_Line_Align   : Text_Align_Value := Text_Start;
       Pending_Space : Boolean := False;
 
+      type List_Marker_Kind is (No_Marker, Text_Marker, Image_Marker);
+
+      type List_Marker_Run (Kind : List_Marker_Kind := No_Marker) is record
+         case Kind is
+            when No_Marker =>
+               null;
+            when Text_Marker =>
+               Text : Unbounded_String := Null_Unbounded_String;
+            when Image_Marker =>
+               Img : Adi.Image.Image_Access := null;
+         end case;
+      end record;
+
+      type List_Context is record
+         Node_Index  : Positive := 1;
+         Ordered     : Boolean := False;
+         Next_Number : Natural := 1;
+      end record;
+
+      package List_Context_Vectors is new Ada.Containers.Vectors
+        (Index_Type   => Positive,
+         Element_Type => List_Context);
+
+      List_Stack : List_Context_Vectors.Vector;
+
       type Line_Run_Record is record
          Item_Index : Positive := 1;
          Link_Index : Natural := 0;
@@ -1226,6 +1280,18 @@ package body Adi.Widget.Html_View is
          Element_Type => Line_Run_Record);
 
       Line_Runs : Line_Run_Vectors.Vector;
+
+      procedure Add_Text_Run
+        (Text  : String;
+         Href  : String;
+         Style : Resolved_Style);
+
+      procedure Add_Image_Run
+        (Img   : Adi.Image.Image_Access;
+         Width : Pixel_Type;
+         Height : Pixel_Type;
+         Href  : String;
+         Style : Resolved_Style);
 
       function Clip_To_Content (R : Rectangle) return Rectangle is
          X1 : constant Pixel_Type := Pixel_Type'Max (R.X, Content.X);
@@ -1277,6 +1343,182 @@ package body Adi.Widget.Html_View is
       begin
          return X > Line_Left or else Natural (Line_Runs.Length) > 0;
       end Has_Line_Content;
+
+      function Parse_Positive_Natural
+        (Text  : String;
+         Value : out Natural) return Boolean
+      is
+         V : Integer;
+      begin
+         Value := 0;
+         begin
+            V := Integer'Value (Trimmed (Text));
+         exception
+            when others =>
+               return False;
+         end;
+
+         if V <= 0 then
+            return False;
+         end if;
+
+         Value := Natural (V);
+         return True;
+      end Parse_Positive_Natural;
+
+      function Find_List_Context (Node_Index : Natural) return Natural is
+      begin
+         if Node_Index = 0 then
+            return 0;
+         end if;
+
+         for I in reverse 1 .. Natural (List_Stack.Length) loop
+            if List_Stack.Element (Positive (I)).Node_Index = Positive (Node_Index) then
+               return I;
+            end if;
+         end loop;
+
+         return 0;
+      end Find_List_Context;
+
+      function Marker_Text_For
+        (Style          : Resolved_Style;
+         Ordered_Number : Natural) return String
+      is
+         UTF8_Disc : constant String :=
+            WW_Encode.Encode
+              (Item => Wide_Wide_String'("•"),
+               Output_BOM => False);
+         UTF8_Circle : constant String :=
+            WW_Encode.Encode
+              (Item => Wide_Wide_String'("○"),
+               Output_BOM => False);
+         UTF8_Square : constant String :=
+            WW_Encode.Encode
+              (Item => Wide_Wide_String'("■"),
+               Output_BOM => False);
+      begin
+         case Style.List_Style_Type.Kind is
+            when List_Style_None =>
+               return "";
+            when List_Style_Disc =>
+               return UTF8_Disc;
+            when List_Style_Circle =>
+               return UTF8_Circle;
+            when List_Style_Square =>
+               return UTF8_Square;
+            when List_Style_Decimal =>
+               return Trimmed (Natural'Image (Natural'Max (1, Ordered_Number))) & ".";
+            when List_Style_Custom_String =>
+               return To_String (Style.List_Style_Type.Marker);
+         end case;
+      end Marker_Text_For;
+
+      procedure Resolve_List_Marker
+        (Style          : Resolved_Style;
+         Ordered_Number : Natural;
+         Marker         : out List_Marker_Run;
+         Marker_Width   : out Pixel_Type;
+         Marker_Height  : out Pixel_Type)
+      is
+         Marker_Text : constant String := Marker_Text_For (Style, Ordered_Number);
+         Marker_Size : Size_2D;
+      begin
+         Marker := (Kind => No_Marker);
+         Marker_Width := 0.0;
+         Marker_Height := 0.0;
+
+         if Style.List_Style_Image.Kind = List_Image_URL then
+            declare
+               URI : constant String := To_String (Style.List_Style_Image.URI);
+               Img : constant Adi.Image.Image_Access := Resolve_Image (Self, URI);
+               W   : Pixel_Type := 0.0;
+               H   : Pixel_Type := 0.0;
+               Target_H : Pixel_Type := Pixel_Type'Max
+                 (4.0,
+                  Measure_Line_Height
+                    (Style,
+                     Self.Content_Scale,
+                     Content.Width,
+                     Content.Height) * 0.72);
+            begin
+               if Img /= null and then Adi.Image.Is_Valid (Img.all) then
+                  Adi.Image.Get_Size (Img.all, W, H);
+                  if H > 0.0 then
+                     Marker_Height := Target_H;
+                     Marker_Width := Pixel_Type'Max (1.0, Target_H * (W / H));
+                     Marker := (Kind => Image_Marker, Img => Img);
+                     return;
+                  end if;
+               end if;
+            end;
+         end if;
+
+         if Marker_Text'Length = 0 then
+            return;
+         end if;
+
+         Marker_Size :=
+           Measure_Text
+             (Style,
+              Marker_Text,
+              Self.Content_Scale,
+              Content.Width,
+              Content.Height);
+         Marker_Width := Pixel_Type'Max (1.0, Marker_Size.Width);
+         Marker_Height := Pixel_Type'Max
+           (1.0,
+            Measure_Line_Height
+              (Style,
+               Self.Content_Scale,
+               Content.Width,
+               Content.Height));
+         Marker := (Kind => Text_Marker, Text => To_Unbounded_String (Marker_Text));
+      end Resolve_List_Marker;
+
+      procedure Add_Outside_Marker_Run
+        (Marker       : List_Marker_Run;
+         Marker_Width : Pixel_Type;
+         Marker_Height : Pixel_Type;
+         Marker_Gap   : Pixel_Type;
+         Style        : Resolved_Style)
+      is
+         Saved_X  : constant Pixel_Type := X;
+         Marker_X : constant Pixel_Type := Saved_X - Marker_Gap - Marker_Width;
+      begin
+         case Marker.Kind is
+            when No_Marker =>
+               null;
+            when Text_Marker =>
+               X := Marker_X;
+               Add_Text_Run (To_String (Marker.Text), "", Style);
+               X := Saved_X;
+            when Image_Marker =>
+               X := Marker_X;
+               Add_Image_Run (Marker.Img, Marker_Width, Marker_Height, "", Style);
+               X := Saved_X;
+         end case;
+      end Add_Outside_Marker_Run;
+
+      procedure Add_Inside_Marker_Run
+        (Marker       : List_Marker_Run;
+         Marker_Width : Pixel_Type;
+         Marker_Height : Pixel_Type;
+         Marker_Gap   : Pixel_Type;
+         Style        : Resolved_Style)
+      is
+      begin
+         case Marker.Kind is
+            when No_Marker =>
+               null;
+            when Text_Marker =>
+               Add_Text_Run (To_String (Marker.Text), "", Style);
+               X := X + Marker_Gap;
+            when Image_Marker =>
+               Add_Image_Run (Marker.Img, Marker_Width, Marker_Height, "", Style);
+               X := X + Marker_Gap;
+         end case;
+      end Add_Inside_Marker_Run;
 
       procedure Sync_Line_Heights is
       begin
@@ -1821,42 +2063,36 @@ package body Adi.Widget.Html_View is
          H := Pixel_Type'Max (0.0, H);
       end Resolve_Image_Run_Size;
 
-      function List_Marker (Node_Index : Positive) return String is
-         N : constant Node := Self.Nodes.Element (Node_Index);
+      function Resolve_List_Item_Number
+        (Node_Index : Positive;
+         Attrs      : Element_Attributes) return Natural
+      is
+         Ctx_Idx : constant Natural :=
+           Find_List_Context (Self.Nodes.Element (Node_Index).Parent);
+         Ctx : List_Context;
+         Explicit_Value : Natural := 0;
+         Number : Natural := 0;
       begin
-         if N.Parent = 0 then
-            return "* ";
+         if Ctx_Idx = 0 then
+            return 0;
          end if;
 
-         declare
-            Parent_Node : constant Node := Self.Nodes.Element (Positive (N.Parent));
-            Parent_Tag  : constant String :=
-              (if Parent_Node.Kind = Element_Node
-               then To_String (Parent_Node.Tag_Name)
-               else "");
-            Count : Natural := 0;
-         begin
-            if Parent_Tag /= "ol" then
-               return "* ";
-            end if;
+         Ctx := List_Stack.Element (Positive (Ctx_Idx));
+         if not Ctx.Ordered then
+            return 0;
+         end if;
 
-            for Child_Idx of Parent_Node.Children loop
-               exit when Child_Idx = Natural (Node_Index);
+         if Length (Attrs.Value_Attr) > 0
+           and then Parse_Positive_Natural (To_String (Attrs.Value_Attr), Explicit_Value)
+         then
+            Ctx.Next_Number := Explicit_Value;
+         end if;
 
-               if Child_Idx > 0 then
-                  declare
-                     C : constant Node := Self.Nodes.Element (Positive (Child_Idx));
-                  begin
-                     if C.Kind = Element_Node and then To_String (C.Tag_Name) = "li" then
-                        Count := Count + 1;
-                     end if;
-                  end;
-               end if;
-            end loop;
-
-            return Trimmed (Natural'Image (Count + 1)) & ". ";
-         end;
-      end List_Marker;
+         Number := Ctx.Next_Number;
+         Ctx.Next_Number := Ctx.Next_Number + 1;
+         List_Stack.Replace_Element (Positive (Ctx_Idx), Ctx);
+         return Number;
+      end Resolve_List_Item_Number;
 
       procedure Layout_Node
         (Node_Index   : Positive;
@@ -1931,10 +2167,27 @@ package body Adi.Widget.Html_View is
                         Local_Container_W : constant Pixel_Type := Current_Line_Width;
                         Margin_Edges      : Edge_Pixels := Zero_Edges;
                         Padding_Edges     : Edge_Pixels := Zero_Edges;
-                      begin
+                        List_Context_Pushed : Boolean := False;
+                        Marker          : List_Marker_Run := (Kind => No_Marker);
+                        Marker_W        : Pixel_Type := 0.0;
+                        Marker_H        : Pixel_Type := 0.0;
+                        Marker_Gap      : Pixel_Type := 0.0;
+                        Marker_Gutter   : Pixel_Type := 0.0;
+                        Ordered_Number  : Natural := 0;
+                       begin
                         if Block_Flow then
                            if Has_Line_Content or else Pending_Space then
                               New_Line;
+                           end if;
+
+                           if Tag = "ul" or else Tag = "ol" then
+                              List_Stack.Append
+                                (New_Item =>
+                                   List_Context'
+                                     (Node_Index  => Node_Index,
+                                      Ordered     => Tag = "ol",
+                                      Next_Number => 1));
+                              List_Context_Pushed := True;
                            end if;
 
                            Margin_Edges := Resolve_Box_Edges (Style.Margin, Style, Local_Container_W);
@@ -1978,7 +2231,40 @@ package body Adi.Widget.Html_View is
                            Pending_Space := False;
 
                            if Tag = "li" then
-                              Add_Text_Run (List_Marker (Node_Index), "", Style);
+                              Ordered_Number := Resolve_List_Item_Number (Node_Index, N.Attrs);
+                              Resolve_List_Marker
+                                (Style,
+                                 Ordered_Number,
+                                 Marker,
+                                 Marker_W,
+                                 Marker_H);
+
+                              if Marker.Kind /= No_Marker then
+                                 Marker_Gap := Pixel_Type'Max (4.0, Local_Font_Size_Px (Style) * 0.35);
+
+                                 if Style.List_Style_Position = List_Outside then
+                                    Marker_Gutter := Marker_W + Marker_Gap;
+                                    Line_Left := Line_Left + Marker_Gutter;
+                                    if Line_Right < Line_Left then
+                                       Line_Right := Line_Left;
+                                    end if;
+
+                                    X := Line_Left;
+                                    Add_Outside_Marker_Run
+                                      (Marker,
+                                       Marker_W,
+                                       Marker_H,
+                                       Marker_Gap,
+                                       Style);
+                                 else
+                                    Add_Inside_Marker_Run
+                                      (Marker,
+                                       Marker_W,
+                                       Marker_H,
+                                       Marker_Gap,
+                                       Style);
+                                 end if;
+                              end if;
                            end if;
                         end if;
 
@@ -1991,6 +2277,12 @@ package body Adi.Widget.Html_View is
                         if Block_Flow then
                            if Has_Line_Content or else Pending_Space then
                               New_Line;
+                           end if;
+
+                           if List_Context_Pushed
+                             and then Natural (List_Stack.Length) > 0
+                           then
+                              List_Stack.Delete_Last;
                            end if;
 
                            Y := Y + Padding_Edges.Bottom + Margin_Edges.Bottom;

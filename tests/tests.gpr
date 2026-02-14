@@ -17,7 +17,8 @@ project Tests is
    for Exec_Dir use "bin";
    for Main use (Kind & ".adb");
 
-   Ada_Switches := ("-gnat2022", "-gnatX0","-gnatef","-g", "-gnatwa", "-gnata");
+   Ada_Switches :=
+     ("-gnat2022", "-gnatX0", "-gnatef", "-g", "-gnatwa", "-gnata", "-gnatW8");
    package Compiler is
       for Default_Switches ("Ada") use Ada_Switches;
    end Compiler;

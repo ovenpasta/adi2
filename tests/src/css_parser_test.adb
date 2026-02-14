@@ -1,6 +1,7 @@
 pragma Ada_2022;
 
 with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Adi.CSS_Parser;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget; use Adi.Widget;
@@ -107,8 +108,16 @@ procedure Css_Parser_Test is
       ".seconds { transition: opacity 1.25s linear; }" & ASCII.LF &
       ".sides { padding: 1px 2px 3px 4px; padding-left: 11px; margin: 5px; margin-top: 9px; }" & ASCII.LF &
       ".dpunit { padding: 7dp; }" & ASCII.LF &
-      "li, ul, p { color: red; }" & ASCII.LF &
-      "li, ul, p { padding: 2px; }" & ASCII.LF;
+       ".listprobe { list-style: url(app://marker.svg) square outside; }" & ASCII.LF &
+       ".listprobe2 { list-style: ""-> ""; }" & ASCII.LF &
+       ".listprobe3 { list-style-type: disc; list-style-image: none; list-style-position: inside; }" & ASCII.LF &
+       ".listprobe4 { list-style: none; }" & ASCII.LF &
+       ".svgnamed { color: cornflowerblue; background-color: lightgoldenrodyellow; border-color: darkslategray; }" & ASCII.LF &
+       ".svgalias { color: grey; }" & ASCII.LF &
+       ".svgaqua { color: aqua; }" & ASCII.LF &
+       ".svgcyan { color: cyan; }" & ASCII.LF &
+       "li, ul, p { color: red; }" & ASCII.LF &
+       "li, ul, p { padding: 2px; }" & ASCII.LF;
 
 begin
    Put_Line ("CSS parser test");
@@ -132,6 +141,14 @@ begin
    Assert (Adi.CSS_Parser.Has_Tag (Sheet, "li"), "Has_Tag should parse grouped tag selector 'li'");
    Assert (Adi.CSS_Parser.Has_Tag (Sheet, "ul"), "Has_Tag should parse grouped tag selector 'ul'");
    Assert (Adi.CSS_Parser.Has_Tag (Sheet, "p"), "Has_Tag should parse grouped tag selector 'p'");
+   Assert (Adi.CSS_Parser.Has_Class (Sheet, "listprobe"), "Has_Class should parse '.listprobe'");
+    Assert (Adi.CSS_Parser.Has_Class (Sheet, "listprobe2"), "Has_Class should parse '.listprobe2'");
+   Assert (Adi.CSS_Parser.Has_Class (Sheet, "listprobe3"), "Has_Class should parse '.listprobe3'");
+   Assert (Adi.CSS_Parser.Has_Class (Sheet, "listprobe4"), "Has_Class should parse '.listprobe4'");
+   Assert (Adi.CSS_Parser.Has_Class (Sheet, "svgnamed"), "Has_Class should parse '.svgnamed'");
+   Assert (Adi.CSS_Parser.Has_Class (Sheet, "svgalias"), "Has_Class should parse '.svgalias'");
+   Assert (Adi.CSS_Parser.Has_Class (Sheet, "svgaqua"), "Has_Class should parse '.svgaqua'");
+   Assert (Adi.CSS_Parser.Has_Class (Sheet, "svgcyan"), "Has_Class should parse '.svgcyan'");
    Assert (not Adi.CSS_Parser.Has_Class (Sheet, "missing"), "Has_Class should be false for unknown class");
    Assert (not Adi.CSS_Parser.Has_Id (Sheet, "card"), "Has_Id should not match class selector");
 
@@ -143,6 +160,14 @@ begin
       Seconds_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "seconds");
       Sides_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "sides");
       UL_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Tag (Sheet, "ul");
+      Listprobe_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "listprobe");
+      Listprobe2_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "listprobe2");
+      Listprobe3_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "listprobe3");
+      Listprobe4_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "listprobe4");
+      SvgNamed_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "svgnamed");
+      SvgAlias_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "svgalias");
+      SvgAqua_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "svgaqua");
+      SvgCyan_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "svgcyan");
       Missing_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For (Sheet, "missing");
       DP_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "dpunit");
 
@@ -188,6 +213,14 @@ begin
       Seconds_Main : constant Resolved_Style := Compute_Resolved (Seconds_Styles (Main_Part).Style, No_States, No_States);
       Sides_Main : constant Resolved_Style := Compute_Resolved (Sides_Styles (Main_Part).Style, No_States, No_States);
       UL_Main    : constant Resolved_Style := Compute_Resolved (UL_Styles (Main_Part).Style, No_States, No_States);
+      Listprobe_Main : constant Resolved_Style := Compute_Resolved (Listprobe_Styles (Main_Part).Style, No_States, No_States);
+      Listprobe2_Main : constant Resolved_Style := Compute_Resolved (Listprobe2_Styles (Main_Part).Style, No_States, No_States);
+      Listprobe3_Main : constant Resolved_Style := Compute_Resolved (Listprobe3_Styles (Main_Part).Style, No_States, No_States);
+      Listprobe4_Main : constant Resolved_Style := Compute_Resolved (Listprobe4_Styles (Main_Part).Style, No_States, No_States);
+      SvgNamed_Main : constant Resolved_Style := Compute_Resolved (SvgNamed_Styles (Main_Part).Style, No_States, No_States);
+      SvgAlias_Main : constant Resolved_Style := Compute_Resolved (SvgAlias_Styles (Main_Part).Style, No_States, No_States);
+      SvgAqua_Main : constant Resolved_Style := Compute_Resolved (SvgAqua_Styles (Main_Part).Style, No_States, No_States);
+      SvgCyan_Main : constant Resolved_Style := Compute_Resolved (SvgCyan_Styles (Main_Part).Style, No_States, No_States);
       Missing_Main : constant Resolved_Style := Compute_Resolved (Missing_Styles (Main_Part).Style, No_States, No_States);
       DP_Main      : constant Resolved_Style := Compute_Resolved (DP_Styles (Main_Part).Style, No_States, No_States);
    begin
@@ -331,6 +364,36 @@ begin
               and then Sides_Main.Margin.Sides (Bottom).Amount = 5.0
               and then Sides_Main.Margin.Sides (Left).Amount = 5.0,
               "Margin side longhands should override shorthand per side");
+      Assert (Listprobe_Main.List_Style_Type.Kind = List_Style_Square,
+              "list-style shorthand should parse list-style-type keyword");
+      Assert (Listprobe_Main.List_Style_Image.Kind = List_Image_URL
+              and then To_String (Listprobe_Main.List_Style_Image.URI) = "app://marker.svg",
+              "list-style shorthand should parse list-style-image url");
+      Assert (Listprobe_Main.List_Style_Position = List_Outside,
+              "list-style shorthand should parse list-style-position keyword");
+      Assert (Listprobe2_Main.List_Style_Type.Kind = List_Style_Custom_String
+              and then To_String (Listprobe2_Main.List_Style_Type.Marker) = "-> ",
+              "list-style shorthand should parse quoted custom marker text");
+      Assert (Listprobe3_Main.List_Style_Type.Kind = List_Style_Disc
+              and then Listprobe3_Main.List_Style_Image.Kind = List_Image_None
+              and then Listprobe3_Main.List_Style_Position = List_Inside,
+              "list-style longhands should parse and resolve");
+      Assert (Listprobe4_Main.List_Style_Type.Kind = List_Style_None
+              and then Listprobe4_Main.List_Style_Image.Kind = List_Image_None,
+              "list-style none shorthand should disable both type and image");
+      Assert (Is_Named_Color (SvgNamed_Main.Color, Cornflower_Blue),
+              "SVG named colors should parse to Named_Color enum values");
+      Assert (Is_Named_Color (SvgNamed_Main.Background_Color, Light_Goldenrod_Yellow),
+              "SVG named colors should parse for background-color");
+      Assert (SvgNamed_Main.Border_Color.Kind = Gap_Uniform
+              and then Is_Named_Color (SvgNamed_Main.Border_Color.All_Edges, Dark_Slate_Gray),
+              "SVG named colors should parse for border-color");
+      Assert (Is_Named_Color (SvgAlias_Main.Color, Gray),
+              "grey alias should map to Gray enum");
+      Assert (Is_Named_Color (SvgAqua_Main.Color, Aqua),
+              "aqua keyword should parse");
+      Assert (Is_Named_Color (SvgCyan_Main.Color, Cyan),
+              "cyan keyword should parse");
       Assert (Missing_Main.Background_Color.Kind = Named
               and then Missing_Main.Background_Color.Name = Transparent,
               "Unknown class should return default/empty styles");

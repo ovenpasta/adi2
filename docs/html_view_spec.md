@@ -143,9 +143,11 @@ Package: `Adi.Widget.Html_View`
 
 ### Lists (`ul`/`ol`/`li`)
 - Each `li` is a block row with marker area + content area.
-- Marker rules:
-  - `ul`: bullet marker (`•`).
-  - `ol`: decimal markers (`1.`, `2.`, ...).
+- Marker rules are style-driven from `list-style*` properties:
+  - `list-style-type`: `disc`, `circle`, `square`, `decimal`, `none`, or quoted custom marker text.
+  - `list-style-image`: `none` or callback-loaded `url(...)` marker asset.
+  - `list-style-position`: `outside` and `inside`.
+- Ordered list item numbering supports `<li value="N">` overrides.
 - Wrapped lines in an `li` align to the content area (not marker origin).
 - Nesting increases indentation by a fixed style-driven step.
 
@@ -173,6 +175,7 @@ Package: `Adi.Widget.Html_View`
 
 ### Runtime property coverage used by Html_View
 - Typography/text flow: `font-size`, `font-weight`, `font-style`, `text-align`, `text-decoration`, `white-space`, `text-wrap-mode`, `text-overflow`, `line-height`.
+- Lists: `list-style`, `list-style-type`, `list-style-image`, `list-style-position`.
 - Box/layout basics: `display`, `margin*`, `padding*`, `width/height/min/max`, `overflow`.
 - Visuals: `color`, `background-color`, `border*`, `box-shadow`, `opacity`, `visibility`.
 - Images: `object-fit`.

@@ -114,6 +114,48 @@
   .small-gap {
     margin-top: 4px;
   }
+
+  .list-gallery {
+    margin: 10px 0px;
+    padding: 10px 14px;
+    background-color: rgb(252, 248, 240);
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgb(224, 212, 196);
+    border-radius: 8px;
+  }
+
+  .list-disc {
+    list-style-type: disc;
+    list-style-position: outside;
+  }
+
+  .list-circle {
+    list-style-type: circle;
+    list-style-position: outside;
+  }
+
+  .list-square {
+    list-style-type: square;
+    list-style-position: outside;
+  }
+
+  .list-decimal {
+    list-style-type: decimal;
+    list-style-position: outside;
+  }
+
+  .list-custom {
+    list-style: "=> " inside;
+  }
+
+  .list-cat {
+    list-style: url(app://happycat) disc outside;
+  }
+
+  .list-none {
+    list-style: none;
+  }
 </style>
 
 <div id="html-doc-root" class="doc">
@@ -183,20 +225,54 @@ line breaks should be preserved.</p>
     </p>
   </div>
 
-  <h2>6) Lists and Nesting</h2>
-  <ul class="panel">
-    <li>Simple bullet item with <strong>strong</strong> text.</li>
-    <li>
-      Mixed item with <em>emphasis</em>, <code>code()</code>, and
-      <a href="app://list/item/2">a list link</a>.
-    </li>
-    <li>
-      Nested ordered list:
-      <ol>
-        <li>first nested ordered item</li>
-        <li>second nested item with <code>inline_marker()</code></li>
+  <h2>6) Lists and Marker Styles</h2>
+  <p class="panel">
+    The next lists showcase all marker styles supported by the widget:
+    <code>disc</code>, <code>circle</code>, <code>square</code>,
+    <code>decimal</code>, custom string markers, image markers, and
+    <code>none</code>. The cat image marker uses
+    <code>list-style-image: url(app://happycat)</code>.
+  </p>
+
+  <ul class="list-gallery list-disc">
+    <li>Disc marker with <strong>strong</strong> text.</li>
+    <li>Disc marker with <a href="app://list/disc/link">inline link</a>.</li>
+  </ul>
+
+  <ul class="list-gallery list-circle">
+    <li>Circle marker sample.</li>
+    <li>Circle marker with <em>emphasis</em>.</li>
+  </ul>
+
+  <ul class="list-gallery list-square">
+    <li>Square marker sample.</li>
+    <li>Square marker with nested decimal list:
+      <ol class="list-decimal">
+        <li value="4">nested item starts at 4 via <code>value</code></li>
+        <li>nested item continues at 5</li>
       </ol>
     </li>
+  </ul>
+
+  <ol class="list-gallery list-decimal">
+    <li>Decimal marker one.</li>
+    <li value="8">Decimal marker jumps to 8 via <code>li value</code>.</li>
+    <li>Decimal marker continues at 9.</li>
+  </ol>
+
+  <ul class="list-gallery list-custom">
+    <li>Custom string marker rendered with <code>list-style</code> shorthand.</li>
+    <li>Inside markers flow with the text line box.</li>
+  </ul>
+
+  <ul class="list-gallery list-cat">
+    <li>Cat image marker from <code>app://happycat</code>.</li>
+    <li>If image loading fails, the fallback marker is a disc.</li>
+  </ul>
+
+  <ul class="list-gallery list-none">
+    <li>This list uses <code>list-style: none</code>.</li>
+    <li>No marker should appear for these rows.</li>
   </ul>
 
   <h2>7) Images and Fallback</h2>

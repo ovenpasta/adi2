@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Ada.Strings.Unbounded;
 with Adi.Core;
 with Adi.Image;
 
@@ -68,8 +69,153 @@ package Adi.CSS_Styles is
    -------------------------------------------------
 
    type Named_Color is (
-      Black, White, Red, Green, Blue, Yellow, Orange, Purple,
-      Gray, Light_Gray, Dark_Gray, Transparent, Inherit, Current_Color
+      Black,
+      White,
+      Red,
+      Green,
+      Blue,
+      Yellow,
+      Orange,
+      Purple,
+      Gray,
+      Light_Gray,
+      Dark_Gray,
+      Silver,
+      Maroon,
+      Fuchsia,
+      Lime,
+      Olive,
+      Navy,
+      Teal,
+      Aqua,
+      Alice_Blue,
+      Antique_White,
+      Aqua_Marine,
+      Azure,
+      Beige,
+      Bisque,
+      Blanched_Almond,
+      Blue_Violet,
+      Brown,
+      Burly_Wood,
+      Cadet_Blue,
+      Chartreuse,
+      Chocolate,
+      Coral,
+      Cornflower_Blue,
+      Corn_Silk,
+      Crimson,
+      Cyan,
+      Dark_Blue,
+      Dark_Cyan,
+      Dark_Goldenrod,
+      Dark_Green,
+      Dark_Khaki,
+      Dark_Magenta,
+      Dark_Olive_Green,
+      Dark_Orange,
+      Dark_Orchid,
+      Dark_Red,
+      Dark_Salmon,
+      Dark_Sea_Green,
+      Dark_Slate_Blue,
+      Dark_Slate_Gray,
+      Dark_Slate_Grey,
+      Dark_Turquoise,
+      Dark_Violet,
+      Deep_Pink,
+      Deep_Sky_Blue,
+      Dim_Gray,
+      Dim_Grey,
+      Dodger_Blue,
+      Fire_Brick,
+      Floral_White,
+      Forest_Green,
+      Gainsboro,
+      Ghost_White,
+      Gold,
+      Goldenrod,
+      Green_Yellow,
+      Honey_Dew,
+      Hot_Pink,
+      Indian_Red,
+      Indigo,
+      Ivory,
+      Khaki,
+      Lavender,
+      Lavender_Blush,
+      Lawn_Green,
+      Lemon_Chiffon,
+      Light_Blue,
+      Light_Coral,
+      Light_Cyan,
+      Light_Goldenrod_Yellow,
+      Light_Green,
+      Light_Pink,
+      Light_Salmon,
+      Light_Sea_Green,
+      Light_Sky_Blue,
+      Light_Slate_Gray,
+      Light_Slate_Grey,
+      Light_Steel_Blue,
+      Light_Yellow,
+      Lime_Green,
+      Linen,
+      Magenta,
+      Medium_Aqua_Marine,
+      Medium_Blue,
+      Medium_Orchid,
+      Medium_Purple,
+      Medium_Sea_Green,
+      Medium_Slate_Blue,
+      Medium_Spring_Green,
+      Medium_Turquoise,
+      Medium_Violet_Red,
+      Midnight_Blue,
+      Mint_Cream,
+      Misty_Rose,
+      Moccasin,
+      Navajo_White,
+      Old_Lace,
+      Olive_Drab,
+      Orange_Red,
+      Orchid,
+      Pale_Goldenrod,
+      Pale_Green,
+      Pale_Turquoise,
+      Pale_Violet_Red,
+      Papaya_Whip,
+      Peach_Puff,
+      Peru,
+      Pink,
+      Plum,
+      Powder_Blue,
+      Rosy_Brown,
+      Royal_Blue,
+      Saddle_Brown,
+      Salmon,
+      Sandy_Brown,
+      Sea_Green,
+      Sea_Shell,
+      Sienna,
+      Sky_Blue,
+      Slate_Blue,
+      Slate_Gray,
+      Slate_Grey,
+      Snow,
+      Spring_Green,
+      Steel_Blue,
+      Tan,
+      Thistle,
+      Tomato,
+      Turquoise,
+      Violet,
+      Wheat,
+      White_Smoke,
+      Yellow_Green,
+      Transparent,
+      Inherit,
+      Current_Color
    );
 
    type Color_Kind is (Named, RGB, RGBA);
@@ -301,6 +447,63 @@ type Text_Decoration_Value is (
    Decoration_Line_Through
 );
 Default_Text_Decoration : constant Text_Decoration_Value := Decoration_None;
+
+--  List style (CSS list-style-*)
+type List_Style_Type_Kind is (
+   List_Style_None,
+   List_Style_Disc,
+   List_Style_Circle,
+   List_Style_Square,
+   List_Style_Decimal,
+   List_Style_Custom_String
+);
+
+type List_Style_Type_Value
+  (Kind : List_Style_Type_Kind := List_Style_Disc) is record
+   case Kind is
+      when List_Style_Custom_String =>
+         Marker : Ada.Strings.Unbounded.Unbounded_String :=
+           Ada.Strings.Unbounded.Null_Unbounded_String;
+      when others =>
+         null;
+   end case;
+end record;
+
+function List_String (Text : String) return List_Style_Type_Value is
+  ((Kind   => List_Style_Custom_String,
+    Marker => Ada.Strings.Unbounded.To_Unbounded_String (Text)));
+
+Default_List_Style_Type : constant List_Style_Type_Value :=
+  (Kind => List_Style_Disc);
+
+type List_Style_Image_Kind is (
+   List_Image_None,
+   List_Image_URL
+);
+
+type List_Style_Image_Value
+  (Kind : List_Style_Image_Kind := List_Image_None) is record
+   case Kind is
+      when List_Image_URL =>
+         URI : Ada.Strings.Unbounded.Unbounded_String :=
+           Ada.Strings.Unbounded.Null_Unbounded_String;
+      when others =>
+         null;
+   end case;
+end record;
+
+function List_Image (URI : String) return List_Style_Image_Value is
+  ((Kind => List_Image_URL,
+    URI  => Ada.Strings.Unbounded.To_Unbounded_String (URI)));
+
+No_List_Image : constant List_Style_Image_Value := (Kind => List_Image_None);
+
+type List_Style_Position_Value is (
+   List_Outside,
+   List_Inside
+);
+
+Default_List_Style_Position : constant List_Style_Position_Value := List_Outside;
 
 --  White space handling (CSS white-space)
 type White_Space_Value is (
@@ -698,14 +901,17 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    package Opt_Cursor        is new Optional_Values (Cursor_Value, Default_Cursor);
    package Opt_Visibility    is new Optional_Values (Visibility_Value, Default_Visibility);
 
-    package Opt_Font            is new Optional_Values (Font_Handle, Default_Font);
-    package Opt_Font_Weight     is new Optional_Values (Font_Weight_Value, Default_Font_Weight);
-    package Opt_Font_Style      is new Optional_Values (Font_Style_Value, Default_Font_Style);
-    package Opt_Text_Decoration is new Optional_Values (Text_Decoration_Value, Default_Text_Decoration);
-    package Opt_White_Space     is new Optional_Values (White_Space_Value, Default_White_Space);
-    package Opt_Text_Overflow   is new Optional_Values (Text_Overflow_Value, Default_Text_Overflow);
-    package Opt_Line_Height     is new Optional_Values (Line_Height_Value, Default_Line_Height);
-    package Opt_Text_Wrap_Mode  is new Optional_Values (Text_Wrap_Mode_Value, Default_Text_Wrap_Mode);
+     package Opt_Font            is new Optional_Values (Font_Handle, Default_Font);
+     package Opt_Font_Weight     is new Optional_Values (Font_Weight_Value, Default_Font_Weight);
+     package Opt_Font_Style      is new Optional_Values (Font_Style_Value, Default_Font_Style);
+     package Opt_Text_Decoration is new Optional_Values (Text_Decoration_Value, Default_Text_Decoration);
+     package Opt_List_Style_Type is new Optional_Values (List_Style_Type_Value, Default_List_Style_Type);
+     package Opt_List_Style_Image is new Optional_Values (List_Style_Image_Value, No_List_Image);
+     package Opt_List_Style_Position is new Optional_Values (List_Style_Position_Value, Default_List_Style_Position);
+     package Opt_White_Space     is new Optional_Values (White_Space_Value, Default_White_Space);
+     package Opt_Text_Overflow   is new Optional_Values (Text_Overflow_Value, Default_Text_Overflow);
+     package Opt_Line_Height     is new Optional_Values (Line_Height_Value, Default_Line_Height);
+     package Opt_Text_Wrap_Mode  is new Optional_Values (Text_Wrap_Mode_Value, Default_Text_Wrap_Mode);
     package Opt_Transition      is new Optional_Values (Transition_Spec, Default_Transition);
    -------------------------------------------------
    -- Style Rules Record
@@ -743,6 +949,9 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Text_Align       : Opt_Text_Align.Optional      := Opt_Text_Align.Unset;
       Vertical_Align   : Opt_Vertical_Align.Optional  := Opt_Vertical_Align.Unset;
       Text_Decoration  : Opt_Text_Decoration.Optional := Opt_Text_Decoration.Unset;
+      List_Style_Type  : Opt_List_Style_Type.Optional := Opt_List_Style_Type.Unset;
+      List_Style_Image : Opt_List_Style_Image.Optional := Opt_List_Style_Image.Unset;
+      List_Style_Position : Opt_List_Style_Position.Optional := Opt_List_Style_Position.Unset;
       White_Space      : Opt_White_Space.Optional     := Opt_White_Space.Unset;
       Text_Overflow    : Opt_Text_Overflow.Optional   := Opt_Text_Overflow.Unset;
       Text_Wrap_Mode   : Opt_Text_Wrap_Mode.Optional  := Opt_Text_Wrap_Mode.Unset;
@@ -829,6 +1038,9 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Text_Align       : Text_Align_Value := Default_Text_Align;
       Vertical_Align   : Vertical_Align_Value := Default_Vertical_Align;
       Text_Decoration  : Text_Decoration_Value := Default_Text_Decoration;
+      List_Style_Type  : List_Style_Type_Value := Default_List_Style_Type;
+      List_Style_Image : List_Style_Image_Value := No_List_Image;
+      List_Style_Position : List_Style_Position_Value := Default_List_Style_Position;
       White_Space      : White_Space_Value := Default_White_Space;
       Text_Overflow    : Text_Overflow_Value := Default_Text_Overflow;
       Text_Wrap_Mode   : Text_Wrap_Mode_Value := Default_Text_Wrap_Mode;
@@ -908,14 +1120,17 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Set_Font (V : Length_Value) return Opt_Font_Size.Optional renames Opt_Font_Size.Val;
    No_Size      : constant Opt_Size.Optional      := Opt_Size.Cleared;
    No_Font_Size : constant Opt_Font_Size.Optional := Opt_Font_Size.Cleared;
-    function Set (V : Font_Handle) return Opt_Font.Optional renames Opt_Font.Val;
-    function Set (V : Font_Weight_Value) return Opt_Font_Weight.Optional renames Opt_Font_Weight.Val;
-    function Set (V : Font_Style_Value) return Opt_Font_Style.Optional renames Opt_Font_Style.Val;
-    function Set (V : Text_Decoration_Value) return Opt_Text_Decoration.Optional renames Opt_Text_Decoration.Val;
-    function Set (V : White_Space_Value) return Opt_White_Space.Optional renames Opt_White_Space.Val;
-    function Set (V : Text_Overflow_Value) return Opt_Text_Overflow.Optional renames Opt_Text_Overflow.Val;
-    function Set (V : Text_Wrap_Mode_Value) return Opt_Text_Wrap_Mode.Optional renames Opt_Text_Wrap_Mode.Val;
-    function Set (V : Line_Height_Value) return Opt_Line_Height.Optional renames Opt_Line_Height.Val;
+     function Set (V : Font_Handle) return Opt_Font.Optional renames Opt_Font.Val;
+     function Set (V : Font_Weight_Value) return Opt_Font_Weight.Optional renames Opt_Font_Weight.Val;
+     function Set (V : Font_Style_Value) return Opt_Font_Style.Optional renames Opt_Font_Style.Val;
+     function Set (V : Text_Decoration_Value) return Opt_Text_Decoration.Optional renames Opt_Text_Decoration.Val;
+     function Set (V : List_Style_Type_Value) return Opt_List_Style_Type.Optional renames Opt_List_Style_Type.Val;
+     function Set (V : List_Style_Image_Value) return Opt_List_Style_Image.Optional renames Opt_List_Style_Image.Val;
+     function Set (V : List_Style_Position_Value) return Opt_List_Style_Position.Optional renames Opt_List_Style_Position.Val;
+     function Set (V : White_Space_Value) return Opt_White_Space.Optional renames Opt_White_Space.Val;
+     function Set (V : Text_Overflow_Value) return Opt_Text_Overflow.Optional renames Opt_Text_Overflow.Val;
+     function Set (V : Text_Wrap_Mode_Value) return Opt_Text_Wrap_Mode.Optional renames Opt_Text_Wrap_Mode.Val;
+     function Set (V : Line_Height_Value) return Opt_Line_Height.Optional renames Opt_Line_Height.Val;
 
    -- Layout
    function Set (V : Display_Value) return Opt_Display.Optional renames Opt_Display.Val;
@@ -961,6 +1176,10 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    -------------------------------------------------
    -- Color Normalization Helper
    -------------------------------------------------
+
+   function Parse_Named_Color
+     (Name  : String;
+      Value : out Named_Color) return Boolean;
 
    procedure Normalize_Color (C : Color_Value;
                               R, G, B : out Natural;

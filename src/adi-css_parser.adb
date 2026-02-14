@@ -77,6 +77,10 @@ package body Adi.CSS_Parser is
      (Index_Type => Positive,
       Element_Type => Parsed_Length);
 
+   package Token_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type => Positive,
+      Element_Type => Unbounded_String);
+
    procedure Ensure_Impl (Sheet : in out Stylesheet) is
    begin
       if Sheet.Impl = null then
@@ -198,6 +202,237 @@ package body Adi.CSS_Parser is
       return Parse_Number (To_String (Number), L.Amount);
    end Parse_Length;
 
+   function Parse_Quoted_String
+     (Input    : String;
+      Out_Text : out Unbounded_String) return Boolean
+   is
+      V : constant String := Trimmed (Input);
+   begin
+      Out_Text := Null_Unbounded_String;
+
+      if V'Length < 2 then
+         return False;
+      end if;
+
+      if not
+        ((V (V'First) = '"' and then V (V'Last) = '"')
+         or else
+         (V (V'First) = ''' and then V (V'Last) = '''))
+      then
+         return False;
+      end if;
+
+      if V'Length = 2 then
+         Out_Text := Null_Unbounded_String;
+      else
+         Out_Text := To_Unbounded_String (V (V'First + 1 .. V'Last - 1));
+      end if;
+
+      return True;
+   end Parse_Quoted_String;
+
+   function Parse_URL_Function
+     (Input   : String;
+      Out_URI : out Unbounded_String) return Boolean
+   is
+      V : constant String := Trimmed (Input);
+   begin
+      Out_URI := Null_Unbounded_String;
+
+      if V'Length < 5 then
+         return False;
+      end if;
+
+      if Lower (V (V'First .. V'First + 3)) /= "url(" or else V (V'Last) /= ')' then
+         return False;
+      end if;
+
+      if V'Length = 5 then
+         return False;
+      end if;
+
+      declare
+         Inner : constant String := Trimmed (V (V'First + 4 .. V'Last - 1));
+      begin
+         if Inner'Length = 0 then
+            return False;
+         end if;
+
+         if Inner'Length >= 2
+           and then
+             ((Inner (Inner'First) = '"' and then Inner (Inner'Last) = '"')
+              or else
+              (Inner (Inner'First) = ''' and then Inner (Inner'Last) = '''))
+         then
+            if Inner'Length = 2 then
+               Out_URI := Null_Unbounded_String;
+            else
+               Out_URI := To_Unbounded_String (Inner (Inner'First + 1 .. Inner'Last - 1));
+            end if;
+         else
+            Out_URI := To_Unbounded_String (Inner);
+         end if;
+      end;
+
+      return Length (Out_URI) > 0;
+   end Parse_URL_Function;
+
+   function Parse_List_Style_Type_Value
+     (Input    : String;
+      Out_Type : out List_Style_Type_Value) return Boolean
+   is
+      V : constant String := Lower (Trimmed (Input));
+      S : Unbounded_String;
+   begin
+      if V = "none" then
+         Out_Type := (Kind => List_Style_None);
+         return True;
+      elsif V = "disc" then
+         Out_Type := (Kind => List_Style_Disc);
+         return True;
+      elsif V = "circle" then
+         Out_Type := (Kind => List_Style_Circle);
+         return True;
+      elsif V = "square" then
+         Out_Type := (Kind => List_Style_Square);
+         return True;
+      elsif V = "decimal" then
+         Out_Type := (Kind => List_Style_Decimal);
+         return True;
+      elsif Parse_Quoted_String (Trimmed (Input), S) then
+         Out_Type := List_String (To_String (S));
+         return True;
+      end if;
+
+      return False;
+   end Parse_List_Style_Type_Value;
+
+   function Parse_List_Style_Position_Value
+     (Input        : String;
+      Out_Position : out List_Style_Position_Value) return Boolean
+   is
+      V : constant String := Lower (Trimmed (Input));
+   begin
+      if V = "outside" then
+         Out_Position := List_Outside;
+         return True;
+      elsif V = "inside" then
+         Out_Position := List_Inside;
+         return True;
+      end if;
+
+      return False;
+   end Parse_List_Style_Position_Value;
+
+   procedure Split_Whitespace_Tokens
+     (Input      : String;
+      Out_Tokens : in out Token_Vectors.Vector)
+   is
+      I           : Integer := Input'First;
+      Token_Start : Integer := Input'First;
+      In_Quote    : Character := ASCII.NUL;
+      Paren_Depth : Natural := 0;
+   begin
+      Out_Tokens.Clear;
+
+      while I <= Input'Last loop
+         if In_Quote = ASCII.NUL then
+            if Input (I) = '"' or else Input (I) = ''' then
+               In_Quote := Input (I);
+            elsif Input (I) = '(' then
+               Paren_Depth := Paren_Depth + 1;
+            elsif Input (I) = ')' then
+               if Paren_Depth > 0 then
+                  Paren_Depth := Paren_Depth - 1;
+               end if;
+            elsif Is_Whitespace (Input (I)) and then Paren_Depth = 0 then
+               if I > Token_Start then
+                  declare
+                     Tok : constant String := Trimmed (Input (Token_Start .. I - 1));
+                  begin
+                     if Tok'Length > 0 then
+                        Out_Tokens.Append (To_Unbounded_String (Tok));
+                     end if;
+                  end;
+               end if;
+               Token_Start := I + 1;
+            end if;
+         elsif Input (I) = In_Quote then
+            In_Quote := ASCII.NUL;
+         end if;
+
+         I := I + 1;
+      end loop;
+
+      if Token_Start <= Input'Last then
+         declare
+            Tok : constant String := Trimmed (Input (Token_Start .. Input'Last));
+         begin
+            if Tok'Length > 0 then
+               Out_Tokens.Append (To_Unbounded_String (Tok));
+            end if;
+         end;
+      end if;
+   end Split_Whitespace_Tokens;
+
+   function Parse_List_Style_Shorthand
+     (Input        : String;
+      Out_Type     : out List_Style_Type_Value;
+      Out_Image    : out List_Style_Image_Value;
+      Out_Position : out List_Style_Position_Value;
+      Has_Type     : out Boolean;
+      Has_Image    : out Boolean;
+      Has_Position : out Boolean) return Boolean
+   is
+      Tokens : Token_Vectors.Vector;
+   begin
+      Has_Type := False;
+      Has_Image := False;
+      Has_Position := False;
+
+      Out_Type := Default_List_Style_Type;
+      Out_Image := No_List_Image;
+      Out_Position := Default_List_Style_Position;
+
+      Split_Whitespace_Tokens (Input, Tokens);
+
+      for T of Tokens loop
+         declare
+            Tok     : constant String := To_String (T);
+            Tok_Low : constant String := Lower (Tok);
+            URI     : Unbounded_String;
+            Typ     : List_Style_Type_Value;
+            Pos     : List_Style_Position_Value;
+         begin
+            if Parse_List_Style_Position_Value (Tok, Pos) then
+               Out_Position := Pos;
+               Has_Position := True;
+            elsif Tok_Low = "none" then
+               if not Has_Type and then not Has_Image then
+                  Out_Type := (Kind => List_Style_None);
+                  Out_Image := No_List_Image;
+                  Has_Type := True;
+                  Has_Image := True;
+               elsif not Has_Type then
+                  Out_Type := (Kind => List_Style_None);
+                  Has_Type := True;
+               elsif not Has_Image then
+                  Out_Image := No_List_Image;
+                  Has_Image := True;
+               end if;
+            elsif Parse_URL_Function (Tok, URI) then
+               Out_Image := List_Image (To_String (URI));
+               Has_Image := True;
+            elsif Parse_List_Style_Type_Value (Tok, Typ) then
+               Out_Type := Typ;
+               Has_Type := True;
+            end if;
+         end;
+      end loop;
+
+      return Has_Type or else Has_Image or else Has_Position;
+   end Parse_List_Style_Shorthand;
+
    function To_Length (L : Parsed_Length) return Length_Value is
    begin
       case L.Unit is
@@ -292,20 +527,14 @@ package body Adi.CSS_Parser is
       end Parse_RGB_Args;
 
    begin
-      if V = "black" then Out_Color := C (Black); return True; end if;
-      if V = "white" then Out_Color := C (White); return True; end if;
-      if V = "red" then Out_Color := C (Red); return True; end if;
-      if V = "green" then Out_Color := C (Green); return True; end if;
-      if V = "blue" then Out_Color := C (Blue); return True; end if;
-      if V = "yellow" then Out_Color := C (Yellow); return True; end if;
-      if V = "orange" then Out_Color := C (Orange); return True; end if;
-      if V = "purple" then Out_Color := C (Purple); return True; end if;
-      if V = "gray" or else V = "grey" then Out_Color := C (Gray); return True; end if;
-      if V = "lightgray" or else V = "lightgrey" then Out_Color := C (Light_Gray); return True; end if;
-      if V = "darkgray" or else V = "darkgrey" then Out_Color := C (Dark_Gray); return True; end if;
-      if V = "transparent" then Out_Color := C (Transparent); return True; end if;
-      if V = "inherit" then Out_Color := C (Inherit); return True; end if;
-      if V = "currentcolor" then Out_Color := C (Current_Color); return True; end if;
+      declare
+         Parsed_Name : Named_Color;
+      begin
+         if Parse_Named_Color (V, Parsed_Name) then
+            Out_Color := C (Parsed_Name);
+            return True;
+         end if;
+      end;
 
       if V'Length = 4 and then V (V'First) = '#' then
          declare
@@ -924,6 +1153,13 @@ package body Adi.CSS_Parser is
       BR   : Border_Radius_Value;
       SVal : Size_Value;
       Shadow_Val : Box_Shadow_Value;
+      List_Type_Val : List_Style_Type_Value;
+      List_Image_Val : List_Style_Image_Value;
+      List_Position_Val : List_Style_Position_Value;
+      List_Type_Set : Boolean := False;
+      List_Image_Set : Boolean := False;
+      List_Position_Set : Boolean := False;
+      URI_Text : Unbounded_String;
       Ls : Length_Vectors.Vector;
       F : Float;
       I : Integer;
@@ -1069,6 +1305,40 @@ package body Adi.CSS_Parser is
          elsif LV = "underline" then Rules.Text_Decoration := Set (Decoration_Underline);
          elsif LV = "overline" then Rules.Text_Decoration := Set (Decoration_Overline);
          elsif LV = "line-through" then Rules.Text_Decoration := Set (Decoration_Line_Through);
+         end if;
+      elsif P = "list-style-type" then
+         if Parse_List_Style_Type_Value (V, List_Type_Val) then
+            Rules.List_Style_Type := Set (List_Type_Val);
+         end if;
+      elsif P = "list-style-image" then
+         if LV = "none" then
+            Rules.List_Style_Image := Set (No_List_Image);
+         elsif Parse_URL_Function (V, URI_Text) then
+            Rules.List_Style_Image := Set (List_Image (To_String (URI_Text)));
+         end if;
+      elsif P = "list-style-position" then
+         if Parse_List_Style_Position_Value (V, List_Position_Val) then
+            Rules.List_Style_Position := Set (List_Position_Val);
+         end if;
+      elsif P = "list-style" then
+         if Parse_List_Style_Shorthand
+           (V,
+            List_Type_Val,
+            List_Image_Val,
+            List_Position_Val,
+            List_Type_Set,
+            List_Image_Set,
+            List_Position_Set)
+         then
+            if List_Type_Set then
+               Rules.List_Style_Type := Set (List_Type_Val);
+            end if;
+            if List_Image_Set then
+               Rules.List_Style_Image := Set (List_Image_Val);
+            end if;
+            if List_Position_Set then
+               Rules.List_Style_Position := Set (List_Position_Val);
+            end if;
          end if;
       elsif P = "white-space" then
          if LV = "normal" then Rules.White_Space := Set (WS_Normal);

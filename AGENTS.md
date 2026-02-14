@@ -182,7 +182,7 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 - Supports file watching reload flow via `Reload_If_Changed`, reapplying styles to bound widgets
 - Parses `transition` with duration (`ms`/`s`), easing, and property filter
 - Accepts `dp` as an alias of `dip` for length values
-- Parses viewport units (`vw`, `vh`) and html text/layout properties including `line-height`, `white-space`, `text-decoration`, `text-overflow`, `object-fit`, and `visibility`
+- Parses viewport units (`vw`, `vh`) and html text/layout properties including `line-height`, `white-space`, `text-decoration`, `text-overflow`, `object-fit`, `visibility`, and `list-style*`
 
 **Adi.CSS_Source** (`adi-css_source.ads`): Dynamic/static style source switcher
 - Unifies runtime dynamic CSS (`Adi.CSS_Parser`) and compiled static style arrays
@@ -678,6 +678,7 @@ The tool supports a comprehensive set of CSS properties including:
 - **Borders**: `border`, `border-width`, `border-color`, `border-style`, `border-radius`
 - **Colors**: `color`, `background-color` (named colors, hex, rgb, rgba)
 - **Typography**: `font-size`, `font-weight`, `font-style`, `text-align`, `vertical-align`, `text-decoration`, `line-height`, `white-space`, `text-overflow`, `text-wrap-mode`
+- **Lists**: `list-style`, `list-style-type`, `list-style-image`, `list-style-position`
 - **Layout**: `display`, `position`, `overflow`, `visibility`, `opacity`
 - **Flexbox**: `flex-direction`, `flex-wrap`, `justify-content`, `align-items`, `align-self`, `align-content`, `gap`, `flex-grow`, `flex-shrink`, `flex-basis`, `order`
 - **Grid (first-pass)**: `grid-template-columns`, `grid-template-rows`, `grid-column`, `grid-row`

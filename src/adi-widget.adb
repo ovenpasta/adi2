@@ -1469,35 +1469,14 @@ package body Adi.Widget is
       (C : Color_Value;
        R, G, B, A : out Adi.SDL.Uint8)
    is
+      Rn, Gn, Bn : Natural := 0;
+      An         : Float := 1.0;
    begin
-      case C.Kind is
-         when Named =>
-            case C.Name is
-               when Black       => R := 0;   G := 0;   B := 0;   A := 255;
-               when White       => R := 255; G := 255; B := 255; A := 255;
-               when Red         => R := 255; G := 0;   B := 0;   A := 255;
-               when Green       => R := 0;   G := 128; B := 0;   A := 255;
-               when Blue        => R := 0;   G := 0;   B := 255; A := 255;
-               when Yellow      => R := 255; G := 255; B := 0;   A := 255;
-               when Orange      => R := 255; G := 165; B := 0;   A := 255;
-               when Purple      => R := 128; G := 0;   B := 128; A := 255;
-               when Gray        => R := 128; G := 128; B := 128; A := 255;
-               when Light_Gray  => R := 211; G := 211; B := 211; A := 255;
-               when Dark_Gray   => R := 64;  G := 64;  B := 64;  A := 255;
-               when Transparent => R := 0;   G := 0;   B := 0;   A := 0;
-               when Inherit | Current_Color => R := 0; G := 0; B := 0; A := 255;
-            end case;
-         when RGB =>
-            R := Uint8 (C.R);
-            G := Uint8 (C.G);
-            B := Uint8 (C.B);
-            A := 255;
-         when RGBA =>
-            R := Uint8 (C.RA);
-            G := Uint8 (C.GA);
-            B := Uint8 (C.BA);
-            A := Uint8 (C.Alpha * 255.0);
-      end case;
+      Normalize_Color (C, Rn, Gn, Bn, An);
+      R := Uint8 (Rn);
+      G := Uint8 (Gn);
+      B := Uint8 (Bn);
+      A := Uint8 (An * 255.0);
    end CSS_Color_To_SDL;
 
    ---------------------------------------------------------------------------

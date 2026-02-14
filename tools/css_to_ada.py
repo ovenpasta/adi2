@@ -41,19 +41,152 @@ PSEUDO_CLASS_MAP = {
 # CSS color names to Ada Named_Color
 NAMED_COLORS = {
     "black": "Black",
-    "white": "White",
-    "red": "Red",
-    "green": "Green",
-    "blue": "Blue",
-    "yellow": "Yellow",
-    "orange": "Orange",
-    "purple": "Purple",
+    "silver": "Silver",
     "gray": "Gray",
-    "grey": "Gray",
-    "lightgray": "Light_Gray",
-    "lightgrey": "Light_Gray",
+    "white": "White",
+    "maroon": "Maroon",
+    "red": "Red",
+    "purple": "Purple",
+    "fuchsia": "Fuchsia",
+    "green": "Green",
+    "lime": "Lime",
+    "olive": "Olive",
+    "yellow": "Yellow",
+    "navy": "Navy",
+    "blue": "Blue",
+    "teal": "Teal",
+    "aqua": "Aqua",
+    "aliceblue": "Alice_Blue",
+    "antiquewhite": "Antique_White",
+    "aquamarine": "Aqua_Marine",
+    "azure": "Azure",
+    "beige": "Beige",
+    "bisque": "Bisque",
+    "blanchedalmond": "Blanched_Almond",
+    "blueviolet": "Blue_Violet",
+    "brown": "Brown",
+    "burlywood": "Burly_Wood",
+    "cadetblue": "Cadet_Blue",
+    "chartreuse": "Chartreuse",
+    "chocolate": "Chocolate",
+    "coral": "Coral",
+    "cornflowerblue": "Cornflower_Blue",
+    "cornsilk": "Corn_Silk",
+    "crimson": "Crimson",
+    "cyan": "Cyan",
+    "darkblue": "Dark_Blue",
+    "darkcyan": "Dark_Cyan",
+    "darkgoldenrod": "Dark_Goldenrod",
     "darkgray": "Dark_Gray",
+    "darkgreen": "Dark_Green",
     "darkgrey": "Dark_Gray",
+    "darkkhaki": "Dark_Khaki",
+    "darkmagenta": "Dark_Magenta",
+    "darkolivegreen": "Dark_Olive_Green",
+    "darkorange": "Dark_Orange",
+    "darkorchid": "Dark_Orchid",
+    "darkred": "Dark_Red",
+    "darksalmon": "Dark_Salmon",
+    "darkseagreen": "Dark_Sea_Green",
+    "darkslateblue": "Dark_Slate_Blue",
+    "darkslategray": "Dark_Slate_Gray",
+    "darkslategrey": "Dark_Slate_Grey",
+    "darkturquoise": "Dark_Turquoise",
+    "darkviolet": "Dark_Violet",
+    "deeppink": "Deep_Pink",
+    "deepskyblue": "Deep_Sky_Blue",
+    "dimgray": "Dim_Gray",
+    "dimgrey": "Dim_Grey",
+    "dodgerblue": "Dodger_Blue",
+    "firebrick": "Fire_Brick",
+    "floralwhite": "Floral_White",
+    "forestgreen": "Forest_Green",
+    "gainsboro": "Gainsboro",
+    "ghostwhite": "Ghost_White",
+    "gold": "Gold",
+    "goldenrod": "Goldenrod",
+    "greenyellow": "Green_Yellow",
+    "grey": "Gray",
+    "honeydew": "Honey_Dew",
+    "hotpink": "Hot_Pink",
+    "indianred": "Indian_Red",
+    "indigo": "Indigo",
+    "ivory": "Ivory",
+    "khaki": "Khaki",
+    "lavender": "Lavender",
+    "lavenderblush": "Lavender_Blush",
+    "lawngreen": "Lawn_Green",
+    "lemonchiffon": "Lemon_Chiffon",
+    "lightblue": "Light_Blue",
+    "lightcoral": "Light_Coral",
+    "lightcyan": "Light_Cyan",
+    "lightgoldenrodyellow": "Light_Goldenrod_Yellow",
+    "lightgray": "Light_Gray",
+    "lightgreen": "Light_Green",
+    "lightgrey": "Light_Gray",
+    "lightpink": "Light_Pink",
+    "lightsalmon": "Light_Salmon",
+    "lightseagreen": "Light_Sea_Green",
+    "lightskyblue": "Light_Sky_Blue",
+    "lightslategray": "Light_Slate_Gray",
+    "lightslategrey": "Light_Slate_Grey",
+    "lightsteelblue": "Light_Steel_Blue",
+    "lightyellow": "Light_Yellow",
+    "limegreen": "Lime_Green",
+    "linen": "Linen",
+    "magenta": "Magenta",
+    "mediumaquamarine": "Medium_Aqua_Marine",
+    "mediumblue": "Medium_Blue",
+    "mediumorchid": "Medium_Orchid",
+    "mediumpurple": "Medium_Purple",
+    "mediumseagreen": "Medium_Sea_Green",
+    "mediumslateblue": "Medium_Slate_Blue",
+    "mediumspringgreen": "Medium_Spring_Green",
+    "mediumturquoise": "Medium_Turquoise",
+    "mediumvioletred": "Medium_Violet_Red",
+    "midnightblue": "Midnight_Blue",
+    "mintcream": "Mint_Cream",
+    "mistyrose": "Misty_Rose",
+    "moccasin": "Moccasin",
+    "navajowhite": "Navajo_White",
+    "oldlace": "Old_Lace",
+    "olivedrab": "Olive_Drab",
+    "orange": "Orange",
+    "orangered": "Orange_Red",
+    "orchid": "Orchid",
+    "palegoldenrod": "Pale_Goldenrod",
+    "palegreen": "Pale_Green",
+    "paleturquoise": "Pale_Turquoise",
+    "palevioletred": "Pale_Violet_Red",
+    "papayawhip": "Papaya_Whip",
+    "peachpuff": "Peach_Puff",
+    "peru": "Peru",
+    "pink": "Pink",
+    "plum": "Plum",
+    "powderblue": "Powder_Blue",
+    "rosybrown": "Rosy_Brown",
+    "royalblue": "Royal_Blue",
+    "saddlebrown": "Saddle_Brown",
+    "salmon": "Salmon",
+    "sandybrown": "Sandy_Brown",
+    "seagreen": "Sea_Green",
+    "seashell": "Sea_Shell",
+    "sienna": "Sienna",
+    "skyblue": "Sky_Blue",
+    "slateblue": "Slate_Blue",
+    "slategray": "Slate_Gray",
+    "slategrey": "Slate_Grey",
+    "snow": "Snow",
+    "springgreen": "Spring_Green",
+    "steelblue": "Steel_Blue",
+    "tan": "Tan",
+    "thistle": "Thistle",
+    "tomato": "Tomato",
+    "turquoise": "Turquoise",
+    "violet": "Violet",
+    "wheat": "Wheat",
+    "whitesmoke": "White_Smoke",
+    "yellowgreen": "Yellow_Green",
     "transparent": "Transparent",
     "inherit": "Inherit",
     "currentcolor": "Current_Color",
@@ -277,6 +410,21 @@ VISIBILITY_MAP = {
     "visible": "Visibility_Visible",
     "hidden": "Visibility_Hidden",
     "collapse": "Visibility_Collapse",
+}
+
+# CSS list-style-type values to Ada
+LIST_STYLE_TYPE_MAP = {
+    "none": "List_Style_None",
+    "disc": "List_Style_Disc",
+    "circle": "List_Style_Circle",
+    "square": "List_Style_Square",
+    "decimal": "List_Style_Decimal",
+}
+
+# CSS list-style-position values to Ada
+LIST_STYLE_POSITION_MAP = {
+    "outside": "List_Outside",
+    "inside": "List_Inside",
 }
 
 # CSS part selector to Ada Part_Kind mapping
@@ -813,6 +961,105 @@ def parse_transition(value: str) -> Optional[ParsedTransition]:
     )
 
 
+def ada_string_literal(value: str) -> str:
+    """Generate an Ada string literal with escaped quotes."""
+    return '"' + value.replace('"', '""') + '"'
+
+
+def parse_css_quoted_string(value: str) -> Optional[str]:
+    """Parse a single/double quoted CSS string token."""
+    v = value.strip()
+    if len(v) < 2:
+        return None
+    if (v[0] == '"' and v[-1] == '"') or (v[0] == "'" and v[-1] == "'"):
+        return v[1:-1]
+    return None
+
+
+def parse_css_url_function(value: str) -> Optional[str]:
+    """Parse url(...) and return unquoted URI content."""
+    v = value.strip()
+    if len(v) < 5:
+        return None
+    if not v.lower().startswith("url(") or not v.endswith(")"):
+        return None
+    inner = v[4:-1].strip()
+    if not inner:
+        return None
+    quoted = parse_css_quoted_string(inner)
+    return quoted if quoted is not None else inner
+
+
+def split_css_whitespace_tokens(value: str) -> list[str]:
+    """Split by whitespace outside quotes and parentheses."""
+    tokens: list[str] = []
+    current: list[str] = []
+    quote: Optional[str] = None
+    paren_depth = 0
+
+    for ch in value:
+        if quote is None:
+            if ch in ('"', "'"):
+                quote = ch
+                current.append(ch)
+            elif ch == '(':
+                paren_depth += 1
+                current.append(ch)
+            elif ch == ')':
+                if paren_depth > 0:
+                    paren_depth -= 1
+                current.append(ch)
+            elif ch.isspace() and paren_depth == 0:
+                if current:
+                    tok = "".join(current).strip()
+                    if tok:
+                        tokens.append(tok)
+                    current = []
+            else:
+                current.append(ch)
+        else:
+            current.append(ch)
+            if ch == quote:
+                quote = None
+
+    if current:
+        tok = "".join(current).strip()
+        if tok:
+            tokens.append(tok)
+
+    return tokens
+
+
+def parse_list_style_shorthand(value: str) -> dict[str, str]:
+    """Parse list-style shorthand into type/image/position components."""
+    result: dict[str, str] = {}
+
+    for tok in split_css_whitespace_tokens(value):
+        low = tok.lower()
+        if low in LIST_STYLE_POSITION_MAP:
+            result["position"] = low
+            continue
+
+        if low == "none":
+            if "type" not in result and "image" not in result:
+                result["type"] = "none"
+                result["image"] = "none"
+            elif "type" not in result:
+                result["type"] = "none"
+            elif "image" not in result:
+                result["image"] = "none"
+            continue
+
+        if parse_css_url_function(tok) is not None:
+            result["image"] = tok
+            continue
+
+        if low in LIST_STYLE_TYPE_MAP or parse_css_quoted_string(tok) is not None:
+            result["type"] = tok
+
+    return result
+
+
 def set_css_property(properties: dict[str, str], name: str, value: str) -> None:
     """Set/override a CSS property while preserving declaration order semantics."""
     # Python dict updates keep the original key position. For CSS cascade semantics
@@ -1018,6 +1265,9 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
     fields = []
     padding_sides = None
     margin_sides = None
+    list_style_type = None
+    list_style_image = None
+    list_style_position = None
 
     def ensure_padding_sides():
         nonlocal padding_sides
@@ -1207,6 +1457,55 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         elif prop == "text-decoration":
             if value.lower() in TEXT_DECORATION_MAP:
                 ada_field = f"Text_Decoration => Set ({TEXT_DECORATION_MAP[value.lower()]})"
+
+        # List style longhands/shorthand
+        elif prop == "list-style-type":
+            low = value.lower()
+            if low in LIST_STYLE_TYPE_MAP:
+                list_style_type = f"(Kind => {LIST_STYLE_TYPE_MAP[low]})"
+            else:
+                marker = parse_css_quoted_string(value)
+                if marker is not None:
+                    list_style_type = f"List_String ({ada_string_literal(marker)})"
+
+        elif prop == "list-style-image":
+            low = value.lower()
+            if low == "none":
+                list_style_image = "No_List_Image"
+            else:
+                uri = parse_css_url_function(value)
+                if uri is not None:
+                    list_style_image = f"List_Image ({ada_string_literal(uri)})"
+
+        elif prop == "list-style-position":
+            low = value.lower()
+            if low in LIST_STYLE_POSITION_MAP:
+                list_style_position = LIST_STYLE_POSITION_MAP[low]
+
+        elif prop == "list-style":
+            parts = parse_list_style_shorthand(value)
+            type_part = parts.get("type")
+            if type_part is not None:
+                low = type_part.lower()
+                if low in LIST_STYLE_TYPE_MAP:
+                    list_style_type = f"(Kind => {LIST_STYLE_TYPE_MAP[low]})"
+                else:
+                    marker = parse_css_quoted_string(type_part)
+                    if marker is not None:
+                        list_style_type = f"List_String ({ada_string_literal(marker)})"
+
+            image_part = parts.get("image")
+            if image_part is not None:
+                if image_part.lower() == "none":
+                    list_style_image = "No_List_Image"
+                else:
+                    uri = parse_css_url_function(image_part)
+                    if uri is not None:
+                        list_style_image = f"List_Image ({ada_string_literal(uri)})"
+
+            pos_part = parts.get("position")
+            if pos_part is not None and pos_part in LIST_STYLE_POSITION_MAP:
+                list_style_position = LIST_STYLE_POSITION_MAP[pos_part]
 
         # White space
         elif prop == "white-space":
@@ -1418,7 +1717,13 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         fields.append(f"{indent}Padding => Set ({generate_box_from_four_ada(padding_sides)})")
     if margin_sides is not None:
         fields.append(f"{indent}Margin => Set ({generate_box_from_four_ada(margin_sides)})")
-    
+    if list_style_type is not None:
+        fields.append(f"{indent}List_Style_Type => Set ({list_style_type})")
+    if list_style_image is not None:
+        fields.append(f"{indent}List_Style_Image => Set ({list_style_image})")
+    if list_style_position is not None:
+        fields.append(f"{indent}List_Style_Position => Set ({list_style_position})")
+
     return fields
 
 

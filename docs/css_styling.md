@@ -44,8 +44,9 @@ Higher-level entry point unifying dev-time and release-time styling.
 
 - **Box model**: width, height, min/max-width/height, padding, margin (+ individual sides)
 - **Borders**: border, border-width/color/style, border-radius
-- **Colors**: color, background-color (named, hex, rgb, rgba)
+- **Colors**: color, background-color (full SVG named color table, hex, rgb, rgba)
 - **Typography**: font-size, font-weight, font-style, text-align, vertical-align, text-decoration, line-height, white-space, text-overflow, text-wrap-mode
+- **Lists**: list-style, list-style-type, list-style-image, list-style-position
 - **Layout**: display, position, overflow, visibility, opacity
 - **Flexbox**: flex-direction/wrap, justify-content, align-items/self/content, gap, flex-grow/shrink/basis, order
 - **Grid**: grid-template-columns/rows, grid-column/row

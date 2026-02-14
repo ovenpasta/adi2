@@ -80,6 +80,7 @@ private
       Href_Attr  : Unbounded_String := Null_Unbounded_String;
       Src_Attr   : Unbounded_String := Null_Unbounded_String;
       Alt_Attr   : Unbounded_String := Null_Unbounded_String;
+      Value_Attr : Unbounded_String := Null_Unbounded_String;
    end record;
 
    package Node_Index_Vectors is new Ada.Containers.Vectors

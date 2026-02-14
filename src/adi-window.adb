@@ -58,6 +58,7 @@ package body Adi.Window is
       Current : Widget_Access) return Widget_Access;
    procedure Apply_Window_Min_Size_From_Layout (W : in out Window);
    function Is_Any_Overlay_Dirty (W : Window) return Boolean;
+   function Is_Any_Overlay_Layout_Dirty (W : Window) return Boolean;
    function Overlay_Index
      (W       : Window;
       Overlay : Widget_Access) return Natural;
@@ -74,6 +75,7 @@ package body Adi.Window is
    function Active_Key_Root (W : Window) return Widget_Access;
    procedure Apply_Render_Logical_Presentation (W : in out Window);
    function Refresh_DIP_Scale (W : in out Window) return Boolean;
+   procedure Refresh_Viewport_Size (W : in out Window);
 
    type Internal is record
       win : Adi.SDL.Video.SDL_Window_Ptr;
@@ -106,6 +108,29 @@ package body Adi.Window is
       Set_Active_DIP_Scale (Scale);
       return abs (Get_Active_DIP_Scale - Before) > 0.0001;
    end Refresh_DIP_Scale;
+
+   procedure Refresh_Viewport_Size (W : in out Window) is
+      W_Px : aliased int := 0;
+      H_Px : aliased int := 0;
+      Ok   : Adi.SDL.C_bool := False;
+   begin
+      if W.Internal /= null and then W.Internal.win /= null then
+         Ok := Adi.SDL.Video.SDL_GetWindowSizeInPixels
+           (W.Internal.win,
+            W_Px'Access,
+            H_Px'Access);
+      end if;
+
+      if Ok then
+         Set_Active_Viewport_Size
+           (Width  => Pixel_Type'Max (0.0, Pixel_Type (W_Px)),
+            Height => Pixel_Type'Max (0.0, Pixel_Type (H_Px)));
+      else
+         Set_Active_Viewport_Size
+           (Width  => Pixel_Type'Max (0.0, W.Size.Width),
+            Height => Pixel_Type'Max (0.0, W.Size.Height));
+      end if;
+   end Refresh_Viewport_Size;
 
    function Is_Focus_Candidate (Wgt : Widget_Access) return Boolean is
    begin
@@ -306,6 +331,23 @@ package body Adi.Window is
       return False;
    end Is_Any_Overlay_Dirty;
 
+   function Is_Any_Overlay_Layout_Dirty (W : Window) return Boolean is
+   begin
+      for I in 1 .. Natural (W.Overlays.Length) loop
+         declare
+            Overlay : constant Widget_Access := W.Overlays.Element (I);
+         begin
+            if Overlay /= null
+              and then Has_Flag (Overlay.all, Visible)
+              and then Is_Layout_Dirty (Overlay.all)
+            then
+               return True;
+            end if;
+         end;
+      end loop;
+      return False;
+   end Is_Any_Overlay_Layout_Dirty;
+
    procedure Apply_Window_Min_Size_From_Layout (W : in out Window) is
       Min_W : int := 1;
       Min_H : int := 1;
@@ -364,6 +406,7 @@ package body Adi.Window is
         if Refresh_DIP_Scale (W.all) then
            null;
         end if;
+        Refresh_Viewport_Size (W.all);
       end return;
    end Create_Window;
 
@@ -397,40 +440,62 @@ package body Adi.Window is
 
     procedure Render (W : in Out Window) is
        use Adi.SDL.Render;
-       Root_Dirty    : constant Boolean := (W.Root /= null and then Is_Dirty (W.Root.all));
-       Overlay_Dirty : constant Boolean := Is_Any_Overlay_Dirty (W);
+       Root_Dirty          : constant Boolean :=
+         (W.Root /= null and then Is_Dirty (W.Root.all));
+       Overlay_Dirty       : constant Boolean := Is_Any_Overlay_Dirty (W);
+       Root_Layout_Dirty   : constant Boolean :=
+         (W.Root /= null and then Is_Layout_Dirty (W.Root.all));
+       Overlay_Layout_Dirty : constant Boolean :=
+         Is_Any_Overlay_Layout_Dirty (W);
+       Needs_Relayout      : constant Boolean :=
+         W.Needs_Layout or else Root_Layout_Dirty or else Overlay_Layout_Dirty;
     begin
-       --  Keep DIP conversion in sync with the current window scale.
+       --  Keep unit conversion contexts in sync with current window state.
        if W.Internal /= null and then W.Internal.win /= null then
           Set_Active_DIP_Scale
             (Pixel_Type'Max
                (1.0, Pixel_Type (Adi.SDL.Video.SDL_GetWindowDisplayScale (W.Internal.win))));
        end if;
+       Refresh_Viewport_Size (W);
 
-       --  Only render if something changed
-       if Root_Dirty or else Overlay_Dirty
-       then
+       --  Only render if something changed.
+       if Root_Dirty or else Overlay_Dirty then
           Debug_Log
             ("render tick=" & Natural'Image (Debug_Tick_No)
              & " root_dirty=" & Boolean'Image (Root_Dirty)
-             & " overlay_dirty=" & Boolean'Image (Overlay_Dirty));
+             & " overlay_dirty=" & Boolean'Image (Overlay_Dirty)
+             & " needs_relayout=" & Boolean'Image (Needs_Relayout));
 
           --  Clear the screen
           SDL_Assert (SDL_SetRenderDrawColor (W.Internal.ren, 255, 255, 255, 255), "SDL_SetRenderDrawColor");
           SDL_Assert (SDL_RenderClear (W.Internal.ren), "SDL_RenderClear");
 
-          --  Phase 1: Build items so content measurement works
-          --  (on first render, items don't exist yet, so Measure_Content
-          --  returns 0 for all widgets, causing containers with auto height
-          --  to get 0 height from the flex algorithm)
+          --  Rebuild dirty items first.
           Update (W);
 
-          --  Phase 2: Layout with correct content sizes, then rebuild items
+          --  Relayout only when required by geometry-affecting changes.
+          if Needs_Relayout then
+             if W.Root /= null then
+                Debug_Log ("relayout tick=" & Natural'Image (Debug_Tick_No));
+                Layout_Tree (W.Root.all);
+                Adi.Widget.Update (W.Root.all);
+             end if;
+
+             for I in 1 .. Natural (W.Overlays.Length) loop
+                declare
+                   Overlay : constant Widget_Access := W.Overlays.Element (I);
+                begin
+                   if Overlay /= null then
+                      Layout_Tree (Overlay.all);
+                      Adi.Widget.Update (Overlay.all);
+                   end if;
+                end;
+             end loop;
+
+             W.Needs_Layout := False;
+          end if;
+
           if W.Root /= null then
-             Debug_Log ("relayout tick=" & Natural'Image (Debug_Tick_No));
-             Mark_Dirty (W.Root.all);
-             Layout_Tree (W.Root.all);
-             Update (W);
              Render_Tree (W.Root.all, W.Ctx);
           end if;
 
@@ -439,9 +504,6 @@ package body Adi.Window is
                 Overlay : constant Widget_Access := W.Overlays.Element (I);
              begin
                 if Overlay /= null then
-                   Mark_Dirty (Overlay.all);
-                   Layout_Tree (Overlay.all);
-                   Adi.Widget.Update (Overlay.all);
                    Render_Tree (Overlay.all, W.Ctx);
                 end if;
              end;
@@ -518,6 +580,7 @@ package body Adi.Window is
       if W.Root /= null then
          Mark_Dirty (W.Root.all);
       end if;
+      W.Needs_Layout := True;
    end Add_Overlay;
 
    procedure Remove_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class) is
@@ -538,6 +601,7 @@ package body Adi.Window is
       if W.Root /= null then
          Mark_Dirty (W.Root.all);
       end if;
+      W.Needs_Layout := True;
    end Remove_Overlay;
 
    procedure Clear_Overlays (W : in out Window) is
@@ -550,6 +614,7 @@ package body Adi.Window is
       if W.Root /= null then
          Mark_Dirty (W.Root.all);
       end if;
+      W.Needs_Layout := True;
    end Clear_Overlays;
 
    function Overlay_Count (W : Window) return Natural is
@@ -1257,6 +1322,7 @@ function Get_Size (W : in out Window) return Size_2D is
 
        Apply_Render_Logical_Presentation (W);
        Scale_Changed := Refresh_DIP_Scale (W);
+       Refresh_Viewport_Size (W);
        if Scale_Changed then
           if W.Root /= null then
              Mark_Dirty (W.Root.all);

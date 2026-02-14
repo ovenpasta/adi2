@@ -887,7 +887,7 @@ package body Adi.Widget is
       W.Scroll_Offset_Y := Offset;
       Clamp_Scroll_Offset (W);
       if W.Scroll_Offset_Y /= Old then
-         Mark_Dirty (W);
+         Mark_Render_Dirty (W);
       end if;
    end Set_Scroll_Offset_Y;
 
@@ -1144,10 +1144,19 @@ package body Adi.Widget is
    procedure Mark_Dirty (W : in out Widget'Class) is
    begin
       W.Dirty := True;
+      W.Layout_Dirty := True;
       if W.Parent /= null then
          Mark_Dirty (W.Parent.all);
       end if;
    end Mark_Dirty;
+
+   procedure Mark_Render_Dirty (W : in out Widget'Class) is
+   begin
+      W.Dirty := True;
+      if W.Parent /= null then
+         Mark_Render_Dirty (W.Parent.all);
+      end if;
+   end Mark_Render_Dirty;
 
    procedure Mark_Clean (W : in out Widget'Class) is
    begin
@@ -1158,6 +1167,11 @@ package body Adi.Widget is
    begin
       return W.Dirty;
    end Is_Dirty;
+
+   function Is_Layout_Dirty (W : Widget'Class) return Boolean is
+   begin
+      return W.Layout_Dirty;
+   end Is_Layout_Dirty;
 
    ---------------------------------------------------------------------------
    --  Event Handlers
@@ -1212,7 +1226,7 @@ package body Adi.Widget is
          Scroll_By_Y (W, Content.Height * 0.9);
       end if;
 
-      Mark_Dirty (W);
+      Mark_Render_Dirty (W);
       return True;
    end Handle_Scroll_Mouse_Down;
 
@@ -1266,7 +1280,7 @@ package body Adi.Widget is
    begin
       if Button = Left_Button and then W.Scroll_Dragging then
          W.Scroll_Dragging := False;
-         Mark_Dirty (W);
+         Mark_Render_Dirty (W);
       end if;
    end Handle_Scroll_Mouse_Up;
 
@@ -3574,15 +3588,22 @@ package body Adi.Widget is
 
     procedure Update (W : in Out Widget'Class) is
     begin
-       -- Layout must have been called before this!
-       -- Now build items using correct geometry
-       Build_Items (W);
-       Apply_Styles_To_Items (W);
+       if Is_Dirty (W) then
+          --  Layout must have been called before this.
+          --  Build items using the current geometry.
+          Build_Items (W);
+          Apply_Styles_To_Items (W);
+       end if;
 
        for Child of W.Children loop
-          Update (Child.all);
+          if Is_Dirty (Child.all) then
+             Update (Child.all);
+          end if;
        end loop;
-       Mark_Clean (W);
+
+       if Is_Dirty (W) then
+          Mark_Clean (W);
+       end if;
     end Update;
 
 procedure Rebuild_All_Items (W : in out Widget'Class) is
@@ -3604,7 +3625,7 @@ begin
    for Child of W.Children loop
       Layout_Tree (Child.all);
    end loop;
-   Mark_Clean (W);
+   W.Layout_Dirty := False;
 end Layout_Tree;
 
 ---------------------------------------------------------------------------

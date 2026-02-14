@@ -299,8 +299,10 @@ package Adi.Widget is
    ---------------------------------------------------------------------------
 
    procedure Mark_Dirty (W : in out Widget'Class);
+   procedure Mark_Render_Dirty (W : in out Widget'Class);
    procedure Mark_Clean (W : in out Widget'Class);
    function  Is_Dirty (W : Widget'Class) return Boolean;
+   function  Is_Layout_Dirty (W : Widget'Class) return Boolean;
 
    ---------------------------------------------------------------------------
    --  Abstract Methods - Must be implemented by derived widgets
@@ -476,6 +478,7 @@ private
       States      : Widget_States := No_States;
       Part_States : Part_State_Array := [others => No_States];
       Dirty       : Boolean := True;
+      Layout_Dirty : Boolean := True;
       Flags       : Widget_Flags := Default_Flags;
 
       --  Styling - each part has its own Widget_Style

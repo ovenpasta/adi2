@@ -15,6 +15,7 @@ procedure Html_View_Test is
    use type Adi.Widget.Html_View.Html_View_Access;
    use type Adi.CSS_Styles.Color_Kind;
    use type Adi.CSS_Styles.CSS_Unit;
+   use type Adi.CSS_Styles.Text_Decoration_Value;
    use type Adi.Core.Pixel_Type;
    use type Adi.Widget.Part_Kind;
 
@@ -646,6 +647,35 @@ procedure Html_View_Test is
       New_Line;
    end Test_Line_Height_Parsing_And_Layout;
 
+   procedure Test_Overline_Decoration_Style is
+      W : constant Adi.Widget.Html_View.Html_View_Access :=
+        Adi.Widget.Html_View.Create;
+      Idx : Natural := 0;
+   begin
+      Put_Line ("Test: overline decoration style");
+
+      Adi.Widget.Set_Geometry
+        (W.all, (X => 0.0, Y => 0.0, Width => 560.0, Height => 220.0));
+      Adi.Widget.Html_View.Set_HTML
+        (W.all,
+         "<style>p { text-decoration: overline; }</style><p>overline probe</p>");
+      Adi.Widget.Html_View.Build_Items (W.all);
+
+      Idx := Find_Text_Item_Index (W, "overline");
+      Assert (Idx > 0, "overline text item exists");
+      if Idx > 0 then
+         declare
+            It : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, Positive (Idx));
+         begin
+            Assert
+              (It.Computed_Style.Text_Decoration = Adi.CSS_Styles.Decoration_Overline,
+               "overline text decoration is parsed and applied");
+         end;
+      end if;
+
+      New_Line;
+   end Test_Overline_Decoration_Style;
+
    procedure Test_Content_Scale is
       W : constant Adi.Widget.Html_View.Html_View_Access :=
         Adi.Widget.Html_View.Create;
@@ -841,6 +871,7 @@ begin
    Test_Center_Alignment;
    Test_Body_Font_Inheritance;
    Test_Line_Height_Parsing_And_Layout;
+   Test_Overline_Decoration_Style;
    Test_Content_Scale;
    Test_VW_VH_Context;
    Test_HTML_Folder_Stress;

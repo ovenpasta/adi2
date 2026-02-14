@@ -154,7 +154,7 @@
    - For clipped containers, descendants are skipped when the effective clip region is non-positive
    - Text positions snapped to integer pixels
    - Font hinting: `TTF_HINTING_LIGHT_SUBPIXEL`
-   - Temporary decoration workaround: `underline`/`line-through` are drawn manually in `Adi.Widget` to avoid SDL_ttf renderer text-engine white-line color behavior; upstream patch draft is stored in `deps/issues/`
+   - Temporary decoration workaround: `underline`/`line-through`/`overline` are drawn manually in `Adi.Widget` to avoid SDL_ttf renderer text-engine white-line color behavior; upstream patch draft is stored in `deps/issues/`
 
 Render scheduling note: relayout runs only when layout/geometry is dirty; pure visual updates (for example scroll-offset changes) trigger repaint without forcing full tree relayout.
 

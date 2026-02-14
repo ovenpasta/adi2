@@ -268,7 +268,7 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 - Default geometry initializes to `(0, 0, 0, 0)` (no synthetic default size)
 - Non-rounded panel border rendering supports per-edge widths/colors/styles (e.g. horizontal-only separators)
 - Label text wrapping honors both `text-wrap-mode` and `white-space` (`white-space: nowrap` prevents wrapping)
-- Text rendering applies `font-weight`, `font-style`, and `text-decoration` (`underline`/`line-through`); `overline` is parsed but intentionally not rendered yet
+- Text rendering applies `font-weight`, `font-style`, and `text-decoration` (`underline`/`line-through`/`overline`)
 - **Animation**: Per-part `Part_Transition_Array` tracks active transitions; `Tick_Animations` advances them each frame; `Apply_Styles_To_Items` starts transitions when resolved style targets change
 - State invalidation is style-aware: widget/part state changes only mark dirty when resolved style output actually changes (prevents unnecessary rerenders for no-op hover/focus changes)
 - **Per-frame hook**: `On_Tick(DT)` (default null) runs from `Tick_Animations` for widget-specific time-based behavior (e.g. inertial scrolling)

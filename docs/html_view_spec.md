@@ -15,7 +15,7 @@
 - Renderer now uses an internal element tree (`Element`, `Text`, `Break`) with per-element attribute-driven cascade and line-box layout.
 - Phase 2 milestone completed on 2026-02-14.
 - Added line finalization alignment (`center` / `text-align`), html content scaling API, `vw`/`vh` support, block margin/padding flow participation, and expanded runtime parser support (`line-height`, `white-space`, `text-decoration`, `text-overflow`, `object-fit`, `visibility`).
-- Temporary decoration workaround is active in `Adi.Widget` for `underline` and `line-through`.
+- Temporary decoration workaround is active in `Adi.Widget` for `underline`, `line-through`, and `overline`.
   - Reason: current SDL_ttf renderer text engine can render decoration fill ops with white RGB for non-white text colors.
   - Upstream issue draft and patch are tracked in `deps/issues/sdl_ttf_text_decoration_color_issue.md` and `deps/issues/sdl_ttf_text_decoration_color.patch`.
 

@@ -109,7 +109,7 @@ begin
         Adi.Widget.Label.Create ("Font and Text Features");
       Hint  : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create
-          ("Shows weight, italic/oblique, and text decorations. Overline is intentionally not rendered yet.");
+          ("Shows weight, italic/oblique, and text decorations.");
 
       Section_Weight : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("Weights");
@@ -156,7 +156,7 @@ begin
       Strike_Sample : constant Adi.Widget.Label.Label_Widget_Access :=
         Create_Sample ("text-decoration: line-through", Decor_Strike_Class_Label_Base_Style, Body_Font);
       Overline_Sample : constant Adi.Widget.Label.Label_Widget_Access :=
-        Create_Sample ("text-decoration: overline (not rendered in this build)",
+        Create_Sample ("text-decoration: overline",
           Decor_Overline_Class_Label_Base_Style, Body_Font);
 
       Wrap_Sample : constant Adi.Widget.Label.Label_Widget_Access :=

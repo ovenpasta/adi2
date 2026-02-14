@@ -2251,10 +2251,12 @@ package body Adi.Widget is
       Deco_H_I     : Integer;
       Draw_Underline : constant Boolean :=
         (Style.Text_Decoration = Decoration_Underline);
+      Draw_Overline : constant Boolean :=
+        (Style.Text_Decoration = Decoration_Overline);
       Draw_Strike : constant Boolean :=
         (Style.Text_Decoration = Decoration_Line_Through);
       Manual_Decoration : constant Boolean :=
-        Draw_Underline or else Draw_Strike;
+        Draw_Underline or else Draw_Overline or else Draw_Strike;
       Engine     : TTF_TextEngine_Access;
       Renderer   : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
       Prev_Clip  : aliased Adi.SDL.SDL_Rect;
@@ -2437,6 +2439,14 @@ package body Adi.Widget is
               Ascent_Px
               + Pixel_Type'Max (1.0, Descent_Px * 0.55)
               - Deco_H / 2.0;
+         elsif Draw_Overline then
+            --  Place overline near the ascent top (not x-height), slightly
+            --  inset to avoid clipping while keeping it visibly high.
+            Deco_Y_Raw :=
+              Pixel_Type'Max
+                (1.0,
+                 Ascent_Px * 0.12
+                 - Deco_H / 2.0);
          else
             Deco_Y_Raw :=
               --  Place strike-through around the visual middle of lowercase
@@ -2459,6 +2469,17 @@ package body Adi.Widget is
                if Deco_Y_I - Baseline_Y_I < 1 then
                   Deco_Y_I := Baseline_Y_I + 1;
                end if;
+            elsif Draw_Overline then
+               declare
+                  Ascent_Top_I : constant Integer :=
+                    Integer (Float'Floor (Float (Text_Draw_Y)));
+               begin
+                  --  After all integer roundings, keep at least 1 px gap from
+                  --  the ascent top to overline top.
+                  if Deco_Y_I - Ascent_Top_I < 1 then
+                     Deco_Y_I := Ascent_Top_I + 1;
+                  end if;
+               end;
             end if;
 
             Deco_Y := Pixel_Type (Deco_Y_I);

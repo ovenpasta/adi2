@@ -36,6 +36,11 @@ package Adi.Widget.Html_View is
    function Get_HTML (Self : Html_View) return String;
    procedure Clear (Self : in out Html_View);
 
+   procedure Set_Content_Scale
+     (Self  : in out Html_View;
+      Scale : Pixel_Type);
+   function Get_Content_Scale (Self : Html_View) return Pixel_Type;
+
    procedure Set_On_Link_Click
      (Self     : in out Html_View;
       Callback : Link_Click_Callback);
@@ -140,6 +145,7 @@ private
       Hovered_Href    : Unbounded_String := Null_Unbounded_String;
       Pressed_Href    : Unbounded_String := Null_Unbounded_String;
       Pressed_Is_Link : Boolean := False;
+      Content_Scale   : Pixel_Type := 1.0;
    end record;
 
 end Adi.Widget.Html_View;

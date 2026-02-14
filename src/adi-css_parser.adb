@@ -185,6 +185,12 @@ package body Adi.CSS_Parser is
       elsif Ends_With (V, "%") then
          Number := To_Unbounded_String (V (V'First .. V'Last - 1));
          L.Unit := Pct;
+      elsif Ends_With (V, "vw") then
+         Number := To_Unbounded_String (V (V'First .. V'Last - 2));
+         L.Unit := Vw;
+      elsif Ends_With (V, "vh") then
+         Number := To_Unbounded_String (V (V'First .. V'Last - 2));
+         L.Unit := Vh;
       else
          L.Unit := Px;
       end if;
@@ -200,6 +206,8 @@ package body Adi.CSS_Parser is
          when Em      => return Em (L.Amount);
          when Root_Em => return Root_Em (L.Amount);
          when Pct     => return Pct (L.Amount);
+         when Vw      => return Vw (L.Amount);
+         when Vh      => return Vh (L.Amount);
       end case;
    end To_Length;
 
@@ -1056,6 +1064,31 @@ package body Adi.CSS_Parser is
          elsif LV = "italic" then Rules.Font_Style := Set (Style_Italic);
          elsif LV = "oblique" then Rules.Font_Style := Set (Style_Oblique);
          end if;
+      elsif P = "text-decoration" then
+         if LV = "none" then Rules.Text_Decoration := Set (Decoration_None);
+         elsif LV = "underline" then Rules.Text_Decoration := Set (Decoration_Underline);
+         elsif LV = "overline" then Rules.Text_Decoration := Set (Decoration_Overline);
+         elsif LV = "line-through" then Rules.Text_Decoration := Set (Decoration_Line_Through);
+         end if;
+      elsif P = "white-space" then
+         if LV = "normal" then Rules.White_Space := Set (WS_Normal);
+         elsif LV = "nowrap" then Rules.White_Space := Set (WS_Nowrap);
+         elsif LV = "pre" then Rules.White_Space := Set (WS_Pre);
+         elsif LV = "pre-wrap" then Rules.White_Space := Set (WS_Pre_Wrap);
+         elsif LV = "pre-line" then Rules.White_Space := Set (WS_Pre_Line);
+         end if;
+      elsif P = "text-overflow" then
+         if LV = "clip" then Rules.Text_Overflow := Set (Overflow_Clip);
+         elsif LV = "ellipsis" then Rules.Text_Overflow := Set (Overflow_Ellipsis);
+         end if;
+      elsif P = "line-height" then
+         if LV = "normal" then
+            Rules.Line_Height := Set (Normal_Line_Height);
+         elsif Parse_Number (V, F) then
+            Rules.Line_Height := Set (Line_Height (F));
+         elsif Parse_Length (V, LVal) then
+            Rules.Line_Height := Set (Line_Height (To_Length (LVal)));
+         end if;
       elsif P = "text-align" then
          if LV = "left" then Rules.Text_Align := Set (Text_Left);
          elsif LV = "right" then Rules.Text_Align := Set (Text_Right);
@@ -1104,6 +1137,18 @@ package body Adi.CSS_Parser is
          elsif LV = "crosshair" then Rules.Cursor := Set (Cursor_Crosshair);
          elsif LV = "grab" then Rules.Cursor := Set (Cursor_Grab);
          elsif LV = "grabbing" then Rules.Cursor := Set (Cursor_Grabbing);
+         end if;
+      elsif P = "visibility" then
+         if LV = "visible" then Rules.Visibility := Set (Visibility_Visible);
+         elsif LV = "hidden" then Rules.Visibility := Set (Visibility_Hidden);
+         elsif LV = "collapse" then Rules.Visibility := Set (Visibility_Collapse);
+         end if;
+      elsif P = "object-fit" then
+         if LV = "fill" then Rules.Object_Fit := Set (Fit_Fill);
+         elsif LV = "contain" then Rules.Object_Fit := Set (Fit_Contain);
+         elsif LV = "cover" then Rules.Object_Fit := Set (Fit_Cover);
+         elsif LV = "none" then Rules.Object_Fit := Set (Fit_None);
+         elsif LV = "scale-down" then Rules.Object_Fit := Set (Fit_Scale_Down);
          end if;
       elsif P = "flex-direction" then
          if LV = "row" then Rules.Flex_Direction := Set (Row);

@@ -13,6 +13,11 @@
 ## Implementation Status
 - Next-phase milestone completed on 2026-02-13.
 - Renderer now uses an internal element tree (`Element`, `Text`, `Break`) with per-element attribute-driven cascade and line-box layout.
+- Phase 2 milestone completed on 2026-02-14.
+- Added line finalization alignment (`center` / `text-align`), html content scaling API, `vw`/`vh` support, block margin/padding flow participation, and expanded runtime parser support (`line-height`, `white-space`, `text-decoration`, `text-overflow`, `object-fit`, `visibility`).
+- Temporary decoration workaround is active in `Adi.Widget` for `underline` and `line-through`.
+  - Reason: current SDL_ttf renderer text engine can render decoration fill ops with white RGB for non-white text colors.
+  - Upstream issue draft and patch are tracked in `deps/issues/sdl_ttf_text_decoration_color_issue.md` and `deps/issues/sdl_ttf_text_decoration_color.patch`.
 
 ## Supported Tags (v1)
 - Block: `div`, `p`, `h1`, `h2`, `ul`, `ol`, `li`, `hr`, `center`
@@ -85,6 +90,12 @@ Package: `Adi.Widget.Html_View`
 
 - **Optional helper**
   - `procedure Clear (Self : in out Html_View);`
+
+- **Content scale**
+  - `procedure Set_Content_Scale (Self : in out Html_View; Scale : Pixel_Type);`
+  - `function Get_Content_Scale (Self : Html_View) return Pixel_Type;`
+  - Scale affects absolute/content units (`px`, `dip`, `em`, `rem`) and typography metrics.
+  - Scale does not multiply `%`, `vw`, or `vh` resolution.
 
 ## Internal Model
 
@@ -160,6 +171,17 @@ Package: `Adi.Widget.Html_View`
 - Implemented precedence: `defaults < tag < class < id < inline`.
 - Inline style declarations are parsed once and cached by normalized declaration text.
 
+### Runtime property coverage used by Html_View
+- Typography/text flow: `font-size`, `font-weight`, `font-style`, `text-align`, `text-decoration`, `white-space`, `text-wrap-mode`, `text-overflow`, `line-height`.
+- Box/layout basics: `display`, `margin*`, `padding*`, `width/height/min/max`, `overflow`.
+- Visuals: `color`, `background-color`, `border*`, `box-shadow`, `opacity`, `visibility`.
+- Images: `object-fit`.
+
+## Unit Resolution Semantics
+- Supported length units include: `px`, `dip`/`dp`, `em`, `rem`, `%`, `vw`, `vh`.
+- For `Html_View`, `vw`/`vh` are resolved against the html content viewport.
+- For normal widget styling, `vw`/`vh` are resolved against SDL window pixel size.
+
 ## Parser Recovery Rules
 - Best-effort tree construction for malformed input.
 - Unclosed tags auto-close at end of parent/document.
@@ -206,6 +228,13 @@ Package: `Adi.Widget.Html_View`
   - `tag < class < id < inline style` precedence assertions.
 - Line metrics:
   - mixed-inline baseline alignment and heading isolation checks.
+- Alignment:
+  - `center` and `text-align: center` geometry assertions.
+- Inheritance:
+  - body font-size inheritance checks for descendant text runs.
+- Scaling and units:
+  - html content scale behavior (`1.0` vs higher scales).
+  - `vw`/`vh` context checks (active viewport and html-local viewport).
 - Link behavior:
   - `<a href>` fragment hit-test mapping.
   - Click callback called with exact `href`.

@@ -39,7 +39,7 @@ package Adi.CSS_Styles is
    -- Units
    -------------------------------------------------
 
-   type CSS_Unit is (Px, Dip, Em, Root_Em, Pct);
+   type CSS_Unit is (Px, Dip, Em, Root_Em, Pct, Vw, Vh);
 
    type Length_Value is record
       Amount : Float := 0.0;
@@ -56,6 +56,10 @@ package Adi.CSS_Styles is
    function Root_Em (V : Integer) return Length_Value is ((Amount => Float (V), Unit => Root_Em));
    function Pct (V : Float) return Length_Value is ((Amount => V, Unit => Pct));
    function Pct (V : Integer) return Length_Value is ((Amount => Float (V), Unit => Pct));
+   function Vw (V : Float) return Length_Value is ((Amount => V, Unit => Vw));
+   function Vw (V : Integer) return Length_Value is ((Amount => Float (V), Unit => Vw));
+   function Vh (V : Float) return Length_Value is ((Amount => V, Unit => Vh));
+   function Vh (V : Integer) return Length_Value is ((Amount => Float (V), Unit => Vh));
 
    Zero_Length : constant Length_Value := (Amount => 0.0, Unit => Px);
 

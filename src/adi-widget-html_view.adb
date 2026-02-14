@@ -459,14 +459,17 @@ package body Adi.Widget.Html_View is
    begin
       return
         (Display => Set (Inline),
-         Color => Set (RGB (51, 46, 39)),
-         Font_Size => Set_Font (Px (15.0)),
          others => <>);
    end Default_Content_Style;
 
    function Tag_Default_Style (Tag : String) return Style_Rules is
       Inline_Base : constant Style_Rules := (Display => Set (Inline), others => <>);
       Block_Base  : constant Style_Rules := (Display => Set (Block), others => <>);
+      Body_Base   : constant Style_Rules := (
+        Display => Set (Block),
+        Color => Set (RGB (51, 46, 39)),
+        Font_Size => Set_Font (Px (15.0)),
+        others => <>);
       Link_Base   : constant Style_Rules := (
         Display => Set (Inline),
         Color => Set (RGB (24, 96, 186)),
@@ -504,7 +507,6 @@ package body Adi.Widget.Html_View is
         others => <>);
       Img_Base    : constant Style_Rules := (
         Display => Set (Inline_Block),
-        Object_Fit => Set (Fit_None),
         others => <>);
       Center_Base : constant Style_Rules := (
         Display => Set (Block),
@@ -512,9 +514,9 @@ package body Adi.Widget.Html_View is
         others => <>);
    begin
       if Tag = "html" or else Tag = "body" then
-         return Merge (Block_Base, Default_Content_Style);
+         return Body_Base;
       elsif Tag = "div" or else Tag = "p" or else Tag = "ul" or else Tag = "ol" or else Tag = "li" then
-         return Merge (Block_Base, Default_Content_Style);
+         return Block_Base;
       elsif Tag = "h1" then
          return Merge (Default_Content_Style, H1_Base);
       elsif Tag = "h2" then
@@ -969,19 +971,58 @@ package body Adi.Widget.Html_View is
       return Img;
    end Resolve_Image;
 
+   function Should_Apply_Content_Scale (L : Length_Value) return Boolean is
+   begin
+      return L.Unit not in Pct | Vw | Vh;
+   end Should_Apply_Content_Scale;
+
+   function Html_Length_To_Px
+     (L               : Length_Value;
+      Scale           : Pixel_Type;
+      Container_Size  : Pixel_Type := 0.0;
+      Font_Size       : Pixel_Type := Default_Root_Font_Size_Px;
+      Viewport_Width  : Pixel_Type := 0.0;
+      Viewport_Height : Pixel_Type := 0.0) return Pixel_Type
+   is
+      Base : constant Pixel_Type :=
+        Length_To_Px
+          (L,
+           Container_Size,
+           Font_Size,
+           Viewport_Width,
+           Viewport_Height);
+   begin
+      if Should_Apply_Content_Scale (L) then
+         return Base * Pixel_Type'Max (0.01, Scale);
+      end if;
+
+      return Base;
+   end Html_Length_To_Px;
+
    function Measure_Text
      (Style : Resolved_Style;
-      S     : String) return Size_2D
+      S     : String;
+      Scale : Pixel_Type;
+      Viewport_Width : Pixel_Type;
+      Viewport_Height : Pixel_Type) return Size_2D
    is
+      Font_Px : constant Pixel_Type := Pixel_Type'Max
+        (1.0,
+         Html_Length_To_Px
+           (Style.Font_Size,
+            Scale,
+            Viewport_Width,
+            Viewport_Height,
+            Viewport_Width,
+            Viewport_Height));
       Font_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Style.Font_Family,
-           Size       => Float (Length_To_Px (Style.Font_Size)),
+           Size       => Float (Font_Px),
            Weight     => Style.Font_Weight,
            Style      => Style.Font_Style,
            Decoration => Style.Text_Decoration);
       Measured : Size_2D;
-      Font_Px  : constant Pixel_Type := Pixel_Type'Max (1.0, Length_To_Px (Style.Font_Size));
    begin
       Measured := Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => S);
 
@@ -995,17 +1036,30 @@ package body Adi.Widget.Html_View is
    end Measure_Text;
 
    function Measure_Line_Height
-     (Style : Resolved_Style) return Pixel_Type
+     (Style : Resolved_Style;
+      Scale : Pixel_Type;
+      Viewport_Width : Pixel_Type;
+      Viewport_Height : Pixel_Type) return Pixel_Type
    is
+      Font_Px : constant Pixel_Type := Pixel_Type'Max
+        (1.0,
+         Html_Length_To_Px
+           (Style.Font_Size,
+            Scale,
+            Viewport_Width,
+            Viewport_Height,
+            Viewport_Width,
+            Viewport_Height));
       Font_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Style.Font_Family,
-           Size       => Float (Length_To_Px (Style.Font_Size)),
+           Size       => Float (Font_Px),
            Weight     => Style.Font_Weight,
            Style      => Style.Font_Style,
            Decoration => Style.Text_Decoration);
       Font : constant TTF_Font_Access := Adi.Font.Get_TTF_Font (Font_Attrs);
-      M_H  : constant Pixel_Type := Measure_Text (Style, "M").Height;
+      M_H  : constant Pixel_Type :=
+        Measure_Text (Style, "M", Scale, Viewport_Width, Viewport_Height).Height;
       Natural_Line : Pixel_Type := Pixel_Type'Max (1.0, M_H);
       Result : Pixel_Type := 0.0;
    begin
@@ -1021,25 +1075,43 @@ package body Adi.Widget.Html_View is
          when LH_Length =>
             Result := Pixel_Type'Max
               (1.0,
-               Length_To_Px (Style.Line_Height.Height,
-                             Container_Size => Natural_Line));
+               Html_Length_To_Px
+                 (Style.Line_Height.Height,
+                  Scale,
+                  Container_Size => Natural_Line,
+                  Font_Size => Font_Px,
+                  Viewport_Width => Viewport_Width,
+                  Viewport_Height => Viewport_Height));
       end case;
 
       return Pixel_Type'Max (1.0, Result);
    end Measure_Line_Height;
 
    function Measure_Ascent
-     (Style : Resolved_Style) return Pixel_Type
+     (Style : Resolved_Style;
+      Scale : Pixel_Type;
+      Viewport_Width : Pixel_Type;
+      Viewport_Height : Pixel_Type) return Pixel_Type
    is
+      Font_Px : constant Pixel_Type := Pixel_Type'Max
+        (1.0,
+         Html_Length_To_Px
+           (Style.Font_Size,
+            Scale,
+            Viewport_Width,
+            Viewport_Height,
+            Viewport_Width,
+            Viewport_Height));
       Font_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Style.Font_Family,
-           Size       => Float (Length_To_Px (Style.Font_Size)),
+           Size       => Float (Font_Px),
            Weight     => Style.Font_Weight,
            Style      => Style.Font_Style,
            Decoration => Style.Text_Decoration);
       Font   : constant TTF_Font_Access := Adi.Font.Get_TTF_Font (Font_Attrs);
-      Line_H : constant Pixel_Type := Measure_Line_Height (Style);
+      Line_H : constant Pixel_Type :=
+        Measure_Line_Height (Style, Scale, Viewport_Width, Viewport_Height);
       Asc    : Pixel_Type := Line_H * 0.8;
    begin
       if Font /= null then
@@ -1053,21 +1125,36 @@ package body Adi.Widget.Html_View is
    end Measure_Ascent;
 
    function Measure_Descent
-     (Style : Resolved_Style) return Pixel_Type
+     (Style : Resolved_Style;
+      Scale : Pixel_Type;
+      Viewport_Width : Pixel_Type;
+      Viewport_Height : Pixel_Type) return Pixel_Type
    is
+      Font_Px : constant Pixel_Type := Pixel_Type'Max
+        (1.0,
+         Html_Length_To_Px
+           (Style.Font_Size,
+            Scale,
+            Viewport_Width,
+            Viewport_Height,
+            Viewport_Width,
+            Viewport_Height));
       Font_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Style.Font_Family,
-           Size       => Float (Length_To_Px (Style.Font_Size)),
+           Size       => Float (Font_Px),
            Weight     => Style.Font_Weight,
            Style      => Style.Font_Style,
            Decoration => Style.Text_Decoration);
       Font   : constant TTF_Font_Access := Adi.Font.Get_TTF_Font (Font_Attrs);
-      Line_H : constant Pixel_Type := Measure_Line_Height (Style);
+      Line_H : constant Pixel_Type :=
+        Measure_Line_Height (Style, Scale, Viewport_Width, Viewport_Height);
       Desc   : Pixel_Type := 0.0;
    begin
       if Font = null then
-         return Pixel_Type'Max (0.0, Line_H - Measure_Ascent (Style));
+         return Pixel_Type'Max
+           (0.0,
+            Line_H - Measure_Ascent (Style, Scale, Viewport_Width, Viewport_Height));
       end if;
 
       Desc := Pixel_Type (TTF_GetFontDescent (Font));
@@ -1076,7 +1163,9 @@ package body Adi.Widget.Html_View is
       end if;
 
       if Desc <= 0.0 then
-         Desc := Pixel_Type'Max (0.0, Line_H - Measure_Ascent (Style));
+         Desc := Pixel_Type'Max
+           (0.0,
+            Line_H - Measure_Ascent (Style, Scale, Viewport_Width, Viewport_Height));
       end if;
 
       return Pixel_Type'Min (Line_H, Pixel_Type'Max (0.0, Desc));
@@ -1092,7 +1181,9 @@ package body Adi.Widget.Html_View is
             Frag : constant Link_Fragment := Self.Links.Element (Positive (I));
             G    : constant Rectangle := Frag.Geometry;
          begin
-            if X >= G.X and then X <= G.X + G.Width
+            if G.Width > 0.0
+              and then G.Height > 0.0
+              and then X >= G.X and then X <= G.X + G.Width
               and then Y >= G.Y and then Y <= G.Y + G.Height
             then
                return To_String (Frag.Href);
@@ -1111,6 +1202,8 @@ package body Adi.Widget.Html_View is
       Document_Rules   : Style_Rules := Tag_Default_Style ("body");
       Document_Style   : Resolved_Style;
 
+      Line_Left  : Pixel_Type := Content.X;
+      Line_Right : Pixel_Type := Content.X + Content.Width;
       X : Pixel_Type := Content.X;
       Y : Pixel_Type := Content.Y - Get_Scroll_Offset_Y (Self);
 
@@ -1120,6 +1213,7 @@ package body Adi.Widget.Html_View is
       Current_Line_H       : Pixel_Type := 1.0;
       Current_Line_Ascent  : Pixel_Type := 1.0;
       Current_Line_Descent : Pixel_Type := 0.0;
+      Current_Line_Align   : Text_Align_Value := Text_Start;
       Pending_Space : Boolean := False;
 
       type Line_Run_Record is record
@@ -1142,13 +1236,46 @@ package body Adi.Widget.Html_View is
          return
            (X      => X1,
             Y      => Y1,
-            Width  => Pixel_Type'Max (0.0, X2 - X1),
-            Height => Pixel_Type'Max (0.0, Y2 - Y1));
+             Width  => Pixel_Type'Max (0.0, X2 - X1),
+             Height => Pixel_Type'Max (0.0, Y2 - Y1));
       end Clip_To_Content;
+
+      function Local_Font_Size_Px (Style : Resolved_Style) return Pixel_Type is
+      begin
+         return Pixel_Type'Max
+           (1.0,
+            Html_Length_To_Px
+              (Style.Font_Size,
+               Self.Content_Scale,
+               Container_Size => Content.Height,
+               Font_Size => Default_Root_Font_Size_Px,
+               Viewport_Width => Content.Width,
+               Viewport_Height => Content.Height));
+      end Local_Font_Size_Px;
+
+      function Local_Length_To_Px
+        (L              : Length_Value;
+         Container_Size : Pixel_Type := 0.0;
+         Font_Size      : Pixel_Type := Default_Root_Font_Size_Px) return Pixel_Type
+      is
+      begin
+         return Html_Length_To_Px
+           (L,
+            Self.Content_Scale,
+            Container_Size,
+            Font_Size,
+            Content.Width,
+            Content.Height);
+      end Local_Length_To_Px;
+
+      function Current_Line_Width return Pixel_Type is
+      begin
+         return Pixel_Type'Max (0.0, Line_Right - Line_Left);
+      end Current_Line_Width;
 
       function Has_Line_Content return Boolean is
       begin
-         return X > Content.X or else Natural (Line_Runs.Length) > 0;
+         return X > Line_Left or else Natural (Line_Runs.Length) > 0;
       end Has_Line_Content;
 
       procedure Sync_Line_Heights is
@@ -1190,10 +1317,53 @@ package body Adi.Widget.Html_View is
          end loop;
       end Shift_Line;
 
-      procedure New_Line is
+      procedure Finalize_Line is
+         Used_Width : constant Pixel_Type := Pixel_Type'Max (0.0, X - Line_Left);
+         Available_Width : constant Pixel_Type := Current_Line_Width;
+         Shift_X : Pixel_Type := 0.0;
       begin
          Sync_Line_Heights;
-         X := Content.X;
+
+         if Natural (Line_Runs.Length) = 0 then
+            return;
+         end if;
+
+         case Current_Line_Align is
+            when Text_Center =>
+               if Used_Width < Available_Width then
+                  Shift_X := (Available_Width - Used_Width) / 2.0;
+               end if;
+            when Text_Right | Text_End =>
+               if Used_Width < Available_Width then
+                  Shift_X := Available_Width - Used_Width;
+               end if;
+            when others =>
+               null;
+         end case;
+
+         for Run of Line_Runs loop
+            declare
+               Item_Ref : Item renames Self.Items.Reference (Run.Item_Index).Element.all;
+            begin
+               Item_Ref.Geometry.X := Item_Ref.Geometry.X + Shift_X;
+            end;
+
+            if Run.Link_Index > 0 and then Run.Link_Index <= Natural (Self.Links.Length) then
+               declare
+                  Link_Ref : Link_Fragment renames
+                    Self.Links.Reference (Positive (Run.Link_Index)).Element.all;
+               begin
+                  Link_Ref.Geometry.X := Link_Ref.Geometry.X + Shift_X;
+                  Link_Ref.Geometry := Clip_To_Content (Link_Ref.Geometry);
+               end;
+            end if;
+         end loop;
+      end Finalize_Line;
+
+      procedure New_Line is
+      begin
+         Finalize_Line;
+         X := Line_Left;
          Y := Y + Current_Line_H;
          Current_Line_H := Line_Base_H;
          Current_Line_Ascent := Line_Base_Ascent;
@@ -1211,19 +1381,14 @@ package body Adi.Widget.Html_View is
 
       function Add_Link_Fragment
         (Geom : Rectangle;
-         Href : String) return Natural
-      is
-         Clipped : constant Rectangle := Clip_To_Content (Geom);
+         Href : String) return Natural is
       begin
-         if Href'Length = 0
-           or else Clipped.Width <= 0.0
-           or else Clipped.Height <= 0.0
-         then
+         if Href'Length = 0 then
             return 0;
          end if;
 
          Self.Links.Append
-           (New_Item => Link_Fragment'(Geometry => Clipped, Href => To_Unbounded_String (Href)));
+           (New_Item => Link_Fragment'(Geometry => Geom, Href => To_Unbounded_String (Href)));
          return Natural (Self.Links.Last_Index);
       end Add_Link_Fragment;
 
@@ -1246,8 +1411,14 @@ package body Adi.Widget.Html_View is
          end if;
 
          if Wrap_Allowed (Style)
-           and then X > Content.X
-           and then X + Measure_Text (Style, Text).Width > Content.X + Content.Width
+           and then X > Line_Left
+            and then X
+              + Measure_Text
+                  (Style,
+                   Text,
+                   Self.Content_Scale,
+                   Content.Width,
+                   Content.Height).Width > Line_Right
          then
             New_Line;
             while Slice_First <= Slice_Last and then Text (Slice_First) = ' ' loop
@@ -1265,10 +1436,16 @@ package body Adi.Widget.Html_View is
             Draw_Text := To_Unbounded_String (S);
          end;
 
-         Run_W := Measure_Text (Style, To_String (Draw_Text)).Width;
-         Run_H := Measure_Line_Height (Style);
-         Run_Ascent := Measure_Ascent (Style);
-         Run_Descent := Measure_Descent (Style);
+         Run_W :=
+           Measure_Text
+             (Style,
+              To_String (Draw_Text),
+              Self.Content_Scale,
+              Content.Width,
+              Content.Height).Width;
+         Run_H := Measure_Line_Height (Style, Self.Content_Scale, Content.Width, Content.Height);
+         Run_Ascent := Measure_Ascent (Style, Self.Content_Scale, Content.Width, Content.Height);
+         Run_Descent := Measure_Descent (Style, Self.Content_Scale, Content.Width, Content.Height);
 
          if Run_Ascent > Current_Line_Ascent then
             declare
@@ -1295,34 +1472,30 @@ package body Adi.Widget.Html_View is
             Height => Current_Line_H);
 
          declare
-            Clipped : constant Rectangle := Clip_To_Content (Full_Geom);
+            It : Item :=
+              Make_Text
+                 ((if Href'Length > 0 then Indicator_Part else Label_Part),
+                  Full_Geom,
+                  To_String (Draw_Text),
+                  1);
+            Item_Index : Positive;
+            Link_Index : Natural := 0;
+            Render_Style : Resolved_Style := Style;
          begin
-            if Clipped.Width > 0.0 and then Clipped.Height > 0.0 then
-               declare
-                  It : Item :=
-                    Make_Text
-                       ((if Href'Length > 0 then Indicator_Part else Label_Part),
-                        Full_Geom,
-                        To_String (Draw_Text),
-                        1);
-                  Item_Index : Positive;
-                  Link_Index : Natural := 0;
-               begin
-                  It.Wrap_Text := False;
-                  It.Text_Offset_Y := Current_Line_Ascent - Run_Ascent;
-                  It.Has_Style_Override := True;
-                  It.Style_Override := Style;
-                  Add_Item (Self, It);
+            It.Wrap_Text := False;
+            It.Text_Offset_Y := Current_Line_Ascent - Run_Ascent;
+            It.Has_Style_Override := True;
+            Render_Style.Font_Size := Px (Float (Local_Font_Size_Px (Style)));
+            It.Style_Override := Render_Style;
+            Add_Item (Self, It);
 
-                  Item_Index := Positive (Self.Items.Last_Index);
-                  Link_Index := Add_Link_Fragment (Full_Geom, Href);
-                  Line_Runs.Append
-                    (New_Item =>
-                       Line_Run_Record'
-                         (Item_Index => Item_Index,
-                          Link_Index => Link_Index));
-               end;
-            end if;
+            Item_Index := Positive (Self.Items.Last_Index);
+            Link_Index := Add_Link_Fragment (Full_Geom, Href);
+            Line_Runs.Append
+              (New_Item =>
+                 Line_Run_Record'
+                   (Item_Index => Item_Index,
+                    Link_Index => Link_Index));
          end;
 
          X := X + Run_W;
@@ -1345,8 +1518,8 @@ package body Adi.Widget.Html_View is
          end if;
 
          if Wrap_Allowed (Style)
-           and then X > Content.X
-           and then X + Width > Content.X + Content.Width
+           and then X > Line_Left
+           and then X + Width > Line_Right
          then
             New_Line;
          end if;
@@ -1377,27 +1550,21 @@ package body Adi.Widget.Html_View is
             Height => Height);
 
          declare
-            Clipped : constant Rectangle := Clip_To_Content (Full_Geom);
+            It : Item := Make_Image (Icon_Part, Full_Geom, Img, 1);
+            Item_Index : Positive;
+            Link_Index : Natural := 0;
          begin
-            if Clipped.Width > 0.0 and then Clipped.Height > 0.0 then
-               declare
-                  It : Item := Make_Image (Icon_Part, Full_Geom, Img, 1);
-                  Item_Index : Positive;
-                  Link_Index : Natural := 0;
-               begin
-                  It.Has_Style_Override := True;
-                  It.Style_Override := Style;
-                  Add_Item (Self, It);
+            It.Has_Style_Override := True;
+            It.Style_Override := Style;
+            Add_Item (Self, It);
 
-                  Item_Index := Positive (Self.Items.Last_Index);
-                  Link_Index := Add_Link_Fragment (Full_Geom, Href);
-                  Line_Runs.Append
-                    (New_Item =>
-                       Line_Run_Record'
-                         (Item_Index => Item_Index,
-                          Link_Index => Link_Index));
-               end;
-            end if;
+            Item_Index := Positive (Self.Items.Last_Index);
+            Link_Index := Add_Link_Fragment (Full_Geom, Href);
+            Line_Runs.Append
+              (New_Item =>
+                 Line_Run_Record'
+                   (Item_Index => Item_Index,
+                    Link_Index => Link_Index));
          end;
 
          X := X + Width;
@@ -1414,29 +1581,25 @@ package body Adi.Widget.Html_View is
          if Style.Height.Kind = Fixed then
             Rule_H := Pixel_Type'Max
               (1.0,
-               Length_To_Px (Style.Height.Size,
-                             Container_Size => Content.Height));
+               Local_Length_To_Px
+                 (Style.Height.Size,
+                  Container_Size => Content.Height,
+                  Font_Size => Local_Font_Size_Px (Style)));
          end if;
 
-         Current_Line_H := Pixel_Type'Max (Current_Line_H, Rule_H);
-         Rule_Geom :=
-           (X      => Content.X,
-            Y      => Y + (Current_Line_H - Rule_H) / 2.0,
-            Width  => Content.Width,
-            Height => Rule_H);
+          Current_Line_H := Pixel_Type'Max (Current_Line_H, Rule_H);
+          Rule_Geom :=
+            (X      => Line_Left,
+             Y      => Y + (Current_Line_H - Rule_H) / 2.0,
+             Width  => Current_Line_Width,
+             Height => Rule_H);
 
          declare
-            Clipped : constant Rectangle := Clip_To_Content (Rule_Geom);
+            It : Item := Make_Panel (Any_Part, Rule_Geom, 1);
          begin
-            if Clipped.Width > 0.0 and then Clipped.Height > 0.0 then
-               declare
-                  It : Item := Make_Panel (Any_Part, Rule_Geom, 1);
-               begin
-                  It.Has_Style_Override := True;
-                  It.Style_Override := Style;
-                  Add_Item (Self, It);
-               end;
-            end if;
+            It.Has_Style_Override := True;
+            It.Style_Override := Style;
+            Add_Item (Self, It);
          end;
 
          New_Line;
@@ -1462,7 +1625,7 @@ package body Adi.Widget.Html_View is
 
                declare
                   Prefix : constant String :=
-                    (if Pending_Space and then X > Content.X then " " else "");
+                    (if Pending_Space and then X > Line_Left then " " else "");
                   Word : constant String := Text (Start .. Stop - 1);
                begin
                   Add_Text_Run (Prefix & Word, Href, Style);
@@ -1566,6 +1729,98 @@ package body Adi.Widget.Html_View is
          return Is_Block_Tag (Tag);
       end Is_Block_Element;
 
+      function Resolve_Box_Edges
+        (Box             : CSS_Box_Value;
+         Style           : Resolved_Style;
+         Container_Width : Pixel_Type) return Edge_Pixels
+      is
+         Font_Px : constant Pixel_Type := Local_Font_Size_Px (Style);
+
+         function To_Px (L : Length_Value) return Pixel_Type is
+         begin
+            return Local_Length_To_Px
+              (L,
+               Container_Size => Container_Width,
+               Font_Size => Font_Px);
+         end To_Px;
+      begin
+         case Box.Kind is
+            when Gap_Uniform =>
+               declare
+                  V : constant Pixel_Type := To_Px (Box.All_Sides);
+               begin
+                  return (Top => V, Right => V, Bottom => V, Left => V);
+               end;
+
+            when Axis =>
+               declare
+                  Vert  : constant Pixel_Type := To_Px (Box.Vertical);
+                  Horiz : constant Pixel_Type := To_Px (Box.Horizontal);
+               begin
+                  return (Top => Vert, Right => Horiz, Bottom => Vert, Left => Horiz);
+               end;
+
+            when Per_Side =>
+               return
+                 (Top    => To_Px (Box.Sides (Top)),
+                  Right  => To_Px (Box.Sides (Right)),
+                  Bottom => To_Px (Box.Sides (Bottom)),
+                  Left   => To_Px (Box.Sides (Left)));
+         end case;
+      end Resolve_Box_Edges;
+
+      procedure Resolve_Image_Run_Size
+        (Style : Resolved_Style;
+         W     : in out Pixel_Type;
+         H     : in out Pixel_Type)
+      is
+         Target_W : Pixel_Type := 0.0;
+         Target_H : Pixel_Type := 0.0;
+         Font_Px  : constant Pixel_Type := Local_Font_Size_Px (Style);
+      begin
+         if H <= 0.0 then
+            H := Pixel_Type'Max
+              (1.0,
+               Measure_Line_Height
+                 (Style,
+                  Self.Content_Scale,
+                  Content.Width,
+                  Content.Height));
+         end if;
+
+         if Style.Width.Kind = Fixed then
+            Target_W := Local_Length_To_Px
+              (Style.Width.Size,
+               Container_Size => Current_Line_Width,
+               Font_Size => Font_Px);
+         end if;
+
+         if Style.Height.Kind = Fixed then
+            Target_H := Local_Length_To_Px
+              (Style.Height.Size,
+               Container_Size => Content.Height,
+               Font_Size => Font_Px);
+         end if;
+
+         if Target_W > 0.0 and then Target_H > 0.0 then
+            W := Target_W;
+            H := Target_H;
+         elsif Target_W > 0.0 then
+            if W > 0.0 and then H > 0.0 then
+               H := H * (Target_W / W);
+            end if;
+            W := Target_W;
+         elsif Target_H > 0.0 then
+            if W > 0.0 and then H > 0.0 then
+               W := W * (Target_H / H);
+            end if;
+            H := Target_H;
+         end if;
+
+         W := Pixel_Type'Max (0.0, W);
+         H := Pixel_Type'Max (0.0, H);
+      end Resolve_Image_Run_Size;
+
       function List_Marker (Node_Index : Positive) return String is
          N : constant Node := Self.Nodes.Element (Node_Index);
       begin
@@ -1625,20 +1880,32 @@ package body Adi.Widget.Html_View is
                   Link_Href : constant String :=
                     (if Tag = "a" then To_String (N.Attrs.Href_Attr) else Active_Link);
                begin
-                  if Tag = "img" then
+                  --  Keep separator space preceding a link outside the link run
+                  --  so underline/click hit regions do not extend into that
+                  --  left-side collapsed gap.
+                  if Tag = "a" and then Pending_Space and then X > Line_Left then
+                     Add_Text_Run (" ", "", Parent_Style);
+                     Pending_Space := False;
+                  end if;
+
+                  if Style.Display = Display_None then
+                     null;
+
+                  elsif Tag = "img" then
                      declare
                         Src : constant String := To_String (N.Attrs.Src_Attr);
                         Alt : constant String := To_String (N.Attrs.Alt_Attr);
                         Img : constant Adi.Image.Image_Access := Resolve_Image (Self, Src);
                         W   : Pixel_Type := 0.0;
                         H   : Pixel_Type := 0.0;
-                     begin
+                       begin
                         if Img /= null and then Adi.Image.Is_Valid (Img.all) then
                            Adi.Image.Get_Size (Img.all, W, H);
-                           if H <= 0.0 then
-                              H := Pixel_Type'Max (1.0, Measure_Line_Height (Style));
-                           end if;
+                           W := W * Pixel_Type'Max (0.01, Self.Content_Scale);
+                           H := H * Pixel_Type'Max (0.01, Self.Content_Scale);
                         end if;
+
+                        Resolve_Image_Run_Size (Style, W, H);
 
                         if W > 0.0 then
                            Add_Image_Run (Img, W, H, Link_Href, Style);
@@ -1658,15 +1925,53 @@ package body Adi.Widget.Html_View is
                         Prev_Base_H       : constant Pixel_Type := Line_Base_H;
                         Prev_Base_Ascent  : constant Pixel_Type := Line_Base_Ascent;
                         Prev_Base_Descent : constant Pixel_Type := Line_Base_Descent;
-                     begin
+                        Prev_Line_Left    : constant Pixel_Type := Line_Left;
+                        Prev_Line_Right   : constant Pixel_Type := Line_Right;
+                        Prev_Line_Align   : constant Text_Align_Value := Current_Line_Align;
+                        Local_Container_W : constant Pixel_Type := Current_Line_Width;
+                        Margin_Edges      : Edge_Pixels := Zero_Edges;
+                        Padding_Edges     : Edge_Pixels := Zero_Edges;
+                      begin
                         if Block_Flow then
                            if Has_Line_Content or else Pending_Space then
                               New_Line;
                            end if;
 
-                           Line_Base_H := Pixel_Type'Max (1.0, Measure_Line_Height (Style));
-                           Line_Base_Ascent := Pixel_Type'Max (1.0, Measure_Ascent (Style));
-                           Line_Base_Descent := Pixel_Type'Max (0.0, Measure_Descent (Style));
+                           Margin_Edges := Resolve_Box_Edges (Style.Margin, Style, Local_Container_W);
+                           Padding_Edges := Resolve_Box_Edges (Style.Padding, Style, Local_Container_W);
+
+                           Y := Y + Margin_Edges.Top + Padding_Edges.Top;
+
+                           Line_Left := Prev_Line_Left + Margin_Edges.Left + Padding_Edges.Left;
+                           Line_Right := Prev_Line_Right - Margin_Edges.Right - Padding_Edges.Right;
+                           if Line_Right < Line_Left then
+                              Line_Right := Line_Left;
+                           end if;
+
+                           X := Line_Left;
+                           Current_Line_Align := Style.Text_Align;
+
+                           Line_Base_H := Pixel_Type'Max
+                             (1.0,
+                              Measure_Line_Height
+                                (Style,
+                                 Self.Content_Scale,
+                                 Content.Width,
+                                 Content.Height));
+                           Line_Base_Ascent := Pixel_Type'Max
+                             (1.0,
+                              Measure_Ascent
+                                (Style,
+                                 Self.Content_Scale,
+                                 Content.Width,
+                                 Content.Height));
+                           Line_Base_Descent := Pixel_Type'Max
+                             (0.0,
+                              Measure_Descent
+                                (Style,
+                                 Self.Content_Scale,
+                                 Content.Width,
+                                 Content.Height));
                            Current_Line_H := Line_Base_H;
                            Current_Line_Ascent := Line_Base_Ascent;
                            Current_Line_Descent := Line_Base_Descent;
@@ -1688,12 +1993,19 @@ package body Adi.Widget.Html_View is
                               New_Line;
                            end if;
 
+                           Y := Y + Padding_Edges.Bottom + Margin_Edges.Bottom;
+
+                           Line_Left := Prev_Line_Left;
+                           Line_Right := Prev_Line_Right;
+                           Current_Line_Align := Prev_Line_Align;
+
                            Line_Base_H := Prev_Base_H;
                            Line_Base_Ascent := Prev_Base_Ascent;
                            Line_Base_Descent := Prev_Base_Descent;
                            Current_Line_H := Line_Base_H;
                            Current_Line_Ascent := Line_Base_Ascent;
                            Current_Line_Descent := Line_Base_Descent;
+                           X := Line_Left;
                            Pending_Space := False;
                         end if;
                      end;
@@ -1733,12 +2045,31 @@ package body Adi.Widget.Html_View is
 
       Document_Style := Resolve_Element_Style (Document_Rules, Label_Part_Style, True);
 
-      Line_Base_H := Pixel_Type'Max (1.0, Measure_Line_Height (Document_Style));
-      Line_Base_Ascent := Pixel_Type'Max (1.0, Measure_Ascent (Document_Style));
-      Line_Base_Descent := Pixel_Type'Max (0.0, Measure_Descent (Document_Style));
+      Line_Base_H := Pixel_Type'Max
+        (1.0,
+         Measure_Line_Height
+           (Document_Style,
+            Self.Content_Scale,
+            Content.Width,
+            Content.Height));
+      Line_Base_Ascent := Pixel_Type'Max
+        (1.0,
+         Measure_Ascent
+           (Document_Style,
+            Self.Content_Scale,
+            Content.Width,
+            Content.Height));
+      Line_Base_Descent := Pixel_Type'Max
+        (0.0,
+         Measure_Descent
+           (Document_Style,
+            Self.Content_Scale,
+            Content.Width,
+            Content.Height));
       Current_Line_H := Line_Base_H;
       Current_Line_Ascent := Line_Base_Ascent;
       Current_Line_Descent := Line_Base_Descent;
+      Current_Line_Align := Document_Style.Text_Align;
 
       if Natural (Self.Nodes.Length) > 0 then
          declare
@@ -1754,13 +2085,26 @@ package body Adi.Widget.Html_View is
          end;
       end if;
 
-      Sync_Line_Heights;
+      Finalize_Line;
 
       declare
-         Content_End_Y : constant Pixel_Type :=
+         Scroll_Offset : constant Pixel_Type := Get_Scroll_Offset_Y (Self);
+         Content_End_Y : Pixel_Type :=
            (if Has_Line_Content then Y + Current_Line_H else Y);
       begin
-         Self.Scroll_Content_H := Pixel_Type'Max (Content.Height, Content_End_Y - Content.Y);
+         for I in 2 .. Item_Count (Self) loop
+            declare
+               It : constant Item := Get_Item (Self, I);
+               Bottom : constant Pixel_Type := It.Geometry.Y + It.Geometry.Height;
+            begin
+               if Bottom > Content_End_Y then
+                  Content_End_Y := Bottom;
+               end if;
+            end;
+         end loop;
+
+         Self.Scroll_Content_H :=
+           Pixel_Type'Max (Content.Height, (Content_End_Y + Scroll_Offset) - Content.Y);
       end;
 
       Self.Scroll_Viewport_H := Content.Height;
@@ -1814,6 +2158,25 @@ package body Adi.Widget.Html_View is
       Set_Part_Styles (Self, Default_Internal_Part_Styles);
       Mark_Dirty (Self);
    end Clear;
+
+   procedure Set_Content_Scale
+     (Self  : in out Html_View;
+      Scale : Pixel_Type)
+   is
+      New_Scale : constant Pixel_Type := Pixel_Type'Max (0.01, Scale);
+   begin
+      if abs (Self.Content_Scale - New_Scale) <= 0.0001 then
+         return;
+      end if;
+
+      Self.Content_Scale := New_Scale;
+      Mark_Dirty (Self);
+   end Set_Content_Scale;
+
+   function Get_Content_Scale (Self : Html_View) return Pixel_Type is
+   begin
+      return Self.Content_Scale;
+   end Get_Content_Scale;
 
    procedure Set_On_Link_Click
      (Self     : in out Html_View;

@@ -132,6 +132,10 @@
 - Internal parse model uses `Element`/`Text`/`Break` nodes with permissive malformed HTML recovery
 - Per-element cascade is deterministic: `defaults < tag < class < id < inline`
 - Line-box layout keeps ascent/descent/baseline local to each line to avoid cross-block metric leakage
+- Line finalization applies `text-align` (including `<center>` default centering)
+- Block flow applies per-element margin/padding in the html layout pass
+- Optional content scale API (`Set/Get_Content_Scale`) scales absolute/content units without changing `%`/`vw`/`vh` fit semantics
+- Html `vw`/`vh` resolve against the html content viewport (normal widget `vw`/`vh` resolve against SDL window size)
 - Hyperlink interaction via `Set_On_Link_Click` with clipping-aware hit regions from final laid-out runs
 - Resource loading is callback-driven: `Set_On_Load_Asset` for `img`, `Set_On_Load_Resource` for linked stylesheets
 - Embedded `<style>` and callback-loaded `<link rel="stylesheet">` are parsed with `Adi.CSS_Parser`
@@ -150,6 +154,9 @@
    - For clipped containers, descendants are skipped when the effective clip region is non-positive
    - Text positions snapped to integer pixels
    - Font hinting: `TTF_HINTING_LIGHT_SUBPIXEL`
+   - Temporary decoration workaround: `underline`/`line-through` are drawn manually in `Adi.Widget` to avoid SDL_ttf renderer text-engine white-line color behavior; upstream patch draft is stored in `deps/issues/`
+
+Render scheduling note: relayout runs only when layout/geometry is dirty; pure visual updates (for example scroll-offset changes) trigger repaint without forcing full tree relayout.
 
 ## SDL Bindings
 

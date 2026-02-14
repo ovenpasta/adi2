@@ -3,37 +3,32 @@
 <style>
   body {
     background-color: rgb(255, 252, 247);
-    color: rgb(51, 46, 39);
-    font-size: 15px;
+    color: rgb(52, 46, 39);
+    font-size: 16px;
+    line-height: 1.45;
   }
 
   h1 {
     color: rgb(35, 31, 27);
-    font-size: 30px;
+    font-size: 32px;
     font-weight: 700;
+    margin: 0px 0px 10px 0px;
   }
 
   h2 {
-    color: rgb(72, 62, 51);
-    font-size: 21px;
+    color: rgb(78, 66, 54);
+    font-size: 22px;
     font-weight: 600;
+    margin: 22px 0px 8px 0px;
   }
 
   p {
-    color: rgb(56, 49, 40);
+    margin: 8px 0px;
   }
 
-  .callout {
-    background-color: rgb(246, 238, 226);
-    color: rgb(63, 52, 40);
-  }
-
-  .note {
-    color: rgb(110, 61, 53);
-  }
-
-  #cascade-id {
-    color: rgb(36, 104, 150);
+  a {
+    color: rgb(22, 95, 184);
+    text-decoration: underline;
   }
 
   code {
@@ -44,116 +39,230 @@
   hr {
     background-color: rgba(127, 103, 75, 0.55);
     height: 1px;
+    margin: 16px 0px;
   }
 
-  a {
-    color: rgb(26, 95, 180);
-    text-decoration: underline;
+  .lead {
+    margin: 10px 0px 14px 0px;
+    padding: 12px 14px;
+    background-color: rgb(246, 238, 226);
+    color: rgb(64, 52, 40);
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgb(219, 202, 179);
+    border-radius: 10px;
+    line-height: 1.6;
+  }
+
+  .panel {
+    margin: 10px 0px;
+    padding: 10px 12px;
+    background-color: rgb(252, 248, 240);
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgb(224, 212, 196);
+    border-radius: 8px;
+  }
+
+  .cascade-class {
+    color: rgb(173, 92, 42);
+  }
+
+  #cascade-id {
+    color: rgb(44, 104, 164);
+  }
+
+  .align-center {
+    text-align: center;
+  }
+
+  .align-right {
+    text-align: right;
+  }
+
+  .roomy {
+    line-height: 2.0;
+  }
+
+  .preline {
+    white-space: pre-line;
+    line-height: 1.75;
+  }
+
+  .pre {
+    white-space: pre;
+    line-height: 1.5;
+  }
+
+  .nowrap {
+    white-space: nowrap;
+  }
+
+  .strike {
+    text-decoration: line-through;
+  }
+
+  .vwvh {
+    font-size: 3vw;
+    line-height: 7vh;
+  }
+
+  .hidden-row {
+    display: none;
+  }
+
+  .small-gap {
+    margin-top: 4px;
   }
 </style>
 
 <div id="html-doc-root" class="doc">
-  <h1>HTML View Example (Feature Sweep)</h1>
+  <h1>HTML View Showcase</h1>
 
-  <p>
-    This file stress-tests parser, cascade, layout, clipping, links, images, and list handling.
-    Source path: <code>examples/assets/html_view_example.html</code>.
+  <p class="lead">
+    This document is intentionally dense: it exercises parsing, cascade, alignment,
+    spacing, line height, white-space modes, viewport units, images, links, lists,
+    unknown tags, and long-scroll behavior.<br>
+    Source file: <code>examples/assets/html_view_example.html</code>.
   </p>
 
-  <p class="callout">
-    Link interactions should report in the status bar:
-    <a href="https://example.com/docs/html-view">external docs</a>,
+  <h2>1) Links and Inline Formatting</h2>
+  <p class="panel">
+    Inline tags: <strong>strong</strong>, <em>emphasis</em>, <span>span</span>,
+    <code>inline_code()</code>, and <span class="strike">line-through text</span>.<br>
+    Try links: <a href="https://example.com/docs/html-view">external docs</a>,
     <a href="app://section/getting-started">internal route</a>,
-    and <a href="app://section/layout/line-box">line-box notes</a>.
+    <a href="app://section/layout/line-box">line-box notes</a>.
   </p>
 
-  <h2>Inline + Line Breaks</h2>
-  <p>
-    Inline tags: <strong>strong</strong>, <em>emphasis</em>, <span>span text</span>,
-    plus multiple breaks:<br>first line<br/>second line<br>third line.
+  <h2>2) Cascade: tag &lt; class &lt; id &lt; inline</h2>
+  <p class="panel cascade-class" id="cascade-id" style="color: rgb(24, 148, 90);">
+    This sentence uses tag + class + id + inline style. Inline should win.
+  </p>
+  <p class="panel cascade-class" id="cascade-id">
+    This sentence uses tag + class + id. Id should win.
+  </p>
+  <p class="panel cascade-class">
+    This sentence uses tag + class only. Class should win.
   </p>
 
-  <h2>Cascade (tag &lt; class &lt; id &lt; inline)</h2>
-  <p class="note" id="cascade-id" style="color: rgb(24, 150, 92);">
-    This line uses tag + class + id + inline style. Inline color should win.
+  <h2>3) Alignment and Center Support</h2>
+  <p class="panel align-center">
+    This block is centered with <code>text-align: center</code>.
   </p>
-  <p class="note" id="cascade-id">
-    This line drops inline style. Id should win over class and tag.
-  </p>
-  <p class="note">
-    This line uses class + tag only. Class should win over tag.
-  </p>
-
-  <h2>Code + Whitespace</h2>
-  <p>
-    Regular text around code:
-    <code>for i in 1 .. 3 loop</code>
-    <code>Put_Line("hello");</code>
-    <code>end loop;</code>
-  </p>
-  <p>
-    Preserved-looking spaces in code sample:
-    <code>  keep   visible   spacing   near   code  </code>
+  <center class="panel">
+    This uses the <code>&lt;center&gt;</code> tag and includes
+    <a href="app://center/link">a centered link</a>.
+  </center>
+  <p class="panel align-right">
+    This block is aligned right with <code>text-align: right</code>.
   </p>
 
-  <h2>Lists + Nesting</h2>
-  <ul>
-    <li>Simple list item with <strong>strong</strong> text.</li>
+  <h2>4) Line Height and White-Space</h2>
+  <p class="panel roomy">
+    Extra roomy rhythm via <code>line-height: 2.0</code>.
+    Line spacing should be visibly larger than normal.
+  </p>
+  <p class="panel preline">This uses white-space: pre-line.
+Newlines in source should create new visual lines,
+while runs of spaces still collapse.</p>
+  <p class="panel pre">This uses white-space: pre.
+    Leading spaces,   runs of spaces, and
+line breaks should be preserved.</p>
+  <p class="panel nowrap">
+    This line uses white-space: nowrap and should stay on one line until clipped by the viewport when it gets too long for the available width.
+  </p>
+
+  <h2>5) Block Margin and Padding</h2>
+  <div class="panel" style="padding: 14px;">
+    <p class="panel small-gap" style="margin: 0px 0px 10px 0px;">
+      Inner block A with explicit margin and panel padding.
+    </p>
+    <p class="panel small-gap" style="margin: 10px 0px 0px 0px;">
+      Inner block B demonstrates vertical spacing from margin.
+    </p>
+  </div>
+
+  <h2>6) Lists and Nesting</h2>
+  <ul class="panel">
+    <li>Simple bullet item with <strong>strong</strong> text.</li>
     <li>
-      Mixed inline content with <em>emphasis</em> and
-      <a href="app://list/item/2">list link</a>.
+      Mixed item with <em>emphasis</em>, <code>code()</code>, and
+      <a href="app://list/item/2">a list link</a>.
     </li>
     <li>
-      Nested list starts below:
+      Nested ordered list:
       <ol>
         <li>first nested ordered item</li>
-        <li>second nested ordered item with <code>inline_code()</code></li>
+        <li>second nested item with <code>inline_marker()</code></li>
       </ol>
     </li>
   </ul>
 
-  <h2>Images + Alt Fallback</h2>
-  <p>
-    Asset callback image: <img src="app://happycat" alt="happy cat image">.
+  <h2>7) Images and Fallback</h2>
+  <p class="panel">
+    Callback-loaded image: <img src="app://happycat" alt="happy cat image">.
   </p>
-  <p>
-    Missing image with alt fallback:
-    <img src="app://missing-image" alt="(missing image fallback text)">.
+  <p class="panel align-center">
+    Centered image (sized with viewport width):<br>
+    <img src="app://happycat" alt="centered cat" style="width: 34vw;">
   </p>
-  <p>
-    Linked image fragment:
-    <a href="app://open/cat"><img src="app://happycat" alt="linked cat"></a>
+  <p class="panel">
+    Near full-width image using viewport width (<code>88vw</code>):<br>
+    <img src="app://happycat" alt="wide cat" style="width: 88vw;">
+  </p>
+  <p class="panel">
+    Missing image fallback text: <img src="app://missing-image" alt="(missing image fallback text)">.
+  </p>
+  <p class="panel">
+    Linked image fragment: <a href="app://open/cat"><img src="app://happycat" alt="linked cat"></a>
   </p>
 
-  <h2>Unknown Tags Are Transparent</h2>
-  <custom-panel data-kind="demo">
+  <h2>8) Unknown Tags Are Transparent</h2>
+  <custom-panel data-kind="demo" class="panel">
     <p>
-      Children of unknown tags should still render.
+      Children of unknown tags still render.
       <a href="app://unknown-tag/child">Click me</a>
     </p>
   </custom-panel>
 
-  <h2>Center Block</h2>
-  <center>
-    Centered content block with <strong>theme.css strong</strong> and
-    <em>theme.css em</em> overrides from linked stylesheet.
-  </center>
+  <h2>9) Viewport Units (vw / vh)</h2>
+  <p class="panel vwvh">
+    This line uses <code>font-size: 3vw</code> and <code>line-height: 7vh</code>.
+    Resize the window and watch it respond to the html viewport.
+  </p>
+
+  <h2>10) Display None and Entities</h2>
+  <p class="hidden-row">This row should be hidden by display:none.</p>
+  <p class="panel">
+    Entity decode probe: &amp; &lt; &gt; &quot; &#39;.
+  </p>
 
   <hr>
 
-  <h2>Scroll / Long Content</h2>
-  <p>Paragraph 01: The quick brown fox jumps over the lazy dog.</p>
-  <p>Paragraph 02: Pack my box with five dozen liquor jugs.</p>
-  <p>Paragraph 03: Sphinx of black quartz, judge my vow.</p>
-  <p>Paragraph 04: Waltz, bad nymph, for quick jigs vex.</p>
-  <p>Paragraph 05: Glib jocks quiz nymph to vex dwarf.</p>
-  <p>Paragraph 06: Bright vixens jump; dozy fowl quack.</p>
-  <p>Paragraph 07: Quick zephyrs blow, vexing daft Jim.</p>
-  <p>Paragraph 08: How razorback-jumping frogs can level six piqued gymnasts.</p>
-  <p>Paragraph 09: Cozy lummox gives smart squid who asks for job pen.</p>
-  <p>Paragraph 10: A wizard's job is to vex chumps quickly in fog.</p>
+  <h2>11) Long Scroll Content</h2>
+  <p>Row 01: The quick brown fox jumps over the lazy dog.</p>
+  <p>Row 02: Pack my box with five dozen liquor jugs.</p>
+  <p>Row 03: Sphinx of black quartz, judge my vow.</p>
+  <p>Row 04: Waltz, bad nymph, for quick jigs vex.</p>
+  <p>Row 05: Glib jocks quiz nymph to vex dwarf.</p>
+  <p>Row 06: Bright vixens jump; dozy fowl quack.</p>
+  <p>Row 07: Quick zephyrs blow, vexing daft Jim.</p>
+  <p>Row 08: How razorback-jumping frogs can level six piqued gymnasts.</p>
+  <p>Row 09: Cozy lummox gives smart squid who asks for job pen.</p>
+  <p>Row 10: A wizard's job is to vex chumps quickly in fog.</p>
+  <p>Row 11: Few black taxis drive up major roads on quiet hazy nights.</p>
+  <p>Row 12: Heavy boxes perform quick waltzes and jigs for my amazed crowd.</p>
+  <p>Row 13: Jumpy halflings vex dwarves while bright foxes quiz bold knights.</p>
+  <p>Row 14: The five boxing wizards jump quickly through lazy fog.</p>
+  <p>Row 15: Grumpy wizards make toxic brew for the jovial queen.</p>
+  <p>Row 16: Quick movement of the enemy will jeopardize six gunboats.</p>
+  <p>Row 17: Back in June we delivered oxygen equipment of the same size.</p>
+  <p>Row 18: We promptly judged antique ivory buckles for the next prize.</p>
+  <p>Row 19: Big fjords vex quick waltzing nymphs in cozy haze.</p>
+  <p>Row 20: End of long-scroll section; scrollbar should reach this line cleanly.</p>
 
-  <p>
-    End of document. Try switching to Source, edit values, then switch back to Preview.
+  <p class="lead">
+    End of showcase. Edit this file in the Source tab and switch back to Preview to re-render.
   </p>
 </div>

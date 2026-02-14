@@ -163,7 +163,7 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 - Widget states and style rule management
 
 **Adi.CSS_Styles** (`adi-css_styles.ads`): CSS-like styling system
-- Length units: `Px`, `Dip`, `Em`, `Root_Em`, `Pct`
+- Length units: `Px`, `Dip`, `Em`, `Root_Em`, `Pct`, `Vw`, `Vh`
 - Color values: Named colors, RGB, RGBA
 - Optional values pattern for style inheritance/cascading
 - `Style_Rules` carries optional/unset values for CSS cascade/override semantics; `Resolved_Style` is fully concrete with defaults (safe to read directly)
@@ -182,6 +182,7 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 - Supports file watching reload flow via `Reload_If_Changed`, reapplying styles to bound widgets
 - Parses `transition` with duration (`ms`/`s`), easing, and property filter
 - Accepts `dp` as an alias of `dip` for length values
+- Parses viewport units (`vw`, `vh`) and html text/layout properties including `line-height`, `white-space`, `text-decoration`, `text-overflow`, `object-fit`, and `visibility`
 
 **Adi.CSS_Source** (`adi-css_source.ads`): Dynamic/static style source switcher
 - Unifies runtime dynamic CSS (`Adi.CSS_Parser`) and compiled static style arrays
@@ -394,12 +395,15 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 
 **Adi.Widget.Html_View** (`adi-widget-html_view.ads`): Documentation-oriented HTML widget
 - Next-phase milestone completed (2026-02-13): renderer moved from token-stream flow to an element tree model
+- Phase 2 completed (2026-02-14): added alignment finalization (`center`/`text-align`), block margin/padding flow participation, content scale API, and viewport-unit-aware sizing
 - Internal nodes: `Element` / `Text` / `Break`, with tracked attributes (`id`, `class`, `style`, `href`, `src`, `alt`)
 - Per-element cascade order is deterministic: `defaults < tag < class < id < inline`
 - Embedded `<style>` and callback-loaded `<link rel="stylesheet">` are parsed with `Adi.CSS_Parser`
 - Resource loading remains callback-driven (`Set_On_Load_Asset`, `Set_On_Load_Resource`)
 - Line-box layout computes ascent/descent locally to avoid heading metric leakage into following paragraphs
 - Link hit regions are generated from final laid-out runs and clipped to the visible content viewport
+- Content scale API: `Set/Get_Content_Scale`; scales absolute/content units while keeping `%`/`vw`/`vh` fit semantics stable
+- `vw`/`vh` in Html_View resolve against the html content viewport
 
 **Adi.Widget.Animated_Widget.RLottie** (`adi-widget-animated_widget-rlottie.ads`): RLottie adapter for unified widget
 - RLottie-specific binding helpers for `Animated_Widget` (`Set_Animation`, `Load_From_File`, `Create`, `Get_Animation`)
@@ -414,6 +418,7 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 - Grid layout support with reusable core algorithm (`Compute_Grid_Layout` / `Grid_To_Rectangles`)
 - Named root font-size default is used for `em/root-em` conversions (no hardcoded magic font-size literals)
 - Active DIP scaling for unit conversion: `Set/Get_Active_DIP_Scale`; `Length_To_Px` scales `dip` lengths by the active value while keeping `px` raw
+- Active viewport size for unit conversion: `Set_Active_Viewport_Size` + `Get_Active_Viewport_Width/Height`; `Length_To_Px` resolves `vw`/`vh` from provided viewport context or active window viewport
 
 **Adi.Window** (`adi-window.ads`): Window management
 - Wraps SDL window and renderer
@@ -427,6 +432,7 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 - Overlay support for top-level floating widgets (`Add_Overlay`, `Remove_Overlay`, `Clear_Overlays`, `Overlay_Count`)
 - Overlay hit testing is prioritized above the root tree; overlays render after root content
 - During render, overlays are laid out/updated before `Render_Tree`; this keeps popup widgets (e.g. combo dropdown list scrollbars) in sync with current geometry/content
+- Render/relayout split: pure visual dirty paths (like scroll offset changes) trigger repaint without full tree relayout; relayout runs only when layout-dirty/geometry state changes
 - Right-click routes context-menu requests from the hit widget upward through ancestors (`Bubble_Context_Menu`)
 - Tracks hovered/pressed widget part; updates part states on pointer movement so part-scoped selectors resolve correctly
 - Scrollbar hit routing prefers the nearest ancestor widget whose part-at-point is `Scroll_Part`/`Knob_Part`, so scrollbar hover/press/drag works even when deepest child under cursor is not scrollable/clickable

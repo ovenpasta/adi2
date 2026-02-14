@@ -11,6 +11,14 @@ package Adi.Layout_Util is
    procedure Set_Active_DIP_Scale (Scale : Pixel_Type);
    function Get_Active_DIP_Scale return Pixel_Type;
 
+   --  Active viewport size used by Length_To_Px for vw/vh units when
+   --  explicit viewport dimensions are not provided at call sites.
+   procedure Set_Active_Viewport_Size
+     (Width  : Pixel_Type;
+      Height : Pixel_Type);
+   function Get_Active_Viewport_Width return Pixel_Type;
+   function Get_Active_Viewport_Height return Pixel_Type;
+
 
    -------------------------------------------------
    -- Alignment Types
@@ -151,15 +159,19 @@ package Adi.Layout_Util is
 
    --  Convert Length to pixels (simplified - assumes Px or does basic conversion)
    function Length_To_Px (L : CSS_Styles.Length_Value;
-                          Container_Size : Pixel_Type := 0.0;
-                          Font_Size : Pixel_Type := Default_Root_Font_Size_Px)
-      return Pixel_Type;
+                           Container_Size : Pixel_Type := 0.0;
+                           Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
+                           Viewport_Width : Pixel_Type := 0.0;
+                           Viewport_Height : Pixel_Type := 0.0)
+       return Pixel_Type;
 
    --  Get size from Size_Value
    function Size_To_Px (S : Size_Value;
-                        Container_Size : Pixel_Type := 0.0;
-                        Font_Size : Pixel_Type := Default_Root_Font_Size_Px)
-      return Pixel_Type;
+                         Container_Size : Pixel_Type := 0.0;
+                         Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
+                         Viewport_Width : Pixel_Type := 0.0;
+                         Viewport_Height : Pixel_Type := 0.0)
+       return Pixel_Type;
 
 -------------------------------------------------
    -- Flex Layout Types

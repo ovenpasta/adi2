@@ -361,7 +361,7 @@ def parse_length(value: str) -> Optional[ParsedLength]:
     if value == "0":
         return ParsedLength(0.0, "Px")
     
-    match = re.match(r'^(-?\d*\.?\d+)(px|em|rem|%|dip)?$', value)
+    match = re.match(r'^(-?\d*\.?\d+)(px|em|rem|%|dip|dp|vw|vh)?$', value)
     if not match:
         return None
     
@@ -371,9 +371,12 @@ def parse_length(value: str) -> Optional[ParsedLength]:
     unit_map = {
         "px": "Px",
         "dip": "Dip",
+        "dp": "Dip",
         "em": "Em",
         "rem": "Root_Em",
         "%": "Pct",
+        "vw": "Vw",
+        "vh": "Vh",
     }
     
     unit = unit_map.get(unit_str, "Px")
@@ -933,7 +936,8 @@ def generate_color_ada(color: ParsedColor) -> str:
     elif color.kind == "rgb":
         return f"RGB ({color.r}, {color.g}, {color.b})"
     elif color.kind == "rgba":
-        return f"RGBA ({color.r}, {color.g}, {color.b}, {format_float(color.a)})"
+        alpha = color.a if color.a is not None else 1.0
+        return f"RGBA ({color.r}, {color.g}, {color.b}, {format_float(alpha)})"
     return "C (Black)"
 
 

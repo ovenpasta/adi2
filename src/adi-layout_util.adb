@@ -1,6 +1,8 @@
 package body Adi.Layout_Util is
 
    Active_DIP_Scale : Pixel_Type := 1.0;
+   Active_Viewport_Width  : Pixel_Type := 0.0;
+   Active_Viewport_Height : Pixel_Type := 0.0;
 
    procedure Set_Active_DIP_Scale (Scale : Pixel_Type) is
    begin
@@ -12,15 +14,39 @@ package body Adi.Layout_Util is
       return Active_DIP_Scale;
    end Get_Active_DIP_Scale;
 
+   procedure Set_Active_Viewport_Size
+     (Width  : Pixel_Type;
+      Height : Pixel_Type) is
+   begin
+      Active_Viewport_Width := Pixel_Type'Max (0.0, Width);
+      Active_Viewport_Height := Pixel_Type'Max (0.0, Height);
+   end Set_Active_Viewport_Size;
+
+   function Get_Active_Viewport_Width return Pixel_Type is
+   begin
+      return Active_Viewport_Width;
+   end Get_Active_Viewport_Width;
+
+   function Get_Active_Viewport_Height return Pixel_Type is
+   begin
+      return Active_Viewport_Height;
+   end Get_Active_Viewport_Height;
+
    -------------------------------------------------
    -- Length Conversion
    -------------------------------------------------
 
    function Length_To_Px (L : Length_Value;
                           Container_Size : Pixel_Type := 0.0;
-                          Font_Size : Pixel_Type := Default_Root_Font_Size_Px)
+                          Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
+                          Viewport_Width : Pixel_Type := 0.0;
+                          Viewport_Height : Pixel_Type := 0.0)
       return Pixel_Type
    is
+      Vw_Size : constant Pixel_Type :=
+        (if Viewport_Width > 0.0 then Viewport_Width else Active_Viewport_Width);
+      Vh_Size : constant Pixel_Type :=
+        (if Viewport_Height > 0.0 then Viewport_Height else Active_Viewport_Height);
    begin
       case L.Unit is
          when Px =>
@@ -33,19 +59,29 @@ package body Adi.Layout_Util is
             return Pixel_Type (L.Amount * Float (Default_Root_Font_Size_Px));
          when Pct =>
             return Pixel_Type (L.Amount / 100.0 * Float (Container_Size));
+         when Vw =>
+            return Pixel_Type (L.Amount / 100.0 * Float (Vw_Size));
+         when Vh =>
+            return Pixel_Type (L.Amount / 100.0 * Float (Vh_Size));
       end case;
-      return 0.0;
    end Length_To_Px;
 
    function Size_To_Px (S : Size_Value;
                         Container_Size : Pixel_Type := 0.0;
-                        Font_Size : Pixel_Type := Default_Root_Font_Size_Px)
+                        Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
+                        Viewport_Width : Pixel_Type := 0.0;
+                        Viewport_Height : Pixel_Type := 0.0)
       return Pixel_Type
    is
    begin
       case S.Kind is
          when Fixed =>
-            return Length_To_Px (S.Size, Container_Size, Font_Size);
+            return Length_To_Px
+              (S.Size,
+               Container_Size,
+               Font_Size,
+               Viewport_Width,
+               Viewport_Height);
          when Auto | Min_Content | Max_Content | Fit_Content =>
             --  These need more context; return 0 as placeholder
             return 0.0;

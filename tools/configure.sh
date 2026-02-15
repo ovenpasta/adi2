@@ -223,7 +223,7 @@ project Tests_Build is
       when "development" =>
          Profile_Ada_Compiler_Switches := ("-Og", "-g", "-gnatwa", "-gnatw.X", "-gnatVa", "-gnatW8");
    end case;
-   Ada_Switches := ("-gnat2022", "-gnatX0","-gnatef");
+   Ada_Switches := ("-gnat2022", "-gnatX0", "-gnatef");
    package Compiler is
       for Default_Switches ("Ada") use
         Profile_Ada_Compiler_Switches & User_Ada_Compiler_Switches & Ada_Switches;
@@ -246,8 +246,26 @@ with "adi_build.gpr";
 with "../config/adi_linker_config.gpr";
 
 project Examples_Build is
-   type Example_Kind is ("label_example", "widget_demo", "button_example", "transition_example", "text_input_example", "text_editor_example", "demo_flex", "stack_example", "list_box_example", "combo_box_example", "overflow_example", "grid_example", "dialog_example", "font_example", "runtime_css_example", "animated_image_example", "rlottie_example");
-   Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example", "html_view_example");
+   type Example_Kind is
+     ("label_example",
+      "widget_demo",
+      "button_example",
+      "transition_example",
+      "text_input_example",
+      "text_editor_example",
+      "demo_flex",
+      "stack_example",
+      "list_box_example",
+      "combo_box_example",
+      "overflow_example",
+      "grid_example",
+      "dialog_example",
+      "font_example",
+      "runtime_css_example",
+      "animated_image_example",
+      "rlottie_example",
+      "html_view_example");
+   Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");
 
    for Source_Dirs use ("${SOURCE_DIR}/examples", "${SOURCE_DIR}/examples/generated");
    for Object_Dir use "${BUILD_DIR}/examples/obj/" & Kind;

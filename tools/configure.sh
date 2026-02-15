@@ -180,7 +180,47 @@ end Adi_Linker_Config;
 EOF
 
 cat > "${BUILD_DIR}/projects/adi_build.gpr" <<EOF
+with "${SOURCE_DIR}/plutosvg/plutosvg.gpr";
+
 project Adi_Build extends "${SOURCE_DIR}/adi.gpr" is
+   type Platform_Kind is ("linux", "windows");
+   Platform_Name : Platform_Kind := external ("ADI_PLATFORM", "linux");
+   type SVG_Backend_Kind is ("ada", "plutosvg");
+   SVG_Backend : SVG_Backend_Kind := external ("ADI_SVG_BACKEND", "plutosvg");
+
+   case Platform_Name is
+      when "windows" =>
+         case SVG_Backend is
+            when "ada" =>
+               for Source_Dirs use
+                 ("${SOURCE_DIR}/src",
+                  "${SOURCE_DIR}/src/svg",
+                  "${SOURCE_DIR}/src/svg/ada",
+                  "${SOURCE_DIR}/config/windows");
+            when "plutosvg" =>
+               for Source_Dirs use
+                 ("${SOURCE_DIR}/src",
+                  "${SOURCE_DIR}/src/svg",
+                  "${SOURCE_DIR}/src/svg/plutosvg",
+                  "${SOURCE_DIR}/config/windows");
+         end case;
+      when others =>
+         case SVG_Backend is
+            when "ada" =>
+               for Source_Dirs use
+                 ("${SOURCE_DIR}/src",
+                  "${SOURCE_DIR}/src/svg",
+                  "${SOURCE_DIR}/src/svg/ada",
+                  "${SOURCE_DIR}/config/posix");
+            when "plutosvg" =>
+               for Source_Dirs use
+                 ("${SOURCE_DIR}/src",
+                  "${SOURCE_DIR}/src/svg",
+                  "${SOURCE_DIR}/src/svg/plutosvg",
+                  "${SOURCE_DIR}/config/posix");
+         end case;
+   end case;
+
    for Object_Dir use "${BUILD_DIR}/adi/obj";
    for Library_Dir use "${BUILD_DIR}/adi/lib";
    for Create_Missing_Dirs use "True";
@@ -322,7 +362,7 @@ TARGET_PLATFORM="${TARGET_PLATFORM}"
 BUILD_PROFILE="${ADI_BUILD_PROFILE:-${BUILD_PROFILE_DEFAULT}}"
 SVG_BACKEND="${ADI_SVG_BACKEND:-${SVG_BACKEND_DEFAULT}}"
 
-GPR_ARGS=()
+GPR_ARGS=(-v -j0)
 if [[ -n "\${CGPR_FILE}" ]]; then
   GPR_ARGS+=(--config="\${CGPR_FILE}")
 fi

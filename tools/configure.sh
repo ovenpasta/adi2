@@ -196,59 +196,15 @@ project Adi_Build extends "${SOURCE_DIR}/adi.gpr" is
    Platform_Name : Platform_Kind := external ("ADI_PLATFORM", "linux");
    type SVG_Backend_Kind is ("ada", "plutosvg");
    SVG_Backend : SVG_Backend_Kind := external ("ADI_SVG_BACKEND", "plutosvg");
-   PlutoSVG_Linker_Switches := ("-L${BUILD_DIR}/plutosvg/lib", "-lplutosvg");
-
-   case Platform_Name is
-      when "windows" =>
-         case SVG_Backend is
-            when "ada" =>
-               for Source_Dirs use
-                 ("${SOURCE_DIR}/src",
-                  "${SOURCE_DIR}/src/svg",
-                  "${SOURCE_DIR}/src/svg/ada",
-                  "${SOURCE_DIR}/config/windows");
-            when "plutosvg" =>
-               for Source_Dirs use
-                 ("${SOURCE_DIR}/src",
-                  "${SOURCE_DIR}/src/svg",
-                  "${SOURCE_DIR}/src/svg/plutosvg",
-                  "${SOURCE_DIR}/config/windows");
-         end case;
-      when others =>
-         case SVG_Backend is
-            when "ada" =>
-               for Source_Dirs use
-                 ("${SOURCE_DIR}/src",
-                  "${SOURCE_DIR}/src/svg",
-                  "${SOURCE_DIR}/src/svg/ada",
-                  "${SOURCE_DIR}/config/posix");
-            when "plutosvg" =>
-               for Source_Dirs use
-                 ("${SOURCE_DIR}/src",
-                  "${SOURCE_DIR}/src/svg",
-                  "${SOURCE_DIR}/src/svg/plutosvg",
-                  "${SOURCE_DIR}/config/posix");
-         end case;
-   end case;
 
    for Object_Dir use "${BUILD_DIR}/adi/obj";
    for Library_Dir use "${BUILD_DIR}/adi/lib";
    for Create_Missing_Dirs use "True";
-
-   package Linker is
-      case SVG_Backend is
-         when "plutosvg" =>
-            for Default_Switches ("Ada") use PlutoSVG_Linker_Switches;
-         when others =>
-            null;
-      end case;
-   end Linker;
 end Adi_Build;
 EOF
 
 cat > "${BUILD_DIR}/projects/tests_build.gpr" <<EOF
 with "adi_build.gpr";
-with "plutosvg_build.gpr";
 with "../config/adi_linker_config.gpr";
 
 project Tests_Build is
@@ -264,9 +220,6 @@ project Tests_Build is
       "svg_test",
       "svg_perf_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
-   type SVG_Backend_Kind is ("ada", "plutosvg");
-   SVG_Backend : SVG_Backend_Kind := external ("ADI_SVG_BACKEND", "plutosvg");
-   PlutoSVG_Linker_Switches := ("-L${BUILD_DIR}/plutosvg/lib", "-lplutosvg");
 
    for Source_Dirs use ("${SOURCE_DIR}/tests/src");
    for Object_Dir use "${BUILD_DIR}/tests/obj/" & Kind;
@@ -297,24 +250,15 @@ project Tests_Build is
    end Binder;
 
    package Linker is
-      case SVG_Backend is
-         when "plutosvg" =>
-            for Default_Switches ("Ada") use
-              Adi_Linker_Config.SDL_Linker_Switches &
-              PlutoSVG_Linker_Switches &
-              Adi_Linker_Config.Platform_Linker_Switches;
-         when others =>
-            for Default_Switches ("Ada") use
-              Adi_Linker_Config.SDL_Linker_Switches &
-              Adi_Linker_Config.Platform_Linker_Switches;
-      end case;
+      for Default_Switches ("Ada") use
+        Adi_Linker_Config.SDL_Linker_Switches &
+        Adi_Linker_Config.Platform_Linker_Switches;
    end Linker;
 end Tests_Build;
 EOF
 
 cat > "${BUILD_DIR}/projects/examples_build.gpr" <<EOF
 with "adi_build.gpr";
-with "plutosvg_build.gpr";
 with "../config/adi_linker_config.gpr";
 
 project Examples_Build is
@@ -338,9 +282,6 @@ project Examples_Build is
       "rlottie_example",
       "html_view_example");
    Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");
-   type SVG_Backend_Kind is ("ada", "plutosvg");
-   SVG_Backend : SVG_Backend_Kind := external ("ADI_SVG_BACKEND", "plutosvg");
-   PlutoSVG_Linker_Switches := ("-L${BUILD_DIR}/plutosvg/lib", "-lplutosvg");
 
    for Source_Dirs use ("${SOURCE_DIR}/examples", "${SOURCE_DIR}/examples/generated");
    for Object_Dir use "${BUILD_DIR}/examples/obj/" & Kind;
@@ -373,31 +314,14 @@ project Examples_Build is
    package Linker is
       case Kind is
          when "rlottie_example" =>
-            case SVG_Backend is
-               when "plutosvg" =>
-                  for Default_Switches ("Ada") use
-                    Adi_Linker_Config.SDL_Linker_Switches &
-                    Adi_Linker_Config.RLottie_Linker_Switches &
-                    PlutoSVG_Linker_Switches &
-                    Adi_Linker_Config.Platform_Linker_Switches;
-               when others =>
-                  for Default_Switches ("Ada") use
-                    Adi_Linker_Config.SDL_Linker_Switches &
-                    Adi_Linker_Config.RLottie_Linker_Switches &
-                    Adi_Linker_Config.Platform_Linker_Switches;
-            end case;
+            for Default_Switches ("Ada") use
+              Adi_Linker_Config.SDL_Linker_Switches &
+              Adi_Linker_Config.RLottie_Linker_Switches &
+              Adi_Linker_Config.Platform_Linker_Switches;
          when others =>
-            case SVG_Backend is
-               when "plutosvg" =>
-                  for Default_Switches ("Ada") use
-                    Adi_Linker_Config.SDL_Linker_Switches &
-                    PlutoSVG_Linker_Switches &
-                    Adi_Linker_Config.Platform_Linker_Switches;
-               when others =>
-                  for Default_Switches ("Ada") use
-                    Adi_Linker_Config.SDL_Linker_Switches &
-                    Adi_Linker_Config.Platform_Linker_Switches;
-            end case;
+            for Default_Switches ("Ada") use
+              Adi_Linker_Config.SDL_Linker_Switches &
+              Adi_Linker_Config.Platform_Linker_Switches;
       end case;
    end Linker;
 end Examples_Build;

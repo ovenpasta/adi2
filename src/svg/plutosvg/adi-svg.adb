@@ -42,6 +42,17 @@ package body Adi.SVG is
            Convention    => C,
            External_Name => "plutosvg_document_load_from_file";
 
+   function Document_Load_From_Data
+     (Data         : System.Address;
+      Length       : Interfaces.C.int;
+      Width        : Interfaces.C.C_float;
+      Height       : Interfaces.C.C_float;
+      Destroy_Func : System.Address;
+      Closure      : System.Address) return Plutosvg_Document_Ptr
+      with Import,
+           Convention    => C,
+           External_Name => "plutosvg_document_load_from_data";
+
    function Document_Get_Width
      (Document : Plutosvg_Document_Ptr) return Interfaces.C.C_float
       with Import,
@@ -174,6 +185,46 @@ package body Adi.SVG is
          end if;
          return Doc;
    end Load_From_File;
+
+   function Load_From_String (Source : String) return Document_Access is
+      Doc    : Document_Access := new Document;
+      Handle : Plutosvg_Document_Ptr := null;
+   begin
+      if Source'Length = 0 then
+         return Doc;
+      end if;
+
+      Doc.Source := new String'(Source);
+      Handle :=
+        Document_Load_From_Data
+          (Data         => Doc.Source (Doc.Source'First)'Address,
+           Length       => Interfaces.C.int (Source'Length),
+           Width        => Interfaces.C.C_float (-1.0),
+           Height       => Interfaces.C.C_float (-1.0),
+           Destroy_Func => System.Null_Address,
+           Closure      => System.Null_Address);
+
+      if Handle = null then
+         Free_String (Doc.Source);
+         return Doc;
+      end if;
+
+      Doc.Handle := To_Address (Handle);
+      Doc.Width := Pixel_Type (Document_Get_Width (Handle));
+      Doc.Height := Pixel_Type (Document_Get_Height (Handle));
+      Doc.Valid := True;
+
+      return Doc;
+   exception
+      when others =>
+         if Handle /= null then
+            Document_Destroy (Handle);
+         end if;
+         if Doc.Source /= null then
+            Free_String (Doc.Source);
+         end if;
+         return Doc;
+   end Load_From_String;
 
    function Render_ARGB32
      (Doc    : Document;

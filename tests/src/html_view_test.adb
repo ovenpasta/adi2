@@ -22,6 +22,7 @@ procedure Html_View_Test is
    use type Adi.CSS_Styles.Text_Decoration_Value;
    use type Adi.Core.Pixel_Type;
    use type Adi.Widget.Part_Kind;
+   use type Adi.Image.Image_Access;
 
    Test_Count : Natural := 0;
    Pass_Count : Natural := 0;
@@ -109,6 +110,24 @@ procedure Html_View_Test is
 
       return 0;
    end Find_Exact_Text_Item_Index;
+
+   function Find_First_Image_Item_Index
+     (W : Adi.Widget.Html_View.Html_View_Access) return Natural
+   is
+      use type Adi.Widget.Item_Kind;
+   begin
+      for I in 1 .. Adi.Widget.Item_Count (W.all) loop
+         declare
+            It : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, I);
+         begin
+            if It.Kind = Adi.Widget.Image_Item then
+               return I;
+            end if;
+         end;
+      end loop;
+
+      return 0;
+   end Find_First_Image_Item_Index;
 
    function Is_RGB
      (C       : Adi.CSS_Styles.Color_Value;
@@ -456,6 +475,37 @@ procedure Html_View_Test is
 
       New_Line;
    end Test_SVG_Named_Colors;
+
+   procedure Test_Inline_SVG_Element is
+      W : constant Adi.Widget.Html_View.Html_View_Access :=
+        Adi.Widget.Html_View.Create;
+      Image_Idx : Natural := 0;
+   begin
+      Put_Line ("Test: inline <svg> element rendering");
+
+      Adi.Widget.Set_Geometry
+        (W.all, (X => 0.0, Y => 0.0, Width => 480.0, Height => 220.0));
+      Adi.Widget.Html_View.Set_HTML
+        (W.all,
+         "<p>icon <svg viewBox='0 0 24 24'>" &
+         "<path fill='tomato' d='M4 4 L20 4 L20 20 L4 20 Z'/>" &
+         "</svg> inline</p>");
+      Adi.Widget.Html_View.Build_Items (W.all);
+
+      Image_Idx := Find_First_Image_Item_Index (W);
+      Assert (Image_Idx > 0, "inline svg element produces an image item");
+      if Image_Idx > 0 then
+         declare
+            It : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, Positive (Image_Idx));
+         begin
+            Assert (It.Image_Source /= null, "inline svg image item has image source");
+            Assert (It.Geometry.Width > 0.0 and then It.Geometry.Height > 0.0,
+                    "inline svg image item resolves non-zero geometry");
+         end;
+      end if;
+
+      New_Line;
+   end Test_Inline_SVG_Element;
 
    procedure Test_Mixed_Inline_Baseline is
       W : constant Adi.Widget.Html_View.Html_View_Access :=
@@ -1052,6 +1102,7 @@ begin
    Test_Heading_Line_Height_Is_Local;
    Test_Cascade_Precedence;
    Test_SVG_Named_Colors;
+   Test_Inline_SVG_Element;
    Test_Mixed_Inline_Baseline;
    Test_Clipping_Aware_Link_Hit_Test;
    Test_Link_Does_Not_Consume_Leading_Space;

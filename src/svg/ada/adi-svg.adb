@@ -326,8 +326,7 @@ package body Adi.SVG is
       Height := Doc.Height;
    end Get_Size;
 
-   function Load_From_File (Path : String) return Document_Access is
-      Source    : constant String_Access := Load_File_Text (Path);
+   function Load_From_Source (Source : String_Access) return Document_Access is
       Doc       : Document_Access := new Document;
       W         : Float := 0.0;
       H         : Float := 0.0;
@@ -390,7 +389,24 @@ package body Adi.SVG is
          Doc.Handle := To_Address (Cache);
       end;
       return Doc;
+   end Load_From_Source;
+
+   function Load_From_File (Path : String) return Document_Access is
+      Source : constant String_Access := Load_File_Text (Path);
+   begin
+      return Load_From_Source (Source);
    end Load_From_File;
+
+   function Load_From_String (Source : String) return Document_Access is
+      Source_Copy : String_Access := null;
+   begin
+      if Source'Length = 0 then
+         return new Document;
+      end if;
+
+      Source_Copy := new String'(Source);
+      return Load_From_Source (Source_Copy);
+   end Load_From_String;
 
    function Render_ARGB32
      (Doc    : Document;

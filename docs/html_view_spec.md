@@ -21,12 +21,13 @@
 
 ## Supported Tags (v1)
 - Block: `div`, `p`, `h1`, `h2`, `ul`, `ol`, `li`, `hr`, `center`
-- Inline: `span`, `b`, `strong`, `em`, `code`, `a`, `img` (inline atomic box), `br`
+- Inline: `span`, `b`, `strong`, `em`, `code`, `a`, `img` (inline atomic box), `svg` (inline atomic box), `br`
 - Unknown tags: transparent containers (children preserved and rendered).
 
 ## Attributes (v1)
 - Common: `id`, `class`, `style`
 - `img`: `src`, `alt`, `width`, `height`
+- `svg`: standard nested inline SVG content (for example `<svg ...><path .../></svg>`)
 - `a`: `href`, optional `title`
 
 Attributes other than the above may be parsed and ignored.
@@ -109,7 +110,7 @@ Package: `Adi.Widget.Html_View`
 - Convert parse tree into layout boxes/runs:
   - Block box list for block tags.
   - Inline run sequence for text-level content.
-  - Atomic inline items for `img` and inline `code` segments.
+  - Atomic inline items for `img`, inline `svg`, and inline `code` segments.
 - `br` inserts a forced line break in the active inline context.
 - `hr` creates a dedicated block separator box.
 
@@ -119,13 +120,15 @@ Package: `Adi.Widget.Html_View`
 - Parent block content is laid out top-to-bottom.
 - Block width is container content width unless constrained by explicit width rules.
 - Vertical margins/padding/border participate via existing style resolution.
+- Block elements emit panel items with the resolved element style, so block
+  `background-color`/`border*` visuals are rendered.
 
 ### Inline Flow
 - Inline content is line-wrapped by available width (similar to text widgets).
 - Wrapping opportunities:
   - At collapsible whitespace boundaries.
   - Between runs with different styles.
-  - Around atomic inline objects (`img`, `code` chunks when split is allowed by text wrapping).
+  - Around atomic inline objects (`img`, `svg`, `code` chunks when split is allowed by text wrapping).
 - `br` always terminates current line and starts next line.
 
 ### Whitespace Normalization
@@ -193,13 +196,17 @@ Package: `Adi.Widget.Html_View`
 - Entities supported in v1: `&amp;`, `&lt;`, `&gt;`, `&quot;`, `&#39;`.
 - Unknown entities remain literal text.
 
-## Images (`img`) and `hr`
+## Images (`img`/`svg`) and `hr`
 - `img`:
   - Source resolution is callback-driven through `Set_On_Load_Asset` (no widget-side filesystem fallback).
   - Missing/failed `src` load renders `alt` text when present, otherwise empty inline placeholder.
   - `width`/`height` attributes override intrinsic size when provided.
   - If only one dimension is provided, preserve intrinsic aspect ratio.
   - Final painted size is clamped by available line width (inline) or container width policy.
+- Inline `svg`:
+  - Standard nested SVG markup in HTML content is supported.
+  - The inline SVG source is converted to an image via `Adi.Image.Load_SVG_From_String`.
+  - Width/height styling follows the same inline sizing path used by `img`.
 - `hr`:
   - Block element with default thin line style and vertical margins.
   - Implemented using standard box rendering primitives for themeability.

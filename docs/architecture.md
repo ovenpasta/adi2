@@ -54,13 +54,16 @@
 - Easing: Linear, Ease_In (cubic), Ease_Out, Ease_In_Out
 - Property filtering: only properties in `Transition_Spec.Properties` are interpolated
 
-**Adi.Image** (`adi-image.ads`): SDL texture wrapper with file loading.
+**Adi.Image** (`adi-image.ads`): SDL texture wrapper with file/memory SVG loading.
+- `Load_SVG_From_String` loads SVG markup directly into an image resource.
+- `Load_SVG_Path` builds an SVG image from a single path string using typed Ada values:
+  `Size_2D`, `Color_8` fill/stroke, and `Pixel_Type` stroke width.
 
 **Adi.SVG** (`src/svg/adi-svg.ads`): SVG loading/raster API used by `Adi.Image` and HTML image flows.
 - Compile-time backend selection via `-XADI_SVG_BACKEND=<plutosvg|ada>`
 - `plutosvg` backend (default) lives in `src/svg/plutosvg` and uses vendored C libraries under `plutosvg/`
 - `ada` backend lives in `src/svg/ada` (native parser/rasterizer)
-- Shared public API surface: `Load_From_File`, `Get_Size`, `Render_ARGB32`, `Destroy`, `Backend_Name`
+- Shared public API surface: `Load_From_File`, `Load_From_String`, `Get_Size`, `Render_ARGB32`, `Destroy`, `Backend_Name`
 
 **Adi.Animated_Image** (`adi-animated_image.ads`): Multi-frame animation via `IMG_LoadAnimation`, per-frame delay, playback controls.
 
@@ -145,6 +148,8 @@
 - Hyperlink interaction via `Set_On_Link_Click` with clipping-aware hit regions from final laid-out runs
 - Resource loading is callback-driven: `Set_On_Load_Asset` for `img`, `Set_On_Load_Resource` for linked stylesheets
 - Embedded `<style>` and callback-loaded `<link rel="stylesheet">` are parsed with `Adi.CSS_Parser`
+- Standard inline SVG blocks are supported (`<svg ...><path .../></svg>`) and rendered as inline image items
+- Block elements emit styled panel items, so element `background`/`border` styles are visible in Html_View output
 
 **Context_Menu** / **Text_Context_Menu**: Popup overlay menu; shared factory for Undo/Redo/Cut/Copy/Paste/Select All.
 

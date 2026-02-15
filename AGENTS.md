@@ -227,6 +227,8 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 
 **Adi.Image** (`adi-image.ads`): Image resource management
 - SDL texture wrapper with file loading
+- SVG helpers: `Load_SVG_From_String` and `Load_SVG_Path`
+- `Load_SVG_Path` builds SVG from a path string using typed Ada params (`Size_2D`, `Color_8` fill/stroke, `Pixel_Type` stroke width)
 - Size queries and lifecycle management
 
 **Adi.Animated_Image** (`adi-animated_image.ads`): Animated image resource management
@@ -400,7 +402,9 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 - Per-element cascade order is deterministic: `defaults < tag < class < id < inline`
 - Embedded `<style>` and callback-loaded `<link rel="stylesheet">` are parsed with `Adi.CSS_Parser`
 - Resource loading remains callback-driven (`Set_On_Load_Asset`, `Set_On_Load_Resource`)
+- Standard inline SVG markup is supported (`<svg ...><path .../></svg>`) and rendered as inline image items
 - Line-box layout computes ascent/descent locally to avoid heading metric leakage into following paragraphs
+- Block elements emit styled panel items so html element `background`/`border` visuals are rendered
 - Link hit regions are generated from final laid-out runs and clipped to the visible content viewport
 - Content scale API: `Set/Get_Content_Scale`; scales absolute/content units while keeping `%`/`vw`/`vh` fit semantics stable
 - `vw`/`vh` in Html_View resolve against the html content viewport

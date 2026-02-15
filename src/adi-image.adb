@@ -7,6 +7,9 @@ with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
 with Adi.SVG;
 with Ada.Characters.Handling;
+with Ada.Strings;
+with Ada.Strings.Fixed;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
 package body Adi.Image is
@@ -32,6 +35,104 @@ package body Adi.Image is
       return To_Lower (Path (Path'Last - 3 .. Path'Last)) = ".svg";
    end Is_SVG_Path;
 
+   function Build_SVG_Image
+      (Doc : Adi.SVG.Document_Access) return Image_Access
+   is
+      Img     : Image_Access;
+      SW, SH  : Pixel_Type := 0.0;
+   begin
+      if Doc = null or else not Adi.SVG.Is_Valid (Doc.all) then
+         return null;
+      end if;
+
+      Adi.SVG.Get_Size (Doc.all, SW, SH);
+      Img := new Image'(
+         Kind    => SVG_Image,
+         Texture => null,
+         Width   => SW,
+         Height  => SH,
+         SVG     => Doc,
+         Cache   => <>
+      );
+      return Img;
+   end Build_SVG_Image;
+
+   function Escape_XML_Attr (S : String) return String is
+      Result : Unbounded_String := Null_Unbounded_String;
+   begin
+      for C of S loop
+         case C is
+            when '&' =>
+               Append (Result, "&amp;");
+            when '<' =>
+               Append (Result, "&lt;");
+            when '>' =>
+               Append (Result, "&gt;");
+            when '"' =>
+               Append (Result, "&quot;");
+            when ''' =>
+               Append (Result, "&apos;");
+            when others =>
+               Append (Result, C);
+         end case;
+      end loop;
+
+      return To_String (Result);
+   end Escape_XML_Attr;
+
+   function Trim_Int (V : Integer) return String is
+   begin
+      return Ada.Strings.Fixed.Trim (Integer'Image (V), Ada.Strings.Both);
+   end Trim_Int;
+
+   function Opacity_String (Alpha_Byte : Natural) return String is
+      Scaled : constant Natural := (Alpha_Byte * 1000 + 127) / 255;
+      S      : constant String := Trim_Int (Integer (Scaled));
+   begin
+      if Alpha_Byte = 0 then
+         return "0";
+      elsif Alpha_Byte >= 255 then
+         return "1";
+      elsif Scaled >= 1000 then
+         return "1";
+      elsif Scaled < 10 then
+         return "0.00" & S;
+      elsif Scaled < 100 then
+         return "0.0" & S;
+      else
+         return "0." & S;
+      end if;
+   end Opacity_String;
+
+   function Decimal_String (V : Pixel_Type) return String is
+      use type Pixel_Type;
+      Scaled : Integer := Integer (Float'Rounding (Float (V * 1000.0)));
+      Int_Part : Integer;
+      Frac : Integer;
+      Frac_Text : String (1 .. 3);
+      Last : Natural := 3;
+   begin
+      if Scaled < 0 then
+         Scaled := 0;
+      end if;
+
+      Int_Part := Scaled / 1000;
+      Frac := Scaled mod 1000;
+      if Frac = 0 then
+         return Trim_Int (Int_Part);
+      end if;
+
+      Frac_Text (1) := Character'Val (Character'Pos ('0') + (Frac / 100));
+      Frac_Text (2) := Character'Val (Character'Pos ('0') + ((Frac / 10) mod 10));
+      Frac_Text (3) := Character'Val (Character'Pos ('0') + (Frac mod 10));
+
+      while Last > 1 and then Frac_Text (Last) = '0' loop
+         Last := Last - 1;
+      end loop;
+
+      return Trim_Int (Int_Part) & "." & Frac_Text (1 .. Last);
+   end Decimal_String;
+
    ---------------------------------------------------------------------------
    -- Load_From_File
    ---------------------------------------------------------------------------
@@ -48,7 +149,6 @@ package body Adi.Image is
       W, H    : aliased Float;
       Success : Adi.SDL.C_bool;
       Doc     : Adi.SVG.Document_Access;
-      SW, SH  : Pixel_Type := 0.0;
    begin
       if Is_SVG_Path (Path) then
          Doc := Adi.SVG.Load_From_File (Path);
@@ -57,16 +157,7 @@ package body Adi.Image is
             return null;
          end if;
 
-         Adi.SVG.Get_Size (Doc.all, SW, SH);
-         Img := new Image'(
-            Kind    => SVG_Image,
-            Texture => null,
-            Width   => SW,
-            Height  => SH,
-            SVG     => Doc,
-            Cache   => <>
-         );
-         return Img;
+         return Build_SVG_Image (Doc);
       end if;
 
       if Renderer = null then
@@ -106,6 +197,96 @@ package body Adi.Image is
 
       return Img;
    end Load_From_File;
+
+   function Load_SVG_From_String
+      (Renderer : SDL_Renderer_Ptr;
+       Source   : String) return Image_Access
+   is
+      pragma Unreferenced (Renderer);
+      Doc : Adi.SVG.Document_Access := null;
+   begin
+      Doc := Adi.SVG.Load_From_String (Source);
+      if Doc = null or else not Adi.SVG.Is_Valid (Doc.all) then
+         Adi.Log.Error ("Failed to load SVG image from source string");
+         return null;
+      end if;
+
+      return Build_SVG_Image (Doc);
+   end Load_SVG_From_String;
+
+   function Load_SVG_Path
+      (Renderer  : SDL_Renderer_Ptr;
+       Path_Data : String;
+       Size      : Size_2D;
+       Fill      : Color_8 := (R => 0, G => 0, B => 0, A => 255);
+       Stroke_Width : Pixel_Type := 0.0;
+       Stroke    : Color_8 := (R => 0, G => 0, B => 0, A => 255)) return Image_Access
+   is
+      pragma Unreferenced (Renderer);
+      Width_Px  : constant Positive :=
+        Positive (Integer'Max (1, Integer (Float'Ceiling (Float (Size.Width)))));
+      Height_Px : constant Positive :=
+        Positive (Integer'Max (1, Integer (Float'Ceiling (Float (Size.Height)))));
+      Width_Text  : constant String := Trim_Int (Width_Px);
+      Height_Text : constant String := Trim_Int (Height_Px);
+      Fill_A_Byte : constant Natural := Natural (Fill.A);
+      Stroke_A_Byte : constant Natural := Natural (Stroke.A);
+      Stroke_Width_Text : constant String := Decimal_String (Pixel_Type'Max (0.0, Stroke_Width));
+      Safe_Path : constant String := Escape_XML_Attr (Path_Data);
+      Fill_Text : Unbounded_String := Null_Unbounded_String;
+      Fill_Opacity_Text : Unbounded_String := Null_Unbounded_String;
+      Stroke_Text : Unbounded_String := Null_Unbounded_String;
+      Stroke_Opacity_Text : Unbounded_String := Null_Unbounded_String;
+      G_Attrs : Unbounded_String := Null_Unbounded_String;
+      Source  : Unbounded_String := Null_Unbounded_String;
+   begin
+      if Path_Data'Length = 0 then
+         return null;
+      end if;
+
+      Fill_Text :=
+        To_Unbounded_String
+          ("rgb("
+           & Trim_Int (Integer (Fill.R)) & ","
+           & Trim_Int (Integer (Fill.G)) & ","
+           & Trim_Int (Integer (Fill.B)) & ")");
+      Fill_Opacity_Text := To_Unbounded_String (Opacity_String (Fill_A_Byte));
+      Stroke_Text :=
+        To_Unbounded_String
+          ("rgb("
+           & Trim_Int (Integer (Stroke.R)) & ","
+           & Trim_Int (Integer (Stroke.G)) & ","
+           & Trim_Int (Integer (Stroke.B)) & ")");
+      Stroke_Opacity_Text := To_Unbounded_String (Opacity_String (Stroke_A_Byte));
+
+      G_Attrs :=
+        To_Unbounded_String
+          ("fill=""" & Escape_XML_Attr (To_String (Fill_Text)) & """"
+           & " stroke=""" & Escape_XML_Attr (To_String (Stroke_Text)) & """"
+           & " stroke-width=""" & Stroke_Width_Text & """");
+      if Fill_A_Byte < 255 then
+         Append
+           (G_Attrs,
+            " fill-opacity=""" & To_String (Fill_Opacity_Text) & """");
+      end if;
+      if Stroke_A_Byte < 255 then
+         Append
+           (G_Attrs,
+            " stroke-opacity=""" & To_String (Stroke_Opacity_Text) & """");
+      end if;
+
+      Source :=
+        To_Unbounded_String
+          ("<svg xmlns=""http://www.w3.org/2000/svg"" width=""" & Width_Text
+           & """ height=""" & Height_Text
+           & """ viewBox=""0 0 " & Width_Text & " " & Height_Text & """>"
+           & "<g " & To_String (G_Attrs) & "><path d=""" & Safe_Path & """/></g>"
+           & "</svg>");
+
+      return Load_SVG_From_String
+        (Renderer => Renderer,
+         Source   => To_String (Source));
+   end Load_SVG_Path;
 
    ---------------------------------------------------------------------------
    -- Create_From_Texture

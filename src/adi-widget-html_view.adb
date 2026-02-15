@@ -520,6 +520,9 @@ package body Adi.Widget.Html_View is
       Img_Base    : constant Style_Rules := (
         Display => Set (Inline_Block),
         others => <>);
+      Svg_Base    : constant Style_Rules := (
+        Display => Set (Inline_Block),
+        others => <>);
       Center_Base : constant Style_Rules := (
         Display => Set (Block),
         Text_Align => Set (Text_Center),
@@ -549,6 +552,8 @@ package body Adi.Widget.Html_View is
          return Hr_Base;
       elsif Tag = "img" then
          return Img_Base;
+      elsif Tag = "svg" then
+         return Svg_Base;
       elsif Tag = "center" then
          return Merge (Default_Content_Style, Center_Base);
       elsif Tag = "span" then
@@ -802,6 +807,59 @@ package body Adi.Widget.Html_View is
                Append_Text_Node (Self, Current_Parent, Source (Text_Start .. Stop_At));
             end if;
          end Flush_Text;
+
+         function Find_Inline_SVG_Close_End
+           (Start_After_Open_Tag : Positive) return Natural
+         is
+            Pos   : Integer := Start_After_Open_Tag;
+            Depth : Natural := 1;
+         begin
+            while Pos <= Source'Last loop
+               declare
+                  L : constant Natural := Fix.Index (Source, "<", From => Pos);
+               begin
+                  exit when L = 0;
+
+                  if L + 3 <= Source'Last and then Source (L + 1 .. L + 3) = "!--" then
+                     declare
+                        Comment_End : constant Natural := Fix.Index (Source, "-->", From => L + 4);
+                     begin
+                        exit when Comment_End = 0;
+                        Pos := Integer (Comment_End) + 3;
+                     end;
+                  else
+                     declare
+                        Tag_End : Natural := Find_Tag_End (Source, L + 1);
+                     begin
+                        if Tag_End = 0 then
+                           Tag_End := Fix.Index (Source, ">", From => L + 1);
+                        end if;
+                        exit when Tag_End = 0;
+
+                        declare
+                           Raw_Tag  : constant String := Source (L + 1 .. Tag_End - 1);
+                           Tag_Name : constant String := Extract_Tag_Name (Raw_Tag);
+                        begin
+                           if Tag_Name = "svg" then
+                              if Is_Closing_Tag (Raw_Tag) then
+                                 if Depth = 1 then
+                                    return Tag_End;
+                                 end if;
+                                 Depth := Depth - 1;
+                              elsif not Is_Self_Closing (Raw_Tag, Tag_Name) then
+                                 Depth := Depth + 1;
+                              end if;
+                           end if;
+                        end;
+
+                        Pos := Integer (Tag_End) + 1;
+                     end;
+                  end if;
+               end;
+            end loop;
+
+            return 0;
+         end Find_Inline_SVG_Close_End;
       begin
          while I <= Source'Last loop
             if Source (I) /= '<' then
@@ -888,6 +946,58 @@ package body Adi.Widget.Html_View is
                            elsif Name = "br" and then not Closing then
                               Append_Break_Node (Self, Current_Parent);
 
+                           elsif Name = "svg" and then not Closing then
+                              declare
+                                 Attrs : Element_Attributes :=
+                                   (Id_Attr    => To_Unbounded_String (Extract_Attribute (Raw_Tag, "id")),
+                                    Class_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "class")),
+                                    Style_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "style")),
+                                    Href_Attr  => To_Unbounded_String (Extract_Attribute (Raw_Tag, "href")),
+                                    Src_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "src")),
+                                    Alt_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "alt")),
+                                    Value_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "value")),
+                                    Svg_Source_Attr => Null_Unbounded_String);
+                                 Svg_End : Natural := 0;
+                                 begin
+                                 if Is_Self_Closing (Raw_Tag, Name) then
+                                    declare
+                                       Empty_Svg : constant String :=
+                                         "<svg xmlns=""http://www.w3.org/2000/svg""></svg>";
+                                       Unused_Node_Idx : Positive;
+                                    begin
+                                       Attrs.Svg_Source_Attr := To_Unbounded_String (Empty_Svg);
+                                       Unused_Node_Idx :=
+                                         Append_Element_Node
+                                         (Self,
+                                          Parent => Natural (Current_Parent),
+                                          Tag    => Name,
+                                          Attrs  => Attrs);
+                                       pragma Unreferenced (Unused_Node_Idx);
+                                    end;
+                                 else
+                                    Svg_End := Find_Inline_SVG_Close_End (End_Pos + 1);
+                                    if Svg_End > End_Pos then
+                                       declare
+                                          Unused_Node_Idx : Positive;
+                                       begin
+                                       Attrs.Svg_Source_Attr := To_Unbounded_String (Source (I .. Svg_End));
+                                       Unused_Node_Idx :=
+                                         Append_Element_Node
+                                         (Self,
+                                          Parent => Natural (Current_Parent),
+                                          Tag    => Name,
+                                          Attrs  => Attrs);
+                                       pragma Unreferenced (Unused_Node_Idx);
+                                       end;
+                                       I := Svg_End + 1;
+                                       Text_Start := I;
+                                       Consumed_Tag := True;
+                                    else
+                                       Append_Text_Node (Self, Current_Parent, Source (I .. End_Pos));
+                                    end if;
+                                 end if;
+                              end;
+
                            elsif Closing then
                               declare
                                  Match_Pos : Natural := 0;
@@ -923,7 +1033,8 @@ package body Adi.Widget.Html_View is
                                     Href_Attr  => To_Unbounded_String (Extract_Attribute (Raw_Tag, "href")),
                                     Src_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "src")),
                                     Alt_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "alt")),
-                                    Value_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "value")));
+                                    Value_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "value")),
+                                    Svg_Source_Attr => Null_Unbounded_String);
                                  New_Node_Idx : Positive;
                               begin
                                  New_Node_Idx :=
@@ -999,6 +1110,31 @@ package body Adi.Widget.Html_View is
         (New_Item => Cached_Image'(Src => To_Unbounded_String (Src), Img => Img));
       return Img;
    end Resolve_Image;
+
+   function Resolve_Inline_SVG
+     (Self   : in out Html_View;
+      Source : String) return Adi.Image.Image_Access
+   is
+      Cache_Key : constant String := "__adi_inline_svg__:" & Source;
+      Img       : Adi.Image.Image_Access := null;
+   begin
+      if Source'Length = 0 then
+         return null;
+      end if;
+
+      Img := Lookup_Image (Self, Cache_Key);
+      if Img /= null then
+         return Img;
+      end if;
+
+      Img := Adi.Image.Load_SVG_From_String
+        (Renderer => null,
+         Source   => Source);
+
+      Self.Image_Cache.Append
+        (New_Item => Cached_Image'(Src => To_Unbounded_String (Cache_Key), Img => Img));
+      return Img;
+   end Resolve_Inline_SVG;
 
    function Should_Apply_Content_Scale (L : Length_Value) return Boolean is
    begin
@@ -2152,6 +2288,28 @@ package body Adi.Widget.Html_View is
                         Pending_Space := True;
                      end;
 
+                  elsif Tag = "svg" then
+                     declare
+                        Src : constant String := To_String (N.Attrs.Svg_Source_Attr);
+                        Img : constant Adi.Image.Image_Access := Resolve_Inline_SVG (Self, Src);
+                        W   : Pixel_Type := 0.0;
+                        H   : Pixel_Type := 0.0;
+                     begin
+                        if Img /= null and then Adi.Image.Is_Valid (Img.all) then
+                           Adi.Image.Get_Size (Img.all, W, H);
+                           W := W * Pixel_Type'Max (0.01, Self.Content_Scale);
+                           H := H * Pixel_Type'Max (0.01, Self.Content_Scale);
+                        end if;
+
+                        Resolve_Image_Run_Size (Style, W, H);
+
+                        if W > 0.0 then
+                           Add_Image_Run (Img, W, H, Link_Href, Style);
+                        end if;
+
+                        Pending_Space := True;
+                     end;
+
                   elsif Tag = "hr" then
                      Add_Horizontal_Rule (Style);
 
@@ -2174,6 +2332,10 @@ package body Adi.Widget.Html_View is
                         Marker_Gap      : Pixel_Type := 0.0;
                         Marker_Gutter   : Pixel_Type := 0.0;
                         Ordered_Number  : Natural := 0;
+                        Block_Item_Index : Natural := 0;
+                        Block_Top_Y      : Pixel_Type := 0.0;
+                        Block_Left_X     : Pixel_Type := 0.0;
+                        Block_Width      : Pixel_Type := 0.0;
                        begin
                         if Block_Flow then
                            if Has_Line_Content or else Pending_Space then
@@ -2192,6 +2354,30 @@ package body Adi.Widget.Html_View is
 
                            Margin_Edges := Resolve_Box_Edges (Style.Margin, Style, Local_Container_W);
                            Padding_Edges := Resolve_Box_Edges (Style.Padding, Style, Local_Container_W);
+
+                           Block_Top_Y := Y + Margin_Edges.Top;
+                           Block_Left_X := Prev_Line_Left + Margin_Edges.Left;
+                           Block_Width :=
+                             Pixel_Type'Max
+                               (0.0,
+                                (Prev_Line_Right - Prev_Line_Left)
+                                - Margin_Edges.Left - Margin_Edges.Right);
+
+                           declare
+                              It : Item :=
+                                Make_Panel
+                                  (Any_Part,
+                                   (X      => Block_Left_X,
+                                    Y      => Block_Top_Y,
+                                    Width  => Block_Width,
+                                    Height => 0.0),
+                                   0);
+                           begin
+                              It.Has_Style_Override := True;
+                              It.Style_Override := Style;
+                              Add_Item (Self, It);
+                              Block_Item_Index := Natural (Self.Items.Last_Index);
+                           end;
 
                            Y := Y + Margin_Edges.Top + Padding_Edges.Top;
 
@@ -2283,6 +2469,18 @@ package body Adi.Widget.Html_View is
                              and then Natural (List_Stack.Length) > 0
                            then
                               List_Stack.Delete_Last;
+                           end if;
+
+                           if Block_Item_Index > 0 then
+                              declare
+                                 Block_Bottom_Y : constant Pixel_Type := Y + Padding_Edges.Bottom;
+                              begin
+                                 Self.Items.Reference (Positive (Block_Item_Index)).Geometry :=
+                                   (X      => Block_Left_X,
+                                    Y      => Block_Top_Y,
+                                    Width  => Block_Width,
+                                    Height => Pixel_Type'Max (0.0, Block_Bottom_Y - Block_Top_Y));
+                              end;
                            end if;
 
                            Y := Y + Padding_Edges.Bottom + Margin_Edges.Bottom;

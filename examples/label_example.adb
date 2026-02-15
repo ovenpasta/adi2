@@ -44,10 +44,21 @@ begin
 
       --  Load an icon
       Icon : Adi.Image.Image_Access;
+      Save_Path : constant String :=
+        "M5 3 H19 V21 H5 Z "
+        & "M8 3 V9 H16 V3 "
+        & "M9 14 H15 V19 H9 Z";
 
    begin
-      --  Try to load an icon
-      Icon := W.Load_Image ("examples/assets/happycat.png");
+      --  Build an icon from an inline SVG path.
+      Icon :=
+        Adi.Image.Load_SVG_Path
+          (Renderer     => W.Get_Renderer,
+           Path_Data    => Save_Path,
+           Size         => (24.0, 24.0),
+           Fill         => (R => 242, G => 248, B => 255, A => 255),
+           Stroke_Width => 1.5,
+           Stroke       => (R => 26, G => 54, B => 79, A => 255));
 
       --  If icon loaded, set it on labels 2, 3, and 4
       if Icon /= null then

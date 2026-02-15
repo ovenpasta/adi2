@@ -25,6 +25,22 @@ package Adi.Image is
       (Renderer : SDL_Renderer_Ptr;
        Path     : String) return Image_Access;
 
+   -- Load an SVG image from an SVG source string.
+   -- Returns null on failure
+   function Load_SVG_From_String
+      (Renderer : SDL_Renderer_Ptr;
+       Source   : String) return Image_Access;
+
+   -- Build and load an SVG from a single path command string.
+   -- Returns null on failure
+   function Load_SVG_Path
+      (Renderer  : SDL_Renderer_Ptr;
+       Path_Data : String;
+       Size      : Size_2D;
+       Fill      : Color_8 := (R => 0, G => 0, B => 0, A => 255);
+       Stroke_Width : Pixel_Type := 0.0;
+       Stroke    : Color_8 := (R => 0, G => 0, B => 0, A => 255)) return Image_Access;
+
    -- Create an image from an existing SDL texture
    -- The Image takes ownership of the texture
    function Create_From_Texture

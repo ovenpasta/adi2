@@ -187,6 +187,16 @@
   <p class="panel cascade-class">
     This sentence uses tag + class only. Class should win.
   </p>
+  <p class="panel" style="background-color: rgb(236, 248, 255); border-color: rgb(154, 191, 216); color: rgb(20, 74, 112); line-height: 1.8;">
+    Inline CSS sample: this paragraph sets its own background, border color,
+    text color, and line-height through the <code>style</code> attribute.
+  </p>
+  <p class="panel">
+    Inline chip:
+    <span style="padding: 2px 8px; background-color: rgb(44, 104, 164); color: rgb(255, 255, 255); border-radius: 999px;">
+      inline-badge
+    </span>
+  </p>
 
   <h2>3) Alignment and Center Support</h2>
   <p class="panel align-center">
@@ -296,6 +306,14 @@ line breaks should be preserved.</p>
   </p>
   <p class="panel">
     Linked image fragment: <a href="app://open/cat"><img src="app://cat" alt="linked cat"></a>
+  </p>
+  <p class="panel align-center">
+    Inline SVG block (standard HTML style):<br>
+    <svg viewBox="0 0 24 24" style="width: 80px; height: 80px;">
+      <path d="M4 4 H20 V20 H4 Z" fill="rgb(234, 245, 255)" stroke="rgb(35, 71, 104)" stroke-width="1.5"></path>
+      <path d="M8 8 H16 V16 H8 Z" fill="rgb(58, 129, 189)"></path>
+      <path d="M12 10 V14" stroke="rgb(255, 255, 255)" stroke-width="1.5"></path>
+    </svg>
   </p>
 
   <h2>8) Unknown Tags Are Transparent</h2>

@@ -218,6 +218,46 @@ procedure Svg_Test is
       New_Line;
    end Test_Image_Integration;
 
+   procedure Test_Load_From_String_And_Path is
+      Doc : Adi.SVG.Document_Access := null;
+      Px  : Adi.SVG.Pixel_Buffer_Access := null;
+      Img : Adi.Image.Image_Access := null;
+      W   : Adi.Core.Pixel_Type := 0.0;
+      H   : Adi.Core.Pixel_Type := 0.0;
+   begin
+      Put_Line ("Test: SVG load from string and path helpers");
+
+      Doc := Adi.SVG.Load_From_String
+        ("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>" &
+         "<rect width='20' height='10' fill='tomato'/></svg>");
+      Assert (Doc /= null and then Adi.SVG.Is_Valid (Doc.all), "Load_From_String returns valid SVG document");
+      if Doc /= null and then Adi.SVG.Is_Valid (Doc.all) then
+         Adi.SVG.Get_Size (Doc.all, W, H);
+         Assert (Nearly_Equal (W, 20.0, 0.2), "Load_From_String preserves viewBox width");
+         Assert (Nearly_Equal (H, 10.0, 0.2), "Load_From_String preserves viewBox height");
+
+         Px := Adi.SVG.Render_ARGB32 (Doc.all, Width => 20, Height => 10);
+         Assert (Px /= null, "Load_From_String document renders");
+      end if;
+      Release (Doc, Px);
+
+      Img := Adi.Image.Load_SVG_Path
+        (Renderer  => null,
+         Path_Data => "M4 4 L20 4 L20 20 L4 20 Z",
+         Size      => (Width => 24.0, Height => 24.0),
+         Fill      => (R => 255, G => 99, B => 71, A => 255));
+      Assert (Img /= null, "Load_SVG_Path returns image");
+      if Img /= null then
+         Assert (Adi.Image.Is_Valid (Img.all), "Load_SVG_Path image is valid");
+         Adi.Image.Get_Size (Img.all, W, H);
+         Assert (Nearly_Equal (W, 24.0, 0.2), "Load_SVG_Path image width matches requested size");
+         Assert (Nearly_Equal (H, 24.0, 0.2), "Load_SVG_Path image height matches requested size");
+      end if;
+      Release_Image (Img);
+
+      New_Line;
+   end Test_Load_From_String_And_Path;
+
    procedure Test_Color_Forms is
       Doc : Adi.SVG.Document_Access := null;
       Px  : Adi.SVG.Pixel_Buffer_Access := null;
@@ -825,6 +865,7 @@ begin
 
    Test_Document_Size_And_Validity;
    Test_Image_Integration;
+   Test_Load_From_String_And_Path;
    Test_Color_Forms;
    Test_Path_Commands_And_AA;
    Test_Gradient_Fills;

@@ -11,6 +11,7 @@ package Adi.SVG is
    type Pixel_Buffer_Access is access all Pixel_Buffer;
 
    function Load_From_File (Path : String) return Document_Access;
+   function Load_From_String (Source : String) return Document_Access;
    function Is_Valid (Doc : Document) return Boolean;
 
    procedure Get_Size

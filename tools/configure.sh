@@ -82,6 +82,7 @@ fi
 BUILD_DIR="$(mkdir -p "${BUILD_DIR}" && cd "${BUILD_DIR}" && pwd)"
 mkdir -p "${BUILD_DIR}/config" "${BUILD_DIR}/projects"
 mkdir -p "${BUILD_DIR}/adi/obj" "${BUILD_DIR}/adi/lib"
+mkdir -p "${BUILD_DIR}/plutosvg/obj" "${BUILD_DIR}/plutosvg/lib"
 mkdir -p "${BUILD_DIR}/tests/obj" "${BUILD_DIR}/tests/bin"
 mkdir -p "${BUILD_DIR}/examples/obj" "${BUILD_DIR}/examples/bin"
 
@@ -179,15 +180,23 @@ abstract project Adi_Linker_Config is
 end Adi_Linker_Config;
 EOF
 
+cat > "${BUILD_DIR}/projects/plutosvg_build.gpr" <<EOF
+project PlutoSVG_Build extends "${SOURCE_DIR}/plutosvg/plutosvg.gpr" is
+   for Object_Dir use "${BUILD_DIR}/plutosvg/obj";
+   for Library_Dir use "${BUILD_DIR}/plutosvg/lib";
+   for Create_Missing_Dirs use "True";
+end PlutoSVG_Build;
+EOF
+
 cat > "${BUILD_DIR}/projects/adi_build.gpr" <<EOF
-with "${SOURCE_DIR}/plutosvg/plutosvg.gpr";
+with "plutosvg_build.gpr";
 
 project Adi_Build extends "${SOURCE_DIR}/adi.gpr" is
    type Platform_Kind is ("linux", "windows");
    Platform_Name : Platform_Kind := external ("ADI_PLATFORM", "linux");
    type SVG_Backend_Kind is ("ada", "plutosvg");
    SVG_Backend : SVG_Backend_Kind := external ("ADI_SVG_BACKEND", "plutosvg");
-   PlutoSVG_Linker_Switches := ("-L${SOURCE_DIR}/plutosvg/lib", "-lplutosvg");
+   PlutoSVG_Linker_Switches := ("-L${BUILD_DIR}/plutosvg/lib", "-lplutosvg");
 
    case Platform_Name is
       when "windows" =>
@@ -239,7 +248,7 @@ EOF
 
 cat > "${BUILD_DIR}/projects/tests_build.gpr" <<EOF
 with "adi_build.gpr";
-with "${SOURCE_DIR}/plutosvg/plutosvg.gpr";
+with "plutosvg_build.gpr";
 with "../config/adi_linker_config.gpr";
 
 project Tests_Build is
@@ -257,7 +266,7 @@ project Tests_Build is
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    type SVG_Backend_Kind is ("ada", "plutosvg");
    SVG_Backend : SVG_Backend_Kind := external ("ADI_SVG_BACKEND", "plutosvg");
-   PlutoSVG_Linker_Switches := ("-L${SOURCE_DIR}/plutosvg/lib", "-lplutosvg");
+   PlutoSVG_Linker_Switches := ("-L${BUILD_DIR}/plutosvg/lib", "-lplutosvg");
 
    for Source_Dirs use ("${SOURCE_DIR}/tests/src");
    for Object_Dir use "${BUILD_DIR}/tests/obj/" & Kind;
@@ -305,7 +314,7 @@ EOF
 
 cat > "${BUILD_DIR}/projects/examples_build.gpr" <<EOF
 with "adi_build.gpr";
-with "${SOURCE_DIR}/plutosvg/plutosvg.gpr";
+with "plutosvg_build.gpr";
 with "../config/adi_linker_config.gpr";
 
 project Examples_Build is
@@ -331,7 +340,7 @@ project Examples_Build is
    Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");
    type SVG_Backend_Kind is ("ada", "plutosvg");
    SVG_Backend : SVG_Backend_Kind := external ("ADI_SVG_BACKEND", "plutosvg");
-   PlutoSVG_Linker_Switches := ("-L${SOURCE_DIR}/plutosvg/lib", "-lplutosvg");
+   PlutoSVG_Linker_Switches := ("-L${BUILD_DIR}/plutosvg/lib", "-lplutosvg");
 
    for Source_Dirs use ("${SOURCE_DIR}/examples", "${SOURCE_DIR}/examples/generated");
    for Object_Dir use "${BUILD_DIR}/examples/obj/" & Kind;

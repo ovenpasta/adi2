@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100">
+  <line x1="20" y1="20" x2="20" y2="60"
+        stroke="#008800" stroke-width="20" stroke-linecap="butt"/>
+
+  <line x1="60" y1="20" x2="60" y2="60"
+        stroke="#008800" stroke-width="20" stroke-linecap="round"/>
+
+  <line x1="100" y1="20" x2="100" y2="60"
+        stroke="#008800" stroke-width="20" stroke-linecap="square"/>
+
+  <path d="M20 90 L40 20 L65 -40"
+        fill="none"
+        stroke="#aa0000"
+        stroke-width="14"
+        stroke-linejoin="miter"
+        stroke-miterlimit="10"/>
+
+  <path d="M70 90 L90 20 L115 -40"
+        fill="none"
+        stroke="#aa0000"
+        stroke-width="14"
+        stroke-linejoin="miter"
+        stroke-miterlimit="1"/>
+</svg>

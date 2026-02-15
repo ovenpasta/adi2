@@ -1,0 +1,41 @@
+project PlutoSVG is
+
+   type Build_Profile_Kind is ("release", "validation", "development");
+   Build_Profile : Build_Profile_Kind := external ("ADI_BUILD_PROFILE", "development");
+   User_C_Compiler_Switches := External_As_List ("CFLAGS", " ");
+
+   for Languages use ("C");
+   for Source_Dirs use ("source", "plutovg/source", "plutovg/include");
+   for Object_Dir use "obj/" & Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Library_Dir use "lib";
+   for Library_Name use "plutosvg";
+
+   type Library_Type_Type is ("relocatable", "static", "static-pic");
+   Library_Type : Library_Type_Type :=
+     external ("ADI_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
+   for Library_Kind use Library_Type;
+
+   Profile_C_Compiler_Switches := ();
+   case Build_Profile is
+      when "release" =>
+         Profile_C_Compiler_Switches := ("-O2");
+      when "validation" =>
+         Profile_C_Compiler_Switches := ("-O2", "-g");
+      when "development" =>
+         Profile_C_Compiler_Switches := ("-Og", "-g");
+   end case;
+
+   C_Switches :=
+     ("-std=c99",
+      "-DPLUTOVG_BUILD",
+      "-DPLUTOVG_BUILD_STATIC",
+      "-DPLUTOSVG_BUILD",
+      "-DPLUTOSVG_BUILD_STATIC");
+
+   package Compiler is
+      for Default_Switches ("C") use
+        Profile_C_Compiler_Switches & User_C_Compiler_Switches & C_Switches;
+   end Compiler;
+
+end PlutoSVG;

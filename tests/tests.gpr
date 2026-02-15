@@ -9,7 +9,9 @@ project Tests is
       "css_source_test",
       "text_buffer_test",
       "text_layout_test",
-      "html_view_test");
+      "html_view_test",
+      "svg_test",
+      "svg_perf_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("src");

@@ -1,7 +1,11 @@
+with "plutosvg/plutosvg.gpr";
+
 project Adi is
 
    type Build_Profile_Kind is ("release", "validation", "development");
    Build_Profile : Build_Profile_Kind := external ("ADI_BUILD_PROFILE", "development");
+   type SVG_Backend_Kind is ("ada", "plutosvg");
+   SVG_Backend : SVG_Backend_Kind := external ("ADI_SVG_BACKEND", "plutosvg");
    Crate_Version := external ("ADI_LIBRARY_VERSION", "0.1.0-dev");
    User_Ada_Compiler_Switches := External_As_List ("ADAFLAGS", " ");
    Platform_Name := external ("ADI_PLATFORM", "linux");
@@ -11,9 +15,35 @@ project Adi is
 
    case Platform_Name is
       when "windows" =>
-         for Source_Dirs use ("src/", "config/windows");
+         case SVG_Backend is
+            when "ada" =>
+               for Source_Dirs use
+                 ("src/",
+                  "src/svg",
+                  "src/svg/ada",
+                  "config/windows");
+            when "plutosvg" =>
+               for Source_Dirs use
+                 ("src/",
+                  "src/svg",
+                  "src/svg/plutosvg",
+                  "config/windows");
+         end case;
       when others =>
-         for Source_Dirs use ("src/", "config/posix");
+         case SVG_Backend is
+            when "ada" =>
+               for Source_Dirs use
+                 ("src/",
+                  "src/svg",
+                  "src/svg/ada",
+                  "config/posix");
+            when "plutosvg" =>
+               for Source_Dirs use
+                 ("src/",
+                  "src/svg",
+                  "src/svg/plutosvg",
+                  "config/posix");
+         end case;
    end case;
    for Object_Dir use "obj/" & Build_Profile;
    for Create_Missing_Dirs use "True";

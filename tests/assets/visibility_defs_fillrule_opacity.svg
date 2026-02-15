@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80">
+  <defs>
+    <rect id="inDefs" x="5" y="5" width="20" height="20" fill="#ff00ff"/>
+  </defs>
+
+  <rect x="0" y="0" width="30" height="30" fill="#00aa00" display="none"/>
+  <circle cx="50" cy="15" r="10" fill="#00aa00" visibility="hidden"/>
+
+  <path d="M70 5 H115 V35 H70 Z M80 12 H105 V28 H80 Z"
+        fill="#0000ff"
+        fill-rule="evenodd"/>
+
+  <rect x="5" y="45" width="20" height="20" fill="#ff0000" fill-opacity="0.5"/>
+  <rect x="30" y="45" width="20" height="20" fill="#ff0000" opacity="0.25"/>
+
+  <line x1="70" y1="55" x2="110" y2="55"
+        stroke="#00ffff"
+        stroke-width="1"
+        stroke-opacity="0.5"/>
+</svg>

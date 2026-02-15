@@ -2666,11 +2666,13 @@ package body Adi.Widget is
    is
       use Interfaces.C;
       Texture          : SDL_Texture_Ptr;
-      Src_W, Src_H     : Pixel_Type;
+      Img_W, Img_H     : Pixel_Type;
+      Req_W, Req_H     : Pixel_Type;
       Dst_X, Dst_Y     : Pixel_Type;
       Dst_W, Dst_H     : Pixel_Type;
       Scale_X, Scale_Y : Float;
       Dst_Rect         : aliased SDL_FRect;
+      Tex_W_F, Tex_H_F : aliased Float := 0.0;
       U0, V0, U1, V1  : Float;
       Radius_Px        : Corner_Pixels;
       Max_Rad          : Float;
@@ -2690,13 +2692,8 @@ package body Adi.Widget is
          return;
       end if;
 
-      Texture := Get_Texture (Source.all);
-      if Texture = null then
-         return;
-      end if;
-
-      Get_Size (Source.all, Src_W, Src_H);
-      if Src_W = 0.0 or Src_H = 0.0 then
+      Get_Size (Source.all, Img_W, Img_H);
+      if Img_W = 0.0 or Img_H = 0.0 then
          return;
       end if;
 
@@ -2725,7 +2722,7 @@ package body Adi.Widget is
             if Geom.Width > 0.0 and then Geom.Height > 0.0 then
                declare
                   Img_Asp  : constant Float :=
-                     Float (Src_W) / Float (Src_H);
+                     Float (Img_W) / Float (Img_H);
                   Geom_Asp : constant Float :=
                      Float (Geom.Width) / Float (Geom.Height);
                begin
@@ -2750,38 +2747,38 @@ package body Adi.Widget is
             end if;
 
          when Fit_Contain =>
-            Scale_X := Float (Geom.Width) / Float (Src_W);
-            Scale_Y := Float (Geom.Height) / Float (Src_H);
+            Scale_X := Float (Geom.Width) / Float (Img_W);
+            Scale_Y := Float (Geom.Height) / Float (Img_H);
             declare
                S : constant Float := Float'Min (Scale_X, Scale_Y);
             begin
-               Dst_W := Pixel_Type (Float (Src_W) * S);
-               Dst_H := Pixel_Type (Float (Src_H) * S);
+               Dst_W := Pixel_Type (Float (Img_W) * S);
+               Dst_H := Pixel_Type (Float (Img_H) * S);
             end;
             Dst_X := Geom.X + (Geom.Width - Dst_W) / 2.0;
             Dst_Y := Geom.Y + (Geom.Height - Dst_H) / 2.0;
 
          when Fit_None =>
-            Dst_W := Pixel_Type (Src_W);
-            Dst_H := Pixel_Type (Src_H);
+            Dst_W := Pixel_Type (Img_W);
+            Dst_H := Pixel_Type (Img_H);
             Dst_X := Geom.X;
             Dst_Y := Geom.Y;
 
          when Fit_Scale_Down =>
-            if Pixel_Type (Src_W) > Geom.Width
-               or Pixel_Type (Src_H) > Geom.Height
+            if Pixel_Type (Img_W) > Geom.Width
+               or Pixel_Type (Img_H) > Geom.Height
             then
-               Scale_X := Float (Geom.Width) / Float (Src_W);
-               Scale_Y := Float (Geom.Height) / Float (Src_H);
+               Scale_X := Float (Geom.Width) / Float (Img_W);
+               Scale_Y := Float (Geom.Height) / Float (Img_H);
                declare
                   S : constant Float := Float'Min (Scale_X, Scale_Y);
                begin
-                  Dst_W := Pixel_Type (Float (Src_W) * S);
-                  Dst_H := Pixel_Type (Float (Src_H) * S);
+                  Dst_W := Pixel_Type (Float (Img_W) * S);
+                  Dst_H := Pixel_Type (Float (Img_H) * S);
                end;
             else
-               Dst_W := Pixel_Type (Src_W);
-               Dst_H := Pixel_Type (Src_H);
+               Dst_W := Pixel_Type (Img_W);
+               Dst_H := Pixel_Type (Img_H);
             end if;
             Dst_X := Geom.X + (Geom.Width - Dst_W) / 2.0;
             Dst_Y := Geom.Y + (Geom.Height - Dst_H) / 2.0;
@@ -2809,6 +2806,52 @@ package body Adi.Widget is
                Dst_Y := Geom.Y +
                   Length_To_Px (Style.Object_Position.Y_Offset, Geom.Height);
          end case;
+      end if;
+
+      --  Snap image target geometry to integral pixels to avoid sub-pixel
+      --  filtering blur for fine SVG details.
+      Dst_X := Pixel_Type (Float'Floor (Float (Dst_X)));
+      Dst_Y := Pixel_Type (Float'Floor (Float (Dst_Y)));
+      Dst_W := Pixel_Type (Float'Ceiling (Float (Dst_W)));
+      Dst_H := Pixel_Type (Float'Ceiling (Float (Dst_H)));
+      if Dst_W < 1.0 then
+         Dst_W := 1.0;
+      end if;
+      if Dst_H < 1.0 then
+         Dst_H := 1.0;
+      end if;
+
+      Req_W := Dst_W;
+      Req_H := Dst_H;
+      if Style.Object_Fit = Fit_Cover and then Img_W > 0.0 and then Img_H > 0.0 then
+         declare
+            Img_Asp : constant Float := Float (Img_W) / Float (Img_H);
+            Dst_Asp : constant Float := Float (Dst_W) / Float (Dst_H);
+         begin
+            if Img_Asp > Dst_Asp then
+               Req_H := Dst_H;
+               Req_W := Pixel_Type (Float (Req_H) * Img_Asp);
+            else
+               Req_W := Dst_W;
+               Req_H := Pixel_Type (Float (Req_W) / Img_Asp);
+            end if;
+         end;
+      end if;
+
+      Texture := Get_Texture_For_Size (Source.all, Renderer, Req_W, Req_H);
+      if Texture = null then
+         Texture := Get_Texture (Source.all);
+      end if;
+      if Texture = null then
+         return;
+      end if;
+
+      Tex_W_F := Float (Img_W);
+      Tex_H_F := Float (Img_H);
+      Success := SDL_GetTextureSize (Texture, Tex_W_F'Access, Tex_H_F'Access);
+      if not Boolean (Success) or else Tex_W_F <= 0.0 or else Tex_H_F <= 0.0 then
+         Tex_W_F := Float (Img_W);
+         Tex_H_F := Float (Img_H);
       end if;
 
       Dst_Rect.x := Float (Dst_X);
@@ -2900,10 +2943,10 @@ package body Adi.Widget is
             --  Cropped source (Cover mode without rounding)
             declare
                Src_Rect : aliased SDL_FRect :=
-                  (x => U0 * Float (Src_W),
-                   y => V0 * Float (Src_H),
-                   w => (U1 - U0) * Float (Src_W),
-                   h => (V1 - V0) * Float (Src_H));
+                  (x => U0 * Tex_W_F,
+                   y => V0 * Tex_H_F,
+                   w => (U1 - U0) * Tex_W_F,
+                   h => (V1 - V0) * Tex_H_F);
             begin
                Success := SDL_RenderTexture
                   (Renderer, Texture, Src_Rect'Access, Dst_Rect'Access);

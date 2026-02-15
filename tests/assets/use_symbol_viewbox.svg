@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60">
+  <symbol id="tile" viewBox="0 0 10 10">
+    <rect x="0" y="0" width="10" height="10" fill="#00aa00"/>
+  </symbol>
+
+  <use href="#tile" x="10" y="10" width="20" height="20"/>
+  <use href="#tile" x="50" y="10" width="40" height="20"/>
+</svg>

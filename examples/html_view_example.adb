@@ -144,6 +144,12 @@ begin
       begin
          if URI = "app://happycat" then
             return W.Load_Image (Resolve_Asset_Path ("happycat.png"));
+         elsif URI = "app://cat" then
+            return W.Load_Image (Resolve_Asset_Path ("cat.svg"));
+         elsif URI = "app://camera" then
+            return W.Load_Image (Resolve_Asset_Path ("camera.svg"));
+         elsif URI = "app://tiger" then
+            return W.Load_Image (Resolve_Asset_Path ("tiger.svg"));
          end if;
 
          return null;

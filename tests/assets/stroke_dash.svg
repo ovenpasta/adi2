@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 50">
+  <path d="M10 15 L110 15"
+        fill="none"
+        stroke="#111111"
+        stroke-width="10"
+        stroke-linecap="butt"
+        stroke-dasharray="30 20"/>
+
+  <path d="M10 35 L110 35"
+        fill="none"
+        stroke="#111111"
+        stroke-width="10"
+        stroke-linecap="butt"
+        stroke-dasharray="30 20"
+        stroke-dashoffset="15"/>
+</svg>

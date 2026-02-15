@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  tools/configure.sh --build-dir <dir> [--source-dir <dir>] [--pkg-config <bin>] [--cgpr <file>] [--target <linux|windows>] [--build-profile <development|validation|release>]
+  tools/configure.sh --build-dir <dir> [--source-dir <dir>] [--pkg-config <bin>] [--cgpr <file>] [--target <linux|windows>] [--build-profile <development|validation|release>] [--svg-backend <ada|plutosvg>]
 
 Generates build files in <build-dir> (no writes to source dir):
   <build-dir>/config/adi_linker_config.gpr
@@ -21,6 +21,7 @@ PKG_CONFIG_BIN="${PKG_CONFIG:-pkg-config}"
 CGPR_FILE=""
 TARGET_PLATFORM="linux"
 BUILD_PROFILE_DEFAULT="development"
+SVG_BACKEND_DEFAULT="plutosvg"
 
 while (($#)); do
   case "$1" in
@@ -47,6 +48,10 @@ while (($#)); do
     --build-profile)
       shift
       BUILD_PROFILE_DEFAULT="${1:-}"
+      ;;
+    --svg-backend)
+      shift
+      SVG_BACKEND_DEFAULT="${1:-}"
       ;;
     -h|--help)
       usage
@@ -97,6 +102,12 @@ if [[ "${BUILD_PROFILE_DEFAULT}" != "development" \
    && "${BUILD_PROFILE_DEFAULT}" != "validation" \
    && "${BUILD_PROFILE_DEFAULT}" != "release" ]]; then
   echo "--build-profile must be one of development, validation, release" >&2
+  exit 1
+fi
+
+if [[ "${SVG_BACKEND_DEFAULT}" != "ada" \
+   && "${SVG_BACKEND_DEFAULT}" != "plutosvg" ]]; then
+  echo "--svg-backend must be either ada or plutosvg" >&2
   exit 1
 fi
 
@@ -164,7 +175,7 @@ cat > "${BUILD_DIR}/config/adi_linker_config.gpr" <<EOF
 abstract project Adi_Linker_Config is
    SDL_Linker_Switches := $(to_gpr_list "${SDL_LIBS}");
    RLottie_Linker_Switches := $(to_gpr_list "${RLOTTIE_LIBS}");
-   Platform_Linker_Switches := ();
+   Platform_Linker_Switches := ("-lm");
 end Adi_Linker_Config;
 EOF
 
@@ -188,7 +199,10 @@ project Tests_Build is
       "css_parser_test",
       "css_source_test",
       "text_buffer_test",
-      "text_layout_test");
+      "text_layout_test",
+      "html_view_test",
+      "svg_test",
+      "svg_perf_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("${SOURCE_DIR}/tests/src");
@@ -233,7 +247,7 @@ with "../config/adi_linker_config.gpr";
 
 project Examples_Build is
    type Example_Kind is ("label_example", "widget_demo", "button_example", "transition_example", "text_input_example", "text_editor_example", "demo_flex", "stack_example", "list_box_example", "combo_box_example", "overflow_example", "grid_example", "dialog_example", "font_example", "runtime_css_example", "animated_image_example", "rlottie_example");
-   Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");
+   Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example", "html_view_example");
 
    for Source_Dirs use ("${SOURCE_DIR}/examples", "${SOURCE_DIR}/examples/generated");
    for Object_Dir use "${BUILD_DIR}/examples/obj/" & Kind;
@@ -288,6 +302,7 @@ BUILD_DIR="${BUILD_DIR}"
 CGPR_FILE="${CGPR_FILE}"
 TARGET_PLATFORM="${TARGET_PLATFORM}"
 BUILD_PROFILE="${ADI_BUILD_PROFILE:-${BUILD_PROFILE_DEFAULT}}"
+SVG_BACKEND="${ADI_SVG_BACKEND:-${SVG_BACKEND_DEFAULT}}"
 
 GPR_ARGS=()
 if [[ -n "\${CGPR_FILE}" ]]; then
@@ -298,7 +313,7 @@ echo "[build_all] generate CSS Ada packages"
 bash "\${SOURCE_DIR}/tools/generate_example_styles.sh"
 
 echo "[build_all] build library"
-gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}"
+gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}" -XADI_SVG_BACKEND="\${SVG_BACKEND}"
 
 TEST_KINDS=(
   styles
@@ -308,11 +323,14 @@ TEST_KINDS=(
   css_source_test
   text_buffer_test
   text_layout_test
+  html_view_test
+  svg_test
+  svg_perf_test
 )
 
 for kind in "\${TEST_KINDS[@]}"; do
   echo "[build_all] build test: \${kind}"
-  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}" -XTEST_KIND="\${kind}"
+  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}" -XADI_SVG_BACKEND="\${SVG_BACKEND}" -XTEST_KIND="\${kind}"
 done
 
 EXAMPLE_KINDS=(
@@ -333,11 +351,12 @@ EXAMPLE_KINDS=(
   runtime_css_example
   animated_image_example
   rlottie_example
+  html_view_example
 )
 
 for kind in "\${EXAMPLE_KINDS[@]}"; do
   echo "[build_all] build example: \${kind}"
-  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/examples_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}" -XEXAMPLE_KIND="\${kind}"
+  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/examples_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}" -XADI_SVG_BACKEND="\${SVG_BACKEND}" -XEXAMPLE_KIND="\${kind}"
 done
 
 echo "[build_all] complete"
@@ -348,9 +367,9 @@ chmod +x "${BUILD_DIR}/build_all.sh"
 cat > "${BUILD_DIR}/BUILDING.md" <<EOF
 # Build commands
 
-gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=${BUILD_PROFILE_DEFAULT}
-gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=${BUILD_PROFILE_DEFAULT} -XTEST_KIND=styles
-gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/examples_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=${BUILD_PROFILE_DEFAULT} -XEXAMPLE_KIND=font_example
+gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=${BUILD_PROFILE_DEFAULT} -XADI_SVG_BACKEND=${SVG_BACKEND_DEFAULT}
+gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=${BUILD_PROFILE_DEFAULT} -XADI_SVG_BACKEND=${SVG_BACKEND_DEFAULT} -XTEST_KIND=styles
+gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/examples_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=${BUILD_PROFILE_DEFAULT} -XADI_SVG_BACKEND=${SVG_BACKEND_DEFAULT} -XEXAMPLE_KIND=font_example
 
 One-command full build:
 "${BUILD_DIR}/build_all.sh"
@@ -366,5 +385,6 @@ else
 fi
 echo "[configure] target: ${TARGET_PLATFORM}"
 echo "[configure] build profile: ${BUILD_PROFILE_DEFAULT}"
+echo "[configure] svg backend default: ${SVG_BACKEND_DEFAULT}"
 echo "[configure] generated projects in ${BUILD_DIR}/projects"
 echo "[configure] generated build script: ${BUILD_DIR}/build_all.sh"

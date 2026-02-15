@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40">
+  <defs>
+    <linearGradient id="strokeGrad"
+                    x1="10" y1="20"
+                    x2="110" y2="20"
+                    gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ff0000"/>
+      <stop offset="100%" stop-color="#0000ff"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M10 20 L110 20"
+        fill="none"
+        stroke="url(#strokeGrad)"
+        stroke-width="12"
+        stroke-linecap="butt"/>
+</svg>

@@ -1,5 +1,7 @@
 with Adi.Core;       use Adi.Core;
 with Adi.SDL.Render; use Adi.SDL.Render;
+with Adi.SVG;
+with Ada.Containers.Vectors;
 
 package Adi.Image is
 
@@ -47,6 +49,15 @@ package Adi.Image is
    -- Get the underlying SDL texture (for rendering)
    function Get_Texture (Img : Image) return SDL_Texture_Ptr;
 
+   -- Get a texture rendered for a specific size.
+   -- For raster images this returns the base texture.
+   -- For SVG images this lazily rasterizes and caches per size.
+   function Get_Texture_For_Size
+     (Img      : in out Image'Class;
+      Renderer : SDL_Renderer_Ptr;
+      Width    : Pixel_Type;
+      Height   : Pixel_Type) return SDL_Texture_Ptr;
+
    ---------------------------------------------------------------------------
    -- Resource Management
    ---------------------------------------------------------------------------
@@ -59,10 +70,25 @@ package Adi.Image is
 
 private
 
+   type Image_Kind is (Raster_Image, SVG_Image);
+
+   type Cached_Texture is record
+      Width_Px  : Positive;
+      Height_Px : Positive;
+      Texture   : SDL_Texture_Ptr := null;
+   end record;
+
+   package Cached_Texture_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Cached_Texture);
+
    type Image is tagged record
+      Kind    : Image_Kind := Raster_Image;
       Texture : SDL_Texture_Ptr := null;
       Width   : Pixel_Type := 0.0;
       Height  : Pixel_Type := 0.0;
+      SVG     : Adi.SVG.Document_Access := null;
+      Cache   : Cached_Texture_Vectors.Vector;
    end record;
 
 end Adi.Image;

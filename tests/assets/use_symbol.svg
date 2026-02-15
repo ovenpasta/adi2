@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <symbol id="dot">
+    <circle cx="8" cy="8" r="6" fill="#00aa00"/>
+  </symbol>
+
+  <use href="#dot" x="24" y="24"/>
+</svg>

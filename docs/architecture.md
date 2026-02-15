@@ -56,6 +56,12 @@
 
 **Adi.Image** (`adi-image.ads`): SDL texture wrapper with file loading.
 
+**Adi.SVG** (`src/svg/adi-svg.ads`): SVG loading/raster API used by `Adi.Image` and HTML image flows.
+- Compile-time backend selection via `-XADI_SVG_BACKEND=<plutosvg|ada>`
+- `plutosvg` backend (default) lives in `src/svg/plutosvg` and uses vendored C libraries under `plutosvg/`
+- `ada` backend lives in `src/svg/ada` (native parser/rasterizer)
+- Shared public API surface: `Load_From_File`, `Get_Size`, `Render_ARGB32`, `Destroy`, `Backend_Name`
+
 **Adi.Animated_Image** (`adi-animated_image.ads`): Multi-frame animation via `IMG_LoadAnimation`, per-frame delay, playback controls.
 
 **Adi.RLottie** (`adi-rlottie.ads`): Lottie JSON via rlottie C API, CPU-rendered frame cache with background preload task, streaming SDL texture upload.

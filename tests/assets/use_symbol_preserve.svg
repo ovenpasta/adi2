@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40">
+  <symbol id="tile-default" viewBox="0 0 20 10">
+    <rect x="0" y="0" width="20" height="10" fill="#00aa00"/>
+  </symbol>
+
+  <symbol id="tile-none" viewBox="0 0 20 10" preserveAspectRatio="none">
+    <rect x="0" y="0" width="20" height="10" fill="#0033cc"/>
+  </symbol>
+
+  <use href="#tile-default" x="10" y="10" width="20" height="20"/>
+  <use href="#tile-none" x="45" y="10" width="20" height="20"/>
+  <use href="#tile-default" x="80" y="10" width="20" height="20" preserveAspectRatio="none"/>
+</svg>

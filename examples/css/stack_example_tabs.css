@@ -1,0 +1,85 @@
+.tab-left::main {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(55, 65, 81);
+  border-width: 1px;
+  border-color: rgb(75, 85, 99);
+  border-style: solid;
+  border-radius: 8px 0px 0px 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.tab-left::main:hover {
+  background-color: rgb(75, 85, 99);
+}
+
+.tab-left::main:selected {
+  background-color: rgb(59, 130, 246);
+  border-color: rgb(37, 99, 235);
+}
+
+.tab-left::label {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  text-wrap-mode: nowrap;
+}
+
+.tab-center::main {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(55, 65, 81);
+  border-width: 1px;
+  border-color: rgb(75, 85, 99);
+  border-style: solid;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.tab-center::main:hover {
+  background-color: rgb(75, 85, 99);
+}
+
+.tab-center::main:selected {
+  background-color: rgb(59, 130, 246);
+  border-color: rgb(37, 99, 235);
+}
+
+.tab-center::label {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  text-wrap-mode: nowrap;
+}
+
+.tab-right::main {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(55, 65, 81);
+  border-width: 1px;
+  border-color: rgb(75, 85, 99);
+  border-style: solid;
+  border-radius: 0px 8px 8px 0px;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.tab-right::main:hover {
+  background-color: rgb(75, 85, 99);
+}
+
+.tab-right::main:selected {
+  background-color: rgb(59, 130, 246);
+  border-color: rgb(37, 99, 235);
+}
+
+.tab-right::label {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  text-wrap-mode: nowrap;
+}

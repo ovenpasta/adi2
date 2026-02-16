@@ -1,5 +1,7 @@
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded;                use Ada.Strings.Unbounded;
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Adi.CSS_Styles;       use Adi.CSS_Styles;
+with Adi.Font;
 with Adi.Layout_Util;       use Adi.Layout_Util;
 with Adi.SDL.Events;        use Adi.SDL.Events;
 
@@ -31,6 +33,13 @@ package body Adi.Widget.Combo_Box is
    Popup_Bindings : Popup_Binding_Vectors.Vector;
    Default_Popup_Max_Height : constant Pixel_Type := 240.0;
    Default_Popup_Row_Height : constant Pixel_Type := 24.0;
+
+   package WW_Encode renames Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
+
+   Arrow_Down : constant String :=  --  U+25BE ▾
+     WW_Encode.Encode (Wide_Wide_String'("▾"), Output_BOM => False);
+   Arrow_Up : constant String :=    --  U+25B4 ▴
+     WW_Encode.Encode (Wide_Wide_String'("▴"), Output_BOM => False);
 
    function Find_Owner
      (Popup : Popup_Lists.List_Box_Widget_Access) return Combo_Box_Widget_Access
@@ -410,12 +419,18 @@ package body Adi.Widget.Combo_Box is
          X_Pos := Pixel_Type'Max (0.0, Win_Size.Width - Anchor.Width);
       end if;
 
-      Y_Pos := Anchor.Y + Anchor.Height;
-      if Y_Pos + Popup_H > Win_Size.Height and then Anchor.Y - Popup_H >= 0.0 then
-         Y_Pos := Anchor.Y - Popup_H;
-      elsif Y_Pos + Popup_H > Win_Size.Height then
-         Y_Pos := Pixel_Type'Max (0.0, Win_Size.Height - Popup_H);
-      end if;
+      declare
+         Gap : constant Pixel_Type := 4.0;
+      begin
+         Y_Pos := Anchor.Y + Anchor.Height + Gap;
+         if Y_Pos + Popup_H > Win_Size.Height
+           and then Anchor.Y - Popup_H - Gap >= 0.0
+         then
+            Y_Pos := Anchor.Y - Popup_H - Gap;
+         elsif Y_Pos + Popup_H > Win_Size.Height then
+            Y_Pos := Pixel_Type'Max (0.0, Win_Size.Height - Popup_H);
+         end if;
+      end;
 
       Set_Geometry
         (W.Popup.all,
@@ -523,40 +538,120 @@ package body Adi.Widget.Combo_Box is
       if Item_Count (W) = 0 then
          Adi.Widget.Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));
          Adi.Widget.Add_Item (W, Make_Text (Label_Part, W.Geometry, "", 1));
-         Adi.Widget.Add_Item (W, Make_Text (Indicator_Part, W.Geometry, "v", 2));
+         Adi.Widget.Add_Item
+           (W, Make_Text (Indicator_Part, W.Geometry, Arrow_Down, 2));
       end if;
 
+      --  Update panel geometry
+      W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
+
+      --  Update label text + geometry from Layout_Items
       declare
-         Panel_It : Item renames W.Items.Reference (Panel_Idx).Element.all;
          Label_It : Item renames W.Items.Reference (Label_Idx).Element.all;
-         Ind_It   : Item renames W.Items.Reference (Indicator_Idx).Element.all;
       begin
-         Panel_It.Geometry := W.Geometry;
-         Label_It.Text_Content := To_Unbounded_String (Get_Selected_Text (W));
-         Ind_It.Text_Content := To_Unbounded_String ((if W.Open then "^" else "v"));
+         Label_It.Text_Content :=
+           To_Unbounded_String (Get_Selected_Text (W));
+         for L_Item of W.Layout_Items loop
+            if L_Item.Part = Label_Part then
+               Label_It.Geometry := L_Item.Geometry;
+               exit;
+            end if;
+         end loop;
+      end;
+
+      --  Update indicator text + geometry from Layout_Items
+      declare
+         Ind_It : Item renames
+           W.Items.Reference (Indicator_Idx).Element.all;
+      begin
+         Ind_It.Text_Content :=
+           To_Unbounded_String ((if W.Open then Arrow_Up else Arrow_Down));
+         for L_Item of W.Layout_Items loop
+            if L_Item.Part = Indicator_Part then
+               Ind_It.Geometry := L_Item.Geometry;
+               exit;
+            end if;
+         end loop;
       end;
    end Build_Items;
 
    overriding procedure Layout (W : in out Combo_Box_Widget) is
-      Main_Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      Content      : constant Rectangle := Content_Box (W.Geometry, Main_Style);
-      Indicator_W  : constant Pixel_Type := Pixel_Type'Min (24.0, Content.Width / 3.0);
+      Main_Style  : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Main_Part);
+      Label_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Label_Part);
+      Ind_Style   : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Indicator_Part);
+      Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
+
+      Label_Text : constant String := Get_Selected_Text (W);
+      Ind_Text   : constant String := (if W.Open then Arrow_Up else Arrow_Down);
+
+      Label_Attrs : constant Adi.Font.Font_Attributes :=
+        Adi.Font.Make_Attributes
+          (Family     => Label_Style.Font_Family,
+           Size       => Float (Length_To_Px (Label_Style.Font_Size)),
+           Weight     => Label_Style.Font_Weight,
+           Style      => Label_Style.Font_Style,
+           Decoration => Label_Style.Text_Decoration);
+      Label_Size : constant Size_2D :=
+        Adi.Font.Measure_Text (Label_Attrs, Label_Text);
+
+      Ind_Attrs : constant Adi.Font.Font_Attributes :=
+        Adi.Font.Make_Attributes
+          (Family     => Ind_Style.Font_Family,
+           Size       => Float (Length_To_Px (Ind_Style.Font_Size)),
+           Weight     => Ind_Style.Font_Weight,
+           Style      => Ind_Style.Font_Style,
+           Decoration => Ind_Style.Text_Decoration);
+      Ind_Size : constant Size_2D :=
+        Adi.Font.Measure_Text (Ind_Attrs, Ind_Text);
+      Ind_W    : constant Pixel_Type :=
+        Pixel_Type'Max (Ind_Size.Width, 16.0);
    begin
       if Item_Count (W) < 3 then
          return;
       end if;
 
-      W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
-      W.Items.Reference (Label_Idx).Geometry :=
-        (X      => Content.X + 6.0,
-         Y      => Content.Y,
-         Width  => Pixel_Type'Max (0.0, Content.Width - Indicator_W - 6.0),
-         Height => Content.Height);
-      W.Items.Reference (Indicator_Idx).Geometry :=
-        (X      => Content.X + Content.Width - Indicator_W,
-         Y      => Content.Y,
-         Width  => Indicator_W,
-         Height => Content.Height);
+      --  Build layout items for flex positioning
+      W.Layout_Items.Clear;
+
+      W.Layout_Items.Append (Layout_Item'(
+         Part           => Label_Part,
+         Min_Width      => 0.0,
+         Min_Height     => Float (Label_Size.Height),
+         Max_Width      => Float'Last,
+         Max_Height     => Float'Last,
+         Content_Width  => Float (Label_Size.Width),
+         Content_Height => Float (Label_Size.Height),
+         Flex           => (
+            Grow       => 1.0,
+            Shrink     => 0.0,
+            Basis      => 0.0,
+            Align_Self => Label_Style.Align_Self),
+         Geometry       => <>,
+         Index          => 1));
+
+      W.Layout_Items.Append (Layout_Item'(
+         Part           => Indicator_Part,
+         Min_Width      => Float (Ind_W),
+         Min_Height     => Float (Ind_Size.Height),
+         Max_Width      => Float (Ind_W),
+         Max_Height     => Float'Last,
+         Content_Width  => Float (Ind_W),
+         Content_Height => Float (Ind_Size.Height),
+         Flex           => (
+            Grow       => 0.0,
+            Shrink     => 0.0,
+            Basis      => Float (Ind_W),
+            Align_Self => Ind_Style.Align_Self),
+         Geometry       => <>,
+         Index          => 2));
+
+      Perform_Item_Flex_Layout (
+         Container_Geom  => Content,
+         Container_Style => Main_Style,
+         Items           => W.Layout_Items);
 
       if W.Open and then W.Host_Window /= null and then W.Popup /= null then
          Position_Dismiss_Layer (W);

@@ -79,6 +79,7 @@ private
       Selected    : Natural := 0;
       Open        : Boolean := False;
       On_Changed  : Selection_Changed_Callback := null;
+      Layout_Items : Layout_Item_List.Vector;
    end record;
 
 end Adi.Widget.Combo_Box;

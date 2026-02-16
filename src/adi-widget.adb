@@ -1483,11 +1483,15 @@ package body Adi.Widget is
    --  SDL3 Rendering
    ---------------------------------------------------------------------------
 
+   function Segments_For_Radius (Radius : Float) return Positive is
+      (Positive'Max (8, Natural (Float'Floor (Radius * 0.5)) + 1));
+
    procedure Render_Rounded_Rect
       (Renderer      : SDL_Renderer_Ptr;
        Rect          : SDL_FRect;
        Corner_Radius : Float;
-       R, G, B, A    : Uint8)
+       R, G, B, A    : Uint8;
+       Min_Segments  : Natural := 0)
    is
       --  Clamp radius to half the smallest dimension
       Max_Radius : constant Float :=
@@ -1497,7 +1501,8 @@ package body Adi.Widget is
 
       --  Number of segments per corner arc
       Num_Seg : constant Positive :=
-         Positive'Max (8, Natural (Float'Floor (Rad * 0.5)) + 1);
+         Positive'Max (Segments_For_Radius (Rad),
+                       (if Min_Segments > 0 then Min_Segments else 1));
 
       --  Vertex/index counts:
       --  Center rect:  4 vertices, 6 indices
@@ -1642,7 +1647,8 @@ package body Adi.Widget is
       (Renderer : SDL_Renderer_Ptr;
        Rect     : SDL_FRect;
        Radii    : Corner_Pixels;
-       R, G, B, A : Uint8)
+       R, G, B, A : Uint8;
+       Min_Segments : Natural := 0)
    is
       --  Clamp each radius to half the smallest dimension
       Max_Dim : constant Float := Float'Min (Rect.w, Rect.h) / 2.0;
@@ -1656,7 +1662,8 @@ package body Adi.Widget is
 
       --  Segments per corner arc (based on largest radius)
       Num_Seg : constant Positive :=
-         Positive'Max (8, Natural (Float'Floor (Max_R * 0.5)) + 1);
+         Positive'Max (Segments_For_Radius (Max_R),
+                       (if Min_Segments > 0 then Min_Segments else 1));
 
       --  Outline: 4 arcs of (Num_Seg + 1) points each
       --  + 1 center vertex for fan triangulation
@@ -1798,7 +1805,8 @@ package body Adi.Widget is
        Inner_Rect     : SDL_FRect;
        Outer_Radii    : Corner_Pixels;
        Inner_Radii    : Corner_Pixels;
-       R, G, B, A     : Uint8)
+       R, G, B, A     : Uint8;
+       Min_Segments   : Natural := 0)
    is
       Max_Dim_O : constant Float := Float'Min (Outer_Rect.w, Outer_Rect.h) / 2.0;
       O_TL : constant Float := Float'Min (Outer_Radii.Top_Left, Max_Dim_O);
@@ -1816,7 +1824,8 @@ package body Adi.Widget is
          Float'Max (Float'Max (O_TL, O_TR), Float'Max (O_BR, O_BL));
 
       Num_Seg : constant Positive :=
-         Positive'Max (8, Natural (Float'Floor (Max_R * 0.5)) + 1);
+         Positive'Max (Segments_For_Radius (Max_R),
+                       (if Min_Segments > 0 then Min_Segments else 1));
 
       --  Two outlines (outer + inner), each with 4*(Num_Seg+1) points
       N_Outline     : constant Natural := 4 * (Num_Seg + 1);
@@ -1979,6 +1988,174 @@ package body Adi.Widget is
           Num_Indices  => int (II));
    end Render_Rounded_Border_Ring;
 
+   --  Render a 1px anti-aliasing fringe along the edge of a rounded
+   --  rectangle.  The fringe is a triangle strip between the shape's outline
+   --  (full color/alpha) and a ring offset 1px along normals (same color but
+   --  alpha = 0).  When Inward is False (default) the fringe extends outward;
+   --  when True it extends inward (for inner border edges).
+   procedure Render_AA_Fringe
+      (Renderer     : SDL_Renderer_Ptr;
+       Rect         : SDL_FRect;
+       Radii        : Corner_Pixels;
+       R, G, B, A   : Uint8;
+       Min_Segments : Natural := 0;
+       Inward       : Boolean := False)
+   is
+      Fringe : constant Float := (if Inward then -1.0 else 1.0);
+
+      Max_Dim : constant Float := Float'Min (Rect.w, Rect.h) / 2.0;
+      R_TL : constant Float := Float'Min (Radii.Top_Left, Max_Dim);
+      R_TR : constant Float := Float'Min (Radii.Top_Right, Max_Dim);
+      R_BR : constant Float := Float'Min (Radii.Bottom_Right, Max_Dim);
+      R_BL : constant Float := Float'Min (Radii.Bottom_Left, Max_Dim);
+
+      Max_R : constant Float :=
+         Float'Max (Float'Max (R_TL, R_TR), Float'Max (R_BR, R_BL));
+
+      Num_Seg : constant Positive :=
+         Positive'Max (Segments_For_Radius (Max_R),
+                       (if Min_Segments > 0 then Min_Segments else 1));
+
+      N_Outline     : constant Natural := 4 * (Num_Seg + 1);
+      Total_Verts   : constant Natural := 2 * N_Outline;
+      Total_Indices : constant Natural := N_Outline * 6;
+
+      Verts : SDL_Vertex_Array (0 .. Total_Verts - 1);
+      Idxs  : Int_Array (0 .. Total_Indices - 1);
+
+      VI : Natural := 0;
+      II : Natural := 0;
+
+      FC_Solid : constant SDL_FColor :=
+         (r => Float (R) / 255.0,
+          g => Float (G) / 255.0,
+          b => Float (B) / 255.0,
+          a => Float (A) / 255.0);
+
+      FC_Clear : constant SDL_FColor :=
+         (r => Float (R) / 255.0,
+          g => Float (G) / 255.0,
+          b => Float (B) / 255.0,
+          a => 0.0);
+
+      Zero_TC : constant SDL_FPoint := (x => 0.0, y => 0.0);
+
+      procedure Add_Pair (X, Y, NX, NY : Float) is
+      begin
+         --  Inner vertex (on shape outline) — full alpha
+         Verts (VI) := (position  => (x => X, y => Y),
+                        color     => FC_Solid,
+                        tex_coord => Zero_TC);
+         VI := VI + 1;
+         --  Outer vertex (offset by fringe along normal) — alpha 0
+         Verts (VI) := (position  => (x => X + NX * Fringe,
+                                      y => Y + NY * Fringe),
+                        color     => FC_Clear,
+                        tex_coord => Zero_TC);
+         VI := VI + 1;
+      end Add_Pair;
+
+      procedure Add_Triangle (IA, IB, IC : Natural) is
+      begin
+         Idxs (II)     := int (IA);
+         Idxs (II + 1) := int (IB);
+         Idxs (II + 2) := int (IC);
+         II := II + 3;
+      end Add_Triangle;
+
+      X0 : constant Float := Rect.x;
+      Y0 : constant Float := Rect.y;
+      X1 : constant Float := Rect.x + Rect.w;
+      Y1 : constant Float := Rect.y + Rect.h;
+
+      Step    : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
+      Success : Adi.SDL.C_bool;
+   begin
+      --  Generate inner/outer vertex pairs along the outline.
+      --  Each Add_Pair emits 2 vertices: inner at index VI, outer at VI+1.
+      --  So pair K has inner at 2*K, outer at 2*K+1.
+
+      --  Top-left arc: center (X0+R_TL, Y0+R_TL), from PI to 3*PI/2
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := Ada.Numerics.Pi + Float (I) * Step;
+            CA    : constant Float := Cos (Angle);
+            SA    : constant Float := Sin (Angle);
+         begin
+            Add_Pair (X0 + R_TL + R_TL * CA,
+                      Y0 + R_TL + R_TL * SA,
+                      CA, SA);
+         end;
+      end loop;
+
+      --  Top-right arc: center (X1-R_TR, Y0+R_TR), from 3*PI/2 to 2*PI
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := 3.0 * Ada.Numerics.Pi / 2.0
+                                       + Float (I) * Step;
+            CA    : constant Float := Cos (Angle);
+            SA    : constant Float := Sin (Angle);
+         begin
+            Add_Pair (X1 - R_TR + R_TR * CA,
+                      Y0 + R_TR + R_TR * SA,
+                      CA, SA);
+         end;
+      end loop;
+
+      --  Bottom-right arc: center (X1-R_BR, Y1-R_BR), from 0 to PI/2
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := Float (I) * Step;
+            CA    : constant Float := Cos (Angle);
+            SA    : constant Float := Sin (Angle);
+         begin
+            Add_Pair (X1 - R_BR + R_BR * CA,
+                      Y1 - R_BR + R_BR * SA,
+                      CA, SA);
+         end;
+      end loop;
+
+      --  Bottom-left arc: center (X0+R_BL, Y1-R_BL), from PI/2 to PI
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := Ada.Numerics.Pi / 2.0
+                                       + Float (I) * Step;
+            CA    : constant Float := Cos (Angle);
+            SA    : constant Float := Sin (Angle);
+         begin
+            Add_Pair (X0 + R_BL + R_BL * CA,
+                      Y1 - R_BL + R_BL * SA,
+                      CA, SA);
+         end;
+      end loop;
+
+      --  Build triangle strip between inner ring and outer ring.
+      --  Pair K: inner = 2*K, outer = 2*K+1.
+      for K in 0 .. N_Outline - 1 loop
+         declare
+            Next_K  : constant Natural := (K + 1) mod N_Outline;
+            Inner_A : constant Natural := 2 * K;
+            Outer_A : constant Natural := 2 * K + 1;
+            Inner_B : constant Natural := 2 * Next_K;
+            Outer_B : constant Natural := 2 * Next_K + 1;
+         begin
+            Add_Triangle (Inner_A, Inner_B, Outer_A);
+            Add_Triangle (Outer_A, Inner_B, Outer_B);
+         end;
+      end loop;
+
+      SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
+                  "SDL_SetRenderDrawBlendMode");
+
+      Success := SDL_RenderGeometry
+         (Renderer     => Renderer,
+          Texture      => null,
+          Vertices     => Verts (0)'Access,
+          Num_Vertices => int (VI),
+          Indices      => Idxs (0)'Access,
+          Num_Indices  => int (II));
+   end Render_AA_Fringe;
+
    --  Apply opacity to an alpha byte
    function Apply_Opacity (A : Uint8; O : Float) return Uint8 is
    begin
@@ -2074,7 +2251,15 @@ package body Adi.Widget is
 
          if Has_Border and then Uniform_Border_Width and then BW_Top > 0.0 then
             --  Render border as a ring (annulus), then fill the interior.
+            --  Compute segment count once from the outer radius so the
+            --  ring's inner boundary and the fill share identical tessellation.
             declare
+               Seg : constant Positive :=
+                  Segments_For_Radius
+                     (if Uniform then Max_Rad
+                      else Float'Max
+                        (Float'Max (Radius_Px.Top_Left, Radius_Px.Top_Right),
+                         Float'Max (Radius_Px.Bottom_Right, Radius_Px.Bottom_Left)));
                Inner : constant SDL_FRect :=
                   (x => Rect.x + BW_Top,
                    y => Rect.y + BW_Top,
@@ -2085,11 +2270,20 @@ package body Adi.Widget is
                    Top_Right    => Float'Max (0.0, Radius_Px.Top_Right - BW_Top),
                    Bottom_Right => Float'Max (0.0, Radius_Px.Bottom_Right - BW_Top),
                    Bottom_Left  => Float'Max (0.0, Radius_Px.Bottom_Left - BW_Top));
+               BR, BG, BB, BA : Uint8;
             begin
                --  Border ring
                Set_Edge_Color (Top);
+               BR := R; BG := G; BB := B; BA := A;
                Render_Rounded_Border_Ring
-                  (Renderer, Rect, Inner, Radius_Px, Inner_Radii, R, G, B, A);
+                  (Renderer, Rect, Inner, Radius_Px, Inner_Radii, R, G, B, A,
+                   Min_Segments => Seg);
+
+               --  AA fringe on outer border edge
+               Render_AA_Fringe
+                  (Renderer, Rect, Radius_Px,
+                   BR, BG, BB, BA,
+                   Min_Segments => Seg);
 
                --  Background fill (skip for fully transparent)
                if Style.Background_Color.Kind /= Named
@@ -2101,11 +2295,17 @@ package body Adi.Widget is
                      if Uniform then
                         Render_Rounded_Rect
                            (Renderer, Inner,
-                            Float'Max (0.0, Max_Rad - BW_Top), R, G, B, A);
+                            Float'Max (0.0, Max_Rad - BW_Top), R, G, B, A,
+                            Min_Segments => Seg);
                      else
                         Render_Rounded_Rect
-                           (Renderer, Inner, Inner_Radii, R, G, B, A);
+                           (Renderer, Inner, Inner_Radii, R, G, B, A,
+                            Min_Segments => Seg);
                      end if;
+                     --  AA fringe on background fill edge (smooths border-fill seam)
+                     Render_AA_Fringe
+                        (Renderer, Inner, Inner_Radii, R, G, B, A,
+                         Min_Segments => Seg);
                   end if;
                end if;
             end;
@@ -2122,6 +2322,8 @@ package body Adi.Widget is
                else
                   Render_Rounded_Rect (Renderer, Rect, Radius_Px, R, G, B, A);
                end if;
+               --  AA fringe on outer background edge
+               Render_AA_Fringe (Renderer, Rect, Radius_Px, R, G, B, A);
             end if;
          end if;
 

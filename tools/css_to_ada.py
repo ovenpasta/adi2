@@ -1103,8 +1103,7 @@ def parse_css(css_content: str) -> list[ParsedRule]:
                 prop_value = prop_match.group(2).strip()
                 set_css_property(properties, prop_name, prop_value)
 
-            if properties:
-                rules.append(ParsedRule(selector=selector, properties=properties))
+            rules.append(ParsedRule(selector=selector, properties=properties))
     
     return rules
 
@@ -1823,6 +1822,111 @@ def generate_variable_name(name_prefix: str, selector: ParsedSelector) -> str:
     
     suffix = "_".join(parts)
     return f"{name_prefix}_{suffix}_Style"
+
+
+def generate_style_declarations(groups: dict[str, WidgetStyleGroup],
+                                indent: str = "   ") -> list[str]:
+    """Generate Ada style constant declarations without package wrapper.
+
+    Returns a list of Ada source lines declaring Style_Rules constants,
+    Widget_Style constants, and Part_Style_Array bundles for each selector
+    group.  Suitable for embedding inside another package body.
+    """
+    lines: list[str] = []
+    generated_names: set[str] = set()
+
+    for _group_key, group in groups.items():
+        widget_name = group.name
+        ada_name = to_ada_identifier(widget_name)
+        part_items = sorted(
+            group.parts.items(),
+            key=lambda kv: (0 if kv[0] == "Main_Part" else 1, kv[0])
+        )
+
+        for part_kind, part_group in part_items:
+            part_suffix = "" if part_kind == "Main_Part" else f"::{part_label(part_kind).lower()}"
+            name_prefix = style_name_prefix(ada_name, group.selector_type, part_kind)
+
+            if part_group.base_rule:
+                var_name = f"{name_prefix}_Base_Style"
+                generated_names.add(var_name)
+                fields = generate_style_rules_ada(part_group.base_rule.properties,
+                                                  indent=indent + "   ")
+
+                lines.append(f"{indent}--  Base style for {group.selector_type} '{widget_name}'{part_suffix}")
+                lines.append(f"{indent}{var_name} : constant Style_Rules := (")
+                if fields:
+                    lines.append(",\n".join(fields) + ",")
+                lines.append(f"{indent}   others => <>")
+                lines.append(f"{indent});")
+                lines.append("")
+
+            for rule in part_group.state_rules:
+                var_name = generate_variable_name(name_prefix, rule.selector)
+                original_var_name = var_name
+                counter = 2
+                while var_name in generated_names:
+                    var_name = f"{original_var_name}_{counter}"
+                    counter += 1
+                generated_names.add(var_name)
+                rule._var_name = var_name  # type: ignore
+
+                fields = generate_style_rules_ada(rule.properties,
+                                                  indent=indent + "   ")
+                state_desc = generate_state_description(rule.selector)
+
+                lines.append(f"{indent}--  Style for {group.selector_type} '{widget_name}'{part_suffix} when {state_desc}")
+                lines.append(f"{indent}{var_name} : constant Style_Rules := (")
+                if fields:
+                    lines.append(",\n".join(fields) + ",")
+                lines.append(f"{indent}   others => <>")
+                lines.append(f"{indent});")
+                lines.append("")
+
+    # Widget_Style constants
+    for _group_key, group in groups.items():
+        widget_name = group.name
+        sel_label = selector_label(group.selector_type)
+        ada_name = to_ada_identifier(widget_name)
+        part_items = sorted(
+            group.parts.items(),
+            key=lambda kv: (0 if kv[0] == "Main_Part" else 1, kv[0])
+        )
+
+        for part_kind, part_group in part_items:
+            part_suffix = "" if part_kind == "Main_Part" else f"::{part_label(part_kind).lower()}"
+            name_prefix = style_name_prefix(ada_name, group.selector_type, part_kind)
+            ws_name = widget_style_const_name(ada_name, group.selector_type, part_kind)
+
+            lines.append(f"{indent}--  Complete widget style for {group.selector_type} '{widget_name}'{part_suffix}")
+            lines.append(f"{indent}{ws_name} : constant Widget_Style :=")
+
+            if part_group.base_rule:
+                lines.append(f"{indent}  From ({name_prefix}_Base_Style)")
+            else:
+                lines.append(f"{indent}  Create")
+
+            for rule in part_group.state_rules:
+                var_name = rule._var_name  # type: ignore
+                selector_ada = generate_selector_ada(rule.selector)
+                lines.append(f"{indent}  .On ({selector_ada}, {var_name})")
+
+            lines.append(f"{indent}  .Build;")
+            lines.append("")
+
+        # Part_Style_Array bundle
+        lines.append(f"{indent}--  Part styles bundle for {group.selector_type} '{widget_name}'")
+        lines.append(f"{indent}{ada_name}_{sel_label}_Part_Styles : constant Part_Style_Array := [")
+        for part_kind, _part_group in part_items:
+            sn = widget_style_const_name(ada_name, group.selector_type, part_kind)
+            lines.append(
+                f"{indent}   {part_kind} => (Style => {sn}, Enabled => True),"
+            )
+        lines.append(f"{indent}   others => <>")
+        lines.append(f"{indent}];")
+        lines.append("")
+
+    return lines
 
 
 def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str) -> str:

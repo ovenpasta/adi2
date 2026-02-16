@@ -559,6 +559,11 @@ package body Adi.Window is
       return W.Enforce_Layout_Min_Size;
    end Get_Enforce_Layout_Min_Size;
 
+   procedure Set_On_Tick (W : in out Window; CB : Tick_Callback) is
+   begin
+      W.On_Tick_CB := CB;
+   end Set_On_Tick;
+
    procedure Add_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class) is
       OA : Widget_Access := null;
    begin
@@ -1219,6 +1224,10 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       Overlay_Dirty_After  : Boolean;
    begin
       Debug_Tick_No := Debug_Tick_No + 1;
+
+      if W.On_Tick_CB /= null then
+         W.On_Tick_CB (DT);
+      end if;
 
       if W.Root /= null then
          Tick_Animations (W.Root.all, DT);

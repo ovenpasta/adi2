@@ -74,6 +74,10 @@ package Adi.Window is
         Repeat   : Boolean);
     procedure On_Text_Input (W : in out Window; Text : String);
 
+    --  Per-frame callback, invoked before animations
+    type Tick_Callback is access procedure (DT : Duration);
+    procedure Set_On_Tick (W : in out Window; CB : Tick_Callback);
+
     --  Advance animations by DT seconds on all widgets in this window
     procedure Tick (W : in out Window; DT : Duration);
 
@@ -105,6 +109,7 @@ private
         Overlays       : Overlay_Vectors.Vector;
         Enforce_Layout_Min_Size : Boolean := False;
         Needs_Layout   : Boolean       := True;
+        On_Tick_CB     : Tick_Callback := null;
     end record;
 
     overriding procedure Initialize (w : in out Window);

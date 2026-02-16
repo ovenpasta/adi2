@@ -22,5 +22,12 @@
 # Alire-managed dependencies
 /deps/
 
+# PlutoSVG build artifacts
+/plutosvg/obj/
+/plutosvg/lib/
+
+# Python cache
+tools/__pycache__/
+
 # Auto-generated reference bindings
 /bindings/

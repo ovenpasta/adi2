@@ -25,9 +25,18 @@ package Adi.CSS_Source is
    procedure Set_Static_Entries (Source  : in out Style_Source;
                                  Entries : Static_Style_Entry_Array);
 
-   procedure Set_Dynamic_File (Source  : in out Style_Source;
+   procedure Add_Dynamic_File (Source  : in out Style_Source;
                                Path    : String;
                                Success : out Boolean);
+
+   procedure Add_Dynamic_String (Source      : in out Style_Source;
+                                 CSS_Content : String;
+                                 Success     : out Boolean);
+
+   procedure Clear_Dynamic_Entries (Source : in out Style_Source);
+
+   procedure Reload_Dynamic (Source  : in out Style_Source;
+                             Success : out Boolean);
 
    procedure Set_Auto_Reload (Source : in out Style_Source;
                               Enabled : Boolean);
@@ -83,7 +92,6 @@ package Adi.CSS_Source is
                                 Id_Name    : String := "");
 
    function Get_Last_Error (Source : Style_Source) return String;
-   function Get_Dynamic_Path (Source : Style_Source) return String;
 
 private
 

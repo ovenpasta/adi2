@@ -153,8 +153,8 @@ begin
         "#submit { background-color: rgb(200, 210, 220); border-width: 5px; }" & ASCII.LF;
    begin
       Write_Text_File (Css_Path, Css_V1);
-      Adi.CSS_Source.Set_Dynamic_File (Source, Css_Path, OK);
-      Assert (OK, "Set_Dynamic_File should succeed");
+      Adi.CSS_Source.Add_Dynamic_File (Source, Css_Path, OK);
+      Assert (OK, "Add_Dynamic_File should succeed");
 
       Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, OK);
       Assert (OK, "Set_Mode dynamic should succeed");

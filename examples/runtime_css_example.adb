@@ -196,7 +196,7 @@ begin
       Card_Right.Add_Child (Right_Body);
 
       Adi.CSS_Source.Set_Static_Entries (Source, Static_Entries);
-      Adi.CSS_Source.Set_Dynamic_File (Source, CSS_Path, Loaded);
+      Adi.CSS_Source.Add_Dynamic_File (Source, CSS_Path, Loaded);
       if Loaded then
          Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, Mode_OK);
       else

@@ -1,7 +1,10 @@
 pragma Ada_2022;
 
+with Ada.Calendar;
 with Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Vectors;
+with Ada.Directories;
+with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
@@ -38,15 +41,32 @@ package body Adi.CSS_Source is
      (Index_Type => Positive,
       Element_Type => Bound_Target);
 
+   --  Dynamic entry: either a file path or an inline CSS string
+   type Dynamic_Entry_Kind is (File_Entry, String_Entry);
+
+   type Dynamic_Entry (Kind : Dynamic_Entry_Kind := File_Entry) is record
+      case Kind is
+         when File_Entry =>
+            Path          : Unbounded_String;
+            Last_Modified : Ada.Calendar.Time;
+         when String_Entry =>
+            Content       : Unbounded_String;
+      end case;
+   end record;
+
+   package Dynamic_Entry_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type => Positive,
+      Element_Type => Dynamic_Entry);
+
    type Style_Source_Impl is record
-      Mode          : Source_Mode := Dynamic_Mode;
-      Auto_Reload   : Boolean := True;
-      Dynamic_Path  : Unbounded_String;
+      Mode           : Source_Mode := Dynamic_Mode;
+      Auto_Reload    : Boolean := True;
+      Entries        : Dynamic_Entry_Vectors.Vector;
       Dynamic_Loaded : Boolean := False;
-      Sheet         : Adi.CSS_Parser.Stylesheet;
-      Last_Error    : Unbounded_String;
-      Static_Styles : Entry_Vectors.Vector;
-      Bindings      : Binding_Vectors.Vector;
+      Sheet          : Adi.CSS_Parser.Stylesheet;
+      Last_Error     : Unbounded_String;
+      Static_Styles  : Entry_Vectors.Vector;
+      Bindings       : Binding_Vectors.Vector;
    end record;
 
    procedure Ensure_Impl (Source : in out Style_Source) is
@@ -201,6 +221,87 @@ package body Adi.CSS_Source is
       end loop;
    end Reapply_Bindings;
 
+   function Read_File (Path : String) return String is
+      use Ada.Directories;
+      File_Size : constant Natural := Natural (Size (Path));
+   begin
+      if File_Size = 0 then
+         return "";
+      end if;
+      declare
+         subtype Content_String is String (1 .. File_Size);
+         F : Ada.Streams.Stream_IO.File_Type;
+         S : Ada.Streams.Stream_IO.Stream_Access;
+         Result : Content_String;
+      begin
+         Ada.Streams.Stream_IO.Open (F, Ada.Streams.Stream_IO.In_File, Path);
+         S := Ada.Streams.Stream_IO.Stream (F);
+         Content_String'Read (S, Result);
+         Ada.Streams.Stream_IO.Close (F);
+         return Result;
+      end;
+   end Read_File;
+
+   --  Concatenate all dynamic entries and reload the stylesheet
+   procedure Reload_All_Dynamic (Source  : in out Style_Source;
+                                 Success : out Boolean) is
+      Combined : Unbounded_String;
+   begin
+      Success := True;
+
+      for I in 1 .. Natural (Source.Impl.Entries.Length) loop
+         declare
+            E : constant Dynamic_Entry := Source.Impl.Entries (I);
+         begin
+            case E.Kind is
+               when File_Entry =>
+                  declare
+                     Path : constant String := To_String (E.Path);
+                  begin
+                     if Ada.Directories.Exists (Path) then
+                        declare
+                           Mod_Time : constant Ada.Calendar.Time :=
+                             Ada.Directories.Modification_Time (Path);
+                        begin
+                           Source.Impl.Entries.Replace_Element (I,
+                             Dynamic_Entry'(Kind          => File_Entry,
+                                            Path          => E.Path,
+                                            Last_Modified => Mod_Time));
+                        end;
+                        Append (Combined, Read_File (Path));
+                        Append (Combined, ASCII.LF);
+                     else
+                        Source.Impl.Last_Error :=
+                          To_Unbounded_String ("File not found: " & Path);
+                        Success := False;
+                        return;
+                     end if;
+                  end;
+               when String_Entry =>
+                  Append (Combined, E.Content);
+                  Append (Combined, ASCII.LF);
+            end case;
+         end;
+      end loop;
+
+      declare
+         Load_OK : Boolean := False;
+      begin
+         Adi.CSS_Parser.Load_String (
+           Source.Impl.Sheet,
+           To_String (Combined),
+           Load_OK);
+         Source.Impl.Dynamic_Loaded := Load_OK;
+         if Load_OK then
+            Source.Impl.Last_Error := Null_Unbounded_String;
+         else
+            Source.Impl.Last_Error := To_Unbounded_String (
+              Adi.CSS_Parser.Get_Last_Error (Source.Impl.Sheet));
+            Success := False;
+         end if;
+      end;
+   end Reload_All_Dynamic;
+
    function Class_Entry (Name : String;
                          Styles : Adi.Widget.Part_Style_Array) return Static_Style_Entry is
    begin
@@ -242,25 +343,53 @@ package body Adi.CSS_Source is
       end if;
    end Set_Static_Entries;
 
-   procedure Set_Dynamic_File (Source  : in out Style_Source;
+   procedure Add_Dynamic_File (Source  : in out Style_Source;
                                Path    : String;
                                Success : out Boolean) is
    begin
       Ensure_Impl (Source);
-      Source.Impl.Dynamic_Path := To_Unbounded_String (Path);
-      Adi.CSS_Parser.Load_File (Source.Impl.Sheet, Path, Success);
-      Source.Impl.Dynamic_Loaded := Success;
+      Source.Impl.Entries.Append (
+        Dynamic_Entry'(Kind          => File_Entry,
+                       Path          => To_Unbounded_String (Path),
+                       Last_Modified => Ada.Calendar.Clock));
 
-      if Success then
-         Source.Impl.Last_Error := Null_Unbounded_String;
-         if Source.Impl.Mode = Dynamic_Mode then
-            Reapply_Bindings (Source);
-         end if;
-      else
-         Source.Impl.Last_Error := To_Unbounded_String (
-           Adi.CSS_Parser.Get_Last_Error (Source.Impl.Sheet));
+      Reload_All_Dynamic (Source, Success);
+      if Success and then Source.Impl.Mode = Dynamic_Mode then
+         Reapply_Bindings (Source);
       end if;
-   end Set_Dynamic_File;
+   end Add_Dynamic_File;
+
+   procedure Add_Dynamic_String (Source      : in out Style_Source;
+                                 CSS_Content : String;
+                                 Success     : out Boolean) is
+   begin
+      Ensure_Impl (Source);
+      Source.Impl.Entries.Append (
+        Dynamic_Entry'(Kind    => String_Entry,
+                       Content => To_Unbounded_String (CSS_Content)));
+
+      Reload_All_Dynamic (Source, Success);
+      if Success and then Source.Impl.Mode = Dynamic_Mode then
+         Reapply_Bindings (Source);
+      end if;
+   end Add_Dynamic_String;
+
+   procedure Clear_Dynamic_Entries (Source : in out Style_Source) is
+   begin
+      Ensure_Impl (Source);
+      Source.Impl.Entries.Clear;
+      Source.Impl.Dynamic_Loaded := False;
+   end Clear_Dynamic_Entries;
+
+   procedure Reload_Dynamic (Source  : in out Style_Source;
+                             Success : out Boolean) is
+   begin
+      Ensure_Impl (Source);
+      Reload_All_Dynamic (Source, Success);
+      if Success then
+         Reapply_Bindings (Source);
+      end if;
+   end Reload_Dynamic;
 
    procedure Set_Auto_Reload (Source : in out Style_Source;
                               Enabled : Boolean) is
@@ -280,26 +409,16 @@ package body Adi.CSS_Source is
    procedure Set_Mode (Source  : in out Style_Source;
                        Mode    : Source_Mode;
                        Success : out Boolean) is
-      Loaded_OK : Boolean := True;
    begin
       Ensure_Impl (Source);
       Success := True;
 
       if Mode = Dynamic_Mode
         and then not Source.Impl.Dynamic_Loaded
-        and then Length (Source.Impl.Dynamic_Path) > 0
+        and then not Source.Impl.Entries.Is_Empty
       then
-         Adi.CSS_Parser.Load_File (
-           Source.Impl.Sheet,
-           To_String (Source.Impl.Dynamic_Path),
-           Loaded_OK);
-         Source.Impl.Dynamic_Loaded := Loaded_OK;
-         if Loaded_OK then
-            Source.Impl.Last_Error := Null_Unbounded_String;
-         else
-            Source.Impl.Last_Error := To_Unbounded_String (
-              Adi.CSS_Parser.Get_Last_Error (Source.Impl.Sheet));
-            Success := False;
+         Reload_All_Dynamic (Source, Success);
+         if not Success then
             return;
          end if;
       end if;
@@ -319,6 +438,7 @@ package body Adi.CSS_Source is
    procedure Tick (Source   : in out Style_Source;
                    Reloaded : out Boolean;
                    Success  : out Boolean) is
+      Any_Changed : Boolean := False;
    begin
       Reloaded := False;
       Success := True;
@@ -334,19 +454,39 @@ package body Adi.CSS_Source is
          return;
       end if;
 
-      Adi.CSS_Parser.Reload_If_Changed (
-        Source.Impl.Sheet,
-        Reloaded,
-        Success);
+      --  Check all file entries for modification time changes
+      for I in 1 .. Natural (Source.Impl.Entries.Length) loop
+         declare
+            E : constant Dynamic_Entry := Source.Impl.Entries (I);
+         begin
+            if E.Kind = File_Entry then
+               declare
+                  Path : constant String := To_String (E.Path);
+               begin
+                  if Ada.Directories.Exists (Path) then
+                     declare
+                        use type Ada.Calendar.Time;
+                        Mod_Time : constant Ada.Calendar.Time :=
+                          Ada.Directories.Modification_Time (Path);
+                     begin
+                        if Mod_Time /= E.Last_Modified then
+                           Any_Changed := True;
+                        end if;
+                     end;
+                  end if;
+               end;
+            end if;
+         end;
+      end loop;
 
-      if not Success then
-         Source.Impl.Last_Error := To_Unbounded_String (
-           Adi.CSS_Parser.Get_Last_Error (Source.Impl.Sheet));
-         return;
-      end if;
-
-      Source.Impl.Last_Error := Null_Unbounded_String;
-      if Reloaded then
+      if Any_Changed then
+         Reload_All_Dynamic (Source, Success);
+         if not Success then
+            Source.Impl.Last_Error := To_Unbounded_String (
+              Adi.CSS_Parser.Get_Last_Error (Source.Impl.Sheet));
+            return;
+         end if;
+         Reloaded := True;
          Reapply_Bindings (Source);
       end if;
    end Tick;
@@ -462,13 +602,5 @@ package body Adi.CSS_Source is
       end if;
       return To_String (Source.Impl.Last_Error);
    end Get_Last_Error;
-
-   function Get_Dynamic_Path (Source : Style_Source) return String is
-   begin
-      if Source.Impl = null then
-         return "";
-      end if;
-      return To_String (Source.Impl.Dynamic_Path);
-   end Get_Dynamic_Path;
 
 end Adi.CSS_Source;

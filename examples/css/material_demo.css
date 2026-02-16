@@ -1,0 +1,412 @@
+/* Material Design 3 — Dark Theme */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  background-color: rgb(28, 27, 31);
+}
+
+/* ── App Bar ─────────────────────────────────── */
+
+.app-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 16px 24px;
+  background-color: rgb(28, 27, 31);
+}
+
+.app-title {
+  flex-grow: 1;
+}
+
+.app-title::main {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-title::icon {
+  width: 28px;
+  height: 28px;
+}
+
+.app-title::label {
+  color: rgb(230, 225, 229);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* ── Navigation Bar ──────────────────────────── */
+
+.nav-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 4px 16px;
+  gap: 4px;
+  background-color: rgb(43, 41, 48);
+}
+
+.nav-btn::main {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 24px;
+  border-radius: 20px;
+  background-color: rgba(0, 0, 0, 0);
+  transition: background-color 0.15s ease-in-out;
+}
+
+.nav-btn::label {
+  color: rgb(202, 196, 208);
+  font-size: 14px;
+  font-weight: 500;
+  text-wrap-mode: nowrap;
+  transition: color 0.15s ease-in-out;
+}
+
+.nav-btn:hover::main {
+  background-color: rgba(208, 188, 255, 0.08);
+}
+
+.nav-btn:hover::label {
+  color: rgb(208, 188, 255);
+}
+
+.nav-btn:selected::main {
+  background-color: rgb(74, 68, 88);
+}
+
+.nav-btn:selected::label {
+  color: rgb(208, 188, 255);
+  font-weight: 700;
+}
+
+/* ── Pages Container ─────────────────────────── */
+
+.pages {
+  flex-grow: 1;
+  padding: 16px;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px;
+}
+
+/* ── Card ────────────────────────────────────── */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background-color: rgb(43, 41, 48);
+  border-radius: 16px;
+  padding: 24px;
+  gap: 12px;
+  box-shadow: 0px 2px 8px 0px rgba(0, 0, 0, 0.3);
+  transition: background-color 0.25s ease-in-out, box-shadow 0.25s ease-in-out;
+}
+
+.card-title {
+  flex-shrink: 0;
+}
+
+.card-title::main {
+  display: inline-flex;
+}
+
+.card-title::label {
+  color: rgb(230, 225, 229);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.card-body {
+  flex-shrink: 0;
+}
+
+.card-body::main {
+  display: inline-flex;
+}
+
+.card-body::label {
+  color: rgb(202, 196, 208);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.card-hint {
+  flex-shrink: 0;
+}
+
+.card-hint::main {
+  display: inline-flex;
+}
+
+.card-hint::label {
+  color: rgba(202, 196, 208, 0.6);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* ── Buttons ─────────────────────────────────── */
+
+.btn-primary::main {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 24px;
+  border-radius: 20px;
+  background-color: rgb(208, 188, 255);
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.btn-primary::label {
+  color: rgb(56, 30, 114);
+  font-size: 14px;
+  font-weight: 600;
+  text-wrap-mode: nowrap;
+}
+
+.btn-primary:hover::main {
+  background-color: rgb(220, 204, 255);
+}
+
+.btn-secondary::main {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 24px;
+  border-radius: 20px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(147, 143, 153);
+  background-color: rgba(0, 0, 0, 0);
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.btn-secondary::label {
+  color: rgb(208, 188, 255);
+  font-size: 14px;
+  font-weight: 600;
+  text-wrap-mode: nowrap;
+}
+
+.btn-secondary:hover::main {
+  background-color: rgba(208, 188, 255, 0.08);
+}
+
+.btn-row {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  padding: 8px 0px 0px 0px;
+}
+
+/* ── Form Controls ───────────────────────────── */
+
+.field-label {
+  flex-shrink: 0;
+}
+
+.field-label::main {
+  display: inline-flex;
+  padding: 4px 0px 0px 0px;
+}
+
+.field-label::label {
+  color: rgb(202, 196, 208);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.text-field::main {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background-color: rgb(54, 52, 59);
+  border-width: 0px 0px 2px 0px;
+  border-style: solid;
+  border-color: rgb(147, 143, 153);
+  cursor: text;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.text-field:focus::main {
+  border-color: rgb(208, 188, 255);
+}
+
+.text-field::label {
+  color: rgb(230, 225, 229);
+  font-size: 14px;
+}
+
+.text-field::cursor {
+  background-color: rgb(208, 188, 255);
+  width: 2px;
+}
+
+.text-field::selected {
+  background-color: rgba(208, 188, 255, 0.3);
+}
+
+.combo {
+  height: 44px;
+  padding: 9px 16px;
+  align-items: center;
+  border-radius: 8px;
+  background-color: rgb(54, 52, 59);
+  border-width: 0px 0px 2px 0px;
+  border-style: solid;
+  border-color: rgb(147, 143, 153);
+  cursor: pointer;
+}
+
+.combo:hover {
+  border-color: rgb(208, 188, 255);
+  box-shadow: 0px 0px 8px 0px rgba(208, 188, 255, 0.15);
+}
+
+.combo::label {
+  color: rgb(230, 225, 229);
+  font-size: 14px;
+}
+
+.combo::indicator {
+  color: rgb(202, 196, 208);
+  font-size: 12px;
+}
+
+/* ── Settings ────────────────────────────────── */
+
+.setting-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0px;
+}
+
+.setting-label {
+  flex-shrink: 0;
+  flex-grow: 1;
+}
+
+.setting-label::main {
+  display: inline-flex;
+}
+
+.setting-label::label {
+  color: rgb(230, 225, 229);
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.setting-switch {
+  flex-shrink: 0;
+}
+
+.setting-switch::main {
+  width: 52px;
+  height: 32px;
+  background-color: rgb(73, 69, 79);
+  border-width: 2px;
+  border-style: solid;
+  border-color: rgb(147, 143, 153);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.setting-switch:selected::main {
+  background-color: rgb(208, 188, 255);
+  border-color: rgb(208, 188, 255);
+}
+
+.setting-switch::knob {
+  width: 24px;
+  height: 24px;
+  margin: 2px 0px 0px 2px;
+  background-color: rgb(147, 143, 153);
+  border-radius: 12px;
+  transition: margin 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+
+.setting-switch:selected::knob {
+  margin: 2px 0px 0px 22px;
+  background-color: rgb(56, 30, 114);
+}
+
+/* ── Combo Dropdown ─────────────────────────── */
+
+.combo-dropdown {
+  max-height: 240px;
+  overflow: auto;
+  padding: 4px;
+  background-color: rgb(54, 52, 60);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(73, 69, 79);
+  border-radius: 12px;
+  box-shadow: 0px 8px 20px 0px rgba(0, 0, 0, 0.4);
+}
+
+.combo-option {
+  padding: 10px 14px;
+  margin: 2px 0px;
+  background-color: rgba(0, 0, 0, 0);
+  border-radius: 8px;
+  transition: background-color 150ms ease-out;
+}
+
+.combo-option:hover {
+  background-color: rgba(208, 188, 255, 0.08);
+}
+
+.combo-option:selected {
+  background-color: rgb(74, 68, 88);
+}
+
+.combo-option::label {
+  color: rgb(230, 225, 229);
+  font-size: 14px;
+}
+
+.combo-option::label:selected {
+  color: rgb(208, 188, 255);
+}
+
+/* ── Context Menu ───────────────────────────── */
+
+.context-menu {
+  width: 180px;
+  padding: 6px;
+  background-color: rgb(54, 52, 60);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(73, 69, 79);
+  border-radius: 8px;
+  box-shadow: 0px 8px 24px 0px rgba(0, 0, 0, 0.45);
+}
+
+.context-menu-item {
+  min-height: 28px;
+  padding: 6px 10px;
+  background-color: rgba(0, 0, 0, 0);
+  border-radius: 6px;
+}
+
+.context-menu-item:hover {
+  background-color: rgba(208, 188, 255, 0.15);
+}
+
+.context-menu-item::label {
+  color: rgb(230, 225, 229);
+  font-size: 13px;
+}

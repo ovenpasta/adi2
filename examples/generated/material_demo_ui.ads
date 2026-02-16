@@ -1,0 +1,49 @@
+--  Auto-generated from XML
+--  Do not edit manually
+
+pragma Ada_2022;
+
+with Adi.Widget.Box;
+with Adi.Widget.Button;
+with Adi.Widget.Button.Options;
+with Adi.Widget.Button.Switch;
+with Adi.Widget.Combo_Box;
+with Adi.Widget.Label;
+with Adi.Widget.Stack;
+with Adi.Widget.Text_Input;
+with Adi.Window;
+
+package Material_Demo_UI is
+
+   type Page is (Home, Forms, Settings);
+
+   package Page_Stack is new Adi.Widget.Stack (Page);
+   package Nav_Options is new Adi.Widget.Button.Options (Page);
+
+   generic
+   package Instance is
+
+      On_Page : Page_Stack.Page_Changed_Callback := null;
+      On_Dark_Mode : Adi.Widget.Button.Toggle_Callback := null;
+
+      Root : Adi.Widget.Box.Box_Widget_Access;
+      App_Title : Adi.Widget.Label.Label_Widget_Access;
+      Nav_Bar : Adi.Widget.Box.Box_Widget_Access;
+      Btn_Home : Adi.Widget.Button.Button_Widget_Access;
+      Btn_Forms : Adi.Widget.Button.Button_Widget_Access;
+      Btn_Settings : Adi.Widget.Button.Button_Widget_Access;
+      Pages : Page_Stack.Stack_Widget_Access;
+      Name_Input : Adi.Widget.Text_Input.Text_Input_Widget_Access;
+      Country_Combo : Adi.Widget.Combo_Box.Combo_Box_Widget_Access;
+      Dark_Switch : Adi.Widget.Button.Switch.Switch_Widget_Access;
+
+      function Build return Adi.Window.Window_Access;
+
+      procedure Tick_Styles (Reloaded : out Boolean;
+                             Success  : out Boolean);
+
+      procedure Set_CSS_File (Path : String; Success : out Boolean);
+
+   end Instance;
+
+end Material_Demo_UI;

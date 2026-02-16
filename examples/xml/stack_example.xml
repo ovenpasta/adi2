@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="examples/css/stack_example.css"/>
+  <link rel="stylesheet" href="examples/css/stack_example_tabs.css"/>
+
+  <style>
+.page-title::main {
+  display: inline-flex;
+}
+
+.page-title::label {
+  color: white;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.page-desc::main {
+  display: inline-flex;
+}
+
+.page-desc::label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.page-title {
+  flex-shrink: 0;
+}
+  </style>
+
+  <enum name="Tab" values="Red, Green, Blue"/>
+
+  <generic name="My_Stack" package="Adi.Widget.Stack" type-param="Tab"/>
+  <generic name="Tab_Options" package="Adi.Widget.Button.Options" type-param="Tab"/>
+
+  <callback name="On_Tab" type="My_Stack.Page_Changed_Callback"/>
+
+  <window title="Stack Example" width="600" height="450">
+    <box id="Root" class="root">
+      <box id="Tab_Bar" class="tab-bar">
+        <button id="Btn_Red"   text="Red"   class="tab-left"/>
+        <button id="Btn_Green" text="Green" class="tab-center"/>
+        <button id="Btn_Blue"  text="Blue"  class="tab-right"/>
+      </box>
+      <stack id="Pages" generic="My_Stack" class="stack">
+        <page key="Red">
+          <component package="Red_Page_UI"/>
+        </page>
+        <page key="Green">
+          <box class="page-green">
+            <label text="Green Page" class="page-title"/>
+            <label text="This is the second page with a natural green background." class="page-desc"/>
+          </box>
+        </page>
+        <page key="Blue">
+          <box class="page-blue">
+            <label text="Blue Page" class="page-title"/>
+            <label text="This is the third page with a deep blue background." class="page-desc"/>
+          </box>
+        </page>
+      </stack>
+    </box>
+  </window>
+
+  <option-group generic="Tab_Options" on-changed="On_Tab">
+    <option value="Red"   button="Btn_Red"/>
+    <option value="Green" button="Btn_Green"/>
+    <option value="Blue"  button="Btn_Blue"/>
+  </option-group>
+</adi>

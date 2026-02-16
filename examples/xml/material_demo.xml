@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="examples/css/material_demo.css"/>
+
+  <enum name="Page" values="Home, Forms, Settings"/>
+  <generic name="Page_Stack" package="Adi.Widget.Stack" type-param="Page"/>
+  <generic name="Nav_Options" package="Adi.Widget.Button.Options" type-param="Page"/>
+  <callback name="On_Page" type="Page_Stack.Page_Changed_Callback"/>
+  <callback name="On_Dark_Mode" type="Adi.Widget.Button.Toggle_Callback"/>
+
+  <window title="Material Demo" width="800" height="600">
+    <box id="Root" class="root">
+      <box class="app-bar">
+        <label id="App_Title" text="Material Demo" class="app-title"/>
+      </box>
+      <box id="Nav_Bar" class="nav-bar">
+        <button id="Btn_Home"     text="Home"     class="nav-btn"/>
+        <button id="Btn_Forms"    text="Forms"    class="nav-btn"/>
+        <button id="Btn_Settings" text="Settings" class="nav-btn"/>
+      </box>
+      <stack id="Pages" generic="Page_Stack" class="pages">
+        <page key="Home">
+          <box class="page">
+            <box class="card">
+              <label text="Welcome" class="card-title"/>
+              <label text="A Material Design 3 demo built with Adi." class="card-body"/>
+              <label text="Edit examples/css/material_demo.css to live-reload." class="card-hint"/>
+              <button text="Get Started" class="btn-primary"/>
+            </box>
+          </box>
+        </page>
+        <page key="Forms">
+          <box class="page">
+            <box class="card">
+              <label text="Form Controls" class="card-title"/>
+              <label text="Name" class="field-label"/>
+              <text-input text="" class="text-field" id="Name_Input"/>
+              <label text="Country" class="field-label"/>
+              <combo-box class="combo" id="Country_Combo">
+                <item text="United States"/>
+                <item text="United Kingdom"/>
+                <item text="Germany"/>
+                <item text="France"/>
+                <item text="Japan"/>
+              </combo-box>
+              <box class="btn-row">
+                <button text="Submit" class="btn-primary"/>
+                <button text="Cancel" class="btn-secondary"/>
+              </box>
+            </box>
+          </box>
+        </page>
+        <page key="Settings">
+          <box class="page">
+            <box class="card">
+              <label text="Settings" class="card-title"/>
+              <box class="setting-row">
+                <label text="Dark Mode" class="setting-label"/>
+                <switch id="Dark_Switch" checked="true" class="setting-switch" on-toggled="On_Dark_Mode"/>
+              </box>
+              <box class="setting-row">
+                <label text="Notifications" class="setting-label"/>
+                <switch checked="true" class="setting-switch"/>
+              </box>
+              <box class="setting-row">
+                <label text="Auto-save" class="setting-label"/>
+                <switch checked="true" class="setting-switch"/>
+              </box>
+            </box>
+          </box>
+        </page>
+      </stack>
+    </box>
+  </window>
+
+  <option-group generic="Nav_Options" on-changed="On_Page">
+    <option value="Home"     button="Btn_Home"/>
+    <option value="Forms"    button="Btn_Forms"/>
+    <option value="Settings" button="Btn_Settings"/>
+  </option-group>
+</adi>

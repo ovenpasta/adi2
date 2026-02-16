@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="examples/css/stack_example.css"/>
+
+  <style>
+.page-title::main {
+  display: inline-flex;
+}
+
+.page-title::label {
+  color: white;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.page-desc::main {
+  display: inline-flex;
+}
+
+.page-desc::label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.page-title {
+  flex-shrink: 0;
+}
+  </style>
+
+  <box class="page-red">
+    <label text="Red Page" class="page-title"/>
+    <label text="This is the first page with a warm red background." class="page-desc"/>
+  </box>
+</adi>

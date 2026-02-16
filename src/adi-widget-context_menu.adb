@@ -33,6 +33,9 @@ package body Adi.Widget.Context_Menu is
 
    Menu_Bindings : Menu_Binding_Vectors.Vector;
 
+   Default_Menu_Styles : Part_Style_Holders.Holder;
+   Default_Item_Styles : Part_Style_Holders.Holder;
+
    function Find_Owner
      (Popup : Popup_Lists.List_Box_Widget_Access) return Context_Menu_Access
    is
@@ -272,6 +275,11 @@ package body Adi.Widget.Context_Menu is
       Set_Flag (Dismiss.all, Focusable, False);
 
       Register_Binding (Result.Popup, Dismiss, Result);
+
+      if not Default_Menu_Styles.Is_Empty then
+         Set_Part_Styles (Result.Popup.all, Default_Menu_Styles.Element);
+      end if;
+
       return Result;
    end Create;
 
@@ -290,8 +298,10 @@ package body Adi.Widget.Context_Menu is
       Row : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create (Text);
    begin
-      if Menu.Has_Row_Styles then
-         Set_Part_Styles (Row.all, Menu.Row_Styles);
+      if not Menu.Row_Styles.Is_Empty then
+         Set_Part_Styles (Row.all, Menu.Row_Styles.Element);
+      elsif not Default_Item_Styles.Is_Empty then
+         Set_Part_Styles (Row.all, Default_Item_Styles.Element);
       end if;
 
       Menu.Items.Append (To_Unbounded_String (Text));
@@ -337,8 +347,7 @@ package body Adi.Widget.Context_Menu is
       Styles : Adi.Widget.Part_Style_Array)
    is
    begin
-      Menu.Row_Styles := Styles;
-      Menu.Has_Row_Styles := True;
+      Menu.Row_Styles := Part_Style_Holders.To_Holder (Styles);
 
       if Menu.Popup /= null then
          for I in 1 .. Popup_Lists.Row_Count (Menu.Popup.all) loop
@@ -414,5 +423,25 @@ package body Adi.Widget.Context_Menu is
    begin
       return Menu.Open;
    end Is_Shown;
+
+   procedure Set_Default_Menu_Styles (Styles : Adi.Widget.Part_Style_Array) is
+   begin
+      Default_Menu_Styles := Part_Style_Holders.To_Holder (Styles);
+   end Set_Default_Menu_Styles;
+
+   procedure Set_Default_Item_Styles (Styles : Adi.Widget.Part_Style_Array) is
+   begin
+      Default_Item_Styles := Part_Style_Holders.To_Holder (Styles);
+   end Set_Default_Item_Styles;
+
+   function Has_Default_Menu_Styles return Boolean is
+   begin
+      return not Default_Menu_Styles.Is_Empty;
+   end Has_Default_Menu_Styles;
+
+   function Has_Default_Item_Styles return Boolean is
+   begin
+      return not Default_Item_Styles.Is_Empty;
+   end Has_Default_Item_Styles;
 
 end Adi.Widget.Context_Menu;

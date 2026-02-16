@@ -1,3 +1,4 @@
+with Ada.Containers.Indefinite_Holders;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 with Adi.Core;              use Adi.Core;
@@ -39,6 +40,13 @@ package Adi.Widget.Context_Menu is
      (Menu   : in out Context_Menu;
       Styles : Adi.Widget.Part_Style_Array);
 
+   --  Package-level defaults — apply to all context menus that don't have
+   --  per-instance styles set via Set_Menu_Part_Styles / Set_Item_Part_Styles.
+   procedure Set_Default_Menu_Styles (Styles : Adi.Widget.Part_Style_Array);
+   procedure Set_Default_Item_Styles (Styles : Adi.Widget.Part_Style_Array);
+   function Has_Default_Menu_Styles return Boolean;
+   function Has_Default_Item_Styles return Boolean;
+
    procedure Show_At
      (Menu      : in out Context_Menu;
       X, Y      : Pixel_Type;
@@ -50,6 +58,9 @@ private
    package String_Vectors is new Ada.Containers.Vectors
      (Positive, Ada.Strings.Unbounded.Unbounded_String);
 
+   package Part_Style_Holders is new Ada.Containers.Indefinite_Holders
+     (Adi.Widget.Part_Style_Array);
+
    package Popup_Lists is new Adi.Widget.List_Box
      (Adi.Widget.Label.Label_Widget,
       Adi.Widget.Label.Label_Widget_Access);
@@ -58,8 +69,7 @@ private
       Host_Window : Adi.Window.Window_Access := null;
       Popup       : Popup_Lists.List_Box_Widget_Access := null;
       Items       : String_Vectors.Vector;
-      Row_Styles  : Adi.Widget.Part_Style_Array := Adi.Widget.Empty_Part_Styles;
-      Has_Row_Styles : Boolean := False;
+      Row_Styles  : Part_Style_Holders.Holder;
       Open        : Boolean := False;
       On_Selected : Item_Selected_Callback := null;
    end record;

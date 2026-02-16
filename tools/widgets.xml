@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Widget grammar for xml_to_ada.py
+
+  Each <widget> defines how a tag in the input XML maps to Ada code:
+    tag            - XML element name
+    generic        - "true" if access type resolves via generic instance
+    children-mode  - "pages" for Add_Page wiring, default is Add_Child
+
+  Sub-elements:
+    <package>      - Ada package name
+    <access-type>  - Ada access type (short name, qualified automatically)
+    <create>       - Template for Create expression ({package}, {text}, etc.)
+    <attribute>    - Widget-specific attribute from input XML
+      name         - XML attribute name
+      type         - "string", "bool", or "callback"
+      create-param - "true" if used in the <create> template
+      default      - Default value for create-param bools
+      setter       - Ada setter procedure name
+      setter-style - "flag" means call with no arguments
+      meta         - "true" means script-internal, not emitted as Ada
+-->
+<widgets>
+
+  <widget tag="box">
+    <package>Adi.Widget.Box</package>
+    <access-type>Box_Widget_Access</access-type>
+    <create>{package}.Create</create>
+  </widget>
+
+  <widget tag="label">
+    <package>Adi.Widget.Label</package>
+    <access-type>Label_Widget_Access</access-type>
+    <create>{package}.Create ("{text}")</create>
+    <attribute name="text" type="string" create-param="true"/>
+  </widget>
+
+  <widget tag="button">
+    <package>Adi.Widget.Button</package>
+    <access-type>Button_Widget_Access</access-type>
+    <create>{package}.Create ("{text}")</create>
+    <attribute name="text" type="string" create-param="true"/>
+    <attribute name="toggleable" type="bool" setter="Set_Toggleable" setter-style="flag"/>
+    <attribute name="on-clicked" type="callback" setter="Set_On_Clicked"/>
+    <attribute name="on-toggled" type="callback" setter="Set_On_Toggled"/>
+  </widget>
+
+  <widget tag="switch">
+    <package>Adi.Widget.Button.Switch</package>
+    <access-type>Switch_Widget_Access</access-type>
+    <create>{package}.Create ({checked})</create>
+    <attribute name="checked" type="bool" create-param="true" default="False"/>
+    <attribute name="on-toggled" type="callback" setter="Set_On_Toggled"/>
+  </widget>
+
+  <widget tag="stack" generic="true" children-mode="pages">
+    <package>Adi.Widget.Stack</package>
+    <access-type>Stack_Widget_Access</access-type>
+    <create>{generic_name}.Create</create>
+    <attribute name="generic" type="string" required="true" meta="true"/>
+    <attribute name="on-changed" type="callback" setter="Set_On_Changed"/>
+  </widget>
+
+  <widget tag="text-input">
+    <package>Adi.Widget.Text_Input</package>
+    <access-type>Text_Input_Widget_Access</access-type>
+    <create>{package}.Create ("{text}")</create>
+    <attribute name="text" type="string" create-param="true"/>
+    <attribute name="on-changed" type="callback" setter="Set_On_Changed"/>
+  </widget>
+
+  <widget tag="text-editor">
+    <package>Adi.Widget.Text_Editor</package>
+    <access-type>Text_Editor_Widget_Access</access-type>
+    <create>{package}.Create ("{text}")</create>
+    <attribute name="text" type="string" create-param="true"/>
+    <attribute name="on-changed" type="callback" setter="Set_On_Changed"/>
+  </widget>
+
+  <widget tag="combo-box" children-mode="items">
+    <package>Adi.Widget.Combo_Box</package>
+    <access-type>Combo_Box_Widget_Access</access-type>
+    <create>{package}.Create</create>
+    <attribute name="on-selection-changed" type="callback" setter="Set_On_Selection_Changed"/>
+  </widget>
+
+  <widget tag="animated-image">
+    <package>Adi.Widget.Animated_Image</package>
+    <access-type>Animated_Image_Widget_Access</access-type>
+    <create>{package}.Create</create>
+    <attribute name="looping" type="bool" setter="Set_Looping" setter-style="flag"/>
+  </widget>
+
+  <widget tag="animated-widget">
+    <package>Adi.Widget.Animated_Widget</package>
+    <access-type>Animated_Widget_Access</access-type>
+    <create>{package}.Create</create>
+    <attribute name="looping" type="bool" setter="Set_Looping" setter-style="flag"/>
+  </widget>
+
+  <widget tag="rlottie">
+    <package>Adi.Widget.RLottie</package>
+    <access-type>RLottie_Widget_Access</access-type>
+    <create>{package}.Create</create>
+    <attribute name="looping" type="bool" setter="Set_Looping" setter-style="flag"/>
+  </widget>
+
+  <widget tag="html-view">
+    <package>Adi.Widget.Html_View</package>
+    <access-type>Html_View_Access</access-type>
+    <create>{package}.Create</create>
+  </widget>
+
+  <widget tag="list-box" generic="true" children-mode="rows">
+    <package>Adi.Widget.List_Box</package>
+    <access-type>List_Box_Widget_Access</access-type>
+    <create>{generic_name}.Create</create>
+    <attribute name="generic" type="string" required="true" meta="true"/>
+    <attribute name="on-item-clicked" type="callback" setter="Set_On_Item_Clicked"/>
+    <attribute name="on-item-activated" type="callback" setter="Set_On_Item_Activated"/>
+    <attribute name="on-selection-changed" type="callback" setter="Set_On_Selection_Changed"/>
+  </widget>
+
+</widgets>

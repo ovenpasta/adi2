@@ -26,6 +26,10 @@ command = ["bash", "tools/generate_example_styles.sh"]
 
 [[actions]]
 type = "post-build"
+command = ["bash", "tools/generate_example_ui.sh"]
+
+[[actions]]
+type = "post-build"
 command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=label_example"]
 
 [[actions]]
@@ -83,6 +87,10 @@ command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=animated_i
 [[actions]]
 type = "post-build"
 command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=html_view_example"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=material_demo"]
 
 [build-switches]
 "*".style_checks = "No"

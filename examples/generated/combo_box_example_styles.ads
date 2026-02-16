@@ -72,6 +72,7 @@ package Combo_Box_Example_Styles is
    --  Base style for class 'combo'
    Combo_Class_Base_Style : constant Style_Rules := (
       Height => Set (Size (Px (40.0))),
+      Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (248, 250, 252)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),

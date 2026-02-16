@@ -280,7 +280,8 @@ project Examples_Build is
       "runtime_css_example",
       "animated_image_example",
       "rlottie_example",
-      "html_view_example");
+      "html_view_example",
+      "material_demo");
    Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");
 
    for Source_Dirs use ("${SOURCE_DIR}/examples", "${SOURCE_DIR}/examples/generated");
@@ -346,6 +347,9 @@ fi
 echo "[build_all] generate CSS Ada packages"
 bash "\${SOURCE_DIR}/tools/generate_example_styles.sh"
 
+echo "[build_all] generate XML Ada packages"
+bash "\${SOURCE_DIR}/tools/generate_example_ui.sh"
+
 echo "[build_all] build library"
 gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}" -XADI_SVG_BACKEND="\${SVG_BACKEND}"
 
@@ -386,6 +390,7 @@ EXAMPLE_KINDS=(
   animated_image_example
   rlottie_example
   html_view_example
+  material_demo
 )
 
 for kind in "\${EXAMPLE_KINDS[@]}"; do

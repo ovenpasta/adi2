@@ -39,6 +39,7 @@
 .combo {
   height: 40px;
   padding: 9px 10px;
+  align-items: center;
   background-color: rgb(248, 250, 252);
   border-width: 1px;
   border-style: solid;

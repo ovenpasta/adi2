@@ -7,6 +7,7 @@
   <generic name="Nav_Options" package="Adi.Widget.Button.Options" type-param="Page"/>
   <callback name="On_Page" type="Page_Stack.Page_Changed_Callback"/>
   <callback name="On_Dark_Mode" type="Adi.Widget.Button.Toggle_Callback"/>
+  <callback name="On_Get_Started" type="Adi.Widget.Button.Click_Callback"/>
 
   <window title="Material Demo" width="800" height="600">
     <box id="Root" class="root">
@@ -25,7 +26,7 @@
               <label text="Welcome" class="label-inline card-title"/>
               <label text="A Material Design 3 demo built with Adi." class="label-inline card-body"/>
               <label text="Edit examples/css/material_demo.css to live-reload." class="label-inline card-hint"/>
-              <button text="Get Started" class="btn btn-primary"/>
+              <button text="Get Started" class="btn btn-primary" on-clicked="On_Get_Started"/>
             </box>
           </box>
         </page>
@@ -73,7 +74,7 @@
     </box>
   </window>
 
-  <option-group generic="Nav_Options" on-changed="On_Page">
+  <option-group id="Nav" generic="Nav_Options" on-changed="On_Page">
     <option value="Home"     button="Btn_Home"/>
     <option value="Forms"    button="Btn_Forms"/>
     <option value="Settings" button="Btn_Settings"/>

@@ -440,6 +440,97 @@ package Material_Demo_Styles is
       others => <>
    );
 
+   --  Base style for class 'dialog-backdrop'
+   Dialog_Backdrop_Class_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGBA (0, 0, 0, 0.5)),
+      others => <>
+   );
+
+   --  Base style for class 'dialog-panel'
+   Dialog_Panel_Class_Base_Style : constant Style_Rules := (
+      Display => Set (Flex),
+      Flex_Direction => Set (Column),
+      Gap => Set (Gap (Px (16.0))),
+      Min_Width => Set (Size (Px (320.0))),
+      Max_Width => Set (Size (Px (460.0))),
+      Background_Color => Set_Bg (RGB (48, 45, 56)),
+      Border_Radius => Set (Radius (Px (28.0))),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (32.0), Px (0.0), RGBA (0, 0, 0, 0.5))),
+      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
+      others => <>
+   );
+
+   --  Base style for class 'dialog-title'
+   Dialog_Title_Class_Base_Style : constant Style_Rules := (
+      Flex_Shrink => Set (0.0),
+      others => <>
+   );
+
+   --  Base style for class 'dialog-title'::label
+   Dialog_Title_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (230, 225, 229)),
+      Font_Size => Set_Font (Px (24.0)),
+      Font_Weight => Set (Weight_Semi_Bold),
+      others => <>
+   );
+
+   --  Base style for class 'dialog-message'::label
+   Dialog_Message_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (202, 196, 208)),
+      Font_Size => Set_Font (Px (14.0)),
+      Text_Wrap_Mode => Set (TWM_Wrap),
+      others => <>
+   );
+
+   --  Base style for class 'dialog-btn-row'
+   Dialog_Btn_Row_Class_Base_Style : constant Style_Rules := (
+      Display => Set (Flex),
+      Flex_Direction => Set (Row),
+      Justify_Content => Set (Flex_End),
+      Gap => Set (Gap (Px (8.0))),
+      Padding => Set (CSS_Box (Px (8.0), Px (0.0), Px (0.0), Px (0.0))),
+      others => <>
+   );
+
+   --  Base style for class 'dialog-btn'
+   Dialog_Btn_Class_Base_Style : constant Style_Rules := (
+      Display => Set (Inline_Flex),
+      Justify_Content => Set (Center),
+      Align_Items => Set (Center),
+      Border_Radius => Set (Radius (Px (20.0))),
+      Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
+      Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (10.0), Px (24.0), Px (10.0), Px (24.0))),
+      others => <>
+   );
+
+   --  Style for class 'dialog-btn' when widget State_Hovered
+   Dialog_Btn_Class_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.08)),
+      others => <>
+   );
+
+   --  Style for class 'dialog-btn' when widget State_Pressed
+   Dialog_Btn_Class_Widget_Pressed_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.12)),
+      others => <>
+   );
+
+   --  Style for class 'dialog-btn' when widget State_Focused
+   Dialog_Btn_Class_Widget_Focused_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.12)),
+      others => <>
+   );
+
+   --  Base style for class 'dialog-btn'::label
+   Dialog_Btn_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (208, 188, 255)),
+      Font_Size => Set_Font (Px (14.0)),
+      Font_Weight => Set (Weight_Semi_Bold),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
+      others => <>
+   );
+
    --  Base style for class 'context-menu'
    Context_Menu_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (180.0))),
@@ -839,6 +930,87 @@ package Material_Demo_Styles is
    Combo_Option_Class_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Combo_Option_Class_Widget, Enabled => True),
       Label_Part => (Style => Combo_Option_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'dialog-backdrop'
+   Dialog_Backdrop_Class_Widget : constant Widget_Style :=
+     From (Dialog_Backdrop_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'dialog-backdrop'
+   Dialog_Backdrop_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Dialog_Backdrop_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'dialog-panel'
+   Dialog_Panel_Class_Widget : constant Widget_Style :=
+     From (Dialog_Panel_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'dialog-panel'
+   Dialog_Panel_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Dialog_Panel_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'dialog-title'
+   Dialog_Title_Class_Widget : constant Widget_Style :=
+     From (Dialog_Title_Class_Base_Style)
+     .Build;
+
+   --  Complete widget style for class 'dialog-title'::label
+   Dialog_Title_Class_Label_Widget : constant Widget_Style :=
+     From (Dialog_Title_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'dialog-title'
+   Dialog_Title_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Dialog_Title_Class_Widget, Enabled => True),
+      Label_Part => (Style => Dialog_Title_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'dialog-message'::label
+   Dialog_Message_Class_Label_Widget : constant Widget_Style :=
+     From (Dialog_Message_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'dialog-message'
+   Dialog_Message_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Dialog_Message_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'dialog-btn-row'
+   Dialog_Btn_Row_Class_Widget : constant Widget_Style :=
+     From (Dialog_Btn_Row_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'dialog-btn-row'
+   Dialog_Btn_Row_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Dialog_Btn_Row_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'dialog-btn'
+   Dialog_Btn_Class_Widget : constant Widget_Style :=
+     From (Dialog_Btn_Class_Base_Style)
+     .On (When_State (State_Hovered), Dialog_Btn_Class_Widget_Hovered_Style)
+     .On (When_State (State_Pressed), Dialog_Btn_Class_Widget_Pressed_Style)
+     .On (When_State (State_Focused), Dialog_Btn_Class_Widget_Focused_Style)
+     .Build;
+
+   --  Complete widget style for class 'dialog-btn'::label
+   Dialog_Btn_Class_Label_Widget : constant Widget_Style :=
+     From (Dialog_Btn_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'dialog-btn'
+   Dialog_Btn_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Dialog_Btn_Class_Widget, Enabled => True),
+      Label_Part => (Style => Dialog_Btn_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 

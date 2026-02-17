@@ -6,6 +6,12 @@ with Adi.Widget.Button;     use Adi.Widget.Button;
 
 package body Adi.Widget.Dialog is
 
+   Default_Panel_Styles      : Part_Style_Holders.Holder;
+   Default_Title_Styles      : Part_Style_Holders.Holder;
+   Default_Message_Styles    : Part_Style_Holders.Holder;
+   Default_Button_Row_Styles : Part_Style_Holders.Holder;
+   Default_Button_Styles     : Part_Style_Holders.Holder;
+
    ---------------------------------------------------------------------------
    --  Internal: Dialog_Button_Widget extends Button to forward Escape
    ---------------------------------------------------------------------------
@@ -175,6 +181,24 @@ package body Adi.Widget.Dialog is
       --  traverses and draws title/message/buttons above the backdrop.
       Add_Child (Result.all, Widget_Access (Result.Content_Panel));
 
+      --  Apply package-level default styles if set
+      if not Default_Panel_Styles.Is_Empty then
+         Set_Part_Styles (Result.Content_Panel.all, Default_Panel_Styles.Element);
+      end if;
+      if not Default_Title_Styles.Is_Empty then
+         Set_Part_Styles (Result.Title_Label.all, Default_Title_Styles.Element);
+      end if;
+      if not Default_Message_Styles.Is_Empty then
+         Set_Part_Styles (Result.Message_Label.all, Default_Message_Styles.Element);
+      end if;
+      if not Default_Button_Row_Styles.Is_Empty then
+         Set_Part_Styles (Result.Button_Row.all, Default_Button_Row_Styles.Element);
+      end if;
+      if not Default_Button_Styles.Is_Empty then
+         Result.Button_Styles := Default_Button_Styles.Element;
+         Result.Has_Button_Styles := True;
+      end if;
+
       return Result;
    end Create;
 
@@ -229,6 +253,8 @@ package body Adi.Widget.Dialog is
 
       if W.Has_Button_Styles then
          Set_Part_Styles (Btn.all, W.Button_Styles);
+      elsif not Default_Button_Styles.Is_Empty then
+         Set_Part_Styles (Btn.all, Default_Button_Styles.Element);
       end if;
 
       Register_Button_Binding (Btn_As_Widget, W'Unchecked_Access);
@@ -411,6 +437,35 @@ package body Adi.Widget.Dialog is
          end if;
       end loop;
    end Set_Button_Style;
+
+   ---------------------------------------------------------------------------
+   --  Package-level default style setters
+   ---------------------------------------------------------------------------
+
+   procedure Set_Default_Panel_Style (S : Part_Style_Array) is
+   begin
+      Default_Panel_Styles := Part_Style_Holders.To_Holder (S);
+   end Set_Default_Panel_Style;
+
+   procedure Set_Default_Title_Style (S : Part_Style_Array) is
+   begin
+      Default_Title_Styles := Part_Style_Holders.To_Holder (S);
+   end Set_Default_Title_Style;
+
+   procedure Set_Default_Message_Style (S : Part_Style_Array) is
+   begin
+      Default_Message_Styles := Part_Style_Holders.To_Holder (S);
+   end Set_Default_Message_Style;
+
+   procedure Set_Default_Button_Row_Style (S : Part_Style_Array) is
+   begin
+      Default_Button_Row_Styles := Part_Style_Holders.To_Holder (S);
+   end Set_Default_Button_Row_Style;
+
+   procedure Set_Default_Button_Style (S : Part_Style_Array) is
+   begin
+      Default_Button_Styles := Part_Style_Holders.To_Holder (S);
+   end Set_Default_Button_Style;
 
    ---------------------------------------------------------------------------
    --  Build_Items: backdrop panel

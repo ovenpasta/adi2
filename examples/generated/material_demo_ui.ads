@@ -25,6 +25,7 @@ package Material_Demo_UI is
 
       On_Page : Page_Stack.Page_Changed_Callback := null;
       On_Dark_Mode : Adi.Widget.Button.Toggle_Callback := null;
+      On_Get_Started : Adi.Widget.Button.Click_Callback := null;
 
       Root : Adi.Widget.Box.Box_Widget_Access;
       App_Title : Adi.Widget.Label.Label_Widget_Access;
@@ -36,6 +37,8 @@ package Material_Demo_UI is
       Name_Input : Adi.Widget.Text_Input.Text_Input_Widget_Access;
       Country_Combo : Adi.Widget.Combo_Box.Combo_Box_Widget_Access;
       Dark_Switch : Adi.Widget.Button.Switch.Switch_Widget_Access;
+
+      Nav_Options_Group : aliased Nav_Options.Option_Group;
 
       function Build return Adi.Window.Window_Access;
 

@@ -382,6 +382,77 @@
   color: rgb(103, 80, 164);
 }
 
+/* ── Dialog ─────────────────────────────────── */
+
+.dialog-backdrop {
+  background-color: rgba(0, 0, 0, 0.32);
+}
+
+.dialog-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 320px;
+  max-width: 460px;
+  padding: 24px;
+  background-color: rgb(238, 232, 244);
+  border-radius: 28px;
+  box-shadow: 0px 8px 32px 0px rgba(0, 0, 0, 0.18);
+}
+
+.dialog-title {
+  flex-shrink: 0;
+}
+
+.dialog-title::label {
+  color: rgb(28, 27, 31);
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.dialog-message::label {
+  color: rgb(73, 69, 79);
+  font-size: 14px;
+  text-wrap-mode: wrap;
+}
+
+.dialog-btn-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 0px 0px 0px;
+}
+
+.dialog-btn::main {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 24px;
+  border-radius: 20px;
+  background-color: rgba(0, 0, 0, 0);
+  transition: background-color 0.15s ease-in-out;
+}
+
+.dialog-btn::label {
+  color: rgb(103, 80, 164);
+  font-size: 14px;
+  font-weight: 600;
+  text-wrap-mode: nowrap;
+}
+
+.dialog-btn:hover::main {
+  background-color: rgba(103, 80, 164, 0.08);
+}
+
+.dialog-btn:pressed::main {
+  background-color: rgba(103, 80, 164, 0.12);
+}
+
+.dialog-btn:focus::main {
+  background-color: rgba(103, 80, 164, 0.12);
+}
+
 /* ── Context Menu ───────────────────────────── */
 
 .context-menu {

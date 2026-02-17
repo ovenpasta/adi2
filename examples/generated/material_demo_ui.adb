@@ -14,7 +14,7 @@ package body Material_Demo_UI is
    Source : aliased Adi.CSS_Source.Style_Source;
    use type Page_Stack.Page_Changed_Callback;
    use type Adi.Widget.Button.Toggle_Callback;
-   Nav_Options_Group : aliased Nav_Options.Option_Group;
+   use type Adi.Widget.Button.Click_Callback;
 
    procedure On_Page_Option_Wrapper (Value : Page) is
    begin
@@ -89,6 +89,9 @@ package body Material_Demo_UI is
       Dark_Switch := Adi.Widget.Button.Switch.Create (True);
 
       --  Wire callbacks
+      if On_Get_Started /= null then
+         Button_1.Set_On_Clicked (On_Get_Started);
+      end if;
       if On_Dark_Mode /= null then
          Dark_Switch.Set_On_Toggled (On_Dark_Mode);
       end if;

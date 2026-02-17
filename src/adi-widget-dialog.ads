@@ -1,3 +1,4 @@
+with Ada.Containers.Indefinite_Holders;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 with Adi.SDL.Events;
@@ -63,6 +64,14 @@ package Adi.Widget.Dialog is
    procedure Set_Button_Style
      (W : in out Dialog_Widget; S : Part_Style_Array);
 
+   --  Package-level defaults — apply to all dialogs that don't have
+   --  per-instance styles set.
+   procedure Set_Default_Panel_Style      (S : Part_Style_Array);
+   procedure Set_Default_Title_Style      (S : Part_Style_Array);
+   procedure Set_Default_Message_Style    (S : Part_Style_Array);
+   procedure Set_Default_Button_Row_Style (S : Part_Style_Array);
+   procedure Set_Default_Button_Style     (S : Part_Style_Array);
+
    --  Abstract method implementations
    overriding procedure Build_Items (W : in out Dialog_Widget);
    overriding procedure Layout (W : in out Dialog_Widget);
@@ -78,6 +87,9 @@ package Adi.Widget.Dialog is
       Repeat   : Boolean);
 
 private
+
+   package Part_Style_Holders is new Ada.Containers.Indefinite_Holders
+     (Part_Style_Array);
 
    type Button_Info is record
       Text   : Ada.Strings.Unbounded.Unbounded_String;

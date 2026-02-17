@@ -112,15 +112,17 @@ begin
       Container.Add_Child (Confirm_Btn);
       Container.Add_Child (Status_Label);
 
+      --  Set package-level default styles for all dialogs
+      Set_Default_Panel_Style (Panel_Class_Part_Styles);
+      Set_Default_Title_Style (Dialog_Title_Class_Part_Styles);
+      Set_Default_Message_Style (Dialog_Message_Class_Part_Styles);
+      Set_Default_Button_Row_Style (Button_Row_Class_Part_Styles);
+      Set_Default_Button_Style (Dialog_Btn_Class_Part_Styles);
+
       --  Create alert dialog
       Alert_Dialog := Adi.Widget.Dialog.Create;
       Attach_Window (Alert_Dialog.all, W);
       Set_Part_Styles (Alert_Dialog.all, Backdrop_Class_Part_Styles);
-      Set_Panel_Style (Alert_Dialog.all, Panel_Class_Part_Styles);
-      Set_Title_Style (Alert_Dialog.all, Dialog_Title_Class_Part_Styles);
-      Set_Message_Style (Alert_Dialog.all, Dialog_Message_Class_Part_Styles);
-      Set_Button_Row_Style (Alert_Dialog.all, Button_Row_Class_Part_Styles);
-      Set_Button_Style (Alert_Dialog.all, Dialog_Btn_Class_Part_Styles);
       Set_Title (Alert_Dialog.all, "Information");
       Set_Message (Alert_Dialog.all,
                    "This is a simple alert dialog with a single OK button. "
@@ -132,11 +134,6 @@ begin
       Confirm_Dialog := Adi.Widget.Dialog.Create;
       Attach_Window (Confirm_Dialog.all, W);
       Set_Part_Styles (Confirm_Dialog.all, Backdrop_Class_Part_Styles);
-      Set_Panel_Style (Confirm_Dialog.all, Panel_Class_Part_Styles);
-      Set_Title_Style (Confirm_Dialog.all, Dialog_Title_Class_Part_Styles);
-      Set_Message_Style (Confirm_Dialog.all, Dialog_Message_Class_Part_Styles);
-      Set_Button_Row_Style (Confirm_Dialog.all, Button_Row_Class_Part_Styles);
-      Set_Button_Style (Confirm_Dialog.all, Dialog_Btn_Class_Part_Styles);
       Set_Title (Confirm_Dialog.all, "Confirm Action");
       Set_Message (Confirm_Dialog.all,
                    "Are you sure you want to proceed? "

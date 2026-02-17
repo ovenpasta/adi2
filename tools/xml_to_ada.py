@@ -87,6 +87,7 @@ class XmlOption:
 class XmlOptionGroup:
     generic_name: str
     on_changed: str
+    id: str = ""
     options: list[XmlOption] = field(default_factory=list)
 
 
@@ -379,6 +380,7 @@ class Parser:
         return XmlOptionGroup(
             generic_name=elem.get("generic"),
             on_changed=elem.get("on-changed", ""),
+            id=elem.get("id", ""),
             options=options,
         )
 
@@ -550,6 +552,16 @@ def generate_spec(app: XmlApp, package_name: str) -> str:
     if exported:
         lines.append("")
 
+    # Exported option group variables (inside Instance)
+    exported_ogs = [og for og in app.option_groups if og.id]
+    for og in exported_ogs:
+        group_var = f"{og.generic_name}_Group"
+        lines.append(
+            f"      {group_var} : aliased {og.generic_name}.Option_Group;"
+        )
+    if exported_ogs:
+        lines.append("")
+
     # Component nested instances (inside Instance)
     for comp_pkg in app.component_packages:
         inst_name = component_instance_name(comp_pkg)
@@ -706,12 +718,13 @@ def generate_body(app: XmlApp, package_name: str) -> str:
     for cb in app.callbacks:
         lines.append(f"   use type {cb.cb_type};")
 
-    # Package-level option group variables
+    # Package-level option group variables (only those without id, others are in spec)
     for og in app.option_groups:
-        group_var = f"{og.generic_name}_Group"
-        lines.append(
-            f"   {group_var} : aliased {og.generic_name}.Option_Group;"
-        )
+        if not og.id:
+            group_var = f"{og.generic_name}_Group"
+            lines.append(
+                f"   {group_var} : aliased {og.generic_name}.Option_Group;"
+            )
 
     # Wrapper procedures for option group callbacks
     for og in app.option_groups:

@@ -21,7 +21,7 @@ package body Adi.CSS_Source is
    function Normalize_Name (Name : String) return String is
      (Char.To_Lower (Fix.Trim (Name, Ada.Strings.Both)));
 
-   type Binding_Kind is (Single_Binding, Selector_Set_Binding);
+   type Binding_Kind is (Single_Binding, Multi_Class_Binding, Selector_Set_Binding);
 
    type Bound_Target is record
       Kind         : Binding_Kind := Single_Binding;
@@ -191,6 +191,41 @@ package body Adi.CSS_Source is
       Set_Part_Styles (W, Combined_Styles (Source, Tag_Name, Class_Name, Id_Name));
    end Apply_Selector_Set_To_Widget;
 
+   function Multi_Class_Styles (Source : Style_Source;
+                                Names  : String) return Part_Style_Array is
+      Result : Part_Style_Array := Empty_Part_Styles;
+      First  : Positive := Names'First;
+      Last   : Natural;
+   begin
+      while First <= Names'Last loop
+         --  Skip leading spaces
+         while First <= Names'Last and then Names (First) = ' ' loop
+            First := First + 1;
+         end loop;
+         exit when First > Names'Last;
+
+         --  Find end of token
+         Last := First;
+         while Last < Names'Last and then Names (Last + 1) /= ' ' loop
+            Last := Last + 1;
+         end loop;
+
+         Result := Merge_Part_Styles (
+           Result,
+           Selector_Styles (Source, Adi.CSS_Parser.Class_Selector,
+                            Names (First .. Last)));
+         First := Last + 1;
+      end loop;
+      return Result;
+   end Multi_Class_Styles;
+
+   procedure Apply_Multi_Classes (Source : Style_Source;
+                                  Names  : String;
+                                  W      : in out Adi.Widget.Widget'Class) is
+   begin
+      Set_Part_Styles (W, Multi_Class_Styles (Source, Names));
+   end Apply_Multi_Classes;
+
    procedure Reapply_Bindings (Source : in out Style_Source) is
    begin
       if Source.Impl = null then
@@ -202,20 +237,26 @@ package body Adi.CSS_Source is
             B : constant Bound_Target := Source.Impl.Bindings (I);
          begin
             if B.Target /= null then
-               if B.Kind = Single_Binding then
-                  Apply_To_Widget (
-                    Source,
-                    B.Selector_Kind,
-                    To_String (B.Name),
-                    B.Target.all);
-               else
-                  Apply_Selector_Set_To_Widget (
-                    Source,
-                    B.Target.all,
-                    To_String (B.Tag_Name),
-                    To_String (B.Class_Name),
-                    To_String (B.Id_Name));
-               end if;
+               case B.Kind is
+                  when Single_Binding =>
+                     Apply_To_Widget (
+                       Source,
+                       B.Selector_Kind,
+                       To_String (B.Name),
+                       B.Target.all);
+                  when Multi_Class_Binding =>
+                     Apply_Multi_Classes (
+                       Source,
+                       To_String (B.Name),
+                       B.Target.all);
+                  when Selector_Set_Binding =>
+                     Apply_Selector_Set_To_Widget (
+                       Source,
+                       B.Target.all,
+                       To_String (B.Tag_Name),
+                       To_String (B.Class_Name),
+                       To_String (B.Id_Name));
+               end case;
             end if;
          end;
       end loop;
@@ -551,11 +592,39 @@ package body Adi.CSS_Source is
       Apply_To_Widget (Source, Kind, Name, W.all);
    end Bind;
 
+   function Has_Space (S : String) return Boolean is
+   begin
+      for C of S loop
+         if C = ' ' then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Has_Space;
+
    procedure Bind_Class (Source : in out Style_Source;
                          Name   : String;
                          W      : access Adi.Widget.Widget'Class) is
    begin
-      Bind (Source, Adi.CSS_Parser.Class_Selector, Name, W);
+      if Has_Space (Name) then
+         if W = null then
+            return;
+         end if;
+
+         Ensure_Impl (Source);
+         Source.Impl.Bindings.Append (Bound_Target'(
+           Kind          => Multi_Class_Binding,
+           Selector_Kind => Adi.CSS_Parser.Class_Selector,
+           Name          => To_Unbounded_String (Name),
+           Tag_Name      => Null_Unbounded_String,
+           Class_Name    => Null_Unbounded_String,
+           Id_Name       => Null_Unbounded_String,
+           Target        => W.all'Unchecked_Access));
+
+         Apply_Multi_Classes (Source, Name, W.all);
+      else
+         Bind (Source, Adi.CSS_Parser.Class_Selector, Name, W);
+      end if;
    end Bind_Class;
 
    procedure Bind_Id (Source : in out Style_Source;

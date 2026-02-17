@@ -79,17 +79,24 @@ package Adi.CSS_Source is
    procedure Bind_Class (Source : in out Style_Source;
                          Name   : String;
                          W      : access Adi.Widget.Widget'Class);
+   --  Name may contain space-separated class names (e.g. "btn btn-primary").
+   --  When multiple classes are given, their styles are merged in order.
+
    procedure Bind_Id (Source : in out Style_Source;
                       Name   : String;
                       W      : access Adi.Widget.Widget'Class);
    procedure Bind_Tag (Source : in out Style_Source;
                        Name   : String;
                        W      : access Adi.Widget.Widget'Class);
+
    procedure Bind_Selector_Set (Source     : in out Style_Source;
                                 W          : access Adi.Widget.Widget'Class;
                                 Tag_Name   : String := "";
                                 Class_Name : String := "";
                                 Id_Name    : String := "");
+
+   function Merge_Part_Styles (Base, Override : Adi.Widget.Part_Style_Array)
+     return Adi.Widget.Part_Style_Array;
 
    function Get_Last_Error (Source : Style_Source) return String;
 

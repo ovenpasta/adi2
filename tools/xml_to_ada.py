@@ -60,7 +60,7 @@ class XmlWidget:
     tag: str
     wid: str
     explicit_id: bool
-    css_class: str = ""
+    css_classes: list[str] = field(default_factory=list)
     text: str = ""
     generic_name: str = ""
     toggleable: bool = False
@@ -413,7 +413,7 @@ class Parser:
             tag=tag,
             wid=wid,
             explicit_id=has_explicit_id,
-            css_class=elem.get("class", ""),
+            css_classes=elem.get("class", "").split() if elem.get("class", "") else [],
         )
 
         # Grammar-driven attributes
@@ -646,8 +646,13 @@ def generate_body(app: XmlApp, package_name: str) -> str:
     # Body needs Adi.Widget (for Set_Part_Styles, Add_Child, Widget_Access)
     # + any widget packages not already in the spec.
     # Always include Adi.Widget even if in spec — need `use` clause.
+    # Check if any widget uses multiple CSS classes (needs Merge_Part_Styles)
+    has_multi_class = any(
+        len(w.css_classes) > 1 for w in all_widgets
+    )
+
     body_withs: list[str] = ["Adi.Widget"]
-    if live_css:
+    if live_css or has_multi_class:
         body_withs.append("Adi.CSS_Source")
     if has_window and live_css:
         body_withs.append("Adi.Window")
@@ -841,26 +846,27 @@ def generate_body(app: XmlApp, package_name: str) -> str:
         lines.append("")
 
     # Apply styles — codegen-time mode selection
+    # Build list of widgets with CSS classes:
+    # Each entry: (wid, css_classes_list, class_names_str)
     styled_widgets = []
     for w in all_widgets:
-        if w.css_class:
-            style_const = (
-                f"{to_ada_identifier(w.css_class)}_Class_Part_Styles"
-            )
-            styled_widgets.append((w.wid, w.css_class, style_const))
+        if w.css_classes:
+            styled_widgets.append((w.wid, w.css_classes))
 
     if styled_widgets:
         if live_css:
             # CSS_Source mode — decided at codegen time
-            # Deduplicate static entries by CSS class
-            # All classes have compiled constants (from linked CSS
-            # packages or from compiled inline <style> declarations).
+            # Deduplicate static entries by individual class name
             seen_classes: set[str] = set()
             unique_entries: list[tuple[str, str]] = []
-            for _, css_class, style_const in styled_widgets:
-                if css_class not in seen_classes:
-                    seen_classes.add(css_class)
-                    unique_entries.append((css_class, style_const))
+            for _, cls_list in styled_widgets:
+                for cls in cls_list:
+                    if cls not in seen_classes:
+                        seen_classes.add(cls)
+                        style_const = (
+                            f"{to_ada_identifier(cls)}_Class_Part_Styles"
+                        )
+                        unique_entries.append((cls, style_const))
 
             if unique_entries:
                 lines.append(
@@ -930,19 +936,37 @@ def generate_body(app: XmlApp, package_name: str) -> str:
             lines.append(
                 "      --  Bind every widget that has a CSS class"
             )
-            for wid, css_class, _ in styled_widgets:
+            for wid, cls_list in styled_widgets:
+                names_str = " ".join(cls_list)
                 lines.append(
                     f"      Adi.CSS_Source.Bind_Class"
-                    f' (Source, "{css_class}", {wid});'
+                    f' (Source, "{names_str}", {wid});'
                 )
             lines.append("")
         else:
             # Static mode — direct Set_Part_Styles calls
             lines.append("      --  Apply precompiled styles")
-            for wid, _, style_const in styled_widgets:
-                lines.append(
-                    f"      Set_Part_Styles ({wid}.all, {style_const});"
-                )
+            for wid, cls_list in styled_widgets:
+                if len(cls_list) == 1:
+                    style_const = (
+                        f"{to_ada_identifier(cls_list[0])}_Class_Part_Styles"
+                    )
+                    lines.append(
+                        f"      Set_Part_Styles ({wid}.all, {style_const});"
+                    )
+                else:
+                    # Merge multiple class styles
+                    consts = [
+                        f"{to_ada_identifier(c)}_Class_Part_Styles"
+                        for c in cls_list
+                    ]
+                    # Build nested Merge_Part_Styles calls
+                    expr = consts[0]
+                    for c in consts[1:]:
+                        expr = f"Adi.CSS_Source.Merge_Part_Styles ({expr}, {c})"
+                    lines.append(
+                        f"      Set_Part_Styles ({wid}.all, {expr});"
+                    )
             lines.append("")
 
     # Build hierarchy (bottom-up: children first, then parent wiring)

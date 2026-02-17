@@ -195,6 +195,224 @@ begin
       end;
    end;
 
+   --  ── Bind_Class tests (multi-class) ──────────────────────────────────
+
+   --  Static mode: Bind_Class merges two class entries
+   declare
+      Source : Adi.CSS_Source.Style_Source;
+      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      OK     : Boolean := False;
+
+      Static_Entries : constant Adi.CSS_Source.Static_Style_Entry_Array := [
+        Adi.CSS_Source.Class_Entry (
+          "base",
+          Main_Styles ((
+            Background_Color => Set_Bg (RGB (10, 20, 30)),
+            Padding          => Set (CSS_Box (Px (4.0))),
+            others           => <>))),
+        Adi.CSS_Source.Class_Entry (
+          "accent",
+          Main_Styles ((
+            Background_Color => Set_Bg (RGB (100, 110, 120)),
+            Border_Width     => Set (Border_Width (Px (2.0))),
+            others           => <>)))
+      ];
+   begin
+      Adi.CSS_Source.Set_Static_Entries (Source, Static_Entries);
+      Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, OK);
+      Assert (OK, "Bind_Class static Set_Mode should succeed");
+
+      Adi.CSS_Source.Bind_Class (Source, "base accent", Box);
+
+      declare
+         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+      begin
+         Assert (Is_RGB_Color (R.Background_Color, 100, 110, 120),
+                 "Bind_Class static should use later class override for bg");
+         Assert (R.Padding.Kind = Gap_Uniform and then R.Padding.All_Sides.Amount = 4.0,
+                 "Bind_Class static should keep first class padding");
+         Assert (R.Border_Width.Kind = Gap_Uniform and then R.Border_Width.All_Edges.Amount = 2.0,
+                 "Bind_Class static should keep second class border-width");
+      end;
+   end;
+
+   --  Static mode: Bind_Class with single class works same as Bind_Class
+   declare
+      Source : Adi.CSS_Source.Style_Source;
+      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      OK     : Boolean := False;
+
+      Static_Entries : constant Adi.CSS_Source.Static_Style_Entry_Array := [
+        1 => Adi.CSS_Source.Class_Entry (
+          "solo",
+          Main_Styles ((
+            Background_Color => Set_Bg (RGB (55, 66, 77)),
+            others           => <>)))
+      ];
+   begin
+      Adi.CSS_Source.Set_Static_Entries (Source, Static_Entries);
+      Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, OK);
+
+      Adi.CSS_Source.Bind_Class (Source, "solo", Box);
+
+      declare
+         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+      begin
+         Assert (Is_RGB_Color (R.Background_Color, 55, 66, 77),
+                 "Bind_Class static single class should apply bg");
+      end;
+   end;
+
+   --  Static mode: Bind_Class with three classes merges in order
+   declare
+      Source : Adi.CSS_Source.Style_Source;
+      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      OK     : Boolean := False;
+
+      Static_Entries : constant Adi.CSS_Source.Static_Style_Entry_Array := [
+        Adi.CSS_Source.Class_Entry (
+          "layer1",
+          Main_Styles ((
+            Background_Color => Set_Bg (RGB (10, 10, 10)),
+            Padding          => Set (CSS_Box (Px (2.0))),
+            Opacity          => Set (0.1),
+            others           => <>))),
+        Adi.CSS_Source.Class_Entry (
+          "layer2",
+          Main_Styles ((
+            Background_Color => Set_Bg (RGB (20, 20, 20)),
+            Border_Width     => Set (Border_Width (Px (1.0))),
+            others           => <>))),
+        Adi.CSS_Source.Class_Entry (
+          "layer3",
+          Main_Styles ((
+            Background_Color => Set_Bg (RGB (30, 30, 30)),
+            others           => <>)))
+      ];
+   begin
+      Adi.CSS_Source.Set_Static_Entries (Source, Static_Entries);
+      Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, OK);
+
+      Adi.CSS_Source.Bind_Class (Source, "layer1 layer2 layer3", Box);
+
+      declare
+         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+      begin
+         Assert (Is_RGB_Color (R.Background_Color, 30, 30, 30),
+                 "Bind_Class three classes should use last override for bg");
+         Assert (R.Padding.Kind = Gap_Uniform and then R.Padding.All_Sides.Amount = 2.0,
+                 "Bind_Class three classes should keep first-only padding");
+         Assert (R.Border_Width.Kind = Gap_Uniform and then R.Border_Width.All_Edges.Amount = 1.0,
+                 "Bind_Class three classes should keep middle border-width");
+         Assert (Float (R.Opacity) = 0.1,
+                 "Bind_Class three classes should keep first-only opacity");
+      end;
+   end;
+
+   --  Dynamic mode: Bind_Class merges from parsed CSS
+   declare
+      Source : Adi.CSS_Source.Style_Source;
+      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      OK     : Boolean := False;
+
+      Css : constant String :=
+        ".base { background-color: rgb(10, 20, 30); padding: 5px; }" & ASCII.LF &
+        ".accent { background-color: rgb(100, 110, 120); border-width: 3px; }" & ASCII.LF;
+   begin
+      Adi.CSS_Source.Add_Dynamic_String (Source, Css, OK);
+      Assert (OK, "Bind_Class dynamic Add_Dynamic_String should succeed");
+
+      Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, OK);
+      Assert (OK, "Bind_Class dynamic Set_Mode should succeed");
+
+      Adi.CSS_Source.Bind_Class (Source, "base accent", Box);
+
+      declare
+         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+      begin
+         Assert (Is_RGB_Color (R.Background_Color, 100, 110, 120),
+                 "Bind_Class dynamic should use later class override for bg");
+         Assert (R.Padding.Kind = Gap_Uniform and then R.Padding.All_Sides.Amount = 5.0,
+                 "Bind_Class dynamic should keep first class padding");
+         Assert (R.Border_Width.Kind = Gap_Uniform and then R.Border_Width.All_Edges.Amount = 3.0,
+                 "Bind_Class dynamic should keep second class border-width");
+      end;
+   end;
+
+   --  Dynamic mode: Bind_Class reapplied after reload
+   declare
+      Source   : Adi.CSS_Source.Style_Source;
+      Box      : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      OK       : Boolean := False;
+      Reloaded : Boolean := False;
+      Tick_OK  : Boolean := False;
+      Css_Path : constant String := "/tmp/adi_css_multiclass_test.css";
+      Css_V1   : constant String :=
+        ".base { background-color: rgb(10, 20, 30); padding: 4px; }" & ASCII.LF &
+        ".accent { background-color: rgb(100, 110, 120); border-width: 2px; }" & ASCII.LF;
+      Css_V2   : constant String :=
+        ".base { background-color: rgb(50, 60, 70); padding: 8px; }" & ASCII.LF &
+        ".accent { background-color: rgb(200, 210, 220); border-width: 5px; }" & ASCII.LF;
+   begin
+      Write_Text_File (Css_Path, Css_V1);
+      Adi.CSS_Source.Add_Dynamic_File (Source, Css_Path, OK);
+      Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, OK);
+
+      Adi.CSS_Source.Bind_Class (Source, "base accent", Box);
+
+      declare
+         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+      begin
+         Assert (Is_RGB_Color (R.Background_Color, 100, 110, 120),
+                 "Bind_Class reload initial bg should be accent");
+         Assert (R.Padding.Kind = Gap_Uniform and then R.Padding.All_Sides.Amount = 4.0,
+                 "Bind_Class reload initial padding should be base");
+      end;
+
+      delay 1.1;
+      Write_Text_File (Css_Path, Css_V2);
+      Adi.CSS_Source.Tick (Source, Reloaded, Tick_OK);
+      Assert (Tick_OK, "Bind_Class reload Tick should succeed");
+      Assert (Reloaded, "Bind_Class reload Tick should detect change");
+
+      declare
+         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+      begin
+         Assert (Is_RGB_Color (R.Background_Color, 200, 210, 220),
+                 "Bind_Class reload should update bg to new accent");
+         Assert (R.Padding.Kind = Gap_Uniform and then R.Padding.All_Sides.Amount = 8.0,
+                 "Bind_Class reload should update padding to new base");
+         Assert (R.Border_Width.Kind = Gap_Uniform and then R.Border_Width.All_Edges.Amount = 5.0,
+                 "Bind_Class reload should update border-width to new accent");
+      end;
+   end;
+
+   --  Merge_Part_Styles public function
+   declare
+      Box : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      A : constant Part_Style_Array := Main_Styles ((
+        Background_Color => Set_Bg (RGB (1, 2, 3)),
+        Padding          => Set (CSS_Box (Px (10.0))),
+        others           => <>));
+      B : constant Part_Style_Array := Main_Styles ((
+        Background_Color => Set_Bg (RGB (4, 5, 6)),
+        Border_Width     => Set (Border_Width (Px (7.0))),
+        others           => <>));
+      M : constant Part_Style_Array := Adi.CSS_Source.Merge_Part_Styles (A, B);
+   begin
+      Set_Part_Styles (Box.all, M);
+      declare
+         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+      begin
+         Assert (Is_RGB_Color (R.Background_Color, 4, 5, 6),
+                 "Merge_Part_Styles should use override bg");
+         Assert (R.Padding.Kind = Gap_Uniform and then R.Padding.All_Sides.Amount = 10.0,
+                 "Merge_Part_Styles should keep base padding");
+         Assert (R.Border_Width.Kind = Gap_Uniform and then R.Border_Width.All_Edges.Amount = 7.0,
+                 "Merge_Part_Styles should keep override border-width");
+      end;
+   end;
+
    Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");
    if Pass_Count /= Test_Count then
       raise Program_Error with "css source test failed";

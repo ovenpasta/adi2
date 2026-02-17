@@ -99,6 +99,16 @@
   padding: 8px;
 }
 
+/* ── Shared Label Base ───────────────────────── */
+
+.label-inline {
+  flex-shrink: 0;
+}
+
+.label-inline::main {
+  display: inline-flex;
+}
+
 /* ── Card ────────────────────────────────────── */
 
 .card {
@@ -112,40 +122,16 @@
   transition: background-color 0.25s ease-in-out, box-shadow 0.25s ease-in-out;
 }
 
-.card-title {
-  flex-shrink: 0;
-}
-
-.card-title::main {
-  display: inline-flex;
-}
-
 .card-title::label {
   color: rgb(230, 225, 229);
   font-size: 20px;
   font-weight: 600;
 }
 
-.card-body {
-  flex-shrink: 0;
-}
-
-.card-body::main {
-  display: inline-flex;
-}
-
 .card-body::label {
   color: rgb(202, 196, 208);
   font-size: 14px;
   font-weight: 400;
-}
-
-.card-hint {
-  flex-shrink: 0;
-}
-
-.card-hint::main {
-  display: inline-flex;
 }
 
 .card-hint::label {
@@ -156,22 +142,28 @@
 
 /* ── Buttons ─────────────────────────────────── */
 
-.btn-primary::main {
+.btn::main {
   display: inline-flex;
   justify-content: center;
   align-items: center;
   padding: 12px 24px;
   border-radius: 20px;
-  background-color: rgb(208, 188, 255);
   cursor: pointer;
   transition: background-color 0.15s ease-in-out;
 }
 
-.btn-primary::label {
-  color: rgb(56, 30, 114);
+.btn::label {
   font-size: 14px;
   font-weight: 600;
   text-wrap-mode: nowrap;
+}
+
+.btn-primary::main {
+  background-color: rgb(208, 188, 255);
+}
+
+.btn-primary::label {
+  color: rgb(56, 30, 114);
 }
 
 .btn-primary:hover::main {
@@ -179,24 +171,14 @@
 }
 
 .btn-secondary::main {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  padding: 12px 24px;
-  border-radius: 20px;
   border-width: 1px;
   border-style: solid;
   border-color: rgb(147, 143, 153);
   background-color: rgba(0, 0, 0, 0);
-  cursor: pointer;
-  transition: background-color 0.15s ease-in-out;
 }
 
 .btn-secondary::label {
   color: rgb(208, 188, 255);
-  font-size: 14px;
-  font-weight: 600;
-  text-wrap-mode: nowrap;
 }
 
 .btn-secondary:hover::main {
@@ -212,12 +194,7 @@
 
 /* ── Form Controls ───────────────────────────── */
 
-.field-label {
-  flex-shrink: 0;
-}
-
 .field-label::main {
-  display: inline-flex;
   padding: 4px 0px 0px 0px;
 }
 
@@ -294,12 +271,7 @@
 }
 
 .setting-label {
-  flex-shrink: 0;
   flex-grow: 1;
-}
-
-.setting-label::main {
-  display: inline-flex;
 }
 
 .setting-label::label {

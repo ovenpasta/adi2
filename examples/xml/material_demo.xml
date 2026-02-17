@@ -22,20 +22,20 @@
         <page key="Home">
           <box class="page">
             <box class="card">
-              <label text="Welcome" class="card-title"/>
-              <label text="A Material Design 3 demo built with Adi." class="card-body"/>
-              <label text="Edit examples/css/material_demo.css to live-reload." class="card-hint"/>
-              <button text="Get Started" class="btn-primary"/>
+              <label text="Welcome" class="label-inline card-title"/>
+              <label text="A Material Design 3 demo built with Adi." class="label-inline card-body"/>
+              <label text="Edit examples/css/material_demo.css to live-reload." class="label-inline card-hint"/>
+              <button text="Get Started" class="btn btn-primary"/>
             </box>
           </box>
         </page>
         <page key="Forms">
           <box class="page">
             <box class="card">
-              <label text="Form Controls" class="card-title"/>
-              <label text="Name" class="field-label"/>
+              <label text="Form Controls" class="label-inline card-title"/>
+              <label text="Name" class="label-inline field-label"/>
               <text-input text="" class="text-field" id="Name_Input"/>
-              <label text="Country" class="field-label"/>
+              <label text="Country" class="label-inline field-label"/>
               <combo-box class="combo" id="Country_Combo">
                 <item text="United States"/>
                 <item text="United Kingdom"/>
@@ -44,8 +44,8 @@
                 <item text="Japan"/>
               </combo-box>
               <box class="btn-row">
-                <button text="Submit" class="btn-primary"/>
-                <button text="Cancel" class="btn-secondary"/>
+                <button text="Submit" class="btn btn-primary"/>
+                <button text="Cancel" class="btn btn-secondary"/>
               </box>
             </box>
           </box>
@@ -53,17 +53,17 @@
         <page key="Settings">
           <box class="page">
             <box class="card">
-              <label text="Settings" class="card-title"/>
+              <label text="Settings" class="label-inline card-title"/>
               <box class="setting-row">
-                <label text="Dark Mode" class="setting-label"/>
+                <label text="Dark Mode" class="label-inline setting-label"/>
                 <switch id="Dark_Switch" checked="true" class="setting-switch" on-toggled="On_Dark_Mode"/>
               </box>
               <box class="setting-row">
-                <label text="Notifications" class="setting-label"/>
+                <label text="Notifications" class="label-inline setting-label"/>
                 <switch checked="true" class="setting-switch"/>
               </box>
               <box class="setting-row">
-                <label text="Auto-save" class="setting-label"/>
+                <label text="Auto-save" class="label-inline setting-label"/>
                 <switch checked="true" class="setting-switch"/>
               </box>
             </box>

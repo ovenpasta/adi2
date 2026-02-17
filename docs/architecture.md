@@ -28,6 +28,8 @@
 - `Static_Mode`: compiled constant style entries
 - In `Static_Mode`, repeated entries for the same selector are merged in insertion order
 - Single selector bind/apply (`class`, `id`, `tag`) and composite selector-set bind/apply
+- `Bind_Class` accepts space-separated class names; styles are merged left-to-right
+- Public `Merge_Part_Styles` for combining `Part_Style_Array` values outside the binding system
 - Composite specificity: tag < class < id
 
 **Adi.Widget_Styles** (`adi-widget_styles.ads`): Widget state-based styling.

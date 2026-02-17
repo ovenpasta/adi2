@@ -128,7 +128,7 @@ All widgets support:
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `id` | string | Widget identifier. Exported in spec if explicit; auto-generated as `{Tag}_{N}` if omitted |
-| `class` | string | CSS class name for styling (single class) |
+| `class` | string | Space-separated CSS class names (e.g. `"btn btn-primary"`). Styles are merged left-to-right |
 
 ### Per-Widget Attributes
 
@@ -244,7 +244,7 @@ The generated `Build` function implements a dual-mode strategy:
 2. Attempt to load dynamic CSS files and inline strings
 3. If dynamic loading succeeds, set `Dynamic_Mode`
 4. If it fails, fall back to `Static_Mode`
-5. Bind every widget with a `class` attribute via `Bind_Class`
+5. Bind every widget with a `class` attribute via `Bind_Class` (space-separated names are merged automatically)
 
 When a `<window>` is present and CSS files are linked, a `Tick_Styles_CB` procedure is auto-wired to `Set_On_Tick` for live reload during development. Editing the CSS file on disk causes the styles to be reapplied on the next frame.
 
@@ -461,7 +461,6 @@ The body contains:
 
 ## Limitations
 
-- **Single class per widget** — `class="a b"` is not supported; use one class name
 - **No dynamic widget removal** — The tree is built once in `Build`; no runtime add/remove
 - **No conditional rendering** — All widgets are always created
 - **No nested generics** — Generic widgets cannot contain other generic widgets directly

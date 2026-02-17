@@ -374,8 +374,13 @@ Adi.CSS_Source.Set_Mode (Source, Dynamic_Mode, Success);
 Binding attaches a widget to a selector. Styles are applied immediately and reapplied on reload.
 
 ```ada
---  Single selector
+--  Single class
 Adi.CSS_Source.Bind_Class (Source, "button", Widget);
+
+--  Multiple classes (space-separated, merged in order)
+Adi.CSS_Source.Bind_Class (Source, "btn btn-primary", Widget);
+
+--  Other selector kinds
 Adi.CSS_Source.Bind_Id (Source, "root", Widget);
 Adi.CSS_Source.Bind_Tag (Source, "label", Widget);
 
@@ -384,6 +389,16 @@ Adi.CSS_Source.Bind_Selector_Set (Source, Widget,
    Tag_Name   => "button",
    Class_Name => "primary",
    Id_Name    => "submit");
+```
+
+When multiple class names are passed to `Bind_Class`, styles are looked up for each class individually and merged left-to-right (later classes override earlier ones for shared properties). This mirrors HTML's `class="base accent"` behavior.
+
+#### Merging Part Styles
+
+`Merge_Part_Styles` is available as a public function for combining style arrays outside the binding system:
+
+```ada
+Merged := Adi.CSS_Source.Merge_Part_Styles (Base_Styles, Override_Styles);
 ```
 
 #### One-Off Application

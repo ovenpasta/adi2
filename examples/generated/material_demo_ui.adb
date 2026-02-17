@@ -103,9 +103,11 @@ package body Material_Demo_UI is
          Adi.CSS_Source.Class_Entry ("pages", Pages_Class_Part_Styles),
          Adi.CSS_Source.Class_Entry ("page", Page_Class_Part_Styles),
          Adi.CSS_Source.Class_Entry ("card", Card_Class_Part_Styles),
+         Adi.CSS_Source.Class_Entry ("label-inline", Label_Inline_Class_Part_Styles),
          Adi.CSS_Source.Class_Entry ("card-title", Card_Title_Class_Part_Styles),
          Adi.CSS_Source.Class_Entry ("card-body", Card_Body_Class_Part_Styles),
          Adi.CSS_Source.Class_Entry ("card-hint", Card_Hint_Class_Part_Styles),
+         Adi.CSS_Source.Class_Entry ("btn", Btn_Class_Part_Styles),
          Adi.CSS_Source.Class_Entry ("btn-primary", Btn_Primary_Class_Part_Styles),
          Adi.CSS_Source.Class_Entry ("field-label", Field_Label_Class_Part_Styles),
          Adi.CSS_Source.Class_Entry ("text-field", Text_Field_Class_Part_Styles),
@@ -145,31 +147,31 @@ package body Material_Demo_UI is
       Adi.CSS_Source.Bind_Class (Source, "pages", Pages);
       Adi.CSS_Source.Bind_Class (Source, "page", Box_2);
       Adi.CSS_Source.Bind_Class (Source, "card", Box_3);
-      Adi.CSS_Source.Bind_Class (Source, "card-title", Label_1);
-      Adi.CSS_Source.Bind_Class (Source, "card-body", Label_2);
-      Adi.CSS_Source.Bind_Class (Source, "card-hint", Label_3);
-      Adi.CSS_Source.Bind_Class (Source, "btn-primary", Button_1);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline card-title", Label_1);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline card-body", Label_2);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline card-hint", Label_3);
+      Adi.CSS_Source.Bind_Class (Source, "btn btn-primary", Button_1);
       Adi.CSS_Source.Bind_Class (Source, "page", Box_4);
       Adi.CSS_Source.Bind_Class (Source, "card", Box_5);
-      Adi.CSS_Source.Bind_Class (Source, "card-title", Label_4);
-      Adi.CSS_Source.Bind_Class (Source, "field-label", Label_5);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline card-title", Label_4);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline field-label", Label_5);
       Adi.CSS_Source.Bind_Class (Source, "text-field", Name_Input);
-      Adi.CSS_Source.Bind_Class (Source, "field-label", Label_6);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline field-label", Label_6);
       Adi.CSS_Source.Bind_Class (Source, "combo", Country_Combo);
       Adi.CSS_Source.Bind_Class (Source, "btn-row", Box_6);
-      Adi.CSS_Source.Bind_Class (Source, "btn-primary", Button_2);
-      Adi.CSS_Source.Bind_Class (Source, "btn-secondary", Button_3);
+      Adi.CSS_Source.Bind_Class (Source, "btn btn-primary", Button_2);
+      Adi.CSS_Source.Bind_Class (Source, "btn btn-secondary", Button_3);
       Adi.CSS_Source.Bind_Class (Source, "page", Box_7);
       Adi.CSS_Source.Bind_Class (Source, "card", Box_8);
-      Adi.CSS_Source.Bind_Class (Source, "card-title", Label_7);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline card-title", Label_7);
       Adi.CSS_Source.Bind_Class (Source, "setting-row", Box_9);
-      Adi.CSS_Source.Bind_Class (Source, "setting-label", Label_8);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", Label_8);
       Adi.CSS_Source.Bind_Class (Source, "setting-switch", Dark_Switch);
       Adi.CSS_Source.Bind_Class (Source, "setting-row", Box_10);
-      Adi.CSS_Source.Bind_Class (Source, "setting-label", Label_9);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", Label_9);
       Adi.CSS_Source.Bind_Class (Source, "setting-switch", Switch_1);
       Adi.CSS_Source.Bind_Class (Source, "setting-row", Box_11);
-      Adi.CSS_Source.Bind_Class (Source, "setting-label", Label_10);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", Label_10);
       Adi.CSS_Source.Bind_Class (Source, "setting-switch", Switch_2);
 
       --  Build hierarchy

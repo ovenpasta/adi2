@@ -127,6 +127,13 @@ package Material_Demo_Styles is
       others => <>
    );
 
+   --  Base style for class 'label-inline'
+   Label_Inline_Class_Base_Style : constant Style_Rules := (
+      Flex_Shrink => Set (0.0),
+      Display => Set (Inline_Flex),
+      others => <>
+   );
+
    --  Base style for class 'card'
    Card_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
@@ -140,25 +147,11 @@ package Material_Demo_Styles is
       others => <>
    );
 
-   --  Base style for class 'card-title'
-   Card_Title_Class_Base_Style : constant Style_Rules := (
-      Flex_Shrink => Set (0.0),
-      Display => Set (Inline_Flex),
-      others => <>
-   );
-
    --  Base style for class 'card-title'::label
    Card_Title_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (230, 225, 229)),
       Font_Size => Set_Font (Px (20.0)),
       Font_Weight => Set (Weight_Semi_Bold),
-      others => <>
-   );
-
-   --  Base style for class 'card-body'
-   Card_Body_Class_Base_Style : constant Style_Rules := (
-      Flex_Shrink => Set (0.0),
-      Display => Set (Inline_Flex),
       others => <>
    );
 
@@ -170,13 +163,6 @@ package Material_Demo_Styles is
       others => <>
    );
 
-   --  Base style for class 'card-hint'
-   Card_Hint_Class_Base_Style : constant Style_Rules := (
-      Flex_Shrink => Set (0.0),
-      Display => Set (Inline_Flex),
-      others => <>
-   );
-
    --  Base style for class 'card-hint'::label
    Card_Hint_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGBA (202, 196, 208, 0.6)),
@@ -185,16 +171,29 @@ package Material_Demo_Styles is
       others => <>
    );
 
-   --  Base style for class 'btn-primary'
-   Btn_Primary_Class_Base_Style : constant Style_Rules := (
+   --  Base style for class 'btn'
+   Btn_Class_Base_Style : constant Style_Rules := (
       Display => Set (Inline_Flex),
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
       Border_Radius => Set (Radius (Px (20.0))),
-      Background_Color => Set_Bg (RGB (208, 188, 255)),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
+      others => <>
+   );
+
+   --  Base style for class 'btn'::label
+   Btn_Class_Label_Base_Style : constant Style_Rules := (
+      Font_Size => Set_Font (Px (14.0)),
+      Font_Weight => Set (Weight_Semi_Bold),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
+      others => <>
+   );
+
+   --  Base style for class 'btn-primary'
+   Btn_Primary_Class_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (208, 188, 255)),
       others => <>
    );
 
@@ -207,25 +206,15 @@ package Material_Demo_Styles is
    --  Base style for class 'btn-primary'::label
    Btn_Primary_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (56, 30, 114)),
-      Font_Size => Set_Font (Px (14.0)),
-      Font_Weight => Set (Weight_Semi_Bold),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>
    );
 
    --  Base style for class 'btn-secondary'
    Btn_Secondary_Class_Base_Style : constant Style_Rules := (
-      Display => Set (Inline_Flex),
-      Justify_Content => Set (Center),
-      Align_Items => Set (Center),
-      Border_Radius => Set (Radius (Px (20.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (147, 143, 153))),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
-      Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
       others => <>
    );
 
@@ -238,9 +227,6 @@ package Material_Demo_Styles is
    --  Base style for class 'btn-secondary'::label
    Btn_Secondary_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (208, 188, 255)),
-      Font_Size => Set_Font (Px (14.0)),
-      Font_Weight => Set (Weight_Semi_Bold),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>
    );
 
@@ -255,8 +241,6 @@ package Material_Demo_Styles is
 
    --  Base style for class 'field-label'
    Field_Label_Class_Base_Style : constant Style_Rules := (
-      Flex_Shrink => Set (0.0),
-      Display => Set (Inline_Flex),
       Padding => Set (CSS_Box (Px (4.0), Px (0.0), Px (0.0), Px (0.0))),
       others => <>
    );
@@ -355,9 +339,7 @@ package Material_Demo_Styles is
 
    --  Base style for class 'setting-label'
    Setting_Label_Class_Base_Style : constant Style_Rules := (
-      Flex_Shrink => Set (0.0),
       Flex_Grow => Set (1.0),
-      Display => Set (Inline_Flex),
       others => <>
    );
 
@@ -592,6 +574,17 @@ package Material_Demo_Styles is
       others => <>
    ];
 
+   --  Complete widget style for class 'label-inline'
+   Label_Inline_Class_Widget : constant Widget_Style :=
+     From (Label_Inline_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'label-inline'
+   Label_Inline_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Label_Inline_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
    --  Complete widget style for class 'card'
    Card_Class_Widget : constant Widget_Style :=
      From (Card_Class_Base_Style)
@@ -603,11 +596,6 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'card-title'
-   Card_Title_Class_Widget : constant Widget_Style :=
-     From (Card_Title_Class_Base_Style)
-     .Build;
-
    --  Complete widget style for class 'card-title'::label
    Card_Title_Class_Label_Widget : constant Widget_Style :=
      From (Card_Title_Class_Label_Base_Style)
@@ -615,15 +603,9 @@ package Material_Demo_Styles is
 
    --  Part styles bundle for class 'card-title'
    Card_Title_Class_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Card_Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Card_Title_Class_Label_Widget, Enabled => True),
       others => <>
    ];
-
-   --  Complete widget style for class 'card-body'
-   Card_Body_Class_Widget : constant Widget_Style :=
-     From (Card_Body_Class_Base_Style)
-     .Build;
 
    --  Complete widget style for class 'card-body'::label
    Card_Body_Class_Label_Widget : constant Widget_Style :=
@@ -632,15 +614,9 @@ package Material_Demo_Styles is
 
    --  Part styles bundle for class 'card-body'
    Card_Body_Class_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Card_Body_Class_Widget, Enabled => True),
       Label_Part => (Style => Card_Body_Class_Label_Widget, Enabled => True),
       others => <>
    ];
-
-   --  Complete widget style for class 'card-hint'
-   Card_Hint_Class_Widget : constant Widget_Style :=
-     From (Card_Hint_Class_Base_Style)
-     .Build;
 
    --  Complete widget style for class 'card-hint'::label
    Card_Hint_Class_Label_Widget : constant Widget_Style :=
@@ -649,8 +625,24 @@ package Material_Demo_Styles is
 
    --  Part styles bundle for class 'card-hint'
    Card_Hint_Class_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Card_Hint_Class_Widget, Enabled => True),
       Label_Part => (Style => Card_Hint_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'btn'
+   Btn_Class_Widget : constant Widget_Style :=
+     From (Btn_Class_Base_Style)
+     .Build;
+
+   --  Complete widget style for class 'btn'::label
+   Btn_Class_Label_Widget : constant Widget_Style :=
+     From (Btn_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'btn'
+   Btn_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Btn_Class_Widget, Enabled => True),
+      Label_Part => (Style => Btn_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 

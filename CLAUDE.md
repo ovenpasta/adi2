@@ -18,6 +18,8 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | gprbuild without Alire | `docs/gprbuild_without_alire.md` |
 | HTML view widget | `docs/html_view_spec.md` |
 | Adding a new CSS property | `docs/adding_css_property.md` |
+| Adding a new example | `docs/adding_example.md` |
+| Adding a new test | `docs/adding_test.md` |
 | Antialiased rendering (AA fringe, ring patterns) | `docs/rendering_aa.md` |
 
 ## Build Commands
@@ -41,6 +43,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/text_layout_test
 ./tests/bin/html_view_test
 ./tests/bin/disabled_test
+./tests/bin/image_widget_test
 ```
 
 For direct gprbuild (no Alire), see `docs/gprbuild_without_alire.md` and `docs/build.md`.

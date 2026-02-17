@@ -107,7 +107,7 @@ private
         Pressed_Part   : Part_Kind     := Main_Part;
         Focused_Widget : Widget_Access := null;
         Overlays       : Overlay_Vectors.Vector;
-        Enforce_Layout_Min_Size : Boolean := False;
+        Enforce_Layout_Min_Size : Boolean := True;
         Needs_Layout   : Boolean       := True;
         On_Tick_CB     : Tick_Callback := null;
     end record;

@@ -84,6 +84,12 @@
     <attribute name="on-selection-changed" type="callback" setter="Set_On_Selection_Changed"/>
   </widget>
 
+  <widget tag="image">
+    <package>Adi.Widget.Image</package>
+    <access-type>Image_Widget_Access</access-type>
+    <create>{package}.Create</create>
+  </widget>
+
   <widget tag="animated-image">
     <package>Adi.Widget.Animated_Image</package>
     <access-type>Animated_Image_Widget_Access</access-type>

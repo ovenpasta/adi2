@@ -372,6 +372,17 @@
   box-shadow: 0px 8px 32px 0px rgba(0, 0, 0, 0.5);
 }
 
+.dialog-message {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.dialog-message::icon {
+  width: 32px;
+  height: 32px;
+}
+
 .dialog-title {
   flex-shrink: 0;
 }

@@ -478,6 +478,29 @@ package Material_Demo_Light_Styles is
       others => <>
    );
 
+   --  Base style for class 'dialog-message'
+   Dialog_Message_Class_Base_Style : constant Style_Rules := (
+      Flex_Direction => Set (Row),
+      Align_Items => Set (Flex_Start),
+      Gap => Set (Gap (Px (12.0))),
+      others => <>
+   );
+
+   --  Base style for class 'dialog-message'::icon
+   Dialog_Message_Class_Icon_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (32.0))),
+      Height => Set (Size (Px (32.0))),
+      others => <>
+   );
+
+   --  Base style for class 'dialog-message'::label
+   Dialog_Message_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (73, 69, 79)),
+      Font_Size => Set_Font (Px (14.0)),
+      Text_Wrap_Mode => Set (TWM_Wrap),
+      others => <>
+   );
+
    --  Base style for class 'dialog-title'
    Dialog_Title_Class_Base_Style : constant Style_Rules := (
       Flex_Shrink => Set (0.0),
@@ -489,14 +512,6 @@ package Material_Demo_Light_Styles is
       Color => Set (RGB (28, 27, 31)),
       Font_Size => Set_Font (Px (24.0)),
       Font_Weight => Set (Weight_Semi_Bold),
-      others => <>
-   );
-
-   --  Base style for class 'dialog-message'::label
-   Dialog_Message_Class_Label_Base_Style : constant Style_Rules := (
-      Color => Set (RGB (73, 69, 79)),
-      Font_Size => Set_Font (Px (14.0)),
-      Text_Wrap_Mode => Set (TWM_Wrap),
       others => <>
    );
 
@@ -963,6 +978,29 @@ package Material_Demo_Light_Styles is
       others => <>
    ];
 
+   --  Complete widget style for class 'dialog-message'
+   Dialog_Message_Class_Widget : constant Widget_Style :=
+     From (Dialog_Message_Class_Base_Style)
+     .Build;
+
+   --  Complete widget style for class 'dialog-message'::icon
+   Dialog_Message_Class_Icon_Widget : constant Widget_Style :=
+     From (Dialog_Message_Class_Icon_Base_Style)
+     .Build;
+
+   --  Complete widget style for class 'dialog-message'::label
+   Dialog_Message_Class_Label_Widget : constant Widget_Style :=
+     From (Dialog_Message_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'dialog-message'
+   Dialog_Message_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Dialog_Message_Class_Widget, Enabled => True),
+      Icon_Part => (Style => Dialog_Message_Class_Icon_Widget, Enabled => True),
+      Label_Part => (Style => Dialog_Message_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
    --  Complete widget style for class 'dialog-title'
    Dialog_Title_Class_Widget : constant Widget_Style :=
      From (Dialog_Title_Class_Base_Style)
@@ -977,17 +1015,6 @@ package Material_Demo_Light_Styles is
    Dialog_Title_Class_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Dialog_Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Dialog_Title_Class_Label_Widget, Enabled => True),
-      others => <>
-   ];
-
-   --  Complete widget style for class 'dialog-message'::label
-   Dialog_Message_Class_Label_Widget : constant Widget_Style :=
-     From (Dialog_Message_Class_Label_Base_Style)
-     .Build;
-
-   --  Part styles bundle for class 'dialog-message'
-   Dialog_Message_Class_Part_Styles : constant Part_Style_Array := [
-      Label_Part => (Style => Dialog_Message_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 

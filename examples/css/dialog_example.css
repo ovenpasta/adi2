@@ -82,6 +82,17 @@
   box-shadow: 0px 16px 48px 0px rgba(0, 0, 0, 0.30);
 }
 
+.dialog-message {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.dialog-message::icon {
+  width: 32px;
+  height: 32px;
+}
+
 .dialog-title::label {
   color: rgb(15, 23, 42);
   font-size: 18px;

@@ -235,6 +235,18 @@ package body Adi.Widget.Dialog is
    end Set_Message;
 
    ---------------------------------------------------------------------------
+   --  Icon
+   ---------------------------------------------------------------------------
+
+   procedure Set_Icon (W : in out Dialog_Widget; Icon : Image_Access) is
+   begin
+      if W.Message_Label /= null then
+         Adi.Widget.Label.Set_Icon (W.Message_Label.all, Icon);
+      end if;
+      Mark_Dirty (W);
+   end Set_Icon;
+
+   ---------------------------------------------------------------------------
    --  Button management
    ---------------------------------------------------------------------------
 

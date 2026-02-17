@@ -1,6 +1,7 @@
 pragma Ada_2022;
 
 with Adi.App;
+with Adi.Image;                 use Adi.Image;
 with Adi.Window;                use Adi.Window;
 with Adi.Widget;                use Adi.Widget;
 with Adi.Widget.Box;
@@ -130,6 +131,22 @@ begin
       Set_OK_Button (Alert_Dialog.all);
       Set_On_Result (Alert_Dialog.all, On_Alert_Result'Unrestricted_Access);
 
+      --  Set info icon on alert dialog (Material Symbols "info" 24×24)
+      declare
+         Info_Icon : constant Adi.Image.Image_Access :=
+           Adi.Image.Load_SVG_Path
+             (Renderer  => W.Get_Renderer,
+              Path_Data =>
+                "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 "
+                & "10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z",
+              Size      => (24.0, 24.0),
+              Fill      => (R => 37, G => 99, B => 235, A => 255));
+      begin
+         if Info_Icon /= null then
+            Set_Icon (Alert_Dialog.all, Info_Icon);
+         end if;
+      end;
+
       --  Create confirm dialog
       Confirm_Dialog := Adi.Widget.Dialog.Create;
       Attach_Window (Confirm_Dialog.all, W);
@@ -140,6 +157,21 @@ begin
                    & "This action cannot be undone.");
       Set_Yes_No_Cancel (Confirm_Dialog.all);
       Set_On_Result (Confirm_Dialog.all, On_Confirm_Result'Unrestricted_Access);
+
+      --  Set warning icon on confirm dialog (Material Symbols "warning" 24×24)
+      declare
+         Warn_Icon : constant Adi.Image.Image_Access :=
+           Adi.Image.Load_SVG_Path
+             (Renderer  => W.Get_Renderer,
+              Path_Data =>
+                "M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z",
+              Size      => (24.0, 24.0),
+              Fill      => (R => 234, G => 179, B => 8, A => 255));
+      begin
+         if Warn_Icon /= null then
+            Set_Icon (Confirm_Dialog.all, Warn_Icon);
+         end if;
+      end;
 
       W.Set_Root (Root);
       A.Add_Window (W);

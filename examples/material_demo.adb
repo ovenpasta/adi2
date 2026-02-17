@@ -109,6 +109,31 @@ begin
    Set_OK_Button (Welcome_Dialog.all);
    Set_On_Result (Welcome_Dialog.all, On_Welcome_Result'Unrestricted_Access);
 
+   --  Set welcome icon (Material Symbols "waving_hand" 24×24)
+   declare
+      Welcome_Icon : constant Adi.Image.Image_Access :=
+        Adi.Image.Load_SVG_Path
+          (Renderer  => W.Get_Renderer,
+           Path_Data =>
+             "M7.03 4.95L3.49 8.49c-3.32 3.32-3.32 8.7 0 12.02s8.7 3.32 "
+             & "12.02 0l6.01-6.01a2.517 2.517 0 00-.39-3.86l.71-.71c.39-.39.39-1.02 "
+             & "0-1.41a.9959.9959 0 00-1.41 0l-2.12 2.12a1.492 1.492 0 00-1.78.21 "
+             & "1.492 1.492 0 00-.21 1.78l-2.12 2.12c-.39.39-1.02.39-1.41 "
+             & "0s-.39-1.02 0-1.41l4.24-4.24c.39-.39.39-1.02 0-1.41s-1.02-.39-1.41 "
+             & "0L11.38 12a1.492 1.492 0 00-1.78.21c-.58.58-.58 1.52 0 "
+             & "2.12l-1.41 1.41c-.39.39-1.02.39-1.41 0s-.39-1.02 0-1.41l4.24-4.24 "
+             & "1.41-1.41c.39-.39.39-1.02 0-1.41s-1.02-.39-1.41 0l-1.41 1.41a1.492 "
+             & "1.492 0 00-1.78.21c-.58.58-.58 1.52 0 2.12L5.62 12.7c-.39.39-1.02.39-1.41 "
+             & "0s-.39-1.02 0-1.41l3.54-3.54c.39-.39.39-1.02 0-1.41a.9846.9846 0 00-1.38.02 "
+             & "1.49 1.49 0 00-.34-.41z",
+           Size      => (24.0, 24.0),
+           Fill      => (R => 208, G => 188, B => 255, A => 255));
+   begin
+      if Welcome_Icon /= null then
+         Set_Icon (Welcome_Dialog.all, Welcome_Icon);
+      end if;
+   end;
+
    A.Add_Window (W);
    A.Run;
 end Material_Demo;

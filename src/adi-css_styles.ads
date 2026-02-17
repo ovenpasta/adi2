@@ -365,6 +365,17 @@ package Adi.CSS_Styles is
    Default_Border_Style : constant Border_Style_Value := Border_Style (None_Style);
 
    -------------------------------------------------
+   -- Outline (uniform, not per-edge)
+   -------------------------------------------------
+
+   type Outline_Style_Kind is (Outline_None, Outline_Solid, Outline_Dashed, Outline_Dotted);
+
+   Default_Outline_Width  : constant Length_Value := Zero_Length;
+   Default_Outline_Color  : constant Color_Value := C (Current_Color);
+   Default_Outline_Style  : constant Outline_Style_Kind := Outline_None;
+   Default_Outline_Offset : constant Length_Value := Zero_Length;
+
+   -------------------------------------------------
    -- CSS_Box (padding/margin)
    -------------------------------------------------
 
@@ -913,6 +924,12 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
      package Opt_Line_Height     is new Optional_Values (Line_Height_Value, Default_Line_Height);
      package Opt_Text_Wrap_Mode  is new Optional_Values (Text_Wrap_Mode_Value, Default_Text_Wrap_Mode);
     package Opt_Transition      is new Optional_Values (Transition_Spec, Default_Transition);
+
+   package Opt_Outline_Width  is new Optional_Values (Length_Value, Default_Outline_Width);
+   package Opt_Outline_Color  is new Optional_Values (Color_Value, Default_Outline_Color);
+   package Opt_Outline_Style  is new Optional_Values (Outline_Style_Kind, Default_Outline_Style);
+   package Opt_Outline_Offset is new Optional_Values (Length_Value, Default_Outline_Offset);
+
    -------------------------------------------------
    -- Style Rules Record
    -------------------------------------------------
@@ -928,6 +945,12 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Border_Width     : Opt_Border_Width.Optional := Opt_Border_Width.Unset;
       Border_Color     : Opt_Border_Color.Optional := Opt_Border_Color.Unset;
       Border_Style     : Opt_Border_Style.Optional := Opt_Border_Style.Unset;
+
+      -- Outline
+      Outline_Width    : Opt_Outline_Width.Optional  := Opt_Outline_Width.Unset;
+      Outline_Color    : Opt_Outline_Color.Optional  := Opt_Outline_Color.Unset;
+      Outline_Style    : Opt_Outline_Style.Optional  := Opt_Outline_Style.Unset;
+      Outline_Offset   : Opt_Outline_Offset.Optional := Opt_Outline_Offset.Unset;
 
       -- Spacing
       Padding          : Opt_Box.Optional          := Opt_Box.Unset;
@@ -1017,6 +1040,12 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Border_Width     : Border_Width_Value := Default_Border_Width;
       Border_Color     : Border_Color_Value := Default_Border_Color_Val;
       Border_Style     : Border_Style_Value := Default_Border_Style;
+
+      -- Outline
+      Outline_Width    : Length_Value := Default_Outline_Width;
+      Outline_Color    : Color_Value := Default_Outline_Color;
+      Outline_Style    : Outline_Style_Kind := Default_Outline_Style;
+      Outline_Offset   : Length_Value := Default_Outline_Offset;
 
       -- Spacing
       Padding          : CSS_Box_Value := Default_CSS_Box;
@@ -1110,6 +1139,12 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    No_Border_Width : constant Opt_Border_Width.Optional := Opt_Border_Width.Cleared;
    No_Border_Color : constant Opt_Border_Color.Optional := Opt_Border_Color.Cleared;
    No_Border_Style : constant Opt_Border_Style.Optional := Opt_Border_Style.Cleared;
+
+   -- Outline
+   function Set_Outline_Width (V : Length_Value) return Opt_Outline_Width.Optional renames Opt_Outline_Width.Val;
+   function Set_Outline_Color (V : Color_Value) return Opt_Outline_Color.Optional renames Opt_Outline_Color.Val;
+   function Set (V : Outline_Style_Kind) return Opt_Outline_Style.Optional renames Opt_Outline_Style.Val;
+   function Set_Outline_Offset (V : Length_Value) return Opt_Outline_Offset.Optional renames Opt_Outline_Offset.Val;
 
    -- CSS_Box
    function Set (V : CSS_Box_Value) return Opt_Box.Optional renames Opt_Box.Val;

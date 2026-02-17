@@ -164,6 +164,57 @@ package body Adi.CSS_Parser is
       return True;
    end Parse_Natural;
 
+   function Parse_Grid_Track_Count
+     (Input : String; Count : out Natural) return Boolean
+   is
+      V : constant String := Lower (Trimmed (Input));
+      Paren : Natural;
+      Comma : Natural;
+   begin
+      --  "repeat(N, ...)" form
+      if V'Length > 7
+        and then V (V'First .. V'First + 6) = "repeat("
+        and then V (V'Last) = ')'
+      then
+         Paren := V'First + 6;  --  index of '('
+         Comma := 0;
+         for J in Paren + 1 .. V'Last - 1 loop
+            if V (J) = ',' then
+               Comma := J;
+               exit;
+            end if;
+         end loop;
+         if Comma > 0 then
+            return Parse_Natural (V (Paren + 1 .. Comma - 1), Count)
+              and then Count > 0;
+         end if;
+         return False;
+      end if;
+      --  Plain integer form
+      if Parse_Natural (V, Count) and then Count > 0 then
+         return True;
+      end if;
+      --  Space-separated track list (e.g. "1fr 1fr 1fr"): count tokens
+      declare
+         N_Tokens : Natural := 0;
+         In_Token : Boolean := False;
+      begin
+         for J in V'Range loop
+            if V (J) = ' ' or else V (J) = ASCII.HT then
+               In_Token := False;
+            elsif not In_Token then
+               In_Token := True;
+               N_Tokens := N_Tokens + 1;
+            end if;
+         end loop;
+         if N_Tokens > 0 then
+            Count := N_Tokens;
+            return True;
+         end if;
+      end;
+      return False;
+   end Parse_Grid_Track_Count;
+
    function Parse_Length (Input : String; L : out Parsed_Length) return Boolean is
       V : constant String := Lower (Trimmed (Input));
       Number : Unbounded_String := To_Unbounded_String (V);
@@ -1163,6 +1214,7 @@ package body Adi.CSS_Parser is
       Ls : Length_Vectors.Vector;
       F : Float;
       I : Integer;
+      N : Natural;
    begin
       if P = "color" then
          if Parse_Color (V, CVal) then Rules.Color := Set (CVal); end if;
@@ -1371,6 +1423,14 @@ package body Adi.CSS_Parser is
          if LV = "wrap" then Rules.Text_Wrap_Mode := Set (TWM_Wrap);
          elsif LV = "nowrap" then Rules.Text_Wrap_Mode := Set (TWM_Nowrap);
          end if;
+      elsif P = "vertical-align" then
+         if LV = "baseline" then Rules.Vertical_Align := Set (VA_Baseline);
+         elsif LV = "top" then Rules.Vertical_Align := Set (VA_Top);
+         elsif LV = "middle" then Rules.Vertical_Align := Set (VA_Middle);
+         elsif LV = "bottom" then Rules.Vertical_Align := Set (VA_Bottom);
+         elsif LV = "text-top" then Rules.Vertical_Align := Set (VA_Text_Top);
+         elsif LV = "text-bottom" then Rules.Vertical_Align := Set (VA_Text_Bottom);
+         end if;
       elsif P = "display" then
          if LV = "none" then Rules.Display := Set (Display_None);
          elsif LV = "block" then Rules.Display := Set (Block);
@@ -1426,6 +1486,11 @@ package body Adi.CSS_Parser is
          elsif LV = "column" then Rules.Flex_Direction := Set (Column);
          elsif LV = "column-reverse" then Rules.Flex_Direction := Set (Column_Reverse);
          end if;
+      elsif P = "flex-wrap" then
+         if LV = "nowrap" then Rules.Flex_Wrap := Set (No_Wrap);
+         elsif LV = "wrap" then Rules.Flex_Wrap := Set (Wrap);
+         elsif LV = "wrap-reverse" then Rules.Flex_Wrap := Set (Wrap_Reverse);
+         end if;
       elsif P = "justify-content" then
          if LV = "flex-start" or else LV = "start" then Rules.Justify_Content := Set (Flex_Start);
          elsif LV = "flex-end" or else LV = "end" then Rules.Justify_Content := Set (Flex_End);
@@ -1440,6 +1505,22 @@ package body Adi.CSS_Parser is
          elsif LV = "center" then Rules.Align_Items := Set (Center);
          elsif LV = "baseline" then Rules.Align_Items := Set (Baseline);
          elsif LV = "stretch" then Rules.Align_Items := Set (Stretch);
+         end if;
+      elsif P = "align-self" then
+         if LV = "auto" then Rules.Align_Self := Set (Align_Self_Value'(Auto));
+         elsif LV = "flex-start" or else LV = "start" then Rules.Align_Self := Set (Align_Self_Value'(Flex_Start));
+         elsif LV = "flex-end" or else LV = "end" then Rules.Align_Self := Set (Align_Self_Value'(Flex_End));
+         elsif LV = "center" then Rules.Align_Self := Set (Align_Self_Value'(Center));
+         elsif LV = "baseline" then Rules.Align_Self := Set (Align_Self_Value'(Baseline));
+         elsif LV = "stretch" then Rules.Align_Self := Set (Align_Self_Value'(Stretch));
+         end if;
+      elsif P = "align-content" then
+         if LV = "flex-start" or else LV = "start" then Rules.Align_Content := Set (Align_Content_Value'(Flex_Start));
+         elsif LV = "flex-end" or else LV = "end" then Rules.Align_Content := Set (Align_Content_Value'(Flex_End));
+         elsif LV = "center" then Rules.Align_Content := Set (Align_Content_Value'(Center));
+         elsif LV = "space-between" then Rules.Align_Content := Set (Align_Content_Value'(Space_Between));
+         elsif LV = "space-around" then Rules.Align_Content := Set (Align_Content_Value'(Space_Around));
+         elsif LV = "stretch" then Rules.Align_Content := Set (Align_Content_Value'(Stretch));
          end if;
       elsif P = "gap" then
          if Parse_Length_List (V, Ls) then
@@ -1458,6 +1539,133 @@ package body Adi.CSS_Parser is
          end if;
       elsif P = "order" then
          if Parse_Integer (V, I) then Rules.Order := Set (Order_Value (I)); end if;
+      elsif P = "grid-template-columns" then
+         if Parse_Grid_Track_Count (V, N) then
+            Rules.Grid_Columns := Set (Grid_Columns_Value (N));
+         end if;
+      elsif P = "grid-template-rows" then
+         if Parse_Grid_Track_Count (V, N) then
+            Rules.Grid_Rows := Set (Grid_Rows_Value (N));
+         end if;
+      elsif P = "grid-column" or else P = "grid-row" then
+         declare
+            Slash_Pos   : Natural := 0;
+            Start_Val   : Integer;
+            Span_Val    : Natural;
+            Is_Col      : constant Boolean := P = "grid-column";
+            Got_Start   : Boolean := False;
+            Start_Line  : Natural := 0;
+         begin
+            --  Find slash separator
+            for J in V'Range loop
+               if V (J) = '/' then
+                  Slash_Pos := J;
+                  exit;
+               end if;
+            end loop;
+            if Slash_Pos > 0 then
+               --  "start / end" or "start / span N"
+               declare
+                  Left  : constant String := Trimmed (V (V'First .. Slash_Pos - 1));
+                  Right : constant String := Lower (Trimmed (V (Slash_Pos + 1 .. V'Last)));
+               begin
+                  if Parse_Integer (Left, Start_Val) and then Start_Val > 0 then
+                     Got_Start := True;
+                     Start_Line := Natural (Start_Val);
+                     if Is_Col then
+                        Rules.Grid_Column := Set (Grid_Column_Value (Start_Val));
+                     else
+                        Rules.Grid_Row := Set (Grid_Row_Value (Start_Val));
+                     end if;
+                  end if;
+                  if Right'Length > 5
+                    and then Right (Right'First .. Right'First + 3) = "span"
+                    and then Is_Whitespace (Right (Right'First + 4))
+                  then
+                     if Parse_Natural (Right (Right'First + 5 .. Right'Last), Span_Val)
+                       and then Span_Val > 0
+                     then
+                        if Is_Col then
+                           Rules.Grid_Column_Span := Set (Grid_Column_Span_Value (Span_Val));
+                        else
+                           Rules.Grid_Row_Span := Set (Grid_Row_Span_Value (Span_Val));
+                        end if;
+                     end if;
+                  elsif Got_Start and then Parse_Integer (Right, Start_Val) then
+                     --  "start / end_line" -> span = end - start
+                     if Start_Val > Integer (Start_Line) then
+                        if Is_Col then
+                           Rules.Grid_Column_Span := Set (Grid_Column_Span_Value (Start_Val - Integer (Start_Line)));
+                        else
+                           Rules.Grid_Row_Span := Set (Grid_Row_Span_Value (Start_Val - Integer (Start_Line)));
+                        end if;
+                     end if;
+                  end if;
+               end;
+            else
+               --  No slash: "N" or "span N"
+               if LV'Length > 5
+                 and then LV (LV'First .. LV'First + 3) = "span"
+                 and then Is_Whitespace (LV (LV'First + 4))
+               then
+                  if Parse_Natural (LV (LV'First + 5 .. LV'Last), Span_Val)
+                    and then Span_Val > 0
+                  then
+                     if Is_Col then
+                        Rules.Grid_Column_Span := Set (Grid_Column_Span_Value (Span_Val));
+                     else
+                        Rules.Grid_Row_Span := Set (Grid_Row_Span_Value (Span_Val));
+                     end if;
+                  end if;
+               elsif Parse_Integer (V, Start_Val) and then Start_Val > 0 then
+                  if Is_Col then
+                     Rules.Grid_Column := Set (Grid_Column_Value (Start_Val));
+                  else
+                     Rules.Grid_Row := Set (Grid_Row_Value (Start_Val));
+                  end if;
+               end if;
+            end if;
+         end;
+      elsif P = "outline-width" then
+         if Parse_Length (V, LVal) then Rules.Outline_Width := Set_Outline_Width (To_Length (LVal)); end if;
+      elsif P = "outline-color" then
+         if Parse_Color (V, CVal) then Rules.Outline_Color := Set_Outline_Color (CVal); end if;
+      elsif P = "outline-style" then
+         if LV = "none" then Rules.Outline_Style := Set (Outline_None);
+         elsif LV = "solid" then Rules.Outline_Style := Set (Outline_Solid);
+         elsif LV = "dashed" then Rules.Outline_Style := Set (Outline_Dashed);
+         elsif LV = "dotted" then Rules.Outline_Style := Set (Outline_Dotted);
+         end if;
+      elsif P = "outline-offset" then
+         if Parse_Length (V, LVal) then Rules.Outline_Offset := Set_Outline_Offset (To_Length (LVal)); end if;
+      elsif P = "outline" then
+         declare
+            Tokens : Token_Vectors.Vector;
+            Tok_L  : Parsed_Length;
+            Tok_C  : Color_Value;
+         begin
+            Split_Whitespace_Tokens (V, Tokens);
+            for T of Tokens loop
+               declare
+                  Tok : constant String := To_String (T);
+                  Tok_Low : constant String := Lower (Tok);
+               begin
+                  if Tok_Low = "none" then
+                     Rules.Outline_Style := Set (Outline_None);
+                  elsif Tok_Low = "solid" then
+                     Rules.Outline_Style := Set (Outline_Solid);
+                  elsif Tok_Low = "dashed" then
+                     Rules.Outline_Style := Set (Outline_Dashed);
+                  elsif Tok_Low = "dotted" then
+                     Rules.Outline_Style := Set (Outline_Dotted);
+                  elsif Parse_Color (Tok, Tok_C) then
+                     Rules.Outline_Color := Set_Outline_Color (Tok_C);
+                  elsif Parse_Length (Tok, Tok_L) then
+                     Rules.Outline_Width := Set_Outline_Width (To_Length (Tok_L));
+                  end if;
+               end;
+            end loop;
+         end;
       elsif P = "box-shadow" then
          if Parse_Box_Shadow (V, Shadow_Val) then Rules.Box_Shadow := Set (Shadow_Val); end if;
       elsif P = "transition" then

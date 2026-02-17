@@ -117,7 +117,29 @@ procedure Css_Parser_Test is
        ".svgaqua { color: aqua; }" & ASCII.LF &
        ".svgcyan { color: cyan; }" & ASCII.LF &
        "li, ul, p { color: red; }" & ASCII.LF &
-       "li, ul, p { padding: 2px; }" & ASCII.LF;
+       "li, ul, p { padding: 2px; }" & ASCII.LF &
+       ".outline-long { outline-width: 3px; outline-style: solid; outline-color: rgb(100, 200, 50); outline-offset: 4px; }" & ASCII.LF &
+       ".outline-short { outline: 2px solid rgb(208, 188, 255); }" & ASCII.LF &
+       ".outline-offset { outline: 1px dashed red; outline-offset: 5px; }" & ASCII.LF &
+       ".outline-none { outline: none; }" & ASCII.LF &
+       --  Missing property coverage
+       ".sizing { height: 200px; min-width: 50px; max-width: 400px; max-height: 300px; }" & ASCII.LF &
+       ".textprops { text-decoration: underline; white-space: pre-wrap; text-overflow: ellipsis; line-height: 1.5; vertical-align: middle; }" & ASCII.LF &
+       ".misc { visibility: hidden; object-fit: cover; }" & ASCII.LF &
+       ".flexextra { flex-wrap: wrap; align-self: stretch; align-content: space-between; }" & ASCII.LF &
+       ".gridcontainer { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; gap: 10px; }" & ASCII.LF &
+       ".griditem { grid-column: 1 / 3; grid-row: span 2; }" & ASCII.LF &
+       ".shadowtest { box-shadow: none; }" & ASCII.LF &
+       ".pad1 { padding: 5px; }" & ASCII.LF &
+       ".margin3 { margin: 1px 2px 3px; }" & ASCII.LF &
+       ".displayvals { display: inline-flex; }" & ASCII.LF &
+       ".linepx { line-height: 20px; }" & ASCII.LF &
+       ".linenormal { line-height: normal; }" & ASCII.LF &
+       ".widthauto { width: auto; }" & ASCII.LF &
+       ".basisauto { flex-basis: auto; }" & ASCII.LF &
+       ".basiscontent { flex-basis: content; }" & ASCII.LF &
+       ".pressed-pseudo { background-color: rgb(11, 22, 33); }" & ASCII.LF &
+       ".pressed-pseudo:active { background-color: rgb(44, 55, 66); }" & ASCII.LF;
 
 begin
    Put_Line ("CSS parser test");
@@ -170,6 +192,26 @@ begin
       SvgCyan_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "svgcyan");
       Missing_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For (Sheet, "missing");
       DP_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "dpunit");
+      Outline_Long_Styles  : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "outline-long");
+      Outline_Short_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "outline-short");
+      Outline_Offset_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "outline-offset");
+      Outline_None_Styles  : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "outline-none");
+      Sizing_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "sizing");
+      Textprops_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "textprops");
+      Misc_Styles        : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "misc");
+      Flexextra_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "flexextra");
+      Gridcon_Styles     : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "gridcontainer");
+      Griditem_Styles    : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "griditem");
+      Shadow_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "shadowtest");
+      Pad1_Styles        : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "pad1");
+      Margin3_Styles     : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "margin3");
+      Dispvals_Styles    : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "displayvals");
+      Linepx_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "linepx");
+      Linenormal_Styles  : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "linenormal");
+      Widthauto_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "widthauto");
+      Basisauto_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "basisauto");
+      Basiscont_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "basiscontent");
+      Pressed_Styles     : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "pressed-pseudo");
 
       Main_Normal : constant Resolved_Style := Compute_Resolved (Styles (Main_Part).Style, No_States, No_States);
       Main_Hover  : constant Resolved_Style := Compute_Resolved (
@@ -223,6 +265,30 @@ begin
       SvgCyan_Main : constant Resolved_Style := Compute_Resolved (SvgCyan_Styles (Main_Part).Style, No_States, No_States);
       Missing_Main : constant Resolved_Style := Compute_Resolved (Missing_Styles (Main_Part).Style, No_States, No_States);
       DP_Main      : constant Resolved_Style := Compute_Resolved (DP_Styles (Main_Part).Style, No_States, No_States);
+      Outline_Long_Main  : constant Resolved_Style := Compute_Resolved (Outline_Long_Styles (Main_Part).Style, No_States, No_States);
+      Outline_Short_Main : constant Resolved_Style := Compute_Resolved (Outline_Short_Styles (Main_Part).Style, No_States, No_States);
+      Outline_Offset_Main : constant Resolved_Style := Compute_Resolved (Outline_Offset_Styles (Main_Part).Style, No_States, No_States);
+      Outline_None_Main  : constant Resolved_Style := Compute_Resolved (Outline_None_Styles (Main_Part).Style, No_States, No_States);
+      Sizing_Main      : constant Resolved_Style := Compute_Resolved (Sizing_Styles (Main_Part).Style, No_States, No_States);
+      Textprops_Main   : constant Resolved_Style := Compute_Resolved (Textprops_Styles (Main_Part).Style, No_States, No_States);
+      Misc_Main        : constant Resolved_Style := Compute_Resolved (Misc_Styles (Main_Part).Style, No_States, No_States);
+      Flexextra_Main   : constant Resolved_Style := Compute_Resolved (Flexextra_Styles (Main_Part).Style, No_States, No_States);
+      Gridcon_Main     : constant Resolved_Style := Compute_Resolved (Gridcon_Styles (Main_Part).Style, No_States, No_States);
+      Griditem_Main    : constant Resolved_Style := Compute_Resolved (Griditem_Styles (Main_Part).Style, No_States, No_States);
+      Shadow_Main      : constant Resolved_Style := Compute_Resolved (Shadow_Styles (Main_Part).Style, No_States, No_States);
+      Pad1_Main        : constant Resolved_Style := Compute_Resolved (Pad1_Styles (Main_Part).Style, No_States, No_States);
+      Margin3_Main     : constant Resolved_Style := Compute_Resolved (Margin3_Styles (Main_Part).Style, No_States, No_States);
+      Dispvals_Main    : constant Resolved_Style := Compute_Resolved (Dispvals_Styles (Main_Part).Style, No_States, No_States);
+      Linepx_Main      : constant Resolved_Style := Compute_Resolved (Linepx_Styles (Main_Part).Style, No_States, No_States);
+      Linenormal_Main  : constant Resolved_Style := Compute_Resolved (Linenormal_Styles (Main_Part).Style, No_States, No_States);
+      Widthauto_Main   : constant Resolved_Style := Compute_Resolved (Widthauto_Styles (Main_Part).Style, No_States, No_States);
+      Basisauto_Main   : constant Resolved_Style := Compute_Resolved (Basisauto_Styles (Main_Part).Style, No_States, No_States);
+      Basiscont_Main   : constant Resolved_Style := Compute_Resolved (Basiscont_Styles (Main_Part).Style, No_States, No_States);
+      Pressed_Normal   : constant Resolved_Style := Compute_Resolved (Pressed_Styles (Main_Part).Style, No_States, No_States);
+      Pressed_Active   : constant Resolved_Style := Compute_Resolved (
+         Pressed_Styles (Main_Part).Style,
+         [No_States with delta State_Pressed => True],
+         No_States);
    begin
       Assert (Is_RGBA_Color (Main_Normal.Background_Color, 16, 34, 51, 0.8),
               "RGBA background-color should parse");
@@ -397,6 +463,142 @@ begin
       Assert (Missing_Main.Background_Color.Kind = Named
               and then Missing_Main.Background_Color.Name = Transparent,
               "Unknown class should return default/empty styles");
+
+      --  Outline longhand tests
+      Assert (Outline_Long_Main.Outline_Width.Amount = 3.0
+              and then Outline_Long_Main.Outline_Width.Unit = Px,
+              "outline-width longhand should parse");
+      Assert (Outline_Long_Main.Outline_Style = Outline_Solid,
+              "outline-style longhand should parse");
+      Assert (Is_RGB_Color (Outline_Long_Main.Outline_Color, 100, 200, 50),
+              "outline-color longhand should parse");
+      Assert (Outline_Long_Main.Outline_Offset.Amount = 4.0
+              and then Outline_Long_Main.Outline_Offset.Unit = Px,
+              "outline-offset longhand should parse");
+
+      --  Outline shorthand tests
+      Assert (Outline_Short_Main.Outline_Width.Amount = 2.0
+              and then Outline_Short_Main.Outline_Width.Unit = Px,
+              "outline shorthand should parse width");
+      Assert (Outline_Short_Main.Outline_Style = Outline_Solid,
+              "outline shorthand should parse style");
+      Assert (Is_RGB_Color (Outline_Short_Main.Outline_Color, 208, 188, 255),
+              "outline shorthand should parse rgb color");
+
+      --  Outline shorthand + longhand override
+      Assert (Outline_Offset_Main.Outline_Width.Amount = 1.0,
+              "outline shorthand width should parse for dashed test");
+      Assert (Outline_Offset_Main.Outline_Style = Outline_Dashed,
+              "outline shorthand should parse dashed style");
+      Assert (Is_Named_Color (Outline_Offset_Main.Outline_Color, Red),
+              "outline shorthand should parse named color");
+      Assert (Outline_Offset_Main.Outline_Offset.Amount = 5.0,
+              "outline-offset longhand should override after shorthand");
+
+      --  Outline none
+      Assert (Outline_None_Main.Outline_Style = Outline_None,
+              "outline none shorthand should set style to none");
+
+      --  Sizing properties
+      Assert (Sizing_Main.Height.Kind = Fixed and then Sizing_Main.Height.Size.Amount = 200.0,
+              "height should parse");
+      Assert (Sizing_Main.Min_Width.Kind = Fixed and then Sizing_Main.Min_Width.Size.Amount = 50.0,
+              "min-width should parse");
+      Assert (Sizing_Main.Max_Width.Kind = Fixed and then Sizing_Main.Max_Width.Size.Amount = 400.0,
+              "max-width should parse");
+      Assert (Sizing_Main.Max_Height.Kind = Fixed and then Sizing_Main.Max_Height.Size.Amount = 300.0,
+              "max-height should parse");
+
+      --  Text properties
+      Assert (Textprops_Main.Text_Decoration = Decoration_Underline,
+              "text-decoration underline should parse");
+      Assert (Textprops_Main.White_Space = WS_Pre_Wrap,
+              "white-space pre-wrap should parse");
+      Assert (Textprops_Main.Text_Overflow = Overflow_Ellipsis,
+              "text-overflow ellipsis should parse");
+      Assert (Textprops_Main.Line_Height.Kind = LH_Number
+              and then Nearly_Equal (Textprops_Main.Line_Height.Multiplier, 1.5),
+              "line-height unitless multiplier should parse");
+      Assert (Textprops_Main.Vertical_Align = VA_Middle,
+              "vertical-align middle should parse");
+
+      --  Misc properties
+      Assert (Misc_Main.Visibility = Visibility_Hidden,
+              "visibility hidden should parse");
+      Assert (Misc_Main.Object_Fit = Fit_Cover,
+              "object-fit cover should parse");
+
+      --  Flex extra
+      Assert (Flexextra_Main.Flex_Wrap = Wrap,
+              "flex-wrap wrap should parse");
+      Assert (Flexextra_Main.Align_Self = Stretch,
+              "align-self stretch should parse");
+      Assert (Flexextra_Main.Align_Content = Space_Between,
+              "align-content space-between should parse");
+
+      --  Grid container
+      Assert (Gridcon_Main.Display = Grid,
+              "display grid should parse");
+      Assert (Gridcon_Main.Grid_Columns = 3,
+              "grid-template-columns repeat(3) should parse to 3");
+      Assert (Gridcon_Main.Grid_Rows = 2,
+              "grid-template-rows should parse track count");
+      Assert (Gridcon_Main.Gap.Kind = Gap_Uniform
+              and then Gridcon_Main.Gap.All_Gap.Amount = 10.0,
+              "gap 1-value should parse to uniform gap");
+
+      --  Grid item
+      Assert (Griditem_Main.Grid_Column = 1,
+              "grid-column start should parse");
+      Assert (Griditem_Main.Grid_Column_Span = 2,
+              "grid-column span should parse from start/end shorthand");
+      Assert (Griditem_Main.Grid_Row_Span = 2,
+              "grid-row span should parse");
+
+      --  Box shadow none
+      Assert (Shadow_Main.Box_Shadow.Blur_Radius.Amount = 0.0
+              and then Shadow_Main.Box_Shadow.Offset_X.Amount = 0.0,
+              "box-shadow none should resolve to zero shadow");
+
+      --  Padding 1-value uniform
+      Assert (Pad1_Main.Padding.Kind = Gap_Uniform
+              and then Pad1_Main.Padding.All_Sides.Amount = 5.0,
+              "padding 1-value should parse as uniform");
+
+      --  Margin 3-value
+      Assert (Margin3_Main.Margin.Kind = Per_Side
+              and then Margin3_Main.Margin.Sides (Top).Amount = 1.0
+              and then Margin3_Main.Margin.Sides (Right).Amount = 2.0
+              and then Margin3_Main.Margin.Sides (Bottom).Amount = 3.0
+              and then Margin3_Main.Margin.Sides (Left).Amount = 2.0,
+              "margin 3-value shorthand should parse (left = right)");
+
+      --  Display inline-flex
+      Assert (Dispvals_Main.Display = Inline_Flex,
+              "display inline-flex should parse");
+
+      --  Line height variants
+      Assert (Linepx_Main.Line_Height.Kind = LH_Length
+              and then Linepx_Main.Line_Height.Height.Amount = 20.0,
+              "line-height with px unit should parse");
+      Assert (Linenormal_Main.Line_Height.Kind = LH_Normal,
+              "line-height normal should parse");
+
+      --  Width auto
+      Assert (Widthauto_Main.Width.Kind = Auto,
+              "width auto should parse");
+
+      --  Flex basis auto/content
+      Assert (Basisauto_Main.Flex_Basis.Kind = Auto,
+              "flex-basis auto should parse");
+      Assert (Basiscont_Main.Flex_Basis.Kind = Content,
+              "flex-basis content should parse");
+
+      --  :active pseudo = pressed state
+      Assert (Is_RGB_Color (Pressed_Normal.Background_Color, 11, 22, 33),
+              ":active pseudo base should parse");
+      Assert (Is_RGB_Color (Pressed_Active.Background_Color, 44, 55, 66),
+              ":active pseudo should map to pressed state");
    end;
 
    declare

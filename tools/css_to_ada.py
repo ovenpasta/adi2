@@ -388,6 +388,13 @@ OVERFLOW_MAP = {
 }
 
 # CSS cursor values to Ada
+OUTLINE_STYLE_MAP = {
+    "none": "Outline_None",
+    "solid": "Outline_Solid",
+    "dashed": "Outline_Dashed",
+    "dotted": "Outline_Dotted",
+}
+
 CURSOR_MAP = {
     "auto": "Cursor_Auto",
     "default": "Cursor_Default",
@@ -1698,6 +1705,41 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
                                 f"{generate_length_ada(shadow.blur_radius)}, "
                                 f"{generate_length_ada(shadow.spread_radius)}, "
                                 f"{generate_color_ada(shadow.color)}))")
+
+        # Outline
+        elif prop == "outline-width":
+            length = parse_length(value)
+            if length:
+                ada_field = f"Outline_Width => Set_Outline_Width ({generate_length_ada(length)})"
+
+        elif prop == "outline-color":
+            color = parse_color(value)
+            if color:
+                ada_field = f"Outline_Color => Set_Outline_Color ({generate_color_ada(color)})"
+
+        elif prop == "outline-style":
+            if value.lower() in OUTLINE_STYLE_MAP:
+                ada_field = f"Outline_Style => Set ({OUTLINE_STYLE_MAP[value.lower()]})"
+
+        elif prop == "outline-offset":
+            length = parse_length(value)
+            if length:
+                ada_field = f"Outline_Offset => Set_Outline_Offset ({generate_length_ada(length)})"
+
+        elif prop == "outline":
+            parts = split_css_whitespace_tokens(value)
+            for part in parts:
+                if part.lower() in OUTLINE_STYLE_MAP:
+                    fields.append(f"{indent}Outline_Style => Set ({OUTLINE_STYLE_MAP[part.lower()]})")
+                    continue
+                color = parse_color(part)
+                if color:
+                    fields.append(f"{indent}Outline_Color => Set_Outline_Color ({generate_color_ada(color)})")
+                    continue
+                length = parse_length(part)
+                if length:
+                    fields.append(f"{indent}Outline_Width => Set_Outline_Width ({generate_length_ada(length)})")
+            continue  # Skip adding ada_field since we handled it
 
         # Transition
         elif prop == "transition":

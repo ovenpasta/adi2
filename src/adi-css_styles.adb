@@ -414,6 +414,12 @@ package body Adi.CSS_Styles is
          Border_Color     => Opt_Border_Color.Merge (Base.Border_Color, Override.Border_Color),
          Border_Style     => Opt_Border_Style.Merge (Base.Border_Style, Override.Border_Style),
 
+         -- Outline
+         Outline_Width    => Opt_Outline_Width.Merge (Base.Outline_Width, Override.Outline_Width),
+         Outline_Color    => Opt_Outline_Color.Merge (Base.Outline_Color, Override.Outline_Color),
+         Outline_Style    => Opt_Outline_Style.Merge (Base.Outline_Style, Override.Outline_Style),
+         Outline_Offset   => Opt_Outline_Offset.Merge (Base.Outline_Offset, Override.Outline_Offset),
+
          -- Spacing
          Padding          => Opt_Box.Merge (Base.Padding, Override.Padding),
          Margin           => Opt_Box.Merge (Base.Margin, Override.Margin),
@@ -501,6 +507,12 @@ package body Adi.CSS_Styles is
          Border_Width     => Opt_Border_Width.Resolve (S.Border_Width),
          Border_Color     => Opt_Border_Color.Resolve (S.Border_Color),
          Border_Style     => Opt_Border_Style.Resolve (S.Border_Style),
+
+         -- Outline
+         Outline_Width    => Opt_Outline_Width.Resolve (S.Outline_Width),
+         Outline_Color    => Opt_Outline_Color.Resolve (S.Outline_Color),
+         Outline_Style    => Opt_Outline_Style.Resolve (S.Outline_Style),
+         Outline_Offset   => Opt_Outline_Offset.Resolve (S.Outline_Offset),
 
          -- Spacing
          Padding          => Opt_Box.Resolve (S.Padding),

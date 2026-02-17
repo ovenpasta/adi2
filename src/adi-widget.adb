@@ -2247,6 +2247,106 @@ package body Adi.Widget is
       Rect.w := Float (Geom.Width);
       Rect.h := Float (Geom.Height);
 
+      --  Outline (drawn outside the border box, does not affect layout).
+      --  Rendered BEFORE background/border so the widget's own background
+      --  fill naturally covers the outline's inner aliased edge — same
+      --  layering principle that makes border inner-edge AA work.
+      if Style.Outline_Style /= Outline_None
+        and then Style.Outline_Width.Amount > 0.0
+      then
+         declare
+            OW : constant Float := Style.Outline_Width.Amount;
+            OO : constant Float := Style.Outline_Offset.Amount;
+            Expand : constant Float := OO + OW;
+            Outline_Outer : aliased SDL_FRect :=
+              (x => Rect.x - Expand,
+               y => Rect.y - Expand,
+               w => Rect.w + 2.0 * Expand,
+               h => Rect.h + 2.0 * Expand);
+            Outline_Inner : aliased SDL_FRect :=
+              (x => Rect.x - OO,
+               y => Rect.y - OO,
+               w => Rect.w + 2.0 * OO,
+               h => Rect.h + 2.0 * OO);
+            OR_Val, OG_Val, OB_Val, OA_Val : Uint8;
+         begin
+            CSS_Color_To_SDL (Style.Outline_Color, OR_Val, OG_Val, OB_Val, OA_Val);
+            OA_Val := Apply_Opacity (OA_Val, Op);
+
+            if Has_Radius then
+               declare
+                  Outer_Radii : constant Corner_Pixels :=
+                    (Top_Left     => Radius_Px.Top_Left + Expand,
+                     Top_Right    => Radius_Px.Top_Right + Expand,
+                     Bottom_Right => Radius_Px.Bottom_Right + Expand,
+                     Bottom_Left  => Radius_Px.Bottom_Left + Expand);
+                  Inner_Radii : constant Corner_Pixels :=
+                    (Top_Left     => Radius_Px.Top_Left + OO,
+                     Top_Right    => Radius_Px.Top_Right + OO,
+                     Bottom_Right => Radius_Px.Bottom_Right + OO,
+                     Bottom_Left  => Radius_Px.Bottom_Left + OO);
+                  --  Shared segment count so ring and fringe use identical
+                  --  tessellation (prevents ray artifacts).
+                  Seg : constant Positive :=
+                     Segments_For_Radius
+                       (Float'Max
+                          (Float'Max (Outer_Radii.Top_Left,
+                                      Outer_Radii.Top_Right),
+                           Float'Max (Outer_Radii.Bottom_Right,
+                                      Outer_Radii.Bottom_Left)));
+               begin
+                  Render_Rounded_Border_Ring
+                    (Renderer, Outline_Outer, Outline_Inner,
+                     Outer_Radii, Inner_Radii,
+                     OR_Val, OG_Val, OB_Val, OA_Val,
+                     Min_Segments => Seg);
+                  --  AA fringe on outer outline edge
+                  Render_AA_Fringe
+                    (Renderer, Outline_Outer, Outer_Radii,
+                     OR_Val, OG_Val, OB_Val, OA_Val,
+                     Min_Segments => Seg);
+                  --  AA fringe on inner outline edge (shared Seg
+                  --  ensures tessellation matches the ring boundary)
+                  Render_AA_Fringe
+                    (Renderer, Outline_Inner, Inner_Radii,
+                     OR_Val, OG_Val, OB_Val, OA_Val,
+                     Min_Segments => Seg,
+                     Inward => True);
+               end;
+            else
+               declare
+                  Edge_Rect : aliased SDL_FRect;
+               begin
+                  SDL_Assert (SDL_SetRenderDrawColor
+                    (Renderer, OR_Val, OG_Val, OB_Val, OA_Val),
+                    "SDL_SetRenderDrawColor");
+                  --  Top
+                  Edge_Rect := (x => Outline_Outer.x, y => Outline_Outer.y,
+                                w => Outline_Outer.w, h => OW);
+                  SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
+                              "SDL_RenderFillRect");
+                  --  Bottom
+                  Edge_Rect := (x => Outline_Outer.x,
+                                y => Outline_Outer.y + Outline_Outer.h - OW,
+                                w => Outline_Outer.w, h => OW);
+                  SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
+                              "SDL_RenderFillRect");
+                  --  Left
+                  Edge_Rect := (x => Outline_Outer.x, y => Outline_Outer.y,
+                                w => OW, h => Outline_Outer.h);
+                  SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
+                              "SDL_RenderFillRect");
+                  --  Right
+                  Edge_Rect := (x => Outline_Outer.x + Outline_Outer.w - OW,
+                                y => Outline_Outer.y,
+                                w => OW, h => Outline_Outer.h);
+                  SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
+                              "SDL_RenderFillRect");
+               end;
+            end if;
+         end;
+      end if;
+
       if Has_Radius then
 
          if Has_Border and then Uniform_Border_Width and then BW_Top > 0.0 then
@@ -2393,6 +2493,7 @@ package body Adi.Widget is
             end;
          end if;
       end if;
+
    end Render_Panel;
 
    procedure Render_Text_Item (

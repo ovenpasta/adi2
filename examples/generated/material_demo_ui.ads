@@ -15,7 +15,7 @@ with Adi.Window;
 
 package Material_Demo_UI is
 
-   type Page is (Home, Forms, Settings);
+   type Page is (Home, Forms, Settings, Controls);
 
    package Page_Stack is new Adi.Widget.Stack (Page);
    package Nav_Options is new Adi.Widget.Button.Options (Page);
@@ -26,6 +26,7 @@ package Material_Demo_UI is
       On_Page : Page_Stack.Page_Changed_Callback := null;
       On_Dark_Mode : Adi.Widget.Button.Toggle_Callback := null;
       On_Get_Started : Adi.Widget.Button.Click_Callback := null;
+      On_Lock_UI : Adi.Widget.Button.Toggle_Callback := null;
 
       Root : Adi.Widget.Box.Box_Widget_Access;
       App_Title : Adi.Widget.Label.Label_Widget_Access;
@@ -33,10 +34,17 @@ package Material_Demo_UI is
       Btn_Home : Adi.Widget.Button.Button_Widget_Access;
       Btn_Forms : Adi.Widget.Button.Button_Widget_Access;
       Btn_Settings : Adi.Widget.Button.Button_Widget_Access;
+      Btn_Controls : Adi.Widget.Button.Button_Widget_Access;
       Pages : Page_Stack.Stack_Widget_Access;
       Name_Input : Adi.Widget.Text_Input.Text_Input_Widget_Access;
       Country_Combo : Adi.Widget.Combo_Box.Combo_Box_Widget_Access;
+      Enabled_Input : Adi.Widget.Text_Input.Text_Input_Widget_Access;
+      Disabled_Input : Adi.Widget.Text_Input.Text_Input_Widget_Access;
+      Enabled_Combo : Adi.Widget.Combo_Box.Combo_Box_Widget_Access;
+      Disabled_Combo : Adi.Widget.Combo_Box.Combo_Box_Widget_Access;
       Dark_Switch : Adi.Widget.Button.Switch.Switch_Widget_Access;
+      Lock_Bar : Adi.Widget.Box.Box_Widget_Access;
+      Lock_Switch : Adi.Widget.Button.Switch.Switch_Widget_Access;
 
       Nav_Options_Group : aliased Nav_Options.Option_Group;
 

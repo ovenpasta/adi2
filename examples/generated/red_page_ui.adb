@@ -103,10 +103,10 @@ package body Red_Page_UI is
       Label_2 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("This is the first page with a warm red background.");
    begin
       --  Register precompiled styles as static fallback
-      Adi.CSS_Source.Set_Static_Entries (Source, [
-         Adi.CSS_Source.Class_Entry ("page-red", Page_Red_Class_Part_Styles),
-         Adi.CSS_Source.Class_Entry ("page-title", Page_Title_Class_Part_Styles),
-         Adi.CSS_Source.Class_Entry ("page-desc", Page_Desc_Class_Part_Styles)]);
+      Adi.CSS_Source.Clear_Static_Entries (Source);
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-red", Page_Red_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-title", Page_Title_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-desc", Page_Desc_Class_Part_Styles));
 
       --  Load dynamic CSS and choose mode
       declare

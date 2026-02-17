@@ -41,6 +41,12 @@ procedure Material_Demo is
       end if;
    end On_Get_Started;
 
+   procedure On_Lock_UI (Btn : Button_Widget_Access; Active : Boolean) is
+      pragma Unreferenced (Btn);
+   begin
+      Set_Disabled (UI.Pages.all, Active);
+   end On_Lock_UI;
+
    procedure On_Welcome_Result
      (Dlg          : Dialog_Widget_Access;
       Button_Index : Natural;
@@ -62,6 +68,7 @@ begin
    UI.On_Page := On_Page'Unrestricted_Access;
    UI.On_Dark_Mode := On_Dark_Mode'Unrestricted_Access;
    UI.On_Get_Started := On_Get_Started'Unrestricted_Access;
+   UI.On_Lock_UI := On_Lock_UI'Unrestricted_Access;
 
    --  Set package-level context menu styles (applies to all context menus)
    Adi.Widget.Context_Menu.Set_Default_Menu_Styles (Context_Menu_Class_Part_Styles);
@@ -73,6 +80,10 @@ begin
    Set_Default_Message_Style (Dialog_Message_Class_Part_Styles);
    Set_Default_Button_Row_Style (Dialog_Btn_Row_Class_Part_Styles);
    Set_Default_Button_Style (Dialog_Btn_Class_Part_Styles);
+
+   --  Set package-level combo box styles (applies to all combo boxes)
+   Set_Default_Dropdown_Styles (Combo_Dropdown_Class_Part_Styles);
+   Set_Default_Option_Row_Styles (Combo_Option_Class_Part_Styles);
 
    W := UI.Build;
 
@@ -90,12 +101,10 @@ begin
       end if;
    end;
 
-   --  Style combo dropdown overlay
-   Set_Dropdown_Part_Styles (UI.Country_Combo.all, Combo_Dropdown_Class_Part_Styles);
-   Set_Option_Row_Part_Styles (UI.Country_Combo.all, Combo_Option_Class_Part_Styles);
-
-   --  Attach text input to window (context menu styles applied via defaults)
+   --  Attach text inputs to window (context menu styles applied via defaults)
    Attach_Window (UI.Name_Input.all, W);
+   Attach_Window (UI.Enabled_Input.all, W);
+   Attach_Window (UI.Disabled_Input.all, W);
 
    --  Create welcome dialog (inherits default dialog styles)
    Welcome_Dialog := Adi.Widget.Dialog.Create;

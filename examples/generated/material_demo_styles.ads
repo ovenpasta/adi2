@@ -82,6 +82,15 @@ package Material_Demo_Styles is
       others => <>
    );
 
+   --  Style for class 'nav-btn' when widget State_Focused
+   Nav_Btn_Class_Widget_Focused_Style : constant Style_Rules := (
+      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Style => Set (Outline_Solid),
+      Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
+      Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      others => <>
+   );
+
    --  Style for class 'nav-btn' when widget State_Selected
    Nav_Btn_Class_Widget_Selected_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (74, 68, 88)),
@@ -171,6 +180,39 @@ package Material_Demo_Styles is
       others => <>
    );
 
+   --  Base style for class 'control-grid'
+   Control_Grid_Class_Base_Style : constant Style_Rules := (
+      Display => Set (Grid),
+      Grid_Columns => Set (Grid_Columns_Value (3)),
+      Gap => Set (Gap (Px (12.0), Px (16.0))),
+      Align_Items => Set (Center),
+      Padding => Set (CSS_Box (Px (4.0), Px (0.0), Px (4.0), Px (0.0))),
+      others => <>
+   );
+
+   --  Base style for class 'grid-header'::label
+   Grid_Header_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGBA (202, 196, 208, 0.6)),
+      Font_Size => Set_Font (Px (12.0)),
+      Font_Weight => Set (Weight_Semi_Bold),
+      others => <>
+   );
+
+   --  Base style for class 'grid-label'::label
+   Grid_Label_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (202, 196, 208)),
+      Font_Size => Set_Font (Px (14.0)),
+      Font_Weight => Set (Weight_Medium),
+      others => <>
+   );
+
+   --  Base style for class 'grid-cell'
+   Grid_Cell_Class_Base_Style : constant Style_Rules := (
+      Flex_Shrink => Set (0.0),
+      Align_Self => Set (Center),
+      others => <>
+   );
+
    --  Base style for class 'btn'
    Btn_Class_Base_Style : constant Style_Rules := (
       Display => Set (Inline_Flex),
@@ -180,6 +222,13 @@ package Material_Demo_Styles is
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
+      others => <>
+   );
+
+   --  Style for class 'btn' when widget State_Disabled
+   Btn_Class_Widget_Disabled_Style : constant Style_Rules := (
+      Opacity => Set (0.5),
+      Cursor => Set (Cursor_Default),
       others => <>
    );
 
@@ -194,12 +243,30 @@ package Material_Demo_Styles is
    --  Base style for class 'btn-primary'
    Btn_Primary_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (208, 188, 255)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (1.0), Px (3.0), Px (0.0), RGBA (0, 0, 0, 0.3))),
       others => <>
    );
 
    --  Style for class 'btn-primary' when widget State_Hovered
    Btn_Primary_Class_Widget_Hovered_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (220, 204, 255)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (2.0), Px (6.0), Px (0.0), RGBA (0, 0, 0, 0.35))),
+      others => <>
+   );
+
+   --  Style for class 'btn-primary' when widget State_Pressed
+   Btn_Primary_Class_Widget_Pressed_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (190, 168, 240)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (2.0), Px (0.0), RGBA (0, 0, 0, 0.2))),
+      others => <>
+   );
+
+   --  Style for class 'btn-primary' when widget State_Focused
+   Btn_Primary_Class_Widget_Focused_Style : constant Style_Rules := (
+      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Style => Set (Outline_Solid),
+      Outline_Color => Set_Outline_Color (RGB (255, 255, 255)),
+      Outline_Offset => Set_Outline_Offset (Px (2.0)),
       others => <>
    );
 
@@ -211,8 +278,6 @@ package Material_Demo_Styles is
 
    --  Base style for class 'btn-secondary'
    Btn_Secondary_Class_Base_Style : constant Style_Rules := (
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (147, 143, 153))),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       others => <>
@@ -221,6 +286,23 @@ package Material_Demo_Styles is
    --  Style for class 'btn-secondary' when widget State_Hovered
    Btn_Secondary_Class_Widget_Hovered_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGBA (208, 188, 255, 0.08)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (1.0), Px (4.0), Px (0.0), RGBA (0, 0, 0, 0.25))),
+      others => <>
+   );
+
+   --  Style for class 'btn-secondary' when widget State_Pressed
+   Btn_Secondary_Class_Widget_Pressed_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.16)),
+      Box_Shadow => Set (No_Shadow),
+      others => <>
+   );
+
+   --  Style for class 'btn-secondary' when widget State_Focused
+   Btn_Secondary_Class_Widget_Focused_Style : constant Style_Rules := (
+      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Style => Set (Outline_Solid),
+      Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
+      Outline_Offset => Set_Outline_Offset (Px (2.0)),
       others => <>
    );
 
@@ -269,6 +351,17 @@ package Material_Demo_Styles is
    --  Style for class 'text-field' when widget State_Focused
    Text_Field_Class_Widget_Focused_Style : constant Style_Rules := (
       Border_Color => Set (Border_Color (RGB (208, 188, 255))),
+      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Style => Set (Outline_Solid),
+      Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
+      Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      others => <>
+   );
+
+   --  Style for class 'text-field' when widget State_Disabled
+   Text_Field_Class_Widget_Disabled_Style : constant Style_Rules := (
+      Opacity => Set (0.5),
+      Cursor => Set (Cursor_Default),
       others => <>
    );
 
@@ -310,6 +403,21 @@ package Material_Demo_Styles is
    Combo_Class_Widget_Hovered_Style : constant Style_Rules := (
       Border_Color => Set (Border_Color (RGB (208, 188, 255))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (0.0), RGBA (208, 188, 255, 0.15))),
+      others => <>
+   );
+
+   --  Style for class 'combo' when widget State_Focused
+   Combo_Class_Widget_Focused_Style : constant Style_Rules := (
+      Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
+      Border_Color => Set (Border_Color (RGB (208, 188, 255))),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (0.0), RGBA (208, 188, 255, 0.5))),
+      others => <>
+   );
+
+   --  Style for class 'combo' when widget State_Disabled
+   Combo_Class_Widget_Disabled_Style : constant Style_Rules := (
+      Opacity => Set (0.5),
+      Cursor => Set (Cursor_Default),
       others => <>
    );
 
@@ -370,6 +478,31 @@ package Material_Demo_Styles is
    Setting_Switch_Class_Widget_Selected_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (208, 188, 255)),
       Border_Color => Set (Border_Color (RGB (208, 188, 255))),
+      others => <>
+   );
+
+   --  Style for class 'setting-switch' when widget State_Focused
+   Setting_Switch_Class_Widget_Focused_Style : constant Style_Rules := (
+      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Style => Set (Outline_Solid),
+      Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
+      Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      others => <>
+   );
+
+   --  Style for class 'setting-switch' when widget State_Selected, widget State_Focused
+   Setting_Switch_Class_Widget_Selected_Widget_Focused_Style : constant Style_Rules := (
+      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Style => Set (Outline_Solid),
+      Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
+      Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      others => <>
+   );
+
+   --  Style for class 'setting-switch' when widget State_Disabled
+   Setting_Switch_Class_Widget_Disabled_Style : constant Style_Rules := (
+      Opacity => Set (0.5),
+      Cursor => Set (Cursor_Default),
       others => <>
    );
 
@@ -641,6 +774,7 @@ package Material_Demo_Styles is
    Nav_Btn_Class_Widget : constant Widget_Style :=
      From (Nav_Btn_Class_Base_Style)
      .On (When_State (State_Hovered), Nav_Btn_Class_Widget_Hovered_Style)
+     .On (When_State (State_Focused), Nav_Btn_Class_Widget_Focused_Style)
      .On (When_State (State_Selected), Nav_Btn_Class_Widget_Selected_Style)
      .Build;
 
@@ -735,9 +869,54 @@ package Material_Demo_Styles is
       others => <>
    ];
 
+   --  Complete widget style for class 'control-grid'
+   Control_Grid_Class_Widget : constant Widget_Style :=
+     From (Control_Grid_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'control-grid'
+   Control_Grid_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Control_Grid_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'grid-header'::label
+   Grid_Header_Class_Label_Widget : constant Widget_Style :=
+     From (Grid_Header_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'grid-header'
+   Grid_Header_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Grid_Header_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'grid-label'::label
+   Grid_Label_Class_Label_Widget : constant Widget_Style :=
+     From (Grid_Label_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'grid-label'
+   Grid_Label_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Grid_Label_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'grid-cell'
+   Grid_Cell_Class_Widget : constant Widget_Style :=
+     From (Grid_Cell_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'grid-cell'
+   Grid_Cell_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Grid_Cell_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
    --  Complete widget style for class 'btn'
    Btn_Class_Widget : constant Widget_Style :=
      From (Btn_Class_Base_Style)
+     .On (When_State (State_Disabled), Btn_Class_Widget_Disabled_Style)
      .Build;
 
    --  Complete widget style for class 'btn'::label
@@ -756,6 +935,8 @@ package Material_Demo_Styles is
    Btn_Primary_Class_Widget : constant Widget_Style :=
      From (Btn_Primary_Class_Base_Style)
      .On (When_State (State_Hovered), Btn_Primary_Class_Widget_Hovered_Style)
+     .On (When_State (State_Pressed), Btn_Primary_Class_Widget_Pressed_Style)
+     .On (When_State (State_Focused), Btn_Primary_Class_Widget_Focused_Style)
      .Build;
 
    --  Complete widget style for class 'btn-primary'::label
@@ -774,6 +955,8 @@ package Material_Demo_Styles is
    Btn_Secondary_Class_Widget : constant Widget_Style :=
      From (Btn_Secondary_Class_Base_Style)
      .On (When_State (State_Hovered), Btn_Secondary_Class_Widget_Hovered_Style)
+     .On (When_State (State_Pressed), Btn_Secondary_Class_Widget_Pressed_Style)
+     .On (When_State (State_Focused), Btn_Secondary_Class_Widget_Focused_Style)
      .Build;
 
    --  Complete widget style for class 'btn-secondary'::label
@@ -820,6 +1003,7 @@ package Material_Demo_Styles is
    Text_Field_Class_Widget : constant Widget_Style :=
      From (Text_Field_Class_Base_Style)
      .On (When_State (State_Focused), Text_Field_Class_Widget_Focused_Style)
+     .On (When_State (State_Disabled), Text_Field_Class_Widget_Disabled_Style)
      .Build;
 
    --  Complete widget style for class 'text-field'::cursor
@@ -850,6 +1034,8 @@ package Material_Demo_Styles is
    Combo_Class_Widget : constant Widget_Style :=
      From (Combo_Class_Base_Style)
      .On (When_State (State_Hovered), Combo_Class_Widget_Hovered_Style)
+     .On (When_State (State_Focused), Combo_Class_Widget_Focused_Style)
+     .On (When_State (State_Disabled), Combo_Class_Widget_Disabled_Style)
      .Build;
 
    --  Complete widget style for class 'combo'::indicator
@@ -902,6 +1088,9 @@ package Material_Demo_Styles is
    Setting_Switch_Class_Widget : constant Widget_Style :=
      From (Setting_Switch_Class_Base_Style)
      .On (When_State (State_Selected), Setting_Switch_Class_Widget_Selected_Style)
+     .On (When_State (State_Focused), Setting_Switch_Class_Widget_Focused_Style)
+     .On (When_State (State_Selected) and When_State (State_Focused), Setting_Switch_Class_Widget_Selected_Widget_Focused_Style)
+     .On (When_State (State_Disabled), Setting_Switch_Class_Widget_Disabled_Style)
      .Build;
 
    --  Complete widget style for class 'setting-switch'::knob

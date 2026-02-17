@@ -2,12 +2,13 @@
 <adi>
   <link rel="stylesheet" href="examples/css/material_demo.css"/>
 
-  <enum name="Page" values="Home, Forms, Settings"/>
+  <enum name="Page" values="Home, Forms, Settings, Controls"/>
   <generic name="Page_Stack" package="Adi.Widget.Stack" type-param="Page"/>
   <generic name="Nav_Options" package="Adi.Widget.Button.Options" type-param="Page"/>
   <callback name="On_Page" type="Page_Stack.Page_Changed_Callback"/>
   <callback name="On_Dark_Mode" type="Adi.Widget.Button.Toggle_Callback"/>
   <callback name="On_Get_Started" type="Adi.Widget.Button.Click_Callback"/>
+  <callback name="On_Lock_UI" type="Adi.Widget.Button.Toggle_Callback"/>
 
   <window title="Material Demo" width="800" height="600">
     <box id="Root" class="root">
@@ -18,6 +19,7 @@
         <button id="Btn_Home"     text="Home"     class="nav-btn"/>
         <button id="Btn_Forms"    text="Forms"    class="nav-btn"/>
         <button id="Btn_Settings" text="Settings" class="nav-btn"/>
+        <button id="Btn_Controls" text="Controls" class="nav-btn"/>
       </box>
       <stack id="Pages" generic="Page_Stack" class="pages">
         <page key="Home">
@@ -51,6 +53,39 @@
             </box>
           </box>
         </page>
+        <page key="Controls">
+          <box class="page">
+            <box class="card">
+              <label text="Enabled vs Disabled" class="label-inline card-title"/>
+              <box class="control-grid">
+                <!-- Header row -->
+                <label text="" class="label-inline grid-header"/>
+                <label text="Enabled" class="label-inline grid-header"/>
+                <label text="Disabled" class="label-inline grid-header"/>
+                <!-- Button row -->
+                <label text="Button" class="label-inline grid-label"/>
+                <button text="Click Me" class="btn btn-primary grid-cell"/>
+                <button text="Click Me" class="btn btn-primary grid-cell" disabled="true"/>
+                <!-- Text Input row -->
+                <label text="Text Input" class="label-inline grid-label"/>
+                <text-input id="Enabled_Input" text="Editable" class="text-field grid-cell"/>
+                <text-input id="Disabled_Input" text="Read-only" class="text-field grid-cell" disabled="true"/>
+                <!-- Switch row -->
+                <label text="Switch" class="label-inline grid-label"/>
+                <switch checked="true" class="setting-switch grid-cell"/>
+                <switch checked="true" class="setting-switch grid-cell" disabled="true"/>
+                <!-- Combo Box row -->
+                <label text="Combo Box" class="label-inline grid-label"/>
+                <combo-box id="Enabled_Combo" class="combo grid-cell">
+                  <item text="Enabled"/>
+                </combo-box>
+                <combo-box id="Disabled_Combo" class="combo grid-cell" disabled="true">
+                  <item text="Disabled"/>
+                </combo-box>
+              </box>
+            </box>
+          </box>
+        </page>
         <page key="Settings">
           <box class="page">
             <box class="card">
@@ -71,6 +106,10 @@
           </box>
         </page>
       </stack>
+      <box id="Lock_Bar" class="nav-bar setting-row">
+        <label text="Lock UI" class="label-inline setting-label"/>
+        <switch id="Lock_Switch" class="setting-switch" on-toggled="On_Lock_UI"/>
+      </box>
     </box>
   </window>
 
@@ -78,5 +117,6 @@
     <option value="Home"     button="Btn_Home"/>
     <option value="Forms"    button="Btn_Forms"/>
     <option value="Settings" button="Btn_Settings"/>
+    <option value="Controls" button="Btn_Controls"/>
   </option-group>
 </adi>

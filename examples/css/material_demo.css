@@ -76,6 +76,11 @@
   color: rgb(208, 188, 255);
 }
 
+.nav-btn:focus::main {
+  outline: 2px solid rgb(208, 188, 255);
+  outline-offset: 2px;
+}
+
 .nav-btn:selected::main {
   background-color: rgb(74, 68, 88);
 }
@@ -140,6 +145,33 @@
   font-weight: 400;
 }
 
+/* ── Controls Page ───────────────────────────── */
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px 16px;
+  align-items: center;
+  padding: 4px 0px;
+}
+
+.grid-header::label {
+  color: rgba(202, 196, 208, 0.6);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.grid-label::label {
+  color: rgb(202, 196, 208);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.grid-cell {
+  flex-shrink: 0;
+  align-self: center;
+}
+
 /* ── Buttons ─────────────────────────────────── */
 
 .btn::main {
@@ -149,7 +181,7 @@
   padding: 12px 24px;
   border-radius: 20px;
   cursor: pointer;
-  transition: background-color 0.15s ease-in-out;
+  transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 .btn::label {
@@ -160,6 +192,7 @@
 
 .btn-primary::main {
   background-color: rgb(208, 188, 255);
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.3);
 }
 
 .btn-primary::label {
@@ -168,11 +201,20 @@
 
 .btn-primary:hover::main {
   background-color: rgb(220, 204, 255);
+  box-shadow: 0px 2px 6px 0px rgba(0, 0, 0, 0.35);
+}
+
+.btn-primary:pressed::main {
+  background-color: rgb(190, 168, 240);
+  box-shadow: 0px 0px 2px 0px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary:focus::main {
+  outline: 2px solid rgb(255, 255, 255);
+  outline-offset: 2px;
 }
 
 .btn-secondary::main {
-  border-width: 1px;
-  border-style: solid;
   border-color: rgb(147, 143, 153);
   background-color: rgba(0, 0, 0, 0);
 }
@@ -183,6 +225,17 @@
 
 .btn-secondary:hover::main {
   background-color: rgba(208, 188, 255, 0.08);
+  box-shadow: 0px 1px 4px 0px rgba(0, 0, 0, 0.25);
+}
+
+.btn-secondary:pressed::main {
+  background-color: rgba(208, 188, 255, 0.16);
+  box-shadow: none;
+}
+
+.btn-secondary:focus::main {
+  outline: 2px solid rgb(208, 188, 255);
+  outline-offset: 2px;
 }
 
 .btn-row {
@@ -217,6 +270,8 @@
 
 .text-field:focus::main {
   border-color: rgb(208, 188, 255);
+  outline: 2px solid rgb(208, 188, 255);
+  outline-offset: 2px;
 }
 
 .text-field::label {
@@ -250,6 +305,12 @@
   box-shadow: 0px 0px 8px 0px rgba(208, 188, 255, 0.15);
 }
 
+.combo:focus {
+  border-width: 0px 0px 2px 0px;
+  border-color: rgb(208, 188, 255);
+  box-shadow: 0px 0px 10px 0px rgba(208, 188, 255, 0.5);
+}
+
 .combo::label {
   color: rgb(230, 225, 229);
   font-size: 14px;
@@ -281,6 +342,7 @@
 }
 
 .setting-switch {
+  width: 52px;
   flex-shrink: 0;
 }
 
@@ -299,6 +361,16 @@
 .setting-switch:selected::main {
   background-color: rgb(208, 188, 255);
   border-color: rgb(208, 188, 255);
+}
+
+.setting-switch:focus::main {
+  outline: 2px solid rgb(208, 188, 255);
+  outline-offset: 2px;
+}
+
+.setting-switch:selected:focus::main {
+  outline: 2px solid rgb(208, 188, 255);
+  outline-offset: 2px;
 }
 
 .setting-switch::knob {
@@ -434,6 +506,28 @@
 
 .dialog-btn:focus::main {
   background-color: rgba(208, 188, 255, 0.12);
+}
+
+/* ── Disabled States ────────────────────────── */
+
+.btn:disabled::main {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.text-field:disabled::main {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.combo:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.setting-switch:disabled::main {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* ── Context Menu ───────────────────────────── */

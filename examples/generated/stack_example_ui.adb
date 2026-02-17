@@ -133,17 +133,17 @@ package body Stack_Example_UI is
       Pages := My_Stack.Create;
 
       --  Register precompiled styles as static fallback
-      Adi.CSS_Source.Set_Static_Entries (Source, [
-         Adi.CSS_Source.Class_Entry ("root", Root_Class_Part_Styles),
-         Adi.CSS_Source.Class_Entry ("tab-bar", Tab_Bar_Class_Part_Styles),
-         Adi.CSS_Source.Class_Entry ("tab-left", Tab_Left_Class_Part_Styles),
-         Adi.CSS_Source.Class_Entry ("tab-center", Tab_Center_Class_Part_Styles),
-         Adi.CSS_Source.Class_Entry ("tab-right", Tab_Right_Class_Part_Styles),
-         Adi.CSS_Source.Class_Entry ("stack", Stack_Class_Part_Styles),
-         Adi.CSS_Source.Class_Entry ("page-green", Page_Green_Class_Part_Styles),
-         Adi.CSS_Source.Class_Entry ("page-title", Page_Title_Class_Part_Styles),
-         Adi.CSS_Source.Class_Entry ("page-desc", Page_Desc_Class_Part_Styles),
-         Adi.CSS_Source.Class_Entry ("page-blue", Page_Blue_Class_Part_Styles)]);
+      Adi.CSS_Source.Clear_Static_Entries (Source);
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("root", Root_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tab-bar", Tab_Bar_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tab-left", Tab_Left_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tab-center", Tab_Center_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tab-right", Tab_Right_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("stack", Stack_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-green", Page_Green_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-title", Page_Title_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-desc", Page_Desc_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-blue", Page_Blue_Class_Part_Styles));
 
       --  Load dynamic CSS and choose mode
       declare

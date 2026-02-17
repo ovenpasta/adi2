@@ -381,7 +381,7 @@ package body Adi.Widget is
                   Old_Resolved : constant Resolved_Style :=
                     Resolve (Compute_Style (WS, Old_States, W.Part_States (P)));
                   New_Resolved : constant Resolved_Style :=
-                    Resolve (Compute_Style (WS, W.States, W.Part_States (P)));
+                    Resolve (Compute_Style (WS, Get_States (W), W.Part_States (P)));
                begin
                   if Old_Resolved /= New_Resolved then
                      return True;
@@ -408,9 +408,9 @@ package body Adi.Widget is
                   Old_Part_States : constant Widget_States :=
                     (if P = Changed then Old_States else W.Part_States (P));
                   Old_Resolved : constant Resolved_Style :=
-                    Resolve (Compute_Style (WS, W.States, Old_Part_States));
+                    Resolve (Compute_Style (WS, Get_States (W), Old_Part_States));
                   New_Resolved : constant Resolved_Style :=
-                    Resolve (Compute_Style (WS, W.States, W.Part_States (P)));
+                    Resolve (Compute_Style (WS, Get_States (W), W.Part_States (P)));
                begin
                   if Old_Resolved /= New_Resolved then
                      return True;
@@ -444,8 +444,12 @@ package body Adi.Widget is
    end Has_State;
 
    function Get_States (W : Widget'Class) return Widget_States is
+      Result : Widget_States := W.States;
    begin
-      return W.States;
+      if not Result (State_Disabled) and then Is_Disabled (W) then
+         Result (State_Disabled) := True;
+      end if;
+      return Result;
    end Get_States;
 
    procedure Set_Part_State (W : in out Widget'Class;
@@ -498,9 +502,29 @@ package body Adi.Widget is
    end Set_Focused;
 
    procedure Set_Disabled (W : in out Widget'Class; Value : Boolean := True) is
+      procedure Mark_Children_Dirty (Parent : in out Widget'Class) is
+      begin
+         for Child of Parent.Children loop
+            Mark_Dirty (Child.all);
+            Mark_Children_Dirty (Child.all);
+         end loop;
+      end Mark_Children_Dirty;
    begin
       Set_State (W, State_Disabled, Value);
+      Mark_Children_Dirty (W);
    end Set_Disabled;
+
+   function Is_Disabled (W : Widget'Class) return Boolean is
+      P : access constant Widget'Class := W'Access;
+   begin
+      while P /= null loop
+         if P.States (State_Disabled) then
+            return True;
+         end if;
+         P := P.Parent;
+      end loop;
+      return False;
+   end Is_Disabled;
 
    procedure Set_Selected (W : in out Widget'Class; Value : Boolean := True) is
    begin
@@ -540,12 +564,12 @@ package body Adi.Widget is
         and then W.Part_Styles (Any_Part).Style /= Empty_Widget_Style
       then
          return Compute_Style (W.Part_Styles (Any_Part).Style,
-                               W.States,
+                               Get_States (W),
                                W.Part_States (P));
       end if;
 
       return Compute_Style (W.Part_Styles (P).Style,
-                            W.States,
+                            Get_States (W),
                             W.Part_States (P));
    end Get_Part_Style_Rules;
 
@@ -736,6 +760,7 @@ package body Adi.Widget is
          CA := C.all'Unchecked_Access;
          W.Children.Append (CA);
          C.Parent := W'Unchecked_Access;
+         Mark_Dirty (C.all);
          Mark_Dirty (W);
       end if;
    end Add_Child;
@@ -752,6 +777,7 @@ package body Adi.Widget is
       if Cursor /= No_Element then
          C.Parent := null;
          W.Children.Delete (Cursor);
+         Mark_Dirty (C.all);
          Mark_Dirty (W);
       end if;
    end Remove_Child;

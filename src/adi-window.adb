@@ -459,8 +459,10 @@ package body Adi.Window is
        end if;
        Refresh_Viewport_Size (W);
 
-       --  Only render if something changed.
-       if Root_Dirty or else Overlay_Dirty then
+       --  Only render if something changed or a redraw was forced
+       --  (e.g. window exposed by the compositor).
+       if Root_Dirty or else Overlay_Dirty or else W.Force_Redraw then
+          W.Force_Redraw := False;
           Debug_Log
             ("render tick=" & Natural'Image (Debug_Tick_No)
              & " root_dirty=" & Boolean'Image (Root_Dirty)
@@ -1373,6 +1375,15 @@ function Get_Size (W : in out Window) return Size_2D is
           W.Needs_Layout := True;
        end if;
     end Handle_Resize;
+
+    ---------------------
+    -- Request_Redraw --
+    ---------------------
+
+    procedure Request_Redraw (W : in out Window) is
+    begin
+       W.Force_Redraw := True;
+    end Request_Redraw;
 
 
 

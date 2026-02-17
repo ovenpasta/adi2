@@ -90,6 +90,9 @@ package Adi.Window is
     function Actual_Size (W : in out Window) return Size_2D;
     --  Resize handling
     procedure Handle_Resize (W : in out Window; New_Size : Size_2D);
+
+    --  Force a full re-render on the next frame (e.g. after window exposed).
+    procedure Request_Redraw (W : in out Window);
 private
     package Overlay_Vectors is new Ada.Containers.Vectors (Positive, Widget_Access);
 
@@ -113,6 +116,7 @@ private
         Overlays       : Overlay_Vectors.Vector;
         Enforce_Layout_Min_Size : Boolean := True;
         Needs_Layout   : Boolean       := True;
+        Force_Redraw   : Boolean       := False;
         On_Tick_CB     : Tick_Callback := null;
     end record;
 

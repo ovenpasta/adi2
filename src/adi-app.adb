@@ -97,6 +97,11 @@ package body Adi.App is
                     when SDL_EVENT_QUIT =>
                         Should_Quit := True;
 
+                    when SDL_EVENT_WINDOW_EXPOSED =>
+                        if A.Main_Window /= null then
+                            A.Main_Window.Request_Redraw;
+                        end if;
+
                     when SDL_EVENT_WINDOW_RESIZED
                        | SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED
                        | SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED =>

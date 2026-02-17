@@ -34,6 +34,7 @@
 
 **Adi.Widget_Styles** (`adi-widget_styles.ads`): Widget state-based styling.
 - States: Normal, Hovered, Pressed, Focused, Disabled, Selected
+- Disabled is **inherited**: `Is_Disabled` walks the parent chain, so disabling a container disables all descendants for both interaction and styling
 - Style builder pattern (fluent API)
 - Widget-state vs part-state scopes (`When_State`/`When_Not` vs `When_Part_State`/`When_Part_Not`)
 - `With_Transition(Duration, [Properties], [Easing])`
@@ -116,6 +117,7 @@
 - Part system: `Main_Part`, `Indicator_Part`, `Label_Part`, `Icon_Part`, `Cursor_Part`, `Selected_Part`, `Scroll_Part`, `Knob_Part`
 - Item system: `Panel_Item`, `Text_Item`, `Image_Item`
 - Flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`
+- Inherited disabled: `Is_Disabled` returns True when any ancestor has `State_Disabled`; `Get_States` injects the inherited flag so CSS `:disabled` styles apply to descendants; `Set_Disabled` marks all descendants dirty for re-styling
 - Abstract: `Build_Items`, `Layout`; Concrete: `Render_Items`, `Render_Tree`, `Update_And_Render`
 - Shared overflow scrolling with scrollbar parts
 - Context menu hook with ancestor bubbling

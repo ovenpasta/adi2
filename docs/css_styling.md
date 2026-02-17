@@ -67,10 +67,28 @@ Example:
 | `:hover`, `:hovered` | `State_Hovered` | |
 | `:active`, `:pressed` | `State_Pressed` | |
 | `:focus`, `:focused` | `State_Focused` | |
-| `:disabled` | `State_Disabled` | |
-| `:enabled` | `When_Not(State_Disabled)` | |
+| `:disabled` | `State_Disabled` | Inherited — applies when widget or any ancestor is disabled |
+| `:enabled` | `When_Not(State_Disabled)` | Inherited — false when widget or any ancestor is disabled |
 | `:checked`, `:selected` | `State_Selected` | |
 | `:not(...)` | Negation | Single pseudo-class inside |
+
+### Inherited Disabled State
+
+The `:disabled` pseudo-class is **inherited through the widget hierarchy**. When a parent widget is disabled, all of its descendants are effectively disabled — both for interaction (no clicks, keyboard, or focus) and for visual styling (`:disabled` CSS rules apply).
+
+- `Is_Disabled(W)` walks from `W` up through `W.Parent`, `W.Parent.Parent`, etc., returning `True` if any ancestor has `State_Disabled` set.
+- `Get_States(W)` returns the widget's own states with `State_Disabled` injected when any ancestor is disabled. This is the state set used for CSS style resolution, so `:disabled` rules apply automatically to children of disabled containers.
+- `Set_Disabled(W, True/False)` sets the widget's own `State_Disabled` flag and marks all descendants dirty so their styles are recomputed.
+- A child that has its own `State_Disabled` flag set remains disabled even when its parent is re-enabled.
+
+```ada
+--  Disable an entire form container and all its children
+Set_Disabled (Form_Box.all);
+
+--  Re-enable the container; children without their own disabled flag
+--  become enabled again
+Set_Disabled (Form_Box.all, False);
+```
 
 ### Placement Rules
 
@@ -186,6 +204,20 @@ For `::main`, interactive pseudos remain widget-scoped regardless of position:
 | `grid-template-rows` | simple `repeat(N, ...)` | `grid-template-rows: repeat(2, 1fr);` |
 | `grid-column` | start / span | `grid-column: 2;` |
 | `grid-row` | start / span | `grid-row: 1 / span 2;` |
+
+### Outline
+
+Outline is drawn outside the border box without affecting layout — ideal for focus indicators.
+
+| Property | Values | Example |
+|----------|--------|---------|
+| `outline` | shorthand (width style color) | `outline: 2px solid rgb(208, 188, 255);` |
+| `outline-width` | length | `outline-width: 3px;` |
+| `outline-style` | `none`, `solid`, `dashed`, `dotted` | `outline-style: solid;` |
+| `outline-color` | color value | `outline-color: rgb(100, 200, 50);` |
+| `outline-offset` | length | `outline-offset: 2px;` |
+
+Unlike `border`, outline does not shift surrounding content and respects `border-radius` for rounded widgets.
 
 ### Visual Effects
 

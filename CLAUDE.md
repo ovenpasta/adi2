@@ -17,6 +17,8 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | Build system (Alire, gprbuild, configure) | `docs/build.md` |
 | gprbuild without Alire | `docs/gprbuild_without_alire.md` |
 | HTML view widget | `docs/html_view_spec.md` |
+| Adding a new CSS property | `docs/adding_css_property.md` |
+| Antialiased rendering (AA fringe, ring patterns) | `docs/rendering_aa.md` |
 
 ## Build Commands
 
@@ -38,6 +40,7 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/text_buffer_test
 ./tests/bin/text_layout_test
 ./tests/bin/html_view_test
+./tests/bin/disabled_test
 ```
 
 For direct gprbuild (no Alire), see `docs/gprbuild_without_alire.md` and `docs/build.md`.
@@ -133,6 +136,11 @@ examples/generated/   Auto-generated Ada from CSS and XML
 tools/                Code generators and build scripts
 docs/                 Reference documentation
 ```
+
+## Testing
+
+- Always write tests for new functionality when feasible, covering all corner cases
+- Never fix or weaken a test to accommodate a missing or incorrect implementation — ask for clarification on how to proceed instead
 
 ## Git Conventions
 

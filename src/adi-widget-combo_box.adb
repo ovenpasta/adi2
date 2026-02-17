@@ -1,3 +1,4 @@
+with Ada.Containers.Indefinite_Holders;
 with Ada.Strings.Unbounded;                use Ada.Strings.Unbounded;
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Adi.CSS_Styles;       use Adi.CSS_Styles;
@@ -6,6 +7,12 @@ with Adi.Layout_Util;       use Adi.Layout_Util;
 with Adi.SDL.Events;        use Adi.SDL.Events;
 
 package body Adi.Widget.Combo_Box is
+   package Part_Style_Holders is new Ada.Containers.Indefinite_Holders
+     (Part_Style_Array);
+
+   Default_Dropdown_Styles : Part_Style_Holders.Holder;
+   Default_Option_Row_Styles : Part_Style_Holders.Holder;
+
    type Dismiss_Layer_Widget is new Widget with null record;
    type Dismiss_Layer_Widget_Access is access all Dismiss_Layer_Widget'Class;
 
@@ -267,6 +274,11 @@ package body Adi.Widget.Combo_Box is
       Set_Flag (Result.Popup.all, Focusable, False);
       Popup_Lists.Set_On_Item_Clicked
         (Result.Popup.all, On_Popup_Item_Clicked'Access);
+
+      if not Default_Dropdown_Styles.Is_Empty then
+         Set_Part_Styles (Result.Popup.all, Default_Dropdown_Styles.Element);
+      end if;
+
       Set_Flag (Dismiss.all, Visible, True);
       Set_Flag (Dismiss.all, Clickable, True);
       Set_Flag (Dismiss.all, Focusable, False);
@@ -289,6 +301,8 @@ package body Adi.Widget.Combo_Box is
    begin
       if W.Has_Option_Row_Styles then
          Set_Part_Styles (Row.all, W.Option_Row_Styles);
+      elsif not Default_Option_Row_Styles.Is_Empty then
+         Set_Part_Styles (Row.all, Default_Option_Row_Styles.Element);
       end if;
 
       W.Options.Append (To_Unbounded_String (Text));
@@ -397,6 +411,16 @@ package body Adi.Widget.Combo_Box is
          end loop;
       end if;
    end Set_Option_Row_Part_Styles;
+
+   procedure Set_Default_Dropdown_Styles (Styles : Part_Style_Array) is
+   begin
+      Default_Dropdown_Styles := Part_Style_Holders.To_Holder (Styles);
+   end Set_Default_Dropdown_Styles;
+
+   procedure Set_Default_Option_Row_Styles (Styles : Part_Style_Array) is
+   begin
+      Default_Option_Row_Styles := Part_Style_Holders.To_Holder (Styles);
+   end Set_Default_Option_Row_Styles;
 
    procedure Position_Popup (W : in out Combo_Box_Widget) is
       Anchor   : Rectangle;

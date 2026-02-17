@@ -39,6 +39,11 @@ package Adi.Widget.Combo_Box is
      (W      : in out Combo_Box_Widget;
       Styles : Part_Style_Array);
 
+   --  Package-level defaults — apply to all combo boxes that don't have
+   --  per-instance styles set via Set_Dropdown/Option_Row_Part_Styles.
+   procedure Set_Default_Dropdown_Styles (Styles : Part_Style_Array);
+   procedure Set_Default_Option_Row_Styles (Styles : Part_Style_Array);
+
    procedure Open_Dropdown (W : in out Combo_Box_Widget);
    procedure Close_Dropdown (W : in out Combo_Box_Widget);
    procedure Toggle_Dropdown (W : in out Combo_Box_Widget);

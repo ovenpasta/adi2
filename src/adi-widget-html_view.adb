@@ -2,12 +2,12 @@ with Ada.Characters.Handling;
 with Ada.Containers.Vectors;
 with Ada.Strings;
 with Ada.Strings.Fixed;
-with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Adi.CSS_Styles;        use Adi.CSS_Styles;
 with Adi.Widget_Styles;     use Adi.Widget_Styles;
 with Adi.Log;
 with Adi.Font;
+with Adi.Image;             use Adi.Image;
 with Adi.Layout_Util;       use Adi.Layout_Util;
 with Adi.SDL.TTF;           use Adi.SDL.TTF;
 
@@ -15,9 +15,64 @@ package body Adi.Widget.Html_View is
 
    package Fix renames Ada.Strings.Fixed;
    package Char renames Ada.Characters.Handling;
-   package WW_Encode renames Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 
    Panel_Idx : constant Positive := 1;
+
+   --  Cached SVG marker images (created lazily on first use)
+   Marker_White : constant Color_8 := (R => 255, G => 255, B => 255, A => 255);
+   Marker_Clear : constant Color_8 := (R => 0, G => 0, B => 0, A => 0);
+   Marker_SVG_Size : constant Size_2D := (16.0, 16.0);
+
+   Disc_Marker_Img   : Image_Access := null;
+   Circle_Marker_Img : Image_Access := null;
+   Square_Marker_Img : Image_Access := null;
+
+   procedure Ensure_Marker_Images
+     (Host : Adi.Window.Window_Access)
+   is
+      use type Adi.Window.Window_Access;
+      Renderer : Adi.SDL.Render.SDL_Renderer_Ptr;
+   begin
+      if Disc_Marker_Img /= null then
+         return;
+      end if;
+
+      if Host = null then
+         return;
+      end if;
+
+      Renderer := Adi.Window.Get_Renderer (Host.all);
+      if Renderer = null then
+         return;
+      end if;
+
+      --  Filled circle (disc)
+      Disc_Marker_Img := Load_SVG_Path
+        (Renderer     => Renderer,
+         Path_Data    => "M8 2 A6 6 0 1 0 8 14 A6 6 0 1 0 8 2 Z",
+         Size         => Marker_SVG_Size,
+         Fill         => Marker_White,
+         Stroke_Width => 0.0,
+         Stroke       => Marker_Clear);
+
+      --  Hollow circle
+      Circle_Marker_Img := Load_SVG_Path
+        (Renderer     => Renderer,
+         Path_Data    => "M8 2 A6 6 0 1 0 8 14 A6 6 0 1 0 8 2 Z",
+         Size         => Marker_SVG_Size,
+         Fill         => Marker_Clear,
+         Stroke_Width => 1.5,
+         Stroke       => Marker_White);
+
+      --  Filled square
+      Square_Marker_Img := Load_SVG_Path
+        (Renderer     => Renderer,
+         Path_Data    => "M3 3 H13 V13 H3 Z",
+         Size         => Marker_SVG_Size,
+         Fill         => Marker_White,
+         Stroke_Width => 0.0,
+         Stroke       => Marker_Clear);
+   end Ensure_Marker_Images;
 
    function Lower (S : String) return String is (Char.To_Lower (S));
 
@@ -1389,7 +1444,8 @@ package body Adi.Widget.Html_View is
             when Text_Marker =>
                Text : Unbounded_String := Null_Unbounded_String;
             when Image_Marker =>
-               Img : Adi.Image.Image_Access := null;
+               Img    : Adi.Image.Image_Access := null;
+               Tinted : Boolean := False;
          end case;
       end record;
 
@@ -1422,11 +1478,12 @@ package body Adi.Widget.Html_View is
          Style : Resolved_Style);
 
       procedure Add_Image_Run
-        (Img   : Adi.Image.Image_Access;
-         Width : Pixel_Type;
-         Height : Pixel_Type;
-         Href  : String;
-         Style : Resolved_Style);
+        (Img        : Adi.Image.Image_Access;
+         Width      : Pixel_Type;
+         Height     : Pixel_Type;
+         Href       : String;
+         Style      : Resolved_Style;
+         Color_Tint : Boolean := False);
 
       function Clip_To_Content (R : Rectangle) return Rectangle is
          X1 : constant Pixel_Type := Pixel_Type'Max (R.X, Content.X);
@@ -1516,36 +1573,31 @@ package body Adi.Widget.Html_View is
          return 0;
       end Find_List_Context;
 
+      function Marker_Image_For
+        (Kind : List_Style_Type_Kind) return Image_Access
+      is
+      begin
+         Ensure_Marker_Images (Self.Host);
+         case Kind is
+            when List_Style_Disc   => return Disc_Marker_Img;
+            when List_Style_Circle => return Circle_Marker_Img;
+            when List_Style_Square => return Square_Marker_Img;
+            when others            => return null;
+         end case;
+      end Marker_Image_For;
+
       function Marker_Text_For
         (Style          : Resolved_Style;
          Ordered_Number : Natural) return String
       is
-         UTF8_Disc : constant String :=
-            WW_Encode.Encode
-              (Item => Wide_Wide_String'("•"),
-               Output_BOM => False);
-         UTF8_Circle : constant String :=
-            WW_Encode.Encode
-              (Item => Wide_Wide_String'("○"),
-               Output_BOM => False);
-         UTF8_Square : constant String :=
-            WW_Encode.Encode
-              (Item => Wide_Wide_String'("■"),
-               Output_BOM => False);
       begin
          case Style.List_Style_Type.Kind is
-            when List_Style_None =>
-               return "";
-            when List_Style_Disc =>
-               return UTF8_Disc;
-            when List_Style_Circle =>
-               return UTF8_Circle;
-            when List_Style_Square =>
-               return UTF8_Square;
             when List_Style_Decimal =>
                return Trimmed (Natural'Image (Natural'Max (1, Ordered_Number))) & ".";
             when List_Style_Custom_String =>
                return To_String (Style.List_Style_Type.Marker);
+            when others =>
+               return "";
          end case;
       end Marker_Text_For;
 
@@ -1556,13 +1608,12 @@ package body Adi.Widget.Html_View is
          Marker_Width   : out Pixel_Type;
          Marker_Height  : out Pixel_Type)
       is
-         Marker_Text : constant String := Marker_Text_For (Style, Ordered_Number);
-         Marker_Size : Size_2D;
       begin
          Marker := (Kind => No_Marker);
          Marker_Width := 0.0;
          Marker_Height := 0.0;
 
+         --  list-style-image takes precedence
          if Style.List_Style_Image.Kind = List_Image_URL then
             declare
                URI : constant String := To_String (Style.List_Style_Image.URI);
@@ -1582,33 +1633,70 @@ package body Adi.Widget.Html_View is
                   if H > 0.0 then
                      Marker_Height := Target_H;
                      Marker_Width := Pixel_Type'Max (1.0, Target_H * (W / H));
-                     Marker := (Kind => Image_Marker, Img => Img);
+                     Marker := (Kind   => Image_Marker,
+                                Img    => Img,
+                                Tinted => False);
                      return;
                   end if;
                end if;
             end;
          end if;
 
-         if Marker_Text'Length = 0 then
-            return;
-         end if;
+         --  SVG image markers for disc/circle/square
+         case Style.List_Style_Type.Kind is
+            when List_Style_Disc | List_Style_Circle | List_Style_Square =>
+               declare
+                  Img : constant Image_Access :=
+                    Marker_Image_For (Style.List_Style_Type.Kind);
+                  Target_H : constant Pixel_Type := Pixel_Type'Max
+                    (4.0,
+                     Measure_Line_Height
+                       (Style,
+                        Self.Content_Scale,
+                        Content.Width,
+                        Content.Height) * 0.55);
+               begin
+                  if Img /= null then
+                     Marker_Height := Target_H;
+                     Marker_Width := Target_H;
+                     Marker := (Kind   => Image_Marker,
+                                Img    => Img,
+                                Tinted => True);
+                     return;
+                  end if;
+               end;
+            when others =>
+               null;
+         end case;
 
-         Marker_Size :=
-           Measure_Text
-             (Style,
-              Marker_Text,
-              Self.Content_Scale,
-              Content.Width,
-              Content.Height);
-         Marker_Width := Pixel_Type'Max (1.0, Marker_Size.Width);
-         Marker_Height := Pixel_Type'Max
-           (1.0,
-            Measure_Line_Height
-              (Style,
-               Self.Content_Scale,
-               Content.Width,
-               Content.Height));
-         Marker := (Kind => Text_Marker, Text => To_Unbounded_String (Marker_Text));
+         --  Text markers (decimal, custom)
+         declare
+            Marker_Text : constant String :=
+              Marker_Text_For (Style, Ordered_Number);
+            Marker_Size : Size_2D;
+         begin
+            if Marker_Text'Length = 0 then
+               return;
+            end if;
+
+            Marker_Size :=
+              Measure_Text
+                (Style,
+                 Marker_Text,
+                 Self.Content_Scale,
+                 Content.Width,
+                 Content.Height);
+            Marker_Width := Pixel_Type'Max (1.0, Marker_Size.Width);
+            Marker_Height := Pixel_Type'Max
+              (1.0,
+               Measure_Line_Height
+                 (Style,
+                  Self.Content_Scale,
+                  Content.Width,
+                  Content.Height));
+            Marker := (Kind => Text_Marker,
+                       Text => To_Unbounded_String (Marker_Text));
+         end;
       end Resolve_List_Marker;
 
       procedure Add_Outside_Marker_Run
@@ -1630,7 +1718,8 @@ package body Adi.Widget.Html_View is
                X := Saved_X;
             when Image_Marker =>
                X := Marker_X;
-               Add_Image_Run (Marker.Img, Marker_Width, Marker_Height, "", Style);
+               Add_Image_Run (Marker.Img, Marker_Width, Marker_Height, "",
+                              Style, Color_Tint => Marker.Tinted);
                X := Saved_X;
          end case;
       end Add_Outside_Marker_Run;
@@ -1650,7 +1739,8 @@ package body Adi.Widget.Html_View is
                Add_Text_Run (To_String (Marker.Text), "", Style);
                X := X + Marker_Gap;
             when Image_Marker =>
-               Add_Image_Run (Marker.Img, Marker_Width, Marker_Height, "", Style);
+               Add_Image_Run (Marker.Img, Marker_Width, Marker_Height, "",
+                              Style, Color_Tint => Marker.Tinted);
                X := X + Marker_Gap;
          end case;
       end Add_Inside_Marker_Run;
@@ -1879,11 +1969,12 @@ package body Adi.Widget.Html_View is
       end Add_Text_Run;
 
       procedure Add_Image_Run
-        (Img   : Adi.Image.Image_Access;
-         Width : Pixel_Type;
-         Height : Pixel_Type;
-         Href  : String;
-         Style : Resolved_Style)
+        (Img        : Adi.Image.Image_Access;
+         Width      : Pixel_Type;
+         Height     : Pixel_Type;
+         Href       : String;
+         Style      : Resolved_Style;
+         Color_Tint : Boolean := False)
       is
          Run_Ascent  : constant Pixel_Type := Height;
          Run_Descent : constant Pixel_Type := 0.0;
@@ -1933,6 +2024,12 @@ package body Adi.Widget.Html_View is
          begin
             It.Has_Style_Override := True;
             It.Style_Override := Style;
+            It.Color_Tint := Color_Tint;
+            if Color_Tint then
+               It.Style_Override.Object_Fit := Fit_Scale_Down;
+               It.Style_Override.Object_Position :=
+                 Object_Position (Pos_Center, Pos_Top);
+            end if;
             Add_Item (Self, It);
 
             Item_Index := Positive (Self.Items.Last_Index);

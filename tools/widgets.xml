@@ -41,6 +41,7 @@
     <create>{package}.Create ("{text}")</create>
     <attribute name="text" type="string" create-param="true"/>
     <attribute name="toggleable" type="bool" setter="Set_Toggleable" setter-style="flag"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
     <attribute name="on-clicked" type="callback" setter="Set_On_Clicked"/>
     <attribute name="on-toggled" type="callback" setter="Set_On_Toggled"/>
   </widget>
@@ -50,6 +51,7 @@
     <access-type>Switch_Widget_Access</access-type>
     <create>{package}.Create ({checked})</create>
     <attribute name="checked" type="bool" create-param="true" default="False"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
     <attribute name="on-toggled" type="callback" setter="Set_On_Toggled"/>
   </widget>
 
@@ -66,6 +68,7 @@
     <access-type>Text_Input_Widget_Access</access-type>
     <create>{package}.Create ("{text}")</create>
     <attribute name="text" type="string" create-param="true"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
     <attribute name="on-changed" type="callback" setter="Set_On_Changed"/>
   </widget>
 
@@ -74,6 +77,7 @@
     <access-type>Text_Editor_Widget_Access</access-type>
     <create>{package}.Create ("{text}")</create>
     <attribute name="text" type="string" create-param="true"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
     <attribute name="on-changed" type="callback" setter="Set_On_Changed"/>
   </widget>
 
@@ -81,6 +85,7 @@
     <package>Adi.Widget.Combo_Box</package>
     <access-type>Combo_Box_Widget_Access</access-type>
     <create>{package}.Create</create>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
     <attribute name="on-selection-changed" type="callback" setter="Set_On_Selection_Changed"/>
   </widget>
 

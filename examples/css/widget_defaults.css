@@ -35,6 +35,10 @@
   text-wrap-mode: nowrap;
 }
 
+.text-input:disabled {
+  opacity: 0.6;
+}
+
 .text-input {
   min-height: 38px;
   padding: 8px 10px;

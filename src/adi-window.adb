@@ -136,7 +136,8 @@ package body Adi.Window is
    begin
       return Wgt /= null
         and then Has_Flag (Wgt.all, Focusable)
-        and then Has_Flag (Wgt.all, Visible);
+        and then Has_Flag (Wgt.all, Visible)
+        and then not Is_Disabled (Wgt.all);
    end Is_Focus_Candidate;
 
    function First_Focusable (Root : Widget_Access) return Widget_Access is
@@ -1035,6 +1036,18 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       Click_Target := Find_Widget_At_With_Flag (W, X, Y, Clickable);
       Scroll_Target := Find_Scroll_Widget_At (W, X, Y);
 
+      --  Disabled widgets do not receive clicks or focus.
+      if Click_Target /= null
+        and then Is_Disabled (Click_Target.all)
+      then
+         Click_Target := null;
+      end if;
+      if Focus_Target /= null
+        and then Is_Disabled (Focus_Target.all)
+      then
+         Focus_Target := null;
+      end if;
+
       --  Allow dragging scrollbar parts on non-clickable containers
       --  (e.g. a scrollable root panel).
       if Click_Target = null and then Scroll_Target /= null then
@@ -1091,6 +1104,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
          if Point_In_Widget (W.Pressed_Widget, X, Y)
             and then Has_Flag (W.Pressed_Widget.all, Clickable)
             and then Button = Left_Button
+            and then not Is_Disabled (W.Pressed_Widget.all)
          then
             On_Click (W.Pressed_Widget.all);
          end if;
@@ -1170,6 +1184,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
 
       if W.Focused_Widget /= null
         and then Is_In_Subtree (Key_Root, W.Focused_Widget)
+        and then not Is_Disabled (W.Focused_Widget.all)
       then
          On_Key_Down (W.Focused_Widget.all, Scancode, Key_Mod, Repeat);
       elsif Key_Root /= null then
@@ -1190,6 +1205,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
    begin
       if W.Focused_Widget /= null
         and then Is_In_Subtree (Active_Key_Root (W), W.Focused_Widget)
+        and then not Is_Disabled (W.Focused_Widget.all)
       then
          On_Key_Up (W.Focused_Widget.all, Scancode, Key_Mod, Repeat);
       elsif Active_Key_Root (W) /= null then
@@ -1205,6 +1221,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
    begin
       if W.Focused_Widget /= null
         and then Is_In_Subtree (Active_Key_Root (W), W.Focused_Widget)
+        and then not Is_Disabled (W.Focused_Widget.all)
       then
          On_Text_Input (W.Focused_Widget.all, Text);
       elsif Active_Key_Root (W) /= null then

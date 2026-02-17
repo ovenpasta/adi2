@@ -70,6 +70,12 @@ package Widget_Defaults_Styles is
       others => <>
    );
 
+   --  Style for class 'text-input' when widget State_Disabled
+   Text_Input_Class_Widget_Disabled_Style : constant Style_Rules := (
+      Opacity => Set (0.6),
+      others => <>
+   );
+
    --  Style for class 'text-input' when widget State_Focused
    Text_Input_Class_Widget_Focused_Style : constant Style_Rules := (
       Border_Color => Set (Border_Color (RGB (59, 130, 246))),
@@ -184,6 +190,7 @@ package Widget_Defaults_Styles is
    --  Complete widget style for class 'text-input'
    Text_Input_Class_Widget : constant Widget_Style :=
      From (Text_Input_Class_Base_Style)
+     .On (When_State (State_Disabled), Text_Input_Class_Widget_Disabled_Style)
      .On (When_State (State_Focused), Text_Input_Class_Widget_Focused_Style)
      .Build;
 

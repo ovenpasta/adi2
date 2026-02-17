@@ -168,6 +168,7 @@ package Adi.Widget is
    procedure Set_Pressed (W : in out Widget'Class; Value : Boolean := True);
    procedure Set_Focused (W : in out Widget'Class; Value : Boolean := True);
    procedure Set_Disabled (W : in out Widget'Class; Value : Boolean := True);
+   function  Is_Disabled  (W : Widget'Class) return Boolean;
    procedure Set_Selected (W : in out Widget'Class; Value : Boolean := True);
 
    ---------------------------------------------------------------------------

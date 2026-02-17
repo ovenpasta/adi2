@@ -46,18 +46,22 @@ package body Adi.Widget.Image is
 
       Pad    : constant Edge_Pixels := Get_Padding_Px (Main_Style);
       Border : constant Edge_Pixels := Get_Border_Width_Px (Main_Style);
-   begin
-      --  Get intrinsic image size
-      if W.Img /= null and then Is_Valid (W.Img.all) then
-         Get_Size (W.Img.all, Img_Size.Width, Img_Size.Height);
-      end if;
 
-      --  Apply CSS width/height overrides with aspect ratio preservation
-      if W.Img /= null then
+      Width_Fixed  : constant Boolean := Icon_Style.Width.Kind = Fixed;
+      Height_Fixed : constant Boolean := Icon_Style.Height.Kind = Fixed;
+   begin
+      --  When explicit CSS width/height is set on the icon part, use those
+      --  dimensions (with aspect-ratio preservation for one-sided overrides).
+      --  Otherwise report (0, 0): images are scalable content whose size is
+      --  determined by the layout, not the intrinsic pixel dimensions.
+      if Width_Fixed or Height_Fixed then
+         --  Get intrinsic image size for aspect ratio calculations
+         if W.Img /= null and then Is_Valid (W.Img.all) then
+            Get_Size (W.Img.all, Img_Size.Width, Img_Size.Height);
+         end if;
+
          declare
-            Intrinsic    : constant Size_2D := Img_Size;
-            Width_Fixed  : constant Boolean := Icon_Style.Width.Kind = Fixed;
-            Height_Fixed : constant Boolean := Icon_Style.Height.Kind = Fixed;
+            Intrinsic : constant Size_2D := Img_Size;
          begin
             if Width_Fixed then
                Img_Size.Width := Size_To_Px (Icon_Style.Width, W.Geometry.Width);

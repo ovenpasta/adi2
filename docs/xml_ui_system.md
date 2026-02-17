@@ -371,12 +371,33 @@ Option groups wire mutually-exclusive button sets to an enum callback, giving ra
 |-----------|-------------|
 | `generic` | Name of the `Button.Options` generic instantiation |
 | `on-changed` | Callback variable name to invoke on selection change |
+| `id` | *(optional)* When set, the `Option_Group` variable is exported in the `Instance` spec so callers can use `Set_Selected` programmatically |
 
 Each `<option>` maps an enum `value` to a `button` by its `id`.
+
+### Exported vs Internal Groups
+
+By default the `Option_Group` variable is declared in the package body (internal). Adding an `id` attribute exports it to the `Instance` spec:
+
+```xml
+<!-- Internal (body-only, default) -->
+<option-group generic="Tab_Options" on-changed="On_Tab">
+
+<!-- Exported (visible in Instance spec) -->
+<option-group id="Nav" generic="Tab_Options" on-changed="On_Tab">
+```
+
+Use an exported group when you need to call `Set_Selected` from outside the generated package (e.g. programmatic navigation that must also update button visuals):
+
+```ada
+--  Switches both the stack page AND the nav button selection:
+UI.Tab_Options_Group.Set_Selected (Forms);
+```
 
 Generated code:
 
 ```ada
+--  In Instance spec (when id is set) or package body (when id is omitted):
 Tab_Options_Group : aliased Tab_Options.Option_Group;
 
 procedure On_Tab_Option_Wrapper (Value : Tab) is

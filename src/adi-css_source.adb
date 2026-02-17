@@ -384,6 +384,19 @@ package body Adi.CSS_Source is
       end if;
    end Set_Static_Entries;
 
+   procedure Clear_Static_Entries (Source : in out Style_Source) is
+   begin
+      Ensure_Impl (Source);
+      Source.Impl.Static_Styles.Clear;
+   end Clear_Static_Entries;
+
+   procedure Add_Static_Entry (Source : in out Style_Source;
+                               Entry_Value : Static_Style_Entry) is
+   begin
+      Ensure_Impl (Source);
+      Source.Impl.Static_Styles.Append (Entry_Value);
+   end Add_Static_Entry;
+
    procedure Add_Dynamic_File (Source  : in out Style_Source;
                                Path    : String;
                                Success : out Boolean) is

@@ -387,6 +387,72 @@ begin
       end;
    end;
 
+   --  Add_Static_Entry: incremental registration avoids stack-blowing aggregates
+   declare
+      Source : Adi.CSS_Source.Style_Source;
+      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      OK     : Boolean := False;
+   begin
+      Adi.CSS_Source.Clear_Static_Entries (Source);
+      Adi.CSS_Source.Add_Static_Entry (Source,
+        Adi.CSS_Source.Class_Entry ("alpha",
+          Main_Styles ((
+            Background_Color => Set_Bg (RGB (11, 22, 33)),
+            Padding          => Set (CSS_Box (Px (5.0))),
+            others           => <>))));
+      Adi.CSS_Source.Add_Static_Entry (Source,
+        Adi.CSS_Source.Class_Entry ("beta",
+          Main_Styles ((
+            Background_Color => Set_Bg (RGB (44, 55, 66)),
+            Border_Width     => Set (Border_Width (Px (4.0))),
+            others           => <>))));
+      Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, OK);
+      Assert (OK, "Add_Static_Entry Set_Mode static should succeed");
+
+      Adi.CSS_Source.Bind_Class (Source, "alpha beta", Box);
+
+      declare
+         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+      begin
+         Assert (Is_RGB_Color (R.Background_Color, 44, 55, 66),
+                 "Add_Static_Entry should apply later class bg override");
+         Assert (R.Padding.Kind = Gap_Uniform and then R.Padding.All_Sides.Amount = 5.0,
+                 "Add_Static_Entry should keep first class padding");
+         Assert (R.Border_Width.Kind = Gap_Uniform and then R.Border_Width.All_Edges.Amount = 4.0,
+                 "Add_Static_Entry should keep second class border-width");
+      end;
+   end;
+
+   --  Clear_Static_Entries should remove previously added entries
+   declare
+      Source : Adi.CSS_Source.Style_Source;
+      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      OK     : Boolean := False;
+   begin
+      Adi.CSS_Source.Add_Static_Entry (Source,
+        Adi.CSS_Source.Class_Entry ("old",
+          Main_Styles ((
+            Background_Color => Set_Bg (RGB (99, 99, 99)),
+            others           => <>))));
+      Adi.CSS_Source.Clear_Static_Entries (Source);
+      Adi.CSS_Source.Add_Static_Entry (Source,
+        Adi.CSS_Source.Class_Entry ("fresh",
+          Main_Styles ((
+            Background_Color => Set_Bg (RGB (77, 88, 99)),
+            others           => <>))));
+      Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, OK);
+      Assert (OK, "Clear + Add_Static_Entry Set_Mode should succeed");
+
+      Adi.CSS_Source.Bind_Class (Source, "fresh", Box);
+
+      declare
+         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+      begin
+         Assert (Is_RGB_Color (R.Background_Color, 77, 88, 99),
+                 "Clear_Static_Entries should discard old entries");
+      end;
+   end;
+
    --  Merge_Part_Styles public function
    declare
       Box : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;

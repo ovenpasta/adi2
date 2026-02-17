@@ -25,6 +25,10 @@ package Adi.CSS_Source is
    procedure Set_Static_Entries (Source  : in out Style_Source;
                                  Entries : Static_Style_Entry_Array);
 
+   procedure Clear_Static_Entries (Source : in out Style_Source);
+   procedure Add_Static_Entry (Source : in out Style_Source;
+                               Entry_Value : Static_Style_Entry);
+
    procedure Add_Dynamic_File (Source  : in out Style_Source;
                                Path    : String;
                                Success : out Boolean);

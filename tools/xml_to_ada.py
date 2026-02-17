@@ -71,6 +71,7 @@ class XmlWidget:
     on_selection_changed: str = ""
     on_item_clicked: str = ""
     on_item_activated: str = ""
+    disabled: bool = False
     looping: bool = False
     children: list["XmlWidget"] = field(default_factory=list)
     pages: list[XmlPage] = field(default_factory=list)
@@ -272,7 +273,7 @@ class Parser:
     def next_auto_id(self, tag: str) -> str:
         count = self.tag_counters.get(tag, 0) + 1
         self.tag_counters[tag] = count
-        tag_name = tag.capitalize()
+        tag_name = to_ada_identifier(tag)
         wid = f"{tag_name}_{count}"
         while wid in self.all_ids:
             count += 1
@@ -886,13 +887,13 @@ def generate_body(app: XmlApp, package_name: str) -> str:
                     "      --  Register precompiled styles as static fallback"
                 )
                 lines.append(
-                    "      Adi.CSS_Source.Set_Static_Entries (Source, ["
+                    "      Adi.CSS_Source.Clear_Static_Entries (Source);"
                 )
-                for i, (css_class, style_const) in enumerate(unique_entries):
-                    suffix = "," if i < len(unique_entries) - 1 else "]);"
+                for css_class, style_const in unique_entries:
                     lines.append(
-                        f"         Adi.CSS_Source.Class_Entry"
-                        f' ("{css_class}", {style_const}){suffix}'
+                        f"      Adi.CSS_Source.Add_Static_Entry"
+                        f" (Source, Adi.CSS_Source.Class_Entry"
+                        f' ("{css_class}", {style_const}));'
                     )
                 lines.append("")
             lines.append("      --  Load dynamic CSS and choose mode")

@@ -241,8 +241,55 @@ overriding procedure Layout (W : in out Box_Widget) is
                      Child : constant Widget_Access := Get_Child (W, Positive (I));
                   begin
                      if Child /= null then
-                        Set_Geometry (Child.all, Rects (Positive (I)));
-                        Layout (Child.all);
+                        declare
+                           Cell : Rectangle := Rects (Positive (I));
+                           CS   : constant Resolved_Style :=
+                             Get_Resolved_Part_Style (Child.all, Main_Part);
+                           CW   : Pixel_Type := Cell.Width;
+                           CH   : Pixel_Type := Cell.Height;
+                        begin
+                           --  Respect explicit width
+                           if CS.Width.Kind = Fixed then
+                              CW := Size_To_Px (CS.Width, Cell.Width);
+                           end if;
+                           --  Respect explicit height
+                           if CS.Height.Kind = Fixed then
+                              CH := Size_To_Px (CS.Height, Cell.Height);
+                           end if;
+
+                           --  Align horizontally within cell
+                           if CW < Cell.Width then
+                              case CS.Align_Self is
+                                 when Adi.CSS_Styles.Center =>
+                                    Cell.X := Cell.X +
+                                      (Cell.Width - CW) / 2.0;
+                                 when Adi.CSS_Styles.Flex_End =>
+                                    Cell.X := Cell.X +
+                                      Cell.Width - CW;
+                                 when others =>
+                                    null;  --  default: left-aligned
+                              end case;
+                           end if;
+
+                           --  Align vertically within cell
+                           if CH < Cell.Height then
+                              case CS.Align_Self is
+                                 when Adi.CSS_Styles.Center =>
+                                    Cell.Y := Cell.Y +
+                                      (Cell.Height - CH) / 2.0;
+                                 when Adi.CSS_Styles.Flex_End =>
+                                    Cell.Y := Cell.Y +
+                                      Cell.Height - CH;
+                                 when others =>
+                                    null;  --  default: top-aligned
+                              end case;
+                           end if;
+
+                           Cell.Width := CW;
+                           Cell.Height := CH;
+                           Set_Geometry (Child.all, Cell);
+                           Layout (Child.all);
+                        end;
                      end if;
                   end;
                end loop;

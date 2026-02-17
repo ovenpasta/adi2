@@ -218,7 +218,8 @@ project Tests_Build is
       "text_layout_test",
       "html_view_test",
       "svg_test",
-      "svg_perf_test");
+      "svg_perf_test",
+      "image_widget_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("${SOURCE_DIR}/tests/src");
@@ -281,7 +282,8 @@ project Examples_Build is
       "animated_image_example",
       "rlottie_example",
       "html_view_example",
-      "material_demo");
+      "material_demo",
+      "image_example");
    Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");
 
    for Source_Dirs use ("${SOURCE_DIR}/examples", "${SOURCE_DIR}/examples/generated");
@@ -364,6 +366,7 @@ TEST_KINDS=(
   html_view_test
   svg_test
   svg_perf_test
+  image_widget_test
 )
 
 for kind in "\${TEST_KINDS[@]}"; do
@@ -391,6 +394,7 @@ EXAMPLE_KINDS=(
   rlottie_example
   html_view_example
   material_demo
+  image_example
 )
 
 for kind in "\${EXAMPLE_KINDS[@]}"; do

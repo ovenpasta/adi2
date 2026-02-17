@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="examples/css/image_example.css"/>
+
+  <window title="Image Example" width="1100" height="700">
+    <box id="Root" class="root">
+      <label text="Image Widget Showcase" class="title"/>
+      <label text="Demonstrating SVG path, SVG file, PNG, and JPG formats with all object-fit modes" class="subtitle"/>
+
+      <label text="Image Formats" class="section-title"/>
+      <box class="format-grid">
+        <box class="card">
+          <image id="Img_Svg_Path" class="image"/>
+          <label text="SVG Path" class="card-label"/>
+        </box>
+        <box class="card">
+          <image id="Img_Svg" class="image"/>
+          <label text="SVG (tiger.svg)" class="card-label"/>
+        </box>
+        <box class="card">
+          <image id="Img_Png" class="image"/>
+          <label text="PNG (happycat.png)" class="card-label"/>
+        </box>
+        <box class="card">
+          <image id="Img_Jpg" class="image"/>
+          <label text="JPG (bg.jpg)" class="card-label"/>
+        </box>
+      </box>
+
+      <label text="Object-Fit Modes (happycat.png)" class="section-title"/>
+      <box class="fit-grid">
+        <box class="card">
+          <image id="Fit_Fill" class="image fit-fill"/>
+          <label text="fill" class="card-label"/>
+        </box>
+        <box class="card">
+          <image id="Fit_Contain" class="image fit-contain"/>
+          <label text="contain" class="card-label"/>
+        </box>
+        <box class="card">
+          <image id="Fit_Cover" class="image fit-cover"/>
+          <label text="cover" class="card-label"/>
+        </box>
+        <box class="card">
+          <image id="Fit_None" class="image fit-none"/>
+          <label text="none" class="card-label"/>
+        </box>
+        <box class="card">
+          <image id="Fit_Scale_Down" class="image fit-scale-down"/>
+          <label text="scale-down" class="card-label"/>
+        </box>
+      </box>
+    </box>
+  </window>
+</adi>

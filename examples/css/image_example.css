@@ -1,0 +1,101 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background-color: rgb(17, 24, 39);
+  overflow-y: auto;
+}
+
+.title::label {
+  color: rgb(241, 245, 249);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.title {
+  flex-shrink: 0;
+}
+
+.subtitle::label {
+  color: rgb(148, 163, 184);
+  font-size: 14px;
+}
+
+.subtitle {
+  flex-shrink: 0;
+}
+
+.section-title::label {
+  color: rgb(191, 204, 224);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.section-title {
+  flex-shrink: 0;
+}
+
+.format-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  flex-grow: 1;
+}
+
+.fit-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  flex-grow: 1;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background-color: rgb(30, 41, 59);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(71, 85, 105);
+  border-radius: 8px;
+}
+
+.card-label::label {
+  color: rgb(148, 163, 184);
+  font-size: 12px;
+}
+
+.card-label {
+  flex-shrink: 0;
+}
+
+.image {
+  flex-grow: 1;
+}
+
+.image::icon {
+  object-fit: contain;
+  object-position: center center;
+}
+
+.fit-fill::icon {
+  object-fit: fill;
+}
+
+.fit-contain::icon {
+  object-fit: contain;
+}
+
+.fit-cover::icon {
+  object-fit: cover;
+}
+
+.fit-none::icon {
+  object-fit: none;
+}
+
+.fit-scale-down::icon {
+  object-fit: scale-down;
+}

@@ -42,4 +42,5 @@ generate_if_needed "$CSS_DIR/rlottie_example.css" "$OUT_DIR/rlottie_example_styl
 generate_if_needed "$CSS_DIR/html_view_example.css" "$OUT_DIR/html_view_example_styles.ads" "Html_View_Example_Styles"
 generate_if_needed "$CSS_DIR/material_demo.css" "$OUT_DIR/material_demo_styles.ads" "Material_Demo_Styles"
 generate_if_needed "$CSS_DIR/material_demo_light.css" "$OUT_DIR/material_demo_light_styles.ads" "Material_Demo_Light_Styles"
+generate_if_needed "$CSS_DIR/image_example.css" "$OUT_DIR/image_example_styles.ads" "Image_Example_Styles"
 generate_if_needed "$CSS_DIR/widget_defaults.css" "$OUT_DIR/widget_defaults_styles.ads" "Widget_Defaults_Styles"

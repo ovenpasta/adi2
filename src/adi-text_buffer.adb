@@ -212,9 +212,18 @@ package body Adi.Text_Buffer is
       end if;
    end Set_Selection_Mode;
 
+   function Content_Version (B : Text_Buffer) return Natural is
+   begin
+      return B.Content_Version;
+   end Content_Version;
+
+   function Next_Version (V : Natural) return Natural is
+     (if V = Natural'Last then 0 else V + 1);
+
    procedure Clear (B : in out Text_Buffer) is
    begin
       Record_Edit (B);
+      B.Content_Version := Next_Version (B.Content_Version);
       B.Lines.Clear;
       B.Lines.Append (To_Unbounded_String (""));
       B.Caret := (Line => 1, Column => 0);
@@ -225,6 +234,7 @@ package body Adi.Text_Buffer is
       Start : Positive := Text'First;
    begin
       Record_Edit (B);
+      B.Content_Version := Next_Version (B.Content_Version);
       B.Lines.Clear;
 
       if Text'Length = 0 then
@@ -393,6 +403,7 @@ package body Adi.Text_Buffer is
       end if;
 
       Record_Edit (B);
+      B.Content_Version := Next_Version (B.Content_Version);
       if Has_Selection (B) then
          Delete_Selection (B);
       end if;
@@ -451,6 +462,7 @@ package body Adi.Text_Buffer is
 
       if Has_Selection (B) then
          Record_Edit (B);
+         B.Content_Version := Next_Version (B.Content_Version);
          Delete_Selection (B);
          return;
       end if;
@@ -458,6 +470,7 @@ package body Adi.Text_Buffer is
       Cur := B.Caret;
       if Cur.Column > 0 then
          Record_Edit (B);
+         B.Content_Version := Next_Version (B.Content_Version);
          declare
             Line_Text : constant String := To_String (B.Lines.Element (Cur.Line));
             Prev_Col  : constant Natural := Prev_UTF8_Column (Line_Text, Cur.Column);
@@ -471,6 +484,7 @@ package body Adi.Text_Buffer is
          end;
       elsif Cur.Line > 1 then
          Record_Edit (B);
+         B.Content_Version := Next_Version (B.Content_Version);
          declare
             Prev_Text : constant String := To_String (B.Lines.Element (Cur.Line - 1));
             Line_Text : constant String := To_String (B.Lines.Element (Cur.Line));
@@ -490,6 +504,7 @@ package body Adi.Text_Buffer is
 
       if Has_Selection (B) then
          Record_Edit (B);
+         B.Content_Version := Next_Version (B.Content_Version);
          Delete_Selection (B);
          return;
       end if;
@@ -500,6 +515,7 @@ package body Adi.Text_Buffer is
       begin
          if Cur.Column < Line_Text'Length then
          Record_Edit (B);
+         B.Content_Version := Next_Version (B.Content_Version);
          declare
             Next_Col : constant Natural := Next_UTF8_Column (Line_Text, Cur.Column);
             Left_Part  : constant String :=
@@ -512,6 +528,7 @@ package body Adi.Text_Buffer is
          end;
          elsif Cur.Line < B.Lines.Last_Index then
             Record_Edit (B);
+            B.Content_Version := Next_Version (B.Content_Version);
             declare
                Next_Text : constant String := To_String (B.Lines.Element (Cur.Line + 1));
             begin
@@ -604,6 +621,7 @@ package body Adi.Text_Buffer is
       B.Redo_Stack.Append (Make_Snapshot (B));
       Trim_History (B.Redo_Stack);
       Restore_Snapshot (B, Previous);
+      B.Content_Version := Next_Version (B.Content_Version);
       return True;
    end Undo;
 
@@ -619,6 +637,7 @@ package body Adi.Text_Buffer is
       B.Undo_Stack.Append (Make_Snapshot (B));
       Trim_History (B.Undo_Stack);
       Restore_Snapshot (B, Next);
+      B.Content_Version := Next_Version (B.Content_Version);
       return True;
    end Redo;
 

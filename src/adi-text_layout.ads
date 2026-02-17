@@ -1,5 +1,6 @@
 with Adi.Core;
 with Adi.CSS_Styles;
+with Adi.Font;
 with Adi.Text_Buffer;
 with Ada.Containers.Vectors;
 
@@ -64,7 +65,11 @@ private
       Element_Type => Visual_Row);
 
    type Text_Layout is tagged record
-      Rows : Row_Vectors.Vector;
+      Rows           : Row_Vectors.Vector;
+      Cached_Version : Natural := Natural'Last;
+      Cached_Width   : Adi.Core.Pixel_Type := Adi.Core.Pixel_Type'First;
+      Cached_Font    : Adi.Font.Font_Attributes;
+      Cached_Wrap    : Boolean := True;
    end record;
 
 end Adi.Text_Layout;

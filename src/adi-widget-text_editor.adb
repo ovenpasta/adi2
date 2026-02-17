@@ -1004,7 +1004,6 @@ package body Adi.Widget.Text_Editor is
          return;
       end if;
 
-      Refresh_Layout (W, Label_Style, Content);
       Set_Caret
         (W.Buffer,
          Position_At_Point

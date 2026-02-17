@@ -47,6 +47,8 @@ package Adi.Text_Buffer is
    function Can_Undo (B : Text_Buffer) return Boolean;
    function Can_Redo (B : Text_Buffer) return Boolean;
 
+   function Content_Version (B : Text_Buffer) return Natural;
+
    procedure Move_Left  (B : in out Text_Buffer; Extend_Selection : Boolean := False);
    procedure Move_Right (B : in out Text_Buffer; Extend_Selection : Boolean := False);
    procedure Move_Home  (B : in out Text_Buffer; Extend_Selection : Boolean := False);
@@ -88,11 +90,12 @@ private
       Element_Type => Buffer_Snapshot);
 
    type Text_Buffer is tagged record
-      Lines     : Line_Vectors.Vector;
-      Caret     : Position := (Line => 1, Column => 0);
-      Selection : Selection_State;
-      Undo_Stack : Snapshot_Vectors.Vector;
-      Redo_Stack : Snapshot_Vectors.Vector;
+      Lines           : Line_Vectors.Vector;
+      Caret           : Position := (Line => 1, Column => 0);
+      Selection       : Selection_State;
+      Undo_Stack      : Snapshot_Vectors.Vector;
+      Redo_Stack      : Snapshot_Vectors.Vector;
+      Content_Version : Natural := 0;
    end record;
 
 end Adi.Text_Buffer;

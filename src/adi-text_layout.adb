@@ -175,6 +175,22 @@ package body Adi.Text_Layout is
       Start_Col   : Natural;
       End_Col     : Natural;
    begin
+      declare
+         Version : constant Natural := Content_Version (B);
+      begin
+         if Version = L.Cached_Version
+           and then Adi.Font."=" (Font_Attrs, L.Cached_Font)
+           and then Can_Wrap = L.Cached_Wrap
+           and then (not Can_Wrap or else Viewport_Width = L.Cached_Width)
+         then
+            return;
+         end if;
+         L.Cached_Version := Version;
+         L.Cached_Width   := Viewport_Width;
+         L.Cached_Font    := Font_Attrs;
+         L.Cached_Wrap    := Can_Wrap;
+      end;
+
       L.Rows.Clear;
 
       if Line_Count = 0 then

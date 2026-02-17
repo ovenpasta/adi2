@@ -212,15 +212,12 @@ package body Adi.Widget.Combo_Box is
       Win_Size : Size_2D) return Pixel_Type
    is
       Popup_Style : constant Resolved_Style := Get_Resolved_Part_Style (W.Popup.all, Main_Part);
-      Padding     : constant Edge_Pixels := Get_Padding_Px (Popup_Style);
-      Border      : constant Edge_Pixels := Get_Border_Width_Px (Popup_Style);
-      Chrome_H    : constant Pixel_Type :=
-        Padding.Top + Padding.Bottom + Border.Top + Border.Bottom;
       Content_H   : constant Pixel_Type := Resolve_Popup_Row_Content_Height (W);
       Max_H       : constant Pixel_Type := Resolve_Popup_Max_Height (Popup_Style, Win_Size.Height);
       Min_H       : constant Pixel_Type :=
         Pixel_Type'Min (Resolve_Popup_Min_Height (Popup_Style, Win_Size.Height), Max_H);
-      Desired_H   : constant Pixel_Type := Content_H + Chrome_H;
+      Desired_H   : constant Pixel_Type :=
+        Outer_Size ((0.0, Content_H), Popup_Style).Height;
    begin
       return Pixel_Type'Min (Max_H, Pixel_Type'Max (Min_H, Desired_H));
    end Resolve_Popup_Height;

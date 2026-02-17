@@ -113,20 +113,13 @@ package body Adi.Widget.Animated_Image is
 
    overriding function Measure_Content (W : Animated_Image_Widget) return Size_2D is
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      Pad        : constant Edge_Pixels := Get_Padding_Px (Main_Style);
-      Border     : constant Edge_Pixels := Get_Border_Width_Px (Main_Style);
       Result     : Size_2D := (0.0, 0.0);
    begin
       if W.Animation /= null and then Is_Valid (W.Animation.all) then
          Get_Size (W.Animation.all, Result.Width, Result.Height);
       end if;
 
-      Result.Width :=
-        Result.Width + Pad.Left + Pad.Right + Border.Left + Border.Right;
-      Result.Height :=
-        Result.Height + Pad.Top + Pad.Bottom + Border.Top + Border.Bottom;
-
-      return Result;
+      return Outer_Size (Result, Main_Style);
    end Measure_Content;
 
    overriding procedure Build_Items (W : in out Animated_Image_Widget) is

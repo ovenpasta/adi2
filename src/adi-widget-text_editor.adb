@@ -655,14 +655,10 @@ package body Adi.Widget.Text_Editor is
    is
       Main_Style  : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Main_Part);
-      Pad         : constant Edge_Pixels := Get_Padding_Px (Main_Style);
-      Border      : constant Edge_Pixels := Get_Border_Width_Px (Main_Style);
    begin
       --  Scrollable widget: return a modest preferred viewport size rather
       --  than the full text content height, so flex layout can shrink it.
-      return
-        (Width  => 200.0 + Pad.Left + Pad.Right + Border.Left + Border.Right,
-         Height => 100.0 + Pad.Top + Pad.Bottom + Border.Top + Border.Bottom);
+      return Outer_Size ((200.0, 100.0), Main_Style);
    end Measure_Content;
 
    ---------------------------------------------------------------------------

@@ -42,10 +42,6 @@ package body Adi.Widget.Image is
       Icon_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Icon_Part);
 
       Img_Size : Size_2D := (0.0, 0.0);
-      Result   : Size_2D;
-
-      Pad    : constant Edge_Pixels := Get_Padding_Px (Main_Style);
-      Border : constant Edge_Pixels := Get_Border_Width_Px (Main_Style);
 
       Width_Fixed  : constant Boolean := Icon_Style.Width.Kind = Fixed;
       Height_Fixed : constant Boolean := Icon_Style.Height.Kind = Fixed;
@@ -88,15 +84,7 @@ package body Adi.Widget.Image is
          end;
       end if;
 
-      Result := Img_Size;
-
-      --  Add padding and border
-      Result.Width := Result.Width + Pad.Left + Pad.Right
-                      + Border.Left + Border.Right;
-      Result.Height := Result.Height + Pad.Top + Pad.Bottom
-                       + Border.Top + Border.Bottom;
-
-      return Result;
+      return Outer_Size (Img_Size, Main_Style);
    end Measure_Content;
 
    ------------

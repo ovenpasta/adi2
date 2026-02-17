@@ -169,6 +169,15 @@ package body Adi.Layout_Util is
               Height => R.Height + Edges.Top + Edges.Bottom);
    end Expand;
 
+   function Outer_Size (Content : Size_2D;
+                        Style   : Resolved_Style) return Size_2D is
+      Pad : constant Edge_Pixels := Get_Padding_Px (Style);
+      Bdr : constant Edge_Pixels := Get_Border_Width_Px (Style);
+   begin
+      return (Width  => Content.Width  + Pad.Left + Pad.Right  + Bdr.Left + Bdr.Right,
+              Height => Content.Height + Pad.Top  + Pad.Bottom + Bdr.Top  + Bdr.Bottom);
+   end Outer_Size;
+
    function Content_Box (Outer : Rectangle;
                          Style : Resolved_Style) return Rectangle is
       Padding : constant Edge_Pixels := Get_Padding_Px (Style);

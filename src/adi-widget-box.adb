@@ -60,8 +60,6 @@ package body Adi.Widget.Box is
 
    overriding function Measure_Content (W : Box_Widget) return Size_2D is
       Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      Pad    : constant Edge_Pixels := Get_Padding_Px (Style);
-      Border : constant Edge_Pixels := Get_Border_Width_Px (Style);
       Gap    : constant Pixel_Type := Get_Main_Gap (Style.Gap, Style.Flex_Direction);
       Row_Gap : constant Pixel_Type := Get_Row_Gap (Style.Gap);
       Col_Gap : constant Pixel_Type := Get_Column_Gap (Style.Gap);
@@ -169,9 +167,7 @@ package body Adi.Widget.Box is
          end loop;
       end if;
 
-      Result.Width := Result.Width + Pad.Left + Pad.Right + Border.Left + Border.Right;
-      Result.Height := Result.Height + Pad.Top + Pad.Bottom + Border.Top + Border.Bottom;
-      return Result;
+      return Outer_Size (Result, Style);
    end Measure_Content;
 
 overriding procedure Layout (W : in out Box_Widget) is

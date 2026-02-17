@@ -3682,32 +3682,44 @@ package body Adi.Widget is
 
    function Get_Preferred_Size(W : Widget'Class) return Size_2D is
       Style : constant Resolved_Style := Get_Resolved_Part_Style(W, Main_Part);
+      Scrollable : constant Boolean :=
+        Style.Overflow in Overflow_Scroll | Overflow_Auto;
       Pref_W, Pref_H : Pixel_Type := 0.0;
+      Need_Content_W : Boolean := False;
+      Need_Content_H : Boolean := False;
    begin
       --  Check explicit width/height
       case Style.Width.Kind is
          when Fixed =>
             Pref_W := Size_To_Px(Style.Width, W.Geometry.Width);
          when others =>
-            Pref_W := 0.0;  -- Auto
+            Need_Content_W := True;
       end case;
 
       case Style.Height.Kind is
          when Fixed =>
             Pref_H := Size_To_Px(Style.Height, W.Geometry.Height);
          when others =>
-            Pref_H := 0.0;  -- Auto
+            --  Scrollable containers should not report full content height
+            --  as preferred size — use min-height instead so the window can
+            --  shrink and let the scroll mechanism activate.  Always include
+            --  padding + border so the container chrome is never clipped.
+            if Scrollable then
+               Pref_H := Outer_Size
+                 ((0.0, Get_Min_Size (W).Height), Style).Height;
+            else
+               Need_Content_H := True;
+            end if;
       end case;
 
-      --  If auto, use content size
-      if Pref_W = 0.0 or Pref_H = 0.0 then
+      if Need_Content_W or Need_Content_H then
          declare
             Content : constant Size_2D := Measure_Content(W);
          begin
-            if Pref_W = 0.0 then
+            if Need_Content_W then
                Pref_W := Content.Width;
             end if;
-            if Pref_H = 0.0 then
+            if Need_Content_H then
                Pref_H := Content.Height;
             end if;
          end;

@@ -127,8 +127,6 @@ package body Adi.Widget.RLottie is
 
    overriding function Measure_Content (W : RLottie_Widget) return Size_2D is
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      Pad        : constant Edge_Pixels := Get_Padding_Px (Main_Style);
-      Border     : constant Edge_Pixels := Get_Border_Width_Px (Main_Style);
       Result     : Size_2D := (0.0, 0.0);
       Scale      : Pixel_Type := 1.0;
    begin
@@ -147,11 +145,7 @@ package body Adi.Widget.RLottie is
          Result.Height := Result.Height * Scale;
       end if;
 
-      Result.Width :=
-        Result.Width + Pad.Left + Pad.Right + Border.Left + Border.Right;
-      Result.Height :=
-        Result.Height + Pad.Top + Pad.Bottom + Border.Top + Border.Bottom;
-      return Result;
+      return Outer_Size (Result, Main_Style);
    end Measure_Content;
 
    overriding procedure Build_Items (W : in out RLottie_Widget) is

@@ -404,11 +404,10 @@ package body Adi.Widget.Text_Input is
            Decoration => Label_Style.Text_Decoration);
       Text_Size   : constant Size_2D :=
         Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => Sample);
-      Pad    : constant Edge_Pixels := Get_Padding_Px (Main_Style);
-      Border : constant Edge_Pixels := Get_Border_Width_Px (Main_Style);
+      Outer  : constant Size_2D := Outer_Size (Text_Size, Main_Style);
    begin
-      return (Width  => Pixel_Type'Max (120.0, Text_Size.Width + Pad.Left + Pad.Right + Border.Left + Border.Right),
-              Height => Pixel_Type'Max (28.0, Text_Size.Height + Pad.Top + Pad.Bottom + Border.Top + Border.Bottom));
+      return (Width  => Pixel_Type'Max (120.0, Outer.Width),
+              Height => Pixel_Type'Max (28.0, Outer.Height));
    end Measure_Content;
 
    overriding procedure Layout (W : in out Text_Input_Widget) is

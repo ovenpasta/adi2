@@ -58,6 +58,10 @@ package Adi.Layout_Util is
    function Padding_Box (Outer : Rectangle;
                          Style : Resolved_Style) return Rectangle;
 
+   --  Compute outer size from content size by adding padding + border
+   function Outer_Size (Content : Size_2D;
+                        Style   : Resolved_Style) return Size_2D;
+
    --  Shrink rectangle by edge amounts
    function Shrink (R : Rectangle; Edges : Edge_Pixels) return Rectangle;
 

@@ -195,10 +195,7 @@ package body Adi.Widget.Context_Menu is
    is
       Win_Size : Size_2D;
       Popup_Style : Resolved_Style;
-      Padding : Edge_Pixels;
-      Border  : Edge_Pixels;
-      Chrome_W : Pixel_Type;
-      Chrome_H : Pixel_Type;
+      Content_Outer : Size_2D;
       Wd, Ht  : Pixel_Type;
       X_Pos, Y_Pos : Pixel_Type;
    begin
@@ -208,13 +205,12 @@ package body Adi.Widget.Context_Menu is
 
       Win_Size := Adi.Window.Get_Size (Menu.Host_Window.all);
       Popup_Style := Get_Resolved_Part_Style (Menu.Popup.all, Main_Part);
-      Padding := Get_Padding_Px (Popup_Style);
-      Border := Get_Border_Width_Px (Popup_Style);
-      Chrome_W := Padding.Left + Padding.Right + Border.Left + Border.Right;
-      Chrome_H := Padding.Top + Padding.Bottom + Border.Top + Border.Bottom;
+      Content_Outer := Outer_Size
+        ((Resolve_Content_Width (Menu), Resolve_Content_Height (Menu)),
+         Popup_Style);
 
-      Wd := Pixel_Type'Max (Min_Width, Resolve_Content_Width (Menu) + Chrome_W);
-      Ht := Resolve_Content_Height (Menu) + Chrome_H;
+      Wd := Pixel_Type'Max (Min_Width, Content_Outer.Width);
+      Ht := Content_Outer.Height;
 
       Wd := Pixel_Type'Min (Wd, Win_Size.Width);
       Ht := Pixel_Type'Min (Ht, Win_Size.Height);

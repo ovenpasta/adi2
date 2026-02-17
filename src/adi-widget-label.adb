@@ -73,9 +73,6 @@ package body Adi.Widget.Label is
       Text_Size : Size_2D := (0.0, 0.0);
       Gap : Pixel_Type := 0.0;
       Result : Size_2D;
-
-      Pad : constant Edge_Pixels := Get_Padding_Px (Main_Style);
-      Border : constant Edge_Pixels := Get_Border_Width_Px (Main_Style);
    begin
       --  Get gap
       Gap := Get_Main_Gap (Main_Style.Gap, Main_Style.Flex_Direction);
@@ -152,11 +149,7 @@ package body Adi.Widget.Label is
          Result := Make_Size (Total_Main, Total_Cross, Dir);
       end;
 
-      --  Add padding and border
-      Result.Width := Result.Width + Pad.Left + Pad.Right + Border.Left + Border.Right;
-      Result.Height := Result.Height + Pad.Top + Pad.Bottom + Border.Top + Border.Bottom;
-
-      return Result;
+      return Outer_Size (Result, Main_Style);
    end Measure_Content;
 
    ------------

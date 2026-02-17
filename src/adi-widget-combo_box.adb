@@ -1,8 +1,8 @@
 with Ada.Containers.Indefinite_Holders;
 with Ada.Strings.Unbounded;                use Ada.Strings.Unbounded;
-with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Adi.CSS_Styles;       use Adi.CSS_Styles;
 with Adi.Font;
+with Adi.Image;             use Adi.Image;
 with Adi.Layout_Util;       use Adi.Layout_Util;
 with Adi.SDL.Events;        use Adi.SDL.Events;
 
@@ -41,12 +41,14 @@ package body Adi.Widget.Combo_Box is
    Default_Popup_Max_Height : constant Pixel_Type := 240.0;
    Default_Popup_Row_Height : constant Pixel_Type := 24.0;
 
-   package WW_Encode renames Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
+   Arrow_Down_Path : constant String := "M4 6 L12 14 L20 6";
+   Arrow_Up_Path   : constant String := "M4 14 L12 6 L20 14";
+   Arrow_SVG_Size  : constant Size_2D := (24.0, 24.0);
+   Arrow_White : constant Color_8 := (R => 255, G => 255, B => 255, A => 255);
+   Arrow_Clear : constant Color_8 := (R => 0, G => 0, B => 0, A => 0);
 
-   Arrow_Down : constant String :=  --  U+25BE ▾
-     WW_Encode.Encode (Wide_Wide_String'("▾"), Output_BOM => False);
-   Arrow_Up : constant String :=    --  U+25B4 ▴
-     WW_Encode.Encode (Wide_Wide_String'("▴"), Output_BOM => False);
+   Default_Arrow_Down : Image_Access := null;
+   Default_Arrow_Up   : Image_Access := null;
 
    function Find_Owner
      (Popup : Popup_Lists.List_Box_Widget_Access) return Combo_Box_Widget_Access
@@ -419,6 +421,68 @@ package body Adi.Widget.Combo_Box is
       Default_Option_Row_Styles := Part_Style_Holders.To_Holder (Styles);
    end Set_Default_Option_Row_Styles;
 
+   procedure Set_Arrow_Image
+     (W    : in out Combo_Box_Widget;
+      Down : Image_Access;
+      Up   : Image_Access := null)
+   is
+   begin
+      W.Arrow_Down_Img := Down;
+      W.Arrow_Up_Img := (if Up /= null then Up else Down);
+      Mark_Dirty (W);
+   end Set_Arrow_Image;
+
+   procedure Set_Default_Arrow_Image
+     (Down : Image_Access;
+      Up   : Image_Access := null)
+   is
+   begin
+      Default_Arrow_Down := Down;
+      Default_Arrow_Up := (if Up /= null then Up else Down);
+   end Set_Default_Arrow_Image;
+
+   procedure Ensure_Arrow_Images (W : in out Combo_Box_Widget) is
+      Renderer : Adi.SDL.Render.SDL_Renderer_Ptr;
+   begin
+      if W.Arrow_Down_Img /= null then
+         return;
+      end if;
+
+      --  Use package-level defaults if set
+      if Default_Arrow_Down /= null then
+         W.Arrow_Down_Img := Default_Arrow_Down;
+         W.Arrow_Up_Img :=
+           (if Default_Arrow_Up /= null then Default_Arrow_Up
+            else Default_Arrow_Down);
+         return;
+      end if;
+
+      --  Create built-in SVG chevrons
+      if W.Host_Window = null then
+         return;
+      end if;
+
+      Renderer := Adi.Window.Get_Renderer (W.Host_Window.all);
+      if Renderer = null then
+         return;
+      end if;
+
+      W.Arrow_Down_Img := Load_SVG_Path
+        (Renderer     => Renderer,
+         Path_Data    => Arrow_Down_Path,
+         Size         => Arrow_SVG_Size,
+         Fill         => Arrow_Clear,
+         Stroke_Width => 2.5,
+         Stroke       => Arrow_White);
+      W.Arrow_Up_Img := Load_SVG_Path
+        (Renderer     => Renderer,
+         Path_Data    => Arrow_Up_Path,
+         Size         => Arrow_SVG_Size,
+         Fill         => Arrow_Clear,
+         Stroke_Width => 2.5,
+         Stroke       => Arrow_White);
+   end Ensure_Arrow_Images;
+
    procedure Position_Popup (W : in out Combo_Box_Widget) is
       Anchor   : Rectangle;
       Win_Size : Size_2D;
@@ -556,11 +620,18 @@ package body Adi.Widget.Combo_Box is
 
    overriding procedure Build_Items (W : in out Combo_Box_Widget) is
    begin
+      Ensure_Arrow_Images (W);
+
       if Item_Count (W) = 0 then
          Adi.Widget.Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));
          Adi.Widget.Add_Item (W, Make_Text (Label_Part, W.Geometry, "", 1));
-         Adi.Widget.Add_Item
-           (W, Make_Text (Indicator_Part, W.Geometry, Arrow_Down, 2));
+         declare
+            Ind : Item := Make_Image
+              (Indicator_Part, W.Geometry, W.Arrow_Down_Img, 2);
+         begin
+            Ind.Color_Tint := True;
+            Adi.Widget.Add_Item (W, Ind);
+         end;
       end if;
 
       --  Update panel geometry
@@ -580,13 +651,13 @@ package body Adi.Widget.Combo_Box is
          end loop;
       end;
 
-      --  Update indicator text + geometry from Layout_Items
+      --  Update indicator image + geometry from Layout_Items
       declare
          Ind_It : Item renames
            W.Items.Reference (Indicator_Idx).Element.all;
       begin
-         Ind_It.Text_Content :=
-           To_Unbounded_String ((if W.Open then Arrow_Up else Arrow_Down));
+         Ind_It.Image_Source :=
+           (if W.Open then W.Arrow_Up_Img else W.Arrow_Down_Img);
          for L_Item of W.Layout_Items loop
             if L_Item.Part = Indicator_Part then
                Ind_It.Geometry := L_Item.Geometry;
@@ -606,7 +677,6 @@ package body Adi.Widget.Combo_Box is
       Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
 
       Label_Text : constant String := Get_Selected_Text (W);
-      Ind_Text   : constant String := (if W.Open then Arrow_Up else Arrow_Down);
 
       Label_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
@@ -618,21 +688,25 @@ package body Adi.Widget.Combo_Box is
       Label_Size : constant Size_2D :=
         Adi.Font.Measure_Text (Label_Attrs, Label_Text);
 
-      Ind_Attrs : constant Adi.Font.Font_Attributes :=
-        Adi.Font.Make_Attributes
-          (Family     => Ind_Style.Font_Family,
-           Size       => Float (Length_To_Px (Ind_Style.Font_Size)),
-           Weight     => Ind_Style.Font_Weight,
-           Style      => Ind_Style.Font_Style,
-           Decoration => Ind_Style.Text_Decoration);
-      Ind_Size : constant Size_2D :=
-        Adi.Font.Measure_Text (Ind_Attrs, Ind_Text);
-      Ind_W    : constant Pixel_Type :=
-        Pixel_Type'Max (Ind_Size.Width, 16.0);
+      --  Indicator uses image size instead of font measurement
+      Ind_Img_W : Pixel_Type := 0.0;
+      Ind_Img_H : Pixel_Type := 0.0;
+      Ind_W     : Pixel_Type;
    begin
       if Item_Count (W) < 3 then
          return;
       end if;
+
+      --  Get indicator image dimensions
+      declare
+         Img : constant Image_Access :=
+           (if W.Open then W.Arrow_Up_Img else W.Arrow_Down_Img);
+      begin
+         if Img /= null and then Is_Valid (Img.all) then
+            Get_Size (Img.all, Ind_Img_W, Ind_Img_H);
+         end if;
+      end;
+      Ind_W := Pixel_Type'Max (Ind_Img_W, 16.0);
 
       --  Build layout items for flex positioning
       W.Layout_Items.Clear;
@@ -656,11 +730,11 @@ package body Adi.Widget.Combo_Box is
       W.Layout_Items.Append (Layout_Item'(
          Part           => Indicator_Part,
          Min_Width      => Float (Ind_W),
-         Min_Height     => Float (Ind_Size.Height),
+         Min_Height     => Float (Ind_Img_H),
          Max_Width      => Float (Ind_W),
          Max_Height     => Float'Last,
          Content_Width  => Float (Ind_W),
-         Content_Height => Float (Ind_Size.Height),
+         Content_Height => Float (Ind_Img_H),
          Flex           => (
             Grow       => 0.0,
             Shrink     => 0.0,

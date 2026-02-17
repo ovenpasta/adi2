@@ -1,6 +1,7 @@
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 with Adi.Core;              use Adi.Core;
+with Adi.Image;
 with Adi.SDL.Events;
 with Adi.Widget;            use Adi.Widget;
 with Adi.Widget.Label;
@@ -44,6 +45,15 @@ package Adi.Widget.Combo_Box is
    procedure Set_Default_Dropdown_Styles (Styles : Part_Style_Array);
    procedure Set_Default_Option_Row_Styles (Styles : Part_Style_Array);
 
+   procedure Set_Arrow_Image
+     (W    : in out Combo_Box_Widget;
+      Down : Adi.Image.Image_Access;
+      Up   : Adi.Image.Image_Access := null);
+
+   procedure Set_Default_Arrow_Image
+     (Down : Adi.Image.Image_Access;
+      Up   : Adi.Image.Image_Access := null);
+
    procedure Open_Dropdown (W : in out Combo_Box_Widget);
    procedure Close_Dropdown (W : in out Combo_Box_Widget);
    procedure Toggle_Dropdown (W : in out Combo_Box_Widget);
@@ -85,6 +95,8 @@ private
       Open        : Boolean := False;
       On_Changed  : Selection_Changed_Callback := null;
       Layout_Items : Layout_Item_List.Vector;
+      Arrow_Down_Img : Adi.Image.Image_Access := null;
+      Arrow_Up_Img   : Adi.Image.Image_Access := null;
    end record;
 
 end Adi.Widget.Combo_Box;

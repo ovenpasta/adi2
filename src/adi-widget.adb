@@ -2833,7 +2833,10 @@ package body Adi.Widget is
        Src_V0       : Float := 0.0;
        Src_U1       : Float := 1.0;
        Src_V1       : Float := 1.0;
-       Opacity      : Float := 1.0)
+       Opacity      : Float := 1.0;
+       Tint_R       : Float := 1.0;
+       Tint_G       : Float := 1.0;
+       Tint_B       : Float := 1.0)
    is
       Max_Dim : constant Float := Float'Min (Rect.w, Rect.h) / 2.0;
       R_TL : constant Float := Float'Min (Radii.Top_Left, Max_Dim);
@@ -2857,7 +2860,7 @@ package body Adi.Widget is
       VI : Natural := 0;
       II : Natural := 0;
 
-      FC : constant SDL_FColor := (r => 1.0, g => 1.0, b => 1.0, a => Opacity);
+      FC : constant SDL_FColor := (r => Tint_R, g => Tint_G, b => Tint_B, a => Opacity);
 
       X0 : constant Float := Rect.x;
       Y0 : constant Float := Rect.y;
@@ -2988,10 +2991,11 @@ package body Adi.Widget is
    end Render_Rounded_Image;
 
    procedure Render_Image_Item (
-      Renderer : SDL_Renderer_Ptr;
-      Geom     : Rectangle;
-      Source   : Image_Access;
-      Style    : Resolved_Style)
+      Renderer   : SDL_Renderer_Ptr;
+      Geom       : Rectangle;
+      Source     : Image_Access;
+      Style      : Resolved_Style;
+      Color_Tint : Boolean := False)
    is
       use Interfaces.C;
       Texture          : SDL_Texture_Ptr;
@@ -3265,11 +3269,38 @@ package body Adi.Widget is
       end if;
 
       if Max_Rad > 0.0 then
-         Render_Rounded_Image
-            (Renderer, Dst_Rect, Radius_Px, Texture,
-             U0, V0, U1, V1, Float (Style.Opacity));
+         if Color_Tint then
+            declare
+               CR, CG, CB, CA : Uint8;
+            begin
+               CSS_Color_To_SDL (Style.Color, CR, CG, CB, CA);
+               Render_Rounded_Image
+                  (Renderer, Dst_Rect, Radius_Px, Texture,
+                   U0, V0, U1, V1, Float (Style.Opacity),
+                   Tint_R => Float (CR) / 255.0,
+                   Tint_G => Float (CG) / 255.0,
+                   Tint_B => Float (CB) / 255.0);
+            end;
+         else
+            Render_Rounded_Image
+               (Renderer, Dst_Rect, Radius_Px, Texture,
+                U0, V0, U1, V1, Float (Style.Opacity));
+         end if;
       else
-         Success := SDL_SetTextureAlphaModFloat (Texture, Float (Style.Opacity));
+         if Color_Tint then
+            declare
+               CR, CG, CB, CA : Uint8;
+            begin
+               CSS_Color_To_SDL (Style.Color, CR, CG, CB, CA);
+               Success := SDL_SetTextureColorModFloat
+                 (Texture,
+                  Float (CR) / 255.0,
+                  Float (CG) / 255.0,
+                  Float (CB) / 255.0);
+            end;
+         end if;
+         Success := SDL_SetTextureAlphaModFloat
+           (Texture, Float (Style.Opacity));
          if U0 /= 0.0 or else V0 /= 0.0
             or else U1 /= 1.0 or else V1 /= 1.0
          then
@@ -3449,7 +3480,8 @@ package body Adi.Widget is
                         Renderer,
                         Current.Geometry,
                         Current.Image_Source,
-                        Style);
+                        Style,
+                        Current.Color_Tint);
                end case;
 
                if Debug_Layout_Overlay_Enabled and then Renderer /= null then

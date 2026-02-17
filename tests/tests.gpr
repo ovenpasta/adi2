@@ -12,7 +12,8 @@ project Tests is
       "html_view_test",
       "svg_test",
       "svg_perf_test",
-      "disabled_test");
+      "disabled_test",
+      "image_widget_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("src");

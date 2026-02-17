@@ -146,7 +146,7 @@ package body Adi.Widget.Text_Editor is
       Offset     : Pixel_Type := Get_Scroll_Offset_Y (W);
       Max_Offset : Pixel_Type;
    begin
-      if W.Line_Skip <= 0.0 or else Content.Height <= 0.0 then
+      if not Is_Visible_Px (W.Line_Skip) or else not Is_Visible_Px (Content.Height) then
          return;
       end if;
 

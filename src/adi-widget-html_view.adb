@@ -1346,8 +1346,7 @@ package body Adi.Widget.Html_View is
             Frag : constant Link_Fragment := Self.Links.Element (Positive (I));
             G    : constant Rectangle := Frag.Geometry;
          begin
-            if G.Width > 0.0
-              and then G.Height > 0.0
+            if Has_Visible_Area (G)
               and then X >= G.X and then X <= G.X + G.Width
               and then Y >= G.Y and then Y <= G.Y + G.Height
             then
@@ -2515,7 +2514,7 @@ package body Adi.Widget.Html_View is
 
       Self.Links.Clear;
 
-      if Content.Width <= 0.0 or else Content.Height <= 0.0 then
+      if not Has_Visible_Area (Content) then
          return;
       end if;
 

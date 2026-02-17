@@ -267,7 +267,7 @@ package body Adi.Widget is
             (Float'Max (Radius_Vals.Top_Left, Radius_Vals.Top_Right),
              Float'Max (Radius_Vals.Bottom_Right, Radius_Vals.Bottom_Left)));
       Max_Geom_Rad : constant Natural :=
-         (if Geom.Width > 0.0 and then Geom.Height > 0.0 then
+         (if Has_Visible_Area (Geom) then
              Natural (Float'Max (0.0,
                 Float'Min (Float (Geom.Width), Float (Geom.Height)) / 2.0))
           else
@@ -993,7 +993,7 @@ package body Adi.Widget is
       W.Scroll_Knob_Geom := (0.0, 0.0, 0.0, 0.0);
       W.Scroll_Show_Bar := False;
 
-      if not Is_Scroll_Enabled (W) or else Content.Width <= 0.0 or else Content.Height <= 0.0 then
+      if not Is_Scroll_Enabled (W) or else not Has_Visible_Area (Content) then
          return;
       end if;
 
@@ -1016,7 +1016,7 @@ package body Adi.Widget is
 
       Track_H :=
         Pixel_Type'Max (0.0, Content.Height - Metrics.Inset_Top - Metrics.Inset_Bot);
-      if Track_H <= 0.0 or else Metrics.Width <= 0.0 then
+      if not Is_Visible_Px (Track_H) or else not Is_Visible_Px (Metrics.Width) then
          return;
       end if;
 
@@ -2571,16 +2571,16 @@ package body Adi.Widget is
       Clip_Rect  : aliased Adi.SDL.SDL_Rect;
       Had_Clip   : Boolean := False;
       Use_Clip   : constant Boolean :=
-        Renderer /= null and then Geom.Width > 0.0 and then Geom.Height > 0.0;
+        Renderer /= null and then Has_Visible_Area (Geom);
       X1, Y1, X2, Y2 : Integer;
    begin
       if Style.Visibility = Visibility_Hidden or else Content'Length = 0 then
          return;
       end if;
 
-      --  Zero/negative text geometry must render nothing; otherwise clip can
-      --  be skipped and text may reappear when constrained to height 0.
-      if Geom.Width <= 0.0 or else Geom.Height <= 0.0 then
+      --  Sub-pixel text geometry must render nothing; otherwise clip can
+      --  be skipped and text may reappear when constrained to zero height.
+      if not Has_Visible_Area (Geom) then
          return;
       end if;
 
@@ -2663,7 +2663,7 @@ package body Adi.Widget is
       Success := TTF_SetTextColor (Text_Obj, R, G, B, A);
 
       --  Configure wrapping per item.
-      if It.Wrap_Text and then Geom.Width > 0.0 then
+      if It.Wrap_Text and then Is_Visible_Px (Geom.Width) then
          Success := TTF_SetTextWrapWidth (Text_Obj, int (Geom.Width));
       else
          Success := TTF_SetTextWrapWidth (Text_Obj, 0);
@@ -3010,10 +3010,14 @@ package body Adi.Widget is
       Clip_Rect        : aliased Adi.SDL.SDL_Rect;
       Had_Clip         : Boolean := False;
       Use_Clip         : constant Boolean :=
-        Renderer /= null and then Geom.Width > 0.0 and then Geom.Height > 0.0;
+        Renderer /= null and then Has_Visible_Area (Geom);
       X1, Y1, X2, Y2   : Integer;
    begin
       if Style.Visibility = Visibility_Hidden then
+         return;
+      end if;
+
+      if not Has_Visible_Area (Geom) then
          return;
       end if;
 
@@ -3022,7 +3026,7 @@ package body Adi.Widget is
       end if;
 
       Get_Size (Source.all, Img_W, Img_H);
-      if Img_W = 0.0 or Img_H = 0.0 then
+      if not Is_Visible_Px (Img_W) or else not Is_Visible_Px (Img_H) then
          return;
       end if;
 
@@ -3048,7 +3052,7 @@ package body Adi.Widget is
             Dst_Y := Geom.Y;
             Dst_W := Geom.Width;
             Dst_H := Geom.Height;
-            if Geom.Width > 0.0 and then Geom.Height > 0.0 then
+            if Has_Visible_Area (Geom) then
                declare
                   Img_Asp  : constant Float :=
                      Float (Img_W) / Float (Img_H);
@@ -3311,10 +3315,7 @@ package body Adi.Widget is
          w => Float (Geom.Width),
          h => Float (Geom.Height));
    begin
-      if Renderer = null
-        or else Geom.Width <= 0.0
-        or else Geom.Height <= 0.0
-      then
+      if Renderer = null or else not Has_Visible_Area (Geom) then
          return;
       end if;
 
@@ -3390,7 +3391,7 @@ package body Adi.Widget is
       end Set_Item_Clip;
    begin
       if Renderer /= null and then (Clip_By_Overflow or else Clip_By_Scrollable) then
-         if Content.Width > 0.0 and then Content.Height > 0.0 then
+         if Has_Visible_Area (Content) then
             Use_Clip := True;
             Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
             if Had_Clip then
@@ -3539,7 +3540,7 @@ package body Adi.Widget is
               Padding_Box (Get_Geometry (W), Main_Style);
          begin
             if Clip_By_Overflow or else Clip_By_Scrollable then
-               if Content.Width <= 0.0 or else Content.Height <= 0.0 then
+               if not Has_Visible_Area (Content) then
                   Skip_Children := True;
                else
                   Use_Clip := True;

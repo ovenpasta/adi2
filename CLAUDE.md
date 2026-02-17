@@ -21,6 +21,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | Adding a new example | `docs/adding_example.md` |
 | Adding a new test | `docs/adding_test.md` |
 | Antialiased rendering (AA fringe, ring patterns) | `docs/rendering_aa.md` |
+| OS integration (dialogs, paths, clipboard) | `docs/os_integration.md` |
 
 ## Build Commands
 

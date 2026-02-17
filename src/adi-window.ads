@@ -2,6 +2,7 @@ with Ada.Containers.Vectors;
 with Adi.Core;       use Adi.Core;
 with Adi.Widget;     use Adi.Widget;
 with Adi.Render;     use Adi.Render;
+with Adi.SDL.Video;  use Adi.SDL.Video;
 with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.Image;      use Adi.Image;
 with Adi.Animated_Image; use Adi.Animated_Image;
@@ -34,6 +35,9 @@ package Adi.Window is
     procedure Remove_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class);
     procedure Clear_Overlays (W : in out Window);
     function Overlay_Count (W : Window) return Natural;
+
+    --  Get the underlying SDL window pointer (for dialog calls, etc.)
+    function Get_SDL_Window (W : Window) return SDL_Window_Ptr;
 
     --  Get the SDL renderer for direct rendering
     function Get_Renderer (W : in out Window) return SDL_Renderer_Ptr;

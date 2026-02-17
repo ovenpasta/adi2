@@ -45,6 +45,39 @@ package Text_Editor_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'open-btn'
+   Open_Btn_Class_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (49, 50, 68)),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Color => Set (Border_Color (RGB (69, 71, 90))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Radius => Set (Radius (Px (6.0))),
+      Padding => Set (CSS_Box (Px (6.0), Px (14.0), Px (6.0), Px (14.0))),
+      others => <>
+   );
+
+   --  Style for class 'open-btn' when widget State_Hovered
+   Open_Btn_Class_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (69, 71, 90)),
+      Border_Color => Set (Border_Color (RGB (137, 180, 250))),
+      others => <>
+   );
+
+   --  Style for class 'open-btn' when widget State_Pressed
+   Open_Btn_Class_Widget_Pressed_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (88, 91, 112)),
+      others => <>
+   );
+
+   --  Base style for class 'open-btn'::label
+   Open_Btn_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (205, 214, 244)),
+      Font_Size => Set_Font (Px (13.0)),
+      White_Space => Set (WS_Nowrap),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
+      others => <>
+   );
+
    --  Base style for class 'wrap-status'::label
    Wrap_Status_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (166, 173, 200)),
@@ -233,6 +266,25 @@ package Text_Editor_Example_Styles is
    --  Part styles bundle for class 'controls'
    Controls_Class_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Controls_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'open-btn'
+   Open_Btn_Class_Widget : constant Widget_Style :=
+     From (Open_Btn_Class_Base_Style)
+     .On (When_State (State_Hovered), Open_Btn_Class_Widget_Hovered_Style)
+     .On (When_State (State_Pressed), Open_Btn_Class_Widget_Pressed_Style)
+     .Build;
+
+   --  Complete widget style for class 'open-btn'::label
+   Open_Btn_Class_Label_Widget : constant Widget_Style :=
+     From (Open_Btn_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'open-btn'
+   Open_Btn_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Open_Btn_Class_Widget, Enabled => True),
+      Label_Part => (Style => Open_Btn_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 

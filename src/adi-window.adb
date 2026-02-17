@@ -632,6 +632,14 @@ package body Adi.Window is
    -- Get_Renderer --
    ------------------
 
+   function Get_SDL_Window (W : Window) return Adi.SDL.Video.SDL_Window_Ptr is
+   begin
+      if W.Internal = null then
+         return null;
+      end if;
+      return W.Internal.win;
+   end Get_SDL_Window;
+
    function Get_Renderer (W : in Out Window) return SDL_Renderer_Ptr is
    begin
       return W.Internal.ren;

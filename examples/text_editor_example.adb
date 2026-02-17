@@ -1,7 +1,10 @@
 pragma Ada_2022;
 
+with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
+with Ada.Text_IO;
 with Adi.App;
 with Adi.CSS_Styles;          use Adi.CSS_Styles;
+with Adi.OS;
 with Adi.Window;              use Adi.Window;
 with Adi.Widget;              use Adi.Widget;
 with Adi.Widget.Box;
@@ -91,6 +94,8 @@ begin
         Adi.Widget.Label.Create ("Wrap: ON");
       Wrap_Switch : constant Adi.Widget.Button.Switch.Switch_Widget_Access :=
         Adi.Widget.Button.Switch.Create (True);
+      Open_Btn : constant Button_Widget_Access :=
+        Adi.Widget.Button.Create ("Open File");
       Editor : constant Text_Editor_Widget_Access :=
         Adi.Widget.Text_Editor.Create (Sample_Text);
 
@@ -124,6 +129,40 @@ begin
       begin
          Apply_Wrap (Active);
       end On_Wrap_Toggled;
+
+      procedure On_File_Selected (Files : Adi.OS.String_Array) is
+      begin
+         if Files'Length = 0 then
+            return;
+         end if;
+         declare
+            Path : constant String := To_String (Files (Files'First));
+            File : Ada.Text_IO.File_Type;
+            Content : Unbounded_String;
+         begin
+            Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
+            while not Ada.Text_IO.End_Of_File (File) loop
+               if Length (Content) > 0 then
+                  Append (Content, ASCII.LF);
+               end if;
+               Append (Content, Ada.Text_IO.Get_Line (File));
+            end loop;
+            Ada.Text_IO.Close (File);
+            Set_Text (Editor.all, To_String (Content));
+         end;
+      end On_File_Selected;
+
+      procedure On_Open_Click (Btn : Button_Widget_Access) is
+         pragma Unreferenced (Btn);
+         Txt_Filter : constant Adi.OS.File_Filter_Array :=
+           [1 => (Name    => To_Unbounded_String ("Text files"),
+                  Pattern => To_Unbounded_String ("txt"))];
+      begin
+         Adi.OS.Show_Open_File_Dialog
+           (Callback => On_File_Selected'Unrestricted_Access,
+            Window   => W,
+            Filters  => Txt_Filter);
+      end On_Open_Click;
    begin
       Set_Part_Styles (Root.all, Root_Class_Part_Styles);
       Set_Part_Styles (Title.all, Title_Class_Part_Styles);
@@ -131,6 +170,8 @@ begin
       Set_Part_Styles (Wrap_Status.all, Wrap_Status_Class_Part_Styles);
       Set_Part_Styles (Wrap_Switch.all, Wrap_Switch_Class_Part_Styles);
       Set_Part_Styles (Editor.all, Editor_Class_Part_Styles);
+      Set_Part_Styles (Open_Btn.all, Open_Btn_Class_Part_Styles);
+      Open_Btn.Set_On_Clicked (On_Open_Click'Unrestricted_Access);
       Wrap_Switch.Set_On_Toggled (On_Wrap_Toggled'Unrestricted_Access);
       Apply_Wrap (True);
       Attach_Window (Editor.all, W);
@@ -139,6 +180,7 @@ begin
 
       Root.Add_Child (Title);
       Root.Add_Child (Controls);
+      Controls.Add_Child (Open_Btn);
       Controls.Add_Child (Wrap_Status);
       Controls.Add_Child (Wrap_Switch);
       Root.Add_Child (Editor);

@@ -72,6 +72,27 @@ Key features:
 **Mouse input**
 - Mouse state and button handling
 
+### Adi.SDL.Dialog (adi-sdl-dialog.ads)
+**File/folder dialog windows**
+- File filter types
+- Dialog callback type
+- Open file, save file, and open folder dialogs
+
+### Adi.SDL.Filesystem (adi-sdl-filesystem.ads)
+**Filesystem paths and operations**
+- Folder and path type enumerations
+- Path info (type, size, timestamps)
+- Base path, pref path, user folders, current directory
+- Create/remove/rename/copy operations
+
+### Adi.SDL.Misc (adi-sdl-misc.ads)
+**Miscellaneous OS functions**
+- URL opening (`SDL_OpenURL`)
+
+### Adi.SDL.Image (adi-sdl-image.ads)
+**Image file loading**
+- Image loading via SDL3_image
+
 ## Binding Pattern
 
 All bindings follow this structure:

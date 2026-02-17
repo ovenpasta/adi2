@@ -97,7 +97,17 @@ package Adi.SDL is
          Convention    => C,
          External_Name => "SDL_GetClipboardText";
 
+    function SDL_HasClipboardText return C_bool
+    with Import        => True,
+         Convention    => C,
+         External_Name => "SDL_HasClipboardText";
+
     procedure SDL_free (Mem : Interfaces.C.Strings.chars_ptr)
+    with Import        => True,
+         Convention    => C,
+         External_Name => "SDL_free";
+
+    procedure SDL_free (Mem : System.Address)
     with Import        => True,
          Convention    => C,
          External_Name => "SDL_free";

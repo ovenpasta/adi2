@@ -22,6 +22,31 @@
   gap: 10px;
 }
 
+.open-btn {
+  padding: 6px 14px;
+  background-color: rgb(49, 50, 68);
+  border-width: 1px;
+  border-color: rgb(69, 71, 90);
+  border-style: solid;
+  border-radius: 6px;
+}
+
+.open-btn:hover {
+  background-color: rgb(69, 71, 90);
+  border-color: rgb(137, 180, 250);
+}
+
+.open-btn:pressed {
+  background-color: rgb(88, 91, 112);
+}
+
+.open-btn::label {
+  color: rgb(205, 214, 244);
+  font-size: 13px;
+  white-space: nowrap;
+  text-wrap-mode: nowrap;
+}
+
 .wrap-status::label {
   color: rgb(166, 173, 200);
   font-size: 13px;

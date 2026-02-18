@@ -80,18 +80,20 @@ package body Material_Demo_UI is
       Switch_1 : constant Adi.Widget.Button.Switch.Switch_Widget_Access := Adi.Widget.Button.Switch.Create (True);
       Switch_2 : constant Adi.Widget.Button.Switch.Switch_Widget_Access := Adi.Widget.Button.Switch.Create (True);
       Label_14 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Combo Box");
+      Label_15 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Slider");
+      Label_16 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Value Input");
       Box_10 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Box_11 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_15 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Settings");
+      Label_17 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Settings");
       Box_12 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_16 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Dark Mode");
+      Label_18 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Dark Mode");
       Box_13 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_17 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Notifications");
+      Label_19 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Notifications");
       Switch_3 : constant Adi.Widget.Button.Switch.Switch_Widget_Access := Adi.Widget.Button.Switch.Create (True);
       Box_14 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_18 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Auto-save");
+      Label_20 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Auto-save");
       Switch_4 : constant Adi.Widget.Button.Switch.Switch_Widget_Access := Adi.Widget.Button.Switch.Create (True);
-      Label_19 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Lock UI");
+      Label_21 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Lock UI");
    begin
       --  Create widgets
       Root := Adi.Widget.Box.Create;
@@ -108,6 +110,10 @@ package body Material_Demo_UI is
       Disabled_Input := Adi.Widget.Text_Input.Create ("Read-only");
       Enabled_Combo := Adi.Widget.Combo_Box.Create;
       Disabled_Combo := Adi.Widget.Combo_Box.Create;
+      Enabled_Slider := Float_Slider.Create (Min => 0.0, Max => 100.0, Value => 50.0);
+      Disabled_Slider := Float_Slider.Create (Min => 0.0, Max => 100.0, Value => 75.0);
+      Enabled_Value_Input := Float_Value_Input.Create (Min => 0.0, Max => 100.0, Value => 50.0);
+      Disabled_Value_Input := Int_Value_Input.Create (Min => 0, Max => 100, Value => 75);
       Dark_Switch := Adi.Widget.Button.Switch.Create (True);
       Lock_Bar := Adi.Widget.Box.Create;
       Lock_Switch := Adi.Widget.Button.Switch.Create (False);
@@ -117,6 +123,8 @@ package body Material_Demo_UI is
       Disabled_Input.Set_Disabled;
       Switch_2.Set_Disabled;
       Disabled_Combo.Set_Disabled;
+      Disabled_Slider.Set_Disabled;
+      Disabled_Value_Input.Set_Disabled;
 
       --  Wire callbacks
       if On_Get_Started /= null then
@@ -155,6 +163,8 @@ package body Material_Demo_UI is
       Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grid-label", Grid_Label_Class_Part_Styles));
       Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grid-cell", Grid_Cell_Class_Part_Styles));
       Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("setting-switch", Setting_Switch_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("slider", Slider_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("num-field", Num_Field_Class_Part_Styles));
       Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("setting-row", Setting_Row_Class_Part_Styles));
       Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("setting-label", Setting_Label_Class_Part_Styles));
 
@@ -221,20 +231,26 @@ package body Material_Demo_UI is
       Adi.CSS_Source.Bind_Class (Source, "label-inline grid-label", Label_14);
       Adi.CSS_Source.Bind_Class (Source, "combo grid-cell", Enabled_Combo);
       Adi.CSS_Source.Bind_Class (Source, "combo grid-cell", Disabled_Combo);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline grid-label", Label_15);
+      Adi.CSS_Source.Bind_Class (Source, "slider grid-cell", Enabled_Slider);
+      Adi.CSS_Source.Bind_Class (Source, "slider grid-cell", Disabled_Slider);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline grid-label", Label_16);
+      Adi.CSS_Source.Bind_Class (Source, "num-field grid-cell", Enabled_Value_Input);
+      Adi.CSS_Source.Bind_Class (Source, "num-field grid-cell", Disabled_Value_Input);
       Adi.CSS_Source.Bind_Class (Source, "page", Box_10);
       Adi.CSS_Source.Bind_Class (Source, "card", Box_11);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline card-title", Label_15);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline card-title", Label_17);
       Adi.CSS_Source.Bind_Class (Source, "setting-row", Box_12);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", Label_16);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", Label_18);
       Adi.CSS_Source.Bind_Class (Source, "setting-switch", Dark_Switch);
       Adi.CSS_Source.Bind_Class (Source, "setting-row", Box_13);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", Label_17);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", Label_19);
       Adi.CSS_Source.Bind_Class (Source, "setting-switch", Switch_3);
       Adi.CSS_Source.Bind_Class (Source, "setting-row", Box_14);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", Label_18);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", Label_20);
       Adi.CSS_Source.Bind_Class (Source, "setting-switch", Switch_4);
       Adi.CSS_Source.Bind_Class (Source, "nav-bar setting-row", Lock_Bar);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", Label_19);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", Label_21);
       Adi.CSS_Source.Bind_Class (Source, "setting-switch", Lock_Switch);
 
       --  Build hierarchy
@@ -279,16 +295,22 @@ package body Material_Demo_UI is
       Box_9.Add_Child (Label_14);
       Box_9.Add_Child (Enabled_Combo);
       Box_9.Add_Child (Disabled_Combo);
+      Box_9.Add_Child (Label_15);
+      Box_9.Add_Child (Enabled_Slider);
+      Box_9.Add_Child (Disabled_Slider);
+      Box_9.Add_Child (Label_16);
+      Box_9.Add_Child (Enabled_Value_Input);
+      Box_9.Add_Child (Disabled_Value_Input);
       Box_8.Add_Child (Label_7);
       Box_8.Add_Child (Box_9);
       Box_7.Add_Child (Box_8);
-      Box_12.Add_Child (Label_16);
+      Box_12.Add_Child (Label_18);
       Box_12.Add_Child (Dark_Switch);
-      Box_13.Add_Child (Label_17);
+      Box_13.Add_Child (Label_19);
       Box_13.Add_Child (Switch_3);
-      Box_14.Add_Child (Label_18);
+      Box_14.Add_Child (Label_20);
       Box_14.Add_Child (Switch_4);
-      Box_11.Add_Child (Label_15);
+      Box_11.Add_Child (Label_17);
       Box_11.Add_Child (Box_12);
       Box_11.Add_Child (Box_13);
       Box_11.Add_Child (Box_14);
@@ -297,7 +319,7 @@ package body Material_Demo_UI is
       Pages.Add_Page (Forms, Box_4);
       Pages.Add_Page (Controls, Box_7);
       Pages.Add_Page (Settings, Box_10);
-      Lock_Bar.Add_Child (Label_19);
+      Lock_Bar.Add_Child (Label_21);
       Lock_Bar.Add_Child (Lock_Switch);
       Root.Add_Child (Box_1);
       Root.Add_Child (Nav_Bar);

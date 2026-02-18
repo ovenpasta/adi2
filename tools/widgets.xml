@@ -132,4 +132,52 @@
     <attribute name="on-selection-changed" type="callback" setter="Set_On_Selection_Changed"/>
   </widget>
 
+  <widget tag="slider" generic="true">
+    <package>Adi.Widget.Slider</package>
+    <access-type>Slider_Widget_Access</access-type>
+    <create>{generic_name}.Create (Min =&gt; {min}, Max =&gt; {max}, Value =&gt; {value})</create>
+    <attribute name="generic" type="string" required="true" meta="true"/>
+    <attribute name="min" type="string" create-param="true"/>
+    <attribute name="max" type="string" create-param="true"/>
+    <attribute name="value" type="string" create-param="true"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
+    <attribute name="on-changed" type="callback" setter="Set_On_Changed"/>
+  </widget>
+
+  <widget tag="integer-slider" generic="true">
+    <package>Adi.Widget.Integer_Slider</package>
+    <access-type>Slider_Widget_Access</access-type>
+    <create>{generic_name}.Create (Min =&gt; {min}, Max =&gt; {max}, Value =&gt; {value})</create>
+    <attribute name="generic" type="string" required="true" meta="true"/>
+    <attribute name="min" type="string" create-param="true"/>
+    <attribute name="max" type="string" create-param="true"/>
+    <attribute name="value" type="string" create-param="true"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
+    <attribute name="on-changed" type="callback" setter="Set_On_Changed"/>
+  </widget>
+
+  <widget tag="value-input" generic="true">
+    <package>Adi.Widget.Value_Input</package>
+    <access-type>Value_Input_Widget_Access</access-type>
+    <create>{generic_name}.Create (Min =&gt; {min}, Max =&gt; {max}, Value =&gt; {value})</create>
+    <attribute name="generic" type="string" required="true" meta="true"/>
+    <attribute name="min" type="string" create-param="true"/>
+    <attribute name="max" type="string" create-param="true"/>
+    <attribute name="value" type="string" create-param="true"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
+    <attribute name="on-value-changed" type="callback" setter="Set_On_Value_Changed"/>
+  </widget>
+
+  <widget tag="integer-value-input" generic="true">
+    <package>Adi.Widget.Integer_Value_Input</package>
+    <access-type>Value_Input_Widget_Access</access-type>
+    <create>{generic_name}.Create (Min =&gt; {min}, Max =&gt; {max}, Value =&gt; {value})</create>
+    <attribute name="generic" type="string" required="true" meta="true"/>
+    <attribute name="min" type="string" create-param="true"/>
+    <attribute name="max" type="string" create-param="true"/>
+    <attribute name="value" type="string" create-param="true"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
+    <attribute name="on-value-changed" type="callback" setter="Set_On_Value_Changed"/>
+  </widget>
+
 </widgets>

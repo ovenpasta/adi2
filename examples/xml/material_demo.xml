@@ -5,6 +5,9 @@
   <enum name="Page" values="Home, Forms, Settings, Controls"/>
   <generic name="Page_Stack" package="Adi.Widget.Stack" type-param="Page"/>
   <generic name="Nav_Options" package="Adi.Widget.Button.Options" type-param="Page"/>
+  <generic name="Float_Slider" package="Adi.Widget.Slider" type-param="Float"/>
+  <generic name="Float_Value_Input" package="Adi.Widget.Value_Input" type-param="Float"/>
+  <generic name="Int_Value_Input" package="Adi.Widget.Integer_Value_Input" type-param="Integer"/>
   <callback name="On_Page" type="Page_Stack.Page_Changed_Callback"/>
   <callback name="On_Dark_Mode" type="Adi.Widget.Button.Toggle_Callback"/>
   <callback name="On_Get_Started" type="Adi.Widget.Button.Click_Callback"/>
@@ -82,6 +85,14 @@
                 <combo-box id="Disabled_Combo" class="combo grid-cell" disabled="true">
                   <item text="Disabled"/>
                 </combo-box>
+                <!-- Slider row -->
+                <label text="Slider" class="label-inline grid-label"/>
+                <slider id="Enabled_Slider" generic="Float_Slider" min="0.0" max="100.0" value="50.0" class="slider grid-cell"/>
+                <slider id="Disabled_Slider" generic="Float_Slider" min="0.0" max="100.0" value="75.0" class="slider grid-cell" disabled="true"/>
+                <!-- Value Input row -->
+                <label text="Value Input" class="label-inline grid-label"/>
+                <value-input id="Enabled_Value_Input" generic="Float_Value_Input" min="0.0" max="100.0" value="50.0" class="num-field grid-cell"/>
+                <integer-value-input id="Disabled_Value_Input" generic="Int_Value_Input" min="0" max="100" value="75" class="num-field grid-cell" disabled="true"/>
               </box>
             </box>
           </box>

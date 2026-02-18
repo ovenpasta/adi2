@@ -1,0 +1,142 @@
+/* Value Input Example Styles */
+
+.root {
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    gap: 20px;
+    background-color: #1e1e2e;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+}
+
+.heading {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.heading::label {
+    color: #cdd6f4;
+}
+
+.label {
+    font-size: 14px;
+    min-width: 120px;
+}
+
+.label::label {
+    color: #bac2de;
+}
+
+.value-label {
+    font-size: 14px;
+    min-width: 80px;
+}
+
+.value-label::label {
+    color: #a6e3a1;
+}
+
+.value-input {
+    width: 120px;
+    height: 30px;
+    background-color: #313244;
+    border: 1px solid #585b70;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 14px;
+}
+
+.value-input::label {
+    color: #cdd6f4;
+}
+
+.value-input::cursor {
+    background-color: #89b4fa;
+}
+
+.value-input:focus {
+    border-color: #89b4fa;
+}
+
+.int-input {
+    width: 100px;
+    height: 30px;
+    background-color: #313244;
+    border: 1px solid #585b70;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 14px;
+}
+
+.int-input::label {
+    color: #cdd6f4;
+}
+
+.int-input::cursor {
+    background-color: #f38ba8;
+}
+
+.int-input:focus {
+    border-color: #f38ba8;
+}
+
+.wide-input {
+    width: 180px;
+    height: 30px;
+    background-color: #313244;
+    border: 1px solid #585b70;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 14px;
+}
+
+.wide-input::label {
+    color: #cdd6f4;
+}
+
+.wide-input::cursor {
+    background-color: #a6e3a1;
+}
+
+.wide-input:focus {
+    border-color: #a6e3a1;
+}
+
+/* ── Context Menu ───────────────────────────── */
+
+.context-menu {
+    width: 180px;
+    padding: 6px;
+    background-color: #1e1e2e;
+    border: 1px solid #585b70;
+    border-radius: 8px;
+    box-shadow: 0px 8px 24px 0px rgba(0, 0, 0, 0.45);
+}
+
+.context-menu-item {
+    min-height: 28px;
+    padding: 6px 10px;
+    background-color: rgba(0, 0, 0, 0);
+    border-radius: 6px;
+}
+
+.context-menu-item:hover {
+    background-color: rgba(137, 180, 250, 0.15);
+}
+
+.context-menu-item::label {
+    color: #cdd6f4;
+    font-size: 13px;
+}

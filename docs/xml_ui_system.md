@@ -92,7 +92,7 @@ Without `<window>`, a single root widget sits directly under `<adi>` and `Build`
 
 ## Supported Widgets
 
-All 13 widget tags defined in `tools/widgets.xml`:
+All 17 widget tags defined in `tools/widgets.xml`:
 
 | Tag | Package | Children | Generic | Key Attributes |
 |-----|---------|----------|---------|----------------|
@@ -109,6 +109,10 @@ All 13 widget tags defined in `tools/widgets.xml`:
 | `rlottie` | `Adi.Widget.RLottie` | children | no | `looping` |
 | `html-view` | `Adi.Widget.Html_View` | children | no | — |
 | `list-box` | `Adi.Widget.List_Box` | rows | yes | `generic`, `on-item-clicked`, `on-item-activated`, `on-selection-changed` |
+| `slider` | `Adi.Widget.Slider` | — | yes | `generic`, `min`, `max`, `value`, `on-changed` |
+| `integer-slider` | `Adi.Widget.Integer_Slider` | — | yes | `generic`, `min`, `max`, `value`, `on-changed` |
+| `value-input` | `Adi.Widget.Value_Input` | — | yes | `generic`, `min`, `max`, `value`, `on-value-changed` |
+| `integer-value-input` | `Adi.Widget.Integer_Value_Input` | — | yes | `generic`, `min`, `max`, `value`, `on-value-changed` |
 
 ### Children Modes
 

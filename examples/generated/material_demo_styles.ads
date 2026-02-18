@@ -679,6 +679,110 @@ package Material_Demo_Styles is
       others => <>
    );
 
+   --  Base style for class 'slider'
+   Slider_Class_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (200.0))),
+      Height => Set (Size (Px (20.0))),
+      Border_Radius => Set (Radius (Px (10.0))),
+      Background_Color => Set_Bg (RGB (73, 69, 79)),
+      Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      others => <>
+   );
+
+   --  Style for class 'slider' when widget State_Focused
+   Slider_Class_Widget_Focused_Style : constant Style_Rules := (
+      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Style => Set (Outline_Solid),
+      Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
+      Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      others => <>
+   );
+
+   --  Style for class 'slider' when widget State_Disabled
+   Slider_Class_Widget_Disabled_Style : constant Style_Rules := (
+      Opacity => Set (0.5),
+      others => <>
+   );
+
+   --  Base style for class 'slider'::indicator
+   Slider_Class_Indicator_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (208, 188, 255)),
+      Border_Radius => Set (Radius (Px (10.0))),
+      others => <>
+   );
+
+   --  Base style for class 'slider'::knob
+   Slider_Class_Knob_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (20.0))),
+      Background_Color => Set_Bg (RGB (230, 225, 229)),
+      Border_Radius => Set (Radius (Pct (50.0))),
+      Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      others => <>
+   );
+
+   --  Style for class 'slider'::knob when part State_Hovered
+   Slider_Class_Knob_Part_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (208, 188, 255)),
+      others => <>
+   );
+
+   --  Style for class 'slider'::knob when part State_Pressed
+   Slider_Class_Knob_Part_Pressed_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (208, 188, 255)),
+      others => <>
+   );
+
+   --  Base style for class 'num-field'
+   Num_Field_Class_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (100.0))),
+      Border_Radius => Set (Radius (Px (8.0))),
+      Background_Color => Set_Bg (RGB (54, 52, 59)),
+      Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (147, 143, 153))),
+      Cursor => Set (Cursor_Text),
+      Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Border_Color))),
+      Padding => Set (CSS_Box (Px (10.0), Px (12.0), Px (10.0), Px (12.0))),
+      others => <>
+   );
+
+   --  Style for class 'num-field' when widget State_Focused
+   Num_Field_Class_Widget_Focused_Style : constant Style_Rules := (
+      Border_Color => Set (Border_Color (RGB (208, 188, 255))),
+      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Style => Set (Outline_Solid),
+      Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
+      Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      others => <>
+   );
+
+   --  Style for class 'num-field' when widget State_Disabled
+   Num_Field_Class_Widget_Disabled_Style : constant Style_Rules := (
+      Opacity => Set (0.5),
+      Cursor => Set (Cursor_Default),
+      others => <>
+   );
+
+   --  Base style for class 'num-field'::cursor
+   Num_Field_Class_Cursor_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (208, 188, 255)),
+      Width => Set (Size (Px (2.0))),
+      others => <>
+   );
+
+   --  Base style for class 'num-field'::label
+   Num_Field_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (230, 225, 229)),
+      Font_Size => Set_Font (Px (14.0)),
+      others => <>
+   );
+
+   --  Base style for class 'num-field'::selected
+   Num_Field_Class_Selected_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.3)),
+      others => <>
+   );
+
    --  Base style for class 'context-menu'
    Context_Menu_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (180.0))),
@@ -1227,6 +1331,64 @@ package Material_Demo_Styles is
    Dialog_Btn_Class_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Dialog_Btn_Class_Widget, Enabled => True),
       Label_Part => (Style => Dialog_Btn_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'slider'
+   Slider_Class_Widget : constant Widget_Style :=
+     From (Slider_Class_Base_Style)
+     .On (When_State (State_Focused), Slider_Class_Widget_Focused_Style)
+     .On (When_State (State_Disabled), Slider_Class_Widget_Disabled_Style)
+     .Build;
+
+   --  Complete widget style for class 'slider'::indicator
+   Slider_Class_Indicator_Widget : constant Widget_Style :=
+     From (Slider_Class_Indicator_Base_Style)
+     .Build;
+
+   --  Complete widget style for class 'slider'::knob
+   Slider_Class_Knob_Widget : constant Widget_Style :=
+     From (Slider_Class_Knob_Base_Style)
+     .On (When_Part_State (State_Hovered), Slider_Class_Knob_Part_Hovered_Style)
+     .On (When_Part_State (State_Pressed), Slider_Class_Knob_Part_Pressed_Style)
+     .Build;
+
+   --  Part styles bundle for class 'slider'
+   Slider_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Slider_Class_Widget, Enabled => True),
+      Indicator_Part => (Style => Slider_Class_Indicator_Widget, Enabled => True),
+      Knob_Part => (Style => Slider_Class_Knob_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'num-field'
+   Num_Field_Class_Widget : constant Widget_Style :=
+     From (Num_Field_Class_Base_Style)
+     .On (When_State (State_Focused), Num_Field_Class_Widget_Focused_Style)
+     .On (When_State (State_Disabled), Num_Field_Class_Widget_Disabled_Style)
+     .Build;
+
+   --  Complete widget style for class 'num-field'::cursor
+   Num_Field_Class_Cursor_Widget : constant Widget_Style :=
+     From (Num_Field_Class_Cursor_Base_Style)
+     .Build;
+
+   --  Complete widget style for class 'num-field'::label
+   Num_Field_Class_Label_Widget : constant Widget_Style :=
+     From (Num_Field_Class_Label_Base_Style)
+     .Build;
+
+   --  Complete widget style for class 'num-field'::selected
+   Num_Field_Class_Selected_Widget : constant Widget_Style :=
+     From (Num_Field_Class_Selected_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'num-field'
+   Num_Field_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Num_Field_Class_Widget, Enabled => True),
+      Cursor_Part => (Style => Num_Field_Class_Cursor_Widget, Enabled => True),
+      Label_Part => (Style => Num_Field_Class_Label_Widget, Enabled => True),
+      Selected_Part => (Style => Num_Field_Class_Selected_Widget, Enabled => True),
       others => <>
    ];
 

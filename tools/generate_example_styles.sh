@@ -44,3 +44,5 @@ generate_if_needed "$CSS_DIR/material_demo.css" "$OUT_DIR/material_demo_styles.a
 generate_if_needed "$CSS_DIR/material_demo_light.css" "$OUT_DIR/material_demo_light_styles.ads" "Material_Demo_Light_Styles"
 generate_if_needed "$CSS_DIR/image_example.css" "$OUT_DIR/image_example_styles.ads" "Image_Example_Styles"
 generate_if_needed "$CSS_DIR/widget_defaults.css" "$OUT_DIR/widget_defaults_styles.ads" "Widget_Defaults_Styles"
+generate_if_needed "$CSS_DIR/slider_example.css" "$OUT_DIR/slider_example_styles.ads" "Slider_Example_Styles"
+generate_if_needed "$CSS_DIR/value_input_example.css" "$OUT_DIR/value_input_example_styles.ads" "Value_Input_Example_Styles"

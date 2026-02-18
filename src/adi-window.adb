@@ -1001,7 +1001,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
 
       --  Route drag motion to the pressed widget (for text selection, etc.)
       if W.Mouse_Down and then W.Pressed_Widget /= null then
-         if W.Pressed_Part in Scroll_Part | Knob_Part then
+         if W.Scroll_Claimed then
             Handle_Scroll_Mouse_Move (W.Pressed_Widget.all, X, Y);
          else
             On_Mouse_Move (W.Pressed_Widget.all, X, Y);
@@ -1079,7 +1079,9 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
                          True);
          W.Pressed_Widget := Click_Target;
          if W.Pressed_Part in Scroll_Part | Knob_Part then
-            if not Handle_Scroll_Mouse_Down (Click_Target.all, X, Y, Button) then
+            W.Scroll_Claimed :=
+              Handle_Scroll_Mouse_Down (Click_Target.all, X, Y, Button);
+            if not W.Scroll_Claimed then
                On_Mouse_Down (Click_Target.all, X, Y, Button, Clicks);
             end if;
          else
@@ -1106,7 +1108,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
 
       --  Release pressed widget and dispatch click if applicable
       if W.Pressed_Widget /= null then
-         if W.Pressed_Part in Scroll_Part | Knob_Part then
+         if W.Scroll_Claimed then
             Handle_Scroll_Mouse_Up (W.Pressed_Widget.all, Button);
          else
             On_Mouse_Up (W.Pressed_Widget.all, X, Y, Button);
@@ -1125,6 +1127,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
          Set_Pressed (W.Pressed_Widget.all, False);
          W.Pressed_Widget := null;
          W.Pressed_Part := Main_Part;
+         W.Scroll_Claimed := False;
       end if;
    end On_Mouse_Up;
 

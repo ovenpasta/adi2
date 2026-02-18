@@ -38,9 +38,9 @@ Part selectors target sub-elements of a widget using `::part` pseudo-element syn
 | `::icon` | `Icon_Part` | Icon region |
 | `::cursor` | `Cursor_Part` | Text cursor |
 | `::selected` | `Selected_Part` | Selected item highlight |
-| `::indicator` | `Indicator_Part` | Dropdown/status indicator |
+| `::indicator` | `Indicator_Part` | Dropdown arrow, slider fill |
 | `::scroll` | `Scroll_Part` | Scrollbar track |
-| `::knob` | `Knob_Part` | Scrollbar thumb |
+| `::knob` | `Knob_Part` | Scrollbar/slider thumb |
 | `::items` | `Items_Part` | Items container |
 
 Example:

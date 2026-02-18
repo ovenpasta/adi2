@@ -105,6 +105,10 @@ begin
    Attach_Window (UI.Name_Input.all, W);
    Attach_Window (UI.Enabled_Input.all, W);
    Attach_Window (UI.Disabled_Input.all, W);
+   Attach_Window
+     (Adi.Widget.Text_Input.Text_Input_Widget (UI.Enabled_Value_Input.all), W);
+   Attach_Window
+     (Adi.Widget.Text_Input.Text_Input_Widget (UI.Disabled_Value_Input.all), W);
 
    --  Create welcome dialog (inherits default dialog styles)
    Welcome_Dialog := Adi.Widget.Dialog.Create;

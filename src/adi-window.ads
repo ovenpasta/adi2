@@ -112,6 +112,7 @@ private
         Pressed_Widget : Widget_Access := null;
         Hovered_Part   : Part_Kind     := Main_Part;
         Pressed_Part   : Part_Kind     := Main_Part;
+        Scroll_Claimed : Boolean       := False;
         Focused_Widget : Widget_Access := null;
         Overlays       : Overlay_Vectors.Vector;
         Enforce_Layout_Min_Size : Boolean := True;

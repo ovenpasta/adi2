@@ -508,6 +508,75 @@
   background-color: rgba(208, 188, 255, 0.12);
 }
 
+/* ── Slider ──────────────────────────────────── */
+
+.slider {
+  width: 200px;
+  height: 20px;
+  border-radius: 10px;
+  background-color: rgb(73, 69, 79);
+  transition: background-color 0.15s ease-in-out;
+}
+
+.slider::indicator {
+  background-color: rgb(208, 188, 255);
+  border-radius: 10px;
+}
+
+.slider::knob {
+  width: 20px;
+  background-color: rgb(230, 225, 229);
+  border-radius: 50%;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.slider::knob:hover {
+  background-color: rgb(208, 188, 255);
+}
+
+.slider::knob:active {
+  background-color: rgb(208, 188, 255);
+}
+
+.slider:focus {
+  outline: 2px solid rgb(208, 188, 255);
+  outline-offset: 2px;
+}
+
+/* ── Value Input ─────────────────────────────── */
+
+.num-field::main {
+  width: 100px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: rgb(54, 52, 59);
+  border-width: 0px 0px 2px 0px;
+  border-style: solid;
+  border-color: rgb(147, 143, 153);
+  cursor: text;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.num-field:focus::main {
+  border-color: rgb(208, 188, 255);
+  outline: 2px solid rgb(208, 188, 255);
+  outline-offset: 2px;
+}
+
+.num-field::label {
+  color: rgb(230, 225, 229);
+  font-size: 14px;
+}
+
+.num-field::cursor {
+  background-color: rgb(208, 188, 255);
+  width: 2px;
+}
+
+.num-field::selected {
+  background-color: rgba(208, 188, 255, 0.3);
+}
+
 /* ── Disabled States ────────────────────────── */
 
 .btn:disabled::main {
@@ -526,6 +595,15 @@
 }
 
 .setting-switch:disabled::main {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.slider:disabled {
+  opacity: 0.5;
+}
+
+.num-field:disabled::main {
   opacity: 0.5;
   cursor: default;
 }

@@ -8,9 +8,12 @@ with Adi.Widget.Button;
 with Adi.Widget.Button.Options;
 with Adi.Widget.Button.Switch;
 with Adi.Widget.Combo_Box;
+with Adi.Widget.Integer_Value_Input;
 with Adi.Widget.Label;
+with Adi.Widget.Slider;
 with Adi.Widget.Stack;
 with Adi.Widget.Text_Input;
+with Adi.Widget.Value_Input;
 with Adi.Window;
 
 package Material_Demo_UI is
@@ -19,6 +22,9 @@ package Material_Demo_UI is
 
    package Page_Stack is new Adi.Widget.Stack (Page);
    package Nav_Options is new Adi.Widget.Button.Options (Page);
+   package Float_Slider is new Adi.Widget.Slider (Float);
+   package Float_Value_Input is new Adi.Widget.Value_Input (Float);
+   package Int_Value_Input is new Adi.Widget.Integer_Value_Input (Integer);
 
    generic
    package Instance is
@@ -42,6 +48,10 @@ package Material_Demo_UI is
       Disabled_Input : Adi.Widget.Text_Input.Text_Input_Widget_Access;
       Enabled_Combo : Adi.Widget.Combo_Box.Combo_Box_Widget_Access;
       Disabled_Combo : Adi.Widget.Combo_Box.Combo_Box_Widget_Access;
+      Enabled_Slider : Float_Slider.Slider_Widget_Access;
+      Disabled_Slider : Float_Slider.Slider_Widget_Access;
+      Enabled_Value_Input : Float_Value_Input.Value_Input_Widget_Access;
+      Disabled_Value_Input : Int_Value_Input.Value_Input_Widget_Access;
       Dark_Switch : Adi.Widget.Button.Switch.Switch_Widget_Access;
       Lock_Bar : Adi.Widget.Box.Box_Widget_Access;
       Lock_Switch : Adi.Widget.Button.Switch.Switch_Widget_Access;

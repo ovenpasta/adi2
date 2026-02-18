@@ -1,0 +1,147 @@
+/* Slider Example Styles */
+
+.root {
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    gap: 20px;
+    background-color: #1e1e2e;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+}
+
+.heading {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.heading::label {
+    color: #cdd6f4;
+}
+
+.label {
+    font-size: 14px;
+    min-width: 100px;
+}
+
+.label::label {
+    color: #bac2de;
+}
+
+.value-label {
+    font-size: 14px;
+    min-width: 60px;
+}
+
+.value-label::label {
+    color: #a6e3a1;
+}
+
+.slider {
+    width: 300px;
+    height: 20px;
+    border-radius: 10px;
+    background-color: #313244;
+}
+
+.slider::indicator {
+    background-color: #89b4fa;
+    border-radius: 10px;
+}
+
+.slider::knob {
+    width: 20px;
+    background-color: #cdd6f4;
+    border-radius: 50%;
+}
+
+.slider::knob:hover {
+    background-color: #f5e0dc;
+}
+
+.slider::knob:active {
+    background-color: #89b4fa;
+}
+
+.slider:focus {
+    outline: 2px solid #89b4fa;
+    outline-offset: 2px;
+}
+
+.slider-vertical {
+    width: 20px;
+    height: 150px;
+    border-radius: 10px;
+    background-color: #313244;
+}
+
+.slider-vertical::indicator {
+    background-color: #f38ba8;
+    border-radius: 10px;
+}
+
+.slider-vertical::knob {
+    height: 20px;
+    background-color: #cdd6f4;
+    border-radius: 50%;
+}
+
+.value-input {
+    width: 80px;
+    height: 28px;
+    background-color: #313244;
+    border: 1px solid #585b70;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 14px;
+}
+
+.value-input::label {
+    color: #cdd6f4;
+}
+
+.value-input::cursor {
+    background-color: #89b4fa;
+}
+
+.value-input:focus {
+    border-color: #89b4fa;
+}
+
+/* ── Context Menu ───────────────────────────── */
+
+.context-menu {
+    width: 180px;
+    padding: 6px;
+    background-color: #1e1e2e;
+    border: 1px solid #585b70;
+    border-radius: 8px;
+    box-shadow: 0px 8px 24px 0px rgba(0, 0, 0, 0.45);
+}
+
+.context-menu-item {
+    min-height: 28px;
+    padding: 6px 10px;
+    background-color: rgba(0, 0, 0, 0);
+    border-radius: 6px;
+}
+
+.context-menu-item:hover {
+    background-color: rgba(137, 180, 250, 0.15);
+}
+
+.context-menu-item::label {
+    color: #cdd6f4;
+    font-size: 13px;
+}

@@ -15,7 +15,8 @@ project Tests is
       "disabled_test",
       "image_widget_test",
       "slider_test",
-      "value_input_test");
+      "value_input_test",
+      "svg_sprites_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("src");

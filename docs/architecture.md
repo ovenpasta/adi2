@@ -68,6 +68,12 @@
 - `ada` backend lives in `src/svg/ada` (native parser/rasterizer)
 - Shared public API surface: `Load_From_File`, `Load_From_String`, `Get_Size`, `Render_ARGB32`, `Destroy`, `Backend_Name`
 
+**Adi.SVG_Sprites** (`adi-svg_sprites.ads`): SVG sprite sheet loader for icon fonts (e.g. FontAwesome).
+- Parses `<symbol>` elements from SVG sprite files, keyed by `id`
+- `Load` / `Load_From_String` parse and store all symbols
+- `Get_Image` extracts a symbol as a standalone SVG `Image_Access`
+- `Has_Symbol` / `Symbol_Count` for querying available icons
+
 **Adi.Animated_Image** (`adi-animated_image.ads`): Multi-frame animation via `IMG_LoadAnimation`, per-frame delay, playback controls.
 
 **Adi.RLottie** (`adi-rlottie.ads`): Lottie JSON via rlottie C API, CPU-rendered frame cache with background preload task, streaming SDL texture upload.

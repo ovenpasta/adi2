@@ -98,4 +98,10 @@ package Adi.Font is
                                   Content    : String;
                                   Wrap_Width : Pixel_Type) return Size_2D;
 
+   --  Return the width of the longest word in Content.
+   --  Words are separated by spaces, tabs, and newlines.
+   --  This gives the minimum intrinsic width for wrappable text.
+   function Measure_Min_Text_Width (Attrs   : Font_Attributes;
+                                    Content : String) return Pixel_Type;
+
 end Adi.Font;

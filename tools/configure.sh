@@ -367,8 +367,12 @@ TEST_KINDS=(
   html_view_test
   svg_test
   svg_perf_test
+  disabled_test
   image_widget_test
+  slider_test
+  value_input_test
   svg_sprites_test
+  min_size_test
 )
 
 for kind in "\${TEST_KINDS[@]}"; do
@@ -397,6 +401,8 @@ EXAMPLE_KINDS=(
   html_view_example
   material_demo
   image_example
+  slider_example
+  value_input_example
 )
 
 for kind in "\${EXAMPLE_KINDS[@]}"; do

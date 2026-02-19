@@ -903,4 +903,50 @@ package body Adi.Font is
       return (Pixel_Type (W), Pixel_Type (H));
    end Measure_Text_Wrapped;
 
+   function Measure_Min_Text_Width (Attrs   : Font_Attributes;
+                                    Content : String) return Pixel_Type
+   is
+      function Is_Break (C : Character) return Boolean is
+        (C = ' ' or else C = ASCII.HT or else C = ASCII.LF or else C = ASCII.CR);
+
+      Max_W      : Pixel_Type := 0.0;
+      Word_Start : Integer := Content'First;
+      I          : Integer := Content'First;
+   begin
+      if Content'Length = 0 then
+         return 0.0;
+      end if;
+
+      while I <= Content'Last loop
+         if Is_Break (Content (I)) then
+            if I > Word_Start then
+               declare
+                  W : constant Size_2D :=
+                    Measure_Text (Attrs, Content (Word_Start .. I - 1));
+               begin
+                  if W.Width > Max_W then
+                     Max_W := W.Width;
+                  end if;
+               end;
+            end if;
+            Word_Start := I + 1;
+         end if;
+         I := I + 1;
+      end loop;
+
+      --  Last word (no trailing break)
+      if Word_Start <= Content'Last then
+         declare
+            W : constant Size_2D :=
+              Measure_Text (Attrs, Content (Word_Start .. Content'Last));
+         begin
+            if W.Width > Max_W then
+               Max_W := W.Width;
+            end if;
+         end;
+      end if;
+
+      return Max_W;
+   end Measure_Min_Text_Width;
+
 end Adi.Font;

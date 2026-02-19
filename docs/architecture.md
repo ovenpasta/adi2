@@ -125,6 +125,7 @@
 - Flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`
 - Inherited disabled: `Is_Disabled` returns True when any ancestor has `State_Disabled`; `Get_States` injects the inherited flag so CSS `:disabled` styles apply to descendants; `Set_Disabled` marks all descendants dirty for re-styling
 - Abstract: `Build_Items`, `Layout`; Concrete: `Render_Items`, `Render_Tree`, `Update_And_Render`
+- Size calculation: `Measure_Content` (dispatching) returns preferred content size; `Get_Min_Size` (dispatching) returns minimum size floor — base returns CSS `min-width`/`min-height`, Label overrides to return `max(CSS_min, intrinsic_text_min)`; `Get_Preferred_Size` (`Widget'Class`) returns CSS `width`/`height` or falls back to `Measure_Content`
 - Shared overflow scrolling with scrollbar parts
 - Context menu hook with ancestor bubbling
 - Per-part transitions; `Tick_Animations` advances each frame

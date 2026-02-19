@@ -30,7 +30,6 @@ package Material_Demo_Light_Styles is
 
    --  Base style for class 'app-title'
    App_Title_Class_Base_Style : constant Style_Rules := (
-      Flex_Grow => Set (1.0),
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Align_Items => Set (Center),
@@ -217,6 +216,7 @@ package Material_Demo_Light_Styles is
       Color => Set (RGB (73, 69, 79)),
       Font_Size => Set_Font (Px (14.0)),
       Font_Weight => Set (Weight_Medium),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>
    );
 
@@ -473,7 +473,6 @@ package Material_Demo_Light_Styles is
    --  Base style for class 'setting-label'
    Setting_Label_Class_Base_Style : constant Style_Rules := (
       Flex_Shrink => Set (0.0),
-      Flex_Grow => Set (1.0),
       Display => Set (Inline_Flex),
       others => <>
    );

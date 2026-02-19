@@ -418,7 +418,7 @@ package Adi.Widget is
    ---------------------------------------------------------------------------
 
    function Measure_Content(W : Widget) return Size_2D;
-   function Get_Min_Size(W : Widget'Class) return Size_2D;
+   function Get_Min_Size(W : Widget) return Size_2D;
    function Get_Preferred_Size(W : Widget'Class) return Size_2D;
 
    ---------------------------------------------------------------------------

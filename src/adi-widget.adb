@@ -3684,7 +3684,7 @@ package body Adi.Widget is
       return Result;
    end Measure_Content;
 
-   function Get_Min_Size(W : Widget'Class) return Size_2D is
+   function Get_Min_Size(W : Widget) return Size_2D is
       Style : constant Resolved_Style := Get_Resolved_Part_Style(W, Main_Part);
       Min_W, Min_H : Pixel_Type := 0.0;
    begin

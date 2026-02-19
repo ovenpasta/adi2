@@ -21,31 +21,27 @@
     gap: 12px;
 }
 
-.heading {
-    font-size: 16px;
-    font-weight: bold;
-}
-
 .heading::label {
     color: #cdd6f4;
+    font-size: 16px;
+    font-weight: bold;
+    text-wrap-mode: nowrap;
 }
 
 .label {
-    font-size: 14px;
     min-width: 120px;
 }
 
 .label::label {
     color: #bac2de;
-}
-
-.value-label {
     font-size: 14px;
-    min-width: 80px;
+    text-wrap-mode: nowrap;
 }
 
 .value-label::label {
     color: #a6e3a1;
+    font-size: 14px;
+    text-wrap-mode: nowrap;
 }
 
 .value-input {

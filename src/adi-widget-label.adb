@@ -118,18 +118,10 @@ package body Adi.Widget.Label is
                  Weight     => Label_Style.Font_Weight,
                  Style      => Label_Style.Font_Style,
                  Decoration => Label_Style.Text_Decoration);
-            Can_Wrap : constant Boolean :=
-              Label_Style.Text_Wrap_Mode = TWM_Wrap
-              and then Label_Style.White_Space /= WS_NoWrap;
          begin
             Text_Size := Adi.Font.Measure_Text
               (Attrs   => Font_Attrs,
                Content => To_String (W.Text));
-
-            --  When wrapping is allowed, text can shrink in the main axis.
-            if Can_Wrap then
-               Text_Size.Width := 0.0;
-            end if;
          end;
       end if;
 
@@ -151,6 +143,57 @@ package body Adi.Widget.Label is
 
       return Outer_Size (Result, Main_Style);
    end Measure_Content;
+
+   ------------------
+   -- Get_Min_Size --
+   ------------------
+
+   overriding function Get_Min_Size (W : Label_Widget) return Size_2D is
+      --  Return max(CSS min-width, intrinsic text min-width).
+      --  Intrinsic min = longest word width (wrappable) or full text (nowrap).
+      CSS_Min     : constant Size_2D := Get_Min_Size (Widget (W));
+      Main_Style  : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Main_Part);
+      Label_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Label_Part);
+      Has_Text    : constant Boolean := Length (W.Text) > 0;
+      Min_W       : Pixel_Type := CSS_Min.Width;
+   begin
+      if Has_Text then
+         declare
+            Font_Attrs : constant Adi.Font.Font_Attributes :=
+              Adi.Font.Make_Attributes
+                (Family     => Label_Style.Font_Family,
+                 Size       => Float (Length_To_Px (Label_Style.Font_Size)),
+                 Weight     => Label_Style.Font_Weight,
+                 Style      => Label_Style.Font_Style,
+                 Decoration => Label_Style.Text_Decoration);
+            Can_Wrap    : constant Boolean :=
+              Label_Style.Text_Wrap_Mode = TWM_Wrap
+              and then Label_Style.White_Space /= WS_NoWrap;
+            Text_Min_W  : Pixel_Type;
+         begin
+            if Can_Wrap then
+               Text_Min_W := Adi.Font.Measure_Min_Text_Width
+                 (Attrs => Font_Attrs, Content => To_String (W.Text));
+            else
+               Text_Min_W := Adi.Font.Measure_Text
+                 (Attrs => Font_Attrs, Content => To_String (W.Text)).Width;
+            end if;
+
+            --  Include padding + border chrome around the text min-width
+            declare
+               Content_Min : constant Size_2D := (Text_Min_W, 0.0);
+               Outer_Min   : constant Size_2D :=
+                 Outer_Size (Content_Min, Main_Style);
+            begin
+               Min_W := Pixel_Type'Max (Min_W, Outer_Min.Width);
+            end;
+         end;
+      end if;
+
+      return (Min_W, CSS_Min.Height);
+   end Get_Min_Size;
 
    ------------
    -- Layout --
@@ -249,7 +292,9 @@ package body Adi.Widget.Label is
          begin
             Text_Item := (
                Part           => Label_Part,
-               Min_Width      => (if Can_Wrap then 0.0
+               Min_Width      => (if Can_Wrap then
+                                    Float (Adi.Font.Measure_Min_Text_Width
+                                      (Font_Attrs, To_String (W.Text)))
                                   else Float (Text_Size.Width)),
                Min_Height     => Float (Text_Size.Height),
                Max_Width      => Float'Last,

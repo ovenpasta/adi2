@@ -36,22 +36,17 @@ package Value_Input_Example_Styles is
       others => <>
    );
 
-   --  Base style for class 'heading'
-   Heading_Class_Base_Style : constant Style_Rules := (
-      Font_Size => Set_Font (Px (16.0)),
-      Font_Weight => Set (Weight_Bold),
-      others => <>
-   );
-
    --  Base style for class 'heading'::label
    Heading_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (205, 214, 244)),
+      Font_Size => Set_Font (Px (16.0)),
+      Font_Weight => Set (Weight_Bold),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>
    );
 
    --  Base style for class 'label'
    Label_Class_Base_Style : constant Style_Rules := (
-      Font_Size => Set_Font (Px (14.0)),
       Min_Width => Set (Size (Px (120.0))),
       others => <>
    );
@@ -59,19 +54,16 @@ package Value_Input_Example_Styles is
    --  Base style for class 'label'::label
    Label_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (186, 194, 222)),
-      others => <>
-   );
-
-   --  Base style for class 'value-label'
-   Value_Label_Class_Base_Style : constant Style_Rules := (
       Font_Size => Set_Font (Px (14.0)),
-      Min_Width => Set (Size (Px (80.0))),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>
    );
 
    --  Base style for class 'value-label'::label
    Value_Label_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (166, 227, 161)),
+      Font_Size => Set_Font (Px (14.0)),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>
    );
 
@@ -239,11 +231,6 @@ package Value_Input_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'heading'
-   Heading_Class_Widget : constant Widget_Style :=
-     From (Heading_Class_Base_Style)
-     .Build;
-
    --  Complete widget style for class 'heading'::label
    Heading_Class_Label_Widget : constant Widget_Style :=
      From (Heading_Class_Label_Base_Style)
@@ -251,7 +238,6 @@ package Value_Input_Example_Styles is
 
    --  Part styles bundle for class 'heading'
    Heading_Class_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Heading_Class_Widget, Enabled => True),
       Label_Part => (Style => Heading_Class_Label_Widget, Enabled => True),
       others => <>
    ];
@@ -273,11 +259,6 @@ package Value_Input_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'value-label'
-   Value_Label_Class_Widget : constant Widget_Style :=
-     From (Value_Label_Class_Base_Style)
-     .Build;
-
    --  Complete widget style for class 'value-label'::label
    Value_Label_Class_Label_Widget : constant Widget_Style :=
      From (Value_Label_Class_Label_Base_Style)
@@ -285,7 +266,6 @@ package Value_Input_Example_Styles is
 
    --  Part styles bundle for class 'value-label'
    Value_Label_Class_Part_Styles : constant Part_Style_Array := [
-      Main_Part => (Style => Value_Label_Class_Widget, Enabled => True),
       Label_Part => (Style => Value_Label_Class_Label_Widget, Enabled => True),
       others => <>
    ];

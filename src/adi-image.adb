@@ -186,6 +186,9 @@ package body Adi.Image is
          H := 0.0;
       end if;
 
+      -- Enable alpha blending so opacity/alpha modulation works
+      Success := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
+
       -- Create the image object
       Img := new Image'(
          Kind     => Raster_Image,

@@ -325,14 +325,17 @@ package body Adi.SVG_Sprites is
    end Symbol_Count;
 
    function Get_Image
-     (Sheet : Sprite_Sheet;
-      Id    : String) return Image_Access
+     (Sheet    : Sprite_Sheet;
+      Id       : String;
+      Tintable : Boolean := False) return Image_Access
    is
       E  : constant Symbol_Entry_Access := Lookup (Sheet, Id);
       VB : Unbounded_String;
       W, H : Natural;
       W_Str, H_Str : Unbounded_String;
       SVG_Source : Unbounded_String;
+      Fill_Attr : constant String :=
+        (if Tintable then " fill=""#ffffff""" else "");
    begin
       if E = null then
          return null;
@@ -359,15 +362,17 @@ package body Adi.SVG_Sprites is
 
       SVG_Source :=
         To_Unbounded_String
-          ("<svg xmlns=""http://www.w3.org/2000/svg"" viewBox="""
-           & To_String (VB) & """ width=""" & To_String (W_Str)
+          ("<svg xmlns=""http://www.w3.org/2000/svg""" & Fill_Attr
+           & " viewBox=""" & To_String (VB)
+           & """ width=""" & To_String (W_Str)
            & """ height=""" & To_String (H_Str) & """>"
            & To_String (E.Content)
            & "</svg>");
 
       return Adi.Image.Load_SVG_From_String
         (Renderer => null,
-         Source   => To_String (SVG_Source));
+         Source   => To_String (SVG_Source),
+         Tintable => Tintable);
    end Get_Image;
 
    procedure Destroy (Sheet : in out Sprite_Sheet) is

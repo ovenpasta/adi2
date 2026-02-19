@@ -53,7 +53,8 @@ package body Adi.Widget.Html_View is
          Size         => Marker_SVG_Size,
          Fill         => Marker_White,
          Stroke_Width => 0.0,
-         Stroke       => Marker_Clear);
+         Stroke       => Marker_Clear,
+         Tintable     => True);
 
       --  Hollow circle
       Circle_Marker_Img := Load_SVG_Path
@@ -62,7 +63,8 @@ package body Adi.Widget.Html_View is
          Size         => Marker_SVG_Size,
          Fill         => Marker_Clear,
          Stroke_Width => 1.5,
-         Stroke       => Marker_White);
+         Stroke       => Marker_White,
+         Tintable     => True);
 
       --  Filled square
       Square_Marker_Img := Load_SVG_Path
@@ -71,7 +73,8 @@ package body Adi.Widget.Html_View is
          Size         => Marker_SVG_Size,
          Fill         => Marker_White,
          Stroke_Width => 0.0,
-         Stroke       => Marker_Clear);
+         Stroke       => Marker_Clear,
+         Tintable     => True);
    end Ensure_Marker_Images;
 
    function Lower (S : String) return String is (Char.To_Lower (S));
@@ -1444,8 +1447,7 @@ package body Adi.Widget.Html_View is
             when Text_Marker =>
                Text : Unbounded_String := Null_Unbounded_String;
             when Image_Marker =>
-               Img    : Adi.Image.Image_Access := null;
-               Tinted : Boolean := False;
+               Img : Adi.Image.Image_Access := null;
          end case;
       end record;
 
@@ -1482,8 +1484,7 @@ package body Adi.Widget.Html_View is
          Width      : Pixel_Type;
          Height     : Pixel_Type;
          Href       : String;
-         Style      : Resolved_Style;
-         Color_Tint : Boolean := False);
+         Style      : Resolved_Style);
 
       function Clip_To_Content (R : Rectangle) return Rectangle is
          X1 : constant Pixel_Type := Pixel_Type'Max (R.X, Content.X);
@@ -1633,9 +1634,8 @@ package body Adi.Widget.Html_View is
                   if H > 0.0 then
                      Marker_Height := Target_H;
                      Marker_Width := Pixel_Type'Max (1.0, Target_H * (W / H));
-                     Marker := (Kind   => Image_Marker,
-                                Img    => Img,
-                                Tinted => False);
+                     Marker := (Kind => Image_Marker,
+                                Img  => Img);
                      return;
                   end if;
                end if;
@@ -1659,9 +1659,8 @@ package body Adi.Widget.Html_View is
                   if Img /= null then
                      Marker_Height := Target_H;
                      Marker_Width := Target_H;
-                     Marker := (Kind   => Image_Marker,
-                                Img    => Img,
-                                Tinted => True);
+                     Marker := (Kind => Image_Marker,
+                                Img  => Img);
                      return;
                   end if;
                end;
@@ -1719,7 +1718,7 @@ package body Adi.Widget.Html_View is
             when Image_Marker =>
                X := Marker_X;
                Add_Image_Run (Marker.Img, Marker_Width, Marker_Height, "",
-                              Style, Color_Tint => Marker.Tinted);
+                              Style);
                X := Saved_X;
          end case;
       end Add_Outside_Marker_Run;
@@ -1740,7 +1739,7 @@ package body Adi.Widget.Html_View is
                X := X + Marker_Gap;
             when Image_Marker =>
                Add_Image_Run (Marker.Img, Marker_Width, Marker_Height, "",
-                              Style, Color_Tint => Marker.Tinted);
+                              Style);
                X := X + Marker_Gap;
          end case;
       end Add_Inside_Marker_Run;
@@ -1973,8 +1972,7 @@ package body Adi.Widget.Html_View is
          Width      : Pixel_Type;
          Height     : Pixel_Type;
          Href       : String;
-         Style      : Resolved_Style;
-         Color_Tint : Boolean := False)
+         Style      : Resolved_Style)
       is
          Run_Ascent  : constant Pixel_Type := Height;
          Run_Descent : constant Pixel_Type := 0.0;
@@ -2024,8 +2022,7 @@ package body Adi.Widget.Html_View is
          begin
             It.Has_Style_Override := True;
             It.Style_Override := Style;
-            It.Color_Tint := Color_Tint;
-            if Color_Tint then
+            if Img /= null and then Adi.Image.Is_Tintable (Img.all) then
                It.Style_Override.Object_Fit := Fit_Scale_Down;
                It.Style_Override.Object_Position :=
                  Object_Position (Pos_Center, Pos_Top);

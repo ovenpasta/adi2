@@ -22,6 +22,10 @@ package Image_Example_UI is
       Fit_Cover : Adi.Widget.Image.Image_Widget_Access;
       Fit_None : Adi.Widget.Image.Image_Widget_Access;
       Fit_Scale_Down : Adi.Widget.Image.Image_Widget_Access;
+      Tint_Default : Adi.Widget.Image.Image_Widget_Access;
+      Tint_Warm : Adi.Widget.Image.Image_Widget_Access;
+      Tint_Success : Adi.Widget.Image.Image_Widget_Access;
+      Tint_Danger : Adi.Widget.Image.Image_Widget_Access;
 
       function Build return Adi.Window.Window_Access;
 

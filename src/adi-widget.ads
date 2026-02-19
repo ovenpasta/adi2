@@ -83,7 +83,6 @@ package Adi.Widget is
       --  Image_Item fields (unused by other kinds)
       Image_Source   : Image_Access := null;
       Is_Background  : Boolean := False;
-      Color_Tint     : Boolean := False;
 
       --  Text rendering cache (only used by Text_Item)
       Cached_TTF_Text    : Adi.SDL.TTF.TextEngine.TTF_Text_Access := null;

@@ -47,12 +47,13 @@ package body Adi.Image is
 
       Adi.SVG.Get_Size (Doc.all, SW, SH);
       Img := new Image'(
-         Kind    => SVG_Image,
-         Texture => null,
-         Width   => SW,
-         Height  => SH,
-         SVG     => Doc,
-         Cache   => <>
+         Kind     => SVG_Image,
+         Texture  => null,
+         Width    => SW,
+         Height   => SH,
+         SVG      => Doc,
+         Cache    => <>,
+         Tintable => False
       );
       return Img;
    end Build_SVG_Image;
@@ -187,12 +188,13 @@ package body Adi.Image is
 
       -- Create the image object
       Img := new Image'(
-         Kind    => Raster_Image,
-         Texture => Texture,
-         Width   => Pixel_Type (W),
-         Height  => Pixel_Type (H),
-         SVG     => null,
-         Cache   => <>
+         Kind     => Raster_Image,
+         Texture  => Texture,
+         Width    => Pixel_Type (W),
+         Height   => Pixel_Type (H),
+         SVG      => null,
+         Cache    => <>,
+         Tintable => False
       );
 
       return Img;
@@ -200,10 +202,12 @@ package body Adi.Image is
 
    function Load_SVG_From_String
       (Renderer : SDL_Renderer_Ptr;
-       Source   : String) return Image_Access
+       Source   : String;
+       Tintable : Boolean := False) return Image_Access
    is
       pragma Unreferenced (Renderer);
-      Doc : Adi.SVG.Document_Access := null;
+      Doc    : Adi.SVG.Document_Access := null;
+      Result : Image_Access;
    begin
       Doc := Adi.SVG.Load_From_String (Source);
       if Doc = null or else not Adi.SVG.Is_Valid (Doc.all) then
@@ -211,7 +215,11 @@ package body Adi.Image is
          return null;
       end if;
 
-      return Build_SVG_Image (Doc);
+      Result := Build_SVG_Image (Doc);
+      if Result /= null and then Tintable then
+         Result.Tintable := True;
+      end if;
+      return Result;
    end Load_SVG_From_String;
 
    function Load_SVG_Path
@@ -220,7 +228,8 @@ package body Adi.Image is
        Size      : Size_2D;
        Fill      : Color_8 := (R => 0, G => 0, B => 0, A => 255);
        Stroke_Width : Pixel_Type := 0.0;
-       Stroke    : Color_8 := (R => 0, G => 0, B => 0, A => 255)) return Image_Access
+       Stroke    : Color_8 := (R => 0, G => 0, B => 0, A => 255);
+       Tintable  : Boolean := False) return Image_Access
    is
       pragma Unreferenced (Renderer);
       Width_Px  : constant Positive :=
@@ -285,7 +294,8 @@ package body Adi.Image is
 
       return Load_SVG_From_String
         (Renderer => Renderer,
-         Source   => To_String (Source));
+         Source   => To_String (Source),
+         Tintable => Tintable);
    end Load_SVG_Path;
 
    ---------------------------------------------------------------------------
@@ -312,12 +322,13 @@ package body Adi.Image is
 
       -- Create the image object
       Img := new Image'(
-         Kind    => Raster_Image,
-         Texture => Texture,
-         Width   => Pixel_Type (W),
-         Height  => Pixel_Type (H),
-         SVG     => null,
-         Cache   => <>
+         Kind     => Raster_Image,
+         Texture  => Texture,
+         Width    => Pixel_Type (W),
+         Height   => Pixel_Type (H),
+         SVG      => null,
+         Cache    => <>,
+         Tintable => False
       );
 
       return Img;
@@ -330,12 +341,13 @@ package body Adi.Image is
    function Create_Empty return Image_Access is
    begin
       return new Image'(
-         Kind    => Raster_Image,
-         Texture => null,
-         Width   => 0.0,
-         Height  => 0.0,
-         SVG     => null,
-         Cache   => <>
+         Kind     => Raster_Image,
+         Texture  => null,
+         Width    => 0.0,
+         Height   => 0.0,
+         SVG      => null,
+         Cache    => <>,
+         Tintable => False
       );
    end Create_Empty;
 
@@ -350,6 +362,11 @@ package body Adi.Image is
       end if;
       return Img.Texture /= null;
    end Is_Valid;
+
+   function Is_Tintable (Img : Image) return Boolean is
+   begin
+      return Img.Tintable;
+   end Is_Tintable;
 
    ---------------------------------------------------------------------------
    -- Get_Size

@@ -147,6 +147,89 @@ package Image_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'tint-grid'
+   Tint_Grid_Class_Base_Style : constant Style_Rules := (
+      Display => Set (Grid),
+      Grid_Columns => Set (Grid_Columns_Value (4)),
+      Gap => Set (Gap (Px (16.0))),
+      Flex_Grow => Set (1.0),
+      others => <>
+   );
+
+   --  Base style for class 'tint-card'
+   Tint_Card_Class_Base_Style : constant Style_Rules := (
+      Display => Set (Flex),
+      Flex_Direction => Set (Column),
+      Gap => Set (Gap (Px (8.0))),
+      Background_Color => Set_Bg (RGB (30, 41, 59)),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (71, 85, 105))),
+      Border_Radius => Set (Radius (Px (8.0))),
+      Padding => Set (CSS_Box (Px (16.0), Px (16.0), Px (16.0), Px (16.0))),
+      others => <>
+   );
+
+   --  Base style for class 'tint-icon'
+   Tint_Icon_Class_Base_Style : constant Style_Rules := (
+      Flex_Grow => Set (1.0),
+      others => <>
+   );
+
+   --  Base style for class 'tint-icon'::icon
+   Tint_Icon_Class_Icon_Base_Style : constant Style_Rules := (
+      Object_Fit => Set (Fit_Contain),
+      others => <>
+   );
+
+   --  Base style for class 'tint-default'::icon
+   Tint_Default_Class_Icon_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (148, 163, 184)),
+      others => <>
+   );
+
+   --  Style for class 'tint-default'::icon when widget State_Hovered
+   Tint_Default_Class_Icon_Widget_Hovered_Style : constant Style_Rules := (
+      Color => Set (RGB (96, 165, 250)),
+      others => <>
+   );
+
+   --  Base style for class 'tint-warm'::icon
+   Tint_Warm_Class_Icon_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (251, 191, 36)),
+      others => <>
+   );
+
+   --  Style for class 'tint-warm'::icon when widget State_Hovered
+   Tint_Warm_Class_Icon_Widget_Hovered_Style : constant Style_Rules := (
+      Color => Set (RGB (253, 224, 71)),
+      others => <>
+   );
+
+   --  Base style for class 'tint-success'::icon
+   Tint_Success_Class_Icon_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (74, 222, 128)),
+      others => <>
+   );
+
+   --  Style for class 'tint-success'::icon when widget State_Hovered
+   Tint_Success_Class_Icon_Widget_Hovered_Style : constant Style_Rules := (
+      Color => Set (RGB (134, 239, 172)),
+      others => <>
+   );
+
+   --  Base style for class 'tint-danger'::icon
+   Tint_Danger_Class_Icon_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (248, 113, 113)),
+      others => <>
+   );
+
+   --  Style for class 'tint-danger'::icon when widget State_Hovered
+   Tint_Danger_Class_Icon_Widget_Hovered_Style : constant Style_Rules := (
+      Color => Set (RGB (252, 165, 165)),
+      others => <>
+   );
+
    --  Complete widget style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
      From (Root_Class_Base_Style)
@@ -328,6 +411,93 @@ package Image_Example_Styles is
    --  Part styles bundle for class 'fit-scale-down'
    Fit_Scale_Down_Class_Part_Styles : constant Part_Style_Array := [
       Icon_Part => (Style => Fit_Scale_Down_Class_Icon_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'tint-grid'
+   Tint_Grid_Class_Widget : constant Widget_Style :=
+     From (Tint_Grid_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'tint-grid'
+   Tint_Grid_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tint_Grid_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'tint-card'
+   Tint_Card_Class_Widget : constant Widget_Style :=
+     From (Tint_Card_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'tint-card'
+   Tint_Card_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tint_Card_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'tint-icon'
+   Tint_Icon_Class_Widget : constant Widget_Style :=
+     From (Tint_Icon_Class_Base_Style)
+     .Build;
+
+   --  Complete widget style for class 'tint-icon'::icon
+   Tint_Icon_Class_Icon_Widget : constant Widget_Style :=
+     From (Tint_Icon_Class_Icon_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'tint-icon'
+   Tint_Icon_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tint_Icon_Class_Widget, Enabled => True),
+      Icon_Part => (Style => Tint_Icon_Class_Icon_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'tint-default'::icon
+   Tint_Default_Class_Icon_Widget : constant Widget_Style :=
+     From (Tint_Default_Class_Icon_Base_Style)
+     .On (When_State (State_Hovered), Tint_Default_Class_Icon_Widget_Hovered_Style)
+     .Build;
+
+   --  Part styles bundle for class 'tint-default'
+   Tint_Default_Class_Part_Styles : constant Part_Style_Array := [
+      Icon_Part => (Style => Tint_Default_Class_Icon_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'tint-warm'::icon
+   Tint_Warm_Class_Icon_Widget : constant Widget_Style :=
+     From (Tint_Warm_Class_Icon_Base_Style)
+     .On (When_State (State_Hovered), Tint_Warm_Class_Icon_Widget_Hovered_Style)
+     .Build;
+
+   --  Part styles bundle for class 'tint-warm'
+   Tint_Warm_Class_Part_Styles : constant Part_Style_Array := [
+      Icon_Part => (Style => Tint_Warm_Class_Icon_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'tint-success'::icon
+   Tint_Success_Class_Icon_Widget : constant Widget_Style :=
+     From (Tint_Success_Class_Icon_Base_Style)
+     .On (When_State (State_Hovered), Tint_Success_Class_Icon_Widget_Hovered_Style)
+     .Build;
+
+   --  Part styles bundle for class 'tint-success'
+   Tint_Success_Class_Part_Styles : constant Part_Style_Array := [
+      Icon_Part => (Style => Tint_Success_Class_Icon_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'tint-danger'::icon
+   Tint_Danger_Class_Icon_Widget : constant Widget_Style :=
+     From (Tint_Danger_Class_Icon_Base_Style)
+     .On (When_State (State_Hovered), Tint_Danger_Class_Icon_Widget_Hovered_Style)
+     .Build;
+
+   --  Part styles bundle for class 'tint-danger'
+   Tint_Danger_Class_Part_Styles : constant Part_Style_Array := [
+      Icon_Part => (Style => Tint_Danger_Class_Icon_Widget, Enabled => True),
       others => <>
    ];
 

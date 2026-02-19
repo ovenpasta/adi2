@@ -253,6 +253,23 @@ Unlike `border`, outline does not shift surrounding content and respects `border
 | `object-fit` | `fill`, `contain`, `cover`, `none`, `scale-down` | `object-fit: cover;` |
 | `object-position` | keywords or length offsets | `object-position: center;` |
 
+#### Tintable images
+
+Images loaded with `Tintable => True` (via `Load_SVG_Path`, `Load_SVG_From_String`, or `SVG_Sprites.Get_Image`) are rendered white-on-transparent. The renderer automatically applies the resolved CSS `color` as a tint using SDL hardware color modulation (multiply). This lets standard CSS `color` — including `:hover` and class-based overrides — control icon color:
+
+```css
+.my-label::icon { color: #333; }
+.my-label:hover::icon { color: #0088ff; }
+```
+
+Since `color` is an inheritable property, setting it on the widget makes `::icon` parts inherit it automatically:
+
+```css
+.toolbar-btn { color: #666; }
+.toolbar-btn:hover { color: white; }
+/* ::icon inherits the color */
+```
+
 ### List Styling
 
 | Property | Values | Example |

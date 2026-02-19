@@ -3001,10 +3001,11 @@ package body Adi.Widget is
       Renderer   : SDL_Renderer_Ptr;
       Geom       : Rectangle;
       Source     : Image_Access;
-      Style      : Resolved_Style;
-      Color_Tint : Boolean := False)
+      Style      : Resolved_Style)
    is
       use Interfaces.C;
+      Color_Tint : constant Boolean :=
+        Source /= null and then Adi.Image.Is_Tintable (Source.all);
       Texture          : SDL_Texture_Ptr;
       Img_W, Img_H     : Pixel_Type;
       Req_W, Req_H     : Pixel_Type;
@@ -3487,8 +3488,7 @@ package body Adi.Widget is
                         Renderer,
                         Current.Geometry,
                         Current.Image_Source,
-                        Style,
-                        Current.Color_Tint);
+                        Style);
                end case;
 
                if Debug_Layout_Overlay_Enabled and then Renderer /= null then

@@ -50,6 +50,26 @@
           <label text="scale-down" class="card-label"/>
         </box>
       </box>
+
+      <label text="Tintable Icons (hover to change color)" class="section-title"/>
+      <box class="tint-grid">
+        <box class="tint-card">
+          <image id="Tint_Default" class="image tint-icon tint-default"/>
+          <label text="Default → Blue" class="card-label"/>
+        </box>
+        <box class="tint-card">
+          <image id="Tint_Warm" class="image tint-icon tint-warm"/>
+          <label text="Amber → Yellow" class="card-label"/>
+        </box>
+        <box class="tint-card">
+          <image id="Tint_Success" class="image tint-icon tint-success"/>
+          <label text="Green → Light" class="card-label"/>
+        </box>
+        <box class="tint-card">
+          <image id="Tint_Danger" class="image tint-icon tint-danger"/>
+          <label text="Red → Light" class="card-label"/>
+        </box>
+      </box>
     </box>
   </window>
 </adi>

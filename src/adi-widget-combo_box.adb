@@ -473,14 +473,16 @@ package body Adi.Widget.Combo_Box is
          Size         => Arrow_SVG_Size,
          Fill         => Arrow_Clear,
          Stroke_Width => 2.5,
-         Stroke       => Arrow_White);
+         Stroke       => Arrow_White,
+         Tintable     => True);
       W.Arrow_Up_Img := Load_SVG_Path
         (Renderer     => Renderer,
          Path_Data    => Arrow_Up_Path,
          Size         => Arrow_SVG_Size,
          Fill         => Arrow_Clear,
          Stroke_Width => 2.5,
-         Stroke       => Arrow_White);
+         Stroke       => Arrow_White,
+         Tintable     => True);
    end Ensure_Arrow_Images;
 
    procedure Position_Popup (W : in out Combo_Box_Widget) is
@@ -625,13 +627,8 @@ package body Adi.Widget.Combo_Box is
       if Item_Count (W) = 0 then
          Adi.Widget.Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));
          Adi.Widget.Add_Item (W, Make_Text (Label_Part, W.Geometry, "", 1));
-         declare
-            Ind : Item := Make_Image
-              (Indicator_Part, W.Geometry, W.Arrow_Down_Img, 2);
-         begin
-            Ind.Color_Tint := True;
-            Adi.Widget.Add_Item (W, Ind);
-         end;
+         Adi.Widget.Add_Item
+           (W, Make_Image (Indicator_Part, W.Geometry, W.Arrow_Down_Img, 2));
       end if;
 
       --  Update panel geometry

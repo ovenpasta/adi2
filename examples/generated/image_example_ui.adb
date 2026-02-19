@@ -64,6 +64,16 @@ package body Image_Example_UI is
       Label_12 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("none");
       Box_11 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Label_13 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("scale-down");
+      Label_14 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Tintable Icons (hover to change color)");
+      Box_12 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Box_13 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Label_15 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Default → Blue");
+      Box_14 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Label_16 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Amber → Yellow");
+      Box_15 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Label_17 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Green → Light");
+      Box_16 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Label_18 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Red → Light");
    begin
       --  Create widgets
       Root := Adi.Widget.Box.Create;
@@ -76,6 +86,10 @@ package body Image_Example_UI is
       Fit_Cover := Adi.Widget.Image.Create;
       Fit_None := Adi.Widget.Image.Create;
       Fit_Scale_Down := Adi.Widget.Image.Create;
+      Tint_Default := Adi.Widget.Image.Create;
+      Tint_Warm := Adi.Widget.Image.Create;
+      Tint_Success := Adi.Widget.Image.Create;
+      Tint_Danger := Adi.Widget.Image.Create;
 
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
@@ -93,6 +107,13 @@ package body Image_Example_UI is
       Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("fit-cover", Fit_Cover_Class_Part_Styles));
       Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("fit-none", Fit_None_Class_Part_Styles));
       Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("fit-scale-down", Fit_Scale_Down_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-grid", Tint_Grid_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-card", Tint_Card_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-icon", Tint_Icon_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-default", Tint_Default_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-warm", Tint_Warm_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-success", Tint_Success_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-danger", Tint_Danger_Class_Part_Styles));
 
       --  Load dynamic CSS and choose mode
       declare
@@ -147,6 +168,20 @@ package body Image_Example_UI is
       Adi.CSS_Source.Bind_Class (Source, "card", Box_11);
       Adi.CSS_Source.Bind_Class (Source, "image fit-scale-down", Fit_Scale_Down);
       Adi.CSS_Source.Bind_Class (Source, "card-label", Label_13);
+      Adi.CSS_Source.Bind_Class (Source, "section-title", Label_14);
+      Adi.CSS_Source.Bind_Class (Source, "tint-grid", Box_12);
+      Adi.CSS_Source.Bind_Class (Source, "tint-card", Box_13);
+      Adi.CSS_Source.Bind_Class (Source, "image tint-icon tint-default", Tint_Default);
+      Adi.CSS_Source.Bind_Class (Source, "card-label", Label_15);
+      Adi.CSS_Source.Bind_Class (Source, "tint-card", Box_14);
+      Adi.CSS_Source.Bind_Class (Source, "image tint-icon tint-warm", Tint_Warm);
+      Adi.CSS_Source.Bind_Class (Source, "card-label", Label_16);
+      Adi.CSS_Source.Bind_Class (Source, "tint-card", Box_15);
+      Adi.CSS_Source.Bind_Class (Source, "image tint-icon tint-success", Tint_Success);
+      Adi.CSS_Source.Bind_Class (Source, "card-label", Label_17);
+      Adi.CSS_Source.Bind_Class (Source, "tint-card", Box_16);
+      Adi.CSS_Source.Bind_Class (Source, "image tint-icon tint-danger", Tint_Danger);
+      Adi.CSS_Source.Bind_Class (Source, "card-label", Label_18);
 
       --  Build hierarchy
       Box_2.Add_Child (Img_Svg_Path);
@@ -176,12 +211,26 @@ package body Image_Example_UI is
       Box_6.Add_Child (Box_9);
       Box_6.Add_Child (Box_10);
       Box_6.Add_Child (Box_11);
+      Box_13.Add_Child (Tint_Default);
+      Box_13.Add_Child (Label_15);
+      Box_14.Add_Child (Tint_Warm);
+      Box_14.Add_Child (Label_16);
+      Box_15.Add_Child (Tint_Success);
+      Box_15.Add_Child (Label_17);
+      Box_16.Add_Child (Tint_Danger);
+      Box_16.Add_Child (Label_18);
+      Box_12.Add_Child (Box_13);
+      Box_12.Add_Child (Box_14);
+      Box_12.Add_Child (Box_15);
+      Box_12.Add_Child (Box_16);
       Root.Add_Child (Label_1);
       Root.Add_Child (Label_2);
       Root.Add_Child (Label_3);
       Root.Add_Child (Box_1);
       Root.Add_Child (Label_8);
       Root.Add_Child (Box_6);
+      Root.Add_Child (Label_14);
+      Root.Add_Child (Box_12);
 
       --  Auto-wire CSS live reload
       Adi.Window.Set_On_Tick (W.all, Tick_Styles_CB'Unrestricted_Access);

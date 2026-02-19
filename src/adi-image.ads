@@ -26,20 +26,25 @@ package Adi.Image is
        Path     : String) return Image_Access;
 
    -- Load an SVG image from an SVG source string.
-   -- Returns null on failure
+   -- Returns null on failure.
+   -- When Tintable is True, the returned image is marked as tintable
+   -- so that rendering applies CSS color as a tint via SDL color modulation.
    function Load_SVG_From_String
       (Renderer : SDL_Renderer_Ptr;
-       Source   : String) return Image_Access;
+       Source   : String;
+       Tintable : Boolean := False) return Image_Access;
 
    -- Build and load an SVG from a single path command string.
-   -- Returns null on failure
+   -- Returns null on failure.
+   -- When Tintable is True, the returned image is marked as tintable.
    function Load_SVG_Path
       (Renderer  : SDL_Renderer_Ptr;
        Path_Data : String;
        Size      : Size_2D;
        Fill      : Color_8 := (R => 0, G => 0, B => 0, A => 255);
        Stroke_Width : Pixel_Type := 0.0;
-       Stroke    : Color_8 := (R => 0, G => 0, B => 0, A => 255)) return Image_Access;
+       Stroke    : Color_8 := (R => 0, G => 0, B => 0, A => 255);
+       Tintable  : Boolean := False) return Image_Access;
 
    -- Create an image from an existing SDL texture
    -- The Image takes ownership of the texture
@@ -55,6 +60,10 @@ package Adi.Image is
 
    -- Check if the image has valid texture data
    function Is_Valid (Img : Image) return Boolean;
+
+   -- Check if the image was loaded as tintable (white-on-transparent).
+   -- Tintable images are recolored by CSS color via SDL color modulation.
+   function Is_Tintable (Img : Image) return Boolean;
 
    -- Get image dimensions
    procedure Get_Size
@@ -103,8 +112,9 @@ private
       Texture : SDL_Texture_Ptr := null;
       Width   : Pixel_Type := 0.0;
       Height  : Pixel_Type := 0.0;
-      SVG     : Adi.SVG.Document_Access := null;
-      Cache   : Cached_Texture_Vectors.Vector;
+      SVG      : Adi.SVG.Document_Access := null;
+      Cache    : Cached_Texture_Vectors.Vector;
+      Tintable : Boolean := False;
    end record;
 
 end Adi.Image;

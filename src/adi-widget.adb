@@ -575,8 +575,15 @@ package body Adi.Widget is
 
    function Get_Resolved_Part_Style (W : Widget'Class;
                                      P : Part_Kind) return Resolved_Style is
+      Part_Rules : Style_Rules := Get_Part_Style_Rules (W, P);
    begin
-      return Resolve (Get_Part_Style_Rules (W, P));
+      --  Sub-parts inherit text/typography properties from Main_Part.
+      --  Explicit ::part rules override inherited values.
+      if P /= Main_Part and then P /= Any_Part then
+         Part_Rules := Inherit_From
+           (Get_Part_Style_Rules (W, Main_Part), Part_Rules);
+      end if;
+      return Resolve (Part_Rules);
    end Get_Resolved_Part_Style;
 
    ---------------------------------------------------------------------------

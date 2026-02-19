@@ -1026,6 +1026,63 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Merge (Base, Override : Style_Rules) return Style_Rules;
 
    -------------------------------------------------
+   --  CSS property enumeration and inheritance
+   -------------------------------------------------
+
+   type CSS_Property is (
+      --  Colors
+      Prop_Color, Prop_Background_Color, Prop_Background_Image,
+      --  Border
+      Prop_Border_Radius, Prop_Border_Width, Prop_Border_Color, Prop_Border_Style,
+      --  Outline
+      Prop_Outline_Width, Prop_Outline_Color, Prop_Outline_Style, Prop_Outline_Offset,
+      --  Spacing
+      Prop_Padding, Prop_Margin,
+      --  Sizing
+      Prop_Width, Prop_Height,
+      Prop_Min_Width, Prop_Max_Width, Prop_Min_Height, Prop_Max_Height,
+      --  Typography
+      Prop_Font_Family, Prop_Font_Size, Prop_Font_Weight, Prop_Font_Style,
+      Prop_Text_Align, Prop_Vertical_Align, Prop_Text_Decoration,
+      Prop_List_Style_Type, Prop_List_Style_Image, Prop_List_Style_Position,
+      Prop_White_Space, Prop_Text_Overflow, Prop_Text_Wrap_Mode, Prop_Line_Height,
+      --  Layout
+      Prop_Display, Prop_Position, Prop_Overflow, Prop_Visibility,
+      --  Visual
+      Prop_Opacity, Prop_Cursor, Prop_Box_Shadow,
+      --  Object/Image
+      Prop_Object_Fit, Prop_Object_Position,
+      --  Flexbox Container
+      Prop_Flex_Direction, Prop_Flex_Wrap, Prop_Justify_Content,
+      Prop_Align_Items, Prop_Align_Content, Prop_Gap,
+      Prop_Grid_Columns, Prop_Grid_Rows,
+      --  Flexbox Item
+      Prop_Align_Self, Prop_Flex_Grow, Prop_Flex_Shrink, Prop_Flex_Basis,
+      Prop_Order, Prop_Grid_Column, Prop_Grid_Row,
+      Prop_Grid_Column_Span, Prop_Grid_Row_Span,
+      --  Animation
+      Prop_Transition);
+
+   type CSS_Property_Set is array (CSS_Property) of Boolean;
+
+   --  Properties that inherit from Main_Part to sub-parts (matching CSS spec).
+   --  Text/typography and cursor inherit; box-model/layout properties do not.
+   Inheritable_Properties : constant CSS_Property_Set :=
+     [Prop_Color           | Prop_Font_Family    | Prop_Font_Size       |
+      Prop_Font_Weight     | Prop_Font_Style     | Prop_Text_Align      |
+      Prop_Vertical_Align  | Prop_Text_Decoration |
+      Prop_Text_Overflow   | Prop_Text_Wrap_Mode | Prop_Line_Height     |
+      Prop_White_Space     | Prop_Cursor         |
+      Prop_List_Style_Type | Prop_List_Style_Image |
+      Prop_List_Style_Position => True,
+      others => False];
+
+   --  Inherit inheritable CSS properties from Parent into Child.
+   --  For each property in Inheritable_Properties: if Child's field is
+   --  Undefined, use Parent's field. Non-inheritable properties pass through.
+   function Inherit_From (Parent, Child : Style_Rules) return Style_Rules;
+
+   -------------------------------------------------
    -- Resolved style for rendering
    -------------------------------------------------
 

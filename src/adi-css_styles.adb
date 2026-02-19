@@ -491,6 +491,80 @@ package body Adi.CSS_Styles is
    end Merge;
 
    -------------------------------------------------
+   --  Inherit_From: cascade inheritable properties
+   --  See Inheritable_Properties in adi-css_styles.ads
+   -------------------------------------------------
+
+   function Inherit_From (Parent, Child : Style_Rules) return Style_Rules is
+   begin
+      return (
+         --  Inheritable: text/typography + cursor
+         Color            => Opt_Text_Color.Merge (Parent.Color, Child.Color),
+         Font_Family      => Opt_Font.Merge (Parent.Font_Family, Child.Font_Family),
+         Font_Size        => Opt_Font_Size.Merge (Parent.Font_Size, Child.Font_Size),
+         Font_Weight      => Opt_Font_Weight.Merge (Parent.Font_Weight, Child.Font_Weight),
+         Font_Style       => Opt_Font_Style.Merge (Parent.Font_Style, Child.Font_Style),
+         Text_Align       => Opt_Text_Align.Merge (Parent.Text_Align, Child.Text_Align),
+         Vertical_Align   => Opt_Vertical_Align.Merge (Parent.Vertical_Align, Child.Vertical_Align),
+         Text_Decoration  => Opt_Text_Decoration.Merge (Parent.Text_Decoration, Child.Text_Decoration),
+         Text_Overflow    => Opt_Text_Overflow.Merge (Parent.Text_Overflow, Child.Text_Overflow),
+         Text_Wrap_Mode   => Opt_Text_Wrap_Mode.Merge (Parent.Text_Wrap_Mode, Child.Text_Wrap_Mode),
+         Line_Height      => Opt_Line_Height.Merge (Parent.Line_Height, Child.Line_Height),
+         White_Space      => Opt_White_Space.Merge (Parent.White_Space, Child.White_Space),
+         Cursor           => Opt_Cursor.Merge (Parent.Cursor, Child.Cursor),
+         List_Style_Type  => Opt_List_Style_Type.Merge (Parent.List_Style_Type, Child.List_Style_Type),
+         List_Style_Image => Opt_List_Style_Image.Merge (Parent.List_Style_Image, Child.List_Style_Image),
+         List_Style_Position => Opt_List_Style_Position.Merge (Parent.List_Style_Position, Child.List_Style_Position),
+
+         --  Non-inheritable: pass through Child unchanged
+         Background_Color => Child.Background_Color,
+         Background_Image => Child.Background_Image,
+         Border_Radius    => Child.Border_Radius,
+         Border_Width     => Child.Border_Width,
+         Border_Color     => Child.Border_Color,
+         Border_Style     => Child.Border_Style,
+         Outline_Width    => Child.Outline_Width,
+         Outline_Color    => Child.Outline_Color,
+         Outline_Style    => Child.Outline_Style,
+         Outline_Offset   => Child.Outline_Offset,
+         Padding          => Child.Padding,
+         Margin           => Child.Margin,
+         Width            => Child.Width,
+         Height           => Child.Height,
+         Min_Width        => Child.Min_Width,
+         Max_Width        => Child.Max_Width,
+         Min_Height       => Child.Min_Height,
+         Max_Height       => Child.Max_Height,
+         Display          => Child.Display,
+         Position         => Child.Position,
+         Overflow         => Child.Overflow,
+         Visibility       => Child.Visibility,
+         Opacity          => Child.Opacity,
+         Box_Shadow       => Child.Box_Shadow,
+         Object_Fit       => Child.Object_Fit,
+         Object_Position  => Child.Object_Position,
+         Flex_Direction   => Child.Flex_Direction,
+         Flex_Wrap        => Child.Flex_Wrap,
+         Justify_Content  => Child.Justify_Content,
+         Align_Items      => Child.Align_Items,
+         Align_Content    => Child.Align_Content,
+         Gap              => Child.Gap,
+         Grid_Columns     => Child.Grid_Columns,
+         Grid_Rows        => Child.Grid_Rows,
+         Align_Self       => Child.Align_Self,
+         Flex_Grow        => Child.Flex_Grow,
+         Flex_Shrink      => Child.Flex_Shrink,
+         Flex_Basis       => Child.Flex_Basis,
+         Order            => Child.Order,
+         Grid_Column      => Child.Grid_Column,
+         Grid_Row         => Child.Grid_Row,
+         Grid_Column_Span => Child.Grid_Column_Span,
+         Grid_Row_Span    => Child.Grid_Row_Span,
+         Transition       => Child.Transition
+      );
+   end Inherit_From;
+
+   -------------------------------------------------
    -- Resolve: Convert Style_Rules to Resolved_Style
    -------------------------------------------------
 

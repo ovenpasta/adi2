@@ -704,9 +704,14 @@ package body Adi.Window is
 
    function Find_Widget_At (W : Window; X, Y : Pixel_Type) return Widget_Access is
 
-      function Find_Deepest (Parent : Widget_Access) return Widget_Access is
-         Child  : Widget_Access;
-         Found  : Widget_Access;
+      function Find_Deepest
+        (Parent   : Widget_Access;
+         Hit_X    : Pixel_Type;
+         Hit_Y    : Pixel_Type) return Widget_Access
+      is
+         Child    : Widget_Access;
+         Found    : Widget_Access;
+         Child_Y  : Pixel_Type;
       begin
          if Parent = null then
             return null;
@@ -718,14 +723,22 @@ package body Adi.Window is
          end if;
 
          --  Check if point is in parent first
-         if not Point_In_Widget (Parent, X, Y) then
+         if not Point_In_Widget (Parent, Hit_X, Hit_Y) then
             return null;
+         end if;
+
+         --  When parent scrolls, children are rendered shifted by
+         --  -Scroll_Offset_Y.  Reverse the shift so the hit coordinate
+         --  maps to the child's stored (unshifted) geometry.
+         Child_Y := Hit_Y;
+         if Get_Scroll_Offset_Y (Parent.all) > 0.0 then
+            Child_Y := Hit_Y + Get_Scroll_Offset_Y (Parent.all);
          end if;
 
          --  Check children in reverse order (last added = on top)
          for I in reverse 1 .. Child_Count (Parent.all) loop
             Child := Get_Child (Parent.all, I);
-            Found := Find_Deepest (Child);
+            Found := Find_Deepest (Child, Hit_X, Child_Y);
             if Found /= null then
                return Found;
             end if;
@@ -744,7 +757,7 @@ package body Adi.Window is
             if Overlay = null then
                null;
             else
-               Found := Find_Deepest (Overlay);
+               Found := Find_Deepest (Overlay, X, Y);
                if Found /= null then
                   return Found;
                end if;
@@ -752,7 +765,7 @@ package body Adi.Window is
          end;
       end loop;
 
-      return Find_Deepest (W.Root);
+      return Find_Deepest (W.Root, X, Y);
    end Find_Widget_At;
 
    function Find_Widget_At_With_Flag
@@ -760,9 +773,14 @@ package body Adi.Window is
       X, Y : Pixel_Type;
       F    : Widget_Flag) return Widget_Access
    is
-      function Find_Deepest_Eligible (Parent : Widget_Access) return Widget_Access is
-         Child : Widget_Access;
-         Found : Widget_Access;
+      function Find_Deepest_Eligible
+        (Parent : Widget_Access;
+         Hit_X  : Pixel_Type;
+         Hit_Y  : Pixel_Type) return Widget_Access
+      is
+         Child   : Widget_Access;
+         Found   : Widget_Access;
+         Child_Y : Pixel_Type;
       begin
          if Parent = null then
             return null;
@@ -772,13 +790,18 @@ package body Adi.Window is
             return null;
          end if;
 
-         if not Point_In_Widget (Parent, X, Y) then
+         if not Point_In_Widget (Parent, Hit_X, Hit_Y) then
             return null;
+         end if;
+
+         Child_Y := Hit_Y;
+         if Get_Scroll_Offset_Y (Parent.all) > 0.0 then
+            Child_Y := Hit_Y + Get_Scroll_Offset_Y (Parent.all);
          end if;
 
          for I in reverse 1 .. Child_Count (Parent.all) loop
             Child := Get_Child (Parent.all, I);
-            Found := Find_Deepest_Eligible (Child);
+            Found := Find_Deepest_Eligible (Child, Hit_X, Child_Y);
             if Found /= null then
                return Found;
             end if;
@@ -799,7 +822,7 @@ package body Adi.Window is
             if Overlay = null then
                null;
             else
-               Found := Find_Deepest_Eligible (Overlay);
+               Found := Find_Deepest_Eligible (Overlay, X, Y);
                if Found /= null then
                   return Found;
                end if;
@@ -807,7 +830,7 @@ package body Adi.Window is
          end;
       end loop;
 
-      return Find_Deepest_Eligible (W.Root);
+      return Find_Deepest_Eligible (W.Root, X, Y);
    end Find_Widget_At_With_Flag;
 
    function Find_Scroll_Widget_At

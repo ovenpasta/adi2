@@ -93,6 +93,9 @@ package Adi.Window is
 
     --  Force a full re-render on the next frame (e.g. after window exposed).
     procedure Request_Redraw (W : in out Window);
+
+    --  On-screen debug stats overlay (frame count, FPS, render time, layout count)
+    procedure Set_Debug_Stats (W : in out Window; Enabled : Boolean);
 private
     package Overlay_Vectors is new Ada.Containers.Vectors (Positive, Widget_Access);
 
@@ -119,6 +122,17 @@ private
         Needs_Layout   : Boolean       := True;
         Force_Redraw   : Boolean       := False;
         On_Tick_CB     : Tick_Callback := null;
+        --  Debug stats overlay
+        Debug_Stats_On     : Boolean  := False;
+        Stats_Frame_No     : Natural  := 0;
+        Stats_Layout_Count : Natural  := 0;
+        Stats_Render_Us    : Natural  := 0;
+        Stats_Update_Us    : Natural  := 0;
+        Stats_Layout_Us    : Natural  := 0;
+        Stats_Draw_Us      : Natural  := 0;
+        Stats_Present_Us   : Natural  := 0;
+        Stats_Last_DT      : Duration := 0.0;
+        Stats_Layout_Reason : Character := ' ';
     end record;
 
     overriding procedure Initialize (w : in out Window);

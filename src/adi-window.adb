@@ -439,6 +439,89 @@ package body Adi.Window is
       end loop;
    end Update;
 
+    procedure Render_Debug_Stats (W : Window) is
+       use Adi.SDL.Render;
+       Bar_H  : constant Float := 16.0;
+       Win_H  : constant Float := Float (W.Size.Height);
+       Win_W  : constant Float := Float (W.Size.Width);
+       Bar    : aliased SDL_FRect :=
+         (x => 0.0, y => Win_H - Bar_H, w => Win_W, h => Bar_H);
+       FPS    : Natural := 0;
+
+       Buf : String (1 .. 512);
+       Len : Natural := 0;
+
+       procedure Append (S : String) is
+       begin
+          for C of S loop
+             Len := Len + 1;
+             Buf (Len) := C;
+          end loop;
+       end Append;
+
+       procedure Append_Nat (V : Natural; Width : Positive) is
+          Img : constant String := Natural'Image (V);
+          Num : constant String := Img (Img'First + 1 .. Img'Last);
+       begin
+          for I in 1 .. Width - Num'Length loop
+             Append (" ");
+          end loop;
+          Append (Num);
+       end Append_Nat;
+
+       procedure Append_Ms (Us : Natural) is
+          Ms    : constant Float := Float (Us) / 1000.0;
+          Whole : constant Natural := Natural (Float'Floor (Ms));
+          Frac  : constant Natural :=
+            Natural (Float'Floor ((Ms - Float (Whole)) * 10.0));
+       begin
+          Append_Nat (Whole, 3);
+          Append (".");
+          Append_Nat (Frac, 1);
+       end Append_Ms;
+
+       C_Str  : Interfaces.C.Strings.chars_ptr;
+       Dummy  : Adi.SDL.C_bool;
+    begin
+       if W.Stats_Last_DT > 0.0 then
+          FPS := Natural (1.0 / W.Stats_Last_DT);
+       end if;
+
+       --  Single line: F:nnnnnnn  FPS:nnn  Upd:nn.n  Lay:nn.n  Draw:nn.n  Pres:nn.n  L:n(R)
+       Append ("F:");
+       Append_Nat (W.Stats_Frame_No, 7);
+       Append ("  FPS:");
+       Append_Nat (FPS, 3);
+       Append ("  Upd:");
+       Append_Ms (W.Stats_Update_Us);
+       Append ("  Lay:");
+       Append_Ms (W.Stats_Layout_Us);
+       Append ("  Draw:");
+       Append_Ms (W.Stats_Draw_Us);
+       Append ("  Pres:");
+       Append_Ms (W.Stats_Present_Us);
+       Append ("  L:");
+       Append_Nat (W.Stats_Layout_Count, 1);
+       Append ((1 => W.Stats_Layout_Reason));
+
+       --  Draw background bar
+       Dummy := SDL_SetRenderDrawBlendMode
+         (W.Internal.ren, SDL_BLENDMODE_BLEND);
+       Dummy := SDL_SetRenderDrawColor (W.Internal.ren, 0, 0, 0, 200);
+       Dummy := SDL_RenderFillRect (W.Internal.ren, Bar'Access);
+
+       --  Draw text
+       Dummy := SDL_SetRenderDrawColor (W.Internal.ren, 180, 255, 180, 255);
+       C_Str := Interfaces.C.Strings.New_String (Buf (1 .. Len));
+       Dummy := SDL_RenderDebugText
+         (W.Internal.ren, 6.0, Win_H - Bar_H + 2.0, C_Str);
+       Interfaces.C.Strings.Free (C_Str);
+
+       --  Restore blend mode
+       Dummy := SDL_SetRenderDrawBlendMode
+         (W.Internal.ren, SDL_BLENDMODE_NONE);
+    end Render_Debug_Stats;
+
     procedure Render (W : in Out Window) is
        use Adi.SDL.Render;
        Root_Dirty          : constant Boolean :=
@@ -450,6 +533,8 @@ package body Adi.Window is
          Is_Any_Overlay_Layout_Dirty (W);
        Needs_Relayout      : constant Boolean :=
          W.Needs_Layout or else Root_Layout_Dirty or else Overlay_Layout_Dirty;
+       Render_Start : Time;
+       Stage_Start  : Time;
     begin
        --  Keep unit conversion contexts in sync with current window state.
        if W.Internal /= null and then W.Internal.win /= null then
@@ -461,8 +546,13 @@ package body Adi.Window is
 
        --  Only render if something changed or a redraw was forced
        --  (e.g. window exposed by the compositor).
-       if Root_Dirty or else Overlay_Dirty or else W.Force_Redraw then
+       if Root_Dirty or else Overlay_Dirty or else W.Force_Redraw
+       then
           W.Force_Redraw := False;
+          W.Stats_Frame_No := W.Stats_Frame_No + 1;
+          W.Stats_Layout_Count := 0;
+          Render_Start := Clock;
+
           Debug_Log
             ("render tick=" & Natural'Image (Debug_Tick_No)
              & " root_dirty=" & Boolean'Image (Root_Dirty)
@@ -474,14 +564,28 @@ package body Adi.Window is
           SDL_Assert (SDL_RenderClear (W.Internal.ren), "SDL_RenderClear");
 
           --  Rebuild dirty items first.
+          Stage_Start := Clock;
           Update (W);
+          W.Stats_Update_Us := Natural
+            (To_Duration (Clock - Stage_Start) * 1_000_000.0);
 
           --  Relayout only when required by geometry-affecting changes.
+          Stage_Start := Clock;
+          if W.Needs_Layout then
+             W.Stats_Layout_Reason := 'W';
+          elsif Root_Layout_Dirty then
+             W.Stats_Layout_Reason := 'R';
+          elsif Overlay_Layout_Dirty then
+             W.Stats_Layout_Reason := 'O';
+          else
+             W.Stats_Layout_Reason := '-';
+          end if;
           if Needs_Relayout then
              if W.Root /= null then
                 Debug_Log ("relayout tick=" & Natural'Image (Debug_Tick_No));
                 Layout_Tree (W.Root.all);
                 Adi.Widget.Update (W.Root.all);
+                W.Stats_Layout_Count := W.Stats_Layout_Count + 1;
              end if;
 
              for I in 1 .. Natural (W.Overlays.Length) loop
@@ -491,13 +595,18 @@ package body Adi.Window is
                    if Overlay /= null then
                       Layout_Tree (Overlay.all);
                       Adi.Widget.Update (Overlay.all);
+                      W.Stats_Layout_Count := W.Stats_Layout_Count + 1;
                    end if;
                 end;
              end loop;
 
              W.Needs_Layout := False;
           end if;
+          W.Stats_Layout_Us := Natural
+            (To_Duration (Clock - Stage_Start) * 1_000_000.0);
 
+          --  Draw all widget trees
+          Stage_Start := Clock;
           if W.Root /= null then
              Render_Tree (W.Root.all, W.Ctx);
           end if;
@@ -511,9 +620,23 @@ package body Adi.Window is
                 end if;
              end;
           end loop;
+          W.Stats_Draw_Us := Natural
+            (To_Duration (Clock - Stage_Start) * 1_000_000.0);
+
+          --  Compute total render time (before present)
+          W.Stats_Render_Us := Natural
+            (To_Duration (Clock - Render_Start) * 1_000_000.0);
+
+          --  Debug stats overlay
+          if W.Debug_Stats_On then
+             Render_Debug_Stats (W);
+          end if;
 
           --  Present the rendered frame
+          Stage_Start := Clock;
           SDL_Assert (SDL_RenderPresent (W.Internal.ren), "SDL_RenderPresent");
+          W.Stats_Present_Us := Natural
+            (To_Duration (Clock - Stage_Start) * 1_000_000.0);
        end if;
     end Render;
 
@@ -1277,6 +1400,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       Overlay_Dirty_After  : Boolean;
    begin
       Debug_Tick_No := Debug_Tick_No + 1;
+      W.Stats_Last_DT := DT;
 
       if W.On_Tick_CB /= null then
          W.On_Tick_CB (DT);
@@ -1410,6 +1534,12 @@ function Get_Size (W : in out Window) return Size_2D is
     begin
        W.Force_Redraw := True;
     end Request_Redraw;
+
+    procedure Set_Debug_Stats (W : in out Window; Enabled : Boolean) is
+    begin
+       W.Debug_Stats_On := Enabled;
+       W.Force_Redraw := True;
+    end Set_Debug_Stats;
 
 
 

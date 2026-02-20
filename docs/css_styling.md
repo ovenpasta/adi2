@@ -296,6 +296,8 @@ transition: color 150ms ease-out, background-color 150ms ease-out;
 
 Animatable properties: `all`, `color`, `background-color`, `border-color`, `border-width`, `border-radius`, `padding`, `margin`, `opacity`, `box-shadow`, `font-size`.
 
+Layout-affecting properties (`padding`, `margin`, `border-width`, `font-size`) trigger relayout during animation. Visual-only properties (`color`, `background-color`, `border-color`, `border-radius`, `opacity`, `box-shadow`) trigger repaint only, avoiding the cost of full relayout.
+
 Easing functions: `linear`, `ease`, `ease-in`, `ease-out`, `ease-in-out`.
 
 Duration formats: `100ms`, `0.3s`.

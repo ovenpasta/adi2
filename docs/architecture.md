@@ -126,10 +126,11 @@
 - Inherited disabled: `Is_Disabled` returns True when any ancestor has `State_Disabled`; `Get_States` injects the inherited flag so CSS `:disabled` styles apply to descendants; `Set_Disabled` marks all descendants dirty for re-styling
 - Abstract: `Build_Items`, `Layout`; Concrete: `Render_Items`, `Render_Tree`, `Update_And_Render`
 - Size calculation: `Measure_Content` (dispatching) returns preferred content size; `Get_Min_Size` (dispatching) returns minimum size floor — base returns CSS `min-width`/`min-height`, Label overrides to return `max(CSS_min, intrinsic_text_min)`; `Get_Preferred_Size` (`Widget'Class`) returns CSS `width`/`height` or falls back to `Measure_Content`
-- Shared overflow scrolling with scrollbar parts
+- Shared overflow scrolling with scrollbar parts — scroll offset applied at render time via `Render_Context.Scroll_Y`, not by shifting child geometries; hit-testing reverses the offset
 - Context menu hook with ancestor bubbling
-- Per-part transitions; `Tick_Animations` advances each frame
-- Style-aware state invalidation (dirty only when resolved output changes)
+- Per-part transitions; `Tick_Animations` advances each frame — layout-affecting properties (`padding`, `margin`, `border-width`, `font-size`) trigger relayout; visual-only properties trigger repaint only
+- Style-aware state invalidation with relevance masks: `Widget_Style` tracks which `Widget_State` values appear in any rule selector; `Set_State`/`Set_Part_State` skip style recomputation for states no rule references
+- Style versioning: `Style_Version` counter incremented on state/style changes; `Apply_Styles_To_Items` skips work when version unchanged and no animations active
 - `On_Tick(DT)` per-frame hook
 - Image rendering: `object-fit` modes (Fill, Cover, Contain, None, Scale_Down), rounded clipping
 - Label icon sizing honors `Icon_Part` `width`/`height` styles in both measurement and layout
@@ -139,6 +140,10 @@
 **Text_Editor**: Multiline editor using `Text_Buffer` + `Text_Layout`. Vertical scrollbar, visual-row navigation, word/line selection.
 
 **List_Box** (generic over row widget): Selection modes (None/Single/Multi/Range), anchor-based range, inertial scrolling, style-driven scrollbar.
+- **Grid layout mode**: CSS `grid-template-columns` activates grid layout (e.g., `repeat(3, 1fr)` for 3 columns). Gap between rows/columns comes from CSS `gap`/`row-gap`/`column-gap`. Layout uses `Compute_Grid_Layout` from `Adi.Layout_Util`.
+- **Grid keyboard navigation**: Left/Right arrows move between columns (±1 item), Up/Down move between rows (±N items). PageUp/PageDown jump by visible-rows × columns. Home/End go to first/last item.
+- **Grid hit-testing**: Click detection uses cached cell rectangles (both X and Y), so clicks map correctly to grid cells. Cell positions are computed during layout and cached in `Cell_Rects` for O(N) lookup.
+- **Scrolling**: Vertical scrolling works in both modes. `Ensure_Row_Visible` uses cached cell positions to scroll the correct row into view.
 
 **Combo_Box**: Dropdown using Main/Label/Indicator parts + List_Box overlay popup.
 
@@ -182,7 +187,9 @@
    - Font hinting: `TTF_HINTING_LIGHT_SUBPIXEL`
    - Temporary decoration workaround: `underline`/`line-through`/`overline` are drawn manually in `Adi.Widget` to avoid SDL_ttf renderer text-engine white-line color behavior; upstream patch draft is stored in `deps/issues/`
 
-Render scheduling note: relayout runs only when layout/geometry is dirty; pure visual updates (for example scroll-offset changes) trigger repaint without forcing full tree relayout.
+Render scheduling note: relayout runs only when layout/geometry is dirty (`Mark_Dirty`); pure visual updates (state changes, scroll-offset, visual-only animations) use `Mark_Render_Dirty` for repaint without forcing full tree relayout.
+
+**Debug stats overlay**: `Set_Debug_Stats(True)` enables a 2-line HUD showing frame number, FPS, per-stage timing (Update/Layout/Draw/Present in microseconds), layout count, and layout trigger reason. Renders only when the scene is already being redrawn — does not force extra frames.
 
 ## SDL Bindings
 

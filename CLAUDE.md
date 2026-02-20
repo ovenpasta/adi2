@@ -27,13 +27,13 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 
 ```bash
 # Full build (library + tests + examples, incremental CSS/UI generation)
-alr build
+alr build -- -j0
 
 # Build a specific test
-alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=css_parser_test
+alr exec -- gprbuild -j0 -P tests/tests.gpr -XTEST_KIND=css_parser_test
 
 # Build a specific example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
+alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 
 # Run tests (built to tests/bin/)
 ./tests/bin/styles

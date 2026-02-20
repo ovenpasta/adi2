@@ -10,6 +10,19 @@ package body Adi.Widget_Styles is
    begin
       WS.Rule_Count := WS.Rule_Count + 1;
       WS.Rules (WS.Rule_Count) := Rule;
+      --  Accumulate state relevance masks for fast-reject
+      for S in Widget_State loop
+         if Rule.Selector.Widget_Required (S)
+            or else Rule.Selector.Widget_Excluded (S)
+         then
+            WS.Widget_State_Mask (S) := True;
+         end if;
+         if Rule.Selector.Part_Required (S)
+            or else Rule.Selector.Part_Excluded (S)
+         then
+            WS.Part_State_Mask (S) := True;
+         end if;
+      end loop;
    end Add_Rule;
 
    function Compute_Style (WS : Widget_Style;

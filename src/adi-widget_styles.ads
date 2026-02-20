@@ -111,6 +111,9 @@ package Adi.Widget_Styles is
       Base       : Style_Rules := Empty_Style;
       Rules      : State_Rule_Array (1 .. Max_Style_Rules) := [others => <>];
       Rule_Count : Natural := 0;
+      --  Precomputed: which states appear in any rule selector
+      Widget_State_Mask : Widget_States := No_States;
+      Part_State_Mask   : Widget_States := No_States;
    end record;
 
    Empty_Widget_Style : constant Widget_Style := (others => <>);
@@ -118,6 +121,14 @@ package Adi.Widget_Styles is
    --  Add a rule to widget style
    procedure Add_Rule (WS : in out Widget_Style; Rule : State_Rule)
      with Pre => WS.Rule_Count < Max_Style_Rules;
+
+   --  Check if any rule references a given widget/part state
+   function Uses_Widget_State
+     (WS : Widget_Style; S : Widget_State) return Boolean is
+     (WS.Widget_State_Mask (S));
+   function Uses_Part_State
+     (WS : Widget_Style; S : Widget_State) return Boolean is
+     (WS.Part_State_Mask (S));
 
    --  Compute effective style given active states
    function Compute_Style (WS : Widget_Style; Active : Widget_States) return Style_Rules;

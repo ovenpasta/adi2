@@ -8,6 +8,7 @@ with Adi.Widget.Button;      use Adi.Widget.Button;
 with Adi.Widget.Button.Switch;
 with Adi.Widget.Label;
 with Adi.Widget.List_Box;
+with Adi.CSS_Source;
 with List_Box_Example_Styles; use List_Box_Example_Styles;
 
 procedure List_Box_Example is
@@ -23,6 +24,7 @@ procedure List_Box_Example is
 
    Single_Status : Adi.Widget.Label.Label_Widget_Access;
    Multi_Status  : Adi.Widget.Label.Label_Widget_Access;
+   Main_Window   : Window_Access;
 
    procedure On_Label_Click
      (W      : Label_List.List_Box_Widget_Access;
@@ -79,6 +81,25 @@ procedure List_Box_Example is
         ("Box list: selected " & W.Get_Selected_Count'Image & " row(s)");
    end On_Box_Selection_Changed;
 
+   Grid_Status : Adi.Widget.Label.Label_Widget_Access;
+
+   procedure On_Grid_Click
+     (W      : Label_List.List_Box_Widget_Access;
+      Index  : Positive;
+      Clicks : Natural)
+   is
+      pragma Unreferenced (W);
+   begin
+      Grid_Status.Set_Text
+        ("Grid: clicked " & Index'Image & " (" & Clicks'Image & "x)");
+   end On_Grid_Click;
+
+   procedure On_Grid_Selection_Changed (W : Label_List.List_Box_Widget_Access) is
+   begin
+      Grid_Status.Set_Text
+        ("Grid: selected " & W.Get_Selected_Count'Image & " cell(s)");
+   end On_Grid_Selection_Changed;
+
    procedure On_Inertia_Toggled (Btn : Button_Widget_Access; Active : Boolean) is
       pragma Unreferenced (Btn);
    begin
@@ -104,6 +125,15 @@ procedure List_Box_Example is
       end if;
    end On_Debug_Overlay_Toggled;
 
+   procedure On_Debug_Stats_Toggled
+     (Btn : Button_Widget_Access;
+      Active : Boolean)
+   is
+      pragma Unreferenced (Btn);
+   begin
+      Main_Window.Set_Debug_Stats (Active);
+   end On_Debug_Stats_Toggled;
+
 begin
    A.Init;
    A.Set_Target_FPS (60);
@@ -119,6 +149,7 @@ begin
       Single_Panel : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Multi_Panel  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Range_Panel  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Grid_Panel   : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
 
       No_Title     : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("No Selection");
@@ -130,17 +161,24 @@ begin
         Adi.Widget.Label.Create ("Layout debug");
       Debug_Overlay_Switch : constant Adi.Widget.Button.Switch.Switch_Widget_Access :=
         Adi.Widget.Button.Switch.Create (False);
+      Debug_Stats_Label : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("Debug stats");
+      Debug_Stats_Switch : constant Adi.Widget.Button.Switch.Switch_Widget_Access :=
+        Adi.Widget.Button.Switch.Create (True);
       Single_Title : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("Single Selection");
       Multi_Title  : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("Multi Selection");
       Range_Title  : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("Range Selection");
+      Grid_Title   : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("Grid Layout");
 
       No_Listbox     : constant Label_List.List_Box_Widget_Access := Label_List.Create;
       Single_Listbox : constant Label_List.List_Box_Widget_Access := Label_List.Create;
       Multi_Listbox  : constant Box_List.List_Box_Widget_Access := Box_List.Create;
       Range_Listbox  : constant Label_List.List_Box_Widget_Access := Label_List.Create;
+      Grid_Listbox   : constant Label_List.List_Box_Widget_Access := Label_List.Create;
 
       No_Status    : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create
         ("Click rows: focus/activate works, selection stays off");
@@ -151,12 +189,18 @@ begin
         ("Label list: click, double-click, arrows, page up/down, mouse wheel");
       Multi_Status := Adi.Widget.Label.Create
         ("Box list: multi-select toggle, wheel scroll, keyboard navigation");
+      Grid_Status := Adi.Widget.Label.Create
+        ("Grid: 3 columns, arrow keys navigate, click to select");
+      Main_Window := W;
       Set_Scroll_Inertia_Enabled (False);
       Set_Debug_Layout_Overlay_Enabled (False);
+      W.Set_Debug_Stats (True);
 
       Inertia_Switch.Set_On_Toggled (On_Inertia_Toggled'Unrestricted_Access);
       Debug_Overlay_Switch.Set_On_Toggled
         (On_Debug_Overlay_Toggled'Unrestricted_Access);
+      Debug_Stats_Switch.Set_On_Toggled
+        (On_Debug_Stats_Toggled'Unrestricted_Access);
 
       Set_Part_Styles (Root.all, Root_Class_Part_Styles);
       Set_Part_Styles (Controls_Row.all, Controls_Row_Class_Part_Styles);
@@ -165,35 +209,39 @@ begin
       Set_Part_Styles (Single_Panel.all, Panel_Class_Part_Styles);
       Set_Part_Styles (Multi_Panel.all, Panel_Class_Part_Styles);
       Set_Part_Styles (Range_Panel.all, Panel_Class_Part_Styles);
+      Set_Part_Styles (Grid_Panel.all, Panel_Class_Part_Styles);
 
       Set_Part_Styles (No_Title.all, Panel_Title_Class_Part_Styles);
       Set_Part_Styles (Inertia_Switch_Label.all, Inertia_Label_Class_Part_Styles);
       Set_Part_Styles (Inertia_Switch.all, Inertia_Switch_Class_Part_Styles);
       Set_Part_Styles (Debug_Overlay_Label.all, Debug_Label_Class_Part_Styles);
       Set_Part_Styles (Debug_Overlay_Switch.all, Debug_Switch_Class_Part_Styles);
+      Set_Part_Styles (Debug_Stats_Label.all, Debug_Label_Class_Part_Styles);
+      Set_Part_Styles (Debug_Stats_Switch.all, Debug_Switch_Class_Part_Styles);
       Set_Part_Styles (Single_Title.all, Panel_Title_Class_Part_Styles);
       Set_Part_Styles (Multi_Title.all, Panel_Title_Class_Part_Styles);
       Set_Part_Styles (Range_Title.all, Panel_Title_Class_Part_Styles);
+      Set_Part_Styles (Grid_Title.all, Panel_Title_Class_Part_Styles);
 
       Set_Part_Styles (No_Status.all, Status_Class_Part_Styles);
       Set_Part_Styles (Single_Status.all, Status_Class_Part_Styles);
       Set_Part_Styles (Multi_Status.all, Status_Class_Part_Styles);
       Set_Part_Styles (Range_Status.all, Status_Class_Part_Styles);
+      Set_Part_Styles (Grid_Status.all, Status_Class_Part_Styles);
 
       Set_Part_Styles (No_Listbox.all, Listbox_Class_Part_Styles);
       Set_Part_Styles (Single_Listbox.all, Listbox_Class_Part_Styles);
-      Set_Part_Styles (Multi_Listbox.all, Listbox_Class_Part_Styles);
+      Set_Part_Styles (Multi_Listbox.all, Adi.CSS_Source.Merge_Part_Styles
+        (Listbox_Class_Part_Styles, Listbox_Multi_Class_Part_Styles));
       Set_Part_Styles (Range_Listbox.all, Listbox_Class_Part_Styles);
-
-      No_Listbox.Set_Row_Gap (4.0);
-      Single_Listbox.Set_Row_Gap (4.0);
-      Multi_Listbox.Set_Row_Gap (6.0);
-      Range_Listbox.Set_Row_Gap (4.0);
+      Set_Part_Styles (Grid_Listbox.all, Adi.CSS_Source.Merge_Part_Styles
+        (Listbox_Class_Part_Styles, Listbox_Grid_Class_Part_Styles));
 
       No_Listbox.Set_Selection_Mode (Label_List.No_Selection);
       Single_Listbox.Set_Selection_Mode (Label_List.Single_Selection);
       Multi_Listbox.Set_Selection_Mode (Box_List.Multi_Selection);
       Range_Listbox.Set_Selection_Mode (Label_List.Range_Selection);
+      Grid_Listbox.Set_Selection_Mode (Label_List.Single_Selection);
 
       Single_Listbox.Set_On_Item_Clicked (On_Label_Click'Unrestricted_Access);
       Single_Listbox.Set_On_Item_Activated (On_Label_Activate'Unrestricted_Access);
@@ -204,6 +252,10 @@ begin
       Multi_Listbox.Set_On_Item_Activated (On_Box_Activate'Unrestricted_Access);
       Multi_Listbox.Set_On_Selection_Changed
         (On_Box_Selection_Changed'Unrestricted_Access);
+
+      Grid_Listbox.Set_On_Item_Clicked (On_Grid_Click'Unrestricted_Access);
+      Grid_Listbox.Set_On_Selection_Changed
+        (On_Grid_Selection_Changed'Unrestricted_Access);
 
       --  Fill no/single/range label lists
       for I in 1 .. 40 loop
@@ -240,11 +292,24 @@ begin
          end;
       end loop;
 
+      --  Fill grid list
+      for I in 1 .. 64 loop
+         declare
+            Cell : constant Adi.Widget.Label.Label_Widget_Access :=
+              Adi.Widget.Label.Create ("Cell" & I'Image);
+         begin
+            Set_Part_Styles (Cell.all, Grid_Cell_Class_Part_Styles);
+            Grid_Listbox.Append_Row (Cell);
+         end;
+      end loop;
+
       --  Assemble hierarchy
       Controls_Row.Add_Child (Inertia_Switch_Label);
       Controls_Row.Add_Child (Inertia_Switch);
       Controls_Row.Add_Child (Debug_Overlay_Label);
       Controls_Row.Add_Child (Debug_Overlay_Switch);
+      Controls_Row.Add_Child (Debug_Stats_Label);
+      Controls_Row.Add_Child (Debug_Stats_Switch);
 
       No_Panel.Add_Child (No_Title);
       No_Panel.Add_Child (No_Status);
@@ -262,10 +327,15 @@ begin
       Range_Panel.Add_Child (Range_Status);
       Range_Panel.Add_Child (Range_Listbox);
 
+      Grid_Panel.Add_Child (Grid_Title);
+      Grid_Panel.Add_Child (Grid_Status);
+      Grid_Panel.Add_Child (Grid_Listbox);
+
       Panels.Add_Child (No_Panel);
       Panels.Add_Child (Single_Panel);
       Panels.Add_Child (Multi_Panel);
       Panels.Add_Child (Range_Panel);
+      Panels.Add_Child (Grid_Panel);
       Root.Add_Child (Controls_Row);
       Root.Add_Child (Panels);
 

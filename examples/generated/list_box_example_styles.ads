@@ -201,6 +201,7 @@ package List_Box_Example_Styles is
       Border_Radius => Set (Radius (Px (8.0))),
       Height => Set (Size (Px (500.0))),
       Flex_Grow => Set (1.0),
+      Gap => Set (Gap (Px (4.0))),
       others => <>
    );
 
@@ -249,6 +250,18 @@ package List_Box_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'listbox-multi'
+   Listbox_Multi_Class_Base_Style : constant Style_Rules := (
+      Gap => Set (Gap (Px (6.0))),
+      others => <>
+   );
+
+   --  Base style for class 'listbox-grid'
+   Listbox_Grid_Class_Base_Style : constant Style_Rules := (
+      Grid_Columns => Set (Grid_Columns_Value (3)),
+      others => <>
+   );
+
    --  Base style for class 'label-row'
    Label_Row_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (255, 255, 255)),
@@ -256,8 +269,16 @@ package List_Box_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (220, 228, 236))),
       Border_Radius => Set (Radius (Px (6.0))),
+      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
+      others => <>
+   );
+
+   --  Style for class 'label-row' when widget State_Hovered
+   Label_Row_Class_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (235, 241, 250)),
+      Border_Color => Set (Border_Color (RGB (186, 200, 220))),
       others => <>
    );
 
@@ -265,6 +286,13 @@ package List_Box_Example_Styles is
    Label_Row_Class_Widget_Selected_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (62, 118, 210)),
       Border_Color => Set (Border_Color (RGB (48, 95, 171))),
+      others => <>
+   );
+
+   --  Style for class 'label-row' when widget State_Selected, widget State_Hovered
+   Label_Row_Class_Widget_Selected_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (52, 104, 192)),
+      Border_Color => Set (Border_Color (RGB (40, 82, 152))),
       others => <>
    );
 
@@ -291,8 +319,16 @@ package List_Box_Example_Styles is
       Border_Color => Set (Border_Color (RGB (28, 33, 45))),
       Border_Radius => Set (Radius (Px (8.0))),
       Height => Set (Size (Px (44.0))),
+      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
+      others => <>
+   );
+
+   --  Style for class 'card-row' when widget State_Hovered
+   Card_Row_Class_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (75, 132, 198)),
+      Border_Color => Set (Border_Color (RGB (40, 48, 65))),
       others => <>
    );
 
@@ -303,10 +339,66 @@ package List_Box_Example_Styles is
       others => <>
    );
 
+   --  Style for class 'card-row' when widget State_Selected, widget State_Hovered
+   Card_Row_Class_Widget_Selected_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (248, 178, 100)),
+      Border_Color => Set (Border_Color (RGB (205, 138, 52))),
+      others => <>
+   );
+
    --  Base style for class 'card-row-title'::label
    Card_Row_Title_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (C (White)),
       Font_Size => Set_Font (Px (13.0)),
+      others => <>
+   );
+
+   --  Base style for class 'grid-cell'
+   Grid_Cell_Class_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (255, 255, 255)),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (220, 228, 236))),
+      Border_Radius => Set (Radius (Px (6.0))),
+      Height => Set (Size (Px (50.0))),
+      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (12.0), Px (6.0), Px (12.0), Px (6.0))),
+      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (0.0))),
+      others => <>
+   );
+
+   --  Style for class 'grid-cell' when widget State_Hovered
+   Grid_Cell_Class_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (235, 241, 250)),
+      Border_Color => Set (Border_Color (RGB (186, 200, 220))),
+      others => <>
+   );
+
+   --  Style for class 'grid-cell' when widget State_Selected
+   Grid_Cell_Class_Widget_Selected_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (62, 118, 210)),
+      Border_Color => Set (Border_Color (RGB (48, 95, 171))),
+      others => <>
+   );
+
+   --  Style for class 'grid-cell' when widget State_Selected, widget State_Hovered
+   Grid_Cell_Class_Widget_Selected_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (52, 104, 192)),
+      Border_Color => Set (Border_Color (RGB (40, 82, 152))),
+      others => <>
+   );
+
+   --  Base style for class 'grid-cell'::label
+   Grid_Cell_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (43, 52, 67)),
+      Font_Size => Set_Font (Px (13.0)),
+      Text_Align => Set (Text_Center),
+      others => <>
+   );
+
+   --  Style for class 'grid-cell'::label when widget State_Selected
+   Grid_Cell_Class_Label_Widget_Selected_Style : constant Style_Rules := (
+      Color => Set (C (White)),
       others => <>
    );
 
@@ -471,10 +563,34 @@ package List_Box_Example_Styles is
       others => <>
    ];
 
+   --  Complete widget style for class 'listbox-multi'
+   Listbox_Multi_Class_Widget : constant Widget_Style :=
+     From (Listbox_Multi_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'listbox-multi'
+   Listbox_Multi_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Listbox_Multi_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'listbox-grid'
+   Listbox_Grid_Class_Widget : constant Widget_Style :=
+     From (Listbox_Grid_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'listbox-grid'
+   Listbox_Grid_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Listbox_Grid_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
    --  Complete widget style for class 'label-row'
    Label_Row_Class_Widget : constant Widget_Style :=
      From (Label_Row_Class_Base_Style)
+     .On (When_State (State_Hovered), Label_Row_Class_Widget_Hovered_Style)
      .On (When_State (State_Selected), Label_Row_Class_Widget_Selected_Style)
+     .On (When_State (State_Selected) and When_State (State_Hovered), Label_Row_Class_Widget_Selected_Widget_Hovered_Style)
      .Build;
 
    --  Complete widget style for class 'label-row'::label
@@ -493,7 +609,9 @@ package List_Box_Example_Styles is
    --  Complete widget style for class 'card-row'
    Card_Row_Class_Widget : constant Widget_Style :=
      From (Card_Row_Class_Base_Style)
+     .On (When_State (State_Hovered), Card_Row_Class_Widget_Hovered_Style)
      .On (When_State (State_Selected), Card_Row_Class_Widget_Selected_Style)
+     .On (When_State (State_Selected) and When_State (State_Hovered), Card_Row_Class_Widget_Selected_Widget_Hovered_Style)
      .Build;
 
    --  Part styles bundle for class 'card-row'
@@ -510,6 +628,27 @@ package List_Box_Example_Styles is
    --  Part styles bundle for class 'card-row-title'
    Card_Row_Title_Class_Part_Styles : constant Part_Style_Array := [
       Label_Part => (Style => Card_Row_Title_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'grid-cell'
+   Grid_Cell_Class_Widget : constant Widget_Style :=
+     From (Grid_Cell_Class_Base_Style)
+     .On (When_State (State_Hovered), Grid_Cell_Class_Widget_Hovered_Style)
+     .On (When_State (State_Selected), Grid_Cell_Class_Widget_Selected_Style)
+     .On (When_State (State_Selected) and When_State (State_Hovered), Grid_Cell_Class_Widget_Selected_Widget_Hovered_Style)
+     .Build;
+
+   --  Complete widget style for class 'grid-cell'::label
+   Grid_Cell_Class_Label_Widget : constant Widget_Style :=
+     From (Grid_Cell_Class_Label_Base_Style)
+     .On (When_State (State_Selected), Grid_Cell_Class_Label_Widget_Selected_Style)
+     .Build;
+
+   --  Part styles bundle for class 'grid-cell'
+   Grid_Cell_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Grid_Cell_Class_Widget, Enabled => True),
+      Label_Part => (Style => Grid_Cell_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 

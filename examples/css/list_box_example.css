@@ -148,6 +148,15 @@
   border-radius: 8px;
   height: 500px;
   flex-grow: 1;
+  gap: 4px;
+}
+
+.listbox-multi {
+  gap: 6px;
+}
+
+.listbox-grid {
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .listbox::scroll {
@@ -191,11 +200,22 @@
   border-style: solid;
   border-color: rgb(220, 228, 236);
   border-radius: 6px;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.label-row:hover {
+  background-color: rgb(235, 241, 250);
+  border-color: rgb(186, 200, 220);
 }
 
 .label-row:selected {
   background-color: rgb(62, 118, 210);
   border-color: rgb(48, 95, 171);
+}
+
+.label-row:selected:hover {
+  background-color: rgb(52, 104, 192);
+  border-color: rgb(40, 82, 152);
 }
 
 .label-row::label {
@@ -218,11 +238,22 @@
   border-color: rgb(28, 33, 45);
   border-radius: 8px;
   height: 44px;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.card-row:hover {
+  background-color: rgb(75, 132, 198);
+  border-color: rgb(40, 48, 65);
 }
 
 .card-row:selected {
   background-color: rgb(244, 166, 77);
   border-color: rgb(190, 120, 35);
+}
+
+.card-row:selected:hover {
+  background-color: rgb(248, 178, 100);
+  border-color: rgb(205, 138, 52);
 }
 
 .card-row-title::label {
@@ -232,4 +263,41 @@
 
 .panel-title {
   flex-shrink: 0;
+}
+
+.grid-cell {
+  margin: 0px;
+  padding: 12px 6px;
+  background-color: rgb(255, 255, 255);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(220, 228, 236);
+  border-radius: 6px;
+  height: 50px;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.grid-cell:hover {
+  background-color: rgb(235, 241, 250);
+  border-color: rgb(186, 200, 220);
+}
+
+.grid-cell:selected {
+  background-color: rgb(62, 118, 210);
+  border-color: rgb(48, 95, 171);
+}
+
+.grid-cell:selected:hover {
+  background-color: rgb(52, 104, 192);
+  border-color: rgb(40, 82, 152);
+}
+
+.grid-cell::label {
+  color: rgb(43, 52, 67);
+  font-size: 13px;
+  text-align: center;
+}
+
+.grid-cell::label:selected {
+  color: white;
 }

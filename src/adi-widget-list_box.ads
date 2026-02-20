@@ -22,9 +22,6 @@ package Adi.Widget.List_Box is
    function Row_Count (W : List_Box_Widget) return Natural;
    function Get_Row (W : List_Box_Widget; Index : Positive) return Row_Widget_Access;
 
-   procedure Set_Row_Gap (W : in out List_Box_Widget; Gap : Pixel_Type);
-   function Get_Row_Gap (W : List_Box_Widget) return Pixel_Type;
-
    procedure Set_Scroll_Offset (W : in out List_Box_Widget; Offset : Pixel_Type);
    function Get_Scroll_Offset (W : List_Box_Widget) return Pixel_Type;
    function Get_Content_Height (W : List_Box_Widget) return Pixel_Type;
@@ -92,14 +89,16 @@ private
    package Row_Vectors is new Ada.Containers.Vectors (Positive, Row_Widget_Access);
    package Bool_Vectors is new Ada.Containers.Vectors (Positive, Boolean);
    package Height_Vectors is new Ada.Containers.Vectors (Positive, Pixel_Type);
+   package Rect_Vectors is new Ada.Containers.Vectors (Positive, Rectangle);
 
    type List_Box_Widget is new Widget with record
       Rows           : Row_Vectors.Vector;
       Selected       : Bool_Vectors.Vector;
       Row_Heights    : Height_Vectors.Vector;
-      Row_Gap        : Pixel_Type := 0.0;
+      Cell_Rects     : Rect_Vectors.Vector;
       Current_Row    : Natural := 0;
       Anchor_Row     : Natural := 0;
+      Hovered_Row    : Natural := 0;
       Mode           : Selection_Mode := Single_Selection;
       On_Item_Click  : Item_Clicked_Callback := null;
       On_Item_Act    : Item_Activated_Callback := null;

@@ -1,8 +1,16 @@
 with Adi.SDL.Events;  use Adi.SDL.Events;
+with Adi.Layout_Util;  use Adi.Layout_Util;
 
 package body Adi.Widget.List_Box is
 
    Default_Row_Height : constant Pixel_Type := 24.0;
+
+   function Get_Grid_Cols (W : List_Box_Widget'Class) return Natural is
+      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+   begin
+      return Natural (Style.Grid_Columns);
+   end Get_Grid_Cols;
+
    function Clamp (Value, Lo, Hi : Integer) return Integer is
    begin
       if Value < Lo then
@@ -45,30 +53,54 @@ package body Adi.Widget.List_Box is
       return Get_Content_Box (W);
    end Main_Content_Box;
 
-   function Row_Index_At_Y (W : List_Box_Widget; Y : Pixel_Type) return Natural is
+   function Row_Index_At (W : List_Box_Widget; X, Y : Pixel_Type) return Natural is
       Content : constant Rectangle := Main_Content_Box (W);
-      Cursor  : Pixel_Type := 0.0;
-      Local_Y : Pixel_Type;
    begin
       if Y < Content.Y or else Y > Content.Y + Content.Height then
          return 0;
       end if;
 
-      Local_Y := Y - Content.Y + Get_Scroll_Offset_Y (W);
-
-      for I in 1 .. Natural (W.Rows.Length) loop
+      if Get_Grid_Cols (W) > 1 and then Natural (W.Cell_Rects.Length) > 0 then
+         --  Grid mode: check cached cell rectangles.
          declare
-            H : constant Pixel_Type := W.Row_Heights.Element (I);
+            Local_X : constant Pixel_Type := X - Content.X;
+            Local_Y : constant Pixel_Type := Y - Content.Y + Get_Scroll_Offset_Y (W);
          begin
-            if Local_Y >= Cursor and then Local_Y <= Cursor + H then
-               return I;
-            end if;
-            Cursor := Cursor + H + W.Row_Gap;
+            for I in 1 .. Natural (W.Cell_Rects.Length) loop
+               declare
+                  R : constant Rectangle := W.Cell_Rects.Element (I);
+               begin
+                  if Local_X >= R.X and then Local_X <= R.X + R.Width
+                    and then Local_Y >= R.Y and then Local_Y <= R.Y + R.Height
+                  then
+                     return I;
+                  end if;
+               end;
+            end loop;
          end;
-      end loop;
+      else
+         --  Vertical mode: only check Y coordinate.
+         declare
+            Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+            R_Gap   : constant Pixel_Type := Get_Row_Gap (Style.Gap);
+            Cursor  : Pixel_Type := 0.0;
+            Local_Y : constant Pixel_Type := Y - Content.Y + Get_Scroll_Offset_Y (W);
+         begin
+            for I in 1 .. Natural (W.Rows.Length) loop
+               declare
+                  H : constant Pixel_Type := W.Row_Heights.Element (I);
+               begin
+                  if Local_Y >= Cursor and then Local_Y <= Cursor + H then
+                     return I;
+                  end if;
+                  Cursor := Cursor + H + R_Gap;
+               end;
+            end loop;
+         end;
+      end if;
 
       return 0;
-   end Row_Index_At_Y;
+   end Row_Index_At;
 
    procedure Select_Only (W : in out List_Box_Widget; Index : Positive) is
       Changed : Boolean := False;
@@ -233,9 +265,11 @@ package body Adi.Widget.List_Box is
       W.Rows.Clear;
       W.Selected.Clear;
       W.Row_Heights.Clear;
+      W.Cell_Rects.Clear;
       Set_Scroll_Offset_Y (W, 0.0);
       W.Current_Row := 0;
       W.Anchor_Row := 0;
+      W.Hovered_Row := 0;
       Mark_Dirty (W);
       Fire_Selection_Changed (W);
    end Clear_Rows;
@@ -252,17 +286,6 @@ package body Adi.Widget.List_Box is
       end if;
       return null;
    end Get_Row;
-
-   procedure Set_Row_Gap (W : in out List_Box_Widget; Gap : Pixel_Type) is
-   begin
-      W.Row_Gap := Pixel_Type'Max (0.0, Gap);
-      Mark_Dirty (W);
-   end Set_Row_Gap;
-
-   function Get_Row_Gap (W : List_Box_Widget) return Pixel_Type is
-   begin
-      return W.Row_Gap;
-   end Get_Row_Gap;
 
    procedure Set_Scroll_Offset (W : in out List_Box_Widget; Offset : Pixel_Type) is
    begin
@@ -286,8 +309,6 @@ package body Adi.Widget.List_Box is
 
    procedure Ensure_Row_Visible (W : in out List_Box_Widget; Index : Positive) is
       Content : constant Rectangle := Main_Content_Box (W);
-      Cursor  : Pixel_Type := 0.0;
-      H       : Pixel_Type;
       Row_Top : Pixel_Type;
       Row_Bot : Pixel_Type;
    begin
@@ -295,13 +316,27 @@ package body Adi.Widget.List_Box is
          return;
       end if;
 
-      for I in 1 .. Index - 1 loop
-         Cursor := Cursor + W.Row_Heights.Element (I) + W.Row_Gap;
-      end loop;
-
-      H := W.Row_Heights.Element (Index);
-      Row_Top := Cursor;
-      Row_Bot := Cursor + H;
+      if Index <= Natural (W.Cell_Rects.Length) then
+         declare
+            R : constant Rectangle := W.Cell_Rects.Element (Index);
+         begin
+            Row_Top := R.Y;
+            Row_Bot := R.Y + R.Height;
+         end;
+      else
+         --  Fallback: accumulate from row heights.
+         declare
+            Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+            R_Gap  : constant Pixel_Type := Get_Row_Gap (Style.Gap);
+            Cursor : Pixel_Type := 0.0;
+         begin
+            for I in 1 .. Index - 1 loop
+               Cursor := Cursor + W.Row_Heights.Element (I) + R_Gap;
+            end loop;
+            Row_Top := Cursor;
+            Row_Bot := Cursor + W.Row_Heights.Element (Index);
+         end;
+      end if;
 
       if Row_Top < Get_Scroll_Offset_Y (W) then
          Set_Scroll_Offset_Y (W, Row_Top);
@@ -458,22 +493,24 @@ package body Adi.Widget.List_Box is
 
    overriding procedure Layout (W : in out List_Box_Widget) is
       Content : constant Rectangle := Main_Content_Box (W);
-      Height_Sum : Pixel_Type := 0.0;
-      Row_H : Pixel_Type;
-      Cursor_Y : Pixel_Type;
-      Rows_Width : Pixel_Type := Content.Width;
+      Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      R_Gap   : constant Pixel_Type := Get_Row_Gap (Style.Gap);
+      C_Gap   : constant Pixel_Type := Get_Column_Gap (Style.Gap);
+      Cols    : constant Natural := Natural (Style.Grid_Columns);
+      N       : constant Natural := Natural (W.Rows.Length);
+      Row_H   : Pixel_Type;
    begin
-      if Natural (W.Row_Heights.Length) /= Natural (W.Rows.Length) then
+      if Natural (W.Row_Heights.Length) /= N then
          W.Row_Heights.Clear;
-         for I in 1 .. Natural (W.Rows.Length) loop
+         for I in 1 .. N loop
             W.Row_Heights.Append (Default_Row_Height);
          end loop;
       end if;
 
-      --  First pass: measure rows and compute full content height.
-      for I in 1 .. Natural (W.Rows.Length) loop
+      --  Measure all rows.
+      for I in 1 .. N loop
          declare
-            Row : constant Row_Widget_Access := W.Rows.Element (I);
+            Row  : constant Row_Widget_Access := W.Rows.Element (I);
             Pref : Size_2D;
          begin
             if Row = null then
@@ -482,36 +519,99 @@ package body Adi.Widget.List_Box is
                Pref := Get_Preferred_Size (Row.all);
                Row_H := (if Pref.Height > 0.0 then Pref.Height else Default_Row_Height);
             end if;
-
             W.Row_Heights.Replace_Element (I, Row_H);
-            Height_Sum := Height_Sum + Row_H;
-            if I < Natural (W.Rows.Length) then
-               Height_Sum := Height_Sum + W.Row_Gap;
-            end if;
          end;
       end loop;
 
-      Rows_Width := Content.Width;
-
-      --  Second pass: place rows using final viewport width.
-      Cursor_Y := Content.Y;
-      for I in 1 .. Natural (W.Rows.Length) loop
+      if Cols > 1 and then N > 0 then
+         --  Grid layout using Compute_Grid_Layout.
          declare
-            Row : constant Row_Widget_Access := W.Rows.Element (I);
+            Ctx : Grid_Layout_Context :=
+              (Container          => (X => 0.0, Y => 0.0,
+                                      Width => Content.Width,
+                                      Height => Content.Height),
+               Columns            => Cols,
+               Explicit_Rows      => 0,
+               Row_Gap            => R_Gap,
+               Column_Gap         => C_Gap,
+               Use_Preferred_Floor => True);
+            Kids : Grid_Child_Info_Array (1 .. N);
          begin
-            Row_H := W.Row_Heights.Element (I);
-            if Row /= null then
-               Set_Geometry
-                 (Row.all,
-                  (X      => Content.X,
-                   Y      => Cursor_Y,
-                   Width  => Rows_Width,
-                   Height => Row_H));
-               Layout (Row.all);
-            end if;
-            Cursor_Y := Cursor_Y + Row_H + W.Row_Gap;
+            for I in 1 .. N loop
+               Kids (I) := (Active           => True,
+                            Grid_Column      => 0,
+                            Grid_Row         => 0,
+                            Grid_Column_Span => 1,
+                            Grid_Row_Span    => 1,
+                            Min_Width        => 0.0,
+                            Min_Height       => 0.0,
+                            Pref_Width       => 0.0,
+                            Pref_Height      => W.Row_Heights.Element (I),
+                            Computed_X       => 0.0,
+                            Computed_Y       => 0.0,
+                            Computed_Width   => 0.0,
+                            Computed_Height  => 0.0);
+            end loop;
+
+            Compute_Grid_Layout (Ctx, Kids);
+
+            --  Cache cell positions (local to content box) and apply to children.
+            W.Cell_Rects.Clear;
+            for I in 1 .. N loop
+               W.Cell_Rects.Append
+                 (Rectangle'(X      => Kids (I).Computed_X,
+                             Y      => Kids (I).Computed_Y,
+                             Width  => Kids (I).Computed_Width,
+                             Height => Kids (I).Computed_Height));
+
+               declare
+                  Row : constant Row_Widget_Access := W.Rows.Element (I);
+               begin
+                  if Row /= null then
+                     Set_Geometry
+                       (Row.all,
+                        (X      => Content.X + Kids (I).Computed_X,
+                         Y      => Content.Y + Kids (I).Computed_Y,
+                         Width  => Kids (I).Computed_Width,
+                         Height => Kids (I).Computed_Height));
+                     Layout (Row.all);
+                  end if;
+               end;
+            end loop;
          end;
-      end loop;
+      else
+         --  Vertical layout (original path).
+         W.Cell_Rects.Clear;
+         declare
+            Cursor_Y   : Pixel_Type := Content.Y;
+            Rows_Width : constant Pixel_Type := Content.Width;
+         begin
+            for I in 1 .. N loop
+               Row_H := W.Row_Heights.Element (I);
+
+               W.Cell_Rects.Append
+                 (Rectangle'(X      => 0.0,
+                             Y      => Cursor_Y - Content.Y,
+                             Width  => Rows_Width,
+                             Height => Row_H));
+
+               declare
+                  Row : constant Row_Widget_Access := W.Rows.Element (I);
+               begin
+                  if Row /= null then
+                     Set_Geometry
+                       (Row.all,
+                        (X      => Content.X,
+                         Y      => Cursor_Y,
+                         Width  => Rows_Width,
+                         Height => Row_H));
+                     Layout (Row.all);
+                  end if;
+               end;
+               Cursor_Y := Cursor_Y + Row_H + R_Gap;
+            end loop;
+         end;
+      end if;
    end Layout;
 
    overriding procedure On_Mouse_Down
@@ -535,7 +635,7 @@ package body Adi.Widget.List_Box is
          return;
       end if;
 
-      Index := Row_Index_At_Y (W, Y);
+      Index := Row_Index_At (W, X, Y);
       if Index = 0 then
          if W.Mode /= No_Selection then
             Clear_Selection (W);
@@ -620,8 +720,19 @@ package body Adi.Widget.List_Box is
      (W    : in out List_Box_Widget;
       X, Y : Pixel_Type)
    is
+      Hit : constant Natural := Row_Index_At (W, X, Y);
    begin
       Handle_Scroll_Mouse_Move (W, X, Y);
+
+      if Hit /= W.Hovered_Row then
+         if W.Hovered_Row in 1 .. Natural (W.Rows.Length) then
+            Set_State (W.Rows (W.Hovered_Row).all, State_Hovered, False);
+         end if;
+         if Hit in 1 .. Natural (W.Rows.Length) then
+            Set_State (W.Rows (Hit).all, State_Hovered, True);
+         end if;
+         W.Hovered_Row := Hit;
+      end if;
    end On_Mouse_Move;
 
    overriding procedure On_Mouse_Up
@@ -657,20 +768,29 @@ package body Adi.Widget.List_Box is
         (if Count > 0 then Get_Scroll_Content_Height (W) / Pixel_Type (Count) else Default_Row_Height);
       Page_Rows : Integer :=
         Integer'Max (1, Integer (Float (Content.Height / Pixel_Type'Max (1.0, Avg_Row_H))));
+      Cols : constant Natural := Get_Grid_Cols (W);
    begin
       if Count = 0 then
          return;
       end if;
 
       case Scancode is
+         when SDL_SCANCODE_LEFT =>
+            if Cols > 1 then
+               Move_Current (W, -1, Shift, Ctrl);
+            end if;
+         when SDL_SCANCODE_RIGHT =>
+            if Cols > 1 then
+               Move_Current (W, 1, Shift, Ctrl);
+            end if;
          when SDL_SCANCODE_UP =>
-            Move_Current (W, -1, Shift, Ctrl);
+            Move_Current (W, -(Integer'Max (1, Cols)), Shift, Ctrl);
          when SDL_SCANCODE_DOWN =>
-            Move_Current (W, 1, Shift, Ctrl);
+            Move_Current (W, Integer'Max (1, Cols), Shift, Ctrl);
          when SDL_SCANCODE_PAGEUP =>
-            Move_Current (W, -Page_Rows, Shift, Ctrl);
+            Move_Current (W, -(Page_Rows * Integer'Max (1, Cols)), Shift, Ctrl);
          when SDL_SCANCODE_PAGEDOWN =>
-            Move_Current (W, Page_Rows, Shift, Ctrl);
+            Move_Current (W, Page_Rows * Integer'Max (1, Cols), Shift, Ctrl);
          when SDL_SCANCODE_HOME =>
             Move_Current (W, -Integer (Count), Shift, Ctrl);
          when SDL_SCANCODE_END =>

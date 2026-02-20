@@ -127,19 +127,6 @@ package body Adi.Widget.Combo_Box is
       end if;
    end Fire_Changed;
 
-   procedure Sync_Popup_Row_Gap_From_Style (W : in out Combo_Box_Widget) is
-      Popup_Style : Resolved_Style;
-      Gap_Px      : Pixel_Type;
-   begin
-      if W.Popup = null then
-         return;
-      end if;
-
-      Popup_Style := Get_Resolved_Part_Style (W.Popup.all, Main_Part);
-      Gap_Px := Get_Row_Gap (Popup_Style.Gap);
-      Popup_Lists.Set_Row_Gap (W.Popup.all, Gap_Px);
-   end Sync_Popup_Row_Gap_From_Style;
-
    function Resolve_Popup_Row_Content_Height
      (W : Combo_Box_Widget) return Pixel_Type
    is
@@ -169,8 +156,13 @@ package body Adi.Widget.Combo_Box is
       end loop;
 
       if Count > 1 then
-         Total :=
-           Total + Pixel_Type (Count - 1) * Popup_Lists.Get_Row_Gap (W.Popup.all);
+         declare
+            S : constant Resolved_Style :=
+              Get_Resolved_Part_Style (W.Popup.all, Main_Part);
+         begin
+            Total :=
+              Total + Pixel_Type (Count - 1) * Get_Row_Gap (S.Gap);
+         end;
       end if;
       return Total;
    end Resolve_Popup_Row_Content_Height;
@@ -385,7 +377,6 @@ package body Adi.Widget.Combo_Box is
    begin
       if W.Popup /= null then
          Set_Part_Styles (W.Popup.all, Styles);
-         Sync_Popup_Row_Gap_From_Style (W);
       end if;
    end Set_Dropdown_Part_Styles;
 
@@ -498,7 +489,6 @@ package body Adi.Widget.Combo_Box is
 
       Anchor := Get_Geometry (W);
       Win_Size := Adi.Window.Get_Size (W.Host_Window.all);
-      Sync_Popup_Row_Gap_From_Style (W);
       Popup_H := Resolve_Popup_Height (W, Win_Size);
 
       X_Pos := Anchor.X;

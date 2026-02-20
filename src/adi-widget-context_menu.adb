@@ -156,8 +156,13 @@ package body Adi.Widget.Context_Menu is
       end loop;
 
       if Count > 1 then
-         Total :=
-           Total + Pixel_Type (Count - 1) * Popup_Lists.Get_Row_Gap (Menu.Popup.all);
+         declare
+            S : constant Resolved_Style :=
+              Get_Resolved_Part_Style (Menu.Popup.all, Main_Part);
+         begin
+            Total :=
+              Total + Pixel_Type (Count - 1) * Get_Row_Gap (S.Gap);
+         end;
       end if;
 
       return Total;

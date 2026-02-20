@@ -36,12 +36,17 @@ package Adi.Render is
      (Ctx : in out Render_Context)
       return Adi.SDL.TTF.TextEngine.TTF_TextEngine_Access;
 
+   --  Scroll offset (accumulated from parent scrollable containers)
+   function Get_Scroll_Y (Ctx : Render_Context) return Float;
+   procedure Set_Scroll_Y (Ctx : in out Render_Context; Value : Float);
+
 private
    type Render_Data;
    type Render_Data_Access is access Render_Data;
 
    type Render_Context is limited record
-      Data : Render_Data_Access;
+      Data     : Render_Data_Access;
+      Scroll_Y : Float := 0.0;
    end record;
 
 end Adi.Render;

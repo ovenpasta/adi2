@@ -133,4 +133,14 @@ package body Adi.Render is
       return Ctx.Data.Text_Engine;
    end Get_Text_Engine;
 
+   function Get_Scroll_Y (Ctx : Render_Context) return Float is
+   begin
+      return Ctx.Scroll_Y;
+   end Get_Scroll_Y;
+
+   procedure Set_Scroll_Y (Ctx : in out Render_Context; Value : Float) is
+   begin
+      Ctx.Scroll_Y := Value;
+   end Set_Scroll_Y;
+
 end Adi.Render;

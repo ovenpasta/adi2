@@ -480,6 +480,8 @@ private
       Part_States : Part_State_Array := [others => No_States];
       Dirty       : Boolean := True;
       Layout_Dirty : Boolean := True;
+      Style_Version        : Natural := 0;
+      Last_Applied_Version : Natural := 0;
       Flags       : Widget_Flags := Default_Flags;
 
       --  Styling - each part has its own Widget_Style

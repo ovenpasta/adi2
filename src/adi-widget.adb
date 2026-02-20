@@ -371,12 +371,29 @@ package body Adi.Widget is
      (W          : Widget'Class;
       Old_States : Widget_States) return Boolean
    is
-      WS : Widget_Style;
+      Changed : Widget_State;
+      Found   : Boolean := False;
+      WS      : Widget_Style;
    begin
+      --  Identify which state changed
+      for S in Widget_State loop
+         if Old_States (S) /= W.States (S) then
+            Changed := S;
+            Found := True;
+            exit;
+         end if;
+      end loop;
+      if not Found then
+         return False;
+      end if;
+
+      --  Only check parts whose rules reference the changed state
       for P in Part_Kind loop
          if W.Part_Styles (P).Enabled then
             WS := Effective_Part_Style (W, P);
-            if WS /= Empty_Widget_Style then
+            if WS /= Empty_Widget_Style
+               and then Uses_Widget_State (WS, Changed)
+            then
                declare
                   Old_Resolved : constant Resolved_Style :=
                     Resolve (Compute_Style (WS, Old_States, W.Part_States (P)));
@@ -398,17 +415,32 @@ package body Adi.Widget is
       Changed    : Part_Kind;
       Old_States : Widget_States) return Boolean
    is
-      WS : Widget_Style;
+      Changed_State : Widget_State;
+      Found         : Boolean := False;
+      WS            : Widget_Style;
    begin
+      --  Identify which part state changed
+      for S in Widget_State loop
+         if Old_States (S) /= W.Part_States (Changed) (S) then
+            Changed_State := S;
+            Found := True;
+            exit;
+         end if;
+      end loop;
+      if not Found then
+         return False;
+      end if;
+
+      --  Only the changed part can be affected, and only if rules use this state
       for P in Part_Kind loop
-         if W.Part_Styles (P).Enabled then
+         if P = Changed and then W.Part_Styles (P).Enabled then
             WS := Effective_Part_Style (W, P);
-            if WS /= Empty_Widget_Style then
+            if WS /= Empty_Widget_Style
+               and then Uses_Part_State (WS, Changed_State)
+            then
                declare
-                  Old_Part_States : constant Widget_States :=
-                    (if P = Changed then Old_States else W.Part_States (P));
                   Old_Resolved : constant Resolved_Style :=
-                    Resolve (Compute_Style (WS, Get_States (W), Old_Part_States));
+                    Resolve (Compute_Style (WS, Get_States (W), Old_States));
                   New_Resolved : constant Resolved_Style :=
                     Resolve (Compute_Style (WS, Get_States (W), W.Part_States (P)));
                begin
@@ -422,6 +454,16 @@ package body Adi.Widget is
       return False;
    end Part_State_Affects_Resolved_Styles;
 
+   procedure Bump_Style_Version (W : in out Widget'Class) is
+   begin
+      if W.Style_Version = Natural'Last then
+         W.Style_Version := 0;
+         W.Last_Applied_Version := Natural'Last;
+      else
+         W.Style_Version := W.Style_Version + 1;
+      end if;
+   end Bump_Style_Version;
+
    procedure Set_State (W : in out Widget'Class;
                         S : Widget_State;
                         Active : Boolean) is
@@ -431,9 +473,10 @@ package body Adi.Widget is
       if Was_Active /= Active then
          Old_States := W.States;
          W.States (S) := Active;
+         Bump_Style_Version (W);
          On_State_Changed (W, S, Active);
          if Widget_State_Affects_Resolved_Styles (W, Old_States) then
-            Mark_Dirty (W);
+            Mark_Render_Dirty (W);
          end if;
       end if;
    end Set_State;
@@ -462,8 +505,9 @@ package body Adi.Widget is
       if Was_Active /= Active then
          Old_States := W.Part_States (P);
          W.Part_States (P) (S) := Active;
+         Bump_Style_Version (W);
          if Part_State_Affects_Resolved_Styles (W, P, Old_States) then
-            Mark_Dirty (W);
+            Mark_Render_Dirty (W);
          end if;
       end if;
    end Set_Part_State;
@@ -476,13 +520,15 @@ package body Adi.Widget is
    procedure Clear_States (W : in out Widget'Class) is
    begin
       W.States := No_States;
-      Mark_Dirty (W);
+      Bump_Style_Version (W);
+      Mark_Render_Dirty (W);
    end Clear_States;
 
    procedure Clear_Part_States (W : in out Widget'Class) is
    begin
       W.Part_States := [others => No_States];
-      Mark_Dirty (W);
+      Bump_Style_Version (W);
+      Mark_Render_Dirty (W);
    end Clear_Part_States;
 
    --  Convenience state setters
@@ -540,6 +586,7 @@ package body Adi.Widget is
                              S : Widget_Style) is
    begin
       W.Part_Styles (P) := (Style => S, Enabled => True);
+      Bump_Style_Version (W);
       Mark_Dirty (W);
    end Set_Part_Style;
 
@@ -547,6 +594,7 @@ package body Adi.Widget is
                               Styles : Part_Style_Array) is
    begin
       W.Part_Styles := Styles;
+      Bump_Style_Version (W);
       Mark_Dirty (W);
    end Set_Part_Styles;
 
@@ -599,7 +647,7 @@ package body Adi.Widget is
          New_Item.Computed_Style := Get_Resolved_Part_Style (W, I.Part);
       end if;
       W.Items.Append (New_Item);
-      Mark_Dirty (W);
+      Mark_Render_Dirty (W);
    end Add_Item;
 
    procedure Clear_Items (W : in out Widget'Class) is
@@ -616,7 +664,7 @@ package body Adi.Widget is
          end;
       end loop;
       W.Items.Clear;
-      Mark_Dirty (W);
+      Mark_Render_Dirty (W);
    end Clear_Items;
 
    procedure Update_Item (W : in out Widget'Class;
@@ -631,7 +679,7 @@ package body Adi.Widget is
             New_Item.Computed_Style := Get_Resolved_Part_Style (W, I.Part);
          end if;
          W.Items.Replace_Element (Index, New_Item);
-         Mark_Dirty (W);
+         Mark_Render_Dirty (W);
       end if;
    end Update_Item;
 
@@ -648,6 +696,15 @@ package body Adi.Widget is
    procedure Apply_Styles_To_Items (W : in out Widget'Class) is
       Parts_Seen : array (Part_Kind) of Boolean := [others => False];
    begin
+      --  Skip if styles haven't changed since last apply and no animations
+      if W.Style_Version = W.Last_Applied_Version
+         and then W.Last_Target_Init (Main_Part)
+         and then not W.Has_Any_Animation
+      then
+         return;
+      end if;
+      W.Last_Applied_Version := W.Style_Version;
+
       --  First pass: for each part encountered, check if target changed
       for I in 1 .. Natural (W.Items.Length) loop
          declare
@@ -920,6 +977,7 @@ package body Adi.Widget is
       W.Scroll_Offset_Y := Offset;
       Clamp_Scroll_Offset (W);
       if W.Scroll_Offset_Y /= Old then
+         Update_Scrollbar_Geometry (W);
          Mark_Render_Dirty (W);
       end if;
    end Set_Scroll_Offset_Y;
@@ -1058,7 +1116,6 @@ package body Adi.Widget is
       Min_Top        : Pixel_Type := Content.Y;
       Has_Content    : Boolean := False;
       Max_Offset     : Pixel_Type;
-      Shift_Y        : constant Pixel_Type := -W.Scroll_Offset_Y;
    begin
       W.Scroll_Viewport_H := Pixel_Type'Max (0.0, Content.Height);
       if Is_Scroll_Enabled (W) then
@@ -1084,21 +1141,6 @@ package body Adi.Widget is
       Max_Offset := Get_Scroll_Max_Offset_Y (W);
       if Max_Offset <= 0.0 then
          W.Scroll_Dragging := False;
-      end if;
-
-      if Is_Scroll_Enabled (W) and then W.Scroll_Offset_Y > 0.0 then
-         for I in 1 .. Child_Count (W) loop
-            declare
-               Child   : constant Widget_Access := Get_Child (W, I);
-               Child_G : Rectangle;
-            begin
-               if Child /= null then
-                  Child_G := Get_Geometry (Child.all);
-                  Child_G.Y := Child_G.Y + Shift_Y;
-                  Set_Geometry (Child.all, Child_G);
-               end if;
-            end;
-         end loop;
       end if;
 
       Update_Scrollbar_Geometry (W);
@@ -1220,7 +1262,7 @@ package body Adi.Widget is
 
    procedure On_Geometry_Changed (W : in out Widget'Class) is
    begin
-      Mark_Dirty (W);
+      Mark_Render_Dirty (W);
    end On_Geometry_Changed;
 
    function Handle_Scroll_Mouse_Down
@@ -3467,7 +3509,11 @@ package body Adi.Widget is
             Need_Item_Clip : constant Boolean :=
               Use_Clip and then not
                 (Current.Kind = Panel_Item and then Current.Part = Main_Part);
+            Scroll_Shift : constant Pixel_Type := Pixel_Type (Get_Scroll_Y (Ctx));
          begin
+            --  Temporarily apply scroll offset for rendering
+            Current.Geometry.Y := Current.Geometry.Y + Scroll_Shift;
+
             if Need_Item_Clip and then not Clip_Valid then
                null;
             else
@@ -3501,6 +3547,9 @@ package body Adi.Widget is
                   end;
                end if;
             end if;
+
+            --  Restore original geometry
+            Current.Geometry.Y := Current.Geometry.Y - Scroll_Shift;
          end;
       end loop;
 
@@ -3617,9 +3666,17 @@ package body Adi.Widget is
       end if;
 
       if not Skip_Children then
-         for Child of W.Children loop
-            Render_Tree (Child.all, Ctx);
-         end loop;
+         declare
+            Saved_Scroll_Y : constant Float := Get_Scroll_Y (Ctx);
+         begin
+            if Is_Scroll_Enabled (W) and then W.Scroll_Offset_Y > 0.0 then
+               Set_Scroll_Y (Ctx, Saved_Scroll_Y - Float (W.Scroll_Offset_Y));
+            end if;
+            for Child of W.Children loop
+               Render_Tree (Child.all, Ctx);
+            end loop;
+            Set_Scroll_Y (Ctx, Saved_Scroll_Y);
+         end;
       end if;
 
       if Use_Clip then
@@ -4197,7 +4254,33 @@ begin
 
    W.Has_Any_Animation := Any_Active;
    if Any_Active or else Had_Active then
-      Mark_Dirty (W);
+      --  If any transition animates layout-affecting properties, trigger
+      --  relayout; otherwise a render-only dirty is sufficient.
+      declare
+         Needs_Layout : Boolean := False;
+      begin
+         for P in Part_Kind loop
+            if W.Transitions (P).Active then
+               declare
+                  Props : Property_Set renames
+                    W.Transitions (P).Target_Style.Transition.Properties;
+               begin
+                  if Props (Prop_Padding) or else Props (Prop_Margin)
+                    or else Props (Prop_Border_Width)
+                    or else Props (Prop_Font_Size)
+                  then
+                     Needs_Layout := True;
+                     exit;
+                  end if;
+               end;
+            end if;
+         end loop;
+         if Needs_Layout then
+            Mark_Dirty (W);
+         else
+            Mark_Render_Dirty (W);
+         end if;
+      end;
    end if;
 
    --  Recurse to children

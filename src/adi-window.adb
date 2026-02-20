@@ -1146,7 +1146,9 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       end if;
 
       --  Route drag motion to the pressed widget (for text selection, etc.)
-      if W.Mouse_Down and then W.Pressed_Widget /= null then
+      if W.Mouse_Down and then W.Pressed_Widget /= null
+        and then not Is_Disabled (W.Pressed_Widget.all)
+      then
          if W.Scroll_Claimed then
             Handle_Scroll_Mouse_Move (W.Pressed_Widget.all, X, Y);
          else
@@ -1300,7 +1302,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
          end if;
       end if;
 
-      if Target /= null then
+      if Target /= null and then not Is_Disabled (Target.all) then
          On_Mouse_Wheel (Target.all, Delta_X, Delta_Y);
       end if;
    end On_Mouse_Wheel;

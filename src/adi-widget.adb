@@ -551,6 +551,7 @@ package body Adi.Widget is
       procedure Mark_Children_Dirty (Parent : in out Widget'Class) is
       begin
          for Child of Parent.Children loop
+            Bump_Style_Version (Child.all);
             Mark_Dirty (Child.all);
             Mark_Children_Dirty (Child.all);
          end loop;

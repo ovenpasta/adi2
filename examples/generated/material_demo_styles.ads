@@ -710,6 +710,12 @@ package Material_Demo_Styles is
       others => <>
    );
 
+   --  Style for class 'slider'::indicator when widget State_Disabled
+   Slider_Class_Indicator_Widget_Disabled_Style : constant Style_Rules := (
+      Opacity => Set (0.5),
+      others => <>
+   );
+
    --  Base style for class 'slider'::knob
    Slider_Class_Knob_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (20.0))),
@@ -728,6 +734,12 @@ package Material_Demo_Styles is
    --  Style for class 'slider'::knob when part State_Pressed
    Slider_Class_Knob_Part_Pressed_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (208, 188, 255)),
+      others => <>
+   );
+
+   --  Style for class 'slider'::knob when widget State_Disabled
+   Slider_Class_Knob_Widget_Disabled_Style : constant Style_Rules := (
+      Opacity => Set (0.5),
       others => <>
    );
 
@@ -1343,6 +1355,7 @@ package Material_Demo_Styles is
    --  Complete widget style for class 'slider'::indicator
    Slider_Class_Indicator_Widget : constant Widget_Style :=
      From (Slider_Class_Indicator_Base_Style)
+     .On (When_State (State_Disabled), Slider_Class_Indicator_Widget_Disabled_Style)
      .Build;
 
    --  Complete widget style for class 'slider'::knob
@@ -1350,6 +1363,7 @@ package Material_Demo_Styles is
      From (Slider_Class_Knob_Base_Style)
      .On (When_Part_State (State_Hovered), Slider_Class_Knob_Part_Hovered_Style)
      .On (When_Part_State (State_Pressed), Slider_Class_Knob_Part_Pressed_Style)
+     .On (When_State (State_Disabled), Slider_Class_Knob_Widget_Disabled_Style)
      .Build;
 
    --  Part styles bundle for class 'slider'

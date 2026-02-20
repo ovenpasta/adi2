@@ -123,7 +123,7 @@
 - Part system: `Main_Part`, `Indicator_Part`, `Label_Part`, `Icon_Part`, `Cursor_Part`, `Selected_Part`, `Scroll_Part`, `Knob_Part`
 - Item system: `Panel_Item`, `Text_Item`, `Image_Item`
 - Flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`
-- Inherited disabled: `Is_Disabled` returns True when any ancestor has `State_Disabled`; `Get_States` injects the inherited flag so CSS `:disabled` styles apply to descendants; `Set_Disabled` marks all descendants dirty for re-styling
+- Inherited disabled: `Is_Disabled` returns True when any ancestor has `State_Disabled`; `Get_States` injects the inherited flag so CSS `:disabled` styles apply to descendants; `Set_Disabled` bumps `Style_Version` and marks all descendants dirty so `Apply_Styles_To_Items` re-resolves inherited disabled styles immediately
 - Abstract: `Build_Items`, `Layout`; Concrete: `Render_Items`, `Render_Tree`, `Update_And_Render`
 - Size calculation: `Measure_Content` (dispatching) returns preferred content size; `Get_Min_Size` (dispatching) returns minimum size floor — base returns CSS `min-width`/`min-height`, Label overrides to return `max(CSS_min, intrinsic_text_min)`; `Get_Preferred_Size` (`Widget'Class`) returns CSS `width`/`height` or falls back to `Measure_Content`
 - Shared overflow scrolling with scrollbar parts — scroll offset applied at render time via `Render_Context.Scroll_Y`, not by shifting child geometries; hit-testing reverses the offset
@@ -151,7 +151,7 @@
 
 **Stack** (generic over `Page_Id` enum): One visible child at a time, type-safe page switching, binds to `Button.Options`.
 
-**Slider** (generic over numeric type): Draggable track+knob control. Core implementation in `Slider_Impl` (generic with `private` type + formal functions), thin wrappers `Slider` (`digits <>`) and `Integer_Slider` (`range <>`). Uses Main/Indicator/Knob parts. Supports horizontal/vertical orientation, step snapping, keyboard (arrows/Home/End) and mouse wheel input.
+**Slider** (generic over numeric type): Draggable track+knob control. Core implementation in `Slider_Impl` (generic with `private` type + formal functions), thin wrappers `Slider` (`digits <>`) and `Integer_Slider` (`range <>`). Uses Main/Indicator/Knob parts. Supports horizontal/vertical orientation, step snapping, keyboard (arrows/Home/End) and mouse wheel input. All event handlers guard against `Is_Disabled`. CSS `:disabled` rules must target each part (`::main`, `::indicator`, `::knob`) since opacity is not inherited across parts.
 
 **Value_Input** (generic over numeric type, derives from `Text_Input`): Numeric text field with input filtering, clamping, and formatting. Core in `Value_Input_Impl`, wrappers `Value_Input` (`digits <>`) and `Integer_Value_Input` (`range <>`). Filters non-numeric keystrokes, parses on Enter/focus-lost, supports Up/Down/PageUp/PageDown stepping and mouse wheel.
 

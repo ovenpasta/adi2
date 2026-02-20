@@ -602,6 +602,14 @@
   opacity: 0.5;
 }
 
+.slider:disabled::indicator {
+  opacity: 0.5;
+}
+
+.slider:disabled::knob {
+  opacity: 0.5;
+}
+
 .num-field:disabled::main {
   opacity: 0.5;
   cursor: default;

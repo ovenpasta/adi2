@@ -321,7 +321,7 @@ package body Adi.Widget.Slider_Impl is
    is
       pragma Unreferenced (Clicks);
    begin
-      if Button /= Left_Button then
+      if Button /= Left_Button or else Is_Disabled (W) then
          return;
       end if;
 
@@ -397,6 +397,9 @@ package body Adi.Widget.Slider_Impl is
       Range_F : constant Float :=
         To_Float (W.Max_Value - W.Min_Value);
    begin
+      if Is_Disabled (W) then
+         return;
+      end if;
       if Step_F > 0.0 then
          Inc := W.Step;
       elsif Range_F > 0.0 then
@@ -426,6 +429,9 @@ package body Adi.Widget.Slider_Impl is
         To_Float (W.Max_Value - W.Min_Value);
       Inc     : Value_Type;
    begin
+      if Is_Disabled (W) then
+         return;
+      end if;
       if Step_F > 0.0 then
          Inc := W.Step;
       elsif Range_F > 0.0 then

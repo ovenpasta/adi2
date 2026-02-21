@@ -139,6 +139,7 @@ private
         Stats_Layout_Calls   : Natural := 0;
         Stats_Layout_Skips   : Natural := 0;
         Stats_Pref_Calls     : Natural := 0;
+        Stats_Pref_Hits      : Natural := 0;
     end record;
 
     overriding procedure Initialize (w : in out Window);

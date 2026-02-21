@@ -511,6 +511,10 @@ package body Adi.Window is
        Append_Nat (W.Stats_Layout_Calls, 3);
        Append ("+");
        Append_Nat (W.Stats_Layout_Skips, 3);
+       Append ("  P:");
+       Append_Nat (W.Stats_Pref_Hits, 3);
+       Append ("/");
+       Append_Nat (W.Stats_Pref_Calls, 3);
 
        --  Draw background bar
        Dummy := SDL_SetRenderDrawBlendMode
@@ -571,6 +575,10 @@ package body Adi.Window is
           SDL_Assert (SDL_SetRenderDrawColor (W.Internal.ren, 255, 255, 255, 255), "SDL_SetRenderDrawColor");
           SDL_Assert (SDL_RenderClear (W.Internal.ren), "SDL_RenderClear");
 
+          --  Reset perf counters before Update so that style/pref-size
+          --  work during Build_Items is included in the per-frame stats.
+          Adi.Widget.Reset_Perf_Counters;
+
           --  Rebuild dirty items first.
           Stage_Start := Clock;
           Update (W);
@@ -578,7 +586,6 @@ package body Adi.Window is
             (To_Duration (Clock - Stage_Start) * 1_000_000.0);
 
           --  Relayout only when required by geometry-affecting changes.
-          Adi.Widget.Reset_Perf_Counters;
           Stage_Start := Clock;
           if W.Needs_Layout then
              W.Stats_Layout_Reason := 'W';
@@ -618,6 +625,7 @@ package body Adi.Window is
           W.Stats_Layout_Calls   := Adi.Widget.Get_Perf_Layout_Calls;
           W.Stats_Layout_Skips   := Adi.Widget.Get_Perf_Layout_Skips;
           W.Stats_Pref_Calls     := Adi.Widget.Get_Perf_Pref_Calls;
+          W.Stats_Pref_Hits      := Adi.Widget.Get_Perf_Pref_Hits;
 
           --  Draw all widget trees
           Stage_Start := Clock;

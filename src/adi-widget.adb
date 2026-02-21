@@ -42,6 +42,7 @@ package body Adi.Widget is
    Perf_Layout_Calls   : Natural := 0;
    Perf_Layout_Skips   : Natural := 0;
    Perf_Pref_Calls     : Natural := 0;
+   Perf_Pref_Hits      : Natural := 0;
 
    type Scrollbar_Metrics is record
       Width       : Pixel_Type := 10.0;
@@ -476,6 +477,15 @@ package body Adi.Widget is
          W.Style_Version := W.Style_Version + 1;
       end if;
    end Bump_Style_Version;
+
+   procedure Bump_Content_Version (W : in out Widget'Class) is
+   begin
+      if W.Content_Version = Natural'Last then
+         W.Content_Version := 1;
+      else
+         W.Content_Version := W.Content_Version + 1;
+      end if;
+   end Bump_Content_Version;
 
    procedure Set_State (W : in out Widget'Class;
                         S : Widget_State;
@@ -1277,6 +1287,11 @@ package body Adi.Widget is
    begin
       W.Dirty := True;
       W.Layout_Dirty := True;
+      --  Bump content version so that the preferred-size cache detects
+      --  content mutations (Set_Text, Add_Child, etc.) that don't
+      --  affect Style_Version.  Propagates upward because a child's
+      --  content change affects the parent's Measure_Content result.
+      Bump_Content_Version (W);
       if W.Parent /= null then
          Mark_Dirty (W.Parent.all);
       end if;
@@ -3833,53 +3848,90 @@ package body Adi.Widget is
       return (Min_W, Min_H);
    end Get_Min_Size;
 
-   function Get_Preferred_Size(W : Widget'Class) return Size_2D is
-      Style : constant Resolved_Style := Get_Resolved_Part_Style(W, Main_Part);
-      Scrollable : constant Boolean :=
-        Style.Overflow in Overflow_Scroll | Overflow_Auto;
-      Pref_W, Pref_H : Pixel_Type := 0.0;
-      Need_Content_W : Boolean := False;
-      Need_Content_H : Boolean := False;
+   function Get_Preferred_Size (W : Widget'Class) return Size_2D is
+      --  Pass-scoped + mutation-keyed cache.  Same 'Unrestricted_Access
+      --  pattern as Get_Resolved_Part_Style — safe because the cache is
+      --  a pure memo (same inputs always produce the same output).
+      W_Mut : constant access Widget'Class := W'Unrestricted_Access;
+      Eff   : constant Widget_States := Get_States (W);
    begin
       Perf_Pref_Calls := Perf_Pref_Calls + 1;
-      --  Check explicit width/height
-      case Style.Width.Kind is
-         when Fixed =>
-            Pref_W := Size_To_Px(Style.Width, W.Geometry.Width);
-         when others =>
-            Need_Content_W := True;
-      end case;
 
-      case Style.Height.Kind is
-         when Fixed =>
-            Pref_H := Size_To_Px(Style.Height, W.Geometry.Height);
-         when others =>
-            --  Scrollable containers should not report full content height
-            --  as preferred size — use min-height instead so the window can
-            --  shrink and let the scroll mechanism activate.  Always include
-            --  padding + border so the container chrome is never clipped.
-            if Scrollable then
-               Pref_H := Outer_Size
-                 ((0.0, Get_Min_Size (W).Height), Style).Height;
-            else
-               Need_Content_H := True;
-            end if;
-      end case;
-
-      if Need_Content_W or Need_Content_H then
-         declare
-            Content : constant Size_2D := Measure_Content(W);
-         begin
-            if Need_Content_W then
-               Pref_W := Content.Width;
-            end if;
-            if Need_Content_H then
-               Pref_H := Content.Height;
-            end if;
-         end;
+      --  Cache hit?  Same epoch + style version + content version +
+      --  states + geometry.  Content_Version detects mutations like
+      --  Set_Text or Add_Child that affect Measure_Content without
+      --  changing Style_Version.
+      if W_Mut.Cached_Pref_Epoch = Current_Layout_Epoch
+        and then W_Mut.Cached_Pref_Version = W.Style_Version
+        and then W_Mut.Cached_Pref_Content = W.Content_Version
+        and then W_Mut.Cached_Pref_States = Eff
+        and then W_Mut.Cached_Pref_Geom_W = W.Geometry.Width
+        and then W_Mut.Cached_Pref_Geom_H = W.Geometry.Height
+      then
+         Perf_Pref_Hits := Perf_Pref_Hits + 1;
+         return W_Mut.Cached_Pref_Size;
       end if;
 
-      return (Pref_W, Pref_H);
+      --  Cache miss: compute.
+      declare
+         Style : constant Resolved_Style :=
+           Get_Resolved_Part_Style (W, Main_Part);
+         Scrollable : constant Boolean :=
+           Style.Overflow in Overflow_Scroll | Overflow_Auto;
+         Pref_W, Pref_H : Pixel_Type := 0.0;
+         Need_Content_W : Boolean := False;
+         Need_Content_H : Boolean := False;
+         Result : Size_2D;
+      begin
+         --  Check explicit width/height
+         case Style.Width.Kind is
+            when Fixed =>
+               Pref_W := Size_To_Px (Style.Width, W.Geometry.Width);
+            when others =>
+               Need_Content_W := True;
+         end case;
+
+         case Style.Height.Kind is
+            when Fixed =>
+               Pref_H := Size_To_Px (Style.Height, W.Geometry.Height);
+            when others =>
+               --  Scrollable containers should not report full content
+               --  height as preferred size — use min-height instead so the
+               --  window can shrink and let the scroll mechanism activate.
+               --  Always include padding + border so the container chrome
+               --  is never clipped.
+               if Scrollable then
+                  Pref_H := Outer_Size
+                    ((0.0, Get_Min_Size (W).Height), Style).Height;
+               else
+                  Need_Content_H := True;
+               end if;
+         end case;
+
+         if Need_Content_W or Need_Content_H then
+            declare
+               Content : constant Size_2D := Measure_Content (W);
+            begin
+               if Need_Content_W then
+                  Pref_W := Content.Width;
+               end if;
+               if Need_Content_H then
+                  Pref_H := Content.Height;
+               end if;
+            end;
+         end if;
+
+         Result := (Pref_W, Pref_H);
+
+         W_Mut.Cached_Pref_Size    := Result;
+         W_Mut.Cached_Pref_Epoch   := Current_Layout_Epoch;
+         W_Mut.Cached_Pref_Version := W.Style_Version;
+         W_Mut.Cached_Pref_Content := W.Content_Version;
+         W_Mut.Cached_Pref_States  := Eff;
+         W_Mut.Cached_Pref_Geom_W  := W.Geometry.Width;
+         W_Mut.Cached_Pref_Geom_H  := W.Geometry.Height;
+         return Result;
+      end;
    end Get_Preferred_Size;
 
    ---------------------------------------------------------------------------
@@ -4274,20 +4326,30 @@ begin
 end Layout_Child;
 
 ---------------------------------------------------------------------------
---  Layout_Tree: recursive layout with epoch-based duplicate elimination.
---  The epoch is incremented once at the top-level call; containers that
---  call Layout_Child during their own Layout stamp their children so
---  that the subsequent Layout_Tree recursion skips the redundant call.
+--  Bump_Layout_Epoch: safely increment the global layout epoch counter.
+--  Wraps to 1 (not 0) because 0 is the default value of
+--  Last_Layout_Epoch in new widgets — wrapping to 0 would cause a
+--  false cache hit for any widget that was never laid out.
 ---------------------------------------------------------------------------
 
-procedure Layout_Tree (W : in out Widget'Class) is
+procedure Bump_Layout_Epoch is
 begin
-   --  Bump epoch for every top-level entry (root or overlay) so that
-   --  children stamped from a previous pass are always re-evaluated.
-   if W.Parent = null then
+   if Current_Layout_Epoch = Natural'Last then
+      Current_Layout_Epoch := 1;
+   else
       Current_Layout_Epoch := Current_Layout_Epoch + 1;
    end if;
+end Bump_Layout_Epoch;
 
+---------------------------------------------------------------------------
+--  Layout_Tree_Impl: recursive layout with epoch-based duplicate
+--  elimination.  Containers that call Layout_Child during their own
+--  Layout stamp their children with the current epoch so that this
+--  recursion skips the redundant call.
+---------------------------------------------------------------------------
+
+procedure Layout_Tree_Impl (W : in out Widget'Class) is
+begin
    if W.Last_Layout_Epoch = Current_Layout_Epoch then
       --  Already laid out by parent container in this epoch — skip.
       Perf_Layout_Skips := Perf_Layout_Skips + 1;
@@ -4300,9 +4362,22 @@ begin
    Update_Shared_Scroll_Layout (W);
 
    for Child of W.Children loop
-      Layout_Tree (Child.all);
+      Layout_Tree_Impl (Child.all);
    end loop;
    W.Layout_Dirty := False;
+end Layout_Tree_Impl;
+
+---------------------------------------------------------------------------
+--  Layout_Tree: public entry point.  Bumps the epoch once so that this
+--  pass gets a fresh epoch distinct from any previous pass, then
+--  delegates to Layout_Tree_Impl for recursive descent.  Every external
+--  call (root, overlay, dialog subtree) gets its own epoch.
+---------------------------------------------------------------------------
+
+procedure Layout_Tree (W : in out Widget'Class) is
+begin
+   Bump_Layout_Epoch;
+   Layout_Tree_Impl (W);
 end Layout_Tree;
 
 ---------------------------------------------------------------------------
@@ -4316,6 +4391,7 @@ begin
    Perf_Layout_Calls   := 0;
    Perf_Layout_Skips   := 0;
    Perf_Pref_Calls     := 0;
+   Perf_Pref_Hits      := 0;
 end Reset_Perf_Counters;
 
 function Get_Perf_Style_Resolves return Natural is (Perf_Style_Resolves);
@@ -4323,6 +4399,7 @@ function Get_Perf_Style_Hits return Natural is (Perf_Style_Hits);
 function Get_Perf_Layout_Calls return Natural is (Perf_Layout_Calls);
 function Get_Perf_Layout_Skips return Natural is (Perf_Layout_Skips);
 function Get_Perf_Pref_Calls return Natural is (Perf_Pref_Calls);
+function Get_Perf_Pref_Hits return Natural is (Perf_Pref_Hits);
 
 ---------------------------------------------------------------------------
 --  Tick_Animations

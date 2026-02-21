@@ -291,6 +291,127 @@ procedure Layout_Perf_Test is
       end;
    end Test_Multiple_Layout_Passes;
 
+   ---------------------------------------------------------------------------
+   --  Test: Preferred size cache returns cached result on second call.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Pref_Size_Cache_Hit is
+      --  Use a standalone label (not inside a flex container) so that
+      --  Layout_Tree does not pre-warm the cache via Perform_Flex_Layout.
+      W : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("pref");
+   begin
+      Put_Line ("Test: preferred size cache hit");
+
+      Set_Geometry (W.all, (0.0, 0.0, 200.0, 40.0));
+
+      --  Layout_Tree establishes a layout epoch.  Label's Layout does
+      --  not call Get_Preferred_Size on itself.
+      Layout_Tree (W.all);
+
+      Reset_Perf_Counters;
+
+      --  First call: cache miss
+      declare
+         S1 : constant Size_2D := Get_Preferred_Size (W.all);
+      begin
+         Assert (Get_Perf_Pref_Calls = 1,
+                 "first pref-size call counted");
+         Assert (Get_Perf_Pref_Hits = 0,
+                 "first pref-size call is a miss");
+
+         --  Second call: cache hit (same epoch + version + states + geom)
+         declare
+            S2 : constant Size_2D := Get_Preferred_Size (W.all);
+         begin
+            Assert (Get_Perf_Pref_Hits = 1,
+                    "second pref-size call is a hit");
+            Assert (S1 = S2,
+                    "cached pref size equals original");
+         end;
+      end;
+   end Test_Pref_Size_Cache_Hit;
+
+   ---------------------------------------------------------------------------
+   --  Test: Preferred size cache invalidates on state change.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Pref_Size_Cache_Invalidation is
+      W : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("pinv");
+   begin
+      Put_Line ("Test: preferred size cache invalidation");
+
+      Set_Geometry (W.all, (0.0, 0.0, 200.0, 40.0));
+
+      --  Layout_Tree establishes a layout epoch
+      Layout_Tree (W.all);
+
+      --  Prime the cache
+      declare
+         S1 : constant Size_2D := Get_Preferred_Size (W.all);
+         pragma Unreferenced (S1);
+      begin
+         null;
+      end;
+
+      Reset_Perf_Counters;
+
+      --  Change state
+      Set_State (W.all, State_Hovered, True);
+
+      --  Next call must be a miss (state changed)
+      declare
+         S2 : constant Size_2D := Get_Preferred_Size (W.all);
+         pragma Unreferenced (S2);
+      begin
+         Assert (Get_Perf_Pref_Calls = 1,
+                 "pref-size after state change counted");
+         Assert (Get_Perf_Pref_Hits = 0,
+                 "pref-size after state change is a miss");
+      end;
+   end Test_Pref_Size_Cache_Invalidation;
+
+   ---------------------------------------------------------------------------
+   --  Test: Preferred size cache invalidates on content mutation (Set_Text).
+   --  Regression guard: Content_Version must cause a cache miss even when
+   --  Style_Version, states, and geometry are unchanged.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Pref_Size_Content_Invalidation is
+      W : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("before");
+   begin
+      Put_Line ("Test: preferred size cache invalidation on content change");
+
+      Set_Geometry (W.all, (0.0, 0.0, 200.0, 40.0));
+
+      --  Layout_Tree establishes a layout epoch
+      Layout_Tree (W.all);
+
+      --  Prime the cache
+      declare
+         S1 : constant Size_2D := Get_Preferred_Size (W.all);
+         pragma Unreferenced (S1);
+      begin
+         Reset_Perf_Counters;
+
+         --  Mutate content without changing style or state
+         Adi.Widget.Label.Set_Text (W.all, "after - different length");
+
+         --  Next call must be a miss (Content_Version changed)
+         declare
+            S2 : constant Size_2D := Get_Preferred_Size (W.all);
+            pragma Unreferenced (S2);
+         begin
+            Assert (Get_Perf_Pref_Calls = 1,
+                    "pref-size after Set_Text counted");
+            Assert (Get_Perf_Pref_Hits = 0,
+                    "pref-size after Set_Text is a miss");
+         end;
+      end;
+   end Test_Pref_Size_Content_Invalidation;
+
 begin
    Put_Line ("========================================");
    Put_Line ("   Layout Performance Test Suite");
@@ -302,6 +423,9 @@ begin
    Test_Style_Cache_Invalidation;
    Test_Subpart_Cache_Invalidation;
    Test_Multiple_Layout_Passes;
+   Test_Pref_Size_Cache_Hit;
+   Test_Pref_Size_Cache_Invalidation;
+   Test_Pref_Size_Content_Invalidation;
 
    Put_Line ("");
    Put_Line ("Total:" & Test_Count'Image

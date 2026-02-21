@@ -189,17 +189,21 @@
 
 Render scheduling note: relayout runs only when layout/geometry is dirty (`Mark_Dirty`); pure visual updates (state changes, scroll-offset, visual-only animations) use `Mark_Render_Dirty` for repaint without forcing full tree relayout.
 
-**Debug stats overlay**: `Set_Debug_Stats(True)` enables a 2-line HUD showing frame number, FPS, per-stage timing (Update/Layout/Draw/Present in microseconds), layout count, layout trigger reason, style cache hit ratio (`S:hits/total`), and layout call/skip counts (`LC:calls+skips`). Renders only when the scene is already being redrawn — does not force extra frames.
+**Debug stats overlay**: `Set_Debug_Stats(True)` enables a 2-line HUD showing frame number, FPS, per-stage timing (Update/Layout/Draw/Present in microseconds), layout count, layout trigger reason, style cache hit ratio (`S:hits/total`), layout call/skip counts (`LC:calls+skips`), and preferred-size cache ratio (`P:hits/total`). Renders only when the scene is already being redrawn — does not force extra frames.
 
 ### Layout Performance Optimizations
 
-Two optimizations reduce layout cost for large widget trees (e.g. 280+ widgets in list_box_example):
+Three optimizations reduce layout cost for large widget trees (e.g. 280+ widgets in list_box_example):
 
 **Resolved style cache** (`Get_Resolved_Part_Style`): Each widget caches its resolved style per part, keyed on `(Style_Version, Get_States(W), Part_States(P))`. Using `Get_States` (not raw `W.States`) ensures inherited `:disabled` state is included. When the widget-level key changes (version or effective states), ALL per-part cache entries are invalidated — this prevents sub-parts that inherit from Main_Part from returning stale results. Cache writes use `'Unrestricted_Access` on the read-only `Widget'Class` parameter (safe because the cache is a pure memo).
 
-**Epoch-based layout deduplication** (`Layout_Tree` / `Layout_Child`): A global `Current_Layout_Epoch` counter increments once per top-level `Layout_Tree` call. Containers (flex, grid, list_box, stack) call `Layout_Child(Child)` instead of bare `Layout(Child)` — this stamps `Child.Last_Layout_Epoch := Current_Layout_Epoch`. When `Layout_Tree` later recurses into those children, it skips the redundant `Layout` call if the epoch matches. This eliminates ~50% of layout calls in container-heavy trees.
+**Epoch-based layout deduplication** (`Layout_Tree` / `Layout_Child`): A global `Current_Layout_Epoch` counter increments once per `Layout_Tree` call via `Bump_Layout_Epoch`. The public `Layout_Tree` bumps the epoch then delegates to a private `Layout_Tree_Impl` for recursive descent — this ensures every external call (root, overlay, or dialog subtree) gets a fresh epoch while recursive children share the same epoch for dedup. Containers (flex, grid, list_box, stack) call `Layout_Child(Child)` instead of bare `Layout(Child)` — this stamps `Child.Last_Layout_Epoch := Current_Layout_Epoch`. When `Layout_Tree_Impl` later recurses into those children, it skips the redundant `Layout` call if the epoch matches. `Bump_Layout_Epoch` wraps to 1 (not 0) at `Natural'Last` to avoid matching the default `Last_Layout_Epoch := 0` init value. This eliminates ~50% of layout calls in container-heavy trees.
 
-**Performance counters**: `Reset_Perf_Counters` / `Get_Perf_*` functions in `Adi.Widget` track style resolves, cache hits, layout calls, layout skips, and preferred-size calls per frame. The Window captures these after each layout pass for the debug stats overlay.
+**Preferred size cache** (`Get_Preferred_Size`): Each widget caches its computed preferred size, keyed on `(Current_Layout_Epoch, Style_Version, Content_Version, Get_States(W), Geometry.Width, Geometry.Height)`. The cache is pass-scoped (valid within one layout epoch) and mutation-keyed (invalidated by style changes, content changes, state changes, or geometry changes). `Content_Version` is a per-widget counter bumped by `Mark_Dirty` (which is called by `Set_Text`, `Add_Child`, etc.) — it detects content mutations that don't affect `Style_Version`. `Cached_Pref_Epoch` is initialized to `Natural'Last` to prevent false hits before the first `Layout_Tree` call. Achieves ~56% hit rate in list_box_example (280+ widgets).
+
+**Version bump helpers**: `Bump_Style_Version`, `Bump_Layout_Epoch`, and `Bump_Content_Version` are private auxiliary procedures that handle `Natural'Last` wraparound consistently. Layout epoch and content version wrap to 1 (not 0) to avoid matching default init values.
+
+**Performance counters**: `Reset_Perf_Counters` / `Get_Perf_*` functions in `Adi.Widget` track style resolves, cache hits, layout calls, layout skips, preferred-size calls, and preferred-size cache hits per frame. Counters are reset before `Update` so that all work (including `Build_Items`) is captured. The Window captures these after each layout pass for the debug stats overlay.
 
 ## SDL Bindings
 

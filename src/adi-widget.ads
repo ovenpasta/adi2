@@ -456,6 +456,7 @@ package Adi.Widget is
    function Get_Perf_Layout_Calls return Natural;
    function Get_Perf_Layout_Skips return Natural;
    function Get_Perf_Pref_Calls return Natural;
+   function Get_Perf_Pref_Hits return Natural;
 
    ---------------------------------------------------------------------------
    --  Layout helper for containers: lay out a child and mark its epoch
@@ -523,6 +524,24 @@ private
 
       --  Layout epoch for duplicate-call elimination (Phase 2)
       Last_Layout_Epoch : Natural := 0;
+
+      --  Content version: bumped by Mark_Dirty (text changes, child
+      --  add/remove, etc.).  Propagates to parents since Mark_Dirty
+      --  recurses upward.  Used by the pref-size cache to detect
+      --  content mutations that don't affect Style_Version.
+      Content_Version : Natural := 0;
+
+      --  Preferred size cache (pass-scoped + mutation-keyed).
+      --  Keyed on (epoch, Style_Version, Content_Version, effective
+      --  states, geometry).  Epoch = Natural'Last initially so that
+      --  the cache never false-hits before the first Layout_Tree call.
+      Cached_Pref_Size       : Size_2D := (0.0, 0.0);
+      Cached_Pref_Epoch      : Natural := Natural'Last;
+      Cached_Pref_Version    : Natural := 0;
+      Cached_Pref_Content    : Natural := 0;
+      Cached_Pref_States     : Widget_States := No_States;
+      Cached_Pref_Geom_W     : Pixel_Type := 0.0;
+      Cached_Pref_Geom_H     : Pixel_Type := 0.0;
 
       --  Animation state
       Transitions       : Part_Transition_Array := [others => No_Part_Transition];

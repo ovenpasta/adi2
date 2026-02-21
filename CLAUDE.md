@@ -26,13 +26,13 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 ## Build Commands
 
 ```bash
-# Full build (library + tests + examples, incremental CSS/UI generation)
+# Build library + all tests (does NOT build examples — too slow)
 alr build -- -j0
 
 # Build a specific test
 alr exec -- gprbuild -j0 -P tests/tests.gpr -XTEST_KIND=css_parser_test
 
-# Build a specific example
+# Build a specific example (always build explicitly by name)
 alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 
 # Run tests (built to tests/bin/)

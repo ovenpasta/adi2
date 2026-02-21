@@ -150,7 +150,7 @@
   }
 
   .list-cat {
-    list-style: url(app://cat) disc outside;
+    list-style: url(app://cat.svg) disc outside;
   }
 
   .list-none {
@@ -241,7 +241,7 @@ line breaks should be preserved.</p>
     <code>disc</code>, <code>circle</code>, <code>square</code>,
     <code>decimal</code>, custom string markers, image markers, and
     <code>none</code>. The cat image marker uses
-    <code>list-style-image: url(app://cat)</code>.
+    <code>list-style-image: url(app://cat.svg)</code>.
   </p>
 
   <ul class="list-gallery list-disc">
@@ -276,7 +276,7 @@ line breaks should be preserved.</p>
   </ul>
 
   <ul class="list-gallery list-cat">
-    <li>Cat SVG marker from <code>app://cat</code>.</li>
+    <li>Cat SVG marker from <code>app://cat.svg</code>.</li>
     <li>If image loading fails, the fallback marker is a disc.</li>
   </ul>
 
@@ -287,25 +287,25 @@ line breaks should be preserved.</p>
 
   <h2>7) Images and Fallback</h2>
   <p class="panel">
-    Callback-loaded SVG image: <img src="app://cat" alt="cat image">.
+    Callback-loaded SVG image: <img src="app://cat.svg" alt="cat image">.
   </p>
   <p class="panel align-center">
     Centered image (sized with viewport width):<br>
-    <img src="app://cat" alt="centered cat" style="width: 34vw;">
+    <img src="app://cat.svg" alt="centered cat" style="width: 34vw;">
   </p>
   <p class="panel align-center">
     Detailed SVG sample (<code>camera.svg</code>):<br>
-    <img src="app://camera" alt="camera icon" style="width: 42vw;">
+    <img src="app://camera.svg" alt="camera icon" style="width: 42vw;">
   </p>
   <p class="panel">
     Near full-width image using viewport width (<code>88vw</code>):<br>
-    <img src="app://tiger" alt="wide tiger" style="width: 88vw;">
+    <img src="app://tiger.svg" alt="wide tiger" style="width: 88vw;">
   </p>
   <p class="panel">
     Missing image fallback text: <img src="app://missing-image" alt="(missing image fallback text)">.
   </p>
   <p class="panel">
-    Linked image fragment: <a href="app://open/cat"><img src="app://cat" alt="linked cat"></a>
+    Linked image fragment: <a href="app://open/cat"><img src="app://cat.svg" alt="linked cat"></a>
   </p>
   <p class="panel align-center">
     Inline SVG block (standard HTML style):<br>

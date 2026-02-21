@@ -62,6 +62,15 @@
 - `Load_SVG_Path` builds an SVG image from a single path string using typed Ada values:
   `Size_2D`, `Color_8` fill/stroke, and `Pixel_Type` stroke width.
 
+**Adi.Assets** (`adi-assets.ads`): Cached asset loader with scheme-based URI routing.
+- `Asset_Store` record holds a window reference and a list of search directories
+- `Add_Path(Path, Scheme)`: register a search directory; if `Scheme` is non-empty (e.g. `"app"`), the directory is only searched for `scheme://path` URIs; empty scheme directories handle plain relative paths
+- `Get_String(Path)`: resolve and read file contents as a string, cached by path
+- `Get_Image(Path)`: resolve and load image via `Adi.Image.Load_From_File`, cached by path
+- URI parsing: `"app://icons/star.svg"` splits into scheme `"app"` + relative `"icons/star.svg"`; plain paths search default directories
+- Path sanitization: rejects `..` traversal, normalizes backslashes, strips leading slashes
+- Directories searched in insertion order; first match wins
+
 **Adi.SVG** (`src/svg/adi-svg.ads`): SVG loading/raster API used by `Adi.Image` and HTML image flows.
 - Compile-time backend selection via `-XADI_SVG_BACKEND=<plutosvg|ada>`
 - `plutosvg` backend (default) lives in `src/svg/plutosvg` and uses vendored C libraries under `plutosvg/`

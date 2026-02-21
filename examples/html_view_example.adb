@@ -1,10 +1,9 @@
 pragma Ada_2022;
 
-with Ada.Directories;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
 with Adi.App;
+with Adi.Assets;
 with Adi.Image;
 with Adi.Widget;
 with Adi.Widget.Button; use Adi.Widget.Button;
@@ -23,41 +22,6 @@ procedure Html_View_Example is
    package Html_Stack is new Adi.Widget.Stack (Page_Tab);
    package Tab_Options is new Adi.Widget.Button.Options (Page_Tab);
 
-   function Read_File (Path : String) return String is
-      F      : Ada.Text_IO.File_Type;
-      Buffer : String (1 .. 2048);
-      Last   : Natural;
-      Out_S  : Unbounded_String := Null_Unbounded_String;
-      First  : Boolean := True;
-   begin
-      Ada.Text_IO.Open (F, Ada.Text_IO.In_File, Path);
-      while not Ada.Text_IO.End_Of_File (F) loop
-         Ada.Text_IO.Get_Line (F, Buffer, Last);
-         if not First then
-            Append (Out_S, ASCII.LF);
-         end if;
-         if Last > 0 then
-            Append (Out_S, Buffer (1 .. Last));
-         end if;
-         First := False;
-      end loop;
-      Ada.Text_IO.Close (F);
-      return To_String (Out_S);
-   end Read_File;
-
-   function Resolve_Asset_Path (Name : String) return String is
-   begin
-      if Ada.Directories.Exists ("examples/assets/" & Name) then
-         return "examples/assets/" & Name;
-      elsif Ada.Directories.Exists ("assets/" & Name) then
-         return "assets/" & Name;
-      elsif Ada.Directories.Exists ("../assets/" & Name) then
-         return "../assets/" & Name;
-      else
-         return "examples/assets/" & Name;
-      end if;
-   end Resolve_Asset_Path;
-
    A : Adi.App.App;
 
 begin
@@ -66,6 +30,8 @@ begin
    declare
       W : constant Adi.Window.Window_Access :=
         Adi.Window.Create_Window ("HTML View Example", (980.0, 700.0));
+
+      Assets : Adi.Assets.Asset_Store := Adi.Assets.Create (W);
 
       Root : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Title : constant Adi.Widget.Label.Label_Widget_Access :=
@@ -91,8 +57,6 @@ begin
       Status : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("Edit source and switch to Preview to apply.");
 
-      HTML_Path : constant String := Resolve_Asset_Path ("html_view_example.html");
-      HTML_Text : constant String := Read_File (HTML_Path);
       Source_Dirty : Boolean := False;
 
       procedure Apply_Source_To_Preview is
@@ -142,17 +106,7 @@ begin
       is
          pragma Unreferenced (Self);
       begin
-         if URI = "app://happycat" then
-            return W.Load_Image (Resolve_Asset_Path ("happycat.png"));
-         elsif URI = "app://cat" then
-            return W.Load_Image (Resolve_Asset_Path ("cat.svg"));
-         elsif URI = "app://camera" then
-            return W.Load_Image (Resolve_Asset_Path ("camera.svg"));
-         elsif URI = "app://tiger" then
-            return W.Load_Image (Resolve_Asset_Path ("tiger.svg"));
-         end if;
-
-         return null;
+         return Assets.Get_Image (URI);
       end On_Load_Asset;
 
       function On_Load_Resource
@@ -161,18 +115,19 @@ begin
       is
          pragma Unreferenced (Self);
       begin
-         if URI = "app://html/theme.css" then
-            return
-              "strong { color: rgb(54, 45, 35); font-weight: 800; }" & ASCII.LF &
-              "em { color: rgb(98, 56, 49); font-style: italic; }" & ASCII.LF &
-              "a { color: rgb(22, 95, 184); text-decoration: underline; }";
-         end if;
-
-         return "";
+         return Assets.Get_String (URI);
       end On_Load_Resource;
 
    begin
+      Assets.Add_Path ("examples/assets", Scheme => "app");
+      Assets.Add_Path ("examples/assets");
+
       Pages := Html_Stack.Create;
+
+      declare
+         HTML_Text : constant String :=
+           Assets.Get_String ("app://html_view_example.html");
+      begin
 
       Adi.Widget.Set_Part_Styles (Root.all, Html_View_Example_Styles.Root_Class_Part_Styles);
       Adi.Widget.Set_Part_Styles (Title.all, Html_View_Example_Styles.Title_Class_Part_Styles);
@@ -224,5 +179,6 @@ begin
       W.Set_Root (Root);
       A.Add_Window (W);
       A.Run;
+      end;
    end;
 end Html_View_Example;

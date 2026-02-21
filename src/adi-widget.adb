@@ -30,6 +30,19 @@ package body Adi.Widget is
    Scroll_Inertia_Enabled : Boolean := True;
    Debug_Layout_Overlay_Enabled : Boolean := False;
 
+   --  Global layout epoch: incremented per Layout_Tree pass, used by
+   --  containers to avoid laying out children that were already processed
+   --  in the current pass.
+   Current_Layout_Epoch : Natural := 0;
+
+   --  Per-frame perf counters for debug stats overlay.
+   --  Reset by the Window before each frame, read after rendering.
+   Perf_Style_Resolves : Natural := 0;
+   Perf_Style_Hits     : Natural := 0;
+   Perf_Layout_Calls   : Natural := 0;
+   Perf_Layout_Skips   : Natural := 0;
+   Perf_Pref_Calls     : Natural := 0;
+
    type Scrollbar_Metrics is record
       Width       : Pixel_Type := 10.0;
       Before_Gap  : Pixel_Type := 6.0;
@@ -624,15 +637,58 @@ package body Adi.Widget is
 
    function Get_Resolved_Part_Style (W : Widget'Class;
                                      P : Part_Kind) return Resolved_Style is
-      Part_Rules : Style_Rules := Get_Part_Style_Rules (W, P);
+      --  NOTE: This function is nominally read-only (in-mode Widget'Class),
+      --  but we cache the resolved result in the Widget record to avoid
+      --  recomputing Compute_Style + Resolve (~60 fields each) on every
+      --  call.  The cache is keyed on (Style_Version, effective states,
+      --  Part_States) so staleness is impossible.  'Unrestricted_Access is
+      --  safe here because the cache is a pure memo — same inputs always
+      --  produce the same output.
+      W_Mut : constant access Widget'Class := W'Unrestricted_Access;
+      Eff   : constant Widget_States := Get_States (W);
    begin
-      --  Sub-parts inherit text/typography properties from Main_Part.
-      --  Explicit ::part rules override inherited values.
-      if P /= Main_Part and then P /= Any_Part then
-         Part_Rules := Inherit_From
-           (Get_Part_Style_Rules (W, Main_Part), Part_Rules);
+      Perf_Style_Resolves := Perf_Style_Resolves + 1;
+
+      --  When the widget-level key (version or effective states) changes,
+      --  ALL per-part entries are stale — invalidate them.  This prevents
+      --  a subtle bug where resolving Main_Part after a state change
+      --  updates the shared key, making a subsequent Label_Part lookup
+      --  appear cached even though Label_Part inherits from Main_Part
+      --  and should also change.
+      if W_Mut.Cached_Style_Version /= W.Style_Version
+        or else W_Mut.Cached_Eff_States /= Eff
+      then
+         W_Mut.Cached_Resolved_Init := [others => False];
+         W_Mut.Cached_Style_Version := W.Style_Version;
+         W_Mut.Cached_Eff_States := Eff;
       end if;
-      return Resolve (Part_Rules);
+
+      --  Cache hit?  (per-part key: init flag + part states)
+      if W_Mut.Cached_Resolved_Init (P)
+        and then W_Mut.Cached_Part_States (P) = W.Part_States (P)
+      then
+         Perf_Style_Hits := Perf_Style_Hits + 1;
+         return W_Mut.Cached_Resolved (P);
+      end if;
+
+      --  Cache miss: compute and store.
+      declare
+         Part_Rules : Style_Rules := Get_Part_Style_Rules (W, P);
+         Result     : Resolved_Style;
+      begin
+         --  Sub-parts inherit text/typography properties from Main_Part.
+         --  Explicit ::part rules override inherited values.
+         if P /= Main_Part and then P /= Any_Part then
+            Part_Rules := Inherit_From
+              (Get_Part_Style_Rules (W, Main_Part), Part_Rules);
+         end if;
+         Result := Resolve (Part_Rules);
+
+         W_Mut.Cached_Resolved (P) := Result;
+         W_Mut.Cached_Resolved_Init (P) := True;
+         W_Mut.Cached_Part_States (P) := W.Part_States (P);
+         return Result;
+      end;
    end Get_Resolved_Part_Style;
 
    ---------------------------------------------------------------------------
@@ -3785,6 +3841,7 @@ package body Adi.Widget is
       Need_Content_W : Boolean := False;
       Need_Content_H : Boolean := False;
    begin
+      Perf_Pref_Calls := Perf_Pref_Calls + 1;
       --  Check explicit width/height
       case Style.Width.Kind is
          when Fixed =>
@@ -3958,7 +4015,7 @@ package body Adi.Widget is
 
             --  Recursively layout children
             for Child of W.Children loop
-               Layout(Child.all);
+               Layout_Child(Child.all);
             end loop;
 
             --  Second pass: if any child grew (e.g. text wrapping
@@ -4002,7 +4059,7 @@ package body Adi.Widget is
                   begin
                      for Child of W.Children loop
                         Set_Geometry(Child.all, Rects2(Rect_Idx2));
-                        Layout(Child.all);
+                        Layout_Child(Child.all);
                         Rect_Idx2 := Rect_Idx2 + 1;
                      end loop;
                   end;
@@ -4203,15 +4260,69 @@ begin
 end Rebuild_All_Items;
 
 
+---------------------------------------------------------------------------
+--  Layout_Child: lay out a single child and stamp the current epoch
+--  so that Layout_Tree will not re-lay-out it.  Containers (flex, grid,
+--  list_box, stack) should call this instead of bare Layout(Child.all).
+---------------------------------------------------------------------------
+
+procedure Layout_Child (Child : in out Widget'Class) is
+begin
+   Perf_Layout_Calls := Perf_Layout_Calls + 1;
+   Layout (Child);
+   Child.Last_Layout_Epoch := Current_Layout_Epoch;
+end Layout_Child;
+
+---------------------------------------------------------------------------
+--  Layout_Tree: recursive layout with epoch-based duplicate elimination.
+--  The epoch is incremented once at the top-level call; containers that
+--  call Layout_Child during their own Layout stamp their children so
+--  that the subsequent Layout_Tree recursion skips the redundant call.
+---------------------------------------------------------------------------
+
 procedure Layout_Tree (W : in out Widget'Class) is
 begin
-   Layout (W);
+   --  Bump epoch for every top-level entry (root or overlay) so that
+   --  children stamped from a previous pass are always re-evaluated.
+   if W.Parent = null then
+      Current_Layout_Epoch := Current_Layout_Epoch + 1;
+   end if;
+
+   if W.Last_Layout_Epoch = Current_Layout_Epoch then
+      --  Already laid out by parent container in this epoch — skip.
+      Perf_Layout_Skips := Perf_Layout_Skips + 1;
+   else
+      Perf_Layout_Calls := Perf_Layout_Calls + 1;
+      Layout (W);
+      W.Last_Layout_Epoch := Current_Layout_Epoch;
+   end if;
+
    Update_Shared_Scroll_Layout (W);
+
    for Child of W.Children loop
       Layout_Tree (Child.all);
    end loop;
    W.Layout_Dirty := False;
 end Layout_Tree;
+
+---------------------------------------------------------------------------
+--  Performance counter accessors
+---------------------------------------------------------------------------
+
+procedure Reset_Perf_Counters is
+begin
+   Perf_Style_Resolves := 0;
+   Perf_Style_Hits     := 0;
+   Perf_Layout_Calls   := 0;
+   Perf_Layout_Skips   := 0;
+   Perf_Pref_Calls     := 0;
+end Reset_Perf_Counters;
+
+function Get_Perf_Style_Resolves return Natural is (Perf_Style_Resolves);
+function Get_Perf_Style_Hits return Natural is (Perf_Style_Hits);
+function Get_Perf_Layout_Calls return Natural is (Perf_Layout_Calls);
+function Get_Perf_Layout_Skips return Natural is (Perf_Layout_Skips);
+function Get_Perf_Pref_Calls return Natural is (Perf_Pref_Calls);
 
 ---------------------------------------------------------------------------
 --  Tick_Animations

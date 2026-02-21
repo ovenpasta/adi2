@@ -445,6 +445,25 @@ package Adi.Widget is
 
    --  Advance all active transitions by DT seconds, recursing to children
    procedure Tick_Animations (W : in out Widget'Class; DT : Duration);
+
+   ---------------------------------------------------------------------------
+   --  Per-frame performance counters (debug stats overlay)
+   ---------------------------------------------------------------------------
+
+   procedure Reset_Perf_Counters;
+   function Get_Perf_Style_Resolves return Natural;
+   function Get_Perf_Style_Hits return Natural;
+   function Get_Perf_Layout_Calls return Natural;
+   function Get_Perf_Layout_Skips return Natural;
+   function Get_Perf_Pref_Calls return Natural;
+
+   ---------------------------------------------------------------------------
+   --  Layout helper for containers: lay out a child and mark its epoch
+   --  so Layout_Tree will not re-lay-out it.
+   ---------------------------------------------------------------------------
+
+   procedure Layout_Child (Child : in out Widget'Class);
+
 private
 
    ---------------------------------------------------------------------------
@@ -492,6 +511,18 @@ private
 
       --  Cached images for rendering
       Images : Image_List.List;
+
+      --  Resolved style cache (auto-invalidated by key mismatch).
+      --  Keyed on (Style_Version, effective states via Get_States,
+      --  Part_States(P)) so inherited :disabled is handled correctly.
+      Cached_Resolved      : Part_Resolved_Array;
+      Cached_Resolved_Init : Part_Initialized_Array := [others => False];
+      Cached_Style_Version : Natural := 0;
+      Cached_Eff_States    : Widget_States := No_States;
+      Cached_Part_States   : Part_State_Array := [others => No_States];
+
+      --  Layout epoch for duplicate-call elimination (Phase 2)
+      Last_Layout_Epoch : Natural := 0;
 
       --  Animation state
       Transitions       : Part_Transition_Array := [others => No_Part_Transition];

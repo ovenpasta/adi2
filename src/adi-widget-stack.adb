@@ -125,7 +125,7 @@ package body Adi.Widget.Stack is
    begin
       for I in 1 .. Child_Count (W) loop
          Set_Geometry (Get_Child (W, I).all, Child_Geom);
-         Layout (Get_Child (W, I).all);
+         Layout_Child (Get_Child (W, I).all);
       end loop;
    end Layout;
 

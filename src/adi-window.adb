@@ -503,6 +503,14 @@ package body Adi.Window is
        Append ("  L:");
        Append_Nat (W.Stats_Layout_Count, 1);
        Append ((1 => W.Stats_Layout_Reason));
+       Append ("  S:");
+       Append_Nat (W.Stats_Style_Hits, 4);
+       Append ("/");
+       Append_Nat (W.Stats_Style_Resolves, 4);
+       Append ("  LC:");
+       Append_Nat (W.Stats_Layout_Calls, 3);
+       Append ("+");
+       Append_Nat (W.Stats_Layout_Skips, 3);
 
        --  Draw background bar
        Dummy := SDL_SetRenderDrawBlendMode
@@ -570,6 +578,7 @@ package body Adi.Window is
             (To_Duration (Clock - Stage_Start) * 1_000_000.0);
 
           --  Relayout only when required by geometry-affecting changes.
+          Adi.Widget.Reset_Perf_Counters;
           Stage_Start := Clock;
           if W.Needs_Layout then
              W.Stats_Layout_Reason := 'W';
@@ -604,6 +613,11 @@ package body Adi.Window is
           end if;
           W.Stats_Layout_Us := Natural
             (To_Duration (Clock - Stage_Start) * 1_000_000.0);
+          W.Stats_Style_Resolves := Adi.Widget.Get_Perf_Style_Resolves;
+          W.Stats_Style_Hits     := Adi.Widget.Get_Perf_Style_Hits;
+          W.Stats_Layout_Calls   := Adi.Widget.Get_Perf_Layout_Calls;
+          W.Stats_Layout_Skips   := Adi.Widget.Get_Perf_Layout_Skips;
+          W.Stats_Pref_Calls     := Adi.Widget.Get_Perf_Pref_Calls;
 
           --  Draw all widget trees
           Stage_Start := Clock;

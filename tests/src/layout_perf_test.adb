@@ -1,0 +1,316 @@
+pragma Ada_2022;
+
+with Ada.Text_IO; use Ada.Text_IO;
+with Adi.Core;          use Adi.Core;
+with Adi.Widget;        use Adi.Widget;
+with Adi.Widget.Box;
+with Adi.Widget.Label;
+with Adi.CSS_Styles;    use Adi.CSS_Styles;
+with Adi.Widget_Styles; use Adi.Widget_Styles;
+
+--  Tests for layout performance optimisations:
+--    1. Resolved-style cache (Phase 1)
+--    2. Epoch-based duplicate-layout elimination (Phase 2)
+--    3. Perf-counter infrastructure (Phase 0)
+
+procedure Layout_Perf_Test is
+
+   Test_Count : Natural := 0;
+   Pass_Count : Natural := 0;
+   Fail_Count : Natural := 0;
+
+   procedure Assert (Condition : Boolean; Message : String) is
+   begin
+      Test_Count := Test_Count + 1;
+      if Condition then
+         Pass_Count := Pass_Count + 1;
+         Put_Line ("  [PASS] " & Message);
+      else
+         Fail_Count := Fail_Count + 1;
+         Put_Line ("  [FAIL] " & Message);
+      end if;
+   end Assert;
+
+   ---------------------------------------------------------------------------
+   --  Test: Layout_Tree on a root with children must actually lay them out.
+   --  This is the regression that triggered the epoch fix: when both
+   --  Current_Layout_Epoch and Last_Layout_Epoch start at 0, the root
+   --  (and its children) must not be skipped.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Layout_Tree_First_Frame is
+      Root : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Child1 : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("A");
+      Child2 : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("B");
+   begin
+      Put_Line ("Test: Layout_Tree first-frame regression");
+
+      Set_Geometry (Root.all, (0.0, 0.0, 400.0, 300.0));
+      Root.Add_Child (Child1);
+      Root.Add_Child (Child2);
+
+      --  Give root a flex style so children get positioned
+      declare
+         Flex_Style : constant Widget_Style :=
+           From ((Display        => Set (Flex),
+                  Flex_Direction => Set (Column),
+                  others         => <>)).Build;
+      begin
+         Set_Part_Style (Root.all, Main_Part, Flex_Style);
+      end;
+
+      Reset_Perf_Counters;
+      Layout_Tree (Root.all);
+
+      --  Children should have been laid out (non-zero geometry)
+      Assert (Get_Geometry (Child1.all).Width > 0.0,
+              "child1 has non-zero width after first Layout_Tree");
+      Assert (Get_Geometry (Child2.all).Width > 0.0,
+              "child2 has non-zero width after first Layout_Tree");
+
+      --  Root layout must have been called (not skipped)
+      Assert (Get_Perf_Layout_Calls > 0,
+              "layout calls > 0 on first frame");
+   end Test_Layout_Tree_First_Frame;
+
+   ---------------------------------------------------------------------------
+   --  Test: Layout_Child stamps the epoch so Layout_Tree skips re-layout.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Epoch_Dedup is
+      Root : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Child : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("C");
+   begin
+      Put_Line ("Test: epoch-based layout deduplication");
+
+      Set_Geometry (Root.all, (0.0, 0.0, 400.0, 300.0));
+      Root.Add_Child (Child);
+
+      --  Give root a flex style
+      declare
+         Flex_Style : constant Widget_Style :=
+           From ((Display        => Set (Flex),
+                  Flex_Direction => Set (Column),
+                  others         => <>)).Build;
+      begin
+         Set_Part_Style (Root.all, Main_Part, Flex_Style);
+      end;
+
+      --  First pass: everything gets laid out
+      Reset_Perf_Counters;
+      Layout_Tree (Root.all);
+
+      declare
+         Calls_1 : constant Natural := Get_Perf_Layout_Calls;
+         Skips_1 : constant Natural := Get_Perf_Layout_Skips;
+      begin
+         --  Flex layout calls Layout_Child on its children, then
+         --  Layout_Tree recurses into them and should skip.
+         Assert (Calls_1 >= 2,
+                 "first pass: at least 2 layout calls (root + child)");
+         Assert (Skips_1 >= 1,
+                 "first pass: at least 1 skip (child already done by flex)");
+      end;
+   end Test_Epoch_Dedup;
+
+   ---------------------------------------------------------------------------
+   --  Test: Resolved-style cache returns same result and records hits.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Style_Cache_Hits is
+      W : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("cached");
+   begin
+      Put_Line ("Test: resolved-style cache hits");
+
+      Set_Geometry (W.all, (0.0, 0.0, 200.0, 40.0));
+
+      Reset_Perf_Counters;
+
+      --  First call: cache miss
+      declare
+         S1 : constant Resolved_Style :=
+           Get_Resolved_Part_Style (W.all, Main_Part);
+      begin
+         Assert (Get_Perf_Style_Resolves = 1,
+                 "first resolve counted");
+         Assert (Get_Perf_Style_Hits = 0,
+                 "first resolve is a miss");
+
+         --  Second call: cache hit (same version + states)
+         declare
+            S2 : constant Resolved_Style :=
+              Get_Resolved_Part_Style (W.all, Main_Part);
+         begin
+            Assert (Get_Perf_Style_Hits = 1,
+                    "second resolve is a hit");
+            Assert (S1 = S2,
+                    "cached result equals original");
+         end;
+      end;
+   end Test_Style_Cache_Hits;
+
+   ---------------------------------------------------------------------------
+   --  Test: Style cache invalidates when widget state changes.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Style_Cache_Invalidation is
+      W : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("inv");
+   begin
+      Put_Line ("Test: style cache invalidation on state change");
+
+      Set_Geometry (W.all, (0.0, 0.0, 200.0, 40.0));
+
+      --  Prime the cache
+      declare
+         S1 : constant Resolved_Style :=
+           Get_Resolved_Part_Style (W.all, Main_Part);
+         pragma Unreferenced (S1);
+      begin
+         null;
+      end;
+
+      Reset_Perf_Counters;
+
+      --  Change state (hover)
+      Set_State (W.all, State_Hovered, True);
+
+      --  Next resolve must be a miss (state changed)
+      declare
+         S2 : constant Resolved_Style :=
+           Get_Resolved_Part_Style (W.all, Main_Part);
+         pragma Unreferenced (S2);
+      begin
+         Assert (Get_Perf_Style_Resolves = 1,
+                 "resolve after state change counted");
+         Assert (Get_Perf_Style_Hits = 0,
+                 "resolve after state change is a miss");
+      end;
+   end Test_Style_Cache_Invalidation;
+
+   ---------------------------------------------------------------------------
+   --  Test: Sub-part cache invalidates when widget state changes.
+   --  Regression: resolving Main_Part after a state change updated the
+   --  shared cache key, making a subsequent Label_Part lookup falsely
+   --  hit — returning a stale style (e.g. selected text color after
+   --  deselection).
+   ---------------------------------------------------------------------------
+
+   procedure Test_Subpart_Cache_Invalidation is
+      W : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("sub");
+      --  Give the label a style where :selected changes text color
+      Selected_Color : constant Style_Rules :=
+        (Color => Set (RGBA (255, 255, 255, 1.0)),
+         others => <>);
+      WS : constant Widget_Style :=
+        From ((Color => Set (RGBA (0, 0, 0, 1.0)),
+               others => <>))
+          .On_Selected (Selected_Color)
+          .Build;
+   begin
+      Put_Line ("Test: sub-part cache invalidation on state change");
+
+      Set_Geometry (W.all, (0.0, 0.0, 200.0, 40.0));
+      Set_Part_Style (W.all, Main_Part, WS);
+
+      --  Select → prime cache for Main_Part AND Label_Part
+      Set_State (W.all, State_Selected, True);
+      declare
+         S_Main_Sel : constant Resolved_Style :=
+           Get_Resolved_Part_Style (W.all, Main_Part);
+         S_Label_Sel : constant Resolved_Style :=
+           Get_Resolved_Part_Style (W.all, Label_Part);
+      begin
+         --  Deselect
+         Set_State (W.all, State_Selected, False);
+
+         --  Both parts must reflect the deselected state
+         declare
+            S_Main_Desel : constant Resolved_Style :=
+              Get_Resolved_Part_Style (W.all, Main_Part);
+            S_Label_Desel : constant Resolved_Style :=
+              Get_Resolved_Part_Style (W.all, Label_Part);
+         begin
+            Assert (S_Main_Desel.Color /= S_Main_Sel.Color,
+                    "main part color changes after deselect");
+            Assert (S_Label_Desel.Color /= S_Label_Sel.Color,
+                    "label part color changes after deselect (was stale)");
+         end;
+      end;
+   end Test_Subpart_Cache_Invalidation;
+
+   ---------------------------------------------------------------------------
+   --  Test: Multiple Layout_Tree passes on the same tree work correctly.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Multiple_Layout_Passes is
+      Root : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Child : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("multi");
+   begin
+      Put_Line ("Test: multiple Layout_Tree passes");
+
+      Set_Geometry (Root.all, (0.0, 0.0, 400.0, 300.0));
+      Root.Add_Child (Child);
+
+      declare
+         Flex_Style : constant Widget_Style :=
+           From ((Display        => Set (Flex),
+                  Flex_Direction => Set (Column),
+                  others         => <>)).Build;
+      begin
+         Set_Part_Style (Root.all, Main_Part, Flex_Style);
+      end;
+
+      --  First pass
+      Layout_Tree (Root.all);
+      declare
+         W1 : constant Pixel_Type := Get_Geometry (Child.all).Width;
+      begin
+         Assert (W1 > 0.0, "pass 1: child laid out");
+
+         --  Second pass (simulates next frame)
+         Reset_Perf_Counters;
+         Layout_Tree (Root.all);
+
+         declare
+            W2 : constant Pixel_Type := Get_Geometry (Child.all).Width;
+         begin
+            Assert (W2 = W1, "pass 2: child geometry unchanged");
+            Assert (Get_Perf_Layout_Calls >= 2,
+                    "pass 2: layout calls still happen");
+         end;
+      end;
+   end Test_Multiple_Layout_Passes;
+
+begin
+   Put_Line ("========================================");
+   Put_Line ("   Layout Performance Test Suite");
+   Put_Line ("========================================");
+
+   Test_Layout_Tree_First_Frame;
+   Test_Epoch_Dedup;
+   Test_Style_Cache_Hits;
+   Test_Style_Cache_Invalidation;
+   Test_Subpart_Cache_Invalidation;
+   Test_Multiple_Layout_Passes;
+
+   Put_Line ("");
+   Put_Line ("Total:" & Test_Count'Image
+             & "  Passed:" & Pass_Count'Image
+             & "  Failed:" & Fail_Count'Image);
+   if Fail_Count > 0 then
+      Put_Line ("FAILED");
+      raise Program_Error with "layout_perf_test failed";
+   else
+      Put_Line ("All tests PASSED!");
+   end if;
+end Layout_Perf_Test;

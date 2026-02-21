@@ -373,6 +373,7 @@ TEST_KINDS=(
   value_input_test
   svg_sprites_test
   min_size_test
+  layout_perf_test
 )
 
 for kind in "\${TEST_KINDS[@]}"; do

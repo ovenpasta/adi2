@@ -284,7 +284,7 @@ overriding procedure Layout (W : in out Box_Widget) is
                            Cell.Width := CW;
                            Cell.Height := CH;
                            Set_Geometry (Child.all, Cell);
-                           Layout (Child.all);
+                           Layout_Child (Child.all);
                         end;
                      end if;
                   end;
@@ -339,7 +339,7 @@ overriding procedure Layout (W : in out Box_Widget) is
                   Current_Y := Current_Y + Margin.Top + Child_H + Margin.Bottom;
 
                   --  Recursively layout child
-                  Layout(Child.all);
+                  Layout_Child(Child.all);
                end;
             end loop;
          end;

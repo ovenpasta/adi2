@@ -189,7 +189,17 @@
 
 Render scheduling note: relayout runs only when layout/geometry is dirty (`Mark_Dirty`); pure visual updates (state changes, scroll-offset, visual-only animations) use `Mark_Render_Dirty` for repaint without forcing full tree relayout.
 
-**Debug stats overlay**: `Set_Debug_Stats(True)` enables a 2-line HUD showing frame number, FPS, per-stage timing (Update/Layout/Draw/Present in microseconds), layout count, and layout trigger reason. Renders only when the scene is already being redrawn — does not force extra frames.
+**Debug stats overlay**: `Set_Debug_Stats(True)` enables a 2-line HUD showing frame number, FPS, per-stage timing (Update/Layout/Draw/Present in microseconds), layout count, layout trigger reason, style cache hit ratio (`S:hits/total`), and layout call/skip counts (`LC:calls+skips`). Renders only when the scene is already being redrawn — does not force extra frames.
+
+### Layout Performance Optimizations
+
+Two optimizations reduce layout cost for large widget trees (e.g. 280+ widgets in list_box_example):
+
+**Resolved style cache** (`Get_Resolved_Part_Style`): Each widget caches its resolved style per part, keyed on `(Style_Version, Get_States(W), Part_States(P))`. Using `Get_States` (not raw `W.States`) ensures inherited `:disabled` state is included. When the widget-level key changes (version or effective states), ALL per-part cache entries are invalidated — this prevents sub-parts that inherit from Main_Part from returning stale results. Cache writes use `'Unrestricted_Access` on the read-only `Widget'Class` parameter (safe because the cache is a pure memo).
+
+**Epoch-based layout deduplication** (`Layout_Tree` / `Layout_Child`): A global `Current_Layout_Epoch` counter increments once per top-level `Layout_Tree` call. Containers (flex, grid, list_box, stack) call `Layout_Child(Child)` instead of bare `Layout(Child)` — this stamps `Child.Last_Layout_Epoch := Current_Layout_Epoch`. When `Layout_Tree` later recurses into those children, it skips the redundant `Layout` call if the epoch matches. This eliminates ~50% of layout calls in container-heavy trees.
+
+**Performance counters**: `Reset_Perf_Counters` / `Get_Perf_*` functions in `Adi.Widget` track style resolves, cache hits, layout calls, layout skips, and preferred-size calls per frame. The Window captures these after each layout pass for the debug stats overlay.
 
 ## SDL Bindings
 

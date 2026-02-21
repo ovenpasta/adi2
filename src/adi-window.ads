@@ -133,6 +133,12 @@ private
         Stats_Present_Us   : Natural  := 0;
         Stats_Last_DT      : Duration := 0.0;
         Stats_Layout_Reason : Character := ' ';
+        --  Per-frame perf counters (debug stats overlay)
+        Stats_Style_Resolves : Natural := 0;
+        Stats_Style_Hits     : Natural := 0;
+        Stats_Layout_Calls   : Natural := 0;
+        Stats_Layout_Skips   : Natural := 0;
+        Stats_Pref_Calls     : Natural := 0;
     end record;
 
     overriding procedure Initialize (w : in out Window);

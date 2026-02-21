@@ -574,7 +574,7 @@ package body Adi.Widget.List_Box is
                          Y      => Content.Y + Kids (I).Computed_Y,
                          Width  => Kids (I).Computed_Width,
                          Height => Kids (I).Computed_Height));
-                     Layout (Row.all);
+                     Layout_Child (Row.all);
                   end if;
                end;
             end loop;
@@ -605,7 +605,7 @@ package body Adi.Widget.List_Box is
                          Y      => Cursor_Y,
                          Width  => Rows_Width,
                          Height => Row_H));
-                     Layout (Row.all);
+                     Layout_Child (Row.all);
                   end if;
                end;
                Cursor_Y := Cursor_Y + Row_H + R_Gap;

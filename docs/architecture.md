@@ -88,7 +88,7 @@
 
 **Adi.SVG** (`src/svg/adi-svg.ads`): SVG loading/raster API used by `Adi.Image` and HTML image flows.
 - Compile-time backend selection via `-XADI_SVG_BACKEND=<plutosvg|ada>`
-- `plutosvg` backend (default) lives in `src/svg/plutosvg` and uses vendored C libraries under `plutosvg/`
+- `plutosvg` backend (default) lives in `src/svg/plutosvg` and uses vendored C libraries under `vendor/plutosvg/`
 - `ada` backend lives in `src/svg/ada` (native parser/rasterizer)
 - Shared public API surface: `Load_From_File`, `Load_From_String`, `Get_Size`, `Render_ARGB32`, `Destroy`, `Backend_Name`
 

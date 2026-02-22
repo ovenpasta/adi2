@@ -1,4 +1,5 @@
-with "plutosvg/plutosvg.gpr";
+with "vendor/plutosvg/plutosvg.gpr";
+with "vendor/rlottie/rlottie.gpr";
 
 project Adi is
 

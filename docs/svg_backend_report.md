@@ -13,11 +13,11 @@ Reason for defaulting to `plutosvg` now:
 ## Repository state
 
 - Vendored upstream:
-  - `plutosvg/source/*`
-  - `plutosvg/plutovg/source/*`
-  - `plutosvg/plutovg/include/*`
+  - `vendor/plutosvg/source/*`
+  - `vendor/plutosvg/plutovg/source/*`
+  - `vendor/plutosvg/plutovg/include/*`
 - Project wiring:
-  - `plutosvg/plutosvg.gpr`
+  - `vendor/plutosvg/plutosvg.gpr`
   - `adi.gpr` depends on it and switches backend through `ADI_SVG_BACKEND`.
 - Tests:
   - Correctness: `tests/src/svg_test.adb`
@@ -61,7 +61,7 @@ Known limitation:
 Main technical differences:
 
 1. Rasterization strategy
-   - `plutosvg/plutovg` uses an optimized analytic rasterizer path.
+   - `vendor/plutosvg/plutovg` uses an optimized analytic rasterizer path.
    - Ada backend currently relies on a different scanline implementation and does not fully match plutovg's coverage behavior.
 
 2. Retained document/render model depth

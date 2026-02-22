@@ -1,0 +1,52 @@
+project RLottie is
+
+   type Build_Profile_Kind is ("release", "validation", "development");
+   Build_Profile : Build_Profile_Kind := external ("ADI_BUILD_PROFILE", "development");
+   User_CXX_Compiler_Switches := External_As_List ("CXXFLAGS", " ");
+
+   for Languages use ("C++");
+   for Source_Dirs use
+     ("inc",
+      "src",
+      "src/lottie",
+      "src/lottie/zip",
+      "src/vector",
+      "src/vector/freetype",
+      "src/vector/stb",
+      "src/binding/c");
+   for Object_Dir use "obj/" & Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Library_Dir use "lib";
+   for Library_Name use "rlottie";
+
+   type Library_Type_Type is ("relocatable", "static", "static-pic");
+   Library_Type : Library_Type_Type :=
+     external ("ADI_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
+   for Library_Kind use Library_Type;
+
+   Profile_Compiler_Switches := ();
+   case Build_Profile is
+      when "release" =>
+         Profile_Compiler_Switches := ("-O2");
+      when "validation" =>
+         Profile_Compiler_Switches := ("-O2", "-g");
+      when "development" =>
+         Profile_Compiler_Switches := ("-Og", "-g");
+   end case;
+
+   CXX_Switches :=
+     ("-std=c++14",
+      "-fno-exceptions",
+      "-fno-unwind-tables",
+      "-fno-asynchronous-unwind-tables",
+      "-fno-rtti",
+      "-fvisibility=hidden",
+      "-Wno-unused-parameter",
+      "-DRLOTTIE_BUILD");
+
+   package Compiler is
+      for Default_Switches ("C++") use
+        Profile_Compiler_Switches & User_CXX_Compiler_Switches & CXX_Switches;
+   end Compiler;
+
+end RLottie;

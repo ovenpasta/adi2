@@ -82,7 +82,8 @@ fi
 BUILD_DIR="$(mkdir -p "${BUILD_DIR}" && cd "${BUILD_DIR}" && pwd)"
 mkdir -p "${BUILD_DIR}/config" "${BUILD_DIR}/projects"
 mkdir -p "${BUILD_DIR}/adi/obj" "${BUILD_DIR}/adi/lib"
-mkdir -p "${BUILD_DIR}/plutosvg/obj" "${BUILD_DIR}/plutosvg/lib"
+mkdir -p "${BUILD_DIR}/vendor/plutosvg/obj" "${BUILD_DIR}/vendor/plutosvg/lib"
+mkdir -p "${BUILD_DIR}/vendor/rlottie/obj" "${BUILD_DIR}/vendor/rlottie/lib"
 mkdir -p "${BUILD_DIR}/tests/obj" "${BUILD_DIR}/tests/bin"
 mkdir -p "${BUILD_DIR}/examples/obj" "${BUILD_DIR}/examples/bin"
 
@@ -137,7 +138,6 @@ to_gpr_list() {
 }
 
 SDL_LIBS="-lSDL3 -lSDL3_ttf -lSDL3_image -lm"
-RLOTTIE_LIBS="-lrlottie"
 
 if command -v "${PKG_CONFIG_BIN}" >/dev/null 2>&1; then
   SDL_LIBS=""
@@ -163,11 +163,6 @@ if command -v "${PKG_CONFIG_BIN}" >/dev/null 2>&1; then
     echo "[configure] missing pkg-config module: sdl3-image (fallback -lSDL3_image)"
   fi
 
-  if "${PKG_CONFIG_BIN}" --exists rlottie; then
-    RLOTTIE_LIBS="$("${PKG_CONFIG_BIN}" --libs rlottie)"
-  else
-    echo "[configure] rlottie pkg-config entry not found; using defaults"
-  fi
 else
   echo "[configure] pkg-config binary not found (${PKG_CONFIG_BIN}); using defaults"
 fi
@@ -175,21 +170,29 @@ fi
 cat > "${BUILD_DIR}/config/adi_linker_config.gpr" <<EOF
 abstract project Adi_Linker_Config is
    SDL_Linker_Switches := $(to_gpr_list "${SDL_LIBS}");
-   RLottie_Linker_Switches := $(to_gpr_list "${RLOTTIE_LIBS}");
    Platform_Linker_Switches := ("-lm");
 end Adi_Linker_Config;
 EOF
 
 cat > "${BUILD_DIR}/projects/plutosvg_build.gpr" <<EOF
-project PlutoSVG_Build extends "${SOURCE_DIR}/plutosvg/plutosvg.gpr" is
-   for Object_Dir use "${BUILD_DIR}/plutosvg/obj";
-   for Library_Dir use "${BUILD_DIR}/plutosvg/lib";
+project PlutoSVG_Build extends "${SOURCE_DIR}/vendor/plutosvg/plutosvg.gpr" is
+   for Object_Dir use "${BUILD_DIR}/vendor/plutosvg/obj";
+   for Library_Dir use "${BUILD_DIR}/vendor/plutosvg/lib";
    for Create_Missing_Dirs use "True";
 end PlutoSVG_Build;
 EOF
 
+cat > "${BUILD_DIR}/projects/rlottie_build.gpr" <<EOF
+project RLottie_Build extends "${SOURCE_DIR}/vendor/rlottie/rlottie.gpr" is
+   for Object_Dir use "${BUILD_DIR}/vendor/rlottie/obj";
+   for Library_Dir use "${BUILD_DIR}/vendor/rlottie/lib";
+   for Create_Missing_Dirs use "True";
+end RLottie_Build;
+EOF
+
 cat > "${BUILD_DIR}/projects/adi_build.gpr" <<EOF
 with "plutosvg_build.gpr";
+with "rlottie_build.gpr";
 
 project Adi_Build extends "${SOURCE_DIR}/adi.gpr" is
    type Platform_Kind is ("linux", "windows");
@@ -316,17 +319,9 @@ project Examples_Build is
    end Binder;
 
    package Linker is
-      case Kind is
-         when "rlottie_example" =>
-            for Default_Switches ("Ada") use
-              Adi_Linker_Config.SDL_Linker_Switches &
-              Adi_Linker_Config.RLottie_Linker_Switches &
-              Adi_Linker_Config.Platform_Linker_Switches;
-         when others =>
-            for Default_Switches ("Ada") use
-              Adi_Linker_Config.SDL_Linker_Switches &
-              Adi_Linker_Config.Platform_Linker_Switches;
-      end case;
+      for Default_Switches ("Ada") use
+        Adi_Linker_Config.SDL_Linker_Switches &
+        Adi_Linker_Config.Platform_Linker_Switches;
    end Linker;
 end Examples_Build;
 EOF

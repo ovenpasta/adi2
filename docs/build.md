@@ -43,7 +43,7 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 
 `Adi` now supports two compile-time SVG backends:
 
-- `plutosvg` (default): vendored C backend (`plutosvg/` + `plutovg/`)
+- `plutosvg` (default): vendored C backend (`vendor/plutosvg/` + `vendor/plutosvg/plutovg/`)
 - `ada`: native Ada backend (`src/svg/ada`)
 
 Select backend with `ADI_SVG_BACKEND`:
@@ -90,7 +90,10 @@ The report prints both:
 
 ## External Dependencies
 - **SDL3**, **SDL3_ttf**, **SDL3_image** — all required
-- **rlottie** — optional, only for `rlottie_example`
+
+## Vendored Dependencies
+- **plutosvg** / **plutovg** — SVG rendering (in `vendor/plutosvg/`)
+- **rlottie** — Lottie animation rendering (in `vendor/rlottie/`)
 
 ## Library Type
 ```bash
@@ -100,7 +103,7 @@ gprbuild -P adi.gpr -XADI_PLATFORM=linux -XADI_LIBRARY_TYPE=relocatable  # or st
 ## Configure Script Details
 
 Writes only under `--build-dir`:
-- `config/adi_linker_config.gpr` — linker switches from pkg-config (sdl3, sdl3-ttf, sdl3-image, rlottie)
+- `config/adi_linker_config.gpr` — linker switches from pkg-config (sdl3, sdl3-ttf, sdl3-image)
 - `projects/{adi_build.gpr, tests_build.gpr, examples_build.gpr}`
 - `build_all.sh` — full build script
 

@@ -22,9 +22,11 @@
 # Alire-managed dependencies
 /deps/
 
-# PlutoSVG build artifacts
-/plutosvg/obj/
-/plutosvg/lib/
+# Vendored library build artifacts
+/vendor/plutosvg/obj/
+/vendor/plutosvg/lib/
+/vendor/rlottie/obj/
+/vendor/rlottie/lib/
 
 # Python cache
 tools/__pycache__/

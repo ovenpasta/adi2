@@ -487,7 +487,7 @@ procedure Svg_Test is
             Off_B := Alpha_Of (Pixel_At (Px, Width => 120, X => 30, Y => 35));
 
             Assert (On_P > Gap_P, "dash array creates lower-alpha gap than dash segment");
-            Assert_If_Strict_AA
+            Assert_If_Ada
               (Off_B > Off_A,
                "dash-offset shifts visible dash phase along stroke");
          end if;

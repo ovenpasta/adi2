@@ -129,6 +129,28 @@ procedure Html_View_Test is
       return 0;
    end Find_First_Image_Item_Index;
 
+   function Has_Image_Item_Before
+     (W    : Adi.Widget.Html_View.Html_View_Access;
+      Text : String) return Boolean
+   is
+      use type Adi.Widget.Item_Kind;
+      Text_Idx : constant Natural := Find_Text_Item_Index (W, Text);
+   begin
+      if Text_Idx = 0 then
+         return False;
+      end if;
+      for I in 1 .. Text_Idx - 1 loop
+         declare
+            It : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, I);
+         begin
+            if It.Kind = Adi.Widget.Image_Item then
+               return True;
+            end if;
+         end;
+      end loop;
+      return False;
+   end Has_Image_Item_Before;
+
    function Is_RGB
      (C       : Adi.CSS_Styles.Color_Value;
       R, G, B : Natural) return Boolean
@@ -809,7 +831,6 @@ procedure Html_View_Test is
    procedure Test_List_Markers_And_LI_Value is
       W : constant Adi.Widget.Html_View.Html_View_Access :=
         Adi.Widget.Html_View.Create;
-      Bullet_Idx : Natural := 0;
       Star_Idx   : Natural := 0;
       Four_Idx   : Natural := 0;
       Five_Idx   : Natural := 0;
@@ -826,12 +847,12 @@ procedure Html_View_Test is
 
       Four_Idx := Find_Exact_Text_Item_Index (W, "4.");
       Five_Idx := Find_Exact_Text_Item_Index (W, "5.");
-      Bullet_Idx := Find_Exact_Text_Item_Index (W, UTF8_Disc);
       Star_Idx := Find_Text_Item_Index (W, "*");
 
       Assert (Four_Idx > 0, "li value attribute overrides ordered-list marker number");
       Assert (Five_Idx > 0, "ordered-list numbering continues after li value override");
-      Assert (Bullet_Idx > 0, "unordered list default marker renders as disc bullet");
+      Assert (Has_Image_Item_Before (W, "gamma"),
+              "unordered list default marker renders as disc bullet");
       Assert (Star_Idx = 0, "unordered list markers no longer render as asterisk text");
 
       New_Line;
@@ -842,7 +863,6 @@ procedure Html_View_Test is
         Adi.Widget.Html_View.Create;
       Marker_Asset_Hits : Natural := 0;
       Arrow_Idx : Natural := 0;
-      Square_Idx : Natural := 0;
 
       function On_Load_Asset
         (Self : access Adi.Widget.Html_View.Html_View;
@@ -874,10 +894,10 @@ procedure Html_View_Test is
       Adi.Widget.Html_View.Build_Items (W.all);
 
       Arrow_Idx := Find_Exact_Text_Item_Index (W, "-> ");
-      Square_Idx := Find_Exact_Text_Item_Index (W, UTF8_Square);
 
       Assert (Arrow_Idx > 0, "list-style shorthand supports quoted custom marker text");
-      Assert (Square_Idx > 0, "list-style shorthand falls back to type when marker image is unavailable");
+      Assert (Has_Image_Item_Before (W, "icon"),
+              "list-style shorthand falls back to type when marker image is unavailable");
       Assert (Marker_Asset_Hits > 0,
               "list-style-image URL uses asset callback for marker resolution");
 

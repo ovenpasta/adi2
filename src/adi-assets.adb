@@ -15,8 +15,9 @@ package body Adi.Assets is
    ---------------------------------------------------------------------------
 
    type Search_Entry is record
-      Dir    : Unbounded_String;
-      Scheme : Unbounded_String;  --  "" = default (plain paths)
+      Dir     : Unbounded_String;
+      Scheme  : Unbounded_String;  --  "" = default (plain paths)
+      Flatten : Boolean := False;
    end record;
 
    package Entry_Vectors is new Ada.Containers.Vectors
@@ -140,6 +141,56 @@ package body Adi.Assets is
    end Parse_Scheme;
 
    ---------------------------------------------------------------------------
+   --  Find_In_Subtree — depth-first search for a file by Simple_Name.
+   --  Returns the full path of the first ordinary file whose Simple_Name
+   --  matches Name, or "" if none found.
+   ---------------------------------------------------------------------------
+
+   function Find_In_Subtree (Dir : String; Name : String) return String is
+      use Ada.Directories;
+      Search  : Search_Type;
+      Dir_Ent : Directory_Entry_Type;
+   begin
+      Start_Search
+        (Search,
+         Directory => Dir,
+         Pattern   => "",
+         Filter    => (Directory     => True,
+                       Ordinary_File => True,
+                       others        => False));
+
+      while More_Entries (Search) loop
+         Get_Next_Entry (Search, Dir_Ent);
+
+         declare
+            SN : constant String := Simple_Name (Dir_Ent);
+         begin
+            if Kind (Dir_Ent) = Ordinary_File then
+               if SN = Name then
+                  End_Search (Search);
+                  return Full_Name (Dir_Ent);
+               end if;
+            elsif Kind (Dir_Ent) = Directory
+              and then SN /= "." and then SN /= ".."
+            then
+               declare
+                  Result : constant String :=
+                    Find_In_Subtree (Full_Name (Dir_Ent), Name);
+               begin
+                  if Result /= "" then
+                     End_Search (Search);
+                     return Result;
+                  end if;
+               end;
+            end if;
+         end;
+      end loop;
+
+      End_Search (Search);
+      return "";
+   end Find_In_Subtree;
+
+   ---------------------------------------------------------------------------
    --  Resolve — search directories in insertion order for Path.
    ---------------------------------------------------------------------------
 
@@ -160,17 +211,44 @@ package body Adi.Assets is
 
          for E of Entries loop
             if E.Scheme = Scheme then
-               declare
-                  FP : constant String :=
-                    To_String (E.Dir) & "/" & Safe;
-               begin
-                  if Ada.Directories.Exists (FP)
-                    and then Ada.Directories.Kind (FP)
-                               = Ada.Directories.Ordinary_File
-                  then
-                     return FP;
-                  end if;
-               end;
+               if E.Flatten then
+                  --  Flattened: look up by basename only.
+                  declare
+                     Filename : constant String :=
+                       Ada.Directories.Simple_Name (Safe);
+                     Dir_Str  : constant String := To_String (E.Dir);
+                     FP       : constant String :=
+                       Dir_Str & "/" & Filename;
+                  begin
+                     if Ada.Directories.Exists (FP)
+                       and then Ada.Directories.Kind (FP)
+                                  = Ada.Directories.Ordinary_File
+                     then
+                        return FP;
+                     end if;
+
+                     declare
+                        Found : constant String :=
+                          Find_In_Subtree (Dir_Str, Filename);
+                     begin
+                        if Found /= "" then
+                           return Found;
+                        end if;
+                     end;
+                  end;
+               else
+                  declare
+                     FP : constant String :=
+                       To_String (E.Dir) & "/" & Safe;
+                  begin
+                     if Ada.Directories.Exists (FP)
+                       and then Ada.Directories.Kind (FP)
+                                  = Ada.Directories.Ordinary_File
+                     then
+                        return FP;
+                     end if;
+                  end;
+               end if;
             end if;
          end loop;
          return "";
@@ -206,24 +284,28 @@ package body Adi.Assets is
    --  Add_Path
    ---------------------------------------------------------------------------
 
-   procedure Add_Path (Path : String; Scheme : String := "") is
+   procedure Add_Path
+     (Path : String; Scheme : String := ""; Flatten : Boolean := False) is
    begin
       Entries.Append
-        (Search_Entry'(Dir    => To_Unbounded_String (Path),
-                       Scheme => To_Unbounded_String (Scheme)));
+        (Search_Entry'(Dir     => To_Unbounded_String (Path),
+                       Scheme  => To_Unbounded_String (Scheme),
+                       Flatten => Flatten));
    end Add_Path;
 
    ---------------------------------------------------------------------------
    --  Remove_Path
    ---------------------------------------------------------------------------
 
-   procedure Remove_Path (Path : String; Scheme : String := "") is
+   procedure Remove_Path
+     (Path : String; Scheme : String := ""; Flatten : Boolean := False) is
       Target_Dir    : constant Unbounded_String := To_Unbounded_String (Path);
       Target_Scheme : constant Unbounded_String := To_Unbounded_String (Scheme);
    begin
       for I in 1 .. Natural (Entries.Length) loop
          if Entries (I).Dir = Target_Dir
            and then Entries (I).Scheme = Target_Scheme
+           and then Entries (I).Flatten = Flatten
          then
             Entries.Delete (I);
             return;

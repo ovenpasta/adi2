@@ -22,6 +22,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | Adding a new test | `docs/adding_test.md` |
 | Antialiased rendering (AA fringe, ring patterns) | `docs/rendering_aa.md` |
 | OS integration (dialogs, paths, clipboard) | `docs/os_integration.md` |
+| Ada 2022 Reference Manual | `rm-22-txt/RM-TOC.TXT` (chapters: `rm-22-txt/RM-*.TXT`) |
 
 ## Build Commands
 

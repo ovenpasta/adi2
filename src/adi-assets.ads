@@ -9,13 +9,28 @@ package Adi.Assets is
    --  Search Path Management
    ---------------------------------------------------------------------------
 
-   procedure Add_Path (Path : String; Scheme : String := "");
+   procedure Add_Path
+     (Path    : String;
+      Scheme  : String  := "";
+      Flatten : Boolean := False);
    --  Append a search directory.  If Scheme is non-empty (e.g. "app"),
    --  this directory is only searched for URIs matching "scheme://path".
    --  Directories with empty Scheme are searched for plain relative paths.
+   --
+   --  When Flatten is True, the asset is looked up by basename only
+   --  (directory components in the requested path are ignored).  The root
+   --  of Path is tried first; if not found, subdirectories are walked
+   --  depth-first and the first file whose Simple_Name matches is returned.
+   --  Note: traversal order is filesystem-dependent, so duplicate basenames
+   --  across subdirectories may resolve differently on different platforms.
 
-   procedure Remove_Path (Path : String; Scheme : String := "");
-   --  Remove the first matching search entry (directory + scheme).
+   procedure Remove_Path
+     (Path    : String;
+      Scheme  : String  := "";
+      Flatten : Boolean := False);
+   --  Remove the first matching search entry (directory + scheme + flatten).
+   --  A flattened entry requires Flatten => True to match; the default
+   --  False will not match a flattened entry.
 
    procedure Clear_Paths;
    --  Remove all search directories.

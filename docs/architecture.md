@@ -73,8 +73,8 @@
 
 **Adi.Assets** (`adi-assets.ads`): Global cached asset loader with scheme-based URI routing.
 - Module-level API (like `Adi.Font`) — no instance type, no Window/Renderer dependency
-- `Add_Path(Path, Scheme)`: register a search directory; if `Scheme` is non-empty (e.g. `"app"`), the directory is only searched for `scheme://path` URIs; empty scheme directories handle plain relative paths
-- `Remove_Path(Path, Scheme)`: remove a previously registered search directory
+- `Add_Path(Path, Scheme, Flatten)`: register a search directory; if `Scheme` is non-empty (e.g. `"app"`), the directory is only searched for `scheme://path` URIs; empty scheme directories handle plain relative paths. When `Flatten => True`, assets are looked up by basename only — the root of the directory is tried first, then subdirectories are walked depth-first until a matching filename is found
+- `Remove_Path(Path, Scheme, Flatten)`: remove a previously registered search directory (must match all three fields)
 - `Clear_Paths`: remove all search directories
 - `Get_String(Path)`: resolve and read file contents as a string, cached by path
 - `Get_Image(Path)`: resolve and load image via `Adi.Image.Load_From_File` (surface-based, no renderer needed), cached by path

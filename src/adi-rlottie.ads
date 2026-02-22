@@ -1,22 +1,16 @@
 with Adi.Core;         use Adi.Core;
 with Adi.Image;        use Adi.Image;
-with Adi.SDL.Render;   use Adi.SDL.Render;
 with Adi.SDL.Surface;  use Adi.SDL.Surface;
 with Interfaces;
 with System;
 
 package Adi.RLottie is
 
-   type RLottie_Backend_Kind is (Primitive_Backend, Texture_Backend);
-
    type RLottie_Animation is tagged private;
    type RLottie_Animation_Access is access all RLottie_Animation'Class;
 
    function Load_From_File
-     (Renderer : SDL_Renderer_Ptr;
-      Path     : String;
-      Backend  : RLottie_Backend_Kind := Primitive_Backend)
-      return RLottie_Animation_Access;
+     (Path : String) return RLottie_Animation_Access;
 
    function Is_Valid (Anim : RLottie_Animation) return Boolean;
 
@@ -48,14 +42,6 @@ package Adi.RLottie is
    function Get_Playback_Speed (Anim : RLottie_Animation) return Float;
    procedure Reset (Anim : in out RLottie_Animation);
 
-   procedure Set_Backend
-     (Anim    : in out RLottie_Animation;
-      Backend : RLottie_Backend_Kind);
-   function Get_Requested_Backend
-     (Anim : RLottie_Animation) return RLottie_Backend_Kind;
-   function Get_Active_Backend
-     (Anim : RLottie_Animation) return RLottie_Backend_Kind;
-
    --  Advance timeline and consume preloaded surfaces.
    --  Returns True when a new frame becomes visible.
    function Advance
@@ -68,6 +54,9 @@ private
 
    type Surface_Array is array (Positive range <>) of SDL_Surface_Ptr;
    type Surface_Array_Access is access Surface_Array;
+
+   type Image_Array is array (Positive range <>) of Image_Access;
+   type Image_Array_Access is access Image_Array;
 
    protected type Preload_State is
       procedure Set_Ready_Count (Value : Natural);
@@ -109,9 +98,7 @@ private
       Looping           : Boolean := True;
       Playback_Speed    : Float := 1.0;
       Min_Ready_Frames  : Natural := 8;
-      Requested_Backend : RLottie_Backend_Kind := Primitive_Backend;
-      Active_Backend    : RLottie_Backend_Kind := Texture_Backend;
-      Frame_Image       : Image_Access := null;
+      Frame_Images      : Image_Array_Access := null;
       Frame_Surfaces    : Surface_Array_Access := null;
       State             : Preload_State_Access := null;
       Worker            : Preload_Task_Access := null;

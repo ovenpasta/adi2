@@ -1,5 +1,4 @@
-with Adi.RLottie;    use Adi.RLottie;
-with Adi.SDL.Render; use Adi.SDL.Render;
+with Adi.RLottie; use Adi.RLottie;
 
 package Adi.Widget.Animated_Widget.RLottie is
 
@@ -7,10 +6,8 @@ package Adi.Widget.Animated_Widget.RLottie is
      (Animation : RLottie_Animation_Access) return Animated_Widget_Access;
 
    function Load_From_File
-     (W        : in out Animated_Widget'Class;
-      Renderer : SDL_Renderer_Ptr;
-      Path     : String;
-      Backend  : RLottie_Backend_Kind := Primitive_Backend) return Boolean;
+     (W    : in out Animated_Widget'Class;
+      Path : String) return Boolean;
 
    procedure Set_Animation
      (W         : in out Animated_Widget'Class;

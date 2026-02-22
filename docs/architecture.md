@@ -102,7 +102,7 @@
 - `Load_From_File(Path)`: loads all frames as surfaces (via `SDL_DuplicateSurface` + `Create_From_Surface`) — no renderer required at load time; GPU textures created lazily per frame on first render
 - Loadable through `Adi.Assets.Get_Animated_Image` for URI-based cached access
 
-**Adi.RLottie** (`adi-rlottie.ads`): Lottie JSON via rlottie C API, CPU-rendered frame cache with background preload task, streaming SDL texture upload.
+**Adi.RLottie** (`adi-rlottie.ads`): Lottie JSON via rlottie C API, CPU-rendered frame cache with background preload task. No renderer required at load time; surfaces are wrapped in `Image_Access` on first display and GPU textures created lazily per frame.
 
 **Adi.Log** (`adi-log.ads`): Central runtime logging.
 - Safe logging entry points: `Write`, `Debug`, `Info`, `Warning`, `Error`

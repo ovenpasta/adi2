@@ -1,18 +1,14 @@
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
-with Interfaces;
 with Interfaces.C;
 with Interfaces.C.Strings;
-with System;
 with Adi.Log;
-with Adi.SDL;
 with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
 
 package body Adi.RLottie is
 
    use type Interfaces.C.size_t;
    use type System.Address;
-   use type Adi.SDL.C_bool;
 
    type RL_Animation is limited null record;
    type RL_Animation_Ptr is access all RL_Animation;
@@ -157,10 +153,13 @@ package body Adi.RLottie is
      (Object => RLottie_Animation'Class,
       Name   => RLottie_Animation_Access);
 
-
    procedure Free_Surfaces is new Ada.Unchecked_Deallocation
      (Object => Surface_Array,
       Name   => Surface_Array_Access);
+
+   procedure Free_Images is new Ada.Unchecked_Deallocation
+     (Object => Image_Array,
+      Name   => Image_Array_Access);
 
    procedure Free_State is new Ada.Unchecked_Deallocation
      (Object => Preload_State,
@@ -214,50 +213,43 @@ package body Adi.RLottie is
       return F;
    end Resolve_Target_Frame;
 
-   function Render_Frame_From_Surface
+   --  Transfer ownership of a preloaded surface to an Image on first display.
+   --  Only nulls the surface slot on successful image creation to avoid leaks.
+   function Ensure_Frame_Image
      (Anim  : in out RLottie_Animation;
-      Frame : Natural) return Boolean
+      Frame : Positive) return Boolean
    is
-      Success : Adi.SDL.C_bool;
-      Surf    : SDL_Surface_Ptr;
-      Tex     : SDL_Texture_Ptr;
+      Img : Image_Access;
    begin
-      if Anim.Frame_Image = null
-        or else Anim.Frame_Surfaces = null
-        or else Frame = 0
-        or else Frame > Anim.Frame_Count
+      if Anim.Frame_Images = null
+        or else Frame > Anim.Frame_Images'Last
       then
          return False;
       end if;
 
-      Surf := Anim.Frame_Surfaces (Positive (Frame));
-      if Surf = null or else Surf.pixels = System.Null_Address then
+      if Anim.Frame_Images (Frame) /= null then
+         return True;
+      end if;
+
+      if Anim.Frame_Surfaces = null
+        or else Frame > Anim.Frame_Surfaces'Last
+        or else Anim.Frame_Surfaces (Frame) = null
+      then
          return False;
       end if;
 
-      Tex := Get_Texture (Anim.Frame_Image.all);
-      if Tex = null then
+      Img := Create_From_Surface (Anim.Frame_Surfaces (Frame));
+      if Img = null then
          return False;
       end if;
 
-      Success := SDL_UpdateTexture
-        (Texture => Tex,
-         Rect    => null,
-         Pixels  => Surf.pixels,
-         Pitch   => Interfaces.C.int (Surf.pitch));
-      if not Success then
-         return False;
-      end if;
-
-      Anim.Current_Frame := Frame;
+      Anim.Frame_Images (Frame) := Img;
+      Anim.Frame_Surfaces (Frame) := null;
       return True;
-   end Render_Frame_From_Surface;
+   end Ensure_Frame_Image;
 
    function Load_From_File
-     (Renderer : SDL_Renderer_Ptr;
-      Path     : String;
-      Backend  : RLottie_Backend_Kind := Primitive_Backend)
-      return RLottie_Animation_Access
+     (Path : String) return RLottie_Animation_Access
    is
       use Interfaces.C.Strings;
 
@@ -271,14 +263,8 @@ package body Adi.RLottie is
       Width_N  : Natural;
       Height_N : Natural;
       Result   : RLottie_Animation_Access := null;
-      Tex      : SDL_Texture_Ptr;
       Surf     : SDL_Surface_Ptr;
    begin
-      if Renderer = null then
-         Adi.Log.Error ("Cannot load rlottie animation, renderer is null");
-         return null;
-      end if;
-
       Ensure_Initialized;
 
       C_Path := New_String (Path);
@@ -309,18 +295,6 @@ package body Adi.RLottie is
          return null;
       end if;
 
-      Tex := SDL_CreateTexture
-        (Renderer    => Renderer,
-         Format      => SDL_PIXELFORMAT_ARGB8888,
-         Access_Mode => SDL_TEXTUREACCESS_STREAMING,
-         W           => Interfaces.C.int (W),
-         H           => Interfaces.C.int (H));
-      if Tex = null then
-         Animation_Destroy (Handle);
-         Adi.Log.Error ("Failed to create rlottie texture: " & Path);
-         return null;
-      end if;
-
       Result := new RLottie_Animation;
       Result.Handle := To_Address (Handle);
       Result.Width := Pixel_Type (Float (W));
@@ -330,13 +304,6 @@ package body Adi.RLottie is
       Result.Frame_Count := Natural (Count);
       Result.Frame_Rate := Float (FPS);
       Result.Duration_S := Float (Dur);
-      Result.Requested_Backend := Backend;
-      Result.Active_Backend := Texture_Backend;
-
-      if Backend = Primitive_Backend then
-         Adi.Log.Warning
-           ("RLottie primitive backend is not implemented; using texture backend.");
-      end if;
 
       Result.Frame_Surfaces := new Surface_Array (1 .. Natural (Count));
       for I in Result.Frame_Surfaces'Range loop
@@ -356,14 +323,10 @@ package body Adi.RLottie is
          Result.Frame_Surfaces (I) := Surf;
       end loop;
 
-      Result.Frame_Image := Create_From_Texture (Tex);
-      if Result.Frame_Image = null then
-         SDL_DestroyTexture (Tex);
-         Adi.Log.Error ("Failed to wrap rlottie texture.");
-         Destroy (Result.all);
-         Free_RLottie (Result);
-         return null;
-      end if;
+      Result.Frame_Images := new Image_Array (1 .. Natural (Count));
+      for I in Result.Frame_Images'Range loop
+         Result.Frame_Images (I) := null;
+      end loop;
 
       Result.State := new Preload_State;
       Result.Worker := new Preload_Task
@@ -380,8 +343,7 @@ package body Adi.RLottie is
    function Is_Valid (Anim : RLottie_Animation) return Boolean is
    begin
       return Anim.Handle /= System.Null_Address
-        and then Anim.Frame_Image /= null
-        and then Anim.Frame_Surfaces /= null;
+        and then Anim.Frame_Images /= null;
    end Is_Valid;
 
    procedure Get_Size
@@ -440,7 +402,13 @@ package body Adi.RLottie is
 
    function Get_Current_Image (Anim : RLottie_Animation) return Image_Access is
    begin
-      return Anim.Frame_Image;
+      if Anim.Frame_Images = null
+        or else Anim.Current_Frame = 0
+        or else Anim.Current_Frame > Anim.Frame_Images'Last
+      then
+         return null;
+      end if;
+      return Anim.Frame_Images (Anim.Current_Frame);
    end Get_Current_Image;
 
    procedure Start (Anim : in out RLottie_Animation) is
@@ -496,32 +464,11 @@ package body Adi.RLottie is
       end if;
 
       if Ready >= 1 or else Done then
-         if not Render_Frame_From_Surface (Anim, 1) then
-            null;
+         if Ensure_Frame_Image (Anim, 1) then
+            Anim.Current_Frame := 1;
          end if;
       end if;
    end Reset;
-
-   procedure Set_Backend
-     (Anim    : in out RLottie_Animation;
-      Backend : RLottie_Backend_Kind)
-   is
-   begin
-      Anim.Requested_Backend := Backend;
-      Anim.Active_Backend := Texture_Backend;
-   end Set_Backend;
-
-   function Get_Requested_Backend
-     (Anim : RLottie_Animation) return RLottie_Backend_Kind is
-   begin
-      return Anim.Requested_Backend;
-   end Get_Requested_Backend;
-
-   function Get_Active_Backend
-     (Anim : RLottie_Animation) return RLottie_Backend_Kind is
-   begin
-      return Anim.Active_Backend;
-   end Get_Active_Backend;
 
    function Advance
      (Anim : in out RLottie_Animation;
@@ -557,11 +504,17 @@ package body Adi.RLottie is
          return False;
       end if;
 
-      return Render_Frame_From_Surface (Anim, Target);
+      if not Ensure_Frame_Image (Anim, Target) then
+         return False;
+      end if;
+
+      Anim.Current_Frame := Target;
+      return True;
    end Advance;
 
    procedure Destroy (Anim : in out RLottie_Animation) is
    begin
+      --  Stop worker first — it touches Frame_Surfaces
       if Anim.State /= null then
          Anim.State.Signal_Stop;
       end if;
@@ -581,10 +534,22 @@ package body Adi.RLottie is
          Anim.Handle := System.Null_Address;
       end if;
 
-      if Anim.Frame_Image /= null then
-         Adi.Image.Free (Anim.Frame_Image);
+      --  Free Images (which own their surfaces via Create_From_Surface)
+      if Anim.Frame_Images /= null then
+         for I in Anim.Frame_Images'Range loop
+            if Anim.Frame_Images (I) /= null then
+               Adi.Image.Free (Anim.Frame_Images (I));
+            end if;
+         end loop;
+         declare
+            Arr : Image_Array_Access := Anim.Frame_Images;
+         begin
+            Free_Images (Arr);
+            Anim.Frame_Images := null;
+         end;
       end if;
 
+      --  Free remaining surfaces (for frames not yet converted to Images)
       if Anim.Frame_Surfaces /= null then
          for I in Anim.Frame_Surfaces'Range loop
             if Anim.Frame_Surfaces (I) /= null then

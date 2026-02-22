@@ -140,11 +140,7 @@ begin
 
       Root.Add_Child (Status);
 
-      Anim :=
-        Adi.RLottie.Load_From_File
-          (Renderer => W.Get_Renderer,
-           Path     => Resolve_Lottie_Path,
-           Backend  => Texture_Backend);
+      Anim := Adi.RLottie.Load_From_File (Path => Resolve_Lottie_Path);
       if Anim = null then
          Status.Set_Text ("FAILED TO LOAD examples/assets/lottie_sample.json");
       else

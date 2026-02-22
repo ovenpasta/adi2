@@ -35,13 +35,11 @@ package body Adi.Widget.Animated_Widget.RLottie is
    end Create;
 
    function Load_From_File
-     (W        : in out Animated_Widget'Class;
-      Renderer : SDL_Renderer_Ptr;
-      Path     : String;
-      Backend  : RLottie_Backend_Kind := Primitive_Backend) return Boolean
+     (W    : in out Animated_Widget'Class;
+      Path : String) return Boolean
    is
       Loaded : constant RLottie_Animation_Access :=
-        Adi.RLottie.Load_From_File (Renderer, Path, Backend);
+        Adi.RLottie.Load_From_File (Path);
    begin
       if Loaded = null then
          return False;

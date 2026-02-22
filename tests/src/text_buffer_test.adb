@@ -94,6 +94,31 @@ procedure Text_Buffer_Test is
       New_Line;
    end Test_Selection_Replace_Undo_Redo;
 
+   procedure Test_Collapsed_Selection_Does_Not_Overwrite is
+      B : Text_Buffer;
+   begin
+      Put_Line ("Test: collapsed selection does not overwrite on type");
+
+      Clear (B);
+      Set_Caret (B, (Line => 1, Column => 0), Extend_Selection => True);
+      Assert (not Has_Selection (B), "collapsed selection should not be active");
+
+      Insert_Text (B, "a");
+      Assert_Text (B, "a", "first char inserted");
+      Assert (not Has_Selection (B), "no selection after first char");
+
+      Insert_Text (B, "b");
+      Assert_Text (B, "ab", "second char appends (no overwrite)");
+      Assert (not Has_Selection (B), "no selection after second char");
+
+      Set_Caret (B, (Line => 1, Column => 1));
+      Set_Caret (B, (Line => 1, Column => 1), Extend_Selection => True);
+      Delete_Backward (B);
+      Assert_Text (B, "b", "backspace edits without creating selection");
+      Assert (not Has_Selection (B), "backspace should leave no selection");
+      New_Line;
+   end Test_Collapsed_Selection_Does_Not_Overwrite;
+
    procedure Test_Line_Merge_Backspace_Undo is
       B : Text_Buffer;
    begin
@@ -210,6 +235,7 @@ begin
    Test_Basic_Undo_Redo;
    Test_Redo_Invalidated_By_New_Edit;
    Test_Selection_Replace_Undo_Redo;
+   Test_Collapsed_Selection_Does_Not_Overwrite;
    Test_Line_Merge_Backspace_Undo;
    Test_Line_Merge_Delete_Undo;
    Test_Multiline_Insert_Undo_Redo;

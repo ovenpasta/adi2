@@ -212,6 +212,13 @@ package body Adi.Text_Buffer is
       end if;
    end Set_Selection_Mode;
 
+   procedure Normalize_Selection_State (B : in out Text_Buffer) is
+   begin
+      if B.Selection.Active and then B.Selection.Anchor = B.Caret then
+         B.Selection := (others => <>);
+      end if;
+   end Normalize_Selection_State;
+
    function Content_Version (B : Text_Buffer) return Natural is
    begin
       return B.Content_Version;
@@ -398,6 +405,7 @@ package body Adi.Text_Buffer is
       New_Lines : Natural := 0;
    begin
       Ensure_Not_Empty (B);
+      Normalize_Selection_State (B);
       if Text'Length = 0 then
          return;
       end if;
@@ -459,6 +467,7 @@ package body Adi.Text_Buffer is
       Cur : Position;
    begin
       Ensure_Not_Empty (B);
+      Normalize_Selection_State (B);
 
       if Has_Selection (B) then
          Record_Edit (B);
@@ -501,6 +510,7 @@ package body Adi.Text_Buffer is
       Cur : Position;
    begin
       Ensure_Not_Empty (B);
+      Normalize_Selection_State (B);
 
       if Has_Selection (B) then
          Record_Edit (B);

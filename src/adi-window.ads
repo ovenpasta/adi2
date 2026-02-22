@@ -4,8 +4,6 @@ with Adi.Widget;     use Adi.Widget;
 with Adi.Render;     use Adi.Render;
 with Adi.SDL.Video;  use Adi.SDL.Video;
 with Adi.SDL.Render; use Adi.SDL.Render;
-with Adi.Image;      use Adi.Image;
-with Adi.Animated_Image; use Adi.Animated_Image;
 with Adi.SDL.Events;
 with System;
 
@@ -41,17 +39,6 @@ package Adi.Window is
 
     --  Get the SDL renderer for direct rendering
     function Get_Renderer (W : in out Window) return SDL_Renderer_Ptr;
-
-    --  Image loading convenience function
-    --  Loads an image using the window's renderer
-    function Load_Image
-       (W    : in out Window;
-        Path : String) return Image_Access;
-
-    --  Animated image loading convenience function.
-    function Load_Animated_Image
-       (W    : in out Window;
-        Path : String) return Animated_Image_Access;
 
     --  Mouse event handling
     procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type);

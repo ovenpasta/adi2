@@ -90,6 +90,7 @@
 
 .label-box {
   background-color: rgb(255, 255, 255);
+  background-image: url(bg.jpg);
   object-fit: contain;
   border-radius: 6px;
   border-width: 1px;

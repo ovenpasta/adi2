@@ -62,7 +62,7 @@ Text and typography properties set on `Main_Part` (i.e., without a `::part` sele
 
 **Inheritable properties:** `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `text-align`, `vertical-align`, `text-decoration`, `text-overflow`, `text-wrap-mode`, `line-height`, `white-space`, `cursor`, `list-style-type`, `list-style-image`, `list-style-position`.
 
-**Non-inheritable properties** (box-model, layout, visual): `background-color`, `border-*`, `outline-*`, `padding`, `margin`, sizing, `display`, `position`, `overflow`, `opacity`, `box-shadow`, `flex-*`, `grid-*`, `transition`, etc.
+**Non-inheritable properties** (box-model, layout, visual): `background-color`, `background-image`, `border-*`, `outline-*`, `padding`, `margin`, sizing, `display`, `position`, `overflow`, `opacity`, `box-shadow`, `flex-*`, `grid-*`, `transition`, etc.
 
 Example:
 
@@ -246,7 +246,31 @@ Unlike `border`, outline does not shift surrounding content and respects `border
 | `box-shadow` | offset-x offset-y blur spread color | `box-shadow: 0 4px 12px rgba(0,0,0,0.2);` |
 | `cursor` | `auto`, `default`, `pointer`, `text`, `move`, `not-allowed`, `wait`, `crosshair`, `grab`, `grabbing`, `ns-resize`, `ew-resize`, `nesw-resize`, `nwse-resize` | `cursor: pointer;` |
 
-### Images
+### Background Images
+
+| Property | Values | Example |
+|----------|--------|---------|
+| `background-image` | `none`, `url(...)` | `background-image: url(bg.jpg);` |
+
+Background images are resolved via `Adi.Assets.Get_Image` — the URI is looked up in the registered asset search paths. Register paths before widget creation:
+
+```ada
+Adi.Assets.Add_Path ("assets");
+Adi.Assets.Add_Path ("assets/images", Scheme => "app");
+```
+
+Then use in CSS:
+
+```css
+.hero { background-image: url(hero.jpg); object-fit: cover; }
+.icon-panel { background-image: url(app://panel-bg.png); }
+```
+
+Plain paths (e.g. `bg.jpg`) search directories registered with an empty scheme. Scheme URIs (e.g. `app://panel-bg.png`) search directories registered with that scheme.
+
+Images are loaded as CPU surfaces and GPU textures are created lazily at render time — no renderer dependency at style/load time.
+
+### Image Sizing
 
 | Property | Values | Example |
 |----------|--------|---------|

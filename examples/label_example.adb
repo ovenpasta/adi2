@@ -53,8 +53,7 @@ begin
       --  Build an icon from an inline SVG path.
       Icon :=
         Adi.Image.Load_SVG_Path
-          (Renderer     => W.Get_Renderer,
-           Path_Data    => Save_Path,
+          (Path_Data    => Save_Path,
            Size         => (24.0, 24.0),
            Fill         => (R => 242, G => 248, B => 255, A => 255),
            Stroke_Width => 1.5,

@@ -79,12 +79,11 @@ package body Adi.Widget.Animated_Widget is
    end Set_Backend;
 
    function Load_Image_From_File
-     (W        : in out Animated_Widget;
-      Renderer : SDL_Renderer_Ptr;
-      Path     : String) return Boolean
+     (W    : in out Animated_Widget;
+      Path : String) return Boolean
    is
       Loaded : constant Animated_Image_Access :=
-        Adi.Animated_Image.Load_From_File (Renderer, Path);
+        Adi.Animated_Image.Load_From_File (Path);
    begin
       if Loaded = null then
          return False;

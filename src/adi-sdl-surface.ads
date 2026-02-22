@@ -151,6 +151,12 @@ package Adi.SDL.Surface is
         Convention => C, 
         External_Name => "SDL_CreateSurface";
 
+   function SDL_DuplicateSurface
+     (Surface : access SDL_Surface) return access SDL_Surface
+      with Import => True,
+           Convention => C,
+           External_Name => "SDL_DuplicateSurface";
+
    procedure SDL_DestroySurface (Surface : access SDL_Surface)
       with Import => True,
            Convention => C,

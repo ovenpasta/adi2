@@ -1,3 +1,5 @@
+with Ada.Strings.Unbounded;
+with Adi.Assets;
 with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.Layout_Util; use Adi.Layout_Util;
 
@@ -44,11 +46,16 @@ package body Adi.Widget.Box is
          Border_W : constant Edge_Pixels := Get_Border_Width_Px (Style);
          BW : constant Pixel_Type := Pixel_Type (Border_W.Top);
       begin
-         if Style.Background_Image.Kind = Picture_Image then
-            Bg_It.Image_Source := Style.Background_Image.Image;
-         else
-            Bg_It.Image_Source := null;
-         end if;
+         case Style.Background_Image.Kind is
+            when Picture_Image =>
+               Bg_It.Image_Source := Style.Background_Image.Image;
+            when Url_Image =>
+               Bg_It.Image_Source := Adi.Assets.Get_Image
+                 (Ada.Strings.Unbounded.To_String
+                    (Style.Background_Image.URI));
+            when No_Image =>
+               Bg_It.Image_Source := null;
+         end case;
          --  Inset by border width so the image doesn't cover the border
          Bg_It.Geometry :=
             (X      => W.Geometry.X + BW,

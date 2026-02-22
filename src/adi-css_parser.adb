@@ -1362,6 +1362,13 @@ package body Adi.CSS_Parser is
          if Parse_List_Style_Type_Value (V, List_Type_Val) then
             Rules.List_Style_Type := Set (List_Type_Val);
          end if;
+      elsif P = "background-image" then
+         if LV = "none" then
+            Rules.Background_Image := Set_Bg_Image (No_Background_Image);
+         elsif Parse_URL_Function (V, URI_Text) then
+            Rules.Background_Image := Set_Bg_Image
+              (Background_Image_URL (To_String (URI_Text)));
+         end if;
       elsif P = "list-style-image" then
          if LV = "none" then
             Rules.List_Style_Image := Set (No_List_Image);

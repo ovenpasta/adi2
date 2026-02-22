@@ -433,7 +433,6 @@ package body Adi.Widget.Combo_Box is
    end Set_Default_Arrow_Image;
 
    procedure Ensure_Arrow_Images (W : in out Combo_Box_Widget) is
-      Renderer : Adi.SDL.Render.SDL_Renderer_Ptr;
    begin
       if W.Arrow_Down_Img /= null then
          return;
@@ -449,26 +448,15 @@ package body Adi.Widget.Combo_Box is
       end if;
 
       --  Create built-in SVG chevrons
-      if W.Host_Window = null then
-         return;
-      end if;
-
-      Renderer := Adi.Window.Get_Renderer (W.Host_Window.all);
-      if Renderer = null then
-         return;
-      end if;
-
       W.Arrow_Down_Img := Load_SVG_Path
-        (Renderer     => Renderer,
-         Path_Data    => Arrow_Down_Path,
+        (Path_Data    => Arrow_Down_Path,
          Size         => Arrow_SVG_Size,
          Fill         => Arrow_Clear,
          Stroke_Width => 2.5,
          Stroke       => Arrow_White,
          Tintable     => True);
       W.Arrow_Up_Img := Load_SVG_Path
-        (Renderer     => Renderer,
-         Path_Data    => Arrow_Up_Path,
+        (Path_Data    => Arrow_Up_Path,
          Size         => Arrow_SVG_Size,
          Fill         => Arrow_Clear,
          Stroke_Width => 2.5,

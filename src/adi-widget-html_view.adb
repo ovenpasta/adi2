@@ -30,26 +30,15 @@ package body Adi.Widget.Html_View is
    procedure Ensure_Marker_Images
      (Host : Adi.Window.Window_Access)
    is
-      use type Adi.Window.Window_Access;
-      Renderer : Adi.SDL.Render.SDL_Renderer_Ptr;
+      pragma Unreferenced (Host);
    begin
       if Disc_Marker_Img /= null then
          return;
       end if;
 
-      if Host = null then
-         return;
-      end if;
-
-      Renderer := Adi.Window.Get_Renderer (Host.all);
-      if Renderer = null then
-         return;
-      end if;
-
       --  Filled circle (disc)
       Disc_Marker_Img := Load_SVG_Path
-        (Renderer     => Renderer,
-         Path_Data    => "M8 2 A6 6 0 1 0 8 14 A6 6 0 1 0 8 2 Z",
+        (Path_Data    => "M8 2 A6 6 0 1 0 8 14 A6 6 0 1 0 8 2 Z",
          Size         => Marker_SVG_Size,
          Fill         => Marker_White,
          Stroke_Width => 0.0,
@@ -58,8 +47,7 @@ package body Adi.Widget.Html_View is
 
       --  Hollow circle
       Circle_Marker_Img := Load_SVG_Path
-        (Renderer     => Renderer,
-         Path_Data    => "M8 2 A6 6 0 1 0 8 14 A6 6 0 1 0 8 2 Z",
+        (Path_Data    => "M8 2 A6 6 0 1 0 8 14 A6 6 0 1 0 8 2 Z",
          Size         => Marker_SVG_Size,
          Fill         => Marker_Clear,
          Stroke_Width => 1.5,
@@ -68,8 +56,7 @@ package body Adi.Widget.Html_View is
 
       --  Filled square
       Square_Marker_Img := Load_SVG_Path
-        (Renderer     => Renderer,
-         Path_Data    => "M3 3 H13 V13 H3 Z",
+        (Path_Data    => "M3 3 H13 V13 H3 Z",
          Size         => Marker_SVG_Size,
          Fill         => Marker_White,
          Stroke_Width => 0.0,
@@ -1185,9 +1172,7 @@ package body Adi.Widget.Html_View is
          return Img;
       end if;
 
-      Img := Adi.Image.Load_SVG_From_String
-        (Renderer => null,
-         Source   => Source);
+      Img := Adi.Image.Load_SVG_From_String (Source => Source);
 
       Self.Image_Cache.Append
         (New_Item => Cached_Image'(Src => To_Unbounded_String (Cache_Key), Img => Img));

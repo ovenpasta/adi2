@@ -31,3 +31,5 @@ tools/__pycache__/
 
 # Auto-generated reference bindings
 /bindings/
+
+/scratch/

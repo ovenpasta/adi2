@@ -1303,7 +1303,17 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
             color = parse_color(value)
             if color:
                 ada_field = f"Background_Color => Set_Bg ({generate_color_ada(color)})"
-        
+
+        # Background image
+        elif prop == "background-image":
+            low = value.lower()
+            if low == "none":
+                ada_field = "Background_Image => Set_Bg_Image (No_Background_Image)"
+            else:
+                uri = parse_css_url_function(value)
+                if uri is not None:
+                    ada_field = f"Background_Image => Set_Bg_Image (Background_Image_URL ({ada_string_literal(uri)}))"
+
         # Padding
         elif prop == "padding":
             lengths = parse_box_values(value)

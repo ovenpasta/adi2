@@ -202,8 +202,7 @@ procedure Svg_Test is
       Put_Line ("Test: image API integration");
 
       Img := Adi.Image.Load_From_File
-        (Renderer => null,
-         Path     => "tests/assets/size_viewbox.svg");
+        (Path => "tests/assets/size_viewbox.svg");
 
       Assert (Img /= null, "Adi.Image returns image handle for SVG with null renderer");
       if Img /= null then
@@ -242,8 +241,7 @@ procedure Svg_Test is
       Release (Doc, Px);
 
       Img := Adi.Image.Load_SVG_Path
-        (Renderer  => null,
-         Path_Data => "M4 4 L20 4 L20 20 L4 20 Z",
+        (Path_Data => "M4 4 L20 4 L20 20 L4 20 Z",
          Size      => (Width => 24.0, Height => 24.0),
          Fill      => (R => 255, G => 99, B => 71, A => 255));
       Assert (Img /= null, "Load_SVG_Path returns image");

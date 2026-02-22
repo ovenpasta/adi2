@@ -4,6 +4,7 @@ with Adi.Log;
 with Adi.SDL;       use Adi.SDL;
 with Adi.SDL.Image; use Adi.SDL.Image;
 with Adi.SDL.Render; use Adi.SDL.Render;
+with Adi.SDL.Surface; use Adi.SDL.Surface;
 with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
 with Adi.SVG;
 with Ada.Characters.Handling;
@@ -24,6 +25,38 @@ package body Adi.Image is
    procedure Free_Pixels is
      new Ada.Unchecked_Deallocation
        (Adi.SVG.Pixel_Buffer, Adi.SVG.Pixel_Buffer_Access);
+
+   procedure Free_Image is
+     new Ada.Unchecked_Deallocation
+       (Image'Class, Image_Access);
+
+   ---------------------------------------------------------------------------
+   --  Live image registry — tracks all allocated Image_Access values so
+   --  Release_All_Textures_For_Renderer can iterate every image globally.
+   ---------------------------------------------------------------------------
+
+   package Image_Ptr_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Image_Access);
+
+   Live_Images : Image_Ptr_Vectors.Vector;
+
+   procedure Register (Img : Image_Access) is
+   begin
+      if Img /= null then
+         Live_Images.Append (Img);
+      end if;
+   end Register;
+
+   procedure Unregister (Img : Image_Access) is
+   begin
+      for I in 1 .. Natural (Live_Images.Length) loop
+         if Live_Images (I) = Img then
+            Live_Images.Delete (I);
+            return;
+         end if;
+      end loop;
+   end Unregister;
 
    function Is_SVG_Path (Path : String) return Boolean is
       use Ada.Characters.Handling;
@@ -48,6 +81,7 @@ package body Adi.Image is
       Adi.SVG.Get_Size (Doc.all, SW, SH);
       Img := new Image'(
          Kind     => SVG_Image,
+         Surface  => null,
          Texture  => null,
          Width    => SW,
          Height   => SH,
@@ -55,6 +89,7 @@ package body Adi.Image is
          Cache    => <>,
          Tintable => False
       );
+      Register (Img);
       return Img;
    end Build_SVG_Image;
 
@@ -138,17 +173,13 @@ package body Adi.Image is
    -- Load_From_File
    ---------------------------------------------------------------------------
 
-   function Load_From_File
-      (Renderer : SDL_Renderer_Ptr;
-       Path     : String) return Image_Access
+   function Load_From_File (Path : String) return Image_Access
    is
       use Interfaces.C.Strings;
 
       C_Path  : chars_ptr;
-      Texture : SDL_Texture_Ptr;
+      Surf    : SDL_Surface_Ptr;
       Img     : Image_Access;
-      W, H    : aliased Float;
-      Success : Adi.SDL.C_bool;
       Doc     : Adi.SVG.Document_Access;
    begin
       if Is_SVG_Path (Path) then
@@ -161,54 +192,34 @@ package body Adi.Image is
          return Build_SVG_Image (Doc);
       end if;
 
-      if Renderer = null then
-         Adi.Log.Error ("Cannot load image, renderer is null");
-         return null;
-      end if;
-
-      -- Convert Ada string to C string
       C_Path := New_String (Path);
-
-      -- Load the image using SDL_image
-      Texture := IMG_LoadTexture (Renderer, C_Path);
+      Surf := IMG_Load (C_Path);
       Free (C_Path);
 
-      if Texture = null then
+      if Surf = null then
          Adi.Log.Error ("Failed to load image: " & Path);
          return null;
       end if;
 
-      -- Get texture dimensions
-      Success := SDL_GetTextureSize (Texture, W'Access, H'Access);
-      if not Success then
-         Adi.Log.Warning ("Could not get texture size for: " & Path);
-         W := 0.0;
-         H := 0.0;
-      end if;
-
-      -- Enable alpha blending so opacity/alpha modulation works
-      Success := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
-
-      -- Create the image object
       Img := new Image'(
          Kind     => Raster_Image,
-         Texture  => Texture,
-         Width    => Pixel_Type (W),
-         Height   => Pixel_Type (H),
+         Surface  => Surf,
+         Texture  => null,
+         Width    => Pixel_Type (Float (Surf.w)),
+         Height   => Pixel_Type (Float (Surf.h)),
          SVG      => null,
          Cache    => <>,
          Tintable => False
       );
 
+      Register (Img);
       return Img;
    end Load_From_File;
 
    function Load_SVG_From_String
-      (Renderer : SDL_Renderer_Ptr;
-       Source   : String;
+      (Source   : String;
        Tintable : Boolean := False) return Image_Access
    is
-      pragma Unreferenced (Renderer);
       Doc    : Adi.SVG.Document_Access := null;
       Result : Image_Access;
    begin
@@ -226,15 +237,13 @@ package body Adi.Image is
    end Load_SVG_From_String;
 
    function Load_SVG_Path
-      (Renderer  : SDL_Renderer_Ptr;
-       Path_Data : String;
+      (Path_Data : String;
        Size      : Size_2D;
        Fill      : Color_8 := (R => 0, G => 0, B => 0, A => 255);
        Stroke_Width : Pixel_Type := 0.0;
        Stroke    : Color_8 := (R => 0, G => 0, B => 0, A => 255);
        Tintable  : Boolean := False) return Image_Access
    is
-      pragma Unreferenced (Renderer);
       Width_Px  : constant Positive :=
         Positive (Integer'Max (1, Integer (Float'Ceiling (Float (Size.Width)))));
       Height_Px : constant Positive :=
@@ -296,10 +305,37 @@ package body Adi.Image is
            & "</svg>");
 
       return Load_SVG_From_String
-        (Renderer => Renderer,
-         Source   => To_String (Source),
+        (Source   => To_String (Source),
          Tintable => Tintable);
    end Load_SVG_Path;
+
+   ---------------------------------------------------------------------------
+   -- Create_From_Surface
+   ---------------------------------------------------------------------------
+
+   function Create_From_Surface
+      (Surface : SDL_Surface_Ptr) return Image_Access
+   is
+      Img : Image_Access;
+   begin
+      if Surface = null then
+         return null;
+      end if;
+
+      Img := new Image'(
+         Kind     => Raster_Image,
+         Surface  => Surface,
+         Texture  => null,
+         Width    => Pixel_Type (Float (Surface.w)),
+         Height   => Pixel_Type (Float (Surface.h)),
+         SVG      => null,
+         Cache    => <>,
+         Tintable => False
+      );
+
+      Register (Img);
+      return Img;
+   end Create_From_Surface;
 
    ---------------------------------------------------------------------------
    -- Create_From_Texture
@@ -326,6 +362,7 @@ package body Adi.Image is
       -- Create the image object
       Img := new Image'(
          Kind     => Raster_Image,
+         Surface  => null,
          Texture  => Texture,
          Width    => Pixel_Type (W),
          Height   => Pixel_Type (H),
@@ -334,6 +371,7 @@ package body Adi.Image is
          Tintable => False
       );
 
+      Register (Img);
       return Img;
    end Create_From_Texture;
 
@@ -342,9 +380,11 @@ package body Adi.Image is
    ---------------------------------------------------------------------------
 
    function Create_Empty return Image_Access is
+      Img : Image_Access;
    begin
-      return new Image'(
+      Img := new Image'(
          Kind     => Raster_Image,
+         Surface  => null,
          Texture  => null,
          Width    => 0.0,
          Height   => 0.0,
@@ -352,6 +392,8 @@ package body Adi.Image is
          Cache    => <>,
          Tintable => False
       );
+      Register (Img);
+      return Img;
    end Create_Empty;
 
    ---------------------------------------------------------------------------
@@ -363,7 +405,7 @@ package body Adi.Image is
       if Img.Kind = SVG_Image then
          return Img.SVG /= null and then Adi.SVG.Is_Valid (Img.SVG.all);
       end if;
-      return Img.Texture /= null;
+      return Img.Surface /= null or else Img.Texture /= null;
    end Is_Valid;
 
    function Is_Tintable (Img : Image) return Boolean is
@@ -386,12 +428,73 @@ package body Adi.Image is
    end Get_Size;
 
    ---------------------------------------------------------------------------
-   -- Get_Texture
+   -- Get_Texture (parameterless — backward compat)
    ---------------------------------------------------------------------------
 
    function Get_Texture (Img : Image) return SDL_Texture_Ptr is
    begin
-      return Img.Texture;
+      --  Direct texture (Create_From_Texture path)
+      if Img.Texture /= null then
+         return Img.Texture;
+      end if;
+
+      --  Return first cached texture if any
+      if not Img.Cache.Is_Empty then
+         return Img.Cache.First_Element.Texture;
+      end if;
+
+      return null;
+   end Get_Texture;
+
+   ---------------------------------------------------------------------------
+   -- Get_Texture (with Renderer — lazy creation)
+   ---------------------------------------------------------------------------
+
+   function Get_Texture
+     (Img      : in out Image'Class;
+      Renderer : SDL_Renderer_Ptr) return SDL_Texture_Ptr
+   is
+      Texture : SDL_Texture_Ptr;
+      Success : Adi.SDL.C_bool;
+   begin
+      --  Direct texture (Create_From_Texture path)
+      if Img.Texture /= null then
+         return Img.Texture;
+      end if;
+
+      if Renderer = null then
+         return null;
+      end if;
+
+      --  For raster images with a surface, create texture lazily per renderer
+      if Img.Kind = Raster_Image and then Img.Surface /= null then
+         --  Check cache for this renderer
+         for Cache_Item of Img.Cache loop
+            if Cache_Item.Renderer = Renderer then
+               return Cache_Item.Texture;
+            end if;
+         end loop;
+
+         --  Create texture from surface
+         Texture := SDL_CreateTextureFromSurface (Renderer, Img.Surface);
+         if Texture = null then
+            return null;
+         end if;
+
+         Success := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
+         pragma Unreferenced (Success);
+
+         Img.Cache.Append
+           (Cached_Texture'
+              (Renderer  => Renderer,
+               Width_Px  => Positive (Integer'Max (1, Integer (Img.Surface.w))),
+               Height_Px => Positive (Integer'Max (1, Integer (Img.Surface.h))),
+               Texture   => Texture));
+         return Texture;
+      end if;
+
+      --  For SVG without specific size, return null (use Get_Texture_For_Size)
+      return null;
    end Get_Texture;
 
    ---------------------------------------------------------------------------
@@ -411,15 +514,19 @@ package body Adi.Image is
       Success  : Adi.SDL.C_bool;
    begin
       if Img.Kind = Raster_Image then
-         return Img.Texture;
+         return Get_Texture (Img, Renderer);
       end if;
 
       if Img.SVG = null or else not Adi.SVG.Is_Valid (Img.SVG.all) then
          return null;
       end if;
 
+      --  Check cache by (renderer, width, height)
       for Cache_Item of Img.Cache loop
-         if Cache_Item.Width_Px = Target_W and then Cache_Item.Height_Px = Target_H then
+         if Cache_Item.Renderer = Renderer
+           and then Cache_Item.Width_Px = Target_W
+           and then Cache_Item.Height_Px = Target_H
+         then
             return Cache_Item.Texture;
          end if;
       end loop;
@@ -458,7 +565,8 @@ package body Adi.Image is
 
       Img.Cache.Append
         (New_Item => Cached_Texture'
-           (Width_Px  => Target_W,
+           (Renderer  => Renderer,
+            Width_Px  => Target_W,
             Height_Px => Target_H,
             Texture   => Texture));
       return Texture;
@@ -470,6 +578,11 @@ package body Adi.Image is
 
    procedure Destroy (Img : in out Image) is
    begin
+      if Img.Surface /= null then
+         SDL_DestroySurface (Img.Surface);
+         Img.Surface := null;
+      end if;
+
       if Img.Texture /= null then
          SDL_DestroyTexture (Img.Texture);
          Img.Texture := null;
@@ -490,5 +603,65 @@ package body Adi.Image is
       Img.Width   := 0.0;
       Img.Height  := 0.0;
    end Destroy;
+
+   ---------------------------------------------------------------------------
+   -- Release_Textures_For_Renderer
+   ---------------------------------------------------------------------------
+
+   procedure Release_Textures_For_Renderer
+     (Img      : in out Image'Class;
+      Renderer : SDL_Renderer_Ptr)
+   is
+      I : Natural := 1;
+   begin
+      if Renderer = null then
+         return;
+      end if;
+
+      while I <= Natural (Img.Cache.Length) loop
+         if Img.Cache (I).Renderer = Renderer then
+            if Img.Cache (I).Texture /= null then
+               SDL_DestroyTexture (Img.Cache (I).Texture);
+            end if;
+            Img.Cache.Delete (I);
+         else
+            I := I + 1;
+         end if;
+      end loop;
+   end Release_Textures_For_Renderer;
+
+   ---------------------------------------------------------------------------
+   -- Release_All_Textures_For_Renderer
+   ---------------------------------------------------------------------------
+
+   procedure Release_All_Textures_For_Renderer
+     (Renderer : SDL_Renderer_Ptr)
+   is
+   begin
+      if Renderer = null then
+         return;
+      end if;
+
+      for Img of Live_Images loop
+         if Img /= null then
+            Release_Textures_For_Renderer (Img.all, Renderer);
+         end if;
+      end loop;
+   end Release_All_Textures_For_Renderer;
+
+   ---------------------------------------------------------------------------
+   -- Free
+   ---------------------------------------------------------------------------
+
+   procedure Free (Img : in out Image_Access) is
+   begin
+      if Img = null then
+         return;
+      end if;
+
+      Unregister (Img);
+      Destroy (Img.all);
+      Free_Image (Img);
+   end Free;
 
 end Adi.Image;

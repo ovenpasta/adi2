@@ -1,5 +1,4 @@
 with Adi.Core;            use Adi.Core;
-with Adi.SDL.Render;      use Adi.SDL.Render;
 with Adi.Animated_Image;  use Adi.Animated_Image;
 with Adi.Widget;          use Adi.Widget;
 
@@ -15,9 +14,8 @@ package Adi.Widget.Animated_Image is
    --  Convenience loader for this widget.
    --  Returns True on success.
    function Load_From_File
-     (W        : in out Animated_Image_Widget;
-      Renderer : SDL_Renderer_Ptr;
-      Path     : String) return Boolean;
+     (W    : in out Animated_Image_Widget;
+      Path : String) return Boolean;
 
    procedure Set_Animation
      (W         : in out Animated_Image_Widget;

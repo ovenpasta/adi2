@@ -124,6 +124,7 @@ package Widget_Demo_Styles is
    --  Base style for class 'label-box'
    Label_Box_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (255, 255, 255)),
+      Background_Image => Set_Bg_Image (Background_Image_URL ("bg.jpg")),
       Object_Fit => Set (Fit_Contain),
       Border_Radius => Set (Radius (Px (6.0))),
       Border_Width => Set (Border_Width (Px (1.0))),

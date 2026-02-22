@@ -60,7 +60,7 @@ begin
 
    begin
       --  Try to load a background image
-      Bg := W.Load_Image ("bg.png");
+      Bg := Adi.Image.Load_From_File ("bg.png");
 
       --  Style the root container (dark bg, flex column, fills window)
       Set_Part_Style (Root_Box.all, Main_Part,

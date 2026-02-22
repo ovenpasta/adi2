@@ -31,8 +31,6 @@ begin
       W : constant Adi.Window.Window_Access :=
         Adi.Window.Create_Window ("HTML View Example", (980.0, 700.0));
 
-      Assets : Adi.Assets.Asset_Store := Adi.Assets.Create (W);
-
       Root : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Title : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("HTML View Widget");
@@ -106,7 +104,7 @@ begin
       is
          pragma Unreferenced (Self);
       begin
-         return Assets.Get_Image (URI);
+         return Adi.Assets.Get_Image (URI);
       end On_Load_Asset;
 
       function On_Load_Resource
@@ -115,18 +113,18 @@ begin
       is
          pragma Unreferenced (Self);
       begin
-         return Assets.Get_String (URI);
+         return Adi.Assets.Get_String (URI);
       end On_Load_Resource;
 
    begin
-      Assets.Add_Path ("examples/assets", Scheme => "app");
-      Assets.Add_Path ("examples/assets");
+      Adi.Assets.Add_Path ("examples/assets", Scheme => "app");
+      Adi.Assets.Add_Path ("examples/assets");
 
       Pages := Html_Stack.Create;
 
       declare
          HTML_Text : constant String :=
-           Assets.Get_String ("app://html_view_example.html");
+           Adi.Assets.Get_String ("app://html_view_example.html");
       begin
 
       Adi.Widget.Set_Part_Styles (Root.all, Html_View_Example_Styles.Root_Class_Part_Styles);

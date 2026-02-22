@@ -57,19 +57,34 @@
 - Easing: Linear, Ease_In (cubic), Ease_Out, Ease_In_Out
 - Property filtering: only properties in `Transition_Spec.Properties` are interpolated
 
-**Adi.Image** (`adi-image.ads`): SDL texture wrapper with file/memory SVG loading.
-- `Load_SVG_From_String` loads SVG markup directly into an image resource.
-- `Load_SVG_Path` builds an SVG image from a single path string using typed Ada values:
-  `Size_2D`, `Color_8` fill/stroke, and `Pixel_Type` stroke width.
+**Adi.Image** (`adi-image.ads`): Image resource with surface-based loading and lazy GPU texture creation.
+- Raster images are loaded as `SDL_Surface` (CPU memory) via `IMG_Load` — no renderer required at load time
+- GPU textures are created lazily per renderer on first `Get_Texture(Renderer)` call, cached by renderer pointer for multi-window support
+- SVG images store the parsed document and rasterize on demand per `(renderer, size)` tuple
+- `Load_From_File(Path)`: loads raster as surface, SVG as parsed document — no renderer parameter
+- `Load_SVG_From_String(Source)`: loads SVG markup directly into an image resource
+- `Load_SVG_Path(Path_Data, Size, ...)`: builds an SVG image from a single path string
+- `Get_Texture(Img, Renderer)`: returns cached texture or creates one from the surface for that renderer
+- `Get_Texture_For_Size(Img, Renderer, W, H)`: for SVG, rasterizes and caches per `(renderer, width, height)`
+- `Release_Textures_For_Renderer(Img, Renderer)`: evicts and destroys all cached textures for a specific renderer from one image
+- `Release_All_Textures_For_Renderer(Renderer)`: global — iterates all live images via an internal registry and evicts textures for that renderer; called automatically by `Adi.Window.Finalize` before destroying the renderer
+- `Free(Img)`: destroys internals, unregisters from the live image registry, and deallocates the `Image_Access` object; safe to call with null
+- All constructors register the returned `Image_Access` in a package-body-level live image set; `Destroy`/`Free` unregister
 
-**Adi.Assets** (`adi-assets.ads`): Cached asset loader with scheme-based URI routing.
-- `Asset_Store` record holds a window reference and a list of search directories
+**Adi.Assets** (`adi-assets.ads`): Global cached asset loader with scheme-based URI routing.
+- Module-level API (like `Adi.Font`) — no instance type, no Window/Renderer dependency
 - `Add_Path(Path, Scheme)`: register a search directory; if `Scheme` is non-empty (e.g. `"app"`), the directory is only searched for `scheme://path` URIs; empty scheme directories handle plain relative paths
+- `Remove_Path(Path, Scheme)`: remove a previously registered search directory
+- `Clear_Paths`: remove all search directories
 - `Get_String(Path)`: resolve and read file contents as a string, cached by path
-- `Get_Image(Path)`: resolve and load image via `Adi.Image.Load_From_File`, cached by path
+- `Get_Image(Path)`: resolve and load image via `Adi.Image.Load_From_File` (surface-based, no renderer needed), cached by path
+- `Get_Animated_Image(Path)`: resolve and load animated image via `Adi.Animated_Image.Load_From_File` (surface-based, no renderer needed), cached by path; returns `Animated_Image_Access`
+- `Clear_Cache` / `Clear_String_Cache` / `Clear_Image_Cache` / `Clear_Animated_Image_Cache`: drop cached entries, destroy and deallocate objects; previously returned access values become invalid
+- `Invalidate(Path)`: remove one entry from all caches, freeing associated objects
 - URI parsing: `"app://icons/star.svg"` splits into scheme `"app"` + relative `"icons/star.svg"`; plain paths search default directories
 - Path sanitization: rejects `..` traversal, normalizes backslashes, strips leading slashes
 - Directories searched in insertion order; first match wins
+- CSS `background-image: url(...)` resolves through this module — widgets call `Get_Image(URI)` in `Build_Items`
 
 **Adi.SVG** (`src/svg/adi-svg.ads`): SVG loading/raster API used by `Adi.Image` and HTML image flows.
 - Compile-time backend selection via `-XADI_SVG_BACKEND=<plutosvg|ada>`
@@ -84,6 +99,8 @@
 - `Has_Symbol` / `Symbol_Count` for querying available icons
 
 **Adi.Animated_Image** (`adi-animated_image.ads`): Multi-frame animation via `IMG_LoadAnimation`, per-frame delay, playback controls.
+- `Load_From_File(Path)`: loads all frames as surfaces (via `SDL_DuplicateSurface` + `Create_From_Surface`) — no renderer required at load time; GPU textures created lazily per frame on first render
+- Loadable through `Adi.Assets.Get_Animated_Image` for URI-based cached access
 
 **Adi.RLottie** (`adi-rlottie.ads`): Lottie JSON via rlottie C API, CPU-rendered frame cache with background preload task, streaming SDL texture upload.
 

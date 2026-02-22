@@ -1,7 +1,6 @@
 with Ada.Containers.Vectors;
 with Adi.Core;       use Adi.Core;
 with Adi.Image;      use Adi.Image;
-with Adi.SDL.Render; use Adi.SDL.Render;
 
 package Adi.Animated_Image is
 
@@ -9,10 +8,10 @@ package Adi.Animated_Image is
    type Animated_Image_Access is access all Animated_Image'Class;
 
    --  Load all frames from an animated image (e.g. GIF/WebP) using SDL_image.
+   --  Frames are loaded as SDL_Surface (CPU memory); GPU textures are created
+   --  lazily on first render via Adi.Image.Get_Texture(Renderer).
    --  Returns null on failure.
-   function Load_From_File
-     (Renderer : SDL_Renderer_Ptr;
-      Path     : String) return Animated_Image_Access;
+   function Load_From_File (Path : String) return Animated_Image_Access;
 
    --  True when at least one valid frame is loaded.
    function Is_Valid (Anim : Animated_Image) return Boolean;

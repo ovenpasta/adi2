@@ -121,7 +121,8 @@ begin
 
       Root.Add_Child (Status);
 
-      Animation := W.Load_Animated_Image ("examples/assets/animhorse.gif");
+      Animation :=
+        Adi.Animated_Image.Load_From_File ("examples/assets/animhorse.gif");
       if Animation = null then
          Status.Set_Text ("Failed to load animhorse.gif");
       else

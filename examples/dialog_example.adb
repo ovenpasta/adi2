@@ -135,8 +135,7 @@ begin
       declare
          Info_Icon : constant Adi.Image.Image_Access :=
            Adi.Image.Load_SVG_Path
-             (Renderer  => W.Get_Renderer,
-              Path_Data =>
+             (Path_Data =>
                 "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 "
                 & "10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z",
               Size      => (24.0, 24.0),
@@ -162,8 +161,7 @@ begin
       declare
          Warn_Icon : constant Adi.Image.Image_Access :=
            Adi.Image.Load_SVG_Path
-             (Renderer  => W.Get_Renderer,
-              Path_Data =>
+             (Path_Data =>
                 "M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z",
               Size      => (24.0, 24.0),
               Fill      => (R => 234, G => 179, B => 8, A => 255));

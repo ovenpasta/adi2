@@ -91,8 +91,7 @@ begin
    declare
       Icon : constant Adi.Image.Image_Access :=
         Adi.Image.Load_SVG_Path
-          (Renderer  => W.Get_Renderer,
-           Path_Data => Dashboard_Path,
+          (Path_Data => Dashboard_Path,
            Size      => (24.0, 24.0),
            Fill      => (R => 208, G => 188, B => 255, A => 255));
    begin
@@ -126,8 +125,7 @@ begin
    declare
       Welcome_Icon : constant Adi.Image.Image_Access :=
         Adi.Image.Load_SVG_Path
-          (Renderer  => W.Get_Renderer,
-           Path_Data =>
+          (Path_Data =>
              "M7.03 4.95L3.49 8.49c-3.32 3.32-3.32 8.7 0 12.02s8.7 3.32 "
              & "12.02 0l6.01-6.01a2.517 2.517 0 00-.39-3.86l.71-.71c.39-.39.39-1.02 "
              & "0-1.41a.9959.9959 0 00-1.41 0l-2.12 2.12a1.492 1.492 0 00-1.78.21 "

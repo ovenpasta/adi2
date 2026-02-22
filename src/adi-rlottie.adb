@@ -157,9 +157,6 @@ package body Adi.RLottie is
      (Object => RLottie_Animation'Class,
       Name   => RLottie_Animation_Access);
 
-   procedure Free_Image is new Ada.Unchecked_Deallocation
-     (Object => Adi.Image.Image'Class,
-      Name   => Adi.Image.Image_Access);
 
    procedure Free_Surfaces is new Ada.Unchecked_Deallocation
      (Object => Surface_Array,
@@ -585,13 +582,7 @@ package body Adi.RLottie is
       end if;
 
       if Anim.Frame_Image /= null then
-         Destroy (Anim.Frame_Image.all);
-         declare
-            Img : Image_Access := Anim.Frame_Image;
-         begin
-            Free_Image (Img);
-            Anim.Frame_Image := null;
-         end;
+         Adi.Image.Free (Anim.Frame_Image);
       end if;
 
       if Anim.Frame_Surfaces /= null then

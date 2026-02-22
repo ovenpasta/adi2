@@ -42,8 +42,7 @@ procedure Image_Widget_Test is
    is
    begin
       return Load_SVG_Path
-        (Renderer  => null,
-         Path_Data => "M0 0 L" & Integer (W)'Image & " 0 L"
+        (Path_Data => "M0 0 L" & Integer (W)'Image & " 0 L"
                       & Integer (W)'Image & " " & Integer (H)'Image
                       & " L0 " & Integer (H)'Image & " Z",
          Size      => (Width => W, Height => H),

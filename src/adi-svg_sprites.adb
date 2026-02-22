@@ -370,8 +370,7 @@ package body Adi.SVG_Sprites is
            & "</svg>");
 
       return Adi.Image.Load_SVG_From_String
-        (Renderer => null,
-         Source   => To_String (SVG_Source),
+        (Source   => To_String (SVG_Source),
          Tintable => Tintable);
    end Get_Image;
 

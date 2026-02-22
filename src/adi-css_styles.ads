@@ -251,8 +251,7 @@ package Adi.CSS_Styles is
          when Picture_Image =>
             Image : Adi.Image.Image_Access := null;
          when Url_Image =>
-            --  For future URL-based loading
-            null;
+            URI : Ada.Strings.Unbounded.Unbounded_String;
       end case;
    end record;
 
@@ -261,6 +260,10 @@ package Adi.CSS_Styles is
 
    function Background_Image (Img : Adi.Image.Image_Access) return Background_Image_Value is
       ((Kind => Picture_Image, Image => Img));
+
+   function Background_Image_URL (URI : String) return Background_Image_Value is
+      ((Kind => Url_Image,
+        URI  => Ada.Strings.Unbounded.To_Unbounded_String (URI)));
 
    Default_Background_Image : constant Background_Image_Value := (Kind => No_Image);
 

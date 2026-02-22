@@ -5,8 +5,8 @@ with Interfaces.C.Strings;
 with System;
 with System.Storage_Elements; use System.Storage_Elements;
 with Adi.Log;
-with Adi.SDL.Surface;      use Adi.SDL.Surface;
-with Adi.SDL.Image;        use Adi.SDL.Image;
+with Adi.SDL.Surface; use Adi.SDL.Surface;
+with Adi.SDL.Image;   use Adi.SDL.Image;
 
 package body Adi.Animated_Image is
    use type System.Address;
@@ -15,9 +15,6 @@ package body Adi.Animated_Image is
      (Object => Animated_Image'Class,
       Name   => Animated_Image_Access);
 
-   procedure Free_Image is new Ada.Unchecked_Deallocation
-     (Object => Adi.Image.Image'Class,
-      Name   => Adi.Image.Image_Access);
 
    type Surface_Ptr_Ref is access all SDL_Surface_Ptr;
    function To_Surface_Ptr_Ref is new Ada.Unchecked_Conversion
@@ -76,9 +73,7 @@ package body Adi.Animated_Image is
       end if;
    end Read_Delay_At;
 
-   function Load_From_File
-     (Renderer : SDL_Renderer_Ptr;
-      Path     : String) return Animated_Image_Access
+   function Load_From_File (Path : String) return Animated_Image_Access
    is
       use Interfaces.C.Strings;
 
@@ -88,11 +83,6 @@ package body Adi.Animated_Image is
       Frame_Count : Natural;
       Delay_Base  : System.Address := System.Null_Address;
    begin
-      if Renderer = null then
-         Adi.Log.Error ("Cannot load animated image, renderer is null");
-         return null;
-      end if;
-
       C_Path := New_String (Path);
       Raw_Anim := IMG_LoadAnimation (C_Path);
       Free (C_Path);
@@ -119,23 +109,26 @@ package body Adi.Animated_Image is
 
       for I in 0 .. Frame_Count - 1 loop
          declare
-            Surface : constant SDL_Surface_Ptr := Read_Surface_At (Raw_Anim.frames, I);
-            Texture : SDL_Texture_Ptr;
+            Surface : constant SDL_Surface_Ptr :=
+              Read_Surface_At (Raw_Anim.frames, I);
+            Dup         : SDL_Surface_Ptr;
             Frame_Delay : Natural := 100;
-            Img     : Image_Access;
+            Img         : Image_Access;
          begin
             if Surface = null then
                goto Next_Frame;
             end if;
 
-            Texture := SDL_CreateTextureFromSurface (Renderer, Surface);
-            if Texture = null then
+            --  Duplicate the surface because IMG_FreeAnimation frees originals
+            Dup := SDL_Surface_Ptr (SDL_DuplicateSurface (Surface));
+            if Dup = null then
                goto Next_Frame;
             end if;
 
-            Img := Create_From_Texture (Texture);
+            --  Create_From_Surface takes ownership of the duplicate
+            Img := Create_From_Surface (Dup);
             if Img = null then
-               SDL_DestroyTexture (Texture);
+               SDL_DestroySurface (Dup);
                goto Next_Frame;
             end if;
 
@@ -154,13 +147,15 @@ package body Adi.Animated_Image is
       IMG_FreeAnimation (Raw_Anim);
 
       if Result.Frames.Is_Empty then
-         Adi.Log.Error ("Failed to create any animation frame textures: " & Path);
+         Adi.Log.Error
+           ("Failed to create any animation frame surfaces: " & Path);
          Free_Animated (Result);
          return null;
       end if;
 
       if Result.Width <= 0.0 or else Result.Height <= 0.0 then
-         Get_Size (Result.Frames.First_Element.Image.all, Result.Width, Result.Height);
+         Get_Size (Result.Frames.First_Element.Image.all,
+                   Result.Width, Result.Height);
       end if;
 
       Result.Current_Frame := 1;
@@ -300,11 +295,10 @@ package body Adi.Animated_Image is
       if not Anim.Frames.Is_Empty then
          for F of Anim.Frames loop
             if F.Image /= null then
-               Destroy (F.Image.all);
                declare
                   Img : Image_Access := F.Image;
                begin
-                  Free_Image (Img);
+                  Adi.Image.Free (Img);
                end;
             end if;
          end loop;

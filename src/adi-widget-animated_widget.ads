@@ -1,5 +1,4 @@
 with Adi.Core;            use Adi.Core;
-with Adi.SDL.Render;      use Adi.SDL.Render;
 with Adi.Animated_Image;  use Adi.Animated_Image;
 with Adi.Image;           use Adi.Image;
 with Adi.Widget;          use Adi.Widget;
@@ -14,9 +13,8 @@ package Adi.Widget.Animated_Widget is
      (Animation : Animated_Image_Access) return Animated_Widget_Access;
 
    function Load_Image_From_File
-     (W        : in out Animated_Widget;
-      Renderer : SDL_Renderer_Ptr;
-      Path     : String) return Boolean;
+     (W    : in out Animated_Widget;
+      Path : String) return Boolean;
 
    procedure Set_Animation
      (W         : in out Animated_Widget;

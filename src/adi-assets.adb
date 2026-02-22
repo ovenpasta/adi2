@@ -1,11 +1,52 @@
 pragma Ada_2022;
 
+with Ada.Unchecked_Deallocation;
+with Ada.Containers.Indefinite_Ordered_Maps;
+with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Adi.Log;
-with Adi.SDL.Render;            use Adi.SDL.Render;
 
 package body Adi.Assets is
+
+   ---------------------------------------------------------------------------
+   --  Internal types
+   ---------------------------------------------------------------------------
+
+   type Search_Entry is record
+      Dir    : Unbounded_String;
+      Scheme : Unbounded_String;  --  "" = default (plain paths)
+   end record;
+
+   package Entry_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Search_Entry);
+
+   package String_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+     (Key_Type     => String,
+      Element_Type => Unbounded_String);
+
+   package Image_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+     (Key_Type     => String,
+      Element_Type => Image_Access);
+
+   package Anim_Image_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+     (Key_Type     => String,
+      Element_Type => Animated_Image_Access);
+
+   procedure Free_Animated is new Ada.Unchecked_Deallocation
+     (Object => Adi.Animated_Image.Animated_Image'Class,
+      Name   => Animated_Image_Access);
+
+   ---------------------------------------------------------------------------
+   --  Module-level state
+   ---------------------------------------------------------------------------
+
+   Entries     : Entry_Vectors.Vector;
+   Strings     : String_Maps.Map;
+   Images      : Image_Maps.Map;
+   Anim_Images : Anim_Image_Maps.Map;
 
    ---------------------------------------------------------------------------
    --  Sanitize — return a safe relative path.  Strips leading slashes
@@ -100,13 +141,9 @@ package body Adi.Assets is
 
    ---------------------------------------------------------------------------
    --  Resolve — search directories in insertion order for Path.
-   --  If Path is a scheme URI (e.g. "app://file.svg"), only directories
-   --  registered with that scheme are searched.  Plain paths search
-   --  only default (empty scheme) directories.
-   --  Returns the full path of the first match, or "" if not found.
    ---------------------------------------------------------------------------
 
-   function Resolve (Store : Asset_Store; Path : String) return String is
+   function Resolve (Path : String) return String is
       use type Ada.Directories.File_Kind;
       Scheme : Unbounded_String;
       Rel    : Unbounded_String;
@@ -121,7 +158,7 @@ package body Adi.Assets is
             return "";
          end if;
 
-         for E of Store.Entries loop
+         for E of Entries loop
             if E.Scheme = Scheme then
                declare
                   FP : constant String :=
@@ -166,57 +203,68 @@ package body Adi.Assets is
    end Read_File;
 
    ---------------------------------------------------------------------------
-   --  Create
-   ---------------------------------------------------------------------------
-
-   function Create
-     (Win : not null access Adi.Window.Window) return Asset_Store is
-   begin
-      return (Win => Win, others => <>);
-   end Create;
-
-   ---------------------------------------------------------------------------
    --  Add_Path
    ---------------------------------------------------------------------------
 
-   procedure Add_Path
-     (Store  : in out Asset_Store;
-      Path   : String;
-      Scheme : String := "") is
+   procedure Add_Path (Path : String; Scheme : String := "") is
    begin
-      Store.Entries.Append
+      Entries.Append
         (Search_Entry'(Dir    => To_Unbounded_String (Path),
                        Scheme => To_Unbounded_String (Scheme)));
    end Add_Path;
 
    ---------------------------------------------------------------------------
+   --  Remove_Path
+   ---------------------------------------------------------------------------
+
+   procedure Remove_Path (Path : String; Scheme : String := "") is
+      Target_Dir    : constant Unbounded_String := To_Unbounded_String (Path);
+      Target_Scheme : constant Unbounded_String := To_Unbounded_String (Scheme);
+   begin
+      for I in 1 .. Natural (Entries.Length) loop
+         if Entries (I).Dir = Target_Dir
+           and then Entries (I).Scheme = Target_Scheme
+         then
+            Entries.Delete (I);
+            return;
+         end if;
+      end loop;
+   end Remove_Path;
+
+   ---------------------------------------------------------------------------
+   --  Clear_Paths
+   ---------------------------------------------------------------------------
+
+   procedure Clear_Paths is
+   begin
+      Entries.Clear;
+   end Clear_Paths;
+
+   ---------------------------------------------------------------------------
    --  Get_String
    ---------------------------------------------------------------------------
 
-   function Get_String
-     (Store : in out Asset_Store;
-      Path  : String) return String
-   is
+   function Get_String (Path : String) return String is
       use String_Maps;
-      Pos : constant Cursor := Store.Strings.Find (Path);
+      Pos : constant Cursor := Strings.Find (Path);
    begin
       if Pos /= No_Element then
          return To_String (Element (Pos));
       end if;
 
       declare
-         FP : constant String := Resolve (Store, Path);
+         FP : constant String := Resolve (Path);
       begin
          if FP = "" then
             Adi.Log.Warning ("Assets: file not found: " & Path);
-            Store.Strings.Insert (Path, Null_Unbounded_String);
+            Strings.Insert (Path, Null_Unbounded_String);
             return "";
          end if;
 
          declare
             Content : constant String := Read_File (FP);
          begin
-            Store.Strings.Insert (Path, To_Unbounded_String (Content));
+            Strings.Insert (Path, To_Unbounded_String (Content));
             return Content;
          end;
       end;
@@ -226,37 +274,140 @@ package body Adi.Assets is
    --  Get_Image
    ---------------------------------------------------------------------------
 
-   function Get_Image
-     (Store : in out Asset_Store;
-      Path  : String) return Image_Access
-   is
+   function Get_Image (Path : String) return Image_Access is
       use Image_Maps;
-      Pos : constant Cursor := Store.Images.Find (Path);
+      Pos : constant Cursor := Images.Find (Path);
    begin
       if Pos /= No_Element then
          return Element (Pos);
       end if;
 
       declare
-         FP       : constant String := Resolve (Store, Path);
-         Renderer : constant SDL_Renderer_Ptr :=
-           Adi.Window.Get_Renderer (Store.Win.all);
-         Img      : Image_Access := null;
+         FP  : constant String := Resolve (Path);
+         Img : Image_Access := null;
       begin
-         if Renderer = null then
-            Adi.Log.Warning ("Assets: no renderer available");
-         elsif FP = "" then
+         if FP = "" then
             Adi.Log.Warning ("Assets: file not found: " & Path);
          else
-            Img := Adi.Image.Load_From_File (Renderer, FP);
+            Img := Adi.Image.Load_From_File (FP);
             if Img = null then
                Adi.Log.Warning ("Assets: failed to load image: " & FP);
             end if;
          end if;
 
-         Store.Images.Insert (Path, Img);
+         Images.Insert (Path, Img);
          return Img;
       end;
    end Get_Image;
+
+   ---------------------------------------------------------------------------
+   --  Get_Animated_Image
+   ---------------------------------------------------------------------------
+
+   function Get_Animated_Image (Path : String) return Animated_Image_Access is
+      use Anim_Image_Maps;
+      Pos : constant Cursor := Anim_Images.Find (Path);
+   begin
+      if Pos /= No_Element then
+         return Element (Pos);
+      end if;
+
+      declare
+         FP   : constant String := Resolve (Path);
+         Anim : Animated_Image_Access := null;
+      begin
+         if FP = "" then
+            Adi.Log.Warning ("Assets: file not found: " & Path);
+         else
+            Anim := Adi.Animated_Image.Load_From_File (FP);
+            if Anim = null then
+               Adi.Log.Warning
+                 ("Assets: failed to load animated image: " & FP);
+            end if;
+         end if;
+
+         Anim_Images.Insert (Path, Anim);
+         return Anim;
+      end;
+   end Get_Animated_Image;
+
+   ---------------------------------------------------------------------------
+   --  Cache Management
+   ---------------------------------------------------------------------------
+
+   procedure Free_All_Images is
+   begin
+      for Pos in Images.Iterate loop
+         declare
+            Img : Image_Access := Image_Maps.Element (Pos);
+         begin
+            Adi.Image.Free (Img);
+         end;
+      end loop;
+      Images.Clear;
+   end Free_All_Images;
+
+   procedure Free_All_Anim_Images is
+   begin
+      for Pos in Anim_Images.Iterate loop
+         declare
+            Anim : Animated_Image_Access := Anim_Image_Maps.Element (Pos);
+         begin
+            if Anim /= null then
+               Adi.Animated_Image.Destroy (Anim.all);
+               Free_Animated (Anim);
+            end if;
+         end;
+      end loop;
+      Anim_Images.Clear;
+   end Free_All_Anim_Images;
+
+   procedure Clear_Cache is
+   begin
+      Strings.Clear;
+      Free_All_Images;
+      Free_All_Anim_Images;
+   end Clear_Cache;
+
+   procedure Clear_String_Cache is
+   begin
+      Strings.Clear;
+   end Clear_String_Cache;
+
+   procedure Clear_Image_Cache is
+   begin
+      Free_All_Images;
+   end Clear_Image_Cache;
+
+   procedure Clear_Animated_Image_Cache is
+   begin
+      Free_All_Anim_Images;
+   end Clear_Animated_Image_Cache;
+
+   procedure Invalidate (Path : String) is
+   begin
+      if Strings.Contains (Path) then
+         Strings.Delete (Path);
+      end if;
+      if Images.Contains (Path) then
+         declare
+            Img : Image_Access := Images.Element (Path);
+         begin
+            Adi.Image.Free (Img);
+         end;
+         Images.Delete (Path);
+      end if;
+      if Anim_Images.Contains (Path) then
+         declare
+            Anim : Animated_Image_Access := Anim_Images.Element (Path);
+         begin
+            if Anim /= null then
+               Adi.Animated_Image.Destroy (Anim.all);
+               Free_Animated (Anim);
+            end if;
+         end;
+         Anim_Images.Delete (Path);
+      end if;
+   end Invalidate;
 
 end Adi.Assets;

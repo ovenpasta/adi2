@@ -3299,7 +3299,7 @@ package body Adi.Widget is
 
       Texture := Get_Texture_For_Size (Source.all, Renderer, Req_W, Req_H);
       if Texture = null then
-         Texture := Get_Texture (Source.all);
+         Texture := Get_Texture (Source.all, Renderer);
       end if;
       if Texture = null then
          return;

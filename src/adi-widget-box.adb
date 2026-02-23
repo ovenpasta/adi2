@@ -44,7 +44,6 @@ package body Adi.Widget.Box is
          Style : constant Resolved_Style :=
             Get_Resolved_Part_Style (W, Main_Part);
          Border_W : constant Edge_Pixels := Get_Border_Width_Px (Style);
-         BW : constant Pixel_Type := Pixel_Type (Border_W.Top);
       begin
          case Style.Background_Image.Kind is
             when Picture_Image =>
@@ -56,12 +55,23 @@ package body Adi.Widget.Box is
             when No_Image =>
                Bg_It.Image_Source := null;
          end case;
-         --  Inset by border width so the image doesn't cover the border
+         --  Inset by resolved per-edge border widths so the image does not
+         --  cover side-specific borders.
          Bg_It.Geometry :=
-            (X      => W.Geometry.X + BW,
-             Y      => W.Geometry.Y + BW,
-             Width  => Pixel_Type'Max (0.0, W.Geometry.Width - 2.0 * BW),
-             Height => Pixel_Type'Max (0.0, W.Geometry.Height - 2.0 * BW));
+            (X      => W.Geometry.X + Border_W.Left,
+             Y      => W.Geometry.Y + Border_W.Top,
+             Width  =>
+               Pixel_Type'Max
+                 (0.0,
+                  W.Geometry.Width
+                    - Border_W.Left
+                    - Border_W.Right),
+             Height =>
+               Pixel_Type'Max
+                 (0.0,
+                  W.Geometry.Height
+                    - Border_W.Top
+                    - Border_W.Bottom));
       end;
    end Build_Items;
 
@@ -297,7 +307,7 @@ overriding procedure Layout (W : in out Box_Widget) is
                   Explicit_Rows       => Natural (Style.Grid_Rows),
                   Row_Gap             => Get_Row_Gap (Style.Gap),
                   Column_Gap          => Get_Column_Gap (Style.Gap),
-                  Use_Preferred_Floor => Style.Overflow = Overflow_Visible,
+                  Use_Preferred_Floor => Style.Overflow_X = Overflow_Visible,
                   Column_Tracks       => Style.Grid_Column_Tracks);
                Children_Info : Grid_Child_Info_Array (1 .. N);
                Rects : Rectangle_Array (1 .. N);
@@ -379,11 +389,11 @@ overriding procedure Layout (W : in out Box_Widget) is
                   end if;
                end;
 
-               --  Container growth: when overflow is visible (the default),
-               --  grow W.Geometry if row heights exceed the allocated height.
-               --  For overflow:hidden/scroll/auto the box clips instead of
-               --  growing, matching CSS behaviour for those modes.
-               if Style.Overflow = Overflow_Visible then
+               --  Container growth: when vertical overflow is visible (the
+               --  default), grow W.Geometry if row heights exceed allocated
+               --  height. For overflow-y:hidden/scroll/auto the box clips
+               --  instead of growing.
+               if Style.Overflow_Y = Overflow_Visible then
                   declare
                      Content_Bottom : constant Pixel_Type :=
                        Content.Y + Content.Height;

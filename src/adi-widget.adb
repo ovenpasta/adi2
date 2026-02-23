@@ -1009,6 +1009,116 @@ package body Adi.Widget is
         and then Y >= R.Y and then Y <= R.Y + R.Height;
    end Point_In_Rect;
 
+   function Overflow_Is_Scrollable (V : Overflow_Value) return Boolean is
+   begin
+      return V in Overflow_Scroll | Overflow_Auto;
+   end Overflow_Is_Scrollable;
+
+   function Overflow_Clips (V : Overflow_Value) return Boolean is
+   begin
+      return V in Overflow_Hidden | Overflow_Scroll | Overflow_Auto;
+   end Overflow_Clips;
+
+   function Main_Axis_Overflow
+     (Style     : Resolved_Style;
+      Direction : Flex_Direction_Value) return Overflow_Value
+   is
+   begin
+      if Is_Row_Direction (Direction) then
+         return Style.Overflow_X;
+      else
+         return Style.Overflow_Y;
+      end if;
+   end Main_Axis_Overflow;
+
+   function Build_Content_Clip_Rect
+     (Renderer : SDL_Renderer_Ptr;
+     Content  : Rectangle;
+      Clip_X   : Boolean;
+      Clip_Y   : Boolean;
+      Had_Clip : Boolean;
+      Prev_Clip : Adi.SDL.SDL_Rect;
+      Out_Clip : out Adi.SDL.SDL_Rect) return Boolean
+   is
+      Viewport : aliased Adi.SDL.SDL_Rect;
+      Success  : Adi.SDL.C_bool;
+      X1, Y1, X2, Y2 : Integer;
+      Prev_X1 : Integer := 0;
+      Prev_Y1 : Integer := 0;
+      Prev_X2 : Integer := 0;
+      Prev_Y2 : Integer := 0;
+      Fallback_Min : constant Integer := -1_000_000_000;
+      Fallback_Max : constant Integer := 1_000_000_000;
+   begin
+      if not Has_Visible_Area (Content) or else (not Clip_X and then not Clip_Y) then
+         return False;
+      end if;
+
+      if not Had_Clip then
+         Success := SDL_GetRenderViewport (Renderer, Viewport'Access);
+         if not Boolean (Success)
+           or else Integer (Viewport.w) <= 0
+           or else Integer (Viewport.h) <= 0
+         then
+            Viewport :=
+              (x => int (Fallback_Min),
+               y => int (Fallback_Min),
+               w => int (Fallback_Max - Fallback_Min),
+               h => int (Fallback_Max - Fallback_Min));
+         end if;
+      end if;
+
+      if Had_Clip then
+         Prev_X1 := Integer (Prev_Clip.x);
+         Prev_Y1 := Integer (Prev_Clip.y);
+         Prev_X2 := Integer (Prev_Clip.x) + Integer (Prev_Clip.w);
+         Prev_Y2 := Integer (Prev_Clip.y) + Integer (Prev_Clip.h);
+      end if;
+
+      X1 :=
+        (if Clip_X
+         then Integer (Float'Floor (Float (Content.X)))
+         elsif Had_Clip
+         then Prev_X1
+         else Integer (Viewport.x));
+      Y1 :=
+        (if Clip_Y
+         then Integer (Float'Floor (Float (Content.Y)))
+         elsif Had_Clip
+         then Prev_Y1
+         else Integer (Viewport.y));
+      X2 :=
+        (if Clip_X
+         then X1 + Integer (Float'Ceiling (Float (Content.Width)))
+         elsif Had_Clip
+         then Prev_X2
+         else Integer (Viewport.x) + Integer (Viewport.w));
+      Y2 :=
+        (if Clip_Y
+         then Y1 + Integer (Float'Ceiling (Float (Content.Height)))
+         elsif Had_Clip
+         then Prev_Y2
+         else Integer (Viewport.y) + Integer (Viewport.h));
+
+      if Had_Clip then
+         X1 := Integer'Max (X1, Prev_X1);
+         Y1 := Integer'Max (Y1, Prev_Y1);
+         X2 := Integer'Min (X2, Prev_X2);
+         Y2 := Integer'Min (Y2, Prev_Y2);
+      end if;
+
+      if X2 <= X1 or else Y2 <= Y1 then
+         return False;
+      end if;
+
+      Out_Clip :=
+        (x => int (X1),
+         y => int (Y1),
+         w => int (X2 - X1),
+         h => int (Y2 - Y1));
+      return True;
+   end Build_Content_Clip_Rect;
+
    function Get_Content_Box (W : Widget'Class) return Rectangle is
       Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
    begin
@@ -1018,7 +1128,7 @@ package body Adi.Widget is
    function Supports_Scrollbar (W : Widget'Class) return Boolean is
       Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
    begin
-      return Style.Overflow in Overflow_Scroll | Overflow_Auto;
+      return Overflow_Is_Scrollable (Style.Overflow_Y);
    end Supports_Scrollbar;
 
    function Is_Scroll_Enabled (W : Widget'Class) return Boolean is
@@ -1130,7 +1240,7 @@ package body Adi.Widget is
       end if;
 
       if Supports_Scrollbar (W) then
-         case Style.Overflow is
+         case Style.Overflow_Y is
             when Overflow_Scroll =>
                Want_Bar := True;
             when Overflow_Auto =>
@@ -2362,6 +2472,390 @@ package body Adi.Widget is
          SDL_Assert (SDL_SetRenderDrawColor (Renderer, R, G, B, A),
                      "SDL_SetRenderDrawColor");
       end Set_Edge_Color;
+
+      procedure Draw_Edge_Borders (Respect_Radius : Boolean := False) is
+         Edge_Rect : aliased SDL_FRect;
+         Top_X     : Float;
+         Top_W     : Float;
+         Bottom_X  : Float;
+         Bottom_W  : Float;
+         Left_Y    : Float;
+         Left_H    : Float;
+         Right_Y   : Float;
+         Right_H   : Float;
+      begin
+         if Is_Visible_Edge (Top, BW_Top) then
+            Top_X := Rect.x;
+            Top_W := Rect.w;
+            if Respect_Radius then
+               Top_X := Top_X + Radius_Px.Top_Left;
+               Top_W := Top_W - Radius_Px.Top_Left - Radius_Px.Top_Right;
+            end if;
+            if Top_W > 0.0 then
+               Set_Edge_Color (Top);
+               Edge_Rect :=
+                 (x => Top_X,
+                  y => Rect.y,
+                  w => Top_W,
+                  h => BW_Top);
+               SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
+                           "SDL_RenderFillRect");
+            end if;
+         end if;
+
+         if Is_Visible_Edge (Bottom, BW_Bottom) then
+            Bottom_X := Rect.x;
+            Bottom_W := Rect.w;
+            if Respect_Radius then
+               Bottom_X := Bottom_X + Radius_Px.Bottom_Left;
+               Bottom_W := Bottom_W - Radius_Px.Bottom_Left - Radius_Px.Bottom_Right;
+            end if;
+            if Bottom_W > 0.0 then
+               Set_Edge_Color (Bottom);
+               Edge_Rect :=
+                 (x => Bottom_X,
+                  y => Rect.y + Float'Max (0.0, Rect.h - BW_Bottom),
+                  w => Bottom_W,
+                  h => BW_Bottom);
+               SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
+                           "SDL_RenderFillRect");
+            end if;
+         end if;
+
+         if Is_Visible_Edge (Left, BW_Left) then
+            Left_Y := Rect.y;
+            Left_H := Rect.h;
+            if Respect_Radius then
+               Left_Y := Left_Y + Radius_Px.Top_Left;
+               Left_H := Left_H - Radius_Px.Top_Left - Radius_Px.Bottom_Left;
+            end if;
+            if Left_H > 0.0 then
+               Set_Edge_Color (Left);
+               Edge_Rect :=
+                 (x => Rect.x,
+                  y => Left_Y,
+                  w => BW_Left,
+                  h => Left_H);
+               SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
+                           "SDL_RenderFillRect");
+            end if;
+         end if;
+
+         if Is_Visible_Edge (Right, BW_Right) then
+            Right_Y := Rect.y;
+            Right_H := Rect.h;
+            if Respect_Radius then
+               Right_Y := Right_Y + Radius_Px.Top_Right;
+               Right_H := Right_H - Radius_Px.Top_Right - Radius_Px.Bottom_Right;
+            end if;
+            if Right_H > 0.0 then
+               Set_Edge_Color (Right);
+               Edge_Rect :=
+                 (x => Rect.x + Float'Max (0.0, Rect.w - BW_Right),
+                  y => Right_Y,
+                  w => BW_Right,
+                  h => Right_H);
+               SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
+                           "SDL_RenderFillRect");
+            end if;
+         end if;
+      end Draw_Edge_Borders;
+
+      procedure Draw_Corner_Sector
+        (Cx, Cy      : Float;
+         Outer_R     : Float;
+         Start_Thickness : Float;
+         End_Thickness   : Float;
+         Start_Angle : Float;
+         End_Angle   : Float)
+      is
+         Span    : constant Float := End_Angle - Start_Angle;
+         Base_Seg : constant Positive :=
+           Segments_For_Radius (Float'Max (1.0, Outer_R));
+         Num_Seg : constant Positive :=
+           Positive'Max
+             (2,
+              Natural
+                (Float'Floor
+                   (Float (Base_Seg)
+                    * Span
+                    / (Ada.Numerics.Pi / 2.0))) + 1);
+
+         Total_Verts   : constant Natural := 2 * (Num_Seg + 1);
+         Total_Indices : constant Natural := Num_Seg * 6;
+         Verts         : SDL_Vertex_Array (0 .. Total_Verts - 1);
+         Idxs          : Int_Array (0 .. Total_Indices - 1);
+         VI            : Natural := 0;
+         II            : Natural := 0;
+
+         FC : constant SDL_FColor :=
+           (r => Float (R) / 255.0,
+            g => Float (G) / 255.0,
+            b => Float (B) / 255.0,
+            a => Float (A) / 255.0);
+         Zero_TC : constant SDL_FPoint := (x => 0.0, y => 0.0);
+         Success : Adi.SDL.C_bool;
+         begin
+         if Outer_R <= 0.0
+           or else Float'Max (Start_Thickness, End_Thickness) <= 0.0
+           or else Span <= 0.0
+         then
+            return;
+         end if;
+
+         for I in 0 .. Num_Seg loop
+            declare
+               T     : constant Float := Float (I) / Float (Num_Seg);
+               Angle : constant Float := Start_Angle + T * Span;
+               Thickness : constant Float :=
+                 Float'Max
+                   (0.0,
+                    Start_Thickness + T * (End_Thickness - Start_Thickness));
+               Inner_R : constant Float := Float'Max (0.0, Outer_R - Thickness);
+               CA    : constant Float := Cos (Angle);
+               SA    : constant Float := Sin (Angle);
+            begin
+               --  Outer
+               Verts (VI) :=
+                 (position  => (x => Cx + Outer_R * CA, y => Cy + Outer_R * SA),
+                  color     => FC,
+                  tex_coord => Zero_TC);
+               VI := VI + 1;
+               --  Inner
+               Verts (VI) :=
+                 (position  => (x => Cx + Inner_R * CA, y => Cy + Inner_R * SA),
+                  color     => FC,
+                  tex_coord => Zero_TC);
+               VI := VI + 1;
+            end;
+         end loop;
+
+         for I in 0 .. Num_Seg - 1 loop
+            declare
+               O_A : constant Natural := 2 * I;
+               I_A : constant Natural := 2 * I + 1;
+               O_B : constant Natural := 2 * (I + 1);
+               I_B : constant Natural := 2 * (I + 1) + 1;
+            begin
+               Idxs (II) := int (O_A);
+               Idxs (II + 1) := int (O_B);
+               Idxs (II + 2) := int (I_B);
+               II := II + 3;
+
+               Idxs (II) := int (O_A);
+               Idxs (II + 1) := int (I_B);
+               Idxs (II + 2) := int (I_A);
+               II := II + 3;
+            end;
+         end loop;
+
+         SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
+                     "SDL_SetRenderDrawBlendMode");
+         Success := SDL_RenderGeometry
+           (Renderer     => Renderer,
+            Texture      => null,
+            Vertices     => Verts (0)'Access,
+            Num_Vertices => int (VI),
+            Indices      => Idxs (0)'Access,
+            Num_Indices  => int (II));
+      end Draw_Corner_Sector;
+
+      procedure Draw_Rounded_Corner_Borders is
+         Split_Angle : constant Float := Ada.Numerics.Pi / 4.0;
+         Mid_T       : Float;
+      begin
+         --  Top-left corner
+         if Radius_Px.Top_Left > 0.0 then
+            if Is_Visible_Edge (Left, BW_Left)
+              and then Is_Visible_Edge (Top, BW_Top)
+            then
+               Mid_T := 0.5 * (BW_Left + BW_Top);
+               Set_Edge_Color (Left);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Radius_Px.Top_Left,
+                 Cy => Rect.y + Radius_Px.Top_Left,
+                 Outer_R => Radius_Px.Top_Left,
+                 Start_Thickness => BW_Left,
+                 End_Thickness => Mid_T,
+                 Start_Angle => Ada.Numerics.Pi,
+                 End_Angle => Ada.Numerics.Pi + Split_Angle);
+
+               Set_Edge_Color (Top);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Radius_Px.Top_Left,
+                 Cy => Rect.y + Radius_Px.Top_Left,
+                 Outer_R => Radius_Px.Top_Left,
+                 Start_Thickness => Mid_T,
+                 End_Thickness => BW_Top,
+                 Start_Angle => Ada.Numerics.Pi + Split_Angle,
+                 End_Angle => 3.0 * Ada.Numerics.Pi / 2.0);
+            elsif Is_Visible_Edge (Left, BW_Left) then
+               Set_Edge_Color (Left);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Radius_Px.Top_Left,
+                 Cy => Rect.y + Radius_Px.Top_Left,
+                 Outer_R => Radius_Px.Top_Left,
+                 Start_Thickness => BW_Left,
+                 End_Thickness => BW_Left,
+                 Start_Angle => Ada.Numerics.Pi,
+                 End_Angle => 3.0 * Ada.Numerics.Pi / 2.0);
+            elsif Is_Visible_Edge (Top, BW_Top) then
+               Set_Edge_Color (Top);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Radius_Px.Top_Left,
+                 Cy => Rect.y + Radius_Px.Top_Left,
+                 Outer_R => Radius_Px.Top_Left,
+                 Start_Thickness => BW_Top,
+                 End_Thickness => BW_Top,
+                 Start_Angle => Ada.Numerics.Pi,
+                 End_Angle => 3.0 * Ada.Numerics.Pi / 2.0);
+            end if;
+         end if;
+
+         --  Top-right corner
+         if Radius_Px.Top_Right > 0.0 then
+            if Is_Visible_Edge (Top, BW_Top)
+              and then Is_Visible_Edge (Right, BW_Right)
+            then
+               Mid_T := 0.5 * (BW_Top + BW_Right);
+               Set_Edge_Color (Top);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Rect.w - Radius_Px.Top_Right,
+                 Cy => Rect.y + Radius_Px.Top_Right,
+                 Outer_R => Radius_Px.Top_Right,
+                 Start_Thickness => BW_Top,
+                 End_Thickness => Mid_T,
+                 Start_Angle => 3.0 * Ada.Numerics.Pi / 2.0,
+                 End_Angle => 3.0 * Ada.Numerics.Pi / 2.0 + Split_Angle);
+
+               Set_Edge_Color (Right);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Rect.w - Radius_Px.Top_Right,
+                 Cy => Rect.y + Radius_Px.Top_Right,
+                 Outer_R => Radius_Px.Top_Right,
+                 Start_Thickness => Mid_T,
+                 End_Thickness => BW_Right,
+                 Start_Angle => 3.0 * Ada.Numerics.Pi / 2.0 + Split_Angle,
+                 End_Angle => 2.0 * Ada.Numerics.Pi);
+            elsif Is_Visible_Edge (Top, BW_Top) then
+               Set_Edge_Color (Top);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Rect.w - Radius_Px.Top_Right,
+                 Cy => Rect.y + Radius_Px.Top_Right,
+                 Outer_R => Radius_Px.Top_Right,
+                 Start_Thickness => BW_Top,
+                 End_Thickness => BW_Top,
+                 Start_Angle => 3.0 * Ada.Numerics.Pi / 2.0,
+                 End_Angle => 2.0 * Ada.Numerics.Pi);
+            elsif Is_Visible_Edge (Right, BW_Right) then
+               Set_Edge_Color (Right);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Rect.w - Radius_Px.Top_Right,
+                 Cy => Rect.y + Radius_Px.Top_Right,
+                 Outer_R => Radius_Px.Top_Right,
+                 Start_Thickness => BW_Right,
+                 End_Thickness => BW_Right,
+                 Start_Angle => 3.0 * Ada.Numerics.Pi / 2.0,
+                 End_Angle => 2.0 * Ada.Numerics.Pi);
+            end if;
+         end if;
+
+         --  Bottom-right corner
+         if Radius_Px.Bottom_Right > 0.0 then
+            if Is_Visible_Edge (Right, BW_Right)
+              and then Is_Visible_Edge (Bottom, BW_Bottom)
+            then
+               Mid_T := 0.5 * (BW_Right + BW_Bottom);
+               Set_Edge_Color (Right);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Rect.w - Radius_Px.Bottom_Right,
+                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Right,
+                 Outer_R => Radius_Px.Bottom_Right,
+                 Start_Thickness => BW_Right,
+                 End_Thickness => Mid_T,
+                 Start_Angle => 0.0,
+                 End_Angle => Split_Angle);
+
+               Set_Edge_Color (Bottom);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Rect.w - Radius_Px.Bottom_Right,
+                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Right,
+                 Outer_R => Radius_Px.Bottom_Right,
+                 Start_Thickness => Mid_T,
+                 End_Thickness => BW_Bottom,
+                 Start_Angle => Split_Angle,
+                 End_Angle => Ada.Numerics.Pi / 2.0);
+            elsif Is_Visible_Edge (Right, BW_Right) then
+               Set_Edge_Color (Right);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Rect.w - Radius_Px.Bottom_Right,
+                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Right,
+                 Outer_R => Radius_Px.Bottom_Right,
+                 Start_Thickness => BW_Right,
+                 End_Thickness => BW_Right,
+                 Start_Angle => 0.0,
+                 End_Angle => Ada.Numerics.Pi / 2.0);
+            elsif Is_Visible_Edge (Bottom, BW_Bottom) then
+               Set_Edge_Color (Bottom);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Rect.w - Radius_Px.Bottom_Right,
+                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Right,
+                 Outer_R => Radius_Px.Bottom_Right,
+                 Start_Thickness => BW_Bottom,
+                 End_Thickness => BW_Bottom,
+                 Start_Angle => 0.0,
+                 End_Angle => Ada.Numerics.Pi / 2.0);
+            end if;
+         end if;
+
+         --  Bottom-left corner
+         if Radius_Px.Bottom_Left > 0.0 then
+            if Is_Visible_Edge (Bottom, BW_Bottom)
+              and then Is_Visible_Edge (Left, BW_Left)
+            then
+               Mid_T := 0.5 * (BW_Bottom + BW_Left);
+               Set_Edge_Color (Bottom);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Radius_Px.Bottom_Left,
+                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Left,
+                 Outer_R => Radius_Px.Bottom_Left,
+                 Start_Thickness => BW_Bottom,
+                 End_Thickness => Mid_T,
+                 Start_Angle => Ada.Numerics.Pi / 2.0,
+                 End_Angle => Ada.Numerics.Pi / 2.0 + Split_Angle);
+
+               Set_Edge_Color (Left);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Radius_Px.Bottom_Left,
+                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Left,
+                 Outer_R => Radius_Px.Bottom_Left,
+                 Start_Thickness => Mid_T,
+                 End_Thickness => BW_Left,
+                 Start_Angle => Ada.Numerics.Pi / 2.0 + Split_Angle,
+                 End_Angle => Ada.Numerics.Pi);
+            elsif Is_Visible_Edge (Bottom, BW_Bottom) then
+               Set_Edge_Color (Bottom);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Radius_Px.Bottom_Left,
+                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Left,
+                 Outer_R => Radius_Px.Bottom_Left,
+                 Start_Thickness => BW_Bottom,
+                 End_Thickness => BW_Bottom,
+                 Start_Angle => Ada.Numerics.Pi / 2.0,
+                 End_Angle => Ada.Numerics.Pi);
+            elsif Is_Visible_Edge (Left, BW_Left) then
+               Set_Edge_Color (Left);
+               Draw_Corner_Sector (
+                 Cx => Rect.x + Radius_Px.Bottom_Left,
+                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Left,
+                 Outer_R => Radius_Px.Bottom_Left,
+                 Start_Thickness => BW_Left,
+                 End_Thickness => BW_Left,
+                 Start_Angle => Ada.Numerics.Pi / 2.0,
+                 End_Angle => Ada.Numerics.Pi);
+            end if;
+         end if;
+      end Draw_Rounded_Corner_Borders;
    begin
       if Style.Visibility = Visibility_Hidden then
          return;
@@ -2558,7 +3052,8 @@ package body Adi.Widget is
             end;
 
          else
-            --  No border: just fill background
+            --  Rounded corners with non-uniform/partial borders: render
+            --  rounded background, then draw per-edge borders as strips.
             if Style.Background_Color.Kind /= Named
                or else Style.Background_Color.Name /= Transparent
             then
@@ -2571,6 +3066,11 @@ package body Adi.Widget is
                end if;
                --  AA fringe on outer background edge
                Render_AA_Fringe (Renderer, Rect, Radius_Px, R, G, B, A);
+            end if;
+
+            if Has_Border then
+               Draw_Edge_Borders (Respect_Radius => True);
+               Draw_Rounded_Corner_Borders;
             end if;
          end if;
 
@@ -2591,53 +3091,7 @@ package body Adi.Widget is
 
          --  Border
          if Has_Border then
-            declare
-               Edge_Rect : aliased SDL_FRect;
-            begin
-               if Is_Visible_Edge (Top, BW_Top) then
-                  Set_Edge_Color (Top);
-                  Edge_Rect :=
-                    (x => Rect.x,
-                     y => Rect.y,
-                     w => Rect.w,
-                     h => BW_Top);
-                  SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
-                              "SDL_RenderFillRect");
-               end if;
-
-               if Is_Visible_Edge (Bottom, BW_Bottom) then
-                  Set_Edge_Color (Bottom);
-                  Edge_Rect :=
-                    (x => Rect.x,
-                     y => Rect.y + Float'Max (0.0, Rect.h - BW_Bottom),
-                     w => Rect.w,
-                     h => BW_Bottom);
-                  SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
-                              "SDL_RenderFillRect");
-               end if;
-
-               if Is_Visible_Edge (Left, BW_Left) then
-                  Set_Edge_Color (Left);
-                  Edge_Rect :=
-                    (x => Rect.x,
-                     y => Rect.y,
-                     w => BW_Left,
-                     h => Rect.h);
-                  SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
-                              "SDL_RenderFillRect");
-               end if;
-
-               if Is_Visible_Edge (Right, BW_Right) then
-                  Set_Edge_Color (Right);
-                  Edge_Rect :=
-                    (x => Rect.x + Float'Max (0.0, Rect.w - BW_Right),
-                     y => Rect.y,
-                     w => BW_Right,
-                     h => Rect.h);
-                  SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
-                              "SDL_RenderFillRect");
-               end if;
-            end;
+            Draw_Edge_Borders;
          end if;
       end if;
 
@@ -3501,8 +3955,8 @@ package body Adi.Widget is
       Renderer : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Content    : constant Rectangle := Padding_Box (Get_Geometry (W), Main_Style);
-      Clip_By_Overflow : constant Boolean :=
-        Main_Style.Overflow in Overflow_Hidden | Overflow_Scroll | Overflow_Auto;
+      Clip_X : constant Boolean := Overflow_Clips (Main_Style.Overflow_X);
+      Clip_Y : constant Boolean := Overflow_Clips (Main_Style.Overflow_Y);
       Clip_By_Scrollable : constant Boolean := Has_Flag (W, Scrollable);
       Prev_Clip : aliased Adi.SDL.SDL_Rect;
       Clip_Rect : aliased Adi.SDL.SDL_Rect;
@@ -3511,7 +3965,6 @@ package body Adi.Widget is
       Clip_Valid : Boolean := False;
       Clip_Active : Boolean := False;
       Success : Adi.SDL.C_bool;
-      X1, Y1, X2, Y2 : Integer;
 
       procedure Restore_Previous_Clip is
       begin
@@ -3543,34 +3996,22 @@ package body Adi.Widget is
          end if;
       end Set_Item_Clip;
    begin
-      if Renderer /= null and then (Clip_By_Overflow or else Clip_By_Scrollable) then
+      if Renderer /= null and then (Clip_X or else Clip_Y or else Clip_By_Scrollable) then
          if Has_Visible_Area (Content) then
             Use_Clip := True;
             Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
             if Had_Clip then
                Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
             end if;
-
-            X1 := Integer (Float'Floor (Float (Content.X)));
-            Y1 := Integer (Float'Floor (Float (Content.Y)));
-            X2 := X1 + Integer (Float'Ceiling (Float (Content.Width)));
-            Y2 := Y1 + Integer (Float'Ceiling (Float (Content.Height)));
-
-            if Had_Clip then
-               X1 := Integer'Max (X1, Integer (Prev_Clip.x));
-               Y1 := Integer'Max (Y1, Integer (Prev_Clip.y));
-               X2 := Integer'Min (X2, Integer (Prev_Clip.x + Prev_Clip.w));
-               Y2 := Integer'Min (Y2, Integer (Prev_Clip.y + Prev_Clip.h));
-            end if;
-
-            if X2 > X1 and then Y2 > Y1 then
-               Clip_Rect :=
-                 (x => int (X1),
-                  y => int (Y1),
-                  w => int (X2 - X1),
-                  h => int (Y2 - Y1));
-               Clip_Valid := True;
-            end if;
+            Clip_Valid :=
+              Build_Content_Clip_Rect (
+                Renderer  => Renderer,
+                Content   => Content,
+                Clip_X    => Clip_X,
+                Clip_Y    => (Clip_Y or else Clip_By_Scrollable),
+                Had_Clip  => Had_Clip,
+                Prev_Clip => Prev_Clip,
+                Out_Clip  => Clip_Rect);
          end if;
       end if;
 
@@ -3654,7 +4095,6 @@ package body Adi.Widget is
       Use_Clip   : Boolean := False;
       Skip_Children : Boolean := False;
       Success    : Adi.SDL.C_bool;
-      X1, Y1, X2, Y2 : Integer;
    begin
       if not Has_Flag (W, Visible) then
          return;
@@ -3693,13 +4133,13 @@ package body Adi.Widget is
          declare
             Main_Style : constant Resolved_Style :=
               Get_Resolved_Part_Style (W, Main_Part);
-            Clip_By_Overflow : constant Boolean :=
-              Main_Style.Overflow in Overflow_Hidden | Overflow_Scroll | Overflow_Auto;
+            Clip_X : constant Boolean := Overflow_Clips (Main_Style.Overflow_X);
+            Clip_Y : constant Boolean := Overflow_Clips (Main_Style.Overflow_Y);
             Clip_By_Scrollable : constant Boolean := Has_Flag (W, Scrollable);
             Content : constant Rectangle :=
               Padding_Box (Get_Geometry (W), Main_Style);
          begin
-            if Clip_By_Overflow or else Clip_By_Scrollable then
+            if Clip_X or else Clip_Y or else Clip_By_Scrollable then
                if not Has_Visible_Area (Content) then
                   Skip_Children := True;
                else
@@ -3708,25 +4148,15 @@ package body Adi.Widget is
                   if Had_Clip then
                      Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
                   end if;
-
-                  X1 := Integer (Float'Floor (Float (Content.X)));
-                  Y1 := Integer (Float'Floor (Float (Content.Y)));
-                  X2 := X1 + Integer (Float'Ceiling (Float (Content.Width)));
-                  Y2 := Y1 + Integer (Float'Ceiling (Float (Content.Height)));
-
-                  if Had_Clip then
-                     X1 := Integer'Max (X1, Integer (Prev_Clip.x));
-                     Y1 := Integer'Max (Y1, Integer (Prev_Clip.y));
-                     X2 := Integer'Min (X2, Integer (Prev_Clip.x + Prev_Clip.w));
-                     Y2 := Integer'Min (Y2, Integer (Prev_Clip.y + Prev_Clip.h));
-                  end if;
-
-                  if X2 > X1 and then Y2 > Y1 then
-                     Clip_Rect :=
-                       (x => int (X1),
-                        y => int (Y1),
-                        w => int (X2 - X1),
-                        h => int (Y2 - Y1));
+                  if Build_Content_Clip_Rect (
+                     Renderer  => Renderer,
+                     Content   => Content,
+                     Clip_X    => Clip_X,
+                     Clip_Y    => (Clip_Y or else Clip_By_Scrollable),
+                     Had_Clip  => Had_Clip,
+                     Prev_Clip => Prev_Clip,
+                     Out_Clip  => Clip_Rect)
+                  then
                      Success := SDL_SetRenderClipRect (Renderer, Clip_Rect'Access);
                   else
                      Use_Clip := False;
@@ -3877,7 +4307,7 @@ package body Adi.Widget is
          Style : constant Resolved_Style :=
            Get_Resolved_Part_Style (W, Main_Part);
          Scrollable : constant Boolean :=
-           Style.Overflow in Overflow_Scroll | Overflow_Auto;
+           Overflow_Is_Scrollable (Style.Overflow_Y);
          Pref_W, Pref_H : Pixel_Type := 0.0;
          Need_Content_W : Boolean := False;
          Need_Content_H : Boolean := False;
@@ -4010,7 +4440,7 @@ package body Adi.Widget is
                --  For visible overflow, preserve preferred main size only for
                --  non-shrinkable children. Shrinkable children must be allowed
                --  to contract (and rely on their own clipping/wrapping rules).
-               if Style.Overflow = Overflow_Visible
+               if Main_Axis_Overflow (Style, Style.Flex_Direction) = Overflow_Visible
                  and then Float (Child_Style.Flex_Shrink) = 0.0
                then
                   Info.Min_Main := Pixel_Type'Max
@@ -4208,7 +4638,7 @@ package body Adi.Widget is
                --  Keep overflow-visible content floor for non-shrinkable or
                --  explicitly constrained items. Shrinkable items with no min
                --  (e.g. wrapping text) must still be allowed to contract.
-               if Container_Style.Overflow = Overflow_Visible
+               if Main_Axis_Overflow (Container_Style, Container_Style.Flex_Direction) = Overflow_Visible
                  and then (Info.Min_Main > 0.0 or else Info.Flex_Shrink = 0.0)
                then
                   Info.Min_Main := Pixel_Type'Max (Info.Min_Main, Info.Content_Main);

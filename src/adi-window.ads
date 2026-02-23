@@ -107,6 +107,7 @@ private
         Overlays       : Overlay_Vectors.Vector;
         Enforce_Layout_Min_Size : Boolean := True;
         Needs_Layout   : Boolean       := True;
+        Resize_Triggered_Layout : Boolean := False;
         Force_Redraw   : Boolean       := False;
         On_Tick_CB     : Tick_Callback := null;
         --  Debug stats overlay

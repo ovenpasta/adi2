@@ -141,7 +141,7 @@
 - Tab focus traversal (wraps, Shift+Tab reverse); overlay-scoped when overlays present
 - Click dispatch on left button release only
 - DIP scale refresh from `SDL_GetWindowDisplayScale`
-- **Layout-driven SDL minimum size**: `Set_Enforce_Layout_Min_Size` (default on) calls `SDL_SetWindowMinimumSize` with `Get_Preferred_Size(root)` after every layout pass, keeping the SDL minimum in sync with the post-layout preferred size (which can change on the first frame once label geometries are set for text-wrap). If the window is already below the new minimum (fast resize race), `SDL_SetWindowSize` clamps it up immediately.
+- **Layout-driven SDL minimum size**: `Set_Enforce_Layout_Min_Size` (default on) calls `SDL_SetWindowMinimumSize` with `Get_Preferred_Size(root)` after every layout pass, keeping the SDL minimum in sync with the post-layout preferred size (which can change on the first frame once label geometries are set for text-wrap). If the window is already below the new minimum (fast resize race), `SDL_SetWindowSize` clamps it up immediately. The min-size update is **skipped during resize-triggered relayouts** (`Resize_Triggered_Layout` flag): when the user is actively resizing, text-wrap preferred widths follow the wider geometry and would ratchet the SDL minimum upward, preventing the window from shrinking back. The flag is set in `Handle_Resize` and cleared after the relayout completes.
 - Debug: `ADI_DEBUG_LOOP=1` for tick/render diagnostics
 
 **Adi.App** (`adi-app.ads`): Application entry point, main loop, frame timing (`Ada.Real_Time`), `Set_Target_FPS`.

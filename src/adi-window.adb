@@ -626,7 +626,12 @@ package body Adi.Window is
                 --  (text-wrap, container growth), so the value computed at
                 --  Set_Root time may be stale.  Calling here keeps the SDL
                 --  minimum in sync with the actual post-layout content size.
-                Apply_Window_Min_Size_From_Layout (W);
+                --  Skip this during user resize relayouts: wrapped text
+                --  preferred widths can follow the temporary wider geometry
+                --  and ratchet the SDL minimum upward, preventing shrink.
+                if not W.Resize_Triggered_Layout then
+                   Apply_Window_Min_Size_From_Layout (W);
+                end if;
                 W.Stats_Layout_Count := W.Stats_Layout_Count + 1;
              end if;
 
@@ -643,6 +648,7 @@ package body Adi.Window is
              end loop;
 
              W.Needs_Layout := False;
+             W.Resize_Triggered_Layout := False;
           end if;
           W.Stats_Layout_Us := Natural
             (To_Duration (Clock - Stage_Start) * 1_000_000.0);
@@ -698,6 +704,7 @@ package body Adi.Window is
       if Root /= null then
          Set_Geometry (Root.all, W.Geometry);
          W.Needs_Layout := True;  -- Initial layout needed
+         W.Resize_Triggered_Layout := False;
       end if;
       Apply_Window_Min_Size_From_Layout (W);
    end Set_Root;
@@ -1518,6 +1525,7 @@ function Get_Size (W : in out Window) return Size_2D is
              Mark_Dirty (W.Root.all);
           end if;
           W.Needs_Layout := True;  -- Flag for layout recalculation
+          W.Resize_Triggered_Layout := True;
        end if;
 
        Apply_Render_Logical_Presentation (W);

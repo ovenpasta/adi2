@@ -26,6 +26,8 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 
 ## Build Commands
 
+> ⚠️ Build safety: never run more than one `gprbuild` command at the same time in this repo. Concurrent `gprbuild` processes can race on shared artifacts (notably `lib/libAdi.a`) and produce truncated/corrupted archives.
+
 ```bash
 # Build library + all tests (does NOT build examples — too slow)
 alr build -- -j0

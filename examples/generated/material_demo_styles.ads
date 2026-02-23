@@ -68,10 +68,10 @@ package Material_Demo_Styles is
       Display => Set (Inline_Flex),
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
-      Border_Radius => Set (Radius (Px (20.0))),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
+      Border_Radius => Set (Radius (Px (20.0))),
       others => <>
    );
 
@@ -147,11 +147,11 @@ package Material_Demo_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (43, 41, 48)),
-      Border_Radius => Set (Radius (Px (16.0))),
       Gap => Set (Gap (Px (12.0))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (2.0), Px (8.0), Px (0.0), RGBA (0, 0, 0, 0.3))),
       Transition => Set ((Duration => 0.25, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
+      Border_Radius => Set (Radius (Px (16.0))),
       others => <>
    );
 
@@ -219,10 +219,10 @@ package Material_Demo_Styles is
       Display => Set (Inline_Flex),
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
-      Border_Radius => Set (Radius (Px (20.0))),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
+      Border_Radius => Set (Radius (Px (20.0))),
       others => <>
    );
 
@@ -279,8 +279,8 @@ package Material_Demo_Styles is
 
    --  Base style for class 'btn-secondary'
    Btn_Secondary_Class_Base_Style : constant Style_Rules := (
-      Border_Color => Set (Border_Color (RGB (147, 143, 153))),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
+      Border_Color => Set (Border_Color (RGB (147, 143, 153))),
       others => <>
    );
 
@@ -338,24 +338,24 @@ package Material_Demo_Styles is
 
    --  Base style for class 'text-field'
    Text_Field_Class_Base_Style : constant Style_Rules := (
-      Border_Radius => Set (Radius (Px (8.0))),
       Background_Color => Set_Bg (RGB (54, 52, 59)),
-      Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (147, 143, 153))),
       Cursor => Set (Cursor_Text),
       Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Border_Color))),
       Padding => Set (CSS_Box (Px (12.0), Px (16.0), Px (12.0), Px (16.0))),
+      Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (147, 143, 153))),
+      Border_Radius => Set (Radius (Px (8.0), Px (8.0), Px (0.0), Px (0.0))),
       others => <>
    );
 
    --  Style for class 'text-field' when widget State_Focused
    Text_Field_Class_Widget_Focused_Style : constant Style_Rules := (
-      Border_Color => Set (Border_Color (RGB (208, 188, 255))),
       Outline_Width => Set_Outline_Width (Px (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
       Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      Border_Color => Set (Border_Color (RGB (208, 188, 255))),
       others => <>
    );
 
@@ -390,28 +390,28 @@ package Material_Demo_Styles is
    Combo_Class_Base_Style : constant Style_Rules := (
       Height => Set (Size (Px (44.0))),
       Align_Items => Set (Center),
-      Border_Radius => Set (Radius (Px (8.0))),
       Background_Color => Set_Bg (RGB (54, 52, 59)),
+      Cursor => Set (Cursor_Pointer),
+      Padding => Set (CSS_Box (Px (9.0), Px (16.0), Px (9.0), Px (16.0))),
       Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (147, 143, 153))),
-      Cursor => Set (Cursor_Pointer),
-      Padding => Set (CSS_Box (Px (9.0), Px (16.0), Px (9.0), Px (16.0))),
+      Border_Radius => Set (Radius (Px (8.0), Px (8.0), Px (0.0), Px (0.0))),
       others => <>
    );
 
    --  Style for class 'combo' when widget State_Hovered
    Combo_Class_Widget_Hovered_Style : constant Style_Rules := (
-      Border_Color => Set (Border_Color (RGB (208, 188, 255))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (0.0), RGBA (208, 188, 255, 0.15))),
+      Border_Color => Set (Border_Color (RGB (208, 188, 255))),
       others => <>
    );
 
    --  Style for class 'combo' when widget State_Focused
    Combo_Class_Widget_Focused_Style : constant Style_Rules := (
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (0.0), RGBA (208, 188, 255, 0.5))),
       Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
       Border_Color => Set (Border_Color (RGB (208, 188, 255))),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (0.0), RGBA (208, 188, 255, 0.5))),
       others => <>
    );
 
@@ -465,12 +465,12 @@ package Material_Demo_Styles is
       Width => Set (Size (Px (52.0))),
       Height => Set (Size (Px (32.0))),
       Background_Color => Set_Bg (RGB (73, 69, 79)),
+      Cursor => Set (Cursor_Pointer),
+      Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Border_Width => Set (Border_Width (Px (2.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (147, 143, 153))),
       Border_Radius => Set (Radius (Px (16.0))),
-      Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       others => <>
    );
 
@@ -511,9 +511,9 @@ package Material_Demo_Styles is
       Width => Set (Size (Px (24.0))),
       Height => Set (Size (Px (24.0))),
       Background_Color => Set_Bg (RGB (147, 143, 153)),
-      Border_Radius => Set (Radius (Px (12.0))),
       Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Margin))),
       Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (0.0), Px (2.0))),
+      Border_Radius => Set (Radius (Px (12.0))),
       others => <>
    );
 
@@ -527,24 +527,25 @@ package Material_Demo_Styles is
    --  Base style for class 'combo-dropdown'
    Combo_Dropdown_Class_Base_Style : constant Style_Rules := (
       Max_Height => Set (Size (Px (240.0))),
-      Overflow => Set (Overflow_Auto),
       Background_Color => Set_Bg (RGB (54, 52, 60)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (20.0), Px (0.0), RGBA (0, 0, 0, 0.4))),
+      Padding => Set (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (73, 69, 79))),
       Border_Radius => Set (Radius (Px (12.0))),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (20.0), Px (0.0), RGBA (0, 0, 0, 0.4))),
-      Padding => Set (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0))),
+      Overflow_X => Set_Overflow_X (Overflow_Auto),
+      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>
    );
 
    --  Base style for class 'combo-option'
    Combo_Option_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
-      Border_Radius => Set (Radius (Px (8.0))),
       Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (10.0), Px (14.0), Px (10.0), Px (14.0))),
       Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (2.0), Px (0.0))),
+      Border_Radius => Set (Radius (Px (8.0))),
       others => <>
    );
 
@@ -587,9 +588,9 @@ package Material_Demo_Styles is
       Min_Width => Set (Size (Px (320.0))),
       Max_Width => Set (Size (Px (460.0))),
       Background_Color => Set_Bg (RGB (48, 45, 56)),
-      Border_Radius => Set (Radius (Px (28.0))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (32.0), Px (0.0), RGBA (0, 0, 0, 0.5))),
       Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
+      Border_Radius => Set (Radius (Px (28.0))),
       others => <>
    );
 
@@ -645,10 +646,10 @@ package Material_Demo_Styles is
       Display => Set (Inline_Flex),
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
-      Border_Radius => Set (Radius (Px (20.0))),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (10.0), Px (24.0), Px (10.0), Px (24.0))),
+      Border_Radius => Set (Radius (Px (20.0))),
       others => <>
    );
 
@@ -683,9 +684,9 @@ package Material_Demo_Styles is
    Slider_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (200.0))),
       Height => Set (Size (Px (20.0))),
-      Border_Radius => Set (Radius (Px (10.0))),
       Background_Color => Set_Bg (RGB (73, 69, 79)),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Border_Radius => Set (Radius (Px (10.0))),
       others => <>
    );
 
@@ -721,8 +722,8 @@ package Material_Demo_Styles is
    Slider_Class_Knob_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (20.0))),
       Background_Color => Set_Bg (RGB (230, 225, 229)),
-      Border_Radius => Set (Radius (Pct (50.0))),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Border_Radius => Set (Radius (Pct (50.0))),
       others => <>
    );
 
@@ -747,24 +748,24 @@ package Material_Demo_Styles is
    --  Base style for class 'num-field'
    Num_Field_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (100.0))),
-      Border_Radius => Set (Radius (Px (8.0))),
       Background_Color => Set_Bg (RGB (54, 52, 59)),
-      Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (147, 143, 153))),
       Cursor => Set (Cursor_Text),
       Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Border_Color))),
       Padding => Set (CSS_Box (Px (10.0), Px (12.0), Px (10.0), Px (12.0))),
+      Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (147, 143, 153))),
+      Border_Radius => Set (Radius (Px (8.0), Px (8.0), Px (0.0), Px (0.0))),
       others => <>
    );
 
    --  Style for class 'num-field' when widget State_Focused
    Num_Field_Class_Widget_Focused_Style : constant Style_Rules := (
-      Border_Color => Set (Border_Color (RGB (208, 188, 255))),
       Outline_Width => Set_Outline_Width (Px (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
       Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      Border_Color => Set (Border_Color (RGB (208, 188, 255))),
       others => <>
    );
 
@@ -799,12 +800,12 @@ package Material_Demo_Styles is
    Context_Menu_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (180.0))),
       Background_Color => Set_Bg (RGB (54, 52, 60)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (24.0), Px (0.0), RGBA (0, 0, 0, 0.45))),
+      Padding => Set (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (73, 69, 79))),
       Border_Radius => Set (Radius (Px (8.0))),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (24.0), Px (0.0), RGBA (0, 0, 0, 0.45))),
-      Padding => Set (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0))),
       others => <>
    );
 
@@ -812,8 +813,8 @@ package Material_Demo_Styles is
    Context_Menu_Item_Class_Base_Style : constant Style_Rules := (
       Min_Height => Set (Size (Px (28.0))),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
-      Border_Radius => Set (Radius (Px (6.0))),
       Padding => Set (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 

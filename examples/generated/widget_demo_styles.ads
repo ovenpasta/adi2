@@ -34,14 +34,14 @@ package Widget_Demo_Styles is
    --  Base style for class 'card-box'
    Card_Box_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (C (White)),
-      Border_Width => Set (Border_Width (Px (2.0))),
-      Border_Color => Set (Border_Color (RGB (200, 200, 200))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (4.0), Px (16.0), Px (32.0), Px (8.0))),
       Flex_Grow => Set (1.0),
       Box_Shadow => Set (Shadow (Px (0.0), Px (4.0), Px (12.0), Px (0.0), RGBA (0, 0, 0, 0.5))),
       Padding => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
       Margin => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
+      Border_Width => Set (Border_Width (Px (2.0), Px (2.0), Px (2.0), Px (8.0))),
+      Border_Style => Set (Border_Style (Solid, Solid, Dashed, Solid)),
+      Border_Color => Set (Border_Color (RGB (59, 130, 246), RGB (200, 200, 200), RGB (200, 200, 200), RGB (200, 200, 200))),
+      Border_Radius => Set (Radius (Px (20.0), Px (16.0), Px (2.0), Px (8.0))),
       others => <>
    );
 
@@ -51,22 +51,22 @@ package Widget_Demo_Styles is
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (10.0))),
       Background_Color => Set_Bg (RGB (255, 247, 237)),
-      Border_Width => Set (Border_Width (Px (3.0))),
-      Border_Color => Set (Border_Color (RGB (251, 146, 60))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (16.0))),
       Flex_Grow => Set (1.0),
       Box_Shadow => Set (Shadow (Px (0.0), Px (4.0), Px (4.0), Px (0.0), RGBA (0, 0, 0, 0.25))),
       Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
+      Border_Width => Set (Border_Width (Px (8.0), Px (4.0), Px (6.0), Px (10.0))),
+      Border_Style => Set (Border_Style (Double, Dashed, Solid, Solid)),
+      Border_Color => Set (Border_Color (RGB (234, 88, 12), RGB (249, 115, 22), RGB (251, 191, 36), RGB (194, 65, 12))),
+      Border_Radius => Set (Radius (Px (16.0), Px (28.0), Px (16.0), Px (4.0))),
       others => <>
    );
 
    --  Base style for class 'inner-box'
    Inner_Box_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (251, 146, 60)),
-      Border_Radius => Set (Radius (Px (8.0))),
       Width => Set (Size (Px (100.0))),
       Height => Set (Size (Px (100.0))),
+      Border_Radius => Set (Radius (Px (8.0))),
       others => <>
    );
 
@@ -82,11 +82,11 @@ package Widget_Demo_Styles is
    --  Base style for class 'button-box'
    Button_Box_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (59, 130, 246)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      Border_Width => Set (Border_Width (Px (0.0))),
       Min_Width => Set (Size (Px (150.0))),
       Min_Height => Set (Size (Px (50.0))),
       Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
+      Border_Width => Set (Border_Width (Px (0.0))),
+      Border_Radius => Set (Radius (Px (8.0))),
       others => <>
    );
 
@@ -105,19 +105,20 @@ package Widget_Demo_Styles is
    --  Base style for class 'hover-box'
    Hover_Box_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (0, 255, 0)),
-      Border_Radius => Set (Radius (Px (10.0))),
-      Border_Width => Set (Border_Width (Px (2.0))),
-      Border_Color => Set (Border_Color (RGB (22, 163, 74))),
-      Border_Style => Set (Border_Style (Solid)),
       Flex_Grow => Set (1.0),
       Min_Height => Set (Size (Px (80.0))),
+      Border_Width => Set (Border_Width (Px (2.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (22, 163, 74))),
+      Border_Radius => Set (Radius (Px (10.0))),
       others => <>
    );
 
    --  Style for class 'hover-box' when widget State_Hovered
    Hover_Box_Class_Widget_Hovered_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (255, 0, 0)),
-      Border_Color => Set (Border_Color (RGB (21, 128, 61))),
+      Border_Width => Set (Border_Width (Px (6.0), Px (0.0), Px (0.0), Px (0.0))),
+      Border_Color => Set (Border_Color (RGB (21, 128, 61), RGB (5, 150, 105), RGB (21, 128, 61), RGB (21, 128, 61))),
       others => <>
    );
 
@@ -126,20 +127,20 @@ package Widget_Demo_Styles is
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       Background_Image => Set_Bg_Image (Background_Image_URL ("bg.jpg")),
       Object_Fit => Set (Fit_Contain),
-      Border_Radius => Set (Radius (Px (6.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (RGB (200, 200, 200))),
-      Border_Style => Set (Border_Style (Solid)),
       Flex_Grow => Set (1.0),
       Min_Height => Set (Size (Px (50.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (200, 200, 200))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 
    --  Base style for class 'title-label'
    Title_Label_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (240, 240, 250)),
-      Border_Radius => Set (Radius (Px (4.0))),
       Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
+      Border_Radius => Set (Radius (Px (4.0))),
       others => <>
    );
 

@@ -259,7 +259,7 @@
 
 .text-field::main {
   padding: 12px 16px;
-  border-radius: 8px;
+  border-radius: 8px 8px 0px 0px;
   background-color: rgb(54, 52, 59);
   border-width: 0px 0px 2px 0px;
   border-style: solid;
@@ -292,7 +292,7 @@
   height: 44px;
   padding: 9px 16px;
   align-items: center;
-  border-radius: 8px;
+  border-radius: 8px 8px 0px 0px;
   background-color: rgb(54, 52, 59);
   border-width: 0px 0px 2px 0px;
   border-style: solid;
@@ -547,7 +547,7 @@
 .num-field::main {
   width: 100px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: 8px 8px 0px 0px;
   background-color: rgb(54, 52, 59);
   border-width: 0px 0px 2px 0px;
   border-style: solid;

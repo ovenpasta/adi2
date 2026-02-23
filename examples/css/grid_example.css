@@ -97,3 +97,51 @@
 .hint {
   flex-shrink: 0;
 }
+
+/* --- Track sizing demo: auto / auto / auto / 1fr --- */
+
+.track-grid {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr;
+  gap: 6px;
+  padding: 10px;
+  background-color: rgb(15, 23, 42);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(71, 85, 105);
+  border-radius: 10px;
+}
+
+.tr-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 6px;
+  min-height: 36px;
+}
+
+.tr-cell::label {
+  color: rgb(226, 232, 240);
+  font-size: 13px;
+}
+
+.tr-name {
+  background-color: rgb(30, 58, 138);
+}
+
+.tr-val {
+  background-color: rgb(6, 78, 59);
+}
+
+.tr-unit {
+  background-color: rgb(92, 46, 5);
+}
+
+.tr-desc {
+  justify-content: flex-start;
+  background-color: rgb(30, 41, 59);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(51, 65, 85);
+}

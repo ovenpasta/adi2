@@ -112,29 +112,114 @@ package body Adi.Widget.Box is
          Result := Make_Size (Main_Sum, Cross_Max, Style.Flex_Direction);
       elsif Style.Display = Grid or else Style.Display = Inline_Grid then
          declare
-            Cols       : constant Natural := Natural'Max (1, Natural (Style.Grid_Columns));
-            Max_Child_W : Pixel_Type := 0.0;
+            Cols        : constant Natural := Natural'Max (1, Natural (Style.Grid_Columns));
+            Tracks      : constant Grid_Track_List := Style.Grid_Column_Tracks;
             Max_Child_H : Pixel_Type := 0.0;
             Rows        : Natural := 0;
          begin
-            for Child of W.Children loop
+            if Tracks.Count = Cols then
+               --  Track-aware measurement: auto columns sized to content,
+               --  px columns use their fixed value, fr columns contribute 0.
                declare
-                  Child_Style : constant Resolved_Style :=
-                    Get_Resolved_Part_Style (Child.all, Main_Part);
-                  Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
-                  Pref : constant Size_2D := Get_Preferred_Size (Child.all);
-                  Min  : constant Size_2D := Get_Min_Size (Child.all);
-                  Effective : constant Size_2D :=
-                    (Width  => Pixel_Type'Max (Pref.Width, Min.Width),
-                     Height => Pixel_Type'Max (Pref.Height, Min.Height));
-                begin
-                  Max_Child_W := Pixel_Type'Max
-                    (Max_Child_W, Effective.Width + Margin.Left + Margin.Right);
-                  Max_Child_H := Pixel_Type'Max
-                    (Max_Child_H, Effective.Height + Margin.Top + Margin.Bottom);
-                  Count := Count + 1;
+                  Col_Max_W  : array (1 .. Cols) of Pixel_Type := [others => 0.0];
+                  Auto_Index : Natural := 0;
+               begin
+                  --  Pre-pass: seed px column widths (regardless of child occupancy).
+                  for C in 1 .. Cols loop
+                     if Tracks.Tracks (C).Kind = Track_Px then
+                        Col_Max_W (C) := Pixel_Type (Tracks.Tracks (C).Value);
+                     end if;
+                  end loop;
+
+                  for Child of W.Children loop
+                     declare
+                        Child_Style : constant Resolved_Style :=
+                          Get_Resolved_Part_Style (Child.all, Main_Part);
+                        Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
+                        Pref   : constant Size_2D := Get_Preferred_Size (Child.all);
+                        Min    : constant Size_2D := Get_Min_Size (Child.all);
+                        Eff_W  : constant Pixel_Type :=
+                          Pixel_Type'Max (Pref.Width, Min.Width)
+                          + Margin.Left + Margin.Right;
+                        C  : Natural := Natural (Child_Style.Grid_Column);
+                        R  : constant Natural := Natural (Child_Style.Grid_Row);
+                        CS : Natural := Natural (Child_Style.Grid_Column_Span);
+                     begin
+                        if CS = 0 then
+                           CS := 1;
+                        end if;
+
+                        --  Replicate placement logic from Compute_Grid_Layout.
+                        if C = 0 and then R = 0 then
+                           Auto_Index := Auto_Index + 1;
+                           C := ((Auto_Index - 1) mod Cols) + 1;
+                        elsif C = 0 then
+                           C := 1;
+                        elsif R = 0 then
+                           Auto_Index := Auto_Index + 1;
+                           --  C is already explicit; auto_index tracks row only.
+                        end if;
+                        C  := Natural'Max (1, Natural'Min (C, Cols));
+                        CS := Natural'Max (1, Natural'Min (CS, Cols - C + 1));
+
+                        Max_Child_H := Pixel_Type'Max
+                          (Max_Child_H,
+                           Pixel_Type'Max (Pref.Height, Min.Height)
+                           + Margin.Top + Margin.Bottom);
+
+                        --  Distribute child width evenly across spanned columns.
+                        --  Only auto tracks update Col_Max_W; fr and px are unaffected.
+                        for Span_Offset in 0 .. CS - 1 loop
+                           declare
+                              Sc : constant Natural := C + Span_Offset;
+                           begin
+                              if Tracks.Tracks (Sc).Kind = Track_Auto then
+                                 Col_Max_W (Sc) := Pixel_Type'Max
+                                   (Col_Max_W (Sc), Eff_W / Pixel_Type (CS));
+                              end if;
+                           end;
+                        end loop;
+
+                        Count := Count + 1;
+                     end;
+                  end loop;
+
+                  for C in 1 .. Cols loop
+                     Result.Width := Result.Width + Col_Max_W (C);
+                  end loop;
+                  if Cols > 1 then
+                     Result.Width := Result.Width + Pixel_Type (Cols - 1) * Col_Gap;
+                  end if;
                end;
-            end loop;
+            else
+               --  No track list: fall back to equal-column estimate.
+               declare
+                  Max_Child_W : Pixel_Type := 0.0;
+               begin
+                  for Child of W.Children loop
+                     declare
+                        Child_Style : constant Resolved_Style :=
+                          Get_Resolved_Part_Style (Child.all, Main_Part);
+                        Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
+                        Pref : constant Size_2D := Get_Preferred_Size (Child.all);
+                        Min  : constant Size_2D := Get_Min_Size (Child.all);
+                        Effective : constant Size_2D :=
+                          (Width  => Pixel_Type'Max (Pref.Width, Min.Width),
+                           Height => Pixel_Type'Max (Pref.Height, Min.Height));
+                     begin
+                        Max_Child_W := Pixel_Type'Max
+                          (Max_Child_W, Effective.Width + Margin.Left + Margin.Right);
+                        Max_Child_H := Pixel_Type'Max
+                          (Max_Child_H, Effective.Height + Margin.Top + Margin.Bottom);
+                        Count := Count + 1;
+                     end;
+                  end loop;
+
+                  Result.Width :=
+                    Pixel_Type (Cols) * Max_Child_W
+                    + Pixel_Type'Max (0.0, Pixel_Type (Cols - 1) * Col_Gap);
+               end;
+            end if;
 
             if Count > 0 then
                if Natural (Style.Grid_Rows) > 0 then
@@ -148,9 +233,6 @@ package body Adi.Widget.Box is
                Rows := 1;
             end if;
 
-            Result.Width :=
-              Pixel_Type (Cols) * Max_Child_W
-              + Pixel_Type'Max (0.0, Pixel_Type (Cols - 1) * Col_Gap);
             Result.Height :=
               Pixel_Type (Rows) * Max_Child_H
               + Pixel_Type'Max (0.0, Pixel_Type (Rows - 1) * Row_Gap);
@@ -200,7 +282,8 @@ overriding procedure Layout (W : in out Box_Widget) is
                   Explicit_Rows       => Natural (Style.Grid_Rows),
                   Row_Gap             => Get_Row_Gap (Style.Gap),
                   Column_Gap          => Get_Column_Gap (Style.Gap),
-                  Use_Preferred_Floor => Style.Overflow = Overflow_Visible);
+                  Use_Preferred_Floor => Style.Overflow = Overflow_Visible,
+                  Column_Tracks       => Style.Grid_Column_Tracks);
                Children_Info : Grid_Child_Info_Array (1 .. N);
                Rects : Rectangle_Array (1 .. N);
             begin
@@ -238,6 +321,73 @@ overriding procedure Layout (W : in out Box_Widget) is
 
                Compute_Grid_Layout (Context, Children_Info);
                Rects := Grid_To_Rectangles (Children_Info);
+
+               --  Sizing pass: give each child its assigned column width and a
+               --  large provisional height, then run Layout_Child so that labels
+               --  with text-wrap enabled can re-measure at that width.
+               --  Measure_Content for Label is width-aware when geometry.Width > 0,
+               --  so Get_Preferred_Size afterwards returns the wrapped height.
+               --  If any child needs more height, re-run Compute_Grid_Layout so
+               --  row heights grow to accommodate the wrapped content.
+               declare
+                  Height_Changed : Boolean := False;
+                  Large_H : constant Pixel_Type := 32768.0;
+               begin
+                  for I in 1 .. N loop
+                     declare
+                        Child : constant Widget_Access :=
+                          Get_Child (W, Positive (I));
+                        Provisional : Rectangle := Rects (Positive (I));
+                     begin
+                        if Child /= null and then Provisional.Width > 0.0 then
+                           Provisional.Height := Large_H;
+                           Set_Geometry (Child.all, Provisional);
+                           Layout_Child (Child.all);
+                           declare
+                              Actual_H : constant Pixel_Type :=
+                                Get_Preferred_Size (Child.all).Height;
+                           begin
+                              if Actual_H > Children_Info (Positive (I)).Pref_Height
+                              then
+                                 Children_Info (Positive (I)).Pref_Height :=
+                                   Actual_H;
+                                 Height_Changed := True;
+                              end if;
+                           end;
+                        end if;
+                     end;
+                  end loop;
+
+                  if Height_Changed then
+                     Compute_Grid_Layout (Context, Children_Info);
+                     Rects := Grid_To_Rectangles (Children_Info);
+                  end if;
+               end;
+
+               --  Container growth: when overflow is visible (the default),
+               --  grow W.Geometry if row heights exceed the allocated height.
+               --  For overflow:hidden/scroll/auto the box clips instead of
+               --  growing, matching CSS behaviour for those modes.
+               if Style.Overflow = Overflow_Visible then
+                  declare
+                     Content_Bottom : constant Pixel_Type :=
+                       Content.Y + Content.Height;
+                     Max_Bottom : Pixel_Type := Content.Y;
+                  begin
+                     for I in 1 .. N loop
+                        if Rects (Positive (I)).Width > 0.0 then
+                           Max_Bottom := Pixel_Type'Max
+                             (Max_Bottom,
+                              Rects (Positive (I)).Y
+                                + Rects (Positive (I)).Height);
+                        end if;
+                     end loop;
+                     if Max_Bottom > Content_Bottom then
+                        W.Geometry.Height :=
+                          W.Geometry.Height + (Max_Bottom - Content_Bottom);
+                     end if;
+                  end;
+               end if;
 
                for I in 1 .. N loop
                   declare

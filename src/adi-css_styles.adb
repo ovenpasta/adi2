@@ -473,6 +473,10 @@ package body Adi.CSS_Styles is
          Gap              => Opt_Gap.Merge (Base.Gap, Override.Gap),
          Grid_Columns     => Opt_Grid_Cols.Merge (Base.Grid_Columns, Override.Grid_Columns),
          Grid_Rows        => Opt_Grid_Rows.Merge (Base.Grid_Rows, Override.Grid_Rows),
+         Grid_Column_Tracks =>
+           (if Override.Grid_Column_Tracks.Count > 0
+            then Override.Grid_Column_Tracks
+            else Base.Grid_Column_Tracks),
 
          -- Flexbox Item
          Align_Self       => Opt_Align_Self.Merge (Base.Align_Self, Override.Align_Self),
@@ -549,8 +553,9 @@ package body Adi.CSS_Styles is
          Align_Items      => Child.Align_Items,
          Align_Content    => Child.Align_Content,
          Gap              => Child.Gap,
-         Grid_Columns     => Child.Grid_Columns,
-         Grid_Rows        => Child.Grid_Rows,
+         Grid_Columns       => Child.Grid_Columns,
+         Grid_Rows          => Child.Grid_Rows,
+         Grid_Column_Tracks => Child.Grid_Column_Tracks,
          Align_Self       => Child.Align_Self,
          Flex_Grow        => Child.Flex_Grow,
          Flex_Shrink      => Child.Flex_Shrink,
@@ -639,8 +644,9 @@ package body Adi.CSS_Styles is
          Align_Items      => Opt_Align_Items.Resolve (S.Align_Items),
          Align_Content    => Opt_Align_Content.Resolve (S.Align_Content),
          Gap              => Opt_Gap.Resolve (S.Gap),
-         Grid_Columns     => Opt_Grid_Cols.Resolve (S.Grid_Columns),
-         Grid_Rows        => Opt_Grid_Rows.Resolve (S.Grid_Rows),
+         Grid_Columns       => Opt_Grid_Cols.Resolve (S.Grid_Columns),
+         Grid_Rows          => Opt_Grid_Rows.Resolve (S.Grid_Rows),
+         Grid_Column_Tracks => S.Grid_Column_Tracks,
 
          -- Flexbox Item
          Align_Self       => Opt_Align_Self.Resolve (S.Align_Self),

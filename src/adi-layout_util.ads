@@ -274,12 +274,13 @@ package Adi.Layout_Util is
    -------------------------------------------------
 
    type Grid_Layout_Context is record
-      Container          : Rectangle;
-      Columns            : Natural := 1;
-      Explicit_Rows      : Natural := 0;  -- 0 => auto
-      Row_Gap            : Pixel_Type := 0.0;
-      Column_Gap         : Pixel_Type := 0.0;
+      Container           : Rectangle;
+      Columns             : Natural := 1;
+      Explicit_Rows       : Natural := 0;  -- 0 => auto
+      Row_Gap             : Pixel_Type := 0.0;
+      Column_Gap          : Pixel_Type := 0.0;
       Use_Preferred_Floor : Boolean := False;
+      Column_Tracks       : Grid_Track_List := Default_Grid_Track_List;
    end record;
 
    type Grid_Child_Info is record

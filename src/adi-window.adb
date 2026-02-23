@@ -374,6 +374,26 @@ package body Adi.Window is
 
       Success := Adi.SDL.Video.SDL_SetWindowMinimumSize (W.Internal.win, Min_W, Min_H);
       SDL_Assert (Success, "SDL_SetWindowMinimumSize");
+
+      --  SDL_SetWindowMinimumSize only prevents future resizes below the
+      --  minimum; it does not resize a window that is already too small.
+      --  If the user resized faster than layout could respond, clamp now.
+      declare
+         Cur_W : aliased int := 0;
+         Cur_H : aliased int := 0;
+      begin
+         if Adi.SDL.Video.SDL_GetWindowSize
+              (W.Internal.win, Cur_W'Access, Cur_H'Access)
+         then
+            if Cur_W < Min_W or else Cur_H < Min_H then
+               Success := Adi.SDL.Video.SDL_SetWindowSize
+                 (W.Internal.win,
+                  int'Max (Cur_W, Min_W),
+                  int'Max (Cur_H, Min_H));
+               SDL_Assert (Success, "SDL_SetWindowSize (min clamp)");
+            end if;
+         end if;
+      end;
    end Apply_Window_Min_Size_From_Layout;
 
    -------------------
@@ -601,6 +621,12 @@ package body Adi.Window is
                 Debug_Log ("relayout tick=" & Natural'Image (Debug_Tick_No));
                 Layout_Tree (W.Root.all);
                 Adi.Widget.Update (W.Root.all);
+                --  Re-apply SDL minimum after layout: preferred sizes can
+                --  change on the first pass once label geometries are set
+                --  (text-wrap, container growth), so the value computed at
+                --  Set_Root time may be stale.  Calling here keeps the SDL
+                --  minimum in sync with the actual post-layout content size.
+                Apply_Window_Min_Size_From_Layout (W);
                 W.Stats_Layout_Count := W.Stats_Layout_Count + 1;
              end if;
 

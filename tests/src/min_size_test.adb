@@ -147,6 +147,451 @@ begin
    end;
 
    Ada.Text_IO.New_Line;
+
+   --  Test 4: Grid Measure_Content with mixed auto/fr tracks
+   --  A wide child explicitly placed in a 1fr column must not inflate the
+   --  grid's preferred width.  This is the regression case for the bug where
+   --  Measure_Content used Cols * max_child_w regardless of track kind.
+   Ada.Text_IO.Put_Line ("=== Grid Measure_Content track-sizing regression ===");
+   Ada.Text_IO.New_Line;
+   declare
+      Grid_Box : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Child1   : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Child2   : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Child3   : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Child4   : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+
+      --  Grid: 4 columns, track list [auto, auto, auto, 1fr], no gap/padding.
+      Grid_Style : constant Style_Rules := (
+         Display            => Set (Grid),
+         Grid_Columns       => Set (Grid_Columns_Value (4)),
+         Grid_Column_Tracks => (Count  => 4,
+                                Tracks => [1 => (Track_Auto, 0.0),
+                                           2 => (Track_Auto, 0.0),
+                                           3 => (Track_Auto, 0.0),
+                                           4 => (Track_Fr,   1.0),
+                                           others => <>]),
+         others => <>
+      );
+      Grid_WS    : constant Widget_Style := From (Grid_Style).Build;
+      Grid_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Grid_WS, Enabled => True),
+         others => <>
+      ];
+
+      --  Auto-column children: modest min-widths (80, 60, 40 px).
+      function Make_Min_W_Style (W : Float) return Part_Style_Array is
+         S  : constant Style_Rules := (Min_Width => Set (Size (Px (W))), others => <>);
+         WS : constant Widget_Style := From (S).Build;
+      begin
+         return [Main_Part => (Style => WS, Enabled => True), others => <>];
+      end Make_Min_W_Style;
+
+      Pref : Size_2D;
+   begin
+      Set_Part_Styles (Grid_Box.all, Grid_Parts);
+
+      --  Children 1-3 auto-place into cols 1-3 (auto tracks).
+      Set_Part_Styles (Child1.all, Make_Min_W_Style (80.0));
+      Set_Part_Styles (Child2.all, Make_Min_W_Style (60.0));
+      Set_Part_Styles (Child3.all, Make_Min_W_Style (40.0));
+      --  Child 4 auto-places into col 4 (1fr track), very wide.
+      Set_Part_Styles (Child4.all, Make_Min_W_Style (500.0));
+
+      Add_Child (Grid_Box.all, Child1);
+      Add_Child (Grid_Box.all, Child2);
+      Add_Child (Grid_Box.all, Child3);
+      Add_Child (Grid_Box.all, Child4);
+
+      Pref := Get_Preferred_Size (Widget'Class (Grid_Box.all));
+      Ada.Text_IO.Put_Line ("  Grid preferred width (auto/auto/auto/1fr): " &
+                            Pixel_Type'Image (Pref.Width));
+
+      --  Expected: 80 + 60 + 40 + 0 (fr contributes 0) = 180.
+      --  The old bug would give 4 * 500 = 2000.
+      Check ("Grid preferred width = auto cols only (fr child excluded)",
+             Pref.Width >= 180.0 and then Pref.Width < 200.0);
+
+      --  Also verify: preferred width is strictly less than the wide fr child.
+      Check ("Grid preferred width < fr child min-width (500px)",
+             Pref.Width < 500.0);
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  Test 5: Wide child explicitly placed in 1fr column (exact bug scenario).
+   Ada.Text_IO.Put_Line ("=== Grid Measure_Content explicit fr placement ===");
+   Ada.Text_IO.New_Line;
+   declare
+      Grid_Box : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Auto_C1  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Auto_C2  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Fr_Child : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+
+      Grid_Style : constant Style_Rules := (
+         Display            => Set (Grid),
+         Grid_Columns       => Set (Grid_Columns_Value (2)),
+         Grid_Column_Tracks => (Count  => 2,
+                                Tracks => [1 => (Track_Auto, 0.0),
+                                           2 => (Track_Fr,   1.0),
+                                           others => <>]),
+         others => <>
+      );
+      Grid_WS    : constant Widget_Style := From (Grid_Style).Build;
+      Grid_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Grid_WS, Enabled => True),
+         others => <>
+      ];
+
+      --  Auto child in col 1: min-width 100px.
+      Auto_Style : constant Style_Rules := (
+         Min_Width => Set (Size (Px (100.0))),
+         others => <>
+      );
+      Auto_WS    : constant Widget_Style := From (Auto_Style).Build;
+      Auto_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Auto_WS, Enabled => True),
+         others => <>
+      ];
+
+      --  Fr child explicitly placed in col 2: min-width 800px.
+      Fr_Style : constant Style_Rules := (
+         Min_Width    => Set (Size (Px (800.0))),
+         Grid_Column  => Set (Grid_Column_Value (2)),
+         Grid_Row     => Set (Grid_Row_Value (1)),
+         others => <>
+      );
+      Fr_WS    : constant Widget_Style := From (Fr_Style).Build;
+      Fr_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Fr_WS, Enabled => True),
+         others => <>
+      ];
+
+      Pref : Size_2D;
+   begin
+      Set_Part_Styles (Grid_Box.all, Grid_Parts);
+      Set_Part_Styles (Auto_C1.all, Auto_Parts);
+      Set_Part_Styles (Auto_C2.all, Auto_Parts);
+      Set_Part_Styles (Fr_Child.all, Fr_Parts);
+
+      Add_Child (Grid_Box.all, Auto_C1);
+      Add_Child (Grid_Box.all, Fr_Child);   --  explicitly in col 2 (1fr)
+      Add_Child (Grid_Box.all, Auto_C2);    --  auto-places into col 1, row 2
+
+      Pref := Get_Preferred_Size (Widget'Class (Grid_Box.all));
+      Ada.Text_IO.Put_Line ("  Grid preferred width (auto/1fr, fr=800px): " &
+                            Pixel_Type'Image (Pref.Width));
+
+      --  Expected: col 1 = 100px (max of Auto_C1 and Auto_C2), col 2 = 0 (fr).
+      --  The old bug would give 2 * 800 = 1600.
+      Check ("Explicit fr child (800px) does not inflate grid preferred width",
+             Pref.Width < 800.0);
+      Check ("Auto column sized to its content (>= 100px)",
+             Pref.Width >= 100.0);
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  Test 6: fr column must not expand beyond available width at layout time.
+   --  Regression: pass-4 of Compute_Grid_Layout used to apply min-width to fr
+   --  tracks unconditionally, pushing the total layout past the container when
+   --  the window is narrower than the fr child's min-width.
+   Ada.Text_IO.Put_Line ("=== fr column overflow regression (layout) ===");
+   Ada.Text_IO.New_Line;
+   declare
+      Grid_Box : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Auto_Ch  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Fr_Ch    : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+
+      Grid_Style : constant Style_Rules := (
+         Display            => Set (Grid),
+         Grid_Columns       => Set (Grid_Columns_Value (2)),
+         Grid_Column_Tracks => (Count  => 2,
+                                Tracks => [1 => (Track_Auto, 0.0),
+                                           2 => (Track_Fr,   1.0),
+                                           others => <>]),
+         others => <>
+      );
+      Grid_WS    : constant Widget_Style := From (Grid_Style).Build;
+      Grid_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Grid_WS, Enabled => True),
+         others => <>
+      ];
+
+      Auto_Style : constant Style_Rules := (
+         Min_Width => Set (Size (Px (80.0))),
+         others => <>
+      );
+      Auto_WS    : constant Widget_Style := From (Auto_Style).Build;
+      Auto_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Auto_WS, Enabled => True),
+         others => <>
+      ];
+
+      --  Fr child has a large min-width — much wider than the container.
+      Fr_Style : constant Style_Rules := (
+         Min_Width => Set (Size (Px (800.0))),
+         others => <>
+      );
+      Fr_WS    : constant Widget_Style := From (Fr_Style).Build;
+      Fr_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Fr_WS, Enabled => True),
+         others => <>
+      ];
+
+      Container_W : constant Pixel_Type := 200.0;
+      Fr_Geom     : Rectangle;
+   begin
+      Set_Part_Styles (Grid_Box.all, Grid_Parts);
+      Set_Part_Styles (Auto_Ch.all, Auto_Parts);
+      Set_Part_Styles (Fr_Ch.all, Fr_Parts);
+
+      Add_Child (Grid_Box.all, Auto_Ch);
+      Add_Child (Grid_Box.all, Fr_Ch);
+
+      Set_Geometry (Widget'Class (Grid_Box.all),
+                    (X => 0.0, Y => 0.0,
+                     Width => Container_W, Height => 100.0));
+      Layout (Widget'Class (Grid_Box.all));
+
+      Fr_Geom := Get_Geometry (Widget'Class (Fr_Ch.all));
+      Ada.Text_IO.Put_Line
+        ("  Fr child: X=" & Pixel_Type'Image (Fr_Geom.X) &
+         "  W=" & Pixel_Type'Image (Fr_Geom.Width) &
+         "  right=" & Pixel_Type'Image (Fr_Geom.X + Fr_Geom.Width));
+
+      --  The fr child's right edge must not exceed the container.
+      Check ("fr column right edge <= container width (no overflow)",
+             Fr_Geom.X + Fr_Geom.Width <= Container_W);
+      --  The fr column must not have been expanded to the child's min-width.
+      Check ("fr column width < fr child min-width (800px)",
+             Fr_Geom.Width < 800.0);
+   end;
+
+   --  Test 7: text-wrap height adaptation in a grid.
+   --  A label with long text placed in a narrow column should wrap onto
+   --  multiple lines.  After layout the row height must accommodate the
+   --  wrapped content (taller than a single line).
+   Ada.Text_IO.Put_Line ("=== Grid text-wrap height adaptation ===" );
+   Ada.Text_IO.New_Line;
+   declare
+      Grid_Box  : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Name_Cell : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Desc_Lbl  : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create
+          ("This is a quite long description text that should " &
+           "wrap onto multiple lines when placed in a narrow column");
+
+      --  2-column grid: auto (name) + 1fr (description).
+      Grid_Style : constant Style_Rules := (
+         Display            => Set (Grid),
+         Grid_Columns       => Set (Grid_Columns_Value (2)),
+         Grid_Column_Tracks => (Count  => 2,
+                                Tracks => [1 => (Track_Auto, 0.0),
+                                           2 => (Track_Fr,   1.0),
+                                           others => <>]),
+         others => <>
+      );
+      Grid_WS    : constant Widget_Style := From (Grid_Style).Build;
+      Grid_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Grid_WS, Enabled => True),
+         others => <>
+      ];
+
+      --  Auto column child: min-width 50px.
+      Name_Style : constant Style_Rules := (
+         Min_Width => Set (Size (Px (50.0))),
+         others => <>
+      );
+      Name_WS    : constant Widget_Style := From (Name_Style).Build;
+      Name_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Name_WS, Enabled => True),
+         others => <>
+      ];
+
+      Single_Line_H : Pixel_Type;
+      Desc_Geom     : Rectangle;
+   begin
+      --  Measure the label's single-line preferred height before layout.
+      Single_Line_H := Get_Preferred_Size (Widget'Class (Desc_Lbl.all)).Height;
+      Ada.Text_IO.Put_Line ("  Single-line height: " &
+        Pixel_Type'Image (Single_Line_H));
+
+      Set_Part_Styles (Grid_Box.all, Grid_Parts);
+      Set_Part_Styles (Name_Cell.all, Name_Parts);
+      Add_Child (Grid_Box.all, Name_Cell);
+      Add_Child (Grid_Box.all, Desc_Lbl);
+
+      --  Narrow container (150px wide) forces the 1fr column to ~100px.
+      Set_Geometry (Widget'Class (Grid_Box.all),
+                    (X => 0.0, Y => 0.0, Width => 150.0, Height => 200.0));
+      Layout (Widget'Class (Grid_Box.all));
+
+      Desc_Geom := Get_Geometry (Widget'Class (Desc_Lbl.all));
+      Ada.Text_IO.Put_Line ("  Desc label geometry: w=" &
+        Pixel_Type'Image (Desc_Geom.Width) &
+        " h=" & Pixel_Type'Image (Desc_Geom.Height));
+      Check ("Desc label width fits in fr column (< 110px)",
+             Desc_Geom.Width < 110.0 and then Desc_Geom.Width > 0.0);
+      Check ("Desc label height > single-line (text wrapped)",
+             Desc_Geom.Height > Single_Line_H);
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  Test 8: grid container grows when row content exceeds container height.
+   --  Regression for the vertical overflow bug: Pass 4 can expand row heights
+   --  beyond Available_H when content (e.g. wrapped text) is taller than the
+   --  equal-share Cell_H.  The container must grow to avoid clipping.
+   Ada.Text_IO.Put_Line ("=== Grid container grows for tall content ===" );
+   Ada.Text_IO.New_Line;
+   declare
+      Grid_Box : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Child1   : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Child2   : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+
+      Grid_Style : constant Style_Rules := (
+         Display      => Set (Grid),
+         Grid_Columns => Set (Grid_Columns_Value (1)),
+         others => <>
+      );
+      Grid_WS    : constant Widget_Style := From (Grid_Style).Build;
+      Grid_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Grid_WS, Enabled => True),
+         others => <>
+      ];
+
+      Child1_Style : constant Style_Rules := (
+         Min_Height => Set (Size (Px (60.0))),
+         others => <>
+      );
+      Child1_WS    : constant Widget_Style := From (Child1_Style).Build;
+      Child1_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Child1_WS, Enabled => True),
+         others => <>
+      ];
+
+      Child2_Style : constant Style_Rules := (
+         Min_Height => Set (Size (Px (40.0))),
+         others => <>
+      );
+      Child2_WS    : constant Widget_Style := From (Child2_Style).Build;
+      Child2_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Child2_WS, Enabled => True),
+         others => <>
+      ];
+
+      --  Container height intentionally smaller than total content (60+40=100).
+      Container_H  : constant Pixel_Type := 50.0;
+      Grid_Geom    : Rectangle;
+      C1_Geom      : Rectangle;
+      C2_Geom      : Rectangle;
+   begin
+      Set_Part_Styles (Grid_Box.all, Grid_Parts);
+      Set_Part_Styles (Child1.all, Child1_Parts);
+      Set_Part_Styles (Child2.all, Child2_Parts);
+
+      Add_Child (Grid_Box.all, Child1);
+      Add_Child (Grid_Box.all, Child2);
+
+      Set_Geometry (Widget'Class (Grid_Box.all),
+                    (X => 0.0, Y => 0.0,
+                     Width => 200.0, Height => Container_H));
+      Layout (Widget'Class (Grid_Box.all));
+
+      Grid_Geom := Get_Geometry (Widget'Class (Grid_Box.all));
+      C1_Geom   := Get_Geometry (Widget'Class (Child1.all));
+      C2_Geom   := Get_Geometry (Widget'Class (Child2.all));
+
+      Ada.Text_IO.Put_Line
+        ("  Grid H=" & Pixel_Type'Image (Grid_Geom.Height) &
+         "  C1 H=" & Pixel_Type'Image (C1_Geom.Height) &
+         "  C2 H=" & Pixel_Type'Image (C2_Geom.Height));
+
+      Check ("Row 1 height >= child1 min-height (60px)",
+             C1_Geom.Height >= 60.0);
+      Check ("Row 2 height >= child2 min-height (40px)",
+             C2_Geom.Height >= 40.0);
+      Check ("Grid container grew beyond initial 50px",
+             Grid_Geom.Height >= 100.0);
+      Check ("Child 2 does not overflow grid (no clipping)",
+             C2_Geom.Y + C2_Geom.Height <= Grid_Geom.Y + Grid_Geom.Height);
+   end;
+
+   --  Test 9: overflow:hidden grid must NOT grow when content exceeds height.
+   --  Overflow modes other than visible clip rather than expanding the box.
+   Ada.Text_IO.Put_Line ("=== Grid overflow:hidden does not grow ===" );
+   Ada.Text_IO.New_Line;
+   declare
+      Grid_Box : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Child1   : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Child2   : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+
+      Grid_Style : constant Style_Rules := (
+         Display      => Set (Grid),
+         Grid_Columns => Set (Grid_Columns_Value (1)),
+         Overflow     => Set (Overflow_Hidden),
+         others => <>
+      );
+      Grid_WS    : constant Widget_Style := From (Grid_Style).Build;
+      Grid_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Grid_WS, Enabled => True),
+         others => <>
+      ];
+
+      Child1_Style : constant Style_Rules := (
+         Min_Height => Set (Size (Px (60.0))),
+         others => <>
+      );
+      Child1_WS    : constant Widget_Style := From (Child1_Style).Build;
+      Child1_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Child1_WS, Enabled => True),
+         others => <>
+      ];
+
+      Child2_Style : constant Style_Rules := (
+         Min_Height => Set (Size (Px (40.0))),
+         others => <>
+      );
+      Child2_WS    : constant Widget_Style := From (Child2_Style).Build;
+      Child2_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Child2_WS, Enabled => True),
+         others => <>
+      ];
+
+      Container_H : constant Pixel_Type := 50.0;
+      Grid_Geom   : Rectangle;
+   begin
+      Set_Part_Styles (Grid_Box.all, Grid_Parts);
+      Set_Part_Styles (Child1.all, Child1_Parts);
+      Set_Part_Styles (Child2.all, Child2_Parts);
+
+      Add_Child (Grid_Box.all, Child1);
+      Add_Child (Grid_Box.all, Child2);
+
+      Set_Geometry (Widget'Class (Grid_Box.all),
+                    (X => 0.0, Y => 0.0,
+                     Width => 200.0, Height => Container_H));
+      Layout (Widget'Class (Grid_Box.all));
+
+      Grid_Geom := Get_Geometry (Widget'Class (Grid_Box.all));
+      Ada.Text_IO.Put_Line
+        ("  Grid H=" & Pixel_Type'Image (Grid_Geom.Height) &
+         " (initial=" & Pixel_Type'Image (Container_H) & ")");
+
+      Check ("overflow:hidden grid height unchanged (no growth)",
+             Grid_Geom.Height = Container_H);
+   end;
+
+   Ada.Text_IO.New_Line;
    Ada.Text_IO.Put_Line ("Summary: " & Natural'Image (Pass_Count) & "/"
      & Natural'Image (Pass_Count + Fail_Count) & " passing");
 

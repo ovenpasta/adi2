@@ -164,7 +164,8 @@ procedure Layout_Flex_Grid_Test is
          Explicit_Rows => 0,
          Row_Gap => 0.0,
          Column_Gap => 0.0,
-         Use_Preferred_Floor => False
+         Use_Preferred_Floor => False,
+         others => <>
       );
       Kids : Grid_Child_Info_Array (1 .. 4);
       Rects : Rectangle_Array (1 .. 4);
@@ -209,7 +210,8 @@ procedure Layout_Flex_Grid_Test is
          Explicit_Rows => 1,
          Row_Gap => 0.0,
          Column_Gap => 0.0,
-         Use_Preferred_Floor => False
+         Use_Preferred_Floor => False,
+         others => <>
       );
       Rects : Rectangle_Array (1 .. 2);
    begin
@@ -238,6 +240,106 @@ procedure Layout_Flex_Grid_Test is
                    "grid grow expands second track width");
    end Test_Grid_Resize_And_Overflow_Policy;
 
+   procedure Test_Grid_Track_Sizing is
+      --  400px container, 4 columns: auto auto auto 1fr, no gaps.
+      --  Cols 1-3 are sized to child preferred widths (60, 80, 40).
+      --  Col 4 (1fr) gets the remaining 220px.
+      Tracks_4 : constant Grid_Track_List :=
+        (Count  => 4,
+         Tracks => [1 => (Track_Auto, 0.0),
+                    2 => (Track_Auto, 0.0),
+                    3 => (Track_Auto, 0.0),
+                    4 => (Track_Fr, 1.0),
+                    others => <>]);
+      Ctx : Grid_Layout_Context :=
+        (Container     => (0.0, 0.0, 400.0, 50.0),
+         Columns       => 4,
+         Explicit_Rows => 1,
+         Row_Gap       => 0.0,
+         Column_Gap    => 0.0,
+         Column_Tracks => Tracks_4,
+         others        => <>);
+      Kids : Grid_Child_Info_Array (1 .. 4) :=
+        (1 => (Active => True, Grid_Column => 1, Grid_Row => 1,
+               Grid_Column_Span => 1, Grid_Row_Span => 1,
+               Pref_Width => 60.0, Min_Width => 0.0, others => <>),
+         2 => (Active => True, Grid_Column => 2, Grid_Row => 1,
+               Grid_Column_Span => 1, Grid_Row_Span => 1,
+               Pref_Width => 80.0, Min_Width => 0.0, others => <>),
+         3 => (Active => True, Grid_Column => 3, Grid_Row => 1,
+               Grid_Column_Span => 1, Grid_Row_Span => 1,
+               Pref_Width => 40.0, Min_Width => 0.0, others => <>),
+         4 => (Active => True, Grid_Column => 4, Grid_Row => 1,
+               Grid_Column_Span => 1, Grid_Row_Span => 1,
+               Pref_Width => 50.0, Min_Width => 0.0, others => <>));
+      Rects : Rectangle_Array (1 .. 4);
+   begin
+      Compute_Grid_Layout (Ctx, Kids);
+      Rects := Grid_To_Rectangles (Kids);
+
+      --  Auto columns = child pref width
+      Assert_Close (Rects (1).Width, 60.0,  "track auto col1 width");
+      Assert_Close (Rects (2).Width, 80.0,  "track auto col2 width");
+      Assert_Close (Rects (3).Width, 40.0,  "track auto col3 width");
+      --  Fr column = remaining 400 - 60 - 80 - 40 = 220
+      Assert_Close (Rects (4).Width, 220.0, "track fr col4 width");
+      --  Columns are left-to-right, no overlap
+      Assert_Close (Rects (2).X, Rects (1).X + 60.0, "track col2 x");
+      Assert_Close (Rects (3).X, Rects (2).X + 80.0, "track col3 x");
+      Assert_Close (Rects (4).X, Rects (3).X + 40.0, "track col4 x");
+
+      --  2fr / 1fr split: col4 gets 2/3 and col5 gets 1/3 of remaining 120.
+      --  Container 300, cols: auto(60) auto(80) fr(2) fr(1) -- only 4 cols, so:
+      --  Actually reuse ctx with a 2fr+1fr pair across two columns.
+      declare
+         Tracks_2fr : constant Grid_Track_List :=
+           (Count  => 2,
+            Tracks => [1 => (Track_Fr, 2.0),
+                       2 => (Track_Fr, 1.0),
+                       others => <>]);
+         Ctx2 : Grid_Layout_Context :=
+           (Container     => (0.0, 0.0, 300.0, 50.0),
+            Columns       => 2,
+            Explicit_Rows => 1,
+            Row_Gap       => 0.0,
+            Column_Gap    => 0.0,
+            Column_Tracks => Tracks_2fr,
+            others        => <>);
+         Kids2 : Grid_Child_Info_Array (1 .. 2) :=
+           (1 => (Active => True, Grid_Column => 1, Grid_Row => 1,
+                  Grid_Column_Span => 1, Grid_Row_Span => 1, others => <>),
+            2 => (Active => True, Grid_Column => 2, Grid_Row => 1,
+                  Grid_Column_Span => 1, Grid_Row_Span => 1, others => <>));
+         Rects2 : Rectangle_Array (1 .. 2);
+      begin
+         Compute_Grid_Layout (Ctx2, Kids2);
+         Rects2 := Grid_To_Rectangles (Kids2);
+         Assert_Close (Rects2 (1).Width, 200.0, "2fr col width");
+         Assert_Close (Rects2 (2).Width, 100.0, "1fr col width");
+      end;
+
+      --  Legacy: no track list → equal distribution still works.
+      declare
+         Ctx3 : Grid_Layout_Context :=
+           (Container     => (0.0, 0.0, 300.0, 50.0),
+            Columns       => 3,
+            Explicit_Rows => 1,
+            Row_Gap       => 0.0,
+            Column_Gap    => 0.0,
+            others        => <>);  --  Column_Tracks.Count = 0
+         Kids3 : Grid_Child_Info_Array (1 .. 3) :=
+           (others => (Active => True, Grid_Column => 0, Grid_Row => 0,
+                       Grid_Column_Span => 1, Grid_Row_Span => 1, others => <>));
+         Rects3 : Rectangle_Array (1 .. 3);
+      begin
+         Compute_Grid_Layout (Ctx3, Kids3);
+         Rects3 := Grid_To_Rectangles (Kids3);
+         Assert_Close (Rects3 (1).Width, 100.0, "legacy equal col1 width");
+         Assert_Close (Rects3 (2).Width, 100.0, "legacy equal col2 width");
+         Assert_Close (Rects3 (3).Width, 100.0, "legacy equal col3 width");
+      end;
+   end Test_Grid_Track_Sizing;
+
 begin
    Put_Line ("Running layout_flex_grid_test...");
 
@@ -246,6 +348,7 @@ begin
    Test_Flex_Margins;
    Test_Grid_Auto_And_Span;
    Test_Grid_Resize_And_Overflow_Policy;
+   Test_Grid_Track_Sizing;
 
    Put_Line ("PASS: layout_flex_grid_test checks=" & Checks'Image);
 end Layout_Flex_Grid_Test;

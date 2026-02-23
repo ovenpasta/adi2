@@ -51,6 +51,7 @@ package Grid_Example_Styles is
       Display => Set (Grid),
       Flex_Grow => Set (1.0),
       Grid_Columns => Set (Grid_Columns_Value (4)),
+      Grid_Column_Tracks => (Count => 4, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), 4 => (Track_Fr, 1.0), others => <>]),
       Grid_Rows => Set (Grid_Rows_Value (3)),
       Gap => Set (Gap (Px (10.0))),
       Background_Color => Set_Bg (RGB (30, 41, 59)),
@@ -140,6 +141,67 @@ package Grid_Example_Styles is
       Grid_Column_Span => Set (Grid_Column_Span_Value (3)),
       Grid_Row => Set (Grid_Row_Value (3)),
       Background_Color => Set_Bg (RGB (99, 102, 241)),
+      others => <>
+   );
+
+   --  Base style for class 'track-grid'
+   Track_Grid_Class_Base_Style : constant Style_Rules := (
+      Display => Set (Grid),
+      Grid_Columns => Set (Grid_Columns_Value (4)),
+      Grid_Column_Tracks => (Count => 4, Tracks => [1 => (Track_Auto, 0.0), 2 => (Track_Auto, 0.0), 3 => (Track_Auto, 0.0), 4 => (Track_Fr, 1.0), others => <>]),
+      Gap => Set (Gap (Px (6.0))),
+      Background_Color => Set_Bg (RGB (15, 23, 42)),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (71, 85, 105))),
+      Border_Radius => Set (Radius (Px (10.0))),
+      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
+      others => <>
+   );
+
+   --  Base style for class 'tr-cell'
+   Tr_Cell_Class_Base_Style : constant Style_Rules := (
+      Display => Set (Flex),
+      Align_Items => Set (Center),
+      Justify_Content => Set (Center),
+      Border_Radius => Set (Radius (Px (6.0))),
+      Min_Height => Set (Size (Px (36.0))),
+      Padding => Set (CSS_Box (Px (6.0), Px (14.0), Px (6.0), Px (14.0))),
+      others => <>
+   );
+
+   --  Base style for class 'tr-cell'::label
+   Tr_Cell_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (226, 232, 240)),
+      Font_Size => Set_Font (Px (13.0)),
+      others => <>
+   );
+
+   --  Base style for class 'tr-name'
+   Tr_Name_Class_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (30, 58, 138)),
+      others => <>
+   );
+
+   --  Base style for class 'tr-val'
+   Tr_Val_Class_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (6, 78, 59)),
+      others => <>
+   );
+
+   --  Base style for class 'tr-unit'
+   Tr_Unit_Class_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (92, 46, 5)),
+      others => <>
+   );
+
+   --  Base style for class 'tr-desc'
+   Tr_Desc_Class_Base_Style : constant Style_Rules := (
+      Justify_Content => Set (Flex_Start),
+      Background_Color => Set_Bg (RGB (30, 41, 59)),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (51, 65, 85))),
       others => <>
    );
 
@@ -290,6 +352,78 @@ package Grid_Example_Styles is
    --  Part styles bundle for class 'tile-g'
    Tile_G_Class_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Tile_G_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'track-grid'
+   Track_Grid_Class_Widget : constant Widget_Style :=
+     From (Track_Grid_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'track-grid'
+   Track_Grid_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Track_Grid_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'tr-cell'
+   Tr_Cell_Class_Widget : constant Widget_Style :=
+     From (Tr_Cell_Class_Base_Style)
+     .Build;
+
+   --  Complete widget style for class 'tr-cell'::label
+   Tr_Cell_Class_Label_Widget : constant Widget_Style :=
+     From (Tr_Cell_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'tr-cell'
+   Tr_Cell_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tr_Cell_Class_Widget, Enabled => True),
+      Label_Part => (Style => Tr_Cell_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'tr-name'
+   Tr_Name_Class_Widget : constant Widget_Style :=
+     From (Tr_Name_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'tr-name'
+   Tr_Name_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tr_Name_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'tr-val'
+   Tr_Val_Class_Widget : constant Widget_Style :=
+     From (Tr_Val_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'tr-val'
+   Tr_Val_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tr_Val_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'tr-unit'
+   Tr_Unit_Class_Widget : constant Widget_Style :=
+     From (Tr_Unit_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'tr-unit'
+   Tr_Unit_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tr_Unit_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'tr-desc'
+   Tr_Desc_Class_Widget : constant Widget_Style :=
+     From (Tr_Desc_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'tr-desc'
+   Tr_Desc_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Tr_Desc_Class_Widget, Enabled => True),
       others => <>
    ];
 

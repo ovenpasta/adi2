@@ -108,7 +108,10 @@ package body Adi.Widget.Label is
          end;
       end if;
 
-      --  Get text size from TTF measurement
+      --  Get text size from TTF measurement.
+      --  When text-wrap is enabled and the widget already has a geometry width
+      --  (e.g. set by a parent's sizing pass), use Measure_Text_Wrapped so that
+      --  Get_Preferred_Size returns the correct multi-line height.
       if Has_Text then
          declare
             Font_Attrs : constant Adi.Font.Font_Attributes :=
@@ -118,10 +121,22 @@ package body Adi.Widget.Label is
                  Weight     => Label_Style.Font_Weight,
                  Style      => Label_Style.Font_Style,
                  Decoration => Label_Style.Text_Decoration);
+            Can_Wrap : constant Boolean :=
+              Label_Style.Text_Wrap_Mode = TWM_Wrap
+              and then Label_Style.White_Space /= WS_NoWrap;
+            Wrap_W : constant Pixel_Type :=
+              Content_Box (W.Geometry, Main_Style).Width;
          begin
-            Text_Size := Adi.Font.Measure_Text
-              (Attrs   => Font_Attrs,
-               Content => To_String (W.Text));
+            if Can_Wrap and then Wrap_W > 0.0 then
+               Text_Size := Adi.Font.Measure_Text_Wrapped
+                 (Attrs      => Font_Attrs,
+                  Content    => To_String (W.Text),
+                  Wrap_Width => Wrap_W);
+            else
+               Text_Size := Adi.Font.Measure_Text
+                 (Attrs   => Font_Attrs,
+                  Content => To_String (W.Text));
+            end if;
          end;
       end if;
 

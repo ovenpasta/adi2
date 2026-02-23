@@ -537,6 +537,9 @@ def parse_length(value: str) -> Optional[ParsedLength]:
     unit = unit_map.get(unit_str, "Px")
     return ParsedLength(amount, unit)
 
+MAX_GRID_TRACKS = 16
+
+
 def parse_grid_track_count(value: str) -> Optional[int]:
     """Parse grid-template-* into a simple track count."""
     value = value.strip().lower()
@@ -556,6 +559,102 @@ def parse_grid_track_count(value: str) -> Optional[int]:
     if tokens:
         return len(tokens)
     return None
+
+
+def _parse_one_track_token(token: str) -> Optional[tuple[str, float]]:
+    """Parse a single size token into (kind, value).
+    kind is 'auto', 'fr', or 'px'.  Returns None on unknown syntax."""
+    t = token.strip().lower()
+    if t == "auto":
+        return ("auto", 0.0)
+    if t.endswith("fr"):
+        try:
+            v = float(t[:-2])
+            return ("fr", v) if v > 0.0 else None
+        except ValueError:
+            return None
+    if t.endswith("px"):
+        try:
+            v = float(t[:-2])
+            return ("px", v) if v >= 0.0 else None
+        except ValueError:
+            return None
+    return None
+
+
+def _tokenize_track_list(value: str) -> Optional[list[str]]:
+    """Split a track-list value into tokens, respecting repeat(...) as one token."""
+    tokens: list[str] = []
+    i = 0
+    while i < len(value):
+        if value[i] in (" ", "\t"):
+            i += 1
+            continue
+        start = i
+        depth = 0
+        while i < len(value):
+            c = value[i]
+            if c == "(":
+                depth += 1
+            elif c == ")":
+                if depth > 0:
+                    depth -= 1
+                if depth == 0:
+                    i += 1  # include ')'
+                    break
+            elif c in (" ", "\t") and depth == 0:
+                break
+            i += 1
+        tok = value[start:i].strip()
+        if tok:
+            tokens.append(tok)
+    return tokens if tokens else None
+
+
+def parse_grid_track_list(value: str) -> Optional[list[tuple[str, float]]]:
+    """Parse grid-template-columns into a list of (kind, value) specs.
+
+    Rules:
+    - Plain integer N  → N copies of ("fr", 1.0)  (legacy equal-column semantics)
+    - repeat(N, size)  → N copies of the parsed size token
+    - Space-separated  → one spec per token
+    - Returns None when count > MAX_GRID_TRACKS or on parse error (caller falls
+      back to parse_grid_track_count for a count-only Grid_Columns field).
+    """
+    v = value.strip().lower()
+    if not v or v == "none":
+        return None
+
+    # Legacy: plain integer N → N equal fr(1.0) tracks
+    if re.match(r'^\d+$', v):
+        n = int(v)
+        if n <= 0 or n > MAX_GRID_TRACKS:
+            return None
+        return [("fr", 1.0)] * n
+
+    raw_tokens = _tokenize_track_list(v)
+    if not raw_tokens:
+        return None
+
+    result: list[tuple[str, float]] = []
+    for tok in raw_tokens:
+        m = re.match(r'^repeat\(\s*(\d+)\s*,\s*(.*)\)$', tok)
+        if m:
+            rep_count = int(m.group(1))
+            size_tok = m.group(2).strip()
+            spec = _parse_one_track_token(size_tok)
+            if spec is None or rep_count <= 0:
+                return None
+            result.extend([spec] * rep_count)
+        else:
+            spec = _parse_one_track_token(tok)
+            if spec is None:
+                return None
+            result.append(spec)
+
+    if not result or len(result) > MAX_GRID_TRACKS:
+        return None
+    return result
 
 
 def parse_grid_placement(value: str) -> tuple[Optional[int], Optional[int]]:
@@ -1676,9 +1775,31 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
 
         # Grid container
         elif prop == "grid-template-columns":
-            tracks = parse_grid_track_count(value)
-            if tracks is not None:
-                ada_field = f"Grid_Columns => Set (Grid_Columns_Value ({tracks}))"
+            track_list = parse_grid_track_list(value)
+            if track_list is not None:
+                n = len(track_list)
+                track_entries = []
+                for idx, (kind, val) in enumerate(track_list, 1):
+                    if kind == "auto":
+                        track_entries.append(f"{idx} => (Track_Auto, 0.0)")
+                    elif kind == "fr":
+                        track_entries.append(
+                            f"{idx} => (Track_Fr, {format_float(val)})")
+                    else:  # px
+                        track_entries.append(
+                            f"{idx} => (Track_Px, {format_float(val)})")
+                tracks_str = ", ".join(track_entries) + ", others => <>"
+                fields.append(
+                    f"{indent}Grid_Columns => Set (Grid_Columns_Value ({n}))")
+                fields.append(
+                    f"{indent}Grid_Column_Tracks => "
+                    f"(Count => {n}, Tracks => [{tracks_str}])")
+                continue
+            else:
+                count = parse_grid_track_count(value)
+                if count is not None:
+                    ada_field = (
+                        f"Grid_Columns => Set (Grid_Columns_Value ({count}))")
 
         elif prop == "grid-template-rows":
             tracks = parse_grid_track_count(value)

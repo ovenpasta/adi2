@@ -534,7 +534,8 @@ package body Adi.Widget.List_Box is
                Explicit_Rows      => 0,
                Row_Gap            => R_Gap,
                Column_Gap         => C_Gap,
-               Use_Preferred_Floor => True);
+               Use_Preferred_Floor => True,
+               others             => <>);
             Kids : Grid_Child_Info_Array (1 .. N);
          begin
             for I in 1 .. N loop

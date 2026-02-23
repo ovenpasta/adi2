@@ -851,6 +851,25 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    Default_Grid_Column_Span : constant Grid_Column_Span_Value := 1;
    Default_Grid_Row_Span : constant Grid_Row_Span_Value := 1;
 
+   -- Per-column track sizing for grid-template-columns
+   type Grid_Track_Kind is (Track_Auto, Track_Fr, Track_Px);
+
+   type Grid_Track_Spec is record
+      Kind  : Grid_Track_Kind := Track_Fr;
+      Value : Float           := 1.0;  -- fr units or px value; unused for Track_Auto
+   end record;
+
+   Max_Grid_Tracks : constant := 16;
+
+   type Grid_Track_Array is array (1 .. Max_Grid_Tracks) of Grid_Track_Spec;
+
+   type Grid_Track_List is record
+      Count  : Natural         := 0;  -- 0 = not set; layout falls back to equal distribution
+      Tracks : Grid_Track_Array := [others => (Kind => Track_Fr, Value => 1.0)];
+   end record;
+
+   Default_Grid_Track_List : constant Grid_Track_List := (others => <>);
+
    -------------------------------------------------
    -- Display
    -------------------------------------------------
@@ -1007,6 +1026,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Gap              : Opt_Gap.Optional          := Opt_Gap.Unset;
       Grid_Columns     : Opt_Grid_Cols.Optional    := Opt_Grid_Cols.Unset;
       Grid_Rows        : Opt_Grid_Rows.Optional    := Opt_Grid_Rows.Unset;
+      Grid_Column_Tracks : Grid_Track_List         := Default_Grid_Track_List;
 
       -- Flexbox Item
       Align_Self       : Opt_Align_Self.Optional   := Opt_Align_Self.Unset;
@@ -1157,8 +1177,9 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Align_Items      : Align_Items_Value := Default_Align_Items;
       Align_Content    : Align_Content_Value := Default_Align_Content;
       Gap              : Gap_Value := Default_Gap;
-      Grid_Columns     : Grid_Columns_Value := Default_Grid_Columns;
-      Grid_Rows        : Grid_Rows_Value := Default_Grid_Rows;
+      Grid_Columns       : Grid_Columns_Value  := Default_Grid_Columns;
+      Grid_Rows          : Grid_Rows_Value    := Default_Grid_Rows;
+      Grid_Column_Tracks : Grid_Track_List    := Default_Grid_Track_List;
 
       -- Flexbox Item
       Align_Self       : Align_Self_Value := Default_Align_Self;

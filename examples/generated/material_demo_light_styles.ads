@@ -197,6 +197,7 @@ package Material_Demo_Light_Styles is
    Control_Grid_Class_Base_Style : constant Style_Rules := (
       Display => Set (Grid),
       Grid_Columns => Set (Grid_Columns_Value (3)),
+      Grid_Column_Tracks => (Count => 3, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), others => <>]),
       Gap => Set (Gap (Px (12.0), Px (16.0))),
       Align_Items => Set (Center),
       Padding => Set (CSS_Box (Px (4.0), Px (0.0), Px (4.0), Px (0.0))),

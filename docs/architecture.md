@@ -129,6 +129,7 @@
 **Adi.Layout_Util** (`adi-layout_util.ads`): Layout algorithms.
 - Box model, edge/border extraction, alignment
 - Flexbox and grid layout (`Compute_Grid_Layout` / `Grid_To_Rectangles`)
+- Grid track sizing: `Grid_Track_List` carries per-column `auto`/`fr`/`px` specs (up to 16 tracks). `Compute_Grid_Layout` implements a 5-pass algorithm: (1) size `auto` columns to max child preferred width, (2) assign initial widths from track specs (`px` fixed, `fr` = 0), (3) distribute remaining space to `fr` columns, (4) expand columns/rows for `min-width`/`min-height` (skips `fr` columns — their floor is 0), (5) re-distribute `fr` columns after Pass 4 may have grown `auto`/`px` columns. Rows use an analogous 2-pass scheme: Pass 4 expands to content minimums, then remaining height is shared equally. When `overflow: visible` and rows overflow the allocated height (e.g. after text-wrap discovery), the grid container grows to fit.
 - DIP scaling: `Set/Get_Active_DIP_Scale`; `Length_To_Px` scales `dip` by active value
 
 **Adi.Window** (`adi-window.ads`): Window management.
@@ -139,6 +140,7 @@
 - Tab focus traversal (wraps, Shift+Tab reverse); overlay-scoped when overlays present
 - Click dispatch on left button release only
 - DIP scale refresh from `SDL_GetWindowDisplayScale`
+- **Layout-driven SDL minimum size**: `Set_Enforce_Layout_Min_Size` (default on) calls `SDL_SetWindowMinimumSize` with `Get_Preferred_Size(root)` after every layout pass, keeping the SDL minimum in sync with the post-layout preferred size (which can change on the first frame once label geometries are set for text-wrap). If the window is already below the new minimum (fast resize race), `SDL_SetWindowSize` clamps it up immediately.
 - Debug: `ADI_DEBUG_LOOP=1` for tick/render diagnostics
 
 **Adi.App** (`adi-app.ads`): Application entry point, main loop, frame timing (`Ada.Real_Time`), `Set_Target_FPS`.

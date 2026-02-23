@@ -765,6 +765,37 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
     def test_grid_template_columns(self):
         ada = self._gen({"grid-template-columns": "repeat(3, 1fr)"})
         self.assertIn("Grid_Columns => Set (Grid_Columns_Value (3))", ada)
+        # Grid_Column_Tracks should carry three fr(1.0) specs
+        self.assertIn("Grid_Column_Tracks =>", ada)
+        self.assertIn("Count => 3", ada)
+        self.assertIn("1 => (Track_Fr, 1.0)", ada)
+        self.assertIn("3 => (Track_Fr, 1.0)", ada)
+
+    def test_grid_template_columns_mixed(self):
+        ada = self._gen({"grid-template-columns": "auto auto 1fr"})
+        self.assertIn("Grid_Columns => Set (Grid_Columns_Value (3))", ada)
+        self.assertIn("Grid_Column_Tracks =>", ada)
+        self.assertIn("Count => 3", ada)
+        self.assertIn("1 => (Track_Auto, 0.0)", ada)
+        self.assertIn("2 => (Track_Auto, 0.0)", ada)
+        self.assertIn("3 => (Track_Fr, 1.0)", ada)
+
+    def test_grid_template_columns_repeat_mixed(self):
+        ada = self._gen({"grid-template-columns": "repeat(2, auto) 1fr"})
+        self.assertIn("Grid_Columns => Set (Grid_Columns_Value (3))", ada)
+        self.assertIn("Count => 3", ada)
+        self.assertIn("1 => (Track_Auto, 0.0)", ada)
+        self.assertIn("2 => (Track_Auto, 0.0)", ada)
+        self.assertIn("3 => (Track_Fr, 1.0)", ada)
+
+    def test_grid_template_columns_negative_fr_rejected(self):
+        # Negative fr values should produce no Grid_Column_Tracks
+        ada = self._gen({"grid-template-columns": "-1fr 1fr"})
+        self.assertNotIn("Grid_Column_Tracks =>", ada)
+
+    def test_grid_template_columns_negative_px_rejected(self):
+        ada = self._gen({"grid-template-columns": "-50px 1fr"})
+        self.assertNotIn("Grid_Column_Tracks =>", ada)
 
     def test_grid_template_rows(self):
         ada = self._gen({"grid-template-rows": "1fr 1fr"})

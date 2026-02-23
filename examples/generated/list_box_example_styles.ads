@@ -259,6 +259,7 @@ package List_Box_Example_Styles is
    --  Base style for class 'listbox-grid'
    Listbox_Grid_Class_Base_Style : constant Style_Rules := (
       Grid_Columns => Set (Grid_Columns_Value (3)),
+      Grid_Column_Tracks => (Count => 3, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), others => <>]),
       others => <>
    );
 

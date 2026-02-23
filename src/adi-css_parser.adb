@@ -215,6 +215,157 @@ package body Adi.CSS_Parser is
       return False;
    end Parse_Grid_Track_Count;
 
+   --  Parse "grid-template-columns" value into a Grid_Track_List.
+   --  Supports: plain integer N (→ N equal fr tracks), space-separated
+   --  size tokens, repeat(N, size), and mixed "repeat(N, size) size...".
+   --  Returns False on unknown tokens or when token count exceeds Max_Grid_Tracks;
+   --  callers fall back to Grid_Columns count-only in that case.
+   function Parse_Grid_Track_List
+     (Input : String; List : out Grid_Track_List) return Boolean
+   is
+      V       : constant String  := Lower (Trimmed (Input));
+      Count   : Natural          := 0;
+      Num     : Float;
+      N_Plain : Natural;
+
+      function Append (Spec : Grid_Track_Spec) return Boolean is
+      begin
+         if Count >= Max_Grid_Tracks then
+            return False;
+         end if;
+         Count := Count + 1;
+         List.Tracks (Count) := Spec;
+         return True;
+      end Append;
+
+      function Token_To_Spec
+        (T : String; Spec : out Grid_Track_Spec) return Boolean is
+      begin
+         if T = "auto" then
+            Spec := (Track_Auto, 0.0);
+            return True;
+         elsif T'Length > 2 and then T (T'Last - 1 .. T'Last) = "fr" then
+            if Parse_Number (T (T'First .. T'Last - 2), Num) and then Num > 0.0 then
+               Spec := (Track_Fr, Num);
+               return True;
+            end if;
+         elsif T'Length > 2 and then T (T'Last - 1 .. T'Last) = "px" then
+            if Parse_Number (T (T'First .. T'Last - 2), Num) and then Num >= 0.0 then
+               Spec := (Track_Px, Num);
+               return True;
+            end if;
+         end if;
+         return False;
+      end Token_To_Spec;
+
+      function Process_Repeat (T : String) return Boolean is
+         --  T is the full "repeat(...)" token
+         Comma     : Natural := 0;
+         Rep_Count : Natural;
+         Size_Spec : Grid_Track_Spec;
+      begin
+         for J in T'First + 7 .. T'Last - 1 loop
+            if T (J) = ',' then
+               Comma := J;
+               exit;
+            end if;
+         end loop;
+         if Comma = 0 then
+            return False;
+         end if;
+         if not Parse_Natural (Trimmed (T (T'First + 7 .. Comma - 1)), Rep_Count)
+           or else Rep_Count = 0
+         then
+            return False;
+         end if;
+         if not Token_To_Spec (Trimmed (T (Comma + 1 .. T'Last - 1)), Size_Spec) then
+            return False;
+         end if;
+         for I in 1 .. Rep_Count loop
+            if not Append (Size_Spec) then
+               return False;
+            end if;
+         end loop;
+         return True;
+      end Process_Repeat;
+
+      function Process_Token (T : String) return Boolean is
+         Spec : Grid_Track_Spec;
+      begin
+         if T'Length > 7
+           and then T (T'First .. T'First + 6) = "repeat("
+           and then T (T'Last) = ')'
+         then
+            return Process_Repeat (T);
+         end if;
+         if not Token_To_Spec (T, Spec) then
+            return False;
+         end if;
+         return Append (Spec);
+      end Process_Token;
+
+      I     : Natural;
+      Start : Natural;
+      Depth : Natural;
+
+   begin
+      List := Default_Grid_Track_List;
+
+      --  Legacy: plain integer N → N equal fr(1.0) tracks
+      if Parse_Natural (V, N_Plain) and then N_Plain > 0 then
+         if N_Plain > Max_Grid_Tracks then
+            return False;
+         end if;
+         List.Count := N_Plain;
+         for K in 1 .. N_Plain loop
+            List.Tracks (K) := (Kind => Track_Fr, Value => 1.0);
+         end loop;
+         return True;
+      end if;
+
+      --  Token-level parsing
+      I := V'First;
+      while I <= V'Last loop
+         --  Skip whitespace
+         while I <= V'Last
+           and then (V (I) = ' ' or else V (I) = ASCII.HT)
+         loop
+            I := I + 1;
+         end loop;
+         exit when I > V'Last;
+
+         Start := I;
+         Depth := 0;
+         --  Scan to end of token, respecting parentheses for repeat(...)
+         while I <= V'Last loop
+            if V (I) = '(' then
+               Depth := Depth + 1;
+            elsif V (I) = ')' then
+               if Depth > 0 then
+                  Depth := Depth - 1;
+               end if;
+               if Depth = 0 then
+                  I := I + 1;  --  advance past ')'
+                  exit;
+               end if;
+            elsif (V (I) = ' ' or else V (I) = ASCII.HT) and then Depth = 0 then
+               exit;
+            end if;
+            I := I + 1;
+         end loop;
+
+         if I > Start and then not Process_Token (V (Start .. I - 1)) then
+            return False;
+         end if;
+      end loop;
+
+      if Count = 0 then
+         return False;
+      end if;
+      List.Count := Count;
+      return True;
+   end Parse_Grid_Track_List;
+
    function Parse_Length (Input : String; L : out Parsed_Length) return Boolean is
       V : constant String := Lower (Trimmed (Input));
       Number : Unbounded_String := To_Unbounded_String (V);
@@ -1547,9 +1698,17 @@ package body Adi.CSS_Parser is
       elsif P = "order" then
          if Parse_Integer (V, I) then Rules.Order := Set (Order_Value (I)); end if;
       elsif P = "grid-template-columns" then
-         if Parse_Grid_Track_Count (V, N) then
-            Rules.Grid_Columns := Set (Grid_Columns_Value (N));
-         end if;
+         declare
+            TL : Grid_Track_List;
+         begin
+            if Parse_Grid_Track_List (V, TL) then
+               Rules.Grid_Column_Tracks := TL;
+               Rules.Grid_Columns := Set (Grid_Columns_Value (TL.Count));
+            elsif Parse_Grid_Track_Count (V, N) then
+               --  Fallback: token count > Max_Grid_Tracks; keep count only
+               Rules.Grid_Columns := Set (Grid_Columns_Value (N));
+            end if;
+         end;
       elsif P = "grid-template-rows" then
          if Parse_Grid_Track_Count (V, N) then
             Rules.Grid_Rows := Set (Grid_Rows_Value (N));

@@ -128,6 +128,7 @@ procedure Css_Parser_Test is
        ".misc { visibility: hidden; object-fit: cover; }" & ASCII.LF &
        ".flexextra { flex-wrap: wrap; align-self: stretch; align-content: space-between; }" & ASCII.LF &
        ".gridcontainer { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; gap: 10px; }" & ASCII.LF &
+       ".gridmixed { display: grid; grid-template-columns: auto auto 1fr; }" & ASCII.LF &
        ".griditem { grid-column: 1 / 3; grid-row: span 2; }" & ASCII.LF &
        ".shadowtest { box-shadow: none; }" & ASCII.LF &
        ".pad1 { padding: 5px; }" & ASCII.LF &
@@ -201,6 +202,7 @@ begin
       Misc_Styles        : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "misc");
       Flexextra_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "flexextra");
       Gridcon_Styles     : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "gridcontainer");
+      Gridmixed_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "gridmixed");
       Griditem_Styles    : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "griditem");
       Shadow_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "shadowtest");
       Pad1_Styles        : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "pad1");
@@ -274,6 +276,7 @@ begin
       Misc_Main        : constant Resolved_Style := Compute_Resolved (Misc_Styles (Main_Part).Style, No_States, No_States);
       Flexextra_Main   : constant Resolved_Style := Compute_Resolved (Flexextra_Styles (Main_Part).Style, No_States, No_States);
       Gridcon_Main     : constant Resolved_Style := Compute_Resolved (Gridcon_Styles (Main_Part).Style, No_States, No_States);
+      Gridmixed_Main   : constant Resolved_Style := Compute_Resolved (Gridmixed_Styles (Main_Part).Style, No_States, No_States);
       Griditem_Main    : constant Resolved_Style := Compute_Resolved (Griditem_Styles (Main_Part).Style, No_States, No_States);
       Shadow_Main      : constant Resolved_Style := Compute_Resolved (Shadow_Styles (Main_Part).Style, No_States, No_States);
       Pad1_Main        : constant Resolved_Style := Compute_Resolved (Pad1_Styles (Main_Part).Style, No_States, No_States);
@@ -541,11 +544,31 @@ begin
               "display grid should parse");
       Assert (Gridcon_Main.Grid_Columns = 3,
               "grid-template-columns repeat(3) should parse to 3");
+      Assert (Gridcon_Main.Grid_Column_Tracks.Count = 3,
+              "grid-template-columns repeat(3,1fr) track count should be 3");
+      Assert (Gridcon_Main.Grid_Column_Tracks.Tracks (1).Kind = Track_Fr,
+              "grid-template-columns repeat(3,1fr) track 1 kind should be Track_Fr");
+      Assert (abs (Gridcon_Main.Grid_Column_Tracks.Tracks (1).Value - 1.0) < 0.001,
+              "grid-template-columns repeat(3,1fr) track 1 value should be 1.0");
+      Assert (Gridcon_Main.Grid_Column_Tracks.Tracks (3).Kind = Track_Fr,
+              "grid-template-columns repeat(3,1fr) track 3 kind should be Track_Fr");
       Assert (Gridcon_Main.Grid_Rows = 2,
               "grid-template-rows should parse track count");
       Assert (Gridcon_Main.Gap.Kind = Gap_Uniform
               and then Gridcon_Main.Gap.All_Gap.Amount = 10.0,
               "gap 1-value should parse to uniform gap");
+
+      --  Grid mixed tracks (auto auto 1fr)
+      Assert (Gridmixed_Main.Grid_Column_Tracks.Count = 3,
+              "grid-template-columns auto auto 1fr track count should be 3");
+      Assert (Gridmixed_Main.Grid_Column_Tracks.Tracks (1).Kind = Track_Auto,
+              "grid-template-columns auto auto 1fr track 1 should be Track_Auto");
+      Assert (Gridmixed_Main.Grid_Column_Tracks.Tracks (2).Kind = Track_Auto,
+              "grid-template-columns auto auto 1fr track 2 should be Track_Auto");
+      Assert (Gridmixed_Main.Grid_Column_Tracks.Tracks (3).Kind = Track_Fr,
+              "grid-template-columns auto auto 1fr track 3 should be Track_Fr");
+      Assert (abs (Gridmixed_Main.Grid_Column_Tracks.Tracks (3).Value - 1.0) < 0.001,
+              "grid-template-columns auto auto 1fr track 3 fr value should be 1.0");
 
       --  Grid item
       Assert (Griditem_Main.Grid_Column = 1,

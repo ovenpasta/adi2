@@ -970,11 +970,88 @@ package body Adi.Layout_Util is
          Available_H : constant Pixel_Type :=
            Pixel_Type'Max
              (0.0, Context.Container.Height - Pixel_Type (Rows - 1) * Context.Row_Gap);
-         Cell_W : constant Pixel_Type := Available_W / Pixel_Type (Cols);
-         Cell_H : constant Pixel_Type := Available_H / Pixel_Type (Rows);
-         Col_Widths : Pixel_Array (1 .. Cols) := [others => Cell_W];
-         Row_Heights : Pixel_Array (1 .. Rows) := [others => Cell_H];
+         Col_Widths  : Pixel_Array (1 .. Cols) := [others => 0.0];
+         Row_Heights : Pixel_Array (1 .. Rows) := [others => 0.0];
       begin
+         --  Initialise column widths: use track-sizing when a matching track
+         --  list is provided, otherwise fall back to equal distribution.
+         if Context.Column_Tracks.Count = Cols then
+            declare
+               Tracks : Grid_Track_Array renames Context.Column_Tracks.Tracks;
+               Auto_W : Pixel_Array (1 .. Cols) := [others => 0.0];
+            begin
+               --  Pass 1: size auto tracks to max Pref_Width of single-span
+               --  children landing in that column.
+               for I in Children'Range loop
+                  declare
+                     Child : Grid_Child_Info renames Children (I);
+                     C     : constant Natural := Col_Start (I);
+                     CS    : constant Natural := Col_Span (I);
+                  begin
+                     if Child.Active and then CS = 1
+                       and then C in 1 .. Cols
+                       and then Tracks (C).Kind = Track_Auto
+                     then
+                        declare
+                           W : Pixel_Type := Child.Pref_Width;
+                        begin
+                           if not Context.Use_Preferred_Floor then
+                              W := Pixel_Type'Max (W, Child.Min_Width);
+                           end if;
+                           Auto_W (C) := Pixel_Type'Max (Auto_W (C), W);
+                        end;
+                     end if;
+                  end;
+               end loop;
+
+               --  Pass 2: assign initial widths from track specs.
+               for C in 1 .. Cols loop
+                  case Tracks (C).Kind is
+                     when Track_Auto => Col_Widths (C) := Auto_W (C);
+                     when Track_Px   =>
+                        Col_Widths (C) := Pixel_Type (Tracks (C).Value);
+                     when Track_Fr   => Col_Widths (C) := 0.0;  -- set below
+                  end case;
+               end loop;
+
+               --  Pass 3: distribute remaining space to fr tracks.
+               declare
+                  Fixed_Total : Pixel_Type := 0.0;
+                  Total_Fr    : Float      := 0.0;
+                  Fr_Px       : Pixel_Type;
+               begin
+                  for C in 1 .. Cols loop
+                     if Tracks (C).Kind /= Track_Fr then
+                        Fixed_Total := Fixed_Total + Col_Widths (C);
+                     else
+                        Total_Fr := Total_Fr + Tracks (C).Value;
+                     end if;
+                  end loop;
+                  if Total_Fr > 0.0 then
+                     Fr_Px :=
+                       Pixel_Type'Max (0.0, Available_W - Fixed_Total)
+                         / Pixel_Type (Total_Fr);
+                  else
+                     Fr_Px := 0.0;
+                  end if;
+                  for C in 1 .. Cols loop
+                     if Tracks (C).Kind = Track_Fr then
+                        Col_Widths (C) :=
+                          Pixel_Type (Tracks (C).Value) * Fr_Px;
+                     end if;
+                  end loop;
+               end;
+            end;
+         else
+            --  Equal distribution (legacy / no track list)
+            declare
+               Cell_W : constant Pixel_Type :=
+                 Available_W / Pixel_Type (Cols);
+            begin
+               Col_Widths := [others => Cell_W];
+            end;
+         end if;
+
          --  Keep tracks large enough to satisfy child size requirements.
          for I in Children'Range loop
             declare
@@ -1010,7 +1087,15 @@ package body Adi.Layout_Util is
                        / Pixel_Type (RS);
 
                      for K in C .. C + CS - 1 loop
-                        Col_Widths (K) := Pixel_Type'Max (Col_Widths (K), Req_Per_Col);
+                        --  fr tracks have a base minimum of 0 (minmax(0,Xfr)).
+                        --  Never expand them here; doing so pushes the total
+                        --  layout past the container when the window is narrow.
+                        if Context.Column_Tracks.Count /= Cols
+                          or else Context.Column_Tracks.Tracks (K).Kind /= Track_Fr
+                        then
+                           Col_Widths (K) :=
+                             Pixel_Type'Max (Col_Widths (K), Req_Per_Col);
+                        end if;
                      end loop;
                      for K in R .. R + RS - 1 loop
                         Row_Heights (K) := Pixel_Type'Max (Row_Heights (K), Req_Per_Row);
@@ -1019,6 +1104,63 @@ package body Adi.Layout_Util is
                end if;
             end;
          end loop;
+
+         --  Pass 5: re-distribute fr tracks using the post-Pass-4 fixed totals.
+         --  Pass 4 can expand auto/px columns (via min-width), which reduces
+         --  the space available for fr tracks.  Re-running the fr allocation
+         --  here ensures fr columns never exceed their fair share.
+         if Context.Column_Tracks.Count = Cols then
+            declare
+               Tracks     : Grid_Track_Array renames Context.Column_Tracks.Tracks;
+               Fixed_Post : Pixel_Type := 0.0;
+               Total_Fr   : Float      := 0.0;
+               Fr_Px      : Pixel_Type;
+            begin
+               for C in 1 .. Cols loop
+                  if Tracks (C).Kind /= Track_Fr then
+                     Fixed_Post := Fixed_Post + Col_Widths (C);
+                  else
+                     Total_Fr := Total_Fr + Tracks (C).Value;
+                  end if;
+               end loop;
+               Fr_Px :=
+                 (if Total_Fr > 0.0
+                  then Pixel_Type'Max (0.0, Available_W - Fixed_Post)
+                         / Pixel_Type (Total_Fr)
+                  else 0.0);
+               for C in 1 .. Cols loop
+                  if Tracks (C).Kind = Track_Fr then
+                     Col_Widths (C) := Pixel_Type (Tracks (C).Value) * Fr_Px;
+                  end if;
+               end loop;
+            end;
+         end if;
+
+         --  Row Pass 5: rows start at their minimum content height (set by
+         --  Pass 4); distribute any remaining Available_H equally so the
+         --  grid fills its allocated container height.  When total content
+         --  exceeds Available_H (e.g. after text-wrap height discovery) the
+         --  remaining slack is 0 and row heights are left unchanged; the
+         --  calling layout procedure is responsible for growing the container.
+         declare
+            Fixed_H   : Pixel_Type := 0.0;
+            Remaining : Pixel_Type;
+         begin
+            for Row in 1 .. Rows loop
+               Fixed_H := Fixed_H + Row_Heights (Row);
+            end loop;
+            Remaining := Pixel_Type'Max (0.0, Available_H - Fixed_H);
+            if Remaining > 0.0 then
+               declare
+                  Extra : constant Pixel_Type :=
+                    Remaining / Pixel_Type (Rows);
+               begin
+                  for Row in 1 .. Rows loop
+                     Row_Heights (Row) := Row_Heights (Row) + Extra;
+                  end loop;
+               end;
+            end if;
+         end;
 
          for I in Children'Range loop
             declare

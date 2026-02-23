@@ -64,6 +64,7 @@ package Image_Example_Styles is
    Format_Grid_Class_Base_Style : constant Style_Rules := (
       Display => Set (Grid),
       Grid_Columns => Set (Grid_Columns_Value (4)),
+      Grid_Column_Tracks => (Count => 4, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), 4 => (Track_Fr, 1.0), others => <>]),
       Gap => Set (Gap (Px (16.0))),
       Flex_Grow => Set (1.0),
       others => <>
@@ -73,6 +74,7 @@ package Image_Example_Styles is
    Fit_Grid_Class_Base_Style : constant Style_Rules := (
       Display => Set (Grid),
       Grid_Columns => Set (Grid_Columns_Value (5)),
+      Grid_Column_Tracks => (Count => 5, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), 4 => (Track_Fr, 1.0), 5 => (Track_Fr, 1.0), others => <>]),
       Gap => Set (Gap (Px (16.0))),
       Flex_Grow => Set (1.0),
       others => <>
@@ -151,6 +153,7 @@ package Image_Example_Styles is
    Tint_Grid_Class_Base_Style : constant Style_Rules := (
       Display => Set (Grid),
       Grid_Columns => Set (Grid_Columns_Value (4)),
+      Grid_Column_Tracks => (Count => 4, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), 4 => (Track_Fr, 1.0), others => <>]),
       Gap => Set (Gap (Px (16.0))),
       Flex_Grow => Set (1.0),
       others => <>

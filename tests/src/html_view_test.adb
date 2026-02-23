@@ -904,6 +904,61 @@ procedure Html_View_Test is
       New_Line;
    end Test_List_Style_Shorthand_And_Image_Callback;
 
+   procedure Test_Unclosed_Li_Items is
+      use type Adi.Widget.Item_Kind;
+
+      procedure Check_Li_Siblings
+        (W      : Adi.Widget.Html_View.Html_View_Access;
+         Label  : String;
+         First  : String;
+         Second : String;
+         Third  : String)
+      is
+         First_Idx  : constant Natural := Find_Text_Item_Index (W, First);
+         Second_Idx : constant Natural := Find_Text_Item_Index (W, Second);
+         Third_Idx  : constant Natural := Find_Text_Item_Index (W, Third);
+         First_X    : Adi.Core.Pixel_Type;
+         Second_X   : Adi.Core.Pixel_Type;
+         Third_X    : Adi.Core.Pixel_Type;
+      begin
+         Assert (First_Idx > 0,  Label & ": first li text present");
+         Assert (Second_Idx > 0, Label & ": second li text present");
+         Assert (Third_Idx > 0,  Label & ": third li text present");
+
+         if First_Idx > 0 and then Second_Idx > 0 and then Third_Idx > 0 then
+            First_X  := Adi.Widget.Get_Item (W.all, First_Idx).Geometry.X;
+            Second_X := Adi.Widget.Get_Item (W.all, Second_Idx).Geometry.X;
+            Third_X  := Adi.Widget.Get_Item (W.all, Third_Idx).Geometry.X;
+            Assert (Nearly_Equal (First_X, Second_X),
+                    Label & ": second li at same indent as first (not nested)");
+            Assert (Nearly_Equal (Second_X, Third_X),
+                    Label & ": third li at same indent as second (not nested)");
+         end if;
+      end Check_Li_Siblings;
+
+      W : constant Adi.Widget.Html_View.Html_View_Access :=
+        Adi.Widget.Html_View.Create;
+   begin
+      Put_Line ("Test: unclosed li items treated as siblings");
+
+      Adi.Widget.Set_Geometry
+        (W.all, (X => 0.0, Y => 0.0, Width => 600.0, Height => 300.0));
+
+      --  Case 1: all implicit closes — no </li> at all
+      Adi.Widget.Html_View.Set_HTML
+        (W.all, "<ul><li>alpha<li>beta<li>gamma</ul>");
+      Adi.Widget.Html_View.Build_Items (W.all);
+      Check_Li_Siblings (W, "all-implicit", "alpha", "beta", "gamma");
+
+      --  Case 2: mixed explicit and implicit closes
+      Adi.Widget.Html_View.Set_HTML
+        (W.all, "<ul><li>alpha</li><li>beta<li>gamma</ul>");
+      Adi.Widget.Html_View.Build_Items (W.all);
+      Check_Li_Siblings (W, "mixed-explicit", "alpha", "beta", "gamma");
+
+      New_Line;
+   end Test_Unclosed_Li_Items;
+
    procedure Test_Overline_Decoration_Style is
       W : constant Adi.Widget.Html_View.Html_View_Access :=
         Adi.Widget.Html_View.Create;
@@ -1132,6 +1187,7 @@ begin
    Test_Line_Height_Parsing_And_Layout;
    Test_List_Markers_And_LI_Value;
    Test_List_Style_Shorthand_And_Image_Callback;
+   Test_Unclosed_Li_Items;
    Test_Overline_Decoration_Style;
    Test_Content_Scale;
    Test_VW_VH_Context;

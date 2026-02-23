@@ -27,10 +27,7 @@ package body Adi.Widget.Html_View is
    Circle_Marker_Img : Image_Access := null;
    Square_Marker_Img : Image_Access := null;
 
-   procedure Ensure_Marker_Images
-     (Host : Adi.Window.Window_Access)
-   is
-      pragma Unreferenced (Host);
+   procedure Ensure_Marker_Images is
    begin
       if Disc_Marker_Img /= null then
          return;
@@ -1070,6 +1067,43 @@ package body Adi.Widget.Html_View is
                               end;
 
                            else
+                              --  Implied close: a new <li> implicitly closes any open <li>
+                              --  in the same list scope (do not cross a ul/ol boundary).
+                              if Name = "li" then
+                                 declare
+                                    Implied_Pos : Natural := 0;
+                                 begin
+                                    for S_Pos in reverse 1 .. Natural (Stack.Length) loop
+                                       declare
+                                          Candidate_Idx : constant Positive :=
+                                            Positive (Stack.Element (Positive (S_Pos)));
+                                          Candidate : constant Node :=
+                                            Self.Nodes.Element (Candidate_Idx);
+                                       begin
+                                          if Candidate.Kind = Element_Node then
+                                             declare
+                                                T : constant String :=
+                                                  To_String (Candidate.Tag_Name);
+                                             begin
+                                                if T = "li" then
+                                                   Implied_Pos := S_Pos;
+                                                   exit;
+                                                elsif T = "ul" or else T = "ol" then
+                                                   exit;
+                                                end if;
+                                             end;
+                                          end if;
+                                       end;
+                                    end loop;
+
+                                    if Implied_Pos > 0 then
+                                       while Natural (Stack.Length) >= Implied_Pos loop
+                                          Stack.Delete_Last;
+                                       end loop;
+                                    end if;
+                                 end;
+                              end if;
+
                               declare
                                  Attrs : constant Element_Attributes :=
                                    (Id_Attr    => To_Unbounded_String (Extract_Attribute (Raw_Tag, "id")),
@@ -1563,7 +1597,7 @@ package body Adi.Widget.Html_View is
         (Kind : List_Style_Type_Kind) return Image_Access
       is
       begin
-         Ensure_Marker_Images (Self.Host);
+         Ensure_Marker_Images;
          case Kind is
             when List_Style_Disc   => return Disc_Marker_Img;
             when List_Style_Circle => return Circle_Marker_Img;
@@ -2688,15 +2722,6 @@ package body Adi.Widget.Html_View is
       Set_Part_Styles (Result.all, Default_Internal_Part_Styles);
       return Result;
    end Create;
-
-   procedure Attach_Window
-     (Self : in out Html_View;
-      Host : Adi.Window.Window_Access)
-   is
-   begin
-      Self.Host := Host;
-      Mark_Dirty (Self);
-   end Attach_Window;
 
    procedure Set_HTML
      (Self   : in out Html_View;

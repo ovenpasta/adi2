@@ -125,7 +125,12 @@ procedure Css_Parser_Test is
        --  Missing property coverage
        ".sizing { height: 200px; min-width: 50px; max-width: 400px; max-height: 300px; }" & ASCII.LF &
        ".textprops { text-decoration: underline; white-space: pre-wrap; text-overflow: ellipsis; line-height: 1.5; vertical-align: middle; }" & ASCII.LF &
-       ".misc { visibility: hidden; object-fit: cover; }" & ASCII.LF &
+       ".misc { visibility: hidden; object-fit: cover; object-position: center center; }" & ASCII.LF &
+       ".misc2 { object-position: 10px 20px; }" & ASCII.LF &
+       ".overflowy { overflow-y: auto; }" & ASCII.LF &
+       ".overflowx { overflow-x: hidden; }" & ASCII.LF &
+       ".overflowmix { overflow: hidden; overflow-y: auto; }" & ASCII.LF &
+       ".overflowmix2 { overflow-y: auto; overflow: hidden; }" & ASCII.LF &
        ".flexextra { flex-wrap: wrap; align-self: stretch; align-content: space-between; }" & ASCII.LF &
        ".gridcontainer { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; gap: 10px; }" & ASCII.LF &
        ".gridmixed { display: grid; grid-template-columns: auto auto 1fr; }" & ASCII.LF &
@@ -193,27 +198,6 @@ begin
       SvgCyan_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "svgcyan");
       Missing_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For (Sheet, "missing");
       DP_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "dpunit");
-      Outline_Long_Styles  : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "outline-long");
-      Outline_Short_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "outline-short");
-      Outline_Offset_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "outline-offset");
-      Outline_None_Styles  : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "outline-none");
-      Sizing_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "sizing");
-      Textprops_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "textprops");
-      Misc_Styles        : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "misc");
-      Flexextra_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "flexextra");
-      Gridcon_Styles     : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "gridcontainer");
-      Gridmixed_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "gridmixed");
-      Griditem_Styles    : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "griditem");
-      Shadow_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "shadowtest");
-      Pad1_Styles        : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "pad1");
-      Margin3_Styles     : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "margin3");
-      Dispvals_Styles    : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "displayvals");
-      Linepx_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "linepx");
-      Linenormal_Styles  : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "linenormal");
-      Widthauto_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "widthauto");
-      Basisauto_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "basisauto");
-      Basiscont_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "basiscontent");
-      Pressed_Styles     : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "pressed-pseudo");
 
       Main_Normal : constant Resolved_Style := Compute_Resolved (Styles (Main_Part).Style, No_States, No_States);
       Main_Hover  : constant Resolved_Style := Compute_Resolved (
@@ -267,31 +251,6 @@ begin
       SvgCyan_Main : constant Resolved_Style := Compute_Resolved (SvgCyan_Styles (Main_Part).Style, No_States, No_States);
       Missing_Main : constant Resolved_Style := Compute_Resolved (Missing_Styles (Main_Part).Style, No_States, No_States);
       DP_Main      : constant Resolved_Style := Compute_Resolved (DP_Styles (Main_Part).Style, No_States, No_States);
-      Outline_Long_Main  : constant Resolved_Style := Compute_Resolved (Outline_Long_Styles (Main_Part).Style, No_States, No_States);
-      Outline_Short_Main : constant Resolved_Style := Compute_Resolved (Outline_Short_Styles (Main_Part).Style, No_States, No_States);
-      Outline_Offset_Main : constant Resolved_Style := Compute_Resolved (Outline_Offset_Styles (Main_Part).Style, No_States, No_States);
-      Outline_None_Main  : constant Resolved_Style := Compute_Resolved (Outline_None_Styles (Main_Part).Style, No_States, No_States);
-      Sizing_Main      : constant Resolved_Style := Compute_Resolved (Sizing_Styles (Main_Part).Style, No_States, No_States);
-      Textprops_Main   : constant Resolved_Style := Compute_Resolved (Textprops_Styles (Main_Part).Style, No_States, No_States);
-      Misc_Main        : constant Resolved_Style := Compute_Resolved (Misc_Styles (Main_Part).Style, No_States, No_States);
-      Flexextra_Main   : constant Resolved_Style := Compute_Resolved (Flexextra_Styles (Main_Part).Style, No_States, No_States);
-      Gridcon_Main     : constant Resolved_Style := Compute_Resolved (Gridcon_Styles (Main_Part).Style, No_States, No_States);
-      Gridmixed_Main   : constant Resolved_Style := Compute_Resolved (Gridmixed_Styles (Main_Part).Style, No_States, No_States);
-      Griditem_Main    : constant Resolved_Style := Compute_Resolved (Griditem_Styles (Main_Part).Style, No_States, No_States);
-      Shadow_Main      : constant Resolved_Style := Compute_Resolved (Shadow_Styles (Main_Part).Style, No_States, No_States);
-      Pad1_Main        : constant Resolved_Style := Compute_Resolved (Pad1_Styles (Main_Part).Style, No_States, No_States);
-      Margin3_Main     : constant Resolved_Style := Compute_Resolved (Margin3_Styles (Main_Part).Style, No_States, No_States);
-      Dispvals_Main    : constant Resolved_Style := Compute_Resolved (Dispvals_Styles (Main_Part).Style, No_States, No_States);
-      Linepx_Main      : constant Resolved_Style := Compute_Resolved (Linepx_Styles (Main_Part).Style, No_States, No_States);
-      Linenormal_Main  : constant Resolved_Style := Compute_Resolved (Linenormal_Styles (Main_Part).Style, No_States, No_States);
-      Widthauto_Main   : constant Resolved_Style := Compute_Resolved (Widthauto_Styles (Main_Part).Style, No_States, No_States);
-      Basisauto_Main   : constant Resolved_Style := Compute_Resolved (Basisauto_Styles (Main_Part).Style, No_States, No_States);
-      Basiscont_Main   : constant Resolved_Style := Compute_Resolved (Basiscont_Styles (Main_Part).Style, No_States, No_States);
-      Pressed_Normal   : constant Resolved_Style := Compute_Resolved (Pressed_Styles (Main_Part).Style, No_States, No_States);
-      Pressed_Active   : constant Resolved_Style := Compute_Resolved (
-         Pressed_Styles (Main_Part).Style,
-         [No_States with delta State_Pressed => True],
-         No_States);
    begin
       Assert (Is_RGBA_Color (Main_Normal.Background_Color, 16, 34, 51, 0.8),
               "RGBA background-color should parse");
@@ -344,7 +303,8 @@ begin
 
       Assert (Main_Normal.Display = Flex and then Main_Normal.Position = Relative,
               "Display and position should parse");
-      Assert (Main_Normal.Overflow = Overflow_Hidden,
+      Assert (Main_Normal.Overflow_X = Overflow_Hidden
+              and then Main_Normal.Overflow_Y = Overflow_Hidden,
               "Overflow hidden should parse");
       Assert (Nearly_Equal (Float (Main_Normal.Opacity), 0.75),
               "Opacity should parse");
@@ -467,6 +427,68 @@ begin
               and then Missing_Main.Background_Color.Name = Transparent,
               "Unknown class should return default/empty styles");
 
+   end;
+
+   declare
+      Outline_Long_Styles  : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "outline-long");
+      Outline_Short_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "outline-short");
+      Outline_Offset_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "outline-offset");
+      Outline_None_Styles  : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "outline-none");
+      Sizing_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "sizing");
+      Textprops_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "textprops");
+      Misc_Styles        : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "misc");
+      Misc2_Styles       : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "misc2");
+      OverflowY_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "overflowy");
+      OverflowX_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "overflowx");
+      OverflowMix_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "overflowmix");
+      OverflowMix2_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "overflowmix2");
+      Flexextra_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "flexextra");
+      Gridcon_Styles     : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "gridcontainer");
+      Gridmixed_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "gridmixed");
+      Griditem_Styles    : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "griditem");
+      Shadow_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "shadowtest");
+      Pad1_Styles        : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "pad1");
+      Margin3_Styles     : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "margin3");
+      Dispvals_Styles    : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "displayvals");
+      Linepx_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "linepx");
+      Linenormal_Styles  : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "linenormal");
+      Widthauto_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "widthauto");
+      Basisauto_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "basisauto");
+      Basiscont_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "basiscontent");
+      Pressed_Styles     : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "pressed-pseudo");
+
+      Outline_Long_Main  : constant Resolved_Style := Compute_Resolved (Outline_Long_Styles (Main_Part).Style, No_States, No_States);
+      Outline_Short_Main : constant Resolved_Style := Compute_Resolved (Outline_Short_Styles (Main_Part).Style, No_States, No_States);
+      Outline_Offset_Main : constant Resolved_Style := Compute_Resolved (Outline_Offset_Styles (Main_Part).Style, No_States, No_States);
+      Outline_None_Main  : constant Resolved_Style := Compute_Resolved (Outline_None_Styles (Main_Part).Style, No_States, No_States);
+      Sizing_Main      : constant Resolved_Style := Compute_Resolved (Sizing_Styles (Main_Part).Style, No_States, No_States);
+      Textprops_Main   : constant Resolved_Style := Compute_Resolved (Textprops_Styles (Main_Part).Style, No_States, No_States);
+      Misc_Main        : constant Resolved_Style := Compute_Resolved (Misc_Styles (Main_Part).Style, No_States, No_States);
+      Misc2_Main       : constant Resolved_Style := Compute_Resolved (Misc2_Styles (Main_Part).Style, No_States, No_States);
+      OverflowY_Main   : constant Resolved_Style := Compute_Resolved (OverflowY_Styles (Main_Part).Style, No_States, No_States);
+      OverflowX_Main   : constant Resolved_Style := Compute_Resolved (OverflowX_Styles (Main_Part).Style, No_States, No_States);
+      OverflowMix_Main : constant Resolved_Style := Compute_Resolved (OverflowMix_Styles (Main_Part).Style, No_States, No_States);
+      OverflowMix2_Main : constant Resolved_Style := Compute_Resolved (OverflowMix2_Styles (Main_Part).Style, No_States, No_States);
+      Flexextra_Main   : constant Resolved_Style := Compute_Resolved (Flexextra_Styles (Main_Part).Style, No_States, No_States);
+      Gridcon_Main     : constant Resolved_Style := Compute_Resolved (Gridcon_Styles (Main_Part).Style, No_States, No_States);
+      Gridmixed_Main   : constant Resolved_Style := Compute_Resolved (Gridmixed_Styles (Main_Part).Style, No_States, No_States);
+      Griditem_Main    : constant Resolved_Style := Compute_Resolved (Griditem_Styles (Main_Part).Style, No_States, No_States);
+      Shadow_Main      : constant Resolved_Style := Compute_Resolved (Shadow_Styles (Main_Part).Style, No_States, No_States);
+      Pad1_Main        : constant Resolved_Style := Compute_Resolved (Pad1_Styles (Main_Part).Style, No_States, No_States);
+      Margin3_Main     : constant Resolved_Style := Compute_Resolved (Margin3_Styles (Main_Part).Style, No_States, No_States);
+      Dispvals_Main    : constant Resolved_Style := Compute_Resolved (Dispvals_Styles (Main_Part).Style, No_States, No_States);
+      Linepx_Main      : constant Resolved_Style := Compute_Resolved (Linepx_Styles (Main_Part).Style, No_States, No_States);
+      Linenormal_Main  : constant Resolved_Style := Compute_Resolved (Linenormal_Styles (Main_Part).Style, No_States, No_States);
+      Widthauto_Main   : constant Resolved_Style := Compute_Resolved (Widthauto_Styles (Main_Part).Style, No_States, No_States);
+      Basisauto_Main   : constant Resolved_Style := Compute_Resolved (Basisauto_Styles (Main_Part).Style, No_States, No_States);
+      Basiscont_Main   : constant Resolved_Style := Compute_Resolved (Basiscont_Styles (Main_Part).Style, No_States, No_States);
+      Pressed_Normal   : constant Resolved_Style := Compute_Resolved (Pressed_Styles (Main_Part).Style, No_States, No_States);
+      Pressed_Active   : constant Resolved_Style := Compute_Resolved (
+         Pressed_Styles (Main_Part).Style,
+         [No_States with delta State_Pressed => True],
+         No_States);
+   begin
+
       --  Outline longhand tests
       Assert (Outline_Long_Main.Outline_Width.Amount = 3.0
               and then Outline_Long_Main.Outline_Width.Unit = Px,
@@ -530,6 +552,26 @@ begin
               "visibility hidden should parse");
       Assert (Misc_Main.Object_Fit = Fit_Cover,
               "object-fit cover should parse");
+      Assert (Misc_Main.Object_Position.Kind = Keyword_Pos
+              and then Misc_Main.Object_Position.H_Keyword = Pos_Center
+              and then Misc_Main.Object_Position.V_Keyword = Pos_Center,
+              "object-position center center should parse");
+      Assert (Misc2_Main.Object_Position.Kind = Length_Pos
+              and then Misc2_Main.Object_Position.X_Offset.Amount = 10.0
+              and then Misc2_Main.Object_Position.Y_Offset.Amount = 20.0,
+              "object-position length pair should parse");
+      Assert (OverflowY_Main.Overflow_Y = Overflow_Auto
+              and then OverflowY_Main.Overflow_X = Overflow_Visible,
+              "overflow-y auto should apply vertical overflow only");
+      Assert (OverflowX_Main.Overflow_X = Overflow_Hidden
+              and then OverflowX_Main.Overflow_Y = Overflow_Visible,
+              "overflow-x hidden should apply horizontal overflow only");
+      Assert (OverflowMix_Main.Overflow_X = Overflow_Hidden
+              and then OverflowMix_Main.Overflow_Y = Overflow_Auto,
+              "overflow shorthand + overflow-y should resolve with longhand override");
+      Assert (OverflowMix2_Main.Overflow_X = Overflow_Hidden
+              and then OverflowMix2_Main.Overflow_Y = Overflow_Hidden,
+              "overflow-y + overflow shorthand should resolve with shorthand override");
 
       --  Flex extra
       Assert (Flexextra_Main.Flex_Wrap = Wrap,

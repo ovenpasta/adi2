@@ -29,6 +29,11 @@ package body Adi.CSS_Parser is
       Styles : Part_Style_Array := Empty_Part_Styles;
    end record;
 
+   Empty_Selector_Style : constant Selector_Style :=
+     (Kind   => Class_Selector,
+      Name   => Null_Unbounded_String,
+      Styles => Empty_Part_Styles);
+
    package Selector_Style_Vectors is new Ada.Containers.Indefinite_Vectors
      (Index_Type => Positive,
       Element_Type => Selector_Style);
@@ -634,6 +639,115 @@ package body Adi.CSS_Parser is
 
       return Has_Type or else Has_Image or else Has_Position;
    end Parse_List_Style_Shorthand;
+
+   function To_Length (L : Parsed_Length) return Length_Value;
+
+   function Parse_Object_Position_Value
+     (Input    : String;
+      Out_Pos  : out Object_Position_Value) return Boolean
+   is
+      Tokens : Token_Vectors.Vector;
+      H      : Object_Position_Keyword := Pos_Center;
+      V      : Object_Position_Keyword := Pos_Center;
+      Has_H  : Boolean := False;
+      Has_V  : Boolean := False;
+      LX, LY : Parsed_Length;
+   begin
+      Out_Pos := Default_Object_Position;
+      Split_Whitespace_Tokens (Input, Tokens);
+
+      if Tokens.Length = 0 then
+         return False;
+      end if;
+
+      if Tokens.Length = 1 then
+         declare
+            Tok1 : constant String := Lower (Trimmed (To_String (Tokens (1))));
+         begin
+            if Tok1 = "left" then
+               Out_Pos := Object_Position (Pos_Left, Pos_Center);
+               return True;
+            elsif Tok1 = "right" then
+               Out_Pos := Object_Position (Pos_Right, Pos_Center);
+               return True;
+            elsif Tok1 = "top" then
+               Out_Pos := Object_Position (Pos_Center, Pos_Top);
+               return True;
+            elsif Tok1 = "bottom" then
+               Out_Pos := Object_Position (Pos_Center, Pos_Bottom);
+               return True;
+            elsif Tok1 = "center" then
+               Out_Pos := Object_Position (Pos_Center, Pos_Center);
+               return True;
+            elsif Parse_Length (Tok1, LX) then
+               Out_Pos := Object_Position (To_Length (LX), Pct (50.0));
+               return True;
+            end if;
+         end;
+         return False;
+      end if;
+
+      if Tokens.Length /= 2 then
+         return False;
+      end if;
+
+      declare
+         Tok1 : constant String := Lower (Trimmed (To_String (Tokens (1))));
+         Tok2 : constant String := Lower (Trimmed (To_String (Tokens (2))));
+      begin
+         if Parse_Length (Tok1, LX) and then Parse_Length (Tok2, LY) then
+            Out_Pos := Object_Position (To_Length (LX), To_Length (LY));
+            return True;
+         end if;
+      end;
+
+      for Tok of Tokens loop
+         declare
+            T : constant String := Lower (Trimmed (To_String (Tok)));
+         begin
+            if T = "left" then
+               if Has_H then
+                  return False;
+               end if;
+               H := Pos_Left;
+               Has_H := True;
+            elsif T = "right" then
+               if Has_H then
+                  return False;
+               end if;
+               H := Pos_Right;
+               Has_H := True;
+            elsif T = "top" then
+               if Has_V then
+                  return False;
+               end if;
+               V := Pos_Top;
+               Has_V := True;
+            elsif T = "bottom" then
+               if Has_V then
+                  return False;
+               end if;
+               V := Pos_Bottom;
+               Has_V := True;
+            elsif T = "center" then
+               if not Has_H then
+                  H := Pos_Center;
+                  Has_H := True;
+               elsif not Has_V then
+                  V := Pos_Center;
+                  Has_V := True;
+               else
+                  return False;
+               end if;
+            else
+               return False;
+            end if;
+         end;
+      end loop;
+
+      Out_Pos := Object_Position (H, V);
+      return True;
+   end Parse_Object_Position_Value;
 
    function To_Length (L : Parsed_Length) return Length_Value is
    begin
@@ -1342,6 +1456,36 @@ package body Adi.CSS_Parser is
       return True;
    end Parse_Selector;
 
+   function Parse_Overflow_Value
+     (Input     : String;
+      Out_Value : out Overflow_Value) return Boolean
+   is
+      V : constant String := Lower (Trimmed (Input));
+   begin
+      if V = "visible" then
+         Out_Value := Overflow_Visible;
+      elsif V = "hidden" then
+         Out_Value := Overflow_Hidden;
+      elsif V = "scroll" then
+         Out_Value := Overflow_Scroll;
+      elsif V = "auto" then
+         Out_Value := Overflow_Auto;
+      else
+         return False;
+      end if;
+
+      return True;
+   end Parse_Overflow_Value;
+
+   procedure Set_Overflow_Shorthand
+     (Rules : in out Style_Rules;
+      Value : Overflow_Value)
+   is
+   begin
+      Rules.Overflow_X := Set_Overflow_X (Value);
+      Rules.Overflow_Y := Set_Overflow_Y (Value);
+   end Set_Overflow_Shorthand;
+
    procedure Apply_Property (Rules : in out Style_Rules;
                              Name  : String;
                              Value : String) is
@@ -1362,10 +1506,12 @@ package body Adi.CSS_Parser is
       List_Image_Set : Boolean := False;
       List_Position_Set : Boolean := False;
       URI_Text : Unbounded_String;
+      Object_Pos_Val : Object_Position_Value;
       Ls : Length_Vectors.Vector;
       F : Float;
       I : Integer;
       N : Natural;
+      Overflow_Val : Overflow_Value;
    begin
       if P = "color" then
          if Parse_Color (V, CVal) then Rules.Color := Set (CVal); end if;
@@ -1607,10 +1753,16 @@ package body Adi.CSS_Parser is
          elsif LV = "sticky" then Rules.Position := Set (Sticky);
          end if;
       elsif P = "overflow" then
-         if LV = "visible" then Rules.Overflow := Set (Overflow_Visible);
-         elsif LV = "hidden" then Rules.Overflow := Set (Overflow_Hidden);
-         elsif LV = "scroll" then Rules.Overflow := Set (Overflow_Scroll);
-         elsif LV = "auto" then Rules.Overflow := Set (Overflow_Auto);
+         if Parse_Overflow_Value (LV, Overflow_Val) then
+            Set_Overflow_Shorthand (Rules, Overflow_Val);
+         end if;
+      elsif P = "overflow-x" then
+         if Parse_Overflow_Value (LV, Overflow_Val) then
+            Rules.Overflow_X := Set_Overflow_X (Overflow_Val);
+         end if;
+      elsif P = "overflow-y" then
+         if Parse_Overflow_Value (LV, Overflow_Val) then
+            Rules.Overflow_Y := Set_Overflow_Y (Overflow_Val);
          end if;
       elsif P = "opacity" then
          if Parse_Number (V, F) then Rules.Opacity := Set (Opacity_Value (F)); end if;
@@ -1637,6 +1789,10 @@ package body Adi.CSS_Parser is
          elsif LV = "cover" then Rules.Object_Fit := Set (Fit_Cover);
          elsif LV = "none" then Rules.Object_Fit := Set (Fit_None);
          elsif LV = "scale-down" then Rules.Object_Fit := Set (Fit_Scale_Down);
+         end if;
+      elsif P = "object-position" then
+         if Parse_Object_Position_Value (V, Object_Pos_Val) then
+            Rules.Object_Position := Set (Object_Pos_Val);
          end if;
       elsif P = "flex-direction" then
          if LV = "row" then Rules.Flex_Direction := Set (Row);
@@ -1980,10 +2136,14 @@ package body Adi.CSS_Parser is
          return Positive (Idx);
       end if;
 
-      Impl.Selectors.Append (New_Item => Selector_Style'
-                               (Kind => Kind,
-                                Name => To_Unbounded_String (Key),
-                                Styles => Empty_Part_Styles));
+      Impl.Selectors.Append (New_Item => Empty_Selector_Style);
+      declare
+         Sel : Selector_Style renames
+           Impl.Selectors.Reference (Impl.Selectors.Last_Index).Element.all;
+      begin
+         Sel.Kind := Kind;
+         Sel.Name := To_Unbounded_String (Key);
+      end;
       return Positive (Impl.Selectors.Last_Index);
    end Ensure_Selector;
 
@@ -1996,7 +2156,7 @@ package body Adi.CSS_Parser is
       for R of Rules loop
          declare
             Idx : constant Positive := Ensure_Selector (Impl, R.Sel.Kind, To_String (R.Sel.Name));
-            C   : Selector_Style := Impl.Selectors (Idx);
+            C   : Selector_Style renames Impl.Selectors.Reference (Idx).Element.all;
             W   : Widget_Style := C.Styles (R.Sel.Part).Style;
             Rule_Index : Natural := 0;
          begin
@@ -2025,7 +2185,6 @@ package body Adi.CSS_Parser is
             end if;
 
             C.Styles (R.Sel.Part) := (Style => W, Enabled => True);
-            Impl.Selectors.Replace_Element (Idx, C);
          end;
       end loop;
 
@@ -2033,19 +2192,23 @@ package body Adi.CSS_Parser is
    end Build_Styles;
 
    procedure Reapply_Bindings (Impl : in out Stylesheet_Impl) is
-      function Get_Styles (Kind : Selector_Kind;
-                           Name : String) return Part_Style_Array is
-         Idx : constant Natural := Find_Selector_Index (Impl, Kind, Name);
-      begin
-         if Idx = 0 then
-            return Empty_Part_Styles;
-         end if;
-         return Impl.Selectors (Positive (Idx)).Styles;
-      end Get_Styles;
    begin
       for B of Impl.Bindings loop
          if B.Target /= null then
-            Set_Part_Styles (B.Target.all, Get_Styles (B.Kind, To_String (B.Name)));
+            declare
+               Idx : constant Natural := Find_Selector_Index (Impl, B.Kind, To_String (B.Name));
+            begin
+               if Idx = 0 then
+                  Set_Part_Styles (B.Target.all, Empty_Part_Styles);
+               else
+                  declare
+                     Sel : Selector_Style renames
+                       Impl.Selectors.Reference (Positive (Idx)).Element.all;
+                  begin
+                     Set_Part_Styles (B.Target.all, Sel.Styles);
+                  end;
+               end if;
+            end;
          end if;
       end loop;
    end Reapply_Bindings;
@@ -2207,8 +2370,22 @@ package body Adi.CSS_Parser is
                     Kind  : Selector_Kind;
                     Name  : String;
                     W     : in out Adi.Widget.Widget'Class) is
+      Idx : Natural := 0;
    begin
-      Set_Part_Styles (W, Styles_For (Sheet, Kind, Name));
+      if Sheet.Impl /= null then
+         Idx := Find_Selector_Index (Sheet.Impl.all, Kind, Name);
+      end if;
+
+      if Idx = 0 then
+         Set_Part_Styles (W, Empty_Part_Styles);
+      else
+         declare
+            Sel : Selector_Style renames
+              Sheet.Impl.Selectors.Constant_Reference (Positive (Idx)).Element.all;
+         begin
+            Set_Part_Styles (W, Sel.Styles);
+         end;
+      end if;
    end Apply;
 
    procedure Apply_Class (Sheet      : Stylesheet;

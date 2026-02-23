@@ -118,6 +118,57 @@ the internal vector, so peak stack usage dropped from 7.1 MB to ~300 KB.
 `Add_Static_Entry` that verify incremental registration produces the same
 style-merge results as the bulk `Set_Static_Entries` API.
 
+## Follow-up: `css_parser_test` stack overflow (2026-02)
+
+### Symptom
+
+Running `./tests/bin/css_parser_test` with the default Linux stack (`ulimit -s`
+reports `8192`) raised:
+
+```
+raised STORAGE_ERROR : s-intman.adb:136 explicit raise
+```
+
+### Root causes
+
+Two contributors were identified:
+
+1. **By-value style copies in parser apply/rebind paths** (`adi-css_parser.adb`)
+   briefly copied `Part_Style_Array` values.
+2. **Very large single test frame** in `tests/src/css_parser_test.adb`:
+   many `Part_Style_Array` and `Resolved_Style` constants were declared in one
+   giant `declare` block and stayed live together.
+
+### Fixes applied
+
+1. **Parser hardening** (`src/adi-css_parser.adb`)
+   - `Reapply_Bindings` now does direct selector lookup + container reference
+     instead of returning `Part_Style_Array` by value.
+   - `Apply` now does direct indexed access + fallback instead of calling
+     `Styles_For(...)` by value.
+
+2. **Test frame reduction** (`tests/src/css_parser_test.adb`)
+   - Split one monolithic `declare` block into multiple scoped blocks so large
+     style/resolved objects are not all live at once.
+   - Assertion coverage and pass criteria stayed unchanged.
+
+### Measured result
+
+After fixes and rebuilding with `-fstack-usage`:
+
+| Item | Before | After |
+|------|--------|-------|
+| `Css_Parser_Test` stack usage | 8,345,520 bytes | 5,045,104 bytes |
+| `adi.css_parser.reapply_bindings` | 193,136 bytes | 256 bytes |
+| `adi.css_parser.apply` | 192,944 bytes | 96 bytes |
+
+Estimated margin on default 8 MB stack after fixes:
+
+- `8,388,608 - 5,045,104 = 3,343,504` bytes (~3.26 MB)
+
+`./tests/bin/css_parser_test` now passes at default `ulimit -s 8192` with
+`156/156` tests passing.
+
 ## Diagnosing Future STORAGE_ERROR Issues
 
 If a program crashes with `STORAGE_ERROR : s-intman.adb:... explicit raise`:

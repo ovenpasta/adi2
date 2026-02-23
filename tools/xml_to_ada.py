@@ -304,14 +304,19 @@ class Parser:
                 rel = elem.get("rel", "")
                 if rel == "stylesheet":
                     href = elem.get("href", "")
+                    explicit = elem.get("styles", "")
                     if href:
-                        explicit = elem.get("styles", "")
-                        if explicit:
-                            styles_pkg = explicit
-                        else:
-                            base = os.path.splitext(os.path.basename(href))[0]
-                            styles_pkg = to_ada_identifier(base) + "_Styles"
+                        styles_pkg = (
+                            explicit
+                            if explicit
+                            else to_ada_identifier(
+                                os.path.splitext(os.path.basename(href))[0]
+                            ) + "_Styles"
+                        )
                         app.css_links.append(CssLink(href=href, styles_pkg=styles_pkg))
+                    elif explicit:
+                        # styles-only link: compile-time Ada import, no runtime CSS file
+                        app.css_links.append(CssLink(href="", styles_pkg=explicit))
             elif tag == "style":
                 text = (elem.text or "").strip()
                 if text:
@@ -489,7 +494,7 @@ def generate_spec(app: XmlApp, package_name: str) -> str:
     all_widgets = collect_all_widgets(root)
     exported = [w for w in all_widgets if w.explicit_id]
     has_window = app.window is not None
-    live_css = bool(app.css_links or app.css_styles)
+    live_css = bool(any(link.href for link in app.css_links) or app.css_styles)
 
     # Compute with clauses — only packages referenced in the spec
     withs: set[str] = set()
@@ -589,8 +594,8 @@ def generate_spec(app: XmlApp, package_name: str) -> str:
         lines.append("                             Success  : out Boolean);")
         lines.append("")
 
-    # Set_CSS_File — only when <link> elements are present
-    if app.css_links:
+    # Set_CSS_File — only when dynamic <link> elements are present
+    if live_css:
         lines.append(
             "      procedure Set_CSS_File (Path : String;"
             " Success : out Boolean);"
@@ -628,7 +633,7 @@ def generate_body(app: XmlApp, package_name: str) -> str:
     exported = [w for w in all_widgets if w.explicit_id]
     internal = [w for w in all_widgets if not w.explicit_id]
     has_window = app.window is not None
-    live_css = bool(app.css_links or app.css_styles)
+    live_css = bool(any(link.href for link in app.css_links) or app.css_styles)
 
     # Compute spec-level withs so we know what the body inherits
     spec_withs: set[str] = set()
@@ -762,7 +767,7 @@ def generate_body(app: XmlApp, package_name: str) -> str:
             lines.append("   end Tick_Styles_CB;")
 
     # Set_CSS_File — clear + reload dynamic entries
-    if app.css_links:
+    if live_css:
         lines.append("")
         lines.append("   procedure Set_CSS_File (Path : String;"
                      " Success : out Boolean) is")
@@ -901,17 +906,18 @@ def generate_body(app: XmlApp, package_name: str) -> str:
             lines.append("         Loaded, Mode_OK : Boolean;")
             lines.append("      begin")
 
-            has_link = bool(app.css_links)
+            has_link = bool(any(link.href for link in app.css_links))
             has_style = bool(app.css_styles)
 
-            # Emit Add_Dynamic_File for each <link>
+            # Emit Add_Dynamic_File for each <link> that has an actual file path
             for link in app.css_links:
-                lines.append(
-                    "         Adi.CSS_Source.Add_Dynamic_File"
-                )
-                lines.append(
-                    f'           (Source, "{link.href}", Loaded);'
-                )
+                if link.href:
+                    lines.append(
+                        "         Adi.CSS_Source.Add_Dynamic_File"
+                    )
+                    lines.append(
+                        f'           (Source, "{link.href}", Loaded);'
+                    )
 
             # Emit Add_Dynamic_String for inline <style>
             if has_style:

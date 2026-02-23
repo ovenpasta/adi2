@@ -216,13 +216,17 @@ W := UI.Build;
 | Attribute | Description |
 |-----------|-------------|
 | `rel` | Must be `"stylesheet"` |
-| `href` | Path to CSS file (relative to working directory) |
-| `styles` | Optional explicit Ada styles package name. Derived from filename if omitted |
+| `href` | Path to CSS file (relative to working directory). Optional when `styles` is given. |
+| `styles` | Optional explicit Ada styles package name. Derived from filename if omitted. Required when `href` is omitted. |
 
-Each linked file generates:
-1. A `with` for the compiled styles package (e.g., `with Stack_Example_Styles;`)
-2. `Add_Dynamic_File(Source, "path.css", Loaded)` in `Build`
-3. `Set_Static_Entries` with precompiled constants as fallback
+**With `href`** — dynamic link: generates a `with` for the compiled styles package, `Add_Dynamic_File` in `Build`, and precompiled static fallback entries.
+
+**Without `href`** (styles-only link) — compile-time-only import: generates a `with` for the named styles package and uses `Set_Part_Styles` directly in `Build`. No `CSS_Source` machinery is involved. Use this when you have a precompiled Ada styles package but no runtime CSS live-reload.
+
+```xml
+<!-- styles-only: compile-time import, no dynamic CSS loading -->
+<link rel="stylesheet" styles="My_Styles"/>
+```
 
 ### `<style>` — Inline CSS
 

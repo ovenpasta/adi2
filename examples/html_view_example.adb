@@ -144,7 +144,6 @@ begin
       Tabs.Set_Button (Source_Tab, Btn_Source);
       Tabs.Set_On_Changed (On_Tab_Changed'Unrestricted_Access);
 
-      Adi.Widget.Html_View.Attach_Window (View.all, W);
       Adi.Widget.Html_View.Set_On_Link_Click
         (View.all, On_Link_Click'Unrestricted_Access);
       Adi.Widget.Html_View.Set_On_Load_Asset

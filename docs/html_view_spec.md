@@ -37,6 +37,7 @@ Package: `Adi.Widget.Html_View`
 
 - **Creation**
   - `function Create return Html_View_Access;`
+  - No window attachment call is required; `Html_View` is window-agnostic.
 
 - **Content**
   - `procedure Set_HTML (Self : in out Html_View; Source : String);`
@@ -217,6 +218,11 @@ Package: `Adi.Widget.Html_View`
 - Pointer down stores candidate link fragment.
 - Pointer up on same fragment triggers callback.
 - Non-link clicks are ignored by default and may bubble per normal widget behavior.
+
+## Window Integration
+- `Html_View` does not expose or require an `Attach_Window` API.
+- All rendering behavior (including list markers and inline SVG/image handling) is self-contained in the widget.
+- Host-window-specific wiring remains the responsibility of widgets that need overlays/popups (for example text editors, dialogs, and context menus).
 
 ## Performance and Caching
 - `Set_HTML` reparses and rebuilds internal run/tree caches, then marks widget dirty.

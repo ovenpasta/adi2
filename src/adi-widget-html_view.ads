@@ -5,7 +5,6 @@ with Adi.CSS_Parser;
 with Adi.CSS_Styles;
 with Adi.Image;
 with Adi.Widget;            use Adi.Widget;
-with Adi.Window;
 
 package Adi.Widget.Html_View is
 
@@ -25,10 +24,6 @@ package Adi.Widget.Html_View is
       URI  : String) return String;
 
    function Create return Html_View_Access;
-
-   procedure Attach_Window
-     (Self : in out Html_View;
-      Host : Adi.Window.Window_Access);
 
    procedure Set_HTML
      (Self   : in out Html_View;
@@ -139,7 +134,6 @@ private
       Links           : Link_Fragment_Vectors.Vector;
       Image_Cache     : Cached_Image_Vectors.Vector;
       Inline_Style_Cache : Inline_Style_Cache_Vectors.Vector;
-      Host            : Adi.Window.Window_Access := null;
       On_Link_Click   : Link_Click_Callback := null;
       On_Load_Asset   : Asset_Load_Callback := null;
       On_Load_Resource : Resource_Load_Callback := null;

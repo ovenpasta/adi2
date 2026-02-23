@@ -340,6 +340,86 @@ procedure Layout_Flex_Grid_Test is
       end;
    end Test_Grid_Track_Sizing;
 
+   --  Regression: fr columns in a content-sized grid must not collapse to zero.
+   --  Measure_Content (Fix A) includes fr content in the container width.
+   --  This test simulates that: container = auto cols + fr content + gaps.
+   --  3 columns: auto(60) auto(40) 1fr(child=120), gap=8.
+   --  Container = 60 + 40 + 120 + 2*8 = 236.
+   --  Fr column should get remaining: 236 - 2*8 - 60 - 40 = 120.
+   procedure Test_Grid_Fr_Content_Sized is
+      Tracks : constant Grid_Track_List :=
+        (Count  => 3,
+         Tracks => [1 => (Track_Auto, 0.0),
+                    2 => (Track_Auto, 0.0),
+                    3 => (Track_Fr,   1.0),
+                    others => <>]);
+      Ctx : Grid_Layout_Context :=
+        (Container     => (0.0, 0.0, 236.0, 50.0),
+         Columns       => 3,
+         Explicit_Rows => 1,
+         Row_Gap       => 0.0,
+         Column_Gap    => 8.0,
+         Column_Tracks => Tracks,
+         others        => <>);
+      Kids : Grid_Child_Info_Array (1 .. 3) :=
+        (1 => (Active => True, Grid_Column => 1, Grid_Row => 1,
+               Grid_Column_Span => 1, Grid_Row_Span => 1,
+               Pref_Width => 60.0, Min_Width => 60.0, others => <>),
+         2 => (Active => True, Grid_Column => 2, Grid_Row => 1,
+               Grid_Column_Span => 1, Grid_Row_Span => 1,
+               Pref_Width => 40.0, Min_Width => 40.0, others => <>),
+         3 => (Active => True, Grid_Column => 3, Grid_Row => 1,
+               Grid_Column_Span => 1, Grid_Row_Span => 1,
+               Pref_Width => 120.0, Min_Width => 120.0, others => <>));
+      Rects : Rectangle_Array (1 .. 3);
+   begin
+      Compute_Grid_Layout (Ctx, Kids);
+      Rects := Grid_To_Rectangles (Kids);
+
+      --  Auto columns keep their content widths.
+      Assert_Close (Rects (1).Width, 60.0, "fr-content-sized auto col1 width");
+      Assert_Close (Rects (2).Width, 40.0, "fr-content-sized auto col2 width");
+
+      --  Fr column gets the remaining space = 120 (matches its content).
+      Assert_Close (Rects (3).Width, 120.0,
+                    "fr-content-sized fr col3 width = 120 (not collapsed)");
+   end Test_Grid_Fr_Content_Sized;
+
+   --  Regression: with ample container space, fr columns still distribute
+   --  remaining space correctly (ensure the fix didn't break normal fr sizing).
+   procedure Test_Grid_Fr_Ample_Space is
+      --  2 columns: auto(80) 1fr, container=400, no gap.
+      --  Fr column should get 400-80 = 320.
+      Tracks : constant Grid_Track_List :=
+        (Count  => 2,
+         Tracks => [1 => (Track_Auto, 0.0),
+                    2 => (Track_Fr,   1.0),
+                    others => <>]);
+      Ctx : Grid_Layout_Context :=
+        (Container     => (0.0, 0.0, 400.0, 50.0),
+         Columns       => 2,
+         Explicit_Rows => 1,
+         Row_Gap       => 0.0,
+         Column_Gap    => 0.0,
+         Column_Tracks => Tracks,
+         others        => <>);
+      Kids : Grid_Child_Info_Array (1 .. 2) :=
+        (1 => (Active => True, Grid_Column => 1, Grid_Row => 1,
+               Grid_Column_Span => 1, Grid_Row_Span => 1,
+               Pref_Width => 80.0, Min_Width => 80.0, others => <>),
+         2 => (Active => True, Grid_Column => 2, Grid_Row => 1,
+               Grid_Column_Span => 1, Grid_Row_Span => 1,
+               Pref_Width => 50.0, Min_Width => 50.0, others => <>));
+      Rects : Rectangle_Array (1 .. 2);
+   begin
+      Compute_Grid_Layout (Ctx, Kids);
+      Rects := Grid_To_Rectangles (Kids);
+
+      Assert_Close (Rects (1).Width, 80.0, "fr-ample auto col width");
+      Assert_Close (Rects (2).Width, 320.0, "fr-ample fr col gets remaining 320");
+      Assert_Close (Rects (2).X, 80.0, "fr-ample fr col position");
+   end Test_Grid_Fr_Ample_Space;
+
 begin
    Put_Line ("Running layout_flex_grid_test...");
 
@@ -349,6 +429,8 @@ begin
    Test_Grid_Auto_And_Span;
    Test_Grid_Resize_And_Overflow_Policy;
    Test_Grid_Track_Sizing;
+   Test_Grid_Fr_Content_Sized;
+   Test_Grid_Fr_Ample_Space;
 
    Put_Line ("PASS: layout_flex_grid_test checks=" & Checks'Image);
 end Layout_Flex_Grid_Test;

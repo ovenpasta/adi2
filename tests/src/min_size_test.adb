@@ -149,9 +149,9 @@ begin
    Ada.Text_IO.New_Line;
 
    --  Test 4: Grid Measure_Content with mixed auto/fr tracks
-   --  A wide child explicitly placed in a 1fr column must not inflate the
-   --  grid's preferred width.  This is the regression case for the bug where
-   --  Measure_Content used Cols * max_child_w regardless of track kind.
+   --  Fr columns contribute their intrinsic minimum width (CSS
+   --  minmax(auto, Xfr) — the auto floor) to the grid's preferred size,
+   --  so the container is wide enough to display content when content-sized.
    Ada.Text_IO.Put_Line ("=== Grid Measure_Content track-sizing regression ===");
    Ada.Text_IO.New_Line;
    declare
@@ -207,19 +207,17 @@ begin
       Ada.Text_IO.Put_Line ("  Grid preferred width (auto/auto/auto/1fr): " &
                             Pixel_Type'Image (Pref.Width));
 
-      --  Expected: 80 + 60 + 40 + 0 (fr contributes 0) = 180.
-      --  The old bug would give 4 * 500 = 2000.
-      Check ("Grid preferred width = auto cols only (fr child excluded)",
-             Pref.Width >= 180.0 and then Pref.Width < 200.0);
-
-      --  Also verify: preferred width is strictly less than the wide fr child.
-      Check ("Grid preferred width < fr child min-width (500px)",
-             Pref.Width < 500.0);
+      --  Expected: 80 + 60 + 40 + 500 (fr content min) = 680.
+      --  Fr columns contribute their intrinsic content width per CSS spec.
+      Check ("Grid preferred width includes fr content (>= 680px)",
+             Pref.Width >= 680.0);
+      Check ("Grid preferred width reasonable (< 800px)",
+             Pref.Width < 800.0);
    end;
 
    Ada.Text_IO.New_Line;
 
-   --  Test 5: Wide child explicitly placed in 1fr column (exact bug scenario).
+   --  Test 5: Child explicitly placed in 1fr column — fr minimum included.
    Ada.Text_IO.Put_Line ("=== Grid Measure_Content explicit fr placement ===");
    Ada.Text_IO.New_Line;
    declare
@@ -282,10 +280,10 @@ begin
       Ada.Text_IO.Put_Line ("  Grid preferred width (auto/1fr, fr=800px): " &
                             Pixel_Type'Image (Pref.Width));
 
-      --  Expected: col 1 = 100px (max of Auto_C1 and Auto_C2), col 2 = 0 (fr).
-      --  The old bug would give 2 * 800 = 1600.
-      Check ("Explicit fr child (800px) does not inflate grid preferred width",
-             Pref.Width < 800.0);
+      --  Expected: col 1 = 100px (max of Auto_C1 and Auto_C2),
+      --  col 2 = 800px (fr content min).  Total = 900.
+      Check ("Fr content included in grid preferred width (>= 900px)",
+             Pref.Width >= 900.0);
       Check ("Auto column sized to its content (>= 100px)",
              Pref.Width >= 100.0);
    end;
@@ -589,6 +587,198 @@ begin
 
       Check ("overflow:hidden grid height unchanged (no growth)",
              Grid_Geom.Height = Container_H);
+   end;
+
+   --  Test 10: fr column in a content-sized grid must not collapse to zero.
+   --  Regression: when a grid has no explicit width (content-sized via flex
+   --  parent with align-items:flex-start), Measure_Content must include fr
+   --  column content in the preferred size, and layout must give the fr
+   --  column a non-zero width.
+   Ada.Text_IO.Put_Line ("=== fr column content-sized grid regression ===");
+   Ada.Text_IO.New_Line;
+   declare
+      --  Outer flex container that shrink-wraps children (align-items default).
+      Wrapper  : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Grid_Box : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Auto_Ch  : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Fr_Ch    : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+
+      --  Wrapper: flex column (default), generous size.
+      Wrap_Style : constant Style_Rules := (
+         Display => Set (Flex),
+         others => <>
+      );
+      Wrap_WS    : constant Widget_Style := From (Wrap_Style).Build;
+      Wrap_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Wrap_WS, Enabled => True),
+         others => <>
+      ];
+
+      --  Grid: 2 columns [auto, 1fr].
+      Grid_Style : constant Style_Rules := (
+         Display            => Set (Grid),
+         Grid_Columns       => Set (Grid_Columns_Value (2)),
+         Grid_Column_Tracks => (Count  => 2,
+                                Tracks => [1 => (Track_Auto, 0.0),
+                                           2 => (Track_Fr,   1.0),
+                                           others => <>]),
+         others => <>
+      );
+      Grid_WS    : constant Widget_Style := From (Grid_Style).Build;
+      Grid_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Grid_WS, Enabled => True),
+         others => <>
+      ];
+
+      Auto_Style : constant Style_Rules := (
+         Min_Width => Set (Size (Px (80.0))),
+         others => <>
+      );
+      Auto_WS    : constant Widget_Style := From (Auto_Style).Build;
+      Auto_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Auto_WS, Enabled => True),
+         others => <>
+      ];
+
+      Fr_Style : constant Style_Rules := (
+         Min_Width => Set (Size (Px (200.0))),
+         others => <>
+      );
+      Fr_WS    : constant Widget_Style := From (Fr_Style).Build;
+      Fr_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Fr_WS, Enabled => True),
+         others => <>
+      ];
+
+      Grid_Pref : Size_2D;
+      Fr_Geom   : Rectangle;
+   begin
+      Set_Part_Styles (Wrapper.all, Wrap_Parts);
+      Set_Part_Styles (Grid_Box.all, Grid_Parts);
+      Set_Part_Styles (Auto_Ch.all, Auto_Parts);
+      Set_Part_Styles (Fr_Ch.all, Fr_Parts);
+
+      Add_Child (Grid_Box.all, Auto_Ch);
+      Add_Child (Grid_Box.all, Fr_Ch);
+      Add_Child (Wrapper.all, Grid_Box);
+
+      --  Measure: preferred size must include fr content.
+      Grid_Pref := Get_Preferred_Size (Widget'Class (Grid_Box.all));
+      Ada.Text_IO.Put_Line
+        ("  Grid preferred width: " & Pixel_Type'Image (Grid_Pref.Width));
+      Check ("Content-sized grid includes fr content (pref >= 280)",
+             Grid_Pref.Width >= 280.0);
+
+      --  Layout the wrapper with generous space — grid gets content-sized width.
+      Set_Geometry (Widget'Class (Wrapper.all),
+                    (X => 0.0, Y => 0.0, Width => 800.0, Height => 100.0));
+      Layout (Widget'Class (Wrapper.all));
+
+      Fr_Geom := Get_Geometry (Widget'Class (Fr_Ch.all));
+      Ada.Text_IO.Put_Line
+        ("  Fr child: W=" & Pixel_Type'Image (Fr_Geom.Width));
+
+      --  The fr column must have a non-zero width.
+      Check ("Fr column width > 0 in content-sized grid",
+             Fr_Geom.Width > 0.0);
+      --  The fr column must be at least as wide as its content minimum.
+      Check ("Fr column width >= content min (200px)",
+             Fr_Geom.Width >= 200.0);
+   end;
+
+   --  Test 11: fr column uses intrinsic minimum (not preferred) in measurement.
+   --  Regression: Measure_Content used Max(Pref, Min) for fr columns, which
+   --  is the full unwrapped text width for labels.  This inflated the grid's
+   --  preferred width, preventing the grid from shrinking when the parent
+   --  constrains width, and blocking text wrapping in the fr column.
+   --  The fix uses Min_Width only for fr columns (CSS minmax(auto, Xfr)
+   --  floor = intrinsic minimum, not preferred).
+   Ada.Text_IO.Put_Line
+     ("=== fr column uses min (not pref) in measurement ===");
+   Ada.Text_IO.New_Line;
+   declare
+      Grid_Box : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Auto_Ch  : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Fr_Lbl   : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create
+          ("This is a very long description that should wrap " &
+           "when the column is narrow enough");
+
+      --  Grid: 2 columns [auto, 1fr].
+      Grid_Style : constant Style_Rules := (
+         Display            => Set (Grid),
+         Grid_Columns       => Set (Grid_Columns_Value (2)),
+         Grid_Column_Tracks => (Count  => 2,
+                                Tracks => [1 => (Track_Auto, 0.0),
+                                           2 => (Track_Fr,   1.0),
+                                           others => <>]),
+         others => <>
+      );
+      Grid_WS    : constant Widget_Style := From (Grid_Style).Build;
+      Grid_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Grid_WS, Enabled => True),
+         others => <>
+      ];
+
+      Auto_Style : constant Style_Rules := (
+         Min_Width => Set (Size (Px (80.0))),
+         others => <>
+      );
+      Auto_WS    : constant Widget_Style := From (Auto_Style).Build;
+      Auto_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Auto_WS, Enabled => True),
+         others => <>
+      ];
+
+      Label_Pref  : Size_2D;
+      Grid_Pref   : Size_2D;
+      Fr_Geom     : Rectangle;
+   begin
+      Set_Part_Styles (Grid_Box.all, Grid_Parts);
+      Set_Part_Styles (Auto_Ch.all, Auto_Parts);
+      Add_Child (Grid_Box.all, Auto_Ch);
+      Add_Child (Grid_Box.all, Fr_Lbl);
+
+      --  The label's preferred width is the full unwrapped text (very wide).
+      Label_Pref := Get_Preferred_Size (Widget'Class (Fr_Lbl.all));
+      Ada.Text_IO.Put_Line
+        ("  Label preferred width: " & Pixel_Type'Image (Label_Pref.Width));
+
+      --  Grid preferred width must NOT include the label's full preferred width.
+      --  It should use only the label's min-width (intrinsic minimum).
+      Grid_Pref := Get_Preferred_Size (Widget'Class (Grid_Box.all));
+      Ada.Text_IO.Put_Line
+        ("  Grid preferred width:  " & Pixel_Type'Image (Grid_Pref.Width));
+
+      Check ("Grid pref width < label pref width (fr uses min, not pref)",
+             Grid_Pref.Width < Label_Pref.Width);
+      Check ("Grid pref width >= auto col (80px)",
+             Grid_Pref.Width >= 80.0);
+
+      --  Layout at a width narrower than the label's preferred (but wide
+      --  enough for wrapping).  Text in the fr column should wrap.
+      Set_Geometry (Widget'Class (Grid_Box.all),
+                    (X => 0.0, Y => 0.0, Width => 300.0, Height => 200.0));
+      Layout (Widget'Class (Grid_Box.all));
+
+      Fr_Geom := Get_Geometry (Widget'Class (Fr_Lbl.all));
+      Ada.Text_IO.Put_Line
+        ("  Fr label after layout: W=" & Pixel_Type'Image (Fr_Geom.Width) &
+         " H=" & Pixel_Type'Image (Fr_Geom.Height));
+
+      --  The fr column must have shrunk to fit the container, not stayed at
+      --  full preferred width.
+      Check ("Fr label width fits in container (< 230px)",
+             Fr_Geom.Width < 230.0 and then Fr_Geom.Width > 0.0);
+      --  Text should have wrapped, making the label taller than single-line.
+      Check ("Fr label height > single-line (text wrapped)",
+             Fr_Geom.Height > Label_Pref.Height);
    end;
 
    Ada.Text_IO.New_Line;

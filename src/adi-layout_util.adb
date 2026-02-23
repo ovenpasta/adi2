@@ -1087,9 +1087,12 @@ package body Adi.Layout_Util is
                        / Pixel_Type (RS);
 
                      for K in C .. C + CS - 1 loop
-                        --  fr tracks have a base minimum of 0 (minmax(0,Xfr)).
-                        --  Never expand them here; doing so pushes the total
-                        --  layout past the container when the window is narrow.
+                        --  fr tracks keep their Pass 3 allocation (which may
+                        --  be zero when the container is content-sized).
+                        --  Expanding them here would push the total layout
+                        --  past the container in fixed-width scenarios.
+                        --  Content-sized grids are handled by Measure_Content
+                        --  which includes fr content in the preferred width.
                         if Context.Column_Tracks.Count /= Cols
                           or else Context.Column_Tracks.Tracks (K).Kind /= Track_Fr
                         then

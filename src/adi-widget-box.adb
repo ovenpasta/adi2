@@ -118,8 +118,9 @@ package body Adi.Widget.Box is
             Rows        : Natural := 0;
          begin
             if Tracks.Count = Cols then
-               --  Track-aware measurement: auto columns sized to content,
-               --  px columns use their fixed value, fr columns contribute 0.
+               --  Track-aware measurement: auto columns sized to preferred
+               --  content width, px columns use their fixed value, fr columns
+               --  contribute their intrinsic minimum (CSS minmax(auto, Xfr)).
                declare
                   Col_Max_W  : array (1 .. Cols) of Pixel_Type := [others => 0.0];
                   Auto_Index : Natural := 0;
@@ -138,9 +139,15 @@ package body Adi.Widget.Box is
                         Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
                         Pref   : constant Size_2D := Get_Preferred_Size (Child.all);
                         Min    : constant Size_2D := Get_Min_Size (Child.all);
+                        --  For auto columns: preferred (full content) width.
+                        --  For fr columns: intrinsic minimum only (CSS
+                        --  minmax(auto, Xfr) — the auto floor is the minimum
+                        --  content contribution, not the preferred width).
                         Eff_W  : constant Pixel_Type :=
                           Pixel_Type'Max (Pref.Width, Min.Width)
                           + Margin.Left + Margin.Right;
+                        Min_W  : constant Pixel_Type :=
+                          Min.Width + Margin.Left + Margin.Right;
                         C  : Natural := Natural (Child_Style.Grid_Column);
                         R  : constant Natural := Natural (Child_Style.Grid_Row);
                         CS : Natural := Natural (Child_Style.Grid_Column_Span);
@@ -167,8 +174,13 @@ package body Adi.Widget.Box is
                            Pixel_Type'Max (Pref.Height, Min.Height)
                            + Margin.Top + Margin.Bottom);
 
-                        --  Distribute child width evenly across spanned columns.
-                        --  Only auto tracks update Col_Max_W; fr and px are unaffected.
+                        --  Distribute child width across spanned columns.
+                        --  Auto tracks: full preferred width (sized to content).
+                        --  Fr tracks: intrinsic minimum only — fr columns fill
+                        --  available space at layout time, so measurement uses
+                        --  the minimum content contribution (CSS minmax(auto,
+                        --  Xfr) floor) to avoid inflating the container.
+                        --  Px tracks: keep their fixed value.
                         for Span_Offset in 0 .. CS - 1 loop
                            declare
                               Sc : constant Natural := C + Span_Offset;
@@ -176,6 +188,9 @@ package body Adi.Widget.Box is
                               if Tracks.Tracks (Sc).Kind = Track_Auto then
                                  Col_Max_W (Sc) := Pixel_Type'Max
                                    (Col_Max_W (Sc), Eff_W / Pixel_Type (CS));
+                              elsif Tracks.Tracks (Sc).Kind = Track_Fr then
+                                 Col_Max_W (Sc) := Pixel_Type'Max
+                                   (Col_Max_W (Sc), Min_W / Pixel_Type (CS));
                               end if;
                            end;
                         end loop;

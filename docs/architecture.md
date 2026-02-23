@@ -130,6 +130,7 @@
 - Box model, edge/border extraction, alignment
 - Flexbox and grid layout (`Compute_Grid_Layout` / `Grid_To_Rectangles`)
 - Grid track sizing: `Grid_Track_List` carries per-column `auto`/`fr`/`px` specs (up to 16 tracks). `Compute_Grid_Layout` implements a 5-pass algorithm: (1) size `auto` columns to max child preferred width, (2) assign initial widths from track specs (`px` fixed, `fr` = 0), (3) distribute remaining space to `fr` columns, (4) expand columns/rows for `min-width`/`min-height` (skips `fr` columns — their floor is 0), (5) re-distribute `fr` columns after Pass 4 may have grown `auto`/`px` columns. Rows use an analogous 2-pass scheme: Pass 4 expands to content minimums, then remaining height is shared equally. When `overflow: visible` and rows overflow the allocated height (e.g. after text-wrap discovery), the grid container grows to fit.
+- `fr` measurement in `Measure_Content` (`Adi.Widget.Box`): `fr` columns contribute their children's intrinsic **minimum** width (not the full preferred width) to the grid's content size. This follows CSS `minmax(auto, Xfr)` semantics — the grid allocates enough room for `fr` content at its minimum, while keeping `fr` columns shrinkable so text wraps when the container is constrained. `auto` columns still contribute their full preferred width.
 - DIP scaling: `Set/Get_Active_DIP_Scale`; `Length_To_Px` scales `dip` by active value
 
 **Adi.Window** (`adi-window.ads`): Window management.

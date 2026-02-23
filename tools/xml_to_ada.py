@@ -333,6 +333,10 @@ class Parser:
                         "Only one <window> or root widget allowed"
                     )
                 app.root_widget = self._parse_widget(elem)
+            else:
+                raise ValueError(
+                    f"Unsupported element <{tag}> inside <adi>"
+                )
 
         if app.root_widget is None and app.window is None:
             raise ValueError("No <window> or root widget element found")
@@ -391,6 +395,11 @@ class Parser:
         )
 
     def _parse_window(self, elem) -> XmlWindow:
+        for child in elem:
+            if child.tag not in WIDGET_TAGS:
+                raise ValueError(
+                    f"Unsupported element <{child.tag}> inside <window>"
+                )
         widget_children = [c for c in elem if c.tag in WIDGET_TAGS]
         if len(widget_children) != 1:
             raise ValueError(
@@ -473,6 +482,11 @@ class Parser:
                 widget.items.append(item_text)
             elif child_elem.tag in WIDGET_TAGS:
                 widget.children.append(self._parse_widget(child_elem))
+            else:
+                raise ValueError(
+                    f"Unsupported element <{child_elem.tag}>"
+                    f" inside <{tag}>"
+                )
 
         return widget
 

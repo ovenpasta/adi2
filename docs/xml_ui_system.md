@@ -488,6 +488,20 @@ The body contains:
 
 ---
 
+## Validation
+
+The parser rejects unsupported elements with a clear error message. Any element not listed in the grammar (`tools/widgets.xml`) or the known declaration tags (`enum`, `generic`, `callback`, `link`, `style`, `window`, `option-group`, `page`, `item`, `component`) causes a parse failure:
+
+```
+Error parsing XML: Unsupported element <foobar> inside <adi>
+Error parsing XML: Unsupported element <unknown> inside <box>
+Error parsing XML: Unsupported element <bad-tag> inside <window>
+```
+
+This applies at every level: top-level children of `<adi>`, children of `<window>`, and children of any widget element.
+
+---
+
 ## Limitations
 
 - **No dynamic widget removal** — The tree is built once in `Build`; no runtime add/remove

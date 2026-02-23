@@ -457,7 +457,8 @@ package body Adi.Widget.Html_View is
       Main_Base : constant Style_Rules := (
         Flex_Grow => Set (1.0),
         Min_Height => Set (Size (Px (0.0))),
-        Overflow => Set (Overflow_Auto),
+        Overflow_X => Set_Overflow_X (Overflow_Auto),
+        Overflow_Y => Set_Overflow_Y (Overflow_Auto),
         Background_Color => Set_Bg (RGB (255, 252, 247)),
         Border_Width => Set (Border_Width (Px (1.0))),
         Border_Style => Set (Border_Style (Solid)),

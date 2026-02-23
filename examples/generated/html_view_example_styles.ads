@@ -169,13 +169,14 @@ package Html_View_Example_Styles is
    Html_View_Class_Base_Style : constant Style_Rules := (
       Flex_Grow => Set (1.0),
       Min_Height => Set (Size (Px (0.0))),
-      Overflow => Set (Overflow_Auto),
       Background_Color => Set_Bg (RGB (255, 252, 247)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (212, 199, 183))),
       Border_Radius => Set (Radius (Px (10.0))),
       Padding => Set (CSS_Box (Px (14.0), Px (14.0), Px (14.0), Px (14.0))),
+      Overflow_X => Set_Overflow_X (Overflow_Auto),
+      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>
    );
 
@@ -205,8 +206,9 @@ package Html_View_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (212, 199, 183))),
       Border_Radius => Set (Radius (Px (10.0))),
-      Overflow => Set (Overflow_Auto),
       Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
+      Overflow_X => Set_Overflow_X (Overflow_Auto),
+      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>
    );
 

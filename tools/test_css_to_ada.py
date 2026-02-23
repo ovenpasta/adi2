@@ -10,6 +10,8 @@ Usage: python tools/test_css_to_ada.py
 
 import sys
 import os
+import subprocess
+import tempfile
 import unittest
 
 # Add tools directory to path
@@ -23,6 +25,7 @@ from css_to_ada import (
     parse_box_shadow,
     parse_transition,
     parse_css,
+    parse_css_with_diagnostics,
     parse_grid_track_count,
     parse_grid_placement,
     parse_list_style_shorthand,
@@ -479,6 +482,47 @@ class TestParseCss(unittest.TestCase):
         self.assertEqual(len(rules), 1)
         self.assertEqual(rules[0].selector.part_kind, "Label_Part")
 
+    def test_diagnostic_unknown_property(self):
+        _rules, diags = parse_css_with_diagnostics(".x { totally-unknown: 7; }")
+        self.assertTrue(any(d.code == "unsupported-property" for d in diags))
+
+    def test_diagnostic_invalid_value(self):
+        _rules, diags = parse_css_with_diagnostics(".x { color: notacolor; }")
+        self.assertTrue(any(d.code == "invalid-property-value" for d in diags))
+
+    def test_diagnostic_unknown_part(self):
+        rules, diags = parse_css_with_diagnostics(".x::nope { color: red; }")
+        self.assertEqual(len(rules), 0)
+        self.assertTrue(any(d.code == "unsupported-part" for d in diags))
+
+    def test_overflow_axis_properties_preserve_order(self):
+        rules, diags = parse_css_with_diagnostics(
+            ".x { overflow: hidden; overflow-y: auto; overflow-x: scroll; }"
+        )
+        self.assertEqual(len(diags), 0)
+        self.assertEqual(len(rules), 1)
+        self.assertIn("overflow", rules[0].properties)
+        self.assertIn("overflow-x", rules[0].properties)
+        self.assertIn("overflow-y", rules[0].properties)
+        self.assertEqual(rules[0].properties["overflow"], "hidden")
+        self.assertEqual(rules[0].properties["overflow-x"], "scroll")
+        self.assertEqual(rules[0].properties["overflow-y"], "auto")
+
+    def test_overflow_axis_properties_shorthand_last(self):
+        rules, diags = parse_css_with_diagnostics(
+            ".x { overflow-y: auto; overflow: hidden; }"
+        )
+        self.assertEqual(len(diags), 0)
+        self.assertEqual(len(rules), 1)
+        self.assertEqual(list(rules[0].properties.keys()), ["overflow-y", "overflow"])
+
+    def test_border_longhands_are_in_spec(self):
+        rules, diags = parse_css_with_diagnostics(
+            ".x { border-top: 2px solid red; border-top-left-radius: 4px; }"
+        )
+        self.assertEqual(len(rules), 1)
+        self.assertEqual(len(diags), 0)
+
 
 class TestGroupRules(unittest.TestCase):
     def test_merges_base_rules(self):
@@ -593,6 +637,61 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
         self.assertIn("Border_Style =>", ada)
         self.assertIn("Border_Color =>", ada)
 
+    def test_border_side_longhands(self):
+        ada = self._gen(
+            {
+                "border-top-width": "2px",
+                "border-left-color": "red",
+                "border-bottom-style": "dotted",
+            }
+        )
+        self.assertIn(
+            "Border_Width => Set (Border_Width (Px (2.0), Px (0.0), Px (0.0), Px (0.0)))",
+            ada,
+        )
+        self.assertIn("Border_Style => Set (Border_Style (None_Style, None_Style, Dotted, None_Style))", ada)
+        self.assertIn("Border_Color => Set (", ada)
+        self.assertIn("C (Red)", ada)
+
+    def test_border_side_shorthand_updates_only_one_side(self):
+        ada = self._gen({"border": "1px solid #333", "border-top": "2px dashed red"})
+        self.assertIn(
+            "Border_Width => Set (Border_Width (Px (2.0), Px (1.0), Px (1.0), Px (1.0)))",
+            ada,
+        )
+        self.assertIn(
+            "Border_Style => Set (Border_Style (Dashed, Solid, Solid, Solid))",
+            ada,
+        )
+        self.assertIn(
+            "Border_Color => Set (Border_Color (C (Red), RGB (51, 51, 51), RGB (51, 51, 51), RGB (51, 51, 51)))",
+            ada,
+        )
+
+    def test_border_shorthand_then_side_longhand_override(self):
+        ada = self._gen({"border": "1px solid #333", "border-left-width": "4px"})
+        self.assertIn(
+            "Border_Width => Set (Border_Width (Px (1.0), Px (1.0), Px (1.0), Px (4.0)))",
+            ada,
+        )
+
+    def test_border_side_longhand_then_shorthand_override(self):
+        ada = self._gen({"border-left-width": "4px", "border": "1px solid #333"})
+        self.assertIn("Border_Width => Set (Border_Width (Px (1.0)))", ada)
+        self.assertNotIn("Px (4.0)", ada)
+
+    def test_border_radius_corner_longhand(self):
+        ada = self._gen({"border-radius": "4px", "border-top-left-radius": "9px"})
+        self.assertIn(
+            "Border_Radius => Set (Radius (Px (9.0), Px (4.0), Px (4.0), Px (4.0)))",
+            ada,
+        )
+
+    def test_border_radius_shorthand_overrides_corner_longhand(self):
+        ada = self._gen({"border-top-left-radius": "9px", "border-radius": "4px"})
+        self.assertIn("Border_Radius => Set (Radius (Px (4.0)))", ada)
+        self.assertNotIn("Px (9.0)", ada)
+
     # -- Sizing --
 
     def test_width(self):
@@ -700,7 +799,28 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
 
     def test_overflow(self):
         ada = self._gen({"overflow": "hidden"})
-        self.assertIn("Overflow => Set (Overflow_Hidden)", ada)
+        self.assertIn("Overflow_X => Set_Overflow_X (Overflow_Hidden)", ada)
+        self.assertIn("Overflow_Y => Set_Overflow_Y (Overflow_Hidden)", ada)
+
+    def test_overflow_x(self):
+        ada = self._gen({"overflow-x": "auto"})
+        self.assertIn("Overflow_X => Set_Overflow_X (Overflow_Auto)", ada)
+        self.assertNotIn("Overflow_Y =>", ada)
+
+    def test_overflow_y(self):
+        ada = self._gen({"overflow-y": "scroll"})
+        self.assertIn("Overflow_Y => Set_Overflow_Y (Overflow_Scroll)", ada)
+        self.assertNotIn("Overflow_X =>", ada)
+
+    def test_overflow_shorthand_then_longhand(self):
+        ada = self._gen({"overflow": "hidden", "overflow-y": "auto"})
+        self.assertIn("Overflow_X => Set_Overflow_X (Overflow_Hidden)", ada)
+        self.assertIn("Overflow_Y => Set_Overflow_Y (Overflow_Auto)", ada)
+
+    def test_overflow_longhand_then_shorthand(self):
+        ada = self._gen({"overflow-y": "auto", "overflow": "hidden"})
+        self.assertIn("Overflow_X => Set_Overflow_X (Overflow_Hidden)", ada)
+        self.assertIn("Overflow_Y => Set_Overflow_Y (Overflow_Hidden)", ada)
 
     def test_visibility(self):
         ada = self._gen({"visibility": "hidden"})
@@ -823,6 +943,20 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
     def test_object_fit(self):
         ada = self._gen({"object-fit": "cover"})
         self.assertIn("Object_Fit => Set (Fit_Cover)", ada)
+
+    def test_object_position_keywords(self):
+        ada = self._gen({"object-position": "center center"})
+        self.assertIn(
+            "Object_Position => Set (Object_Position (Pos_Center, Pos_Center))",
+            ada,
+        )
+
+    def test_object_position_lengths(self):
+        ada = self._gen({"object-position": "10px 20px"})
+        self.assertIn(
+            "Object_Position => Set (Object_Position (Px (10.0), Px (20.0)))",
+            ada,
+        )
 
     def test_box_shadow(self):
         ada = self._gen({"box-shadow": "2px 4px 6px rgba(0, 0, 0, 0.3)"})
@@ -968,6 +1102,24 @@ class TestGenerateAdaPackage(unittest.TestCase):
         # Should also have padding
         self.assertIn("Padding => Set (", ada)
 
+    def test_overflow_y_in_package(self):
+        css = ".card { overflow-y: auto; }"
+        rules = parse_css(css)
+        groups = group_rules_by_widget(rules)
+        ada = generate_ada_package(groups, "OverflowY_Styles")
+        self.assertIn("Overflow_Y => Set_Overflow_Y (Overflow_Auto)", ada)
+        self.assertNotIn("Overflow => Set (Overflow_Auto)", ada)
+
+    def test_object_position_in_package(self):
+        css = ".img::icon { object-position: center center; }"
+        rules = parse_css(css)
+        groups = group_rules_by_widget(rules)
+        ada = generate_ada_package(groups, "ObjectPos_Styles")
+        self.assertIn(
+            "Object_Position => Set (Object_Position (Pos_Center, Pos_Center))",
+            ada,
+        )
+
 
 class TestGenerateLengthAndColor(unittest.TestCase):
     def test_length(self):
@@ -988,6 +1140,76 @@ class TestGenerateLengthAndColor(unittest.TestCase):
             generate_color_ada(ParsedColor(kind="rgba", r=10, g=20, b=30, a=0.5)),
             "RGBA (10, 20, 30, 0.5)"
         )
+
+
+class TestCliStrictMode(unittest.TestCase):
+    def _run(self, css: str, *extra_args: str):
+        tools_dir = os.path.dirname(os.path.abspath(__file__))
+        script = os.path.join(tools_dir, "css_to_ada.py")
+        with tempfile.TemporaryDirectory() as td:
+            input_path = os.path.join(td, "in.css")
+            output_path = os.path.join(td, "out.ads")
+            with open(input_path, "w", encoding="utf-8") as f:
+                f.write(css)
+            cmd = [
+                sys.executable,
+                script,
+                input_path,
+                output_path,
+                "--package-name",
+                "Tmp_Styles",
+                *extra_args,
+            ]
+            proc = subprocess.run(cmd, capture_output=True, text=True)
+            output_exists = os.path.exists(output_path)
+            output_text = ""
+            if output_exists:
+                with open(output_path, "r", encoding="utf-8") as f:
+                    output_text = f.read()
+            return proc, output_exists, output_text
+
+    def test_non_strict_warns_and_generates(self):
+        proc, output_exists, _ = self._run(".x { unknown-prop: 1; color: red; }")
+        self.assertEqual(proc.returncode, 0)
+        self.assertIn("warning:", proc.stderr)
+        self.assertTrue(output_exists)
+
+    def test_strict_fails_without_output_on_unknown_property(self):
+        proc, output_exists, _ = self._run(
+            ".x { unknown-prop: 1; color: red; }",
+            "--strict",
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("warning:", proc.stderr)
+        self.assertFalse(output_exists)
+
+    def test_strict_fails_on_invalid_value(self):
+        proc, output_exists, _ = self._run(
+            ".x { color: notacolor; }",
+            "--strict",
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("invalid-property-value", proc.stderr)
+        self.assertFalse(output_exists)
+
+    def test_strict_fails_on_unknown_part(self):
+        proc, output_exists, _ = self._run(
+            ".x::unknown { color: red; }",
+            "--strict",
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("unsupported-part", proc.stderr)
+        self.assertFalse(output_exists)
+
+    def test_strict_passes_on_valid_css(self):
+        proc, output_exists, output_text = self._run(
+            ".x { color: red; overflow-y: auto; }",
+            "--strict",
+        )
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(proc.stderr.strip(), "")
+        self.assertTrue(output_exists)
+        self.assertIn("Overflow_Y => Set_Overflow_Y (Overflow_Auto)", output_text)
 
 
 if __name__ == "__main__":

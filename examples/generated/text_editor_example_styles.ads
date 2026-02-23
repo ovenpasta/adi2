@@ -17,8 +17,9 @@ package Text_Editor_Example_Styles is
       Justify_Content => Set (Flex_Start),
       Gap => Set (Gap (Px (12.0))),
       Background_Color => Set_Bg (RGB (20, 24, 31)),
-      Overflow => Set (Overflow_Hidden),
       Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
+      Overflow_X => Set_Overflow_X (Overflow_Hidden),
+      Overflow_Y => Set_Overflow_Y (Overflow_Hidden),
       others => <>
    );
 
@@ -125,9 +126,10 @@ package Text_Editor_Example_Styles is
       Border_Color => Set (Border_Color (RGB (69, 71, 90))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Radius => Set (Radius (Px (8.0))),
-      Overflow => Set (Overflow_Auto),
       Box_Shadow => Set (No_Shadow),
       Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
+      Overflow_X => Set_Overflow_X (Overflow_Auto),
+      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>
    );
 

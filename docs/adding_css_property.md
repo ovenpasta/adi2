@@ -209,7 +209,17 @@ The property name is in `P` (original case), the value string in `V`, and `LV` i
 
 The Python script `css_to_ada.py` compiles CSS to Ada constants at build time. It needs parallel changes to the runtime parser.
 
-### 4a. Enum map (if applicable)
+### 4a. Update compile-time CSS spec (`tools/css_spec.py`)
+
+Add the property to `SUPPORTED_PROPERTIES` in `tools/css_spec.py`:
+
+- Choose a canonical property name (`canonical_name`)
+- Add aliases when needed (canonicalize only true aliases; keep distinct longhands like `overflow-x` / `overflow-y` as separate canonical properties)
+- Set the value validator key (`validator`)
+
+If this step is skipped, `css_to_ada.py` will treat the property as out-of-spec and emit warnings (or fail in `--strict` mode).
+
+### 4b. Enum map (if applicable)
 
 Add a mapping dict for enumeration values:
 
@@ -222,7 +232,7 @@ OUTLINE_STYLE_MAP = {
 }
 ```
 
-### 4b. Property generation in `generate_style_rules_ada()`
+### 4c. Property generation in `generate_style_rules_ada()`
 
 Add `elif` branches in the property loop. The function builds Ada `Style_Rules` field assignments:
 
@@ -268,6 +278,7 @@ Key points:
 - For longhands, set `ada_field` and let the loop append it.
 - For shorthands that expand to multiple fields, append to `fields` directly and use `continue` to skip the single-field append.
 - Use `split_css_whitespace_tokens()` (not `.split()`) for shorthands that may contain `rgb(...)` values.
+- If a shorthand expands to longhands (like `overflow`), keep storage in the longhand fields only (`Overflow_X`/`Overflow_Y`) rather than adding a redundant shorthand field.
 
 ---
 
@@ -350,7 +361,7 @@ When adding a new CSS property, touch these files:
 | 1 | `src/adi-css_styles.ads` | Value type, defaults, `Opt_*` package, `Style_Rules` field, `Resolved_Style` field, `Set` function |
 | 2 | `src/adi-css_styles.adb` | `Merge` line, `Resolve` line |
 | 3 | `src/adi-css_parser.adb` | `elsif P = "..."` branch in `Apply_Property` |
-| 4 | `tools/css_to_ada.py` | Enum map (if needed), `elif prop == "..."` in `generate_style_rules_ada()` |
+| 4 | `tools/css_spec.py` + `tools/css_to_ada.py` | Spec entry (`SUPPORTED_PROPERTIES`) + enum map/`elif prop == "..."` generation |
 | 5 | `src/adi-widget.adb` | Rendering code (if visual), or layout code (if layout-affecting) |
 | 6 | `tests/src/css_parser_test.adb` | CSS test input + assertions |
 | 7 | `tools/test_css_to_ada.py` | Python unit tests for code generation |

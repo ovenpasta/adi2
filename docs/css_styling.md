@@ -158,10 +158,19 @@ For `::main`, interactive pseudos remain widget-scoped regardless of position:
 | Property | Values | Example |
 |----------|--------|---------|
 | `border` | shorthand (width style color) | `border: 1px solid #ccc;` |
+| `border-top/right/bottom/left` | side shorthand (width/style/color in any order) | `border-top: 2px dashed red;` |
 | `border-width` | 1–4 lengths | `border-width: 1px;` |
-| `border-color` | 1–4 colors | `border-color: rgb(200,200,200);` |
+| `border-top/right/bottom/left-width` | length | `border-left-width: 4px;` |
+| `border-color` | color value | `border-color: rgb(200,200,200);` |
+| `border-top/right/bottom/left-color` | color value | `border-left-color: red;` |
 | `border-style` | `none`, `solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`, `inset`, `outset`, `hidden` | `border-style: solid;` |
+| `border-top/right/bottom/left-style` | same as `border-style` | `border-bottom-style: dotted;` |
 | `border-radius` | 1–4 lengths | `border-radius: 8px;` |
+| `border-top-left/top-right/bottom-right/bottom-left-radius` | single length/percent | `border-top-left-radius: 10px;` |
+
+Runtime (`Adi.CSS_Parser`) and compile-time (`css_to_ada.py`) both support `border` shorthand and side/corner longhands with standard declaration order semantics (later declarations win).
+For asymmetric corners, prefer `border-radius` shorthand when possible (for example, top-only rounding: `border-radius: 8px 8px 0px 0px;`) and use corner longhands only for targeted overrides.
+Corner radius longhands currently accept a single value only (elliptical two-value corner syntax is not supported yet).
 
 ### Colors
 
@@ -193,7 +202,12 @@ For `::main`, interactive pseudos remain widget-scoped regardless of position:
 | `display` | `none`, `block`, `inline`, `inline-block`, `flex`, `inline-flex`, `grid`, `inline-grid` | `display: flex;` |
 | `position` | `static`, `relative`, `absolute`, `fixed`, `sticky` | `position: relative;` |
 | `overflow` | `visible`, `hidden`, `scroll`, `auto` | `overflow: auto;` |
+| `overflow-x` | `visible`, `hidden`, `scroll`, `auto` | `overflow-x: hidden;` |
+| `overflow-y` | `visible`, `hidden`, `scroll`, `auto` | `overflow-y: auto;` |
 | `visibility` | `visible`, `hidden`, `collapse` | `visibility: hidden;` |
+
+`overflow` is treated as shorthand only: it sets both `overflow-x` and `overflow-y`.
+Resolved styles store only axis values (`Overflow_X`, `Overflow_Y`), and normal CSS order/override rules apply.
 
 ### Flexbox Container
 
@@ -320,7 +334,9 @@ Images are loaded as CPU surfaces and GPU textures are created lazily at render 
 | Property | Values | Example |
 |----------|--------|---------|
 | `object-fit` | `fill`, `contain`, `cover`, `none`, `scale-down` | `object-fit: cover;` |
-| `object-position` | keywords or length offsets | `object-position: center;` |
+| `object-position` | `center`, keyword pairs (`left top`, `top center`, ...), or 1-2 length/percent offsets | `object-position: center center;` |
+
+`object-position` intentionally supports the common forms above; advanced mixed edge-offset forms are currently rejected.
 
 #### Tintable images
 
@@ -406,9 +422,15 @@ Special keywords: `transparent`, `inherit`, `currentcolor`.
 
 ```bash
 python3 tools/css_to_ada.py input.css output.ads --package-name=My_Styles
+python3 tools/css_to_ada.py input.css output.ads --package-name=My_Styles --strict
 ```
 
 Incremental generation for all examples via `tools/generate_example_styles.sh`.
+
+### Validation Modes
+
+- **Default mode** (no `--strict`): unsupported properties, unsupported `::part` names, and invalid values produce warnings on `stderr`; generation continues.
+- **Strict mode** (`--strict`): any warning-level diagnostic fails generation (exit code `1`) and no output file is written.
 
 ### Generated Code Structure
 

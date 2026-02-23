@@ -92,6 +92,7 @@ package Animated_Image_Example_Styles is
    --  Base style for class 'viewer'::icon
    Viewer_Class_Icon_Base_Style : constant Style_Rules := (
       Object_Fit => Set (Fit_Contain),
+      Object_Position => Set (Object_Position (Pos_Center, Pos_Center)),
       Border_Radius => Set (Radius (Px (10.0))),
       others => <>
    );

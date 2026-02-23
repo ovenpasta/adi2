@@ -230,7 +230,8 @@ package body Adi.Animation is
          Result.Position        := From.Position;
          Result.Visibility      := From.Visibility;
          Result.Cursor          := From.Cursor;
-         Result.Overflow        := From.Overflow;
+         Result.Overflow_X      := From.Overflow_X;
+         Result.Overflow_Y      := From.Overflow_Y;
          Result.Flex_Direction   := From.Flex_Direction;
          Result.Flex_Wrap        := From.Flex_Wrap;
          Result.Justify_Content  := From.Justify_Content;

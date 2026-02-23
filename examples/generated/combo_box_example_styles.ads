@@ -128,7 +128,6 @@ package Combo_Box_Example_Styles is
    --  Base style for class 'dropdown'
    Dropdown_Class_Base_Style : constant Style_Rules := (
       Max_Height => Set (Size (Px (240.0))),
-      Overflow => Set (Overflow_Auto),
       Background_Color => Set_Bg (RGB (246, 248, 252)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -136,6 +135,8 @@ package Combo_Box_Example_Styles is
       Border_Radius => Set (Radius (Px (8.0))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (10.0), Px (24.0), Px (0.0), RGBA (2, 8, 23, 0.22))),
       Padding => Set (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0))),
+      Overflow_X => Set_Overflow_X (Overflow_Auto),
+      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>
    );
 

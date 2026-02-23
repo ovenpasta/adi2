@@ -144,6 +144,12 @@ procedure Css_Parser_Test is
        ".widthauto { width: auto; }" & ASCII.LF &
        ".basisauto { flex-basis: auto; }" & ASCII.LF &
        ".basiscontent { flex-basis: content; }" & ASCII.LF &
+       ".borderlong { border-top-width: 2px; border-left-color: red; border-bottom-style: dotted; border-top-left-radius: 9px; }" & ASCII.LF &
+       ".borderside { border: 1px solid #333; border-top: 2px dashed red; }" & ASCII.LF &
+       ".borderorder1 { border: 1px solid #333; border-left-width: 4px; }" & ASCII.LF &
+       ".borderorder2 { border-left-width: 4px; border: 1px solid #333; }" & ASCII.LF &
+       ".borderradiusorder { border-radius: 4px; border-top-left-radius: 9px; }" & ASCII.LF &
+       ".borderradiusorder2 { border-top-left-radius: 9px; border-radius: 4px; }" & ASCII.LF &
        ".pressed-pseudo { background-color: rgb(11, 22, 33); }" & ASCII.LF &
        ".pressed-pseudo:active { background-color: rgb(44, 55, 66); }" & ASCII.LF;
 
@@ -455,6 +461,12 @@ begin
       Widthauto_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "widthauto");
       Basisauto_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "basisauto");
       Basiscont_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "basiscontent");
+      BorderLong_Styles  : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "borderlong");
+      BorderSide_Styles  : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "borderside");
+      BorderOrder1_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "borderorder1");
+      BorderOrder2_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "borderorder2");
+      BorderRadiusOrder_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "borderradiusorder");
+      BorderRadiusOrder2_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "borderradiusorder2");
       Pressed_Styles     : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "pressed-pseudo");
 
       Outline_Long_Main  : constant Resolved_Style := Compute_Resolved (Outline_Long_Styles (Main_Part).Style, No_States, No_States);
@@ -482,6 +494,12 @@ begin
       Widthauto_Main   : constant Resolved_Style := Compute_Resolved (Widthauto_Styles (Main_Part).Style, No_States, No_States);
       Basisauto_Main   : constant Resolved_Style := Compute_Resolved (Basisauto_Styles (Main_Part).Style, No_States, No_States);
       Basiscont_Main   : constant Resolved_Style := Compute_Resolved (Basiscont_Styles (Main_Part).Style, No_States, No_States);
+      BorderLong_Main : constant Resolved_Style := Compute_Resolved (BorderLong_Styles (Main_Part).Style, No_States, No_States);
+      BorderSide_Main : constant Resolved_Style := Compute_Resolved (BorderSide_Styles (Main_Part).Style, No_States, No_States);
+      BorderOrder1_Main : constant Resolved_Style := Compute_Resolved (BorderOrder1_Styles (Main_Part).Style, No_States, No_States);
+      BorderOrder2_Main : constant Resolved_Style := Compute_Resolved (BorderOrder2_Styles (Main_Part).Style, No_States, No_States);
+      BorderRadiusOrder_Main : constant Resolved_Style := Compute_Resolved (BorderRadiusOrder_Styles (Main_Part).Style, No_States, No_States);
+      BorderRadiusOrder2_Main : constant Resolved_Style := Compute_Resolved (BorderRadiusOrder2_Styles (Main_Part).Style, No_States, No_States);
       Pressed_Normal   : constant Resolved_Style := Compute_Resolved (Pressed_Styles (Main_Part).Style, No_States, No_States);
       Pressed_Active   : constant Resolved_Style := Compute_Resolved (
          Pressed_Styles (Main_Part).Style,
@@ -658,6 +676,65 @@ begin
               "flex-basis auto should parse");
       Assert (Basiscont_Main.Flex_Basis.Kind = Content,
               "flex-basis content should parse");
+
+      --  Border side longhands and shorthands
+      Assert (BorderLong_Main.Border_Width.Kind = Per_Edge
+              and then BorderLong_Main.Border_Width.Edges (Top).Amount = 2.0
+              and then BorderLong_Main.Border_Width.Edges (Right).Amount = 0.0
+              and then BorderLong_Main.Border_Width.Edges (Bottom).Amount = 0.0
+              and then BorderLong_Main.Border_Width.Edges (Left).Amount = 0.0,
+              "border-*-width longhands should set only the target edge");
+      Assert (BorderLong_Main.Border_Style.Kind = Per_Edge
+              and then BorderLong_Main.Border_Style.Edges (Bottom) = Dotted
+              and then BorderLong_Main.Border_Style.Edges (Top) = None_Style,
+              "border-*-style longhands should set only the target edge");
+      Assert (BorderLong_Main.Border_Color.Kind = Per_Edge
+              and then Is_Named_Color (BorderLong_Main.Border_Color.Edges (Left), Red)
+              and then Is_Named_Color (BorderLong_Main.Border_Color.Edges (Top), Current_Color),
+              "border-*-color longhands should set only the target edge");
+      Assert (BorderLong_Main.Border_Radius.Kind = Per_Corner
+              and then BorderLong_Main.Border_Radius.Corners (Top_Left).Amount = 9.0
+              and then BorderLong_Main.Border_Radius.Corners (Top_Right).Amount = 0.0,
+              "border-*-radius longhands should set only the target corner");
+
+      Assert (BorderSide_Main.Border_Width.Kind = Per_Edge
+              and then BorderSide_Main.Border_Width.Edges (Top).Amount = 2.0
+              and then BorderSide_Main.Border_Width.Edges (Right).Amount = 1.0
+              and then BorderSide_Main.Border_Width.Edges (Bottom).Amount = 1.0
+              and then BorderSide_Main.Border_Width.Edges (Left).Amount = 1.0,
+              "border shorthand + border-top shorthand should merge width by side");
+      Assert (BorderSide_Main.Border_Style.Kind = Per_Edge
+              and then BorderSide_Main.Border_Style.Edges (Top) = Dashed
+              and then BorderSide_Main.Border_Style.Edges (Right) = Solid
+              and then BorderSide_Main.Border_Style.Edges (Bottom) = Solid
+              and then BorderSide_Main.Border_Style.Edges (Left) = Solid,
+              "border shorthand + border-top shorthand should merge style by side");
+      Assert (BorderSide_Main.Border_Color.Kind = Per_Edge
+              and then Is_Named_Color (BorderSide_Main.Border_Color.Edges (Top), Red)
+              and then Is_RGB_Color (BorderSide_Main.Border_Color.Edges (Right), 51, 51, 51)
+              and then Is_RGB_Color (BorderSide_Main.Border_Color.Edges (Bottom), 51, 51, 51)
+              and then Is_RGB_Color (BorderSide_Main.Border_Color.Edges (Left), 51, 51, 51),
+              "border shorthand + border-top shorthand should merge color by side");
+
+      Assert (BorderOrder1_Main.Border_Width.Kind = Per_Edge
+              and then BorderOrder1_Main.Border_Width.Edges (Top).Amount = 1.0
+              and then BorderOrder1_Main.Border_Width.Edges (Right).Amount = 1.0
+              and then BorderOrder1_Main.Border_Width.Edges (Bottom).Amount = 1.0
+              and then BorderOrder1_Main.Border_Width.Edges (Left).Amount = 4.0,
+              "border then border-left-width should keep longhand override");
+      Assert (BorderOrder2_Main.Border_Width.Kind = Gap_Uniform
+              and then BorderOrder2_Main.Border_Width.All_Edges.Amount = 1.0,
+              "border-left-width then border should let shorthand override later");
+
+      Assert (BorderRadiusOrder_Main.Border_Radius.Kind = Per_Corner
+              and then BorderRadiusOrder_Main.Border_Radius.Corners (Top_Left).Amount = 9.0
+              and then BorderRadiusOrder_Main.Border_Radius.Corners (Top_Right).Amount = 4.0
+              and then BorderRadiusOrder_Main.Border_Radius.Corners (Bottom_Right).Amount = 4.0
+              and then BorderRadiusOrder_Main.Border_Radius.Corners (Bottom_Left).Amount = 4.0,
+              "border-radius then border-top-left-radius should keep longhand corner override");
+      Assert (BorderRadiusOrder2_Main.Border_Radius.Kind = Gap_Uniform
+              and then BorderRadiusOrder2_Main.Border_Radius.All_Corners.Amount = 4.0,
+              "border-top-left-radius then border-radius should let shorthand override later");
 
       --  :active pseudo = pressed state
       Assert (Is_RGB_Color (Pressed_Normal.Background_Color, 11, 22, 33),

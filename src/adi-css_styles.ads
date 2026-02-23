@@ -1005,7 +1005,8 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       -- Layout
       Display          : Opt_Display.Optional      := Opt_Display.Unset;
       Position         : Opt_Position.Optional     := Opt_Position.Unset;
-      Overflow         : Opt_Overflow.Optional     := Opt_Overflow.Unset;
+      Overflow_X       : Opt_Overflow.Optional     := Opt_Overflow.Unset;
+      Overflow_Y       : Opt_Overflow.Optional     := Opt_Overflow.Unset;
       Visibility       : Opt_Visibility.Optional   := Opt_Visibility.Unset;
 
       -- Visual
@@ -1070,7 +1071,8 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Prop_List_Style_Type, Prop_List_Style_Image, Prop_List_Style_Position,
       Prop_White_Space, Prop_Text_Overflow, Prop_Text_Wrap_Mode, Prop_Line_Height,
       --  Layout
-      Prop_Display, Prop_Position, Prop_Overflow, Prop_Visibility,
+      --  Prop_Overflow is shorthand metadata only (expands to both axes).
+      Prop_Display, Prop_Position, Prop_Overflow, Prop_Overflow_X, Prop_Overflow_Y, Prop_Visibility,
       --  Visual
       Prop_Opacity, Prop_Cursor, Prop_Box_Shadow,
       --  Object/Image
@@ -1155,10 +1157,11 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Text_Wrap_Mode   : Text_Wrap_Mode_Value := Default_Text_Wrap_Mode;
       Line_Height      : Line_Height_Value := Default_Line_Height;
 
-      -- Layout
+      -- Layout (stored per-axis; `overflow` shorthand expands to both)
       Display          : Display_Value := Default_Display;
       Position         : Position_Value := Default_Position;
-      Overflow         : Overflow_Value := Default_Overflow;
+      Overflow_X       : Overflow_Value := Default_Overflow;
+      Overflow_Y       : Overflow_Value := Default_Overflow;
       Visibility       : Visibility_Value := Default_Visibility;
 
       -- Visual
@@ -1251,7 +1254,11 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    -- Layout
    function Set (V : Display_Value) return Opt_Display.Optional renames Opt_Display.Val;
    function Set (V : Position_Value) return Opt_Position.Optional renames Opt_Position.Val;
+   --  Convenience helper for axis assignments.
+   --  Style_Rules/Resolved_Style do not store a standalone `Overflow` field.
    function Set (V : Overflow_Value) return Opt_Overflow.Optional renames Opt_Overflow.Val;
+   function Set_Overflow_X (V : Overflow_Value) return Opt_Overflow.Optional renames Opt_Overflow.Val;
+   function Set_Overflow_Y (V : Overflow_Value) return Opt_Overflow.Optional renames Opt_Overflow.Val;
    function Set (V : Visibility_Value) return Opt_Visibility.Optional renames Opt_Visibility.Val;
 
    -- Visual

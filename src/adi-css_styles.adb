@@ -452,7 +452,8 @@ package body Adi.CSS_Styles is
          -- Layout
          Display          => Opt_Display.Merge (Base.Display, Override.Display),
          Position         => Opt_Position.Merge (Base.Position, Override.Position),
-         Overflow         => Opt_Overflow.Merge (Base.Overflow, Override.Overflow),
+         Overflow_X       => Opt_Overflow.Merge (Base.Overflow_X, Override.Overflow_X),
+         Overflow_Y       => Opt_Overflow.Merge (Base.Overflow_Y, Override.Overflow_Y),
          Visibility       => Opt_Visibility.Merge (Base.Visibility, Override.Visibility),
 
          -- Visual
@@ -541,7 +542,8 @@ package body Adi.CSS_Styles is
          Max_Height       => Child.Max_Height,
          Display          => Child.Display,
          Position         => Child.Position,
-         Overflow         => Child.Overflow,
+         Overflow_X       => Child.Overflow_X,
+         Overflow_Y       => Child.Overflow_Y,
          Visibility       => Child.Visibility,
          Opacity          => Child.Opacity,
          Box_Shadow       => Child.Box_Shadow,
@@ -574,6 +576,8 @@ package body Adi.CSS_Styles is
    -------------------------------------------------
 
    function Resolve (S : Style_Rules) return Resolved_Style is
+      Overflow_X    : constant Overflow_Value := Opt_Overflow.Resolve (S.Overflow_X);
+      Overflow_Y    : constant Overflow_Value := Opt_Overflow.Resolve (S.Overflow_Y);
    begin
       return (
          -- Colors
@@ -625,7 +629,8 @@ package body Adi.CSS_Styles is
          -- Layout
          Display          => Opt_Display.Resolve (S.Display),
          Position         => Opt_Position.Resolve (S.Position),
-         Overflow         => Opt_Overflow.Resolve (S.Overflow),
+         Overflow_X       => Overflow_X,
+         Overflow_Y       => Overflow_Y,
          Visibility       => Opt_Visibility.Resolve (S.Visibility),
 
          -- Visual

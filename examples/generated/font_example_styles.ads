@@ -14,10 +14,11 @@ package Font_Example_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Align_Items => Set (Stretch),
-      Overflow => Set (Overflow_Auto),
       Gap => Set (Gap (Px (12.0))),
       Background_Color => Set_Bg (RGB (17, 24, 39)),
       Padding => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
+      Overflow_X => Set_Overflow_X (Overflow_Auto),
+      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>
    );
 

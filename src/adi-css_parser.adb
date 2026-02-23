@@ -995,6 +995,166 @@ package body Adi.CSS_Parser is
       return True;
    end Parse_Border_Radius;
 
+   function Parse_Border_Style_Value
+     (Input : String; Out_Style : out Border_Style_Kind) return Boolean
+   is
+      V : constant String := Lower (Trimmed (Input));
+   begin
+      if V = "none" then
+         Out_Style := None_Style;
+      elsif V = "hidden" then
+         Out_Style := Hidden;
+      elsif V = "dotted" then
+         Out_Style := Dotted;
+      elsif V = "dashed" then
+         Out_Style := Dashed;
+      elsif V = "solid" then
+         Out_Style := Solid;
+      elsif V = "double" then
+         Out_Style := Double;
+      elsif V = "groove" then
+         Out_Style := Groove;
+      elsif V = "ridge" then
+         Out_Style := Ridge;
+      elsif V = "inset" then
+         Out_Style := Inset;
+      elsif V = "outset" then
+         Out_Style := Outset;
+      else
+         return False;
+      end if;
+
+      return True;
+   end Parse_Border_Style_Value;
+
+   function Border_Width_To_Sides (V : Border_Width_Value) return Edge_Lengths is
+   begin
+      case V.Kind is
+         when Gap_Uniform =>
+            return [others => V.All_Edges];
+         when Per_Edge =>
+            return V.Edges;
+      end case;
+   end Border_Width_To_Sides;
+
+   function Set_Border_Width_Side
+     (Current : Border_Width_Value;
+      Side    : Edge;
+      Value   : Length_Value) return Border_Width_Value
+   is
+      Sides : Edge_Lengths := Border_Width_To_Sides (Current);
+   begin
+      Sides (Side) := Value;
+      return Border_Width (Sides (Top), Sides (Right), Sides (Bottom), Sides (Left));
+   end Set_Border_Width_Side;
+
+   function Border_Color_To_Sides (V : Border_Color_Value) return Edge_Colors is
+   begin
+      case V.Kind is
+         when Gap_Uniform =>
+            return [others => V.All_Edges];
+         when Per_Edge =>
+            return V.Edges;
+      end case;
+   end Border_Color_To_Sides;
+
+   function Set_Border_Color_Side
+     (Current : Border_Color_Value;
+      Side    : Edge;
+      Value   : Color_Value) return Border_Color_Value
+   is
+      Sides : Edge_Colors := Border_Color_To_Sides (Current);
+   begin
+      Sides (Side) := Value;
+      return Border_Color (Sides (Top), Sides (Right), Sides (Bottom), Sides (Left));
+   end Set_Border_Color_Side;
+
+   function Border_Style_To_Sides (V : Border_Style_Value) return Edge_Styles is
+   begin
+      case V.Kind is
+         when Gap_Uniform =>
+            return [others => V.All_Edges];
+         when Per_Edge =>
+            return V.Edges;
+      end case;
+   end Border_Style_To_Sides;
+
+   function Set_Border_Style_Side
+     (Current : Border_Style_Value;
+      Side    : Edge;
+      Value   : Border_Style_Kind) return Border_Style_Value
+   is
+      Sides : Edge_Styles := Border_Style_To_Sides (Current);
+   begin
+      Sides (Side) := Value;
+      return Border_Style (Sides (Top), Sides (Right), Sides (Bottom), Sides (Left));
+   end Set_Border_Style_Side;
+
+   function Border_Radius_To_Corners (V : Border_Radius_Value) return Corner_Radii is
+   begin
+      case V.Kind is
+         when Gap_Uniform =>
+            return [others => V.All_Corners];
+         when Per_Corner =>
+            return V.Corners;
+      end case;
+   end Border_Radius_To_Corners;
+
+   function Set_Border_Radius_Corner
+     (Current : Border_Radius_Value;
+      Side    : Corner;
+      Value   : Length_Value) return Border_Radius_Value
+   is
+      Corners : Corner_Radii := Border_Radius_To_Corners (Current);
+   begin
+      Corners (Side) := Value;
+      return Radius (
+        Corners (Top_Left),
+        Corners (Top_Right),
+        Corners (Bottom_Right),
+        Corners (Bottom_Left));
+   end Set_Border_Radius_Corner;
+
+   procedure Parse_Border_Shorthand_Components
+     (Input      : String;
+      Has_Width  : out Boolean;
+      Out_Width  : out Parsed_Length;
+      Has_Style  : out Boolean;
+      Out_Style  : out Border_Style_Kind;
+      Has_Color  : out Boolean;
+      Out_Color  : out Color_Value)
+   is
+      Tokens : Token_Vectors.Vector;
+      L      : Parsed_Length;
+      S      : Border_Style_Kind;
+      Col    : Color_Value;
+   begin
+      Has_Width := False;
+      Has_Style := False;
+      Has_Color := False;
+      Out_Width := (others => <>);
+      Out_Style := None_Style;
+      Out_Color := C (Current_Color);
+
+      Split_Whitespace_Tokens (Input, Tokens);
+      for T of Tokens loop
+         declare
+            Tok : constant String := To_String (T);
+         begin
+            if Parse_Length (Tok, L) then
+               Has_Width := True;
+               Out_Width := L;
+            elsif Parse_Border_Style_Value (Tok, S) then
+               Has_Style := True;
+               Out_Style := S;
+            elsif Parse_Color (Tok, Col) then
+               Has_Color := True;
+               Out_Color := Col;
+            end if;
+         end;
+      end loop;
+   end Parse_Border_Shorthand_Components;
+
    function Parse_Size_Value (Input : String; Out_Size : out Size_Value) return Boolean is
       V : constant String := Lower (Trimmed (Input));
       L : Parsed_Length;
@@ -1486,6 +1646,66 @@ package body Adi.CSS_Parser is
       Rules.Overflow_Y := Set_Overflow_Y (Value);
    end Set_Overflow_Shorthand;
 
+   procedure Set_Border_Width_Side_In_Rules
+     (Rules : in out Style_Rules;
+      Side  : Edge;
+      Value : Length_Value)
+   is
+   begin
+      Rules.Border_Width := Set
+        (Set_Border_Width_Side (
+           (if Opt_Border_Width.Is_Set (Rules.Border_Width)
+            then Opt_Border_Width.Resolve (Rules.Border_Width)
+            else Default_Border_Width),
+           Side,
+           Value));
+   end Set_Border_Width_Side_In_Rules;
+
+   procedure Set_Border_Color_Side_In_Rules
+     (Rules : in out Style_Rules;
+      Side  : Edge;
+      Value : Color_Value)
+   is
+   begin
+      Rules.Border_Color := Set
+        (Set_Border_Color_Side (
+           (if Opt_Border_Color.Is_Set (Rules.Border_Color)
+            then Opt_Border_Color.Resolve (Rules.Border_Color)
+            else Default_Border_Color_Val),
+           Side,
+           Value));
+   end Set_Border_Color_Side_In_Rules;
+
+   procedure Set_Border_Style_Side_In_Rules
+     (Rules : in out Style_Rules;
+      Side  : Edge;
+      Value : Border_Style_Kind)
+   is
+   begin
+      Rules.Border_Style := Set
+        (Set_Border_Style_Side (
+           (if Opt_Border_Style.Is_Set (Rules.Border_Style)
+            then Opt_Border_Style.Resolve (Rules.Border_Style)
+            else Default_Border_Style),
+           Side,
+           Value));
+   end Set_Border_Style_Side_In_Rules;
+
+   procedure Set_Border_Radius_Corner_In_Rules
+     (Rules  : in out Style_Rules;
+      Corner_At : Corner;
+      Value  : Length_Value)
+   is
+   begin
+      Rules.Border_Radius := Set
+        (Set_Border_Radius_Corner (
+           (if Opt_Radius.Is_Set (Rules.Border_Radius)
+            then Opt_Radius.Resolve (Rules.Border_Radius)
+            else Default_Radius),
+           Corner_At,
+           Value));
+   end Set_Border_Radius_Corner_In_Rules;
+
    procedure Apply_Property (Rules : in out Style_Rules;
                              Name  : String;
                              Value : String) is
@@ -1512,6 +1732,12 @@ package body Adi.CSS_Parser is
       I : Integer;
       N : Natural;
       Overflow_Val : Overflow_Value;
+      Border_Side  : Border_Style_Kind;
+      Has_Border_Width : Boolean := False;
+      Has_Border_Style : Boolean := False;
+      Has_Border_Color : Boolean := False;
+      Border_Width_Val : Parsed_Length;
+      Border_Color_Val : Color_Value;
    begin
       if P = "color" then
          if Parse_Color (V, CVal) then Rules.Color := Set (CVal); end if;
@@ -1603,22 +1829,168 @@ package body Adi.CSS_Parser is
          end if;
       elsif P = "border-width" then
          if Parse_Border_Width (V, BW) then Rules.Border_Width := Set (BW); end if;
+      elsif P = "border-top-width" then
+         if Parse_Length (V, LVal) then
+            Set_Border_Width_Side_In_Rules (Rules, Top, To_Length (LVal));
+         end if;
+      elsif P = "border-right-width" then
+         if Parse_Length (V, LVal) then
+            Set_Border_Width_Side_In_Rules (Rules, Right, To_Length (LVal));
+         end if;
+      elsif P = "border-bottom-width" then
+         if Parse_Length (V, LVal) then
+            Set_Border_Width_Side_In_Rules (Rules, Bottom, To_Length (LVal));
+         end if;
+      elsif P = "border-left-width" then
+         if Parse_Length (V, LVal) then
+            Set_Border_Width_Side_In_Rules (Rules, Left, To_Length (LVal));
+         end if;
       elsif P = "border-color" then
          if Parse_Color (V, CVal) then Rules.Border_Color := Set (Border_Color (CVal)); end if;
+      elsif P = "border-top-color" then
+         if Parse_Color (V, CVal) then
+            Set_Border_Color_Side_In_Rules (Rules, Top, CVal);
+         end if;
+      elsif P = "border-right-color" then
+         if Parse_Color (V, CVal) then
+            Set_Border_Color_Side_In_Rules (Rules, Right, CVal);
+         end if;
+      elsif P = "border-bottom-color" then
+         if Parse_Color (V, CVal) then
+            Set_Border_Color_Side_In_Rules (Rules, Bottom, CVal);
+         end if;
+      elsif P = "border-left-color" then
+         if Parse_Color (V, CVal) then
+            Set_Border_Color_Side_In_Rules (Rules, Left, CVal);
+         end if;
       elsif P = "border-style" then
-         if LV = "none" then Rules.Border_Style := Set (Border_Style (None_Style));
-         elsif LV = "hidden" then Rules.Border_Style := Set (Border_Style (Hidden));
-         elsif LV = "dotted" then Rules.Border_Style := Set (Border_Style (Dotted));
-         elsif LV = "dashed" then Rules.Border_Style := Set (Border_Style (Dashed));
-         elsif LV = "solid" then Rules.Border_Style := Set (Border_Style (Solid));
-         elsif LV = "double" then Rules.Border_Style := Set (Border_Style (Double));
-         elsif LV = "groove" then Rules.Border_Style := Set (Border_Style (Groove));
-         elsif LV = "ridge" then Rules.Border_Style := Set (Border_Style (Ridge));
-         elsif LV = "inset" then Rules.Border_Style := Set (Border_Style (Inset));
-         elsif LV = "outset" then Rules.Border_Style := Set (Border_Style (Outset));
+         if Parse_Border_Style_Value (V, Border_Side) then
+            Rules.Border_Style := Set (Border_Style (Border_Side));
+         end if;
+      elsif P = "border-top-style" then
+         if Parse_Border_Style_Value (V, Border_Side) then
+            Set_Border_Style_Side_In_Rules (Rules, Top, Border_Side);
+         end if;
+      elsif P = "border-right-style" then
+         if Parse_Border_Style_Value (V, Border_Side) then
+            Set_Border_Style_Side_In_Rules (Rules, Right, Border_Side);
+         end if;
+      elsif P = "border-bottom-style" then
+         if Parse_Border_Style_Value (V, Border_Side) then
+            Set_Border_Style_Side_In_Rules (Rules, Bottom, Border_Side);
+         end if;
+      elsif P = "border-left-style" then
+         if Parse_Border_Style_Value (V, Border_Side) then
+            Set_Border_Style_Side_In_Rules (Rules, Left, Border_Side);
+         end if;
+      elsif P = "border" then
+         Parse_Border_Shorthand_Components (
+           V,
+           Has_Border_Width,
+           Border_Width_Val,
+           Has_Border_Style,
+           Border_Side,
+           Has_Border_Color,
+           Border_Color_Val);
+         if Has_Border_Width then
+            Rules.Border_Width := Set (Border_Width (To_Length (Border_Width_Val)));
+         end if;
+         if Has_Border_Style then
+            Rules.Border_Style := Set (Border_Style (Border_Side));
+         end if;
+         if Has_Border_Color then
+            Rules.Border_Color := Set (Border_Color (Border_Color_Val));
+         end if;
+      elsif P = "border-top" then
+         Parse_Border_Shorthand_Components (
+           V,
+           Has_Border_Width,
+           Border_Width_Val,
+           Has_Border_Style,
+           Border_Side,
+           Has_Border_Color,
+           Border_Color_Val);
+         if Has_Border_Width then
+            Set_Border_Width_Side_In_Rules (Rules, Top, To_Length (Border_Width_Val));
+         end if;
+         if Has_Border_Style then
+            Set_Border_Style_Side_In_Rules (Rules, Top, Border_Side);
+         end if;
+         if Has_Border_Color then
+            Set_Border_Color_Side_In_Rules (Rules, Top, Border_Color_Val);
+         end if;
+      elsif P = "border-right" then
+         Parse_Border_Shorthand_Components (
+           V,
+           Has_Border_Width,
+           Border_Width_Val,
+           Has_Border_Style,
+           Border_Side,
+           Has_Border_Color,
+           Border_Color_Val);
+         if Has_Border_Width then
+            Set_Border_Width_Side_In_Rules (Rules, Right, To_Length (Border_Width_Val));
+         end if;
+         if Has_Border_Style then
+            Set_Border_Style_Side_In_Rules (Rules, Right, Border_Side);
+         end if;
+         if Has_Border_Color then
+            Set_Border_Color_Side_In_Rules (Rules, Right, Border_Color_Val);
+         end if;
+      elsif P = "border-bottom" then
+         Parse_Border_Shorthand_Components (
+           V,
+           Has_Border_Width,
+           Border_Width_Val,
+           Has_Border_Style,
+           Border_Side,
+           Has_Border_Color,
+           Border_Color_Val);
+         if Has_Border_Width then
+            Set_Border_Width_Side_In_Rules (Rules, Bottom, To_Length (Border_Width_Val));
+         end if;
+         if Has_Border_Style then
+            Set_Border_Style_Side_In_Rules (Rules, Bottom, Border_Side);
+         end if;
+         if Has_Border_Color then
+            Set_Border_Color_Side_In_Rules (Rules, Bottom, Border_Color_Val);
+         end if;
+      elsif P = "border-left" then
+         Parse_Border_Shorthand_Components (
+           V,
+           Has_Border_Width,
+           Border_Width_Val,
+           Has_Border_Style,
+           Border_Side,
+           Has_Border_Color,
+           Border_Color_Val);
+         if Has_Border_Width then
+            Set_Border_Width_Side_In_Rules (Rules, Left, To_Length (Border_Width_Val));
+         end if;
+         if Has_Border_Style then
+            Set_Border_Style_Side_In_Rules (Rules, Left, Border_Side);
+         end if;
+         if Has_Border_Color then
+            Set_Border_Color_Side_In_Rules (Rules, Left, Border_Color_Val);
          end if;
       elsif P = "border-radius" then
          if Parse_Border_Radius (V, BR) then Rules.Border_Radius := Set (BR); end if;
+      elsif P = "border-top-left-radius" then
+         if Parse_Length (V, LVal) then
+            Set_Border_Radius_Corner_In_Rules (Rules, Top_Left, To_Length (LVal));
+         end if;
+      elsif P = "border-top-right-radius" then
+         if Parse_Length (V, LVal) then
+            Set_Border_Radius_Corner_In_Rules (Rules, Top_Right, To_Length (LVal));
+         end if;
+      elsif P = "border-bottom-right-radius" then
+         if Parse_Length (V, LVal) then
+            Set_Border_Radius_Corner_In_Rules (Rules, Bottom_Right, To_Length (LVal));
+         end if;
+      elsif P = "border-bottom-left-radius" then
+         if Parse_Length (V, LVal) then
+            Set_Border_Radius_Corner_In_Rules (Rules, Bottom_Left, To_Length (LVal));
+         end if;
       elsif P = "width" then
          if Parse_Size_Value (V, SVal) then Rules.Width := Set (SVal); end if;
       elsif P = "height" then

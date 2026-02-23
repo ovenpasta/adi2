@@ -14,6 +14,14 @@ from dataclasses import dataclass, field
 from typing import Optional
 from enum import Enum
 
+from css_spec import (
+    SUPPORTED_PARTS,
+    all_supported_properties,
+    canonical_property_name,
+    is_supported_property,
+    property_validator,
+)
+
 
 class WidgetState(Enum):
     NORMAL = "State_Normal"
@@ -434,22 +442,6 @@ LIST_STYLE_POSITION_MAP = {
     "inside": "List_Inside",
 }
 
-# CSS part selector to Ada Part_Kind mapping
-PART_MAP = {
-    "main": "Main_Part",
-    "label": "Label_Part",
-    "cursor": "Cursor_Part",
-    "selected": "Selected_Part",
-    "icon": "Icon_Part",
-    "indicator": "Indicator_Part",
-    "scroll": "Scroll_Part",
-    "knob": "Knob_Part",
-    "items": "Items_Part",
-    "any": "Any_Part",
-    "custom": "Custom_Part",
-}
-
-
 @dataclass
 class ParsedLength:
     amount: float
@@ -491,6 +483,15 @@ class ParsedSelector:
 class ParsedRule:
     selector: ParsedSelector
     properties: dict[str, str]
+
+
+@dataclass
+class CssDiagnostic:
+    code: str
+    message: str
+    selector: str = ""
+    property_name: str = ""
+    property_value: str = ""
 
 
 @dataclass
@@ -822,9 +823,13 @@ def parse_pseudo_classes(
             )
 
 
-def parse_selector(selector_str: str) -> Optional[ParsedSelector]:
+def parse_selector_with_diagnostics(
+    selector_str: str,
+) -> tuple[Optional[ParsedSelector], list[CssDiagnostic]]:
     """Parse selectors like '.button:hover::label' and '.button::label:hover'."""
+    diagnostics: list[CssDiagnostic] = []
     selector_str = selector_str.strip()
+    raw_selector = selector_str
 
     selector_type = "tag"
     if selector_str.startswith('.'):
@@ -859,9 +864,19 @@ def parse_selector(selector_str: str) -> Optional[ParsedSelector]:
             part_pseudo_part = right[right_first_colon:]
 
         part_key = part_name.strip().lower()
-        if part_key not in PART_MAP:
-            return None
-        part_kind = PART_MAP[part_key]
+        if part_key not in SUPPORTED_PARTS:
+            diagnostics.append(
+                CssDiagnostic(
+                    code="unsupported-part",
+                    message=(
+                        f"Unsupported part '{part_key}'. "
+                        f"Supported: {', '.join(sorted(SUPPORTED_PARTS.keys()))}"
+                    ),
+                    selector=raw_selector,
+                )
+            )
+            return None, diagnostics
+        part_kind = SUPPORTED_PARTS[part_key]
         part_scope_enabled = part_kind != "Main_Part"
     else:
         first_colon = selector_str.find(":")
@@ -872,7 +887,7 @@ def parse_selector(selector_str: str) -> Optional[ParsedSelector]:
             widget_pseudo_part = selector_str[first_colon:]
 
     if not name:
-        return None
+        return None, diagnostics
 
     widget_states: list[WidgetState] = []
     widget_negated_states: list[WidgetState] = []
@@ -907,7 +922,12 @@ def parse_selector(selector_str: str) -> Optional[ParsedSelector]:
         widget_negated_states=widget_negated_states,
         part_states=part_states,
         part_negated_states=part_negated_states,
-    )
+    ), diagnostics
+
+
+def parse_selector(selector_str: str) -> Optional[ParsedSelector]:
+    selector, _ = parse_selector_with_diagnostics(selector_str)
+    return selector
 
 
 def parse_box_values(value: str) -> Optional[list[ParsedLength]]:
@@ -941,6 +961,15 @@ class ParsedTransition:
     duration_seconds: float
     easing: str
     property_set: str
+
+
+@dataclass
+class ParsedObjectPosition:
+    kind: str  # "keyword" | "length"
+    h_keyword: Optional[str] = None
+    v_keyword: Optional[str] = None
+    x_offset: Optional[ParsedLength] = None
+    y_offset: Optional[ParsedLength] = None
 
 
 def parse_box_shadow(value: str) -> Optional[ParsedBoxShadow]:
@@ -1067,6 +1096,105 @@ def parse_transition(value: str) -> Optional[ParsedTransition]:
     )
 
 
+OBJECT_POSITION_KEYWORD_MAP = {
+    "left": "Pos_Left",
+    "center": "Pos_Center",
+    "right": "Pos_Right",
+    "top": "Pos_Top",
+    "bottom": "Pos_Bottom",
+}
+
+OBJECT_POSITION_HORIZONTAL = {"left", "center", "right"}
+OBJECT_POSITION_VERTICAL = {"top", "center", "bottom"}
+
+
+def parse_object_position(value: str) -> Optional[ParsedObjectPosition]:
+    """Parse a subset of object-position values.
+
+    Supported:
+    - center
+    - keyword pairs (left/right/center + top/bottom/center, any order)
+    - one/two length or percent offsets
+    Rejected:
+    - mixed keyword + length forms
+    - advanced edge-offset syntax
+    """
+    tokens = split_css_whitespace_tokens(value.strip().lower())
+    if not tokens:
+        return None
+
+    def keyword_position(token: str) -> Optional[ParsedObjectPosition]:
+        if token in OBJECT_POSITION_HORIZONTAL:
+            return ParsedObjectPosition(
+                kind="keyword",
+                h_keyword=OBJECT_POSITION_KEYWORD_MAP[token],
+                v_keyword="Pos_Center",
+            )
+        if token in OBJECT_POSITION_VERTICAL:
+            return ParsedObjectPosition(
+                kind="keyword",
+                h_keyword="Pos_Center",
+                v_keyword=OBJECT_POSITION_KEYWORD_MAP[token],
+            )
+        return None
+
+    if len(tokens) == 1:
+        kw = keyword_position(tokens[0])
+        if kw is not None:
+            return kw
+        x = parse_length(tokens[0])
+        if x is not None:
+            return ParsedObjectPosition(
+                kind="length",
+                x_offset=x,
+                y_offset=ParsedLength(50.0, "Pct"),
+            )
+        return None
+
+    if len(tokens) == 2:
+        x = parse_length(tokens[0])
+        y = parse_length(tokens[1])
+        if x is not None and y is not None:
+            return ParsedObjectPosition(
+                kind="length",
+                x_offset=x,
+                y_offset=y,
+            )
+
+        h_keyword = None
+        v_keyword = None
+        for token in tokens:
+            if token in {"left", "right"}:
+                if h_keyword is not None:
+                    return None
+                h_keyword = OBJECT_POSITION_KEYWORD_MAP[token]
+            elif token in {"top", "bottom"}:
+                if v_keyword is not None:
+                    return None
+                v_keyword = OBJECT_POSITION_KEYWORD_MAP[token]
+            elif token == "center":
+                if h_keyword is None:
+                    h_keyword = "Pos_Center"
+                elif v_keyword is None:
+                    v_keyword = "Pos_Center"
+                else:
+                    return None
+            else:
+                return None
+
+        if h_keyword is None:
+            h_keyword = "Pos_Center"
+        if v_keyword is None:
+            v_keyword = "Pos_Center"
+        return ParsedObjectPosition(
+            kind="keyword",
+            h_keyword=h_keyword,
+            v_keyword=v_keyword,
+        )
+
+    return None
+
+
 def ada_string_literal(value: str) -> str:
     """Generate an Ada string literal with escaped quotes."""
     return '"' + value.replace('"', '""') + '"'
@@ -1166,6 +1294,32 @@ def parse_list_style_shorthand(value: str) -> dict[str, str]:
     return result
 
 
+def parse_border_shorthand_components(
+    value: str,
+) -> tuple[Optional[ParsedLength], Optional[str], Optional[ParsedColor]]:
+    """Parse a permissive border shorthand into (width, style, color)."""
+    width: Optional[ParsedLength] = None
+    style: Optional[str] = None
+    color: Optional[ParsedColor] = None
+
+    for tok in split_css_whitespace_tokens(value):
+        low = tok.lower()
+        if low in BORDER_STYLE_MAP:
+            style = BORDER_STYLE_MAP[low]
+            continue
+
+        parsed_width = parse_length(tok)
+        if parsed_width is not None:
+            width = parsed_width
+            continue
+
+        parsed_color = parse_color(tok)
+        if parsed_color is not None:
+            color = parsed_color
+
+    return width, style, color
+
+
 def set_css_property(properties: dict[str, str], name: str, value: str) -> None:
     """Set/override a CSS property while preserving declaration order semantics."""
     # Python dict updates keep the original key position. For CSS cascade semantics
@@ -1182,35 +1336,243 @@ def merge_css_properties(target: dict[str, str], source: dict[str, str]) -> None
         set_css_property(target, prop_name, prop_value)
 
 
-def parse_css(css_content: str) -> list[ParsedRule]:
-    """Parse CSS content into rules"""
-    rules = []
-    
+def _is_float(value: str) -> bool:
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
+
+
+def _is_int(value: str) -> bool:
+    try:
+        int(value)
+        return True
+    except ValueError:
+        return False
+
+
+def _validate_border_or_outline_shorthand(
+    value: str,
+    style_map: dict[str, str],
+) -> bool:
+    tokens = split_css_whitespace_tokens(value)
+    if not tokens:
+        return False
+
+    any_valid = False
+    for token in tokens:
+        if token.lower() in style_map:
+            any_valid = True
+            continue
+        if parse_length(token) is not None:
+            any_valid = True
+            continue
+        if parse_color(token) is not None:
+            any_valid = True
+            continue
+        return False
+    return any_valid
+
+
+def _validate_list_style_shorthand(value: str) -> bool:
+    tokens = split_css_whitespace_tokens(value)
+    if not tokens:
+        return False
+
+    any_valid = False
+    for token in tokens:
+        low = token.lower()
+        if low in LIST_STYLE_POSITION_MAP:
+            any_valid = True
+            continue
+        if low == "none":
+            any_valid = True
+            continue
+        if parse_css_url_function(token) is not None:
+            any_valid = True
+            continue
+        if low in LIST_STYLE_TYPE_MAP or parse_css_quoted_string(token) is not None:
+            any_valid = True
+            continue
+        return False
+    return any_valid
+
+
+def validate_property_value(property_name: str, value: str) -> bool:
+    validator = property_validator(property_name)
+    if validator is None:
+        return False
+
+    low = value.strip().lower()
+
+    if validator == "color":
+        return parse_color(value) is not None
+    if validator == "url-or-none":
+        return low == "none" or parse_css_url_function(value) is not None
+    if validator == "length":
+        return parse_length(value) is not None
+    if validator == "box-1-4-length":
+        lengths = parse_box_values(value)
+        return lengths is not None and 1 <= len(lengths) <= 4
+    if validator == "border-style":
+        return low in BORDER_STYLE_MAP
+    if validator == "border-shorthand":
+        return _validate_border_or_outline_shorthand(value, BORDER_STYLE_MAP)
+    if validator == "width":
+        return low in {"auto", "min-content", "max-content", "fit-content"} or parse_length(value) is not None
+    if validator == "height":
+        return low == "auto" or parse_length(value) is not None
+    if validator == "font-weight":
+        return low in FONT_WEIGHT_MAP
+    if validator == "font-style":
+        return low in FONT_STYLE_MAP
+    if validator == "text-align":
+        return low in TEXT_ALIGN_MAP
+    if validator == "vertical-align":
+        return low in VERTICAL_ALIGN_MAP
+    if validator == "text-decoration":
+        return low in TEXT_DECORATION_MAP
+    if validator == "white-space":
+        return low in WHITE_SPACE_MAP
+    if validator == "text-overflow":
+        return low in TEXT_OVERFLOW_MAP
+    if validator == "text-wrap-mode":
+        return low in TEXT_WRAP_MODE_MAP
+    if validator == "line-height":
+        return (
+            low == "normal"
+            or _is_float(value)
+            or parse_length(value) is not None
+        )
+    if validator == "object-fit":
+        return low in OBJECT_FIT_MAP
+    if validator == "object-position":
+        return parse_object_position(value) is not None
+    if validator == "list-style-type":
+        return low in LIST_STYLE_TYPE_MAP or parse_css_quoted_string(value) is not None
+    if validator == "list-style-position":
+        return low in LIST_STYLE_POSITION_MAP
+    if validator == "list-style-shorthand":
+        return _validate_list_style_shorthand(value)
+    if validator == "number":
+        return _is_float(value)
+    if validator == "int":
+        return _is_int(value)
+    if validator == "overflow":
+        return low in OVERFLOW_MAP
+    if validator == "cursor":
+        return low in CURSOR_MAP
+    if validator == "visibility":
+        return low in VISIBILITY_MAP
+    if validator == "display":
+        return low in DISPLAY_MAP
+    if validator == "position":
+        return low in POSITION_MAP
+    if validator == "flex-direction":
+        return low in FLEX_DIRECTION_MAP
+    if validator == "flex-wrap":
+        return low in FLEX_WRAP_MAP
+    if validator == "justify-content":
+        return low in JUSTIFY_CONTENT_MAP
+    if validator == "align-items":
+        return low in ALIGN_ITEMS_MAP
+    if validator == "align-self":
+        return low in ALIGN_SELF_MAP
+    if validator == "align-content":
+        return low in ALIGN_CONTENT_MAP
+    if validator == "gap":
+        lengths = parse_box_values(value)
+        return lengths is not None and len(lengths) >= 1
+    if validator == "flex-basis":
+        return low in {"auto", "content"} or parse_length(value) is not None
+    if validator == "grid-template-columns":
+        return (
+            parse_grid_track_list(value) is not None
+            or parse_grid_track_count(value) is not None
+        )
+    if validator == "grid-template-rows":
+        return parse_grid_track_count(value) is not None
+    if validator == "grid-placement":
+        if low == "auto":
+            return True
+        start, span = parse_grid_placement(value)
+        return start is not None or span is not None
+    if validator == "box-shadow":
+        return low == "none" or parse_box_shadow(value) is not None
+    if validator == "outline-style":
+        return low in OUTLINE_STYLE_MAP
+    if validator == "outline-shorthand":
+        return _validate_border_or_outline_shorthand(value, OUTLINE_STYLE_MAP)
+    if validator == "transition":
+        return low == "none" or parse_transition(value) is not None
+    return False
+
+
+def parse_css_with_diagnostics(css_content: str) -> tuple[list[ParsedRule], list[CssDiagnostic]]:
+    """Parse CSS content into rules and diagnostics."""
+    rules: list[ParsedRule] = []
+    diagnostics: list[CssDiagnostic] = []
+
     # Remove comments
     css_content = re.sub(r'/\*.*?\*/', '', css_content, flags=re.DOTALL)
-    
+
     # Find all rules
     rule_pattern = re.compile(r'([^{}]+)\{([^{}]*)\}', re.DOTALL)
-    
+
     for match in rule_pattern.finditer(css_content):
         selector_str = match.group(1).strip()
         properties_str = match.group(2).strip()
-        
+
         # Handle multiple selectors separated by comma
         for single_selector in selector_str.split(','):
-            selector = parse_selector(single_selector.strip())
+            selector_text = single_selector.strip()
+            selector, selector_diagnostics = parse_selector_with_diagnostics(selector_text)
+            diagnostics.extend(selector_diagnostics)
             if selector is None:
                 continue
-            
+
             # Parse properties
-            properties = {}
+            properties: dict[str, str] = {}
             for prop_match in re.finditer(r'([\w-]+)\s*:\s*([^;]+);?', properties_str):
-                prop_name = prop_match.group(1).strip().lower()
+                raw_name = prop_match.group(1).strip().lower()
                 prop_value = prop_match.group(2).strip()
-                set_css_property(properties, prop_name, prop_value)
+
+                if not is_supported_property(raw_name):
+                    diagnostics.append(
+                        CssDiagnostic(
+                            code="unsupported-property",
+                            message=f"Unsupported property '{raw_name}'",
+                            selector=selector_text,
+                            property_name=raw_name,
+                            property_value=prop_value,
+                        )
+                    )
+                    set_css_property(properties, raw_name, prop_value)
+                    continue
+
+                canonical_name = canonical_property_name(raw_name)
+                set_css_property(properties, canonical_name, prop_value)
+
+                if not validate_property_value(raw_name, prop_value):
+                    diagnostics.append(
+                        CssDiagnostic(
+                            code="invalid-property-value",
+                            message=f"Invalid value for '{raw_name}'",
+                            selector=selector_text,
+                            property_name=raw_name,
+                            property_value=prop_value,
+                        )
+                    )
 
             rules.append(ParsedRule(selector=selector, properties=properties))
-    
+
+    return rules, diagnostics
+
+
+def parse_css(css_content: str) -> list[ParsedRule]:
+    """Compatibility wrapper: parse CSS content into rules only."""
+    rules, _ = parse_css_with_diagnostics(css_content)
     return rules
 
 
@@ -1323,7 +1685,7 @@ def box_lengths_to_four(lengths: list[ParsedLength]) -> list[ParsedLength]:
         return [lengths[0], lengths[1], lengths[2], lengths[1]]
     if len(lengths) >= 4:
         return [lengths[0], lengths[1], lengths[2], lengths[3]]
-    z = ParsedLength(0, "px")
+    z = ParsedLength(0.0, "Px")
     return [z, z, z, z]
 
 
@@ -1337,12 +1699,52 @@ def generate_box_from_four_ada(sides: list[ParsedLength]) -> str:
     )
 
 
+def four_sides_to_box_lengths(sides: list[ParsedLength]) -> list[ParsedLength]:
+    """Compress [top, right, bottom, left] to shortest 1-4 shorthand form."""
+    top, right, bottom, left = sides
+    if top == right == bottom == left:
+        return [top]
+    if top == bottom and right == left:
+        return [top, right]
+    if right == left:
+        return [top, right, bottom]
+    return [top, right, bottom, left]
+
+
+def generate_border_style_from_four_ada(styles: list[str]) -> str:
+    if styles[0] == styles[1] == styles[2] == styles[3]:
+        return f"Border_Style ({styles[0]})"
+    return (
+        f"Border_Style ({styles[0]}, "
+        f"{styles[1]}, "
+        f"{styles[2]}, "
+        f"{styles[3]})"
+    )
+
+
+def generate_border_color_from_four_ada(colors: list[ParsedColor]) -> str:
+    top = generate_color_ada(colors[0])
+    right = generate_color_ada(colors[1])
+    bottom = generate_color_ada(colors[2])
+    left = generate_color_ada(colors[3])
+    if top == right == bottom == left:
+        return f"Border_Color ({top})"
+    return f"Border_Color ({top}, {right}, {bottom}, {left})"
+
+
 def generate_border_width_ada(lengths: list[ParsedLength]) -> str:
     """Generate Ada code for border-width"""
     if len(lengths) == 1:
         return f"Border_Width ({generate_length_ada(lengths[0])})"
     elif len(lengths) == 2:
         return f"Border_Width ({generate_length_ada(lengths[0])}, {generate_length_ada(lengths[1])})"
+    elif len(lengths) == 3:
+        return (
+            f"Border_Width ({generate_length_ada(lengths[0])}, "
+            f"{generate_length_ada(lengths[1])}, "
+            f"{generate_length_ada(lengths[2])}, "
+            f"{generate_length_ada(lengths[1])})"
+        )
     elif len(lengths) >= 4:
         return (f"Border_Width ({generate_length_ada(lengths[0])}, "
                 f"{generate_length_ada(lengths[1])}, "
@@ -1357,6 +1759,13 @@ def generate_border_radius_ada(lengths: list[ParsedLength]) -> str:
         return f"Radius ({generate_length_ada(lengths[0])})"
     elif len(lengths) == 2:
         return f"Radius ({generate_length_ada(lengths[0])}, {generate_length_ada(lengths[1])})"
+    elif len(lengths) == 3:
+        return (
+            f"Radius ({generate_length_ada(lengths[0])}, "
+            f"{generate_length_ada(lengths[1])}, "
+            f"{generate_length_ada(lengths[2])}, "
+            f"{generate_length_ada(lengths[1])})"
+        )
     elif len(lengths) >= 4:
         return (f"Radius ({generate_length_ada(lengths[0])}, "
                 f"{generate_length_ada(lengths[1])}, "
@@ -1365,28 +1774,181 @@ def generate_border_radius_ada(lengths: list[ParsedLength]) -> str:
     return "Radius (Zero_Length)"
 
 
+GENERATED_PROPERTY_NAMES = {
+    "color",
+    "background-color",
+    "background-image",
+    "padding",
+    "padding-top",
+    "padding-right",
+    "padding-bottom",
+    "padding-left",
+    "margin",
+    "margin-top",
+    "margin-right",
+    "margin-bottom",
+    "margin-left",
+    "border-top",
+    "border-right",
+    "border-bottom",
+    "border-left",
+    "border-width",
+    "border-top-width",
+    "border-right-width",
+    "border-bottom-width",
+    "border-left-width",
+    "border-color",
+    "border-top-color",
+    "border-right-color",
+    "border-bottom-color",
+    "border-left-color",
+    "border-style",
+    "border-top-style",
+    "border-right-style",
+    "border-bottom-style",
+    "border-left-style",
+    "border",
+    "border-radius",
+    "border-top-left-radius",
+    "border-top-right-radius",
+    "border-bottom-right-radius",
+    "border-bottom-left-radius",
+    "width",
+    "height",
+    "min-width",
+    "max-width",
+    "min-height",
+    "max-height",
+    "font-size",
+    "font-weight",
+    "font-style",
+    "text-align",
+    "vertical-align",
+    "text-decoration",
+    "list-style-type",
+    "list-style-image",
+    "list-style-position",
+    "list-style",
+    "white-space",
+    "text-overflow",
+    "text-wrap-mode",
+    "line-height",
+    "object-fit",
+    "object-position",
+    "opacity",
+    "overflow",
+    "overflow-x",
+    "overflow-y",
+    "cursor",
+    "visibility",
+    "display",
+    "position",
+    "flex-direction",
+    "flex-wrap",
+    "justify-content",
+    "align-items",
+    "align-self",
+    "align-content",
+    "gap",
+    "row-gap",
+    "column-gap",
+    "flex-grow",
+    "flex-shrink",
+    "flex-basis",
+    "order",
+    "grid-template-columns",
+    "grid-template-rows",
+    "grid-column",
+    "grid-row",
+    "box-shadow",
+    "outline-width",
+    "outline-color",
+    "outline-style",
+    "outline-offset",
+    "outline",
+    "transition",
+}
+
+
+def assert_property_spec_consistency() -> None:
+    canonical_in_spec = {canonical_property_name(p) for p in all_supported_properties()}
+    missing_in_generator = canonical_in_spec - GENERATED_PROPERTY_NAMES
+    missing_in_spec = GENERATED_PROPERTY_NAMES - canonical_in_spec
+    if missing_in_generator or missing_in_spec:
+        errors: list[str] = []
+        if missing_in_generator:
+            errors.append(
+                "spec-only properties: " + ", ".join(sorted(missing_in_generator))
+            )
+        if missing_in_spec:
+            errors.append(
+                "generator-only properties: " + ", ".join(sorted(missing_in_spec))
+            )
+        raise RuntimeError("CSS spec mismatch: " + "; ".join(errors))
+
+
 def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ") -> list[str]:
     """Generate Ada Style_Rules record fields from CSS properties"""
     fields = []
     padding_sides = None
     margin_sides = None
+    border_width_sides = None
+    border_style_sides = None
+    border_color_sides = None
+    border_radius_corners = None
     list_style_type = None
     list_style_image = None
     list_style_position = None
+    overflow_x = None
+    overflow_y = None
+    edge_index = {"top": 0, "right": 1, "bottom": 2, "left": 3}
+    corner_index = {
+        "top-left": 0,
+        "top-right": 1,
+        "bottom-right": 2,
+        "bottom-left": 3,
+    }
 
     def ensure_padding_sides():
         nonlocal padding_sides
         if padding_sides is None:
-            z = ParsedLength(0, "px")
+            z = ParsedLength(0.0, "Px")
             padding_sides = [z, z, z, z]
         return padding_sides
 
     def ensure_margin_sides():
         nonlocal margin_sides
         if margin_sides is None:
-            z = ParsedLength(0, "px")
+            z = ParsedLength(0.0, "Px")
             margin_sides = [z, z, z, z]
         return margin_sides
+
+    def ensure_border_width_sides():
+        nonlocal border_width_sides
+        if border_width_sides is None:
+            z = ParsedLength(0.0, "Px")
+            border_width_sides = [z, z, z, z]
+        return border_width_sides
+
+    def ensure_border_style_sides():
+        nonlocal border_style_sides
+        if border_style_sides is None:
+            border_style_sides = ["None_Style", "None_Style", "None_Style", "None_Style"]
+        return border_style_sides
+
+    def ensure_border_color_sides():
+        nonlocal border_color_sides
+        if border_color_sides is None:
+            c = ParsedColor(kind="named", name="Current_Color")
+            border_color_sides = [c, c, c, c]
+        return border_color_sides
+
+    def ensure_border_radius_corners():
+        nonlocal border_radius_corners
+        if border_radius_corners is None:
+            z = ParsedLength(0.0, "Px")
+            border_radius_corners = [z, z, z, z]
+        return border_radius_corners
     
     for prop, value in properties.items():
         ada_field = None
@@ -1462,40 +2024,75 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         elif prop == "border-width":
             lengths = parse_box_values(value)
             if lengths:
-                ada_field = f"Border_Width => Set ({generate_border_width_ada(lengths)})"
+                border_width_sides = box_lengths_to_four(lengths)
+
+        elif prop in ("border-top-width", "border-right-width", "border-bottom-width", "border-left-width"):
+            length = parse_length(value)
+            if length:
+                side_name = prop[len("border-") : -len("-width")]
+                ensure_border_width_sides()[edge_index[side_name]] = length
         
         # Border color
         elif prop == "border-color":
             color = parse_color(value)
             if color:
-                ada_field = f"Border_Color => Set (Border_Color ({generate_color_ada(color)}))"
+                border_color_sides = [color, color, color, color]
+
+        elif prop in ("border-top-color", "border-right-color", "border-bottom-color", "border-left-color"):
+            color = parse_color(value)
+            if color:
+                side_name = prop[len("border-") : -len("-color")]
+                ensure_border_color_sides()[edge_index[side_name]] = color
         
         # Border style
         elif prop == "border-style":
             if value.lower() in BORDER_STYLE_MAP:
-                ada_field = f"Border_Style => Set (Border_Style ({BORDER_STYLE_MAP[value.lower()]}))"
+                style = BORDER_STYLE_MAP[value.lower()]
+                border_style_sides = [style, style, style, style]
+
+        elif prop in ("border-top-style", "border-right-style", "border-bottom-style", "border-left-style"):
+            low = value.lower()
+            if low in BORDER_STYLE_MAP:
+                side_name = prop[len("border-") : -len("-style")]
+                ensure_border_style_sides()[edge_index[side_name]] = BORDER_STYLE_MAP[low]
         
         # Border (shorthand)
         elif prop == "border":
-            parts = value.split()
-            for part in parts:
-                length = parse_length(part)
-                if length:
-                    fields.append(f"{indent}Border_Width => Set (Border_Width ({generate_length_ada(length)}))")
-                    continue
-                if part.lower() in BORDER_STYLE_MAP:
-                    fields.append(f"{indent}Border_Style => Set (Border_Style ({BORDER_STYLE_MAP[part.lower()]}))")
-                    continue
-                color = parse_color(part)
-                if color:
-                    fields.append(f"{indent}Border_Color => Set (Border_Color ({generate_color_ada(color)}))")
-            continue  # Skip adding ada_field since we handled it
+            width, style, color = parse_border_shorthand_components(value)
+            if width is not None:
+                border_width_sides = [width, width, width, width]
+            if style is not None:
+                border_style_sides = [style, style, style, style]
+            if color is not None:
+                border_color_sides = [color, color, color, color]
+
+        elif prop in ("border-top", "border-right", "border-bottom", "border-left"):
+            width, style, color = parse_border_shorthand_components(value)
+            side_name = prop[len("border-") :]
+            idx = edge_index[side_name]
+            if width is not None:
+                ensure_border_width_sides()[idx] = width
+            if style is not None:
+                ensure_border_style_sides()[idx] = style
+            if color is not None:
+                ensure_border_color_sides()[idx] = color
         
         # Border radius
         elif prop == "border-radius":
             lengths = parse_box_values(value)
             if lengths:
-                ada_field = f"Border_Radius => Set ({generate_border_radius_ada(lengths)})"
+                border_radius_corners = box_lengths_to_four(lengths)
+
+        elif prop in (
+            "border-top-left-radius",
+            "border-top-right-radius",
+            "border-bottom-right-radius",
+            "border-bottom-left-radius",
+        ):
+            length = parse_length(value)
+            if length:
+                corner_name = prop[len("border-") : -len("-radius")]
+                ensure_border_radius_corners()[corner_index[corner_name]] = length
         
         # Width
         elif prop == "width":
@@ -1660,6 +2257,22 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
             if value.lower() in OBJECT_FIT_MAP:
                 ada_field = f"Object_Fit => Set ({OBJECT_FIT_MAP[value.lower()]})"
 
+        # Object position
+        elif prop == "object-position":
+            pos = parse_object_position(value)
+            if pos:
+                if pos.kind == "keyword":
+                    ada_field = (
+                        "Object_Position => Set "
+                        f"(Object_Position ({pos.h_keyword}, {pos.v_keyword}))"
+                    )
+                else:
+                    ada_field = (
+                        "Object_Position => Set "
+                        f"(Object_Position ({generate_length_ada(pos.x_offset)}, "
+                        f"{generate_length_ada(pos.y_offset)}))"
+                    )
+
         # Opacity
         elif prop == "opacity":
             try:
@@ -1668,10 +2281,26 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
             except ValueError:
                 pass
 
-        # Overflow
+        # Overflow shorthand/longhands.
+        # There is no standalone Overflow field in Style_Rules: shorthand writes both axes.
         elif prop == "overflow":
-            if value.lower() in OVERFLOW_MAP:
-                ada_field = f"Overflow => Set ({OVERFLOW_MAP[value.lower()]})"
+            overflow_val = OVERFLOW_MAP.get(value.lower())
+            if overflow_val is not None:
+                overflow_x = overflow_val
+                overflow_y = overflow_val
+            continue
+
+        elif prop == "overflow-x":
+            overflow_val = OVERFLOW_MAP.get(value.lower())
+            if overflow_val is not None:
+                overflow_x = overflow_val
+            continue
+
+        elif prop == "overflow-y":
+            overflow_val = OVERFLOW_MAP.get(value.lower())
+            if overflow_val is not None:
+                overflow_y = overflow_val
+            continue
 
         # Cursor
         elif prop == "cursor":
@@ -1889,12 +2518,30 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         fields.append(f"{indent}Padding => Set ({generate_box_from_four_ada(padding_sides)})")
     if margin_sides is not None:
         fields.append(f"{indent}Margin => Set ({generate_box_from_four_ada(margin_sides)})")
+    if border_width_sides is not None:
+        widths = four_sides_to_box_lengths(border_width_sides)
+        fields.append(f"{indent}Border_Width => Set ({generate_border_width_ada(widths)})")
+    if border_style_sides is not None:
+        fields.append(
+            f"{indent}Border_Style => Set ({generate_border_style_from_four_ada(border_style_sides)})"
+        )
+    if border_color_sides is not None:
+        fields.append(
+            f"{indent}Border_Color => Set ({generate_border_color_from_four_ada(border_color_sides)})"
+        )
+    if border_radius_corners is not None:
+        radii = four_sides_to_box_lengths(border_radius_corners)
+        fields.append(f"{indent}Border_Radius => Set ({generate_border_radius_ada(radii)})")
     if list_style_type is not None:
         fields.append(f"{indent}List_Style_Type => Set ({list_style_type})")
     if list_style_image is not None:
         fields.append(f"{indent}List_Style_Image => Set ({list_style_image})")
     if list_style_position is not None:
         fields.append(f"{indent}List_Style_Position => Set ({list_style_position})")
+    if overflow_x is not None:
+        fields.append(f"{indent}Overflow_X => Set_Overflow_X ({overflow_x})")
+    if overflow_y is not None:
+        fields.append(f"{indent}Overflow_Y => Set_Overflow_Y ({overflow_y})")
 
     return fields
 
@@ -2215,6 +2862,17 @@ def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str)
     return "\n".join(lines)
 
 
+def format_diagnostic(diag: CssDiagnostic) -> str:
+    pieces = [diag.code]
+    if diag.selector:
+        pieces.append(f"selector='{diag.selector}'")
+    if diag.property_name:
+        pieces.append(f"property='{diag.property_name}'")
+    if diag.property_value:
+        pieces.append(f"value='{diag.property_value}'")
+    return f"{diag.message} ({', '.join(pieces)})"
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Convert CSS to Ada Widget Styles"
@@ -2226,8 +2884,19 @@ def main():
         default="Generated_Styles",
         help="Ada package name (default: Generated_Styles)"
     )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Fail if CSS contains unsupported selectors/properties or invalid values",
+    )
     
     args = parser.parse_args()
+
+    try:
+        assert_property_spec_consistency()
+    except RuntimeError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
     
     # Read CSS
     try:
@@ -2238,7 +2907,17 @@ def main():
         sys.exit(1)
     
     # Parse
-    rules = parse_css(css_content)
+    rules, diagnostics = parse_css_with_diagnostics(css_content)
+    for diag in diagnostics:
+        print(f"warning: {format_diagnostic(diag)}", file=sys.stderr)
+
+    if args.strict and diagnostics:
+        print(
+            f"Strict mode failed: {len(diagnostics)} CSS diagnostics found",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     if not rules:
         print("No rules found in CSS file", file=sys.stderr)
         sys.exit(1)

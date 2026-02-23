@@ -16,6 +16,7 @@ package Image_Example_Styles is
       Gap => Set (Gap (Px (16.0))),
       Background_Color => Set_Bg (RGB (17, 24, 39)),
       Padding => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
+      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>
    );
 
@@ -116,6 +117,7 @@ package Image_Example_Styles is
    --  Base style for class 'image'::icon
    Image_Class_Icon_Base_Style : constant Style_Rules := (
       Object_Fit => Set (Fit_Contain),
+      Object_Position => Set (Object_Position (Pos_Center, Pos_Center)),
       others => <>
    );
 

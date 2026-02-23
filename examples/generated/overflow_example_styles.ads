@@ -92,7 +92,6 @@ package Overflow_Example_Styles is
    Clip_Visible_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
-      Overflow => Set (Overflow_Visible),
       Height => Set (Size (Px (120.0))),
       Gap => Set (Gap (Px (8.0))),
       Background_Color => Set_Bg (RGBA (96, 165, 250, 0.16)),
@@ -102,6 +101,8 @@ package Overflow_Example_Styles is
       Border_Radius => Set (Radius (Px (8.0))),
       Text_Wrap_Mode => Set (TWM_Nowrap),
       Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
+      Overflow_X => Set_Overflow_X (Overflow_Visible),
+      Overflow_Y => Set_Overflow_Y (Overflow_Visible),
       others => <>
    );
 
@@ -109,7 +110,6 @@ package Overflow_Example_Styles is
    Clip_Hidden_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
-      Overflow => Set (Overflow_Hidden),
       Height => Set (Size (Px (120.0))),
       Gap => Set (Gap (Px (8.0))),
       Background_Color => Set_Bg (RGBA (74, 222, 128, 0.16)),
@@ -119,6 +119,8 @@ package Overflow_Example_Styles is
       Border_Radius => Set (Radius (Px (8.0))),
       Text_Wrap_Mode => Set (TWM_Nowrap),
       Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
+      Overflow_X => Set_Overflow_X (Overflow_Hidden),
+      Overflow_Y => Set_Overflow_Y (Overflow_Hidden),
       others => <>
    );
 

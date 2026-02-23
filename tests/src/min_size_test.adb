@@ -536,7 +536,8 @@ begin
       Grid_Style : constant Style_Rules := (
          Display      => Set (Grid),
          Grid_Columns => Set (Grid_Columns_Value (1)),
-         Overflow     => Set (Overflow_Hidden),
+         Overflow_X   => Set_Overflow_X (Overflow_Hidden),
+         Overflow_Y   => Set_Overflow_Y (Overflow_Hidden),
          others => <>
       );
       Grid_WS    : constant Widget_Style := From (Grid_Style).Build;

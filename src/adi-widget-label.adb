@@ -66,8 +66,10 @@ package body Adi.Widget.Label is
       Label_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Label_Part);
       Icon_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Icon_Part);
 
-      Has_Icon : constant Boolean := W.Icon /= null;
-      Has_Text : constant Boolean := Length (W.Text) > 0;
+      Has_Icon : constant Boolean :=
+        W.Icon /= null and then Icon_Style.Display /= Display_None;
+      Has_Text : constant Boolean :=
+        Length (W.Text) > 0 and then Label_Style.Display /= Display_None;
 
       Icon_Size : Size_2D := (0.0, 0.0);
       Text_Size : Size_2D := (0.0, 0.0);
@@ -217,9 +219,13 @@ package body Adi.Widget.Label is
    overriding procedure Layout (W : in out Label_Widget) is
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Icon_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Icon_Part);
+      Label_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Label_Part);
 
-      Has_Icon : constant Boolean := W.Icon /= null;
-      Has_Text : constant Boolean := Length (W.Text) > 0;
+      Has_Icon : constant Boolean :=
+        W.Icon /= null and then Icon_Style.Display /= Display_None;
+      Has_Text : constant Boolean :=
+        Length (W.Text) > 0 and then Label_Style.Display /= Display_None;
    begin
       --  Clear previous layout items
       W.Layout_Items.Clear;
@@ -289,8 +295,6 @@ package body Adi.Widget.Label is
       if Has_Text then
          declare
             Text_Item   : Layout_Item;
-            Label_Style : constant Resolved_Style :=
-              Get_Resolved_Part_Style (W, Label_Part);
             Font_Attrs  : constant Adi.Font.Font_Attributes :=
               Adi.Font.Make_Attributes
                 (Family     => Label_Style.Font_Family,
@@ -487,30 +491,42 @@ package body Adi.Widget.Label is
          Text_It : Item renames W.Items.Reference (Text_Idx).Element.all;
          Label_Style : constant Resolved_Style :=
            Get_Resolved_Part_Style (W, Label_Part);
+         Found : Boolean := False;
       begin
          Text_It.Text_Content := W.Text;
          Text_It.Wrap_Text :=
            Label_Style.Text_Wrap_Mode = TWM_Wrap
            and then Label_Style.White_Space /= WS_NoWrap;
+         Text_It.Geometry := (0.0, 0.0, 0.0, 0.0);
          for L_Item of W.Layout_Items loop
             if L_Item.Part = Label_Part then
                Text_It.Geometry := Clamp_Horizontal_To_Content (L_Item.Geometry);
+               Found := True;
                exit;
             end if;
          end loop;
+         if not Found then
+            Text_It.Text_Content := Null_Unbounded_String;
+         end if;
       end;
 
       --  Update icon item
       declare
          Icon_It : Item renames W.Items.Reference (Icon_Idx).Element.all;
+         Found : Boolean := False;
       begin
          Icon_It.Image_Source := W.Icon;
+         Icon_It.Geometry := (0.0, 0.0, 0.0, 0.0);
          for L_Item of W.Layout_Items loop
             if L_Item.Part = Icon_Part then
                Icon_It.Geometry := L_Item.Geometry;
+               Found := True;
                exit;
             end if;
          end loop;
+         if not Found then
+            Icon_It.Image_Source := null;
+         end if;
       end;
    end Build_Items;
 

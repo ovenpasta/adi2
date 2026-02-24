@@ -615,30 +615,42 @@ package body Adi.Widget.Combo_Box is
       --  Update label text + geometry from Layout_Items
       declare
          Label_It : Item renames W.Items.Reference (Label_Idx).Element.all;
+         Found : Boolean := False;
       begin
          Label_It.Text_Content :=
            To_Unbounded_String (Get_Selected_Text (W));
+         Label_It.Geometry := (0.0, 0.0, 0.0, 0.0);
          for L_Item of W.Layout_Items loop
             if L_Item.Part = Label_Part then
                Label_It.Geometry := L_Item.Geometry;
+               Found := True;
                exit;
             end if;
          end loop;
+         if not Found then
+            Label_It.Text_Content := Null_Unbounded_String;
+         end if;
       end;
 
       --  Update indicator image + geometry from Layout_Items
       declare
          Ind_It : Item renames
            W.Items.Reference (Indicator_Idx).Element.all;
+         Found : Boolean := False;
       begin
          Ind_It.Image_Source :=
            (if W.Open then W.Arrow_Up_Img else W.Arrow_Down_Img);
+         Ind_It.Geometry := (0.0, 0.0, 0.0, 0.0);
          for L_Item of W.Layout_Items loop
             if L_Item.Part = Indicator_Part then
                Ind_It.Geometry := L_Item.Geometry;
+               Found := True;
                exit;
             end if;
          end loop;
+         if not Found then
+            Ind_It.Image_Source := null;
+         end if;
       end;
    end Build_Items;
 
@@ -652,6 +664,8 @@ package body Adi.Widget.Combo_Box is
       Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
 
       Label_Text : constant String := Get_Selected_Text (W);
+      Label_Visible : constant Boolean := Label_Style.Display /= Display_None;
+      Indicator_Visible : constant Boolean := Ind_Style.Display /= Display_None;
 
       Label_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
@@ -660,63 +674,72 @@ package body Adi.Widget.Combo_Box is
            Weight     => Label_Style.Font_Weight,
            Style      => Label_Style.Font_Style,
            Decoration => Label_Style.Text_Decoration);
-      Label_Size : constant Size_2D :=
-        Adi.Font.Measure_Text (Label_Attrs, Label_Text);
+      Label_Size : Size_2D := (0.0, 0.0);
 
       --  Indicator uses image size instead of font measurement
       Ind_Img_W : Pixel_Type := 0.0;
       Ind_Img_H : Pixel_Type := 0.0;
-      Ind_W     : Pixel_Type;
+      Ind_W     : Pixel_Type := 0.0;
    begin
       if Item_Count (W) < 3 then
          return;
       end if;
 
-      --  Get indicator image dimensions
-      declare
-         Img : constant Image_Access :=
-           (if W.Open then W.Arrow_Up_Img else W.Arrow_Down_Img);
-      begin
-         if Img /= null and then Is_Valid (Img.all) then
-            Get_Size (Img.all, Ind_Img_W, Ind_Img_H);
-         end if;
-      end;
-      Ind_W := Pixel_Type'Max (Ind_Img_W, 16.0);
+      if Label_Visible then
+         Label_Size := Adi.Font.Measure_Text (Label_Attrs, Label_Text);
+      end if;
+
+      if Indicator_Visible then
+         --  Get indicator image dimensions
+         declare
+            Img : constant Image_Access :=
+              (if W.Open then W.Arrow_Up_Img else W.Arrow_Down_Img);
+         begin
+            if Img /= null and then Is_Valid (Img.all) then
+               Get_Size (Img.all, Ind_Img_W, Ind_Img_H);
+            end if;
+         end;
+         Ind_W := Pixel_Type'Max (Ind_Img_W, 16.0);
+      end if;
 
       --  Build layout items for flex positioning
       W.Layout_Items.Clear;
 
-      W.Layout_Items.Append (Layout_Item'(
-         Part           => Label_Part,
-         Min_Width      => 0.0,
-         Min_Height     => Float (Label_Size.Height),
-         Max_Width      => Float'Last,
-         Max_Height     => Float'Last,
-         Content_Width  => Float (Label_Size.Width),
-         Content_Height => Float (Label_Size.Height),
-         Flex           => (
-            Grow       => 1.0,
-            Shrink     => 0.0,
-            Basis      => 0.0,
-            Align_Self => Label_Style.Align_Self),
-         Geometry       => <>,
-         Index          => 1));
+      if Label_Visible then
+         W.Layout_Items.Append (Layout_Item'(
+            Part           => Label_Part,
+            Min_Width      => 0.0,
+            Min_Height     => Float (Label_Size.Height),
+            Max_Width      => Float'Last,
+            Max_Height     => Float'Last,
+            Content_Width  => Float (Label_Size.Width),
+            Content_Height => Float (Label_Size.Height),
+            Flex           => (
+               Grow       => 1.0,
+               Shrink     => 0.0,
+               Basis      => 0.0,
+               Align_Self => Label_Style.Align_Self),
+            Geometry       => <>,
+            Index          => 1));
+      end if;
 
-      W.Layout_Items.Append (Layout_Item'(
-         Part           => Indicator_Part,
-         Min_Width      => Float (Ind_W),
-         Min_Height     => Float (Ind_Img_H),
-         Max_Width      => Float (Ind_W),
-         Max_Height     => Float'Last,
-         Content_Width  => Float (Ind_W),
-         Content_Height => Float (Ind_Img_H),
-         Flex           => (
-            Grow       => 0.0,
-            Shrink     => 0.0,
-            Basis      => Float (Ind_W),
-            Align_Self => Ind_Style.Align_Self),
-         Geometry       => <>,
-         Index          => 2));
+      if Indicator_Visible then
+         W.Layout_Items.Append (Layout_Item'(
+            Part           => Indicator_Part,
+            Min_Width      => Float (Ind_W),
+            Min_Height     => Float (Ind_Img_H),
+            Max_Width      => Float (Ind_W),
+            Max_Height     => Float'Last,
+            Content_Width  => Float (Ind_W),
+            Content_Height => Float (Ind_Img_H),
+            Flex           => (
+               Grow       => 0.0,
+               Shrink     => 0.0,
+               Basis      => Float (Ind_W),
+               Align_Self => Ind_Style.Align_Self),
+            Geometry       => <>,
+            Index          => 2));
+      end if;
 
       Perform_Item_Flex_Layout (
          Container_Geom  => Content,

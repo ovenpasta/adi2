@@ -124,8 +124,17 @@ package body Adi.Widget.Stack is
           Width => Content_W, Height => Content_H);
    begin
       for I in 1 .. Child_Count (W) loop
-         Set_Geometry (Get_Child (W, I).all, Child_Geom);
-         Layout_Child (Get_Child (W, I).all);
+         declare
+            Child : constant Widget_Access := Get_Child (W, I);
+         begin
+            if Child /= null
+              and then Has_Flag (Child.all, Visible)
+              and then Get_Resolved_Part_Style (Child.all, Main_Part).Display /= Display_None
+            then
+               Set_Geometry (Child.all, Child_Geom);
+               Layout_Child (Child.all);
+            end if;
+         end;
       end loop;
    end Layout;
 

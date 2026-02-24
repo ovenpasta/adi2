@@ -783,6 +783,91 @@ begin
    end;
 
    Ada.Text_IO.New_Line;
+
+   --  Test 12: hard-hide excludes from layout; visibility:hidden keeps layout.
+   Ada.Text_IO.Put_Line ("=== display:none/visibility/Visible layout participation ===");
+   Ada.Text_IO.New_Line;
+   declare
+      Parent : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Child_A : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("Short");
+      Child_B : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create
+          ("This child has much longer text and should dominate width");
+
+      Display_None_Style : constant Style_Rules := (Display => Set (Display_None), others => <>);
+      Display_None_WS : constant Widget_Style := From (Display_None_Style).Build;
+      Display_None_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Display_None_WS, Enabled => True),
+         others => <>];
+
+      Visibility_Hidden_Style : constant Style_Rules := (Visibility => Set (Visibility_Hidden), others => <>);
+      Visibility_Hidden_WS : constant Widget_Style := From (Visibility_Hidden_Style).Build;
+      Visibility_Hidden_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Visibility_Hidden_WS, Enabled => True),
+         others => <>];
+
+      Pref_Both            : Size_2D;
+      Pref_Display_None    : Size_2D;
+      Pref_Visibility_Hide : Size_2D;
+      Pref_Visible_False   : Size_2D;
+   begin
+      Add_Child (Parent.all, Child_A);
+      Add_Child (Parent.all, Child_B);
+      Pref_Both := Get_Preferred_Size (Widget'Class (Parent.all));
+
+      Set_Part_Styles (Child_B.all, Display_None_Parts);
+      Pref_Display_None := Get_Preferred_Size (Widget'Class (Parent.all));
+
+      Set_Part_Styles (Child_B.all, Visibility_Hidden_Parts);
+      Pref_Visibility_Hide := Get_Preferred_Size (Widget'Class (Parent.all));
+
+      Set_Flag (Child_B.all, Visible, False);
+      Pref_Visible_False := Get_Preferred_Size (Widget'Class (Parent.all));
+
+      Check ("display:none child removed from parent preferred width",
+             Pref_Display_None.Width < Pref_Both.Width);
+      Check ("visibility:hidden child still contributes parent preferred width",
+             Pref_Visibility_Hide.Width >= Pref_Both.Width);
+      Check ("Visible=False child removed from parent preferred width",
+             Pref_Visible_False.Width < Pref_Visibility_Hide.Width);
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  Test 13: Label internal layout honors part display:none vs visibility:hidden.
+   Ada.Text_IO.Put_Line ("=== Label part display:none vs visibility:hidden ===");
+   Ada.Text_IO.New_Line;
+   declare
+      L : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("Label part text");
+      Label_Display_None : constant Style_Rules := (Display => Set (Display_None), others => <>);
+      Label_Display_None_WS : constant Widget_Style := From (Label_Display_None).Build;
+      Label_Display_None_Parts : constant Part_Style_Array := [
+         Label_Part => (Style => Label_Display_None_WS, Enabled => True),
+         others => <>];
+      Label_Visibility_Hidden : constant Style_Rules := (Visibility => Set (Visibility_Hidden), others => <>);
+      Label_Visibility_Hidden_WS : constant Widget_Style := From (Label_Visibility_Hidden).Build;
+      Label_Visibility_Hidden_Parts : constant Part_Style_Array := [
+         Label_Part => (Style => Label_Visibility_Hidden_WS, Enabled => True),
+         others => <>];
+      Pref_Default : Size_2D;
+      Pref_Label_None : Size_2D;
+      Pref_Label_Hidden : Size_2D;
+   begin
+      Pref_Default := Get_Preferred_Size (Widget'Class (L.all));
+      Set_Part_Styles (L.all, Label_Display_None_Parts);
+      Pref_Label_None := Get_Preferred_Size (Widget'Class (L.all));
+      Set_Part_Styles (L.all, Label_Visibility_Hidden_Parts);
+      Pref_Label_Hidden := Get_Preferred_Size (Widget'Class (L.all));
+
+      Check ("Label_Part display:none removes text from label internal layout",
+             Pref_Label_None.Width < Pref_Default.Width);
+      Check ("Label_Part visibility:hidden keeps label internal layout size",
+             Pref_Label_Hidden.Width >= Pref_Default.Width);
+   end;
+
+   Ada.Text_IO.New_Line;
    Ada.Text_IO.Put_Line ("Summary: " & Natural'Image (Pass_Count) & "/"
      & Natural'Image (Pass_Count + Fail_Count) & " passing");
 

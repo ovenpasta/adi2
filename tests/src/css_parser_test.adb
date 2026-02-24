@@ -126,6 +126,7 @@ procedure Css_Parser_Test is
        ".sizing { height: 200px; min-width: 50px; max-width: 400px; max-height: 300px; }" & ASCII.LF &
        ".textprops { text-decoration: underline; white-space: pre-wrap; text-overflow: ellipsis; line-height: 1.5; vertical-align: middle; }" & ASCII.LF &
        ".misc { visibility: hidden; object-fit: cover; object-position: center center; }" & ASCII.LF &
+       ".misccollapse { visibility: collapse; }" & ASCII.LF &
        ".misc2 { object-position: 10px 20px; }" & ASCII.LF &
        ".overflowy { overflow-y: auto; }" & ASCII.LF &
        ".overflowx { overflow-x: hidden; }" & ASCII.LF &
@@ -443,6 +444,7 @@ begin
       Sizing_Styles      : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "sizing");
       Textprops_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "textprops");
       Misc_Styles        : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "misc");
+      MiscCollapse_Styles : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "misccollapse");
       Misc2_Styles       : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "misc2");
       OverflowY_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "overflowy");
       OverflowX_Styles   : constant Part_Style_Array := Adi.CSS_Parser.Styles_For_Class (Sheet, "overflowx");
@@ -476,6 +478,7 @@ begin
       Sizing_Main      : constant Resolved_Style := Compute_Resolved (Sizing_Styles (Main_Part).Style, No_States, No_States);
       Textprops_Main   : constant Resolved_Style := Compute_Resolved (Textprops_Styles (Main_Part).Style, No_States, No_States);
       Misc_Main        : constant Resolved_Style := Compute_Resolved (Misc_Styles (Main_Part).Style, No_States, No_States);
+      MiscCollapse_Main : constant Resolved_Style := Compute_Resolved (MiscCollapse_Styles (Main_Part).Style, No_States, No_States);
       Misc2_Main       : constant Resolved_Style := Compute_Resolved (Misc2_Styles (Main_Part).Style, No_States, No_States);
       OverflowY_Main   : constant Resolved_Style := Compute_Resolved (OverflowY_Styles (Main_Part).Style, No_States, No_States);
       OverflowX_Main   : constant Resolved_Style := Compute_Resolved (OverflowX_Styles (Main_Part).Style, No_States, No_States);
@@ -568,6 +571,8 @@ begin
       --  Misc properties
       Assert (Misc_Main.Visibility = Visibility_Hidden,
               "visibility hidden should parse");
+      Assert (MiscCollapse_Main.Visibility = Visibility_Collapse,
+              "visibility collapse should parse");
       Assert (Misc_Main.Object_Fit = Fit_Cover,
               "object-fit cover should parse");
       Assert (Misc_Main.Object_Position.Kind = Keyword_Pos

@@ -2,6 +2,7 @@ pragma Ada_2022;
 with Ada.Text_IO;        use Ada.Text_IO;
 with Adi.Widget;         use Adi.Widget;
 with Adi.Widget_Styles;  use Adi.Widget_Styles;
+with Adi.CSS_Styles;     use Adi.CSS_Styles;
 with Adi.Widget.Box;
 with Adi.Widget.Button;
 with Adi.Widget.Label;
@@ -25,12 +26,69 @@ procedure Disabled_Test is
       end if;
    end Assert;
 
+   function Normalize_Visibility (V : Visibility_Value) return Visibility_Value is
+   begin
+      if V = Visibility_Collapse then
+         return Visibility_Hidden;
+      end if;
+      return V;
+   end Normalize_Visibility;
+
+   function Widget_Participates (W : Widget_Access) return Boolean is
+   begin
+      if W = null then
+         return False;
+      end if;
+      declare
+         Main_Style : constant Resolved_Style :=
+           Get_Resolved_Part_Style (W.all, Main_Part);
+      begin
+         return Has_Flag (W.all, Visible)
+        and then Main_Style.Display /= Display_None;
+      end;
+   end Widget_Participates;
+
+   function Main_Visibility_Explicit (W : Widget_Access) return Boolean is
+   begin
+      if W = null then
+         return False;
+      end if;
+      declare
+         Rules : constant Style_Rules := Get_Part_Style_Rules (W.all, Main_Part);
+      begin
+         return Opt_Visibility.Is_Set (Rules.Visibility);
+      end;
+   end Main_Visibility_Explicit;
+
+   function Effective_Visibility_Of (W : Widget_Access) return Visibility_Value is
+      Parent : access Widget'Class;
+      Main_Style : Resolved_Style;
+   begin
+      if W = null then
+         return Visibility_Hidden;
+      end if;
+      Main_Style := Get_Resolved_Part_Style (W.all, Main_Part);
+      Parent := Get_Parent (W.all);
+
+      if Parent = null then
+         return (if Main_Visibility_Explicit (W)
+                 then Normalize_Visibility (Main_Style.Visibility)
+                 else Visibility_Visible);
+      end if;
+
+      if Main_Visibility_Explicit (W) then
+         return Normalize_Visibility (Main_Style.Visibility);
+      end if;
+      return Effective_Visibility_Of (Parent.all'Unchecked_Access);
+   end Effective_Visibility_Of;
+
    --  Mirror the Is_Focus_Candidate logic from adi-window.adb
    function Is_Focus_Candidate (W : Widget_Access) return Boolean is
    begin
       return W /= null
+        and then Widget_Participates (W)
+        and then Effective_Visibility_Of (W) = Visibility_Visible
         and then Has_Flag (W.all, Focusable)
-        and then Has_Flag (W.all, Visible)
         and then not Is_Disabled (W.all);
    end Is_Focus_Candidate;
 
@@ -170,6 +228,75 @@ procedure Disabled_Test is
               "Invisible widget should not be a focus candidate");
    end Test_Disabled_Invisible_Not_Candidate;
 
+   procedure Test_Display_None_Not_Candidate is
+      B : constant Adi.Widget.Button.Button_Widget_Access :=
+        Adi.Widget.Button.Create ("OK");
+      Hidden_Style : constant Style_Rules := (Display => Set (Display_None), others => <>);
+      Hidden_WS : constant Widget_Style := From (Hidden_Style).Build;
+      Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Hidden_WS, Enabled => True),
+         others => <>];
+   begin
+      Put_Line ("Test: display:none widget is not a focus candidate");
+      Set_Part_Styles (B.all, Parts);
+      Assert (not Is_Focus_Candidate (Widget_Access (B)),
+              "display:none widget should not be a focus candidate");
+   end Test_Display_None_Not_Candidate;
+
+   procedure Test_Visibility_Hidden_Not_Candidate is
+      B : constant Adi.Widget.Button.Button_Widget_Access :=
+        Adi.Widget.Button.Create ("OK");
+      Hidden_Style : constant Style_Rules := (Visibility => Set (Visibility_Hidden), others => <>);
+      Hidden_WS : constant Widget_Style := From (Hidden_Style).Build;
+      Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Hidden_WS, Enabled => True),
+         others => <>];
+   begin
+      Put_Line ("Test: visibility:hidden widget is not a focus candidate");
+      Set_Part_Styles (B.all, Parts);
+      Assert (not Is_Focus_Candidate (Widget_Access (B)),
+              "visibility:hidden widget should not be a focus candidate");
+   end Test_Visibility_Hidden_Not_Candidate;
+
+   procedure Test_Visibility_Collapse_Not_Candidate is
+      B : constant Adi.Widget.Button.Button_Widget_Access :=
+        Adi.Widget.Button.Create ("OK");
+      Collapse_Style : constant Style_Rules := (Visibility => Set (Visibility_Collapse), others => <>);
+      Collapse_WS : constant Widget_Style := From (Collapse_Style).Build;
+      Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Collapse_WS, Enabled => True),
+         others => <>];
+   begin
+      Put_Line ("Test: visibility:collapse aliases hidden for focus candidate checks");
+      Set_Part_Styles (B.all, Parts);
+      Assert (not Is_Focus_Candidate (Widget_Access (B)),
+              "visibility:collapse widget should not be a focus candidate");
+   end Test_Visibility_Collapse_Not_Candidate;
+
+   procedure Test_Visibility_Override_Is_Candidate is
+      Parent : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Child : constant Adi.Widget.Button.Button_Widget_Access :=
+        Adi.Widget.Button.Create ("Child");
+      Parent_Style : constant Style_Rules := (Visibility => Set (Visibility_Hidden), others => <>);
+      Parent_WS : constant Widget_Style := From (Parent_Style).Build;
+      Parent_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Parent_WS, Enabled => True),
+         others => <>];
+      Child_Style : constant Style_Rules := (Visibility => Set (Visibility_Visible), others => <>);
+      Child_WS : constant Widget_Style := From (Child_Style).Build;
+      Child_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Child_WS, Enabled => True),
+         others => <>];
+   begin
+      Put_Line ("Test: visibility:visible child overrides hidden parent");
+      Add_Child (Parent.all, Child);
+      Set_Part_Styles (Parent.all, Parent_Parts);
+      Set_Part_Styles (Child.all, Child_Parts);
+      Assert (Is_Focus_Candidate (Widget_Access (Child)),
+              "Child with visibility:visible should remain focus candidate");
+   end Test_Visibility_Override_Is_Candidate;
+
    -----------------------------------------------
    --  Test: Recursive (inherited) disabled
    -----------------------------------------------
@@ -301,6 +428,10 @@ begin
    Test_Disabled_Text_Input;
    Test_Disabled_Preserves_Other_States;
    Test_Disabled_Invisible_Not_Candidate;
+   Test_Display_None_Not_Candidate;
+   Test_Visibility_Hidden_Not_Candidate;
+   Test_Visibility_Collapse_Not_Candidate;
+   Test_Visibility_Override_Is_Candidate;
    New_Line;
 
    Test_Parent_Disabled_Child_Is_Disabled;

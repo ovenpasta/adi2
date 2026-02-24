@@ -60,7 +60,7 @@ Example:
 
 Text and typography properties set on `Main_Part` (i.e., without a `::part` selector) automatically **inherit** to sub-parts (`::label`, `::icon`, etc.) when those sub-parts don't explicitly set the property. This matches CSS cascade semantics where text properties flow from parent to child.
 
-**Inheritable properties:** `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `text-align`, `vertical-align`, `text-decoration`, `text-overflow`, `text-wrap-mode`, `line-height`, `white-space`, `cursor`, `list-style-type`, `list-style-image`, `list-style-position`.
+**Inheritable properties:** `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `text-align`, `vertical-align`, `text-decoration`, `text-overflow`, `text-wrap-mode`, `line-height`, `white-space`, `cursor`, `list-style-type`, `list-style-image`, `list-style-position`, `visibility`.
 
 **Non-inheritable properties** (box-model, layout, visual): `background-color`, `background-image`, `border-*`, `outline-*`, `padding`, `margin`, sizing, `display`, `position`, `overflow`, `opacity`, `box-shadow`, `flex-*`, `grid-*`, `transition`, etc.
 
@@ -208,6 +208,22 @@ Corner radius longhands currently accept a single value only (elliptical two-val
 
 `overflow` is treated as shorthand only: it sets both `overflow-x` and `overflow-y`.
 Resolved styles store only axis values (`Overflow_X`, `Overflow_Y`), and normal CSS order/override rules apply.
+
+### Visibility And Participation
+
+Adi distinguishes hard-hide and soft-hide behavior:
+
+| Mechanism | Layout | Paint | Hit/Focus | Notes |
+|----------|--------|-------|-----------|-------|
+| `Set_Flag(..., Visible, False)` | no | no | no | Imperative hard hide; subtree excluded |
+| Main-part `display:none` | no | no | no | CSS hard hide; subtree excluded |
+| `visibility:hidden` | yes | no | no | Soft hide; descendants may override with `visibility:visible` |
+| `visibility:collapse` | yes | no | no | Alias of `hidden` |
+
+Additional part behavior:
+
+- `display:none` on a `::part` removes that part from rendering and from internal part layout (for widgets that have internal part layout, e.g. label/combo).
+- `visibility:hidden` on a `::part` keeps its layout slot but suppresses rendering/interaction.
 
 ### Flexbox Container
 

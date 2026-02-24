@@ -55,6 +55,13 @@ package body Adi.Widget is
    end record;
 
    function Point_In_Rect (R : Rectangle; X, Y : Pixel_Type) return Boolean;
+   function Normalize_Visibility (V : Visibility_Value) return Visibility_Value;
+   function Main_Visibility_Explicit (W : Widget'Class) return Boolean;
+   function Resolve_Effective_Visibility
+     (W : Widget'Class;
+      Parent_Effective : Visibility_Value) return Visibility_Value;
+   function Widget_Participates (W : Widget'Class) return Boolean;
+   function Item_Is_Rendered (Style : Resolved_Style) return Boolean;
 
    ---------------------------------------------------------------------------
    --  Generate_Shadow_Texture
@@ -856,19 +863,33 @@ package body Adi.Widget is
                          X, Y : Pixel_Type) return Part_Kind is
    begin
       if W.Scroll_Show_Bar then
-         if Point_In_Rect (W.Scroll_Knob_Geom, X, Y) then
-            return Knob_Part;
-         elsif Point_In_Rect (W.Scroll_Track_Geom, X, Y) then
-            return Scroll_Part;
-         end if;
+         declare
+            Scroll_Style : constant Resolved_Style :=
+              Get_Resolved_Part_Style (W, Scroll_Part);
+            Knob_Style   : constant Resolved_Style :=
+              Get_Resolved_Part_Style (W, Knob_Part);
+         begin
+            if Item_Is_Rendered (Knob_Style)
+              and then Point_In_Rect (W.Scroll_Knob_Geom, X, Y)
+            then
+               return Knob_Part;
+            elsif Item_Is_Rendered (Scroll_Style)
+              and then Point_In_Rect (W.Scroll_Track_Geom, X, Y)
+            then
+               return Scroll_Part;
+            end if;
+         end;
       end if;
 
       for I in reverse 1 .. Natural (W.Items.Length) loop
          declare
             Current : constant Item := W.Items.Element (I);
             G       : constant Rectangle := Current.Geometry;
+            Style   : Resolved_Style renames Current.Computed_Style;
          begin
-            if X >= G.X and then X <= G.X + G.Width
+            if not Item_Is_Rendered (Style) then
+               null;
+            elsif X >= G.X and then X <= G.X + G.Width
               and then Y >= G.Y and then Y <= G.Y + G.Height
             then
                return Current.Part;
@@ -1018,6 +1039,45 @@ package body Adi.Widget is
    begin
       return V in Overflow_Hidden | Overflow_Scroll | Overflow_Auto;
    end Overflow_Clips;
+
+   function Normalize_Visibility (V : Visibility_Value) return Visibility_Value is
+   begin
+      if V = Visibility_Collapse then
+         return Visibility_Hidden;
+      end if;
+      return V;
+   end Normalize_Visibility;
+
+   function Main_Visibility_Explicit (W : Widget'Class) return Boolean is
+      Rules : constant Style_Rules := Get_Part_Style_Rules (W, Main_Part);
+   begin
+      return Opt_Visibility.Is_Set (Rules.Visibility);
+   end Main_Visibility_Explicit;
+
+   function Resolve_Effective_Visibility
+     (W : Widget'Class;
+      Parent_Effective : Visibility_Value) return Visibility_Value
+   is
+      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+   begin
+      if Main_Visibility_Explicit (W) then
+         return Normalize_Visibility (Main_Style.Visibility);
+      end if;
+      return Parent_Effective;
+   end Resolve_Effective_Visibility;
+
+   function Widget_Participates (W : Widget'Class) return Boolean is
+      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+   begin
+      return Has_Flag (W, Visible)
+        and then Main_Style.Display /= Display_None;
+   end Widget_Participates;
+
+   function Item_Is_Rendered (Style : Resolved_Style) return Boolean is
+   begin
+      return Style.Display /= Display_None
+        and then Normalize_Visibility (Style.Visibility) = Visibility_Visible;
+   end Item_Is_Rendered;
 
    function Main_Axis_Overflow
      (Style     : Resolved_Style;
@@ -1299,15 +1359,17 @@ package body Adi.Widget is
          W.Flags (Scrollable) := True;
       end if;
       for Child of W.Children loop
-         declare
-            G : constant Rectangle := Get_Geometry (Child.all);
-            Pref : constant Size_2D := Get_Preferred_Size (Child.all);
-            Effective_H : constant Pixel_Type := Pixel_Type'Max (G.Height, Pref.Height);
-         begin
-            Has_Content := True;
-            Min_Top := Pixel_Type'Min (Min_Top, G.Y);
-            Content_Bottom := Pixel_Type'Max (Content_Bottom, G.Y + Effective_H);
-         end;
+         if Widget_Participates (Child.all) then
+            declare
+               G : constant Rectangle := Get_Geometry (Child.all);
+               Pref : constant Size_2D := Get_Preferred_Size (Child.all);
+               Effective_H : constant Pixel_Type := Pixel_Type'Max (G.Height, Pref.Height);
+            begin
+               Has_Content := True;
+               Min_Top := Pixel_Type'Min (Min_Top, G.Y);
+               Content_Bottom := Pixel_Type'Max (Content_Bottom, G.Y + Effective_H);
+            end;
+         end if;
       end loop;
 
       if Has_Content then
@@ -1331,7 +1393,13 @@ package body Adi.Widget is
                        F : Widget_Flag;
                        Value : Boolean) is
    begin
+      if W.Flags (F) = Value then
+         return;
+      end if;
       W.Flags (F) := Value;
+      if F = Visible then
+         Mark_Dirty (W);
+      end if;
    end Set_Flag;
 
    function Has_Flag (W : Widget'Class; F : Widget_Flag) return Boolean is
@@ -2857,7 +2925,9 @@ package body Adi.Widget is
          end if;
       end Draw_Rounded_Corner_Borders;
    begin
-      if Style.Visibility = Visibility_Hidden then
+      if Style.Display = Display_None
+        or else Normalize_Visibility (Style.Visibility) = Visibility_Hidden
+      then
          return;
       end if;
 
@@ -3149,7 +3219,10 @@ package body Adi.Widget is
         Renderer /= null and then Has_Visible_Area (Geom);
       X1, Y1, X2, Y2 : Integer;
    begin
-      if Style.Visibility = Visibility_Hidden or else Content'Length = 0 then
+      if Style.Display = Display_None
+        or else Normalize_Visibility (Style.Visibility) = Visibility_Hidden
+        or else Content'Length = 0
+      then
          return;
       end if;
 
@@ -3593,7 +3666,9 @@ package body Adi.Widget is
         Renderer /= null and then Has_Visible_Area (Geom);
       X1, Y1, X2, Y2   : Integer;
    begin
-      if Style.Visibility = Visibility_Hidden then
+      if Style.Display = Display_None
+        or else Normalize_Visibility (Style.Visibility) = Visibility_Hidden
+      then
          return;
       end if;
 
@@ -4029,6 +4104,8 @@ package body Adi.Widget is
 
             if Need_Item_Clip and then not Clip_Valid then
                null;
+            elsif not Item_Is_Rendered (Style) then
+               null;
             else
                Set_Item_Clip (Need_Item_Clip);
 
@@ -4087,8 +4164,16 @@ package body Adi.Widget is
       Render_Panel (Renderer, W.Scroll_Knob_Geom, Knob_Style);
    end Render_Shared_Scrollbar;
 
-   procedure Render_Tree (W : in out Widget'Class; Ctx : in out Render_Context) is
+   procedure Render_Tree_Impl
+     (W                : in out Widget'Class;
+      Ctx              : in out Render_Context;
+      Parent_Visibility : Visibility_Value)
+   is
       Renderer : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
+      Widget_Visibility : constant Visibility_Value :=
+        Resolve_Effective_Visibility (W, Parent_Visibility);
+      Widget_Is_Visible : constant Boolean :=
+        Widget_Visibility = Visibility_Visible;
       Prev_Clip  : aliased Adi.SDL.SDL_Rect;
       Clip_Rect  : aliased Adi.SDL.SDL_Rect;
       Had_Clip   : Boolean := False;
@@ -4096,15 +4181,17 @@ package body Adi.Widget is
       Skip_Children : Boolean := False;
       Success    : Adi.SDL.C_bool;
    begin
-      if not Has_Flag (W, Visible) then
+      if not Widget_Participates (W) then
          return;
       end if;
 
-      --  Render this widget's own visuals first; overflow clipping applies to
-      --  descendant content, not the widget's own background/border panel.
-      Render_Items (W, Ctx);
+      if Widget_Is_Visible then
+         --  Render this widget's own visuals first; overflow clipping applies to
+         --  descendant content, not the widget's own background/border panel.
+         Render_Items (W, Ctx);
+      end if;
 
-      if Debug_Layout_Overlay_Enabled and then Renderer /= null then
+      if Widget_Is_Visible and then Debug_Layout_Overlay_Enabled and then Renderer /= null then
          declare
             Main_Style : constant Resolved_Style :=
               Get_Resolved_Part_Style (W, Main_Part);
@@ -4175,7 +4262,7 @@ package body Adi.Widget is
                Set_Scroll_Y (Ctx, Saved_Scroll_Y - Float (W.Scroll_Offset_Y));
             end if;
             for Child of W.Children loop
-               Render_Tree (Child.all, Ctx);
+               Render_Tree_Impl (Child.all, Ctx, Widget_Visibility);
             end loop;
             Set_Scroll_Y (Ctx, Saved_Scroll_Y);
          end;
@@ -4189,7 +4276,14 @@ package body Adi.Widget is
          end if;
       end if;
 
-      Render_Shared_Scrollbar (W, Ctx);
+      if Widget_Is_Visible then
+         Render_Shared_Scrollbar (W, Ctx);
+      end if;
+   end Render_Tree_Impl;
+
+   procedure Render_Tree (W : in out Widget'Class; Ctx : in out Render_Context) is
+   begin
+      Render_Tree_Impl (W, Ctx, Visibility_Visible);
    end Render_Tree;
 
    procedure Update_And_Render (W : in out Widget'Class; Ctx : in out Render_Context) is
@@ -4211,40 +4305,44 @@ package body Adi.Widget is
          declare
             Current : constant Item := Get_Item(W, I);
          begin
-            case Current.Kind is
-               when Panel_Item =>
-                  --  Panel contributes its geometry
-                  Result := Max(Result, (Current.Geometry.Width, Current.Geometry.Height));
+            if Current.Computed_Style.Display /= Display_None then
+               case Current.Kind is
+                  when Panel_Item =>
+                     --  Panel contributes its geometry
+                     Result := Max(Result, (Current.Geometry.Width, Current.Geometry.Height));
 
-               when Text_Item =>
-                  --  For text, we'd ideally measure the text
-                  --  For now, use geometry as approximation
-                  Result := Max(Result, (Current.Geometry.Width, Current.Geometry.Height));
+                  when Text_Item =>
+                     --  For text, we'd ideally measure the text
+                     --  For now, use geometry as approximation
+                     Result := Max(Result, (Current.Geometry.Width, Current.Geometry.Height));
 
-               when Image_Item =>
-                  --  Get image dimensions (skip background images)
-                  if not Current.Is_Background
-                     and then Current.Image_Source /= null
-                     and then Is_Valid(Current.Image_Source.all)
-                  then
-                     declare
-                        Img_W, Img_H : Pixel_Type;
-                     begin
-                        Get_Size(Current.Image_Source.all, Img_W, Img_H);
-                        Result := Max(Result, (Img_W, Img_H));
-                     end;
-                  end if;
-            end case;
+                  when Image_Item =>
+                     --  Get image dimensions (skip background images)
+                     if not Current.Is_Background
+                        and then Current.Image_Source /= null
+                        and then Is_Valid(Current.Image_Source.all)
+                     then
+                        declare
+                           Img_W, Img_H : Pixel_Type;
+                        begin
+                           Get_Size(Current.Image_Source.all, Img_W, Img_H);
+                           Result := Max(Result, (Img_W, Img_H));
+                        end;
+                     end if;
+               end case;
+            end if;
          end;
       end loop;
 
       --  Also consider children
       for Child of W.Children loop
-         declare
-            Child_Size : constant Size_2D := Measure_Content(Child.all);
-         begin
-            Result := Max(Result, Child_Size);
-         end;
+         if Widget_Participates (Child.all) then
+            declare
+               Child_Size : constant Size_2D := Measure_Content(Child.all);
+            begin
+               Result := Max(Result, Child_Size);
+            end;
+         end if;
       end loop;
 
       return Result;
@@ -4376,19 +4474,32 @@ package body Adi.Widget is
 
    procedure Perform_Flex_Layout(W : in out Widget'Class) is
       Style : constant Resolved_Style := Get_Resolved_Part_Style(W, Main_Part);
-      Num_Children : constant Natural := Natural(W.Children.Length);
+      Total_Children : constant Natural := Natural (W.Children.Length);
+      Num_Children : Natural := 0;
 
       --  Content box (after padding/border)
       Content : constant Rectangle := Content_Box(W.Geometry, Style);
    begin
+      if Total_Children = 0 then
+         return;
+      end if;
+
+      for Child of W.Children loop
+         if Child /= null and then Widget_Participates (Child.all) then
+            Num_Children := Num_Children + 1;
+         end if;
+      end loop;
+
       if Num_Children = 0 then
          return;
       end if;
 
       --  Build flex context
       declare
+         type Child_Array is array (Positive range <>) of Widget_Access;
+         Active_Children : Child_Array (1 .. Num_Children);
          Context : Flex_Layout_Context;
-         Children_Info : Flex_Child_Info_Array(1 .. Num_Children);
+          Children_Info : Flex_Child_Info_Array(1 .. Num_Children);
          Child_Index : Positive := 1;
       begin
          Context := (
@@ -4404,80 +4515,84 @@ package body Adi.Widget is
 
          --  Collect child information
          for Child of W.Children loop
-            declare
-               Child_Style : constant Resolved_Style :=
-                  Get_Resolved_Part_Style(Child.all, Main_Part);
-               Child_Pref : constant Size_2D := Get_Preferred_Size(Child.all);
-               Child_Min  : constant Size_2D := Get_Min_Size(Child.all);
-
-               Info : Flex_Child_Info;
-               Flex_Basis_Px : Pixel_Type := 0.0;
-            begin
-               --  Flex properties
-               Info.Flex_Grow := Float(Child_Style.Flex_Grow);
-               Info.Flex_Shrink := Float(Child_Style.Flex_Shrink);
-
-               --  Flex basis--  Flex basis
-                case Child_Style.Flex_Basis.Kind is
-                   when Auto =>
-                      Flex_Basis_Px := Get_Main_Size(Child_Pref, Style.Flex_Direction);
-                   when CSS_Styles.Content =>
-                      Flex_Basis_Px := Get_Main_Size(Child_Min, Style.Flex_Direction);
-                   when Fixed =>
-                      Flex_Basis_Px := Length_To_Px(
-                         Child_Style.Flex_Basis.Size,
-                         Get_Main_Size((Content.Width, Content.Height), Style.Flex_Direction));
-                end case;
-                Info.Flex_Basis := Flex_Basis_Px;
-
-               --  Align self
-               Info.Align_Self := Child_Style.Align_Self;
-
-               --  Size constraints
-               Info.Min_Main := Get_Main_Size(Child_Min, Style.Flex_Direction);
-               Info.Min_Cross := Get_Cross_Size(Child_Min, Style.Flex_Direction);
-
-               --  For visible overflow, preserve preferred main size only for
-               --  non-shrinkable children. Shrinkable children must be allowed
-               --  to contract (and rely on their own clipping/wrapping rules).
-               if Main_Axis_Overflow (Style, Style.Flex_Direction) = Overflow_Visible
-                 and then Float (Child_Style.Flex_Shrink) = 0.0
-               then
-                  Info.Min_Main := Pixel_Type'Max
-                    (Info.Min_Main, Get_Main_Size (Child_Pref, Style.Flex_Direction));
-               end if;
-
-               --  Max constraints
+            if Child /= null and then Widget_Participates (Child.all) then
                declare
-                  Max_W : Pixel_Type := Pixel_Type'Last;
-                  Max_H : Pixel_Type := Pixel_Type'Last;
+                  Child_Style : constant Resolved_Style :=
+                     Get_Resolved_Part_Style(Child.all, Main_Part);
+                  Child_Pref : constant Size_2D := Get_Preferred_Size(Child.all);
+                  Child_Min  : constant Size_2D := Get_Min_Size(Child.all);
+
+                  Info : Flex_Child_Info;
+                  Flex_Basis_Px : Pixel_Type := 0.0;
                begin
-                  case Child_Style.Max_Width.Kind is
-                     when Fixed =>
-                        Max_W := Size_To_Px(Child_Style.Max_Width, Content.Width);
-                     when others =>
-                        null;
-                  end case;
-                  case Child_Style.Max_Height.Kind is
-                     when Fixed =>
-                        Max_H := Size_To_Px(Child_Style.Max_Height, Content.Height);
-                     when others =>
-                        null;
-                  end case;
-                  Info.Max_Main := Get_Main_Size((Max_W, Max_H), Style.Flex_Direction);
-                  Info.Max_Cross := Get_Cross_Size((Max_W, Max_H), Style.Flex_Direction);
+                  Active_Children (Child_Index) := Child;
+
+                  --  Flex properties
+                  Info.Flex_Grow := Float(Child_Style.Flex_Grow);
+                  Info.Flex_Shrink := Float(Child_Style.Flex_Shrink);
+
+                  --  Flex basis--  Flex basis
+                   case Child_Style.Flex_Basis.Kind is
+                      when Auto =>
+                         Flex_Basis_Px := Get_Main_Size(Child_Pref, Style.Flex_Direction);
+                      when CSS_Styles.Content =>
+                         Flex_Basis_Px := Get_Main_Size(Child_Min, Style.Flex_Direction);
+                      when Fixed =>
+                         Flex_Basis_Px := Length_To_Px(
+                            Child_Style.Flex_Basis.Size,
+                            Get_Main_Size((Content.Width, Content.Height), Style.Flex_Direction));
+                   end case;
+                   Info.Flex_Basis := Flex_Basis_Px;
+
+                  --  Align self
+                  Info.Align_Self := Child_Style.Align_Self;
+
+                  --  Size constraints
+                  Info.Min_Main := Get_Main_Size(Child_Min, Style.Flex_Direction);
+                  Info.Min_Cross := Get_Cross_Size(Child_Min, Style.Flex_Direction);
+
+                  --  For visible overflow, preserve preferred main size only for
+                  --  non-shrinkable children. Shrinkable children must be allowed
+                  --  to contract (and rely on their own clipping/wrapping rules).
+                  if Main_Axis_Overflow (Style, Style.Flex_Direction) = Overflow_Visible
+                    and then Float (Child_Style.Flex_Shrink) = 0.0
+                  then
+                     Info.Min_Main := Pixel_Type'Max
+                       (Info.Min_Main, Get_Main_Size (Child_Pref, Style.Flex_Direction));
+                  end if;
+
+                  --  Max constraints
+                  declare
+                     Max_W : Pixel_Type := Pixel_Type'Last;
+                     Max_H : Pixel_Type := Pixel_Type'Last;
+                  begin
+                     case Child_Style.Max_Width.Kind is
+                        when Fixed =>
+                           Max_W := Size_To_Px(Child_Style.Max_Width, Content.Width);
+                        when others =>
+                           null;
+                     end case;
+                     case Child_Style.Max_Height.Kind is
+                        when Fixed =>
+                           Max_H := Size_To_Px(Child_Style.Max_Height, Content.Height);
+                        when others =>
+                           null;
+                     end case;
+                     Info.Max_Main := Get_Main_Size((Max_W, Max_H), Style.Flex_Direction);
+                     Info.Max_Cross := Get_Cross_Size((Max_W, Max_H), Style.Flex_Direction);
+                  end;
+
+                  --  Content sizes
+                  Info.Content_Main := Get_Main_Size(Child_Pref, Style.Flex_Direction);
+                  Info.Content_Cross := Get_Cross_Size(Child_Pref, Style.Flex_Direction);
+
+                  --  Margins
+                  Info.Margin := Get_Margin_Px(Child_Style);
+
+                  Children_Info(Child_Index) := Info;
+                  Child_Index := Child_Index + 1;
                end;
-
-               --  Content sizes
-               Info.Content_Main := Get_Main_Size(Child_Pref, Style.Flex_Direction);
-               Info.Content_Cross := Get_Cross_Size(Child_Pref, Style.Flex_Direction);
-
-               --  Margins
-               Info.Margin := Get_Margin_Px(Child_Style);
-
-               Children_Info(Child_Index) := Info;
-               Child_Index := Child_Index + 1;
-            end;
+            end if;
          end loop;
 
          --  Run flex algorithm
@@ -4488,16 +4603,14 @@ package body Adi.Widget is
          declare
             Assigned : constant Rectangle_Array :=
                Flex_To_Rectangles(Context, Children_Info);
-            Rect_Index : Positive := 1;
          begin
-            for Child of W.Children loop
-               Set_Geometry(Child.all, Assigned(Rect_Index));
-               Rect_Index := Rect_Index + 1;
+            for I in Active_Children'Range loop
+               Set_Geometry (Active_Children (I).all, Assigned (I));
             end loop;
 
             --  Recursively layout children
-            for Child of W.Children loop
-               Layout_Child(Child.all);
+            for Child of Active_Children loop
+               Layout_Child (Child.all);
             end loop;
 
             --  Second pass: if any child grew (e.g. text wrapping
@@ -4505,31 +4618,29 @@ package body Adi.Widget is
             --  sizes so siblings shift.
             declare
                Any_Grew    : Boolean := False;
-               Recheck_Idx : Positive := 1;
             begin
-               for Child of W.Children loop
+               for I in Active_Children'Range loop
                   declare
                      Child_Geom : constant Rectangle :=
-                        Get_Geometry(Child.all);
+                        Get_Geometry (Active_Children (I).all);
                      Actual_Main : constant Pixel_Type := Get_Main_Size
                        ((Child_Geom.Width, Child_Geom.Height),
                         Style.Flex_Direction);
                      Assigned_Main : constant Pixel_Type := Get_Main_Size
-                       ((Assigned(Recheck_Idx).Width,
-                         Assigned(Recheck_Idx).Height),
+                       ((Assigned(I).Width,
+                         Assigned(I).Height),
                         Style.Flex_Direction);
                   begin
                      if Actual_Main > Assigned_Main then
-                        Children_Info(Recheck_Idx).Flex_Basis :=
+                        Children_Info(I).Flex_Basis :=
                            Actual_Main;
-                        Children_Info(Recheck_Idx).Min_Main :=
+                        Children_Info(I).Min_Main :=
                            Actual_Main;
-                        Children_Info(Recheck_Idx).Content_Main :=
+                        Children_Info(I).Content_Main :=
                            Actual_Main;
                         Any_Grew := True;
                      end if;
                   end;
-                  Recheck_Idx := Recheck_Idx + 1;
                end loop;
 
                if Any_Grew then
@@ -4537,12 +4648,10 @@ package body Adi.Widget is
                   declare
                      Rects2 : constant Rectangle_Array :=
                         Flex_To_Rectangles(Context, Children_Info);
-                     Rect_Idx2 : Positive := 1;
                   begin
-                     for Child of W.Children loop
-                        Set_Geometry(Child.all, Rects2(Rect_Idx2));
-                        Layout_Child(Child.all);
-                        Rect_Idx2 := Rect_Idx2 + 1;
+                     for I in Active_Children'Range loop
+                        Set_Geometry (Active_Children (I).all, Rects2 (I));
+                        Layout_Child (Active_Children (I).all);
                      end loop;
                   end;
                end if;
@@ -4780,6 +4889,11 @@ end Bump_Layout_Epoch;
 
 procedure Layout_Tree_Impl (W : in out Widget'Class) is
 begin
+   if not Widget_Participates (W) then
+      W.Layout_Dirty := False;
+      return;
+   end if;
+
    if W.Last_Layout_Epoch = Current_Layout_Epoch then
       --  Already laid out by parent container in this epoch — skip.
       Perf_Layout_Skips := Perf_Layout_Skips + 1;

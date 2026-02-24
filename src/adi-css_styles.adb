@@ -544,7 +544,7 @@ package body Adi.CSS_Styles is
          Position         => Child.Position,
          Overflow_X       => Child.Overflow_X,
          Overflow_Y       => Child.Overflow_Y,
-         Visibility       => Child.Visibility,
+         Visibility       => Opt_Visibility.Merge (Parent.Visibility, Child.Visibility),
          Opacity          => Child.Opacity,
          Box_Shadow       => Child.Box_Shadow,
          Object_Fit       => Child.Object_Fit,

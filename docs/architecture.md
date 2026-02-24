@@ -152,6 +152,11 @@
 - Part system: `Main_Part`, `Indicator_Part`, `Label_Part`, `Icon_Part`, `Cursor_Part`, `Selected_Part`, `Scroll_Part`, `Knob_Part`
 - Item system: `Panel_Item`, `Text_Item`, `Image_Item`
 - Flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`
+- Visibility model:
+  - Hard hide (no layout/render/input): `Visible=False` or main-part `display:none`
+  - Soft hide (layout kept, paint/input suppressed): `visibility:hidden|collapse`
+  - `visibility` follows CSS-style inheritance during tree traversal (descendant `visibility:visible` can override hidden ancestor)
+  - Part-scoped `display:none` removes that part from internal part layout/rendering; part-scoped `visibility:hidden` keeps layout slot but does not paint
 - Inherited disabled: `Is_Disabled` returns True when any ancestor has `State_Disabled`; `Get_States` injects the inherited flag so CSS `:disabled` styles apply to descendants; `Set_Disabled` bumps `Style_Version` and marks all descendants dirty so `Apply_Styles_To_Items` re-resolves inherited disabled styles immediately
 - Abstract: `Build_Items`, `Layout`; Concrete: `Render_Items`, `Render_Tree`, `Update_And_Render`
 - Size calculation: `Measure_Content` (dispatching) returns preferred content size; `Get_Min_Size` (dispatching) returns minimum size floor — base returns CSS `min-width`/`min-height`, Label overrides to return `max(CSS_min, intrinsic_text_min)`; `Get_Preferred_Size` (`Widget'Class`) returns CSS `width`/`height` or falls back to `Measure_Content`

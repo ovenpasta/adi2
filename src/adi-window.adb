@@ -10,6 +10,7 @@ with Adi.SDL.Video;
 with Adi.SDL.Render;
 with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.Image;
+with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget_Styles;
 
 package body Adi.Window is
@@ -48,6 +49,9 @@ package body Adi.Window is
       New_Focus : Widget_Access);
 
    function Is_Focus_Candidate (Wgt : Widget_Access) return Boolean;
+   function Is_Focus_Candidate
+     (Wgt : Widget_Access;
+      Effective_Visibility : Visibility_Value) return Boolean;
    function First_Focusable (Root : Widget_Access) return Widget_Access;
    function Last_Focusable (Root : Widget_Access) return Widget_Access;
    function Next_Focusable
@@ -76,6 +80,12 @@ package body Adi.Window is
    procedure Apply_Render_Logical_Presentation (W : in out Window);
    function Refresh_DIP_Scale (W : in out Window) return Boolean;
    procedure Refresh_Viewport_Size (W : in out Window);
+   function Normalize_Visibility (V : Visibility_Value) return Visibility_Value;
+   function Widget_Participates (Wgt : Adi.Widget.Widget'Class) return Boolean;
+   function Main_Visibility_Explicit (Wgt : Adi.Widget.Widget'Class) return Boolean;
+   function Resolve_Effective_Visibility
+     (Wgt : Adi.Widget.Widget'Class;
+      Parent_Visibility : Visibility_Value) return Visibility_Value;
 
    type Internal is record
       win : Adi.SDL.Video.SDL_Window_Ptr;
@@ -132,61 +142,131 @@ package body Adi.Window is
       end if;
    end Refresh_Viewport_Size;
 
-   function Is_Focus_Candidate (Wgt : Widget_Access) return Boolean is
+   function Normalize_Visibility (V : Visibility_Value) return Visibility_Value is
+   begin
+      if V = Visibility_Collapse then
+         return Visibility_Hidden;
+      end if;
+      return V;
+   end Normalize_Visibility;
+
+   function Widget_Participates (Wgt : Adi.Widget.Widget'Class) return Boolean is
+      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (Wgt, Main_Part);
+   begin
+      return Has_Flag (Wgt, Visible)
+        and then Main_Style.Display /= Display_None;
+   end Widget_Participates;
+
+   function Main_Visibility_Explicit (Wgt : Adi.Widget.Widget'Class) return Boolean is
+      Rules : constant Style_Rules := Get_Part_Style_Rules (Wgt, Main_Part);
+   begin
+      return Opt_Visibility.Is_Set (Rules.Visibility);
+   end Main_Visibility_Explicit;
+
+   function Resolve_Effective_Visibility
+     (Wgt : Adi.Widget.Widget'Class;
+      Parent_Visibility : Visibility_Value) return Visibility_Value
+   is
+      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (Wgt, Main_Part);
+   begin
+      if Main_Visibility_Explicit (Wgt) then
+         return Normalize_Visibility (Main_Style.Visibility);
+      end if;
+      return Parent_Visibility;
+   end Resolve_Effective_Visibility;
+
+   function Is_Focus_Candidate
+     (Wgt : Widget_Access;
+      Effective_Visibility : Visibility_Value) return Boolean
+   is
    begin
       return Wgt /= null
+        and then Effective_Visibility = Visibility_Visible
+        and then Widget_Participates (Wgt.all)
         and then Has_Flag (Wgt.all, Focusable)
-        and then Has_Flag (Wgt.all, Visible)
         and then not Is_Disabled (Wgt.all);
    end Is_Focus_Candidate;
 
-   function First_Focusable (Root : Widget_Access) return Widget_Access is
-      Candidate : Widget_Access;
-   begin
-      if Root = null then
-         return null;
-      end if;
-
-      if not Has_Flag (Root.all, Visible) then
-         return null;
-      end if;
-
-      if Is_Focus_Candidate (Root) then
-         return Root;
-      end if;
-
-      for I in 1 .. Child_Count (Root.all) loop
-         Candidate := First_Focusable (Get_Child (Root.all, I));
-         if Candidate /= null then
-            return Candidate;
+   function Is_Focus_Candidate (Wgt : Widget_Access) return Boolean is
+      function Effective_Visibility_For (Node : Widget_Access) return Visibility_Value is
+         Parent : access Adi.Widget.Widget'Class;
+      begin
+         if Node = null then
+            return Visibility_Hidden;
          end if;
-      end loop;
 
-      return null;
+         Parent := Get_Parent (Node.all);
+         if Parent = null then
+            return Resolve_Effective_Visibility (Node.all, Visibility_Visible);
+         end if;
+
+         return Resolve_Effective_Visibility
+           (Node.all, Effective_Visibility_For (Parent.all'Unchecked_Access));
+      end Effective_Visibility_For;
+   begin
+      return Is_Focus_Candidate (Wgt, Effective_Visibility_For (Wgt));
+   end Is_Focus_Candidate;
+
+   function First_Focusable (Root : Widget_Access) return Widget_Access is
+      function Visit
+        (Node : Widget_Access;
+         Parent_Visibility : Visibility_Value) return Widget_Access
+      is
+         Candidate : Widget_Access;
+         Node_Visibility : Visibility_Value;
+      begin
+         if Node = null or else not Widget_Participates (Node.all) then
+            return null;
+         end if;
+
+         Node_Visibility :=
+           Resolve_Effective_Visibility (Node.all, Parent_Visibility);
+         if Is_Focus_Candidate (Node, Node_Visibility) then
+            return Node;
+         end if;
+
+         for I in 1 .. Child_Count (Node.all) loop
+            Candidate := Visit (Get_Child (Node.all, I), Node_Visibility);
+            if Candidate /= null then
+               return Candidate;
+            end if;
+         end loop;
+
+         return null;
+      end Visit;
+   begin
+      return Visit (Root, Visibility_Visible);
    end First_Focusable;
 
    function Last_Focusable (Root : Widget_Access) return Widget_Access is
-      Candidate : Widget_Access;
-   begin
-      if Root = null then
-         return null;
-      end if;
-
-      if not Has_Flag (Root.all, Visible) then
-         return null;
-      end if;
-
-      for I in reverse 1 .. Child_Count (Root.all) loop
-         Candidate := Last_Focusable (Get_Child (Root.all, I));
-         if Candidate /= null then
-            return Candidate;
+      function Visit
+        (Node : Widget_Access;
+         Parent_Visibility : Visibility_Value) return Widget_Access
+      is
+         Candidate : Widget_Access;
+         Node_Visibility : Visibility_Value;
+      begin
+         if Node = null or else not Widget_Participates (Node.all) then
+            return null;
          end if;
-      end loop;
 
-      if Is_Focus_Candidate (Root) then
-         return Root;
-      end if;
-      return null;
+         Node_Visibility :=
+           Resolve_Effective_Visibility (Node.all, Parent_Visibility);
+
+         for I in reverse 1 .. Child_Count (Node.all) loop
+            Candidate := Visit (Get_Child (Node.all, I), Node_Visibility);
+            if Candidate /= null then
+               return Candidate;
+            end if;
+         end loop;
+
+         if Is_Focus_Candidate (Node, Node_Visibility) then
+            return Node;
+         end if;
+         return null;
+      end Visit;
+   begin
+      return Visit (Root, Visibility_Visible);
    end Last_Focusable;
 
    function Next_Focusable
@@ -196,17 +276,22 @@ package body Adi.Window is
       Result       : Widget_Access := null;
       Seen_Current : Boolean := Current = null;
 
-      procedure Visit (Node : Widget_Access) is
+      procedure Visit
+        (Node : Widget_Access;
+         Parent_Visibility : Visibility_Value)
+      is
+         Node_Visibility : Visibility_Value;
       begin
          if Node = null or else Result /= null then
             return;
          end if;
-
-         if not Has_Flag (Node.all, Visible) then
+         if not Widget_Participates (Node.all) then
             return;
          end if;
 
-         if Seen_Current and then Is_Focus_Candidate (Node) then
+         Node_Visibility :=
+           Resolve_Effective_Visibility (Node.all, Parent_Visibility);
+         if Seen_Current and then Is_Focus_Candidate (Node, Node_Visibility) then
             Result := Node;
             return;
          end if;
@@ -216,12 +301,12 @@ package body Adi.Window is
          end if;
 
          for I in 1 .. Child_Count (Node.all) loop
-            Visit (Get_Child (Node.all, I));
+            Visit (Get_Child (Node.all, I), Node_Visibility);
             exit when Result /= null;
          end loop;
       end Visit;
    begin
-      Visit (Root);
+      Visit (Root, Visibility_Visible);
       return Result;
    end Next_Focusable;
 
@@ -232,32 +317,37 @@ package body Adi.Window is
       Result : Widget_Access := null;
       Prev   : Widget_Access := null;
 
-      procedure Visit (Node : Widget_Access) is
+      procedure Visit
+        (Node : Widget_Access;
+         Parent_Visibility : Visibility_Value)
+      is
+         Node_Visibility : Visibility_Value;
       begin
          if Node = null or else Result /= null then
             return;
          end if;
-
-         if not Has_Flag (Node.all, Visible) then
+         if not Widget_Participates (Node.all) then
             return;
          end if;
 
+         Node_Visibility :=
+           Resolve_Effective_Visibility (Node.all, Parent_Visibility);
          if Node = Current then
             Result := Prev;
             return;
          end if;
 
-         if Is_Focus_Candidate (Node) then
+         if Is_Focus_Candidate (Node, Node_Visibility) then
             Prev := Node;
          end if;
 
          for I in 1 .. Child_Count (Node.all) loop
-            Visit (Get_Child (Node.all, I));
+            Visit (Get_Child (Node.all, I), Node_Visibility);
             exit when Result /= null;
          end loop;
       end Visit;
    begin
-      Visit (Root);
+      Visit (Root, Visibility_Visible);
       return Result;
    end Prev_Focusable;
 
@@ -289,7 +379,7 @@ package body Adi.Window is
          declare
             Overlay : constant Widget_Access := W.Overlays.Element (I);
          begin
-            if Overlay /= null and then Has_Flag (Overlay.all, Visible) then
+            if Overlay /= null and then Widget_Participates (Overlay.all) then
                return Overlay;
             end if;
          end;
@@ -322,7 +412,7 @@ package body Adi.Window is
             Overlay : constant Widget_Access := W.Overlays.Element (I);
          begin
             if Overlay /= null
-              and then Has_Flag (Overlay.all, Visible)
+              and then Widget_Participates (Overlay.all)
               and then Is_Dirty (Overlay.all)
             then
                return True;
@@ -339,7 +429,7 @@ package body Adi.Window is
             Overlay : constant Widget_Access := W.Overlays.Element (I);
          begin
             if Overlay /= null
-              and then Has_Flag (Overlay.all, Visible)
+              and then Widget_Participates (Overlay.all)
               and then Is_Layout_Dirty (Overlay.all)
             then
                return True;
@@ -847,20 +937,24 @@ package body Adi.Window is
       function Find_Deepest
         (Parent   : Widget_Access;
          Hit_X    : Pixel_Type;
-         Hit_Y    : Pixel_Type) return Widget_Access
+         Hit_Y    : Pixel_Type;
+         Parent_Visibility : Visibility_Value) return Widget_Access
       is
          Child    : Widget_Access;
          Found    : Widget_Access;
          Child_Y  : Pixel_Type;
+         Node_Visibility : Visibility_Value;
       begin
          if Parent = null then
             return null;
          end if;
 
-         --  Skip invisible widgets (matches Render_Tree behavior)
-         if not Has_Flag (Parent.all, Visible) then
+         if not Widget_Participates (Parent.all) then
             return null;
          end if;
+
+         Node_Visibility :=
+           Resolve_Effective_Visibility (Parent.all, Parent_Visibility);
 
          --  Check if point is in parent first
          if not Point_In_Widget (Parent, Hit_X, Hit_Y) then
@@ -878,14 +972,19 @@ package body Adi.Window is
          --  Check children in reverse order (last added = on top)
          for I in reverse 1 .. Child_Count (Parent.all) loop
             Child := Get_Child (Parent.all, I);
-            Found := Find_Deepest (Child, Hit_X, Child_Y);
+            Found := Find_Deepest (Child, Hit_X, Child_Y, Node_Visibility);
             if Found /= null then
                return Found;
             end if;
          end loop;
 
-         --  No child contains point, return this widget
-         return Parent;
+         --  No child contains point, return this widget only when it is
+         --  effectively visible. Hidden parents can still expose visible
+         --  descendants via explicit visibility overrides.
+         if Node_Visibility = Visibility_Visible then
+            return Parent;
+         end if;
+         return null;
       end Find_Deepest;
 
    begin
@@ -897,7 +996,7 @@ package body Adi.Window is
             if Overlay = null then
                null;
             else
-               Found := Find_Deepest (Overlay, X, Y);
+               Found := Find_Deepest (Overlay, X, Y, Visibility_Visible);
                if Found /= null then
                   return Found;
                end if;
@@ -905,7 +1004,7 @@ package body Adi.Window is
          end;
       end loop;
 
-      return Find_Deepest (W.Root, X, Y);
+      return Find_Deepest (W.Root, X, Y, Visibility_Visible);
    end Find_Widget_At;
 
    function Find_Widget_At_With_Flag
@@ -916,19 +1015,24 @@ package body Adi.Window is
       function Find_Deepest_Eligible
         (Parent : Widget_Access;
          Hit_X  : Pixel_Type;
-         Hit_Y  : Pixel_Type) return Widget_Access
+         Hit_Y  : Pixel_Type;
+         Parent_Visibility : Visibility_Value) return Widget_Access
       is
          Child   : Widget_Access;
          Found   : Widget_Access;
          Child_Y : Pixel_Type;
+         Node_Visibility : Visibility_Value;
       begin
          if Parent = null then
             return null;
          end if;
 
-         if not Has_Flag (Parent.all, Visible) then
+         if not Widget_Participates (Parent.all) then
             return null;
          end if;
+
+         Node_Visibility :=
+           Resolve_Effective_Visibility (Parent.all, Parent_Visibility);
 
          if not Point_In_Widget (Parent, Hit_X, Hit_Y) then
             return null;
@@ -941,13 +1045,15 @@ package body Adi.Window is
 
          for I in reverse 1 .. Child_Count (Parent.all) loop
             Child := Get_Child (Parent.all, I);
-            Found := Find_Deepest_Eligible (Child, Hit_X, Child_Y);
+            Found := Find_Deepest_Eligible (Child, Hit_X, Child_Y, Node_Visibility);
             if Found /= null then
                return Found;
             end if;
          end loop;
 
-         if Has_Flag (Parent.all, F) then
+         if Node_Visibility = Visibility_Visible
+           and then Has_Flag (Parent.all, F)
+         then
             return Parent;
          end if;
 
@@ -962,7 +1068,8 @@ package body Adi.Window is
             if Overlay = null then
                null;
             else
-               Found := Find_Deepest_Eligible (Overlay, X, Y);
+               Found := Find_Deepest_Eligible
+                 (Overlay, X, Y, Visibility_Visible);
                if Found /= null then
                   return Found;
                end if;
@@ -970,7 +1077,7 @@ package body Adi.Window is
          end;
       end loop;
 
-      return Find_Deepest_Eligible (W.Root, X, Y);
+      return Find_Deepest_Eligible (W.Root, X, Y, Visibility_Visible);
    end Find_Widget_At_With_Flag;
 
    function Find_Scroll_Widget_At

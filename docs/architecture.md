@@ -159,7 +159,7 @@
   - Part-scoped `display:none` removes that part from internal part layout/rendering; part-scoped `visibility:hidden` keeps layout slot but does not paint
 - Inherited disabled: `Is_Disabled` returns True when any ancestor has `State_Disabled`; `Get_States` injects the inherited flag so CSS `:disabled` styles apply to descendants; `Set_Disabled` bumps `Style_Version` and marks all descendants dirty so `Apply_Styles_To_Items` re-resolves inherited disabled styles immediately
 - Abstract: `Build_Items`, `Layout`; Concrete: `Render_Items`, `Render_Tree`, `Update_And_Render`
-- Size calculation: `Measure_Content` (dispatching) returns preferred content size; `Get_Min_Size` (dispatching) returns minimum size floor — base returns CSS `min-width`/`min-height`, Label overrides to return `max(CSS_min, intrinsic_text_min)`; `Get_Preferred_Size` (`Widget'Class`) returns CSS `width`/`height` or falls back to `Measure_Content`
+- Size calculation: `Measure_Content` (dispatching) returns preferred content size; `Get_Min_Size` (dispatching) returns minimum size floor — base returns CSS `min-width`/`min-height`, Label overrides to return `max(CSS_min, intrinsic_text_min)`; `Get_Preferred_Size` (`Widget'Class`) returns CSS `width`/`height` or falls back to `Measure_Content`, except auto-height widgets with scrolling enabled (`overflow-y: auto|scroll` or internal `Scrollable` flag) use the min-height + chrome floor instead of full content height
 - Shared overflow scrolling with scrollbar parts — scroll offset applied at render time via `Render_Context.Scroll_Y`, not by shifting child geometries; hit-testing reverses the offset
 - Context menu hook with ancestor bubbling
 - Per-part transitions; `Tick_Animations` advances each frame — layout-affecting properties (`padding`, `margin`, `border-width`, `font-size`) trigger relayout; visual-only properties trigger repaint only
@@ -178,6 +178,7 @@
 - **Grid keyboard navigation**: Left/Right arrows move between columns (±1 item), Up/Down move between rows (±N items). PageUp/PageDown jump by visible-rows × columns. Home/End go to first/last item.
 - **Grid hit-testing**: Click detection uses cached cell rectangles (both X and Y), so clicks map correctly to grid cells. Cell positions are computed during layout and cached in `Cell_Rects` for O(N) lookup.
 - **Scrolling**: Vertical scrolling works in both modes. `Ensure_Row_Visible` uses cached cell positions to scroll the correct row into view.
+- **Preferred height policy**: With auto height, preferred height is bounded by min-height + chrome floor (not total row content height), since list-box scrolling is internal.
 
 **Combo_Box**: Dropdown using Main/Label/Indicator parts + List_Box overlay popup.
 

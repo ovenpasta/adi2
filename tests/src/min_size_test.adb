@@ -6,11 +6,15 @@ with Adi.Core;          use Adi.Core;
 with Adi.Widget;        use Adi.Widget;
 with Adi.Widget.Label;
 with Adi.Widget.Box;
+with Adi.Widget.List_Box;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
 
 procedure Min_Size_Test is
    A : Adi.App.App;
+   package Box_Row_List is new Adi.Widget.List_Box
+     (Adi.Widget.Box.Box_Widget,
+      Adi.Widget.Box.Box_Widget_Access);
    Pass_Count : Natural := 0;
    Fail_Count : Natural := 0;
 
@@ -784,7 +788,63 @@ begin
 
    Ada.Text_IO.New_Line;
 
-   --  Test 12: hard-hide excludes from layout; visibility:hidden keeps layout.
+   --  Test 12: Internal-scroll list-box preferred height stays at min/chrome floor.
+   Ada.Text_IO.Put_Line ("=== Internal-scroll list-box preferred-height floor ===");
+   Ada.Text_IO.New_Line;
+   declare
+      LB : constant Box_Row_List.List_Box_Widget_Access := Box_Row_List.Create;
+      LB_Main_Style : constant Style_Rules := (
+         Min_Height   => Set (Size (Px (120.0))),
+         Padding      => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
+         Border_Width => Set (Border_Width (Px (2.0))),
+         Border_Style => Set (Border_Style (Solid)),
+         others       => <>
+      );
+      LB_Main_WS : constant Widget_Style := From (LB_Main_Style).Build;
+      LB_Styles : constant Part_Style_Array := [
+         Main_Part => (Style => LB_Main_WS, Enabled => True),
+         others => <>
+      ];
+
+      Row_Style : constant Style_Rules := (
+         Height => Set (Size (Px (40.0))),
+         others => <>
+      );
+      Row_WS : constant Widget_Style := From (Row_Style).Build;
+      Row_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Row_WS, Enabled => True),
+         others => <>
+      ];
+
+      Pref_Before : Size_2D;
+      Pref_After  : Size_2D;
+   begin
+      Set_Part_Styles (LB.all, LB_Styles);
+      Pref_Before := Get_Preferred_Size (Widget'Class (LB.all));
+
+      for I in 1 .. 30 loop
+         pragma Unreferenced (I);
+         declare
+            Row : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+         begin
+            Set_Part_Styles (Row.all, Row_Parts);
+            Box_Row_List.Append_Row (LB.all, Row);
+         end;
+      end loop;
+
+      Pref_After := Get_Preferred_Size (Widget'Class (LB.all));
+
+      Check ("List-box preferred height honors min/chrome floor before rows",
+             Pref_Before.Height >= 120.0);
+      Check ("List-box preferred height does not grow with internal row content",
+             abs (Pref_After.Height - Pref_Before.Height) <= 1.0);
+      Check ("List-box preferred height remains bounded despite many rows",
+             Pref_After.Height < 300.0);
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  Test 13: hard-hide excludes from layout; visibility:hidden keeps layout.
    Ada.Text_IO.Put_Line ("=== display:none/visibility/Visible layout participation ===");
    Ada.Text_IO.New_Line;
    declare
@@ -835,7 +895,7 @@ begin
 
    Ada.Text_IO.New_Line;
 
-   --  Test 13: Label internal layout honors part display:none vs visibility:hidden.
+   --  Test 14: Label internal layout honors part display:none vs visibility:hidden.
    Ada.Text_IO.Put_Line ("=== Label part display:none vs visibility:hidden ===");
    Ada.Text_IO.New_Line;
    declare

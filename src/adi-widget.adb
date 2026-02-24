@@ -4489,7 +4489,8 @@ package body Adi.Widget is
          Style : constant Resolved_Style :=
            Get_Resolved_Part_Style (W, Main_Part);
          Scrollable_X : constant Boolean :=
-           Overflow_Is_Scrollable (Style.Overflow_X);
+           Is_Scroll_Enabled (W)
+             or else Overflow_Is_Scrollable (Style.Overflow_X);
          Scrollable_Y : constant Boolean :=
            Is_Scroll_Enabled (W);
          Pref_W, Pref_H : Pixel_Type := 0.0;

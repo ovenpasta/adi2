@@ -15,6 +15,9 @@ procedure Min_Size_Test is
    package Box_Row_List is new Adi.Widget.List_Box
      (Adi.Widget.Box.Box_Widget,
       Adi.Widget.Box.Box_Widget_Access);
+   package Label_Row_List is new Adi.Widget.List_Box
+     (Adi.Widget.Label.Label_Widget,
+      Adi.Widget.Label.Label_Widget_Access);
    Pass_Count : Natural := 0;
    Fail_Count : Natural := 0;
 
@@ -844,7 +847,54 @@ begin
 
    Ada.Text_IO.New_Line;
 
-   --  Test 13: overflow-x scrollable auto-width stays at min/chrome floor.
+   --  Test 13: Internal-scroll list-box preferred width stays at min/chrome floor.
+   Ada.Text_IO.Put_Line ("=== Internal-scroll list-box preferred-width floor ===");
+   Ada.Text_IO.New_Line;
+   declare
+      LB : constant Label_Row_List.List_Box_Widget_Access := Label_Row_List.Create;
+      LB_Main_Style : constant Style_Rules := (
+         Min_Width    => Set (Size (Px (120.0))),
+         Padding      => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
+         Border_Width => Set (Border_Width (Px (2.0))),
+         Border_Style => Set (Border_Style (Solid)),
+         others       => <>
+      );
+      LB_Main_WS : constant Widget_Style := From (LB_Main_Style).Build;
+      LB_Styles : constant Part_Style_Array := [
+         Main_Part => (Style => LB_Main_WS, Enabled => True),
+         others => <>
+      ];
+
+      Pref_Before : Size_2D;
+      Pref_After  : Size_2D;
+   begin
+      Set_Part_Styles (LB.all, LB_Styles);
+      Pref_Before := Get_Preferred_Size (Widget'Class (LB.all));
+
+      for I in 1 .. 20 loop
+         declare
+            Row : constant Adi.Widget.Label.Label_Widget_Access :=
+              Adi.Widget.Label.Create
+                ("row " & I'Image
+                 & " with intentionally long content to force a large intrinsic width");
+         begin
+            Label_Row_List.Append_Row (LB.all, Row);
+         end;
+      end loop;
+
+      Pref_After := Get_Preferred_Size (Widget'Class (LB.all));
+
+      Check ("List-box preferred width honors min/chrome floor before rows",
+             Pref_Before.Width >= 120.0);
+      Check ("List-box preferred width does not grow with internal row content",
+             abs (Pref_After.Width - Pref_Before.Width) <= 1.0);
+      Check ("List-box preferred width remains bounded despite wide rows",
+             Pref_After.Width < 300.0);
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  Test 14: overflow-x scrollable auto-width stays at min/chrome floor.
    Ada.Text_IO.Put_Line ("=== overflow-x scrollable preferred-width floor ===");
    Ada.Text_IO.New_Line;
    declare
@@ -887,7 +937,7 @@ begin
 
    Ada.Text_IO.New_Line;
 
-   --  Test 14: hard-hide excludes from layout; visibility:hidden keeps layout.
+   --  Test 15: hard-hide excludes from layout; visibility:hidden keeps layout.
    Ada.Text_IO.Put_Line ("=== display:none/visibility/Visible layout participation ===");
    Ada.Text_IO.New_Line;
    declare
@@ -938,7 +988,7 @@ begin
 
    Ada.Text_IO.New_Line;
 
-   --  Test 15: Label internal layout honors part display:none vs visibility:hidden.
+   --  Test 16: Label internal layout honors part display:none vs visibility:hidden.
    Ada.Text_IO.Put_Line ("=== Label part display:none vs visibility:hidden ===");
    Ada.Text_IO.New_Line;
    declare

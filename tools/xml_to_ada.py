@@ -602,11 +602,11 @@ def generate_spec(app: XmlApp, package_name: str) -> str:
         )
     lines.append("")
 
-    # Tick_Styles — only when live CSS is declared
-    if live_css:
-        lines.append("      procedure Tick_Styles (Reloaded : out Boolean;")
-        lines.append("                             Success  : out Boolean);")
-        lines.append("")
+    # Tick_Styles is always emitted so parent packages can recurse into
+    # component instances without conditional API checks.
+    lines.append("      procedure Tick_Styles (Reloaded : out Boolean;")
+    lines.append("                             Success  : out Boolean);")
+    lines.append("")
 
     # Set_CSS_File — only when dynamic <link> elements are present
     if live_css:
@@ -763,22 +763,46 @@ def generate_body(app: XmlApp, package_name: str) -> str:
 
     # Tick_Styles + Tick_Styles_CB — must precede Build so the
     # 'Unrestricted_Access reference inside Build resolves.
-    if live_css:
-        lines.append("")
-        lines.append("   procedure Tick_Styles (Reloaded : out Boolean;")
-        lines.append("                          Success  : out Boolean) is")
-        lines.append("   begin")
-        lines.append("      Adi.CSS_Source.Tick (Source, Reloaded, Success);")
-        lines.append("   end Tick_Styles;")
+    lines.append("")
+    lines.append("   procedure Tick_Styles (Reloaded : out Boolean;")
+    lines.append("                          Success  : out Boolean) is")
+    lines.append("   begin")
+    lines.append("      Reloaded := False;")
+    lines.append("      Success := True;")
 
-        if has_window:
-            lines.append("")
-            lines.append("   procedure Tick_Styles_CB (DT : Duration) is")
-            lines.append("      pragma Unreferenced (DT);")
-            lines.append("      Reloaded, Success : Boolean;")
-            lines.append("   begin")
-            lines.append("      Tick_Styles (Reloaded, Success);")
-            lines.append("   end Tick_Styles_CB;")
+    if live_css:
+        lines.append("      declare")
+        lines.append("         Local_Reloaded : Boolean := False;")
+        lines.append("         Local_Success  : Boolean := True;")
+        lines.append("      begin")
+        lines.append("         Adi.CSS_Source.Tick (Source, Local_Reloaded, Local_Success);")
+        lines.append("         Reloaded := Reloaded or Local_Reloaded;")
+        lines.append("         Success := Success and Local_Success;")
+        lines.append("      end;")
+
+    for comp_pkg in app.component_packages:
+        inst_name = component_instance_name(comp_pkg)
+        lines.append("      declare")
+        lines.append("         Component_Reloaded : Boolean := False;")
+        lines.append("         Component_Success  : Boolean := True;")
+        lines.append("      begin")
+        lines.append(
+            f"         {inst_name}.Tick_Styles (Component_Reloaded, Component_Success);"
+        )
+        lines.append("         Reloaded := Reloaded or Component_Reloaded;")
+        lines.append("         Success := Success and Component_Success;")
+        lines.append("      end;")
+
+    lines.append("   end Tick_Styles;")
+
+    if has_window and (live_css or app.component_packages):
+        lines.append("")
+        lines.append("   procedure Tick_Styles_CB (DT : Duration) is")
+        lines.append("      pragma Unreferenced (DT);")
+        lines.append("      Reloaded, Success : Boolean;")
+        lines.append("   begin")
+        lines.append("      Tick_Styles (Reloaded, Success);")
+        lines.append("   end Tick_Styles_CB;")
 
     # Set_CSS_File — clear + reload dynamic entries
     if live_css:
@@ -1073,7 +1097,7 @@ def generate_body(app: XmlApp, package_name: str) -> str:
         lines.append("")
 
     # Auto-wire CSS reload via Set_On_Tick
-    if has_window and live_css:
+    if has_window and (live_css or app.component_packages):
         lines.append("      --  Auto-wire CSS live reload")
         lines.append(
             "      Adi.Window.Set_On_Tick"

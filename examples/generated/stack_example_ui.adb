@@ -94,7 +94,24 @@ package body Stack_Example_UI is
    procedure Tick_Styles (Reloaded : out Boolean;
                           Success  : out Boolean) is
    begin
-      Adi.CSS_Source.Tick (Source, Reloaded, Success);
+      Reloaded := False;
+      Success := True;
+      declare
+         Local_Reloaded : Boolean := False;
+         Local_Success  : Boolean := True;
+      begin
+         Adi.CSS_Source.Tick (Source, Local_Reloaded, Local_Success);
+         Reloaded := Reloaded or Local_Reloaded;
+         Success := Success and Local_Success;
+      end;
+      declare
+         Component_Reloaded : Boolean := False;
+         Component_Success  : Boolean := True;
+      begin
+         Red_Page.Tick_Styles (Component_Reloaded, Component_Success);
+         Reloaded := Reloaded or Component_Reloaded;
+         Success := Success and Component_Success;
+      end;
    end Tick_Styles;
 
    procedure Tick_Styles_CB (DT : Duration) is

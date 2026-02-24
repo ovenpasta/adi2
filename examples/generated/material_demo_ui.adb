@@ -27,7 +27,16 @@ package body Material_Demo_UI is
    procedure Tick_Styles (Reloaded : out Boolean;
                           Success  : out Boolean) is
    begin
-      Adi.CSS_Source.Tick (Source, Reloaded, Success);
+      Reloaded := False;
+      Success := True;
+      declare
+         Local_Reloaded : Boolean := False;
+         Local_Success  : Boolean := True;
+      begin
+         Adi.CSS_Source.Tick (Source, Local_Reloaded, Local_Success);
+         Reloaded := Reloaded or Local_Reloaded;
+         Success := Success and Local_Success;
+      end;
    end Tick_Styles;
 
    procedure Tick_Styles_CB (DT : Duration) is

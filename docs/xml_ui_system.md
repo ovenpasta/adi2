@@ -254,11 +254,11 @@ The generated `Build` function implements a dual-mode strategy:
 4. If it fails, fall back to `Static_Mode`
 5. Bind every widget with a `class` attribute via `Bind_Class` (space-separated names are merged automatically)
 
-When a `<window>` is present and CSS files are linked, a `Tick_Styles_CB` procedure is auto-wired to `Set_On_Tick` for live reload during development. Editing the CSS file on disk causes the styles to be reapplied on the next frame.
+When a `<window>` is present, `Tick_Styles_CB` is auto-wired to `Set_On_Tick` whenever the package has local live CSS or nested `<component>` instances. This ensures live reload also reaches component packages declared in separate XML files.
 
 The generated package also exposes:
-- `Tick_Styles` — Manual tick for non-window usage
-- `Set_CSS_File` — Replace the dynamic CSS source at runtime
+- `Tick_Styles` — Always available; ticks local CSS source (if any) and all nested component instances
+- `Set_CSS_File` — Replace the dynamic CSS source at runtime (only emitted when live CSS links/styles are present)
 
 ---
 

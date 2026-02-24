@@ -84,7 +84,16 @@ package body Red_Page_UI is
    procedure Tick_Styles (Reloaded : out Boolean;
                           Success  : out Boolean) is
    begin
-      Adi.CSS_Source.Tick (Source, Reloaded, Success);
+      Reloaded := False;
+      Success := True;
+      declare
+         Local_Reloaded : Boolean := False;
+         Local_Success  : Boolean := True;
+      begin
+         Adi.CSS_Source.Tick (Source, Local_Reloaded, Local_Success);
+         Reloaded := Reloaded or Local_Reloaded;
+         Success := Success and Local_Success;
+      end;
    end Tick_Styles;
 
    procedure Set_CSS_File (Path : String; Success : out Boolean) is

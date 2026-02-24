@@ -844,7 +844,50 @@ begin
 
    Ada.Text_IO.New_Line;
 
-   --  Test 13: hard-hide excludes from layout; visibility:hidden keeps layout.
+   --  Test 13: overflow-x scrollable auto-width stays at min/chrome floor.
+   Ada.Text_IO.Put_Line ("=== overflow-x scrollable preferred-width floor ===");
+   Ada.Text_IO.New_Line;
+   declare
+      Parent : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Child  : constant Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create
+          ("This is intentionally very long content that should not inflate "
+           & "preferred width when overflow-x is scrollable.");
+
+      Parent_Style : constant Style_Rules := (
+         Min_Width   => Set (Size (Px (120.0))),
+         Padding     => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
+         Border_Width => Set (Border_Width (Px (2.0))),
+         Border_Style => Set (Border_Style (Solid)),
+         Overflow_X  => Set_Overflow_X (Overflow_Auto),
+         others      => <>
+      );
+      Parent_WS : constant Widget_Style := From (Parent_Style).Build;
+      Parent_Parts : constant Part_Style_Array := [
+         Main_Part => (Style => Parent_WS, Enabled => True),
+         others => <>
+      ];
+
+      Pref_Before : Size_2D;
+      Pref_After  : Size_2D;
+   begin
+      Set_Part_Styles (Parent.all, Parent_Parts);
+      Pref_Before := Get_Preferred_Size (Widget'Class (Parent.all));
+
+      Add_Child (Parent.all, Child);
+      Pref_After := Get_Preferred_Size (Widget'Class (Parent.all));
+
+      Check ("overflow-x floor: preferred width honors min/chrome before child",
+             Pref_Before.Width >= 120.0);
+      Check ("overflow-x floor: preferred width does not inflate from child content",
+             abs (Pref_After.Width - Pref_Before.Width) <= 1.0);
+      Check ("overflow-x floor: preferred width remains bounded",
+             Pref_After.Width < 300.0);
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  Test 14: hard-hide excludes from layout; visibility:hidden keeps layout.
    Ada.Text_IO.Put_Line ("=== display:none/visibility/Visible layout participation ===");
    Ada.Text_IO.New_Line;
    declare
@@ -895,7 +938,7 @@ begin
 
    Ada.Text_IO.New_Line;
 
-   --  Test 14: Label internal layout honors part display:none vs visibility:hidden.
+   --  Test 15: Label internal layout honors part display:none vs visibility:hidden.
    Ada.Text_IO.Put_Line ("=== Label part display:none vs visibility:hidden ===");
    Ada.Text_IO.New_Line;
    declare

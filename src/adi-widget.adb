@@ -4488,7 +4488,9 @@ package body Adi.Widget is
       declare
          Style : constant Resolved_Style :=
            Get_Resolved_Part_Style (W, Main_Part);
-         Scrollable : constant Boolean :=
+         Scrollable_X : constant Boolean :=
+           Overflow_Is_Scrollable (Style.Overflow_X);
+         Scrollable_Y : constant Boolean :=
            Is_Scroll_Enabled (W);
          Pref_W, Pref_H : Pixel_Type := 0.0;
          Need_Content_W : Boolean := False;
@@ -4500,7 +4502,12 @@ package body Adi.Widget is
             when Fixed =>
                Pref_W := Size_To_Px (Style.Width, W.Geometry.Width);
             when others =>
-               Need_Content_W := True;
+               if Scrollable_X then
+                  Pref_W := Outer_Size
+                    ((Get_Min_Size (W).Width, 0.0), Style).Width;
+               else
+                  Need_Content_W := True;
+               end if;
          end case;
 
          case Style.Height.Kind is
@@ -4512,7 +4519,7 @@ package body Adi.Widget is
                --  window can shrink and let the scroll mechanism activate.
                --  Always include padding + border so the container chrome
                --  is never clipped.
-               if Scrollable then
+               if Scrollable_Y then
                   Pref_H := Outer_Size
                     ((0.0, Get_Min_Size (W).Height), Style).Height;
                else

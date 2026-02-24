@@ -572,11 +572,17 @@ package body Adi.Widget.Dialog is
             Needed_H : Pixel_Type;
             Panel_Style : constant Resolved_Style :=
               Get_Resolved_Part_Style (W.Content_Panel.all, Main_Part);
-            Min_W    : Pixel_Type := 0.0;
-            Max_W    : Pixel_Type := Win_Size.Width;
             Pad      : constant Edge_Pixels := Get_Padding_Px (Panel_Style);
             Border   : constant Edge_Pixels := Get_Border_Width_Px (Panel_Style);
-            Viewport : constant Rectangle := (0.0, 0.0, Win_Size.Width, Win_Size.Height);
+            Margin   : constant Edge_Pixels := Get_Margin_Px (Panel_Style);
+            Viewport : constant Rectangle :=
+              (Margin.Left, Margin.Top,
+               Win_Size.Width  - Margin.Left - Margin.Right,
+               Win_Size.Height - Margin.Top  - Margin.Bottom);
+            Min_W    : Pixel_Type := 0.0;
+            Max_W    : Pixel_Type := Viewport.Width;
+            Min_H    : Pixel_Type := 0.0;
+            Max_H    : Pixel_Type := Viewport.Height;
          begin
             --  Resize dialog to current window
             Set_Geometry (W, (0.0, 0.0, Win_Size.Width, Win_Size.Height));
@@ -595,6 +601,19 @@ package body Adi.Widget.Dialog is
                when others => null;
             end case;
 
+            --  Resolve min/max height from panel style
+            case Panel_Style.Min_Height.Kind is
+               when Fixed =>
+                  Min_H := Size_To_Px (Panel_Style.Min_Height, Win_Size.Height);
+               when others => null;
+            end case;
+            case Panel_Style.Max_Height.Kind is
+               when Fixed =>
+                  Max_H := Pixel_Type'Min
+                    (Max_H, Size_To_Px (Panel_Style.Max_Height, Win_Size.Height));
+               when others => null;
+            end case;
+
             --  Measure content preferred size
             Rebuild_All_Items (W.Content_Panel.all);
             Pref := Get_Preferred_Size (W.Content_Panel.all);
@@ -605,9 +624,9 @@ package body Adi.Widget.Dialog is
               (W.Content_Panel.all,
                Clamp_And_Center
                  (Container => Viewport,
-                  Preferred => (Pref.Width, Win_Size.Height),
-                  Min_Size  => (Min_W, 0.0),
-                  Max_Size  => (Max_W, Win_Size.Height)));
+                  Preferred => (Pref.Width, Max_H),
+                  Min_Size  => (Min_W, Min_H),
+                  Max_Size  => (Max_W, Max_H)));
             Layout_Tree (W.Content_Panel.all);
             Rebuild_All_Items (W.Content_Panel.all);
 
@@ -636,8 +655,8 @@ package body Adi.Widget.Dialog is
                Clamp_And_Center
                  (Container => Viewport,
                   Preferred => (Pref.Width, Needed_H),
-                  Min_Size  => (Min_W, 0.0),
-                  Max_Size  => (Max_W, Win_Size.Height)));
+                  Min_Size  => (Min_W, Min_H),
+                  Max_Size  => (Max_W, Max_H)));
             Layout_Tree (W.Content_Panel.all);
             Rebuild_All_Items (W.Content_Panel.all);
          end;

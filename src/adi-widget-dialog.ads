@@ -21,6 +21,12 @@ package Adi.Widget.Dialog is
    procedure Set_Title   (W : in out Dialog_Widget; Text : String);
    procedure Set_Message (W : in out Dialog_Widget; Text : String);
 
+   --  Custom content: replaces the message label with an arbitrary widget.
+   --  Pass null to restore the built-in message label.
+   procedure Set_Content
+     (W       : in out Dialog_Widget;
+      Content : access Widget'Class);
+
    --  Icon (sets icon on the message label)
    procedure Set_Icon (W : in out Dialog_Widget; Icon : Image_Access);
 
@@ -66,6 +72,8 @@ package Adi.Widget.Dialog is
      (W : in out Dialog_Widget; S : Part_Style_Array);
    procedure Set_Button_Style
      (W : in out Dialog_Widget; S : Part_Style_Array);
+   procedure Set_Content_Style
+     (W : in out Dialog_Widget; S : Part_Style_Array);
 
    --  Package-level defaults — apply to all dialogs that don't have
    --  per-instance styles set.
@@ -74,6 +82,7 @@ package Adi.Widget.Dialog is
    procedure Set_Default_Message_Style    (S : Part_Style_Array);
    procedure Set_Default_Button_Row_Style (S : Part_Style_Array);
    procedure Set_Default_Button_Style     (S : Part_Style_Array);
+   procedure Set_Default_Content_Style    (S : Part_Style_Array);
 
    --  Abstract method implementations
    overriding procedure Build_Items (W : in out Dialog_Widget);
@@ -108,6 +117,7 @@ private
       Content_Panel : Adi.Widget.Box.Box_Widget_Access := null;
       Title_Label   : Adi.Widget.Label.Label_Widget_Access := null;
       Message_Label : Adi.Widget.Label.Label_Widget_Access := null;
+      Custom_Content : Widget_Access := null;
       Button_Row    : Adi.Widget.Box.Box_Widget_Access := null;
       Buttons       : Button_Vectors.Vector;
       Shown         : Boolean := False;

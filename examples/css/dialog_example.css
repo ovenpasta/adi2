@@ -158,3 +158,20 @@
 .dialog-title {
   flex-shrink: 0;
 }
+
+.custom-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: rgb(248, 250, 252);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(226, 232, 240);
+  border-radius: 8px;
+}
+
+.detail-label::label {
+  color: rgb(51, 65, 85);
+  font-size: 14px;
+}

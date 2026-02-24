@@ -29,8 +29,8 @@ package Dialog_Example_Styles is
       Justify_Content => Set (Flex_Start),
       Gap => Set (Gap (Px (16.0))),
       Background_Color => Set_Bg (RGB (30, 41, 59)),
-      Border_Radius => Set (Radius (Px (10.0))),
       Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
+      Border_Radius => Set (Radius (Px (10.0))),
       others => <>
    );
 
@@ -73,12 +73,12 @@ package Dialog_Example_Styles is
    Btn_Primary_Class_Base_Style : constant Style_Rules := (
       Height => Set (Size (Px (40.0))),
       Background_Color => Set_Bg (RGB (37, 99, 235)),
+      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (9.0), Px (16.0), Px (9.0), Px (16.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (29, 78, 216))),
       Border_Radius => Set (Radius (Px (8.0))),
-      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (9.0), Px (16.0), Px (9.0), Px (16.0))),
       others => <>
    );
 
@@ -121,9 +121,9 @@ package Dialog_Example_Styles is
       Min_Width => Set (Size (Px (340.0))),
       Max_Width => Set (Size (Px (480.0))),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
-      Border_Radius => Set (Radius (Px (12.0))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (16.0), Px (48.0), Px (0.0), RGBA (0, 0, 0, 0.3))),
       Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
+      Border_Radius => Set (Radius (Px (12.0))),
       others => <>
    );
 
@@ -178,12 +178,12 @@ package Dialog_Example_Styles is
    Dialog_Btn_Class_Base_Style : constant Style_Rules := (
       Height => Set (Size (Px (36.0))),
       Background_Color => Set_Bg (RGB (241, 245, 249)),
+      Transition => Set ((Duration => 0.12, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (7.0), Px (16.0), Px (7.0), Px (16.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (203, 213, 225))),
       Border_Radius => Set (Radius (Px (6.0))),
-      Transition => Set ((Duration => 0.12, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (7.0), Px (16.0), Px (7.0), Px (16.0))),
       others => <>
    );
 
@@ -203,8 +203,8 @@ package Dialog_Example_Styles is
 
    --  Style for class 'dialog-btn' when widget State_Focused
    Dialog_Btn_Class_Widget_Focused_Style : constant Style_Rules := (
-      Border_Color => Set (Border_Color (RGB (59, 130, 246))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (0.0), Px (2.0), RGBA (59, 130, 246, 0.3))),
+      Border_Color => Set (Border_Color (RGB (59, 130, 246))),
       others => <>
    );
 
@@ -215,6 +215,27 @@ package Dialog_Example_Styles is
       Font_Weight => Set (Weight_Medium),
       Text_Align => Set (Text_Center),
       White_Space => Set (WS_Nowrap),
+      others => <>
+   );
+
+   --  Base style for class 'custom-content'
+   Custom_Content_Class_Base_Style : constant Style_Rules := (
+      Display => Set (Flex),
+      Flex_Direction => Set (Column),
+      Gap => Set (Gap (Px (8.0))),
+      Background_Color => Set_Bg (RGB (248, 250, 252)),
+      Padding => Set (CSS_Box (Px (12.0), Px (16.0), Px (12.0), Px (16.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (226, 232, 240))),
+      Border_Radius => Set (Radius (Px (8.0))),
+      others => <>
+   );
+
+   --  Base style for class 'detail-label'::label
+   Detail_Label_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (51, 65, 85)),
+      Font_Size => Set_Font (Px (14.0)),
       others => <>
    );
 
@@ -394,6 +415,28 @@ package Dialog_Example_Styles is
    Dialog_Btn_Class_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Dialog_Btn_Class_Widget, Enabled => True),
       Label_Part => (Style => Dialog_Btn_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'custom-content'
+   Custom_Content_Class_Widget : constant Widget_Style :=
+     From (Custom_Content_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'custom-content'
+   Custom_Content_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Custom_Content_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'detail-label'::label
+   Detail_Label_Class_Label_Widget : constant Widget_Style :=
+     From (Detail_Label_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'detail-label'
+   Detail_Label_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Detail_Label_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 

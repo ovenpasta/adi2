@@ -21,6 +21,7 @@ package Stack_Example_Styles is
    Tab_Bar_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
+      Flex_Shrink => Set (0.0),
       Align_Items => Set (Center),
       Padding => Set (CSS_Box (Px (16.0), Px (16.0), Px (0.0), Px (16.0))),
       others => <>

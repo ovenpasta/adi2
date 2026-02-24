@@ -182,7 +182,7 @@
 
 **Combo_Box**: Dropdown using Main/Label/Indicator parts + List_Box overlay popup.
 
-**Dialog**: Modal overlay with backdrop, title/message/buttons, dismiss policies, button presets.
+**Dialog**: Modal overlay with backdrop, title/message/buttons, dismiss policies, button presets. Supports custom content via `Set_Content` which replaces the built-in message label with an arbitrary widget tree (pass `null` to restore the message label).
 
 **Stack** (generic over `Page_Id` enum): One visible child at a time, type-safe page switching, binds to `Button.Options`.
 - Measurement/min-size is derived from participating pages (visible + `display != none`), so inactive pages do not inflate preferred/min size.

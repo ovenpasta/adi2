@@ -17,6 +17,7 @@ procedure Dialog_Example is
 
    Alert_Dialog   : Dialog_Widget_Access;
    Confirm_Dialog : Dialog_Widget_Access;
+   Custom_Dialog  : Dialog_Widget_Access;
 
    procedure On_Alert_Result
      (Dlg          : Dialog_Widget_Access;
@@ -68,6 +69,31 @@ procedure Dialog_Example is
       end if;
    end On_Show_Confirm;
 
+   procedure On_Custom_Result
+     (Dlg          : Dialog_Widget_Access;
+      Button_Index : Natural;
+      Button_Text  : String)
+   is
+      pragma Unreferenced (Dlg);
+   begin
+      if Status_Label /= null then
+         if Button_Index = 0 then
+            Set_Text (Status_Label.all, "Custom dismissed");
+         else
+            Set_Text (Status_Label.all,
+                      "Custom: clicked """ & Button_Text & """");
+         end if;
+      end if;
+   end On_Custom_Result;
+
+   procedure On_Show_Custom (Btn : Button_Widget_Access) is
+      pragma Unreferenced (Btn);
+   begin
+      if not Is_Shown (Custom_Dialog.all) then
+         Show (Custom_Dialog.all);
+      end if;
+   end On_Show_Custom;
+
 begin
    A.Init;
    A.Set_Target_FPS (60);
@@ -89,6 +115,8 @@ begin
         Adi.Widget.Button.Create ("Show Alert");
       Confirm_Btn : constant Button_Widget_Access :=
         Adi.Widget.Button.Create ("Show Confirm");
+      Custom_Btn  : constant Button_Widget_Access :=
+        Adi.Widget.Button.Create ("Show Custom");
    begin
       Status_Label := Adi.Widget.Label.Create ("(no dialog opened yet)");
 
@@ -100,10 +128,12 @@ begin
       Set_Part_Styles (Status_Label.all, Status_Class_Part_Styles);
       Set_Part_Styles (Alert_Btn.all, Btn_Primary_Class_Part_Styles);
       Set_Part_Styles (Confirm_Btn.all, Btn_Primary_Class_Part_Styles);
+      Set_Part_Styles (Custom_Btn.all, Btn_Primary_Class_Part_Styles);
 
       --  Button callbacks
       Set_On_Clicked (Alert_Btn.all, On_Show_Alert'Unrestricted_Access);
       Set_On_Clicked (Confirm_Btn.all, On_Show_Confirm'Unrestricted_Access);
+      Set_On_Clicked (Custom_Btn.all, On_Show_Custom'Unrestricted_Access);
 
       --  Build page
       Root.Add_Child (Container);
@@ -111,6 +141,7 @@ begin
       Container.Add_Child (Hint);
       Container.Add_Child (Alert_Btn);
       Container.Add_Child (Confirm_Btn);
+      Container.Add_Child (Custom_Btn);
       Container.Add_Child (Status_Label);
 
       --  Set package-level default styles for all dialogs
@@ -169,6 +200,35 @@ begin
          if Warn_Icon /= null then
             Set_Icon (Confirm_Dialog.all, Warn_Icon);
          end if;
+      end;
+
+      --  Create custom content dialog
+      Custom_Dialog := Adi.Widget.Dialog.Create;
+      Attach_Window (Custom_Dialog.all, W);
+      Set_Part_Styles (Custom_Dialog.all, Backdrop_Class_Part_Styles);
+      Set_Title (Custom_Dialog.all, "Custom Content");
+      Set_OK_Cancel (Custom_Dialog.all);
+      Set_On_Result (Custom_Dialog.all, On_Custom_Result'Unrestricted_Access);
+
+      --  Build custom content: a box with two labels
+      declare
+         Content_Box : constant Adi.Widget.Box.Box_Widget_Access :=
+           Adi.Widget.Box.Create;
+         Detail_1 : constant Label_Widget_Access :=
+           Adi.Widget.Label.Create ("Name: John Doe");
+         Detail_2 : constant Label_Widget_Access :=
+           Adi.Widget.Label.Create ("Email: john@example.com");
+         Detail_3 : constant Label_Widget_Access :=
+           Adi.Widget.Label.Create ("Role: Administrator");
+      begin
+         Set_Part_Styles (Content_Box.all, Custom_Content_Class_Part_Styles);
+         Set_Part_Styles (Detail_1.all, Detail_Label_Class_Part_Styles);
+         Set_Part_Styles (Detail_2.all, Detail_Label_Class_Part_Styles);
+         Set_Part_Styles (Detail_3.all, Detail_Label_Class_Part_Styles);
+         Content_Box.Add_Child (Detail_1);
+         Content_Box.Add_Child (Detail_2);
+         Content_Box.Add_Child (Detail_3);
+         Set_Content (Custom_Dialog.all, Content_Box);
       end;
 
       W.Set_Root (Root);

@@ -11,6 +11,7 @@ package body Adi.Widget.Dialog is
    Default_Message_Styles    : Part_Style_Holders.Holder;
    Default_Button_Row_Styles : Part_Style_Holders.Holder;
    Default_Button_Styles     : Part_Style_Holders.Holder;
+   Default_Content_Styles    : Part_Style_Holders.Holder;
 
    ---------------------------------------------------------------------------
    --  Internal: Dialog_Button_Widget extends Button to forward Escape
@@ -142,6 +143,9 @@ package body Adi.Widget.Dialog is
    procedure Fire_Dismiss (W : in out Dialog_Widget) is
       Self : constant Dialog_Widget_Access := W'Unchecked_Access;
    begin
+      if not W.Shown then
+         return;  --  Already dismissed (guard against double-dispatch)
+      end if;
       if W.On_Result /= null then
          W.On_Result (Self, 0, "");
       end if;
@@ -228,6 +232,9 @@ package body Adi.Widget.Dialog is
 
    procedure Set_Message (W : in out Dialog_Widget; Text : String) is
    begin
+      if W.Custom_Content /= null then
+         return;  --  Message label not in tree when custom content is set
+      end if;
       if W.Message_Label /= null then
          Adi.Widget.Label.Set_Text (W.Message_Label.all, Text);
       end if;
@@ -240,11 +247,62 @@ package body Adi.Widget.Dialog is
 
    procedure Set_Icon (W : in out Dialog_Widget; Icon : Image_Access) is
    begin
+      if W.Custom_Content /= null then
+         return;  --  Message label not in tree when custom content is set
+      end if;
       if W.Message_Label /= null then
          Adi.Widget.Label.Set_Icon (W.Message_Label.all, Icon);
       end if;
       Mark_Dirty (W);
    end Set_Icon;
+
+   ---------------------------------------------------------------------------
+   --  Custom content
+   ---------------------------------------------------------------------------
+
+   procedure Set_Content
+     (W       : in out Dialog_Widget;
+      Content : access Widget'Class)
+   is
+      Had_Custom : constant Boolean := W.Custom_Content /= null;
+   begin
+      --  Remove previous custom content if any
+      if W.Custom_Content /= null then
+         Remove_Child (W.Content_Panel.all, W.Custom_Content);
+         W.Custom_Content := null;
+      end if;
+
+      if Content /= null then
+         --  Remove message label from tree only if it is currently attached
+         --  (i.e. we were not already in custom-content mode).
+         if not Had_Custom and then W.Message_Label /= null then
+            Remove_Child (W.Content_Panel.all, Widget_Access (W.Message_Label));
+         end if;
+         --  Remove button row so we can re-add after content
+         Remove_Child (W.Content_Panel.all, Widget_Access (W.Button_Row));
+
+         --  Detach from any existing parent before adopting
+         if Content.Parent /= null then
+            Remove_Child (Content.Parent.all, Content);
+         end if;
+
+         W.Custom_Content := Content.all'Unchecked_Access;
+         if not Default_Content_Styles.Is_Empty then
+            Set_Part_Styles (W.Custom_Content.all, Default_Content_Styles.Element);
+         end if;
+         Add_Child (W.Content_Panel.all, W.Custom_Content);
+         Add_Child (W.Content_Panel.all, Widget_Access (W.Button_Row));
+      else
+         --  Restore message label only if we were in custom-content mode
+         if Had_Custom and then W.Message_Label /= null then
+            Remove_Child (W.Content_Panel.all, Widget_Access (W.Button_Row));
+            Add_Child (W.Content_Panel.all, Widget_Access (W.Message_Label));
+            Add_Child (W.Content_Panel.all, Widget_Access (W.Button_Row));
+         end if;
+      end if;
+
+      Mark_Dirty (W);
+   end Set_Content;
 
    ---------------------------------------------------------------------------
    --  Button management
@@ -450,6 +508,15 @@ package body Adi.Widget.Dialog is
       end loop;
    end Set_Button_Style;
 
+   procedure Set_Content_Style
+     (W : in out Dialog_Widget; S : Part_Style_Array)
+   is
+   begin
+      if W.Custom_Content /= null then
+         Set_Part_Styles (W.Custom_Content.all, S);
+      end if;
+   end Set_Content_Style;
+
    ---------------------------------------------------------------------------
    --  Package-level default style setters
    ---------------------------------------------------------------------------
@@ -478,6 +545,11 @@ package body Adi.Widget.Dialog is
    begin
       Default_Button_Styles := Part_Style_Holders.To_Holder (S);
    end Set_Default_Button_Style;
+
+   procedure Set_Default_Content_Style (S : Part_Style_Array) is
+   begin
+      Default_Content_Styles := Part_Style_Holders.To_Holder (S);
+   end Set_Default_Content_Style;
 
    ---------------------------------------------------------------------------
    --  Build_Items: backdrop panel

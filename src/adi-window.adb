@@ -1600,6 +1600,16 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
         and then not Is_Disabled (W.Focused_Widget.all)
       then
          On_Key_Down (W.Focused_Widget.all, Scancode, Key_Mod, Repeat);
+
+         --  For overlays (modal dialogs), also let the overlay root handle
+         --  Escape so that dismiss-on-escape works regardless of which
+         --  child widget is focused.
+         if Scancode = Adi.SDL.Events.SDL_SCANCODE_ESCAPE
+           and then Key_Root /= W.Root
+           and then Widget_Access (W.Focused_Widget) /= Key_Root
+         then
+            On_Key_Down (Key_Root.all, Scancode, Key_Mod, Repeat);
+         end if;
       elsif Key_Root /= null then
          On_Key_Down (Key_Root.all, Scancode, Key_Mod, Repeat);
       end if;

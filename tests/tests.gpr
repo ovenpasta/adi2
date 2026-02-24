@@ -19,6 +19,7 @@ project Tests is
       "svg_sprites_test",
       "min_size_test",
       "layout_perf_test",
+      "style_storage_equivalence_test",
       "window_resize_safety_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 

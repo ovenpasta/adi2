@@ -231,7 +231,18 @@ Render scheduling note: relayout runs only when layout/geometry is dirty (`Mark_
 
 Three optimizations reduce layout cost for large widget trees (e.g. 280+ widgets in list_box_example):
 
-**Resolved style cache** (`Get_Resolved_Part_Style`): Each widget caches its resolved style per part, keyed on `(Style_Version, Get_States(W), Part_States(P))`. Using `Get_States` (not raw `W.States`) ensures inherited `:disabled` state is included. When the widget-level key changes (version or effective states), ALL per-part cache entries are invalidated — this prevents sub-parts that inherit from Main_Part from returning stale results. Cache writes use `'Unrestricted_Access` on the read-only `Widget'Class` parameter (safe because the cache is a pure memo).
+**Resolved style caching and evaluation** (`Get_Resolved_Part_Style` / `Get_Part_Style_Rules`):
+- Widget part styles are stored internally as interned style handles (private representation), not embedded `Widget_Style` payloads per widget part.
+- Rule evaluation order is prepared once per interned style (effective priority: explicit `Priority`, else selector `Specificity`; stable source-order tie behavior). Runtime resolution reuses this prepared order and avoids per-call rule sorting.
+- Per-widget cache remains in place for hot repeated accesses, keyed by style version + effective widget state (`Get_States`) + part state, with per-part entries invalidated when widget-level key changes.
+- A global resolved-style memo adds a second cache layer across widgets. Its key includes:
+  - effective part handle
+  - effective main-part handle (for sub-part inheritance cases)
+  - packed effective widget states
+  - packed part states
+  - packed main-part states
+- On global-cache overflow (`32k` entries), the cache is cleared (deterministic bounded-memory policy).
+- Cache writes use `'Unrestricted_Access` on the read-only `Widget'Class` parameter (safe because caches are internal memoization only).
 
 **Epoch-based layout deduplication** (`Layout_Tree` / `Layout_Child`): A global `Current_Layout_Epoch` counter increments once per `Layout_Tree` call via `Bump_Layout_Epoch`. The public `Layout_Tree` bumps the epoch then delegates to a private `Layout_Tree_Impl` for recursive descent — this ensures every external call (root, overlay, or dialog subtree) gets a fresh epoch while recursive children share the same epoch for dedup. Containers (flex, grid, list_box, stack) call `Layout_Child(Child)` instead of bare `Layout(Child)` — this stamps `Child.Last_Layout_Epoch := Current_Layout_Epoch`. When `Layout_Tree_Impl` later recurses into those children, it skips the redundant `Layout` call if the epoch matches. `Bump_Layout_Epoch` wraps to 1 (not 0) at `Natural'Last` to avoid matching the default `Last_Layout_Epoch := 0` init value. This eliminates ~50% of layout calls in container-heavy trees.
 

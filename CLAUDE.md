@@ -14,6 +14,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | Coding conventions | `docs/coding_conventions.md` |
 | CSS styling (selectors, properties, runtime API, code generation) | `docs/css_styling.md` |
 | XML UI system (declarative widgets, code generation, components) | `docs/xml_ui_system.md` |
+| Internal style-storage optimization (interning/prepared rules/global memo) | `docs/style_storage_optimization.md` |
 | Build system (Alire, gprbuild, configure) | `docs/build.md` |
 | gprbuild without Alire | `docs/gprbuild_without_alire.md` |
 | HTML view widget | `docs/html_view_spec.md` |

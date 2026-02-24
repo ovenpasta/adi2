@@ -481,6 +481,11 @@ private
    --  Widget Record
    ---------------------------------------------------------------------------
 
+   --  Interned style handles (0 = Empty_Widget_Style)
+   type Style_Handle is new Natural;
+   type Part_Style_Handle_Array is array (Part_Kind) of Style_Handle;
+   type Part_Enabled_Array is array (Part_Kind) of Boolean;
+
    --  Animation state per part
    type Part_Transition_Array is array (Part_Kind) of Part_Transition;
    type Part_Resolved_Array is array (Part_Kind) of Resolved_Style;
@@ -504,8 +509,9 @@ private
       Last_Applied_Version : Natural := 0;
       Flags       : Widget_Flags := Default_Flags;
 
-      --  Styling - each part has its own Widget_Style
-      Part_Styles : Part_Style_Array := Empty_Part_Styles;
+      --  Styling - each part references an interned style
+      Part_Style_Handles : Part_Style_Handle_Array := [others => 0];
+      Part_Style_Enabled : Part_Enabled_Array := [others => True];
 
       --  Renderable items (built by derived widgets)
       Items : Items_List.Vector;

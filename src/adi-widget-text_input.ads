@@ -12,9 +12,6 @@ package Adi.Widget.Text_Input is
    type Text_Input_Widget_Access is access all Text_Input_Widget'Class;
 
    function Create (Text : String := "") return Text_Input_Widget_Access;
-   procedure Attach_Window
-     (W    : in out Text_Input_Widget;
-      Host : Adi.Window.Window_Access);
 
    procedure Set_Text (W : in out Text_Input_Widget; Text : String);
    function Get_Text (W : Text_Input_Widget) return String;
@@ -57,6 +54,12 @@ package Adi.Widget.Text_Input is
       Button : Adi.Core.Mouse_Button);
 
 private
+   --  Internal eager host binding. Public callers rely on lazy host
+   --  resolution when the context menu is invoked.
+   procedure Attach_Window
+     (W    : in out Text_Input_Widget;
+      Host : Adi.Window.Window_Access);
+
    Panel_Idx     : constant Positive := 1;
    Selection_Idx : constant Positive := 2;
    Text_Idx      : constant Positive := 3;

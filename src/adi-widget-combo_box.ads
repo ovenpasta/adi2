@@ -15,10 +15,6 @@ package Adi.Widget.Combo_Box is
 
    function Create return Combo_Box_Widget_Access;
 
-   procedure Attach_Window
-     (W    : in out Combo_Box_Widget;
-      Host : Adi.Window.Window_Access);
-
    procedure Add_Item (W : in out Combo_Box_Widget; Text : String);
    procedure Clear_Items (W : in out Combo_Box_Widget);
    function Option_Count (W : Combo_Box_Widget) return Natural;
@@ -74,6 +70,12 @@ package Adi.Widget.Combo_Box is
    overriding procedure On_Focus_Lost (W : in out Combo_Box_Widget);
 
 private
+   --  Internal eager host binding. Public callers rely on lazy host
+   --  resolution when opening the dropdown.
+   procedure Attach_Window
+     (W    : in out Combo_Box_Widget;
+      Host : Adi.Window.Window_Access);
+
    package String_Vectors is new Ada.Containers.Vectors
      (Positive, Ada.Strings.Unbounded.Unbounded_String);
 

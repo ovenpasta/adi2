@@ -222,7 +222,8 @@ Package: `Adi.Widget.Html_View`
 ## Window Integration
 - `Html_View` does not expose or require an `Attach_Window` API.
 - All rendering behavior (including list markers and inline SVG/image handling) is self-contained in the widget.
-- Host-window-specific wiring remains the responsibility of widgets that need overlays/popups (for example text editors, dialogs, and context menus).
+- Text editors, text inputs, and combo boxes resolve overlay host windows automatically from widget-tree membership.
+- Dialog widgets still require explicit host attachment via `Attach_Window`.
 
 ## Performance and Caching
 - `Set_HTML` reparses and rebuilds internal run/tree caches, then marks widget dirty.

@@ -1054,18 +1054,6 @@ def generate_body(app: XmlApp, package_name: str) -> str:
         lines.extend(hierarchy_lines)
         lines.append("")
 
-    # Attach combo boxes to the window (needed for overlay popups)
-    if has_window:
-        combo_widgets = [w for w in all_widgets if w.tag == "combo-box"]
-        if combo_widgets:
-            lines.append("      --  Attach combo boxes to window")
-            for w in combo_widgets:
-                lines.append(
-                    f"      Adi.Widget.Combo_Box.Attach_Window"
-                    f" ({w.wid}.all, W);"
-                )
-            lines.append("")
-
     # Wire option groups
     og_lines = []
     for og in app.option_groups:

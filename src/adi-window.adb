@@ -1,4 +1,5 @@
 pragma Ada_2022;
+with Ada.Containers.Vectors;
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Environment_Variables;
 with Interfaces.C; use Interfaces.C;
@@ -86,11 +87,22 @@ package body Adi.Window is
    function Resolve_Effective_Visibility
      (Wgt : Adi.Widget.Widget'Class;
       Parent_Visibility : Visibility_Value) return Visibility_Value;
+   function Window_Contains_Widget
+     (W    : Window;
+      Node : Widget_Access) return Boolean;
+   procedure Register_Live_Window (W : Window_Access);
+   procedure Unregister_Live_Window
+     (Win_Handle : Adi.SDL.Video.SDL_Window_Ptr);
 
    type Internal is record
       win : Adi.SDL.Video.SDL_Window_Ptr;
       ren : Adi.SDL.Render.SDL_Renderer_Ptr;
    end record;
+
+   package Window_Access_Vectors is new Ada.Containers.Vectors
+     (Positive, Window_Access);
+
+   Live_Windows : Window_Access_Vectors.Vector;
 
    procedure Apply_Render_Logical_Presentation (W : in out Window) is
       Success : Adi.SDL.C_bool;
@@ -373,6 +385,95 @@ package body Adi.Window is
       return False;
    end Is_In_Subtree;
 
+   function Window_Contains_Widget
+     (W    : Window;
+      Node : Widget_Access) return Boolean
+   is
+   begin
+      if Node = null then
+         return False;
+      end if;
+
+      if Is_In_Subtree (W.Root, Node) then
+         return True;
+      end if;
+
+      for I in 1 .. Natural (W.Overlays.Length) loop
+         declare
+            Overlay : constant Widget_Access := W.Overlays.Element (I);
+         begin
+            if Is_In_Subtree (Overlay, Node) then
+               return True;
+            end if;
+         end;
+      end loop;
+
+      return False;
+   end Window_Contains_Widget;
+
+   procedure Register_Live_Window (W : Window_Access) is
+   begin
+      if W = null then
+         return;
+      end if;
+
+      for I in 1 .. Natural (Live_Windows.Length) loop
+         if Live_Windows.Element (I) = W then
+            return;
+         end if;
+      end loop;
+
+      Live_Windows.Append (W);
+   end Register_Live_Window;
+
+   procedure Unregister_Live_Window
+     (Win_Handle : Adi.SDL.Video.SDL_Window_Ptr)
+   is
+   begin
+      if Win_Handle = null then
+         return;
+      end if;
+
+      for I in reverse 1 .. Natural (Live_Windows.Length) loop
+         declare
+            Candidate : constant Window_Access := Live_Windows.Element (I);
+         begin
+            if Candidate /= null
+              and then Candidate.Internal /= null
+              and then Candidate.Internal.win = Win_Handle
+            then
+               Live_Windows.Delete (I);
+            end if;
+         end;
+      end loop;
+   end Unregister_Live_Window;
+
+   function Find_Host_Window
+     (Node : access Adi.Widget.Widget'Class) return Window_Access
+   is
+      Node_Access : Widget_Access;
+   begin
+      if Node = null then
+         return null;
+      end if;
+
+      Node_Access := Node.all'Unchecked_Access;
+
+      for I in reverse 1 .. Natural (Live_Windows.Length) loop
+         declare
+            Candidate : constant Window_Access := Live_Windows.Element (I);
+         begin
+            if Candidate /= null
+              and then Window_Contains_Widget (Candidate.all, Node_Access)
+            then
+               return Candidate;
+            end if;
+         end;
+      end loop;
+
+      return null;
+   end Find_Host_Window;
+
    function Active_Key_Root (W : Window) return Widget_Access is
    begin
       for I in reverse 1 .. Natural (W.Overlays.Length) loop
@@ -518,6 +619,7 @@ package body Adi.Window is
            null;
         end if;
         Refresh_Viewport_Size (W.all);
+        Register_Live_Window (W);
       end return;
    end Create_Window;
 
@@ -1603,6 +1705,9 @@ function Get_Size (W : in out Window) return Size_2D is
       use Adi.SDL.Video;
       use Adi.SDL.Render;
    begin
+      if W.Internal /= null then
+         Unregister_Live_Window (W.Internal.win);
+      end if;
       W.Overlays.Clear;
       Adi.Render.Destroy (W.Ctx);
       if W.Internal /= null then

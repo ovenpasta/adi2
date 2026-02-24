@@ -464,6 +464,11 @@ package body Adi.Widget.Combo_Box is
          Tintable     => True);
    end Ensure_Arrow_Images;
 
+   procedure Ensure_Host_Window (W : in out Combo_Box_Widget) is
+   begin
+      W.Host_Window := Adi.Window.Find_Host_Window (W'Unchecked_Access);
+   end Ensure_Host_Window;
+
    procedure Position_Popup (W : in out Combo_Box_Widget) is
       Anchor   : Rectangle;
       Win_Size : Size_2D;
@@ -471,6 +476,7 @@ package body Adi.Widget.Combo_Box is
       X_Pos    : Pixel_Type;
       Y_Pos    : Pixel_Type;
    begin
+      Ensure_Host_Window (W);
       if W.Host_Window = null or else W.Popup = null then
          return;
       end if;
@@ -507,6 +513,7 @@ package body Adi.Widget.Combo_Box is
       Win_Size : Size_2D;
       Dismiss  : Dismiss_Layer_Widget_Access := null;
    begin
+      Ensure_Host_Window (W);
       if W.Host_Window = null then
          return;
       end if;
@@ -531,6 +538,7 @@ package body Adi.Widget.Combo_Box is
    procedure Open_Dropdown (W : in out Combo_Box_Widget) is
       Dismiss : Dismiss_Layer_Widget_Access := null;
    begin
+      Ensure_Host_Window (W);
       if W.Open or else W.Host_Window = null or else W.Popup = null then
          return;
       end if;

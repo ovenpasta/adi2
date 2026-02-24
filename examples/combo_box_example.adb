@@ -58,9 +58,6 @@ begin
       Set_Part_Styles (Color_Combo.all, Combo_Class_Part_Styles);
       Set_Part_Styles (City_Combo.all, Combo_Class_Part_Styles);
 
-      Attach_Window (Color_Combo.all, W);
-      Attach_Window (City_Combo.all, W);
-
       Set_Dropdown_Part_Styles (Color_Combo.all, Dropdown_Class_Part_Styles);
       Set_Dropdown_Part_Styles (City_Combo.all, Dropdown_Class_Part_Styles);
       Set_Option_Row_Part_Styles (Color_Combo.all, Option_Row_Class_Part_Styles);

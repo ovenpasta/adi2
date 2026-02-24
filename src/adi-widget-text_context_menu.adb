@@ -6,6 +6,7 @@ package body Adi.Widget.Text_Context_Menu is
 
    use type Adi.Widget.Context_Menu.Context_Menu_Access;
    use type Adi.Text_Buffer.Text_Buffer_Access;
+   use type Adi.Window.Window_Access;
 
    Command_Bindings : Command_Binding_Vectors.Vector;
    Request_Bindings : Request_Binding_Vectors.Vector;
@@ -94,13 +95,19 @@ package body Adi.Widget.Text_Context_Menu is
      (W    : Adi.Widget.Widget_Access;
       X, Y : Pixel_Type)
    is
-      Idx : constant Natural := Find_Request_Binding (W);
+      Idx  : constant Natural := Find_Request_Binding (W);
+      Host : Adi.Window.Window_Access;
    begin
       if Idx = 0 then
          return;
       end if;
 
       if Request_Bindings.Element (Idx).Menu /= null then
+         Host := Adi.Window.Find_Host_Window (W);
+         if Host /= null then
+            Adi.Widget.Context_Menu.Attach_Window
+              (Request_Bindings.Element (Idx).Menu.all, Host);
+         end if;
          Adi.Widget.Context_Menu.Show_At
            (Request_Bindings.Element (Idx).Menu.all, X, Y);
       end if;

@@ -10,9 +10,6 @@ package Adi.Widget.Text_Editor is
    type Text_Editor_Widget_Access is access all Text_Editor_Widget'Class;
 
    function Create (Text : String := "") return Text_Editor_Widget_Access;
-   procedure Attach_Window
-     (W    : in out Text_Editor_Widget;
-      Host : Adi.Window.Window_Access);
 
    procedure Set_Text (W : in out Text_Editor_Widget; Text : String);
    function Get_Text (W : Text_Editor_Widget) return String;
@@ -62,6 +59,12 @@ package Adi.Widget.Text_Editor is
       DT : Duration);
 
 private
+   --  Internal eager host binding. Public callers rely on lazy host
+   --  resolution when the context menu is invoked.
+   procedure Attach_Window
+     (W    : in out Text_Editor_Widget;
+      Host : Adi.Window.Window_Access);
+
    Panel_Idx  : constant Positive := 1;
 
    type Text_Editor_Widget is new Widget with record

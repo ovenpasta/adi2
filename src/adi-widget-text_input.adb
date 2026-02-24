@@ -318,6 +318,23 @@ package body Adi.Widget.Text_Input is
       end if;
    end Apply_Context_Menu_Styles;
 
+   procedure Ensure_Context_Menu (W : in out Text_Input_Widget) is
+      Self : constant Text_Input_Widget_Access := W'Unchecked_Access;
+   begin
+      if W.Context_Menu /= null then
+         return;
+      end if;
+
+      W.Context_Menu := Adi.Widget.Text_Context_Menu.Create_Default
+        (Buffer      => W.Buffer'Unchecked_Access,
+         Host        => null,
+         Single_Line => True,
+         On_Applied  => On_Menu_Command_Applied'Access);
+      Register_Menu_Binding (W.Context_Menu, Self);
+      Adi.Widget.Text_Context_Menu.Bind_Widget_Request (W, W.Context_Menu);
+      Apply_Context_Menu_Styles (W);
+   end Ensure_Context_Menu;
+
    function Create (Text : String := "") return Text_Input_Widget_Access is
       Result : constant Text_Input_Widget_Access := new Text_Input_Widget;
    begin
@@ -330,6 +347,7 @@ package body Adi.Widget.Text_Input is
       else
          Clear (Result.Buffer);
       end if;
+      Ensure_Context_Menu (Text_Input_Widget (Result.all));
       return Result;
    end Create;
 
@@ -337,20 +355,9 @@ package body Adi.Widget.Text_Input is
      (W    : in out Text_Input_Widget;
       Host : Adi.Window.Window_Access)
    is
-      Self : constant Text_Input_Widget_Access := W'Unchecked_Access;
    begin
-      if W.Context_Menu = null then
-         W.Context_Menu := Adi.Widget.Text_Context_Menu.Create_Default
-           (Buffer      => W.Buffer'Unchecked_Access,
-            Host        => Host,
-            Single_Line => True,
-            On_Applied  => On_Menu_Command_Applied'Access);
-         Register_Menu_Binding (W.Context_Menu, Self);
-         Adi.Widget.Text_Context_Menu.Bind_Widget_Request (W, W.Context_Menu);
-      else
-         Adi.Widget.Context_Menu.Attach_Window (W.Context_Menu.all, Host);
-      end if;
-
+      Ensure_Context_Menu (W);
+      Adi.Widget.Context_Menu.Attach_Window (W.Context_Menu.all, Host);
       Apply_Context_Menu_Styles (W);
    end Attach_Window;
 

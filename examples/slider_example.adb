@@ -9,7 +9,6 @@ with Adi.Widget;          use Adi.Widget;
 with Adi.Widget.Box;
 with Adi.Widget.Label;
 with Adi.Widget.Context_Menu;
-with Adi.Widget.Text_Input;
 with Adi.Widget.Slider;
 with Adi.Widget.Integer_Slider;
 with Adi.Widget.Value_Input;
@@ -186,12 +185,6 @@ begin
       Set_Part_Styles (Slider3.all, Slider_Class_Part_Styles);
       Set_Part_Styles (Input1.all, Value_Input_Class_Part_Styles);
       Set_Part_Styles (Input2.all, Value_Input_Class_Part_Styles);
-
-      --  Attach windows for text inputs (context menus)
-      Adi.Widget.Text_Input.Attach_Window
-        (Adi.Widget.Text_Input.Text_Input_Widget (Input1.all), W);
-      Adi.Widget.Text_Input.Attach_Window
-        (Adi.Widget.Text_Input.Text_Input_Widget (Input2.all), W);
 
       --  Build hierarchy
       Add_Child (Section1.all, Heading1);

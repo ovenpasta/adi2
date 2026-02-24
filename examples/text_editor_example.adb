@@ -174,7 +174,6 @@ begin
       Open_Btn.Set_On_Clicked (On_Open_Click'Unrestricted_Access);
       Wrap_Switch.Set_On_Toggled (On_Wrap_Toggled'Unrestricted_Access);
       Apply_Wrap (True);
-      Attach_Window (Editor.all, W);
       Set_Context_Menu_Part_Styles (Editor.all, Context_Menu_Class_Part_Styles);
       Set_Context_Menu_Item_Part_Styles (Editor.all, Context_Menu_Item_Class_Part_Styles);
 

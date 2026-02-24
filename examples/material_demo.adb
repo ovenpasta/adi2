@@ -7,7 +7,6 @@ with Adi.Widget.Combo_Box;    use Adi.Widget.Combo_Box;
 with Adi.Widget.Context_Menu;
 with Adi.Widget.Dialog;       use Adi.Widget.Dialog;
 with Adi.Widget.Label;        use Adi.Widget.Label;
-with Adi.Widget.Text_Input;   use Adi.Widget.Text_Input;
 with Adi.Window;
 with Material_Demo_Styles;   use Material_Demo_Styles;
 with Material_Demo_UI;       use Material_Demo_UI;
@@ -99,15 +98,6 @@ begin
          UI.App_Title.Set_Icon (Icon);
       end if;
    end;
-
-   --  Attach text inputs to window (context menu styles applied via defaults)
-   Attach_Window (UI.Name_Input.all, W);
-   Attach_Window (UI.Enabled_Input.all, W);
-   Attach_Window (UI.Disabled_Input.all, W);
-   Attach_Window
-     (Adi.Widget.Text_Input.Text_Input_Widget (UI.Enabled_Value_Input.all), W);
-   Attach_Window
-     (Adi.Widget.Text_Input.Text_Input_Widget (UI.Disabled_Value_Input.all), W);
 
    --  Create welcome dialog (inherits default dialog styles)
    Welcome_Dialog := Adi.Widget.Dialog.Create;

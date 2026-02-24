@@ -326,11 +326,6 @@ package body Material_Demo_UI is
       Root.Add_Child (Pages);
       Root.Add_Child (Lock_Bar);
 
-      --  Attach combo boxes to window
-      Adi.Widget.Combo_Box.Attach_Window (Country_Combo.all, W);
-      Adi.Widget.Combo_Box.Attach_Window (Enabled_Combo.all, W);
-      Adi.Widget.Combo_Box.Attach_Window (Disabled_Combo.all, W);
-
       --  Wire option groups
       Nav_Options_Group.Set_Button (Home, Btn_Home);
       Nav_Options_Group.Set_Button (Forms, Btn_Forms);

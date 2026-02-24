@@ -152,7 +152,6 @@ begin
         (View.all, On_Load_Resource'Unrestricted_Access);
       Adi.Widget.Html_View.Set_HTML (View.all, HTML_Text);
 
-      Adi.Widget.Text_Editor.Attach_Window (Source_Editor.all, W);
       Adi.Widget.Text_Editor.Set_Text (Source_Editor.all, HTML_Text);
       Adi.Widget.Text_Editor.Set_On_Changed
         (Source_Editor.all, On_Source_Changed'Unrestricted_Access);

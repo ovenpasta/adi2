@@ -21,6 +21,10 @@ package Adi.Window is
     --  Set the root widget for this window
     procedure Set_Root (W : in out Window; Root : access Adi.Widget.Widget'Class);
     function Get_Root (W : Window) return Widget_Access;
+    --  Resolve the host window that currently contains a widget in its
+    --  root tree or overlay tree. Returns null if none.
+    function Find_Host_Window
+      (Node : access Adi.Widget.Widget'Class) return Window_Access;
 
     --  Optional policy: derive window minimum size from root layout preferred size.
     procedure Set_Enforce_Layout_Min_Size

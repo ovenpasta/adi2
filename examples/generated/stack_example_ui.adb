@@ -112,6 +112,14 @@ package body Stack_Example_UI is
          Reloaded := Reloaded or Component_Reloaded;
          Success := Success and Component_Success;
       end;
+      declare
+         Component_Reloaded : Boolean := False;
+         Component_Success  : Boolean := True;
+      begin
+         Green_Page.Tick_Styles (Component_Reloaded, Component_Success);
+         Reloaded := Reloaded or Component_Reloaded;
+         Success := Success and Component_Success;
+      end;
    end Tick_Styles;
 
    procedure Tick_Styles_CB (DT : Duration) is
@@ -135,11 +143,8 @@ package body Stack_Example_UI is
       W : constant Adi.Window.Window_Access :=
         Adi.Window.Create_Window ("Stack Example", (600.0, 450.0));
       Box_1 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_1 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Green Page");
-      Label_2 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("This is the second page with a natural green background.");
-      Box_2 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_3 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Blue Page");
-      Label_4 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("This is the third page with a deep blue background.");
+      Label_1 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Blue Page");
+      Label_2 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("This is the third page with a deep blue background.");
    begin
       --  Create widgets
       Root := Adi.Widget.Box.Create;
@@ -157,10 +162,9 @@ package body Stack_Example_UI is
       Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tab-center", Tab_Center_Class_Part_Styles));
       Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tab-right", Tab_Right_Class_Part_Styles));
       Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("stack", Stack_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-green", Page_Green_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-blue", Page_Blue_Class_Part_Styles));
       Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-title", Page_Title_Class_Part_Styles));
       Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-desc", Page_Desc_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-blue", Page_Blue_Class_Part_Styles));
 
       --  Load dynamic CSS and choose mode
       declare
@@ -191,12 +195,9 @@ package body Stack_Example_UI is
       Adi.CSS_Source.Bind_Class (Source, "tab-center", Btn_Green);
       Adi.CSS_Source.Bind_Class (Source, "tab-right", Btn_Blue);
       Adi.CSS_Source.Bind_Class (Source, "stack", Pages);
-      Adi.CSS_Source.Bind_Class (Source, "page-green", Box_1);
+      Adi.CSS_Source.Bind_Class (Source, "page-blue", Box_1);
       Adi.CSS_Source.Bind_Class (Source, "page-title", Label_1);
       Adi.CSS_Source.Bind_Class (Source, "page-desc", Label_2);
-      Adi.CSS_Source.Bind_Class (Source, "page-blue", Box_2);
-      Adi.CSS_Source.Bind_Class (Source, "page-title", Label_3);
-      Adi.CSS_Source.Bind_Class (Source, "page-desc", Label_4);
 
       --  Build hierarchy
       Tab_Bar.Add_Child (Btn_Red);
@@ -204,11 +205,9 @@ package body Stack_Example_UI is
       Tab_Bar.Add_Child (Btn_Blue);
       Box_1.Add_Child (Label_1);
       Box_1.Add_Child (Label_2);
-      Box_2.Add_Child (Label_3);
-      Box_2.Add_Child (Label_4);
       Pages.Add_Page (Red, Red_Page.Build);
-      Pages.Add_Page (Green, Box_1);
-      Pages.Add_Page (Blue, Box_2);
+      Pages.Add_Page (Green, Green_Page.Build);
+      Pages.Add_Page (Blue, Box_1);
       Root.Add_Child (Tab_Bar);
       Root.Add_Child (Pages);
 

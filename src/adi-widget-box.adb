@@ -299,6 +299,234 @@ package body Adi.Widget.Box is
       return Outer_Size (Result, Style);
    end Measure_Content;
 
+   overriding function Get_Min_Size (W : Box_Widget) return Size_2D is
+      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      CSS_Min : constant Size_2D := Get_Min_Size (Widget (W));
+      Gap : constant Pixel_Type := Get_Main_Gap (Style.Gap, Style.Flex_Direction);
+      Row_Gap : constant Pixel_Type := Get_Row_Gap (Style.Gap);
+      Col_Gap : constant Pixel_Type := Get_Column_Gap (Style.Gap);
+      Count : Natural := 0;
+      Main_Sum : Pixel_Type := 0.0;
+      Cross_Max : Pixel_Type := 0.0;
+      Result : Size_2D := (0.0, 0.0);
+   begin
+      if Style.Display = Flex or else Style.Display = Inline_Flex then
+         for Child of W.Children loop
+            if Child_Participates (Child) then
+               declare
+                  Child_Style : constant Resolved_Style :=
+                    Get_Resolved_Part_Style (Child.all, Main_Part);
+                  Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
+                  Min : constant Size_2D := Get_Min_Size (Child.all);
+                  Main_Margins : constant Pixel_Type :=
+                    (if Is_Row_Direction (Style.Flex_Direction)
+                     then Margin.Left + Margin.Right
+                     else Margin.Top + Margin.Bottom);
+                  Cross_Margins : constant Pixel_Type :=
+                    (if Is_Row_Direction (Style.Flex_Direction)
+                     then Margin.Top + Margin.Bottom
+                     else Margin.Left + Margin.Right);
+               begin
+                  Main_Sum := Main_Sum
+                    + Get_Main_Size (Min, Style.Flex_Direction)
+                    + Main_Margins;
+                  Cross_Max :=
+                    Pixel_Type'Max
+                      (Cross_Max,
+                       Get_Cross_Size (Min, Style.Flex_Direction) + Cross_Margins);
+                  Count := Count + 1;
+               end;
+            end if;
+         end loop;
+
+         if Count > 1 then
+            Main_Sum := Main_Sum + Gap * Pixel_Type (Count - 1);
+         end if;
+
+         Result := Make_Size (Main_Sum, Cross_Max, Style.Flex_Direction);
+      elsif Style.Display = Grid or else Style.Display = Inline_Grid then
+         declare
+            Cols   : constant Natural := Natural'Max (1, Natural (Style.Grid_Columns));
+            Tracks : constant Grid_Track_List := Style.Grid_Column_Tracks;
+            N      : constant Natural := Child_Count (W);
+
+            type Child_Min_Info is record
+               Active   : Boolean := False;
+               Col      : Natural := 1;
+               Row      : Natural := 1;
+               Col_Span : Natural := 1;
+               Row_Span : Natural := 1;
+               Min_W    : Pixel_Type := 0.0;
+               Min_H    : Pixel_Type := 0.0;
+            end record;
+            type Child_Min_Info_Array is array (Natural range <>) of Child_Min_Info;
+
+            Infos       : Child_Min_Info_Array (1 .. N);
+            Active_Count : Natural := 0;
+            Auto_Index  : Natural := 0;
+            Max_Row_End : Natural := 0;
+         begin
+            for I in 1 .. N loop
+               declare
+                  Child : constant Widget_Access := Get_Child (W, Positive (I));
+               begin
+                  if Child_Participates (Child) then
+                     declare
+                        Child_Style : constant Resolved_Style :=
+                          Get_Resolved_Part_Style (Child.all, Main_Part);
+                        Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
+                        Min : constant Size_2D := Get_Min_Size (Child.all);
+                        C  : Natural := Natural (Child_Style.Grid_Column);
+                        R  : Natural := Natural (Child_Style.Grid_Row);
+                        CS : Natural := Natural (Child_Style.Grid_Column_Span);
+                        RS : Natural := Natural (Child_Style.Grid_Row_Span);
+                     begin
+                        if CS = 0 then
+                           CS := 1;
+                        end if;
+                        if RS = 0 then
+                           RS := 1;
+                        end if;
+
+                        --  Keep placement rules aligned with grid measurement/layout.
+                        if C = 0 and then R = 0 then
+                           Auto_Index := Auto_Index + 1;
+                           C := ((Auto_Index - 1) mod Cols) + 1;
+                           R := ((Auto_Index - 1) / Cols) + 1;
+                        elsif C = 0 then
+                           C := 1;
+                        elsif R = 0 then
+                           Auto_Index := Auto_Index + 1;
+                           R := ((Auto_Index - 1) / Cols) + 1;
+                        end if;
+
+                        C := Natural'Max (1, Natural'Min (C, Cols));
+                        CS := Natural'Max (1, Natural'Min (CS, Cols - C + 1));
+                        if R = 0 then
+                           R := 1;
+                        end if;
+
+                        Active_Count := Active_Count + 1;
+                        Infos (Active_Count) :=
+                          (Active   => True,
+                           Col      => C,
+                           Row      => R,
+                           Col_Span => CS,
+                           Row_Span => RS,
+                           Min_W    => Min.Width + Margin.Left + Margin.Right,
+                           Min_H    => Min.Height + Margin.Top + Margin.Bottom);
+                        Max_Row_End := Natural'Max (Max_Row_End, R + RS - 1);
+                     end;
+                  end if;
+               end;
+            end loop;
+
+            declare
+               Rows : constant Natural :=
+                 (if Active_Count = 0 then 0
+                  elsif Natural (Style.Grid_Rows) > 0 then
+                    Natural'Max (Natural (Style.Grid_Rows), Max_Row_End)
+                  else
+                    Natural'Max (1, Max_Row_End));
+            begin
+               declare
+                  Col_Min_W : array (1 .. Cols) of Pixel_Type := [others => 0.0];
+               begin
+                  if Tracks.Count = Cols then
+                     for C in 1 .. Cols loop
+                        if Tracks.Tracks (C).Kind = Track_Px then
+                           Col_Min_W (C) := Pixel_Type (Tracks.Tracks (C).Value);
+                        end if;
+                     end loop;
+                  end if;
+
+                  for I in 1 .. Active_Count loop
+                     declare
+                        Share_W : constant Pixel_Type :=
+                          Infos (I).Min_W / Pixel_Type (Infos (I).Col_Span);
+                     begin
+                        for Span_Offset in 0 .. Infos (I).Col_Span - 1 loop
+                           declare
+                              Sc : constant Natural := Infos (I).Col + Span_Offset;
+                           begin
+                              if Tracks.Count = Cols
+                                and then Tracks.Tracks (Sc).Kind = Track_Px
+                              then
+                                 null;
+                              else
+                                 Col_Min_W (Sc) := Pixel_Type'Max (Col_Min_W (Sc), Share_W);
+                              end if;
+                           end;
+                        end loop;
+                     end;
+                  end loop;
+
+                  for C in 1 .. Cols loop
+                     Result.Width := Result.Width + Col_Min_W (C);
+                  end loop;
+                  if Cols > 1 then
+                     Result.Width := Result.Width + Pixel_Type (Cols - 1) * Col_Gap;
+                  end if;
+               end;
+
+               if Rows > 0 then
+                  declare
+                     Row_Min_H : array (1 .. Rows) of Pixel_Type := [others => 0.0];
+                  begin
+                     for I in 1 .. Active_Count loop
+                        declare
+                           Share_H : constant Pixel_Type :=
+                             Infos (I).Min_H / Pixel_Type (Infos (I).Row_Span);
+                        begin
+                           for Span_Offset in 0 .. Infos (I).Row_Span - 1 loop
+                              declare
+                                 Sr : constant Natural := Infos (I).Row + Span_Offset;
+                              begin
+                                 if Sr <= Rows then
+                                    Row_Min_H (Sr) :=
+                                      Pixel_Type'Max (Row_Min_H (Sr), Share_H);
+                                 end if;
+                              end;
+                           end loop;
+                        end;
+                     end loop;
+
+                     for R in 1 .. Rows loop
+                        Result.Height := Result.Height + Row_Min_H (R);
+                     end loop;
+                     if Rows > 1 then
+                        Result.Height := Result.Height + Pixel_Type (Rows - 1) * Row_Gap;
+                     end if;
+                  end;
+               end if;
+            end;
+         end;
+      else
+         --  Conservative fallback for non-flex containers: keep the largest
+         --  child minimum footprint.  This is sufficient as a shrink floor.
+         for Child of W.Children loop
+            if Child_Participates (Child) then
+               declare
+                  Child_Style : constant Resolved_Style :=
+                    Get_Resolved_Part_Style (Child.all, Main_Part);
+                  Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
+                  Min : constant Size_2D := Get_Min_Size (Child.all);
+               begin
+                  Result.Width := Pixel_Type'Max
+                    (Result.Width, Min.Width + Margin.Left + Margin.Right);
+                  Result.Height := Pixel_Type'Max
+                    (Result.Height, Min.Height + Margin.Top + Margin.Bottom);
+               end;
+            end if;
+         end loop;
+      end if;
+
+      Result := Outer_Size (Result, Style);
+      return
+        (Width  => Pixel_Type'Max (CSS_Min.Width, Result.Width),
+         Height => Pixel_Type'Max (CSS_Min.Height, Result.Height));
+   end Get_Min_Size;
+
 overriding procedure Layout (W : in out Box_Widget) is
       Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
    begin

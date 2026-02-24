@@ -8,6 +8,7 @@ with Adi.Widget.Button;
 with Adi.Widget.Button.Options;
 with Adi.Widget.Stack;
 with Adi.Window;
+with Green_Page_UI;
 with Red_Page_UI;
 
 package Stack_Example_UI is
@@ -30,6 +31,7 @@ package Stack_Example_UI is
       Pages : My_Stack.Stack_Widget_Access;
 
       package Red_Page is new Red_Page_UI.Instance;
+      package Green_Page is new Green_Page_UI.Instance;
 
       function Build return Adi.Window.Window_Access;
 

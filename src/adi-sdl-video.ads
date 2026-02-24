@@ -119,6 +119,26 @@ package Adi.SDL.Video is
         Convention => C,
         External_Name => "SDL_GetWindowDisplayScale";
 
+   type SDL_DisplayID is new Uint32;
+
+   function SDL_GetDisplayForWindow
+      (window : SDL_Window_Ptr) return SDL_DisplayID
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_GetDisplayForWindow";
+
+   function SDL_GetPrimaryDisplay return SDL_DisplayID
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_GetPrimaryDisplay";
+
+   function SDL_GetDisplayUsableBounds
+      (display_id : SDL_DisplayID;
+       rect       : access SDL_Rect) return C_bool
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_GetDisplayUsableBounds";
+
    function SDL_SetWindowMinimumSize
       (window : SDL_Window_Ptr;
        min_w  : int;
@@ -126,6 +146,14 @@ package Adi.SDL.Video is
    with Import => True,
         Convention => C,
         External_Name => "SDL_SetWindowMinimumSize";
+
+   function SDL_GetWindowMinimumSize
+      (window : SDL_Window_Ptr;
+       min_w  : access int;
+       min_h  : access int) return C_bool
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_GetWindowMinimumSize";
 
    function SDL_StartTextInput (window : SDL_Window_Ptr) return C_bool
    with Import => True,

@@ -1808,8 +1808,55 @@ package body Adi.Widget is
    --  SDL3 Rendering
    ---------------------------------------------------------------------------
 
+   function Is_Visible_FRect (R : SDL_FRect) return Boolean is
+   begin
+      return Is_Visible_Px (Pixel_Type (R.w))
+        and then Is_Visible_Px (Pixel_Type (R.h));
+   end Is_Visible_FRect;
+
+   function Half_Min_Dimension_Non_Neg (R : SDL_FRect) return Float is
+   begin
+      return Float'Max (0.0, Float'Min (R.w, R.h) / 2.0);
+   end Half_Min_Dimension_Non_Neg;
+
+   function Clamp_Radius_To_Max (Radius, Max_Dim : Float) return Float is
+   begin
+      return Float'Min (Float'Max (0.0, Radius), Max_Dim);
+   end Clamp_Radius_To_Max;
+
+   function Clamp_Corner_Radii_To_Max
+     (Radii   : Corner_Pixels;
+      Max_Dim : Float) return Corner_Pixels
+   is
+   begin
+      return
+        (Top_Left     => Clamp_Radius_To_Max (Radii.Top_Left, Max_Dim),
+         Top_Right    => Clamp_Radius_To_Max (Radii.Top_Right, Max_Dim),
+         Bottom_Right => Clamp_Radius_To_Max (Radii.Bottom_Right, Max_Dim),
+         Bottom_Left  => Clamp_Radius_To_Max (Radii.Bottom_Left, Max_Dim));
+   end Clamp_Corner_Radii_To_Max;
+
+   function Safe_Floor_To_Natural (V : Float) return Natural is
+   begin
+      return Natural (Float'Floor (Float'Max (0.0, V)));
+   end Safe_Floor_To_Natural;
+
    function Segments_For_Radius (Radius : Float) return Positive is
-      (Positive'Max (8, Natural (Float'Floor (Radius * 0.5)) + 1));
+   begin
+      return Positive'Max (8, Safe_Floor_To_Natural (Radius * 0.5) + 1);
+   end Segments_For_Radius;
+
+   function Segments_For_Span
+     (Base_Seg : Positive;
+      Span     : Float) return Positive
+   is
+      Safe_Span : constant Float := Float'Max (0.0, Span);
+   begin
+      return Positive'Max
+        (2,
+         Safe_Floor_To_Natural
+           (Float (Base_Seg) * Safe_Span / (Ada.Numerics.Pi / 2.0)) + 1);
+   end Segments_For_Span;
 
    procedure Render_Rounded_Rect
       (Renderer      : SDL_Renderer_Ptr;
@@ -1819,10 +1866,9 @@ package body Adi.Widget is
        Min_Segments  : Natural := 0)
    is
       --  Clamp radius to half the smallest dimension
-      Max_Radius : constant Float :=
-         Float'Min (Rect.w, Rect.h) / 2.0;
+      Max_Radius : constant Float := Half_Min_Dimension_Non_Neg (Rect);
       Rad : constant Float :=
-         Float'Min (Corner_Radius, Max_Radius);
+         Clamp_Radius_To_Max (Corner_Radius, Max_Radius);
 
       --  Number of segments per corner arc
       Num_Seg : constant Positive :=
@@ -1913,6 +1959,10 @@ package body Adi.Widget is
 
       Success : Adi.SDL.C_bool;
    begin
+      if not Is_Visible_FRect (Rect) then
+         return;
+      end if;
+
       if Rad < 1.0 then
          --  Fallback to regular rect for very small radii
          declare
@@ -1976,11 +2026,13 @@ package body Adi.Widget is
        Min_Segments : Natural := 0)
    is
       --  Clamp each radius to half the smallest dimension
-      Max_Dim : constant Float := Float'Min (Rect.w, Rect.h) / 2.0;
-      R_TL : constant Float := Float'Min (Radii.Top_Left, Max_Dim);
-      R_TR : constant Float := Float'Min (Radii.Top_Right, Max_Dim);
-      R_BR : constant Float := Float'Min (Radii.Bottom_Right, Max_Dim);
-      R_BL : constant Float := Float'Min (Radii.Bottom_Left, Max_Dim);
+      Max_Dim : constant Float := Half_Min_Dimension_Non_Neg (Rect);
+      Clamped_Radii : constant Corner_Pixels :=
+        Clamp_Corner_Radii_To_Max (Radii, Max_Dim);
+      R_TL : constant Float := Clamped_Radii.Top_Left;
+      R_TR : constant Float := Clamped_Radii.Top_Right;
+      R_BR : constant Float := Clamped_Radii.Bottom_Right;
+      R_BL : constant Float := Clamped_Radii.Bottom_Left;
 
       Max_R : constant Float :=
          Float'Max (Float'Max (R_TL, R_TR), Float'Max (R_BR, R_BL));
@@ -2036,6 +2088,10 @@ package body Adi.Widget is
       Step : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
       Success : Adi.SDL.C_bool;
    begin
+      if not Is_Visible_FRect (Rect) then
+         return;
+      end if;
+
       if Max_R < 1.0 then
          declare
             R2 : aliased SDL_FRect := Rect;
@@ -2133,17 +2189,21 @@ package body Adi.Widget is
        R, G, B, A     : Uint8;
        Min_Segments   : Natural := 0)
    is
-      Max_Dim_O : constant Float := Float'Min (Outer_Rect.w, Outer_Rect.h) / 2.0;
-      O_TL : constant Float := Float'Min (Outer_Radii.Top_Left, Max_Dim_O);
-      O_TR : constant Float := Float'Min (Outer_Radii.Top_Right, Max_Dim_O);
-      O_BR : constant Float := Float'Min (Outer_Radii.Bottom_Right, Max_Dim_O);
-      O_BL : constant Float := Float'Min (Outer_Radii.Bottom_Left, Max_Dim_O);
+      Max_Dim_O : constant Float := Half_Min_Dimension_Non_Neg (Outer_Rect);
+      Clamped_Outer : constant Corner_Pixels :=
+        Clamp_Corner_Radii_To_Max (Outer_Radii, Max_Dim_O);
+      O_TL : constant Float := Clamped_Outer.Top_Left;
+      O_TR : constant Float := Clamped_Outer.Top_Right;
+      O_BR : constant Float := Clamped_Outer.Bottom_Right;
+      O_BL : constant Float := Clamped_Outer.Bottom_Left;
 
-      Max_Dim_I : constant Float := Float'Min (Inner_Rect.w, Inner_Rect.h) / 2.0;
-      I_TL : constant Float := Float'Min (Float'Max (0.0, Inner_Radii.Top_Left), Max_Dim_I);
-      I_TR : constant Float := Float'Min (Float'Max (0.0, Inner_Radii.Top_Right), Max_Dim_I);
-      I_BR : constant Float := Float'Min (Float'Max (0.0, Inner_Radii.Bottom_Right), Max_Dim_I);
-      I_BL : constant Float := Float'Min (Float'Max (0.0, Inner_Radii.Bottom_Left), Max_Dim_I);
+      Max_Dim_I : constant Float := Half_Min_Dimension_Non_Neg (Inner_Rect);
+      Clamped_Inner : constant Corner_Pixels :=
+        Clamp_Corner_Radii_To_Max (Inner_Radii, Max_Dim_I);
+      I_TL : constant Float := Clamped_Inner.Top_Left;
+      I_TR : constant Float := Clamped_Inner.Top_Right;
+      I_BR : constant Float := Clamped_Inner.Bottom_Right;
+      I_BL : constant Float := Clamped_Inner.Bottom_Left;
 
       Max_R : constant Float :=
          Float'Max (Float'Max (O_TL, O_TR), Float'Max (O_BR, O_BL));
@@ -2205,6 +2265,23 @@ package body Adi.Widget is
       Inner_Start : Natural;
       Success     : Adi.SDL.C_bool;
    begin
+      if not Is_Visible_FRect (Outer_Rect) then
+         return;
+      end if;
+
+      if not Is_Visible_FRect (Inner_Rect) then
+         Render_Rounded_Rect
+           (Renderer     => Renderer,
+            Rect         => Outer_Rect,
+            Radii        => Outer_Radii,
+            R            => R,
+            G            => G,
+            B            => B,
+            A            => A,
+            Min_Segments => Min_Segments);
+         return;
+      end if;
+
       --  Generate outer outline points
       Outer_Start := VI;
 
@@ -2328,11 +2405,13 @@ package body Adi.Widget is
    is
       Fringe : constant Float := (if Inward then -1.0 else 1.0);
 
-      Max_Dim : constant Float := Float'Min (Rect.w, Rect.h) / 2.0;
-      R_TL : constant Float := Float'Min (Radii.Top_Left, Max_Dim);
-      R_TR : constant Float := Float'Min (Radii.Top_Right, Max_Dim);
-      R_BR : constant Float := Float'Min (Radii.Bottom_Right, Max_Dim);
-      R_BL : constant Float := Float'Min (Radii.Bottom_Left, Max_Dim);
+      Max_Dim : constant Float := Half_Min_Dimension_Non_Neg (Rect);
+      Clamped_Radii : constant Corner_Pixels :=
+        Clamp_Corner_Radii_To_Max (Radii, Max_Dim);
+      R_TL : constant Float := Clamped_Radii.Top_Left;
+      R_TR : constant Float := Clamped_Radii.Top_Right;
+      R_BR : constant Float := Clamped_Radii.Bottom_Right;
+      R_BL : constant Float := Clamped_Radii.Bottom_Left;
 
       Max_R : constant Float :=
          Float'Max (Float'Max (R_TL, R_TR), Float'Max (R_BR, R_BL));
@@ -2396,6 +2475,10 @@ package body Adi.Widget is
       Step    : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
       Success : Adi.SDL.C_bool;
    begin
+      if not Is_Visible_FRect (Rect) then
+         return;
+      end if;
+
       --  Generate inner/outer vertex pairs along the outline.
       --  Each Add_Pair emits 2 vertices: inner at index VI, outer at VI+1.
       --  So pair K has inner at 2*K, outer at 2*K+1.
@@ -2638,16 +2721,11 @@ package body Adi.Widget is
          End_Angle   : Float)
       is
          Span    : constant Float := End_Angle - Start_Angle;
+         Safe_Span : constant Float := Float'Max (0.0, Span);
          Base_Seg : constant Positive :=
            Segments_For_Radius (Float'Max (1.0, Outer_R));
          Num_Seg : constant Positive :=
-           Positive'Max
-             (2,
-              Natural
-                (Float'Floor
-                   (Float (Base_Seg)
-                    * Span
-                    / (Ada.Numerics.Pi / 2.0))) + 1);
+           Segments_For_Span (Base_Seg, Span);
 
          Total_Verts   : constant Natural := 2 * (Num_Seg + 1);
          Total_Indices : constant Natural := Num_Seg * 6;
@@ -2666,7 +2744,7 @@ package body Adi.Widget is
          begin
          if Outer_R <= 0.0
            or else Float'Max (Start_Thickness, End_Thickness) <= 0.0
-           or else Span <= 0.0
+           or else Safe_Span <= 0.0
          then
             return;
          end if;
@@ -2674,7 +2752,7 @@ package body Adi.Widget is
          for I in 0 .. Num_Seg loop
             declare
                T     : constant Float := Float (I) / Float (Num_Seg);
-               Angle : constant Float := Start_Angle + T * Span;
+               Angle : constant Float := Start_Angle + T * Safe_Span;
                Thickness : constant Float :=
                  Float'Max
                    (0.0,
@@ -3486,17 +3564,18 @@ package body Adi.Widget is
        Tint_G       : Float := 1.0;
        Tint_B       : Float := 1.0)
    is
-      Max_Dim : constant Float := Float'Min (Rect.w, Rect.h) / 2.0;
-      R_TL : constant Float := Float'Min (Radii.Top_Left, Max_Dim);
-      R_TR : constant Float := Float'Min (Radii.Top_Right, Max_Dim);
-      R_BR : constant Float := Float'Min (Radii.Bottom_Right, Max_Dim);
-      R_BL : constant Float := Float'Min (Radii.Bottom_Left, Max_Dim);
+      Max_Dim : constant Float := Half_Min_Dimension_Non_Neg (Rect);
+      Clamped_Radii : constant Corner_Pixels :=
+        Clamp_Corner_Radii_To_Max (Radii, Max_Dim);
+      R_TL : constant Float := Clamped_Radii.Top_Left;
+      R_TR : constant Float := Clamped_Radii.Top_Right;
+      R_BR : constant Float := Clamped_Radii.Bottom_Right;
+      R_BL : constant Float := Clamped_Radii.Bottom_Left;
 
       Max_R : constant Float :=
          Float'Max (Float'Max (R_TL, R_TR), Float'Max (R_BR, R_BL));
 
-      Num_Seg : constant Positive :=
-         Positive'Max (8, Natural (Float'Floor (Max_R * 0.5)) + 1);
+      Num_Seg : constant Positive := Segments_For_Radius (Max_R);
 
       N_Outline     : constant Natural := 4 * (Num_Seg + 1);
       Total_Verts   : constant Natural := N_Outline + 1;
@@ -3544,6 +3623,10 @@ package body Adi.Widget is
       Step : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
       Success : Adi.SDL.C_bool;
    begin
+      if not Is_Visible_FRect (Rect) then
+         return;
+      end if;
+
       if Max_R < 1.0 then
          --  No rounding — simple quad with UV mapping
          declare
@@ -4386,7 +4469,7 @@ package body Adi.Widget is
       Perf_Pref_Calls := Perf_Pref_Calls + 1;
 
       --  Cache hit?  Same epoch + style version + content version +
-      --  states + geometry.  Content_Version detects mutations like
+      --  states + geometry + layout epoch.  Content_Version detects mutations like
       --  Set_Text or Add_Child that affect Measure_Content without
       --  changing Style_Version.
       if W_Mut.Cached_Pref_Epoch = Current_Layout_Epoch
@@ -4395,6 +4478,7 @@ package body Adi.Widget is
         and then W_Mut.Cached_Pref_States = Eff
         and then W_Mut.Cached_Pref_Geom_W = W.Geometry.Width
         and then W_Mut.Cached_Pref_Geom_H = W.Geometry.Height
+        and then W_Mut.Cached_Pref_Layout_Epoch = W.Last_Layout_Epoch
       then
          Perf_Pref_Hits := Perf_Pref_Hits + 1;
          return W_Mut.Cached_Pref_Size;
@@ -4458,6 +4542,7 @@ package body Adi.Widget is
          W_Mut.Cached_Pref_States  := Eff;
          W_Mut.Cached_Pref_Geom_W  := W.Geometry.Width;
          W_Mut.Cached_Pref_Geom_H  := W.Geometry.Height;
+         W_Mut.Cached_Pref_Layout_Epoch := W.Last_Layout_Epoch;
          return Result;
       end;
    end Get_Preferred_Size;

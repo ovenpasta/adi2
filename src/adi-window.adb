@@ -555,13 +555,43 @@ package body Adi.Window is
       if W.Root /= null then
          declare
             Pref : constant Size_2D := Get_Preferred_Size (W.Root.all);
-            Wf   : constant Float := Float'Max (1.0, Float (Pref.Width));
+            Floor : constant Size_2D := Get_Min_Size (W.Root.all);
+            Root_Geom : constant Rectangle := Get_Geometry (W.Root.all);
+            Pref_W : constant Float := Float (Pref.Width);
+            Floor_W : constant Float := Float (Floor.Width);
+            Root_W : constant Float := Float (Root_Geom.Width);
+            Width_Is_Geometry_Dependent : constant Boolean :=
+              Root_W > 0.0
+              and then abs (Pref_W - Root_W) <= 1.0
+              and then Floor_W + 1.0 < Pref_W;
+            Effective_W : constant Float :=
+              (if Width_Is_Geometry_Dependent then Floor_W else Pref_W);
+            Wf   : constant Float := Float'Max (1.0, Effective_W);
             Hf   : constant Float := Float'Max (1.0, Float (Pref.Height));
          begin
             Min_W := int (Integer (Float'Ceiling (Wf)));
             Min_H := int (Integer (Float'Ceiling (Hf)));
          end;
       end if;
+
+      --  Keep minimums recoverable: never exceed monitor usable bounds.
+      declare
+         Display_ID : Adi.SDL.Video.SDL_DisplayID :=
+           Adi.SDL.Video.SDL_GetDisplayForWindow (W.Internal.win);
+         Usable : aliased SDL_Rect := (x => 0, y => 0, w => 0, h => 0);
+      begin
+         if Display_ID = Adi.SDL.Video.SDL_DisplayID (0) then
+            Display_ID := Adi.SDL.Video.SDL_GetPrimaryDisplay;
+         end if;
+         if Display_ID /= Adi.SDL.Video.SDL_DisplayID (0) then
+            if Adi.SDL.Video.SDL_GetDisplayUsableBounds
+                 (Display_ID, Usable'Access)
+            then
+               Min_W := int'Min (Min_W, int'Max (1, Usable.w));
+               Min_H := int'Min (Min_H, int'Max (1, Usable.h));
+            end if;
+         end if;
+      end;
 
       Success := Adi.SDL.Video.SDL_SetWindowMinimumSize (W.Internal.win, Min_W, Min_H);
       SDL_Assert (Success, "SDL_SetWindowMinimumSize");
@@ -813,17 +843,13 @@ package body Adi.Window is
                 Debug_Log ("relayout tick=" & Natural'Image (Debug_Tick_No));
                 Layout_Tree (W.Root.all);
                 Adi.Widget.Update (W.Root.all);
-                --  Re-apply SDL minimum after layout: preferred sizes can
-                --  change on the first pass once label geometries are set
-                --  (text-wrap, container growth), so the value computed at
-                --  Set_Root time may be stale.  Calling here keeps the SDL
-                --  minimum in sync with the actual post-layout content size.
-                --  Skip this during user resize relayouts: wrapped text
-                --  preferred widths can follow the temporary wider geometry
-                --  and ratchet the SDL minimum upward, preventing shrink.
-                if not W.Resize_Triggered_Layout then
-                   Apply_Window_Min_Size_From_Layout (W);
-                end if;
+                --  Re-apply SDL minimum after every layout pass so wrapped
+                --  text changes (including unwrap on widen) update the
+                --  enforce-min policy immediately.
+                --  Width ratchet protection is handled inside
+                --  Apply_Window_Min_Size_From_Layout via geometry-dependent
+                --  width fallback.
+                Apply_Window_Min_Size_From_Layout (W);
                 W.Stats_Layout_Count := W.Stats_Layout_Count + 1;
              end if;
 

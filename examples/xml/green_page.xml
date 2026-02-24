@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="examples/css/stack_example_green.css"/>
+
+  <box class="page-green">
+    <label text="Green Page" class="page-title"/>
+    <label text="This is the second page with a natural green background." class="page-desc"/>
+  </box>
+</adi>

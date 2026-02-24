@@ -27,6 +27,7 @@ generate_if_needed() {
 }
 
 generate_if_needed "$XML_DIR/red_page.xml" "Red_Page_UI"
+generate_if_needed "$XML_DIR/green_page.xml" "Green_Page_UI"
 generate_if_needed "$XML_DIR/stack_example.xml" "Stack_Example_UI"
 generate_if_needed "$XML_DIR/material_demo.xml" "Material_Demo_UI"
 generate_if_needed "$XML_DIR/image_example.xml" "Image_Example_UI"

@@ -1,10 +1,15 @@
 pragma Ada_2022;
 
+with Ada.Environment_Variables;
 with Ada.Text_IO; use Ada.Text_IO;
+with Adi.Core; use Adi.Core;
 with Adi.CSS_Source;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
+with Adi.SDL; use Adi.SDL;
+with Adi.SDL.TTF;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box;
+with Adi.Widget.Label;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 procedure Css_Source_Test is
@@ -477,6 +482,52 @@ begin
          Assert (R.Border_Width.Kind = Gap_Uniform and then R.Border_Width.All_Edges.Amount = 7.0,
                  "Merge_Part_Styles should keep override border-width");
       end;
+   end;
+
+   --  Dynamic mode: font-size live reload updates intrinsic preferred width.
+   declare
+      Source    : Adi.CSS_Source.Style_Source;
+      Lbl       : Adi.Widget.Label.Label_Widget_Access :=
+        Adi.Widget.Label.Create ("Live reload width probe");
+      Sdl_OK    : Adi.SDL.C_bool;
+      Ttf_OK    : Adi.SDL.C_bool;
+      OK        : Boolean := False;
+      Reloaded  : Boolean := False;
+      Tick_OK   : Boolean := False;
+      Width_V1  : Pixel_Type := 0.0;
+      Width_V2  : Pixel_Type := 0.0;
+      Css_Path  : constant String := "/tmp/adi_css_source_font_reload.css";
+      Css_V1    : constant String :=
+        ".probe { font-size: 12px; }" & ASCII.LF;
+      Css_V2    : constant String :=
+        ".probe { font-size: 28px; }" & ASCII.LF;
+   begin
+      Ada.Environment_Variables.Set ("SDL_VIDEODRIVER", "dummy");
+      Sdl_OK := SDL_Init (SDL_INIT_VIDEO or SDL_INIT_EVENTS);
+      Assert (Boolean (Sdl_OK), "SDL_Init should succeed for font-size reload test");
+      Ttf_OK := Adi.SDL.TTF.TTF_Init;
+      Assert (Boolean (Ttf_OK), "TTF_Init should succeed for font-size reload test");
+
+      Write_Text_File (Css_Path, Css_V1);
+      Adi.CSS_Source.Add_Dynamic_File (Source, Css_Path, OK);
+      Assert (OK, "Add_Dynamic_File should succeed for font-size reload test");
+
+      Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, OK);
+      Assert (OK, "Set_Mode dynamic should succeed for font-size reload test");
+
+      Adi.CSS_Source.Bind_Class (Source, "probe", Lbl);
+      Width_V1 := Get_Preferred_Size (Widget'Class (Lbl.all)).Width;
+      Assert (Width_V1 > 0.0, "Baseline preferred width should be > 0");
+
+      delay 1.1;
+      Write_Text_File (Css_Path, Css_V2);
+      Adi.CSS_Source.Tick (Source, Reloaded, Tick_OK);
+      Assert (Tick_OK, "Tick should succeed after font-size css update");
+      Assert (Reloaded, "Tick should report reload for font-size css update");
+
+      Width_V2 := Get_Preferred_Size (Widget'Class (Lbl.all)).Width;
+      Assert (Width_V2 > Width_V1,
+              "Preferred width should increase after larger font-size reload");
    end;
 
    Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");

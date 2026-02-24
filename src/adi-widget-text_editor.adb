@@ -69,6 +69,23 @@ package body Adi.Widget.Text_Editor is
       return (Mods and Mask) /= 0;
    end Is_Mod_Active;
 
+   function Lines_Per_Page_From_Viewport
+     (Viewport_H, Line_Skip : Pixel_Type;
+      Default               : Positive := 10) return Positive
+   is
+   begin
+      if Line_Skip <= 0.0 then
+         return Default;
+      end if;
+
+      return Positive
+        (Natural'Max
+           (1,
+            Natural
+              (Float'Floor
+                 (Float'Max (0.0, Float (Viewport_H / Line_Skip))))));
+   end Lines_Per_Page_From_Viewport;
+
    function Is_UTF8_Continuation_Byte (C : Character) return Boolean is
       V : constant Natural := Character'Pos (C);
    begin
@@ -830,13 +847,8 @@ package body Adi.Widget.Text_Editor is
             Mark_Dirty (W);
 
          when SDL_SCANCODE_PAGEUP =>
-            if W.Line_Skip > 0.0 then
-               Lines_Per_Page := Positive'Max
-                 (1, Positive (Float'Floor
-                   (Float (W.Scroll_Viewport_H / W.Line_Skip))));
-            else
-               Lines_Per_Page := 10;
-            end if;
+            Lines_Per_Page :=
+              Lines_Per_Page_From_Viewport (W.Scroll_Viewport_H, W.Line_Skip);
             declare
                Main_Style  : constant Resolved_Style :=
                  Get_Resolved_Part_Style (W, Main_Part);
@@ -860,13 +872,8 @@ package body Adi.Widget.Text_Editor is
             end;
 
          when SDL_SCANCODE_PAGEDOWN =>
-            if W.Line_Skip > 0.0 then
-               Lines_Per_Page := Positive'Max
-                 (1, Positive (Float'Floor
-                   (Float (W.Scroll_Viewport_H / W.Line_Skip))));
-            else
-               Lines_Per_Page := 10;
-            end if;
+            Lines_Per_Page :=
+              Lines_Per_Page_From_Viewport (W.Scroll_Viewport_H, W.Line_Skip);
             declare
                Main_Style  : constant Resolved_Style :=
                  Get_Resolved_Part_Style (W, Main_Part);

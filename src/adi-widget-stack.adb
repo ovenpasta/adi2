@@ -3,6 +3,13 @@ with Adi.Layout_Util; use Adi.Layout_Util;
 
 package body Adi.Widget.Stack is
 
+   function Child_Participates (Child : Widget_Access) return Boolean is
+   begin
+      return Child /= null
+        and then Has_Flag (Child.all, Visible)
+        and then Get_Resolved_Part_Style (Child.all, Main_Part).Display /= Display_None;
+   end Child_Participates;
+
    ---------------------------------------------------------------------------
    --  Construction
    ---------------------------------------------------------------------------
@@ -87,6 +94,50 @@ package body Adi.Widget.Stack is
    begin
       W.On_Changed := CB;
    end Set_On_Changed;
+
+   ---------------------------------------------------------------------------
+   --  Measurement
+   ---------------------------------------------------------------------------
+
+   overriding function Measure_Content (W : Stack_Widget) return Size_2D is
+      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Result : Size_2D := (0.0, 0.0);
+   begin
+      for Child of W.Children loop
+         if Child_Participates (Child) then
+            declare
+               Pref : constant Size_2D := Get_Preferred_Size (Child.all);
+            begin
+               Result.Width := Pixel_Type'Max (Result.Width, Pref.Width);
+               Result.Height := Pixel_Type'Max (Result.Height, Pref.Height);
+            end;
+         end if;
+      end loop;
+
+      return Outer_Size (Result, Style);
+   end Measure_Content;
+
+   overriding function Get_Min_Size (W : Stack_Widget) return Size_2D is
+      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      CSS_Min : constant Size_2D := Get_Min_Size (Widget (W));
+      Result : Size_2D := (0.0, 0.0);
+   begin
+      for Child of W.Children loop
+         if Child_Participates (Child) then
+            declare
+               Min : constant Size_2D := Get_Min_Size (Child.all);
+            begin
+               Result.Width := Pixel_Type'Max (Result.Width, Min.Width);
+               Result.Height := Pixel_Type'Max (Result.Height, Min.Height);
+            end;
+         end if;
+      end loop;
+
+      Result := Outer_Size (Result, Style);
+      return
+        (Width  => Pixel_Type'Max (CSS_Min.Width, Result.Width),
+         Height => Pixel_Type'Max (CSS_Min.Height, Result.Height));
+   end Get_Min_Size;
 
    ---------------------------------------------------------------------------
    --  Build_Items

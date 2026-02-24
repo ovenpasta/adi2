@@ -141,7 +141,7 @@
 - Tab focus traversal (wraps, Shift+Tab reverse); overlay-scoped when overlays present
 - Click dispatch on left button release only
 - DIP scale refresh from `SDL_GetWindowDisplayScale`
-- **Layout-driven SDL minimum size**: `Set_Enforce_Layout_Min_Size` (default on) calls `SDL_SetWindowMinimumSize` with `Get_Preferred_Size(root)` after every layout pass, keeping the SDL minimum in sync with the post-layout preferred size (which can change on the first frame once label geometries are set for text-wrap). If the window is already below the new minimum (fast resize race), `SDL_SetWindowSize` clamps it up immediately. The min-size update is **skipped during resize-triggered relayouts** (`Resize_Triggered_Layout` flag): when the user is actively resizing, text-wrap preferred widths follow the wider geometry and would ratchet the SDL minimum upward, preventing the window from shrinking back. The flag is set in `Handle_Resize` and cleared after the relayout completes.
+- **Layout-driven SDL minimum size**: `Set_Enforce_Layout_Min_Size` (default on) calls `SDL_SetWindowMinimumSize` from root layout sizing and reapplies it after each relayout pass (including resize-triggered relayouts), keeping SDL minimums synchronized with wrapped/unwrapped content changes. Minimum width uses a geometry-dependent guard: when preferred width tracks the current root geometry (typical wrapped-text feedback), width falls back to `Get_Min_Size(root)` to avoid ratcheting to the current window width. Minimum height follows preferred height so unwrap on widen can lower the enforced floor. Computed minimums are capped to display usable bounds via `SDL_GetDisplayUsableBounds`, and if current window size is already below the computed minimum, `SDL_SetWindowSize` clamps up immediately.
 - Debug: `ADI_DEBUG_LOOP=1` for tick/render diagnostics
 
 **Adi.App** (`adi-app.ads`): Application entry point, main loop, frame timing (`Ada.Real_Time`), `Set_Target_FPS`.
@@ -184,6 +184,7 @@
 **Dialog**: Modal overlay with backdrop, title/message/buttons, dismiss policies, button presets.
 
 **Stack** (generic over `Page_Id` enum): One visible child at a time, type-safe page switching, binds to `Button.Options`.
+- Measurement/min-size is derived from participating pages (visible + `display != none`), so inactive pages do not inflate preferred/min size.
 
 **Slider** (generic over numeric type): Draggable track+knob control. Core implementation in `Slider_Impl` (generic with `private` type + formal functions), thin wrappers `Slider` (`digits <>`) and `Integer_Slider` (`range <>`). Uses Main/Indicator/Knob parts. Supports horizontal/vertical orientation, step snapping, keyboard (arrows/Home/End) and mouse wheel input. All event handlers guard against `Is_Disabled`. CSS `:disabled` rules must target each part (`::main`, `::indicator`, `::knob`) since opacity is not inherited across parts.
 

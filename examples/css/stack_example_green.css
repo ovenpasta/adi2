@@ -1,0 +1,32 @@
+.page-green {
+  display: flex;
+  flex-direction: column;
+  background-color: rgb(20, 83, 45);
+  border-radius: 12px;
+  padding: 30px;
+  gap: 8px;
+}
+
+.page-title::main {
+  display: inline-flex;
+}
+
+.page-title::label {
+  color: white;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.page-desc::main {
+  display: inline-flex;
+}
+
+.page-desc::label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 111px;
+  font-weight: 400;
+}
+
+.page-title {
+  flex-shrink: 0;
+}

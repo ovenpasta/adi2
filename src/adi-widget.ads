@@ -533,7 +533,7 @@ private
 
       --  Preferred size cache (pass-scoped + mutation-keyed).
       --  Keyed on (epoch, Style_Version, Content_Version, effective
-      --  states, geometry).  Epoch = Natural'Last initially so that
+      --  states, geometry, Last_Layout_Epoch).  Epoch = Natural'Last initially so that
       --  the cache never false-hits before the first Layout_Tree call.
       Cached_Pref_Size       : Size_2D := (0.0, 0.0);
       Cached_Pref_Epoch      : Natural := Natural'Last;
@@ -542,6 +542,7 @@ private
       Cached_Pref_States     : Widget_States := No_States;
       Cached_Pref_Geom_W     : Pixel_Type := 0.0;
       Cached_Pref_Geom_H     : Pixel_Type := 0.0;
+      Cached_Pref_Layout_Epoch : Natural := 0;
 
       --  Animation state
       Transitions       : Part_Transition_Array := [others => No_Part_Transition];

@@ -29,6 +29,7 @@ generate_if_needed "$CSS_DIR/demo_flex.css" "$OUT_DIR/demo_flex_styles.ads" "Dem
 generate_if_needed "$CSS_DIR/transition_example.css" "$OUT_DIR/transition_example_styles.ads" "Transition_Example_Styles"
 generate_if_needed "$CSS_DIR/stack_example.css" "$OUT_DIR/stack_example_styles.ads" "Stack_Example_Styles"
 generate_if_needed "$CSS_DIR/stack_example_tabs.css" "$OUT_DIR/stack_example_tabs_styles.ads" "Stack_Example_Tabs_Styles"
+generate_if_needed "$CSS_DIR/stack_example_green.css" "$OUT_DIR/stack_example_green_styles.ads" "Stack_Example_Green_Styles"
 generate_if_needed "$CSS_DIR/list_box_example.css" "$OUT_DIR/list_box_example_styles.ads" "List_Box_Example_Styles"
 generate_if_needed "$CSS_DIR/combo_box_example.css" "$OUT_DIR/combo_box_example_styles.ads" "Combo_Box_Example_Styles"
 generate_if_needed "$CSS_DIR/overflow_example.css" "$OUT_DIR/overflow_example_styles.ads" "Overflow_Example_Styles"

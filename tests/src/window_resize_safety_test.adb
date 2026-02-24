@@ -5,6 +5,7 @@ with Ada.Environment_Variables;
 with Ada.Exceptions;          use Ada.Exceptions;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Interfaces.C;            use Interfaces.C;
+with Adi.Core;                use Adi.Core;
 with Adi.CSS_Source;
 with Adi.CSS_Styles;          use Adi.CSS_Styles;
 with Adi.SDL;                 use Adi.SDL;
@@ -13,6 +14,7 @@ with Adi.SDL.TTF;
 with Adi.SDL.Video;
 with Adi.Widget;              use Adi.Widget;
 with Adi.Widget.Box;
+with Adi.Widget.Dialog;
 with Adi.Widget.Label;
 with Adi.Widget.Stack;
 with Adi.Widget.Text_Editor;
@@ -476,6 +478,63 @@ procedure Window_Resize_Safety_Test is
             "Unexpected exception: " & Exception_Name (E));
    end Test_Widening_Unwraps_Text_And_Lowers_Min_Height;
 
+   procedure Test_Dialog_Overlay_Reflows_On_Resize_Without_Hover is
+      Ready : Boolean := False;
+      W : Adi.Window.Window_Access := null;
+      Root : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Dlg : constant Adi.Widget.Dialog.Dialog_Widget_Access :=
+        Adi.Widget.Dialog.Create;
+      Panel : Widget_Access := null;
+      Before_W : Pixel_Type := 0.0;
+      After_W  : Pixel_Type := 0.0;
+      Long_Msg : constant String :=
+        "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
+   begin
+      Put_Line ("Test: dialog overlay reflows on resize without hover");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      W := Adi.Window.Create_Window ("Dialog Resize Probe", (900.0, 420.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, False);
+      Adi.Window.Set_Root (W.all, Root);
+
+      Adi.Widget.Dialog.Attach_Window (Dlg.all, W);
+      Adi.Widget.Dialog.Set_Title (Dlg.all, "Resize Probe");
+      Adi.Widget.Dialog.Set_Message (Dlg.all, Long_Msg);
+      Adi.Widget.Dialog.Set_OK_Button (Dlg.all);
+      Adi.Widget.Dialog.Show (Dlg.all);
+
+      Adi.Window.Render (W.all);
+
+      Panel := Get_Child (Dlg.all, 1);
+      Assert (Panel /= null, "Dialog content panel should exist");
+      if Panel = null then
+         return;
+      end if;
+
+      Before_W := Get_Geometry (Panel.all).Width;
+      Assert (Before_W > 0.0, "Dialog panel width should be initialized");
+
+      --  Resize and render once. Regression: panel used to reflow only after
+      --  a later hover/state dirtied frame.
+      Adi.Window.Handle_Resize (W.all, (Width => 520.0, Height => 420.0));
+      Adi.Window.Render (W.all);
+
+      After_W := Get_Geometry (Panel.all).Width;
+      Assert
+        (After_W < Before_W - 1.0,
+         "Dialog panel should reflow immediately on resize (no hover needed)");
+   exception
+      when E : others =>
+         Assert
+           (False,
+            "Unexpected exception: " & Exception_Name (E));
+   end Test_Dialog_Overlay_Reflows_On_Resize_Without_Hover;
+
    procedure Test_Stack_Page_Switch_Does_Not_Ratchet_Min_Size is
       type Page_Id is (Red_Page, Green_Page);
       package Probe_Stack is new Adi.Widget.Stack (Page_Id);
@@ -602,6 +661,7 @@ begin
    Test_Wrap_Label_Min_Width_Does_Not_Ratchet_With_Window_Width;
    Test_Hidden_Page_Activation_Does_Not_Lock_Window_Min_Width;
    Test_Widening_Unwraps_Text_And_Lowers_Min_Height;
+   Test_Dialog_Overlay_Reflows_On_Resize_Without_Hover;
    Test_Stack_Page_Switch_Does_Not_Ratchet_Min_Size;
    New_Line;
 

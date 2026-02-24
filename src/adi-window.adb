@@ -1772,6 +1772,20 @@ function Get_Size (W : in out Window) return Size_2D is
              Set_Geometry (W.Root.all, W.Geometry);
              Mark_Dirty (W.Root.all);
           end if;
+
+          --  Overlays (e.g. dialogs) often recompute their internal panel
+          --  geometry during Update/Build_Items, so they must also be dirtied
+          --  on size changes, not just scale changes.
+          for I in 1 .. Natural (W.Overlays.Length) loop
+             declare
+                Overlay : constant Widget_Access := W.Overlays.Element (I);
+             begin
+                if Overlay /= null then
+                   Mark_Dirty (Overlay.all);
+                end if;
+             end;
+          end loop;
+
           W.Needs_Layout := True;  -- Flag for layout recalculation
           W.Resize_Triggered_Layout := True;
        end if;

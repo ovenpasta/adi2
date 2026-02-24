@@ -137,6 +137,7 @@
 - Wraps SDL window/renderer, owns `Render_Context`
 - `Set_Root`, `Add_Overlay`, `Remove_Overlay` accept `access Adi.Widget.Widget'Class`
 - Overlay hit testing prioritized above root; overlays render after root
+- Resize behavior: `Handle_Resize` marks both root and overlay trees dirty on size changes so overlay-driven widgets (for example dialogs) recompute geometry immediately on the next render pass, without waiting for hover/state events
 - Widget part tracking for hover/press; scrollbar hit routing prefers nearest scrollable ancestor
 - Tab focus traversal (wraps, Shift+Tab reverse); overlay-scoped when overlays present
 - Click dispatch on left button release only

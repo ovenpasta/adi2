@@ -13,6 +13,7 @@ with Adi.SDL.Events;          use Adi.SDL.Events;
 with Adi.SDL.TTF;
 with Adi.SDL.Video;
 with Adi.Widget;              use Adi.Widget;
+with Adi.Widget.Button;
 with Adi.Widget.Box;
 with Adi.Widget.Dialog;
 with Adi.Widget.Label;
@@ -25,6 +26,7 @@ procedure Window_Resize_Safety_Test is
    Test_Count : Natural := 0;
    Pass_Count : Natural := 0;
    Fail_Count : Natural := 0;
+   use type Adi.Widget.Button.Button_Widget_Access;
 
    procedure Assert (Condition : Boolean; Message : String) is
    begin
@@ -535,6 +537,187 @@ procedure Window_Resize_Safety_Test is
             "Unexpected exception: " & Exception_Name (E));
    end Test_Dialog_Overlay_Reflows_On_Resize_Without_Hover;
 
+   procedure Test_Dialog_Default_Button_Demotion_Resets_Style is
+      Ready : Boolean := False;
+      Dlg : constant Adi.Widget.Dialog.Dialog_Widget_Access :=
+        Adi.Widget.Dialog.Create;
+      Btn_1 : Adi.Widget.Button.Button_Widget_Access := null;
+      Btn_2 : Adi.Widget.Button.Button_Widget_Access := null;
+      Primary_Color : constant Color_Value := RGB (250, 10, 10);
+      Primary_Main_Rules : constant Style_Rules :=
+        (Background_Color => Set_Bg (Primary_Color),
+         others           => <>);
+      Primary_Styles : constant Part_Style_Array := [
+        Main_Part => (Style => From (Primary_Main_Rules).Build, Enabled => True),
+        others => <>];
+      Style_1 : Resolved_Style;
+      Style_2 : Resolved_Style;
+   begin
+      Put_Line ("Test: default-button demotion reapplies normal style");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      --  Ensure no package-level normal/primary style masks this regression.
+      Adi.Widget.Dialog.Set_Default_Button_Style (Empty_Part_Styles);
+      Adi.Widget.Dialog.Set_Default_Primary_Button_Style (Empty_Part_Styles);
+
+      Adi.Widget.Dialog.Add_Button (Dlg.all, "A");
+      Adi.Widget.Dialog.Add_Button (Dlg.all, "B");
+      Adi.Widget.Dialog.Set_Primary_Button_Style (Dlg.all, Primary_Styles);
+      Adi.Widget.Dialog.Set_Default_Button (Dlg.all, 1);
+
+      Btn_1 := Adi.Widget.Dialog.Get_Button (Dlg.all, 1);
+      Btn_2 := Adi.Widget.Dialog.Get_Button (Dlg.all, 2);
+      Assert (Btn_1 /= null and then Btn_2 /= null, "Dialog buttons should exist");
+      if Btn_1 = null or else Btn_2 = null then
+         return;
+      end if;
+
+      Style_1 := Get_Resolved_Part_Style (Btn_1.all, Main_Part);
+      Assert
+        (Style_1.Background_Color = Primary_Color,
+         "Initial default button should receive primary style");
+
+      Adi.Widget.Dialog.Set_Default_Button (Dlg.all, 2);
+      Style_1 := Get_Resolved_Part_Style (Btn_1.all, Main_Part);
+      Style_2 := Get_Resolved_Part_Style (Btn_2.all, Main_Part);
+
+      Assert
+        (Style_1.Background_Color /= Primary_Color,
+         "Demoted button should no longer retain primary style");
+      Assert
+        (Style_2.Background_Color = Primary_Color,
+         "New default button should receive primary style");
+   exception
+      when E : others =>
+         Assert
+           (False,
+            "Unexpected exception: " & Exception_Name (E));
+   end Test_Dialog_Default_Button_Demotion_Resets_Style;
+
+   procedure Test_Clear_Overlays_Clears_Focus_When_Focus_In_Overlay is
+      Ready : Boolean := False;
+      W : Adi.Window.Window_Access := null;
+      Root : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Dlg : constant Adi.Widget.Dialog.Dialog_Widget_Access :=
+        Adi.Widget.Dialog.Create;
+      Btn_1 : Adi.Widget.Button.Button_Widget_Access := null;
+   begin
+      Put_Line ("Test: Clear_Overlays clears focus from overlay widgets");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      W := Adi.Window.Create_Window ("Dialog Focus Cleanup Probe", (640.0, 360.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, False);
+      Adi.Window.Set_Root (W.all, Root);
+
+      Adi.Widget.Dialog.Attach_Window (Dlg.all, W);
+      Adi.Widget.Dialog.Set_OK_Button (Dlg.all);
+      Adi.Widget.Dialog.Show (Dlg.all);
+
+      Btn_1 := Adi.Widget.Dialog.Get_Button (Dlg.all, 1);
+      Assert (Btn_1 /= null, "Dialog default button should exist");
+      if Btn_1 = null then
+         return;
+      end if;
+
+      Assert
+        (Has_State (Btn_1.all, State_Focused),
+         "Default button should be focused before Clear_Overlays");
+
+      Adi.Window.Clear_Overlays (W.all);
+
+      Assert
+        (not Has_State (Btn_1.all, State_Focused),
+         "Clear_Overlays should clear focused state on detached overlay button");
+   exception
+      when E : others =>
+         Assert
+           (False,
+            "Unexpected exception: " & Exception_Name (E));
+   end Test_Clear_Overlays_Clears_Focus_When_Focus_In_Overlay;
+
+   procedure Test_Show_Autofocus_Default_And_Override is
+      Ready : Boolean := False;
+      W : Adi.Window.Window_Access := null;
+      Root : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Dlg : constant Adi.Widget.Dialog.Dialog_Widget_Access :=
+        Adi.Widget.Dialog.Create;
+      Btn_1 : Adi.Widget.Button.Button_Widget_Access := null;
+      Btn_2 : Adi.Widget.Button.Button_Widget_Access := null;
+      Last_Index : Natural := 0;
+
+      procedure On_Result
+        (Dlg_Inst     : Adi.Widget.Dialog.Dialog_Widget_Access;
+         Button_Index : Natural;
+         Button_Text  : String)
+      is
+         pragma Unreferenced (Dlg_Inst, Button_Text);
+      begin
+         Last_Index := Button_Index;
+      end On_Result;
+   begin
+      Put_Line ("Test: Show autofocuses default button and supports focus override");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      W := Adi.Window.Create_Window ("Dialog Enter Probe", (640.0, 360.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, False);
+      Adi.Window.Set_Root (W.all, Root);
+
+      Adi.Widget.Dialog.Attach_Window (Dlg.all, W);
+      Adi.Widget.Dialog.Set_OK_Cancel (Dlg.all);  --  default index = 2 (OK)
+      Adi.Widget.Dialog.Set_On_Result (Dlg.all, On_Result'Unrestricted_Access);
+
+      Btn_1 := Adi.Widget.Dialog.Get_Button (Dlg.all, 1);
+      Btn_2 := Adi.Widget.Dialog.Get_Button (Dlg.all, 2);
+      Assert (Btn_1 /= null and then Btn_2 /= null, "Dialog buttons should exist");
+      if Btn_1 = null or else Btn_2 = null then
+         return;
+      end if;
+
+      --  First show: Enter should activate default button (index 2).
+      Last_Index := 0;
+      Adi.Widget.Dialog.Show (Dlg.all);
+      Assert
+        (Has_State (Btn_2.all, State_Focused),
+         "Show should autofocus default button");
+      Adi.Window.On_Key_Down (W.all, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
+      Adi.Window.On_Key_Up (W.all, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
+      Assert
+        (Last_Index = 2,
+         "Enter should activate default button immediately after Show");
+
+      --  Second show: explicit focus override should change Enter target.
+      Last_Index := 0;
+      Adi.Widget.Dialog.Show (Dlg.all);
+      Adi.Window.Set_Focus (W.all, Btn_1);
+      Assert
+        (Has_State (Btn_1.all, State_Focused),
+         "Explicit Set_Focus should override initial default focus");
+      Adi.Window.On_Key_Down (W.all, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
+      Adi.Window.On_Key_Up (W.all, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
+      Assert
+        (Last_Index = 1,
+         "Enter should activate override-focused non-default button");
+   exception
+      when E : others =>
+         Assert
+           (False,
+            "Unexpected exception: " & Exception_Name (E));
+   end Test_Show_Autofocus_Default_And_Override;
+
    procedure Test_Stack_Page_Switch_Does_Not_Ratchet_Min_Size is
       type Page_Id is (Red_Page, Green_Page);
       package Probe_Stack is new Adi.Widget.Stack (Page_Id);
@@ -662,6 +845,9 @@ begin
    Test_Hidden_Page_Activation_Does_Not_Lock_Window_Min_Width;
    Test_Widening_Unwraps_Text_And_Lowers_Min_Height;
    Test_Dialog_Overlay_Reflows_On_Resize_Without_Hover;
+   Test_Dialog_Default_Button_Demotion_Resets_Style;
+   Test_Clear_Overlays_Clears_Focus_When_Focus_In_Overlay;
+   Test_Show_Autofocus_Default_And_Override;
    Test_Stack_Page_Switch_Does_Not_Ratchet_Min_Size;
    New_Line;
 

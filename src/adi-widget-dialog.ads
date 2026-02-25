@@ -3,6 +3,7 @@ with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 with Adi.SDL.Events;
 with Adi.Widget.Box;
+with Adi.Widget.Button;
 with Adi.Widget.Label;
 with Adi.Window;
 
@@ -34,6 +35,18 @@ package Adi.Widget.Dialog is
    function  Add_Button    (W : in out Dialog_Widget; Text : String) return Positive;
    procedure Add_Button    (W : in out Dialog_Widget; Text : String);
    procedure Clear_Buttons (W : in out Dialog_Widget);
+
+   --  Default (primary) button: visually distinct, receives focus on Show.
+   --  Pass 0 to clear the default button.
+   --  Out-of-range nonzero indices are stored and will take effect once
+   --  a button exists at that index.
+   procedure Set_Default_Button (W : in out Dialog_Widget; Index : Natural);
+
+   --  Access individual buttons for per-button styling.
+   --  Returns null if Index is out of range.
+   function Get_Button
+     (W : Dialog_Widget; Index : Positive)
+      return Adi.Widget.Button.Button_Widget_Access;
 
    --  Convenience presets
    procedure Set_OK_Button     (W : in out Dialog_Widget);
@@ -72,6 +85,10 @@ package Adi.Widget.Dialog is
      (W : in out Dialog_Widget; S : Part_Style_Array);
    procedure Set_Button_Style
      (W : in out Dialog_Widget; S : Part_Style_Array);
+   --  Primary style used for the current default button.
+   --  Falls back to package-level primary style, then normal button style.
+   procedure Set_Primary_Button_Style
+     (W : in out Dialog_Widget; S : Part_Style_Array);
    procedure Set_Content_Style
      (W : in out Dialog_Widget; S : Part_Style_Array);
 
@@ -81,8 +98,11 @@ package Adi.Widget.Dialog is
    procedure Set_Default_Title_Style      (S : Part_Style_Array);
    procedure Set_Default_Message_Style    (S : Part_Style_Array);
    procedure Set_Default_Button_Row_Style (S : Part_Style_Array);
-   procedure Set_Default_Button_Style     (S : Part_Style_Array);
-   procedure Set_Default_Content_Style    (S : Part_Style_Array);
+   procedure Set_Default_Button_Style         (S : Part_Style_Array);
+   --  Package-level primary style used for each dialog's default button.
+   --  Falls back to that dialog's normal button style when unset.
+   procedure Set_Default_Primary_Button_Style (S : Part_Style_Array);
+   procedure Set_Default_Content_Style        (S : Part_Style_Array);
 
    --  Abstract method implementations
    overriding procedure Build_Items (W : in out Dialog_Widget);
@@ -126,6 +146,9 @@ private
       On_Result     : Dialog_Result_Callback := null;
       Button_Styles : Part_Style_Array := Empty_Part_Styles;
       Has_Button_Styles : Boolean := False;
+      Default_Button_Index : Natural := 0;
+      Primary_Button_Styles : Part_Style_Array := Empty_Part_Styles;
+      Has_Primary_Button_Styles : Boolean := False;
    end record;
 
 end Adi.Widget.Dialog;

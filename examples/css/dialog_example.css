@@ -147,6 +147,40 @@
   white-space: nowrap;
 }
 
+.dialog-btn-primary {
+  height: 36px;
+  padding: 7px 16px;
+  background-color: rgb(37, 99, 235);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(29, 78, 216);
+  border-radius: 6px;
+  transition: background-color 120ms ease-out, border-color 120ms ease-out;
+}
+
+.dialog-btn-primary:hover {
+  background-color: rgb(59, 130, 246);
+  border-color: rgb(37, 99, 235);
+}
+
+.dialog-btn-primary:pressed {
+  background-color: rgb(29, 78, 216);
+  border-color: rgb(30, 64, 175);
+}
+
+.dialog-btn-primary:focus {
+  border-color: rgb(59, 130, 246);
+  box-shadow: 0px 0px 0px 2px rgba(59, 130, 246, 0.3);
+}
+
+.dialog-btn-primary::label {
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .title {
   flex-shrink: 0;
 }

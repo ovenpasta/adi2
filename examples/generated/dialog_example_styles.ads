@@ -218,6 +218,50 @@ package Dialog_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'dialog-btn-primary'
+   Dialog_Btn_Primary_Class_Base_Style : constant Style_Rules := (
+      Height => Set (Size (Px (36.0))),
+      Background_Color => Set_Bg (RGB (37, 99, 235)),
+      Transition => Set ((Duration => 0.12, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (7.0), Px (16.0), Px (7.0), Px (16.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (29, 78, 216))),
+      Border_Radius => Set (Radius (Px (6.0))),
+      others => <>
+   );
+
+   --  Style for class 'dialog-btn-primary' when widget State_Hovered
+   Dialog_Btn_Primary_Class_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (59, 130, 246)),
+      Border_Color => Set (Border_Color (RGB (37, 99, 235))),
+      others => <>
+   );
+
+   --  Style for class 'dialog-btn-primary' when widget State_Pressed
+   Dialog_Btn_Primary_Class_Widget_Pressed_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (29, 78, 216)),
+      Border_Color => Set (Border_Color (RGB (30, 64, 175))),
+      others => <>
+   );
+
+   --  Style for class 'dialog-btn-primary' when widget State_Focused
+   Dialog_Btn_Primary_Class_Widget_Focused_Style : constant Style_Rules := (
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (0.0), Px (2.0), RGBA (59, 130, 246, 0.3))),
+      Border_Color => Set (Border_Color (RGB (59, 130, 246))),
+      others => <>
+   );
+
+   --  Base style for class 'dialog-btn-primary'::label
+   Dialog_Btn_Primary_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (C (White)),
+      Font_Size => Set_Font (Px (13.0)),
+      Font_Weight => Set (Weight_Semi_Bold),
+      Text_Align => Set (Text_Center),
+      White_Space => Set (WS_Nowrap),
+      others => <>
+   );
+
    --  Base style for class 'custom-content'
    Custom_Content_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
@@ -415,6 +459,26 @@ package Dialog_Example_Styles is
    Dialog_Btn_Class_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Dialog_Btn_Class_Widget, Enabled => True),
       Label_Part => (Style => Dialog_Btn_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'dialog-btn-primary'
+   Dialog_Btn_Primary_Class_Widget : constant Widget_Style :=
+     From (Dialog_Btn_Primary_Class_Base_Style)
+     .On (When_State (State_Hovered), Dialog_Btn_Primary_Class_Widget_Hovered_Style)
+     .On (When_State (State_Pressed), Dialog_Btn_Primary_Class_Widget_Pressed_Style)
+     .On (When_State (State_Focused), Dialog_Btn_Primary_Class_Widget_Focused_Style)
+     .Build;
+
+   --  Complete widget style for class 'dialog-btn-primary'::label
+   Dialog_Btn_Primary_Class_Label_Widget : constant Widget_Style :=
+     From (Dialog_Btn_Primary_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'dialog-btn-primary'
+   Dialog_Btn_Primary_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Dialog_Btn_Primary_Class_Widget, Enabled => True),
+      Label_Part => (Style => Dialog_Btn_Primary_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 

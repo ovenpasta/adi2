@@ -137,10 +137,12 @@
 - Wraps SDL window/renderer, owns `Render_Context`
 - `Set_Root`, `Add_Overlay`, `Remove_Overlay` accept `access Adi.Widget.Widget'Class`
 - Overlay hit testing prioritized above root; overlays render after root
+- Programmatic focus API: `Set_Focus(Window, Target)` sets focus to a widget in the window root/overlay trees (or clears focus with `null`), and ignores out-of-window targets
 - Resize behavior: `Handle_Resize` marks both root and overlay trees dirty on size changes so overlay-driven widgets (for example dialogs) recompute geometry immediately on the next render pass, without waiting for hover/state events
 - Widget part tracking for hover/press; scrollbar hit routing prefers nearest scrollable ancestor
 - Tab focus traversal (wraps, Shift+Tab reverse); overlay-scoped when overlays present
 - Click dispatch on left button release only
+- Overlay focus cleanup: `Remove_Overlay` and `Clear_Overlays` clear focus when the focused widget belongs to removed overlays, preventing stale detached focus targets
 - DIP scale refresh from `SDL_GetWindowDisplayScale`
 - **Layout-driven SDL minimum size**: `Set_Enforce_Layout_Min_Size` (default on) calls `SDL_SetWindowMinimumSize` from root layout sizing and reapplies it after each relayout pass (including resize-triggered relayouts), keeping SDL minimums synchronized with wrapped/unwrapped content changes. Minimum width uses a geometry-dependent guard: when preferred width tracks the current root geometry (typical wrapped-text feedback), width falls back to `Get_Min_Size(root)` to avoid ratcheting to the current window width. Minimum height follows preferred height so unwrap on widen can lower the enforced floor. Computed minimums are capped to display usable bounds via `SDL_GetDisplayUsableBounds`, and if current window size is already below the computed minimum, `SDL_SetWindowSize` clamps up immediately.
 - Debug: `ADI_DEBUG_LOOP=1` for tick/render diagnostics
@@ -184,6 +186,17 @@
 **Combo_Box**: Dropdown using Main/Label/Indicator parts + List_Box overlay popup.
 
 **Dialog**: Modal overlay with backdrop, title/message/buttons, dismiss policies, button presets. Supports custom content via `Set_Content` which replaces the built-in message label with an arbitrary widget tree (pass `null` to restore the message label). The panel resolves `min-width`, `max-width`, `min-height`, `max-height`, and `margin` from CSS — margin shrinks the centering viewport, size constraints cap the panel dimensions.
+- Default/primary button API:
+  - `Set_Default_Button(Index)` marks the default action (`0` clears; out-of-range nonzero indices are stored and take effect once a button exists at that index)
+  - `Get_Button(Index)` exposes button widgets for per-button customization
+  - Presets auto-mark natural defaults (`OK`/`Yes`)
+- Focus behavior:
+  - `Show` auto-focuses the default button when a valid default index exists
+  - Callers can override immediately with `Adi.Window.Set_Focus(...)` after `Show`
+- Style behavior:
+  - Normal button style: per-dialog `Set_Button_Style` > package default `Set_Default_Button_Style` > empty styles
+  - Primary button style: per-dialog `Set_Primary_Button_Style` > package default `Set_Default_Primary_Button_Style` > resolved normal style
+  - Style application is explicit for every button on each re-evaluation, so changing default index cannot leave stale primary styling on demoted buttons
 
 **Stack** (generic over `Page_Id` enum): One visible child at a time, type-safe page switching, binds to `Button.Options`.
 - Measurement/min-size is derived from participating pages (visible + `display != none`), so inactive pages do not inflate preferred/min size.

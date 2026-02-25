@@ -150,6 +150,7 @@ begin
       Set_Default_Message_Style (Dialog_Message_Class_Part_Styles);
       Set_Default_Button_Row_Style (Button_Row_Class_Part_Styles);
       Set_Default_Button_Style (Dialog_Btn_Class_Part_Styles);
+      Set_Default_Primary_Button_Style (Dialog_Btn_Primary_Class_Part_Styles);
 
       --  Create alert dialog
       Alert_Dialog := Adi.Widget.Dialog.Create;

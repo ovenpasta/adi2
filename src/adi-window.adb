@@ -1001,6 +1001,13 @@ package body Adi.Window is
          return;
       end if;
 
+      --  Clear focus if it was on a widget inside the removed overlay
+      if W.Focused_Widget /= null
+        and then Is_In_Subtree (OA, W.Focused_Widget)
+      then
+         Set_Focused_Widget (W, null);
+      end if;
+
       W.Overlays.Delete (Existing);
       if W.Root /= null then
          Mark_Dirty (W.Root.all);
@@ -1012,6 +1019,16 @@ package body Adi.Window is
    begin
       if W.Overlays.Is_Empty then
          return;
+      end if;
+
+      --  Clear focus if it was on a widget inside any overlay
+      if W.Focused_Widget /= null then
+         for I in 1 .. Natural (W.Overlays.Length) loop
+            if Is_In_Subtree (W.Overlays.Element (I), W.Focused_Widget) then
+               Set_Focused_Widget (W, null);
+               exit;
+            end if;
+         end loop;
       end if;
 
       W.Overlays.Clear;
@@ -1269,6 +1286,30 @@ package body Adi.Window is
          Ignore := Adi.SDL.Video.SDL_StopTextInput (W.Internal.win);
       end if;
    end Set_Focused_Widget;
+
+   ---------------
+   -- Set_Focus --
+   ---------------
+
+   procedure Set_Focus
+     (W      : in out Window;
+      Target : access Adi.Widget.Widget'Class)
+   is
+   begin
+      if Target = null then
+         Set_Focused_Widget (W, null);
+         return;
+      end if;
+
+      declare
+         WA : constant Widget_Access := Target.all'Unchecked_Access;
+      begin
+         if not Window_Contains_Widget (W, WA) then
+            return;
+         end if;
+         Set_Focused_Widget (W, WA);
+      end;
+   end Set_Focus;
 
    -------------------
    -- On_Mouse_Move --

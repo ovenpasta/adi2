@@ -10,8 +10,9 @@ package body Adi.Widget.Dialog is
    Default_Title_Styles      : Part_Style_Holders.Holder;
    Default_Message_Styles    : Part_Style_Holders.Holder;
    Default_Button_Row_Styles : Part_Style_Holders.Holder;
-   Default_Button_Styles     : Part_Style_Holders.Holder;
-   Default_Content_Styles    : Part_Style_Holders.Holder;
+   Default_Button_Styles         : Part_Style_Holders.Holder;
+   Default_Primary_Button_Styles : Part_Style_Holders.Holder;
+   Default_Content_Styles        : Part_Style_Holders.Holder;
 
    ---------------------------------------------------------------------------
    --  Internal: Dialog_Button_Widget extends Button to forward Escape
@@ -110,6 +111,38 @@ package body Adi.Widget.Dialog is
       --  Delegate Return/Space to parent Button_Widget
       On_Key_Down (Button_Widget (W), Scancode, Key_Mod, Repeat);
    end On_Key_Down;
+
+   ---------------------------------------------------------------------------
+   --  Apply_Button_Styles: apply normal or primary style to each button
+   ---------------------------------------------------------------------------
+
+   procedure Apply_Button_Styles (W : in out Dialog_Widget) is
+      --  Resolve once: normal and primary styles for this dialog
+      Normal_Styles : constant Part_Style_Array :=
+        (if W.Has_Button_Styles then W.Button_Styles
+         elsif not Default_Button_Styles.Is_Empty
+         then Default_Button_Styles.Element
+         else Empty_Part_Styles);
+      Primary_Styles : constant Part_Style_Array :=
+        (if W.Has_Primary_Button_Styles then W.Primary_Button_Styles
+         elsif not Default_Primary_Button_Styles.Is_Empty
+         then Default_Primary_Button_Styles.Element
+         else Normal_Styles);
+   begin
+      for I in 1 .. Natural (W.Buttons.Length) loop
+         declare
+            Btn : constant Widget_Access := W.Buttons.Element (I).Widget;
+         begin
+            if Btn /= null then
+               if I = W.Default_Button_Index then
+                  Set_Part_Styles (Btn.all, Primary_Styles);
+               else
+                  Set_Part_Styles (Btn.all, Normal_Styles);
+               end if;
+            end if;
+         end;
+      end loop;
+   end Apply_Button_Styles;
 
    ---------------------------------------------------------------------------
    --  On_Button_Clicked: shared click handler for dialog buttons
@@ -321,17 +354,14 @@ package body Adi.Widget.Dialog is
         (Adi.Widget.Label.Label_Widget (Btn.all), Text);
       Set_On_Clicked (Btn.all, On_Button_Clicked'Access);
 
-      if W.Has_Button_Styles then
-         Set_Part_Styles (Btn.all, W.Button_Styles);
-      elsif not Default_Button_Styles.Is_Empty then
-         Set_Part_Styles (Btn.all, Default_Button_Styles.Element);
-      end if;
-
       Register_Button_Binding (Btn_As_Widget, W'Unchecked_Access);
       Add_Child (W.Button_Row.all, Widget_Access (Btn));
       W.Buttons.Append
         (Button_Info'(Text   => To_Unbounded_String (Text),
                       Widget => Btn_As_Widget));
+
+      --  Apply normal or primary style to the newly added button
+      Apply_Button_Styles (W);
       Mark_Dirty (W);
       return Positive (W.Buttons.Length);
    end Add_Button;
@@ -352,8 +382,30 @@ package body Adi.Widget.Dialog is
          end if;
       end loop;
       W.Buttons.Clear;
+      W.Default_Button_Index := 0;
       Mark_Dirty (W);
    end Clear_Buttons;
+
+   ---------------------------------------------------------------------------
+   --  Set_Default_Button / Get_Button
+   ---------------------------------------------------------------------------
+
+   procedure Set_Default_Button (W : in out Dialog_Widget; Index : Natural) is
+   begin
+      W.Default_Button_Index := Index;
+      Apply_Button_Styles (W);
+   end Set_Default_Button;
+
+   function Get_Button
+     (W : Dialog_Widget; Index : Positive)
+      return Adi.Widget.Button.Button_Widget_Access
+   is
+   begin
+      if Index > Natural (W.Buttons.Length) then
+         return null;
+      end if;
+      return Adi.Widget.Button.Button_Widget_Access (W.Buttons.Element (Index).Widget);
+   end Get_Button;
 
    ---------------------------------------------------------------------------
    --  Presets
@@ -363,6 +415,7 @@ package body Adi.Widget.Dialog is
    begin
       Clear_Buttons (W);
       Add_Button (W, "OK");
+      Set_Default_Button (W, 1);
    end Set_OK_Button;
 
    procedure Set_OK_Cancel (W : in out Dialog_Widget) is
@@ -370,6 +423,7 @@ package body Adi.Widget.Dialog is
       Clear_Buttons (W);
       Add_Button (W, "Cancel");
       Add_Button (W, "OK");
+      Set_Default_Button (W, 2);
    end Set_OK_Cancel;
 
    procedure Set_Yes_No (W : in out Dialog_Widget) is
@@ -377,6 +431,7 @@ package body Adi.Widget.Dialog is
       Clear_Buttons (W);
       Add_Button (W, "No");
       Add_Button (W, "Yes");
+      Set_Default_Button (W, 2);
    end Set_Yes_No;
 
    procedure Set_Yes_No_Cancel (W : in out Dialog_Widget) is
@@ -385,6 +440,7 @@ package body Adi.Widget.Dialog is
       Add_Button (W, "Cancel");
       Add_Button (W, "No");
       Add_Button (W, "Yes");
+      Set_Default_Button (W, 3);
    end Set_Yes_No_Cancel;
 
    ---------------------------------------------------------------------------
@@ -405,6 +461,16 @@ package body Adi.Widget.Dialog is
 
       Adi.Window.Add_Overlay (W.Host_Window.all, Widget_Access'(W'Unchecked_Access));
       W.Shown := True;
+
+      --  Auto-focus the default button
+      if W.Default_Button_Index > 0
+        and then W.Default_Button_Index <= Natural (W.Buttons.Length)
+      then
+         Adi.Window.Set_Focus
+           (W.Host_Window.all,
+            W.Buttons.Element (W.Default_Button_Index).Widget);
+      end if;
+
       Mark_Dirty (W);
    end Show;
 
@@ -500,13 +566,17 @@ package body Adi.Widget.Dialog is
    begin
       W.Button_Styles := S;
       W.Has_Button_Styles := True;
-      --  Apply to existing buttons
-      for Info of W.Buttons loop
-         if Info.Widget /= null then
-            Set_Part_Styles (Info.Widget.all, S);
-         end if;
-      end loop;
+      Apply_Button_Styles (W);
    end Set_Button_Style;
+
+   procedure Set_Primary_Button_Style
+     (W : in out Dialog_Widget; S : Part_Style_Array)
+   is
+   begin
+      W.Primary_Button_Styles := S;
+      W.Has_Primary_Button_Styles := True;
+      Apply_Button_Styles (W);
+   end Set_Primary_Button_Style;
 
    procedure Set_Content_Style
      (W : in out Dialog_Widget; S : Part_Style_Array)
@@ -545,6 +615,11 @@ package body Adi.Widget.Dialog is
    begin
       Default_Button_Styles := Part_Style_Holders.To_Holder (S);
    end Set_Default_Button_Style;
+
+   procedure Set_Default_Primary_Button_Style (S : Part_Style_Array) is
+   begin
+      Default_Primary_Button_Styles := Part_Style_Holders.To_Holder (S);
+   end Set_Default_Primary_Button_Style;
 
    procedure Set_Default_Content_Style (S : Part_Style_Array) is
    begin

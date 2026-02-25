@@ -33,6 +33,8 @@ package Adi.Window is
     function Get_Enforce_Layout_Min_Size (W : Window) return Boolean;
 
     --  Overlay widgets render above the root tree and are hit-tested first.
+    --  If focus currently points into an overlay being removed/cleared,
+    --  focus is cleared to avoid stale detached targets.
     procedure Add_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class);
     procedure Remove_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class);
     procedure Clear_Overlays (W : in out Window);
@@ -81,6 +83,14 @@ package Adi.Window is
     function Actual_Size (W : in out Window) return Size_2D;
     --  Resize handling
     procedure Handle_Resize (W : in out Window; New_Size : Size_2D);
+
+    --  Programmatically set keyboard focus to a widget in this window's
+    --  tree or overlay tree.  Pass null to clear focus.  Silently ignored
+    --  if Target does not belong to this window.  Non-focusable targets
+    --  are ignored by normal focus-candidate validation.
+    procedure Set_Focus
+      (W      : in out Window;
+       Target : access Adi.Widget.Widget'Class);
 
     --  Force a full re-render on the next frame (e.g. after window exposed).
     procedure Request_Redraw (W : in out Window);

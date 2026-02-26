@@ -8,6 +8,8 @@
 /tests/obj/
 /examples/bin/
 /examples/obj/
+/*.o
+/*.ali
 
 # IDE / editor settings
 .idea/

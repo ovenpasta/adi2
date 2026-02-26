@@ -48,6 +48,16 @@ package body Adi.Widget is
    Perf_Pref_Calls     : Natural := 0;
    Perf_Pref_Hits      : Natural := 0;
 
+   --  Saturating increment for perf counters: caps at Natural'Last
+   --  instead of raising CONSTRAINT_ERROR on long-idle frames.
+   procedure Inc_Sat (Counter : in out Natural) with Inline;
+   procedure Inc_Sat (Counter : in out Natural) is
+   begin
+      if Counter < Natural'Last then
+         Counter := Counter + 1;
+      end if;
+   end Inc_Sat;
+
    subtype Packed_State_Bits is Interfaces.Unsigned_16;
    use type Packed_State_Bits;
 
@@ -879,7 +889,7 @@ package body Adi.Widget is
         Main_Part_States => Pack_States (W.Part_States (Main_Part)));
       Result : Resolved_Style;
    begin
-      Perf_Style_Resolves := Perf_Style_Resolves + 1;
+      Inc_Sat (Perf_Style_Resolves);
 
       --  When the widget-level key (version or effective states) changes,
       --  ALL per-part entries are stale — invalidate them.  This prevents
@@ -899,7 +909,7 @@ package body Adi.Widget is
       if W_Mut.Cached_Resolved_Init (P)
         and then W_Mut.Cached_Part_States (P) = W.Part_States (P)
       then
-         Perf_Style_Hits := Perf_Style_Hits + 1;
+         Inc_Sat (Perf_Style_Hits);
          return W_Mut.Cached_Resolved (P);
       end if;
 
@@ -4706,7 +4716,7 @@ package body Adi.Widget is
       W_Mut : constant access Widget'Class := W'Unrestricted_Access;
       Eff   : constant Widget_States := Get_States (W);
    begin
-      Perf_Pref_Calls := Perf_Pref_Calls + 1;
+      Inc_Sat (Perf_Pref_Calls);
 
       --  Cache hit?  Same epoch + style version + content version +
       --  states + geometry + layout epoch.  Content_Version detects mutations like
@@ -4720,7 +4730,7 @@ package body Adi.Widget is
         and then W_Mut.Cached_Pref_Geom_H = W.Geometry.Height
         and then W_Mut.Cached_Pref_Layout_Epoch = W.Last_Layout_Epoch
       then
-         Perf_Pref_Hits := Perf_Pref_Hits + 1;
+         Inc_Sat (Perf_Pref_Hits);
          return W_Mut.Cached_Pref_Size;
       end if;
 
@@ -5192,7 +5202,7 @@ end Rebuild_All_Items;
 
 procedure Layout_Child (Child : in out Widget'Class) is
 begin
-   Perf_Layout_Calls := Perf_Layout_Calls + 1;
+   Inc_Sat (Perf_Layout_Calls);
    Layout (Child);
    Child.Last_Layout_Epoch := Current_Layout_Epoch;
 end Layout_Child;
@@ -5229,9 +5239,9 @@ begin
 
    if W.Last_Layout_Epoch = Current_Layout_Epoch then
       --  Already laid out by parent container in this epoch — skip.
-      Perf_Layout_Skips := Perf_Layout_Skips + 1;
+      Inc_Sat (Perf_Layout_Skips);
    else
-      Perf_Layout_Calls := Perf_Layout_Calls + 1;
+      Inc_Sat (Perf_Layout_Calls);
       Layout (W);
       W.Last_Layout_Epoch := Current_Layout_Epoch;
    end if;

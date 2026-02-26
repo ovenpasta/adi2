@@ -3441,11 +3441,17 @@ package body Adi.Widget is
                            (Renderer, Inner, Inner_Radii, R, G, B, A,
                             Min_Segments => Seg);
                      end if;
-                     --  AA fringe on background fill edge (smooths border-fill seam)
-                     Render_AA_Fringe
-                        (Renderer, Inner, Inner_Radii, R, G, B, A,
-                         Min_Segments => Seg);
                   end if;
+               end if;
+
+               --  Inner AA fringe (always render — smooths border inner
+               --  edge regardless of background transparency)
+               if Inner.w > 0.0 and then Inner.h > 0.0 then
+                  Render_AA_Fringe
+                     (Renderer, Inner, Inner_Radii,
+                      BR, BG, BB, BA,
+                      Min_Segments => Seg,
+                      Inward => True);
                end if;
             end;
 

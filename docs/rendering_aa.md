@@ -47,16 +47,16 @@ The `Inward` boolean flips the offset direction:
 
 A ring has two boundaries — outer and inner. The outer edge is antialiased with a standard outward `Render_AA_Fringe`. The inner edge can be smoothed in two ways:
 
-### Strategy 1: Fill-and-fringe (used by borders)
+### Strategy 1: Border ring + inward inner fringe (used by borders)
 
-Render a solid fill inside the ring using the **interior color** (e.g. the widget background), then apply an outward AA fringe on the fill. The fill covers the ring's inner aliased edge, and its own fringe smooths the fill-to-ring seam.
+Borders use a ring plus two fringes. The outer edge is smoothed with an outward fringe. The inner edge is always smoothed with an **inward** fringe in border color, so transparent/semi-transparent backgrounds do not leave a jagged inner edge. Background fill is still rendered when non-transparent.
 
 ```
 Render order (back to front):
   1. Border ring          -- outer+inner edges both aliased
   2. Outer AA fringe      -- smooths outer edge
-  3. Background fill      -- covers inner aliased edge of border ring
-  4. Fill AA fringe       -- smooths background-to-border seam
+  3. Background fill      -- optional (non-transparent backgrounds)
+  4. Inner AA fringe      -- inward, smooths border-to-interior edge
 ```
 
 ```ada
@@ -73,18 +73,21 @@ Render_AA_Fringe
   (Renderer, Outer_Rect, Outer_Radii, R, G, B, A,
    Min_Segments => Seg);
 
---  3. Background fill (covers inner aliased edge)
-Render_Rounded_Rect
-  (Renderer, Inner_Rect, Inner_Radii, BG_R, BG_G, BG_B, BG_A,
-   Min_Segments => Seg);
+--  3. Optional background fill
+if Background_Is_Not_Transparent then
+   Render_Rounded_Rect
+     (Renderer, Inner_Rect, Inner_Radii, BG_R, BG_G, BG_B, BG_A,
+      Min_Segments => Seg);
+end if;
 
---  4. Fill AA fringe (smooths background-to-border seam)
+--  4. Inner AA fringe (inward, shared Seg prevents artifacts)
 Render_AA_Fringe
-  (Renderer, Inner_Rect, Inner_Radii, BG_R, BG_G, BG_B, BG_A,
-   Min_Segments => Seg);
+  (Renderer, Inner_Rect, Inner_Radii, R, G, B, A,
+   Min_Segments => Seg,
+   Inward => True);
 ```
 
-This works well when you control the fill color (borders always know the background color).
+This works for transparent, semi-transparent, and opaque backgrounds. With opaque fill, the inward fringe is mostly covered; with transparent fill, it remains visible and removes inner-edge aliasing.
 
 **Pitfall**: Do not fill with the ring's own color — it will paint over content underneath (this was tried for outline and covered the entire widget).
 
@@ -176,6 +179,6 @@ When adding a new visual that renders as a ring (like border or outline):
 2. Pass `Min_Segments => Seg` to **all** calls that share boundaries (ring, fringes, fills)
 3. Call `Render_AA_Fringe` on the outer boundary (outward, default)
 4. For the inner edge, choose one of:
-   - **Fill-and-fringe** (if you control the interior color): fill + outward fringe
+   - **Always-on inward fringe** (recommended for borders): optional fill + `Inward => True` fringe with shared `Seg`
    - **Render-order + inward fringe** (if interior is unknown): render ring before overlapping content, add `Inward => True` fringe with shared `Seg`
 5. Never fill the ring interior with the ring's own color — it covers content underneath

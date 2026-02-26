@@ -11,10 +11,14 @@ package Adi.Widget.Text_Input is
    type Text_Input_Widget is new Widget with private;
    type Text_Input_Widget_Access is access all Text_Input_Widget'Class;
 
-   function Create (Text : String := "") return Text_Input_Widget_Access;
+   function Create (Text : String := "";
+                    Label : String := "") return Text_Input_Widget_Access;
 
    procedure Set_Text (W : in out Text_Input_Widget; Text : String);
    function Get_Text (W : Text_Input_Widget) return String;
+
+   procedure Set_Label (W : in out Text_Input_Widget; Label : String);
+   function Get_Label (W : Text_Input_Widget) return String;
    procedure Set_Context_Menu_Part_Styles
      (W      : in out Text_Input_Widget;
       Styles : Part_Style_Array);
@@ -64,9 +68,12 @@ private
    Selection_Idx : constant Positive := 2;
    Text_Idx      : constant Positive := 3;
    Cursor_Idx    : constant Positive := 4;
+   Label_Bg_Idx  : constant Positive := 5;
+   Label_Idx     : constant Positive := 6;
 
    type Text_Input_Widget is new Widget with record
       Buffer     : aliased Adi.Text_Buffer.Text_Buffer;
+      Label_Text : Unbounded_String := Null_Unbounded_String;
       On_Changed : Change_Callback := null;
       Drag_Selecting : Boolean := False;
       Pending_Word_Select : Boolean := False;

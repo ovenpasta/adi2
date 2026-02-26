@@ -25,11 +25,11 @@ package RLottie_Example_Styles is
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (4.0))),
       Background_Color => Set_Bg (RGB (90, 98, 132)),
+      Padding => Set (CSS_Box (Px (12.0), Px (14.0), Px (12.0), Px (14.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (164, 171, 196))),
       Border_Radius => Set (Radius (Px (8.0))),
-      Padding => Set (CSS_Box (Px (12.0), Px (14.0), Px (12.0), Px (14.0))),
       others => <>
    );
 
@@ -67,11 +67,11 @@ package RLottie_Example_Styles is
       Flex_Grow => Set (1.0),
       Gap => Set (Gap (Px (12.0))),
       Background_Color => Set_Bg (RGB (62, 69, 102)),
+      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (170, 177, 205))),
       Border_Radius => Set (Radius (Px (8.0))),
-      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
       others => <>
    );
 
@@ -82,11 +82,11 @@ package RLottie_Example_Styles is
       Flex_Grow => Set (1.0),
       Min_Height => Set (Size (Px (330.0))),
       Background_Color => Set_Bg (RGB (20, 24, 36)),
+      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (102, 111, 144))),
       Border_Radius => Set (Radius (Px (6.0))),
-      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       others => <>
    );
 
@@ -98,11 +98,11 @@ package RLottie_Example_Styles is
       Justify_Content => Set (Center),
       Min_Height => Set (Size (Px (280.0))),
       Background_Color => Set_Bg (RGB (8, 10, 18)),
+      Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (72, 82, 112))),
       Border_Radius => Set (Radius (Px (4.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
       others => <>
    );
 
@@ -121,25 +121,25 @@ package RLottie_Example_Styles is
       Align_Items => Set (Center),
       Gap => Set (Gap (Px (8.0))),
       Background_Color => Set_Bg (RGB (58, 66, 96)),
+      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (154, 162, 192))),
       Border_Radius => Set (Radius (Px (6.0))),
-      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       others => <>
    );
 
    --  Base style for class 'play-button'
    Play_Button_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (128.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (4.0))),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Background_Color => Set_Bg (RGB (106, 186, 92)),
-      Border_Color => Set (Border_Color (RGB (198, 247, 180))),
       Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (198, 247, 180))),
+      Border_Radius => Set (Radius (Px (4.0))),
       others => <>
    );
 
@@ -168,14 +168,14 @@ package RLottie_Example_Styles is
    --  Base style for class 'stop-button'
    Stop_Button_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (128.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (4.0))),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Background_Color => Set_Bg (RGB (201, 102, 92)),
-      Border_Color => Set (Border_Color (RGB (255, 189, 177))),
       Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (255, 189, 177))),
+      Border_Radius => Set (Radius (Px (4.0))),
       others => <>
    );
 
@@ -204,14 +204,14 @@ package RLottie_Example_Styles is
    --  Base style for class 'rew-button'
    Rew_Button_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (128.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (4.0))),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Background_Color => Set_Bg (RGB (106, 134, 199)),
-      Border_Color => Set (Border_Color (RGB (180, 203, 255))),
       Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (180, 203, 255))),
+      Border_Radius => Set (Radius (Px (4.0))),
       others => <>
    );
 
@@ -240,14 +240,14 @@ package RLottie_Example_Styles is
    --  Base style for class 'loop-button'
    Loop_Button_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (128.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (4.0))),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Background_Color => Set_Bg (RGB (130, 108, 194)),
-      Border_Color => Set (Border_Color (RGB (210, 189, 255))),
       Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (210, 189, 255))),
+      Border_Radius => Set (Radius (Px (4.0))),
       others => <>
    );
 
@@ -295,11 +295,11 @@ package RLottie_Example_Styles is
    --  Base style for class 'status'
    Status_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (15, 22, 16)),
+      Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (89, 161, 96))),
       Border_Radius => Set (Radius (Px (4.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
       others => <>
    );
 

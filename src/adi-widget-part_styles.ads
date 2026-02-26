@@ -33,6 +33,11 @@ package Adi.Widget.Part_Styles is
    function With_Label (B : Part_Style_Builder;
                         S : Style_Builder'Class) return Part_Style_Builder;
 
+   function With_Text (B : Part_Style_Builder;
+                       S : Widget_Style) return Part_Style_Builder;
+   function With_Text (B : Part_Style_Builder;
+                       S : Style_Builder'Class) return Part_Style_Builder;
+
    function With_Icon (B : Part_Style_Builder;
                        S : Widget_Style) return Part_Style_Builder;
    function With_Icon (B : Part_Style_Builder;

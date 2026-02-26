@@ -284,9 +284,9 @@
 
 .text-field::main {
   padding: 12px 16px;
-  border-radius: 8px 8px 0px 0px;
-  background-color: rgb(231, 224, 236);
-  border-width: 0px 0px 2px 0px;
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0);
+  border-width: 1px;
   border-style: solid;
   border-color: rgb(121, 116, 126);
   cursor: text;
@@ -295,11 +295,9 @@
 
 .text-field:focus::main {
   border-color: rgb(103, 80, 164);
-  outline: 2px solid rgb(103, 80, 164);
-  outline-offset: 2px;
 }
 
-.text-field::label {
+.text-field::text {
   color: rgb(28, 27, 31);
   font-size: 14px;
 }
@@ -311,6 +309,21 @@
 
 .text-field::selected {
   background-color: rgba(103, 80, 164, 0.3);
+}
+
+.text-field::label {
+  color: rgb(73, 69, 79);
+  font-size: 12px;
+  font-weight: 500;
+  background-color: rgb(255, 255, 255);
+  text-wrap-mode: nowrap;
+  top: -8px;
+  left: 12px;
+  padding: 0px 4px;
+}
+
+.text-field:focus::label {
+  color: rgb(103, 80, 164);
 }
 
 .combo {
@@ -336,7 +349,7 @@
   box-shadow: 0px 0px 10px 0px rgba(103, 80, 164, 0.4);
 }
 
-.combo::label {
+.combo::text {
   color: rgb(28, 27, 31);
   font-size: 14px;
 }
@@ -592,7 +605,7 @@
   outline-offset: 2px;
 }
 
-.num-field::label {
+.num-field::text {
   color: rgb(28, 27, 31);
   font-size: 14px;
 }

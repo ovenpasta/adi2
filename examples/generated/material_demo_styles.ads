@@ -338,23 +338,19 @@ package Material_Demo_Styles is
 
    --  Base style for class 'text-field'
    Text_Field_Class_Base_Style : constant Style_Rules := (
-      Background_Color => Set_Bg (RGB (54, 52, 59)),
+      Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Cursor => Set (Cursor_Text),
       Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Border_Color))),
       Padding => Set (CSS_Box (Px (12.0), Px (16.0), Px (12.0), Px (16.0))),
-      Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (147, 143, 153))),
-      Border_Radius => Set (Radius (Px (8.0), Px (8.0), Px (0.0), Px (0.0))),
+      Border_Radius => Set (Radius (Px (8.0))),
       others => <>
    );
 
    --  Style for class 'text-field' when widget State_Focused
    Text_Field_Class_Widget_Focused_Style : constant Style_Rules := (
-      Outline_Width => Set_Outline_Width (Px (2.0)),
-      Outline_Style => Set (Outline_Solid),
-      Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
-      Outline_Offset => Set_Outline_Offset (Px (2.0)),
       Border_Color => Set (Border_Color (RGB (208, 188, 255))),
       others => <>
    );
@@ -375,14 +371,33 @@ package Material_Demo_Styles is
 
    --  Base style for class 'text-field'::label
    Text_Field_Class_Label_Base_Style : constant Style_Rules := (
-      Color => Set (RGB (230, 225, 229)),
-      Font_Size => Set_Font (Px (14.0)),
+      Color => Set (RGB (147, 143, 153)),
+      Font_Size => Set_Font (Px (12.0)),
+      Font_Weight => Set (Weight_Medium),
+      Background_Color => Set_Bg (RGB (43, 41, 48)),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
+      Top => Set_Top (Inset (Px (-8.0))),
+      Left => Set_Left (Inset (Px (12.0))),
+      Padding => Set (CSS_Box (Px (0.0), Px (4.0), Px (0.0), Px (4.0))),
+      others => <>
+   );
+
+   --  Style for class 'text-field'::label when widget State_Focused
+   Text_Field_Class_Label_Widget_Focused_Style : constant Style_Rules := (
+      Color => Set (RGB (208, 188, 255)),
       others => <>
    );
 
    --  Base style for class 'text-field'::selected
    Text_Field_Class_Selected_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGBA (208, 188, 255, 0.3)),
+      others => <>
+   );
+
+   --  Base style for class 'text-field'::text
+   Text_Field_Class_Text_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (230, 225, 229)),
+      Font_Size => Set_Font (Px (14.0)),
       others => <>
    );
 
@@ -429,8 +444,8 @@ package Material_Demo_Styles is
       others => <>
    );
 
-   --  Base style for class 'combo'::label
-   Combo_Class_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'combo'::text
+   Combo_Class_Text_Base_Style : constant Style_Rules := (
       Color => Set (RGB (230, 225, 229)),
       Font_Size => Set_Font (Px (14.0)),
       others => <>
@@ -783,16 +798,16 @@ package Material_Demo_Styles is
       others => <>
    );
 
-   --  Base style for class 'num-field'::label
-   Num_Field_Class_Label_Base_Style : constant Style_Rules := (
-      Color => Set (RGB (230, 225, 229)),
-      Font_Size => Set_Font (Px (14.0)),
-      others => <>
-   );
-
    --  Base style for class 'num-field'::selected
    Num_Field_Class_Selected_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGBA (208, 188, 255, 0.3)),
+      others => <>
+   );
+
+   --  Base style for class 'num-field'::text
+   Num_Field_Class_Text_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (230, 225, 229)),
+      Font_Size => Set_Font (Px (14.0)),
       others => <>
    );
 
@@ -1131,11 +1146,17 @@ package Material_Demo_Styles is
    --  Complete widget style for class 'text-field'::label
    Text_Field_Class_Label_Widget : constant Widget_Style :=
      From (Text_Field_Class_Label_Base_Style)
+     .On (When_State (State_Focused), Text_Field_Class_Label_Widget_Focused_Style)
      .Build;
 
    --  Complete widget style for class 'text-field'::selected
    Text_Field_Class_Selected_Widget : constant Widget_Style :=
      From (Text_Field_Class_Selected_Base_Style)
+     .Build;
+
+   --  Complete widget style for class 'text-field'::text
+   Text_Field_Class_Text_Widget : constant Widget_Style :=
+     From (Text_Field_Class_Text_Base_Style)
      .Build;
 
    --  Part styles bundle for class 'text-field'
@@ -1144,6 +1165,7 @@ package Material_Demo_Styles is
       Cursor_Part => (Style => Text_Field_Class_Cursor_Widget, Enabled => True),
       Label_Part => (Style => Text_Field_Class_Label_Widget, Enabled => True),
       Selected_Part => (Style => Text_Field_Class_Selected_Widget, Enabled => True),
+      Text_Part => (Style => Text_Field_Class_Text_Widget, Enabled => True),
       others => <>
    ];
 
@@ -1160,16 +1182,16 @@ package Material_Demo_Styles is
      From (Combo_Class_Indicator_Base_Style)
      .Build;
 
-   --  Complete widget style for class 'combo'::label
-   Combo_Class_Label_Widget : constant Widget_Style :=
-     From (Combo_Class_Label_Base_Style)
+   --  Complete widget style for class 'combo'::text
+   Combo_Class_Text_Widget : constant Widget_Style :=
+     From (Combo_Class_Text_Base_Style)
      .Build;
 
    --  Part styles bundle for class 'combo'
    Combo_Class_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Combo_Class_Widget, Enabled => True),
       Indicator_Part => (Style => Combo_Class_Indicator_Widget, Enabled => True),
-      Label_Part => (Style => Combo_Class_Label_Widget, Enabled => True),
+      Text_Part => (Style => Combo_Class_Text_Widget, Enabled => True),
       others => <>
    ];
 
@@ -1388,22 +1410,22 @@ package Material_Demo_Styles is
      From (Num_Field_Class_Cursor_Base_Style)
      .Build;
 
-   --  Complete widget style for class 'num-field'::label
-   Num_Field_Class_Label_Widget : constant Widget_Style :=
-     From (Num_Field_Class_Label_Base_Style)
-     .Build;
-
    --  Complete widget style for class 'num-field'::selected
    Num_Field_Class_Selected_Widget : constant Widget_Style :=
      From (Num_Field_Class_Selected_Base_Style)
+     .Build;
+
+   --  Complete widget style for class 'num-field'::text
+   Num_Field_Class_Text_Widget : constant Widget_Style :=
+     From (Num_Field_Class_Text_Base_Style)
      .Build;
 
    --  Part styles bundle for class 'num-field'
    Num_Field_Class_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Num_Field_Class_Widget, Enabled => True),
       Cursor_Part => (Style => Num_Field_Class_Cursor_Widget, Enabled => True),
-      Label_Part => (Style => Num_Field_Class_Label_Widget, Enabled => True),
       Selected_Part => (Style => Num_Field_Class_Selected_Widget, Enabled => True),
+      Text_Part => (Style => Num_Field_Class_Text_Widget, Enabled => True),
       others => <>
    ];
 

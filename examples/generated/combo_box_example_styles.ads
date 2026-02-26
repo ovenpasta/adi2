@@ -29,8 +29,8 @@ package Combo_Box_Example_Styles is
       Justify_Content => Set (Flex_Start),
       Gap => Set (Gap (Px (12.0))),
       Background_Color => Set_Bg (RGB (30, 41, 59)),
-      Border_Radius => Set (Radius (Px (10.0))),
       Padding => Set (CSS_Box (Px (22.0), Px (22.0), Px (22.0), Px (22.0))),
+      Border_Radius => Set (Radius (Px (10.0))),
       others => <>
    );
 
@@ -74,12 +74,12 @@ package Combo_Box_Example_Styles is
       Height => Set (Size (Px (40.0))),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (248, 250, 252)),
+      Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Border_Color))),
+      Padding => Set (CSS_Box (Px (9.0), Px (10.0), Px (9.0), Px (10.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (148, 163, 184))),
       Border_Radius => Set (Radius (Px (8.0))),
-      Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Border_Color))),
-      Padding => Set (CSS_Box (Px (9.0), Px (10.0), Px (9.0), Px (10.0))),
       others => <>
    );
 
@@ -92,8 +92,8 @@ package Combo_Box_Example_Styles is
 
    --  Style for class 'combo' when widget State_Focused
    Combo_Class_Widget_Focused_Style : constant Style_Rules := (
-      Border_Color => Set (Border_Color (RGB (37, 99, 235))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (37, 99, 235, 0.3))),
+      Border_Color => Set (Border_Color (RGB (37, 99, 235))),
       others => <>
    );
 
@@ -118,8 +118,8 @@ package Combo_Box_Example_Styles is
       others => <>
    );
 
-   --  Base style for class 'combo'::label
-   Combo_Class_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'combo'::text
+   Combo_Class_Text_Base_Style : constant Style_Rules := (
       Color => Set (RGB (15, 23, 42)),
       Font_Size => Set_Font (Px (14.0)),
       others => <>
@@ -129,12 +129,12 @@ package Combo_Box_Example_Styles is
    Dropdown_Class_Base_Style : constant Style_Rules := (
       Max_Height => Set (Size (Px (240.0))),
       Background_Color => Set_Bg (RGB (246, 248, 252)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (10.0), Px (24.0), Px (0.0), RGBA (2, 8, 23, 0.22))),
+      Padding => Set (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (191, 201, 216))),
       Border_Radius => Set (Radius (Px (8.0))),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (10.0), Px (24.0), Px (0.0), RGBA (2, 8, 23, 0.22))),
-      Padding => Set (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0))),
       Overflow_X => Set_Overflow_X (Overflow_Auto),
       Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>
@@ -145,8 +145,8 @@ package Combo_Box_Example_Styles is
       Width => Set (Size (Px (10.0))),
       Min_Height => Set (Size (Px (24.0))),
       Background_Color => Set_Bg (RGBA (71, 85, 105, 0.85)),
-      Border_Radius => Set (Radius (Px (6.0))),
       Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 
@@ -166,10 +166,10 @@ package Combo_Box_Example_Styles is
    Dropdown_Class_Scroll_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (10.0))),
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.22)),
-      Border_Radius => Set (Radius (Px (6.0))),
       Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
       Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 
@@ -188,13 +188,13 @@ package Combo_Box_Example_Styles is
    --  Base style for class 'option-row'
    Option_Row_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (C (White)),
+      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
+      Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (2.0), Px (0.0))),
       Border_Width => Set (Border_Width (Px (0.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (222, 229, 238))),
       Border_Radius => Set (Radius (Px (6.0))),
-      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
-      Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (2.0), Px (0.0))),
       others => <>
    );
 
@@ -313,16 +313,16 @@ package Combo_Box_Example_Styles is
      .On (When_State (State_Focused), Combo_Class_Indicator_Widget_Focused_Style)
      .Build;
 
-   --  Complete widget style for class 'combo'::label
-   Combo_Class_Label_Widget : constant Widget_Style :=
-     From (Combo_Class_Label_Base_Style)
+   --  Complete widget style for class 'combo'::text
+   Combo_Class_Text_Widget : constant Widget_Style :=
+     From (Combo_Class_Text_Base_Style)
      .Build;
 
    --  Part styles bundle for class 'combo'
    Combo_Class_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Combo_Class_Widget, Enabled => True),
       Indicator_Part => (Style => Combo_Class_Indicator_Widget, Enabled => True),
-      Label_Part => (Style => Combo_Class_Label_Widget, Enabled => True),
+      Text_Part => (Style => Combo_Class_Text_Widget, Enabled => True),
       others => <>
    ];
 

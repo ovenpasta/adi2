@@ -240,6 +240,7 @@ class TestParseSelector(unittest.TestCase):
     def test_all_part_kinds(self):
         for css_name, ada_name in [
             ("main", "Main_Part"), ("label", "Label_Part"),
+            ("text", "Text_Part"),
             ("cursor", "Cursor_Part"), ("selected", "Selected_Part"),
             ("icon", "Icon_Part"), ("indicator", "Indicator_Part"),
             ("scroll", "Scroll_Part"), ("knob", "Knob_Part"),

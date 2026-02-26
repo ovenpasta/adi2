@@ -37,11 +37,11 @@ package List_Box_Example_Styles is
       Align_Items => Set (Center),
       Gap => Set (Gap (Px (14.0))),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
+      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (220, 226, 234))),
       Border_Radius => Set (Radius (Px (10.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       others => <>
    );
 
@@ -52,13 +52,13 @@ package List_Box_Example_Styles is
       Flex_Grow => Set (1.0),
       Gap => Set (Gap (Px (8.0))),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
+      Width => Set (Size (Px (476.0))),
+      Height => Set (Size (Px (580.0))),
+      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (220, 226, 234))),
       Border_Radius => Set (Radius (Px (10.0))),
-      Width => Set (Size (Px (476.0))),
-      Height => Set (Size (Px (580.0))),
-      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       others => <>
    );
 
@@ -113,12 +113,12 @@ package List_Box_Example_Styles is
    --  Base style for class 'inertia-switch'
    Inertia_Switch_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (203, 213, 225)),
+      Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (148, 163, 184))),
       Border_Radius => Set (Radius (Px (16.0))),
-      Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
       others => <>
    );
 
@@ -154,12 +154,12 @@ package List_Box_Example_Styles is
    --  Base style for class 'debug-switch'
    Debug_Switch_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (203, 213, 225)),
+      Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (148, 163, 184))),
       Border_Radius => Set (Radius (Px (16.0))),
-      Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
       others => <>
    );
 
@@ -195,13 +195,13 @@ package List_Box_Example_Styles is
    --  Base style for class 'listbox'
    Listbox_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (247, 249, 252)),
+      Height => Set (Size (Px (500.0))),
+      Flex_Grow => Set (1.0),
+      Gap => Set (Gap (Px (4.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (213, 221, 231))),
       Border_Radius => Set (Radius (Px (8.0))),
-      Height => Set (Size (Px (500.0))),
-      Flex_Grow => Set (1.0),
-      Gap => Set (Gap (Px (4.0))),
       others => <>
    );
 
@@ -210,8 +210,8 @@ package List_Box_Example_Styles is
       Width => Set (Size (Px (10.0))),
       Min_Height => Set (Size (Px (24.0))),
       Background_Color => Set_Bg (RGBA (71, 85, 105, 0.78)),
-      Border_Radius => Set (Radius (Px (6.0))),
       Transition => Set ((Duration => 0.26, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 
@@ -231,10 +231,10 @@ package List_Box_Example_Styles is
    Listbox_Class_Scroll_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (10.0))),
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.22)),
-      Border_Radius => Set (Radius (Px (6.0))),
       Transition => Set ((Duration => 0.26, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
       Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 
@@ -266,13 +266,13 @@ package List_Box_Example_Styles is
    --  Base style for class 'label-row'
    Label_Row_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (255, 255, 255)),
+      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
+      Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (220, 228, 236))),
       Border_Radius => Set (Radius (Px (6.0))),
-      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
-      Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
       others => <>
    );
 
@@ -315,14 +315,14 @@ package List_Box_Example_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (63, 115, 176)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (28, 33, 45))),
-      Border_Radius => Set (Radius (Px (8.0))),
       Height => Set (Size (Px (44.0))),
       Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (28, 33, 45))),
+      Border_Radius => Set (Radius (Px (8.0))),
       others => <>
    );
 
@@ -357,14 +357,14 @@ package List_Box_Example_Styles is
    --  Base style for class 'grid-cell'
    Grid_Cell_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (255, 255, 255)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (220, 228, 236))),
-      Border_Radius => Set (Radius (Px (6.0))),
       Height => Set (Size (Px (50.0))),
       Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (12.0), Px (6.0), Px (12.0), Px (6.0))),
       Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (0.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (220, 228, 236))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 

@@ -34,7 +34,8 @@ Part selectors target sub-elements of a widget using `::part` pseudo-element syn
 | Part | Constant | Typical Usage |
 |------|----------|---------------|
 | *(none)* / `::main` | `Main_Part` | Widget body (default when no part specified) |
-| `::label` | `Label_Part` | Text label area |
+| `::label` | `Label_Part` | Auxiliary/display label region |
+| `::text` | `Text_Part` | Text content in input controls |
 | `::icon` | `Icon_Part` | Icon region |
 | `::cursor` | `Cursor_Part` | Text cursor |
 | `::selected` | `Selected_Part` | Selected item highlight |
@@ -46,7 +47,7 @@ Part selectors target sub-elements of a widget using `::part` pseudo-element syn
 Example:
 
 ```css
-.combo::label {
+.combo::text {
   color: rgb(15, 23, 42);
   font-size: 14px;
 }
@@ -201,6 +202,10 @@ Corner radius longhands currently accept a single value only (elliptical two-val
 |----------|--------|---------|
 | `display` | `none`, `block`, `inline`, `inline-block`, `flex`, `inline-flex`, `grid`, `inline-grid` | `display: flex;` |
 | `position` | `static`, `relative`, `absolute`, `fixed`, `sticky` | `position: relative;` |
+| `top` | `auto`, length (`px`, `%`, `dp`/`dip`, `em`, `rem`, `vw`, `vh`) | `top: 10px;` |
+| `right` | `auto`, length | `right: 20%;` |
+| `bottom` | `auto`, length | `bottom: 5dp;` |
+| `left` | `auto`, length | `left: auto;` |
 | `overflow` | `visible`, `hidden`, `scroll`, `auto` | `overflow: auto;` |
 | `overflow-x` | `visible`, `hidden`, `scroll`, `auto` | `overflow-x: hidden;` |
 | `overflow-y` | `visible`, `hidden`, `scroll`, `auto` | `overflow-y: auto;` |
@@ -208,6 +213,18 @@ Corner radius longhands currently accept a single value only (elliptical two-val
 
 `overflow` is treated as shorthand only: it sets both `overflow-x` and `overflow-y`.
 Resolved styles store only axis values (`Overflow_X`, `Overflow_Y`), and normal CSS order/override rules apply.
+
+#### Position behavior
+
+`position: static` (default) — normal flow, inset properties are ignored.
+
+`position: relative` — child stays in normal flow. After placement, a visual offset is applied: `x += left - right`, `y += top - bottom`. Flow space is unchanged.
+
+`position: absolute` — child is removed from flow (excluded from flex/grid sizing and placement). The containing block is the direct parent's content box. Inset offsets position the child within that box. If both horizontal insets are set and width is not explicit, width is derived as `content_width - left - right`. Same for vertical. If only `right` (or `bottom`) is set with a known size, the child anchors from that edge.
+
+`fixed` and `sticky` are parsed but have no layout effect (deferred).
+
+Inset properties (`top`, `right`, `bottom`, `left`) default to `auto` (meaning "not set"). The `auto` keyword is supported and parsed explicitly. An inset set to `auto` has no positional effect; only `Fixed` insets (concrete lengths or percentages) participate in offset and sizing calculations.
 
 ### Visibility And Participation
 

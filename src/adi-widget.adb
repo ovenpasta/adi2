@@ -4815,10 +4815,104 @@ package body Adi.Widget is
       return Style.Display = Flex or Style.Display = Inline_Flex;
    end Is_Flex_Container;
 
+   --  Resolve inset offsets and position an absolute child within a container
+   --  content box.  Applies top/right/bottom/left offsets, with dual-inset
+   --  sizing when both horizontal or both vertical insets are present and no
+   --  explicit CSS width/height is set.
+   procedure Position_Absolute_Child
+     (Child       : in out Widget'Class;
+      Child_Style : Resolved_Style;
+      Container   : Rectangle)
+   is
+      L : constant Pixel_Type := Inset_To_Px (Child_Style.Left, Container.Width);
+      R : constant Pixel_Type := Inset_To_Px (Child_Style.Right, Container.Width);
+      T : constant Pixel_Type := Inset_To_Px (Child_Style.Top, Container.Height);
+      B : constant Pixel_Type := Inset_To_Px (Child_Style.Bottom, Container.Height);
+      Pref : constant Size_2D := Get_Preferred_Size (Child);
+      CX   : Pixel_Type := Container.X + L;
+      CY   : Pixel_Type := Container.Y + T;
+      CW   : Pixel_Type := Pref.Width;
+      CH   : Pixel_Type := Pref.Height;
+   begin
+      --  Explicit CSS width overrides preferred
+      case Child_Style.Width.Kind is
+         when Fixed =>
+            CW := Size_To_Px (Child_Style.Width, Container.Width);
+         when others =>
+            --  Dual horizontal insets → derive width
+            if Child_Style.Left.Kind = Fixed
+              and then Child_Style.Right.Kind = Fixed
+            then
+               CW := Pixel_Type'Max (0.0, Container.Width - L - R);
+            end if;
+      end case;
+
+      --  Explicit CSS height overrides preferred
+      case Child_Style.Height.Kind is
+         when Fixed =>
+            CH := Size_To_Px (Child_Style.Height, Container.Height);
+         when others =>
+            --  Dual vertical insets → derive height
+            if Child_Style.Top.Kind = Fixed
+              and then Child_Style.Bottom.Kind = Fixed
+            then
+               CH := Pixel_Type'Max (0.0, Container.Height - T - B);
+            end if;
+      end case;
+
+      --  Right-only anchor (left not set)
+      if Child_Style.Left.Kind = Auto
+        and then Child_Style.Right.Kind = Fixed
+      then
+         CX := Container.X + Container.Width - R - CW;
+      end if;
+
+      --  Bottom-only anchor (top not set)
+      if Child_Style.Top.Kind = Auto
+        and then Child_Style.Bottom.Kind = Fixed
+      then
+         CY := Container.Y + Container.Height - B - CH;
+      end if;
+
+      Set_Geometry (Child, (CX, CY, CW, CH));
+      Layout_Child (Child);
+   end Position_Absolute_Child;
+
+   --  Apply relative offset to a child after normal flow placement.
+   --  Container is the parent content box, used as percentage basis.
+   procedure Apply_Relative_Offset
+     (Child     : in out Widget'Class;
+      Container : Rectangle)
+   is
+      CS : constant Resolved_Style := Get_Resolved_Part_Style (Child, Main_Part);
+   begin
+      if CS.Position /= Relative then
+         return;
+      end if;
+      declare
+         G : Rectangle := Get_Geometry (Child);
+         DX : constant Pixel_Type :=
+           Inset_To_Px (CS.Left, Container.Width)
+           - Inset_To_Px (CS.Right, Container.Width);
+         DY : constant Pixel_Type :=
+           Inset_To_Px (CS.Top, Container.Height)
+           - Inset_To_Px (CS.Bottom, Container.Height);
+      begin
+         if DX /= 0.0 or else DY /= 0.0 then
+            G.X := G.X + DX;
+            G.Y := G.Y + DY;
+            Set_Geometry (Child, G);
+            --  Re-layout so descendants get updated coordinates
+            Layout_Child (Child);
+         end if;
+      end;
+   end Apply_Relative_Offset;
+
    procedure Perform_Flex_Layout(W : in out Widget'Class) is
       Style : constant Resolved_Style := Get_Resolved_Part_Style(W, Main_Part);
       Total_Children : constant Natural := Natural (W.Children.Length);
       Num_Children : Natural := 0;
+      Num_Absolute : Natural := 0;
 
       --  Content box (after padding/border)
       Content : constant Rectangle := Content_Box(W.Geometry, Style);
@@ -4827,23 +4921,36 @@ package body Adi.Widget is
          return;
       end if;
 
+      --  Count flow vs absolute children
       for Child of W.Children loop
          if Child /= null and then Widget_Participates (Child.all) then
-            Num_Children := Num_Children + 1;
+            declare
+               CS : constant Resolved_Style :=
+                 Get_Resolved_Part_Style (Child.all, Main_Part);
+            begin
+               if CS.Position = Absolute then
+                  Num_Absolute := Num_Absolute + 1;
+               else
+                  Num_Children := Num_Children + 1;
+               end if;
+            end;
          end if;
       end loop;
 
-      if Num_Children = 0 then
+      if Num_Children = 0 and then Num_Absolute = 0 then
          return;
       end if;
 
       --  Build flex context
       declare
          type Child_Array is array (Positive range <>) of Widget_Access;
-         Active_Children : Child_Array (1 .. Num_Children);
+         Active_Children  : Child_Array (1 .. Natural'Max (Num_Children, 1));
+         Abs_Children     : Child_Array (1 .. Natural'Max (Num_Absolute, 1));
+         Abs_Index        : Natural := 0;
          Context : Flex_Layout_Context;
-          Children_Info : Flex_Child_Info_Array(1 .. Num_Children);
-         Child_Index : Positive := 1;
+         Children_Info : Flex_Child_Info_Array
+           (1 .. Natural'Max (Num_Children, 1));
+         Child_Index : Natural := 0;
       begin
          Context := (
             Container       => Content,
@@ -4856,150 +4963,191 @@ package body Adi.Widget is
             Column_Gap      => Get_Cross_Gap(Style.Gap, Style.Flex_Direction)
          );
 
-         --  Collect child information
+         --  Collect child information, separating absolute children
          for Child of W.Children loop
             if Child /= null and then Widget_Participates (Child.all) then
                declare
                   Child_Style : constant Resolved_Style :=
                      Get_Resolved_Part_Style(Child.all, Main_Part);
-                  Child_Pref : constant Size_2D := Get_Preferred_Size(Child.all);
-                  Child_Min  : constant Size_2D := Get_Min_Size(Child.all);
-
-                  Info : Flex_Child_Info;
-                  Flex_Basis_Px : Pixel_Type := 0.0;
                begin
-                  Active_Children (Child_Index) := Child;
+                  if Child_Style.Position = Absolute then
+                     Abs_Index := Abs_Index + 1;
+                     Abs_Children (Abs_Index) := Child;
+                  else
+                     Child_Index := Child_Index + 1;
+                     Active_Children (Child_Index) := Child;
 
-                  --  Flex properties
-                  Info.Flex_Grow := Float(Child_Style.Flex_Grow);
-                  Info.Flex_Shrink := Float(Child_Style.Flex_Shrink);
+                     declare
+                        Child_Pref : constant Size_2D :=
+                          Get_Preferred_Size(Child.all);
+                        Child_Min  : constant Size_2D :=
+                          Get_Min_Size(Child.all);
 
-                  --  Flex basis--  Flex basis
-                   case Child_Style.Flex_Basis.Kind is
-                      when Auto =>
-                         Flex_Basis_Px := Get_Main_Size(Child_Pref, Style.Flex_Direction);
-                      when CSS_Styles.Content =>
-                         Flex_Basis_Px := Get_Main_Size(Child_Min, Style.Flex_Direction);
-                      when Fixed =>
-                         Flex_Basis_Px := Length_To_Px(
-                            Child_Style.Flex_Basis.Size,
-                            Get_Main_Size((Content.Width, Content.Height), Style.Flex_Direction));
-                   end case;
-                   Info.Flex_Basis := Flex_Basis_Px;
+                        Info : Flex_Child_Info;
+                        Flex_Basis_Px : Pixel_Type := 0.0;
+                     begin
+                        --  Flex properties
+                        Info.Flex_Grow := Float(Child_Style.Flex_Grow);
+                        Info.Flex_Shrink := Float(Child_Style.Flex_Shrink);
 
-                  --  Align self
-                  Info.Align_Self := Child_Style.Align_Self;
+                        --  Flex basis
+                        case Child_Style.Flex_Basis.Kind is
+                           when Auto =>
+                              Flex_Basis_Px := Get_Main_Size
+                                (Child_Pref, Style.Flex_Direction);
+                           when CSS_Styles.Content =>
+                              Flex_Basis_Px := Get_Main_Size
+                                (Child_Min, Style.Flex_Direction);
+                           when Fixed =>
+                              Flex_Basis_Px := Length_To_Px(
+                                 Child_Style.Flex_Basis.Size,
+                                 Get_Main_Size
+                                   ((Content.Width, Content.Height),
+                                    Style.Flex_Direction));
+                        end case;
+                        Info.Flex_Basis := Flex_Basis_Px;
 
-                  --  Size constraints
-                  Info.Min_Main := Get_Main_Size(Child_Min, Style.Flex_Direction);
-                  Info.Min_Cross := Get_Cross_Size(Child_Min, Style.Flex_Direction);
+                        --  Align self
+                        Info.Align_Self := Child_Style.Align_Self;
 
-                  --  For visible overflow, preserve preferred main size only for
-                  --  non-shrinkable children. Shrinkable children must be allowed
-                  --  to contract (and rely on their own clipping/wrapping rules).
-                  if Main_Axis_Overflow (Style, Style.Flex_Direction) = Overflow_Visible
-                    and then Float (Child_Style.Flex_Shrink) = 0.0
-                  then
-                     Info.Min_Main := Pixel_Type'Max
-                       (Info.Min_Main, Get_Main_Size (Child_Pref, Style.Flex_Direction));
+                        --  Size constraints
+                        Info.Min_Main := Get_Main_Size
+                          (Child_Min, Style.Flex_Direction);
+                        Info.Min_Cross := Get_Cross_Size
+                          (Child_Min, Style.Flex_Direction);
+
+                        --  For visible overflow, preserve preferred main
+                        --  size only for non-shrinkable children.
+                        if Main_Axis_Overflow
+                             (Style, Style.Flex_Direction) = Overflow_Visible
+                          and then Float (Child_Style.Flex_Shrink) = 0.0
+                        then
+                           Info.Min_Main := Pixel_Type'Max
+                             (Info.Min_Main,
+                              Get_Main_Size
+                                (Child_Pref, Style.Flex_Direction));
+                        end if;
+
+                        --  Max constraints
+                        declare
+                           Max_W : Pixel_Type := Pixel_Type'Last;
+                           Max_H : Pixel_Type := Pixel_Type'Last;
+                        begin
+                           case Child_Style.Max_Width.Kind is
+                              when Fixed =>
+                                 Max_W := Size_To_Px
+                                   (Child_Style.Max_Width, Content.Width);
+                              when others => null;
+                           end case;
+                           case Child_Style.Max_Height.Kind is
+                              when Fixed =>
+                                 Max_H := Size_To_Px
+                                   (Child_Style.Max_Height, Content.Height);
+                              when others => null;
+                           end case;
+                           Info.Max_Main := Get_Main_Size
+                             ((Max_W, Max_H), Style.Flex_Direction);
+                           Info.Max_Cross := Get_Cross_Size
+                             ((Max_W, Max_H), Style.Flex_Direction);
+                        end;
+
+                        --  Content sizes
+                        Info.Content_Main := Get_Main_Size
+                          (Child_Pref, Style.Flex_Direction);
+                        Info.Content_Cross := Get_Cross_Size
+                          (Child_Pref, Style.Flex_Direction);
+
+                        --  Margins
+                        Info.Margin := Get_Margin_Px(Child_Style);
+
+                        Children_Info(Child_Index) := Info;
+                     end;
                   end if;
-
-                  --  Max constraints
-                  declare
-                     Max_W : Pixel_Type := Pixel_Type'Last;
-                     Max_H : Pixel_Type := Pixel_Type'Last;
-                  begin
-                     case Child_Style.Max_Width.Kind is
-                        when Fixed =>
-                           Max_W := Size_To_Px(Child_Style.Max_Width, Content.Width);
-                        when others =>
-                           null;
-                     end case;
-                     case Child_Style.Max_Height.Kind is
-                        when Fixed =>
-                           Max_H := Size_To_Px(Child_Style.Max_Height, Content.Height);
-                        when others =>
-                           null;
-                     end case;
-                     Info.Max_Main := Get_Main_Size((Max_W, Max_H), Style.Flex_Direction);
-                     Info.Max_Cross := Get_Cross_Size((Max_W, Max_H), Style.Flex_Direction);
-                  end;
-
-                  --  Content sizes
-                  Info.Content_Main := Get_Main_Size(Child_Pref, Style.Flex_Direction);
-                  Info.Content_Cross := Get_Cross_Size(Child_Pref, Style.Flex_Direction);
-
-                  --  Margins
-                  Info.Margin := Get_Margin_Px(Child_Style);
-
-                  Children_Info(Child_Index) := Info;
-                  Child_Index := Child_Index + 1;
                end;
             end if;
          end loop;
 
-         --  Run flex algorithm
-         Compute_Flex_Layout(Context, Children_Info);
+         --  Run flex algorithm on flow children
+         if Num_Children > 0 then
+            Compute_Flex_Layout(Context,
+              Children_Info (1 .. Num_Children));
 
-         --  Convert to rectangles and apply; save assigned rects for
-         --  second-pass comparison
-         declare
-            Assigned : constant Rectangle_Array :=
-               Flex_To_Rectangles(Context, Children_Info);
-         begin
-            for I in Active_Children'Range loop
-               Set_Geometry (Active_Children (I).all, Assigned (I));
-            end loop;
-
-            --  Recursively layout children
-            for Child of Active_Children loop
-               Layout_Child (Child.all);
-            end loop;
-
-            --  Second pass: if any child grew (e.g. text wrapping
-            --  increased height), re-run flex layout with updated
-            --  sizes so siblings shift.
+            --  Convert to rectangles and apply
             declare
-               Any_Grew    : Boolean := False;
+               Assigned : constant Rectangle_Array :=
+                  Flex_To_Rectangles(Context,
+                    Children_Info (1 .. Num_Children));
             begin
-               for I in Active_Children'Range loop
-                  declare
-                     Child_Geom : constant Rectangle :=
-                        Get_Geometry (Active_Children (I).all);
-                     Actual_Main : constant Pixel_Type := Get_Main_Size
-                       ((Child_Geom.Width, Child_Geom.Height),
-                        Style.Flex_Direction);
-                     Assigned_Main : constant Pixel_Type := Get_Main_Size
-                       ((Assigned(I).Width,
-                         Assigned(I).Height),
-                        Style.Flex_Direction);
-                  begin
-                     if Actual_Main > Assigned_Main then
-                        Children_Info(I).Flex_Basis :=
-                           Actual_Main;
-                        Children_Info(I).Min_Main :=
-                           Actual_Main;
-                        Children_Info(I).Content_Main :=
-                           Actual_Main;
-                        Any_Grew := True;
-                     end if;
-                  end;
+               for I in 1 .. Num_Children loop
+                  Set_Geometry (Active_Children (I).all, Assigned (I));
                end loop;
 
-               if Any_Grew then
-                  Compute_Flex_Layout(Context, Children_Info);
-                  declare
-                     Rects2 : constant Rectangle_Array :=
-                        Flex_To_Rectangles(Context, Children_Info);
-                  begin
-                     for I in Active_Children'Range loop
-                        Set_Geometry (Active_Children (I).all, Rects2 (I));
-                        Layout_Child (Active_Children (I).all);
-                     end loop;
-                  end;
-               end if;
+               --  Recursively layout children
+               for I in 1 .. Num_Children loop
+                  Layout_Child (Active_Children (I).all);
+               end loop;
+
+               --  Second pass: if any child grew (e.g. text wrapping
+               --  increased height), re-run flex layout with updated
+               --  sizes so siblings shift.
+               declare
+                  Any_Grew : Boolean := False;
+               begin
+                  for I in 1 .. Num_Children loop
+                     declare
+                        Child_Geom : constant Rectangle :=
+                           Get_Geometry (Active_Children (I).all);
+                        Actual_Main : constant Pixel_Type := Get_Main_Size
+                          ((Child_Geom.Width, Child_Geom.Height),
+                           Style.Flex_Direction);
+                        Assigned_Main : constant Pixel_Type := Get_Main_Size
+                          ((Assigned(I).Width,
+                            Assigned(I).Height),
+                           Style.Flex_Direction);
+                     begin
+                        if Actual_Main > Assigned_Main then
+                           Children_Info(I).Flex_Basis := Actual_Main;
+                           Children_Info(I).Min_Main := Actual_Main;
+                           Children_Info(I).Content_Main := Actual_Main;
+                           Any_Grew := True;
+                        end if;
+                     end;
+                  end loop;
+
+                  if Any_Grew then
+                     Compute_Flex_Layout(Context,
+                       Children_Info (1 .. Num_Children));
+                     declare
+                        Rects2 : constant Rectangle_Array :=
+                           Flex_To_Rectangles(Context,
+                             Children_Info (1 .. Num_Children));
+                     begin
+                        for I in 1 .. Num_Children loop
+                           Set_Geometry
+                             (Active_Children (I).all, Rects2 (I));
+                           Layout_Child (Active_Children (I).all);
+                        end loop;
+                     end;
+                  end if;
+               end;
             end;
-         end;
+
+            --  Apply relative offsets after flow layout
+            for I in 1 .. Num_Children loop
+               Apply_Relative_Offset (Active_Children (I).all, Content);
+            end loop;
+         end if;
+
+         --  Position absolute children against the content box
+         for I in 1 .. Abs_Index loop
+            declare
+               CS : constant Resolved_Style :=
+                 Get_Resolved_Part_Style (Abs_Children (I).all, Main_Part);
+            begin
+               Position_Absolute_Child
+                 (Abs_Children (I).all, CS, Content);
+            end;
+         end loop;
       end;
    end Perform_Flex_Layout;
 

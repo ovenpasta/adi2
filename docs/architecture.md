@@ -152,7 +152,7 @@
 ## Widgets
 
 **Adi.Widget** (`adi-widget.ads`): Base abstraction.
-- Part system: `Main_Part`, `Indicator_Part`, `Label_Part`, `Icon_Part`, `Cursor_Part`, `Selected_Part`, `Scroll_Part`, `Knob_Part`
+- Part system: `Main_Part`, `Indicator_Part`, `Label_Part`, `Text_Part`, `Icon_Part`, `Cursor_Part`, `Selected_Part`, `Scroll_Part`, `Knob_Part`
 - Item system: `Panel_Item`, `Text_Item`, `Image_Item`
 - Flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`
 - Visibility model:

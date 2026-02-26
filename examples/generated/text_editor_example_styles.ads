@@ -49,11 +49,11 @@ package Text_Editor_Example_Styles is
    --  Base style for class 'open-btn'
    Open_Btn_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (49, 50, 68)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (RGB (69, 71, 90))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (6.0))),
       Padding => Set (CSS_Box (Px (6.0), Px (14.0), Px (6.0), Px (14.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (69, 71, 90))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 
@@ -93,11 +93,11 @@ package Text_Editor_Example_Styles is
       Width => Set (Size (Px (56.0))),
       Height => Set (Size (Px (28.0))),
       Background_Color => Set_Bg (RGB (88, 91, 112)),
-      Border_Radius => Set (Radius (Px (14.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (RGB (108, 112, 134))),
-      Border_Style => Set (Border_Style (Solid)),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (108, 112, 134))),
+      Border_Radius => Set (Radius (Px (14.0))),
       others => <>
    );
 
@@ -122,12 +122,12 @@ package Text_Editor_Example_Styles is
       Flex_Grow => Set (1.0),
       Cursor => Set (Cursor_Text),
       Background_Color => Set_Bg (RGB (30, 30, 46)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (RGB (69, 71, 90))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (8.0))),
       Box_Shadow => Set (No_Shadow),
       Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (69, 71, 90))),
+      Border_Radius => Set (Radius (Px (8.0))),
       Overflow_X => Set_Overflow_X (Overflow_Auto),
       Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>
@@ -135,8 +135,8 @@ package Text_Editor_Example_Styles is
 
    --  Style for class 'editor' when widget State_Focused
    Editor_Class_Widget_Focused_Style : constant Style_Rules := (
-      Border_Color => Set (Border_Color (RGB (137, 180, 250))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (137, 180, 250, 0.25))),
+      Border_Color => Set (Border_Color (RGB (137, 180, 250))),
       others => <>
    );
 
@@ -167,21 +167,12 @@ package Text_Editor_Example_Styles is
       others => <>
    );
 
-   --  Base style for class 'editor'::label
-   Editor_Class_Label_Base_Style : constant Style_Rules := (
-      Color => Set (RGB (205, 214, 244)),
-      Font_Size => Set_Font (Px (14.0)),
-      Text_Wrap_Mode => Set (TWM_Wrap),
-      White_Space => Set (WS_Normal),
-      others => <>
-   );
-
    --  Base style for class 'editor'::scroll
    Editor_Class_Scroll_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (8.0))),
       Background_Color => Set_Bg (RGBA (69, 71, 90, 0.3)),
-      Border_Radius => Set (Radius (Px (4.0))),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
+      Border_Radius => Set (Radius (Px (4.0))),
       others => <>
    );
 
@@ -197,16 +188,25 @@ package Text_Editor_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'editor'::text
+   Editor_Class_Text_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (205, 214, 244)),
+      Font_Size => Set_Font (Px (14.0)),
+      Text_Wrap_Mode => Set (TWM_Wrap),
+      White_Space => Set (WS_Normal),
+      others => <>
+   );
+
    --  Base style for class 'context-menu'
    Context_Menu_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (200.0))),
       Background_Color => Set_Bg (RGB (24, 24, 37)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (RGB (137, 180, 250))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (8.0))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (10.0), Px (26.0), Px (0.0), RGBA (0, 0, 0, 0.45))),
       Padding => Set (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (137, 180, 250))),
+      Border_Radius => Set (Radius (Px (8.0))),
       others => <>
    );
 
@@ -214,8 +214,8 @@ package Text_Editor_Example_Styles is
    Context_Menu_Item_Class_Base_Style : constant Style_Rules := (
       Min_Height => Set (Size (Px (28.0))),
       Background_Color => Set_Bg (RGBA (24, 24, 37, 0.0)),
-      Border_Radius => Set (Radius (Px (6.0))),
       Padding => Set (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 
@@ -337,11 +337,6 @@ package Text_Editor_Example_Styles is
      .On (When_Part_State (State_Pressed), Editor_Class_Knob_Part_Pressed_Style)
      .Build;
 
-   --  Complete widget style for class 'editor'::label
-   Editor_Class_Label_Widget : constant Widget_Style :=
-     From (Editor_Class_Label_Base_Style)
-     .Build;
-
    --  Complete widget style for class 'editor'::scroll
    Editor_Class_Scroll_Widget : constant Widget_Style :=
      From (Editor_Class_Scroll_Base_Style)
@@ -353,14 +348,19 @@ package Text_Editor_Example_Styles is
      From (Editor_Class_Selected_Base_Style)
      .Build;
 
+   --  Complete widget style for class 'editor'::text
+   Editor_Class_Text_Widget : constant Widget_Style :=
+     From (Editor_Class_Text_Base_Style)
+     .Build;
+
    --  Part styles bundle for class 'editor'
    Editor_Class_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Editor_Class_Widget, Enabled => True),
       Cursor_Part => (Style => Editor_Class_Cursor_Widget, Enabled => True),
       Knob_Part => (Style => Editor_Class_Knob_Widget, Enabled => True),
-      Label_Part => (Style => Editor_Class_Label_Widget, Enabled => True),
       Scroll_Part => (Style => Editor_Class_Scroll_Widget, Enabled => True),
       Selected_Part => (Style => Editor_Class_Selected_Widget, Enabled => True),
+      Text_Part => (Style => Editor_Class_Text_Widget, Enabled => True),
       others => <>
    ];
 

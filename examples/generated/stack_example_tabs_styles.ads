@@ -15,12 +15,12 @@ package Stack_Example_Tabs_Styles is
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (55, 65, 81)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (8.0), Px (0.0), Px (0.0), Px (8.0))),
       Cursor => Set (Cursor_Pointer),
       Padding => Set (CSS_Box (Px (10.0), Px (20.0), Px (10.0), Px (20.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
+      Border_Radius => Set (Radius (Px (8.0), Px (0.0), Px (0.0), Px (8.0))),
       others => <>
    );
 
@@ -52,11 +52,11 @@ package Stack_Example_Tabs_Styles is
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (55, 65, 81)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
-      Border_Style => Set (Border_Style (Solid)),
       Cursor => Set (Cursor_Pointer),
       Padding => Set (CSS_Box (Px (10.0), Px (20.0), Px (10.0), Px (20.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
       others => <>
    );
 
@@ -88,12 +88,12 @@ package Stack_Example_Tabs_Styles is
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (55, 65, 81)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (0.0), Px (8.0), Px (8.0), Px (0.0))),
       Cursor => Set (Cursor_Pointer),
       Padding => Set (CSS_Box (Px (10.0), Px (20.0), Px (10.0), Px (20.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
+      Border_Radius => Set (Radius (Px (0.0), Px (8.0), Px (8.0), Px (0.0))),
       others => <>
    );
 

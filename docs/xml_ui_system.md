@@ -101,7 +101,7 @@ All 17 widget tags defined in `tools/widgets.xml`:
 | `button` | `Adi.Widget.Button` | children | no | `text`, `toggleable`, `on-clicked`, `on-toggled` |
 | `switch` | `Adi.Widget.Button.Switch` | children | no | `checked`, `on-toggled` |
 | `stack` | `Adi.Widget.Stack` | pages | yes | `generic`, `on-changed` |
-| `text-input` | `Adi.Widget.Text_Input` | children | no | `text`, `on-changed` |
+| `text-input` | `Adi.Widget.Text_Input` | children | no | `text`, `label`, `on-changed` |
 | `text-editor` | `Adi.Widget.Text_Editor` | children | no | `text`, `on-changed` |
 | `combo-box` | `Adi.Widget.Combo_Box` | items | no | `on-selection-changed` |
 | `animated-image` | `Adi.Widget.Animated_Image` | children | no | `looping` |
@@ -139,6 +139,7 @@ All widgets support:
 | Attribute | Widgets | Type | Description |
 |-----------|---------|------|-------------|
 | `text` | label, button, text-input, text-editor | string | Text content (used in Create call) |
+| `label` | text-input | string | Floating label text, positioned by `::label` part CSS (`top`, `left`, `padding`) |
 | `toggleable` | button | bool | Makes the button toggleable (flag setter, no argument) |
 | `checked` | switch | bool | Initial checked state (default `False`) |
 | `looping` | animated-image, animated-widget, rlottie | bool | Enable animation looping (flag setter) |

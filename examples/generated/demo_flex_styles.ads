@@ -11,12 +11,12 @@ package Demo_Flex_Styles is
 
    --  Base style for class 'box-base'
    Box_Base_Class_Base_Style : constant Style_Rules := (
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (C (Gray))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (4.0))),
       Min_Width => Set (Size (Px (20.0))),
       Min_Height => Set (Size (Px (20.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (C (Gray))),
+      Border_Radius => Set (Radius (Px (4.0))),
       others => <>
    );
 
@@ -24,8 +24,8 @@ package Demo_Flex_Styles is
    Flex_Container_Class_Base_Style : constant Style_Rules := (
       Display => Set (Flex),
       Border_Width => Set (Border_Width (Px (2.0))),
-      Border_Color => Set (Border_Color (C (Gray))),
       Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (C (Gray))),
       Border_Radius => Set (Radius (Px (8.0))),
       others => <>
    );

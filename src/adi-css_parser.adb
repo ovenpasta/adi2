@@ -1390,6 +1390,7 @@ package body Adi.CSS_Parser is
    begin
       if V = "main" then P := Main_Part;
       elsif V = "label" then P := Label_Part;
+      elsif V = "text" then P := Text_Part;
       elsif V = "cursor" then P := Cursor_Part;
       elsif V = "selected" then P := Selected_Part;
       elsif V = "icon" then P := Icon_Part;
@@ -2123,6 +2124,30 @@ package body Adi.CSS_Parser is
          elsif LV = "absolute" then Rules.Position := Set (Absolute);
          elsif LV = "fixed" then Rules.Position := Set (Fixed);
          elsif LV = "sticky" then Rules.Position := Set (Sticky);
+         end if;
+      elsif P = "top" then
+         if LV = "auto" then
+            Rules.Top := Set_Top (Auto_Inset);
+         elsif Parse_Length (V, LVal) then
+            Rules.Top := Set_Top (Inset (To_Length (LVal)));
+         end if;
+      elsif P = "right" then
+         if LV = "auto" then
+            Rules.Right := Set_Right (Auto_Inset);
+         elsif Parse_Length (V, LVal) then
+            Rules.Right := Set_Right (Inset (To_Length (LVal)));
+         end if;
+      elsif P = "bottom" then
+         if LV = "auto" then
+            Rules.Bottom := Set_Bottom (Auto_Inset);
+         elsif Parse_Length (V, LVal) then
+            Rules.Bottom := Set_Bottom (Inset (To_Length (LVal)));
+         end if;
+      elsif P = "left" then
+         if LV = "auto" then
+            Rules.Left := Set_Left (Auto_Inset);
+         elsif Parse_Length (V, LVal) then
+            Rules.Left := Set_Left (Inset (To_Length (LVal)));
          end if;
       elsif P = "overflow" then
          if Parse_Overflow_Value (LV, Overflow_Val) then

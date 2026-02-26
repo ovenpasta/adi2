@@ -54,12 +54,16 @@
     font-size: 14px;
 }
 
-.value-input::label {
+.value-input::text {
     color: #cdd6f4;
 }
 
 .value-input::cursor {
     background-color: #89b4fa;
+}
+
+.value-input::selected {
+    background-color: rgba(137, 180, 250, 0.25);
 }
 
 .value-input:focus {
@@ -76,12 +80,16 @@
     font-size: 14px;
 }
 
-.int-input::label {
+.int-input::text {
     color: #cdd6f4;
 }
 
 .int-input::cursor {
     background-color: #f38ba8;
+}
+
+.int-input::selected {
+    background-color: rgba(243, 139, 168, 0.25);
 }
 
 .int-input:focus {
@@ -98,12 +106,16 @@
     font-size: 14px;
 }
 
-.wide-input::label {
+.wide-input::text {
     color: #cdd6f4;
 }
 
 .wide-input::cursor {
     background-color: #a6e3a1;
+}
+
+.wide-input::selected {
+    background-color: rgba(166, 227, 161, 0.25);
 }
 
 .wide-input:focus {

@@ -66,6 +66,17 @@ package body Adi.Layout_Util is
       end case;
    end Length_To_Px;
 
+   function Inset_To_Px (V : CSS_Styles.Inset_Value;
+                          Container_Size : Pixel_Type := 0.0)
+      return Pixel_Type
+   is
+   begin
+      case V.Kind is
+         when Fixed => return Length_To_Px (V.Length, Container_Size);
+         when Auto  => return 0.0;
+      end case;
+   end Inset_To_Px;
+
    function Size_To_Px (S : Size_Value;
                         Container_Size : Pixel_Type := 0.0;
                         Font_Size : Pixel_Type := Default_Root_Font_Size_Px;

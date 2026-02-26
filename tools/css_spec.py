@@ -91,6 +91,10 @@ SUPPORTED_PROPERTIES: dict[str, PropertySpec] = {
     # Layout
     "display": PropertySpec("display", "display"),
     "position": PropertySpec("position", "position"),
+    "top": PropertySpec("top", "inset"),
+    "right": PropertySpec("right", "inset"),
+    "bottom": PropertySpec("bottom", "inset"),
+    "left": PropertySpec("left", "inset"),
     "flex-direction": PropertySpec("flex-direction", "flex-direction"),
     "flex-wrap": PropertySpec("flex-wrap", "flex-wrap"),
     "justify-content": PropertySpec("justify-content", "justify-content"),
@@ -122,6 +126,7 @@ SUPPORTED_PROPERTIES: dict[str, PropertySpec] = {
 SUPPORTED_PARTS: dict[str, str] = {
     "main": "Main_Part",
     "label": "Label_Part",
+    "text": "Text_Part",
     "cursor": "Cursor_Part",
     "selected": "Selected_Part",
     "icon": "Icon_Part",

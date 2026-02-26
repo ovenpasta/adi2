@@ -493,7 +493,7 @@ package body Adi.Widget.Html_View is
    begin
       return [
         Main_Part      => (Style => From (Main_Base).Build, Enabled => True),
-        Label_Part     => (Style => From (Label_Base).Build, Enabled => True),
+        Text_Part     => (Style => From (Label_Base).Build, Enabled => True),
         Indicator_Part => (Style => From (Link_Base).Build, Enabled => True),
         Scroll_Part    => (Style => From (Scroll_Base).Build, Enabled => True),
         Knob_Part      => (Style => From (Knob_Base).Build, Enabled => True),
@@ -1438,7 +1438,7 @@ package body Adi.Widget.Html_View is
 
    procedure Layout_And_Build (Self : in out Html_View) is
       Main_Style       : constant Resolved_Style := Get_Resolved_Part_Style (Self, Main_Part);
-      Label_Part_Style : constant Resolved_Style := Get_Resolved_Part_Style (Self, Label_Part);
+      Text_Part_Style : constant Resolved_Style := Get_Resolved_Part_Style (Self, Text_Part);
       Content          : constant Rectangle := Content_Box (Self.Geometry, Main_Style);
 
       Document_Rules   : Style_Rules := Tag_Default_Style ("body");
@@ -1960,7 +1960,7 @@ package body Adi.Widget.Html_View is
          declare
             It : Item :=
               Make_Text
-                 ((if Href'Length > 0 then Indicator_Part else Label_Part),
+                 ((if Href'Length > 0 then Indicator_Part else Text_Part),
                   Full_Geom,
                   To_String (Draw_Text),
                   1);
@@ -2646,7 +2646,7 @@ package body Adi.Widget.Html_View is
               Selector_Base_Rules (Adi.CSS_Parser.Styles_For_Tag (Self.CSS_Sheet, "body")));
       end if;
 
-      Document_Style := Resolve_Element_Style (Document_Rules, Label_Part_Style, True);
+      Document_Style := Resolve_Element_Style (Document_Rules, Text_Part_Style, True);
 
       Line_Base_H := Pixel_Type'Max
         (1.0,

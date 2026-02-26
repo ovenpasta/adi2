@@ -50,10 +50,10 @@ package Button_Example_Styles is
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (59, 130, 246)),
-      Border_Width => Set (Border_Width (Px (0.0))),
-      Border_Radius => Set (Radius (Px (6.0))),
       Cursor => Set (Cursor_Pointer),
       Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
+      Border_Width => Set (Border_Width (Px (0.0))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 
@@ -91,10 +91,10 @@ package Button_Example_Styles is
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (220, 38, 38)),
-      Border_Width => Set (Border_Width (Px (0.0))),
-      Border_Radius => Set (Radius (Px (6.0))),
       Cursor => Set (Cursor_Pointer),
       Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
+      Border_Width => Set (Border_Width (Px (0.0))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 
@@ -131,12 +131,12 @@ package Button_Example_Styles is
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (RGB (148, 163, 184))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (6.0))),
       Cursor => Set (Cursor_Pointer),
       Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (148, 163, 184))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 
@@ -154,8 +154,8 @@ package Button_Example_Styles is
 
    --  Style for class 'outline' when widget State_Focused
    Outline_Class_Widget_Focused_Style : constant Style_Rules := (
-      Border_Color => Set (Border_Color (RGB (96, 165, 250))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (0.0), Px (2.0), RGBA (147, 197, 253, 0.4))),
+      Border_Color => Set (Border_Color (RGB (96, 165, 250))),
       others => <>
    );
 
@@ -174,12 +174,12 @@ package Button_Example_Styles is
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (75, 85, 99)),
-      Border_Width => Set (Border_Width (Px (2.0))),
-      Border_Color => Set (Border_Color (RGB (107, 114, 128))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (6.0))),
       Cursor => Set (Cursor_Pointer),
       Padding => Set (CSS_Box (Px (10.0), Px (20.0), Px (10.0), Px (20.0))),
+      Border_Width => Set (Border_Width (Px (2.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (107, 114, 128))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 
@@ -211,8 +211,8 @@ package Button_Example_Styles is
 
    --  Style for class 'toggle' when widget State_Focused
    Toggle_Class_Widget_Focused_Style : constant Style_Rules := (
-      Border_Color => Set (Border_Color (RGB (147, 197, 253))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (0.0), Px (2.0), RGBA (96, 165, 250, 0.35))),
+      Border_Color => Set (Border_Color (RGB (147, 197, 253))),
       others => <>
    );
 
@@ -230,13 +230,13 @@ package Button_Example_Styles is
       Width => Set (Size (Px (56.0))),
       Height => Set (Size (Px (32.0))),
       Background_Color => Set_Bg (RGB (71, 85, 105)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (RGBA (148, 163, 184, 0.55))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (16.0))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (30, 41, 59, 0.22))),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.28, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGBA (148, 163, 184, 0.55))),
+      Border_Radius => Set (Radius (Px (16.0))),
       others => <>
    );
 
@@ -257,16 +257,16 @@ package Button_Example_Styles is
    --  Style for class 'switch' when widget State_Selected
    Switch_Class_Widget_Selected_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (16, 185, 129)),
-      Border_Color => Set (Border_Color (RGB (5, 150, 105))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (12.0), Px (4.0), RGBA (16, 185, 129, 0.34))),
+      Border_Color => Set (Border_Color (RGB (5, 150, 105))),
       others => <>
    );
 
    --  Style for class 'switch' when widget State_Selected, widget State_Hovered
    Switch_Class_Widget_Selected_Widget_Hovered_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (5, 150, 105)),
-      Border_Color => Set (Border_Color (RGB (4, 120, 87))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (14.0), Px (5.0), RGBA (5, 150, 105, 0.4))),
+      Border_Color => Set (Border_Color (RGB (4, 120, 87))),
       others => <>
    );
 
@@ -288,13 +288,13 @@ package Button_Example_Styles is
       Width => Set (Size (Px (26.0))),
       Height => Set (Size (Px (26.0))),
       Background_Color => Set_Bg (RGB (248, 250, 252)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (RGBA (15, 23, 42, 0.12))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (13.0))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (6.0), Px (1.0), RGBA (15, 23, 42, 0.22))),
       Transition => Set ((Duration => 0.26, Easing => Ease_In_Out, Properties => Props (Prop_Margin))),
       Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (0.0), Px (2.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGBA (15, 23, 42, 0.12))),
+      Border_Radius => Set (Radius (Px (13.0))),
       others => <>
    );
 
@@ -316,7 +316,7 @@ package Button_Example_Styles is
    Switch_Class_Knob_Widget_Selected_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGB (240, 253, 244)),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (5, 150, 105, 0.3))),
-      Margin => Set (CSS_Box (px (0.0), px (0.0), px (0.0), Px (28.0))),
+      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (28.0))),
       others => <>
    );
 
@@ -326,12 +326,12 @@ package Button_Example_Styles is
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (55, 65, 81)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (6.0), Px (0.0), Px (0.0), Px (6.0))),
       Cursor => Set (Cursor_Pointer),
       Padding => Set (CSS_Box (Px (8.0), Px (16.0), Px (8.0), Px (16.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
+      Border_Radius => Set (Radius (Px (6.0), Px (0.0), Px (0.0), Px (6.0))),
       others => <>
    );
 
@@ -369,11 +369,11 @@ package Button_Example_Styles is
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (55, 65, 81)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
-      Border_Style => Set (Border_Style (Solid)),
       Cursor => Set (Cursor_Pointer),
       Padding => Set (CSS_Box (Px (8.0), Px (16.0), Px (8.0), Px (16.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
       others => <>
    );
 
@@ -411,12 +411,12 @@ package Button_Example_Styles is
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (55, 65, 81)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Radius => Set (Radius (Px (0.0), Px (6.0), Px (6.0), Px (0.0))),
       Cursor => Set (Cursor_Pointer),
       Padding => Set (CSS_Box (Px (8.0), Px (16.0), Px (8.0), Px (16.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
+      Border_Radius => Set (Radius (Px (0.0), Px (6.0), Px (6.0), Px (0.0))),
       others => <>
    );
 

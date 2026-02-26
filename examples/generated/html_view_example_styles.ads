@@ -59,13 +59,13 @@ package Html_View_Example_Styles is
       Display => Set (Inline_Flex),
       Align_Items => Set (Center),
       Justify_Content => Set (Center),
+      Background_Color => Set_Bg (RGB (224, 212, 194)),
+      Cursor => Set (Cursor_Pointer),
+      Padding => Set (CSS_Box (Px (8.0), Px (14.0), Px (8.0), Px (14.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (178, 159, 136))),
-      Background_Color => Set_Bg (RGB (224, 212, 194)),
-      Cursor => Set (Cursor_Pointer),
       Border_Radius => Set (Radius (Px (8.0), Px (0.0), Px (0.0), Px (8.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (14.0), Px (8.0), Px (14.0))),
       others => <>
    );
 
@@ -102,13 +102,13 @@ package Html_View_Example_Styles is
       Display => Set (Inline_Flex),
       Align_Items => Set (Center),
       Justify_Content => Set (Center),
+      Background_Color => Set_Bg (RGB (224, 212, 194)),
+      Cursor => Set (Cursor_Pointer),
+      Padding => Set (CSS_Box (Px (8.0), Px (14.0), Px (8.0), Px (14.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (178, 159, 136))),
-      Background_Color => Set_Bg (RGB (224, 212, 194)),
-      Cursor => Set (Cursor_Pointer),
       Border_Radius => Set (Radius (Px (0.0), Px (8.0), Px (8.0), Px (0.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (14.0), Px (8.0), Px (14.0))),
       others => <>
    );
 
@@ -170,11 +170,11 @@ package Html_View_Example_Styles is
       Flex_Grow => Set (1.0),
       Min_Height => Set (Size (Px (0.0))),
       Background_Color => Set_Bg (RGB (255, 252, 247)),
+      Padding => Set (CSS_Box (Px (14.0), Px (14.0), Px (14.0), Px (14.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (212, 199, 183))),
       Border_Radius => Set (Radius (Px (10.0))),
-      Padding => Set (CSS_Box (Px (14.0), Px (14.0), Px (14.0), Px (14.0))),
       Overflow_X => Set_Overflow_X (Overflow_Auto),
       Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>
@@ -192,8 +192,8 @@ package Html_View_Example_Styles is
    Html_View_Class_Scroll_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (9.0))),
       Background_Color => Set_Bg (RGBA (127, 103, 75, 0.55)),
-      Border_Radius => Set (Radius (Px (5.0))),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
+      Border_Radius => Set (Radius (Px (5.0))),
       others => <>
    );
 
@@ -202,11 +202,11 @@ package Html_View_Example_Styles is
       Flex_Grow => Set (1.0),
       Min_Height => Set (Size (Px (0.0))),
       Background_Color => Set_Bg (RGB (252, 248, 242)),
+      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (212, 199, 183))),
       Border_Radius => Set (Radius (Px (10.0))),
-      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
       Overflow_X => Set_Overflow_X (Overflow_Auto),
       Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>
@@ -226,19 +226,12 @@ package Html_View_Example_Styles is
       others => <>
    );
 
-   --  Base style for class 'source-editor'::label
-   Source_Editor_Class_Label_Base_Style : constant Style_Rules := (
-      Color => Set (RGB (58, 52, 45)),
-      Font_Size => Set_Font (Px (14.0)),
-      others => <>
-   );
-
    --  Base style for class 'source-editor'::scroll
    Source_Editor_Class_Scroll_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (8.0))),
       Background_Color => Set_Bg (RGBA (160, 142, 121, 0.28)),
-      Border_Radius => Set (Radius (Px (4.0))),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
+      Border_Radius => Set (Radius (Px (4.0))),
       others => <>
    );
 
@@ -248,16 +241,23 @@ package Html_View_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'source-editor'::text
+   Source_Editor_Class_Text_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (58, 52, 45)),
+      Font_Size => Set_Font (Px (14.0)),
+      others => <>
+   );
+
    --  Base style for class 'status'
    Status_Class_Base_Style : constant Style_Rules := (
       Min_Height => Set (Size (Px (34.0))),
       Flex_Shrink => Set (0.0),
       Background_Color => Set_Bg (RGB (236, 229, 218)),
+      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (212, 199, 183))),
       Border_Radius => Set (Radius (Px (8.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       others => <>
    );
 
@@ -435,11 +435,6 @@ package Html_View_Example_Styles is
      From (Source_Editor_Class_Knob_Base_Style)
      .Build;
 
-   --  Complete widget style for class 'source-editor'::label
-   Source_Editor_Class_Label_Widget : constant Widget_Style :=
-     From (Source_Editor_Class_Label_Base_Style)
-     .Build;
-
    --  Complete widget style for class 'source-editor'::scroll
    Source_Editor_Class_Scroll_Widget : constant Widget_Style :=
      From (Source_Editor_Class_Scroll_Base_Style)
@@ -450,14 +445,19 @@ package Html_View_Example_Styles is
      From (Source_Editor_Class_Selected_Base_Style)
      .Build;
 
+   --  Complete widget style for class 'source-editor'::text
+   Source_Editor_Class_Text_Widget : constant Widget_Style :=
+     From (Source_Editor_Class_Text_Base_Style)
+     .Build;
+
    --  Part styles bundle for class 'source-editor'
    Source_Editor_Class_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Source_Editor_Class_Widget, Enabled => True),
       Cursor_Part => (Style => Source_Editor_Class_Cursor_Widget, Enabled => True),
       Knob_Part => (Style => Source_Editor_Class_Knob_Widget, Enabled => True),
-      Label_Part => (Style => Source_Editor_Class_Label_Widget, Enabled => True),
       Scroll_Part => (Style => Source_Editor_Class_Scroll_Widget, Enabled => True),
       Selected_Part => (Style => Source_Editor_Class_Selected_Widget, Enabled => True),
+      Text_Part => (Style => Source_Editor_Class_Text_Widget, Enabled => True),
       others => <>
    ];
 

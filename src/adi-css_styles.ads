@@ -426,6 +426,25 @@ package Adi.CSS_Styles is
    Default_Size      : constant Size_Value := Auto_Size;
    Default_Font_Size : constant Length_Value := Px (16);
 
+   -------------------------------------------------
+   -- Inset (top/right/bottom/left) — auto = "not set"
+   -------------------------------------------------
+
+   type Inset_Kind is (Fixed, Auto);
+
+   type Inset_Value (Kind : Inset_Kind := Auto) is record
+      case Kind is
+         when Fixed => Length : Length_Value := Zero_Length;
+         when Auto  => null;
+      end case;
+   end record;
+
+   function Inset (L : Length_Value) return Inset_Value is
+      ((Kind => Fixed, Length => L));
+
+   Auto_Inset    : constant Inset_Value := (Kind => Auto);
+   Default_Inset : constant Inset_Value := Auto_Inset;
+
 -------------------------------------------------
 -- Font Properties
 -------------------------------------------------
@@ -905,6 +924,10 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    package Opt_Font_Size     is new Optional_Values (Length_Value, Default_Font_Size);
    package Opt_Display       is new Optional_Values (Display_Value, Default_Display);
    package Opt_Position      is new Optional_Values (Position_Value, Default_Position);
+   package Opt_Top    is new Optional_Values (Inset_Value, Default_Inset);
+   package Opt_Right  is new Optional_Values (Inset_Value, Default_Inset);
+   package Opt_Bottom is new Optional_Values (Inset_Value, Default_Inset);
+   package Opt_Left   is new Optional_Values (Inset_Value, Default_Inset);
    package Opt_Flex_Dir      is new Optional_Values (Flex_Direction_Value, Default_Flex_Direction);
    package Opt_Flex_Wrap     is new Optional_Values (Flex_Wrap_Value, Default_Flex_Wrap);
    package Opt_Justify       is new Optional_Values (Justify_Content_Value, Default_Justify_Content);
@@ -1005,6 +1028,10 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       -- Layout
       Display          : Opt_Display.Optional      := Opt_Display.Unset;
       Position         : Opt_Position.Optional     := Opt_Position.Unset;
+      Top              : Opt_Top.Optional          := Opt_Top.Unset;
+      Right            : Opt_Right.Optional        := Opt_Right.Unset;
+      Bottom           : Opt_Bottom.Optional       := Opt_Bottom.Unset;
+      Left             : Opt_Left.Optional         := Opt_Left.Unset;
       Overflow_X       : Opt_Overflow.Optional     := Opt_Overflow.Unset;
       Overflow_Y       : Opt_Overflow.Optional     := Opt_Overflow.Unset;
       Visibility       : Opt_Visibility.Optional   := Opt_Visibility.Unset;
@@ -1160,6 +1187,10 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       -- Layout (stored per-axis; `overflow` shorthand expands to both)
       Display          : Display_Value := Default_Display;
       Position         : Position_Value := Default_Position;
+      Top              : Inset_Value := Default_Inset;
+      Right            : Inset_Value := Default_Inset;
+      Bottom           : Inset_Value := Default_Inset;
+      Left             : Inset_Value := Default_Inset;
       Overflow_X       : Overflow_Value := Default_Overflow;
       Overflow_Y       : Overflow_Value := Default_Overflow;
       Visibility       : Visibility_Value := Default_Visibility;
@@ -1254,6 +1285,10 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    -- Layout
    function Set (V : Display_Value) return Opt_Display.Optional renames Opt_Display.Val;
    function Set (V : Position_Value) return Opt_Position.Optional renames Opt_Position.Val;
+   function Set_Top    (V : Inset_Value) return Opt_Top.Optional    renames Opt_Top.Val;
+   function Set_Right  (V : Inset_Value) return Opt_Right.Optional  renames Opt_Right.Val;
+   function Set_Bottom (V : Inset_Value) return Opt_Bottom.Optional renames Opt_Bottom.Val;
+   function Set_Left   (V : Inset_Value) return Opt_Left.Optional   renames Opt_Left.Val;
    --  Convenience helper for axis assignments.
    --  Style_Rules/Resolved_Style do not store a standalone `Overflow` field.
    function Set (V : Overflow_Value) return Opt_Overflow.Optional renames Opt_Overflow.Val;

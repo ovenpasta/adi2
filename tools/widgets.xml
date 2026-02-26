@@ -68,6 +68,7 @@
     <access-type>Text_Input_Widget_Access</access-type>
     <create>{package}.Create ("{text}")</create>
     <attribute name="text" type="string" create-param="true"/>
+    <attribute name="label" type="string" setter="Set_Label"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
     <attribute name="on-changed" type="callback" setter="Set_On_Changed"/>
   </widget>

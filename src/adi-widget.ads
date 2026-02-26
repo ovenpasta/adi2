@@ -36,7 +36,8 @@ package Adi.Widget is
       Selected_Part,    --  Selected item highlight
       Items_Part,       --  Container for list/menu items
       Cursor_Part,      --  Text cursor in input fields
-      Label_Part,       --  Text label area
+      Label_Part,       --  Auxiliary/display label region
+      Text_Part,        --  Text content in editable/selectable inputs
       Icon_Part,        --  Icon/image area
       Any_Part,         --  Matches any part (for generic rules)
       Custom_Part);     --  User-defined parts
@@ -573,5 +574,15 @@ private
    procedure CSS_Color_To_SDL
       (C : Color_Value;
        R, G, B, A : out Adi.SDL.Uint8);
+
+   --  Position layout helpers (shared by flex and grid layout paths)
+   procedure Position_Absolute_Child
+     (Child       : in out Widget'Class;
+      Child_Style : Resolved_Style;
+      Container   : Rectangle);
+
+   procedure Apply_Relative_Offset
+     (Child     : in out Widget'Class;
+      Container : Rectangle);
 
 end Adi.Widget;

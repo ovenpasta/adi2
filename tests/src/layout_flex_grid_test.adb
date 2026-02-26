@@ -4,6 +4,9 @@ with Ada.Text_IO;      use Ada.Text_IO;
 with Adi.Core;         use Adi.Core;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Layout_Util;  use Adi.Layout_Util;
+with Adi.Widget;       use Adi.Widget;
+with Adi.Widget.Box;
+with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 procedure Layout_Flex_Grid_Test is
    Eps : constant Pixel_Type := 0.001;
@@ -387,6 +390,259 @@ procedure Layout_Flex_Grid_Test is
 
    --  Regression: with ample container space, fr columns still distribute
    --  remaining space correctly (ensure the fix didn't break normal fr sizing).
+   --  Helper: make a flex container with position-styled children
+   function Make_Flex_Container
+     (W, H : Pixel_Type) return Adi.Widget.Box.Box_Widget_Access
+   is
+      B : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Flex_Style : constant Style_Rules := (
+        Display => Set (Flex),
+        Flex_Direction => Set (Row),
+        others => <>);
+      Parts : constant Part_Style_Array := [
+        Main_Part => (Style => From (Flex_Style).Build, Enabled => True),
+        others => <>];
+   begin
+      Set_Part_Styles (B.all, Parts);
+      Set_Geometry (B.all, (0.0, 0.0, W, H));
+      return B;
+   end Make_Flex_Container;
+
+   function Make_Child
+     (S : Style_Rules) return Adi.Widget.Box.Box_Widget_Access
+   is
+      C : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Parts : constant Part_Style_Array := [
+        Main_Part => (Style => From (S).Build, Enabled => True),
+        others => <>];
+   begin
+      Set_Part_Styles (C.all, Parts);
+      return C;
+   end Make_Child;
+
+   procedure Test_Relative_Subtree is
+      --  A relative parent's descendants must move with the offset.
+      --  Container (400x200, flex row)
+      --    └─ Middle (100x80, position:relative, left:15, top:10, flex column)
+      --         ├─ GrandA (100x30, static)
+      --         └─ GrandB (100x30, static)
+      Container : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Flex_Container (400.0, 200.0);
+
+      Middle_Rules : constant Style_Rules := (
+        Width     => Set (Size (Px (100.0))),
+        Height    => Set (Size (Px (80.0))),
+        Display   => Set (Flex),
+        Flex_Direction => Set (Column),
+        Position  => Set (Relative),
+        Left      => Set_Left (Inset (Px (15.0))),
+        Top       => Set_Top (Inset (Px (10.0))),
+        others    => <>);
+      Middle : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Child (Middle_Rules);
+      --  Re-apply with flex-column so it lays out children vertically
+      Middle_Parts : constant Part_Style_Array := [
+        Main_Part => (Style => From (Middle_Rules).Build, Enabled => True),
+        others => <>];
+
+      GrandA : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Child ((Width  => Set (Size (Px (100.0))),
+                     Height => Set (Size (Px (30.0))),
+                     others => <>));
+      GrandB : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Child ((Width  => Set (Size (Px (100.0))),
+                     Height => Set (Size (Px (30.0))),
+                     others => <>));
+
+      GM, GA, GB : Rectangle;
+   begin
+      Set_Part_Styles (Middle.all, Middle_Parts);
+      Add_Child (Middle.all, Widget_Access (GrandA));
+      Add_Child (Middle.all, Widget_Access (GrandB));
+      Add_Child (Container.all, Widget_Access (Middle));
+      Layout_Tree (Container.all);
+
+      GM := Get_Geometry (Middle.all);
+      GA := Get_Geometry (GrandA.all);
+      GB := Get_Geometry (GrandB.all);
+
+      --  Middle shifted by left:15, top:10
+      Assert_Close (GM.X, 15.0, "rel-subtree: middle X = 0 + left:15");
+      Assert_Close (GM.Y, 10.0, "rel-subtree: middle Y = 0 + top:10");
+
+      --  GrandA must be inside Middle's shifted box
+      Assert_Close (GA.X, 15.0,
+                    "rel-subtree: grandA X = middle.X (15)");
+      Assert_Close (GA.Y, 10.0,
+                    "rel-subtree: grandA Y = middle.Y (10)");
+      Assert_Close (GA.Height, 30.0,
+                    "rel-subtree: grandA height = 30");
+
+      --  GrandB stacks below GrandA in column direction
+      Assert_Close (GB.X, 15.0,
+                    "rel-subtree: grandB X = middle.X (15)");
+      Assert_Close (GB.Y, 40.0,
+                    "rel-subtree: grandB Y = middle.Y (10) + grandA.H (30)");
+   end Test_Relative_Subtree;
+
+   procedure Test_Relative_Offset_Px is
+      --  A relative child should keep its flow position but shift visually
+      Container : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Flex_Container (400.0, 100.0);
+      Child1 : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Child ((Width => Set (Size (Px (80.0))),
+                     Height => Set (Size (Px (40.0))),
+                     others => <>));
+      Child2 : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Child ((Width => Set (Size (Px (80.0))),
+                     Height => Set (Size (Px (40.0))),
+                     Position => Set (Relative),
+                     Left => Set_Left (Inset (Px (10.0))),
+                     Top => Set_Top (Inset (Px (5.0))),
+                     others => <>));
+      Child3 : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Child ((Width => Set (Size (Px (80.0))),
+                     Height => Set (Size (Px (40.0))),
+                     others => <>));
+      G1, G2, G3 : Rectangle;
+   begin
+      Add_Child (Container.all, Widget_Access (Child1));
+      Add_Child (Container.all, Widget_Access (Child2));
+      Add_Child (Container.all, Widget_Access (Child3));
+      Layout_Tree (Container.all);
+
+      G1 := Get_Geometry (Child1.all);
+      G2 := Get_Geometry (Child2.all);
+      G3 := Get_Geometry (Child3.all);
+
+      --  Child1 at flow start
+      Assert_Close (G1.X, 0.0, "rel: child1 X at flow start");
+      --  Child2 shifted by left:10, top:5 from its flow position (80)
+      Assert_Close (G2.X, 90.0, "rel: child2 X = 80 + left:10");
+      Assert_Close (G2.Y, 5.0, "rel: child2 Y = 0 + top:5");
+      --  Child3 at its normal flow position (not affected by child2's offset)
+      Assert_Close (G3.X, 160.0, "rel: child3 X at normal flow (160)");
+   end Test_Relative_Offset_Px;
+
+   procedure Test_Absolute_Basic is
+      --  An absolute child should be positioned against parent content box
+      --  and excluded from flow
+      Container : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Flex_Container (400.0, 200.0);
+      Flow_Child : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Child ((Width => Set (Size (Px (100.0))),
+                     Height => Set (Size (Px (50.0))),
+                     others => <>));
+      Abs_Child : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Child ((Width => Set (Size (Px (60.0))),
+                     Height => Set (Size (Px (30.0))),
+                     Position => Set (Absolute),
+                     Left => Set_Left (Inset (Px (20.0))),
+                     Top => Set_Top (Inset (Px (10.0))),
+                     others => <>));
+      Flow2 : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Child ((Width => Set (Size (Px (100.0))),
+                     Height => Set (Size (Px (50.0))),
+                     others => <>));
+      GF1, GA, GF2 : Rectangle;
+   begin
+      Add_Child (Container.all, Widget_Access (Flow_Child));
+      Add_Child (Container.all, Widget_Access (Abs_Child));
+      Add_Child (Container.all, Widget_Access (Flow2));
+      Layout_Tree (Container.all);
+
+      GF1 := Get_Geometry (Flow_Child.all);
+      GA  := Get_Geometry (Abs_Child.all);
+      GF2 := Get_Geometry (Flow2.all);
+
+      --  Flow children should be adjacent (absolute child excluded from flow)
+      Assert_Close (GF1.X, 0.0, "abs: flow child1 X");
+      Assert_Close (GF2.X, 100.0, "abs: flow child2 X = 100 (abs excluded)");
+      --  Absolute child positioned at left:20, top:10
+      Assert_Close (GA.X, 20.0, "abs: absolute X = left:20");
+      Assert_Close (GA.Y, 10.0, "abs: absolute Y = top:10");
+      Assert_Close (GA.Width, 60.0, "abs: absolute width = explicit 60");
+      Assert_Close (GA.Height, 30.0, "abs: absolute height = explicit 30");
+   end Test_Absolute_Basic;
+
+   procedure Test_Absolute_Dual_Inset_Sizing is
+      --  When both left+right (or top+bottom) are set and no explicit size,
+      --  width/height should be derived from container - insets
+      Container : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Flex_Container (400.0, 200.0);
+      Abs_Child : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Child ((Position => Set (Absolute),
+                     Left => Set_Left (Inset (Px (30.0))),
+                     Right => Set_Right (Inset (Px (50.0))),
+                     Top => Set_Top (Inset (Px (10.0))),
+                     Bottom => Set_Bottom (Inset (Px (20.0))),
+                     others => <>));
+      GA : Rectangle;
+   begin
+      Add_Child (Container.all, Widget_Access (Abs_Child));
+      Layout_Tree (Container.all);
+
+      GA := Get_Geometry (Abs_Child.all);
+
+      Assert_Close (GA.X, 30.0, "dual-inset: X = left:30");
+      Assert_Close (GA.Y, 10.0, "dual-inset: Y = top:10");
+      Assert_Close (GA.Width, 320.0,
+                    "dual-inset: W = 400 - 30 - 50 = 320");
+      Assert_Close (GA.Height, 170.0,
+                    "dual-inset: H = 200 - 10 - 20 = 170");
+   end Test_Absolute_Dual_Inset_Sizing;
+
+   procedure Test_Absolute_Right_Bottom_Anchor is
+      --  When only right/bottom are set, child anchors from those edges
+      Container : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Flex_Container (400.0, 200.0);
+      Abs_Child : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Child ((Width => Set (Size (Px (80.0))),
+                     Height => Set (Size (Px (40.0))),
+                     Position => Set (Absolute),
+                     Right => Set_Right (Inset (Px (10.0))),
+                     Bottom => Set_Bottom (Inset (Px (20.0))),
+                     others => <>));
+      GA : Rectangle;
+   begin
+      Add_Child (Container.all, Widget_Access (Abs_Child));
+      Layout_Tree (Container.all);
+
+      GA := Get_Geometry (Abs_Child.all);
+
+      --  X = container_width - right - width = 400 - 10 - 80 = 310
+      Assert_Close (GA.X, 310.0, "right-anchor: X = 400-10-80");
+      --  Y = container_height - bottom - height = 200 - 20 - 40 = 140
+      Assert_Close (GA.Y, 140.0, "bottom-anchor: Y = 200-20-40");
+   end Test_Absolute_Right_Bottom_Anchor;
+
+   procedure Test_Absolute_Zero_Inset_Explicit is
+      --  Regression: left:0 should be treated as "set" (not same as unset).
+      --  With left:0 and right:10, this is dual-inset → width = 400-0-10 = 390
+      Container : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Flex_Container (400.0, 200.0);
+      Abs_Child : constant Adi.Widget.Box.Box_Widget_Access :=
+        Make_Child ((Position => Set (Absolute),
+                     Left => Set_Left (Inset (Px (0.0))),
+                     Right => Set_Right (Inset (Px (10.0))),
+                     Top => Set_Top (Inset (Px (0.0))),
+                     Bottom => Set_Bottom (Inset (Px (0.0))),
+                     others => <>));
+      GA : Rectangle;
+   begin
+      Add_Child (Container.all, Widget_Access (Abs_Child));
+      Layout_Tree (Container.all);
+
+      GA := Get_Geometry (Abs_Child.all);
+
+      Assert_Close (GA.X, 0.0, "zero-inset: X = left:0");
+      Assert_Close (GA.Y, 0.0, "zero-inset: Y = top:0");
+      Assert_Close (GA.Width, 390.0,
+                    "zero-inset: W = 400-0-10 (left:0 is set, dual-inset)");
+      Assert_Close (GA.Height, 200.0,
+                    "zero-inset: H = 200-0-0 (top:0 and bottom:0 both set)");
+   end Test_Absolute_Zero_Inset_Explicit;
+
    procedure Test_Grid_Fr_Ample_Space is
       --  2 columns: auto(80) 1fr, container=400, no gap.
       --  Fr column should get 400-80 = 320.
@@ -431,6 +687,14 @@ begin
    Test_Grid_Track_Sizing;
    Test_Grid_Fr_Content_Sized;
    Test_Grid_Fr_Ample_Space;
+
+   --  Position layout tests
+   Test_Relative_Subtree;
+   Test_Relative_Offset_Px;
+   Test_Absolute_Basic;
+   Test_Absolute_Dual_Inset_Sizing;
+   Test_Absolute_Right_Bottom_Anchor;
+   Test_Absolute_Zero_Inset_Explicit;
 
    Put_Line ("PASS: layout_flex_grid_test checks=" & Checks'Image);
 end Layout_Flex_Grid_Test;

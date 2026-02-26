@@ -25,12 +25,12 @@ package Runtime_Css_Example_Styles is
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (18.0))),
       Background_Color => Set_Bg (RGBA (30, 41, 59, 0.55)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (10.0), Px (30.0), Px (0.0), RGBA (15, 23, 42, 0.45))),
+      Padding => Set (CSS_Box (Px (18.0), Px (20.0), Px (18.0), Px (20.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGBA (148, 163, 184, 0.35))),
       Border_Radius => Set (Radius (Px (18.0))),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (10.0), Px (30.0), Px (0.0), RGBA (15, 23, 42, 0.45))),
-      Padding => Set (CSS_Box (Px (18.0), Px (20.0), Px (18.0), Px (20.0))),
       others => <>
    );
 
@@ -49,21 +49,21 @@ package Runtime_Css_Example_Styles is
       Flex_Grow => Set (1.0),
       Gap => Set (Gap (Px (10.0))),
       Background_Color => Set_Bg (RGBA (15, 23, 42, 0.9)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (12.0), Px (28.0), Px (0.0), RGBA (2, 6, 23, 0.5))),
+      Transition => Set ((Duration => 0.5, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGBA (59, 130, 246, 0.35))),
       Border_Radius => Set (Radius (Px (16.0))),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (12.0), Px (28.0), Px (0.0), RGBA (2, 6, 23, 0.5))),
-      Transition => Set ((Duration => 0.5, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
       others => <>
    );
 
    --  Style for class 'card-left' when widget State_Hovered
    Card_Left_Class_Widget_Hovered_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGBA (30, 58, 110, 0.92)),
-      Border_Color => Set (Border_Color (RGBA (96, 165, 250, 0.9))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (16.0), Px (36.0), Px (0.0), RGBA (15, 23, 42, 0.75))),
+      Border_Color => Set (Border_Color (RGBA (96, 165, 250, 0.9))),
       others => <>
    );
 
@@ -74,21 +74,21 @@ package Runtime_Css_Example_Styles is
       Flex_Grow => Set (1.0),
       Gap => Set (Gap (Px (10.0))),
       Background_Color => Set_Bg (RGBA (30, 41, 59, 0.9)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (12.0), Px (28.0), Px (0.0), RGBA (2, 6, 23, 0.5))),
+      Transition => Set ((Duration => 0.5, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGBA (45, 212, 191, 0.35))),
       Border_Radius => Set (Radius (Px (16.0))),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (12.0), Px (28.0), Px (0.0), RGBA (2, 6, 23, 0.5))),
-      Transition => Set ((Duration => 0.5, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
       others => <>
    );
 
    --  Style for class 'card-right' when widget State_Hovered
    Card_Right_Class_Widget_Hovered_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGBA (22, 78, 99, 0.92)),
-      Border_Color => Set (Border_Color (RGBA (45, 212, 191, 0.9))),
       Box_Shadow => Set (Shadow (Px (0.0), Px (16.0), Px (36.0), Px (0.0), RGBA (15, 23, 42, 0.75))),
+      Border_Color => Set (Border_Color (RGBA (45, 212, 191, 0.9))),
       others => <>
    );
 
@@ -126,12 +126,12 @@ package Runtime_Css_Example_Styles is
       Justify_Content => Set (Center),
       Width => Set (Size (Px (84.0))),
       Background_Color => Set_Bg (RGBA (34, 197, 94, 0.18)),
+      Padding => Set (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0))),
+      Margin => Set (CSS_Box (Px (8.0), Px (0.0), Px (0.0), Px (0.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGBA (74, 222, 128, 0.6))),
       Border_Radius => Set (Radius (Px (999.0))),
-      Padding => Set (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0))),
-      Margin => Set (CSS_Box (Px (8.0), Px (0.0), Px (0.0), Px (0.0))),
       others => <>
    );
 
@@ -152,14 +152,14 @@ package Runtime_Css_Example_Styles is
       Justify_Content => Set (Center),
       Width => Set (Size (Px (220.0))),
       Background_Color => Set_Bg (RGBA (30, 64, 175, 0.35)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGBA (96, 165, 250, 0.7))),
-      Border_Radius => Set (Radius (Px (10.0))),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (28.0))),
       Margin => Set (CSS_Box (Px (20.0), Px (0.0), Px (0.0), Px (0.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGBA (96, 165, 250, 0.7))),
+      Border_Radius => Set (Radius (Px (10.0))),
       others => <>
    );
 
@@ -222,11 +222,11 @@ package Runtime_Css_Example_Styles is
    --  Base style for class 'status'
    Status_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGBA (15, 23, 42, 0.75)),
+      Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (28.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGBA (71, 85, 105, 0.8))),
       Border_Radius => Set (Radius (Px (10.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (28.0))),
       others => <>
    );
 

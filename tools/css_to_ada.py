@@ -1412,6 +1412,8 @@ def validate_property_value(property_name: str, value: str) -> bool:
         return low == "none" or parse_css_url_function(value) is not None
     if validator == "length":
         return parse_length(value) is not None
+    if validator == "inset":
+        return low == "auto" or parse_length(value) is not None
     if validator == "box-1-4-length":
         lengths = parse_box_values(value)
         return lengths is not None and 1 <= len(lengths) <= 4
@@ -1843,6 +1845,10 @@ GENERATED_PROPERTY_NAMES = {
     "visibility",
     "display",
     "position",
+    "top",
+    "right",
+    "bottom",
+    "left",
     "flex-direction",
     "flex-wrap",
     "justify-content",
@@ -2321,7 +2327,37 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         elif prop == "position":
             if value.lower() in POSITION_MAP:
                 ada_field = f"Position => Set ({POSITION_MAP[value.lower()]})"
-        
+
+        # Inset offsets (top/right/bottom/left)
+        elif prop == "top":
+            if value.lower() == "auto":
+                ada_field = "Top => Set_Top (Auto_Inset)"
+            else:
+                length = parse_length(value)
+                if length:
+                    ada_field = f"Top => Set_Top (Inset ({generate_length_ada(length)}))"
+        elif prop == "right":
+            if value.lower() == "auto":
+                ada_field = "Right => Set_Right (Auto_Inset)"
+            else:
+                length = parse_length(value)
+                if length:
+                    ada_field = f"Right => Set_Right (Inset ({generate_length_ada(length)}))"
+        elif prop == "bottom":
+            if value.lower() == "auto":
+                ada_field = "Bottom => Set_Bottom (Auto_Inset)"
+            else:
+                length = parse_length(value)
+                if length:
+                    ada_field = f"Bottom => Set_Bottom (Inset ({generate_length_ada(length)}))"
+        elif prop == "left":
+            if value.lower() == "auto":
+                ada_field = "Left => Set_Left (Auto_Inset)"
+            else:
+                length = parse_length(value)
+                if length:
+                    ada_field = f"Left => Set_Left (Inset ({generate_length_ada(length)}))"
+
         # Flex direction
         elif prop == "flex-direction":
             if value.lower() in FLEX_DIRECTION_MAP:

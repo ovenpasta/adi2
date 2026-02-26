@@ -79,8 +79,8 @@ package Slider_Example_Styles is
    Slider_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (300.0))),
       Height => Set (Size (Px (20.0))),
-      Border_Radius => Set (Radius (Px (10.0))),
       Background_Color => Set_Bg (RGB (49, 50, 68)),
+      Border_Radius => Set (Radius (Px (10.0))),
       others => <>
    );
 
@@ -124,8 +124,8 @@ package Slider_Example_Styles is
    Slider_Vertical_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (20.0))),
       Height => Set (Size (Px (150.0))),
-      Border_Radius => Set (Radius (Px (10.0))),
       Background_Color => Set_Bg (RGB (49, 50, 68)),
+      Border_Radius => Set (Radius (Px (10.0))),
       others => <>
    );
 
@@ -149,12 +149,12 @@ package Slider_Example_Styles is
       Width => Set (Size (Px (80.0))),
       Height => Set (Size (Px (28.0))),
       Background_Color => Set_Bg (RGB (49, 50, 68)),
+      Font_Size => Set_Font (Px (14.0)),
+      Padding => Set (CSS_Box (Px (2.0), Px (6.0), Px (2.0), Px (6.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (88, 91, 112))),
       Border_Radius => Set (Radius (Px (4.0))),
-      Font_Size => Set_Font (Px (14.0)),
-      Padding => Set (CSS_Box (Px (2.0), Px (6.0), Px (2.0), Px (6.0))),
       others => <>
    );
 
@@ -170,8 +170,14 @@ package Slider_Example_Styles is
       others => <>
    );
 
-   --  Base style for class 'value-input'::label
-   Value_Input_Class_Label_Base_Style : constant Style_Rules := (
+   --  Base style for class 'value-input'::selected
+   Value_Input_Class_Selected_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGBA (137, 180, 250, 0.25)),
+      others => <>
+   );
+
+   --  Base style for class 'value-input'::text
+   Value_Input_Class_Text_Base_Style : constant Style_Rules := (
       Color => Set (RGB (205, 214, 244)),
       others => <>
    );
@@ -180,12 +186,12 @@ package Slider_Example_Styles is
    Context_Menu_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (180.0))),
       Background_Color => Set_Bg (RGB (30, 30, 46)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (24.0), Px (0.0), RGBA (0, 0, 0, 0.45))),
+      Padding => Set (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (88, 91, 112))),
       Border_Radius => Set (Radius (Px (8.0))),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (24.0), Px (0.0), RGBA (0, 0, 0, 0.45))),
-      Padding => Set (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0))),
       others => <>
    );
 
@@ -193,8 +199,8 @@ package Slider_Example_Styles is
    Context_Menu_Item_Class_Base_Style : constant Style_Rules := (
       Min_Height => Set (Size (Px (28.0))),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
-      Border_Radius => Set (Radius (Px (6.0))),
       Padding => Set (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 
@@ -355,16 +361,22 @@ package Slider_Example_Styles is
      From (Value_Input_Class_Cursor_Base_Style)
      .Build;
 
-   --  Complete widget style for class 'value-input'::label
-   Value_Input_Class_Label_Widget : constant Widget_Style :=
-     From (Value_Input_Class_Label_Base_Style)
+   --  Complete widget style for class 'value-input'::selected
+   Value_Input_Class_Selected_Widget : constant Widget_Style :=
+     From (Value_Input_Class_Selected_Base_Style)
+     .Build;
+
+   --  Complete widget style for class 'value-input'::text
+   Value_Input_Class_Text_Widget : constant Widget_Style :=
+     From (Value_Input_Class_Text_Base_Style)
      .Build;
 
    --  Part styles bundle for class 'value-input'
    Value_Input_Class_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Value_Input_Class_Widget, Enabled => True),
       Cursor_Part => (Style => Value_Input_Class_Cursor_Widget, Enabled => True),
-      Label_Part => (Style => Value_Input_Class_Label_Widget, Enabled => True),
+      Selected_Part => (Style => Value_Input_Class_Selected_Widget, Enabled => True),
+      Text_Part => (Style => Value_Input_Class_Text_Widget, Enabled => True),
       others => <>
    ];
 

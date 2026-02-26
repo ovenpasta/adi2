@@ -21,8 +21,8 @@ package Label_Example_Styles is
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (20.0))),
       Background_Color => Set_Bg (RGB (60, 63, 70)),
-      Border_Radius => Set (Radius (Px (8.0))),
       Padding => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
+      Border_Radius => Set (Radius (Px (8.0))),
       others => <>
    );
 
@@ -31,8 +31,8 @@ package Label_Example_Styles is
       Display => Set (Flex),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (97, 175, 239)),
-      Border_Radius => Set (Radius (Px (4.0))),
       Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
+      Border_Radius => Set (Radius (Px (4.0))),
       others => <>
    );
 
@@ -49,8 +49,8 @@ package Label_Example_Styles is
       Align_Items => Set (Center),
       Justify_Content => Set (Center),
       Background_Color => Set_Bg (RGB (152, 195, 121)),
-      Border_Radius => Set (Radius (Px (4.0))),
       Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
+      Border_Radius => Set (Radius (Px (4.0))),
       others => <>
    );
 
@@ -68,8 +68,8 @@ package Label_Example_Styles is
       Align_Items => Set (Center),
       Gap => Set (Gap (Px (8.0))),
       Background_Color => Set_Bg (RGB (198, 120, 221)),
-      Border_Radius => Set (Radius (Px (4.0))),
       Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
+      Border_Radius => Set (Radius (Px (4.0))),
       others => <>
    );
 
@@ -94,8 +94,8 @@ package Label_Example_Styles is
       Align_Items => Set (Center),
       Gap => Set (Gap (Px (8.0))),
       Background_Color => Set_Bg (RGB (229, 192, 123)),
-      Border_Radius => Set (Radius (Px (4.0))),
       Padding => Set (CSS_Box (Px (15.0), Px (15.0), Px (15.0), Px (15.0))),
+      Border_Radius => Set (Radius (Px (4.0))),
       others => <>
    );
 

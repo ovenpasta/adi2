@@ -98,28 +98,39 @@ package body Adi.Widget.Box is
                declare
                   Child_Style : constant Resolved_Style :=
                     Get_Resolved_Part_Style (Child.all, Main_Part);
-                  Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
-                  Pref : constant Size_2D := Get_Preferred_Size (Child.all);
-                  Min  : constant Size_2D := Get_Min_Size (Child.all);
-                  Effective : constant Size_2D :=
-                    (Width  => Pixel_Type'Max (Pref.Width, Min.Width),
-                     Height => Pixel_Type'Max (Pref.Height, Min.Height));
-                  Main_Margins : constant Pixel_Type :=
-                    (if Is_Row_Direction (Style.Flex_Direction)
-                     then Margin.Left + Margin.Right
-                     else Margin.Top + Margin.Bottom);
-                  Cross_Margins : constant Pixel_Type :=
-                    (if Is_Row_Direction (Style.Flex_Direction)
-                     then Margin.Top + Margin.Bottom
-                     else Margin.Left + Margin.Right);
                begin
-                  Main_Sum := Main_Sum
-                    + Get_Main_Size (Effective, Style.Flex_Direction)
-                    + Main_Margins;
-                  Cross_Max :=
-                    Pixel_Type'Max
-                      (Cross_Max, Get_Cross_Size (Effective, Style.Flex_Direction) + Cross_Margins);
-                  Count := Count + 1;
+                  --  Absolute children do not contribute to intrinsic size
+                  if Child_Style.Position /= Absolute then
+                     declare
+                        Margin : constant Edge_Pixels :=
+                          Get_Margin_Px (Child_Style);
+                        Pref : constant Size_2D :=
+                          Get_Preferred_Size (Child.all);
+                        Min  : constant Size_2D :=
+                          Get_Min_Size (Child.all);
+                        Effective : constant Size_2D :=
+                          (Width  => Pixel_Type'Max (Pref.Width, Min.Width),
+                           Height => Pixel_Type'Max (Pref.Height, Min.Height));
+                        Main_Margins : constant Pixel_Type :=
+                          (if Is_Row_Direction (Style.Flex_Direction)
+                           then Margin.Left + Margin.Right
+                           else Margin.Top + Margin.Bottom);
+                        Cross_Margins : constant Pixel_Type :=
+                          (if Is_Row_Direction (Style.Flex_Direction)
+                           then Margin.Top + Margin.Bottom
+                           else Margin.Left + Margin.Right);
+                     begin
+                        Main_Sum := Main_Sum
+                          + Get_Main_Size (Effective, Style.Flex_Direction)
+                          + Main_Margins;
+                        Cross_Max :=
+                          Pixel_Type'Max
+                            (Cross_Max,
+                             Get_Cross_Size (Effective, Style.Flex_Direction)
+                             + Cross_Margins);
+                        Count := Count + 1;
+                     end;
+                  end if;
                end;
             end if;
          end loop;
@@ -156,66 +167,76 @@ package body Adi.Widget.Box is
                         declare
                            Child_Style : constant Resolved_Style :=
                              Get_Resolved_Part_Style (Child.all, Main_Part);
-                           Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
-                           Pref   : constant Size_2D := Get_Preferred_Size (Child.all);
-                           Min    : constant Size_2D := Get_Min_Size (Child.all);
-                           --  For auto columns: preferred (full content) width.
-                           --  For fr columns: intrinsic minimum only (CSS
-                           --  minmax(auto, Xfr) — the auto floor is the minimum
-                           --  content contribution, not the preferred width).
-                           Eff_W  : constant Pixel_Type :=
-                             Pixel_Type'Max (Pref.Width, Min.Width)
-                             + Margin.Left + Margin.Right;
-                           Min_W  : constant Pixel_Type :=
-                             Min.Width + Margin.Left + Margin.Right;
-                           C  : Natural := Natural (Child_Style.Grid_Column);
-                           R  : constant Natural := Natural (Child_Style.Grid_Row);
-                           CS : Natural := Natural (Child_Style.Grid_Column_Span);
                         begin
-                           if CS = 0 then
-                              CS := 1;
-                           end if;
-
-                           --  Replicate placement logic from Compute_Grid_Layout.
-                           if C = 0 and then R = 0 then
-                              Auto_Index := Auto_Index + 1;
-                              C := ((Auto_Index - 1) mod Cols) + 1;
-                           elsif C = 0 then
-                              C := 1;
-                           elsif R = 0 then
-                              Auto_Index := Auto_Index + 1;
-                              --  C is already explicit; auto_index tracks row only.
-                           end if;
-                           C  := Natural'Max (1, Natural'Min (C, Cols));
-                           CS := Natural'Max (1, Natural'Min (CS, Cols - C + 1));
-
-                           Max_Child_H := Pixel_Type'Max
-                             (Max_Child_H,
-                              Pixel_Type'Max (Pref.Height, Min.Height)
-                              + Margin.Top + Margin.Bottom);
-
-                        --  Distribute child width across spanned columns.
-                        --  Auto tracks: full preferred width (sized to content).
-                        --  Fr tracks: intrinsic minimum only — fr columns fill
-                        --  available space at layout time, so measurement uses
-                        --  the minimum content contribution (CSS minmax(auto,
-                        --  Xfr) floor) to avoid inflating the container.
-                        --  Px tracks: keep their fixed value.
-                           for Span_Offset in 0 .. CS - 1 loop
+                           --  Absolute children do not contribute to grid sizing
+                           if Child_Style.Position /= Absolute then
                               declare
-                                 Sc : constant Natural := C + Span_Offset;
+                                 Margin : constant Edge_Pixels :=
+                                   Get_Margin_Px (Child_Style);
+                                 Pref   : constant Size_2D :=
+                                   Get_Preferred_Size (Child.all);
+                                 Min    : constant Size_2D :=
+                                   Get_Min_Size (Child.all);
+                                 Eff_W  : constant Pixel_Type :=
+                                   Pixel_Type'Max (Pref.Width, Min.Width)
+                                   + Margin.Left + Margin.Right;
+                                 Min_W  : constant Pixel_Type :=
+                                   Min.Width + Margin.Left + Margin.Right;
+                                 C  : Natural :=
+                                   Natural (Child_Style.Grid_Column);
+                                 R  : constant Natural :=
+                                   Natural (Child_Style.Grid_Row);
+                                 CS : Natural :=
+                                   Natural (Child_Style.Grid_Column_Span);
                               begin
-                                 if Tracks.Tracks (Sc).Kind = Track_Auto then
-                                    Col_Max_W (Sc) := Pixel_Type'Max
-                                      (Col_Max_W (Sc), Eff_W / Pixel_Type (CS));
-                                 elsif Tracks.Tracks (Sc).Kind = Track_Fr then
-                                    Col_Max_W (Sc) := Pixel_Type'Max
-                                      (Col_Max_W (Sc), Min_W / Pixel_Type (CS));
+                                 if CS = 0 then
+                                    CS := 1;
                                  end if;
-                              end;
-                           end loop;
 
-                           Count := Count + 1;
+                                 --  Replicate placement logic from
+                                 --  Compute_Grid_Layout.
+                                 if C = 0 and then R = 0 then
+                                    Auto_Index := Auto_Index + 1;
+                                    C := ((Auto_Index - 1) mod Cols) + 1;
+                                 elsif C = 0 then
+                                    C := 1;
+                                 elsif R = 0 then
+                                    Auto_Index := Auto_Index + 1;
+                                 end if;
+                                 C  := Natural'Max
+                                   (1, Natural'Min (C, Cols));
+                                 CS := Natural'Max
+                                   (1, Natural'Min (CS, Cols - C + 1));
+
+                                 Max_Child_H := Pixel_Type'Max
+                                   (Max_Child_H,
+                                    Pixel_Type'Max (Pref.Height, Min.Height)
+                                    + Margin.Top + Margin.Bottom);
+
+                                 for Span_Offset in 0 .. CS - 1 loop
+                                    declare
+                                       Sc : constant Natural :=
+                                         C + Span_Offset;
+                                    begin
+                                       if Tracks.Tracks (Sc).Kind =
+                                         Track_Auto
+                                       then
+                                          Col_Max_W (Sc) := Pixel_Type'Max
+                                            (Col_Max_W (Sc),
+                                             Eff_W / Pixel_Type (CS));
+                                       elsif Tracks.Tracks (Sc).Kind =
+                                         Track_Fr
+                                       then
+                                          Col_Max_W (Sc) := Pixel_Type'Max
+                                            (Col_Max_W (Sc),
+                                             Min_W / Pixel_Type (CS));
+                                       end if;
+                                    end;
+                                 end loop;
+
+                                 Count := Count + 1;
+                              end;
+                           end if;
                         end;
                      end if;
                   end loop;
@@ -237,18 +258,33 @@ package body Adi.Widget.Box is
                         declare
                            Child_Style : constant Resolved_Style :=
                              Get_Resolved_Part_Style (Child.all, Main_Part);
-                           Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
-                           Pref : constant Size_2D := Get_Preferred_Size (Child.all);
-                           Min  : constant Size_2D := Get_Min_Size (Child.all);
-                           Effective : constant Size_2D :=
-                             (Width  => Pixel_Type'Max (Pref.Width, Min.Width),
-                              Height => Pixel_Type'Max (Pref.Height, Min.Height));
                         begin
-                           Max_Child_W := Pixel_Type'Max
-                             (Max_Child_W, Effective.Width + Margin.Left + Margin.Right);
-                           Max_Child_H := Pixel_Type'Max
-                             (Max_Child_H, Effective.Height + Margin.Top + Margin.Bottom);
-                           Count := Count + 1;
+                           if Child_Style.Position /= Absolute then
+                              declare
+                                 Margin : constant Edge_Pixels :=
+                                   Get_Margin_Px (Child_Style);
+                                 Pref : constant Size_2D :=
+                                   Get_Preferred_Size (Child.all);
+                                 Min  : constant Size_2D :=
+                                   Get_Min_Size (Child.all);
+                                 Effective : constant Size_2D :=
+                                   (Width  =>
+                                      Pixel_Type'Max (Pref.Width, Min.Width),
+                                    Height =>
+                                      Pixel_Type'Max
+                                        (Pref.Height, Min.Height));
+                              begin
+                                 Max_Child_W := Pixel_Type'Max
+                                   (Max_Child_W,
+                                    Effective.Width
+                                    + Margin.Left + Margin.Right);
+                                 Max_Child_H := Pixel_Type'Max
+                                   (Max_Child_H,
+                                    Effective.Height
+                                    + Margin.Top + Margin.Bottom);
+                                 Count := Count + 1;
+                              end;
+                           end if;
                         end;
                      end if;
                   end loop;
@@ -281,16 +317,28 @@ package body Adi.Widget.Box is
                declare
                   Child_Style : constant Resolved_Style :=
                     Get_Resolved_Part_Style (Child.all, Main_Part);
-                  Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
-                  Pref : constant Size_2D := Get_Preferred_Size (Child.all);
-                  Min  : constant Size_2D := Get_Min_Size (Child.all);
-                  Effective : constant Size_2D :=
-                    (Width  => Pixel_Type'Max (Pref.Width, Min.Width),
-                     Height => Pixel_Type'Max (Pref.Height, Min.Height));
                begin
-                  Result.Width := Pixel_Type'Max
-                    (Result.Width, Effective.Width + Margin.Left + Margin.Right);
-                  Result.Height := Result.Height + Effective.Height + Margin.Top + Margin.Bottom;
+                  if Child_Style.Position /= Absolute then
+                     declare
+                        Margin : constant Edge_Pixels :=
+                          Get_Margin_Px (Child_Style);
+                        Pref : constant Size_2D :=
+                          Get_Preferred_Size (Child.all);
+                        Min  : constant Size_2D :=
+                          Get_Min_Size (Child.all);
+                        Effective : constant Size_2D :=
+                          (Width  =>
+                             Pixel_Type'Max (Pref.Width, Min.Width),
+                           Height =>
+                             Pixel_Type'Max (Pref.Height, Min.Height));
+                     begin
+                        Result.Width := Pixel_Type'Max
+                          (Result.Width,
+                           Effective.Width + Margin.Left + Margin.Right);
+                        Result.Height := Result.Height
+                          + Effective.Height + Margin.Top + Margin.Bottom;
+                     end;
+                  end if;
                end;
             end if;
          end loop;
@@ -316,25 +364,33 @@ package body Adi.Widget.Box is
                declare
                   Child_Style : constant Resolved_Style :=
                     Get_Resolved_Part_Style (Child.all, Main_Part);
-                  Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
-                  Min : constant Size_2D := Get_Min_Size (Child.all);
-                  Main_Margins : constant Pixel_Type :=
-                    (if Is_Row_Direction (Style.Flex_Direction)
-                     then Margin.Left + Margin.Right
-                     else Margin.Top + Margin.Bottom);
-                  Cross_Margins : constant Pixel_Type :=
-                    (if Is_Row_Direction (Style.Flex_Direction)
-                     then Margin.Top + Margin.Bottom
-                     else Margin.Left + Margin.Right);
                begin
-                  Main_Sum := Main_Sum
-                    + Get_Main_Size (Min, Style.Flex_Direction)
-                    + Main_Margins;
-                  Cross_Max :=
-                    Pixel_Type'Max
-                      (Cross_Max,
-                       Get_Cross_Size (Min, Style.Flex_Direction) + Cross_Margins);
-                  Count := Count + 1;
+                  if Child_Style.Position /= Absolute then
+                     declare
+                        Margin : constant Edge_Pixels :=
+                          Get_Margin_Px (Child_Style);
+                        Min : constant Size_2D :=
+                          Get_Min_Size (Child.all);
+                        Main_Margins : constant Pixel_Type :=
+                          (if Is_Row_Direction (Style.Flex_Direction)
+                           then Margin.Left + Margin.Right
+                           else Margin.Top + Margin.Bottom);
+                        Cross_Margins : constant Pixel_Type :=
+                          (if Is_Row_Direction (Style.Flex_Direction)
+                           then Margin.Top + Margin.Bottom
+                           else Margin.Left + Margin.Right);
+                     begin
+                        Main_Sum := Main_Sum
+                          + Get_Main_Size (Min, Style.Flex_Direction)
+                          + Main_Margins;
+                        Cross_Max :=
+                          Pixel_Type'Max
+                            (Cross_Max,
+                             Get_Cross_Size (Min, Style.Flex_Direction)
+                             + Cross_Margins);
+                        Count := Count + 1;
+                     end;
+                  end if;
                end;
             end if;
          end loop;
@@ -374,48 +430,62 @@ package body Adi.Widget.Box is
                      declare
                         Child_Style : constant Resolved_Style :=
                           Get_Resolved_Part_Style (Child.all, Main_Part);
-                        Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
-                        Min : constant Size_2D := Get_Min_Size (Child.all);
-                        C  : Natural := Natural (Child_Style.Grid_Column);
-                        R  : Natural := Natural (Child_Style.Grid_Row);
-                        CS : Natural := Natural (Child_Style.Grid_Column_Span);
-                        RS : Natural := Natural (Child_Style.Grid_Row_Span);
                      begin
-                        if CS = 0 then
-                           CS := 1;
-                        end if;
-                        if RS = 0 then
-                           RS := 1;
-                        end if;
+                        if Child_Style.Position /= Absolute then
+                           declare
+                              Margin : constant Edge_Pixels :=
+                                Get_Margin_Px (Child_Style);
+                              Min : constant Size_2D :=
+                                Get_Min_Size (Child.all);
+                              C  : Natural :=
+                                Natural (Child_Style.Grid_Column);
+                              R  : Natural :=
+                                Natural (Child_Style.Grid_Row);
+                              CS : Natural :=
+                                Natural (Child_Style.Grid_Column_Span);
+                              RS : Natural :=
+                                Natural (Child_Style.Grid_Row_Span);
+                           begin
+                              if CS = 0 then
+                                 CS := 1;
+                              end if;
+                              if RS = 0 then
+                                 RS := 1;
+                              end if;
 
-                        --  Keep placement rules aligned with grid measurement/layout.
-                        if C = 0 and then R = 0 then
-                           Auto_Index := Auto_Index + 1;
-                           C := ((Auto_Index - 1) mod Cols) + 1;
-                           R := ((Auto_Index - 1) / Cols) + 1;
-                        elsif C = 0 then
-                           C := 1;
-                        elsif R = 0 then
-                           Auto_Index := Auto_Index + 1;
-                           R := ((Auto_Index - 1) / Cols) + 1;
-                        end if;
+                              if C = 0 and then R = 0 then
+                                 Auto_Index := Auto_Index + 1;
+                                 C := ((Auto_Index - 1) mod Cols) + 1;
+                                 R := ((Auto_Index - 1) / Cols) + 1;
+                              elsif C = 0 then
+                                 C := 1;
+                              elsif R = 0 then
+                                 Auto_Index := Auto_Index + 1;
+                                 R := ((Auto_Index - 1) / Cols) + 1;
+                              end if;
 
-                        C := Natural'Max (1, Natural'Min (C, Cols));
-                        CS := Natural'Max (1, Natural'Min (CS, Cols - C + 1));
-                        if R = 0 then
-                           R := 1;
-                        end if;
+                              C := Natural'Max (1, Natural'Min (C, Cols));
+                              CS := Natural'Max
+                                (1, Natural'Min (CS, Cols - C + 1));
+                              if R = 0 then
+                                 R := 1;
+                              end if;
 
-                        Active_Count := Active_Count + 1;
-                        Infos (Active_Count) :=
-                          (Active   => True,
-                           Col      => C,
-                           Row      => R,
-                           Col_Span => CS,
-                           Row_Span => RS,
-                           Min_W    => Min.Width + Margin.Left + Margin.Right,
-                           Min_H    => Min.Height + Margin.Top + Margin.Bottom);
-                        Max_Row_End := Natural'Max (Max_Row_End, R + RS - 1);
+                              Active_Count := Active_Count + 1;
+                              Infos (Active_Count) :=
+                                (Active   => True,
+                                 Col      => C,
+                                 Row      => R,
+                                 Col_Span => CS,
+                                 Row_Span => RS,
+                                 Min_W    =>
+                                   Min.Width + Margin.Left + Margin.Right,
+                                 Min_H    =>
+                                   Min.Height + Margin.Top + Margin.Bottom);
+                              Max_Row_End :=
+                                Natural'Max (Max_Row_End, R + RS - 1);
+                           end;
+                        end if;
                      end;
                   end if;
                end;
@@ -509,13 +579,22 @@ package body Adi.Widget.Box is
                declare
                   Child_Style : constant Resolved_Style :=
                     Get_Resolved_Part_Style (Child.all, Main_Part);
-                  Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
-                  Min : constant Size_2D := Get_Min_Size (Child.all);
                begin
-                  Result.Width := Pixel_Type'Max
-                    (Result.Width, Min.Width + Margin.Left + Margin.Right);
-                  Result.Height := Pixel_Type'Max
-                    (Result.Height, Min.Height + Margin.Top + Margin.Bottom);
+                  if Child_Style.Position /= Absolute then
+                     declare
+                        Margin : constant Edge_Pixels :=
+                          Get_Margin_Px (Child_Style);
+                        Min : constant Size_2D :=
+                          Get_Min_Size (Child.all);
+                     begin
+                        Result.Width := Pixel_Type'Max
+                          (Result.Width,
+                           Min.Width + Margin.Left + Margin.Right);
+                        Result.Height := Pixel_Type'Max
+                          (Result.Height,
+                           Min.Height + Margin.Top + Margin.Bottom);
+                     end;
+                  end if;
                end;
             end if;
          end loop;
@@ -571,17 +650,27 @@ overriding procedure Layout (W : in out Box_Widget) is
                            Child_Min  : constant Size_2D :=
                              Get_Min_Size (Child.all);
                         begin
-                           Children_Info (Positive (I)) :=
-                             (Active           => True,
-                              Grid_Column      => Natural (Child_Style.Grid_Column),
-                              Grid_Row         => Natural (Child_Style.Grid_Row),
-                              Grid_Column_Span => Natural (Child_Style.Grid_Column_Span),
-                              Grid_Row_Span    => Natural (Child_Style.Grid_Row_Span),
-                              Min_Width        => Child_Min.Width,
-                              Min_Height       => Child_Min.Height,
-                              Pref_Width       => Child_Pref.Width,
-                              Pref_Height      => Child_Pref.Height,
-                              others           => <>);
+                           --  Absolute children are out of flow
+                           if Child_Style.Position = Absolute then
+                              Children_Info (Positive (I)) :=
+                                (Active => False, others => <>);
+                           else
+                              Children_Info (Positive (I)) :=
+                                (Active           => True,
+                                 Grid_Column      =>
+                                   Natural (Child_Style.Grid_Column),
+                                 Grid_Row         =>
+                                   Natural (Child_Style.Grid_Row),
+                                 Grid_Column_Span =>
+                                   Natural (Child_Style.Grid_Column_Span),
+                                 Grid_Row_Span    =>
+                                   Natural (Child_Style.Grid_Row_Span),
+                                 Min_Width        => Child_Min.Width,
+                                 Min_Height       => Child_Min.Height,
+                                 Pref_Width       => Child_Pref.Width,
+                                 Pref_Height      => Child_Pref.Height,
+                                 others           => <>);
+                           end if;
                         end;
                      end if;
                   end;
@@ -713,10 +802,42 @@ overriding procedure Layout (W : in out Box_Widget) is
                            Cell.Height := CH;
                            Set_Geometry (Child.all, Cell);
                            Layout_Child (Child.all);
+
+                           --  Apply relative offset after flow placement
+                           Apply_Relative_Offset (Child.all, Content);
                         end;
                      end if;
                   end;
                end loop;
+
+               --  Position absolute children against parent content box.
+               --  Recompute content box since W.Geometry may have grown
+               --  from overflow-driven height expansion above.
+               declare
+                  Abs_Content : constant Rectangle :=
+                    Content_Box (W.Geometry, Style);
+               begin
+               for I in 1 .. N loop
+                  declare
+                     Child : constant Widget_Access :=
+                       Get_Child (W, Positive (I));
+                  begin
+                     if Child /= null
+                       and then Child_Participates (Child)
+                     then
+                        declare
+                           CS : constant Resolved_Style :=
+                             Get_Resolved_Part_Style (Child.all, Main_Part);
+                        begin
+                           if CS.Position = Absolute then
+                              Position_Absolute_Child
+                                (Child.all, CS, Abs_Content);
+                           end if;
+                        end;
+                     end if;
+                  end;
+               end loop;
+               end;
             end;
          end;
       else
@@ -734,6 +855,8 @@ overriding procedure Layout (W : in out Box_Widget) is
                W.Geometry.Width - Pad.Left - Pad.Right - Border.Left - Border.Right;
             Content_H : constant Pixel_Type :=
                W.Geometry.Height - Pad.Top - Pad.Bottom - Border.Top - Border.Bottom;
+            Block_Content : constant Rectangle :=
+              (Content_X, Content_Y, Content_W, Content_H);
 
             Current_Y : Pixel_Type := Content_Y;
          begin
@@ -743,32 +866,59 @@ overriding procedure Layout (W : in out Box_Widget) is
                   declare
                      Child_Style : constant Resolved_Style :=
                        Get_Resolved_Part_Style (Child.all, Main_Part);
-                     Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
-                     Child_Pref : constant Size_2D := Get_Preferred_Size(Child.all);
-                     Child_H : Pixel_Type := Child_Pref.Height;
-                     Child_X : Pixel_Type;
-                     Child_Y : Pixel_Type;
-                     Child_W : Pixel_Type;
                   begin
-                     --  Child takes full width, preferred height
-                     if Child_H = 0.0 then
-                        Child_H := Pixel_Type'Max (0.0, Content_H - Margin.Top - Margin.Bottom);
+                     --  Skip absolute children from normal flow
+                     if Child_Style.Position /= Absolute then
+                        declare
+                           Margin : constant Edge_Pixels :=
+                             Get_Margin_Px (Child_Style);
+                           Child_Pref : constant Size_2D :=
+                             Get_Preferred_Size (Child.all);
+                           Child_H : Pixel_Type := Child_Pref.Height;
+                           Child_X : Pixel_Type;
+                           Child_Y : Pixel_Type;
+                           Child_W : Pixel_Type;
+                        begin
+                           if Child_H = 0.0 then
+                              Child_H := Pixel_Type'Max
+                                (0.0,
+                                 Content_H - Margin.Top - Margin.Bottom);
+                           end if;
+
+                           Child_X := Content_X + Margin.Left;
+                           Child_Y := Current_Y + Margin.Top;
+                           Child_W := Pixel_Type'Max
+                             (0.0, Content_W - Margin.Left - Margin.Right);
+
+                           Set_Geometry (Child.all, (
+                              X      => Child_X,
+                              Y      => Child_Y,
+                              Width  => Child_W,
+                              Height => Child_H));
+
+                           Current_Y := Current_Y
+                             + Margin.Top + Child_H + Margin.Bottom;
+
+                           Layout_Child (Child.all);
+                           Apply_Relative_Offset
+                             (Child.all, Block_Content);
+                        end;
                      end if;
+                  end;
+               end if;
+            end loop;
 
-                     Child_X := Content_X + Margin.Left;
-                     Child_Y := Current_Y + Margin.Top;
-                     Child_W := Pixel_Type'Max (0.0, Content_W - Margin.Left - Margin.Right);
-
-                     Set_Geometry(Child.all, (
-                        X      => Child_X,
-                        Y      => Child_Y,
-                        Width  => Child_W,
-                        Height => Child_H));
-
-                     Current_Y := Current_Y + Margin.Top + Child_H + Margin.Bottom;
-
-                     --  Recursively layout child
-                     Layout_Child(Child.all);
+            --  Position absolute children against content box
+            for Child of W.Children loop
+               if Child_Participates (Child) then
+                  declare
+                     CS : constant Resolved_Style :=
+                       Get_Resolved_Part_Style (Child.all, Main_Part);
+                  begin
+                     if CS.Position = Absolute then
+                        Position_Absolute_Child
+                          (Child.all, CS, Block_Content);
+                     end if;
                   end;
                end if;
             end loop;

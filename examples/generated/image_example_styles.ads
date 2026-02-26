@@ -87,11 +87,11 @@ package Image_Example_Styles is
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (8.0))),
       Background_Color => Set_Bg (RGB (30, 41, 59)),
+      Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (71, 85, 105))),
       Border_Radius => Set (Radius (Px (8.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
       others => <>
    );
 
@@ -167,11 +167,11 @@ package Image_Example_Styles is
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (8.0))),
       Background_Color => Set_Bg (RGB (30, 41, 59)),
+      Padding => Set (CSS_Box (Px (16.0), Px (16.0), Px (16.0), Px (16.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (71, 85, 105))),
       Border_Radius => Set (Radius (Px (8.0))),
-      Padding => Set (CSS_Box (Px (16.0), Px (16.0), Px (16.0), Px (16.0))),
       others => <>
    );
 

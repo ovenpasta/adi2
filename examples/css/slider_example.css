@@ -107,12 +107,16 @@
     font-size: 14px;
 }
 
-.value-input::label {
+.value-input::text {
     color: #cdd6f4;
 }
 
 .value-input::cursor {
     background-color: #89b4fa;
+}
+
+.value-input::selected {
+    background-color: rgba(137, 180, 250, 0.25);
 }
 
 .value-input:focus {

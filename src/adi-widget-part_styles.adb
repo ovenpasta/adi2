@@ -45,6 +45,12 @@ package body Adi.Widget.Part_Styles is
       return With_Part (B, Label_Part, S);
    end With_Label;
 
+   function With_Text (B : Part_Style_Builder;
+                       S : Widget_Style) return Part_Style_Builder is
+   begin
+      return With_Part (B, Text_Part, S);
+   end With_Text;
+
    function With_Icon (B : Part_Style_Builder;
                        S : Widget_Style) return Part_Style_Builder is
    begin
@@ -96,6 +102,12 @@ package body Adi.Widget.Part_Styles is
    begin
       return With_Part (B, Label_Part, Build (S));
    end With_Label;
+
+   function With_Text (B : Part_Style_Builder;
+                       S : Style_Builder'Class) return Part_Style_Builder is
+   begin
+      return With_Part (B, Text_Part, Build (S));
+   end With_Text;
 
    function With_Icon (B : Part_Style_Builder;
                        S : Style_Builder'Class) return Part_Style_Builder is
@@ -177,6 +189,7 @@ package body Adi.Widget.Part_Styles is
         .Enable_Part (Main_Part)
         .Enable_Part (Label_Part)
         .Enable_Part (Icon_Part)
+        .Disable_Part (Text_Part)
         .Disable_Part (Indicator_Part)
         .Disable_Part (Scroll_Part)
         .Disable_Part (Knob_Part)
@@ -191,6 +204,7 @@ package body Adi.Widget.Part_Styles is
         .Enable_Part (Main_Part)
         .Enable_Part (Indicator_Part)
         .Enable_Part (Label_Part)
+        .Disable_Part (Text_Part)
         .Disable_Part (Icon_Part)
         .Disable_Part (Scroll_Part)
         .Disable_Part (Knob_Part)
@@ -205,6 +219,7 @@ package body Adi.Widget.Part_Styles is
         .Enable_Part (Main_Part)
         .Enable_Part (Scroll_Part)
         .Enable_Part (Knob_Part)
+        .Disable_Part (Text_Part)
         .Disable_Part (Indicator_Part)
         .Disable_Part (Label_Part)
         .Disable_Part (Icon_Part)
@@ -217,8 +232,9 @@ package body Adi.Widget.Part_Styles is
    begin
       return Create
         .Enable_Part (Main_Part)
-        .Enable_Part (Label_Part)
+        .Enable_Part (Text_Part)
         .Enable_Part (Cursor_Part)
+        .Enable_Part (Label_Part)
         .Disable_Part (Indicator_Part)
         .Disable_Part (Icon_Part)
         .Disable_Part (Scroll_Part)
@@ -235,6 +251,7 @@ package body Adi.Widget.Part_Styles is
         .Enable_Part (Selected_Part)
         .Enable_Part (Scroll_Part)
         .Enable_Part (Knob_Part)
+        .Disable_Part (Text_Part)
         .Disable_Part (Indicator_Part)
         .Disable_Part (Label_Part)
         .Disable_Part (Icon_Part)
@@ -247,6 +264,7 @@ package body Adi.Widget.Part_Styles is
         .Enable_Part (Main_Part)
         .Enable_Part (Knob_Part)
         .Enable_Part (Indicator_Part)  --  For filled track portion
+        .Disable_Part (Text_Part)
         .Disable_Part (Scroll_Part)
         .Disable_Part (Label_Part)
         .Disable_Part (Icon_Part)

@@ -25,12 +25,12 @@ package Animated_Image_Example_Styles is
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (6.0))),
       Background_Color => Set_Bg (RGBA (30, 41, 59, 0.55)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (10.0), Px (24.0), Px (0.0), RGBA (2, 6, 23, 0.5))),
+      Padding => Set (CSS_Box (Px (14.0), Px (18.0), Px (14.0), Px (18.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGBA (148, 163, 184, 0.35))),
       Border_Radius => Set (Radius (Px (14.0))),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (10.0), Px (24.0), Px (0.0), RGBA (2, 6, 23, 0.5))),
-      Padding => Set (CSS_Box (Px (14.0), Px (18.0), Px (14.0), Px (18.0))),
       others => <>
    );
 
@@ -67,12 +67,12 @@ package Animated_Image_Example_Styles is
       Flex_Direction => Set (Column),
       Flex_Grow => Set (1.0),
       Background_Color => Set_Bg (RGBA (15, 23, 42, 0.85)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (16.0), Px (36.0), Px (0.0), RGBA (2, 6, 23, 0.58))),
+      Padding => Set (CSS_Box (Px (18.0), Px (18.0), Px (18.0), Px (18.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGBA (59, 130, 246, 0.35))),
       Border_Radius => Set (Radius (Px (18.0))),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (16.0), Px (36.0), Px (0.0), RGBA (2, 6, 23, 0.58))),
-      Padding => Set (CSS_Box (Px (18.0), Px (18.0), Px (18.0), Px (18.0))),
       others => <>
    );
 
@@ -81,11 +81,11 @@ package Animated_Image_Example_Styles is
       Flex_Grow => Set (1.0),
       Min_Height => Set (Size (Px (340.0))),
       Background_Color => Set_Bg (RGBA (2, 6, 23, 0.7)),
+      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGBA (148, 163, 184, 0.25))),
       Border_Radius => Set (Radius (Px (12.0))),
-      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
       others => <>
    );
 
@@ -111,13 +111,13 @@ package Animated_Image_Example_Styles is
    Action_Button_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (136.0))),
       Background_Color => Set_Bg (RGB (30, 64, 175)),
+      Cursor => Set (Cursor_Pointer),
+      Transition => Set ((Duration => 0.18, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (10.0), Px (16.0), Px (10.0), Px (16.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (59, 130, 246))),
       Border_Radius => Set (Radius (Px (10.0))),
-      Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.18, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (10.0), Px (16.0), Px (10.0), Px (16.0))),
       others => <>
    );
 
@@ -153,13 +153,13 @@ package Animated_Image_Example_Styles is
    Loop_Button_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (136.0))),
       Background_Color => Set_Bg (RGB (220, 38, 38)),
+      Cursor => Set (Cursor_Pointer),
+      Transition => Set ((Duration => 0.18, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (10.0), Px (16.0), Px (10.0), Px (16.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (239, 68, 68))),
       Border_Radius => Set (Radius (Px (10.0))),
-      Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.18, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (10.0), Px (16.0), Px (10.0), Px (16.0))),
       others => <>
    );
 
@@ -213,12 +213,12 @@ package Animated_Image_Example_Styles is
    --  Base style for class 'status'
    Status_Class_Base_Style : constant Style_Rules := (
       Background_Color => Set_Bg (RGBA (15, 23, 42, 0.76)),
+      Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
+      Margin => Set (CSS_Box (Px (4.0), Px (0.0), Px (0.0), Px (0.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGBA (71, 85, 105, 0.85))),
       Border_Radius => Set (Radius (Px (10.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
-      Margin => Set (CSS_Box (Px (4.0), px (0.0), px (0.0), px (0.0))),
       others => <>
    );
 

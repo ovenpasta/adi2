@@ -152,7 +152,10 @@ procedure Css_Parser_Test is
        ".borderradiusorder { border-radius: 4px; border-top-left-radius: 9px; }" & ASCII.LF &
        ".borderradiusorder2 { border-top-left-radius: 9px; border-radius: 4px; }" & ASCII.LF &
        ".pressed-pseudo { background-color: rgb(11, 22, 33); }" & ASCII.LF &
-       ".pressed-pseudo:active { background-color: rgb(44, 55, 66); }" & ASCII.LF;
+       ".pressed-pseudo:active { background-color: rgb(44, 55, 66); }" & ASCII.LF &
+       ".insets { position: absolute; top: 10px; right: 20%; bottom: 5dp; left: 3dip; }" & ASCII.LF &
+       ".insetauto { top: auto; left: 8px; }" & ASCII.LF &
+       ".textpart::text { color: rgb(100, 200, 50); font-size: 18px; }" & ASCII.LF;
 
 begin
    Put_Line ("CSS parser test");
@@ -835,6 +838,63 @@ begin
       Adi.CSS_Parser.Reload_If_Changed (Bad_Sheet, Dummy_Reloaded, Dummy_Success);
       Assert (Dummy_Success and then not Dummy_Reloaded,
               "Reload_If_Changed should no-op when no source file was successfully loaded");
+   end;
+
+   --  Inset property parsing tests
+   declare
+      Inset_Styles : constant Part_Style_Array :=
+        Adi.CSS_Parser.Styles_For_Class (Sheet, "insets");
+      Inset_Main : constant Resolved_Style :=
+        Compute_Resolved (Inset_Styles (Main_Part).Style, No_States, No_States);
+   begin
+      Assert (Inset_Main.Position = Absolute,
+              "Inset test: position should be absolute");
+      Assert (Inset_Main.Top.Kind = Fixed
+              and then Inset_Main.Top.Length.Amount = 10.0
+              and then Inset_Main.Top.Length.Unit = Px,
+              "top: 10px should parse");
+      Assert (Inset_Main.Right.Kind = Fixed
+              and then Inset_Main.Right.Length.Amount = 20.0
+              and then Inset_Main.Right.Length.Unit = Pct,
+              "right: 20% should parse");
+      Assert (Inset_Main.Bottom.Kind = Fixed
+              and then Inset_Main.Bottom.Length.Amount = 5.0
+              and then Inset_Main.Bottom.Length.Unit = Dip,
+              "bottom: 5dp should parse as Dip");
+      Assert (Inset_Main.Left.Kind = Fixed
+              and then Inset_Main.Left.Length.Amount = 3.0
+              and then Inset_Main.Left.Length.Unit = Dip,
+              "left: 3dip should parse as Dip");
+   end;
+
+   --  auto value should parse as Auto_Inset
+   declare
+      Auto_Styles : constant Part_Style_Array :=
+        Adi.CSS_Parser.Styles_For_Class (Sheet, "insetauto");
+      Auto_Main : constant Resolved_Style :=
+        Compute_Resolved (Auto_Styles (Main_Part).Style, No_States, No_States);
+   begin
+      Assert (Auto_Main.Top.Kind = Auto,
+              "top: auto should parse as Auto");
+      Assert (Auto_Main.Left.Kind = Fixed
+              and then Auto_Main.Left.Length.Amount = 8.0
+              and then Auto_Main.Left.Length.Unit = Px,
+              "left: 8px should parse when top: auto");
+   end;
+
+   --  ::text part selector should resolve to Text_Part
+   declare
+      Text_Styles : constant Part_Style_Array :=
+        Adi.CSS_Parser.Styles_For_Class (Sheet, "textpart");
+      Text_Resolved : constant Resolved_Style :=
+        Compute_Resolved (Text_Styles (Text_Part).Style, No_States, No_States);
+   begin
+      Assert (Text_Styles (Text_Part).Enabled,
+              "::text part should be enabled for .textpart");
+      Assert (Text_Resolved.Color = (Kind => RGB, R => 100, G => 200, B => 50),
+              "::text part color should parse");
+      Assert (Text_Resolved.Font_Size.Amount = 18.0,
+              "::text part font-size should parse");
    end;
 
    Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");

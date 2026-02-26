@@ -169,6 +169,11 @@ package Adi.Layout_Util is
                            Viewport_Height : Pixel_Type := 0.0)
        return Pixel_Type;
 
+   --  Convert Inset_Value to pixels; Auto yields 0.0
+   function Inset_To_Px (V : CSS_Styles.Inset_Value;
+                          Container_Size : Pixel_Type := 0.0)
+       return Pixel_Type;
+
    --  Get size from Size_Value
    function Size_To_Px (S : Size_Value;
                          Container_Size : Pixel_Type := 0.0;

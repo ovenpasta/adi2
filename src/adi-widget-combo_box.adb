@@ -612,7 +612,7 @@ package body Adi.Widget.Combo_Box is
 
       if Item_Count (W) = 0 then
          Adi.Widget.Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));
-         Adi.Widget.Add_Item (W, Make_Text (Label_Part, W.Geometry, "", 1));
+         Adi.Widget.Add_Item (W, Make_Text (Text_Part, W.Geometry, "", 1));
          Adi.Widget.Add_Item
            (W, Make_Image (Indicator_Part, W.Geometry, W.Arrow_Down_Img, 2));
       end if;
@@ -629,7 +629,7 @@ package body Adi.Widget.Combo_Box is
            To_Unbounded_String (Get_Selected_Text (W));
          Label_It.Geometry := (0.0, 0.0, 0.0, 0.0);
          for L_Item of W.Layout_Items loop
-            if L_Item.Part = Label_Part then
+            if L_Item.Part = Text_Part then
                Label_It.Geometry := L_Item.Geometry;
                Found := True;
                exit;
@@ -666,7 +666,7 @@ package body Adi.Widget.Combo_Box is
       Main_Style  : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Main_Part);
       Label_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Label_Part);
+        Get_Resolved_Part_Style (W, Text_Part);
       Ind_Style   : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Indicator_Part);
       Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
@@ -715,7 +715,7 @@ package body Adi.Widget.Combo_Box is
 
       if Label_Visible then
          W.Layout_Items.Append (Layout_Item'(
-            Part           => Label_Part,
+            Part           => Text_Part,
             Min_Width      => 0.0,
             Min_Height     => Float (Label_Size.Height),
             Max_Width      => Float'Last,

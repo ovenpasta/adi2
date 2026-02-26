@@ -39,8 +39,7 @@
           <box class="page">
             <box class="card">
               <label text="Form Controls" class="label-inline card-title"/>
-              <label text="Name" class="label-inline field-label"/>
-              <text-input text="" class="text-field" id="Name_Input"/>
+              <text-input text="" class="text-field" id="Name_Input" label="Name"/>
               <label text="Country" class="label-inline field-label"/>
               <combo-box class="combo" id="Country_Combo">
                 <item text="United States"/>

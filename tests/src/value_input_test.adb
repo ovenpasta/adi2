@@ -1,5 +1,6 @@
 pragma Ada_2022;
 with Ada.Text_IO;      use Ada.Text_IO;
+with Adi.Core;         use Adi.Core;
 with Adi.Widget;       use Adi.Widget;
 with Adi.SDL.Events;   use Adi.SDL.Events;
 with Adi.Widget.Text_Input;
@@ -463,6 +464,90 @@ procedure Value_Input_Test is
       end loop;
    end Test_Round_Trip;
 
+   -------------------------------------------
+   --  Text_Input label tests
+   -------------------------------------------
+
+   procedure Test_Label_API is
+      W : constant Adi.Widget.Text_Input.Text_Input_Widget_Access :=
+        Adi.Widget.Text_Input.Create;
+   begin
+      Put_Line ("Test: Set_Label / Get_Label");
+      Assert (Adi.Widget.Text_Input.Get_Label (W.all) = "",
+              "Label should be empty after Create");
+      Adi.Widget.Text_Input.Set_Label (W.all, "Name");
+      Assert (Adi.Widget.Text_Input.Get_Label (W.all) = "Name",
+              "Label should be 'Name' after Set_Label");
+      Adi.Widget.Text_Input.Set_Label (W.all, "");
+      Assert (Adi.Widget.Text_Input.Get_Label (W.all) = "",
+              "Label should be empty after Set_Label('')");
+   end Test_Label_API;
+
+   procedure Test_Label_Create is
+      W : constant Adi.Widget.Text_Input.Text_Input_Widget_Access :=
+        Adi.Widget.Text_Input.Create (Label => "Email");
+   begin
+      Put_Line ("Test: Create with label parameter");
+      Assert (Adi.Widget.Text_Input.Get_Label (W.all) = "Email",
+              "Label should be 'Email' from Create");
+   end Test_Label_Create;
+
+   procedure Test_Label_Build_Items_Count is
+      W : constant Adi.Widget.Text_Input.Text_Input_Widget_Access :=
+        Adi.Widget.Text_Input.Create (Label => "Test");
+   begin
+      Put_Line ("Test: Build_Items creates 6 items (panel+sel+text+cursor+lbl_bg+lbl)");
+      Set_Geometry (W.all,
+        (X => 10.0, Y => 20.0, Width => 200.0, Height => 40.0));
+      W.Build_Items;
+      Assert (Item_Count (W.all) = 6,
+              "Should have exactly 6 items, got" & Item_Count (W.all)'Image);
+      --  Second call should not add more
+      W.Build_Items;
+      Assert (Item_Count (W.all) = 6,
+              "Should still have 6 items after second Build_Items");
+   end Test_Label_Build_Items_Count;
+
+   procedure Test_Label_Empty_Geometry is
+      use Adi.Widget.Items_List;
+      W : constant Adi.Widget.Text_Input.Text_Input_Widget_Access :=
+        Adi.Widget.Text_Input.Create;
+      Label_Items : Items_List.Vector;
+   begin
+      Put_Line ("Test: Empty label -> label items have zero geometry");
+      Set_Geometry (W.all,
+        (X => 10.0, Y => 20.0, Width => 200.0, Height => 40.0));
+      W.Build_Items;
+      Label_Items := Get_Items_For_Part (W.all, Label_Part);
+      Assert (Natural (Label_Items.Length) = 2,
+              "Should have 2 label-part items even when empty");
+      for I in 1 .. Natural (Label_Items.Length) loop
+         Assert (Label_Items.Element (I).Geometry.Width = 0.0
+                 and then Label_Items.Element (I).Geometry.Height = 0.0,
+                 "Label item" & I'Image & " geometry should be zero");
+      end loop;
+   end Test_Label_Empty_Geometry;
+
+   procedure Test_Label_Items_Part is
+      use Adi.Widget.Items_List;
+      W : constant Adi.Widget.Text_Input.Text_Input_Widget_Access :=
+        Adi.Widget.Text_Input.Create (Label => "Addr");
+      Label_Items : Items_List.Vector;
+   begin
+      Put_Line ("Test: Label items have Label_Part");
+      Set_Geometry (W.all,
+        (X => 0.0, Y => 0.0, Width => 200.0, Height => 40.0));
+      W.Build_Items;
+      Label_Items := Get_Items_For_Part (W.all, Label_Part);
+      Assert (Natural (Label_Items.Length) = 2,
+              "Should have exactly 2 label-part items");
+      --  First should be panel (background), second should be text
+      Assert (Label_Items.Element (1).Kind = Panel_Item,
+              "Label item 1 should be Panel_Item");
+      Assert (Label_Items.Element (2).Kind = Text_Item,
+              "Label item 2 should be Text_Item");
+   end Test_Label_Items_Part;
+
 begin
    Put_Line ("========================================");
    Put_Line ("   Value Input Widget Tests");
@@ -501,6 +586,14 @@ begin
    New_Line;
 
    Test_Text_Filter;
+   New_Line;
+
+   Put_Line ("--- Text_Input Label Tests ---");
+   Test_Label_API;
+   Test_Label_Create;
+   Test_Label_Build_Items_Count;
+   Test_Label_Empty_Geometry;
+   Test_Label_Items_Part;
    New_Line;
 
    Put_Line ("========================================");

@@ -55,11 +55,11 @@ package Grid_Example_Styles is
       Grid_Rows => Set (Grid_Rows_Value (3)),
       Gap => Set (Gap (Px (10.0))),
       Background_Color => Set_Bg (RGB (30, 41, 59)),
+      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (71, 85, 105))),
       Border_Radius => Set (Radius (Px (10.0))),
-      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       others => <>
    );
 
@@ -151,11 +151,11 @@ package Grid_Example_Styles is
       Grid_Column_Tracks => (Count => 4, Tracks => [1 => (Track_Auto, 0.0), 2 => (Track_Auto, 0.0), 3 => (Track_Auto, 0.0), 4 => (Track_Fr, 1.0), others => <>]),
       Gap => Set (Gap (Px (6.0))),
       Background_Color => Set_Bg (RGB (15, 23, 42)),
+      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (71, 85, 105))),
       Border_Radius => Set (Radius (Px (10.0))),
-      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       others => <>
    );
 
@@ -164,9 +164,9 @@ package Grid_Example_Styles is
       Display => Set (Flex),
       Align_Items => Set (Center),
       Justify_Content => Set (Center),
-      Border_Radius => Set (Radius (Px (6.0))),
       Min_Height => Set (Size (Px (36.0))),
       Padding => Set (CSS_Box (Px (6.0), Px (14.0), Px (6.0), Px (14.0))),
+      Border_Radius => Set (Radius (Px (6.0))),
       others => <>
    );
 

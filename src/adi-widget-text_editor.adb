@@ -443,7 +443,7 @@ package body Adi.Widget.Text_Editor is
       Main_Style   : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Main_Part);
       Label_Style  : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Label_Part);
+        Get_Resolved_Part_Style (W, Text_Part);
       Content      : constant Rectangle := Content_Box (W.Geometry, Main_Style);
       Caret        : constant Position := Get_Caret (W.Buffer);
 
@@ -536,7 +536,7 @@ package body Adi.Widget.Text_Editor is
             Add_Item (W, Make_Panel (Selected_Part, (0.0, 0.0, 0.0, 0.0), 1));
          end loop;
          for I in 1 .. Desired_Row_Items loop
-            Add_Item (W, Make_Text (Label_Part, Content, "", 2));
+            Add_Item (W, Make_Text (Text_Part, Content, "", 2));
             W.Items.Reference (1 + Vis_Sel + I).Wrap_Text := False;
          end loop;
          Add_Item (W, Make_Panel (Cursor_Part, (0.0, 0.0, 0.0, 0.0), 3));
@@ -551,7 +551,7 @@ package body Adi.Widget.Text_Editor is
             Add_Item (W, Make_Panel (Selected_Part, (0.0, 0.0, 0.0, 0.0), 1));
          end loop;
          for I in 1 .. Desired_Row_Items loop
-            Add_Item (W, Make_Text (Label_Part, Content, "", 2));
+            Add_Item (W, Make_Text (Text_Part, Content, "", 2));
             W.Items.Reference (1 + Vis_Sel + I).Wrap_Text := False;
          end loop;
          Add_Item (W, Make_Panel (Cursor_Part, (0.0, 0.0, 0.0, 0.0), 3));
@@ -789,7 +789,7 @@ package body Adi.Widget.Text_Editor is
                Main_Style  : constant Resolved_Style :=
                  Get_Resolved_Part_Style (W, Main_Part);
                Label_Style : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (W, Label_Part);
+                 Get_Resolved_Part_Style (W, Text_Part);
                Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
             begin
                if Wrap_Enabled (Label_Style) then
@@ -811,7 +811,7 @@ package body Adi.Widget.Text_Editor is
                Main_Style  : constant Resolved_Style :=
                  Get_Resolved_Part_Style (W, Main_Part);
                Label_Style : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (W, Label_Part);
+                 Get_Resolved_Part_Style (W, Text_Part);
                Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
             begin
                if Wrap_Enabled (Label_Style) then
@@ -853,7 +853,7 @@ package body Adi.Widget.Text_Editor is
                Main_Style  : constant Resolved_Style :=
                  Get_Resolved_Part_Style (W, Main_Part);
                Label_Style : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (W, Label_Part);
+                 Get_Resolved_Part_Style (W, Text_Part);
                Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
             begin
                if Wrap_Enabled (Label_Style) then
@@ -878,7 +878,7 @@ package body Adi.Widget.Text_Editor is
                Main_Style  : constant Resolved_Style :=
                  Get_Resolved_Part_Style (W, Main_Part);
                Label_Style : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (W, Label_Part);
+                 Get_Resolved_Part_Style (W, Text_Part);
                Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
             begin
                if Wrap_Enabled (Label_Style) then
@@ -940,7 +940,7 @@ package body Adi.Widget.Text_Editor is
       Main_Style  : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Main_Part);
       Label_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Label_Part);
+        Get_Resolved_Part_Style (W, Text_Part);
       Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
       P           : Position;
    begin
@@ -998,7 +998,7 @@ package body Adi.Widget.Text_Editor is
       Main_Style  : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Main_Part);
       Label_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Label_Part);
+        Get_Resolved_Part_Style (W, Text_Part);
       Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
    begin
       Handle_Scroll_Mouse_Move (W, X, Y);

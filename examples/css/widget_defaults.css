@@ -53,7 +53,7 @@
   border-color: rgb(59, 130, 246);
 }
 
-.text-input::label {
+.text-input::text {
   color: rgb(15, 23, 42);
   font-size: 14px;
 }

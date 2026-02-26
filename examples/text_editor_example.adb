@@ -100,11 +100,11 @@ begin
         Adi.Widget.Text_Editor.Create (Sample_Text);
 
       Wrap_On_Label_Widget : constant Widget_Style :=
-        From (Editor_Class_Label_Base_Style).Build;
+        From (Editor_Class_Text_Base_Style).Build;
       Wrap_Off_Label_Widget : constant Widget_Style :=
         From
           (Merge
-             (Editor_Class_Label_Base_Style,
+             (Editor_Class_Text_Base_Style,
               (White_Space    => Set (WS_Nowrap),
                Text_Wrap_Mode => Set (TWM_Nowrap),
                others => <>)))
@@ -113,10 +113,10 @@ begin
       procedure Apply_Wrap (Active : Boolean) is
       begin
          if Active then
-            Set_Part_Style (Editor.all, Label_Part, Wrap_On_Label_Widget);
+            Set_Part_Style (Editor.all, Text_Part, Wrap_On_Label_Widget);
             Set_Text (Wrap_Status.all, "Wrap: ON");
          else
-            Set_Part_Style (Editor.all, Label_Part, Wrap_Off_Label_Widget);
+            Set_Part_Style (Editor.all, Text_Part, Wrap_Off_Label_Widget);
             Set_Text (Wrap_Status.all, "Wrap: OFF");
          end if;
       end Apply_Wrap;

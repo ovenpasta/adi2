@@ -126,7 +126,7 @@
   overflow: auto;
 }
 
-.source-editor::label {
+.source-editor::text {
   color: rgb(58, 52, 45);
   font-size: 14px;
 }

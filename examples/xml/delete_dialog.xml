@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" styles="Dialog_Example_Styles"/>
+
+  <dialog title="Delete Account"
+          message="This will permanently delete your account and all associated data. This action cannot be undone."
+          buttons="yes-no"
+          default-button="2"
+          dismiss-on-escape="true">
+    <box class="custom-content">
+      <label text="Account: john@example.com" class="detail-label"/>
+      <label text="Created: January 2024" class="detail-label"/>
+      <label text="Storage used: 4.2 GB" class="detail-label"/>
+    </box>
+  </dialog>
+</adi>

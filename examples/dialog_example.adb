@@ -9,6 +9,7 @@ with Adi.Widget.Label;          use Adi.Widget.Label;
 with Adi.Widget.Button;         use Adi.Widget.Button;
 with Adi.Widget.Dialog;         use Adi.Widget.Dialog;
 with Dialog_Example_Styles;     use Dialog_Example_Styles;
+with Delete_Dialog_UI;
 
 procedure Dialog_Example is
    A : Adi.App.App;
@@ -18,6 +19,7 @@ procedure Dialog_Example is
    Alert_Dialog   : Dialog_Widget_Access;
    Confirm_Dialog : Dialog_Widget_Access;
    Custom_Dialog  : Dialog_Widget_Access;
+   Delete_Dialog  : Dialog_Widget_Access;
 
    procedure On_Alert_Result
      (Dlg          : Dialog_Widget_Access;
@@ -94,6 +96,31 @@ procedure Dialog_Example is
       end if;
    end On_Show_Custom;
 
+   procedure On_Delete_Result
+     (Dlg          : Dialog_Widget_Access;
+      Button_Index : Natural;
+      Button_Text  : String)
+   is
+      pragma Unreferenced (Dlg);
+   begin
+      if Status_Label /= null then
+         if Button_Index = 0 then
+            Set_Text (Status_Label.all, "Delete dismissed");
+         else
+            Set_Text (Status_Label.all,
+                      "Delete: clicked """ & Button_Text & """");
+         end if;
+      end if;
+   end On_Delete_Result;
+
+   procedure On_Show_Delete (Btn : Button_Widget_Access) is
+      pragma Unreferenced (Btn);
+   begin
+      if not Is_Shown (Delete_Dialog.all) then
+         Show (Delete_Dialog.all);
+      end if;
+   end On_Show_Delete;
+
 begin
    A.Init;
    A.Set_Target_FPS (60);
@@ -117,6 +144,8 @@ begin
         Adi.Widget.Button.Create ("Show Confirm");
       Custom_Btn  : constant Button_Widget_Access :=
         Adi.Widget.Button.Create ("Show Custom");
+      Delete_Btn  : constant Button_Widget_Access :=
+        Adi.Widget.Button.Create ("Show Delete (XML)");
    begin
       Status_Label := Adi.Widget.Label.Create ("(no dialog opened yet)");
 
@@ -129,11 +158,13 @@ begin
       Set_Part_Styles (Alert_Btn.all, Btn_Primary_Class_Part_Styles);
       Set_Part_Styles (Confirm_Btn.all, Btn_Primary_Class_Part_Styles);
       Set_Part_Styles (Custom_Btn.all, Btn_Primary_Class_Part_Styles);
+      Set_Part_Styles (Delete_Btn.all, Btn_Primary_Class_Part_Styles);
 
       --  Button callbacks
       Set_On_Clicked (Alert_Btn.all, On_Show_Alert'Unrestricted_Access);
       Set_On_Clicked (Confirm_Btn.all, On_Show_Confirm'Unrestricted_Access);
       Set_On_Clicked (Custom_Btn.all, On_Show_Custom'Unrestricted_Access);
+      Set_On_Clicked (Delete_Btn.all, On_Show_Delete'Unrestricted_Access);
 
       --  Build page
       Root.Add_Child (Container);
@@ -142,6 +173,7 @@ begin
       Container.Add_Child (Alert_Btn);
       Container.Add_Child (Confirm_Btn);
       Container.Add_Child (Custom_Btn);
+      Container.Add_Child (Delete_Btn);
       Container.Add_Child (Status_Label);
 
       --  Set package-level default styles for all dialogs
@@ -230,6 +262,16 @@ begin
          Content_Box.Add_Child (Detail_2);
          Content_Box.Add_Child (Detail_3);
          Set_Content (Custom_Dialog.all, Content_Box);
+      end;
+
+      --  Create delete dialog from XML-generated package
+      declare
+         package Delete_UI is new Delete_Dialog_UI.Instance;
+      begin
+         Delete_Dialog := Delete_UI.Build;
+         Attach_Window (Delete_Dialog.all, W);
+         Set_Part_Styles (Delete_Dialog.all, Backdrop_Class_Part_Styles);
+         Set_On_Result (Delete_Dialog.all, On_Delete_Result'Unrestricted_Access);
       end;
 
       W.Set_Root (Root);

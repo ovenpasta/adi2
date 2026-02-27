@@ -102,6 +102,25 @@ class XmlWindow:
 
 
 @dataclass
+class XmlDialog:
+    title: str = ""
+    message: str = ""
+    buttons: str = ""          # "ok", "ok-cancel", "yes-no", "yes-no-cancel"
+    default_button: Optional[int] = None
+    dismiss_on_backdrop: Optional[bool] = None
+    dismiss_on_escape: Optional[bool] = None
+    content_widget: Optional[XmlWidget] = None
+
+
+DIALOG_BUTTON_PRESETS = {
+    "ok": "Set_OK_Button",
+    "ok-cancel": "Set_OK_Cancel",
+    "yes-no": "Set_Yes_No",
+    "yes-no-cancel": "Set_Yes_No_Cancel",
+}
+
+
+@dataclass
 class CssLink:
     href: str
     styles_pkg: str
@@ -114,6 +133,7 @@ class XmlApp:
     callbacks: list[XmlCallback] = field(default_factory=list)
     root_widget: Optional[XmlWidget] = None
     window: Optional[XmlWindow] = None
+    dialog: Optional[XmlDialog] = None
     option_groups: list[XmlOptionGroup] = field(default_factory=list)
     css_links: list[CssLink] = field(default_factory=list)
     css_styles: list[str] = field(default_factory=list)
@@ -323,15 +343,21 @@ class Parser:
                 if text:
                     app.css_styles.append(text)
             elif tag == "window":
-                if app.window is not None or app.root_widget is not None:
+                if app.window is not None or app.root_widget is not None or app.dialog is not None:
                     raise ValueError(
-                        "Only one <window> or root widget allowed"
+                        "Only one <window>, <dialog>, or root widget allowed"
                     )
                 app.window = self._parse_window(elem)
-            elif tag in WIDGET_TAGS:
-                if app.root_widget is not None or app.window is not None:
+            elif tag == "dialog":
+                if app.dialog is not None or app.window is not None or app.root_widget is not None:
                     raise ValueError(
-                        "Only one <window> or root widget allowed"
+                        "Only one <window>, <dialog>, or root widget allowed"
+                    )
+                app.dialog = self._parse_dialog(elem)
+            elif tag in WIDGET_TAGS:
+                if app.root_widget is not None or app.window is not None or app.dialog is not None:
+                    raise ValueError(
+                        "Only one <window>, <dialog>, or root widget allowed"
                     )
                 app.root_widget = self._parse_widget(elem)
             else:
@@ -339,12 +365,13 @@ class Parser:
                     f"Unsupported element <{tag}> inside <adi>"
                 )
 
-        if app.root_widget is None and app.window is None:
-            raise ValueError("No <window> or root widget element found")
+        if app.root_widget is None and app.window is None and app.dialog is None:
+            raise ValueError("No <window>, <dialog>, or root widget element found")
 
         # Collect component package references from the widget tree
         root = get_root_widget(app)
-        self._collect_components(root, app)
+        if root is not None:
+            self._collect_components(root, app)
 
         return app
 
@@ -412,6 +439,69 @@ class Parser:
             height=float(elem.get("height", "600")),
             root_widget=self._parse_widget(widget_children[0]),
         )
+
+    def _parse_dialog(self, elem) -> XmlDialog:
+        dialog = XmlDialog()
+
+        # Parse attributes
+        if "title" in elem.attrib:
+            dialog.title = elem.get("title")
+        if "message" in elem.attrib:
+            dialog.message = elem.get("message")
+        if "buttons" in elem.attrib:
+            buttons = elem.get("buttons")
+            if buttons not in DIALOG_BUTTON_PRESETS:
+                raise ValueError(
+                    f"Invalid buttons value '{buttons}'. "
+                    f"Must be one of: {', '.join(DIALOG_BUTTON_PRESETS.keys())}"
+                )
+            dialog.buttons = buttons
+        if "default-button" in elem.attrib:
+            try:
+                val = int(elem.get("default-button"))
+                if val < 0:
+                    raise ValueError("default-button must be a non-negative integer")
+                dialog.default_button = val
+            except ValueError as e:
+                if "non-negative integer" in str(e):
+                    raise
+                raise ValueError(
+                    f"Invalid default-button value '{elem.get('default-button')}'. "
+                    "Must be a non-negative integer (0 clears the default)"
+                )
+        if "dismiss-on-backdrop" in elem.attrib:
+            val = elem.get("dismiss-on-backdrop")
+            if val not in ("true", "false"):
+                raise ValueError(
+                    f"Invalid dismiss-on-backdrop value '{val}'. "
+                    "Must be 'true' or 'false'"
+                )
+            dialog.dismiss_on_backdrop = val == "true"
+        if "dismiss-on-escape" in elem.attrib:
+            val = elem.get("dismiss-on-escape")
+            if val not in ("true", "false"):
+                raise ValueError(
+                    f"Invalid dismiss-on-escape value '{val}'. "
+                    "Must be 'true' or 'false'"
+                )
+            dialog.dismiss_on_escape = val == "true"
+
+        # Parse child widgets (at most 1)
+        widget_children = [c for c in elem if c.tag in WIDGET_TAGS]
+        non_widget_children = [c for c in elem if c.tag not in WIDGET_TAGS]
+        if non_widget_children:
+            bad_tag = non_widget_children[0].tag
+            raise ValueError(
+                f"Unsupported element <{bad_tag}> inside <dialog>"
+            )
+        if len(widget_children) > 1:
+            raise ValueError(
+                "<dialog> must have at most one child widget"
+            )
+        if widget_children:
+            dialog.content_widget = self._parse_widget(widget_children[0])
+
+        return dialog
 
     def _parse_widget(self, elem) -> XmlWidget:
         tag = elem.tag
@@ -496,10 +586,15 @@ class Parser:
 # ── Generate Phase ────────────────────────────────────────────────────────────
 
 
-def get_root_widget(app: XmlApp) -> XmlWidget:
-    """Return the root widget whether from a <window> or bare widget."""
+def get_root_widget(app: XmlApp) -> Optional[XmlWidget]:
+    """Return the root widget from a <window>, <dialog>, or bare widget.
+
+    Returns None for a dialog with no content widget.
+    """
     if app.window is not None:
         return app.window.root_widget
+    if app.dialog is not None:
+        return app.dialog.content_widget  # may be None
     return app.root_widget
 
 
@@ -507,15 +602,18 @@ def generate_spec(app: XmlApp, package_name: str) -> str:
     """Generate the .ads (spec) file."""
     generics_map = {g.name: g for g in app.generics}
     root = get_root_widget(app)
-    all_widgets = collect_all_widgets(root)
+    all_widgets = collect_all_widgets(root) if root else []
     exported = [w for w in all_widgets if w.explicit_id]
     has_window = app.window is not None
+    has_dialog = app.dialog is not None
     live_css = bool(any(link.href for link in app.css_links) or app.css_styles)
 
     # Compute with clauses — only packages referenced in the spec
     withs: set[str] = set()
     if has_window:
         withs.add("Adi.Window")
+    elif has_dialog:
+        withs.add("Adi.Widget.Dialog")
     else:
         withs.add("Adi.Widget")
     for w in exported:
@@ -598,6 +696,10 @@ def generate_spec(app: XmlApp, package_name: str) -> str:
         lines.append(
             "      function Build return Adi.Window.Window_Access;"
         )
+    elif has_dialog:
+        lines.append(
+            "      function Build return Adi.Widget.Dialog.Dialog_Widget_Access;"
+        )
     else:
         lines.append(
             "      function Build return Adi.Widget.Widget_Access;"
@@ -645,16 +747,19 @@ def generate_body(app: XmlApp, package_name: str) -> str:
     """Generate the .adb (body) file."""
     generics_map = {g.name: g for g in app.generics}
     root = get_root_widget(app)
-    all_widgets = collect_all_widgets(root)
+    all_widgets = collect_all_widgets(root) if root else []
     exported = [w for w in all_widgets if w.explicit_id]
     internal = [w for w in all_widgets if not w.explicit_id]
     has_window = app.window is not None
+    has_dialog = app.dialog is not None
     live_css = bool(any(link.href for link in app.css_links) or app.css_styles)
 
     # Compute spec-level withs so we know what the body inherits
     spec_withs: set[str] = set()
     if has_window:
         spec_withs.add("Adi.Window")
+    elif has_dialog:
+        spec_withs.add("Adi.Widget.Dialog")
     else:
         spec_withs.add("Adi.Widget")
     for w in exported:
@@ -690,6 +795,8 @@ def generate_body(app: XmlApp, package_name: str) -> str:
         body_withs.append("Adi.CSS_Source")
     if has_window and live_css:
         body_withs.append("Adi.Window")
+    if has_dialog:
+        body_withs.append("Adi.Widget.Dialog")
     if inline_groups:
         body_withs.append("Adi.CSS_Styles")
         body_withs.append("Adi.Widget_Styles")
@@ -836,6 +943,13 @@ def generate_body(app: XmlApp, package_name: str) -> str:
             f'        Adi.Window.Create_Window ("{title}",'
             f" ({win.width}, {win.height}));"
         )
+    elif has_dialog:
+        lines.append("   function Build")
+        lines.append("      return Adi.Widget.Dialog.Dialog_Widget_Access is")
+        lines.append(
+            "      D : constant Adi.Widget.Dialog.Dialog_Widget_Access :="
+        )
+        lines.append("        Adi.Widget.Dialog.Create;")
     else:
         lines.append("   function Build")
         lines.append("      return Adi.Widget.Widget_Access is")
@@ -1087,7 +1201,8 @@ def generate_body(app: XmlApp, package_name: str) -> str:
                     f"      {widget.wid}.Add_Child ({child.wid});"
                 )
 
-    emit_hierarchy(root)
+    if root is not None:
+        emit_hierarchy(root)
     if hierarchy_lines:
         lines.append("      --  Build hierarchy")
         lines.extend(hierarchy_lines)
@@ -1124,6 +1239,29 @@ def generate_body(app: XmlApp, package_name: str) -> str:
     if has_window:
         lines.append(f"      W.Set_Root ({root.wid});")
         lines.append("      return W;")
+        lines.append("   end Build;")
+    elif has_dialog:
+        dlg = app.dialog
+        lines.append("      --  Configure dialog")
+        if dlg.title:
+            escaped = dlg.title.replace('"', '""')
+            lines.append(f'      D.Set_Title ("{escaped}");')
+        if dlg.message:
+            escaped = dlg.message.replace('"', '""')
+            lines.append(f'      D.Set_Message ("{escaped}");')
+        if dlg.buttons:
+            lines.append(f"      D.{DIALOG_BUTTON_PRESETS[dlg.buttons]};")
+        if dlg.default_button is not None:
+            lines.append(f"      D.Set_Default_Button ({dlg.default_button});")
+        if dlg.dismiss_on_backdrop is not None:
+            val = "True" if dlg.dismiss_on_backdrop else "False"
+            lines.append(f"      D.Set_Dismiss_On_Backdrop ({val});")
+        if dlg.dismiss_on_escape is not None:
+            val = "True" if dlg.dismiss_on_escape else "False"
+            lines.append(f"      D.Set_Dismiss_On_Escape ({val});")
+        if dlg.content_widget is not None:
+            lines.append(f"      D.Set_Content ({dlg.content_widget.wid});")
+        lines.append("      return D;")
         lines.append("   end Build;")
     else:
         lines.append(

@@ -29,7 +29,7 @@ Produces `my_ui.ads` and `my_ui.adb` in the output directory.
 
 ## XML Document Structure
 
-Every file has an `<adi>` root element. Inside it you place **declarations** and either a `<window>` or a bare root widget.
+Every file has an `<adi>` root element. Inside it you place **declarations** and one of: a `<window>`, a `<dialog>`, or a bare root widget.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -65,10 +65,11 @@ Every file has an `<adi>` root element. Inside it you place **declarations** and
 | `<generic>` | Instantiate a generic Ada package |
 | `<callback>` | Declare a callback variable |
 | `<window>` | Window container with title and size |
+| `<dialog>` | Dialog container with title, message, buttons |
 | `<option-group>` | Wire radio-button groups to enum callbacks |
 | `<component>` | Compose a separate UI package (inside `<page>`) |
 
-### `<window>` vs Bare Root Widget
+### `<window>`, `<dialog>`, and Bare Root Widget
 
 With `<window>`, the `Build` function returns `Adi.Window.Window_Access` and creates a window:
 
@@ -78,7 +79,43 @@ With `<window>`, the `Build` function returns `Adi.Window.Window_Access` and cre
 </window>
 ```
 
-Without `<window>`, a single root widget sits directly under `<adi>` and `Build` returns `Widget_Access`:
+With `<dialog>`, the `Build` function returns `Adi.Widget.Dialog.Dialog_Widget_Access`. The caller attaches it to a window:
+
+```xml
+<dialog title="Confirm" message="Are you sure?" buttons="yes-no">
+  <!-- optional: 0 or 1 child widget → Set_Content -->
+  <box class="custom-content">
+    <label text="Extra details"/>
+  </box>
+</dialog>
+```
+
+| Attribute | Ada call | Accepted values | Default |
+|-----------|----------|-----------------|---------|
+| `title` | `Set_Title` | any string | omitted |
+| `message` | `Set_Message` | any string | omitted |
+| `buttons` | preset call | `ok`, `ok-cancel`, `yes-no`, `yes-no-cancel` | omitted |
+| `default-button` | `Set_Default_Button` | non-negative integer (0 clears) | omitted |
+| `dismiss-on-backdrop` | `Set_Dismiss_On_Backdrop` | `true`/`false` | omitted |
+| `dismiss-on-escape` | `Set_Dismiss_On_Escape` | `true`/`false` | omitted |
+
+A `<dialog>` can have 0 or 1 child widget. If present, it is passed to `Set_Content`. A dialog with no child relies on `title`/`message`/`buttons` only.
+
+**Dialog without content:**
+
+```xml
+<adi>
+  <dialog title="Alert" message="Something happened." buttons="ok"/>
+</adi>
+```
+
+Generated `Build` returns `Dialog_Widget_Access`:
+
+```ada
+function Build return Adi.Widget.Dialog.Dialog_Widget_Access;
+```
+
+Without `<window>` or `<dialog>`, a single root widget sits directly under `<adi>` and `Build` returns `Widget_Access`:
 
 ```xml
 <adi>
@@ -491,7 +528,7 @@ The body contains:
 
 ## Validation
 
-The parser rejects unsupported elements with a clear error message. Any element not listed in the grammar (`tools/widgets.xml`) or the known declaration tags (`enum`, `generic`, `callback`, `link`, `style`, `window`, `option-group`, `page`, `item`, `component`) causes a parse failure:
+The parser rejects unsupported elements with a clear error message. Any element not listed in the grammar (`tools/widgets.xml`) or the known declaration tags (`enum`, `generic`, `callback`, `link`, `style`, `window`, `dialog`, `option-group`, `page`, `item`, `component`) causes a parse failure:
 
 ```
 Error parsing XML: Unsupported element <foobar> inside <adi>
@@ -510,4 +547,5 @@ This applies at every level: top-level children of `<adi>`, children of `<window
 - **No nested generics** — Generic widgets cannot contain other generic widgets directly
 - **No inline event handlers** — Callbacks must be declared with `<callback>` and referenced by name
 - **Single root widget per `<window>`** — Exactly one child element under `<window>`
+- **Single content widget per `<dialog>`** — At most one child element under `<dialog>`
 - **Page children** — Each `<page>` must contain exactly one widget or one `<component>`

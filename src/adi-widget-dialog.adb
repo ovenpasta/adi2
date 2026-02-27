@@ -462,12 +462,15 @@ package body Adi.Widget.Dialog is
       Adi.Window.Add_Overlay (W.Host_Window.all, Widget_Access'(W'Unchecked_Access));
       W.Shown := True;
 
-      --  Defer auto-focus to the first Build_Items pass so the overlay
-      --  tree has been fully laid out before Set_Focus is called.
+      --  Auto-focus the default button now that the overlay is in the
+      --  window tree.  Set_Focus only checks focus candidacy (visible,
+      --  participates, focusable, not disabled) — layout is not required.
       if W.Default_Button_Index > 0
         and then W.Default_Button_Index <= Natural (W.Buttons.Length)
       then
-         W.Pending_Focus := True;
+         Adi.Window.Set_Focus
+           (W.Host_Window.all,
+            W.Buttons.Element (W.Default_Button_Index).Widget);
       end if;
 
       Mark_Dirty (W);
@@ -736,18 +739,6 @@ package body Adi.Widget.Dialog is
          end;
       end if;
 
-      --  Apply deferred auto-focus now that the overlay tree is laid out
-      if W.Pending_Focus then
-         W.Pending_Focus := False;
-         if W.Host_Window /= null
-           and then W.Default_Button_Index > 0
-           and then W.Default_Button_Index <= Natural (W.Buttons.Length)
-         then
-            Adi.Window.Set_Focus
-              (W.Host_Window.all,
-               W.Buttons.Element (W.Default_Button_Index).Widget);
-         end if;
-      end if;
    end Build_Items;
 
    ---------------------------------------------------------------------------

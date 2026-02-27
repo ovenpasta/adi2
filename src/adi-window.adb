@@ -1591,17 +1591,62 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
        X, Y             : Pixel_Type;
        Delta_X, Delta_Y : Pixel_Type)
    is
-      Target : Widget_Access;
+      Target     : Widget_Access;
+      In_Overlay : Boolean := False;
    begin
       W.Mouse_X := X;
       W.Mouse_Y := Y;
 
+      --  Check if cursor is over any overlay subtree, using the same
+      --  participation/visibility eligibility as normal hit-testing.
+      for I in reverse 1 .. Natural (W.Overlays.Length) loop
+         declare
+            Overlay : constant Widget_Access := W.Overlays.Element (I);
+         begin
+            if Overlay /= null
+              and then Widget_Participates (Overlay.all)
+              and then Resolve_Effective_Visibility
+                (Overlay.all, Visibility_Visible) = Visibility_Visible
+              and then Point_In_Widget (Overlay, X, Y)
+            then
+               In_Overlay := True;
+               exit;
+            end if;
+         end;
+      end loop;
+
       Target := Find_Widget_At_With_Flag (W, X, Y, Scrollable);
-      if Target = null then
-         if W.Focused_Widget /= null
-           and then Has_Flag (W.Focused_Widget.all, Scrollable)
-         then
-            Target := W.Focused_Widget;
+
+      if In_Overlay then
+         --  Cursor is over an overlay: only accept a scrollable target that
+         --  belongs to an overlay subtree.  Discard any target found in root.
+         if Target /= null then
+            declare
+               In_Overlay_Tree : Boolean := False;
+            begin
+               for I in 1 .. Natural (W.Overlays.Length) loop
+                  if Is_In_Subtree
+                    (W.Overlays.Element (I), Target)
+                  then
+                     In_Overlay_Tree := True;
+                     exit;
+                  end if;
+               end loop;
+               if not In_Overlay_Tree then
+                  Target := null;
+               end if;
+            end;
+         end if;
+         --  No focus fallback when cursor is over an overlay.
+      else
+         --  No overlay under cursor: allow focus fallback to focused
+         --  scrollable widget.
+         if Target = null then
+            if W.Focused_Widget /= null
+              and then Has_Flag (W.Focused_Widget.all, Scrollable)
+            then
+               Target := W.Focused_Widget;
+            end if;
          end if;
       end if;
 

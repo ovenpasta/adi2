@@ -149,7 +149,6 @@ private
       Default_Button_Index : Natural := 0;
       Primary_Button_Styles : Part_Style_Array := Empty_Part_Styles;
       Has_Primary_Button_Styles : Boolean := False;
-      Pending_Focus : Boolean := False;
    end record;
 
 end Adi.Widget.Dialog;

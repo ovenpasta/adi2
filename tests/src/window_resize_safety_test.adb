@@ -718,6 +718,124 @@ procedure Window_Resize_Safety_Test is
             "Unexpected exception: " & Exception_Name (E));
    end Test_Show_Autofocus_Default_And_Override;
 
+   procedure Test_Wheel_Blocked_By_Overlay_Backdrop is
+      Ready : Boolean := False;
+      W : Adi.Window.Window_Access := null;
+      Root : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      --  Tall child to ensure root can scroll.
+      Tall_Child : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Dlg : constant Adi.Widget.Dialog.Dialog_Widget_Access :=
+        Adi.Widget.Dialog.Create;
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Column),
+         Overflow_Y     => Set_Overflow_Y (Overflow_Auto),
+         others         => <>);
+      Child_Rules : constant Style_Rules :=
+        (Min_Height => Set (Size (Px (2000.0))),
+         others     => <>);
+      Offset_Before : Pixel_Type := 0.0;
+      Offset_After  : Pixel_Type := 0.0;
+   begin
+      Put_Line ("Test: wheel events are blocked by overlay backdrop");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (Root.all, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (Tall_Child.all, Main_Part, From (Child_Rules).Build);
+      Root.Add_Child (Tall_Child);
+
+      W := Adi.Window.Create_Window ("Overlay Wheel Block Probe", (320.0, 240.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, False);
+      Adi.Window.Set_Root (W.all, Root);
+      Adi.Window.Render (W.all);
+
+      --  Verify wheel scrolls root when no overlay is present.
+      Adi.Window.On_Mouse_Wheel (W.all, 160.0, 120.0, 0.0, -30.0);
+      Assert
+        (Get_Scroll_Offset_Y (Root.all) > 0.0,
+         "Root should scroll without overlay");
+
+      --  Reset scroll position.
+      Set_Scroll_Offset_Y (Root.all, 0.0);
+
+      --  Show dialog overlay and render so it gets laid out.
+      Adi.Widget.Dialog.Attach_Window (Dlg.all, W);
+      Adi.Widget.Dialog.Set_Title (Dlg.all, "Probe");
+      Adi.Widget.Dialog.Set_Message (Dlg.all, "blocking");
+      Adi.Widget.Dialog.Set_OK_Button (Dlg.all);
+      Adi.Widget.Dialog.Show (Dlg.all);
+      Adi.Window.Render (W.all);
+
+      --  Send wheel event at a point over the overlay backdrop (top-left
+      --  corner, which is outside the centered dialog panel).
+      Offset_Before := Get_Scroll_Offset_Y (Root.all);
+      Adi.Window.On_Mouse_Wheel (W.all, 5.0, 5.0, 0.0, -30.0);
+      Offset_After := Get_Scroll_Offset_Y (Root.all);
+
+      Assert
+        (Offset_After = Offset_Before,
+         "Root scroll should not change while overlay backdrop is shown");
+   exception
+      when E : others =>
+         Assert
+           (False,
+            "Unexpected exception: " & Exception_Name (E));
+   end Test_Wheel_Blocked_By_Overlay_Backdrop;
+
+   procedure Test_Wheel_Root_Works_Without_Overlay is
+      Ready : Boolean := False;
+      W : Adi.Window.Window_Access := null;
+      Root : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Tall_Child : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Column),
+         Overflow_Y     => Set_Overflow_Y (Overflow_Auto),
+         others         => <>);
+      Child_Rules : constant Style_Rules :=
+        (Min_Height => Set (Size (Px (2000.0))),
+         others     => <>);
+   begin
+      Put_Line ("Test: wheel events reach root when no overlay is present (no regression)");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (Root.all, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (Tall_Child.all, Main_Part, From (Child_Rules).Build);
+      Root.Add_Child (Tall_Child);
+
+      W := Adi.Window.Create_Window ("No Overlay Wheel Probe", (320.0, 240.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, False);
+      Adi.Window.Set_Root (W.all, Root);
+      Adi.Window.Render (W.all);
+
+      Assert
+        (Get_Scroll_Offset_Y (Root.all) = 0.0,
+         "Root scroll offset should start at 0");
+
+      Adi.Window.On_Mouse_Wheel (W.all, 160.0, 120.0, 0.0, -30.0);
+
+      Assert
+        (Get_Scroll_Offset_Y (Root.all) > 0.0,
+         "Root should scroll after wheel event without overlay");
+   exception
+      when E : others =>
+         Assert
+           (False,
+            "Unexpected exception: " & Exception_Name (E));
+   end Test_Wheel_Root_Works_Without_Overlay;
+
    procedure Test_Stack_Page_Switch_Does_Not_Ratchet_Min_Size is
       type Page_Id is (Red_Page, Green_Page);
       package Probe_Stack is new Adi.Widget.Stack (Page_Id);
@@ -848,6 +966,8 @@ begin
    Test_Dialog_Default_Button_Demotion_Resets_Style;
    Test_Clear_Overlays_Clears_Focus_When_Focus_In_Overlay;
    Test_Show_Autofocus_Default_And_Override;
+   Test_Wheel_Blocked_By_Overlay_Backdrop;
+   Test_Wheel_Root_Works_Without_Overlay;
    Test_Stack_Page_Switch_Does_Not_Ratchet_Min_Size;
    New_Line;
 

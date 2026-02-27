@@ -2,12 +2,24 @@
   "mcpServers": {
     "ada-ls": {
       "command": "uv",
-      "args": ["run", "/src/ada/adi2/tools/als_mcp_server.py"],
-      "cwd": "/src/ada/adi2"
+      "args": ["run", "./tools/als_mcp_server.py"],
+      "cwd": "."
     },
     "git":{
       "command": "uvx",
-      "args": ["mcp-server-git", "--repository", "/src/ada/adi2"]
+      "args": ["mcp-server-git", "--repository", "."]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "."
+      ]
+    },
+    "adi": {
+      "command": "uv",
+      "args": ["run", "./tools/adi_mcp_server.py", "--dir", "/tmp/adi_mcp"]
     }
   }
 }

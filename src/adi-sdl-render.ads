@@ -584,6 +584,17 @@ package Adi.SDL.Render is
            External_Name => "SDL_RenderGeometry";
 
    ----------------------------------------------------------------------------
+   -- Pixel Readback
+   ----------------------------------------------------------------------------
+
+   function SDL_RenderReadPixels
+      (Renderer : SDL_Renderer_Ptr;
+       Rect     : access constant SDL_Rect) return SDL_Surface_Ptr
+      with Import        => True,
+           Convention    => C,
+           External_Name => "SDL_RenderReadPixels";
+
+   ----------------------------------------------------------------------------
    -- Presentation and Flushing
    ----------------------------------------------------------------------------
 

@@ -14,6 +14,13 @@ project Adi is
    for Library_Name use "Adi";
    for Library_Version use Project'Library_Name & ".so." & Crate_Version;
 
+   --  MCP introspection: full implementation in development, no-op stub otherwise
+   MCP_Source_Dir := "";
+   case Build_Profile is
+      when "development" => MCP_Source_Dir := "src/mcp";
+      when others        => MCP_Source_Dir := "src/mcp_stub";
+   end case;
+
    case Platform_Name is
       when "windows" =>
          case SVG_Backend is
@@ -22,13 +29,17 @@ project Adi is
                  ("src/",
                   "src/svg",
                   "src/svg/ada",
-                  "config/windows");
+                  "config/windows",
+                  "vendor/json-ada/src",
+                  MCP_Source_Dir);
             when "plutosvg" =>
                for Source_Dirs use
                  ("src/",
                   "src/svg",
                   "src/svg/plutosvg",
-                  "config/windows");
+                  "config/windows",
+                  "vendor/json-ada/src",
+                  MCP_Source_Dir);
          end case;
       when others =>
          case SVG_Backend is
@@ -37,18 +48,22 @@ project Adi is
                  ("src/",
                   "src/svg",
                   "src/svg/ada",
-                  "config/posix");
+                  "config/posix",
+                  "vendor/json-ada/src",
+                  MCP_Source_Dir);
             when "plutosvg" =>
                for Source_Dirs use
                  ("src/",
                   "src/svg",
                   "src/svg/plutosvg",
-                  "config/posix");
+                  "config/posix",
+                  "vendor/json-ada/src",
+                  MCP_Source_Dir);
          end case;
    end case;
    for Object_Dir use "obj/" & Build_Profile;
    for Create_Missing_Dirs use "True";
-   for Library_Dir use "lib";
+   for Library_Dir use "lib/" & Build_Profile;
 
    type Library_Type_Type is ("relocatable", "static", "static-pic");
    Library_Type : Library_Type_Type :=

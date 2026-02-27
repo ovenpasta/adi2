@@ -904,11 +904,21 @@ package body Adi.Window is
              Render_Debug_Stats (W);
           end if;
 
+          --  Post-render callback (MCP introspection, etc.)
+          if W.Post_Render_CB /= null then
+             W.Post_Render_CB (W'Unchecked_Access, W.Internal.ren);
+          end if;
+
           --  Present the rendered frame
           Stage_Start := Clock;
           SDL_Assert (SDL_RenderPresent (W.Internal.ren), "SDL_RenderPresent");
           W.Stats_Present_Us := Natural
             (To_Duration (Clock - Stage_Start) * 1_000_000.0);
+       end if;
+
+       --  Per-frame callback (runs unconditionally, even when idle)
+       if W.Frame_CB /= null then
+          W.Frame_CB (W'Unchecked_Access);
        end if;
     end Render;
 
@@ -1866,6 +1876,30 @@ function Get_Size (W : in out Window) return Size_2D is
        W.Force_Redraw := True;
     end Set_Debug_Stats;
 
+    procedure Set_Post_Render_Callback
+      (W  : in out Window;
+       CB : Post_Render_Proc) is
+    begin
+       W.Post_Render_CB := CB;
+    end Set_Post_Render_Callback;
 
+    procedure Set_Frame_Callback
+      (W  : in out Window;
+       CB : Frame_Proc) is
+    begin
+       W.Frame_CB := CB;
+    end Set_Frame_Callback;
+
+    function Get_Frame_Stats (W : Window) return Frame_Stats is
+    begin
+       return (Frame_No     => W.Stats_Frame_No,
+               Render_Us    => W.Stats_Render_Us,
+               Update_Us    => W.Stats_Update_Us,
+               Layout_Us    => W.Stats_Layout_Us,
+               Draw_Us      => W.Stats_Draw_Us,
+               Present_Us   => W.Stats_Present_Us,
+               Last_DT      => W.Stats_Last_DT,
+               Layout_Count => W.Stats_Layout_Count);
+    end Get_Frame_Stats;
 
 end Adi.Window;

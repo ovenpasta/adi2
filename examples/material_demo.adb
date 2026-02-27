@@ -1,6 +1,7 @@
 pragma Ada_2022;
 with Adi.App;
 with Adi.Image;              use Adi.Image;
+with Adi.MCP;
 with Adi.Widget;              use Adi.Widget;
 with Adi.Widget.Button;       use Adi.Widget.Button;
 with Adi.Widget.Combo_Box;    use Adi.Widget.Combo_Box;
@@ -86,6 +87,9 @@ begin
 
    W := UI.Build;
 
+   --  Enable MCP introspection (development builds only)
+   Adi.MCP.Initialize (W);
+
    --  Set title icon
    declare
       Icon : constant Adi.Image.Image_Access :=
@@ -137,4 +141,5 @@ begin
 
    A.Add_Window (W);
    A.Run;
+   Adi.MCP.Finalize;
 end Material_Demo;

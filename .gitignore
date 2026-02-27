@@ -2,6 +2,7 @@
 /lib/
 /alire/
 /config/
+/.adi_mcp/
 
 # Build artifacts
 /tests/bin/

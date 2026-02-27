@@ -1,0 +1,15 @@
+[mcp_servers.ada-ls]
+command = "uv"
+args = ["run", "./tools/als_mcp_server.py"]
+
+[mcp_servers.git]
+command = "uvx"
+args = ["mcp-server-git", "--repository", "."]
+
+[mcp_servers.filesystem]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "."]
+
+[mcp_servers.adi]
+command = "uv"
+args = ["run", "./tools/adi_mcp_server.py"]

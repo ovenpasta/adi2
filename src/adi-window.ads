@@ -97,6 +97,36 @@ package Adi.Window is
 
     --  On-screen debug stats overlay (frame count, FPS, render time, layout count)
     procedure Set_Debug_Stats (W : in out Window; Enabled : Boolean);
+
+    --  Post-render callback, invoked after all widget rendering (including
+    --  debug stats overlay) but before SDL_RenderPresent.
+    type Post_Render_Proc is access procedure
+      (Win      : not null access Window'Class;
+       Renderer : SDL_Renderer_Ptr);
+    procedure Set_Post_Render_Callback
+      (W  : in out Window;
+       CB : Post_Render_Proc);
+
+    --  Per-frame callback, invoked unconditionally every frame regardless of
+    --  dirty state.  Use for polling/IPC that must run even when idle.
+    type Frame_Proc is access procedure
+      (Win : not null access Window'Class);
+    procedure Set_Frame_Callback
+      (W  : in out Window;
+       CB : Frame_Proc);
+
+    --  Read-only snapshot of per-frame performance stats
+    type Frame_Stats is record
+       Frame_No      : Natural := 0;
+       Render_Us     : Natural := 0;
+       Update_Us     : Natural := 0;
+       Layout_Us     : Natural := 0;
+       Draw_Us       : Natural := 0;
+       Present_Us    : Natural := 0;
+       Last_DT       : Duration := 0.0;
+       Layout_Count  : Natural := 0;
+    end record;
+    function Get_Frame_Stats (W : Window) return Frame_Stats;
 private
     package Overlay_Vectors is new Ada.Containers.Vectors (Positive, Widget_Access);
 
@@ -124,6 +154,8 @@ private
         Resize_Triggered_Layout : Boolean := False;
         Force_Redraw   : Boolean       := False;
         On_Tick_CB     : Tick_Callback := null;
+        Post_Render_CB : Post_Render_Proc := null;
+        Frame_CB       : Frame_Proc := null;
         --  Debug stats overlay
         Debug_Stats_On     : Boolean  := False;
         Stats_Frame_No     : Natural  := 0;

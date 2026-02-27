@@ -27,7 +27,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 
 ## Build Commands
 
-> ⚠️ Build safety: never run more than one `gprbuild` command at the same time in this repo. Concurrent `gprbuild` processes can race on shared artifacts (notably `lib/libAdi.a`) and produce truncated/corrupted archives.
+> ⚠️ Build safety: never run more than one `gprbuild` command at the same time in this repo. Concurrent `gprbuild` processes can race on shared artifacts and produce truncated/corrupted archives.
 
 ```bash
 # Build library + all tests (does NOT build examples — too slow)
@@ -49,9 +49,11 @@ alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/html_view_test
 ./tests/bin/disabled_test
 ./tests/bin/image_widget_test
+./tests/bin/mcp_test
 
 # Run Python tests (no build step needed)
 python3 tools/test_css_to_ada.py
+python3 tools/test_adi_mcp.py
 ```
 
 For direct gprbuild (no Alire), see `docs/gprbuild_without_alire.md` and `docs/build.md`.
@@ -149,7 +151,7 @@ Coordinates are **1-based**. Still use grep/glob for pattern matching (string li
 
 ## Git (MCP)
 
-A Git MCP server is available (`git`). **Prefer it over shell `git` commands** for common operations — status, diff, log, add, commit, branch, checkout, show.
+A Git MCP server is available (`git`). **Use MCP git tools for git commands whenever an MCP equivalent exists** — status, diff, log, add, commit, branch, checkout, show.
 
 | Tool | Use instead of |
 |------|---------------|
@@ -165,19 +167,53 @@ A Git MCP server is available (`git`). **Prefer it over shell `git` commands** f
 | `git_checkout(repo_path, branch_name)` | `git checkout` |
 | `git_branch(repo_path, branch_type)` | `git branch` |
 
-`repo_path` is always `/src/ada/adi2`. Fall back to shell git for operations not covered (push, rebase, stash, etc.).
+`repo_path` is always `/src/ada/adi2`. Use shell git only for operations not covered by MCP (push, rebase, stash, etc.).
+
+## Filesystem (MCP)
+
+A Filesystem MCP server is available (`filesystem`). Priority order: **built-in tools first** (Read, Write, Edit, Glob, Grep), then **MCP filesystem** for operations not covered by built-ins, then **shell commands** as last resort.
+
+Use MCP filesystem for operations that built-in tools cannot do:
+
+| Tool | Use instead of |
+|------|---------------|
+| `read_multiple_files(paths)` | Multiple sequential Read calls |
+| `read_media_file(path)` | Reading binary/image files via shell |
+| `list_directory(path)` | `ls` |
+| `list_directory_with_sizes(path)` | `ls -l` |
+| `directory_tree(path)` | `find`, `tree` |
+| `create_directory(path)` | `mkdir -p` |
+| `move_file(source, destination)` | `mv` |
+| `get_file_info(path)` | `stat` |
+
+Paths must be absolute (e.g., `/src/ada/adi2/src/adi-widget.ads`).
+
+## Adi Runtime Introspection (MCP)
+
+An Adi MCP server is available (`adi`) for inspecting a **running** Adi application. Requires the app to call `Adi.MCP.Initialize` (development builds only — release builds get a no-op stub).
+
+| Tool | Description |
+|------|-------------|
+| `screenshot()` | Capture PNG screenshot, returns file path |
+| `widget_tree()` | Full widget hierarchy as JSON (type, path, bounds, states, flags, children) |
+| `widget_info(path)` | Detailed info for one widget by dot-path (e.g. `"1.2.3"`) |
+| `perf_stats()` | Frame timing, FPS, layout counts |
+
+Communication uses file-based IPC via `/tmp/adi_mcp_<PID>/`. Each request carries a unique `req_id` for correlation.
 
 ## Project Structure
 
 ```
 src/                  Main library (adi-*.ads/adb)
+src/mcp/              MCP introspection (development builds only)
+src/mcp_stub/         MCP no-op stubs (release/validation builds)
 bindings/             Auto-generated SDL3 bindings (reference only, do not use directly)
 tests/src/            Test programs (built to tests/bin/)
 examples/             Example programs (built to examples/bin/)
 examples/css/         CSS source files
 examples/xml/         XML UI definitions
 examples/generated/   Auto-generated Ada from CSS and XML
-tools/                Code generators and build scripts
+tools/                Code generators, MCP servers, and build scripts
 docs/                 Reference documentation
 ```
 

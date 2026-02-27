@@ -39,7 +39,7 @@ alr exec -- gprbuild -j0 -P tests/tests.gpr -XTEST_KIND=css_parser_test
 # Build a specific example (always build explicitly by name)
 alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 
-# Run tests (built to tests/bin/)
+# Run Ada tests (built to tests/bin/)
 ./tests/bin/styles
 ./tests/bin/layout_test
 ./tests/bin/css_parser_test
@@ -49,6 +49,9 @@ alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/html_view_test
 ./tests/bin/disabled_test
 ./tests/bin/image_widget_test
+
+# Run Python tests (no build step needed)
+python3 tools/test_css_to_ada.py
 ```
 
 For direct gprbuild (no Alire), see `docs/gprbuild_without_alire.md` and `docs/build.md`.

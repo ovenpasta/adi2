@@ -2398,10 +2398,504 @@ package body Adi.CSS_Parser is
       end if;
    end Apply_Property;
 
+   ---------------------------------------------------------------------------
+   --  Custom Property Preprocessing (var(), :root, @property)
+   ---------------------------------------------------------------------------
+
+   type Variable_Entry is record
+      Name  : Unbounded_String;
+      Value : Unbounded_String;
+   end record;
+
+   package Variable_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type => Positive,
+      Element_Type => Variable_Entry);
+
+   function Var_Lookup
+     (Vars : Variable_Vectors.Vector;
+      Name : String) return String
+   is
+   begin
+      for I in 1 .. Natural (Vars.Length) loop
+         if To_String (Vars.Element (I).Name) = Name then
+            return To_String (Vars.Element (I).Value);
+         end if;
+      end loop;
+      return "";
+   end Var_Lookup;
+
+   function Has_Variable
+     (Vars : Variable_Vectors.Vector;
+      Name : String) return Boolean
+   is
+   begin
+      for I in 1 .. Natural (Vars.Length) loop
+         if To_String (Vars.Element (I).Name) = Name then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Has_Variable;
+
+   procedure Set_Variable
+     (Vars  : in out Variable_Vectors.Vector;
+      Name  : String;
+      Value : String)
+   is
+   begin
+      for I in 1 .. Natural (Vars.Length) loop
+         if To_String (Vars.Element (I).Name) = Name then
+            Vars.Replace_Element (I,
+              (Name  => To_Unbounded_String (Name),
+               Value => To_Unbounded_String (Value)));
+            return;
+         end if;
+      end loop;
+      Vars.Append
+        (Variable_Entry'(Name  => To_Unbounded_String (Name),
+                         Value => To_Unbounded_String (Value)));
+   end Set_Variable;
+
+   function Extract_At_Property_Blocks (CSS : String) return String is
+      --  Remove @property --name { ... } blocks, extracting initial-value
+      --  into Variables. Returns cleaned CSS.
+      Result : Unbounded_String;
+      I      : Positive := CSS'First;
+   begin
+      while I <= CSS'Last loop
+         --  Look for "@property"
+         if I + 8 <= CSS'Last
+           and then CSS (I .. I + 8) = "@property"
+         then
+            --  Skip to opening brace
+            declare
+               Open  : Natural := 0;
+               Close : Natural := 0;
+            begin
+               for J in I + 9 .. CSS'Last loop
+                  if CSS (J) = '{' then
+                     Open := J;
+                     exit;
+                  end if;
+               end loop;
+               if Open > 0 then
+                  for J in Open + 1 .. CSS'Last loop
+                     if CSS (J) = '}' then
+                        Close := J;
+                        exit;
+                     end if;
+                  end loop;
+               end if;
+               if Close > 0 then
+                  I := Close + 1;
+               else
+                  Append (Result, CSS (I));
+                  I := I + 1;
+               end if;
+            end;
+         else
+            Append (Result, CSS (I));
+            I := I + 1;
+         end if;
+      end loop;
+      return To_String (Result);
+   end Extract_At_Property_Blocks;
+
+   procedure Collect_At_Property_Defaults
+     (CSS  : String;
+      Vars : in out Variable_Vectors.Vector)
+   is
+      I : Positive := CSS'First;
+   begin
+      while I <= CSS'Last loop
+         if I + 8 <= CSS'Last
+           and then CSS (I .. I + 8) = "@property"
+         then
+            declare
+               Open  : Natural := 0;
+               Close : Natural := 0;
+               Name_Start : Natural := 0;
+               Name_End   : Natural := 0;
+            begin
+               --  Find variable name (--xxx)
+               for J in I + 9 .. CSS'Last loop
+                  if not Is_Whitespace (CSS (J)) then
+                     Name_Start := J;
+                     exit;
+                  end if;
+               end loop;
+               if Name_Start > 0 then
+                  for J in Name_Start .. CSS'Last loop
+                     if Is_Whitespace (CSS (J)) or else CSS (J) = '{' then
+                        Name_End := J - 1;
+                        exit;
+                     end if;
+                  end loop;
+               end if;
+               --  Find block
+               for J in I + 9 .. CSS'Last loop
+                  if CSS (J) = '{' then
+                     Open := J;
+                     exit;
+                  end if;
+               end loop;
+               if Open > 0 then
+                  for J in Open + 1 .. CSS'Last loop
+                     if CSS (J) = '}' then
+                        Close := J;
+                        exit;
+                     end if;
+                  end loop;
+               end if;
+               if Close > 0 and then Name_Start > 0 and then Name_End >= Name_Start then
+                  declare
+                     Var_Name : constant String := CSS (Name_Start .. Name_End);
+                     Body_Str : constant String := CSS (Open + 1 .. Close - 1);
+                     IV_Key   : constant String := "initial-value";
+                     Lowered  : constant String := Lower (Body_Str);
+                     IV_Pos   : constant Natural := Fix.Index (Lowered, IV_Key);
+                     --  IV_Pos is relative to Lowered'First; convert to
+                     --  Body_Str's index space in case bounds differ.
+                     IV_Abs   : constant Natural :=
+                       (if IV_Pos > 0
+                        then Body_Str'First + (IV_Pos - Lowered'First)
+                        else 0);
+                  begin
+                     if IV_Abs > 0 then
+                        declare
+                           Colon : Natural := 0;
+                           Semi  : Natural := 0;
+                        begin
+                           for J in IV_Abs + IV_Key'Length .. Body_Str'Last loop
+                              if Body_Str (J) = ':' then
+                                 Colon := J;
+                                 exit;
+                              end if;
+                           end loop;
+                           if Colon > 0 then
+                              Semi := Fix.Index (Body_Str, ";", From => Colon + 1);
+                              if Semi = 0 then
+                                 Semi := Body_Str'Last + 1;
+                              end if;
+                              Set_Variable (Vars, Var_Name,
+                                Trimmed (Body_Str (Colon + 1 .. Semi - 1)));
+                           end if;
+                        end;
+                     end if;
+                  end;
+                  I := Close + 1;
+               else
+                  I := I + 1;
+               end if;
+            end;
+         else
+            I := I + 1;
+         end if;
+      end loop;
+   end Collect_At_Property_Defaults;
+
+   function Extract_Root_Variables
+     (CSS  : String;
+      Vars : in out Variable_Vectors.Vector) return String
+   is
+      --  Find :root { ... } blocks, extract --name custom properties,
+      --  remove the blocks from CSS.
+      Result : Unbounded_String;
+      I      : Positive := CSS'First;
+   begin
+      while I <= CSS'Last loop
+         if I + 4 <= CSS'Last
+           and then CSS (I .. I + 4) = ":root"
+         then
+            --  Find the block
+            declare
+               Open  : Natural := 0;
+               Close : Natural := 0;
+            begin
+               for J in I + 5 .. CSS'Last loop
+                  if CSS (J) = '{' then
+                     Open := J;
+                     exit;
+                  end if;
+               end loop;
+               if Open > 0 then
+                  for J in Open + 1 .. CSS'Last loop
+                     if CSS (J) = '}' then
+                        Close := J;
+                        exit;
+                     end if;
+                  end loop;
+               end if;
+               if Close > 0 then
+                  --  Parse declarations inside the block
+                  declare
+                     Body_Str : constant String := CSS (Open + 1 .. Close - 1);
+                     Decl_Pos : Positive := Body_Str'First;
+                  begin
+                     while Decl_Pos <= Body_Str'Last loop
+                        while Decl_Pos <= Body_Str'Last
+                          and then (Is_Whitespace (Body_Str (Decl_Pos))
+                                    or else Body_Str (Decl_Pos) = ';')
+                        loop
+                           Decl_Pos := Decl_Pos + 1;
+                        end loop;
+                        exit when Decl_Pos > Body_Str'Last;
+
+                        declare
+                           Decl_End : constant Natural :=
+                             Fix.Index (Body_Str, ";", From => Decl_Pos);
+                           Decl : constant String :=
+                             (if Decl_End = 0
+                              then Trimmed (Body_Str (Decl_Pos .. Body_Str'Last))
+                              else Trimmed (Body_Str (Decl_Pos .. Decl_End - 1)));
+                           Sep : constant Natural := Fix.Index (Decl, ":");
+                        begin
+                           if Sep > 0 then
+                              declare
+                                 Prop_Name  : constant String :=
+                                   Trimmed (Decl (Decl'First .. Sep - 1));
+                                 Prop_Value : constant String :=
+                                   Trimmed (Decl (Sep + 1 .. Decl'Last));
+                              begin
+                                 if Prop_Name'Length >= 2
+                                   and then Prop_Name (Prop_Name'First .. Prop_Name'First + 1) = "--"
+                                 then
+                                    Set_Variable (Vars, Prop_Name, Prop_Value);
+                                 end if;
+                                 --  Ignore normal properties in :root (per design)
+                              end;
+                           end if;
+
+                           if Decl_End = 0 then
+                              Decl_Pos := Body_Str'Last + 1;
+                           else
+                              Decl_Pos := Decl_End + 1;
+                           end if;
+                        end;
+                     end loop;
+                  end;
+                  --  Skip past the :root block
+                  I := Close + 1;
+               else
+                  Append (Result, CSS (I));
+                  I := I + 1;
+               end if;
+            end;
+         else
+            Append (Result, CSS (I));
+            I := I + 1;
+         end if;
+      end loop;
+      return To_String (Result);
+   end Extract_Root_Variables;
+
+   function Strip_Non_Root_Custom_Properties (CSS : String) return String is
+      --  Remove --name: value declarations from normal (non-:root) blocks.
+      Result : Unbounded_String;
+      I      : Positive := CSS'First;
+   begin
+      while I <= CSS'Last loop
+         declare
+            Open : constant Natural := Fix.Index (CSS, "{", From => I);
+         begin
+            exit when Open = 0;
+            declare
+               Close : constant Natural := Fix.Index (CSS, "}", From => Open + 1);
+            begin
+               if Close = 0 then
+                  --  Unclosed block, copy rest
+                  Append (Result, CSS (I .. CSS'Last));
+                  return To_String (Result);
+               end if;
+               --  Copy selector
+               Append (Result, CSS (I .. Open));
+               --  Process body: copy declarations, skip --* ones
+               declare
+                  Body_Str : constant String := CSS (Open + 1 .. Close - 1);
+                  Decl_Pos : Positive := Body_Str'First;
+               begin
+                  while Decl_Pos <= Body_Str'Last loop
+                     while Decl_Pos <= Body_Str'Last
+                       and then (Is_Whitespace (Body_Str (Decl_Pos))
+                                 or else Body_Str (Decl_Pos) = ';')
+                     loop
+                        Append (Result, Body_Str (Decl_Pos));
+                        Decl_Pos := Decl_Pos + 1;
+                     end loop;
+                     exit when Decl_Pos > Body_Str'Last;
+
+                     declare
+                        Decl_End : constant Natural :=
+                          Fix.Index (Body_Str, ";", From => Decl_Pos);
+                        Decl_Str : constant String :=
+                          (if Decl_End = 0
+                           then Body_Str (Decl_Pos .. Body_Str'Last)
+                           else Body_Str (Decl_Pos .. Decl_End));
+                        Name_End : Natural := 0;
+                     begin
+                        --  Find the property name part (before ':')
+                        for J in Decl_Str'Range loop
+                           if Decl_Str (J) = ':' then
+                              Name_End := J - 1;
+                              exit;
+                           end if;
+                        end loop;
+                        declare
+                           Is_Custom : Boolean := False;
+                        begin
+                           if Name_End > 0 then
+                              declare
+                                 Prop_Name : constant String :=
+                                   Trimmed (Decl_Str (Decl_Str'First .. Name_End));
+                              begin
+                                 Is_Custom := Prop_Name'Length >= 2
+                                   and then Prop_Name
+                                     (Prop_Name'First .. Prop_Name'First + 1) = "--";
+                              end;
+                           end if;
+                           if not Is_Custom then
+                              Append (Result, Decl_Str);
+                           end if;
+                        end;
+
+                        if Decl_End = 0 then
+                           Decl_Pos := Body_Str'Last + 1;
+                        else
+                           Decl_Pos := Decl_End + 1;
+                        end if;
+                     end;
+                  end loop;
+               end;
+               Append (Result, '}');
+               I := Close + 1;
+            end;
+         end;
+      end loop;
+      return To_String (Result);
+   end Strip_Non_Root_Custom_Properties;
+
+   function Find_Var_End (CSS : String; Start : Positive) return Natural is
+      --  Find closing ')' of var(...) starting after 'var('.
+      Depth : Natural := 1;
+      I     : Positive := Start;
+   begin
+      while I <= CSS'Last loop
+         if CSS (I) = '(' then
+            Depth := Depth + 1;
+         elsif CSS (I) = ')' then
+            Depth := Depth - 1;
+            if Depth = 0 then
+               return I;
+            end if;
+         end if;
+         I := I + 1;
+      end loop;
+      return 0;
+   end Find_Var_End;
+
+   function Resolve_Var_References
+     (CSS  : String;
+      Vars : Variable_Vectors.Vector) return String
+   is
+      Max_Depth : constant := 10;
+      Current   : Unbounded_String := To_Unbounded_String (CSS);
+   begin
+      for Iteration in 1 .. Max_Depth loop
+         declare
+            Input   : constant String := To_String (Current);
+            Output  : Unbounded_String;
+            I       : Positive := Input'First;
+            Changed : Boolean := False;
+         begin
+            while I <= Input'Last loop
+               if I + 3 <= Input'Last
+                 and then Input (I .. I + 3) = "var("
+                 and then (I = Input'First
+                           or else (not Char.Is_Alphanumeric (Input (I - 1))
+                                    and then Input (I - 1) /= '_'
+                                    and then Input (I - 1) /= '-'))
+               then
+                  declare
+                     End_Pos : constant Natural := Find_Var_End (Input, I + 4);
+                  begin
+                     if End_Pos = 0 then
+                        Append (Output, Input (I .. Input'Last));
+                        I := Input'Last + 1;
+                     else
+                        declare
+                           Inner     : constant String := Input (I + 4 .. End_Pos - 1);
+                           Comma_Pos : Natural := 0;
+                           Depth     : Natural := 0;
+                        begin
+                           --  Find first comma not inside parens
+                           for J in Inner'Range loop
+                              if Inner (J) = '(' then
+                                 Depth := Depth + 1;
+                              elsif Inner (J) = ')' then
+                                 Depth := Depth - 1;
+                              elsif Inner (J) = ',' and then Depth = 0 then
+                                 Comma_Pos := J;
+                                 exit;
+                              end if;
+                           end loop;
+
+                           declare
+                              Var_Name : constant String :=
+                                (if Comma_Pos > 0
+                                 then Trimmed (Inner (Inner'First .. Comma_Pos - 1))
+                                 else Trimmed (Inner));
+                              Fallback : constant String :=
+                                (if Comma_Pos > 0
+                                 then Trimmed (Inner (Comma_Pos + 1 .. Inner'Last))
+                                 else "");
+                           begin
+                              if Has_Variable (Vars, Var_Name) then
+                                 Append (Output, Var_Lookup (Vars, Var_Name));
+                                 Changed := True;
+                              elsif Comma_Pos > 0 then
+                                 Append (Output, Fallback);
+                                 Changed := True;
+                              else
+                                 --  Unresolved: keep original text
+                                 Append (Output, Input (I .. End_Pos));
+                              end if;
+                           end;
+                        end;
+                        I := End_Pos + 1;
+                     end if;
+                  end;
+               else
+                  Append (Output, Input (I));
+                  I := I + 1;
+               end if;
+            end loop;
+
+            Current := Output;
+            exit when not Changed;
+         end;
+      end loop;
+      return To_String (Current);
+   end Resolve_Var_References;
+
+   function Preprocess_Custom_Properties (CSS : String) return String is
+      Vars     : Variable_Vectors.Vector;
+      Step1    : constant String := Strip_Comments (CSS);
+   begin
+      Collect_At_Property_Defaults (Step1, Vars);
+      declare
+         Step2 : constant String := Extract_At_Property_Blocks (Step1);
+         Step3 : constant String := Extract_Root_Variables (Step2, Vars);
+         Step4 : constant String := Strip_Non_Root_Custom_Properties (Step3);
+         Step5 : constant String := Resolve_Var_References (Step4, Vars);
+      begin
+         return Step5;
+      end;
+   end Preprocess_Custom_Properties;
+
    function Parse_Rules (CSS : String;
                          Out_Rules : out Parsed_Rule_Vectors.Vector;
                          Out_Error : out Unbounded_String) return Boolean is
-      Clean : constant String := Strip_Comments (CSS);
+      Clean : constant String := Preprocess_Custom_Properties (CSS);
       Pos : Positive := Clean'First;
    begin
       Out_Rules.Clear;

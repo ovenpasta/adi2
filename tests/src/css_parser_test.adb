@@ -897,6 +897,225 @@ begin
               "::text part font-size should parse");
    end;
 
+   --  ===== Custom Properties (@property, :root, var()) =====
+
+   --  @property default with var() reference
+   declare
+      Var_Sheet : Adi.CSS_Parser.Stylesheet;
+      Var_OK    : Boolean;
+      Var_CSS   : constant String :=
+        "@property --primary { initial-value: red; } "
+        & ".btn { color: var(--primary); }";
+   begin
+      Adi.CSS_Parser.Load_String (Var_Sheet, Var_CSS, Var_OK);
+      Assert (Var_OK, "@property+var() CSS should parse");
+      declare
+         S : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Var_Sheet, "btn");
+         R : constant Resolved_Style :=
+           Compute_Resolved (S (Main_Part).Style, No_States, No_States);
+      begin
+         Assert (R.Color = (Kind => Named, Name => Red),
+                 "var(--primary) should resolve to red from @property default");
+      end;
+   end;
+
+   --  :root overrides @property default
+   declare
+      Var_Sheet : Adi.CSS_Parser.Stylesheet;
+      Var_OK    : Boolean;
+      Var_CSS   : constant String :=
+        "@property --c { initial-value: red; } "
+        & ":root { --c: blue; } "
+        & ".x { color: var(--c); }";
+   begin
+      Adi.CSS_Parser.Load_String (Var_Sheet, Var_CSS, Var_OK);
+      Assert (Var_OK, ":root override CSS should parse");
+      declare
+         S : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Var_Sheet, "x");
+         R : constant Resolved_Style :=
+           Compute_Resolved (S (Main_Part).Style, No_States, No_States);
+      begin
+         Assert (R.Color = (Kind => Named, Name => Blue),
+                 "var(--c) should resolve to blue from :root override");
+      end;
+   end;
+
+   --  var() with fallback when variable is missing
+   declare
+      Var_Sheet : Adi.CSS_Parser.Stylesheet;
+      Var_OK    : Boolean;
+      Var_CSS   : constant String :=
+        ".x { color: var(--missing, green); }";
+   begin
+      Adi.CSS_Parser.Load_String (Var_Sheet, Var_CSS, Var_OK);
+      Assert (Var_OK, "var() fallback CSS should parse");
+      declare
+         S : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Var_Sheet, "x");
+         R : constant Resolved_Style :=
+           Compute_Resolved (S (Main_Part).Style, No_States, No_States);
+      begin
+         Assert (R.Color = (Kind => Named, Name => Green),
+                 "var(--missing, green) should use fallback green");
+      end;
+   end;
+
+   --  Multiple var() in one value
+   declare
+      Var_Sheet : Adi.CSS_Parser.Stylesheet;
+      Var_OK    : Boolean;
+      Var_CSS   : constant String :=
+        ":root { --x: 4px; --y: 8px; } "
+        & ".x { padding: var(--x) var(--y); }";
+   begin
+      Adi.CSS_Parser.Load_String (Var_Sheet, Var_CSS, Var_OK);
+      Assert (Var_OK, "multiple var() CSS should parse");
+      declare
+         S : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Var_Sheet, "x");
+         R : constant Resolved_Style :=
+           Compute_Resolved (S (Main_Part).Style, No_States, No_States);
+      begin
+         Assert (R.Padding.Kind = Axis,
+                 "padding from two var() should be Axis kind");
+         Assert (R.Padding.Vertical.Amount = 4.0
+                 and then R.Padding.Vertical.Unit = Px,
+                 "padding vertical from var(--x) should be 4px");
+         Assert (R.Padding.Horizontal.Amount = 8.0
+                 and then R.Padding.Horizontal.Unit = Px,
+                 "padding horizontal from var(--y) should be 8px");
+      end;
+   end;
+
+   --  :root block should not leak as a parsed rule
+   declare
+      Var_Sheet : Adi.CSS_Parser.Stylesheet;
+      Var_OK    : Boolean;
+      Var_CSS   : constant String :=
+        ":root { --c: red; } .x { color: var(--c); }";
+   begin
+      Adi.CSS_Parser.Load_String (Var_Sheet, Var_CSS, Var_OK);
+      Assert (Var_OK, ":root no-leak CSS should parse");
+      --  Verify the actual rule resolved correctly
+      declare
+         S : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Var_Sheet, "x");
+         R : constant Resolved_Style :=
+           Compute_Resolved (S (Main_Part).Style, No_States, No_States);
+      begin
+         Assert (R.Color = (Kind => Named, Name => Red),
+                 ":root var should resolve and .x should get color red");
+      end;
+   end;
+
+   --  Non-root custom property should be stripped
+   declare
+      Var_Sheet : Adi.CSS_Parser.Stylesheet;
+      Var_OK    : Boolean;
+      Var_CSS   : constant String :=
+        ".x { --local: red; color: blue; }";
+   begin
+      Adi.CSS_Parser.Load_String (Var_Sheet, Var_CSS, Var_OK);
+      Assert (Var_OK, "non-root custom prop CSS should parse");
+      declare
+         S : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Var_Sheet, "x");
+         R : constant Resolved_Style :=
+           Compute_Resolved (S (Main_Part).Style, No_States, No_States);
+      begin
+         Assert (R.Color = (Kind => Named, Name => Blue),
+                 "non-root custom prop stripped, color should be blue");
+      end;
+   end;
+
+   --  Unresolved var() with no fallback should parse and not crash
+   declare
+      Var_Sheet : Adi.CSS_Parser.Stylesheet;
+      Var_OK    : Boolean;
+      Var_CSS   : constant String :=
+        ".x { color: var(--undefined); background-color: green; }";
+   begin
+      Adi.CSS_Parser.Load_String (Var_Sheet, Var_CSS, Var_OK);
+      Assert (Var_OK, "unresolved var() CSS should parse");
+      declare
+         S : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Var_Sheet, "x");
+         R : constant Resolved_Style :=
+           Compute_Resolved (S (Main_Part).Style, No_States, No_States);
+      begin
+         --  color has unresolved var(), so it won't parse as a valid color
+         --  but background-color should still work
+         Assert (R.Background_Color = (Kind => Named, Name => Green),
+                 "unresolved var() should not prevent other properties");
+      end;
+   end;
+
+   --  Recursive var() resolution (--a references --b)
+   declare
+      Var_Sheet : Adi.CSS_Parser.Stylesheet;
+      Var_OK    : Boolean;
+      Var_CSS   : constant String :=
+        ":root { --a: var(--b); --b: green; } "
+        & ".x { color: var(--a); }";
+   begin
+      Adi.CSS_Parser.Load_String (Var_Sheet, Var_CSS, Var_OK);
+      Assert (Var_OK, "recursive var() CSS should parse");
+      declare
+         S : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Var_Sheet, "x");
+         R : constant Resolved_Style :=
+           Compute_Resolved (S (Main_Part).Style, No_States, No_States);
+      begin
+         Assert (R.Color = (Kind => Named, Name => Green),
+                 "var(--a) -> var(--b) -> green should resolve to green");
+      end;
+   end;
+
+   --  Nested var() in fallback
+   declare
+      Var_Sheet : Adi.CSS_Parser.Stylesheet;
+      Var_OK    : Boolean;
+      Var_CSS   : constant String :=
+        ":root { --b: blue; } "
+        & ".x { color: var(--a, var(--b)); }";
+   begin
+      Adi.CSS_Parser.Load_String (Var_Sheet, Var_CSS, Var_OK);
+      Assert (Var_OK, "nested var() fallback CSS should parse");
+      declare
+         S : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Var_Sheet, "x");
+         R : constant Resolved_Style :=
+           Compute_Resolved (S (Main_Part).Style, No_States, No_States);
+      begin
+         Assert (R.Color = (Kind => Named, Name => Blue),
+                 "var(--a, var(--b)) should fallback to blue");
+      end;
+   end;
+
+   --  Cyclic var() should not crash
+   declare
+      Var_Sheet : Adi.CSS_Parser.Stylesheet;
+      Var_OK    : Boolean;
+      Var_CSS   : constant String :=
+        ":root { --a: var(--b); --b: var(--a); } "
+        & ".x { color: var(--a); background-color: red; }";
+   begin
+      Adi.CSS_Parser.Load_String (Var_Sheet, Var_CSS, Var_OK);
+      Assert (Var_OK, "cyclic var() CSS should parse without crash");
+      declare
+         S : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Var_Sheet, "x");
+         R : constant Resolved_Style :=
+           Compute_Resolved (S (Main_Part).Style, No_States, No_States);
+      begin
+         --  Cyclic var may leave color unresolved; just verify bg is fine
+         Assert (R.Background_Color = (Kind => Named, Name => Red),
+                 "non-cyclic property should still resolve");
+      end;
+   end;
+
    Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");
    if Pass_Count /= Test_Count then
       raise Program_Error with "css parser test failed";

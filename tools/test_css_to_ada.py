@@ -1213,5 +1213,99 @@ class TestCliStrictMode(unittest.TestCase):
         self.assertIn("Overflow_Y => Set_Overflow_Y (Overflow_Auto)", output_text)
 
 
+class TestCustomProperties(unittest.TestCase):
+    """Tests for @property, :root, var() preprocessing."""
+
+    def test_at_property_default(self):
+        css = '@property --c { initial-value: red; } .x { color: var(--c); }'
+        rules, diags = parse_css_with_diagnostics(css)
+        self.assertEqual(len(rules), 1)
+        self.assertEqual(rules[0].properties.get("color"), "red")
+
+    def test_root_overrides_at_property(self):
+        css = (
+            '@property --c { initial-value: red; } '
+            ':root { --c: blue; } '
+            '.x { color: var(--c); }'
+        )
+        rules, diags = parse_css_with_diagnostics(css)
+        self.assertEqual(rules[0].properties.get("color"), "blue")
+
+    def test_var_with_fallback(self):
+        css = '.x { color: var(--missing, green); }'
+        rules, diags = parse_css_with_diagnostics(css)
+        self.assertEqual(rules[0].properties.get("color"), "green")
+
+    def test_var_no_fallback_unresolved(self):
+        css = '.x { color: var(--missing); }'
+        rules, diags = parse_css_with_diagnostics(css)
+        self.assertEqual(rules[0].properties.get("color"), "var(--missing)")
+        codes = [d.code for d in diags]
+        self.assertIn("unresolved-variable", codes)
+
+    def test_nested_fallback_parens(self):
+        css = ':root { --c: #ff0000; } .x { color: var(--c, rgb(0, 0, 0)); }'
+        rules, diags = parse_css_with_diagnostics(css)
+        self.assertEqual(rules[0].properties.get("color"), "#ff0000")
+
+    def test_fallback_with_function(self):
+        css = '.x { color: var(--missing, rgb(10, 20, 30)); }'
+        rules, diags = parse_css_with_diagnostics(css)
+        self.assertEqual(rules[0].properties.get("color"), "rgb(10, 20, 30)")
+
+    def test_nested_var_in_fallback(self):
+        css = ':root { --b: blue; } .x { color: var(--a, var(--b)); }'
+        rules, diags = parse_css_with_diagnostics(css)
+        self.assertEqual(rules[0].properties.get("color"), "blue")
+
+    def test_recursive_var(self):
+        css = ':root { --a: var(--b); --b: green; } .x { color: var(--a); }'
+        rules, diags = parse_css_with_diagnostics(css)
+        self.assertEqual(rules[0].properties.get("color"), "green")
+
+    def test_cyclic_var_bounded(self):
+        css = ':root { --a: var(--b); --b: var(--a); } .x { color: var(--a); }'
+        rules, diags = parse_css_with_diagnostics(css)
+        # Should not crash; either resolve or leave unresolved with diagnostic
+        self.assertEqual(len(rules), 1)
+
+    def test_root_normal_prop_ignored(self):
+        css = ':root { color: red; --c: blue; } .x { color: var(--c); }'
+        rules, diags = parse_css_with_diagnostics(css)
+        self.assertEqual(rules[0].properties.get("color"), "blue")
+        codes = [d.code for d in diags]
+        self.assertIn("root-normal-property-ignored", codes)
+
+    def test_non_root_custom_prop_ignored(self):
+        css = '.x { --local: red; color: blue; }'
+        rules, diags = parse_css_with_diagnostics(css)
+        self.assertEqual(rules[0].properties.get("color"), "blue")
+        codes = [d.code for d in diags]
+        self.assertIn("non-root-custom-property-ignored", codes)
+
+    def test_multiple_var_in_one_decl(self):
+        css = (
+            ':root { --x: 4px; --y: 8px; } '
+            '.x { padding: var(--x) var(--y); }'
+        )
+        rules, diags = parse_css_with_diagnostics(css)
+        self.assertEqual(rules[0].properties.get("padding"), "4px 8px")
+
+    def test_no_root_selector_leak(self):
+        """Ensure :root does not appear as a parsed selector."""
+        css = ':root { --c: red; } .x { color: var(--c); }'
+        rules, diags = parse_css_with_diagnostics(css)
+        selectors = [r.selector.name for r in rules]
+        self.assertNotIn("root", selectors)
+        self.assertNotIn(":root", selectors)
+
+    def test_at_property_block_removed(self):
+        """@property blocks should not produce rules."""
+        css = '@property --c { initial-value: red; } .x { color: var(--c); }'
+        rules, diags = parse_css_with_diagnostics(css)
+        selectors = [r.selector.name for r in rules]
+        self.assertEqual(selectors, ["x"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -449,6 +449,72 @@ Special keywords: `transparent`, `inherit`, `currentcolor`.
 
 ---
 
+## Custom Properties
+
+Adi supports a simplified CSS custom property model for DRY token authoring. Custom properties are resolved at parse time (in both the Python generator and the Ada runtime parser) before any rule processing occurs.
+
+### `@property` — Defaults
+
+Declare default values for custom properties:
+
+```css
+@property --primary { initial-value: #3b82f6; }
+@property --radius  { initial-value: 8px; }
+```
+
+`@property` blocks are stripped from the CSS after collecting defaults. Only `initial-value` is recognized.
+
+### `:root` — Overrides
+
+Override defaults (or define new tokens) in a `:root` block:
+
+```css
+:root {
+  --primary: #ef4444;
+  --spacing: 16px;
+}
+```
+
+`:root` values override `@property` defaults. Normal (non-custom) properties inside `:root` are ignored with a diagnostic. The `:root` block itself is stripped and does not produce a selector.
+
+### `var()` — Substitution
+
+Reference tokens in any declaration value:
+
+```css
+.card {
+  background-color: var(--primary);
+  border-radius: var(--radius);
+  padding: var(--spacing) var(--spacing);
+}
+```
+
+Resolution rules:
+- `var(--name)` — substitutes the value if defined; left as-is with an `unresolved-variable` diagnostic if undefined
+- `var(--name, fallback)` — substitutes if defined; uses the fallback value otherwise
+- Fallbacks may contain nested `var()` references: `var(--a, var(--b))`
+- Recursive references are resolved iteratively (up to 10 passes)
+- Cyclic references are bounded and left unresolved
+
+### Scope Restrictions
+
+Custom properties use a flat, root-scoped model (no per-selector inheritance):
+
+- Custom property declarations (`--name: value`) are only meaningful inside `:root`
+- Custom properties in non-`:root` selectors are stripped with a `non-root-custom-property-ignored` diagnostic
+- `var()` resolves from the single root-scoped map only
+
+### Diagnostics
+
+| Code | Meaning |
+|------|---------|
+| `unresolved-variable` | `var(--name)` with no fallback and no definition |
+| `var-resolution-depth-exceeded` | `var()` still present after 10 resolution passes (cycle or deep nesting) |
+| `root-normal-property-ignored` | Non-custom property inside `:root` block |
+| `non-root-custom-property-ignored` | `--name` declaration outside `:root` |
+
+---
+
 ## Compile-Time Generation
 
 ### Invocation
@@ -696,7 +762,6 @@ For widgets with interactive sub-parts (scrollbars, dropdown indicators), use pa
 - **No descendant/child combinators** — `.parent .child` and `.parent > .child` are not supported
 - **No attribute selectors** — `[type="text"]` is not supported
 - **No `@media` queries** — No responsive breakpoints
-- **No CSS variables** — `var(--custom)` is not supported
 - **No multiple box-shadows** — Only one shadow per rule
 - **Single font-family** — Font loading uses `Font_Handle`; CSS `font-family` is not parsed
 - **Grid rows not track-sized** — `grid-template-rows` sets an explicit row count; per-row sizing tokens (`auto`, `fr`, `px`) are not yet supported for rows

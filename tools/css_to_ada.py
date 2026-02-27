@@ -1511,6 +1511,264 @@ def validate_property_value(property_name: str, value: str) -> bool:
     return False
 
 
+# ── Custom Property Preprocessing ─────────────────────────────────────────
+
+
+def collect_at_property_blocks(
+    css_content: str,
+) -> tuple[dict[str, str], str]:
+    """Extract @property --name { initial-value: ... } blocks.
+
+    Returns (defaults dict, cleaned CSS with @property blocks removed).
+    """
+    defaults: dict[str, str] = {}
+    # Match @property --name { ... } — balanced braces, non-greedy
+    pattern = re.compile(
+        r'@property\s+(--[\w-]+)\s*\{([^}]*)\}', re.DOTALL
+    )
+    for m in pattern.finditer(css_content):
+        var_name = m.group(1)
+        body = m.group(2)
+        # Extract initial-value
+        iv_match = re.search(
+            r'initial-value\s*:\s*([^;]+);?', body
+        )
+        if iv_match:
+            defaults[var_name] = iv_match.group(1).strip()
+    cleaned = pattern.sub('', css_content)
+    return defaults, cleaned
+
+
+def collect_root_variables(
+    css_content: str,
+    defaults: dict[str, str],
+) -> tuple[dict[str, str], str, list[CssDiagnostic]]:
+    """Extract :root { ... } blocks; collect --name custom properties.
+
+    Normal (non-custom) declarations inside :root emit diagnostics.
+    Returns (variables dict, cleaned CSS, diagnostics).
+    """
+    variables = dict(defaults)
+    diagnostics: list[CssDiagnostic] = []
+
+    root_pattern = re.compile(r':root\s*\{([^}]*)\}', re.DOTALL)
+    for m in root_pattern.finditer(css_content):
+        body = m.group(1)
+        for decl in re.finditer(r'([\w-]+)\s*:\s*([^;]+);?', body):
+            prop_name = decl.group(1).strip()
+            prop_value = decl.group(2).strip()
+            if prop_name.startswith('--'):
+                variables[prop_name] = prop_value
+            else:
+                diagnostics.append(CssDiagnostic(
+                    code="root-normal-property-ignored",
+                    message=(
+                        f"Normal property '{prop_name}' in :root is ignored; "
+                        f":root only supports custom properties (--name)"
+                    ),
+                    selector=":root",
+                    property_name=prop_name,
+                    property_value=prop_value,
+                ))
+    cleaned = root_pattern.sub('', css_content)
+    return variables, cleaned, diagnostics
+
+
+def strip_non_root_custom_properties(
+    css_content: str,
+) -> tuple[str, list[CssDiagnostic]]:
+    """Remove --name: value declarations from non-:root blocks.
+
+    Returns (cleaned CSS, diagnostics).
+    """
+    diagnostics: list[CssDiagnostic] = []
+    custom_prop_pattern = re.compile(r'--[\w-]+\s*:[^;]*;?')
+
+    def process_block(m: re.Match) -> str:
+        selector = m.group(1).strip()
+        body = m.group(2)
+        # :root blocks are already removed; this handles leftovers
+        if selector == ':root':
+            return m.group(0)
+        new_body = body
+        for decl in custom_prop_pattern.finditer(body):
+            decl_text = decl.group(0)
+            prop_name = decl_text.split(':')[0].strip()
+            diagnostics.append(CssDiagnostic(
+                code="non-root-custom-property-ignored",
+                message=(
+                    f"Custom property '{prop_name}' outside :root is "
+                    f"ignored; only :root custom properties are supported"
+                ),
+                selector=selector,
+                property_name=prop_name,
+            ))
+            new_body = new_body.replace(decl_text, '', 1)
+        return f"{m.group(1)}{{{new_body}}}"
+
+    block_pattern = re.compile(r'([^{}]+)\{([^{}]*)\}', re.DOTALL)
+    cleaned = block_pattern.sub(process_block, css_content)
+    return cleaned, diagnostics
+
+
+def _find_var_end(text: str, start: int) -> int:
+    """Find the closing paren of var(...) starting after 'var('.
+
+    Returns index of the closing ')' or -1 if unbalanced.
+    """
+    depth = 1
+    i = start
+    while i < len(text):
+        if text[i] == '(':
+            depth += 1
+        elif text[i] == ')':
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return -1
+
+
+def resolve_var_references(
+    css_content: str,
+    variables: dict[str, str],
+    max_depth: int = 10,
+) -> tuple[str, list[CssDiagnostic]]:
+    """Resolve var(--name) and var(--name, fallback) references.
+
+    Handles nested var() and nested parentheses in fallback values.
+    Returns (resolved CSS, diagnostics).
+    """
+    diagnostics: list[CssDiagnostic] = []
+
+    def _is_var_boundary(text: str, pos: int) -> bool:
+        """Check that 'var(' at pos is not part of another identifier."""
+        if pos == 0:
+            return True
+        prev = text[pos - 1]
+        return not (prev.isalnum() or prev in '_-')
+
+    def resolve_once(text: str) -> tuple[str, bool]:
+        """Single pass of var() resolution. Returns (result, changed)."""
+        result = []
+        i = 0
+        changed = False
+        while i < len(text):
+            if text[i:i+4] == 'var(' and _is_var_boundary(text, i):
+                end = _find_var_end(text, i + 4)
+                if end == -1:
+                    result.append(text[i:])
+                    break
+                inner = text[i+4:end]
+                # Split into name and fallback at the first comma that
+                # is not inside nested parens
+                comma_pos = None
+                depth = 0
+                for j, c in enumerate(inner):
+                    if c == '(':
+                        depth += 1
+                    elif c == ')':
+                        depth -= 1
+                    elif c == ',' and depth == 0:
+                        comma_pos = j
+                        break
+                if comma_pos is not None:
+                    var_name = inner[:comma_pos].strip()
+                    fallback = inner[comma_pos+1:].strip()
+                else:
+                    var_name = inner.strip()
+                    fallback = None
+
+                if var_name in variables:
+                    result.append(variables[var_name])
+                    changed = True
+                elif fallback is not None:
+                    result.append(fallback)
+                    changed = True
+                else:
+                    # Keep original text; diagnostics emitted in final scan
+                    result.append(text[i:end+1])
+                i = end + 1
+            else:
+                result.append(text[i])
+                i += 1
+        return ''.join(result), changed
+
+    for iteration in range(max_depth):
+        css_content, changed = resolve_once(css_content)
+        if not changed:
+            break
+    else:
+        # Reached max depth — check if there are still unresolved var()
+        if 'var(' in css_content:
+            diagnostics.append(CssDiagnostic(
+                code="var-resolution-depth-exceeded",
+                message=(
+                    f"var() resolution exceeded max depth ({max_depth}); "
+                    f"possible cycle or deeply nested references"
+                ),
+            ))
+
+    # Emit diagnostics once for any remaining unresolved var() references
+    i = 0
+    while i < len(css_content):
+        if css_content[i:i+4] == 'var(' and _is_var_boundary(css_content, i):
+            end = _find_var_end(css_content, i + 4)
+            if end == -1:
+                break
+            inner = css_content[i+4:end]
+            # Find comma outside parens
+            comma_pos = None
+            depth = 0
+            for j, c in enumerate(inner):
+                if c == '(':
+                    depth += 1
+                elif c == ')':
+                    depth -= 1
+                elif c == ',' and depth == 0:
+                    comma_pos = j
+                    break
+            var_name = (inner[:comma_pos].strip() if comma_pos is not None
+                        else inner.strip())
+            diagnostics.append(CssDiagnostic(
+                code="unresolved-variable",
+                message=f"Unresolved CSS variable '{var_name}'",
+                property_name=var_name,
+            ))
+            i = end + 1
+        else:
+            i += 1
+
+    return css_content, diagnostics
+
+
+def preprocess_custom_properties(
+    css_content: str,
+) -> tuple[str, list[CssDiagnostic]]:
+    """Full custom-property preprocessing pipeline.
+
+    1. Collect @property defaults
+    2. Collect :root custom properties
+    3. Strip non-root custom properties
+    4. Resolve var() references
+
+    Returns (preprocessed CSS, diagnostics).
+    """
+    all_diagnostics: list[CssDiagnostic] = []
+
+    defaults, css_content = collect_at_property_blocks(css_content)
+    variables, css_content, diags = collect_root_variables(css_content, defaults)
+    all_diagnostics.extend(diags)
+
+    css_content, diags = strip_non_root_custom_properties(css_content)
+    all_diagnostics.extend(diags)
+
+    css_content, diags = resolve_var_references(css_content, variables)
+    all_diagnostics.extend(diags)
+
+    return css_content, all_diagnostics
+
+
 def parse_css_with_diagnostics(css_content: str) -> tuple[list[ParsedRule], list[CssDiagnostic]]:
     """Parse CSS content into rules and diagnostics."""
     rules: list[ParsedRule] = []
@@ -1518,6 +1776,10 @@ def parse_css_with_diagnostics(css_content: str) -> tuple[list[ParsedRule], list
 
     # Remove comments
     css_content = re.sub(r'/\*.*?\*/', '', css_content, flags=re.DOTALL)
+
+    # Preprocess custom properties (@property, :root, var())
+    css_content, var_diagnostics = preprocess_custom_properties(css_content)
+    diagnostics.extend(var_diagnostics)
 
     # Find all rules
     rule_pattern = re.compile(r'([^{}]+)\{([^{}]*)\}', re.DOTALL)

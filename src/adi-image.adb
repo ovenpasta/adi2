@@ -87,7 +87,8 @@ package body Adi.Image is
          Height   => SH,
          SVG      => Doc,
          Cache    => <>,
-         Tintable => False
+         Tintable => False,
+         Scaling  => Scale_Linear
       );
       Register (Img);
       return Img;
@@ -209,7 +210,8 @@ package body Adi.Image is
          Height   => Pixel_Type (Float (Surf.h)),
          SVG      => null,
          Cache    => <>,
-         Tintable => False
+         Tintable => False,
+         Scaling  => Scale_Linear
       );
 
       Register (Img);
@@ -330,7 +332,8 @@ package body Adi.Image is
          Height   => Pixel_Type (Float (Surface.h)),
          SVG      => null,
          Cache    => <>,
-         Tintable => False
+         Tintable => False,
+         Scaling  => Scale_Linear
       );
 
       Register (Img);
@@ -368,7 +371,8 @@ package body Adi.Image is
          Height   => Pixel_Type (H),
          SVG      => null,
          Cache    => <>,
-         Tintable => False
+         Tintable => False,
+         Scaling  => Scale_Linear
       );
 
       Register (Img);
@@ -390,7 +394,8 @@ package body Adi.Image is
          Height   => 0.0,
          SVG      => null,
          Cache    => <>,
-         Tintable => False
+         Tintable => False,
+         Scaling  => Scale_Linear
       );
       Register (Img);
       return Img;
@@ -412,6 +417,54 @@ package body Adi.Image is
    begin
       return Img.Tintable;
    end Is_Tintable;
+
+   function Get_Surface (Img : Image) return SDL_Surface_Ptr is
+   begin
+      return Img.Surface;
+   end Get_Surface;
+
+   procedure Set_Tintable (Img : in out Image; Value : Boolean := True) is
+   begin
+      Img.Tintable := Value;
+   end Set_Tintable;
+
+   function To_SDL
+     (Mode : Image_Scale_Mode) return Adi.SDL.Render.SDL_ScaleMode
+   is
+      use Adi.SDL.Render;
+   begin
+      case Mode is
+         when Scale_Linear   => return SDL_SCALEMODE_LINEAR;
+         when Scale_Nearest  => return SDL_SCALEMODE_NEAREST;
+         when Scale_Pixelart => return SDL_SCALEMODE_PIXELART;
+      end case;
+   end To_SDL;
+
+   function Get_Scale_Mode (Img : Image) return Image_Scale_Mode is
+   begin
+      return Img.Scaling;
+   end Get_Scale_Mode;
+
+   procedure Set_Scale_Mode
+     (Img  : in out Image;
+      Mode : Image_Scale_Mode)
+   is
+      pragma Warnings (Off, "variable * is assigned but never read");
+      Success : Adi.SDL.C_bool;
+      pragma Warnings (On, "variable * is assigned but never read");
+   begin
+      Img.Scaling := Mode;
+      --  Update existing cached textures
+      for Cache_Item of Img.Cache loop
+         if Cache_Item.Texture /= null then
+            Success := SDL_SetTextureScaleMode
+              (Cache_Item.Texture, To_SDL (Mode));
+         end if;
+      end loop;
+      if Img.Texture /= null then
+         Success := SDL_SetTextureScaleMode (Img.Texture, To_SDL (Mode));
+      end if;
+   end Set_Scale_Mode;
 
    ---------------------------------------------------------------------------
    -- Get_Size
@@ -482,6 +535,7 @@ package body Adi.Image is
          end if;
 
          Success := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
+         Success := SDL_SetTextureScaleMode (Texture, To_SDL (Img.Scaling));
          pragma Unreferenced (Success);
 
          Img.Cache.Append
@@ -562,6 +616,9 @@ package body Adi.Image is
          SDL_DestroyTexture (Texture);
          return null;
       end if;
+
+      Success := SDL_SetTextureScaleMode (Texture, To_SDL (Img.Scaling));
+      pragma Unreferenced (Success);
 
       Img.Cache.Append
         (New_Item => Cached_Texture'

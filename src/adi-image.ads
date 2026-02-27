@@ -18,6 +18,14 @@ package Adi.Image is
    type Image is tagged private;
    type Image_Access is access all Image'Class;
 
+   -- Texture scaling mode applied when the image is rendered at a size
+   -- different from its native resolution.
+   type Image_Scale_Mode is (
+      Scale_Linear,    -- Bilinear filtering (smooth, default)
+      Scale_Nearest,   -- Nearest-neighbor (sharp, no interpolation)
+      Scale_Pixelart   -- Nearest-neighbor with integer snap (SDL 3.3+)
+   );
+
    ---------------------------------------------------------------------------
    -- Constructors
    ---------------------------------------------------------------------------
@@ -76,6 +84,23 @@ package Adi.Image is
       (Img    : Image;
        Width  : out Pixel_Type;
        Height : out Pixel_Type);
+
+   -- Get the underlying SDL surface (CPU memory).
+   -- Returns null for SVG images or texture-only images.
+   function Get_Surface (Img : Image) return SDL_Surface_Ptr;
+
+   -- Mark the image as tintable (white-on-transparent, recolored by CSS
+   -- color via SDL color modulation).
+   procedure Set_Tintable (Img : in out Image; Value : Boolean := True);
+
+   -- Get the texture scaling mode for this image.
+   function Get_Scale_Mode (Img : Image) return Image_Scale_Mode;
+
+   -- Set the texture scaling mode.  Affects textures created after this
+   -- call; existing cached textures are updated in-place.
+   procedure Set_Scale_Mode
+     (Img  : in out Image;
+      Mode : Image_Scale_Mode);
 
    -- Get the underlying SDL texture (for rendering).
    -- For surface-based images, returns the first cached texture or null.
@@ -149,6 +174,7 @@ private
       SVG      : Adi.SVG.Document_Access := null;
       Cache    : Cached_Texture_Vectors.Vector;
       Tintable : Boolean := False;
+      Scaling  : Image_Scale_Mode := Scale_Linear;
    end record;
 
 end Adi.Image;

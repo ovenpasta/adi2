@@ -162,4 +162,13 @@ package Adi.SDL.Surface is
            Convention => C,
            External_Name => "SDL_DestroySurface";
 
+   function SDL_BlitSurface
+     (src     : SDL_Surface_Ptr;
+      srcrect : access constant SDL_Rect;
+      dst     : SDL_Surface_Ptr;
+      dstrect : access constant SDL_Rect) return C_bool
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_BlitSurface";
+
 end Adi.SDL.Surface;

@@ -54,10 +54,21 @@ package Adi.Assets is
    --  Returns "" and logs a warning if the file is not found.
 
    function Get_Image (Path : String) return Image_Access;
-   --  Resolve Path (plain or scheme URI) and load the image via
-   --  Adi.Image.Load_From_File.  Caches by Path; subsequent calls
-   --  return the same Image_Access.  Returns null and logs a warning
-   --  if the file is not found.
+   --  Resolve Path (plain or scheme URI) and load the image.
+   --  Caches by Path; subsequent calls return the same Image_Access.
+   --  Returns null and logs a warning if the file is not found.
+   --
+   --  Sprite syntax via query parameters:
+   --    "icons.svg?id=home"            — SVG sprite: extract <symbol id>
+   --                                     from a cached sprite sheet.
+   --                                     Result is tintable by default.
+   --    "sheet.png?x=0&y=32&w=16&h=16" — Raster crop: extract pixel region
+   --                                     from the source image.
+   --    "tile.png?render=pixelated"    — Set texture scale mode.
+   --                                     Values: pixelated, nearest, linear.
+   --                                     Combinable with sprite/crop params.
+   --  Query values must be plain identifiers/integers (no URL-encoding).
+   --  Crop coordinates are clamped to source image bounds.
 
    function Get_Animated_Image (Path : String) return Animated_Image_Access;
    --  Resolve Path and load via Adi.Animated_Image.Load_From_File.

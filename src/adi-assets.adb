@@ -1,14 +1,22 @@
 pragma Ada_2022;
 
 with Ada.Unchecked_Deallocation;
+with Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Interfaces.C;    use Interfaces.C;
 with Adi.Log;
+with Adi.SDL;         use Adi.SDL;
+with Adi.SDL.Surface; use Adi.SDL.Surface;
+with Adi.SVG_Sprites; use Adi.SVG_Sprites;
 
 package body Adi.Assets is
+
+   use type Adi.SDL.C_bool;
+   use type Adi.SVG_Sprites.Sprite_Sheet_Access;
 
    ---------------------------------------------------------------------------
    --  Internal types
@@ -36,9 +44,18 @@ package body Adi.Assets is
      (Key_Type     => String,
       Element_Type => Animated_Image_Access);
 
+   package Sprite_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+     (Key_Type     => String,
+      Element_Type => Adi.SVG_Sprites.Sprite_Sheet_Access,
+      "="          => Adi.SVG_Sprites."=");
+
    procedure Free_Animated is new Ada.Unchecked_Deallocation
      (Object => Adi.Animated_Image.Animated_Image'Class,
       Name   => Animated_Image_Access);
+
+   procedure Free_Sprite is new Ada.Unchecked_Deallocation
+     (Object => Adi.SVG_Sprites.Sprite_Sheet'Class,
+      Name   => Adi.SVG_Sprites.Sprite_Sheet_Access);
 
    ---------------------------------------------------------------------------
    --  Module-level state
@@ -48,6 +65,7 @@ package body Adi.Assets is
    Strings     : String_Maps.Map;
    Images      : Image_Maps.Map;
    Anim_Images : Anim_Image_Maps.Map;
+   Sprites     : Sprite_Maps.Map;
 
    ---------------------------------------------------------------------------
    --  Sanitize — return a safe relative path.  Strips leading slashes
@@ -287,6 +305,312 @@ package body Adi.Assets is
    end Read_File;
 
    ---------------------------------------------------------------------------
+   --  Split_Query — split "base?key=val&key=val" into base path and params.
+   --  If no '?' is found, Query_Start is set past Path'Last.
+   ---------------------------------------------------------------------------
+
+   procedure Split_Query
+     (Path        : String;
+      Base_Last   : out Natural;
+      Query_Start : out Natural)
+   is
+   begin
+      for I in Path'Range loop
+         if Path (I) = '?' then
+            Base_Last   := I - 1;
+            Query_Start := I + 1;
+            return;
+         end if;
+      end loop;
+      Base_Last   := Path'Last;
+      Query_Start := Path'Last + 1;
+   end Split_Query;
+
+   ---------------------------------------------------------------------------
+   --  Get_Param — extract the value for a key from "key=val&key=val" query.
+   --  Returns "" if not found.
+   ---------------------------------------------------------------------------
+
+   function Get_Param (Query : String; Key : String) return String is
+      I   : Natural := Query'First;
+      Sep : Natural;
+      Amp : Natural;
+   begin
+      while I <= Query'Last loop
+         --  Find end of this pair (next '&' or end of string)
+         Amp := Query'Last + 1;
+         for J in I .. Query'Last loop
+            if Query (J) = '&' then
+               Amp := J;
+               exit;
+            end if;
+         end loop;
+
+         --  Find '=' separator within this pair
+         Sep := Amp;  --  default: no value
+         for J in I .. Amp - 1 loop
+            if Query (J) = '=' then
+               Sep := J;
+               exit;
+            end if;
+         end loop;
+
+         if Query (I .. Sep - 1) = Key and then Sep < Amp then
+            return Query (Sep + 1 .. Amp - 1);
+         end if;
+
+         I := Amp + 1;
+      end loop;
+      return "";
+   end Get_Param;
+
+   ---------------------------------------------------------------------------
+   --  Has_Param — check if a key exists in the query string.
+   ---------------------------------------------------------------------------
+
+   function Has_Param (Query : String; Key : String) return Boolean is
+      I   : Natural := Query'First;
+      Sep : Natural;
+      Amp : Natural;
+   begin
+      while I <= Query'Last loop
+         Amp := Query'Last + 1;
+         for J in I .. Query'Last loop
+            if Query (J) = '&' then
+               Amp := J;
+               exit;
+            end if;
+         end loop;
+
+         Sep := Amp;
+         for J in I .. Amp - 1 loop
+            if Query (J) = '=' then
+               Sep := J;
+               exit;
+            end if;
+         end loop;
+
+         if Query (I .. Sep - 1) = Key then
+            return True;
+         end if;
+
+         I := Amp + 1;
+      end loop;
+      return False;
+   end Has_Param;
+
+   ---------------------------------------------------------------------------
+   --  Parse_Natural — parse a non-negative integer from a string.
+   --  Returns -1 on failure.
+   ---------------------------------------------------------------------------
+
+   function Parse_Natural (S : String) return Integer is
+      Max    : constant := 1_000_000;
+      Result : Integer := 0;
+   begin
+      if S'Length = 0 then
+         return -1;
+      end if;
+      for C of S loop
+         if C not in '0' .. '9' then
+            return -1;
+         end if;
+         Result := Result * 10 + (Character'Pos (C) - Character'Pos ('0'));
+         if Result > Max then
+            return -1;
+         end if;
+      end loop;
+      return Result;
+   end Parse_Natural;
+
+   ---------------------------------------------------------------------------
+   --  Ends_With_SVG — case-insensitive check for .svg extension.
+   ---------------------------------------------------------------------------
+
+   function Ends_With_SVG (Path : String) return Boolean is
+      use Ada.Characters.Handling;
+   begin
+      return Path'Length >= 4
+        and then To_Lower (Path (Path'Last - 3 .. Path'Last)) = ".svg";
+   end Ends_With_SVG;
+
+   ---------------------------------------------------------------------------
+   --  Crop_Surface — blit a rectangle from Source into a new surface.
+   --  Clamps to source bounds.  Returns null on failure.
+   ---------------------------------------------------------------------------
+
+   function Crop_Surface
+     (Source : SDL_Surface_Ptr;
+      X, Y   : Natural;
+      W, H   : Positive) return SDL_Surface_Ptr
+   is
+      Src_W : constant Natural := Natural (Source.w);
+      Src_H : constant Natural := Natural (Source.h);
+      --  Clamp to source bounds
+      CX : constant Natural := Natural'Min (X, Src_W);
+      CY : constant Natural := Natural'Min (Y, Src_H);
+      CW : constant Positive :=
+        Positive'Max (1, Natural'Min (W, Src_W - CX));
+      CH : constant Positive :=
+        Positive'Max (1, Natural'Min (H, Src_H - CY));
+      Src_Rect : aliased SDL_Rect :=
+        (x => int (CX), y => int (CY), w => int (CW), h => int (CH));
+      Dst_Rect : aliased SDL_Rect :=
+        (x => 0, y => 0, w => int (CW), h => int (CH));
+      Dst : SDL_Surface_Ptr;
+      OK  : Adi.SDL.C_bool;
+   begin
+      Dst := SDL_CreateSurface (int (CW), int (CH), Source.format);
+      if Dst = null then
+         return null;
+      end if;
+      OK := SDL_BlitSurface (Source, Src_Rect'Access, Dst, Dst_Rect'Access);
+      if not OK then
+         SDL_DestroySurface (Dst);
+         return null;
+      end if;
+      return Dst;
+   end Crop_Surface;
+
+   ---------------------------------------------------------------------------
+   --  Load_SVG_Sprite — load/cache sprite sheet, extract symbol as Image.
+   ---------------------------------------------------------------------------
+
+   function Load_SVG_Sprite
+     (Base_Path : String;
+      Id        : String) return Image_Access
+   is
+      use Sprite_Maps;
+      FP    : constant String := Resolve (Base_Path);
+      Sheet : Adi.SVG_Sprites.Sprite_Sheet_Access;
+      Img   : Image_Access;
+   begin
+      if FP = "" then
+         Adi.Log.Warning ("Assets: SVG sprite file not found: " & Base_Path);
+         return null;
+      end if;
+
+      --  Get or load cached sprite sheet
+      declare
+         Pos : constant Cursor := Sprites.Find (FP);
+      begin
+         if Pos /= No_Element then
+            Sheet := Element (Pos);
+         else
+            Sheet := Adi.SVG_Sprites.Load (FP);
+            if Sheet = null then
+               Adi.Log.Warning
+                 ("Assets: failed to load SVG sprite sheet: " & FP);
+               Sprites.Insert (FP, null);
+               return null;
+            end if;
+            Sprites.Insert (FP, Sheet);
+         end if;
+      end;
+
+      if Sheet = null then
+         return null;
+      end if;
+
+      Img := Sheet.Get_Image (Id, Tintable => True);
+      if Img = null then
+         Adi.Log.Warning
+           ("Assets: SVG sprite symbol not found: " & Id
+            & " in " & Base_Path);
+      end if;
+      return Img;
+   end Load_SVG_Sprite;
+
+   ---------------------------------------------------------------------------
+   --  Load_Raster_Crop — load source image, crop rectangle, return Image.
+   ---------------------------------------------------------------------------
+
+   function Load_Raster_Crop
+     (Base_Path : String;
+      X, Y      : Natural;
+      W, H      : Positive) return Image_Access
+   is
+      Source : Image_Access;
+      Surf   : SDL_Surface_Ptr;
+      Crop   : SDL_Surface_Ptr;
+   begin
+      --  Load the source image (may already be cached under the base path)
+      Source := Get_Image (Base_Path);
+      if Source = null then
+         return null;
+      end if;
+
+      Surf := Adi.Image.Get_Surface (Source.all);
+      if Surf = null then
+         Adi.Log.Warning
+           ("Assets: cannot crop non-raster image: " & Base_Path);
+         return null;
+      end if;
+
+      Crop := Crop_Surface (Surf, X, Y, W, H);
+      if Crop = null then
+         Adi.Log.Warning ("Assets: surface crop failed: " & Base_Path);
+         return null;
+      end if;
+
+      return Adi.Image.Create_From_Surface (Crop);
+   end Load_Raster_Crop;
+
+   ---------------------------------------------------------------------------
+   --  Free_All_Sprites — destroy and deallocate all cached sprite sheets.
+   ---------------------------------------------------------------------------
+
+   procedure Free_All_Sprites is
+   begin
+      for Pos in Sprites.Iterate loop
+         declare
+            Sheet : Adi.SVG_Sprites.Sprite_Sheet_Access :=
+              Sprite_Maps.Element (Pos);
+         begin
+            if Sheet /= null then
+               Adi.SVG_Sprites.Destroy (Sheet.all);
+               Free_Sprite (Sheet);
+            end if;
+         end;
+      end loop;
+      Sprites.Clear;
+   end Free_All_Sprites;
+
+   ---------------------------------------------------------------------------
+   --  Invalidate_Derived — remove all image cache entries whose key starts
+   --  with Base & "?" (derived sprite/crop keys).
+   ---------------------------------------------------------------------------
+
+   procedure Invalidate_Derived (Base : String) is
+      package UB_Vectors is new Ada.Containers.Vectors
+        (Index_Type   => Positive,
+         Element_Type => Unbounded_String);
+      Prefix : constant String := Base & "?";
+      Keys   : UB_Vectors.Vector;
+   begin
+      for Pos in Images.Iterate loop
+         declare
+            K : constant String := Image_Maps.Key (Pos);
+         begin
+            if K'Length >= Prefix'Length
+              and then K (K'First .. K'First + Prefix'Length - 1) = Prefix
+            then
+               Keys.Append (To_Unbounded_String (K));
+            end if;
+         end;
+      end loop;
+      for K of Keys loop
+         declare
+            S   : constant String := To_String (K);
+            Img : Image_Access := Images.Element (S);
+         begin
+            Adi.Image.Free (Img);
+            Images.Delete (S);
+         end;
+      end loop;
+   end Invalidate_Derived;
+
+   ---------------------------------------------------------------------------
    --  Add_Path
    ---------------------------------------------------------------------------
 
@@ -370,6 +694,103 @@ package body Adi.Assets is
          return Element (Pos);
       end if;
 
+      --  Check for query parameters (sprite/crop syntax)
+      declare
+         Base_Last   : Natural;
+         Query_Start : Natural;
+      begin
+         Split_Query (Path, Base_Last, Query_Start);
+
+         if Query_Start <= Path'Last then
+            --  Has query string — sprite or crop mode
+            if Base_Last < Path'First then
+               Adi.Log.Warning ("Assets: missing base path: " & Path);
+               Images.Insert (Path, null);
+               return null;
+            end if;
+            declare
+               Base  : constant String :=
+                 Path (Path'First .. Base_Last);
+               Query : constant String :=
+                 Path (Query_Start .. Path'Last);
+               Img          : Image_Access := null;
+               Has_Content  : Boolean := False;
+            begin
+               if Has_Param (Query, "id") then
+                  --  SVG sprite mode: base.svg?id=symbol-name
+                  Has_Content := True;
+                  if not Ends_With_SVG (Base) then
+                     Adi.Log.Warning
+                       ("Assets: 'id' param requires .svg file: " & Path);
+                  else
+                     Img := Load_SVG_Sprite
+                       (Base, Get_Param (Query, "id"));
+                  end if;
+               elsif Has_Param (Query, "x")
+                 and then Has_Param (Query, "y")
+                 and then Has_Param (Query, "w")
+                 and then Has_Param (Query, "h")
+               then
+                  --  Raster crop mode: image.png?x=0&y=0&w=32&h=32
+                  Has_Content := True;
+                  declare
+                     PX : constant Integer :=
+                       Parse_Natural (Get_Param (Query, "x"));
+                     PY : constant Integer :=
+                       Parse_Natural (Get_Param (Query, "y"));
+                     PW : constant Integer :=
+                       Parse_Natural (Get_Param (Query, "w"));
+                     PH : constant Integer :=
+                       Parse_Natural (Get_Param (Query, "h"));
+                  begin
+                     if PX < 0 or PY < 0 or PW <= 0 or PH <= 0 then
+                        Adi.Log.Warning
+                          ("Assets: invalid crop params: " & Path);
+                     else
+                        Img := Load_Raster_Crop (Base, PX, PY, PW, PH);
+                     end if;
+                  end;
+               end if;
+
+               --  ?render= can combine with sprite/crop or stand alone
+               if Has_Param (Query, "render") then
+                  if not Has_Content then
+                     --  Standalone render param — load base image normally
+                     Img := Get_Image (Base);
+                     Has_Content := True;
+                  end if;
+                  if Img /= null then
+                     declare
+                        R : constant String :=
+                          Get_Param (Query, "render");
+                     begin
+                        if R = "pixelated" or R = "pixelart" then
+                           Adi.Image.Set_Scale_Mode
+                             (Img.all, Adi.Image.Scale_Pixelart);
+                        elsif R = "nearest" then
+                           Adi.Image.Set_Scale_Mode
+                             (Img.all, Adi.Image.Scale_Nearest);
+                        elsif R = "linear" or R = "smooth" then
+                           Adi.Image.Set_Scale_Mode
+                             (Img.all, Adi.Image.Scale_Linear);
+                        else
+                           Adi.Log.Warning
+                             ("Assets: unknown render mode: " & R);
+                        end if;
+                     end;
+                  end if;
+               elsif not Has_Content then
+                  Adi.Log.Warning
+                    ("Assets: unrecognized query params: " & Path);
+               end if;
+
+               Images.Insert (Path, Img);
+               return Img;
+            end;
+         end if;
+      end;
+
+      --  Normal path — no query string
       declare
          FP  : constant String := Resolve (Path);
          Img : Image_Access := null;
@@ -455,6 +876,7 @@ package body Adi.Assets is
       Strings.Clear;
       Free_All_Images;
       Free_All_Anim_Images;
+      Free_All_Sprites;
    end Clear_Cache;
 
    procedure Clear_String_Cache is
@@ -465,6 +887,7 @@ package body Adi.Assets is
    procedure Clear_Image_Cache is
    begin
       Free_All_Images;
+      Free_All_Sprites;
    end Clear_Image_Cache;
 
    procedure Clear_Animated_Image_Cache is
@@ -496,6 +919,25 @@ package body Adi.Assets is
          end;
          Anim_Images.Delete (Path);
       end if;
+
+      --  Also invalidate derived sprite/crop entries and sprite sheet cache.
+      Invalidate_Derived (Path);
+      declare
+         FP : constant String := Resolve (Path);
+      begin
+         if FP /= "" and then Sprites.Contains (FP) then
+            declare
+               Sheet : Adi.SVG_Sprites.Sprite_Sheet_Access :=
+                 Sprites.Element (FP);
+            begin
+               if Sheet /= null then
+                  Adi.SVG_Sprites.Destroy (Sheet.all);
+                  Free_Sprite (Sheet);
+               end if;
+            end;
+            Sprites.Delete (FP);
+         end if;
+      end;
    end Invalidate;
 
 end Adi.Assets;

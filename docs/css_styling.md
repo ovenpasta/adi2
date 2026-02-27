@@ -363,6 +363,20 @@ Plain paths (e.g. `bg.jpg`) search directories registered with an empty scheme. 
 
 Images are loaded as CPU surfaces and GPU textures are created lazily at render time — no renderer dependency at style/load time.
 
+#### Sprite and crop URLs
+
+`Get_Image` accepts query parameters in the URL to extract regions or symbols from larger source images:
+
+| Syntax | Mode | Example |
+|--------|------|---------|
+| `file.svg?id=name` | SVG sprite — extract `<symbol id="name">` from the sprite sheet | `url(icons.svg?id=home)` |
+| `file.png?x=N&y=N&w=N&h=N` | Raster crop — extract a pixel rectangle from the source | `url(tileset.png?x=0&y=32&w=16&h=16)` |
+| `file.png?render=pixelated` | Texture scale mode — `pixelated`, `nearest`, or `linear` | `url(tile.png?render=pixelated)` |
+
+Parameters can be combined: `url(tileset.png?x=0&y=0&w=16&h=16&render=pixelated)`.
+
+SVG sprite images are tintable by default — CSS `color` applies as a tint. Raster crop coordinates are clamped to source image bounds. The source sprite sheet or image is cached and shared across all extractions from the same file.
+
 ### Image Sizing
 
 | Property | Values | Example |
@@ -374,7 +388,7 @@ Images are loaded as CPU surfaces and GPU textures are created lazily at render 
 
 #### Tintable images
 
-Images loaded with `Tintable => True` (via `Load_SVG_Path`, `Load_SVG_From_String`, or `SVG_Sprites.Get_Image`) are rendered white-on-transparent. The renderer automatically applies the resolved CSS `color` as a tint using SDL hardware color modulation (multiply). This lets standard CSS `color` — including `:hover` and class-based overrides — control icon color:
+Images loaded with `Tintable => True` (via `Load_SVG_Path`, `Load_SVG_From_String`, `SVG_Sprites.Get_Image`, or the `?id=` sprite URL syntax) are rendered white-on-transparent. The renderer automatically applies the resolved CSS `color` as a tint using SDL hardware color modulation (multiply). This lets standard CSS `color` — including `:hover` and class-based overrides — control icon color:
 
 ```css
 .my-label::icon { color: #333; }

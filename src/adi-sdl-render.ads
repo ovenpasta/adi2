@@ -53,7 +53,8 @@ package Adi.SDL.Render is
    -- Scale modes
    type SDL_ScaleMode is (
       SDL_SCALEMODE_NEAREST,
-      SDL_SCALEMODE_LINEAR
+      SDL_SCALEMODE_LINEAR,
+      SDL_SCALEMODE_PIXELART
    ) with Convention => C;
 
    ----------------------------------------------------------------------------

@@ -64,8 +64,13 @@
 - `Load_From_File(Path)`: loads raster as surface, SVG as parsed document — no renderer parameter
 - `Load_SVG_From_String(Source)`: loads SVG markup directly into an image resource
 - `Load_SVG_Path(Path_Data, Size, ...)`: builds an SVG image from a single path string
+- `Create_From_Surface(Surface)`: wraps an existing `SDL_Surface` — used by raster crop in `Adi.Assets`
+- `Get_Surface(Img)`: returns the underlying `SDL_Surface_Ptr` (null for SVG/texture-only images)
 - `Get_Texture(Img, Renderer)`: returns cached texture or creates one from the surface for that renderer
 - `Get_Texture_For_Size(Img, Renderer, W, H)`: for SVG, rasterizes and caches per `(renderer, width, height)`
+- `Image_Scale_Mode`: `Scale_Linear` (default bilinear), `Scale_Nearest` (sharp nearest-neighbor), `Scale_Pixelart` (nearest with integer snap, SDL 3.3+)
+- `Set_Scale_Mode(Img, Mode)` / `Get_Scale_Mode(Img)`: per-image texture scaling; `Set_Scale_Mode` updates all existing cached textures in-place; new textures inherit the mode at creation
+- `Set_Tintable(Img)` / `Is_Tintable(Img)`: mark/query tintable flag (white-on-transparent, recolored by CSS `color`)
 - `Release_Textures_For_Renderer(Img, Renderer)`: evicts and destroys all cached textures for a specific renderer from one image
 - `Release_All_Textures_For_Renderer(Renderer)`: global — iterates all live images via an internal registry and evicts textures for that renderer; called automatically by `Adi.Window.Finalize` before destroying the renderer
 - `Free(Img)`: destroys internals, unregisters from the live image registry, and deallocates the `Image_Access` object; safe to call with null
@@ -77,11 +82,16 @@
 - `Remove_Path(Path, Scheme, Flatten)`: remove a previously registered search directory (must match all three fields)
 - `Clear_Paths`: remove all search directories
 - `Get_String(Path)`: resolve and read file contents as a string, cached by path
-- `Get_Image(Path)`: resolve and load image via `Adi.Image.Load_From_File` (surface-based, no renderer needed), cached by path
+- `Get_Image(Path)`: resolve and load image, cached by path. Supports query-parameter syntax for sprite extraction and scaling:
+  - `file.svg?id=name` — SVG sprite: loads/caches sprite sheet via `Adi.SVG_Sprites`, extracts `<symbol>` by id. Result is tintable by default
+  - `file.png?x=N&y=N&w=N&h=N` — Raster crop: loads source image, blits rectangle into a new surface via `SDL_BlitSurface`. Coordinates clamped to source bounds
+  - `?render=pixelated|nearest|linear` — Sets `Image_Scale_Mode` on the result. Combinable with sprite/crop params
+  - Sprite sheets are cached separately by resolved filesystem path and shared across symbols
+  - Plain paths without `?` follow the normal `Adi.Image.Load_From_File` path unchanged
 - `Get_Animated_Image(Path)`: resolve and load animated image via `Adi.Animated_Image.Load_From_File` (surface-based, no renderer needed), cached by path; returns `Animated_Image_Access`
-- `Clear_Cache` / `Clear_String_Cache` / `Clear_Image_Cache` / `Clear_Animated_Image_Cache`: drop cached entries, destroy and deallocate objects; previously returned access values become invalid
-- `Invalidate(Path)`: remove one entry from all caches, freeing associated objects
-- URI parsing: `"app://icons/star.svg"` splits into scheme `"app"` + relative `"icons/star.svg"`; plain paths search default directories
+- `Clear_Cache` / `Clear_String_Cache` / `Clear_Image_Cache` / `Clear_Animated_Image_Cache`: drop cached entries, destroy and deallocate objects; previously returned access values become invalid. Image cache clear also destroys sprite sheet cache
+- `Invalidate(Path)`: remove one entry from all caches, freeing associated objects. Also removes all derived `path?...` cache entries and the corresponding sprite sheet cache entry
+- URI parsing: `"app://icons/star.svg"` splits into scheme `"app"` + relative `"icons/star.svg"`; plain paths search default directories. Query `?` splitting happens before scheme parsing, so `app://icons.svg?id=home` works correctly
 - Path sanitization: rejects `..` traversal, normalizes backslashes, strips leading slashes
 - Directories searched in insertion order; first match wins
 - CSS `background-image: url(...)` resolves through this module — widgets call `Get_Image(URI)` in `Build_Items`

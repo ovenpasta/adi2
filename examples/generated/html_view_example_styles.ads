@@ -248,9 +248,62 @@ package Html_View_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'bottom-bar'
+   Bottom_Bar_Class_Base_Style : constant Style_Rules := (
+      Display => Set (Flex),
+      Flex_Direction => Set (Row),
+      Flex_Shrink => Set (0.0),
+      Align_Items => Set (Center),
+      Gap => Set (Gap (Px (8.0))),
+      others => <>
+   );
+
+   --  Base style for class 'zoom-slider'
+   Zoom_Slider_Class_Base_Style : constant Style_Rules := (
+      Flex_Shrink => Set (0.0),
+      Width => Set (Size (Px (200.0))),
+      Height => Set (Size (Px (16.0))),
+      Background_Color => Set_Bg (RGB (212, 199, 183)),
+      Margin => Set (CSS_Box (Px (18.0), Px (0.0), Px (0.0), Px (0.0))),
+      Border_Radius => Set (Radius (Px (8.0))),
+      others => <>
+   );
+
+   --  Base style for class 'zoom-slider'::indicator
+   Zoom_Slider_Class_Indicator_Base_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (150, 128, 103)),
+      Border_Radius => Set (Radius (Px (8.0))),
+      others => <>
+   );
+
+   --  Base style for class 'zoom-slider'::knob
+   Zoom_Slider_Class_Knob_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (18.0))),
+      Height => Set (Size (Px (18.0))),
+      Background_Color => Set_Bg (RGB (120, 96, 71)),
+      Border_Radius => Set (Radius (Px (9.0))),
+      others => <>
+   );
+
+   --  Style for class 'zoom-slider'::knob when widget State_Hovered
+   Zoom_Slider_Class_Knob_Widget_Hovered_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (100, 80, 58)),
+      others => <>
+   );
+
+   --  Base style for class 'zoom-slider'::label
+   Zoom_Slider_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (97, 88, 77)),
+      Font_Size => Set_Font (Px (11.0)),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
+      Top => Set_Top (Inset (Px (-18.0))),
+      others => <>
+   );
+
    --  Base style for class 'status'
    Status_Class_Base_Style : constant Style_Rules := (
       Min_Height => Set (Size (Px (34.0))),
+      Flex_Grow => Set (1.0),
       Flex_Shrink => Set (0.0),
       Background_Color => Set_Bg (RGB (236, 229, 218)),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
@@ -458,6 +511,47 @@ package Html_View_Example_Styles is
       Scroll_Part => (Style => Source_Editor_Class_Scroll_Widget, Enabled => True),
       Selected_Part => (Style => Source_Editor_Class_Selected_Widget, Enabled => True),
       Text_Part => (Style => Source_Editor_Class_Text_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'bottom-bar'
+   Bottom_Bar_Class_Widget : constant Widget_Style :=
+     From (Bottom_Bar_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'bottom-bar'
+   Bottom_Bar_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Bottom_Bar_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'zoom-slider'
+   Zoom_Slider_Class_Widget : constant Widget_Style :=
+     From (Zoom_Slider_Class_Base_Style)
+     .Build;
+
+   --  Complete widget style for class 'zoom-slider'::indicator
+   Zoom_Slider_Class_Indicator_Widget : constant Widget_Style :=
+     From (Zoom_Slider_Class_Indicator_Base_Style)
+     .Build;
+
+   --  Complete widget style for class 'zoom-slider'::knob
+   Zoom_Slider_Class_Knob_Widget : constant Widget_Style :=
+     From (Zoom_Slider_Class_Knob_Base_Style)
+     .On (When_State (State_Hovered), Zoom_Slider_Class_Knob_Widget_Hovered_Style)
+     .Build;
+
+   --  Complete widget style for class 'zoom-slider'::label
+   Zoom_Slider_Class_Label_Widget : constant Widget_Style :=
+     From (Zoom_Slider_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'zoom-slider'
+   Zoom_Slider_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Zoom_Slider_Class_Widget, Enabled => True),
+      Indicator_Part => (Style => Zoom_Slider_Class_Indicator_Widget, Enabled => True),
+      Knob_Part => (Style => Zoom_Slider_Class_Knob_Widget, Enabled => True),
+      Label_Part => (Style => Zoom_Slider_Class_Label_Widget, Enabled => True),
       others => <>
    ];
 

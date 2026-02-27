@@ -1,16 +1,20 @@
 pragma Ada_2022;
 
-with Ada.Text_IO;
+with Ada.Strings;       use Ada.Strings;
+with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 
 with Adi.App;
 with Adi.Assets;
+with Adi.Core;
 with Adi.Image;
+with Adi.MCP;
 with Adi.Widget;
 with Adi.Widget.Button; use Adi.Widget.Button;
 with Adi.Widget.Button.Options;
 with Adi.Widget.Box;
 with Adi.Widget.Html_View;
 with Adi.Widget.Label;
+with Adi.Widget.Slider;
 with Adi.Widget.Stack;
 with Adi.Widget.Text_Editor;
 with Adi.Window;
@@ -21,6 +25,7 @@ procedure Html_View_Example is
    type Page_Tab is (Preview_Tab, Source_Tab);
    package Html_Stack is new Adi.Widget.Stack (Page_Tab);
    package Tab_Options is new Adi.Widget.Button.Options (Page_Tab);
+   package Float_Slider is new Adi.Widget.Slider (Float);
 
    A : Adi.App.App;
 
@@ -54,6 +59,11 @@ begin
         Adi.Widget.Text_Editor.Create;
       Status : constant Adi.Widget.Label.Label_Widget_Access :=
         Adi.Widget.Label.Create ("Edit source and switch to Preview to apply.");
+
+      Bottom_Bar : constant Adi.Widget.Box.Box_Widget_Access :=
+        Adi.Widget.Box.Create;
+      Zoom_Slider : constant Float_Slider.Slider_Widget_Access :=
+        Float_Slider.Create (Min => 0.5, Max => 3.0, Value => 1.0);
 
       Source_Dirty : Boolean := False;
 
@@ -116,7 +126,25 @@ begin
          return Adi.Assets.Get_String (URI);
       end On_Load_Resource;
 
+      function Percent_Str (V : Float) return String is
+         Pct : constant Integer := Integer (V * 100.0);
+      begin
+         return "Zoom:" & Trim (Pct'Image, Both) & "%";
+      end Percent_Str;
+
+      procedure On_Zoom_Changed
+        (W : Float_Slider.Slider_Widget_Access; Value : Float)
+      is
+         pragma Unreferenced (W);
+      begin
+         Adi.Widget.Html_View.Set_Content_Scale
+           (View.all, Adi.Core.Pixel_Type (Value));
+         Adi.Widget.Set_Label (Zoom_Slider.all, Percent_Str (Value));
+      end On_Zoom_Changed;
+
    begin
+      Float_Slider.Set_Step (Zoom_Slider.all, 0.1);
+
       Adi.Assets.Add_Path ("examples/assets", Scheme => "app");
       Adi.Assets.Add_Path ("examples/assets");
 
@@ -139,6 +167,8 @@ begin
       Adi.Widget.Set_Part_Styles (View.all, Html_View_Example_Styles.Html_View_Class_Part_Styles);
       Adi.Widget.Set_Part_Styles (Source_Editor.all, Html_View_Example_Styles.Source_Editor_Class_Part_Styles);
       Adi.Widget.Set_Part_Styles (Status.all, Html_View_Example_Styles.Status_Class_Part_Styles);
+      Adi.Widget.Set_Part_Styles (Bottom_Bar.all, Html_View_Example_Styles.Bottom_Bar_Class_Part_Styles);
+      Adi.Widget.Set_Part_Styles (Zoom_Slider.all, Html_View_Example_Styles.Zoom_Slider_Class_Part_Styles);
 
       Tabs.Set_Button (Preview_Tab, Btn_Preview);
       Tabs.Set_Button (Source_Tab, Btn_Source);
@@ -155,6 +185,13 @@ begin
       Adi.Widget.Text_Editor.Set_Text (Source_Editor.all, HTML_Text);
       Adi.Widget.Text_Editor.Set_On_Changed
         (Source_Editor.all, On_Source_Changed'Unrestricted_Access);
+      Float_Slider.Set_On_Changed
+        (Zoom_Slider.all, On_Zoom_Changed'Unrestricted_Access);
+
+      Adi.Widget.Set_Label (Zoom_Slider.all, "Zoom: 100%");
+
+      Bottom_Bar.Add_Child (Status);
+      Bottom_Bar.Add_Child (Zoom_Slider);
 
       Preview_Page.Add_Child (View);
       Source_Page.Add_Child (Source_Editor);
@@ -168,13 +205,16 @@ begin
       Root.Add_Child (Subtitle);
       Root.Add_Child (Tab_Bar);
       Root.Add_Child (Pages);
-      Root.Add_Child (Status);
+      Root.Add_Child (Bottom_Bar);
 
       Tabs.Set_Selected (Preview_Tab);
+
+      Adi.MCP.Initialize (W);
 
       W.Set_Root (Root);
       A.Add_Window (W);
       A.Run;
+      Adi.MCP.Finalize;
       end;
    end;
 end Html_View_Example;

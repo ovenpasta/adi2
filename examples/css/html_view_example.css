@@ -152,8 +152,52 @@
   border-radius: 4px;
 }
 
+.bottom-bar {
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoom-slider {
+  flex-shrink: 0;
+  width: 200px;
+  height: 16px;
+  margin-top: 18px;
+}
+
+.zoom-slider::label {
+  color: rgb(97, 88, 77);
+  font-size: 11px;
+  text-wrap-mode: nowrap;
+  top: -18px;
+}
+
+.zoom-slider::main {
+  background-color: rgb(212, 199, 183);
+  border-radius: 8px;
+}
+
+.zoom-slider::indicator {
+  background-color: rgb(150, 128, 103);
+  border-radius: 8px;
+}
+
+.zoom-slider::knob {
+  width: 18px;
+  height: 18px;
+  background-color: rgb(120, 96, 71);
+  border-radius: 9px;
+}
+
+.zoom-slider:hover::knob {
+  background-color: rgb(100, 80, 58);
+}
+
 .status {
   min-height: 34px;
+  flex-grow: 1;
   flex-shrink: 0;
   background-color: rgb(236, 229, 218);
   border-width: 1px;

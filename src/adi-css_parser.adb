@@ -2004,6 +2004,8 @@ package body Adi.CSS_Parser is
          if Parse_Size_Value (V, SVal) then Rules.Min_Height := Set (SVal); end if;
       elsif P = "max-height" then
          if Parse_Size_Value (V, SVal) then Rules.Max_Height := Set (SVal); end if;
+      elsif P = "font-family" then
+         Rules.Font_Family := Set_Font_Family (V);
       elsif P = "font-size" then
          if Parse_Length (V, LVal) then Rules.Font_Size := Set_Font (To_Length (LVal)); end if;
       elsif P = "font-weight" then

@@ -1399,6 +1399,58 @@ def _validate_list_style_shorthand(value: str) -> bool:
     return any_valid
 
 
+CSS_GENERIC_FAMILIES = {
+    "serif", "sans-serif", "monospace", "cursive", "fantasy",
+    "system-ui", "ui-serif", "ui-sans-serif", "ui-monospace", "ui-rounded",
+    "emoji", "math", "fangsong",
+}
+
+
+def _validate_font_family(value: str) -> bool:
+    """Validate a CSS font-family value (comma-separated list of names)."""
+    raw = value.strip()
+    if not raw:
+        return False
+    # Split on commas that are not inside quotes
+    names: list[str] = []
+    current: list[str] = []
+    in_quote: str | None = None
+    for ch in raw:
+        if in_quote:
+            current.append(ch)
+            if ch == in_quote:
+                in_quote = None
+        elif ch in ('"', "'"):
+            in_quote = ch
+            current.append(ch)
+        elif ch == ',':
+            names.append(''.join(current).strip())
+            current = []
+        else:
+            current.append(ch)
+    names.append(''.join(current).strip())
+    if not names or any(n == '' for n in names):
+        return False
+    for name in names:
+        low = name.lower()
+        # Quoted string
+        if (name.startswith('"') and name.endswith('"')) or \
+           (name.startswith("'") and name.endswith("'")):
+            if len(name) < 2:
+                return False
+            continue
+        # Generic family or unquoted identifier (one or more words)
+        if low in CSS_GENERIC_FAMILIES:
+            continue
+        # Unquoted custom family name — CSS identifier: must start with a letter
+        # or underscore, followed by letters, digits, hyphens, underscores, spaces
+        if name[0].isalpha() or name[0] == '_':
+            if all(ch.isalnum() or ch in (' ', '-', '_') for ch in name):
+                continue
+        return False
+    return True
+
+
 def validate_property_value(property_name: str, value: str) -> bool:
     validator = property_validator(property_name)
     if validator is None:
@@ -1425,6 +1477,8 @@ def validate_property_value(property_name: str, value: str) -> bool:
         return low in {"auto", "min-content", "max-content", "fit-content"} or parse_length(value) is not None
     if validator == "height":
         return low == "auto" or parse_length(value) is not None
+    if validator == "font-family":
+        return _validate_font_family(value)
     if validator == "font-weight":
         return low in FONT_WEIGHT_MAP
     if validator == "font-style":
@@ -2083,6 +2137,7 @@ GENERATED_PROPERTY_NAMES = {
     "max-width",
     "min-height",
     "max-height",
+    "font-family",
     "font-size",
     "font-weight",
     "font-style",
@@ -2407,6 +2462,11 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
             if length:
                 ada_field = f"Max_Height => Set (Size ({generate_length_ada(length)}))"
         
+        # Font family
+        elif prop == "font-family":
+            name = value.strip()
+            ada_field = f"Font_Family => Set_Font_Family ({ada_string_literal(name)})"
+
         # Font size
         elif prop == "font-size":
             length = parse_length(value)

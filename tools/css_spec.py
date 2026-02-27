@@ -64,6 +64,7 @@ SUPPORTED_PROPERTIES: dict[str, PropertySpec] = {
     "min-height": PropertySpec("min-height", "length"),
     "max-height": PropertySpec("max-height", "length"),
     # Typography and text flow
+    "font-family": PropertySpec("font-family", "font-family"),
     "font-size": PropertySpec("font-size", "length"),
     "font-weight": PropertySpec("font-weight", "font-weight"),
     "font-style": PropertySpec("font-style", "font-style"),

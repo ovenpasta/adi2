@@ -1029,6 +1029,20 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
         self.assertIn("List_Style_Type => Set ((Kind => List_Style_Square))", ada)
         self.assertIn("List_Style_Position => Set (List_Outside)", ada)
 
+    # -- Font family --
+
+    def test_font_family_single(self):
+        ada = self._gen({"font-family": '"MyFont"'})
+        self.assertIn('Font_Family => Set_Font_Family ("""MyFont""")', ada)
+
+    def test_font_family_unquoted(self):
+        ada = self._gen({"font-family": "sans-serif"})
+        self.assertIn('Font_Family => Set_Font_Family ("sans-serif")', ada)
+
+    def test_font_family_comma_list(self):
+        ada = self._gen({"font-family": '"A", "B"'})
+        self.assertIn('Font_Family => Set_Font_Family ("""A"", ""B""")', ada)
+
 
 class TestGenerateAdaPackage(unittest.TestCase):
     """Integration test: full CSS -> Ada package generation."""
@@ -1211,6 +1225,48 @@ class TestCliStrictMode(unittest.TestCase):
         self.assertEqual(proc.stderr.strip(), "")
         self.assertTrue(output_exists)
         self.assertIn("Overflow_Y => Set_Overflow_Y (Overflow_Auto)", output_text)
+
+    def test_strict_passes_font_family_quoted(self):
+        proc, output_exists, output_text = self._run(
+            '.x { font-family: "Open Sans"; }',
+            "--strict",
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stderr.strip(), "")
+        self.assertTrue(output_exists)
+        self.assertIn("Set_Font_Family", output_text)
+
+    def test_strict_passes_font_family_comma_list(self):
+        proc, output_exists, _ = self._run(
+            '.x { font-family: "My Font", sans-serif; }',
+            "--strict",
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertTrue(output_exists)
+
+    def test_strict_passes_font_family_unquoted(self):
+        proc, output_exists, _ = self._run(
+            ".x { font-family: monospace; }",
+            "--strict",
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertTrue(output_exists)
+
+    def test_strict_fails_font_family_empty(self):
+        proc, output_exists, _ = self._run(
+            ".x { font-family: ; }",
+            "--strict",
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertFalse(output_exists)
+
+    def test_strict_fails_font_family_leading_digit(self):
+        proc, output_exists, _ = self._run(
+            ".x { font-family: 123abc; }",
+            "--strict",
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertFalse(output_exists)
 
 
 class TestCustomProperties(unittest.TestCase):

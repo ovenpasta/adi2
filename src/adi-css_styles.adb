@@ -1,8 +1,16 @@
 with Ada.Characters.Handling;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 package body Adi.CSS_Styles is
 
    package Char renames Ada.Characters.Handling;
+
+   Current_Resolver : Font_Name_Resolver := null;
+
+   procedure Set_Font_Name_Resolver (Resolver : Font_Name_Resolver) is
+   begin
+      Current_Resolver := Resolver;
+   end Set_Font_Name_Resolver;
 
    -------------------------------------------------
    -- Get_Border_Radius_Px
@@ -580,6 +588,113 @@ package body Adi.CSS_Styles is
    end Inherit_From;
 
    -------------------------------------------------
+   -- Resolve_Font_Family: resolve Font_Family_Value to Font_Handle
+   -- Handles By_Handle (pass through), By_Name (comma-list lookup)
+   -------------------------------------------------
+
+   function Resolve_Font_Family (O : Opt_Font.Optional) return Font_Handle is
+
+      function Strip_Quotes (S : String) return String is
+         First : Natural := S'First;
+         Last  : Natural := S'Last;
+      begin
+         if S'Length >= 2 then
+            if (S (First) = '"' and then S (Last) = '"')
+              or else (S (First) = ''' and then S (Last) = ''')
+            then
+               First := First + 1;
+               Last  := Last - 1;
+            end if;
+         end if;
+         if First > Last then
+            return "";
+         end if;
+         return S (First .. Last);
+      end Strip_Quotes;
+
+      function Trim (S : String) return String is
+         F : Natural := S'First;
+         L : Natural := S'Last;
+      begin
+         while F <= S'Last and then (S (F) = ' ' or else S (F) = ASCII.HT) loop
+            F := F + 1;
+         end loop;
+         while L >= F and then (S (L) = ' ' or else S (L) = ASCII.HT) loop
+            L := L - 1;
+         end loop;
+         if F > L then
+            return "";
+         end if;
+         return S (F .. L);
+      end Trim;
+
+      function Try_Name_List (Raw : String) return Font_Handle is
+         Start    : Natural := Raw'First;
+         I        : Natural := Raw'First;
+         In_Quote : Character := ASCII.NUL;
+      begin
+         if Current_Resolver = null then
+            return Null_Font;
+         end if;
+
+         while I <= Raw'Last loop
+            if In_Quote /= ASCII.NUL then
+               --  Inside a quoted string, skip until closing quote
+               if Raw (I) = In_Quote then
+                  In_Quote := ASCII.NUL;
+               end if;
+            elsif Raw (I) = '"' or else Raw (I) = ''' then
+               In_Quote := Raw (I);
+            elsif Raw (I) = ',' then
+               declare
+                  Name : constant String :=
+                    Strip_Quotes (Trim (Raw (Start .. I - 1)));
+                  H    : Font_Handle;
+               begin
+                  if Name'Length > 0 then
+                     H := Current_Resolver (Name);
+                     if H /= Null_Font then
+                        return H;
+                     end if;
+                  end if;
+               end;
+               Start := I + 1;
+            end if;
+            I := I + 1;
+         end loop;
+
+         --  Last (or only) entry
+         declare
+            Name : constant String :=
+              Strip_Quotes (Trim (Raw (Start .. Raw'Last)));
+            H    : Font_Handle;
+         begin
+            if Name'Length > 0 then
+               H := Current_Resolver (Name);
+               if H /= Null_Font then
+                  return H;
+               end if;
+            end if;
+         end;
+
+         return Null_Font;
+      end Try_Name_List;
+
+   begin
+      case O.State is
+         when Opt_Font.Undefined | Opt_Font.None =>
+            return Default_Font;
+         when Opt_Font.Set =>
+            case O.Value.Kind is
+               when By_Handle =>
+                  return O.Value.Handle;
+               when By_Name =>
+                  return Try_Name_List (To_String (O.Value.Name));
+            end case;
+      end case;
+   end Resolve_Font_Family;
+
+   -------------------------------------------------
    -- Resolve: Convert Style_Rules to Resolved_Style
    -------------------------------------------------
 
@@ -619,7 +734,7 @@ package body Adi.CSS_Styles is
 
          -- Typography
          Font_Size        => Opt_Font_Size.Resolve (S.Font_Size),
-         Font_Family      => Opt_Font.Resolve (S.Font_Family),
+         Font_Family      => Resolve_Font_Family (S.Font_Family),
          Font_Weight      => Opt_Font_Weight.Resolve (S.Font_Weight),
          Font_Style       => Opt_Font_Style.Resolve (S.Font_Style),
          Text_Decoration  => Opt_Text_Decoration.Resolve (S.Text_Decoration),

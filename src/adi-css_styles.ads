@@ -454,6 +454,20 @@ type Font_Handle is new Natural;
 Null_Font    : constant Font_Handle := 0;
 Default_Font : constant Font_Handle := Null_Font;
 
+--  Font family value for CSS cascade: either a resolved handle or a name
+--  string that gets resolved at Resolve() time via Font_Name_Resolver.
+type Font_Family_Kind is (By_Handle, By_Name);
+
+type Font_Family_Value (Kind : Font_Family_Kind := By_Handle) is record
+   case Kind is
+      when By_Handle => Handle : Font_Handle := Default_Font;
+      when By_Name   => Name   : Ada.Strings.Unbounded.Unbounded_String;
+   end case;
+end record;
+
+Default_Font_Family : constant Font_Family_Value :=
+  (Kind => By_Handle, Handle => Default_Font);
+
 --  Font weight (CSS font-weight)
 type Font_Weight_Value is (
    Weight_Thin,       -- 100
@@ -957,7 +971,8 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    package Opt_Cursor        is new Optional_Values (Cursor_Value, Default_Cursor);
    package Opt_Visibility    is new Optional_Values (Visibility_Value, Default_Visibility);
 
-     package Opt_Font            is new Optional_Values (Font_Handle, Default_Font);
+     package Opt_Font_Family     is new Optional_Values (Font_Family_Value, Default_Font_Family);
+     package Opt_Font renames Opt_Font_Family;
      package Opt_Font_Weight     is new Optional_Values (Font_Weight_Value, Default_Font_Weight);
      package Opt_Font_Style      is new Optional_Values (Font_Style_Value, Default_Font_Style);
      package Opt_Text_Decoration is new Optional_Values (Text_Decoration_Value, Default_Text_Decoration);
@@ -1234,6 +1249,13 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Resolve (S : Style_Rules) return Resolved_Style;
 
    -------------------------------------------------
+   -- Font name resolution callback
+   -------------------------------------------------
+
+   type Font_Name_Resolver is access function (Name : String) return Font_Handle;
+   procedure Set_Font_Name_Resolver (Resolver : Font_Name_Resolver);
+
+   -------------------------------------------------
    -- Shorthand helpers
    -------------------------------------------------
 
@@ -1270,7 +1292,11 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Set_Font (V : Length_Value) return Opt_Font_Size.Optional renames Opt_Font_Size.Val;
    No_Size      : constant Opt_Size.Optional      := Opt_Size.Cleared;
    No_Font_Size : constant Opt_Font_Size.Optional := Opt_Font_Size.Cleared;
-     function Set (V : Font_Handle) return Opt_Font.Optional renames Opt_Font.Val;
+     function Set (V : Font_Handle) return Opt_Font.Optional is
+       (Opt_Font.Val ((Kind => By_Handle, Handle => V)));
+     function Set_Font_Family (Name : String) return Opt_Font.Optional is
+       (Opt_Font.Val ((Kind => By_Name,
+                        Name => Ada.Strings.Unbounded.To_Unbounded_String (Name))));
      function Set (V : Font_Weight_Value) return Opt_Font_Weight.Optional renames Opt_Font_Weight.Val;
      function Set (V : Font_Style_Value) return Opt_Font_Style.Optional renames Opt_Font_Style.Val;
      function Set (V : Text_Decoration_Value) return Opt_Text_Decoration.Optional renames Opt_Text_Decoration.Val;

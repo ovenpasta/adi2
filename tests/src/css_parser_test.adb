@@ -4,6 +4,9 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Adi.CSS_Parser;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
+with Adi.Font;
+with Adi.SDL;
+with Adi.SDL.TTF;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
@@ -1114,6 +1117,201 @@ begin
          Assert (R.Background_Color = (Kind => Named, Name => Red),
                  "non-cyclic property should still resolve");
       end;
+   end;
+
+   -----------------------------------------------------------------
+   --  Font-family tests (require SDL_ttf initialization)
+   -----------------------------------------------------------------
+   declare
+      use Adi.SDL;
+      Sdl_OK : C_bool;
+      Ttf_OK : C_bool;
+      SDL_Ready : Boolean := False;
+   begin
+      Put_Line ("");
+      Put_Line ("Font-family tests:");
+
+      Sdl_OK := SDL_Init (SDL_INIT_VIDEO or SDL_INIT_EVENTS);
+      if Boolean (Sdl_OK) then
+         Ttf_OK := Adi.SDL.TTF.TTF_Init;
+         SDL_Ready := Boolean (Ttf_OK);
+      end if;
+
+      if not SDL_Ready then
+         Put_Line ("  [SKIP] SDL/TTF init failed - skipping font-family tests");
+      else
+         --  Load three variants of Open Sans
+         declare
+            H1 : constant Font_Handle :=
+              Adi.Font.Load ("vendor/open-sans/static/OpenSans-Regular.ttf");
+            H2 : constant Font_Handle :=
+              Adi.Font.Load ("vendor/open-sans/static/OpenSans-Bold.ttf");
+            H3 : constant Font_Handle :=
+              Adi.Font.Load ("vendor/open-sans/static/OpenSans-Italic.ttf");
+         begin
+            Assert (H1 /= Null_Font,
+                    "Load Regular should return valid handle");
+            Assert (H2 = H1,
+                    "Load Bold should return same handle (same family)");
+            Assert (H3 = H1,
+                    "Load Italic should return same handle (same family)");
+
+            --  Lookup by name
+            Assert (Adi.Font.Lookup ("Open Sans") = H1,
+                    "Lookup 'Open Sans' should find handle");
+            Assert (Adi.Font.Lookup ("open sans") = H1,
+                    "Lookup case-insensitive should find handle");
+            Assert (Adi.Font.Lookup ("Unknown Font") = Null_Font,
+                    "Lookup unknown should return Null_Font");
+
+            --  Register custom name
+            Adi.Font.Register_Name ("My Alias", H1);
+            Assert (Adi.Font.Lookup ("my alias") = H1,
+                    "Register_Name + Lookup should work");
+         end;
+
+         --  Load with explicit name override
+         declare
+            H4 : constant Font_Handle :=
+              Adi.Font.Load ("vendor/open-sans/static/OpenSans-Medium.ttf",
+                             "Custom Name");
+         begin
+            Assert (H4 /= Null_Font,
+                    "Load with Name should return valid handle");
+            Assert (Adi.Font.Lookup ("custom name") = H4,
+                    "Load(Path,Name) should register under provided name");
+         end;
+
+         --  CSS font-family parsing and resolution
+         declare
+            CSS2 : constant String :=
+              ".fontfam { font-family: ""Open Sans""; }" & ASCII.LF &
+              ".fontfam_fallback { font-family: ""Unknown"", ""Open Sans""; }" & ASCII.LF &
+              ".fontfam_unknown { font-family: ""NoSuchFont""; }" & ASCII.LF &
+              ".fontfam_case { font-family: ""open sans""; }" & ASCII.LF;
+            Sheet2 : Adi.CSS_Parser.Stylesheet;
+            OK2    : Boolean := False;
+         begin
+            Adi.CSS_Parser.Load_String (Sheet2, CSS2, OK2);
+            Assert (OK2, "font-family CSS should parse");
+
+            if OK2 then
+               declare
+                  FF_Styles : constant Part_Style_Array :=
+                    Adi.CSS_Parser.Styles_For_Class (Sheet2, "fontfam");
+                  FF_R : constant Resolved_Style :=
+                    Compute_Resolved (FF_Styles (Main_Part).Style,
+                                      No_States, No_States);
+                  Expected : constant Font_Handle := Adi.Font.Lookup ("Open Sans");
+               begin
+                  Assert (FF_R.Font_Family = Expected,
+                          "font-family: 'Open Sans' should resolve to correct handle");
+               end;
+
+               declare
+                  FB_Styles : constant Part_Style_Array :=
+                    Adi.CSS_Parser.Styles_For_Class (Sheet2, "fontfam_fallback");
+                  FB_R : constant Resolved_Style :=
+                    Compute_Resolved (FB_Styles (Main_Part).Style,
+                                      No_States, No_States);
+                  Expected : constant Font_Handle := Adi.Font.Lookup ("Open Sans");
+               begin
+                  Assert (FB_R.Font_Family = Expected,
+                          "font-family comma fallback should resolve to Open Sans");
+               end;
+
+               declare
+                  UK_Styles : constant Part_Style_Array :=
+                    Adi.CSS_Parser.Styles_For_Class (Sheet2, "fontfam_unknown");
+                  UK_R : constant Resolved_Style :=
+                    Compute_Resolved (UK_Styles (Main_Part).Style,
+                                      No_States, No_States);
+               begin
+                  Assert (UK_R.Font_Family = Null_Font,
+                          "font-family unknown should resolve to Null_Font");
+               end;
+
+               declare
+                  CI_Styles : constant Part_Style_Array :=
+                    Adi.CSS_Parser.Styles_For_Class (Sheet2, "fontfam_case");
+                  CI_R : constant Resolved_Style :=
+                    Compute_Resolved (CI_Styles (Main_Part).Style,
+                                      No_States, No_States);
+                  Expected : constant Font_Handle := Adi.Font.Lookup ("Open Sans");
+               begin
+                  Assert (CI_R.Font_Family = Expected,
+                          "font-family case-insensitive should resolve correctly");
+               end;
+            end if;
+         end;
+
+         --  By_Handle path: existing Set(Font_Handle) should still work
+         declare
+            H : constant Font_Handle := Adi.Font.Lookup ("Open Sans");
+            Rules : Style_Rules := (Font_Family => Set (H), others => <>);
+            R     : constant Resolved_Style := Resolve (Rules);
+         begin
+            Assert (R.Font_Family = H,
+                    "Set(Font_Handle) should resolve to same handle");
+         end;
+
+         --  Find: already-loaded font returns cached handle (no scan needed)
+         declare
+            H : constant Font_Handle := Adi.Font.Find ("Open Sans");
+            Expected : constant Font_Handle := Adi.Font.Lookup ("Open Sans");
+         begin
+            Assert (H = Expected,
+                    "Find for already-loaded font should return cached handle");
+         end;
+
+         --  Find: unknown font returns Null_Font
+         Assert (Adi.Font.Find ("ZZZNoSuchFont999") = Null_Font,
+                 "Find for non-existent font should return Null_Font");
+
+         --  Find: negative cache prevents repeated scans (second call fast)
+         Assert (Adi.Font.Find ("ZZZNoSuchFont999") = Null_Font,
+                 "Find for cached miss should return Null_Font without rescan");
+
+         --  Enable_System_Font_Search: CSS should resolve system fonts
+         Adi.Font.Enable_System_Font_Search;
+
+         declare
+            CSS3 : constant String :=
+              ".sysfont { font-family: ""Open Sans""; }" & ASCII.LF &
+              ".sysfont_miss { font-family: ""ZZZNoSuchFont999""; }" & ASCII.LF;
+            Sheet3 : Adi.CSS_Parser.Stylesheet;
+            OK3    : Boolean := False;
+         begin
+            Adi.CSS_Parser.Load_String (Sheet3, CSS3, OK3);
+            Assert (OK3, "system font CSS should parse");
+
+            if OK3 then
+               --  Already-loaded font still resolves via Find
+               declare
+                  S : constant Part_Style_Array :=
+                    Adi.CSS_Parser.Styles_For_Class (Sheet3, "sysfont");
+                  R : constant Resolved_Style :=
+                    Compute_Resolved (S (Main_Part).Style, No_States, No_States);
+                  Expected : constant Font_Handle :=
+                    Adi.Font.Lookup ("Open Sans");
+               begin
+                  Assert (R.Font_Family = Expected,
+                          "Enable_System_Font_Search: loaded font resolves via CSS");
+               end;
+
+               --  Unknown font still returns default (negative cache hit)
+               declare
+                  S : constant Part_Style_Array :=
+                    Adi.CSS_Parser.Styles_For_Class (Sheet3, "sysfont_miss");
+                  R : constant Resolved_Style :=
+                    Compute_Resolved (S (Main_Part).Style, No_States, No_States);
+               begin
+                  Assert (R.Font_Family = Null_Font,
+                          "Enable_System_Font_Search: cached miss returns Null_Font");
+               end;
+            end if;
+         end;
+      end if;
    end;
 
    Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");

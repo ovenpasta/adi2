@@ -185,6 +185,7 @@ Corner radius longhands currently accept a single value only (elliptical two-val
 
 | Property | Values | Example |
 |----------|--------|---------|
+| `font-family` | comma-separated names | `font-family: "Open Sans", sans-serif;` |
 | `font-size` | length | `font-size: 16px;` |
 | `font-weight` | `100`–`900`, `thin`, `extra-light`, `light`, `normal`, `medium`, `semi-bold`, `bold`, `extra-bold`, `black` | `font-weight: 700;` |
 | `font-style` | `normal`, `italic`, `oblique` | `font-style: italic;` |
@@ -755,6 +756,79 @@ For widgets with interactive sub-parts (scrollbars, dropdown indicators), use pa
 .dropdown::knob:pressed { background-color: rgba(30, 41, 59, 1.0); }
 ```
 
+### Font Registration
+
+Fonts must be registered before they can be referenced by CSS `font-family`. Use `Adi.Font` to load font files — TTF metadata (family name, weight, style) is auto-detected.
+
+#### API Reference
+
+| Function | Description |
+|----------|-------------|
+| `Load (Path)` | Load a font file. Auto-detects family name, weight, and style from TTF metadata. Multiple files from the same family auto-merge into one `Font_Handle` with variants. |
+| `Load (Path, Name)` | Same as `Load`, but uses the provided name for registry lookup/insertion instead of the auto-detected family name. |
+| `Load_Asset (Asset_Path)` | Resolve via `Adi.Assets` search path, then `Load`. |
+| `Load_Asset (Asset_Path, Name)` | Resolve via `Adi.Assets`, then `Load` with explicit name. |
+| `Register_Name (Name, Handle)` | Create a case-insensitive alias for an existing handle. |
+| `Lookup (Name)` | Return the handle for a registered name, or `Null_Font`. Only checks the in-memory registry. |
+| `Find (Name)` | Like `Lookup`, but on a miss also searches system font directories recursively. Loads all matching variants. Caches misses so repeated lookups for unknown names are cheap. |
+| `Enable_System_Font_Search` | Switch the CSS `font-family` resolver to use `Find` instead of `Lookup`, so unregistered names trigger a system font search on first use. |
+
+#### Loading Fonts
+
+```ada
+with Adi.Font;
+
+--  Load from file path — auto-detects family, weight, style:
+H : Font_Handle := Adi.Font.Load ("fonts/OpenSans-Regular.ttf");
+H : Font_Handle := Adi.Font.Load ("fonts/OpenSans-Bold.ttf");      --  same handle, bold variant
+H : Font_Handle := Adi.Font.Load ("fonts/OpenSans-Italic.ttf");    --  same handle, italic variant
+
+--  Load with an explicit name (overrides auto-detected family name):
+H : Font_Handle := Adi.Font.Load ("fonts/custom.ttf", Name => "My Font");
+
+--  Load via the asset search path:
+H : Font_Handle := Adi.Font.Load_Asset ("fonts/OpenSans-Regular.ttf");
+H : Font_Handle := Adi.Font.Load_Asset ("fonts/custom.ttf", Name => "My Font");
+```
+
+> **Note:** `Load` may return an existing handle if the font file's family name matches a previously loaded font. This is intentional — it merges the file as a weight/style variant of the existing family. Use the `Name` parameter to force a distinct registry entry.
+
+#### System Font Search
+
+`Find` searches system font directories for a font by its TTF family name. It scans recursively:
+
+- **Linux:** `/usr/share/fonts`, `/usr/local/share/fonts`, `/usr/share/fonts/truetype`
+- **Windows:** `C:\Windows\Fonts`, `C:\WINNT\Fonts`
+
+```ada
+--  Search system fonts by family name:
+H : Font_Handle := Adi.Font.Find ("Noto Sans");
+H : Font_Handle := Adi.Font.Find ("DejaVu Sans");
+
+--  Register a manual alias, then look up:
+Adi.Font.Register_Name ("body-font", H);
+H : Font_Handle := Adi.Font.Lookup ("body-font");
+```
+
+`Find` checks the name registry first, so already-loaded fonts are returned immediately. Names that were searched and not found are cached so that repeated misses do not trigger further filesystem scans.
+
+#### CSS Usage
+
+```css
+.body-text { font-family: "Open Sans"; }
+.heading   { font-family: "My Font", "Open Sans", sans-serif; }
+```
+
+By default, CSS `font-family` only resolves names that have been explicitly registered via `Load`, `Find`, or `Register_Name`. To allow CSS to also search system fonts for unregistered names, call `Enable_System_Font_Search` at startup:
+
+```ada
+Adi.Font.Enable_System_Font_Search;
+--  Now font-family: "Noto Sans" in CSS will find and load the system font
+--  on first use, without requiring an explicit Adi.Font.Find call.
+```
+
+Names are matched case-insensitively. Comma-separated lists are tried left-to-right; the first name that matches wins. Unrecognized names (including generic families like `sans-serif`) are skipped without triggering a scan. If no name matches, the default font is used.
+
 ---
 
 ## Limitations
@@ -763,7 +837,6 @@ For widgets with interactive sub-parts (scrollbars, dropdown indicators), use pa
 - **No attribute selectors** — `[type="text"]` is not supported
 - **No `@media` queries** — No responsive breakpoints
 - **No multiple box-shadows** — Only one shadow per rule
-- **Single font-family** — Font loading uses `Font_Handle`; CSS `font-family` is not parsed
 - **Grid rows not track-sized** — `grid-template-rows` sets an explicit row count; per-row sizing tokens (`auto`, `fr`, `px`) are not yet supported for rows
 - **No named grid lines** — `[line-name]` syntax is not supported
 - **Max 16 tracks** — `grid-template-columns` track lists are capped at 16 entries; wider grids fall back to equal-column distribution

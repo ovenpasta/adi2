@@ -36,6 +36,15 @@ package Adi.Assets is
    --  Remove all search directories.
 
    ---------------------------------------------------------------------------
+   --  Path Resolution
+   ---------------------------------------------------------------------------
+
+   function Resolve_Path (Path : String) return String;
+   --  Resolve Path (plain or scheme URI) through the registered search
+   --  directories and return the full filesystem path.
+   --  Returns "" if the file is not found.
+
+   ---------------------------------------------------------------------------
    --  Asset Loading (cached)
    ---------------------------------------------------------------------------
 

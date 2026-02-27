@@ -17,6 +17,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | Internal style-storage optimization (interning/prepared rules/global memo) | `docs/style_storage_optimization.md` |
 | Build system (Alire, gprbuild, configure) | `docs/build.md` |
 | gprbuild without Alire | `docs/gprbuild_without_alire.md` |
+| MCP runtime introspection | `docs/mcp.md` |
 | HTML view widget | `docs/html_view_spec.md` |
 | Adding a new CSS property | `docs/adding_css_property.md` |
 | Adding a new example | `docs/adding_example.md` |
@@ -199,7 +200,7 @@ An Adi MCP server is available (`adi`) for inspecting a **running** Adi applicat
 | `widget_info(path)` | Detailed info for one widget by dot-path (e.g. `"1.2.3"`) |
 | `perf_stats()` | Frame timing, FPS, layout counts |
 
-Communication uses file-based IPC via `/tmp/adi_mcp_<PID>/`. Each request carries a unique `req_id` for correlation.
+Communication uses file-based IPC via `/tmp/adi_mcp/<PID>/`. Each request carries a unique `req_id` for correlation. See `docs/mcp.md` for setup and usage.
 
 ## Project Structure
 

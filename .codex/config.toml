@@ -12,4 +12,4 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "."]
 
 [mcp_servers.adi]
 command = "uv"
-args = ["run", "./tools/adi_mcp_server.py"]
+args = ["run", "./tools/adi_mcp_server.py", "--dir", "/tmp/adi_mcp"]

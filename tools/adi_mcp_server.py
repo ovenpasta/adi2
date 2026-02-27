@@ -11,10 +11,8 @@ Usage (via Claude Code MCP config):
     uv run tools/adi_mcp_server.py [--pid PID]
 """
 
-import glob
 import json
 import os
-import sys
 import threading
 import time
 import uuid
@@ -28,9 +26,7 @@ from mcp.server.fastmcp import FastMCP
 
 POLL_INTERVAL = 0.1   # seconds between response checks
 TIMEOUT = 5.0         # seconds before giving up
-# Project root is one level up from tools/
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-MCP_DIR_PARENT = _PROJECT_ROOT / ".adi_mcp"
+MCP_DIR_PARENT = Path("/tmp/adi_mcp")
 
 mcp = FastMCP("adi")
 
@@ -235,7 +231,7 @@ def _main() -> None:
     parser.add_argument("--pid", type=int, default=None,
                         help="Target Adi application PID")
     parser.add_argument("--dir", type=str, default=None,
-                        help="MCP IPC base directory (default: .adi_mcp)")
+                        help="MCP IPC base directory (default: /tmp/adi_mcp)")
     args = parser.parse_args()
     _target_pid = args.pid
     if args.dir is not None:

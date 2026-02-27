@@ -131,6 +131,39 @@ Existing hand-crafted binding modules:
 | `Adi.SDL.PixelFormat` | `adi-sdl-pixelformat.ads` | Pixel format constants |
 | `Adi.SDL.Image` | `adi-sdl-image.ads` | Image file loading |
 
+## Code Navigation (ALS)
+
+An Ada Language Server is available via MCP (`ada-ls`). **Prefer it over grep for semantic queries** — finding definitions, references, and type info.
+
+| Tool | Use instead of |
+|------|---------------|
+| `goto_definition(file, line, column)` | Grepping for `procedure Foo` / `type Bar` |
+| `find_references(file, line, column)` | Grepping for a symbol name |
+| `document_symbols(file)` | Reading a whole file to find declarations |
+| `hover(file, line, column)` | Guessing a symbol's type or signature |
+
+Coordinates are **1-based**. Still use grep/glob for pattern matching (string literals, CSS class names, comments).
+
+## Git (MCP)
+
+A Git MCP server is available (`git`). **Prefer it over shell `git` commands** for common operations — status, diff, log, add, commit, branch, checkout, show.
+
+| Tool | Use instead of |
+|------|---------------|
+| `git_status(repo_path)` | `git status` |
+| `git_diff_unstaged(repo_path)` | `git diff` |
+| `git_diff_staged(repo_path)` | `git diff --cached` |
+| `git_diff(repo_path, target)` | `git diff <target>` |
+| `git_log(repo_path)` | `git log` |
+| `git_add(repo_path, files)` | `git add` |
+| `git_commit(repo_path, message)` | `git commit` |
+| `git_show(repo_path, revision)` | `git show` |
+| `git_create_branch(repo_path, branch_name)` | `git checkout -b` |
+| `git_checkout(repo_path, branch_name)` | `git checkout` |
+| `git_branch(repo_path, branch_type)` | `git branch` |
+
+`repo_path` is always `/src/ada/adi2`. Fall back to shell git for operations not covered (push, rebase, stash, etc.).
+
 ## Project Structure
 
 ```

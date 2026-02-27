@@ -349,7 +349,7 @@ package body Adi.Widget.Text_Input is
          Clear (Result.Buffer);
       end if;
       if Label'Length > 0 then
-         Result.Label_Text := To_Unbounded_String (Label);
+         Set_Label (Result.all, Label);
       end if;
       Ensure_Context_Menu (Text_Input_Widget (Result.all));
       return Result;
@@ -375,17 +375,6 @@ package body Adi.Widget.Text_Input is
    begin
       return Get_Text (W.Buffer);
    end Get_Text;
-
-   procedure Set_Label (W : in out Text_Input_Widget; Label : String) is
-   begin
-      W.Label_Text := To_Unbounded_String (Label);
-      Mark_Dirty (W);
-   end Set_Label;
-
-   function Get_Label (W : Text_Input_Widget) return String is
-   begin
-      return To_String (W.Label_Text);
-   end Get_Label;
 
    procedure Set_Context_Menu_Part_Styles
      (W      : in out Text_Input_Widget;
@@ -491,8 +480,6 @@ package body Adi.Widget.Text_Input is
          Add_Item (W, Make_Text (Text_Part, Content, "", 2));
          W.Items.Reference (Text_Idx).Wrap_Text := False;
          Add_Item (W, Make_Panel (Cursor_Part, (0.0, 0.0, 0.0, 0.0), 3));
-         Add_Item (W, Make_Panel (Label_Part, (0.0, 0.0, 0.0, 0.0), 4));
-         Add_Item (W, Make_Text (Label_Part, (0.0, 0.0, 0.0, 0.0), "", 5));
       end if;
 
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
@@ -550,49 +537,6 @@ package body Adi.Widget.Text_Input is
          end if;
       end;
 
-      --  Label items: background panel + text, positioned by CSS
-      declare
-         Lbl_Bg   : Item renames W.Items.Reference (Label_Bg_Idx).Element.all;
-         Lbl      : Item renames W.Items.Reference (Label_Idx).Element.all;
-         Lbl_Text : constant String := To_String (W.Label_Text);
-      begin
-         if Lbl_Text'Length > 0 then
-            declare
-               Lbl_Style : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (W, Label_Part);
-               Lbl_Attrs : constant Adi.Font.Font_Attributes :=
-                 Adi.Font.Make_Attributes
-                   (Family     => Lbl_Style.Font_Family,
-                    Size       => Float (Length_To_Px (Lbl_Style.Font_Size)),
-                    Weight     => Lbl_Style.Font_Weight,
-                    Style      => Lbl_Style.Font_Style,
-                    Decoration => Lbl_Style.Text_Decoration);
-               Lbl_Size : constant Size_2D :=
-                 Adi.Font.Measure_Text (Attrs => Lbl_Attrs, Content => Lbl_Text);
-               Pad      : constant Edge_Pixels := Get_Padding_Px (Lbl_Style);
-               Offset_X : constant Pixel_Type :=
-                 Inset_To_Px (Lbl_Style.Left, W.Geometry.Width);
-               Offset_Y : constant Pixel_Type :=
-                 Inset_To_Px (Lbl_Style.Top, W.Geometry.Height);
-               Label_X  : constant Pixel_Type := W.Geometry.X + Offset_X;
-               Label_Y  : constant Pixel_Type := W.Geometry.Y + Offset_Y;
-            begin
-               Lbl_Bg.Geometry := (X      => Label_X,
-                                   Y      => Label_Y,
-                                   Width  => Pad.Left + Lbl_Size.Width + Pad.Right,
-                                   Height => Pad.Top + Lbl_Size.Height + Pad.Bottom);
-               Lbl.Text_Content := To_Unbounded_String (Lbl_Text);
-               Lbl.Geometry := (X      => Label_X + Pad.Left,
-                                Y      => Label_Y + Pad.Top,
-                                Width  => Lbl_Size.Width,
-                                Height => Lbl_Size.Height);
-            end;
-         else
-            Lbl_Bg.Geometry  := (0.0, 0.0, 0.0, 0.0);
-            Lbl.Text_Content := Null_Unbounded_String;
-            Lbl.Geometry     := (0.0, 0.0, 0.0, 0.0);
-         end if;
-      end;
    end Build_Items;
 
    overriding procedure On_Key_Down

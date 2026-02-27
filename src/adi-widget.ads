@@ -153,6 +153,17 @@ package Adi.Widget is
    --  Widget State Management
    ---------------------------------------------------------------------------
 
+   ---------------------------------------------------------------------------
+   --  Label Management (floating label overlay for any widget)
+   ---------------------------------------------------------------------------
+
+   procedure Set_Label (W : in out Widget'Class; Label : String);
+   function Get_Label (W : Widget'Class) return String;
+
+   ---------------------------------------------------------------------------
+   --  Widget State Management
+   ---------------------------------------------------------------------------
+
    procedure Set_State (W : in out Widget'Class; S : Widget_State; Active : Boolean);
    function  Has_State (W : Widget'Class; S : Widget_State) return Boolean;
    function  Get_States (W : Widget'Class) return Widget_States;
@@ -568,6 +579,10 @@ private
       Scroll_Drag_Offset  : Pixel_Type := 0.0;
       Scroll_Velocity_Y   : Pixel_Type := 0.0;
       On_Context_Menu     : Context_Menu_Callback := null;
+
+      --  Floating label overlay (any widget can have a label)
+      Label_Text      : Unbounded_String := Null_Unbounded_String;
+      Label_Item_Base : Natural := 0;
    end record;
 
    --  Color conversion helpers (CSS Color_Value to SDL RGBA)

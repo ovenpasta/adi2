@@ -61,6 +61,7 @@ class XmlWidget:
     wid: str
     explicit_id: bool
     css_classes: list[str] = field(default_factory=list)
+    label: str = ""
     text: str = ""
     generic_name: str = ""
     toggleable: bool = False
@@ -431,6 +432,7 @@ class Parser:
             wid=wid,
             explicit_id=has_explicit_id,
             css_classes=elem.get("class", "").split() if elem.get("class", "") else [],
+            label=elem.get("label", ""),
         )
 
         # Grammar-driven attributes
@@ -879,6 +881,19 @@ def generate_body(app: XmlApp, package_name: str) -> str:
     if config_lines:
         lines.append("      --  Configure properties")
         lines.extend(config_lines)
+        lines.append("")
+
+    # Universal label attribute (any widget can have a floating label)
+    label_lines = []
+    for w in all_widgets:
+        if w.label:
+            escaped = w.label.replace('"', '""')
+            label_lines.append(
+                f'      Adi.Widget.Set_Label ({w.wid}.all, "{escaped}");'
+            )
+    if label_lines:
+        lines.append("      --  Set labels")
+        lines.extend(label_lines)
         lines.append("")
 
     # Wire direct widget callbacks (grammar-driven)

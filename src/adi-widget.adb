@@ -988,8 +988,99 @@ package body Adi.Widget is
          end;
       end loop;
       W.Items.Clear;
+      W.Label_Item_Base := 0;
       Mark_Render_Dirty (W);
    end Clear_Items;
+
+   ---------------------------------------------------------------------------
+   --  Label Management
+   ---------------------------------------------------------------------------
+
+   procedure Set_Label (W : in out Widget'Class; Label : String) is
+   begin
+      W.Label_Text := To_Unbounded_String (Label);
+      Mark_Dirty (W);
+   end Set_Label;
+
+   function Get_Label (W : Widget'Class) return String is
+   begin
+      return To_String (W.Label_Text);
+   end Get_Label;
+
+   procedure Build_Label_Overlay (W : in out Widget'Class) is
+      Lbl_Text : constant String := To_String (W.Label_Text);
+   begin
+      --  No label text and no items allocated: nothing to do
+      if Lbl_Text'Length = 0 and then W.Label_Item_Base = 0 then
+         return;
+      end if;
+
+      --  Guard against stale index: if items were removed without going
+      --  through Clear_Items (e.g. Html_View's Delete_Last loop), the
+      --  saved base may point past the end of the vector.  Reset so
+      --  the items are re-created on the next frame that needs them.
+      if W.Label_Item_Base > 0
+        and then W.Label_Item_Base + 1 > Item_Count (W)
+      then
+         W.Label_Item_Base := 0;
+      end if;
+
+      --  Label cleared and stale index was just reset: nothing left to do
+      if Lbl_Text'Length = 0 and then W.Label_Item_Base = 0 then
+         return;
+      end if;
+
+      --  Allocate label items on first use
+      if Lbl_Text'Length > 0 and then W.Label_Item_Base = 0 then
+         Add_Item (W, Make_Panel (Label_Part, (0.0, 0.0, 0.0, 0.0), 100));
+         Add_Item (W, Make_Text (Label_Part, (0.0, 0.0, 0.0, 0.0), "", 101));
+         W.Label_Item_Base := Item_Count (W) - 1;
+      end if;
+
+      declare
+         Bg_Idx  : constant Positive := W.Label_Item_Base;
+         Txt_Idx : constant Positive := W.Label_Item_Base + 1;
+         Lbl_Bg  : Item renames W.Items.Reference (Bg_Idx).Element.all;
+         Lbl     : Item renames W.Items.Reference (Txt_Idx).Element.all;
+      begin
+         if Lbl_Text'Length > 0 then
+            declare
+               Lbl_Style : constant Resolved_Style :=
+                 Get_Resolved_Part_Style (W, Label_Part);
+               Lbl_Attrs : constant Adi.Font.Font_Attributes :=
+                 Adi.Font.Make_Attributes
+                   (Family     => Lbl_Style.Font_Family,
+                    Size       => Float (Length_To_Px (Lbl_Style.Font_Size)),
+                    Weight     => Lbl_Style.Font_Weight,
+                    Style      => Lbl_Style.Font_Style,
+                    Decoration => Lbl_Style.Text_Decoration);
+               Lbl_Size : constant Size_2D :=
+                 Adi.Font.Measure_Text (Attrs => Lbl_Attrs, Content => Lbl_Text);
+               Pad      : constant Edge_Pixels := Get_Padding_Px (Lbl_Style);
+               Offset_X : constant Pixel_Type :=
+                 Inset_To_Px (Lbl_Style.Left, W.Geometry.Width);
+               Offset_Y : constant Pixel_Type :=
+                 Inset_To_Px (Lbl_Style.Top, W.Geometry.Height);
+               Label_X  : constant Pixel_Type := W.Geometry.X + Offset_X;
+               Label_Y  : constant Pixel_Type := W.Geometry.Y + Offset_Y;
+            begin
+               Lbl_Bg.Geometry := (X      => Label_X,
+                                   Y      => Label_Y,
+                                   Width  => Pad.Left + Lbl_Size.Width + Pad.Right,
+                                   Height => Pad.Top + Lbl_Size.Height + Pad.Bottom);
+               Lbl.Text_Content := To_Unbounded_String (Lbl_Text);
+               Lbl.Geometry := (X      => Label_X + Pad.Left,
+                                Y      => Label_Y + Pad.Top,
+                                Width  => Lbl_Size.Width,
+                                Height => Lbl_Size.Height);
+            end;
+         else
+            Lbl_Bg.Geometry  := (0.0, 0.0, 0.0, 0.0);
+            Lbl.Text_Content := Null_Unbounded_String;
+            Lbl.Geometry     := (0.0, 0.0, 0.0, 0.0);
+         end if;
+      end;
+   end Build_Label_Overlay;
 
    procedure Update_Item (W : in out Widget'Class;
                           Index : Positive;
@@ -5322,6 +5413,7 @@ package body Adi.Widget is
           --  Layout must have been called before this.
           --  Build items using the current geometry.
           Build_Items (W);
+          Build_Label_Overlay (W);
           Apply_Styles_To_Items (W);
        end if;
 
@@ -5339,6 +5431,7 @@ package body Adi.Widget is
 procedure Rebuild_All_Items (W : in out Widget'Class) is
 begin
    Build_Items (W);
+   Build_Label_Overlay (W);
    Apply_Styles_To_Items (W);
 
    for Child of W.Children loop

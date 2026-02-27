@@ -127,13 +127,15 @@ package body Material_Demo_UI is
       Lock_Switch := Adi.Widget.Button.Switch.Create (False);
 
       --  Configure properties
-      Name_Input.Set_Label ("Name");
       Button_5.Set_Disabled;
       Disabled_Input.Set_Disabled;
       Switch_2.Set_Disabled;
       Disabled_Combo.Set_Disabled;
       Disabled_Slider.Set_Disabled;
       Disabled_Value_Input.Set_Disabled;
+
+      --  Set labels
+      Adi.Widget.Set_Label (Name_Input.all, "Name");
 
       --  Wire callbacks
       if On_Get_Started /= null then

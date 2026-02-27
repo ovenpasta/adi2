@@ -2732,6 +2732,7 @@ package body Adi.Widget.Html_View is
       Self.Source := To_Unbounded_String (Source);
       Self.Image_Cache.Clear;
       Self.Inline_Style_Cache.Clear;
+      Set_Scroll_Offset_Y (Self, 0.0);
       Parse_HTML (Self, Source);
       Mark_Dirty (Self);
    end Set_HTML;

@@ -7,16 +7,20 @@ with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with System;
+with System.Storage_Elements;
 with Interfaces.C;    use Interfaces.C;
 with Adi.Log;
 with Adi.SDL;         use Adi.SDL;
 with Adi.SDL.Surface; use Adi.SDL.Surface;
 with Adi.SVG_Sprites; use Adi.SVG_Sprites;
+with Adi.Assets.Bundle;
 
 package body Adi.Assets is
 
    use type Adi.SDL.C_bool;
    use type Adi.SVG_Sprites.Sprite_Sheet_Access;
+   use type System.Address;
 
    ---------------------------------------------------------------------------
    --  Internal types
@@ -66,6 +70,62 @@ package body Adi.Assets is
    Images      : Image_Maps.Map;
    Anim_Images : Anim_Image_Maps.Map;
    Sprites     : Sprite_Maps.Map;
+
+   Current_Mode     : Asset_Mode := File_Mode;
+   Any_Asset_Loaded : Boolean := False;
+
+   ---------------------------------------------------------------------------
+   --  Mode and bundle API
+   ---------------------------------------------------------------------------
+
+   procedure Set_Mode (Mode : Asset_Mode) is
+   begin
+      if Any_Asset_Loaded then
+         raise Program_Error with
+           "Adi.Assets.Set_Mode called after assets were already loaded";
+      end if;
+      Current_Mode := Mode;
+   end Set_Mode;
+
+   function Get_Mode return Asset_Mode is
+   begin
+      return Current_Mode;
+   end Get_Mode;
+
+   procedure Mark_Asset_Loaded is
+   begin
+      Any_Asset_Loaded := True;
+   end Mark_Asset_Loaded;
+
+   procedure Register
+     (Path   : String;
+      Addr   : System.Address;
+      Length : System.Storage_Elements.Storage_Count) is
+   begin
+      Adi.Assets.Bundle.Register (Path, Addr, Length);
+   end Register;
+
+   function Bundle_Lookup (Path : String) return Asset_Data is
+   begin
+      return Adi.Assets.Bundle.Lookup (Path);
+   end Bundle_Lookup;
+
+   function Memory_To_String
+     (BD : Asset_Data) return String
+   is
+      use System.Storage_Elements;
+      Len : constant Natural := Natural (BD.Length);
+      subtype Data_Array is Storage_Array (1 .. BD.Length);
+      Raw : Data_Array;
+      for Raw'Address use BD.Addr;
+      pragma Import (Ada, Raw);
+      Result : String (1 .. Len);
+   begin
+      for I in 1 .. Len loop
+         Result (I) := Character'Val (Raw (Storage_Offset (I)));
+      end loop;
+      return Result;
+   end Memory_To_String;
 
    ---------------------------------------------------------------------------
    --  Sanitize — return a safe relative path.  Strips leading slashes
@@ -277,7 +337,13 @@ package body Adi.Assets is
    --  Resolve_Path
    ---------------------------------------------------------------------------
 
-   function Resolve_Path (Path : String) return String renames Resolve;
+   function Resolve_Path (Path : String) return String is
+   begin
+      if Current_Mode = Bundle_Mode then
+         return "";
+      end if;
+      return Resolve (Path);
+   end Resolve_Path;
 
    ---------------------------------------------------------------------------
    --  Read_File — read entire file contents into a String.
@@ -481,32 +547,65 @@ package body Adi.Assets is
       Id        : String) return Image_Access
    is
       use Sprite_Maps;
-      FP    : constant String := Resolve (Base_Path);
       Sheet : Adi.SVG_Sprites.Sprite_Sheet_Access;
       Img   : Image_Access;
    begin
-      if FP = "" then
-         Adi.Log.Warning ("Assets: SVG sprite file not found: " & Base_Path);
-         return null;
-      end if;
-
-      --  Get or load cached sprite sheet
-      declare
-         Pos : constant Cursor := Sprites.Find (FP);
-      begin
-         if Pos /= No_Element then
-            Sheet := Element (Pos);
-         else
-            Sheet := Adi.SVG_Sprites.Load (FP);
-            if Sheet = null then
+      if Current_Mode = Bundle_Mode then
+         --  In Bundle_Mode, use Base_Path directly as sprite cache key
+         declare
+            Pos : constant Cursor := Sprites.Find (Base_Path);
+         begin
+            if Pos /= No_Element then
+               Sheet := Element (Pos);
+            else
+               declare
+                  BD : constant Asset_Data := Bundle_Lookup (Base_Path);
+               begin
+                  if BD.Addr = System.Null_Address then
+                     Adi.Log.Warning
+                       ("Assets: SVG sprite bundle not found: " & Base_Path);
+                     Sprites.Insert (Base_Path, null);
+                     return null;
+                  end if;
+                  Sheet := Adi.SVG_Sprites.Load_From_String
+                    (Memory_To_String (BD));
+                  if Sheet = null then
+                     Adi.Log.Warning
+                       ("Assets: failed to parse SVG sprite from bundle: "
+                        & Base_Path);
+                     Sprites.Insert (Base_Path, null);
+                     return null;
+                  end if;
+                  Sprites.Insert (Base_Path, Sheet);
+               end;
+            end if;
+         end;
+      else
+         declare
+            FP : constant String := Resolve (Base_Path);
+            Pos : Cursor;
+         begin
+            if FP = "" then
                Adi.Log.Warning
-                 ("Assets: failed to load SVG sprite sheet: " & FP);
-               Sprites.Insert (FP, null);
+                 ("Assets: SVG sprite file not found: " & Base_Path);
                return null;
             end if;
-            Sprites.Insert (FP, Sheet);
-         end if;
-      end;
+
+            Pos := Sprites.Find (FP);
+            if Pos /= No_Element then
+               Sheet := Element (Pos);
+            else
+               Sheet := Adi.SVG_Sprites.Load (FP);
+               if Sheet = null then
+                  Adi.Log.Warning
+                    ("Assets: failed to load SVG sprite sheet: " & FP);
+                  Sprites.Insert (FP, null);
+                  return null;
+               end if;
+               Sprites.Insert (FP, Sheet);
+            end if;
+         end;
+      end if;
 
       if Sheet = null then
          return null;
@@ -660,8 +759,28 @@ package body Adi.Assets is
       use String_Maps;
       Pos : constant Cursor := Strings.Find (Path);
    begin
+      Any_Asset_Loaded := True;
+
       if Pos /= No_Element then
          return To_String (Element (Pos));
+      end if;
+
+      if Current_Mode = Bundle_Mode then
+         declare
+            BD : constant Asset_Data := Bundle_Lookup (Path);
+         begin
+            if BD.Addr /= System.Null_Address then
+               declare
+                  Content : constant String := Memory_To_String (BD);
+               begin
+                  Strings.Insert (Path, To_Unbounded_String (Content));
+                  return Content;
+               end;
+            end if;
+            Adi.Log.Warning ("Assets: bundle entry not found: " & Path);
+            Strings.Insert (Path, Null_Unbounded_String);
+            return "";
+         end;
       end if;
 
       declare
@@ -690,6 +809,8 @@ package body Adi.Assets is
       use Image_Maps;
       Pos : constant Cursor := Images.Find (Path);
    begin
+      Any_Asset_Loaded := True;
+
       if Pos /= No_Element then
          return Element (Pos);
       end if;
@@ -810,6 +931,28 @@ package body Adi.Assets is
       end;
 
       --  Normal path — no query string
+      if Current_Mode = Bundle_Mode then
+         declare
+            BD  : constant Asset_Data := Bundle_Lookup (Path);
+            Img : Image_Access := null;
+         begin
+            if BD.Addr /= System.Null_Address then
+               if Ends_With_SVG (Path) then
+                  Img := Adi.Image.Load_SVG_From_String
+                    (Memory_To_String (BD));
+               else
+                  Img := Adi.Image.Load_From_Memory (BD.Addr, BD.Length);
+               end if;
+            end if;
+            if Img = null then
+               Adi.Log.Warning
+                 ("Assets: bundle entry not found or failed: " & Path);
+            end if;
+            Images.Insert (Path, Img);
+            return Img;
+         end;
+      end if;
+
       declare
          FP  : constant String := Resolve (Path);
          Img : Image_Access := null;
@@ -836,8 +979,28 @@ package body Adi.Assets is
       use Anim_Image_Maps;
       Pos : constant Cursor := Anim_Images.Find (Path);
    begin
+      Any_Asset_Loaded := True;
+
       if Pos /= No_Element then
          return Element (Pos);
+      end if;
+
+      if Current_Mode = Bundle_Mode then
+         declare
+            BD   : constant Asset_Data := Bundle_Lookup (Path);
+            Anim : Animated_Image_Access := null;
+         begin
+            if BD.Addr /= System.Null_Address then
+               Anim := Adi.Animated_Image.Load_From_Memory
+                 (BD.Addr, BD.Length);
+            end if;
+            if Anim = null then
+               Adi.Log.Warning
+                 ("Assets: bundle entry not found or failed: " & Path);
+            end if;
+            Anim_Images.Insert (Path, Anim);
+            return Anim;
+         end;
       end if;
 
       declare
@@ -941,22 +1104,39 @@ package body Adi.Assets is
 
       --  Also invalidate derived sprite/crop entries and sprite sheet cache.
       Invalidate_Derived (Path);
-      declare
-         FP : constant String := Resolve (Path);
-      begin
-         if FP /= "" and then Sprites.Contains (FP) then
+
+      --  In Bundle_Mode the sprite key is the original path, not resolved path.
+      if Current_Mode = Bundle_Mode then
+         if Sprites.Contains (Path) then
             declare
                Sheet : Adi.SVG_Sprites.Sprite_Sheet_Access :=
-                 Sprites.Element (FP);
+                 Sprites.Element (Path);
             begin
                if Sheet /= null then
                   Adi.SVG_Sprites.Destroy (Sheet.all);
                   Free_Sprite (Sheet);
                end if;
             end;
-            Sprites.Delete (FP);
+            Sprites.Delete (Path);
          end if;
-      end;
+      else
+         declare
+            FP : constant String := Resolve (Path);
+         begin
+            if FP /= "" and then Sprites.Contains (FP) then
+               declare
+                  Sheet : Adi.SVG_Sprites.Sprite_Sheet_Access :=
+                    Sprites.Element (FP);
+               begin
+                  if Sheet /= null then
+                     Adi.SVG_Sprites.Destroy (Sheet.all);
+                     Free_Sprite (Sheet);
+                  end if;
+               end;
+               Sprites.Delete (FP);
+            end if;
+         end;
+      end if;
    end Invalidate;
 
 end Adi.Assets;

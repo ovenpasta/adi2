@@ -5,6 +5,8 @@ with Interfaces.C.Strings;
 with System;
 with System.Storage_Elements; use System.Storage_Elements;
 with Adi.Log;
+with Adi.SDL;         use Adi.SDL;
+with Adi.SDL.IO;      use Adi.SDL.IO;
 with Adi.SDL.Surface; use Adi.SDL.Surface;
 with Adi.SDL.Image;   use Adi.SDL.Image;
 
@@ -73,15 +75,16 @@ package body Adi.Animated_Image is
       end if;
    end Read_Delay_At;
 
+   function Build_From_Raw
+     (Raw_Anim : IMG_Animation_Access;
+      Label    : String) return Animated_Image_Access;
+
    function Load_From_File (Path : String) return Animated_Image_Access
    is
       use Interfaces.C.Strings;
 
-      C_Path      : chars_ptr;
-      Raw_Anim    : IMG_Animation_Access;
-      Result      : Animated_Image_Access := null;
-      Frame_Count : Natural;
-      Delay_Base  : System.Address := System.Null_Address;
+      C_Path   : chars_ptr;
+      Raw_Anim : IMG_Animation_Access;
    begin
       C_Path := New_String (Path);
       Raw_Anim := IMG_LoadAnimation (C_Path);
@@ -92,10 +95,22 @@ package body Adi.Animated_Image is
          return null;
       end if;
 
-      Frame_Count := (if Raw_Anim.count > 0 then Natural (Raw_Anim.count) else 0);
+      return Build_From_Raw (Raw_Anim, Path);
+   end Load_From_File;
+
+   function Build_From_Raw
+     (Raw_Anim : IMG_Animation_Access;
+      Label    : String) return Animated_Image_Access
+   is
+      Result      : Animated_Image_Access := null;
+      Frame_Count : Natural;
+      Delay_Base  : System.Address := System.Null_Address;
+   begin
+      Frame_Count :=
+        (if Raw_Anim.count > 0 then Natural (Raw_Anim.count) else 0);
       if Frame_Count = 0 then
          IMG_FreeAnimation (Raw_Anim);
-         Adi.Log.Error ("Animated image has no frames: " & Path);
+         Adi.Log.Error ("Animated image has no frames: " & Label);
          return null;
       end if;
 
@@ -119,13 +134,11 @@ package body Adi.Animated_Image is
                goto Next_Frame;
             end if;
 
-            --  Duplicate the surface because IMG_FreeAnimation frees originals
             Dup := SDL_Surface_Ptr (SDL_DuplicateSurface (Surface));
             if Dup = null then
                goto Next_Frame;
             end if;
 
-            --  Create_From_Surface takes ownership of the duplicate
             Img := Create_From_Surface (Dup);
             if Img = null then
                SDL_DestroySurface (Dup);
@@ -148,7 +161,7 @@ package body Adi.Animated_Image is
 
       if Result.Frames.Is_Empty then
          Adi.Log.Error
-           ("Failed to create any animation frame surfaces: " & Path);
+           ("Failed to create any animation frame surfaces: " & Label);
          Free_Animated (Result);
          return null;
       end if;
@@ -163,7 +176,34 @@ package body Adi.Animated_Image is
       Result.Playing := True;
       Result.Looping := True;
       return Result;
-   end Load_From_File;
+   end Build_From_Raw;
+
+   function Load_From_Memory
+     (Data   : System.Address;
+      Length : System.Storage_Elements.Storage_Count)
+      return Animated_Image_Access
+   is
+      Stream   : SDL_IOStream_Ptr;
+      Raw_Anim : IMG_Animation_Access;
+   begin
+      if Data = System.Null_Address or else Length = 0 then
+         return null;
+      end if;
+
+      Stream := SDL_IOFromConstMem (Data, size_t (Length));
+      if Stream = null then
+         Adi.Log.Error ("Failed to create IO stream for animated image");
+         return null;
+      end if;
+
+      Raw_Anim := IMG_LoadAnimation_IO (Stream, True);
+      if Raw_Anim = null then
+         Adi.Log.Error ("Failed to load animated image from memory");
+         return null;
+      end if;
+
+      return Build_From_Raw (Raw_Anim, "(memory)");
+   end Load_From_Memory;
 
    function Is_Valid (Anim : Animated_Image) return Boolean is
    begin

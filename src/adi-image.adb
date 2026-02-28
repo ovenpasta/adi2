@@ -1,7 +1,9 @@
 with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings;
+with System;
 with Adi.Log;
 with Adi.SDL;       use Adi.SDL;
+with Adi.SDL.IO;    use Adi.SDL.IO;
 with Adi.SDL.Image; use Adi.SDL.Image;
 with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.SDL.Surface; use Adi.SDL.Surface;
@@ -15,6 +17,7 @@ with Ada.Unchecked_Deallocation;
 
 package body Adi.Image is
 
+   use type System.Address;
    use type Adi.SVG.Document_Access;
    use type Adi.SVG.Pixel_Buffer_Access;
 
@@ -217,6 +220,48 @@ package body Adi.Image is
       Register (Img);
       return Img;
    end Load_From_File;
+
+   function Load_From_Memory
+     (Data   : System.Address;
+      Length : System.Storage_Elements.Storage_Count) return Image_Access
+   is
+      use System.Storage_Elements;
+      Stream : SDL_IOStream_Ptr;
+      Surf   : SDL_Surface_Ptr;
+      Img    : Image_Access;
+   begin
+      if Data = System.Null_Address or else Length = 0 then
+         return null;
+      end if;
+
+      Stream := SDL_IOFromConstMem (Data, size_t (Length));
+      if Stream = null then
+         Adi.Log.Error ("Failed to create IO stream from memory");
+         return null;
+      end if;
+
+      --  closeio=True: SDL frees the IO stream struct (not the backing memory)
+      Surf := IMG_Load_IO (Stream, True);
+      if Surf = null then
+         Adi.Log.Error ("Failed to load image from memory");
+         return null;
+      end if;
+
+      Img := new Image'(
+         Kind     => Raster_Image,
+         Surface  => Surf,
+         Texture  => null,
+         Width    => Pixel_Type (Float (Surf.w)),
+         Height   => Pixel_Type (Float (Surf.h)),
+         SVG      => null,
+         Cache    => <>,
+         Tintable => False,
+         Scaling  => Scale_Linear
+      );
+
+      Register (Img);
+      return Img;
+   end Load_From_Memory;
 
    function Load_SVG_From_String
       (Source   : String;

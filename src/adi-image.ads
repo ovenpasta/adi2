@@ -1,3 +1,5 @@
+with System;
+with System.Storage_Elements;
 with Adi.Core;       use Adi.Core;
 with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.SDL.Surface; use Adi.SDL.Surface;
@@ -35,6 +37,15 @@ package Adi.Image is
    -- SVG images are parsed into a document for later rasterization.
    -- Returns null on failure.
    function Load_From_File (Path : String) return Image_Access;
+
+   -- Load a raster image from in-memory data.
+   -- Data must point to a valid image file buffer (PNG, JPEG, etc.).
+   -- The memory is fully consumed (copied into an SDL_Surface); the caller
+   -- retains ownership of the buffer and may free it after this call.
+   -- Returns null on failure.
+   function Load_From_Memory
+     (Data   : System.Address;
+      Length : System.Storage_Elements.Storage_Count) return Image_Access;
 
    -- Load an SVG image from an SVG source string.
    -- Returns null on failure.

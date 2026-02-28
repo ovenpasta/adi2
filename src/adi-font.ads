@@ -1,3 +1,5 @@
+with System;
+with System.Storage_Elements;
 with Adi.Core;       use Adi.Core;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.SDL.TTF;    use Adi.SDL.TTF;
@@ -47,6 +49,21 @@ package Adi.Font is
 
    function Load (Path : String) return Font_Handle;
    function Load (Path : String; Name : String) return Font_Handle;
+
+   ---------------------------------------------------------------------------
+   --  Memory-based font loading — register a font from in-memory data.
+   --
+   --  Data must point to a static-lifetime buffer (e.g. a library-level
+   --  Storage_Array constant) because TTF_OpenFontIO reads glyphs on demand.
+   --  The buffer must outlive all sized font instances derived from this handle.
+   --
+   --  If Name is empty, the family name is auto-detected from TTF metadata.
+   ---------------------------------------------------------------------------
+
+   function Load_From_Memory
+     (Data   : System.Address;
+      Length : System.Storage_Elements.Storage_Count;
+      Name   : String := "") return Font_Handle;
    procedure Register_Variant (Base   : Font_Handle;
                                Weight : Font_Weight_Value;
                                Style  : Font_Style_Value;
@@ -98,6 +115,13 @@ package Adi.Font is
 
    function Load_Asset (Asset_Path : String) return Font_Handle;
    function Load_Asset (Asset_Path : String; Name : String) return Font_Handle;
+
+   ---------------------------------------------------------------------------
+   --  Default font — set the font used when a widget has no font-family.
+   --  Overrides the automatic system font fallback (DejaVu Sans, etc.).
+   ---------------------------------------------------------------------------
+
+   procedure Set_Default_Font (Handle : Font_Handle);
 
    ---------------------------------------------------------------------------
    --  Font access — returns a TTF_Font opened at the given point size.

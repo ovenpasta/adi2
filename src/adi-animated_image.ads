@@ -1,3 +1,5 @@
+with System;
+with System.Storage_Elements;
 with Ada.Containers.Vectors;
 with Adi.Core;       use Adi.Core;
 with Adi.Image;      use Adi.Image;
@@ -12,6 +14,14 @@ package Adi.Animated_Image is
    --  lazily on first render via Adi.Image.Get_Texture(Renderer).
    --  Returns null on failure.
    function Load_From_File (Path : String) return Animated_Image_Access;
+
+   --  Load all frames from in-memory animated image data (e.g. GIF).
+   --  The memory is fully consumed; the caller retains ownership of the buffer.
+   --  Returns null on failure.
+   function Load_From_Memory
+     (Data   : System.Address;
+      Length : System.Storage_Elements.Storage_Count)
+      return Animated_Image_Access;
 
    --  True when at least one valid frame is loaded.
    function Is_Valid (Anim : Animated_Image) return Boolean;

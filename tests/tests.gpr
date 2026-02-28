@@ -21,7 +21,8 @@ project Tests is
       "layout_perf_test",
       "style_storage_equivalence_test",
       "window_resize_safety_test",
-      "mcp_test");
+      "mcp_test",
+      "bundle_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("src");

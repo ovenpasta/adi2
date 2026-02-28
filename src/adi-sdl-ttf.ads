@@ -1,5 +1,6 @@
 with Interfaces.C.Strings;
 with Interfaces.C.Extensions; use Interfaces.C.Extensions;
+with Adi.SDL.IO;              use Adi.SDL.IO;
 with Adi.SDL.Surface;         use Adi.SDL.Surface;
 with Adi.SDL.Render;          use Adi.SDL.Render;
 
@@ -152,6 +153,14 @@ package Adi.SDL.TTF is
       with Import        => True,
            Convention    => C,
            External_Name => "TTF_OpenFont";
+
+   function TTF_OpenFontIO
+      (Src     : SDL_IOStream_Ptr;
+       Closeio : C_bool;
+       Ptsize  : Float) return TTF_Font_Access
+      with Import        => True,
+           Convention    => C,
+           External_Name => "TTF_OpenFontIO";
 
    procedure TTF_CloseFont (Font : TTF_Font_Access)
       with Import        => True,

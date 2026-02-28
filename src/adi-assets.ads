@@ -1,9 +1,49 @@
 pragma Ada_2022;
 
+with System;
+with System.Storage_Elements;
 with Adi.Image;          use Adi.Image;
 with Adi.Animated_Image; use Adi.Animated_Image;
 
 package Adi.Assets is
+
+   ---------------------------------------------------------------------------
+   --  Asset Resolution Mode
+   ---------------------------------------------------------------------------
+
+   type Asset_Mode is (File_Mode, Bundle_Mode);
+
+   procedure Set_Mode (Mode : Asset_Mode);
+   --  Set the asset resolution mode.  Must be called before any asset is
+   --  loaded (Get_Image, Get_String, Get_Animated_Image, or Font.Load_Asset).
+   --  Raises Program_Error if called after any asset has been loaded.
+   --  Default is File_Mode.
+
+   function Get_Mode return Asset_Mode;
+
+   ---------------------------------------------------------------------------
+   --  Bundle Registration (for Bundle_Mode)
+   ---------------------------------------------------------------------------
+
+   type Asset_Data is record
+      Addr   : System.Address                       := System.Null_Address;
+      Length : System.Storage_Elements.Storage_Count := 0;
+   end record;
+
+   Null_Asset : constant Asset_Data :=
+     (Addr => System.Null_Address, Length => 0);
+
+   procedure Register
+     (Path   : String;
+      Addr   : System.Address;
+      Length : System.Storage_Elements.Storage_Count);
+   --  Register an embedded asset for Bundle_Mode.  The Address must point to
+   --  static-lifetime data (e.g. a library-level Storage_Array constant).
+   --  Data is NOT copied.  Keys may be plain relative paths ("icons.svg")
+   --  or scheme URIs ("app://icons.svg").  The key is stored exactly as given.
+
+   function Bundle_Lookup (Path : String) return Asset_Data;
+   --  Look up a registered bundle entry.  Returns Null_Asset if not found.
 
    ---------------------------------------------------------------------------
    --  Search Path Management
@@ -80,6 +120,11 @@ package Adi.Assets is
    ---------------------------------------------------------------------------
    --  Cache Management
    ---------------------------------------------------------------------------
+
+   procedure Mark_Asset_Loaded;
+   --  Signal that an asset has been loaded.  After this call, Set_Mode
+   --  will raise Program_Error.  Called internally by Get_Image, Get_String,
+   --  Get_Animated_Image, and Font.Load_Asset.
 
    procedure Clear_Cache;
    --  Drop all cached strings, images, and animated images.

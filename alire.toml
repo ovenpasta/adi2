@@ -18,6 +18,10 @@ command = ["bash", "tools/generate_example_ui.sh"]
 
 [[actions]]
 type = "post-build"
+command = ["bash", "tools/generate_example_bundles.sh"]
+
+[[actions]]
+type = "post-build"
 command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=styles"]
 
 [[actions]]

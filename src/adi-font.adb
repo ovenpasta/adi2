@@ -5,15 +5,21 @@ with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with System;
+with System.Storage_Elements; use System.Storage_Elements;
 with Adi.Assets;
 with Adi.Build_Target;
 with Adi.Log;
 with Adi.SDL;
+with Adi.SDL.IO;            use Adi.SDL.IO;
 with Adi.SDL.TTF;           use Adi.SDL.TTF;
 with Interfaces.C;          use Interfaces.C;
 with Interfaces.C.Strings;  use Interfaces.C.Strings;
 
 package body Adi.Font is
+   use type System.Address;
+   use type Adi.Assets.Asset_Mode;
+
    Debug_Font_Loading : constant Boolean := False;
 
    procedure Log (Msg : String) is
@@ -106,6 +112,19 @@ package body Adi.Font is
       Element_Type => Unbounded_String);
 
    Variant_Registry : Variant_Maps.Map;
+
+   --  Memory-based font variants: same key as Variant_Maps but stores
+   --  a pointer to the in-memory font data rather than a file path.
+   type Memory_Font_Entry is record
+      Addr   : System.Address := System.Null_Address;
+      Length : Storage_Count := 0;
+   end record;
+
+   package Memory_Font_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Variant_Key,
+      Element_Type => Memory_Font_Entry);
+
+   Memory_Variants : Memory_Font_Maps.Map;
 
    type Sized_Font_Key is record
       Attrs      : Font_Attributes;
@@ -594,54 +613,74 @@ package body Adi.Font is
    end Needs_Italic;
 
    type Resolved_Request is record
-      Path  : Unbounded_String;
-      Flags : TTF_FontStyleFlags := TTF_STYLE_NORMAL;
+      Path     : Unbounded_String;
+      Flags    : TTF_FontStyleFlags := TTF_STYLE_NORMAL;
+      From_Mem : Boolean := False;
+      Mem_Addr : System.Address := System.Null_Address;
+      Mem_Len  : Storage_Count := 0;
    end record;
 
    function Resolve_Request (Attrs : Font_Attributes)
       return Resolved_Request
    is
       H                  : constant Font_Handle := Canonical_Handle (Attrs.Family);
-      Result             : Resolved_Request := (Path => To_Unbounded_String (Get_Path (H)),
-                                                Flags => TTF_STYLE_NORMAL);
+      Result             : Resolved_Request :=
+        (Path     => To_Unbounded_String (Get_Path (H)),
+         Flags    => TTF_STYLE_NORMAL,
+         From_Mem => False,
+         Mem_Addr => System.Null_Address,
+         Mem_Len  => 0);
       Variant_Cursor     : Variant_Maps.Cursor;
+      Mem_Cursor         : Memory_Font_Maps.Cursor;
       Weight_Matched     : Boolean := False;
       Style_Matched      : Boolean := False;
    begin
       if H /= Null_Font then
-         Variant_Cursor := Variant_Registry.Find ((Handle => H,
-                                                   Weight => Attrs.Weight,
-                                                   Style  => Attrs.Style));
-         if Variant_Maps.Has_Element (Variant_Cursor) then
-            Result.Path := Variant_Maps.Element (Variant_Cursor);
+         --  Check memory variants first
+         Mem_Cursor := Memory_Variants.Find ((Handle => H,
+                                              Weight => Attrs.Weight,
+                                              Style  => Attrs.Style));
+         if Memory_Font_Maps.Has_Element (Mem_Cursor) then
+            declare
+               ME : constant Memory_Font_Entry :=
+                 Memory_Font_Maps.Element (Mem_Cursor);
+            begin
+               Result.From_Mem := True;
+               Result.Mem_Addr := ME.Addr;
+               Result.Mem_Len  := ME.Length;
+            end;
             Weight_Matched := True;
             Style_Matched := True;
          elsif Attrs.Style = Style_Oblique then
-            Variant_Cursor := Variant_Registry.Find ((Handle => H,
-                                                      Weight => Attrs.Weight,
-                                                      Style  => Style_Italic));
-            if Variant_Maps.Has_Element (Variant_Cursor) then
-               Result.Path := Variant_Maps.Element (Variant_Cursor);
+            Mem_Cursor := Memory_Variants.Find ((Handle => H,
+                                                 Weight => Attrs.Weight,
+                                                 Style  => Style_Italic));
+            if Memory_Font_Maps.Has_Element (Mem_Cursor) then
+               declare
+                  ME : constant Memory_Font_Entry :=
+                    Memory_Font_Maps.Element (Mem_Cursor);
+               begin
+                  Result.From_Mem := True;
+                  Result.Mem_Addr := ME.Addr;
+                  Result.Mem_Len  := ME.Length;
+               end;
                Weight_Matched := True;
                Style_Matched := True;
             end if;
          end if;
-      else
-         --  Null handle: use default fallback (which now has auto-registered variants)
-         Find_Fallback;
-         if Default_Fallback_Handle /= Null_Font then
-            --  Try variant lookup on the fallback handle
-            Variant_Cursor := Variant_Registry.Find
-              ((Handle => Default_Fallback_Handle,
-                Weight => Attrs.Weight,
-                Style  => Attrs.Style));
+
+         --  If no memory variant, try filesystem variants
+         if not Weight_Matched then
+            Variant_Cursor := Variant_Registry.Find ((Handle => H,
+                                                      Weight => Attrs.Weight,
+                                                      Style  => Attrs.Style));
             if Variant_Maps.Has_Element (Variant_Cursor) then
                Result.Path := Variant_Maps.Element (Variant_Cursor);
                Weight_Matched := True;
                Style_Matched := True;
             elsif Attrs.Style = Style_Oblique then
                Variant_Cursor := Variant_Registry.Find
-                 ((Handle => Default_Fallback_Handle,
+                 ((Handle => H,
                    Weight => Attrs.Weight,
                    Style  => Style_Italic));
                if Variant_Maps.Has_Element (Variant_Cursor) then
@@ -649,6 +688,90 @@ package body Adi.Font is
                   Weight_Matched := True;
                   Style_Matched := True;
                end if;
+            end if;
+         end if;
+
+         --  If still no match, try the primary memory variant for this handle
+         --  (first registered memory entry) for synthetic fallback
+         if not Weight_Matched and then not Memory_Variants.Is_Empty then
+            for Pos in Memory_Variants.Iterate loop
+               declare
+                  K  : constant Variant_Key := Memory_Font_Maps.Key (Pos);
+                  ME : constant Memory_Font_Entry :=
+                    Memory_Font_Maps.Element (Pos);
+               begin
+                  if K.Handle = H then
+                     Result.From_Mem := True;
+                     Result.Mem_Addr := ME.Addr;
+                     Result.Mem_Len  := ME.Length;
+                     exit;
+                  end if;
+               end;
+            end loop;
+         end if;
+      else
+         --  Null handle: use default fallback
+         Find_Fallback;
+         if Default_Fallback_Handle /= Null_Font then
+            --  Try memory variants first (for Set_Default_Font with
+            --  a memory-loaded handle)
+            Mem_Cursor := Memory_Variants.Find
+              ((Handle => Default_Fallback_Handle,
+                Weight => Attrs.Weight,
+                Style  => Attrs.Style));
+            if Memory_Font_Maps.Has_Element (Mem_Cursor) then
+               declare
+                  ME : constant Memory_Font_Entry :=
+                    Memory_Font_Maps.Element (Mem_Cursor);
+               begin
+                  Result.From_Mem := True;
+                  Result.Mem_Addr := ME.Addr;
+                  Result.Mem_Len  := ME.Length;
+               end;
+               Weight_Matched := True;
+               Style_Matched := True;
+            end if;
+
+            --  Try filesystem variants
+            if not Weight_Matched then
+               Variant_Cursor := Variant_Registry.Find
+                 ((Handle => Default_Fallback_Handle,
+                   Weight => Attrs.Weight,
+                   Style  => Attrs.Style));
+               if Variant_Maps.Has_Element (Variant_Cursor) then
+                  Result.Path := Variant_Maps.Element (Variant_Cursor);
+                  Weight_Matched := True;
+                  Style_Matched := True;
+               elsif Attrs.Style = Style_Oblique then
+                  Variant_Cursor := Variant_Registry.Find
+                    ((Handle => Default_Fallback_Handle,
+                      Weight => Attrs.Weight,
+                      Style  => Style_Italic));
+                  if Variant_Maps.Has_Element (Variant_Cursor) then
+                     Result.Path := Variant_Maps.Element (Variant_Cursor);
+                     Weight_Matched := True;
+                     Style_Matched := True;
+                  end if;
+               end if;
+            end if;
+
+            --  Last resort: any memory variant for this handle (synthetic)
+            if not Weight_Matched and then not Memory_Variants.Is_Empty then
+               for Pos in Memory_Variants.Iterate loop
+                  declare
+                     K  : constant Variant_Key :=
+                       Memory_Font_Maps.Key (Pos);
+                     ME : constant Memory_Font_Entry :=
+                       Memory_Font_Maps.Element (Pos);
+                  begin
+                     if K.Handle = Default_Fallback_Handle then
+                        Result.From_Mem := True;
+                        Result.Mem_Addr := ME.Addr;
+                        Result.Mem_Len  := ME.Length;
+                        exit;
+                     end if;
+                  end;
+               end loop;
             end if;
          end if;
       end if;
@@ -664,6 +787,43 @@ package body Adi.Font is
       Result.Flags := Result.Flags or Decoration_To_Flags (Attrs.Decoration);
       return Result;
    end Resolve_Request;
+
+   function Open_Sized_From_Memory
+     (Addr  : System.Address;
+      Len   : Storage_Count;
+      Size  : Float;
+      Flags : TTF_FontStyleFlags) return TTF_Font_Access
+   is
+      Stream : SDL_IOStream_Ptr;
+      F      : TTF_Font_Access;
+   begin
+      if Addr = System.Null_Address or else Len = 0 then
+         return null;
+      end if;
+
+      Stream := SDL_IOFromConstMem (Addr, Interfaces.C.size_t (Len));
+      if Stream = null then
+         Log ("ERROR: Failed to create IO stream for memory font");
+         return null;
+      end if;
+
+      F := TTF_OpenFontIO (Stream, True, Size);
+      if F /= null then
+         TTF_SetFontHinting (F, TTF_HINTING_LIGHT_SUBPIXEL);
+         TTF_SetFontStyle (F, Flags);
+         Log ("open sized memory font: size=" & Float'Image (Size)
+              & ", flags=" & TTF_FontStyleFlags'Image (Flags));
+      else
+         declare
+            Err : constant chars_ptr := Adi.SDL.SDL_GetError;
+         begin
+            Log ("ERROR: Failed to open memory font at size"
+                 & Float'Image (Size) & " - " & Value (Err));
+         end;
+      end if;
+
+      return F;
+   end Open_Sized_From_Memory;
 
    function Open_Sized (Path  : String;
                         Size  : Float;
@@ -800,6 +960,105 @@ package body Adi.Font is
       return Load_Internal (Path, Name);
    end Load;
 
+   function Load_From_Memory
+     (Data   : System.Address;
+      Length : System.Storage_Elements.Storage_Count;
+      Name   : String := "") return Font_Handle
+   is
+      Stream     : SDL_IOStream_Ptr;
+      F          : TTF_Font_Access;
+      Family_Str : Unbounded_String;
+      Det_Weight : Font_Weight_Value := Weight_Normal;
+      Det_Style  : Font_Style_Value  := Style_Normal;
+   begin
+      if Data = System.Null_Address or else Length = 0 then
+         return Null_Font;
+      end if;
+
+      --  Open font temporarily to read metadata
+      Stream := SDL_IOFromConstMem (Data, Interfaces.C.size_t (Length));
+      if Stream = null then
+         Log ("ERROR: Failed to create IO stream for memory font metadata");
+         return Null_Font;
+      end if;
+
+      F := TTF_OpenFontIO (Stream, True, Default_Font_Size_Px);
+      if F = null then
+         declare
+            Err : constant chars_ptr := Adi.SDL.SDL_GetError;
+         begin
+            Log ("ERROR: Failed to open memory font for metadata - "
+                 & Value (Err));
+         end;
+         return Null_Font;
+      end if;
+
+      --  Read metadata
+      if Name'Length > 0 then
+         Family_Str := To_Unbounded_String (Name);
+      else
+         declare
+            Name_Ptr : constant chars_ptr := TTF_GetFontFamilyName (F);
+         begin
+            if Name_Ptr /= Null_Ptr then
+               Family_Str := To_Unbounded_String (Value (Name_Ptr));
+            else
+               Family_Str := To_Unbounded_String ("Unknown");
+            end if;
+         end;
+      end if;
+
+      Det_Weight := TTF_Weight_To_Ada (TTF_GetFontWeight (F));
+
+      declare
+         Style_Ptr : constant chars_ptr := TTF_GetFontStyleName (F);
+      begin
+         if Style_Ptr /= Null_Ptr then
+            Det_Style := TTF_Style_Name_To_Ada (Value (Style_Ptr));
+         end if;
+      end;
+
+      TTF_CloseFont (F);
+
+      --  Check if family already registered
+      declare
+         Key : constant String :=
+           Ada.Characters.Handling.To_Lower (To_String (Family_Str));
+         Existing : constant Font_Handle := Lookup (Key);
+         H        : Font_Handle;
+      begin
+         if Existing /= Null_Font then
+            H := Existing;
+         else
+            --  New family — register with a placeholder path
+            Family_Registry.Append
+              (To_Unbounded_String ("(memory:" & To_String (Family_Str) & ")"));
+            Family_Generation.Append (0);
+            H := Font_Handle (Family_Registry.Last_Index);
+            Register_Name (To_String (Family_Str), H);
+         end if;
+
+         --  Register in memory variants map
+         declare
+            VK : constant Variant_Key :=
+              (Handle => H, Weight => Det_Weight, Style => Det_Style);
+         begin
+            if Memory_Variants.Contains (VK) then
+               Memory_Variants.Replace (VK, (Addr => Data, Length => Length));
+            else
+               Memory_Variants.Insert (VK, (Addr => Data, Length => Length));
+            end if;
+         end;
+
+         Bump_Generation (H);
+         Log ("load memory font: handle=" & Font_Handle'Image (H)
+              & ", family=" & To_String (Family_Str)
+              & ", weight=" & Det_Weight'Image
+              & ", style=" & Det_Style'Image);
+         return H;
+      end;
+   end Load_From_Memory;
+
    procedure Register_Variant (Base   : Font_Handle;
                                Weight : Font_Weight_Value;
                                Style  : Font_Style_Value;
@@ -875,6 +1134,20 @@ package body Adi.Font is
 
    function Load_Asset (Asset_Path : String) return Font_Handle is
    begin
+      Adi.Assets.Mark_Asset_Loaded;
+      if Adi.Assets.Get_Mode = Adi.Assets.Bundle_Mode then
+         declare
+            BD : constant Adi.Assets.Asset_Data :=
+              Adi.Assets.Bundle_Lookup (Asset_Path);
+         begin
+            if BD.Addr /= System.Null_Address then
+               return Load_From_Memory (BD.Addr, BD.Length);
+            end if;
+            Log ("ERROR: Load_Asset bundle not found: " & Asset_Path);
+            return Null_Font;
+         end;
+      end if;
+
       declare
          Resolved : constant String := Adi.Assets.Resolve_Path (Asset_Path);
       begin
@@ -888,6 +1161,20 @@ package body Adi.Font is
 
    function Load_Asset (Asset_Path : String; Name : String) return Font_Handle is
    begin
+      Adi.Assets.Mark_Asset_Loaded;
+      if Adi.Assets.Get_Mode = Adi.Assets.Bundle_Mode then
+         declare
+            BD : constant Adi.Assets.Asset_Data :=
+              Adi.Assets.Bundle_Lookup (Asset_Path);
+         begin
+            if BD.Addr /= System.Null_Address then
+               return Load_From_Memory (BD.Addr, BD.Length, Name);
+            end if;
+            Log ("ERROR: Load_Asset bundle not found: " & Asset_Path);
+            return Null_Font;
+         end;
+      end if;
+
       declare
          Resolved : constant String := Adi.Assets.Resolve_Path (Asset_Path);
       begin
@@ -957,18 +1244,28 @@ package body Adi.Font is
 
       declare
          Request : constant Resolved_Request := Resolve_Request (Key.Attrs);
-         F : constant TTF_Font_Access := Open_Sized (To_String (Request.Path),
-                                                     Key.Attrs.Size,
-                                                     Request.Flags);
+         F : TTF_Font_Access;
       begin
-         Log ("cache miss -> resolve: family=" & Font_Handle'Image (Key.Attrs.Family)
-              & ", size=" & Float'Image (Key.Attrs.Size)
-              & ", size_q=" & Natural'Image (Key.Size_Q)
-              & ", weight=" & Key.Attrs.Weight'Image
-              & ", style=" & Key.Attrs.Style'Image
-              & ", deco=" & Key.Attrs.Decoration'Image
-              & ", resolved_path=" & To_String (Request.Path)
-              & ", flags=" & TTF_FontStyleFlags'Image (Request.Flags));
+         if Request.From_Mem then
+            F := Open_Sized_From_Memory (Request.Mem_Addr, Request.Mem_Len,
+                                         Key.Attrs.Size, Request.Flags);
+            Log ("cache miss -> resolve (memory): family="
+                 & Font_Handle'Image (Key.Attrs.Family)
+                 & ", size=" & Float'Image (Key.Attrs.Size)
+                 & ", flags=" & TTF_FontStyleFlags'Image (Request.Flags));
+         else
+            F := Open_Sized (To_String (Request.Path),
+                             Key.Attrs.Size, Request.Flags);
+            Log ("cache miss -> resolve: family="
+                 & Font_Handle'Image (Key.Attrs.Family)
+                 & ", size=" & Float'Image (Key.Attrs.Size)
+                 & ", size_q=" & Natural'Image (Key.Size_Q)
+                 & ", weight=" & Key.Attrs.Weight'Image
+                 & ", style=" & Key.Attrs.Style'Image
+                 & ", deco=" & Key.Attrs.Decoration'Image
+                 & ", resolved_path=" & To_String (Request.Path)
+                 & ", flags=" & TTF_FontStyleFlags'Image (Request.Flags));
+         end if;
          if F /= null then
             Sized_Cache.Insert (Key, F);
          end if;
@@ -1130,6 +1427,12 @@ package body Adi.Font is
 
       return Max_W;
    end Measure_Min_Text_Width;
+
+   procedure Set_Default_Font (Handle : Font_Handle) is
+   begin
+      Default_Fallback_Handle := Handle;
+      Fallback_Found := Handle /= Null_Font;
+   end Set_Default_Font;
 
    procedure Enable_System_Font_Search is
    begin

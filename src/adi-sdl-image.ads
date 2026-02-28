@@ -1,6 +1,7 @@
 with Interfaces.C.Strings;
 with System;
 with Adi.SDL;         use Adi.SDL;
+with Adi.SDL.IO;      use Adi.SDL.IO;
 with Adi.SDL.Surface; use Adi.SDL.Surface;
 with Adi.SDL.Render;  use Adi.SDL.Render;
 
@@ -38,6 +39,14 @@ package Adi.SDL.Image is
       with Import        => True,
            Convention    => C,
            External_Name => "IMG_LoadTexture";
+
+   -- Load an image from an IO stream
+   function IMG_Load_IO
+      (Src     : SDL_IOStream_Ptr;
+       Closeio : C_bool) return SDL_Surface_Ptr
+      with Import        => True,
+           Convention    => C,
+           External_Name => "IMG_Load_IO";
 
    ----------------------------------------------------------------------------
    -- Format Detection
@@ -122,6 +131,13 @@ package Adi.SDL.Image is
       with Import        => True,
            Convention    => C,
            External_Name => "IMG_LoadAnimation";
+
+   function IMG_LoadAnimation_IO
+      (Src     : SDL_IOStream_Ptr;
+       Closeio : C_bool) return IMG_Animation_Access
+      with Import        => True,
+           Convention    => C,
+           External_Name => "IMG_LoadAnimation_IO";
 
    procedure IMG_FreeAnimation
       (anim : IMG_Animation_Access)

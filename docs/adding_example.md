@@ -45,11 +45,24 @@ Add a `generate_if_needed` call for the XML file:
 generate_if_needed "$XML_DIR/image_example.xml" "Image_Example_UI"
 ```
 
+### `tools/generate_example_bundles.sh` (if bundling assets)
+
+Add a `generate_if_needed` call for the asset files:
+
+```bash
+generate_if_needed "My_Example_Bundle" "$ASSETS_DIR/icon.svg" "$ASSETS_DIR/image.png"
+```
+
 ### Run the generators
 
 ```bash
 python3 tools/css_to_ada.py examples/css/image_example.css examples/generated/image_example_styles.ads --package-name Image_Example_Styles
 python3 tools/xml_to_ada.py examples/xml/image_example.xml --output-dir examples/generated --package-name Image_Example_UI
+```
+
+For asset bundling:
+```bash
+python3 tools/binary_to_ada.py --output-dir examples/generated/ --package-name My_Example_Bundle --base-dir examples/assets/ examples/assets/icon.svg
 ```
 
 The generated files go in `examples/generated/`.
@@ -130,3 +143,4 @@ Or build everything with `alr build`, which runs all post-build actions includin
 | Alire | `alire.toml` | Post-build `[[actions]]` entry |
 | CSS gen | `tools/generate_example_styles.sh` | `generate_if_needed` call |
 | XML gen | `tools/generate_example_ui.sh` | `generate_if_needed` call (if XML) |
+| Bundle gen | `tools/generate_example_bundles.sh` | `generate_if_needed` call (if bundling assets) |

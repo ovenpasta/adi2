@@ -16,6 +16,13 @@ tools/configure.sh --build-dir build-linux --target linux --build-profile develo
 build-linux/build_all.sh
 ```
 
+When building outside Alire (no post-build actions), run code generation scripts first:
+```bash
+bash tools/generate_example_styles.sh
+bash tools/generate_example_ui.sh
+bash tools/generate_example_bundles.sh
+```
+
 ### Cross-compile
 ```bash
 tools/configure.sh --build-dir build-win32 \
@@ -63,10 +70,10 @@ tools/configure.sh --build-dir build-linux --target linux --svg-backend plutosvg
 ```
 
 ### Valid TEST_KIND values
-`styles`, `layout_test`, `layout_flex_grid_test`, `css_parser_test`, `css_source_test`, `text_buffer_test`, `text_layout_test`, `html_view_test`, `svg_test`, `svg_perf_test`
+`styles`, `layout_test`, `layout_flex_grid_test`, `css_parser_test`, `css_source_test`, `text_buffer_test`, `text_layout_test`, `html_view_test`, `svg_test`, `svg_perf_test`, `bundle_test`
 
 ### Valid EXAMPLE_KIND values
-`label_example`, `widget_demo`, `button_example`, `transition_example`, `text_input_example`, `text_editor_example`, `demo_flex`, `stack_example`, `list_box_example`, `combo_box_example`, `overflow_example`, `grid_example`, `dialog_example`, `font_example`, `runtime_css_example`, `animated_image_example`, `rlottie_example`, `html_view_example`
+`label_example`, `widget_demo`, `button_example`, `transition_example`, `text_input_example`, `text_editor_example`, `demo_flex`, `stack_example`, `list_box_example`, `combo_box_example`, `overflow_example`, `grid_example`, `dialog_example`, `font_example`, `runtime_css_example`, `animated_image_example`, `rlottie_example`, `html_view_example`, `assets_example`
 
 ## Running
 

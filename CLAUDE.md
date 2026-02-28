@@ -24,6 +24,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | Adding a new test | `docs/adding_test.md` |
 | Antialiased rendering (AA fringe, ring patterns) | `docs/rendering_aa.md` |
 | OS integration (dialogs, paths, clipboard) | `docs/os_integration.md` |
+| Static asset bundling | `docs/static_assets.md` |
 | Ada 2022 Reference Manual | `rm-22-txt/RM-TOC.TXT` (chapters: `rm-22-txt/RM-*.TXT`) |
 
 ## Build Commands
@@ -51,11 +52,13 @@ alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/disabled_test
 ./tests/bin/image_widget_test
 ./tests/bin/mcp_test
+./tests/bin/bundle_test
 
 # Run Python tests (no build step needed)
 python3 tools/test_css_to_ada.py
 python3 tools/test_xml_to_ada.py
 python3 tools/test_adi_mcp.py
+python3 tools/test_binary_to_ada.py
 ```
 
 For direct gprbuild (no Alire), see `docs/gprbuild_without_alire.md` and `docs/build.md`.
@@ -79,6 +82,18 @@ python3 tools/xml_to_ada.py input.xml --output-dir out/ --package-name My_UI
 Incremental build for examples: `tools/generate_example_ui.sh`. Full reference in `docs/xml_ui_system.md`.
 
 Widget grammar is defined in `tools/widgets.xml` (13 widget types). Extensible via `--grammar`.
+
+### Binary → Ada (`tools/binary_to_ada.py`)
+
+```bash
+python3 tools/binary_to_ada.py \
+  --output-dir examples/generated/ \
+  --package-name Assets_Example_Bundle \
+  --base-dir examples/assets/ \
+  examples/assets/icons.svg examples/assets/happycat.png
+```
+
+Incremental build for examples: `tools/generate_example_bundles.sh`. Full reference in `docs/static_assets.md`.
 
 ## Key Architecture Points
 
@@ -136,6 +151,7 @@ Existing hand-crafted binding modules:
 | `Adi.SDL.Mouse` | `adi-sdl-mouse.ads` | Mouse state, cursors |
 | `Adi.SDL.Surface` | `adi-sdl-surface.ads` | Pixel buffers |
 | `Adi.SDL.PixelFormat` | `adi-sdl-pixelformat.ads` | Pixel format constants |
+| `Adi.SDL.IO` | `adi-sdl-io.ads` | IO streams (memory) |
 | `Adi.SDL.Image` | `adi-sdl-image.ads` | Image file loading |
 
 ## Code Navigation (ALS)

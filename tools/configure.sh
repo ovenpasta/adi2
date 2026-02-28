@@ -287,7 +287,8 @@ project Examples_Build is
       "rlottie_example",
       "html_view_example",
       "material_demo",
-      "image_example");
+      "image_example",
+      "assets_example");
    Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");
 
    for Source_Dirs use ("${SOURCE_DIR}/examples", "${SOURCE_DIR}/examples/generated");
@@ -399,6 +400,7 @@ EXAMPLE_KINDS=(
   image_example
   slider_example
   value_input_example
+  assets_example
 )
 
 for kind in "\${EXAMPLE_KINDS[@]}"; do

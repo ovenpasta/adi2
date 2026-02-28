@@ -134,7 +134,7 @@ All 17 widget tags defined in `tools/widgets.xml`:
 | Tag | Package | Children | Generic | Key Attributes |
 |-----|---------|----------|---------|----------------|
 | `box` | `Adi.Widget.Box` | children | no | — |
-| `label` | `Adi.Widget.Label` | children | no | `text` |
+| `label` | `Adi.Widget.Label` | children | no | `text`, `icon` |
 | `button` | `Adi.Widget.Button` | children | no | `text`, `toggleable`, `on-clicked`, `on-toggled` |
 | `switch` | `Adi.Widget.Button.Switch` | children | no | `checked`, `on-toggled` |
 | `stack` | `Adi.Widget.Stack` | pages | yes | `generic`, `on-changed` |
@@ -144,6 +144,7 @@ All 17 widget tags defined in `tools/widgets.xml`:
 | `animated-image` | `Adi.Widget.Animated_Image` | children | no | `looping` |
 | `animated-widget` | `Adi.Widget.Animated_Widget` | children | no | `looping` |
 | `rlottie` | `Adi.Widget.RLottie` | children | no | `looping` |
+| `image` | `Adi.Widget.Image` | children | no | `src` |
 | `html-view` | `Adi.Widget.Html_View` | children | no | — |
 | `list-box` | `Adi.Widget.List_Box` | rows | yes | `generic`, `on-item-clicked`, `on-item-activated`, `on-selection-changed` |
 | `slider` | `Adi.Widget.Slider` | — | yes | `generic`, `min`, `max`, `value`, `on-changed` |
@@ -180,12 +181,15 @@ All widgets support:
 | `toggleable` | button | bool | Makes the button toggleable (flag setter, no argument) |
 | `checked` | switch | bool | Initial checked state (default `False`) |
 | `looping` | animated-image, animated-widget, rlottie | bool | Enable animation looping (flag setter) |
+| `icon` | label | image | Icon image (calls `Set_Icon` with `Adi.Assets.Get_Image`) |
+| `src` | image | image | Image source (calls `Set_Image` with `Adi.Assets.Get_Image`) |
 | `generic` | stack, list-box | string | Name of generic instantiation (meta; not emitted as Ada) |
 
 ### Attribute Types
 
 - **string** — Quoted text. If `create-param="true"`, substituted into the Create call
 - **bool** — `"true"` or `"false"`. If `setter-style="flag"`, the setter is called with no arguments when true
+- **image** — Asset URL string. Emits `Adi.Assets.Get_Image ("url")` and adds `with Adi.Assets;` to the body. Supports sprite query syntax (e.g. `icons.svg?id=home`). Query parameters may use `;` as separator to avoid XML escaping (e.g. `sheet.png?x=0;y=32;w=16;h=16`); `&amp;` also works
 - **callback** — References a `<callback>` name. Wired with null-guard: `if Cb /= null then W.Set_On_X (Cb); end if;`
 
 ---

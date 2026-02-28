@@ -74,6 +74,8 @@ class XmlWidget:
     on_item_activated: str = ""
     disabled: bool = False
     looping: bool = False
+    icon: str = ""
+    src: str = ""
     children: list["XmlWidget"] = field(default_factory=list)
     pages: list[XmlPage] = field(default_factory=list)
     items: list[str] = field(default_factory=list)
@@ -805,6 +807,18 @@ def generate_body(app: XmlApp, package_name: str) -> str:
             pkg = WIDGET_PACKAGES[w.tag]
             if pkg not in spec_withs and pkg not in body_withs:
                 body_withs.append(pkg)
+    # Check if any widget uses image-type attributes
+    for w in all_widgets:
+        if w.tag in GRAMMAR:
+            for attr in GRAMMAR[w.tag]["attributes"]:
+                if attr["type"] == "image":
+                    field_name = _attr_to_field(attr["name"])
+                    if getattr(w, field_name, ""):
+                        body_withs.append("Adi.Assets")
+                        break
+            else:
+                continue
+            break
 
     lines = [
         "--  Auto-generated from XML",
@@ -983,6 +997,11 @@ def generate_body(app: XmlApp, package_name: str) -> str:
             if value:
                 if attr["setter_style"] == "flag":
                     config_lines.append(f"      {w.wid}.{attr['setter']};")
+                elif attr["type"] == "image":
+                    escaped = str(value).replace('"', '""')
+                    config_lines.append(
+                        f'      {w.wid}.{attr["setter"]} (Adi.Assets.Get_Image ("{escaped}"));'
+                    )
                 elif attr["type"] == "string":
                     escaped = str(value).replace('"', '""')
                     config_lines.append(

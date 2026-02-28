@@ -33,6 +33,7 @@
     <access-type>Label_Widget_Access</access-type>
     <create>{package}.Create ("{text}")</create>
     <attribute name="text" type="string" create-param="true"/>
+    <attribute name="icon" type="image" setter="Set_Icon"/>
   </widget>
 
   <widget tag="button">
@@ -93,6 +94,7 @@
     <package>Adi.Widget.Image</package>
     <access-type>Image_Widget_Access</access-type>
     <create>{package}.Create</create>
+    <attribute name="src" type="image" setter="Set_Image"/>
   </widget>
 
   <widget tag="animated-image">

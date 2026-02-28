@@ -337,10 +337,10 @@ package body Adi.Assets is
       Amp : Natural;
    begin
       while I <= Query'Last loop
-         --  Find end of this pair (next '&' or end of string)
+         --  Find end of this pair (next '&' / ';' or end of string)
          Amp := Query'Last + 1;
          for J in I .. Query'Last loop
-            if Query (J) = '&' then
+            if Query (J) = '&' or else Query (J) = ';' then
                Amp := J;
                exit;
             end if;
@@ -376,7 +376,7 @@ package body Adi.Assets is
       while I <= Query'Last loop
          Amp := Query'Last + 1;
          for J in I .. Query'Last loop
-            if Query (J) = '&' then
+            if Query (J) = '&' or else Query (J) = ';' then
                Amp := J;
                exit;
             end if;
@@ -755,9 +755,28 @@ package body Adi.Assets is
                --  ?render= can combine with sprite/crop or stand alone
                if Has_Param (Query, "render") then
                   if not Has_Content then
-                     --  Standalone render param — load base image normally
-                     Img := Get_Image (Base);
-                     Has_Content := True;
+                     --  Standalone render param — clone the base image so
+                     --  setting its scale mode doesn't mutate the cached
+                     --  original (which other queries may share).
+                     declare
+                        Base_Img : constant Image_Access := Get_Image (Base);
+                        Surf     : SDL_Surface_Ptr;
+                     begin
+                        if Base_Img = null then
+                           Images.Insert (Path, null);
+                           return null;
+                        end if;
+                        Surf := Adi.Image.Get_Surface (Base_Img.all);
+                        if Surf /= null then
+                           Img := Adi.Image.Create_From_Surface
+                             (SDL_Surface_Ptr
+                                (SDL_DuplicateSurface (Surf)));
+                        else
+                           --  SVG or texture-only: fall back to shared ref
+                           Img := Base_Img;
+                        end if;
+                        Has_Content := True;
+                     end;
                   end if;
                   if Img /= null then
                      declare

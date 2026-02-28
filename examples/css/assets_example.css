@@ -1,0 +1,175 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background-color: rgb(17, 24, 39);
+  overflow-y: auto;
+}
+
+.section-title::label {
+  color: rgb(191, 204, 224);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.section-title {
+  flex-shrink: 0;
+}
+
+/* --- Sprite grid: 6 columns for SVG sprite icons --- */
+
+.sprite-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+.sprite-icon {
+  flex-grow: 1;
+  min-height: 48px;
+}
+
+.sprite-icon::icon {
+  object-fit: contain;
+}
+
+/* --- Crop grid: 4 columns for raster crop quadrants --- */
+
+.crop-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.crop-img {
+  flex-grow: 1;
+  min-height: 80px;
+}
+
+.crop-img::icon {
+  object-fit: contain;
+}
+
+/* --- Scale grid: 3 columns for scale mode comparison --- */
+
+.scale-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.scale-img {
+  flex-grow: 1;
+  min-height: 100px;
+}
+
+.scale-img::icon {
+  object-fit: contain;
+}
+
+/* --- Shared card style --- */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: rgb(30, 41, 59);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(71, 85, 105);
+  border-radius: 8px;
+}
+
+.card-label::label {
+  color: rgb(148, 163, 184);
+  font-size: 12px;
+}
+
+.card-label {
+  flex-shrink: 0;
+}
+
+/* --- Nav bar: horizontal flex for label+icon demos --- */
+
+.nav-bar {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.nav-item {
+  flex-grow: 1;
+  padding: 12px;
+  background-color: rgb(30, 41, 59);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(71, 85, 105);
+  border-radius: 8px;
+}
+
+.nav-item::label {
+  color: rgb(203, 213, 225);
+  font-size: 14px;
+}
+
+.nav-item::icon {
+  width: 20px;
+  height: 20px;
+  color: rgb(148, 163, 184);
+}
+
+.nav-item:hover::icon {
+  color: rgb(96, 165, 250);
+}
+
+/* --- Per-icon tint classes --- */
+
+.tint-blue::icon {
+  color: rgb(96, 165, 250);
+}
+
+.tint-blue:hover::icon {
+  color: rgb(147, 197, 253);
+}
+
+.tint-amber::icon {
+  color: rgb(251, 191, 36);
+}
+
+.tint-amber:hover::icon {
+  color: rgb(253, 224, 71);
+}
+
+.tint-green::icon {
+  color: rgb(74, 222, 128);
+}
+
+.tint-green:hover::icon {
+  color: rgb(134, 239, 172);
+}
+
+.tint-red::icon {
+  color: rgb(248, 113, 113);
+}
+
+.tint-red:hover::icon {
+  color: rgb(252, 165, 165);
+}
+
+.tint-purple::icon {
+  color: rgb(192, 132, 252);
+}
+
+.tint-purple:hover::icon {
+  color: rgb(216, 180, 254);
+}
+
+.tint-cyan::icon {
+  color: rgb(34, 211, 238);
+}
+
+.tint-cyan:hover::icon {
+  color: rgb(103, 232, 249);
+}

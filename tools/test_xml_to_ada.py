@@ -306,5 +306,67 @@ class TestExistingFunctionality(unittest.TestCase):
         self.assertIn("Adi.Widget.Widget_Access", spec)
 
 
+class TestImageAttribute(unittest.TestCase):
+    """Tests for image-type attribute code generation."""
+
+    def test_label_icon_generates_set_icon_with_get_image(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <label text="Home" icon="icons.svg?id=home"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "Test_UI")
+        self.assertIn('Set_Icon (Adi.Assets.Get_Image ("icons.svg?id=home"))', body)
+
+    def test_image_src_generates_set_image_with_get_image(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <image src="photo.png"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "Test_UI")
+        self.assertIn('Set_Image (Adi.Assets.Get_Image ("photo.png"))', body)
+
+    def test_no_icon_no_set_icon_call(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <label text="Plain"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "Test_UI")
+        self.assertNotIn("Set_Icon", body)
+
+    def test_image_attr_adds_assets_with(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <label text="Home" icon="icons.svg?id=home"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "Test_UI")
+        self.assertIn("with Adi.Assets;", body)
+
+    def test_no_image_attr_no_assets_with(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <label text="Plain"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "Test_UI")
+        self.assertNotIn("Adi.Assets", body)
+
+    def test_image_src_with_query_params(self):
+        """Sprite sheet URL with semicolon separators (no XML escaping needed)."""
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <image src="sheet.png?x=0;y=32;w=16;h=16"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "Test_UI")
+        self.assertIn(
+            'Set_Image (Adi.Assets.Get_Image ("sheet.png?x=0;y=32;w=16;h=16"))',
+            body,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

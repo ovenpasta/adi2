@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="examples/css/assets_example.css"/>
+
+  <window title="Assets Example" width="1000" height="700">
+    <box class="root">
+
+      <!-- Section 1: SVG Sprites -->
+      <label text="SVG Sprites (?id=)" class="section-title"/>
+      <box class="sprite-grid">
+        <box class="card">
+          <image src="icons.svg?id=home" class="sprite-icon tint-blue"/>
+          <label text="home" class="card-label"/>
+        </box>
+        <box class="card">
+          <image src="icons.svg?id=star" class="sprite-icon tint-amber"/>
+          <label text="star" class="card-label"/>
+        </box>
+        <box class="card">
+          <image src="icons.svg?id=heart" class="sprite-icon tint-red"/>
+          <label text="heart" class="card-label"/>
+        </box>
+        <box class="card">
+          <image src="icons.svg?id=settings" class="sprite-icon tint-purple"/>
+          <label text="settings" class="card-label"/>
+        </box>
+        <box class="card">
+          <image src="icons.svg?id=search" class="sprite-icon tint-green"/>
+          <label text="search" class="card-label"/>
+        </box>
+        <box class="card">
+          <image src="icons.svg?id=bell" class="sprite-icon tint-cyan"/>
+          <label text="bell" class="card-label"/>
+        </box>
+      </box>
+
+      <!-- Section 2: Raster Crop -->
+      <label text="Raster Crop (?x=;y=;w=;h=)" class="section-title"/>
+      <box class="crop-grid">
+        <box class="card">
+          <image src="happycat.png?x=0;y=0;w=64;h=52" class="crop-img"/>
+          <label text="Top-Left" class="card-label"/>
+        </box>
+        <box class="card">
+          <image src="happycat.png?x=64;y=0;w=64;h=52" class="crop-img"/>
+          <label text="Top-Right" class="card-label"/>
+        </box>
+        <box class="card">
+          <image src="happycat.png?x=0;y=52;w=64;h=53" class="crop-img"/>
+          <label text="Bottom-Left" class="card-label"/>
+        </box>
+        <box class="card">
+          <image src="happycat.png?x=64;y=52;w=64;h=53" class="crop-img"/>
+          <label text="Bottom-Right" class="card-label"/>
+        </box>
+      </box>
+
+      <!-- Section 3: Scale Modes -->
+      <label text="Scale Modes (?render=)" class="section-title"/>
+      <box class="scale-grid">
+        <box class="card">
+          <image src="happycat.png?render=linear" class="scale-img"/>
+          <label text="linear" class="card-label"/>
+        </box>
+        <box class="card">
+          <image src="happycat.png?render=nearest" class="scale-img"/>
+          <label text="nearest" class="card-label"/>
+        </box>
+        <box class="card">
+          <image src="happycat.png?render=pixelated" class="scale-img"/>
+          <label text="pixelated" class="card-label"/>
+        </box>
+      </box>
+
+      <!-- Section 4: Labels with Icons -->
+      <label text="Labels with Icons (icon= attribute)" class="section-title"/>
+      <box class="nav-bar">
+        <label text="Home" icon="icons.svg?id=home" class="nav-item"/>
+        <label text="Search" icon="icons.svg?id=search" class="nav-item"/>
+        <label text="Settings" icon="icons.svg?id=settings" class="nav-item"/>
+        <label text="Alerts" icon="icons.svg?id=bell" class="nav-item"/>
+      </box>
+
+    </box>
+  </window>
+</adi>

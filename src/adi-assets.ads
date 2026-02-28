@@ -67,6 +67,8 @@ package Adi.Assets is
    --    "tile.png?render=pixelated"    — Set texture scale mode.
    --                                     Values: pixelated, nearest, linear.
    --                                     Combinable with sprite/crop params.
+   --  Parameters may be separated by '&' or ';'.  Use ';' in XML attributes
+   --  to avoid &amp; escaping (e.g. "sheet.png?x=0;y=32;w=16;h=16").
    --  Query values must be plain identifiers/integers (no URL-encoding).
    --  Crop coordinates are clamped to source image bounds.
 

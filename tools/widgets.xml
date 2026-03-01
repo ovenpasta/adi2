@@ -41,6 +41,7 @@
     <access-type>Button_Widget_Access</access-type>
     <create>{package}.Create ("{text}")</create>
     <attribute name="text" type="string" create-param="true"/>
+    <attribute name="icon" type="image" setter="Set_Icon"/>
     <attribute name="toggleable" type="bool" setter="Set_Toggleable" setter-style="flag"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
     <attribute name="on-clicked" type="callback" setter="Set_On_Clicked"/>

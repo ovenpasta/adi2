@@ -1,0 +1,24 @@
+body { font-size: 16px; line-height: 1.5; }
+
+h1 { font-size: 2em; font-weight: 700; margin: 0.67em 0px; }
+h2 { font-size: 1.5em; font-weight: 600; margin: 0.83em 0px; }
+h3 { font-size: 1.17em; font-weight: 600; margin: 1em 0px; }
+h4 { font-size: 1em; font-weight: 600; margin: 1.33em 0px; }
+h5 { font-size: 0.83em; font-weight: 600; margin: 1.67em 0px; }
+h6 { font-size: 0.67em; font-weight: 600; margin: 2.33em 0px; }
+
+p { margin: 1em 0px; }
+blockquote { margin: 1em 40px; }
+pre { font-size: 0.875em; }
+hr { height: 1px; margin: 0.5em 0px; opacity: 0.25; }
+
+ul, ol { margin: 1em 0px; padding: 0px 0px 0px 40px; }
+dd { margin: 0px 0px 0px 40px; }
+
+strong, b { font-weight: 700; }
+em, i { font-style: italic; }
+small { font-size: 0.875em; }
+code, kbd, samp { font-size: 0.875em; }
+a { text-decoration: underline; }
+s, del { text-decoration: line-through; }
+u, ins { text-decoration: underline; }

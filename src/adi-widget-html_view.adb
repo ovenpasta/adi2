@@ -1,5 +1,7 @@
 with Ada.Characters.Handling;
 with Ada.Containers.Vectors;
+with Ada.Directories;
+with Ada.Streams.Stream_IO;
 with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
@@ -61,6 +63,27 @@ package body Adi.Widget.Html_View is
          Tintable     => True);
    end Ensure_Marker_Images;
 
+   function Read_File (Path : String) return String is
+      use Ada.Directories;
+      File_Size : constant Natural := Natural (Size (Path));
+   begin
+      if File_Size = 0 then
+         return "";
+      end if;
+      declare
+         subtype Content_String is String (1 .. File_Size);
+         F : Ada.Streams.Stream_IO.File_Type;
+         S : Ada.Streams.Stream_IO.Stream_Access;
+         Result : Content_String;
+      begin
+         Ada.Streams.Stream_IO.Open (F, Ada.Streams.Stream_IO.In_File, Path);
+         S := Ada.Streams.Stream_IO.Stream (F);
+         Content_String'Read (S, Result);
+         Ada.Streams.Stream_IO.Close (F);
+         return Result;
+      end;
+   end Read_File;
+
    function Lower (S : String) return String is (Char.To_Lower (S));
 
    function Trimmed (S : String) return String is
@@ -77,10 +100,29 @@ package body Adi.Widget.Html_View is
         or else Name = "p"
         or else Name = "h1"
         or else Name = "h2"
+        or else Name = "h3"
+        or else Name = "h4"
+        or else Name = "h5"
+        or else Name = "h6"
         or else Name = "ul"
         or else Name = "ol"
         or else Name = "li"
-        or else Name = "center";
+        or else Name = "pre"
+        or else Name = "blockquote"
+        or else Name = "dl"
+        or else Name = "dt"
+        or else Name = "dd"
+        or else Name = "hr"
+        or else Name = "center"
+        or else Name = "section"
+        or else Name = "article"
+        or else Name = "header"
+        or else Name = "footer"
+        or else Name = "nav"
+        or else Name = "main"
+        or else Name = "aside"
+        or else Name = "figure"
+        or else Name = "figcaption";
    end Is_Block_Tag;
 
    function Is_Void_Tag (Name : String) return Boolean is
@@ -510,97 +552,98 @@ package body Adi.Widget.Html_View is
    function Tag_Default_Style (Tag : String) return Style_Rules is
       Inline_Base : constant Style_Rules := (Display => Set (Inline), others => <>);
       Block_Base  : constant Style_Rules := (Display => Set (Block), others => <>);
-      Body_Base   : constant Style_Rules := (
-        Display => Set (Block),
-        Color => Set (RGB (51, 46, 39)),
-        Font_Size => Set_Font (Px (15.0)),
-        others => <>);
+      Img_Base    : constant Style_Rules := (Display => Set (Inline_Block), others => <>);
+      Pre_Base    : constant Style_Rules := (
+        Display     => Set (Block),
+        White_Space => Set (WS_Pre_Wrap),
+        others      => <>);
       UL_Base     : constant Style_Rules := (
-        Display => Set (Block),
-        List_Style_Type => Set ((Kind => List_Style_Disc)),
+        Display             => Set (Block),
+        List_Style_Type     => Set ((Kind => List_Style_Disc)),
         List_Style_Position => Set (List_Outside),
-        others => <>);
+        others              => <>);
       OL_Base     : constant Style_Rules := (
-        Display => Set (Block),
-        List_Style_Type => Set ((Kind => List_Style_Decimal)),
+        Display             => Set (Block),
+        List_Style_Type     => Set ((Kind => List_Style_Decimal)),
         List_Style_Position => Set (List_Outside),
-        others => <>);
-      Link_Base   : constant Style_Rules := (
-        Display => Set (Inline),
-        Color => Set (RGB (24, 96, 186)),
-        Text_Decoration => Set (Decoration_Underline),
-        others => <>);
-      H1_Base     : constant Style_Rules := (
-        Display => Set (Block),
-        Color => Set (RGB (35, 31, 27)),
-        Font_Size => Set_Font (Px (28.0)),
-        Font_Weight => Set (Weight_Bold),
-        others => <>);
-      H2_Base     : constant Style_Rules := (
-        Display => Set (Block),
-        Color => Set (RGB (48, 43, 37)),
-        Font_Size => Set_Font (Px (20.0)),
-        Font_Weight => Set (Weight_Semi_Bold),
-        others => <>);
-      Strong_Base : constant Style_Rules := (
-        Display => Set (Inline),
-        Font_Weight => Set (Weight_Bold),
-        others => <>);
-      Em_Base     : constant Style_Rules := (
-        Display => Set (Inline),
-        Font_Style => Set (Style_Italic),
-        others => <>);
-      Code_Base   : constant Style_Rules := (
-        Display => Set (Inline),
-        Color => Set (RGB (66, 57, 46)),
-        Font_Size => Set_Font (Px (14.0)),
-        others => <>);
-      Hr_Base     : constant Style_Rules := (
-        Display => Set (Block),
-        Height => Set (Size (Px (1.0))),
-        Background_Color => Set_Bg (RGBA (127, 103, 75, 0.55)),
-        others => <>);
-      Img_Base    : constant Style_Rules := (
-        Display => Set (Inline_Block),
-        others => <>);
-      Svg_Base    : constant Style_Rules := (
-        Display => Set (Inline_Block),
-        others => <>);
+        others              => <>);
       Center_Base : constant Style_Rules := (
-        Display => Set (Block),
+        Display    => Set (Block),
         Text_Align => Set (Text_Center),
-        others => <>);
+        others     => <>);
    begin
-      if Tag = "html" or else Tag = "body" then
-         return Body_Base;
-      elsif Tag = "div" or else Tag = "p" or else Tag = "li" then
-         return Block_Base;
-      elsif Tag = "ul" then
+      --  Lists: structural marker type and position defaults
+      if Tag = "ul" then
          return UL_Base;
       elsif Tag = "ol" then
          return OL_Base;
-      elsif Tag = "h1" then
-         return Merge (Default_Content_Style, H1_Base);
-      elsif Tag = "h2" then
-         return Merge (Default_Content_Style, H2_Base);
-      elsif Tag = "a" then
-         return Merge (Default_Content_Style, Link_Base);
-      elsif Tag = "strong" or else Tag = "b" then
-         return Merge (Default_Content_Style, Strong_Base);
-      elsif Tag = "em" or else Tag = "i" then
-         return Merge (Default_Content_Style, Em_Base);
-      elsif Tag = "code" then
-         return Merge (Default_Content_Style, Code_Base);
-      elsif Tag = "hr" then
-         return Hr_Base;
-      elsif Tag = "img" then
-         return Img_Base;
-      elsif Tag = "svg" then
-         return Svg_Base;
+
+      --  Center: structural text-align default
       elsif Tag = "center" then
-         return Merge (Default_Content_Style, Center_Base);
-      elsif Tag = "span" then
-         return Merge (Default_Content_Style, Inline_Base);
+         return Center_Base;
+
+      --  Block elements
+      elsif Tag = "html"
+        or else Tag = "body"
+        or else Tag = "div"
+        or else Tag = "p"
+        or else Tag = "h1"
+        or else Tag = "h2"
+        or else Tag = "h3"
+        or else Tag = "h4"
+        or else Tag = "h5"
+        or else Tag = "h6"
+        or else Tag = "li"
+        or else Tag = "hr"
+        or else Tag = "blockquote"
+        or else Tag = "dl"
+        or else Tag = "dt"
+        or else Tag = "dd"
+        or else Tag = "section"
+        or else Tag = "article"
+        or else Tag = "header"
+        or else Tag = "footer"
+        or else Tag = "nav"
+        or else Tag = "main"
+        or else Tag = "aside"
+        or else Tag = "figure"
+        or else Tag = "figcaption"
+      then
+         return Block_Base;
+
+      --  Pre: block with whitespace preservation (structural, not visual)
+      elsif Tag = "pre" then
+         return Pre_Base;
+
+      --  Inline-block elements (atomic inline boxes)
+      elsif Tag = "img" or else Tag = "svg" then
+         return Img_Base;
+
+      --  Inline elements
+      elsif Tag = "span"
+        or else Tag = "a"
+        or else Tag = "b"
+        or else Tag = "strong"
+        or else Tag = "em"
+        or else Tag = "i"
+        or else Tag = "code"
+        or else Tag = "s"
+        or else Tag = "del"
+        or else Tag = "ins"
+        or else Tag = "u"
+        or else Tag = "small"
+        or else Tag = "mark"
+        or else Tag = "abbr"
+        or else Tag = "kbd"
+        or else Tag = "var"
+        or else Tag = "samp"
+        or else Tag = "q"
+        or else Tag = "cite"
+        or else Tag = "time"
+      then
+         return Inline_Base;
+
+      --  Unknown tags: default to inline
       else
          return Default_Content_Style;
       end if;
@@ -796,10 +839,20 @@ package body Adi.Widget.Html_View is
    is
       Success : Boolean := True;
    begin
-      Adi.CSS_Parser.Load_String (Self.CSS_Sheet, CSS_Text, Success);
+      if Length (Self.Default_CSS) > 0 then
+         declare
+            Combined : constant String :=
+              To_String (Self.Default_CSS) & ASCII.LF & CSS_Text;
+         begin
+            Adi.CSS_Parser.Load_String (Self.CSS_Sheet, Combined, Success);
+         end;
+      else
+         Adi.CSS_Parser.Load_String (Self.CSS_Sheet, CSS_Text, Success);
+      end if;
       if not Success then
          Adi.Log.Error
-           ("Html_View CSS parse failed: " & Adi.CSS_Parser.Get_Last_Error (Self.CSS_Sheet));
+           ("Html_View CSS parse failed: " &
+            Adi.CSS_Parser.Get_Last_Error (Self.CSS_Sheet));
       end if;
    end Load_Combined_CSS;
 
@@ -1254,10 +1307,10 @@ package body Adi.Widget.Html_View is
          Html_Length_To_Px
            (Style.Font_Size,
             Scale,
-            Viewport_Width,
-            Viewport_Height,
-            Viewport_Width,
-            Viewport_Height));
+            Container_Size  => Viewport_Width,
+            Font_Size       => Default_Root_Font_Size_Px,
+            Viewport_Width  => Viewport_Width,
+            Viewport_Height => Viewport_Height));
       Font_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Style.Font_Family,
@@ -1289,10 +1342,10 @@ package body Adi.Widget.Html_View is
          Html_Length_To_Px
            (Style.Font_Size,
             Scale,
-            Viewport_Width,
-            Viewport_Height,
-            Viewport_Width,
-            Viewport_Height));
+            Container_Size  => Viewport_Width,
+            Font_Size       => Default_Root_Font_Size_Px,
+            Viewport_Width  => Viewport_Width,
+            Viewport_Height => Viewport_Height));
       Font_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Style.Font_Family,
@@ -1341,10 +1394,10 @@ package body Adi.Widget.Html_View is
          Html_Length_To_Px
            (Style.Font_Size,
             Scale,
-            Viewport_Width,
-            Viewport_Height,
-            Viewport_Width,
-            Viewport_Height));
+            Container_Size  => Viewport_Width,
+            Font_Size       => Default_Root_Font_Size_Px,
+            Viewport_Width  => Viewport_Width,
+            Viewport_Height => Viewport_Height));
       Font_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Style.Font_Family,
@@ -1378,10 +1431,10 @@ package body Adi.Widget.Html_View is
          Html_Length_To_Px
            (Style.Font_Size,
             Scale,
-            Viewport_Width,
-            Viewport_Height,
-            Viewport_Width,
-            Viewport_Height));
+            Container_Size  => Viewport_Width,
+            Font_Size       => Default_Root_Font_Size_Px,
+            Viewport_Width  => Viewport_Width,
+            Viewport_Height => Viewport_Height));
       Font_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Style.Font_Family,
@@ -2064,10 +2117,43 @@ package body Adi.Widget.Html_View is
       procedure Add_Horizontal_Rule (Style : Resolved_Style) is
          Rule_H : Pixel_Type := 1.0;
          Rule_Geom : Rectangle;
+         Font_Px : constant Pixel_Type := Local_Font_Size_Px (Style);
+
+         function Margin_Top return Pixel_Type is
+         begin
+            case Style.Margin.Kind is
+               when Gap_Uniform =>
+                  return Local_Length_To_Px
+                    (Style.Margin.All_Sides, Current_Line_Width, Font_Px);
+               when Axis =>
+                  return Local_Length_To_Px
+                    (Style.Margin.Vertical, Current_Line_Width, Font_Px);
+               when Per_Side =>
+                  return Local_Length_To_Px
+                    (Style.Margin.Sides (Top), Current_Line_Width, Font_Px);
+            end case;
+         end Margin_Top;
+
+         function Margin_Bottom return Pixel_Type is
+         begin
+            case Style.Margin.Kind is
+               when Gap_Uniform =>
+                  return Local_Length_To_Px
+                    (Style.Margin.All_Sides, Current_Line_Width, Font_Px);
+               when Axis =>
+                  return Local_Length_To_Px
+                    (Style.Margin.Vertical, Current_Line_Width, Font_Px);
+               when Per_Side =>
+                  return Local_Length_To_Px
+                    (Style.Margin.Sides (Bottom), Current_Line_Width, Font_Px);
+            end case;
+         end Margin_Bottom;
       begin
          if Has_Line_Content or else Pending_Space then
             New_Line;
          end if;
+
+         Y := Y + Margin_Top;
 
          if Style.Height.Kind = Fixed then
             Rule_H := Pixel_Type'Max
@@ -2094,6 +2180,7 @@ package body Adi.Widget.Html_View is
          end;
 
          New_Line;
+         Y := Y + Margin_Bottom;
       end Add_Horizontal_Rule;
 
       procedure Process_Collapsed_Text
@@ -2802,6 +2889,46 @@ package body Adi.Widget.Html_View is
       end if;
       Mark_Dirty (Self);
    end Set_On_Load_Resource;
+
+   procedure Set_Default_Stylesheet
+     (Self : in out Html_View;
+      Path : String)
+   is
+   begin
+      if Path'Length = 0 then
+         Self.Default_CSS := Null_Unbounded_String;
+      else
+         begin
+            Self.Default_CSS := To_Unbounded_String (Read_File (Path));
+         exception
+            when others =>
+               Adi.Log.Error
+                 ("Html_View: failed to read default stylesheet: " & Path);
+               Self.Default_CSS := Null_Unbounded_String;
+         end;
+      end if;
+      if Length (Self.Source) > 0 then
+         Parse_HTML (Self, To_String (Self.Source));
+      end if;
+      Mark_Dirty (Self);
+   end Set_Default_Stylesheet;
+
+   procedure Set_Default_Stylesheet_String
+     (Self : in out Html_View;
+      CSS  : String)
+   is
+   begin
+      Self.Default_CSS := To_Unbounded_String (CSS);
+      if Length (Self.Source) > 0 then
+         Parse_HTML (Self, To_String (Self.Source));
+      end if;
+      Mark_Dirty (Self);
+   end Set_Default_Stylesheet_String;
+
+   function Get_Default_Stylesheet (Self : Html_View) return String is
+   begin
+      return To_String (Self.Default_CSS);
+   end Get_Default_Stylesheet;
 
    overriding procedure Build_Items (Self : in out Html_View) is
    begin

@@ -48,6 +48,14 @@ package Adi.Widget.Html_View is
      (Self     : in out Html_View;
       Callback : Resource_Load_Callback);
 
+   procedure Set_Default_Stylesheet
+     (Self : in out Html_View;
+      Path : String);
+   procedure Set_Default_Stylesheet_String
+     (Self : in out Html_View;
+      CSS  : String);
+   function Get_Default_Stylesheet (Self : Html_View) return String;
+
    overriding procedure Build_Items (Self : in out Html_View);
    overriding procedure Layout (Self : in out Html_View);
    overriding function Measure_Content (Self : Html_View) return Size_2D;
@@ -142,6 +150,7 @@ private
       Pressed_Href    : Unbounded_String := Null_Unbounded_String;
       Pressed_Is_Link : Boolean := False;
       Content_Scale   : Pixel_Type := 1.0;
+      Default_CSS : Unbounded_String := Null_Unbounded_String;
    end record;
 
 end Adi.Widget.Html_View;

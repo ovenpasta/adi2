@@ -15,14 +15,19 @@
 - Renderer now uses an internal element tree (`Element`, `Text`, `Break`) with per-element attribute-driven cascade and line-box layout.
 - Phase 2 milestone completed on 2026-02-14.
 - Added line finalization alignment (`center` / `text-align`), html content scaling API, `vw`/`vh` support, block margin/padding flow participation, and expanded runtime parser support (`line-height`, `white-space`, `text-decoration`, `text-overflow`, `object-fit`, `visibility`).
+- Phase 3 milestone completed on 2026-03-01.
+- Added default stylesheet system (`Set_Default_Stylesheet`, `Set_Default_Stylesheet_String`) with browser-like typographic defaults in `examples/assets/html/default.css`.
+- Fixed `em` unit resolution in text measurement functions (was incorrectly using viewport height as font size).
+- `hr` block element now respects CSS margins.
 - Temporary decoration workaround is active in `Adi.Widget` for `underline`, `line-through`, and `overline`.
   - Reason: current SDL_ttf renderer text engine can render decoration fill ops with white RGB for non-white text colors.
   - Upstream issue draft and patch are tracked in `deps/issues/sdl_ttf_text_decoration_color_issue.md` and `deps/issues/sdl_ttf_text_decoration_color.patch`.
 
 ## Supported Tags (v1)
-- Block: `div`, `p`, `h1`, `h2`, `ul`, `ol`, `li`, `hr`, `center`
-- Inline: `span`, `b`, `strong`, `em`, `code`, `a`, `img` (inline atomic box), `svg` (inline atomic box), `br`
+- Block: `div`, `p`, `h1`–`h6`, `ul`, `ol`, `li`, `hr`, `center`, `pre`, `blockquote`, `dl`, `dt`, `dd`, `section`, `article`, `header`, `footer`, `nav`, `main`, `aside`, `figure`, `figcaption`
+- Inline: `span`, `b`, `strong`, `em`, `i`, `code`, `a`, `s`, `del`, `ins`, `u`, `small`, `mark`, `abbr`, `kbd`, `var`, `samp`, `q`, `cite`, `time`, `img` (inline atomic box), `svg` (inline atomic box), `br`
 - Unknown tags: transparent containers (children preserved and rendered).
+- No visual defaults are applied by the widget itself. Users may load a default stylesheet via `Set_Default_Stylesheet` to get browser-like typographic defaults (font sizes, weights, margins, text-decoration). Only structural properties (`display`, `white-space` for `pre`) are set as tag defaults.
 
 ## Attributes (v1)
 - Common: `id`, `class`, `style`
@@ -89,6 +94,23 @@ Package: `Adi.Widget.Html_View`
   - Invoked for `<link rel="stylesheet" href="...">` entries in HTML content.
   - Return empty string to indicate resource-not-found.
   - No file-system fallback is performed by the widget; resources are callback-owned.
+
+- **Default stylesheet**
+  - ```ada
+    procedure Set_Default_Stylesheet
+      (Self : in out Html_View;
+       Path : String);
+    procedure Set_Default_Stylesheet_String
+      (Self : in out Html_View;
+       CSS  : String);
+    function Get_Default_Stylesheet (Self : Html_View) return String;
+    ```
+  - `Set_Default_Stylesheet` reads a CSS file from the filesystem and stores its content. Errors (missing file, permission denied) are logged and the default CSS is cleared.
+  - `Set_Default_Stylesheet_String` accepts CSS text directly.
+  - Both prepend the stored CSS before all document-embedded CSS.
+  - Both trigger an immediate reparse of the current document (like `Set_On_Load_Resource`).
+  - `Get_Default_Stylesheet` returns the stored CSS text.
+  - Set to empty string to disable.
 
 - **Optional helper**
   - `procedure Clear (Self : in out Html_View);`
@@ -169,12 +191,14 @@ Package: `Adi.Widget.Html_View`
 
 ## CSS and Cascade
 - Style sources:
-  1. Tag defaults (widget internal defaults)
-  2. CSS extracted from embedded `<style> ... </style>` blocks
-  3. CSS extracted from `<link rel="stylesheet" href="...">` resources (via callback)
-  4. Tag/class/id selectors from parsed stylesheets
-  5. Inline `style` attributes
-- Implemented precedence: `defaults < tag < class < id < inline`.
+  1. Tag defaults (structural only: `display`, `white-space` for `pre`)
+  2. Default stylesheet (if set via `Set_Default_Stylesheet`) — prepended before all document CSS
+  3. CSS extracted from embedded `<style> ... </style>` blocks
+  4. CSS extracted from `<link rel="stylesheet" href="...">` resources (via callback)
+  5. Tag/class/id selectors from parsed stylesheets
+  6. Inline `style` attributes
+- Implemented precedence: `defaults < default-stylesheet < tag < class < id < inline`.
+- The widget ships with no built-in visual defaults. Users may load `examples/assets/html/default.css` via `Set_Default_Stylesheet` for browser-like typographic defaults (font sizes, weights, margins, text-decoration). Document CSS always overrides the default stylesheet.
 - Inline style declarations are parsed once and cached by normalized declaration text.
 
 ### Runtime property coverage used by Html_View
@@ -262,6 +286,13 @@ Package: `Adi.Widget.Html_View`
 - Image behavior:
   - Callback-first asset loading path and fallback path.
   - Missing source fallback (`alt` path).
+- Default stylesheet:
+  - `Set_Default_Stylesheet_String` / `Get_Default_Stylesheet` round-trip.
+  - `Set_Default_Stylesheet` from file path and graceful bad-path handling.
+  - `em` font-size resolves against root font size, not viewport.
+  - User CSS overrides default stylesheet rules.
+  - Defaults survive `Clear` + re-set.
+  - Late `Set_Default_Stylesheet_String` triggers reparse of current content.
 
 ## Implementation Milestones
 1. Parser + normalized node model + recovery/entity handling.

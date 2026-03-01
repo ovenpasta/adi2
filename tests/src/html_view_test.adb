@@ -1167,6 +1167,169 @@ procedure Html_View_Test is
       New_Line;
    end Test_HTML_Folder_Stress;
 
+   Default_CSS : constant String :=
+     "body { font-size: 16px; }" & ASCII.LF &
+     "h1 { font-size: 2em; font-weight: 700; }" & ASCII.LF &
+     "strong { font-weight: 700; }" & ASCII.LF &
+     "a { text-decoration: underline; }";
+
+   procedure Test_Default_Stylesheet is
+      W : constant Adi.Widget.Html_View.Html_View_Access :=
+        Adi.Widget.Html_View.Create;
+      H1_Idx : Natural := 0;
+      P_Idx  : Natural := 0;
+   begin
+      Put_Line ("Test: default stylesheet");
+
+      --  Set_Default_Stylesheet_String / Get round-trip
+      Adi.Widget.Html_View.Set_Default_Stylesheet_String
+        (W.all, Default_CSS);
+      Assert
+        (Adi.Widget.Html_View.Get_Default_Stylesheet (W.all) = Default_CSS,
+         "get default stylesheet returns set CSS text");
+
+      --  Set_Default_Stylesheet from file path
+      Adi.Widget.Html_View.Set_Default_Stylesheet
+        (W.all, "examples/assets/html/default.css");
+      Assert
+        (Adi.Widget.Html_View.Get_Default_Stylesheet (W.all)'Length > 0,
+         "set default stylesheet from file loads non-empty CSS");
+
+      --  Set_Default_Stylesheet from bad path logs error, clears CSS
+      Adi.Widget.Html_View.Set_Default_Stylesheet
+        (W.all, "/nonexistent/path/bad.css");
+      Assert
+        (Adi.Widget.Html_View.Get_Default_Stylesheet (W.all)'Length = 0,
+         "set default stylesheet from bad path clears CSS gracefully");
+
+      --  Use string variant for remaining tests
+      Adi.Widget.Html_View.Set_Default_Stylesheet_String
+        (W.all, Default_CSS);
+
+      --  Default heading size: h1 font size > p font size
+      Adi.Widget.Html_View.Set_HTML
+        (W.all, "<h1>Big</h1><p>Normal</p>");
+      Adi.Widget.Set_Geometry
+        (W.all, (X => 0.0, Y => 0.0, Width => 600.0, Height => 400.0));
+      Adi.Widget.Html_View.Build_Items (W.all);
+
+      H1_Idx := Find_Text_Item_Index (W, "Big");
+      P_Idx  := Find_Text_Item_Index (W, "Normal");
+      Assert (H1_Idx > 0 and then P_Idx > 0,
+              "default stylesheet h1 and p text items exist");
+      if H1_Idx > 0 and then P_Idx > 0 then
+         declare
+            H1_It : constant Adi.Widget.Item :=
+              Adi.Widget.Get_Item (W.all, Positive (H1_Idx));
+            P_It  : constant Adi.Widget.Item :=
+              Adi.Widget.Get_Item (W.all, Positive (P_Idx));
+         begin
+            Assert
+              (H1_It.Computed_Style.Font_Size.Amount >
+               P_It.Computed_Style.Font_Size.Amount,
+               "default stylesheet h1 font-size > p font-size");
+            --  h1 is 2em with body 16px = 32px; verify it's near 32px
+            --  (catches the old bug where em resolved against viewport height)
+            Assert
+              (Nearly_Equal
+                 (Adi.Core.Pixel_Type (H1_It.Computed_Style.Font_Size.Amount),
+                  32.0, 4.0),
+               "default stylesheet h1 em resolves near 32px (2em * 16px)");
+            Assert
+              (Adi.Core.Pixel_Type (H1_It.Computed_Style.Font_Size.Amount) < 100.0,
+               "default stylesheet h1 em does not resolve against viewport");
+         end;
+      end if;
+
+      --  User CSS overrides defaults
+      Adi.Widget.Html_View.Set_HTML
+        (W.all,
+         "<style>h1 { font-size: 40px; }</style><h1>Custom</h1>");
+      Adi.Widget.Html_View.Build_Items (W.all);
+
+      H1_Idx := Find_Text_Item_Index (W, "Custom");
+      Assert (H1_Idx > 0, "custom override h1 text item exists");
+      if H1_Idx > 0 then
+         declare
+            It : constant Adi.Widget.Item :=
+              Adi.Widget.Get_Item (W.all, Positive (H1_Idx));
+         begin
+            Assert
+              (It.Computed_Style.Font_Size.Unit = Adi.CSS_Styles.Px,
+               "user CSS override h1 font-size is in px");
+            Assert
+              (Nearly_Equal
+                 (Adi.Core.Pixel_Type (It.Computed_Style.Font_Size.Amount),
+                  40.0, 1.0),
+               "user CSS overrides default h1 font-size to 40px");
+         end;
+      end if;
+
+      --  Defaults survive Clear + re-set
+      Adi.Widget.Html_View.Clear (W.all);
+      Adi.Widget.Html_View.Set_HTML
+        (W.all, "<h1>After</h1><p>Clear</p>");
+      Adi.Widget.Html_View.Build_Items (W.all);
+
+      H1_Idx := Find_Text_Item_Index (W, "After");
+      P_Idx  := Find_Text_Item_Index (W, "Clear");
+      Assert (H1_Idx > 0 and then P_Idx > 0,
+              "defaults survive clear: h1 and p text items exist");
+      if H1_Idx > 0 and then P_Idx > 0 then
+         declare
+            H1_It : constant Adi.Widget.Item :=
+              Adi.Widget.Get_Item (W.all, Positive (H1_Idx));
+            P_It  : constant Adi.Widget.Item :=
+              Adi.Widget.Get_Item (W.all, Positive (P_Idx));
+         begin
+            Assert
+              (H1_It.Computed_Style.Font_Size.Amount >
+               P_It.Computed_Style.Font_Size.Amount,
+               "defaults survive clear: h1 still larger than p");
+         end;
+      end if;
+
+      --  Set_Default_Stylesheet_String after Set_HTML triggers reparse
+      declare
+         W2 : constant Adi.Widget.Html_View.Html_View_Access :=
+           Adi.Widget.Html_View.Create;
+         Idx : Natural := 0;
+      begin
+         Adi.Widget.Html_View.Set_HTML
+           (W2.all, "<h1>Late</h1>");
+         Adi.Widget.Set_Geometry
+           (W2.all, (X => 0.0, Y => 0.0, Width => 600.0, Height => 400.0));
+         Adi.Widget.Html_View.Build_Items (W2.all);
+         Idx := Find_Text_Item_Index (W2, "Late");
+         if Idx > 0 then
+            declare
+               Before : constant Float :=
+                 Adi.Widget.Get_Item (W2.all, Positive (Idx))
+                   .Computed_Style.Font_Size.Amount;
+            begin
+               Adi.Widget.Html_View.Set_Default_Stylesheet_String
+                 (W2.all, "h1 { font-size: 48px; }");
+               Adi.Widget.Html_View.Build_Items (W2.all);
+               Idx := Find_Text_Item_Index (W2, "Late");
+               Assert (Idx > 0, "late default reparse: text item exists");
+               if Idx > 0 then
+                  declare
+                     After : constant Float :=
+                       Adi.Widget.Get_Item (W2.all, Positive (Idx))
+                         .Computed_Style.Font_Size.Amount;
+                  begin
+                     Assert
+                       (After > Before,
+                        "set default stylesheet string after set_html triggers reparse");
+                  end;
+               end if;
+            end;
+         end if;
+      end;
+
+      New_Line;
+   end Test_Default_Stylesheet;
+
 begin
    Put_Line ("HTML view widget test");
    Put_Line ("");
@@ -1192,6 +1355,7 @@ begin
    Test_Content_Scale;
    Test_VW_VH_Context;
    Test_HTML_Folder_Stress;
+   Test_Default_Stylesheet;
 
    Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");
    if Pass_Count /= Test_Count then

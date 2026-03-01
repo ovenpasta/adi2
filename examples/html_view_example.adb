@@ -180,6 +180,8 @@ begin
         (View.all, On_Load_Asset'Unrestricted_Access);
       Adi.Widget.Html_View.Set_On_Load_Resource
         (View.all, On_Load_Resource'Unrestricted_Access);
+      Adi.Widget.Html_View.Set_Default_Stylesheet_String
+        (View.all, Adi.Assets.Get_String ("app://html/default.css"));
       Adi.Widget.Html_View.Set_HTML (View.all, HTML_Text);
 
       Adi.Widget.Text_Editor.Set_Text (Source_Editor.all, HTML_Text);

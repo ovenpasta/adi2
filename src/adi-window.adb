@@ -1053,6 +1053,16 @@ package body Adi.Window is
       return Natural (W.Overlays.Length);
    end Overlay_Count;
 
+   function Get_Overlay (W : Window; Index : Positive) return Widget_Access is
+   begin
+      return W.Overlays.Element (Index);
+   end Get_Overlay;
+
+   function Get_Focus (W : Window) return Widget_Access is
+   begin
+      return W.Focused_Widget;
+   end Get_Focus;
+
    ------------------
    -- Get_Renderer --
    ------------------

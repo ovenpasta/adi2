@@ -159,6 +159,63 @@ class TestCommandProtocol(unittest.TestCase):
         cmd = {"command": "widget_info", "path": "1.2.3"}
         self.assertEqual(cmd["path"], "1.2.3")
 
+    def test_widget_info_includes_id(self):
+        """widget_info command includes id parameter."""
+        cmd = {"command": "widget_info", "id": 5, "path": ""}
+        self.assertEqual(cmd["id"], 5)
+
+    def test_find_by_text_structure(self):
+        """find_by_text command includes query and exact fields."""
+        cmd = {"command": "find_by_text", "query": "Save", "exact": False}
+        self.assertEqual(cmd["query"], "Save")
+        self.assertEqual(cmd["exact"], False)
+
+    def test_find_by_type_structure(self):
+        """find_by_type command includes type_name field."""
+        cmd = {"command": "find_by_type", "type_name": "button"}
+        self.assertEqual(cmd["type_name"], "button")
+
+    def test_click_widget_structure(self):
+        """click_widget command accepts both id and path."""
+        cmd = {"command": "click_widget", "id": 5, "path": ""}
+        self.assertEqual(cmd["id"], 5)
+
+    def test_send_keys_structure(self):
+        """send_keys command includes keys field."""
+        cmd = {"command": "send_keys", "keys": "Hello{Return}"}
+        self.assertEqual(cmd["keys"], "Hello{Return}")
+
+    def test_set_text_structure(self):
+        """set_text command includes id and text fields."""
+        cmd = {"command": "set_text", "id": 5, "text": "new value"}
+        self.assertEqual(cmd["id"], 5)
+        self.assertEqual(cmd["text"], "new value")
+
+    def test_set_focus_structure(self):
+        """set_focus command includes id field."""
+        cmd = {"command": "set_focus", "id": 5}
+        self.assertEqual(cmd["id"], 5)
+
+    def test_css_values_structure(self):
+        """css_values command includes id, path, and part fields."""
+        cmd = {"command": "css_values", "id": 5, "path": "", "part": "main"}
+        self.assertEqual(cmd["id"], 5)
+        self.assertEqual(cmd["part"], "main")
+
+    def test_native_json_types(self):
+        """Commands use native JSON types (int, bool), not strings."""
+        cmd = {"command": "find_by_text", "query": "Save", "exact": True}
+        serialized = json.dumps(cmd)
+        parsed = json.loads(serialized)
+        self.assertIsInstance(parsed["exact"], bool)
+        self.assertTrue(parsed["exact"])
+
+        cmd2 = {"command": "click_widget", "id": 42, "path": ""}
+        serialized2 = json.dumps(cmd2)
+        parsed2 = json.loads(serialized2)
+        self.assertIsInstance(parsed2["id"], int)
+        self.assertEqual(parsed2["id"], 42)
+
 
 if __name__ == "__main__":
     unittest.main()

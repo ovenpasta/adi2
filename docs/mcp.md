@@ -1,6 +1,6 @@
 # Adi MCP Runtime Introspection
 
-This guide explains how to inspect a running Adi app from MCP using screenshot and widget introspection tools.
+This guide explains how to inspect and interact with a running Adi app from MCP using screenshot, widget introspection, search, interaction, and CSS inspection tools.
 
 ## Overview
 
@@ -55,14 +55,96 @@ Optional:
 
 ## Available MCP Tools
 
-- `screenshot()`:
-  Returns a PNG path in the app session directory.
-- `widget_tree()`:
-  Returns full widget hierarchy (type, path, geometry, states, flags, children).
-- `widget_info(path)`:
-  Returns detailed info for one widget path (for example `1.2.3`).
-- `perf_stats()`:
-  Returns frame timing counters and FPS fields.
+### Inspection
+
+| Tool | Description |
+|------|-------------|
+| `screenshot()` | Capture PNG screenshot, returns file path |
+| `widget_tree()` | Full widget hierarchy as JSON (type, id, path, text, bounds, states, flags, children, overlays) |
+| `widget_info(id, path)` | Detailed info for one widget (by ID or path) |
+| `perf_stats()` | Frame timing counters and FPS |
+
+### Search
+
+| Tool | Description |
+|------|-------------|
+| `find_by_text(query, exact)` | Find widgets by text content (case-insensitive substring or exact match) |
+| `find_by_type(type_name)` | Find widgets by type name (case-insensitive substring match) |
+
+### Interaction
+
+| Tool | Description |
+|------|-------------|
+| `click_widget(id, path)` | Simulate mouse click at widget center |
+| `send_keys(keys)` | Send keystrokes to focused widget. Regular chars as text, special keys via `{Name}` syntax |
+| `set_text(id, text)` | Set widget text directly (model mutation, not input simulation) |
+| `get_focus()` | Get currently focused widget info |
+| `set_focus(id)` | Set keyboard focus to a widget |
+
+### CSS Inspection
+
+| Tool | Description |
+|------|-------------|
+| `css_values(id, path, part)` | Get resolved CSS property values for a widget part |
+
+## Widget Identification
+
+All tools that target a widget accept both `id` (integer) and `path` (string):
+
+- **ID**: Unique integer assigned at widget creation. Stable across frames. Takes precedence if non-zero.
+- **Path**: Dot-separated 1-based child indices (e.g. `"1.2.3"`). Discoverable from `widget_tree`.
+- **Overlay path**: `"overlayN:subpath"` syntax targets overlay widgets (e.g. `"overlay1:1.2"`). Plain paths also fall back to overlays if not found in root.
+
+Lookup scans the root widget tree and all overlays. `click_widget` requires an explicit `id` or `path` — omitting both returns an error rather than clicking root.
+
+## send_keys Syntax
+
+Regular characters are sent as text input. Special keys use `{Name}` notation:
+
+| Token | Key |
+|-------|-----|
+| `{Return}` / `{Enter}` | Enter |
+| `{Escape}` / `{Esc}` | Escape |
+| `{Backspace}` | Backspace |
+| `{Tab}` | Tab |
+| `{Space}` | Space |
+| `{Delete}` / `{Del}` | Delete |
+| `{Home}` | Home |
+| `{End}` | End |
+| `{PageUp}` | Page Up |
+| `{PageDown}` | Page Down |
+| `{Right}`, `{Left}`, `{Down}`, `{Up}` | Arrow keys |
+
+Example: `"Hello{Return}"` types "Hello" then presses Enter.
+
+## CSS Parts
+
+The `css_values` tool accepts a `part` parameter:
+
+| Part | Description |
+|------|-------------|
+| `main` | Primary widget area (default) |
+| `label` | Label/text display region |
+| `icon` | Icon/image area |
+| `text` | Text content in editable inputs |
+| `cursor` | Text cursor |
+| `selected` | Selected item highlight |
+| `indicator` | Checkbox/radio/toggle indicator |
+| `scroll` | Scrollbar track |
+| `knob` | Scrollbar thumb |
+| `items` | Container for list/menu items |
+
+## Architecture
+
+### Ada Side
+
+- `Adi.Widget.Introspection` (`src/adi-widget-introspection.ads/adb`): Reusable introspection package providing `Get_Info`, `Get_Text`, `Find_By_Id`, `Find_By_Path`, `Find_Path`, `Find_By_Text`, `Find_By_Type`.
+- `Adi.MCP` (`src/mcp/adi-mcp.adb`): Thin JSON/IPC layer that delegates to Introspection for data extraction, handles command routing, and manages CSS value serialization.
+- Each widget has a unique `Widget_Id` (monotonically increasing, assigned at creation via `Allocate_Widget_Id`).
+
+### Overlay Support
+
+Tree walks and search operations cover overlays automatically. The MCP layer calls introspection functions once for the root tree, then once per overlay, merging results. `widget_tree` includes an `"overlays"` array alongside `"tree"`.
 
 ## IPC Protocol
 
@@ -95,4 +177,3 @@ The Python client enforces single-flight per PID (one in-flight command per app)
   Check that the app is still alive and rendering frames.
 - Mismatched directories:
   Ensure Ada `Base_Dir` and Python `--dir` match exactly.
-

@@ -39,6 +39,17 @@ package body Adi.Widget is
    --  in the current pass.
    Current_Layout_Epoch : Natural := 0;
 
+   --  Widget ID counter: monotonically increasing, assigned at creation
+   Id_Counter : Natural := 0;
+
+   function Allocate_Widget_Id return Natural is
+   begin
+      Id_Counter := Id_Counter + 1;
+      return Id_Counter;
+   end Allocate_Widget_Id;
+
+   function Get_Id (W : Widget'Class) return Natural is (W.Widget_Id);
+
    --  Per-frame perf counters for debug stats overlay.
    --  Reset by the Window before each frame, read after rendering.
    Perf_Style_Resolves : Natural := 0;

@@ -39,6 +39,9 @@ package Adi.Window is
     procedure Remove_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class);
     procedure Clear_Overlays (W : in out Window);
     function Overlay_Count (W : Window) return Natural;
+    function Get_Overlay (W : Window; Index : Positive) return Widget_Access
+      with Pre => Index <= Overlay_Count (W);
+    function Get_Focus (W : Window) return Widget_Access;
 
     --  Get the underlying SDL window pointer (for dialog calls, etc.)
     function Get_SDL_Window (W : Window) return SDL_Window_Ptr;

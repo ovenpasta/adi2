@@ -161,6 +161,12 @@ package Adi.Widget is
    function Get_Label (W : Widget'Class) return String;
 
    ---------------------------------------------------------------------------
+   --  Unique Widget Identifier
+   ---------------------------------------------------------------------------
+
+   function Get_Id (W : Widget'Class) return Natural;
+
+   ---------------------------------------------------------------------------
    --  Widget State Management
    ---------------------------------------------------------------------------
 
@@ -504,7 +510,12 @@ private
    type Part_Initialized_Array is array (Part_Kind) of Boolean;
    type Part_State_Array is array (Part_Kind) of Widget_States;
 
+   function Allocate_Widget_Id return Natural;
+
    type Widget is abstract tagged limited record
+      --  Unique identifier (monotonically increasing, assigned at creation)
+      Widget_Id : Natural := Allocate_Widget_Id;
+
       --  Hierarchy
       Parent   : access Widget'Class := null;
       Children : Widget_List.List;

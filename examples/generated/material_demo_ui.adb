@@ -47,11 +47,15 @@ package body Material_Demo_UI is
    end Tick_Styles_CB;
 
    procedure Set_CSS_File (Path : String; Success : out Boolean) is
+      Mode_OK : Boolean;
    begin
       Adi.CSS_Source.Clear_Dynamic_Entries (Source);
       Adi.CSS_Source.Add_Dynamic_File (Source, Path, Success);
       if Success then
-         Adi.CSS_Source.Reload_Dynamic (Source, Success);
+         Adi.CSS_Source.Set_Mode
+           (Source, Adi.CSS_Source.Dynamic_Mode, Mode_OK);
+         Adi.CSS_Source.Set_Auto_Reload (Source, True);
+         Success := Mode_OK;
       end if;
    end Set_CSS_File;
 

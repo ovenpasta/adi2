@@ -15,7 +15,6 @@ package body Red_Page_UI is
 
    package body Instance is
    Source : aliased Adi.CSS_Source.Style_Source;
-   Inline_CSS : constant String := ".page-title::main {" & ASCII.LF & "  display: inline-flex;" & ASCII.LF & "}" & ASCII.LF & "" & ASCII.LF & ".page-title::label {" & ASCII.LF & "  color: white;" & ASCII.LF & "  font-size: 24px;" & ASCII.LF & "  font-weight: 700;" & ASCII.LF & "}" & ASCII.LF & "" & ASCII.LF & ".page-desc::main {" & ASCII.LF & "  display: inline-flex;" & ASCII.LF & "}" & ASCII.LF & "" & ASCII.LF & ".page-desc::label {" & ASCII.LF & "  color: rgba(255, 255, 255, 0.7);" & ASCII.LF & "  font-size: 16px;" & ASCII.LF & "  font-weight: 400;" & ASCII.LF & "}" & ASCII.LF & "" & ASCII.LF & ".page-title {" & ASCII.LF & "  flex-shrink: 0;" & ASCII.LF & "}";
 
    --  Base style for class 'page-title'
    Page_Title_Class_Base_Style : constant Style_Rules := (
@@ -97,11 +96,15 @@ package body Red_Page_UI is
    end Tick_Styles;
 
    procedure Set_CSS_File (Path : String; Success : out Boolean) is
+      Mode_OK : Boolean;
    begin
       Adi.CSS_Source.Clear_Dynamic_Entries (Source);
       Adi.CSS_Source.Add_Dynamic_File (Source, Path, Success);
       if Success then
-         Adi.CSS_Source.Reload_Dynamic (Source, Success);
+         Adi.CSS_Source.Set_Mode
+           (Source, Adi.CSS_Source.Dynamic_Mode, Mode_OK);
+         Adi.CSS_Source.Set_Auto_Reload (Source, True);
+         Success := Mode_OK;
       end if;
    end Set_CSS_File;
 
@@ -123,8 +126,8 @@ package body Red_Page_UI is
       begin
          Adi.CSS_Source.Add_Dynamic_File
            (Source, "examples/css/stack_example.css", Loaded);
-         Adi.CSS_Source.Add_Dynamic_String
-           (Source, Inline_CSS, Loaded);
+         Adi.CSS_Source.Add_Dynamic_File
+           (Source, "examples/generated/red_page_ui_inline.css", Loaded);
          if Loaded then
             Adi.CSS_Source.Set_Mode
               (Source, Adi.CSS_Source.Dynamic_Mode, Mode_OK);

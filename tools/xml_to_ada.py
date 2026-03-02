@@ -745,7 +745,8 @@ def ada_string_literal(s: str) -> str:
     return " & ".join(parts)
 
 
-def generate_body(app: XmlApp, package_name: str) -> str:
+def generate_body(app: XmlApp, package_name: str,
+                   inline_css_path: str = "") -> str:
     """Generate the .adb (body) file."""
     generics_map = {g.name: g for g in app.generics}
     root = get_root_widget(app)
@@ -844,12 +845,7 @@ def generate_body(app: XmlApp, package_name: str) -> str:
     # Package-level state for live CSS mode
     if live_css:
         lines.append("   Source : aliased Adi.CSS_Source.Style_Source;")
-        # Inline CSS constant for dynamic loading
-        if app.css_styles:
-            combined = "\n".join(app.css_styles)
-            lines.append(
-                f"   Inline_CSS : constant String := {ada_string_literal(combined)};"
-            )
+        # (Inline CSS is extracted to a companion .css file for live-reload)
         # Compiled inline style declarations (for static fallback)
         if inline_groups:
             lines.append("")
@@ -927,18 +923,25 @@ def generate_body(app: XmlApp, package_name: str) -> str:
         lines.append("      Tick_Styles (Reloaded, Success);")
         lines.append("   end Tick_Styles_CB;")
 
-    # Set_CSS_File — clear + reload dynamic entries
+    # Set_CSS_File — clear + reload dynamic entries + enable live reload
     if live_css:
         lines.append("")
         lines.append("   procedure Set_CSS_File (Path : String;"
                      " Success : out Boolean) is")
+        lines.append("      Mode_OK : Boolean;")
         lines.append("   begin")
         lines.append("      Adi.CSS_Source.Clear_Dynamic_Entries (Source);")
         lines.append(
             "      Adi.CSS_Source.Add_Dynamic_File (Source, Path, Success);")
         lines.append("      if Success then")
         lines.append(
-            "         Adi.CSS_Source.Reload_Dynamic (Source, Success);")
+            "         Adi.CSS_Source.Set_Mode")
+        lines.append(
+            "           (Source, Adi.CSS_Source.Dynamic_Mode, Mode_OK);")
+        lines.append(
+            "         Adi.CSS_Source.Set_Auto_Reload (Source, True);")
+        lines.append(
+            "         Success := Mode_OK;")
         lines.append("      end if;")
         lines.append("   end Set_CSS_File;")
 
@@ -1105,13 +1108,13 @@ def generate_body(app: XmlApp, package_name: str) -> str:
                         f'           (Source, "{link.href}", Loaded);'
                     )
 
-            # Emit Add_Dynamic_String for inline <style>
-            if has_style:
+            # Emit Add_Dynamic_File for inline <style> companion CSS file
+            if has_style and inline_css_path:
                 lines.append(
-                    "         Adi.CSS_Source.Add_Dynamic_String"
+                    "         Adi.CSS_Source.Add_Dynamic_File"
                 )
                 lines.append(
-                    "           (Source, Inline_CSS, Loaded);"
+                    f'           (Source, "{inline_css_path}", Loaded);'
                 )
 
             if not has_link and not has_style:
@@ -1348,8 +1351,20 @@ def main():
     spec_path = os.path.join(args.output_dir, f"{file_base}.ads")
     body_path = os.path.join(args.output_dir, f"{file_base}.adb")
 
+    # Extract inline <style> to companion CSS file for live-reload
+    inline_css_path = ""
+    if app.css_styles:
+        combined_css = "\n".join(app.css_styles) + "\n"
+        css_file = os.path.normpath(
+            os.path.join(args.output_dir, f"{file_base}_inline.css"))
+        inline_css_path = css_file
+        with open(css_file, "w") as f:
+            f.write(combined_css)
+        print(f"Generated {css_file}")
+
     spec_code = generate_spec(app, args.package_name)
-    body_code = generate_body(app, args.package_name)
+    body_code = generate_body(app, args.package_name,
+                              inline_css_path=inline_css_path)
 
     with open(spec_path, "w") as f:
         f.write(spec_code)

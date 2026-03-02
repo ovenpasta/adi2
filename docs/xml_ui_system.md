@@ -283,15 +283,15 @@ W := UI.Build;
 
 Inline CSS is:
 - Compiled to Ada `Style_Rules` constants at code-generation time
-- Stored as an Ada string constant (`Inline_CSS`) for runtime dynamic parsing
-- Registered via `Add_Dynamic_String(Source, Inline_CSS, Loaded)` in `Build`
+- Extracted to a companion `.css` file (e.g., `red_page_ui_inline.css`) for live-reload
+- Loaded via `Add_Dynamic_File` in `Build`, so edits to the companion file are detected automatically
 
 ### Dual-Mode CSS (Static Fallback + Dynamic Live Reload)
 
 The generated `Build` function implements a dual-mode strategy:
 
 1. Register all precompiled styles via `Set_Static_Entries`
-2. Attempt to load dynamic CSS files and inline strings
+2. Attempt to load dynamic CSS files (including companion files for inline `<style>` blocks)
 3. If dynamic loading succeeds, set `Dynamic_Mode`
 4. If it fails, fall back to `Static_Mode`
 5. Bind every widget with a `class` attribute via `Bind_Class` (space-separated names are merged automatically)
@@ -300,7 +300,7 @@ When a `<window>` is present, `Tick_Styles_CB` is auto-wired to `Set_On_Tick` wh
 
 The generated package also exposes:
 - `Tick_Styles` — Always available; ticks local CSS source (if any) and all nested component instances
-- `Set_CSS_File` — Replace the dynamic CSS source at runtime (only emitted when live CSS links/styles are present)
+- `Set_CSS_File` — Replace the dynamic CSS source at runtime; switches to `Dynamic_Mode` and enables auto-reload (only emitted when live CSS links/styles are present)
 
 ---
 
@@ -523,7 +523,7 @@ Key points:
 
 The body contains:
 
-1. **CSS source and style constants** — `Style_Source`, inline CSS string, precompiled `Style_Rules` constants for inline `<style>` blocks
+1. **CSS source and style constants** — `Style_Source`, precompiled `Style_Rules` constants for inline `<style>` blocks
 2. **Option group variables and wrappers** — Group records and callback wrapper procedures
 3. **Tick/Set_CSS_File procedures** — CSS reload support
 4. **`Build` function** — Creates all widgets, registers static CSS entries, loads dynamic CSS, binds classes, builds the widget hierarchy, wires option groups, and attaches tick callback

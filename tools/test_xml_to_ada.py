@@ -368,5 +368,42 @@ class TestImageAttribute(unittest.TestCase):
         )
 
 
+class TestInlineCSSCompanionPath(unittest.TestCase):
+    """Tests for inline <style> companion CSS file path generation."""
+
+    def test_inline_css_path_uses_output_dir(self):
+        """Companion CSS path is derived from output_dir, not CWD."""
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>.root::main { background-color: red; }</style>
+  <box class="root"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(
+            app, "My_UI", inline_css_path="some/dir/my_ui_inline.css"
+        )
+        self.assertIn(
+            'Add_Dynamic_File',
+            body,
+        )
+        self.assertIn(
+            '"some/dir/my_ui_inline.css"',
+            body,
+        )
+        self.assertNotIn("Add_Dynamic_String", body)
+        self.assertNotIn("Inline_CSS", body)
+
+    def test_no_inline_css_path_when_no_styles(self):
+        """No companion path emitted when there are no inline styles."""
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="test.css"/>
+  <box class="root"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "My_UI")
+        self.assertNotIn("inline.css", body)
+
+
 if __name__ == "__main__":
     unittest.main()

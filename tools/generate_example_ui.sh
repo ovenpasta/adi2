@@ -2,9 +2,10 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-GENERATOR="$ROOT_DIR/tools/xml_to_ada.py"
-XML_DIR="$ROOT_DIR/examples/xml"
-OUT_DIR="$ROOT_DIR/examples/generated"
+cd "$ROOT_DIR"
+GENERATOR="tools/xml_to_ada.py"
+XML_DIR="examples/xml"
+OUT_DIR="examples/generated"
 
 mkdir -p "$OUT_DIR"
 

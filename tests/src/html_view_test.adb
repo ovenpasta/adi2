@@ -1173,6 +1173,106 @@ procedure Html_View_Test is
      "strong { font-weight: 700; }" & ASCII.LF &
      "a { text-decoration: underline; }";
 
+   procedure Test_Line_Height_Number_Uses_Font_Size is
+      --  Verify that line-height: <number> multiplies font-size, not line-skip.
+      --  font-size: 20px with line-height: 2 should produce ~40px line advance.
+      --  Before the fix, it was ~20 * 1.2 * 2 = ~48px (line-skip based).
+      W : constant Adi.Widget.Html_View.Html_View_Access :=
+        Adi.Widget.Html_View.Create;
+      A_Idx : Natural := 0;
+      B_Idx : Natural := 0;
+   begin
+      Put_Line ("Test: line-height number multiplies font-size");
+
+      Adi.Widget.Set_Geometry
+        (W.all, (X => 0.0, Y => 0.0, Width => 400.0, Height => 200.0));
+      Adi.Widget.Html_View.Set_HTML
+        (W.all,
+         "<style>p { font-size: 20px; line-height: 2; }</style>" &
+         "<p>topLine<br>botLine</p>");
+      Adi.Widget.Html_View.Build_Items (W.all);
+
+      A_Idx := Find_Text_Item_Index (W, "topLine");
+      B_Idx := Find_Text_Item_Index (W, "botLine");
+      Assert (A_Idx > 0 and then B_Idx > 0,
+              "line-height number: both lines exist");
+      if A_Idx > 0 and then B_Idx > 0 then
+         declare
+            A : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, Positive (A_Idx));
+            B : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, Positive (B_Idx));
+            Advance : constant Adi.Core.Pixel_Type := B.Geometry.Y - A.Geometry.Y;
+         begin
+            --  line-height: 2 * font-size: 20px = 40px expected advance.
+            --  Allow +-4px tolerance for font metrics rounding.
+            Assert (Advance >= 36.0 and then Advance <= 44.0,
+                    "line-height number: advance ~40px (got" & Advance'Image & ")");
+            --  Old bug would give ~48px (line-skip * 2).
+            Assert (Advance < 46.0,
+                    "line-height number: not inflated by line-skip");
+         end;
+      end if;
+
+      New_Line;
+   end Test_Line_Height_Number_Uses_Font_Size;
+
+   procedure Test_Margin_Collapsing is
+      --  Adjacent block margins should collapse to max(bottom, top).
+      W : constant Adi.Widget.Html_View.Html_View_Access :=
+        Adi.Widget.Html_View.Create;
+      A_Idx : Natural := 0;
+      B_Idx : Natural := 0;
+      C_Idx : Natural := 0;
+   begin
+      Put_Line ("Test: vertical margin collapsing");
+
+      Adi.Widget.Set_Geometry
+        (W.all, (X => 0.0, Y => 0.0, Width => 400.0, Height => 400.0));
+
+      --  h1 margin-bottom: 30px, h2 margin-top: 20px → collapsed gap = 30px
+      --  h2 margin-bottom: 20px, p margin-top: 10px → collapsed gap = 20px
+      --  Without collapsing: gaps would be 50px and 30px respectively.
+      Adi.Widget.Html_View.Set_HTML
+        (W.all,
+         "<style>" &
+         "h1 { font-size: 16px; line-height: 1; margin: 0 0 30px 0; }" &
+         "h2 { font-size: 16px; line-height: 1; margin: 20px 0 20px 0; }" &
+         "p  { font-size: 16px; line-height: 1; margin: 10px 0 0 0; }" &
+         "</style>" &
+         "<h1>heading1</h1><h2>heading2</h2><p>para</p>");
+      Adi.Widget.Html_View.Build_Items (W.all);
+
+      A_Idx := Find_Text_Item_Index (W, "heading1");
+      B_Idx := Find_Text_Item_Index (W, "heading2");
+      C_Idx := Find_Text_Item_Index (W, "para");
+      Assert (A_Idx > 0 and then B_Idx > 0 and then C_Idx > 0,
+              "margin collapse: all three blocks exist");
+
+      if A_Idx > 0 and then B_Idx > 0 and then C_Idx > 0 then
+         declare
+            A : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, Positive (A_Idx));
+            B : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, Positive (B_Idx));
+            C : constant Adi.Widget.Item := Adi.Widget.Get_Item (W.all, Positive (C_Idx));
+            --  Gap between text baselines includes line height + margin
+            Gap_AB : constant Adi.Core.Pixel_Type := B.Geometry.Y - (A.Geometry.Y + A.Geometry.Height);
+            Gap_BC : constant Adi.Core.Pixel_Type := C.Geometry.Y - (B.Geometry.Y + B.Geometry.Height);
+         begin
+            --  Collapsed gap h1→h2: max(30, 20) = 30px (±4px tolerance)
+            Assert (Gap_AB >= 26.0 and then Gap_AB <= 34.0,
+                    "margin collapse h1-h2: gap ~30px (got" & Gap_AB'Image & ")");
+            --  Without collapsing it would be 50px
+            Assert (Gap_AB < 42.0,
+                    "margin collapse h1-h2: not sum of both margins");
+            --  Collapsed gap h2→p: max(20, 10) = 20px (±4px tolerance)
+            Assert (Gap_BC >= 16.0 and then Gap_BC <= 24.0,
+                    "margin collapse h2-p: gap ~20px (got" & Gap_BC'Image & ")");
+            Assert (Gap_BC < 26.0,
+                    "margin collapse h2-p: not sum of both margins");
+         end;
+      end if;
+
+      New_Line;
+   end Test_Margin_Collapsing;
+
    procedure Test_Default_Stylesheet is
       W : constant Adi.Widget.Html_View.Html_View_Access :=
         Adi.Widget.Html_View.Create;
@@ -1355,6 +1455,8 @@ begin
    Test_Content_Scale;
    Test_VW_VH_Context;
    Test_HTML_Folder_Stress;
+   Test_Line_Height_Number_Uses_Font_Size;
+   Test_Margin_Collapsing;
    Test_Default_Stylesheet;
 
    Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");

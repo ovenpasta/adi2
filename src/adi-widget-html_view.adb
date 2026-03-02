@@ -1367,7 +1367,7 @@ package body Adi.Widget.Html_View is
          when LH_Normal =>
             Result := Natural_Line;
          when LH_Number =>
-            Result := Pixel_Type'Max (1.0, Natural_Line * Pixel_Type (Style.Line_Height.Multiplier));
+            Result := Pixel_Type'Max (1.0, Font_Px * Pixel_Type (Style.Line_Height.Multiplier));
          when LH_Length =>
             Result := Pixel_Type'Max
               (1.0,
@@ -1510,6 +1510,10 @@ package body Adi.Widget.Html_View is
       Current_Line_Descent : Pixel_Type := 0.0;
       Current_Line_Align   : Text_Align_Value := Text_Start;
       Pending_Space : Boolean := False;
+
+      --  Vertical margin collapsing: track the previous block's bottom margin
+      --  so adjacent block margins collapse to max(bottom, top) per CSS spec.
+      Prev_Block_Margin_Bottom : Pixel_Type := 0.0;
 
       type List_Marker_Kind is (No_Marker, Text_Marker, Image_Marker);
 
@@ -2274,6 +2278,15 @@ package body Adi.Widget.Html_View is
          end if;
       end Process_Pre_Line_Text;
 
+      --  Flush any deferred block bottom margin into Y before inline content.
+      procedure Flush_Pending_Margin is
+      begin
+         if Prev_Block_Margin_Bottom > 0.0 then
+            Y := Y + Prev_Block_Margin_Bottom;
+            Prev_Block_Margin_Bottom := 0.0;
+         end if;
+      end Flush_Pending_Margin;
+
       procedure Process_Text_Node
         (Text  : String;
          Href  : String;
@@ -2283,6 +2296,7 @@ package body Adi.Widget.Html_View is
          if Text'Length = 0 then
             return;
          end if;
+         Flush_Pending_Margin;
 
          case Style.White_Space is
             when WS_Pre | WS_Pre_Wrap =>
@@ -2464,6 +2478,7 @@ package body Adi.Widget.Html_View is
                      null;
 
                   elsif Tag = "img" then
+                     Flush_Pending_Margin;
                      declare
                         Src : constant String := To_String (N.Attrs.Src_Attr);
                         Alt : constant String := To_String (N.Attrs.Alt_Attr);
@@ -2489,6 +2504,7 @@ package body Adi.Widget.Html_View is
                      end;
 
                   elsif Tag = "svg" then
+                     Flush_Pending_Margin;
                      declare
                         Src : constant String := To_String (N.Attrs.Svg_Source_Attr);
                         Img : constant Adi.Image.Image_Access := Resolve_Inline_SVG (Self, Src);
@@ -2511,6 +2527,7 @@ package body Adi.Widget.Html_View is
                      end;
 
                   elsif Tag = "hr" then
+                     Flush_Pending_Margin;
                      Add_Horizontal_Rule (Style);
 
                   else
@@ -2555,7 +2572,15 @@ package body Adi.Widget.Html_View is
                            Margin_Edges := Resolve_Box_Edges (Style.Margin, Style, Local_Container_W);
                            Padding_Edges := Resolve_Box_Edges (Style.Padding, Style, Local_Container_W);
 
-                           Block_Top_Y := Y + Margin_Edges.Top;
+                           --  Vertical margin collapsing: adjacent block margins
+                           --  collapse to max(prev_bottom, this_top) per CSS spec.
+                           declare
+                              Collapsed_Top : constant Pixel_Type :=
+                                Pixel_Type'Max (Margin_Edges.Top, Prev_Block_Margin_Bottom);
+                           begin
+                              Block_Top_Y := Y + Collapsed_Top;
+                              Prev_Block_Margin_Bottom := 0.0;
+                           end;
                            Block_Left_X := Prev_Line_Left + Margin_Edges.Left;
                            Block_Width :=
                              Pixel_Type'Max
@@ -2579,7 +2604,7 @@ package body Adi.Widget.Html_View is
                               Block_Item_Index := Natural (Self.Items.Last_Index);
                            end;
 
-                           Y := Y + Margin_Edges.Top + Padding_Edges.Top;
+                           Y := Block_Top_Y + Padding_Edges.Top;
 
                            Line_Left := Prev_Line_Left + Margin_Edges.Left + Padding_Edges.Left;
                            Line_Right := Prev_Line_Right - Margin_Edges.Right - Padding_Edges.Right;
@@ -2683,7 +2708,9 @@ package body Adi.Widget.Html_View is
                               end;
                            end if;
 
-                           Y := Y + Padding_Edges.Bottom + Margin_Edges.Bottom;
+                           Y := Y + Padding_Edges.Bottom;
+                           --  Defer bottom margin for collapsing with next block
+                           Prev_Block_Margin_Bottom := Margin_Edges.Bottom;
 
                            Line_Left := Prev_Line_Left;
                            Line_Right := Prev_Line_Right;
@@ -2775,6 +2802,7 @@ package body Adi.Widget.Html_View is
          end;
       end if;
 
+      Flush_Pending_Margin;
       Finalize_Line;
 
       declare

@@ -146,7 +146,7 @@ procedure Slider_Test is
         Float_Slider.Create (Min => 0.0, Max => 100.0, Value => 0.0);
    begin
       Put_Line ("Test: Float slider callback");
-      Float_Slider.Set_On_Changed (S.all, On_Changed'Unrestricted_Access);
+      Float_Slider.Connect_Changed (S.all, On_Changed'Unrestricted_Access);
       Callback_Fired := False;
       --  Simulate keyboard: need geometry first for item-based logic
       Set_Geometry (S.all, (X => 0.0, Y => 0.0, Width => 200.0, Height => 24.0));

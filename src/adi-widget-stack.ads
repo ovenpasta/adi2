@@ -1,3 +1,5 @@
+with Adi.Signal;
+
 generic
    type Page_Id is (<>);
 package Adi.Widget.Stack is
@@ -35,8 +37,17 @@ package Adi.Widget.Stack is
 
    --  Callback when active page changes
    type Page_Changed_Callback is access procedure (Id : Page_Id);
-   procedure Set_On_Changed (W  : in out Stack_Widget;
-                              CB : Page_Changed_Callback);
+
+   package Page_Changed_Signals is new Adi.Signal
+     (Page_Changed_Callback, null);
+
+   procedure Connect_Changed
+     (W : in out Stack_Widget; CB : Page_Changed_Callback);
+   function Connect_Changed
+     (W : in out Stack_Widget; CB : Page_Changed_Callback)
+      return Page_Changed_Signals.Connection_Id;
+   procedure Disconnect_Changed
+     (W : in out Stack_Widget; Id : Page_Changed_Signals.Connection_Id);
 
    --  Implement abstract methods
    overriding function Measure_Content (W : Stack_Widget) return Size_2D;
@@ -54,7 +65,7 @@ private
       Pages      : Page_Array := [others => null];
       Active     : Page_Id := Page_Id'First;
       Has_Active : Boolean := False;
-      On_Changed : Page_Changed_Callback := null;
+      Changed : Page_Changed_Signals.Signal;
    end record;
 
 end Adi.Widget.Stack;

@@ -50,7 +50,7 @@ begin
       Echo_Label := Adi.Widget.Label.Create ("You typed: Hello Adi");
       Length_Label := Adi.Widget.Label.Create ("Length: 9");
 
-      Input.Set_On_Changed (On_Input_Changed'Unrestricted_Access);
+      Input.Connect_Changed (On_Input_Changed'Unrestricted_Access);
 
       Set_Part_Styles (Root.all, Root_Class_Part_Styles);
       Set_Part_Styles (Container.all, Container_Class_Part_Styles);

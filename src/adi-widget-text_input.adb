@@ -276,11 +276,12 @@ package body Adi.Widget.Text_Input is
 
    procedure Fire_Changed (W : in out Text_Input_Widget'Class) is
       Self : constant Text_Input_Widget_Access := W'Unchecked_Access;
+      Text : constant String := Get_Text (W);
+      procedure Call (CB : Change_Callback) is begin CB (Self, Text); end Call;
+      procedure Emit is new Change_Signals.For_Each (Call);
    begin
       Mark_Dirty (W);
-      if W.On_Changed /= null then
-         W.On_Changed (Self, Get_Text (W));
-      end if;
+      Emit (W.Changed);
    end Fire_Changed;
 
    procedure On_Menu_Command_Applied
@@ -396,11 +397,24 @@ package body Adi.Widget.Text_Input is
       Apply_Context_Menu_Styles (W);
    end Set_Context_Menu_Item_Part_Styles;
 
-   procedure Set_On_Changed (W : in out Text_Input_Widget;
-                             CB : Change_Callback) is
+   procedure Connect_Changed (W : in out Text_Input_Widget;
+                              CB : Change_Callback) is
    begin
-      W.On_Changed := CB;
-   end Set_On_Changed;
+      W.Changed.Connect (CB);
+   end Connect_Changed;
+
+   function Connect_Changed (W : in out Text_Input_Widget;
+                             CB : Change_Callback)
+      return Change_Signals.Connection_Id is
+   begin
+      return W.Changed.Connect (CB);
+   end Connect_Changed;
+
+   procedure Disconnect_Changed
+     (W : in out Text_Input_Widget; Id : Change_Signals.Connection_Id) is
+   begin
+      W.Changed.Disconnect (Id);
+   end Disconnect_Changed;
 
    overriding function Measure_Content (W : Text_Input_Widget) return Size_2D is
       Main_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);

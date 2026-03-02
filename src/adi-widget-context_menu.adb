@@ -255,9 +255,15 @@ package body Adi.Widget.Context_Menu is
       end if;
 
       Hide (Owner.all);
-      if Owner.On_Selected /= null then
-         Owner.On_Selected (Owner, Index, To_String (Label_Text));
-      end if;
+      declare
+         Idx : constant Positive := Index;
+         Txt : constant String := To_String (Label_Text);
+         procedure Call (CB : Item_Selected_Callback) is
+         begin CB (Owner, Idx, Txt); end Call;
+         procedure Emit is new Item_Selected_Signals.For_Each (Call);
+      begin
+         Emit (Owner.Item_Selected);
+      end;
    end On_Popup_Item_Clicked;
 
    function Create return Context_Menu_Access is
@@ -268,7 +274,7 @@ package body Adi.Widget.Context_Menu is
       Popup_Lists.Set_Selection_Mode
         (Result.Popup.all, Popup_Lists.Single_Selection);
       Set_Flag (Result.Popup.all, Focusable, False);
-      Popup_Lists.Set_On_Item_Clicked
+      Popup_Lists.Connect_Item_Clicked
         (Result.Popup.all, On_Popup_Item_Clicked'Access);
 
       Set_Flag (Dismiss.all, Visible, True);
@@ -325,13 +331,28 @@ package body Adi.Widget.Context_Menu is
       return Natural (Menu.Items.Length);
    end Item_Count;
 
-   procedure Set_On_Item_Selected
-     (Menu : in out Context_Menu;
-      CB   : Item_Selected_Callback)
+   procedure Connect_Item_Selected
+     (Menu : in out Context_Menu; CB : Item_Selected_Callback)
    is
    begin
-      Menu.On_Selected := CB;
-   end Set_On_Item_Selected;
+      Menu.Item_Selected.Connect (CB);
+   end Connect_Item_Selected;
+
+   function Connect_Item_Selected
+     (Menu : in out Context_Menu; CB : Item_Selected_Callback)
+      return Item_Selected_Signals.Connection_Id
+   is
+   begin
+      return Menu.Item_Selected.Connect (CB);
+   end Connect_Item_Selected;
+
+   procedure Disconnect_Item_Selected
+     (Menu : in out Context_Menu;
+      Id   : Item_Selected_Signals.Connection_Id)
+   is
+   begin
+      Menu.Item_Selected.Disconnect (Id);
+   end Disconnect_Item_Selected;
 
    procedure Set_Menu_Part_Styles
      (Menu   : in out Context_Menu;

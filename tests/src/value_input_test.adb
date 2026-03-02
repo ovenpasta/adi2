@@ -290,7 +290,7 @@ procedure Value_Input_Test is
    begin
       Put_Line ("Test: Callback value matches text after focus lost");
       Float_Input.Set_Step (V.all, 1.0);
-      Float_Input.Set_On_Value_Changed
+      Float_Input.Connect_Value_Changed
         (V.all, On_Val_Changed'Unrestricted_Access);
 
       --  Type "33.3" and lose focus
@@ -320,7 +320,7 @@ procedure Value_Input_Test is
    begin
       Put_Line ("Test: Float value input callback on step");
       Float_Input.Set_Step (V.all, 1.0);
-      Float_Input.Set_On_Value_Changed
+      Float_Input.Connect_Value_Changed
         (V.all, On_Val_Changed'Unrestricted_Access);
       Callback_Fired := False;
       Set_Geometry (V.all, (X => 0.0, Y => 0.0, Width => 120.0, Height => 28.0));

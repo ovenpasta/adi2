@@ -141,11 +141,11 @@ begin
       Int_Input.Set_Step (Input_B.all, 1);
 
       --  Wire callbacks
-      Float_Input.Set_On_Value_Changed
+      Float_Input.Connect_Value_Changed
         (Input1.all, On_Float_Changed'Unrestricted_Access);
-      Int_Input.Set_On_Value_Changed
+      Int_Input.Connect_Value_Changed
         (Input2.all, On_Int_Changed'Unrestricted_Access);
-      Float_Input.Set_On_Value_Changed
+      Float_Input.Connect_Value_Changed
         (Input3.all, On_Range_Changed'Unrestricted_Access);
 
       --  Apply styles

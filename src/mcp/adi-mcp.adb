@@ -27,6 +27,12 @@ package body Adi.MCP is
    MCP_Dir    : Unbounded_String;
    MCP_Window : access Adi.Window.Window'Class := null;
 
+   --  Connection IDs for signal-based disconnect in Finalize
+   Frame_Conn       : Adi.Window.Frame_Signals.Connection_Id :=
+     Adi.Window.Frame_Signals.No_Connection;
+   Post_Render_Conn : Adi.Window.Post_Render_Signals.Connection_Id :=
+     Adi.Window.Post_Render_Signals.No_Connection;
+
    --  Deferred screenshot: queued by the frame callback, executed by the
    --  post-render callback (which has a valid renderer with fresh content).
    Pending_Screenshot    : Boolean := False;
@@ -1438,9 +1444,9 @@ package body Adi.MCP is
 
       Write_File (Dir & "/ready", Pid_Str);
 
-      Adi.Window.Set_Frame_Callback
+      Frame_Conn := Adi.Window.Connect_Frame
         (Win.all, Frame_Handler'Access);
-      Adi.Window.Set_Post_Render_Callback
+      Post_Render_Conn := Adi.Window.Connect_Post_Render
         (Win.all, Post_Render_Handler'Access);
    end Initialize;
 
@@ -1451,8 +1457,10 @@ package body Adi.MCP is
       if not Active then return; end if;
 
       if MCP_Window /= null then
-         Adi.Window.Set_Frame_Callback (MCP_Window.all, null);
-         Adi.Window.Set_Post_Render_Callback (MCP_Window.all, null);
+         Adi.Window.Disconnect_Frame (MCP_Window.all, Frame_Conn);
+         Adi.Window.Disconnect_Post_Render (MCP_Window.all, Post_Render_Conn);
+         Frame_Conn := Adi.Window.Frame_Signals.No_Connection;
+         Post_Render_Conn := Adi.Window.Post_Render_Signals.No_Connection;
       end if;
 
       if Exists (Dir) then

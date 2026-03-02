@@ -4,6 +4,7 @@ with Adi.Core;              use Adi.Core;
 with Adi.CSS_Parser;
 with Adi.CSS_Styles;
 with Adi.Image;
+with Adi.Signal;
 with Adi.Widget;            use Adi.Widget;
 
 package Adi.Widget.Html_View is
@@ -14,6 +15,8 @@ package Adi.Widget.Html_View is
    type Link_Click_Callback is access procedure
      (Self : access Html_View;
       Href : String);
+
+   package Link_Click_Signals is new Adi.Signal (Link_Click_Callback, null);
 
    type Asset_Load_Callback is access function
      (Self : access Html_View;
@@ -36,9 +39,13 @@ package Adi.Widget.Html_View is
       Scale : Pixel_Type);
    function Get_Content_Scale (Self : Html_View) return Pixel_Type;
 
-   procedure Set_On_Link_Click
-     (Self     : in out Html_View;
-      Callback : Link_Click_Callback);
+   procedure Connect_Link_Click
+     (Self : in out Html_View; CB : Link_Click_Callback);
+   function Connect_Link_Click
+     (Self : in out Html_View; CB : Link_Click_Callback)
+      return Link_Click_Signals.Connection_Id;
+   procedure Disconnect_Link_Click
+     (Self : in out Html_View; Id : Link_Click_Signals.Connection_Id);
 
    procedure Set_On_Load_Asset
      (Self     : in out Html_View;
@@ -142,7 +149,7 @@ private
       Links           : Link_Fragment_Vectors.Vector;
       Image_Cache     : Cached_Image_Vectors.Vector;
       Inline_Style_Cache : Inline_Style_Cache_Vectors.Vector;
-      On_Link_Click   : Link_Click_Callback := null;
+      Link_Click      : Link_Click_Signals.Signal;
       On_Load_Asset   : Asset_Load_Callback := null;
       On_Load_Resource : Resource_Load_Callback := null;
       CSS_Sheet       : Adi.CSS_Parser.Stylesheet;

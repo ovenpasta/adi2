@@ -905,9 +905,15 @@ package body Adi.Window is
           end if;
 
           --  Post-render callback (MCP introspection, etc.)
-          if W.Post_Render_CB /= null then
-             W.Post_Render_CB (W'Unchecked_Access, W.Internal.ren);
-          end if;
+          declare
+             Win_Acc : constant not null access Window'Class := W'Unchecked_Access;
+             Ren     : constant Adi.SDL.Render.SDL_Renderer_Ptr := W.Internal.ren;
+             procedure Call (CB : Post_Render_Proc) is
+             begin CB (Win_Acc, Ren); end Call;
+             procedure Emit is new Post_Render_Signals.For_Each (Call);
+          begin
+             Emit (W.Post_Render);
+          end;
 
           --  Present the rendered frame
           Stage_Start := Clock;
@@ -917,9 +923,13 @@ package body Adi.Window is
        end if;
 
        --  Per-frame callback (runs unconditionally, even when idle)
-       if W.Frame_CB /= null then
-          W.Frame_CB (W'Unchecked_Access);
-       end if;
+       declare
+          Win_Acc : constant not null access Window'Class := W'Unchecked_Access;
+          procedure Call (CB : Frame_Proc) is begin CB (Win_Acc); end Call;
+          procedure Emit is new Frame_Signals.For_Each (Call);
+       begin
+          Emit (W.Frame);
+       end;
     end Render;
 
    procedure Set_Root (W : in Out Window; Root : access Adi.Widget.Widget'Class) is
@@ -968,10 +978,22 @@ package body Adi.Window is
       return W.Enforce_Layout_Min_Size;
    end Get_Enforce_Layout_Min_Size;
 
-   procedure Set_On_Tick (W : in out Window; CB : Tick_Callback) is
+   procedure Connect_Tick (W : in out Window; CB : Tick_Callback) is
    begin
-      W.On_Tick_CB := CB;
-   end Set_On_Tick;
+      W.Tick_Sig.Connect (CB);
+   end Connect_Tick;
+
+   function Connect_Tick (W : in out Window; CB : Tick_Callback)
+      return Tick_Signals.Connection_Id is
+   begin
+      return W.Tick_Sig.Connect (CB);
+   end Connect_Tick;
+
+   procedure Disconnect_Tick
+     (W : in out Window; Id : Tick_Signals.Connection_Id) is
+   begin
+      W.Tick_Sig.Disconnect (Id);
+   end Disconnect_Tick;
 
    procedure Add_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class) is
       OA : Widget_Access := null;
@@ -1772,9 +1794,13 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       Debug_Tick_No := Debug_Tick_No + 1;
       W.Stats_Last_DT := DT;
 
-      if W.On_Tick_CB /= null then
-         W.On_Tick_CB (DT);
-      end if;
+      declare
+         D : constant Duration := DT;
+         procedure Call (CB : Tick_Callback) is begin CB (D); end Call;
+         procedure Emit is new Tick_Signals.For_Each (Call);
+      begin
+         Emit (W.Tick_Sig);
+      end;
 
       if W.Root /= null then
          Tick_Animations (W.Root.all, DT);
@@ -1931,19 +1957,43 @@ function Get_Size (W : in out Window) return Size_2D is
        W.Force_Redraw := True;
     end Set_Debug_Stats;
 
-    procedure Set_Post_Render_Callback
-      (W  : in out Window;
-       CB : Post_Render_Proc) is
+    procedure Connect_Post_Render
+      (W : in out Window; CB : Post_Render_Proc) is
     begin
-       W.Post_Render_CB := CB;
-    end Set_Post_Render_Callback;
+       W.Post_Render.Connect (CB);
+    end Connect_Post_Render;
 
-    procedure Set_Frame_Callback
-      (W  : in out Window;
-       CB : Frame_Proc) is
+    function Connect_Post_Render
+      (W : in out Window; CB : Post_Render_Proc)
+       return Post_Render_Signals.Connection_Id is
     begin
-       W.Frame_CB := CB;
-    end Set_Frame_Callback;
+       return W.Post_Render.Connect (CB);
+    end Connect_Post_Render;
+
+    procedure Disconnect_Post_Render
+      (W : in out Window; Id : Post_Render_Signals.Connection_Id) is
+    begin
+       W.Post_Render.Disconnect (Id);
+    end Disconnect_Post_Render;
+
+    procedure Connect_Frame
+      (W : in out Window; CB : Frame_Proc) is
+    begin
+       W.Frame.Connect (CB);
+    end Connect_Frame;
+
+    function Connect_Frame
+      (W : in out Window; CB : Frame_Proc)
+       return Frame_Signals.Connection_Id is
+    begin
+       return W.Frame.Connect (CB);
+    end Connect_Frame;
+
+    procedure Disconnect_Frame
+      (W : in out Window; Id : Frame_Signals.Connection_Id) is
+    begin
+       W.Frame.Disconnect (Id);
+    end Disconnect_Frame;
 
     function Get_Frame_Stats (W : Window) return Frame_Stats is
     begin

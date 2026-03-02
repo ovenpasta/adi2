@@ -59,20 +59,36 @@ package body Adi.Widget.Button.Options is
          Set_Toggled (G.Buttons (O).all, True);
       end if;
 
-      if G.On_Changed /= null then
-         G.On_Changed (O);
-      end if;
+      declare
+         procedure Call (CB : Option_Changed_Callback) is begin CB (O); end Call;
+         procedure Emit is new Option_Changed_Signals.For_Each (Call);
+      begin
+         Emit (G.Changed);
+      end;
    end Set_Selected;
 
    --------------------
-   -- Set_On_Changed --
+   -- Connect_Changed --
    --------------------
 
-   procedure Set_On_Changed (G : in out Option_Group;
-                             CB : Option_Changed_Callback) is
+   procedure Connect_Changed (G : in out Option_Group;
+                              CB : Option_Changed_Callback) is
    begin
-      G.On_Changed := CB;
-   end Set_On_Changed;
+      G.Changed.Connect (CB);
+   end Connect_Changed;
+
+   function Connect_Changed (G : in out Option_Group;
+                             CB : Option_Changed_Callback)
+      return Option_Changed_Signals.Connection_Id is
+   begin
+      return G.Changed.Connect (CB);
+   end Connect_Changed;
+
+   procedure Disconnect_Changed
+     (G : in out Option_Group; Id : Option_Changed_Signals.Connection_Id) is
+   begin
+      G.Changed.Disconnect (Id);
+   end Disconnect_Changed;
 
    -------------------------
    -- On_Button_Clicked --
@@ -103,9 +119,13 @@ package body Adi.Widget.Button.Options is
             Set_Toggled (Btn.all, True);
 
             --  Fire user callback
-            if G.On_Changed /= null then
-               G.On_Changed (O);
-            end if;
+            declare
+               procedure Call (CB : Option_Changed_Callback) is
+               begin CB (O); end Call;
+               procedure Emit is new Option_Changed_Signals.For_Each (Call);
+            begin
+               Emit (G.Changed);
+            end;
 
             return;
          end if;

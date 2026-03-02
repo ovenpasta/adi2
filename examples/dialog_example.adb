@@ -161,10 +161,10 @@ begin
       Set_Part_Styles (Delete_Btn.all, Btn_Primary_Class_Part_Styles);
 
       --  Button callbacks
-      Set_On_Clicked (Alert_Btn.all, On_Show_Alert'Unrestricted_Access);
-      Set_On_Clicked (Confirm_Btn.all, On_Show_Confirm'Unrestricted_Access);
-      Set_On_Clicked (Custom_Btn.all, On_Show_Custom'Unrestricted_Access);
-      Set_On_Clicked (Delete_Btn.all, On_Show_Delete'Unrestricted_Access);
+      Connect_Clicked (Alert_Btn.all, On_Show_Alert'Unrestricted_Access);
+      Connect_Clicked (Confirm_Btn.all, On_Show_Confirm'Unrestricted_Access);
+      Connect_Clicked (Custom_Btn.all, On_Show_Custom'Unrestricted_Access);
+      Connect_Clicked (Delete_Btn.all, On_Show_Delete'Unrestricted_Access);
 
       --  Build page
       Root.Add_Child (Container);
@@ -193,7 +193,7 @@ begin
                    "This is a simple alert dialog with a single OK button. "
                    & "You can dismiss it by clicking OK, the backdrop, or pressing Escape.");
       Set_OK_Button (Alert_Dialog.all);
-      Set_On_Result (Alert_Dialog.all, On_Alert_Result'Unrestricted_Access);
+      Connect_Result (Alert_Dialog.all, On_Alert_Result'Unrestricted_Access);
 
       --  Set info icon on alert dialog (Material Symbols "info" 24×24)
       declare
@@ -219,7 +219,7 @@ begin
                    "Are you sure you want to proceed? "
                    & "This action cannot be undone.");
       Set_Yes_No_Cancel (Confirm_Dialog.all);
-      Set_On_Result (Confirm_Dialog.all, On_Confirm_Result'Unrestricted_Access);
+      Connect_Result (Confirm_Dialog.all, On_Confirm_Result'Unrestricted_Access);
 
       --  Set warning icon on confirm dialog (Material Symbols "warning" 24×24)
       declare
@@ -241,7 +241,7 @@ begin
       Set_Part_Styles (Custom_Dialog.all, Backdrop_Class_Part_Styles);
       Set_Title (Custom_Dialog.all, "Custom Content");
       Set_OK_Cancel (Custom_Dialog.all);
-      Set_On_Result (Custom_Dialog.all, On_Custom_Result'Unrestricted_Access);
+      Connect_Result (Custom_Dialog.all, On_Custom_Result'Unrestricted_Access);
 
       --  Build custom content: a box with two labels
       declare
@@ -271,7 +271,7 @@ begin
          Delete_Dialog := Delete_UI.Build;
          Attach_Window (Delete_Dialog.all, W);
          Set_Part_Styles (Delete_Dialog.all, Backdrop_Class_Part_Styles);
-         Set_On_Result (Delete_Dialog.all, On_Delete_Result'Unrestricted_Access);
+         Connect_Result (Delete_Dialog.all, On_Delete_Result'Unrestricted_Access);
       end;
 
       W.Set_Root (Root);

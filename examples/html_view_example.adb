@@ -172,9 +172,9 @@ begin
 
       Tabs.Set_Button (Preview_Tab, Btn_Preview);
       Tabs.Set_Button (Source_Tab, Btn_Source);
-      Tabs.Set_On_Changed (On_Tab_Changed'Unrestricted_Access);
+      Tabs.Connect_Changed (On_Tab_Changed'Unrestricted_Access);
 
-      Adi.Widget.Html_View.Set_On_Link_Click
+      Adi.Widget.Html_View.Connect_Link_Click
         (View.all, On_Link_Click'Unrestricted_Access);
       Adi.Widget.Html_View.Set_On_Load_Asset
         (View.all, On_Load_Asset'Unrestricted_Access);
@@ -185,9 +185,9 @@ begin
       Adi.Widget.Html_View.Set_HTML (View.all, HTML_Text);
 
       Adi.Widget.Text_Editor.Set_Text (Source_Editor.all, HTML_Text);
-      Adi.Widget.Text_Editor.Set_On_Changed
+      Adi.Widget.Text_Editor.Connect_Changed
         (Source_Editor.all, On_Source_Changed'Unrestricted_Access);
-      Float_Slider.Set_On_Changed
+      Float_Slider.Connect_Changed
         (Zoom_Slider.all, On_Zoom_Changed'Unrestricted_Access);
 
       Adi.Widget.Set_Label (Zoom_Slider.all, "Zoom: 100%");

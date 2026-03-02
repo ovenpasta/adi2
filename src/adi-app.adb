@@ -10,6 +10,7 @@ with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings;
 with Ada.Unchecked_Conversion;
 with Ada.Real_Time; use Ada.Real_Time;
+with Adi.Dispatch;
 
 package body Adi.App is
 
@@ -224,6 +225,10 @@ package body Adi.App is
                         null;
                 end case;
             end loop Poll_Events;
+
+            --  Drain deferred dispatch queue (posted from background
+            --  tasks or previous-frame callbacks).
+            Adi.Dispatch.Drain;
 
             --  Compute delta time
             Now := Clock;

@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Adi.Signal;
 with Adi.Widget.Text_Input; use Adi.Widget.Text_Input;
 with Adi.SDL.Events;
 
@@ -47,8 +48,18 @@ package Adi.Widget.Value_Input_Impl is
 
    type Value_Changed_Callback is access procedure
      (W : Value_Input_Widget_Access; Value : Value_Type);
-   procedure Set_On_Value_Changed (W  : in out Value_Input_Widget;
-                                    CB : Value_Changed_Callback);
+
+   package Value_Changed_Signals is new Adi.Signal
+     (Value_Changed_Callback, null);
+
+   procedure Connect_Value_Changed
+     (W : in out Value_Input_Widget; CB : Value_Changed_Callback);
+   function Connect_Value_Changed
+     (W : in out Value_Input_Widget; CB : Value_Changed_Callback)
+      return Value_Changed_Signals.Connection_Id;
+   procedure Disconnect_Value_Changed
+     (W : in out Value_Input_Widget;
+      Id : Value_Changed_Signals.Connection_Id);
 
    overriding procedure On_Text_Input
      (W : in out Value_Input_Widget; Text : String);
@@ -71,7 +82,7 @@ private
       Max_Value      : Value_Type := Zero;
       Step           : Value_Type := Zero;
       Updating_Text  : Boolean := False;
-      On_Val_Changed : Value_Changed_Callback := null;
+      Value_Changed : Value_Changed_Signals.Signal;
    end record;
 
 end Adi.Widget.Value_Input_Impl;

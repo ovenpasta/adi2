@@ -2,6 +2,7 @@ with Ada.Containers.Indefinite_Holders;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 with Adi.SDL.Events;
+with Adi.Signal;
 with Adi.Widget.Box;
 with Adi.Widget.Button;
 with Adi.Widget.Label;
@@ -70,9 +71,16 @@ package Adi.Widget.Dialog is
      (Dlg          : Dialog_Widget_Access;
       Button_Index : Natural;
       Button_Text  : String);
-   procedure Set_On_Result
-     (W  : in out Dialog_Widget;
-      CB : Dialog_Result_Callback);
+
+   package Result_Signals is new Adi.Signal (Dialog_Result_Callback, null);
+
+   procedure Connect_Result
+     (W : in out Dialog_Widget; CB : Dialog_Result_Callback);
+   function Connect_Result
+     (W : in out Dialog_Widget; CB : Dialog_Result_Callback)
+      return Result_Signals.Connection_Id;
+   procedure Disconnect_Result
+     (W : in out Dialog_Widget; Id : Result_Signals.Connection_Id);
 
    --  Style injection for sub-widgets
    procedure Set_Panel_Style
@@ -143,7 +151,7 @@ private
       Shown         : Boolean := False;
       Dismiss_On_Backdrop_Flag : Boolean := True;
       Dismiss_On_Escape_Flag   : Boolean := True;
-      On_Result     : Dialog_Result_Callback := null;
+      Result : Result_Signals.Signal;
       Button_Styles : Part_Style_Array := Empty_Part_Styles;
       Has_Button_Styles : Boolean := False;
       Default_Button_Index : Natural := 0;

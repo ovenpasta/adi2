@@ -1759,17 +1759,31 @@ package body Adi.Widget is
       return W.Flags (F);
    end Has_Flag;
 
-   procedure Set_On_Context_Menu
-     (W  : in out Widget'Class;
-      CB : Context_Menu_Callback)
+   procedure Connect_Context_Menu
+     (W : in out Widget'Class; CB : Context_Menu_Callback)
    is
    begin
-      W.On_Context_Menu := CB;
-   end Set_On_Context_Menu;
+      W.Context_Menu_Sig.Connect (CB);
+   end Connect_Context_Menu;
+
+   function Connect_Context_Menu
+     (W : in out Widget'Class; CB : Context_Menu_Callback)
+      return Context_Menu_Signals.Connection_Id
+   is
+   begin
+      return W.Context_Menu_Sig.Connect (CB);
+   end Connect_Context_Menu;
+
+   procedure Disconnect_Context_Menu
+     (W : in out Widget'Class; Id : Context_Menu_Signals.Connection_Id)
+   is
+   begin
+      W.Context_Menu_Sig.Disconnect (Id);
+   end Disconnect_Context_Menu;
 
    function Has_Context_Menu (W : Widget'Class) return Boolean is
    begin
-      return W.On_Context_Menu /= null;
+      return W.Context_Menu_Sig.Subscriber_Count > 0;
    end Has_Context_Menu;
 
    function Show_Context_Menu
@@ -1778,11 +1792,17 @@ package body Adi.Widget is
    is
       Self : constant Widget_Access := W'Unchecked_Access;
    begin
-      if W.On_Context_Menu = null then
+      if W.Context_Menu_Sig.Subscriber_Count = 0 then
          return False;
       end if;
 
-      W.On_Context_Menu (Self, X, Y);
+      declare
+         procedure Call (CB : Context_Menu_Callback) is
+         begin CB (Self, X, Y); end Call;
+         procedure Emit is new Context_Menu_Signals.For_Each (Call);
+      begin
+         Emit (W.Context_Menu_Sig);
+      end;
       return True;
    end Show_Context_Menu;
 

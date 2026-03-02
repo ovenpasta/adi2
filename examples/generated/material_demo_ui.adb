@@ -143,13 +143,13 @@ package body Material_Demo_UI is
 
       --  Wire callbacks
       if On_Get_Started /= null then
-         Button_1.Set_On_Clicked (On_Get_Started);
+         Button_1.Connect_Clicked (On_Get_Started);
       end if;
       if On_Dark_Mode /= null then
-         Dark_Switch.Set_On_Toggled (On_Dark_Mode);
+         Dark_Switch.Connect_Toggled (On_Dark_Mode);
       end if;
       if On_Lock_UI /= null then
-         Lock_Switch.Set_On_Toggled (On_Lock_UI);
+         Lock_Switch.Connect_Toggled (On_Lock_UI);
       end if;
 
       --  Register precompiled styles as static fallback
@@ -344,10 +344,11 @@ package body Material_Demo_UI is
       Nav_Options_Group.Set_Button (Forms, Btn_Forms);
       Nav_Options_Group.Set_Button (Settings, Btn_Settings);
       Nav_Options_Group.Set_Button (Controls, Btn_Controls);
-      Nav_Options_Group.Set_On_Changed (On_Page_Option_Wrapper'Unrestricted_Access);
+      Nav_Options_Group.Disconnect_Changed (Nav_Options_Group_Conn);
+      Nav_Options_Group_Conn := Nav_Options_Group.Connect_Changed (On_Page_Option_Wrapper'Unrestricted_Access);
 
       --  Auto-wire CSS live reload
-      Adi.Window.Set_On_Tick (W.all, Tick_Styles_CB'Unrestricted_Access);
+      Adi.Window.Connect_Tick (W.all, Tick_Styles_CB'Unrestricted_Access);
 
       W.Set_Root (Root);
       return W;

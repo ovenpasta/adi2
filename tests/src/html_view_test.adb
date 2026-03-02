@@ -252,7 +252,7 @@ procedure Html_View_Test is
    begin
       Put_Line ("Test: Callback registration and mouse safety");
 
-      Adi.Widget.Html_View.Set_On_Link_Click
+      Adi.Widget.Html_View.Connect_Link_Click
         (W.all, On_Link_Click'Unrestricted_Access);
       Adi.Widget.Html_View.Set_On_Load_Asset
         (W.all, On_Load_Asset'Unrestricted_Access);
@@ -597,7 +597,7 @@ procedure Html_View_Test is
    begin
       Put_Line ("Test: Clipping-aware link hit testing");
 
-      Adi.Widget.Html_View.Set_On_Link_Click
+      Adi.Widget.Html_View.Connect_Link_Click
         (W.all, On_Link_Click'Unrestricted_Access);
       Adi.Widget.Html_View.Set_HTML
         (W.all,

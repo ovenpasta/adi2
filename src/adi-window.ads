@@ -5,6 +5,7 @@ with Adi.Render;     use Adi.Render;
 with Adi.SDL.Video;  use Adi.SDL.Video;
 with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.SDL.Events;
+with Adi.Signal;
 with System;
 
 package Adi.Window is
@@ -76,7 +77,16 @@ package Adi.Window is
 
     --  Per-frame callback, invoked before animations
     type Tick_Callback is access procedure (DT : Duration);
-    procedure Set_On_Tick (W : in out Window; CB : Tick_Callback);
+
+    package Tick_Signals is new Adi.Signal (Tick_Callback, null);
+
+    procedure Connect_Tick
+      (W : in out Window; CB : Tick_Callback);
+    function Connect_Tick
+      (W : in out Window; CB : Tick_Callback)
+       return Tick_Signals.Connection_Id;
+    procedure Disconnect_Tick
+      (W : in out Window; Id : Tick_Signals.Connection_Id);
 
     --  Advance animations by DT seconds on all widgets in this window
     procedure Tick (W : in out Window; DT : Duration);
@@ -106,17 +116,31 @@ package Adi.Window is
     type Post_Render_Proc is access procedure
       (Win      : not null access Window'Class;
        Renderer : SDL_Renderer_Ptr);
-    procedure Set_Post_Render_Callback
-      (W  : in out Window;
-       CB : Post_Render_Proc);
+
+    package Post_Render_Signals is new Adi.Signal (Post_Render_Proc, null);
+
+    procedure Connect_Post_Render
+      (W : in out Window; CB : Post_Render_Proc);
+    function Connect_Post_Render
+      (W : in out Window; CB : Post_Render_Proc)
+       return Post_Render_Signals.Connection_Id;
+    procedure Disconnect_Post_Render
+      (W : in out Window; Id : Post_Render_Signals.Connection_Id);
 
     --  Per-frame callback, invoked unconditionally every frame regardless of
     --  dirty state.  Use for polling/IPC that must run even when idle.
     type Frame_Proc is access procedure
       (Win : not null access Window'Class);
-    procedure Set_Frame_Callback
-      (W  : in out Window;
-       CB : Frame_Proc);
+
+    package Frame_Signals is new Adi.Signal (Frame_Proc, null);
+
+    procedure Connect_Frame
+      (W : in out Window; CB : Frame_Proc);
+    function Connect_Frame
+      (W : in out Window; CB : Frame_Proc)
+       return Frame_Signals.Connection_Id;
+    procedure Disconnect_Frame
+      (W : in out Window; Id : Frame_Signals.Connection_Id);
 
     --  Read-only snapshot of per-frame performance stats
     type Frame_Stats is record
@@ -156,9 +180,9 @@ private
         Needs_Layout   : Boolean       := True;
         Resize_Triggered_Layout : Boolean := False;
         Force_Redraw   : Boolean       := False;
-        On_Tick_CB     : Tick_Callback := null;
-        Post_Render_CB : Post_Render_Proc := null;
-        Frame_CB       : Frame_Proc := null;
+        Tick_Sig       : Tick_Signals.Signal;
+        Post_Render    : Post_Render_Signals.Signal;
+        Frame          : Frame_Signals.Signal;
         --  Debug stats overlay
         Debug_Stats_On     : Boolean  := False;
         Stats_Frame_No     : Natural  := 0;

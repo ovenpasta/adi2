@@ -42,8 +42,10 @@ private
      (Positive, Command_Binding);
 
    type Request_Binding is record
-      Target : Adi.Widget.Widget_Access := null;
-      Menu   : Adi.Widget.Context_Menu.Context_Menu_Access := null;
+      Target  : Adi.Widget.Widget_Access := null;
+      Menu    : Adi.Widget.Context_Menu.Context_Menu_Access := null;
+      Conn_Id : Adi.Widget.Context_Menu_Signals.Connection_Id :=
+        Adi.Widget.Context_Menu_Signals.No_Connection;
    end record;
 
    package Request_Binding_Vectors is new Ada.Containers.Vectors

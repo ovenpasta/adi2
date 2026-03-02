@@ -1,6 +1,7 @@
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Adi.Core;              use Adi.Core;
 with Adi.SDL.Events;
+with Adi.Signal;
 with Adi.Text_Buffer;
 with Adi.Widget.Context_Menu;
 with Adi.Widget;            use Adi.Widget;
@@ -26,8 +27,16 @@ package Adi.Widget.Text_Input is
 
    type Change_Callback is access procedure
      (W : Text_Input_Widget_Access; Text : String);
-   procedure Set_On_Changed (W : in out Text_Input_Widget;
-                             CB : Change_Callback);
+
+   package Change_Signals is new Adi.Signal (Change_Callback, null);
+
+   procedure Connect_Changed
+     (W : in out Text_Input_Widget; CB : Change_Callback);
+   function Connect_Changed
+     (W : in out Text_Input_Widget; CB : Change_Callback)
+      return Change_Signals.Connection_Id;
+   procedure Disconnect_Changed
+     (W : in out Text_Input_Widget; Id : Change_Signals.Connection_Id);
 
    overriding procedure Build_Items (W : in out Text_Input_Widget);
    overriding procedure Layout (W : in out Text_Input_Widget);
@@ -69,7 +78,7 @@ private
 
    type Text_Input_Widget is new Widget with record
       Buffer     : aliased Adi.Text_Buffer.Text_Buffer;
-      On_Changed : Change_Callback := null;
+      Changed : Change_Signals.Signal;
       Drag_Selecting : Boolean := False;
       Pending_Word_Select : Boolean := False;
       Press_X : Pixel_Type := 0.0;

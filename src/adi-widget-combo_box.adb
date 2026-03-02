@@ -121,10 +121,13 @@ package body Adi.Widget.Combo_Box is
 
    procedure Fire_Changed (W : in out Combo_Box_Widget) is
       Self : constant Combo_Box_Widget_Access := W'Unchecked_Access;
+      Idx  : constant Natural := W.Selected;
+      Text : constant String := Get_Selected_Text (W);
+      procedure Call (CB : Selection_Changed_Callback) is
+      begin CB (Self, Idx, Text); end Call;
+      procedure Emit is new Selection_Changed_Signals.For_Each (Call);
    begin
-      if W.On_Changed /= null then
-         W.On_Changed (Self, W.Selected, Get_Selected_Text (W));
-      end if;
+      Emit (W.Changed);
    end Fire_Changed;
 
    function Resolve_Popup_Row_Content_Height
@@ -263,7 +266,7 @@ package body Adi.Widget.Combo_Box is
       Popup_Lists.Set_Selection_Mode
         (Result.Popup.all, Popup_Lists.Single_Selection);
       Set_Flag (Result.Popup.all, Focusable, False);
-      Popup_Lists.Set_On_Item_Clicked
+      Popup_Lists.Connect_Item_Clicked
         (Result.Popup.all, On_Popup_Item_Clicked'Access);
 
       if not Default_Dropdown_Styles.Is_Empty then
@@ -362,13 +365,30 @@ package body Adi.Widget.Combo_Box is
       return To_String (W.Options.Element (Positive (W.Selected)));
    end Get_Selected_Text;
 
-   procedure Set_On_Selection_Changed
+   procedure Connect_Selection_Changed
      (W  : in out Combo_Box_Widget;
       CB : Selection_Changed_Callback)
    is
    begin
-      W.On_Changed := CB;
-   end Set_On_Selection_Changed;
+      W.Changed.Connect (CB);
+   end Connect_Selection_Changed;
+
+   function Connect_Selection_Changed
+     (W  : in out Combo_Box_Widget;
+      CB : Selection_Changed_Callback)
+      return Selection_Changed_Signals.Connection_Id
+   is
+   begin
+      return W.Changed.Connect (CB);
+   end Connect_Selection_Changed;
+
+   procedure Disconnect_Selection_Changed
+     (W  : in out Combo_Box_Widget;
+      Id : Selection_Changed_Signals.Connection_Id)
+   is
+   begin
+      W.Changed.Disconnect (Id);
+   end Disconnect_Selection_Changed;
 
    procedure Set_Dropdown_Part_Styles
      (W      : in out Combo_Box_Widget;

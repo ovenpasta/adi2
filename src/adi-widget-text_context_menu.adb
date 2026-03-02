@@ -130,7 +130,7 @@ package body Adi.Widget.Text_Context_Menu is
       Adi.Widget.Context_Menu.Add_Item (Menu.all, "Copy");
       Adi.Widget.Context_Menu.Add_Item (Menu.all, "Paste");
       Adi.Widget.Context_Menu.Add_Item (Menu.all, "Select All");
-      Adi.Widget.Context_Menu.Set_On_Item_Selected
+      Adi.Widget.Context_Menu.Connect_Item_Selected
         (Menu.all, On_Menu_Command'Access);
 
       declare
@@ -163,15 +163,25 @@ package body Adi.Widget.Text_Context_Menu is
    is
       T_Access : constant Adi.Widget.Widget_Access := Target'Unchecked_Access;
       I        : constant Natural := Find_Request_Binding (T_Access);
+      Conn     : Context_Menu_Signals.Connection_Id;
    begin
+      if I /= 0 then
+         --  Disconnect previous subscription before reconnecting.
+         Disconnect_Context_Menu
+           (Target, Request_Bindings.Element (I).Conn_Id);
+      end if;
+      Conn := Connect_Context_Menu (Target, On_Context_Request'Access);
       if I = 0 then
          Request_Bindings.Append
-           (New_Item => Request_Binding'(Target => T_Access, Menu => Menu));
+           (New_Item => Request_Binding'(Target  => T_Access,
+                                         Menu    => Menu,
+                                         Conn_Id => Conn));
       else
-         Request_Bindings.Replace_Element (I, (Target => T_Access, Menu => Menu));
+         Request_Bindings.Replace_Element
+           (I, (Target  => T_Access,
+                Menu    => Menu,
+                Conn_Id => Conn));
       end if;
-
-      Set_On_Context_Menu (Target, On_Context_Request'Access);
    end Bind_Widget_Request;
 
 end Adi.Widget.Text_Context_Menu;

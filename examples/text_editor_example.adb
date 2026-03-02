@@ -171,8 +171,8 @@ begin
       Set_Part_Styles (Wrap_Switch.all, Wrap_Switch_Class_Part_Styles);
       Set_Part_Styles (Editor.all, Editor_Class_Part_Styles);
       Set_Part_Styles (Open_Btn.all, Open_Btn_Class_Part_Styles);
-      Open_Btn.Set_On_Clicked (On_Open_Click'Unrestricted_Access);
-      Wrap_Switch.Set_On_Toggled (On_Wrap_Toggled'Unrestricted_Access);
+      Open_Btn.Connect_Clicked (On_Open_Click'Unrestricted_Access);
+      Wrap_Switch.Connect_Toggled (On_Wrap_Toggled'Unrestricted_Access);
       Apply_Wrap (True);
       Set_Context_Menu_Part_Styles (Editor.all, Context_Menu_Class_Part_Styles);
       Set_Context_Menu_Item_Part_Styles (Editor.all, Context_Menu_Item_Class_Part_Styles);

@@ -44,7 +44,7 @@ package Stack_Example_Green_Styles is
    --  Base style for class 'page-desc'::label
    Page_Desc_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGBA (255, 255, 255, 0.7)),
-      Font_Size => Set_Font (Px (111.0)),
+      Font_Size => Set_Font (Px (18.0)),
       Font_Weight => Set (Weight_Normal),
       others => <>
    );

@@ -678,7 +678,7 @@ procedure Window_Resize_Safety_Test is
 
       Adi.Widget.Dialog.Attach_Window (Dlg.all, W);
       Adi.Widget.Dialog.Set_OK_Cancel (Dlg.all);  --  default index = 2 (OK)
-      Adi.Widget.Dialog.Set_On_Result (Dlg.all, On_Result'Unrestricted_Access);
+      Adi.Widget.Dialog.Connect_Result (Dlg.all, On_Result'Unrestricted_Access);
 
       Btn_1 := Adi.Widget.Dialog.Get_Button (Dlg.all, 1);
       Btn_2 := Adi.Widget.Dialog.Get_Button (Dlg.all, 2);

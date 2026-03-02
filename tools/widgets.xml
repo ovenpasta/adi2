@@ -44,8 +44,8 @@
     <attribute name="icon" type="image" setter="Set_Icon"/>
     <attribute name="toggleable" type="bool" setter="Set_Toggleable" setter-style="flag"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
-    <attribute name="on-clicked" type="callback" setter="Set_On_Clicked"/>
-    <attribute name="on-toggled" type="callback" setter="Set_On_Toggled"/>
+    <attribute name="on-clicked" type="callback" setter="Connect_Clicked"/>
+    <attribute name="on-toggled" type="callback" setter="Connect_Toggled"/>
   </widget>
 
   <widget tag="switch">
@@ -54,7 +54,7 @@
     <create>{package}.Create ({checked})</create>
     <attribute name="checked" type="bool" create-param="true" default="False"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
-    <attribute name="on-toggled" type="callback" setter="Set_On_Toggled"/>
+    <attribute name="on-toggled" type="callback" setter="Connect_Toggled"/>
   </widget>
 
   <widget tag="stack" generic="true" children-mode="pages">
@@ -62,7 +62,7 @@
     <access-type>Stack_Widget_Access</access-type>
     <create>{generic_name}.Create</create>
     <attribute name="generic" type="string" required="true" meta="true"/>
-    <attribute name="on-changed" type="callback" setter="Set_On_Changed"/>
+    <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>
 
   <widget tag="text-input">
@@ -71,7 +71,7 @@
     <create>{package}.Create ("{text}")</create>
     <attribute name="text" type="string" create-param="true"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
-    <attribute name="on-changed" type="callback" setter="Set_On_Changed"/>
+    <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>
 
   <widget tag="text-editor">
@@ -80,7 +80,7 @@
     <create>{package}.Create ("{text}")</create>
     <attribute name="text" type="string" create-param="true"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
-    <attribute name="on-changed" type="callback" setter="Set_On_Changed"/>
+    <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>
 
   <widget tag="combo-box" children-mode="items">
@@ -88,7 +88,7 @@
     <access-type>Combo_Box_Widget_Access</access-type>
     <create>{package}.Create</create>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
-    <attribute name="on-selection-changed" type="callback" setter="Set_On_Selection_Changed"/>
+    <attribute name="on-selection-changed" type="callback" setter="Connect_Selection_Changed"/>
   </widget>
 
   <widget tag="image">
@@ -130,9 +130,9 @@
     <access-type>List_Box_Widget_Access</access-type>
     <create>{generic_name}.Create</create>
     <attribute name="generic" type="string" required="true" meta="true"/>
-    <attribute name="on-item-clicked" type="callback" setter="Set_On_Item_Clicked"/>
-    <attribute name="on-item-activated" type="callback" setter="Set_On_Item_Activated"/>
-    <attribute name="on-selection-changed" type="callback" setter="Set_On_Selection_Changed"/>
+    <attribute name="on-item-clicked" type="callback" setter="Connect_Item_Clicked"/>
+    <attribute name="on-item-activated" type="callback" setter="Connect_Item_Activated"/>
+    <attribute name="on-selection-changed" type="callback" setter="Connect_Selection_Changed"/>
   </widget>
 
   <widget tag="slider" generic="true">
@@ -144,7 +144,7 @@
     <attribute name="max" type="string" create-param="true"/>
     <attribute name="value" type="string" create-param="true"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
-    <attribute name="on-changed" type="callback" setter="Set_On_Changed"/>
+    <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>
 
   <widget tag="integer-slider" generic="true">
@@ -156,7 +156,7 @@
     <attribute name="max" type="string" create-param="true"/>
     <attribute name="value" type="string" create-param="true"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
-    <attribute name="on-changed" type="callback" setter="Set_On_Changed"/>
+    <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>
 
   <widget tag="value-input" generic="true">
@@ -168,7 +168,7 @@
     <attribute name="max" type="string" create-param="true"/>
     <attribute name="value" type="string" create-param="true"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
-    <attribute name="on-value-changed" type="callback" setter="Set_On_Value_Changed"/>
+    <attribute name="on-value-changed" type="callback" setter="Connect_Value_Changed"/>
   </widget>
 
   <widget tag="integer-value-input" generic="true">
@@ -180,7 +180,7 @@
     <attribute name="max" type="string" create-param="true"/>
     <attribute name="value" type="string" create-param="true"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
-    <attribute name="on-value-changed" type="callback" setter="Set_On_Value_Changed"/>
+    <attribute name="on-value-changed" type="callback" setter="Connect_Value_Changed"/>
   </widget>
 
 </widgets>

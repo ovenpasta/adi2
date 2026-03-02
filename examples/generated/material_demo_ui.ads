@@ -57,6 +57,8 @@ package Material_Demo_UI is
       Lock_Switch : Adi.Widget.Button.Switch.Switch_Widget_Access;
 
       Nav_Options_Group : aliased Nav_Options.Option_Group;
+      Nav_Options_Group_Conn : Nav_Options.Option_Changed_Signals.Connection_Id :=
+        Nav_Options.Option_Changed_Signals.No_Connection;
 
       function Build return Adi.Window.Window_Access;
 

@@ -120,10 +120,10 @@ begin
       Viewer.Set_Looping (True);
       Viewer.Set_Max_Size (Max_Width => 500.0, Max_Height => 280.0);
 
-      Btn_Play.Set_On_Clicked (On_Play'Unrestricted_Access);
-      Btn_Stop.Set_On_Clicked (On_Stop'Unrestricted_Access);
-      Btn_Rew.Set_On_Clicked (On_Rew'Unrestricted_Access);
-      Btn_Loop.Set_On_Toggled (On_Loop_Toggled'Unrestricted_Access);
+      Btn_Play.Connect_Clicked (On_Play'Unrestricted_Access);
+      Btn_Stop.Connect_Clicked (On_Stop'Unrestricted_Access);
+      Btn_Rew.Connect_Clicked (On_Rew'Unrestricted_Access);
+      Btn_Loop.Connect_Toggled (On_Loop_Toggled'Unrestricted_Access);
 
       Root.Add_Child (Header);
       Header.Add_Child (Title);

@@ -1,6 +1,7 @@
 with Ada.Containers.Vectors;
 with Adi.Core;              use Adi.Core;
 with Adi.SDL.Events;
+with Adi.Signal;
 with Adi.Widget;            use Adi.Widget;
 
 generic
@@ -46,15 +47,37 @@ package Adi.Widget.List_Box is
    type Selection_Changed_Callback is access procedure
      (W : List_Box_Widget_Access);
 
-   procedure Set_On_Item_Clicked
-     (W  : in out List_Box_Widget;
-      CB : Item_Clicked_Callback);
-   procedure Set_On_Item_Activated
-     (W  : in out List_Box_Widget;
-      CB : Item_Activated_Callback);
-   procedure Set_On_Selection_Changed
-     (W  : in out List_Box_Widget;
-      CB : Selection_Changed_Callback);
+   package Item_Clicked_Signals is new Adi.Signal
+     (Item_Clicked_Callback, null);
+   package Item_Activated_Signals is new Adi.Signal
+     (Item_Activated_Callback, null);
+   package Selection_Changed_Signals is new Adi.Signal
+     (Selection_Changed_Callback, null);
+
+   procedure Connect_Item_Clicked
+     (W : in out List_Box_Widget; CB : Item_Clicked_Callback);
+   function Connect_Item_Clicked
+     (W : in out List_Box_Widget; CB : Item_Clicked_Callback)
+      return Item_Clicked_Signals.Connection_Id;
+   procedure Disconnect_Item_Clicked
+     (W : in out List_Box_Widget; Id : Item_Clicked_Signals.Connection_Id);
+
+   procedure Connect_Item_Activated
+     (W : in out List_Box_Widget; CB : Item_Activated_Callback);
+   function Connect_Item_Activated
+     (W : in out List_Box_Widget; CB : Item_Activated_Callback)
+      return Item_Activated_Signals.Connection_Id;
+   procedure Disconnect_Item_Activated
+     (W : in out List_Box_Widget; Id : Item_Activated_Signals.Connection_Id);
+
+   procedure Connect_Selection_Changed
+     (W : in out List_Box_Widget; CB : Selection_Changed_Callback);
+   function Connect_Selection_Changed
+     (W : in out List_Box_Widget; CB : Selection_Changed_Callback)
+      return Selection_Changed_Signals.Connection_Id;
+   procedure Disconnect_Selection_Changed
+     (W : in out List_Box_Widget;
+      Id : Selection_Changed_Signals.Connection_Id);
 
    overriding procedure Build_Items (W : in out List_Box_Widget);
    overriding procedure Layout (W : in out List_Box_Widget);
@@ -100,9 +123,9 @@ private
       Anchor_Row     : Natural := 0;
       Hovered_Row    : Natural := 0;
       Mode           : Selection_Mode := Single_Selection;
-      On_Item_Click  : Item_Clicked_Callback := null;
-      On_Item_Act    : Item_Activated_Callback := null;
-      On_Select      : Selection_Changed_Callback := null;
+      Item_Clicked       : Item_Clicked_Signals.Signal;
+      Item_Activated     : Item_Activated_Signals.Signal;
+      Selection_Changed  : Selection_Changed_Signals.Signal;
    end record;
 
 end Adi.Widget.List_Box;

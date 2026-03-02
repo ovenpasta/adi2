@@ -3,6 +3,7 @@ with Ada.Strings.Unbounded;
 with Adi.Core;              use Adi.Core;
 with Adi.Image;
 with Adi.SDL.Events;
+with Adi.Signal;
 with Adi.Widget;            use Adi.Widget;
 with Adi.Widget.Label;
 with Adi.Widget.List_Box;
@@ -25,9 +26,18 @@ package Adi.Widget.Combo_Box is
 
    type Selection_Changed_Callback is access procedure
      (W : Combo_Box_Widget_Access; Index : Natural; Text : String);
-   procedure Set_On_Selection_Changed
-     (W  : in out Combo_Box_Widget;
-      CB : Selection_Changed_Callback);
+
+   package Selection_Changed_Signals is new Adi.Signal
+     (Selection_Changed_Callback, null);
+
+   procedure Connect_Selection_Changed
+     (W : in out Combo_Box_Widget; CB : Selection_Changed_Callback);
+   function Connect_Selection_Changed
+     (W : in out Combo_Box_Widget; CB : Selection_Changed_Callback)
+      return Selection_Changed_Signals.Connection_Id;
+   procedure Disconnect_Selection_Changed
+     (W : in out Combo_Box_Widget;
+      Id : Selection_Changed_Signals.Connection_Id);
 
    procedure Set_Dropdown_Part_Styles
      (W      : in out Combo_Box_Widget;
@@ -95,7 +105,7 @@ private
       Has_Option_Row_Styles : Boolean := False;
       Selected    : Natural := 0;
       Open        : Boolean := False;
-      On_Changed  : Selection_Changed_Callback := null;
+      Changed : Selection_Changed_Signals.Signal;
       Layout_Items : Layout_Item_List.Vector;
       Arrow_Down_Img : Adi.Image.Image_Access := null;
       Arrow_Up_Img   : Adi.Image.Image_Access := null;

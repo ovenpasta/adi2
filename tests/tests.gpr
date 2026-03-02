@@ -22,7 +22,9 @@ project Tests is
       "style_storage_equivalence_test",
       "window_resize_safety_test",
       "mcp_test",
-      "bundle_test");
+      "bundle_test",
+      "signal_test",
+      "dispatch_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("src");

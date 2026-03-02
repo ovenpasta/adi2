@@ -63,8 +63,8 @@ begin
       Set_Option_Row_Part_Styles (Color_Combo.all, Option_Row_Class_Part_Styles);
       Set_Option_Row_Part_Styles (City_Combo.all, Option_Row_Class_Part_Styles);
 
-      Color_Combo.Set_On_Selection_Changed (On_Combo_Changed'Unrestricted_Access);
-      City_Combo.Set_On_Selection_Changed (On_Combo_Changed'Unrestricted_Access);
+      Color_Combo.Connect_Selection_Changed (On_Combo_Changed'Unrestricted_Access);
+      City_Combo.Connect_Selection_Changed (On_Combo_Changed'Unrestricted_Access);
 
       Add_Item (Color_Combo.all, "Crimson");
       Add_Item (Color_Combo.all, "Emerald");

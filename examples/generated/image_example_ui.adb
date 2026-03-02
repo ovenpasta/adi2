@@ -246,7 +246,7 @@ package body Image_Example_UI is
       Root.Add_Child (Box_12);
 
       --  Auto-wire CSS live reload
-      Adi.Window.Set_On_Tick (W.all, Tick_Styles_CB'Unrestricted_Access);
+      Adi.Window.Connect_Tick (W.all, Tick_Styles_CB'Unrestricted_Access);
 
       W.Set_Root (Root);
       return W;

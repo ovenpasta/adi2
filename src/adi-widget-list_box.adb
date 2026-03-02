@@ -29,10 +29,11 @@ package body Adi.Widget.List_Box is
 
    procedure Fire_Selection_Changed (W : in out List_Box_Widget) is
       Self : constant List_Box_Widget_Access := W'Unchecked_Access;
+      procedure Call (CB : Selection_Changed_Callback) is
+      begin CB (Self); end Call;
+      procedure Emit is new Selection_Changed_Signals.For_Each (Call);
    begin
-      if W.On_Select /= null then
-         W.On_Select (Self);
-      end if;
+      Emit (W.Selection_Changed);
    end Fire_Selection_Changed;
 
    procedure Sync_Row_Selection_State (W : in out List_Box_Widget) is
@@ -462,26 +463,69 @@ package body Adi.Widget.List_Box is
       return W.Current_Row;
    end Get_Current_Row;
 
-   procedure Set_On_Item_Clicked
+   procedure Connect_Item_Clicked
      (W  : in out List_Box_Widget;
       CB : Item_Clicked_Callback) is
    begin
-      W.On_Item_Click := CB;
-   end Set_On_Item_Clicked;
+      W.Item_Clicked.Connect (CB);
+   end Connect_Item_Clicked;
 
-   procedure Set_On_Item_Activated
+   function Connect_Item_Clicked
+     (W  : in out List_Box_Widget;
+      CB : Item_Clicked_Callback)
+      return Item_Clicked_Signals.Connection_Id is
+   begin
+      return W.Item_Clicked.Connect (CB);
+   end Connect_Item_Clicked;
+
+   procedure Disconnect_Item_Clicked
+     (W : in out List_Box_Widget; Id : Item_Clicked_Signals.Connection_Id) is
+   begin
+      W.Item_Clicked.Disconnect (Id);
+   end Disconnect_Item_Clicked;
+
+   procedure Connect_Item_Activated
      (W  : in out List_Box_Widget;
       CB : Item_Activated_Callback) is
    begin
-      W.On_Item_Act := CB;
-   end Set_On_Item_Activated;
+      W.Item_Activated.Connect (CB);
+   end Connect_Item_Activated;
 
-   procedure Set_On_Selection_Changed
+   function Connect_Item_Activated
+     (W  : in out List_Box_Widget;
+      CB : Item_Activated_Callback)
+      return Item_Activated_Signals.Connection_Id is
+   begin
+      return W.Item_Activated.Connect (CB);
+   end Connect_Item_Activated;
+
+   procedure Disconnect_Item_Activated
+     (W : in out List_Box_Widget; Id : Item_Activated_Signals.Connection_Id) is
+   begin
+      W.Item_Activated.Disconnect (Id);
+   end Disconnect_Item_Activated;
+
+   procedure Connect_Selection_Changed
      (W  : in out List_Box_Widget;
       CB : Selection_Changed_Callback) is
    begin
-      W.On_Select := CB;
-   end Set_On_Selection_Changed;
+      W.Selection_Changed.Connect (CB);
+   end Connect_Selection_Changed;
+
+   function Connect_Selection_Changed
+     (W  : in out List_Box_Widget;
+      CB : Selection_Changed_Callback)
+      return Selection_Changed_Signals.Connection_Id is
+   begin
+      return W.Selection_Changed.Connect (CB);
+   end Connect_Selection_Changed;
+
+   procedure Disconnect_Selection_Changed
+     (W : in out List_Box_Widget;
+      Id : Selection_Changed_Signals.Connection_Id) is
+   begin
+      W.Selection_Changed.Disconnect (Id);
+   end Disconnect_Selection_Changed;
 
    overriding procedure Build_Items (W : in out List_Box_Widget) is
    begin
@@ -699,11 +743,23 @@ package body Adi.Widget.List_Box is
 
       Ensure_Row_Visible (W, Positive (Index));
 
-      if W.On_Item_Click /= null then
-         W.On_Item_Click (Self, Positive (Index), Clicks);
-      end if;
-      if Clicks >= 2 and then W.On_Item_Act /= null then
-         W.On_Item_Act (Self, Positive (Index));
+      declare
+         Idx : constant Positive := Positive (Index);
+         procedure Call_Click (CB : Item_Clicked_Callback) is
+         begin CB (Self, Idx, Clicks); end Call_Click;
+         procedure Emit_Click is new Item_Clicked_Signals.For_Each (Call_Click);
+      begin
+         Emit_Click (W.Item_Clicked);
+      end;
+      if Clicks >= 2 then
+         declare
+            Idx : constant Positive := Positive (Index);
+            procedure Call_Act (CB : Item_Activated_Callback) is
+            begin CB (Self, Idx); end Call_Act;
+            procedure Emit_Act is new Item_Activated_Signals.For_Each (Call_Act);
+         begin
+            Emit_Act (W.Item_Activated);
+         end;
       end if;
 
       Mark_Dirty (W);

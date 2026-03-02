@@ -1,3 +1,4 @@
+with Adi.Signal;
 with Adi.Widget.Label; use Adi.Widget.Label;
 with Adi.SDL.Events;
 
@@ -21,9 +22,27 @@ package Adi.Widget.Button is
    type Toggle_Callback is access procedure
      (Btn : Button_Widget_Access; Active : Boolean);
 
-   --  Set callbacks
-   procedure Set_On_Clicked (W : in out Button_Widget; CB : Click_Callback);
-   procedure Set_On_Toggled (W : in out Button_Widget; CB : Toggle_Callback);
+   --  Signal packages
+   package Click_Signals is new Adi.Signal (Click_Callback, null);
+   package Toggle_Signals is new Adi.Signal (Toggle_Callback, null);
+
+   --  Connect/disconnect click subscribers
+   procedure Connect_Clicked
+     (W : in out Button_Widget; CB : Click_Callback);
+   function Connect_Clicked
+     (W : in out Button_Widget; CB : Click_Callback)
+      return Click_Signals.Connection_Id;
+   procedure Disconnect_Clicked
+     (W : in out Button_Widget; Id : Click_Signals.Connection_Id);
+
+   --  Connect/disconnect toggle subscribers
+   procedure Connect_Toggled
+     (W : in out Button_Widget; CB : Toggle_Callback);
+   function Connect_Toggled
+     (W : in out Button_Widget; CB : Toggle_Callback)
+      return Toggle_Signals.Connection_Id;
+   procedure Disconnect_Toggled
+     (W : in out Button_Widget; Id : Toggle_Signals.Connection_Id);
 
    --  Toggle mode
    procedure Set_Toggleable (W : in out Button_Widget;
@@ -68,8 +87,8 @@ private
 
    type Button_Widget is new Label_Widget with record
       Toggleable : Boolean := False;
-      On_Clicked : Click_Callback := null;
-      On_Toggled : Toggle_Callback := null;
+      Clicked    : Click_Signals.Signal;
+      Toggled    : Toggle_Signals.Signal;
       Group      : Group_Handler_Access := null;
    end record;
 

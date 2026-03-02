@@ -63,8 +63,18 @@ package Adi.Widget.Slider is
    function  Get_Orientation (W : Slider_Widget) return Orientation
      renames Impl.Get_Orientation;
 
-   procedure Set_On_Changed (W  : in out Slider_Widget;
+   subtype Value_Changed_Connection_Id is
+     Impl.Value_Changed_Signals.Connection_Id;
+
+   procedure Connect_Changed (W  : in out Slider_Widget;
+                               CB : Value_Changed_Callback)
+     renames Impl.Connect_Changed;
+   function Connect_Changed (W  : in out Slider_Widget;
                               CB : Value_Changed_Callback)
-     renames Impl.Set_On_Changed;
+     return Value_Changed_Connection_Id
+     renames Impl.Connect_Changed;
+   procedure Disconnect_Changed (W  : in out Slider_Widget;
+                                  Id : Value_Changed_Connection_Id)
+     renames Impl.Disconnect_Changed;
 
 end Adi.Widget.Slider;

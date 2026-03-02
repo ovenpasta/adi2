@@ -1,3 +1,5 @@
+with Adi.Signal;
+
 generic
    type Option_Type is (<>);
 package Adi.Widget.Button.Options is
@@ -10,10 +12,13 @@ package Adi.Widget.Button.Options is
    --  Clicking the already-selected button is a no-op.
    ---------------------------------------------------------------------------
 
-   type Option_Group is new Group_Handler with private;
+   type Option_Group is limited new Group_Handler with private;
    type Option_Group_Access is access all Option_Group;
 
    type Option_Changed_Callback is access procedure (Value : Option_Type);
+
+   package Option_Changed_Signals is new Adi.Signal
+     (Option_Changed_Callback, null);
 
    --  Associate a button with an option value.
    --  The button is made toggleable and linked to this group.
@@ -25,9 +30,14 @@ package Adi.Widget.Button.Options is
    function  Get_Selected (G : Option_Group) return Option_Type;
    procedure Set_Selected (G : in out Option_Group; O : Option_Type);
 
-   --  Callback when selection changes
-   procedure Set_On_Changed (G : in out Option_Group;
-                             CB : Option_Changed_Callback);
+   --  Connect/disconnect selection change subscribers
+   procedure Connect_Changed
+     (G : in out Option_Group; CB : Option_Changed_Callback);
+   function Connect_Changed
+     (G : in out Option_Group; CB : Option_Changed_Callback)
+      return Option_Changed_Signals.Connection_Id;
+   procedure Disconnect_Changed
+     (G : in out Option_Group; Id : Option_Changed_Signals.Connection_Id);
 
    --  Group_Handler dispatch (called by Button.On_Click)
    overriding procedure On_Button_Clicked
@@ -38,10 +48,10 @@ private
 
    type Button_Array is array (Option_Type) of Button_Widget_Access;
 
-   type Option_Group is new Group_Handler with record
+   type Option_Group is limited new Group_Handler with record
       Buttons     : Button_Array := [others => null];
       Selected    : Option_Type := Option_Type'First;
-      On_Changed  : Option_Changed_Callback := null;
+      Changed : Option_Changed_Signals.Signal;
       Initialized : Boolean := False;
    end record;
 

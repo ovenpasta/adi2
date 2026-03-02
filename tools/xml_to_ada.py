@@ -681,6 +681,16 @@ def generate_spec(app: XmlApp, package_name: str) -> str:
         lines.append(
             f"      {group_var} : aliased {og.generic_name}.Option_Group;"
         )
+        if og.on_changed:
+            conn_var = f"{og.generic_name}_Group_Conn"
+            lines.append(
+                f"      {conn_var} : {og.generic_name}"
+                f".Option_Changed_Signals.Connection_Id :="
+            )
+            lines.append(
+                f"        {og.generic_name}"
+                f".Option_Changed_Signals.No_Connection;"
+            )
     if exported_ogs:
         lines.append("")
 
@@ -863,6 +873,16 @@ def generate_body(app: XmlApp, package_name: str,
             group_var = f"{og.generic_name}_Group"
             lines.append(
                 f"   {group_var} : aliased {og.generic_name}.Option_Group;"
+            )
+        if og.on_changed and not og.id:
+            conn_var = f"{og.generic_name}_Group_Conn"
+            lines.append(
+                f"   {conn_var} : {og.generic_name}"
+                f".Option_Changed_Signals.Connection_Id :="
+            )
+            lines.append(
+                f"     {og.generic_name}"
+                f".Option_Changed_Signals.No_Connection;"
             )
 
     # Wrapper procedures for option group callbacks
@@ -1240,8 +1260,13 @@ def generate_body(app: XmlApp, package_name: str,
             )
         if og.on_changed:
             wrapper = f"{og.on_changed}_Option_Wrapper"
+            conn_var = f"{og.generic_name}_Group_Conn"
             og_lines.append(
-                f"      {group_var}.Set_On_Changed ({wrapper}'Unrestricted_Access);"
+                f"      {group_var}.Disconnect_Changed ({conn_var});"
+            )
+            og_lines.append(
+                f"      {conn_var} := {group_var}.Connect_Changed"
+                f" ({wrapper}'Unrestricted_Access);"
             )
     if og_lines:
         lines.append("      --  Wire option groups")
@@ -1252,7 +1277,7 @@ def generate_body(app: XmlApp, package_name: str,
     if has_window and (live_css or app.component_packages):
         lines.append("      --  Auto-wire CSS live reload")
         lines.append(
-            "      Adi.Window.Set_On_Tick"
+            "      Adi.Window.Connect_Tick"
             " (W.all, Tick_Styles_CB'Unrestricted_Access);"
         )
         lines.append("")

@@ -2860,13 +2860,27 @@ package body Adi.Widget.Html_View is
       return Self.Content_Scale;
    end Get_Content_Scale;
 
-   procedure Set_On_Link_Click
-     (Self     : in out Html_View;
-      Callback : Link_Click_Callback)
+   procedure Connect_Link_Click
+     (Self : in out Html_View; CB : Link_Click_Callback)
    is
    begin
-      Self.On_Link_Click := Callback;
-   end Set_On_Link_Click;
+      Self.Link_Click.Connect (CB);
+   end Connect_Link_Click;
+
+   function Connect_Link_Click
+     (Self : in out Html_View; CB : Link_Click_Callback)
+      return Link_Click_Signals.Connection_Id
+   is
+   begin
+      return Self.Link_Click.Connect (CB);
+   end Connect_Link_Click;
+
+   procedure Disconnect_Link_Click
+     (Self : in out Html_View; Id : Link_Click_Signals.Connection_Id)
+   is
+   begin
+      Self.Link_Click.Disconnect (Id);
+   end Disconnect_Link_Click;
 
    procedure Set_On_Load_Asset
      (Self     : in out Html_View;
@@ -2999,9 +3013,17 @@ package body Adi.Widget.Html_View is
         and then Self.Pressed_Is_Link
         and then Href'Length > 0
         and then Href = To_String (Self.Pressed_Href)
-        and then Self.On_Link_Click /= null
+        and then Self.Link_Click.Subscriber_Count > 0
       then
-         Self.On_Link_Click (Self'Unchecked_Access, Href);
+         declare
+            S : constant access Html_View := Self'Unchecked_Access;
+            H : constant String := Href;
+            procedure Call (CB : Link_Click_Callback) is
+            begin CB (S, H); end Call;
+            procedure Emit is new Link_Click_Signals.For_Each (Call);
+         begin
+            Emit (Self.Link_Click);
+         end;
       elsif Button = Left_Button and then Self.Pressed_Is_Link then
          Adi.Log.Debug ("Html_View: link click did not resolve on mouse up");
       end if;

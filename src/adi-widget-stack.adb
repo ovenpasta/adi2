@@ -66,9 +66,12 @@ package body Adi.Widget.Stack is
       Set_Flag (New_Page.all, Visible, True);
       Mark_Dirty (W);
 
-      if W.On_Changed /= null then
-         W.On_Changed (Id);
-      end if;
+      declare
+         procedure Call (CB : Page_Changed_Callback) is begin CB (Id); end Call;
+         procedure Emit is new Page_Changed_Signals.For_Each (Call);
+      begin
+         Emit (W.Changed);
+      end;
    end Set_Active;
 
    function Get_Active (W : Stack_Widget) return Page_Id is
@@ -89,11 +92,24 @@ package body Adi.Widget.Stack is
       return W.Pages (Id);
    end Get_Page;
 
-   procedure Set_On_Changed (W  : in out Stack_Widget;
+   procedure Connect_Changed (W  : in out Stack_Widget;
                               CB : Page_Changed_Callback) is
    begin
-      W.On_Changed := CB;
-   end Set_On_Changed;
+      W.Changed.Connect (CB);
+   end Connect_Changed;
+
+   function Connect_Changed (W  : in out Stack_Widget;
+                             CB : Page_Changed_Callback)
+      return Page_Changed_Signals.Connection_Id is
+   begin
+      return W.Changed.Connect (CB);
+   end Connect_Changed;
+
+   procedure Disconnect_Changed
+     (W : in out Stack_Widget; Id : Page_Changed_Signals.Connection_Id) is
+   begin
+      W.Changed.Disconnect (Id);
+   end Disconnect_Changed;
 
    ---------------------------------------------------------------------------
    --  Measurement

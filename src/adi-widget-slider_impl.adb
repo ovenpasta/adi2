@@ -50,10 +50,12 @@ package body Adi.Widget.Slider_Impl is
 
    procedure Fire_Changed (W : in out Slider_Widget) is
       Self : constant Slider_Widget_Access := W'Unchecked_Access;
+      Val  : constant Value_Type := W.Value;
+      procedure Call (CB : Value_Changed_Callback) is
+      begin CB (Self, Val); end Call;
+      procedure Emit is new Value_Changed_Signals.For_Each (Call);
    begin
-      if W.On_Changed /= null then
-         W.On_Changed (Self, W.Value);
-      end if;
+      Emit (W.Changed);
    end Fire_Changed;
 
    --  Convert a pixel position along the track to a value.
@@ -277,11 +279,24 @@ package body Adi.Widget.Slider_Impl is
       return W.Dir;
    end Get_Orientation;
 
-   procedure Set_On_Changed (W  : in out Slider_Widget;
+   procedure Connect_Changed (W  : in out Slider_Widget;
                               CB : Value_Changed_Callback) is
    begin
-      W.On_Changed := CB;
-   end Set_On_Changed;
+      W.Changed.Connect (CB);
+   end Connect_Changed;
+
+   function Connect_Changed (W  : in out Slider_Widget;
+                             CB : Value_Changed_Callback)
+      return Value_Changed_Signals.Connection_Id is
+   begin
+      return W.Changed.Connect (CB);
+   end Connect_Changed;
+
+   procedure Disconnect_Changed
+     (W : in out Slider_Widget; Id : Value_Changed_Signals.Connection_Id) is
+   begin
+      W.Changed.Disconnect (Id);
+   end Disconnect_Changed;
 
    ---------------------------------------------------------------------------
    --  Widget overrides

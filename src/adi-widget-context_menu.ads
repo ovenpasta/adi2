@@ -2,6 +2,7 @@ with Ada.Containers.Indefinite_Holders;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 with Adi.Core;              use Adi.Core;
+with Adi.Signal;
 with Adi.Widget;
 with Adi.Widget.Label;
 with Adi.Widget.List_Box;
@@ -9,13 +10,16 @@ with Adi.Window;
 
 package Adi.Widget.Context_Menu is
 
-   type Context_Menu is tagged private;
+   type Context_Menu is tagged limited private;
    type Context_Menu_Access is access all Context_Menu;
 
    type Item_Selected_Callback is access procedure
      (Menu  : Context_Menu_Access;
       Index : Positive;
       Text  : String);
+
+   package Item_Selected_Signals is new Adi.Signal
+     (Item_Selected_Callback, null);
 
    function Create return Context_Menu_Access;
 
@@ -29,9 +33,14 @@ package Adi.Widget.Context_Menu is
    procedure Clear_Items (Menu : in out Context_Menu);
    function Item_Count (Menu : Context_Menu) return Natural;
 
-   procedure Set_On_Item_Selected
+   procedure Connect_Item_Selected
+     (Menu : in out Context_Menu; CB : Item_Selected_Callback);
+   function Connect_Item_Selected
+     (Menu : in out Context_Menu; CB : Item_Selected_Callback)
+      return Item_Selected_Signals.Connection_Id;
+   procedure Disconnect_Item_Selected
      (Menu : in out Context_Menu;
-      CB   : Item_Selected_Callback);
+      Id   : Item_Selected_Signals.Connection_Id);
 
    procedure Set_Menu_Part_Styles
      (Menu   : in out Context_Menu;
@@ -65,13 +74,13 @@ private
      (Adi.Widget.Label.Label_Widget,
       Adi.Widget.Label.Label_Widget_Access);
 
-   type Context_Menu is tagged record
+   type Context_Menu is tagged limited record
       Host_Window : Adi.Window.Window_Access := null;
       Popup       : Popup_Lists.List_Box_Widget_Access := null;
       Items       : String_Vectors.Vector;
       Row_Styles  : Part_Style_Holders.Holder;
       Open        : Boolean := False;
-      On_Selected : Item_Selected_Callback := null;
+      Item_Selected : Item_Selected_Signals.Signal;
    end record;
 
 end Adi.Widget.Context_Menu;

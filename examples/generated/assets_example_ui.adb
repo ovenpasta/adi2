@@ -275,7 +275,7 @@ package body Assets_Example_UI is
       Box_1.Add_Child (Box_18);
 
       --  Auto-wire CSS live reload
-      Adi.Window.Set_On_Tick (W.all, Tick_Styles_CB'Unrestricted_Access);
+      Adi.Window.Connect_Tick (W.all, Tick_Styles_CB'Unrestricted_Access);
 
       W.Set_Root (Box_1);
       return W;

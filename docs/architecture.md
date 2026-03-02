@@ -120,6 +120,21 @@
 - Non-Windows behavior: writes to standard output
 - Library runtime modules use this instead of direct `Ada.Text_IO.Put_Line`
 
+**Adi.Signal** (generic, `adi-signal.ads`): Multi-subscriber signal/slot mechanism.
+- Generic over `Callback_Type` and `Null_Callback`
+- `Connect` subscribes a handler, returns a `Connection_Id` for later disconnection
+- `Connect_Unique` subscribes only if the same callback is not already active; returns existing ID on duplicate
+- `Disconnect(Id)` tombstones a slot; trailing tombstones are compacted
+- `Disconnect_All` clears all subscriptions
+- `For_Each` generic iterates active subscribers; emit sites instantiate with a local visitor
+- Emit-during-modify safe: `For_Each` snapshots length; connects during emit fire next emit; disconnects take effect immediately
+
+**Adi.Dispatch** (`adi-dispatch.ads`): Thread-safe deferred execution queue.
+- `Post(Proc)` queues a library-level procedure to run on the main thread next frame; thread-safe
+- `Drain` executes all pending procs in FIFO order then clears; called by `Adi.App.Run` each frame
+- Re-entrant safe: `Drain` swaps the queue before executing, so `Post` during `Drain` defers to next frame
+- `Pending_Count` for diagnostics
+
 **Adi.Font** (`adi-font.ads`): Font loading and caching.
 - `Font_Handle` = font family (file path)
 - `Font_Attributes` groups family/size/weight/style/decoration

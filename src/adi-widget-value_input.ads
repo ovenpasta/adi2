@@ -59,8 +59,18 @@ package Adi.Widget.Value_Input is
    function  Get_Step (W : Value_Input_Widget) return Value_Type
      renames Impl.Get_Step;
 
-   procedure Set_On_Value_Changed (W  : in out Value_Input_Widget;
+   subtype Value_Changed_Connection_Id is
+     Impl.Value_Changed_Signals.Connection_Id;
+
+   procedure Connect_Value_Changed (W  : in out Value_Input_Widget;
+                                     CB : Value_Changed_Callback)
+     renames Impl.Connect_Value_Changed;
+   function Connect_Value_Changed (W  : in out Value_Input_Widget;
                                     CB : Value_Changed_Callback)
-     renames Impl.Set_On_Value_Changed;
+     return Value_Changed_Connection_Id
+     renames Impl.Connect_Value_Changed;
+   procedure Disconnect_Value_Changed (W  : in out Value_Input_Widget;
+                                        Id : Value_Changed_Connection_Id)
+     renames Impl.Disconnect_Value_Changed;
 
 end Adi.Widget.Value_Input;

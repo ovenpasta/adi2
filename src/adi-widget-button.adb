@@ -18,23 +18,51 @@ package body Adi.Widget.Button is
       return Result;
    end Create;
 
-   --------------------
-   -- Set_On_Clicked --
-   --------------------
+   ---------------------
+   -- Connect_Clicked --
+   ---------------------
 
-   procedure Set_On_Clicked (W : in out Button_Widget; CB : Click_Callback) is
+   procedure Connect_Clicked
+     (W : in out Button_Widget; CB : Click_Callback) is
    begin
-      W.On_Clicked := CB;
-   end Set_On_Clicked;
+      W.Clicked.Connect (CB);
+   end Connect_Clicked;
 
-   --------------------
-   -- Set_On_Toggled --
-   --------------------
-
-   procedure Set_On_Toggled (W : in out Button_Widget; CB : Toggle_Callback) is
+   function Connect_Clicked
+     (W : in out Button_Widget; CB : Click_Callback)
+      return Click_Signals.Connection_Id is
    begin
-      W.On_Toggled := CB;
-   end Set_On_Toggled;
+      return W.Clicked.Connect (CB);
+   end Connect_Clicked;
+
+   procedure Disconnect_Clicked
+     (W : in out Button_Widget; Id : Click_Signals.Connection_Id) is
+   begin
+      W.Clicked.Disconnect (Id);
+   end Disconnect_Clicked;
+
+   ---------------------
+   -- Connect_Toggled --
+   ---------------------
+
+   procedure Connect_Toggled
+     (W : in out Button_Widget; CB : Toggle_Callback) is
+   begin
+      W.Toggled.Connect (CB);
+   end Connect_Toggled;
+
+   function Connect_Toggled
+     (W : in out Button_Widget; CB : Toggle_Callback)
+      return Toggle_Signals.Connection_Id is
+   begin
+      return W.Toggled.Connect (CB);
+   end Connect_Toggled;
+
+   procedure Disconnect_Toggled
+     (W : in out Button_Widget; Id : Toggle_Signals.Connection_Id) is
+   begin
+      W.Toggled.Disconnect (Id);
+   end Disconnect_Toggled;
 
    --------------------
    -- Set_Toggleable --
@@ -96,15 +124,28 @@ package body Adi.Widget.Button is
       elsif W.Toggleable then
          --  Local toggle
          Set_Toggled (W, not Is_Toggled (W));
-         if W.On_Toggled /= null then
-            W.On_Toggled (Self, Is_Toggled (W));
-         end if;
+         declare
+            Active : constant Boolean := Is_Toggled (W);
+            procedure Call (CB : Toggle_Callback) is
+            begin
+               CB (Self, Active);
+            end Call;
+            procedure Emit_Toggled is new Toggle_Signals.For_Each (Call);
+         begin
+            Emit_Toggled (W.Toggled);
+         end;
       end if;
 
-      --  Always fire click callback
-      if W.On_Clicked /= null then
-         W.On_Clicked (Self);
-      end if;
+      --  Always fire click signal
+      declare
+         procedure Call (CB : Click_Callback) is
+         begin
+            CB (Self);
+         end Call;
+         procedure Emit_Clicked is new Click_Signals.For_Each (Call);
+      begin
+         Emit_Clicked (W.Clicked);
+      end;
    end On_Click;
 
    overriding procedure On_Key_Down

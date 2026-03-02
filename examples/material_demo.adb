@@ -113,7 +113,7 @@ begin
                 "Click OK to explore the Forms page, " &
                 "or dismiss to stay on Home.");
    Set_OK_Button (Welcome_Dialog.all);
-   Set_On_Result (Welcome_Dialog.all, On_Welcome_Result'Unrestricted_Access);
+   Connect_Result (Welcome_Dialog.all, On_Welcome_Result'Unrestricted_Access);
 
    --  Set welcome icon (Material Symbols "waving_hand" 24×24)
    declare

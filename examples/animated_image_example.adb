@@ -101,10 +101,10 @@ begin
       Btn_Loop.Set_Toggleable (True);
       Btn_Loop.Set_Toggled (True);
 
-      Btn_Start.Set_On_Clicked (On_Start'Unrestricted_Access);
-      Btn_Stop.Set_On_Clicked (On_Stop'Unrestricted_Access);
-      Btn_Reset.Set_On_Clicked (On_Reset'Unrestricted_Access);
-      Btn_Loop.Set_On_Toggled (On_Loop_Toggled'Unrestricted_Access);
+      Btn_Start.Connect_Clicked (On_Start'Unrestricted_Access);
+      Btn_Stop.Connect_Clicked (On_Stop'Unrestricted_Access);
+      Btn_Reset.Connect_Clicked (On_Reset'Unrestricted_Access);
+      Btn_Loop.Connect_Toggled (On_Loop_Toggled'Unrestricted_Access);
 
       Root.Add_Child (Header);
       Header.Add_Child (Title);

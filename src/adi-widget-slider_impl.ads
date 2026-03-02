@@ -1,5 +1,7 @@
 pragma Ada_2022;
 
+with Adi.Signal;
+
 generic
    type Value_Type is private;
    Zero : Value_Type;
@@ -48,8 +50,17 @@ package Adi.Widget.Slider_Impl is
 
    type Value_Changed_Callback is access procedure
      (W : Slider_Widget_Access; Value : Value_Type);
-   procedure Set_On_Changed (W  : in out Slider_Widget;
-                              CB : Value_Changed_Callback);
+
+   package Value_Changed_Signals is new Adi.Signal
+     (Value_Changed_Callback, null);
+
+   procedure Connect_Changed
+     (W : in out Slider_Widget; CB : Value_Changed_Callback);
+   function Connect_Changed
+     (W : in out Slider_Widget; CB : Value_Changed_Callback)
+      return Value_Changed_Signals.Connection_Id;
+   procedure Disconnect_Changed
+     (W : in out Slider_Widget; Id : Value_Changed_Signals.Connection_Id);
 
    overriding procedure Build_Items (W : in out Slider_Widget);
    overriding procedure Layout (W : in out Slider_Widget);
@@ -86,7 +97,7 @@ private
       Dir       : Orientation := Horizontal;
       Dragging  : Boolean := False;
       Drag_Offset : Pixel_Type := 0.0;
-      On_Changed  : Value_Changed_Callback := null;
+      Changed : Value_Changed_Signals.Signal;
    end record;
 
 end Adi.Widget.Slider_Impl;

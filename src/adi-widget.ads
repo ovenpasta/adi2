@@ -11,6 +11,7 @@ with Adi.SDL.Render;        use Adi.SDL.Render;
 with Adi.SDL.TTF;
 with Adi.SDL.TTF.TextEngine;
 with Adi.SDL.Events;
+with Adi.Signal;
 with Adi.Render;            use Adi.Render;
 with Adi.Image;             use Adi.Image;
 
@@ -302,9 +303,16 @@ package Adi.Widget is
      (W    : Widget_Access;
       X, Y : Pixel_Type);
 
-   procedure Set_On_Context_Menu
-     (W  : in out Widget'Class;
-      CB : Context_Menu_Callback);
+   package Context_Menu_Signals is new Adi.Signal
+     (Context_Menu_Callback, null);
+
+   procedure Connect_Context_Menu
+     (W : in out Widget'Class; CB : Context_Menu_Callback);
+   function Connect_Context_Menu
+     (W : in out Widget'Class; CB : Context_Menu_Callback)
+      return Context_Menu_Signals.Connection_Id;
+   procedure Disconnect_Context_Menu
+     (W : in out Widget'Class; Id : Context_Menu_Signals.Connection_Id);
    function Has_Context_Menu (W : Widget'Class) return Boolean;
    function Show_Context_Menu
      (W    : in out Widget'Class;
@@ -589,7 +597,7 @@ private
       Scroll_Dragging     : Boolean := False;
       Scroll_Drag_Offset  : Pixel_Type := 0.0;
       Scroll_Velocity_Y   : Pixel_Type := 0.0;
-      On_Context_Menu     : Context_Menu_Callback := null;
+      Context_Menu_Sig    : Context_Menu_Signals.Signal;
 
       --  Floating label overlay (any widget can have a label)
       Label_Text      : Unbounded_String := Null_Unbounded_String;

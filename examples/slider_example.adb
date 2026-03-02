@@ -152,15 +152,15 @@ begin
       Int_Input.Set_Step (Input2.all, 1);
 
       --  Wire callbacks
-      Float_Slider.Set_On_Changed
+      Float_Slider.Connect_Changed
         (Slider1.all, On_Slider1_Changed'Unrestricted_Access);
-      Float_Input.Set_On_Value_Changed
+      Float_Input.Connect_Value_Changed
         (Input1.all, On_Input1_Changed'Unrestricted_Access);
-      Int_Slider.Set_On_Changed
+      Int_Slider.Connect_Changed
         (Slider2.all, On_Slider2_Changed'Unrestricted_Access);
-      Int_Input.Set_On_Value_Changed
+      Int_Input.Connect_Value_Changed
         (Input2.all, On_Input2_Changed'Unrestricted_Access);
-      Int_Slider.Set_On_Changed
+      Int_Slider.Connect_Changed
         (Slider3.all, On_Slider3_Changed'Unrestricted_Access);
 
       --  Apply styles

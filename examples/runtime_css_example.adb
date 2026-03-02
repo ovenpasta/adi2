@@ -209,7 +209,7 @@ begin
                           & Adi.CSS_Source.Get_Last_Error (Source));
       end if;
 
-      Adi.Widget.Button.Set_On_Clicked (Mode_Button.all, Toggle_Mode'Unrestricted_Access);
+      Adi.Widget.Button.Connect_Clicked (Mode_Button.all, Toggle_Mode'Unrestricted_Access);
 
       Adi.CSS_Source.Bind_Class (Source, "root", Root);
       Adi.CSS_Source.Bind_Class (Source, "header", Header);

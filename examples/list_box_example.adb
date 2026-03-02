@@ -196,10 +196,10 @@ begin
       Set_Debug_Layout_Overlay_Enabled (False);
       W.Set_Debug_Stats (True);
 
-      Inertia_Switch.Set_On_Toggled (On_Inertia_Toggled'Unrestricted_Access);
-      Debug_Overlay_Switch.Set_On_Toggled
+      Inertia_Switch.Connect_Toggled (On_Inertia_Toggled'Unrestricted_Access);
+      Debug_Overlay_Switch.Connect_Toggled
         (On_Debug_Overlay_Toggled'Unrestricted_Access);
-      Debug_Stats_Switch.Set_On_Toggled
+      Debug_Stats_Switch.Connect_Toggled
         (On_Debug_Stats_Toggled'Unrestricted_Access);
 
       Set_Part_Styles (Root.all, Root_Class_Part_Styles);
@@ -243,18 +243,18 @@ begin
       Range_Listbox.Set_Selection_Mode (Label_List.Range_Selection);
       Grid_Listbox.Set_Selection_Mode (Label_List.Single_Selection);
 
-      Single_Listbox.Set_On_Item_Clicked (On_Label_Click'Unrestricted_Access);
-      Single_Listbox.Set_On_Item_Activated (On_Label_Activate'Unrestricted_Access);
-      Single_Listbox.Set_On_Selection_Changed
+      Single_Listbox.Connect_Item_Clicked (On_Label_Click'Unrestricted_Access);
+      Single_Listbox.Connect_Item_Activated (On_Label_Activate'Unrestricted_Access);
+      Single_Listbox.Connect_Selection_Changed
         (On_Label_Selection_Changed'Unrestricted_Access);
 
-      Multi_Listbox.Set_On_Item_Clicked (On_Box_Click'Unrestricted_Access);
-      Multi_Listbox.Set_On_Item_Activated (On_Box_Activate'Unrestricted_Access);
-      Multi_Listbox.Set_On_Selection_Changed
+      Multi_Listbox.Connect_Item_Clicked (On_Box_Click'Unrestricted_Access);
+      Multi_Listbox.Connect_Item_Activated (On_Box_Activate'Unrestricted_Access);
+      Multi_Listbox.Connect_Selection_Changed
         (On_Box_Selection_Changed'Unrestricted_Access);
 
-      Grid_Listbox.Set_On_Item_Clicked (On_Grid_Click'Unrestricted_Access);
-      Grid_Listbox.Set_On_Selection_Changed
+      Grid_Listbox.Connect_Item_Clicked (On_Grid_Click'Unrestricted_Access);
+      Grid_Listbox.Connect_Selection_Changed
         (On_Grid_Selection_Changed'Unrestricted_Access);
 
       --  Fill no/single/range label lists

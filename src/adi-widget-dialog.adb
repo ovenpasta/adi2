@@ -163,9 +163,15 @@ package body Adi.Widget.Dialog is
          Text := Owner.Buttons.Element (Index).Text;
       end if;
 
-      if Owner.On_Result /= null then
-         Owner.On_Result (Owner, Index, To_String (Text));
-      end if;
+      declare
+         Idx : constant Natural := Index;
+         Txt : constant String := To_String (Text);
+         procedure Call (CB : Dialog_Result_Callback) is
+         begin CB (Owner, Idx, Txt); end Call;
+         procedure Emit is new Result_Signals.For_Each (Call);
+      begin
+         Emit (Owner.Result);
+      end;
       Hide (Owner.all);
    end On_Button_Clicked;
 
@@ -175,13 +181,14 @@ package body Adi.Widget.Dialog is
 
    procedure Fire_Dismiss (W : in out Dialog_Widget) is
       Self : constant Dialog_Widget_Access := W'Unchecked_Access;
+      procedure Call (CB : Dialog_Result_Callback) is
+      begin CB (Self, 0, ""); end Call;
+      procedure Emit is new Result_Signals.For_Each (Call);
    begin
       if not W.Shown then
          return;  --  Already dismissed (guard against double-dispatch)
       end if;
-      if W.On_Result /= null then
-         W.On_Result (Self, 0, "");
-      end if;
+      Emit (W.Result);
       Hide (W);
    end Fire_Dismiss;
 
@@ -352,7 +359,7 @@ package body Adi.Widget.Dialog is
       Set_Flag (Btn.all, Focusable, True);
       Adi.Widget.Label.Set_Text
         (Adi.Widget.Label.Label_Widget (Btn.all), Text);
-      Set_On_Clicked (Btn.all, On_Button_Clicked'Access);
+      Connect_Clicked (Btn.all, On_Button_Clicked'Access);
 
       Register_Button_Binding (Btn_As_Widget, W'Unchecked_Access);
       Add_Child (W.Button_Row.all, Widget_Access (Btn));
@@ -514,13 +521,27 @@ package body Adi.Widget.Dialog is
    --  Result callback
    ---------------------------------------------------------------------------
 
-   procedure Set_On_Result
-     (W  : in out Dialog_Widget;
-      CB : Dialog_Result_Callback)
+   procedure Connect_Result
+     (W : in out Dialog_Widget; CB : Dialog_Result_Callback)
    is
    begin
-      W.On_Result := CB;
-   end Set_On_Result;
+      W.Result.Connect (CB);
+   end Connect_Result;
+
+   function Connect_Result
+     (W : in out Dialog_Widget; CB : Dialog_Result_Callback)
+      return Result_Signals.Connection_Id
+   is
+   begin
+      return W.Result.Connect (CB);
+   end Connect_Result;
+
+   procedure Disconnect_Result
+     (W : in out Dialog_Widget; Id : Result_Signals.Connection_Id)
+   is
+   begin
+      W.Result.Disconnect (Id);
+   end Disconnect_Result;
 
    ---------------------------------------------------------------------------
    --  Style injection

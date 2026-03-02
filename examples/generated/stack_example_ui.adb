@@ -82,6 +82,8 @@ package body Stack_Example_UI is
 
    use type My_Stack.Page_Changed_Callback;
    Tab_Options_Group : aliased Tab_Options.Option_Group;
+   Tab_Options_Group_Conn : Tab_Options.Option_Changed_Signals.Connection_Id :=
+     Tab_Options.Option_Changed_Signals.No_Connection;
 
    procedure On_Tab_Option_Wrapper (Value : Tab) is
    begin
@@ -218,10 +220,11 @@ package body Stack_Example_UI is
       Tab_Options_Group.Set_Button (Red, Btn_Red);
       Tab_Options_Group.Set_Button (Green, Btn_Green);
       Tab_Options_Group.Set_Button (Blue, Btn_Blue);
-      Tab_Options_Group.Set_On_Changed (On_Tab_Option_Wrapper'Unrestricted_Access);
+      Tab_Options_Group.Disconnect_Changed (Tab_Options_Group_Conn);
+      Tab_Options_Group_Conn := Tab_Options_Group.Connect_Changed (On_Tab_Option_Wrapper'Unrestricted_Access);
 
       --  Auto-wire CSS live reload
-      Adi.Window.Set_On_Tick (W.all, Tick_Styles_CB'Unrestricted_Access);
+      Adi.Window.Connect_Tick (W.all, Tick_Styles_CB'Unrestricted_Access);
 
       W.Set_Root (Root);
       return W;

@@ -58,18 +58,18 @@ begin
       Btn_Right  : constant Button_Widget_Access := Create ("Right");
       Align_Group : aliased Align_Options.Option_Group;
    begin
-      Btn_Primary.Set_On_Clicked (On_Simple_Click'Unrestricted_Access);
-      Btn_Danger.Set_On_Clicked (On_Simple_Click'Unrestricted_Access);
-      Btn_Outline.Set_On_Clicked (On_Simple_Click'Unrestricted_Access);
+      Btn_Primary.Connect_Clicked (On_Simple_Click'Unrestricted_Access);
+      Btn_Danger.Connect_Clicked (On_Simple_Click'Unrestricted_Access);
+      Btn_Outline.Connect_Clicked (On_Simple_Click'Unrestricted_Access);
 
       Btn_Toggle.Set_Toggleable;
-      Btn_Toggle.Set_On_Toggled (On_Toggle'Unrestricted_Access);
-      Btn_Switch.Set_On_Toggled (On_Toggle'Unrestricted_Access);
+      Btn_Toggle.Connect_Toggled (On_Toggle'Unrestricted_Access);
+      Btn_Switch.Connect_Toggled (On_Toggle'Unrestricted_Access);
 
       Align_Group.Set_Button (Left, Btn_Left);
       Align_Group.Set_Button (Center, Btn_Center);
       Align_Group.Set_Button (Right, Btn_Right);
-      Align_Group.Set_On_Changed (On_Align_Changed'Unrestricted_Access);
+      Align_Group.Connect_Changed (On_Align_Changed'Unrestricted_Access);
 
       Set_Part_Styles (Root.all, Root_Class_Part_Styles);
       Set_Part_Styles (Container.all, Container_Class_Part_Styles);

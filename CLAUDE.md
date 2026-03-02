@@ -25,6 +25,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | Antialiased rendering (AA fringe, ring patterns) | `docs/rendering_aa.md` |
 | OS integration (dialogs, paths, clipboard) | `docs/os_integration.md` |
 | Static asset bundling | `docs/static_assets.md` |
+| Signals and deferred dispatch | `docs/signals.md` |
 | Ada 2022 Reference Manual | `rm-22-txt/RM-TOC.TXT` (chapters: `rm-22-txt/RM-*.TXT`) |
 
 ## Build Commands

@@ -36,10 +36,12 @@ package body Adi.Widget.Value_Input_Impl is
 
    procedure Fire_Value_Changed (W : in out Value_Input_Widget) is
       Self : constant Value_Input_Widget_Access := W'Unchecked_Access;
+      Val  : constant Value_Type := W.Num_Value;
+      procedure Call (CB : Value_Changed_Callback) is
+      begin CB (Self, Val); end Call;
+      procedure Emit is new Value_Changed_Signals.For_Each (Call);
    begin
-      if W.On_Val_Changed /= null then
-         W.On_Val_Changed (Self, W.Num_Value);
-      end if;
+      Emit (W.Value_Changed);
    end Fire_Value_Changed;
 
    procedure Apply_Step
@@ -141,11 +143,25 @@ package body Adi.Widget.Value_Input_Impl is
       return W.Step;
    end Get_Step;
 
-   procedure Set_On_Value_Changed (W  : in out Value_Input_Widget;
+   procedure Connect_Value_Changed (W  : in out Value_Input_Widget;
                                     CB : Value_Changed_Callback) is
    begin
-      W.On_Val_Changed := CB;
-   end Set_On_Value_Changed;
+      W.Value_Changed.Connect (CB);
+   end Connect_Value_Changed;
+
+   function Connect_Value_Changed (W  : in out Value_Input_Widget;
+                                   CB : Value_Changed_Callback)
+      return Value_Changed_Signals.Connection_Id is
+   begin
+      return W.Value_Changed.Connect (CB);
+   end Connect_Value_Changed;
+
+   procedure Disconnect_Value_Changed
+     (W : in out Value_Input_Widget;
+      Id : Value_Changed_Signals.Connection_Id) is
+   begin
+      W.Value_Changed.Disconnect (Id);
+   end Disconnect_Value_Changed;
 
    ---------------------------------------------------------------------------
    --  Overrides

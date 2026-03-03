@@ -849,7 +849,8 @@ namespace
        if ( PathCanonicalizeW( const_cast<wchar_t *>(wresolved_path.data()), wpath.c_str() ) )
        {
            std::string path = ToStdString(wresolved_path);
-           strcpy_s( resolved_path, path.length() * sizeof( char ), path.c_str() );
+           strncpy( resolved_path, path.c_str(), PATH_MAX - 1 );
+           resolved_path[PATH_MAX - 1] = '\0';
 
            return true;
        }

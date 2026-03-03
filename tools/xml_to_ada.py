@@ -79,6 +79,8 @@ class XmlWidget:
     children: list["XmlWidget"] = field(default_factory=list)
     pages: list[XmlPage] = field(default_factory=list)
     items: list[str] = field(default_factory=list)
+    i18n_disabled: bool = False
+    i18n_contexts: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -140,6 +142,7 @@ class XmlApp:
     css_links: list[CssLink] = field(default_factory=list)
     css_styles: list[str] = field(default_factory=list)
     component_packages: list[str] = field(default_factory=list)
+    i18n_context: str = ""
 
 
 # ── Widget Grammar ───────────────────────────────────────────────────────────
@@ -179,6 +182,7 @@ def load_widget_grammar(path):
                     "setter_style": child.get("setter-style"),
                     "meta": child.get("meta", "").lower() == "true",
                     "required": child.get("required", "").lower() == "true",
+                    "translatable": child.get("translatable", "").lower() == "true",
                 }
                 info["attributes"].append(attr)
         grammar[tag] = info
@@ -235,12 +239,28 @@ def widget_ada_type(widget: XmlWidget, generics_map: dict[str, XmlGeneric]) -> s
     return f'{tag_info["package"]}.{tag_info["access_type"]}'
 
 
+def _i18n_wrap(value: str, context: str) -> str:
+    """Wrap a string value with Adi.I18N.T(), including optional context."""
+    escaped = value.replace('"', '""')
+    if context:
+        ctx_escaped = context.replace('"', '""')
+        return f'Adi.I18N.T ("{ctx_escaped}", "{escaped}")'
+    return f'Adi.I18N.T ("{escaped}")'
+
+
 def widget_create_expr(
-    widget: XmlWidget, generics_map: dict[str, XmlGeneric]
+    widget: XmlWidget, generics_map: dict[str, XmlGeneric],
+    i18n: bool = False, i18n_context: str = ""
 ) -> str:
     """Return the Ada Create expression for a widget."""
     tag_info = GRAMMAR[widget.tag]
     template = tag_info["create"]
+
+    # Determine if i18n wrapping applies to this widget
+    use_i18n = i18n and not widget.i18n_disabled
+
+    # Collect which fields need i18n wrapping (so we can post-process template)
+    i18n_fields: set[str] = set()
 
     # Build substitution map with all possible placeholders
     subs = {
@@ -254,12 +274,35 @@ def widget_create_expr(
         field_name = _attr_to_field(attr["name"])
         value = getattr(widget, field_name, "")
         if attr["type"] == "string":
-            value = value.replace('"', '""')
+            if use_i18n and attr.get("translatable") and value:
+                i18n_fields.add(field_name)
+                # Store raw value; template post-processing will handle wrapping
+                subs[field_name] = value.replace('"', '""')
+            else:
+                subs[field_name] = value.replace('"', '""')
         elif attr["type"] == "bool":
-            value = "True" if value else (attr["default"] or "False")
-        subs[field_name] = value
+            subs[field_name] = "True" if value else (attr["default"] or "False")
+        else:
+            subs[field_name] = value
 
-    return template.format_map(subs)
+    result = template.format_map(subs)
+
+    # Post-process: replace "{value}" with T("value") for i18n fields
+    if i18n_fields:
+        for field_name in i18n_fields:
+            escaped_val = subs[field_name]
+            raw_val = getattr(widget, field_name, "")
+            ctx = widget.i18n_contexts.get(
+                field_name.replace("_", "-"), i18n_context)
+            # Also check the original attr name form
+            for attr in tag_info["attributes"]:
+                if _attr_to_field(attr["name"]) == field_name:
+                    ctx = widget.i18n_contexts.get(attr["name"], i18n_context)
+                    break
+            wrapped = _i18n_wrap(raw_val, ctx)
+            result = result.replace(f'"{escaped_val}"', wrapped)
+
+    return result
 
 
 def component_instance_name(package_name: str) -> str:
@@ -340,6 +383,10 @@ class Parser:
                     elif explicit:
                         # styles-only link: compile-time Ada import, no runtime CSS file
                         app.css_links.append(CssLink(href="", styles_pkg=explicit))
+            elif tag == "i18n":
+                ctx = elem.get("context", "")
+                if ctx:
+                    app.i18n_context = ctx
             elif tag == "style":
                 text = (elem.text or "").strip()
                 if text:
@@ -525,7 +572,14 @@ class Parser:
             explicit_id=has_explicit_id,
             css_classes=elem.get("class", "").split() if elem.get("class", "") else [],
             label=elem.get("label", ""),
+            i18n_disabled=elem.get("i18n", "").lower() == "false",
         )
+
+        # Per-property i18n context: {property}-i18n-context="ctx"
+        for attr_name, attr_value in elem.attrib.items():
+            if attr_name.endswith("-i18n-context"):
+                prop_name = attr_name[:-len("-i18n-context")]
+                widget.i18n_contexts[prop_name] = attr_value
 
         # Grammar-driven attributes
         if tag in GRAMMAR:
@@ -756,7 +810,8 @@ def ada_string_literal(s: str) -> str:
 
 
 def generate_body(app: XmlApp, package_name: str,
-                   inline_css_path: str = "") -> str:
+                   inline_css_path: str = "",
+                   i18n: bool = False) -> str:
     """Generate the .adb (body) file."""
     generics_map = {g.name: g for g in app.generics}
     root = get_root_widget(app)
@@ -830,6 +885,8 @@ def generate_body(app: XmlApp, package_name: str,
             else:
                 continue
             break
+    if i18n:
+        body_withs.append("Adi.I18N")
 
     lines = [
         "--  Auto-generated from XML",
@@ -994,7 +1051,8 @@ def generate_body(app: XmlApp, package_name: str,
     # Local declarations for internal widgets
     for w in internal:
         ada_type = widget_ada_type(w, generics_map)
-        create = widget_create_expr(w, generics_map)
+        create = widget_create_expr(w, generics_map,
+                                     i18n=i18n, i18n_context=app.i18n_context)
         lines.append(f"      {w.wid} : constant {ada_type} := {create};")
 
     lines.append("   begin")
@@ -1003,7 +1061,8 @@ def generate_body(app: XmlApp, package_name: str,
     if exported:
         lines.append("      --  Create widgets")
         for w in exported:
-            create = widget_create_expr(w, generics_map)
+            create = widget_create_expr(w, generics_map,
+                                         i18n=i18n, i18n_context=app.i18n_context)
             lines.append(f"      {w.wid} := {create};")
         lines.append("")
 
@@ -1012,6 +1071,7 @@ def generate_body(app: XmlApp, package_name: str,
     for w in all_widgets:
         if w.tag not in GRAMMAR:
             continue
+        use_i18n = i18n and not w.i18n_disabled
         for attr in GRAMMAR[w.tag]["attributes"]:
             if not attr["setter"] or attr["type"] == "callback":
                 continue
@@ -1026,10 +1086,17 @@ def generate_body(app: XmlApp, package_name: str,
                         f'      {w.wid}.{attr["setter"]} (Adi.Assets.Get_Image ("{escaped}"));'
                     )
                 elif attr["type"] == "string":
-                    escaped = str(value).replace('"', '""')
-                    config_lines.append(
-                        f'      {w.wid}.{attr["setter"]} ("{escaped}");'
-                    )
+                    if use_i18n and attr.get("translatable") and value:
+                        ctx = w.i18n_contexts.get(attr["name"], app.i18n_context)
+                        wrapped = _i18n_wrap(str(value), ctx)
+                        config_lines.append(
+                            f'      {w.wid}.{attr["setter"]} ({wrapped});'
+                        )
+                    else:
+                        escaped = str(value).replace('"', '""')
+                        config_lines.append(
+                            f'      {w.wid}.{attr["setter"]} ("{escaped}");'
+                        )
                 else:
                     config_lines.append(
                         f"      {w.wid}.{attr['setter']} ({value});"
@@ -1043,10 +1110,18 @@ def generate_body(app: XmlApp, package_name: str,
     label_lines = []
     for w in all_widgets:
         if w.label:
-            escaped = w.label.replace('"', '""')
-            label_lines.append(
-                f'      Adi.Widget.Set_Label ({w.wid}.all, "{escaped}");'
-            )
+            use_i18n = i18n and not w.i18n_disabled
+            if use_i18n:
+                ctx = w.i18n_contexts.get("label", app.i18n_context)
+                wrapped = _i18n_wrap(w.label, ctx)
+                label_lines.append(
+                    f'      Adi.Widget.Set_Label ({w.wid}.all, {wrapped});'
+                )
+            else:
+                escaped = w.label.replace('"', '""')
+                label_lines.append(
+                    f'      Adi.Widget.Set_Label ({w.wid}.all, "{escaped}");'
+                )
     if label_lines:
         lines.append("      --  Set labels")
         lines.extend(label_lines)
@@ -1228,10 +1303,17 @@ def generate_body(app: XmlApp, package_name: str,
                     )
         elif children_mode == "items":
             for item_text in widget.items:
-                escaped = item_text.replace('"', '""')
-                hierarchy_lines.append(
-                    f'      {widget.wid}.Add_Item ("{escaped}");'
-                )
+                use_i18n = i18n and not widget.i18n_disabled
+                if use_i18n and item_text:
+                    wrapped = _i18n_wrap(item_text, app.i18n_context)
+                    hierarchy_lines.append(
+                        f'      {widget.wid}.Add_Item ({wrapped});'
+                    )
+                else:
+                    escaped = item_text.replace('"', '""')
+                    hierarchy_lines.append(
+                        f'      {widget.wid}.Add_Item ("{escaped}");'
+                    )
         if children_mode == "rows":
             for child in widget.children:
                 hierarchy_lines.append(
@@ -1344,6 +1426,10 @@ def main():
         "--grammar", "-g", default=None,
         help="Extra widget grammar XML file (merged with built-in)"
     )
+    parser.add_argument(
+        "--i18n", action="store_true", default=False,
+        help="Wrap translatable strings with Adi.I18N.T() calls"
+    )
 
     args = parser.parse_args()
 
@@ -1389,7 +1475,8 @@ def main():
 
     spec_code = generate_spec(app, args.package_name)
     body_code = generate_body(app, args.package_name,
-                              inline_css_path=inline_css_path)
+                              inline_css_path=inline_css_path,
+                              i18n=args.i18n)
 
     with open(spec_path, "w") as f:
         f.write(spec_code)

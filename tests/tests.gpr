@@ -24,7 +24,8 @@ project Tests is
       "mcp_test",
       "bundle_test",
       "signal_test",
-      "dispatch_test");
+      "dispatch_test",
+      "i18n_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("src");

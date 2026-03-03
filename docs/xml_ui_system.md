@@ -544,6 +544,51 @@ This applies at every level: top-level children of `<adi>`, children of `<window
 
 ---
 
+## I18N Integration
+
+Pass `--i18n` to wrap translatable string attributes with `Adi.I18N.T()` calls:
+
+```bash
+python3 tools/xml_to_ada.py input.xml --output-dir out/ --package-name My_UI --i18n
+```
+
+| Flag | Description |
+|------|-------------|
+| `--i18n` | Enable translation wrapping for `translatable="true"` attributes |
+
+Without `--i18n`, all strings are plain Ada literals (no `Adi.I18N` dependency).
+
+### Which strings are wrapped
+
+The widget grammar (`tools/widgets.xml`) marks certain attributes as
+`translatable="true"` — user-visible text like `text` on labels/buttons and
+`label` on text inputs. Non-translatable attributes (CSS classes, enum values,
+image paths, numeric fields) are never wrapped.
+
+### Context directives
+
+| Directive | Scope | Example |
+|-----------|-------|---------|
+| `<i18n context="..."/>` | File-level default context | `<i18n context="home-screen"/>` |
+| `{attr}-i18n-context="..."` | Per-attribute context (overrides file-level) | `text-i18n-context="menu"` |
+| `i18n="false"` | Suppress wrapping for one widget | `<label text="Debug" i18n="false"/>` |
+
+```xml
+<adi>
+  <i18n context="home-screen"/>
+  <window title="App">
+    <label text="Welcome"/>                          <!-- T("home-screen", "Welcome") -->
+    <button text="Open" text-i18n-context="menu"/>   <!-- T("menu", "Open") -->
+    <label text="Debug" i18n="false"/>               <!-- plain "Debug" -->
+  </window>
+</adi>
+```
+
+See `docs/i18n.md` for the full i18n workflow (`.po` files, registration,
+plural forms, locale fallback).
+
+---
+
 ## Limitations
 
 - **No dynamic widget removal** — The tree is built once in `Build`; no runtime add/remove

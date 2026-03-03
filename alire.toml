@@ -22,6 +22,10 @@ command = ["bash", "tools/generate_example_bundles.sh"]
 
 [[actions]]
 type = "post-build"
+command = ["bash", "tools/generate_example_translations.sh"]
+
+[[actions]]
+type = "post-build"
 command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=styles"]
 
 [[actions]]
@@ -83,6 +87,10 @@ command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=svg_sprites_test"]
 [[actions]]
 type = "post-build"
 command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=min_size_test"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=i18n_test"]
 
 [build-switches]
 "*".style_checks = "No"

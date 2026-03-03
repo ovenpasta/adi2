@@ -32,7 +32,7 @@
     <package>Adi.Widget.Label</package>
     <access-type>Label_Widget_Access</access-type>
     <create>{package}.Create ("{text}")</create>
-    <attribute name="text" type="string" create-param="true"/>
+    <attribute name="text" type="string" create-param="true" translatable="true"/>
     <attribute name="icon" type="image" setter="Set_Icon"/>
   </widget>
 
@@ -40,7 +40,7 @@
     <package>Adi.Widget.Button</package>
     <access-type>Button_Widget_Access</access-type>
     <create>{package}.Create ("{text}")</create>
-    <attribute name="text" type="string" create-param="true"/>
+    <attribute name="text" type="string" create-param="true" translatable="true"/>
     <attribute name="icon" type="image" setter="Set_Icon"/>
     <attribute name="toggleable" type="bool" setter="Set_Toggleable" setter-style="flag"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
@@ -69,7 +69,7 @@
     <package>Adi.Widget.Text_Input</package>
     <access-type>Text_Input_Widget_Access</access-type>
     <create>{package}.Create ("{text}")</create>
-    <attribute name="text" type="string" create-param="true"/>
+    <attribute name="text" type="string" create-param="true" translatable="true"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
     <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>
@@ -78,7 +78,7 @@
     <package>Adi.Widget.Text_Editor</package>
     <access-type>Text_Editor_Widget_Access</access-type>
     <create>{package}.Create ("{text}")</create>
-    <attribute name="text" type="string" create-param="true"/>
+    <attribute name="text" type="string" create-param="true" translatable="true"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
     <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>

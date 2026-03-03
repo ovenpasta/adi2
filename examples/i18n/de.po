@@ -1,0 +1,63 @@
+# German translations for Adi Material Demo
+#
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+
+msgid "Material Demo"
+msgstr "Material-Demo"
+
+msgid "Home"
+msgstr "Startseite"
+
+msgid "Forms"
+msgstr "Formulare"
+
+msgid "Settings"
+msgstr "Einstellungen"
+
+msgid "Controls"
+msgstr "Steuerungen"
+
+msgid "Welcome"
+msgstr "Willkommen"
+
+msgid "A Material Design 3 demo built with Adi."
+msgstr "Eine Material Design 3 Demo, erstellt mit Adi."
+
+msgid "Get Started"
+msgstr "Loslegen"
+
+msgid "Form Controls"
+msgstr "Formularsteuerungen"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Country"
+msgstr "Land"
+
+msgid "United States"
+msgstr "Vereinigte Staaten"
+
+msgid "United Kingdom"
+msgstr "Vereinigtes Königreich"
+
+msgid "Germany"
+msgstr "Deutschland"
+
+msgid "France"
+msgstr "Frankreich"
+
+msgid "Japan"
+msgstr "Japan"
+
+msgid "Submit"
+msgstr "Absenden"
+
+msgid "Cancel"
+msgstr "Abbrechen"
+
+msgid "Enabled vs Disabled"
+msgstr "Aktiviert vs Deaktiviert"

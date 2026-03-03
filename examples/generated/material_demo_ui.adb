@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Adi.CSS_Source; use Adi.CSS_Source;
+with Adi.I18N; use Adi.I18N;
 with Adi.Widget; use Adi.Widget;
 with Adi.Window; use Adi.Window;
 with Material_Demo_Styles; use Material_Demo_Styles;
@@ -66,60 +67,60 @@ package body Material_Demo_UI is
       Box_1 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Box_2 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Box_3 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_1 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Welcome");
-      Label_2 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("A Material Design 3 demo built with Adi.");
-      Label_3 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Edit examples/css/material_demo.css to live-reload.");
-      Button_1 : constant Adi.Widget.Button.Button_Widget_Access := Adi.Widget.Button.Create ("Get Started");
+      Label_1 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Welcome"));
+      Label_2 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("A Material Design 3 demo built with Adi."));
+      Label_3 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Edit examples/css/material_demo.css to live-reload."));
+      Button_1 : constant Adi.Widget.Button.Button_Widget_Access := Adi.Widget.Button.Create (Adi.I18N.T ("Get Started"));
       Box_4 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Box_5 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_4 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Form Controls");
-      Label_5 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Country");
+      Label_4 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Form Controls"));
+      Label_5 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Country"));
       Box_6 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Button_2 : constant Adi.Widget.Button.Button_Widget_Access := Adi.Widget.Button.Create ("Submit");
-      Button_3 : constant Adi.Widget.Button.Button_Widget_Access := Adi.Widget.Button.Create ("Cancel");
+      Button_2 : constant Adi.Widget.Button.Button_Widget_Access := Adi.Widget.Button.Create (Adi.I18N.T ("Submit"));
+      Button_3 : constant Adi.Widget.Button.Button_Widget_Access := Adi.Widget.Button.Create (Adi.I18N.T ("Cancel"));
       Box_7 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Box_8 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_6 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Enabled vs Disabled");
+      Label_6 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Enabled vs Disabled"));
       Box_9 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Label_7 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("");
-      Label_8 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Enabled");
-      Label_9 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Disabled");
-      Label_10 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Button");
-      Button_4 : constant Adi.Widget.Button.Button_Widget_Access := Adi.Widget.Button.Create ("Click Me");
-      Button_5 : constant Adi.Widget.Button.Button_Widget_Access := Adi.Widget.Button.Create ("Click Me");
-      Label_11 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Text Input");
-      Label_12 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Switch");
+      Label_8 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Enabled"));
+      Label_9 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Disabled"));
+      Label_10 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Button"));
+      Button_4 : constant Adi.Widget.Button.Button_Widget_Access := Adi.Widget.Button.Create (Adi.I18N.T ("Click Me"));
+      Button_5 : constant Adi.Widget.Button.Button_Widget_Access := Adi.Widget.Button.Create (Adi.I18N.T ("Click Me"));
+      Label_11 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Text Input"));
+      Label_12 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Switch"));
       Switch_1 : constant Adi.Widget.Button.Switch.Switch_Widget_Access := Adi.Widget.Button.Switch.Create (True);
       Switch_2 : constant Adi.Widget.Button.Switch.Switch_Widget_Access := Adi.Widget.Button.Switch.Create (True);
-      Label_13 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Combo Box");
-      Label_14 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Slider");
-      Label_15 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Value Input");
+      Label_13 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Combo Box"));
+      Label_14 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Slider"));
+      Label_15 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Value Input"));
       Box_10 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
       Box_11 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_16 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Settings");
+      Label_16 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Settings"));
       Box_12 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_17 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Dark Mode");
+      Label_17 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Dark Mode"));
       Box_13 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_18 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Notifications");
+      Label_18 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Notifications"));
       Switch_3 : constant Adi.Widget.Button.Switch.Switch_Widget_Access := Adi.Widget.Button.Switch.Create (True);
       Box_14 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_19 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Auto-save");
+      Label_19 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Auto-save"));
       Switch_4 : constant Adi.Widget.Button.Switch.Switch_Widget_Access := Adi.Widget.Button.Switch.Create (True);
-      Label_20 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Lock UI");
+      Label_20 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create (Adi.I18N.T ("Lock UI"));
    begin
       --  Create widgets
       Root := Adi.Widget.Box.Create;
-      App_Title := Adi.Widget.Label.Create ("Material Demo");
+      App_Title := Adi.Widget.Label.Create (Adi.I18N.T ("Material Demo"));
       Nav_Bar := Adi.Widget.Box.Create;
-      Btn_Home := Adi.Widget.Button.Create ("Home");
-      Btn_Forms := Adi.Widget.Button.Create ("Forms");
-      Btn_Settings := Adi.Widget.Button.Create ("Settings");
-      Btn_Controls := Adi.Widget.Button.Create ("Controls");
+      Btn_Home := Adi.Widget.Button.Create (Adi.I18N.T ("Home"));
+      Btn_Forms := Adi.Widget.Button.Create (Adi.I18N.T ("Forms"));
+      Btn_Settings := Adi.Widget.Button.Create (Adi.I18N.T ("Settings"));
+      Btn_Controls := Adi.Widget.Button.Create (Adi.I18N.T ("Controls"));
       Pages := Page_Stack.Create;
       Name_Input := Adi.Widget.Text_Input.Create ("");
       Country_Combo := Adi.Widget.Combo_Box.Create;
-      Enabled_Input := Adi.Widget.Text_Input.Create ("Editable");
-      Disabled_Input := Adi.Widget.Text_Input.Create ("Read-only");
+      Enabled_Input := Adi.Widget.Text_Input.Create (Adi.I18N.T ("Editable"));
+      Disabled_Input := Adi.Widget.Text_Input.Create (Adi.I18N.T ("Read-only"));
       Enabled_Combo := Adi.Widget.Combo_Box.Create;
       Disabled_Combo := Adi.Widget.Combo_Box.Create;
       Enabled_Slider := Float_Slider.Create (Min => 0.0, Max => 100.0, Value => 50.0);
@@ -139,7 +140,7 @@ package body Material_Demo_UI is
       Disabled_Value_Input.Set_Disabled;
 
       --  Set labels
-      Adi.Widget.Set_Label (Name_Input.all, "Name");
+      Adi.Widget.Set_Label (Name_Input.all, Adi.I18N.T ("Name"));
 
       --  Wire callbacks
       if On_Get_Started /= null then
@@ -278,11 +279,11 @@ package body Material_Demo_UI is
       Box_3.Add_Child (Label_3);
       Box_3.Add_Child (Button_1);
       Box_2.Add_Child (Box_3);
-      Country_Combo.Add_Item ("United States");
-      Country_Combo.Add_Item ("United Kingdom");
-      Country_Combo.Add_Item ("Germany");
-      Country_Combo.Add_Item ("France");
-      Country_Combo.Add_Item ("Japan");
+      Country_Combo.Add_Item (Adi.I18N.T ("United States"));
+      Country_Combo.Add_Item (Adi.I18N.T ("United Kingdom"));
+      Country_Combo.Add_Item (Adi.I18N.T ("Germany"));
+      Country_Combo.Add_Item (Adi.I18N.T ("France"));
+      Country_Combo.Add_Item (Adi.I18N.T ("Japan"));
       Box_6.Add_Child (Button_2);
       Box_6.Add_Child (Button_3);
       Box_5.Add_Child (Label_4);
@@ -291,8 +292,8 @@ package body Material_Demo_UI is
       Box_5.Add_Child (Country_Combo);
       Box_5.Add_Child (Box_6);
       Box_4.Add_Child (Box_5);
-      Enabled_Combo.Add_Item ("Enabled");
-      Disabled_Combo.Add_Item ("Disabled");
+      Enabled_Combo.Add_Item (Adi.I18N.T ("Enabled"));
+      Disabled_Combo.Add_Item (Adi.I18N.T ("Disabled"));
       Box_9.Add_Child (Label_7);
       Box_9.Add_Child (Label_8);
       Box_9.Add_Child (Label_9);

@@ -1,5 +1,8 @@
 pragma Ada_2022;
+with Ada.Command_Line;
+with Ada.Text_IO;
 with Adi.App;
+with Adi.I18N;
 with Adi.Image;              use Adi.Image;
 with Adi.MCP;
 with Adi.Widget;              use Adi.Widget;
@@ -9,6 +12,7 @@ with Adi.Widget.Context_Menu;
 with Adi.Widget.Dialog;       use Adi.Widget.Dialog;
 with Adi.Widget.Label;        use Adi.Widget.Label;
 with Adi.Window;
+with I18N_Example_Translations;
 with Material_Demo_Styles;   use Material_Demo_Styles;
 with Material_Demo_UI;       use Material_Demo_UI;
 
@@ -63,6 +67,21 @@ procedure Material_Demo is
      "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z";
 
 begin
+   --  Register translations and parse --lang argument
+   I18N_Example_Translations.Register_All;
+   declare
+      use Ada.Command_Line;
+      use Ada.Text_IO;
+   begin
+      for I in 1 .. Argument_Count loop
+         if Argument (I) = "--lang" and then I < Argument_Count then
+            Adi.I18N.Set_Language (Argument (I + 1));
+         end if;
+      end loop;
+      Put_Line ("[i18n] Usage: material_demo --lang fr|de");
+      Put_Line ("[i18n] Language: " & Adi.I18N.Get_Language);
+   end;
+
    A.Init;
    A.Set_Target_FPS (60);
    UI.On_Page := On_Page'Unrestricted_Access;

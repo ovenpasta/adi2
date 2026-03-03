@@ -26,6 +26,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | OS integration (dialogs, paths, clipboard) | `docs/os_integration.md` |
 | Static asset bundling | `docs/static_assets.md` |
 | Signals and deferred dispatch | `docs/signals.md` |
+| Internationalization (i18n, translations, .po files, plural forms) | `docs/i18n.md` |
 | Ada 2022 Reference Manual | `rm-22-txt/RM-TOC.TXT` (chapters: `rm-22-txt/RM-*.TXT`) |
 
 ## Build Commands

@@ -515,4 +515,15 @@ package Adi.SDL.TTF is
            Convention    => C,
            External_Name => "TTF_GetGlyphKerning";
 
+   ----------------------------------------------------------------------------
+   -- Font Language
+   ----------------------------------------------------------------------------
+
+   function TTF_SetFontLanguage
+     (Font           : TTF_Font_Access;
+      Language_BCP47 : Interfaces.C.Strings.chars_ptr) return C_bool
+      with Import        => True,
+           Convention    => C,
+           External_Name => "TTF_SetFontLanguage";
+
 end Adi.SDL.TTF;

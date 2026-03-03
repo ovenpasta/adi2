@@ -39,100 +39,6 @@ package body Adi.MCP is
    Pending_Screenshot_Id : Unbounded_String;
 
    ---------------------------------------------------------------------------
-   --  JSON Helpers
-   ---------------------------------------------------------------------------
-
-   function Escape_JSON_String (S : String) return String is
-      Result : Unbounded_String;
-   begin
-      for C of S loop
-         case C is
-            when '"'    => Append (Result, "\""");
-            when '\'    => Append (Result, "\\");
-            when ASCII.BS  => Append (Result, "\b");
-            when ASCII.HT  => Append (Result, "\t");
-            when ASCII.LF  => Append (Result, "\n");
-            when ASCII.FF  => Append (Result, "\f");
-            when ASCII.CR  => Append (Result, "\r");
-            when others =>
-               if Character'Pos (C) < 32 or else Character'Pos (C) >= 128 then
-                  declare
-                     Hex : constant String := "0123456789abcdef";
-                     Hi  : constant Natural := Character'Pos (C) / 16;
-                     Lo  : constant Natural := Character'Pos (C) mod 16;
-                  begin
-                     Append (Result, "\u00");
-                     Append (Result, Hex (Hex'First + Hi));
-                     Append (Result, Hex (Hex'First + Lo));
-                  end;
-               else
-                  Append (Result, C);
-               end if;
-         end case;
-      end loop;
-      return To_String (Result);
-   end Escape_JSON_String;
-
-   --  JSON key-value pair builders (append to Unbounded_String)
-   procedure JKV_String
-     (Buf : in out Unbounded_String;
-      Key : String;
-      Val : String;
-      First : Boolean := False) is
-   begin
-      if not First then Append (Buf, ","); end if;
-      Append (Buf, """" & Key & """:""" & Escape_JSON_String (Val) & """");
-   end JKV_String;
-
-   procedure JKV_Int
-     (Buf : in out Unbounded_String;
-      Key : String;
-      Val : Integer;
-      First : Boolean := False) is
-      Img : constant String := Ada.Strings.Fixed.Trim
-        (Integer'Image (Val), Ada.Strings.Left);
-   begin
-      if not First then Append (Buf, ","); end if;
-      Append (Buf, """" & Key & """:" & Img);
-   end JKV_Int;
-
-   procedure JKV_Float
-     (Buf : in out Unbounded_String;
-      Key : String;
-      Val : Float;
-      First : Boolean := False) is
-      Img : constant String := Ada.Strings.Fixed.Trim
-        (Float'Image (Val), Ada.Strings.Left);
-   begin
-      if not First then Append (Buf, ","); end if;
-      Append (Buf, """" & Key & """:" & Img);
-   end JKV_Float;
-
-   procedure JKV_Bool
-     (Buf : in out Unbounded_String;
-      Key : String;
-      Val : Boolean;
-      First : Boolean := False) is
-   begin
-      if not First then Append (Buf, ","); end if;
-      if Val then
-         Append (Buf, """" & Key & """:true");
-      else
-         Append (Buf, """" & Key & """:false");
-      end if;
-   end JKV_Bool;
-
-   procedure JKV_Duration
-     (Buf : in out Unbounded_String;
-      Key : String;
-      Val : Duration;
-      First : Boolean := False) is
-      Ms : constant Float := Float (Val) * 1000.0;
-   begin
-      JKV_Float (Buf, Key, Ms, First);
-   end JKV_Duration;
-
-   ---------------------------------------------------------------------------
    --  File Helpers
    ---------------------------------------------------------------------------
 
@@ -239,14 +145,14 @@ package body Adi.MCP is
    ---------------------------------------------------------------------------
 
    function Error_Response (Req_Id : String; Msg : String) return String is
-      Buf : Unbounded_String;
+      W : Adi.JSON.JSON_Writer := Adi.JSON.Create;
    begin
-      Append (Buf, "{");
-      JKV_String (Buf, "status", "error", First => True);
-      JKV_String (Buf, "req_id", Req_Id);
-      JKV_String (Buf, "error", Msg);
-      Append (Buf, "}");
-      return To_String (Buf);
+      W.Start_Object;
+      W.Key_Value ("status", "error");
+      W.Key_Value ("req_id", Req_Id);
+      W.Key_Value ("error", Msg);
+      W.End_Object;
+      return W.To_String;
    end Error_Response;
 
    ---------------------------------------------------------------------------
@@ -380,63 +286,55 @@ package body Adi.MCP is
    ---------------------------------------------------------------------------
 
    procedure Serialize_Widget_Tree
-     (W    : Widget_Access;
-      Path : String;
-      Buf  : in out Unbounded_String)
+     (Target : Widget_Access;
+      Path   : String;
+      W      : in out Adi.JSON.JSON_Writer)
    is
       use Adi.Widget.Introspection;
-      Info : constant Widget_Info := Get_Info (W, Path);
+      Info : constant Widget_Info := Get_Info (Target, Path);
       Txt  : constant String := To_String (Info.Text);
    begin
-      Append (Buf, "{");
-      JKV_String (Buf, "type", To_String (Info.Tag_Name), First => True);
-      JKV_Int (Buf, "id", Info.Id);
-      JKV_String (Buf, "path", Path);
-      JKV_Float (Buf, "x", Float (Info.Geometry.X));
-      JKV_Float (Buf, "y", Float (Info.Geometry.Y));
-      JKV_Float (Buf, "w", Float (Info.Geometry.Width));
-      JKV_Float (Buf, "h", Float (Info.Geometry.Height));
+      W.Start_Object;
+      W.Key_Value ("type", To_String (Info.Tag_Name));
+      W.Key_Value ("id", Long_Integer (Info.Id));
+      W.Key_Value ("path", Path);
+      W.Key_Value ("x", Long_Float (Info.Geometry.X));
+      W.Key_Value ("y", Long_Float (Info.Geometry.Y));
+      W.Key_Value ("w", Long_Float (Info.Geometry.Width));
+      W.Key_Value ("h", Long_Float (Info.Geometry.Height));
 
       --  Text (truncated to 200 chars in tree view)
       if Txt'Length > 0 then
          if Txt'Length <= 200 then
-            JKV_String (Buf, "text", Txt);
+            W.Key_Value ("text", Txt);
          else
-            JKV_String (Buf, "text", Txt (Txt'First .. Txt'First + 199));
+            W.Key_Value ("text", Txt (Txt'First .. Txt'First + 199));
          end if;
       end if;
 
       --  States
-      declare
-         S_Buf  : Unbounded_String;
-         First_S : Boolean := True;
-      begin
-         Append (S_Buf, "[");
-         for St in Widget_State loop
-            if Info.States (St) then
-               if not First_S then Append (S_Buf, ","); end if;
-               Append (S_Buf, """" &
-                 Ada.Characters.Handling.To_Lower
-                   (Widget_State'Image (St)) & """");
-               First_S := False;
-            end if;
-         end loop;
-         Append (S_Buf, "]");
-         Append (Buf, ",""states"":" & To_String (S_Buf));
-      end;
+      W.Key ("states");
+      W.Start_Array;
+      for St in Widget_State loop
+         if Info.States (St) then
+            W.Write_Value
+              (Ada.Characters.Handling.To_Lower (Widget_State'Image (St)));
+         end if;
+      end loop;
+      W.End_Array;
 
-      JKV_Bool (Buf, "visible", Info.Flags (Visible));
-      JKV_Bool (Buf, "clickable", Info.Flags (Clickable));
-      JKV_Bool (Buf, "focusable", Info.Flags (Focusable));
+      W.Key_Value ("visible", Info.Flags (Visible));
+      W.Key_Value ("clickable", Info.Flags (Clickable));
+      W.Key_Value ("focusable", Info.Flags (Focusable));
 
-      JKV_Int (Buf, "child_count", Info.Child_Count);
-      JKV_Int (Buf, "items_count", Info.Items_Count);
+      W.Key_Value ("child_count", Long_Integer (Info.Child_Count));
+      W.Key_Value ("items_count", Long_Integer (Info.Items_Count));
 
       --  Children
       if Info.Child_Count > 0 then
-         Append (Buf, ",""children"":[");
+         W.Key ("children");
+         W.Start_Array;
          for I in 1 .. Info.Child_Count loop
-            if I > 1 then Append (Buf, ","); end if;
             declare
                Child_Path : constant String :=
                  (if Path'Length = 0
@@ -444,15 +342,15 @@ package body Adi.MCP is
                     (Positive'Image (I), Ada.Strings.Left)
                   else Path & "." & Ada.Strings.Fixed.Trim
                     (Positive'Image (I), Ada.Strings.Left));
-               C : constant Widget_Access := Get_Child (W.all, I);
+               C : constant Widget_Access := Get_Child (Target.all, I);
             begin
-               Serialize_Widget_Tree (C, Child_Path, Buf);
+               Serialize_Widget_Tree (C, Child_Path, W);
             end;
          end loop;
-         Append (Buf, "]");
+         W.End_Array;
       end if;
 
-      Append (Buf, "}");
+      W.End_Object;
    end Serialize_Widget_Tree;
 
    ---------------------------------------------------------------------------
@@ -460,39 +358,41 @@ package body Adi.MCP is
    ---------------------------------------------------------------------------
 
    procedure Serialize_Widget_Info
-     (W    : Widget_Access;
-      Path : String;
-      Buf  : in out Unbounded_String)
+     (Target : Widget_Access;
+      Path   : String;
+      W      : in out Adi.JSON.JSON_Writer)
    is
-      Info : constant Widget_Info := Get_Info (W, Path);
+      Info : constant Widget_Info := Get_Info (Target, Path);
    begin
-      Append (Buf, "{");
-      JKV_String (Buf, "type", To_String (Info.Tag_Name), First => True);
-      JKV_Int (Buf, "id", Info.Id);
-      JKV_String (Buf, "path", Path);
-      JKV_String (Buf, "text", To_String (Info.Text));
-      JKV_Float (Buf, "x", Float (Info.Geometry.X));
-      JKV_Float (Buf, "y", Float (Info.Geometry.Y));
-      JKV_Float (Buf, "w", Float (Info.Geometry.Width));
-      JKV_Float (Buf, "h", Float (Info.Geometry.Height));
-      JKV_Int (Buf, "child_count", Info.Child_Count);
-      JKV_Int (Buf, "items_count", Info.Items_Count);
+      W.Start_Object;
+      W.Key_Value ("type", To_String (Info.Tag_Name));
+      W.Key_Value ("id", Long_Integer (Info.Id));
+      W.Key_Value ("path", Path);
+      W.Key_Value ("text", To_String (Info.Text));
+      W.Key_Value ("x", Long_Float (Info.Geometry.X));
+      W.Key_Value ("y", Long_Float (Info.Geometry.Y));
+      W.Key_Value ("w", Long_Float (Info.Geometry.Width));
+      W.Key_Value ("h", Long_Float (Info.Geometry.Height));
+      W.Key_Value ("child_count", Long_Integer (Info.Child_Count));
+      W.Key_Value ("items_count", Long_Integer (Info.Items_Count));
 
       --  States
       for St in Widget_State loop
-         JKV_Bool (Buf, "state_" &
-           Ada.Characters.Handling.To_Lower (Widget_State'Image (St)),
-           Info.States (St));
+         W.Key_Value
+           ("state_" &
+              Ada.Characters.Handling.To_Lower (Widget_State'Image (St)),
+            Info.States (St));
       end loop;
 
       --  Flags
       for Fl in Widget_Flag loop
-         JKV_Bool (Buf, "flag_" &
-           Ada.Characters.Handling.To_Lower (Widget_Flag'Image (Fl)),
-           Info.Flags (Fl));
+         W.Key_Value
+           ("flag_" &
+              Ada.Characters.Handling.To_Lower (Widget_Flag'Image (Fl)),
+            Info.Flags (Fl));
       end loop;
 
-      Append (Buf, "}");
+      W.End_Object;
    end Serialize_Widget_Info;
 
    ---------------------------------------------------------------------------
@@ -500,32 +400,28 @@ package body Adi.MCP is
    ---------------------------------------------------------------------------
 
    procedure Serialize_Match
-     (M     : Widget_Match;
-      Buf   : in out Unbounded_String;
-      First : Boolean := False)
+     (M : Widget_Match;
+      W : in out Adi.JSON.JSON_Writer)
    is
    begin
-      if not First then Append (Buf, ","); end if;
-      Append (Buf, "{");
-      JKV_Int (Buf, "id", M.Id, First => True);
-      JKV_String (Buf, "path", To_String (M.Path));
-      JKV_String (Buf, "type", To_String (M.Tag_Name));
-      JKV_String (Buf, "text", To_String (M.Text));
-      Append (Buf, "}");
+      W.Start_Object;
+      W.Key_Value ("id", Long_Integer (M.Id));
+      W.Key_Value ("path", To_String (M.Path));
+      W.Key_Value ("type", To_String (M.Tag_Name));
+      W.Key_Value ("text", To_String (M.Text));
+      W.End_Object;
    end Serialize_Match;
 
    procedure Serialize_Matches
      (Matches : Match_Vectors.Vector;
-      Buf     : in out Unbounded_String)
+      W       : in out Adi.JSON.JSON_Writer)
    is
-      First_M : Boolean := True;
    begin
-      Append (Buf, "[");
+      W.Start_Array;
       for M of Matches loop
-         Serialize_Match (M, Buf, First => First_M);
-         First_M := False;
+         Serialize_Match (M, W);
       end loop;
-      Append (Buf, "]");
+      W.End_Array;
    end Serialize_Matches;
 
    ---------------------------------------------------------------------------
@@ -586,171 +482,171 @@ package body Adi.MCP is
    end Serialize_Size;
 
    procedure Serialize_CSS_Values
-     (W    : not null Widget_Access;
-      Part : Part_Kind;
-      Buf  : in out Unbounded_String)
+     (Target : not null Widget_Access;
+      Part   : Part_Kind;
+      W      : in out Adi.JSON.JSON_Writer)
    is
       use Ada.Characters.Handling;
-      S : constant Resolved_Style := Get_Resolved_Part_Style (W.all, Part);
+      S : constant Resolved_Style := Get_Resolved_Part_Style (Target.all, Part);
    begin
-      Append (Buf, "{");
+      W.Start_Object;
 
       --  Colors
-      JKV_String (Buf, "color", Serialize_Color (S.Color), First => True);
-      JKV_String (Buf, "background_color",
-                  Serialize_Color (S.Background_Color));
+      W.Key_Value ("color", Serialize_Color (S.Color));
+      W.Key_Value ("background_color",
+                   Serialize_Color (S.Background_Color));
 
       --  Border width (4 edges)
       case S.Border_Width.Kind is
          when Gap_Uniform =>
-            JKV_String (Buf, "border_width",
-                        Serialize_Length (S.Border_Width.All_Edges));
+            W.Key_Value ("border_width",
+                         Serialize_Length (S.Border_Width.All_Edges));
          when Per_Edge =>
-            JKV_String (Buf, "border_width_top",
-                        Serialize_Length (S.Border_Width.Edges (Top)));
-            JKV_String (Buf, "border_width_right",
-                        Serialize_Length (S.Border_Width.Edges (Right)));
-            JKV_String (Buf, "border_width_bottom",
-                        Serialize_Length (S.Border_Width.Edges (Bottom)));
-            JKV_String (Buf, "border_width_left",
-                        Serialize_Length (S.Border_Width.Edges (Left)));
+            W.Key_Value ("border_width_top",
+                         Serialize_Length (S.Border_Width.Edges (Top)));
+            W.Key_Value ("border_width_right",
+                         Serialize_Length (S.Border_Width.Edges (Right)));
+            W.Key_Value ("border_width_bottom",
+                         Serialize_Length (S.Border_Width.Edges (Bottom)));
+            W.Key_Value ("border_width_left",
+                         Serialize_Length (S.Border_Width.Edges (Left)));
       end case;
 
       --  Border color (4 edges)
       case S.Border_Color.Kind is
          when Gap_Uniform =>
-            JKV_String (Buf, "border_color",
-                        Serialize_Color (S.Border_Color.All_Edges));
+            W.Key_Value ("border_color",
+                         Serialize_Color (S.Border_Color.All_Edges));
          when Per_Edge =>
-            JKV_String (Buf, "border_color_top",
-                        Serialize_Color (S.Border_Color.Edges (Top)));
-            JKV_String (Buf, "border_color_right",
-                        Serialize_Color (S.Border_Color.Edges (Right)));
-            JKV_String (Buf, "border_color_bottom",
-                        Serialize_Color (S.Border_Color.Edges (Bottom)));
-            JKV_String (Buf, "border_color_left",
-                        Serialize_Color (S.Border_Color.Edges (Left)));
+            W.Key_Value ("border_color_top",
+                         Serialize_Color (S.Border_Color.Edges (Top)));
+            W.Key_Value ("border_color_right",
+                         Serialize_Color (S.Border_Color.Edges (Right)));
+            W.Key_Value ("border_color_bottom",
+                         Serialize_Color (S.Border_Color.Edges (Bottom)));
+            W.Key_Value ("border_color_left",
+                         Serialize_Color (S.Border_Color.Edges (Left)));
       end case;
 
       --  Border radius (4 corners)
       case S.Border_Radius.Kind is
          when Gap_Uniform =>
-            JKV_String (Buf, "border_radius",
-                        Serialize_Length (S.Border_Radius.All_Corners));
+            W.Key_Value ("border_radius",
+                         Serialize_Length (S.Border_Radius.All_Corners));
          when Per_Corner =>
-            JKV_String (Buf, "border_radius_tl",
-                        Serialize_Length
-                          (S.Border_Radius.Corners (Top_Left)));
-            JKV_String (Buf, "border_radius_tr",
-                        Serialize_Length
-                          (S.Border_Radius.Corners (Top_Right)));
-            JKV_String (Buf, "border_radius_br",
-                        Serialize_Length
-                          (S.Border_Radius.Corners (Bottom_Right)));
-            JKV_String (Buf, "border_radius_bl",
-                        Serialize_Length
-                          (S.Border_Radius.Corners (Bottom_Left)));
+            W.Key_Value ("border_radius_tl",
+                         Serialize_Length
+                           (S.Border_Radius.Corners (Top_Left)));
+            W.Key_Value ("border_radius_tr",
+                         Serialize_Length
+                           (S.Border_Radius.Corners (Top_Right)));
+            W.Key_Value ("border_radius_br",
+                         Serialize_Length
+                           (S.Border_Radius.Corners (Bottom_Right)));
+            W.Key_Value ("border_radius_bl",
+                         Serialize_Length
+                           (S.Border_Radius.Corners (Bottom_Left)));
       end case;
 
       --  Padding (4 sides)
       case S.Padding.Kind is
          when Gap_Uniform =>
-            JKV_String (Buf, "padding",
-                        Serialize_Length (S.Padding.All_Sides));
+            W.Key_Value ("padding",
+                         Serialize_Length (S.Padding.All_Sides));
          when Axis =>
-            JKV_String (Buf, "padding_vertical",
-                        Serialize_Length (S.Padding.Vertical));
-            JKV_String (Buf, "padding_horizontal",
-                        Serialize_Length (S.Padding.Horizontal));
+            W.Key_Value ("padding_vertical",
+                         Serialize_Length (S.Padding.Vertical));
+            W.Key_Value ("padding_horizontal",
+                         Serialize_Length (S.Padding.Horizontal));
          when Per_Side =>
-            JKV_String (Buf, "padding_top",
-                        Serialize_Length (S.Padding.Sides (Top)));
-            JKV_String (Buf, "padding_right",
-                        Serialize_Length (S.Padding.Sides (Right)));
-            JKV_String (Buf, "padding_bottom",
-                        Serialize_Length (S.Padding.Sides (Bottom)));
-            JKV_String (Buf, "padding_left",
-                        Serialize_Length (S.Padding.Sides (Left)));
+            W.Key_Value ("padding_top",
+                         Serialize_Length (S.Padding.Sides (Top)));
+            W.Key_Value ("padding_right",
+                         Serialize_Length (S.Padding.Sides (Right)));
+            W.Key_Value ("padding_bottom",
+                         Serialize_Length (S.Padding.Sides (Bottom)));
+            W.Key_Value ("padding_left",
+                         Serialize_Length (S.Padding.Sides (Left)));
       end case;
 
       --  Margin (4 sides)
       case S.Margin.Kind is
          when Gap_Uniform =>
-            JKV_String (Buf, "margin",
-                        Serialize_Length (S.Margin.All_Sides));
+            W.Key_Value ("margin",
+                         Serialize_Length (S.Margin.All_Sides));
          when Axis =>
-            JKV_String (Buf, "margin_vertical",
-                        Serialize_Length (S.Margin.Vertical));
-            JKV_String (Buf, "margin_horizontal",
-                        Serialize_Length (S.Margin.Horizontal));
+            W.Key_Value ("margin_vertical",
+                         Serialize_Length (S.Margin.Vertical));
+            W.Key_Value ("margin_horizontal",
+                         Serialize_Length (S.Margin.Horizontal));
          when Per_Side =>
-            JKV_String (Buf, "margin_top",
-                        Serialize_Length (S.Margin.Sides (Top)));
-            JKV_String (Buf, "margin_right",
-                        Serialize_Length (S.Margin.Sides (Right)));
-            JKV_String (Buf, "margin_bottom",
-                        Serialize_Length (S.Margin.Sides (Bottom)));
-            JKV_String (Buf, "margin_left",
-                        Serialize_Length (S.Margin.Sides (Left)));
+            W.Key_Value ("margin_top",
+                         Serialize_Length (S.Margin.Sides (Top)));
+            W.Key_Value ("margin_right",
+                         Serialize_Length (S.Margin.Sides (Right)));
+            W.Key_Value ("margin_bottom",
+                         Serialize_Length (S.Margin.Sides (Bottom)));
+            W.Key_Value ("margin_left",
+                         Serialize_Length (S.Margin.Sides (Left)));
       end case;
 
       --  Sizing
-      JKV_String (Buf, "width", Serialize_Size (S.Width));
-      JKV_String (Buf, "height", Serialize_Size (S.Height));
-      JKV_String (Buf, "min_width", Serialize_Size (S.Min_Width));
-      JKV_String (Buf, "max_width", Serialize_Size (S.Max_Width));
-      JKV_String (Buf, "min_height", Serialize_Size (S.Min_Height));
-      JKV_String (Buf, "max_height", Serialize_Size (S.Max_Height));
+      W.Key_Value ("width", Serialize_Size (S.Width));
+      W.Key_Value ("height", Serialize_Size (S.Height));
+      W.Key_Value ("min_width", Serialize_Size (S.Min_Width));
+      W.Key_Value ("max_width", Serialize_Size (S.Max_Width));
+      W.Key_Value ("min_height", Serialize_Size (S.Min_Height));
+      W.Key_Value ("max_height", Serialize_Size (S.Max_Height));
 
       --  Typography
-      JKV_String (Buf, "font_size", Serialize_Length (S.Font_Size));
-      JKV_String (Buf, "font_weight", To_Lower
+      W.Key_Value ("font_size", Serialize_Length (S.Font_Size));
+      W.Key_Value ("font_weight", To_Lower
         (Font_Weight_Value'Image (S.Font_Weight)));
-      JKV_String (Buf, "font_style", To_Lower
+      W.Key_Value ("font_style", To_Lower
         (Font_Style_Value'Image (S.Font_Style)));
-      JKV_String (Buf, "text_align", To_Lower
+      W.Key_Value ("text_align", To_Lower
         (Text_Align_Value'Image (S.Text_Align)));
-      JKV_String (Buf, "vertical_align", To_Lower
+      W.Key_Value ("vertical_align", To_Lower
         (Vertical_Align_Value'Image (S.Vertical_Align)));
 
       --  Layout
-      JKV_String (Buf, "display", To_Lower
+      W.Key_Value ("display", To_Lower
         (Display_Value'Image (S.Display)));
-      JKV_String (Buf, "position", To_Lower
+      W.Key_Value ("position", To_Lower
         (Position_Value'Image (S.Position)));
-      JKV_String (Buf, "overflow_x", To_Lower
+      W.Key_Value ("overflow_x", To_Lower
         (Overflow_Value'Image (S.Overflow_X)));
-      JKV_String (Buf, "overflow_y", To_Lower
+      W.Key_Value ("overflow_y", To_Lower
         (Overflow_Value'Image (S.Overflow_Y)));
-      JKV_String (Buf, "visibility", To_Lower
+      W.Key_Value ("visibility", To_Lower
         (Visibility_Value'Image (S.Visibility)));
 
       --  Flex
-      JKV_String (Buf, "flex_direction", To_Lower
+      W.Key_Value ("flex_direction", To_Lower
         (Flex_Direction_Value'Image (S.Flex_Direction)));
-      JKV_String (Buf, "flex_wrap", To_Lower
+      W.Key_Value ("flex_wrap", To_Lower
         (Flex_Wrap_Value'Image (S.Flex_Wrap)));
-      JKV_String (Buf, "justify_content", To_Lower
+      W.Key_Value ("justify_content", To_Lower
         (Justify_Content_Value'Image (S.Justify_Content)));
-      JKV_String (Buf, "align_items", To_Lower
+      W.Key_Value ("align_items", To_Lower
         (Align_Items_Value'Image (S.Align_Items)));
 
       --  Gap
       case S.Gap.Kind is
          when Gap_Uniform =>
-            JKV_String (Buf, "gap", Serialize_Length (S.Gap.All_Gap));
+            W.Key_Value ("gap", Serialize_Length (S.Gap.All_Gap));
          when Gap_Separate =>
-            JKV_String (Buf, "row_gap", Serialize_Length (S.Gap.Row_Gap));
-            JKV_String (Buf, "column_gap",
-                        Serialize_Length (S.Gap.Column_Gap));
+            W.Key_Value ("row_gap", Serialize_Length (S.Gap.Row_Gap));
+            W.Key_Value ("column_gap",
+                         Serialize_Length (S.Gap.Column_Gap));
       end case;
 
       --  Visual
-      JKV_Float (Buf, "opacity", Float (S.Opacity));
-      JKV_String (Buf, "cursor", To_Lower
+      W.Key_Value ("opacity", Long_Float (S.Opacity));
+      W.Key_Value ("cursor", To_Lower
         (Cursor_Value'Image (S.Cursor)));
 
-      Append (Buf, "}");
+      W.End_Object;
    end Serialize_CSS_Values;
 
    ---------------------------------------------------------------------------
@@ -872,16 +768,16 @@ package body Adi.MCP is
          declare
             Root : constant Widget_Access :=
               Adi.Window.Get_Root (MCP_Window.all);
-            Buf  : Unbounded_String;
+            W    : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
-            Append (Buf, "{");
-            JKV_String (Buf, "status", "ok", First => True);
-            JKV_String (Buf, "req_id", Req_Id);
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
             if Root /= null then
-               Append (Buf, ",""tree"":");
-               Serialize_Widget_Tree (Root, "", Buf);
+               W.Key ("tree");
+               Serialize_Widget_Tree (Root, "", W);
             else
-               Append (Buf, ",""tree"":null");
+               W.Key_Null ("tree");
             end if;
 
             --  Overlays
@@ -890,9 +786,9 @@ package body Adi.MCP is
                  Adi.Window.Overlay_Count (MCP_Window.all);
             begin
                if OC > 0 then
-                  Append (Buf, ",""overlays"":[");
+                  W.Key ("overlays");
+                  W.Start_Array;
                   for I in 1 .. OC loop
-                     if I > 1 then Append (Buf, ","); end if;
                      declare
                         OV : constant Widget_Access :=
                           Adi.Window.Get_Overlay (MCP_Window.all, I);
@@ -901,42 +797,45 @@ package body Adi.MCP is
                           (OV,
                            "overlay" & Ada.Strings.Fixed.Trim
                              (Positive'Image (I), Ada.Strings.Left),
-                           Buf);
+                           W);
                      end;
                   end loop;
-                  Append (Buf, "]");
+                  W.End_Array;
                end if;
             end;
 
-            Append (Buf, "}");
-            return To_String (Buf);
+            W.End_Object;
+            return W.To_String;
          end;
 
       elsif Cmd = "perf_stats" then
          declare
             Stats : constant Adi.Window.Frame_Stats :=
               Adi.Window.Get_Frame_Stats (MCP_Window.all);
-            Buf   : Unbounded_String;
+            W     : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
-            Append (Buf, "{");
-            JKV_String (Buf, "status", "ok", First => True);
-            JKV_String (Buf, "req_id", Req_Id);
-            JKV_Int (Buf, "frame_no", Stats.Frame_No);
-            JKV_Int (Buf, "render_us", Stats.Render_Us);
-            JKV_Int (Buf, "update_us", Stats.Update_Us);
-            JKV_Int (Buf, "layout_us", Stats.Layout_Us);
-            JKV_Int (Buf, "draw_us", Stats.Draw_Us);
-            JKV_Int (Buf, "present_us", Stats.Present_Us);
-            JKV_Duration (Buf, "last_dt_ms", Stats.Last_DT);
-            JKV_Int (Buf, "layout_count", Stats.Layout_Count);
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
+            W.Key_Value ("frame_no", Long_Integer (Stats.Frame_No));
+            W.Key_Value ("render_us", Long_Integer (Stats.Render_Us));
+            W.Key_Value ("update_us", Long_Integer (Stats.Update_Us));
+            W.Key_Value ("layout_us", Long_Integer (Stats.Layout_Us));
+            W.Key_Value ("draw_us", Long_Integer (Stats.Draw_Us));
+            W.Key_Value ("present_us", Long_Integer (Stats.Present_Us));
+            W.Key_Value ("last_dt_ms",
+              Long_Float (Float (Stats.Last_DT) * 1000.0));
+            W.Key_Value ("layout_count",
+              Long_Integer (Stats.Layout_Count));
             if Stats.Last_DT > 0.0 then
-               JKV_Float (Buf, "fps",
-                 Float'Min (9999.0, 1.0 / Float (Stats.Last_DT)));
+               W.Key_Value ("fps",
+                 Long_Float (Float'Min
+                   (9999.0, 1.0 / Float (Stats.Last_DT))));
             else
-               JKV_Float (Buf, "fps", 0.0);
+               W.Key_Value ("fps", Long_Float (0.0));
             end if;
-            Append (Buf, "}");
-            return To_String (Buf);
+            W.End_Object;
+            return W.To_String;
          end;
 
       elsif Cmd = "get_focus" then
@@ -945,23 +844,23 @@ package body Adi.MCP is
               Adi.Window.Get_Focus (MCP_Window.all);
             Root    : constant Widget_Access :=
               Adi.Window.Get_Root (MCP_Window.all);
-            Buf     : Unbounded_String;
+            W       : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
-            Append (Buf, "{");
-            JKV_String (Buf, "status", "ok", First => True);
-            JKV_String (Buf, "req_id", Req_Id);
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
             if Focused /= null and then Root /= null then
                declare
                   Path : constant String := Find_Path (Root, Focused);
                begin
-                  Append (Buf, ",""widget"":");
-                  Serialize_Widget_Info (Focused, Path, Buf);
+                  W.Key ("widget");
+                  Serialize_Widget_Info (Focused, Path, W);
                end;
             else
-               Append (Buf, ",""widget"":null");
+               W.Key_Null ("widget");
             end if;
-            Append (Buf, "}");
-            return To_String (Buf);
+            W.End_Object;
+            return W.To_String;
          end;
 
       else
@@ -981,20 +880,20 @@ package body Adi.MCP is
             Resolved_Path : Unbounded_String;
             Target        : constant Widget_Access :=
               Resolve_Widget (JSON, Resolved_Path);
-            Buf           : Unbounded_String;
+            W             : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             if Target = null then
                return Error_Response (Req_Id, "widget not found");
             end if;
 
-            Append (Buf, "{");
-            JKV_String (Buf, "status", "ok", First => True);
-            JKV_String (Buf, "req_id", Req_Id);
-            Append (Buf, ",""widget"":");
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
+            W.Key ("widget");
             Serialize_Widget_Info
-              (Target, To_String (Resolved_Path), Buf);
-            Append (Buf, "}");
-            return To_String (Buf);
+              (Target, To_String (Resolved_Path), W);
+            W.End_Object;
+            return W.To_String;
          end;
 
       elsif Cmd = "find_by_text" then
@@ -1004,7 +903,7 @@ package body Adi.MCP is
             Root  : constant Widget_Access :=
               Adi.Window.Get_Root (MCP_Window.all);
             Results : Match_Vectors.Vector;
-            Buf     : Unbounded_String;
+            W       : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             if Query'Length = 0 then
                return Error_Response (Req_Id, "missing query parameter");
@@ -1028,14 +927,14 @@ package body Adi.MCP is
                end;
             end loop;
 
-            Append (Buf, "{");
-            JKV_String (Buf, "status", "ok", First => True);
-            JKV_String (Buf, "req_id", Req_Id);
-            JKV_Int (Buf, "count", Integer (Results.Length));
-            Append (Buf, ",""matches"":");
-            Serialize_Matches (Results, Buf);
-            Append (Buf, "}");
-            return To_String (Buf);
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
+            W.Key_Value ("count", Long_Integer (Results.Length));
+            W.Key ("matches");
+            Serialize_Matches (Results, W);
+            W.End_Object;
+            return W.To_String;
          end;
 
       elsif Cmd = "find_by_type" then
@@ -1045,7 +944,7 @@ package body Adi.MCP is
             Root    : constant Widget_Access :=
               Adi.Window.Get_Root (MCP_Window.all);
             Results : Match_Vectors.Vector;
-            Buf     : Unbounded_String;
+            W       : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             if Type_Name'Length = 0 then
                return Error_Response (Req_Id, "missing type_name parameter");
@@ -1068,14 +967,14 @@ package body Adi.MCP is
                end;
             end loop;
 
-            Append (Buf, "{");
-            JKV_String (Buf, "status", "ok", First => True);
-            JKV_String (Buf, "req_id", Req_Id);
-            JKV_Int (Buf, "count", Integer (Results.Length));
-            Append (Buf, ",""matches"":");
-            Serialize_Matches (Results, Buf);
-            Append (Buf, "}");
-            return To_String (Buf);
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
+            W.Key_Value ("count", Long_Integer (Results.Length));
+            W.Key ("matches");
+            Serialize_Matches (Results, W);
+            W.End_Object;
+            return W.To_String;
          end;
 
       elsif Cmd = "click_widget" then
@@ -1084,7 +983,7 @@ package body Adi.MCP is
             Path_Val      : constant String := JSON_Get_String (JSON, "path");
             Resolved_Path : Unbounded_String;
             Target        : Widget_Access;
-            Buf           : Unbounded_String;
+            W             : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             if Id_Val = 0 and then Path_Val'Length = 0 then
                return Error_Response
@@ -1109,19 +1008,19 @@ package body Adi.MCP is
                  (MCP_Window.all, CX, CY, Left_Button);
             end;
 
-            Append (Buf, "{");
-            JKV_String (Buf, "status", "ok", First => True);
-            JKV_String (Buf, "req_id", Req_Id);
-            JKV_Int (Buf, "id", Get_Id (Target.all));
-            JKV_String (Buf, "path", To_String (Resolved_Path));
-            Append (Buf, "}");
-            return To_String (Buf);
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
+            W.Key_Value ("id", Long_Integer (Get_Id (Target.all)));
+            W.Key_Value ("path", To_String (Resolved_Path));
+            W.End_Object;
+            return W.To_String;
          end;
 
       elsif Cmd = "send_keys" then
          declare
             Keys : constant String := JSON_Get_String (JSON, "keys");
-            Buf  : Unbounded_String;
+            W    : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             if Keys'Length = 0 then
                return Error_Response (Req_Id, "missing keys parameter");
@@ -1129,11 +1028,11 @@ package body Adi.MCP is
 
             Parse_And_Send_Keys (MCP_Window, Keys);
 
-            Append (Buf, "{");
-            JKV_String (Buf, "status", "ok", First => True);
-            JKV_String (Buf, "req_id", Req_Id);
-            Append (Buf, "}");
-            return To_String (Buf);
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
+            W.End_Object;
+            return W.To_String;
          end;
 
       elsif Cmd = "set_text" then
@@ -1142,7 +1041,7 @@ package body Adi.MCP is
             Target        : constant Widget_Access :=
               Resolve_Widget (JSON, Resolved_Path);
             Text          : constant String := JSON_Get_String (JSON, "text");
-            Buf           : Unbounded_String;
+            W             : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             if Target = null then
                return Error_Response (Req_Id, "widget not found");
@@ -1162,12 +1061,12 @@ package body Adi.MCP is
                  (Req_Id, "widget does not support set_text");
             end if;
 
-            Append (Buf, "{");
-            JKV_String (Buf, "status", "ok", First => True);
-            JKV_String (Buf, "req_id", Req_Id);
-            JKV_Int (Buf, "id", Get_Id (Target.all));
-            Append (Buf, "}");
-            return To_String (Buf);
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
+            W.Key_Value ("id", Long_Integer (Get_Id (Target.all)));
+            W.End_Object;
+            return W.To_String;
          end;
 
       elsif Cmd = "set_focus" then
@@ -1175,7 +1074,7 @@ package body Adi.MCP is
             Resolved_Path : Unbounded_String;
             Target        : constant Widget_Access :=
               Resolve_Widget (JSON, Resolved_Path);
-            Buf           : Unbounded_String;
+            W             : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             if Target = null then
                return Error_Response (Req_Id, "widget not found");
@@ -1183,12 +1082,12 @@ package body Adi.MCP is
 
             Adi.Window.Set_Focus (MCP_Window.all, Target);
 
-            Append (Buf, "{");
-            JKV_String (Buf, "status", "ok", First => True);
-            JKV_String (Buf, "req_id", Req_Id);
-            JKV_Int (Buf, "id", Get_Id (Target.all));
-            Append (Buf, "}");
-            return To_String (Buf);
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
+            W.Key_Value ("id", Long_Integer (Get_Id (Target.all)));
+            W.End_Object;
+            return W.To_String;
          end;
 
       elsif Cmd = "css_values" then
@@ -1199,7 +1098,7 @@ package body Adi.MCP is
             Part_Str      : constant String :=
               JSON_Get_String (JSON, "part");
             Part          : Part_Kind;
-            Buf           : Unbounded_String;
+            W             : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             if Target = null then
                return Error_Response (Req_Id, "widget not found");
@@ -1208,17 +1107,17 @@ package body Adi.MCP is
             Part := Resolve_Part
               (if Part_Str'Length > 0 then Part_Str else "main");
 
-            Append (Buf, "{");
-            JKV_String (Buf, "status", "ok", First => True);
-            JKV_String (Buf, "req_id", Req_Id);
-            JKV_Int (Buf, "id", Get_Id (Target.all));
-            JKV_String (Buf, "part",
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
+            W.Key_Value ("id", Long_Integer (Get_Id (Target.all)));
+            W.Key_Value ("part",
               Ada.Characters.Handling.To_Lower
                 (Part_Kind'Image (Part)));
-            Append (Buf, ",""values"":");
-            Serialize_CSS_Values (Target, Part, Buf);
-            Append (Buf, "}");
-            return To_String (Buf);
+            W.Key ("values");
+            Serialize_CSS_Values (Target, Part, W);
+            W.End_Object;
+            return W.To_String;
          end;
 
       else
@@ -1243,30 +1142,30 @@ package body Adi.MCP is
          Dir    : constant String := To_String (MCP_Dir);
          Path   : constant String :=
            Dir & "/screenshot_" & Req_Id & ".png";
-         Buf    : Unbounded_String;
+         W      : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          Resp_Path : constant String :=
            Dir & "/resp_" & Req_Id & ".json";
       begin
          Pending_Screenshot := False;
          Adi.Screenshot.Capture (Renderer, Path);
-         Append (Buf, "{");
-         JKV_String (Buf, "status", "ok", First => True);
-         JKV_String (Buf, "req_id", Req_Id);
-         JKV_String (Buf, "path", Path);
-         Append (Buf, "}");
-         Atomic_Write (Resp_Path, To_String (Buf));
+         W.Start_Object;
+         W.Key_Value ("status", "ok");
+         W.Key_Value ("req_id", Req_Id);
+         W.Key_Value ("path", Path);
+         W.End_Object;
+         Atomic_Write (Resp_Path, W.To_String);
       exception
          when others =>
             Pending_Screenshot := False;
             declare
-               Err_Buf : Unbounded_String;
+               Err_W : Adi.JSON.JSON_Writer := Adi.JSON.Create;
             begin
-               Append (Err_Buf, "{");
-               JKV_String (Err_Buf, "status", "error", First => True);
-               JKV_String (Err_Buf, "req_id", Req_Id);
-               JKV_String (Err_Buf, "error", "screenshot capture failed");
-               Append (Err_Buf, "}");
-               Atomic_Write (Resp_Path, To_String (Err_Buf));
+               Err_W.Start_Object;
+               Err_W.Key_Value ("status", "error");
+               Err_W.Key_Value ("req_id", Req_Id);
+               Err_W.Key_Value ("error", "screenshot capture failed");
+               Err_W.End_Object;
+               Atomic_Write (Resp_Path, Err_W.To_String);
             end;
       end;
    exception

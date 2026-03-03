@@ -291,6 +291,12 @@ Three optimizations reduce layout cost for large widget trees (e.g. 280+ widgets
 
 **Performance counters**: `Reset_Perf_Counters` / `Get_Perf_*` functions in `Adi.Widget` track style resolves, cache hits, layout calls, layout skips, preferred-size calls, and preferred-size cache hits per frame. Counters are reset before `Update` so that all work (including `Build_Items`) is captured. The Window captures these after each layout pass for the debug stats overlay.
 
+## Settings
+
+**Adi.Settings** (`adi-settings.ads`): Persistent key-value store for application settings. `Setting_Value` is a managed recursive variant (null, string, integer, float, boolean, list, map) with controlled deep-copy/free semantics. `Settings_Store` provides typed getters/setters with dot-path keys (`.` separator, `\.` escape) and auto-creation of intermediate maps. Pluggable `Settings_Backend` interface; default `JSON_Settings_Backend` serializes via `Adi.JSON.JSON_Writer` and reads via `Adi.JSON.Parsers`. File path: `Pref_Path(Org, App) & "settings.json"`. Saves atomically (temp + rename). Full reference in `docs/settings.md`.
+
+**Adi.JSON** (`adi-json.ads`): JSON support — wraps the vendor parser (`json-ada`) for reading and provides `JSON_Writer` (streaming builder with automatic comma tracking, pretty-printing, depth tracking) and `Escape_String` (UTF-8 safe) for writing. Used by both `Adi.Settings.JSON_Backend` and `Adi.MCP`.
+
 ## SDL Bindings
 
 Hand-crafted Ada bindings in `adi-sdl*.ads`:

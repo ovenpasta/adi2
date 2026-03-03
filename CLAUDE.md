@@ -27,6 +27,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | Static asset bundling | `docs/static_assets.md` |
 | Signals and deferred dispatch | `docs/signals.md` |
 | Internationalization (i18n, translations, .po files, plural forms) | `docs/i18n.md` |
+| Program settings (Setting_Value, Settings_Store, JSON backend) | `docs/settings.md` |
 | Ada 2022 Reference Manual | `rm-22-txt/RM-TOC.TXT` (chapters: `rm-22-txt/RM-*.TXT`) |
 
 ## Build Commands
@@ -55,6 +56,7 @@ alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/image_widget_test
 ./tests/bin/mcp_test
 ./tests/bin/bundle_test
+./tests/bin/settings_test
 
 # Run Python tests (no build step needed)
 python3 tools/test_css_to_ada.py

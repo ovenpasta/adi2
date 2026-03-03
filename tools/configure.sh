@@ -224,7 +224,8 @@ project Tests_Build is
       "svg_perf_test",
       "image_widget_test",
       "svg_sprites_test",
-      "bundle_test");
+      "bundle_test",
+      "settings_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("${SOURCE_DIR}/tests/src");
@@ -372,6 +373,7 @@ TEST_KINDS=(
   min_size_test
   layout_perf_test
   bundle_test
+  settings_test
 )
 
 for kind in "\${TEST_KINDS[@]}"; do

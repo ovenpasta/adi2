@@ -35,6 +35,8 @@ package Adi.Text_Buffer is
    procedure Select_All (B : in out Text_Buffer);
 
    procedure Insert_Text (B : in out Text_Buffer; Text : String);
+   procedure Append_Text
+     (B : in out Text_Buffer; Text : String; Record_Undo : Boolean := True);
    procedure Delete_Backward (B : in out Text_Buffer);
    procedure Delete_Forward (B : in out Text_Buffer);
    function Copy_Selection_To_Clipboard (B : Text_Buffer) return Boolean;

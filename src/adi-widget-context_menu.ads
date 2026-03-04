@@ -33,6 +33,14 @@ package Adi.Widget.Context_Menu is
    procedure Clear_Items (Menu : in out Context_Menu);
    function Item_Count (Menu : Context_Menu) return Natural;
 
+   procedure Set_Item_Disabled
+     (Menu     : in out Context_Menu;
+      Index    : Positive;
+      Disabled : Boolean);
+   function Is_Item_Disabled
+     (Menu  : Context_Menu;
+      Index : Positive) return Boolean;
+
    procedure Connect_Item_Selected
      (Menu : in out Context_Menu; CB : Item_Selected_Callback);
    function Connect_Item_Selected
@@ -67,6 +75,8 @@ private
    package String_Vectors is new Ada.Containers.Vectors
      (Positive, Ada.Strings.Unbounded.Unbounded_String);
 
+   package Bool_Vectors is new Ada.Containers.Vectors (Positive, Boolean);
+
    package Part_Style_Holders is new Ada.Containers.Indefinite_Holders
      (Adi.Widget.Part_Style_Array);
 
@@ -78,6 +88,7 @@ private
       Host_Window : Adi.Window.Window_Access := null;
       Popup       : Popup_Lists.List_Box_Widget_Access := null;
       Items       : String_Vectors.Vector;
+      Disabled    : Bool_Vectors.Vector;
       Row_Styles  : Part_Style_Holders.Holder;
       Open        : Boolean := False;
       Item_Selected : Item_Selected_Signals.Signal;

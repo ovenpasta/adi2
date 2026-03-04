@@ -463,6 +463,46 @@ package body Adi.Text_Buffer is
       end;
    end Insert_Text;
 
+   procedure Append_Text
+     (B : in out Text_Buffer; Text : String; Record_Undo : Boolean := True)
+   is
+      Start    : Positive;
+      Last_Idx : Positive;
+   begin
+      if Text'Length = 0 then
+         return;
+      end if;
+
+      Ensure_Not_Empty (B);
+      if Record_Undo then
+         Record_Edit (B);
+      else
+         B.Redo_Stack.Clear;
+      end if;
+      B.Content_Version := Next_Version (B.Content_Version);
+
+      Start := Text'First;
+      for I in Text'Range loop
+         if Text (I) = Ada.Characters.Latin_1.LF then
+            Last_Idx := Positive (B.Lines.Last_Index);
+            B.Lines.Replace_Element
+              (Last_Idx,
+               B.Lines.Element (Last_Idx)
+                 & To_Unbounded_String (Text (Start .. I - 1)));
+            B.Lines.Append (Null_Unbounded_String);
+            Start := I + 1;
+         end if;
+      end loop;
+
+      if Start <= Text'Last then
+         Last_Idx := Positive (B.Lines.Last_Index);
+         B.Lines.Replace_Element
+           (Last_Idx,
+            B.Lines.Element (Last_Idx)
+              & To_Unbounded_String (Text (Start .. Text'Last)));
+      end if;
+   end Append_Text;
+
    procedure Delete_Backward (B : in out Text_Buffer) is
       Cur : Position;
    begin

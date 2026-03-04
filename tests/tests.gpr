@@ -27,7 +27,8 @@ project Tests is
       "dispatch_test",
       "i18n_test",
       "settings_test",
-      "close_request_test");
+      "close_request_test",
+      "text_editor_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("src");

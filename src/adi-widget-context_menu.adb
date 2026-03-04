@@ -250,6 +250,12 @@ package body Adi.Widget.Context_Menu is
          return;
       end if;
 
+      if Index <= Natural (Owner.Disabled.Length)
+        and then Owner.Disabled.Element (Index)
+      then
+         return;
+      end if;
+
       if Index <= Natural (Owner.Items.Length) then
          Label_Text := Owner.Items.Element (Index);
       end if;
@@ -312,6 +318,7 @@ package body Adi.Widget.Context_Menu is
       end if;
 
       Menu.Items.Append (To_Unbounded_String (Text));
+      Menu.Disabled.Append (False);
       if Menu.Popup /= null then
          Popup_Lists.Append_Row (Menu.Popup.all, Row);
       end if;
@@ -321,6 +328,7 @@ package body Adi.Widget.Context_Menu is
    procedure Clear_Items (Menu : in out Context_Menu) is
    begin
       Menu.Items.Clear;
+      Menu.Disabled.Clear;
       if Menu.Popup /= null then
          Popup_Lists.Clear_Rows (Menu.Popup.all);
       end if;
@@ -330,6 +338,42 @@ package body Adi.Widget.Context_Menu is
    begin
       return Natural (Menu.Items.Length);
    end Item_Count;
+
+   procedure Set_Item_Disabled
+     (Menu     : in out Context_Menu;
+      Index    : Positive;
+      Disabled : Boolean)
+   is
+   begin
+      if Index > Natural (Menu.Disabled.Length) then
+         return;
+      end if;
+      Menu.Disabled.Replace_Element (Index, Disabled);
+
+      if Menu.Popup /= null
+        and then Index <= Popup_Lists.Row_Count (Menu.Popup.all)
+      then
+         declare
+            Row : constant Adi.Widget.Label.Label_Widget_Access :=
+              Popup_Lists.Get_Row (Menu.Popup.all, Index);
+         begin
+            if Row /= null then
+               Set_Disabled (Row.all, Disabled);
+            end if;
+         end;
+      end if;
+   end Set_Item_Disabled;
+
+   function Is_Item_Disabled
+     (Menu  : Context_Menu;
+      Index : Positive) return Boolean
+   is
+   begin
+      if Index > Natural (Menu.Disabled.Length) then
+         return False;
+      end if;
+      return Menu.Disabled.Element (Index);
+   end Is_Item_Disabled;
 
    procedure Connect_Item_Selected
      (Menu : in out Context_Menu; CB : Item_Selected_Callback)

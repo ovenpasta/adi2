@@ -20,7 +20,7 @@ procedure Text_Editor_Example is
 
    Sample_Text : constant String :=
      "-- Multiline Text Editor Demo" & ASCII.LF &
-     "-- Use the Wrap switch above to toggle wrapped rows on/off." & ASCII.LF &
+     "-- Use the Wrap switch to toggle word wrap, Read Only to lock editing." & ASCII.LF &
      "" & ASCII.LF &
      "Paragraph 1:" & ASCII.LF &
      "This paragraph is intentionally long and includes enough words to wrap across multiple visual rows when wrap is enabled, letting you test caret movement with Up and Down, selection highlighting across wrapped segments, and smooth scrolling behavior." & ASCII.LF &
@@ -94,6 +94,10 @@ begin
         Adi.Widget.Label.Create ("Wrap: ON");
       Wrap_Switch : constant Adi.Widget.Button.Switch.Switch_Widget_Access :=
         Adi.Widget.Button.Switch.Create (True);
+      RO_Status : constant Label_Widget_Access :=
+        Adi.Widget.Label.Create ("Read Only: OFF");
+      RO_Switch : constant Adi.Widget.Button.Switch.Switch_Widget_Access :=
+        Adi.Widget.Button.Switch.Create (False);
       Open_Btn : constant Button_Widget_Access :=
         Adi.Widget.Button.Create ("Open File");
       Editor : constant Text_Editor_Widget_Access :=
@@ -129,6 +133,20 @@ begin
       begin
          Apply_Wrap (Active);
       end On_Wrap_Toggled;
+
+      procedure On_RO_Toggled
+        (Btn    : Button_Widget_Access;
+         Active : Boolean)
+      is
+         pragma Unreferenced (Btn);
+      begin
+         Set_Read_Only (Editor.all, Active);
+         if Active then
+            Set_Text (RO_Status.all, "Read Only: ON");
+         else
+            Set_Text (RO_Status.all, "Read Only: OFF");
+         end if;
+      end On_RO_Toggled;
 
       procedure On_File_Selected (Files : Adi.OS.String_Array) is
       begin
@@ -169,10 +187,13 @@ begin
       Set_Part_Styles (Controls.all, Controls_Class_Part_Styles);
       Set_Part_Styles (Wrap_Status.all, Wrap_Status_Class_Part_Styles);
       Set_Part_Styles (Wrap_Switch.all, Wrap_Switch_Class_Part_Styles);
+      Set_Part_Styles (RO_Status.all, Ro_Status_Class_Part_Styles);
+      Set_Part_Styles (RO_Switch.all, Ro_Switch_Class_Part_Styles);
       Set_Part_Styles (Editor.all, Editor_Class_Part_Styles);
       Set_Part_Styles (Open_Btn.all, Open_Btn_Class_Part_Styles);
       Open_Btn.Connect_Clicked (On_Open_Click'Unrestricted_Access);
       Wrap_Switch.Connect_Toggled (On_Wrap_Toggled'Unrestricted_Access);
+      RO_Switch.Connect_Toggled (On_RO_Toggled'Unrestricted_Access);
       Apply_Wrap (True);
       Set_Context_Menu_Part_Styles (Editor.all, Context_Menu_Class_Part_Styles);
       Set_Context_Menu_Item_Part_Styles (Editor.all, Context_Menu_Item_Class_Part_Styles);
@@ -182,6 +203,8 @@ begin
       Controls.Add_Child (Open_Btn);
       Controls.Add_Child (Wrap_Status);
       Controls.Add_Child (Wrap_Switch);
+      Controls.Add_Child (RO_Status);
+      Controls.Add_Child (RO_Switch);
       Root.Add_Child (Editor);
 
       W.Set_Root (Root);

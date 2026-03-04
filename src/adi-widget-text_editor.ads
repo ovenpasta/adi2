@@ -14,6 +14,12 @@ package Adi.Widget.Text_Editor is
 
    procedure Set_Text (W : in out Text_Editor_Widget; Text : String);
    function Get_Text (W : Text_Editor_Widget) return String;
+   procedure Append_Text (W : in out Text_Editor_Widget; Text : String);
+   procedure Scroll_To_End (W : in out Text_Editor_Widget);
+
+   procedure Set_Read_Only (W : in out Text_Editor_Widget; Value : Boolean := True);
+   function  Is_Read_Only  (W : Text_Editor_Widget) return Boolean;
+
    procedure Set_Context_Menu_Part_Styles
      (W      : in out Text_Editor_Widget;
       Styles : Part_Style_Array);
@@ -97,6 +103,8 @@ private
       Has_Context_Menu_Styles : Boolean := False;
       Context_Item_Styles : Part_Style_Array := Empty_Part_Styles;
       Has_Context_Item_Styles : Boolean := False;
+      Read_Only             : Boolean := False;
+      Scroll_To_End_Pending : Boolean := False;
    end record;
 
 end Adi.Widget.Text_Editor;

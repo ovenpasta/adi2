@@ -43,6 +43,17 @@ package body Adi.Widget.Text_Editor is
       return null;
    end Find_Owner_By_Menu;
 
+   function Is_Owner_Read_Only_By_Menu
+     (Menu : Adi.Widget.Context_Menu.Context_Menu_Access) return Boolean
+   is
+      Owner : constant Text_Editor_Widget_Access := Find_Owner_By_Menu (Menu);
+   begin
+      if Owner = null then
+         return False;
+      end if;
+      return Owner.Read_Only;
+   end Is_Owner_Read_Only_By_Menu;
+
    procedure Register_Menu_Binding
      (Menu  : Adi.Widget.Context_Menu.Context_Menu_Access;
       Owner : Text_Editor_Widget_Access)
@@ -358,10 +369,11 @@ package body Adi.Widget.Text_Editor is
       end if;
 
       W.Context_Menu := Adi.Widget.Text_Context_Menu.Create_Default
-        (Buffer      => W.Buffer'Unchecked_Access,
-         Host        => null,
-         Single_Line => False,
-         On_Applied  => On_Menu_Command_Applied'Access);
+        (Buffer       => W.Buffer'Unchecked_Access,
+         Host         => null,
+         Single_Line  => False,
+         On_Applied   => On_Menu_Command_Applied'Access,
+         Is_Read_Only => Is_Owner_Read_Only_By_Menu'Access);
       Register_Menu_Binding (W.Context_Menu, Self);
       Adi.Widget.Text_Context_Menu.Bind_Widget_Request (W, W.Context_Menu);
       Apply_Context_Menu_Styles (W);
@@ -409,6 +421,30 @@ package body Adi.Widget.Text_Editor is
    begin
       return Adi.Text_Buffer.Get_Text (W.Buffer);
    end Get_Text;
+
+   procedure Append_Text (W : in out Text_Editor_Widget; Text : String) is
+   begin
+      Adi.Text_Buffer.Append_Text (W.Buffer, Text,
+                                    Record_Undo => not W.Read_Only);
+      Mark_Dirty (W);
+   end Append_Text;
+
+   procedure Scroll_To_End (W : in out Text_Editor_Widget) is
+   begin
+      W.Scroll_To_End_Pending := True;
+      Mark_Dirty (W);
+   end Scroll_To_End;
+
+   procedure Set_Read_Only
+     (W : in out Text_Editor_Widget; Value : Boolean := True) is
+   begin
+      W.Read_Only := Value;
+   end Set_Read_Only;
+
+   function Is_Read_Only (W : Text_Editor_Widget) return Boolean is
+   begin
+      return W.Read_Only;
+   end Is_Read_Only;
 
    procedure Set_Context_Menu_Part_Styles
      (W      : in out Text_Editor_Widget;
@@ -503,6 +539,11 @@ package body Adi.Widget.Text_Editor is
       --  Total content height and scroll metrics
       W.Scroll_Content_H := Pixel_Type'Max (Pixel_Type (Total_Rows) * LS, Content.Height);
       W.Scroll_Viewport_H := Content.Height;
+
+      if W.Scroll_To_End_Pending then
+         W.Scroll_To_End_Pending := False;
+         Set_Scroll_Offset_Y (W, Get_Scroll_Max_Offset_Y (W));
+      end if;
 
       --  Only snap scroll to caret when the caret actually moved (keyboard
       --  navigation, typing), not on every rebuild (which would fight mouse
@@ -714,6 +755,31 @@ package body Adi.Widget.Text_Editor is
       Ctrl  : constant Boolean := Is_Mod_Active (Key_Mod, SDL_KMOD_CTRL);
       Lines_Per_Page : Positive;
    begin
+      --  In read-only mode, block all editing operations but allow navigation,
+      --  copy, and select all.
+      if W.Read_Only then
+         if Ctrl then
+            case Scancode is
+               when SDL_SCANCODE_Z | SDL_SCANCODE_Y =>
+                  return;  --  Undo / Redo
+               when SDL_SCANCODE_X | SDL_SCANCODE_V =>
+                  return;  --  Cut / Paste
+               when others =>
+                  null;  --  Ctrl+C, Ctrl+A etc. fall through
+            end case;
+         else
+            case Scancode is
+               when SDL_SCANCODE_BACKSPACE
+                  | SDL_SCANCODE_DELETE
+                  | SDL_SCANCODE_RETURN
+                  | SDL_SCANCODE_TAB =>
+                  return;
+               when others =>
+                  null;  --  Navigation keys fall through
+            end case;
+         end if;
+      end if;
+
       if Ctrl
         and then (Scancode = SDL_SCANCODE_Y
                   or else (Shift and then Scancode = SDL_SCANCODE_Z))
@@ -919,7 +985,7 @@ package body Adi.Widget.Text_Editor is
      (W : in out Text_Editor_Widget; Text : String)
    is
    begin
-      if Text'Length = 0 then
+      if Text'Length = 0 or else W.Read_Only then
          return;
       end if;
 

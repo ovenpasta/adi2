@@ -19,11 +19,15 @@ package Adi.Widget.Text_Context_Menu is
       Command      : Text_Menu_Command;
       Changed_Text : Boolean);
 
+   type Read_Only_Query is access function
+     (Menu : Adi.Widget.Context_Menu.Context_Menu_Access) return Boolean;
+
    function Create_Default
-     (Buffer      : Adi.Text_Buffer.Text_Buffer_Access;
-      Host        : Adi.Window.Window_Access;
-      Single_Line : Boolean := False;
-      On_Applied  : Command_Applied_Callback := null)
+     (Buffer       : Adi.Text_Buffer.Text_Buffer_Access;
+      Host         : Adi.Window.Window_Access;
+      Single_Line  : Boolean := False;
+      On_Applied   : Command_Applied_Callback := null;
+      Is_Read_Only : Read_Only_Query := null)
       return Adi.Widget.Context_Menu.Context_Menu_Access;
 
    procedure Bind_Widget_Request
@@ -32,10 +36,11 @@ package Adi.Widget.Text_Context_Menu is
 
 private
    type Command_Binding is record
-      Menu        : Adi.Widget.Context_Menu.Context_Menu_Access := null;
-      Buffer      : Adi.Text_Buffer.Text_Buffer_Access := null;
-      Single_Line : Boolean := False;
-      On_Applied  : Command_Applied_Callback := null;
+      Menu         : Adi.Widget.Context_Menu.Context_Menu_Access := null;
+      Buffer       : Adi.Text_Buffer.Text_Buffer_Access := null;
+      Single_Line  : Boolean := False;
+      On_Applied   : Command_Applied_Callback := null;
+      Is_Read_Only : Read_Only_Query := null;
    end record;
 
    package Command_Binding_Vectors is new Ada.Containers.Vectors

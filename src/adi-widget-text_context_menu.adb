@@ -59,6 +59,15 @@ package body Adi.Widget.Text_Context_Menu is
          when others => return;
       end case;
 
+      if Command_Bindings.Element (Binding_Idx).Is_Read_Only /= null
+        and then Command_Bindings.Element (Binding_Idx).Is_Read_Only (Menu)
+      then
+         case Command is
+            when Cmd_Undo | Cmd_Redo | Cmd_Cut | Cmd_Paste => return;
+            when others => null;
+         end case;
+      end if;
+
       if Command_Bindings.Element (Binding_Idx).Buffer = null then
          return;
       end if;
@@ -108,16 +117,42 @@ package body Adi.Widget.Text_Context_Menu is
             Adi.Widget.Context_Menu.Attach_Window
               (Request_Bindings.Element (Idx).Menu.all, Host);
          end if;
+
+         declare
+            M       : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
+              Request_Bindings.Element (Idx).Menu;
+            Cmd_Idx : constant Natural := Find_Command_Binding (M);
+            RO      : Boolean := False;
+         begin
+            if Cmd_Idx /= 0
+              and then Command_Bindings.Element (Cmd_Idx).Is_Read_Only /= null
+            then
+               RO := Command_Bindings.Element (Cmd_Idx).Is_Read_Only (M);
+            end if;
+
+            --  Undo(1), Redo(2), Cut(3): disabled when read-only
+            --  Copy(4): always enabled
+            --  Paste(5): disabled when read-only
+            --  Select All(6): always enabled
+            Adi.Widget.Context_Menu.Set_Item_Disabled (M.all, 1, RO);
+            Adi.Widget.Context_Menu.Set_Item_Disabled (M.all, 2, RO);
+            Adi.Widget.Context_Menu.Set_Item_Disabled (M.all, 3, RO);
+            Adi.Widget.Context_Menu.Set_Item_Disabled (M.all, 4, False);
+            Adi.Widget.Context_Menu.Set_Item_Disabled (M.all, 5, RO);
+            Adi.Widget.Context_Menu.Set_Item_Disabled (M.all, 6, False);
+         end;
+
          Adi.Widget.Context_Menu.Show_At
            (Request_Bindings.Element (Idx).Menu.all, X, Y);
       end if;
    end On_Context_Request;
 
    function Create_Default
-     (Buffer      : Adi.Text_Buffer.Text_Buffer_Access;
-      Host        : Adi.Window.Window_Access;
-      Single_Line : Boolean := False;
-      On_Applied  : Command_Applied_Callback := null)
+     (Buffer       : Adi.Text_Buffer.Text_Buffer_Access;
+      Host         : Adi.Window.Window_Access;
+      Single_Line  : Boolean := False;
+      On_Applied   : Command_Applied_Callback := null;
+      Is_Read_Only : Read_Only_Query := null)
       return Adi.Widget.Context_Menu.Context_Menu_Access
    is
       Menu : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
@@ -140,17 +175,19 @@ package body Adi.Widget.Text_Context_Menu is
             Command_Bindings.Append
               (New_Item =>
                  Command_Binding'
-                   (Menu        => Menu,
-                    Buffer      => Buffer,
-                    Single_Line => Single_Line,
-                    On_Applied  => On_Applied));
+                   (Menu         => Menu,
+                    Buffer       => Buffer,
+                    Single_Line  => Single_Line,
+                    On_Applied   => On_Applied,
+                    Is_Read_Only => Is_Read_Only));
          else
             Command_Bindings.Replace_Element
               (I,
-               (Menu        => Menu,
-                Buffer      => Buffer,
-                Single_Line => Single_Line,
-                On_Applied  => On_Applied));
+               (Menu         => Menu,
+                Buffer       => Buffer,
+                Single_Line  => Single_Line,
+                On_Applied   => On_Applied,
+                Is_Read_Only => Is_Read_Only));
          end if;
       end;
 

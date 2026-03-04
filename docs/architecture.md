@@ -200,6 +200,9 @@
 **Text_Input**: Single-line editor using `Text_Buffer`. Horizontal scroll, caret, selection, context menu. Double-click word select, triple-click select all.
 
 **Text_Editor**: Multiline editor using `Text_Buffer` + `Text_Layout`. Vertical scrollbar, visual-row navigation, word/line selection.
+- **Read-only mode**: `Set_Read_Only`/`Is_Read_Only` blocks keyboard editing (insert, delete, backspace, return, tab, undo, redo, cut, paste) while allowing navigation, selection, and copy. Context menu disables undo/redo/cut/paste items when read-only.
+- **Append_Text**: Appends text at end of buffer without moving caret or disturbing selection. `Record_Undo` parameter (default `True`) controls undo history; `Text_Editor.Append_Text` passes `not Read_Only` so log-viewer mode skips undo snapshots. When `Record_Undo => False`, the redo stack is still cleared to prevent stale redo entries from overwriting appended content.
+- **Scroll_To_End**: Deferred scroll consumed after scroll metrics are computed but before visible-row culling, so geometry is current on the same frame.
 
 **List_Box** (generic over row widget): Selection modes (None/Single/Multi/Range), anchor-based range, inertial scrolling, style-driven scrollbar.
 - **Grid layout mode**: CSS `grid-template-columns` activates grid layout (e.g., `repeat(3, 1fr)` for 3 columns). Gap between rows/columns comes from CSS `gap`/`row-gap`/`column-gap`. Layout uses `Compute_Grid_Layout` from `Adi.Layout_Util`.

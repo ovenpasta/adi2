@@ -58,6 +58,7 @@ alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/bundle_test
 ./tests/bin/settings_test
 ./tests/bin/close_request_test
+./tests/bin/text_editor_test
 
 # Run Python tests (no build step needed)
 python3 tools/test_css_to_ada.py

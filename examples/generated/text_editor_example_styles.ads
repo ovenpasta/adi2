@@ -88,6 +88,15 @@ package Text_Editor_Example_Styles is
       others => <>
    );
 
+   --  Base style for class 'ro-status'::label
+   Ro_Status_Class_Label_Base_Style : constant Style_Rules := (
+      Color => Set (RGB (166, 173, 200)),
+      Font_Size => Set_Font (Px (13.0)),
+      White_Space => Set (WS_Nowrap),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
+      others => <>
+   );
+
    --  Base style for class 'wrap-switch'
    Wrap_Switch_Class_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (56.0))),
@@ -110,6 +119,35 @@ package Text_Editor_Example_Styles is
 
    --  Base style for class 'wrap-switch'::knob
    Wrap_Switch_Class_Knob_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (24.0))),
+      Height => Set (Size (Px (24.0))),
+      Background_Color => Set_Bg (RGB (239, 241, 245)),
+      Border_Radius => Set (Radius (Px (12.0))),
+      others => <>
+   );
+
+   --  Base style for class 'ro-switch'
+   Ro_Switch_Class_Base_Style : constant Style_Rules := (
+      Width => Set (Size (Px (56.0))),
+      Height => Set (Size (Px (28.0))),
+      Background_Color => Set_Bg (RGB (88, 91, 112)),
+      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (108, 112, 134))),
+      Border_Radius => Set (Radius (Px (14.0))),
+      others => <>
+   );
+
+   --  Style for class 'ro-switch' when widget State_Selected
+   Ro_Switch_Class_Widget_Selected_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGB (116, 199, 236)),
+      Border_Color => Set (Border_Color (RGB (137, 220, 255))),
+      others => <>
+   );
+
+   --  Base style for class 'ro-switch'::knob
+   Ro_Switch_Class_Knob_Base_Style : constant Style_Rules := (
       Width => Set (Size (Px (24.0))),
       Height => Set (Size (Px (24.0))),
       Background_Color => Set_Bg (RGB (239, 241, 245)),
@@ -225,10 +263,22 @@ package Text_Editor_Example_Styles is
       others => <>
    );
 
+   --  Style for class 'context-menu-item' when widget State_Disabled
+   Context_Menu_Item_Class_Widget_Disabled_Style : constant Style_Rules := (
+      Background_Color => Set_Bg (RGBA (24, 24, 37, 0.0)),
+      others => <>
+   );
+
    --  Base style for class 'context-menu-item'::label
    Context_Menu_Item_Class_Label_Base_Style : constant Style_Rules := (
       Color => Set (RGB (205, 214, 244)),
       Font_Size => Set_Font (Px (13.0)),
+      others => <>
+   );
+
+   --  Style for class 'context-menu-item'::label when widget State_Disabled
+   Context_Menu_Item_Class_Label_Widget_Disabled_Style : constant Style_Rules := (
+      Color => Set (RGB (108, 112, 134)),
       others => <>
    );
 
@@ -301,6 +351,17 @@ package Text_Editor_Example_Styles is
       others => <>
    ];
 
+   --  Complete widget style for class 'ro-status'::label
+   Ro_Status_Class_Label_Widget : constant Widget_Style :=
+     From (Ro_Status_Class_Label_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'ro-status'
+   Ro_Status_Class_Part_Styles : constant Part_Style_Array := [
+      Label_Part => (Style => Ro_Status_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
    --  Complete widget style for class 'wrap-switch'
    Wrap_Switch_Class_Widget : constant Widget_Style :=
      From (Wrap_Switch_Class_Base_Style)
@@ -316,6 +377,24 @@ package Text_Editor_Example_Styles is
    Wrap_Switch_Class_Part_Styles : constant Part_Style_Array := [
       Main_Part => (Style => Wrap_Switch_Class_Widget, Enabled => True),
       Knob_Part => (Style => Wrap_Switch_Class_Knob_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'ro-switch'
+   Ro_Switch_Class_Widget : constant Widget_Style :=
+     From (Ro_Switch_Class_Base_Style)
+     .On (When_State (State_Selected), Ro_Switch_Class_Widget_Selected_Style)
+     .Build;
+
+   --  Complete widget style for class 'ro-switch'::knob
+   Ro_Switch_Class_Knob_Widget : constant Widget_Style :=
+     From (Ro_Switch_Class_Knob_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'ro-switch'
+   Ro_Switch_Class_Part_Styles : constant Part_Style_Array := [
+      Main_Part => (Style => Ro_Switch_Class_Widget, Enabled => True),
+      Knob_Part => (Style => Ro_Switch_Class_Knob_Widget, Enabled => True),
       others => <>
    ];
 
@@ -379,11 +458,13 @@ package Text_Editor_Example_Styles is
    Context_Menu_Item_Class_Widget : constant Widget_Style :=
      From (Context_Menu_Item_Class_Base_Style)
      .On (When_State (State_Hovered), Context_Menu_Item_Class_Widget_Hovered_Style)
+     .On (When_State (State_Disabled), Context_Menu_Item_Class_Widget_Disabled_Style)
      .Build;
 
    --  Complete widget style for class 'context-menu-item'::label
    Context_Menu_Item_Class_Label_Widget : constant Widget_Style :=
      From (Context_Menu_Item_Class_Label_Base_Style)
+     .On (When_State (State_Disabled), Context_Menu_Item_Class_Label_Widget_Disabled_Style)
      .Build;
 
    --  Part styles bundle for class 'context-menu-item'

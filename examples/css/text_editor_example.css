@@ -47,7 +47,8 @@
   text-wrap-mode: nowrap;
 }
 
-.wrap-status::label {
+.wrap-status::label,
+.ro-status::label {
   color: rgb(166, 173, 200);
   font-size: 13px;
   white-space: nowrap;
@@ -70,11 +71,28 @@
   border-color: rgb(137, 220, 255);
 }
 
-.wrap-switch::knob {
+.wrap-switch::knob,
+.ro-switch::knob {
   width: 24px;
   height: 24px;
   background-color: rgb(239, 241, 245);
   border-radius: 12px;
+}
+
+.ro-switch {
+  width: 56px;
+  height: 28px;
+  padding: 2px;
+  background-color: rgb(88, 91, 112);
+  border-radius: 14px;
+  border-width: 1px;
+  border-color: rgb(108, 112, 134);
+  border-style: solid;
+}
+
+.ro-switch:selected {
+  background-color: rgb(116, 199, 236);
+  border-color: rgb(137, 220, 255);
 }
 
 .editor {
@@ -158,9 +176,17 @@
   background-color: rgba(137, 180, 250, 0.28);
 }
 
+.context-menu-item:disabled {
+  background-color: rgba(24, 24, 37, 0.0);
+}
+
 .context-menu-item::label {
   color: rgb(205, 214, 244);
   font-size: 13px;
+}
+
+.context-menu-item:disabled::label {
+  color: rgb(108, 112, 134);
 }
 
 .title {

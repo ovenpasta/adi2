@@ -26,7 +26,8 @@ project Tests is
       "signal_test",
       "dispatch_test",
       "i18n_test",
-      "settings_test");
+      "settings_test",
+      "close_request_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("src");

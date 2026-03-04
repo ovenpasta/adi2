@@ -11,6 +11,10 @@ package Adi.App is
 
     procedure Add_Window (A : in out App; W : access Window.Window);
 
+    --  Post an SDL_EVENT_QUIT so the event loop processes a quit request.
+    --  Useful for programmatic quit (e.g. after a confirmation dialog).
+    procedure Request_Quit;
+
     --  Frame rate management
     procedure Set_Target_FPS (A : in out App; FPS : Positive);
     function Get_Target_FPS (A : App) return Positive;

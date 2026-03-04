@@ -96,5 +96,9 @@ command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=i18n_test"]
 type = "post-build"
 command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=settings_test"]
 
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=close_request_test"]
+
 [build-switches]
 "*".style_checks = "No"

@@ -574,4 +574,9 @@ package Adi.SDL.Events is
         Convention => C,
         External_Name => "SDL_PollEvent";
 
+   function SDL_PushEvent (event : access SDL_Event) return C_bool  -- /usr/include/SDL3/SDL_events.h:1358
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_PushEvent";
+
 end Adi.SDL.Events;

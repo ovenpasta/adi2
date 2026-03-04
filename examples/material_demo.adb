@@ -22,6 +22,8 @@ procedure Material_Demo is
    W : Adi.Window.Window_Access;
 
    Welcome_Dialog : Dialog_Widget_Access;
+   Quit_Dialog    : Dialog_Widget_Access;
+   Quit_Confirmed : Boolean := False;
 
    procedure On_Page (Value : Page) is
    begin
@@ -61,6 +63,37 @@ procedure Material_Demo is
       --  Navigate to the Forms page after dismissing (syncs nav buttons too)
       UI.Nav_Options_Group.Set_Selected (Forms);
    end On_Welcome_Result;
+
+   Yes_Button_Index : Positive := Positive'Last;
+
+   procedure On_Quit_Result
+     (Dlg          : Dialog_Widget_Access;
+      Button_Index : Natural;
+      Button_Text  : String)
+   is
+      pragma Unreferenced (Dlg, Button_Text);
+   begin
+      if Button_Index = Yes_Button_Index then
+         Quit_Confirmed := True;
+         Adi.App.Request_Quit;
+      end if;
+   end On_Quit_Result;
+
+   procedure On_Close_Request
+     (Win   : not null access Adi.Window.Window'Class;
+      Allow : in out Boolean)
+   is
+      pragma Unreferenced (Win);
+   begin
+      if Quit_Confirmed then
+         Allow := True;
+      else
+         Allow := False;
+         if not Is_Shown (Quit_Dialog.all) then
+            Show (Quit_Dialog.all);
+         end if;
+      end if;
+   end On_Close_Request;
 
    --  Material Symbols "dashboard" icon (24×24 viewBox)
    Dashboard_Path : constant String :=
@@ -157,6 +190,23 @@ begin
          Set_Icon (Welcome_Dialog.all, Welcome_Icon);
       end if;
    end;
+
+   --  Create quit confirmation dialog
+   Quit_Dialog := Adi.Widget.Dialog.Create;
+   Attach_Window (Quit_Dialog.all, W);
+   Set_Part_Styles (Quit_Dialog.all, Dialog_Backdrop_Class_Part_Styles);
+   Set_Title (Quit_Dialog.all, "Quit?");
+   Set_Message (Quit_Dialog.all,
+                "Are you sure you want to quit the Material Demo?");
+   Add_Button (Quit_Dialog.all, "No");
+   Yes_Button_Index := Add_Button (Quit_Dialog.all, "Yes");
+   Set_Default_Button (Quit_Dialog.all, Yes_Button_Index);
+   Set_Dismiss_On_Escape (Quit_Dialog.all, True);
+   Connect_Result (Quit_Dialog.all, On_Quit_Result'Unrestricted_Access);
+
+   --  Intercept window close / app quit
+   Adi.Window.Connect_Close_Request
+     (W.all, On_Close_Request'Unrestricted_Access);
 
    A.Add_Window (W);
    A.Run;

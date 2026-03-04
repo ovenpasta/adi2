@@ -142,6 +142,29 @@ package Adi.Window is
     procedure Disconnect_Frame
       (W : in out Window; Id : Frame_Signals.Connection_Id);
 
+    --  Close-request callback. Fired when the user requests window close
+    --  (title-bar X) or application quit (Cmd+Q / Alt+F4).
+    --  Set Allow to False to prevent closing.
+    type Close_Request_Callback is access procedure
+      (Win   : not null access Window'Class;
+       Allow : in out Boolean);
+
+    package Close_Request_Signals is new Adi.Signal
+      (Close_Request_Callback, null);
+
+    procedure Connect_Close_Request
+      (W : in out Window; CB : Close_Request_Callback);
+    function Connect_Close_Request
+      (W : in out Window; CB : Close_Request_Callback)
+       return Close_Request_Signals.Connection_Id;
+    procedure Disconnect_Close_Request
+      (W : in out Window; Id : Close_Request_Signals.Connection_Id);
+
+    --  Emit Close_Request signal. Returns True if close is allowed
+    --  (no subscriber vetoed). Called by App.Run; not normally called
+    --  by application code.
+    function Handle_Close_Request (W : in out Window) return Boolean;
+
     --  Read-only snapshot of per-frame performance stats
     type Frame_Stats is record
        Frame_No      : Natural := 0;
@@ -183,6 +206,7 @@ private
         Tick_Sig       : Tick_Signals.Signal;
         Post_Render    : Post_Render_Signals.Signal;
         Frame          : Frame_Signals.Signal;
+        Close_Request  : Close_Request_Signals.Signal;
         --  Debug stats overlay
         Debug_Stats_On     : Boolean  := False;
         Stats_Frame_No     : Natural  := 0;

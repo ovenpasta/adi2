@@ -11,6 +11,7 @@ with Interfaces.C.Strings;
 with Ada.Unchecked_Conversion;
 with Ada.Real_Time; use Ada.Real_Time;
 with Adi.Dispatch;
+with Adi.Log;
 
 package body Adi.App is
 
@@ -52,8 +53,9 @@ package body Adi.App is
     procedure Run (A : in out App) is
         use SDL.Events;
 
-        Event       : aliased SDL_Event;
-        Should_Quit : Boolean := False;
+        Event         : aliased SDL_Event;
+        Should_Quit   : Boolean := False;
+        Close_Handled : Boolean;
 
         --  Unchecked conversions to access specific event data
         function To_Mouse_Motion_Event is new Ada.Unchecked_Conversion
@@ -92,11 +94,34 @@ package body Adi.App is
         A.Last_Frame := Clock;
 
         while not Should_Quit loop
+            Close_Handled := False;
+
             Poll_Events :
             while SDL_PollEvent (Event'Access) loop
                 case Event.Event_Type is
+                    when SDL_EVENT_WINDOW_CLOSE_REQUESTED =>
+                        if not Should_Quit and not Close_Handled
+                           and A.Main_Window /= null
+                        then
+                            Close_Handled := True;
+                            if A.Main_Window.Handle_Close_Request then
+                                Should_Quit := True;
+                                exit Poll_Events;
+                            end if;
+                        end if;
+
                     when SDL_EVENT_QUIT =>
-                        Should_Quit := True;
+                        if not Should_Quit then
+                            if A.Main_Window /= null then
+                                if A.Main_Window.Handle_Close_Request then
+                                    Should_Quit := True;
+                                    exit Poll_Events;
+                                end if;
+                            else
+                                Should_Quit := True;
+                                exit Poll_Events;
+                            end if;
+                        end if;
 
                     when SDL_EVENT_WINDOW_EXPOSED =>
                         if A.Main_Window /= null then
@@ -260,6 +285,19 @@ package body Adi.App is
     begin
         A.Main_Window := W;
     end Add_Window;
+
+    ------------------
+    -- Request_Quit --
+    ------------------
+
+    procedure Request_Quit is
+       use Adi.SDL.Events;
+       Event  : aliased SDL_Event := (Event_Type => SDL_EVENT_QUIT);
+    begin
+       if not Boolean (SDL_PushEvent (Event'Access)) then
+          Adi.Log.Error ("Request_Quit: SDL_PushEvent failed");
+       end if;
+    end Request_Quit;
 
     ---------------------
     -- Set_Target_FPS --

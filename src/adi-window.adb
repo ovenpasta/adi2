@@ -1995,6 +1995,37 @@ function Get_Size (W : in out Window) return Size_2D is
        W.Frame.Disconnect (Id);
     end Disconnect_Frame;
 
+    procedure Connect_Close_Request
+      (W : in out Window; CB : Close_Request_Callback) is
+    begin
+       W.Close_Request.Connect (CB);
+    end Connect_Close_Request;
+
+    function Connect_Close_Request
+      (W : in out Window; CB : Close_Request_Callback)
+       return Close_Request_Signals.Connection_Id is
+    begin
+       return W.Close_Request.Connect (CB);
+    end Connect_Close_Request;
+
+    procedure Disconnect_Close_Request
+      (W : in out Window; Id : Close_Request_Signals.Connection_Id) is
+    begin
+       W.Close_Request.Disconnect (Id);
+    end Disconnect_Close_Request;
+
+    function Handle_Close_Request (W : in out Window) return Boolean is
+       Allow : Boolean := True;
+       procedure Call (CB : Close_Request_Callback) is
+       begin
+          CB (W'Unchecked_Access, Allow);
+       end Call;
+       procedure Emit is new Close_Request_Signals.For_Each (Call);
+    begin
+       Emit (W.Close_Request);
+       return Allow;
+    end Handle_Close_Request;
+
     function Get_Frame_Stats (W : Window) return Frame_Stats is
     begin
        return (Frame_No     => W.Stats_Frame_No,

@@ -26,7 +26,6 @@ package body Adi.Widget.Combo_Box is
 
    use type Popup_Lists.List_Box_Widget_Access;
    use type Adi.Window.Window_Access;
-   use type Adi.Widget.Label.Label_Widget_Access;
 
    type Popup_Binding is record
       Popup      : Popup_Lists.List_Box_Widget_Access := null;
@@ -373,20 +372,21 @@ package body Adi.Widget.Combo_Box is
    end Attach_Window;
 
    procedure Add_Item (W : in out Combo_Box_Widget; Text : String) is
-      Row : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create (Text);
+      Row_H : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle (Text);
    begin
       if W.Has_Option_Row_Styles then
-         Set_Part_Styles (Row.all, W.Option_Row_Styles);
+         Adi.Widget.Label.Set_Part_Styles (Row_H, W.Option_Row_Styles);
       elsif not Default_Option_Row_Styles.Is_Empty then
-         Set_Part_Styles (Row.all, Default_Option_Row_Styles.Element);
+         Adi.Widget.Label.Set_Part_Styles
+           (Row_H, Default_Option_Row_Styles.Element);
       end if;
 
       W.Options.Append (To_Unbounded_String (Text));
       if W.Popup /= null then
          Popup_Lists.Append_Row
            (Popup_Handle (W.Popup),
-            Get_Handle (Row.all));
+            Adi.Widget.Label.To_Widget_Handle (Row_H));
       end if;
 
       if W.Selected = 0 then

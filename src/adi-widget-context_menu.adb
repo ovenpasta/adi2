@@ -57,7 +57,6 @@ package body Adi.Widget.Context_Menu is
 
    use type Popup_Lists.List_Box_Widget_Access;
    use type Adi.Window.Window_Access;
-   use type Adi.Widget.Label.Label_Widget_Access;
 
    type Menu_Binding is record
       Popup       : Popup_Lists.List_Box_Widget_Access := null;
@@ -467,13 +466,13 @@ package body Adi.Widget.Context_Menu is
      (Menu : in out Context_Menu;
       Text : String)
    is
-      Row : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create (Text);
+      Row_H : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle (Text);
    begin
       if not Menu.Row_Styles.Is_Empty then
-         Set_Part_Styles (Row.all, Menu.Row_Styles.Element);
+         Adi.Widget.Label.Set_Part_Styles (Row_H, Menu.Row_Styles.Element);
       elsif not Default_Item_Styles.Is_Empty then
-         Set_Part_Styles (Row.all, Default_Item_Styles.Element);
+         Adi.Widget.Label.Set_Part_Styles (Row_H, Default_Item_Styles.Element);
       end if;
 
       Menu.Items.Append (To_Unbounded_String (Text));
@@ -481,7 +480,7 @@ package body Adi.Widget.Context_Menu is
       if Menu.Popup /= null then
          Popup_Lists.Append_Row
            (Popup_Handle (Menu.Popup),
-            Get_Handle (Row.all));
+            Adi.Widget.Label.To_Widget_Handle (Row_H));
       end if;
       Mark_Dirty (Menu.Popup.all);
    end Add_Item;

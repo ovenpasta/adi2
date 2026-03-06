@@ -38,7 +38,8 @@ package Adi.Widget.Value_Input_Impl is
    function Create
      (Min   : Value_Type;
       Max   : Value_Type;
-      Value : Value_Type) return Value_Input_Widget_Access;
+      Value : Value_Type) return Value_Input_Widget_Access
+     with Obsolescent => "Use Create_Handle";
    function Create_Handle
      (Min   : Value_Type;
       Max   : Value_Type;

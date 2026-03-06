@@ -9,7 +9,8 @@ package Adi.MCP is
 
    procedure Initialize
      (Win      : not null access Adi.Window.Window'Class;
-      Base_Dir : String := "/tmp/adi_mcp");
+      Base_Dir : String := "/tmp/adi_mcp")
+     with Obsolescent => "Use Initialize (Win : Window_Handle)";
    procedure Initialize
      (Win      : Adi.Window.Window_Handle;
       Base_Dir : String := "/tmp/adi_mcp");

@@ -17,7 +17,8 @@ package Adi.Widget.Button.Switch is
    Null_Switch_Handle : constant Switch_Handle;
 
    --  Construction
-   function Create (Checked : Boolean := False) return Switch_Widget_Access;
+   function Create (Checked : Boolean := False) return Switch_Widget_Access
+     with Obsolescent => "Use Create_Handle";
    function Create_Handle (Checked : Boolean := False) return Switch_Handle;
 
    --  Handle bridge

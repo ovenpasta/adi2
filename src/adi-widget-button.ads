@@ -19,7 +19,8 @@ package Adi.Widget.Button is
    Null_Button_Handle : constant Button_Handle;
 
    --  Construction
-   function Create (Text : String := "") return Button_Widget_Access;
+   function Create (Text : String := "") return Button_Widget_Access
+     with Obsolescent => "Use Create_Handle";
    function Create_Handle (Text : String := "") return Button_Handle;
 
    --  Handle bridge

@@ -31,7 +31,8 @@ package Adi.Widget.Html_View is
       URI  : String) return String;
 
    --  Construction
-   function Create return Html_View_Access;
+   function Create return Html_View_Access
+     with Obsolescent => "Use Create_Handle";
    function Create_Handle return Html_View_Handle;
 
    --  Handle bridge

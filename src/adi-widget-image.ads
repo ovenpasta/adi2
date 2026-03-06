@@ -20,7 +20,8 @@ package Adi.Widget.Image is
    Null_Image_Handle : constant Image_Handle;
 
    --  Construction
-   function Create (Img : Image_Access := null) return Image_Widget_Access;
+   function Create (Img : Image_Access := null) return Image_Widget_Access
+     with Obsolescent => "Use Create_Handle";
    function Create_Handle (Img : Image_Access := null) return Image_Handle;
 
    --  Handle bridge

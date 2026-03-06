@@ -16,8 +16,10 @@ package Adi.Widget.Box is
    Null_Box_Handle : constant Box_Handle;
 
    --  Construction
-   function Create return Box_Widget_Access;
-   function Create (X, Y, W, H : Pixel_Type) return Box_Widget_Access;
+   function Create return Box_Widget_Access
+     with Obsolescent => "Use Create_Handle";
+   function Create (X, Y, W, H : Pixel_Type) return Box_Widget_Access
+     with Obsolescent => "Use Create_Handle";
    function Create_Handle return Box_Handle;
    function Create_Handle (X, Y, W, H : Pixel_Type) return Box_Handle;
 

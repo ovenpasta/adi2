@@ -12,9 +12,11 @@ package Adi.Widget.RLottie is
    Null_RLottie_Handle : constant RLottie_Handle;
 
    --  Construction
-   function Create return RLottie_Widget_Access;
+   function Create return RLottie_Widget_Access
+     with Obsolescent => "Use Create_Handle";
    function Create
-     (Animation : RLottie_Animation_Access) return RLottie_Widget_Access;
+     (Animation : RLottie_Animation_Access) return RLottie_Widget_Access
+     with Obsolescent => "Use Create_Handle";
    function Create_Handle return RLottie_Handle;
    function Create_Handle
      (Animation : RLottie_Animation_Access) return RLottie_Handle;

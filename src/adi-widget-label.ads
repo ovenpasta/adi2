@@ -21,7 +21,8 @@ package Adi.Widget.Label is
    Null_Label_Handle : constant Label_Handle;
 
    --  Construction
-   function Create (Text : String := "") return Label_Widget_Access;
+   function Create (Text : String := "") return Label_Widget_Access
+     with Obsolescent => "Use Create_Handle";
    function Create_Handle (Text : String := "") return Label_Handle;
 
    --  Handle bridge

@@ -18,7 +18,8 @@ package Adi.Widget.Text_Input is
 
    --  Construction
    function Create (Text : String := "";
-                    Label : String := "") return Text_Input_Widget_Access;
+                    Label : String := "") return Text_Input_Widget_Access
+     with Obsolescent => "Use Create_Handle";
    function Create_Handle (Text : String := "";
                            Label : String := "") return Text_Input_Handle;
 

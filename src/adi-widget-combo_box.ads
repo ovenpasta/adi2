@@ -19,7 +19,8 @@ package Adi.Widget.Combo_Box is
    Null_Combo_Box_Handle : constant Combo_Box_Handle;
 
    --  Construction
-   function Create return Combo_Box_Widget_Access;
+   function Create return Combo_Box_Widget_Access
+     with Obsolescent => "Use Create_Handle";
    function Create_Handle return Combo_Box_Handle;
 
    --  Handle bridge

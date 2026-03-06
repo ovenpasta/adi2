@@ -15,7 +15,8 @@ package Adi.Widget.Text_Editor is
    Null_Text_Editor_Handle : constant Text_Editor_Handle;
 
    --  Construction
-   function Create (Text : String := "") return Text_Editor_Widget_Access;
+   function Create (Text : String := "") return Text_Editor_Widget_Access
+     with Obsolescent => "Use Create_Handle";
    function Create_Handle (Text : String := "") return Text_Editor_Handle;
 
    --  Handle bridge

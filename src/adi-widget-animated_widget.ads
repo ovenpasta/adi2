@@ -13,9 +13,11 @@ package Adi.Widget.Animated_Widget is
    Null_Animated_Widget_Handle : constant Animated_Widget_Handle;
 
    --  Construction
-   function Create return Animated_Widget_Access;
+   function Create return Animated_Widget_Access
+     with Obsolescent => "Use Create_Handle";
    function Create
-     (Animation : Animated_Image_Access) return Animated_Widget_Access;
+     (Animation : Animated_Image_Access) return Animated_Widget_Access
+     with Obsolescent => "Use Create_Handle";
    function Create_Handle return Animated_Widget_Handle;
    function Create_Handle
      (Animation : Animated_Image_Access) return Animated_Widget_Handle;

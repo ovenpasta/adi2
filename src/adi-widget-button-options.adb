@@ -32,7 +32,7 @@ package body Adi.Widget.Button.Options is
    procedure Set_Button (G : in out Option_Group;
                          O : Option_Type;
                          B : Button_Handle) is
-      Ptr : constant Widget_Access := Resolve_Handle (+B);
+      Ptr : constant Widget_Access := Widget_Stores.Get (B.Id);
    begin
       if Ptr = null then
          raise Constraint_Error with "Set_Button: stale or null handle";
@@ -109,7 +109,7 @@ package body Adi.Widget.Button.Options is
      (G : in out Option_Group;
       W : Widget_Handle)
    is
-      Ptr : constant Widget_Access := Resolve_Handle (W);
+      Ptr : constant Widget_Access := Widget_Stores.Get (W.Id);
    begin
       if Ptr = null then
          return;

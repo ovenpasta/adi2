@@ -1477,19 +1477,27 @@ package body Adi.Widget is
    end Add_Child;
 
    procedure Add_Child (W : in out Widget'Class; C : Widget_Handle) is
-      Ptr : constant Widget_Access := Resolve_Handle (C);
    begin
-      if Ptr /= null then
-         Add_Child (W, Ptr);
-      end if;
+      declare
+         R : Widget_Ref := Borrow (C);
+      begin
+         Add_Child (W, R.Ptr);
+      end;
+   exception
+      when Constraint_Error =>
+         null;
    end Add_Child;
 
    procedure Add_Child (Parent : Widget_Handle; Child : Widget_Handle) is
-      P : constant Widget_Access := Widget_Stores.Get (Parent.Id);
    begin
-      if P /= null then
-         Add_Child (P.all, Child);
-      end if;
+      declare
+         P_Ref : Widget_Ref := Borrow (Parent);
+      begin
+         Add_Child (P_Ref.Ptr.all, Child);
+      end;
+   exception
+      when Constraint_Error =>
+         null;
    end Add_Child;
 
    procedure Remove_Child (W : in out Widget'Class; C : access Widget'Class) is
@@ -1510,12 +1518,16 @@ package body Adi.Widget is
    end Remove_Child;
 
    procedure Remove_Child (Parent : Widget_Handle; Child : Widget_Handle) is
-      P : constant Widget_Access := Resolve_Handle (Parent);
-      C : constant Widget_Access := Resolve_Handle (Child);
    begin
-      if P /= null and then C /= null then
-         Remove_Child (P.all, C);
-      end if;
+      declare
+         P_Ref : Widget_Ref := Borrow (Parent);
+         C_Ref : Widget_Ref := Borrow (Child);
+      begin
+         Remove_Child (P_Ref.Ptr.all, C_Ref.Ptr);
+      end;
+   exception
+      when Constraint_Error =>
+         null;
    end Remove_Child;
 
    procedure Set_Parent (W : in out Widget'Class; P : access Widget'Class) is
@@ -1538,15 +1550,23 @@ package body Adi.Widget is
    end Set_Parent;
 
    procedure Set_Parent (W : Widget_Handle; P : Widget_Handle) is
-      W_Ptr : constant Widget_Access := Resolve_Handle (W);
-      P_Ptr : constant Widget_Access := Resolve_Handle (P);
    begin
-      if W_Ptr /= null then
-         --  Null_Handle means "detach"; stale non-null handles are ignored.
-         if P_Ptr /= null or else P = Null_Handle then
-            Set_Parent (W_Ptr.all, P_Ptr);
+      declare
+         W_Ref : Widget_Ref := Borrow (W);
+      begin
+         if P = Null_Handle then
+            Set_Parent (W_Ref.Ptr.all, null);
+         else
+            declare
+               P_Ref : Widget_Ref := Borrow (P);
+            begin
+               Set_Parent (W_Ref.Ptr.all, P_Ref.Ptr);
+            end;
          end if;
-      end if;
+      end;
+   exception
+      when Constraint_Error =>
+         null;
    end Set_Parent;
 
    function Get_Parent (W : Widget'Class) return access Widget'Class is
@@ -1563,12 +1583,15 @@ package body Adi.Widget is
    end Get_Parent_Handle;
 
    function Get_Parent_Handle (H : Widget_Handle) return Widget_Handle is
-      Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
-      if Ptr = null then
+      declare
+         R : Widget_Ref := Borrow (H);
+      begin
+         return Get_Parent_Handle (R.Ptr.all);
+      end;
+   exception
+      when Constraint_Error =>
          return Null_Handle;
-      end if;
-      return Get_Parent_Handle (Ptr.all);
    end Get_Parent_Handle;
 
    function Child_Count (W : Widget'Class) return Natural is
@@ -1624,12 +1647,15 @@ package body Adi.Widget is
    function Get_Child_Handle (H : Widget_Handle; Index : Positive)
       return Widget_Handle
    is
-      Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
-      if Ptr = null then
+      declare
+         R : Widget_Ref := Borrow (H);
+      begin
+         return Get_Child_Handle (R.Ptr.all, Index);
+      end;
+   exception
+      when Constraint_Error =>
          return Null_Handle;
-      end if;
-      return Get_Child_Handle (Ptr.all, Index);
    end Get_Child_Handle;
    ---------------------------------------------------------------------------
    --  Geometry and Layout
@@ -2103,21 +2129,21 @@ package body Adi.Widget is
      (Start : Widget_Handle;
       X, Y  : Pixel_Type) return Boolean
    is
-      Node : Widget_Access := Resolve_Handle (Start);
+      Node : Widget_Handle := Start;
    begin
-      while Node /= null loop
-         if Show_Context_Menu (Node.all, X, Y) then
-            return True;
-         end if;
-
-         declare
-            P : constant access Widget'Class := Get_Parent (Node.all);
+      while Node /= Null_Handle loop
          begin
-            if P = null then
-               Node := null;
-            else
-               Node := Resolve_Handle (Get_Handle (P.all));
-            end if;
+            declare
+               R : Widget_Ref := Borrow (Node);
+            begin
+               if Show_Context_Menu (R.Ptr.all, X, Y) then
+                  return True;
+               end if;
+               Node := Get_Parent_Handle (R.Ptr.all);
+            end;
+         exception
+            when Constraint_Error =>
+               Node := Null_Handle;
          end;
       end loop;
 

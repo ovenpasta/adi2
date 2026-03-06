@@ -256,7 +256,8 @@ package body Adi.Widget.Stack is
    begin
       for I in 1 .. Child_Count (W) loop
          declare
-            Child : constant Widget_Access := Get_Child (W, I);
+            Child_H : constant Widget_Handle := Get_Child_Handle (W, I);
+            Child   : constant Widget_Access := Widget_Stores.Get (Child_H.Id);
          begin
             if Child /= null
               and then Has_Flag (Child.all, Visible)
@@ -277,12 +278,15 @@ package body Adi.Widget.Stack is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
-         declare
-            P : constant Widget_Access := Resolve_Handle (Page);
          begin
-            if P /= null then
-               Add_Page (Stack_Widget (Ptr.all), Id, P);
-            end if;
+            declare
+               P : Widget_Ref := Borrow (Page);
+            begin
+               Add_Page (Stack_Widget (Ptr.all), Id, P.Ptr);
+            end;
+         exception
+            when Constraint_Error =>
+               null;
          end;
       end if;
    end Add_Page;

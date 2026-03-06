@@ -927,7 +927,7 @@ package body Adi.Widget.List_Box is
 
    procedure Append_Row (H : List_Box_Handle; Row : Adi.Widget.Widget_Handle) is
       Ptr     : constant Widget_Access := Widget_Stores.Get (H.Id);
-      Row_Ptr : constant Widget_Access := Resolve_Handle (Row);
+      Row_Ptr : constant Widget_Access := Widget_Stores.Get (Row.Id);
    begin
       if Ptr /= null and then Row_Ptr /= null then
          Append_Row (List_Box_Widget (Ptr.all),

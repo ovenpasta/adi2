@@ -658,33 +658,45 @@ package body Adi.CSS_Source is
                          Name   : String;
                          W      : Adi.Widget.Widget_Handle)
    is
-      Ptr : constant Adi.Widget.Widget_Access := Adi.Widget.Resolve_Handle (W);
    begin
-      if Ptr /= null then
-         Bind_Class (Source, Name, Ptr);
-      end if;
+      declare
+         R : Adi.Widget.Widget_Ref := Adi.Widget.Borrow (W);
+      begin
+         Bind_Class (Source, Name, R.Ptr);
+      end;
+   exception
+      when Constraint_Error =>
+         null;
    end Bind_Class;
 
    procedure Bind_Id (Source : in out Style_Source;
                       Name   : String;
                       W      : Adi.Widget.Widget_Handle)
    is
-      Ptr : constant Adi.Widget.Widget_Access := Adi.Widget.Resolve_Handle (W);
    begin
-      if Ptr /= null then
-         Bind_Id (Source, Name, Ptr);
-      end if;
+      declare
+         R : Adi.Widget.Widget_Ref := Adi.Widget.Borrow (W);
+      begin
+         Bind_Id (Source, Name, R.Ptr);
+      end;
+   exception
+      when Constraint_Error =>
+         null;
    end Bind_Id;
 
    procedure Bind_Tag (Source : in out Style_Source;
                        Name   : String;
                        W      : Adi.Widget.Widget_Handle)
    is
-      Ptr : constant Adi.Widget.Widget_Access := Adi.Widget.Resolve_Handle (W);
    begin
-      if Ptr /= null then
-         Bind_Tag (Source, Name, Ptr);
-      end if;
+      declare
+         R : Adi.Widget.Widget_Ref := Adi.Widget.Borrow (W);
+      begin
+         Bind_Tag (Source, Name, R.Ptr);
+      end;
+   exception
+      when Constraint_Error =>
+         null;
    end Bind_Tag;
 
    procedure Bind_Selector_Set (Source     : in out Style_Source;

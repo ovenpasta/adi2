@@ -51,6 +51,13 @@ package Adi.Widget.Context_Menu is
    procedure Attach_Window
      (Menu : in out Context_Menu;
       Host : Adi.Window.Window_Handle);
+   procedure Attach_Window
+     (Menu : Menu_Handle;
+      Host : Adi.Window.Window_Access)
+     with Obsolescent => "Use Attach_Window (Menu : Menu_Handle; Host : Window_Handle)";
+   procedure Attach_Window
+     (Menu : Menu_Handle;
+      Host : Adi.Window.Window_Handle);
 
    procedure Add_Item
      (Menu : in out Context_Menu;
@@ -62,8 +69,15 @@ package Adi.Widget.Context_Menu is
      (Menu     : in out Context_Menu;
       Index    : Positive;
       Disabled : Boolean);
+   procedure Set_Item_Disabled
+     (Menu     : Menu_Handle;
+      Index    : Positive;
+      Disabled : Boolean);
    function Is_Item_Disabled
      (Menu  : Context_Menu;
+      Index : Positive) return Boolean;
+   function Is_Item_Disabled
+     (Menu  : Menu_Handle;
       Index : Positive) return Boolean;
 
    procedure Connect_Item_Selected
@@ -73,6 +87,14 @@ package Adi.Widget.Context_Menu is
       return Item_Selected_Signals.Connection_Id;
    procedure Disconnect_Item_Selected
      (Menu : in out Context_Menu;
+      Id   : Item_Selected_Signals.Connection_Id);
+   procedure Connect_Item_Selected
+     (Menu : Menu_Handle; CB : Item_Selected_Callback);
+   function Connect_Item_Selected
+     (Menu : Menu_Handle; CB : Item_Selected_Callback)
+      return Item_Selected_Signals.Connection_Id;
+   procedure Disconnect_Item_Selected
+     (Menu : Menu_Handle;
       Id   : Item_Selected_Signals.Connection_Id);
 
    procedure Set_Menu_Part_Styles
@@ -93,8 +115,14 @@ package Adi.Widget.Context_Menu is
      (Menu      : in out Context_Menu;
       X, Y      : Pixel_Type;
       Min_Width : Pixel_Type := 140.0);
+   procedure Show_At
+     (Menu      : Menu_Handle;
+      X, Y      : Pixel_Type;
+      Min_Width : Pixel_Type := 140.0);
    procedure Hide (Menu : in out Context_Menu);
+   procedure Hide (Menu : Menu_Handle);
    function Is_Shown (Menu : Context_Menu) return Boolean;
+   function Is_Shown (Menu : Menu_Handle) return Boolean;
 
 private
    package String_Vectors is new Ada.Containers.Vectors

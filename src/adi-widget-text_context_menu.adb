@@ -5,6 +5,7 @@ with Adi.Widget.Context_Menu;
 package body Adi.Widget.Text_Context_Menu is
 
    use type Adi.Widget.Context_Menu.Context_Menu_Access;
+   use type Adi.Widget.Context_Menu.Menu_Handle;
    use type Adi.Text_Buffer.Text_Buffer_Access;
    use type Adi.Window.Window_Access;
    use type Context_Menu_Signals.Connection_Id;
@@ -113,23 +114,21 @@ package body Adi.Widget.Text_Context_Menu is
          return;
       end if;
 
-      if Request_Bindings.Element (Idx).Menu /= null then
+      if Adi.Widget.Context_Menu.Is_Valid (Request_Bindings.Element (Idx).Menu) then
          declare
             R : Widget_Ref := Borrow (W);
          begin
             Host := Adi.Window.Find_Host_Window (R.Ptr);
             if Host /= null then
                Adi.Widget.Context_Menu.Attach_Window
-                 (Request_Bindings.Element (Idx).Menu.all,
+                 (Request_Bindings.Element (Idx).Menu,
                   Adi.Window.Get_Handle (Host.all));
             end if;
          end;
 
          declare
-            M       : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
-              Request_Bindings.Element (Idx).Menu;
             M_H     : constant Adi.Widget.Context_Menu.Menu_Handle :=
-              Adi.Widget.Context_Menu.Get_Handle (M.all);
+              Request_Bindings.Element (Idx).Menu;
             Cmd_Idx : constant Natural := Find_Command_Binding (M_H);
             RO      : Boolean := False;
          begin
@@ -143,16 +142,16 @@ package body Adi.Widget.Text_Context_Menu is
             --  Copy(4): always enabled
             --  Paste(5): disabled when read-only
             --  Select All(6): always enabled
-            Adi.Widget.Context_Menu.Set_Item_Disabled (M.all, 1, RO);
-            Adi.Widget.Context_Menu.Set_Item_Disabled (M.all, 2, RO);
-            Adi.Widget.Context_Menu.Set_Item_Disabled (M.all, 3, RO);
-            Adi.Widget.Context_Menu.Set_Item_Disabled (M.all, 4, False);
-            Adi.Widget.Context_Menu.Set_Item_Disabled (M.all, 5, RO);
-            Adi.Widget.Context_Menu.Set_Item_Disabled (M.all, 6, False);
+            Adi.Widget.Context_Menu.Set_Item_Disabled (M_H, 1, RO);
+            Adi.Widget.Context_Menu.Set_Item_Disabled (M_H, 2, RO);
+            Adi.Widget.Context_Menu.Set_Item_Disabled (M_H, 3, RO);
+            Adi.Widget.Context_Menu.Set_Item_Disabled (M_H, 4, False);
+            Adi.Widget.Context_Menu.Set_Item_Disabled (M_H, 5, RO);
+            Adi.Widget.Context_Menu.Set_Item_Disabled (M_H, 6, False);
          end;
 
          Adi.Widget.Context_Menu.Show_At
-           (Request_Bindings.Element (Idx).Menu.all, X, Y);
+           (Request_Bindings.Element (Idx).Menu, X, Y);
       end if;
    end On_Context_Request;
 
@@ -216,13 +215,47 @@ package body Adi.Widget.Text_Context_Menu is
       Is_Read_Only : Read_Only_Query := null)
       return Adi.Widget.Context_Menu.Context_Menu_Access
    is
+      Menu : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
+        Adi.Widget.Context_Menu.Create;
+      Menu_H : constant Adi.Widget.Context_Menu.Menu_Handle :=
+        Adi.Widget.Context_Menu.Get_Handle (Menu.all);
    begin
-      return Create_Default
-        (Buffer       => Buffer,
-         Host         => Adi.Window.Resolve_Window_Handle (Host),
-         Single_Line  => Single_Line,
-         On_Applied   => On_Applied,
-         Is_Read_Only => Is_Read_Only);
+      if Adi.Window.Is_Valid (Host) then
+         Adi.Widget.Context_Menu.Attach_Window (Menu_H, Host);
+      end if;
+      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Undo");
+      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Redo");
+      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Cut");
+      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Copy");
+      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Paste");
+      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Select All");
+      Adi.Widget.Context_Menu.Connect_Item_Selected
+        (Menu_H, On_Menu_Command'Access);
+
+      declare
+         I : constant Natural := Find_Command_Binding (Menu_H);
+      begin
+         if I = 0 then
+            Command_Bindings.Append
+              (New_Item =>
+                 Command_Binding'
+                   (Menu         => Menu_H,
+                    Buffer       => Buffer,
+                    Single_Line  => Single_Line,
+                    On_Applied   => On_Applied,
+                    Is_Read_Only => Is_Read_Only));
+         else
+            Command_Bindings.Replace_Element
+              (I,
+               (Menu         => Menu_H,
+                Buffer       => Buffer,
+                Single_Line  => Single_Line,
+                On_Applied   => On_Applied,
+                Is_Read_Only => Is_Read_Only));
+         end if;
+      end;
+
+      return Menu;
    end Create_Default;
 
    function Create_Default_Handle
@@ -255,23 +288,36 @@ package body Adi.Widget.Text_Context_Menu is
       Is_Read_Only : Read_Only_Query := null)
       return Adi.Widget.Context_Menu.Menu_Handle
    is
+      M : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
+        Create_Default
+          (Buffer       => Buffer,
+           Host         => Host,
+           Single_Line  => Single_Line,
+           On_Applied   => On_Applied,
+           Is_Read_Only => Is_Read_Only);
    begin
-      return Create_Default_Handle
-        (Buffer       => Buffer,
-         Host         => Adi.Window.Resolve_Window_Handle (Host),
-         Single_Line  => Single_Line,
-         On_Applied   => On_Applied,
-         Is_Read_Only => Is_Read_Only);
+      if M = null then
+         return Adi.Widget.Context_Menu.Null_Menu_Handle;
+      end if;
+      return Adi.Widget.Context_Menu.Get_Handle (M.all);
    end Create_Default_Handle;
 
    procedure Bind_Widget_Request
      (Target : in out Adi.Widget.Widget'Class;
       Menu   : Adi.Widget.Context_Menu.Context_Menu_Access)
    is
+      Menu_H   : Adi.Widget.Context_Menu.Menu_Handle :=
+        Adi.Widget.Context_Menu.Null_Menu_Handle;
       T_Handle : constant Adi.Widget.Widget_Handle := Get_Handle (Target);
       I        : constant Natural := Find_Request_Binding (T_Handle);
       Conn     : Context_Menu_Signals.Connection_Id;
    begin
+      if Menu = null then
+         return;
+      end if;
+
+      Menu_H := Adi.Widget.Context_Menu.Get_Handle (Menu.all);
+
       if I /= 0 then
          --  Disconnect previous subscription before reconnecting.
          Disconnect_Context_Menu
@@ -281,12 +327,12 @@ package body Adi.Widget.Text_Context_Menu is
       if I = 0 then
          Request_Bindings.Append
            (New_Item => Request_Binding'(Target  => T_Handle,
-                                         Menu    => Menu,
+                                         Menu    => Menu_H,
                                          Conn_Id => Conn));
       else
          Request_Bindings.Replace_Element
            (I, (Target  => T_Handle,
-                Menu    => Menu,
+                Menu    => Menu_H,
                 Conn_Id => Conn));
       end if;
    end Bind_Widget_Request;
@@ -295,27 +341,64 @@ package body Adi.Widget.Text_Context_Menu is
      (Target : Adi.Widget.Widget_Handle;
       Menu   : Adi.Widget.Context_Menu.Menu_Handle)
    is
-      Menu_Ptr   : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
-        Adi.Widget.Context_Menu.Resolve_Menu_Handle (Menu);
    begin
-      if Menu_Ptr /= null and then Is_Valid (Target) then
+      if not Is_Valid (Target)
+        or else not Adi.Widget.Context_Menu.Is_Valid (Menu)
+      then
+         return;
+      end if;
+
+      begin
          declare
             R : Widget_Ref := Borrow (Target);
+            T_Handle : constant Adi.Widget.Widget_Handle := Get_Handle (R.Ptr.all);
+            I        : constant Natural := Find_Request_Binding (T_Handle);
+            Conn     : Context_Menu_Signals.Connection_Id;
          begin
-            Bind_Widget_Request (R.Ptr.all, Menu_Ptr);
+            if I /= 0 then
+               Disconnect_Context_Menu
+                 (R.Ptr.all, Request_Bindings.Element (I).Conn_Id);
+            end if;
+
+            Conn := Connect_Context_Menu (R.Ptr.all, On_Context_Request'Access);
+            if I = 0 then
+               Request_Bindings.Append
+                 (New_Item => Request_Binding'(Target  => T_Handle,
+                                               Menu    => Menu,
+                                               Conn_Id => Conn));
+            else
+               Request_Bindings.Replace_Element
+                 (I, (Target  => T_Handle,
+                      Menu    => Menu,
+                      Conn_Id => Conn));
+            end if;
          end;
-      end if;
+      exception
+         when Constraint_Error =>
+            null;
+      end;
    end Bind_Widget_Request;
 
    procedure Unbind_Menu
      (Menu : Adi.Widget.Context_Menu.Context_Menu_Access)
    is
-      Menu_H : constant Adi.Widget.Context_Menu.Menu_Handle :=
-        Adi.Widget.Context_Menu.Get_Handle (Menu.all);
    begin
+      if Menu /= null then
+         Unbind_Menu (Adi.Widget.Context_Menu.Get_Handle (Menu.all));
+      end if;
+   end Unbind_Menu;
+
+   procedure Unbind_Menu
+     (Menu : Adi.Widget.Context_Menu.Menu_Handle)
+   is
+   begin
+      if not Adi.Widget.Context_Menu.Is_Valid (Menu) then
+         return;
+      end if;
+
       --  Remove command binding for this menu
       declare
-         I : constant Natural := Find_Command_Binding (Menu_H);
+         I : constant Natural := Find_Command_Binding (Menu);
       begin
          if I /= 0 then
             Command_Bindings.Delete (I);
@@ -330,8 +413,7 @@ package body Adi.Widget.Text_Context_Menu is
          while I <= Natural (Request_Bindings.Length) loop
             if Request_Bindings.Element (I).Menu = Menu then
                declare
-                  B     : constant Request_Binding :=
-                    Request_Bindings.Element (I);
+                  B : constant Request_Binding := Request_Bindings.Element (I);
                begin
                   if Is_Valid (B.Target)
                     and then B.Conn_Id /= Context_Menu_Signals.No_Connection
@@ -342,6 +424,9 @@ package body Adi.Widget.Text_Context_Menu is
                         Disconnect_Context_Menu (R.Ptr.all, B.Conn_Id);
                      end;
                   end if;
+               exception
+                  when Constraint_Error =>
+                     null;
                end;
                Request_Bindings.Delete (I);
             else
@@ -349,17 +434,6 @@ package body Adi.Widget.Text_Context_Menu is
             end if;
          end loop;
       end;
-   end Unbind_Menu;
-
-   procedure Unbind_Menu
-     (Menu : Adi.Widget.Context_Menu.Menu_Handle)
-   is
-      Menu_Ptr : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
-        Adi.Widget.Context_Menu.Resolve_Menu_Handle (Menu);
-   begin
-      if Menu_Ptr /= null then
-         Unbind_Menu (Menu_Ptr);
-      end if;
    end Unbind_Menu;
 
 end Adi.Widget.Text_Context_Menu;

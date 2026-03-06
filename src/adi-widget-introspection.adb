@@ -16,8 +16,9 @@ package body Adi.Widget.Introspection is
      (W     : Widget'Class;
       Index : Positive) return Widget_Access
    is
+      H : constant Widget_Handle := Get_Child_Handle (W, Index);
    begin
-      return Resolve_Handle (Get_Child_Handle (W, Index));
+      return Widget_Stores.Get (H.Id);
    end Child_Access;
 
    function Tag_Name (W : not null access Widget'Class) return String is

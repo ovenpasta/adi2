@@ -83,7 +83,8 @@ private
 
    type Request_Binding is record
       Target  : Adi.Widget.Widget_Handle;
-      Menu    : Adi.Widget.Context_Menu.Context_Menu_Access := null;
+      Menu    : Adi.Widget.Context_Menu.Menu_Handle :=
+        Adi.Widget.Context_Menu.Null_Menu_Handle;
       Conn_Id : Adi.Widget.Context_Menu_Signals.Connection_Id :=
         Adi.Widget.Context_Menu_Signals.No_Connection;
    end record;

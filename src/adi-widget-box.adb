@@ -9,8 +9,9 @@ package body Adi.Widget.Box is
      (W     : Widget'Class;
       Index : Positive) return Widget_Access
    is
+      H : constant Widget_Handle := Get_Child_Handle (W, Index);
    begin
-      return Resolve_Handle (Get_Child_Handle (W, Index));
+      return Widget_Stores.Get (H.Id);
    end Child_At;
 
    function Child_Participates (Child : Widget_Access) return Boolean is

@@ -441,6 +441,28 @@ package body Adi.Widget.Context_Menu is
       Attach_Window (Menu, Adi.Window.Resolve_Window_Handle (Host));
    end Attach_Window;
 
+   procedure Attach_Window
+     (Menu : Menu_Handle;
+      Host : Adi.Window.Window_Access)
+   is
+      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
+   begin
+      if Ptr /= null then
+         Attach_Window (Ptr.all, Host);
+      end if;
+   end Attach_Window;
+
+   procedure Attach_Window
+     (Menu : Menu_Handle;
+      Host : Adi.Window.Window_Handle)
+   is
+      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
+   begin
+      if Ptr /= null then
+         Attach_Window (Ptr.all, Host);
+      end if;
+   end Attach_Window;
+
    procedure Add_Item
      (Menu : in out Context_Menu;
       Text : String)
@@ -504,6 +526,18 @@ package body Adi.Widget.Context_Menu is
       end if;
    end Set_Item_Disabled;
 
+   procedure Set_Item_Disabled
+     (Menu     : Menu_Handle;
+      Index    : Positive;
+      Disabled : Boolean)
+   is
+      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
+   begin
+      if Ptr /= null then
+         Set_Item_Disabled (Ptr.all, Index, Disabled);
+      end if;
+   end Set_Item_Disabled;
+
    function Is_Item_Disabled
      (Menu  : Context_Menu;
       Index : Positive) return Boolean
@@ -515,11 +549,33 @@ package body Adi.Widget.Context_Menu is
       return Menu.Disabled.Element (Index);
    end Is_Item_Disabled;
 
+   function Is_Item_Disabled
+     (Menu  : Menu_Handle;
+      Index : Positive) return Boolean
+   is
+      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
+   begin
+      if Ptr /= null then
+         return Is_Item_Disabled (Ptr.all, Index);
+      end if;
+      return False;
+   end Is_Item_Disabled;
+
    procedure Connect_Item_Selected
      (Menu : in out Context_Menu; CB : Item_Selected_Callback)
    is
    begin
       Menu.Item_Selected.Connect (CB);
+   end Connect_Item_Selected;
+
+   procedure Connect_Item_Selected
+     (Menu : Menu_Handle; CB : Item_Selected_Callback)
+   is
+      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
+   begin
+      if Ptr /= null then
+         Connect_Item_Selected (Ptr.all, CB);
+      end if;
    end Connect_Item_Selected;
 
    function Connect_Item_Selected
@@ -530,12 +586,35 @@ package body Adi.Widget.Context_Menu is
       return Menu.Item_Selected.Connect (CB);
    end Connect_Item_Selected;
 
+   function Connect_Item_Selected
+     (Menu : Menu_Handle; CB : Item_Selected_Callback)
+      return Item_Selected_Signals.Connection_Id
+   is
+      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
+   begin
+      if Ptr /= null then
+         return Connect_Item_Selected (Ptr.all, CB);
+      end if;
+      return Item_Selected_Signals.No_Connection;
+   end Connect_Item_Selected;
+
    procedure Disconnect_Item_Selected
      (Menu : in out Context_Menu;
       Id   : Item_Selected_Signals.Connection_Id)
    is
    begin
       Menu.Item_Selected.Disconnect (Id);
+   end Disconnect_Item_Selected;
+
+   procedure Disconnect_Item_Selected
+     (Menu : Menu_Handle;
+      Id   : Item_Selected_Signals.Connection_Id)
+   is
+      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
+   begin
+      if Ptr /= null then
+         Disconnect_Item_Selected (Ptr.all, Id);
+      end if;
    end Disconnect_Item_Selected;
 
    procedure Set_Menu_Part_Styles
@@ -608,6 +687,18 @@ package body Adi.Widget.Context_Menu is
       Mark_Dirty (Menu.Popup.all);
    end Show_At;
 
+   procedure Show_At
+     (Menu      : Menu_Handle;
+      X, Y      : Pixel_Type;
+      Min_Width : Pixel_Type := 140.0)
+   is
+      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
+   begin
+      if Ptr /= null then
+         Show_At (Ptr.all, X, Y, Min_Width);
+      end if;
+   end Show_At;
+
    procedure Hide (Menu : in out Context_Menu) is
       Dismiss : Dismiss_Layer_Widget_Access := null;
    begin
@@ -629,9 +720,26 @@ package body Adi.Widget.Context_Menu is
       Menu.Open := False;
    end Hide;
 
+   procedure Hide (Menu : Menu_Handle) is
+      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
+   begin
+      if Ptr /= null then
+         Hide (Ptr.all);
+      end if;
+   end Hide;
+
    function Is_Shown (Menu : Context_Menu) return Boolean is
    begin
       return Menu.Open;
+   end Is_Shown;
+
+   function Is_Shown (Menu : Menu_Handle) return Boolean is
+      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
+   begin
+      if Ptr /= null then
+         return Is_Shown (Ptr.all);
+      end if;
+      return False;
    end Is_Shown;
 
    procedure Set_Default_Menu_Styles (Styles : Adi.Widget.Part_Style_Array) is

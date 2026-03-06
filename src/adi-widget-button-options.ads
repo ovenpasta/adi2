@@ -25,6 +25,9 @@ package Adi.Widget.Button.Options is
    procedure Set_Button (G : in out Option_Group;
                          O : Option_Type;
                          B : Button_Widget_Access);
+   procedure Set_Button (G : in out Option_Group;
+                         O : Option_Type;
+                         B : Button_Handle);
 
    --  Query / change selection
    function  Get_Selected (G : Option_Group) return Option_Type;
@@ -41,8 +44,8 @@ package Adi.Widget.Button.Options is
 
    --  Group_Handler dispatch (called by Button.On_Click)
    overriding procedure On_Button_Clicked
-     (G   : in out Option_Group;
-      Btn : Button_Widget_Access);
+     (G : in out Option_Group;
+      W : Widget_Handle);
 
 private
 

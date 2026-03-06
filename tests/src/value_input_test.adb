@@ -277,7 +277,7 @@ procedure Value_Input_Test is
    Callback_Value : Float := 0.0;
 
    procedure On_Val_Changed
-     (W : Float_Input.Value_Input_Widget_Access; Value : Float) is
+     (W : Widget_Handle; Value : Float) is
       pragma Unreferenced (W);
    begin
       Callback_Fired := True;

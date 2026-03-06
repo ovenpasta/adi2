@@ -62,6 +62,16 @@ package body Adi.OS is
       Filter   : int)
    with Convention => C;
 
+   procedure Log_Dialog_Error (Where : String; Err : String) is
+   begin
+      if Err'Length = 0 then
+         return;
+      end if;
+      Adi.Log.Error
+        (Where & Err &
+         " (file dialog backend on Linux must be 'zenity' or 'portal')");
+   end Log_Dialog_Error;
+
    procedure Dialog_Trampoline
      (Userdata : System.Address;
       Filelist : System.Address;
@@ -82,20 +92,60 @@ package body Adi.OS is
       end if;
 
       if N = 0 then
-         Adi.Log.Info ("[Adi.OS] Dialog cancelled (empty file list)");
+         declare
+            Err : constant String := Value (Adi.SDL.SDL_GetError);
+         begin
+            if Err'Length = 0 then
+               Adi.Log.Info ("[Adi.OS] Dialog cancelled (empty file list)");
+            else
+               Log_Dialog_Error ("[Adi.OS] Dialog failed: ", Err);
+            end if;
+         end;
          CB (Empty_Strings);
          return;
       end if;
 
       declare
-         Files : String_Array (1 .. N);
-         Cur   : System.Address := Filelist;
+         Cur             : System.Address := Filelist;
+         Non_Empty_Count : Natural := 0;
       begin
+         --  Some backends may report N > 0 but include empty path entries.
+         --  Treat those as cancellation/no selection.
          for I in 1 .. N loop
-            Files (I) := To_Unbounded_String (Value (Read_Chars_Ptr (Cur)));
+            declare
+               Path : constant String := Value (Read_Chars_Ptr (Cur));
+            begin
+               if Path'Length > 0 then
+                  Non_Empty_Count := Non_Empty_Count + 1;
+               end if;
+            end;
             Cur := Cur + Ptr_Size;
          end loop;
-         CB (Files);
+
+         if Non_Empty_Count = 0 then
+            Adi.Log.Info ("[Adi.OS] Dialog returned only empty paths; treating as cancel");
+            CB (Empty_Strings);
+            return;
+         end if;
+
+         Cur := Filelist;
+         declare
+            Files : String_Array (1 .. Non_Empty_Count);
+            J     : Natural := 0;
+         begin
+            for I in 1 .. N loop
+               declare
+                  Path : constant String := Value (Read_Chars_Ptr (Cur));
+               begin
+                  if Path'Length > 0 then
+                     J := J + 1;
+                     Files (J) := To_Unbounded_String (Path);
+                  end if;
+               end;
+               Cur := Cur + Ptr_Size;
+            end loop;
+            CB (Files);
+         end;
       end;
    end Dialog_Trampoline;
 
@@ -164,6 +214,12 @@ package body Adi.OS is
       Adi.Log.Info ("[Adi.OS] Show_Open_File_Dialog: N_filters=" &
                     int'Image (N));
       Stored_Callback := Callback;
+      declare
+         Unused : constant Adi.SDL.C_bool := Adi.SDL.SDL_ClearError;
+         pragma Unreferenced (Unused);
+      begin
+         null;
+      end;
 
       if N = 0 then
          Adi.SDL.Dialog.SDL_ShowOpenFileDialog
@@ -196,15 +252,33 @@ package body Adi.OS is
       declare
          Err : constant String := Value (Adi.SDL.SDL_GetError);
       begin
-         if Err'Length > 0 then
-            Adi.Log.Error ("[Adi.OS] SDL error after ShowOpenFileDialog: " &
-                           Err);
+         --  When callback fired synchronously, Dialog_Trampoline already
+         --  logged cancellation/error; avoid duplicate error lines here.
+         if Stored_Callback /= null and then Err'Length > 0 then
+            Log_Dialog_Error
+              ("[Adi.OS] SDL error after ShowOpenFileDialog: ", Err);
          end if;
       end;
 
       if C_Loc /= Null_Ptr then
          Free (C_Loc);
       end if;
+   end Show_Open_File_Dialog;
+
+   procedure Show_Open_File_Dialog
+     (Callback         : Dialog_Callback;
+      Window           : Adi.Window.Window_Handle;
+      Filters          : File_Filter_Array := No_Filters;
+      Default_Location : String := "";
+      Allow_Many       : Boolean := False)
+   is
+   begin
+      Show_Open_File_Dialog
+        (Callback         => Callback,
+         Window           => Adi.Window.Resolve_Window_Handle (Window),
+         Filters          => Filters,
+         Default_Location => Default_Location,
+         Allow_Many       => Allow_Many);
    end Show_Open_File_Dialog;
 
    procedure Show_Save_File_Dialog
@@ -219,6 +293,12 @@ package body Adi.OS is
       N     : constant int := Filters'Length;
    begin
       Stored_Callback := Callback;
+      declare
+         Unused : constant Adi.SDL.C_bool := Adi.SDL.SDL_ClearError;
+         pragma Unreferenced (Unused);
+      begin
+         null;
+      end;
 
       if N = 0 then
          Adi.SDL.Dialog.SDL_ShowSaveFileDialog
@@ -251,6 +331,20 @@ package body Adi.OS is
       end if;
    end Show_Save_File_Dialog;
 
+   procedure Show_Save_File_Dialog
+     (Callback         : Dialog_Callback;
+      Window           : Adi.Window.Window_Handle;
+      Filters          : File_Filter_Array := No_Filters;
+      Default_Location : String := "")
+   is
+   begin
+      Show_Save_File_Dialog
+        (Callback         => Callback,
+         Window           => Adi.Window.Resolve_Window_Handle (Window),
+         Filters          => Filters,
+         Default_Location => Default_Location);
+   end Show_Save_File_Dialog;
+
    procedure Show_Open_Folder_Dialog
      (Callback         : Dialog_Callback;
       Window           : Adi.Window.Window_Access := null;
@@ -262,6 +356,12 @@ package body Adi.OS is
                              else New_String (Default_Location));
    begin
       Stored_Callback := Callback;
+      declare
+         Unused : constant Adi.SDL.C_bool := Adi.SDL.SDL_ClearError;
+         pragma Unreferenced (Unused);
+      begin
+         null;
+      end;
 
       Adi.SDL.Dialog.SDL_ShowOpenFolderDialog
         (Callback         => Dialog_Trampoline'Access,
@@ -273,6 +373,20 @@ package body Adi.OS is
       if C_Loc /= Null_Ptr then
          Free (C_Loc);
       end if;
+   end Show_Open_Folder_Dialog;
+
+   procedure Show_Open_Folder_Dialog
+     (Callback         : Dialog_Callback;
+      Window           : Adi.Window.Window_Handle;
+      Default_Location : String := "";
+      Allow_Many       : Boolean := False)
+   is
+   begin
+      Show_Open_Folder_Dialog
+        (Callback         => Callback,
+         Window           => Adi.Window.Resolve_Window_Handle (Window),
+         Default_Location => Default_Location,
+         Allow_Many       => Allow_Many);
    end Show_Open_Folder_Dialog;
 
    ---------------------------------------------------------------------------

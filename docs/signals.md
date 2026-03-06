@@ -21,7 +21,7 @@ src/adi-signal.adb   -- Body
 The generic takes a callback access type and a null sentinel:
 
 ```ada
-type Click_Callback is access procedure (Btn : Button_Widget_Access);
+type Click_Callback is access procedure (W : Widget_Handle);
 
 package Click_Signals is new Adi.Signal
   (Callback_Type => Click_Callback,
@@ -90,10 +90,10 @@ Emit sites use the `For_Each` generic procedure with a local visitor that captur
 
 ```ada
 procedure On_Click (W : in out Button_Widget) is
-   Self : constant Button_Widget_Access := W'Unchecked_Access;
+   H : constant Widget_Handle := Get_Handle (W);
    procedure Call (CB : Click_Callback) is
    begin
-      CB (Self);
+      CB (H);
    end Call;
    procedure Emit_Clicked is new Click_Signals.For_Each (Call);
 begin
@@ -105,11 +105,11 @@ For signals with value arguments, capture them in the visitor closure:
 
 ```ada
 procedure Fire_Changed (W : in out Slider_Widget) is
-   Self : constant Slider_Widget_Access := W'Unchecked_Access;
-   Val  : constant Value_Type := W.Value;
+   H   : constant Widget_Handle := Get_Handle (W);
+   Val : constant Value_Type := W.Value;
    procedure Call (CB : Value_Changed_Callback) is
    begin
-      CB (Self, Val);
+      CB (H, Val);
    end Call;
    procedure Emit is new Value_Changed_Signals.For_Each (Call);
 begin
@@ -155,36 +155,38 @@ Existing widget signals:
 
 | Widget | Signal | Callback Signature |
 |--------|--------|--------------------|
-| Button | `Clicked` | `(Btn : Button_Widget_Access)` |
-| Button | `Toggled` | `(Btn : Button_Widget_Access; Active : Boolean)` |
-| Button.Options | `Changed` | `(Group : Options_Widget_Access; Page : Page_Id)` |
-| Slider | `Changed` | `(W : Slider_Widget_Access; Value : Value_Type)` |
-| Value_Input | `Changed` | `(W : Value_Input_Widget_Access; Value : Value_Type)` |
-| Text_Input | `Changed` | `(W : Text_Input_Widget_Access)` |
-| Text_Editor | `Changed` | `(W : Text_Editor_Widget_Access)` |
-| List_Box | `Item_Clicked` | `(W : List_Box_Widget_Access; Index : Positive)` |
-| List_Box | `Item_Activated` | `(W : List_Box_Widget_Access; Index : Positive)` |
-| List_Box | `Selection_Changed` | `(W : List_Box_Widget_Access)` |
-| Combo_Box | `Selection_Changed` | `(W : Combo_Box_Widget_Access; Index : Natural)` |
-| Dialog | `Result` | `(Result : Dialog_Result)` |
-| Html_View | `Link_Click` | `(URL : String)` |
-| Context_Menu | `Item_Selected` | `(Index : Positive)` |
-| Stack | `Page_Changed` | `(W : Stack_Widget_Access; Page : Page_Id)` |
+| Button | `Clicked` | `(W : Widget_Handle)` |
+| Button | `Toggled` | `(W : Widget_Handle; Active : Boolean)` |
+| Button.Options | `Changed` | `(Value : Option_Type)` |
+| Slider | `Changed` | `(W : Widget_Handle; Value : Value_Type)` |
+| Value_Input | `Changed` | `(W : Widget_Handle; Value : Value_Type)` |
+| Text_Input | `Changed` | `(W : Widget_Handle)` |
+| Text_Editor | `Changed` | `(W : Widget_Handle)` |
+| List_Box | `Item_Clicked` | `(W : Widget_Handle; Index : Positive)` |
+| List_Box | `Item_Activated` | `(W : Widget_Handle; Index : Positive)` |
+| List_Box | `Selection_Changed` | `(W : Widget_Handle)` |
+| Combo_Box | `Selection_Changed` | `(W : Widget_Handle; Index : Natural; Text : String)` |
+| Dialog | `Result` | `(W : Widget_Handle; Index : Natural; Text : String)` |
+| Html_View | `Link_Click` | `(Self : access Html_View; Href : String)` |
+| Context_Menu | `Item_Selected` | `(Menu : Menu_Handle; Index : Positive; Text : String)` |
+| Stack | `Page_Changed` | `(Id : Page_Id)` |
 | Window | `Tick` | `(DT : Duration)` |
-| Window | `Post_Render` | `(W : Window_Access; Renderer : SDL_Renderer_Ptr)` |
-| Window | `Frame` | `(W : Window_Access)` |
-| Window | `Close_Request` | `(Win : Window_Access; Allow : in out Boolean)` |
+| Window | `Post_Render` | `(Win : not null access Window'Class; Renderer : SDL_Renderer_Ptr)` |
+| Window | `Frame` | `(Win : not null access Window'Class)` |
+| Window | `Close_Request` | `(Win : not null access Window'Class; Allow : in out Boolean)` |
 
 ### Usage Example
 
 A complete example connecting to a button click:
 
 ```ada
+with Adi.Widget;        use Adi.Widget;
 with Adi.Widget.Button; use Adi.Widget.Button;
 
 procedure Setup (Btn : in out Button_Widget) is
 
-   procedure On_Click (B : Button_Widget_Access) is
+   procedure On_Click (W : Widget_Handle) is
+      pragma Unreferenced (W);
    begin
       Adi.Log.Info ("Button clicked!");
    end On_Click;
@@ -197,11 +199,13 @@ end Setup;
 Connecting to a slider value change:
 
 ```ada
+with Adi.Widget;        use Adi.Widget;
 with Adi.Widget.Slider; use Adi.Widget.Slider;
 
 procedure Setup (S : in out Slider_Widget) is
 
-   procedure On_Value (W : Slider_Widget_Access; Value : Float) is
+   procedure On_Value (W : Widget_Handle; Value : Float) is
+      pragma Unreferenced (W);
    begin
       Adi.Log.Info ("Slider: " & Value'Image);
    end On_Value;

@@ -7,9 +7,9 @@ with Adi.CSS_Styles;          use Adi.CSS_Styles;
 with Adi.OS;
 with Adi.Window;              use Adi.Window;
 with Adi.Widget;              use Adi.Widget;
-with Adi.Widget.Box;
+with Adi.Widget.Box;          use Adi.Widget.Box;
 with Adi.Widget.Button;       use Adi.Widget.Button;
-with Adi.Widget.Button.Switch;
+with Adi.Widget.Button.Switch; use Adi.Widget.Button.Switch;
 with Adi.Widget.Label;        use Adi.Widget.Label;
 with Adi.Widget.Text_Editor;  use Adi.Widget.Text_Editor;
 with Adi.Widget_Styles;       use Adi.Widget_Styles;
@@ -81,27 +81,27 @@ begin
    A.Set_Target_FPS (60);
 
    declare
-      W : constant Window_Access :=
-        Create_Window ("Text Editor Example", (800.0, 600.0));
+      W : constant Window_Handle :=
+        Create_Window_Handle ("Text Editor Example", (800.0, 600.0));
 
-      Root   : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Title  : constant Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Multiline Text Editor");
-      Controls : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Wrap_Status : constant Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Wrap: ON");
-      Wrap_Switch : constant Adi.Widget.Button.Switch.Switch_Widget_Access :=
-        Adi.Widget.Button.Switch.Create (True);
-      RO_Status : constant Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Read Only: OFF");
-      RO_Switch : constant Adi.Widget.Button.Switch.Switch_Widget_Access :=
-        Adi.Widget.Button.Switch.Create (False);
-      Open_Btn : constant Button_Widget_Access :=
-        Adi.Widget.Button.Create ("Open File");
-      Editor : constant Text_Editor_Widget_Access :=
-        Adi.Widget.Text_Editor.Create (Sample_Text);
+      Root   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Title  : constant Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Multiline Text Editor");
+      Controls : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Wrap_Status : constant Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Wrap: ON");
+      Wrap_Switch : constant Adi.Widget.Button.Switch.Switch_Handle :=
+        Adi.Widget.Button.Switch.Create_Handle (True);
+      RO_Status : constant Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Read Only: OFF");
+      RO_Switch : constant Adi.Widget.Button.Switch.Switch_Handle :=
+        Adi.Widget.Button.Switch.Create_Handle (False);
+      Open_Btn : constant Button_Handle :=
+        Adi.Widget.Button.Create_Handle ("Open File");
+      Editor : constant Text_Editor_Handle :=
+        Adi.Widget.Text_Editor.Create_Handle (Sample_Text);
 
       Wrap_On_Label_Widget : constant Widget_Style :=
         From (Editor_Class_Text_Base_Style).Build;
@@ -117,34 +117,34 @@ begin
       procedure Apply_Wrap (Active : Boolean) is
       begin
          if Active then
-            Set_Part_Style (Editor.all, Text_Part, Wrap_On_Label_Widget);
-            Set_Text (Wrap_Status.all, "Wrap: ON");
+            Set_Part_Style (+Editor, Text_Part, Wrap_On_Label_Widget);
+            Set_Text (Wrap_Status, "Wrap: ON");
          else
-            Set_Part_Style (Editor.all, Text_Part, Wrap_Off_Label_Widget);
-            Set_Text (Wrap_Status.all, "Wrap: OFF");
+            Set_Part_Style (+Editor, Text_Part, Wrap_Off_Label_Widget);
+            Set_Text (Wrap_Status, "Wrap: OFF");
          end if;
       end Apply_Wrap;
 
       procedure On_Wrap_Toggled
-        (Btn    : Button_Widget_Access;
+        (W      : Widget_Handle;
          Active : Boolean)
       is
-         pragma Unreferenced (Btn);
+         pragma Unreferenced (W);
       begin
          Apply_Wrap (Active);
       end On_Wrap_Toggled;
 
       procedure On_RO_Toggled
-        (Btn    : Button_Widget_Access;
+        (W      : Widget_Handle;
          Active : Boolean)
       is
-         pragma Unreferenced (Btn);
+         pragma Unreferenced (W);
       begin
-         Set_Read_Only (Editor.all, Active);
+         Adi.Widget.Text_Editor.Set_Read_Only (Editor, Active);
          if Active then
-            Set_Text (RO_Status.all, "Read Only: ON");
+            Set_Text (RO_Status, "Read Only: ON");
          else
-            Set_Text (RO_Status.all, "Read Only: OFF");
+            Set_Text (RO_Status, "Read Only: OFF");
          end if;
       end On_RO_Toggled;
 
@@ -158,6 +158,9 @@ begin
             File : Ada.Text_IO.File_Type;
             Content : Unbounded_String;
          begin
+            if Path'Length = 0 then
+               return;
+            end if;
             Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
             while not Ada.Text_IO.End_Of_File (File) loop
                if Length (Content) > 0 then
@@ -166,12 +169,17 @@ begin
                Append (Content, Ada.Text_IO.Get_Line (File));
             end loop;
             Ada.Text_IO.Close (File);
-            Set_Text (Editor.all, To_String (Content));
+            Adi.Widget.Text_Editor.Set_Text (Editor, To_String (Content));
+         exception
+            when others =>
+               if Ada.Text_IO.Is_Open (File) then
+                  Ada.Text_IO.Close (File);
+               end if;
          end;
       end On_File_Selected;
 
-      procedure On_Open_Click (Btn : Button_Widget_Access) is
-         pragma Unreferenced (Btn);
+      procedure On_Open_Click (Sender : Widget_Handle) is
+         pragma Unreferenced (Sender);
          Txt_Filter : constant Adi.OS.File_Filter_Array :=
            [1 => (Name    => To_Unbounded_String ("Text files"),
                   Pattern => To_Unbounded_String ("txt"))];
@@ -182,32 +190,32 @@ begin
             Filters  => Txt_Filter);
       end On_Open_Click;
    begin
-      Set_Part_Styles (Root.all, Root_Class_Part_Styles);
-      Set_Part_Styles (Title.all, Title_Class_Part_Styles);
-      Set_Part_Styles (Controls.all, Controls_Class_Part_Styles);
-      Set_Part_Styles (Wrap_Status.all, Wrap_Status_Class_Part_Styles);
-      Set_Part_Styles (Wrap_Switch.all, Wrap_Switch_Class_Part_Styles);
-      Set_Part_Styles (RO_Status.all, Ro_Status_Class_Part_Styles);
-      Set_Part_Styles (RO_Switch.all, Ro_Switch_Class_Part_Styles);
-      Set_Part_Styles (Editor.all, Editor_Class_Part_Styles);
-      Set_Part_Styles (Open_Btn.all, Open_Btn_Class_Part_Styles);
-      Open_Btn.Connect_Clicked (On_Open_Click'Unrestricted_Access);
-      Wrap_Switch.Connect_Toggled (On_Wrap_Toggled'Unrestricted_Access);
-      RO_Switch.Connect_Toggled (On_RO_Toggled'Unrestricted_Access);
+      Set_Part_Styles (+Root, Root_Class_Part_Styles);
+      Set_Part_Styles (+Title, Title_Class_Part_Styles);
+      Set_Part_Styles (+Controls, Controls_Class_Part_Styles);
+      Set_Part_Styles (+Wrap_Status, Wrap_Status_Class_Part_Styles);
+      Adi.Widget.Button.Switch.Set_Part_Styles (Wrap_Switch, Wrap_Switch_Class_Part_Styles);
+      Set_Part_Styles (+RO_Status, Ro_Status_Class_Part_Styles);
+      Adi.Widget.Button.Switch.Set_Part_Styles (RO_Switch, Ro_Switch_Class_Part_Styles);
+      Set_Part_Styles (+Editor, Editor_Class_Part_Styles);
+      Connect_Clicked (Open_Btn, On_Open_Click'Unrestricted_Access);
+      Adi.Widget.Button.Switch.Connect_Toggled (Wrap_Switch, On_Wrap_Toggled'Unrestricted_Access);
+      Adi.Widget.Button.Switch.Connect_Toggled (RO_Switch, On_RO_Toggled'Unrestricted_Access);
+      Set_Part_Styles (+Open_Btn, Open_Btn_Class_Part_Styles);
       Apply_Wrap (True);
-      Set_Context_Menu_Part_Styles (Editor.all, Context_Menu_Class_Part_Styles);
-      Set_Context_Menu_Item_Part_Styles (Editor.all, Context_Menu_Item_Class_Part_Styles);
+      Set_Context_Menu_Part_Styles (Editor, Context_Menu_Class_Part_Styles);
+      Set_Context_Menu_Item_Part_Styles (Editor, Context_Menu_Item_Class_Part_Styles);
 
-      Root.Add_Child (Title);
-      Root.Add_Child (Controls);
-      Controls.Add_Child (Open_Btn);
-      Controls.Add_Child (Wrap_Status);
-      Controls.Add_Child (Wrap_Switch);
-      Controls.Add_Child (RO_Status);
-      Controls.Add_Child (RO_Switch);
-      Root.Add_Child (Editor);
+      Add_Child (+Root, +Title);
+      Add_Child (+Root, +Controls);
+      Add_Child (+Controls, +Open_Btn);
+      Add_Child (+Controls, +Wrap_Status);
+      Add_Child (+Controls, +Wrap_Switch);
+      Add_Child (+Controls, +RO_Status);
+      Add_Child (+Controls, +RO_Switch);
+      Add_Child (+Root, +Editor);
 
-      W.Set_Root (Root);
+      Adi.Window.Set_Root (W, Widget_Handle'(+Root));
       A.Add_Window (W);
       A.Run;
    end;

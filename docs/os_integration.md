@@ -45,13 +45,26 @@ procedure Show_Open_File_Dialog
    Filters          : File_Filter_Array := No_Filters;
    Default_Location : String := "";
    Allow_Many       : Boolean := False);
+
+procedure Show_Open_File_Dialog
+  (Callback         : Dialog_Callback;
+   Window           : Adi.Window.Window_Handle;
+   Filters          : File_Filter_Array := No_Filters;
+   Default_Location : String := "";
+   Allow_Many       : Boolean := False);
 ```
 
 - **Callback** — called with the selected file path(s), or an empty array on cancel.
-- **Window** — parent window for modal positioning (optional).
+- **Window** — parent window for modal positioning. Use access overload for legacy code or handle overload for handle-first code.
 - **Filters** — file type filters shown in the dialog.
 - **Default_Location** — initial directory path (optional).
 - **Allow_Many** — if `True`, multiple files can be selected.
+
+Callback normalization details:
+
+- The dialog trampoline filters empty returned path entries.
+- If SDL reports files but every entry is empty, `Adi.OS` treats it as cancel and calls `Callback (Empty_Strings)`.
+- Callback code should treat `Files'Length = 0` as the canonical cancel check.
 
 ### Show_Save_File_Dialog
 
@@ -61,6 +74,12 @@ Opens a native "Save File" dialog.
 procedure Show_Save_File_Dialog
   (Callback         : Dialog_Callback;
    Window           : Adi.Window.Window_Access := null;
+   Filters          : File_Filter_Array := No_Filters;
+   Default_Location : String := "");
+
+procedure Show_Save_File_Dialog
+  (Callback         : Dialog_Callback;
+   Window           : Adi.Window.Window_Handle;
    Filters          : File_Filter_Array := No_Filters;
    Default_Location : String := "");
 ```
@@ -73,6 +92,12 @@ Opens a native "Choose Folder" dialog.
 procedure Show_Open_Folder_Dialog
   (Callback         : Dialog_Callback;
    Window           : Adi.Window.Window_Access := null;
+   Default_Location : String := "";
+   Allow_Many       : Boolean := False);
+
+procedure Show_Open_Folder_Dialog
+  (Callback         : Dialog_Callback;
+   Window           : Adi.Window.Window_Handle;
    Default_Location : String := "";
    Allow_Many       : Boolean := False);
 ```
@@ -243,6 +268,6 @@ The high-level `Adi.OS` API is built on three hand-crafted SDL3 binding packages
 
 ## Platform Notes
 
-- **Linux**: File dialogs require `xdg-desktop-portal` (D-Bus). If unavailable, the callback fires immediately with an empty file list.
+- **Linux**: SDL file dialogs require a supported dialog driver (`portal` or `zenity`). If neither is available, SDL reports a driver error and no dialog is shown.
 - **macOS/Windows**: Native system dialogs are used.
 - Clipboard functions require SDL video subsystem to be initialized (handled by `Adi.App.Init`).

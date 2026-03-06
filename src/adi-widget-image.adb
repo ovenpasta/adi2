@@ -11,8 +11,72 @@ package body Adi.Widget.Image is
    begin
       Result.Flags := [Visible => True, others => False];
       Result.Img := Img;
+      Register_Widget (Widget_Access (Result));
       return Result;
    end Create;
+
+   -------------------
+   -- Create_Handle --
+   -------------------
+
+   function Create_Handle (Img : Image_Access := null) return Image_Handle is
+   begin
+      return (Id => Get_Handle (Create (Img).all).Id);
+   end Create_Handle;
+
+   ----------------------
+   -- Handle bridge --
+   ----------------------
+
+   function To_Widget_Handle (H : Image_Handle) return Widget_Handle is
+   begin
+      return (Id => H.Id);
+   end To_Widget_Handle;
+
+   function Try_As_Image (H : Widget_Handle) return Image_Handle is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in Image_Widget'Class then
+         return (Id => H.Id);
+      end if;
+      return Null_Image_Handle;
+   end Try_As_Image;
+
+   function Is_Valid (H : Image_Handle) return Boolean is
+   begin
+      return Widget_Stores.Is_Valid (H.Id);
+   end Is_Valid;
+
+   function "+" (H : Image_Handle) return Widget_Handle is
+   begin
+      return To_Widget_Handle (H);
+   end "+";
+
+   procedure Set_Part_Styles (H : Image_Handle; Styles : Part_Style_Array) is
+   begin
+      Adi.Widget.Set_Part_Styles (To_Widget_Handle (H), Styles);
+   end Set_Part_Styles;
+
+   --------------------
+   -- Handle methods --
+   --------------------
+
+   procedure Set_Image (H : Image_Handle; Img : Image_Access) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Image (Image_Widget (Ptr.all), Img);
+      end if;
+   end Set_Image;
+
+   function Get_Image (H : Image_Handle) return Image_Access is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Image (Image_Widget (Ptr.all));
+      end if;
+      return null;
+   end Get_Image;
 
    ---------------
    -- Set_Image --

@@ -2,10 +2,10 @@ pragma Ada_2022;
 
 with Adi.App;
 with Adi.Window;                 use Adi.Window;
-with Adi.Widget;
+with Adi.Widget;                 use Adi.Widget;
 with Adi.Widget.Box;
 with Adi.Widget.Label;
-with Adi.Widget.Button;          use Adi.Widget.Button;
+with Adi.Widget.Button;
 with Adi.Widget.Animated_Widget;
 with Adi.Animated_Image;         use Adi.Animated_Image;
 with Animated_Image_Example_Styles; use Animated_Image_Example_Styles;
@@ -13,127 +13,147 @@ with Animated_Image_Example_Styles; use Animated_Image_Example_Styles;
 procedure Animated_Image_Example is
    A : Adi.App.App;
 
+   use type Adi.Widget.Box.Box_Handle;
+   use type Adi.Widget.Label.Label_Handle;
+   use type Adi.Widget.Button.Button_Handle;
+   use type Adi.Widget.Animated_Widget.Animated_Widget_Handle;
+
 begin
    A.Init;
    A.Set_Target_FPS (60);
 
    declare
-      W : constant Window_Access :=
-        Create_Window ("Animated Image Example", (920.0, 680.0));
+      W : constant Window_Handle :=
+        Create_Window_Handle ("Animated Image Example", (920.0, 680.0));
 
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Header : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Title : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Animated Image (SDL_image)");
-      Subtitle : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Header : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Title : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Animated Image (SDL_image)");
+      Subtitle : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle
           ("Animhorse.gif from Wikimedia Commons with live playback controls");
-      Viewer_Frame : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Viewer : constant Adi.Widget.Animated_Widget.Animated_Widget_Access :=
-        Adi.Widget.Animated_Widget.Create;
-      Controls : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Status : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Loading animation...");
+      Viewer_Frame : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Viewer : constant Adi.Widget.Animated_Widget.Animated_Widget_Handle :=
+        Adi.Widget.Animated_Widget.Create_Handle;
+      Controls : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Status : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Loading animation...");
 
-      Btn_Start : constant Button_Widget_Access := Create ("Start");
-      Btn_Stop  : constant Button_Widget_Access := Create ("Stop");
-      Btn_Reset : constant Button_Widget_Access := Create ("Reset");
-      Btn_Loop  : constant Button_Widget_Access := Create ("Loop: ON");
+      Btn_Start : constant Adi.Widget.Button.Button_Handle :=
+        Adi.Widget.Button.Create_Handle ("Start");
+      Btn_Stop  : constant Adi.Widget.Button.Button_Handle :=
+        Adi.Widget.Button.Create_Handle ("Stop");
+      Btn_Reset : constant Adi.Widget.Button.Button_Handle :=
+        Adi.Widget.Button.Create_Handle ("Reset");
+      Btn_Loop  : constant Adi.Widget.Button.Button_Handle :=
+        Adi.Widget.Button.Create_Handle ("Loop: ON");
 
       Animation : Animated_Image_Access := null;
 
-      procedure On_Start (Btn : Button_Widget_Access) is
-         pragma Unreferenced (Btn);
+      procedure On_Start (W : Widget_Handle) is
+         pragma Unreferenced (W);
       begin
-         Viewer.Start;
-         Status.Set_Text ("Playing");
+         Adi.Widget.Animated_Widget.Start (Viewer);
+         Adi.Widget.Label.Set_Text (Status, "Playing");
       end On_Start;
 
-      procedure On_Stop (Btn : Button_Widget_Access) is
-         pragma Unreferenced (Btn);
+      procedure On_Stop (W : Widget_Handle) is
+         pragma Unreferenced (W);
       begin
-         Viewer.Stop;
-         Status.Set_Text ("Stopped");
+         Adi.Widget.Animated_Widget.Stop (Viewer);
+         Adi.Widget.Label.Set_Text (Status, "Stopped");
       end On_Stop;
 
-      procedure On_Reset (Btn : Button_Widget_Access) is
-         pragma Unreferenced (Btn);
+      procedure On_Reset (W : Widget_Handle) is
+         pragma Unreferenced (W);
       begin
-         Viewer.Reset;
-         Status.Set_Text ("Reset to first frame");
+         Adi.Widget.Animated_Widget.Reset (Viewer);
+         Adi.Widget.Label.Set_Text (Status, "Reset to first frame");
       end On_Reset;
 
       procedure On_Loop_Toggled
-        (Btn    : Button_Widget_Access;
+        (W      : Widget_Handle;
          Active : Boolean)
       is
-         pragma Unreferenced (Btn);
+         pragma Unreferenced (W);
       begin
-         Viewer.Set_Looping (Active);
+         Adi.Widget.Animated_Widget.Set_Looping (Viewer, Active);
          if Active then
-            Btn_Loop.Set_Text ("Loop: ON");
-            Status.Set_Text ("Loop enabled");
+            Adi.Widget.Button.Set_Text (Btn_Loop, "Loop: ON");
+            Adi.Widget.Label.Set_Text (Status, "Loop enabled");
          else
-            Btn_Loop.Set_Text ("Loop: OFF");
-            Status.Set_Text ("Loop disabled");
+            Adi.Widget.Button.Set_Text (Btn_Loop, "Loop: OFF");
+            Adi.Widget.Label.Set_Text (Status, "Loop disabled");
          end if;
       end On_Loop_Toggled;
 
    begin
-      Adi.Widget.Set_Part_Styles (Root.all, Root_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Header.all, Header_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Title.all, Title_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Subtitle.all, Subtitle_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Viewer_Frame.all, Viewer_Frame_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Viewer.all, Viewer_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Controls.all, Controls_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Status.all, Status_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Root, Root_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Header, Header_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Title, Title_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Subtitle, Subtitle_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles
+        (Viewer_Frame, Viewer_Frame_Class_Part_Styles);
+      Adi.Widget.Animated_Widget.Set_Part_Styles
+        (Viewer, Viewer_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Controls, Controls_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Status, Status_Class_Part_Styles);
 
-      Adi.Widget.Set_Part_Styles (Btn_Start.all, Action_Button_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Btn_Stop.all, Action_Button_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Btn_Reset.all, Action_Button_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Btn_Loop.all, Loop_Button_Class_Part_Styles);
+      Adi.Widget.Button.Set_Part_Styles
+        (Btn_Start, Action_Button_Class_Part_Styles);
+      Adi.Widget.Button.Set_Part_Styles
+        (Btn_Stop, Action_Button_Class_Part_Styles);
+      Adi.Widget.Button.Set_Part_Styles
+        (Btn_Reset, Action_Button_Class_Part_Styles);
+      Adi.Widget.Button.Set_Part_Styles
+        (Btn_Loop, Loop_Button_Class_Part_Styles);
 
-      Btn_Loop.Set_Toggleable (True);
-      Btn_Loop.Set_Toggled (True);
+      Adi.Widget.Button.Set_Toggleable (Btn_Loop, True);
+      Adi.Widget.Button.Set_Toggled (Btn_Loop, True);
 
-      Btn_Start.Connect_Clicked (On_Start'Unrestricted_Access);
-      Btn_Stop.Connect_Clicked (On_Stop'Unrestricted_Access);
-      Btn_Reset.Connect_Clicked (On_Reset'Unrestricted_Access);
-      Btn_Loop.Connect_Toggled (On_Loop_Toggled'Unrestricted_Access);
+      Adi.Widget.Button.Connect_Clicked
+        (Btn_Start, On_Start'Unrestricted_Access);
+      Adi.Widget.Button.Connect_Clicked
+        (Btn_Stop, On_Stop'Unrestricted_Access);
+      Adi.Widget.Button.Connect_Clicked
+        (Btn_Reset, On_Reset'Unrestricted_Access);
+      Adi.Widget.Button.Connect_Toggled
+        (Btn_Loop, On_Loop_Toggled'Unrestricted_Access);
 
-      Root.Add_Child (Header);
-      Header.Add_Child (Title);
-      Header.Add_Child (Subtitle);
+      Add_Child (+Root, +Header);
+      Add_Child (+Header, +Title);
+      Add_Child (+Header, +Subtitle);
 
-      Root.Add_Child (Viewer_Frame);
-      Viewer_Frame.Add_Child (Viewer);
+      Add_Child (+Root, +Viewer_Frame);
+      Add_Child (+Viewer_Frame, +Viewer);
 
-      Root.Add_Child (Controls);
-      Controls.Add_Child (Btn_Start);
-      Controls.Add_Child (Btn_Stop);
-      Controls.Add_Child (Btn_Reset);
-      Controls.Add_Child (Btn_Loop);
+      Add_Child (+Root, +Controls);
+      Add_Child (+Controls, +Btn_Start);
+      Add_Child (+Controls, +Btn_Stop);
+      Add_Child (+Controls, +Btn_Reset);
+      Add_Child (+Controls, +Btn_Loop);
 
-      Root.Add_Child (Status);
+      Add_Child (+Root, +Status);
 
       Animation :=
         Adi.Animated_Image.Load_From_File ("examples/assets/animhorse.gif");
       if Animation = null then
-         Status.Set_Text ("Failed to load animhorse.gif");
+         Adi.Widget.Label.Set_Text (Status, "Failed to load animhorse.gif");
       else
-         Viewer.Set_Animation (Animation);
-         Viewer.Set_Looping (True);
-         Status.Set_Text
-           ("Loaded Animhorse.gif (" &
+         Adi.Widget.Animated_Widget.Set_Animation (Viewer, Animation);
+         Adi.Widget.Animated_Widget.Set_Looping (Viewer, True);
+         Adi.Widget.Label.Set_Text
+           (Status,
+            "Loaded Animhorse.gif (" &
             Get_Frame_Count (Animation.all)'Image & " frames)");
       end if;
 
-      W.Set_Root (Root);
+      Adi.Window.Set_Root (W, Widget_Handle'(+Root));
       A.Add_Window (W);
       A.Run;
    end;

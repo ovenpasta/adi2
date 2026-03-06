@@ -222,11 +222,26 @@ project Tests_Build is
       "html_view_test",
       "svg_test",
       "svg_perf_test",
+      "disabled_test",
       "image_widget_test",
+      "slider_test",
+      "value_input_test",
       "svg_sprites_test",
+      "min_size_test",
+      "layout_perf_test",
+      "style_storage_equivalence_test",
+      "window_resize_safety_test",
+      "mcp_test",
       "bundle_test",
+      "signal_test",
+      "dispatch_test",
+      "i18n_test",
       "settings_test",
-      "close_request_test");
+      "close_request_test",
+      "window_handle_test",
+      "text_editor_test",
+      "handle_store_test",
+      "widget_handle_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("${SOURCE_DIR}/tests/src");
@@ -373,9 +388,19 @@ TEST_KINDS=(
   svg_sprites_test
   min_size_test
   layout_perf_test
+  style_storage_equivalence_test
+  window_resize_safety_test
+  mcp_test
   bundle_test
+  signal_test
+  dispatch_test
+  i18n_test
   settings_test
   close_request_test
+  window_handle_test
+  text_editor_test
+  handle_store_test
+  widget_handle_test
 )
 
 for kind in "\${TEST_KINDS[@]}"; do

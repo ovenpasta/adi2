@@ -135,6 +135,12 @@
 - Re-entrant safe: `Drain` swaps the queue before executing, so `Post` during `Drain` defers to next frame
 - `Pending_Count` for diagnostics
 
+**Adi.Handle_Store** (`adi-handle_store.ads`): Generic generational ownership store.
+- `Object_Id` (`Index`, `Gen`) with slot `0` reserved as null
+- `Register`, `Get`, `Is_Valid`, `Request_Destroy`, `Pump`
+- `Pin`/`Unpin` plus `Borrow` (`Implicit_Dereference`) for scoped safe access
+- Used by widgets, context menus, and windows (separate store instantiations)
+
 **Adi.Font** (`adi-font.ads`): Font loading and caching.
 - `Font_Handle` = font family (file path)
 - `Font_Attributes` groups family/size/weight/style/decoration
@@ -160,7 +166,10 @@
 
 **Adi.Window** (`adi-window.ads`): Window management.
 - Wraps SDL window/renderer, owns `Render_Context`
-- `Set_Root`, `Add_Overlay`, `Remove_Overlay` accept `access Adi.Widget.Widget'Class`
+- Handle-first API:
+  - `Create_Window_Handle`, `Window_Handle`, `Destroy`, `Is_Valid`, `Resolve_Window_Handle`
+  - Backward-compatible `Create_Window`/`Window_Access` remains available
+- `Set_Root`, `Add_Overlay`, `Remove_Overlay` accept both handles and anonymous access
 - Overlay hit testing prioritized above root; overlays render after root
 - Programmatic focus API: `Set_Focus(Window, Target)` sets focus to a widget in the window root/overlay trees (or clears focus with `null`), and ignores out-of-window targets
 - Resize behavior: `Handle_Resize` marks both root and overlay trees dirty on size changes so overlay-driven widgets (for example dialogs) recompute geometry immediately on the next render pass, without waiting for hover/state events
@@ -170,13 +179,21 @@
 - Overlay focus cleanup: `Remove_Overlay` and `Clear_Overlays` clear focus when the focused widget belongs to removed overlays, preventing stale detached focus targets
 - DIP scale refresh from `SDL_GetWindowDisplayScale`
 - **Layout-driven SDL minimum size**: `Set_Enforce_Layout_Min_Size` (default on) calls `SDL_SetWindowMinimumSize` from root layout sizing and reapplies it after each relayout pass (including resize-triggered relayouts), keeping SDL minimums synchronized with wrapped/unwrapped content changes. Minimum width uses a geometry-dependent guard: when preferred width tracks the current root geometry (typical wrapped-text feedback), width falls back to `Get_Min_Size(root)` to avoid ratcheting to the current window width. Minimum height follows preferred height so unwrap on widen can lower the enforced floor. Computed minimums are capped to display usable bounds via `SDL_GetDisplayUsableBounds`, and if current window size is already below the computed minimum, `SDL_SetWindowSize` clamps up immediately.
+- Deterministic teardown: widget trees are destroyed before SDL resources in `Finalize`; public `Destroy` invalidates window handles through the store.
+- Callback-safe destroy: destroy requests made during active window callback dispatch are queued and applied by `Pump_Window_Store` after dispatch unwinds.
 - Debug: `ADI_DEBUG_LOOP=1` for tick/render diagnostics
 
 **Adi.App** (`adi-app.ads`): Application entry point, main loop, frame timing (`Ada.Real_Time`), `Set_Target_FPS`.
+- Main window ownership is now `Window_Handle` (with access overload bridge in `Add_Window`).
+- Per-frame store drain includes widget/menu/window stores.
 
 ## Widgets
 
 **Adi.Widget** (`adi-widget.ads`): Base abstraction.
+- Ownership is store-backed with generational `Widget_Handle`; typed handles wrap the same store IDs.
+- Scoped borrow API: `Borrow (Widget_Handle) return Widget_Ref` (`Implicit_Dereference`) pins while in scope.
+- `Resolve_Handle` remains as compatibility bridge; new code should prefer typed handles and/or `Borrow`.
+- Migration direction is handle-first public APIs, with `Widget_Access` planned to move toward private/internal usage once compatibility bridges are no longer needed.
 - Part system: `Main_Part`, `Indicator_Part`, `Label_Part`, `Text_Part`, `Icon_Part`, `Cursor_Part`, `Selected_Part`, `Scroll_Part`, `Knob_Part`
 - Item system: `Panel_Item`, `Text_Item`, `Image_Item`
 - Flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`

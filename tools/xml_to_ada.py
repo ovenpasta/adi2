@@ -160,7 +160,9 @@ def load_widget_grammar(path):
         info = {
             "package": "",
             "access_type": "",
+            "handle_type": "",
             "create": "",
+            "create_handle": "",
             "generic": widget_elem.get("generic", "").lower() == "true",
             "children_mode": widget_elem.get("children-mode", "children"),
             "attributes": [],
@@ -170,8 +172,12 @@ def load_widget_grammar(path):
                 info["package"] = child.text.strip()
             elif child.tag == "access-type":
                 info["access_type"] = child.text.strip()
+            elif child.tag == "handle-type":
+                info["handle_type"] = child.text.strip()
             elif child.tag == "create":
                 info["create"] = child.text.strip()
+            elif child.tag == "create-handle":
+                info["create_handle"] = child.text.strip()
             elif child.tag == "attribute":
                 attr = {
                     "name": child.get("name"),
@@ -231,12 +237,14 @@ def to_ada_identifier(name: str) -> str:
     return "_".join(part.capitalize() for part in parts)
 
 
-def widget_ada_type(widget: XmlWidget, generics_map: dict[str, XmlGeneric]) -> str:
-    """Return the Ada access type for a widget."""
+def widget_ada_type(widget: XmlWidget, generics_map: dict[str, XmlGeneric],
+                    use_handle: bool = False) -> str:
+    """Return the Ada type for a widget (access type or handle type)."""
     tag_info = GRAMMAR[widget.tag]
+    key = "handle_type" if use_handle else "access_type"
     if tag_info["generic"]:
-        return f"{widget.generic_name}.{tag_info['access_type']}"
-    return f'{tag_info["package"]}.{tag_info["access_type"]}'
+        return f"{widget.generic_name}.{tag_info[key]}"
+    return f'{tag_info["package"]}.{tag_info[key]}'
 
 
 def _i18n_wrap(value: str, context: str) -> str:
@@ -250,11 +258,12 @@ def _i18n_wrap(value: str, context: str) -> str:
 
 def widget_create_expr(
     widget: XmlWidget, generics_map: dict[str, XmlGeneric],
-    i18n: bool = False, i18n_context: str = ""
+    i18n: bool = False, i18n_context: str = "",
+    use_handle: bool = False
 ) -> str:
     """Return the Ada Create expression for a widget."""
     tag_info = GRAMMAR[widget.tag]
-    template = tag_info["create"]
+    template = tag_info["create_handle"] if use_handle else tag_info["create"]
 
     # Determine if i18n wrapping applies to this widget
     use_i18n = i18n and not widget.i18n_disabled
@@ -723,7 +732,7 @@ def generate_spec(app: XmlApp, package_name: str) -> str:
 
     # Exported widget variables (inside Instance)
     for w in exported:
-        ada_type = widget_ada_type(w, generics_map)
+        ada_type = widget_ada_type(w, generics_map, use_handle=True)
         lines.append(f"      {w.wid} : {ada_type};")
     if exported:
         lines.append("")
@@ -760,15 +769,15 @@ def generate_spec(app: XmlApp, package_name: str) -> str:
     # Build — clean signature, no CSS_File parameter
     if has_window:
         lines.append(
-            "      function Build return Adi.Window.Window_Access;"
+            "      function Build return Adi.Window.Window_Handle;"
         )
     elif has_dialog:
         lines.append(
-            "      function Build return Adi.Widget.Dialog.Dialog_Widget_Access;"
+            "      function Build return Adi.Widget.Dialog.Dialog_Handle;"
         )
     else:
         lines.append(
-            "      function Build return Adi.Widget.Widget_Access;"
+            "      function Build return Adi.Widget.Widget_Handle;"
         )
     lines.append("")
 
@@ -868,10 +877,11 @@ def generate_body(app: XmlApp, package_name: str,
     if inline_groups:
         body_withs.append("Adi.CSS_Styles")
         body_withs.append("Adi.Widget_Styles")
-    for w in internal:
+    # Include ALL widget packages in body (need "use" for "+" operator visibility)
+    for w in all_widgets:
         if w.tag in WIDGET_PACKAGES:
             pkg = WIDGET_PACKAGES[w.tag]
-            if pkg not in spec_withs and pkg not in body_withs:
+            if pkg not in body_withs:
                 body_withs.append(pkg)
     # Check if any widget uses image-type attributes
     for w in all_widgets:
@@ -896,6 +906,12 @@ def generate_body(app: XmlApp, package_name: str,
         "",
     ]
 
+    # Collect generic instance names for use-inside-body (not context clauses)
+    generic_uses: list[str] = []
+    for w in all_widgets:
+        if w.generic_name and w.generic_name not in generic_uses:
+            generic_uses.append(w.generic_name)
+
     for bw in sorted(body_withs):
         lines.append(f"with {bw}; use {bw};")
 
@@ -908,6 +924,10 @@ def generate_body(app: XmlApp, package_name: str,
     lines.append(f"package body {package_name} is")
     lines.append("")
     lines.append("   package body Instance is")
+
+    # Use clauses for generic instances (not library-level, must be inside body)
+    for gu in sorted(generic_uses):
+        lines.append(f"   use {gu};")
 
     # Package-level state for live CSS mode
     if live_css:
@@ -1027,32 +1047,33 @@ def generate_body(app: XmlApp, package_name: str,
     # Build procedure/function — clean signature
     if has_window:
         lines.append("   function Build")
-        lines.append("      return Adi.Window.Window_Access is")
+        lines.append("      return Adi.Window.Window_Handle is")
         win = app.window
         title = win.title.replace('"', '""')
         lines.append(
-            f'      W : constant Adi.Window.Window_Access :='
+            f'      W : constant Adi.Window.Window_Handle :='
         )
         lines.append(
-            f'        Adi.Window.Create_Window ("{title}",'
+            f'        Adi.Window.Create_Window_Handle ("{title}",'
             f" ({win.width}, {win.height}));"
         )
     elif has_dialog:
         lines.append("   function Build")
-        lines.append("      return Adi.Widget.Dialog.Dialog_Widget_Access is")
+        lines.append("      return Adi.Widget.Dialog.Dialog_Handle is")
         lines.append(
-            "      D : constant Adi.Widget.Dialog.Dialog_Widget_Access :="
+            "      D : constant Adi.Widget.Dialog.Dialog_Handle :="
         )
-        lines.append("        Adi.Widget.Dialog.Create;")
+        lines.append("        Adi.Widget.Dialog.Create_Handle;")
     else:
         lines.append("   function Build")
-        lines.append("      return Adi.Widget.Widget_Access is")
+        lines.append("      return Adi.Widget.Widget_Handle is")
 
     # Local declarations for internal widgets
     for w in internal:
-        ada_type = widget_ada_type(w, generics_map)
+        ada_type = widget_ada_type(w, generics_map, use_handle=True)
         create = widget_create_expr(w, generics_map,
-                                     i18n=i18n, i18n_context=app.i18n_context)
+                                     i18n=i18n, i18n_context=app.i18n_context,
+                                     use_handle=True)
         lines.append(f"      {w.wid} : constant {ada_type} := {create};")
 
     lines.append("   begin")
@@ -1062,7 +1083,8 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append("      --  Create widgets")
         for w in exported:
             create = widget_create_expr(w, generics_map,
-                                         i18n=i18n, i18n_context=app.i18n_context)
+                                         i18n=i18n, i18n_context=app.i18n_context,
+                                         use_handle=True)
             lines.append(f"      {w.wid} := {create};")
         lines.append("")
 
@@ -1072,34 +1094,42 @@ def generate_body(app: XmlApp, package_name: str,
         if w.tag not in GRAMMAR:
             continue
         use_i18n = i18n and not w.i18n_disabled
-        for attr in GRAMMAR[w.tag]["attributes"]:
+        tag_info = GRAMMAR[w.tag]
+        pkg = w.generic_name if tag_info["generic"] else tag_info["package"]
+        for attr in tag_info["attributes"]:
             if not attr["setter"] or attr["type"] == "callback":
                 continue
             field_name = _attr_to_field(attr["name"])
             value = getattr(w, field_name, None)
             if value:
+                setter = attr["setter"]
                 if attr["setter_style"] == "flag":
-                    config_lines.append(f"      {w.wid}.{attr['setter']};")
+                    # Flag setters (Set_Disabled etc.) live in Adi.Widget
+                    # base class — use "+" to convert typed handle
+                    config_lines.append(
+                        f"      Adi.Widget.{setter} (+{w.wid});"
+                    )
                 elif attr["type"] == "image":
                     escaped = str(value).replace('"', '""')
                     config_lines.append(
-                        f'      {w.wid}.{attr["setter"]} (Adi.Assets.Get_Image ("{escaped}"));'
+                        f'      {pkg}.{setter}'
+                        f' ({w.wid}, Adi.Assets.Get_Image ("{escaped}"));'
                     )
                 elif attr["type"] == "string":
                     if use_i18n and attr.get("translatable") and value:
                         ctx = w.i18n_contexts.get(attr["name"], app.i18n_context)
                         wrapped = _i18n_wrap(str(value), ctx)
                         config_lines.append(
-                            f'      {w.wid}.{attr["setter"]} ({wrapped});'
+                            f'      {pkg}.{setter} ({w.wid}, {wrapped});'
                         )
                     else:
                         escaped = str(value).replace('"', '""')
                         config_lines.append(
-                            f'      {w.wid}.{attr["setter"]} ("{escaped}");'
+                            f'      {pkg}.{setter} ({w.wid}, "{escaped}");'
                         )
                 else:
                     config_lines.append(
-                        f"      {w.wid}.{attr['setter']} ({value});"
+                        f"      {pkg}.{setter} ({w.wid}, {value});"
                     )
     if config_lines:
         lines.append("      --  Configure properties")
@@ -1115,12 +1145,12 @@ def generate_body(app: XmlApp, package_name: str,
                 ctx = w.i18n_contexts.get("label", app.i18n_context)
                 wrapped = _i18n_wrap(w.label, ctx)
                 label_lines.append(
-                    f'      Adi.Widget.Set_Label ({w.wid}.all, {wrapped});'
+                    f'      Adi.Widget.Set_Label (+{w.wid}, {wrapped});'
                 )
             else:
                 escaped = w.label.replace('"', '""')
                 label_lines.append(
-                    f'      Adi.Widget.Set_Label ({w.wid}.all, "{escaped}");'
+                    f'      Adi.Widget.Set_Label (+{w.wid}, "{escaped}");'
                 )
     if label_lines:
         lines.append("      --  Set labels")
@@ -1132,7 +1162,9 @@ def generate_body(app: XmlApp, package_name: str,
     for w in all_widgets:
         if w.tag not in GRAMMAR:
             continue
-        for attr in GRAMMAR[w.tag]["attributes"]:
+        tag_info = GRAMMAR[w.tag]
+        pkg = w.generic_name if tag_info["generic"] else tag_info["package"]
+        for attr in tag_info["attributes"]:
             if not attr["setter"] or attr["type"] != "callback":
                 continue
             field_name = _attr_to_field(attr["name"])
@@ -1140,7 +1172,7 @@ def generate_body(app: XmlApp, package_name: str,
             if value:
                 cb_lines.append(f"      if {value} /= null then")
                 cb_lines.append(
-                    f"         {w.wid}.{attr['setter']} ({value});"
+                    f"         {pkg}.{attr['setter']} ({w.wid}, {value});"
                 )
                 cb_lines.append("      end if;")
     if cb_lines:
@@ -1244,7 +1276,7 @@ def generate_body(app: XmlApp, package_name: str,
                 names_str = " ".join(cls_list)
                 lines.append(
                     f"      Adi.CSS_Source.Bind_Class"
-                    f' (Source, "{names_str}", {wid});'
+                    f' (Source, "{names_str}", +{wid});'
                 )
             lines.append("")
         else:
@@ -1256,7 +1288,7 @@ def generate_body(app: XmlApp, package_name: str,
                         f"{to_ada_identifier(cls_list[0])}_Class_Part_Styles"
                     )
                     lines.append(
-                        f"      Set_Part_Styles ({wid}.all, {style_const});"
+                        f"      Set_Part_Styles (+{wid}, {style_const});"
                     )
                 else:
                     # Merge multiple class styles
@@ -1269,7 +1301,7 @@ def generate_body(app: XmlApp, package_name: str,
                     for c in consts[1:]:
                         expr = f"Adi.CSS_Source.Merge_Part_Styles ({expr}, {c})"
                     lines.append(
-                        f"      Set_Part_Styles ({wid}.all, {expr});"
+                        f"      Set_Part_Styles (+{wid}, {expr});"
                     )
             lines.append("")
 
@@ -1287,6 +1319,8 @@ def generate_body(app: XmlApp, package_name: str,
         children_mode = GRAMMAR.get(widget.tag, {}).get(
             "children_mode", "children"
         )
+        tag_info = GRAMMAR.get(widget.tag, {})
+        pkg = widget.generic_name if tag_info.get("generic") else tag_info.get("package", "")
         if children_mode == "pages":
             for page in widget.pages:
                 if page.component is not None:
@@ -1294,12 +1328,13 @@ def generate_body(app: XmlApp, package_name: str,
                         page.component.package_name
                     )
                     hierarchy_lines.append(
-                        f"      {widget.wid}.Add_Page"
-                        f" ({page.key}, {inst_name}.Build);"
+                        f"      {pkg}.Add_Page"
+                        f" ({widget.wid}, {page.key}, {inst_name}.Build);"
                     )
                 else:
                     hierarchy_lines.append(
-                        f"      {widget.wid}.Add_Page ({page.key}, {page.child.wid});"
+                        f"      {pkg}.Add_Page"
+                        f" ({widget.wid}, {page.key}, +{page.child.wid});"
                     )
         elif children_mode == "items":
             for item_text in widget.items:
@@ -1307,22 +1342,22 @@ def generate_body(app: XmlApp, package_name: str,
                 if use_i18n and item_text:
                     wrapped = _i18n_wrap(item_text, app.i18n_context)
                     hierarchy_lines.append(
-                        f'      {widget.wid}.Add_Item ({wrapped});'
+                        f'      {pkg}.Add_Item ({widget.wid}, {wrapped});'
                     )
                 else:
                     escaped = item_text.replace('"', '""')
                     hierarchy_lines.append(
-                        f'      {widget.wid}.Add_Item ("{escaped}");'
+                        f'      {pkg}.Add_Item ({widget.wid}, "{escaped}");'
                     )
         if children_mode == "rows":
             for child in widget.children:
                 hierarchy_lines.append(
-                    f"      {widget.wid}.Append_Row ({child.wid});"
+                    f"      {pkg}.Append_Row ({widget.wid}, +{child.wid});"
                 )
         elif children_mode not in ("pages", "items"):
             for child in widget.children:
                 hierarchy_lines.append(
-                    f"      {widget.wid}.Add_Child ({child.wid});"
+                    f"      Adi.Widget.Add_Child (+{widget.wid}, +{child.wid});"
                 )
 
     if root is not None:
@@ -1360,13 +1395,13 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append("      --  Auto-wire CSS live reload")
         lines.append(
             "      Adi.Window.Connect_Tick"
-            " (W.all, Tick_Styles_CB'Unrestricted_Access);"
+            " (W, Tick_Styles_CB'Unrestricted_Access);"
         )
         lines.append("")
 
     # Set root / return
     if has_window:
-        lines.append(f"      W.Set_Root ({root.wid});")
+        lines.append(f"      Adi.Window.Set_Root (W, +{root.wid});")
         lines.append("      return W;")
         lines.append("   end Build;")
     elif has_dialog:
@@ -1374,27 +1409,37 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append("      --  Configure dialog")
         if dlg.title:
             escaped = dlg.title.replace('"', '""')
-            lines.append(f'      D.Set_Title ("{escaped}");')
+            lines.append(f'      Adi.Widget.Dialog.Set_Title (D, "{escaped}");')
         if dlg.message:
             escaped = dlg.message.replace('"', '""')
-            lines.append(f'      D.Set_Message ("{escaped}");')
+            lines.append(f'      Adi.Widget.Dialog.Set_Message (D, "{escaped}");')
         if dlg.buttons:
-            lines.append(f"      D.{DIALOG_BUTTON_PRESETS[dlg.buttons]};")
+            lines.append(
+                f"      Adi.Widget.Dialog.{DIALOG_BUTTON_PRESETS[dlg.buttons]} (D);"
+            )
         if dlg.default_button is not None:
-            lines.append(f"      D.Set_Default_Button ({dlg.default_button});")
+            lines.append(
+                f"      Adi.Widget.Dialog.Set_Default_Button (D, {dlg.default_button});"
+            )
         if dlg.dismiss_on_backdrop is not None:
             val = "True" if dlg.dismiss_on_backdrop else "False"
-            lines.append(f"      D.Set_Dismiss_On_Backdrop ({val});")
+            lines.append(
+                f"      Adi.Widget.Dialog.Set_Dismiss_On_Backdrop (D, {val});"
+            )
         if dlg.dismiss_on_escape is not None:
             val = "True" if dlg.dismiss_on_escape else "False"
-            lines.append(f"      D.Set_Dismiss_On_Escape ({val});")
+            lines.append(
+                f"      Adi.Widget.Dialog.Set_Dismiss_On_Escape (D, {val});"
+            )
         if dlg.content_widget is not None:
-            lines.append(f"      D.Set_Content ({dlg.content_widget.wid});")
+            lines.append(
+                f"      Adi.Widget.Dialog.Set_Content (D, +{dlg.content_widget.wid});"
+            )
         lines.append("      return D;")
         lines.append("   end Build;")
     else:
         lines.append(
-            f"      return Adi.Widget.Widget_Access ({root.wid});"
+            f"      return +{root.wid};"
         )
         lines.append("   end Build;")
     lines.append("")

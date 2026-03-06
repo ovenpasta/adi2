@@ -71,7 +71,7 @@ Every file has an `<adi>` root element. Inside it you place **declarations** and
 
 ### `<window>`, `<dialog>`, and Bare Root Widget
 
-With `<window>`, the `Build` function returns `Adi.Window.Window_Access` and creates a window:
+With `<window>`, the `Build` function returns `Adi.Window.Window_Handle` and creates a window:
 
 ```xml
 <window title="App" width="600" height="450">
@@ -115,7 +115,7 @@ Generated `Build` returns `Dialog_Widget_Access`:
 function Build return Adi.Widget.Dialog.Dialog_Widget_Access;
 ```
 
-Without `<window>` or `<dialog>`, a single root widget sits directly under `<adi>` and `Build` returns `Widget_Access`:
+Without `<window>` or `<dialog>`, a single root widget sits directly under `<adi>` and `Build` returns `Widget_Handle`:
 
 ```xml
 <adi>
@@ -494,14 +494,14 @@ package Stack_Example_UI is
       On_Tab : My_Stack.Page_Changed_Callback := null;
 
       --  Exported widgets (only those with explicit id="...")
-      Root  : Adi.Widget.Box.Box_Widget_Access;
-      Pages : My_Stack.Stack_Widget_Access;
+      Root  : Adi.Widget.Box.Box_Handle;
+      Pages : My_Stack.Stack_Handle;
 
       --  Component instances
       package Red_Page is new Red_Page_UI.Instance;
 
       --  Entry point
-      function Build return Adi.Window.Window_Access;
+      function Build return Adi.Window.Window_Handle;
 
       --  CSS live-reload support
       procedure Tick_Styles (Reloaded : out Boolean;

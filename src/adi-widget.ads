@@ -14,6 +14,8 @@ with Adi.SDL.Events;
 with Adi.Signal;
 with Adi.Render;            use Adi.Render;
 with Adi.Image;             use Adi.Image;
+with Ada.Finalization;
+with Adi.Handle_Store;
 
 package Adi.Widget is
    pragma Elaborate_Body;
@@ -24,6 +26,62 @@ package Adi.Widget is
 
    type Widget is abstract tagged limited private;
    type Widget_Access is access all Widget'Class;
+
+   ---------------------------------------------------------------------------
+   --  Handle Store (generational IDs, deferred destroy, borrow pinning)
+   --  Widget_Handle is opaque; internal code uses Widget_Stores (private).
+   ---------------------------------------------------------------------------
+
+   type Widget_Handle is private;
+   Null_Handle : constant Widget_Handle;
+
+   function Is_Valid    (H : Widget_Handle) return Boolean;
+   procedure Destroy    (H : in out Widget_Handle);
+   function Get_Handle  (W : Widget'Class) return Widget_Handle;
+
+   --  Resolve a handle to the underlying pointer.  Returns null for
+   --  invalid / stale handles.  Public so sibling packages (Adi.Window)
+   --  can bridge between handle-based and access-based APIs.
+   function Resolve_Handle (H : Widget_Handle) return Widget_Access
+     with Obsolescent => "Use Borrow/Widget_Ref or typed handles";
+
+   --  Drain deferred widget destroys (call once per frame from App.Run)
+   procedure Pump_Widget_Store;
+
+   --  Hook for Window to register its cleanup procedure.  Avoids an
+   --  elaboration cycle (Widget spec → Window spec → Widget spec).
+   --  Set by Adi.Window body at elaboration time.
+   type Destroy_Detach_Proc is access procedure
+     (W : not null Widget_Access);
+   Destroy_Detach_Hook : Destroy_Detach_Proc := null;
+
+   ---------------------------------------------------------------------------
+   --  Common Widget_Handle base overloads
+   --  No-op on stale handles; Boolean returns False, Natural returns 0.
+   ---------------------------------------------------------------------------
+
+   procedure Set_Visible  (H : Widget_Handle; Value : Boolean);
+   function  Is_Visible   (H : Widget_Handle) return Boolean;
+   procedure Set_Disabled (H : Widget_Handle; Value : Boolean := True);
+   function  Is_Disabled  (H : Widget_Handle) return Boolean;
+   procedure Set_Focusable (H : Widget_Handle; Value : Boolean);
+   procedure Set_Label    (H : Widget_Handle; Label : String);
+   function  Get_Label    (H : Widget_Handle) return String;
+   procedure Mark_Dirty   (H : Widget_Handle);
+
+   ---------------------------------------------------------------------------
+   --  Scoped Borrow  (Implicit_Dereference)
+   --
+   --  Pin a widget for the lifetime of the returned Ref.  While the Ref is
+   --  alive, Request_Destroy is deferred so the pointer stays valid.
+   --  Raises Constraint_Error when H is Null_Handle or stale.
+   ---------------------------------------------------------------------------
+
+   type Widget_Ref (Ptr : access Widget'Class) is
+     limited new Ada.Finalization.Limited_Controlled with private
+     with Implicit_Dereference => Ptr;
+
+   function Borrow (H : Widget_Handle) return Widget_Ref;
 
    ---------------------------------------------------------------------------
    --  Part Kinds - Logical regions of a widget that can be styled
@@ -200,6 +258,11 @@ package Adi.Widget is
 
    procedure Set_Part_Styles (W : in out Widget'Class;
                               Styles : Part_Style_Array);
+   procedure Set_Part_Style (H : Widget_Handle;
+                             P : Part_Kind;
+                             S : Widget_Style);
+   procedure Set_Part_Styles (H : Widget_Handle;
+                              Styles : Part_Style_Array);
 
    function Get_Part_Style (W : Widget'Class;
                             P : Part_Kind) return Widget_Style;
@@ -237,12 +300,27 @@ package Adi.Widget is
    --  Hierarchy Management
    ---------------------------------------------------------------------------
 
-   procedure Add_Child (W : in out Widget'Class; C : access Widget'Class);
-   procedure Remove_Child (W : in out Widget'Class; C : access Widget'Class);
-   procedure Set_Parent (W : in out Widget'Class; P : access Widget'Class);
-   function  Get_Parent (W : Widget'Class) return access Widget'Class;
+   procedure Add_Child (W : in out Widget'Class; C : access Widget'Class)
+     with Obsolescent => "Use Add_Child with Widget_Handle";
+   procedure Add_Child (W : in out Widget'Class; C : Widget_Handle);
+   procedure Add_Child (Parent : Widget_Handle; Child : Widget_Handle);
+   procedure Remove_Child (W : in out Widget'Class; C : access Widget'Class)
+     with Obsolescent => "Use Remove_Child with Widget_Handle";
+   procedure Remove_Child (Parent : Widget_Handle; Child : Widget_Handle);
+   procedure Set_Parent (W : in out Widget'Class; P : access Widget'Class)
+     with Obsolescent => "Use Set_Parent with Widget_Handle";
+   procedure Set_Parent (W : Widget_Handle; P : Widget_Handle);
+   function  Get_Parent (W : Widget'Class) return access Widget'Class
+     with Obsolescent => "Use Get_Parent_Handle";
+    function  Get_Parent_Handle (W : Widget'Class) return Widget_Handle;
+    function  Get_Parent_Handle (H : Widget_Handle) return Widget_Handle;
    function  Child_Count (W : Widget'Class) return Natural;
-   function Get_Child (W : Widget'Class; Index : Positive) return Widget_Access;
+   function Get_Child (W : Widget'Class; Index : Positive) return Widget_Access
+     with Obsolescent => "Use Get_Child_Handle";
+   function Get_Child_Handle (W : Widget'Class; Index : Positive)
+      return Widget_Handle;
+   function Get_Child_Handle (H : Widget_Handle; Index : Positive)
+      return Widget_Handle;
 
    ---------------------------------------------------------------------------
    --  Geometry and Layout
@@ -293,6 +371,7 @@ package Adi.Widget is
    ---------------------------------------------------------------------------
 
    procedure Set_Flag (W : in out Widget'Class; F : Widget_Flag; Value : Boolean);
+   procedure Set_Flag (H : Widget_Handle; F : Widget_Flag; Value : Boolean);
    function  Has_Flag (W : Widget'Class; F : Widget_Flag) return Boolean;
 
    ---------------------------------------------------------------------------
@@ -300,7 +379,7 @@ package Adi.Widget is
    ---------------------------------------------------------------------------
 
    type Context_Menu_Callback is access procedure
-     (W    : Widget_Access;
+     (W    : Widget_Handle;
       X, Y : Pixel_Type);
 
    package Context_Menu_Signals is new Adi.Signal
@@ -318,7 +397,7 @@ package Adi.Widget is
      (W    : in out Widget'Class;
       X, Y : Pixel_Type) return Boolean;
    function Bubble_Context_Menu
-     (Start : Widget_Access;
+     (Start : Widget_Handle;
       X, Y  : Pixel_Type) return Boolean;
 
    ---------------------------------------------------------------------------
@@ -395,6 +474,11 @@ package Adi.Widget is
    --  Called when this widget gains/loses keyboard focus.
    procedure On_Focus_Gained (W : in out Widget) is null;
    procedure On_Focus_Lost (W : in out Widget) is null;
+
+   --  Called just before a widget is destroyed (Request_Destroy).
+   --  Override to clean up external references (e.g. global binding tables).
+   --  Children are still intact when this is called.
+   procedure On_Destroy (W : in out Widget) is null;
 
    ---------------------------------------------------------------------------
    --  Optional Overridable Methods
@@ -524,6 +608,12 @@ private
       --  Unique identifier (monotonically increasing, assigned at creation)
       Widget_Id : Natural := Allocate_Widget_Id;
 
+      --  Handle store slot (set by Register, used by Get_Handle).
+      --  Stored as raw Naturals because Widget_Stores is instantiated
+      --  after the full type declaration (Ada elaboration order).
+      Store_Index : Natural := 0;
+      Store_Gen   : Natural := 0;
+
       --  Hierarchy
       Parent   : access Widget'Class := null;
       Children : Widget_List.List;
@@ -603,6 +693,29 @@ private
       Label_Text      : Unbounded_String := Null_Unbounded_String;
       Label_Item_Base : Natural := 0;
    end record;
+
+   ---------------------------------------------------------------------------
+   --  Handle Store instantiation (must come after Widget's full definition)
+   ---------------------------------------------------------------------------
+
+   package Widget_Stores is new Adi.Handle_Store (Widget, Widget_Access);
+
+   type Widget_Handle is record
+      Id : Widget_Stores.Object_Id := Widget_Stores.Null_Id;
+   end record;
+
+   Null_Handle : constant Widget_Handle := (Id => Widget_Stores.Null_Id);
+
+   type Widget_Ref (Ptr : access Widget'Class) is
+     limited new Ada.Finalization.Limited_Controlled with record
+       Id : Widget_Stores.Object_Id := Widget_Stores.Null_Id;
+     end record;
+   overriding procedure Finalize (R : in out Widget_Ref);
+
+   --  Register a freshly allocated widget in the global store.
+   --  Called from each widget's Create function.  Sets Store_Index/Store_Gen
+   --  on the widget so that Get_Handle works.
+   procedure Register_Widget (Obj : not null Widget_Access);
 
    --  Color conversion helpers (CSS Color_Value to SDL RGBA)
    procedure CSS_Color_To_SDL

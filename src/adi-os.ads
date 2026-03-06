@@ -35,17 +35,36 @@ package Adi.OS is
       Window           : Adi.Window.Window_Access := null;
       Filters          : File_Filter_Array := No_Filters;
       Default_Location : String := "";
+      Allow_Many       : Boolean := False)
+     with Obsolescent => "Use Show_Open_File_Dialog with Window_Handle";
+   procedure Show_Open_File_Dialog
+     (Callback         : Dialog_Callback;
+      Window           : Adi.Window.Window_Handle;
+      Filters          : File_Filter_Array := No_Filters;
+      Default_Location : String := "";
       Allow_Many       : Boolean := False);
 
    procedure Show_Save_File_Dialog
      (Callback         : Dialog_Callback;
       Window           : Adi.Window.Window_Access := null;
       Filters          : File_Filter_Array := No_Filters;
+      Default_Location : String := "")
+     with Obsolescent => "Use Show_Save_File_Dialog with Window_Handle";
+   procedure Show_Save_File_Dialog
+     (Callback         : Dialog_Callback;
+      Window           : Adi.Window.Window_Handle;
+      Filters          : File_Filter_Array := No_Filters;
       Default_Location : String := "");
 
    procedure Show_Open_Folder_Dialog
      (Callback         : Dialog_Callback;
       Window           : Adi.Window.Window_Access := null;
+      Default_Location : String := "";
+      Allow_Many       : Boolean := False)
+     with Obsolescent => "Use Show_Open_Folder_Dialog with Window_Handle";
+   procedure Show_Open_Folder_Dialog
+     (Callback         : Dialog_Callback;
+      Window           : Adi.Window.Window_Handle;
       Default_Location : String := "";
       Allow_Many       : Boolean := False);
 

@@ -16,15 +16,31 @@ package Adi.Widget.Label is
    type Label_Widget is new Widget with private;
    type Label_Widget_Access is access all Label_Widget'Class;
 
+   --  Typed handle
+   type Label_Handle is private;
+   Null_Label_Handle : constant Label_Handle;
+
    --  Construction
    function Create (Text : String := "") return Label_Widget_Access;
+   function Create_Handle (Text : String := "") return Label_Handle;
 
-   --  Content management
+   --  Handle bridge
+   function To_Widget_Handle (H : Label_Handle) return Widget_Handle;
+   function Try_As_Label (H : Widget_Handle) return Label_Handle;
+   function Is_Valid (H : Label_Handle) return Boolean;
+
+   --  Content management (widget methods)
    procedure Set_Text (W : in out Label_Widget; Text : String);
    function Get_Text (W : Label_Widget) return String;
-
    procedure Set_Icon (W : in out Label_Widget; Icon : Image_Access);
    function Get_Icon (W : Label_Widget) return Image_Access;
+
+   --  Content management (typed handle methods)
+   procedure Set_Text (H : Label_Handle; Text : String);
+   function  Get_Text (H : Label_Handle) return String;
+   procedure Set_Icon (H : Label_Handle; Icon : Image_Access);
+   function "+" (H : Label_Handle) return Widget_Handle;
+   procedure Set_Part_Styles (H : Label_Handle; Styles : Part_Style_Array);
 
    --  Override abstract methods
    overriding procedure Build_Items (W : in out Label_Widget);
@@ -48,5 +64,10 @@ private
       --  Layout items (positioned by flex layout, then rendered as Items)
       Layout_Items : Layout_Item_List.Vector;
    end record;
+
+   type Label_Handle is record
+      Id : Widget_Stores.Object_Id := Widget_Stores.Null_Id;
+   end record;
+   Null_Label_Handle : constant Label_Handle := (Id => Widget_Stores.Null_Id);
 
 end Adi.Widget.Label;

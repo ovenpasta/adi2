@@ -18,6 +18,7 @@ package body Adi.Widget.Text_Editor is
    Drag_Threshold_Px : constant Pixel_Type := 4.0;
 
    use type Adi.Widget.Context_Menu.Context_Menu_Access;
+   use type Adi.Window.Window_Access;
 
    type Menu_Binding is record
       Menu  : Adi.Widget.Context_Menu.Context_Menu_Access := null;
@@ -31,12 +32,16 @@ package body Adi.Widget.Text_Editor is
    Menu_Bindings : Menu_Binding_Vectors.Vector;
 
    function Find_Owner_By_Menu
-     (Menu : Adi.Widget.Context_Menu.Context_Menu_Access)
+     (Menu : Adi.Widget.Context_Menu.Menu_Handle)
       return Text_Editor_Widget_Access
    is
+      use type Adi.Widget.Context_Menu.Menu_Handle;
    begin
       for I in 1 .. Natural (Menu_Bindings.Length) loop
-         if Menu_Bindings.Element (I).Menu = Menu then
+         if Menu_Bindings.Element (I).Menu /= null
+           and then Adi.Widget.Context_Menu.Get_Handle
+             (Menu_Bindings.Element (I).Menu.all) = Menu
+         then
             return Menu_Bindings.Element (I).Owner;
          end if;
       end loop;
@@ -44,7 +49,7 @@ package body Adi.Widget.Text_Editor is
    end Find_Owner_By_Menu;
 
    function Is_Owner_Read_Only_By_Menu
-     (Menu : Adi.Widget.Context_Menu.Context_Menu_Access) return Boolean
+     (Menu : Adi.Widget.Context_Menu.Menu_Handle) return Boolean
    is
       Owner : constant Text_Editor_Widget_Access := Find_Owner_By_Menu (Menu);
    begin
@@ -317,9 +322,9 @@ package body Adi.Widget.Text_Editor is
    end Select_Word_At_Caret;
 
    procedure Fire_Changed (W : in out Text_Editor_Widget'Class) is
-      Self : constant Text_Editor_Widget_Access := W'Unchecked_Access;
+      H    : constant Widget_Handle := Get_Handle (W);
       Text : constant String := Get_Text (W);
-      procedure Call (CB : Change_Callback) is begin CB (Self, Text); end Call;
+      procedure Call (CB : Change_Callback) is begin CB (H, Text); end Call;
       procedure Emit is new Change_Signals.For_Each (Call);
    begin
       Mark_Dirty (W);
@@ -327,7 +332,7 @@ package body Adi.Widget.Text_Editor is
    end Fire_Changed;
 
    procedure On_Menu_Command_Applied
-     (Menu         : Adi.Widget.Context_Menu.Context_Menu_Access;
+     (Menu         : Adi.Widget.Context_Menu.Menu_Handle;
       Command      : Adi.Widget.Text_Context_Menu.Text_Menu_Command;
       Changed_Text : Boolean)
    is
@@ -375,7 +380,9 @@ package body Adi.Widget.Text_Editor is
          On_Applied   => On_Menu_Command_Applied'Access,
          Is_Read_Only => Is_Owner_Read_Only_By_Menu'Access);
       Register_Menu_Binding (W.Context_Menu, Self);
-      Adi.Widget.Text_Context_Menu.Bind_Widget_Request (W, W.Context_Menu);
+      Adi.Widget.Text_Context_Menu.Bind_Widget_Request
+        (Get_Handle (W),
+         Adi.Widget.Context_Menu.Get_Handle (W.Context_Menu.all));
       Apply_Context_Menu_Styles (W);
    end Ensure_Context_Menu;
 
@@ -396,9 +403,161 @@ package body Adi.Widget.Text_Editor is
       else
          Clear (Result.Buffer);
       end if;
+      Register_Widget (Widget_Access (Result));
       Ensure_Context_Menu (Text_Editor_Widget (Result.all));
       return Result;
    end Create;
+
+   -------------------
+   -- Create_Handle --
+   -------------------
+
+   function Create_Handle (Text : String := "") return Text_Editor_Handle is
+   begin
+      return (Id => Get_Handle (Create (Text).all).Id);
+   end Create_Handle;
+
+   ----------------------
+   -- Handle bridge --
+   ----------------------
+
+   function To_Widget_Handle (H : Text_Editor_Handle) return Widget_Handle is
+   begin
+      return (Id => H.Id);
+   end To_Widget_Handle;
+
+   function Try_As_Text_Editor (H : Widget_Handle) return Text_Editor_Handle is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in Text_Editor_Widget'Class then
+         return (Id => H.Id);
+      end if;
+      return Null_Text_Editor_Handle;
+   end Try_As_Text_Editor;
+
+   function Is_Valid (H : Text_Editor_Handle) return Boolean is
+   begin
+      return Widget_Stores.Is_Valid (H.Id);
+   end Is_Valid;
+
+   function "+" (H : Text_Editor_Handle) return Widget_Handle is
+   begin
+      return To_Widget_Handle (H);
+   end "+";
+
+   procedure Set_Part_Styles
+     (H : Text_Editor_Handle; Styles : Part_Style_Array) is
+   begin
+      Adi.Widget.Set_Part_Styles (To_Widget_Handle (H), Styles);
+   end Set_Part_Styles;
+
+   --------------------
+   -- Handle methods --
+   --------------------
+
+   procedure Set_Text (H : Text_Editor_Handle; Text : String) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Text (Text_Editor_Widget (Ptr.all), Text);
+      end if;
+   end Set_Text;
+
+   function Get_Text (H : Text_Editor_Handle) return String is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Text (Text_Editor_Widget (Ptr.all));
+      end if;
+      return "";
+   end Get_Text;
+
+   procedure Append_Text (H : Text_Editor_Handle; Text : String) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Append_Text (Text_Editor_Widget (Ptr.all), Text);
+      end if;
+   end Append_Text;
+
+   procedure Scroll_To_End (H : Text_Editor_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Scroll_To_End (Text_Editor_Widget (Ptr.all));
+      end if;
+   end Scroll_To_End;
+
+   procedure Set_Read_Only (H : Text_Editor_Handle; Value : Boolean := True) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Read_Only (Text_Editor_Widget (Ptr.all), Value);
+      end if;
+   end Set_Read_Only;
+
+   function Is_Read_Only (H : Text_Editor_Handle) return Boolean is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Is_Read_Only (Text_Editor_Widget (Ptr.all));
+      end if;
+      return False;
+   end Is_Read_Only;
+
+   procedure Set_Context_Menu_Part_Styles
+     (H : Text_Editor_Handle; Styles : Part_Style_Array)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Context_Menu_Part_Styles
+           (Text_Editor_Widget (Ptr.all), Styles);
+      end if;
+   end Set_Context_Menu_Part_Styles;
+
+   procedure Set_Context_Menu_Item_Part_Styles
+     (H : Text_Editor_Handle; Styles : Part_Style_Array)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Context_Menu_Item_Part_Styles
+           (Text_Editor_Widget (Ptr.all), Styles);
+      end if;
+   end Set_Context_Menu_Item_Part_Styles;
+
+   procedure Connect_Changed
+     (H : Text_Editor_Handle; CB : Change_Callback)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Connect_Changed (Text_Editor_Widget (Ptr.all), CB);
+      end if;
+   end Connect_Changed;
+
+   function Connect_Changed
+     (H : Text_Editor_Handle; CB : Change_Callback)
+      return Change_Signals.Connection_Id
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Connect_Changed (Text_Editor_Widget (Ptr.all), CB);
+      end if;
+      return Change_Signals.No_Connection;
+   end Connect_Changed;
+
+   procedure Disconnect_Changed
+     (H : Text_Editor_Handle; Id : Change_Signals.Connection_Id)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Disconnect_Changed (Text_Editor_Widget (Ptr.all), Id);
+      end if;
+   end Disconnect_Changed;
 
    procedure Attach_Window
      (W    : in out Text_Editor_Widget;
@@ -406,7 +565,10 @@ package body Adi.Widget.Text_Editor is
    is
    begin
       Ensure_Context_Menu (W);
-      Adi.Widget.Context_Menu.Attach_Window (W.Context_Menu.all, Host);
+      if Host /= null then
+         Adi.Widget.Context_Menu.Attach_Window
+           (W.Context_Menu.all, Adi.Window.Get_Handle (Host.all));
+      end if;
       Apply_Context_Menu_Styles (W);
    end Attach_Window;
 
@@ -1154,5 +1316,31 @@ package body Adi.Widget.Text_Editor is
    begin
       Tick_Scroll_Animations (W, DT);
    end On_Tick;
+
+   overriding procedure On_Destroy (W : in out Text_Editor_Widget) is
+   begin
+      if W.Context_Menu /= null then
+         --  Unbind from Text_Context_Menu binding tables
+         Adi.Widget.Text_Context_Menu.Unbind_Menu
+           (Adi.Widget.Context_Menu.Get_Handle (W.Context_Menu.all));
+
+         --  Remove from local Menu_Bindings table
+         for I in reverse 1 .. Natural (Menu_Bindings.Length) loop
+            if Menu_Bindings.Element (I).Owner = W'Unchecked_Access then
+               Menu_Bindings.Delete (I);
+               exit;
+            end if;
+         end loop;
+
+         --  Destroy the context menu via handle
+         declare
+            H : Adi.Widget.Context_Menu.Menu_Handle :=
+              Adi.Widget.Context_Menu.Get_Handle (W.Context_Menu.all);
+         begin
+            Adi.Widget.Context_Menu.Destroy (H);
+         end;
+         W.Context_Menu := null;
+      end if;
+   end On_Destroy;
 
 end Adi.Widget.Text_Editor;

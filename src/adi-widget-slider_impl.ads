@@ -30,10 +30,23 @@ package Adi.Widget.Slider_Impl is
    type Slider_Widget is new Widget with private;
    type Slider_Widget_Access is access all Slider_Widget;
 
+   --  Typed handle
+   type Slider_Handle is private;
+   Null_Slider_Handle : constant Slider_Handle;
+
    function Create
      (Min   : Value_Type;
       Max   : Value_Type;
       Value : Value_Type) return Slider_Widget_Access;
+   function Create_Handle
+     (Min   : Value_Type;
+      Max   : Value_Type;
+      Value : Value_Type) return Slider_Handle;
+
+   --  Handle bridge
+   function To_Widget_Handle (H : Slider_Handle) return Widget_Handle;
+   function Try_As_Slider (H : Widget_Handle) return Slider_Handle;
+   function Is_Valid (H : Slider_Handle) return Boolean;
 
    procedure Set_Value (W : in out Slider_Widget; V : Value_Type);
    function  Get_Value (W : Slider_Widget) return Value_Type;
@@ -49,7 +62,7 @@ package Adi.Widget.Slider_Impl is
    function  Get_Orientation (W : Slider_Widget) return Orientation;
 
    type Value_Changed_Callback is access procedure
-     (W : Slider_Widget_Access; Value : Value_Type);
+     (W : Widget_Handle; Value : Value_Type);
 
    package Value_Changed_Signals is new Adi.Signal
      (Value_Changed_Callback, null);
@@ -61,6 +74,24 @@ package Adi.Widget.Slider_Impl is
       return Value_Changed_Signals.Connection_Id;
    procedure Disconnect_Changed
      (W : in out Slider_Widget; Id : Value_Changed_Signals.Connection_Id);
+
+   --  Typed handle methods
+   procedure Set_Value (H : Slider_Handle; V : Value_Type);
+   function  Get_Value (H : Slider_Handle) return Value_Type;
+   procedure Set_Step (H : Slider_Handle; S : Value_Type);
+   function  Get_Step (H : Slider_Handle) return Value_Type;
+   procedure Set_Range (H : Slider_Handle; Min, Max : Value_Type);
+   function  Get_Min (H : Slider_Handle) return Value_Type;
+   function  Get_Max (H : Slider_Handle) return Value_Type;
+   procedure Set_Orientation (H : Slider_Handle; Dir : Orientation);
+   function  Get_Orientation (H : Slider_Handle) return Orientation;
+   procedure Connect_Changed (H : Slider_Handle; CB : Value_Changed_Callback);
+   function  Connect_Changed (H : Slider_Handle; CB : Value_Changed_Callback)
+     return Value_Changed_Signals.Connection_Id;
+   procedure Disconnect_Changed
+     (H : Slider_Handle; Id : Value_Changed_Signals.Connection_Id);
+   function "+" (H : Slider_Handle) return Widget_Handle;
+   procedure Set_Part_Styles (H : Slider_Handle; Styles : Part_Style_Array);
 
    overriding procedure Build_Items (W : in out Slider_Widget);
    overriding procedure Layout (W : in out Slider_Widget);
@@ -99,5 +130,10 @@ private
       Drag_Offset : Pixel_Type := 0.0;
       Changed : Value_Changed_Signals.Signal;
    end record;
+
+   type Slider_Handle is record
+      Id : Widget_Stores.Object_Id := Widget_Stores.Null_Id;
+   end record;
+   Null_Slider_Handle : constant Slider_Handle := (Id => Widget_Stores.Null_Id);
 
 end Adi.Widget.Slider_Impl;

@@ -19,19 +19,19 @@ with Material_Demo_UI;       use Material_Demo_UI;
 procedure Material_Demo is
    A : Adi.App.App;
    package UI is new Material_Demo_UI.Instance;
-   W : Adi.Window.Window_Access;
+   W : Adi.Window.Window_Handle;
 
-   Welcome_Dialog : Dialog_Widget_Access;
-   Quit_Dialog    : Dialog_Widget_Access;
+   Welcome_Dialog : Adi.Widget.Dialog.Dialog_Handle;
+   Quit_Dialog    : Adi.Widget.Dialog.Dialog_Handle;
    Quit_Confirmed : Boolean := False;
 
    procedure On_Page (Value : Page) is
    begin
-      UI.Pages.Set_Active (Value);
+      Page_Stack.Set_Active (UI.Pages, Value);
    end On_Page;
 
-   procedure On_Dark_Mode (Btn : Button_Widget_Access; Active : Boolean) is
-      pragma Unreferenced (Btn);
+   procedure On_Dark_Mode (W : Widget_Handle; Active : Boolean) is
+      pragma Unreferenced (W);
       OK : Boolean;
    begin
       UI.Set_CSS_File ((if Active
@@ -39,26 +39,26 @@ procedure Material_Demo is
                         else "examples/css/material_demo_light.css"), OK);
    end On_Dark_Mode;
 
-   procedure On_Get_Started (Btn : Button_Widget_Access) is
-      pragma Unreferenced (Btn);
+   procedure On_Get_Started (W : Widget_Handle) is
+      pragma Unreferenced (W);
    begin
-      if not Is_Shown (Welcome_Dialog.all) then
-         Show (Welcome_Dialog.all);
+      if not Is_Shown (Welcome_Dialog) then
+         Show (Welcome_Dialog);
       end if;
    end On_Get_Started;
 
-   procedure On_Lock_UI (Btn : Button_Widget_Access; Active : Boolean) is
-      pragma Unreferenced (Btn);
+   procedure On_Lock_UI (W : Widget_Handle; Active : Boolean) is
+      pragma Unreferenced (W);
    begin
-      Set_Disabled (UI.Pages.all, Active);
+      Set_Disabled (Page_Stack."+" (UI.Pages), Active);
    end On_Lock_UI;
 
    procedure On_Welcome_Result
-     (Dlg          : Dialog_Widget_Access;
+     (W            : Widget_Handle;
       Button_Index : Natural;
       Button_Text  : String)
    is
-      pragma Unreferenced (Dlg, Button_Index, Button_Text);
+      pragma Unreferenced (W, Button_Index, Button_Text);
    begin
       --  Navigate to the Forms page after dismissing (syncs nav buttons too)
       UI.Nav_Options_Group.Set_Selected (Forms);
@@ -67,11 +67,11 @@ procedure Material_Demo is
    Yes_Button_Index : Positive := Positive'Last;
 
    procedure On_Quit_Result
-     (Dlg          : Dialog_Widget_Access;
+     (W            : Widget_Handle;
       Button_Index : Natural;
       Button_Text  : String)
    is
-      pragma Unreferenced (Dlg, Button_Text);
+      pragma Unreferenced (W, Button_Text);
    begin
       if Button_Index = Yes_Button_Index then
          Quit_Confirmed := True;
@@ -89,8 +89,8 @@ procedure Material_Demo is
          Allow := True;
       else
          Allow := False;
-         if not Is_Shown (Quit_Dialog.all) then
-            Show (Quit_Dialog.all);
+         if not Is_Shown (Quit_Dialog) then
+            Show (Quit_Dialog);
          end if;
       end if;
    end On_Close_Request;
@@ -151,21 +151,21 @@ begin
            Fill      => (R => 208, G => 188, B => 255, A => 255));
    begin
       if Icon /= null then
-         UI.App_Title.Set_Icon (Icon);
+         Adi.Widget.Label.Set_Icon (UI.App_Title, Icon);
       end if;
    end;
 
    --  Create welcome dialog (inherits default dialog styles)
-   Welcome_Dialog := Adi.Widget.Dialog.Create;
-   Attach_Window (Welcome_Dialog.all, W);
-   Set_Part_Styles (Welcome_Dialog.all, Dialog_Backdrop_Class_Part_Styles);
-   Set_Title (Welcome_Dialog.all, "Welcome!");
-   Set_Message (Welcome_Dialog.all,
+   Welcome_Dialog := Adi.Widget.Dialog.Create_Handle;
+   Attach_Window (Welcome_Dialog, W);
+   Set_Part_Styles (Welcome_Dialog, Dialog_Backdrop_Class_Part_Styles);
+   Set_Title (Welcome_Dialog, "Welcome!");
+   Set_Message (Welcome_Dialog,
                 "Thanks for trying the Material Demo. " &
                 "Click OK to explore the Forms page, " &
                 "or dismiss to stay on Home.");
-   Set_OK_Button (Welcome_Dialog.all);
-   Connect_Result (Welcome_Dialog.all, On_Welcome_Result'Unrestricted_Access);
+   Set_OK_Button (Welcome_Dialog);
+   Connect_Result (Welcome_Dialog, On_Welcome_Result'Unrestricted_Access);
 
    --  Set welcome icon (Material Symbols "waving_hand" 24×24)
    declare
@@ -187,26 +187,26 @@ begin
            Fill      => (R => 208, G => 188, B => 255, A => 255));
    begin
       if Welcome_Icon /= null then
-         Set_Icon (Welcome_Dialog.all, Welcome_Icon);
+         Set_Icon (Welcome_Dialog, Welcome_Icon);
       end if;
    end;
 
    --  Create quit confirmation dialog
-   Quit_Dialog := Adi.Widget.Dialog.Create;
-   Attach_Window (Quit_Dialog.all, W);
-   Set_Part_Styles (Quit_Dialog.all, Dialog_Backdrop_Class_Part_Styles);
-   Set_Title (Quit_Dialog.all, "Quit?");
-   Set_Message (Quit_Dialog.all,
+   Quit_Dialog := Adi.Widget.Dialog.Create_Handle;
+   Attach_Window (Quit_Dialog, W);
+   Set_Part_Styles (Quit_Dialog, Dialog_Backdrop_Class_Part_Styles);
+   Set_Title (Quit_Dialog, "Quit?");
+   Set_Message (Quit_Dialog,
                 "Are you sure you want to quit the Material Demo?");
-   Add_Button (Quit_Dialog.all, "No");
-   Yes_Button_Index := Add_Button (Quit_Dialog.all, "Yes");
-   Set_Default_Button (Quit_Dialog.all, Yes_Button_Index);
-   Set_Dismiss_On_Escape (Quit_Dialog.all, True);
-   Connect_Result (Quit_Dialog.all, On_Quit_Result'Unrestricted_Access);
+   Add_Button (Quit_Dialog, "No");
+   Yes_Button_Index := Add_Button (Quit_Dialog, "Yes");
+   Set_Default_Button (Quit_Dialog, Yes_Button_Index);
+   Set_Dismiss_On_Escape (Quit_Dialog, True);
+   Connect_Result (Quit_Dialog, On_Quit_Result'Unrestricted_Access);
 
    --  Intercept window close / app quit
    Adi.Window.Connect_Close_Request
-     (W.all, On_Close_Request'Unrestricted_Access);
+     (W, On_Close_Request'Unrestricted_Access);
 
    A.Add_Window (W);
    A.Run;

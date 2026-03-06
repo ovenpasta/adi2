@@ -35,12 +35,26 @@ package Adi.Widget.Integer_Slider is
    subtype Slider_Widget is Impl.Slider_Widget;
    subtype Slider_Widget_Access is Impl.Slider_Widget_Access;
    subtype Value_Changed_Callback is Impl.Value_Changed_Callback;
+   subtype Slider_Handle is Impl.Slider_Handle;
+   Null_Slider_Handle : Impl.Slider_Handle renames Impl.Null_Slider_Handle;
 
    function Create
      (Min   : Value_Type;
       Max   : Value_Type;
       Value : Value_Type := 0) return Slider_Widget_Access
      renames Impl.Create;
+   function Create_Handle
+     (Min   : Value_Type;
+      Max   : Value_Type;
+      Value : Value_Type := 0) return Slider_Handle
+     renames Impl.Create_Handle;
+
+   function To_Widget_Handle (H : Slider_Handle) return Widget_Handle
+     renames Impl.To_Widget_Handle;
+   function Try_As_Slider (H : Widget_Handle) return Slider_Handle
+     renames Impl.Try_As_Slider;
+   function Is_Valid (H : Slider_Handle) return Boolean
+     renames Impl.Is_Valid;
 
    procedure Set_Value (W : in out Slider_Widget; V : Value_Type)
      renames Impl.Set_Value;
@@ -77,5 +91,39 @@ package Adi.Widget.Integer_Slider is
    procedure Disconnect_Changed (W  : in out Slider_Widget;
                                   Id : Value_Changed_Connection_Id)
      renames Impl.Disconnect_Changed;
+
+   --  Typed handle method overloads
+   procedure Set_Value (H : Slider_Handle; V : Value_Type)
+     renames Impl.Set_Value;
+   function  Get_Value (H : Slider_Handle) return Value_Type
+     renames Impl.Get_Value;
+   procedure Set_Step (H : Slider_Handle; S : Value_Type)
+     renames Impl.Set_Step;
+   function  Get_Step (H : Slider_Handle) return Value_Type
+     renames Impl.Get_Step;
+   procedure Set_Range (H : Slider_Handle; Min, Max : Value_Type)
+     renames Impl.Set_Range;
+   function  Get_Min (H : Slider_Handle) return Value_Type
+     renames Impl.Get_Min;
+   function  Get_Max (H : Slider_Handle) return Value_Type
+     renames Impl.Get_Max;
+   procedure Set_Orientation (H : Slider_Handle; Dir : Orientation)
+     renames Impl.Set_Orientation;
+   function  Get_Orientation (H : Slider_Handle) return Orientation
+     renames Impl.Get_Orientation;
+   procedure Connect_Changed (H  : Slider_Handle;
+                               CB : Value_Changed_Callback)
+     renames Impl.Connect_Changed;
+   function  Connect_Changed (H  : Slider_Handle;
+                               CB : Value_Changed_Callback)
+     return Value_Changed_Connection_Id
+     renames Impl.Connect_Changed;
+   procedure Disconnect_Changed (H  : Slider_Handle;
+                                  Id : Value_Changed_Connection_Id)
+     renames Impl.Disconnect_Changed;
+   function "+" (H : Slider_Handle) return Widget_Handle
+     renames Impl."+";
+   procedure Set_Part_Styles (H : Slider_Handle; Styles : Part_Style_Array)
+     renames Impl.Set_Part_Styles;
 
 end Adi.Widget.Integer_Slider;

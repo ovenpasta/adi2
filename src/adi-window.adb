@@ -1,5 +1,6 @@
 pragma Ada_2022;
 with Ada.Containers.Vectors;
+with Ada.Finalization;
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Environment_Variables;
 with Interfaces.C; use Interfaces.C;
@@ -87,6 +88,12 @@ package body Adi.Window is
    function Resolve_Effective_Visibility
      (Wgt : Adi.Widget.Widget'Class;
       Parent_Visibility : Visibility_Value) return Visibility_Value;
+   function Resolve_Widget_Handle (H : Widget_Handle) return Widget_Access;
+   function Child_At
+     (Wgt   : Adi.Widget.Widget'Class;
+      Index : Positive) return Widget_Access;
+   function Parent_Of
+     (Wgt : Adi.Widget.Widget'Class) return Widget_Access;
    function Window_Contains_Widget
      (W    : Window;
       Node : Widget_Access) return Boolean;
@@ -102,7 +109,58 @@ package body Adi.Window is
    package Window_Access_Vectors is new Ada.Containers.Vectors
      (Positive, Window_Access);
 
+   package Window_Id_Vectors is new Ada.Containers.Vectors
+     (Positive, Window_Stores.Object_Id, Window_Stores."=");
+
+   type Dispatch_Guard is limited new Ada.Finalization.Limited_Controlled with
+     null record;
+   overriding procedure Initialize (G : in out Dispatch_Guard);
+   overriding procedure Finalize   (G : in out Dispatch_Guard);
+
    Live_Windows : Window_Access_Vectors.Vector;
+   Pending_Destroy_Ids : Window_Id_Vectors.Vector;
+   Dispatch_Depth      : Natural := 0;
+
+   overriding procedure Initialize (G : in out Dispatch_Guard) is
+      pragma Unreferenced (G);
+   begin
+      Dispatch_Depth := Dispatch_Depth + 1;
+   end Initialize;
+
+   overriding procedure Finalize (G : in out Dispatch_Guard) is
+      pragma Unreferenced (G);
+   begin
+      if Dispatch_Depth > 0 then
+         Dispatch_Depth := Dispatch_Depth - 1;
+      end if;
+   end Finalize;
+
+   function Get_Handle (W : Window) return Window_Handle is
+   begin
+      return
+        (Id =>
+           (Index => Window_Stores.Slot_Index (W.Store_Index),
+            Gen   => Window_Stores.Generation (W.Store_Gen)));
+   end Get_Handle;
+
+   function Is_Valid (H : Window_Handle) return Boolean is
+   begin
+      return Window_Stores.Is_Valid (H.Id);
+   end Is_Valid;
+
+   function Resolve_Window_Handle (H : Window_Handle) return Window_Access is
+   begin
+      return Window_Access (Window_Stores.Get (H.Id));
+   end Resolve_Window_Handle;
+
+   procedure Pump_Window_Store is
+   begin
+      for Id of Pending_Destroy_Ids loop
+         Window_Stores.Request_Destroy (Id);
+      end loop;
+      Pending_Destroy_Ids.Clear;
+      Window_Stores.Pump;
+   end Pump_Window_Store;
 
    procedure Apply_Render_Logical_Presentation (W : in out Window) is
       Success : Adi.SDL.C_bool;
@@ -187,6 +245,26 @@ package body Adi.Window is
       return Parent_Visibility;
    end Resolve_Effective_Visibility;
 
+   function Resolve_Widget_Handle (H : Widget_Handle) return Widget_Access is
+   begin
+      return Resolve_Handle (H);
+   end Resolve_Widget_Handle;
+
+   function Child_At
+     (Wgt   : Adi.Widget.Widget'Class;
+      Index : Positive) return Widget_Access
+   is
+   begin
+      return Resolve_Widget_Handle (Get_Child_Handle (Wgt, Index));
+   end Child_At;
+
+   function Parent_Of
+     (Wgt : Adi.Widget.Widget'Class) return Widget_Access
+   is
+   begin
+      return Resolve_Widget_Handle (Get_Parent_Handle (Wgt));
+   end Parent_Of;
+
    function Is_Focus_Candidate
      (Wgt : Widget_Access;
       Effective_Visibility : Visibility_Value) return Boolean
@@ -201,19 +279,19 @@ package body Adi.Window is
 
    function Is_Focus_Candidate (Wgt : Widget_Access) return Boolean is
       function Effective_Visibility_For (Node : Widget_Access) return Visibility_Value is
-         Parent : access Adi.Widget.Widget'Class;
+         Parent : Widget_Access;
       begin
          if Node = null then
             return Visibility_Hidden;
          end if;
 
-         Parent := Get_Parent (Node.all);
+         Parent := Parent_Of (Node.all);
          if Parent = null then
             return Resolve_Effective_Visibility (Node.all, Visibility_Visible);
          end if;
 
          return Resolve_Effective_Visibility
-           (Node.all, Effective_Visibility_For (Parent.all'Unchecked_Access));
+           (Node.all, Effective_Visibility_For (Parent));
       end Effective_Visibility_For;
    begin
       return Is_Focus_Candidate (Wgt, Effective_Visibility_For (Wgt));
@@ -238,7 +316,7 @@ package body Adi.Window is
          end if;
 
          for I in 1 .. Child_Count (Node.all) loop
-            Candidate := Visit (Get_Child (Node.all, I), Node_Visibility);
+            Candidate := Visit (Child_At (Node.all, I), Node_Visibility);
             if Candidate /= null then
                return Candidate;
             end if;
@@ -266,7 +344,7 @@ package body Adi.Window is
            Resolve_Effective_Visibility (Node.all, Parent_Visibility);
 
          for I in reverse 1 .. Child_Count (Node.all) loop
-            Candidate := Visit (Get_Child (Node.all, I), Node_Visibility);
+            Candidate := Visit (Child_At (Node.all, I), Node_Visibility);
             if Candidate /= null then
                return Candidate;
             end if;
@@ -313,7 +391,7 @@ package body Adi.Window is
          end if;
 
          for I in 1 .. Child_Count (Node.all) loop
-            Visit (Get_Child (Node.all, I), Node_Visibility);
+            Visit (Child_At (Node.all, I), Node_Visibility);
             exit when Result /= null;
          end loop;
       end Visit;
@@ -354,7 +432,7 @@ package body Adi.Window is
          end if;
 
          for I in 1 .. Child_Count (Node.all) loop
-            Visit (Get_Child (Node.all, I), Node_Visibility);
+            Visit (Child_At (Node.all, I), Node_Visibility);
             exit when Result /= null;
          end loop;
       end Visit;
@@ -377,7 +455,7 @@ package body Adi.Window is
       end if;
 
       for I in 1 .. Child_Count (Root.all) loop
-         if Is_In_Subtree (Get_Child (Root.all, I), Node) then
+         if Is_In_Subtree (Child_At (Root.all, I), Node) then
             return True;
          end if;
       end loop;
@@ -650,8 +728,27 @@ package body Adi.Window is
         end if;
         Refresh_Viewport_Size (W.all);
         Register_Live_Window (W);
+        declare
+           Id : constant Window_Stores.Object_Id :=
+             Window_Stores.Register (Window_Class_Access (W));
+        begin
+           W.Store_Index := Natural (Id.Index);
+           W.Store_Gen   := Natural (Id.Gen);
+        end;
       end return;
    end Create_Window;
+
+   function Create_Window_Handle
+     (Title : String;
+      S     : Size_2D) return Window_Handle
+   is
+      W : constant Window_Access := Create_Window (Title, S);
+   begin
+      if W = null then
+         return Null_Window_Handle;
+      end if;
+      return Get_Handle (W.all);
+   end Create_Window_Handle;
 
 
    ------------
@@ -778,6 +875,8 @@ package body Adi.Window is
 
     procedure Render (W : in Out Window) is
        use Adi.SDL.Render;
+       Guard               : Dispatch_Guard;
+       pragma Unreferenced (Guard);
        Root_Dirty          : constant Boolean :=
          (W.Root /= null and then Is_Dirty (W.Root.all));
        Overlay_Dirty       : constant Boolean := Is_Any_Overlay_Dirty (W);
@@ -947,6 +1046,33 @@ package body Adi.Window is
       Apply_Window_Min_Size_From_Layout (W);
    end Set_Root;
 
+   procedure Set_Root (W : in out Window; Root : Widget_Handle) is
+      Ptr : constant Widget_Access := Resolve_Widget_Handle (Root);
+   begin
+      --  Null_Handle means "clear root"; stale handles are silently ignored.
+      if Ptr /= null or else Root = Null_Handle then
+         Set_Root (W, Ptr);
+      end if;
+   end Set_Root;
+
+   procedure Set_Root (H : Window_Handle; Root : access Adi.Widget.Widget'Class) is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         Set_Root (Ptr.all, Root);
+      end if;
+   end Set_Root;
+
+   procedure Set_Root (H : Window_Handle; Root : Widget_Handle) is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         Set_Root (Ptr.all, Root);
+      end if;
+   end Set_Root;
+
 
    --------------
    -- Get_Root --
@@ -956,6 +1082,24 @@ package body Adi.Window is
    begin
       return W.Root;
    end Get_Root;
+
+   function Get_Root_Handle (W : Window) return Widget_Handle is
+   begin
+      if W.Root = null then
+         return Null_Handle;
+      end if;
+      return Get_Handle (W.Root.all);
+   end Get_Root_Handle;
+
+   function Get_Root_Handle (H : Window_Handle) return Widget_Handle is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr = null then
+         return Null_Handle;
+      end if;
+      return Get_Root_Handle (Ptr.all);
+   end Get_Root_Handle;
 
    procedure Set_Enforce_Layout_Min_Size
      (W       : in out Window;
@@ -973,14 +1117,48 @@ package body Adi.Window is
       end if;
    end Set_Enforce_Layout_Min_Size;
 
+   procedure Set_Enforce_Layout_Min_Size
+     (H       : Window_Handle;
+      Enabled : Boolean := True)
+   is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         Set_Enforce_Layout_Min_Size (Ptr.all, Enabled);
+      end if;
+   end Set_Enforce_Layout_Min_Size;
+
    function Get_Enforce_Layout_Min_Size (W : Window) return Boolean is
    begin
       return W.Enforce_Layout_Min_Size;
    end Get_Enforce_Layout_Min_Size;
 
+   function Get_Enforce_Layout_Min_Size (H : Window_Handle) return Boolean is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         return Get_Enforce_Layout_Min_Size (Ptr.all);
+      end if;
+      return False;
+   end Get_Enforce_Layout_Min_Size;
+
    procedure Connect_Tick (W : in out Window; CB : Tick_Callback) is
    begin
       W.Tick_Sig.Connect (CB);
+   end Connect_Tick;
+
+   procedure Connect_Tick
+     (H : Window_Handle;
+      CB : Tick_Callback)
+   is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         Connect_Tick (Ptr.all, CB);
+      end if;
    end Connect_Tick;
 
    function Connect_Tick (W : in out Window; CB : Tick_Callback)
@@ -1019,6 +1197,14 @@ package body Adi.Window is
       W.Needs_Layout := True;
    end Add_Overlay;
 
+   procedure Add_Overlay (W : in out Window; Overlay : Widget_Handle) is
+      Ptr : constant Widget_Access := Resolve_Widget_Handle (Overlay);
+   begin
+      if Ptr /= null then
+         Add_Overlay (W, Ptr);
+      end if;
+   end Add_Overlay;
+
    procedure Remove_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class) is
       OA       : Widget_Access := null;
       Existing : Natural;
@@ -1033,11 +1219,23 @@ package body Adi.Window is
          return;
       end if;
 
-      --  Clear focus if it was on a widget inside the removed overlay
+      --  Clear refs if they point into the removed overlay subtree
       if W.Focused_Widget /= null
         and then Is_In_Subtree (OA, W.Focused_Widget)
       then
          Set_Focused_Widget (W, null);
+      end if;
+
+      if W.Hovered_Widget /= null
+        and then Is_In_Subtree (OA, W.Hovered_Widget)
+      then
+         W.Hovered_Widget := null;
+      end if;
+
+      if W.Pressed_Widget /= null
+        and then Is_In_Subtree (OA, W.Pressed_Widget)
+      then
+         W.Pressed_Widget := null;
       end if;
 
       W.Overlays.Delete (Existing);
@@ -1047,21 +1245,44 @@ package body Adi.Window is
       W.Needs_Layout := True;
    end Remove_Overlay;
 
+   procedure Remove_Overlay (W : in out Window; Overlay : Widget_Handle) is
+      Ptr : constant Widget_Access := Resolve_Widget_Handle (Overlay);
+   begin
+      if Ptr /= null then
+         Remove_Overlay (W, Ptr);
+      end if;
+   end Remove_Overlay;
+
    procedure Clear_Overlays (W : in out Window) is
    begin
       if W.Overlays.Is_Empty then
          return;
       end if;
 
-      --  Clear focus if it was on a widget inside any overlay
-      if W.Focused_Widget /= null then
-         for I in 1 .. Natural (W.Overlays.Length) loop
-            if Is_In_Subtree (W.Overlays.Element (I), W.Focused_Widget) then
+      --  Clear refs if they point into any overlay subtree
+      for I in 1 .. Natural (W.Overlays.Length) loop
+         declare
+            OA : constant Widget_Access := W.Overlays.Element (I);
+         begin
+            if W.Focused_Widget /= null
+              and then Is_In_Subtree (OA, W.Focused_Widget)
+            then
                Set_Focused_Widget (W, null);
-               exit;
             end if;
-         end loop;
-      end if;
+
+            if W.Hovered_Widget /= null
+              and then Is_In_Subtree (OA, W.Hovered_Widget)
+            then
+               W.Hovered_Widget := null;
+            end if;
+
+            if W.Pressed_Widget /= null
+              and then Is_In_Subtree (OA, W.Pressed_Widget)
+            then
+               W.Pressed_Widget := null;
+            end if;
+         end;
+      end loop;
 
       W.Overlays.Clear;
       if W.Root /= null then
@@ -1080,10 +1301,76 @@ package body Adi.Window is
       return W.Overlays.Element (Index);
    end Get_Overlay;
 
+   function Get_Overlay_Handle (W : Window; Index : Positive)
+      return Widget_Handle
+   is
+      Overlay : constant Widget_Access := Get_Overlay (W, Index);
+   begin
+      if Overlay = null then
+         return Null_Handle;
+      end if;
+      return Get_Handle (Overlay.all);
+   end Get_Overlay_Handle;
+
+   function Get_Overlay_Handle (H : Window_Handle; Index : Positive)
+      return Widget_Handle
+   is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr = null or else Index > Overlay_Count (Ptr.all) then
+         return Null_Handle;
+      end if;
+      return Get_Overlay_Handle (Ptr.all, Index);
+   end Get_Overlay_Handle;
+
    function Get_Focus (W : Window) return Widget_Access is
    begin
       return W.Focused_Widget;
    end Get_Focus;
+
+   function Get_Focus_Handle (W : Window) return Widget_Handle is
+   begin
+      if W.Focused_Widget = null then
+         return Null_Handle;
+      end if;
+      return Get_Handle (W.Focused_Widget.all);
+   end Get_Focus_Handle;
+
+   function Get_Focus_Handle (H : Window_Handle) return Widget_Handle is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr = null then
+         return Null_Handle;
+      end if;
+      return Get_Focus_Handle (Ptr.all);
+   end Get_Focus_Handle;
+
+   procedure Clear_Widget_Refs_In_Subtree
+     (W      : in out Window;
+      Target : not null access Adi.Widget.Widget'Class)
+   is
+      TA : constant Widget_Access := Target.all'Unchecked_Access;
+   begin
+      if W.Focused_Widget /= null
+        and then Is_In_Subtree (TA, W.Focused_Widget)
+      then
+         Set_Focused_Widget (W, null);
+      end if;
+
+      if W.Hovered_Widget /= null
+        and then Is_In_Subtree (TA, W.Hovered_Widget)
+      then
+         W.Hovered_Widget := null;
+      end if;
+
+      if W.Pressed_Widget /= null
+        and then Is_In_Subtree (TA, W.Pressed_Widget)
+      then
+         W.Pressed_Widget := null;
+      end if;
+   end Clear_Widget_Refs_In_Subtree;
 
    ------------------
    -- Get_Renderer --
@@ -1158,7 +1445,7 @@ package body Adi.Window is
 
          --  Check children in reverse order (last added = on top)
          for I in reverse 1 .. Child_Count (Parent.all) loop
-            Child := Get_Child (Parent.all, I);
+            Child := Child_At (Parent.all, I);
             Found := Find_Deepest (Child, Hit_X, Child_Y, Node_Visibility);
             if Found /= null then
                return Found;
@@ -1231,7 +1518,7 @@ package body Adi.Window is
          end if;
 
          for I in reverse 1 .. Child_Count (Parent.all) loop
-            Child := Get_Child (Parent.all, I);
+            Child := Child_At (Parent.all, I);
             Found := Find_Deepest_Eligible (Child, Hit_X, Child_Y, Node_Visibility);
             if Found /= null then
                return Found;
@@ -1272,7 +1559,7 @@ package body Adi.Window is
       X, Y : Pixel_Type) return Widget_Access
    is
       Node : Widget_Access := Find_Widget_At (W, X, Y);
-      Parent : access Adi.Widget.Widget'Class;
+      Parent : Widget_Access;
    begin
       while Node /= null loop
          declare
@@ -1283,11 +1570,11 @@ package body Adi.Window is
             end if;
          end;
 
-         Parent := Get_Parent (Node.all);
+         Parent := Parent_Of (Node.all);
          if Parent = null then
             Node := null;
          else
-            Node := Parent.all'Unchecked_Access;
+            Node := Parent;
          end if;
       end loop;
 
@@ -1353,6 +1640,24 @@ package body Adi.Window is
       end;
    end Set_Focus;
 
+   procedure Set_Focus (W : in out Window; Target : Widget_Handle) is
+      Ptr : constant Widget_Access := Resolve_Widget_Handle (Target);
+   begin
+      --  Null_Handle means "clear focus"; stale non-null handles are ignored.
+      if Ptr /= null or else Target = Null_Handle then
+         Set_Focus (W, Ptr);
+      end if;
+   end Set_Focus;
+
+   procedure Set_Focus (H : Window_Handle; Target : Widget_Handle) is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         Set_Focus (Ptr.all, Target);
+      end if;
+   end Set_Focus;
+
    -------------------
    -- On_Mouse_Move --
    -------------------
@@ -1367,17 +1672,17 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
          Chain : out Widget_Chain;
          Count : out Natural) is
          Node   : Widget_Access := Start;
-         Parent : access Adi.Widget.Widget'Class;
+         Parent : Widget_Access;
       begin
          Count := 0;
          while Node /= null and then Count < Chain'Length loop
             Count := Count + 1;
             Chain (Count) := Node;
-            Parent := Get_Parent (Node.all);
+            Parent := Parent_Of (Node.all);
             if Parent = null then
                Node := null;
             else
-               Node := Parent.all'Unchecked_Access;
+               Node := Parent;
             end if;
          end loop;
       end Build_Hover_Chain;
@@ -1502,6 +1807,8 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
        Button : Adi.Core.Mouse_Button;
        Clicks : Natural := 1)
     is
+      Guard : Dispatch_Guard;
+      pragma Unreferenced (Guard);
       Click_Target : Widget_Access;
       Focus_Target : Widget_Access;
       Scroll_Target : Widget_Access;
@@ -1519,7 +1826,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       if Button = Right_Button then
          Any_Target := Find_Widget_At (W, X, Y);
          if Any_Target /= null then
-            if Bubble_Context_Menu (Any_Target, X, Y) then
+            if Bubble_Context_Menu (Get_Handle (Any_Target.all), X, Y) then
                return;
             end if;
          end if;
@@ -1584,30 +1891,51 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
    procedure On_Mouse_Up
       (W : in out Window; X, Y : Pixel_Type; Button : Adi.Core.Mouse_Button)
     is
+      Guard : Dispatch_Guard;
+      pragma Unreferenced (Guard);
+      --  Save pressed widget/part before dispatching, because On_Mouse_Up
+      --  or On_Click callbacks (e.g. dialog dismiss) may clear them.
+      PW   : Widget_Access := W.Pressed_Widget;
+      Part : constant Part_Kind := W.Pressed_Part;
    begin
       W.Mouse_Down := False;
       W.Mouse_X := X;
       W.Mouse_Y := Y;
 
       --  Release pressed widget and dispatch click if applicable
-      if W.Pressed_Widget /= null then
+      if PW /= null then
          if W.Scroll_Claimed then
-            Handle_Scroll_Mouse_Up (W.Pressed_Widget.all, Button);
+            Handle_Scroll_Mouse_Up (PW.all, Button);
          else
-            On_Mouse_Up (W.Pressed_Widget.all, X, Y, Button);
+            On_Mouse_Up (PW.all, X, Y, Button);
          end if;
-         if Point_In_Widget (W.Pressed_Widget, X, Y)
-            and then Has_Flag (W.Pressed_Widget.all, Clickable)
+
+         --  Re-read: callback may have cleared W.Pressed_Widget
+         --  (e.g. Remove_Overlay from a dialog dismiss).
+         if W.Pressed_Widget = null then
+            PW := null;
+         end if;
+
+         if PW /= null
+            and then Point_In_Widget (PW, X, Y)
+            and then Has_Flag (PW.all, Clickable)
             and then Button = Left_Button
-            and then not Is_Disabled (W.Pressed_Widget.all)
+            and then not Is_Disabled (PW.all)
          then
-            On_Click (W.Pressed_Widget.all);
+            On_Click (PW.all);
          end if;
-         Set_Part_State (W.Pressed_Widget.all,
-                         W.Pressed_Part,
-                         Adi.Widget_Styles.State_Pressed,
-                         False);
-         Set_Pressed (W.Pressed_Widget.all, False);
+
+         --  Re-read again: On_Click may have cleared it too.
+         if W.Pressed_Widget = null then
+            PW := null;
+         end if;
+
+         if PW /= null then
+            Set_Part_State (PW.all, Part,
+                            Adi.Widget_Styles.State_Pressed, False);
+            Set_Pressed (PW.all, False);
+         end if;
+
          W.Pressed_Widget := null;
          W.Pressed_Part := Main_Part;
          W.Scroll_Claimed := False;
@@ -1623,6 +1951,8 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
        X, Y             : Pixel_Type;
        Delta_X, Delta_Y : Pixel_Type)
    is
+      Guard      : Dispatch_Guard;
+      pragma Unreferenced (Guard);
       Target     : Widget_Access;
       In_Overlay : Boolean := False;
    begin
@@ -1697,6 +2027,8 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       Key_Mod  : Adi.SDL.Events.SDL_Keymod;
       Repeat   : Boolean)
    is
+      Guard : Dispatch_Guard;
+      pragma Unreferenced (Guard);
       use type Adi.SDL.Events.SDL_Keymod;
       use type Adi.SDL.Events.SDL_Scancode;
       Shift_Mod : constant Boolean :=
@@ -1753,6 +2085,8 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       Key_Mod  : Adi.SDL.Events.SDL_Keymod;
       Repeat   : Boolean)
    is
+      Guard : Dispatch_Guard;
+      pragma Unreferenced (Guard);
    begin
       if W.Focused_Widget /= null
         and then Is_In_Subtree (Active_Key_Root (W), W.Focused_Widget)
@@ -1769,6 +2103,8 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
    -------------------
 
    procedure On_Text_Input (W : in out Window; Text : String) is
+      Guard : Dispatch_Guard;
+      pragma Unreferenced (Guard);
    begin
       if W.Focused_Widget /= null
         and then Is_In_Subtree (Active_Key_Root (W), W.Focused_Widget)
@@ -1785,6 +2121,8 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
    ----------
 
    procedure Tick (W : in out Window; DT : Duration) is
+      Guard                : Dispatch_Guard;
+      pragma Unreferenced (Guard);
       Root_Dirty_Before    : constant Boolean :=
         (W.Root /= null and then Is_Dirty (W.Root.all));
       Overlay_Dirty_Before : constant Boolean := Is_Any_Overlay_Dirty (W);
@@ -1866,6 +2204,74 @@ function Get_Size (W : in out Window) return Size_2D is
    end Initialize;
 
    --------------
+   --------------------------
+   -- Destroy_Widget_Tree --
+   --------------------------
+
+   procedure Destroy_Widget_Tree (W : in out Window) is
+   begin
+      --  Clear all widget refs first so Destroy hooks don't chase stale state.
+      W.Focused_Widget := null;
+      W.Hovered_Widget := null;
+      W.Pressed_Widget := null;
+
+      --  Destroy overlay widgets (snapshot list since Destroy modifies it)
+      declare
+         Snapshot : Overlay_Vectors.Vector := W.Overlays;
+      begin
+         W.Overlays.Clear;
+         for OA of Snapshot loop
+            if OA /= null then
+               declare
+                  H : Widget_Handle := Get_Handle (OA.all);
+               begin
+                  Destroy (H);
+               end;
+            end if;
+         end loop;
+      end;
+
+      --  Destroy root widget tree
+      if W.Root /= null then
+         declare
+            H : Widget_Handle := Get_Handle (W.Root.all);
+         begin
+            W.Root := null;
+            Destroy (H);
+         end;
+      end if;
+   end Destroy_Widget_Tree;
+
+   procedure Destroy (H : in out Window_Handle) is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr = null then
+         H.Id := Window_Stores.Null_Id;
+         return;
+      end if;
+
+      Destroy_Widget_Tree (Ptr.all);
+      if Dispatch_Depth > 0 then
+         Pending_Destroy_Ids.Append (H.Id);
+      else
+         Window_Stores.Request_Destroy (H.Id);
+      end if;
+      H.Id := Window_Stores.Null_Id;
+   end Destroy;
+
+   procedure Destroy (W : in out Window_Access) is
+      H : Window_Handle;
+   begin
+      if W = null then
+         return;
+      end if;
+
+      H := Get_Handle (W.all);
+      Destroy (H);
+      W := null;
+   end Destroy;
+
    -- Finalize --
    --------------
 
@@ -1873,10 +2279,14 @@ function Get_Size (W : in out Window) return Size_2D is
       use Adi.SDL.Video;
       use Adi.SDL.Render;
    begin
+      --  Destroy widget trees if not already done by Destroy_Widget_Tree.
+      if W.Root /= null or else not W.Overlays.Is_Empty then
+         Destroy_Widget_Tree (W);
+      end if;
+
       if W.Internal /= null then
          Unregister_Live_Window (W.Internal.win);
       end if;
-      W.Overlays.Clear;
       Adi.Render.Destroy (W.Ctx);
       if W.Internal /= null then
          if W.Internal.ren /= null then
@@ -1957,6 +2367,15 @@ function Get_Size (W : in out Window) return Size_2D is
        W.Force_Redraw := True;
     end Set_Debug_Stats;
 
+    procedure Set_Debug_Stats (H : Window_Handle; Enabled : Boolean) is
+       Ptr : constant Window_Access :=
+         Window_Access (Window_Stores.Get (H.Id));
+    begin
+       if Ptr /= null then
+          Set_Debug_Stats (Ptr.all, Enabled);
+       end if;
+    end Set_Debug_Stats;
+
     procedure Connect_Post_Render
       (W : in out Window; CB : Post_Render_Proc) is
     begin
@@ -2001,6 +2420,18 @@ function Get_Size (W : in out Window) return Size_2D is
        W.Close_Request.Connect (CB);
     end Connect_Close_Request;
 
+    procedure Connect_Close_Request
+      (H  : Window_Handle;
+       CB : Close_Request_Callback)
+    is
+       Ptr : constant Window_Access :=
+         Window_Access (Window_Stores.Get (H.Id));
+    begin
+       if Ptr /= null then
+          Connect_Close_Request (Ptr.all, CB);
+       end if;
+    end Connect_Close_Request;
+
     function Connect_Close_Request
       (W : in out Window; CB : Close_Request_Callback)
        return Close_Request_Signals.Connection_Id is
@@ -2015,6 +2446,8 @@ function Get_Size (W : in out Window) return Size_2D is
     end Disconnect_Close_Request;
 
     function Handle_Close_Request (W : in out Window) return Boolean is
+       Guard : Dispatch_Guard;
+       pragma Unreferenced (Guard);
        Allow : Boolean := True;
        procedure Call (CB : Close_Request_Callback) is
        begin
@@ -2038,4 +2471,27 @@ function Get_Size (W : in out Window) return Size_2D is
                Layout_Count => W.Stats_Layout_Count);
     end Get_Frame_Stats;
 
+   ---------------------------------------------------------------------------
+   --  Destroy detach hook (registered into Adi.Widget at elaboration)
+   ---------------------------------------------------------------------------
+
+   procedure On_Widget_Destroy (W : not null Widget_Access) is
+      use type Window_Access;
+      Host : constant Window_Access := Find_Host_Window (W);
+   begin
+      if Host = null then
+         return;
+      end if;
+
+      Clear_Widget_Refs_In_Subtree (Host.all, W);
+
+      if Host.Root = W then
+         Set_Root (Host.all, null);
+      end if;
+
+      Remove_Overlay (Host.all, W);
+   end On_Widget_Destroy;
+
+begin
+   Adi.Widget.Destroy_Detach_Hook := On_Widget_Destroy'Access;
 end Adi.Window;

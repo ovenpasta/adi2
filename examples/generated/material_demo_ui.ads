@@ -34,33 +34,33 @@ package Material_Demo_UI is
       On_Get_Started : Adi.Widget.Button.Click_Callback := null;
       On_Lock_UI : Adi.Widget.Button.Toggle_Callback := null;
 
-      Root : Adi.Widget.Box.Box_Widget_Access;
-      App_Title : Adi.Widget.Label.Label_Widget_Access;
-      Nav_Bar : Adi.Widget.Box.Box_Widget_Access;
-      Btn_Home : Adi.Widget.Button.Button_Widget_Access;
-      Btn_Forms : Adi.Widget.Button.Button_Widget_Access;
-      Btn_Settings : Adi.Widget.Button.Button_Widget_Access;
-      Btn_Controls : Adi.Widget.Button.Button_Widget_Access;
-      Pages : Page_Stack.Stack_Widget_Access;
-      Name_Input : Adi.Widget.Text_Input.Text_Input_Widget_Access;
-      Country_Combo : Adi.Widget.Combo_Box.Combo_Box_Widget_Access;
-      Enabled_Input : Adi.Widget.Text_Input.Text_Input_Widget_Access;
-      Disabled_Input : Adi.Widget.Text_Input.Text_Input_Widget_Access;
-      Enabled_Combo : Adi.Widget.Combo_Box.Combo_Box_Widget_Access;
-      Disabled_Combo : Adi.Widget.Combo_Box.Combo_Box_Widget_Access;
-      Enabled_Slider : Float_Slider.Slider_Widget_Access;
-      Disabled_Slider : Float_Slider.Slider_Widget_Access;
-      Enabled_Value_Input : Float_Value_Input.Value_Input_Widget_Access;
-      Disabled_Value_Input : Int_Value_Input.Value_Input_Widget_Access;
-      Dark_Switch : Adi.Widget.Button.Switch.Switch_Widget_Access;
-      Lock_Bar : Adi.Widget.Box.Box_Widget_Access;
-      Lock_Switch : Adi.Widget.Button.Switch.Switch_Widget_Access;
+      Root : Adi.Widget.Box.Box_Handle;
+      App_Title : Adi.Widget.Label.Label_Handle;
+      Nav_Bar : Adi.Widget.Box.Box_Handle;
+      Btn_Home : Adi.Widget.Button.Button_Handle;
+      Btn_Forms : Adi.Widget.Button.Button_Handle;
+      Btn_Settings : Adi.Widget.Button.Button_Handle;
+      Btn_Controls : Adi.Widget.Button.Button_Handle;
+      Pages : Page_Stack.Stack_Handle;
+      Name_Input : Adi.Widget.Text_Input.Text_Input_Handle;
+      Country_Combo : Adi.Widget.Combo_Box.Combo_Box_Handle;
+      Enabled_Input : Adi.Widget.Text_Input.Text_Input_Handle;
+      Disabled_Input : Adi.Widget.Text_Input.Text_Input_Handle;
+      Enabled_Combo : Adi.Widget.Combo_Box.Combo_Box_Handle;
+      Disabled_Combo : Adi.Widget.Combo_Box.Combo_Box_Handle;
+      Enabled_Slider : Float_Slider.Slider_Handle;
+      Disabled_Slider : Float_Slider.Slider_Handle;
+      Enabled_Value_Input : Float_Value_Input.Value_Input_Handle;
+      Disabled_Value_Input : Int_Value_Input.Value_Input_Handle;
+      Dark_Switch : Adi.Widget.Button.Switch.Switch_Handle;
+      Lock_Bar : Adi.Widget.Box.Box_Handle;
+      Lock_Switch : Adi.Widget.Button.Switch.Switch_Handle;
 
       Nav_Options_Group : aliased Nav_Options.Option_Group;
       Nav_Options_Group_Conn : Nav_Options.Option_Changed_Signals.Connection_Id :=
         Nav_Options.Option_Changed_Signals.No_Connection;
 
-      function Build return Adi.Window.Window_Access;
+      function Build return Adi.Window.Window_Handle;
 
       procedure Tick_Styles (Reloaded : out Boolean;
                              Success  : out Boolean);

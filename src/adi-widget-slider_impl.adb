@@ -49,10 +49,10 @@ package body Adi.Widget.Slider_Impl is
    end Ratio;
 
    procedure Fire_Changed (W : in out Slider_Widget) is
-      Self : constant Slider_Widget_Access := W'Unchecked_Access;
-      Val  : constant Value_Type := W.Value;
+      H   : constant Widget_Handle := Get_Handle (W);
+      Val : constant Value_Type := W.Value;
       procedure Call (CB : Value_Changed_Callback) is
-      begin CB (Self, Val); end Call;
+      begin CB (H, Val); end Call;
       procedure Emit is new Value_Changed_Signals.For_Each (Call);
    begin
       Emit (W.Changed);
@@ -223,8 +223,41 @@ package body Adi.Widget.Slider_Impl is
       Result.Min_Value := Min;
       Result.Max_Value := Max;
       Result.Value := Clamp (Value, Min, Max);
+      declare
+         P : constant access Widget'Class := Result.all'Unchecked_Access;
+      begin
+         Register_Widget (Widget_Access (P));
+      end;
       return Result;
    end Create;
+
+   function Create_Handle
+     (Min   : Value_Type;
+      Max   : Value_Type;
+      Value : Value_Type) return Slider_Handle
+   is
+   begin
+      return (Id => Get_Handle (Create (Min, Max, Value).all).Id);
+   end Create_Handle;
+
+   function To_Widget_Handle (H : Slider_Handle) return Widget_Handle is
+   begin
+      return (Id => H.Id);
+   end To_Widget_Handle;
+
+   function Try_As_Slider (H : Widget_Handle) return Slider_Handle is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in Slider_Widget'Class then
+         return (Id => H.Id);
+      end if;
+      return Null_Slider_Handle;
+   end Try_As_Slider;
+
+   function Is_Valid (H : Slider_Handle) return Boolean is
+   begin
+      return Widget_Stores.Is_Valid (H.Id);
+   end Is_Valid;
 
    procedure Set_Value (W : in out Slider_Widget; V : Value_Type) is
       Clamped : constant Value_Type := Clamp (V, W.Min_Value, W.Max_Value);
@@ -297,6 +330,127 @@ package body Adi.Widget.Slider_Impl is
    begin
       W.Changed.Disconnect (Id);
    end Disconnect_Changed;
+
+   ---------------------------------------------------------------------------
+   --  Typed handle method overloads
+   ---------------------------------------------------------------------------
+
+   procedure Set_Value (H : Slider_Handle; V : Value_Type) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Value (Slider_Widget (Ptr.all), V);
+      end if;
+   end Set_Value;
+
+   function Get_Value (H : Slider_Handle) return Value_Type is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Value (Slider_Widget (Ptr.all));
+      end if;
+      return Zero;
+   end Get_Value;
+
+   procedure Connect_Changed (H : Slider_Handle; CB : Value_Changed_Callback) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Connect_Changed (Slider_Widget (Ptr.all), CB);
+      end if;
+   end Connect_Changed;
+
+   function Connect_Changed (H : Slider_Handle; CB : Value_Changed_Callback)
+     return Value_Changed_Signals.Connection_Id
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Connect_Changed (Slider_Widget (Ptr.all), CB);
+      end if;
+      return Value_Changed_Signals.No_Connection;
+   end Connect_Changed;
+
+   procedure Disconnect_Changed
+     (H : Slider_Handle; Id : Value_Changed_Signals.Connection_Id)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Disconnect_Changed (Slider_Widget (Ptr.all), Id);
+      end if;
+   end Disconnect_Changed;
+
+   procedure Set_Step (H : Slider_Handle; S : Value_Type) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Step (Slider_Widget (Ptr.all), S);
+      end if;
+   end Set_Step;
+
+   function Get_Step (H : Slider_Handle) return Value_Type is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Step (Slider_Widget (Ptr.all));
+      end if;
+      return Zero;
+   end Get_Step;
+
+   procedure Set_Range (H : Slider_Handle; Min, Max : Value_Type) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Range (Slider_Widget (Ptr.all), Min, Max);
+      end if;
+   end Set_Range;
+
+   function Get_Min (H : Slider_Handle) return Value_Type is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Min (Slider_Widget (Ptr.all));
+      end if;
+      return Zero;
+   end Get_Min;
+
+   function Get_Max (H : Slider_Handle) return Value_Type is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Max (Slider_Widget (Ptr.all));
+      end if;
+      return Zero;
+   end Get_Max;
+
+   procedure Set_Orientation (H : Slider_Handle; Dir : Orientation) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Orientation (Slider_Widget (Ptr.all), Dir);
+      end if;
+   end Set_Orientation;
+
+   function Get_Orientation (H : Slider_Handle) return Orientation is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Orientation (Slider_Widget (Ptr.all));
+      end if;
+      return Horizontal;
+   end Get_Orientation;
+
+   function "+" (H : Slider_Handle) return Widget_Handle is
+   begin
+      return To_Widget_Handle (H);
+   end "+";
+
+   procedure Set_Part_Styles
+     (H : Slider_Handle; Styles : Part_Style_Array) is
+   begin
+      Adi.Widget.Set_Part_Styles (To_Widget_Handle (H), Styles);
+   end Set_Part_Styles;
 
    ---------------------------------------------------------------------------
    --  Widget overrides

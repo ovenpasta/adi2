@@ -54,6 +54,7 @@ package body Adi.Widget.Animated_Widget is
       Result : constant Animated_Widget_Access := new Animated_Widget;
    begin
       Result.Flags := [Visible => True, others => False];
+      Register_Widget (Widget_Access (Result));
       return Result;
    end Create;
 
@@ -65,6 +66,168 @@ package body Adi.Widget.Animated_Widget is
       Set_Animation (Result.all, Animation);
       return Result;
    end Create;
+
+   -------------------
+   -- Create_Handle --
+   -------------------
+
+   function Create_Handle return Animated_Widget_Handle is
+   begin
+      return (Id => Get_Handle (Create.all).Id);
+   end Create_Handle;
+
+   function Create_Handle
+     (Animation : Animated_Image_Access) return Animated_Widget_Handle is
+   begin
+      return (Id => Get_Handle (Create (Animation).all).Id);
+   end Create_Handle;
+
+   ----------------------
+   -- Handle bridge --
+   ----------------------
+
+   function To_Widget_Handle
+     (H : Animated_Widget_Handle) return Widget_Handle is
+   begin
+      return (Id => H.Id);
+   end To_Widget_Handle;
+
+   function Try_As_Animated_Widget
+     (H : Widget_Handle) return Animated_Widget_Handle
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in Animated_Widget'Class then
+         return (Id => H.Id);
+      end if;
+      return Null_Animated_Widget_Handle;
+   end Try_As_Animated_Widget;
+
+   function Is_Valid (H : Animated_Widget_Handle) return Boolean is
+   begin
+      return Widget_Stores.Is_Valid (H.Id);
+   end Is_Valid;
+
+   function "+" (H : Animated_Widget_Handle) return Widget_Handle is
+   begin
+      return To_Widget_Handle (H);
+   end "+";
+
+   procedure Set_Part_Styles
+     (H : Animated_Widget_Handle; Styles : Part_Style_Array) is
+   begin
+      Adi.Widget.Set_Part_Styles (To_Widget_Handle (H), Styles);
+   end Set_Part_Styles;
+
+   --------------------
+   -- Handle methods --
+   --------------------
+
+   function Load_Image_From_File
+     (H : Animated_Widget_Handle; Path : String) return Boolean
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Load_Image_From_File (Animated_Widget (Ptr.all), Path);
+      end if;
+      return False;
+   end Load_Image_From_File;
+
+   procedure Set_Animation
+     (H : Animated_Widget_Handle; Animation : Animated_Image_Access)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Animation (Animated_Widget (Ptr.all), Animation);
+      end if;
+   end Set_Animation;
+
+   function Get_Image_Animation
+     (H : Animated_Widget_Handle) return Animated_Image_Access
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Image_Animation (Animated_Widget (Ptr.all));
+      end if;
+      return null;
+   end Get_Image_Animation;
+
+   procedure Start (H : Animated_Widget_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Start (Animated_Widget (Ptr.all));
+      end if;
+   end Start;
+
+   procedure Stop (H : Animated_Widget_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Stop (Animated_Widget (Ptr.all));
+      end if;
+   end Stop;
+
+   procedure Reset (H : Animated_Widget_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Reset (Animated_Widget (Ptr.all));
+      end if;
+   end Reset;
+
+   procedure Set_Looping
+     (H : Animated_Widget_Handle; Value : Boolean := True)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Looping (Animated_Widget (Ptr.all), Value);
+      end if;
+   end Set_Looping;
+
+   procedure Set_Playback_Speed
+     (H : Animated_Widget_Handle; Multiplier : Float := 1.0)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Playback_Speed (Animated_Widget (Ptr.all), Multiplier);
+      end if;
+   end Set_Playback_Speed;
+
+   function Is_Looping (H : Animated_Widget_Handle) return Boolean is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Is_Looping (Animated_Widget (Ptr.all));
+      end if;
+      return False;
+   end Is_Looping;
+
+   function Is_Playing (H : Animated_Widget_Handle) return Boolean is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Is_Playing (Animated_Widget (Ptr.all));
+      end if;
+      return False;
+   end Is_Playing;
+
+   procedure Set_Max_Size
+     (H          : Animated_Widget_Handle;
+      Max_Width  : Pixel_Type;
+      Max_Height : Pixel_Type)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Max_Size (Animated_Widget (Ptr.all), Max_Width, Max_Height);
+      end if;
+   end Set_Max_Size;
 
    procedure Set_Backend
      (W        : in out Animated_Widget'Class;

@@ -16,8 +16,49 @@ package body Adi.Widget.Label is
       if Text /= "" then
          Result.Text := To_Unbounded_String (Text);
       end if;
+      Register_Widget (Widget_Access (Result));
       return Result;
    end Create;
+
+   -------------------
+   -- Create_Handle --
+   -------------------
+
+   function Create_Handle (Text : String := "") return Label_Handle is
+   begin
+      return (Id => Get_Handle (Create (Text).all).Id);
+   end Create_Handle;
+
+   -----------------------
+   -- To_Widget_Handle --
+   -----------------------
+
+   function To_Widget_Handle (H : Label_Handle) return Widget_Handle is
+   begin
+      return (Id => H.Id);
+   end To_Widget_Handle;
+
+   -------------------
+   -- Try_As_Label --
+   -------------------
+
+   function Try_As_Label (H : Widget_Handle) return Label_Handle is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in Label_Widget'Class then
+         return (Id => H.Id);
+      end if;
+      return Null_Label_Handle;
+   end Try_As_Label;
+
+   --------------
+   -- Is_Valid --
+   --------------
+
+   function Is_Valid (H : Label_Handle) return Boolean is
+   begin
+      return Widget_Stores.Is_Valid (H.Id);
+   end Is_Valid;
 
    --------------
    -- Set_Text --
@@ -56,6 +97,45 @@ package body Adi.Widget.Label is
    begin
       return W.Icon;
    end Get_Icon;
+
+   ---------------------------------------------------------------------------
+   --  Typed handle method overloads
+   ---------------------------------------------------------------------------
+
+   procedure Set_Text (H : Label_Handle; Text : String) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Text (Label_Widget (Ptr.all), Text);
+      end if;
+   end Set_Text;
+
+   function Get_Text (H : Label_Handle) return String is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Text (Label_Widget (Ptr.all));
+      end if;
+      return "";
+   end Get_Text;
+
+   procedure Set_Icon (H : Label_Handle; Icon : Image_Access) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Icon (Label_Widget (Ptr.all), Icon);
+      end if;
+   end Set_Icon;
+
+   function "+" (H : Label_Handle) return Widget_Handle is
+   begin
+      return To_Widget_Handle (H);
+   end "+";
+
+   procedure Set_Part_Styles (H : Label_Handle; Styles : Part_Style_Array) is
+   begin
+      Adi.Widget.Set_Part_Styles (To_Widget_Handle (H), Styles);
+   end Set_Part_Styles;
 
    ---------------------
    -- Measure_Content --

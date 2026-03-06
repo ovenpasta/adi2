@@ -11,6 +11,11 @@ procedure Close_Request_Test is
    Pass_Count : Natural := 0;
    Fail_Count : Natural := 0;
 
+   function Resolve (H : Window_Handle) return Window_Access is
+   begin
+      return Resolve_Window_Handle (H);
+   end Resolve;
+
    procedure Assert (Condition : Boolean; Message : String) is
    begin
       Test_Count := Test_Count + 1;
@@ -66,64 +71,80 @@ procedure Close_Request_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Default_Allow is
-      W     : Window_Access;
+      W     : Window_Handle;
       Ready : Boolean := False;
    begin
       Put_Line ("Test: Handle_Close_Request returns True with no subscribers");
       Ensure_SDL_Initialized (Ready);
       if not Ready then return; end if;
 
-      W := Create_Window ("Close Request Test", (320.0, 240.0));
-      Assert (W.Handle_Close_Request,
-              "default (no subscribers) returns True");
+      W := Create_Window_Handle ("Close Request Test", (320.0, 240.0));
+      declare
+         Ptr : constant Window_Access := Resolve (W);
+      begin
+         Assert (Ptr /= null and then Ptr.Handle_Close_Request,
+                 "default (no subscribers) returns True");
+      end;
    end Test_Default_Allow;
 
    procedure Test_Single_Veto is
-      W     : Window_Access;
+      W     : Window_Handle;
       Ready : Boolean := False;
    begin
       Put_Line ("Test: single veto subscriber prevents close");
       Ensure_SDL_Initialized (Ready);
       if not Ready then return; end if;
 
-      W := Create_Window ("Close Request Test", (320.0, 240.0));
-      W.Connect_Close_Request (Veto_Close'Unrestricted_Access);
-      Assert (not W.Handle_Close_Request,
-              "veto subscriber returns False");
+      W := Create_Window_Handle ("Close Request Test", (320.0, 240.0));
+      Connect_Close_Request (W, Veto_Close'Unrestricted_Access);
+      declare
+         Ptr : constant Window_Access := Resolve (W);
+      begin
+         Assert (Ptr /= null and then not Ptr.Handle_Close_Request,
+                 "veto subscriber returns False");
+      end;
    end Test_Single_Veto;
 
    procedure Test_Multiple_Subscribers_One_Veto is
-      W     : Window_Access;
+      W     : Window_Handle;
       Ready : Boolean := False;
    begin
       Put_Line ("Test: one veto among multiple subscribers prevents close");
       Ensure_SDL_Initialized (Ready);
       if not Ready then return; end if;
 
-      W := Create_Window ("Close Request Test", (320.0, 240.0));
-      W.Connect_Close_Request (Allow_Close'Unrestricted_Access);
-      W.Connect_Close_Request (Veto_Close'Unrestricted_Access);
-      Assert (not W.Handle_Close_Request,
-              "any veto wins, returns False");
+      W := Create_Window_Handle ("Close Request Test", (320.0, 240.0));
+      Connect_Close_Request (W, Allow_Close'Unrestricted_Access);
+      Connect_Close_Request (W, Veto_Close'Unrestricted_Access);
+      declare
+         Ptr : constant Window_Access := Resolve (W);
+      begin
+         Assert (Ptr /= null and then not Ptr.Handle_Close_Request,
+                 "any veto wins, returns False");
+      end;
    end Test_Multiple_Subscribers_One_Veto;
 
    procedure Test_All_Allow is
-      W     : Window_Access;
+      W     : Window_Handle;
       Ready : Boolean := False;
    begin
       Put_Line ("Test: all subscribers allow close");
       Ensure_SDL_Initialized (Ready);
       if not Ready then return; end if;
 
-      W := Create_Window ("Close Request Test", (320.0, 240.0));
-      W.Connect_Close_Request (Allow_Close'Unrestricted_Access);
-      W.Connect_Close_Request (Allow_Close'Unrestricted_Access);
-      Assert (W.Handle_Close_Request,
-              "all allow, returns True");
+      W := Create_Window_Handle ("Close Request Test", (320.0, 240.0));
+      Connect_Close_Request (W, Allow_Close'Unrestricted_Access);
+      Connect_Close_Request (W, Allow_Close'Unrestricted_Access);
+      declare
+         Ptr : constant Window_Access := Resolve (W);
+      begin
+         Assert (Ptr /= null and then Ptr.Handle_Close_Request,
+                 "all allow, returns True");
+      end;
    end Test_All_Allow;
 
    procedure Test_Disconnect_Restores_Default is
-      W     : Window_Access;
+      W     : Window_Handle;
       Id    : Close_Request_Signals.Connection_Id;
       Ready : Boolean := False;
    begin
@@ -131,16 +152,24 @@ procedure Close_Request_Test is
       Ensure_SDL_Initialized (Ready);
       if not Ready then return; end if;
 
-      W := Create_Window ("Close Request Test", (320.0, 240.0));
-      Id := W.Connect_Close_Request (Veto_Close'Unrestricted_Access);
+      W := Create_Window_Handle ("Close Request Test", (320.0, 240.0));
+      declare
+         Ptr : constant Window_Access := Resolve (W);
+      begin
+         if Ptr = null then
+            Assert (False, "window handle should resolve");
+            return;
+         end if;
+         Id := Ptr.Connect_Close_Request (Veto_Close'Unrestricted_Access);
 
-      Assert (not W.Handle_Close_Request,
-              "veto connected, returns False");
+         Assert (not Ptr.Handle_Close_Request,
+                 "veto connected, returns False");
 
-      W.Disconnect_Close_Request (Id);
+         Ptr.Disconnect_Close_Request (Id);
 
-      Assert (W.Handle_Close_Request,
-              "veto disconnected, returns True");
+         Assert (Ptr.Handle_Close_Request,
+                 "veto disconnected, returns True");
+      end;
    end Test_Disconnect_Restores_Default;
 
 begin

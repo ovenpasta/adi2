@@ -93,6 +93,17 @@ package Adi.CSS_Source is
                        Name   : String;
                        W      : access Adi.Widget.Widget'Class);
 
+   --  Widget_Handle overloads (resolve handle then delegate to access-based)
+   procedure Bind_Class (Source : in out Style_Source;
+                         Name   : String;
+                         W      : Adi.Widget.Widget_Handle);
+   procedure Bind_Id (Source : in out Style_Source;
+                      Name   : String;
+                      W      : Adi.Widget.Widget_Handle);
+   procedure Bind_Tag (Source : in out Style_Source;
+                       Name   : String;
+                       W      : Adi.Widget.Widget_Handle);
+
    procedure Bind_Selector_Set (Source     : in out Style_Source;
                                 W          : access Adi.Widget.Widget'Class;
                                 Tag_Name   : String := "";

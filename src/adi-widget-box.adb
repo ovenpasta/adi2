@@ -5,6 +5,14 @@ with Adi.Layout_Util; use Adi.Layout_Util;
 
 package body Adi.Widget.Box is
 
+   function Child_At
+     (W     : Widget'Class;
+      Index : Positive) return Widget_Access
+   is
+   begin
+      return Resolve_Handle (Get_Child_Handle (W, Index));
+   end Child_At;
+
    function Child_Participates (Child : Widget_Access) return Boolean is
    begin
       return Child /= null
@@ -21,6 +29,7 @@ package body Adi.Widget.Box is
    begin
       --  Boxes are not clickable/focusable by default
       Result.Flags := [Visible => True, others => False];
+      Register_Widget (Widget_Access (Result));
       return Result;
    end Create;
 
@@ -30,6 +39,57 @@ package body Adi.Widget.Box is
       Result.Geometry := (X, Y, W, H);
       return Result;
    end Create;
+
+   -------------------
+   -- Create_Handle --
+   -------------------
+
+   function Create_Handle return Box_Handle is
+   begin
+      return (Id => Get_Handle (Create.all).Id);
+   end Create_Handle;
+
+   function Create_Handle (X, Y, W, H : Pixel_Type) return Box_Handle is
+   begin
+      return (Id => Get_Handle (Create (X, Y, W, H).all).Id);
+   end Create_Handle;
+
+   function To_Widget_Handle (H : Box_Handle) return Widget_Handle is
+   begin
+      return (Id => H.Id);
+   end To_Widget_Handle;
+
+   function Try_As_Box (H : Widget_Handle) return Box_Handle is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in Box_Widget'Class then
+         return (Id => H.Id);
+      end if;
+      return Null_Box_Handle;
+   end Try_As_Box;
+
+   function Is_Valid (H : Box_Handle) return Boolean is
+   begin
+      return Widget_Stores.Is_Valid (H.Id);
+   end Is_Valid;
+
+   procedure Add_Child (H : Box_Handle; C : Widget_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Add_Child (Ptr.all, C);
+      end if;
+   end Add_Child;
+
+   function "+" (H : Box_Handle) return Widget_Handle is
+   begin
+      return To_Widget_Handle (H);
+   end "+";
+
+   procedure Set_Part_Styles (H : Box_Handle; Styles : Part_Style_Array) is
+   begin
+      Adi.Widget.Set_Part_Styles (To_Widget_Handle (H), Styles);
+   end Set_Part_Styles;
 
    ---------------------------------------------------------------------------
    --  Build_Items - Create the renderable items for this box
@@ -424,7 +484,7 @@ package body Adi.Widget.Box is
          begin
             for I in 1 .. N loop
                declare
-                  Child : constant Widget_Access := Get_Child (W, Positive (I));
+                  Child : constant Widget_Access := Child_At (W, Positive (I));
                begin
                   if Child_Participates (Child) then
                      declare
@@ -636,7 +696,7 @@ overriding procedure Layout (W : in out Box_Widget) is
             begin
                for I in 1 .. N loop
                   declare
-                     Child : constant Widget_Access := Get_Child (W, Positive (I));
+                     Child : constant Widget_Access := Child_At (W, Positive (I));
                   begin
                      if not Child_Participates (Child) then
                         Children_Info (Positive (I)) :=
@@ -693,7 +753,7 @@ overriding procedure Layout (W : in out Box_Widget) is
                   for I in 1 .. N loop
                      declare
                         Child : constant Widget_Access :=
-                          Get_Child (W, Positive (I));
+                          Child_At (W, Positive (I));
                         Provisional : Rectangle := Rects (Positive (I));
                      begin
                         if Child /= null
@@ -751,7 +811,7 @@ overriding procedure Layout (W : in out Box_Widget) is
 
                for I in 1 .. N loop
                   declare
-                     Child : constant Widget_Access := Get_Child (W, Positive (I));
+                     Child : constant Widget_Access := Child_At (W, Positive (I));
                   begin
                      if Child /= null and then Children_Info (Positive (I)).Active then
                         declare
@@ -820,7 +880,7 @@ overriding procedure Layout (W : in out Box_Widget) is
                for I in 1 .. N loop
                   declare
                      Child : constant Widget_Access :=
-                       Get_Child (W, Positive (I));
+                       Child_At (W, Positive (I));
                   begin
                      if Child /= null
                        and then Child_Participates (Child)

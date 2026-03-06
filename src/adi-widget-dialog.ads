@@ -13,11 +13,27 @@ package Adi.Widget.Dialog is
    type Dialog_Widget is new Widget with private;
    type Dialog_Widget_Access is access all Dialog_Widget'Class;
 
-   function Create return Dialog_Widget_Access;
+   --  Typed handle
+   type Dialog_Handle is private;
+   Null_Dialog_Handle : constant Dialog_Handle;
+
+   --  Construction
+   function Create return Dialog_Widget_Access
+     with Obsolescent => "Use Create_Handle";
+   function Create_Handle return Dialog_Handle;
+
+   --  Handle bridge
+   function To_Widget_Handle (H : Dialog_Handle) return Widget_Handle;
+   function Try_As_Dialog (H : Widget_Handle) return Dialog_Handle;
+   function Is_Valid (H : Dialog_Handle) return Boolean;
+   function "+" (H : Dialog_Handle) return Widget_Handle;
+   procedure Set_Part_Styles
+     (H : Dialog_Handle; Styles : Part_Style_Array);
 
    procedure Attach_Window
      (W    : in out Dialog_Widget;
-      Host : Adi.Window.Window_Access);
+      Host : Adi.Window.Window_Access)
+     with Obsolescent => "Use Attach_Window with Window_Handle";
 
    --  Content
    procedure Set_Title   (W : in out Dialog_Widget; Text : String);
@@ -47,7 +63,11 @@ package Adi.Widget.Dialog is
    --  Returns null if Index is out of range.
    function Get_Button
      (W : Dialog_Widget; Index : Positive)
-      return Adi.Widget.Button.Button_Widget_Access;
+      return Adi.Widget.Button.Button_Widget_Access
+     with Obsolescent => "Use Get_Button_Handle";
+   function Get_Button_Handle
+     (W : Dialog_Widget; Index : Positive)
+      return Adi.Widget.Button.Button_Handle;
 
    --  Convenience presets
    procedure Set_OK_Button     (W : in out Dialog_Widget);
@@ -68,7 +88,7 @@ package Adi.Widget.Dialog is
 
    --  Result callback: Button_Index=0 means dismissed (backdrop/escape)
    type Dialog_Result_Callback is access procedure
-     (Dlg          : Dialog_Widget_Access;
+     (W            : Widget_Handle;
       Button_Index : Natural;
       Button_Text  : String);
 
@@ -100,6 +120,60 @@ package Adi.Widget.Dialog is
    procedure Set_Content_Style
      (W : in out Dialog_Widget; S : Part_Style_Array);
 
+   --  Handle methods
+   procedure Attach_Window
+     (H : Dialog_Handle; Host : Adi.Window.Window_Access)
+     with Obsolescent => "Use Attach_Window (H, Host : Window_Handle)";
+   procedure Attach_Window
+     (H : Dialog_Handle; Host : Adi.Window.Window_Handle);
+   procedure Set_Title   (H : Dialog_Handle; Text : String);
+   procedure Set_Message (H : Dialog_Handle; Text : String);
+   procedure Set_Content (H : Dialog_Handle; Content : Widget_Handle);
+   procedure Set_Icon    (H : Dialog_Handle; Icon : Image_Access);
+   function  Add_Button  (H : Dialog_Handle; Text : String) return Positive;
+   procedure Add_Button  (H : Dialog_Handle; Text : String);
+   procedure Clear_Buttons (H : Dialog_Handle);
+   procedure Set_Default_Button (H : Dialog_Handle; Index : Natural);
+   function  Get_Button
+     (H : Dialog_Handle; Index : Positive)
+      return Adi.Widget.Button.Button_Widget_Access
+     with Obsolescent => "Use Get_Button_Handle";
+   function  Get_Button_Handle
+     (H : Dialog_Handle; Index : Positive)
+      return Adi.Widget.Button.Button_Handle;
+   procedure Set_OK_Button     (H : Dialog_Handle);
+   procedure Set_OK_Cancel     (H : Dialog_Handle);
+   procedure Set_Yes_No        (H : Dialog_Handle);
+   procedure Set_Yes_No_Cancel (H : Dialog_Handle);
+   procedure Show    (H : Dialog_Handle);
+   procedure Hide    (H : Dialog_Handle);
+   function  Is_Shown (H : Dialog_Handle) return Boolean;
+   procedure Set_Dismiss_On_Backdrop
+     (H : Dialog_Handle; Value : Boolean := True);
+   procedure Set_Dismiss_On_Escape
+     (H : Dialog_Handle; Value : Boolean := True);
+   procedure Connect_Result
+     (H : Dialog_Handle; CB : Dialog_Result_Callback);
+   function  Connect_Result
+     (H : Dialog_Handle; CB : Dialog_Result_Callback)
+      return Result_Signals.Connection_Id;
+   procedure Disconnect_Result
+     (H : Dialog_Handle; Id : Result_Signals.Connection_Id);
+   procedure Set_Panel_Style
+     (H : Dialog_Handle; S : Part_Style_Array);
+   procedure Set_Title_Style
+     (H : Dialog_Handle; S : Part_Style_Array);
+   procedure Set_Message_Style
+     (H : Dialog_Handle; S : Part_Style_Array);
+   procedure Set_Button_Row_Style
+     (H : Dialog_Handle; S : Part_Style_Array);
+   procedure Set_Button_Style
+     (H : Dialog_Handle; S : Part_Style_Array);
+   procedure Set_Primary_Button_Style
+     (H : Dialog_Handle; S : Part_Style_Array);
+   procedure Set_Content_Style
+     (H : Dialog_Handle; S : Part_Style_Array);
+
    --  Package-level defaults — apply to all dialogs that don't have
    --  per-instance styles set.
    procedure Set_Default_Panel_Style      (S : Part_Style_Array);
@@ -125,6 +199,7 @@ package Adi.Widget.Dialog is
       Scancode : Adi.SDL.Events.SDL_Scancode;
       Key_Mod  : Adi.SDL.Events.SDL_Keymod;
       Repeat   : Boolean);
+   overriding procedure On_Destroy (W : in out Dialog_Widget);
 
 private
 
@@ -158,5 +233,11 @@ private
       Primary_Button_Styles : Part_Style_Array := Empty_Part_Styles;
       Has_Primary_Button_Styles : Boolean := False;
    end record;
+
+   type Dialog_Handle is record
+      Id : Widget_Stores.Object_Id := Widget_Stores.Null_Id;
+   end record;
+   Null_Dialog_Handle : constant Dialog_Handle :=
+     (Id => Widget_Stores.Null_Id);
 
 end Adi.Widget.Dialog;

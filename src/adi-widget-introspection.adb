@@ -12,6 +12,14 @@ with Adi.Widget.Html_View;
 
 package body Adi.Widget.Introspection is
 
+   function Child_Access
+     (W     : Widget'Class;
+      Index : Positive) return Widget_Access
+   is
+   begin
+      return Resolve_Handle (Get_Child_Handle (W, Index));
+   end Child_Access;
+
    function Tag_Name (W : not null access Widget'Class) return String is
    begin
       return Ada.Characters.Handling.To_Lower
@@ -84,7 +92,7 @@ package body Adi.Widget.Introspection is
 
       for I in 1 .. Child_Count (Root.all) loop
          declare
-            C      : constant Widget_Access := Get_Child (Root.all, I);
+            C      : constant Widget_Access := Child_Access (Root.all, I);
             Result : constant Widget_Access := Find_By_Id (C, Id);
          begin
             if Result /= null then
@@ -123,7 +131,7 @@ package body Adi.Widget.Introspection is
             if Idx > Child_Count (Current.all) then
                return null;
             end if;
-            Current := Get_Child (Current.all, Idx);
+            Current := Child_Access (Current.all, Idx);
             Pos := End_Pos + 2;
          end;
       end loop;
@@ -151,7 +159,7 @@ package body Adi.Widget.Introspection is
 
          for I in 1 .. Child_Count (W.all) loop
             declare
-               C     : constant Widget_Access := Get_Child (W.all, I);
+               C     : constant Widget_Access := Child_Access (W.all, I);
                I_Str : constant String := Ada.Strings.Fixed.Trim
                  (Positive'Image (I), Ada.Strings.Left);
                Child_Path : constant String :=
@@ -207,7 +215,7 @@ package body Adi.Widget.Introspection is
 
          for I in 1 .. Child_Count (W.all) loop
             declare
-               C     : constant Widget_Access := Get_Child (W.all, I);
+               C     : constant Widget_Access := Child_Access (W.all, I);
                I_Str : constant String := Ada.Strings.Fixed.Trim
                  (Positive'Image (I), Ada.Strings.Left);
                Child_Path : constant String :=
@@ -255,7 +263,7 @@ package body Adi.Widget.Introspection is
 
          for I in 1 .. Child_Count (W.all) loop
             declare
-               C     : constant Widget_Access := Get_Child (W.all, I);
+               C     : constant Widget_Access := Child_Access (W.all, I);
                I_Str : constant String := Ada.Strings.Fixed.Trim
                  (Positive'Image (I), Ada.Strings.Left);
                Child_Path : constant String :=

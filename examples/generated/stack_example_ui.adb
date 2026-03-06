@@ -6,6 +6,8 @@ pragma Ada_2022;
 with Adi.CSS_Source; use Adi.CSS_Source;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget; use Adi.Widget;
+with Adi.Widget.Box; use Adi.Widget.Box;
+with Adi.Widget.Button; use Adi.Widget.Button;
 with Adi.Widget.Label; use Adi.Widget.Label;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.Window; use Adi.Window;
@@ -15,6 +17,7 @@ with Stack_Example_Tabs_Styles; use Stack_Example_Tabs_Styles;
 package body Stack_Example_UI is
 
    package body Instance is
+   use My_Stack;
    Source : aliased Adi.CSS_Source.Style_Source;
 
    --  Base style for class 'page-title'
@@ -144,20 +147,20 @@ package body Stack_Example_UI is
    end Set_CSS_File;
 
    function Build
-      return Adi.Window.Window_Access is
-      W : constant Adi.Window.Window_Access :=
-        Adi.Window.Create_Window ("Stack Example", (600.0, 450.0));
-      Box_1 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_1 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Blue Page");
-      Label_2 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("This is the third page with a deep blue background.");
+      return Adi.Window.Window_Handle is
+      W : constant Adi.Window.Window_Handle :=
+        Adi.Window.Create_Window_Handle ("Stack Example", (600.0, 450.0));
+      Box_1 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_1 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Blue Page");
+      Label_2 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("This is the third page with a deep blue background.");
    begin
       --  Create widgets
-      Root := Adi.Widget.Box.Create;
-      Tab_Bar := Adi.Widget.Box.Create;
-      Btn_Red := Adi.Widget.Button.Create ("Red");
-      Btn_Green := Adi.Widget.Button.Create ("Green");
-      Btn_Blue := Adi.Widget.Button.Create ("Blue");
-      Pages := My_Stack.Create;
+      Root := Adi.Widget.Box.Create_Handle;
+      Tab_Bar := Adi.Widget.Box.Create_Handle;
+      Btn_Red := Adi.Widget.Button.Create_Handle ("Red");
+      Btn_Green := Adi.Widget.Button.Create_Handle ("Green");
+      Btn_Blue := Adi.Widget.Button.Create_Handle ("Blue");
+      Pages := My_Stack.Create_Handle;
 
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
@@ -194,27 +197,27 @@ package body Stack_Example_UI is
       end;
 
       --  Bind every widget that has a CSS class
-      Adi.CSS_Source.Bind_Class (Source, "root", Root);
-      Adi.CSS_Source.Bind_Class (Source, "tab-bar", Tab_Bar);
-      Adi.CSS_Source.Bind_Class (Source, "tab-left", Btn_Red);
-      Adi.CSS_Source.Bind_Class (Source, "tab-center", Btn_Green);
-      Adi.CSS_Source.Bind_Class (Source, "tab-right", Btn_Blue);
-      Adi.CSS_Source.Bind_Class (Source, "stack", Pages);
-      Adi.CSS_Source.Bind_Class (Source, "page-blue", Box_1);
-      Adi.CSS_Source.Bind_Class (Source, "page-title", Label_1);
-      Adi.CSS_Source.Bind_Class (Source, "page-desc", Label_2);
+      Adi.CSS_Source.Bind_Class (Source, "root", +Root);
+      Adi.CSS_Source.Bind_Class (Source, "tab-bar", +Tab_Bar);
+      Adi.CSS_Source.Bind_Class (Source, "tab-left", +Btn_Red);
+      Adi.CSS_Source.Bind_Class (Source, "tab-center", +Btn_Green);
+      Adi.CSS_Source.Bind_Class (Source, "tab-right", +Btn_Blue);
+      Adi.CSS_Source.Bind_Class (Source, "stack", +Pages);
+      Adi.CSS_Source.Bind_Class (Source, "page-blue", +Box_1);
+      Adi.CSS_Source.Bind_Class (Source, "page-title", +Label_1);
+      Adi.CSS_Source.Bind_Class (Source, "page-desc", +Label_2);
 
       --  Build hierarchy
-      Tab_Bar.Add_Child (Btn_Red);
-      Tab_Bar.Add_Child (Btn_Green);
-      Tab_Bar.Add_Child (Btn_Blue);
-      Box_1.Add_Child (Label_1);
-      Box_1.Add_Child (Label_2);
-      Pages.Add_Page (Red, Red_Page.Build);
-      Pages.Add_Page (Green, Green_Page.Build);
-      Pages.Add_Page (Blue, Box_1);
-      Root.Add_Child (Tab_Bar);
-      Root.Add_Child (Pages);
+      Adi.Widget.Add_Child (+Tab_Bar, +Btn_Red);
+      Adi.Widget.Add_Child (+Tab_Bar, +Btn_Green);
+      Adi.Widget.Add_Child (+Tab_Bar, +Btn_Blue);
+      Adi.Widget.Add_Child (+Box_1, +Label_1);
+      Adi.Widget.Add_Child (+Box_1, +Label_2);
+      My_Stack.Add_Page (Pages, Red, Red_Page.Build);
+      My_Stack.Add_Page (Pages, Green, Green_Page.Build);
+      My_Stack.Add_Page (Pages, Blue, +Box_1);
+      Adi.Widget.Add_Child (+Root, +Tab_Bar);
+      Adi.Widget.Add_Child (+Root, +Pages);
 
       --  Wire option groups
       Tab_Options_Group.Set_Button (Red, Btn_Red);
@@ -224,9 +227,9 @@ package body Stack_Example_UI is
       Tab_Options_Group_Conn := Tab_Options_Group.Connect_Changed (On_Tab_Option_Wrapper'Unrestricted_Access);
 
       --  Auto-wire CSS live reload
-      Adi.Window.Connect_Tick (W.all, Tick_Styles_CB'Unrestricted_Access);
+      Adi.Window.Connect_Tick (W, Tick_Styles_CB'Unrestricted_Access);
 
-      W.Set_Root (Root);
+      Adi.Window.Set_Root (W, +Root);
       return W;
    end Build;
 

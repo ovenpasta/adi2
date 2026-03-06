@@ -12,9 +12,7 @@ import xml_to_ada
 
 def parse_xml(xml_str: str) -> xml_to_ada.XmlApp:
     """Parse an XML string and return the XmlApp."""
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".xml", delete=False
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
         f.write(xml_str)
         f.flush()
         try:
@@ -155,7 +153,7 @@ class TestDialogParsing(unittest.TestCase):
 class TestDialogCodeGeneration(unittest.TestCase):
     """Tests for <dialog> code generation."""
 
-    def test_spec_returns_dialog_widget_access(self):
+    def test_spec_returns_dialog_handle(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <adi>
   <dialog title="Test"/>
@@ -164,7 +162,7 @@ class TestDialogCodeGeneration(unittest.TestCase):
         spec = xml_to_ada.generate_spec(app, "Test_Dialog_UI")
         self.assertIn("Adi.Widget.Dialog", spec)
         self.assertIn(
-            "function Build return Adi.Widget.Dialog.Dialog_Widget_Access;",
+            "function Build return Adi.Widget.Dialog.Dialog_Handle;",
             spec,
         )
         # Should NOT have Adi.Window or bare Adi.Widget return
@@ -178,8 +176,8 @@ class TestDialogCodeGeneration(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_Dialog_UI")
-        self.assertIn("Adi.Widget.Dialog.Create", body)
-        self.assertIn('D.Set_Title ("Hello World")', body)
+        self.assertIn("Adi.Widget.Dialog.Create_Handle", body)
+        self.assertIn('Adi.Widget.Dialog.Set_Title (D, "Hello World")', body)
         self.assertIn("return D;", body)
 
     def test_body_sets_message(self):
@@ -189,7 +187,10 @@ class TestDialogCodeGeneration(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
-        self.assertIn('D.Set_Message ("Are you sure?")', body)
+        self.assertIn(
+            'Adi.Widget.Dialog.Set_Message (D, "Are you sure?")',
+            body,
+        )
 
     def test_body_button_presets(self):
         for preset, method in xml_to_ada.DIALOG_BUTTON_PRESETS.items():
@@ -199,7 +200,7 @@ class TestDialogCodeGeneration(unittest.TestCase):
 </adi>"""
             app = parse_xml(xml)
             body = xml_to_ada.generate_body(app, "Test_UI")
-            self.assertIn(f"D.{method}", body)
+            self.assertIn(f"Adi.Widget.Dialog.{method} (D)", body)
 
     def test_body_default_button(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -208,7 +209,7 @@ class TestDialogCodeGeneration(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
-        self.assertIn("D.Set_Default_Button (1)", body)
+        self.assertIn("Adi.Widget.Dialog.Set_Default_Button (D, 1)", body)
 
     def test_body_default_button_zero(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -217,7 +218,7 @@ class TestDialogCodeGeneration(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
-        self.assertIn("D.Set_Default_Button (0)", body)
+        self.assertIn("Adi.Widget.Dialog.Set_Default_Button (D, 0)", body)
 
     def test_body_dismiss_flags(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -226,8 +227,14 @@ class TestDialogCodeGeneration(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
-        self.assertIn("D.Set_Dismiss_On_Backdrop (True)", body)
-        self.assertIn("D.Set_Dismiss_On_Escape (False)", body)
+        self.assertIn(
+            "Adi.Widget.Dialog.Set_Dismiss_On_Backdrop (D, True)",
+            body,
+        )
+        self.assertIn(
+            "Adi.Widget.Dialog.Set_Dismiss_On_Escape (D, False)",
+            body,
+        )
 
     def test_body_with_content_widget(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -240,7 +247,7 @@ class TestDialogCodeGeneration(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
-        self.assertIn("D.Set_Content (Content)", body)
+        self.assertIn("Adi.Widget.Dialog.Set_Content (D, +Content)", body)
         # The content widget tree should be built
         self.assertIn("Adi.Widget.Box", body)
         self.assertIn("Add_Child", body)
@@ -252,7 +259,7 @@ class TestDialogCodeGeneration(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
-        self.assertIn("Adi.Widget.Dialog.Create", body)
+        self.assertIn("Adi.Widget.Dialog.Create_Handle", body)
         self.assertIn("return D;", body)
         # Should not have Set_Title etc. since no attributes
         self.assertNotIn("Set_Title", body)
@@ -290,7 +297,7 @@ class TestExistingFunctionality(unittest.TestCase):
         self.assertIsNotNone(app.window)
         self.assertIsNone(app.dialog)
         spec = xml_to_ada.generate_spec(app, "Test_UI")
-        self.assertIn("Adi.Window.Window_Access", spec)
+        self.assertIn("Adi.Window.Window_Handle", spec)
 
     def test_bare_widget_mode(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -303,7 +310,7 @@ class TestExistingFunctionality(unittest.TestCase):
         self.assertIsNone(app.window)
         self.assertIsNone(app.dialog)
         spec = xml_to_ada.generate_spec(app, "Test_UI")
-        self.assertIn("Adi.Widget.Widget_Access", spec)
+        self.assertIn("Adi.Widget.Widget_Handle", spec)
 
 
 class TestImageAttribute(unittest.TestCase):
@@ -316,7 +323,9 @@ class TestImageAttribute(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
-        self.assertIn('Set_Icon (Adi.Assets.Get_Image ("icons.svg?id=home"))', body)
+        self.assertIn(
+            'Set_Icon (Label_1, Adi.Assets.Get_Image ("icons.svg?id=home"))', body
+        )
 
     def test_image_src_generates_set_image_with_get_image(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -325,7 +334,7 @@ class TestImageAttribute(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
-        self.assertIn('Set_Image (Adi.Assets.Get_Image ("photo.png"))', body)
+        self.assertIn('Set_Image (Image_1, Adi.Assets.Get_Image ("photo.png"))', body)
 
     def test_no_icon_no_set_icon_call(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -363,7 +372,7 @@ class TestImageAttribute(unittest.TestCase):
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
         self.assertIn(
-            'Set_Image (Adi.Assets.Get_Image ("sheet.png?x=0;y=32;w=16;h=16"))',
+            'Set_Image (Image_1, Adi.Assets.Get_Image ("sheet.png?x=0;y=32;w=16;h=16"))',
             body,
         )
 
@@ -383,7 +392,7 @@ class TestInlineCSSCompanionPath(unittest.TestCase):
             app, "My_UI", inline_css_path="some/dir/my_ui_inline.css"
         )
         self.assertIn(
-            'Add_Dynamic_File',
+            "Add_Dynamic_File",
             body,
         )
         self.assertIn(

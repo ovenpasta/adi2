@@ -4,9 +4,9 @@ with Ada.Directories;
 with Adi.App;
 with Adi.RLottie;               use Adi.RLottie;
 with Adi.Window;                use Adi.Window;
-with Adi.Widget;
+with Adi.Widget;                use Adi.Widget;
 with Adi.Widget.Box;
-with Adi.Widget.Button;         use Adi.Widget.Button;
+with Adi.Widget.Button;
 with Adi.Widget.Label;
 with Adi.Widget.Animated_Widget;
 with Adi.Widget.Animated_Widget.RLottie;
@@ -14,6 +14,11 @@ with RLottie_Example_Styles;    use RLottie_Example_Styles;
 
 procedure RLottie_Example is
    A : Adi.App.App;
+
+   use type Adi.Widget.Box.Box_Handle;
+   use type Adi.Widget.Label.Label_Handle;
+   use type Adi.Widget.Button.Button_Handle;
+   use type Adi.Widget.Animated_Widget.Animated_Widget_Handle;
 
    function Resolve_Lottie_Path return String is
    begin
@@ -33,125 +38,151 @@ begin
    A.Set_Target_FPS (60);
 
    declare
-      W : constant Window_Access :=
-        Create_Window ("RLottie Example", (920.0, 680.0));
+      W : constant Window_Handle :=
+        Create_Window_Handle ("RLottie Example", (920.0, 680.0));
 
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Header : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Title : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("RLottie Deck");
-      Subtitle : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Main-thread render path with transport controls");
-      Deck : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Viewer_Shell : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Viewer : constant Adi.Widget.Animated_Widget.Animated_Widget_Access :=
-        Adi.Widget.Animated_Widget.Create;
-      Transport : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Status : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Loading assets/lottie_sample.json...");
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Header : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Title : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("RLottie Deck");
+      Subtitle : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle
+          ("Main-thread render path with transport controls");
+      Deck : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Viewer_Shell : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Viewer : constant Adi.Widget.Animated_Widget.Animated_Widget_Handle :=
+        Adi.Widget.Animated_Widget.Create_Handle;
+      Transport : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Status : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle
+          ("Loading assets/lottie_sample.json...");
 
-      Btn_Play : constant Button_Widget_Access := Create ("PLAY >");
-      Btn_Stop : constant Button_Widget_Access := Create ("STOP []");
-      Btn_Rew  : constant Button_Widget_Access := Create ("REW <<");
-      Btn_Loop : constant Button_Widget_Access := Create ("LOOP: ON");
+      Btn_Play : constant Adi.Widget.Button.Button_Handle :=
+        Adi.Widget.Button.Create_Handle ("PLAY >");
+      Btn_Stop : constant Adi.Widget.Button.Button_Handle :=
+        Adi.Widget.Button.Create_Handle ("STOP []");
+      Btn_Rew  : constant Adi.Widget.Button.Button_Handle :=
+        Adi.Widget.Button.Create_Handle ("REW <<");
+      Btn_Loop : constant Adi.Widget.Button.Button_Handle :=
+        Adi.Widget.Button.Create_Handle ("LOOP: ON");
 
       Anim : RLottie_Animation_Access := null;
 
-      procedure On_Play (Btn : Button_Widget_Access) is
-         pragma Unreferenced (Btn);
+      procedure On_Play (W : Widget_Handle) is
+         pragma Unreferenced (W);
       begin
-         Viewer.Start;
-         Status.Set_Text ("PLAY");
+         Adi.Widget.Animated_Widget.Start (Viewer);
+         Adi.Widget.Label.Set_Text (Status, "PLAY");
       end On_Play;
 
-      procedure On_Stop (Btn : Button_Widget_Access) is
-         pragma Unreferenced (Btn);
+      procedure On_Stop (W : Widget_Handle) is
+         pragma Unreferenced (W);
       begin
-         Viewer.Stop;
-         Status.Set_Text ("STOP");
+         Adi.Widget.Animated_Widget.Stop (Viewer);
+         Adi.Widget.Label.Set_Text (Status, "STOP");
       end On_Stop;
 
-      procedure On_Rew (Btn : Button_Widget_Access) is
-         pragma Unreferenced (Btn);
+      procedure On_Rew (W : Widget_Handle) is
+         pragma Unreferenced (W);
       begin
-         Viewer.Reset;
-         Status.Set_Text ("REWIND TO FRAME 1");
+         Adi.Widget.Animated_Widget.Reset (Viewer);
+         Adi.Widget.Label.Set_Text (Status, "REWIND TO FRAME 1");
       end On_Rew;
 
       procedure On_Loop_Toggled
-        (Btn    : Button_Widget_Access;
+        (W      : Widget_Handle;
          Active : Boolean)
       is
-         pragma Unreferenced (Btn);
+         pragma Unreferenced (W);
       begin
-         Viewer.Set_Looping (Active);
+         Adi.Widget.Animated_Widget.Set_Looping (Viewer, Active);
          if Active then
-            Btn_Loop.Set_Text ("LOOP: ON");
-            Status.Set_Text ("LOOP ENABLED");
+            Adi.Widget.Button.Set_Text (Btn_Loop, "LOOP: ON");
+            Adi.Widget.Label.Set_Text (Status, "LOOP ENABLED");
          else
-            Btn_Loop.Set_Text ("LOOP: OFF");
-            Status.Set_Text ("LOOP DISABLED");
+            Adi.Widget.Button.Set_Text (Btn_Loop, "LOOP: OFF");
+            Adi.Widget.Label.Set_Text (Status, "LOOP DISABLED");
          end if;
       end On_Loop_Toggled;
 
    begin
-      Adi.Widget.Set_Part_Styles (Root.all, Root_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Header.all, Header_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Title.all, Title_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Subtitle.all, Subtitle_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Deck.all, Deck_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Viewer_Shell.all, Viewer_Shell_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Viewer.all, Viewer_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Transport.all, Transport_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Status.all, Status_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Root, Root_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Header, Header_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Title, Title_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Subtitle, Subtitle_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Deck, Deck_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles
+        (Viewer_Shell, Viewer_Shell_Class_Part_Styles);
+      Adi.Widget.Animated_Widget.Set_Part_Styles
+        (Viewer, Viewer_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Transport, Transport_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Status, Status_Class_Part_Styles);
 
-      Adi.Widget.Set_Part_Styles (Btn_Play.all, Play_Button_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Btn_Stop.all, Stop_Button_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Btn_Rew.all, Rew_Button_Class_Part_Styles);
-      Adi.Widget.Set_Part_Styles (Btn_Loop.all, Loop_Button_Class_Part_Styles);
+      Adi.Widget.Button.Set_Part_Styles
+        (Btn_Play, Play_Button_Class_Part_Styles);
+      Adi.Widget.Button.Set_Part_Styles
+        (Btn_Stop, Stop_Button_Class_Part_Styles);
+      Adi.Widget.Button.Set_Part_Styles
+        (Btn_Rew, Rew_Button_Class_Part_Styles);
+      Adi.Widget.Button.Set_Part_Styles
+        (Btn_Loop, Loop_Button_Class_Part_Styles);
 
-      Btn_Loop.Set_Toggleable (True);
-      Btn_Loop.Set_Toggled (True);
-      Viewer.Set_Looping (True);
-      Viewer.Set_Max_Size (Max_Width => 500.0, Max_Height => 280.0);
+      Adi.Widget.Button.Set_Toggleable (Btn_Loop, True);
+      Adi.Widget.Button.Set_Toggled (Btn_Loop, True);
+      Adi.Widget.Animated_Widget.Set_Looping (Viewer, True);
+      Adi.Widget.Animated_Widget.Set_Max_Size
+        (Viewer, Max_Width => 500.0, Max_Height => 280.0);
 
-      Btn_Play.Connect_Clicked (On_Play'Unrestricted_Access);
-      Btn_Stop.Connect_Clicked (On_Stop'Unrestricted_Access);
-      Btn_Rew.Connect_Clicked (On_Rew'Unrestricted_Access);
-      Btn_Loop.Connect_Toggled (On_Loop_Toggled'Unrestricted_Access);
+      Adi.Widget.Button.Connect_Clicked
+        (Btn_Play, On_Play'Unrestricted_Access);
+      Adi.Widget.Button.Connect_Clicked
+        (Btn_Stop, On_Stop'Unrestricted_Access);
+      Adi.Widget.Button.Connect_Clicked
+        (Btn_Rew, On_Rew'Unrestricted_Access);
+      Adi.Widget.Button.Connect_Toggled
+        (Btn_Loop, On_Loop_Toggled'Unrestricted_Access);
 
-      Root.Add_Child (Header);
-      Header.Add_Child (Title);
-      Header.Add_Child (Subtitle);
+      Add_Child (+Root, +Header);
+      Add_Child (+Header, +Title);
+      Add_Child (+Header, +Subtitle);
 
-      Root.Add_Child (Deck);
-      Deck.Add_Child (Viewer_Shell);
-      Viewer_Shell.Add_Child (Viewer);
-      Deck.Add_Child (Transport);
-      Transport.Add_Child (Btn_Rew);
-      Transport.Add_Child (Btn_Play);
-      Transport.Add_Child (Btn_Stop);
-      Transport.Add_Child (Btn_Loop);
+      Add_Child (+Root, +Deck);
+      Add_Child (+Deck, +Viewer_Shell);
+      Add_Child (+Viewer_Shell, +Viewer);
+      Add_Child (+Deck, +Transport);
+      Add_Child (+Transport, +Btn_Rew);
+      Add_Child (+Transport, +Btn_Play);
+      Add_Child (+Transport, +Btn_Stop);
+      Add_Child (+Transport, +Btn_Loop);
 
-      Root.Add_Child (Status);
+      Add_Child (+Root, +Status);
 
       Anim := Adi.RLottie.Load_From_File (Path => Resolve_Lottie_Path);
       if Anim = null then
-         Status.Set_Text ("FAILED TO LOAD examples/assets/lottie_sample.json");
+         Adi.Widget.Label.Set_Text
+           (Status, "FAILED TO LOAD examples/assets/lottie_sample.json");
       else
-         Adi.Widget.Animated_Widget.RLottie.Set_Animation (Viewer.all, Anim);
-         Viewer.Set_Looping (Btn_Loop.Is_Toggled);
-         Status.Set_Text
-           ("READY  FRAMES:" &
+         declare
+            R : constant Widget_Ref := Borrow (+Viewer);
+         begin
+            Adi.Widget.Animated_Widget.RLottie.Set_Animation
+              (Adi.Widget.Animated_Widget.Animated_Widget'Class (R.Ptr.all),
+               Anim);
+         end;
+         Adi.Widget.Animated_Widget.Set_Looping
+           (Viewer, Adi.Widget.Button.Is_Toggled (Btn_Loop));
+         Adi.Widget.Label.Set_Text
+           (Status,
+            "READY  FRAMES:" &
             Natural'Image (Get_Frame_Count (Anim.all)));
       end if;
 
-      W.Set_Root (Root);
+      Adi.Window.Set_Root (W, Widget_Handle'(+Root));
       A.Add_Window (W);
       A.Run;
 

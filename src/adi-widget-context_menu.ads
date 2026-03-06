@@ -2,6 +2,7 @@ with Ada.Containers.Indefinite_Holders;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 with Adi.Core;              use Adi.Core;
+with Adi.Handle_Store;
 with Adi.Signal;
 with Adi.Widget;
 with Adi.Widget.Label;
@@ -10,22 +11,46 @@ with Adi.Window;
 
 package Adi.Widget.Context_Menu is
 
-   type Context_Menu is tagged limited private;
-   type Context_Menu_Access is access all Context_Menu;
+   type Context_Menu is abstract tagged limited private;
+   type Context_Menu_Access is access all Context_Menu'Class;
+
+   ---------------------------------------------------------------------------
+   --  Handle Store (generational IDs, deferred destroy, borrow pinning)
+   ---------------------------------------------------------------------------
+
+   type Menu_Handle is private;
+   Null_Menu_Handle : constant Menu_Handle;
+
+   function Is_Valid    (H : Menu_Handle) return Boolean;
+   procedure Destroy    (H : in out Menu_Handle);
+   function Get_Handle  (M : Context_Menu) return Menu_Handle;
+
+   --  Drain deferred menu destroys (call once per frame from App.Run)
+   procedure Pump_Menu_Store;
+
+   ---------------------------------------------------------------------------
 
    type Item_Selected_Callback is access procedure
-     (Menu  : Context_Menu_Access;
+     (Menu  : Menu_Handle;
       Index : Positive;
       Text  : String);
 
    package Item_Selected_Signals is new Adi.Signal
      (Item_Selected_Callback, null);
 
-   function Create return Context_Menu_Access;
+   function Create return Context_Menu_Access
+     with Obsolescent => "Use Create_Handle";
+   function Create_Handle return Menu_Handle;
+   function Resolve_Menu_Handle (H : Menu_Handle) return Context_Menu_Access
+     with Obsolescent => "Bridge only; prefer Menu_Handle APIs";
 
    procedure Attach_Window
      (Menu : in out Context_Menu;
-      Host : Adi.Window.Window_Access);
+      Host : Adi.Window.Window_Access)
+     with Obsolescent => "Use Attach_Window with Window_Handle";
+   procedure Attach_Window
+     (Menu : in out Context_Menu;
+      Host : Adi.Window.Window_Handle);
 
    procedure Add_Item
      (Menu : in out Context_Menu;
@@ -92,6 +117,23 @@ private
       Row_Styles  : Part_Style_Holders.Holder;
       Open        : Boolean := False;
       Item_Selected : Item_Selected_Signals.Signal;
+
+      --  Handle store slot (raw Naturals; Menu_Stores after full type)
+      Store_Index : Natural := 0;
+      Store_Gen   : Natural := 0;
    end record;
+
+   ---------------------------------------------------------------------------
+   --  Menu Handle Store instantiation (after Context_Menu full definition)
+   ---------------------------------------------------------------------------
+
+   package Menu_Stores is new Adi.Handle_Store
+     (Context_Menu, Context_Menu_Access);
+
+   type Menu_Handle is record
+      Id : Menu_Stores.Object_Id := Menu_Stores.Null_Id;
+   end record;
+
+   Null_Menu_Handle : constant Menu_Handle := (Id => Menu_Stores.Null_Id);
 
 end Adi.Widget.Context_Menu;

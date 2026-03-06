@@ -656,11 +656,11 @@ procedure Window_Resize_Safety_Test is
       Last_Index : Natural := 0;
 
       procedure On_Result
-        (Dlg_Inst     : Adi.Widget.Dialog.Dialog_Widget_Access;
+        (W            : Widget_Handle;
          Button_Index : Natural;
          Button_Text  : String)
       is
-         pragma Unreferenced (Dlg_Inst, Button_Text);
+         pragma Unreferenced (W, Button_Text);
       begin
          Last_Index := Button_Index;
       end On_Result;

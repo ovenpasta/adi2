@@ -29,6 +29,17 @@ package body Adi.Widget.Button.Options is
       end if;
    end Set_Button;
 
+   procedure Set_Button (G : in out Option_Group;
+                         O : Option_Type;
+                         B : Button_Handle) is
+      Ptr : constant Widget_Access := Resolve_Handle (+B);
+   begin
+      if Ptr = null then
+         raise Constraint_Error with "Set_Button: stale or null handle";
+      end if;
+      Set_Button (G, O, Button_Widget_Access (Ptr));
+   end Set_Button;
+
    ------------------
    -- Get_Selected --
    ------------------
@@ -95,17 +106,22 @@ package body Adi.Widget.Button.Options is
    -------------------------
 
    overriding procedure On_Button_Clicked
-     (G   : in out Option_Group;
-      Btn : Button_Widget_Access)
+     (G : in out Option_Group;
+      W : Widget_Handle)
    is
+      Ptr : constant Widget_Access := Resolve_Handle (W);
    begin
+      if Ptr = null then
+         return;
+      end if;
+
       --  Find which option this button corresponds to
       for O in Option_Type loop
-         if G.Buttons (O) = Btn then
+         if Widget_Access (G.Buttons (O)) = Ptr then
             --  Already selected? No-op (radio behavior)
             if O = G.Selected then
                --  Ensure it stays toggled (user might have un-toggled visually)
-               Set_Toggled (Btn.all, True);
+               Set_Toggled (G.Buttons (O).all, True);
                return;
             end if;
 
@@ -116,7 +132,7 @@ package body Adi.Widget.Button.Options is
 
             --  Select new button
             G.Selected := O;
-            Set_Toggled (Btn.all, True);
+            Set_Toggled (G.Buttons (O).all, True);
 
             --  Fire user callback
             declare

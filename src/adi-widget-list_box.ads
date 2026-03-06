@@ -15,13 +15,31 @@ package Adi.Widget.List_Box is
    type List_Box_Widget is new Widget with private;
    type List_Box_Widget_Access is access all List_Box_Widget'Class;
 
+   --  Typed handle
+   type List_Box_Handle is private;
+   Null_List_Box_Handle : constant List_Box_Handle;
 
-   function Create return List_Box_Widget_Access;
+   --  Construction
+   function Create return List_Box_Widget_Access
+     with Obsolescent => "Use Create_Handle";
+   function Create_Handle return List_Box_Handle;
 
-   procedure Append_Row (W : in out List_Box_Widget; Row : Row_Widget_Access);
+   --  Handle bridge
+   function To_Widget_Handle (H : List_Box_Handle) return Widget_Handle;
+   function Try_As_List_Box (H : Widget_Handle) return List_Box_Handle;
+   function Is_Valid (H : List_Box_Handle) return Boolean;
+   function "+" (H : List_Box_Handle) return Widget_Handle;
+   procedure Set_Part_Styles
+     (H : List_Box_Handle; Styles : Part_Style_Array);
+
+   procedure Append_Row (W : in out List_Box_Widget; Row : Row_Widget_Access)
+     with Obsolescent => "Use Append_Row with List_Box_Handle and Widget_Handle";
    procedure Clear_Rows (W : in out List_Box_Widget);
    function Row_Count (W : List_Box_Widget) return Natural;
-   function Get_Row (W : List_Box_Widget; Index : Positive) return Row_Widget_Access;
+   function Get_Row (W : List_Box_Widget; Index : Positive) return Row_Widget_Access
+     with Obsolescent => "Use Get_Row_Handle";
+   function Get_Row_Handle
+     (W : List_Box_Widget; Index : Positive) return Widget_Handle;
 
    procedure Set_Scroll_Offset (W : in out List_Box_Widget; Offset : Pixel_Type);
    function Get_Scroll_Offset (W : List_Box_Widget) return Pixel_Type;
@@ -41,11 +59,11 @@ package Adi.Widget.List_Box is
    function Get_Current_Row (W : List_Box_Widget) return Natural;
 
    type Item_Clicked_Callback is access procedure
-     (W : List_Box_Widget_Access; Index : Positive; Clicks : Natural);
+     (W : Widget_Handle; Index : Positive; Clicks : Natural);
    type Item_Activated_Callback is access procedure
-     (W : List_Box_Widget_Access; Index : Positive);
+     (W : Widget_Handle; Index : Positive);
    type Selection_Changed_Callback is access procedure
-     (W : List_Box_Widget_Access);
+     (W : Widget_Handle);
 
    package Item_Clicked_Signals is new Adi.Signal
      (Item_Clicked_Callback, null);
@@ -78,6 +96,54 @@ package Adi.Widget.List_Box is
    procedure Disconnect_Selection_Changed
      (W : in out List_Box_Widget;
       Id : Selection_Changed_Signals.Connection_Id);
+
+   --  Handle methods
+   procedure Append_Row (H : List_Box_Handle; Row : Row_Widget_Access)
+     with Obsolescent => "Use Append_Row (H, Row : Widget_Handle)";
+   procedure Append_Row (H : List_Box_Handle; Row : Adi.Widget.Widget_Handle);
+   procedure Clear_Rows (H : List_Box_Handle);
+   function  Row_Count (H : List_Box_Handle) return Natural;
+   function  Get_Row (H : List_Box_Handle; Index : Positive)
+      return Row_Widget_Access
+     with Obsolescent => "Use Get_Row_Handle";
+   function  Get_Row_Handle
+     (H : List_Box_Handle; Index : Positive) return Widget_Handle;
+   procedure Set_Scroll_Offset (H : List_Box_Handle; Offset : Pixel_Type);
+   function  Get_Scroll_Offset (H : List_Box_Handle) return Pixel_Type;
+   function  Get_Content_Height (H : List_Box_Handle) return Pixel_Type;
+   procedure Scroll_By (H : List_Box_Handle; Delta_Y : Pixel_Type);
+   procedure Ensure_Row_Visible (H : List_Box_Handle; Index : Positive);
+   procedure Set_Selection_Mode (H : List_Box_Handle; Mode : Selection_Mode);
+   function  Get_Selection_Mode (H : List_Box_Handle) return Selection_Mode;
+   procedure Clear_Selection (H : List_Box_Handle);
+   procedure Select_Row (H : List_Box_Handle; Index : Positive);
+   procedure Toggle_Row_Selected (H : List_Box_Handle; Index : Positive);
+   function  Is_Row_Selected (H : List_Box_Handle; Index : Positive)
+      return Boolean;
+   function  Get_Selected_Count (H : List_Box_Handle) return Natural;
+   procedure Set_Current_Row (H : List_Box_Handle; Index : Positive);
+   function  Get_Current_Row (H : List_Box_Handle) return Natural;
+   procedure Connect_Item_Clicked
+     (H : List_Box_Handle; CB : Item_Clicked_Callback);
+   function  Connect_Item_Clicked
+     (H : List_Box_Handle; CB : Item_Clicked_Callback)
+      return Item_Clicked_Signals.Connection_Id;
+   procedure Disconnect_Item_Clicked
+     (H : List_Box_Handle; Id : Item_Clicked_Signals.Connection_Id);
+   procedure Connect_Item_Activated
+     (H : List_Box_Handle; CB : Item_Activated_Callback);
+   function  Connect_Item_Activated
+     (H : List_Box_Handle; CB : Item_Activated_Callback)
+      return Item_Activated_Signals.Connection_Id;
+   procedure Disconnect_Item_Activated
+     (H : List_Box_Handle; Id : Item_Activated_Signals.Connection_Id);
+   procedure Connect_Selection_Changed
+     (H : List_Box_Handle; CB : Selection_Changed_Callback);
+   function  Connect_Selection_Changed
+     (H : List_Box_Handle; CB : Selection_Changed_Callback)
+      return Selection_Changed_Signals.Connection_Id;
+   procedure Disconnect_Selection_Changed
+     (H : List_Box_Handle; Id : Selection_Changed_Signals.Connection_Id);
 
    overriding procedure Build_Items (W : in out List_Box_Widget);
    overriding procedure Layout (W : in out List_Box_Widget);
@@ -127,5 +193,11 @@ private
       Item_Activated     : Item_Activated_Signals.Signal;
       Selection_Changed  : Selection_Changed_Signals.Signal;
    end record;
+
+   type List_Box_Handle is record
+      Id : Widget_Stores.Object_Id := Widget_Stores.Null_Id;
+   end record;
+   Null_List_Box_Handle : constant List_Box_Handle :=
+     (Id => Widget_Stores.Null_Id);
 
 end Adi.Widget.List_Box;

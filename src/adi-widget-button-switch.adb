@@ -75,8 +75,164 @@ package body Adi.Widget.Button.Switch is
       Set_Flag (Result.all, Visible, True);
       Set_Toggleable (Result.all, True);
       Set_Checked (Result.all, Checked);
+      Register_Widget (Widget_Access (Result));
       return Result;
    end Create;
+
+   -------------------
+   -- Create_Handle --
+   -------------------
+
+   function Create_Handle (Checked : Boolean := False) return Switch_Handle is
+   begin
+      return (Id => Get_Handle (Create (Checked).all).Id);
+   end Create_Handle;
+
+   ----------------------
+   -- Handle bridge --
+   ----------------------
+
+   function To_Widget_Handle (H : Switch_Handle) return Widget_Handle is
+   begin
+      return (Id => H.Id);
+   end To_Widget_Handle;
+
+   function Try_As_Switch (H : Widget_Handle) return Switch_Handle is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in Switch_Widget'Class then
+         return (Id => H.Id);
+      end if;
+      return Null_Switch_Handle;
+   end Try_As_Switch;
+
+   function Is_Valid (H : Switch_Handle) return Boolean is
+   begin
+      return Widget_Stores.Is_Valid (H.Id);
+   end Is_Valid;
+
+   function "+" (H : Switch_Handle) return Widget_Handle is
+   begin
+      return To_Widget_Handle (H);
+   end "+";
+
+   procedure Set_Part_Styles (H : Switch_Handle; Styles : Part_Style_Array) is
+   begin
+      Adi.Widget.Set_Part_Styles (To_Widget_Handle (H), Styles);
+   end Set_Part_Styles;
+
+   --------------------
+   -- Handle methods --
+   --------------------
+
+   procedure Set_Checked (H : Switch_Handle; Value : Boolean) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Checked (Switch_Widget (Ptr.all), Value);
+      end if;
+   end Set_Checked;
+
+   function Is_Checked (H : Switch_Handle) return Boolean is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Is_Checked (Switch_Widget (Ptr.all));
+      end if;
+      return False;
+   end Is_Checked;
+
+   procedure Connect_Clicked (H : Switch_Handle; CB : Click_Callback) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Connect_Clicked (Button_Widget (Ptr.all), CB);
+      end if;
+   end Connect_Clicked;
+
+   function Connect_Clicked (H : Switch_Handle; CB : Click_Callback)
+     return Click_Signals.Connection_Id
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Connect_Clicked (Button_Widget (Ptr.all), CB);
+      end if;
+      return Click_Signals.No_Connection;
+   end Connect_Clicked;
+
+   procedure Disconnect_Clicked
+     (H : Switch_Handle; Id : Click_Signals.Connection_Id)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Disconnect_Clicked (Button_Widget (Ptr.all), Id);
+      end if;
+   end Disconnect_Clicked;
+
+   procedure Connect_Toggled (H : Switch_Handle; CB : Toggle_Callback) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Connect_Toggled (Button_Widget (Ptr.all), CB);
+      end if;
+   end Connect_Toggled;
+
+   function Connect_Toggled (H : Switch_Handle; CB : Toggle_Callback)
+     return Toggle_Signals.Connection_Id
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Connect_Toggled (Button_Widget (Ptr.all), CB);
+      end if;
+      return Toggle_Signals.No_Connection;
+   end Connect_Toggled;
+
+   procedure Disconnect_Toggled
+     (H : Switch_Handle; Id : Toggle_Signals.Connection_Id)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Disconnect_Toggled (Button_Widget (Ptr.all), Id);
+      end if;
+   end Disconnect_Toggled;
+
+   procedure Set_Toggleable (H : Switch_Handle; Value : Boolean := True) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Toggleable (Button_Widget (Ptr.all), Value);
+      end if;
+   end Set_Toggleable;
+
+   function Is_Toggleable (H : Switch_Handle) return Boolean is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Is_Toggleable (Button_Widget (Ptr.all));
+      end if;
+      return False;
+   end Is_Toggleable;
+
+   function Is_Toggled (H : Switch_Handle) return Boolean is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Is_Toggled (Button_Widget (Ptr.all));
+      end if;
+      return False;
+   end Is_Toggled;
+
+   procedure Set_Toggled (H : Switch_Handle; Value : Boolean) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Toggled (Button_Widget (Ptr.all), Value);
+      end if;
+   end Set_Toggled;
 
    -----------------
    -- Set_Checked --

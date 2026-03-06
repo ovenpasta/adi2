@@ -18,8 +18,51 @@ package body Adi.Widget.Stack is
       Result : constant Stack_Widget_Access := new Stack_Widget;
    begin
       Result.Flags := [Visible => True, others => False];
+      declare
+         P : constant access Widget'Class := Result.all'Unchecked_Access;
+      begin
+         Register_Widget (Widget_Access (P));
+      end;
       return Result;
    end Create;
+
+   function Create_Handle return Stack_Handle is
+   begin
+      return (Id => Get_Handle (Create.all).Id);
+   end Create_Handle;
+
+   ----------------------
+   -- Handle bridge --
+   ----------------------
+
+   function To_Widget_Handle (H : Stack_Handle) return Widget_Handle is
+   begin
+      return (Id => H.Id);
+   end To_Widget_Handle;
+
+   function Try_As_Stack (H : Widget_Handle) return Stack_Handle is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in Stack_Widget'Class then
+         return (Id => H.Id);
+      end if;
+      return Null_Stack_Handle;
+   end Try_As_Stack;
+
+   function Is_Valid (H : Stack_Handle) return Boolean is
+   begin
+      return Widget_Stores.Is_Valid (H.Id);
+   end Is_Valid;
+
+   function "+" (H : Stack_Handle) return Widget_Handle is
+   begin
+      return To_Widget_Handle (H);
+   end "+";
+
+   procedure Set_Part_Styles (H : Stack_Handle; Styles : Part_Style_Array) is
+   begin
+      Adi.Widget.Set_Part_Styles (To_Widget_Handle (H), Styles);
+   end Set_Part_Styles;
 
    ---------------------------------------------------------------------------
    --  Page Management
@@ -87,10 +130,31 @@ package body Adi.Widget.Stack is
       return null;
    end Get_Active_Widget;
 
+   function Get_Active_Widget_Handle (W : Stack_Widget) return Widget_Handle is
+      Page : constant Widget_Access := Get_Active_Widget (W);
+   begin
+      if Page = null then
+         return Null_Handle;
+      end if;
+      return Get_Handle (Page.all);
+   end Get_Active_Widget_Handle;
+
    function Get_Page (W : Stack_Widget; Id : Page_Id) return Widget_Access is
    begin
       return W.Pages (Id);
    end Get_Page;
+
+   function Get_Page_Handle
+     (W  : Stack_Widget;
+      Id : Page_Id) return Widget_Handle
+   is
+      Page : constant Widget_Access := Get_Page (W, Id);
+   begin
+      if Page = null then
+         return Null_Handle;
+      end if;
+      return Get_Handle (Page.all);
+   end Get_Page_Handle;
 
    procedure Connect_Changed (W  : in out Stack_Widget;
                               CB : Page_Changed_Callback) is
@@ -204,5 +268,111 @@ package body Adi.Widget.Stack is
          end;
       end loop;
    end Layout;
+
+   ---------------------------------------------------------------------------
+   --  Handle methods
+   ---------------------------------------------------------------------------
+
+   procedure Add_Page (H : Stack_Handle; Id : Page_Id; Page : Widget_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         declare
+            P : constant Widget_Access := Resolve_Handle (Page);
+         begin
+            if P /= null then
+               Add_Page (Stack_Widget (Ptr.all), Id, P);
+            end if;
+         end;
+      end if;
+   end Add_Page;
+
+   procedure Set_Active (H : Stack_Handle; Id : Page_Id) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Active (Stack_Widget (Ptr.all), Id);
+      end if;
+   end Set_Active;
+
+   function Get_Active (H : Stack_Handle) return Page_Id is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Active (Stack_Widget (Ptr.all));
+      end if;
+      return Page_Id'First;
+   end Get_Active;
+
+   function Get_Active_Widget (H : Stack_Handle) return Widget_Access is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Active_Widget (Stack_Widget (Ptr.all));
+      end if;
+      return null;
+   end Get_Active_Widget;
+
+   function Get_Active_Widget_Handle (H : Stack_Handle) return Widget_Handle is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Active_Widget_Handle (Stack_Widget (Ptr.all));
+      end if;
+      return Null_Handle;
+   end Get_Active_Widget_Handle;
+
+   function Get_Page (H : Stack_Handle; Id : Page_Id) return Widget_Access is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Page (Stack_Widget (Ptr.all), Id);
+      end if;
+      return null;
+   end Get_Page;
+
+   function Get_Page_Handle
+     (H  : Stack_Handle;
+      Id : Page_Id) return Widget_Handle
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Page_Handle (Stack_Widget (Ptr.all), Id);
+      end if;
+      return Null_Handle;
+   end Get_Page_Handle;
+
+   procedure Connect_Changed
+     (H : Stack_Handle; CB : Page_Changed_Callback)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Connect_Changed (Stack_Widget (Ptr.all), CB);
+      end if;
+   end Connect_Changed;
+
+   function Connect_Changed
+     (H : Stack_Handle; CB : Page_Changed_Callback)
+      return Page_Changed_Signals.Connection_Id
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Connect_Changed (Stack_Widget (Ptr.all), CB);
+      end if;
+      return Page_Changed_Signals.No_Connection;
+   end Connect_Changed;
+
+   procedure Disconnect_Changed
+     (H : Stack_Handle; Id : Page_Changed_Signals.Connection_Id)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Disconnect_Changed (Stack_Widget (Ptr.all), Id);
+      end if;
+   end Disconnect_Changed;
 
 end Adi.Widget.Stack;

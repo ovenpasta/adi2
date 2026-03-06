@@ -25,7 +25,7 @@ If using the XML UI system, create `examples/xml/<name>.xml`. The root element i
 
 Available widget tags are defined in `tools/widgets.xml`: `box`, `label`, `button`, `switch`, `stack`, `text-input`, `text-editor`, `combo-box`, `image`, `animated-image`, `animated-widget`, `rlottie`, `html-view`, `list-box`.
 
-Widgets with an `id` attribute become named fields accessible from Ada code (e.g., `UI.My_Image`).
+Widgets with an `id` attribute become named handle fields accessible from Ada code (e.g., `UI.My_Image`).
 
 ## 3. Register in code generation scripts
 
@@ -81,7 +81,7 @@ with Image_Example_UI;
 procedure Image_Example is
    A : Adi.App.App;
    package UI is new Image_Example_UI.Instance;
-   W : Window_Access;
+   W : Window_Handle;
 begin
    A.Init;
    A.Set_Target_FPS (60);

@@ -14,6 +14,14 @@ package body Adi.Widget.Dialog is
    Default_Primary_Button_Styles : Part_Style_Holders.Holder;
    Default_Content_Styles        : Part_Style_Holders.Holder;
 
+   function Child_At
+     (W     : Widget'Class;
+      Index : Positive) return Widget_Access
+   is
+   begin
+      return Resolve_Handle (Get_Child_Handle (W, Index));
+   end Child_At;
+
    ---------------------------------------------------------------------------
    --  Internal: Dialog_Button_Widget extends Button to forward Escape
    ---------------------------------------------------------------------------
@@ -148,12 +156,23 @@ package body Adi.Widget.Dialog is
    --  On_Button_Clicked: shared click handler for dialog buttons
    ---------------------------------------------------------------------------
 
-   procedure On_Button_Clicked (Btn : Button_Widget_Access) is
-      Btn_Widget : constant Widget_Access := Widget_Access (Btn);
-      Owner      : constant Dialog_Widget_Access := Find_Owner_By_Button (Btn_Widget);
+   procedure On_Button_Clicked (W : Widget_Handle) is
+      Btn_Widget : Widget_Access := null;
+      Owner      : Dialog_Widget_Access := null;
       Index      : Natural;
       Text       : Unbounded_String;
    begin
+      for I in 1 .. Natural (Dialog_Bindings.Length) loop
+         declare
+            B : constant Widget_Access := Dialog_Bindings.Element (I).Btn;
+         begin
+            if B /= null and then Get_Handle (B.all) = W then
+               Btn_Widget := B;
+               Owner := Dialog_Bindings.Element (I).Owner;
+               exit;
+            end if;
+         end;
+      end loop;
       if Owner = null then
          return;
       end if;
@@ -166,8 +185,9 @@ package body Adi.Widget.Dialog is
       declare
          Idx : constant Natural := Index;
          Txt : constant String := To_String (Text);
+         OH  : constant Widget_Handle := Get_Handle (Owner.all);
          procedure Call (CB : Dialog_Result_Callback) is
-         begin CB (Owner, Idx, Txt); end Call;
+         begin CB (OH, Idx, Txt); end Call;
          procedure Emit is new Result_Signals.For_Each (Call);
       begin
          Emit (Owner.Result);
@@ -180,9 +200,9 @@ package body Adi.Widget.Dialog is
    ---------------------------------------------------------------------------
 
    procedure Fire_Dismiss (W : in out Dialog_Widget) is
-      Self : constant Dialog_Widget_Access := W'Unchecked_Access;
+      H : constant Widget_Handle := Get_Handle (W);
       procedure Call (CB : Dialog_Result_Callback) is
-      begin CB (Self, 0, ""); end Call;
+      begin CB (H, 0, ""); end Call;
       procedure Emit is new Result_Signals.For_Each (Call);
    begin
       if not W.Shown then
@@ -211,19 +231,19 @@ package body Adi.Widget.Dialog is
 
       --  Title label
       Result.Title_Label := Adi.Widget.Label.Create ("");
-      Add_Child (Result.Content_Panel.all, Widget_Access (Result.Title_Label));
+      Add_Child (Result.Content_Panel.all, Get_Handle (Result.Title_Label.all));
 
       --  Message label
       Result.Message_Label := Adi.Widget.Label.Create ("");
-      Add_Child (Result.Content_Panel.all, Widget_Access (Result.Message_Label));
+      Add_Child (Result.Content_Panel.all, Get_Handle (Result.Message_Label.all));
 
       --  Button row: flex row
       Result.Button_Row := Adi.Widget.Box.Create;
-      Add_Child (Result.Content_Panel.all, Widget_Access (Result.Button_Row));
+      Add_Child (Result.Content_Panel.all, Get_Handle (Result.Button_Row.all));
 
       --  Content panel must be part of the dialog tree so overlay rendering
       --  traverses and draws title/message/buttons above the backdrop.
-      Add_Child (Result.all, Widget_Access (Result.Content_Panel));
+      Add_Child (Result.all, Get_Handle (Result.Content_Panel.all));
 
       --  Apply package-level default styles if set
       if not Default_Panel_Styles.Is_Empty then
@@ -243,8 +263,54 @@ package body Adi.Widget.Dialog is
          Result.Has_Button_Styles := True;
       end if;
 
+      Register_Widget (Widget_Access (Result));
       return Result;
    end Create;
+
+   -------------------
+   -- Create_Handle --
+   -------------------
+
+   function Create_Handle return Dialog_Handle is
+      Result : constant Dialog_Widget_Access := Create;
+   begin
+      return (Id => Get_Handle (Result.all).Id);
+   end Create_Handle;
+
+   ----------------------
+   -- Handle bridge --
+   ----------------------
+
+   function To_Widget_Handle (H : Dialog_Handle) return Widget_Handle is
+   begin
+      return (Id => H.Id);
+   end To_Widget_Handle;
+
+   function Try_As_Dialog (H : Widget_Handle) return Dialog_Handle is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in Dialog_Widget'Class then
+         return (Id => H.Id);
+      end if;
+      return Null_Dialog_Handle;
+   end Try_As_Dialog;
+
+   function Is_Valid (H : Dialog_Handle) return Boolean is
+   begin
+      return Widget_Stores.Is_Valid (H.Id);
+   end Is_Valid;
+
+   function "+" (H : Dialog_Handle) return Widget_Handle is
+   begin
+      return To_Widget_Handle (H);
+   end "+";
+
+   procedure Set_Part_Styles
+     (H : Dialog_Handle; Styles : Part_Style_Array)
+   is
+   begin
+      Adi.Widget.Set_Part_Styles (To_Widget_Handle (H), Styles);
+   end Set_Part_Styles;
 
    ---------------------------------------------------------------------------
    --  Attach_Window
@@ -308,7 +374,9 @@ package body Adi.Widget.Dialog is
    begin
       --  Remove previous custom content if any
       if W.Custom_Content /= null then
-         Remove_Child (W.Content_Panel.all, W.Custom_Content);
+         Remove_Child
+           (Get_Handle (W.Content_Panel.all),
+            Get_Handle (W.Custom_Content.all));
          W.Custom_Content := null;
       end if;
 
@@ -316,28 +384,36 @@ package body Adi.Widget.Dialog is
          --  Remove message label from tree only if it is currently attached
          --  (i.e. we were not already in custom-content mode).
          if not Had_Custom and then W.Message_Label /= null then
-            Remove_Child (W.Content_Panel.all, Widget_Access (W.Message_Label));
+            Remove_Child
+              (Get_Handle (W.Content_Panel.all),
+               Get_Handle (W.Message_Label.all));
          end if;
          --  Remove button row so we can re-add after content
-         Remove_Child (W.Content_Panel.all, Widget_Access (W.Button_Row));
+         Remove_Child
+           (Get_Handle (W.Content_Panel.all),
+            Get_Handle (W.Button_Row.all));
 
          --  Detach from any existing parent before adopting
          if Content.Parent /= null then
-            Remove_Child (Content.Parent.all, Content);
+            Remove_Child
+              (Get_Handle (Content.Parent.all),
+               Get_Handle (Content.all));
          end if;
 
          W.Custom_Content := Content.all'Unchecked_Access;
          if not Default_Content_Styles.Is_Empty then
             Set_Part_Styles (W.Custom_Content.all, Default_Content_Styles.Element);
          end if;
-         Add_Child (W.Content_Panel.all, W.Custom_Content);
-         Add_Child (W.Content_Panel.all, Widget_Access (W.Button_Row));
+         Add_Child (W.Content_Panel.all, Get_Handle (W.Custom_Content.all));
+         Add_Child (W.Content_Panel.all, Get_Handle (W.Button_Row.all));
       else
          --  Restore message label only if we were in custom-content mode
          if Had_Custom and then W.Message_Label /= null then
-            Remove_Child (W.Content_Panel.all, Widget_Access (W.Button_Row));
-            Add_Child (W.Content_Panel.all, Widget_Access (W.Message_Label));
-            Add_Child (W.Content_Panel.all, Widget_Access (W.Button_Row));
+            Remove_Child
+              (Get_Handle (W.Content_Panel.all),
+               Get_Handle (W.Button_Row.all));
+            Add_Child (W.Content_Panel.all, Get_Handle (W.Message_Label.all));
+            Add_Child (W.Content_Panel.all, Get_Handle (W.Button_Row.all));
          end if;
       end if;
 
@@ -360,9 +436,10 @@ package body Adi.Widget.Dialog is
       Adi.Widget.Label.Set_Text
         (Adi.Widget.Label.Label_Widget (Btn.all), Text);
       Connect_Clicked (Btn.all, On_Button_Clicked'Access);
+      Register_Widget (Widget_Access (Btn));
 
       Register_Button_Binding (Btn_As_Widget, W'Unchecked_Access);
-      Add_Child (W.Button_Row.all, Widget_Access (Btn));
+      Add_Child (W.Button_Row.all, Get_Handle (Btn.all));
       W.Buttons.Append
         (Button_Info'(Text   => To_Unbounded_String (Text),
                       Widget => Btn_As_Widget));
@@ -382,10 +459,14 @@ package body Adi.Widget.Dialog is
    procedure Clear_Buttons (W : in out Dialog_Widget) is
    begin
       Unregister_Bindings (W'Unchecked_Access);
-      --  Remove button widgets from button row
+      --  Destroy button widgets (detaches from parent and frees store slot)
       for Info of W.Buttons loop
          if Info.Widget /= null then
-            Remove_Child (W.Button_Row.all, Info.Widget);
+            declare
+               H : Widget_Handle := Get_Handle (Info.Widget.all);
+            begin
+               Destroy (H);
+            end;
          end if;
       end loop;
       W.Buttons.Clear;
@@ -413,6 +494,18 @@ package body Adi.Widget.Dialog is
       end if;
       return Adi.Widget.Button.Button_Widget_Access (W.Buttons.Element (Index).Widget);
    end Get_Button;
+
+   function Get_Button_Handle
+     (W : Dialog_Widget; Index : Positive)
+      return Adi.Widget.Button.Button_Handle
+   is
+      B : constant Adi.Widget.Button.Button_Widget_Access := Get_Button (W, Index);
+   begin
+      if B = null then
+         return Adi.Widget.Button.Null_Button_Handle;
+      end if;
+      return Adi.Widget.Button.Try_As_Button (Get_Handle (B.all));
+   end Get_Button_Handle;
 
    ---------------------------------------------------------------------------
    --  Presets
@@ -466,7 +559,7 @@ package body Adi.Widget.Dialog is
          Set_Geometry (W, (0.0, 0.0, Win_Size.Width, Win_Size.Height));
       end;
 
-      Adi.Window.Add_Overlay (W.Host_Window.all, Widget_Access'(W'Unchecked_Access));
+      Adi.Window.Add_Overlay (W.Host_Window.all, Get_Handle (W));
       W.Shown := True;
 
       --  Auto-focus the default button now that the overlay is in the
@@ -477,7 +570,7 @@ package body Adi.Widget.Dialog is
       then
          Adi.Window.Set_Focus
            (W.Host_Window.all,
-            W.Buttons.Element (W.Default_Button_Index).Widget);
+            Get_Handle (W.Buttons.Element (W.Default_Button_Index).Widget.all));
       end if;
 
       Mark_Dirty (W);
@@ -489,7 +582,7 @@ package body Adi.Widget.Dialog is
          return;
       end if;
 
-      Adi.Window.Remove_Overlay (W.Host_Window.all, Widget_Access'(W'Unchecked_Access));
+      Adi.Window.Remove_Overlay (W.Host_Window.all, Get_Handle (W));
       W.Shown := False;
       Mark_Dirty (W);
    end Hide;
@@ -733,7 +826,7 @@ package body Adi.Widget.Dialog is
             Needed_H := Pad.Top + Border.Top + Pad.Bottom + Border.Bottom;
             for I in 1 .. Child_Count (W.Content_Panel.all) loop
                declare
-                  Child : constant Widget_Access := Get_Child (W.Content_Panel.all, I);
+                  Child : constant Widget_Access := Child_At (W.Content_Panel.all, I);
                begin
                   if Child /= null then
                      declare
@@ -818,5 +911,307 @@ package body Adi.Widget.Dialog is
          Fire_Dismiss (W);
       end if;
    end On_Key_Down;
+
+   overriding procedure On_Destroy (W : in out Dialog_Widget) is
+   begin
+      Unregister_Bindings (W'Unchecked_Access);
+   end On_Destroy;
+
+   ---------------------------------------------------------------------------
+   --  Handle methods
+   ---------------------------------------------------------------------------
+
+   procedure Attach_Window
+     (H : Dialog_Handle; Host : Adi.Window.Window_Access)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Attach_Window (Dialog_Widget (Ptr.all), Host);
+      end if;
+   end Attach_Window;
+
+   procedure Attach_Window
+     (H : Dialog_Handle; Host : Adi.Window.Window_Handle)
+   is
+   begin
+      Attach_Window (H, Adi.Window.Resolve_Window_Handle (Host));
+   end Attach_Window;
+
+   procedure Set_Title (H : Dialog_Handle; Text : String) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Title (Dialog_Widget (Ptr.all), Text);
+      end if;
+   end Set_Title;
+
+   procedure Set_Message (H : Dialog_Handle; Text : String) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Message (Dialog_Widget (Ptr.all), Text);
+      end if;
+   end Set_Message;
+
+   procedure Set_Content (H : Dialog_Handle; Content : Widget_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         if Content = Null_Handle then
+            Set_Content (Dialog_Widget (Ptr.all), null);
+         else
+            declare
+               R : Widget_Ref := Borrow (Content);
+            begin
+               Set_Content (Dialog_Widget (Ptr.all), R.Ptr);
+            end;
+         end if;
+      end if;
+   end Set_Content;
+
+   procedure Set_Icon (H : Dialog_Handle; Icon : Image_Access) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Icon (Dialog_Widget (Ptr.all), Icon);
+      end if;
+   end Set_Icon;
+
+   function Add_Button (H : Dialog_Handle; Text : String) return Positive is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Add_Button (Dialog_Widget (Ptr.all), Text);
+      end if;
+      return 1;
+   end Add_Button;
+
+   procedure Add_Button (H : Dialog_Handle; Text : String) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Add_Button (Dialog_Widget (Ptr.all), Text);
+      end if;
+   end Add_Button;
+
+   procedure Clear_Buttons (H : Dialog_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Clear_Buttons (Dialog_Widget (Ptr.all));
+      end if;
+   end Clear_Buttons;
+
+   procedure Set_Default_Button (H : Dialog_Handle; Index : Natural) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Default_Button (Dialog_Widget (Ptr.all), Index);
+      end if;
+   end Set_Default_Button;
+
+   function Get_Button
+     (H : Dialog_Handle; Index : Positive)
+      return Adi.Widget.Button.Button_Widget_Access
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Button (Dialog_Widget (Ptr.all), Index);
+      end if;
+      return null;
+   end Get_Button;
+
+   function Get_Button_Handle
+     (H : Dialog_Handle; Index : Positive)
+      return Adi.Widget.Button.Button_Handle
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Button_Handle (Dialog_Widget (Ptr.all), Index);
+      end if;
+      return Adi.Widget.Button.Null_Button_Handle;
+   end Get_Button_Handle;
+
+   procedure Set_OK_Button (H : Dialog_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_OK_Button (Dialog_Widget (Ptr.all));
+      end if;
+   end Set_OK_Button;
+
+   procedure Set_OK_Cancel (H : Dialog_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_OK_Cancel (Dialog_Widget (Ptr.all));
+      end if;
+   end Set_OK_Cancel;
+
+   procedure Set_Yes_No (H : Dialog_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Yes_No (Dialog_Widget (Ptr.all));
+      end if;
+   end Set_Yes_No;
+
+   procedure Set_Yes_No_Cancel (H : Dialog_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Yes_No_Cancel (Dialog_Widget (Ptr.all));
+      end if;
+   end Set_Yes_No_Cancel;
+
+   procedure Show (H : Dialog_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Show (Dialog_Widget (Ptr.all));
+      end if;
+   end Show;
+
+   procedure Hide (H : Dialog_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Hide (Dialog_Widget (Ptr.all));
+      end if;
+   end Hide;
+
+   function Is_Shown (H : Dialog_Handle) return Boolean is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Is_Shown (Dialog_Widget (Ptr.all));
+      end if;
+      return False;
+   end Is_Shown;
+
+   procedure Set_Dismiss_On_Backdrop
+     (H : Dialog_Handle; Value : Boolean := True)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Dismiss_On_Backdrop (Dialog_Widget (Ptr.all), Value);
+      end if;
+   end Set_Dismiss_On_Backdrop;
+
+   procedure Set_Dismiss_On_Escape
+     (H : Dialog_Handle; Value : Boolean := True)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Dismiss_On_Escape (Dialog_Widget (Ptr.all), Value);
+      end if;
+   end Set_Dismiss_On_Escape;
+
+   procedure Connect_Result
+     (H : Dialog_Handle; CB : Dialog_Result_Callback)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Connect_Result (Dialog_Widget (Ptr.all), CB);
+      end if;
+   end Connect_Result;
+
+   function Connect_Result
+     (H : Dialog_Handle; CB : Dialog_Result_Callback)
+      return Result_Signals.Connection_Id
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Connect_Result (Dialog_Widget (Ptr.all), CB);
+      end if;
+      return Result_Signals.No_Connection;
+   end Connect_Result;
+
+   procedure Disconnect_Result
+     (H : Dialog_Handle; Id : Result_Signals.Connection_Id)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Disconnect_Result (Dialog_Widget (Ptr.all), Id);
+      end if;
+   end Disconnect_Result;
+
+   procedure Set_Panel_Style
+     (H : Dialog_Handle; S : Part_Style_Array)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Panel_Style (Dialog_Widget (Ptr.all), S);
+      end if;
+   end Set_Panel_Style;
+
+   procedure Set_Title_Style
+     (H : Dialog_Handle; S : Part_Style_Array)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Title_Style (Dialog_Widget (Ptr.all), S);
+      end if;
+   end Set_Title_Style;
+
+   procedure Set_Message_Style
+     (H : Dialog_Handle; S : Part_Style_Array)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Message_Style (Dialog_Widget (Ptr.all), S);
+      end if;
+   end Set_Message_Style;
+
+   procedure Set_Button_Row_Style
+     (H : Dialog_Handle; S : Part_Style_Array)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Button_Row_Style (Dialog_Widget (Ptr.all), S);
+      end if;
+   end Set_Button_Row_Style;
+
+   procedure Set_Button_Style
+     (H : Dialog_Handle; S : Part_Style_Array)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Button_Style (Dialog_Widget (Ptr.all), S);
+      end if;
+   end Set_Button_Style;
+
+   procedure Set_Primary_Button_Style
+     (H : Dialog_Handle; S : Part_Style_Array)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Primary_Button_Style (Dialog_Widget (Ptr.all), S);
+      end if;
+   end Set_Primary_Button_Style;
+
+   procedure Set_Content_Style
+     (H : Dialog_Handle; S : Part_Style_Array)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Content_Style (Dialog_Widget (Ptr.all), S);
+      end if;
+   end Set_Content_Style;
 
 end Adi.Widget.Dialog;

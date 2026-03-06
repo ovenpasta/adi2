@@ -654,6 +654,39 @@ package body Adi.CSS_Source is
       Bind (Source, Adi.CSS_Parser.Tag_Selector, Name, W);
    end Bind_Tag;
 
+   procedure Bind_Class (Source : in out Style_Source;
+                         Name   : String;
+                         W      : Adi.Widget.Widget_Handle)
+   is
+      Ptr : constant Adi.Widget.Widget_Access := Adi.Widget.Resolve_Handle (W);
+   begin
+      if Ptr /= null then
+         Bind_Class (Source, Name, Ptr);
+      end if;
+   end Bind_Class;
+
+   procedure Bind_Id (Source : in out Style_Source;
+                      Name   : String;
+                      W      : Adi.Widget.Widget_Handle)
+   is
+      Ptr : constant Adi.Widget.Widget_Access := Adi.Widget.Resolve_Handle (W);
+   begin
+      if Ptr /= null then
+         Bind_Id (Source, Name, Ptr);
+      end if;
+   end Bind_Id;
+
+   procedure Bind_Tag (Source : in out Style_Source;
+                       Name   : String;
+                       W      : Adi.Widget.Widget_Handle)
+   is
+      Ptr : constant Adi.Widget.Widget_Access := Adi.Widget.Resolve_Handle (W);
+   begin
+      if Ptr /= null then
+         Bind_Tag (Source, Name, Ptr);
+      end if;
+   end Bind_Tag;
+
    procedure Bind_Selector_Set (Source     : in out Style_Source;
                                 W          : access Adi.Widget.Widget'Class;
                                 Tag_Name   : String := "";

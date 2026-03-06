@@ -17,10 +17,11 @@ use Adi;
 procedure Demo_Flex is
    use Adi.Core;
    use Adi.Widget_Styles;
-   subtype Box_Widget_Access is Adi.Widget.Box.Box_Widget_Access;
+   use type Adi.Widget.Box.Box_Handle;
+   subtype Box_Handle is Adi.Widget.Box.Box_Handle;
 
    App    : Adi.App.App;
-   Window : Adi.Window.Window_Access;
+   Window : Adi.Window.Window_Handle;
 
    -------------------------------------------------
    -- Helper: Create a colored box with label
@@ -29,9 +30,9 @@ procedure Demo_Flex is
       Color : Color_Value;
       W, H  : Pixel_Type := 0.0;  -- 0 = auto/flex
       Grow  : Float := 0.0;
-      Shrink : Float := 1.0) return Box_Widget_Access
+      Shrink : Float := 1.0) return Box_Handle
    is
-      B : constant Box_Widget_Access := Adi.Widget.Box.Create;
+      B : constant Box_Handle := Adi.Widget.Box.Create_Handle;
       Style : Widget_Style;
    begin
       Style := Adi.Widget_Styles.Create
@@ -43,7 +44,7 @@ procedure Demo_Flex is
             Flex_Shrink      => Set (Flex_Shrink_Value (Shrink))))
          .Build;
 
-      Set_Part_Style (B.all, Main_Part, Style);
+      Adi.Widget.Set_Part_Style (Widget_Handle'(+B), Main_Part, Style);
       return B;
    end Create_Box;
 
@@ -56,9 +57,9 @@ procedure Demo_Flex is
       Align     : Align_Items_Value := Stretch;
       Gap_Px    : Float := 8.0;
       Padding_Px : Float := 10.0;
-      Bg_Color  : Color_Value := C (Light_Gray)) return Box_Widget_Access
+      Bg_Color  : Color_Value := C (Light_Gray)) return Box_Handle
    is
-      Container : constant Box_Widget_Access := Adi.Widget.Box.Create;
+      Container : constant Box_Handle := Adi.Widget.Box.Create_Handle;
       Style : Widget_Style;
    begin
       Style := Adi.Widget_Styles.Create
@@ -71,216 +72,216 @@ procedure Demo_Flex is
             Background_Color => Set_Bg (Bg_Color)))
          .Build;
 
-      Set_Part_Style (Container.all, Main_Part, Style);
+      Adi.Widget.Set_Part_Style (Widget_Handle'(+Container), Main_Part, Style);
       return Container;
    end Create_Flex_Container;
 
    -------------------------------------------------
    -- Demo 1: Horizontal Row with Fixed Sizes
    -------------------------------------------------
-   function Demo_Row_Fixed return Box_Widget_Access is
-      Container : constant Box_Widget_Access := Create_Flex_Container (
+   function Demo_Row_Fixed return Box_Handle is
+      Container : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Flex_Start,
          Align     => Center,
          Gap_Px    => 10.0);
    begin
       Adi.Log.Info ("Demo 1: Row with fixed size boxes");
-      Container.Add_Child (Create_Box (C (Red), W => 60.0, H => 40.0));
-      Container.Add_Child (Create_Box (C (Green), W => 80.0, H => 60.0));
-      Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 50.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Red), W => 60.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Green), W => 80.0, H => 60.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Blue), W => 50.0, H => 50.0));
       return Container;
    end Demo_Row_Fixed;
 
    -------------------------------------------------
    -- Demo 2: Horizontal Row with Flex Grow
    -------------------------------------------------
-   function Demo_Row_Grow return Box_Widget_Access is
-      Container : constant Box_Widget_Access := Create_Flex_Container (
+   function Demo_Row_Grow return Box_Handle is
+      Container : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Flex_Start,
          Align     => Stretch,
          Gap_Px    => 10.0);
    begin
       Adi.Log.Info ("Demo 2: Row with flex-grow (1:2:1 ratio)");
-      Container.Add_Child (Create_Box (C (Red), H => 50.0, Grow => 1.0));
-      Container.Add_Child (Create_Box (C (Green), H => 50.0, Grow => 2.0));
-      Container.Add_Child (Create_Box (C (Blue), H => 50.0, Grow => 1.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Red), H => 50.0, Grow => 1.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Green), H => 50.0, Grow => 2.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Blue), H => 50.0, Grow => 1.0));
       return Container;
    end Demo_Row_Grow;
 
    -------------------------------------------------
    -- Demo 3: Column Layout
    -------------------------------------------------
-   function Demo_Column return Box_Widget_Access is
-      Container : constant Box_Widget_Access := Create_Flex_Container (
+   function Demo_Column return Box_Handle is
+      Container : constant Box_Handle := Create_Flex_Container (
          Direction => Column,
          Justify   => Flex_Start,
          Align     => Stretch,
          Gap_Px    => 8.0);
    begin
       Adi.Log.Info ("Demo 3: Column layout with stretch");
-      Container.Add_Child (Create_Box (C (Orange), H => 30.0));
-      Container.Add_Child (Create_Box (C (Purple), H => 40.0));
-      Container.Add_Child (Create_Box (C (Yellow), H => 35.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Orange), H => 30.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Purple), H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Yellow), H => 35.0));
       return Container;
    end Demo_Column;
 
    -------------------------------------------------
    -- Demo 4: Space Between
    -------------------------------------------------
-   function Demo_Space_Between return Box_Widget_Access is
-      Container : constant Box_Widget_Access := Create_Flex_Container (
+   function Demo_Space_Between return Box_Handle is
+      Container : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Space_Between,
          Align     => Center,
          Gap_Px    => 0.0);  -- Gap not used with space-between
    begin
       Adi.Log.Info ("Demo 4: Space-between distribution");
-      Container.Add_Child (Create_Box (C (Red), W => 50.0, H => 40.0));
-      Container.Add_Child (Create_Box (C (Green), W => 50.0, H => 40.0));
-      Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Red), W => 50.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Green), W => 50.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Blue), W => 50.0, H => 40.0));
       return Container;
    end Demo_Space_Between;
 
    -------------------------------------------------
    -- Demo 5: Space Around
    -------------------------------------------------
-   function Demo_Space_Around return Box_Widget_Access is
-      Container : constant Box_Widget_Access := Create_Flex_Container (
+   function Demo_Space_Around return Box_Handle is
+      Container : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Space_Around,
          Align     => Center,
          Gap_Px    => 0.0);
    begin
       Adi.Log.Info ("Demo 5: Space-around distribution");
-      Container.Add_Child (Create_Box (C (Red), W => 40.0, H => 40.0));
-      Container.Add_Child (Create_Box (C (Green), W => 40.0, H => 40.0));
-      Container.Add_Child (Create_Box (C (Blue), W => 40.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Red), W => 40.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Green), W => 40.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Blue), W => 40.0, H => 40.0));
       return Container;
    end Demo_Space_Around;
 
    -------------------------------------------------
    -- Demo 6: Space Evenly
    -------------------------------------------------
-   function Demo_Space_Evenly return Box_Widget_Access is
-      Container : constant Box_Widget_Access := Create_Flex_Container (
+   function Demo_Space_Evenly return Box_Handle is
+      Container : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Space_Evenly,
          Align     => Center,
          Gap_Px    => 0.0);
    begin
       Adi.Log.Info ("Demo 6: Space-evenly distribution");
-      Container.Add_Child (Create_Box (C (Orange), W => 40.0, H => 40.0));
-      Container.Add_Child (Create_Box (C (Purple), W => 40.0, H => 40.0));
-      Container.Add_Child (Create_Box (C (Yellow), W => 40.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Orange), W => 40.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Purple), W => 40.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Yellow), W => 40.0, H => 40.0));
       return Container;
    end Demo_Space_Evenly;
 
    -------------------------------------------------
    -- Demo 7: Cross-Axis Alignment (Flex Start)
    -------------------------------------------------
-   function Demo_Align_Start return Box_Widget_Access is
-      Container : constant Box_Widget_Access := Create_Flex_Container (
+   function Demo_Align_Start return Box_Handle is
+      Container : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Flex_Start,
          Align     => Adi.CSS_Styles.Flex_Start,
          Gap_Px    => 10.0);
    begin
       Adi.Log.Info ("Demo 7: Align-items: flex-start");
-      Container.Add_Child (Create_Box (C (Red), W => 50.0, H => 30.0));
-      Container.Add_Child (Create_Box (C (Green), W => 50.0, H => 50.0));
-      Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Red), W => 50.0, H => 30.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Green), W => 50.0, H => 50.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Blue), W => 50.0, H => 40.0));
       return Container;
    end Demo_Align_Start;
 
    -------------------------------------------------
    -- Demo 8: Cross-Axis Alignment (Flex End)
    -------------------------------------------------
-   function Demo_Align_End return Box_Widget_Access is
-      Container : constant Box_Widget_Access := Create_Flex_Container (
+   function Demo_Align_End return Box_Handle is
+      Container : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Flex_Start,
          Align     => Adi.CSS_Styles.Flex_End,
          Gap_Px    => 10.0);
    begin
       Adi.Log.Info ("Demo 8: Align-items: flex-end");
-      Container.Add_Child (Create_Box (C (Red), W => 50.0, H => 30.0));
-      Container.Add_Child (Create_Box (C (Green), W => 50.0, H => 50.0));
-      Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Red), W => 50.0, H => 30.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Green), W => 50.0, H => 50.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Blue), W => 50.0, H => 40.0));
       return Container;
    end Demo_Align_End;
 
    -------------------------------------------------
    -- Demo 9: Cross-Axis Alignment (Center)
    -------------------------------------------------
-   function Demo_Align_Center return Box_Widget_Access is
-      Container : constant Box_Widget_Access := Create_Flex_Container (
+   function Demo_Align_Center return Box_Handle is
+      Container : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Flex_Start,
          Align     => Adi.CSS_Styles.Center,
          Gap_Px    => 10.0);
    begin
       Adi.Log.Info ("Demo 9: Align-items: center");
-      Container.Add_Child (Create_Box (C (Red), W => 50.0, H => 30.0));
-      Container.Add_Child (Create_Box (C (Green), W => 50.0, H => 60.0));
-      Container.Add_Child (Create_Box (C (Blue), W => 50.0, H => 45.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Red), W => 50.0, H => 30.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Green), W => 50.0, H => 60.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Blue), W => 50.0, H => 45.0));
       return Container;
    end Demo_Align_Center;
 
    -------------------------------------------------
    -- Demo 10: Reversed Row
    -------------------------------------------------
-   function Demo_Row_Reverse return Box_Widget_Access is
-      Container : constant Box_Widget_Access := Create_Flex_Container (
+   function Demo_Row_Reverse return Box_Handle is
+      Container : constant Box_Handle := Create_Flex_Container (
          Direction => Row_Reverse,
          Justify   => Flex_Start,
          Align     => Center,
          Gap_Px    => 10.0);
    begin
       Adi.Log.Info ("Demo 10: Row-reverse (RGB should appear as BGR)");
-      Container.Add_Child (Create_Box (C (Red), W => 60.0, H => 40.0));
-      Container.Add_Child (Create_Box (C (Green), W => 60.0, H => 40.0));
-      Container.Add_Child (Create_Box (C (Blue), W => 60.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Red), W => 60.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Green), W => 60.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Blue), W => 60.0, H => 40.0));
       return Container;
    end Demo_Row_Reverse;
 
    -------------------------------------------------
    -- Demo 11: Column Reverse
    -------------------------------------------------
-   function Demo_Column_Reverse return Box_Widget_Access is
-      Container : constant Box_Widget_Access := Create_Flex_Container (
+   function Demo_Column_Reverse return Box_Handle is
+      Container : constant Box_Handle := Create_Flex_Container (
          Direction => Column_Reverse,
          Justify   => Flex_Start,
          Align     => Adi.CSS_Styles.Center,
          Gap_Px    => 8.0);
    begin
       Adi.Log.Info ("Demo 11: Column-reverse");
-      Container.Add_Child (Create_Box (C (Red), W => 80.0, H => 25.0));
-      Container.Add_Child (Create_Box (C (Green), W => 80.0, H => 25.0));
-      Container.Add_Child (Create_Box (C (Blue), W => 80.0, H => 25.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Red), W => 80.0, H => 25.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Green), W => 80.0, H => 25.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Blue), W => 80.0, H => 25.0));
       return Container;
    end Demo_Column_Reverse;
 
    -------------------------------------------------
    -- Demo 12: Nested Flex Containers
    -------------------------------------------------
-   function Demo_Nested return Box_Widget_Access is
-      Outer : constant Box_Widget_Access := Create_Flex_Container (
+   function Demo_Nested return Box_Handle is
+      Outer : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Space_Between,
          Align     => Stretch,
          Gap_Px    => 15.0,
          Bg_Color  => C (White));
 
-      Left_Column : constant Box_Widget_Access := Create_Flex_Container (
+      Left_Column : constant Box_Handle := Create_Flex_Container (
          Direction => Column,
          Justify   => Flex_Start,
          Align     => Stretch,
          Gap_Px    => 5.0,
          Bg_Color  => RGB (240, 240, 255));
 
-      Right_Column : constant Box_Widget_Access := Create_Flex_Container (
+      Right_Column : constant Box_Handle := Create_Flex_Container (
          Direction => Column,
          Justify   => Space_Between,
          Align     => Adi.CSS_Styles.Center,
@@ -290,9 +291,9 @@ procedure Demo_Flex is
       Adi.Log.Info ("Demo 12: Nested flex containers");
 
       --  Left column children
-      Left_Column.Add_Child (Create_Box (C (Blue), H => 30.0));
-      Left_Column.Add_Child (Create_Box (C (Blue), H => 30.0));
-      Left_Column.Add_Child (Create_Box (C (Blue), H => 30.0));
+      Adi.Widget.Box.Add_Child (Left_Column, +Create_Box (C (Blue), H => 30.0));
+      Adi.Widget.Box.Add_Child (Left_Column, +Create_Box (C (Blue), H => 30.0));
+      Adi.Widget.Box.Add_Child (Left_Column, +Create_Box (C (Blue), H => 30.0));
 
       --  Make left column grow
       declare
@@ -314,13 +315,13 @@ procedure Demo_Flex is
                Flex_Grow        => Set (1.0),
                others           => <>))
             .Build;
-         Set_Part_Style (Left_Column.all, Main_Part, Left_Style);
+         Adi.Widget.Set_Part_Style (Widget_Handle'(+Left_Column), Main_Part, Left_Style);
       end;
 
       --  Right column children
-      Right_Column.Add_Child (Create_Box (C (Red), W => 40.0, H => 40.0));
-      Right_Column.Add_Child (Create_Box (C (Red), W => 50.0, H => 50.0));
-      Right_Column.Add_Child (Create_Box (C (Red), W => 45.0, H => 45.0));
+      Adi.Widget.Box.Add_Child (Right_Column, +Create_Box (C (Red), W => 40.0, H => 40.0));
+      Adi.Widget.Box.Add_Child (Right_Column, +Create_Box (C (Red), W => 50.0, H => 50.0));
+      Adi.Widget.Box.Add_Child (Right_Column, +Create_Box (C (Red), W => 45.0, H => 45.0));
 
       --  Make right column grow
       declare
@@ -342,11 +343,11 @@ procedure Demo_Flex is
                Flex_Grow        => Set (1.0),
                others           => <>))
             .Build;
-         Set_Part_Style (Right_Column.all, Main_Part, Right_Style);
+         Adi.Widget.Set_Part_Style (Widget_Handle'(+Right_Column), Main_Part, Right_Style);
       end;
 
-      Outer.Add_Child (Left_Column);
-      Outer.Add_Child (Right_Column);
+      Adi.Widget.Box.Add_Child (Outer, +Left_Column);
+      Adi.Widget.Box.Add_Child (Outer, +Right_Column);
 
       return Outer;
    end Demo_Nested;
@@ -354,8 +355,8 @@ procedure Demo_Flex is
    -------------------------------------------------
    -- Demo 13: Mixed Fixed and Flexible
    -------------------------------------------------
-   function Demo_Mixed return Box_Widget_Access is
-      Container : constant Box_Widget_Access := Create_Flex_Container (
+   function Demo_Mixed return Box_Handle is
+      Container : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Flex_Start,
          Align     => Stretch,
@@ -363,19 +364,19 @@ procedure Demo_Flex is
    begin
       Adi.Log.Info ("Demo 13: Fixed sidebar + flexible content");
       --  Fixed left sidebar
-      Container.Add_Child (Create_Box (C (Gray), W => 80.0, H => 60.0, Grow => 0.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Gray), W => 80.0, H => 60.0, Grow => 0.0));
       --  Flexible main content
-      Container.Add_Child (Create_Box (C (White), Grow => 1.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (White), Grow => 1.0));
       --  Fixed right sidebar
-      Container.Add_Child (Create_Box (C (Gray), W => 60.0, H => 60.0, Grow => 0.0));
+      Adi.Widget.Box.Add_Child (Container, +Create_Box (C (Gray), W => 60.0, H => 60.0, Grow => 0.0));
       return Container;
    end Demo_Mixed;
 
    -------------------------------------------------
    -- Main Layout: Vertical stack of all demos
    -------------------------------------------------
-   function Create_Main_Layout return Box_Widget_Access is
-      Main : constant Box_Widget_Access := Create_Flex_Container (
+   function Create_Main_Layout return Box_Handle is
+      Main : constant Box_Handle := Create_Flex_Container (
          Direction  => Column,
          Justify    => Flex_Start,
          Align      => Stretch,
@@ -384,7 +385,7 @@ procedure Demo_Flex is
          Bg_Color   => RGB (245, 245, 245));
 
       --  Row 1: First 3 demos side by side
-      Row1 : constant Box_Widget_Access := Create_Flex_Container (
+      Row1 : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Flex_Start,
          Align     => Stretch,
@@ -392,7 +393,7 @@ procedure Demo_Flex is
          Bg_Color  => C (Transparent));
 
       --  Row 2: Next 3 demos
-      Row2 : constant Box_Widget_Access := Create_Flex_Container (
+      Row2 : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Flex_Start,
          Align     => Stretch,
@@ -400,7 +401,7 @@ procedure Demo_Flex is
          Bg_Color  => C (Transparent));
 
       --  Row 3: Align demos
-      Row3 : constant Box_Widget_Access := Create_Flex_Container (
+      Row3 : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Flex_Start,
          Align     => Stretch,
@@ -408,7 +409,7 @@ procedure Demo_Flex is
          Bg_Color  => C (Transparent));
 
       --  Row 4: Reverse demos
-      Row4 : constant Box_Widget_Access := Create_Flex_Container (
+      Row4 : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Flex_Start,
          Align     => Stretch,
@@ -416,7 +417,7 @@ procedure Demo_Flex is
          Bg_Color  => C (Transparent));
 
       --  Row 5: Nested and mixed
-      Row5 : constant Box_Widget_Access := Create_Flex_Container (
+      Row5 : constant Box_Handle := Create_Flex_Container (
          Direction => Row,
          Justify   => Flex_Start,
          Align     => Stretch,
@@ -424,24 +425,25 @@ procedure Demo_Flex is
          Bg_Color  => C (Transparent));
 
       --  Helper to set flex grow on row containers
-      procedure Set_Row_Flex (R : Box_Widget_Access) is
+      procedure Set_Row_Flex (R : Box_Handle) is
       begin
-         Set_Part_Style (R.all, Main_Part, Row_Base_Class_Widget);
+         Adi.Widget.Set_Part_Style (Widget_Handle'(+R), Main_Part, Row_Base_Class_Widget);
       end Set_Row_Flex;
 
       --  Helper to make demo containers equal width
-    procedure Set_Demo_Flex (D : Box_Widget_Access) is
-       Old_Style : constant Widget_Style := Get_Part_Style (D.all, Main_Part);
-       New_Base : Style_Rules := Compute_Style (Old_Style, No_States);
-    begin
-       New_Base.Flex_Grow := Set (1.0);
-       New_Base.Min_Width := Set (Size (Px (150.0)));
-       New_Base.Min_Height := Set (Size (Px (100.0)));  -- Changed from Height
-       Set_Part_Style (D.all, Main_Part,
-          Adi.Widget_Styles.Create.Base (New_Base).Build);
-    end Set_Demo_Flex;
+      procedure Set_Demo_Flex (D : Box_Handle) is
+         Ref      : constant Widget_Ref := Borrow (+D);
+         Old_Style : constant Widget_Style := Get_Part_Style (Ref.Ptr.all, Main_Part);
+         New_Base : Style_Rules := Compute_Style (Old_Style, No_States);
+      begin
+         New_Base.Flex_Grow := Set (1.0);
+         New_Base.Min_Width := Set (Size (Px (150.0)));
+         New_Base.Min_Height := Set (Size (Px (100.0)));
+         Set_Part_Style (Ref.Ptr.all, Main_Part,
+            Adi.Widget_Styles.Create.Base (New_Base).Build);
+      end Set_Demo_Flex;
 
-      D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12, D13 : Box_Widget_Access;
+      D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12, D13 : Box_Handle;
    begin
       Adi.Log.Info ("Creating flex layout demos...");
       Adi.Log.Info ("================================");
@@ -484,34 +486,34 @@ procedure Demo_Flex is
       Set_Row_Flex (Row5);
 
       --  Assemble Row 1
-      Row1.Add_Child (D1);
-      Row1.Add_Child (D2);
-      Row1.Add_Child (D3);
+      Adi.Widget.Box.Add_Child (Row1, +D1);
+      Adi.Widget.Box.Add_Child (Row1, +D2);
+      Adi.Widget.Box.Add_Child (Row1, +D3);
 
       --  Assemble Row 2
-      Row2.Add_Child (D4);
-      Row2.Add_Child (D5);
-      Row2.Add_Child (D6);
+      Adi.Widget.Box.Add_Child (Row2, +D4);
+      Adi.Widget.Box.Add_Child (Row2, +D5);
+      Adi.Widget.Box.Add_Child (Row2, +D6);
 
       --  Assemble Row 3
-      Row3.Add_Child (D7);
-      Row3.Add_Child (D8);
-      Row3.Add_Child (D9);
+      Adi.Widget.Box.Add_Child (Row3, +D7);
+      Adi.Widget.Box.Add_Child (Row3, +D8);
+      Adi.Widget.Box.Add_Child (Row3, +D9);
 
       --  Assemble Row 4
-      Row4.Add_Child (D10);
-      Row4.Add_Child (D11);
+      Adi.Widget.Box.Add_Child (Row4, +D10);
+      Adi.Widget.Box.Add_Child (Row4, +D11);
 
       --  Assemble Row 5
-      Row5.Add_Child (D12);
-      Row5.Add_Child (D13);
+      Adi.Widget.Box.Add_Child (Row5, +D12);
+      Adi.Widget.Box.Add_Child (Row5, +D13);
 
       --  Main layout
-      Main.Add_Child (Row1);
-      Main.Add_Child (Row2);
-      Main.Add_Child (Row3);
-      Main.Add_Child (Row4);
-      Main.Add_Child (Row5);
+      Adi.Widget.Box.Add_Child (Main, +Row1);
+      Adi.Widget.Box.Add_Child (Main, +Row2);
+      Adi.Widget.Box.Add_Child (Main, +Row3);
+      Adi.Widget.Box.Add_Child (Main, +Row4);
+      Adi.Widget.Box.Add_Child (Main, +Row5);
 
       Adi.Log.Info ("================================");
       Adi.Log.Info ("Demo layout created. Resize window to test responsive behavior.");
@@ -519,7 +521,7 @@ procedure Demo_Flex is
       return Main;
    end Create_Main_Layout;
 
-   Root : Box_Widget_Access;
+   Root : Box_Handle;
 
 begin
    Adi.Log.Info ("Flex Layout Demo");
@@ -530,22 +532,22 @@ begin
    App.Init;
 
    --  Create window
-   Window := Adi.Window.Create_Window ("Flex Layout Demo", (800.0, 700.0));
+   Window := Adi.Window.Create_Window_Handle ("Flex Layout Demo", (800.0, 700.0));
 
    --  Create demo layout
    Root := Create_Main_Layout;
 
    --  Set root geometry to window size
-   Set_Geometry (Root.all, (0.0, 0.0, 800.0, 700.0));
-
-   --  Build and layout
-   --Build_Items (Root.all);
-   --Widget.Layout (Root.all);
+   declare
+      Ref : constant Widget_Ref := Borrow (+Root);
+   begin
+      Set_Geometry (Ref.Ptr.all, (0.0, 0.0, 800.0, 700.0));
+   end;
 
    --  Set as window root (need to add this to Window)
    --  For now, we manually update
 --   Window.Root := Widget_Access (Root);
-   Window.Set_Root (Root);
+   Adi.Window.Set_Root (Window, Widget_Handle'(+Root));
 
    --  Add window to app
    App.Add_Window (Window);

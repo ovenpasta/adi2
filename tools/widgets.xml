@@ -10,7 +10,9 @@
   Sub-elements:
     <package>      - Ada package name
     <access-type>  - Ada access type (short name, qualified automatically)
+    <handle-type>  - Ada handle type (short name, qualified automatically)
     <create>       - Template for Create expression ({package}, {text}, etc.)
+    <create-handle>- Template for Create_Handle expression
     <attribute>    - Widget-specific attribute from input XML
       name         - XML attribute name
       type         - "string", "bool", or "callback"
@@ -25,13 +27,17 @@
   <widget tag="box">
     <package>Adi.Widget.Box</package>
     <access-type>Box_Widget_Access</access-type>
+    <handle-type>Box_Handle</handle-type>
     <create>{package}.Create</create>
+    <create-handle>{package}.Create_Handle</create-handle>
   </widget>
 
   <widget tag="label">
     <package>Adi.Widget.Label</package>
     <access-type>Label_Widget_Access</access-type>
+    <handle-type>Label_Handle</handle-type>
     <create>{package}.Create ("{text}")</create>
+    <create-handle>{package}.Create_Handle ("{text}")</create-handle>
     <attribute name="text" type="string" create-param="true" translatable="true"/>
     <attribute name="icon" type="image" setter="Set_Icon"/>
   </widget>
@@ -39,7 +45,9 @@
   <widget tag="button">
     <package>Adi.Widget.Button</package>
     <access-type>Button_Widget_Access</access-type>
+    <handle-type>Button_Handle</handle-type>
     <create>{package}.Create ("{text}")</create>
+    <create-handle>{package}.Create_Handle ("{text}")</create-handle>
     <attribute name="text" type="string" create-param="true" translatable="true"/>
     <attribute name="icon" type="image" setter="Set_Icon"/>
     <attribute name="toggleable" type="bool" setter="Set_Toggleable" setter-style="flag"/>
@@ -51,7 +59,9 @@
   <widget tag="switch">
     <package>Adi.Widget.Button.Switch</package>
     <access-type>Switch_Widget_Access</access-type>
+    <handle-type>Switch_Handle</handle-type>
     <create>{package}.Create ({checked})</create>
+    <create-handle>{package}.Create_Handle ({checked})</create-handle>
     <attribute name="checked" type="bool" create-param="true" default="False"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
     <attribute name="on-toggled" type="callback" setter="Connect_Toggled"/>
@@ -60,7 +70,9 @@
   <widget tag="stack" generic="true" children-mode="pages">
     <package>Adi.Widget.Stack</package>
     <access-type>Stack_Widget_Access</access-type>
+    <handle-type>Stack_Handle</handle-type>
     <create>{generic_name}.Create</create>
+    <create-handle>{generic_name}.Create_Handle</create-handle>
     <attribute name="generic" type="string" required="true" meta="true"/>
     <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>
@@ -68,7 +80,9 @@
   <widget tag="text-input">
     <package>Adi.Widget.Text_Input</package>
     <access-type>Text_Input_Widget_Access</access-type>
+    <handle-type>Text_Input_Handle</handle-type>
     <create>{package}.Create ("{text}")</create>
+    <create-handle>{package}.Create_Handle ("{text}")</create-handle>
     <attribute name="text" type="string" create-param="true" translatable="true"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
     <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
@@ -77,7 +91,9 @@
   <widget tag="text-editor">
     <package>Adi.Widget.Text_Editor</package>
     <access-type>Text_Editor_Widget_Access</access-type>
+    <handle-type>Text_Editor_Handle</handle-type>
     <create>{package}.Create ("{text}")</create>
+    <create-handle>{package}.Create_Handle ("{text}")</create-handle>
     <attribute name="text" type="string" create-param="true" translatable="true"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
     <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
@@ -86,7 +102,9 @@
   <widget tag="combo-box" children-mode="items">
     <package>Adi.Widget.Combo_Box</package>
     <access-type>Combo_Box_Widget_Access</access-type>
+    <handle-type>Combo_Box_Handle</handle-type>
     <create>{package}.Create</create>
+    <create-handle>{package}.Create_Handle</create-handle>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
     <attribute name="on-selection-changed" type="callback" setter="Connect_Selection_Changed"/>
   </widget>
@@ -94,41 +112,53 @@
   <widget tag="image">
     <package>Adi.Widget.Image</package>
     <access-type>Image_Widget_Access</access-type>
+    <handle-type>Image_Handle</handle-type>
     <create>{package}.Create</create>
+    <create-handle>{package}.Create_Handle</create-handle>
     <attribute name="src" type="image" setter="Set_Image"/>
   </widget>
 
   <widget tag="animated-image">
     <package>Adi.Widget.Animated_Image</package>
     <access-type>Animated_Image_Widget_Access</access-type>
+    <handle-type>Animated_Image_Handle</handle-type>
     <create>{package}.Create</create>
+    <create-handle>{package}.Create_Handle</create-handle>
     <attribute name="looping" type="bool" setter="Set_Looping" setter-style="flag"/>
   </widget>
 
   <widget tag="animated-widget">
     <package>Adi.Widget.Animated_Widget</package>
     <access-type>Animated_Widget_Access</access-type>
+    <handle-type>Animated_Widget_Handle</handle-type>
     <create>{package}.Create</create>
+    <create-handle>{package}.Create_Handle</create-handle>
     <attribute name="looping" type="bool" setter="Set_Looping" setter-style="flag"/>
   </widget>
 
   <widget tag="rlottie">
     <package>Adi.Widget.RLottie</package>
     <access-type>RLottie_Widget_Access</access-type>
+    <handle-type>RLottie_Handle</handle-type>
     <create>{package}.Create</create>
+    <create-handle>{package}.Create_Handle</create-handle>
     <attribute name="looping" type="bool" setter="Set_Looping" setter-style="flag"/>
   </widget>
 
   <widget tag="html-view">
     <package>Adi.Widget.Html_View</package>
     <access-type>Html_View_Access</access-type>
+    <handle-type>Html_View_Handle</handle-type>
     <create>{package}.Create</create>
+    <create-handle>{package}.Create_Handle</create-handle>
   </widget>
 
   <widget tag="list-box" generic="true" children-mode="rows">
     <package>Adi.Widget.List_Box</package>
     <access-type>List_Box_Widget_Access</access-type>
+    <handle-type>List_Box_Handle</handle-type>
     <create>{generic_name}.Create</create>
+    <create-handle>{generic_name}.Create_Handle</create-handle>
     <attribute name="generic" type="string" required="true" meta="true"/>
     <attribute name="on-item-clicked" type="callback" setter="Connect_Item_Clicked"/>
     <attribute name="on-item-activated" type="callback" setter="Connect_Item_Activated"/>
@@ -138,7 +168,9 @@
   <widget tag="slider" generic="true">
     <package>Adi.Widget.Slider</package>
     <access-type>Slider_Widget_Access</access-type>
+    <handle-type>Slider_Handle</handle-type>
     <create>{generic_name}.Create (Min =&gt; {min}, Max =&gt; {max}, Value =&gt; {value})</create>
+    <create-handle>{generic_name}.Create_Handle (Min =&gt; {min}, Max =&gt; {max}, Value =&gt; {value})</create-handle>
     <attribute name="generic" type="string" required="true" meta="true"/>
     <attribute name="min" type="string" create-param="true"/>
     <attribute name="max" type="string" create-param="true"/>
@@ -150,7 +182,9 @@
   <widget tag="integer-slider" generic="true">
     <package>Adi.Widget.Integer_Slider</package>
     <access-type>Slider_Widget_Access</access-type>
+    <handle-type>Slider_Handle</handle-type>
     <create>{generic_name}.Create (Min =&gt; {min}, Max =&gt; {max}, Value =&gt; {value})</create>
+    <create-handle>{generic_name}.Create_Handle (Min =&gt; {min}, Max =&gt; {max}, Value =&gt; {value})</create-handle>
     <attribute name="generic" type="string" required="true" meta="true"/>
     <attribute name="min" type="string" create-param="true"/>
     <attribute name="max" type="string" create-param="true"/>
@@ -162,7 +196,9 @@
   <widget tag="value-input" generic="true">
     <package>Adi.Widget.Value_Input</package>
     <access-type>Value_Input_Widget_Access</access-type>
+    <handle-type>Value_Input_Handle</handle-type>
     <create>{generic_name}.Create (Min =&gt; {min}, Max =&gt; {max}, Value =&gt; {value})</create>
+    <create-handle>{generic_name}.Create_Handle (Min =&gt; {min}, Max =&gt; {max}, Value =&gt; {value})</create-handle>
     <attribute name="generic" type="string" required="true" meta="true"/>
     <attribute name="min" type="string" create-param="true"/>
     <attribute name="max" type="string" create-param="true"/>
@@ -174,7 +210,9 @@
   <widget tag="integer-value-input" generic="true">
     <package>Adi.Widget.Integer_Value_Input</package>
     <access-type>Value_Input_Widget_Access</access-type>
+    <handle-type>Value_Input_Handle</handle-type>
     <create>{generic_name}.Create (Min =&gt; {min}, Max =&gt; {max}, Value =&gt; {value})</create>
+    <create-handle>{generic_name}.Create_Handle (Min =&gt; {min}, Max =&gt; {max}, Value =&gt; {value})</create-handle>
     <attribute name="generic" type="string" required="true" meta="true"/>
     <attribute name="min" type="string" create-param="true"/>
     <attribute name="max" type="string" create-param="true"/>

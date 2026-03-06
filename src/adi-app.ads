@@ -9,7 +9,9 @@ package Adi.App is
 
     procedure Run (A : in out App);
 
-    procedure Add_Window (A : in out App; W : access Window.Window);
+    procedure Add_Window (A : in out App; W : Window_Access)
+      with Obsolescent => "Use Add_Window (A, W : Window_Handle)";
+    procedure Add_Window (A : in out App; W : Window_Handle);
 
     --  Post an SDL_EVENT_QUIT so the event loop processes a quit request.
     --  Useful for programmatic quit (e.g. after a confirmation dialog).
@@ -23,7 +25,7 @@ package Adi.App is
 private
 
     type App is tagged record
-        Main_Window   : access Window.Window;
+        Main_Window   : Window_Handle := Null_Window_Handle;
         Target_FPS    : Positive := 60;
         Frame_Period  : Ada.Real_Time.Time_Span :=
            Ada.Real_Time.Microseconds (16_667);  -- ~60 FPS

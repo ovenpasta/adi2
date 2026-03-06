@@ -8,7 +8,7 @@ procedure Stack_Example is
 
    procedure On_Tab (Value : Tab) is
    begin
-      UI.Pages.Set_Active (Value);
+      My_Stack.Set_Active (UI.Pages, Value);
    end On_Tab;
 
 begin

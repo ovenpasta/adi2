@@ -20,6 +20,11 @@ procedure Value_Input_Example is
    package Float_Input is new Adi.Widget.Value_Input (Float);
    package Int_Input is new Adi.Widget.Integer_Value_Input (Integer);
 
+   use type Adi.Widget.Box.Box_Handle;
+   use type Adi.Widget.Label.Label_Handle;
+   use type Float_Input.Value_Input_Handle;
+   use type Int_Input.Value_Input_Handle;
+
    function Float_Str (V : Float) return String is
       package FIO is new Ada.Text_IO.Float_IO (Float);
       Buf : String (1 .. 64);
@@ -29,30 +34,30 @@ procedure Value_Input_Example is
    end Float_Str;
 
    --  Widgets that callbacks reference
-   Float_Echo : Adi.Widget.Label.Label_Widget_Access;
-   Int_Echo   : Adi.Widget.Label.Label_Widget_Access;
-   Range_Echo : Adi.Widget.Label.Label_Widget_Access;
+   Float_Echo : Adi.Widget.Label.Label_Handle;
+   Int_Echo   : Adi.Widget.Label.Label_Handle;
+   Range_Echo : Adi.Widget.Label.Label_Handle;
 
    procedure On_Float_Changed
-     (W : Float_Input.Value_Input_Widget_Access; Value : Float) is
+     (W : Widget_Handle; Value : Float) is
       pragma Unreferenced (W);
    begin
-      Adi.Widget.Label.Set_Text (Float_Echo.all, Float_Str (Value));
+      Adi.Widget.Label.Set_Text (Float_Echo, Float_Str (Value));
    end On_Float_Changed;
 
    procedure On_Int_Changed
-     (W : Int_Input.Value_Input_Widget_Access; Value : Integer) is
+     (W : Widget_Handle; Value : Integer) is
       pragma Unreferenced (W);
    begin
       Adi.Widget.Label.Set_Text
-        (Int_Echo.all, Trim (Integer'Image (Value), Both));
+        (Int_Echo, Trim (Integer'Image (Value), Both));
    end On_Int_Changed;
 
    procedure On_Range_Changed
-     (W : Float_Input.Value_Input_Widget_Access; Value : Float) is
+     (W : Widget_Handle; Value : Float) is
       pragma Unreferenced (W);
    begin
-      Adi.Widget.Label.Set_Text (Range_Echo.all, Float_Str (Value));
+      Adi.Widget.Label.Set_Text (Range_Echo, Float_Str (Value));
    end On_Range_Changed;
 
 begin
@@ -66,152 +71,155 @@ begin
      (Value_Input_Example_Styles.Context_Menu_Item_Class_Part_Styles);
 
    declare
-      Win : constant Window_Access :=
-        Create_Window ("Value Input Example", (600.0, 420.0));
+      Win : constant Window_Handle :=
+        Create_Window_Handle ("Value Input Example", (600.0, 420.0));
 
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
 
       --  Section 1: Float value input
-      Section1 : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Heading1 : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Float Value Input");
-      Row1     : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Label1   : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Temperature (C):");
-      Input1   : constant Float_Input.Value_Input_Widget_Access :=
-        Float_Input.Create (Min => -40.0, Max => 100.0, Value => 22.5);
+      Section1 : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Heading1 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Float Value Input");
+      Row1     : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Label1   : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Temperature (C):");
+      Input1   : constant Float_Input.Value_Input_Handle :=
+        Float_Input.Create_Handle (Min => -40.0, Max => 100.0, Value => 22.5);
 
       --  Section 2: Integer value input
-      Section2 : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Heading2 : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Integer Value Input");
-      Row2     : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Label2   : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Port number:");
-      Input2   : constant Int_Input.Value_Input_Widget_Access :=
-        Int_Input.Create (Min => 1, Max => 65535, Value => 8080);
+      Section2 : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Heading2 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Integer Value Input");
+      Row2     : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Label2   : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Port number:");
+      Input2   : constant Int_Input.Value_Input_Handle :=
+        Int_Input.Create_Handle (Min => 1, Max => 65535, Value => 8080);
 
       --  Section 3: Stepped float input with large range
-      Section3 : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Heading3 : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Stepped Float (step=0.25)");
-      Row3     : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Label3   : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Gain (dB):");
-      Input3   : constant Float_Input.Value_Input_Widget_Access :=
-        Float_Input.Create (Min => -20.0, Max => 20.0, Value => 0.0);
+      Section3 : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Heading3 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Stepped Float (step=0.25)");
+      Row3     : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Label3   : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Gain (dB):");
+      Input3   : constant Float_Input.Value_Input_Handle :=
+        Float_Input.Create_Handle (Min => -20.0, Max => 20.0, Value => 0.0);
 
       --  Section 4: Multiple inputs in a row
-      Section4 : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Heading4 : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("RGB Color Picker");
-      Row4     : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Label_R  : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("R:");
-      Input_R  : constant Int_Input.Value_Input_Widget_Access :=
-        Int_Input.Create (Min => 0, Max => 255, Value => 137);
-      Label_G  : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("G:");
-      Input_G  : constant Int_Input.Value_Input_Widget_Access :=
-        Int_Input.Create (Min => 0, Max => 255, Value => 180);
-      Label_B  : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("B:");
-      Input_B  : constant Int_Input.Value_Input_Widget_Access :=
-        Int_Input.Create (Min => 0, Max => 255, Value => 250);
+      Section4 : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Heading4 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("RGB Color Picker");
+      Row4     : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Label_R  : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("R:");
+      Input_R  : constant Int_Input.Value_Input_Handle :=
+        Int_Input.Create_Handle (Min => 0, Max => 255, Value => 137);
+      Label_G  : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("G:");
+      Input_G  : constant Int_Input.Value_Input_Handle :=
+        Int_Input.Create_Handle (Min => 0, Max => 255, Value => 180);
+      Label_B  : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("B:");
+      Input_B  : constant Int_Input.Value_Input_Handle :=
+        Int_Input.Create_Handle (Min => 0, Max => 255, Value => 250);
    begin
-      Float_Echo := Adi.Widget.Label.Create (Float_Str (22.5));
-      Int_Echo   := Adi.Widget.Label.Create ("8080");
-      Range_Echo := Adi.Widget.Label.Create (Float_Str (0.0));
+      Float_Echo := Adi.Widget.Label.Create_Handle (Float_Str (22.5));
+      Int_Echo   := Adi.Widget.Label.Create_Handle ("8080");
+      Range_Echo := Adi.Widget.Label.Create_Handle (Float_Str (0.0));
 
       --  Configure steps
-      Float_Input.Set_Step (Input1.all, 0.5);
-      Int_Input.Set_Step (Input2.all, 1);
-      Float_Input.Set_Step (Input3.all, 0.25);
-      Int_Input.Set_Step (Input_R.all, 1);
-      Int_Input.Set_Step (Input_G.all, 1);
-      Int_Input.Set_Step (Input_B.all, 1);
+      Float_Input.Set_Step (Input1, 0.5);
+      Int_Input.Set_Step (Input2, 1);
+      Float_Input.Set_Step (Input3, 0.25);
+      Int_Input.Set_Step (Input_R, 1);
+      Int_Input.Set_Step (Input_G, 1);
+      Int_Input.Set_Step (Input_B, 1);
 
       --  Wire callbacks
       Float_Input.Connect_Value_Changed
-        (Input1.all, On_Float_Changed'Unrestricted_Access);
+        (Input1, On_Float_Changed'Unrestricted_Access);
       Int_Input.Connect_Value_Changed
-        (Input2.all, On_Int_Changed'Unrestricted_Access);
+        (Input2, On_Int_Changed'Unrestricted_Access);
       Float_Input.Connect_Value_Changed
-        (Input3.all, On_Range_Changed'Unrestricted_Access);
+        (Input3, On_Range_Changed'Unrestricted_Access);
 
       --  Apply styles
-      Set_Part_Styles (Root.all, Root_Class_Part_Styles);
-      Set_Part_Styles (Section1.all, Section_Class_Part_Styles);
-      Set_Part_Styles (Section2.all, Section_Class_Part_Styles);
-      Set_Part_Styles (Section3.all, Section_Class_Part_Styles);
-      Set_Part_Styles (Section4.all, Section_Class_Part_Styles);
-      Set_Part_Styles (Heading1.all, Heading_Class_Part_Styles);
-      Set_Part_Styles (Heading2.all, Heading_Class_Part_Styles);
-      Set_Part_Styles (Heading3.all, Heading_Class_Part_Styles);
-      Set_Part_Styles (Heading4.all, Heading_Class_Part_Styles);
-      Set_Part_Styles (Row1.all, Row_Class_Part_Styles);
-      Set_Part_Styles (Row2.all, Row_Class_Part_Styles);
-      Set_Part_Styles (Row3.all, Row_Class_Part_Styles);
-      Set_Part_Styles (Row4.all, Row_Class_Part_Styles);
-      Set_Part_Styles (Label1.all, Label_Class_Part_Styles);
-      Set_Part_Styles (Label2.all, Label_Class_Part_Styles);
-      Set_Part_Styles (Label3.all, Label_Class_Part_Styles);
-      Set_Part_Styles (Label_R.all, Label_Class_Part_Styles);
-      Set_Part_Styles (Label_G.all, Label_Class_Part_Styles);
-      Set_Part_Styles (Label_B.all, Label_Class_Part_Styles);
-      Set_Part_Styles (Float_Echo.all, Value_Label_Class_Part_Styles);
-      Set_Part_Styles (Int_Echo.all, Value_Label_Class_Part_Styles);
-      Set_Part_Styles (Range_Echo.all, Value_Label_Class_Part_Styles);
-      Set_Part_Styles (Input1.all, Value_Input_Class_Part_Styles);
-      Set_Part_Styles (Input2.all, Int_Input_Class_Part_Styles);
-      Set_Part_Styles (Input3.all, Wide_Input_Class_Part_Styles);
-      Set_Part_Styles (Input_R.all, Int_Input_Class_Part_Styles);
-      Set_Part_Styles (Input_G.all, Int_Input_Class_Part_Styles);
-      Set_Part_Styles (Input_B.all, Int_Input_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Root, Root_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Section1, Section_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Section2, Section_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Section3, Section_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Section4, Section_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Heading1, Heading_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Heading2, Heading_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Heading3, Heading_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Heading4, Heading_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Row1, Row_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Row2, Row_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Row3, Row_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Row4, Row_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Label1, Label_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Label2, Label_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Label3, Label_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Label_R, Label_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Label_G, Label_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Label_B, Label_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles
+        (Float_Echo, Value_Label_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles
+        (Int_Echo, Value_Label_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles
+        (Range_Echo, Value_Label_Class_Part_Styles);
+      Float_Input.Set_Part_Styles (Input1, Value_Input_Class_Part_Styles);
+      Int_Input.Set_Part_Styles (Input2, Int_Input_Class_Part_Styles);
+      Float_Input.Set_Part_Styles (Input3, Wide_Input_Class_Part_Styles);
+      Int_Input.Set_Part_Styles (Input_R, Int_Input_Class_Part_Styles);
+      Int_Input.Set_Part_Styles (Input_G, Int_Input_Class_Part_Styles);
+      Int_Input.Set_Part_Styles (Input_B, Int_Input_Class_Part_Styles);
 
       --  Build hierarchy
-      Add_Child (Section1.all, Heading1);
-      Add_Child (Row1.all, Label1);
-      Add_Child (Row1.all, Input1);
-      Add_Child (Row1.all, Float_Echo);
-      Add_Child (Section1.all, Row1);
+      Add_Child (+Section1, +Heading1);
+      Add_Child (+Row1, +Label1);
+      Add_Child (+Row1, +Input1);
+      Add_Child (+Row1, +Float_Echo);
+      Add_Child (+Section1, +Row1);
 
-      Add_Child (Section2.all, Heading2);
-      Add_Child (Row2.all, Label2);
-      Add_Child (Row2.all, Input2);
-      Add_Child (Row2.all, Int_Echo);
-      Add_Child (Section2.all, Row2);
+      Add_Child (+Section2, +Heading2);
+      Add_Child (+Row2, +Label2);
+      Add_Child (+Row2, +Input2);
+      Add_Child (+Row2, +Int_Echo);
+      Add_Child (+Section2, +Row2);
 
-      Add_Child (Section3.all, Heading3);
-      Add_Child (Row3.all, Label3);
-      Add_Child (Row3.all, Input3);
-      Add_Child (Row3.all, Range_Echo);
-      Add_Child (Section3.all, Row3);
+      Add_Child (+Section3, +Heading3);
+      Add_Child (+Row3, +Label3);
+      Add_Child (+Row3, +Input3);
+      Add_Child (+Row3, +Range_Echo);
+      Add_Child (+Section3, +Row3);
 
-      Add_Child (Section4.all, Heading4);
-      Add_Child (Row4.all, Label_R);
-      Add_Child (Row4.all, Input_R);
-      Add_Child (Row4.all, Label_G);
-      Add_Child (Row4.all, Input_G);
-      Add_Child (Row4.all, Label_B);
-      Add_Child (Row4.all, Input_B);
-      Add_Child (Section4.all, Row4);
+      Add_Child (+Section4, +Heading4);
+      Add_Child (+Row4, +Label_R);
+      Add_Child (+Row4, +Input_R);
+      Add_Child (+Row4, +Label_G);
+      Add_Child (+Row4, +Input_G);
+      Add_Child (+Row4, +Label_B);
+      Add_Child (+Row4, +Input_B);
+      Add_Child (+Section4, +Row4);
 
-      Add_Child (Root.all, Section1);
-      Add_Child (Root.all, Section2);
-      Add_Child (Root.all, Section3);
-      Add_Child (Root.all, Section4);
+      Add_Child (+Root, +Section1);
+      Add_Child (+Root, +Section2);
+      Add_Child (+Root, +Section3);
+      Add_Child (+Root, +Section4);
 
-      Win.Set_Root (Root);
+      Adi.Window.Set_Root (Win, Widget_Handle'(+Root));
       A.Add_Window (Win);
       A.Run;
    end;

@@ -11,6 +11,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | Topic | File |
 |-------|------|
 | Architecture & core components | `docs/architecture.md` |
+| Handle ownership model (stores, handles, borrow, lifecycle) | `docs/handle_ownership.md` |
 | Coding conventions | `docs/coding_conventions.md` |
 | CSS styling (selectors, properties, runtime API, code generation) | `docs/css_styling.md` |
 | XML UI system (declarative widgets, code generation, components) | `docs/xml_ui_system.md` |

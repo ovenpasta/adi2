@@ -233,7 +233,7 @@ procedure Html_View_Test is
       Link_Clicked : Boolean := False;
 
       procedure On_Link_Click
-        (Self : access Adi.Widget.Html_View.Html_View;
+        (Self : Adi.Widget.Html_View.Html_View_Handle;
          Href : String)
       is
          pragma Unreferenced (Self, Href);
@@ -242,7 +242,7 @@ procedure Html_View_Test is
       end On_Link_Click;
 
       function On_Load_Asset
-        (Self : access Adi.Widget.Html_View.Html_View;
+        (Self : Adi.Widget.Html_View.Html_View_Handle;
          URI  : String) return Adi.Image.Image_Access
       is
          pragma Unreferenced (Self, URI);
@@ -282,7 +282,7 @@ procedure Html_View_Test is
       Asset_Hits    : Natural := 0;
 
       function On_Load_Resource
-        (Self : access Adi.Widget.Html_View.Html_View;
+        (Self : Adi.Widget.Html_View.Html_View_Handle;
          URI  : String) return String
       is
          pragma Unreferenced (Self);
@@ -295,7 +295,7 @@ procedure Html_View_Test is
       end On_Load_Resource;
 
       function On_Load_Asset
-        (Self : access Adi.Widget.Html_View.Html_View;
+        (Self : Adi.Widget.Html_View.Html_View_Handle;
          URI  : String) return Adi.Image.Image_Access
       is
          pragma Unreferenced (Self);
@@ -587,7 +587,7 @@ procedure Html_View_Test is
       Clicks : Natural := 0;
 
       procedure On_Link_Click
-        (Self : access Adi.Widget.Html_View.Html_View;
+        (Self : Adi.Widget.Html_View.Html_View_Handle;
          Href : String)
       is
          pragma Unreferenced (Self, Href);
@@ -865,7 +865,7 @@ procedure Html_View_Test is
       Arrow_Idx : Natural := 0;
 
       function On_Load_Asset
-        (Self : access Adi.Widget.Html_View.Html_View;
+        (Self : Adi.Widget.Html_View.Html_View_Handle;
          URI  : String) return Adi.Image.Image_Access
       is
          pragma Unreferenced (Self);
@@ -1120,7 +1120,7 @@ procedure Html_View_Test is
         Adi.Widget.Html_View.Create;
 
       function On_Load_Asset
-        (Self : access Adi.Widget.Html_View.Html_View;
+        (Self : Adi.Widget.Html_View.Html_View_Handle;
          URI  : String) return Adi.Image.Image_Access
       is
          pragma Unreferenced (Self, URI);

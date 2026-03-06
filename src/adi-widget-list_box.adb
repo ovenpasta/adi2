@@ -28,9 +28,9 @@ package body Adi.Widget.List_Box is
    end Is_Mod_Active;
 
    procedure Fire_Selection_Changed (W : in out List_Box_Widget) is
-      Self : constant List_Box_Widget_Access := W'Unchecked_Access;
+      H : constant Widget_Handle := Get_Handle (W);
       procedure Call (CB : Selection_Changed_Callback) is
-      begin CB (Self); end Call;
+      begin CB (H); end Call;
       procedure Emit is new Selection_Changed_Signals.For_Each (Call);
    begin
       Emit (W.Selection_Changed);
@@ -229,8 +229,53 @@ package body Adi.Widget.List_Box is
       Set_Flag (Result.all, Clickable, True);
       Set_Flag (Result.all, Focusable, True);
       Set_Flag (Result.all, Scrollable, True);
+      declare
+         P : constant access Widget'Class := Result.all'Unchecked_Access;
+      begin
+         Register_Widget (Widget_Access (P));
+      end;
       return Result;
    end Create;
+
+   function Create_Handle return List_Box_Handle is
+   begin
+      return (Id => Get_Handle (Create.all).Id);
+   end Create_Handle;
+
+   ----------------------
+   -- Handle bridge --
+   ----------------------
+
+   function To_Widget_Handle (H : List_Box_Handle) return Widget_Handle is
+   begin
+      return (Id => H.Id);
+   end To_Widget_Handle;
+
+   function Try_As_List_Box (H : Widget_Handle) return List_Box_Handle is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in List_Box_Widget'Class then
+         return (Id => H.Id);
+      end if;
+      return Null_List_Box_Handle;
+   end Try_As_List_Box;
+
+   function Is_Valid (H : List_Box_Handle) return Boolean is
+   begin
+      return Widget_Stores.Is_Valid (H.Id);
+   end Is_Valid;
+
+   function "+" (H : List_Box_Handle) return Widget_Handle is
+   begin
+      return To_Widget_Handle (H);
+   end "+";
+
+   procedure Set_Part_Styles
+     (H : List_Box_Handle; Styles : Part_Style_Array)
+   is
+   begin
+      Adi.Widget.Set_Part_Styles (To_Widget_Handle (H), Styles);
+   end Set_Part_Styles;
 
    procedure Append_Row (W : in out List_Box_Widget; Row : Row_Widget_Access) is
    begin
@@ -287,6 +332,17 @@ package body Adi.Widget.List_Box is
       end if;
       return null;
    end Get_Row;
+
+   function Get_Row_Handle
+     (W : List_Box_Widget; Index : Positive) return Widget_Handle
+   is
+      Row : constant Row_Widget_Access := Get_Row (W, Index);
+   begin
+      if Row = null then
+         return Null_Handle;
+      end if;
+      return Get_Handle (Row.all);
+   end Get_Row_Handle;
 
    procedure Set_Scroll_Offset (W : in out List_Box_Widget; Offset : Pixel_Type) is
    begin
@@ -665,7 +721,7 @@ package body Adi.Widget.List_Box is
       Button : Mouse_Button;
       Clicks : Natural := 1)
    is
-      Self : constant List_Box_Widget_Access := W'Unchecked_Access;
+      H     : constant Widget_Handle := Get_Handle (W);
       Index : Natural;
       Prev_Current : constant Natural := W.Current_Row;
       Mods  : constant SDL_Keymod := SDL_GetModState;
@@ -746,7 +802,7 @@ package body Adi.Widget.List_Box is
       declare
          Idx : constant Positive := Positive (Index);
          procedure Call_Click (CB : Item_Clicked_Callback) is
-         begin CB (Self, Idx, Clicks); end Call_Click;
+         begin CB (H, Idx, Clicks); end Call_Click;
          procedure Emit_Click is new Item_Clicked_Signals.For_Each (Call_Click);
       begin
          Emit_Click (W.Item_Clicked);
@@ -755,7 +811,7 @@ package body Adi.Widget.List_Box is
          declare
             Idx : constant Positive := Positive (Index);
             procedure Call_Act (CB : Item_Activated_Callback) is
-            begin CB (Self, Idx); end Call_Act;
+            begin CB (H, Idx); end Call_Act;
             procedure Emit_Act is new Item_Activated_Signals.For_Each (Call_Act);
          begin
             Emit_Act (W.Item_Activated);
@@ -856,5 +912,282 @@ package body Adi.Widget.List_Box is
             null;
       end case;
    end On_Key_Down;
+
+   ---------------------------------------------------------------------------
+   --  Handle methods
+   ---------------------------------------------------------------------------
+
+   procedure Append_Row (H : List_Box_Handle; Row : Row_Widget_Access) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Append_Row (List_Box_Widget (Ptr.all), Row);
+      end if;
+   end Append_Row;
+
+   procedure Append_Row (H : List_Box_Handle; Row : Adi.Widget.Widget_Handle) is
+      Ptr     : constant Widget_Access := Widget_Stores.Get (H.Id);
+      Row_Ptr : constant Widget_Access := Resolve_Handle (Row);
+   begin
+      if Ptr /= null and then Row_Ptr /= null then
+         Append_Row (List_Box_Widget (Ptr.all),
+                     Row_Widget_Access (Row_Ptr));
+      end if;
+   end Append_Row;
+
+   procedure Clear_Rows (H : List_Box_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Clear_Rows (List_Box_Widget (Ptr.all));
+      end if;
+   end Clear_Rows;
+
+   function Row_Count (H : List_Box_Handle) return Natural is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Row_Count (List_Box_Widget (Ptr.all));
+      end if;
+      return 0;
+   end Row_Count;
+
+   function Get_Row (H : List_Box_Handle; Index : Positive)
+      return Row_Widget_Access
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Row (List_Box_Widget (Ptr.all), Index);
+      end if;
+      return null;
+   end Get_Row;
+
+   function Get_Row_Handle
+     (H : List_Box_Handle; Index : Positive) return Widget_Handle
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Row_Handle (List_Box_Widget (Ptr.all), Index);
+      end if;
+      return Null_Handle;
+   end Get_Row_Handle;
+
+   procedure Set_Scroll_Offset (H : List_Box_Handle; Offset : Pixel_Type) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Scroll_Offset (List_Box_Widget (Ptr.all), Offset);
+      end if;
+   end Set_Scroll_Offset;
+
+   function Get_Scroll_Offset (H : List_Box_Handle) return Pixel_Type is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Scroll_Offset (List_Box_Widget (Ptr.all));
+      end if;
+      return 0.0;
+   end Get_Scroll_Offset;
+
+   function Get_Content_Height (H : List_Box_Handle) return Pixel_Type is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Content_Height (List_Box_Widget (Ptr.all));
+      end if;
+      return 0.0;
+   end Get_Content_Height;
+
+   procedure Scroll_By (H : List_Box_Handle; Delta_Y : Pixel_Type) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Scroll_By (List_Box_Widget (Ptr.all), Delta_Y);
+      end if;
+   end Scroll_By;
+
+   procedure Ensure_Row_Visible (H : List_Box_Handle; Index : Positive) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Ensure_Row_Visible (List_Box_Widget (Ptr.all), Index);
+      end if;
+   end Ensure_Row_Visible;
+
+   procedure Set_Selection_Mode (H : List_Box_Handle; Mode : Selection_Mode) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Selection_Mode (List_Box_Widget (Ptr.all), Mode);
+      end if;
+   end Set_Selection_Mode;
+
+   function Get_Selection_Mode (H : List_Box_Handle) return Selection_Mode is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Selection_Mode (List_Box_Widget (Ptr.all));
+      end if;
+      return No_Selection;
+   end Get_Selection_Mode;
+
+   procedure Clear_Selection (H : List_Box_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Clear_Selection (List_Box_Widget (Ptr.all));
+      end if;
+   end Clear_Selection;
+
+   procedure Select_Row (H : List_Box_Handle; Index : Positive) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Select_Row (List_Box_Widget (Ptr.all), Index);
+      end if;
+   end Select_Row;
+
+   procedure Toggle_Row_Selected (H : List_Box_Handle; Index : Positive) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Toggle_Row_Selected (List_Box_Widget (Ptr.all), Index);
+      end if;
+   end Toggle_Row_Selected;
+
+   function Is_Row_Selected (H : List_Box_Handle; Index : Positive)
+      return Boolean
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Is_Row_Selected (List_Box_Widget (Ptr.all), Index);
+      end if;
+      return False;
+   end Is_Row_Selected;
+
+   function Get_Selected_Count (H : List_Box_Handle) return Natural is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Selected_Count (List_Box_Widget (Ptr.all));
+      end if;
+      return 0;
+   end Get_Selected_Count;
+
+   procedure Set_Current_Row (H : List_Box_Handle; Index : Positive) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Current_Row (List_Box_Widget (Ptr.all), Index);
+      end if;
+   end Set_Current_Row;
+
+   function Get_Current_Row (H : List_Box_Handle) return Natural is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Current_Row (List_Box_Widget (Ptr.all));
+      end if;
+      return 0;
+   end Get_Current_Row;
+
+   procedure Connect_Item_Clicked
+     (H : List_Box_Handle; CB : Item_Clicked_Callback)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Connect_Item_Clicked (List_Box_Widget (Ptr.all), CB);
+      end if;
+   end Connect_Item_Clicked;
+
+   function Connect_Item_Clicked
+     (H : List_Box_Handle; CB : Item_Clicked_Callback)
+      return Item_Clicked_Signals.Connection_Id
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Connect_Item_Clicked (List_Box_Widget (Ptr.all), CB);
+      end if;
+      return Item_Clicked_Signals.No_Connection;
+   end Connect_Item_Clicked;
+
+   procedure Disconnect_Item_Clicked
+     (H : List_Box_Handle; Id : Item_Clicked_Signals.Connection_Id)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Disconnect_Item_Clicked (List_Box_Widget (Ptr.all), Id);
+      end if;
+   end Disconnect_Item_Clicked;
+
+   procedure Connect_Item_Activated
+     (H : List_Box_Handle; CB : Item_Activated_Callback)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Connect_Item_Activated (List_Box_Widget (Ptr.all), CB);
+      end if;
+   end Connect_Item_Activated;
+
+   function Connect_Item_Activated
+     (H : List_Box_Handle; CB : Item_Activated_Callback)
+      return Item_Activated_Signals.Connection_Id
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Connect_Item_Activated (List_Box_Widget (Ptr.all), CB);
+      end if;
+      return Item_Activated_Signals.No_Connection;
+   end Connect_Item_Activated;
+
+   procedure Disconnect_Item_Activated
+     (H : List_Box_Handle; Id : Item_Activated_Signals.Connection_Id)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Disconnect_Item_Activated (List_Box_Widget (Ptr.all), Id);
+      end if;
+   end Disconnect_Item_Activated;
+
+   procedure Connect_Selection_Changed
+     (H : List_Box_Handle; CB : Selection_Changed_Callback)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Connect_Selection_Changed (List_Box_Widget (Ptr.all), CB);
+      end if;
+   end Connect_Selection_Changed;
+
+   function Connect_Selection_Changed
+     (H : List_Box_Handle; CB : Selection_Changed_Callback)
+      return Selection_Changed_Signals.Connection_Id
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Connect_Selection_Changed (List_Box_Widget (Ptr.all), CB);
+      end if;
+      return Selection_Changed_Signals.No_Connection;
+   end Connect_Selection_Changed;
+
+   procedure Disconnect_Selection_Changed
+     (H : List_Box_Handle; Id : Selection_Changed_Signals.Connection_Id)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Disconnect_Selection_Changed (List_Box_Widget (Ptr.all), Id);
+      end if;
+   end Disconnect_Selection_Changed;
 
 end Adi.Widget.List_Box;

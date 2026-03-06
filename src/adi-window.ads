@@ -1,3 +1,4 @@
+with Ada.Finalization;
 with Ada.Containers.Vectors;
 with Adi.Core;       use Adi.Core;
 with Adi.Widget;     use Adi.Widget;
@@ -6,13 +7,25 @@ with Adi.SDL.Video;  use Adi.SDL.Video;
 with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.SDL.Events;
 with Adi.Signal;
-with System;
+with Adi.Handle_Store;
 
 package Adi.Window is
     type Window is new Ada.Finalization.Limited_Controlled with private;
     type Window_Access is access all Window;
+    type Window_Handle is private;
+    Null_Window_Handle : constant Window_Handle;
 
-    function Create_Window (Title : String; S : Size_2D) return Window_Access;
+    function Create_Window (Title : String; S : Size_2D) return Window_Access
+      with Obsolescent => "Use Create_Window_Handle";
+    function Create_Window_Handle (Title : String; S : Size_2D)
+      return Window_Handle;
+    function Get_Handle (W : Window) return Window_Handle;
+    function Is_Valid (H : Window_Handle) return Boolean;
+    function Resolve_Window_Handle (H : Window_Handle) return Window_Access;
+    procedure Destroy (H : in out Window_Handle);
+    procedure Destroy (W : in out Window_Access)
+      with Obsolescent => "Use Destroy (H : in out Window_Handle)";
+    procedure Pump_Window_Store;
 
     procedure Update (W : in out Window);
 
@@ -20,8 +33,16 @@ package Adi.Window is
     procedure Render (W : in out Window);
 
     --  Set the root widget for this window
-    procedure Set_Root (W : in out Window; Root : access Adi.Widget.Widget'Class);
-    function Get_Root (W : Window) return Widget_Access;
+    procedure Set_Root (W : in out Window; Root : access Adi.Widget.Widget'Class)
+      with Obsolescent => "Use Set_Root with Widget_Handle";
+    procedure Set_Root (W : in out Window; Root : Widget_Handle);
+    procedure Set_Root (H : Window_Handle; Root : access Adi.Widget.Widget'Class)
+      with Obsolescent => "Use Set_Root (H, Root : Widget_Handle)";
+    procedure Set_Root (H : Window_Handle; Root : Widget_Handle);
+    function Get_Root (W : Window) return Widget_Access
+      with Obsolescent => "Use Get_Root_Handle";
+    function Get_Root_Handle (W : Window) return Widget_Handle;
+    function Get_Root_Handle (H : Window_Handle) return Widget_Handle;
     --  Resolve the host window that currently contains a widget in its
     --  root tree or overlay tree. Returns null if none.
     function Find_Host_Window
@@ -31,18 +52,41 @@ package Adi.Window is
     procedure Set_Enforce_Layout_Min_Size
       (W       : in out Window;
        Enabled : Boolean := True);
+    procedure Set_Enforce_Layout_Min_Size
+      (H       : Window_Handle;
+       Enabled : Boolean := True);
     function Get_Enforce_Layout_Min_Size (W : Window) return Boolean;
+    function Get_Enforce_Layout_Min_Size (H : Window_Handle) return Boolean;
 
     --  Overlay widgets render above the root tree and are hit-tested first.
     --  If focus currently points into an overlay being removed/cleared,
     --  focus is cleared to avoid stale detached targets.
-    procedure Add_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class);
-    procedure Remove_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class);
+    procedure Add_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class)
+      with Obsolescent => "Use Add_Overlay with Widget_Handle";
+    procedure Add_Overlay (W : in out Window; Overlay : Widget_Handle);
+    procedure Remove_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class)
+      with Obsolescent => "Use Remove_Overlay with Widget_Handle";
+    procedure Remove_Overlay (W : in out Window; Overlay : Widget_Handle);
     procedure Clear_Overlays (W : in out Window);
     function Overlay_Count (W : Window) return Natural;
     function Get_Overlay (W : Window; Index : Positive) return Widget_Access
+      with Pre => Index <= Overlay_Count (W),
+           Obsolescent => "Use Get_Overlay_Handle";
+    function Get_Overlay_Handle (W : Window; Index : Positive)
+      return Widget_Handle
       with Pre => Index <= Overlay_Count (W);
-    function Get_Focus (W : Window) return Widget_Access;
+    function Get_Overlay_Handle (H : Window_Handle; Index : Positive)
+      return Widget_Handle;
+    function Get_Focus (W : Window) return Widget_Access
+      with Obsolescent => "Use Get_Focus_Handle";
+    function Get_Focus_Handle (W : Window) return Widget_Handle;
+    function Get_Focus_Handle (H : Window_Handle) return Widget_Handle;
+
+    --  Clear Focused/Hovered/Pressed refs if they point at Target or any
+    --  widget in Target's subtree.  Called from Destroy before detaching.
+    procedure Clear_Widget_Refs_In_Subtree
+      (W      : in out Window;
+       Target : not null access Adi.Widget.Widget'Class);
 
     --  Get the underlying SDL window pointer (for dialog calls, etc.)
     function Get_SDL_Window (W : Window) return SDL_Window_Ptr;
@@ -82,6 +126,8 @@ package Adi.Window is
 
     procedure Connect_Tick
       (W : in out Window; CB : Tick_Callback);
+    procedure Connect_Tick
+      (H : Window_Handle; CB : Tick_Callback);
     function Connect_Tick
       (W : in out Window; CB : Tick_Callback)
        return Tick_Signals.Connection_Id;
@@ -90,6 +136,13 @@ package Adi.Window is
 
     --  Advance animations by DT seconds on all widgets in this window
     procedure Tick (W : in out Window; DT : Duration);
+
+    --  Destroy overlay and root widget trees eagerly.
+    --  Must be called while the caller's scope (and any local generic
+    --  instantiations that created widgets) is still alive, because
+    --  Unchecked_Deallocation needs valid dispatch tables.
+    --  Finalize skips widget destruction when this has already been called.
+    procedure Destroy_Widget_Tree (W : in out Window);
 
     procedure Reshape (W : in out Window; SZ : Size_2D);
     function Get_Size (W : in out Window) return Size_2D;
@@ -103,13 +156,17 @@ package Adi.Window is
     --  are ignored by normal focus-candidate validation.
     procedure Set_Focus
       (W      : in out Window;
-       Target : access Adi.Widget.Widget'Class);
+       Target : access Adi.Widget.Widget'Class)
+      with Obsolescent => "Use Set_Focus with Widget_Handle";
+    procedure Set_Focus (W : in out Window; Target : Widget_Handle);
+    procedure Set_Focus (H : Window_Handle; Target : Widget_Handle);
 
     --  Force a full re-render on the next frame (e.g. after window exposed).
     procedure Request_Redraw (W : in out Window);
 
     --  On-screen debug stats overlay (frame count, FPS, render time, layout count)
     procedure Set_Debug_Stats (W : in out Window; Enabled : Boolean);
+    procedure Set_Debug_Stats (H : Window_Handle; Enabled : Boolean);
 
     --  Post-render callback, invoked after all widget rendering (including
     --  debug stats overlay) but before SDL_RenderPresent.
@@ -154,6 +211,8 @@ package Adi.Window is
 
     procedure Connect_Close_Request
       (W : in out Window; CB : Close_Request_Callback);
+    procedure Connect_Close_Request
+      (H : Window_Handle; CB : Close_Request_Callback);
     function Connect_Close_Request
       (W : in out Window; CB : Close_Request_Callback)
        return Close_Request_Signals.Connection_Id;
@@ -184,6 +243,8 @@ private
     type Internal_Access is access Internal;
     type Window is new Ada.Finalization.Limited_Controlled with record
         Internal       : Internal_Access;
+        Store_Index    : Natural := 0;
+        Store_Gen      : Natural := 0;
         Ctx            : Render_Context;
         Root           : Widget_Access;
         Geometry       : Rectangle;
@@ -235,4 +296,16 @@ private
        (W : Window; X, Y : Pixel_Type) return Widget_Access;
     function Point_In_Widget
        (Wgt : Widget_Access; X, Y : Pixel_Type) return Boolean;
+
+    type Window_Class_Access is access all Window'Class;
+
+    package Window_Stores is new Adi.Handle_Store
+      (Window, Window_Class_Access);
+
+    type Window_Handle is record
+       Id : Window_Stores.Object_Id := Window_Stores.Null_Id;
+    end record;
+
+    Null_Window_Handle : constant Window_Handle :=
+      (Id => Window_Stores.Null_Id);
 end Adi.Window;

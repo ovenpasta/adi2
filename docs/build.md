@@ -70,7 +70,7 @@ tools/configure.sh --build-dir build-linux --target linux --svg-backend plutosvg
 ```
 
 ### Valid TEST_KIND values
-`styles`, `layout_test`, `layout_flex_grid_test`, `css_parser_test`, `css_source_test`, `text_buffer_test`, `text_layout_test`, `html_view_test`, `svg_test`, `svg_perf_test`, `bundle_test`
+`styles`, `layout_test`, `layout_flex_grid_test`, `css_parser_test`, `css_source_test`, `text_buffer_test`, `text_layout_test`, `html_view_test`, `svg_test`, `svg_perf_test`, `disabled_test`, `image_widget_test`, `slider_test`, `value_input_test`, `svg_sprites_test`, `min_size_test`, `layout_perf_test`, `style_storage_equivalence_test`, `window_resize_safety_test`, `mcp_test`, `bundle_test`, `signal_test`, `dispatch_test`, `i18n_test`, `settings_test`, `close_request_test`, `window_handle_test`, `text_editor_test`, `handle_store_test`, `widget_handle_test`
 
 ### Valid EXAMPLE_KIND values
 `label_example`, `widget_demo`, `button_example`, `transition_example`, `text_input_example`, `text_editor_example`, `demo_flex`, `stack_example`, `list_box_example`, `combo_box_example`, `overflow_example`, `grid_example`, `dialog_example`, `font_example`, `runtime_css_example`, `animated_image_example`, `rlottie_example`, `html_view_example`, `assets_example`

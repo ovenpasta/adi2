@@ -15,12 +15,13 @@ procedure Runtime_Css_Example is
 
    type Style_Source_Access is access all Adi.CSS_Source.Style_Source;
    use type Adi.CSS_Source.Source_Mode;
-   use type Adi.Widget.Button.Button_Widget_Access;
-   use type Adi.Widget.Label.Label_Widget_Access;
+   use type Adi.Widget.Box.Box_Handle;
+   use type Adi.Widget.Button.Button_Handle;
+   use type Adi.Widget.Label.Label_Handle;
 
    type Live_Root_Widget is new Adi.Widget.Box.Box_Widget with record
       Source       : Style_Source_Access := null;
-      Status_Label : Adi.Widget.Label.Label_Widget_Access := null;
+      Status_Label : Adi.Widget.Label.Label_Handle;
       Reload_Count : Natural := 0;
       Last_OK      : Boolean := True;
    end record;
@@ -40,13 +41,13 @@ procedure Runtime_Css_Example is
 
       Adi.CSS_Source.Tick (W.Source.all, Reloaded, Success);
 
-      if W.Status_Label = null then
+      if not Adi.Widget.Label.Is_Valid (W.Status_Label) then
          return;
       end if;
 
       if not Success then
          if W.Last_OK then
-            W.Status_Label.Set_Text (
+            Adi.Widget.Label.Set_Text (W.Status_Label,
               "CSS reload error: " & Adi.CSS_Source.Get_Last_Error (W.Source.all));
          end if;
          W.Last_OK := False;
@@ -55,7 +56,7 @@ procedure Runtime_Css_Example is
 
       if Reloaded and then Adi.CSS_Source.Get_Mode (W.Source.all) = Adi.CSS_Source.Dynamic_Mode then
          W.Reload_Count := W.Reload_Count + 1;
-         W.Status_Label.Set_Text (
+         Adi.Widget.Label.Set_Text (W.Status_Label,
            "Live reload OK (" & W.Reload_Count'Image & ") - edit css/runtime_css_example.css");
       end if;
 
@@ -81,8 +82,8 @@ begin
    A.Init;
 
    declare
-      W : constant Adi.Window.Window_Access :=
-        Adi.Window.Create_Window ("Runtime CSS Example", (980.0, 640.0));
+      W : constant Adi.Window.Window_Handle :=
+        Adi.Window.Create_Window_Handle ("Runtime CSS Example", (980.0, 640.0));
 
       Source : aliased Adi.CSS_Source.Style_Source;
       CSS_Path : constant String := Resolve_CSS_Path;
@@ -93,40 +94,40 @@ begin
         new Live_Root_Widget'
           (Adi.Widget.Box.Box_Widget with
              Source       => Source'Unchecked_Access,
-             Status_Label => null,
+             Status_Label => Adi.Widget.Label.Null_Label_Handle,
              Reload_Count => 0,
              Last_OK      => True);
 
-      Header : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Content : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Card_Left : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Card_Right : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Header : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Content : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Card_Left : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Card_Right : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
 
-      Title : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Runtime CSS Live Reload");
-      Subtitle : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Edit the css file while this app is open.");
-      Badge : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("LIVE");
-      Mode_Button : constant Adi.Widget.Button.Button_Widget_Access :=
-        Adi.Widget.Button.Create ("Mode: Dynamic CSS");
+      Title : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Runtime CSS Live Reload");
+      Subtitle : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Edit the css file while this app is open.");
+      Badge : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("LIVE");
+      Mode_Button : constant Adi.Widget.Button.Button_Handle :=
+        Adi.Widget.Button.Create_Handle ("Mode: Dynamic CSS");
 
-      Left_Title : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Card One");
-      Left_Body : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create
+      Left_Title : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Card One");
+      Left_Body : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle
           ("This style is loaded from disk at runtime." & ASCII.LF
            & "Try changing border radius, shadows, colors, and spacing.");
 
-      Right_Title : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Card Two");
-      Right_Body : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create
+      Right_Title : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Card Two");
+      Right_Body : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle
           ("Hover styles and typography changes also hot-reload." & ASCII.LF
            & "No codegen step is needed.");
 
-      Status : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Waiting for CSS load...");
+      Status : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Waiting for CSS load...");
 
       Static_Entries : constant Adi.CSS_Source.Static_Style_Entry_Array := [
         Adi.CSS_Source.Class_Entry ("root", Runtime_Css_Example_Styles.Root_Class_Part_Styles),
@@ -147,16 +148,16 @@ begin
       procedure Update_Mode_UI is
       begin
          if Adi.CSS_Source.Get_Mode (Source) = Adi.CSS_Source.Dynamic_Mode then
-            Mode_Button.Set_Text ("Mode: Dynamic CSS");
-            Status.Set_Text ("Dynamic mode: edit " & CSS_Path & " and save to live reload");
+            Adi.Widget.Button.Set_Text (Mode_Button, "Mode: Dynamic CSS");
+            Adi.Widget.Label.Set_Text (Status, "Dynamic mode: edit " & CSS_Path & " and save to live reload");
          else
-            Mode_Button.Set_Text ("Mode: Static CSS");
-            Status.Set_Text ("Static mode: using compiled Ada styles");
+            Adi.Widget.Button.Set_Text (Mode_Button, "Mode: Static CSS");
+            Adi.Widget.Label.Set_Text (Status, "Static mode: using compiled Ada styles");
          end if;
       end Update_Mode_UI;
 
-      procedure Toggle_Mode (Btn : Adi.Widget.Button.Button_Widget_Access) is
-         pragma Unreferenced (Btn);
+      procedure Toggle_Mode (WH : Adi.Widget.Widget_Handle) is
+         pragma Unreferenced (WH);
       begin
          if Adi.CSS_Source.Get_Mode (Source) = Adi.CSS_Source.Dynamic_Mode then
             Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, Mode_OK);
@@ -167,33 +168,34 @@ begin
          if Mode_OK then
             Update_Mode_UI;
          else
-            Status.Set_Text ("Cannot switch to dynamic mode: " & Adi.CSS_Source.Get_Last_Error (Source));
+            Adi.Widget.Label.Set_Text (Status,
+              "Cannot switch to dynamic mode: " & Adi.CSS_Source.Get_Last_Error (Source));
          end if;
       end Toggle_Mode;
    begin
       Adi.Widget.Set_Geometry (Root.all, (0.0, 0.0, 980.0, 640.0));
-      Adi.Widget.Set_Geometry (Header.all, (32.0, 24.0, 916.0, 120.0));
-      Adi.Widget.Set_Geometry (Content.all, (32.0, 164.0, 916.0, 404.0));
-      Adi.Widget.Set_Geometry (Status.all, (32.0, 584.0, 916.0, 32.0));
+      Adi.Widget.Set_Geometry (Adi.Widget.Borrow (+Header).Ptr.all, (32.0, 24.0, 916.0, 120.0));
+      Adi.Widget.Set_Geometry (Adi.Widget.Borrow (+Content).Ptr.all, (32.0, 164.0, 916.0, 404.0));
+      Adi.Widget.Set_Geometry (Adi.Widget.Borrow (+Status).Ptr.all, (32.0, 584.0, 916.0, 32.0));
 
       Root.Status_Label := Status;
 
-      Root.Add_Child (Header);
-      Root.Add_Child (Content);
-      Root.Add_Child (Status);
+      Adi.Widget.Add_Child (Root.all, +Header);
+      Adi.Widget.Add_Child (Root.all, +Content);
+      Adi.Widget.Add_Child (Root.all, +Status);
 
-      Header.Add_Child (Title);
-      Header.Add_Child (Subtitle);
-      Header.Add_Child (Badge);
-      Header.Add_Child (Mode_Button);
+      Adi.Widget.Add_Child (+Header, +Title);
+      Adi.Widget.Add_Child (+Header, +Subtitle);
+      Adi.Widget.Add_Child (+Header, +Badge);
+      Adi.Widget.Add_Child (+Header, +Mode_Button);
 
-      Content.Add_Child (Card_Left);
-      Content.Add_Child (Card_Right);
+      Adi.Widget.Add_Child (+Content, +Card_Left);
+      Adi.Widget.Add_Child (+Content, +Card_Right);
 
-      Card_Left.Add_Child (Left_Title);
-      Card_Left.Add_Child (Left_Body);
-      Card_Right.Add_Child (Right_Title);
-      Card_Right.Add_Child (Right_Body);
+      Adi.Widget.Add_Child (+Card_Left, +Left_Title);
+      Adi.Widget.Add_Child (+Card_Left, +Left_Body);
+      Adi.Widget.Add_Child (+Card_Right, +Right_Title);
+      Adi.Widget.Add_Child (+Card_Right, +Right_Body);
 
       Adi.CSS_Source.Set_Static_Entries (Source, Static_Entries);
       Adi.CSS_Source.Add_Dynamic_File (Source, CSS_Path, Loaded);
@@ -205,38 +207,39 @@ begin
 
       if not Mode_OK then
          Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, Mode_OK);
-         Status.Set_Text ("Dynamic CSS load failed; using static styles. Error: "
-                          & Adi.CSS_Source.Get_Last_Error (Source));
+         Adi.Widget.Label.Set_Text (Status,
+           "Dynamic CSS load failed; using static styles. Error: "
+           & Adi.CSS_Source.Get_Last_Error (Source));
       end if;
 
-      Adi.Widget.Button.Connect_Clicked (Mode_Button.all, Toggle_Mode'Unrestricted_Access);
+      Adi.Widget.Button.Connect_Clicked (Mode_Button, Toggle_Mode'Unrestricted_Access);
 
       Adi.CSS_Source.Bind_Class (Source, "root", Root);
-      Adi.CSS_Source.Bind_Class (Source, "header", Header);
-      Adi.CSS_Source.Bind_Class (Source, "content", Content);
-      Adi.CSS_Source.Bind_Class (Source, "card-left", Card_Left);
-      Adi.CSS_Source.Bind_Class (Source, "card-right", Card_Right);
+      Adi.CSS_Source.Bind_Class (Source, "header", +Header);
+      Adi.CSS_Source.Bind_Class (Source, "content", +Content);
+      Adi.CSS_Source.Bind_Class (Source, "card-left", +Card_Left);
+      Adi.CSS_Source.Bind_Class (Source, "card-right", +Card_Right);
 
-      Adi.CSS_Source.Bind_Class (Source, "title", Title);
-      Adi.CSS_Source.Bind_Class (Source, "subtitle", Subtitle);
-      Adi.CSS_Source.Bind_Class (Source, "badge", Badge);
+      Adi.CSS_Source.Bind_Class (Source, "title", +Title);
+      Adi.CSS_Source.Bind_Class (Source, "subtitle", +Subtitle);
+      Adi.CSS_Source.Bind_Class (Source, "badge", +Badge);
       Adi.CSS_Source.Bind_Selector_Set (
         Source     => Source,
-        W          => Mode_Button,
+        W          => Adi.Widget.Resolve_Handle (+Mode_Button),
         Tag_Name   => "button",
         Class_Name => "mode-button",
         Id_Name    => "mode-switch");
-      Adi.CSS_Source.Bind_Class (Source, "card-title", Left_Title);
-      Adi.CSS_Source.Bind_Class (Source, "card-title", Right_Title);
-      Adi.CSS_Source.Bind_Class (Source, "card-body", Left_Body);
-      Adi.CSS_Source.Bind_Class (Source, "card-body", Right_Body);
-      Adi.CSS_Source.Bind_Class (Source, "status", Status);
+      Adi.CSS_Source.Bind_Class (Source, "card-title", +Left_Title);
+      Adi.CSS_Source.Bind_Class (Source, "card-title", +Right_Title);
+      Adi.CSS_Source.Bind_Class (Source, "card-body", +Left_Body);
+      Adi.CSS_Source.Bind_Class (Source, "card-body", +Right_Body);
+      Adi.CSS_Source.Bind_Class (Source, "status", +Status);
 
       if Mode_OK then
          Update_Mode_UI;
       end if;
 
-      W.Set_Root (Root);
+      Adi.Window.Set_Root (W, Root);
       A.Add_Window (W);
       A.Run;
    end;

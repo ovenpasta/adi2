@@ -10,7 +10,7 @@ with Assets_Example_Bundle;
 procedure Assets_Example is
    A : Adi.App.App;
    package UI is new Assets_Example_UI.Instance;
-   W : Window_Access;
+   W : Window_Handle;
 begin
    A.Init;
    Assets_Example_Bundle.Register_All;

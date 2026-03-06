@@ -2,14 +2,15 @@ pragma Ada_2022;
 
 with Adi.App;
 with Adi.Core;
-with Adi.Image;  use Adi.Image;
-with Adi.Window; use Adi.Window;
+with Adi.Image;        use Adi.Image;
+with Adi.Widget.Image; use Adi.Widget.Image;
+with Adi.Window;       use Adi.Window;
 with Image_Example_UI;
 
 procedure Image_Example is
    A : Adi.App.App;
    package UI is new Image_Example_UI.Instance;
-   W : Window_Access;
+   W : Window_Handle;
 
    --  Material Symbols "star" 24x24 path
    Star_Path : constant String :=
@@ -49,7 +50,7 @@ begin
            Fill      => (R => 255, G => 200, B => 0, A => 255));
    begin
       if Svg_Path_Img /= null then
-         UI.Img_Svg_Path.Set_Image (Svg_Path_Img);
+         Set_Image (UI.Img_Svg_Path, Svg_Path_Img);
       end if;
    end;
 
@@ -59,7 +60,7 @@ begin
         Adi.Image.Load_From_File ("examples/assets/tiger.svg");
    begin
       if Svg_Img /= null then
-         UI.Img_Svg.Set_Image (Svg_Img);
+         Set_Image (UI.Img_Svg, Svg_Img);
       end if;
    end;
 
@@ -69,7 +70,7 @@ begin
         Adi.Image.Load_From_File ("examples/assets/happycat.png");
    begin
       if Png_Img /= null then
-         UI.Img_Png.Set_Image (Png_Img);
+         Set_Image (UI.Img_Png, Png_Img);
       end if;
    end;
 
@@ -79,7 +80,7 @@ begin
         Adi.Image.Load_From_File ("examples/assets/bg.jpg");
    begin
       if Jpg_Img /= null then
-         UI.Img_Jpg.Set_Image (Jpg_Img);
+         Set_Image (UI.Img_Jpg, Jpg_Img);
       end if;
    end;
 
@@ -89,11 +90,11 @@ begin
         Adi.Image.Load_From_File ("examples/assets/happycat.png");
    begin
       if Cat /= null then
-         UI.Fit_Fill.Set_Image (Cat);
-         UI.Fit_Contain.Set_Image (Cat);
-         UI.Fit_Cover.Set_Image (Cat);
-         UI.Fit_None.Set_Image (Cat);
-         UI.Fit_Scale_Down.Set_Image (Cat);
+         Set_Image (UI.Fit_Fill, Cat);
+         Set_Image (UI.Fit_Contain, Cat);
+         Set_Image (UI.Fit_Cover, Cat);
+         Set_Image (UI.Fit_None, Cat);
+         Set_Image (UI.Fit_Scale_Down, Cat);
       end if;
    end;
 
@@ -116,16 +117,16 @@ begin
          Fill => White, Tintable => True);
    begin
       if Heart /= null then
-         UI.Tint_Default.Set_Image (Heart);
+         Set_Image (UI.Tint_Default, Heart);
       end if;
       if Bolt /= null then
-         UI.Tint_Warm.Set_Image (Bolt);
+         Set_Image (UI.Tint_Warm, Bolt);
       end if;
       if Shield /= null then
-         UI.Tint_Success.Set_Image (Shield);
+         Set_Image (UI.Tint_Success, Shield);
       end if;
       if Bell_Img /= null then
-         UI.Tint_Danger.Set_Image (Bell_Img);
+         Set_Image (UI.Tint_Danger, Bell_Img);
       end if;
    end;
 

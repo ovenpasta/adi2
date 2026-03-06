@@ -822,7 +822,9 @@ package body Adi.Widget.Html_View is
    begin
       if Self.On_Load_Resource /= null then
          declare
-            Txt : constant String := Self.On_Load_Resource (Self'Unchecked_Access, URI);
+            Self_H : constant Html_View_Handle :=
+              Try_As_Html_View (Get_Handle (Widget'Class (Self)));
+            Txt : constant String := Self.On_Load_Resource (Self_H, URI);
          begin
             if Txt'Length > 0 then
                return Txt;
@@ -1236,7 +1238,12 @@ package body Adi.Widget.Html_View is
       end if;
 
       if Self.On_Load_Asset /= null then
-         Img := Self.On_Load_Asset (Self'Unchecked_Access, Src);
+         declare
+            Self_H : constant Html_View_Handle :=
+              Try_As_Html_View (Get_Handle (Widget'Class (Self)));
+         begin
+            Img := Self.On_Load_Asset (Self_H, Src);
+         end;
       end if;
 
       Self.Image_Cache.Append
@@ -2836,8 +2843,179 @@ package body Adi.Widget.Html_View is
       Set_Flag (Result.all, Clickable, True);
       Set_Flag (Result.all, Scrollable, True);
       Set_Part_Styles (Result.all, Default_Internal_Part_Styles);
+      Register_Widget (Widget_Access (Result));
       return Result;
    end Create;
+
+   -------------------
+   -- Create_Handle --
+   -------------------
+
+   function Create_Handle return Html_View_Handle is
+   begin
+      return (Id => Get_Handle (Create.all).Id);
+   end Create_Handle;
+
+   ----------------------
+   -- Handle bridge --
+   ----------------------
+
+   function To_Widget_Handle (H : Html_View_Handle) return Widget_Handle is
+   begin
+      return (Id => H.Id);
+   end To_Widget_Handle;
+
+   function Try_As_Html_View (H : Widget_Handle) return Html_View_Handle is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in Html_View'Class then
+         return (Id => H.Id);
+      end if;
+      return Null_Html_View_Handle;
+   end Try_As_Html_View;
+
+   function Is_Valid (H : Html_View_Handle) return Boolean is
+   begin
+      return Widget_Stores.Is_Valid (H.Id);
+   end Is_Valid;
+
+   function "+" (H : Html_View_Handle) return Widget_Handle is
+   begin
+      return To_Widget_Handle (H);
+   end "+";
+
+   procedure Set_Part_Styles
+     (H : Html_View_Handle; Styles : Part_Style_Array) is
+   begin
+      Adi.Widget.Set_Part_Styles (To_Widget_Handle (H), Styles);
+   end Set_Part_Styles;
+
+   --------------------
+   -- Handle methods --
+   --------------------
+
+   procedure Set_HTML (H : Html_View_Handle; Source : String) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_HTML (Html_View (Ptr.all), Source);
+      end if;
+   end Set_HTML;
+
+   function Get_HTML (H : Html_View_Handle) return String is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_HTML (Html_View (Ptr.all));
+      end if;
+      return "";
+   end Get_HTML;
+
+   procedure Clear (H : Html_View_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Clear (Html_View (Ptr.all));
+      end if;
+   end Clear;
+
+   procedure Set_Content_Scale (H : Html_View_Handle; Scale : Pixel_Type) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Content_Scale (Html_View (Ptr.all), Scale);
+      end if;
+   end Set_Content_Scale;
+
+   function Get_Content_Scale (H : Html_View_Handle) return Pixel_Type is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Content_Scale (Html_View (Ptr.all));
+      end if;
+      return 1.0;
+   end Get_Content_Scale;
+
+   procedure Connect_Link_Click
+     (H : Html_View_Handle; CB : Link_Click_Callback)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Connect_Link_Click (Html_View (Ptr.all), CB);
+      end if;
+   end Connect_Link_Click;
+
+   function Connect_Link_Click
+     (H : Html_View_Handle; CB : Link_Click_Callback)
+      return Link_Click_Signals.Connection_Id
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Connect_Link_Click (Html_View (Ptr.all), CB);
+      end if;
+      return Link_Click_Signals.No_Connection;
+   end Connect_Link_Click;
+
+   procedure Disconnect_Link_Click
+     (H : Html_View_Handle; Id : Link_Click_Signals.Connection_Id)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Disconnect_Link_Click (Html_View (Ptr.all), Id);
+      end if;
+   end Disconnect_Link_Click;
+
+   procedure Set_On_Load_Asset
+     (H : Html_View_Handle; Callback : Asset_Load_Callback)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_On_Load_Asset (Html_View (Ptr.all), Callback);
+      end if;
+   end Set_On_Load_Asset;
+
+   procedure Set_On_Load_Resource
+     (H : Html_View_Handle; Callback : Resource_Load_Callback)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_On_Load_Resource (Html_View (Ptr.all), Callback);
+      end if;
+   end Set_On_Load_Resource;
+
+   procedure Set_Default_Stylesheet
+     (H : Html_View_Handle; Path : String)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Default_Stylesheet (Html_View (Ptr.all), Path);
+      end if;
+   end Set_Default_Stylesheet;
+
+   procedure Set_Default_Stylesheet_String
+     (H : Html_View_Handle; CSS : String)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Default_Stylesheet_String (Html_View (Ptr.all), CSS);
+      end if;
+   end Set_Default_Stylesheet_String;
+
+   function Get_Default_Stylesheet (H : Html_View_Handle) return String is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Default_Stylesheet (Html_View (Ptr.all));
+      end if;
+      return "";
+   end Get_Default_Stylesheet;
 
    procedure Set_HTML
      (Self   : in out Html_View;
@@ -3044,10 +3222,11 @@ package body Adi.Widget.Html_View is
         and then Self.Link_Click.Subscriber_Count > 0
       then
          declare
-            S : constant access Html_View := Self'Unchecked_Access;
+            S_H : constant Html_View_Handle :=
+              Try_As_Html_View (Get_Handle (Widget'Class (Self)));
             H : constant String := Href;
             procedure Call (CB : Link_Click_Callback) is
-            begin CB (S, H); end Call;
+            begin CB (S_H, H); end Call;
             procedure Emit is new Link_Click_Signals.For_Each (Call);
          begin
             Emit (Self.Link_Click);

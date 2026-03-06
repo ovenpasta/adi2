@@ -12,22 +12,37 @@ package Adi.Widget.Html_View is
    type Html_View is new Widget with private;
    type Html_View_Access is access all Html_View'Class;
 
+   --  Typed handle
+   type Html_View_Handle is private;
+   Null_Html_View_Handle : constant Html_View_Handle;
+
    type Link_Click_Callback is access procedure
-     (Self : access Html_View;
+     (Self : Html_View_Handle;
       Href : String);
 
    package Link_Click_Signals is new Adi.Signal (Link_Click_Callback, null);
 
    type Asset_Load_Callback is access function
-     (Self : access Html_View;
+     (Self : Html_View_Handle;
       URI  : String) return Adi.Image.Image_Access;
 
    type Resource_Load_Callback is access function
-     (Self : access Html_View;
+     (Self : Html_View_Handle;
       URI  : String) return String;
 
+   --  Construction
    function Create return Html_View_Access;
+   function Create_Handle return Html_View_Handle;
 
+   --  Handle bridge
+   function To_Widget_Handle (H : Html_View_Handle) return Widget_Handle;
+   function Try_As_Html_View (H : Widget_Handle) return Html_View_Handle;
+   function Is_Valid (H : Html_View_Handle) return Boolean;
+   function "+" (H : Html_View_Handle) return Widget_Handle;
+   procedure Set_Part_Styles
+     (H : Html_View_Handle; Styles : Part_Style_Array);
+
+   --  Widget methods
    procedure Set_HTML
      (Self   : in out Html_View;
       Source : String);
@@ -62,6 +77,29 @@ package Adi.Widget.Html_View is
      (Self : in out Html_View;
       CSS  : String);
    function Get_Default_Stylesheet (Self : Html_View) return String;
+
+   --  Handle methods
+   procedure Set_HTML (H : Html_View_Handle; Source : String);
+   function  Get_HTML (H : Html_View_Handle) return String;
+   procedure Clear (H : Html_View_Handle);
+   procedure Set_Content_Scale (H : Html_View_Handle; Scale : Pixel_Type);
+   function  Get_Content_Scale (H : Html_View_Handle) return Pixel_Type;
+   procedure Connect_Link_Click
+     (H : Html_View_Handle; CB : Link_Click_Callback);
+   function  Connect_Link_Click
+     (H : Html_View_Handle; CB : Link_Click_Callback)
+      return Link_Click_Signals.Connection_Id;
+   procedure Disconnect_Link_Click
+     (H : Html_View_Handle; Id : Link_Click_Signals.Connection_Id);
+   procedure Set_On_Load_Asset
+     (H : Html_View_Handle; Callback : Asset_Load_Callback);
+   procedure Set_On_Load_Resource
+     (H : Html_View_Handle; Callback : Resource_Load_Callback);
+   procedure Set_Default_Stylesheet
+     (H : Html_View_Handle; Path : String);
+   procedure Set_Default_Stylesheet_String
+     (H : Html_View_Handle; CSS : String);
+   function  Get_Default_Stylesheet (H : Html_View_Handle) return String;
 
    overriding procedure Build_Items (Self : in out Html_View);
    overriding procedure Layout (Self : in out Html_View);
@@ -159,5 +197,11 @@ private
       Content_Scale   : Pixel_Type := 1.0;
       Default_CSS : Unbounded_String := Null_Unbounded_String;
    end record;
+
+   type Html_View_Handle is record
+      Id : Widget_Stores.Object_Id := Widget_Stores.Null_Id;
+   end record;
+   Null_Html_View_Handle : constant Html_View_Handle :=
+     (Id => Widget_Stores.Null_Id);
 
 end Adi.Widget.Html_View;

@@ -28,7 +28,10 @@ project Tests is
       "i18n_test",
       "settings_test",
       "close_request_test",
-      "text_editor_test");
+      "window_handle_test",
+      "text_editor_test",
+      "handle_store_test",
+      "widget_handle_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("src");

@@ -12,6 +12,7 @@ with Ada.Unchecked_Conversion;
 with Ada.Real_Time; use Ada.Real_Time;
 with Adi.Dispatch;
 with Adi.Log;
+with Adi.Widget.Context_Menu;
 
 package body Adi.App is
 
@@ -73,16 +74,21 @@ package body Adi.App is
         Next_Frame : Time;
         DT         : Duration;
 
+        function Main return Window_Access is
+        begin
+           return Resolve_Window_Handle (A.Main_Window);
+        end Main;
+
         procedure Convert_Event_To_Render_Coordinates is
            Renderer  : Adi.SDL.Render.SDL_Renderer_Ptr := null;
            Converted : Adi.SDL.C_bool;
            pragma Unreferenced (Converted);
         begin
-           if A.Main_Window = null then
+           if Main = null then
               return;
            end if;
 
-           Renderer := A.Main_Window.Get_Renderer;
+           Renderer := Main.Get_Renderer;
            if Renderer = null then
               return;
            end if;
@@ -101,10 +107,10 @@ package body Adi.App is
                 case Event.Event_Type is
                     when SDL_EVENT_WINDOW_CLOSE_REQUESTED =>
                         if not Should_Quit and not Close_Handled
-                           and A.Main_Window /= null
+                           and Main /= null
                         then
                             Close_Handled := True;
-                            if A.Main_Window.Handle_Close_Request then
+                            if Main.Handle_Close_Request then
                                 Should_Quit := True;
                                 exit Poll_Events;
                             end if;
@@ -112,8 +118,8 @@ package body Adi.App is
 
                     when SDL_EVENT_QUIT =>
                         if not Should_Quit then
-                            if A.Main_Window /= null then
-                                if A.Main_Window.Handle_Close_Request then
+                            if Main /= null then
+                                if Main.Handle_Close_Request then
                                     Should_Quit := True;
                                     exit Poll_Events;
                                 end if;
@@ -124,49 +130,49 @@ package body Adi.App is
                         end if;
 
                     when SDL_EVENT_WINDOW_EXPOSED =>
-                        if A.Main_Window /= null then
-                            A.Main_Window.Request_Redraw;
+                        if Main /= null then
+                            Main.Request_Redraw;
                         end if;
 
                     when SDL_EVENT_WINDOW_RESIZED
                        | SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED
                        | SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED =>
-                        if A.Main_Window /= null then
+                        if Main /= null then
                             declare
                                 Actual_Size : constant Size_2D :=
-                                   A.Main_Window.Actual_Size;
+                                   Main.Actual_Size;
                             begin
-                                A.Main_Window.Handle_Resize (Actual_Size);
+                                Main.Handle_Resize (Actual_Size);
                             end;
                         end if;
 
                     when SDL_EVENT_MOUSE_MOTION =>
-                        if A.Main_Window /= null then
+                        if Main /= null then
                             Convert_Event_To_Render_Coordinates;
                             declare
                                 Motion_Event : constant SDL_MouseMotionEvent :=
                                    To_Mouse_Motion_Event (Event);
                             begin
-                                A.Main_Window.On_Mouse_Move
+                                Main.On_Mouse_Move
                                    (X => Adi.Core.Pixel_Type (Motion_Event.X),
                                     Y => Adi.Core.Pixel_Type (Motion_Event.Y));
                             end;
                         end if;
 
                     when SDL_EVENT_WINDOW_MOUSE_LEAVE =>
-                        if A.Main_Window /= null then
+                        if Main /= null then
                             --  Force hover clear when cursor leaves window.
-                            A.Main_Window.On_Mouse_Move (X => -1.0, Y => -1.0);
+                            Main.On_Mouse_Move (X => -1.0, Y => -1.0);
                         end if;
 
                     when SDL_EVENT_MOUSE_BUTTON_DOWN =>
-                        if A.Main_Window /= null then
+                        if Main /= null then
                             Convert_Event_To_Render_Coordinates;
                             declare
                                 Button_Event : constant SDL_MouseButtonEvent :=
                                    To_Mouse_Button_Event (Event);
                             begin
-                                A.Main_Window.On_Mouse_Down
+                                Main.On_Mouse_Down
                                    (X      => Adi.Core.Pixel_Type (Button_Event.X),
                                     Y      => Adi.Core.Pixel_Type (Button_Event.Y),
                                     Button => To_Mouse_Button (Button_Event.Button),
@@ -175,13 +181,13 @@ package body Adi.App is
                         end if;
 
                     when SDL_EVENT_MOUSE_BUTTON_UP =>
-                        if A.Main_Window /= null then
+                        if Main /= null then
                             Convert_Event_To_Render_Coordinates;
                             declare
                                 Button_Event : constant SDL_MouseButtonEvent :=
                                    To_Mouse_Button_Event (Event);
                             begin
-                                A.Main_Window.On_Mouse_Up
+                                Main.On_Mouse_Up
                                    (X      => Adi.Core.Pixel_Type (Button_Event.X),
                                     Y      => Adi.Core.Pixel_Type (Button_Event.Y),
                                     Button => To_Mouse_Button (Button_Event.Button));
@@ -189,13 +195,13 @@ package body Adi.App is
                         end if;
 
                     when SDL_EVENT_MOUSE_WHEEL =>
-                        if A.Main_Window /= null then
+                        if Main /= null then
                             Convert_Event_To_Render_Coordinates;
                             declare
                                 Wheel_Event : constant SDL_MouseWheelEvent :=
                                    To_Mouse_Wheel_Event (Event);
                             begin
-                                A.Main_Window.On_Mouse_Wheel
+                                Main.On_Mouse_Wheel
                                    (X       => Adi.Core.Pixel_Type (Wheel_Event.Mouse_X),
                                     Y       => Adi.Core.Pixel_Type (Wheel_Event.Mouse_Y),
                                     Delta_X => Adi.Core.Pixel_Type (Wheel_Event.Integer_X),
@@ -204,12 +210,12 @@ package body Adi.App is
                         end if;
 
                     when SDL_EVENT_KEY_DOWN =>
-                        if A.Main_Window /= null then
+                        if Main /= null then
                             declare
                                 Key_Event : constant SDL_KeyboardEvent :=
                                    To_Keyboard_Event (Event);
                             begin
-                                A.Main_Window.On_Key_Down
+                                Main.On_Key_Down
                                   (Scancode => Key_Event.Scancode,
                                    Key_Mod  => Key_Event.Key_Mod,
                                    Repeat   => Boolean (Key_Event.Is_Repeat));
@@ -217,12 +223,12 @@ package body Adi.App is
                         end if;
 
                     when SDL_EVENT_KEY_UP =>
-                        if A.Main_Window /= null then
+                        if Main /= null then
                             declare
                                 Key_Event : constant SDL_KeyboardEvent :=
                                    To_Keyboard_Event (Event);
                             begin
-                                A.Main_Window.On_Key_Up
+                                Main.On_Key_Up
                                   (Scancode => Key_Event.Scancode,
                                    Key_Mod  => Key_Event.Key_Mod,
                                    Repeat   => Boolean (Key_Event.Is_Repeat));
@@ -230,7 +236,7 @@ package body Adi.App is
                         end if;
 
                     when SDL_EVENT_TEXT_INPUT =>
-                        if A.Main_Window /= null then
+                        if Main /= null then
                             declare
                                 use Interfaces.C.Strings;
                                 Text_Event : constant SDL_TextInputEvent :=
@@ -241,7 +247,7 @@ package body Adi.App is
                                    else Value (Text_Event.Text));
                             begin
                                 if Input_Text'Length > 0 then
-                                   A.Main_Window.On_Text_Input (Input_Text);
+                                   Main.On_Text_Input (Input_Text);
                                 end if;
                             end;
                         end if;
@@ -255,6 +261,17 @@ package body Adi.App is
             --  tasks or previous-frame callbacks).
             Adi.Dispatch.Drain;
 
+            --  Drain deferred handle-store destroys.
+            Adi.Widget.Pump_Widget_Store;
+            Adi.Widget.Context_Menu.Pump_Menu_Store;
+            Adi.Window.Pump_Window_Store;
+
+            --  Main window can be destroyed from callbacks; terminate cleanly.
+            if Main = null then
+               Should_Quit := True;
+               exit;
+            end if;
+
             --  Compute delta time
             Now := Clock;
             DT := To_Duration (Now - A.Last_Frame);
@@ -262,28 +279,44 @@ package body Adi.App is
             A.Last_Frame := Now;
 
             --  Tick animations before rendering
-            if A.Main_Window /= null then
-                A.Main_Window.Tick (DT);
+            if Main /= null then
+                Main.Tick (DT);
             end if;
 
             --  Render the main window
-            if A.Main_Window /= null then
-                A.Main_Window.Render;
+            if Main /= null then
+                Main.Render;
             end if;
 
             --  Frame rate limiting: delay until next frame
             Next_Frame := Now + A.Frame_Period;
             delay until Next_Frame;
         end loop;
+
+        --  Destroy window/store entry eagerly while caller scopes are alive.
+        Adi.Window.Destroy (A.Main_Window);
     end Run;
 
     ----------------
     -- Add_Window --
     ----------------
 
-    procedure Add_Window (A : in out App; W : access Window.Window) is
+    procedure Add_Window (A : in out App; W : Window_Access) is
     begin
-        A.Main_Window := W;
+        if W = null then
+           A.Main_Window := Null_Window_Handle;
+        else
+           A.Main_Window := Get_Handle (W.all);
+        end if;
+    end Add_Window;
+
+    procedure Add_Window (A : in out App; W : Window_Handle) is
+    begin
+        if Is_Valid (W) then
+           A.Main_Window := W;
+        else
+           A.Main_Window := Null_Window_Handle;
+        end if;
     end Add_Window;
 
     ------------------

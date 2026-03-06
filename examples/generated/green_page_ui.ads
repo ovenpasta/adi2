@@ -10,7 +10,7 @@ package Green_Page_UI is
    generic
    package Instance is
 
-      function Build return Adi.Widget.Widget_Access;
+      function Build return Adi.Widget.Widget_Handle;
 
       procedure Tick_Styles (Reloaded : out Boolean;
                              Success  : out Boolean);

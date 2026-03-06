@@ -5,7 +5,7 @@ with Ada.Strings.Fixed;          use Ada.Strings.Fixed;
 with Adi.App;
 with Adi.Window;                 use Adi.Window;
 with Adi.Widget;                 use Adi.Widget;
-with Adi.Widget.Box;
+with Adi.Widget.Box;             use Adi.Widget.Box;
 with Adi.Widget.Combo_Box;       use Adi.Widget.Combo_Box;
 with Adi.Widget.Label;           use Adi.Widget.Label;
 with Combo_Box_Example_Styles;   use Combo_Box_Example_Styles;
@@ -13,19 +13,19 @@ with Combo_Box_Example_Styles;   use Combo_Box_Example_Styles;
 procedure Combo_Box_Example is
    A : Adi.App.App;
 
-   Status_Label : Label_Widget_Access;
+   Status_Label : Label_Handle;
 
    procedure On_Combo_Changed
-     (W     : Combo_Box_Widget_Access;
+     (W     : Widget_Handle;
       Index : Natural;
       Text  : String)
    is
       pragma Unreferenced (W);
       Index_Text : constant String := Trim (Natural'Image (Index), Both);
    begin
-      if Status_Label /= null then
+      if Is_Valid (Status_Label) then
          Set_Text
-           (Status_Label.all,
+           (Status_Label,
             "Selected #" & Index_Text & ": " & Text);
       end if;
    end On_Combo_Changed;
@@ -35,78 +35,78 @@ begin
    A.Set_Target_FPS (60);
 
    declare
-      W : constant Window_Access :=
-        Create_Window ("Combo Box Overlay Example", (820.0, 520.0));
+      W : constant Window_Handle :=
+        Create_Window_Handle ("Combo Box Overlay Example", (820.0, 520.0));
 
-      Root       : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Container  : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Title      : constant Label_Widget_Access := Adi.Widget.Label.Create ("Combo Box (Overlay Popup)");
-      Hint       : constant Label_Widget_Access := Adi.Widget.Label.Create
+      Root       : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Container  : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Title      : constant Label_Handle := Adi.Widget.Label.Create_Handle ("Combo Box (Overlay Popup)");
+      Hint       : constant Label_Handle := Adi.Widget.Label.Create_Handle
         ("Click to open. Popup is rendered in window overlay layer.");
 
-      Color_Combo : constant Combo_Box_Widget_Access := Adi.Widget.Combo_Box.Create;
-      City_Combo  : constant Combo_Box_Widget_Access := Adi.Widget.Combo_Box.Create;
+      Color_Combo : constant Combo_Box_Handle := Adi.Widget.Combo_Box.Create_Handle;
+      City_Combo  : constant Combo_Box_Handle := Adi.Widget.Combo_Box.Create_Handle;
    begin
-      Status_Label := Adi.Widget.Label.Create ("Selected #1: Crimson");
+      Status_Label := Adi.Widget.Label.Create_Handle ("Selected #1: Crimson");
 
-      Set_Part_Styles (Root.all, Root_Class_Part_Styles);
-      Set_Part_Styles (Container.all, Container_Class_Part_Styles);
-      Set_Part_Styles (Title.all, Title_Class_Part_Styles);
-      Set_Part_Styles (Hint.all, Hint_Class_Part_Styles);
-      Set_Part_Styles (Status_Label.all, Status_Class_Part_Styles);
+      Set_Part_Styles (Root, Root_Class_Part_Styles);
+      Set_Part_Styles (Container, Container_Class_Part_Styles);
+      Set_Part_Styles (Title, Title_Class_Part_Styles);
+      Set_Part_Styles (Hint, Hint_Class_Part_Styles);
+      Set_Part_Styles (Status_Label, Status_Class_Part_Styles);
 
-      Set_Part_Styles (Color_Combo.all, Combo_Class_Part_Styles);
-      Set_Part_Styles (City_Combo.all, Combo_Class_Part_Styles);
+      Set_Part_Styles (Color_Combo, Combo_Class_Part_Styles);
+      Set_Part_Styles (City_Combo, Combo_Class_Part_Styles);
 
-      Set_Dropdown_Part_Styles (Color_Combo.all, Dropdown_Class_Part_Styles);
-      Set_Dropdown_Part_Styles (City_Combo.all, Dropdown_Class_Part_Styles);
-      Set_Option_Row_Part_Styles (Color_Combo.all, Option_Row_Class_Part_Styles);
-      Set_Option_Row_Part_Styles (City_Combo.all, Option_Row_Class_Part_Styles);
+      Set_Dropdown_Part_Styles (Color_Combo, Dropdown_Class_Part_Styles);
+      Set_Dropdown_Part_Styles (City_Combo, Dropdown_Class_Part_Styles);
+      Set_Option_Row_Part_Styles (Color_Combo, Option_Row_Class_Part_Styles);
+      Set_Option_Row_Part_Styles (City_Combo, Option_Row_Class_Part_Styles);
 
-      Color_Combo.Connect_Selection_Changed (On_Combo_Changed'Unrestricted_Access);
-      City_Combo.Connect_Selection_Changed (On_Combo_Changed'Unrestricted_Access);
+      Connect_Selection_Changed (Color_Combo, On_Combo_Changed'Unrestricted_Access);
+      Connect_Selection_Changed (City_Combo, On_Combo_Changed'Unrestricted_Access);
 
-      Add_Item (Color_Combo.all, "Crimson");
-      Add_Item (Color_Combo.all, "Emerald");
-      Add_Item (Color_Combo.all, "Cobalt");
-      Add_Item (Color_Combo.all, "Amber");
-      Add_Item (Color_Combo.all, "Slate");
-      Set_Selected_Index (Color_Combo.all, 1);
+      Add_Item (Color_Combo, "Crimson");
+      Add_Item (Color_Combo, "Emerald");
+      Add_Item (Color_Combo, "Cobalt");
+      Add_Item (Color_Combo, "Amber");
+      Add_Item (Color_Combo, "Slate");
+      Set_Selected_Index (Color_Combo, 1);
 
-      Add_Item (City_Combo.all, "New York");
-      Add_Item (City_Combo.all, "San Francisco");
-      Add_Item (City_Combo.all, "Austin");
-      Add_Item (City_Combo.all, "Seattle");
-      Add_Item (City_Combo.all, "Boston");
-      Add_Item (City_Combo.all, "Chicago");
-      Add_Item (City_Combo.all, "Denver");
-      Add_Item (City_Combo.all, "Portland");
-      Add_Item (City_Combo.all, "Los Angeles");
-      Add_Item (City_Combo.all, "San Diego");
-      Add_Item (City_Combo.all, "Las Vegas");
-      Add_Item (City_Combo.all, "Phoenix");
-      Add_Item (City_Combo.all, "Dallas");
-      Add_Item (City_Combo.all, "Houston");
-      Add_Item (City_Combo.all, "Atlanta");
-      Add_Item (City_Combo.all, "Miami");
-      Add_Item (City_Combo.all, "Nashville");
-      Add_Item (City_Combo.all, "Philadelphia");
-      Add_Item (City_Combo.all, "Washington, DC");
-      Add_Item (City_Combo.all, "Minneapolis");
-      Add_Item (City_Combo.all, "Detroit");
-      Add_Item (City_Combo.all, "Toronto");
-      Add_Item (City_Combo.all, "Vancouver");
-      Add_Item (City_Combo.all, "Montreal");
-      Set_Selected_Index (City_Combo.all, 2);
+      Add_Item (City_Combo, "New York");
+      Add_Item (City_Combo, "San Francisco");
+      Add_Item (City_Combo, "Austin");
+      Add_Item (City_Combo, "Seattle");
+      Add_Item (City_Combo, "Boston");
+      Add_Item (City_Combo, "Chicago");
+      Add_Item (City_Combo, "Denver");
+      Add_Item (City_Combo, "Portland");
+      Add_Item (City_Combo, "Los Angeles");
+      Add_Item (City_Combo, "San Diego");
+      Add_Item (City_Combo, "Las Vegas");
+      Add_Item (City_Combo, "Phoenix");
+      Add_Item (City_Combo, "Dallas");
+      Add_Item (City_Combo, "Houston");
+      Add_Item (City_Combo, "Atlanta");
+      Add_Item (City_Combo, "Miami");
+      Add_Item (City_Combo, "Nashville");
+      Add_Item (City_Combo, "Philadelphia");
+      Add_Item (City_Combo, "Washington, DC");
+      Add_Item (City_Combo, "Minneapolis");
+      Add_Item (City_Combo, "Detroit");
+      Add_Item (City_Combo, "Toronto");
+      Add_Item (City_Combo, "Vancouver");
+      Add_Item (City_Combo, "Montreal");
+      Set_Selected_Index (City_Combo, 2);
 
-      Root.Add_Child (Container);
-      Container.Add_Child (Title);
-      Container.Add_Child (Hint);
-      Container.Add_Child (Color_Combo);
-      Container.Add_Child (City_Combo);
-      Container.Add_Child (Status_Label);
+      Adi.Widget.Add_Child (+Root, +Container);
+      Adi.Widget.Add_Child (+Container, +Title);
+      Adi.Widget.Add_Child (+Container, +Hint);
+      Adi.Widget.Add_Child (+Container, +Color_Combo);
+      Adi.Widget.Add_Child (+Container, +City_Combo);
+      Adi.Widget.Add_Child (+Container, +Status_Label);
 
-      W.Set_Root (Root);
+      Adi.Window.Set_Root (W, Widget_Handle'(+Root));
       A.Add_Window (W);
       A.Run;
    end;

@@ -159,45 +159,60 @@ package body Adi.MCP is
    --  Widget Resolution (by ID or path, scanning root + overlays)
    ---------------------------------------------------------------------------
 
+   function To_Handle (W : Widget_Access) return Widget_Handle is
+   begin
+      if W = null then
+         return Null_Handle;
+      end if;
+      return Get_Handle (W.all);
+   end To_Handle;
+
+   function To_Access (H : Widget_Handle) return Widget_Access is
+   begin
+      return Resolve_Handle (H);
+   end To_Access;
+
    function Resolve_Widget
      (JSON   : String;
-      Result_Path : out Unbounded_String) return Widget_Access
+      Result_Path : out Unbounded_String) return Widget_Handle
    is
       Id       : constant Integer := JSON_Get_Int (JSON, "id");
       Path_Str : constant String := JSON_Get_String (JSON, "path");
-      Root     : constant Widget_Access :=
-        Adi.Window.Get_Root (MCP_Window.all);
+      Root_H   : constant Widget_Handle :=
+        Adi.Window.Get_Root_Handle (MCP_Window.all);
    begin
       Result_Path := Null_Unbounded_String;
 
       if Id > 0 then
          --  Search by ID: root first, then overlays
-         if Root /= null then
+         if Is_Valid (Root_H) then
             declare
-               W : constant Widget_Access := Find_By_Id (Root, Id);
+               Root     : constant Widget_Access := To_Access (Root_H);
+               W        : constant Widget_Access := Find_By_Id (Root, Id);
             begin
                if W /= null then
                   Result_Path := To_Unbounded_String (Find_Path (Root, W));
-                  return W;
+                  return To_Handle (W);
                end if;
             end;
          end if;
          for I in 1 .. Adi.Window.Overlay_Count (MCP_Window.all) loop
             declare
-               OV : constant Widget_Access :=
-                 Adi.Window.Get_Overlay (MCP_Window.all, I);
-               W  : constant Widget_Access := Find_By_Id (OV, Id);
+               OV_H   : constant Widget_Handle :=
+                 Adi.Window.Get_Overlay_Handle (MCP_Window.all, I);
+               OV     : constant Widget_Access := To_Access (OV_H);
+               W      : constant Widget_Access := Find_By_Id (OV, Id);
             begin
                if W /= null then
                   Result_Path := To_Unbounded_String
                     ("overlay" & Ada.Strings.Fixed.Trim
                        (Positive'Image (I), Ada.Strings.Left) &
                      ":" & Find_Path (OV, W));
-                  return W;
+                  return To_Handle (W);
                end if;
             end;
          end loop;
-         return null;
+         return Null_Handle;
 
       elsif Path_Str'Length > 0 then
          --  Search by path: root first, then overlays.
@@ -224,32 +239,34 @@ package body Adi.MCP is
                begin
                   if OV_Idx <= OV_Count then
                      declare
-                        OV : constant Widget_Access :=
-                          Adi.Window.Get_Overlay (MCP_Window.all, OV_Idx);
-                        W  : constant Widget_Access :=
+                        OV_H   : constant Widget_Handle :=
+                          Adi.Window.Get_Overlay_Handle (MCP_Window.all, OV_Idx);
+                        OV     : constant Widget_Access := To_Access (OV_H);
+                        W      : constant Widget_Access :=
                           Find_By_Path (OV, Sub_Path);
                      begin
                         if W /= null then
                            Result_Path := To_Unbounded_String (Path_Str);
-                           return W;
+                           return To_Handle (W);
                         end if;
                      end;
                   end if;
                end;
-               return null;
+               return Null_Handle;
             end if;
          exception
             when Constraint_Error => null;
          end;
 
          --  Plain root path
-         if Root /= null then
+         if Is_Valid (Root_H) then
             declare
+               Root     : constant Widget_Access := To_Access (Root_H);
                W : constant Widget_Access := Find_By_Path (Root, Path_Str);
             begin
                if W /= null then
                   Result_Path := To_Unbounded_String (Path_Str);
-                  return W;
+                  return To_Handle (W);
                end if;
             end;
          end if;
@@ -257,27 +274,28 @@ package body Adi.MCP is
          --  Fallback: try each overlay with the plain path
          for I in 1 .. Adi.Window.Overlay_Count (MCP_Window.all) loop
             declare
-               OV : constant Widget_Access :=
-                 Adi.Window.Get_Overlay (MCP_Window.all, I);
-               W  : constant Widget_Access := Find_By_Path (OV, Path_Str);
+               OV_H   : constant Widget_Handle :=
+                 Adi.Window.Get_Overlay_Handle (MCP_Window.all, I);
+               OV     : constant Widget_Access := To_Access (OV_H);
+               W      : constant Widget_Access := Find_By_Path (OV, Path_Str);
             begin
                if W /= null then
                   Result_Path := To_Unbounded_String
                     ("overlay" & Ada.Strings.Fixed.Trim
                        (Positive'Image (I), Ada.Strings.Left) &
                      ":" & Path_Str);
-                  return W;
+                  return To_Handle (W);
                end if;
             end;
          end loop;
-         return null;
+         return Null_Handle;
 
       else
          --  No id or path: return root
-         if Root /= null then
+         if Is_Valid (Root_H) then
             Result_Path := To_Unbounded_String ("");
          end if;
-         return Root;
+         return Root_H;
       end if;
    end Resolve_Widget;
 
@@ -286,13 +304,14 @@ package body Adi.MCP is
    ---------------------------------------------------------------------------
 
    procedure Serialize_Widget_Tree
-     (Target : Widget_Access;
+     (Target : Widget_Handle;
       Path   : String;
       W      : in out Adi.JSON.JSON_Writer)
    is
       use Adi.Widget.Introspection;
-      Info : constant Widget_Info := Get_Info (Target, Path);
-      Txt  : constant String := To_String (Info.Text);
+      Target_Ptr : constant Widget_Access := To_Access (Target);
+      Info       : constant Widget_Info := Get_Info (Target_Ptr, Path);
+      Txt        : constant String := To_String (Info.Text);
    begin
       W.Start_Object;
       W.Key_Value ("type", To_String (Info.Tag_Name));
@@ -342,7 +361,7 @@ package body Adi.MCP is
                     (Positive'Image (I), Ada.Strings.Left)
                   else Path & "." & Ada.Strings.Fixed.Trim
                     (Positive'Image (I), Ada.Strings.Left));
-               C : constant Widget_Access := Get_Child (Target.all, I);
+               C : constant Widget_Handle := Get_Child_Handle (Target_Ptr.all, I);
             begin
                Serialize_Widget_Tree (C, Child_Path, W);
             end;
@@ -358,11 +377,12 @@ package body Adi.MCP is
    ---------------------------------------------------------------------------
 
    procedure Serialize_Widget_Info
-     (Target : Widget_Access;
+     (Target : Widget_Handle;
       Path   : String;
       W      : in out Adi.JSON.JSON_Writer)
    is
-      Info : constant Widget_Info := Get_Info (Target, Path);
+      Target_Ptr : constant Widget_Access := To_Access (Target);
+      Info       : constant Widget_Info := Get_Info (Target_Ptr, Path);
    begin
       W.Start_Object;
       W.Key_Value ("type", To_String (Info.Tag_Name));
@@ -482,12 +502,13 @@ package body Adi.MCP is
    end Serialize_Size;
 
    procedure Serialize_CSS_Values
-     (Target : not null Widget_Access;
+     (Target : Widget_Handle;
       Part   : Part_Kind;
       W      : in out Adi.JSON.JSON_Writer)
    is
       use Ada.Characters.Handling;
-      S : constant Resolved_Style := Get_Resolved_Part_Style (Target.all, Part);
+      S          : constant Resolved_Style :=
+        Get_Resolved_Part_Style (To_Access (Target).all, Part);
    begin
       W.Start_Object;
 
@@ -766,14 +787,14 @@ package body Adi.MCP is
    begin
       if Cmd = "widget_tree" then
          declare
-            Root : constant Widget_Access :=
-              Adi.Window.Get_Root (MCP_Window.all);
+            Root : constant Widget_Handle :=
+              Adi.Window.Get_Root_Handle (MCP_Window.all);
             W    : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            if Root /= null then
+            if Is_Valid (Root) then
                W.Key ("tree");
                Serialize_Widget_Tree (Root, "", W);
             else
@@ -790,8 +811,8 @@ package body Adi.MCP is
                   W.Start_Array;
                   for I in 1 .. OC loop
                      declare
-                        OV : constant Widget_Access :=
-                          Adi.Window.Get_Overlay (MCP_Window.all, I);
+                        OV : constant Widget_Handle :=
+                          Adi.Window.Get_Overlay_Handle (MCP_Window.all, I);
                      begin
                         Serialize_Widget_Tree
                           (OV,
@@ -840,18 +861,20 @@ package body Adi.MCP is
 
       elsif Cmd = "get_focus" then
          declare
-            Focused : constant Widget_Access :=
-              Adi.Window.Get_Focus (MCP_Window.all);
-            Root    : constant Widget_Access :=
-              Adi.Window.Get_Root (MCP_Window.all);
+            Focused : constant Widget_Handle :=
+              Adi.Window.Get_Focus_Handle (MCP_Window.all);
+            Root    : constant Widget_Handle :=
+              Adi.Window.Get_Root_Handle (MCP_Window.all);
             W       : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            if Focused /= null and then Root /= null then
+            if Is_Valid (Focused) and then Is_Valid (Root) then
                declare
-                  Path : constant String := Find_Path (Root, Focused);
+                  Root_Ptr    : constant Widget_Access := To_Access (Root);
+                  Focused_Ptr : constant Widget_Access := To_Access (Focused);
+                  Path        : constant String := Find_Path (Root_Ptr, Focused_Ptr);
                begin
                   W.Key ("widget");
                   Serialize_Widget_Info (Focused, Path, W);
@@ -878,11 +901,11 @@ package body Adi.MCP is
       if Cmd = "widget_info" then
          declare
             Resolved_Path : Unbounded_String;
-            Target        : constant Widget_Access :=
+            Target        : constant Widget_Handle :=
               Resolve_Widget (JSON, Resolved_Path);
             W             : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
-            if Target = null then
+            if not Is_Valid (Target) then
                return Error_Response (Req_Id, "widget not found");
             end if;
 
@@ -900,8 +923,8 @@ package body Adi.MCP is
          declare
             Query : constant String := JSON_Get_String (JSON, "query");
             Exact : constant Boolean := JSON_Get_Bool (JSON, "exact");
-            Root  : constant Widget_Access :=
-              Adi.Window.Get_Root (MCP_Window.all);
+            Root  : constant Widget_Handle :=
+              Adi.Window.Get_Root_Handle (MCP_Window.all);
             Results : Match_Vectors.Vector;
             W       : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
@@ -909,17 +932,17 @@ package body Adi.MCP is
                return Error_Response (Req_Id, "missing query parameter");
             end if;
 
-            if Root /= null then
-               Results := Find_By_Text (Root, Query, Exact);
+            if Is_Valid (Root) then
+               Results := Find_By_Text (To_Access (Root), Query, Exact);
             end if;
 
             --  Search overlays too
             for I in 1 .. Adi.Window.Overlay_Count (MCP_Window.all) loop
                declare
-                  OV      : constant Widget_Access :=
-                    Adi.Window.Get_Overlay (MCP_Window.all, I);
+                  OV      : constant Widget_Handle :=
+                    Adi.Window.Get_Overlay_Handle (MCP_Window.all, I);
                   OV_Hits : constant Match_Vectors.Vector :=
-                    Find_By_Text (OV, Query, Exact);
+                    Find_By_Text (To_Access (OV), Query, Exact);
                begin
                   for M of OV_Hits loop
                      Results.Append (M);
@@ -941,8 +964,8 @@ package body Adi.MCP is
          declare
             Type_Name : constant String :=
               JSON_Get_String (JSON, "type_name");
-            Root    : constant Widget_Access :=
-              Adi.Window.Get_Root (MCP_Window.all);
+            Root    : constant Widget_Handle :=
+              Adi.Window.Get_Root_Handle (MCP_Window.all);
             Results : Match_Vectors.Vector;
             W       : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
@@ -950,16 +973,16 @@ package body Adi.MCP is
                return Error_Response (Req_Id, "missing type_name parameter");
             end if;
 
-            if Root /= null then
-               Results := Find_By_Type (Root, Type_Name);
+            if Is_Valid (Root) then
+               Results := Find_By_Type (To_Access (Root), Type_Name);
             end if;
 
             for I in 1 .. Adi.Window.Overlay_Count (MCP_Window.all) loop
                declare
-                  OV      : constant Widget_Access :=
-                    Adi.Window.Get_Overlay (MCP_Window.all, I);
+                  OV      : constant Widget_Handle :=
+                    Adi.Window.Get_Overlay_Handle (MCP_Window.all, I);
                   OV_Hits : constant Match_Vectors.Vector :=
-                    Find_By_Type (OV, Type_Name);
+                    Find_By_Type (To_Access (OV), Type_Name);
                begin
                   for M of OV_Hits loop
                      Results.Append (M);
@@ -982,7 +1005,7 @@ package body Adi.MCP is
             Id_Val        : constant Integer := JSON_Get_Int (JSON, "id");
             Path_Val      : constant String := JSON_Get_String (JSON, "path");
             Resolved_Path : Unbounded_String;
-            Target        : Widget_Access;
+            Target        : Widget_Handle;
             W             : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             if Id_Val = 0 and then Path_Val'Length = 0 then
@@ -991,12 +1014,13 @@ package body Adi.MCP is
             end if;
 
             Target := Resolve_Widget (JSON, Resolved_Path);
-            if Target = null then
+            if not Is_Valid (Target) then
                return Error_Response (Req_Id, "widget not found");
             end if;
 
             declare
-               Geom : constant Rectangle := Get_Geometry (Target.all);
+               Target_Ptr : constant Widget_Access := To_Access (Target);
+               Geom       : constant Rectangle := Get_Geometry (Target_Ptr.all);
                CX   : constant Pixel_Type :=
                  Geom.X + Geom.Width / 2.0;
                CY   : constant Pixel_Type :=
@@ -1011,7 +1035,7 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("id", Long_Integer (Get_Id (Target.all)));
+            W.Key_Value ("id", Long_Integer (Get_Id (To_Access (Target).all)));
             W.Key_Value ("path", To_String (Resolved_Path));
             W.End_Object;
             return W.To_String;
@@ -1038,33 +1062,37 @@ package body Adi.MCP is
       elsif Cmd = "set_text" then
          declare
             Resolved_Path : Unbounded_String;
-            Target        : constant Widget_Access :=
+            Target        : constant Widget_Handle :=
               Resolve_Widget (JSON, Resolved_Path);
             Text          : constant String := JSON_Get_String (JSON, "text");
             W             : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
-            if Target = null then
+            if not Is_Valid (Target) then
                return Error_Response (Req_Id, "widget not found");
             end if;
 
-            if Target.all in Label.Label_Widget'Class then
-               Label.Set_Text
-                 (Label.Label_Widget'Class (Target.all), Text);
-            elsif Target.all in Text_Input.Text_Input_Widget'Class then
-               Text_Input.Set_Text
-                 (Text_Input.Text_Input_Widget'Class (Target.all), Text);
-            elsif Target.all in Text_Editor.Text_Editor_Widget'Class then
-               Text_Editor.Set_Text
-                 (Text_Editor.Text_Editor_Widget'Class (Target.all), Text);
-            else
-               return Error_Response
-                 (Req_Id, "widget does not support set_text");
-            end if;
+            declare
+               Target_Ptr : constant Widget_Access := To_Access (Target);
+            begin
+               if Target_Ptr.all in Label.Label_Widget'Class then
+                  Label.Set_Text
+                    (Label.Label_Widget'Class (Target_Ptr.all), Text);
+               elsif Target_Ptr.all in Text_Input.Text_Input_Widget'Class then
+                  Text_Input.Set_Text
+                    (Text_Input.Text_Input_Widget'Class (Target_Ptr.all), Text);
+               elsif Target_Ptr.all in Text_Editor.Text_Editor_Widget'Class then
+                  Text_Editor.Set_Text
+                    (Text_Editor.Text_Editor_Widget'Class (Target_Ptr.all), Text);
+               else
+                  return Error_Response
+                    (Req_Id, "widget does not support set_text");
+               end if;
+            end;
 
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("id", Long_Integer (Get_Id (Target.all)));
+            W.Key_Value ("id", Long_Integer (Get_Id (To_Access (Target).all)));
             W.End_Object;
             return W.To_String;
          end;
@@ -1072,11 +1100,11 @@ package body Adi.MCP is
       elsif Cmd = "set_focus" then
          declare
             Resolved_Path : Unbounded_String;
-            Target        : constant Widget_Access :=
+            Target        : constant Widget_Handle :=
               Resolve_Widget (JSON, Resolved_Path);
             W             : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
-            if Target = null then
+            if not Is_Valid (Target) then
                return Error_Response (Req_Id, "widget not found");
             end if;
 
@@ -1085,7 +1113,7 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("id", Long_Integer (Get_Id (Target.all)));
+            W.Key_Value ("id", Long_Integer (Get_Id (To_Access (Target).all)));
             W.End_Object;
             return W.To_String;
          end;
@@ -1093,14 +1121,14 @@ package body Adi.MCP is
       elsif Cmd = "css_values" then
          declare
             Resolved_Path : Unbounded_String;
-            Target        : constant Widget_Access :=
+            Target        : constant Widget_Handle :=
               Resolve_Widget (JSON, Resolved_Path);
             Part_Str      : constant String :=
               JSON_Get_String (JSON, "part");
             Part          : Part_Kind;
             W             : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
-            if Target = null then
+            if not Is_Valid (Target) then
                return Error_Response (Req_Id, "widget not found");
             end if;
 
@@ -1110,7 +1138,7 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("id", Long_Integer (Get_Id (Target.all)));
+            W.Key_Value ("id", Long_Integer (Get_Id (To_Access (Target).all)));
             W.Key_Value ("part",
               Ada.Characters.Handling.To_Lower
                 (Part_Kind'Image (Part)));
@@ -1347,6 +1375,19 @@ package body Adi.MCP is
         (Win.all, Frame_Handler'Access);
       Post_Render_Conn := Adi.Window.Connect_Post_Render
         (Win.all, Post_Render_Handler'Access);
+   end Initialize;
+
+   procedure Initialize
+     (Win      : Adi.Window.Window_Handle;
+      Base_Dir : String := "/tmp/adi_mcp")
+   is
+      use type Adi.Window.Window_Access;
+      Ptr : constant Adi.Window.Window_Access :=
+        Adi.Window.Resolve_Window_Handle (Win);
+   begin
+      if Ptr /= null then
+         Initialize (Ptr, Base_Dir);
+      end if;
    end Initialize;
 
    procedure Finalize is

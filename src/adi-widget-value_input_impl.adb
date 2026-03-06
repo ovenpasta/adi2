@@ -35,10 +35,10 @@ package body Adi.Widget.Value_Input_Impl is
    end Update_Text_From_Value;
 
    procedure Fire_Value_Changed (W : in out Value_Input_Widget) is
-      Self : constant Value_Input_Widget_Access := W'Unchecked_Access;
-      Val  : constant Value_Type := W.Num_Value;
+      H   : constant Widget_Handle := Get_Handle (W);
+      Val : constant Value_Type := W.Num_Value;
       procedure Call (CB : Value_Changed_Callback) is
-      begin CB (Self, Val); end Call;
+      begin CB (H, Val); end Call;
       procedure Emit is new Value_Changed_Signals.For_Each (Call);
    begin
       Emit (W.Value_Changed);
@@ -97,8 +97,52 @@ package body Adi.Widget.Value_Input_Impl is
       Result.Updating_Text := True;
       Set_Text (Result.all, Image (Result.Num_Value));
       Result.Updating_Text := False;
+      declare
+         P : constant access Widget'Class := Result.all'Unchecked_Access;
+      begin
+         Register_Widget (Widget_Access (P));
+      end;
       return Result;
    end Create;
+
+   function Create_Handle
+     (Min   : Value_Type;
+      Max   : Value_Type;
+      Value : Value_Type) return Value_Input_Handle
+   is
+   begin
+      return (Id => Get_Handle (Create (Min, Max, Value).all).Id);
+   end Create_Handle;
+
+   function To_Widget_Handle (H : Value_Input_Handle) return Widget_Handle is
+   begin
+      return (Id => H.Id);
+   end To_Widget_Handle;
+
+   function Try_As_Value_Input (H : Widget_Handle) return Value_Input_Handle is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in Value_Input_Widget'Class then
+         return (Id => H.Id);
+      end if;
+      return Null_Value_Input_Handle;
+   end Try_As_Value_Input;
+
+   function Is_Valid (H : Value_Input_Handle) return Boolean is
+   begin
+      return Widget_Stores.Is_Valid (H.Id);
+   end Is_Valid;
+
+   function "+" (H : Value_Input_Handle) return Widget_Handle is
+   begin
+      return To_Widget_Handle (H);
+   end "+";
+
+   procedure Set_Part_Styles
+     (H : Value_Input_Handle; Styles : Part_Style_Array) is
+   begin
+      Adi.Widget.Set_Part_Styles (To_Widget_Handle (H), Styles);
+   end Set_Part_Styles;
 
    procedure Set_Value (W : in out Value_Input_Widget; V : Value_Type) is
       Clamped : constant Value_Type := Clamp (V, W.Min_Value, W.Max_Value);
@@ -161,6 +205,102 @@ package body Adi.Widget.Value_Input_Impl is
       Id : Value_Changed_Signals.Connection_Id) is
    begin
       W.Value_Changed.Disconnect (Id);
+   end Disconnect_Value_Changed;
+
+   ---------------------------------------------------------------------------
+   --  Typed handle method overloads
+   ---------------------------------------------------------------------------
+
+   procedure Set_Value (H : Value_Input_Handle; V : Value_Type) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Value (Value_Input_Widget (Ptr.all), V);
+      end if;
+   end Set_Value;
+
+   function Get_Value (H : Value_Input_Handle) return Value_Type is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Value (Value_Input_Widget (Ptr.all));
+      end if;
+      return Zero;
+   end Get_Value;
+
+   procedure Set_Step (H : Value_Input_Handle; S : Value_Type) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Step (Value_Input_Widget (Ptr.all), S);
+      end if;
+   end Set_Step;
+
+   function Get_Step (H : Value_Input_Handle) return Value_Type is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Step (Value_Input_Widget (Ptr.all));
+      end if;
+      return Zero;
+   end Get_Step;
+
+   procedure Set_Range (H : Value_Input_Handle; Min, Max : Value_Type) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Range (Value_Input_Widget (Ptr.all), Min, Max);
+      end if;
+   end Set_Range;
+
+   function Get_Min (H : Value_Input_Handle) return Value_Type is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Min (Value_Input_Widget (Ptr.all));
+      end if;
+      return Zero;
+   end Get_Min;
+
+   function Get_Max (H : Value_Input_Handle) return Value_Type is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Max (Value_Input_Widget (Ptr.all));
+      end if;
+      return Zero;
+   end Get_Max;
+
+   procedure Connect_Value_Changed
+     (H : Value_Input_Handle; CB : Value_Changed_Callback)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Connect_Value_Changed (Value_Input_Widget (Ptr.all), CB);
+      end if;
+   end Connect_Value_Changed;
+
+   function Connect_Value_Changed
+     (H : Value_Input_Handle; CB : Value_Changed_Callback)
+      return Value_Changed_Signals.Connection_Id
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Connect_Value_Changed (Value_Input_Widget (Ptr.all), CB);
+      end if;
+      return Value_Changed_Signals.No_Connection;
+   end Connect_Value_Changed;
+
+   procedure Disconnect_Value_Changed
+     (H : Value_Input_Handle; Id : Value_Changed_Signals.Connection_Id)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Disconnect_Value_Changed (Value_Input_Widget (Ptr.all), Id);
+      end if;
    end Disconnect_Value_Changed;
 
    ---------------------------------------------------------------------------

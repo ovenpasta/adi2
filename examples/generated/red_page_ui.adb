@@ -109,10 +109,10 @@ package body Red_Page_UI is
    end Set_CSS_File;
 
    function Build
-      return Adi.Widget.Widget_Access is
-      Box_1 : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
-      Label_1 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Red Page");
-      Label_2 : constant Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("This is the first page with a warm red background.");
+      return Adi.Widget.Widget_Handle is
+      Box_1 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_1 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Red Page");
+      Label_2 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("This is the first page with a warm red background.");
    begin
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
@@ -141,15 +141,15 @@ package body Red_Page_UI is
       end;
 
       --  Bind every widget that has a CSS class
-      Adi.CSS_Source.Bind_Class (Source, "page-red", Box_1);
-      Adi.CSS_Source.Bind_Class (Source, "page-title", Label_1);
-      Adi.CSS_Source.Bind_Class (Source, "page-desc", Label_2);
+      Adi.CSS_Source.Bind_Class (Source, "page-red", +Box_1);
+      Adi.CSS_Source.Bind_Class (Source, "page-title", +Label_1);
+      Adi.CSS_Source.Bind_Class (Source, "page-desc", +Label_2);
 
       --  Build hierarchy
-      Box_1.Add_Child (Label_1);
-      Box_1.Add_Child (Label_2);
+      Adi.Widget.Add_Child (+Box_1, +Label_1);
+      Adi.Widget.Add_Child (+Box_1, +Label_2);
 
-      return Adi.Widget.Widget_Access (Box_1);
+      return +Box_1;
    end Build;
 
    end Instance;

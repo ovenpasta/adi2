@@ -10,7 +10,7 @@ package Assets_Example_UI is
    generic
    package Instance is
 
-      function Build return Adi.Window.Window_Access;
+      function Build return Adi.Window.Window_Handle;
 
       procedure Tick_Styles (Reloaded : out Boolean;
                              Success  : out Boolean);

@@ -24,6 +24,13 @@ procedure Slider_Example is
    package Float_Input is new Adi.Widget.Value_Input (Float);
    package Int_Input is new Adi.Widget.Integer_Value_Input (Integer);
 
+   use type Adi.Widget.Box.Box_Handle;
+   use type Adi.Widget.Label.Label_Handle;
+   use type Float_Slider.Slider_Handle;
+   use type Int_Slider.Slider_Handle;
+   use type Float_Input.Value_Input_Handle;
+   use type Int_Input.Value_Input_Handle;
+
    function Float_Str (V : Float) return String is
       package FIO is new Ada.Text_IO.Float_IO (Float);
       Buf : String (1 .. 64);
@@ -32,57 +39,57 @@ procedure Slider_Example is
       return Trim (Buf, Both);
    end Float_Str;
 
-   --  Forward declarations for callbacks
-   Slider1 : Float_Slider.Slider_Widget_Access;
-   Value1  : Adi.Widget.Label.Label_Widget_Access;
-   Input1  : Float_Input.Value_Input_Widget_Access;
+   --  Typed handles for cross-widget access in callbacks
+   Slider1_H : Float_Slider.Slider_Handle;
+   Value1_H  : Adi.Widget.Label.Label_Handle;
+   Input1_H  : Float_Input.Value_Input_Handle;
 
-   Slider2 : Int_Slider.Slider_Widget_Access;
-   Value2  : Adi.Widget.Label.Label_Widget_Access;
-   Input2  : Int_Input.Value_Input_Widget_Access;
+   Slider2_H : Int_Slider.Slider_Handle;
+   Value2_H  : Adi.Widget.Label.Label_Handle;
+   Input2_H  : Int_Input.Value_Input_Handle;
 
-   Value3  : Adi.Widget.Label.Label_Widget_Access;
+   Value3_H  : Adi.Widget.Label.Label_Handle;
 
    procedure On_Slider1_Changed
-     (W : Float_Slider.Slider_Widget_Access; Value : Float) is
+     (W : Widget_Handle; Value : Float) is
       pragma Unreferenced (W);
    begin
-      Adi.Widget.Label.Set_Text (Value1.all, Float_Str (Value));
-      Float_Input.Set_Value (Input1.all, Value);
+      Adi.Widget.Label.Set_Text (Value1_H, Float_Str (Value));
+      Float_Input.Set_Value (Input1_H, Value);
    end On_Slider1_Changed;
 
    procedure On_Input1_Changed
-     (W : Float_Input.Value_Input_Widget_Access; Value : Float) is
+     (W : Widget_Handle; Value : Float) is
       pragma Unreferenced (W);
    begin
-      Float_Slider.Set_Value (Slider1.all, Value);
-      Adi.Widget.Label.Set_Text (Value1.all, Float_Str (Value));
+      Float_Slider.Set_Value (Slider1_H, Value);
+      Adi.Widget.Label.Set_Text (Value1_H, Float_Str (Value));
    end On_Input1_Changed;
 
    procedure On_Slider2_Changed
-     (W : Int_Slider.Slider_Widget_Access; Value : Integer) is
+     (W : Widget_Handle; Value : Integer) is
       pragma Unreferenced (W);
    begin
       Adi.Widget.Label.Set_Text
-        (Value2.all, Trim (Integer'Image (Value), Both));
-      Int_Input.Set_Value (Input2.all, Value);
+        (Value2_H, Trim (Integer'Image (Value), Both));
+      Int_Input.Set_Value (Input2_H, Value);
    end On_Slider2_Changed;
 
    procedure On_Input2_Changed
-     (W : Int_Input.Value_Input_Widget_Access; Value : Integer) is
+     (W : Widget_Handle; Value : Integer) is
       pragma Unreferenced (W);
    begin
-      Int_Slider.Set_Value (Slider2.all, Value);
+      Int_Slider.Set_Value (Slider2_H, Value);
       Adi.Widget.Label.Set_Text
-        (Value2.all, Trim (Integer'Image (Value), Both));
+        (Value2_H, Trim (Integer'Image (Value), Both));
    end On_Input2_Changed;
 
    procedure On_Slider3_Changed
-     (W : Int_Slider.Slider_Widget_Access; Value : Integer) is
+     (W : Widget_Handle; Value : Integer) is
       pragma Unreferenced (W);
    begin
       Adi.Widget.Label.Set_Text
-        (Value3.all, Trim (Integer'Image (Value), Both));
+        (Value3_H, Trim (Integer'Image (Value), Both));
    end On_Slider3_Changed;
 
 begin
@@ -96,122 +103,136 @@ begin
      (Slider_Example_Styles.Context_Menu_Item_Class_Part_Styles);
 
    declare
-      W : constant Window_Access :=
-        Create_Window ("Slider Example", (600.0, 400.0));
+      W : constant Window_Handle :=
+        Create_Window_Handle ("Slider Example", (600.0, 400.0));
 
-      Root     : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
+      --  All widgets created via typed handles
+      Root     : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
 
       --  Section 1: Float slider + value input
-      Section1 : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Heading1 : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Float Slider");
-      Row1     : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Label1   : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Opacity:");
+      Section1 : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Heading1 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Float Slider");
+      Row1     : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Label1   : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Opacity:");
 
       --  Section 2: Integer slider + value input
-      Section2 : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Heading2 : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Integer Slider");
-      Row2     : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Label2   : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Red:");
+      Section2 : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Heading2 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Integer Slider");
+      Row2     : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Label2   : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Red:");
 
       --  Section 3: Stepped slider
-      Section3 : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Heading3 : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Stepped Slider (step=10)");
-      Row3     : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Label3   : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Volume:");
-      Slider3  : constant Int_Slider.Slider_Widget_Access :=
-        Int_Slider.Create (Min => 0, Max => 100, Value => 50);
+      Section3 : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Heading3 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Stepped Slider (step=10)");
+      Row3     : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Label3   : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Volume:");
+
+      Slider3_H : constant Int_Slider.Slider_Handle :=
+        Int_Slider.Create_Handle (Min => 0, Max => 100, Value => 50);
    begin
-      Slider1 := Float_Slider.Create (Min => 0.0, Max => 1.0, Value => 0.5);
-      Value1  := Adi.Widget.Label.Create ("0.50");
-      Input1  := Float_Input.Create (Min => 0.0, Max => 1.0, Value => 0.5);
+      Slider1_H := Float_Slider.Create_Handle
+        (Min => 0.0, Max => 1.0, Value => 0.5);
+      Value1_H  := Adi.Widget.Label.Create_Handle ("0.50");
 
-      Slider2 := Int_Slider.Create (Min => 0, Max => 255, Value => 128);
-      Value2  := Adi.Widget.Label.Create ("128");
-      Input2  := Int_Input.Create (Min => 0, Max => 255, Value => 128);
+      Slider2_H := Int_Slider.Create_Handle
+        (Min => 0, Max => 255, Value => 128);
+      Value2_H  := Adi.Widget.Label.Create_Handle ("128");
 
-      Value3  := Adi.Widget.Label.Create ("50");
+      Value3_H  := Adi.Widget.Label.Create_Handle ("50");
 
-      --  Configure steps
-      Float_Slider.Set_Step (Slider1.all, 0.01);
-      Int_Slider.Set_Step (Slider2.all, 1);
-      Int_Slider.Set_Step (Slider3.all, 10);
-      Float_Input.Set_Step (Input1.all, 0.01);
-      Int_Input.Set_Step (Input2.all, 1);
+      --  Value inputs via typed handles
+      Input1_H := Float_Input.Create_Handle
+        (Min => 0.0, Max => 1.0, Value => 0.5);
+      Input2_H := Int_Input.Create_Handle
+        (Min => 0, Max => 255, Value => 128);
 
-      --  Wire callbacks
-      Float_Slider.Connect_Changed
-        (Slider1.all, On_Slider1_Changed'Unrestricted_Access);
+      Float_Input.Set_Step (Input1_H, 0.01);
+      Int_Input.Set_Step (Input2_H, 1);
+
       Float_Input.Connect_Value_Changed
-        (Input1.all, On_Input1_Changed'Unrestricted_Access);
-      Int_Slider.Connect_Changed
-        (Slider2.all, On_Slider2_Changed'Unrestricted_Access);
+        (Input1_H, On_Input1_Changed'Unrestricted_Access);
       Int_Input.Connect_Value_Changed
-        (Input2.all, On_Input2_Changed'Unrestricted_Access);
+        (Input2_H, On_Input2_Changed'Unrestricted_Access);
+
+      Float_Input.Set_Part_Styles (Input1_H, Value_Input_Class_Part_Styles);
+      Int_Input.Set_Part_Styles (Input2_H, Value_Input_Class_Part_Styles);
+
+      --  Configure steps via typed handles
+      Float_Slider.Set_Step (Slider1_H, 0.01);
+      Int_Slider.Set_Step (Slider2_H, 1);
+      Int_Slider.Set_Step (Slider3_H, 10);
+
+      --  Wire callbacks via typed handles
+      Float_Slider.Connect_Changed
+        (Slider1_H, On_Slider1_Changed'Unrestricted_Access);
       Int_Slider.Connect_Changed
-        (Slider3.all, On_Slider3_Changed'Unrestricted_Access);
+        (Slider2_H, On_Slider2_Changed'Unrestricted_Access);
+      Int_Slider.Connect_Changed
+        (Slider3_H, On_Slider3_Changed'Unrestricted_Access);
 
-      --  Apply styles
-      Set_Part_Styles (Root.all, Root_Class_Part_Styles);
-      Set_Part_Styles (Section1.all, Section_Class_Part_Styles);
-      Set_Part_Styles (Section2.all, Section_Class_Part_Styles);
-      Set_Part_Styles (Section3.all, Section_Class_Part_Styles);
-      Set_Part_Styles (Heading1.all, Heading_Class_Part_Styles);
-      Set_Part_Styles (Heading2.all, Heading_Class_Part_Styles);
-      Set_Part_Styles (Heading3.all, Heading_Class_Part_Styles);
-      Set_Part_Styles (Row1.all, Row_Class_Part_Styles);
-      Set_Part_Styles (Row2.all, Row_Class_Part_Styles);
-      Set_Part_Styles (Row3.all, Row_Class_Part_Styles);
-      Set_Part_Styles (Label1.all, Label_Class_Part_Styles);
-      Set_Part_Styles (Label2.all, Label_Class_Part_Styles);
-      Set_Part_Styles (Label3.all, Label_Class_Part_Styles);
-      Set_Part_Styles (Value1.all, Value_Label_Class_Part_Styles);
-      Set_Part_Styles (Value2.all, Value_Label_Class_Part_Styles);
-      Set_Part_Styles (Value3.all, Value_Label_Class_Part_Styles);
-      Set_Part_Styles (Slider1.all, Slider_Class_Part_Styles);
-      Set_Part_Styles (Slider2.all, Slider_Class_Part_Styles);
-      Set_Part_Styles (Slider3.all, Slider_Class_Part_Styles);
-      Set_Part_Styles (Input1.all, Value_Input_Class_Part_Styles);
-      Set_Part_Styles (Input2.all, Value_Input_Class_Part_Styles);
+      --  Apply styles via typed handles
+      Adi.Widget.Box.Set_Part_Styles (Root, Root_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Section1, Section_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Section2, Section_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Section3, Section_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Heading1, Heading_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Heading2, Heading_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Heading3, Heading_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Row1, Row_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Row2, Row_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Row3, Row_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Label1, Label_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Label2, Label_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Label3, Label_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles
+        (Value1_H, Value_Label_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles
+        (Value2_H, Value_Label_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles
+        (Value3_H, Value_Label_Class_Part_Styles);
+      Float_Slider.Set_Part_Styles (Slider1_H, Slider_Class_Part_Styles);
+      Int_Slider.Set_Part_Styles (Slider2_H, Slider_Class_Part_Styles);
+      Int_Slider.Set_Part_Styles (Slider3_H, Slider_Class_Part_Styles);
 
-      --  Build hierarchy
-      Add_Child (Section1.all, Heading1);
-      Add_Child (Row1.all, Label1);
-      Add_Child (Row1.all, Slider1);
-      Add_Child (Row1.all, Value1);
-      Add_Child (Row1.all, Input1);
-      Add_Child (Section1.all, Row1);
+      --  Build hierarchy via "+" operator
+      Add_Child (+Section1, +Heading1);
+      Add_Child (+Row1, +Label1);
+      Add_Child (+Row1, +Slider1_H);
+      Add_Child (+Row1, +Value1_H);
+      Add_Child (+Row1, +Input1_H);
+      Add_Child (+Section1, +Row1);
 
-      Add_Child (Section2.all, Heading2);
-      Add_Child (Row2.all, Label2);
-      Add_Child (Row2.all, Slider2);
-      Add_Child (Row2.all, Value2);
-      Add_Child (Row2.all, Input2);
-      Add_Child (Section2.all, Row2);
+      Add_Child (+Section2, +Heading2);
+      Add_Child (+Row2, +Label2);
+      Add_Child (+Row2, +Slider2_H);
+      Add_Child (+Row2, +Value2_H);
+      Add_Child (+Row2, +Input2_H);
+      Add_Child (+Section2, +Row2);
 
-      Add_Child (Section3.all, Heading3);
-      Add_Child (Row3.all, Label3);
-      Add_Child (Row3.all, Slider3);
-      Add_Child (Row3.all, Value3);
-      Add_Child (Section3.all, Row3);
+      Add_Child (+Section3, +Heading3);
+      Add_Child (+Row3, +Label3);
+      Add_Child (+Row3, +Slider3_H);
+      Add_Child (+Row3, +Value3_H);
+      Add_Child (+Section3, +Row3);
 
-      Add_Child (Root.all, Section1);
-      Add_Child (Root.all, Section2);
-      Add_Child (Root.all, Section3);
+      Add_Child (+Root, +Section1);
+      Add_Child (+Root, +Section2);
+      Add_Child (+Root, +Section3);
 
-      W.Set_Root (Root);
+      Adi.Window.Set_Root (W, Widget_Handle'(+Root));
       A.Add_Window (W);
       A.Run;
    end;

@@ -8,10 +8,29 @@ package Adi.Widget.Animated_Widget is
    type Animated_Widget is new Widget with private;
    type Animated_Widget_Access is access all Animated_Widget'Class;
 
+   --  Typed handle
+   type Animated_Widget_Handle is private;
+   Null_Animated_Widget_Handle : constant Animated_Widget_Handle;
+
+   --  Construction
    function Create return Animated_Widget_Access;
    function Create
      (Animation : Animated_Image_Access) return Animated_Widget_Access;
+   function Create_Handle return Animated_Widget_Handle;
+   function Create_Handle
+     (Animation : Animated_Image_Access) return Animated_Widget_Handle;
 
+   --  Handle bridge
+   function To_Widget_Handle
+     (H : Animated_Widget_Handle) return Widget_Handle;
+   function Try_As_Animated_Widget
+     (H : Widget_Handle) return Animated_Widget_Handle;
+   function Is_Valid (H : Animated_Widget_Handle) return Boolean;
+   function "+" (H : Animated_Widget_Handle) return Widget_Handle;
+   procedure Set_Part_Styles
+     (H : Animated_Widget_Handle; Styles : Part_Style_Array);
+
+   --  Widget methods
    function Load_Image_From_File
      (W    : in out Animated_Widget;
       Path : String) return Boolean;
@@ -35,6 +54,27 @@ package Adi.Widget.Animated_Widget is
    function Is_Playing (W : Animated_Widget) return Boolean;
    procedure Set_Max_Size
      (W          : in out Animated_Widget;
+      Max_Width  : Pixel_Type;
+      Max_Height : Pixel_Type);
+
+   --  Handle methods
+   function Load_Image_From_File
+     (H : Animated_Widget_Handle; Path : String) return Boolean;
+   procedure Set_Animation
+     (H : Animated_Widget_Handle; Animation : Animated_Image_Access);
+   function Get_Image_Animation
+     (H : Animated_Widget_Handle) return Animated_Image_Access;
+   procedure Start (H : Animated_Widget_Handle);
+   procedure Stop (H : Animated_Widget_Handle);
+   procedure Reset (H : Animated_Widget_Handle);
+   procedure Set_Looping
+     (H : Animated_Widget_Handle; Value : Boolean := True);
+   procedure Set_Playback_Speed
+     (H : Animated_Widget_Handle; Multiplier : Float := 1.0);
+   function Is_Looping (H : Animated_Widget_Handle) return Boolean;
+   function Is_Playing (H : Animated_Widget_Handle) return Boolean;
+   procedure Set_Max_Size
+     (H          : Animated_Widget_Handle;
       Max_Width  : Pixel_Type;
       Max_Height : Pixel_Type);
 
@@ -83,5 +123,11 @@ private
       Max_Width       : Pixel_Type := 0.0;
       Max_Height      : Pixel_Type := 0.0;
    end record;
+
+   type Animated_Widget_Handle is record
+      Id : Widget_Stores.Object_Id := Widget_Stores.Null_Id;
+   end record;
+   Null_Animated_Widget_Handle : constant Animated_Widget_Handle :=
+     (Id => Widget_Stores.Null_Id);
 
 end Adi.Widget.Animated_Widget;

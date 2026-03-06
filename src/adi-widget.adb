@@ -50,6 +50,123 @@ package body Adi.Widget is
 
    function Get_Id (W : Widget'Class) return Natural is (W.Widget_Id);
 
+   ---------------------------------------------------------------------------
+   --  Handle Store operations
+   ---------------------------------------------------------------------------
+
+   function Is_Valid (H : Widget_Handle) return Boolean is
+   begin
+      return Widget_Stores.Is_Valid (H.Id);
+   end Is_Valid;
+
+   function Get_Handle (W : Widget'Class) return Widget_Handle is
+   begin
+      return (Id => (Index => Widget_Stores.Slot_Index (W.Store_Index),
+                     Gen   => Widget_Stores.Generation (W.Store_Gen)));
+   end Get_Handle;
+
+   function Resolve_Handle (H : Widget_Handle) return Widget_Access is
+   begin
+      return Widget_Stores.Get (H.Id);
+   end Resolve_Handle;
+
+   function Borrow (H : Widget_Handle) return Widget_Ref is
+      P : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if P = null then
+         raise Constraint_Error with "Widget.Borrow: stale or null handle";
+      end if;
+      Widget_Stores.Pin (H.Id);
+      return (Ada.Finalization.Limited_Controlled with
+              Ptr => P, Id => H.Id);
+   end Borrow;
+
+   overriding procedure Finalize (R : in out Widget_Ref) is
+      use type Widget_Stores.Object_Id;
+   begin
+      if R.Id /= Widget_Stores.Null_Id then
+         Widget_Stores.Unpin (R.Id);
+      end if;
+   end Finalize;
+
+   --  Forward declaration for recursive child destruction
+   procedure Destroy_Subtree (W : not null Widget_Access);
+
+   procedure Destroy (H : in out Widget_Handle) is
+      Obj : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Obj = null then
+         H.Id := Widget_Stores.Null_Id;
+         return;
+      end if;
+
+      --  Let the window layer clean up refs/root/overlays BEFORE detaching
+      --  from parent (Find_Host_Window uses subtree membership).
+      if Destroy_Detach_Hook /= null then
+         Destroy_Detach_Hook (Obj);
+      end if;
+
+      --  Detach from parent
+      if Obj.Parent /= null then
+         Remove_Child (Obj.Parent.all, Obj);
+      end if;
+
+      --  Recursively mark children for destruction (bottom-up), then self
+      Destroy_Subtree (Obj);
+      H.Id := Widget_Stores.Null_Id;
+   end Destroy;
+
+   procedure Destroy_Subtree (W : not null Widget_Access) is
+      use Widget_List;
+   begin
+      --  Recurse into children first (bottom-up destruction)
+      declare
+         C : Widget_List.Cursor := W.Children.First;
+      begin
+         while C /= No_Element loop
+            declare
+               Child : constant Widget_Access := Element (C);
+            begin
+               Next (C);
+               if Child /= null then
+                  --  Sever parent link so child doesn't point back at us
+                  Child.Parent := null;
+                  if Child.Store_Index > 0 then
+                     Destroy_Subtree (Child);
+                  end if;
+               end if;
+            end;
+         end loop;
+      end;
+
+      --  Let the widget clean up external references
+      On_Destroy (Widget'Class (W.all));
+
+      --  Clear containers before freeing to simplify deep finalization
+      W.Children.Clear;
+      W.Items.Clear;
+      W.Images.Clear;
+
+      --  Mark self for store destruction
+      if W.Store_Index > 0 then
+         Widget_Stores.Request_Destroy
+           ((Index => Widget_Stores.Slot_Index (W.Store_Index),
+             Gen   => Widget_Stores.Generation (W.Store_Gen)));
+      end if;
+   end Destroy_Subtree;
+
+   procedure Register_Widget (Obj : not null Widget_Access) is
+      Id : constant Widget_Stores.Object_Id := Widget_Stores.Register (Obj);
+   begin
+      Obj.Store_Index := Natural (Id.Index);
+      Obj.Store_Gen   := Natural (Id.Gen);
+   end Register_Widget;
+
+   procedure Pump_Widget_Store is
+   begin
+      Widget_Stores.Pump;
+   end Pump_Widget_Store;
+
    --  Per-frame perf counters for debug stats overlay.
    --  Reset by the Window before each frame, read after rendering.
    Perf_Style_Resolves : Natural := 0;
@@ -861,6 +978,96 @@ package body Adi.Widget is
       Mark_Dirty (W);
    end Set_Part_Styles;
 
+   procedure Set_Part_Style (H : Widget_Handle;
+                             P : Part_Kind;
+                             S : Widget_Style) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Part_Style (Ptr.all, P, S);
+      end if;
+   end Set_Part_Style;
+
+   procedure Set_Part_Styles (H : Widget_Handle;
+                              Styles : Part_Style_Array) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Part_Styles (Ptr.all, Styles);
+      end if;
+   end Set_Part_Styles;
+
+   ---------------------------------------------------------------------------
+   --  Common Widget_Handle base overloads
+   ---------------------------------------------------------------------------
+
+   procedure Set_Visible (H : Widget_Handle; Value : Boolean) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Flag (Ptr.all, Visible, Value);
+      end if;
+   end Set_Visible;
+
+   function Is_Visible (H : Widget_Handle) return Boolean is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Has_Flag (Ptr.all, Visible);
+      end if;
+      return False;
+   end Is_Visible;
+
+   procedure Set_Disabled (H : Widget_Handle; Value : Boolean := True) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Disabled (Ptr.all, Value);
+      end if;
+   end Set_Disabled;
+
+   function Is_Disabled (H : Widget_Handle) return Boolean is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Is_Disabled (Ptr.all);
+      end if;
+      return False;
+   end Is_Disabled;
+
+   procedure Set_Focusable (H : Widget_Handle; Value : Boolean) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Flag (Ptr.all, Focusable, Value);
+      end if;
+   end Set_Focusable;
+
+   procedure Set_Label (H : Widget_Handle; Label : String) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Label (Ptr.all, Label);
+      end if;
+   end Set_Label;
+
+   function Get_Label (H : Widget_Handle) return String is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Label (Ptr.all);
+      end if;
+      return "";
+   end Get_Label;
+
+   procedure Mark_Dirty (H : Widget_Handle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Mark_Dirty (Ptr.all);
+      end if;
+   end Mark_Dirty;
+
    function Get_Part_Style (W : Widget'Class;
                             P : Part_Kind) return Widget_Style is
    begin
@@ -1269,6 +1476,22 @@ package body Adi.Widget is
       end if;
    end Add_Child;
 
+   procedure Add_Child (W : in out Widget'Class; C : Widget_Handle) is
+      Ptr : constant Widget_Access := Resolve_Handle (C);
+   begin
+      if Ptr /= null then
+         Add_Child (W, Ptr);
+      end if;
+   end Add_Child;
+
+   procedure Add_Child (Parent : Widget_Handle; Child : Widget_Handle) is
+      P : constant Widget_Access := Widget_Stores.Get (Parent.Id);
+   begin
+      if P /= null then
+         Add_Child (P.all, Child);
+      end if;
+   end Add_Child;
+
    procedure Remove_Child (W : in out Widget'Class; C : access Widget'Class) is
       use Widget_List;
       CA     : Widget_Access := null;
@@ -1283,6 +1506,15 @@ package body Adi.Widget is
          W.Children.Delete (Cursor);
          Mark_Dirty (C.all);
          Mark_Dirty (W);
+      end if;
+   end Remove_Child;
+
+   procedure Remove_Child (Parent : Widget_Handle; Child : Widget_Handle) is
+      P : constant Widget_Access := Resolve_Handle (Parent);
+      C : constant Widget_Access := Resolve_Handle (Child);
+   begin
+      if P /= null and then C /= null then
+         Remove_Child (P.all, C);
       end if;
    end Remove_Child;
 
@@ -1305,10 +1537,39 @@ package body Adi.Widget is
       Mark_Dirty (W);
    end Set_Parent;
 
+   procedure Set_Parent (W : Widget_Handle; P : Widget_Handle) is
+      W_Ptr : constant Widget_Access := Resolve_Handle (W);
+      P_Ptr : constant Widget_Access := Resolve_Handle (P);
+   begin
+      if W_Ptr /= null then
+         --  Null_Handle means "detach"; stale non-null handles are ignored.
+         if P_Ptr /= null or else P = Null_Handle then
+            Set_Parent (W_Ptr.all, P_Ptr);
+         end if;
+      end if;
+   end Set_Parent;
+
    function Get_Parent (W : Widget'Class) return access Widget'Class is
    begin
       return W.Parent;
    end Get_Parent;
+
+   function Get_Parent_Handle (W : Widget'Class) return Widget_Handle is
+   begin
+      if W.Parent = null then
+         return Null_Handle;
+      end if;
+      return Get_Handle (W.Parent.all);
+   end Get_Parent_Handle;
+
+   function Get_Parent_Handle (H : Widget_Handle) return Widget_Handle is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr = null then
+         return Null_Handle;
+      end if;
+      return Get_Parent_Handle (Ptr.all);
+   end Get_Parent_Handle;
 
    function Child_Count (W : Widget'Class) return Natural is
    begin
@@ -1348,6 +1609,28 @@ package body Adi.Widget is
      end loop;
      return null;
   end Get_Child;
+
+   function Get_Child_Handle (W : Widget'Class; Index : Positive)
+      return Widget_Handle
+   is
+      Child : constant Widget_Access := Get_Child (W, Index);
+   begin
+      if Child = null then
+         return Null_Handle;
+      end if;
+      return Get_Handle (Child.all);
+   end Get_Child_Handle;
+
+   function Get_Child_Handle (H : Widget_Handle; Index : Positive)
+      return Widget_Handle
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr = null then
+         return Null_Handle;
+      end if;
+      return Get_Child_Handle (Ptr.all, Index);
+   end Get_Child_Handle;
    ---------------------------------------------------------------------------
    --  Geometry and Layout
    ---------------------------------------------------------------------------
@@ -1754,6 +2037,16 @@ package body Adi.Widget is
       end if;
    end Set_Flag;
 
+   procedure Set_Flag (H : Widget_Handle;
+                       F : Widget_Flag;
+                       Value : Boolean) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Flag (Ptr.all, F, Value);
+      end if;
+   end Set_Flag;
+
    function Has_Flag (W : Widget'Class; F : Widget_Flag) return Boolean is
    begin
       return W.Flags (F);
@@ -1790,7 +2083,7 @@ package body Adi.Widget is
      (W    : in out Widget'Class;
       X, Y : Pixel_Type) return Boolean
    is
-      Self : constant Widget_Access := W'Unchecked_Access;
+      H : constant Widget_Handle := Get_Handle (W);
    begin
       if W.Context_Menu_Sig.Subscriber_Count = 0 then
          return False;
@@ -1798,7 +2091,7 @@ package body Adi.Widget is
 
       declare
          procedure Call (CB : Context_Menu_Callback) is
-         begin CB (Self, X, Y); end Call;
+         begin CB (H, X, Y); end Call;
          procedure Emit is new Context_Menu_Signals.For_Each (Call);
       begin
          Emit (W.Context_Menu_Sig);
@@ -1807,23 +2100,25 @@ package body Adi.Widget is
    end Show_Context_Menu;
 
    function Bubble_Context_Menu
-     (Start : Widget_Access;
+     (Start : Widget_Handle;
       X, Y  : Pixel_Type) return Boolean
    is
-      Node         : Widget_Access := Start;
-      Parent_Access : access Widget'Class;
+      Node : Widget_Access := Resolve_Handle (Start);
    begin
       while Node /= null loop
          if Show_Context_Menu (Node.all, X, Y) then
             return True;
          end if;
 
-         Parent_Access := Get_Parent (Node.all);
-         if Parent_Access = null then
-            Node := null;
-         else
-            Node := Parent_Access.all'Unchecked_Access;
-         end if;
+         declare
+            P : constant access Widget'Class := Get_Parent (Node.all);
+         begin
+            if P = null then
+               Node := null;
+            else
+               Node := Resolve_Handle (Get_Handle (P.all));
+            end if;
+         end;
       end loop;
 
       return False;

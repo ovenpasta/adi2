@@ -4,7 +4,16 @@ package body Adi.MCP is
 
    procedure Initialize
      (Win      : not null access Adi.Window.Window'Class;
-      Base_Dir : String := ".adi_mcp")
+      Base_Dir : String := "/tmp/adi_mcp")
+   is
+      pragma Unreferenced (Win, Base_Dir);
+   begin
+      null;
+   end Initialize;
+
+   procedure Initialize
+     (Win      : Adi.Window.Window_Handle;
+      Base_Dir : String := "/tmp/adi_mcp")
    is
       pragma Unreferenced (Win, Base_Dir);
    begin

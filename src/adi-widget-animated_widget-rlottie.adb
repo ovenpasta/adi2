@@ -28,8 +28,10 @@ package body Adi.Widget.Animated_Widget.RLottie is
    function Create
      (Animation : RLottie_Animation_Access) return Animated_Widget_Access
    is
-      Result : constant Animated_Widget_Access := Adi.Widget.Animated_Widget.Create;
+      Result : constant Animated_Widget_Access := new Animated_Widget;
    begin
+      Result.Flags := [Visible => True, others => False];
+      Register_Widget (Widget_Access (Result));
       Set_Animation (Result.all, Animation);
       return Result;
    end Create;

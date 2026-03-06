@@ -117,7 +117,8 @@ private
       Press_X : Pixel_Type := 0.0;
       Press_Y : Pixel_Type := 0.0;
       Horizontal_Scroll : Pixel_Type := 0.0;
-      Context_Menu : Adi.Widget.Context_Menu.Context_Menu_Access := null;
+      Context_Menu : Adi.Widget.Context_Menu.Menu_Handle :=
+        Adi.Widget.Context_Menu.Null_Menu_Handle;
       Context_Menu_Styles : Part_Style_Array := Empty_Part_Styles;
       Has_Context_Menu_Styles : Boolean := False;
       Context_Item_Styles : Part_Style_Array := Empty_Part_Styles;

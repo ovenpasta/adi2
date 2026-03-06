@@ -626,6 +626,17 @@ package body Adi.Widget.Context_Menu is
       end if;
    end Set_Menu_Part_Styles;
 
+   procedure Set_Menu_Part_Styles
+     (Menu   : Menu_Handle;
+      Styles : Adi.Widget.Part_Style_Array)
+   is
+      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
+   begin
+      if Ptr /= null then
+         Set_Menu_Part_Styles (Ptr.all, Styles);
+      end if;
+   end Set_Menu_Part_Styles;
+
    procedure Set_Item_Part_Styles
      (Menu   : in out Context_Menu;
       Styles : Adi.Widget.Part_Style_Array)
@@ -648,6 +659,17 @@ package body Adi.Widget.Context_Menu is
                end;
             end loop;
          end;
+      end if;
+   end Set_Item_Part_Styles;
+
+   procedure Set_Item_Part_Styles
+     (Menu   : Menu_Handle;
+      Styles : Adi.Widget.Part_Style_Array)
+   is
+      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
+   begin
+      if Ptr /= null then
+         Set_Item_Part_Styles (Ptr.all, Styles);
       end if;
    end Set_Item_Part_Styles;
 

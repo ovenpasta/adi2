@@ -100,8 +100,14 @@ package Adi.Widget.Context_Menu is
    procedure Set_Menu_Part_Styles
      (Menu   : in out Context_Menu;
       Styles : Adi.Widget.Part_Style_Array);
+   procedure Set_Menu_Part_Styles
+     (Menu   : Menu_Handle;
+      Styles : Adi.Widget.Part_Style_Array);
    procedure Set_Item_Part_Styles
      (Menu   : in out Context_Menu;
+      Styles : Adi.Widget.Part_Style_Array);
+   procedure Set_Item_Part_Styles
+     (Menu   : Menu_Handle;
       Styles : Adi.Widget.Part_Style_Array);
 
    --  Package-level defaults — apply to all context menus that don't have

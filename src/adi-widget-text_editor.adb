@@ -17,11 +17,12 @@ package body Adi.Widget.Text_Editor is
 
    Drag_Threshold_Px : constant Pixel_Type := 4.0;
 
-   use type Adi.Widget.Context_Menu.Context_Menu_Access;
+   use type Adi.Widget.Context_Menu.Menu_Handle;
    use type Adi.Window.Window_Access;
 
    type Menu_Binding is record
-      Menu  : Adi.Widget.Context_Menu.Context_Menu_Access := null;
+      Menu  : Adi.Widget.Context_Menu.Menu_Handle :=
+        Adi.Widget.Context_Menu.Null_Menu_Handle;
       Owner : Text_Editor_Widget_Access := null;
    end record;
 
@@ -35,13 +36,9 @@ package body Adi.Widget.Text_Editor is
      (Menu : Adi.Widget.Context_Menu.Menu_Handle)
       return Text_Editor_Widget_Access
    is
-      use type Adi.Widget.Context_Menu.Menu_Handle;
    begin
       for I in 1 .. Natural (Menu_Bindings.Length) loop
-         if Menu_Bindings.Element (I).Menu /= null
-           and then Adi.Widget.Context_Menu.Get_Handle
-             (Menu_Bindings.Element (I).Menu.all) = Menu
-         then
+         if Menu_Bindings.Element (I).Menu = Menu then
             return Menu_Bindings.Element (I).Owner;
          end if;
       end loop;
@@ -60,11 +57,11 @@ package body Adi.Widget.Text_Editor is
    end Is_Owner_Read_Only_By_Menu;
 
    procedure Register_Menu_Binding
-     (Menu  : Adi.Widget.Context_Menu.Context_Menu_Access;
+     (Menu  : Adi.Widget.Context_Menu.Menu_Handle;
       Owner : Text_Editor_Widget_Access)
    is
    begin
-      if Menu = null then
+      if not Adi.Widget.Context_Menu.Is_Valid (Menu) then
          return;
       end if;
 
@@ -352,37 +349,36 @@ package body Adi.Widget.Text_Editor is
 
    procedure Apply_Context_Menu_Styles (W : in out Text_Editor_Widget) is
    begin
-      if W.Context_Menu = null then
+      if not Adi.Widget.Context_Menu.Is_Valid (W.Context_Menu) then
          return;
       end if;
 
       if W.Has_Context_Menu_Styles then
          Adi.Widget.Context_Menu.Set_Menu_Part_Styles
-           (W.Context_Menu.all, W.Context_Menu_Styles);
+           (W.Context_Menu, W.Context_Menu_Styles);
       end if;
       if W.Has_Context_Item_Styles then
          Adi.Widget.Context_Menu.Set_Item_Part_Styles
-           (W.Context_Menu.all, W.Context_Item_Styles);
+           (W.Context_Menu, W.Context_Item_Styles);
       end if;
    end Apply_Context_Menu_Styles;
 
    procedure Ensure_Context_Menu (W : in out Text_Editor_Widget) is
       Self : constant Text_Editor_Widget_Access := W'Unchecked_Access;
    begin
-      if W.Context_Menu /= null then
+      if Adi.Widget.Context_Menu.Is_Valid (W.Context_Menu) then
          return;
       end if;
 
-      W.Context_Menu := Adi.Widget.Text_Context_Menu.Create_Default
+      W.Context_Menu := Adi.Widget.Text_Context_Menu.Create_Default_Handle
         (Buffer       => W.Buffer'Unchecked_Access,
-         Host         => null,
+         Host         => Adi.Window.Null_Window_Handle,
          Single_Line  => False,
          On_Applied   => On_Menu_Command_Applied'Access,
          Is_Read_Only => Is_Owner_Read_Only_By_Menu'Access);
       Register_Menu_Binding (W.Context_Menu, Self);
       Adi.Widget.Text_Context_Menu.Bind_Widget_Request
-        (Get_Handle (W),
-         Adi.Widget.Context_Menu.Get_Handle (W.Context_Menu.all));
+        (Get_Handle (W), W.Context_Menu);
       Apply_Context_Menu_Styles (W);
    end Ensure_Context_Menu;
 
@@ -567,7 +563,7 @@ package body Adi.Widget.Text_Editor is
       Ensure_Context_Menu (W);
       if Host /= null then
          Adi.Widget.Context_Menu.Attach_Window
-           (W.Context_Menu.all, Adi.Window.Get_Handle (Host.all));
+           (W.Context_Menu, Adi.Window.Get_Handle (Host.all));
       end if;
       Apply_Context_Menu_Styles (W);
    end Attach_Window;
@@ -1319,10 +1315,10 @@ package body Adi.Widget.Text_Editor is
 
    overriding procedure On_Destroy (W : in out Text_Editor_Widget) is
    begin
-      if W.Context_Menu /= null then
+      if Adi.Widget.Context_Menu.Is_Valid (W.Context_Menu) then
          --  Unbind from Text_Context_Menu binding tables
          Adi.Widget.Text_Context_Menu.Unbind_Menu
-           (Adi.Widget.Context_Menu.Get_Handle (W.Context_Menu.all));
+           (W.Context_Menu);
 
          --  Remove from local Menu_Bindings table
          for I in reverse 1 .. Natural (Menu_Bindings.Length) loop
@@ -1334,12 +1330,11 @@ package body Adi.Widget.Text_Editor is
 
          --  Destroy the context menu via handle
          declare
-            H : Adi.Widget.Context_Menu.Menu_Handle :=
-              Adi.Widget.Context_Menu.Get_Handle (W.Context_Menu.all);
+            H : Adi.Widget.Context_Menu.Menu_Handle := W.Context_Menu;
          begin
             Adi.Widget.Context_Menu.Destroy (H);
          end;
-         W.Context_Menu := null;
+         W.Context_Menu := Adi.Widget.Context_Menu.Null_Menu_Handle;
       end if;
    end On_Destroy;
 

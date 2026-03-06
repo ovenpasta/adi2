@@ -273,12 +273,34 @@ package body Adi.OS is
       Allow_Many       : Boolean := False)
    is
    begin
-      Show_Open_File_Dialog
-        (Callback         => Callback,
-         Window           => Adi.Window.Resolve_Window_Handle (Window),
-         Filters          => Filters,
-         Default_Location => Default_Location,
-         Allow_Many       => Allow_Many);
+      if not Adi.Window.Is_Valid (Window) then
+         Show_Open_File_Dialog
+           (Callback         => Callback,
+            Window           => null,
+            Filters          => Filters,
+            Default_Location => Default_Location,
+            Allow_Many       => Allow_Many);
+         return;
+      end if;
+
+      declare
+         R : Adi.Window.Window_Ref := Adi.Window.Borrow (Window);
+      begin
+         Show_Open_File_Dialog
+           (Callback         => Callback,
+            Window           => Adi.Window.Window (R.Ptr.all)'Unchecked_Access,
+            Filters          => Filters,
+            Default_Location => Default_Location,
+            Allow_Many       => Allow_Many);
+      end;
+   exception
+      when Constraint_Error =>
+         Show_Open_File_Dialog
+           (Callback         => Callback,
+            Window           => null,
+            Filters          => Filters,
+            Default_Location => Default_Location,
+            Allow_Many       => Allow_Many);
    end Show_Open_File_Dialog;
 
    procedure Show_Save_File_Dialog
@@ -338,11 +360,31 @@ package body Adi.OS is
       Default_Location : String := "")
    is
    begin
-      Show_Save_File_Dialog
-        (Callback         => Callback,
-         Window           => Adi.Window.Resolve_Window_Handle (Window),
-         Filters          => Filters,
-         Default_Location => Default_Location);
+      if not Adi.Window.Is_Valid (Window) then
+         Show_Save_File_Dialog
+           (Callback         => Callback,
+            Window           => null,
+            Filters          => Filters,
+            Default_Location => Default_Location);
+         return;
+      end if;
+
+      declare
+         R : Adi.Window.Window_Ref := Adi.Window.Borrow (Window);
+      begin
+         Show_Save_File_Dialog
+           (Callback         => Callback,
+            Window           => Adi.Window.Window (R.Ptr.all)'Unchecked_Access,
+            Filters          => Filters,
+            Default_Location => Default_Location);
+      end;
+   exception
+      when Constraint_Error =>
+         Show_Save_File_Dialog
+           (Callback         => Callback,
+            Window           => null,
+            Filters          => Filters,
+            Default_Location => Default_Location);
    end Show_Save_File_Dialog;
 
    procedure Show_Open_Folder_Dialog
@@ -382,11 +424,31 @@ package body Adi.OS is
       Allow_Many       : Boolean := False)
    is
    begin
-      Show_Open_Folder_Dialog
-        (Callback         => Callback,
-         Window           => Adi.Window.Resolve_Window_Handle (Window),
-         Default_Location => Default_Location,
-         Allow_Many       => Allow_Many);
+      if not Adi.Window.Is_Valid (Window) then
+         Show_Open_Folder_Dialog
+           (Callback         => Callback,
+            Window           => null,
+            Default_Location => Default_Location,
+            Allow_Many       => Allow_Many);
+         return;
+      end if;
+
+      declare
+         R : Adi.Window.Window_Ref := Adi.Window.Borrow (Window);
+      begin
+         Show_Open_Folder_Dialog
+           (Callback         => Callback,
+            Window           => Adi.Window.Window (R.Ptr.all)'Unchecked_Access,
+            Default_Location => Default_Location,
+            Allow_Many       => Allow_Many);
+      end;
+   exception
+      when Constraint_Error =>
+         Show_Open_Folder_Dialog
+           (Callback         => Callback,
+            Window           => null,
+            Default_Location => Default_Location,
+            Allow_Many       => Allow_Many);
    end Show_Open_Folder_Dialog;
 
    ---------------------------------------------------------------------------

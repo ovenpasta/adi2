@@ -437,7 +437,19 @@ package body Adi.Widget.Context_Menu is
       Host : Adi.Window.Window_Handle)
    is
    begin
-      Attach_Window (Menu, Adi.Window.Resolve_Window_Handle (Host));
+      if not Adi.Window.Is_Valid (Host) then
+         Attach_Window (Menu, null);
+         return;
+      end if;
+
+      declare
+         R : Adi.Window.Window_Ref := Adi.Window.Borrow (Host);
+      begin
+         Attach_Window (Menu, Adi.Window.Window (R.Ptr.all)'Unchecked_Access);
+      end;
+   exception
+      when Constraint_Error =>
+         Attach_Window (Menu, null);
    end Attach_Window;
 
    procedure Attach_Window

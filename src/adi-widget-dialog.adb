@@ -936,7 +936,19 @@ package body Adi.Widget.Dialog is
      (H : Dialog_Handle; Host : Adi.Window.Window_Handle)
    is
    begin
-      Attach_Window (H, Adi.Window.Resolve_Window_Handle (Host));
+      if not Adi.Window.Is_Valid (Host) then
+         Attach_Window (H, null);
+         return;
+      end if;
+
+      declare
+         R : Adi.Window.Window_Ref := Adi.Window.Borrow (Host);
+      begin
+         Attach_Window (H, Adi.Window.Window (R.Ptr.all)'Unchecked_Access);
+      end;
+   exception
+      when Constraint_Error =>
+         Attach_Window (H, null);
    end Attach_Window;
 
    procedure Set_Title (H : Dialog_Handle; Text : String) is

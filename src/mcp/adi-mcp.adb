@@ -1381,13 +1381,21 @@ package body Adi.MCP is
      (Win      : Adi.Window.Window_Handle;
       Base_Dir : String := "/tmp/adi_mcp")
    is
-      use type Adi.Window.Window_Access;
-      Ptr : constant Adi.Window.Window_Access :=
-        Adi.Window.Resolve_Window_Handle (Win);
    begin
-      if Ptr /= null then
-         Initialize (Ptr, Base_Dir);
+      if not Adi.Window.Is_Valid (Win) then
+         return;
       end if;
+
+      begin
+         declare
+            R : Adi.Window.Window_Ref := Adi.Window.Borrow (Win);
+         begin
+            Initialize (R.Ptr, Base_Dir);
+         end;
+      exception
+         when Constraint_Error =>
+            null;
+      end;
    end Initialize;
 
    procedure Finalize is

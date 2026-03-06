@@ -153,6 +153,25 @@ package body Adi.Window is
       return Window_Access (Window_Stores.Get (H.Id));
    end Resolve_Window_Handle;
 
+   function Borrow (H : Window_Handle) return Window_Ref is
+      P : constant Window_Class_Access := Window_Stores.Get (H.Id);
+   begin
+      if P = null then
+         raise Constraint_Error with "Window.Borrow: stale or null handle";
+      end if;
+      Window_Stores.Pin (H.Id);
+      return (Ada.Finalization.Limited_Controlled with
+              Ptr => P, Id => H.Id);
+   end Borrow;
+
+   overriding procedure Finalize (R : in out Window_Ref) is
+      use type Window_Stores.Object_Id;
+   begin
+      if R.Id /= Window_Stores.Null_Id then
+         Window_Stores.Unpin (R.Id);
+      end if;
+   end Finalize;
+
    procedure Pump_Window_Store is
    begin
       for Id of Pending_Destroy_Ids loop

@@ -22,6 +22,10 @@ package Adi.Window is
     function Get_Handle (W : Window) return Window_Handle;
     function Is_Valid (H : Window_Handle) return Boolean;
     function Resolve_Window_Handle (H : Window_Handle) return Window_Access;
+    type Window_Ref (Ptr : access Window'Class) is
+      limited new Ada.Finalization.Limited_Controlled with private
+      with Implicit_Dereference => Ptr;
+    function Borrow (H : Window_Handle) return Window_Ref;
     procedure Destroy (H : in out Window_Handle);
     procedure Destroy (W : in out Window_Access)
       with Obsolescent => "Use Destroy (H : in out Window_Handle)";
@@ -308,4 +312,10 @@ private
 
     Null_Window_Handle : constant Window_Handle :=
       (Id => Window_Stores.Null_Id);
+
+    type Window_Ref (Ptr : access Window'Class) is
+      limited new Ada.Finalization.Limited_Controlled with record
+        Id : Window_Stores.Object_Id := Window_Stores.Null_Id;
+      end record;
+    overriding procedure Finalize (R : in out Window_Ref);
 end Adi.Window;

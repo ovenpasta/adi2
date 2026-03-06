@@ -266,17 +266,7 @@ package body Adi.Window is
 
    function Resolve_Widget_Handle (H : Widget_Handle) return Widget_Access is
    begin
-      if not Is_Valid (H) then
-         return null;
-      end if;
-      declare
-         R : Widget_Ref := Borrow (H);
-      begin
-         return R.Ptr.all'Unchecked_Access;
-      end;
-   exception
-      when Constraint_Error =>
-         return null;
+      return Resolve_Handle (H);
    end Resolve_Widget_Handle;
 
    function Child_At

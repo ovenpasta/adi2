@@ -225,7 +225,7 @@ begin
       Adi.CSS_Source.Bind_Class (Source, "badge", +Badge);
       Adi.CSS_Source.Bind_Selector_Set (
         Source     => Source,
-        W          => Adi.Widget.Resolve_Handle (+Mode_Button),
+        W          => +Mode_Button,
         Tag_Name   => "button",
         Class_Name => "mode-button",
         Id_Name    => "mode-switch");
@@ -239,7 +239,7 @@ begin
          Update_Mode_UI;
       end if;
 
-      Adi.Window.Set_Root (W, Root);
+      Adi.Window.Set_Root (W, Adi.Widget.Get_Handle (Root.all));
       A.Add_Window (W);
       A.Run;
    end;

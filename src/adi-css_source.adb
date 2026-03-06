@@ -722,6 +722,28 @@ package body Adi.CSS_Source is
       Apply_Selector_Set_To_Widget (Source, W.all, Tag_Name, Class_Name, Id_Name);
    end Bind_Selector_Set;
 
+   procedure Bind_Selector_Set (Source     : in out Style_Source;
+                                W          : Adi.Widget.Widget_Handle;
+                                Tag_Name   : String := "";
+                                Class_Name : String := "";
+                                Id_Name    : String := "")
+   is
+   begin
+      declare
+         R : Adi.Widget.Widget_Ref := Adi.Widget.Borrow (W);
+      begin
+         Bind_Selector_Set
+           (Source     => Source,
+            W          => R.Ptr,
+            Tag_Name   => Tag_Name,
+            Class_Name => Class_Name,
+            Id_Name    => Id_Name);
+      end;
+   exception
+      when Constraint_Error =>
+         null;
+   end Bind_Selector_Set;
+
    function Get_Last_Error (Source : Style_Source) return String is
    begin
       if Source.Impl = null then

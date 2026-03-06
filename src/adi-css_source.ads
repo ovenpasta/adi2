@@ -110,6 +110,12 @@ package Adi.CSS_Source is
                                 Class_Name : String := "";
                                 Id_Name    : String := "");
 
+   procedure Bind_Selector_Set (Source     : in out Style_Source;
+                                W          : Adi.Widget.Widget_Handle;
+                                Tag_Name   : String := "";
+                                Class_Name : String := "";
+                                Id_Name    : String := "");
+
    function Merge_Part_Styles (Base, Override : Adi.Widget.Part_Style_Array)
      return Adi.Widget.Part_Style_Array;
 

@@ -76,17 +76,7 @@ package body Adi.App is
 
         function Main return Window_Access is
         begin
-           if not Adi.Window.Is_Valid (A.Main_Window) then
-              return null;
-           end if;
-           declare
-              R : Adi.Window.Window_Ref := Adi.Window.Borrow (A.Main_Window);
-           begin
-              return Adi.Window.Window (R.Ptr.all)'Unchecked_Access;
-           end;
-        exception
-           when Constraint_Error =>
-              return null;
+           return Adi.Window.Resolve_Window_Handle (A.Main_Window);
         end Main;
 
         procedure Convert_Event_To_Render_Coordinates is

@@ -169,7 +169,17 @@ package body Adi.MCP is
 
    function To_Access (H : Widget_Handle) return Widget_Access is
    begin
-      return Resolve_Handle (H);
+      if not Is_Valid (H) then
+         return null;
+      end if;
+      declare
+         R : Widget_Ref := Borrow (H);
+      begin
+         return R.Ptr.all'Unchecked_Access;
+      end;
+   exception
+      when Constraint_Error =>
+         return null;
    end To_Access;
 
    function Resolve_Widget

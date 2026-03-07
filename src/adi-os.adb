@@ -185,14 +185,21 @@ package body Adi.OS is
    end Free_Filter_Strings;
 
    function Get_Window_Ptr
-     (Window : Adi.Window.Window_Access)
+     (Window : Adi.Window.Window_Handle)
       return Adi.SDL.Video.SDL_Window_Ptr
    is
    begin
-      if Window = null then
+      if not Adi.Window.Is_Valid (Window) then
          return null;
       end if;
-      return Adi.Window.Get_SDL_Window (Window.all);
+      declare
+         R : Adi.Window.Window_Ref := Adi.Window.Borrow (Window);
+      begin
+         return Adi.Window.Get_SDL_Window (R.Ptr.all);
+      end;
+   exception
+      when Constraint_Error =>
+         return null;
    end Get_Window_Ptr;
 
    ---------------------------------------------------------------------------
@@ -201,7 +208,8 @@ package body Adi.OS is
 
    procedure Show_Open_File_Dialog
      (Callback         : Dialog_Callback;
-      Window           : Adi.Window.Window_Access := null;
+      Window           : Adi.Window.Window_Handle :=
+                            Adi.Window.Null_Window_Handle;
       Filters          : File_Filter_Array := No_Filters;
       Default_Location : String := "";
       Allow_Many       : Boolean := False)
@@ -265,47 +273,10 @@ package body Adi.OS is
       end if;
    end Show_Open_File_Dialog;
 
-   procedure Show_Open_File_Dialog
-     (Callback         : Dialog_Callback;
-      Window           : Adi.Window.Window_Handle;
-      Filters          : File_Filter_Array := No_Filters;
-      Default_Location : String := "";
-      Allow_Many       : Boolean := False)
-   is
-   begin
-      if not Adi.Window.Is_Valid (Window) then
-         Show_Open_File_Dialog
-           (Callback         => Callback,
-            Window           => null,
-            Filters          => Filters,
-            Default_Location => Default_Location,
-            Allow_Many       => Allow_Many);
-         return;
-      end if;
-
-      declare
-         R : Adi.Window.Window_Ref := Adi.Window.Borrow (Window);
-      begin
-         Show_Open_File_Dialog
-           (Callback         => Callback,
-            Window           => Adi.Window.Window (R.Ptr.all)'Unchecked_Access,
-            Filters          => Filters,
-            Default_Location => Default_Location,
-            Allow_Many       => Allow_Many);
-      end;
-   exception
-      when Constraint_Error =>
-         Show_Open_File_Dialog
-           (Callback         => Callback,
-            Window           => null,
-            Filters          => Filters,
-            Default_Location => Default_Location,
-            Allow_Many       => Allow_Many);
-   end Show_Open_File_Dialog;
-
    procedure Show_Save_File_Dialog
      (Callback         : Dialog_Callback;
-      Window           : Adi.Window.Window_Access := null;
+      Window           : Adi.Window.Window_Handle :=
+                            Adi.Window.Null_Window_Handle;
       Filters          : File_Filter_Array := No_Filters;
       Default_Location : String := "")
    is
@@ -353,43 +324,10 @@ package body Adi.OS is
       end if;
    end Show_Save_File_Dialog;
 
-   procedure Show_Save_File_Dialog
-     (Callback         : Dialog_Callback;
-      Window           : Adi.Window.Window_Handle;
-      Filters          : File_Filter_Array := No_Filters;
-      Default_Location : String := "")
-   is
-   begin
-      if not Adi.Window.Is_Valid (Window) then
-         Show_Save_File_Dialog
-           (Callback         => Callback,
-            Window           => null,
-            Filters          => Filters,
-            Default_Location => Default_Location);
-         return;
-      end if;
-
-      declare
-         R : Adi.Window.Window_Ref := Adi.Window.Borrow (Window);
-      begin
-         Show_Save_File_Dialog
-           (Callback         => Callback,
-            Window           => Adi.Window.Window (R.Ptr.all)'Unchecked_Access,
-            Filters          => Filters,
-            Default_Location => Default_Location);
-      end;
-   exception
-      when Constraint_Error =>
-         Show_Save_File_Dialog
-           (Callback         => Callback,
-            Window           => null,
-            Filters          => Filters,
-            Default_Location => Default_Location);
-   end Show_Save_File_Dialog;
-
    procedure Show_Open_Folder_Dialog
      (Callback         : Dialog_Callback;
-      Window           : Adi.Window.Window_Access := null;
+      Window           : Adi.Window.Window_Handle :=
+                            Adi.Window.Null_Window_Handle;
       Default_Location : String := "";
       Allow_Many       : Boolean := False)
    is
@@ -415,40 +353,6 @@ package body Adi.OS is
       if C_Loc /= Null_Ptr then
          Free (C_Loc);
       end if;
-   end Show_Open_Folder_Dialog;
-
-   procedure Show_Open_Folder_Dialog
-     (Callback         : Dialog_Callback;
-      Window           : Adi.Window.Window_Handle;
-      Default_Location : String := "";
-      Allow_Many       : Boolean := False)
-   is
-   begin
-      if not Adi.Window.Is_Valid (Window) then
-         Show_Open_Folder_Dialog
-           (Callback         => Callback,
-            Window           => null,
-            Default_Location => Default_Location,
-            Allow_Many       => Allow_Many);
-         return;
-      end if;
-
-      declare
-         R : Adi.Window.Window_Ref := Adi.Window.Borrow (Window);
-      begin
-         Show_Open_Folder_Dialog
-           (Callback         => Callback,
-            Window           => Adi.Window.Window (R.Ptr.all)'Unchecked_Access,
-            Default_Location => Default_Location,
-            Allow_Many       => Allow_Many);
-      end;
-   exception
-      when Constraint_Error =>
-         Show_Open_Folder_Dialog
-           (Callback         => Callback,
-            Window           => null,
-            Default_Location => Default_Location,
-            Allow_Many       => Allow_Many);
    end Show_Open_Folder_Dialog;
 
    ---------------------------------------------------------------------------

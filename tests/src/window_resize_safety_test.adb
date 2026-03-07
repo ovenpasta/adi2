@@ -26,7 +26,12 @@ procedure Window_Resize_Safety_Test is
    Test_Count : Natural := 0;
    Pass_Count : Natural := 0;
    Fail_Count : Natural := 0;
-   use type Adi.Widget.Button.Button_Widget_Access;
+
+   use type Adi.Widget.Box.Box_Handle;
+   use type Adi.Widget.Label.Label_Handle;
+   use type Adi.Widget.Button.Button_Handle;
+   use type Adi.Widget.Dialog.Dialog_Handle;
+   use type Adi.Widget.Text_Editor.Text_Editor_Handle;
 
    procedure Assert (Condition : Boolean; Message : String) is
    begin
@@ -64,9 +69,9 @@ procedure Window_Resize_Safety_Test is
    end Ensure_SDL_Initialized;
 
    procedure Test_Zero_Height_Render_Does_Not_Raise is
-      W : Adi.Window.Window_Access := null;
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
       Ready : Boolean := False;
       Main_Rules : constant Style_Rules :=
         (Background_Color => Set_Bg (RGB (40, 140, 90)),
@@ -82,27 +87,27 @@ procedure Window_Resize_Safety_Test is
          return;
       end if;
 
-      Set_Part_Style (Root.all, Main_Part, From (Main_Rules).Build);
+      Set_Part_Style (+Root, Main_Part, From (Main_Rules).Build);
 
-      W := Adi.Window.Create_Window ("Window Resize Safety", (320.0, 240.0));
-      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, False);
-      Adi.Window.Set_Root (W.all, Root);
+      W := Adi.Window.Create_Window_Handle ("Window Resize Safety", (320.0, 240.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, +Root);
 
       --  Baseline render.
-      Adi.Window.Render (W.all);
+      Adi.Window.Render (W);
 
       --  Regression case: zero-height geometry must not trigger range checks
       --  in rounded rendering paths.
-      Adi.Window.Handle_Resize (W.all, (Width => 320.0, Height => 0.0));
-      Adi.Window.Render (W.all);
+      Adi.Window.Handle_Resize (W, (Width => 320.0, Height => 0.0));
+      Adi.Window.Render (W);
 
       --  Fully degenerate geometry.
-      Adi.Window.Handle_Resize (W.all, (Width => 0.0, Height => 0.0));
-      Adi.Window.Render (W.all);
+      Adi.Window.Handle_Resize (W, (Width => 0.0, Height => 0.0));
+      Adi.Window.Render (W);
 
       --  Recover to non-zero size and render again.
-      Adi.Window.Handle_Resize (W.all, (Width => 320.0, Height => 1.0));
-      Adi.Window.Render (W.all);
+      Adi.Window.Handle_Resize (W, (Width => 320.0, Height => 1.0));
+      Adi.Window.Render (W);
 
       Assert (True, "Render path survives zero-height resize without exception");
    exception
@@ -114,8 +119,8 @@ procedure Window_Resize_Safety_Test is
 
    procedure Test_Text_Editor_Page_Navigation_Zero_Viewport_Does_Not_Raise is
       Ready : Boolean := False;
-      Editor : constant Adi.Widget.Text_Editor.Text_Editor_Widget_Access :=
-        Adi.Widget.Text_Editor.Create
+      Editor : constant Adi.Widget.Text_Editor.Text_Editor_Handle :=
+        Adi.Widget.Text_Editor.Create_Handle
           ("line 1" & Ada.Characters.Latin_1.LF
            & "line 2" & Ada.Characters.Latin_1.LF
            & "line 3");
@@ -129,27 +134,27 @@ procedure Window_Resize_Safety_Test is
 
       --  Establish line-skip metrics first, then force tiny/zero viewport.
       Set_Geometry
-        (Editor.all, (X => 0.0, Y => 0.0, Width => 280.0, Height => 120.0));
-      Layout_Tree (Editor.all);
+        (+Editor, (X => 0.0, Y => 0.0, Width => 280.0, Height => 120.0));
+      Layout_Tree (+Editor);
 
       Set_Geometry
-        (Editor.all, (X => 0.0, Y => 0.0, Width => 280.0, Height => 0.0));
-      Layout_Tree (Editor.all);
+        (+Editor, (X => 0.0, Y => 0.0, Width => 280.0, Height => 0.0));
+      Layout_Tree (+Editor);
       On_Key_Down
-        (Widget'Class (Editor.all), SDL_SCANCODE_PAGEUP, SDL_Keymod (0), False);
+        (+Editor, SDL_SCANCODE_PAGEUP, SDL_Keymod (0), False);
       On_Key_Down
-        (Widget'Class (Editor.all),
+        (+Editor,
          SDL_SCANCODE_PAGEDOWN,
          SDL_Keymod (0),
          False);
 
       Set_Geometry
-        (Editor.all, (X => 0.0, Y => 0.0, Width => 280.0, Height => 1.0));
-      Layout_Tree (Editor.all);
+        (+Editor, (X => 0.0, Y => 0.0, Width => 280.0, Height => 1.0));
+      Layout_Tree (+Editor);
       On_Key_Down
-        (Widget'Class (Editor.all), SDL_SCANCODE_PAGEUP, SDL_Keymod (0), False);
+        (+Editor, SDL_SCANCODE_PAGEUP, SDL_Keymod (0), False);
       On_Key_Down
-        (Widget'Class (Editor.all),
+        (+Editor,
          SDL_SCANCODE_PAGEDOWN,
          SDL_Keymod (0),
          False);
@@ -164,11 +169,11 @@ procedure Window_Resize_Safety_Test is
 
    procedure Test_Window_Min_Width_Updates_On_Live_Font_Reload is
       Ready : Boolean := False;
-      W : Adi.Window.Window_Access := null;
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Lbl : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Minimum width live reload probe");
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Lbl : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Minimum width live reload probe");
       Source : Adi.CSS_Source.Style_Source;
       OK : Boolean := False;
       Reloaded : Boolean := False;
@@ -192,22 +197,22 @@ procedure Window_Resize_Safety_Test is
          return;
       end if;
 
-      Root.Add_Child (Lbl);
+      Add_Child (+Root, +Lbl);
 
       Write_Text_File (Css_Path, Css_V1);
       Adi.CSS_Source.Add_Dynamic_File (Source, Css_Path, OK);
       Assert (OK, "Add_Dynamic_File should succeed");
       Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, OK);
       Assert (OK, "Set_Mode dynamic should succeed");
-      Adi.CSS_Source.Bind_Class (Source, "probe", Lbl);
+      Adi.CSS_Source.Bind_Class (Source, "probe", +Lbl);
 
-      W := Adi.Window.Create_Window ("Window Min Reload", (420.0, 180.0));
-      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, True);
-      Adi.Window.Set_Root (W.all, Root);
-      Adi.Window.Render (W.all);
+      W := Adi.Window.Create_Window_Handle ("Window Min Reload", (420.0, 180.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, True);
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
 
       Got_Min := Adi.SDL.Video.SDL_GetWindowMinimumSize
-        (Adi.Window.Get_SDL_Window (W.all), Min_W_1'Access, Min_H_1'Access);
+        (Adi.Window.Get_SDL_Window (W), Min_W_1'Access, Min_H_1'Access);
       Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed (baseline)");
 
       delay 1.1;
@@ -215,10 +220,10 @@ procedure Window_Resize_Safety_Test is
       Adi.CSS_Source.Tick (Source, Reloaded, Tick_OK);
       Assert (Tick_OK, "Tick should succeed after css update");
       Assert (Reloaded, "Tick should report reload after css update");
-      Adi.Window.Render (W.all);
+      Adi.Window.Render (W);
 
       Got_Min := Adi.SDL.Video.SDL_GetWindowMinimumSize
-        (Adi.Window.Get_SDL_Window (W.all), Min_W_2'Access, Min_H_2'Access);
+        (Adi.Window.Get_SDL_Window (W), Min_W_2'Access, Min_H_2'Access);
       Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed (reloaded)");
       Assert (Min_W_2 > 0, "Window minimum width should stay positive after reload");
 
@@ -227,10 +232,10 @@ procedure Window_Resize_Safety_Test is
       Adi.CSS_Source.Tick (Source, Reloaded, Tick_OK);
       Assert (Tick_OK, "Tick should succeed after css downsize update");
       Assert (Reloaded, "Tick should report reload after css downsize update");
-      Adi.Window.Render (W.all);
+      Adi.Window.Render (W);
 
       Got_Min := Adi.SDL.Video.SDL_GetWindowMinimumSize
-        (Adi.Window.Get_SDL_Window (W.all), Min_W_3'Access, Min_H_3'Access);
+        (Adi.Window.Get_SDL_Window (W), Min_W_3'Access, Min_H_3'Access);
       Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed (downsized)");
       Assert (Min_W_3 > 0, "Window minimum width should stay positive after downsize");
    exception
@@ -242,13 +247,13 @@ procedure Window_Resize_Safety_Test is
 
    procedure Test_Wrap_Label_Min_Width_Does_Not_Ratchet_With_Window_Width is
       Ready : Boolean := False;
-      W : Adi.Window.Window_Access := null;
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Title : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Red Page");
-      Lbl : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Title : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Red Page");
+      Lbl : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle
           ("This wrapping probe text should not force window min width to "
            & "track the current window width after resizing.");
       Root_Rules : constant Style_Rules :=
@@ -287,41 +292,41 @@ procedure Window_Resize_Safety_Test is
          return;
       end if;
 
-      Set_Part_Style (Root.all, Main_Part, From (Root_Rules).Build);
-      Set_Part_Style (Title.all, Main_Part, From (Title_Main_Rules).Build);
-      Set_Part_Style (Title.all, Label_Part, From (Title_Label_Rules).Build);
-      Set_Part_Style (Lbl.all, Main_Part, From (Label_Main_Rules).Build);
-      Set_Part_Style (Lbl.all, Label_Part, From (Label_Rules).Build);
-      Root.Add_Child (Title);
-      Root.Add_Child (Lbl);
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Title, Main_Part, From (Title_Main_Rules).Build);
+      Set_Part_Style (+Title, Label_Part, From (Title_Label_Rules).Build);
+      Set_Part_Style (+Lbl, Main_Part, From (Label_Main_Rules).Build);
+      Set_Part_Style (+Lbl, Label_Part, From (Label_Rules).Build);
+      Add_Child (+Root, +Title);
+      Add_Child (+Root, +Lbl);
 
-      W := Adi.Window.Create_Window ("Wrap Ratchet Probe", (900.0, 420.0));
-      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, True);
-      Adi.Window.Set_Root (W.all, Root);
+      W := Adi.Window.Create_Window_Handle ("Wrap Ratchet Probe", (900.0, 420.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, True);
+      Adi.Window.Set_Root (W, +Root);
 
-      Adi.Window.Render (W.all);
+      Adi.Window.Render (W);
 
       Got_Min := Adi.SDL.Video.SDL_GetWindowMinimumSize
-        (Adi.Window.Get_SDL_Window (W.all), Min_W_1'Access, Min_H_1'Access);
+        (Adi.Window.Get_SDL_Window (W), Min_W_1'Access, Min_H_1'Access);
       Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed (initial)");
       Got_Size := Adi.SDL.Video.SDL_GetWindowSize
-        (Adi.Window.Get_SDL_Window (W.all), Cur_W'Access, Cur_H'Access);
+        (Adi.Window.Get_SDL_Window (W), Cur_W'Access, Cur_H'Access);
       Assert (Boolean (Got_Size), "SDL_GetWindowSize should succeed (initial)");
       Assert
         (Min_W_1 <= Cur_W - 50,
          "Wrapped text should not lock startup min width to current window width");
 
       --  Simulate widening. First render is resize-triggered (min update skipped).
-      Adi.Window.Handle_Resize (W.all, (Width => 1300.0, Height => 420.0));
-      Adi.Window.Render (W.all);
+      Adi.Window.Handle_Resize (W, (Width => 1300.0, Height => 420.0));
+      Adi.Window.Render (W);
 
       --  Simulate a normal post-resize dirty frame (hover/state update, etc.).
       --  This is where min-size reapplication can ratchet if width-dependent.
-      Mark_Dirty (Root.all);
-      Adi.Window.Render (W.all);
+      Mark_Dirty (+Root);
+      Adi.Window.Render (W);
 
       Got_Min := Adi.SDL.Video.SDL_GetWindowMinimumSize
-        (Adi.Window.Get_SDL_Window (W.all), Min_W_2'Access, Min_H_2'Access);
+        (Adi.Window.Get_SDL_Window (W), Min_W_2'Access, Min_H_2'Access);
       Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed (after widen)");
       Assert
         (Min_W_2 <= Min_W_1 + 2,
@@ -335,13 +340,13 @@ procedure Window_Resize_Safety_Test is
 
    procedure Test_Hidden_Page_Activation_Does_Not_Lock_Window_Min_Width is
       Ready : Boolean := False;
-      W : Adi.Window.Window_Access := null;
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Page : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Lbl : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Page : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Lbl : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle
           ("a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a "
            & "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a");
       Root_Rules : constant Style_Rules :=
@@ -376,34 +381,34 @@ procedure Window_Resize_Safety_Test is
          return;
       end if;
 
-      Set_Part_Style (Root.all, Main_Part, From (Root_Rules).Build);
-      Set_Part_Style (Page.all, Main_Part, From (Page_Rules).Build);
-      Set_Part_Style (Lbl.all, Main_Part, From (Label_Main_Rules).Build);
-      Set_Part_Style (Lbl.all, Label_Part, From (Label_Rules).Build);
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Page, Main_Part, From (Page_Rules).Build);
+      Set_Part_Style (+Lbl, Main_Part, From (Label_Main_Rules).Build);
+      Set_Part_Style (+Lbl, Label_Part, From (Label_Rules).Build);
 
-      Page.Add_Child (Lbl);
-      Root.Add_Child (Page);
-      Set_Flag (Page.all, Visible, False);
+      Add_Child (+Page, +Lbl);
+      Add_Child (+Root, +Page);
+      Set_Flag (+Page, Visible, False);
 
-      W := Adi.Window.Create_Window ("Hidden Activation Probe", (900.0, 420.0));
-      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, True);
-      Adi.Window.Set_Root (W.all, Root);
-      Adi.Window.Render (W.all);
+      W := Adi.Window.Create_Window_Handle ("Hidden Activation Probe", (900.0, 420.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, True);
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
 
       Got_Min := Adi.SDL.Video.SDL_GetWindowMinimumSize
-        (Adi.Window.Get_SDL_Window (W.all), Min_W_Before'Access, Min_H_Before'Access);
+        (Adi.Window.Get_SDL_Window (W), Min_W_Before'Access, Min_H_Before'Access);
       Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed (before show)");
 
-      Set_Flag (Page.all, Visible, True);
-      Mark_Dirty (Root.all);
-      Adi.Window.Render (W.all);
+      Set_Flag (+Page, Visible, True);
+      Mark_Dirty (+Root);
+      Adi.Window.Render (W);
 
       Got_Min := Adi.SDL.Video.SDL_GetWindowMinimumSize
-        (Adi.Window.Get_SDL_Window (W.all), Min_W_After'Access, Min_H_After'Access);
+        (Adi.Window.Get_SDL_Window (W), Min_W_After'Access, Min_H_After'Access);
       Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed (after show)");
 
       Got_Size := Adi.SDL.Video.SDL_GetWindowSize
-        (Adi.Window.Get_SDL_Window (W.all), Cur_W'Access, Cur_H'Access);
+        (Adi.Window.Get_SDL_Window (W), Cur_W'Access, Cur_H'Access);
       Assert (Boolean (Got_Size), "SDL_GetWindowSize should succeed (after show)");
       Assert
         (Min_W_After <= Cur_W - 50,
@@ -417,11 +422,11 @@ procedure Window_Resize_Safety_Test is
 
    procedure Test_Widening_Unwraps_Text_And_Lowers_Min_Height is
       Ready : Boolean := False;
-      W : Adi.Window.Window_Access := null;
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Lbl : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Lbl : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle
           ("This text is intentionally long so wrapping increases the "
            & "required height at narrow widths and should shrink when widened.");
       Root_Rules : constant Style_Rules :=
@@ -448,27 +453,27 @@ procedure Window_Resize_Safety_Test is
          return;
       end if;
 
-      Set_Part_Style (Root.all, Main_Part, From (Root_Rules).Build);
-      Set_Part_Style (Lbl.all, Main_Part, From (Label_Main_Rules).Build);
-      Set_Part_Style (Lbl.all, Label_Part, From (Label_Rules).Build);
-      Root.Add_Child (Lbl);
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Lbl, Main_Part, From (Label_Main_Rules).Build);
+      Set_Part_Style (+Lbl, Label_Part, From (Label_Rules).Build);
+      Add_Child (+Root, +Lbl);
 
-      W := Adi.Window.Create_Window ("Unwrap Height Probe", (520.0, 900.0));
-      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, True);
-      Adi.Window.Set_Root (W.all, Root);
+      W := Adi.Window.Create_Window_Handle ("Unwrap Height Probe", (520.0, 900.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, True);
+      Adi.Window.Set_Root (W, +Root);
 
       --  Narrow width => more wrapping => higher min height.
-      Adi.Window.Handle_Resize (W.all, (Width => 420.0, Height => 900.0));
-      Adi.Window.Render (W.all);
+      Adi.Window.Handle_Resize (W, (Width => 420.0, Height => 900.0));
+      Adi.Window.Render (W);
       Got_Min := Adi.SDL.Video.SDL_GetWindowMinimumSize
-        (Adi.Window.Get_SDL_Window (W.all), Min_W_Narrow'Access, Min_H_Narrow'Access);
+        (Adi.Window.Get_SDL_Window (W), Min_W_Narrow'Access, Min_H_Narrow'Access);
       Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed (narrow)");
 
       --  Wider width => less wrapping => lower/equal min height.
-      Adi.Window.Handle_Resize (W.all, (Width => 1200.0, Height => 900.0));
-      Adi.Window.Render (W.all);
+      Adi.Window.Handle_Resize (W, (Width => 1200.0, Height => 900.0));
+      Adi.Window.Render (W);
       Got_Min := Adi.SDL.Video.SDL_GetWindowMinimumSize
-        (Adi.Window.Get_SDL_Window (W.all), Min_W_Wide'Access, Min_H_Wide'Access);
+        (Adi.Window.Get_SDL_Window (W), Min_W_Wide'Access, Min_H_Wide'Access);
       Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed (wide)");
       Assert
         (Min_H_Wide <= Min_H_Narrow,
@@ -482,12 +487,12 @@ procedure Window_Resize_Safety_Test is
 
    procedure Test_Dialog_Overlay_Reflows_On_Resize_Without_Hover is
       Ready : Boolean := False;
-      W : Adi.Window.Window_Access := null;
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Dlg : constant Adi.Widget.Dialog.Dialog_Widget_Access :=
-        Adi.Widget.Dialog.Create;
-      Panel : Widget_Access := null;
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Dlg : constant Adi.Widget.Dialog.Dialog_Handle :=
+        Adi.Widget.Dialog.Create_Handle;
+      Panel_H  : Widget_Handle := Null_Handle;
       Before_W : Pixel_Type := 0.0;
       After_W  : Pixel_Type := 0.0;
       Long_Msg : constant String :=
@@ -500,33 +505,33 @@ procedure Window_Resize_Safety_Test is
          return;
       end if;
 
-      W := Adi.Window.Create_Window ("Dialog Resize Probe", (900.0, 420.0));
-      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, False);
-      Adi.Window.Set_Root (W.all, Root);
+      W := Adi.Window.Create_Window_Handle ("Dialog Resize Probe", (900.0, 420.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, +Root);
 
-      Adi.Widget.Dialog.Attach_Window (Dlg.all, W);
-      Adi.Widget.Dialog.Set_Title (Dlg.all, "Resize Probe");
-      Adi.Widget.Dialog.Set_Message (Dlg.all, Long_Msg);
-      Adi.Widget.Dialog.Set_OK_Button (Dlg.all);
-      Adi.Widget.Dialog.Show (Dlg.all);
+      Adi.Widget.Dialog.Attach_Window (Dlg, W);
+      Adi.Widget.Dialog.Set_Title (Dlg, "Resize Probe");
+      Adi.Widget.Dialog.Set_Message (Dlg, Long_Msg);
+      Adi.Widget.Dialog.Set_OK_Button (Dlg);
+      Adi.Widget.Dialog.Show (Dlg);
 
-      Adi.Window.Render (W.all);
+      Adi.Window.Render (W);
 
-      Panel := Get_Child (Dlg.all, 1);
-      Assert (Panel /= null, "Dialog content panel should exist");
-      if Panel = null then
+      Panel_H := Get_Child_Handle (+Dlg, 1);
+      Assert (Panel_H /= Null_Handle, "Dialog content panel should exist");
+      if Panel_H = Null_Handle then
          return;
       end if;
 
-      Before_W := Get_Geometry (Panel.all).Width;
+      Before_W := Get_Geometry (Panel_H).Width;
       Assert (Before_W > 0.0, "Dialog panel width should be initialized");
 
       --  Resize and render once. Regression: panel used to reflow only after
       --  a later hover/state dirtied frame.
-      Adi.Window.Handle_Resize (W.all, (Width => 520.0, Height => 420.0));
-      Adi.Window.Render (W.all);
+      Adi.Window.Handle_Resize (W, (Width => 520.0, Height => 420.0));
+      Adi.Window.Render (W);
 
-      After_W := Get_Geometry (Panel.all).Width;
+      After_W := Get_Geometry (Panel_H).Width;
       Assert
         (After_W < Before_W - 1.0,
          "Dialog panel should reflow immediately on resize (no hover needed)");
@@ -539,10 +544,10 @@ procedure Window_Resize_Safety_Test is
 
    procedure Test_Dialog_Default_Button_Demotion_Resets_Style is
       Ready : Boolean := False;
-      Dlg : constant Adi.Widget.Dialog.Dialog_Widget_Access :=
-        Adi.Widget.Dialog.Create;
-      Btn_1 : Adi.Widget.Button.Button_Widget_Access := null;
-      Btn_2 : Adi.Widget.Button.Button_Widget_Access := null;
+      Dlg : constant Adi.Widget.Dialog.Dialog_Handle :=
+        Adi.Widget.Dialog.Create_Handle;
+      Btn_1 : Adi.Widget.Button.Button_Handle;
+      Btn_2 : Adi.Widget.Button.Button_Handle;
       Primary_Color : constant Color_Value := RGB (250, 10, 10);
       Primary_Main_Rules : constant Style_Rules :=
         (Background_Color => Set_Bg (Primary_Color),
@@ -564,26 +569,31 @@ procedure Window_Resize_Safety_Test is
       Adi.Widget.Dialog.Set_Default_Button_Style (Empty_Part_Styles);
       Adi.Widget.Dialog.Set_Default_Primary_Button_Style (Empty_Part_Styles);
 
-      Adi.Widget.Dialog.Add_Button (Dlg.all, "A");
-      Adi.Widget.Dialog.Add_Button (Dlg.all, "B");
-      Adi.Widget.Dialog.Set_Primary_Button_Style (Dlg.all, Primary_Styles);
-      Adi.Widget.Dialog.Set_Default_Button (Dlg.all, 1);
+      Adi.Widget.Dialog.Add_Button (Dlg, "A");
+      Adi.Widget.Dialog.Add_Button (Dlg, "B");
+      Adi.Widget.Dialog.Set_Primary_Button_Style (Dlg, Primary_Styles);
+      Adi.Widget.Dialog.Set_Default_Button (Dlg, 1);
 
-      Btn_1 := Adi.Widget.Dialog.Get_Button (Dlg.all, 1);
-      Btn_2 := Adi.Widget.Dialog.Get_Button (Dlg.all, 2);
-      Assert (Btn_1 /= null and then Btn_2 /= null, "Dialog buttons should exist");
-      if Btn_1 = null or else Btn_2 = null then
+      Btn_1 := Adi.Widget.Dialog.Get_Button_Handle (Dlg, 1);
+      Btn_2 := Adi.Widget.Dialog.Get_Button_Handle (Dlg, 2);
+      Assert
+        (Adi.Widget.Button.Is_Valid (Btn_1)
+         and then Adi.Widget.Button.Is_Valid (Btn_2),
+         "Dialog buttons should exist");
+      if not Adi.Widget.Button.Is_Valid (Btn_1)
+        or else not Adi.Widget.Button.Is_Valid (Btn_2)
+      then
          return;
       end if;
 
-      Style_1 := Get_Resolved_Part_Style (Btn_1.all, Main_Part);
+      Style_1 := Get_Resolved_Part_Style (+Btn_1, Main_Part);
       Assert
         (Style_1.Background_Color = Primary_Color,
          "Initial default button should receive primary style");
 
-      Adi.Widget.Dialog.Set_Default_Button (Dlg.all, 2);
-      Style_1 := Get_Resolved_Part_Style (Btn_1.all, Main_Part);
-      Style_2 := Get_Resolved_Part_Style (Btn_2.all, Main_Part);
+      Adi.Widget.Dialog.Set_Default_Button (Dlg, 2);
+      Style_1 := Get_Resolved_Part_Style (+Btn_1, Main_Part);
+      Style_2 := Get_Resolved_Part_Style (+Btn_2, Main_Part);
 
       Assert
         (Style_1.Background_Color /= Primary_Color,
@@ -600,12 +610,12 @@ procedure Window_Resize_Safety_Test is
 
    procedure Test_Clear_Overlays_Clears_Focus_When_Focus_In_Overlay is
       Ready : Boolean := False;
-      W : Adi.Window.Window_Access := null;
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Dlg : constant Adi.Widget.Dialog.Dialog_Widget_Access :=
-        Adi.Widget.Dialog.Create;
-      Btn_1 : Adi.Widget.Button.Button_Widget_Access := null;
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Dlg : constant Adi.Widget.Dialog.Dialog_Handle :=
+        Adi.Widget.Dialog.Create_Handle;
+      Btn_1 : Adi.Widget.Button.Button_Handle;
    begin
       Put_Line ("Test: Clear_Overlays clears focus from overlay widgets");
 
@@ -614,28 +624,28 @@ procedure Window_Resize_Safety_Test is
          return;
       end if;
 
-      W := Adi.Window.Create_Window ("Dialog Focus Cleanup Probe", (640.0, 360.0));
-      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, False);
-      Adi.Window.Set_Root (W.all, Root);
+      W := Adi.Window.Create_Window_Handle ("Dialog Focus Cleanup Probe", (640.0, 360.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, +Root);
 
-      Adi.Widget.Dialog.Attach_Window (Dlg.all, W);
-      Adi.Widget.Dialog.Set_OK_Button (Dlg.all);
-      Adi.Widget.Dialog.Show (Dlg.all);
+      Adi.Widget.Dialog.Attach_Window (Dlg, W);
+      Adi.Widget.Dialog.Set_OK_Button (Dlg);
+      Adi.Widget.Dialog.Show (Dlg);
 
-      Btn_1 := Adi.Widget.Dialog.Get_Button (Dlg.all, 1);
-      Assert (Btn_1 /= null, "Dialog default button should exist");
-      if Btn_1 = null then
+      Btn_1 := Adi.Widget.Dialog.Get_Button_Handle (Dlg, 1);
+      Assert (Adi.Widget.Button.Is_Valid (Btn_1), "Dialog default button should exist");
+      if not Adi.Widget.Button.Is_Valid (Btn_1) then
          return;
       end if;
 
       Assert
-        (Has_State (Btn_1.all, State_Focused),
+        (Has_State (+Btn_1, State_Focused),
          "Default button should be focused before Clear_Overlays");
 
-      Adi.Window.Clear_Overlays (W.all);
+      Adi.Window.Clear_Overlays (W);
 
       Assert
-        (not Has_State (Btn_1.all, State_Focused),
+        (not Has_State (+Btn_1, State_Focused),
          "Clear_Overlays should clear focused state on detached overlay button");
    exception
       when E : others =>
@@ -646,21 +656,21 @@ procedure Window_Resize_Safety_Test is
 
    procedure Test_Show_Autofocus_Default_And_Override is
       Ready : Boolean := False;
-      W : Adi.Window.Window_Access := null;
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Dlg : constant Adi.Widget.Dialog.Dialog_Widget_Access :=
-        Adi.Widget.Dialog.Create;
-      Btn_1 : Adi.Widget.Button.Button_Widget_Access := null;
-      Btn_2 : Adi.Widget.Button.Button_Widget_Access := null;
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Dlg : constant Adi.Widget.Dialog.Dialog_Handle :=
+        Adi.Widget.Dialog.Create_Handle;
+      Btn_1 : Adi.Widget.Button.Button_Handle;
+      Btn_2 : Adi.Widget.Button.Button_Handle;
       Last_Index : Natural := 0;
 
       procedure On_Result
-        (W            : Widget_Handle;
+        (WH           : Widget_Handle;
          Button_Index : Natural;
          Button_Text  : String)
       is
-         pragma Unreferenced (W, Button_Text);
+         pragma Unreferenced (WH, Button_Text);
       begin
          Last_Index := Button_Index;
       end On_Result;
@@ -672,42 +682,47 @@ procedure Window_Resize_Safety_Test is
          return;
       end if;
 
-      W := Adi.Window.Create_Window ("Dialog Enter Probe", (640.0, 360.0));
-      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, False);
-      Adi.Window.Set_Root (W.all, Root);
+      W := Adi.Window.Create_Window_Handle ("Dialog Enter Probe", (640.0, 360.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, +Root);
 
-      Adi.Widget.Dialog.Attach_Window (Dlg.all, W);
-      Adi.Widget.Dialog.Set_OK_Cancel (Dlg.all);  --  default index = 2 (OK)
-      Adi.Widget.Dialog.Connect_Result (Dlg.all, On_Result'Unrestricted_Access);
+      Adi.Widget.Dialog.Attach_Window (Dlg, W);
+      Adi.Widget.Dialog.Set_OK_Cancel (Dlg);  --  default index = 2 (OK)
+      Adi.Widget.Dialog.Connect_Result (Dlg, On_Result'Unrestricted_Access);
 
-      Btn_1 := Adi.Widget.Dialog.Get_Button (Dlg.all, 1);
-      Btn_2 := Adi.Widget.Dialog.Get_Button (Dlg.all, 2);
-      Assert (Btn_1 /= null and then Btn_2 /= null, "Dialog buttons should exist");
-      if Btn_1 = null or else Btn_2 = null then
+      Btn_1 := Adi.Widget.Dialog.Get_Button_Handle (Dlg, 1);
+      Btn_2 := Adi.Widget.Dialog.Get_Button_Handle (Dlg, 2);
+      Assert
+        (Adi.Widget.Button.Is_Valid (Btn_1)
+         and then Adi.Widget.Button.Is_Valid (Btn_2),
+         "Dialog buttons should exist");
+      if not Adi.Widget.Button.Is_Valid (Btn_1)
+        or else not Adi.Widget.Button.Is_Valid (Btn_2)
+      then
          return;
       end if;
 
       --  First show: Enter should activate default button (index 2).
       Last_Index := 0;
-      Adi.Widget.Dialog.Show (Dlg.all);
+      Adi.Widget.Dialog.Show (Dlg);
       Assert
-        (Has_State (Btn_2.all, State_Focused),
+        (Has_State (+Btn_2, State_Focused),
          "Show should autofocus default button");
-      Adi.Window.On_Key_Down (W.all, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
-      Adi.Window.On_Key_Up (W.all, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
+      Adi.Window.On_Key_Down (W, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
+      Adi.Window.On_Key_Up (W, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
       Assert
         (Last_Index = 2,
          "Enter should activate default button immediately after Show");
 
       --  Second show: explicit focus override should change Enter target.
       Last_Index := 0;
-      Adi.Widget.Dialog.Show (Dlg.all);
-      Adi.Window.Set_Focus (W.all, Btn_1);
+      Adi.Widget.Dialog.Show (Dlg);
+      Adi.Window.Set_Focus (W, +Btn_1);
       Assert
-        (Has_State (Btn_1.all, State_Focused),
+        (Has_State (+Btn_1, State_Focused),
          "Explicit Set_Focus should override initial default focus");
-      Adi.Window.On_Key_Down (W.all, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
-      Adi.Window.On_Key_Up (W.all, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
+      Adi.Window.On_Key_Down (W, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
+      Adi.Window.On_Key_Up (W, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
       Assert
         (Last_Index = 1,
          "Enter should activate override-focused non-default button");
@@ -720,14 +735,14 @@ procedure Window_Resize_Safety_Test is
 
    procedure Test_Wheel_Blocked_By_Overlay_Backdrop is
       Ready : Boolean := False;
-      W : Adi.Window.Window_Access := null;
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
       --  Tall child to ensure root can scroll.
-      Tall_Child : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Dlg : constant Adi.Widget.Dialog.Dialog_Widget_Access :=
-        Adi.Widget.Dialog.Create;
+      Tall_Child : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Dlg : constant Adi.Widget.Dialog.Dialog_Handle :=
+        Adi.Widget.Dialog.Create_Handle;
       Root_Rules : constant Style_Rules :=
         (Display        => Set (Flex),
          Flex_Direction => Set (Column),
@@ -746,37 +761,37 @@ procedure Window_Resize_Safety_Test is
          return;
       end if;
 
-      Set_Part_Style (Root.all, Main_Part, From (Root_Rules).Build);
-      Set_Part_Style (Tall_Child.all, Main_Part, From (Child_Rules).Build);
-      Root.Add_Child (Tall_Child);
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Tall_Child, Main_Part, From (Child_Rules).Build);
+      Add_Child (+Root, +Tall_Child);
 
-      W := Adi.Window.Create_Window ("Overlay Wheel Block Probe", (320.0, 240.0));
-      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, False);
-      Adi.Window.Set_Root (W.all, Root);
-      Adi.Window.Render (W.all);
+      W := Adi.Window.Create_Window_Handle ("Overlay Wheel Block Probe", (320.0, 240.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
 
       --  Verify wheel scrolls root when no overlay is present.
-      Adi.Window.On_Mouse_Wheel (W.all, 160.0, 120.0, 0.0, -30.0);
+      Adi.Window.On_Mouse_Wheel (W, 160.0, 120.0, 0.0, -30.0);
       Assert
-        (Get_Scroll_Offset_Y (Root.all) > 0.0,
+        (Get_Scroll_Offset_Y (+Root) > 0.0,
          "Root should scroll without overlay");
 
       --  Reset scroll position.
-      Set_Scroll_Offset_Y (Root.all, 0.0);
+      Set_Scroll_Offset_Y (+Root, 0.0);
 
       --  Show dialog overlay and render so it gets laid out.
-      Adi.Widget.Dialog.Attach_Window (Dlg.all, W);
-      Adi.Widget.Dialog.Set_Title (Dlg.all, "Probe");
-      Adi.Widget.Dialog.Set_Message (Dlg.all, "blocking");
-      Adi.Widget.Dialog.Set_OK_Button (Dlg.all);
-      Adi.Widget.Dialog.Show (Dlg.all);
-      Adi.Window.Render (W.all);
+      Adi.Widget.Dialog.Attach_Window (Dlg, W);
+      Adi.Widget.Dialog.Set_Title (Dlg, "Probe");
+      Adi.Widget.Dialog.Set_Message (Dlg, "blocking");
+      Adi.Widget.Dialog.Set_OK_Button (Dlg);
+      Adi.Widget.Dialog.Show (Dlg);
+      Adi.Window.Render (W);
 
       --  Send wheel event at a point over the overlay backdrop (top-left
       --  corner, which is outside the centered dialog panel).
-      Offset_Before := Get_Scroll_Offset_Y (Root.all);
-      Adi.Window.On_Mouse_Wheel (W.all, 5.0, 5.0, 0.0, -30.0);
-      Offset_After := Get_Scroll_Offset_Y (Root.all);
+      Offset_Before := Get_Scroll_Offset_Y (+Root);
+      Adi.Window.On_Mouse_Wheel (W, 5.0, 5.0, 0.0, -30.0);
+      Offset_After := Get_Scroll_Offset_Y (+Root);
 
       Assert
         (Offset_After = Offset_Before,
@@ -790,11 +805,11 @@ procedure Window_Resize_Safety_Test is
 
    procedure Test_Wheel_Root_Works_Without_Overlay is
       Ready : Boolean := False;
-      W : Adi.Window.Window_Access := null;
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Tall_Child : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Tall_Child : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
       Root_Rules : constant Style_Rules :=
         (Display        => Set (Flex),
          Flex_Direction => Set (Column),
@@ -811,23 +826,23 @@ procedure Window_Resize_Safety_Test is
          return;
       end if;
 
-      Set_Part_Style (Root.all, Main_Part, From (Root_Rules).Build);
-      Set_Part_Style (Tall_Child.all, Main_Part, From (Child_Rules).Build);
-      Root.Add_Child (Tall_Child);
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Tall_Child, Main_Part, From (Child_Rules).Build);
+      Add_Child (+Root, +Tall_Child);
 
-      W := Adi.Window.Create_Window ("No Overlay Wheel Probe", (320.0, 240.0));
-      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, False);
-      Adi.Window.Set_Root (W.all, Root);
-      Adi.Window.Render (W.all);
+      W := Adi.Window.Create_Window_Handle ("No Overlay Wheel Probe", (320.0, 240.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
 
       Assert
-        (Get_Scroll_Offset_Y (Root.all) = 0.0,
+        (Get_Scroll_Offset_Y (+Root) = 0.0,
          "Root scroll offset should start at 0");
 
-      Adi.Window.On_Mouse_Wheel (W.all, 160.0, 120.0, 0.0, -30.0);
+      Adi.Window.On_Mouse_Wheel (W, 160.0, 120.0, 0.0, -30.0);
 
       Assert
-        (Get_Scroll_Offset_Y (Root.all) > 0.0,
+        (Get_Scroll_Offset_Y (+Root) > 0.0,
          "Root should scroll after wheel event without overlay");
    exception
       when E : others =>
@@ -839,23 +854,24 @@ procedure Window_Resize_Safety_Test is
    procedure Test_Stack_Page_Switch_Does_Not_Ratchet_Min_Size is
       type Page_Id is (Red_Page, Green_Page);
       package Probe_Stack is new Adi.Widget.Stack (Page_Id);
+      use type Probe_Stack.Stack_Handle;
 
       Ready : Boolean := False;
-      W : Adi.Window.Window_Access := null;
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Stack : constant Probe_Stack.Stack_Widget_Access :=
-        Probe_Stack.Create;
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Stack : constant Probe_Stack.Stack_Handle :=
+        Probe_Stack.Create_Handle;
 
-      Red_Box : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Red_Label : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Red");
+      Red_Box : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Red_Label : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Red");
 
-      Green_Box : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Green_Label : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create
+      Green_Box : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Green_Label : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle
           ("This is the second page with a natural green background.");
 
       Root_Rules : constant Style_Rules :=
@@ -895,50 +911,50 @@ procedure Window_Resize_Safety_Test is
          return;
       end if;
 
-      Set_Part_Style (Root.all, Main_Part, From (Root_Rules).Build);
-      Set_Part_Style (Stack.all, Main_Part, From (Stack_Rules).Build);
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Stack, Main_Part, From (Stack_Rules).Build);
 
-      Set_Part_Style (Red_Box.all, Main_Part, From (Page_Rules).Build);
-      Set_Part_Style (Red_Label.all, Main_Part, From (Label_Main_Rules).Build);
-      Red_Box.Add_Child (Red_Label);
+      Set_Part_Style (+Red_Box, Main_Part, From (Page_Rules).Build);
+      Set_Part_Style (+Red_Label, Main_Part, From (Label_Main_Rules).Build);
+      Add_Child (+Red_Box, +Red_Label);
 
-      Set_Part_Style (Green_Box.all, Main_Part, From (Page_Rules).Build);
-      Set_Part_Style (Green_Label.all, Main_Part, From (Label_Main_Rules).Build);
-      Set_Part_Style (Green_Label.all, Label_Part, From (Green_Label_Rules).Build);
-      Green_Box.Add_Child (Green_Label);
+      Set_Part_Style (+Green_Box, Main_Part, From (Page_Rules).Build);
+      Set_Part_Style (+Green_Label, Main_Part, From (Label_Main_Rules).Build);
+      Set_Part_Style (+Green_Label, Label_Part, From (Green_Label_Rules).Build);
+      Add_Child (+Green_Box, +Green_Label);
 
-      Probe_Stack.Add_Page (Stack.all, Red_Page, Red_Box);
-      Probe_Stack.Add_Page (Stack.all, Green_Page, Green_Box);
-      Root.Add_Child (Stack);
+      Probe_Stack.Add_Page (Stack, Red_Page, +Red_Box);
+      Probe_Stack.Add_Page (Stack, Green_Page, +Green_Box);
+      Add_Child (+Root, +Stack);
 
-      W := Adi.Window.Create_Window ("Stack Ratchet Probe", (900.0, 700.0));
-      Adi.Window.Set_Enforce_Layout_Min_Size (W.all, True);
-      Adi.Window.Set_Root (W.all, Root);
-      Adi.Window.Render (W.all);
+      W := Adi.Window.Create_Window_Handle ("Stack Ratchet Probe", (900.0, 700.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, True);
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
 
-      Probe_Stack.Set_Active (Stack.all, Green_Page);
-      Mark_Dirty (Root.all);
-      Adi.Window.Render (W.all);
+      Probe_Stack.Set_Active (Stack, Green_Page);
+      Mark_Dirty (+Root);
+      Adi.Window.Render (W);
 
       --  Narrow width: wrapped text grows vertically.
-      Adi.Window.Handle_Resize (W.all, (Width => 650.0, Height => 1200.0));
-      Adi.Window.Render (W.all);
+      Adi.Window.Handle_Resize (W, (Width => 650.0, Height => 1200.0));
+      Adi.Window.Render (W);
       Got_Min := Adi.SDL.Video.SDL_GetWindowMinimumSize
-        (Adi.Window.Get_SDL_Window (W.all), Min_W_Narrow'Access, Min_H_Narrow'Access);
+        (Adi.Window.Get_SDL_Window (W), Min_W_Narrow'Access, Min_H_Narrow'Access);
       Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed (stack narrow)");
 
       --  Widen: text unwraps; min-height should reduce, and not lock to current.
-      Adi.Window.Handle_Resize (W.all, (Width => 1300.0, Height => 1200.0));
-      Adi.Window.Render (W.all);
+      Adi.Window.Handle_Resize (W, (Width => 1300.0, Height => 1200.0));
+      Adi.Window.Render (W);
       Got_Min := Adi.SDL.Video.SDL_GetWindowMinimumSize
-        (Adi.Window.Get_SDL_Window (W.all), Min_W_Wide'Access, Min_H_Wide'Access);
+        (Adi.Window.Get_SDL_Window (W), Min_W_Wide'Access, Min_H_Wide'Access);
       Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed (stack wide)");
       Assert
         (Min_H_Wide <= Min_H_Narrow,
          "Stack min height should decrease or stay equal after widening active page");
 
       Got_Size := Adi.SDL.Video.SDL_GetWindowSize
-        (Adi.Window.Get_SDL_Window (W.all), Cur_W'Access, Cur_H'Access);
+        (Adi.Window.Get_SDL_Window (W), Cur_W'Access, Cur_H'Access);
       Assert (Boolean (Got_Size), "SDL_GetWindowSize should succeed (stack wide)");
       Assert
         (Min_H_Wide <= Cur_H - 50,

@@ -48,55 +48,49 @@ package body Adi.Window is
 
    procedure Set_Focused_Widget
      (W         : in out Window;
-      New_Focus : Widget_Access);
+      New_Focus : Widget_Handle);
 
-   function Is_Focus_Candidate (Wgt : Widget_Access) return Boolean;
+   function Is_Focus_Candidate (Wgt : Widget_Handle) return Boolean;
    function Is_Focus_Candidate
-     (Wgt : Widget_Access;
+     (Wgt : Widget_Handle;
       Effective_Visibility : Visibility_Value) return Boolean;
-   function First_Focusable (Root : Widget_Access) return Widget_Access;
-   function Last_Focusable (Root : Widget_Access) return Widget_Access;
+   function First_Focusable (Root : Widget_Handle) return Widget_Handle;
+   function Last_Focusable (Root : Widget_Handle) return Widget_Handle;
    function Next_Focusable
-     (Root    : Widget_Access;
-      Current : Widget_Access) return Widget_Access;
+     (Root    : Widget_Handle;
+      Current : Widget_Handle) return Widget_Handle;
    function Prev_Focusable
-     (Root    : Widget_Access;
-      Current : Widget_Access) return Widget_Access;
+     (Root    : Widget_Handle;
+      Current : Widget_Handle) return Widget_Handle;
    procedure Apply_Window_Min_Size_From_Layout (W : in out Window);
    function Is_Any_Overlay_Dirty (W : Window) return Boolean;
    function Is_Any_Overlay_Layout_Dirty (W : Window) return Boolean;
    function Overlay_Index
      (W       : Window;
-      Overlay : Widget_Access) return Natural;
+      Overlay : Widget_Handle) return Natural;
    function Find_Widget_At_With_Flag
      (W    : Window;
       X, Y : Pixel_Type;
-      F    : Widget_Flag) return Widget_Access;
+      F    : Widget_Flag) return Widget_Handle;
    function Find_Scroll_Widget_At
      (W    : Window;
-      X, Y : Pixel_Type) return Widget_Access;
+      X, Y : Pixel_Type) return Widget_Handle;
    function Is_In_Subtree
-     (Root : Widget_Access;
-      Node : Widget_Access) return Boolean;
-   function Active_Key_Root (W : Window) return Widget_Access;
+     (Root : Widget_Handle;
+      Node : Widget_Handle) return Boolean;
+   function Active_Key_Root (W : Window) return Widget_Handle;
    procedure Apply_Render_Logical_Presentation (W : in out Window);
    function Refresh_DIP_Scale (W : in out Window) return Boolean;
    procedure Refresh_Viewport_Size (W : in out Window);
    function Normalize_Visibility (V : Visibility_Value) return Visibility_Value;
-   function Widget_Participates (Wgt : Adi.Widget.Widget'Class) return Boolean;
-   function Main_Visibility_Explicit (Wgt : Adi.Widget.Widget'Class) return Boolean;
+   function Widget_Participates (H : Widget_Handle) return Boolean;
+   function Main_Visibility_Explicit (H : Widget_Handle) return Boolean;
    function Resolve_Effective_Visibility
-     (Wgt : Adi.Widget.Widget'Class;
+     (H : Widget_Handle;
       Parent_Visibility : Visibility_Value) return Visibility_Value;
-   function Resolve_Widget_Handle (H : Widget_Handle) return Widget_Access;
-   function Child_At
-     (Wgt   : Adi.Widget.Widget'Class;
-      Index : Positive) return Widget_Access;
-   function Parent_Of
-     (Wgt : Adi.Widget.Widget'Class) return Widget_Access;
    function Window_Contains_Widget
      (W    : Window;
-      Node : Widget_Access) return Boolean;
+      Node : Widget_Handle) return Boolean;
    procedure Register_Live_Window (W : Window_Access);
    procedure Unregister_Live_Window
      (Win_Handle : Adi.SDL.Video.SDL_Window_Ptr);
@@ -239,132 +233,112 @@ package body Adi.Window is
       return V;
    end Normalize_Visibility;
 
-   function Widget_Participates (Wgt : Adi.Widget.Widget'Class) return Boolean is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (Wgt, Main_Part);
+   function Widget_Participates (H : Widget_Handle) return Boolean is
+      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (H, Main_Part);
    begin
-      return Has_Flag (Wgt, Visible)
+      return Is_Valid (H)
+        and then Has_Flag (H, Visible)
         and then Main_Style.Display /= Display_None;
    end Widget_Participates;
 
-   function Main_Visibility_Explicit (Wgt : Adi.Widget.Widget'Class) return Boolean is
-      Rules : constant Style_Rules := Get_Part_Style_Rules (Wgt, Main_Part);
+   function Main_Visibility_Explicit (H : Widget_Handle) return Boolean is
+      Rules : constant Style_Rules := Get_Part_Style_Rules (H, Main_Part);
    begin
       return Opt_Visibility.Is_Set (Rules.Visibility);
    end Main_Visibility_Explicit;
 
    function Resolve_Effective_Visibility
-     (Wgt : Adi.Widget.Widget'Class;
+     (H : Widget_Handle;
       Parent_Visibility : Visibility_Value) return Visibility_Value
    is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (Wgt, Main_Part);
+      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (H, Main_Part);
    begin
-      if Main_Visibility_Explicit (Wgt) then
+      if Main_Visibility_Explicit (H) then
          return Normalize_Visibility (Main_Style.Visibility);
       end if;
       return Parent_Visibility;
    end Resolve_Effective_Visibility;
 
-   function Resolve_Widget_Handle (H : Widget_Handle) return Widget_Access is
-   begin
-      return Resolve_Handle (H);
-   end Resolve_Widget_Handle;
-
-   function Child_At
-     (Wgt   : Adi.Widget.Widget'Class;
-      Index : Positive) return Widget_Access
-   is
-   begin
-      return Resolve_Widget_Handle (Get_Child_Handle (Wgt, Index));
-   end Child_At;
-
-   function Parent_Of
-     (Wgt : Adi.Widget.Widget'Class) return Widget_Access
-   is
-   begin
-      return Resolve_Widget_Handle (Get_Parent_Handle (Wgt));
-   end Parent_Of;
-
    function Is_Focus_Candidate
-     (Wgt : Widget_Access;
+     (Wgt : Widget_Handle;
       Effective_Visibility : Visibility_Value) return Boolean
    is
    begin
-      return Wgt /= null
+      return Is_Valid (Wgt)
         and then Effective_Visibility = Visibility_Visible
-        and then Widget_Participates (Wgt.all)
-        and then Has_Flag (Wgt.all, Focusable)
-        and then not Is_Disabled (Wgt.all);
+        and then Widget_Participates (Wgt)
+        and then Has_Flag (Wgt, Focusable)
+        and then not Is_Disabled (Wgt);
    end Is_Focus_Candidate;
 
-   function Is_Focus_Candidate (Wgt : Widget_Access) return Boolean is
-      function Effective_Visibility_For (Node : Widget_Access) return Visibility_Value is
-         Parent : Widget_Access;
+   function Is_Focus_Candidate (Wgt : Widget_Handle) return Boolean is
+      function Effective_Visibility_For (Node : Widget_Handle) return Visibility_Value is
+         Parent : constant Widget_Handle := Get_Parent_Handle (Node);
       begin
-         if Node = null then
+         if not Is_Valid (Node) then
             return Visibility_Hidden;
          end if;
 
-         Parent := Parent_Of (Node.all);
-         if Parent = null then
-            return Resolve_Effective_Visibility (Node.all, Visibility_Visible);
+         if not Is_Valid (Parent) then
+            return Resolve_Effective_Visibility (Node, Visibility_Visible);
          end if;
 
          return Resolve_Effective_Visibility
-           (Node.all, Effective_Visibility_For (Parent));
+           (Node, Effective_Visibility_For (Parent));
       end Effective_Visibility_For;
    begin
       return Is_Focus_Candidate (Wgt, Effective_Visibility_For (Wgt));
    end Is_Focus_Candidate;
 
-   function First_Focusable (Root : Widget_Access) return Widget_Access is
+   function First_Focusable (Root : Widget_Handle) return Widget_Handle is
       function Visit
-        (Node : Widget_Access;
-         Parent_Visibility : Visibility_Value) return Widget_Access
+        (Node : Widget_Handle;
+         Parent_Visibility : Visibility_Value) return Widget_Handle
       is
-         Candidate : Widget_Access;
+         Candidate : Widget_Handle;
          Node_Visibility : Visibility_Value;
       begin
-         if Node = null or else not Widget_Participates (Node.all) then
-            return null;
+         if not Is_Valid (Node) or else not Widget_Participates (Node) then
+            return Null_Handle;
          end if;
 
          Node_Visibility :=
-           Resolve_Effective_Visibility (Node.all, Parent_Visibility);
+           Resolve_Effective_Visibility (Node, Parent_Visibility);
          if Is_Focus_Candidate (Node, Node_Visibility) then
             return Node;
          end if;
 
-         for I in 1 .. Child_Count (Node.all) loop
-            Candidate := Visit (Child_At (Node.all, I), Node_Visibility);
-            if Candidate /= null then
+         for I in 1 .. Child_Count (Node) loop
+            Candidate := Visit (Get_Child_Handle (Node, I), Node_Visibility);
+            if Is_Valid (Candidate) then
                return Candidate;
             end if;
          end loop;
 
-         return null;
+         return Null_Handle;
       end Visit;
    begin
       return Visit (Root, Visibility_Visible);
    end First_Focusable;
 
-   function Last_Focusable (Root : Widget_Access) return Widget_Access is
+   function Last_Focusable (Root : Widget_Handle) return Widget_Handle is
       function Visit
-        (Node : Widget_Access;
-         Parent_Visibility : Visibility_Value) return Widget_Access
+        (Node : Widget_Handle;
+         Parent_Visibility : Visibility_Value) return Widget_Handle
       is
-         Candidate : Widget_Access;
+         Candidate : Widget_Handle;
          Node_Visibility : Visibility_Value;
       begin
-         if Node = null or else not Widget_Participates (Node.all) then
-            return null;
+         if not Is_Valid (Node) or else not Widget_Participates (Node) then
+            return Null_Handle;
          end if;
 
          Node_Visibility :=
-           Resolve_Effective_Visibility (Node.all, Parent_Visibility);
+           Resolve_Effective_Visibility (Node, Parent_Visibility);
 
-         for I in reverse 1 .. Child_Count (Node.all) loop
-            Candidate := Visit (Child_At (Node.all, I), Node_Visibility);
-            if Candidate /= null then
+         for I in reverse 1 .. Child_Count (Node) loop
+            Candidate := Visit (Get_Child_Handle (Node, I), Node_Visibility);
+            if Is_Valid (Candidate) then
                return Candidate;
             end if;
          end loop;
@@ -372,34 +346,34 @@ package body Adi.Window is
          if Is_Focus_Candidate (Node, Node_Visibility) then
             return Node;
          end if;
-         return null;
+         return Null_Handle;
       end Visit;
    begin
       return Visit (Root, Visibility_Visible);
    end Last_Focusable;
 
    function Next_Focusable
-     (Root    : Widget_Access;
-      Current : Widget_Access) return Widget_Access
+     (Root    : Widget_Handle;
+      Current : Widget_Handle) return Widget_Handle
    is
-      Result       : Widget_Access := null;
-      Seen_Current : Boolean := Current = null;
+      Result       : Widget_Handle := Null_Handle;
+      Seen_Current : Boolean := not Is_Valid (Current);
 
       procedure Visit
-        (Node : Widget_Access;
+        (Node : Widget_Handle;
          Parent_Visibility : Visibility_Value)
       is
          Node_Visibility : Visibility_Value;
       begin
-         if Node = null or else Result /= null then
+         if not Is_Valid (Node) or else Is_Valid (Result) then
             return;
          end if;
-         if not Widget_Participates (Node.all) then
+         if not Widget_Participates (Node) then
             return;
          end if;
 
          Node_Visibility :=
-           Resolve_Effective_Visibility (Node.all, Parent_Visibility);
+           Resolve_Effective_Visibility (Node, Parent_Visibility);
          if Seen_Current and then Is_Focus_Candidate (Node, Node_Visibility) then
             Result := Node;
             return;
@@ -409,9 +383,9 @@ package body Adi.Window is
             Seen_Current := True;
          end if;
 
-         for I in 1 .. Child_Count (Node.all) loop
-            Visit (Child_At (Node.all, I), Node_Visibility);
-            exit when Result /= null;
+         for I in 1 .. Child_Count (Node) loop
+            Visit (Get_Child_Handle (Node, I), Node_Visibility);
+            exit when Is_Valid (Result);
          end loop;
       end Visit;
    begin
@@ -420,27 +394,27 @@ package body Adi.Window is
    end Next_Focusable;
 
    function Prev_Focusable
-     (Root    : Widget_Access;
-      Current : Widget_Access) return Widget_Access
+     (Root    : Widget_Handle;
+      Current : Widget_Handle) return Widget_Handle
    is
-      Result : Widget_Access := null;
-      Prev   : Widget_Access := null;
+      Result : Widget_Handle := Null_Handle;
+      Prev   : Widget_Handle := Null_Handle;
 
       procedure Visit
-        (Node : Widget_Access;
+        (Node : Widget_Handle;
          Parent_Visibility : Visibility_Value)
       is
          Node_Visibility : Visibility_Value;
       begin
-         if Node = null or else Result /= null then
+         if not Is_Valid (Node) or else Is_Valid (Result) then
             return;
          end if;
-         if not Widget_Participates (Node.all) then
+         if not Widget_Participates (Node) then
             return;
          end if;
 
          Node_Visibility :=
-           Resolve_Effective_Visibility (Node.all, Parent_Visibility);
+           Resolve_Effective_Visibility (Node, Parent_Visibility);
          if Node = Current then
             Result := Prev;
             return;
@@ -450,9 +424,9 @@ package body Adi.Window is
             Prev := Node;
          end if;
 
-         for I in 1 .. Child_Count (Node.all) loop
-            Visit (Child_At (Node.all, I), Node_Visibility);
-            exit when Result /= null;
+         for I in 1 .. Child_Count (Node) loop
+            Visit (Get_Child_Handle (Node, I), Node_Visibility);
+            exit when Is_Valid (Result);
          end loop;
       end Visit;
    begin
@@ -461,11 +435,11 @@ package body Adi.Window is
    end Prev_Focusable;
 
    function Is_In_Subtree
-     (Root : Widget_Access;
-      Node : Widget_Access) return Boolean
+     (Root : Widget_Handle;
+      Node : Widget_Handle) return Boolean
    is
    begin
-      if Root = null or else Node = null then
+      if not Is_Valid (Root) or else not Is_Valid (Node) then
          return False;
       end if;
 
@@ -473,8 +447,8 @@ package body Adi.Window is
          return True;
       end if;
 
-      for I in 1 .. Child_Count (Root.all) loop
-         if Is_In_Subtree (Child_At (Root.all, I), Node) then
+      for I in 1 .. Child_Count (Root) loop
+         if Is_In_Subtree (Get_Child_Handle (Root, I), Node) then
             return True;
          end if;
       end loop;
@@ -484,10 +458,10 @@ package body Adi.Window is
 
    function Window_Contains_Widget
      (W    : Window;
-      Node : Widget_Access) return Boolean
+      Node : Widget_Handle) return Boolean
    is
    begin
-      if Node = null then
+      if not Is_Valid (Node) then
          return False;
       end if;
 
@@ -496,13 +470,9 @@ package body Adi.Window is
       end if;
 
       for I in 1 .. Natural (W.Overlays.Length) loop
-         declare
-            Overlay : constant Widget_Access := W.Overlays.Element (I);
-         begin
-            if Is_In_Subtree (Overlay, Node) then
-               return True;
-            end if;
-         end;
+         if Is_In_Subtree (W.Overlays.Element (I), Node) then
+            return True;
+         end if;
       end loop;
 
       return False;
@@ -546,22 +516,19 @@ package body Adi.Window is
    end Unregister_Live_Window;
 
    function Find_Host_Window
-     (Node : access Adi.Widget.Widget'Class) return Window_Access
+     (Node : Widget_Handle) return Window_Access
    is
-      Node_Access : Widget_Access;
    begin
-      if Node = null then
+      if not Is_Valid (Node) then
          return null;
       end if;
-
-      Node_Access := Node.all'Unchecked_Access;
 
       for I in reverse 1 .. Natural (Live_Windows.Length) loop
          declare
             Candidate : constant Window_Access := Live_Windows.Element (I);
          begin
             if Candidate /= null
-              and then Window_Contains_Widget (Candidate.all, Node_Access)
+              and then Window_Contains_Widget (Candidate.all, Node)
             then
                return Candidate;
             end if;
@@ -571,13 +538,13 @@ package body Adi.Window is
       return null;
    end Find_Host_Window;
 
-   function Active_Key_Root (W : Window) return Widget_Access is
+   function Active_Key_Root (W : Window) return Widget_Handle is
    begin
       for I in reverse 1 .. Natural (W.Overlays.Length) loop
          declare
-            Overlay : constant Widget_Access := W.Overlays.Element (I);
+            Overlay : constant Widget_Handle := W.Overlays.Element (I);
          begin
-            if Overlay /= null and then Widget_Participates (Overlay.all) then
+            if Is_Valid (Overlay) and then Widget_Participates (Overlay) then
                return Overlay;
             end if;
          end;
@@ -588,10 +555,10 @@ package body Adi.Window is
 
    function Overlay_Index
      (W       : Window;
-      Overlay : Widget_Access) return Natural
+      Overlay : Widget_Handle) return Natural
    is
    begin
-      if Overlay = null then
+      if not Is_Valid (Overlay) then
          return 0;
       end if;
 
@@ -607,11 +574,10 @@ package body Adi.Window is
    begin
       for I in 1 .. Natural (W.Overlays.Length) loop
          declare
-            Overlay : constant Widget_Access := W.Overlays.Element (I);
+            OH : constant Widget_Handle := W.Overlays.Element (I);
          begin
-            if Overlay /= null
-              and then Widget_Participates (Overlay.all)
-              and then Is_Dirty (Overlay.all)
+            if Is_Valid (OH) and then Widget_Participates (OH)
+              and then Is_Dirty (OH)
             then
                return True;
             end if;
@@ -624,11 +590,10 @@ package body Adi.Window is
    begin
       for I in 1 .. Natural (W.Overlays.Length) loop
          declare
-            Overlay : constant Widget_Access := W.Overlays.Element (I);
+            OH : constant Widget_Handle := W.Overlays.Element (I);
          begin
-            if Overlay /= null
-              and then Widget_Participates (Overlay.all)
-              and then Is_Layout_Dirty (Overlay.all)
+            if Is_Valid (OH) and then Widget_Participates (OH)
+              and then Is_Layout_Dirty (OH)
             then
                return True;
             end if;
@@ -649,11 +614,11 @@ package body Adi.Window is
          return;
       end if;
 
-      if W.Root /= null then
+      if Is_Valid (W.Root) then
          declare
-            Pref : constant Size_2D := Get_Preferred_Size (W.Root.all);
-            Floor : constant Size_2D := Get_Min_Size (W.Root.all);
-            Root_Geom : constant Rectangle := Get_Geometry (W.Root.all);
+            Pref : constant Size_2D := Get_Preferred_Size (W.Root);
+            Floor : constant Size_2D := Get_Min_Size (W.Root);
+            Root_Geom : constant Rectangle := Get_Geometry (W.Root);
             Pref_W : constant Float := Float (Pref.Width);
             Floor_W : constant Float := Float (Floor.Width);
             Root_W : constant Float := Float (Root_Geom.Width);
@@ -717,56 +682,50 @@ package body Adi.Window is
    -------------------
    -- Create_Window --
    -------------------
-   function Create_Window(Title: String; S : Size_2D) return Window_Access is
+   function Create_Window_Handle
+     (Title : String;
+      S     : Size_2D) return Window_Handle
+   is
       use Interfaces.C.Strings;
       C_Title_Str : chars_ptr := New_String (Title);
       Win_Ptr : aliased Adi.SDL.Video.SDL_Window_Ptr;
       Ren_Ptr : aliased Adi.SDL.Render.SDL_Renderer_Ptr;
       Success : Adi.SDL.C_bool;
    begin
-      Success := Adi.SDL.Render.SDL_CreateWindowAndRenderer(
-         C_Title_Str,
-         int(S.Width),
-         int(S.Height),
+      Success := Adi.SDL.Render.SDL_CreateWindowAndRenderer
+        (C_Title_Str,
+         int (S.Width),
+         int (S.Height),
          Adi.SDL.Video.SDL_WINDOW_RESIZABLE
            or Adi.SDL.Video.SDL_WINDOW_HIGH_PIXEL_DENSITY,
          Win_Ptr,
          Ren_Ptr);
       Free (C_Title_Str);
       SDL_Assert (Success, "SDL_CreateWindowAndRenderer");
-      return W : Window_Access := new Window do
-        W.Internal := new Internal;
-        W.Internal.win := Win_Ptr;
-        W.Internal.ren := Ren_Ptr;
-        Adi.Render.Create (W.Ctx, Ren_Ptr);
-        W.Size := S;
-        W.Geometry := (0.0, 0.0, S.Width, S.Height);
-        Apply_Render_Logical_Presentation (W.all);
-        if Refresh_DIP_Scale (W.all) then
-           null;
-        end if;
-        Refresh_Viewport_Size (W.all);
-        Register_Live_Window (W);
-        declare
-           Id : constant Window_Stores.Object_Id :=
-             Window_Stores.Register (Window_Class_Access (W));
-        begin
-           W.Store_Index := Natural (Id.Index);
-           W.Store_Gen   := Natural (Id.Gen);
-        end;
-      end return;
-   end Create_Window;
-
-   function Create_Window_Handle
-     (Title : String;
-      S     : Size_2D) return Window_Handle
-   is
-      W : constant Window_Access := Create_Window (Title, S);
-   begin
-      if W = null then
-         return Null_Window_Handle;
-      end if;
-      return Get_Handle (W.all);
+      declare
+         W : constant Window_Access := new Window;
+      begin
+         W.Internal := new Internal;
+         W.Internal.win := Win_Ptr;
+         W.Internal.ren := Ren_Ptr;
+         Adi.Render.Create (W.Ctx, Ren_Ptr);
+         W.Size := S;
+         W.Geometry := (0.0, 0.0, S.Width, S.Height);
+         Apply_Render_Logical_Presentation (W.all);
+         if Refresh_DIP_Scale (W.all) then
+            null;
+         end if;
+         Refresh_Viewport_Size (W.all);
+         Register_Live_Window (W);
+         declare
+            Id : constant Window_Stores.Object_Id :=
+              Window_Stores.Register (Window_Class_Access (W));
+         begin
+            W.Store_Index := Natural (Id.Index);
+            W.Store_Gen   := Natural (Id.Gen);
+         end;
+         return Get_Handle (W.all);
+      end;
    end Create_Window_Handle;
 
 
@@ -776,22 +735,22 @@ package body Adi.Window is
 
    procedure Update (W : in Out Window) is
    begin
-      if W.Focused_Widget /= null
+      if Is_Valid (W.Focused_Widget)
         and then not Is_Focus_Candidate (W.Focused_Widget)
       then
-         Set_Focused_Widget (W, null);
+         Set_Focused_Widget (W, Null_Handle);
       end if;
 
-      if W.Root /= null then
-         Adi.Widget.Update (W.Root.all);
+      if Is_Valid (W.Root) then
+         Adi.Widget.Update (W.Root);
       end if;
 
       for I in 1 .. Natural (W.Overlays.Length) loop
          declare
-            Overlay : constant Widget_Access := W.Overlays.Element (I);
+            OH : constant Widget_Handle := W.Overlays.Element (I);
          begin
-            if Overlay /= null then
-               Adi.Widget.Update (Overlay.all);
+            if Is_Valid (OH) then
+               Adi.Widget.Update (OH);
             end if;
          end;
       end loop;
@@ -896,11 +855,12 @@ package body Adi.Window is
        use Adi.SDL.Render;
        Guard               : Dispatch_Guard;
        pragma Unreferenced (Guard);
+       Root_Valid           : constant Boolean := Is_Valid (W.Root);
        Root_Dirty          : constant Boolean :=
-         (W.Root /= null and then Is_Dirty (W.Root.all));
+         (Root_Valid and then Is_Dirty (W.Root));
        Overlay_Dirty       : constant Boolean := Is_Any_Overlay_Dirty (W);
        Root_Layout_Dirty   : constant Boolean :=
-         (W.Root /= null and then Is_Layout_Dirty (W.Root.all));
+         (Root_Valid and then Is_Layout_Dirty (W.Root));
        Overlay_Layout_Dirty : constant Boolean :=
          Is_Any_Overlay_Layout_Dirty (W);
        Needs_Relayout      : constant Boolean :=
@@ -957,27 +917,21 @@ package body Adi.Window is
              W.Stats_Layout_Reason := '-';
           end if;
           if Needs_Relayout then
-             if W.Root /= null then
+             if Root_Valid then
                 Debug_Log ("relayout tick=" & Natural'Image (Debug_Tick_No));
-                Layout_Tree (W.Root.all);
-                Adi.Widget.Update (W.Root.all);
-                --  Re-apply SDL minimum after every layout pass so wrapped
-                --  text changes (including unwrap on widen) update the
-                --  enforce-min policy immediately.
-                --  Width ratchet protection is handled inside
-                --  Apply_Window_Min_Size_From_Layout via geometry-dependent
-                --  width fallback.
+                Layout_Tree (W.Root);
+                Adi.Widget.Update (W.Root);
                 Apply_Window_Min_Size_From_Layout (W);
                 W.Stats_Layout_Count := W.Stats_Layout_Count + 1;
              end if;
 
              for I in 1 .. Natural (W.Overlays.Length) loop
                 declare
-                   Overlay : constant Widget_Access := W.Overlays.Element (I);
+                   OH : constant Widget_Handle := W.Overlays.Element (I);
                 begin
-                   if Overlay /= null then
-                      Layout_Tree (Overlay.all);
-                      Adi.Widget.Update (Overlay.all);
+                   if Is_Valid (OH) then
+                      Layout_Tree (OH);
+                      Adi.Widget.Update (OH);
                       W.Stats_Layout_Count := W.Stats_Layout_Count + 1;
                    end if;
                 end;
@@ -997,16 +951,16 @@ package body Adi.Window is
 
           --  Draw all widget trees
           Stage_Start := Clock;
-          if W.Root /= null then
-             Render_Tree (W.Root.all, W.Ctx);
+          if Root_Valid then
+             Render_Tree (W.Root, W.Ctx);
           end if;
 
           for I in 1 .. Natural (W.Overlays.Length) loop
              declare
-                Overlay : constant Widget_Access := W.Overlays.Element (I);
+                OH : constant Widget_Handle := W.Overlays.Element (I);
              begin
-                if Overlay /= null then
-                   Render_Tree (Overlay.all, W.Ctx);
+                if Is_Valid (OH) then
+                   Render_Tree (OH, W.Ctx);
                 end if;
              end;
           end loop;
@@ -1050,37 +1004,15 @@ package body Adi.Window is
        end;
     end Render;
 
-   procedure Set_Root (W : in Out Window; Root : access Adi.Widget.Widget'Class) is
+   procedure Set_Root (W : in out Window; Root : Widget_Handle) is
    begin
-      if Root = null then
-         W.Root := null;
-      else
-         W.Root := Root.all'Unchecked_Access;
-      end if;
-      if Root /= null then
-         Set_Geometry (Root.all, W.Geometry);
+      W.Root := Root;
+      if Is_Valid (W.Root) then
+         Set_Geometry (W.Root, W.Geometry);
          W.Needs_Layout := True;  -- Initial layout needed
          W.Resize_Triggered_Layout := False;
       end if;
       Apply_Window_Min_Size_From_Layout (W);
-   end Set_Root;
-
-   procedure Set_Root (W : in out Window; Root : Widget_Handle) is
-      Ptr : constant Widget_Access := Resolve_Widget_Handle (Root);
-   begin
-      --  Null_Handle means "clear root"; stale handles are silently ignored.
-      if Ptr /= null or else Root = Null_Handle then
-         Set_Root (W, Ptr);
-      end if;
-   end Set_Root;
-
-   procedure Set_Root (H : Window_Handle; Root : access Adi.Widget.Widget'Class) is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
-   begin
-      if Ptr /= null then
-         Set_Root (Ptr.all, Root);
-      end if;
    end Set_Root;
 
    procedure Set_Root (H : Window_Handle; Root : Widget_Handle) is
@@ -1093,21 +1025,9 @@ package body Adi.Window is
    end Set_Root;
 
 
-   --------------
-   -- Get_Root --
-   --------------
-
-   function Get_Root (W : Window) return Widget_Access is
-   begin
-      return W.Root;
-   end Get_Root;
-
    function Get_Root_Handle (W : Window) return Widget_Handle is
    begin
-      if W.Root = null then
-         return Null_Handle;
-      end if;
-      return Get_Handle (W.Root.all);
+      return W.Root;
    end Get_Root_Handle;
 
    function Get_Root_Handle (H : Window_Handle) return Widget_Handle is
@@ -1192,84 +1112,64 @@ package body Adi.Window is
       W.Tick_Sig.Disconnect (Id);
    end Disconnect_Tick;
 
-   procedure Add_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class) is
-      OA : Widget_Access := null;
+   procedure Add_Overlay (W : in out Window; Overlay : Widget_Handle) is
    begin
-      if Overlay = null then
+      if not Is_Valid (Overlay) then
          return;
       end if;
-      OA := Overlay.all'Unchecked_Access;
 
       declare
-         Existing : constant Natural := Overlay_Index (W, OA);
+         Existing : constant Natural := Overlay_Index (W, Overlay);
       begin
          if Existing > 0 then
             W.Overlays.Delete (Existing);
          end if;
       end;
 
-      W.Overlays.Append (OA);
-      Mark_Dirty (OA.all);
-      if W.Root /= null then
-         Mark_Dirty (W.Root.all);
+      W.Overlays.Append (Overlay);
+      Mark_Dirty (Overlay);
+      if Is_Valid (W.Root) then
+         Mark_Dirty (W.Root);
       end if;
       W.Needs_Layout := True;
    end Add_Overlay;
 
-   procedure Add_Overlay (W : in out Window; Overlay : Widget_Handle) is
-      Ptr : constant Widget_Access := Resolve_Widget_Handle (Overlay);
-   begin
-      if Ptr /= null then
-         Add_Overlay (W, Ptr);
-      end if;
-   end Add_Overlay;
-
-   procedure Remove_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class) is
-      OA       : Widget_Access := null;
+   procedure Remove_Overlay (W : in out Window; Overlay : Widget_Handle) is
       Existing : Natural;
    begin
-      if Overlay = null then
+      if not Is_Valid (Overlay) then
          return;
       end if;
-      OA := Overlay.all'Unchecked_Access;
 
-      Existing := Overlay_Index (W, OA);
+      Existing := Overlay_Index (W, Overlay);
       if Existing = 0 then
          return;
       end if;
 
       --  Clear refs if they point into the removed overlay subtree
-      if W.Focused_Widget /= null
-        and then Is_In_Subtree (OA, W.Focused_Widget)
+      if Is_Valid (W.Focused_Widget)
+        and then Is_In_Subtree (Overlay, W.Focused_Widget)
       then
-         Set_Focused_Widget (W, null);
+         Set_Focused_Widget (W, Null_Handle);
       end if;
 
-      if W.Hovered_Widget /= null
-        and then Is_In_Subtree (OA, W.Hovered_Widget)
+      if Is_Valid (W.Hovered_Widget)
+        and then Is_In_Subtree (Overlay, W.Hovered_Widget)
       then
-         W.Hovered_Widget := null;
+         W.Hovered_Widget := Null_Handle;
       end if;
 
-      if W.Pressed_Widget /= null
-        and then Is_In_Subtree (OA, W.Pressed_Widget)
+      if Is_Valid (W.Pressed_Widget)
+        and then Is_In_Subtree (Overlay, W.Pressed_Widget)
       then
-         W.Pressed_Widget := null;
+         W.Pressed_Widget := Null_Handle;
       end if;
 
       W.Overlays.Delete (Existing);
-      if W.Root /= null then
-         Mark_Dirty (W.Root.all);
+      if Is_Valid (W.Root) then
+         Mark_Dirty (W.Root);
       end if;
       W.Needs_Layout := True;
-   end Remove_Overlay;
-
-   procedure Remove_Overlay (W : in out Window; Overlay : Widget_Handle) is
-      Ptr : constant Widget_Access := Resolve_Widget_Handle (Overlay);
-   begin
-      if Ptr /= null then
-         Remove_Overlay (W, Ptr);
-      end if;
    end Remove_Overlay;
 
    procedure Clear_Overlays (W : in out Window) is
@@ -1281,31 +1181,31 @@ package body Adi.Window is
       --  Clear refs if they point into any overlay subtree
       for I in 1 .. Natural (W.Overlays.Length) loop
          declare
-            OA : constant Widget_Access := W.Overlays.Element (I);
+            OH : constant Widget_Handle := W.Overlays.Element (I);
          begin
-            if W.Focused_Widget /= null
-              and then Is_In_Subtree (OA, W.Focused_Widget)
+            if Is_Valid (W.Focused_Widget)
+              and then Is_In_Subtree (OH, W.Focused_Widget)
             then
-               Set_Focused_Widget (W, null);
+               Set_Focused_Widget (W, Null_Handle);
             end if;
 
-            if W.Hovered_Widget /= null
-              and then Is_In_Subtree (OA, W.Hovered_Widget)
+            if Is_Valid (W.Hovered_Widget)
+              and then Is_In_Subtree (OH, W.Hovered_Widget)
             then
-               W.Hovered_Widget := null;
+               W.Hovered_Widget := Null_Handle;
             end if;
 
-            if W.Pressed_Widget /= null
-              and then Is_In_Subtree (OA, W.Pressed_Widget)
+            if Is_Valid (W.Pressed_Widget)
+              and then Is_In_Subtree (OH, W.Pressed_Widget)
             then
-               W.Pressed_Widget := null;
+               W.Pressed_Widget := Null_Handle;
             end if;
          end;
       end loop;
 
       W.Overlays.Clear;
-      if W.Root /= null then
-         Mark_Dirty (W.Root.all);
+      if Is_Valid (W.Root) then
+         Mark_Dirty (W.Root);
       end if;
       W.Needs_Layout := True;
    end Clear_Overlays;
@@ -1315,20 +1215,11 @@ package body Adi.Window is
       return Natural (W.Overlays.Length);
    end Overlay_Count;
 
-   function Get_Overlay (W : Window; Index : Positive) return Widget_Access is
-   begin
-      return W.Overlays.Element (Index);
-   end Get_Overlay;
-
    function Get_Overlay_Handle (W : Window; Index : Positive)
       return Widget_Handle
    is
-      Overlay : constant Widget_Access := Get_Overlay (W, Index);
    begin
-      if Overlay = null then
-         return Null_Handle;
-      end if;
-      return Get_Handle (Overlay.all);
+      return W.Overlays.Element (Index);
    end Get_Overlay_Handle;
 
    function Get_Overlay_Handle (H : Window_Handle; Index : Positive)
@@ -1343,17 +1234,9 @@ package body Adi.Window is
       return Get_Overlay_Handle (Ptr.all, Index);
    end Get_Overlay_Handle;
 
-   function Get_Focus (W : Window) return Widget_Access is
-   begin
-      return W.Focused_Widget;
-   end Get_Focus;
-
    function Get_Focus_Handle (W : Window) return Widget_Handle is
    begin
-      if W.Focused_Widget = null then
-         return Null_Handle;
-      end if;
-      return Get_Handle (W.Focused_Widget.all);
+      return W.Focused_Widget;
    end Get_Focus_Handle;
 
    function Get_Focus_Handle (H : Window_Handle) return Widget_Handle is
@@ -1366,28 +1249,137 @@ package body Adi.Window is
       return Get_Focus_Handle (Ptr.all);
    end Get_Focus_Handle;
 
+   procedure Add_Overlay (H : Window_Handle; Overlay : Widget_Handle) is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         Add_Overlay (Ptr.all, Overlay);
+      end if;
+   end Add_Overlay;
+
+   procedure Remove_Overlay (H : Window_Handle; Overlay : Widget_Handle) is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         Remove_Overlay (Ptr.all, Overlay);
+      end if;
+   end Remove_Overlay;
+
+   function Get_Size (H : Window_Handle) return Size_2D is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         return Get_Size (Ptr.all);
+      end if;
+      return (0.0, 0.0);
+   end Get_Size;
+
+   procedure Clear_Overlays (H : Window_Handle) is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         Clear_Overlays (Ptr.all);
+      end if;
+   end Clear_Overlays;
+
+   procedure Render (H : Window_Handle) is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         Render (Ptr.all);
+      end if;
+   end Render;
+
+   procedure Handle_Resize (H : Window_Handle; New_Size : Size_2D) is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         Handle_Resize (Ptr.all, New_Size);
+      end if;
+   end Handle_Resize;
+
+   function Get_SDL_Window (H : Window_Handle) return SDL_Window_Ptr is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         return Get_SDL_Window (Ptr.all);
+      end if;
+      return null;
+   end Get_SDL_Window;
+
+   procedure On_Mouse_Wheel
+      (H                : Window_Handle;
+       X, Y             : Pixel_Type;
+       Delta_X, Delta_Y : Pixel_Type)
+   is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         On_Mouse_Wheel (Ptr.all, X, Y, Delta_X, Delta_Y);
+      end if;
+   end On_Mouse_Wheel;
+
+   procedure On_Key_Down
+      (H        : Window_Handle;
+       Scancode : Adi.SDL.Events.SDL_Scancode;
+       Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+       Repeat   : Boolean)
+   is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         On_Key_Down (Ptr.all, Scancode, Key_Mod, Repeat);
+      end if;
+   end On_Key_Down;
+
+   procedure On_Key_Up
+      (H        : Window_Handle;
+       Scancode : Adi.SDL.Events.SDL_Scancode;
+       Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+       Repeat   : Boolean)
+   is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         On_Key_Up (Ptr.all, Scancode, Key_Mod, Repeat);
+      end if;
+   end On_Key_Up;
+
    procedure Clear_Widget_Refs_In_Subtree
      (W      : in out Window;
-      Target : not null access Adi.Widget.Widget'Class)
+      Target : Widget_Handle)
    is
-      TA : constant Widget_Access := Target.all'Unchecked_Access;
    begin
-      if W.Focused_Widget /= null
-        and then Is_In_Subtree (TA, W.Focused_Widget)
-      then
-         Set_Focused_Widget (W, null);
+      if not Is_Valid (Target) then
+         return;
       end if;
 
-      if W.Hovered_Widget /= null
-        and then Is_In_Subtree (TA, W.Hovered_Widget)
+      if Is_Valid (W.Focused_Widget)
+        and then Is_In_Subtree (Target, W.Focused_Widget)
       then
-         W.Hovered_Widget := null;
+         Set_Focused_Widget (W, Null_Handle);
       end if;
 
-      if W.Pressed_Widget /= null
-        and then Is_In_Subtree (TA, W.Pressed_Widget)
+      if Is_Valid (W.Hovered_Widget)
+        and then Is_In_Subtree (Target, W.Hovered_Widget)
       then
-         W.Pressed_Widget := null;
+         W.Hovered_Widget := Null_Handle;
+      end if;
+
+      if Is_Valid (W.Pressed_Widget)
+        and then Is_In_Subtree (Target, W.Pressed_Widget)
+      then
+         W.Pressed_Widget := Null_Handle;
       end if;
    end Clear_Widget_Refs_In_Subtree;
 
@@ -1412,61 +1404,61 @@ package body Adi.Window is
    -- Point_In_Widget --
    ---------------------
 
-   function Point_In_Widget (Wgt : Widget_Access; X, Y : Pixel_Type) return Boolean is
+   function Point_In_Widget (Wgt : Widget_Handle; X, Y : Pixel_Type) return Boolean is
       G : Rectangle;
    begin
-      if Wgt = null then
+      if not Is_Valid (Wgt) then
          return False;
       end if;
 
-      G := Get_Geometry (Wgt.all);
+      G := Get_Geometry (Wgt);
       return X >= G.X and then X <= G.X + G.Width and then
              Y >= G.Y and then Y <= G.Y + G.Height;
    end Point_In_Widget;
 
 
-   function Find_Widget_At (W : Window; X, Y : Pixel_Type) return Widget_Access is
+   function Find_Widget_At (W : Window; X, Y : Pixel_Type) return Widget_Handle is
 
       function Find_Deepest
-        (Parent   : Widget_Access;
+        (Parent   : Widget_Handle;
          Hit_X    : Pixel_Type;
          Hit_Y    : Pixel_Type;
-         Parent_Visibility : Visibility_Value) return Widget_Access
+         Parent_Visibility : Visibility_Value) return Widget_Handle
       is
-         Child    : Widget_Access;
-         Found    : Widget_Access;
+         Child_H  : Widget_Handle;
+         Found    : Widget_Handle;
          Child_Y  : Pixel_Type;
          Node_Visibility : Visibility_Value;
       begin
-         if Parent = null then
-            return null;
+         if not Is_Valid (Parent) then
+            return Null_Handle;
          end if;
 
-         if not Widget_Participates (Parent.all) then
-            return null;
+         if not Widget_Participates (Parent) then
+            return Null_Handle;
          end if;
 
          Node_Visibility :=
-           Resolve_Effective_Visibility (Parent.all, Parent_Visibility);
+           Resolve_Effective_Visibility (Parent, Parent_Visibility);
 
          --  Check if point is in parent first
          if not Point_In_Widget (Parent, Hit_X, Hit_Y) then
-            return null;
+            return Null_Handle;
          end if;
 
          --  When parent scrolls, children are rendered shifted by
          --  -Scroll_Offset_Y.  Reverse the shift so the hit coordinate
          --  maps to the child's stored (unshifted) geometry.
          Child_Y := Hit_Y;
-         if Get_Scroll_Offset_Y (Parent.all) > 0.0 then
-            Child_Y := Hit_Y + Get_Scroll_Offset_Y (Parent.all);
+         if Get_Scroll_Offset_Y (Parent) > 0.0 then
+            Child_Y := Hit_Y + Get_Scroll_Offset_Y (Parent);
          end if;
 
          --  Check children in reverse order (last added = on top)
-         for I in reverse 1 .. Child_Count (Parent.all) loop
-            Child := Child_At (Parent.all, I);
-            Found := Find_Deepest (Child, Hit_X, Child_Y, Node_Visibility);
-            if Found /= null then
+         for I in reverse 1 .. Child_Count (Parent) loop
+            Child_H := Get_Child_Handle (Parent, I);
+            Found := Find_Deepest (Child_H, Hit_X, Child_Y, Node_Visibility);
+            if Is_Valid (Found) then
                return Found;
             end if;
          end loop;
@@ -1477,20 +1469,20 @@ package body Adi.Window is
          if Node_Visibility = Visibility_Visible then
             return Parent;
          end if;
-         return null;
+         return Null_Handle;
       end Find_Deepest;
 
    begin
       for I in reverse 1 .. Natural (W.Overlays.Length) loop
          declare
-            Overlay : constant Widget_Access := W.Overlays.Element (I);
-            Found   : Widget_Access;
+            Overlay : constant Widget_Handle := W.Overlays.Element (I);
+            Found   : Widget_Handle;
          begin
-            if Overlay = null then
+            if not Is_Valid (Overlay) then
                null;
             else
                Found := Find_Deepest (Overlay, X, Y, Visibility_Visible);
-               if Found /= null then
+               if Is_Valid (Found) then
                   return Found;
                end if;
             end if;
@@ -1503,67 +1495,67 @@ package body Adi.Window is
    function Find_Widget_At_With_Flag
      (W    : Window;
       X, Y : Pixel_Type;
-      F    : Widget_Flag) return Widget_Access
+      F    : Widget_Flag) return Widget_Handle
    is
       function Find_Deepest_Eligible
-        (Parent : Widget_Access;
+        (Parent : Widget_Handle;
          Hit_X  : Pixel_Type;
          Hit_Y  : Pixel_Type;
-         Parent_Visibility : Visibility_Value) return Widget_Access
+         Parent_Visibility : Visibility_Value) return Widget_Handle
       is
-         Child   : Widget_Access;
-         Found   : Widget_Access;
+         Child_H : Widget_Handle;
+         Found   : Widget_Handle;
          Child_Y : Pixel_Type;
          Node_Visibility : Visibility_Value;
       begin
-         if Parent = null then
-            return null;
+         if not Is_Valid (Parent) then
+            return Null_Handle;
          end if;
 
-         if not Widget_Participates (Parent.all) then
-            return null;
+         if not Widget_Participates (Parent) then
+            return Null_Handle;
          end if;
 
          Node_Visibility :=
-           Resolve_Effective_Visibility (Parent.all, Parent_Visibility);
+           Resolve_Effective_Visibility (Parent, Parent_Visibility);
 
          if not Point_In_Widget (Parent, Hit_X, Hit_Y) then
-            return null;
+            return Null_Handle;
          end if;
 
          Child_Y := Hit_Y;
-         if Get_Scroll_Offset_Y (Parent.all) > 0.0 then
-            Child_Y := Hit_Y + Get_Scroll_Offset_Y (Parent.all);
+         if Get_Scroll_Offset_Y (Parent) > 0.0 then
+            Child_Y := Hit_Y + Get_Scroll_Offset_Y (Parent);
          end if;
 
-         for I in reverse 1 .. Child_Count (Parent.all) loop
-            Child := Child_At (Parent.all, I);
-            Found := Find_Deepest_Eligible (Child, Hit_X, Child_Y, Node_Visibility);
-            if Found /= null then
+         for I in reverse 1 .. Child_Count (Parent) loop
+            Child_H := Get_Child_Handle (Parent, I);
+            Found := Find_Deepest_Eligible (Child_H, Hit_X, Child_Y, Node_Visibility);
+            if Is_Valid (Found) then
                return Found;
             end if;
          end loop;
 
          if Node_Visibility = Visibility_Visible
-           and then Has_Flag (Parent.all, F)
+           and then Has_Flag (Parent, F)
          then
             return Parent;
          end if;
 
-         return null;
+         return Null_Handle;
       end Find_Deepest_Eligible;
    begin
       for I in reverse 1 .. Natural (W.Overlays.Length) loop
          declare
-            Overlay : constant Widget_Access := W.Overlays.Element (I);
-            Found   : Widget_Access;
+            Overlay : constant Widget_Handle := W.Overlays.Element (I);
+            Found   : Widget_Handle;
          begin
-            if Overlay = null then
+            if not Is_Valid (Overlay) then
                null;
             else
                Found := Find_Deepest_Eligible
                  (Overlay, X, Y, Visibility_Visible);
-               if Found /= null then
+               if Is_Valid (Found) then
                   return Found;
                end if;
             end if;
@@ -1575,29 +1567,18 @@ package body Adi.Window is
 
    function Find_Scroll_Widget_At
      (W    : Window;
-      X, Y : Pixel_Type) return Widget_Access
+      X, Y : Pixel_Type) return Widget_Handle
    is
-      Node : Widget_Access := Find_Widget_At (W, X, Y);
-      Parent : Widget_Access;
+      Node : Widget_Handle := Find_Widget_At (W, X, Y);
    begin
-      while Node /= null loop
-         declare
-            P : constant Part_Kind := Get_Part_At (Node.all, X, Y);
-         begin
-            if P in Scroll_Part | Knob_Part then
-               return Node;
-            end if;
-         end;
-
-         Parent := Parent_Of (Node.all);
-         if Parent = null then
-            Node := null;
-         else
-            Node := Parent;
+      while Is_Valid (Node) loop
+         if Get_Part_At (Node, X, Y) in Scroll_Part | Knob_Part then
+            return Node;
          end if;
+         Node := Get_Parent_Handle (Node);
       end loop;
 
-      return null;
+      return Null_Handle;
    end Find_Scroll_Widget_At;
 
    ------------------------
@@ -1606,30 +1587,30 @@ package body Adi.Window is
 
    procedure Set_Focused_Widget
      (W         : in out Window;
-      New_Focus : Widget_Access)
+      New_Focus : Widget_Handle)
    is
-      Candidate : Widget_Access := New_Focus;
+      Candidate : Widget_Handle := New_Focus;
       Ignore    : Adi.SDL.C_bool;
    begin
-      if Candidate /= null and then not Is_Focus_Candidate (Candidate) then
-         Candidate := null;
+      if Is_Valid (Candidate) and then not Is_Focus_Candidate (Candidate) then
+         Candidate := Null_Handle;
       end if;
 
       if Candidate = W.Focused_Widget then
          return;
       end if;
 
-      if W.Focused_Widget /= null then
-         Set_Focused (W.Focused_Widget.all, False);
-         On_Focus_Lost (W.Focused_Widget.all);
+      if Is_Valid (W.Focused_Widget) then
+         Set_Focused (W.Focused_Widget, False);
+         On_Focus_Lost (W.Focused_Widget);
       end if;
 
       W.Focused_Widget := Candidate;
 
-      if W.Focused_Widget /= null then
+      if Is_Valid (W.Focused_Widget) then
          Ignore := Adi.SDL.Video.SDL_StartTextInput (W.Internal.win);
-         Set_Focused (W.Focused_Widget.all, True);
-         On_Focus_Gained (W.Focused_Widget.all);
+         Set_Focused (W.Focused_Widget, True);
+         On_Focus_Gained (W.Focused_Widget);
       else
          Ignore := Adi.SDL.Video.SDL_StopTextInput (W.Internal.win);
       end if;
@@ -1639,33 +1620,17 @@ package body Adi.Window is
    -- Set_Focus --
    ---------------
 
-   procedure Set_Focus
-     (W      : in out Window;
-      Target : access Adi.Widget.Widget'Class)
-   is
+   procedure Set_Focus (W : in out Window; Target : Widget_Handle) is
    begin
-      if Target = null then
-         Set_Focused_Widget (W, null);
+      if Target = Null_Handle then
+         Set_Focused_Widget (W, Null_Handle);
          return;
       end if;
 
-      declare
-         WA : constant Widget_Access := Target.all'Unchecked_Access;
-      begin
-         if not Window_Contains_Widget (W, WA) then
-            return;
-         end if;
-         Set_Focused_Widget (W, WA);
-      end;
-   end Set_Focus;
-
-   procedure Set_Focus (W : in out Window; Target : Widget_Handle) is
-      Ptr : constant Widget_Access := Resolve_Widget_Handle (Target);
-   begin
-      --  Null_Handle means "clear focus"; stale non-null handles are ignored.
-      if Ptr /= null or else Target = Null_Handle then
-         Set_Focus (W, Ptr);
+      if not Window_Contains_Widget (W, Target) then
+         return;
       end if;
+      Set_Focused_Widget (W, Target);
    end Set_Focus;
 
    procedure Set_Focus (H : Window_Handle; Target : Widget_Handle) is
@@ -1681,33 +1646,27 @@ package body Adi.Window is
    -- On_Mouse_Move --
    -------------------
 procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
-      New_Hovered : Widget_Access;
+      New_Hovered : Widget_Handle;
       New_Part    : Part_Kind;
       Max_Ancestor_Depth : constant := 64;
-      type Widget_Chain is array (Positive range <>) of Widget_Access;
+      type Widget_Chain is array (Positive range <>) of Widget_Handle;
 
       procedure Build_Hover_Chain
-        (Start : Widget_Access;
+        (Start : Widget_Handle;
          Chain : out Widget_Chain;
          Count : out Natural) is
-         Node   : Widget_Access := Start;
-         Parent : Widget_Access;
+         Node : Widget_Handle := Start;
       begin
          Count := 0;
-         while Node /= null and then Count < Chain'Length loop
+         while Is_Valid (Node) and then Count < Chain'Length loop
             Count := Count + 1;
             Chain (Count) := Node;
-            Parent := Parent_Of (Node.all);
-            if Parent = null then
-               Node := null;
-            else
-               Node := Parent;
-            end if;
+            Node := Get_Parent_Handle (Node);
          end loop;
       end Build_Hover_Chain;
 
       function In_Chain
-        (Node  : Widget_Access;
+        (Node  : Widget_Handle;
          Chain : Widget_Chain;
          Count : Natural) return Boolean is
       begin
@@ -1720,8 +1679,8 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       end In_Chain;
 
       procedure Update_Hover_Ancestors
-        (Old_Node : Widget_Access;
-         New_Node : Widget_Access) is
+        (Old_Node : Widget_Handle;
+         New_Node : Widget_Handle) is
          Old_Chain : Widget_Chain (1 .. Max_Ancestor_Depth);
          New_Chain : Widget_Chain (1 .. Max_Ancestor_Depth);
          Old_Count : Natural := 0;
@@ -1733,20 +1692,20 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
          --  Clear hover only for nodes that are not common ancestors anymore.
          for I in 1 .. Old_Count loop
             if not In_Chain (Old_Chain (I), New_Chain, New_Count) then
-               Set_Hovered (Old_Chain (I).all, False);
+               Set_Hovered (Old_Chain (I), False);
             end if;
          end loop;
 
          --  Set hover for newly entered nodes.
          for I in 1 .. New_Count loop
             if not In_Chain (New_Chain (I), Old_Chain, Old_Count) then
-               Set_Hovered (New_Chain (I).all, True);
+               Set_Hovered (New_Chain (I), True);
             end if;
          end loop;
       end Update_Hover_Ancestors;
 
       procedure Clear_Hover_For_Part
-        (Target : in out Adi.Widget.Widget'Class;
+        (Target : Widget_Handle;
          P      : Part_Kind) is
       begin
          Set_Part_State (Target, P, Adi.Widget_Styles.State_Hovered, False);
@@ -1757,7 +1716,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       end Clear_Hover_For_Part;
 
       procedure Set_Hover_For_Part
-        (Target : in out Adi.Widget.Widget'Class;
+        (Target : Widget_Handle;
          P      : Part_Kind) is
       begin
          Set_Part_State (Target, P, Adi.Widget_Styles.State_Hovered, True);
@@ -1772,7 +1731,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
 
       --  Find widget under cursor
       New_Hovered := Find_Scroll_Widget_At (W, X, Y);
-      if New_Hovered = null then
+      if not Is_Valid (New_Hovered) then
          New_Hovered := Find_Widget_At (W, X, Y);
       end if;
 
@@ -1781,37 +1740,37 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
          --  Update widget hover state across ancestor chains.
          Update_Hover_Ancestors (W.Hovered_Widget, New_Hovered);
 
-         if W.Hovered_Widget /= null then
-            Clear_Hover_For_Part (W.Hovered_Widget.all, W.Hovered_Part);
+         if Is_Valid (W.Hovered_Widget) then
+            Clear_Hover_For_Part (W.Hovered_Widget, W.Hovered_Part);
          end if;
 
          --  Set hover on new widget
-         if New_Hovered /= null then
-            New_Part := Get_Part_At (New_Hovered.all, X, Y);
-            Set_Hover_For_Part (New_Hovered.all, New_Part);
+         if Is_Valid (New_Hovered) then
+            New_Part := Get_Part_At (New_Hovered, X, Y);
+            Set_Hover_For_Part (New_Hovered, New_Part);
             W.Hovered_Part := New_Part;
          else
             W.Hovered_Part := Main_Part;
          end if;
 
          W.Hovered_Widget := New_Hovered;
-      elsif W.Hovered_Widget /= null then
-         New_Part := Get_Part_At (W.Hovered_Widget.all, X, Y);
+      elsif Is_Valid (W.Hovered_Widget) then
+         New_Part := Get_Part_At (W.Hovered_Widget, X, Y);
          if New_Part /= W.Hovered_Part then
-            Clear_Hover_For_Part (W.Hovered_Widget.all, W.Hovered_Part);
-            Set_Hover_For_Part (W.Hovered_Widget.all, New_Part);
+            Clear_Hover_For_Part (W.Hovered_Widget, W.Hovered_Part);
+            Set_Hover_For_Part (W.Hovered_Widget, New_Part);
             W.Hovered_Part := New_Part;
          end if;
       end if;
 
       --  Route drag motion to the pressed widget (for text selection, etc.)
-      if W.Mouse_Down and then W.Pressed_Widget /= null
-        and then not Is_Disabled (W.Pressed_Widget.all)
+      if W.Mouse_Down and then Is_Valid (W.Pressed_Widget)
+        and then not Is_Disabled (W.Pressed_Widget)
       then
          if W.Scroll_Claimed then
-            Handle_Scroll_Mouse_Move (W.Pressed_Widget.all, X, Y);
+            Handle_Scroll_Mouse_Move (W.Pressed_Widget, X, Y);
          else
-            On_Mouse_Move (W.Pressed_Widget.all, X, Y);
+            Adi.Widget.On_Mouse_Move (W.Pressed_Widget, X, Y);
          end if;
       end if;
    end On_Mouse_Move;
@@ -1828,10 +1787,10 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
     is
       Guard : Dispatch_Guard;
       pragma Unreferenced (Guard);
-      Click_Target : Widget_Access;
-      Focus_Target : Widget_Access;
-      Scroll_Target : Widget_Access;
-      Any_Target : Widget_Access;
+      Click_Target  : Widget_Handle := Null_Handle;
+      Focus_Target  : Widget_Handle := Null_Handle;
+      Scroll_Target : Widget_Handle := Null_Handle;
+      Any_Target    : Widget_Handle := Null_Handle;
    begin
       W.Mouse_X := X;
       W.Mouse_Y := Y;
@@ -1844,8 +1803,8 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       --  Right-click opens context menus without entering pressed/drag state.
       if Button = Right_Button then
          Any_Target := Find_Widget_At (W, X, Y);
-         if Any_Target /= null then
-            if Bubble_Context_Menu (Get_Handle (Any_Target.all), X, Y) then
+         if Is_Valid (Any_Target) then
+            if Bubble_Context_Menu (Any_Target, X, Y) then
                return;
             end if;
          end if;
@@ -1856,48 +1815,40 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       Scroll_Target := Find_Scroll_Widget_At (W, X, Y);
 
       --  Disabled widgets do not receive clicks or focus.
-      if Click_Target /= null
-        and then Is_Disabled (Click_Target.all)
-      then
-         Click_Target := null;
+      if Is_Valid (Click_Target) and then Is_Disabled (Click_Target) then
+         Click_Target := Null_Handle;
       end if;
-      if Focus_Target /= null
-        and then Is_Disabled (Focus_Target.all)
-      then
-         Focus_Target := null;
+      if Is_Valid (Focus_Target) and then Is_Disabled (Focus_Target) then
+         Focus_Target := Null_Handle;
       end if;
 
       --  Allow dragging scrollbar parts on non-clickable containers
       --  (e.g. a scrollable root panel).
-      if Click_Target = null and then Scroll_Target /= null then
-         declare
-            P : constant Part_Kind := Get_Part_At (Scroll_Target.all, X, Y);
-         begin
-            if P in Scroll_Part | Knob_Part then
-               Click_Target := Scroll_Target;
-            end if;
-         end;
+      if not Is_Valid (Click_Target) and then Is_Valid (Scroll_Target) then
+         if Get_Part_At (Scroll_Target, X, Y) in Scroll_Part | Knob_Part then
+            Click_Target := Scroll_Target;
+         end if;
       end if;
 
-      if Click_Target /= null then
-         W.Pressed_Part := Get_Part_At (Click_Target.all, X, Y);
-         Set_Pressed (Click_Target.all, True);
-         Set_Part_State (Click_Target.all,
+      if Is_Valid (Click_Target) then
+         W.Pressed_Part := Get_Part_At (Click_Target, X, Y);
+         Set_Pressed (Click_Target, True);
+         Set_Part_State (Click_Target,
                          W.Pressed_Part,
                          Adi.Widget_Styles.State_Pressed,
                          True);
          W.Pressed_Widget := Click_Target;
          if W.Pressed_Part in Scroll_Part | Knob_Part then
             W.Scroll_Claimed :=
-              Handle_Scroll_Mouse_Down (Click_Target.all, X, Y, Button);
+              Handle_Scroll_Mouse_Down (Click_Target, X, Y, Button);
             if not W.Scroll_Claimed then
-               On_Mouse_Down (Click_Target.all, X, Y, Button, Clicks);
+               Adi.Widget.On_Mouse_Down (Click_Target, X, Y, Button, Clicks);
             end if;
          else
-            On_Mouse_Down (Click_Target.all, X, Y, Button, Clicks);
+            Adi.Widget.On_Mouse_Down (Click_Target, X, Y, Button, Clicks);
          end if;
       else
-         W.Pressed_Widget := null;
+         W.Pressed_Widget := Null_Handle;
          W.Pressed_Part := Main_Part;
       end if;
 
@@ -1914,7 +1865,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       pragma Unreferenced (Guard);
       --  Save pressed widget/part before dispatching, because On_Mouse_Up
       --  or On_Click callbacks (e.g. dialog dismiss) may clear them.
-      PW   : Widget_Access := W.Pressed_Widget;
+      PW   : Widget_Handle := W.Pressed_Widget;
       Part : constant Part_Kind := W.Pressed_Part;
    begin
       W.Mouse_Down := False;
@@ -1922,40 +1873,40 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       W.Mouse_Y := Y;
 
       --  Release pressed widget and dispatch click if applicable
-      if PW /= null then
+      if Is_Valid (PW) then
          if W.Scroll_Claimed then
-            Handle_Scroll_Mouse_Up (PW.all, Button);
+            Handle_Scroll_Mouse_Up (PW, Button);
          else
-            On_Mouse_Up (PW.all, X, Y, Button);
+            Adi.Widget.On_Mouse_Up (PW, X, Y, Button);
          end if;
 
          --  Re-read: callback may have cleared W.Pressed_Widget
          --  (e.g. Remove_Overlay from a dialog dismiss).
-         if W.Pressed_Widget = null then
-            PW := null;
+         if not Is_Valid (W.Pressed_Widget) then
+            PW := Null_Handle;
          end if;
 
-         if PW /= null
+         if Is_Valid (PW)
             and then Point_In_Widget (PW, X, Y)
-            and then Has_Flag (PW.all, Clickable)
+            and then Has_Flag (PW, Clickable)
             and then Button = Left_Button
-            and then not Is_Disabled (PW.all)
+            and then not Is_Disabled (PW)
          then
-            On_Click (PW.all);
+            Adi.Widget.On_Click (PW);
          end if;
 
          --  Re-read again: On_Click may have cleared it too.
-         if W.Pressed_Widget = null then
-            PW := null;
+         if not Is_Valid (W.Pressed_Widget) then
+            PW := Null_Handle;
          end if;
 
-         if PW /= null then
-            Set_Part_State (PW.all, Part,
+         if Is_Valid (PW) then
+            Set_Part_State (PW, Part,
                             Adi.Widget_Styles.State_Pressed, False);
-            Set_Pressed (PW.all, False);
+            Set_Pressed (PW, False);
          end if;
 
-         W.Pressed_Widget := null;
+         W.Pressed_Widget := Null_Handle;
          W.Pressed_Part := Main_Part;
          W.Scroll_Claimed := False;
       end if;
@@ -1972,7 +1923,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
    is
       Guard      : Dispatch_Guard;
       pragma Unreferenced (Guard);
-      Target     : Widget_Access;
+      Target     : Widget_Handle := Null_Handle;
       In_Overlay : Boolean := False;
    begin
       W.Mouse_X := X;
@@ -1982,12 +1933,12 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       --  participation/visibility eligibility as normal hit-testing.
       for I in reverse 1 .. Natural (W.Overlays.Length) loop
          declare
-            Overlay : constant Widget_Access := W.Overlays.Element (I);
+            Overlay : constant Widget_Handle := W.Overlays.Element (I);
          begin
-            if Overlay /= null
-              and then Widget_Participates (Overlay.all)
+            if Is_Valid (Overlay)
+              and then Widget_Participates (Overlay)
               and then Resolve_Effective_Visibility
-                (Overlay.all, Visibility_Visible) = Visibility_Visible
+                (Overlay, Visibility_Visible) = Visibility_Visible
               and then Point_In_Widget (Overlay, X, Y)
             then
                In_Overlay := True;
@@ -2001,20 +1952,18 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       if In_Overlay then
          --  Cursor is over an overlay: only accept a scrollable target that
          --  belongs to an overlay subtree.  Discard any target found in root.
-         if Target /= null then
+         if Is_Valid (Target) then
             declare
                In_Overlay_Tree : Boolean := False;
             begin
                for I in 1 .. Natural (W.Overlays.Length) loop
-                  if Is_In_Subtree
-                    (W.Overlays.Element (I), Target)
-                  then
+                  if Is_In_Subtree (W.Overlays.Element (I), Target) then
                      In_Overlay_Tree := True;
                      exit;
                   end if;
                end loop;
                if not In_Overlay_Tree then
-                  Target := null;
+                  Target := Null_Handle;
                end if;
             end;
          end if;
@@ -2022,17 +1971,17 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       else
          --  No overlay under cursor: allow focus fallback to focused
          --  scrollable widget.
-         if Target = null then
-            if W.Focused_Widget /= null
-              and then Has_Flag (W.Focused_Widget.all, Scrollable)
+         if not Is_Valid (Target) then
+            if Is_Valid (W.Focused_Widget)
+              and then Has_Flag (W.Focused_Widget, Scrollable)
             then
                Target := W.Focused_Widget;
             end if;
          end if;
       end if;
 
-      if Target /= null and then not Is_Disabled (Target.all) then
-         On_Mouse_Wheel (Target.all, Delta_X, Delta_Y);
+      if Is_Valid (Target) and then not Is_Disabled (Target) then
+         Adi.Widget.On_Mouse_Wheel (Target, Delta_X, Delta_Y);
       end if;
    end On_Mouse_Wheel;
 
@@ -2052,45 +2001,45 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       use type Adi.SDL.Events.SDL_Scancode;
       Shift_Mod : constant Boolean :=
         (Key_Mod and Adi.SDL.Events.SDL_KMOD_SHIFT) /= 0;
-      Next_Focus : Widget_Access := null;
-      Key_Root   : constant Widget_Access := Active_Key_Root (W);
+      Next_Focus : Widget_Handle := Null_Handle;
+      Key_Root   : constant Widget_Handle := Active_Key_Root (W);
    begin
       if Scancode = Adi.SDL.Events.SDL_SCANCODE_TAB then
          if Shift_Mod then
             Next_Focus := Prev_Focusable (Key_Root, W.Focused_Widget);
-            if Next_Focus = null then
+            if not Is_Valid (Next_Focus) then
                Next_Focus := Last_Focusable (Key_Root);
             end if;
          else
             Next_Focus := Next_Focusable (Key_Root, W.Focused_Widget);
-            if Next_Focus = null then
+            if not Is_Valid (Next_Focus) then
                Next_Focus := First_Focusable (Key_Root);
             end if;
          end if;
 
-         if Next_Focus /= null then
+         if Is_Valid (Next_Focus) then
             Set_Focused_Widget (W, Next_Focus);
          end if;
          return;
       end if;
 
-      if W.Focused_Widget /= null
+      if Is_Valid (W.Focused_Widget)
         and then Is_In_Subtree (Key_Root, W.Focused_Widget)
-        and then not Is_Disabled (W.Focused_Widget.all)
+        and then not Is_Disabled (W.Focused_Widget)
       then
-         On_Key_Down (W.Focused_Widget.all, Scancode, Key_Mod, Repeat);
+         Adi.Widget.On_Key_Down (W.Focused_Widget, Scancode, Key_Mod, Repeat);
 
          --  For overlays (modal dialogs), also let the overlay root handle
          --  Escape so that dismiss-on-escape works regardless of which
          --  child widget is focused.
          if Scancode = Adi.SDL.Events.SDL_SCANCODE_ESCAPE
            and then Key_Root /= W.Root
-           and then Widget_Access (W.Focused_Widget) /= Key_Root
+           and then W.Focused_Widget /= Key_Root
          then
-            On_Key_Down (Key_Root.all, Scancode, Key_Mod, Repeat);
+            Adi.Widget.On_Key_Down (Key_Root, Scancode, Key_Mod, Repeat);
          end if;
-      elsif Key_Root /= null then
-         On_Key_Down (Key_Root.all, Scancode, Key_Mod, Repeat);
+      elsif Is_Valid (Key_Root) then
+         Adi.Widget.On_Key_Down (Key_Root, Scancode, Key_Mod, Repeat);
       end if;
    end On_Key_Down;
 
@@ -2107,13 +2056,13 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       Guard : Dispatch_Guard;
       pragma Unreferenced (Guard);
    begin
-      if W.Focused_Widget /= null
+      if Is_Valid (W.Focused_Widget)
         and then Is_In_Subtree (Active_Key_Root (W), W.Focused_Widget)
-        and then not Is_Disabled (W.Focused_Widget.all)
+        and then not Is_Disabled (W.Focused_Widget)
       then
-         On_Key_Up (W.Focused_Widget.all, Scancode, Key_Mod, Repeat);
-      elsif Active_Key_Root (W) /= null then
-         On_Key_Up (Active_Key_Root (W).all, Scancode, Key_Mod, Repeat);
+         Adi.Widget.On_Key_Up (W.Focused_Widget, Scancode, Key_Mod, Repeat);
+      elsif Is_Valid (Active_Key_Root (W)) then
+         Adi.Widget.On_Key_Up (Active_Key_Root (W), Scancode, Key_Mod, Repeat);
       end if;
    end On_Key_Up;
 
@@ -2125,13 +2074,13 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       Guard : Dispatch_Guard;
       pragma Unreferenced (Guard);
    begin
-      if W.Focused_Widget /= null
+      if Is_Valid (W.Focused_Widget)
         and then Is_In_Subtree (Active_Key_Root (W), W.Focused_Widget)
-        and then not Is_Disabled (W.Focused_Widget.all)
+        and then not Is_Disabled (W.Focused_Widget)
       then
-         On_Text_Input (W.Focused_Widget.all, Text);
-      elsif Active_Key_Root (W) /= null then
-         On_Text_Input (Active_Key_Root (W).all, Text);
+         Adi.Widget.On_Text_Input (W.Focused_Widget, Text);
+      elsif Is_Valid (Active_Key_Root (W)) then
+         Adi.Widget.On_Text_Input (Active_Key_Root (W), Text);
       end if;
    end On_Text_Input;
 
@@ -2143,7 +2092,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
       Guard                : Dispatch_Guard;
       pragma Unreferenced (Guard);
       Root_Dirty_Before    : constant Boolean :=
-        (W.Root /= null and then Is_Dirty (W.Root.all));
+        (Is_Valid (W.Root) and then Is_Dirty (W.Root));
       Overlay_Dirty_Before : constant Boolean := Is_Any_Overlay_Dirty (W);
       Root_Dirty_After     : Boolean;
       Overlay_Dirty_After  : Boolean;
@@ -2159,21 +2108,21 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
          Emit (W.Tick_Sig);
       end;
 
-      if W.Root /= null then
-         Tick_Animations (W.Root.all, DT);
+      if Is_Valid (W.Root) then
+         Tick_Animations (W.Root, DT);
       end if;
 
       for I in 1 .. Natural (W.Overlays.Length) loop
          declare
-            Overlay : constant Widget_Access := W.Overlays.Element (I);
+            Overlay : constant Widget_Handle := W.Overlays.Element (I);
          begin
-            if Overlay /= null then
-               Tick_Animations (Overlay.all, DT);
+            if Is_Valid (Overlay) then
+               Tick_Animations (Overlay, DT);
             end if;
          end;
       end loop;
 
-      Root_Dirty_After := (W.Root /= null and then Is_Dirty (W.Root.all));
+      Root_Dirty_After := (Is_Valid (W.Root) and then Is_Dirty (W.Root));
       Overlay_Dirty_After := Is_Any_Overlay_Dirty (W);
 
       if Root_Dirty_After /= Root_Dirty_Before
@@ -2230,19 +2179,19 @@ function Get_Size (W : in out Window) return Size_2D is
    procedure Destroy_Widget_Tree (W : in out Window) is
    begin
       --  Clear all widget refs first so Destroy hooks don't chase stale state.
-      W.Focused_Widget := null;
-      W.Hovered_Widget := null;
-      W.Pressed_Widget := null;
+      W.Focused_Widget := Null_Handle;
+      W.Hovered_Widget := Null_Handle;
+      W.Pressed_Widget := Null_Handle;
 
       --  Destroy overlay widgets (snapshot list since Destroy modifies it)
       declare
          Snapshot : Overlay_Vectors.Vector := W.Overlays;
       begin
          W.Overlays.Clear;
-         for OA of Snapshot loop
-            if OA /= null then
+         for OH of Snapshot loop
+            if Is_Valid (OH) then
                declare
-                  H : Widget_Handle := Get_Handle (OA.all);
+                  H : Widget_Handle := OH;
                begin
                   Destroy (H);
                end;
@@ -2251,11 +2200,11 @@ function Get_Size (W : in out Window) return Size_2D is
       end;
 
       --  Destroy root widget tree
-      if W.Root /= null then
+      if Is_Valid (W.Root) then
          declare
-            H : Widget_Handle := Get_Handle (W.Root.all);
+            H : Widget_Handle := W.Root;
          begin
-            W.Root := null;
+            W.Root := Null_Handle;
             Destroy (H);
          end;
       end if;
@@ -2279,18 +2228,6 @@ function Get_Size (W : in out Window) return Size_2D is
       H.Id := Window_Stores.Null_Id;
    end Destroy;
 
-   procedure Destroy (W : in out Window_Access) is
-      H : Window_Handle;
-   begin
-      if W = null then
-         return;
-      end if;
-
-      H := Get_Handle (W.all);
-      Destroy (H);
-      W := null;
-   end Destroy;
-
    -- Finalize --
    --------------
 
@@ -2299,7 +2236,7 @@ function Get_Size (W : in out Window) return Size_2D is
       use Adi.SDL.Render;
    begin
       --  Destroy widget trees if not already done by Destroy_Widget_Tree.
-      if W.Root /= null or else not W.Overlays.Is_Empty then
+      if Is_Valid (W.Root) or else not W.Overlays.Is_Empty then
          Destroy_Widget_Tree (W);
       end if;
 
@@ -2309,7 +2246,6 @@ function Get_Size (W : in out Window) return Size_2D is
       Adi.Render.Destroy (W.Ctx);
       if W.Internal /= null then
          if W.Internal.ren /= null then
-            --  Evict per-renderer texture caches from all live images
             Adi.Image.Release_All_Textures_For_Renderer (W.Internal.ren);
             SDL_DestroyRenderer (W.Internal.ren);
          end if;
@@ -2329,9 +2265,9 @@ function Get_Size (W : in out Window) return Size_2D is
           W.Geometry := (0.0, 0.0, New_Size.Width, New_Size.Height);
 
           --  Re-layout root widget if exists
-          if W.Root /= null then
-             Set_Geometry (W.Root.all, W.Geometry);
-             Mark_Dirty (W.Root.all);
+          if Is_Valid (W.Root) then
+             Set_Geometry (W.Root, W.Geometry);
+             Mark_Dirty (W.Root);
           end if;
 
           --  Overlays (e.g. dialogs) often recompute their internal panel
@@ -2339,10 +2275,10 @@ function Get_Size (W : in out Window) return Size_2D is
           --  on size changes, not just scale changes.
           for I in 1 .. Natural (W.Overlays.Length) loop
              declare
-                Overlay : constant Widget_Access := W.Overlays.Element (I);
+                Overlay : constant Widget_Handle := W.Overlays.Element (I);
              begin
-                if Overlay /= null then
-                   Mark_Dirty (Overlay.all);
+                if Is_Valid (Overlay) then
+                   Mark_Dirty (Overlay);
                 end if;
              end;
           end loop;
@@ -2355,15 +2291,15 @@ function Get_Size (W : in out Window) return Size_2D is
        Scale_Changed := Refresh_DIP_Scale (W);
        Refresh_Viewport_Size (W);
        if Scale_Changed then
-          if W.Root /= null then
-             Mark_Dirty (W.Root.all);
+          if Is_Valid (W.Root) then
+             Mark_Dirty (W.Root);
           end if;
           for I in 1 .. Natural (W.Overlays.Length) loop
              declare
-                Overlay : constant Widget_Access := W.Overlays.Element (I);
+                Overlay : constant Widget_Handle := W.Overlays.Element (I);
              begin
-                if Overlay /= null then
-                   Mark_Dirty (Overlay.all);
+                if Is_Valid (Overlay) then
+                   Mark_Dirty (Overlay);
                 end if;
              end;
           end loop;
@@ -2468,9 +2404,10 @@ function Get_Size (W : in out Window) return Size_2D is
        Guard : Dispatch_Guard;
        pragma Unreferenced (Guard);
        Allow : Boolean := True;
+       H : constant Window_Handle := Get_Handle (W);
        procedure Call (CB : Close_Request_Callback) is
        begin
-          CB (W'Unchecked_Access, Allow);
+          CB (H, Allow);
        end Call;
        procedure Emit is new Close_Request_Signals.For_Each (Call);
     begin
@@ -2496,19 +2433,20 @@ function Get_Size (W : in out Window) return Size_2D is
 
    procedure On_Widget_Destroy (W : not null Widget_Access) is
       use type Window_Access;
-      Host : constant Window_Access := Find_Host_Window (W);
+      WH   : constant Widget_Handle := Get_Handle (W.all);
+      Host : constant Window_Access := Find_Host_Window (WH);
    begin
       if Host = null then
          return;
       end if;
 
-      Clear_Widget_Refs_In_Subtree (Host.all, W);
+      Clear_Widget_Refs_In_Subtree (Host.all, WH);
 
-      if Host.Root = W then
-         Set_Root (Host.all, null);
+      if Host.Root = WH then
+         Set_Root (Host.all, Null_Handle);
       end if;
 
-      Remove_Overlay (Host.all, W);
+      Remove_Overlay (Host.all, WH);
    end On_Widget_Destroy;
 
 begin

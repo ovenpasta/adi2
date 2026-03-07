@@ -62,7 +62,11 @@ package Adi.Widget.Context_Menu is
    procedure Add_Item
      (Menu : in out Context_Menu;
       Text : String);
+   procedure Add_Item
+     (Menu : Menu_Handle;
+      Text : String);
    procedure Clear_Items (Menu : in out Context_Menu);
+   procedure Clear_Items (Menu : Menu_Handle);
    function Item_Count (Menu : Context_Menu) return Natural;
 
    procedure Set_Item_Disabled
@@ -140,12 +144,11 @@ private
      (Adi.Widget.Part_Style_Array);
 
    package Popup_Lists is new Adi.Widget.List_Box
-     (Adi.Widget.Label.Label_Widget,
-      Adi.Widget.Label.Label_Widget_Access);
+     (Adi.Widget.Label.Label_Widget);
 
    type Context_Menu is tagged limited record
       Host_Window : Adi.Window.Window_Access := null;
-      Popup       : Popup_Lists.List_Box_Widget_Access := null;
+      Popup       : Popup_Lists.List_Box_Handle := Popup_Lists.Null_List_Box_Handle;
       Items       : String_Vectors.Vector;
       Disabled    : Bool_Vectors.Vector;
       Row_Styles  : Part_Style_Holders.Holder;

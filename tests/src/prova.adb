@@ -18,42 +18,46 @@ procedure Widget_Demo is
    function Size_Val (L : Length_Value) return Size_Value renames Adi.CSS_Styles.Size;
 
    use type Adi.Image.Image_Access;
+   use type Adi.Widget.Box.Box_Handle;
+   use type Adi.Widget.Label.Label_Handle;
 
 begin
    A.Init;
 
    declare
-      W : Adi.Window.Window_Access := Adi.Window.Create_Window ("Widget Demo", (800.0, 600.0));
+      W : constant Adi.Window.Window_Handle :=
+        Adi.Window.Create_Window_Handle ("Widget Demo", (800.0, 600.0));
 
       --  Root container (dark background, flex column)
-      Root_Box : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Root_Box : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
 
       --  Top row: two cards side by side
-      Top_Row : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Top_Row : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
 
       --  Card-style box (will have a background image)
-      Card_Box : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Card_Box : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
 
       --  Card 2 with orange border
-      Card_Box_2 : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Card_Box_2 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
 
       --  Small colored box inside card 2
-      Inner_Box : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Inner_Box : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
 
       --  Bottom row: button, hover box, label box
-      Bottom_Row : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Bottom_Row : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
 
       --  Button-style box
-      Button_Box : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Button_Box : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
 
       --  Hover-demo box
-      Hover_Box : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Hover_Box : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
 
       --  Label container box
-      Label_Box : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Label_Box : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
 
       --  Text label
-      Title_Label : Adi.Widget.Label.Label_Widget_Access := Adi.Widget.Label.Create ("Hello Adi Framework!");
+      Title_Label : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Hello Adi Framework!");
 
       --  Background image for Card_Box
       Bg : Adi.Image.Image_Access;
@@ -63,7 +67,7 @@ begin
       Bg := Adi.Image.Load_From_File ("bg.png");
 
       --  Style the root container (dark bg, flex column, fills window)
-      Set_Part_Style (Root_Box.all, Main_Part,
+      Set_Part_Style (+Root_Box, Main_Part,
          Style
             .Base ((
                Display          => Set (Flex),
@@ -75,7 +79,7 @@ begin
             .Build);
 
       --  Style top row (flex row)
-      Set_Part_Style (Top_Row.all, Main_Part,
+      Set_Part_Style (+Top_Row, Main_Part,
          Style
             .Base ((
                Display          => Set (Flex),
@@ -87,7 +91,7 @@ begin
             .Build);
 
       --  Style the card box (white with rounded corners, border, and background image)
-      Set_Part_Style (Card_Box.all, Main_Part,
+      Set_Part_Style (+Card_Box, Main_Part,
          Style
             .Base ((
                Background_Color => Set_Bg (C (Adi.CSS_Styles.White)),
@@ -104,7 +108,7 @@ begin
             .Build);
 
       --  Style card box 2 (orange tint, flex column for inner content)
-      Set_Part_Style (Card_Box_2.all, Main_Part,
+      Set_Part_Style (+Card_Box_2, Main_Part,
          Style
             .Base ((
                Display          => Set (Flex),
@@ -121,7 +125,7 @@ begin
             .Build);
 
       --  Style inner box (solid orange, fixed size)
-      Set_Part_Style (Inner_Box.all, Main_Part,
+      Set_Part_Style (+Inner_Box, Main_Part,
          Style
             .Base ((
                Background_Color => Set_Bg (RGB (251, 146, 60)),
@@ -132,7 +136,7 @@ begin
             .Build);
 
       --  Style bottom row (flex row)
-      Set_Part_Style (Bottom_Row.all, Main_Part,
+      Set_Part_Style (+Bottom_Row, Main_Part,
          Style
             .Base ((
                Display          => Set (Flex),
@@ -143,7 +147,7 @@ begin
             .Build);
 
       --  Style the button box (blue, with hover/press states)
-      Set_Part_Style (Button_Box.all, Main_Part,
+      Set_Part_Style (+Button_Box, Main_Part,
          Style
             .Base ((
                Background_Color => Set_Bg (RGB (59, 130, 246)),
@@ -162,7 +166,7 @@ begin
             .Build);
 
       --  Style hover demo box (green, with hover state)
-      Set_Part_Style (Hover_Box.all, Main_Part,
+      Set_Part_Style (+Hover_Box, Main_Part,
          Style
             .Base ((
                Background_Color => Set_Bg (RGB (0, 255, 0)),
@@ -180,7 +184,7 @@ begin
             .Build);
 
       --  Style the label box
-      Set_Part_Style (Label_Box.all, Main_Part,
+      Set_Part_Style (+Label_Box, Main_Part,
          Style
             .Base ((
                Background_Color => Set_Bg (RGB (255, 255, 255)),
@@ -194,7 +198,7 @@ begin
             .Build);
 
       --  Style the title label (main part)
-      Set_Part_Style (Title_Label.all, Main_Part,
+      Set_Part_Style (+Title_Label, Main_Part,
          Style
             .Base ((
                Background_Color => Set_Bg (RGB (240, 240, 250)),
@@ -204,7 +208,7 @@ begin
             .Build);
 
       --  Style the title label text
-      Set_Part_Style (Title_Label.all, Label_Part,
+      Set_Part_Style (+Title_Label, Label_Part,
          Style
             .Base ((
                Color          => Set (RGB (30, 30, 30)),
@@ -215,28 +219,28 @@ begin
             .Build);
 
       --  Build widget hierarchy
-      Add_Child (Card_Box_2.all, Widget_Access (Inner_Box));
+      Add_Child (+Card_Box_2, +Inner_Box);
 
-      Add_Child (Top_Row.all, Widget_Access (Card_Box));
-      Add_Child (Top_Row.all, Widget_Access (Card_Box_2));
+      Add_Child (+Top_Row, +Card_Box);
+      Add_Child (+Top_Row, +Card_Box_2);
 
-      Add_Child (Bottom_Row.all, Widget_Access (Button_Box));
-      Add_Child (Bottom_Row.all, Widget_Access (Hover_Box));
-      Add_Child (Bottom_Row.all, Widget_Access (Label_Box));
+      Add_Child (+Bottom_Row, +Button_Box);
+      Add_Child (+Bottom_Row, +Hover_Box);
+      Add_Child (+Bottom_Row, +Label_Box);
 
-      Add_Child (Root_Box.all, Widget_Access (Top_Row));
-      Add_Child (Root_Box.all, Widget_Access (Bottom_Row));
-      Add_Child (Root_Box.all, Widget_Access (Title_Label));
+      Add_Child (+Root_Box, +Top_Row);
+      Add_Child (+Root_Box, +Bottom_Row);
+      Add_Child (+Root_Box, +Title_Label);
 
       --  Make widgets clickable so they respond to hover/press
-      Set_Flag (Button_Box.all, Clickable, True);
-      Set_Flag (Hover_Box.all, Clickable, True);
-      Set_Flag (Card_Box.all, Clickable, True);
-      Set_Flag (Card_Box_2.all, Clickable, True);
-      Set_Flag (Inner_Box.all, Clickable, True);
+      Set_Flag (+Button_Box, Clickable, True);
+      Set_Flag (+Hover_Box, Clickable, True);
+      Set_Flag (+Card_Box, Clickable, True);
+      Set_Flag (+Card_Box_2, Clickable, True);
+      Set_Flag (+Inner_Box, Clickable, True);
 
       --  Set root widget for the window
-      Set_Root (W.all, Widget_Access (Root_Box));
+      Set_Root (W, +Root_Box);
 
       --  Add window to app and run
       A.Add_Window (W);

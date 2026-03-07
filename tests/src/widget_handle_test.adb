@@ -34,7 +34,7 @@ procedure Widget_Handle_Test is
    type Test_Page is (Page_A, Page_B);
    package Test_Stack is new Adi.Widget.Stack (Test_Page);
    package Test_List_Box is new Adi.Widget.List_Box
-     (Adi.Widget.Label.Label_Widget, Adi.Widget.Label.Label_Widget_Access);
+     (Adi.Widget.Label.Label_Widget);
 
    Passed : Natural := 0;
    Failed : Natural := 0;
@@ -1065,12 +1065,11 @@ procedure Widget_Handle_Test is
       end;
       Add_Button (H, "Cancel");
 
-      --  Get_Button
+      --  Get_Button_Handle
       declare
-         use type Button.Button_Widget_Access;
-         Btn : constant Button.Button_Widget_Access := Get_Button (H, 1);
+         Btn : constant Button.Button_Handle := Get_Button_Handle (H, 1);
       begin
-         Assert (Btn /= null, "Get_Button(1) returns non-null");
+         Assert (Button.Is_Valid (Btn), "Get_Button_Handle(1) returns valid");
       end;
 
       --  Is_Shown (not attached to window, so can't show)
@@ -1079,10 +1078,10 @@ procedure Widget_Handle_Test is
       --  Clear_Buttons
       Clear_Buttons (H);
       declare
-         use type Button.Button_Widget_Access;
+         Btn : constant Button.Button_Handle := Get_Button_Handle (H, 1);
       begin
-         Assert (Get_Button (H, 1) = null,
-                 "Get_Button(1) null after Clear_Buttons");
+         Assert (not Button.Is_Valid (Btn),
+                 "Get_Button_Handle(1) invalid after Clear_Buttons");
       end;
 
       --  Presets (just verify no crash)
@@ -1136,9 +1135,11 @@ procedure Widget_Handle_Test is
       Set_Active (H, Page_B);
       Assert (Get_Active (H) = Page_B, "Page_B active after set");
 
-      --  Get_Active_Widget / Get_Page
-      Assert (Get_Active_Widget (H) /= null, "Active widget non-null");
-      Assert (Get_Page (H, Page_A) /= null, "Page_A non-null");
+      --  Get_Active_Widget_Handle / Get_Page_Handle
+      Assert (Adi.Widget.Is_Valid (Get_Active_Widget_Handle (H)),
+              "Active widget handle valid");
+      Assert (Adi.Widget.Is_Valid (Get_Page_Handle (H, Page_A)),
+              "Page_A handle valid");
 
       --  Null handle
       Assert (not Is_Valid (Null_Stack_Handle),
@@ -1151,6 +1152,7 @@ procedure Widget_Handle_Test is
 
    procedure Test_List_Box_Handle is
       use Test_List_Box;
+      use type Adi.Widget.Label.Label_Handle;
       H  : constant List_Box_Handle := Create_Handle;
       WH : constant Widget_Handle := To_Widget_Handle (H);
    begin
@@ -1167,17 +1169,14 @@ procedure Widget_Handle_Test is
 
       --  Append_Row / Row_Count
       Assert (Row_Count (H) = 0, "List_Box initially empty");
-      Append_Row (H, Label.Create ("Row1"));
-      Append_Row (H, Label.Create ("Row2"));
-      Append_Row (H, Label.Create ("Row3"));
+      Append_Row (H, +Label.Create_Handle ("Row1"));
+      Append_Row (H, +Label.Create_Handle ("Row2"));
+      Append_Row (H, +Label.Create_Handle ("Row3"));
       Assert (Row_Count (H) = 3, "Row_Count after 3 appends");
 
-      --  Get_Row
-      declare
-         use type Label.Label_Widget_Access;
-      begin
-         Assert (Get_Row (H, 1) /= null, "Get_Row(1) non-null");
-      end;
+      --  Get_Row_Handle
+      Assert (Adi.Widget.Is_Valid (Get_Row_Handle (H, 1)),
+              "Get_Row_Handle(1) valid");
 
       --  Selection
       Set_Selection_Mode (H, Single_Selection);
@@ -1321,7 +1320,7 @@ procedure Widget_Handle_Test is
       Put_Line ("-- Text_Input context menu binding regression --");
       --  After Create_Handle the widget must already have a context menu
       --  subscriber (the text context menu's Show handler).
-      Assert (Has_Context_Menu (Borrow (+H).Ptr.all),
+      Assert (Has_Context_Menu (+H),
               "Text_Input via Create_Handle has context menu");
    end Test_Text_Input_Context_Menu_Binding;
 
@@ -1335,7 +1334,7 @@ procedure Widget_Handle_Test is
       H : constant Text_Editor_Handle := Create_Handle;
    begin
       Put_Line ("-- Text_Editor context menu binding regression --");
-      Assert (Has_Context_Menu (Borrow (+H).Ptr.all),
+      Assert (Has_Context_Menu (+H),
               "Text_Editor via Create_Handle has context menu");
    end Test_Text_Editor_Context_Menu_Binding;
 
@@ -1368,8 +1367,7 @@ procedure Widget_Handle_Test is
       Add_Child (+Child, +Leaf);
 
       --  Attach context menu to Root only
-      Connect_Context_Menu (Borrow (+Root).Ptr.all,
-                            Menu_CB'Unrestricted_Access);
+      Connect_Context_Menu (+Root, Menu_CB'Unrestricted_Access);
 
       --  Bubble from Leaf — must walk up through Child to Root without crash
       declare

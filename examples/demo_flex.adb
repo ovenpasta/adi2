@@ -432,14 +432,13 @@ procedure Demo_Flex is
 
       --  Helper to make demo containers equal width
       procedure Set_Demo_Flex (D : Box_Handle) is
-         Ref      : constant Widget_Ref := Borrow (+D);
-         Old_Style : constant Widget_Style := Get_Part_Style (Ref.Ptr.all, Main_Part);
+         Old_Style : constant Widget_Style := Get_Part_Style (+D, Main_Part);
          New_Base : Style_Rules := Compute_Style (Old_Style, No_States);
       begin
          New_Base.Flex_Grow := Set (1.0);
          New_Base.Min_Width := Set (Size (Px (150.0)));
          New_Base.Min_Height := Set (Size (Px (100.0)));
-         Set_Part_Style (Ref.Ptr.all, Main_Part,
+         Set_Part_Style (+D, Main_Part,
             Adi.Widget_Styles.Create.Base (New_Base).Build);
       end Set_Demo_Flex;
 
@@ -538,15 +537,9 @@ begin
    Root := Create_Main_Layout;
 
    --  Set root geometry to window size
-   declare
-      Ref : constant Widget_Ref := Borrow (+Root);
-   begin
-      Set_Geometry (Ref.Ptr.all, (0.0, 0.0, 800.0, 700.0));
-   end;
+   Set_Geometry (+Root, (0.0, 0.0, 800.0, 700.0));
 
-   --  Set as window root (need to add this to Window)
-   --  For now, we manually update
---   Window.Root := Widget_Access (Root);
+   --  Set as window root
    Adi.Window.Set_Root (Window, Widget_Handle'(+Root));
 
    --  Add window to app

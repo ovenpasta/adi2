@@ -13,6 +13,7 @@ with Ada.Real_Time; use Ada.Real_Time;
 with Adi.Dispatch;
 with Adi.Log;
 with Adi.Widget.Context_Menu;
+with Ada.Text_IO;
 
 package body Adi.App is
 
@@ -300,15 +301,6 @@ package body Adi.App is
     ----------------
     -- Add_Window --
     ----------------
-
-    procedure Add_Window (A : in out App; W : Window_Access) is
-    begin
-        if W = null then
-           A.Main_Window := Null_Window_Handle;
-        else
-           A.Main_Window := Get_Handle (W.all);
-        end if;
-    end Add_Window;
 
     procedure Add_Window (A : in out App; W : Window_Handle) is
     begin

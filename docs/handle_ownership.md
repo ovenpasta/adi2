@@ -16,12 +16,29 @@ This document describes Adi's handle-first ownership system for widgets, context
 - `Object_Id = (Index, Gen)` where slot `0` is reserved as null.
 - `Register`, `Get`, `Is_Valid`, `Request_Destroy`, `Pump`.
 - `Pin`/`Unpin` and `Borrow` (`Implicit_Dereference`) for scoped safe access.
+- `Set_Strict`/`Is_Strict` — strict-mode validation policy.
 
 Destruction model:
 
 - `Request_Destroy` frees immediately when unpinned.
 - If pinned, destruction is deferred until last `Unpin`.
 - `Pump` drains deferred entries each frame.
+
+### Strict Mode
+
+Each store instantiation has an independent `Strict` flag (default **True**).
+
+When strict mode is enabled, `Get` raises `Program_Error` for non-null IDs that fail validation (stale generation, out-of-range index). `Null_Id` always returns null silently regardless of this setting, since null handles represent intentional "nothing" values.
+
+This catches common bugs at the point of misuse:
+
+- Using a handle after its object has been destroyed (stale generation).
+- Calling `Get_Handle` on a widget that was never registered in the store (`Store_Index = 0`).
+- Passing a handle returned by an unregistered widget to `Add_Child` or other operations.
+
+Since all handle resolution paths flow through `Get` — including `Resolve_Handle`, wrapper generics (`Wrap_CW_Proc/Func`), manual `Widget_Stores.Get(H.Id)` patterns, and `Borrow` — strict mode provides centralized coverage. Exception-catching patterns (e.g. `Add_Child` catching `Constraint_Error` from `Borrow`) do not suppress the `Program_Error` raised by strict mode.
+
+For release builds where stale handles should degrade gracefully, call `Set_Strict(False)` on the relevant store.
 
 ## Widget Ownership
 
@@ -118,34 +135,41 @@ Widget exports in generated specs are typed handles (not raw access types).
 
 ## Backward Compatibility and Future Direction
 
-Current state:
+### Completed removals
 
-- `Widget_Access` and `Window_Access` remain public for compatibility.
-- Access-based APIs still exist where migration is incomplete or callback types require them.
+The following access-based APIs have been removed (previously marked `Obsolescent`):
 
-Phase 3 soft deprecations (obsolescent warnings enabled):
+- `Adi.Window.Create_Window (...) return Window_Access` — use `Create_Window_Handle`
+- `Adi.Window.Destroy (W : in out Window_Access)` — use `Destroy (H : in out Window_Handle)`
+- `Adi.Window.Set_Root (..., Root : access Widget'Class)` — use `Set_Root (..., Root : Widget_Handle)`
+- `Adi.Window.Add_Overlay (..., Overlay : access Widget'Class)` — use `Add_Overlay (..., Overlay : Widget_Handle)`
+- `Adi.Window.Remove_Overlay (..., Overlay : access Widget'Class)` — use `Remove_Overlay (..., Overlay : Widget_Handle)`
+- `Adi.App.Add_Window (A, W : Window_Access)` — use `Add_Window (A, W : Window_Handle)`
+- `Adi.OS.Show_*_Dialog (..., Window : Window_Access, ...)` — use `Window_Handle` parameter
+- `Adi.Widget.Dialog.Create return Dialog_Widget_Access` — use `Create_Handle`
+- `Adi.Widget.Dialog.Attach_Window (..., Host : Window_Access)` — use `Attach_Window (..., Host : Window_Handle)`
+- `Adi.Widget.Dialog.Get_Button (...) return Button_Widget_Access` — use `Get_Button_Handle`
 
-- `Adi.Window.Create_Window (...) return Window_Access`
-- `Adi.Window.Destroy (W : in out Window_Access)`
-- `Adi.App.Add_Window (A, W : Window_Access)`
-- `Adi.OS.Show_Open_File_Dialog (..., Window : Window_Access, ...)`
-- `Adi.OS.Show_Save_File_Dialog (..., Window : Window_Access, ...)`
-- `Adi.OS.Show_Open_Folder_Dialog (..., Window : Window_Access, ...)`
+### Current state
 
-These remain functional compatibility paths, but new code should use handle
-overloads/constructors.
+- `Widget_Access` and `Window_Access` remain public for internal use and `Resolve_Handle`/`Find_Host_Window`.
+- All public construction, destruction, and configuration APIs are handle-only.
 
-Planned tightening:
+### Dialog handle-first internals
 
-1. Keep adding handle-returning/handle-accepting overloads.
-2. Migrate internal framework code from `Resolve_Handle` to `Borrow` where practical.
-3. Add handle-based alternatives for remaining access-returning getters.
-4. Move `Widget_Access` toward private visibility once downstream usage is migrated.
+`Dialog_Widget` stores all sub-widgets as handles internally:
 
-Potential end-state:
+- `Host_Window : Window_Handle`
+- `Content_Panel : Box_Handle`, `Title_Label : Label_Handle`, `Message_Label : Label_Handle`, `Button_Row : Box_Handle`
+- `Custom_Content : Widget_Handle`
+- `Button_Info.Widget : Widget_Handle`
+- `Dialog_Binding` records: `Btn : Widget_Handle`, `Owner : Widget_Handle`
 
-- Public widget ownership/identity is handle-only.
-- Public mutable/widget traversal access uses scoped `Borrow`.
-- Raw `Widget_Access` remains internal (or explicit expert escape hatch only), reducing stale-pointer misuse in application code.
+Full handle API: `Create_Handle`, `Dialog_Handle`, `+`, `Is_Valid`, `To_Widget_Handle`, `Try_As_Dialog`, plus handle methods for all widget operations (`Set_Title`, `Set_Message`, `Add_Button`, `Show`, `Hide`, `Connect_Result`, style setters, etc.).
+
+### Remaining tightening
+
+1. Migrate internal framework code from `Resolve_Handle` to `Borrow` where practical.
+2. Move `Widget_Access` toward private visibility once downstream usage is migrated.
 
 Target outcome: user-facing ownership through handles plus scoped borrow, with raw access types mostly internal escape hatches.

@@ -127,10 +127,10 @@ package body Material_Demo_UI is
       Btn_Settings := Adi.Widget.Button.Create_Handle (Adi.I18N.T ("Settings"));
       Btn_Controls := Adi.Widget.Button.Create_Handle (Adi.I18N.T ("Controls"));
       Pages := Page_Stack.Create_Handle;
-      Name_Input := Adi.Widget.Text_Input.Create_Handle ("");
+      Name_Input := Adi.Widget.Text_Input.Create_Handle ("", "Name");
       Country_Combo := Adi.Widget.Combo_Box.Create_Handle;
-      Enabled_Input := Adi.Widget.Text_Input.Create_Handle (Adi.I18N.T ("Editable"));
-      Disabled_Input := Adi.Widget.Text_Input.Create_Handle (Adi.I18N.T ("Read-only"));
+      Enabled_Input := Adi.Widget.Text_Input.Create_Handle (Adi.I18N.T ("Editable"), "");
+      Disabled_Input := Adi.Widget.Text_Input.Create_Handle (Adi.I18N.T ("Read-only"), "");
       Enabled_Combo := Adi.Widget.Combo_Box.Create_Handle;
       Disabled_Combo := Adi.Widget.Combo_Box.Create_Handle;
       Enabled_Slider := Float_Slider.Create_Handle (Min => 0.0, Max => 100.0, Value => 50.0);

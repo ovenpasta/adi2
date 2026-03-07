@@ -51,6 +51,18 @@ package body Adi.Widget.Animated_Widget.RLottie is
       return True;
    end Load_From_File;
 
+   function Load_From_File
+     (H    : Animated_Widget_Handle;
+      Path : String) return Boolean
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in Animated_Widget'Class then
+         return Load_From_File (Animated_Widget'Class (Ptr.all), Path);
+      end if;
+      return False;
+   end Load_From_File;
+
    procedure Set_Animation
      (W         : in out Animated_Widget'Class;
       Animation : RLottie_Animation_Access)
@@ -61,6 +73,17 @@ package body Adi.Widget.Animated_Widget.RLottie is
          B := new RLottie_Backend'(Animation => Animation);
       end if;
       Set_Backend (W, B, null);
+   end Set_Animation;
+
+   procedure Set_Animation
+     (H         : Animated_Widget_Handle;
+      Animation : RLottie_Animation_Access)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in Animated_Widget'Class then
+         Set_Animation (Animated_Widget'Class (Ptr.all), Animation);
+      end if;
    end Set_Animation;
 
    function Get_Animation
@@ -75,6 +98,17 @@ package body Adi.Widget.Animated_Widget.RLottie is
          return RLottie_Backend (W.Backend.all).Animation;
       end if;
 
+      return null;
+   end Get_Animation;
+
+   function Get_Animation
+     (H : Animated_Widget_Handle) return RLottie_Animation_Access
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null and then Ptr.all in Animated_Widget'Class then
+         return Get_Animation (Animated_Widget (Ptr.all));
+      end if;
       return null;
    end Get_Animation;
 

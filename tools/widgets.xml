@@ -81,9 +81,11 @@
     <package>Adi.Widget.Text_Input</package>
     <access-type>Text_Input_Widget_Access</access-type>
     <handle-type>Text_Input_Handle</handle-type>
-    <create>{package}.Create ("{text}")</create>
-    <create-handle>{package}.Create_Handle ("{text}")</create-handle>
+    <create>{package}.Create ("{text}", "{label}")</create>
+    <create-handle>{package}.Create_Handle ("{text}", "{label}")</create-handle>
     <attribute name="text" type="string" create-param="true" translatable="true"/>
+    <attribute name="label" type="string" create-param="true"/>
+    <attribute name="min-visible-chars" type="int" setter="Set_Min_Visible_Chars"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
     <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>

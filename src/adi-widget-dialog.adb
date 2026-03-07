@@ -6,6 +6,10 @@ with Adi.Widget.Button;     use Adi.Widget.Button;
 
 package body Adi.Widget.Dialog is
 
+   use type Adi.Widget.Box.Box_Handle;
+   use type Adi.Widget.Label.Label_Handle;
+   use type Adi.Window.Window_Access;
+
    Default_Panel_Styles      : Part_Style_Holders.Holder;
    Default_Title_Styles      : Part_Style_Holders.Holder;
    Default_Message_Styles    : Part_Style_Holders.Holder;
@@ -13,15 +17,6 @@ package body Adi.Widget.Dialog is
    Default_Button_Styles         : Part_Style_Holders.Holder;
    Default_Primary_Button_Styles : Part_Style_Holders.Holder;
    Default_Content_Styles        : Part_Style_Holders.Holder;
-
-   function Child_At
-     (W     : Widget'Class;
-      Index : Positive) return Widget_Access
-   is
-      H : constant Widget_Handle := Get_Child_Handle (W, Index);
-   begin
-      return Widget_Stores.Get (H.Id);
-   end Child_At;
 
    ---------------------------------------------------------------------------
    --  Internal: Dialog_Button_Widget extends Button to forward Escape
@@ -41,16 +36,16 @@ package body Adi.Widget.Dialog is
    ---------------------------------------------------------------------------
 
    type Dialog_Binding is record
-      Btn   : Widget_Access := null;
-      Owner : Dialog_Widget_Access := null;
+      Btn   : Widget_Handle := Null_Handle;
+      Owner : Widget_Handle := Null_Handle;
    end record;
 
    package Binding_Vectors is new Ada.Containers.Vectors (Positive, Dialog_Binding);
 
    Dialog_Bindings : Binding_Vectors.Vector;
 
-   function Find_Owner_By_Button
-     (Btn : Widget_Access) return Dialog_Widget_Access
+   function Find_Owner_Handle
+     (Btn : Widget_Handle) return Widget_Handle
    is
    begin
       for I in 1 .. Natural (Dialog_Bindings.Length) loop
@@ -58,19 +53,19 @@ package body Adi.Widget.Dialog is
             return Dialog_Bindings.Element (I).Owner;
          end if;
       end loop;
-      return null;
-   end Find_Owner_By_Button;
+      return Null_Handle;
+   end Find_Owner_Handle;
 
    procedure Register_Button_Binding
-     (Btn   : Widget_Access;
-      Owner : Dialog_Widget_Access)
+     (Btn   : Widget_Handle;
+      Owner : Widget_Handle)
    is
    begin
       Dialog_Bindings.Append
         (Dialog_Binding'(Btn => Btn, Owner => Owner));
    end Register_Button_Binding;
 
-   procedure Unregister_Bindings (Owner : Dialog_Widget_Access) is
+   procedure Unregister_Bindings (Owner : Widget_Handle) is
       I : Natural := 1;
    begin
       while I <= Natural (Dialog_Bindings.Length) loop
@@ -84,7 +79,7 @@ package body Adi.Widget.Dialog is
 
    function Find_Button_Index
      (W   : Dialog_Widget;
-      Btn : Widget_Access) return Natural
+      Btn : Widget_Handle) return Natural
    is
    begin
       for I in 1 .. Natural (W.Buttons.Length) loop
@@ -108,11 +103,12 @@ package body Adi.Widget.Dialog is
    begin
       if Scancode = SDL_SCANCODE_ESCAPE then
          declare
-            Owner : constant Dialog_Widget_Access :=
-              Find_Owner_By_Button (W'Unchecked_Access);
+            Owner_H : constant Widget_Handle :=
+              Find_Owner_Handle (Get_Handle (W));
+            Owner   : constant Widget_Access := Resolve_Handle (Owner_H);
          begin
             if Owner /= null then
-               On_Key_Down (Widget'Class (Owner.all), Scancode, Key_Mod, Repeat);
+               On_Key_Down (Owner.all, Scancode, Key_Mod, Repeat);
                return;
             end if;
          end;
@@ -140,13 +136,13 @@ package body Adi.Widget.Dialog is
    begin
       for I in 1 .. Natural (W.Buttons.Length) loop
          declare
-            Btn : constant Widget_Access := W.Buttons.Element (I).Widget;
+            BH : constant Widget_Handle := W.Buttons.Element (I).Widget;
          begin
-            if Btn /= null then
+            if BH /= Null_Handle then
                if I = W.Default_Button_Index then
-                  Set_Part_Styles (Btn.all, Primary_Styles);
+                  Set_Part_Styles (BH, Primary_Styles);
                else
-                  Set_Part_Styles (Btn.all, Normal_Styles);
+                  Set_Part_Styles (BH, Normal_Styles);
                end if;
             end if;
          end;
@@ -158,42 +154,43 @@ package body Adi.Widget.Dialog is
    ---------------------------------------------------------------------------
 
    procedure On_Button_Clicked (W : Widget_Handle) is
-      Btn_Widget : Widget_Access := null;
-      Owner      : Dialog_Widget_Access := null;
-      Index      : Natural;
-      Text       : Unbounded_String;
+      Owner_H : Widget_Handle := Null_Handle;
+      Index   : Natural;
+      Text    : Unbounded_String;
    begin
       for I in 1 .. Natural (Dialog_Bindings.Length) loop
-         declare
-            B : constant Widget_Access := Dialog_Bindings.Element (I).Btn;
-         begin
-            if B /= null and then Get_Handle (B.all) = W then
-               Btn_Widget := B;
-               Owner := Dialog_Bindings.Element (I).Owner;
-               exit;
-            end if;
-         end;
+         if Dialog_Bindings.Element (I).Btn = W then
+            Owner_H := Dialog_Bindings.Element (I).Owner;
+            exit;
+         end if;
       end loop;
-      if Owner = null then
+      if Owner_H = Null_Handle then
          return;
       end if;
 
-      Index := Find_Button_Index (Dialog_Widget (Owner.all), Btn_Widget);
-      if Index > 0 then
-         Text := Owner.Buttons.Element (Index).Text;
-      end if;
-
       declare
-         Idx : constant Natural := Index;
-         Txt : constant String := To_String (Text);
-         OH  : constant Widget_Handle := Get_Handle (Owner.all);
-         procedure Call (CB : Dialog_Result_Callback) is
-         begin CB (OH, Idx, Txt); end Call;
-         procedure Emit is new Result_Signals.For_Each (Call);
+         Owner : constant Widget_Access := Resolve_Handle (Owner_H);
       begin
-         Emit (Owner.Result);
+         if Owner = null then
+            return;
+         end if;
+
+         Index := Find_Button_Index (Dialog_Widget (Owner.all), W);
+         if Index > 0 then
+            Text := Dialog_Widget (Owner.all).Buttons.Element (Index).Text;
+         end if;
+
+         declare
+            Idx : constant Natural := Index;
+            Txt : constant String := To_String (Text);
+            procedure Call (CB : Dialog_Result_Callback) is
+            begin CB (Owner_H, Idx, Txt); end Call;
+            procedure Emit is new Result_Signals.For_Each (Call);
+         begin
+            Emit (Dialog_Widget (Owner.all).Result);
+         end;
+         Hide (Dialog_Widget (Owner.all));
       end;
-      Hide (Owner.all);
    end On_Button_Clicked;
 
    ---------------------------------------------------------------------------
@@ -217,64 +214,50 @@ package body Adi.Widget.Dialog is
    --  Create
    ---------------------------------------------------------------------------
 
-   use type Adi.Window.Window_Access;
-   use type Adi.Widget.Box.Box_Widget_Access;
-   use type Adi.Widget.Label.Label_Widget_Access;
-
-   function Create return Dialog_Widget_Access is
+   function Create_Handle return Dialog_Handle is
       Result : constant Dialog_Widget_Access := new Dialog_Widget;
    begin
       Set_Flag (Result.all, Visible, True);
       Set_Flag (Result.all, Clickable, True);
+      Register_Widget (Widget_Access (Result));
 
       --  Content panel: flex column
-      Result.Content_Panel := Adi.Widget.Box.Create;
+      Result.Content_Panel := Adi.Widget.Box.Create_Handle;
 
       --  Title label
-      Result.Title_Label := Adi.Widget.Label.Create ("");
-      Add_Child (Result.Content_Panel.all, Get_Handle (Result.Title_Label.all));
+      Result.Title_Label := Adi.Widget.Label.Create_Handle ("");
+      Add_Child (+Result.Content_Panel, +Result.Title_Label);
 
       --  Message label
-      Result.Message_Label := Adi.Widget.Label.Create ("");
-      Add_Child (Result.Content_Panel.all, Get_Handle (Result.Message_Label.all));
+      Result.Message_Label := Adi.Widget.Label.Create_Handle ("");
+      Add_Child (+Result.Content_Panel, +Result.Message_Label);
 
       --  Button row: flex row
-      Result.Button_Row := Adi.Widget.Box.Create;
-      Add_Child (Result.Content_Panel.all, Get_Handle (Result.Button_Row.all));
+      Result.Button_Row := Adi.Widget.Box.Create_Handle;
+      Add_Child (+Result.Content_Panel, +Result.Button_Row);
 
       --  Content panel must be part of the dialog tree so overlay rendering
       --  traverses and draws title/message/buttons above the backdrop.
-      Add_Child (Result.all, Get_Handle (Result.Content_Panel.all));
+      Add_Child (Get_Handle (Result.all), +Result.Content_Panel);
 
       --  Apply package-level default styles if set
       if not Default_Panel_Styles.Is_Empty then
-         Set_Part_Styles (Result.Content_Panel.all, Default_Panel_Styles.Element);
+         Set_Part_Styles (+Result.Content_Panel, Default_Panel_Styles.Element);
       end if;
       if not Default_Title_Styles.Is_Empty then
-         Set_Part_Styles (Result.Title_Label.all, Default_Title_Styles.Element);
+         Set_Part_Styles (+Result.Title_Label, Default_Title_Styles.Element);
       end if;
       if not Default_Message_Styles.Is_Empty then
-         Set_Part_Styles (Result.Message_Label.all, Default_Message_Styles.Element);
+         Set_Part_Styles (+Result.Message_Label, Default_Message_Styles.Element);
       end if;
       if not Default_Button_Row_Styles.Is_Empty then
-         Set_Part_Styles (Result.Button_Row.all, Default_Button_Row_Styles.Element);
+         Set_Part_Styles (+Result.Button_Row, Default_Button_Row_Styles.Element);
       end if;
       if not Default_Button_Styles.Is_Empty then
          Result.Button_Styles := Default_Button_Styles.Element;
          Result.Has_Button_Styles := True;
       end if;
 
-      Register_Widget (Widget_Access (Result));
-      return Result;
-   end Create;
-
-   -------------------
-   -- Create_Handle --
-   -------------------
-
-   function Create_Handle return Dialog_Handle is
-      Result : constant Dialog_Widget_Access := Create;
-   begin
       return (Id => Get_Handle (Result.all).Id);
    end Create_Handle;
 
@@ -317,33 +300,25 @@ package body Adi.Widget.Dialog is
    --  Attach_Window
    ---------------------------------------------------------------------------
 
-   procedure Attach_Window
-     (W    : in out Dialog_Widget;
-      Host : Adi.Window.Window_Access)
-   is
-   begin
-      W.Host_Window := Host;
-   end Attach_Window;
-
    ---------------------------------------------------------------------------
    --  Content setters
    ---------------------------------------------------------------------------
 
    procedure Set_Title (W : in out Dialog_Widget; Text : String) is
    begin
-      if W.Title_Label /= null then
-         Adi.Widget.Label.Set_Text (W.Title_Label.all, Text);
+      if Adi.Widget.Label.Is_Valid (W.Title_Label) then
+         Adi.Widget.Label.Set_Text (W.Title_Label, Text);
       end if;
       Mark_Dirty (W);
    end Set_Title;
 
    procedure Set_Message (W : in out Dialog_Widget; Text : String) is
    begin
-      if W.Custom_Content /= null then
+      if W.Custom_Content /= Null_Handle then
          return;  --  Message label not in tree when custom content is set
       end if;
-      if W.Message_Label /= null then
-         Adi.Widget.Label.Set_Text (W.Message_Label.all, Text);
+      if Adi.Widget.Label.Is_Valid (W.Message_Label) then
+         Adi.Widget.Label.Set_Text (W.Message_Label, Text);
       end if;
       Mark_Dirty (W);
    end Set_Message;
@@ -354,11 +329,11 @@ package body Adi.Widget.Dialog is
 
    procedure Set_Icon (W : in out Dialog_Widget; Icon : Image_Access) is
    begin
-      if W.Custom_Content /= null then
+      if W.Custom_Content /= Null_Handle then
          return;  --  Message label not in tree when custom content is set
       end if;
-      if W.Message_Label /= null then
-         Adi.Widget.Label.Set_Icon (W.Message_Label.all, Icon);
+      if Adi.Widget.Label.Is_Valid (W.Message_Label) then
+         Adi.Widget.Label.Set_Icon (W.Message_Label, Icon);
       end if;
       Mark_Dirty (W);
    end Set_Icon;
@@ -371,50 +346,50 @@ package body Adi.Widget.Dialog is
      (W       : in out Dialog_Widget;
       Content : access Widget'Class)
    is
-      Had_Custom : constant Boolean := W.Custom_Content /= null;
+      Had_Custom : constant Boolean :=
+        W.Custom_Content /= Null_Handle;
    begin
       --  Remove previous custom content if any
-      if W.Custom_Content /= null then
-         Remove_Child
-           (Get_Handle (W.Content_Panel.all),
-            Get_Handle (W.Custom_Content.all));
-         W.Custom_Content := null;
+      if W.Custom_Content /= Null_Handle then
+         Remove_Child (+W.Content_Panel, W.Custom_Content);
+         W.Custom_Content := Null_Handle;
       end if;
 
       if Content /= null then
          --  Remove message label from tree only if it is currently attached
          --  (i.e. we were not already in custom-content mode).
-         if not Had_Custom and then W.Message_Label /= null then
-            Remove_Child
-              (Get_Handle (W.Content_Panel.all),
-               Get_Handle (W.Message_Label.all));
+         if not Had_Custom
+           and then Adi.Widget.Label.Is_Valid (W.Message_Label)
+         then
+            Remove_Child (+W.Content_Panel, +W.Message_Label);
          end if;
          --  Remove button row so we can re-add after content
-         Remove_Child
-           (Get_Handle (W.Content_Panel.all),
-            Get_Handle (W.Button_Row.all));
+         Remove_Child (+W.Content_Panel, +W.Button_Row);
 
          --  Detach from any existing parent before adopting
-         if Content.Parent /= null then
-            Remove_Child
-              (Get_Handle (Content.Parent.all),
-               Get_Handle (Content.all));
-         end if;
+         declare
+            Content_H : constant Widget_Handle := Get_Handle (Content.all);
+            Parent_H  : constant Widget_Handle := Get_Parent_Handle (Content.all);
+         begin
+            if Parent_H /= Null_Handle then
+               Remove_Child (Parent_H, Content_H);
+            end if;
 
-         W.Custom_Content := Content.all'Unchecked_Access;
-         if not Default_Content_Styles.Is_Empty then
-            Set_Part_Styles (W.Custom_Content.all, Default_Content_Styles.Element);
-         end if;
-         Add_Child (W.Content_Panel.all, Get_Handle (W.Custom_Content.all));
-         Add_Child (W.Content_Panel.all, Get_Handle (W.Button_Row.all));
+            W.Custom_Content := Content_H;
+            if not Default_Content_Styles.Is_Empty then
+               Set_Part_Styles (W.Custom_Content, Default_Content_Styles.Element);
+            end if;
+            Add_Child (+W.Content_Panel, W.Custom_Content);
+         end;
+         Add_Child (+W.Content_Panel, +W.Button_Row);
       else
          --  Restore message label only if we were in custom-content mode
-         if Had_Custom and then W.Message_Label /= null then
-            Remove_Child
-              (Get_Handle (W.Content_Panel.all),
-               Get_Handle (W.Button_Row.all));
-            Add_Child (W.Content_Panel.all, Get_Handle (W.Message_Label.all));
-            Add_Child (W.Content_Panel.all, Get_Handle (W.Button_Row.all));
+         if Had_Custom
+           and then Adi.Widget.Label.Is_Valid (W.Message_Label)
+         then
+            Remove_Child (+W.Content_Panel, +W.Button_Row);
+            Add_Child (+W.Content_Panel, +W.Message_Label);
+            Add_Child (+W.Content_Panel, +W.Button_Row);
          end if;
       end if;
 
@@ -429,7 +404,7 @@ package body Adi.Widget.Dialog is
      (W : in out Dialog_Widget; Text : String) return Positive
    is
       Btn : constant Dialog_Button_Widget_Access := new Dialog_Button_Widget;
-      Btn_As_Widget : constant Widget_Access := Widget_Access (Btn);
+      Btn_H : Widget_Handle;
    begin
       Set_Flag (Btn.all, Visible, True);
       Set_Flag (Btn.all, Clickable, True);
@@ -438,12 +413,13 @@ package body Adi.Widget.Dialog is
         (Adi.Widget.Label.Label_Widget (Btn.all), Text);
       Connect_Clicked (Btn.all, On_Button_Clicked'Access);
       Register_Widget (Widget_Access (Btn));
+      Btn_H := Get_Handle (Btn.all);
 
-      Register_Button_Binding (Btn_As_Widget, W'Unchecked_Access);
-      Add_Child (W.Button_Row.all, Get_Handle (Btn.all));
+      Register_Button_Binding (Btn_H, Get_Handle (W));
+      Add_Child (+W.Button_Row, Btn_H);
       W.Buttons.Append
         (Button_Info'(Text   => To_Unbounded_String (Text),
-                      Widget => Btn_As_Widget));
+                      Widget => Btn_H));
 
       --  Apply normal or primary style to the newly added button
       Apply_Button_Styles (W);
@@ -459,12 +435,12 @@ package body Adi.Widget.Dialog is
 
    procedure Clear_Buttons (W : in out Dialog_Widget) is
    begin
-      Unregister_Bindings (W'Unchecked_Access);
+      Unregister_Bindings (Get_Handle (W));
       --  Destroy button widgets (detaches from parent and frees store slot)
       for Info of W.Buttons loop
-         if Info.Widget /= null then
+         if Info.Widget /= Null_Handle then
             declare
-               H : Widget_Handle := Get_Handle (Info.Widget.all);
+               H : Widget_Handle := Info.Widget;
             begin
                Destroy (H);
             end;
@@ -485,27 +461,15 @@ package body Adi.Widget.Dialog is
       Apply_Button_Styles (W);
    end Set_Default_Button;
 
-   function Get_Button
-     (W : Dialog_Widget; Index : Positive)
-      return Adi.Widget.Button.Button_Widget_Access
-   is
-   begin
-      if Index > Natural (W.Buttons.Length) then
-         return null;
-      end if;
-      return Adi.Widget.Button.Button_Widget_Access (W.Buttons.Element (Index).Widget);
-   end Get_Button;
-
    function Get_Button_Handle
      (W : Dialog_Widget; Index : Positive)
       return Adi.Widget.Button.Button_Handle
    is
-      B : constant Adi.Widget.Button.Button_Widget_Access := Get_Button (W, Index);
    begin
-      if B = null then
+      if Index > Natural (W.Buttons.Length) then
          return Adi.Widget.Button.Null_Button_Handle;
       end if;
-      return Adi.Widget.Button.Try_As_Button (Get_Handle (B.all));
+      return Adi.Widget.Button.Try_As_Button (W.Buttons.Element (Index).Widget);
    end Get_Button_Handle;
 
    ---------------------------------------------------------------------------
@@ -550,17 +514,17 @@ package body Adi.Widget.Dialog is
 
    procedure Show (W : in out Dialog_Widget) is
    begin
-      if W.Shown or else W.Host_Window = null then
+      if W.Shown or else not Adi.Window.Is_Valid (W.Host_Window) then
          return;
       end if;
 
       declare
-         Win_Size : constant Size_2D := Adi.Window.Get_Size (W.Host_Window.all);
+         Win_Size : constant Size_2D := Adi.Window.Get_Size (W.Host_Window);
       begin
          Set_Geometry (W, (0.0, 0.0, Win_Size.Width, Win_Size.Height));
       end;
 
-      Adi.Window.Add_Overlay (W.Host_Window.all, Get_Handle (W));
+      Adi.Window.Add_Overlay (W.Host_Window, Get_Handle (W));
       W.Shown := True;
 
       --  Auto-focus the default button now that the overlay is in the
@@ -570,8 +534,8 @@ package body Adi.Widget.Dialog is
         and then W.Default_Button_Index <= Natural (W.Buttons.Length)
       then
          Adi.Window.Set_Focus
-           (W.Host_Window.all,
-            Get_Handle (W.Buttons.Element (W.Default_Button_Index).Widget.all));
+           (W.Host_Window,
+            W.Buttons.Element (W.Default_Button_Index).Widget);
       end if;
 
       Mark_Dirty (W);
@@ -579,11 +543,11 @@ package body Adi.Widget.Dialog is
 
    procedure Hide (W : in out Dialog_Widget) is
    begin
-      if not W.Shown or else W.Host_Window = null then
+      if not W.Shown or else not Adi.Window.Is_Valid (W.Host_Window) then
          return;
       end if;
 
-      Adi.Window.Remove_Overlay (W.Host_Window.all, Get_Handle (W));
+      Adi.Window.Remove_Overlay (W.Host_Window, Get_Handle (W));
       W.Shown := False;
       Mark_Dirty (W);
    end Hide;
@@ -645,8 +609,8 @@ package body Adi.Widget.Dialog is
      (W : in out Dialog_Widget; S : Part_Style_Array)
    is
    begin
-      if W.Content_Panel /= null then
-         Set_Part_Styles (W.Content_Panel.all, S);
+      if Adi.Widget.Box.Is_Valid (W.Content_Panel) then
+         Set_Part_Styles (+W.Content_Panel, S);
       end if;
    end Set_Panel_Style;
 
@@ -654,8 +618,8 @@ package body Adi.Widget.Dialog is
      (W : in out Dialog_Widget; S : Part_Style_Array)
    is
    begin
-      if W.Title_Label /= null then
-         Set_Part_Styles (W.Title_Label.all, S);
+      if Adi.Widget.Label.Is_Valid (W.Title_Label) then
+         Set_Part_Styles (+W.Title_Label, S);
       end if;
    end Set_Title_Style;
 
@@ -663,8 +627,8 @@ package body Adi.Widget.Dialog is
      (W : in out Dialog_Widget; S : Part_Style_Array)
    is
    begin
-      if W.Message_Label /= null then
-         Set_Part_Styles (W.Message_Label.all, S);
+      if Adi.Widget.Label.Is_Valid (W.Message_Label) then
+         Set_Part_Styles (+W.Message_Label, S);
       end if;
    end Set_Message_Style;
 
@@ -672,8 +636,8 @@ package body Adi.Widget.Dialog is
      (W : in out Dialog_Widget; S : Part_Style_Array)
    is
    begin
-      if W.Button_Row /= null then
-         Set_Part_Styles (W.Button_Row.all, S);
+      if Adi.Widget.Box.Is_Valid (W.Button_Row) then
+         Set_Part_Styles (+W.Button_Row, S);
       end if;
    end Set_Button_Row_Style;
 
@@ -699,8 +663,8 @@ package body Adi.Widget.Dialog is
      (W : in out Dialog_Widget; S : Part_Style_Array)
    is
    begin
-      if W.Custom_Content /= null then
-         Set_Part_Styles (W.Custom_Content.all, S);
+      if W.Custom_Content /= Null_Handle then
+         Set_Part_Styles (W.Custom_Content, S);
       end if;
    end Set_Content_Style;
 
@@ -757,13 +721,16 @@ package body Adi.Widget.Dialog is
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
 
       --  Layout content panel within our bounds
-      if W.Content_Panel /= null and then W.Host_Window /= null then
+      if Adi.Widget.Box.Is_Valid (W.Content_Panel)
+        and then Adi.Window.Is_Valid (W.Host_Window)
+      then
          declare
-            Win_Size : constant Size_2D := Adi.Window.Get_Size (W.Host_Window.all);
+            CP       : constant Widget_Handle := +W.Content_Panel;
+            Win_Size : constant Size_2D := Adi.Window.Get_Size (W.Host_Window);
             Pref     : Size_2D;
             Needed_H : Pixel_Type;
             Panel_Style : constant Resolved_Style :=
-              Get_Resolved_Part_Style (W.Content_Panel.all, Main_Part);
+              Get_Resolved_Part_Style (CP, Main_Part);
             Pad      : constant Edge_Pixels := Get_Padding_Px (Panel_Style);
             Border   : constant Edge_Pixels := Get_Border_Width_Px (Panel_Style);
             Margin   : constant Edge_Pixels := Get_Margin_Px (Panel_Style);
@@ -807,50 +774,79 @@ package body Adi.Widget.Dialog is
             end case;
 
             --  Measure content preferred size
-            Rebuild_All_Items (W.Content_Panel.all);
-            Pref := Get_Preferred_Size (W.Content_Panel.all);
+            Rebuild_All_Items (CP);
+            Pref := Get_Preferred_Size (CP);
 
             --  First pass: place with full available height so wrapped
             --  message text can settle before final height is computed.
             Set_Geometry
-              (W.Content_Panel.all,
+              (CP,
                Clamp_And_Center
                  (Container => Viewport,
                   Preferred => (Pref.Width, Max_H),
                   Min_Size  => (Min_W, Min_H),
                   Max_Size  => (Max_W, Max_H)));
-            Layout_Tree (W.Content_Panel.all);
-            Rebuild_All_Items (W.Content_Panel.all);
+            Layout_Tree (CP);
+            Rebuild_All_Items (CP);
 
             --  Recompute needed panel height from actual laid out child
             --  geometry (important for wrapped message labels).
             Needed_H := Pad.Top + Border.Top + Pad.Bottom + Border.Bottom;
-            for I in 1 .. Child_Count (W.Content_Panel.all) loop
+            for I in 1 .. Child_Count (CP) loop
                declare
-                  Child : constant Widget_Access := Child_At (W.Content_Panel.all, I);
+                  CH : constant Widget_Handle := Get_Child_Handle (CP, I);
+                  CG : constant Rectangle := Get_Geometry (CH);
                begin
-                  if Child /= null then
-                     declare
-                        G : constant Rectangle := Get_Geometry (Child.all);
-                    begin
-                        Needed_H := Pixel_Type'Max
-                          (Needed_H,
-                           (G.Y + G.Height) - Get_Geometry (W.Content_Panel.all).Y
-                           + Pad.Bottom + Border.Bottom);
-                     end;
-                  end if;
+                  Needed_H := Pixel_Type'Max
+                    (Needed_H,
+                     (CG.Y + CG.Height) - Get_Geometry (CP).Y
+                     + Pad.Bottom + Border.Bottom);
                end;
             end loop;
 
             Set_Geometry
-              (W.Content_Panel.all,
+              (CP,
                Clamp_And_Center
                  (Container => Viewport,
                   Preferred => (Pref.Width, Needed_H),
                   Min_Size  => (Min_W, Min_H),
                   Max_Size  => (Max_W, Max_H)));
-            Layout_Tree (W.Content_Panel.all);
-            Rebuild_All_Items (W.Content_Panel.all);
+            Layout_Tree (CP);
+            Rebuild_All_Items (CP);
+
+            --  Third pass (safety net): re-measure from the now-valid child
+            --  geometries.  On the very first Show, children may not have had
+            --  valid sizes during the first measurement, so the second-pass
+            --  height can still be wrong.  Re-check and re-layout only when
+            --  the measured height actually changed.
+            declare
+               Prev_H : constant Pixel_Type := Needed_H;
+            begin
+               Needed_H := Pad.Top + Border.Top + Pad.Bottom + Border.Bottom;
+               for I in 1 .. Child_Count (CP) loop
+                  declare
+                     CH : constant Widget_Handle := Get_Child_Handle (CP, I);
+                     CG : constant Rectangle := Get_Geometry (CH);
+                  begin
+                     Needed_H := Pixel_Type'Max
+                       (Needed_H,
+                        (CG.Y + CG.Height) - Get_Geometry (CP).Y
+                        + Pad.Bottom + Border.Bottom);
+                  end;
+               end loop;
+
+               if abs (Needed_H - Prev_H) > 1.0 then
+                  Set_Geometry
+                    (CP,
+                     Clamp_And_Center
+                       (Container => Viewport,
+                        Preferred => (Pref.Width, Needed_H),
+                        Min_Size  => (Min_W, Min_H),
+                        Max_Size  => (Max_W, Max_H)));
+                  Layout_Tree (CP);
+                  Rebuild_All_Items (CP);
+               end if;
+            end;
          end;
       end if;
 
@@ -883,9 +879,9 @@ package body Adi.Widget.Dialog is
       end if;
 
       --  Check if click is outside the content panel
-      if W.Content_Panel /= null then
+      if Adi.Widget.Box.Is_Valid (W.Content_Panel) then
          declare
-            Panel_G : constant Rectangle := Get_Geometry (W.Content_Panel.all);
+            Panel_G : constant Rectangle := Get_Geometry (+W.Content_Panel);
          begin
             if X < Panel_G.X or else X > Panel_G.X + Panel_G.Width
               or else Y < Panel_G.Y or else Y > Panel_G.Y + Panel_G.Height
@@ -915,7 +911,7 @@ package body Adi.Widget.Dialog is
 
    overriding procedure On_Destroy (W : in out Dialog_Widget) is
    begin
-      Unregister_Bindings (W'Unchecked_Access);
+      Unregister_Bindings (Get_Handle (W));
    end On_Destroy;
 
    ---------------------------------------------------------------------------
@@ -923,32 +919,13 @@ package body Adi.Widget.Dialog is
    ---------------------------------------------------------------------------
 
    procedure Attach_Window
-     (H : Dialog_Handle; Host : Adi.Window.Window_Access)
+     (H : Dialog_Handle; Host : Adi.Window.Window_Handle)
    is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
-         Attach_Window (Dialog_Widget (Ptr.all), Host);
+         Dialog_Widget (Ptr.all).Host_Window := Host;
       end if;
-   end Attach_Window;
-
-   procedure Attach_Window
-     (H : Dialog_Handle; Host : Adi.Window.Window_Handle)
-   is
-   begin
-      if not Adi.Window.Is_Valid (Host) then
-         Attach_Window (H, null);
-         return;
-      end if;
-
-      declare
-         R : Adi.Window.Window_Ref := Adi.Window.Borrow (Host);
-      begin
-         Attach_Window (H, Adi.Window.Window (R.Ptr.all)'Unchecked_Access);
-      end;
-   exception
-      when Constraint_Error =>
-         Attach_Window (H, null);
    end Attach_Window;
 
    procedure Set_Title (H : Dialog_Handle; Text : String) is
@@ -974,11 +951,7 @@ package body Adi.Widget.Dialog is
          if Content = Null_Handle then
             Set_Content (Dialog_Widget (Ptr.all), null);
          else
-            declare
-               R : Widget_Ref := Borrow (Content);
-            begin
-               Set_Content (Dialog_Widget (Ptr.all), R.Ptr);
-            end;
+            Set_Content (Dialog_Widget (Ptr.all), Resolve_Handle (Content));
          end if;
       end if;
    end Set_Content;
@@ -1023,18 +996,6 @@ package body Adi.Widget.Dialog is
          Set_Default_Button (Dialog_Widget (Ptr.all), Index);
       end if;
    end Set_Default_Button;
-
-   function Get_Button
-     (H : Dialog_Handle; Index : Positive)
-      return Adi.Widget.Button.Button_Widget_Access
-   is
-      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
-   begin
-      if Ptr /= null then
-         return Get_Button (Dialog_Widget (Ptr.all), Index);
-      end if;
-      return null;
-   end Get_Button;
 
    function Get_Button_Handle
      (H : Dialog_Handle; Index : Positive)

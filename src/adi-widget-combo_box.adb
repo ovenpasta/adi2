@@ -24,11 +24,11 @@ package body Adi.Widget.Combo_Box is
       Button : Mouse_Button;
       Clicks : Natural := 1);
 
-   use type Popup_Lists.List_Box_Widget_Access;
+   use type Popup_Lists.List_Box_Handle;
    use type Adi.Window.Window_Access;
 
    type Popup_Binding is record
-      Popup      : Popup_Lists.List_Box_Widget_Access := null;
+      Popup_H    : Popup_Lists.List_Box_Handle := Popup_Lists.Null_List_Box_Handle;
       Dismiss    : Dismiss_Layer_Widget_Access := null;
       Popup_WH   : Widget_Handle := Null_Handle;
       Dismiss_WH : Widget_Handle := Null_Handle;
@@ -51,29 +51,6 @@ package body Adi.Widget.Combo_Box is
    Default_Arrow_Down : Image_Access := null;
    Default_Arrow_Up   : Image_Access := null;
 
-   function Popup_Handle
-     (Popup : Popup_Lists.List_Box_Widget_Access)
-      return Popup_Lists.List_Box_Handle
-   is
-   begin
-      if Popup = null then
-         return Popup_Lists.Null_List_Box_Handle;
-      end if;
-      return Popup_Lists.Try_As_List_Box (Get_Handle (Popup.all));
-   end Popup_Handle;
-
-   function Find_Owner
-     (Popup : Popup_Lists.List_Box_Widget_Access) return Combo_Box_Widget_Access
-   is
-   begin
-      for I in 1 .. Natural (Popup_Bindings.Length) loop
-         if Popup_Bindings.Element (I).Popup = Popup then
-            return Popup_Bindings.Element (I).Owner;
-         end if;
-      end loop;
-      return null;
-   end Find_Owner;
-
    function Find_Owner
      (Dismiss : Dismiss_Layer_Widget_Access) return Combo_Box_Widget_Access
    is
@@ -87,19 +64,18 @@ package body Adi.Widget.Combo_Box is
    end Find_Owner;
 
    procedure Register_Binding
-     (Popup : Popup_Lists.List_Box_Widget_Access;
+     (Popup_H : Popup_Lists.List_Box_Handle;
       Dismiss : Dismiss_Layer_Widget_Access;
-      Owner : Combo_Box_Widget_Access)
+      Owner   : Combo_Box_Widget_Access)
    is
-      PH : constant Widget_Handle :=
-        Get_Handle (Widget'Class (Popup.all));
+      PH : constant Widget_Handle := +Popup_H;
       DH : constant Widget_Handle :=
         Get_Handle (Widget'Class (Dismiss.all));
    begin
       for I in 1 .. Natural (Popup_Bindings.Length) loop
-         if Popup_Bindings.Element (I).Popup = Popup then
+         if Popup_Bindings.Element (I).Popup_H = Popup_H then
             Popup_Bindings.Replace_Element
-              (I, (Popup      => Popup,
+              (I, (Popup_H    => Popup_H,
                    Dismiss    => Dismiss,
                    Popup_WH   => PH,
                    Dismiss_WH => DH,
@@ -108,12 +84,11 @@ package body Adi.Widget.Combo_Box is
          end if;
       end loop;
       Popup_Bindings.Append
-        (New_Item =>
-           Popup_Binding'(Popup      => Popup,
-                          Dismiss    => Dismiss,
-                          Popup_WH   => PH,
-                          Dismiss_WH => DH,
-                          Owner      => Owner));
+        (Popup_Binding'(Popup_H    => Popup_H,
+                        Dismiss    => Dismiss,
+                        Popup_WH   => PH,
+                        Dismiss_WH => DH,
+                        Owner      => Owner));
    end Register_Binding;
 
    overriding procedure Build_Items (W : in out Dismiss_Layer_Widget) is
@@ -158,7 +133,7 @@ package body Adi.Widget.Combo_Box is
      (W : Combo_Box_Widget) return Pixel_Type
    is
       Total : Pixel_Type := 0.0;
-      PH    : constant Popup_Lists.List_Box_Handle := Popup_Handle (W.Popup);
+      PH    : constant Popup_Lists.List_Box_Handle := W.Popup;
       Count : constant Natural :=
         (if Popup_Lists.Is_Valid (PH) then Popup_Lists.Row_Count (PH) else 0);
       Row_H : Pixel_Type;
@@ -189,8 +164,9 @@ package body Adi.Widget.Combo_Box is
 
       if Count > 1 then
          declare
+            R : Widget_Ref := Borrow (+W.Popup);
             S : constant Resolved_Style :=
-              Get_Resolved_Part_Style (W.Popup.all, Main_Part);
+              Get_Resolved_Part_Style (R.Ptr.all, Main_Part);
          begin
             Total :=
               Total + Pixel_Type (Count - 1) * Get_Row_Gap (S.Gap);
@@ -237,7 +213,8 @@ package body Adi.Widget.Combo_Box is
      (W        : Combo_Box_Widget;
       Win_Size : Size_2D) return Pixel_Type
    is
-      Popup_Style : constant Resolved_Style := Get_Resolved_Part_Style (W.Popup.all, Main_Part);
+      R : Widget_Ref := Borrow (+W.Popup);
+      Popup_Style : constant Resolved_Style := Get_Resolved_Part_Style (R.Ptr.all, Main_Part);
       Content_H   : constant Pixel_Type := Resolve_Popup_Row_Content_Height (W);
       Max_H       : constant Pixel_Type := Resolve_Popup_Max_Height (Popup_Style, Win_Size.Height);
       Min_H       : constant Pixel_Type :=
@@ -251,11 +228,11 @@ package body Adi.Widget.Combo_Box is
    procedure Sync_Selected_From_Popup (W : in out Combo_Box_Widget) is
       Current : Natural;
    begin
-      if W.Popup = null then
+      if not Popup_Lists.Is_Valid (W.Popup) then
          return;
       end if;
 
-      Current := Popup_Lists.Get_Current_Row (W.Popup.all);
+      Current := Popup_Lists.Get_Current_Row (W.Popup);
       if Current > Natural (W.Options.Length) then
          Current := 0;
       end if;
@@ -290,42 +267,32 @@ package body Adi.Widget.Combo_Box is
       Close_Dropdown (Owner.all);
    end On_Popup_Item_Clicked;
 
-   function Create return Combo_Box_Widget_Access is
-      Result : constant Combo_Box_Widget_Access := new Combo_Box_Widget;
+   function Create_Handle return Combo_Box_Handle is
+      Result  : constant Combo_Box_Widget_Access := new Combo_Box_Widget;
       Dismiss : constant Dismiss_Layer_Widget_Access := new Dismiss_Layer_Widget;
+      PH      : constant Popup_Lists.List_Box_Handle := Popup_Lists.Create_Handle;
    begin
       Set_Flag (Result.all, Visible, True);
       Set_Flag (Result.all, Clickable, True);
       Set_Flag (Result.all, Focusable, True);
 
-      Result.Popup := Popup_Lists.Create;
-      Popup_Lists.Set_Selection_Mode
-        (Result.Popup.all, Popup_Lists.Single_Selection);
-      Set_Flag (Result.Popup.all, Focusable, False);
-      Popup_Lists.Connect_Item_Clicked
-        (Result.Popup.all, On_Popup_Item_Clicked'Access);
+      Result.Popup := PH;
+      Popup_Lists.Set_Selection_Mode (PH, Popup_Lists.Single_Selection);
+      Set_Flag (+PH, Focusable, False);
+      Popup_Lists.Connect_Item_Clicked (PH, On_Popup_Item_Clicked'Access);
 
       if not Default_Dropdown_Styles.Is_Empty then
-         Set_Part_Styles (Result.Popup.all, Default_Dropdown_Styles.Element);
+         Popup_Lists.Set_Part_Styles (PH, Default_Dropdown_Styles.Element);
       end if;
 
       Set_Flag (Dismiss.all, Visible, True);
       Set_Flag (Dismiss.all, Clickable, True);
       Set_Flag (Dismiss.all, Focusable, False);
       Register_Widget (Widget_Access (Dismiss));
-      Register_Binding (Result.Popup, Dismiss, Result);
+      Register_Binding (PH, Dismiss, Result);
 
       Register_Widget (Widget_Access (Result));
-      return Result;
-   end Create;
-
-   -------------------
-   -- Create_Handle --
-   -------------------
-
-   function Create_Handle return Combo_Box_Handle is
-   begin
-      return (Id => Get_Handle (Create.all).Id);
+      return (Id => Get_Handle (Result.all).Id);
    end Create_Handle;
 
    ----------------------
@@ -383,16 +350,15 @@ package body Adi.Widget.Combo_Box is
       end if;
 
       W.Options.Append (To_Unbounded_String (Text));
-      if W.Popup /= null then
+      if Popup_Lists.Is_Valid (W.Popup) then
          Popup_Lists.Append_Row
-           (Popup_Handle (W.Popup),
-            Adi.Widget.Label.To_Widget_Handle (Row_H));
+           (W.Popup, Adi.Widget.Label.To_Widget_Handle (Row_H));
       end if;
 
       if W.Selected = 0 then
          W.Selected := 1;
-         if W.Popup /= null then
-            Popup_Lists.Select_Row (W.Popup.all, 1);
+         if Popup_Lists.Is_Valid (W.Popup) then
+            Popup_Lists.Select_Row (W.Popup, 1);
          end if;
       end if;
       Mark_Dirty (W);
@@ -402,8 +368,8 @@ package body Adi.Widget.Combo_Box is
    begin
       W.Options.Clear;
       W.Selected := 0;
-      if W.Popup /= null then
-         Popup_Lists.Clear_Rows (W.Popup.all);
+      if Popup_Lists.Is_Valid (W.Popup) then
+         Popup_Lists.Clear_Rows (W.Popup);
       end if;
       Mark_Dirty (W);
    end Clear_Items;
@@ -425,11 +391,11 @@ package body Adi.Widget.Combo_Box is
       end if;
 
       W.Selected := New_Index;
-      if W.Popup /= null then
+      if Popup_Lists.Is_Valid (W.Popup) then
          if New_Index = 0 then
-            Popup_Lists.Clear_Selection (W.Popup.all);
+            Popup_Lists.Clear_Selection (W.Popup);
          else
-            Popup_Lists.Select_Row (W.Popup.all, Positive (New_Index));
+            Popup_Lists.Select_Row (W.Popup, Positive (New_Index));
          end if;
       end if;
 
@@ -480,8 +446,8 @@ package body Adi.Widget.Combo_Box is
       Styles : Part_Style_Array)
    is
    begin
-      if W.Popup /= null then
-         Set_Part_Styles (W.Popup.all, Styles);
+      if Popup_Lists.Is_Valid (W.Popup) then
+         Popup_Lists.Set_Part_Styles (W.Popup, Styles);
       end if;
    end Set_Dropdown_Part_Styles;
 
@@ -493,9 +459,9 @@ package body Adi.Widget.Combo_Box is
       W.Option_Row_Styles := Styles;
       W.Has_Option_Row_Styles := True;
 
-      if W.Popup /= null then
+      if Popup_Lists.Is_Valid (W.Popup) then
          declare
-            PH : constant Popup_Lists.List_Box_Handle := Popup_Handle (W.Popup);
+            PH : constant Popup_Lists.List_Box_Handle := W.Popup;
          begin
             for I in 1 .. Popup_Lists.Row_Count (PH) loop
                declare
@@ -575,7 +541,7 @@ package body Adi.Widget.Combo_Box is
 
    procedure Ensure_Host_Window (W : in out Combo_Box_Widget) is
    begin
-      W.Host_Window := Adi.Window.Find_Host_Window (W'Unchecked_Access);
+      W.Host_Window := Adi.Window.Find_Host_Window (Get_Handle (W));
    end Ensure_Host_Window;
 
    procedure Position_Popup (W : in out Combo_Box_Widget) is
@@ -586,7 +552,7 @@ package body Adi.Widget.Combo_Box is
       Y_Pos    : Pixel_Type;
    begin
       Ensure_Host_Window (W);
-      if W.Host_Window = null or else W.Popup = null then
+      if W.Host_Window = null or else not Popup_Lists.Is_Valid (W.Popup) then
          return;
       end if;
 
@@ -612,10 +578,14 @@ package body Adi.Widget.Combo_Box is
          end if;
       end;
 
-      Set_Geometry
-        (W.Popup.all,
-         (X => X_Pos, Y => Y_Pos, Width => Anchor.Width, Height => Popup_H));
-      Layout (Widget'Class (W.Popup.all));
+      declare
+         R : Widget_Ref := Borrow (+W.Popup);
+      begin
+         Set_Geometry
+           (R.Ptr.all,
+            (X => X_Pos, Y => Y_Pos, Width => Anchor.Width, Height => Popup_H));
+         Layout (Widget'Class (R.Ptr.all));
+      end;
    end Position_Popup;
 
    procedure Position_Dismiss_Layer (W : in out Combo_Box_Widget) is
@@ -648,7 +618,9 @@ package body Adi.Widget.Combo_Box is
       Dismiss : Dismiss_Layer_Widget_Access := null;
    begin
       Ensure_Host_Window (W);
-      if W.Open or else W.Host_Window = null or else W.Popup = null then
+      if W.Open or else W.Host_Window = null
+        or else not Popup_Lists.Is_Valid (W.Popup)
+      then
          return;
       end if;
 
@@ -663,26 +635,28 @@ package body Adi.Widget.Combo_Box is
       Position_Popup (W);
 
       if W.Selected > 0 then
-         Popup_Lists.Select_Row (W.Popup.all, Positive (W.Selected));
-         Popup_Lists.Ensure_Row_Visible (W.Popup.all, Positive (W.Selected));
+         Popup_Lists.Select_Row (W.Popup, Positive (W.Selected));
+         Popup_Lists.Ensure_Row_Visible (W.Popup, Positive (W.Selected));
       end if;
 
       if Dismiss /= null then
          Adi.Window.Add_Overlay (W.Host_Window.all, Get_Handle (Dismiss.all));
       end if;
-      Adi.Window.Add_Overlay (W.Host_Window.all, Get_Handle (W.Popup.all));
+      Adi.Window.Add_Overlay (W.Host_Window.all, +W.Popup);
       W.Open := True;
       if Dismiss /= null then
          Mark_Dirty (Dismiss.all);
       end if;
-      Mark_Dirty (W.Popup.all);
+      Mark_Dirty (+W.Popup);
       Mark_Dirty (W);
    end Open_Dropdown;
 
    procedure Close_Dropdown (W : in out Combo_Box_Widget) is
       Dismiss : Dismiss_Layer_Widget_Access := null;
    begin
-      if not W.Open or else W.Host_Window = null or else W.Popup = null then
+      if not W.Open or else W.Host_Window = null
+        or else not Popup_Lists.Is_Valid (W.Popup)
+      then
          return;
       end if;
 
@@ -693,7 +667,7 @@ package body Adi.Widget.Combo_Box is
          end if;
       end loop;
 
-      Adi.Window.Remove_Overlay (W.Host_Window.all, Get_Handle (W.Popup.all));
+      Adi.Window.Remove_Overlay (W.Host_Window.all, +W.Popup);
       if Dismiss /= null then
          Adi.Window.Remove_Overlay (W.Host_Window.all, Get_Handle (Dismiss.all));
       end if;
@@ -863,10 +837,12 @@ package body Adi.Widget.Combo_Box is
          Container_Style => Main_Style,
          Items           => W.Layout_Items);
 
-      if W.Open and then W.Host_Window /= null and then W.Popup /= null then
+      if W.Open and then W.Host_Window /= null
+        and then Popup_Lists.Is_Valid (W.Popup)
+      then
          Position_Dismiss_Layer (W);
          Position_Popup (W);
-         Mark_Dirty (W.Popup.all);
+         Mark_Dirty (+W.Popup);
       end if;
    end Layout;
 
@@ -894,9 +870,13 @@ package body Adi.Widget.Combo_Box is
          when SDL_SCANCODE_DOWN | SDL_SCANCODE_UP =>
             if not W.Open then
                Open_Dropdown (W);
-            elsif W.Popup /= null then
-               On_Key_Down
-                 (Widget'Class (W.Popup.all), Scancode, Key_Mod, Repeat);
+            elsif Popup_Lists.Is_Valid (W.Popup) then
+               declare
+                  R : Widget_Ref := Borrow (+W.Popup);
+               begin
+                  On_Key_Down
+                    (Widget'Class (R.Ptr.all), Scancode, Key_Mod, Repeat);
+               end;
                Sync_Selected_From_Popup (W);
             end if;
          when SDL_SCANCODE_RETURN =>

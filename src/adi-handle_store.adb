@@ -26,9 +26,10 @@ package body Adi.Handle_Store is
 
    Initial_Capacity : constant := 64;
 
-   Slots     : Slot_Array_Access := null;
-   Count     : Slot_Index := 0;   --  number of live + pending slots
-   Free_Head : Slot_Index := 0;   --  head of free list (0 = empty)
+   Slots       : Slot_Array_Access := null;
+   Count       : Slot_Index := 0;   --  number of live + pending slots
+   Free_Head   : Slot_Index := 0;   --  head of free list (0 = empty)
+   Strict_Mode : Boolean := True;
 
    ---------------------------------------------------------------------------
    --  Deallocation
@@ -132,7 +133,15 @@ package body Adi.Handle_Store is
 
    function Get (Id : Object_Id) return Object_Access is
    begin
+      if Id = Null_Id then
+         return null;
+      end if;
       if not Is_Valid (Id) then
+         if Strict_Mode then
+            raise Program_Error with
+              "Handle_Store: stale handle (idx="
+              & Slot_Index'Image (Id.Index) & ")";
+         end if;
          return null;
       end if;
       return Slots (Id.Index).Obj;
@@ -275,5 +284,19 @@ package body Adi.Handle_Store is
          end;
       end loop;
    end For_Each_Alive;
+
+   ---------------------------------------------------------------------------
+   --  Strict mode
+   ---------------------------------------------------------------------------
+
+   procedure Set_Strict (Value : Boolean) is
+   begin
+      Strict_Mode := Value;
+   end Set_Strict;
+
+   function Is_Strict return Boolean is
+   begin
+      return Strict_Mode;
+   end Is_Strict;
 
 end Adi.Handle_Store;

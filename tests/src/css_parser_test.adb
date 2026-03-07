@@ -759,7 +759,8 @@ begin
       Reloaded : Boolean := False;
       Reload_OK : Boolean := False;
       Css_Path : constant String := "/tmp/adi_css_parser_test.css";
-      Box : Adi.Widget.Box.Box_Widget_Access;
+      use Adi.Widget.Box;
+      Box : Box_Handle;
       V1 : constant String :=
         ".reloadable { background-color: rgb(10, 20, 30); }" & ASCII.LF;
       V2 : constant String :=
@@ -771,11 +772,11 @@ begin
       Assert (Adi.CSS_Parser.Get_Source_Path (Reload_Sheet) = Css_Path,
               "Get_Source_Path should track file path");
 
-      Box := Adi.Widget.Box.Create;
-      Adi.CSS_Parser.Bind_Class (Reload_Sheet, "reloadable", Box);
+      Box := Create_Handle;
+      Adi.CSS_Parser.Bind_Class (Reload_Sheet, "reloadable", +Box);
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 10, 20, 30),
                  "Bind_Class should apply current stylesheet styles");
@@ -788,7 +789,7 @@ begin
       Assert (Reloaded, "Reload_If_Changed should detect modified file");
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 40, 50, 60),
                  "Reload should reapply new background color to bound widget");

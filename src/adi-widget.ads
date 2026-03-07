@@ -39,14 +39,23 @@ package Adi.Widget is
    procedure Destroy    (H : in out Widget_Handle);
    function Get_Handle  (W : Widget'Class) return Widget_Handle;
 
-   --  Resolve a handle to the underlying pointer.  Returns null for
-   --  invalid / stale handles.  Public so sibling packages (Adi.Window)
-   --  can bridge between handle-based and access-based APIs.
-   function Resolve_Handle (H : Widget_Handle) return Widget_Access
-     with Obsolescent => "Use Borrow/Widget_Ref or typed handles";
+   --  Resolve a handle to a raw pointer (null if stale).
+   --  Prefer Borrow for scoped pinning; use this only when a raw pointer
+   --  is required (e.g. internal library code in Adi.Window / Adi.MCP).
+   function Resolve_Handle (H : Widget_Handle) return Widget_Access;
 
    --  Drain deferred widget destroys (call once per frame from App.Run)
    procedure Pump_Widget_Store;
+
+   --  Register a freshly allocated custom widget and return its handle.
+   --  Use this when defining widget types outside the Adi library:
+   --
+   --    type My_Widget is new Widget with record ... end record;
+   --    Ptr : constant Widget_Access := new My_Widget;
+   --    H   : constant Widget_Handle := Adopt_Widget (Ptr);
+   --
+   --  The widget must not already be registered.  Visible flag is set.
+   function Adopt_Widget (W : not null Widget_Access) return Widget_Handle;
 
    --  Hook for Window to register its cleanup procedure.  Avoids an
    --  elaboration cycle (Widget spec → Window spec → Widget spec).
@@ -209,74 +218,51 @@ package Adi.Widget is
    Empty_Part_Styles : constant Part_Style_Array := (others => <>);
 
    ---------------------------------------------------------------------------
-   --  Widget State Management
-   ---------------------------------------------------------------------------
-
-   ---------------------------------------------------------------------------
-   --  Label Management (floating label overlay for any widget)
-   ---------------------------------------------------------------------------
-
-   procedure Set_Label (W : in out Widget'Class; Label : String);
-   function Get_Label (W : Widget'Class) return String;
-
-   ---------------------------------------------------------------------------
    --  Unique Widget Identifier
    ---------------------------------------------------------------------------
 
-   function Get_Id (W : Widget'Class) return Natural;
+   function Get_Id (H : Widget_Handle) return Natural;
 
    ---------------------------------------------------------------------------
    --  Widget State Management
    ---------------------------------------------------------------------------
 
-   procedure Set_State (W : in out Widget'Class; S : Widget_State; Active : Boolean);
-   function  Has_State (W : Widget'Class; S : Widget_State) return Boolean;
-   function  Get_States (W : Widget'Class) return Widget_States;
-   procedure Set_Part_State (W : in out Widget'Class;
-                             P : Part_Kind;
-                             S : Widget_State;
-                             Active : Boolean);
-   function Get_Part_States (W : Widget'Class; P : Part_Kind) return Widget_States;
-   procedure Clear_States (W : in out Widget'Class);
-   procedure Clear_Part_States (W : in out Widget'Class);
-
-   --  Convenience state setters
-   procedure Set_Hovered (W : in out Widget'Class; Value : Boolean := True);
-   procedure Set_Pressed (W : in out Widget'Class; Value : Boolean := True);
-   procedure Set_Focused (W : in out Widget'Class; Value : Boolean := True);
-   procedure Set_Disabled (W : in out Widget'Class; Value : Boolean := True);
-   function  Is_Disabled  (W : Widget'Class) return Boolean;
-   procedure Set_Selected (W : in out Widget'Class; Value : Boolean := True);
+   procedure Set_State (H : Widget_Handle; S : Widget_State; Active : Boolean);
+   function  Has_State (H : Widget_Handle; S : Widget_State) return Boolean;
+   function  Get_States (H : Widget_Handle) return Widget_States;
+   procedure Set_Hovered (H : Widget_Handle; Value : Boolean := True);
+   procedure Set_Pressed (H : Widget_Handle; Value : Boolean := True);
+   procedure Set_Focused (H : Widget_Handle; Value : Boolean := True);
+   procedure Set_Selected (H : Widget_Handle; Value : Boolean := True);
 
    ---------------------------------------------------------------------------
    --  Part Style Management
    ---------------------------------------------------------------------------
 
-   procedure Set_Part_Style (W : in out Widget'Class;
-                             P : Part_Kind;
-                             S : Widget_Style);
-
-   procedure Set_Part_Styles (W : in out Widget'Class;
-                              Styles : Part_Style_Array);
    procedure Set_Part_Style (H : Widget_Handle;
                              P : Part_Kind;
                              S : Widget_Style);
    procedure Set_Part_Styles (H : Widget_Handle;
                               Styles : Part_Style_Array);
+   procedure Set_Part_Styles (W : in out Widget'Class;
+                              Styles : Part_Style_Array);
 
-   function Get_Part_Style (W : Widget'Class;
+   function Get_Part_Style (H : Widget_Handle;
                             P : Part_Kind) return Widget_Style;
 
-   --  Get the Style_Rules for a part (before resolution)
-   function Get_Part_Style_Rules (W : Widget'Class;
+   function Get_Part_Style_Rules (H : Widget_Handle;
                                   P : Part_Kind) return Style_Rules;
 
-   --  Get computed/resolved style for a part given current widget states
-   function Get_Resolved_Part_Style (W : Widget'Class;
+   function Get_Resolved_Part_Style (H : Widget_Handle;
                                      P : Part_Kind) return Resolved_Style;
 
+   procedure Set_Part_State (H : Widget_Handle;
+                             P : Part_Kind;
+                             S : Widget_State;
+                             Active : Boolean);
+
    ---------------------------------------------------------------------------
-   --  Item Management
+   --  Item Management (Widget'Class — used by widget implementations)
    ---------------------------------------------------------------------------
 
    procedure Add_Item (W : in out Widget'Class; I : Item);
@@ -284,8 +270,10 @@ package Adi.Widget is
    procedure Update_Item (W : in out Widget'Class;
                           Index : Positive;
                           I : Item);
+   function  Item_Count (H : Widget_Handle) return Natural;
    function  Item_Count (W : Widget'Class) return Natural;
    function  Get_Item (W : Widget'Class; Index : Positive) return Item;
+   function  Get_Item (H : Widget_Handle; Index : Positive) return Item;
 
    --  Apply current part styles to all items (recomputes Computed_Style)
    procedure Apply_Styles_To_Items (W : in out Widget'Class);
@@ -293,52 +281,45 @@ package Adi.Widget is
    --  Get items filtered by part
    function Get_Items_For_Part (W : Widget'Class;
                                 P : Part_Kind) return Items_List.Vector;
+   function Get_Items_For_Part (H : Widget_Handle;
+                                P : Part_Kind) return Items_List.Vector;
    function Get_Part_At (W : Widget'Class;
+                         X, Y : Pixel_Type) return Part_Kind;
+   function Get_Part_At (H : Widget_Handle;
                          X, Y : Pixel_Type) return Part_Kind;
 
    ---------------------------------------------------------------------------
    --  Hierarchy Management
    ---------------------------------------------------------------------------
 
-   procedure Add_Child (W : in out Widget'Class; C : access Widget'Class)
-     with Obsolescent => "Use Add_Child with Widget_Handle";
-   procedure Add_Child (W : in out Widget'Class; C : Widget_Handle);
    procedure Add_Child (Parent : Widget_Handle; Child : Widget_Handle);
-   procedure Remove_Child (W : in out Widget'Class; C : access Widget'Class)
-     with Obsolescent => "Use Remove_Child with Widget_Handle";
    procedure Remove_Child (Parent : Widget_Handle; Child : Widget_Handle);
-   procedure Set_Parent (W : in out Widget'Class; P : access Widget'Class)
-     with Obsolescent => "Use Set_Parent with Widget_Handle";
    procedure Set_Parent (W : Widget_Handle; P : Widget_Handle);
-   function  Get_Parent (W : Widget'Class) return access Widget'Class
-     with Obsolescent => "Use Get_Parent_Handle";
-    function  Get_Parent_Handle (W : Widget'Class) return Widget_Handle;
-    function  Get_Parent_Handle (H : Widget_Handle) return Widget_Handle;
-   function  Child_Count (W : Widget'Class) return Natural;
-   function Get_Child (W : Widget'Class; Index : Positive) return Widget_Access
-     with Obsolescent => "Use Get_Child_Handle";
-   function Get_Child_Handle (W : Widget'Class; Index : Positive)
-      return Widget_Handle;
-   function Get_Child_Handle (H : Widget_Handle; Index : Positive)
+   function  Get_Parent_Handle (H : Widget_Handle) return Widget_Handle;
+   function  Child_Count (H : Widget_Handle) return Natural;
+   function  Get_Child_Handle (H : Widget_Handle; Index : Positive)
       return Widget_Handle;
 
    ---------------------------------------------------------------------------
    --  Geometry and Layout
    ---------------------------------------------------------------------------
 
-   procedure Set_Geometry (W : in out Widget'Class; G : Rectangle);
-   function  Get_Geometry (W : Widget'Class) return Rectangle;
-   function  Get_Content_Box (W : Widget'Class) return Rectangle;
+   procedure Set_Geometry (H : Widget_Handle; G : Rectangle);
+   function  Get_Geometry (H : Widget_Handle) return Rectangle;
 
    ---------------------------------------------------------------------------
    --  Shared Vertical Scrolling (overflow-y)
    ---------------------------------------------------------------------------
 
    procedure Set_Scroll_Offset_Y (W : in out Widget'Class; Offset : Pixel_Type);
+   procedure Set_Scroll_Offset_Y (H : Widget_Handle; Offset : Pixel_Type);
    function  Get_Scroll_Offset_Y (W : Widget'Class) return Pixel_Type;
+   function  Get_Scroll_Offset_Y (H : Widget_Handle) return Pixel_Type;
    procedure Scroll_By_Y (W : in out Widget'Class; Delta_Y : Pixel_Type);
    function  Get_Scroll_Content_Height (W : Widget'Class) return Pixel_Type;
+   function  Get_Scroll_Content_Height (H : Widget_Handle) return Pixel_Type;
    function  Get_Scroll_Max_Offset_Y (W : Widget'Class) return Pixel_Type;
+   function  Get_Scroll_Max_Offset_Y (H : Widget_Handle) return Pixel_Type;
 
    --  Reusable input hooks for widgets that override mouse handlers but still
    --  want the shared scrollbar behavior.
@@ -351,6 +332,16 @@ package Adi.Widget is
       X, Y : Pixel_Type);
    procedure Handle_Scroll_Mouse_Up
      (W      : in out Widget'Class;
+      Button : Mouse_Button);
+   function Handle_Scroll_Mouse_Down
+     (H      : Widget_Handle;
+      X, Y   : Pixel_Type;
+      Button : Mouse_Button) return Boolean;
+   procedure Handle_Scroll_Mouse_Move
+     (H    : Widget_Handle;
+      X, Y : Pixel_Type);
+   procedure Handle_Scroll_Mouse_Up
+     (H      : Widget_Handle;
       Button : Mouse_Button);
    procedure Handle_Scroll_Mouse_Wheel
      (W                : in out Widget'Class;
@@ -370,9 +361,8 @@ package Adi.Widget is
    --  Flags
    ---------------------------------------------------------------------------
 
-   procedure Set_Flag (W : in out Widget'Class; F : Widget_Flag; Value : Boolean);
    procedure Set_Flag (H : Widget_Handle; F : Widget_Flag; Value : Boolean);
-   function  Has_Flag (W : Widget'Class; F : Widget_Flag) return Boolean;
+   function  Has_Flag (H : Widget_Handle; F : Widget_Flag) return Boolean;
 
    ---------------------------------------------------------------------------
    --  Context Menu Routing
@@ -387,12 +377,15 @@ package Adi.Widget is
 
    procedure Connect_Context_Menu
      (W : in out Widget'Class; CB : Context_Menu_Callback);
+   procedure Connect_Context_Menu
+     (H : Widget_Handle; CB : Context_Menu_Callback);
    function Connect_Context_Menu
      (W : in out Widget'Class; CB : Context_Menu_Callback)
       return Context_Menu_Signals.Connection_Id;
    procedure Disconnect_Context_Menu
      (W : in out Widget'Class; Id : Context_Menu_Signals.Connection_Id);
    function Has_Context_Menu (W : Widget'Class) return Boolean;
+   function Has_Context_Menu (H : Widget_Handle) return Boolean;
    function Show_Context_Menu
      (W    : in out Widget'Class;
       X, Y : Pixel_Type) return Boolean;
@@ -406,9 +399,12 @@ package Adi.Widget is
 
    procedure Mark_Dirty (W : in out Widget'Class);
    procedure Mark_Render_Dirty (W : in out Widget'Class);
+   procedure Mark_Render_Dirty (H : Widget_Handle);
    procedure Mark_Clean (W : in out Widget'Class);
    function  Is_Dirty (W : Widget'Class) return Boolean;
+   function  Is_Dirty (H : Widget_Handle) return Boolean;
    function  Is_Layout_Dirty (W : Widget'Class) return Boolean;
+   function  Is_Layout_Dirty (H : Widget_Handle) return Boolean;
 
    ---------------------------------------------------------------------------
    --  Abstract Methods - Must be implemented by derived widgets
@@ -416,6 +412,7 @@ package Adi.Widget is
 
    --  Render items to the scene graph/renderer
    procedure Build_Items (W : in out Widget) is abstract;
+   procedure Build_Items (H : Widget_Handle);
 
    ---------------------------------------------------------------------------
    --  Concrete Rendering - Generic for all widgets
@@ -426,16 +423,19 @@ package Adi.Widget is
 
    --  Render this widget and all children recursively
    procedure Render_Tree (W : in out Widget'Class; Ctx : in out Render_Context);
+   procedure Render_Tree (H : Widget_Handle; Ctx : in out Render_Context);
 
    --  Full update and render cycle
    procedure Update_And_Render (W : in out Widget'Class; Ctx : in out Render_Context);
 
    --  Handle layout calculation
    procedure Layout (W : in out Widget) is abstract;
+   procedure Layout (H : Widget_Handle);
 
    --  Called when the widget is clicked (mouse-up within bounds of clickable widget)
    --  Default does nothing; override in derived widgets (e.g., Button).
    procedure On_Click (W : in out Widget) is null;
+   procedure On_Click (H : Widget_Handle);
 
    --  Called for mouse interaction routed by the window.
    procedure On_Mouse_Down
@@ -443,15 +443,30 @@ package Adi.Widget is
       X, Y   : Pixel_Type;
       Button : Mouse_Button;
       Clicks : Natural := 1);
+   procedure On_Mouse_Down
+     (H      : Widget_Handle;
+      X, Y   : Pixel_Type;
+      Button : Mouse_Button;
+      Clicks : Natural := 1);
    procedure On_Mouse_Move
      (W    : in out Widget;
+      X, Y : Pixel_Type);
+   procedure On_Mouse_Move
+     (H    : Widget_Handle;
       X, Y : Pixel_Type);
    procedure On_Mouse_Up
      (W      : in out Widget;
       X, Y   : Pixel_Type;
       Button : Mouse_Button);
+   procedure On_Mouse_Up
+     (H      : Widget_Handle;
+      X, Y   : Pixel_Type;
+      Button : Mouse_Button);
    procedure On_Mouse_Wheel
      (W              : in out Widget;
+      Delta_X, Delta_Y : Pixel_Type);
+   procedure On_Mouse_Wheel
+     (H                : Widget_Handle;
       Delta_X, Delta_Y : Pixel_Type);
 
    --  Called for key down events when this widget has focus.
@@ -460,6 +475,11 @@ package Adi.Widget is
       Scancode : Adi.SDL.Events.SDL_Scancode;
       Key_Mod  : Adi.SDL.Events.SDL_Keymod;
       Repeat   : Boolean) is null;
+   procedure On_Key_Down
+     (H        : Widget_Handle;
+      Scancode : Adi.SDL.Events.SDL_Scancode;
+      Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+      Repeat   : Boolean);
 
    --  Called for key up events when this widget has focus.
    procedure On_Key_Up
@@ -467,13 +487,21 @@ package Adi.Widget is
       Scancode : Adi.SDL.Events.SDL_Scancode;
       Key_Mod  : Adi.SDL.Events.SDL_Keymod;
       Repeat   : Boolean) is null;
+   procedure On_Key_Up
+     (H        : Widget_Handle;
+      Scancode : Adi.SDL.Events.SDL_Scancode;
+      Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+      Repeat   : Boolean);
 
    --  Called for text input events when this widget has focus.
    procedure On_Text_Input (W : in out Widget; Text : String) is null;
+   procedure On_Text_Input (H : Widget_Handle; Text : String);
 
    --  Called when this widget gains/loses keyboard focus.
    procedure On_Focus_Gained (W : in out Widget) is null;
+   procedure On_Focus_Gained (H : Widget_Handle);
    procedure On_Focus_Lost (W : in out Widget) is null;
+   procedure On_Focus_Lost (H : Widget_Handle);
 
    --  Called just before a widget is destroyed (Request_Destroy).
    --  Override to clean up external references (e.g. global binding tables).
@@ -501,6 +529,7 @@ package Adi.Widget is
 
    --  Full update: rebuild items if dirty, apply styles, prepare for render
    procedure Update (W : in out Widget'Class);
+   procedure Update (H : Widget_Handle);
 
 
    ---------------------------------------------------------------------------
@@ -527,8 +556,11 @@ package Adi.Widget is
    ---------------------------------------------------------------------------
 
    function Measure_Content(W : Widget) return Size_2D;
+   function Measure_Content(H : Widget_Handle) return Size_2D;
    function Get_Min_Size(W : Widget) return Size_2D;
+   function Get_Min_Size(H : Widget_Handle) return Size_2D;
    function Get_Preferred_Size(W : Widget'Class) return Size_2D;
+   function Get_Preferred_Size(H : Widget_Handle) return Size_2D;
 
    ---------------------------------------------------------------------------
    --  Flex Layout
@@ -547,7 +579,9 @@ package Adi.Widget is
    --  Check if widget uses flex display
    function Is_Flex_Container(W : Widget'Class) return Boolean;
    procedure Rebuild_All_Items (W : in out Widget'Class);
+   procedure Rebuild_All_Items (H : Widget_Handle);
    procedure Layout_Tree (W : in out Widget'Class);
+   procedure Layout_Tree (H : Widget_Handle);
 
    ---------------------------------------------------------------------------
    --  Animation
@@ -555,6 +589,7 @@ package Adi.Widget is
 
    --  Advance all active transitions by DT seconds, recursing to children
    procedure Tick_Animations (W : in out Widget'Class; DT : Duration);
+   procedure Tick_Animations (H : Widget_Handle; DT : Duration);
 
    ---------------------------------------------------------------------------
    --  Per-frame performance counters (debug stats overlay)
@@ -574,6 +609,11 @@ package Adi.Widget is
    ---------------------------------------------------------------------------
 
    procedure Layout_Child (Child : in out Widget'Class);
+
+   --  Register a freshly allocated widget in the global store.
+   --  Called from each widget's Create function.  Must also be called
+   --  when allocating a custom widget subclass with new.
+   procedure Register_Widget (Obj : not null Widget_Access);
 
 private
 
@@ -712,10 +752,58 @@ private
      end record;
    overriding procedure Finalize (R : in out Widget_Ref);
 
-   --  Register a freshly allocated widget in the global store.
-   --  Called from each widget's Create function.  Sets Store_Index/Store_Gen
-   --  on the widget so that Get_Handle works.
-   procedure Register_Widget (Obj : not null Widget_Access);
+   --  Widget'Class versions — used internally by handle wrappers
+   --  and visible to child packages (List_Box, Stack, Dialog, etc.).
+   procedure Set_Label (W : in out Widget'Class; Label : String);
+   function  Get_Label (W : Widget'Class) return String;
+   function  Get_Id (W : Widget'Class) return Natural;
+
+   procedure Set_State (W : in out Widget'Class; S : Widget_State; Active : Boolean);
+   function  Has_State (W : Widget'Class; S : Widget_State) return Boolean;
+   function  Get_States (W : Widget'Class) return Widget_States;
+   procedure Set_Part_State (W : in out Widget'Class;
+                             P : Part_Kind;
+                             S : Widget_State;
+                             Active : Boolean);
+   function  Get_Part_States (W : Widget'Class; P : Part_Kind)
+      return Widget_States;
+   procedure Clear_States (W : in out Widget'Class);
+   procedure Clear_Part_States (W : in out Widget'Class);
+   procedure Set_Hovered  (W : in out Widget'Class; Value : Boolean := True);
+   procedure Set_Pressed  (W : in out Widget'Class; Value : Boolean := True);
+   procedure Set_Focused  (W : in out Widget'Class; Value : Boolean := True);
+   procedure Set_Disabled (W : in out Widget'Class; Value : Boolean := True);
+   function  Is_Disabled  (W : Widget'Class) return Boolean;
+   procedure Set_Selected (W : in out Widget'Class; Value : Boolean := True);
+
+   procedure Set_Part_Style (W : in out Widget'Class;
+                             P : Part_Kind;
+                             S : Widget_Style);
+   function  Get_Part_Style (W : Widget'Class;
+                             P : Part_Kind) return Widget_Style;
+   function  Get_Part_Style_Rules (W : Widget'Class;
+                                   P : Part_Kind) return Style_Rules;
+   function  Get_Resolved_Part_Style (W : Widget'Class;
+                                      P : Part_Kind) return Resolved_Style;
+
+   procedure Set_Geometry (W : in out Widget'Class; G : Rectangle);
+   function  Get_Geometry (W : Widget'Class) return Rectangle;
+   function  Get_Content_Box (W : Widget'Class) return Rectangle;
+
+   procedure Set_Flag (W : in out Widget'Class; F : Widget_Flag; Value : Boolean);
+   function  Has_Flag (W : Widget'Class; F : Widget_Flag) return Boolean;
+
+   procedure Add_Child    (W : in out Widget'Class; C : Widget_Handle);
+   procedure Add_Child    (W : in out Widget'Class; C : access Widget'Class);
+   procedure Remove_Child (W : in out Widget'Class; C : access Widget'Class);
+   procedure Set_Parent   (W : in out Widget'Class; P : access Widget'Class);
+   function  Get_Parent   (W : Widget'Class) return access Widget'Class;
+   function  Get_Parent_Handle (W : Widget'Class) return Widget_Handle;
+   function  Child_Count  (W : Widget'Class) return Natural;
+   function  Get_Child    (W : Widget'Class; Index : Positive)
+      return Widget_Access;
+   function  Get_Child_Handle (W : Widget'Class; Index : Positive)
+      return Widget_Handle;
 
    --  Color conversion helpers (CSS Color_Value to SDL RGBA)
    procedure CSS_Color_To_SDL

@@ -160,8 +160,8 @@ Existing widget signals:
 | Button.Options | `Changed` | `(Value : Option_Type)` |
 | Slider | `Changed` | `(W : Widget_Handle; Value : Value_Type)` |
 | Value_Input | `Changed` | `(W : Widget_Handle; Value : Value_Type)` |
-| Text_Input | `Changed` | `(W : Widget_Handle)` |
-| Text_Editor | `Changed` | `(W : Widget_Handle)` |
+| Text_Input | `Changed` | `(W : Widget_Handle; Text : String)` |
+| Text_Editor | `Changed` | `(W : Widget_Handle; Text : String)` |
 | List_Box | `Item_Clicked` | `(W : Widget_Handle; Index : Positive)` |
 | List_Box | `Item_Activated` | `(W : Widget_Handle; Index : Positive)` |
 | List_Box | `Selection_Changed` | `(W : Widget_Handle)` |

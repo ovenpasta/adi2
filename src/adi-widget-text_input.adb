@@ -425,6 +425,27 @@ package body Adi.Widget.Text_Input is
       return "";
    end Get_Text;
 
+   procedure Set_Min_Visible_Chars
+     (H : Text_Input_Handle; Count : Positive)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Min_Visible_Chars (Text_Input_Widget (Ptr.all), Count);
+      end if;
+   end Set_Min_Visible_Chars;
+
+   function Get_Min_Visible_Chars
+     (H : Text_Input_Handle) return Positive
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Min_Visible_Chars (Text_Input_Widget (Ptr.all));
+      end if;
+      return 20;
+   end Get_Min_Visible_Chars;
+
    procedure Set_Context_Menu_Part_Styles
      (H : Text_Input_Handle; Styles : Part_Style_Array)
    is
@@ -501,6 +522,21 @@ package body Adi.Widget.Text_Input is
       return Get_Text (W.Buffer);
    end Get_Text;
 
+   procedure Set_Min_Visible_Chars
+     (W : in out Text_Input_Widget; Count : Positive)
+   is
+   begin
+      W.Min_Visible_Chars := Count;
+      Mark_Dirty (W);
+   end Set_Min_Visible_Chars;
+
+   function Get_Min_Visible_Chars
+     (W : Text_Input_Widget) return Positive
+   is
+   begin
+      return W.Min_Visible_Chars;
+   end Get_Min_Visible_Chars;
+
    procedure Set_Context_Menu_Part_Styles
      (W      : in out Text_Input_Widget;
       Styles : Part_Style_Array)
@@ -543,7 +579,6 @@ package body Adi.Widget.Text_Input is
    overriding function Measure_Content (W : Text_Input_Widget) return Size_2D is
       Main_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Label_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Text_Part);
-      Sample      : constant String := (if Get_Text (W)'Length = 0 then "M" else Get_Text (W));
       Font_Attrs  : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Label_Style.Font_Family,
@@ -551,11 +586,17 @@ package body Adi.Widget.Text_Input is
            Weight     => Label_Style.Font_Weight,
            Style      => Label_Style.Font_Style,
            Decoration => Label_Style.Text_Decoration);
-      Text_Size   : constant Size_2D :=
-        Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => Sample);
-      Outer  : constant Size_2D := Outer_Size (Text_Size, Main_Style);
+      --  Measure a representative character for consistent sizing.
+      --  Width is based on Min_Visible_Chars so the input does not grow
+      --  with its content; long text scrolls horizontally instead.
+      Char_Size   : constant Size_2D :=
+        Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => "M");
+      Content_W   : constant Pixel_Type :=
+        Char_Size.Width * Pixel_Type (W.Min_Visible_Chars);
+      Outer  : constant Size_2D :=
+        Outer_Size ((Content_W, Char_Size.Height), Main_Style);
    begin
-      return (Width  => Pixel_Type'Max (120.0, Outer.Width),
+      return (Width  => Outer.Width,
               Height => Pixel_Type'Max (28.0, Outer.Height));
    end Measure_Content;
 

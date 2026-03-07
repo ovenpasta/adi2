@@ -18,8 +18,6 @@ package Adi.Widget.Dialog is
    Null_Dialog_Handle : constant Dialog_Handle;
 
    --  Construction
-   function Create return Dialog_Widget_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle return Dialog_Handle;
 
    --  Handle bridge
@@ -29,11 +27,6 @@ package Adi.Widget.Dialog is
    function "+" (H : Dialog_Handle) return Widget_Handle;
    procedure Set_Part_Styles
      (H : Dialog_Handle; Styles : Part_Style_Array);
-
-   procedure Attach_Window
-     (W    : in out Dialog_Widget;
-      Host : Adi.Window.Window_Access)
-     with Obsolescent => "Use Attach_Window with Window_Handle";
 
    --  Content
    procedure Set_Title   (W : in out Dialog_Widget; Text : String);
@@ -61,10 +54,6 @@ package Adi.Widget.Dialog is
 
    --  Access individual buttons for per-button styling.
    --  Returns null if Index is out of range.
-   function Get_Button
-     (W : Dialog_Widget; Index : Positive)
-      return Adi.Widget.Button.Button_Widget_Access
-     with Obsolescent => "Use Get_Button_Handle";
    function Get_Button_Handle
      (W : Dialog_Widget; Index : Positive)
       return Adi.Widget.Button.Button_Handle;
@@ -122,9 +111,6 @@ package Adi.Widget.Dialog is
 
    --  Handle methods
    procedure Attach_Window
-     (H : Dialog_Handle; Host : Adi.Window.Window_Access)
-     with Obsolescent => "Use Attach_Window (H, Host : Window_Handle)";
-   procedure Attach_Window
      (H : Dialog_Handle; Host : Adi.Window.Window_Handle);
    procedure Set_Title   (H : Dialog_Handle; Text : String);
    procedure Set_Message (H : Dialog_Handle; Text : String);
@@ -134,10 +120,6 @@ package Adi.Widget.Dialog is
    procedure Add_Button  (H : Dialog_Handle; Text : String);
    procedure Clear_Buttons (H : Dialog_Handle);
    procedure Set_Default_Button (H : Dialog_Handle; Index : Natural);
-   function  Get_Button
-     (H : Dialog_Handle; Index : Positive)
-      return Adi.Widget.Button.Button_Widget_Access
-     with Obsolescent => "Use Get_Button_Handle";
    function  Get_Button_Handle
      (H : Dialog_Handle; Index : Positive)
       return Adi.Widget.Button.Button_Handle;
@@ -208,7 +190,7 @@ private
 
    type Button_Info is record
       Text   : Ada.Strings.Unbounded.Unbounded_String;
-      Widget : Adi.Widget.Widget_Access := null;
+      Widget : Widget_Handle := Null_Handle;
    end record;
 
    package Button_Vectors is new Ada.Containers.Vectors (Positive, Button_Info);
@@ -216,12 +198,14 @@ private
    Panel_Idx : constant Positive := 1;
 
    type Dialog_Widget is new Widget with record
-      Host_Window   : Adi.Window.Window_Access := null;
-      Content_Panel : Adi.Widget.Box.Box_Widget_Access := null;
-      Title_Label   : Adi.Widget.Label.Label_Widget_Access := null;
-      Message_Label : Adi.Widget.Label.Label_Widget_Access := null;
-      Custom_Content : Widget_Access := null;
-      Button_Row    : Adi.Widget.Box.Box_Widget_Access := null;
+      Host_Window    : Adi.Window.Window_Handle := Adi.Window.Null_Window_Handle;
+      Content_Panel  : Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Null_Box_Handle;
+      Title_Label    : Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Null_Label_Handle;
+      Message_Label  : Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Null_Label_Handle;
+      Custom_Content : Widget_Handle := Null_Handle;
+      Button_Row     : Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Null_Box_Handle;
       Buttons       : Button_Vectors.Vector;
       Shown         : Boolean := False;
       Dismiss_On_Backdrop_Flag : Boolean := True;

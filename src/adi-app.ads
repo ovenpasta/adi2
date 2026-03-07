@@ -9,8 +9,6 @@ package Adi.App is
 
     procedure Run (A : in out App);
 
-    procedure Add_Window (A : in out App; W : Window_Access)
-      with Obsolescent => "Use Add_Window (A, W : Window_Handle)";
     procedure Add_Window (A : in out App; W : Window_Handle);
 
     --  Post an SDL_EVENT_QUIT so the event loop processes a quit request.

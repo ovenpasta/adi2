@@ -48,7 +48,7 @@ procedure Close_Request_Test is
    ---------------------------------------------------------------------------
 
    procedure Allow_Close
-     (Win   : not null access Window'Class;
+     (Win   : Window_Handle;
       Allow : in out Boolean)
    is
       pragma Unreferenced (Win);
@@ -58,7 +58,7 @@ procedure Close_Request_Test is
    end Allow_Close;
 
    procedure Veto_Close
-     (Win   : not null access Window'Class;
+     (Win   : Window_Handle;
       Allow : in out Boolean)
    is
       pragma Unreferenced (Win);

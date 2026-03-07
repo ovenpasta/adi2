@@ -74,6 +74,21 @@ package Adi.CSS_Parser is
                        Tag_Name : String;
                        W        : access Adi.Widget.Widget'Class);
 
+   --  Widget_Handle overloads
+   procedure Bind (Sheet : in out Stylesheet;
+                   Kind  : Selector_Kind;
+                   Name  : String;
+                   W     : Adi.Widget.Widget_Handle);
+   procedure Bind_Class (Sheet      : in out Stylesheet;
+                         Class_Name : String;
+                         W          : Adi.Widget.Widget_Handle);
+   procedure Bind_Id (Sheet   : in out Stylesheet;
+                      Id_Name : String;
+                      W       : Adi.Widget.Widget_Handle);
+   procedure Bind_Tag (Sheet    : in out Stylesheet;
+                       Tag_Name : String;
+                       W        : Adi.Widget.Widget_Handle);
+
    function Get_Last_Error (Sheet : Stylesheet) return String;
    function Get_Source_Path (Sheet : Stylesheet) return String;
 

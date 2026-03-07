@@ -8,8 +8,8 @@ with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.SDL; use Adi.SDL;
 with Adi.SDL.TTF;
 with Adi.Widget; use Adi.Widget;
-with Adi.Widget.Box;
-with Adi.Widget.Label;
+with Adi.Widget.Box; use Adi.Widget.Box;
+with Adi.Widget.Label; use Adi.Widget.Label;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 procedure Css_Source_Test is
@@ -49,7 +49,7 @@ begin
 
    declare
       Source : Adi.CSS_Source.Style_Source;
-      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Box    : constant Box_Handle := Create_Handle;
       OK     : Boolean := False;
 
       Static_Entries : constant Adi.CSS_Source.Static_Style_Entry_Array := [
@@ -79,13 +79,13 @@ begin
 
       Adi.CSS_Source.Bind_Selector_Set (
         Source     => Source,
-        W          => Box,
+        W          => +Box,
         Tag_Name   => "button",
         Class_Name => "primary",
         Id_Name    => "submit");
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 140, 150, 160),
                  "Static selector-set should prioritize id over class/tag");
@@ -100,7 +100,7 @@ begin
 
    declare
       Source : Adi.CSS_Source.Style_Source;
-      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Box    : constant Box_Handle := Create_Handle;
       OK     : Boolean := False;
 
       Static_Entries : constant Adi.CSS_Source.Static_Style_Entry_Array := [
@@ -127,10 +127,10 @@ begin
       Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, OK);
       Assert (OK, "Set_Mode static should succeed with repeated selector entries");
 
-      Adi.CSS_Source.Bind_Tag (Source, "li", Box);
+      Adi.CSS_Source.Bind_Tag (Source, "li", +Box);
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 70, 80, 90),
                  "Static mode should merge repeated tag entries and keep last override");
@@ -143,7 +143,7 @@ begin
 
    declare
       Source : Adi.CSS_Source.Style_Source;
-      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Box    : constant Box_Handle := Create_Handle;
       OK     : Boolean := False;
       Reloaded : Boolean := False;
       Tick_OK  : Boolean := False;
@@ -166,13 +166,13 @@ begin
 
       Adi.CSS_Source.Bind_Selector_Set (
         Source     => Source,
-        W          => Box,
+        W          => +Box,
         Tag_Name   => "button",
         Class_Name => "primary",
         Id_Name    => "submit");
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 140, 150, 160),
                  "Dynamic selector-set should prioritize id over class/tag");
@@ -189,7 +189,7 @@ begin
       Assert (Reloaded, "Tick should report reload when css file changed");
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 200, 210, 220),
                  "Reloaded dynamic selector-set should keep id priority");
@@ -205,7 +205,7 @@ begin
    --  Static mode: Bind_Class merges two class entries
    declare
       Source : Adi.CSS_Source.Style_Source;
-      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Box    : constant Box_Handle := Create_Handle;
       OK     : Boolean := False;
 
       Static_Entries : constant Adi.CSS_Source.Static_Style_Entry_Array := [
@@ -227,10 +227,10 @@ begin
       Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, OK);
       Assert (OK, "Bind_Class static Set_Mode should succeed");
 
-      Adi.CSS_Source.Bind_Class (Source, "base accent", Box);
+      Adi.CSS_Source.Bind_Class (Source, "base accent", +Box);
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 100, 110, 120),
                  "Bind_Class static should use later class override for bg");
@@ -244,7 +244,7 @@ begin
    --  Static mode: Bind_Class with single class works same as Bind_Class
    declare
       Source : Adi.CSS_Source.Style_Source;
-      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Box    : constant Box_Handle := Create_Handle;
       OK     : Boolean := False;
 
       Static_Entries : constant Adi.CSS_Source.Static_Style_Entry_Array := [
@@ -258,10 +258,10 @@ begin
       Adi.CSS_Source.Set_Static_Entries (Source, Static_Entries);
       Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, OK);
 
-      Adi.CSS_Source.Bind_Class (Source, "solo", Box);
+      Adi.CSS_Source.Bind_Class (Source, "solo", +Box);
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 55, 66, 77),
                  "Bind_Class static single class should apply bg");
@@ -271,7 +271,7 @@ begin
    --  Static mode: Bind_Class with three classes merges in order
    declare
       Source : Adi.CSS_Source.Style_Source;
-      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Box    : constant Box_Handle := Create_Handle;
       OK     : Boolean := False;
 
       Static_Entries : constant Adi.CSS_Source.Static_Style_Entry_Array := [
@@ -298,10 +298,10 @@ begin
       Adi.CSS_Source.Set_Static_Entries (Source, Static_Entries);
       Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, OK);
 
-      Adi.CSS_Source.Bind_Class (Source, "layer1 layer2 layer3", Box);
+      Adi.CSS_Source.Bind_Class (Source, "layer1 layer2 layer3", +Box);
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 30, 30, 30),
                  "Bind_Class three classes should use last override for bg");
@@ -317,7 +317,7 @@ begin
    --  Dynamic mode: Bind_Class merges from parsed CSS
    declare
       Source : Adi.CSS_Source.Style_Source;
-      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Box    : constant Box_Handle := Create_Handle;
       OK     : Boolean := False;
 
       Css : constant String :=
@@ -330,10 +330,10 @@ begin
       Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, OK);
       Assert (OK, "Bind_Class dynamic Set_Mode should succeed");
 
-      Adi.CSS_Source.Bind_Class (Source, "base accent", Box);
+      Adi.CSS_Source.Bind_Class (Source, "base accent", +Box);
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 100, 110, 120),
                  "Bind_Class dynamic should use later class override for bg");
@@ -347,7 +347,7 @@ begin
    --  Dynamic mode: Bind_Class reapplied after reload
    declare
       Source   : Adi.CSS_Source.Style_Source;
-      Box      : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Box      : constant Box_Handle := Create_Handle;
       OK       : Boolean := False;
       Reloaded : Boolean := False;
       Tick_OK  : Boolean := False;
@@ -363,10 +363,10 @@ begin
       Adi.CSS_Source.Add_Dynamic_File (Source, Css_Path, OK);
       Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, OK);
 
-      Adi.CSS_Source.Bind_Class (Source, "base accent", Box);
+      Adi.CSS_Source.Bind_Class (Source, "base accent", +Box);
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 100, 110, 120),
                  "Bind_Class reload initial bg should be accent");
@@ -381,7 +381,7 @@ begin
       Assert (Reloaded, "Bind_Class reload Tick should detect change");
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 200, 210, 220),
                  "Bind_Class reload should update bg to new accent");
@@ -395,7 +395,7 @@ begin
    --  Add_Static_Entry: incremental registration avoids stack-blowing aggregates
    declare
       Source : Adi.CSS_Source.Style_Source;
-      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Box    : constant Box_Handle := Create_Handle;
       OK     : Boolean := False;
    begin
       Adi.CSS_Source.Clear_Static_Entries (Source);
@@ -414,10 +414,10 @@ begin
       Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, OK);
       Assert (OK, "Add_Static_Entry Set_Mode static should succeed");
 
-      Adi.CSS_Source.Bind_Class (Source, "alpha beta", Box);
+      Adi.CSS_Source.Bind_Class (Source, "alpha beta", +Box);
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 44, 55, 66),
                  "Add_Static_Entry should apply later class bg override");
@@ -431,7 +431,7 @@ begin
    --  Clear_Static_Entries should remove previously added entries
    declare
       Source : Adi.CSS_Source.Style_Source;
-      Box    : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Box    : constant Box_Handle := Create_Handle;
       OK     : Boolean := False;
    begin
       Adi.CSS_Source.Add_Static_Entry (Source,
@@ -448,10 +448,10 @@ begin
       Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, OK);
       Assert (OK, "Clear + Add_Static_Entry Set_Mode should succeed");
 
-      Adi.CSS_Source.Bind_Class (Source, "fresh", Box);
+      Adi.CSS_Source.Bind_Class (Source, "fresh", +Box);
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 77, 88, 99),
                  "Clear_Static_Entries should discard old entries");
@@ -460,7 +460,7 @@ begin
 
    --  Merge_Part_Styles public function
    declare
-      Box : Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      Box : constant Box_Handle := Create_Handle;
       A : constant Part_Style_Array := Main_Styles ((
         Background_Color => Set_Bg (RGB (1, 2, 3)),
         Padding          => Set (CSS_Box (Px (10.0))),
@@ -471,9 +471,9 @@ begin
         others           => <>));
       M : constant Part_Style_Array := Adi.CSS_Source.Merge_Part_Styles (A, B);
    begin
-      Set_Part_Styles (Box.all, M);
+      Set_Part_Styles (Box, M);
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (Box.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Background_Color, 4, 5, 6),
                  "Merge_Part_Styles should use override bg");
@@ -487,8 +487,8 @@ begin
    --  Dynamic mode: font-size live reload updates intrinsic preferred width.
    declare
       Source    : Adi.CSS_Source.Style_Source;
-      Lbl       : Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("Live reload width probe");
+      Lbl       : constant Label_Handle :=
+        Create_Handle ("Live reload width probe");
       Sdl_OK    : Adi.SDL.C_bool;
       Ttf_OK    : Adi.SDL.C_bool;
       OK        : Boolean := False;
@@ -515,8 +515,8 @@ begin
       Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, OK);
       Assert (OK, "Set_Mode dynamic should succeed for font-size reload test");
 
-      Adi.CSS_Source.Bind_Class (Source, "probe", Lbl);
-      Width_V1 := Get_Preferred_Size (Widget'Class (Lbl.all)).Width;
+      Adi.CSS_Source.Bind_Class (Source, "probe", +Lbl);
+      Width_V1 := Get_Preferred_Size (+Lbl).Width;
       Assert (Width_V1 > 0.0, "Baseline preferred width should be > 0");
 
       delay 1.1;
@@ -525,7 +525,7 @@ begin
       Assert (Tick_OK, "Tick should succeed after font-size css update");
       Assert (Reloaded, "Tick should report reload for font-size css update");
 
-      Width_V2 := Get_Preferred_Size (Widget'Class (Lbl.all)).Width;
+      Width_V2 := Get_Preferred_Size (+Lbl).Width;
       Assert (Width_V2 > Width_V1,
               "Preferred width should increase after larger font-size reload");
    end;

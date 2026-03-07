@@ -69,7 +69,7 @@ begin
       end if;
 
       --  Set geometries
-      Set_Geometry (Borrow (+Container).Ptr.all, (50.0, 50.0, 500.0, 400.0));
+      Set_Geometry (+Container, (50.0, 50.0, 500.0, 400.0));
 
       Adi.Widget.Box.Set_Part_Styles (Root, Root_Class_Part_Styles);
       Adi.Widget.Box.Set_Part_Styles (Container, Container_Class_Part_Styles);

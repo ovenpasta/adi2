@@ -19,8 +19,6 @@ package Adi.Widget.Combo_Box is
    Null_Combo_Box_Handle : constant Combo_Box_Handle;
 
    --  Construction
-   function Create return Combo_Box_Widget_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle return Combo_Box_Handle;
 
    --  Handle bridge
@@ -134,8 +132,7 @@ private
      (Positive, Ada.Strings.Unbounded.Unbounded_String);
 
    package Popup_Lists is new Adi.Widget.List_Box
-     (Adi.Widget.Label.Label_Widget,
-      Adi.Widget.Label.Label_Widget_Access);
+     (Adi.Widget.Label.Label_Widget);
 
    Panel_Idx     : constant Positive := 1;
    Label_Idx     : constant Positive := 2;
@@ -143,7 +140,7 @@ private
 
    type Combo_Box_Widget is new Widget with record
       Host_Window : Adi.Window.Window_Access := null;
-      Popup       : Popup_Lists.List_Box_Widget_Access := null;
+      Popup       : Popup_Lists.List_Box_Handle := Popup_Lists.Null_List_Box_Handle;
       Options     : String_Vectors.Vector;
       Option_Row_Styles     : Part_Style_Array := Empty_Part_Styles;
       Has_Option_Row_Styles : Boolean := False;

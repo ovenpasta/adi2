@@ -97,6 +97,7 @@ begin
              Status_Label => Adi.Widget.Label.Null_Label_Handle,
              Reload_Count => 0,
              Last_OK      => True);
+      Root_H : Adi.Widget.Widget_Handle;
 
       Header : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Content : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
@@ -173,16 +174,24 @@ begin
          end if;
       end Toggle_Mode;
    begin
-      Adi.Widget.Set_Geometry (Root.all, (0.0, 0.0, 980.0, 640.0));
-      Adi.Widget.Set_Geometry (Adi.Widget.Borrow (+Header).Ptr.all, (32.0, 24.0, 916.0, 120.0));
-      Adi.Widget.Set_Geometry (Adi.Widget.Borrow (+Content).Ptr.all, (32.0, 164.0, 916.0, 404.0));
-      Adi.Widget.Set_Geometry (Adi.Widget.Borrow (+Status).Ptr.all, (32.0, 584.0, 916.0, 32.0));
+      declare
+         P : constant access Adi.Widget.Widget'Class :=
+           Root.all'Unchecked_Access;
+      begin
+         Adi.Widget.Register_Widget (Adi.Widget.Widget_Access (P));
+      end;
+      Root_H := Adi.Widget.Get_Handle (Root.all);
+
+      Adi.Widget.Set_Geometry (Root_H, (0.0, 0.0, 980.0, 640.0));
+      Adi.Widget.Set_Geometry (+Header, (32.0, 24.0, 916.0, 120.0));
+      Adi.Widget.Set_Geometry (+Content, (32.0, 164.0, 916.0, 404.0));
+      Adi.Widget.Set_Geometry (+Status, (32.0, 584.0, 916.0, 32.0));
 
       Root.Status_Label := Status;
 
-      Adi.Widget.Add_Child (Root.all, +Header);
-      Adi.Widget.Add_Child (Root.all, +Content);
-      Adi.Widget.Add_Child (Root.all, +Status);
+      Adi.Widget.Add_Child (Root_H, +Header);
+      Adi.Widget.Add_Child (Root_H, +Content);
+      Adi.Widget.Add_Child (Root_H, +Status);
 
       Adi.Widget.Add_Child (+Header, +Title);
       Adi.Widget.Add_Child (+Header, +Subtitle);
@@ -214,7 +223,7 @@ begin
 
       Adi.Widget.Button.Connect_Clicked (Mode_Button, Toggle_Mode'Unrestricted_Access);
 
-      Adi.CSS_Source.Bind_Class (Source, "root", Root);
+      Adi.CSS_Source.Bind_Class (Source, "root", Root_H);
       Adi.CSS_Source.Bind_Class (Source, "header", +Header);
       Adi.CSS_Source.Bind_Class (Source, "content", +Content);
       Adi.CSS_Source.Bind_Class (Source, "card-left", +Card_Left);
@@ -239,7 +248,7 @@ begin
          Update_Mode_UI;
       end if;
 
-      Adi.Window.Set_Root (W, Adi.Widget.Get_Handle (Root.all));
+      Adi.Window.Set_Root (W, Root_H);
       A.Add_Window (W);
       A.Run;
    end;

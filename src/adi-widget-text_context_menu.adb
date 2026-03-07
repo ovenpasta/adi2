@@ -115,16 +115,12 @@ package body Adi.Widget.Text_Context_Menu is
       end if;
 
       if Adi.Widget.Context_Menu.Is_Valid (Request_Bindings.Element (Idx).Menu) then
-         declare
-            R : Widget_Ref := Borrow (W);
-         begin
-            Host := Adi.Window.Find_Host_Window (R.Ptr);
-            if Host /= null then
-               Adi.Widget.Context_Menu.Attach_Window
-                 (Request_Bindings.Element (Idx).Menu,
-                  Adi.Window.Get_Handle (Host.all));
-            end if;
-         end;
+         Host := Adi.Window.Find_Host_Window (W);
+         if Host /= null then
+            Adi.Widget.Context_Menu.Attach_Window
+              (Request_Bindings.Element (Idx).Menu,
+               Adi.Window.Get_Handle (Host.all));
+         end if;
 
          declare
             M_H     : constant Adi.Widget.Context_Menu.Menu_Handle :=

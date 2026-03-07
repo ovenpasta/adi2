@@ -14,21 +14,13 @@ package body Adi.Widget.Stack is
    --  Construction
    ---------------------------------------------------------------------------
 
-   function Create return Stack_Widget_Access is
+   function Create_Handle return Stack_Handle is
       Result : constant Stack_Widget_Access := new Stack_Widget;
+      P      : constant access Widget'Class := Result.all'Unchecked_Access;
    begin
       Result.Flags := [Visible => True, others => False];
-      declare
-         P : constant access Widget'Class := Result.all'Unchecked_Access;
-      begin
-         Register_Widget (Widget_Access (P));
-      end;
-      return Result;
-   end Create;
-
-   function Create_Handle return Stack_Handle is
-   begin
-      return (Id => Get_Handle (Create.all).Id);
+      Register_Widget (Widget_Access (P));
+      return (Id => Get_Handle (Result.all).Id);
    end Create_Handle;
 
    ----------------------
@@ -69,7 +61,8 @@ package body Adi.Widget.Stack is
    ---------------------------------------------------------------------------
 
    procedure Add_Page (W : in out Stack_Widget; Id : Page_Id; Page : access Widget'Class) is
-      PA : constant Widget_Access := Widget_Access (Page);
+      P  : constant access Widget'Class := Page.all'Unchecked_Access;
+      PA : constant Widget_Access := Widget_Access (P);
    begin
       Add_Child (W, Page);
       W.Pages (Id) := PA;
@@ -275,18 +268,23 @@ package body Adi.Widget.Stack is
    ---------------------------------------------------------------------------
 
    procedure Add_Page (H : Stack_Handle; Id : Page_Id; Page : Widget_Handle) is
-      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+      Ptr      : constant Widget_Access := Widget_Stores.Get (H.Id);
+      Page_Ptr : constant Widget_Access := Widget_Stores.Get (Page.Id);
    begin
-      if Ptr /= null then
+      if Ptr /= null and then Page_Ptr /= null then
+         declare
+            SW : Stack_Widget renames Stack_Widget (Ptr.all);
          begin
-            declare
-               P : Widget_Ref := Borrow (Page);
-            begin
-               Add_Page (Stack_Widget (Ptr.all), Id, P.Ptr);
-            end;
-         exception
-            when Constraint_Error =>
-               null;
+            Add_Child (SW, Page);
+            SW.Pages (Id) := Page_Ptr;
+
+            if not SW.Has_Active then
+               SW.Active := Id;
+               SW.Has_Active := True;
+               Set_Flag (Page_Ptr.all, Visible, True);
+            else
+               Set_Flag (Page_Ptr.all, Visible, False);
+            end if;
          end;
       end if;
    end Add_Page;
@@ -308,15 +306,6 @@ package body Adi.Widget.Stack is
       return Page_Id'First;
    end Get_Active;
 
-   function Get_Active_Widget (H : Stack_Handle) return Widget_Access is
-      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
-   begin
-      if Ptr /= null then
-         return Get_Active_Widget (Stack_Widget (Ptr.all));
-      end if;
-      return null;
-   end Get_Active_Widget;
-
    function Get_Active_Widget_Handle (H : Stack_Handle) return Widget_Handle is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
@@ -325,15 +314,6 @@ package body Adi.Widget.Stack is
       end if;
       return Null_Handle;
    end Get_Active_Widget_Handle;
-
-   function Get_Page (H : Stack_Handle; Id : Page_Id) return Widget_Access is
-      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
-   begin
-      if Ptr /= null then
-         return Get_Page (Stack_Widget (Ptr.all), Id);
-      end if;
-      return null;
-   end Get_Page;
 
    function Get_Page_Handle
      (H  : Stack_Handle;

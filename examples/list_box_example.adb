@@ -14,12 +14,10 @@ procedure List_Box_Example is
    A : Adi.App.App;
 
    package Label_List is new Adi.Widget.List_Box
-     (Adi.Widget.Label.Label_Widget,
-      Adi.Widget.Label.Label_Widget_Access);
+     (Adi.Widget.Label.Label_Widget);
 
    package Box_List is new Adi.Widget.List_Box
-     (Adi.Widget.Box.Box_Widget,
-      Adi.Widget.Box.Box_Widget_Access);
+     (Adi.Widget.Box.Box_Widget);
 
    use type Adi.Widget.Box.Box_Handle;
    use type Adi.Widget.Label.Label_Handle;

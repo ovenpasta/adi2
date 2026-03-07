@@ -361,7 +361,7 @@ package body Adi.MCP is
                     (Positive'Image (I), Ada.Strings.Left)
                   else Path & "." & Ada.Strings.Fixed.Trim
                     (Positive'Image (I), Ada.Strings.Left));
-               C : constant Widget_Handle := Get_Child_Handle (Target_Ptr.all, I);
+               C : constant Widget_Handle := Get_Child_Handle (Target, I);
             begin
                Serialize_Widget_Tree (C, Child_Path, W);
             end;
@@ -508,7 +508,7 @@ package body Adi.MCP is
    is
       use Ada.Characters.Handling;
       S          : constant Resolved_Style :=
-        Get_Resolved_Part_Style (To_Access (Target).all, Part);
+        Get_Resolved_Part_Style (Target, Part);
    begin
       W.Start_Object;
 
@@ -1019,8 +1019,7 @@ package body Adi.MCP is
             end if;
 
             declare
-               Target_Ptr : constant Widget_Access := To_Access (Target);
-               Geom       : constant Rectangle := Get_Geometry (Target_Ptr.all);
+               Geom       : constant Rectangle := Get_Geometry (Target);
                CX   : constant Pixel_Type :=
                  Geom.X + Geom.Width / 2.0;
                CY   : constant Pixel_Type :=
@@ -1035,7 +1034,7 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("id", Long_Integer (Get_Id (To_Access (Target).all)));
+            W.Key_Value ("id", Long_Integer (Get_Id (Target)));
             W.Key_Value ("path", To_String (Resolved_Path));
             W.End_Object;
             return W.To_String;
@@ -1092,7 +1091,7 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("id", Long_Integer (Get_Id (To_Access (Target).all)));
+            W.Key_Value ("id", Long_Integer (Get_Id (Target)));
             W.End_Object;
             return W.To_String;
          end;
@@ -1113,7 +1112,7 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("id", Long_Integer (Get_Id (To_Access (Target).all)));
+            W.Key_Value ("id", Long_Integer (Get_Id (Target)));
             W.End_Object;
             return W.To_String;
          end;
@@ -1138,7 +1137,7 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("id", Long_Integer (Get_Id (To_Access (Target).all)));
+            W.Key_Value ("id", Long_Integer (Get_Id (Target)));
             W.Key_Value ("part",
               Ada.Characters.Handling.To_Lower
                 (Part_Kind'Image (Part)));
@@ -1381,21 +1380,14 @@ package body Adi.MCP is
      (Win      : Adi.Window.Window_Handle;
       Base_Dir : String := "/tmp/adi_mcp")
    is
+      use type Adi.Window.Window_Access;
+      Ptr : constant Adi.Window.Window_Access :=
+        Adi.Window.Resolve_Window_Handle (Win);
    begin
-      if not Adi.Window.Is_Valid (Win) then
+      if Ptr = null then
          return;
       end if;
-
-      begin
-         declare
-            R : Adi.Window.Window_Ref := Adi.Window.Borrow (Win);
-         begin
-            Initialize (R.Ptr, Base_Dir);
-         end;
-      exception
-         when Constraint_Error =>
-            null;
-      end;
+      Initialize (Ptr, Base_Dir);
    end Initialize;
 
    procedure Finalize is

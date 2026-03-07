@@ -61,6 +61,10 @@ package body Adi.Widget is
 
    function Get_Handle (W : Widget'Class) return Widget_Handle is
    begin
+      if W.Store_Index = 0 and then Widget_Stores.Is_Strict then
+         raise Program_Error with
+           "Get_Handle: widget not registered in store";
+      end if;
       return (Id => (Index => Widget_Stores.Slot_Index (W.Store_Index),
                      Gen   => Widget_Stores.Generation (W.Store_Gen)));
    end Get_Handle;
@@ -129,7 +133,6 @@ package body Adi.Widget is
             begin
                Next (C);
                if Child /= null then
-                  --  Sever parent link so child doesn't point back at us
                   Child.Parent := null;
                   if Child.Store_Index > 0 then
                      Destroy_Subtree (Child);
@@ -139,15 +142,12 @@ package body Adi.Widget is
          end loop;
       end;
 
-      --  Let the widget clean up external references
       On_Destroy (Widget'Class (W.all));
 
-      --  Clear containers before freeing to simplify deep finalization
       W.Children.Clear;
       W.Items.Clear;
       W.Images.Clear;
 
-      --  Mark self for store destruction
       if W.Store_Index > 0 then
          Widget_Stores.Request_Destroy
            ((Index => Widget_Stores.Slot_Index (W.Store_Index),
@@ -166,6 +166,67 @@ package body Adi.Widget is
    begin
       Widget_Stores.Pump;
    end Pump_Widget_Store;
+
+   ---------------------------------------------------------------------------
+   --  Generic handle-wrapper templates
+   --
+   --  These eliminate the boilerplate Resolve_Handle + null-check + delegate
+   --  pattern.  Each instantiation + rename serves as the body completion for
+   --  the corresponding Widget_Handle overload declared in the spec.
+   ---------------------------------------------------------------------------
+
+   --  Class-wide procedure, 0 extra args
+   generic
+      with procedure Op (W : in out Widget'Class);
+   procedure Wrap_CW_Proc (H : Widget_Handle);
+   procedure Wrap_CW_Proc (H : Widget_Handle) is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then Op (Ptr.all); end if;
+   end Wrap_CW_Proc;
+
+   --  Dispatching procedure, 0 extra args
+   generic
+      with procedure Op (W : in out Widget) is abstract;
+   procedure Wrap_Prim_Proc (H : Widget_Handle);
+   procedure Wrap_Prim_Proc (H : Widget_Handle) is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then Op (Ptr.all); end if;
+   end Wrap_Prim_Proc;
+
+   --  Class-wide function, 0 extra args
+   generic
+      type R is private;
+      Default : R;
+      with function Op (W : Widget'Class) return R;
+   function Wrap_CW_Func (H : Widget_Handle) return R;
+   function Wrap_CW_Func (H : Widget_Handle) return R is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then return Op (Ptr.all); end if;
+      return Default;
+   end Wrap_CW_Func;
+
+   --  Dispatching function, 0 extra args
+   generic
+      type R is private;
+      Default : R;
+      with function Op (W : Widget) return R is abstract;
+   function Wrap_Prim_Func (H : Widget_Handle) return R;
+   function Wrap_Prim_Func (H : Widget_Handle) return R is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then return Op (Ptr.all); end if;
+      return Default;
+   end Wrap_Prim_Func;
+
+   function Adopt_Widget (W : not null Widget_Access) return Widget_Handle is
+   begin
+      Set_Flag (W.all, Visible, True);
+      Register_Widget (W);
+      return Get_Handle (W.all);
+   end Adopt_Widget;
 
    --  Per-frame perf counters for debug stats overlay.
    --  Reset by the Window before each frame, read after rendering.
@@ -887,6 +948,17 @@ package body Adi.Widget is
       end if;
    end Set_Part_State;
 
+   procedure Set_Part_State (H : Widget_Handle;
+                             P : Part_Kind;
+                             S : Widget_State;
+                             Active : Boolean) is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         Set_Part_State (Ptr.all, P, S, Active);
+      end if;
+   end Set_Part_State;
+
    function Get_Part_States (W : Widget'Class; P : Part_Kind) return Widget_States is
    begin
       return W.Part_States (P);
@@ -1060,18 +1132,97 @@ package body Adi.Widget is
       return "";
    end Get_Label;
 
-   procedure Mark_Dirty (H : Widget_Handle) is
-      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   procedure Mark_Dirty_W is new Wrap_CW_Proc (Mark_Dirty);
+   procedure Mark_Dirty (H : Widget_Handle) renames Mark_Dirty_W;
+
+   function Get_Id (H : Widget_Handle) return Natural is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
       if Ptr /= null then
-         Mark_Dirty (Ptr.all);
+         return Get_Id (Ptr.all);
       end if;
-   end Mark_Dirty;
+      return 0;
+   end Get_Id;
+
+   procedure Set_State (H : Widget_Handle;
+                         S : Widget_State;
+                         Active : Boolean) is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         Set_State (Ptr.all, S, Active);
+      end if;
+   end Set_State;
+
+   function Has_State (H : Widget_Handle;
+                       S : Widget_State) return Boolean is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         return Has_State (Ptr.all, S);
+      end if;
+      return False;
+   end Has_State;
+
+   function Get_States (H : Widget_Handle) return Widget_States is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         return Get_States (Ptr.all);
+      end if;
+      return [others => False];
+   end Get_States;
+
+   procedure Set_Hovered (H : Widget_Handle;
+                           Value : Boolean := True) is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         Set_Hovered (Ptr.all, Value);
+      end if;
+   end Set_Hovered;
+
+   procedure Set_Pressed (H : Widget_Handle;
+                           Value : Boolean := True) is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         Set_Pressed (Ptr.all, Value);
+      end if;
+   end Set_Pressed;
+
+   procedure Set_Focused (H : Widget_Handle;
+                           Value : Boolean := True) is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         Set_Focused (Ptr.all, Value);
+      end if;
+   end Set_Focused;
+
+   procedure Set_Selected (H : Widget_Handle;
+                            Value : Boolean := True) is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         Set_Selected (Ptr.all, Value);
+      end if;
+   end Set_Selected;
 
    function Get_Part_Style (W : Widget'Class;
                             P : Part_Kind) return Widget_Style is
    begin
       return Style_From_Handle (W.Part_Style_Handles (P)).all;
+   end Get_Part_Style;
+
+   function Get_Part_Style (H : Widget_Handle;
+                            P : Part_Kind) return Widget_Style is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Part_Style (Ptr.all, P);
+      end if;
+      return Empty_Widget_Style;
    end Get_Part_Style;
 
    function Get_Part_Style_Rules (W : Widget'Class;
@@ -1174,6 +1325,28 @@ package body Adi.Widget is
       W_Mut.Cached_Resolved_Init (P) := True;
       W_Mut.Cached_Part_States (P) := W.Part_States (P);
       return Result;
+   end Get_Resolved_Part_Style;
+
+   function Get_Part_Style_Rules (H : Widget_Handle;
+                                  P : Part_Kind) return Style_Rules is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+      Default : Style_Rules;
+   begin
+      if Ptr /= null then
+         return Get_Part_Style_Rules (Ptr.all, P);
+      end if;
+      return Default;
+   end Get_Part_Style_Rules;
+
+   function Get_Resolved_Part_Style (H : Widget_Handle;
+                                     P : Part_Kind) return Resolved_Style is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+      Default_Rules : Style_Rules;
+   begin
+      if Ptr /= null then
+         return Get_Resolved_Part_Style (Ptr.all, P);
+      end if;
+      return Resolve (Default_Rules);
    end Get_Resolved_Part_Style;
 
    ---------------------------------------------------------------------------
@@ -1321,9 +1494,23 @@ package body Adi.Widget is
       return Natural (W.Items.Length);
    end Item_Count;
 
+   function Item_Count_W is
+     new Wrap_CW_Func (Natural, 0, Item_Count);
+   function Item_Count (H : Widget_Handle) return Natural
+     renames Item_Count_W;
+
    function Get_Item (W : Widget'Class; Index : Positive) return Item is
    begin
       return W.Items.Element (Index);
+   end Get_Item;
+
+   function Get_Item (H : Widget_Handle; Index : Positive) return Item is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         return Get_Item (Ptr.all, Index);
+      end if;
+      raise Constraint_Error with "invalid widget handle";
    end Get_Item;
 
    procedure Apply_Styles_To_Items (W : in out Widget'Class) is
@@ -1416,6 +1603,16 @@ package body Adi.Widget is
          end if;
       end loop;
       return Result;
+   end Get_Items_For_Part;
+
+   function Get_Items_For_Part (H : Widget_Handle;
+                                P : Part_Kind) return Items_List.Vector is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         return Get_Items_For_Part (Ptr.all, P);
+      end if;
+      return Items_List.Empty_Vector;
    end Get_Items_For_Part;
 
    function Get_Part_At (W : Widget'Class;
@@ -1599,6 +1796,15 @@ package body Adi.Widget is
       return Natural (W.Children.Length);
    end Child_Count;
 
+   function Child_Count (H : Widget_Handle) return Natural is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         return Child_Count (Ptr.all);
+      end if;
+      return 0;
+   end Child_Count;
+
    ---------------------
    -- Point_In_Widget --
    ---------------------
@@ -1669,9 +1875,26 @@ package body Adi.Widget is
       end if;
    end Set_Geometry;
 
+   procedure Set_Geometry (H : Widget_Handle; G : Rectangle) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Geometry (Ptr.all, G);
+      end if;
+   end Set_Geometry;
+
    function Get_Geometry (W : Widget'Class) return Rectangle is
    begin
       return W.Geometry;
+   end Get_Geometry;
+
+   function Get_Geometry (H : Widget_Handle) return Rectangle is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Geometry (Ptr.all);
+      end if;
+      return (0.0, 0.0, 0.0, 0.0);
    end Get_Geometry;
 
    function Clamp (Value, Lo, Hi : Pixel_Type) return Pixel_Type is
@@ -1895,6 +2118,22 @@ package body Adi.Widget is
       return W.Scroll_Content_H;
    end Get_Scroll_Content_Height;
 
+   function Get_Scroll_Content_Height_W is
+     new Wrap_CW_Func (Pixel_Type, 0.0, Get_Scroll_Content_Height);
+   function Get_Scroll_Content_Height (H : Widget_Handle) return Pixel_Type
+     renames Get_Scroll_Content_Height_W;
+
+   function Get_Scroll_Max_Offset_Y_W is
+     new Wrap_CW_Func (Pixel_Type, 0.0, Get_Scroll_Max_Offset_Y);
+   function Get_Scroll_Max_Offset_Y (H : Widget_Handle) return Pixel_Type
+     renames Get_Scroll_Max_Offset_Y_W;
+
+   procedure Set_Scroll_Offset_Y (H : Widget_Handle; Offset : Pixel_Type) is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then Set_Scroll_Offset_Y (Ptr.all, Offset); end if;
+   end Set_Scroll_Offset_Y;
+
    function Resolve_Scrollbar_Metrics (W : Widget'Class) return Scrollbar_Metrics is
       Content        : constant Rectangle := Get_Content_Box (W);
       Scroll_Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Scroll_Part);
@@ -2078,6 +2317,16 @@ package body Adi.Widget is
       return W.Flags (F);
    end Has_Flag;
 
+   function Has_Flag (H : Widget_Handle;
+                      F : Widget_Flag) return Boolean is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         return Has_Flag (Ptr.all, F);
+      end if;
+      return False;
+   end Has_Flag;
+
    procedure Connect_Context_Menu
      (W : in out Widget'Class; CB : Context_Menu_Callback)
    is
@@ -2104,6 +2353,21 @@ package body Adi.Widget is
    begin
       return W.Context_Menu_Sig.Subscriber_Count > 0;
    end Has_Context_Menu;
+
+   function Has_Context_Menu_W is
+     new Wrap_CW_Func (Boolean, False, Has_Context_Menu);
+   function Has_Context_Menu (H : Widget_Handle) return Boolean
+     renames Has_Context_Menu_W;
+
+   procedure Connect_Context_Menu
+     (H : Widget_Handle; CB : Context_Menu_Callback)
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         Connect_Context_Menu (Ptr.all, CB);
+      end if;
+   end Connect_Context_Menu;
 
    function Show_Context_Menu
      (W    : in out Widget'Class;
@@ -2176,6 +2440,10 @@ package body Adi.Widget is
       end if;
    end Mark_Render_Dirty;
 
+   procedure Mark_Render_Dirty_W is new Wrap_CW_Proc (Mark_Render_Dirty);
+   procedure Mark_Render_Dirty (H : Widget_Handle)
+     renames Mark_Render_Dirty_W;
+
    procedure Mark_Clean (W : in out Widget'Class) is
    begin
       W.Dirty := False;
@@ -2190,6 +2458,177 @@ package body Adi.Widget is
    begin
       return W.Layout_Dirty;
    end Is_Layout_Dirty;
+
+   function Is_Dirty_W is new Wrap_CW_Func (Boolean, False, Is_Dirty);
+   function Is_Dirty (H : Widget_Handle) return Boolean renames Is_Dirty_W;
+
+   function Is_Layout_Dirty_W is
+     new Wrap_CW_Func (Boolean, False, Is_Layout_Dirty);
+   function Is_Layout_Dirty (H : Widget_Handle) return Boolean
+     renames Is_Layout_Dirty_W;
+
+   ---------------------------------------------------------------------------
+   --  Handle Overloads — Dispatching Methods
+   ---------------------------------------------------------------------------
+
+   procedure Render_Tree (H : Widget_Handle; Ctx : in out Render_Context) is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         Render_Tree (Ptr.all, Ctx);
+      end if;
+   end Render_Tree;
+
+   procedure Update_W is new Wrap_CW_Proc (Update);
+   procedure Update (H : Widget_Handle) renames Update_W;
+
+   procedure Tick_Animations (H : Widget_Handle; DT : Duration) is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         Tick_Animations (Ptr.all, DT);
+      end if;
+   end Tick_Animations;
+
+   function Get_Part_At (H : Widget_Handle;
+                         X, Y : Pixel_Type) return Part_Kind is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         return Get_Part_At (Ptr.all, X, Y);
+      end if;
+      return Main_Part;
+   end Get_Part_At;
+
+   function Get_Scroll_Offset_Y_W is
+     new Wrap_CW_Func (Pixel_Type, 0.0, Get_Scroll_Offset_Y);
+   function Get_Scroll_Offset_Y (H : Widget_Handle) return Pixel_Type
+     renames Get_Scroll_Offset_Y_W;
+
+   function Handle_Scroll_Mouse_Down
+     (H      : Widget_Handle;
+      X, Y   : Pixel_Type;
+      Button : Mouse_Button) return Boolean
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         return Handle_Scroll_Mouse_Down (Ptr.all, X, Y, Button);
+      end if;
+      return False;
+   end Handle_Scroll_Mouse_Down;
+
+   procedure Handle_Scroll_Mouse_Move
+     (H    : Widget_Handle;
+      X, Y : Pixel_Type)
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         Handle_Scroll_Mouse_Move (Ptr.all, X, Y);
+      end if;
+   end Handle_Scroll_Mouse_Move;
+
+   procedure Handle_Scroll_Mouse_Up
+     (H      : Widget_Handle;
+      Button : Mouse_Button)
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         Handle_Scroll_Mouse_Up (Ptr.all, Button);
+      end if;
+   end Handle_Scroll_Mouse_Up;
+
+   procedure On_Click_W is new Wrap_Prim_Proc (On_Click);
+   procedure On_Click (H : Widget_Handle) renames On_Click_W;
+
+   procedure On_Mouse_Down
+     (H      : Widget_Handle;
+      X, Y   : Pixel_Type;
+      Button : Mouse_Button;
+      Clicks : Natural := 1)
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         On_Mouse_Down (Ptr.all, X, Y, Button, Clicks);
+      end if;
+   end On_Mouse_Down;
+
+   procedure On_Mouse_Move
+     (H    : Widget_Handle;
+      X, Y : Pixel_Type)
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         On_Mouse_Move (Ptr.all, X, Y);
+      end if;
+   end On_Mouse_Move;
+
+   procedure On_Mouse_Up
+     (H      : Widget_Handle;
+      X, Y   : Pixel_Type;
+      Button : Mouse_Button)
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         On_Mouse_Up (Ptr.all, X, Y, Button);
+      end if;
+   end On_Mouse_Up;
+
+   procedure On_Mouse_Wheel
+     (H                : Widget_Handle;
+      Delta_X, Delta_Y : Pixel_Type)
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         On_Mouse_Wheel (Ptr.all, Delta_X, Delta_Y);
+      end if;
+   end On_Mouse_Wheel;
+
+   procedure On_Key_Down
+     (H        : Widget_Handle;
+      Scancode : Adi.SDL.Events.SDL_Scancode;
+      Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+      Repeat   : Boolean)
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         On_Key_Down (Ptr.all, Scancode, Key_Mod, Repeat);
+      end if;
+   end On_Key_Down;
+
+   procedure On_Key_Up
+     (H        : Widget_Handle;
+      Scancode : Adi.SDL.Events.SDL_Scancode;
+      Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+      Repeat   : Boolean)
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         On_Key_Up (Ptr.all, Scancode, Key_Mod, Repeat);
+      end if;
+   end On_Key_Up;
+
+   procedure On_Text_Input (H : Widget_Handle; Text : String) is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         On_Text_Input (Ptr.all, Text);
+      end if;
+   end On_Text_Input;
+
+   procedure On_Focus_Gained_W is new Wrap_Prim_Proc (On_Focus_Gained);
+   procedure On_Focus_Gained (H : Widget_Handle) renames On_Focus_Gained_W;
+
+   procedure On_Focus_Lost_W is new Wrap_Prim_Proc (On_Focus_Lost);
+   procedure On_Focus_Lost (H : Widget_Handle) renames On_Focus_Lost_W;
 
    ---------------------------------------------------------------------------
    --  Event Handlers
@@ -4808,6 +5247,9 @@ package body Adi.Widget is
       B := Uint8 (45 + ((Seed * 83) mod 160));
    end Debug_Item_Color;
 
+   procedure Build_Items_W is new Wrap_Prim_Proc (Build_Items);
+   procedure Build_Items (H : Widget_Handle) renames Build_Items_W;
+
    procedure Render_Items (W : in out Widget'Class; Ctx : in out Render_Context) is
       Renderer : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
@@ -5130,6 +5572,11 @@ package body Adi.Widget is
       return Result;
    end Measure_Content;
 
+   function Measure_Content_W is
+     new Wrap_Prim_Func (Size_2D, (0.0, 0.0), Measure_Content);
+   function Measure_Content (H : Widget_Handle) return Size_2D
+     renames Measure_Content_W;
+
    function Get_Min_Size(W : Widget) return Size_2D is
       Style : constant Resolved_Style := Get_Resolved_Part_Style(W, Main_Part);
       Min_W, Min_H : Pixel_Type := 0.0;
@@ -5253,6 +5700,19 @@ package body Adi.Widget is
          return Result;
       end;
    end Get_Preferred_Size;
+
+   function Get_Min_Size_W is
+     new Wrap_Prim_Func (Size_2D, (0.0, 0.0), Get_Min_Size);
+   function Get_Min_Size (H : Widget_Handle) return Size_2D
+     renames Get_Min_Size_W;
+
+   function Get_Preferred_Size_W is
+     new Wrap_CW_Func (Size_2D, (0.0, 0.0), Get_Preferred_Size);
+   function Get_Preferred_Size (H : Widget_Handle) return Size_2D
+     renames Get_Preferred_Size_W;
+
+   procedure Layout_W is new Wrap_Prim_Proc (Layout);
+   procedure Layout (H : Widget_Handle) renames Layout_W;
 
    ---------------------------------------------------------------------------
    --  Flex Layout
@@ -5792,6 +6252,10 @@ begin
    Mark_Clean (W);
 end Rebuild_All_Items;
 
+procedure Rebuild_All_Items_W is new Wrap_CW_Proc (Rebuild_All_Items);
+procedure Rebuild_All_Items (H : Widget_Handle)
+  renames Rebuild_All_Items_W;
+
 
 ---------------------------------------------------------------------------
 --  Layout_Child: lay out a single child and stamp the current epoch
@@ -5865,6 +6329,9 @@ begin
    Bump_Layout_Epoch;
    Layout_Tree_Impl (W);
 end Layout_Tree;
+
+procedure Layout_Tree_W is new Wrap_CW_Proc (Layout_Tree);
+procedure Layout_Tree (H : Widget_Handle) renames Layout_Tree_W;
 
 ---------------------------------------------------------------------------
 --  Performance counter accessors

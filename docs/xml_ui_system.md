@@ -79,7 +79,7 @@ With `<window>`, the `Build` function returns `Adi.Window.Window_Handle` and cre
 </window>
 ```
 
-With `<dialog>`, the `Build` function returns `Adi.Widget.Dialog.Dialog_Widget_Access`. The caller attaches it to a window:
+With `<dialog>`, the `Build` function returns `Adi.Widget.Dialog.Dialog_Handle`. The caller attaches it to a window:
 
 ```xml
 <dialog title="Confirm" message="Are you sure?" buttons="yes-no">
@@ -109,10 +109,10 @@ A `<dialog>` can have 0 or 1 child widget. If present, it is passed to `Set_Cont
 </adi>
 ```
 
-Generated `Build` returns `Dialog_Widget_Access`:
+Generated `Build` returns `Dialog_Handle`:
 
 ```ada
-function Build return Adi.Widget.Dialog.Dialog_Widget_Access;
+function Build return Adi.Widget.Dialog.Dialog_Handle;
 ```
 
 Without `<window>` or `<dialog>`, a single root widget sits directly under `<adi>` and `Build` returns `Widget_Handle`:
@@ -129,7 +129,7 @@ Without `<window>` or `<dialog>`, a single root widget sits directly under `<adi
 
 ## Supported Widgets
 
-All 17 widget tags defined in `tools/widgets.xml`:
+All 18 widget tags defined in `tools/widgets.xml`:
 
 | Tag | Package | Children | Generic | Key Attributes |
 |-----|---------|----------|---------|----------------|
@@ -138,8 +138,8 @@ All 17 widget tags defined in `tools/widgets.xml`:
 | `button` | `Adi.Widget.Button` | children | no | `text`, `toggleable`, `on-clicked`, `on-toggled` |
 | `switch` | `Adi.Widget.Button.Switch` | children | no | `checked`, `on-toggled` |
 | `stack` | `Adi.Widget.Stack` | pages | yes | `generic`, `on-changed` |
-| `text-input` | `Adi.Widget.Text_Input` | children | no | `text`, `label`, `on-changed` |
-| `text-editor` | `Adi.Widget.Text_Editor` | children | no | `text`, `on-changed` |
+| `text-input` | `Adi.Widget.Text_Input` | children | no | `text`, `label`, `min-visible-chars`, `disabled`, `on-changed` |
+| `text-editor` | `Adi.Widget.Text_Editor` | children | no | `text`, `disabled`, `on-changed` |
 | `combo-box` | `Adi.Widget.Combo_Box` | items | no | `on-selection-changed` |
 | `animated-image` | `Adi.Widget.Animated_Image` | children | no | `looping` |
 | `animated-widget` | `Adi.Widget.Animated_Widget` | children | no | `looping` |
@@ -181,15 +181,18 @@ All widgets support:
 | `toggleable` | button | bool | Makes the button toggleable (flag setter, no argument) |
 | `checked` | switch | bool | Initial checked state (default `False`) |
 | `looping` | animated-image, animated-widget, rlottie | bool | Enable animation looping (flag setter) |
-| `icon` | label | image | Icon image (calls `Set_Icon` with `Adi.Assets.Get_Image`) |
+| `min-visible-chars` | text-input | int | Minimum visible character width before scrolling (calls `Set_Min_Visible_Chars`) |
+| `disabled` | button, switch, text-input, text-editor, combo-box, slider, integer-slider, value-input, integer-value-input | bool | Disables the widget (flag setter) |
+| `icon` | label, button | image | Icon image (calls `Set_Icon` with `Adi.Assets.Get_Image`) |
 | `src` | image | image | Image source (calls `Set_Image` with `Adi.Assets.Get_Image`) |
-| `generic` | stack, list-box | string | Name of generic instantiation (meta; not emitted as Ada) |
+| `generic` | stack, list-box, slider, integer-slider, value-input, integer-value-input | string | Name of generic instantiation (meta; not emitted as Ada) |
 
 ### Attribute Types
 
 - **string** — Quoted text. If `create-param="true"`, substituted into the Create call
 - **bool** — `"true"` or `"false"`. If `setter-style="flag"`, the setter is called with no arguments when true
 - **image** — Asset URL string. Emits `Adi.Assets.Get_Image ("url")` and adds `with Adi.Assets;` to the body. Supports sprite query syntax (e.g. `icons.svg?id=home`). Query parameters may use `;` as separator to avoid XML escaping (e.g. `sheet.png?x=0;y=32;w=16;h=16`); `&amp;` also works
+- **int** — Integer value. Passed directly to the setter (e.g. `Set_Min_Visible_Chars (W, 30)`)
 - **callback** — References a `<callback>` name. Wired with null-guard: `if Cb /= null then W.Set_On_X (Cb); end if;`
 
 ---
@@ -215,8 +218,11 @@ On_Click : Adi.Widget.Button.Click_Callback := null;
 |-----------|-----------|---------------|
 | `on-clicked` | button | Click_Callback |
 | `on-toggled` | button, switch | Toggle_Callback |
-| `on-changed` | stack, text-input, text-editor | Page_Changed_Callback / Text_Changed_Callback |
+| `on-changed` | stack | Page_Changed_Callback |
+| `on-changed` | text-input, text-editor | Change_Callback `(W : Widget_Handle; Text : String)` |
+| `on-changed` | slider, integer-slider | Change_Callback `(W : Widget_Handle; Value : Value_Type)` |
 | `on-selection-changed` | combo-box, list-box | Selection_Changed_Callback |
+| `on-value-changed` | value-input, integer-value-input | Value_Changed_Callback `(W : Widget_Handle; Value : Value_Type)` |
 | `on-item-clicked` | list-box | Item_Clicked_Callback |
 | `on-item-activated` | list-box | Item_Activated_Callback |
 

@@ -167,13 +167,8 @@ begin
          Adi.Widget.Label.Set_Text
            (Status, "FAILED TO LOAD examples/assets/lottie_sample.json");
       else
-         declare
-            R : constant Widget_Ref := Borrow (+Viewer);
-         begin
-            Adi.Widget.Animated_Widget.RLottie.Set_Animation
-              (Adi.Widget.Animated_Widget.Animated_Widget'Class (R.Ptr.all),
-               Anim);
-         end;
+         Adi.Widget.Animated_Widget.RLottie.Set_Animation
+           (Viewer, Anim);
          Adi.Widget.Animated_Widget.Set_Looping
            (Viewer, Adi.Widget.Button.Is_Toggled (Btn_Loop));
          Adi.Widget.Label.Set_Text

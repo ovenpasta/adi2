@@ -35,6 +35,13 @@ package Adi.Widget.Text_Input is
    procedure Set_Text (W : in out Text_Input_Widget; Text : String);
    function Get_Text (W : Text_Input_Widget) return String;
 
+   --  Minimum number of characters visible before scrolling kicks in.
+   --  Determines the preferred width reported by Measure_Content.
+   procedure Set_Min_Visible_Chars
+     (W : in out Text_Input_Widget; Count : Positive);
+   function  Get_Min_Visible_Chars
+     (W : Text_Input_Widget) return Positive;
+
    procedure Set_Context_Menu_Part_Styles
      (W      : in out Text_Input_Widget;
       Styles : Part_Style_Array);
@@ -58,6 +65,10 @@ package Adi.Widget.Text_Input is
    --  Handle methods
    procedure Set_Text (H : Text_Input_Handle; Text : String);
    function  Get_Text (H : Text_Input_Handle) return String;
+   procedure Set_Min_Visible_Chars
+     (H : Text_Input_Handle; Count : Positive);
+   function  Get_Min_Visible_Chars
+     (H : Text_Input_Handle) return Positive;
    procedure Set_Context_Menu_Part_Styles
      (H : Text_Input_Handle; Styles : Part_Style_Array);
    procedure Set_Context_Menu_Item_Part_Styles
@@ -112,6 +123,7 @@ private
    type Text_Input_Widget is new Widget with record
       Buffer     : aliased Adi.Text_Buffer.Text_Buffer;
       Changed : Change_Signals.Signal;
+      Min_Visible_Chars : Positive := 20;
       Drag_Selecting : Boolean := False;
       Pending_Word_Select : Boolean := False;
       Press_X : Pixel_Type := 0.0;

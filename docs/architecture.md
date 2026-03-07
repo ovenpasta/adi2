@@ -139,6 +139,7 @@
 - `Object_Id` (`Index`, `Gen`) with slot `0` reserved as null
 - `Register`, `Get`, `Is_Valid`, `Request_Destroy`, `Pump`
 - `Pin`/`Unpin` plus `Borrow` (`Implicit_Dereference`) for scoped safe access
+- `Set_Strict`/`Is_Strict`: strict-mode policy (default True). When enabled, `Get` raises `Program_Error` for non-null stale handles instead of returning null. `Null_Id` always returns null silently.
 - Used by widgets, context menus, and windows (separate store instantiations)
 
 **Adi.Font** (`adi-font.ads`): Font loading and caching.
@@ -215,6 +216,7 @@
 - Label icon sizing honors `Icon_Part` `width`/`height` styles in both measurement and layout
 
 **Text_Input**: Single-line editor using `Text_Buffer`. Horizontal scroll, caret, selection, context menu. Double-click word select, triple-click select all.
+- `Min_Visible_Chars` (default 20): controls the preferred width as a character count. The input does not grow with its text content; long text scrolls horizontally. Set via `Set_Min_Visible_Chars`, query via `Get_Min_Visible_Chars`. Width is computed as `char_width("M") × Min_Visible_Chars` plus padding/border.
 
 **Text_Editor**: Multiline editor using `Text_Buffer` + `Text_Layout`. Vertical scrollbar, visual-row navigation, word/line selection.
 - **Read-only mode**: `Set_Read_Only`/`Is_Read_Only` blocks keyboard editing (insert, delete, backspace, return, tab, undo, redo, cut, paste) while allowing navigation, selection, and copy. Context menu disables undo/redo/cut/paste items when read-only.
@@ -231,9 +233,11 @@
 **Combo_Box**: Dropdown using Main/Label/Indicator parts + List_Box overlay popup.
 
 **Dialog**: Modal overlay with backdrop, title/message/buttons, dismiss policies, button presets. Supports custom content via `Set_Content` which replaces the built-in message label with an arbitrary widget tree (pass `null` to restore the message label). The panel resolves `min-width`, `max-width`, `min-height`, `max-height`, and `margin` from CSS — margin shrinks the centering viewport, size constraints cap the panel dimensions.
+- Handle-first internals: all sub-widgets stored as typed handles (`Box_Handle`, `Label_Handle`, `Widget_Handle`). Full handle API via `Dialog_Handle` (`Create_Handle`, `Set_Title`, `Set_Message`, `Add_Button`, `Show`, `Hide`, `Connect_Result`, style setters, etc.).
+- Result callback signature: `(W : Widget_Handle; Button_Index : Natural; Button_Text : String)`.
 - Default/primary button API:
   - `Set_Default_Button(Index)` marks the default action (`0` clears; out-of-range nonzero indices are stored and take effect once a button exists at that index)
-  - `Get_Button(Index)` exposes button widgets for per-button customization
+  - `Get_Button_Handle(Index)` returns a `Button_Handle` for per-button customization. `Get_Button(Index)` is obsolescent.
   - Presets auto-mark natural defaults (`OK`/`Yes`)
 - Focus behavior:
   - `Show` auto-focuses the default button when a valid default index exists

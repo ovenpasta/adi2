@@ -54,7 +54,7 @@ procedure Window_Handle_Test is
    end On_Window_Tick;
 
    procedure Allow_Close
-     (Win   : not null access Window'Class;
+     (Win   : Window_Handle;
       Allow : in out Boolean)
    is
       pragma Unreferenced (Win);
@@ -89,28 +89,6 @@ procedure Window_Handle_Test is
       Destroy (H);
       Assert (not Is_Valid (H), "Destroy(handle) invalidates handle");
    end Test_Create_Window_Handle;
-
-   procedure Test_Access_Roundtrip is
-      Ready : Boolean := False;
-      W     : Window_Access := null;
-      H     : Window_Handle := Null_Window_Handle;
-   begin
-      Put_Line ("Test: Create_Window + Get_Handle roundtrip");
-      Ensure_SDL_Initialized (Ready);
-      if not Ready then
-         return;
-      end if;
-
-      W := Create_Window ("Window Access Roundtrip", (320.0, 240.0));
-      H := Get_Handle (W.all);
-      Assert (Is_Valid (H), "Get_Handle(Create_Window) should be valid");
-      Assert (Resolve_Window_Handle (H) = W,
-              "Resolve(Get_Handle(W)) returns same pointer");
-
-      Destroy (W);
-      Assert (W = null, "Destroy(Window_Access) sets pointer to null");
-      Assert (not Is_Valid (H), "Destroy(Window_Access) invalidates handle");
-   end Test_Access_Roundtrip;
 
    procedure Test_Handle_Overloads is
       Ready  : Boolean := False;
@@ -158,28 +136,6 @@ procedure Window_Handle_Test is
               "resolve after destroy returns null");
    end Test_Destroy_By_Handle;
 
-   procedure Test_Destroy_By_Access is
-      Ready : Boolean := False;
-      W     : Window_Access := null;
-      H     : Window_Handle := Null_Window_Handle;
-   begin
-      Put_Line ("Test: Destroy by Window_Access");
-      Ensure_SDL_Initialized (Ready);
-      if not Ready then
-         return;
-      end if;
-
-      W := Create_Window ("Destroy Access", (320.0, 240.0));
-      H := Get_Handle (W.all);
-      Destroy (W);
-
-      Assert (W = null, "Destroy(Window_Access) nulls access value");
-      Assert (not Is_Valid (H),
-              "Destroy(Window_Access) invalidates previous handles");
-      Assert (Resolve_Window_Handle (H) = null,
-              "resolve stale handle returns null");
-   end Test_Destroy_By_Access;
-
    procedure Test_Destroy_Idempotent is
       Ready : Boolean := False;
       H     : Window_Handle;
@@ -201,10 +157,8 @@ begin
 
    Test_Null_Handle;
    Test_Create_Window_Handle;
-   Test_Access_Roundtrip;
    Test_Handle_Overloads;
    Test_Destroy_By_Handle;
-   Test_Destroy_By_Access;
    Test_Destroy_Idempotent;
 
    Put_Line ("=== Results:" & Pass_Count'Image & " passed," &

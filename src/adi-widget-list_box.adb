@@ -5,6 +5,12 @@ package body Adi.Widget.List_Box is
 
    Default_Row_Height : constant Pixel_Type := 24.0;
 
+   function To_Widget_Access (Row : Row_Widget_Access) return Widget_Access is
+      P : constant access Widget'Class := Row.all'Unchecked_Access;
+   begin
+      return Widget_Access (P);
+   end To_Widget_Access;
+
    function Get_Grid_Cols (W : List_Box_Widget'Class) return Natural is
       Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
    begin
@@ -222,24 +228,16 @@ package body Adi.Widget.List_Box is
       Mark_Dirty (W);
    end Move_Current;
 
-   function Create return List_Box_Widget_Access is
+   function Create_Handle return List_Box_Handle is
       Result : constant List_Box_Widget_Access := new List_Box_Widget;
+      P      : constant access Widget'Class := Result.all'Unchecked_Access;
    begin
       Set_Flag (Result.all, Visible, True);
       Set_Flag (Result.all, Clickable, True);
       Set_Flag (Result.all, Focusable, True);
       Set_Flag (Result.all, Scrollable, True);
-      declare
-         P : constant access Widget'Class := Result.all'Unchecked_Access;
-      begin
-         Register_Widget (Widget_Access (P));
-      end;
-      return Result;
-   end Create;
-
-   function Create_Handle return List_Box_Handle is
-   begin
-      return (Id => Get_Handle (Create.all).Id);
+      Register_Widget (Widget_Access (P));
+      return (Id => Get_Handle (Result.all).Id);
    end Create_Handle;
 
    ----------------------
@@ -283,7 +281,7 @@ package body Adi.Widget.List_Box is
          return;
       end if;
 
-      Add_Child (W, Widget_Access (Row));
+      Add_Child (W, To_Widget_Access (Row));
       W.Rows.Append (Row);
       W.Selected.Append (False);
       W.Row_Heights.Append (Default_Row_Height);
@@ -303,7 +301,7 @@ package body Adi.Widget.List_Box is
             Row : constant Row_Widget_Access := W.Rows.Element (I);
          begin
             if Row /= null then
-               Remove_Child (W, Widget_Access (Row));
+               Remove_Child (W, To_Widget_Access (Row));
             end if;
          end;
       end loop;
@@ -917,21 +915,23 @@ package body Adi.Widget.List_Box is
    --  Handle methods
    ---------------------------------------------------------------------------
 
-   procedure Append_Row (H : List_Box_Handle; Row : Row_Widget_Access) is
+   function Resolve_Row_Handle
+     (H : Adi.Widget.Widget_Handle) return Row_Widget_Access
+   is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
-      if Ptr /= null then
-         Append_Row (List_Box_Widget (Ptr.all), Row);
+      if Ptr /= null and then Ptr.all in Row_Widget'Class then
+         return Row_Widget_Access (Ptr);
       end if;
-   end Append_Row;
+      return null;
+   end Resolve_Row_Handle;
 
    procedure Append_Row (H : List_Box_Handle; Row : Adi.Widget.Widget_Handle) is
-      Ptr     : constant Widget_Access := Widget_Stores.Get (H.Id);
-      Row_Ptr : constant Widget_Access := Widget_Stores.Get (Row.Id);
+      Ptr       : constant Widget_Access := Widget_Stores.Get (H.Id);
+      Typed_Row : constant Row_Widget_Access := Resolve_Row_Handle (Row);
    begin
-      if Ptr /= null and then Row_Ptr /= null then
-         Append_Row (List_Box_Widget (Ptr.all),
-                     Row_Widget_Access (Row_Ptr));
+      if Ptr /= null and then Typed_Row /= null then
+         Append_Row (List_Box_Widget (Ptr.all), Typed_Row);
       end if;
    end Append_Row;
 
@@ -951,17 +951,6 @@ package body Adi.Widget.List_Box is
       end if;
       return 0;
    end Row_Count;
-
-   function Get_Row (H : List_Box_Handle; Index : Positive)
-      return Row_Widget_Access
-   is
-      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
-   begin
-      if Ptr /= null then
-         return Get_Row (List_Box_Widget (Ptr.all), Index);
-      end if;
-      return null;
-   end Get_Row;
 
    function Get_Row_Handle
      (H : List_Box_Handle; Index : Positive) return Widget_Handle

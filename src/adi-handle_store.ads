@@ -41,6 +41,12 @@ package Adi.Handle_Store is
    --  Drain deferred destroys — call once per frame.
    procedure Pump;
 
+   --  Strict-mode policy: when True (default), Get raises Program_Error
+   --  for non-null Ids that fail validation (stale, out-of-range).
+   --  Null_Id always returns null silently regardless of this setting.
+   procedure Set_Strict (Value : Boolean);
+   function  Is_Strict return Boolean;
+
    --  Reference-count style pinning (used by Object_Ref).
    procedure Pin   (Id : Object_Id);
    procedure Unpin (Id : Object_Id);

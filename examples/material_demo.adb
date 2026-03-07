@@ -80,7 +80,7 @@ procedure Material_Demo is
    end On_Quit_Result;
 
    procedure On_Close_Request
-     (Win   : not null access Adi.Window.Window'Class;
+     (Win   : Adi.Window.Window_Handle;
       Allow : in out Boolean)
    is
       pragma Unreferenced (Win);

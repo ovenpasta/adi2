@@ -3353,6 +3353,38 @@ package body Adi.CSS_Parser is
       Bind (Sheet, Tag_Selector, Tag_Name, W);
    end Bind_Tag;
 
+   procedure Bind (Sheet : in out Stylesheet;
+                   Kind  : Selector_Kind;
+                   Name  : String;
+                   W     : Widget_Handle) is
+      Ptr : constant Widget_Access := Resolve_Handle (W);
+   begin
+      if Ptr /= null then
+         Bind (Sheet, Kind, Name, Ptr);
+      end if;
+   end Bind;
+
+   procedure Bind_Class (Sheet      : in out Stylesheet;
+                         Class_Name : String;
+                         W          : Widget_Handle) is
+   begin
+      Bind (Sheet, Class_Selector, Class_Name, W);
+   end Bind_Class;
+
+   procedure Bind_Id (Sheet   : in out Stylesheet;
+                      Id_Name : String;
+                      W       : Widget_Handle) is
+   begin
+      Bind (Sheet, Id_Selector, Id_Name, W);
+   end Bind_Id;
+
+   procedure Bind_Tag (Sheet    : in out Stylesheet;
+                       Tag_Name : String;
+                       W        : Widget_Handle) is
+   begin
+      Bind (Sheet, Tag_Selector, Tag_Name, W);
+   end Bind_Tag;
+
    function Get_Last_Error (Sheet : Stylesheet) return String is
    begin
       if Sheet.Impl = null then

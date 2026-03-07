@@ -55,11 +55,11 @@ package body Adi.Widget.Context_Menu is
       Button : Mouse_Button;
       Clicks : Natural := 1);
 
-   use type Popup_Lists.List_Box_Widget_Access;
    use type Adi.Window.Window_Access;
+   use type Popup_Lists.List_Box_Handle;
 
    type Menu_Binding is record
-      Popup       : Popup_Lists.List_Box_Widget_Access := null;
+      Popup_H     : Popup_Lists.List_Box_Handle := Popup_Lists.Null_List_Box_Handle;
       Dismiss     : Dismiss_Layer_Widget_Access := null;
       Popup_WH    : Widget_Handle := Null_Handle;
       Dismiss_WH  : Widget_Handle := Null_Handle;
@@ -71,16 +71,7 @@ package body Adi.Widget.Context_Menu is
 
    Menu_Bindings : Menu_Binding_Vectors.Vector;
 
-   function Popup_Handle
-     (Popup : Popup_Lists.List_Box_Widget_Access)
-      return Popup_Lists.List_Box_Handle
-   is
-   begin
-      if Popup = null then
-         return Popup_Lists.Null_List_Box_Handle;
-      end if;
-      return Popup_Lists.Try_As_List_Box (Get_Handle (Popup.all));
-   end Popup_Handle;
+   --  (Popup_Handle helper removed — Menu.Popup is now a List_Box_Handle directly)
 
    procedure Destroy (H : in out Menu_Handle) is
       Obj : constant Context_Menu_Access := Menu_Stores.Get (H.Id);
@@ -126,11 +117,11 @@ package body Adi.Widget.Context_Menu is
    Default_Item_Styles : Part_Style_Holders.Holder;
 
    function Find_Owner
-     (Popup : Popup_Lists.List_Box_Widget_Access) return Context_Menu_Access
+     (Popup_WH : Widget_Handle) return Context_Menu_Access
    is
    begin
       for I in 1 .. Natural (Menu_Bindings.Length) loop
-         if Menu_Bindings.Element (I).Popup = Popup then
+         if Menu_Bindings.Element (I).Popup_WH = Popup_WH then
             return Menu_Bindings.Element (I).Owner;
          end if;
       end loop;
@@ -150,19 +141,18 @@ package body Adi.Widget.Context_Menu is
    end Find_Owner;
 
    procedure Register_Binding
-     (Popup   : Popup_Lists.List_Box_Widget_Access;
+     (Popup_H : Popup_Lists.List_Box_Handle;
       Dismiss : Dismiss_Layer_Widget_Access;
       Owner   : Context_Menu_Access)
    is
-      PH : constant Widget_Handle :=
-        Get_Handle (Widget'Class (Popup.all));
+      PH : constant Widget_Handle := +Popup_H;
       DH : constant Widget_Handle :=
         Get_Handle (Widget'Class (Dismiss.all));
    begin
       for I in 1 .. Natural (Menu_Bindings.Length) loop
-         if Menu_Bindings.Element (I).Popup = Popup then
+         if Menu_Bindings.Element (I).Popup_H = Popup_H then
             Menu_Bindings.Replace_Element
-              (I, (Popup      => Popup,
+              (I, (Popup_H    => Popup_H,
                    Dismiss    => Dismiss,
                    Popup_WH   => PH,
                    Dismiss_WH => DH,
@@ -172,7 +162,7 @@ package body Adi.Widget.Context_Menu is
       end loop;
 
       Menu_Bindings.Append
-        (Menu_Binding'(Popup      => Popup,
+        (Menu_Binding'(Popup_H    => Popup_H,
                        Dismiss    => Dismiss,
                        Popup_WH   => PH,
                        Dismiss_WH => DH,
@@ -207,7 +197,7 @@ package body Adi.Widget.Context_Menu is
    end On_Mouse_Down;
 
    function Resolve_Content_Width (Menu : Context_Menu) return Pixel_Type is
-      PH    : constant Popup_Lists.List_Box_Handle := Popup_Handle (Menu.Popup);
+      PH    : constant Popup_Lists.List_Box_Handle := Menu.Popup;
       Row_W : Pixel_Type := 0.0;
    begin
       if not Popup_Lists.Is_Valid (PH) then
@@ -235,7 +225,7 @@ package body Adi.Widget.Context_Menu is
 
    function Resolve_Content_Height (Menu : Context_Menu) return Pixel_Type is
       Total : Pixel_Type := 0.0;
-      PH    : constant Popup_Lists.List_Box_Handle := Popup_Handle (Menu.Popup);
+      PH    : constant Popup_Lists.List_Box_Handle := Menu.Popup;
       Count : constant Natural :=
         (if Popup_Lists.Is_Valid (PH) then Popup_Lists.Row_Count (PH) else 0);
       Row_H : Pixel_Type;
@@ -266,8 +256,9 @@ package body Adi.Widget.Context_Menu is
 
       if Count > 1 then
          declare
+            R : Widget_Ref := Borrow (+Menu.Popup);
             S : constant Resolved_Style :=
-              Get_Resolved_Part_Style (Menu.Popup.all, Main_Part);
+              Get_Resolved_Part_Style (R.Ptr.all, Main_Part);
          begin
             Total :=
               Total + Pixel_Type (Count - 1) * Get_Row_Gap (S.Gap);
@@ -313,37 +304,41 @@ package body Adi.Widget.Context_Menu is
       Wd, Ht  : Pixel_Type;
       X_Pos, Y_Pos : Pixel_Type;
    begin
-      if Menu.Host_Window = null or else Menu.Popup = null then
+      if Menu.Host_Window = null or else not Popup_Lists.Is_Valid (Menu.Popup) then
          return;
       end if;
 
       Win_Size := Adi.Window.Get_Size (Menu.Host_Window.all);
-      Popup_Style := Get_Resolved_Part_Style (Menu.Popup.all, Main_Part);
-      Content_Outer := Outer_Size
-        ((Resolve_Content_Width (Menu), Resolve_Content_Height (Menu)),
-         Popup_Style);
+      declare
+         R : Widget_Ref := Borrow (+Menu.Popup);
+      begin
+         Popup_Style := Get_Resolved_Part_Style (R.Ptr.all, Main_Part);
+         Content_Outer := Outer_Size
+           ((Resolve_Content_Width (Menu), Resolve_Content_Height (Menu)),
+            Popup_Style);
 
-      Wd := Pixel_Type'Max (Min_Width, Content_Outer.Width);
-      Ht := Content_Outer.Height;
+         Wd := Pixel_Type'Max (Min_Width, Content_Outer.Width);
+         Ht := Content_Outer.Height;
 
-      Wd := Pixel_Type'Min (Wd, Win_Size.Width);
-      Ht := Pixel_Type'Min (Ht, Win_Size.Height);
+         Wd := Pixel_Type'Min (Wd, Win_Size.Width);
+         Ht := Pixel_Type'Min (Ht, Win_Size.Height);
 
-      X_Pos := X;
-      Y_Pos := Y;
+         X_Pos := X;
+         Y_Pos := Y;
 
-      if X_Pos + Wd > Win_Size.Width then
-         X_Pos := Pixel_Type'Max (0.0, Win_Size.Width - Wd);
-      end if;
+         if X_Pos + Wd > Win_Size.Width then
+            X_Pos := Pixel_Type'Max (0.0, Win_Size.Width - Wd);
+         end if;
 
-      if Y_Pos + Ht > Win_Size.Height then
-         Y_Pos := Pixel_Type'Max (0.0, Win_Size.Height - Ht);
-      end if;
+         if Y_Pos + Ht > Win_Size.Height then
+            Y_Pos := Pixel_Type'Max (0.0, Win_Size.Height - Ht);
+         end if;
 
-      Set_Geometry
-        (Menu.Popup.all,
-         (X => X_Pos, Y => Y_Pos, Width => Wd, Height => Ht));
-      Layout (Widget'Class (Menu.Popup.all));
+         Set_Geometry
+           (R.Ptr.all,
+            (X => X_Pos, Y => Y_Pos, Width => Wd, Height => Ht));
+         Layout (Widget'Class (R.Ptr.all));
+      end;
    end Position_Popup;
 
    procedure On_Popup_Item_Clicked
@@ -390,25 +385,24 @@ package body Adi.Widget.Context_Menu is
    end On_Popup_Item_Clicked;
 
    function Create return Context_Menu_Access is
-      Result : constant Context_Menu_Access := new Context_Menu_Impl;
+      Result  : constant Context_Menu_Access := new Context_Menu_Impl;
       Dismiss : constant Dismiss_Layer_Widget_Access := new Dismiss_Layer_Widget;
+      PH      : constant Popup_Lists.List_Box_Handle := Popup_Lists.Create_Handle;
    begin
-      Result.Popup := Popup_Lists.Create;
-      Popup_Lists.Set_Selection_Mode
-        (Result.Popup.all, Popup_Lists.Single_Selection);
-      Set_Flag (Result.Popup.all, Focusable, False);
-      Popup_Lists.Connect_Item_Clicked
-        (Result.Popup.all, On_Popup_Item_Clicked'Access);
+      Result.Popup := PH;
+      Popup_Lists.Set_Selection_Mode (PH, Popup_Lists.Single_Selection);
+      Set_Flag (+PH, Focusable, False);
+      Popup_Lists.Connect_Item_Clicked (PH, On_Popup_Item_Clicked'Access);
 
       Set_Flag (Dismiss.all, Visible, True);
       Set_Flag (Dismiss.all, Clickable, True);
       Set_Flag (Dismiss.all, Focusable, False);
       Register_Widget (Widget_Access (Dismiss));
 
-      Register_Binding (Result.Popup, Dismiss, Result);
+      Register_Binding (PH, Dismiss, Result);
 
       if not Default_Menu_Styles.Is_Empty then
-         Set_Part_Styles (Result.Popup.all, Default_Menu_Styles.Element);
+         Popup_Lists.Set_Part_Styles (PH, Default_Menu_Styles.Element);
       end if;
 
       Register_Menu (Result);
@@ -489,20 +483,39 @@ package body Adi.Widget.Context_Menu is
 
       Menu.Items.Append (To_Unbounded_String (Text));
       Menu.Disabled.Append (False);
-      if Menu.Popup /= null then
+      if Popup_Lists.Is_Valid (Menu.Popup) then
          Popup_Lists.Append_Row
-           (Popup_Handle (Menu.Popup),
+           (Menu.Popup,
             Adi.Widget.Label.To_Widget_Handle (Row_H));
       end if;
-      Mark_Dirty (Menu.Popup.all);
+      Mark_Dirty (+Menu.Popup);
+   end Add_Item;
+
+   procedure Add_Item
+     (Menu : Menu_Handle;
+      Text : String)
+   is
+      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
+   begin
+      if Ptr /= null then
+         Add_Item (Ptr.all, Text);
+      end if;
    end Add_Item;
 
    procedure Clear_Items (Menu : in out Context_Menu) is
    begin
       Menu.Items.Clear;
       Menu.Disabled.Clear;
-      if Menu.Popup /= null then
-         Popup_Lists.Clear_Rows (Menu.Popup.all);
+      if Popup_Lists.Is_Valid (Menu.Popup) then
+         Popup_Lists.Clear_Rows (Menu.Popup);
+      end if;
+   end Clear_Items;
+
+   procedure Clear_Items (Menu : Menu_Handle) is
+      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
+   begin
+      if Ptr /= null then
+         Clear_Items (Ptr.all);
       end if;
    end Clear_Items;
 
@@ -522,11 +535,11 @@ package body Adi.Widget.Context_Menu is
       end if;
       Menu.Disabled.Replace_Element (Index, Disabled);
 
-      if Menu.Popup /= null
-        and then Index <= Popup_Lists.Row_Count (Menu.Popup.all)
+      if Popup_Lists.Is_Valid (Menu.Popup)
+        and then Index <= Popup_Lists.Row_Count (Menu.Popup)
       then
          declare
-            PH : constant Popup_Lists.List_Box_Handle := Popup_Handle (Menu.Popup);
+            PH : constant Popup_Lists.List_Box_Handle := Menu.Popup;
             Row : constant Widget_Handle :=
               Popup_Lists.Get_Row_Handle (PH, Index);
          begin
@@ -633,8 +646,8 @@ package body Adi.Widget.Context_Menu is
       Styles : Adi.Widget.Part_Style_Array)
    is
    begin
-      if Menu.Popup /= null then
-         Set_Part_Styles (Menu.Popup.all, Styles);
+      if Popup_Lists.Is_Valid (Menu.Popup) then
+         Popup_Lists.Set_Part_Styles (Menu.Popup, Styles);
       end if;
    end Set_Menu_Part_Styles;
 
@@ -656,9 +669,9 @@ package body Adi.Widget.Context_Menu is
    begin
       Menu.Row_Styles := Part_Style_Holders.To_Holder (Styles);
 
-      if Menu.Popup /= null then
+      if Popup_Lists.Is_Valid (Menu.Popup) then
          declare
-            PH : constant Popup_Lists.List_Box_Handle := Popup_Handle (Menu.Popup);
+            PH : constant Popup_Lists.List_Box_Handle := Menu.Popup;
          begin
             for I in 1 .. Popup_Lists.Row_Count (PH) loop
                declare
@@ -694,7 +707,7 @@ package body Adi.Widget.Context_Menu is
    begin
       if Menu.Open
         or else Menu.Host_Window = null
-        or else Menu.Popup = null
+        or else not Popup_Lists.Is_Valid (Menu.Popup)
       then
          return;
       end if;
@@ -714,10 +727,10 @@ package body Adi.Widget.Context_Menu is
       Position_Popup (Menu, X, Y, Min_Width);
 
       Adi.Window.Add_Overlay (Menu.Host_Window.all, Get_Handle (Dismiss.all));
-      Adi.Window.Add_Overlay (Menu.Host_Window.all, Get_Handle (Menu.Popup.all));
+      Adi.Window.Add_Overlay (Menu.Host_Window.all, +Menu.Popup);
       Menu.Open := True;
       Mark_Dirty (Dismiss.all);
-      Mark_Dirty (Menu.Popup.all);
+      Mark_Dirty (+Menu.Popup);
    end Show_At;
 
    procedure Show_At
@@ -735,7 +748,7 @@ package body Adi.Widget.Context_Menu is
    procedure Hide (Menu : in out Context_Menu) is
       Dismiss : Dismiss_Layer_Widget_Access := null;
    begin
-      if not Menu.Open or else Menu.Host_Window = null or else Menu.Popup = null then
+      if not Menu.Open or else Menu.Host_Window = null or else not Popup_Lists.Is_Valid (Menu.Popup) then
          return;
       end if;
 
@@ -746,7 +759,7 @@ package body Adi.Widget.Context_Menu is
          end if;
       end loop;
 
-      Adi.Window.Remove_Overlay (Menu.Host_Window.all, Get_Handle (Menu.Popup.all));
+      Adi.Window.Remove_Overlay (Menu.Host_Window.all, +Menu.Popup);
       if Dismiss /= null then
          Adi.Window.Remove_Overlay (Menu.Host_Window.all, Get_Handle (Dismiss.all));
       end if;

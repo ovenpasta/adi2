@@ -2,6 +2,7 @@ pragma Ada_2022;
 
 with Ada.Text_IO; use Ada.Text_IO;
 with Adi.Text_Buffer; use Adi.Text_Buffer;
+with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Text_Editor; use Adi.Widget.Text_Editor;
 with Adi.Widget.Context_Menu;
 with Adi.SDL.Events; use Adi.SDL.Events;
@@ -171,88 +172,88 @@ procedure Text_Editor_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Read_Only_Default is
-      W : constant Text_Editor_Widget_Access := Create ("test");
+      W : constant Text_Editor_Handle := Create_Handle ("test");
    begin
       Put_Line ("Test: Read-only default");
-      Assert (not Is_Read_Only (W.all), "read-only is false by default");
-      Set_Read_Only (W.all, True);
-      Assert (Is_Read_Only (W.all), "read-only is true after set");
-      Set_Read_Only (W.all, False);
-      Assert (not Is_Read_Only (W.all), "read-only is false after unset");
+      Assert (not Is_Read_Only (W), "read-only is false by default");
+      Set_Read_Only (W, True);
+      Assert (Is_Read_Only (W), "read-only is true after set");
+      Set_Read_Only (W, False);
+      Assert (not Is_Read_Only (W), "read-only is false after unset");
       New_Line;
    end Test_Read_Only_Default;
 
    procedure Test_Read_Only_Blocks_Text_Input is
-      W : constant Text_Editor_Widget_Access := Create ("hello");
+      W : constant Text_Editor_Handle := Create_Handle ("hello");
    begin
       Put_Line ("Test: Read-only blocks On_Text_Input");
-      Set_Read_Only (W.all, True);
-      On_Text_Input (W.all, "xyz");
-      Assert (Get_Text (W.all) = "hello",
+      Set_Read_Only (W, True);
+      On_Text_Input (+W, "xyz");
+      Assert (Get_Text (W) = "hello",
               "text unchanged after On_Text_Input in read-only");
       New_Line;
    end Test_Read_Only_Blocks_Text_Input;
 
    procedure Test_Read_Only_Blocks_Editing_Keys is
-      W : constant Text_Editor_Widget_Access := Create ("hello");
+      W : constant Text_Editor_Handle := Create_Handle ("hello");
    begin
       Put_Line ("Test: Read-only blocks editing keys");
-      Set_Read_Only (W.all, True);
+      Set_Read_Only (W, True);
 
       --  Backspace
-      On_Key_Down (W.all, SDL_SCANCODE_BACKSPACE, 0, False);
-      Assert (Get_Text (W.all) = "hello", "backspace blocked");
+      On_Key_Down (+W, SDL_SCANCODE_BACKSPACE, 0, False);
+      Assert (Get_Text (W) = "hello", "backspace blocked");
 
       --  Delete
-      On_Key_Down (W.all, SDL_SCANCODE_DELETE, 0, False);
-      Assert (Get_Text (W.all) = "hello", "delete blocked");
+      On_Key_Down (+W, SDL_SCANCODE_DELETE, 0, False);
+      Assert (Get_Text (W) = "hello", "delete blocked");
 
       --  Return
-      On_Key_Down (W.all, SDL_SCANCODE_RETURN, 0, False);
-      Assert (Get_Text (W.all) = "hello", "return blocked");
+      On_Key_Down (+W, SDL_SCANCODE_RETURN, 0, False);
+      Assert (Get_Text (W) = "hello", "return blocked");
 
       --  Tab
-      On_Key_Down (W.all, SDL_SCANCODE_TAB, 0, False);
-      Assert (Get_Text (W.all) = "hello", "tab blocked");
+      On_Key_Down (+W, SDL_SCANCODE_TAB, 0, False);
+      Assert (Get_Text (W) = "hello", "tab blocked");
 
       --  Ctrl+V (paste) — may be a no-op if clipboard is empty, but
       --  should not modify text regardless
-      On_Key_Down (W.all, SDL_SCANCODE_V, SDL_KMOD_CTRL, False);
-      Assert (Get_Text (W.all) = "hello", "ctrl+v blocked");
+      On_Key_Down (+W, SDL_SCANCODE_V, SDL_KMOD_CTRL, False);
+      Assert (Get_Text (W) = "hello", "ctrl+v blocked");
 
       --  Ctrl+Z (undo)
-      On_Key_Down (W.all, SDL_SCANCODE_Z, SDL_KMOD_CTRL, False);
-      Assert (Get_Text (W.all) = "hello", "ctrl+z blocked");
+      On_Key_Down (+W, SDL_SCANCODE_Z, SDL_KMOD_CTRL, False);
+      Assert (Get_Text (W) = "hello", "ctrl+z blocked");
 
       --  Ctrl+Y (redo)
-      On_Key_Down (W.all, SDL_SCANCODE_Y, SDL_KMOD_CTRL, False);
-      Assert (Get_Text (W.all) = "hello", "ctrl+y blocked");
+      On_Key_Down (+W, SDL_SCANCODE_Y, SDL_KMOD_CTRL, False);
+      Assert (Get_Text (W) = "hello", "ctrl+y blocked");
 
       --  Ctrl+X (cut)
-      On_Key_Down (W.all, SDL_SCANCODE_X, SDL_KMOD_CTRL, False);
-      Assert (Get_Text (W.all) = "hello", "ctrl+x blocked");
+      On_Key_Down (+W, SDL_SCANCODE_X, SDL_KMOD_CTRL, False);
+      Assert (Get_Text (W) = "hello", "ctrl+x blocked");
       New_Line;
    end Test_Read_Only_Blocks_Editing_Keys;
 
    procedure Test_Read_Only_Allows_Navigation is
-      W : constant Text_Editor_Widget_Access := Create ("hello");
+      W : constant Text_Editor_Handle := Create_Handle ("hello");
    begin
       Put_Line ("Test: Read-only allows navigation");
-      Set_Read_Only (W.all, True);
+      Set_Read_Only (W, True);
 
       --  Caret starts at end of "hello" (line 1, col 5)
       --  Press Home to go to start
-      On_Key_Down (W.all, SDL_SCANCODE_HOME, 0, False);
+      On_Key_Down (+W, SDL_SCANCODE_HOME, 0, False);
       --  The buffer's caret should be at the beginning now
       --  We can't directly access W.Buffer from here, so check via
       --  Ctrl+A (select all) + verify it doesn't crash
-      On_Key_Down (W.all, SDL_SCANCODE_A, SDL_KMOD_CTRL, False);
-      Assert (Get_Text (W.all) = "hello",
+      On_Key_Down (+W, SDL_SCANCODE_A, SDL_KMOD_CTRL, False);
+      Assert (Get_Text (W) = "hello",
               "navigation + select all works in read-only");
 
       --  Ctrl+C (copy) should not crash or modify
-      On_Key_Down (W.all, SDL_SCANCODE_C, SDL_KMOD_CTRL, False);
-      Assert (Get_Text (W.all) = "hello",
+      On_Key_Down (+W, SDL_SCANCODE_C, SDL_KMOD_CTRL, False);
+      Assert (Get_Text (W) = "hello",
               "ctrl+c works in read-only");
       New_Line;
    end Test_Read_Only_Allows_Navigation;
@@ -262,27 +263,27 @@ procedure Text_Editor_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Context_Menu_Disabled_State is
-      Menu : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
-        Adi.Widget.Context_Menu.Create;
+      use Adi.Widget.Context_Menu;
+      Menu : constant Menu_Handle := Create_Handle;
    begin
       Put_Line ("Test: Context_Menu disabled state");
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Undo");
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Redo");
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Copy");
+      Add_Item (Menu, "Undo");
+      Add_Item (Menu, "Redo");
+      Add_Item (Menu, "Copy");
 
-      Assert (not Adi.Widget.Context_Menu.Is_Item_Disabled (Menu.all, 1),
+      Assert (not Is_Item_Disabled (Menu, 1),
               "item 1 enabled by default");
-      Assert (not Adi.Widget.Context_Menu.Is_Item_Disabled (Menu.all, 2),
+      Assert (not Is_Item_Disabled (Menu, 2),
               "item 2 enabled by default");
 
-      Adi.Widget.Context_Menu.Set_Item_Disabled (Menu.all, 1, True);
-      Assert (Adi.Widget.Context_Menu.Is_Item_Disabled (Menu.all, 1),
+      Set_Item_Disabled (Menu, 1, True);
+      Assert (Is_Item_Disabled (Menu, 1),
               "item 1 disabled after set");
-      Assert (not Adi.Widget.Context_Menu.Is_Item_Disabled (Menu.all, 2),
+      Assert (not Is_Item_Disabled (Menu, 2),
               "item 2 still enabled");
 
-      Adi.Widget.Context_Menu.Set_Item_Disabled (Menu.all, 1, False);
-      Assert (not Adi.Widget.Context_Menu.Is_Item_Disabled (Menu.all, 1),
+      Set_Item_Disabled (Menu, 1, False);
+      Assert (not Is_Item_Disabled (Menu, 1),
               "item 1 re-enabled");
       New_Line;
    end Test_Context_Menu_Disabled_State;

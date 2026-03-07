@@ -3,8 +3,8 @@ pragma Ada_2022;
 with Ada.Text_IO; use Ada.Text_IO;
 with Adi.Core;          use Adi.Core;
 with Adi.Widget;        use Adi.Widget;
-with Adi.Widget.Box;
-with Adi.Widget.Label;
+with Adi.Widget.Box;    use type Adi.Widget.Box.Box_Handle;
+with Adi.Widget.Label;  use type Adi.Widget.Label.Label_Handle;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
@@ -39,18 +39,18 @@ procedure Layout_Perf_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Layout_Tree_First_Frame is
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Child1 : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("A");
-      Child2 : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("B");
+      Root   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Child1 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("A");
+      Child2 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("B");
    begin
       Put_Line ("Test: Layout_Tree first-frame regression");
 
-      Set_Geometry (Root.all, (0.0, 0.0, 400.0, 300.0));
-      Root.Add_Child (Child1);
-      Root.Add_Child (Child2);
+      Set_Geometry (+Root, (0.0, 0.0, 400.0, 300.0));
+      Add_Child (+Root, +Child1);
+      Add_Child (+Root, +Child2);
 
       --  Give root a flex style so children get positioned
       declare
@@ -59,16 +59,16 @@ procedure Layout_Perf_Test is
                   Flex_Direction => Set (Column),
                   others         => <>)).Build;
       begin
-         Set_Part_Style (Root.all, Main_Part, Flex_Style);
+         Set_Part_Style (+Root, Main_Part, Flex_Style);
       end;
 
       Reset_Perf_Counters;
-      Layout_Tree (Root.all);
+      Layout_Tree (+Root);
 
       --  Children should have been laid out (non-zero geometry)
-      Assert (Get_Geometry (Child1.all).Width > 0.0,
+      Assert (Get_Geometry (+Child1).Width > 0.0,
               "child1 has non-zero width after first Layout_Tree");
-      Assert (Get_Geometry (Child2.all).Width > 0.0,
+      Assert (Get_Geometry (+Child2).Width > 0.0,
               "child2 has non-zero width after first Layout_Tree");
 
       --  Root layout must have been called (not skipped)
@@ -81,15 +81,15 @@ procedure Layout_Perf_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Epoch_Dedup is
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Child : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("C");
+      Root  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Child : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("C");
    begin
       Put_Line ("Test: epoch-based layout deduplication");
 
-      Set_Geometry (Root.all, (0.0, 0.0, 400.0, 300.0));
-      Root.Add_Child (Child);
+      Set_Geometry (+Root, (0.0, 0.0, 400.0, 300.0));
+      Add_Child (+Root, +Child);
 
       --  Give root a flex style
       declare
@@ -98,12 +98,12 @@ procedure Layout_Perf_Test is
                   Flex_Direction => Set (Column),
                   others         => <>)).Build;
       begin
-         Set_Part_Style (Root.all, Main_Part, Flex_Style);
+         Set_Part_Style (+Root, Main_Part, Flex_Style);
       end;
 
       --  First pass: everything gets laid out
       Reset_Perf_Counters;
-      Layout_Tree (Root.all);
+      Layout_Tree (+Root);
 
       declare
          Calls_1 : constant Natural := Get_Perf_Layout_Calls;
@@ -123,19 +123,19 @@ procedure Layout_Perf_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Style_Cache_Hits is
-      W : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("cached");
+      W : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("cached");
    begin
       Put_Line ("Test: resolved-style cache hits");
 
-      Set_Geometry (W.all, (0.0, 0.0, 200.0, 40.0));
+      Set_Geometry (+W, (0.0, 0.0, 200.0, 40.0));
 
       Reset_Perf_Counters;
 
       --  First call: cache miss
       declare
          S1 : constant Resolved_Style :=
-           Get_Resolved_Part_Style (W.all, Main_Part);
+           Get_Resolved_Part_Style (+W, Main_Part);
       begin
          Assert (Get_Perf_Style_Resolves = 1,
                  "first resolve counted");
@@ -145,7 +145,7 @@ procedure Layout_Perf_Test is
          --  Second call: cache hit (same version + states)
          declare
             S2 : constant Resolved_Style :=
-              Get_Resolved_Part_Style (W.all, Main_Part);
+              Get_Resolved_Part_Style (+W, Main_Part);
          begin
             Assert (Get_Perf_Style_Hits = 1,
                     "second resolve is a hit");
@@ -160,17 +160,17 @@ procedure Layout_Perf_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Style_Cache_Invalidation is
-      W : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("inv");
+      W : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("inv");
    begin
       Put_Line ("Test: style cache invalidation on state change");
 
-      Set_Geometry (W.all, (0.0, 0.0, 200.0, 40.0));
+      Set_Geometry (+W, (0.0, 0.0, 200.0, 40.0));
 
       --  Prime the cache
       declare
          S1 : constant Resolved_Style :=
-           Get_Resolved_Part_Style (W.all, Main_Part);
+           Get_Resolved_Part_Style (+W, Main_Part);
          pragma Unreferenced (S1);
       begin
          null;
@@ -179,12 +179,12 @@ procedure Layout_Perf_Test is
       Reset_Perf_Counters;
 
       --  Change state (hover)
-      Set_State (W.all, State_Hovered, True);
+      Set_State (+W, State_Hovered, True);
 
       --  Next resolve must be a miss (state changed)
       declare
          S2 : constant Resolved_Style :=
-           Get_Resolved_Part_Style (W.all, Main_Part);
+           Get_Resolved_Part_Style (+W, Main_Part);
          pragma Unreferenced (S2);
       begin
          Assert (Get_Perf_Style_Resolves = 1,
@@ -203,8 +203,8 @@ procedure Layout_Perf_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Subpart_Cache_Invalidation is
-      W : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("sub");
+      W : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("sub");
       --  Give the label a style where :selected changes text color
       Selected_Color : constant Style_Rules :=
         (Color => Set (RGBA (255, 255, 255, 1.0)),
@@ -217,26 +217,26 @@ procedure Layout_Perf_Test is
    begin
       Put_Line ("Test: sub-part cache invalidation on state change");
 
-      Set_Geometry (W.all, (0.0, 0.0, 200.0, 40.0));
-      Set_Part_Style (W.all, Main_Part, WS);
+      Set_Geometry (+W, (0.0, 0.0, 200.0, 40.0));
+      Set_Part_Style (+W, Main_Part, WS);
 
       --  Select → prime cache for Main_Part AND Label_Part
-      Set_State (W.all, State_Selected, True);
+      Set_State (+W, State_Selected, True);
       declare
          S_Main_Sel : constant Resolved_Style :=
-           Get_Resolved_Part_Style (W.all, Main_Part);
+           Get_Resolved_Part_Style (+W, Main_Part);
          S_Label_Sel : constant Resolved_Style :=
-           Get_Resolved_Part_Style (W.all, Label_Part);
+           Get_Resolved_Part_Style (+W, Label_Part);
       begin
          --  Deselect
-         Set_State (W.all, State_Selected, False);
+         Set_State (+W, State_Selected, False);
 
          --  Both parts must reflect the deselected state
          declare
             S_Main_Desel : constant Resolved_Style :=
-              Get_Resolved_Part_Style (W.all, Main_Part);
+              Get_Resolved_Part_Style (+W, Main_Part);
             S_Label_Desel : constant Resolved_Style :=
-              Get_Resolved_Part_Style (W.all, Label_Part);
+              Get_Resolved_Part_Style (+W, Label_Part);
          begin
             Assert (S_Main_Desel.Color /= S_Main_Sel.Color,
                     "main part color changes after deselect");
@@ -251,15 +251,15 @@ procedure Layout_Perf_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Multiple_Layout_Passes is
-      Root : constant Adi.Widget.Box.Box_Widget_Access :=
-        Adi.Widget.Box.Create;
-      Child : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("multi");
+      Root  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Child : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("multi");
    begin
       Put_Line ("Test: multiple Layout_Tree passes");
 
-      Set_Geometry (Root.all, (0.0, 0.0, 400.0, 300.0));
-      Root.Add_Child (Child);
+      Set_Geometry (+Root, (0.0, 0.0, 400.0, 300.0));
+      Add_Child (+Root, +Child);
 
       declare
          Flex_Style : constant Widget_Style :=
@@ -267,22 +267,22 @@ procedure Layout_Perf_Test is
                   Flex_Direction => Set (Column),
                   others         => <>)).Build;
       begin
-         Set_Part_Style (Root.all, Main_Part, Flex_Style);
+         Set_Part_Style (+Root, Main_Part, Flex_Style);
       end;
 
       --  First pass
-      Layout_Tree (Root.all);
+      Layout_Tree (+Root);
       declare
-         W1 : constant Pixel_Type := Get_Geometry (Child.all).Width;
+         W1 : constant Pixel_Type := Get_Geometry (+Child).Width;
       begin
          Assert (W1 > 0.0, "pass 1: child laid out");
 
          --  Second pass (simulates next frame)
          Reset_Perf_Counters;
-         Layout_Tree (Root.all);
+         Layout_Tree (+Root);
 
          declare
-            W2 : constant Pixel_Type := Get_Geometry (Child.all).Width;
+            W2 : constant Pixel_Type := Get_Geometry (+Child).Width;
          begin
             Assert (W2 = W1, "pass 2: child geometry unchanged");
             Assert (Get_Perf_Layout_Calls >= 2,
@@ -298,22 +298,22 @@ procedure Layout_Perf_Test is
    procedure Test_Pref_Size_Cache_Hit is
       --  Use a standalone label (not inside a flex container) so that
       --  Layout_Tree does not pre-warm the cache via Perform_Flex_Layout.
-      W : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("pref");
+      W : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("pref");
    begin
       Put_Line ("Test: preferred size cache hit");
 
-      Set_Geometry (W.all, (0.0, 0.0, 200.0, 40.0));
+      Set_Geometry (+W, (0.0, 0.0, 200.0, 40.0));
 
       --  Layout_Tree establishes a layout epoch.  Label's Layout does
       --  not call Get_Preferred_Size on itself.
-      Layout_Tree (W.all);
+      Layout_Tree (+W);
 
       Reset_Perf_Counters;
 
       --  First call: cache miss
       declare
-         S1 : constant Size_2D := Get_Preferred_Size (W.all);
+         S1 : constant Size_2D := Get_Preferred_Size (+W);
       begin
          Assert (Get_Perf_Pref_Calls = 1,
                  "first pref-size call counted");
@@ -322,7 +322,7 @@ procedure Layout_Perf_Test is
 
          --  Second call: cache hit (same epoch + version + states + geom)
          declare
-            S2 : constant Size_2D := Get_Preferred_Size (W.all);
+            S2 : constant Size_2D := Get_Preferred_Size (+W);
          begin
             Assert (Get_Perf_Pref_Hits = 1,
                     "second pref-size call is a hit");
@@ -337,19 +337,19 @@ procedure Layout_Perf_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Pref_Size_Cache_Invalidation is
-      W : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("pinv");
+      W : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("pinv");
    begin
       Put_Line ("Test: preferred size cache invalidation");
 
-      Set_Geometry (W.all, (0.0, 0.0, 200.0, 40.0));
+      Set_Geometry (+W, (0.0, 0.0, 200.0, 40.0));
 
       --  Layout_Tree establishes a layout epoch
-      Layout_Tree (W.all);
+      Layout_Tree (+W);
 
       --  Prime the cache
       declare
-         S1 : constant Size_2D := Get_Preferred_Size (W.all);
+         S1 : constant Size_2D := Get_Preferred_Size (+W);
          pragma Unreferenced (S1);
       begin
          null;
@@ -358,11 +358,11 @@ procedure Layout_Perf_Test is
       Reset_Perf_Counters;
 
       --  Change state
-      Set_State (W.all, State_Hovered, True);
+      Set_State (+W, State_Hovered, True);
 
       --  Next call must be a miss (state changed)
       declare
-         S2 : constant Size_2D := Get_Preferred_Size (W.all);
+         S2 : constant Size_2D := Get_Preferred_Size (+W);
          pragma Unreferenced (S2);
       begin
          Assert (Get_Perf_Pref_Calls = 1,
@@ -379,29 +379,29 @@ procedure Layout_Perf_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Pref_Size_Content_Invalidation is
-      W : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("before");
+      W : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("before");
    begin
       Put_Line ("Test: preferred size cache invalidation on content change");
 
-      Set_Geometry (W.all, (0.0, 0.0, 200.0, 40.0));
+      Set_Geometry (+W, (0.0, 0.0, 200.0, 40.0));
 
       --  Layout_Tree establishes a layout epoch
-      Layout_Tree (W.all);
+      Layout_Tree (+W);
 
       --  Prime the cache
       declare
-         S1 : constant Size_2D := Get_Preferred_Size (W.all);
+         S1 : constant Size_2D := Get_Preferred_Size (+W);
          pragma Unreferenced (S1);
       begin
          Reset_Perf_Counters;
 
          --  Mutate content without changing style or state
-         Adi.Widget.Label.Set_Text (W.all, "after - different length");
+         Adi.Widget.Label.Set_Text (W, "after - different length");
 
          --  Next call must be a miss (Content_Version changed)
          declare
-            S2 : constant Size_2D := Get_Preferred_Size (W.all);
+            S2 : constant Size_2D := Get_Preferred_Size (+W);
             pragma Unreferenced (S2);
          begin
             Assert (Get_Perf_Pref_Calls = 1,

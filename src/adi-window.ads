@@ -15,8 +15,6 @@ package Adi.Window is
     type Window_Handle is private;
     Null_Window_Handle : constant Window_Handle;
 
-    function Create_Window (Title : String; S : Size_2D) return Window_Access
-      with Obsolescent => "Use Create_Window_Handle";
     function Create_Window_Handle (Title : String; S : Size_2D)
       return Window_Handle;
     function Get_Handle (W : Window) return Window_Handle;
@@ -27,8 +25,6 @@ package Adi.Window is
       with Implicit_Dereference => Ptr;
     function Borrow (H : Window_Handle) return Window_Ref;
     procedure Destroy (H : in out Window_Handle);
-    procedure Destroy (W : in out Window_Access)
-      with Obsolescent => "Use Destroy (H : in out Window_Handle)";
     procedure Pump_Window_Store;
 
     procedure Update (W : in out Window);
@@ -37,20 +33,14 @@ package Adi.Window is
     procedure Render (W : in out Window);
 
     --  Set the root widget for this window
-    procedure Set_Root (W : in out Window; Root : access Adi.Widget.Widget'Class)
-      with Obsolescent => "Use Set_Root with Widget_Handle";
     procedure Set_Root (W : in out Window; Root : Widget_Handle);
-    procedure Set_Root (H : Window_Handle; Root : access Adi.Widget.Widget'Class)
-      with Obsolescent => "Use Set_Root (H, Root : Widget_Handle)";
     procedure Set_Root (H : Window_Handle; Root : Widget_Handle);
-    function Get_Root (W : Window) return Widget_Access
-      with Obsolescent => "Use Get_Root_Handle";
     function Get_Root_Handle (W : Window) return Widget_Handle;
     function Get_Root_Handle (H : Window_Handle) return Widget_Handle;
     --  Resolve the host window that currently contains a widget in its
     --  root tree or overlay tree. Returns null if none.
     function Find_Host_Window
-      (Node : access Adi.Widget.Widget'Class) return Window_Access;
+      (Node : Widget_Handle) return Window_Access;
 
     --  Optional policy: derive window minimum size from root layout preferred size.
     procedure Set_Enforce_Layout_Min_Size
@@ -65,32 +55,47 @@ package Adi.Window is
     --  Overlay widgets render above the root tree and are hit-tested first.
     --  If focus currently points into an overlay being removed/cleared,
     --  focus is cleared to avoid stale detached targets.
-    procedure Add_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class)
-      with Obsolescent => "Use Add_Overlay with Widget_Handle";
     procedure Add_Overlay (W : in out Window; Overlay : Widget_Handle);
-    procedure Remove_Overlay (W : in out Window; Overlay : access Adi.Widget.Widget'Class)
-      with Obsolescent => "Use Remove_Overlay with Widget_Handle";
     procedure Remove_Overlay (W : in out Window; Overlay : Widget_Handle);
     procedure Clear_Overlays (W : in out Window);
     function Overlay_Count (W : Window) return Natural;
-    function Get_Overlay (W : Window; Index : Positive) return Widget_Access
-      with Pre => Index <= Overlay_Count (W),
-           Obsolescent => "Use Get_Overlay_Handle";
     function Get_Overlay_Handle (W : Window; Index : Positive)
       return Widget_Handle
       with Pre => Index <= Overlay_Count (W);
     function Get_Overlay_Handle (H : Window_Handle; Index : Positive)
       return Widget_Handle;
-    function Get_Focus (W : Window) return Widget_Access
-      with Obsolescent => "Use Get_Focus_Handle";
     function Get_Focus_Handle (W : Window) return Widget_Handle;
     function Get_Focus_Handle (H : Window_Handle) return Widget_Handle;
+
+    procedure Add_Overlay    (H : Window_Handle; Overlay : Widget_Handle);
+    procedure Remove_Overlay (H : Window_Handle; Overlay : Widget_Handle);
+    procedure Clear_Overlays (H : Window_Handle);
+    function  Get_Size       (H : Window_Handle) return Size_2D;
+
+    --  Render / resize / input via handle
+    procedure Render        (H : Window_Handle);
+    procedure Handle_Resize (H : Window_Handle; New_Size : Size_2D);
+    function  Get_SDL_Window (H : Window_Handle) return SDL_Window_Ptr;
+    procedure On_Mouse_Wheel
+       (H                : Window_Handle;
+        X, Y             : Pixel_Type;
+        Delta_X, Delta_Y : Pixel_Type);
+    procedure On_Key_Down
+       (H        : Window_Handle;
+        Scancode : Adi.SDL.Events.SDL_Scancode;
+        Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+        Repeat   : Boolean);
+    procedure On_Key_Up
+       (H        : Window_Handle;
+        Scancode : Adi.SDL.Events.SDL_Scancode;
+        Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+        Repeat   : Boolean);
 
     --  Clear Focused/Hovered/Pressed refs if they point at Target or any
     --  widget in Target's subtree.  Called from Destroy before detaching.
     procedure Clear_Widget_Refs_In_Subtree
       (W      : in out Window;
-       Target : not null access Adi.Widget.Widget'Class);
+       Target : Widget_Handle);
 
     --  Get the underlying SDL window pointer (for dialog calls, etc.)
     function Get_SDL_Window (W : Window) return SDL_Window_Ptr;
@@ -158,10 +163,6 @@ package Adi.Window is
     --  tree or overlay tree.  Pass null to clear focus.  Silently ignored
     --  if Target does not belong to this window.  Non-focusable targets
     --  are ignored by normal focus-candidate validation.
-    procedure Set_Focus
-      (W      : in out Window;
-       Target : access Adi.Widget.Widget'Class)
-      with Obsolescent => "Use Set_Focus with Widget_Handle";
     procedure Set_Focus (W : in out Window; Target : Widget_Handle);
     procedure Set_Focus (H : Window_Handle; Target : Widget_Handle);
 
@@ -207,7 +208,7 @@ package Adi.Window is
     --  (title-bar X) or application quit (Cmd+Q / Alt+F4).
     --  Set Allow to False to prevent closing.
     type Close_Request_Callback is access procedure
-      (Win   : not null access Window'Class;
+      (Win   : Window_Handle;
        Allow : in out Boolean);
 
     package Close_Request_Signals is new Adi.Signal
@@ -241,7 +242,7 @@ package Adi.Window is
     end record;
     function Get_Frame_Stats (W : Window) return Frame_Stats;
 private
-    package Overlay_Vectors is new Ada.Containers.Vectors (Positive, Widget_Access);
+    package Overlay_Vectors is new Ada.Containers.Vectors (Positive, Widget_Handle);
 
     type Internal;
     type Internal_Access is access Internal;
@@ -250,19 +251,19 @@ private
         Store_Index    : Natural := 0;
         Store_Gen      : Natural := 0;
         Ctx            : Render_Context;
-        Root           : Widget_Access;
+        Root           : Widget_Handle := Null_Handle;
         Geometry       : Rectangle;
         Size           : Size_2D;  -- NEW: Track current size
         --  Track mouse state
         Mouse_X        : Pixel_Type    := 0.0;
         Mouse_Y        : Pixel_Type    := 0.0;
         Mouse_Down     : Boolean       := False;
-        Hovered_Widget : Widget_Access := null;
-        Pressed_Widget : Widget_Access := null;
+        Hovered_Widget : Widget_Handle := Null_Handle;
+        Pressed_Widget : Widget_Handle := Null_Handle;
         Hovered_Part   : Part_Kind     := Main_Part;
         Pressed_Part   : Part_Kind     := Main_Part;
         Scroll_Claimed : Boolean       := False;
-        Focused_Widget : Widget_Access := null;
+        Focused_Widget : Widget_Handle := Null_Handle;
         Overlays       : Overlay_Vectors.Vector;
         Enforce_Layout_Min_Size : Boolean := True;
         Needs_Layout   : Boolean       := True;
@@ -297,9 +298,9 @@ private
 
     --  Helper to find widget at position
     function Find_Widget_At
-       (W : Window; X, Y : Pixel_Type) return Widget_Access;
+       (W : Window; X, Y : Pixel_Type) return Widget_Handle;
     function Point_In_Widget
-       (Wgt : Widget_Access; X, Y : Pixel_Type) return Boolean;
+       (Wgt : Widget_Handle; X, Y : Pixel_Type) return Boolean;
 
     type Window_Class_Access is access all Window'Class;
 

@@ -4,8 +4,8 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Adi.CSS_Source;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget; use Adi.Widget;
-with Adi.Widget.Box;
-with Adi.Widget.Label;
+with Adi.Widget.Box;    use type Adi.Widget.Box.Box_Handle;
+with Adi.Widget.Label;  use type Adi.Widget.Label.Label_Handle;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 procedure Style_Storage_Equivalence_Test is
@@ -38,8 +38,8 @@ procedure Style_Storage_Equivalence_Test is
      ([Main_Part => (Style => From (Rules).Build, Enabled => True), others => <>]);
 
    procedure Test_Any_Part_Fallback is
-      W : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("any-fallback");
+      W : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("any-fallback");
       Styles : Part_Style_Array := Empty_Part_Styles;
    begin
       Put_Line ("Test: Any_Part fallback and specific override");
@@ -47,13 +47,13 @@ procedure Style_Storage_Equivalence_Test is
       Styles (Any_Part) :=
         (Style => From ((Color => Set (RGB (10, 20, 30)), others => <>)).Build,
          Enabled => True);
-      Set_Part_Styles (W.all, Styles);
+      Set_Part_Styles (+W, Styles);
 
       declare
          Label_Resolved : constant Resolved_Style :=
-           Get_Resolved_Part_Style (W.all, Label_Part);
+           Get_Resolved_Part_Style (+W, Label_Part);
          Main_Resolved  : constant Resolved_Style :=
-           Get_Resolved_Part_Style (W.all, Main_Part);
+           Get_Resolved_Part_Style (+W, Main_Part);
       begin
          Assert (Is_RGB_Color (Label_Resolved.Color, 10, 20, 30),
                  "Label_Part uses Any_Part fallback when part style is empty");
@@ -64,13 +64,13 @@ procedure Style_Storage_Equivalence_Test is
       Styles (Label_Part) :=
         (Style => From ((Color => Set (RGB (50, 60, 70)), others => <>)).Build,
          Enabled => True);
-      Set_Part_Styles (W.all, Styles);
+      Set_Part_Styles (+W, Styles);
 
       declare
          Label_Resolved : constant Resolved_Style :=
-           Get_Resolved_Part_Style (W.all, Label_Part);
+           Get_Resolved_Part_Style (+W, Label_Part);
          Main_Resolved  : constant Resolved_Style :=
-           Get_Resolved_Part_Style (W.all, Main_Part);
+           Get_Resolved_Part_Style (+W, Main_Part);
       begin
          Assert (Is_RGB_Color (Label_Resolved.Color, 50, 60, 70),
                  "Part-specific style overrides Any_Part fallback");
@@ -80,8 +80,8 @@ procedure Style_Storage_Equivalence_Test is
    end Test_Any_Part_Fallback;
 
    procedure Test_Enabled_Disabled_Parts is
-      W : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("enabled-disabled");
+      W : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("enabled-disabled");
       Styles : Part_Style_Array := Empty_Part_Styles;
       Main_WS : constant Widget_Style :=
         From ((Background_Color => Set_Bg (RGB (1, 2, 3)), others => <>)).Build;
@@ -92,28 +92,28 @@ procedure Style_Storage_Equivalence_Test is
 
       Styles (Main_Part) := (Style => Main_WS, Enabled => False);
       Styles (Label_Part) := (Style => Label_WS, Enabled => True);
-      Set_Part_Styles (W.all, Styles);
+      Set_Part_Styles (+W, Styles);
 
       declare
          Main_Resolved : constant Resolved_Style :=
-           Get_Resolved_Part_Style (W.all, Main_Part);
+           Get_Resolved_Part_Style (+W, Main_Part);
          Label_Resolved : constant Resolved_Style :=
-           Get_Resolved_Part_Style (W.all, Label_Part);
+           Get_Resolved_Part_Style (+W, Label_Part);
       begin
          Assert (Is_RGB_Color (Main_Resolved.Background_Color, 1, 2, 3),
                  "Main_Part style resolves even when part is marked disabled");
          Assert (Is_RGB_Color (Label_Resolved.Color, 4, 5, 6),
                  "Enabled Label_Part style resolves correctly");
-         Assert (Get_Part_Style (W.all, Main_Part) = Main_WS,
+         Assert (Get_Part_Style (+W, Main_Part) = Main_WS,
                  "Get_Part_Style preserves stored style for disabled part");
-         Assert (Get_Part_Style (W.all, Label_Part) = Label_WS,
+         Assert (Get_Part_Style (+W, Label_Part) = Label_WS,
                  "Get_Part_Style preserves stored style for enabled part");
       end;
    end Test_Enabled_Disabled_Parts;
 
    procedure Test_Priority_And_Tie_Order is
-      W : constant Adi.Widget.Label.Label_Widget_Access :=
-        Adi.Widget.Label.Create ("priority");
+      W : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("priority");
       Base_Style : constant Style_Rules :=
         (Color => Set (RGB (0, 0, 0)), others => <>);
       Equal_Prio_First : constant Style_Rules :=
@@ -128,24 +128,24 @@ procedure Style_Storage_Equivalence_Test is
       Put_Line ("Test: rule priority and tie ordering");
 
       Set_Part_Style
-        (W.all,
+        (+W,
          Main_Part,
          From (Base_Style)
            .On (When_State (State_Hovered), Equal_Prio_First, Priority => 5)
            .On (When_State (State_Hovered), Equal_Prio_Second, Priority => 5)
            .Build);
 
-      Set_State (W.all, State_Hovered, True);
+      Set_State (+W, State_Hovered, True);
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (W.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+W, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Color, 10, 200, 10),
                  "Equal-priority rules keep source order (later rule wins)");
       end;
 
       Set_Part_Style
-        (W.all,
+        (+W,
          Main_Part,
          From (Base_Style)
            .On (When_State (State_Hovered), Low_Prio, Priority => 1)
@@ -153,7 +153,7 @@ procedure Style_Storage_Equivalence_Test is
            .Build);
 
       declare
-         R : constant Resolved_Style := Get_Resolved_Part_Style (W.all, Main_Part);
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+W, Main_Part);
       begin
          Assert (Is_RGB_Color (R.Color, 210, 210, 40),
                  "Higher-priority rule overrides lower-priority rule");
@@ -162,7 +162,7 @@ procedure Style_Storage_Equivalence_Test is
 
    procedure Test_Dynamic_Style_Churn is
       Source : Adi.CSS_Source.Style_Source;
-      W      : constant Adi.Widget.Box.Box_Widget_Access := Adi.Widget.Box.Create;
+      W      : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       OK     : Boolean := False;
       Class_Only_OK    : Boolean := True;
       Class_Id_OK      : Boolean := True;
@@ -200,28 +200,28 @@ procedure Style_Storage_Equivalence_Test is
             when 1 =>
                Adi.CSS_Source.Bind_Selector_Set
                  (Source,
-                  W,
+                  +W,
                   Tag_Name   => "button",
                   Class_Name => "a",
                   Id_Name    => "");
             when 2 =>
                Adi.CSS_Source.Bind_Selector_Set
                  (Source,
-                  W,
+                  +W,
                   Tag_Name   => "button",
                   Class_Name => "a",
                   Id_Name    => "x");
             when others =>
                Adi.CSS_Source.Bind_Selector_Set
                  (Source,
-                  W,
+                  +W,
                   Tag_Name   => "button",
                   Class_Name => "b",
                   Id_Name    => "x");
          end case;
 
          declare
-            R : constant Resolved_Style := Get_Resolved_Part_Style (W.all, Main_Part);
+            R : constant Resolved_Style := Get_Resolved_Part_Style (+W, Main_Part);
          begin
             case I mod 3 is
                when 1 =>

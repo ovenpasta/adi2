@@ -72,6 +72,7 @@ class XmlWidget:
     on_selection_changed: str = ""
     on_item_clicked: str = ""
     on_item_activated: str = ""
+    min_visible_chars: str = ""
     disabled: bool = False
     looping: bool = False
     icon: str = ""

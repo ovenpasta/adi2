@@ -187,20 +187,7 @@ package body Adi.OS is
    function Get_Window_Ptr
      (Window : Adi.Window.Window_Handle)
       return Adi.SDL.Video.SDL_Window_Ptr
-   is
-   begin
-      if not Adi.Window.Is_Valid (Window) then
-         return null;
-      end if;
-      declare
-         R : Adi.Window.Window_Ref := Adi.Window.Borrow (Window);
-      begin
-         return Adi.Window.Get_SDL_Window (R.Ptr.all);
-      end;
-   exception
-      when Constraint_Error =>
-         return null;
-   end Get_Window_Ptr;
+   is (Adi.Window.Get_SDL_Window (Window));
 
    ---------------------------------------------------------------------------
    --  Dialog API

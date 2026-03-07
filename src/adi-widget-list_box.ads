@@ -6,7 +6,6 @@ with Adi.Widget;            use Adi.Widget;
 
 generic
    type Row_Widget is new Widget with private;
-   type Row_Widget_Access is access all Row_Widget'Class;
 package Adi.Widget.List_Box is
 
    type Selection_Mode is
@@ -20,8 +19,6 @@ package Adi.Widget.List_Box is
    Null_List_Box_Handle : constant List_Box_Handle;
 
    --  Construction
-   function Create return List_Box_Widget_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle return List_Box_Handle;
 
    --  Handle bridge
@@ -32,12 +29,9 @@ package Adi.Widget.List_Box is
    procedure Set_Part_Styles
      (H : List_Box_Handle; Styles : Part_Style_Array);
 
-   procedure Append_Row (W : in out List_Box_Widget; Row : Row_Widget_Access)
-     with Obsolescent => "Use Append_Row with List_Box_Handle and Widget_Handle";
+   --  Row management (widget methods)
    procedure Clear_Rows (W : in out List_Box_Widget);
    function Row_Count (W : List_Box_Widget) return Natural;
-   function Get_Row (W : List_Box_Widget; Index : Positive) return Row_Widget_Access
-     with Obsolescent => "Use Get_Row_Handle";
    function Get_Row_Handle
      (W : List_Box_Widget; Index : Positive) return Widget_Handle;
 
@@ -98,14 +92,9 @@ package Adi.Widget.List_Box is
       Id : Selection_Changed_Signals.Connection_Id);
 
    --  Handle methods
-   procedure Append_Row (H : List_Box_Handle; Row : Row_Widget_Access)
-     with Obsolescent => "Use Append_Row (H, Row : Widget_Handle)";
    procedure Append_Row (H : List_Box_Handle; Row : Adi.Widget.Widget_Handle);
    procedure Clear_Rows (H : List_Box_Handle);
    function  Row_Count (H : List_Box_Handle) return Natural;
-   function  Get_Row (H : List_Box_Handle; Index : Positive)
-      return Row_Widget_Access
-     with Obsolescent => "Use Get_Row_Handle";
    function  Get_Row_Handle
      (H : List_Box_Handle; Index : Positive) return Widget_Handle;
    procedure Set_Scroll_Offset (H : List_Box_Handle; Offset : Pixel_Type);
@@ -174,6 +163,8 @@ package Adi.Widget.List_Box is
 private
 
    Panel_Idx : constant Positive := 1;
+
+   type Row_Widget_Access is access all Row_Widget'Class;
 
    package Row_Vectors is new Ada.Containers.Vectors (Positive, Row_Widget_Access);
    package Bool_Vectors is new Ada.Containers.Vectors (Positive, Boolean);

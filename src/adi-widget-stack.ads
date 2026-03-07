@@ -26,8 +26,6 @@ package Adi.Widget.Stack is
    Null_Stack_Handle : constant Stack_Handle;
 
    --  Construction
-   function Create return Stack_Widget_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle return Stack_Handle;
 
    --  Handle bridge
@@ -37,20 +35,10 @@ package Adi.Widget.Stack is
    function "+" (H : Stack_Handle) return Widget_Handle;
    procedure Set_Part_Styles (H : Stack_Handle; Styles : Part_Style_Array);
 
-   --  Add a page keyed by its Id. First page added becomes active.
-   procedure Add_Page (W : in out Stack_Widget; Id : Page_Id; Page : access Widget'Class)
-     with Obsolescent => "Use Add_Page with Stack_Handle and Widget_Handle";
-
-   --  Active page management
+   --  Active page management (widget methods)
    procedure Set_Active (W : in out Stack_Widget; Id : Page_Id);
    function  Get_Active (W : Stack_Widget) return Page_Id;
-   function  Get_Active_Widget (W : Stack_Widget) return Widget_Access
-     with Obsolescent => "Use Get_Active_Widget_Handle";
    function  Get_Active_Widget_Handle (W : Stack_Widget) return Widget_Handle;
-
-   --  Get page widget by Id. Returns null if the page was never added.
-   function  Get_Page (W : Stack_Widget; Id : Page_Id) return Widget_Access
-     with Obsolescent => "Use Get_Page_Handle";
    function  Get_Page_Handle (W : Stack_Widget; Id : Page_Id) return Widget_Handle;
 
    --  Callback when active page changes
@@ -71,11 +59,7 @@ package Adi.Widget.Stack is
    procedure Add_Page (H : Stack_Handle; Id : Page_Id; Page : Widget_Handle);
    procedure Set_Active (H : Stack_Handle; Id : Page_Id);
    function  Get_Active (H : Stack_Handle) return Page_Id;
-   function  Get_Active_Widget (H : Stack_Handle) return Widget_Access
-     with Obsolescent => "Use Get_Active_Widget_Handle";
    function  Get_Active_Widget_Handle (H : Stack_Handle) return Widget_Handle;
-   function  Get_Page (H : Stack_Handle; Id : Page_Id) return Widget_Access
-     with Obsolescent => "Use Get_Page_Handle";
    function  Get_Page_Handle (H : Stack_Handle; Id : Page_Id)
       return Widget_Handle;
    procedure Connect_Changed

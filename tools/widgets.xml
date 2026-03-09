@@ -98,6 +98,7 @@
     <create-handle>{package}.Create_Handle ("{text}")</create-handle>
     <attribute name="text" type="string" create-param="true" translatable="true"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
+    <attribute name="read-only" type="bool" setter="Set_Read_Only" setter-style="flag"/>
     <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>
 

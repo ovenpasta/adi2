@@ -139,7 +139,7 @@ All 18 widget tags defined in `tools/widgets.xml`:
 | `switch` | `Adi.Widget.Button.Switch` | children | no | `checked`, `on-toggled` |
 | `stack` | `Adi.Widget.Stack` | pages | yes | `generic`, `on-changed` |
 | `text-input` | `Adi.Widget.Text_Input` | children | no | `text`, `label`, `min-visible-chars`, `disabled`, `on-changed` |
-| `text-editor` | `Adi.Widget.Text_Editor` | children | no | `text`, `disabled`, `on-changed` |
+| `text-editor` | `Adi.Widget.Text_Editor` | children | no | `text`, `disabled`, `read-only`, `on-changed` |
 | `combo-box` | `Adi.Widget.Combo_Box` | items | no | `on-selection-changed` |
 | `animated-image` | `Adi.Widget.Animated_Image` | children | no | `looping` |
 | `animated-widget` | `Adi.Widget.Animated_Widget` | children | no | `looping` |
@@ -183,6 +183,7 @@ All widgets support:
 | `looping` | animated-image, animated-widget, rlottie | bool | Enable animation looping (flag setter) |
 | `min-visible-chars` | text-input | int | Minimum visible character width before scrolling (calls `Set_Min_Visible_Chars`) |
 | `disabled` | button, switch, text-input, text-editor, combo-box, slider, integer-slider, value-input, integer-value-input | bool | Disables the widget (flag setter) |
+| `read-only` | text-editor | bool | Makes the editor read-only (flag setter) |
 | `icon` | label, button | image | Icon image (calls `Set_Icon` with `Adi.Assets.Get_Image`) |
 | `src` | image | image | Image source (calls `Set_Image` with `Adi.Assets.Get_Image`) |
 | `generic` | stack, list-box, slider, integer-slider, value-input, integer-value-input | string | Name of generic instantiation (meta; not emitted as Ada) |

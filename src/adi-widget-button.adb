@@ -262,6 +262,14 @@ package body Adi.Widget.Button is
       return "";
    end Get_Text;
 
+   procedure Set_Icon (H : Button_Handle; Icon : Image_Access) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Label.Set_Icon (Label_Widget (Ptr.all), Icon);
+      end if;
+   end Set_Icon;
+
    function "+" (H : Button_Handle) return Widget_Handle is
    begin
       return To_Widget_Handle (H);

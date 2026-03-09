@@ -98,6 +98,7 @@ package Adi.Widget.Button is
    procedure Set_Toggled    (H : Button_Handle; Value : Boolean);
    procedure Set_Text (H : Button_Handle; Text : String);
    function  Get_Text (H : Button_Handle) return String;
+   procedure Set_Icon (H : Button_Handle; Icon : Image_Access);
    function "+" (H : Button_Handle) return Widget_Handle;
    procedure Set_Part_Styles (H : Button_Handle; Styles : Part_Style_Array);
 

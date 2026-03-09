@@ -191,7 +191,7 @@ All widgets support:
 ### Attribute Types
 
 - **string** — Quoted text. If `create-param="true"`, substituted into the Create call
-- **bool** — `"true"` or `"false"`. If `setter-style="flag"`, the setter is called with no arguments when true
+- **bool** — `"true"` or `"false"`. If `setter-style="flag"`, the setter is called with no arguments when true. If `setter-target="base"`, the call is routed to `Adi.Widget` (base class) with a `+` handle conversion instead of the widget's own package
 - **image** — Asset URL string. Emits `Adi.Assets.Get_Image ("url")` and adds `with Adi.Assets;` to the body. Supports sprite query syntax (e.g. `icons.svg?id=home`). Query parameters may use `;` as separator to avoid XML escaping (e.g. `sheet.png?x=0;y=32;w=16;h=16`); `&amp;` also works
 - **int** — Integer value. Passed directly to the setter (e.g. `Set_Min_Visible_Chars (W, 30)`)
 - **callback** — References a `<callback>` name. Wired with null-guard: `if Cb /= null then W.Set_On_X (Cb); end if;`

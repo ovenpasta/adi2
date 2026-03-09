@@ -20,6 +20,7 @@
       default      - Default value for create-param bools
       setter       - Ada setter procedure name
       setter-style - "flag" means call with no arguments
+      setter-target - "base" routes call to Adi.Widget (default: widget package)
       meta         - "true" means script-internal, not emitted as Ada
 -->
 <widgets>
@@ -51,7 +52,7 @@
     <attribute name="text" type="string" create-param="true" translatable="true"/>
     <attribute name="icon" type="image" setter="Set_Icon"/>
     <attribute name="toggleable" type="bool" setter="Set_Toggleable" setter-style="flag"/>
-    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag" setter-target="base"/>
     <attribute name="on-clicked" type="callback" setter="Connect_Clicked"/>
     <attribute name="on-toggled" type="callback" setter="Connect_Toggled"/>
   </widget>
@@ -63,7 +64,7 @@
     <create>{package}.Create ({checked})</create>
     <create-handle>{package}.Create_Handle ({checked})</create-handle>
     <attribute name="checked" type="bool" create-param="true" default="False"/>
-    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag" setter-target="base"/>
     <attribute name="on-toggled" type="callback" setter="Connect_Toggled"/>
   </widget>
 
@@ -86,7 +87,7 @@
     <attribute name="text" type="string" create-param="true" translatable="true"/>
     <attribute name="label" type="string" create-param="true"/>
     <attribute name="min-visible-chars" type="int" setter="Set_Min_Visible_Chars"/>
-    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag" setter-target="base"/>
     <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>
 
@@ -97,7 +98,7 @@
     <create>{package}.Create ("{text}")</create>
     <create-handle>{package}.Create_Handle ("{text}")</create-handle>
     <attribute name="text" type="string" create-param="true" translatable="true"/>
-    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag" setter-target="base"/>
     <attribute name="read-only" type="bool" setter="Set_Read_Only" setter-style="flag"/>
     <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>
@@ -108,7 +109,7 @@
     <handle-type>Combo_Box_Handle</handle-type>
     <create>{package}.Create</create>
     <create-handle>{package}.Create_Handle</create-handle>
-    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag" setter-target="base"/>
     <attribute name="on-selection-changed" type="callback" setter="Connect_Selection_Changed"/>
   </widget>
 
@@ -178,7 +179,7 @@
     <attribute name="min" type="string" create-param="true"/>
     <attribute name="max" type="string" create-param="true"/>
     <attribute name="value" type="string" create-param="true"/>
-    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag" setter-target="base"/>
     <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>
 
@@ -192,7 +193,7 @@
     <attribute name="min" type="string" create-param="true"/>
     <attribute name="max" type="string" create-param="true"/>
     <attribute name="value" type="string" create-param="true"/>
-    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag" setter-target="base"/>
     <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>
 
@@ -206,7 +207,7 @@
     <attribute name="min" type="string" create-param="true"/>
     <attribute name="max" type="string" create-param="true"/>
     <attribute name="value" type="string" create-param="true"/>
-    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag" setter-target="base"/>
     <attribute name="on-value-changed" type="callback" setter="Connect_Value_Changed"/>
   </widget>
 
@@ -220,7 +221,7 @@
     <attribute name="min" type="string" create-param="true"/>
     <attribute name="max" type="string" create-param="true"/>
     <attribute name="value" type="string" create-param="true"/>
-    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag"/>
+    <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag" setter-target="base"/>
     <attribute name="on-value-changed" type="callback" setter="Connect_Value_Changed"/>
   </widget>
 

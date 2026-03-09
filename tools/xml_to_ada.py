@@ -187,6 +187,7 @@ def load_widget_grammar(path):
                     "default": child.get("default"),
                     "setter": child.get("setter"),
                     "setter_style": child.get("setter-style"),
+                    "setter_target": child.get("setter-target"),
                     "meta": child.get("meta", "").lower() == "true",
                     "required": child.get("required", "").lower() == "true",
                     "translatable": child.get("translatable", "").lower() == "true",
@@ -1104,33 +1105,34 @@ def generate_body(app: XmlApp, package_name: str,
             value = getattr(w, field_name, None)
             if value:
                 setter = attr["setter"]
+                is_base = attr.get("setter_target") == "base"
+                call_pkg = "Adi.Widget" if is_base else pkg
+                call_wid = f"+{w.wid}" if is_base else w.wid
                 if attr["setter_style"] == "flag":
-                    # Flag setters (Set_Disabled etc.) live in Adi.Widget
-                    # base class — use "+" to convert typed handle
                     config_lines.append(
-                        f"      Adi.Widget.{setter} (+{w.wid});"
+                        f"      {call_pkg}.{setter} ({call_wid});"
                     )
                 elif attr["type"] == "image":
                     escaped = str(value).replace('"', '""')
                     config_lines.append(
-                        f'      {pkg}.{setter}'
-                        f' ({w.wid}, Adi.Assets.Get_Image ("{escaped}"));'
+                        f'      {call_pkg}.{setter}'
+                        f' ({call_wid}, Adi.Assets.Get_Image ("{escaped}"));'
                     )
                 elif attr["type"] == "string":
                     if use_i18n and attr.get("translatable") and value:
                         ctx = w.i18n_contexts.get(attr["name"], app.i18n_context)
                         wrapped = _i18n_wrap(str(value), ctx)
                         config_lines.append(
-                            f'      {pkg}.{setter} ({w.wid}, {wrapped});'
+                            f'      {call_pkg}.{setter} ({call_wid}, {wrapped});'
                         )
                     else:
                         escaped = str(value).replace('"', '""')
                         config_lines.append(
-                            f'      {pkg}.{setter} ({w.wid}, "{escaped}");'
+                            f'      {call_pkg}.{setter} ({call_wid}, "{escaped}");'
                         )
                 else:
                     config_lines.append(
-                        f"      {pkg}.{setter} ({w.wid}, {value});"
+                        f"      {call_pkg}.{setter} ({call_wid}, {value});"
                     )
     if config_lines:
         lines.append("      --  Configure properties")

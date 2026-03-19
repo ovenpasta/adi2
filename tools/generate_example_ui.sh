@@ -36,3 +36,4 @@ generate_if_needed "$XML_DIR/material_demo.xml" "Material_Demo_UI" --i18n
 generate_if_needed "$XML_DIR/image_example.xml" "Image_Example_UI"
 generate_if_needed "$XML_DIR/delete_dialog.xml" "Delete_Dialog_UI"
 generate_if_needed "$XML_DIR/assets_example.xml" "Assets_Example_UI"
+generate_if_needed "$XML_DIR/gradient_example.xml" "Gradient_Example_UI"

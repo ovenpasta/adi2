@@ -48,3 +48,4 @@ generate_if_needed "$CSS_DIR/widget_defaults.css" "$OUT_DIR/widget_defaults_styl
 generate_if_needed "$CSS_DIR/slider_example.css" "$OUT_DIR/slider_example_styles.ads" "Slider_Example_Styles"
 generate_if_needed "$CSS_DIR/value_input_example.css" "$OUT_DIR/value_input_example_styles.ads" "Value_Input_Example_Styles"
 generate_if_needed "$CSS_DIR/assets_example.css" "$OUT_DIR/assets_example_styles.ads" "Assets_Example_Styles"
+generate_if_needed "$CSS_DIR/gradient_example.css" "$OUT_DIR/gradient_example_styles.ads" "Gradient_Example_Styles"

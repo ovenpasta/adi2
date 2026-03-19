@@ -1,0 +1,207 @@
+/* root: dark bg, flex column */
+.root {
+  display: flex;
+  flex-direction: column;
+  background-color: rgb(15, 17, 26);
+  padding: 20px;
+  gap: 12px;
+}
+
+/* row: flex row with gap */
+.row {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+}
+
+/* title label */
+.title::label {
+  color: rgb(200, 210, 255);
+  font-size: 20px;
+}
+
+/* shared label overlay: bottom-left, small white text */
+.grad-card::label {
+  color: rgb(255, 255, 255);
+  font-size: 11px;
+  left: 8px;
+  top: 78px;
+}
+
+/* --- Row 1: primary directions + default --- */
+.grad-v {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-image: linear-gradient(to bottom, rgb(59, 130, 246), rgb(16, 185, 129));
+}
+
+.grad-h {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-image: linear-gradient(to right, rgb(239, 68, 68), rgb(234, 179, 8));
+}
+
+.grad-default {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-image: linear-gradient(rgb(59, 130, 246), rgb(168, 85, 247));
+}
+
+/* --- Row 2: remaining cardinals + one diagonal --- */
+.grad-up {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-image: linear-gradient(to top, rgb(15, 23, 42), rgb(99, 102, 241));
+}
+
+.grad-left {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-image: linear-gradient(to left, rgb(16, 185, 129), rgb(245, 158, 11));
+}
+
+.grad-diag {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-image: linear-gradient(to bottom right, rgb(139, 92, 246), rgb(236, 72, 153));
+}
+
+/* --- Row 3: diagonal keywords --- */
+.grad-diag-tr {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-image: linear-gradient(to top right, rgb(14, 165, 233), rgb(99, 102, 241));
+}
+
+.grad-diag-bl {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-image: linear-gradient(to bottom left, rgb(250, 204, 21), rgb(34, 197, 94));
+}
+
+.grad-diag-rev {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-image: linear-gradient(to top left, rgb(244, 114, 182), rgb(59, 130, 246));
+}
+
+/* --- Row 4: angle syntax --- */
+.grad-45 {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-image: linear-gradient(45deg, rgb(6, 182, 212), rgb(59, 130, 246));
+}
+
+.grad-135 {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-image: linear-gradient(135deg, rgb(245, 158, 11), rgb(239, 68, 68));
+}
+
+.grad-turn {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-image: linear-gradient(0.25turn, rgb(6, 182, 212), rgb(59, 130, 246));
+}
+
+/* --- Row 5: non-deg units + alpha compositing --- */
+.grad-rad {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-image: linear-gradient(1.5708rad, rgb(236, 72, 153), rgb(99, 102, 241));
+}
+
+.grad-grad {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-image: linear-gradient(150grad, rgb(245, 158, 11), rgb(239, 68, 68));
+}
+
+.grad-alpha {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 8px;
+  background-color: rgb(220, 38, 38);
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.85));
+}
+
+/* --- Row 6: stop placement behavior, kept flat to avoid rounded artifacts --- */
+.grad-3stop {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 0;
+  background-image: linear-gradient(to right, rgb(239, 68, 68), rgb(234, 179, 8), rgb(16, 185, 129));
+}
+
+.grad-pos {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 0;
+  background-image: linear-gradient(to right, rgb(59, 130, 246) 0%, rgb(139, 92, 246) 30%, rgb(236, 72, 153) 100%);
+}
+
+.grad-edge {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 0;
+  background-image: linear-gradient(to right, rgb(239, 68, 68) 20%, rgb(59, 130, 246) 80%);
+}
+
+/* --- Row 7: max stops + rounded/bordered variants --- */
+.grad-16stop {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 0;
+  background-image: linear-gradient(
+    to right,
+    rgb(239, 68, 68) 0%,
+    rgb(249, 115, 22) 6.6667%,
+    rgb(245, 158, 11) 13.3333%,
+    rgb(234, 179, 8) 20%,
+    rgb(163, 230, 53) 26.6667%,
+    rgb(34, 197, 94) 33.3333%,
+    rgb(16, 185, 129) 40%,
+    rgb(20, 184, 166) 46.6667%,
+    rgb(6, 182, 212) 53.3333%,
+    rgb(14, 165, 233) 60%,
+    rgb(59, 130, 246) 66.6667%,
+    rgb(99, 102, 241) 73.3333%,
+    rgb(139, 92, 246) 80%,
+    rgb(168, 85, 247) 86.6667%,
+    rgb(217, 70, 239) 93.3333%,
+    rgb(236, 72, 153) 100%
+  );
+}
+
+.grad-pill {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 50px;
+  background-image: linear-gradient(to right, rgb(245, 158, 11), rgb(239, 68, 68));
+}
+
+.grad-pill::label {
+  left: 32px;
+}
+
+.grad-border {
+  flex-grow: 1;
+  height: 100px;
+  border-radius: 12px;
+  border: 4px solid rgb(200, 210, 255);
+  background-image: linear-gradient(135deg, rgb(16, 185, 129), rgb(59, 130, 246));
+}

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="examples/css/gradient_example.css"/>
+  <window title="Gradient Showcase" width="960" height="900">
+    <box id="Root" class="root">
+      <label text="Linear Gradient Showcase" class="title"/>
+      <box class="row">
+        <box class="grad-v grad-card" label="to bottom"/>
+        <box class="grad-h grad-card" label="to right"/>
+        <box class="grad-default grad-card" label="default angle"/>
+      </box>
+      <box class="row">
+        <box class="grad-up grad-card" label="to top"/>
+        <box class="grad-left grad-card" label="to left"/>
+        <box class="grad-diag grad-card" label="to bottom right"/>
+      </box>
+      <box class="row">
+        <box class="grad-diag-tr grad-card" label="to top right"/>
+        <box class="grad-diag-bl grad-card" label="to bottom left"/>
+        <box class="grad-diag-rev grad-card" label="to top left"/>
+      </box>
+      <box class="row">
+        <box class="grad-45 grad-card" label="45deg"/>
+        <box class="grad-135 grad-card" label="135deg"/>
+        <box class="grad-turn grad-card" label="0.25turn"/>
+      </box>
+      <box class="row">
+        <box class="grad-rad grad-card" label="1.5708rad"/>
+        <box class="grad-grad grad-card" label="150grad"/>
+        <box class="grad-alpha grad-card" label="alpha over bg-color"/>
+      </box>
+      <box class="row">
+        <box class="grad-3stop grad-card" label="3 stops, auto (flat)"/>
+        <box class="grad-pos grad-card" label="0/30/100% stops"/>
+        <box class="grad-edge grad-card" label="20/80% edge bands"/>
+      </box>
+      <box class="row">
+        <box class="grad-16stop grad-card" label="16 stops (flat)"/>
+        <box class="grad-card grad-pill" label="pill radius 50px"/>
+        <box class="grad-border grad-card" label="4px border"/>
+      </box>
+    </box>
+  </window>
+</adi>

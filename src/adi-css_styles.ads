@@ -240,10 +240,43 @@ package Adi.CSS_Styles is
    Default_Border_Color : constant Color_Value := C (Current_Color);
 
    -------------------------------------------------
+   -- Linear Gradient
+   -------------------------------------------------
+
+   Max_Gradient_Stops : constant := 16;
+
+   type Gradient_Stop is record
+      Color    : Color_Value := C (Black);
+      Position : Float       := 0.0;  -- 0.0–1.0; only valid when Has_Pos = True
+      Has_Pos  : Boolean     := False;
+   end record;
+
+   type Gradient_Stop_Array is array (1 .. Max_Gradient_Stops) of Gradient_Stop;
+
+   type Linear_Gradient_Value is record
+      Angle      : Float := 180.0;  -- CSS degrees: 0=to top, 90=to right, 180=to bottom
+      Stop_Count : Natural range 0 .. Max_Gradient_Stops := 0;
+      Stops      : Gradient_Stop_Array;
+   end record;
+
+   --  Heap-allocated reference to a gradient value.  Stored by pointer in
+   --  Background_Image_Value so that Style_Rules / Widget_Style stay thin
+   --  even when many state-rule slots are present.
+   type Linear_Gradient_Ref is access Linear_Gradient_Value;
+
+   function Gradient_Stop_At
+     (Color : Color_Value; Position : Float) return Gradient_Stop is
+       ((Color => Color, Position => Position, Has_Pos => True));
+
+   function Gradient_Stop_Auto (Color : Color_Value) return Gradient_Stop is
+      ((Color => Color, Position => 0.0, Has_Pos => False));
+
+   -------------------------------------------------
    -- Background Image
    -------------------------------------------------
 
-   type Background_Image_Kind is (No_Image, Picture_Image, Url_Image);
+   type Background_Image_Kind is
+     (No_Image, Picture_Image, Url_Image, Linear_Gradient_Image);
 
    type Background_Image_Value (Kind : Background_Image_Kind := No_Image) is record
       case Kind is
@@ -252,6 +285,8 @@ package Adi.CSS_Styles is
             Image : Adi.Image.Image_Access := null;
          when Url_Image =>
             URI : Ada.Strings.Unbounded.Unbounded_String;
+         when Linear_Gradient_Image =>
+            Gradient : Linear_Gradient_Ref := null;
       end case;
    end record;
 
@@ -264,6 +299,10 @@ package Adi.CSS_Styles is
    function Background_Image_URL (URI : String) return Background_Image_Value is
       ((Kind => Url_Image,
         URI  => Ada.Strings.Unbounded.To_Unbounded_String (URI)));
+
+   function Linear_Gradient
+     (Angle : Float; Stops : Gradient_Stop_Array; Count : Natural)
+      return Background_Image_Value;
 
    Default_Background_Image : constant Background_Image_Value := (Kind => No_Image);
 

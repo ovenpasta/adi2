@@ -2,6 +2,7 @@ pragma Ada_2022;
 
 with Ada.Calendar;
 with Ada.Characters.Handling;
+with Ada.Numerics;
 with Ada.Containers;
 with Ada.Containers.Indefinite_Vectors;
 with Ada.Directories;
@@ -96,7 +97,23 @@ package body Adi.CSS_Parser is
    function Lower (S : String) return String is (Char.To_Lower (S));
 
    function Trimmed (S : String) return String is
-     (Fix.Trim (S, Ada.Strings.Both));
+      First : Positive := S'First;
+      Last  : Natural  := S'Last;
+   begin
+      while First <= Last
+        and then (S (First) = ' '  or else S (First) = ASCII.HT
+                  or else S (First) = ASCII.LF or else S (First) = ASCII.CR)
+      loop
+         First := First + 1;
+      end loop;
+      while Last >= First
+        and then (S (Last) = ' '  or else S (Last) = ASCII.HT
+                  or else S (Last) = ASCII.LF or else S (Last) = ASCII.CR)
+      loop
+         Last := Last - 1;
+      end loop;
+      return (if First > Last then "" else S (First .. Last));
+   end Trimmed;
 
    function Ends_With (S, Suffix : String) return Boolean is
    begin
@@ -582,6 +599,48 @@ package body Adi.CSS_Parser is
       end if;
    end Split_Whitespace_Tokens;
 
+   --  Split on commas at paren-depth 0 (so rgb(r,g,b) is not split).
+   procedure Split_Comma_Tokens
+     (Input      : String;
+      Out_Tokens : in out Token_Vectors.Vector)
+   is
+      I           : Integer := Input'First;
+      Token_Start : Integer := Input'First;
+      Paren_Depth : Natural := 0;
+   begin
+      Out_Tokens.Clear;
+
+      while I <= Input'Last loop
+         if Input (I) = '(' then
+            Paren_Depth := Paren_Depth + 1;
+         elsif Input (I) = ')' then
+            if Paren_Depth > 0 then
+               Paren_Depth := Paren_Depth - 1;
+            end if;
+         elsif Input (I) = ',' and then Paren_Depth = 0 then
+            declare
+               Tok : constant String := Trimmed (Input (Token_Start .. I - 1));
+            begin
+               if Tok'Length > 0 then
+                  Out_Tokens.Append (To_Unbounded_String (Tok));
+               end if;
+            end;
+            Token_Start := I + 1;
+         end if;
+         I := I + 1;
+      end loop;
+
+      if Token_Start <= Input'Last then
+         declare
+            Tok : constant String := Trimmed (Input (Token_Start .. Input'Last));
+         begin
+            if Tok'Length > 0 then
+               Out_Tokens.Append (To_Unbounded_String (Tok));
+            end if;
+         end;
+      end if;
+   end Split_Comma_Tokens;
+
    function Parse_List_Style_Shorthand
      (Input        : String;
       Out_Type     : out List_Style_Type_Value;
@@ -913,6 +972,163 @@ package body Adi.CSS_Parser is
 
       return False;
    end Parse_Color;
+
+   --  Parse a CSS linear-gradient() function value.
+   --  Returns True and sets Out_Val on success; returns False on any error.
+   function Parse_Linear_Gradient
+     (Input   : String;
+      Out_Val : out Background_Image_Value) return Boolean
+   is
+      V      : constant String := Trimmed (Input);
+      LV     : constant String := Lower (V);
+      Prefix : constant String := "linear-gradient(";
+      Tokens : Token_Vectors.Vector;
+      Angle  : Float := 180.0;
+      Start  : Positive;
+      Stop_Count : Natural := 0;
+      Stops  : Gradient_Stop_Array;
+      Color_Val : Color_Value;
+      F      : Float;
+   begin
+      Out_Val := (Kind => No_Image);
+
+      --  Verify prefix and suffix
+      if LV'Length <= Prefix'Length + 1 then
+         return False;
+      end if;
+      if LV (LV'First .. LV'First + Prefix'Length - 1) /= Prefix then
+         return False;
+      end if;
+      if V (V'Last) /= ')' then
+         return False;
+      end if;
+
+      --  Extract inner content and split on commas
+      Split_Comma_Tokens (V (V'First + Prefix'Length .. V'Last - 1), Tokens);
+
+      if Natural (Tokens.Length) < 2 then
+         return False;
+      end if;
+
+      --  Try to parse first token as direction or angle
+      Start := 1;
+      declare
+         First_Tok : constant String := To_String (Tokens (1));
+         FTL       : constant String := Lower (First_Tok);
+      begin
+         if FTL = "to top" then
+            Angle := 0.0;   Start := 2;
+         elsif FTL = "to right" then
+            Angle := 90.0;  Start := 2;
+         elsif FTL = "to bottom" then
+            Angle := 180.0; Start := 2;
+         elsif FTL = "to left" then
+            Angle := 270.0; Start := 2;
+         elsif FTL = "to top right" or else FTL = "to right top" then
+            Angle := 45.0;  Start := 2;
+         elsif FTL = "to bottom right" or else FTL = "to right bottom" then
+            Angle := 135.0; Start := 2;
+         elsif FTL = "to bottom left" or else FTL = "to left bottom" then
+            Angle := 225.0; Start := 2;
+         elsif FTL = "to top left" or else FTL = "to left top" then
+            Angle := 315.0; Start := 2;
+         elsif FTL'Length >= 4
+           and then FTL (FTL'Last - 2 .. FTL'Last) = "deg"
+         then
+            if Parse_Number
+              (First_Tok (First_Tok'First .. First_Tok'Last - 3), F)
+            then
+               Angle := F;
+               Start := 2;
+            end if;
+         elsif FTL'Length >= 5
+           and then FTL (FTL'Last - 3 .. FTL'Last) = "grad"
+         then
+            if Parse_Number
+              (First_Tok (First_Tok'First .. First_Tok'Last - 4), F)
+            then
+               Angle := F * 360.0 / 400.0;
+               Start := 2;
+            end if;
+         elsif FTL'Length >= 4
+           and then FTL (FTL'Last - 2 .. FTL'Last) = "rad"
+         then
+            if Parse_Number
+              (First_Tok (First_Tok'First .. First_Tok'Last - 3), F)
+            then
+               Angle := F * 180.0 / Ada.Numerics.Pi;
+               Start := 2;
+            end if;
+         elsif FTL'Length >= 5
+           and then FTL (FTL'Last - 3 .. FTL'Last) = "turn"
+         then
+            if Parse_Number
+              (First_Tok (First_Tok'First .. First_Tok'Last - 4), F)
+            then
+               Angle := F * 360.0;
+               Start := 2;
+            end if;
+         end if;
+         --  Otherwise Start stays 1 (first token treated as a color stop)
+      end;
+
+      --  Need at least 2 stop tokens
+      if Natural (Tokens.Length) - (Start - 1) < 2 then
+         return False;
+      end if;
+
+      --  Parse stop tokens
+      for I in Start .. Natural (Tokens.Last_Index) loop
+         exit when Stop_Count >= Max_Gradient_Stops;
+         declare
+            Tok        : constant String := To_String (Tokens (I));
+            Last_Space : Integer         := 0;
+         begin
+            --  Find last space to detect optional position suffix
+            for J in reverse Tok'Range loop
+               if Tok (J) = ' ' then
+                  Last_Space := J;
+                  exit;
+               end if;
+            end loop;
+
+            Stop_Count := Stop_Count + 1;
+            if Last_Space > 0 then
+               declare
+                  Color_Part : constant String :=
+                     Tok (Tok'First .. Last_Space - 1);
+                  Pos_Part   : constant String :=
+                     Tok (Last_Space + 1 .. Tok'Last);
+               begin
+                  if Pos_Part'Length >= 2
+                    and then Pos_Part (Pos_Part'Last) = '%'
+                    and then Parse_Number
+                      (Pos_Part (Pos_Part'First .. Pos_Part'Last - 1), F)
+                    and then Parse_Color (Color_Part, Color_Val)
+                  then
+                     Stops (Stop_Count) :=
+                        Gradient_Stop_At (Color_Val, F / 100.0);
+                  elsif Parse_Color (Tok, Color_Val) then
+                     Stops (Stop_Count) := Gradient_Stop_Auto (Color_Val);
+                  else
+                     return False;
+                  end if;
+               end;
+            elsif Parse_Color (Tok, Color_Val) then
+               Stops (Stop_Count) := Gradient_Stop_Auto (Color_Val);
+            else
+               return False;
+            end if;
+         end;
+      end loop;
+
+      if Stop_Count < 2 then
+         return False;
+      end if;
+
+      Out_Val := Linear_Gradient (Angle, Stops, Stop_Count);
+      return True;
+   end Parse_Linear_Gradient;
 
    function Parse_Length_List (Input : String; Out_List : out Length_Vectors.Vector) return Boolean is
       I : Positive := Input'First;
@@ -1727,6 +1943,7 @@ package body Adi.CSS_Parser is
       List_Image_Set : Boolean := False;
       List_Position_Set : Boolean := False;
       URI_Text : Unbounded_String;
+      Grad_Val : Background_Image_Value;
       Object_Pos_Val : Object_Position_Value;
       Ls : Length_Vectors.Vector;
       F : Float;
@@ -2037,6 +2254,8 @@ package body Adi.CSS_Parser is
       elsif P = "background-image" then
          if LV = "none" then
             Rules.Background_Image := Set_Bg_Image (No_Background_Image);
+         elsif Parse_Linear_Gradient (V, Grad_Val) then
+            Rules.Background_Image := Set_Bg_Image (Grad_Val);
          elsif Parse_URL_Function (V, URI_Text) then
             Rules.Background_Image := Set_Bg_Image
               (Background_Image_URL (To_String (URI_Text)));

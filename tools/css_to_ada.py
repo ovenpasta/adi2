@@ -459,6 +459,18 @@ class ParsedColor:
 
 
 @dataclass
+class ParsedGradientStop:
+    color: ParsedColor
+    position: Optional[float] = None  # None = auto-distributed
+
+
+@dataclass
+class ParsedLinearGradient:
+    angle: float  # CSS degrees: 0=to top, 90=to right, 180=to bottom
+    stops: list[ParsedGradientStop]
+
+
+@dataclass
 class ParsedSelector:
     name: str
     selector_type: str = "class"  # "class", "id", "tag"
@@ -1264,6 +1276,151 @@ def split_css_whitespace_tokens(value: str) -> list[str]:
     return tokens
 
 
+def split_css_comma_tokens(value: str) -> list[str]:
+    """Split by commas at paren-depth 0 (preserves rgb(r,g,b) etc.)."""
+    tokens: list[str] = []
+    current: list[str] = []
+    paren_depth = 0
+
+    for ch in value:
+        if ch == '(':
+            paren_depth += 1
+            current.append(ch)
+        elif ch == ')':
+            if paren_depth > 0:
+                paren_depth -= 1
+            current.append(ch)
+        elif ch == ',' and paren_depth == 0:
+            tok = "".join(current).strip()
+            if tok:
+                tokens.append(tok)
+            current = []
+        else:
+            current.append(ch)
+
+    if current:
+        tok = "".join(current).strip()
+        if tok:
+            tokens.append(tok)
+
+    return tokens
+
+
+def parse_linear_gradient(value: str) -> Optional[ParsedLinearGradient]:
+    """Parse a CSS linear-gradient() function value."""
+    v = value.strip()
+    low = v.lower()
+    prefix = "linear-gradient("
+    if not low.startswith(prefix) or not v.endswith(")"):
+        return None
+
+    inner = v[len(prefix):-1].strip()
+    parts = split_css_comma_tokens(inner)
+    if len(parts) < 2:
+        return None
+
+    angle = 180.0
+    start = 0
+
+    first = parts[0].strip()
+    first_low = first.lower()
+
+    DIRECTION_MAP = {
+        "to top": 0.0,
+        "to right": 90.0,
+        "to bottom": 180.0,
+        "to left": 270.0,
+        "to top right": 45.0, "to right top": 45.0,
+        "to bottom right": 135.0, "to right bottom": 135.0,
+        "to bottom left": 225.0, "to left bottom": 225.0,
+        "to top left": 315.0, "to left top": 315.0,
+    }
+
+    if first_low in DIRECTION_MAP:
+        angle = DIRECTION_MAP[first_low]
+        start = 1
+    elif first_low.endswith("deg"):
+        try:
+            angle = float(first_low[:-3])
+            start = 1
+        except ValueError:
+            pass
+    elif first_low.endswith("grad"):
+        try:
+            angle = float(first_low[:-4]) * 360.0 / 400.0
+            start = 1
+        except ValueError:
+            pass
+    elif first_low.endswith("rad"):
+        import math
+        try:
+            angle = float(first_low[:-3]) * 180.0 / math.pi
+            start = 1
+        except ValueError:
+            pass
+    elif first_low.endswith("turn"):
+        try:
+            angle = float(first_low[:-4]) * 360.0
+            start = 1
+        except ValueError:
+            pass
+
+    stop_parts = parts[start:]
+    if len(stop_parts) < 2:
+        return None
+
+    stops: list[ParsedGradientStop] = []
+    for tok in stop_parts:
+        tok = tok.strip()
+        # Try to split at the last space for an optional position suffix
+        last_space = tok.rfind(' ')
+        pos: Optional[float] = None
+        color_str = tok
+        if last_space > 0:
+            pos_str = tok[last_space + 1:].strip()
+            color_candidate = tok[:last_space].strip()
+            if pos_str.endswith('%'):
+                try:
+                    pos = float(pos_str[:-1]) / 100.0
+                    color_str = color_candidate
+                except ValueError:
+                    pass
+        color = parse_color(color_str)
+        if color is None:
+            return None
+        stops.append(ParsedGradientStop(color=color, position=pos))
+
+    if len(stops) < 2:
+        return None
+    return ParsedLinearGradient(angle=angle, stops=stops)
+
+
+def generate_gradient_ada(g: ParsedLinearGradient) -> str:
+    """Generate Ada code for a Linear_Gradient Background_Image_Value."""
+    MAX_STOPS = 16
+    stops = g.stops[:MAX_STOPS]
+    count = len(stops)
+
+    # Build Gradient_Stop_Array literal (all 16 slots, unused ones padded)
+    stop_exprs: list[str] = []
+    for s in stops:
+        color_ada = generate_color_ada(s.color)
+        if s.position is not None:
+            stop_exprs.append(
+                f"Gradient_Stop_At ({color_ada}, {format_float(s.position)})")
+        else:
+            stop_exprs.append(f"Gradient_Stop_Auto ({color_ada})")
+    # Pad remaining slots to Max_Gradient_Stops with the default stop value
+    while len(stop_exprs) < MAX_STOPS:
+        stop_exprs.append("Gradient_Stop_Auto (C (Black))")
+
+    stops_ada = "[" + ", ".join(stop_exprs) + "]"
+    angle_ada = format_float(g.angle)
+    return (
+        f"Linear_Gradient ({angle_ada}, {stops_ada}, {count})"
+    )
+
+
 def parse_list_style_shorthand(value: str) -> dict[str, str]:
     """Parse list-style shorthand into type/image/position components."""
     result: dict[str, str] = {}
@@ -1462,6 +1619,10 @@ def validate_property_value(property_name: str, value: str) -> bool:
         return parse_color(value) is not None
     if validator == "url-or-none":
         return low == "none" or parse_css_url_function(value) is not None
+    if validator == "url-or-gradient-or-none":
+        return (low == "none"
+                or parse_css_url_function(value) is not None
+                or parse_linear_gradient(value) is not None)
     if validator == "length":
         return parse_length(value) is not None
     if validator == "inset":
@@ -2294,9 +2455,16 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
             if low == "none":
                 ada_field = "Background_Image => Set_Bg_Image (No_Background_Image)"
             else:
-                uri = parse_css_url_function(value)
-                if uri is not None:
-                    ada_field = f"Background_Image => Set_Bg_Image (Background_Image_URL ({ada_string_literal(uri)}))"
+                grad = parse_linear_gradient(value)
+                if grad is not None:
+                    ada_field = (
+                        "Background_Image => Set_Bg_Image ("
+                        + generate_gradient_ada(grad) + ")"
+                    )
+                else:
+                    uri = parse_css_url_function(value)
+                    if uri is not None:
+                        ada_field = f"Background_Image => Set_Bg_Image (Background_Image_URL ({ada_string_literal(uri)}))"
 
         # Padding
         elif prop == "padding":

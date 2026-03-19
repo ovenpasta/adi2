@@ -343,7 +343,38 @@ Unlike `border`, outline does not shift surrounding content and respects `border
 
 | Property | Values | Example |
 |----------|--------|---------|
-| `background-image` | `none`, `url(...)` | `background-image: url(bg.jpg);` |
+| `background-image` | `none`, `url(...)`, `linear-gradient(...)` | `background-image: linear-gradient(to bottom, #fff, #000);` |
+
+#### Linear gradients
+
+`linear-gradient()` fills the widget background with a color gradient. The gradient
+renders *over* `background-color`, so alpha gradients composite over a solid color.
+
+```css
+.card   { background-image: linear-gradient(to bottom, #eee, #aaa); }
+.btn    { background-image: linear-gradient(to right, rgb(30,100,200), rgb(10,50,120)); }
+.diag   { background-image: linear-gradient(45deg, red, blue); }
+.multi  { background-image: linear-gradient(to bottom, red 0%, green 50%, blue 100%); }
+```
+
+**Supported syntax:**
+
+| Feature | Supported | Not supported |
+|---------|-----------|---------------|
+| Direction keywords | `to top`, `to right`, `to bottom` (default), `to left`, `to top right`, `to bottom right`, `to bottom left`, `to top left` | — |
+| Angle units | `deg`, `rad`, `grad`, `turn` | — |
+| Stop colors | named, `#rrggbb`, `#rgb`, `rgb()`, `rgba()` | `hsl()`, `hwb()`, `oklch()` |
+| Stop positions | `<n>%`; omit for auto-distribution | `px`, `em`, other length units |
+| Max stops | 16 | — |
+| Color hints | not supported (`red, 30%, blue` midpoint syntax) | — |
+| `repeating-linear-gradient()` | not supported | — |
+| `radial-gradient()` | not supported | — |
+
+**Rounded-rect limitation:** 3+ stops on non-axis-aligned rounded rects may show
+per-triangle color artifacts (fan triangulation is not geometrically exact for
+multi-stop gradients).
+
+#### URL images
 
 Background images are resolved via `Adi.Assets.Get_Image` — the URI is looked up in the registered asset search paths. Register paths before widget creation:
 
@@ -856,3 +887,4 @@ Names are matched case-insensitively. Comma-separated lists are tried left-to-ri
 - **Max 16 tracks** — `grid-template-columns` track lists are capped at 16 entries; wider grids fall back to equal-column distribution
 - **First transition wins** — Comma-separated transitions use the first entry's timing for all properties
 - **No `!important`** — Specificity follows tag < class < id ordering only
+- **Multi-class conflict resolution deviates from CSS spec** — When a widget has multiple classes (e.g. `class="foo bar"`), conflicts between rules of equal specificity are resolved by **class-attribute order** (last class wins), not by stylesheet declaration order as the CSS spec requires. This applies consistently to both dynamic mode (`Multi_Class_Styles` in `src/adi-css_source.adb`) and static/codegen mode (`xml_to_ada.py` builds nested `Merge_Part_Styles` calls left-to-right). Manual `Set_Part_Styles` calls are unaffected — they fully replace and don't merge. Workaround: put the base/shared class first and the specific/overriding class last in the `class` attribute. To fix properly: `Multi_Class_Styles` should merge all matching rules sorted by their stylesheet position before applying.

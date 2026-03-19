@@ -32,6 +32,9 @@ from css_to_ada import (
     parse_css_quoted_string,
     parse_css_url_function,
     split_css_whitespace_tokens,
+    split_css_comma_tokens,
+    parse_linear_gradient,
+    generate_gradient_ada,
     group_rules_by_widget,
     generate_style_rules_ada,
     generate_ada_package,
@@ -1361,6 +1364,183 @@ class TestCustomProperties(unittest.TestCase):
         rules, diags = parse_css_with_diagnostics(css)
         selectors = [r.selector.name for r in rules]
         self.assertEqual(selectors, ["x"])
+
+
+class TestParseLinearGradient(unittest.TestCase):
+    """Test linear-gradient() parsing and Ada code generation."""
+
+    def test_to_bottom_two_stops(self):
+        g = parse_linear_gradient("linear-gradient(to bottom, #fff, #000)")
+        self.assertIsNotNone(g)
+        self.assertAlmostEqual(g.angle, 180.0)
+        self.assertEqual(len(g.stops), 2)
+
+    def test_to_right_rgb_stops(self):
+        g = parse_linear_gradient(
+            "linear-gradient(to right, rgb(255,0,0), rgb(0,0,255))")
+        self.assertIsNotNone(g)
+        self.assertAlmostEqual(g.angle, 90.0)
+        self.assertEqual(len(g.stops), 2)
+
+    def test_angle_deg(self):
+        g = parse_linear_gradient("linear-gradient(45deg, red, blue)")
+        self.assertIsNotNone(g)
+        self.assertAlmostEqual(g.angle, 45.0)
+
+    def test_default_angle(self):
+        g = parse_linear_gradient("linear-gradient(red, blue)")
+        self.assertIsNotNone(g)
+        self.assertAlmostEqual(g.angle, 180.0)
+        self.assertEqual(len(g.stops), 2)
+
+    def test_three_stops_with_positions(self):
+        g = parse_linear_gradient(
+            "linear-gradient(to bottom, red 0%, green 50%, blue 100%)")
+        self.assertIsNotNone(g)
+        self.assertEqual(len(g.stops), 3)
+        self.assertAlmostEqual(g.stops[0].position, 0.0)
+        self.assertAlmostEqual(g.stops[1].position, 0.5)
+        self.assertAlmostEqual(g.stops[2].position, 1.0)
+
+    def test_too_few_stops_returns_none(self):
+        g = parse_linear_gradient("linear-gradient(to bottom, red)")
+        self.assertIsNone(g)
+
+    def test_not_a_gradient(self):
+        self.assertIsNone(parse_linear_gradient("url(foo.png)"))
+        self.assertIsNone(parse_linear_gradient("none"))
+        self.assertIsNone(parse_linear_gradient(""))
+
+    # --- Multiline (autoformatter) variants ---
+
+    def test_multiline_direction(self):
+        g = parse_linear_gradient(
+            "linear-gradient(\n        to right,\n        rgb(245, 158, 11),\n        rgb(239, 68, 68)\n    )")
+        self.assertIsNotNone(g)
+        self.assertAlmostEqual(g.angle, 90.0)
+        self.assertEqual(len(g.stops), 2)
+
+    def test_multiline_deg_angle(self):
+        g = parse_linear_gradient(
+            "linear-gradient(\n        45deg,\n        red,\n        blue\n    )")
+        self.assertIsNotNone(g)
+        self.assertAlmostEqual(g.angle, 45.0)
+
+    def test_multiline_three_stops_with_positions(self):
+        g = parse_linear_gradient(
+            "linear-gradient(\n        to right,\n        rgb(59, 130, 246) 0%,\n        rgb(139, 92, 246) 30%,\n        rgb(236, 72, 153) 100%\n    )")
+        self.assertIsNotNone(g)
+        self.assertEqual(len(g.stops), 3)
+        self.assertAlmostEqual(g.stops[0].position, 0.0)
+        self.assertAlmostEqual(g.stops[1].position, 0.3)
+        self.assertAlmostEqual(g.stops[2].position, 1.0)
+
+    def test_multiline_via_full_css_parse(self):
+        """End-to-end: full CSS rule with a multiline gradient value."""
+        css = (
+            ".pill {\n"
+            "    background-image: linear-gradient(\n"
+            "        to right,\n"
+            "        rgb(245, 158, 11),\n"
+            "        rgb(239, 68, 68)\n"
+            "    );\n"
+            "}\n"
+        )
+        rules = parse_css(css)
+        self.assertEqual(len(rules), 1)
+        bg = rules[0].properties.get("background-image", "")
+        g = parse_linear_gradient(bg)
+        self.assertIsNotNone(g)
+        self.assertAlmostEqual(g.angle, 90.0)
+        self.assertEqual(len(g.stops), 2)
+
+    def test_angle_turn(self):
+        g = parse_linear_gradient("linear-gradient(1turn, red, blue)")
+        self.assertIsNotNone(g)
+        self.assertAlmostEqual(g.angle, 360.0)
+        self.assertEqual(len(g.stops), 2)
+
+    def test_angle_half_turn(self):
+        g = parse_linear_gradient("linear-gradient(0.5turn, red, blue)")
+        self.assertIsNotNone(g)
+        self.assertAlmostEqual(g.angle, 180.0)
+
+    def test_angle_rad(self):
+        import math
+        g = parse_linear_gradient("linear-gradient(1.5708rad, red, blue)")
+        self.assertIsNotNone(g)
+        self.assertAlmostEqual(g.angle, 90.0, places=1)
+
+    def test_angle_grad_100(self):
+        g = parse_linear_gradient("linear-gradient(100grad, red, blue)")
+        self.assertIsNotNone(g)
+        self.assertAlmostEqual(g.angle, 90.0)
+
+    def test_angle_grad_200_not_rad(self):
+        # 200grad = 180°; must not be mis-parsed as "rad" (which would give ~11460°)
+        g = parse_linear_gradient("linear-gradient(200grad, red, blue)")
+        self.assertIsNotNone(g)
+        self.assertAlmostEqual(g.angle, 180.0)
+
+
+class TestGenerateGradientAda(unittest.TestCase):
+    """Test Ada code generation for linear-gradient()."""
+
+    def _gen(self, css_value: str) -> str:
+        return "\n".join(generate_style_rules_ada({"background-image": css_value}))
+
+    def test_to_bottom_angle_in_ada(self):
+        ada = self._gen("linear-gradient(to bottom, white, black)")
+        self.assertIn("180.0", ada)
+        self.assertIn("Linear_Gradient", ada)
+        self.assertIn("Set_Bg_Image", ada)
+
+    def test_to_right_angle_in_ada(self):
+        ada = self._gen("linear-gradient(to right, red, blue)")
+        self.assertIn("90.0", ada)
+
+    def test_45deg_angle_in_ada(self):
+        ada = self._gen("linear-gradient(45deg, red, blue)")
+        self.assertIn("45.0", ada)
+
+    def test_named_colors_in_ada(self):
+        ada = self._gen("linear-gradient(to bottom, red, blue)")
+        self.assertIn("C (Red)", ada)
+        self.assertIn("C (Blue)", ada)
+
+    def test_positioned_stops_in_ada(self):
+        ada = self._gen(
+            "linear-gradient(to bottom, red 0%, green 50%, blue 100%)")
+        self.assertIn("Gradient_Stop_At", ada)
+        self.assertIn("0.0", ada)
+        self.assertIn("0.5", ada)
+        self.assertIn("1.0", ada)
+
+    def test_auto_stops_in_ada(self):
+        ada = self._gen("linear-gradient(to bottom, red, blue)")
+        self.assertIn("Gradient_Stop_Auto", ada)
+
+    def test_1turn_in_ada(self):
+        ada = self._gen("linear-gradient(1turn, red, blue)")
+        self.assertIn("360.0", ada)
+
+    def test_half_turn_in_ada(self):
+        ada = self._gen("linear-gradient(0.5turn, red, blue)")
+        self.assertIn("180.0", ada)
+
+    def test_100grad_in_ada(self):
+        ada = self._gen("linear-gradient(100grad, red, blue)")
+        self.assertIn("90.0", ada)
+
+    def test_200grad_in_ada(self):
+        # 200grad = 180°; must not be mis-parsed as "rad"
+        ada = self._gen("linear-gradient(200grad, red, blue)")
+        self.assertIn("180.0", ada)
+
+    def test_rad_in_ada(self):
+        ada = self._gen("linear-gradient(1.5708rad, red, blue)")
+        # π/2 rad ≈ 90°; check the value rounds to 90.0 in Ada output
+        self.assertIn("90.0", ada)
 
 
 if __name__ == "__main__":

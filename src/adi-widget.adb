@@ -2936,6 +2936,19 @@ package body Adi.Widget is
       A := Uint8 (An * 255.0);
    end CSS_Color_To_SDL;
 
+   function CSS_Color_To_SDL_F
+     (C : Color_Value; Opacity : Float) return SDL_FColor
+   is
+      Rn, Gn, Bn : Natural := 0;
+      An         : Float   := 1.0;
+   begin
+      Normalize_Color (C, Rn, Gn, Bn, An);
+      return (r => Float (Rn) / 255.0,
+              g => Float (Gn) / 255.0,
+              b => Float (Bn) / 255.0,
+              a => An * Opacity);
+   end CSS_Color_To_SDL_F;
+
    ---------------------------------------------------------------------------
    --  SDL3 Rendering
    ---------------------------------------------------------------------------
@@ -3708,6 +3721,558 @@ package body Adi.Widget is
       end if;
    end Apply_Opacity;
 
+   ---------------------------------------------------------------------------
+   --  Linear Gradient Rendering Helpers
+   ---------------------------------------------------------------------------
+
+   type Resolved_Stop is record
+      Pos   : Float;
+      Color : SDL_FColor;
+   end record;
+   type Resolved_Stop_Array is array (1 .. Max_Gradient_Stops) of Resolved_Stop;
+
+   --  Auto-distribute positions for stops without explicit positions,
+   --  then convert colors via CSS_Color_To_SDL_F.
+   procedure Resolve_Gradient_Stops
+     (G       : Linear_Gradient_Value;
+      Opacity : Float;
+      Stops   : out Resolved_Stop_Array;
+      Count   : out Natural)
+   is
+      N       : constant Natural := G.Stop_Count;
+      Pos_Arr : array (1 .. Max_Gradient_Stops) of Float :=
+        [others => -1.0];
+   begin
+      Count := N;
+      if N = 0 then
+         return;
+      end if;
+
+      --  Collect explicit positions; use -1.0 as sentinel for auto
+      for I in 1 .. N loop
+         if G.Stops (I).Has_Pos then
+            Pos_Arr (I) := G.Stops (I).Position;
+         end if;
+      end loop;
+
+      --  Anchor endpoints
+      if Pos_Arr (1) < 0.0 then Pos_Arr (1) := 0.0; end if;
+      if Pos_Arr (N) < 0.0 then Pos_Arr (N) := 1.0; end if;
+
+      --  Distribute interior auto-stops by interpolating between neighbors
+      declare
+         I : Natural := 2;
+      begin
+         while I < N loop
+            if Pos_Arr (I) < 0.0 then
+               declare
+                  Run_Start : constant Natural := I;
+                  J         : Natural          := I + 1;
+               begin
+                  --  Find first following stop with an explicit position
+                  while J < N and then Pos_Arr (J) < 0.0 loop
+                     J := J + 1;
+                  end loop;
+                  --  Positions (Run_Start-1) and Positions (J) are anchored
+                  declare
+                     P0   : constant Float   := Pos_Arr (Run_Start - 1);
+                     P1   : constant Float   := Pos_Arr (J);
+                     Span : constant Natural := J - Run_Start + 1;
+                  begin
+                     for K in Run_Start .. J - 1 loop
+                        Pos_Arr (K) :=
+                           P0 + Float (K - Run_Start + 1)
+                                / Float (Span) * (P1 - P0);
+                     end loop;
+                  end;
+                  I := J + 1;
+               end;
+            else
+               I := I + 1;
+            end if;
+         end loop;
+      end;
+
+      --  Build output
+      for I in 1 .. N loop
+         Stops (I) :=
+           (Pos   => Pos_Arr (I),
+            Color => CSS_Color_To_SDL_F (G.Stops (I).Color, Opacity));
+      end loop;
+   end Resolve_Gradient_Stops;
+
+   --  Sample gradient at T in [0,1] by linearly interpolating between stops.
+   function Sample_Gradient
+     (Stops : Resolved_Stop_Array; Count : Natural; T : Float)
+      return SDL_FColor
+   is
+      Tc : constant Float := Float'Max (0.0, Float'Min (1.0, T));
+   begin
+      if Count = 0 then
+         return (r => 0.0, g => 0.0, b => 0.0, a => 0.0);
+      end if;
+      if Count = 1 then
+         return Stops (1).Color;
+      end if;
+      if Tc <= Stops (1).Pos then
+         return Stops (1).Color;
+      end if;
+      if Tc >= Stops (Count).Pos then
+         return Stops (Count).Color;
+      end if;
+      for I in 1 .. Count - 1 loop
+         if Tc >= Stops (I).Pos and then Tc <= Stops (I + 1).Pos then
+            declare
+               Span : constant Float := Stops (I + 1).Pos - Stops (I).Pos;
+               F    : constant Float :=
+                  (if Span < 1.0e-6 then 0.0
+                   else (Tc - Stops (I).Pos) / Span);
+               C0   : constant SDL_FColor := Stops (I).Color;
+               C1   : constant SDL_FColor := Stops (I + 1).Color;
+            begin
+               return (r => C0.r + F * (C1.r - C0.r),
+                       g => C0.g + F * (C1.g - C0.g),
+                       b => C0.b + F * (C1.b - C0.b),
+                       a => C0.a + F * (C1.a - C0.a));
+            end;
+         end if;
+      end loop;
+      return Stops (Count).Color;
+   end Sample_Gradient;
+
+   --  Project point (X,Y) onto the CSS gradient line and return T in [0,1].
+   --  Angle_Deg: 0=to top, 90=to right, 180=to bottom (CSS convention).
+   function Gradient_T_For_Point
+     (X, Y : Float; Rect : SDL_FRect; Angle_Deg : Float) return Float
+   is
+      Angle_Rad : constant Float :=
+         (Angle_Deg - 90.0) * Ada.Numerics.Pi / 180.0;
+      Dx       : constant Float := Cos (Angle_Rad);
+      Dy       : constant Float := Sin (Angle_Rad);
+      W        : constant Float := Rect.w;
+      H        : constant Float := Rect.h;
+      Grad_Len : constant Float := abs (W * Dx) + abs (H * Dy);
+      Cx       : constant Float := Rect.x + W / 2.0;
+      Cy       : constant Float := Rect.y + H / 2.0;
+      T        : Float;
+   begin
+      if Grad_Len < 1.0e-6 then
+         return 0.5;
+      end if;
+      T := (Dx * (X - Cx) + Dy * (Y - Cy)) / Grad_Len + 0.5;
+      return Float'Max (0.0, Float'Min (1.0, T));
+   end Gradient_T_For_Point;
+
+   --  Render a gradient-filled rectangle (no border radius).
+   --  Uses clip rect to contain non-axis-aligned gradient strips.
+   procedure Render_Gradient_Rect
+     (Renderer : SDL_Renderer_Ptr;
+      Rect     : SDL_FRect;
+      G        : Linear_Gradient_Value;
+      Opacity  : Float)
+   is
+      G_Stops : Resolved_Stop_Array;
+      G_Count : Natural;
+
+      Angle_Rad : constant Float :=
+         (G.Angle - 90.0) * Ada.Numerics.Pi / 180.0;
+      Dx       : constant Float := Cos (Angle_Rad);
+      Dy       : constant Float := Sin (Angle_Rad);
+      W        : constant Float := Rect.w;
+      H        : constant Float := Rect.h;
+      Grad_Len : constant Float := abs (W * Dx) + abs (H * Dy);
+      Cx       : constant Float := Rect.x + W / 2.0;
+      Cy       : constant Float := Rect.y + H / 2.0;
+      Half_Ext : constant Float := W + H;   --  safe over-extension
+      Nx       : constant Float := -Dy;
+      Ny       : constant Float :=  Dx;
+
+      Had_Clip  : Boolean             := False;
+      Prev_Clip : aliased Adi.SDL.SDL_Rect;
+      Clip      : aliased Adi.SDL.SDL_Rect;
+      Success   : Adi.SDL.C_bool;
+
+      Verts   : SDL_Vertex_Array (0 .. 3);
+      Idxs    : Int_Array (0 .. 5);
+      Zero_TC : constant SDL_FPoint := (x => 0.0, y => 0.0);
+
+      procedure Render_Strip (T0, T1 : Float; C0, C1 : SDL_FColor) is
+         Off0 : constant Float := (T0 - 0.5) * Grad_Len;
+         Off1 : constant Float := (T1 - 0.5) * Grad_Len;
+         P0x  : constant Float := Cx + Dx * Off0;
+         P0y  : constant Float := Cy + Dy * Off0;
+         P1x  : constant Float := Cx + Dx * Off1;
+         P1y  : constant Float := Cy + Dy * Off1;
+      begin
+         Verts (0) :=
+           (position  => (x => P0x - Nx * Half_Ext, y => P0y - Ny * Half_Ext),
+            color     => C0,
+            tex_coord => Zero_TC);
+         Verts (1) :=
+           (position  => (x => P0x + Nx * Half_Ext, y => P0y + Ny * Half_Ext),
+            color     => C0,
+            tex_coord => Zero_TC);
+         Verts (2) :=
+           (position  => (x => P1x + Nx * Half_Ext, y => P1y + Ny * Half_Ext),
+            color     => C1,
+            tex_coord => Zero_TC);
+         Verts (3) :=
+           (position  => (x => P1x - Nx * Half_Ext, y => P1y - Ny * Half_Ext),
+            color     => C1,
+            tex_coord => Zero_TC);
+         Idxs (0) := 0; Idxs (1) := 1; Idxs (2) := 2;
+         Idxs (3) := 0; Idxs (4) := 2; Idxs (5) := 3;
+         SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
+                     "SDL_SetRenderDrawBlendMode");
+         Success := SDL_RenderGeometry
+           (Renderer     => Renderer,
+            Texture      => null,
+            Vertices     => Verts (0)'Access,
+            Num_Vertices => 4,
+            Indices      => Idxs (0)'Access,
+            Num_Indices  => 6);
+      end Render_Strip;
+
+   begin
+      if not Is_Visible_FRect (Rect) then
+         return;
+      end if;
+
+      Resolve_Gradient_Stops (G, Opacity, G_Stops, G_Count);
+      if G_Count < 2 then
+         return;
+      end if;
+
+      --  Set clip rect to contain strips within the widget bounds
+      Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
+      if Had_Clip then
+         Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
+      end if;
+      Clip := (x => int (Float'Floor (Rect.x)),
+               y => int (Float'Floor (Rect.y)),
+               w => int (Float'Ceiling (Rect.w)),
+               h => int (Float'Ceiling (Rect.h)));
+      Success := SDL_SetRenderClipRect (Renderer, Clip'Access);
+
+      --  Solid band before the first stop (CSS spec: first color extends back)
+      if G_Stops (1).Pos > 0.0 then
+         Render_Strip (0.0, G_Stops (1).Pos,
+                       G_Stops (1).Color, G_Stops (1).Color);
+      end if;
+
+      for I in 1 .. G_Count - 1 loop
+         Render_Strip (G_Stops (I).Pos, G_Stops (I + 1).Pos,
+                       G_Stops (I).Color, G_Stops (I + 1).Color);
+      end loop;
+
+      --  Solid band after the last stop (CSS spec: last color extends forward)
+      if G_Stops (G_Count).Pos < 1.0 then
+         Render_Strip (G_Stops (G_Count).Pos, 1.0,
+                       G_Stops (G_Count).Color, G_Stops (G_Count).Color);
+      end if;
+
+      if Had_Clip then
+         Success := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
+      else
+         Success := SDL_SetRenderClipRect (Renderer, null);
+      end if;
+   end Render_Gradient_Rect;
+
+   --  Render a gradient-filled rounded rectangle.
+   --  Mirrors Render_Rounded_Rect (per-corner radii variant) but with
+   --  per-vertex color sampling from the gradient.
+   --  No AA fringe in v1. Geometrically correct for 2 stops; 3+ stops may
+   --  show per-triangle interpolation artifacts on non-axis-aligned gradients.
+   procedure Render_Gradient_Rounded_Rect
+     (Renderer     : SDL_Renderer_Ptr;
+      Rect         : SDL_FRect;
+      Radii        : Corner_Pixels;
+      G            : Linear_Gradient_Value;
+      Opacity      : Float;
+      Min_Segments : Natural := 0)
+   is
+      Max_Dim       : constant Float := Half_Min_Dimension_Non_Neg (Rect);
+      Clamped_Radii : constant Corner_Pixels :=
+        Clamp_Corner_Radii_To_Max (Radii, Max_Dim);
+      R_TL : constant Float := Clamped_Radii.Top_Left;
+      R_TR : constant Float := Clamped_Radii.Top_Right;
+      R_BR : constant Float := Clamped_Radii.Bottom_Right;
+      R_BL : constant Float := Clamped_Radii.Bottom_Left;
+
+      Max_R : constant Float :=
+         Float'Max (Float'Max (R_TL, R_TR), Float'Max (R_BR, R_BL));
+
+      Num_Seg : constant Positive :=
+         Positive'Max (Segments_For_Radius (Max_R),
+                       (if Min_Segments > 0 then Min_Segments else 1));
+
+      N_Outline     : constant Natural := 4 * (Num_Seg + 1);
+      Total_Verts   : constant Natural := N_Outline + 1;
+      Total_Indices : constant Natural := N_Outline * 3;
+
+      Verts : SDL_Vertex_Array (0 .. Total_Verts - 1);
+      Idxs  : Int_Array (0 .. Total_Indices - 1);
+
+      VI : Natural := 0;
+      II : Natural := 0;
+
+      Zero_TC : constant SDL_FPoint := (x => 0.0, y => 0.0);
+
+      X0 : constant Float := Rect.x;
+      Y0 : constant Float := Rect.y;
+      X1 : constant Float := Rect.x + Rect.w;
+      Y1 : constant Float := Rect.y + Rect.h;
+
+      Center_Idx    : Natural;
+      First_Outline : Natural;
+      Step    : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
+      Success : Adi.SDL.C_bool;
+
+      G_Stops : Resolved_Stop_Array;
+      G_Count : Natural;
+
+      procedure Add_Vertex (X, Y : Float) is
+         T  : constant Float :=
+            Gradient_T_For_Point (X, Y, Rect, G.Angle);
+         FC : constant SDL_FColor :=
+            Sample_Gradient (G_Stops, G_Count, T);
+      begin
+         Verts (VI) :=
+           (position  => (x => X, y => Y),
+            color     => FC,
+            tex_coord => Zero_TC);
+         VI := VI + 1;
+      end Add_Vertex;
+
+      procedure Add_Triangle (IA, IB, IC : Natural) is
+      begin
+         Idxs (II)     := int (IA);
+         Idxs (II + 1) := int (IB);
+         Idxs (II + 2) := int (IC);
+         II := II + 3;
+      end Add_Triangle;
+
+   begin
+      if not Is_Visible_FRect (Rect) then
+         return;
+      end if;
+
+      Resolve_Gradient_Stops (G, Opacity, G_Stops, G_Count);
+
+      if Max_R < 1.0 then
+         Render_Gradient_Rect (Renderer, Rect, G, Opacity);
+         return;
+      end if;
+
+      --  Center vertex for fan
+      Center_Idx := VI;
+      Add_Vertex ((X0 + X1) / 2.0, (Y0 + Y1) / 2.0);
+
+      First_Outline := VI;
+
+      --  Top-left arc: center (X0+R_TL, Y0+R_TL), from PI to 3*PI/2
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float :=
+               Ada.Numerics.Pi + Float (I) * Step;
+         begin
+            Add_Vertex (X0 + R_TL + R_TL * Cos (Angle),
+                        Y0 + R_TL + R_TL * Sin (Angle));
+         end;
+      end loop;
+
+      --  Top-right arc: center (X1-R_TR, Y0+R_TR), from 3*PI/2 to 2*PI
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float :=
+               3.0 * Ada.Numerics.Pi / 2.0 + Float (I) * Step;
+         begin
+            Add_Vertex (X1 - R_TR + R_TR * Cos (Angle),
+                        Y0 + R_TR + R_TR * Sin (Angle));
+         end;
+      end loop;
+
+      --  Bottom-right arc: center (X1-R_BR, Y1-R_BR), from 0 to PI/2
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := Float (I) * Step;
+         begin
+            Add_Vertex (X1 - R_BR + R_BR * Cos (Angle),
+                        Y1 - R_BR + R_BR * Sin (Angle));
+         end;
+      end loop;
+
+      --  Bottom-left arc: center (X0+R_BL, Y1-R_BL), from PI/2 to PI
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float :=
+               Ada.Numerics.Pi / 2.0 + Float (I) * Step;
+         begin
+            Add_Vertex (X0 + R_BL + R_BL * Cos (Angle),
+                        Y1 - R_BL + R_BL * Sin (Angle));
+         end;
+      end loop;
+
+      --  Fan triangles from center to consecutive outline pairs
+      for I in 0 .. N_Outline - 1 loop
+         declare
+            Next_I : constant Natural := (I + 1) mod N_Outline;
+         begin
+            Add_Triangle (Center_Idx,
+                          First_Outline + I,
+                          First_Outline + Next_I);
+         end;
+      end loop;
+
+      SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
+                  "SDL_SetRenderDrawBlendMode");
+
+      Success := SDL_RenderGeometry
+        (Renderer     => Renderer,
+         Texture      => null,
+         Vertices     => Verts (0)'Access,
+         Num_Vertices => int (VI),
+         Indices      => Idxs (0)'Access,
+         Num_Indices  => int (II));
+   end Render_Gradient_Rounded_Rect;
+
+   --  AA fringe for gradient-filled rounded rects.
+   --  Same tessellation as Render_AA_Fringe (outward, Fringe=+1) but each
+   --  inner vertex is colored by sampling the gradient at that point, so the
+   --  fade matches the gradient edge rather than a single uniform color.
+   procedure Render_Gradient_AA_Fringe
+     (Renderer     : SDL_Renderer_Ptr;
+      Rect         : SDL_FRect;
+      Radii        : Corner_Pixels;
+      G            : Linear_Gradient_Value;
+      Opacity      : Float;
+      Min_Segments : Natural := 0)
+   is
+      Max_Dim : constant Float := Half_Min_Dimension_Non_Neg (Rect);
+      Clamped_Radii : constant Corner_Pixels :=
+        Clamp_Corner_Radii_To_Max (Radii, Max_Dim);
+      R_TL : constant Float := Clamped_Radii.Top_Left;
+      R_TR : constant Float := Clamped_Radii.Top_Right;
+      R_BR : constant Float := Clamped_Radii.Bottom_Right;
+      R_BL : constant Float := Clamped_Radii.Bottom_Left;
+      Max_R : constant Float :=
+         Float'Max (Float'Max (R_TL, R_TR), Float'Max (R_BR, R_BL));
+      Num_Seg : constant Positive :=
+         Positive'Max (Segments_For_Radius (Max_R),
+                       (if Min_Segments > 0 then Min_Segments else 1));
+      N_Outline     : constant Natural := 4 * (Num_Seg + 1);
+      Total_Verts   : constant Natural := 2 * N_Outline;
+      Total_Indices : constant Natural := N_Outline * 6;
+      Verts : SDL_Vertex_Array (0 .. Total_Verts - 1);
+      Idxs  : Int_Array (0 .. Total_Indices - 1);
+      VI : Natural := 0;
+      II : Natural := 0;
+      G_Stops : Resolved_Stop_Array;
+      G_Count : Natural;
+      Zero_TC : constant SDL_FPoint := (x => 0.0, y => 0.0);
+
+      procedure Add_Pair (X, Y, NX, NY : Float) is
+         T        : constant Float      :=
+            Gradient_T_For_Point (X, Y, Rect, G.Angle);
+         FC_Solid : constant SDL_FColor :=
+            Sample_Gradient (G_Stops, G_Count, T);
+         FC_Clear : constant SDL_FColor :=
+           (r => FC_Solid.r, g => FC_Solid.g, b => FC_Solid.b, a => 0.0);
+      begin
+         Verts (VI) := (position  => (x => X, y => Y),
+                        color     => FC_Solid,
+                        tex_coord => Zero_TC);
+         VI := VI + 1;
+         Verts (VI) := (position  => (x => X + NX, y => Y + NY),
+                        color     => FC_Clear,
+                        tex_coord => Zero_TC);
+         VI := VI + 1;
+      end Add_Pair;
+
+      procedure Add_Triangle (IA, IB, IC : Natural) is
+      begin
+         Idxs (II)     := int (IA);
+         Idxs (II + 1) := int (IB);
+         Idxs (II + 2) := int (IC);
+         II := II + 3;
+      end Add_Triangle;
+
+      X0   : constant Float := Rect.x;
+      Y0   : constant Float := Rect.y;
+      X1   : constant Float := Rect.x + Rect.w;
+      Y1   : constant Float := Rect.y + Rect.h;
+      Step : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
+      Success : Adi.SDL.C_bool;
+   begin
+      if not Is_Visible_FRect (Rect) then
+         return;
+      end if;
+
+      Resolve_Gradient_Stops (G, Opacity, G_Stops, G_Count);
+
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := Ada.Numerics.Pi + Float (I) * Step;
+            CA    : constant Float := Cos (Angle);
+            SA    : constant Float := Sin (Angle);
+         begin
+            Add_Pair (X0 + R_TL + R_TL * CA, Y0 + R_TL + R_TL * SA, CA, SA);
+         end;
+      end loop;
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float :=
+               3.0 * Ada.Numerics.Pi / 2.0 + Float (I) * Step;
+            CA    : constant Float := Cos (Angle);
+            SA    : constant Float := Sin (Angle);
+         begin
+            Add_Pair (X1 - R_TR + R_TR * CA, Y0 + R_TR + R_TR * SA, CA, SA);
+         end;
+      end loop;
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float := Float (I) * Step;
+            CA    : constant Float := Cos (Angle);
+            SA    : constant Float := Sin (Angle);
+         begin
+            Add_Pair (X1 - R_BR + R_BR * CA, Y1 - R_BR + R_BR * SA, CA, SA);
+         end;
+      end loop;
+      for I in 0 .. Num_Seg loop
+         declare
+            Angle : constant Float :=
+               Ada.Numerics.Pi / 2.0 + Float (I) * Step;
+            CA    : constant Float := Cos (Angle);
+            SA    : constant Float := Sin (Angle);
+         begin
+            Add_Pair (X0 + R_BL + R_BL * CA, Y1 - R_BL + R_BL * SA, CA, SA);
+         end;
+      end loop;
+
+      for K in 0 .. N_Outline - 1 loop
+         declare
+            Next_K  : constant Natural := (K + 1) mod N_Outline;
+            Inner_A : constant Natural := 2 * K;
+            Outer_A : constant Natural := 2 * K + 1;
+            Inner_B : constant Natural := 2 * Next_K;
+            Outer_B : constant Natural := 2 * Next_K + 1;
+         begin
+            Add_Triangle (Inner_A, Inner_B, Outer_A);
+            Add_Triangle (Outer_A, Inner_B, Outer_B);
+         end;
+      end loop;
+
+      SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
+                  "SDL_SetRenderDrawBlendMode");
+      Success := SDL_RenderGeometry
+        (Renderer     => Renderer,
+         Texture      => null,
+         Vertices     => Verts (0)'Access,
+         Num_Vertices => int (VI),
+         Indices      => Idxs (0)'Access,
+         Num_Indices  => int (II));
+   end Render_Gradient_AA_Fringe;
+
    procedure Render_Panel (
       Renderer : SDL_Renderer_Ptr;
       Geom     : Rectangle;
@@ -3725,8 +4290,9 @@ package body Adi.Widget is
       BW_Right   : Float;
       BW_Bottom  : Float;
       BW_Left    : Float;
-      Uniform    : Boolean;
-      Op         : constant Float := Float (Style.Opacity);
+      Uniform      : Boolean;
+      Has_Gradient : Boolean;
+      Op           : constant Float := Float (Style.Opacity);
       function Edge_Style (E : Edge) return Border_Style_Kind is
       begin
          case Style.Border_Style.Kind is
@@ -4168,6 +4734,9 @@ package body Adi.Widget is
       Rect.w := Float (Geom.Width);
       Rect.h := Float (Geom.Height);
 
+      Has_Gradient :=
+         Style.Background_Image.Kind = Linear_Gradient_Image;
+
       --  Outline (drawn outside the border box, does not affect layout).
       --  Rendered BEFORE background/border so the widget's own background
       --  fill naturally covers the outline's inner aliased edge — same
@@ -4326,6 +4895,28 @@ package body Adi.Widget is
                   end if;
                end if;
 
+               --  Gradient fill (renders over background-color,
+               --  under inner AA fringe — no AA fringe for gradient in v1)
+               if Has_Gradient
+                 and then Inner.w > 0.0 and then Inner.h > 0.0
+               then
+                  if Uniform then
+                     Render_Gradient_Rounded_Rect
+                       (Renderer, Inner,
+                        (Top_Left     => Float'Max (0.0, Max_Rad - BW_Top),
+                         Top_Right    => Float'Max (0.0, Max_Rad - BW_Top),
+                         Bottom_Right => Float'Max (0.0, Max_Rad - BW_Top),
+                         Bottom_Left  => Float'Max (0.0, Max_Rad - BW_Top)),
+                        Style.Background_Image.Gradient.all, Op,
+                        Min_Segments => Seg);
+                  else
+                     Render_Gradient_Rounded_Rect
+                       (Renderer, Inner, Inner_Radii,
+                        Style.Background_Image.Gradient.all, Op,
+                        Min_Segments => Seg);
+                  end if;
+               end if;
+
                --  Inner AA fringe (always render — smooths border inner
                --  edge regardless of background transparency)
                if Inner.w > 0.0 and then Inner.h > 0.0 then
@@ -4350,8 +4941,34 @@ package body Adi.Widget is
                else
                   Render_Rounded_Rect (Renderer, Rect, Radius_Px, R, G, B, A);
                end if;
-               --  AA fringe on outer background edge
-               Render_AA_Fringe (Renderer, Rect, Radius_Px, R, G, B, A);
+               --  AA fringe on outer background edge (skip when gradient
+               --  covers the fill — gradient has no AA fringe in v1)
+               if not Has_Gradient then
+                  Render_AA_Fringe (Renderer, Rect, Radius_Px, R, G, B, A);
+               end if;
+            end if;
+
+            --  Gradient fill + gradient-aware AA fringe
+            if Has_Gradient then
+               if Uniform then
+                  Render_Gradient_Rounded_Rect
+                    (Renderer, Rect,
+                     (Top_Left | Top_Right | Bottom_Right | Bottom_Left =>
+                        Max_Rad),
+                     Style.Background_Image.Gradient.all, Op);
+                  Render_Gradient_AA_Fringe
+                    (Renderer, Rect,
+                     (Top_Left | Top_Right | Bottom_Right | Bottom_Left =>
+                        Max_Rad),
+                     Style.Background_Image.Gradient.all, Op);
+               else
+                  Render_Gradient_Rounded_Rect
+                    (Renderer, Rect, Radius_Px,
+                     Style.Background_Image.Gradient.all, Op);
+                  Render_Gradient_AA_Fringe
+                    (Renderer, Rect, Radius_Px,
+                     Style.Background_Image.Gradient.all, Op);
+               end if;
             end if;
 
             if Has_Border then
@@ -4373,6 +4990,12 @@ package body Adi.Widget is
                         "SDL_SetRenderDrawColor");
             SDL_Assert (SDL_RenderFillRect (Renderer, Rect'Access),
                         "SDL_RenderFillRect");
+         end if;
+
+         --  Gradient fill
+         if Has_Gradient then
+            Render_Gradient_Rect
+              (Renderer, Rect, Style.Background_Image.Gradient.all, Op);
          end if;
 
          --  Border

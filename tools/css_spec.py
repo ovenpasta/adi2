@@ -18,7 +18,7 @@ SUPPORTED_PROPERTIES: dict[str, PropertySpec] = {
     "color": PropertySpec("color", "color"),
     "background-color": PropertySpec("background-color", "color"),
     "background": PropertySpec("background-color", "color"),
-    "background-image": PropertySpec("background-image", "url-or-none"),
+    "background-image": PropertySpec("background-image", "url-or-gradient-or-none"),
     # Box model
     "padding": PropertySpec("padding", "box-1-4-length"),
     "padding-top": PropertySpec("padding-top", "length"),

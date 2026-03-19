@@ -13,6 +13,22 @@ package body Adi.CSS_Styles is
    end Set_Font_Name_Resolver;
 
    -------------------------------------------------
+   -- Linear_Gradient
+   -------------------------------------------------
+
+   function Linear_Gradient
+     (Angle : Float; Stops : Gradient_Stop_Array; Count : Natural)
+      return Background_Image_Value
+   is
+   begin
+      return (Kind     => Linear_Gradient_Image,
+              Gradient => new Linear_Gradient_Value'
+                (Angle      => Angle,
+                 Stop_Count => Count,
+                 Stops      => Stops));
+   end Linear_Gradient;
+
+   -------------------------------------------------
    -- Get_Border_Radius_Px
    -------------------------------------------------
 

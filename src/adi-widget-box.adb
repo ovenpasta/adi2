@@ -120,7 +120,7 @@ package body Adi.Widget.Box is
                Bg_It.Image_Source := Adi.Assets.Get_Image
                  (Ada.Strings.Unbounded.To_String
                     (Style.Background_Image.URI));
-            when No_Image =>
+            when No_Image | Linear_Gradient_Image =>
                Bg_It.Image_Source := null;
          end case;
          --  Inset by resolved per-edge border widths so the image does not

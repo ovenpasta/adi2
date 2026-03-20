@@ -26,8 +26,8 @@ package Adi.SDL.Locale is
       with Import        => True,
            Convention    => C,
            External_Name => "SDL_GetPreferredLocales";
-   --  Returns a heap-allocated array of SDL_Locale.
-   --  Caller must free with SDL_free(Address).
+   --  Returns a NULL-terminated heap-allocated array of SDL_Locale * (i.e.
+   --  SDL_Locale **).  Caller must free the array itself with SDL_free.
 
    ----------------------------------------------------------------------------
    --  Ada Helper

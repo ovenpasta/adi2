@@ -765,11 +765,11 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
 
    --  Helpers to build property sets
    function Props (P : Animatable_Property) return Property_Set is
-      [for I in Animatable_Property => I = P];
+      ([for I in Animatable_Property => I = P]);
    function "+" (L, R : Property_Set) return Property_Set is
-      [for P in Animatable_Property => L (P) or R (P)];
+      ([for P in Animatable_Property => L (P) or R (P)]);
    function "+" (L : Property_Set; R : Animatable_Property) return Property_Set is
-      [L with delta R => True];
+      ([L with delta R => True]);
 
    type Transition_Spec is record
       Duration   : Float := 0.0;          --  Duration in seconds

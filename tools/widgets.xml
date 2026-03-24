@@ -31,6 +31,7 @@
     <handle-type>Box_Handle</handle-type>
     <create>{package}.Create</create>
     <create-handle>{package}.Create_Handle</create-handle>
+    <attribute name="label" type="string" setter="Set_Label" setter-target="base"/>
   </widget>
 
   <widget tag="label">

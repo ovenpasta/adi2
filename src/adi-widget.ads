@@ -624,9 +624,6 @@ private
    package Widget_List is new
      Ada.Containers.Doubly_Linked_Lists (Widget_Access);
 
-   package Image_List is new
-     Ada.Containers.Doubly_Linked_Lists (Image_Access);
-
    ---------------------------------------------------------------------------
    --  Widget Record
    ---------------------------------------------------------------------------
@@ -676,9 +673,6 @@ private
 
       --  Renderable items (built by derived widgets)
       Items : Items_List.Vector;
-
-      --  Cached images for rendering
-      Images : Image_List.List;
 
       --  Resolved style cache (auto-invalidated by key mismatch).
       --  Keyed on (Style_Version, effective states via Get_States,

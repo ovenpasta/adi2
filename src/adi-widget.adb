@@ -145,8 +145,7 @@ package body Adi.Widget is
       On_Destroy (Widget'Class (W.all));
 
       W.Children.Clear;
-      W.Items.Clear;
-      W.Images.Clear;
+      Clear_Items (Widget'Class (W.all));
 
       if W.Store_Index > 0 then
          Widget_Stores.Request_Destroy
@@ -1525,14 +1524,16 @@ package body Adi.Widget is
       end if;
       W.Last_Applied_Version := W.Style_Version;
 
-      --  First pass: for each part encountered, check if target changed
+      --  First pass: for each part encountered, check if target changed.
+      --  Use a direct reference rename instead of Element/Replace_Element to
+      --  avoid copying Cached_TTF_Text through Ada controlled-type assignment.
       for I in 1 .. Natural (W.Items.Length) loop
          declare
-            Current_Item : Item := W.Items.Element (I);
-            P : constant Part_Kind := Current_Item.Part;
+            It : Item renames W.Items.Reference (I).Element.all;
+            P  : constant Part_Kind := It.Part;
          begin
-            if Current_Item.Has_Style_Override then
-               Current_Item.Computed_Style := Current_Item.Style_Override;
+            if It.Has_Style_Override then
+               It.Computed_Style := It.Style_Override;
             else
                if not Parts_Seen (P) then
                   Parts_Seen (P) := True;
@@ -1581,14 +1582,12 @@ package body Adi.Widget is
                      Interpolated : Resolved_Style;
                   begin
                      Advance (W.Transitions (P), 0.0, Interpolated);
-                     Current_Item.Computed_Style := Interpolated;
+                     It.Computed_Style := Interpolated;
                   end;
                else
-                  Current_Item.Computed_Style := W.Last_Target (P);
+                  It.Computed_Style := W.Last_Target (P);
                end if;
             end if;
-
-            W.Items.Replace_Element (I, Current_Item);
          end;
       end loop;
    end Apply_Styles_To_Items;
@@ -6996,16 +6995,15 @@ begin
          begin
             Advance (W.Transitions (P), DT_Float, Interpolated);
 
-            --  Apply interpolated style to all items of this part
+            --  Apply interpolated style to all items of this part.
+            --  Use a direct reference rename to avoid copying Cached_TTF_Text
+            --  through Ada controlled-type assignment.
             for I in 1 .. Natural (W.Items.Length) loop
                declare
-                  Current_Item : Item := W.Items.Element (I);
+                  It : Item renames W.Items.Reference (I).Element.all;
                begin
-                  if Current_Item.Part = P
-                    and then not Current_Item.Has_Style_Override
-                  then
-                     Current_Item.Computed_Style := Interpolated;
-                     W.Items.Replace_Element (I, Current_Item);
+                  if It.Part = P and then not It.Has_Style_Override then
+                     It.Computed_Style := Interpolated;
                   end if;
                end;
             end loop;

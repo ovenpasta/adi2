@@ -5,8 +5,21 @@ CSS to Ada Widget Style Generator
 Converts CSS files to Ada code using the Adi.CSS_Styles and Adi.Widget_Styles packages.
 
 Usage: python css_to_ada.py input.css output.ads [--package-name=My_Styles]
+
+Large CSS files can produce hundreds of Widget_Style and Part_Style_Array
+constants.  GNAT emits a single elaboration procedure per package that
+initialises all constants sequentially; too many constants in one procedure
+can overflow the call stack on constrained targets (Windows default 1 MB,
+embedded targets even less).
+
+To stay within safe limits the generator automatically splits output into
+child packages (My_Styles.Part_1, My_Styles.Part_2, …) whenever the total
+constant count exceeds DEFAULT_SPLIT_CONSTANTS.  The parent package
+re-exports every constant via renames so all existing call-sites compile
+unchanged.  Pass --split-constants 0 to disable splitting.
 """
 
+import os
 import re
 import sys
 import argparse
@@ -21,6 +34,14 @@ from css_spec import (
     is_supported_property,
     property_validator,
 )
+
+# Maximum number of Widget_Style + Part_Style_Array constants allowed in a
+# single generated Ada package before the output is split into child packages.
+# Each constant contributes to the elaboration procedure's stack frame; keeping
+# this below ~60 gives comfortable headroom on a 1 MB Windows stack while
+# avoiding an excessive number of child packages for typical CSS files.
+# Override with --split-constants N; pass 0 to disable splitting entirely.
+DEFAULT_SPLIT_CONSTANTS = 50
 
 
 class WidgetState(Enum):
@@ -3388,6 +3409,50 @@ def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str)
     return "\n".join(lines)
 
 
+def generate_parent_package(
+    all_groups: dict[str, WidgetStyleGroup],
+    package_name: str,
+    child_names: list[str],
+    group_to_child: dict[str, str],
+) -> str:
+    """Generate a parent package that re-exports Widget_Style and Part_Style_Array
+    constants from child packages via renames."""
+    lines = [
+        "--  Auto-generated from CSS",
+        "--  Do not edit manually",
+        "",
+        "pragma Ada_2022;",
+        "",
+    ]
+    for cn in child_names:
+        lines.append(f"with {cn};")
+    lines.append(f"with Adi.Widget;        use Adi.Widget;")
+    lines.append(f"with Adi.Widget_Styles; use Adi.Widget_Styles;")
+    lines.append("")
+    lines.append(f"package {package_name} is")
+    lines.append("")
+
+    for group_key, group in all_groups.items():
+        child_pkg = group_to_child[group_key]
+        ada_name = to_ada_identifier(group.name)
+        sel_label = selector_label(group.selector_type)
+        part_items = sorted(
+            group.parts.items(),
+            key=lambda kv: (0 if kv[0] == "Main_Part" else 1, kv[0])
+        )
+
+        for part_kind, _ in part_items:
+            ws_name = widget_style_const_name(ada_name, group.selector_type, part_kind)
+            lines.append(f"   {ws_name} : constant Widget_Style renames {child_pkg}.{ws_name};")
+
+        psa_name = f"{ada_name}_{sel_label}_Part_Styles"
+        lines.append(f"   {psa_name} : constant Part_Style_Array renames {child_pkg}.{psa_name};")
+        lines.append("")
+
+    lines.append(f"end {package_name};")
+    return "\n".join(lines)
+
+
 def format_diagnostic(diag: CssDiagnostic) -> str:
     pieces = [diag.code]
     if diag.selector:
@@ -3414,6 +3479,18 @@ def main():
         "--strict",
         action="store_true",
         help="Fail if CSS contains unsupported selectors/properties or invalid values",
+    )
+    parser.add_argument(
+        "--split-constants",
+        type=int,
+        default=DEFAULT_SPLIT_CONSTANTS,
+        metavar="N",
+        dest="split_constants",
+        help=(
+            f"Split output into child packages so each has at most N "
+            f"Widget_Style + Part_Style_Array constants "
+            f"(default: {DEFAULT_SPLIT_CONSTANTS}, 0 = disable splitting)"
+        ),
     )
     
     args = parser.parse_args()
@@ -3474,17 +3551,60 @@ def main():
                 )
     
     # Generate Ada
-    ada_code = generate_ada_package(groups, args.package_name)
-    
-    # Write output
-    try:
-        with open(args.output, 'w') as f:
-            f.write(ada_code)
-    except IOError as e:
-        print(f"Error writing output file: {e}", file=sys.stderr)
-        sys.exit(1)
-    
-    print(f"Generated {args.output}")
+    if args.split_constants > 0:
+        # Split groups into chunks so each chunk's Widget_Style + Part_Style_Array
+        # constant count stays within the requested limit.  Each group contributes
+        # len(parts) Widget_Style constants plus one Part_Style_Array constant.
+        # A group is never split across packages.
+        chunks: list[dict] = []
+        current_chunk: dict = {}
+        current_count = 0
+        for key, group in groups.items():
+            group_cost = len(group.parts) + 1
+            if current_chunk and current_count + group_cost > args.split_constants:
+                chunks.append(current_chunk)
+                current_chunk = {}
+                current_count = 0
+            current_chunk[key] = group
+            current_count += group_cost
+        if current_chunk:
+            chunks.append(current_chunk)
+
+    if args.split_constants > 0 and len(chunks) > 1:
+        base, ext = os.path.splitext(args.output)
+        child_names: list[str] = []
+        group_to_child: dict[str, str] = {}
+        for idx, chunk in enumerate(chunks, 1):
+            child_pkg_name = f"{args.package_name}.Part_{idx}"
+            child_file = f"{base}-part_{idx}{ext}"
+            child_names.append(child_pkg_name)
+            for key in chunk:
+                group_to_child[key] = child_pkg_name
+            child_code = generate_ada_package(chunk, child_pkg_name)
+            try:
+                with open(child_file, 'w') as f:
+                    f.write(child_code)
+            except IOError as e:
+                print(f"Error writing {child_file}: {e}", file=sys.stderr)
+                sys.exit(1)
+            print(f"Generated {child_file}")
+        parent_code = generate_parent_package(groups, args.package_name, child_names, group_to_child)
+        try:
+            with open(args.output, 'w') as f:
+                f.write(parent_code)
+        except IOError as e:
+            print(f"Error writing output file: {e}", file=sys.stderr)
+            sys.exit(1)
+        print(f"Generated {args.output}")
+    else:
+        ada_code = generate_ada_package(groups, args.package_name)
+        try:
+            with open(args.output, 'w') as f:
+                f.write(ada_code)
+        except IOError as e:
+            print(f"Error writing output file: {e}", file=sys.stderr)
+            sys.exit(1)
+        print(f"Generated {args.output}")
 
 
 if __name__ == "__main__":

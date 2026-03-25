@@ -199,6 +199,8 @@ project Adi_Build extends "${SOURCE_DIR}/adi.gpr" is
    Platform_Name : Platform_Kind := external ("ADI_PLATFORM", "linux");
    type SVG_Backend_Kind is ("ada", "plutosvg");
    SVG_Backend : SVG_Backend_Kind := external ("ADI_SVG_BACKEND", "plutosvg");
+   type Build_Profile_Kind is ("release", "validation", "development");
+   Build_Profile : Build_Profile_Kind := external ("ADI_BUILD_PROFILE", "development");
 
    for Object_Dir use "${BUILD_DIR}/adi/obj";
    for Library_Dir use "${BUILD_DIR}/adi/lib";

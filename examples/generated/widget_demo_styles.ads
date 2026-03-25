@@ -10,17 +10,18 @@ with Adi.Widget_Styles; use Adi.Widget_Styles;
 package Widget_Demo_Styles is
 
    --  Base style for class 'root-box'
-   Root_Box_Class_Base_Style : constant Style_Rules := (
+   function Root_Box_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (20.0))),
       Background_Color => Set_Bg (RGB (125, 125, 125)),
       Padding => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'top-row'
-   Top_Row_Class_Base_Style : constant Style_Rules := (
+   function Top_Row_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Gap => Set (Gap (Px (20.0))),
@@ -28,11 +29,11 @@ package Widget_Demo_Styles is
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       Flex_Grow => Set (1.0),
       Padding => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'card-box'
-   Card_Box_Class_Base_Style : constant Style_Rules := (
+   function Card_Box_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (C (White)),
       Flex_Grow => Set (1.0),
       Box_Shadow => Set (Shadow (Px (0.0), Px (4.0), Px (12.0), Px (0.0), RGBA (0, 0, 0, 0.5))),
@@ -42,11 +43,11 @@ package Widget_Demo_Styles is
       Border_Style => Set (Border_Style (Solid, Solid, Dashed, Solid)),
       Border_Color => Set (Border_Color (RGB (59, 130, 246), RGB (200, 200, 200), RGB (200, 200, 200), RGB (200, 200, 200))),
       Border_Radius => Set (Radius (Px (20.0), Px (16.0), Px (2.0), Px (8.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'card-box-2'
-   Card_Box_2_Class_Base_Style : constant Style_Rules := (
+   function Card_Box_2_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (10.0))),
@@ -58,52 +59,52 @@ package Widget_Demo_Styles is
       Border_Style => Set (Border_Style (Double, Dashed, Solid, Solid)),
       Border_Color => Set (Border_Color (RGB (234, 88, 12), RGB (249, 115, 22), RGB (251, 191, 36), RGB (194, 65, 12))),
       Border_Radius => Set (Radius (Px (16.0), Px (28.0), Px (16.0), Px (4.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'inner-box'
-   Inner_Box_Class_Base_Style : constant Style_Rules := (
+   function Inner_Box_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (251, 146, 60)),
       Width => Set (Size (Px (100.0))),
       Height => Set (Size (Px (100.0))),
       Border_Radius => Set (Radius (Px (8.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'bottom-row'
-   Bottom_Row_Class_Base_Style : constant Style_Rules := (
+   function Bottom_Row_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Gap => Set (Gap (Px (20.0))),
       Align_Items => Set (Stretch),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'button-box'
-   Button_Box_Class_Base_Style : constant Style_Rules := (
+   function Button_Box_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (59, 130, 246)),
       Min_Width => Set (Size (Px (150.0))),
       Min_Height => Set (Size (Px (50.0))),
       Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
       Border_Width => Set (Border_Width (Px (0.0))),
       Border_Radius => Set (Radius (Px (8.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'button-box' when widget State_Hovered
-   Button_Box_Class_Widget_Hovered_Style : constant Style_Rules := (
+   function Button_Box_Class_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (37, 99, 235)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'button-box' when widget State_Pressed
-   Button_Box_Class_Widget_Pressed_Style : constant Style_Rules := (
+   function Button_Box_Class_Widget_Pressed_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (255, 255, 255)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'hover-box'
-   Hover_Box_Class_Base_Style : constant Style_Rules := (
+   function Hover_Box_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (0, 255, 0)),
       Flex_Grow => Set (1.0),
       Min_Height => Set (Size (Px (80.0))),
@@ -111,19 +112,19 @@ package Widget_Demo_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (22, 163, 74))),
       Border_Radius => Set (Radius (Px (10.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'hover-box' when widget State_Hovered
-   Hover_Box_Class_Widget_Hovered_Style : constant Style_Rules := (
+   function Hover_Box_Class_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (255, 0, 0)),
       Border_Width => Set (Border_Width (Px (6.0), Px (0.0), Px (0.0), Px (0.0))),
       Border_Color => Set (Border_Color (RGB (21, 128, 61), RGB (5, 150, 105), RGB (21, 128, 61), RGB (21, 128, 61))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'label-box'
-   Label_Box_Class_Base_Style : constant Style_Rules := (
+   function Label_Box_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       Background_Image => Set_Bg_Image (Background_Image_URL ("bg.jpg")),
       Object_Fit => Set (Fit_Contain),
@@ -133,143 +134,152 @@ package Widget_Demo_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (200, 200, 200))),
       Border_Radius => Set (Radius (Px (6.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'title-label'
-   Title_Label_Class_Base_Style : constant Style_Rules := (
+   function Title_Label_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (240, 240, 250)),
       Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
       Border_Radius => Set (Radius (Px (4.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'title-label'::label
-   Title_Label_Class_Label_Base_Style : constant Style_Rules := (
+   function Title_Label_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (30, 30, 30)),
       Font_Size => Set_Font (Px (18.0)),
       Text_Align => Set (Text_Center),
       Vertical_Align => Set (VA_Middle),
-      others => <>
-   );
+      others => <>);
 
    --  Complete widget style for class 'root-box'
-   Root_Box_Class_Widget : constant Widget_Style :=
-     From (Root_Box_Class_Base_Style)
-     .Build;
+   function Root_Box_Class_Widget return Widget_Style is
+     (From (Root_Box_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'root-box'
-   Root_Box_Class_Part_Styles : constant Part_Style_Array := [
+   function Root_Box_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Root_Box_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'top-row'
-   Top_Row_Class_Widget : constant Widget_Style :=
-     From (Top_Row_Class_Base_Style)
-     .Build;
+   function Top_Row_Class_Widget return Widget_Style is
+     (From (Top_Row_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'top-row'
-   Top_Row_Class_Part_Styles : constant Part_Style_Array := [
+   function Top_Row_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Top_Row_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'card-box'
-   Card_Box_Class_Widget : constant Widget_Style :=
-     From (Card_Box_Class_Base_Style)
-     .Build;
+   function Card_Box_Class_Widget return Widget_Style is
+     (From (Card_Box_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'card-box'
-   Card_Box_Class_Part_Styles : constant Part_Style_Array := [
+   function Card_Box_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Card_Box_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'card-box-2'
-   Card_Box_2_Class_Widget : constant Widget_Style :=
-     From (Card_Box_2_Class_Base_Style)
-     .Build;
+   function Card_Box_2_Class_Widget return Widget_Style is
+     (From (Card_Box_2_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'card-box-2'
-   Card_Box_2_Class_Part_Styles : constant Part_Style_Array := [
+   function Card_Box_2_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Card_Box_2_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'inner-box'
-   Inner_Box_Class_Widget : constant Widget_Style :=
-     From (Inner_Box_Class_Base_Style)
-     .Build;
+   function Inner_Box_Class_Widget return Widget_Style is
+     (From (Inner_Box_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'inner-box'
-   Inner_Box_Class_Part_Styles : constant Part_Style_Array := [
+   function Inner_Box_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Inner_Box_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'bottom-row'
-   Bottom_Row_Class_Widget : constant Widget_Style :=
-     From (Bottom_Row_Class_Base_Style)
-     .Build;
+   function Bottom_Row_Class_Widget return Widget_Style is
+     (From (Bottom_Row_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'bottom-row'
-   Bottom_Row_Class_Part_Styles : constant Part_Style_Array := [
+   function Bottom_Row_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Bottom_Row_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'button-box'
-   Button_Box_Class_Widget : constant Widget_Style :=
-     From (Button_Box_Class_Base_Style)
+   function Button_Box_Class_Widget return Widget_Style is
+     (From (Button_Box_Class_Base_Style)
      .On (When_State (State_Hovered), Button_Box_Class_Widget_Hovered_Style)
      .On (When_State (State_Pressed), Button_Box_Class_Widget_Pressed_Style)
-     .Build;
+     .Build);
 
    --  Part styles bundle for class 'button-box'
-   Button_Box_Class_Part_Styles : constant Part_Style_Array := [
+   function Button_Box_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Button_Box_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'hover-box'
-   Hover_Box_Class_Widget : constant Widget_Style :=
-     From (Hover_Box_Class_Base_Style)
+   function Hover_Box_Class_Widget return Widget_Style is
+     (From (Hover_Box_Class_Base_Style)
      .On (When_State (State_Hovered), Hover_Box_Class_Widget_Hovered_Style)
-     .Build;
+     .Build);
 
    --  Part styles bundle for class 'hover-box'
-   Hover_Box_Class_Part_Styles : constant Part_Style_Array := [
+   function Hover_Box_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Hover_Box_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'label-box'
-   Label_Box_Class_Widget : constant Widget_Style :=
-     From (Label_Box_Class_Base_Style)
-     .Build;
+   function Label_Box_Class_Widget return Widget_Style is
+     (From (Label_Box_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'label-box'
-   Label_Box_Class_Part_Styles : constant Part_Style_Array := [
+   function Label_Box_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Label_Box_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'title-label'
-   Title_Label_Class_Widget : constant Widget_Style :=
-     From (Title_Label_Class_Base_Style)
-     .Build;
+   function Title_Label_Class_Widget return Widget_Style is
+     (From (Title_Label_Class_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'title-label'::label
-   Title_Label_Class_Label_Widget : constant Widget_Style :=
-     From (Title_Label_Class_Label_Base_Style)
-     .Build;
+   function Title_Label_Class_Label_Widget return Widget_Style is
+     (From (Title_Label_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'title-label'
-   Title_Label_Class_Part_Styles : constant Part_Style_Array := [
+   function Title_Label_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Title_Label_Class_Widget, Enabled => True),
       Label_Part => (Style => Title_Label_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
 end Widget_Demo_Styles;

@@ -10,105 +10,110 @@ with Adi.Widget_Styles; use Adi.Widget_Styles;
 package Stack_Example_Styles is
 
    --  Base style for class 'root'
-   Root_Class_Base_Style : constant Style_Rules := (
+   function Root_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (30, 30, 36)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'tab-bar'
-   Tab_Bar_Class_Base_Style : constant Style_Rules := (
+   function Tab_Bar_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Flex_Shrink => Set (0.0),
       Align_Items => Set (Center),
       Padding => Set (CSS_Box (Px (16.0), Px (16.0), Px (0.0), Px (16.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'stack'
-   Stack_Class_Base_Style : constant Style_Rules := (
+   function Stack_Class_Base_Style return Style_Rules is
+     (
       Flex_Grow => Set (1.0),
       Padding => Set (CSS_Box (Px (16.0), Px (16.0), Px (16.0), Px (16.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'page-red'
-   Page_Red_Class_Base_Style : constant Style_Rules := (
+   function Page_Red_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (127, 29, 29)),
       Gap => Set (Gap (Px (8.0))),
       Padding => Set (CSS_Box (Px (30.0), Px (30.0), Px (30.0), Px (30.0))),
       Border_Radius => Set (Radius (Px (12.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'page-blue'
-   Page_Blue_Class_Base_Style : constant Style_Rules := (
+   function Page_Blue_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (30, 58, 138)),
       Gap => Set (Gap (Px (8.0))),
       Padding => Set (CSS_Box (Px (30.0), Px (30.0), Px (30.0), Px (30.0))),
       Border_Radius => Set (Radius (Px (12.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Complete widget style for class 'root'
-   Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
-     .Build;
+   function Root_Class_Widget return Widget_Style is
+     (From (Root_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'root'
-   Root_Class_Part_Styles : constant Part_Style_Array := [
+   function Root_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Root_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'tab-bar'
-   Tab_Bar_Class_Widget : constant Widget_Style :=
-     From (Tab_Bar_Class_Base_Style)
-     .Build;
+   function Tab_Bar_Class_Widget return Widget_Style is
+     (From (Tab_Bar_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'tab-bar'
-   Tab_Bar_Class_Part_Styles : constant Part_Style_Array := [
+   function Tab_Bar_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Tab_Bar_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'stack'
-   Stack_Class_Widget : constant Widget_Style :=
-     From (Stack_Class_Base_Style)
-     .Build;
+   function Stack_Class_Widget return Widget_Style is
+     (From (Stack_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'stack'
-   Stack_Class_Part_Styles : constant Part_Style_Array := [
+   function Stack_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Stack_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'page-red'
-   Page_Red_Class_Widget : constant Widget_Style :=
-     From (Page_Red_Class_Base_Style)
-     .Build;
+   function Page_Red_Class_Widget return Widget_Style is
+     (From (Page_Red_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'page-red'
-   Page_Red_Class_Part_Styles : constant Part_Style_Array := [
+   function Page_Red_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Page_Red_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'page-blue'
-   Page_Blue_Class_Widget : constant Widget_Style :=
-     From (Page_Blue_Class_Base_Style)
-     .Build;
+   function Page_Blue_Class_Widget return Widget_Style is
+     (From (Page_Blue_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'page-blue'
-   Page_Blue_Class_Part_Styles : constant Part_Style_Array := [
+   function Page_Blue_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Page_Blue_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
 end Stack_Example_Styles;

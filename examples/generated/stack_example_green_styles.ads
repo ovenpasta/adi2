@@ -10,88 +10,91 @@ with Adi.Widget_Styles; use Adi.Widget_Styles;
 package Stack_Example_Green_Styles is
 
    --  Base style for class 'page-green'
-   Page_Green_Class_Base_Style : constant Style_Rules := (
+   function Page_Green_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (20, 83, 45)),
       Gap => Set (Gap (Px (8.0))),
       Padding => Set (CSS_Box (Px (30.0), Px (30.0), Px (30.0), Px (30.0))),
       Border_Radius => Set (Radius (Px (12.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'page-title'
-   Page_Title_Class_Base_Style : constant Style_Rules := (
+   function Page_Title_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Inline_Flex),
       Flex_Shrink => Set (0.0),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'page-title'::label
-   Page_Title_Class_Label_Base_Style : constant Style_Rules := (
+   function Page_Title_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (C (White)),
       Font_Size => Set_Font (Px (24.0)),
       Font_Weight => Set (Weight_Bold),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'page-desc'
-   Page_Desc_Class_Base_Style : constant Style_Rules := (
+   function Page_Desc_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Inline_Flex),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'page-desc'::label
-   Page_Desc_Class_Label_Base_Style : constant Style_Rules := (
+   function Page_Desc_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGBA (255, 255, 255, 0.7)),
       Font_Size => Set_Font (Px (18.0)),
       Font_Weight => Set (Weight_Normal),
-      others => <>
-   );
+      others => <>);
 
    --  Complete widget style for class 'page-green'
-   Page_Green_Class_Widget : constant Widget_Style :=
-     From (Page_Green_Class_Base_Style)
-     .Build;
+   function Page_Green_Class_Widget return Widget_Style is
+     (From (Page_Green_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'page-green'
-   Page_Green_Class_Part_Styles : constant Part_Style_Array := [
+   function Page_Green_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Page_Green_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'page-title'
-   Page_Title_Class_Widget : constant Widget_Style :=
-     From (Page_Title_Class_Base_Style)
-     .Build;
+   function Page_Title_Class_Widget return Widget_Style is
+     (From (Page_Title_Class_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'page-title'::label
-   Page_Title_Class_Label_Widget : constant Widget_Style :=
-     From (Page_Title_Class_Label_Base_Style)
-     .Build;
+   function Page_Title_Class_Label_Widget return Widget_Style is
+     (From (Page_Title_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'page-title'
-   Page_Title_Class_Part_Styles : constant Part_Style_Array := [
+   function Page_Title_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Page_Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Page_Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'page-desc'
-   Page_Desc_Class_Widget : constant Widget_Style :=
-     From (Page_Desc_Class_Base_Style)
-     .Build;
+   function Page_Desc_Class_Widget return Widget_Style is
+     (From (Page_Desc_Class_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'page-desc'::label
-   Page_Desc_Class_Label_Widget : constant Widget_Style :=
-     From (Page_Desc_Class_Label_Base_Style)
-     .Build;
+   function Page_Desc_Class_Label_Widget return Widget_Style is
+     (From (Page_Desc_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'page-desc'
-   Page_Desc_Class_Part_Styles : constant Part_Style_Array := [
+   function Page_Desc_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Page_Desc_Class_Widget, Enabled => True),
       Label_Part => (Style => Page_Desc_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
 end Stack_Example_Green_Styles;

@@ -10,27 +10,28 @@ with Adi.Widget_Styles; use Adi.Widget_Styles;
 package List_Box_Example_Styles is
 
    --  Base style for class 'root'
-   Root_Class_Base_Style : constant Style_Rules := (
+   function Root_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (12.0))),
       Background_Color => Set_Bg (RGB (242, 245, 248)),
       Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'panels'
-   Panels_Class_Base_Style : constant Style_Rules := (
+   function Panels_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Gap => Set (Gap (Px (12.0))),
       Flex_Grow => Set (1.0),
       Height => Set (Size (Px (580.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'controls-row'
-   Controls_Row_Class_Base_Style : constant Style_Rules := (
+   function Controls_Row_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Justify_Content => Set (Flex_Start),
@@ -42,11 +43,11 @@ package List_Box_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (220, 226, 234))),
       Border_Radius => Set (Radius (Px (10.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'panel'
-   Panel_Class_Base_Style : constant Style_Rules := (
+   function Panel_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Flex_Grow => Set (1.0),
@@ -59,59 +60,59 @@ package List_Box_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (220, 226, 234))),
       Border_Radius => Set (Radius (Px (10.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'panel-title'
-   Panel_Title_Class_Base_Style : constant Style_Rules := (
+   function Panel_Title_Class_Base_Style return Style_Rules is
+     (
       Flex_Shrink => Set (0.0),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'panel-title'::label
-   Panel_Title_Class_Label_Base_Style : constant Style_Rules := (
+   function Panel_Title_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (41, 49, 64)),
       Font_Size => Set_Font (Px (18.0)),
       Font_Weight => Set (Weight_Bold),
       White_Space => Set (WS_Nowrap),
       Text_Overflow => Set (Overflow_Clip),
       Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'status'::label
-   Status_Class_Label_Base_Style : constant Style_Rules := (
+   function Status_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (83, 97, 120)),
       Font_Size => Set_Font (Px (13.0)),
       Text_Overflow => Set (Overflow_Clip),
       Text_Wrap_Mode => Set (TWM_Wrap),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'inertia-label'::label
-   Inertia_Label_Class_Label_Base_Style : constant Style_Rules := (
+   function Inertia_Label_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (41, 49, 64)),
       Font_Size => Set_Font (Px (14.0)),
       Font_Weight => Set (Weight_Semi_Bold),
       White_Space => Set (WS_Nowrap),
       Text_Overflow => Set (Overflow_Clip),
       Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'debug-label'::label
-   Debug_Label_Class_Label_Base_Style : constant Style_Rules := (
+   function Debug_Label_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (41, 49, 64)),
       Font_Size => Set_Font (Px (14.0)),
       Font_Weight => Set (Weight_Semi_Bold),
       White_Space => Set (WS_Nowrap),
       Text_Overflow => Set (Overflow_Clip),
       Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'inertia-switch'
-   Inertia_Switch_Class_Base_Style : constant Style_Rules := (
+   function Inertia_Switch_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (203, 213, 225)),
       Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
@@ -119,40 +120,40 @@ package List_Box_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (148, 163, 184))),
       Border_Radius => Set (Radius (Px (16.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'inertia-switch' when widget State_Hovered
-   Inertia_Switch_Class_Widget_Hovered_Style : constant Style_Rules := (
+   function Inertia_Switch_Class_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (191, 201, 216)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'inertia-switch' when widget State_Selected
-   Inertia_Switch_Class_Widget_Selected_Style : constant Style_Rules := (
+   function Inertia_Switch_Class_Widget_Selected_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (59, 130, 246)),
       Border_Color => Set (Border_Color (RGB (37, 99, 235))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'inertia-switch' when widget State_Selected, widget State_Hovered
-   Inertia_Switch_Class_Widget_Selected_Widget_Hovered_Style : constant Style_Rules := (
+   function Inertia_Switch_Class_Widget_Selected_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (37, 99, 235)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'inertia-switch'::knob
-   Inertia_Switch_Class_Knob_Base_Style : constant Style_Rules := (
+   function Inertia_Switch_Class_Knob_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (C (White)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (203, 213, 225))),
       Border_Radius => Set (Radius (Px (13.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'debug-switch'
-   Debug_Switch_Class_Base_Style : constant Style_Rules := (
+   function Debug_Switch_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (203, 213, 225)),
       Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
@@ -160,40 +161,40 @@ package List_Box_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (148, 163, 184))),
       Border_Radius => Set (Radius (Px (16.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'debug-switch' when widget State_Hovered
-   Debug_Switch_Class_Widget_Hovered_Style : constant Style_Rules := (
+   function Debug_Switch_Class_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (191, 201, 216)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'debug-switch' when widget State_Selected
-   Debug_Switch_Class_Widget_Selected_Style : constant Style_Rules := (
+   function Debug_Switch_Class_Widget_Selected_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (22, 163, 74)),
       Border_Color => Set (Border_Color (RGB (21, 128, 61))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'debug-switch' when widget State_Selected, widget State_Hovered
-   Debug_Switch_Class_Widget_Selected_Widget_Hovered_Style : constant Style_Rules := (
+   function Debug_Switch_Class_Widget_Selected_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (21, 128, 61)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'debug-switch'::knob
-   Debug_Switch_Class_Knob_Base_Style : constant Style_Rules := (
+   function Debug_Switch_Class_Knob_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (C (White)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (203, 213, 225))),
       Border_Radius => Set (Radius (Px (13.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'listbox'
-   Listbox_Class_Base_Style : constant Style_Rules := (
+   function Listbox_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (247, 249, 252)),
       Height => Set (Size (Px (500.0))),
       Flex_Grow => Set (1.0),
@@ -202,69 +203,69 @@ package List_Box_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (213, 221, 231))),
       Border_Radius => Set (Radius (Px (8.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'listbox'::knob
-   Listbox_Class_Knob_Base_Style : constant Style_Rules := (
+   function Listbox_Class_Knob_Base_Style return Style_Rules is
+     (
       Width => Set (Size (Px (10.0))),
       Min_Height => Set (Size (Px (24.0))),
       Background_Color => Set_Bg (RGBA (71, 85, 105, 0.78)),
       Transition => Set ((Duration => 0.26, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Border_Radius => Set (Radius (Px (6.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'listbox'::knob when part State_Hovered
-   Listbox_Class_Knob_Part_Hovered_Style : constant Style_Rules := (
+   function Listbox_Class_Knob_Part_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (71, 85, 105, 0.94)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'listbox'::knob when part State_Pressed
-   Listbox_Class_Knob_Part_Pressed_Style : constant Style_Rules := (
+   function Listbox_Class_Knob_Part_Pressed_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (71, 85, 105, 1.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'listbox'::scroll
-   Listbox_Class_Scroll_Base_Style : constant Style_Rules := (
+   function Listbox_Class_Scroll_Base_Style return Style_Rules is
+     (
       Width => Set (Size (Px (10.0))),
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.22)),
       Transition => Set ((Duration => 0.26, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
       Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
       Border_Radius => Set (Radius (Px (6.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'listbox'::scroll when part State_Hovered
-   Listbox_Class_Scroll_Part_Hovered_Style : constant Style_Rules := (
+   function Listbox_Class_Scroll_Part_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.38)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'listbox'::scroll when part State_Pressed
-   Listbox_Class_Scroll_Part_Pressed_Style : constant Style_Rules := (
+   function Listbox_Class_Scroll_Part_Pressed_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.52)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'listbox-multi'
-   Listbox_Multi_Class_Base_Style : constant Style_Rules := (
+   function Listbox_Multi_Class_Base_Style return Style_Rules is
+     (
       Gap => Set (Gap (Px (6.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'listbox-grid'
-   Listbox_Grid_Class_Base_Style : constant Style_Rules := (
+   function Listbox_Grid_Class_Base_Style return Style_Rules is
+     (
       Grid_Columns => Set (Grid_Columns_Value (3)),
       Grid_Column_Tracks => (Count => 3, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), others => <>]),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'label-row'
-   Label_Row_Class_Base_Style : constant Style_Rules := (
+   function Label_Row_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
@@ -273,45 +274,45 @@ package List_Box_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (220, 228, 236))),
       Border_Radius => Set (Radius (Px (6.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'label-row' when widget State_Hovered
-   Label_Row_Class_Widget_Hovered_Style : constant Style_Rules := (
+   function Label_Row_Class_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (235, 241, 250)),
       Border_Color => Set (Border_Color (RGB (186, 200, 220))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'label-row' when widget State_Selected
-   Label_Row_Class_Widget_Selected_Style : constant Style_Rules := (
+   function Label_Row_Class_Widget_Selected_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (62, 118, 210)),
       Border_Color => Set (Border_Color (RGB (48, 95, 171))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'label-row' when widget State_Selected, widget State_Hovered
-   Label_Row_Class_Widget_Selected_Widget_Hovered_Style : constant Style_Rules := (
+   function Label_Row_Class_Widget_Selected_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (52, 104, 192)),
       Border_Color => Set (Border_Color (RGB (40, 82, 152))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'label-row'::label
-   Label_Row_Class_Label_Base_Style : constant Style_Rules := (
+   function Label_Row_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (43, 52, 67)),
       Font_Size => Set_Font (Px (14.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'label-row'::label when widget State_Selected
-   Label_Row_Class_Label_Widget_Selected_Style : constant Style_Rules := (
+   function Label_Row_Class_Label_Widget_Selected_Style return Style_Rules is
+     (
       Color => Set (C (White)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'card-row'
-   Card_Row_Class_Base_Style : constant Style_Rules := (
+   function Card_Row_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (63, 115, 176)),
@@ -323,39 +324,39 @@ package List_Box_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (28, 33, 45))),
       Border_Radius => Set (Radius (Px (8.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'card-row' when widget State_Hovered
-   Card_Row_Class_Widget_Hovered_Style : constant Style_Rules := (
+   function Card_Row_Class_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (75, 132, 198)),
       Border_Color => Set (Border_Color (RGB (40, 48, 65))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'card-row' when widget State_Selected
-   Card_Row_Class_Widget_Selected_Style : constant Style_Rules := (
+   function Card_Row_Class_Widget_Selected_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (244, 166, 77)),
       Border_Color => Set (Border_Color (RGB (190, 120, 35))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'card-row' when widget State_Selected, widget State_Hovered
-   Card_Row_Class_Widget_Selected_Widget_Hovered_Style : constant Style_Rules := (
+   function Card_Row_Class_Widget_Selected_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (248, 178, 100)),
       Border_Color => Set (Border_Color (RGB (205, 138, 52))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'card-row-title'::label
-   Card_Row_Title_Class_Label_Base_Style : constant Style_Rules := (
+   function Card_Row_Title_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (C (White)),
       Font_Size => Set_Font (Px (13.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'grid-cell'
-   Grid_Cell_Class_Base_Style : constant Style_Rules := (
+   function Grid_Cell_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       Height => Set (Size (Px (50.0))),
       Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
@@ -365,292 +366,308 @@ package List_Box_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (220, 228, 236))),
       Border_Radius => Set (Radius (Px (6.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'grid-cell' when widget State_Hovered
-   Grid_Cell_Class_Widget_Hovered_Style : constant Style_Rules := (
+   function Grid_Cell_Class_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (235, 241, 250)),
       Border_Color => Set (Border_Color (RGB (186, 200, 220))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'grid-cell' when widget State_Selected
-   Grid_Cell_Class_Widget_Selected_Style : constant Style_Rules := (
+   function Grid_Cell_Class_Widget_Selected_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (62, 118, 210)),
       Border_Color => Set (Border_Color (RGB (48, 95, 171))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'grid-cell' when widget State_Selected, widget State_Hovered
-   Grid_Cell_Class_Widget_Selected_Widget_Hovered_Style : constant Style_Rules := (
+   function Grid_Cell_Class_Widget_Selected_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (52, 104, 192)),
       Border_Color => Set (Border_Color (RGB (40, 82, 152))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'grid-cell'::label
-   Grid_Cell_Class_Label_Base_Style : constant Style_Rules := (
+   function Grid_Cell_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (43, 52, 67)),
       Font_Size => Set_Font (Px (13.0)),
       Text_Align => Set (Text_Center),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'grid-cell'::label when widget State_Selected
-   Grid_Cell_Class_Label_Widget_Selected_Style : constant Style_Rules := (
+   function Grid_Cell_Class_Label_Widget_Selected_Style return Style_Rules is
+     (
       Color => Set (C (White)),
-      others => <>
-   );
+      others => <>);
 
    --  Complete widget style for class 'root'
-   Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
-     .Build;
+   function Root_Class_Widget return Widget_Style is
+     (From (Root_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'root'
-   Root_Class_Part_Styles : constant Part_Style_Array := [
+   function Root_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Root_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'panels'
-   Panels_Class_Widget : constant Widget_Style :=
-     From (Panels_Class_Base_Style)
-     .Build;
+   function Panels_Class_Widget return Widget_Style is
+     (From (Panels_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'panels'
-   Panels_Class_Part_Styles : constant Part_Style_Array := [
+   function Panels_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Panels_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'controls-row'
-   Controls_Row_Class_Widget : constant Widget_Style :=
-     From (Controls_Row_Class_Base_Style)
-     .Build;
+   function Controls_Row_Class_Widget return Widget_Style is
+     (From (Controls_Row_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'controls-row'
-   Controls_Row_Class_Part_Styles : constant Part_Style_Array := [
+   function Controls_Row_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Controls_Row_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'panel'
-   Panel_Class_Widget : constant Widget_Style :=
-     From (Panel_Class_Base_Style)
-     .Build;
+   function Panel_Class_Widget return Widget_Style is
+     (From (Panel_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'panel'
-   Panel_Class_Part_Styles : constant Part_Style_Array := [
+   function Panel_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Panel_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'panel-title'
-   Panel_Title_Class_Widget : constant Widget_Style :=
-     From (Panel_Title_Class_Base_Style)
-     .Build;
+   function Panel_Title_Class_Widget return Widget_Style is
+     (From (Panel_Title_Class_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'panel-title'::label
-   Panel_Title_Class_Label_Widget : constant Widget_Style :=
-     From (Panel_Title_Class_Label_Base_Style)
-     .Build;
+   function Panel_Title_Class_Label_Widget return Widget_Style is
+     (From (Panel_Title_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'panel-title'
-   Panel_Title_Class_Part_Styles : constant Part_Style_Array := [
+   function Panel_Title_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Panel_Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Panel_Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'status'::label
-   Status_Class_Label_Widget : constant Widget_Style :=
-     From (Status_Class_Label_Base_Style)
-     .Build;
+   function Status_Class_Label_Widget return Widget_Style is
+     (From (Status_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'status'
-   Status_Class_Part_Styles : constant Part_Style_Array := [
+   function Status_Class_Part_Styles return Part_Style_Array is
+     ([
       Label_Part => (Style => Status_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'inertia-label'::label
-   Inertia_Label_Class_Label_Widget : constant Widget_Style :=
-     From (Inertia_Label_Class_Label_Base_Style)
-     .Build;
+   function Inertia_Label_Class_Label_Widget return Widget_Style is
+     (From (Inertia_Label_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'inertia-label'
-   Inertia_Label_Class_Part_Styles : constant Part_Style_Array := [
+   function Inertia_Label_Class_Part_Styles return Part_Style_Array is
+     ([
       Label_Part => (Style => Inertia_Label_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'debug-label'::label
-   Debug_Label_Class_Label_Widget : constant Widget_Style :=
-     From (Debug_Label_Class_Label_Base_Style)
-     .Build;
+   function Debug_Label_Class_Label_Widget return Widget_Style is
+     (From (Debug_Label_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'debug-label'
-   Debug_Label_Class_Part_Styles : constant Part_Style_Array := [
+   function Debug_Label_Class_Part_Styles return Part_Style_Array is
+     ([
       Label_Part => (Style => Debug_Label_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'inertia-switch'
-   Inertia_Switch_Class_Widget : constant Widget_Style :=
-     From (Inertia_Switch_Class_Base_Style)
+   function Inertia_Switch_Class_Widget return Widget_Style is
+     (From (Inertia_Switch_Class_Base_Style)
      .On (When_State (State_Hovered), Inertia_Switch_Class_Widget_Hovered_Style)
      .On (When_State (State_Selected), Inertia_Switch_Class_Widget_Selected_Style)
      .On (When_State (State_Selected) and When_State (State_Hovered), Inertia_Switch_Class_Widget_Selected_Widget_Hovered_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'inertia-switch'::knob
-   Inertia_Switch_Class_Knob_Widget : constant Widget_Style :=
-     From (Inertia_Switch_Class_Knob_Base_Style)
-     .Build;
+   function Inertia_Switch_Class_Knob_Widget return Widget_Style is
+     (From (Inertia_Switch_Class_Knob_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'inertia-switch'
-   Inertia_Switch_Class_Part_Styles : constant Part_Style_Array := [
+   function Inertia_Switch_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Inertia_Switch_Class_Widget, Enabled => True),
       Knob_Part => (Style => Inertia_Switch_Class_Knob_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'debug-switch'
-   Debug_Switch_Class_Widget : constant Widget_Style :=
-     From (Debug_Switch_Class_Base_Style)
+   function Debug_Switch_Class_Widget return Widget_Style is
+     (From (Debug_Switch_Class_Base_Style)
      .On (When_State (State_Hovered), Debug_Switch_Class_Widget_Hovered_Style)
      .On (When_State (State_Selected), Debug_Switch_Class_Widget_Selected_Style)
      .On (When_State (State_Selected) and When_State (State_Hovered), Debug_Switch_Class_Widget_Selected_Widget_Hovered_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'debug-switch'::knob
-   Debug_Switch_Class_Knob_Widget : constant Widget_Style :=
-     From (Debug_Switch_Class_Knob_Base_Style)
-     .Build;
+   function Debug_Switch_Class_Knob_Widget return Widget_Style is
+     (From (Debug_Switch_Class_Knob_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'debug-switch'
-   Debug_Switch_Class_Part_Styles : constant Part_Style_Array := [
+   function Debug_Switch_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Debug_Switch_Class_Widget, Enabled => True),
       Knob_Part => (Style => Debug_Switch_Class_Knob_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'listbox'
-   Listbox_Class_Widget : constant Widget_Style :=
-     From (Listbox_Class_Base_Style)
-     .Build;
+   function Listbox_Class_Widget return Widget_Style is
+     (From (Listbox_Class_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'listbox'::knob
-   Listbox_Class_Knob_Widget : constant Widget_Style :=
-     From (Listbox_Class_Knob_Base_Style)
+   function Listbox_Class_Knob_Widget return Widget_Style is
+     (From (Listbox_Class_Knob_Base_Style)
      .On (When_Part_State (State_Hovered), Listbox_Class_Knob_Part_Hovered_Style)
      .On (When_Part_State (State_Pressed), Listbox_Class_Knob_Part_Pressed_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'listbox'::scroll
-   Listbox_Class_Scroll_Widget : constant Widget_Style :=
-     From (Listbox_Class_Scroll_Base_Style)
+   function Listbox_Class_Scroll_Widget return Widget_Style is
+     (From (Listbox_Class_Scroll_Base_Style)
      .On (When_Part_State (State_Hovered), Listbox_Class_Scroll_Part_Hovered_Style)
      .On (When_Part_State (State_Pressed), Listbox_Class_Scroll_Part_Pressed_Style)
-     .Build;
+     .Build);
 
    --  Part styles bundle for class 'listbox'
-   Listbox_Class_Part_Styles : constant Part_Style_Array := [
+   function Listbox_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Listbox_Class_Widget, Enabled => True),
       Knob_Part => (Style => Listbox_Class_Knob_Widget, Enabled => True),
       Scroll_Part => (Style => Listbox_Class_Scroll_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'listbox-multi'
-   Listbox_Multi_Class_Widget : constant Widget_Style :=
-     From (Listbox_Multi_Class_Base_Style)
-     .Build;
+   function Listbox_Multi_Class_Widget return Widget_Style is
+     (From (Listbox_Multi_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'listbox-multi'
-   Listbox_Multi_Class_Part_Styles : constant Part_Style_Array := [
+   function Listbox_Multi_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Listbox_Multi_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'listbox-grid'
-   Listbox_Grid_Class_Widget : constant Widget_Style :=
-     From (Listbox_Grid_Class_Base_Style)
-     .Build;
+   function Listbox_Grid_Class_Widget return Widget_Style is
+     (From (Listbox_Grid_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'listbox-grid'
-   Listbox_Grid_Class_Part_Styles : constant Part_Style_Array := [
+   function Listbox_Grid_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Listbox_Grid_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'label-row'
-   Label_Row_Class_Widget : constant Widget_Style :=
-     From (Label_Row_Class_Base_Style)
+   function Label_Row_Class_Widget return Widget_Style is
+     (From (Label_Row_Class_Base_Style)
      .On (When_State (State_Hovered), Label_Row_Class_Widget_Hovered_Style)
      .On (When_State (State_Selected), Label_Row_Class_Widget_Selected_Style)
      .On (When_State (State_Selected) and When_State (State_Hovered), Label_Row_Class_Widget_Selected_Widget_Hovered_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'label-row'::label
-   Label_Row_Class_Label_Widget : constant Widget_Style :=
-     From (Label_Row_Class_Label_Base_Style)
+   function Label_Row_Class_Label_Widget return Widget_Style is
+     (From (Label_Row_Class_Label_Base_Style)
      .On (When_State (State_Selected), Label_Row_Class_Label_Widget_Selected_Style)
-     .Build;
+     .Build);
 
    --  Part styles bundle for class 'label-row'
-   Label_Row_Class_Part_Styles : constant Part_Style_Array := [
+   function Label_Row_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Label_Row_Class_Widget, Enabled => True),
       Label_Part => (Style => Label_Row_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'card-row'
-   Card_Row_Class_Widget : constant Widget_Style :=
-     From (Card_Row_Class_Base_Style)
+   function Card_Row_Class_Widget return Widget_Style is
+     (From (Card_Row_Class_Base_Style)
      .On (When_State (State_Hovered), Card_Row_Class_Widget_Hovered_Style)
      .On (When_State (State_Selected), Card_Row_Class_Widget_Selected_Style)
      .On (When_State (State_Selected) and When_State (State_Hovered), Card_Row_Class_Widget_Selected_Widget_Hovered_Style)
-     .Build;
+     .Build);
 
    --  Part styles bundle for class 'card-row'
-   Card_Row_Class_Part_Styles : constant Part_Style_Array := [
+   function Card_Row_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Card_Row_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'card-row-title'::label
-   Card_Row_Title_Class_Label_Widget : constant Widget_Style :=
-     From (Card_Row_Title_Class_Label_Base_Style)
-     .Build;
+   function Card_Row_Title_Class_Label_Widget return Widget_Style is
+     (From (Card_Row_Title_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'card-row-title'
-   Card_Row_Title_Class_Part_Styles : constant Part_Style_Array := [
+   function Card_Row_Title_Class_Part_Styles return Part_Style_Array is
+     ([
       Label_Part => (Style => Card_Row_Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'grid-cell'
-   Grid_Cell_Class_Widget : constant Widget_Style :=
-     From (Grid_Cell_Class_Base_Style)
+   function Grid_Cell_Class_Widget return Widget_Style is
+     (From (Grid_Cell_Class_Base_Style)
      .On (When_State (State_Hovered), Grid_Cell_Class_Widget_Hovered_Style)
      .On (When_State (State_Selected), Grid_Cell_Class_Widget_Selected_Style)
      .On (When_State (State_Selected) and When_State (State_Hovered), Grid_Cell_Class_Widget_Selected_Widget_Hovered_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'grid-cell'::label
-   Grid_Cell_Class_Label_Widget : constant Widget_Style :=
-     From (Grid_Cell_Class_Label_Base_Style)
+   function Grid_Cell_Class_Label_Widget return Widget_Style is
+     (From (Grid_Cell_Class_Label_Base_Style)
      .On (When_State (State_Selected), Grid_Cell_Class_Label_Widget_Selected_Style)
-     .Build;
+     .Build);
 
    --  Part styles bundle for class 'grid-cell'
-   Grid_Cell_Class_Part_Styles : constant Part_Style_Array := [
+   function Grid_Cell_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Grid_Cell_Class_Widget, Enabled => True),
       Label_Part => (Style => Grid_Cell_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
 end List_Box_Example_Styles;

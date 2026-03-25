@@ -10,97 +10,98 @@ with Adi.Widget_Styles; use Adi.Widget_Styles;
 package Transition_Example_Styles is
 
    --  Base style for class 'root'
-   Root_Class_Base_Style : constant Style_Rules := (
+   function Root_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (24, 24, 30)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'content'
-   Content_Class_Base_Style : constant Style_Rules := (
+   function Content_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Flex_Grow => Set (1.0),
       Gap => Set (Gap (Px (28.0))),
       Padding => Set (CSS_Box (Px (28.0), Px (32.0), Px (28.0), Px (32.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'section'
-   Section_Class_Base_Style : constant Style_Rules := (
+   function Section_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (10.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'section-row'
-   Section_Row_Class_Base_Style : constant Style_Rules := (
+   function Section_Row_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Gap => Set (Gap (Px (16.0))),
       Align_Items => Set (Flex_Start),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'col-style'
-   Col_Style_Class_Base_Style : constant Style_Rules := (
+   function Col_Style_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Align_Items => Set (Center),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'white-label'
-   White_Label_Class_Base_Style : constant Style_Rules := (
+   function White_Label_Class_Base_Style return Style_Rules is
+     (
       Color => Set (C (White)),
       Font_Size => Set_Font (Px (13.0)),
       Font_Weight => Set (Weight_Medium),
       Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'dark-label'
-   Dark_Label_Class_Base_Style : constant Style_Rules := (
+   function Dark_Label_Class_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (200, 200, 210)),
       Font_Size => Set_Font (Px (11.0)),
       Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'title'
-   Title_Class_Base_Style : constant Style_Rules := (
+   function Title_Class_Base_Style return Style_Rules is
+     (
       Flex_Shrink => Set (0.0),
       Padding => Set (CSS_Box (Px (0.0), Px (4.0), Px (0.0), Px (4.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'title'::label
-   Title_Class_Label_Base_Style : constant Style_Rules := (
+   function Title_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (160, 170, 190)),
       Font_Size => Set_Font (Px (12.0)),
       Font_Weight => Set (Weight_Semi_Bold),
       Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'desc'
-   Desc_Class_Base_Style : constant Style_Rules := (
+   function Desc_Class_Base_Style return Style_Rules is
+     (
       Padding => Set (CSS_Box (Px (2.0), Px (4.0), Px (2.0), Px (4.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'desc'::label
-   Desc_Class_Label_Base_Style : constant Style_Rules := (
+   function Desc_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (120, 130, 150)),
       Font_Size => Set_Font (Px (10.0)),
       Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'demo-base'
-   Demo_Base_Class_Base_Style : constant Style_Rules := (
+   function Demo_Base_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Inline_Flex),
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
@@ -111,129 +112,138 @@ package Transition_Example_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (75, 85, 99))),
       Border_Radius => Set (Radius (Px (6.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Complete widget style for class 'root'
-   Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
-     .Build;
+   function Root_Class_Widget return Widget_Style is
+     (From (Root_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'root'
-   Root_Class_Part_Styles : constant Part_Style_Array := [
+   function Root_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Root_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'content'
-   Content_Class_Widget : constant Widget_Style :=
-     From (Content_Class_Base_Style)
-     .Build;
+   function Content_Class_Widget return Widget_Style is
+     (From (Content_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'content'
-   Content_Class_Part_Styles : constant Part_Style_Array := [
+   function Content_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Content_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'section'
-   Section_Class_Widget : constant Widget_Style :=
-     From (Section_Class_Base_Style)
-     .Build;
+   function Section_Class_Widget return Widget_Style is
+     (From (Section_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'section'
-   Section_Class_Part_Styles : constant Part_Style_Array := [
+   function Section_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Section_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'section-row'
-   Section_Row_Class_Widget : constant Widget_Style :=
-     From (Section_Row_Class_Base_Style)
-     .Build;
+   function Section_Row_Class_Widget return Widget_Style is
+     (From (Section_Row_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'section-row'
-   Section_Row_Class_Part_Styles : constant Part_Style_Array := [
+   function Section_Row_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Section_Row_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'col-style'
-   Col_Style_Class_Widget : constant Widget_Style :=
-     From (Col_Style_Class_Base_Style)
-     .Build;
+   function Col_Style_Class_Widget return Widget_Style is
+     (From (Col_Style_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'col-style'
-   Col_Style_Class_Part_Styles : constant Part_Style_Array := [
+   function Col_Style_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Col_Style_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'white-label'
-   White_Label_Class_Widget : constant Widget_Style :=
-     From (White_Label_Class_Base_Style)
-     .Build;
+   function White_Label_Class_Widget return Widget_Style is
+     (From (White_Label_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'white-label'
-   White_Label_Class_Part_Styles : constant Part_Style_Array := [
+   function White_Label_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => White_Label_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'dark-label'
-   Dark_Label_Class_Widget : constant Widget_Style :=
-     From (Dark_Label_Class_Base_Style)
-     .Build;
+   function Dark_Label_Class_Widget return Widget_Style is
+     (From (Dark_Label_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'dark-label'
-   Dark_Label_Class_Part_Styles : constant Part_Style_Array := [
+   function Dark_Label_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Dark_Label_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'title'
-   Title_Class_Widget : constant Widget_Style :=
-     From (Title_Class_Base_Style)
-     .Build;
+   function Title_Class_Widget return Widget_Style is
+     (From (Title_Class_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'title'::label
-   Title_Class_Label_Widget : constant Widget_Style :=
-     From (Title_Class_Label_Base_Style)
-     .Build;
+   function Title_Class_Label_Widget return Widget_Style is
+     (From (Title_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'title'
-   Title_Class_Part_Styles : constant Part_Style_Array := [
+   function Title_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'desc'
-   Desc_Class_Widget : constant Widget_Style :=
-     From (Desc_Class_Base_Style)
-     .Build;
+   function Desc_Class_Widget return Widget_Style is
+     (From (Desc_Class_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'desc'::label
-   Desc_Class_Label_Widget : constant Widget_Style :=
-     From (Desc_Class_Label_Base_Style)
-     .Build;
+   function Desc_Class_Label_Widget return Widget_Style is
+     (From (Desc_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'desc'
-   Desc_Class_Part_Styles : constant Part_Style_Array := [
+   function Desc_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Desc_Class_Widget, Enabled => True),
       Label_Part => (Style => Desc_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'demo-base'
-   Demo_Base_Class_Widget : constant Widget_Style :=
-     From (Demo_Base_Class_Base_Style)
-     .Build;
+   function Demo_Base_Class_Widget return Widget_Style is
+     (From (Demo_Base_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'demo-base'
-   Demo_Base_Class_Part_Styles : constant Part_Style_Array := [
+   function Demo_Base_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Demo_Base_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
 end Transition_Example_Styles;

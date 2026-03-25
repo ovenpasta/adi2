@@ -169,6 +169,76 @@ Estimated margin on default 8 MB stack after fixes:
 `./tests/bin/css_parser_test` now passes at default `ulimit -s 8192` with
 `156/156` tests passing.
 
+## Follow-up: css_to_ada.py elaboration stack overflow (2026-03)
+
+### Symptom
+
+Applications using CSS files with many classes (e.g. `material_demo` with
+38 selectors → 312+ style objects) crashed on startup with `STORAGE_ERROR`
+even after the previous fixes, when built with `Static_Mode`.
+
+`ulimit -s 16384` made them run — confirming stack overflow during
+elaboration of the generated `*_styles.ads` package.
+
+### Root cause
+
+`css_to_ada.py` emitted every `Style_Rules`, `Widget_Style`, and
+`Part_Style_Array` as a package-level constant:
+
+```ada
+Root_Class_Base_Style : constant Style_Rules := (
+   Background_Color => ...,
+   others => <>);
+Root_Class_Style : constant Widget_Style :=
+   From (Root_Class_Base_Style).Build;
+Root_Class_Part_Styles : constant Part_Style_Array := [
+   Main_Part => (Style => Root_Class_Style, Enabled => True),
+   others => <>];
+```
+
+GNAT initialises all package-level constants in a single `___elabs`
+procedure that runs at program startup on the main thread's stack. With
+300+ large record and array constants the procedure overflowed 8 MB.
+
+### First attempt: auto-split into child packages
+
+The generator was extended with a `--split-constants N` option
+(default 50): when the constant count exceeded the threshold the output
+was split across standalone child packages (`My_Styles_Part_1`,
+`My_Styles_Part_2`, …) each bounded by the threshold, with the parent
+re-exporting every name via subprogram renames.
+
+This reduced the elaboration cost *per package* but did not eliminate it.
+The implementation also ran into Ada validity constraints:
+`constant` is not permitted in object renaming declarations (RM 8.5.1),
+and a parent package cannot `with` its own child packages, requiring
+standalone (underscore-separated) names instead of dot-notation children.
+The approach was abandoned.
+
+### Fix: expression functions
+
+Converted every generated constant to an **expression function**:
+
+```ada
+function Root_Class_Base_Style return Style_Rules is
+  (Background_Color => ...,
+   others => <>);
+function Root_Class_Style return Widget_Style is
+  (From (Root_Class_Base_Style).Build);
+function Root_Class_Part_Styles return Part_Style_Array is
+  ([Main_Part => (Style => Root_Class_Style, Enabled => True),
+    others => <>]);
+```
+
+Expression functions are called on demand; GNAT generates no
+initialisation procedure for them. The elaboration footprint of the
+generated package drops to zero regardless of how many selectors the CSS
+file contains. The split machinery was removed entirely.
+
+The change was made entirely in `tools/css_to_ada.py` —
+`generate_ada_package` now emits `function … return T is (expr);` instead
+of `… : constant T := …;`. No changes to the runtime library were needed.
+
 ## Diagnosing Future STORAGE_ERROR Issues
 
 If a program crashes with `STORAGE_ERROR : s-intman.adb:... explicit raise`:
@@ -193,7 +263,11 @@ If a program crashes with `STORAGE_ERROR : s-intman.adb:... explicit raise`:
      Fix: convert to an iterative loop with an explicit stack.
    - **Package elaboration** — large constant aggregates in package specs are
      initialized during elaboration. The elaboration code runs on the main
-     thread's stack. Fix: split into smaller packages, or initialize lazily.
+     thread's stack. Fix: convert constants to **expression functions**
+     (`function F return T is (expr);`) — expression functions have zero
+     elaboration footprint; GNAT generates no initialisation procedure for
+     them. Splitting into smaller packages reduces the footprint per package
+     but does not eliminate it.
 
 4. **If increasing the stack is acceptable** — add a linker flag:
    ```

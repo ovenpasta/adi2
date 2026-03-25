@@ -10,61 +10,62 @@ with Adi.Widget_Styles; use Adi.Widget_Styles;
 package Material_Demo_Styles is
 
    --  Base style for class 'root'
-   Root_Class_Base_Style : constant Style_Rules := (
+   function Root_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (28, 27, 31)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'app-bar'
-   App_Bar_Class_Base_Style : constant Style_Rules := (
+   function App_Bar_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Align_Items => Set (Center),
       Flex_Shrink => Set (0.0),
       Background_Color => Set_Bg (RGB (28, 27, 31)),
       Padding => Set (CSS_Box (Px (16.0), Px (24.0), Px (16.0), Px (24.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'app-title'
-   App_Title_Class_Base_Style : constant Style_Rules := (
+   function App_Title_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Align_Items => Set (Center),
       Gap => Set (Gap (Px (10.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'app-title'::icon
-   App_Title_Class_Icon_Base_Style : constant Style_Rules := (
+   function App_Title_Class_Icon_Base_Style return Style_Rules is
+     (
       Width => Set (Size (Px (28.0))),
       Height => Set (Size (Px (28.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'app-title'::label
-   App_Title_Class_Label_Base_Style : constant Style_Rules := (
+   function App_Title_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (230, 225, 229)),
       Font_Size => Set_Font (Px (22.0)),
       Font_Weight => Set (Weight_Bold),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'nav-bar'
-   Nav_Bar_Class_Base_Style : constant Style_Rules := (
+   function Nav_Bar_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Align_Items => Set (Center),
       Gap => Set (Gap (Px (4.0))),
       Background_Color => Set_Bg (RGB (43, 41, 48)),
       Padding => Set (CSS_Box (Px (4.0), Px (16.0), Px (4.0), Px (16.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'nav-btn'
-   Nav_Btn_Class_Base_Style : constant Style_Rules := (
+   function Nav_Btn_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Inline_Flex),
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
@@ -72,78 +73,78 @@ package Material_Demo_Styles is
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
       Border_Radius => Set (Radius (Px (20.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'nav-btn' when widget State_Hovered
-   Nav_Btn_Class_Widget_Hovered_Style : constant Style_Rules := (
+   function Nav_Btn_Class_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (208, 188, 255, 0.08)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'nav-btn' when widget State_Focused
-   Nav_Btn_Class_Widget_Focused_Style : constant Style_Rules := (
+   function Nav_Btn_Class_Widget_Focused_Style return Style_Rules is
+     (
       Outline_Width => Set_Outline_Width (Px (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
       Outline_Offset => Set_Outline_Offset (Px (2.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'nav-btn' when widget State_Selected
-   Nav_Btn_Class_Widget_Selected_Style : constant Style_Rules := (
+   function Nav_Btn_Class_Widget_Selected_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (74, 68, 88)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'nav-btn'::label
-   Nav_Btn_Class_Label_Base_Style : constant Style_Rules := (
+   function Nav_Btn_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (202, 196, 208)),
       Font_Size => Set_Font (Px (14.0)),
       Font_Weight => Set (Weight_Medium),
       Text_Wrap_Mode => Set (TWM_Nowrap),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Color))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'nav-btn'::label when widget State_Hovered
-   Nav_Btn_Class_Label_Widget_Hovered_Style : constant Style_Rules := (
+   function Nav_Btn_Class_Label_Widget_Hovered_Style return Style_Rules is
+     (
       Color => Set (RGB (208, 188, 255)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'nav-btn'::label when widget State_Selected
-   Nav_Btn_Class_Label_Widget_Selected_Style : constant Style_Rules := (
+   function Nav_Btn_Class_Label_Widget_Selected_Style return Style_Rules is
+     (
       Color => Set (RGB (208, 188, 255)),
       Font_Weight => Set (Weight_Bold),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'pages'
-   Pages_Class_Base_Style : constant Style_Rules := (
+   function Pages_Class_Base_Style return Style_Rules is
+     (
       Flex_Grow => Set (1.0),
       Padding => Set (CSS_Box (Px (16.0), Px (16.0), Px (16.0), Px (16.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'page'
-   Page_Class_Base_Style : constant Style_Rules := (
+   function Page_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (16.0))),
       Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'label-inline'
-   Label_Inline_Class_Base_Style : constant Style_Rules := (
+   function Label_Inline_Class_Base_Style return Style_Rules is
+     (
       Flex_Shrink => Set (0.0),
       Display => Set (Inline_Flex),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'card'
-   Card_Class_Base_Style : constant Style_Rules := (
+   function Card_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (43, 41, 48)),
@@ -152,70 +153,70 @@ package Material_Demo_Styles is
       Transition => Set ((Duration => 0.25, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
       Border_Radius => Set (Radius (Px (16.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'card-title'::label
-   Card_Title_Class_Label_Base_Style : constant Style_Rules := (
+   function Card_Title_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (230, 225, 229)),
       Font_Size => Set_Font (Px (20.0)),
       Font_Weight => Set (Weight_Semi_Bold),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'card-body'::label
-   Card_Body_Class_Label_Base_Style : constant Style_Rules := (
+   function Card_Body_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (202, 196, 208)),
       Font_Size => Set_Font (Px (14.0)),
       Font_Weight => Set (Weight_Normal),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'card-hint'::label
-   Card_Hint_Class_Label_Base_Style : constant Style_Rules := (
+   function Card_Hint_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGBA (202, 196, 208, 0.6)),
       Font_Size => Set_Font (Px (12.0)),
       Font_Weight => Set (Weight_Normal),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'control-grid'
-   Control_Grid_Class_Base_Style : constant Style_Rules := (
+   function Control_Grid_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Grid),
       Grid_Columns => Set (Grid_Columns_Value (3)),
       Grid_Column_Tracks => (Count => 3, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), others => <>]),
       Gap => Set (Gap (Px (12.0), Px (16.0))),
       Align_Items => Set (Center),
       Padding => Set (CSS_Box (Px (4.0), Px (0.0), Px (4.0), Px (0.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'grid-header'::label
-   Grid_Header_Class_Label_Base_Style : constant Style_Rules := (
+   function Grid_Header_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGBA (202, 196, 208, 0.6)),
       Font_Size => Set_Font (Px (12.0)),
       Font_Weight => Set (Weight_Semi_Bold),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'grid-label'::label
-   Grid_Label_Class_Label_Base_Style : constant Style_Rules := (
+   function Grid_Label_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (202, 196, 208)),
       Font_Size => Set_Font (Px (14.0)),
       Font_Weight => Set (Weight_Medium),
       Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'grid-cell'
-   Grid_Cell_Class_Base_Style : constant Style_Rules := (
+   function Grid_Cell_Class_Base_Style return Style_Rules is
+     (
       Flex_Shrink => Set (0.0),
       Align_Self => Set (Center),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'btn'
-   Btn_Class_Base_Style : constant Style_Rules := (
+   function Btn_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Inline_Flex),
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
@@ -223,121 +224,121 @@ package Material_Demo_Styles is
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
       Border_Radius => Set (Radius (Px (20.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'btn' when widget State_Disabled
-   Btn_Class_Widget_Disabled_Style : constant Style_Rules := (
+   function Btn_Class_Widget_Disabled_Style return Style_Rules is
+     (
       Opacity => Set (0.5),
       Cursor => Set (Cursor_Default),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'btn'::label
-   Btn_Class_Label_Base_Style : constant Style_Rules := (
+   function Btn_Class_Label_Base_Style return Style_Rules is
+     (
       Font_Size => Set_Font (Px (14.0)),
       Font_Weight => Set (Weight_Semi_Bold),
       Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'btn-primary'
-   Btn_Primary_Class_Base_Style : constant Style_Rules := (
+   function Btn_Primary_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (208, 188, 255)),
       Box_Shadow => Set (Shadow (Px (0.0), Px (1.0), Px (3.0), Px (0.0), RGBA (0, 0, 0, 0.3))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'btn-primary' when widget State_Hovered
-   Btn_Primary_Class_Widget_Hovered_Style : constant Style_Rules := (
+   function Btn_Primary_Class_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (220, 204, 255)),
       Box_Shadow => Set (Shadow (Px (0.0), Px (2.0), Px (6.0), Px (0.0), RGBA (0, 0, 0, 0.35))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'btn-primary' when widget State_Pressed
-   Btn_Primary_Class_Widget_Pressed_Style : constant Style_Rules := (
+   function Btn_Primary_Class_Widget_Pressed_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (190, 168, 240)),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (2.0), Px (0.0), RGBA (0, 0, 0, 0.2))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'btn-primary' when widget State_Focused
-   Btn_Primary_Class_Widget_Focused_Style : constant Style_Rules := (
+   function Btn_Primary_Class_Widget_Focused_Style return Style_Rules is
+     (
       Outline_Width => Set_Outline_Width (Px (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (255, 255, 255)),
       Outline_Offset => Set_Outline_Offset (Px (2.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'btn-primary'::label
-   Btn_Primary_Class_Label_Base_Style : constant Style_Rules := (
+   function Btn_Primary_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (56, 30, 114)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'btn-secondary'
-   Btn_Secondary_Class_Base_Style : constant Style_Rules := (
+   function Btn_Secondary_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Border_Color => Set (Border_Color (RGB (147, 143, 153))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'btn-secondary' when widget State_Hovered
-   Btn_Secondary_Class_Widget_Hovered_Style : constant Style_Rules := (
+   function Btn_Secondary_Class_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (208, 188, 255, 0.08)),
       Box_Shadow => Set (Shadow (Px (0.0), Px (1.0), Px (4.0), Px (0.0), RGBA (0, 0, 0, 0.25))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'btn-secondary' when widget State_Pressed
-   Btn_Secondary_Class_Widget_Pressed_Style : constant Style_Rules := (
+   function Btn_Secondary_Class_Widget_Pressed_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (208, 188, 255, 0.16)),
       Box_Shadow => Set (No_Shadow),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'btn-secondary' when widget State_Focused
-   Btn_Secondary_Class_Widget_Focused_Style : constant Style_Rules := (
+   function Btn_Secondary_Class_Widget_Focused_Style return Style_Rules is
+     (
       Outline_Width => Set_Outline_Width (Px (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
       Outline_Offset => Set_Outline_Offset (Px (2.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'btn-secondary'::label
-   Btn_Secondary_Class_Label_Base_Style : constant Style_Rules := (
+   function Btn_Secondary_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (208, 188, 255)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'btn-row'
-   Btn_Row_Class_Base_Style : constant Style_Rules := (
+   function Btn_Row_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Gap => Set (Gap (Px (12.0))),
       Padding => Set (CSS_Box (Px (8.0), Px (0.0), Px (0.0), Px (0.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'field-label'
-   Field_Label_Class_Base_Style : constant Style_Rules := (
+   function Field_Label_Class_Base_Style return Style_Rules is
+     (
       Padding => Set (CSS_Box (Px (4.0), Px (0.0), Px (0.0), Px (0.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'field-label'::label
-   Field_Label_Class_Label_Base_Style : constant Style_Rules := (
+   function Field_Label_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (202, 196, 208)),
       Font_Size => Set_Font (Px (12.0)),
       Font_Weight => Set (Weight_Medium),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'text-field'
-   Text_Field_Class_Base_Style : constant Style_Rules := (
+   function Text_Field_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Cursor => Set (Cursor_Text),
       Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Border_Color))),
@@ -346,31 +347,31 @@ package Material_Demo_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (147, 143, 153))),
       Border_Radius => Set (Radius (Px (8.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'text-field' when widget State_Focused
-   Text_Field_Class_Widget_Focused_Style : constant Style_Rules := (
+   function Text_Field_Class_Widget_Focused_Style return Style_Rules is
+     (
       Border_Color => Set (Border_Color (RGB (208, 188, 255))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'text-field' when widget State_Disabled
-   Text_Field_Class_Widget_Disabled_Style : constant Style_Rules := (
+   function Text_Field_Class_Widget_Disabled_Style return Style_Rules is
+     (
       Opacity => Set (0.5),
       Cursor => Set (Cursor_Default),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'text-field'::cursor
-   Text_Field_Class_Cursor_Base_Style : constant Style_Rules := (
+   function Text_Field_Class_Cursor_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (208, 188, 255)),
       Width => Set (Size (Px (2.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'text-field'::label
-   Text_Field_Class_Label_Base_Style : constant Style_Rules := (
+   function Text_Field_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (147, 143, 153)),
       Font_Size => Set_Font (Px (12.0)),
       Font_Weight => Set (Weight_Medium),
@@ -379,30 +380,30 @@ package Material_Demo_Styles is
       Top => Set_Top (Inset (Px (-8.0))),
       Left => Set_Left (Inset (Px (12.0))),
       Padding => Set (CSS_Box (Px (0.0), Px (4.0), Px (0.0), Px (4.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'text-field'::label when widget State_Focused
-   Text_Field_Class_Label_Widget_Focused_Style : constant Style_Rules := (
+   function Text_Field_Class_Label_Widget_Focused_Style return Style_Rules is
+     (
       Color => Set (RGB (208, 188, 255)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'text-field'::selected
-   Text_Field_Class_Selected_Base_Style : constant Style_Rules := (
+   function Text_Field_Class_Selected_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (208, 188, 255, 0.3)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'text-field'::text
-   Text_Field_Class_Text_Base_Style : constant Style_Rules := (
+   function Text_Field_Class_Text_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (230, 225, 229)),
       Font_Size => Set_Font (Px (14.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'combo'
-   Combo_Class_Base_Style : constant Style_Rules := (
+   function Combo_Class_Base_Style return Style_Rules is
+     (
       Height => Set (Size (Px (44.0))),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (54, 52, 59)),
@@ -412,70 +413,70 @@ package Material_Demo_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (147, 143, 153))),
       Border_Radius => Set (Radius (Px (8.0), Px (8.0), Px (0.0), Px (0.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'combo' when widget State_Hovered
-   Combo_Class_Widget_Hovered_Style : constant Style_Rules := (
+   function Combo_Class_Widget_Hovered_Style return Style_Rules is
+     (
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (0.0), RGBA (208, 188, 255, 0.15))),
       Border_Color => Set (Border_Color (RGB (208, 188, 255))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'combo' when widget State_Focused
-   Combo_Class_Widget_Focused_Style : constant Style_Rules := (
+   function Combo_Class_Widget_Focused_Style return Style_Rules is
+     (
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (0.0), RGBA (208, 188, 255, 0.5))),
       Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
       Border_Color => Set (Border_Color (RGB (208, 188, 255))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'combo' when widget State_Disabled
-   Combo_Class_Widget_Disabled_Style : constant Style_Rules := (
+   function Combo_Class_Widget_Disabled_Style return Style_Rules is
+     (
       Opacity => Set (0.5),
       Cursor => Set (Cursor_Default),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'combo'::indicator
-   Combo_Class_Indicator_Base_Style : constant Style_Rules := (
+   function Combo_Class_Indicator_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (202, 196, 208)),
       Font_Size => Set_Font (Px (12.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'combo'::text
-   Combo_Class_Text_Base_Style : constant Style_Rules := (
+   function Combo_Class_Text_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (230, 225, 229)),
       Font_Size => Set_Font (Px (14.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'setting-row'
-   Setting_Row_Class_Base_Style : constant Style_Rules := (
+   function Setting_Row_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Align_Items => Set (Center),
       Justify_Content => Set (Space_Between),
       Padding => Set (CSS_Box (Px (8.0), Px (0.0), Px (8.0), Px (0.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'setting-label'
-   Setting_Label_Class_Base_Style : constant Style_Rules := (
-      others => <>
-   );
+   function Setting_Label_Class_Base_Style return Style_Rules is
+     (
+      others => <>);
 
    --  Base style for class 'setting-label'::label
-   Setting_Label_Class_Label_Base_Style : constant Style_Rules := (
+   function Setting_Label_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (230, 225, 229)),
       Font_Size => Set_Font (Px (16.0)),
       Font_Weight => Set (Weight_Normal),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'setting-switch'
-   Setting_Switch_Class_Base_Style : constant Style_Rules := (
+   function Setting_Switch_Class_Base_Style return Style_Rules is
+     (
       Flex_Shrink => Set (0.0),
       Width => Set (Size (Px (52.0))),
       Height => Set (Size (Px (32.0))),
@@ -486,61 +487,61 @@ package Material_Demo_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (147, 143, 153))),
       Border_Radius => Set (Radius (Px (16.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'setting-switch' when widget State_Selected
-   Setting_Switch_Class_Widget_Selected_Style : constant Style_Rules := (
+   function Setting_Switch_Class_Widget_Selected_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (208, 188, 255)),
       Border_Color => Set (Border_Color (RGB (208, 188, 255))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'setting-switch' when widget State_Focused
-   Setting_Switch_Class_Widget_Focused_Style : constant Style_Rules := (
+   function Setting_Switch_Class_Widget_Focused_Style return Style_Rules is
+     (
       Outline_Width => Set_Outline_Width (Px (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
       Outline_Offset => Set_Outline_Offset (Px (2.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'setting-switch' when widget State_Selected, widget State_Focused
-   Setting_Switch_Class_Widget_Selected_Widget_Focused_Style : constant Style_Rules := (
+   function Setting_Switch_Class_Widget_Selected_Widget_Focused_Style return Style_Rules is
+     (
       Outline_Width => Set_Outline_Width (Px (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
       Outline_Offset => Set_Outline_Offset (Px (2.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'setting-switch' when widget State_Disabled
-   Setting_Switch_Class_Widget_Disabled_Style : constant Style_Rules := (
+   function Setting_Switch_Class_Widget_Disabled_Style return Style_Rules is
+     (
       Opacity => Set (0.5),
       Cursor => Set (Cursor_Default),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'setting-switch'::knob
-   Setting_Switch_Class_Knob_Base_Style : constant Style_Rules := (
+   function Setting_Switch_Class_Knob_Base_Style return Style_Rules is
+     (
       Width => Set (Size (Px (24.0))),
       Height => Set (Size (Px (24.0))),
       Background_Color => Set_Bg (RGB (147, 143, 153)),
       Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Margin))),
       Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (0.0), Px (2.0))),
       Border_Radius => Set (Radius (Px (12.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'setting-switch'::knob when widget State_Selected
-   Setting_Switch_Class_Knob_Widget_Selected_Style : constant Style_Rules := (
+   function Setting_Switch_Class_Knob_Widget_Selected_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (56, 30, 114)),
       Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (0.0), Px (22.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'combo-dropdown'
-   Combo_Dropdown_Class_Base_Style : constant Style_Rules := (
+   function Combo_Dropdown_Class_Base_Style return Style_Rules is
+     (
       Max_Height => Set (Size (Px (240.0))),
       Background_Color => Set_Bg (RGB (54, 52, 60)),
       Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (20.0), Px (0.0), RGBA (0, 0, 0, 0.4))),
@@ -551,52 +552,52 @@ package Material_Demo_Styles is
       Border_Radius => Set (Radius (Px (12.0))),
       Overflow_X => Set_Overflow_X (Overflow_Auto),
       Overflow_Y => Set_Overflow_Y (Overflow_Auto),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'combo-option'
-   Combo_Option_Class_Base_Style : constant Style_Rules := (
+   function Combo_Option_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (10.0), Px (14.0), Px (10.0), Px (14.0))),
       Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (2.0), Px (0.0))),
       Border_Radius => Set (Radius (Px (8.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'combo-option' when widget State_Hovered
-   Combo_Option_Class_Widget_Hovered_Style : constant Style_Rules := (
+   function Combo_Option_Class_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (208, 188, 255, 0.08)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'combo-option' when widget State_Selected
-   Combo_Option_Class_Widget_Selected_Style : constant Style_Rules := (
+   function Combo_Option_Class_Widget_Selected_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (74, 68, 88)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'combo-option'::label
-   Combo_Option_Class_Label_Base_Style : constant Style_Rules := (
+   function Combo_Option_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (230, 225, 229)),
       Font_Size => Set_Font (Px (14.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'combo-option'::label when widget State_Selected
-   Combo_Option_Class_Label_Widget_Selected_Style : constant Style_Rules := (
+   function Combo_Option_Class_Label_Widget_Selected_Style return Style_Rules is
+     (
       Color => Set (RGB (208, 188, 255)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'dialog-backdrop'
-   Dialog_Backdrop_Class_Base_Style : constant Style_Rules := (
+   function Dialog_Backdrop_Class_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.5)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'dialog-panel'
-   Dialog_Panel_Class_Base_Style : constant Style_Rules := (
+   function Dialog_Panel_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (16.0))),
@@ -606,58 +607,58 @@ package Material_Demo_Styles is
       Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (32.0), Px (0.0), RGBA (0, 0, 0, 0.5))),
       Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
       Border_Radius => Set (Radius (Px (28.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'dialog-message'
-   Dialog_Message_Class_Base_Style : constant Style_Rules := (
+   function Dialog_Message_Class_Base_Style return Style_Rules is
+     (
       Flex_Direction => Set (Row),
       Align_Items => Set (Flex_Start),
       Gap => Set (Gap (Px (12.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'dialog-message'::icon
-   Dialog_Message_Class_Icon_Base_Style : constant Style_Rules := (
+   function Dialog_Message_Class_Icon_Base_Style return Style_Rules is
+     (
       Width => Set (Size (Px (32.0))),
       Height => Set (Size (Px (32.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'dialog-message'::label
-   Dialog_Message_Class_Label_Base_Style : constant Style_Rules := (
+   function Dialog_Message_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (202, 196, 208)),
       Font_Size => Set_Font (Px (14.0)),
       Text_Wrap_Mode => Set (TWM_Wrap),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'dialog-title'
-   Dialog_Title_Class_Base_Style : constant Style_Rules := (
+   function Dialog_Title_Class_Base_Style return Style_Rules is
+     (
       Flex_Shrink => Set (0.0),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'dialog-title'::label
-   Dialog_Title_Class_Label_Base_Style : constant Style_Rules := (
+   function Dialog_Title_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (230, 225, 229)),
       Font_Size => Set_Font (Px (24.0)),
       Font_Weight => Set (Weight_Semi_Bold),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'dialog-btn-row'
-   Dialog_Btn_Row_Class_Base_Style : constant Style_Rules := (
+   function Dialog_Btn_Row_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Justify_Content => Set (Flex_End),
       Gap => Set (Gap (Px (8.0))),
       Padding => Set (CSS_Box (Px (8.0), Px (0.0), Px (0.0), Px (0.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'dialog-btn'
-   Dialog_Btn_Class_Base_Style : constant Style_Rules := (
+   function Dialog_Btn_Class_Base_Style return Style_Rules is
+     (
       Display => Set (Inline_Flex),
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
@@ -665,103 +666,103 @@ package Material_Demo_Styles is
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (10.0), Px (24.0), Px (10.0), Px (24.0))),
       Border_Radius => Set (Radius (Px (20.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'dialog-btn' when widget State_Hovered
-   Dialog_Btn_Class_Widget_Hovered_Style : constant Style_Rules := (
+   function Dialog_Btn_Class_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (208, 188, 255, 0.08)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'dialog-btn' when widget State_Pressed
-   Dialog_Btn_Class_Widget_Pressed_Style : constant Style_Rules := (
+   function Dialog_Btn_Class_Widget_Pressed_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (208, 188, 255, 0.12)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'dialog-btn' when widget State_Focused
-   Dialog_Btn_Class_Widget_Focused_Style : constant Style_Rules := (
+   function Dialog_Btn_Class_Widget_Focused_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (208, 188, 255, 0.12)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'dialog-btn'::label
-   Dialog_Btn_Class_Label_Base_Style : constant Style_Rules := (
+   function Dialog_Btn_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (208, 188, 255)),
       Font_Size => Set_Font (Px (14.0)),
       Font_Weight => Set (Weight_Semi_Bold),
       Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'slider'
-   Slider_Class_Base_Style : constant Style_Rules := (
+   function Slider_Class_Base_Style return Style_Rules is
+     (
       Width => Set (Size (Px (200.0))),
       Height => Set (Size (Px (20.0))),
       Background_Color => Set_Bg (RGB (73, 69, 79)),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Border_Radius => Set (Radius (Px (10.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'slider' when widget State_Focused
-   Slider_Class_Widget_Focused_Style : constant Style_Rules := (
+   function Slider_Class_Widget_Focused_Style return Style_Rules is
+     (
       Outline_Width => Set_Outline_Width (Px (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
       Outline_Offset => Set_Outline_Offset (Px (2.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'slider' when widget State_Disabled
-   Slider_Class_Widget_Disabled_Style : constant Style_Rules := (
+   function Slider_Class_Widget_Disabled_Style return Style_Rules is
+     (
       Opacity => Set (0.5),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'slider'::indicator
-   Slider_Class_Indicator_Base_Style : constant Style_Rules := (
+   function Slider_Class_Indicator_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (208, 188, 255)),
       Border_Radius => Set (Radius (Px (10.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'slider'::indicator when widget State_Disabled
-   Slider_Class_Indicator_Widget_Disabled_Style : constant Style_Rules := (
+   function Slider_Class_Indicator_Widget_Disabled_Style return Style_Rules is
+     (
       Opacity => Set (0.5),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'slider'::knob
-   Slider_Class_Knob_Base_Style : constant Style_Rules := (
+   function Slider_Class_Knob_Base_Style return Style_Rules is
+     (
       Width => Set (Size (Px (20.0))),
       Background_Color => Set_Bg (RGB (230, 225, 229)),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Border_Radius => Set (Radius (Pct (50.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'slider'::knob when part State_Hovered
-   Slider_Class_Knob_Part_Hovered_Style : constant Style_Rules := (
+   function Slider_Class_Knob_Part_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (208, 188, 255)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'slider'::knob when part State_Pressed
-   Slider_Class_Knob_Part_Pressed_Style : constant Style_Rules := (
+   function Slider_Class_Knob_Part_Pressed_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (208, 188, 255)),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'slider'::knob when widget State_Disabled
-   Slider_Class_Knob_Widget_Disabled_Style : constant Style_Rules := (
+   function Slider_Class_Knob_Widget_Disabled_Style return Style_Rules is
+     (
       Opacity => Set (0.5),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'num-field'
-   Num_Field_Class_Base_Style : constant Style_Rules := (
+   function Num_Field_Class_Base_Style return Style_Rules is
+     (
       Width => Set (Size (Px (100.0))),
       Background_Color => Set_Bg (RGB (54, 52, 59)),
       Cursor => Set (Cursor_Text),
@@ -771,48 +772,48 @@ package Material_Demo_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (147, 143, 153))),
       Border_Radius => Set (Radius (Px (8.0), Px (8.0), Px (0.0), Px (0.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'num-field' when widget State_Focused
-   Num_Field_Class_Widget_Focused_Style : constant Style_Rules := (
+   function Num_Field_Class_Widget_Focused_Style return Style_Rules is
+     (
       Outline_Width => Set_Outline_Width (Px (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
       Outline_Offset => Set_Outline_Offset (Px (2.0)),
       Border_Color => Set (Border_Color (RGB (208, 188, 255))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'num-field' when widget State_Disabled
-   Num_Field_Class_Widget_Disabled_Style : constant Style_Rules := (
+   function Num_Field_Class_Widget_Disabled_Style return Style_Rules is
+     (
       Opacity => Set (0.5),
       Cursor => Set (Cursor_Default),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'num-field'::cursor
-   Num_Field_Class_Cursor_Base_Style : constant Style_Rules := (
+   function Num_Field_Class_Cursor_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGB (208, 188, 255)),
       Width => Set (Size (Px (2.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'num-field'::selected
-   Num_Field_Class_Selected_Base_Style : constant Style_Rules := (
+   function Num_Field_Class_Selected_Base_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (208, 188, 255, 0.3)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'num-field'::text
-   Num_Field_Class_Text_Base_Style : constant Style_Rules := (
+   function Num_Field_Class_Text_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (230, 225, 229)),
       Font_Size => Set_Font (Px (14.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'context-menu'
-   Context_Menu_Class_Base_Style : constant Style_Rules := (
+   function Context_Menu_Class_Base_Style return Style_Rules is
+     (
       Width => Set (Size (Px (180.0))),
       Background_Color => Set_Bg (RGB (54, 52, 60)),
       Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (24.0), Px (0.0), RGBA (0, 0, 0, 0.45))),
@@ -821,641 +822,678 @@ package Material_Demo_Styles is
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (73, 69, 79))),
       Border_Radius => Set (Radius (Px (8.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'context-menu-item'
-   Context_Menu_Item_Class_Base_Style : constant Style_Rules := (
+   function Context_Menu_Item_Class_Base_Style return Style_Rules is
+     (
       Min_Height => Set (Size (Px (28.0))),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Padding => Set (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0))),
       Border_Radius => Set (Radius (Px (6.0))),
-      others => <>
-   );
+      others => <>);
 
    --  Style for class 'context-menu-item' when widget State_Hovered
-   Context_Menu_Item_Class_Widget_Hovered_Style : constant Style_Rules := (
+   function Context_Menu_Item_Class_Widget_Hovered_Style return Style_Rules is
+     (
       Background_Color => Set_Bg (RGBA (208, 188, 255, 0.15)),
-      others => <>
-   );
+      others => <>);
 
    --  Base style for class 'context-menu-item'::label
-   Context_Menu_Item_Class_Label_Base_Style : constant Style_Rules := (
+   function Context_Menu_Item_Class_Label_Base_Style return Style_Rules is
+     (
       Color => Set (RGB (230, 225, 229)),
       Font_Size => Set_Font (Px (13.0)),
-      others => <>
-   );
+      others => <>);
 
    --  Complete widget style for class 'root'
-   Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
-     .Build;
+   function Root_Class_Widget return Widget_Style is
+     (From (Root_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'root'
-   Root_Class_Part_Styles : constant Part_Style_Array := [
+   function Root_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Root_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'app-bar'
-   App_Bar_Class_Widget : constant Widget_Style :=
-     From (App_Bar_Class_Base_Style)
-     .Build;
+   function App_Bar_Class_Widget return Widget_Style is
+     (From (App_Bar_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'app-bar'
-   App_Bar_Class_Part_Styles : constant Part_Style_Array := [
+   function App_Bar_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => App_Bar_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'app-title'
-   App_Title_Class_Widget : constant Widget_Style :=
-     From (App_Title_Class_Base_Style)
-     .Build;
+   function App_Title_Class_Widget return Widget_Style is
+     (From (App_Title_Class_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'app-title'::icon
-   App_Title_Class_Icon_Widget : constant Widget_Style :=
-     From (App_Title_Class_Icon_Base_Style)
-     .Build;
+   function App_Title_Class_Icon_Widget return Widget_Style is
+     (From (App_Title_Class_Icon_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'app-title'::label
-   App_Title_Class_Label_Widget : constant Widget_Style :=
-     From (App_Title_Class_Label_Base_Style)
-     .Build;
+   function App_Title_Class_Label_Widget return Widget_Style is
+     (From (App_Title_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'app-title'
-   App_Title_Class_Part_Styles : constant Part_Style_Array := [
+   function App_Title_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => App_Title_Class_Widget, Enabled => True),
       Icon_Part => (Style => App_Title_Class_Icon_Widget, Enabled => True),
       Label_Part => (Style => App_Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'nav-bar'
-   Nav_Bar_Class_Widget : constant Widget_Style :=
-     From (Nav_Bar_Class_Base_Style)
-     .Build;
+   function Nav_Bar_Class_Widget return Widget_Style is
+     (From (Nav_Bar_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'nav-bar'
-   Nav_Bar_Class_Part_Styles : constant Part_Style_Array := [
+   function Nav_Bar_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Nav_Bar_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'nav-btn'
-   Nav_Btn_Class_Widget : constant Widget_Style :=
-     From (Nav_Btn_Class_Base_Style)
+   function Nav_Btn_Class_Widget return Widget_Style is
+     (From (Nav_Btn_Class_Base_Style)
      .On (When_State (State_Hovered), Nav_Btn_Class_Widget_Hovered_Style)
      .On (When_State (State_Focused), Nav_Btn_Class_Widget_Focused_Style)
      .On (When_State (State_Selected), Nav_Btn_Class_Widget_Selected_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'nav-btn'::label
-   Nav_Btn_Class_Label_Widget : constant Widget_Style :=
-     From (Nav_Btn_Class_Label_Base_Style)
+   function Nav_Btn_Class_Label_Widget return Widget_Style is
+     (From (Nav_Btn_Class_Label_Base_Style)
      .On (When_State (State_Hovered), Nav_Btn_Class_Label_Widget_Hovered_Style)
      .On (When_State (State_Selected), Nav_Btn_Class_Label_Widget_Selected_Style)
-     .Build;
+     .Build);
 
    --  Part styles bundle for class 'nav-btn'
-   Nav_Btn_Class_Part_Styles : constant Part_Style_Array := [
+   function Nav_Btn_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Nav_Btn_Class_Widget, Enabled => True),
       Label_Part => (Style => Nav_Btn_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'pages'
-   Pages_Class_Widget : constant Widget_Style :=
-     From (Pages_Class_Base_Style)
-     .Build;
+   function Pages_Class_Widget return Widget_Style is
+     (From (Pages_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'pages'
-   Pages_Class_Part_Styles : constant Part_Style_Array := [
+   function Pages_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Pages_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'page'
-   Page_Class_Widget : constant Widget_Style :=
-     From (Page_Class_Base_Style)
-     .Build;
+   function Page_Class_Widget return Widget_Style is
+     (From (Page_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'page'
-   Page_Class_Part_Styles : constant Part_Style_Array := [
+   function Page_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Page_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'label-inline'
-   Label_Inline_Class_Widget : constant Widget_Style :=
-     From (Label_Inline_Class_Base_Style)
-     .Build;
+   function Label_Inline_Class_Widget return Widget_Style is
+     (From (Label_Inline_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'label-inline'
-   Label_Inline_Class_Part_Styles : constant Part_Style_Array := [
+   function Label_Inline_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Label_Inline_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'card'
-   Card_Class_Widget : constant Widget_Style :=
-     From (Card_Class_Base_Style)
-     .Build;
+   function Card_Class_Widget return Widget_Style is
+     (From (Card_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'card'
-   Card_Class_Part_Styles : constant Part_Style_Array := [
+   function Card_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Card_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'card-title'::label
-   Card_Title_Class_Label_Widget : constant Widget_Style :=
-     From (Card_Title_Class_Label_Base_Style)
-     .Build;
+   function Card_Title_Class_Label_Widget return Widget_Style is
+     (From (Card_Title_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'card-title'
-   Card_Title_Class_Part_Styles : constant Part_Style_Array := [
+   function Card_Title_Class_Part_Styles return Part_Style_Array is
+     ([
       Label_Part => (Style => Card_Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'card-body'::label
-   Card_Body_Class_Label_Widget : constant Widget_Style :=
-     From (Card_Body_Class_Label_Base_Style)
-     .Build;
+   function Card_Body_Class_Label_Widget return Widget_Style is
+     (From (Card_Body_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'card-body'
-   Card_Body_Class_Part_Styles : constant Part_Style_Array := [
+   function Card_Body_Class_Part_Styles return Part_Style_Array is
+     ([
       Label_Part => (Style => Card_Body_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'card-hint'::label
-   Card_Hint_Class_Label_Widget : constant Widget_Style :=
-     From (Card_Hint_Class_Label_Base_Style)
-     .Build;
+   function Card_Hint_Class_Label_Widget return Widget_Style is
+     (From (Card_Hint_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'card-hint'
-   Card_Hint_Class_Part_Styles : constant Part_Style_Array := [
+   function Card_Hint_Class_Part_Styles return Part_Style_Array is
+     ([
       Label_Part => (Style => Card_Hint_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'control-grid'
-   Control_Grid_Class_Widget : constant Widget_Style :=
-     From (Control_Grid_Class_Base_Style)
-     .Build;
+   function Control_Grid_Class_Widget return Widget_Style is
+     (From (Control_Grid_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'control-grid'
-   Control_Grid_Class_Part_Styles : constant Part_Style_Array := [
+   function Control_Grid_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Control_Grid_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'grid-header'::label
-   Grid_Header_Class_Label_Widget : constant Widget_Style :=
-     From (Grid_Header_Class_Label_Base_Style)
-     .Build;
+   function Grid_Header_Class_Label_Widget return Widget_Style is
+     (From (Grid_Header_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'grid-header'
-   Grid_Header_Class_Part_Styles : constant Part_Style_Array := [
+   function Grid_Header_Class_Part_Styles return Part_Style_Array is
+     ([
       Label_Part => (Style => Grid_Header_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'grid-label'::label
-   Grid_Label_Class_Label_Widget : constant Widget_Style :=
-     From (Grid_Label_Class_Label_Base_Style)
-     .Build;
+   function Grid_Label_Class_Label_Widget return Widget_Style is
+     (From (Grid_Label_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'grid-label'
-   Grid_Label_Class_Part_Styles : constant Part_Style_Array := [
+   function Grid_Label_Class_Part_Styles return Part_Style_Array is
+     ([
       Label_Part => (Style => Grid_Label_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'grid-cell'
-   Grid_Cell_Class_Widget : constant Widget_Style :=
-     From (Grid_Cell_Class_Base_Style)
-     .Build;
+   function Grid_Cell_Class_Widget return Widget_Style is
+     (From (Grid_Cell_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'grid-cell'
-   Grid_Cell_Class_Part_Styles : constant Part_Style_Array := [
+   function Grid_Cell_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Grid_Cell_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'btn'
-   Btn_Class_Widget : constant Widget_Style :=
-     From (Btn_Class_Base_Style)
+   function Btn_Class_Widget return Widget_Style is
+     (From (Btn_Class_Base_Style)
      .On (When_State (State_Disabled), Btn_Class_Widget_Disabled_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'btn'::label
-   Btn_Class_Label_Widget : constant Widget_Style :=
-     From (Btn_Class_Label_Base_Style)
-     .Build;
+   function Btn_Class_Label_Widget return Widget_Style is
+     (From (Btn_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'btn'
-   Btn_Class_Part_Styles : constant Part_Style_Array := [
+   function Btn_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Btn_Class_Widget, Enabled => True),
       Label_Part => (Style => Btn_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'btn-primary'
-   Btn_Primary_Class_Widget : constant Widget_Style :=
-     From (Btn_Primary_Class_Base_Style)
+   function Btn_Primary_Class_Widget return Widget_Style is
+     (From (Btn_Primary_Class_Base_Style)
      .On (When_State (State_Hovered), Btn_Primary_Class_Widget_Hovered_Style)
      .On (When_State (State_Pressed), Btn_Primary_Class_Widget_Pressed_Style)
      .On (When_State (State_Focused), Btn_Primary_Class_Widget_Focused_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'btn-primary'::label
-   Btn_Primary_Class_Label_Widget : constant Widget_Style :=
-     From (Btn_Primary_Class_Label_Base_Style)
-     .Build;
+   function Btn_Primary_Class_Label_Widget return Widget_Style is
+     (From (Btn_Primary_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'btn-primary'
-   Btn_Primary_Class_Part_Styles : constant Part_Style_Array := [
+   function Btn_Primary_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Btn_Primary_Class_Widget, Enabled => True),
       Label_Part => (Style => Btn_Primary_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'btn-secondary'
-   Btn_Secondary_Class_Widget : constant Widget_Style :=
-     From (Btn_Secondary_Class_Base_Style)
+   function Btn_Secondary_Class_Widget return Widget_Style is
+     (From (Btn_Secondary_Class_Base_Style)
      .On (When_State (State_Hovered), Btn_Secondary_Class_Widget_Hovered_Style)
      .On (When_State (State_Pressed), Btn_Secondary_Class_Widget_Pressed_Style)
      .On (When_State (State_Focused), Btn_Secondary_Class_Widget_Focused_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'btn-secondary'::label
-   Btn_Secondary_Class_Label_Widget : constant Widget_Style :=
-     From (Btn_Secondary_Class_Label_Base_Style)
-     .Build;
+   function Btn_Secondary_Class_Label_Widget return Widget_Style is
+     (From (Btn_Secondary_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'btn-secondary'
-   Btn_Secondary_Class_Part_Styles : constant Part_Style_Array := [
+   function Btn_Secondary_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Btn_Secondary_Class_Widget, Enabled => True),
       Label_Part => (Style => Btn_Secondary_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'btn-row'
-   Btn_Row_Class_Widget : constant Widget_Style :=
-     From (Btn_Row_Class_Base_Style)
-     .Build;
+   function Btn_Row_Class_Widget return Widget_Style is
+     (From (Btn_Row_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'btn-row'
-   Btn_Row_Class_Part_Styles : constant Part_Style_Array := [
+   function Btn_Row_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Btn_Row_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'field-label'
-   Field_Label_Class_Widget : constant Widget_Style :=
-     From (Field_Label_Class_Base_Style)
-     .Build;
+   function Field_Label_Class_Widget return Widget_Style is
+     (From (Field_Label_Class_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'field-label'::label
-   Field_Label_Class_Label_Widget : constant Widget_Style :=
-     From (Field_Label_Class_Label_Base_Style)
-     .Build;
+   function Field_Label_Class_Label_Widget return Widget_Style is
+     (From (Field_Label_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'field-label'
-   Field_Label_Class_Part_Styles : constant Part_Style_Array := [
+   function Field_Label_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Field_Label_Class_Widget, Enabled => True),
       Label_Part => (Style => Field_Label_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'text-field'
-   Text_Field_Class_Widget : constant Widget_Style :=
-     From (Text_Field_Class_Base_Style)
+   function Text_Field_Class_Widget return Widget_Style is
+     (From (Text_Field_Class_Base_Style)
      .On (When_State (State_Focused), Text_Field_Class_Widget_Focused_Style)
      .On (When_State (State_Disabled), Text_Field_Class_Widget_Disabled_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'text-field'::cursor
-   Text_Field_Class_Cursor_Widget : constant Widget_Style :=
-     From (Text_Field_Class_Cursor_Base_Style)
-     .Build;
+   function Text_Field_Class_Cursor_Widget return Widget_Style is
+     (From (Text_Field_Class_Cursor_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'text-field'::label
-   Text_Field_Class_Label_Widget : constant Widget_Style :=
-     From (Text_Field_Class_Label_Base_Style)
+   function Text_Field_Class_Label_Widget return Widget_Style is
+     (From (Text_Field_Class_Label_Base_Style)
      .On (When_State (State_Focused), Text_Field_Class_Label_Widget_Focused_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'text-field'::selected
-   Text_Field_Class_Selected_Widget : constant Widget_Style :=
-     From (Text_Field_Class_Selected_Base_Style)
-     .Build;
+   function Text_Field_Class_Selected_Widget return Widget_Style is
+     (From (Text_Field_Class_Selected_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'text-field'::text
-   Text_Field_Class_Text_Widget : constant Widget_Style :=
-     From (Text_Field_Class_Text_Base_Style)
-     .Build;
+   function Text_Field_Class_Text_Widget return Widget_Style is
+     (From (Text_Field_Class_Text_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'text-field'
-   Text_Field_Class_Part_Styles : constant Part_Style_Array := [
+   function Text_Field_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Text_Field_Class_Widget, Enabled => True),
       Cursor_Part => (Style => Text_Field_Class_Cursor_Widget, Enabled => True),
       Label_Part => (Style => Text_Field_Class_Label_Widget, Enabled => True),
       Selected_Part => (Style => Text_Field_Class_Selected_Widget, Enabled => True),
       Text_Part => (Style => Text_Field_Class_Text_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'combo'
-   Combo_Class_Widget : constant Widget_Style :=
-     From (Combo_Class_Base_Style)
+   function Combo_Class_Widget return Widget_Style is
+     (From (Combo_Class_Base_Style)
      .On (When_State (State_Hovered), Combo_Class_Widget_Hovered_Style)
      .On (When_State (State_Focused), Combo_Class_Widget_Focused_Style)
      .On (When_State (State_Disabled), Combo_Class_Widget_Disabled_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'combo'::indicator
-   Combo_Class_Indicator_Widget : constant Widget_Style :=
-     From (Combo_Class_Indicator_Base_Style)
-     .Build;
+   function Combo_Class_Indicator_Widget return Widget_Style is
+     (From (Combo_Class_Indicator_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'combo'::text
-   Combo_Class_Text_Widget : constant Widget_Style :=
-     From (Combo_Class_Text_Base_Style)
-     .Build;
+   function Combo_Class_Text_Widget return Widget_Style is
+     (From (Combo_Class_Text_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'combo'
-   Combo_Class_Part_Styles : constant Part_Style_Array := [
+   function Combo_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Combo_Class_Widget, Enabled => True),
       Indicator_Part => (Style => Combo_Class_Indicator_Widget, Enabled => True),
       Text_Part => (Style => Combo_Class_Text_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'setting-row'
-   Setting_Row_Class_Widget : constant Widget_Style :=
-     From (Setting_Row_Class_Base_Style)
-     .Build;
+   function Setting_Row_Class_Widget return Widget_Style is
+     (From (Setting_Row_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'setting-row'
-   Setting_Row_Class_Part_Styles : constant Part_Style_Array := [
+   function Setting_Row_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Setting_Row_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'setting-label'
-   Setting_Label_Class_Widget : constant Widget_Style :=
-     From (Setting_Label_Class_Base_Style)
-     .Build;
+   function Setting_Label_Class_Widget return Widget_Style is
+     (From (Setting_Label_Class_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'setting-label'::label
-   Setting_Label_Class_Label_Widget : constant Widget_Style :=
-     From (Setting_Label_Class_Label_Base_Style)
-     .Build;
+   function Setting_Label_Class_Label_Widget return Widget_Style is
+     (From (Setting_Label_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'setting-label'
-   Setting_Label_Class_Part_Styles : constant Part_Style_Array := [
+   function Setting_Label_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Setting_Label_Class_Widget, Enabled => True),
       Label_Part => (Style => Setting_Label_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'setting-switch'
-   Setting_Switch_Class_Widget : constant Widget_Style :=
-     From (Setting_Switch_Class_Base_Style)
+   function Setting_Switch_Class_Widget return Widget_Style is
+     (From (Setting_Switch_Class_Base_Style)
      .On (When_State (State_Selected), Setting_Switch_Class_Widget_Selected_Style)
      .On (When_State (State_Focused), Setting_Switch_Class_Widget_Focused_Style)
      .On (When_State (State_Selected) and When_State (State_Focused), Setting_Switch_Class_Widget_Selected_Widget_Focused_Style)
      .On (When_State (State_Disabled), Setting_Switch_Class_Widget_Disabled_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'setting-switch'::knob
-   Setting_Switch_Class_Knob_Widget : constant Widget_Style :=
-     From (Setting_Switch_Class_Knob_Base_Style)
+   function Setting_Switch_Class_Knob_Widget return Widget_Style is
+     (From (Setting_Switch_Class_Knob_Base_Style)
      .On (When_State (State_Selected), Setting_Switch_Class_Knob_Widget_Selected_Style)
-     .Build;
+     .Build);
 
    --  Part styles bundle for class 'setting-switch'
-   Setting_Switch_Class_Part_Styles : constant Part_Style_Array := [
+   function Setting_Switch_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Setting_Switch_Class_Widget, Enabled => True),
       Knob_Part => (Style => Setting_Switch_Class_Knob_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'combo-dropdown'
-   Combo_Dropdown_Class_Widget : constant Widget_Style :=
-     From (Combo_Dropdown_Class_Base_Style)
-     .Build;
+   function Combo_Dropdown_Class_Widget return Widget_Style is
+     (From (Combo_Dropdown_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'combo-dropdown'
-   Combo_Dropdown_Class_Part_Styles : constant Part_Style_Array := [
+   function Combo_Dropdown_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Combo_Dropdown_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'combo-option'
-   Combo_Option_Class_Widget : constant Widget_Style :=
-     From (Combo_Option_Class_Base_Style)
+   function Combo_Option_Class_Widget return Widget_Style is
+     (From (Combo_Option_Class_Base_Style)
      .On (When_State (State_Hovered), Combo_Option_Class_Widget_Hovered_Style)
      .On (When_State (State_Selected), Combo_Option_Class_Widget_Selected_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'combo-option'::label
-   Combo_Option_Class_Label_Widget : constant Widget_Style :=
-     From (Combo_Option_Class_Label_Base_Style)
+   function Combo_Option_Class_Label_Widget return Widget_Style is
+     (From (Combo_Option_Class_Label_Base_Style)
      .On (When_State (State_Selected), Combo_Option_Class_Label_Widget_Selected_Style)
-     .Build;
+     .Build);
 
    --  Part styles bundle for class 'combo-option'
-   Combo_Option_Class_Part_Styles : constant Part_Style_Array := [
+   function Combo_Option_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Combo_Option_Class_Widget, Enabled => True),
       Label_Part => (Style => Combo_Option_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'dialog-backdrop'
-   Dialog_Backdrop_Class_Widget : constant Widget_Style :=
-     From (Dialog_Backdrop_Class_Base_Style)
-     .Build;
+   function Dialog_Backdrop_Class_Widget return Widget_Style is
+     (From (Dialog_Backdrop_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'dialog-backdrop'
-   Dialog_Backdrop_Class_Part_Styles : constant Part_Style_Array := [
+   function Dialog_Backdrop_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Dialog_Backdrop_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'dialog-panel'
-   Dialog_Panel_Class_Widget : constant Widget_Style :=
-     From (Dialog_Panel_Class_Base_Style)
-     .Build;
+   function Dialog_Panel_Class_Widget return Widget_Style is
+     (From (Dialog_Panel_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'dialog-panel'
-   Dialog_Panel_Class_Part_Styles : constant Part_Style_Array := [
+   function Dialog_Panel_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Dialog_Panel_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'dialog-message'
-   Dialog_Message_Class_Widget : constant Widget_Style :=
-     From (Dialog_Message_Class_Base_Style)
-     .Build;
+   function Dialog_Message_Class_Widget return Widget_Style is
+     (From (Dialog_Message_Class_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'dialog-message'::icon
-   Dialog_Message_Class_Icon_Widget : constant Widget_Style :=
-     From (Dialog_Message_Class_Icon_Base_Style)
-     .Build;
+   function Dialog_Message_Class_Icon_Widget return Widget_Style is
+     (From (Dialog_Message_Class_Icon_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'dialog-message'::label
-   Dialog_Message_Class_Label_Widget : constant Widget_Style :=
-     From (Dialog_Message_Class_Label_Base_Style)
-     .Build;
+   function Dialog_Message_Class_Label_Widget return Widget_Style is
+     (From (Dialog_Message_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'dialog-message'
-   Dialog_Message_Class_Part_Styles : constant Part_Style_Array := [
+   function Dialog_Message_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Dialog_Message_Class_Widget, Enabled => True),
       Icon_Part => (Style => Dialog_Message_Class_Icon_Widget, Enabled => True),
       Label_Part => (Style => Dialog_Message_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'dialog-title'
-   Dialog_Title_Class_Widget : constant Widget_Style :=
-     From (Dialog_Title_Class_Base_Style)
-     .Build;
+   function Dialog_Title_Class_Widget return Widget_Style is
+     (From (Dialog_Title_Class_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'dialog-title'::label
-   Dialog_Title_Class_Label_Widget : constant Widget_Style :=
-     From (Dialog_Title_Class_Label_Base_Style)
-     .Build;
+   function Dialog_Title_Class_Label_Widget return Widget_Style is
+     (From (Dialog_Title_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'dialog-title'
-   Dialog_Title_Class_Part_Styles : constant Part_Style_Array := [
+   function Dialog_Title_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Dialog_Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Dialog_Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'dialog-btn-row'
-   Dialog_Btn_Row_Class_Widget : constant Widget_Style :=
-     From (Dialog_Btn_Row_Class_Base_Style)
-     .Build;
+   function Dialog_Btn_Row_Class_Widget return Widget_Style is
+     (From (Dialog_Btn_Row_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'dialog-btn-row'
-   Dialog_Btn_Row_Class_Part_Styles : constant Part_Style_Array := [
+   function Dialog_Btn_Row_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Dialog_Btn_Row_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'dialog-btn'
-   Dialog_Btn_Class_Widget : constant Widget_Style :=
-     From (Dialog_Btn_Class_Base_Style)
+   function Dialog_Btn_Class_Widget return Widget_Style is
+     (From (Dialog_Btn_Class_Base_Style)
      .On (When_State (State_Hovered), Dialog_Btn_Class_Widget_Hovered_Style)
      .On (When_State (State_Pressed), Dialog_Btn_Class_Widget_Pressed_Style)
      .On (When_State (State_Focused), Dialog_Btn_Class_Widget_Focused_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'dialog-btn'::label
-   Dialog_Btn_Class_Label_Widget : constant Widget_Style :=
-     From (Dialog_Btn_Class_Label_Base_Style)
-     .Build;
+   function Dialog_Btn_Class_Label_Widget return Widget_Style is
+     (From (Dialog_Btn_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'dialog-btn'
-   Dialog_Btn_Class_Part_Styles : constant Part_Style_Array := [
+   function Dialog_Btn_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Dialog_Btn_Class_Widget, Enabled => True),
       Label_Part => (Style => Dialog_Btn_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'slider'
-   Slider_Class_Widget : constant Widget_Style :=
-     From (Slider_Class_Base_Style)
+   function Slider_Class_Widget return Widget_Style is
+     (From (Slider_Class_Base_Style)
      .On (When_State (State_Focused), Slider_Class_Widget_Focused_Style)
      .On (When_State (State_Disabled), Slider_Class_Widget_Disabled_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'slider'::indicator
-   Slider_Class_Indicator_Widget : constant Widget_Style :=
-     From (Slider_Class_Indicator_Base_Style)
+   function Slider_Class_Indicator_Widget return Widget_Style is
+     (From (Slider_Class_Indicator_Base_Style)
      .On (When_State (State_Disabled), Slider_Class_Indicator_Widget_Disabled_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'slider'::knob
-   Slider_Class_Knob_Widget : constant Widget_Style :=
-     From (Slider_Class_Knob_Base_Style)
+   function Slider_Class_Knob_Widget return Widget_Style is
+     (From (Slider_Class_Knob_Base_Style)
      .On (When_Part_State (State_Hovered), Slider_Class_Knob_Part_Hovered_Style)
      .On (When_Part_State (State_Pressed), Slider_Class_Knob_Part_Pressed_Style)
      .On (When_State (State_Disabled), Slider_Class_Knob_Widget_Disabled_Style)
-     .Build;
+     .Build);
 
    --  Part styles bundle for class 'slider'
-   Slider_Class_Part_Styles : constant Part_Style_Array := [
+   function Slider_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Slider_Class_Widget, Enabled => True),
       Indicator_Part => (Style => Slider_Class_Indicator_Widget, Enabled => True),
       Knob_Part => (Style => Slider_Class_Knob_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'num-field'
-   Num_Field_Class_Widget : constant Widget_Style :=
-     From (Num_Field_Class_Base_Style)
+   function Num_Field_Class_Widget return Widget_Style is
+     (From (Num_Field_Class_Base_Style)
      .On (When_State (State_Focused), Num_Field_Class_Widget_Focused_Style)
      .On (When_State (State_Disabled), Num_Field_Class_Widget_Disabled_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'num-field'::cursor
-   Num_Field_Class_Cursor_Widget : constant Widget_Style :=
-     From (Num_Field_Class_Cursor_Base_Style)
-     .Build;
+   function Num_Field_Class_Cursor_Widget return Widget_Style is
+     (From (Num_Field_Class_Cursor_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'num-field'::selected
-   Num_Field_Class_Selected_Widget : constant Widget_Style :=
-     From (Num_Field_Class_Selected_Base_Style)
-     .Build;
+   function Num_Field_Class_Selected_Widget return Widget_Style is
+     (From (Num_Field_Class_Selected_Base_Style)
+     .Build);
 
    --  Complete widget style for class 'num-field'::text
-   Num_Field_Class_Text_Widget : constant Widget_Style :=
-     From (Num_Field_Class_Text_Base_Style)
-     .Build;
+   function Num_Field_Class_Text_Widget return Widget_Style is
+     (From (Num_Field_Class_Text_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'num-field'
-   Num_Field_Class_Part_Styles : constant Part_Style_Array := [
+   function Num_Field_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Num_Field_Class_Widget, Enabled => True),
       Cursor_Part => (Style => Num_Field_Class_Cursor_Widget, Enabled => True),
       Selected_Part => (Style => Num_Field_Class_Selected_Widget, Enabled => True),
       Text_Part => (Style => Num_Field_Class_Text_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'context-menu'
-   Context_Menu_Class_Widget : constant Widget_Style :=
-     From (Context_Menu_Class_Base_Style)
-     .Build;
+   function Context_Menu_Class_Widget return Widget_Style is
+     (From (Context_Menu_Class_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'context-menu'
-   Context_Menu_Class_Part_Styles : constant Part_Style_Array := [
+   function Context_Menu_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Context_Menu_Class_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
    --  Complete widget style for class 'context-menu-item'
-   Context_Menu_Item_Class_Widget : constant Widget_Style :=
-     From (Context_Menu_Item_Class_Base_Style)
+   function Context_Menu_Item_Class_Widget return Widget_Style is
+     (From (Context_Menu_Item_Class_Base_Style)
      .On (When_State (State_Hovered), Context_Menu_Item_Class_Widget_Hovered_Style)
-     .Build;
+     .Build);
 
    --  Complete widget style for class 'context-menu-item'::label
-   Context_Menu_Item_Class_Label_Widget : constant Widget_Style :=
-     From (Context_Menu_Item_Class_Label_Base_Style)
-     .Build;
+   function Context_Menu_Item_Class_Label_Widget return Widget_Style is
+     (From (Context_Menu_Item_Class_Label_Base_Style)
+     .Build);
 
    --  Part styles bundle for class 'context-menu-item'
-   Context_Menu_Item_Class_Part_Styles : constant Part_Style_Array := [
+   function Context_Menu_Item_Class_Part_Styles return Part_Style_Array is
+     ([
       Main_Part => (Style => Context_Menu_Item_Class_Widget, Enabled => True),
       Label_Part => (Style => Context_Menu_Item_Class_Label_Widget, Enabled => True),
       others => <>
-   ];
+   ]);
 
 end Material_Demo_Styles;

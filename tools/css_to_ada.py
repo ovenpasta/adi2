@@ -3443,10 +3443,10 @@ def generate_parent_package(
 
         for part_kind, _ in part_items:
             ws_name = widget_style_const_name(ada_name, group.selector_type, part_kind)
-            lines.append(f"   {ws_name} : constant Widget_Style renames {child_pkg}.{ws_name};")
+            lines.append(f"   {ws_name} : Widget_Style renames {child_pkg}.{ws_name};")
 
         psa_name = f"{ada_name}_{sel_label}_Part_Styles"
-        lines.append(f"   {psa_name} : constant Part_Style_Array renames {child_pkg}.{psa_name};")
+        lines.append(f"   {psa_name} : Part_Style_Array renames {child_pkg}.{psa_name};")
         lines.append("")
 
     lines.append(f"end {package_name};")

@@ -3426,6 +3426,7 @@ def generate_parent_package(
     ]
     for cn in child_names:
         lines.append(f"with {cn};")
+    lines.append(f"with Adi.CSS_Styles;    use Adi.CSS_Styles;")
     lines.append(f"with Adi.Widget;        use Adi.Widget;")
     lines.append(f"with Adi.Widget_Styles; use Adi.Widget_Styles;")
     lines.append("")
@@ -3441,7 +3442,16 @@ def generate_parent_package(
             key=lambda kv: (0 if kv[0] == "Main_Part" else 1, kv[0])
         )
 
-        for part_kind, _ in part_items:
+        for part_kind, part_group in part_items:
+            name_prefix = style_name_prefix(ada_name, group.selector_type, part_kind)
+
+            if part_group.base_rule:
+                base_name = f"{name_prefix}_Base_Style"
+                lines.append(f"   {base_name} : Style_Rules renames {child_pkg}.{base_name};")
+            for rule in part_group.state_rules:
+                var_name = rule._var_name  # type: ignore
+                lines.append(f"   {var_name} : Style_Rules renames {child_pkg}.{var_name};")
+
             ws_name = widget_style_const_name(ada_name, group.selector_type, part_kind)
             lines.append(f"   {ws_name} : Widget_Style renames {child_pkg}.{ws_name};")
 

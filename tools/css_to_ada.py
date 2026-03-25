@@ -13,7 +13,7 @@ can overflow the call stack on constrained targets (Windows default 1 MB,
 embedded targets even less).
 
 To stay within safe limits the generator automatically splits output into
-child packages (My_Styles.Part_1, My_Styles.Part_2, …) whenever the total
+packages (My_Styles_Part_1, My_Styles_Part_2, …) whenever the total
 constant count exceeds DEFAULT_SPLIT_CONSTANTS.  The parent package
 re-exports every constant via renames so all existing call-sites compile
 unchanged.  Pass --split-constants 0 to disable splitting.
@@ -3575,8 +3575,8 @@ def main():
         child_names: list[str] = []
         group_to_child: dict[str, str] = {}
         for idx, chunk in enumerate(chunks, 1):
-            child_pkg_name = f"{args.package_name}.Part_{idx}"
-            child_file = f"{base}-part_{idx}{ext}"
+            child_pkg_name = f"{args.package_name}_Part_{idx}"
+            child_file = f"{base}_part_{idx}{ext}"
             child_names.append(child_pkg_name)
             for key in chunk:
                 group_to_child[key] = child_pkg_name

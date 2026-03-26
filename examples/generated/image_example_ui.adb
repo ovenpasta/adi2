@@ -51,6 +51,153 @@ package body Image_Example_UI is
       end if;
    end Set_CSS_File;
 
+   procedure Register_Root_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("root", Root_Class_Part_Styles));
+   end Register_Root_Styles;
+
+   procedure Register_Title_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("title", Title_Class_Part_Styles));
+   end Register_Title_Styles;
+
+   procedure Register_Subtitle_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("subtitle", Subtitle_Class_Part_Styles));
+   end Register_Subtitle_Styles;
+
+   procedure Register_Section_Title_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("section-title", Section_Title_Class_Part_Styles));
+   end Register_Section_Title_Styles;
+
+   procedure Register_Format_Grid_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("format-grid", Format_Grid_Class_Part_Styles));
+   end Register_Format_Grid_Styles;
+
+   procedure Register_Card_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("card", Card_Class_Part_Styles));
+   end Register_Card_Styles;
+
+   procedure Register_Image_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("image", Image_Class_Part_Styles));
+   end Register_Image_Styles;
+
+   procedure Register_Card_Label_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("card-label", Card_Label_Class_Part_Styles));
+   end Register_Card_Label_Styles;
+
+   procedure Register_Fit_Grid_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("fit-grid", Fit_Grid_Class_Part_Styles));
+   end Register_Fit_Grid_Styles;
+
+   procedure Register_Fit_Fill_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("fit-fill", Fit_Fill_Class_Part_Styles));
+   end Register_Fit_Fill_Styles;
+
+   procedure Register_Fit_Contain_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("fit-contain", Fit_Contain_Class_Part_Styles));
+   end Register_Fit_Contain_Styles;
+
+   procedure Register_Fit_Cover_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("fit-cover", Fit_Cover_Class_Part_Styles));
+   end Register_Fit_Cover_Styles;
+
+   procedure Register_Fit_None_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("fit-none", Fit_None_Class_Part_Styles));
+   end Register_Fit_None_Styles;
+
+   procedure Register_Fit_Scale_Down_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("fit-scale-down", Fit_Scale_Down_Class_Part_Styles));
+   end Register_Fit_Scale_Down_Styles;
+
+   procedure Register_Tint_Grid_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tint-grid", Tint_Grid_Class_Part_Styles));
+   end Register_Tint_Grid_Styles;
+
+   procedure Register_Tint_Card_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tint-card", Tint_Card_Class_Part_Styles));
+   end Register_Tint_Card_Styles;
+
+   procedure Register_Tint_Icon_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tint-icon", Tint_Icon_Class_Part_Styles));
+   end Register_Tint_Icon_Styles;
+
+   procedure Register_Tint_Default_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tint-default", Tint_Default_Class_Part_Styles));
+   end Register_Tint_Default_Styles;
+
+   procedure Register_Tint_Warm_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tint-warm", Tint_Warm_Class_Part_Styles));
+   end Register_Tint_Warm_Styles;
+
+   procedure Register_Tint_Success_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tint-success", Tint_Success_Class_Part_Styles));
+   end Register_Tint_Success_Styles;
+
+   procedure Register_Tint_Danger_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tint-danger", Tint_Danger_Class_Part_Styles));
+   end Register_Tint_Danger_Styles;
+
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
@@ -108,27 +255,27 @@ package body Image_Example_UI is
 
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("root", Root_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("title", Title_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("subtitle", Subtitle_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("section-title", Section_Title_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("format-grid", Format_Grid_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("card", Card_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("image", Image_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("card-label", Card_Label_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("fit-grid", Fit_Grid_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("fit-fill", Fit_Fill_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("fit-contain", Fit_Contain_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("fit-cover", Fit_Cover_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("fit-none", Fit_None_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("fit-scale-down", Fit_Scale_Down_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-grid", Tint_Grid_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-card", Tint_Card_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-icon", Tint_Icon_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-default", Tint_Default_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-warm", Tint_Warm_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-success", Tint_Success_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-danger", Tint_Danger_Class_Part_Styles));
+      Register_Root_Styles (Source);
+      Register_Title_Styles (Source);
+      Register_Subtitle_Styles (Source);
+      Register_Section_Title_Styles (Source);
+      Register_Format_Grid_Styles (Source);
+      Register_Card_Styles (Source);
+      Register_Image_Styles (Source);
+      Register_Card_Label_Styles (Source);
+      Register_Fit_Grid_Styles (Source);
+      Register_Fit_Fill_Styles (Source);
+      Register_Fit_Contain_Styles (Source);
+      Register_Fit_Cover_Styles (Source);
+      Register_Fit_None_Styles (Source);
+      Register_Fit_Scale_Down_Styles (Source);
+      Register_Tint_Grid_Styles (Source);
+      Register_Tint_Card_Styles (Source);
+      Register_Tint_Icon_Styles (Source);
+      Register_Tint_Default_Styles (Source);
+      Register_Tint_Warm_Styles (Source);
+      Register_Tint_Success_Styles (Source);
+      Register_Tint_Danger_Styles (Source);
 
       --  Load dynamic CSS and choose mode
       declare

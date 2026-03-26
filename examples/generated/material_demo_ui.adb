@@ -70,6 +70,202 @@ package body Material_Demo_UI is
       end if;
    end Set_CSS_File;
 
+   procedure Register_Root_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("root", Root_Class_Part_Styles));
+   end Register_Root_Styles;
+
+   procedure Register_App_Bar_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("app-bar", App_Bar_Class_Part_Styles));
+   end Register_App_Bar_Styles;
+
+   procedure Register_App_Title_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("app-title", App_Title_Class_Part_Styles));
+   end Register_App_Title_Styles;
+
+   procedure Register_Nav_Bar_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("nav-bar", Nav_Bar_Class_Part_Styles));
+   end Register_Nav_Bar_Styles;
+
+   procedure Register_Nav_Btn_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("nav-btn", Nav_Btn_Class_Part_Styles));
+   end Register_Nav_Btn_Styles;
+
+   procedure Register_Pages_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("pages", Pages_Class_Part_Styles));
+   end Register_Pages_Styles;
+
+   procedure Register_Page_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("page", Page_Class_Part_Styles));
+   end Register_Page_Styles;
+
+   procedure Register_Card_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("card", Card_Class_Part_Styles));
+   end Register_Card_Styles;
+
+   procedure Register_Label_Inline_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("label-inline", Label_Inline_Class_Part_Styles));
+   end Register_Label_Inline_Styles;
+
+   procedure Register_Card_Title_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("card-title", Card_Title_Class_Part_Styles));
+   end Register_Card_Title_Styles;
+
+   procedure Register_Card_Body_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("card-body", Card_Body_Class_Part_Styles));
+   end Register_Card_Body_Styles;
+
+   procedure Register_Card_Hint_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("card-hint", Card_Hint_Class_Part_Styles));
+   end Register_Card_Hint_Styles;
+
+   procedure Register_Btn_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("btn", Btn_Class_Part_Styles));
+   end Register_Btn_Styles;
+
+   procedure Register_Btn_Primary_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("btn-primary", Btn_Primary_Class_Part_Styles));
+   end Register_Btn_Primary_Styles;
+
+   procedure Register_Text_Field_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("text-field", Text_Field_Class_Part_Styles));
+   end Register_Text_Field_Styles;
+
+   procedure Register_Field_Label_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("field-label", Field_Label_Class_Part_Styles));
+   end Register_Field_Label_Styles;
+
+   procedure Register_Combo_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("combo", Combo_Class_Part_Styles));
+   end Register_Combo_Styles;
+
+   procedure Register_Btn_Row_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("btn-row", Btn_Row_Class_Part_Styles));
+   end Register_Btn_Row_Styles;
+
+   procedure Register_Btn_Secondary_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("btn-secondary", Btn_Secondary_Class_Part_Styles));
+   end Register_Btn_Secondary_Styles;
+
+   procedure Register_Control_Grid_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("control-grid", Control_Grid_Class_Part_Styles));
+   end Register_Control_Grid_Styles;
+
+   procedure Register_Grid_Header_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grid-header", Grid_Header_Class_Part_Styles));
+   end Register_Grid_Header_Styles;
+
+   procedure Register_Grid_Label_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grid-label", Grid_Label_Class_Part_Styles));
+   end Register_Grid_Label_Styles;
+
+   procedure Register_Grid_Cell_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grid-cell", Grid_Cell_Class_Part_Styles));
+   end Register_Grid_Cell_Styles;
+
+   procedure Register_Setting_Switch_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("setting-switch", Setting_Switch_Class_Part_Styles));
+   end Register_Setting_Switch_Styles;
+
+   procedure Register_Slider_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("slider", Slider_Class_Part_Styles));
+   end Register_Slider_Styles;
+
+   procedure Register_Num_Field_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("num-field", Num_Field_Class_Part_Styles));
+   end Register_Num_Field_Styles;
+
+   procedure Register_Setting_Row_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("setting-row", Setting_Row_Class_Part_Styles));
+   end Register_Setting_Row_Styles;
+
+   procedure Register_Setting_Label_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("setting-label", Setting_Label_Class_Part_Styles));
+   end Register_Setting_Label_Styles;
+
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
@@ -165,34 +361,34 @@ package body Material_Demo_UI is
 
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("root", Root_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("app-bar", App_Bar_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("app-title", App_Title_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("nav-bar", Nav_Bar_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("nav-btn", Nav_Btn_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("pages", Pages_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page", Page_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("card", Card_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("label-inline", Label_Inline_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("card-title", Card_Title_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("card-body", Card_Body_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("card-hint", Card_Hint_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("btn", Btn_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("btn-primary", Btn_Primary_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("text-field", Text_Field_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("field-label", Field_Label_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("combo", Combo_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("btn-row", Btn_Row_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("btn-secondary", Btn_Secondary_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("control-grid", Control_Grid_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grid-header", Grid_Header_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grid-label", Grid_Label_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grid-cell", Grid_Cell_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("setting-switch", Setting_Switch_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("slider", Slider_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("num-field", Num_Field_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("setting-row", Setting_Row_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("setting-label", Setting_Label_Class_Part_Styles));
+      Register_Root_Styles (Source);
+      Register_App_Bar_Styles (Source);
+      Register_App_Title_Styles (Source);
+      Register_Nav_Bar_Styles (Source);
+      Register_Nav_Btn_Styles (Source);
+      Register_Pages_Styles (Source);
+      Register_Page_Styles (Source);
+      Register_Card_Styles (Source);
+      Register_Label_Inline_Styles (Source);
+      Register_Card_Title_Styles (Source);
+      Register_Card_Body_Styles (Source);
+      Register_Card_Hint_Styles (Source);
+      Register_Btn_Styles (Source);
+      Register_Btn_Primary_Styles (Source);
+      Register_Text_Field_Styles (Source);
+      Register_Field_Label_Styles (Source);
+      Register_Combo_Styles (Source);
+      Register_Btn_Row_Styles (Source);
+      Register_Btn_Secondary_Styles (Source);
+      Register_Control_Grid_Styles (Source);
+      Register_Grid_Header_Styles (Source);
+      Register_Grid_Label_Styles (Source);
+      Register_Grid_Cell_Styles (Source);
+      Register_Setting_Switch_Styles (Source);
+      Register_Slider_Styles (Source);
+      Register_Num_Field_Styles (Source);
+      Register_Setting_Row_Styles (Source);
+      Register_Setting_Label_Styles (Source);
 
       --  Load dynamic CSS and choose mode
       declare

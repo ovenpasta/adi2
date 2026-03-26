@@ -52,6 +52,132 @@ package body Assets_Example_UI is
       end if;
    end Set_CSS_File;
 
+   procedure Register_Root_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("root", Root_Class_Part_Styles));
+   end Register_Root_Styles;
+
+   procedure Register_Section_Title_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("section-title", Section_Title_Class_Part_Styles));
+   end Register_Section_Title_Styles;
+
+   procedure Register_Sprite_Grid_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("sprite-grid", Sprite_Grid_Class_Part_Styles));
+   end Register_Sprite_Grid_Styles;
+
+   procedure Register_Card_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("card", Card_Class_Part_Styles));
+   end Register_Card_Styles;
+
+   procedure Register_Sprite_Icon_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("sprite-icon", Sprite_Icon_Class_Part_Styles));
+   end Register_Sprite_Icon_Styles;
+
+   procedure Register_Tint_Blue_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tint-blue", Tint_Blue_Class_Part_Styles));
+   end Register_Tint_Blue_Styles;
+
+   procedure Register_Card_Label_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("card-label", Card_Label_Class_Part_Styles));
+   end Register_Card_Label_Styles;
+
+   procedure Register_Tint_Amber_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tint-amber", Tint_Amber_Class_Part_Styles));
+   end Register_Tint_Amber_Styles;
+
+   procedure Register_Tint_Red_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tint-red", Tint_Red_Class_Part_Styles));
+   end Register_Tint_Red_Styles;
+
+   procedure Register_Tint_Purple_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tint-purple", Tint_Purple_Class_Part_Styles));
+   end Register_Tint_Purple_Styles;
+
+   procedure Register_Tint_Green_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tint-green", Tint_Green_Class_Part_Styles));
+   end Register_Tint_Green_Styles;
+
+   procedure Register_Tint_Cyan_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tint-cyan", Tint_Cyan_Class_Part_Styles));
+   end Register_Tint_Cyan_Styles;
+
+   procedure Register_Crop_Grid_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("crop-grid", Crop_Grid_Class_Part_Styles));
+   end Register_Crop_Grid_Styles;
+
+   procedure Register_Crop_Img_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("crop-img", Crop_Img_Class_Part_Styles));
+   end Register_Crop_Img_Styles;
+
+   procedure Register_Scale_Grid_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("scale-grid", Scale_Grid_Class_Part_Styles));
+   end Register_Scale_Grid_Styles;
+
+   procedure Register_Scale_Img_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("scale-img", Scale_Img_Class_Part_Styles));
+   end Register_Scale_Img_Styles;
+
+   procedure Register_Nav_Bar_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("nav-bar", Nav_Bar_Class_Part_Styles));
+   end Register_Nav_Bar_Styles;
+
+   procedure Register_Nav_Item_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("nav-item", Nav_Item_Class_Part_Styles));
+   end Register_Nav_Item_Styles;
+
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
@@ -130,24 +256,24 @@ package body Assets_Example_UI is
 
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("root", Root_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("section-title", Section_Title_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("sprite-grid", Sprite_Grid_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("card", Card_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("sprite-icon", Sprite_Icon_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-blue", Tint_Blue_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("card-label", Card_Label_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-amber", Tint_Amber_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-red", Tint_Red_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-purple", Tint_Purple_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-green", Tint_Green_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tint-cyan", Tint_Cyan_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("crop-grid", Crop_Grid_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("crop-img", Crop_Img_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("scale-grid", Scale_Grid_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("scale-img", Scale_Img_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("nav-bar", Nav_Bar_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("nav-item", Nav_Item_Class_Part_Styles));
+      Register_Root_Styles (Source);
+      Register_Section_Title_Styles (Source);
+      Register_Sprite_Grid_Styles (Source);
+      Register_Card_Styles (Source);
+      Register_Sprite_Icon_Styles (Source);
+      Register_Tint_Blue_Styles (Source);
+      Register_Card_Label_Styles (Source);
+      Register_Tint_Amber_Styles (Source);
+      Register_Tint_Red_Styles (Source);
+      Register_Tint_Purple_Styles (Source);
+      Register_Tint_Green_Styles (Source);
+      Register_Tint_Cyan_Styles (Source);
+      Register_Crop_Grid_Styles (Source);
+      Register_Crop_Img_Styles (Source);
+      Register_Scale_Grid_Styles (Source);
+      Register_Scale_Img_Styles (Source);
+      Register_Nav_Bar_Styles (Source);
+      Register_Nav_Item_Styles (Source);
 
       --  Load dynamic CSS and choose mode
       declare

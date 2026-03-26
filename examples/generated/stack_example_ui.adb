@@ -146,6 +146,69 @@ package body Stack_Example_UI is
       end if;
    end Set_CSS_File;
 
+   procedure Register_Root_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("root", Root_Class_Part_Styles));
+   end Register_Root_Styles;
+
+   procedure Register_Tab_Bar_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tab-bar", Tab_Bar_Class_Part_Styles));
+   end Register_Tab_Bar_Styles;
+
+   procedure Register_Tab_Left_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tab-left", Tab_Left_Class_Part_Styles));
+   end Register_Tab_Left_Styles;
+
+   procedure Register_Tab_Center_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tab-center", Tab_Center_Class_Part_Styles));
+   end Register_Tab_Center_Styles;
+
+   procedure Register_Tab_Right_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tab-right", Tab_Right_Class_Part_Styles));
+   end Register_Tab_Right_Styles;
+
+   procedure Register_Stack_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("stack", Stack_Class_Part_Styles));
+   end Register_Stack_Styles;
+
+   procedure Register_Page_Blue_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("page-blue", Page_Blue_Class_Part_Styles));
+   end Register_Page_Blue_Styles;
+
+   procedure Register_Page_Title_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("page-title", Page_Title_Class_Part_Styles));
+   end Register_Page_Title_Styles;
+
+   procedure Register_Page_Desc_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("page-desc", Page_Desc_Class_Part_Styles));
+   end Register_Page_Desc_Styles;
+
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
@@ -164,15 +227,15 @@ package body Stack_Example_UI is
 
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("root", Root_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tab-bar", Tab_Bar_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tab-left", Tab_Left_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tab-center", Tab_Center_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("tab-right", Tab_Right_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("stack", Stack_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-blue", Page_Blue_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-title", Page_Title_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-desc", Page_Desc_Class_Part_Styles));
+      Register_Root_Styles (Source);
+      Register_Tab_Bar_Styles (Source);
+      Register_Tab_Left_Styles (Source);
+      Register_Tab_Center_Styles (Source);
+      Register_Tab_Right_Styles (Source);
+      Register_Stack_Styles (Source);
+      Register_Page_Blue_Styles (Source);
+      Register_Page_Title_Styles (Source);
+      Register_Page_Desc_Styles (Source);
 
       --  Load dynamic CSS and choose mode
       declare

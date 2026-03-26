@@ -42,6 +42,27 @@ package body Green_Page_UI is
       end if;
    end Set_CSS_File;
 
+   procedure Register_Page_Green_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("page-green", Page_Green_Class_Part_Styles));
+   end Register_Page_Green_Styles;
+
+   procedure Register_Page_Title_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("page-title", Page_Title_Class_Part_Styles));
+   end Register_Page_Title_Styles;
+
+   procedure Register_Page_Desc_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("page-desc", Page_Desc_Class_Part_Styles));
+   end Register_Page_Desc_Styles;
+
    function Build
       return Adi.Widget.Widget_Handle is
       Box_1 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
@@ -50,9 +71,9 @@ package body Green_Page_UI is
    begin
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-green", Page_Green_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-title", Page_Title_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("page-desc", Page_Desc_Class_Part_Styles));
+      Register_Page_Green_Styles (Source);
+      Register_Page_Title_Styles (Source);
+      Register_Page_Desc_Styles (Source);
 
       --  Load dynamic CSS and choose mode
       declare

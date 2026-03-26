@@ -1046,6 +1046,14 @@ def generate_body(app: XmlApp, package_name: str,
 
     lines.append("")
 
+    # Private helper procedures — one per style-registration call — accumulated
+    # during the style-walking section below and spliced into lines here so that
+    # each Add_Static_Entry / Set_Part_Styles call gets its own stack frame.
+    # GNAT at -O0 cannot reuse temporaries across separate procedure calls, so
+    # the 169 KB Part_Style_Array temporary is released before the next call.
+    helper_procs: list[str] = []
+    build_start_idx = len(lines)
+
     # Build procedure/function — clean signature
     if has_window:
         lines.append("   function Build")
@@ -1214,11 +1222,19 @@ def generate_body(app: XmlApp, package_name: str,
                     "      Adi.CSS_Source.Clear_Static_Entries (Source);"
                 )
                 for css_class, style_const in unique_entries:
-                    lines.append(
-                        f"      Adi.CSS_Source.Add_Static_Entry"
-                        f" (Source, Adi.CSS_Source.Class_Entry"
-                        f' ("{css_class}", {style_const}));'
+                    proc_name = (
+                        f"Register_{to_ada_identifier(css_class)}_Styles"
                     )
+                    helper_procs += [
+                        f"   procedure {proc_name}",
+                        f"     (S : in out Style_Source) is",
+                        f"   begin",
+                        f"      Add_Static_Entry",
+                        f'        (S, Class_Entry ("{css_class}", {style_const}));',
+                        f"   end {proc_name};",
+                        f"",
+                    ]
+                    lines.append(f"      {proc_name} (Source);")
                 lines.append("")
             lines.append("      --  Load dynamic CSS and choose mode")
             lines.append("      declare")
@@ -1283,15 +1299,15 @@ def generate_body(app: XmlApp, package_name: str,
                 )
             lines.append("")
         else:
-            # Static mode — direct Set_Part_Styles calls
+            # Static mode — direct Set_Part_Styles calls, each in its own
+            # private procedure so the Part_Style_Array temporary is released
+            # before the next call (avoids N × 169 KB stack accumulation).
             lines.append("      --  Apply precompiled styles")
             for wid, cls_list in styled_widgets:
+                proc_name = f"Apply_{wid}_Styles"
                 if len(cls_list) == 1:
-                    style_const = (
+                    style_expr = (
                         f"{to_ada_identifier(cls_list[0])}_Class_Part_Styles"
-                    )
-                    lines.append(
-                        f"      Set_Part_Styles (+{wid}, {style_const});"
                     )
                 else:
                     # Merge multiple class styles
@@ -1299,14 +1315,26 @@ def generate_body(app: XmlApp, package_name: str,
                         f"{to_ada_identifier(c)}_Class_Part_Styles"
                         for c in cls_list
                     ]
-                    # Build nested Merge_Part_Styles calls
-                    expr = consts[0]
+                    style_expr = consts[0]
                     for c in consts[1:]:
-                        expr = f"Adi.CSS_Source.Merge_Part_Styles ({expr}, {c})"
-                    lines.append(
-                        f"      Set_Part_Styles (+{wid}, {expr});"
-                    )
+                        style_expr = (
+                            f"Merge_Part_Styles ({style_expr}, {c})"
+                        )
+                helper_procs += [
+                    f"   procedure {proc_name}",
+                    f"     (H : Widget_Handle) is",
+                    f"   begin",
+                    f"      Set_Part_Styles (H, {style_expr});",
+                    f"   end {proc_name};",
+                    f"",
+                ]
+                lines.append(f"      {proc_name} (+{wid});")
             lines.append("")
+
+    # Splice style helper procedures before the Build function so each call
+    # gets its own stack frame, preventing N × 169 KB stack accumulation.
+    if helper_procs:
+        lines[build_start_idx:build_start_idx] = helper_procs
 
     # Build hierarchy (bottom-up: children first, then parent wiring)
     hierarchy_lines: list[str] = []

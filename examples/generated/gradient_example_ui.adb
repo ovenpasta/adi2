@@ -50,6 +50,181 @@ package body Gradient_Example_UI is
       end if;
    end Set_CSS_File;
 
+   procedure Register_Root_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("root", Root_Class_Part_Styles));
+   end Register_Root_Styles;
+
+   procedure Register_Title_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("title", Title_Class_Part_Styles));
+   end Register_Title_Styles;
+
+   procedure Register_Row_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("row", Row_Class_Part_Styles));
+   end Register_Row_Styles;
+
+   procedure Register_Grad_V_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-v", Grad_V_Class_Part_Styles));
+   end Register_Grad_V_Styles;
+
+   procedure Register_Grad_Card_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-card", Grad_Card_Class_Part_Styles));
+   end Register_Grad_Card_Styles;
+
+   procedure Register_Grad_H_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-h", Grad_H_Class_Part_Styles));
+   end Register_Grad_H_Styles;
+
+   procedure Register_Grad_Default_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-default", Grad_Default_Class_Part_Styles));
+   end Register_Grad_Default_Styles;
+
+   procedure Register_Grad_Up_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-up", Grad_Up_Class_Part_Styles));
+   end Register_Grad_Up_Styles;
+
+   procedure Register_Grad_Left_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-left", Grad_Left_Class_Part_Styles));
+   end Register_Grad_Left_Styles;
+
+   procedure Register_Grad_Diag_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-diag", Grad_Diag_Class_Part_Styles));
+   end Register_Grad_Diag_Styles;
+
+   procedure Register_Grad_Diag_Tr_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-diag-tr", Grad_Diag_Tr_Class_Part_Styles));
+   end Register_Grad_Diag_Tr_Styles;
+
+   procedure Register_Grad_Diag_Bl_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-diag-bl", Grad_Diag_Bl_Class_Part_Styles));
+   end Register_Grad_Diag_Bl_Styles;
+
+   procedure Register_Grad_Diag_Rev_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-diag-rev", Grad_Diag_Rev_Class_Part_Styles));
+   end Register_Grad_Diag_Rev_Styles;
+
+   procedure Register_Grad_45_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-45", Grad_45_Class_Part_Styles));
+   end Register_Grad_45_Styles;
+
+   procedure Register_Grad_135_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-135", Grad_135_Class_Part_Styles));
+   end Register_Grad_135_Styles;
+
+   procedure Register_Grad_Turn_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-turn", Grad_Turn_Class_Part_Styles));
+   end Register_Grad_Turn_Styles;
+
+   procedure Register_Grad_Rad_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-rad", Grad_Rad_Class_Part_Styles));
+   end Register_Grad_Rad_Styles;
+
+   procedure Register_Grad_Grad_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-grad", Grad_Grad_Class_Part_Styles));
+   end Register_Grad_Grad_Styles;
+
+   procedure Register_Grad_Alpha_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-alpha", Grad_Alpha_Class_Part_Styles));
+   end Register_Grad_Alpha_Styles;
+
+   procedure Register_Grad_3stop_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-3stop", Grad_3stop_Class_Part_Styles));
+   end Register_Grad_3stop_Styles;
+
+   procedure Register_Grad_Pos_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-pos", Grad_Pos_Class_Part_Styles));
+   end Register_Grad_Pos_Styles;
+
+   procedure Register_Grad_Edge_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-edge", Grad_Edge_Class_Part_Styles));
+   end Register_Grad_Edge_Styles;
+
+   procedure Register_Grad_16stop_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-16stop", Grad_16stop_Class_Part_Styles));
+   end Register_Grad_16stop_Styles;
+
+   procedure Register_Grad_Pill_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-pill", Grad_Pill_Class_Part_Styles));
+   end Register_Grad_Pill_Styles;
+
+   procedure Register_Grad_Border_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grad-border", Grad_Border_Class_Part_Styles));
+   end Register_Grad_Border_Styles;
+
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
@@ -135,31 +310,31 @@ package body Gradient_Example_UI is
 
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("root", Root_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("title", Title_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("row", Row_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-v", Grad_V_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-card", Grad_Card_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-h", Grad_H_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-default", Grad_Default_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-up", Grad_Up_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-left", Grad_Left_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-diag", Grad_Diag_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-diag-tr", Grad_Diag_Tr_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-diag-bl", Grad_Diag_Bl_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-diag-rev", Grad_Diag_Rev_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-45", Grad_45_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-135", Grad_135_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-turn", Grad_Turn_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-rad", Grad_Rad_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-grad", Grad_Grad_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-alpha", Grad_Alpha_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-3stop", Grad_3stop_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-pos", Grad_Pos_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-edge", Grad_Edge_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-16stop", Grad_16stop_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-pill", Grad_Pill_Class_Part_Styles));
-      Adi.CSS_Source.Add_Static_Entry (Source, Adi.CSS_Source.Class_Entry ("grad-border", Grad_Border_Class_Part_Styles));
+      Register_Root_Styles (Source);
+      Register_Title_Styles (Source);
+      Register_Row_Styles (Source);
+      Register_Grad_V_Styles (Source);
+      Register_Grad_Card_Styles (Source);
+      Register_Grad_H_Styles (Source);
+      Register_Grad_Default_Styles (Source);
+      Register_Grad_Up_Styles (Source);
+      Register_Grad_Left_Styles (Source);
+      Register_Grad_Diag_Styles (Source);
+      Register_Grad_Diag_Tr_Styles (Source);
+      Register_Grad_Diag_Bl_Styles (Source);
+      Register_Grad_Diag_Rev_Styles (Source);
+      Register_Grad_45_Styles (Source);
+      Register_Grad_135_Styles (Source);
+      Register_Grad_Turn_Styles (Source);
+      Register_Grad_Rad_Styles (Source);
+      Register_Grad_Grad_Styles (Source);
+      Register_Grad_Alpha_Styles (Source);
+      Register_Grad_3stop_Styles (Source);
+      Register_Grad_Pos_Styles (Source);
+      Register_Grad_Edge_Styles (Source);
+      Register_Grad_16stop_Styles (Source);
+      Register_Grad_Pill_Styles (Source);
+      Register_Grad_Border_Styles (Source);
 
       --  Load dynamic CSS and choose mode
       declare

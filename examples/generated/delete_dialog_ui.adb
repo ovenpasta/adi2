@@ -20,6 +20,30 @@ package body Delete_Dialog_UI is
       Success := True;
    end Tick_Styles;
 
+   procedure Apply_Box_1_Styles
+     (H : Widget_Handle) is
+   begin
+      Set_Part_Styles (H, Custom_Content_Class_Part_Styles);
+   end Apply_Box_1_Styles;
+
+   procedure Apply_Label_1_Styles
+     (H : Widget_Handle) is
+   begin
+      Set_Part_Styles (H, Detail_Label_Class_Part_Styles);
+   end Apply_Label_1_Styles;
+
+   procedure Apply_Label_2_Styles
+     (H : Widget_Handle) is
+   begin
+      Set_Part_Styles (H, Detail_Label_Class_Part_Styles);
+   end Apply_Label_2_Styles;
+
+   procedure Apply_Label_3_Styles
+     (H : Widget_Handle) is
+   begin
+      Set_Part_Styles (H, Detail_Label_Class_Part_Styles);
+   end Apply_Label_3_Styles;
+
    function Build
       return Adi.Widget.Dialog.Dialog_Handle is
       D : constant Adi.Widget.Dialog.Dialog_Handle :=
@@ -30,10 +54,10 @@ package body Delete_Dialog_UI is
       Label_3 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Storage used: 4.2 GB");
    begin
       --  Apply precompiled styles
-      Set_Part_Styles (+Box_1, Custom_Content_Class_Part_Styles);
-      Set_Part_Styles (+Label_1, Detail_Label_Class_Part_Styles);
-      Set_Part_Styles (+Label_2, Detail_Label_Class_Part_Styles);
-      Set_Part_Styles (+Label_3, Detail_Label_Class_Part_Styles);
+      Apply_Box_1_Styles (+Box_1);
+      Apply_Label_1_Styles (+Label_1);
+      Apply_Label_2_Styles (+Label_2);
+      Apply_Label_3_Styles (+Label_3);
 
       --  Build hierarchy
       Adi.Widget.Add_Child (+Box_1, +Label_1);

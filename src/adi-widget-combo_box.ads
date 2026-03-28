@@ -29,13 +29,27 @@ package Adi.Widget.Combo_Box is
    procedure Set_Part_Styles
      (H : Combo_Box_Handle; Styles : Part_Style_Array);
 
-   procedure Add_Item (W : in out Combo_Box_Widget; Text : String);
+   --  Base type for per-item user data.  Derive to attach arbitrary state.
+   --  The combo box stores a borrowed reference; the caller owns the object.
+   type Item_Data is tagged null record;
+   type Item_Data_Access is access all Item_Data'Class;
+
+   procedure Add_Item (W    : in out Combo_Box_Widget;
+                       Text : String;
+                       Icon : Adi.Image.Image_Access := null;
+                       Data : Item_Data_Access       := null);
    procedure Clear_Items (W : in out Combo_Box_Widget);
    function Option_Count (W : Combo_Box_Widget) return Natural;
 
    procedure Set_Selected_Index (W : in out Combo_Box_Widget; Index : Natural);
    function Get_Selected_Index (W : Combo_Box_Widget) return Natural;
    function Get_Selected_Text (W : Combo_Box_Widget) return String;
+   function Get_Selected_Data (W : Combo_Box_Widget) return Item_Data_Access;
+
+   function Get_Item_Data (W     : Combo_Box_Widget;
+                           Index : Positive) return Item_Data_Access;
+   function Get_Item_Icon (W     : Combo_Box_Widget;
+                           Index : Positive) return Adi.Image.Image_Access;
 
    type Selection_Changed_Callback is access procedure
      (W : Widget_Handle; Index : Natural; Text : String);
@@ -79,12 +93,20 @@ package Adi.Widget.Combo_Box is
    function Is_Open (W : Combo_Box_Widget) return Boolean;
 
    --  Handle methods
-   procedure Add_Item (H : Combo_Box_Handle; Text : String);
+   procedure Add_Item (H    : Combo_Box_Handle;
+                       Text : String;
+                       Icon : Adi.Image.Image_Access := null;
+                       Data : Item_Data_Access       := null);
    procedure Clear_Items (H : Combo_Box_Handle);
    function Option_Count (H : Combo_Box_Handle) return Natural;
    procedure Set_Selected_Index (H : Combo_Box_Handle; Index : Natural);
    function Get_Selected_Index (H : Combo_Box_Handle) return Natural;
    function Get_Selected_Text (H : Combo_Box_Handle) return String;
+   function Get_Selected_Data (H : Combo_Box_Handle) return Item_Data_Access;
+   function Get_Item_Data (H     : Combo_Box_Handle;
+                           Index : Positive) return Item_Data_Access;
+   function Get_Item_Icon (H     : Combo_Box_Handle;
+                           Index : Positive) return Adi.Image.Image_Access;
    procedure Connect_Selection_Changed
      (H : Combo_Box_Handle; CB : Selection_Changed_Callback);
    function Connect_Selection_Changed
@@ -128,8 +150,15 @@ private
      (W    : in out Combo_Box_Widget;
       Host : Adi.Window.Window_Access);
 
-   package String_Vectors is new Ada.Containers.Vectors
-     (Positive, Ada.Strings.Unbounded.Unbounded_String);
+   type Combo_Item is record
+      Text : Ada.Strings.Unbounded.Unbounded_String :=
+               Ada.Strings.Unbounded.Null_Unbounded_String;
+      Icon : Adi.Image.Image_Access := null;
+      Data : Item_Data_Access       := null;
+   end record;
+
+   package Combo_Item_Vectors is new Ada.Containers.Vectors
+     (Positive, Combo_Item);
 
    package Popup_Lists is new Adi.Widget.List_Box
      (Adi.Widget.Label.Label_Widget);
@@ -137,11 +166,12 @@ private
    Panel_Idx     : constant Positive := 1;
    Label_Idx     : constant Positive := 2;
    Indicator_Idx : constant Positive := 3;
+   Icon_Idx      : constant Positive := 4;
 
    type Combo_Box_Widget is new Widget with record
       Host_Window : Adi.Window.Window_Access := null;
       Popup       : Popup_Lists.List_Box_Handle := Popup_Lists.Null_List_Box_Handle;
-      Options     : String_Vectors.Vector;
+      Options     : Combo_Item_Vectors.Vector;
       Option_Row_Styles     : Part_Style_Array := Empty_Part_Styles;
       Has_Option_Row_Styles : Boolean := False;
       Selected    : Natural := 0;

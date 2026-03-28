@@ -230,7 +230,23 @@
 - **Scrolling**: Vertical scrolling works in both modes. `Ensure_Row_Visible` uses cached cell positions to scroll the correct row into view.
 - **Preferred height policy**: With auto height, preferred height is bounded by min-height + chrome floor (not total row content height), since list-box scrolling is internal.
 
-**Combo_Box**: Dropdown using Main/Label/Indicator parts + List_Box overlay popup.
+**Combo_Box**: Dropdown using Main/Text/Indicator/Icon parts + List_Box overlay popup.
+- Items are stored as `Combo_Item` records `(Text, Icon, Data)`. `Icon` is an `Image_Access`
+  shown in the selected-item display (`Icon_Part`) and in each popup row (via `Label.Set_Icon`).
+  `Data` is an `Item_Data_Access` — a borrowed reference to any user-defined tagged type derived
+  from `Item_Data`; the combo box never frees it.
+- **`Add_Item`**: `Add_Item (W, Text [, Icon] [, Data])` — both widget and handle overloads;
+  `Icon` and `Data` default to `null` so existing callers compile unchanged.
+- **Read accessors**: `Get_Item_Icon (W, Index)`, `Get_Item_Data (W, Index)` index into the
+  stored vector (1-based; out-of-range returns `null`). `Get_Selected_Data (W)` returns
+  `Data` for the currently selected item (`null` when nothing is selected). All have
+  corresponding handle overloads.
+- **Icon layout**: the `Icon_Part` flex item follows the same sizing rules as `Label.Icon_Part`:
+  CSS fixed width/height via `Size_To_Px`, aspect-ratio preservation when only one dimension is
+  fixed, intrinsic fallback. The icon item is created as a 4th render item (`Icon_Idx = 4`);
+  `Build_Items` hides it (`Image_Source := null`, zero geometry) when no icon is selected.
+- **CSS**: style `::icon` on the combo selector to control icon size, alignment, or display.
+  `display: none` on `::icon` suppresses the icon part entirely.
 
 **Dialog**: Modal overlay with backdrop, title/message/buttons, dismiss policies, button presets. Supports custom content via `Set_Content` which replaces the built-in message label with an arbitrary widget tree (pass `null` to restore the message label). The panel resolves `min-width`, `max-width`, `min-height`, `max-height`, and `margin` from CSS — margin shrinks the centering viewport, size constraints cap the panel dimensions.
 - Handle-first internals: all sub-widgets stored as typed handles (`Box_Handle`, `Label_Handle`, `Widget_Handle`). Full handle API via `Dialog_Handle` (`Create_Handle`, `Set_Title`, `Set_Message`, `Add_Button`, `Show`, `Hide`, `Connect_Result`, style setters, etc.).

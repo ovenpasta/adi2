@@ -338,7 +338,11 @@ package body Adi.Widget.Combo_Box is
       W.Host_Window := Host;
    end Attach_Window;
 
-   procedure Add_Item (W : in out Combo_Box_Widget; Text : String) is
+   procedure Add_Item (W    : in out Combo_Box_Widget;
+                       Text : String;
+                       Icon : Adi.Image.Image_Access := null;
+                       Data : Item_Data_Access       := null)
+   is
       Row_H : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle (Text);
    begin
@@ -349,7 +353,13 @@ package body Adi.Widget.Combo_Box is
            (Row_H, Default_Option_Row_Styles.Element);
       end if;
 
-      W.Options.Append (To_Unbounded_String (Text));
+      if Icon /= null then
+         Adi.Widget.Label.Set_Icon (Row_H, Icon);
+      end if;
+
+      W.Options.Append (Combo_Item'(Text => To_Unbounded_String (Text),
+                                   Icon => Icon,
+                                   Data => Data));
       if Popup_Lists.Is_Valid (W.Popup) then
          Popup_Lists.Append_Row
            (W.Popup, Adi.Widget.Label.To_Widget_Handle (Row_H));
@@ -408,13 +418,42 @@ package body Adi.Widget.Combo_Box is
       return W.Selected;
    end Get_Selected_Index;
 
-   function Get_Selected_Text (W : Combo_Box_Widget) return String is
+   function Get_Selected_Item (W : Combo_Box_Widget) return Combo_Item is
+      Empty : constant Combo_Item := (others => <>);
    begin
       if W.Selected = 0 or else W.Selected > Natural (W.Options.Length) then
-         return "";
+         return Empty;
       end if;
-      return To_String (W.Options.Element (Positive (W.Selected)));
+      return W.Options.Element (Positive (W.Selected));
+   end Get_Selected_Item;
+
+   function Get_Selected_Text (W : Combo_Box_Widget) return String is
+   begin
+      return To_String (Get_Selected_Item (W).Text);
    end Get_Selected_Text;
+
+   function Get_Selected_Data (W : Combo_Box_Widget) return Item_Data_Access is
+   begin
+      return Get_Selected_Item (W).Data;
+   end Get_Selected_Data;
+
+   function Get_Item_Data (W     : Combo_Box_Widget;
+                           Index : Positive) return Item_Data_Access is
+   begin
+      if Index > Natural (W.Options.Length) then
+         return null;
+      end if;
+      return W.Options.Element (Index).Data;
+   end Get_Item_Data;
+
+   function Get_Item_Icon (W     : Combo_Box_Widget;
+                           Index : Positive) return Adi.Image.Image_Access is
+   begin
+      if Index > Natural (W.Options.Length) then
+         return null;
+      end if;
+      return W.Options.Element (Index).Icon;
+   end Get_Item_Icon;
 
    procedure Connect_Selection_Changed
      (W  : in out Combo_Box_Widget;
@@ -698,6 +737,8 @@ package body Adi.Widget.Combo_Box is
          Adi.Widget.Add_Item (W, Make_Text (Text_Part, W.Geometry, "", 1));
          Adi.Widget.Add_Item
            (W, Make_Image (Indicator_Part, W.Geometry, W.Arrow_Down_Img, 2));
+         Adi.Widget.Add_Item
+           (W, Make_Image (Icon_Part, W.Geometry, null, 3));
       end if;
 
       --  Update panel geometry
@@ -743,20 +784,46 @@ package body Adi.Widget.Combo_Box is
             Ind_It.Image_Source := null;
          end if;
       end;
+
+      --  Update selected-item icon + geometry from Layout_Items
+      declare
+         Icon_It : Item renames W.Items.Reference (Icon_Idx).Element.all;
+         Found   : Boolean := False;
+      begin
+         Icon_It.Image_Source := Get_Selected_Item (W).Icon;
+         Icon_It.Geometry := (0.0, 0.0, 0.0, 0.0);
+         for L_Item of W.Layout_Items loop
+            if L_Item.Part = Icon_Part then
+               Icon_It.Geometry := L_Item.Geometry;
+               Found := True;
+               exit;
+            end if;
+         end loop;
+         if not Found then
+            Icon_It.Image_Source := null;
+         end if;
+      end;
    end Build_Items;
 
    overriding procedure Layout (W : in out Combo_Box_Widget) is
+      Default_Icon_Size : constant Size_2D := (16.0, 16.0);
+
       Main_Style  : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Main_Part);
       Label_Style : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Text_Part);
       Ind_Style   : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Indicator_Part);
+      Icon_Style  : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Icon_Part);
       Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
 
       Label_Text : constant String := Get_Selected_Text (W);
       Label_Visible : constant Boolean := Label_Style.Display /= Display_None;
       Indicator_Visible : constant Boolean := Ind_Style.Display /= Display_None;
+      Sel_Icon    : constant Adi.Image.Image_Access := Get_Selected_Item (W).Icon;
+      Icon_Visible : constant Boolean :=
+        Icon_Style.Display /= Display_None and then Sel_Icon /= null;
 
       Label_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
@@ -772,7 +839,7 @@ package body Adi.Widget.Combo_Box is
       Ind_Img_H : Pixel_Type := 0.0;
       Ind_W     : Pixel_Type := 0.0;
    begin
-      if Item_Count (W) < 3 then
+      if Item_Count (W) < 4 then
          return;
       end if;
 
@@ -795,6 +862,62 @@ package body Adi.Widget.Combo_Box is
 
       --  Build layout items for flex positioning
       W.Layout_Items.Clear;
+
+      if Icon_Visible then
+         declare
+            Intrinsic    : Size_2D;
+            Icon_Size    : Size_2D;
+            Width_Fixed  : constant Boolean := Icon_Style.Width.Kind = Fixed;
+            Height_Fixed : constant Boolean := Icon_Style.Height.Kind = Fixed;
+         begin
+            if Is_Valid (Sel_Icon.all) then
+               Get_Size (Sel_Icon.all, Intrinsic.Width, Intrinsic.Height);
+            else
+               Intrinsic := Default_Icon_Size;
+            end if;
+
+            Icon_Size := Intrinsic;
+
+            if Width_Fixed then
+               Icon_Size.Width :=
+                 Size_To_Px (Icon_Style.Width, W.Geometry.Width);
+            end if;
+            if Height_Fixed then
+               Icon_Size.Height :=
+                 Size_To_Px (Icon_Style.Height, W.Geometry.Height);
+            end if;
+
+            if Width_Fixed and then not Height_Fixed
+              and then Intrinsic.Width > 0.0
+            then
+               Icon_Size.Height :=
+                 Icon_Size.Width * Intrinsic.Height / Intrinsic.Width;
+            elsif Height_Fixed and then not Width_Fixed
+              and then Intrinsic.Height > 0.0
+            then
+               Icon_Size.Width :=
+                 Icon_Size.Height * Intrinsic.Width / Intrinsic.Height;
+            end if;
+
+            Icon_Size.Width  := Pixel_Type'Max (0.0, Icon_Size.Width);
+            Icon_Size.Height := Pixel_Type'Max (0.0, Icon_Size.Height);
+
+            W.Layout_Items.Append (Layout_Item'(
+               Part           => Icon_Part,
+               Min_Width      => Float (Icon_Size.Width),
+               Min_Height     => Float (Icon_Size.Height),
+               Max_Width      => Float (Icon_Size.Width),
+               Max_Height     => Float (Icon_Size.Height),
+               Content_Width  => Float (Icon_Size.Width),
+               Content_Height => Float (Icon_Size.Height),
+               Flex           => (Grow       => 0.0,
+                                  Shrink     => 0.0,
+                                  Basis      => Float (Icon_Size.Width),
+                                  Align_Self => Icon_Style.Align_Self),
+               Geometry       => <>,
+               Index          => 3));
+         end;
+      end if;
 
       if Label_Visible then
          W.Layout_Items.Append (Layout_Item'(
@@ -926,11 +1049,15 @@ package body Adi.Widget.Combo_Box is
    --  Handle methods
    ---------------------------------------------------------------------------
 
-   procedure Add_Item (H : Combo_Box_Handle; Text : String) is
+   procedure Add_Item (H    : Combo_Box_Handle;
+                       Text : String;
+                       Icon : Adi.Image.Image_Access := null;
+                       Data : Item_Data_Access       := null)
+   is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
-         Add_Item (Combo_Box_Widget (Ptr.all), Text);
+         Add_Item (Combo_Box_Widget (Ptr.all), Text, Icon, Data);
       end if;
    end Add_Item;
 
@@ -976,6 +1103,35 @@ package body Adi.Widget.Combo_Box is
       end if;
       return "";
    end Get_Selected_Text;
+
+   function Get_Selected_Data (H : Combo_Box_Handle) return Item_Data_Access is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Selected_Data (Combo_Box_Widget (Ptr.all));
+      end if;
+      return null;
+   end Get_Selected_Data;
+
+   function Get_Item_Data (H     : Combo_Box_Handle;
+                           Index : Positive) return Item_Data_Access is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Item_Data (Combo_Box_Widget (Ptr.all), Index);
+      end if;
+      return null;
+   end Get_Item_Data;
+
+   function Get_Item_Icon (H     : Combo_Box_Handle;
+                           Index : Positive) return Adi.Image.Image_Access is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Item_Icon (Combo_Box_Widget (Ptr.all), Index);
+      end if;
+      return null;
+   end Get_Item_Icon;
 
    procedure Connect_Selection_Changed
      (H : Combo_Box_Handle; CB : Selection_Changed_Callback)

@@ -1,8 +1,12 @@
 pragma Ada_2022;
 
 with Ada.Text_IO; use Ada.Text_IO;
+with Adi.Core; use Adi.Core;
+with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Image;   use Adi.Image;
+with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Combo_Box; use Adi.Widget.Combo_Box;
+with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 procedure Combo_Box_Item_Test is
    Test_Count : Natural := 0;
@@ -20,6 +24,27 @@ procedure Combo_Box_Item_Test is
          Put_Line ("  [FAIL] " & Message);
       end if;
    end Assert;
+
+   procedure Assert_Close
+     (Actual, Expected : Pixel_Type; Message : String) is
+      Eps : constant Pixel_Type := 0.5;
+   begin
+      Assert
+        (abs (Actual - Expected) <= Eps,
+         Message & " actual=" & Actual'Image & " expected=" & Expected'Image);
+   end Assert_Close;
+
+   function Make_Test_Image
+     (W, H : Pixel_Type) return Image_Access
+   is
+   begin
+      return Load_SVG_Path
+        (Path_Data => "M0 0 L" & Integer (W)'Image & " 0 L"
+                      & Integer (W)'Image & " " & Integer (H)'Image
+                      & " L0 " & Integer (H)'Image & " Z",
+         Size      => (Width => W, Height => H),
+         Fill      => (R => 128, G => 128, B => 128, A => 255));
+   end Make_Test_Image;
 
    --  A concrete subclass of Item_Data for testing
    type My_Data is new Item_Data with record
@@ -122,6 +147,35 @@ procedure Combo_Box_Item_Test is
               "data Id matches via handle");
    end Test_Handle_Widget_Agreement;
 
+   procedure Test_Selected_Icon_Measure_Uses_CSS_Size is
+      H : constant Combo_Box_Handle := Create_Handle;
+      Icon : constant Image_Access := Make_Test_Image (512.0, 512.0);
+      Icon_Rules : constant Style_Rules := (
+         Width  => Set (Size (Px (18.0))),
+         Height => Set (Size (Px (18.0))),
+         others => <>
+      );
+      Hidden_Rules : constant Style_Rules := (
+         Display => Set (Display_None),
+         others  => <>
+      );
+      Measured : Size_2D;
+   begin
+      Put_Line ("Test: selected icon Measure_Content respects CSS width/height");
+      Add_Item (H, "", Icon);
+      Set_Part_Style (+H, Icon_Part, From (Icon_Rules).Build);
+      Set_Part_Style (+H, Text_Part, From (Hidden_Rules).Build);
+      Set_Part_Style (+H, Indicator_Part, From (Hidden_Rules).Build);
+
+      Build_Items (+H);
+      Layout (+H);
+      Update (+H);
+      Measured := Measure_Content (+H);
+
+      Assert_Close (Measured.Width, 18.0, "Measured width should use CSS size");
+      Assert_Close (Measured.Height, 18.0, "Measured height should use CSS size");
+   end Test_Selected_Icon_Measure_Uses_CSS_Size;
+
 begin
    Put_Line ("========================================");
    Put_Line ("   Combo Box Item Test");
@@ -134,6 +188,7 @@ begin
    Test_Out_Of_Range;
    Test_Clear_Items;
    Test_Handle_Widget_Agreement;
+   Test_Selected_Icon_Measure_Uses_CSS_Size;
 
    Put_Line ("Total:" & Test_Count'Image
              & "  Passed:" & Pass_Count'Image

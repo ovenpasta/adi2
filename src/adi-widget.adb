@@ -6170,8 +6170,39 @@ package body Adi.Widget is
                      then
                         declare
                            Img_W, Img_H : Pixel_Type;
+                           Style : Resolved_Style renames Current.Computed_Style;
+                           Width_Fixed  : constant Boolean := Style.Width.Kind = Fixed;
+                           Height_Fixed : constant Boolean := Style.Height.Kind = Fixed;
                         begin
                            Get_Size(Current.Image_Source.all, Img_W, Img_H);
+
+                           if Width_Fixed or Height_Fixed then
+                              declare
+                                 Intrinsic_W : constant Pixel_Type := Img_W;
+                                 Intrinsic_H : constant Pixel_Type := Img_H;
+                              begin
+                                 if Width_Fixed then
+                                    Img_W := Size_To_Px (Style.Width, W.Geometry.Width);
+                                 end if;
+                                 if Height_Fixed then
+                                    Img_H := Size_To_Px (Style.Height, W.Geometry.Height);
+                                 end if;
+
+                                 if Width_Fixed and then not Height_Fixed
+                                   and then Intrinsic_W > 0.0
+                                 then
+                                    Img_H := Img_W * Intrinsic_H / Intrinsic_W;
+                                 elsif Height_Fixed and then not Width_Fixed
+                                   and then Intrinsic_H > 0.0
+                                 then
+                                    Img_W := Img_H * Intrinsic_W / Intrinsic_H;
+                                 end if;
+
+                                 Img_W := Pixel_Type'Max (0.0, Img_W);
+                                 Img_H := Pixel_Type'Max (0.0, Img_H);
+                              end;
+                           end if;
+
                            Result := Max(Result, (Img_W, Img_H));
                         end;
                      end if;

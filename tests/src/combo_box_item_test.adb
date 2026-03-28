@@ -176,6 +176,57 @@ procedure Combo_Box_Item_Test is
       Assert_Close (Measured.Height, 18.0, "Measured height should use CSS size");
    end Test_Selected_Icon_Measure_Uses_CSS_Size;
 
+   procedure Test_Indicator_Uses_CSS_Size is
+      H : constant Combo_Box_Handle := Create_Handle;
+      Arrow : constant Image_Access := Make_Test_Image (24.0, 12.0);
+      Main_Rules : constant Style_Rules := (
+         Align_Items => Set (Center),
+         others      => <>
+      );
+      Indicator_Rules : constant Style_Rules := (
+         Height => Set (Size (Px (18.0))),
+         others => <>
+      );
+      Indicator_Item : Item := (others => <>);
+      Found : Boolean := False;
+   begin
+      Put_Line ("Test: indicator layout respects CSS size");
+      Add_Item (H, "One");
+      Set_Arrow_Image (H, Arrow);
+      Set_Geometry (+H, (X => 0.0, Y => 0.0, Width => 120.0, Height => 40.0));
+      Set_Part_Style (+H, Main_Part, From (Main_Rules).Build);
+      Set_Part_Style (+H, Indicator_Part, From (Indicator_Rules).Build);
+
+      Build_Items (+H);
+      Layout (+H);
+      Update (+H);
+
+      for I in 1 .. Item_Count (+H) loop
+         declare
+            Current : constant Item := Get_Item (+H, I);
+         begin
+            if Current.Part = Indicator_Part then
+               Indicator_Item := Current;
+               Found := True;
+               exit;
+            end if;
+         end;
+      end loop;
+
+      Assert (Found, "Indicator item should exist");
+      if Found then
+         Assert_Close
+           (Indicator_Item.Geometry.Width, 36.0,
+            "Indicator width should preserve aspect ratio");
+         Assert_Close
+           (Indicator_Item.Geometry.Height, 18.0,
+            "Indicator height should match CSS height");
+         Assert_Close
+           (Indicator_Item.Geometry.Y, 11.0,
+            "Indicator should remain centered by flex layout");
+      end if;
+   end Test_Indicator_Uses_CSS_Size;
+
 begin
    Put_Line ("========================================");
    Put_Line ("   Combo Box Item Test");
@@ -189,6 +240,7 @@ begin
    Test_Clear_Items;
    Test_Handle_Widget_Agreement;
    Test_Selected_Icon_Measure_Uses_CSS_Size;
+   Test_Indicator_Uses_CSS_Size;
 
    Put_Line ("Total:" & Test_Count'Image
              & "  Passed:" & Pass_Count'Image

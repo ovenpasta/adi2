@@ -42,8 +42,8 @@ package body Adi.Widget.Combo_Box is
    Default_Popup_Max_Height : constant Pixel_Type := 240.0;
    Default_Popup_Row_Height : constant Pixel_Type := 24.0;
 
-   Arrow_Down_Path : constant String := "M4 6 L12 14 L20 6";
-   Arrow_Up_Path   : constant String := "M4 14 L12 6 L20 14";
+   Arrow_Down_Path : constant String := "M4 8 L12 16 L20 8";
+   Arrow_Up_Path   : constant String := "M4 16 L12 8 L20 16";
    Arrow_SVG_Size  : constant Size_2D := (24.0, 24.0);
    Arrow_White : constant Color_8 := (R => 255, G => 255, B => 255, A => 255);
    Arrow_Clear : constant Color_8 := (R => 0, G => 0, B => 0, A => 0);
@@ -807,6 +807,7 @@ package body Adi.Widget.Combo_Box is
 
    overriding procedure Layout (W : in out Combo_Box_Widget) is
       Default_Icon_Size : constant Size_2D := (16.0, 16.0);
+      Default_Indicator_Size : constant Size_2D := (16.0, 16.0);
 
       Main_Style  : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Main_Part);
@@ -835,9 +836,7 @@ package body Adi.Widget.Combo_Box is
       Label_Size : Size_2D := (0.0, 0.0);
 
       --  Indicator uses image size instead of font measurement
-      Ind_Img_W : Pixel_Type := 0.0;
-      Ind_Img_H : Pixel_Type := 0.0;
-      Ind_W     : Pixel_Type := 0.0;
+      Indicator_Size : Size_2D := (0.0, 0.0);
    begin
       if Item_Count (W) < 4 then
          return;
@@ -848,16 +847,47 @@ package body Adi.Widget.Combo_Box is
       end if;
 
       if Indicator_Visible then
-         --  Get indicator image dimensions
          declare
             Img : constant Image_Access :=
               (if W.Open then W.Arrow_Up_Img else W.Arrow_Down_Img);
+            Width_Fixed  : constant Boolean := Ind_Style.Width.Kind = Fixed;
+            Height_Fixed : constant Boolean := Ind_Style.Height.Kind = Fixed;
+            Intrinsic    : Size_2D;
          begin
             if Img /= null and then Is_Valid (Img.all) then
-               Get_Size (Img.all, Ind_Img_W, Ind_Img_H);
+               Get_Size (Img.all, Intrinsic.Width, Intrinsic.Height);
+            else
+               Intrinsic := Default_Indicator_Size;
             end if;
+
+            Indicator_Size := Intrinsic;
+
+            if Width_Fixed then
+               Indicator_Size.Width :=
+                 Size_To_Px (Ind_Style.Width, W.Geometry.Width);
+            end if;
+            if Height_Fixed then
+               Indicator_Size.Height :=
+                 Size_To_Px (Ind_Style.Height, W.Geometry.Height);
+            end if;
+
+            if Width_Fixed and then not Height_Fixed
+              and then Intrinsic.Width > 0.0
+            then
+               Indicator_Size.Height :=
+                 Indicator_Size.Width * Intrinsic.Height / Intrinsic.Width;
+            elsif Height_Fixed and then not Width_Fixed
+              and then Intrinsic.Height > 0.0
+            then
+               Indicator_Size.Width :=
+                 Indicator_Size.Height * Intrinsic.Width / Intrinsic.Height;
+            end if;
+
+            Indicator_Size.Width :=
+              Pixel_Type'Max (0.0, Indicator_Size.Width);
+            Indicator_Size.Height :=
+              Pixel_Type'Max (0.0, Indicator_Size.Height);
          end;
-         Ind_W := Pixel_Type'Max (Ind_Img_W, 16.0);
       end if;
 
       --  Build layout items for flex positioning
@@ -940,16 +970,16 @@ package body Adi.Widget.Combo_Box is
       if Indicator_Visible then
          W.Layout_Items.Append (Layout_Item'(
             Part           => Indicator_Part,
-            Min_Width      => Float (Ind_W),
-            Min_Height     => Float (Ind_Img_H),
-            Max_Width      => Float (Ind_W),
-            Max_Height     => Float'Last,
-            Content_Width  => Float (Ind_W),
-            Content_Height => Float (Ind_Img_H),
+            Min_Width      => Float (Indicator_Size.Width),
+            Min_Height     => Float (Indicator_Size.Height),
+            Max_Width      => Float (Indicator_Size.Width),
+            Max_Height     => Float (Indicator_Size.Height),
+            Content_Width  => Float (Indicator_Size.Width),
+            Content_Height => Float (Indicator_Size.Height),
             Flex           => (
                Grow       => 0.0,
                Shrink     => 0.0,
-               Basis      => Float (Ind_W),
+               Basis      => Float (Indicator_Size.Width),
                Align_Self => Ind_Style.Align_Self),
             Geometry       => <>,
             Index          => 2));

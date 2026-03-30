@@ -1,5 +1,14 @@
 /* Material Design 3 — Light Theme */
 
+:root {
+  font-size: 16dp;
+  --app-title: "Material Demo (Light)";
+  --welcome-title: "Welcome!";
+  --welcome-message: "Thanks for trying the Material Demo. Click OK to explore the Forms page, or dismiss to stay on Home.";
+  --quit-title: "Quit?";
+  --quit-message: "Are you sure you want to quit the Material Demo?";
+}
+
 .root {
   display: flex;
   flex-direction: column;
@@ -34,7 +43,7 @@
 
 .app-title::label {
   color: rgb(28, 27, 31);
-  font-size: 22px;
+  font-size: 1.375rem;
   font-weight: 700;
 }
 
@@ -61,7 +70,7 @@
 
 .nav-btn::label {
   color: rgb(73, 69, 79);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   text-wrap-mode: nowrap;
   transition: color 0.15s ease-in-out;
@@ -126,7 +135,7 @@
 
 .card-title::label {
   color: rgb(28, 27, 31);
-  font-size: 20px;
+  font-size: 1.25rem;
   font-weight: 600;
 }
 
@@ -140,7 +149,7 @@
 
 .card-body::label {
   color: rgb(73, 69, 79);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 400;
 }
 
@@ -154,7 +163,7 @@
 
 .card-hint::label {
   color: rgba(73, 69, 79, 0.6);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 400;
 }
 
@@ -170,13 +179,13 @@
 
 .grid-header::label {
   color: rgba(73, 69, 79, 0.6);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
 .grid-label::label {
   color: rgb(73, 69, 79);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   text-wrap-mode: nowrap;
 }
@@ -202,7 +211,7 @@
 
 .btn-primary::label {
   color: rgb(255, 255, 255);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   text-wrap-mode: nowrap;
 }
@@ -238,7 +247,7 @@
 
 .btn-secondary::label {
   color: rgb(103, 80, 164);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   text-wrap-mode: nowrap;
 }

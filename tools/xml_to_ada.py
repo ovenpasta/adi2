@@ -931,6 +931,7 @@ def generate_body(app: XmlApp, package_name: str,
 
     plain_with_only = {
         "Adi.CSS_Parser",
+        "Adi.I18N",
         "Adi.Layout_Util",
         "Adi.Widget.Dialog",
         "Adi.Window",

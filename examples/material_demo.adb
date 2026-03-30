@@ -6,13 +6,13 @@ with Adi.I18N;
 with Adi.Image;              use Adi.Image;
 with Adi.MCP;
 with Adi.Widget;              use Adi.Widget;
-with Adi.Widget.Button;       use Adi.Widget.Button;
 with Adi.Widget.Combo_Box;    use Adi.Widget.Combo_Box;
 with Adi.Widget.Context_Menu;
 with Adi.Widget.Dialog;       use Adi.Widget.Dialog;
-with Adi.Widget.Label;        use Adi.Widget.Label;
+with Adi.Widget.Label;
 with Adi.Window;
 with I18N_Example_Translations;
+with Material_Demo_Light_Styles;
 with Material_Demo_Styles;   use Material_Demo_Styles;
 with Material_Demo_UI;       use Material_Demo_UI;
 
@@ -37,6 +37,11 @@ procedure Material_Demo is
       UI.Set_CSS_File ((if Active
                         then "examples/css/material_demo.css"
                         else "examples/css/material_demo_light.css"), OK);
+      Adi.Widget.Label.Set_Text
+        (UI.App_Title,
+         (if Active
+          then Material_Demo_Styles.Var_App_Title
+          else Material_Demo_Light_Styles.Var_App_Title));
    end On_Dark_Mode;
 
    procedure On_Get_Started (W : Widget_Handle) is
@@ -155,15 +160,14 @@ begin
       end if;
    end;
 
+   Adi.Widget.Label.Set_Text (UI.App_Title, Var_App_Title);
+
    --  Create welcome dialog (inherits default dialog styles)
    Welcome_Dialog := Adi.Widget.Dialog.Create_Handle;
    Attach_Window (Welcome_Dialog, W);
    Set_Part_Styles (Welcome_Dialog, Dialog_Backdrop_Class_Part_Styles);
-   Set_Title (Welcome_Dialog, "Welcome!");
-   Set_Message (Welcome_Dialog,
-                "Thanks for trying the Material Demo. " &
-                "Click OK to explore the Forms page, " &
-                "or dismiss to stay on Home.");
+   Set_Title (Welcome_Dialog, Var_Welcome_Title);
+   Set_Message (Welcome_Dialog, Var_Welcome_Message);
    Set_OK_Button (Welcome_Dialog);
    Connect_Result (Welcome_Dialog, On_Welcome_Result'Unrestricted_Access);
 
@@ -195,9 +199,8 @@ begin
    Quit_Dialog := Adi.Widget.Dialog.Create_Handle;
    Attach_Window (Quit_Dialog, W);
    Set_Part_Styles (Quit_Dialog, Dialog_Backdrop_Class_Part_Styles);
-   Set_Title (Quit_Dialog, "Quit?");
-   Set_Message (Quit_Dialog,
-                "Are you sure you want to quit the Material Demo?");
+   Set_Title (Quit_Dialog, Var_Quit_Title);
+   Set_Message (Quit_Dialog, Var_Quit_Message);
    Add_Button (Quit_Dialog, "No");
    Yes_Button_Index := Add_Button (Quit_Dialog, "Yes");
    Set_Default_Button (Quit_Dialog, Yes_Button_Index);

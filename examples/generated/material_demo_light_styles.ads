@@ -10,11 +10,20 @@ with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 package Material_Demo_Light_Styles is
 
-   function Has_Root_Font_Size return Boolean is (False);
-   function Root_Font_Size return Length_Value is (Default_Font_Size);
+   function Has_Root_Font_Size return Boolean is (True);
+   function Root_Font_Size return Length_Value is (Dip (16.0));
 
-   function Has_Root_Styles return Boolean is (False);
-   function Root_Part_Styles return Part_Style_Array is (Empty_Part_Styles);
+   function Root_Base_Style return Style_Rules is
+     (
+      Font_Size => Set_Font (Dip (16.0)),
+      others => <>);
+
+   function Has_Root_Styles return Boolean is (True);
+   function Root_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => From (Root_Base_Style).Build, Enabled => True),
+      others => <>
+   ]);
 
    function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
      (
@@ -22,6 +31,13 @@ package Material_Demo_Light_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
+
+   function Var_App_Title return String is ("Material Demo (Light)");
+   function Var_Welcome_Title return String is ("Welcome!");
+   function Var_Welcome_Message return String is ("Thanks for trying the Material Demo. Click OK to explore the Forms page, or dismiss to stay on Home.");
+   function Var_Quit_Title return String is ("Quit?");
+   function Var_Quit_Message return String is ("Are you sure you want to quit the Material Demo?");
+
    --  Base style for class 'root'
    function Root_Class_Base_Style return Style_Rules is
      (
@@ -61,7 +77,7 @@ package Material_Demo_Light_Styles is
    function App_Title_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (28, 27, 31)),
-      Font_Size => Set_Font (Px (22.0)),
+      Font_Size => Set_Font (Root_Em (1.375)),
       Font_Weight => Set (Weight_Bold),
       others => <>);
 
@@ -113,7 +129,7 @@ package Material_Demo_Light_Styles is
    function Nav_Btn_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (73, 69, 79)),
-      Font_Size => Set_Font (Px (14.0)),
+      Font_Size => Set_Font (Root_Em (0.875)),
       Font_Weight => Set (Weight_Medium),
       Text_Wrap_Mode => Set (TWM_Nowrap),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Color))),
@@ -172,7 +188,7 @@ package Material_Demo_Light_Styles is
    function Card_Title_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (28, 27, 31)),
-      Font_Size => Set_Font (Px (20.0)),
+      Font_Size => Set_Font (Root_Em (1.25)),
       Font_Weight => Set (Weight_Semi_Bold),
       others => <>);
 
@@ -187,7 +203,7 @@ package Material_Demo_Light_Styles is
    function Card_Body_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (73, 69, 79)),
-      Font_Size => Set_Font (Px (14.0)),
+      Font_Size => Set_Font (Root_Em (0.875)),
       Font_Weight => Set (Weight_Normal),
       others => <>);
 
@@ -202,7 +218,7 @@ package Material_Demo_Light_Styles is
    function Card_Hint_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGBA (73, 69, 79, 0.6)),
-      Font_Size => Set_Font (Px (12.0)),
+      Font_Size => Set_Font (Root_Em (0.75)),
       Font_Weight => Set (Weight_Normal),
       others => <>);
 
@@ -221,7 +237,7 @@ package Material_Demo_Light_Styles is
    function Grid_Header_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGBA (73, 69, 79, 0.6)),
-      Font_Size => Set_Font (Px (12.0)),
+      Font_Size => Set_Font (Root_Em (0.75)),
       Font_Weight => Set (Weight_Semi_Bold),
       others => <>);
 
@@ -229,7 +245,7 @@ package Material_Demo_Light_Styles is
    function Grid_Label_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (73, 69, 79)),
-      Font_Size => Set_Font (Px (14.0)),
+      Font_Size => Set_Font (Root_Em (0.875)),
       Font_Weight => Set (Weight_Medium),
       Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>);
@@ -289,7 +305,7 @@ package Material_Demo_Light_Styles is
    function Btn_Primary_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (255, 255, 255)),
-      Font_Size => Set_Font (Px (14.0)),
+      Font_Size => Set_Font (Root_Em (0.875)),
       Font_Weight => Set (Weight_Semi_Bold),
       Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>);
@@ -344,7 +360,7 @@ package Material_Demo_Light_Styles is
    function Btn_Secondary_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (103, 80, 164)),
-      Font_Size => Set_Font (Px (14.0)),
+      Font_Size => Set_Font (Root_Em (0.875)),
       Font_Weight => Set (Weight_Semi_Bold),
       Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>);

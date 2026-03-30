@@ -593,7 +593,8 @@ class TestI18N(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "My_UI", i18n=True)
-        self.assertIn("with Adi.I18N; use Adi.I18N;", body)
+        self.assertIn("with Adi.I18N;", body)
+        self.assertNotIn("with Adi.I18N; use Adi.I18N;", body)
 
     def test_i18n_not_added_when_disabled(self):
         """with Adi.I18N is NOT added when i18n disabled."""

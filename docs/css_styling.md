@@ -671,6 +671,15 @@ Adi.CSS_Source.Set_Static_Entries (Source, [
 
 Repeated entries for the same selector are merged in insertion order (later entries win).
 
+For large generated style sets, prefer incremental registration with `Clear_Static_Entries` + repeated `Add_Static_Entry` calls. This avoids building one large local aggregate on the stack.
+
+If your stylesheet uses `:root` metadata, install it separately:
+
+```ada
+Adi.CSS_Source.Set_Static_Metadata (Source, My_Styles.Root_Metadata);
+Adi.CSS_Source.Bind_Root_Metadata (Source, Root_Widget);
+```
+
 #### Dynamic Loading
 
 ```ada

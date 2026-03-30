@@ -297,11 +297,21 @@ Inline CSS is:
 
 The generated `Build` function implements a dual-mode strategy:
 
-1. Register all precompiled styles via `Set_Static_Entries`
-2. Attempt to load dynamic CSS files (including companion files for inline `<style>` blocks)
-3. If dynamic loading succeeds, set `Dynamic_Mode`
-4. If it fails, fall back to `Static_Mode`
-5. Bind every widget with a `class` attribute via `Bind_Class` (space-separated names are merged automatically)
+1. Register all precompiled styles incrementally via `Add_Static_Entry` helper procedures
+2. Merge any linked/inline `:root` metadata into `Static_Root_Metadata`
+3. Install that metadata via `Set_Static_Metadata`
+4. Attempt to load dynamic CSS files (including companion files for inline `<style>` blocks)
+5. If dynamic loading succeeds, set `Dynamic_Mode`
+6. If it fails, fall back to `Static_Mode`
+7. Bind the root widget via `Bind_Root_Metadata`
+8. Bind every widget with a `class` attribute via `Bind_Class` (space-separated names are merged automatically)
+
+This keeps stylesheet root metadata coherent in both modes:
+
+- root widget styles from `:root` are applied once to the root widget
+- `:root { font-size: ... }` sets the stylesheet `rem` base
+
+For compile-time-only imports (styles-only links, no live CSS), generated code applies the merged root metadata directly in `Build` and uses it when resolving `rem`.
 
 When a `<window>` is present, `Tick_Styles_CB` is auto-wired to `Set_On_Tick` whenever the package has local live CSS or nested `<component>` instances. This ensures live reload also reaches component packages declared in separate XML files.
 

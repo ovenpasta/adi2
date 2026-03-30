@@ -309,6 +309,8 @@ project Examples_Build is
       "html_view_example",
       "material_demo",
       "image_example",
+      "slider_example",
+      "value_input_example",
       "assets_example",
       "gradient_example");
    Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");

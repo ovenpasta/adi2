@@ -21,6 +21,13 @@ project Adi is
       when others        => MCP_Source_Dir := "src/mcp_stub";
    end case;
 
+   Profile_Config_Dir := "";
+   case Build_Profile is
+      when "development" => Profile_Config_Dir := "config/development";
+      when "release"     => Profile_Config_Dir := "config/release";
+      when "validation"  => Profile_Config_Dir := "config/validation";
+   end case;
+
    case Platform_Name is
       when "windows" =>
          case SVG_Backend is
@@ -30,6 +37,7 @@ project Adi is
                   "src/svg",
                   "src/svg/ada",
                   "config/windows",
+                  Profile_Config_Dir,
                   "vendor/json-ada/src",
                   MCP_Source_Dir);
             when "plutosvg" =>
@@ -38,6 +46,7 @@ project Adi is
                   "src/svg",
                   "src/svg/plutosvg",
                   "config/windows",
+                  Profile_Config_Dir,
                   "vendor/json-ada/src",
                   MCP_Source_Dir);
          end case;
@@ -49,6 +58,7 @@ project Adi is
                   "src/svg",
                   "src/svg/ada",
                   "config/posix",
+                  Profile_Config_Dir,
                   "vendor/json-ada/src",
                   MCP_Source_Dir);
             when "plutosvg" =>
@@ -57,6 +67,7 @@ project Adi is
                   "src/svg",
                   "src/svg/plutosvg",
                   "config/posix",
+                  Profile_Config_Dir,
                   "vendor/json-ada/src",
                   MCP_Source_Dir);
          end case;

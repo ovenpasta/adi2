@@ -116,8 +116,9 @@
 
 **Adi.Log** (`adi-log.ads`): Central runtime logging.
 - Safe logging entry points: `Write`, `Debug`, `Info`, `Warning`, `Error`
-- Windows behavior: writes to `debug.log` (append/create), avoids GUI-crash risk from missing console handles
-- Non-Windows behavior: writes to standard output
+- All logging is a no-op in `release` and `validation` build profiles
+- Windows/development: writes to `debug.log` (append/create), avoids GUI-crash risk from missing console handles
+- Non-Windows/development: writes to standard output
 - Library runtime modules use this instead of direct `Ada.Text_IO.Put_Line`
 
 **Adi.Signal** (generic, `adi-signal.ads`): Multi-subscriber signal/slot mechanism.

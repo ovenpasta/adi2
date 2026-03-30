@@ -124,5 +124,6 @@ See also: [docs/gprbuild_without_alire.md](gprbuild_without_alire.md)
 
 ## Runtime Logging
 - Library/runtime logging goes through `Adi.Log`.
-- On Windows targets (`-XADI_PLATFORM=windows`), logs are written to `debug.log` to avoid crashes from missing console output handles in GUI apps.
-- On Linux targets (`-XADI_PLATFORM=linux`), logs go to standard output.
+- Logging is a **no-op** in `release` and `validation` build profiles — no `debug.log` is created and nothing is written to stdout.
+- In the `development` profile, on Windows (`-XADI_PLATFORM=windows`), logs are written to `debug.log` to avoid crashes from missing console output handles in GUI apps.
+- In the `development` profile, on Linux (`-XADI_PLATFORM=linux`), logs go to standard output.

@@ -17,7 +17,7 @@ All packages rooted under `Adi`. Core types in `Adi.Core`, styles in `Adi.Style`
 ## Logging
 - Use `Adi.Log` for runtime diagnostics (`Debug`, `Info`, `Warning`, `Error`).
 - Do not call `Ada.Text_IO.Put_Line` directly from library runtime paths.
-- Rationale: Windows GUI builds may not have a console; `Adi.Log` safely redirects to `debug.log` on Windows.
+- Rationale: `Adi.Log` is a no-op in release/validation builds, and on Windows development builds it redirects to `debug.log` (no console handle available in GUI apps).
 
 ## Widget API Conventions
 

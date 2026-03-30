@@ -1,5 +1,6 @@
 with Ada.Text_IO;
 with Adi.Build_Target;
+with Adi_Config;
 
 package body Adi.Log is
 
@@ -38,10 +39,12 @@ package body Adi.Log is
 
    procedure Write (Msg : String) is
    begin
-      if Adi.Build_Target.Is_Windows then
-         Write_To_File (Msg);
-      else
-         Write_To_Console (Msg);
+      if Adi_Config.Build_Profile = Adi_Config.development then
+         if Adi.Build_Target.Is_Windows then
+            Write_To_File (Msg);
+         else
+            Write_To_Console (Msg);
+         end if;
       end if;
    end Write;
 

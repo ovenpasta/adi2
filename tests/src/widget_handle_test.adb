@@ -103,13 +103,13 @@ procedure Widget_Handle_Test is
       H    : Widget_Handle := Get_Handle (Btn.all);
    begin
       Put_Line ("-- Destroy detaches from parent --");
-      Add_Child (Root.all, Btn);
-      Assert (Child_Count (Root.all) = 1, "child added");
+      Add_Child (Get_Handle (Root.all), H);
+      Assert (Child_Count (Get_Handle (Root.all)) = 1, "child added");
 
       Destroy (H);
-      Assert (Child_Count (Root.all) = 0,
+      Assert (Child_Count (Get_Handle (Root.all)) = 0,
               "child removed after destroy, got" &
-              Child_Count (Root.all)'Image);
+              Child_Count (Get_Handle (Root.all))'Image);
       Assert (not Is_Valid (H), "destroyed handle is stale");
    end Test_Destroy_Detaches;
 
@@ -127,8 +127,8 @@ procedure Widget_Handle_Test is
       H_C2   : constant Widget_Handle := Get_Handle (C2.all);
    begin
       Put_Line ("-- Destroy recursive tests --");
-      Add_Child (Root.all, C1);
-      Add_Child (Root.all, C2);
+      Add_Child (H_Root, H_C1);
+      Add_Child (H_Root, H_C2);
       Assert (Is_Valid (H_C1), "child1 valid before");
       Assert (Is_Valid (H_C2), "child2 valid before");
 
@@ -219,10 +219,10 @@ procedure Widget_Handle_Test is
                                           (Label.Create_Handle ("ACH"));
    begin
       Put_Line ("-- Add_Child(handle) tests --");
-      Add_Child (Root.all, H);
-      Assert (Child_Count (Root.all) = 1,
+      Add_Child (Get_Handle (Root.all), H);
+      Assert (Child_Count (Get_Handle (Root.all)) = 1,
               "Add_Child with handle adds child, got" &
-              Child_Count (Root.all)'Image);
+              Child_Count (Get_Handle (Root.all))'Image);
    end Test_Add_Child_Handle;
 
    ---------------------------------------------------------------------------
@@ -233,10 +233,10 @@ procedure Widget_Handle_Test is
       Root : constant Box.Box_Widget_Access := Box.Create;
    begin
       Put_Line ("-- Add_Child(Null_Handle) tests --");
-      Add_Child (Root.all, Null_Handle);
-      Assert (Child_Count (Root.all) = 0,
+      Add_Child (Get_Handle (Root.all), Null_Handle);
+      Assert (Child_Count (Get_Handle (Root.all)) = 0,
               "Add_Child with Null_Handle is no-op, got" &
-              Child_Count (Root.all)'Image);
+              Child_Count (Get_Handle (Root.all))'Image);
    end Test_Add_Child_Null_Handle;
 
    ---------------------------------------------------------------------------
@@ -332,7 +332,7 @@ procedure Widget_Handle_Test is
       declare
          Ptr : constant Widget_Access := Resolve_Handle (WH);
       begin
-         Assert (Ptr /= null and then Child_Count (Ptr.all) = 1,
+         Assert (Ptr /= null and then Child_Count (WH) = 1,
                  "Add_Child via Box_Handle should add child");
       end;
 

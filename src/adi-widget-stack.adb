@@ -61,11 +61,9 @@ package body Adi.Widget.Stack is
    ---------------------------------------------------------------------------
 
    procedure Add_Page (W : in out Stack_Widget; Id : Page_Id; Page : access Widget'Class) is
-      P  : constant access Widget'Class := Page.all'Unchecked_Access;
-      PA : constant Widget_Access := Widget_Access (P);
    begin
       Add_Child (W, Page);
-      W.Pages (Id) := PA;
+      W.Pages (Id) := Page.all'Unchecked_Access;
 
       if not W.Has_Active then
          W.Active := Id;

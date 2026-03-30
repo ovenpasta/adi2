@@ -11,6 +11,11 @@ package Adi.Layout_Util is
    procedure Set_Active_DIP_Scale (Scale : Pixel_Type);
    function Get_Active_DIP_Scale return Pixel_Type;
 
+   --  Active root font size used by Length_To_Px for Root_Em units when
+   --  explicit root font size is not provided at call sites.
+   procedure Set_Active_Root_Font_Size (Size : Pixel_Type);
+   function Get_Active_Root_Font_Size return Pixel_Type;
+
    --  Active viewport size used by Length_To_Px for vw/vh units when
    --  explicit viewport dimensions are not provided at call sites.
    procedure Set_Active_Viewport_Size
@@ -165,6 +170,7 @@ package Adi.Layout_Util is
    function Length_To_Px (L : CSS_Styles.Length_Value;
                            Container_Size : Pixel_Type := 0.0;
                            Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
+                           Root_Font_Size : Pixel_Type := 0.0;
                            Viewport_Width : Pixel_Type := 0.0;
                            Viewport_Height : Pixel_Type := 0.0)
        return Pixel_Type;
@@ -178,6 +184,7 @@ package Adi.Layout_Util is
    function Size_To_Px (S : Size_Value;
                          Container_Size : Pixel_Type := 0.0;
                          Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
+                         Root_Font_Size : Pixel_Type := 0.0;
                          Viewport_Width : Pixel_Type := 0.0;
                          Viewport_Height : Pixel_Type := 0.0)
        return Pixel_Type;

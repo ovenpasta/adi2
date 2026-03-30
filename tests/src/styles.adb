@@ -512,6 +512,19 @@ procedure Main is
       New_Line;
    end Test_DIP_Scaling;
 
+   procedure Test_Root_Em_Scaling is
+      Saved : constant Pixel_Type := Get_Active_Root_Font_Size;
+      V_Rem : Float;
+   begin
+      Put_Line ("Test: Root Em Scaling");
+      Set_Active_Root_Font_Size (20.0);
+      V_Rem := Float (Length_To_Px (Root_Em (2)));
+      Set_Active_Root_Font_Size (Saved);
+
+      Assert (V_Rem = 40.0, "Root_Em should use active root font size");
+      New_Line;
+   end Test_Root_Em_Scaling;
+
 begin
    Put_Line ("========================================");
    Put_Line ("   Widget Style System Tests");
@@ -551,8 +564,9 @@ begin
    Test_Typography_Resolve;
 
    Put_Line ("*** DIP SCALING TESTS ***");
-    New_Line;
+   New_Line;
    Test_DIP_Scaling;
+   Test_Root_Em_Scaling;
 
    --  Summary
    Put_Line ("========================================");

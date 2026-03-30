@@ -281,6 +281,43 @@ procedure Css_Parser_Test is
          end;
       end;
 
+      --  Runtime access to :root metadata and resolved custom properties
+      declare
+         Var_Sheet : Adi.CSS_Parser.Stylesheet;
+         Var_OK    : Boolean;
+         Var_CSS   : constant String :=
+           ":root { color: red; font-size: 20dp; --accent: blue; } "
+           & ".x { color: var(--accent); }";
+         Meta      : Adi.CSS_Parser.Stylesheet_Metadata;
+      begin
+         Adi.CSS_Parser.Load_String (Var_Sheet, Var_CSS, Var_OK);
+         Assert (Var_OK, ":root metadata CSS should parse");
+         Assert (Adi.CSS_Parser.Has_Custom_Property (Var_Sheet, "--accent"),
+                 "Has_Custom_Property should report :root custom property");
+         Assert (Adi.CSS_Parser.Get_Custom_Property (Var_Sheet, "--accent") = "blue",
+                 "Get_Custom_Property should return resolved value");
+
+         Meta := Adi.CSS_Parser.Get_Metadata (Var_Sheet);
+         Assert (Meta.Has_Root_Style,
+                 "Get_Metadata should report :root style presence");
+         Assert (Meta.Has_Root_Font_Size,
+                 "Get_Metadata should report :root font-size");
+         Assert (Meta.Root_Font_Size.Unit = Dip
+                 and then Nearly_Equal (Meta.Root_Font_Size.Amount, 20.0),
+                 "Get_Metadata should store :root font-size");
+
+         declare
+            Root_Resolved : constant Resolved_Style :=
+              Compute_Resolved
+                (Meta.Root_Styles (Main_Part).Style,
+                 No_States,
+                 No_States);
+         begin
+            Assert (Root_Resolved.Color = (Kind => Named, Name => Red),
+                    "Get_Metadata should keep :root style properties");
+         end;
+      end;
+
       --  Non-root custom property should be stripped
       declare
          Var_Sheet : Adi.CSS_Parser.Stylesheet;

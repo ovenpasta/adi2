@@ -477,7 +477,7 @@ Duration formats: `100ms`, `0.3s`.
 | `px` | Pixels (default if no unit given) |
 | `dip` / `dp` | Device-independent pixels |
 | `em` | Relative to element font size |
-| `rem` | Relative to root font size |
+| `rem` | Relative to stylesheet root font size (`:root { font-size: ... }`, default `16px`) |
 | `%` | Percentage of parent |
 | `vw` | Viewport width percentage |
 | `vh` | Viewport height percentage |
@@ -518,10 +518,17 @@ Override defaults (or define new tokens) in a `:root` block:
 :root {
   --primary: #ef4444;
   --spacing: 16px;
+  font-size: 18dp;
+  color: #e5e7eb;
 }
 ```
 
-`:root` values override `@property` defaults. Normal (non-custom) properties inside `:root` are ignored with a diagnostic. The `:root` block itself is stripped and does not produce a selector.
+`:root` values override `@property` defaults. Normal (non-custom) properties inside `:root` are treated as **stylesheet root metadata**:
+
+- they can be applied once to the app's root widget
+- `font-size` also defines the `rem` base for the stylesheet
+
+The `:root` block itself is still stripped and does not produce a normal selector in the tag/class/id rule tables.
 
 ### `var()` — Substitution
 
@@ -550,13 +557,17 @@ Custom properties use a flat, root-scoped model (no per-selector inheritance):
 - Custom properties in non-`:root` selectors are stripped with a `non-root-custom-property-ignored` diagnostic
 - `var()` resolves from the single root-scoped map only
 
+### Ada Access
+
+- Runtime (`Adi.CSS_Parser`, `Adi.CSS_Source`): custom properties are available by string name via `Has_Custom_Property` / `Get_Custom_Property`
+- Generated CSS (`css_to_ada.py`): parseable root custom properties emit typed `Var_*` Ada accessors (for example lengths, colors, quoted strings as Ada `String`), and generated packages expose `Root_Metadata`
+
 ### Diagnostics
 
 | Code | Meaning |
 |------|---------|
 | `unresolved-variable` | `var(--name)` with no fallback and no definition |
 | `var-resolution-depth-exceeded` | `var()` still present after 10 resolution passes (cycle or deep nesting) |
-| `root-normal-property-ignored` | Non-custom property inside `:root` block |
 | `non-root-custom-property-ignored` | `--name` declaration outside `:root` |
 
 ---

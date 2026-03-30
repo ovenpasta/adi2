@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Adi.CSS_Styles;
 with Adi.Widget;
 
 package Adi.CSS_Parser is
@@ -7,6 +8,15 @@ package Adi.CSS_Parser is
    pragma Elaborate_Body;
 
    type Selector_Kind is (Tag_Selector, Class_Selector, Id_Selector);
+
+   type Stylesheet_Metadata is record
+      Has_Root_Style     : Boolean := False;
+      Root_Styles        : Adi.Widget.Part_Style_Array :=
+        Adi.Widget.Empty_Part_Styles;
+      Has_Root_Font_Size : Boolean := False;
+      Root_Font_Size     : Adi.CSS_Styles.Length_Value :=
+        Adi.CSS_Styles.Default_Font_Size;
+   end record;
 
    type Stylesheet is tagged private;
 
@@ -43,6 +53,20 @@ package Adi.CSS_Parser is
 
    function Styles_For (Sheet : Stylesheet;
                         Class_Name : String) return Adi.Widget.Part_Style_Array;
+
+   function Get_Metadata (Sheet : Stylesheet) return Stylesheet_Metadata;
+   function Has_Custom_Property (Sheet : Stylesheet; Name : String) return Boolean;
+   function Get_Custom_Property (Sheet : Stylesheet; Name : String) return String;
+
+   procedure Apply_Root_Metadata
+     (Sheet : Stylesheet;
+      W     : in out Adi.Widget.Widget'Class);
+   procedure Bind_Root_Metadata
+     (Sheet : in out Stylesheet;
+      W     : access Adi.Widget.Widget'Class);
+   procedure Bind_Root_Metadata
+     (Sheet : in out Stylesheet;
+      W     : Adi.Widget.Widget_Handle);
 
    procedure Apply (Sheet : Stylesheet;
                     Kind  : Selector_Kind;

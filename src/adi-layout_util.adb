@@ -1,6 +1,7 @@
 package body Adi.Layout_Util is
 
    Active_DIP_Scale : Pixel_Type := 1.0;
+   Active_Root_Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
    Active_Viewport_Width  : Pixel_Type := 0.0;
    Active_Viewport_Height : Pixel_Type := 0.0;
 
@@ -13,6 +14,16 @@ package body Adi.Layout_Util is
    begin
       return Active_DIP_Scale;
    end Get_Active_DIP_Scale;
+
+   procedure Set_Active_Root_Font_Size (Size : Pixel_Type) is
+   begin
+      Active_Root_Font_Size := Pixel_Type'Max (0.01, Size);
+   end Set_Active_Root_Font_Size;
+
+   function Get_Active_Root_Font_Size return Pixel_Type is
+   begin
+      return Active_Root_Font_Size;
+   end Get_Active_Root_Font_Size;
 
    procedure Set_Active_Viewport_Size
      (Width  : Pixel_Type;
@@ -39,10 +50,13 @@ package body Adi.Layout_Util is
    function Length_To_Px (L : Length_Value;
                           Container_Size : Pixel_Type := 0.0;
                           Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
+                          Root_Font_Size : Pixel_Type := 0.0;
                           Viewport_Width : Pixel_Type := 0.0;
                           Viewport_Height : Pixel_Type := 0.0)
       return Pixel_Type
    is
+      Root_Size : constant Pixel_Type :=
+        (if Root_Font_Size > 0.0 then Root_Font_Size else Active_Root_Font_Size);
       Vw_Size : constant Pixel_Type :=
         (if Viewport_Width > 0.0 then Viewport_Width else Active_Viewport_Width);
       Vh_Size : constant Pixel_Type :=
@@ -56,7 +70,7 @@ package body Adi.Layout_Util is
          when Em =>
             return Pixel_Type (L.Amount * Float (Font_Size));
          when Root_Em =>
-            return Pixel_Type (L.Amount * Float (Default_Root_Font_Size_Px));
+            return Pixel_Type (L.Amount * Float (Root_Size));
          when Pct =>
             return Pixel_Type (L.Amount / 100.0 * Float (Container_Size));
          when Vw =>
@@ -80,6 +94,7 @@ package body Adi.Layout_Util is
    function Size_To_Px (S : Size_Value;
                         Container_Size : Pixel_Type := 0.0;
                         Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
+                        Root_Font_Size : Pixel_Type := 0.0;
                         Viewport_Width : Pixel_Type := 0.0;
                         Viewport_Height : Pixel_Type := 0.0)
       return Pixel_Type
@@ -91,6 +106,7 @@ package body Adi.Layout_Util is
               (S.Size,
                Container_Size,
                Font_Size,
+               Root_Font_Size,
                Viewport_Width,
                Viewport_Height);
          when Auto | Min_Content | Max_Content | Fit_Content =>

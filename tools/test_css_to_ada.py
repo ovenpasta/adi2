@@ -26,6 +26,7 @@ from css_to_ada import (
     parse_transition,
     parse_css,
     parse_css_with_diagnostics,
+    parse_stylesheet_with_diagnostics,
     parse_grid_track_count,
     parse_grid_placement,
     parse_list_style_shorthand,
@@ -1328,12 +1329,13 @@ class TestCustomProperties(unittest.TestCase):
         # Should not crash; either resolve or leave unresolved with diagnostic
         self.assertEqual(len(rules), 1)
 
-    def test_root_normal_prop_ignored(self):
+    def test_root_normal_props_become_metadata(self):
         css = ':root { color: red; --c: blue; } .x { color: var(--c); }'
-        rules, diags = parse_css_with_diagnostics(css)
-        self.assertEqual(rules[0].properties.get("color"), "blue")
+        stylesheet, diags = parse_stylesheet_with_diagnostics(css)
+        self.assertEqual(stylesheet.rules[0].properties.get("color"), "blue")
+        self.assertEqual(stylesheet.root_properties.get("color"), "red")
         codes = [d.code for d in diags]
-        self.assertIn("root-normal-property-ignored", codes)
+        self.assertNotIn("root-normal-property-ignored", codes)
 
     def test_non_root_custom_prop_ignored(self):
         css = '.x { --local: red; color: blue; }'
@@ -1364,6 +1366,29 @@ class TestCustomProperties(unittest.TestCase):
         rules, diags = parse_css_with_diagnostics(css)
         selectors = [r.selector.name for r in rules]
         self.assertEqual(selectors, ["x"])
+
+    def test_generate_root_metadata_and_typed_vars(self):
+        css = (
+            ':root { font-size: 20dp; color: red; --spacing: 12dp; --accent: blue; } '
+            '.x { padding: var(--spacing); color: var(--accent); }'
+        )
+        stylesheet, diags = parse_stylesheet_with_diagnostics(css)
+        groups = group_rules_by_widget(stylesheet.rules)
+        ada = generate_ada_package(stylesheet, groups, "Generated_Styles")
+        self.assertEqual(diags, [])
+        self.assertIn("function Has_Root_Font_Size return Boolean is (True);", ada)
+        self.assertIn("function Root_Font_Size return Length_Value is (Dip (20.0));", ada)
+        self.assertIn("function Root_Part_Styles return Part_Style_Array is", ada)
+        self.assertIn("function Var_Spacing return Length_Value is (Dip (12.0));", ada)
+        self.assertIn("function Var_Accent return Color_Value is (C (Blue));", ada)
+
+    def test_generate_string_var_accessor(self):
+        css = ':root { --title: "Preferences"; } .x { color: red; }'
+        stylesheet, diags = parse_stylesheet_with_diagnostics(css)
+        groups = group_rules_by_widget(stylesheet.rules)
+        ada = generate_ada_package(stylesheet, groups, "Generated_Styles")
+        self.assertEqual(diags, [])
+        self.assertIn('function Var_Title return String is ("Preferences");', ada)
 
 
 class TestParseLinearGradient(unittest.TestCase):

@@ -25,6 +25,10 @@ package Adi.CSS_Source is
    procedure Set_Static_Entries (Source  : in out Style_Source;
                                  Entries : Static_Style_Entry_Array);
 
+   procedure Set_Static_Metadata
+     (Source   : in out Style_Source;
+      Metadata : Adi.CSS_Parser.Stylesheet_Metadata);
+
    procedure Clear_Static_Entries (Source : in out Style_Source);
    procedure Add_Static_Entry (Source : in out Style_Source;
                                Entry_Value : Static_Style_Entry);
@@ -69,6 +73,9 @@ package Adi.CSS_Source is
    procedure Apply_Tag (Source : Style_Source;
                         Name   : String;
                         W      : in out Adi.Widget.Widget'Class);
+   procedure Apply_Root_Metadata
+     (Source : Style_Source;
+      W      : in out Adi.Widget.Widget'Class);
    procedure Apply_Selector_Set (Source     : Style_Source;
                                  W          : in out Adi.Widget.Widget'Class;
                                  Tag_Name   : String := "";
@@ -92,6 +99,9 @@ package Adi.CSS_Source is
    procedure Bind_Tag (Source : in out Style_Source;
                        Name   : String;
                        W      : access Adi.Widget.Widget'Class);
+   procedure Bind_Root_Metadata
+     (Source : in out Style_Source;
+      W      : access Adi.Widget.Widget'Class);
 
    --  Widget_Handle overloads (resolve handle then delegate to access-based)
    procedure Bind_Class (Source : in out Style_Source;
@@ -103,6 +113,9 @@ package Adi.CSS_Source is
    procedure Bind_Tag (Source : in out Style_Source;
                        Name   : String;
                        W      : Adi.Widget.Widget_Handle);
+   procedure Bind_Root_Metadata
+     (Source : in out Style_Source;
+      W      : Adi.Widget.Widget_Handle);
 
    procedure Bind_Selector_Set (Source     : in out Style_Source;
                                 W          : access Adi.Widget.Widget'Class;
@@ -118,6 +131,11 @@ package Adi.CSS_Source is
 
    function Merge_Part_Styles (Base, Override : Adi.Widget.Part_Style_Array)
      return Adi.Widget.Part_Style_Array;
+
+   function Get_Metadata
+     (Source : Style_Source) return Adi.CSS_Parser.Stylesheet_Metadata;
+   function Has_Custom_Property (Source : Style_Source; Name : String) return Boolean;
+   function Get_Custom_Property (Source : Style_Source; Name : String) return String;
 
    function Get_Last_Error (Source : Style_Source) return String;
 

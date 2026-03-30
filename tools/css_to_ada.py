@@ -503,6 +503,21 @@ class ParsedRule:
 
 
 @dataclass
+class TypedCustomProperty:
+    name: str
+    ada_name: str
+    ada_type: str
+    ada_expr: str
+
+
+@dataclass
+class ParsedStylesheet:
+    rules: list[ParsedRule]
+    custom_properties: dict[str, str] = field(default_factory=dict)
+    root_properties: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
 class CssDiagnostic:
     code: str
     message: str
@@ -1762,13 +1777,14 @@ def collect_at_property_blocks(
 def collect_root_variables(
     css_content: str,
     defaults: dict[str, str],
-) -> tuple[dict[str, str], str, list[CssDiagnostic]]:
-    """Extract :root { ... } blocks; collect --name custom properties.
+) -> tuple[dict[str, str], dict[str, str], str, list[CssDiagnostic]]:
+    """Extract :root { ... } blocks.
 
-    Normal (non-custom) declarations inside :root emit diagnostics.
-    Returns (variables dict, cleaned CSS, diagnostics).
+    Collect root-scoped custom properties and normal root properties
+    separately. Returns (variables, root_properties, cleaned_css, diagnostics).
     """
     variables = dict(defaults)
+    root_properties: dict[str, str] = {}
     diagnostics: list[CssDiagnostic] = []
 
     root_pattern = re.compile(r':root\s*\{([^}]*)\}', re.DOTALL)
@@ -1780,18 +1796,9 @@ def collect_root_variables(
             if prop_name.startswith('--'):
                 variables[prop_name] = prop_value
             else:
-                diagnostics.append(CssDiagnostic(
-                    code="root-normal-property-ignored",
-                    message=(
-                        f"Normal property '{prop_name}' in :root is ignored; "
-                        f":root only supports custom properties (--name)"
-                    ),
-                    selector=":root",
-                    property_name=prop_name,
-                    property_value=prop_value,
-                ))
+                set_css_property(root_properties, prop_name.lower(), prop_value)
     cleaned = root_pattern.sub('', css_content)
-    return variables, cleaned, diagnostics
+    return variables, root_properties, cleaned, diagnostics
 
 
 def strip_non_root_custom_properties(
@@ -1962,22 +1969,40 @@ def resolve_var_references(
     return css_content, diagnostics
 
 
-def preprocess_custom_properties(
+def resolve_variable_map(
+    variables: dict[str, str],
+    max_depth: int = 10,
+) -> tuple[dict[str, str], list[CssDiagnostic]]:
+    """Resolve nested var() references inside the variable map itself."""
+    diagnostics: list[CssDiagnostic] = []
+    resolved: dict[str, str] = {}
+    for name, value in variables.items():
+        final_value, diags = resolve_var_references(value, variables, max_depth=max_depth)
+        resolved[name] = final_value
+        diagnostics.extend(diags)
+    return resolved, diagnostics
+
+
+def preprocess_custom_properties_with_metadata(
     css_content: str,
-) -> tuple[str, list[CssDiagnostic]]:
+) -> tuple[str, dict[str, str], dict[str, str], list[CssDiagnostic]]:
     """Full custom-property preprocessing pipeline.
 
     1. Collect @property defaults
     2. Collect :root custom properties
+    3. Collect :root normal properties
     3. Strip non-root custom properties
     4. Resolve var() references
 
-    Returns (preprocessed CSS, diagnostics).
+    Returns (preprocessed CSS, resolved_variables, resolved_root_properties, diagnostics).
     """
     all_diagnostics: list[CssDiagnostic] = []
 
     defaults, css_content = collect_at_property_blocks(css_content)
-    variables, css_content, diags = collect_root_variables(css_content, defaults)
+    variables, root_properties, css_content, diags = collect_root_variables(css_content, defaults)
+    all_diagnostics.extend(diags)
+
+    variables, diags = resolve_variable_map(variables)
     all_diagnostics.extend(diags)
 
     css_content, diags = strip_non_root_custom_properties(css_content)
@@ -1986,20 +2011,68 @@ def preprocess_custom_properties(
     css_content, diags = resolve_var_references(css_content, variables)
     all_diagnostics.extend(diags)
 
-    return css_content, all_diagnostics
+    resolved_root_properties: dict[str, str] = {}
+    for prop_name, prop_value in root_properties.items():
+        resolved_value, diags = resolve_var_references(prop_value, variables)
+        resolved_root_properties[prop_name] = resolved_value
+        all_diagnostics.extend(diags)
+
+    return css_content, variables, resolved_root_properties, all_diagnostics
 
 
-def parse_css_with_diagnostics(css_content: str) -> tuple[list[ParsedRule], list[CssDiagnostic]]:
-    """Parse CSS content into rules and diagnostics."""
-    rules: list[ParsedRule] = []
+def preprocess_custom_properties(
+    css_content: str,
+) -> tuple[str, list[CssDiagnostic]]:
+    css_content, _variables, _root_properties, diagnostics = (
+        preprocess_custom_properties_with_metadata(css_content)
+    )
+    return css_content, diagnostics
+
+
+def parse_stylesheet_with_diagnostics(
+    css_content: str,
+) -> tuple[ParsedStylesheet, list[CssDiagnostic]]:
+    """Parse CSS content into rules plus root metadata/custom properties."""
     diagnostics: list[CssDiagnostic] = []
 
     # Remove comments
     css_content = re.sub(r'/\*.*?\*/', '', css_content, flags=re.DOTALL)
 
     # Preprocess custom properties (@property, :root, var())
-    css_content, var_diagnostics = preprocess_custom_properties(css_content)
+    css_content, variables, root_properties, var_diagnostics = (
+        preprocess_custom_properties_with_metadata(css_content)
+    )
     diagnostics.extend(var_diagnostics)
+
+    rules: list[ParsedRule] = []
+
+    validated_root_properties: dict[str, str] = {}
+    for raw_name, prop_value in root_properties.items():
+        if not is_supported_property(raw_name):
+            diagnostics.append(
+                CssDiagnostic(
+                    code="unsupported-property",
+                    message=f"Unsupported property '{raw_name}'",
+                    selector=":root",
+                    property_name=raw_name,
+                    property_value=prop_value,
+                )
+            )
+            continue
+
+        canonical_name = canonical_property_name(raw_name)
+        set_css_property(validated_root_properties, canonical_name, prop_value)
+
+        if not validate_property_value(raw_name, prop_value):
+            diagnostics.append(
+                CssDiagnostic(
+                    code="invalid-property-value",
+                    message=f"Invalid value for '{raw_name}'",
+                    selector=":root",
+                    property_name=raw_name,
+                    property_value=prop_value,
+                )
+            )
 
     # Find all rules
     rule_pattern = re.compile(r'([^{}]+)\{([^{}]*)\}', re.DOTALL)
@@ -2051,13 +2124,23 @@ def parse_css_with_diagnostics(css_content: str) -> tuple[list[ParsedRule], list
 
             rules.append(ParsedRule(selector=selector, properties=properties))
 
-    return rules, diagnostics
+    return ParsedStylesheet(
+        rules=rules,
+        custom_properties=variables,
+        root_properties=validated_root_properties,
+    ), diagnostics
+
+
+def parse_css_with_diagnostics(css_content: str) -> tuple[list[ParsedRule], list[CssDiagnostic]]:
+    """Parse CSS content into rules and diagnostics."""
+    stylesheet, diagnostics = parse_stylesheet_with_diagnostics(css_content)
+    return stylesheet.rules, diagnostics
 
 
 def parse_css(css_content: str) -> list[ParsedRule]:
     """Compatibility wrapper: parse CSS content into rules only."""
-    rules, _ = parse_css_with_diagnostics(css_content)
-    return rules
+    stylesheet, _ = parse_stylesheet_with_diagnostics(css_content)
+    return stylesheet.rules
 
 
 def group_rules_by_widget(rules: list[ParsedRule]) -> dict[str, WidgetStyleGroup]:
@@ -3175,6 +3258,50 @@ def generate_variable_name(name_prefix: str, selector: ParsedSelector) -> str:
     return f"{name_prefix}_{suffix}_Style"
 
 
+def custom_property_ada_name(name: str) -> str:
+    base = name[2:] if name.startswith("--") else name
+    return f"Var_{to_ada_identifier(base)}"
+
+
+def infer_typed_custom_property(name: str, value: str) -> Optional[TypedCustomProperty]:
+    parsed_string = parse_css_quoted_string(value)
+    if parsed_string is not None:
+        return TypedCustomProperty(
+            name=name,
+            ada_name=custom_property_ada_name(name),
+            ada_type="String",
+            ada_expr=ada_string_literal(parsed_string),
+        )
+
+    parsed_length = parse_length(value)
+    if parsed_length is not None:
+        return TypedCustomProperty(
+            name=name,
+            ada_name=custom_property_ada_name(name),
+            ada_type="Length_Value",
+            ada_expr=generate_length_ada(parsed_length),
+        )
+
+    parsed_color = parse_color(value)
+    if parsed_color is not None:
+        return TypedCustomProperty(
+            name=name,
+            ada_name=custom_property_ada_name(name),
+            ada_type="Color_Value",
+            ada_expr=generate_color_ada(parsed_color),
+        )
+
+    if _is_float(value):
+        return TypedCustomProperty(
+            name=name,
+            ada_name=custom_property_ada_name(name),
+            ada_type="Float",
+            ada_expr=format_float(float(value)),
+        )
+
+    return None
+
+
 def generate_style_declarations(groups: dict[str, WidgetStyleGroup],
                                 indent: str = "   ") -> list[str]:
     """Generate Ada style constant declarations without package wrapper.
@@ -3280,14 +3407,33 @@ def generate_style_declarations(groups: dict[str, WidgetStyleGroup],
     return lines
 
 
-def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str) -> str:
+def generate_ada_package(
+    stylesheet_or_groups,
+    groups_or_package_name,
+    package_name: Optional[str] = None,
+) -> str:
     """Generate complete Ada package"""
+    if package_name is None:
+        stylesheet = ParsedStylesheet(rules=[])
+        groups = stylesheet_or_groups
+        package_name = groups_or_package_name
+    else:
+        stylesheet = stylesheet_or_groups
+        groups = groups_or_package_name
+
+    root_properties = stylesheet.root_properties
+    typed_custom_properties = [
+        typed for name, value in stylesheet.custom_properties.items()
+        if (typed := infer_typed_custom_property(name, value)) is not None
+    ]
+
     lines = [
         f"--  Auto-generated from CSS",
         f"--  Do not edit manually",
         f"",
         f"pragma Ada_2022;",
         f"",
+        f"with Adi.CSS_Parser;",
         f"with Adi.CSS_Styles;   use Adi.CSS_Styles;",
         f"with Adi.Widget;       use Adi.Widget;",
         f"with Adi.Widget_Styles; use Adi.Widget_Styles;",
@@ -3295,6 +3441,54 @@ def generate_ada_package(groups: dict[str, WidgetStyleGroup], package_name: str)
         f"package {package_name} is",
         f"",
     ]
+
+    root_font_value = root_properties.get("font-size")
+    parsed_root_font = parse_length(root_font_value) if root_font_value else None
+
+    if parsed_root_font is not None:
+        lines.append("   function Has_Root_Font_Size return Boolean is (True);")
+        lines.append(
+            f"   function Root_Font_Size return Length_Value is ({generate_length_ada(parsed_root_font)});"
+        )
+    else:
+        lines.append("   function Has_Root_Font_Size return Boolean is (False);")
+        lines.append("   function Root_Font_Size return Length_Value is (Default_Font_Size);")
+
+    if root_properties:
+        fields = generate_style_rules_ada(root_properties)
+        lines.append("")
+        lines.append("   function Root_Base_Style return Style_Rules is")
+        lines.append("     (")
+        if fields:
+            lines.append(",\n".join(fields) + ",")
+        lines.append("      others => <>);")
+        lines.append("")
+        lines.append("   function Has_Root_Styles return Boolean is (True);")
+        lines.append("   function Root_Part_Styles return Part_Style_Array is")
+        lines.append("     ([")
+        lines.append("      Main_Part => (Style => From (Root_Base_Style).Build, Enabled => True),")
+        lines.append("      others => <>")
+        lines.append("   ]);")
+    else:
+        lines.append("")
+        lines.append("   function Has_Root_Styles return Boolean is (False);")
+        lines.append("   function Root_Part_Styles return Part_Style_Array is (Empty_Part_Styles);")
+
+    lines.append("")
+    lines.append("   function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is")
+    lines.append("     (")
+    lines.append("      Has_Root_Style => Has_Root_Styles,")
+    lines.append("      Root_Styles => Root_Part_Styles,")
+    lines.append("      Has_Root_Font_Size => Has_Root_Font_Size,")
+    lines.append("      Root_Font_Size => Root_Font_Size);")
+
+    if typed_custom_properties:
+        lines.append("")
+        for typed in typed_custom_properties:
+            lines.append(
+                f"   function {typed.ada_name} return {typed.ada_type} is ({typed.ada_expr});"
+            )
+        lines.append("")
     
     # Track generated variable names to avoid duplicates
     generated_names: set[str] = set()
@@ -3493,7 +3687,8 @@ def main():
         sys.exit(1)
     
     # Parse
-    rules, diagnostics = parse_css_with_diagnostics(css_content)
+    stylesheet, diagnostics = parse_stylesheet_with_diagnostics(css_content)
+    rules = stylesheet.rules
     for diag in diagnostics:
         print(f"warning: {format_diagnostic(diag)}", file=sys.stderr)
 
@@ -3504,7 +3699,7 @@ def main():
         )
         sys.exit(1)
 
-    if not rules:
+    if not rules and not stylesheet.root_properties and not stylesheet.custom_properties:
         print("No rules found in CSS file", file=sys.stderr)
         sys.exit(1)
     
@@ -3534,7 +3729,7 @@ def main():
                 )
     
     # Generate Ada
-    ada_code = generate_ada_package(groups, args.package_name)
+    ada_code = generate_ada_package(stylesheet, groups, args.package_name)
     try:
         with open(args.output, 'w') as f:
             f.write(ada_code)

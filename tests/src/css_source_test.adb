@@ -102,6 +102,40 @@ begin
       Source : Adi.CSS_Source.Style_Source;
       Box    : constant Box_Handle := Create_Handle;
       OK     : Boolean := False;
+      Css    : constant String :=
+        ":root { color: red; font-size: 20dp; --accent: blue; }" & ASCII.LF &
+        ".x { background-color: var(--accent); }" & ASCII.LF;
+   begin
+      Adi.CSS_Source.Add_Dynamic_String (Source, Css, OK);
+      Assert (OK, "Add_Dynamic_String with :root metadata should succeed");
+
+      Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, OK);
+      Assert (OK, "Set_Mode dynamic should succeed with :root metadata");
+
+      Assert (Adi.CSS_Source.Has_Custom_Property (Source, "--accent"),
+              "CSS_Source should expose resolved custom properties");
+      Assert (Adi.CSS_Source.Get_Custom_Property (Source, "--accent") = "blue",
+              "CSS_Source custom property lookup should return resolved value");
+      Assert (Adi.CSS_Source.Get_Metadata (Source).Has_Root_Font_Size,
+              "CSS_Source metadata should expose :root font-size");
+
+      Adi.CSS_Source.Bind_Root_Metadata (Source, +Box);
+      Adi.CSS_Source.Bind_Class (Source, "x", +Box);
+
+      declare
+         R : constant Resolved_Style := Get_Resolved_Part_Style (+Box, Main_Part);
+      begin
+         Assert (R.Color = (Kind => Named, Name => Red),
+                 "Bind_Root_Metadata should preserve :root styles on root widget");
+         Assert (R.Background_Color = (Kind => Named, Name => Blue),
+                 "Root widget should also receive normal bound selector styles");
+      end;
+   end;
+
+   declare
+      Source : Adi.CSS_Source.Style_Source;
+      Box    : constant Box_Handle := Create_Handle;
+      OK     : Boolean := False;
 
       Static_Entries : constant Adi.CSS_Source.Static_Style_Entry_Array := [
         Adi.CSS_Source.Tag_Entry (

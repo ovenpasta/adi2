@@ -9,6 +9,7 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with Adi.CSS_Styles; use Adi.CSS_Styles;
+with Adi.Layout_Util;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
@@ -64,7 +65,9 @@ package body Adi.CSS_Source is
       Entries        : Dynamic_Entry_Vectors.Vector;
       Dynamic_Loaded : Boolean := False;
       Sheet          : Adi.CSS_Parser.Stylesheet;
+      Root_Target    : Widget_Access := null;
       Last_Error     : Unbounded_String;
+      Static_Metadata : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);
       Static_Styles  : Entry_Vectors.Vector;
       Bindings       : Binding_Vectors.Vector;
    end record;
@@ -75,6 +78,39 @@ package body Adi.CSS_Source is
          Source.Impl := new Style_Source_Impl;
       end if;
    end Ensure_Impl;
+
+   function Active_Metadata
+     (Source : Style_Source) return Adi.CSS_Parser.Stylesheet_Metadata is
+   begin
+      if Source.Impl = null then
+         return (others => <>);
+      end if;
+
+      if Source.Impl.Mode = Dynamic_Mode and then Source.Impl.Dynamic_Loaded then
+         return Adi.CSS_Parser.Get_Metadata (Source.Impl.Sheet);
+      end if;
+
+      return Source.Impl.Static_Metadata;
+   end Active_Metadata;
+
+   procedure Apply_Active_Metadata (Source : Style_Source) is
+      Metadata : constant Adi.CSS_Parser.Stylesheet_Metadata :=
+        Active_Metadata (Source);
+   begin
+      if Metadata.Has_Root_Font_Size then
+         Adi.Layout_Util.Set_Active_Root_Font_Size
+           (Adi.Layout_Util.Length_To_Px
+              (Metadata.Root_Font_Size,
+               Root_Font_Size => Adi.Layout_Util.Default_Root_Font_Size_Px));
+      else
+         Adi.Layout_Util.Set_Active_Root_Font_Size
+           (Adi.Layout_Util.Default_Root_Font_Size_Px);
+      end if;
+   end Apply_Active_Metadata;
+
+   procedure Apply_Root_Metadata_Impl
+     (Source : Style_Source;
+      W      : in out Adi.Widget.Widget'Class);
 
    function Merge_Widget_Style (Base, Override : Widget_Style) return Widget_Style is
       Result : Widget_Style := Base;
@@ -174,12 +210,36 @@ package body Adi.CSS_Source is
       return Result;
    end Combined_Styles;
 
+   function Root_Merged_Styles
+     (Source : Style_Source;
+      Target : Widget_Access;
+      Styles : Part_Style_Array) return Part_Style_Array
+   is
+      Metadata : constant Adi.CSS_Parser.Stylesheet_Metadata :=
+        Active_Metadata (Source);
+   begin
+      if Source.Impl /= null
+        and then Target /= null
+        and then Source.Impl.Root_Target = Target
+        and then Metadata.Has_Root_Style
+      then
+         return Merge_Part_Styles (Metadata.Root_Styles, Styles);
+      end if;
+
+      return Styles;
+   end Root_Merged_Styles;
+
    procedure Apply_To_Widget (Source : Style_Source;
                               Kind   : Adi.CSS_Parser.Selector_Kind;
                               Name   : String;
                               W      : in out Adi.Widget.Widget'Class) is
    begin
-      Set_Part_Styles (W, Selector_Styles (Source, Kind, Name));
+      Set_Part_Styles
+        (W,
+         Root_Merged_Styles
+           (Source,
+            W'Unchecked_Access,
+            Selector_Styles (Source, Kind, Name)));
    end Apply_To_Widget;
 
    procedure Apply_Selector_Set_To_Widget (Source     : Style_Source;
@@ -188,8 +248,25 @@ package body Adi.CSS_Source is
                                            Class_Name : String;
                                            Id_Name    : String) is
    begin
-      Set_Part_Styles (W, Combined_Styles (Source, Tag_Name, Class_Name, Id_Name));
+      Set_Part_Styles
+        (W,
+         Root_Merged_Styles
+           (Source,
+            W'Unchecked_Access,
+            Combined_Styles (Source, Tag_Name, Class_Name, Id_Name)));
    end Apply_Selector_Set_To_Widget;
+
+   procedure Apply_Root_Metadata_Impl
+     (Source : Style_Source;
+      W      : in out Adi.Widget.Widget'Class) is
+      Metadata : constant Adi.CSS_Parser.Stylesheet_Metadata :=
+        Active_Metadata (Source);
+   begin
+      Apply_Active_Metadata (Source);
+      if Metadata.Has_Root_Style then
+         Set_Part_Styles (W, Metadata.Root_Styles);
+      end if;
+   end Apply_Root_Metadata_Impl;
 
    function Multi_Class_Styles (Source : Style_Source;
                                 Names  : String) return Part_Style_Array is
@@ -223,13 +300,24 @@ package body Adi.CSS_Source is
                                   Names  : String;
                                   W      : in out Adi.Widget.Widget'Class) is
    begin
-      Set_Part_Styles (W, Multi_Class_Styles (Source, Names));
+      Set_Part_Styles
+        (W,
+         Root_Merged_Styles
+           (Source,
+            W'Unchecked_Access,
+            Multi_Class_Styles (Source, Names)));
    end Apply_Multi_Classes;
 
    procedure Reapply_Bindings (Source : in out Style_Source) is
    begin
       if Source.Impl = null then
          return;
+      end if;
+
+      Apply_Active_Metadata (Source);
+
+      if Source.Impl.Root_Target /= null then
+         Apply_Root_Metadata_Impl (Source, Source.Impl.Root_Target.all);
       end if;
 
       for I in 1 .. Natural (Source.Impl.Bindings.Length) loop
@@ -383,6 +471,17 @@ package body Adi.CSS_Source is
          Reapply_Bindings (Source);
       end if;
    end Set_Static_Entries;
+
+   procedure Set_Static_Metadata
+     (Source   : in out Style_Source;
+      Metadata : Adi.CSS_Parser.Stylesheet_Metadata) is
+   begin
+      Ensure_Impl (Source);
+      Source.Impl.Static_Metadata := Metadata;
+      if Source.Impl.Mode = Static_Mode then
+         Reapply_Bindings (Source);
+      end if;
+   end Set_Static_Metadata;
 
    procedure Clear_Static_Entries (Source : in out Style_Source) is
    begin
@@ -574,6 +673,13 @@ package body Adi.CSS_Source is
       Apply (Source, Adi.CSS_Parser.Tag_Selector, Name, W);
    end Apply_Tag;
 
+   procedure Apply_Root_Metadata
+     (Source : Style_Source;
+      W      : in out Adi.Widget.Widget'Class) is
+   begin
+      Apply_Root_Metadata_Impl (Source, W);
+   end Apply_Root_Metadata;
+
    procedure Apply_Selector_Set (Source     : Style_Source;
                                  W          : in out Adi.Widget.Widget'Class;
                                  Tag_Name   : String := "";
@@ -602,7 +708,11 @@ package body Adi.CSS_Source is
         Id_Name       => Null_Unbounded_String,
         Target        => W.all'Unchecked_Access));
 
-      Apply_To_Widget (Source, Kind, Name, W.all);
+      if Source.Impl.Root_Target = W.all'Unchecked_Access then
+         Reapply_Bindings (Source);
+      else
+         Apply_To_Widget (Source, Kind, Name, W.all);
+      end if;
    end Bind;
 
    function Has_Space (S : String) return Boolean is
@@ -634,7 +744,11 @@ package body Adi.CSS_Source is
            Id_Name       => Null_Unbounded_String,
            Target        => W.all'Unchecked_Access));
 
-         Apply_Multi_Classes (Source, Name, W.all);
+         if Source.Impl.Root_Target = W.all'Unchecked_Access then
+            Reapply_Bindings (Source);
+         else
+            Apply_Multi_Classes (Source, Name, W.all);
+         end if;
       else
          Bind (Source, Adi.CSS_Parser.Class_Selector, Name, W);
       end if;
@@ -653,6 +767,19 @@ package body Adi.CSS_Source is
    begin
       Bind (Source, Adi.CSS_Parser.Tag_Selector, Name, W);
    end Bind_Tag;
+
+   procedure Bind_Root_Metadata
+     (Source : in out Style_Source;
+      W      : access Adi.Widget.Widget'Class) is
+   begin
+      Ensure_Impl (Source);
+      if W = null then
+         return;
+      end if;
+
+      Source.Impl.Root_Target := W.all'Unchecked_Access;
+      Reapply_Bindings (Source);
+   end Bind_Root_Metadata;
 
    procedure Bind_Class (Source : in out Style_Source;
                          Name   : String;
@@ -699,6 +826,21 @@ package body Adi.CSS_Source is
          null;
    end Bind_Tag;
 
+   procedure Bind_Root_Metadata
+     (Source : in out Style_Source;
+      W      : Adi.Widget.Widget_Handle)
+   is
+   begin
+      declare
+         R : Adi.Widget.Widget_Ref := Adi.Widget.Borrow (W);
+      begin
+         Bind_Root_Metadata (Source, R.Ptr);
+      end;
+   exception
+      when Constraint_Error =>
+         null;
+   end Bind_Root_Metadata;
+
    procedure Bind_Selector_Set (Source     : in out Style_Source;
                                 W          : access Adi.Widget.Widget'Class;
                                 Tag_Name   : String := "";
@@ -719,7 +861,11 @@ package body Adi.CSS_Source is
         Id_Name       => To_Unbounded_String (Normalize_Name (Id_Name)),
         Target        => W.all'Unchecked_Access));
 
-      Apply_Selector_Set_To_Widget (Source, W.all, Tag_Name, Class_Name, Id_Name);
+      if Source.Impl.Root_Target = W.all'Unchecked_Access then
+         Reapply_Bindings (Source);
+      else
+         Apply_Selector_Set_To_Widget (Source, W.all, Tag_Name, Class_Name, Id_Name);
+      end if;
    end Bind_Selector_Set;
 
    procedure Bind_Selector_Set (Source     : in out Style_Source;
@@ -743,6 +889,38 @@ package body Adi.CSS_Source is
       when Constraint_Error =>
          null;
    end Bind_Selector_Set;
+
+   function Get_Metadata
+     (Source : Style_Source) return Adi.CSS_Parser.Stylesheet_Metadata is
+   begin
+      return Active_Metadata (Source);
+   end Get_Metadata;
+
+   function Has_Custom_Property (Source : Style_Source; Name : String) return Boolean is
+   begin
+      if Source.Impl = null then
+         return False;
+      end if;
+
+      if Source.Impl.Mode = Dynamic_Mode and then Source.Impl.Dynamic_Loaded then
+         return Adi.CSS_Parser.Has_Custom_Property (Source.Impl.Sheet, Name);
+      end if;
+
+      return False;
+   end Has_Custom_Property;
+
+   function Get_Custom_Property (Source : Style_Source; Name : String) return String is
+   begin
+      if Source.Impl = null then
+         return "";
+      end if;
+
+      if Source.Impl.Mode = Dynamic_Mode and then Source.Impl.Dynamic_Loaded then
+         return Adi.CSS_Parser.Get_Custom_Property (Source.Impl.Sheet, Name);
+      end if;
+
+      return "";
+   end Get_Custom_Property;
 
    function Get_Last_Error (Source : Style_Source) return String is
    begin

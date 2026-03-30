@@ -13,6 +13,7 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
+with Adi.Layout_Util;   use Adi.Layout_Util;
 with Adi.Widget;        use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
@@ -49,9 +50,21 @@ package body Adi.CSS_Parser is
      (Index_Type => Positive,
       Element_Type => Binding);
 
+   type Variable_Entry is record
+      Name  : Unbounded_String;
+      Value : Unbounded_String;
+   end record;
+
+   package Variable_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type => Positive,
+      Element_Type => Variable_Entry);
+
    type Stylesheet_Impl is record
       Selectors     : Selector_Style_Vectors.Vector;
       Bindings      : Binding_Vectors.Vector;
+      Root_Target   : Widget_Access := null;
+      Metadata      : Stylesheet_Metadata := (others => <>);
+      Variables     : Variable_Vectors.Vector;
       Source_Path   : Unbounded_String;
       Last_Modified : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1, 0.0);
       Last_Error    : Unbounded_String;
@@ -93,6 +106,85 @@ package body Adi.CSS_Parser is
          Sheet.Impl := new Stylesheet_Impl;
       end if;
    end Ensure_Impl;
+
+   procedure Apply_Metadata_To_Widget
+     (Metadata : Stylesheet_Metadata;
+      W        : in out Adi.Widget.Widget'Class) is
+   begin
+      if Metadata.Has_Root_Font_Size then
+         Set_Active_Root_Font_Size
+           (Length_To_Px
+              (Metadata.Root_Font_Size,
+               Root_Font_Size => Default_Root_Font_Size_Px));
+      else
+         Set_Active_Root_Font_Size (Default_Root_Font_Size_Px);
+      end if;
+
+      if Metadata.Has_Root_Style then
+         Set_Part_Styles (W, Metadata.Root_Styles);
+      end if;
+   end Apply_Metadata_To_Widget;
+
+   function Merge_Widget_Styles
+     (Base, Override : Widget_Style) return Widget_Style
+   is
+      Result     : Widget_Style := Base;
+      Rule_Index : Natural := 0;
+   begin
+      Result.Base := Merge (Result.Base, Override.Base);
+
+      for I in 1 .. Override.Rule_Count loop
+         Rule_Index := 0;
+         for J in 1 .. Result.Rule_Count loop
+            if Result.Rules (J).Selector = Override.Rules (I).Selector then
+               Rule_Index := J;
+               exit;
+            end if;
+         end loop;
+
+         if Rule_Index = 0 then
+            if Result.Rule_Count < Max_Style_Rules then
+               Add_Rule (Result, Override.Rules (I));
+            end if;
+         else
+            Result.Rules (Rule_Index).Style :=
+              Merge (Result.Rules (Rule_Index).Style, Override.Rules (I).Style);
+         end if;
+      end loop;
+
+      return Result;
+   end Merge_Widget_Styles;
+
+   function Merge_Part_Style_Arrays
+     (Base, Override : Part_Style_Array) return Part_Style_Array
+   is
+      Result : Part_Style_Array := Base;
+   begin
+      for P in Part_Kind loop
+         if Override (P).Enabled then
+            Result (P).Enabled := True;
+            Result (P).Style :=
+              Merge_Widget_Styles (Result (P).Style, Override (P).Style);
+         end if;
+      end loop;
+      return Result;
+   end Merge_Part_Style_Arrays;
+
+   function Root_Merged_Styles
+     (Impl   : Stylesheet_Impl;
+      Target : Widget_Access;
+      Styles : Part_Style_Array) return Part_Style_Array
+   is
+   begin
+      if Target /= null
+        and then Impl.Root_Target = Target
+        and then Impl.Metadata.Has_Root_Style
+      then
+         return Merge_Part_Style_Arrays (Impl.Metadata.Root_Styles, Styles);
+      end if;
+
+      return Styles;
+   end Root_Merged_Styles;
 
    function Lower (S : String) return String is (Char.To_Lower (S));
 
@@ -2623,15 +2715,6 @@ package body Adi.CSS_Parser is
    --  Custom Property Preprocessing (var(), :root, @property)
    ---------------------------------------------------------------------------
 
-   type Variable_Entry is record
-      Name  : Unbounded_String;
-      Value : Unbounded_String;
-   end record;
-
-   package Variable_Vectors is new Ada.Containers.Indefinite_Vectors
-     (Index_Type => Positive,
-      Element_Type => Variable_Entry);
-
    function Var_Lookup
      (Vars : Variable_Vectors.Vector;
       Name : String) return String
@@ -2676,6 +2759,122 @@ package body Adi.CSS_Parser is
         (Variable_Entry'(Name  => To_Unbounded_String (Name),
                          Value => To_Unbounded_String (Value)));
    end Set_Variable;
+
+   function Find_Var_End (CSS : String; Start : Positive) return Natural is
+      --  Find closing ')' of var(...) starting after 'var('.
+      Depth : Natural := 1;
+      I     : Positive := Start;
+   begin
+      while I <= CSS'Last loop
+         if CSS (I) = '(' then
+            Depth := Depth + 1;
+         elsif CSS (I) = ')' then
+            Depth := Depth - 1;
+            if Depth = 0 then
+               return I;
+            end if;
+         end if;
+         I := I + 1;
+      end loop;
+      return 0;
+   end Find_Var_End;
+
+   function Resolve_Var_References
+     (CSS  : String;
+      Vars : Variable_Vectors.Vector) return String
+   is
+      Max_Depth : constant := 10;
+      Current   : Unbounded_String := To_Unbounded_String (CSS);
+   begin
+      for Iteration in 1 .. Max_Depth loop
+         declare
+            Input   : constant String := To_String (Current);
+            Output  : Unbounded_String;
+            I       : Positive := Input'First;
+            Changed : Boolean := False;
+         begin
+            while I <= Input'Last loop
+               if I + 3 <= Input'Last
+                 and then Input (I .. I + 3) = "var("
+                 and then (I = Input'First
+                           or else (not Char.Is_Alphanumeric (Input (I - 1))
+                                    and then Input (I - 1) /= '_'
+                                    and then Input (I - 1) /= '-'))
+               then
+                  declare
+                     End_Pos : constant Natural := Find_Var_End (Input, I + 4);
+                  begin
+                     if End_Pos = 0 then
+                        Append (Output, Input (I .. Input'Last));
+                        I := Input'Last + 1;
+                     else
+                        declare
+                           Inner     : constant String := Input (I + 4 .. End_Pos - 1);
+                           Comma_Pos : Natural := 0;
+                           Depth     : Natural := 0;
+                        begin
+                           for J in Inner'Range loop
+                              if Inner (J) = '(' then
+                                 Depth := Depth + 1;
+                              elsif Inner (J) = ')' then
+                                 Depth := Depth - 1;
+                              elsif Inner (J) = ',' and then Depth = 0 then
+                                 Comma_Pos := J;
+                                 exit;
+                              end if;
+                           end loop;
+
+                           declare
+                              Var_Name : constant String :=
+                                (if Comma_Pos > 0
+                                 then Trimmed (Inner (Inner'First .. Comma_Pos - 1))
+                                 else Trimmed (Inner));
+                              Fallback : constant String :=
+                                (if Comma_Pos > 0
+                                 then Trimmed (Inner (Comma_Pos + 1 .. Inner'Last))
+                                 else "");
+                           begin
+                              if Has_Variable (Vars, Var_Name) then
+                                 Append (Output, Var_Lookup (Vars, Var_Name));
+                                 Changed := True;
+                              elsif Comma_Pos > 0 then
+                                 Append (Output, Fallback);
+                                 Changed := True;
+                              else
+                                 Append (Output, Input (I .. End_Pos));
+                              end if;
+                           end;
+                        end;
+                        I := End_Pos + 1;
+                     end if;
+                  end;
+               else
+                  Append (Output, Input (I));
+                  I := I + 1;
+               end if;
+            end loop;
+
+            Current := Output;
+            exit when not Changed;
+         end;
+      end loop;
+      return To_String (Current);
+   end Resolve_Var_References;
+
+   function Resolve_Variable_Map
+     (Vars : Variable_Vectors.Vector) return Variable_Vectors.Vector
+   is
+      Result : Variable_Vectors.Vector := Vars;
+   begin
+      for I in 1 .. Natural (Result.Length) loop
+         Result.Replace_Element
+           (I,
+            (Name  => Result.Element (I).Name,
+             Value => To_Unbounded_String
+               (Resolve_Var_References (To_String (Result.Element (I).Value), Vars))));
+      end loop;
+      return Result;
+   end Resolve_Variable_Map;
 
    function Extract_At_Property_Blocks (CSS : String) return String is
       --  Remove @property --name { ... } blocks, extracting initial-value
@@ -2815,12 +3014,14 @@ package body Adi.CSS_Parser is
       end loop;
    end Collect_At_Property_Defaults;
 
-   function Extract_Root_Variables
+   function Extract_Root_Block
      (CSS  : String;
-      Vars : in out Variable_Vectors.Vector) return String
+      Vars : in out Variable_Vectors.Vector;
+      Root_Declarations : in out Unbounded_String) return String
    is
-      --  Find :root { ... } blocks, extract --name custom properties,
-      --  remove the blocks from CSS.
+      --  Find :root { ... } blocks, extract custom properties into Vars,
+      --  collect normal declarations for later metadata parsing, and remove
+      --  the blocks from CSS.
       Result : Unbounded_String;
       I      : Positive := CSS'First;
    begin
@@ -2882,8 +3083,13 @@ package body Adi.CSS_Parser is
                                    and then Prop_Name (Prop_Name'First .. Prop_Name'First + 1) = "--"
                                  then
                                     Set_Variable (Vars, Prop_Name, Prop_Value);
+                                 else
+                                    Append (Root_Declarations, Prop_Name);
+                                    Append (Root_Declarations, ": ");
+                                    Append (Root_Declarations, Prop_Value);
+                                    Append (Root_Declarations, ";");
+                                    Append (Root_Declarations, ASCII.LF);
                                  end if;
-                                 --  Ignore normal properties in :root (per design)
                               end;
                            end if;
 
@@ -2908,7 +3114,7 @@ package body Adi.CSS_Parser is
          end if;
       end loop;
       return To_String (Result);
-   end Extract_Root_Variables;
+   end Extract_Root_Block;
 
    function Strip_Non_Root_Custom_Properties (CSS : String) return String is
       --  Remove --name: value declarations from normal (non-:root) blocks.
@@ -2995,132 +3201,112 @@ package body Adi.CSS_Parser is
       return To_String (Result);
    end Strip_Non_Root_Custom_Properties;
 
-   function Find_Var_End (CSS : String; Start : Positive) return Natural is
-      --  Find closing ')' of var(...) starting after 'var('.
-      Depth : Natural := 1;
-      I     : Positive := Start;
-   begin
-      while I <= CSS'Last loop
-         if CSS (I) = '(' then
-            Depth := Depth + 1;
-         elsif CSS (I) = ')' then
-            Depth := Depth - 1;
-            if Depth = 0 then
-               return I;
-            end if;
-         end if;
-         I := I + 1;
-      end loop;
-      return 0;
-   end Find_Var_End;
-
-   function Resolve_Var_References
-     (CSS  : String;
-      Vars : Variable_Vectors.Vector) return String
+   procedure Build_Root_Metadata
+     (Root_CSS  : String;
+      Metadata  : in out Stylesheet_Metadata)
    is
-      Max_Depth : constant := 10;
-      Current   : Unbounded_String := To_Unbounded_String (CSS);
+      Pos : Positive := Root_CSS'First;
    begin
-      for Iteration in 1 .. Max_Depth loop
+      if Root_CSS'Length = 0 then
+         return;
+      end if;
+
+      while Pos <= Root_CSS'Last loop
+         while Pos <= Root_CSS'Last
+           and then (Is_Whitespace (Root_CSS (Pos))
+                     or else Root_CSS (Pos) = ';')
+         loop
+            Pos := Pos + 1;
+         end loop;
+         exit when Pos > Root_CSS'Last;
+
          declare
-            Input   : constant String := To_String (Current);
-            Output  : Unbounded_String;
-            I       : Positive := Input'First;
-            Changed : Boolean := False;
+            Decl_End : constant Natural := Fix.Index (Root_CSS, ";", From => Pos);
+            Decl     : constant String :=
+              (if Decl_End = 0
+               then Trimmed (Root_CSS (Pos .. Root_CSS'Last))
+               else Trimmed (Root_CSS (Pos .. Decl_End - 1)));
+            Sep      : constant Natural := Fix.Index (Decl, ":");
          begin
-            while I <= Input'Last loop
-               if I + 3 <= Input'Last
-                 and then Input (I .. I + 3) = "var("
-                 and then (I = Input'First
-                           or else (not Char.Is_Alphanumeric (Input (I - 1))
-                                    and then Input (I - 1) /= '_'
-                                    and then Input (I - 1) /= '-'))
-               then
-                  declare
-                     End_Pos : constant Natural := Find_Var_End (Input, I + 4);
-                  begin
-                     if End_Pos = 0 then
-                        Append (Output, Input (I .. Input'Last));
-                        I := Input'Last + 1;
-                     else
-                        declare
-                           Inner     : constant String := Input (I + 4 .. End_Pos - 1);
-                           Comma_Pos : Natural := 0;
-                           Depth     : Natural := 0;
-                        begin
-                           --  Find first comma not inside parens
-                           for J in Inner'Range loop
-                              if Inner (J) = '(' then
-                                 Depth := Depth + 1;
-                              elsif Inner (J) = ')' then
-                                 Depth := Depth - 1;
-                              elsif Inner (J) = ',' and then Depth = 0 then
-                                 Comma_Pos := J;
-                                 exit;
-                              end if;
-                           end loop;
+            if Sep > 0 then
+               declare
+                  Prop_Name  : constant String :=
+                    Trimmed (Decl (Decl'First .. Sep - 1));
+                  Prop_Value : constant String :=
+                    Trimmed (Decl (Sep + 1 .. Decl'Last));
+               begin
+                  Metadata.Has_Root_Style := True;
+                  Metadata.Root_Styles (Main_Part).Enabled := True;
+                  Apply_Property
+                    (Metadata.Root_Styles (Main_Part).Style.Base,
+                     Prop_Name,
+                     Prop_Value);
+                  if Lower (Prop_Name) = "font-size"
+                    and then Opt_Font_Size.Is_Set
+                      (Metadata.Root_Styles (Main_Part).Style.Base.Font_Size)
+                  then
+                     Metadata.Has_Root_Font_Size := True;
+                     Metadata.Root_Font_Size :=
+                       Opt_Font_Size.Resolve
+                         (Metadata.Root_Styles (Main_Part).Style.Base.Font_Size);
+                  end if;
+               end;
+            end if;
 
-                           declare
-                              Var_Name : constant String :=
-                                (if Comma_Pos > 0
-                                 then Trimmed (Inner (Inner'First .. Comma_Pos - 1))
-                                 else Trimmed (Inner));
-                              Fallback : constant String :=
-                                (if Comma_Pos > 0
-                                 then Trimmed (Inner (Comma_Pos + 1 .. Inner'Last))
-                                 else "");
-                           begin
-                              if Has_Variable (Vars, Var_Name) then
-                                 Append (Output, Var_Lookup (Vars, Var_Name));
-                                 Changed := True;
-                              elsif Comma_Pos > 0 then
-                                 Append (Output, Fallback);
-                                 Changed := True;
-                              else
-                                 --  Unresolved: keep original text
-                                 Append (Output, Input (I .. End_Pos));
-                              end if;
-                           end;
-                        end;
-                        I := End_Pos + 1;
-                     end if;
-                  end;
-               else
-                  Append (Output, Input (I));
-                  I := I + 1;
-               end if;
-            end loop;
-
-            Current := Output;
-            exit when not Changed;
+            if Decl_End = 0 then
+               Pos := Root_CSS'Last + 1;
+            else
+               Pos := Decl_End + 1;
+            end if;
          end;
       end loop;
-      return To_String (Current);
-   end Resolve_Var_References;
+   end Build_Root_Metadata;
 
-   function Preprocess_Custom_Properties (CSS : String) return String is
-      Vars     : Variable_Vectors.Vector;
-      Step1    : constant String := Strip_Comments (CSS);
+   function Preprocess_Custom_Properties
+     (CSS       : String;
+      Vars      : out Variable_Vectors.Vector;
+      Metadata  : out Stylesheet_Metadata) return String
+   is
+      Step1      : constant String := Strip_Comments (CSS);
+      Root_Decls : Unbounded_String;
+      Resolved   : Variable_Vectors.Vector;
+      Root_CSS   : Unbounded_String;
    begin
+      Vars.Clear;
+      Metadata := (others => <>);
+
       Collect_At_Property_Defaults (Step1, Vars);
       declare
          Step2 : constant String := Extract_At_Property_Blocks (Step1);
-         Step3 : constant String := Extract_Root_Variables (Step2, Vars);
+         Step3 : constant String := Extract_Root_Block (Step2, Vars, Root_Decls);
          Step4 : constant String := Strip_Non_Root_Custom_Properties (Step3);
-         Step5 : constant String := Resolve_Var_References (Step4, Vars);
       begin
-         return Step5;
+         Resolved := Resolve_Variable_Map (Vars);
+         Vars := Resolved;
+         Root_CSS := To_Unbounded_String
+           (Resolve_Var_References (To_String (Root_Decls), Resolved));
+         Build_Root_Metadata (To_String (Root_CSS), Metadata);
+         return Resolve_Var_References (Step4, Resolved);
       end;
    end Preprocess_Custom_Properties;
 
-   function Parse_Rules (CSS : String;
-                         Out_Rules : out Parsed_Rule_Vectors.Vector;
-                         Out_Error : out Unbounded_String) return Boolean is
-      Clean : constant String := Preprocess_Custom_Properties (CSS);
-      Pos : Positive := Clean'First;
+   function Parse_Rules
+     (CSS          : String;
+      Out_Rules    : out Parsed_Rule_Vectors.Vector;
+      Out_Vars     : out Variable_Vectors.Vector;
+      Out_Metadata : out Stylesheet_Metadata;
+      Out_Error    : out Unbounded_String) return Boolean
+   is
+      Clean : constant String :=
+        Preprocess_Custom_Properties (CSS, Out_Vars, Out_Metadata);
+      Pos : Natural := (if Clean'Length = 0 then 0 else Clean'First);
    begin
       Out_Rules.Clear;
       Out_Error := Null_Unbounded_String;
+
+      if Clean'Length = 0 then
+         return True;
+      end if;
 
       while Pos <= Clean'Last loop
          while Pos <= Clean'Last and then Is_Whitespace (Clean (Pos)) loop
@@ -3305,19 +3491,27 @@ package body Adi.CSS_Parser is
 
    procedure Reapply_Bindings (Impl : in out Stylesheet_Impl) is
    begin
+      if Impl.Root_Target /= null then
+         Apply_Metadata_To_Widget (Impl.Metadata, Impl.Root_Target.all);
+      end if;
+
       for B of Impl.Bindings loop
          if B.Target /= null then
             declare
                Idx : constant Natural := Find_Selector_Index (Impl, B.Kind, To_String (B.Name));
             begin
                if Idx = 0 then
-                  Set_Part_Styles (B.Target.all, Empty_Part_Styles);
+                  Set_Part_Styles
+                    (B.Target.all,
+                     Root_Merged_Styles (Impl, B.Target, Empty_Part_Styles));
                else
                   declare
                      Sel : Selector_Style renames
                        Impl.Selectors.Reference (Positive (Idx)).Element.all;
                   begin
-                     Set_Part_Styles (B.Target.all, Sel.Styles);
+                     Set_Part_Styles
+                       (B.Target.all,
+                        Root_Merged_Styles (Impl, B.Target, Sel.Styles));
                   end;
                end if;
             end;
@@ -3328,15 +3522,28 @@ package body Adi.CSS_Parser is
    procedure Load_String (Sheet       : in out Stylesheet;
                           CSS_Content : String;
                           Success     : out Boolean) is
-      Rules : Parsed_Rule_Vectors.Vector;
-      Err : Unbounded_String;
+      Rules    : Parsed_Rule_Vectors.Vector;
+      Vars     : Variable_Vectors.Vector;
+      Metadata : Stylesheet_Metadata;
+      Err      : Unbounded_String;
    begin
       Ensure_Impl (Sheet);
 
-      if not Parse_Rules (CSS_Content, Rules, Err) then
+      if not Parse_Rules (CSS_Content, Rules, Vars, Metadata, Err) then
          Sheet.Impl.Last_Error := Err;
          Success := False;
          return;
+      end if;
+
+      Sheet.Impl.Metadata := Metadata;
+      Sheet.Impl.Variables := Vars;
+      if Metadata.Has_Root_Font_Size then
+         Set_Active_Root_Font_Size
+           (Length_To_Px
+              (Metadata.Root_Font_Size,
+               Root_Font_Size => Default_Root_Font_Size_Px));
+      else
+         Set_Active_Root_Font_Size (Default_Root_Font_Size_Px);
       end if;
 
       Build_Styles (Sheet.Impl.all, Rules, Success);
@@ -3478,6 +3685,63 @@ package body Adi.CSS_Parser is
       return Styles_For_Class (Sheet, Class_Name);
    end Styles_For;
 
+   function Get_Metadata (Sheet : Stylesheet) return Stylesheet_Metadata is
+   begin
+      if Sheet.Impl = null then
+         return (others => <>);
+      end if;
+      return Sheet.Impl.Metadata;
+   end Get_Metadata;
+
+   function Has_Custom_Property (Sheet : Stylesheet; Name : String) return Boolean is
+   begin
+      if Sheet.Impl = null then
+         return False;
+      end if;
+      return Has_Variable (Sheet.Impl.Variables, Trimmed (Name));
+   end Has_Custom_Property;
+
+   function Get_Custom_Property (Sheet : Stylesheet; Name : String) return String is
+   begin
+      if Sheet.Impl = null then
+         return "";
+      end if;
+      return Var_Lookup (Sheet.Impl.Variables, Trimmed (Name));
+   end Get_Custom_Property;
+
+   procedure Apply_Root_Metadata
+     (Sheet : Stylesheet;
+      W     : in out Adi.Widget.Widget'Class) is
+   begin
+      if Sheet.Impl = null then
+         return;
+      end if;
+      Apply_Metadata_To_Widget (Sheet.Impl.Metadata, W);
+   end Apply_Root_Metadata;
+
+   procedure Bind_Root_Metadata
+     (Sheet : in out Stylesheet;
+      W     : access Adi.Widget.Widget'Class) is
+   begin
+      Ensure_Impl (Sheet);
+      if W = null then
+         return;
+      end if;
+
+      Sheet.Impl.Root_Target := W.all'Unchecked_Access;
+      Reapply_Bindings (Sheet.Impl.all);
+   end Bind_Root_Metadata;
+
+   procedure Bind_Root_Metadata
+     (Sheet : in out Stylesheet;
+      W     : Widget_Handle) is
+      Ptr : constant Widget_Access := Resolve_Handle (W);
+   begin
+      if Ptr /= null then
+         Bind_Root_Metadata (Sheet, Ptr);
+      end if;
+   end Bind_Root_Metadata;
+
    procedure Apply (Sheet : Stylesheet;
                     Kind  : Selector_Kind;
                     Name  : String;
@@ -3489,13 +3753,17 @@ package body Adi.CSS_Parser is
       end if;
 
       if Idx = 0 then
-         Set_Part_Styles (W, Empty_Part_Styles);
+         Set_Part_Styles
+           (W,
+            Root_Merged_Styles (Sheet.Impl.all, W'Unchecked_Access, Empty_Part_Styles));
       else
          declare
             Sel : Selector_Style renames
               Sheet.Impl.Selectors.Constant_Reference (Positive (Idx)).Element.all;
          begin
-            Set_Part_Styles (W, Sel.Styles);
+            Set_Part_Styles
+              (W,
+               Root_Merged_Styles (Sheet.Impl.all, W'Unchecked_Access, Sel.Styles));
          end;
       end if;
    end Apply;
@@ -3548,7 +3816,11 @@ package body Adi.CSS_Parser is
            (Kind   => Kind,
             Name   => To_Unbounded_String (Key),
             Target => W.all'Unchecked_Access));
-      Apply (Sheet, Kind, Key, W.all);
+      if Sheet.Impl.Root_Target = W.all'Unchecked_Access then
+         Reapply_Bindings (Sheet.Impl.all);
+      else
+         Apply (Sheet, Kind, Key, W.all);
+      end if;
    end Bind;
 
    procedure Bind_Class (Sheet      : in out Stylesheet;

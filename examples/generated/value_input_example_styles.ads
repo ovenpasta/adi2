@@ -3,12 +3,25 @@
 
 pragma Ada_2022;
 
+with Adi.CSS_Parser;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 package Value_Input_Example_Styles is
 
+   function Has_Root_Font_Size return Boolean is (False);
+   function Root_Font_Size return Length_Value is (Default_Font_Size);
+
+   function Has_Root_Styles return Boolean is (False);
+   function Root_Part_Styles return Part_Style_Array is (Empty_Part_Styles);
+
+   function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
+     (
+      Has_Root_Style => Has_Root_Styles,
+      Root_Styles => Root_Part_Styles,
+      Has_Root_Font_Size => Has_Root_Font_Size,
+      Root_Font_Size => Root_Font_Size);
    --  Base style for class 'root'
    function Root_Class_Base_Style return Style_Rules is
      (

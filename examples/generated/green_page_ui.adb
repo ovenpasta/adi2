@@ -3,6 +3,7 @@
 
 pragma Ada_2022;
 
+with Adi.CSS_Parser;
 with Adi.CSS_Source; use Adi.CSS_Source;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
@@ -13,6 +14,34 @@ package body Green_Page_UI is
 
    package body Instance is
    Source : aliased Adi.CSS_Source.Style_Source;
+
+   function Merge_Metadata
+     (Base, Override : Adi.CSS_Parser.Stylesheet_Metadata)
+      return Adi.CSS_Parser.Stylesheet_Metadata is
+      Result : Adi.CSS_Parser.Stylesheet_Metadata := Base;
+   begin
+      if Override.Has_Root_Style then
+         if Result.Has_Root_Style then
+            Result.Root_Styles :=
+              Merge_Part_Styles (Result.Root_Styles, Override.Root_Styles);
+         else
+            Result.Root_Styles := Override.Root_Styles;
+            Result.Has_Root_Style := True;
+         end if;
+      end if;
+      if Override.Has_Root_Font_Size then
+         Result.Has_Root_Font_Size := True;
+         Result.Root_Font_Size := Override.Root_Font_Size;
+      end if;
+      return Result;
+   end Merge_Metadata;
+
+   function Static_Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
+      Result : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);
+   begin
+      Result := Merge_Metadata (Result, Stack_Example_Green_Styles.Root_Metadata);
+      return Result;
+   end Static_Root_Metadata;
 
    procedure Tick_Styles (Reloaded : out Boolean;
                           Success  : out Boolean) is
@@ -74,6 +103,7 @@ package body Green_Page_UI is
       Register_Page_Green_Styles (Source);
       Register_Page_Title_Styles (Source);
       Register_Page_Desc_Styles (Source);
+      Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
       --  Load dynamic CSS and choose mode
       declare
@@ -94,6 +124,7 @@ package body Green_Page_UI is
       end;
 
       --  Bind every widget that has a CSS class
+      Adi.CSS_Source.Bind_Root_Metadata (Source, +Box_1);
       Adi.CSS_Source.Bind_Class (Source, "page-green", +Box_1);
       Adi.CSS_Source.Bind_Class (Source, "page-title", +Label_1);
       Adi.CSS_Source.Bind_Class (Source, "page-desc", +Label_2);

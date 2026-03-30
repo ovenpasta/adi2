@@ -3,15 +3,45 @@
 
 pragma Ada_2022;
 
+with Adi.CSS_Parser;
+with Adi.CSS_Source; use Adi.CSS_Source;
+with Adi.Layout_Util;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
-with Adi.Widget.Dialog; use Adi.Widget.Dialog;
 with Adi.Widget.Label; use Adi.Widget.Label;
 with Dialog_Example_Styles; use Dialog_Example_Styles;
 
 package body Delete_Dialog_UI is
 
    package body Instance is
+
+   function Merge_Metadata
+     (Base, Override : Adi.CSS_Parser.Stylesheet_Metadata)
+      return Adi.CSS_Parser.Stylesheet_Metadata is
+      Result : Adi.CSS_Parser.Stylesheet_Metadata := Base;
+   begin
+      if Override.Has_Root_Style then
+         if Result.Has_Root_Style then
+            Result.Root_Styles :=
+              Merge_Part_Styles (Result.Root_Styles, Override.Root_Styles);
+         else
+            Result.Root_Styles := Override.Root_Styles;
+            Result.Has_Root_Style := True;
+         end if;
+      end if;
+      if Override.Has_Root_Font_Size then
+         Result.Has_Root_Font_Size := True;
+         Result.Root_Font_Size := Override.Root_Font_Size;
+      end if;
+      return Result;
+   end Merge_Metadata;
+
+   function Static_Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
+      Result : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);
+   begin
+      Result := Merge_Metadata (Result, Dialog_Example_Styles.Root_Metadata);
+      return Result;
+   end Static_Root_Metadata;
 
    procedure Tick_Styles (Reloaded : out Boolean;
                           Success  : out Boolean) is
@@ -23,7 +53,7 @@ package body Delete_Dialog_UI is
    procedure Apply_Box_1_Styles
      (H : Widget_Handle) is
    begin
-      Set_Part_Styles (H, Custom_Content_Class_Part_Styles);
+      Set_Part_Styles (H, Merge_Part_Styles (Static_Root_Metadata.Root_Styles, Custom_Content_Class_Part_Styles));
    end Apply_Box_1_Styles;
 
    procedure Apply_Label_1_Styles
@@ -54,6 +84,14 @@ package body Delete_Dialog_UI is
       Label_3 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Storage used: 4.2 GB");
    begin
       --  Apply precompiled styles
+      declare
+         Root_Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=
+           Static_Root_Metadata;
+      begin
+         if Root_Meta.Has_Root_Font_Size then
+            Adi.Layout_Util.Set_Active_Root_Font_Size (Adi.Layout_Util.Length_To_Px (Root_Meta.Root_Font_Size, Root_Font_Size => Adi.Layout_Util.Default_Root_Font_Size_Px));
+         end if;
+      end;
       Apply_Box_1_Styles (+Box_1);
       Apply_Label_1_Styles (+Label_1);
       Apply_Label_2_Styles (+Label_2);

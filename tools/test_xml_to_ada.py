@@ -413,6 +413,32 @@ class TestInlineCSSCompanionPath(unittest.TestCase):
         body = xml_to_ada.generate_body(app, "My_UI")
         self.assertNotIn("inline.css", body)
 
+    def test_live_css_binds_root_metadata(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="test.css" package="Test_Styles"/>
+  <box id="Root" class="root"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "My_UI")
+        self.assertIn("Adi.CSS_Source.Bind_Root_Metadata (Source, +Root);", body)
+        self.assertIn("Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);", body)
+        self.assertIn("Result := Merge_Metadata (Result, Test_Styles.Root_Metadata);", body)
+
+    def test_inline_root_metadata_generates_helpers(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>:root { font-size: 20dp; color: red; }</style>
+  <box id="Root"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(
+            app, "My_UI", inline_css_path="some/dir/my_ui_inline.css"
+        )
+        self.assertIn("function Inline_Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is", body)
+        self.assertIn("function Inline_Root_Font_Size return Length_Value is (Dip (20.0));", body)
+        self.assertIn('Color => Set (C (Red))', body)
+
 
 class TestI18N(unittest.TestCase):
     """Tests for --i18n translation wrapping."""

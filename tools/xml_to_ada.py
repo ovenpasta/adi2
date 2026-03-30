@@ -850,16 +850,27 @@ def generate_body(app: XmlApp, package_name: str,
         spec_withs.add(comp_pkg)
 
     # Compile inline <style> CSS to Ada constants
+    inline_stylesheet: Optional[css_to_ada.ParsedStylesheet] = None
     inline_groups: dict = {}
     inline_classes: set[str] = set()
     if app.css_styles:
         combined_inline = "\n".join(app.css_styles)
-        inline_rules = css_to_ada.parse_css(combined_inline)
+        inline_stylesheet, _inline_diags = (
+            css_to_ada.parse_stylesheet_with_diagnostics(combined_inline)
+        )
+        inline_rules = inline_stylesheet.rules
         if inline_rules:
             inline_groups = css_to_ada.group_rules_by_widget(inline_rules)
             for key, grp in inline_groups.items():
                 if grp.selector_type == "class":
                     inline_classes.add(grp.name)
+
+    # Import styles packages derived from <link> elements
+    link_pkgs = list(dict.fromkeys(link.styles_pkg for link in app.css_links))
+    has_root_metadata = bool(
+        link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties)
+    )
+    needs_layout_util = bool(root is not None and not live_css and has_root_metadata)
 
     # Body needs Adi.Widget (for Set_Part_Styles, Add_Child, Widget_Access)
     # + any widget packages not already in the spec.
@@ -870,13 +881,17 @@ def generate_body(app: XmlApp, package_name: str,
     )
 
     body_withs: list[str] = ["Adi.Widget"]
-    if live_css or has_multi_class:
+    if live_css or has_multi_class or app.css_links:
         body_withs.append("Adi.CSS_Source")
+    if has_root_metadata:
+        body_withs.append("Adi.CSS_Parser")
+    if needs_layout_util:
+        body_withs.append("Adi.Layout_Util")
     if has_window and live_css:
         body_withs.append("Adi.Window")
     if has_dialog:
         body_withs.append("Adi.Widget.Dialog")
-    if inline_groups:
+    if inline_groups or (inline_stylesheet and inline_stylesheet.root_properties):
         body_withs.append("Adi.CSS_Styles")
         body_withs.append("Adi.Widget_Styles")
     # Include ALL widget packages in body (need "use" for "+" operator visibility)
@@ -914,11 +929,20 @@ def generate_body(app: XmlApp, package_name: str,
         if w.generic_name and w.generic_name not in generic_uses:
             generic_uses.append(w.generic_name)
 
+    plain_with_only = {
+        "Adi.CSS_Parser",
+        "Adi.Layout_Util",
+        "Adi.Widget.Dialog",
+        "Adi.Window",
+    }
     for bw in sorted(body_withs):
-        lines.append(f"with {bw}; use {bw};")
+        if bw in plain_with_only and bw in spec_withs:
+            continue
+        if bw in plain_with_only:
+            lines.append(f"with {bw};")
+        else:
+            lines.append(f"with {bw}; use {bw};")
 
-    # Import styles packages derived from <link> elements
-    link_pkgs = list(dict.fromkeys(link.styles_pkg for link in app.css_links))
     for pkg in sorted(link_pkgs):
         lines.append(f"with {pkg}; use {pkg};")
 
@@ -941,10 +965,86 @@ def generate_body(app: XmlApp, package_name: str,
             decl_lines = css_to_ada.generate_style_declarations(
                 inline_groups, indent="   ")
             lines.extend(decl_lines)
+    elif inline_groups:
+        lines.append("")
+        decl_lines = css_to_ada.generate_style_declarations(
+            inline_groups, indent="   ")
+        lines.extend(decl_lines)
 
-    # use type declarations for callback access types (needed for /= null)
-    for cb in app.callbacks:
-        lines.append(f"   use type {cb.cb_type};")
+    if inline_stylesheet and inline_stylesheet.root_properties:
+        root_props = inline_stylesheet.root_properties
+        root_font = root_props.get("font-size")
+        parsed_root_font = (
+            css_to_ada.parse_length(root_font) if root_font else None
+        )
+        lines.append("")
+        if parsed_root_font is not None:
+            lines.append("   function Inline_Has_Root_Font_Size return Boolean is (True);")
+            lines.append(
+                f"   function Inline_Root_Font_Size return Length_Value is ({css_to_ada.generate_length_ada(parsed_root_font)});"
+            )
+        else:
+            lines.append("   function Inline_Has_Root_Font_Size return Boolean is (False);")
+            lines.append("   function Inline_Root_Font_Size return Length_Value is (Default_Font_Size);")
+
+        fields = css_to_ada.generate_style_rules_ada(root_props, indent="      ")
+        lines.append("")
+        lines.append("   function Inline_Root_Base_Style return Style_Rules is")
+        lines.append("     (")
+        if fields:
+            lines.append(",\n".join(fields) + ",")
+        lines.append("      others => <>);")
+        lines.append("")
+        lines.append("   function Inline_Has_Root_Styles return Boolean is (True);")
+        lines.append("   function Inline_Root_Part_Styles return Part_Style_Array is")
+        lines.append("     ([")
+        lines.append("      Main_Part => (Style => From (Inline_Root_Base_Style).Build, Enabled => True),")
+        lines.append("      others => <>")
+        lines.append("   ]);")
+        lines.append("")
+        lines.append("   function Inline_Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is")
+        lines.append("     (")
+        lines.append("      Has_Root_Style => Inline_Has_Root_Styles,")
+        lines.append("      Root_Styles => Inline_Root_Part_Styles,")
+        lines.append("      Has_Root_Font_Size => Inline_Has_Root_Font_Size,")
+        lines.append("      Root_Font_Size => Inline_Root_Font_Size);")
+
+    if link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties):
+        lines.append("")
+        lines.append("   function Merge_Metadata")
+        lines.append("     (Base, Override : Adi.CSS_Parser.Stylesheet_Metadata)")
+        lines.append("      return Adi.CSS_Parser.Stylesheet_Metadata is")
+        lines.append("      Result : Adi.CSS_Parser.Stylesheet_Metadata := Base;")
+        lines.append("   begin")
+        lines.append("      if Override.Has_Root_Style then")
+        lines.append("         if Result.Has_Root_Style then")
+        lines.append("            Result.Root_Styles :=")
+        lines.append("              Merge_Part_Styles (Result.Root_Styles, Override.Root_Styles);")
+        lines.append("         else")
+        lines.append("            Result.Root_Styles := Override.Root_Styles;")
+        lines.append("            Result.Has_Root_Style := True;")
+        lines.append("         end if;")
+        lines.append("      end if;")
+        lines.append("      if Override.Has_Root_Font_Size then")
+        lines.append("         Result.Has_Root_Font_Size := True;")
+        lines.append("         Result.Root_Font_Size := Override.Root_Font_Size;")
+        lines.append("      end if;")
+        lines.append("      return Result;")
+        lines.append("   end Merge_Metadata;")
+        lines.append("")
+        lines.append("   function Static_Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is")
+        lines.append("      Result : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);")
+        lines.append("   begin")
+        for link in app.css_links:
+            lines.append(
+                f"      Result := Merge_Metadata (Result, {link.styles_pkg}.Root_Metadata);"
+            )
+        if inline_stylesheet and inline_stylesheet.root_properties:
+            lines.append(
+                "      Result := Merge_Metadata (Result, Inline_Root_Metadata);"
+            )
+        lines.append("      return Result;")
+        lines.append("   end Static_Root_Metadata;")
 
     # Package-level option group variables (only those without id, others are in spec)
     for og in app.option_groups:
@@ -1235,6 +1335,10 @@ def generate_body(app: XmlApp, package_name: str,
                         f"",
                     ]
                     lines.append(f"      {proc_name} (Source);")
+                if link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties):
+                    lines.append(
+                        "      Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);"
+                    )
                 lines.append("")
             lines.append("      --  Load dynamic CSS and choose mode")
             lines.append("      declare")
@@ -1291,6 +1395,10 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append(
                 "      --  Bind every widget that has a CSS class"
             )
+            if root is not None:
+                lines.append(
+                    f"      Adi.CSS_Source.Bind_Root_Metadata (Source, +{root.wid});"
+                )
             for wid, cls_list in styled_widgets:
                 names_str = " ".join(cls_list)
                 lines.append(
@@ -1303,6 +1411,27 @@ def generate_body(app: XmlApp, package_name: str,
             # private procedure so the Part_Style_Array temporary is released
             # before the next call (avoids N × 169 KB stack accumulation).
             lines.append("      --  Apply precompiled styles")
+            if link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties):
+                lines.append("      declare")
+                lines.append("         Root_Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=")
+                lines.append("           Static_Root_Metadata;")
+                lines.append("      begin")
+                lines.append("         if Root_Meta.Has_Root_Font_Size then")
+                lines.append(
+                    "            Adi.Layout_Util.Set_Active_Root_Font_Size"
+                    " (Adi.Layout_Util.Length_To_Px"
+                    " (Root_Meta.Root_Font_Size,"
+                    " Root_Font_Size =>"
+                    " Adi.Layout_Util.Default_Root_Font_Size_Px));"
+                )
+                lines.append("         end if;")
+                if root is not None and root.wid not in {wid for wid, _cls in styled_widgets}:
+                    lines.append("         if Root_Meta.Has_Root_Style then")
+                    lines.append(
+                        f"            Set_Part_Styles (+{root.wid}, Root_Meta.Root_Styles);"
+                    )
+                    lines.append("         end if;")
+                lines.append("      end;")
             for wid, cls_list in styled_widgets:
                 proc_name = f"Apply_{wid}_Styles"
                 if len(cls_list) == 1:
@@ -1320,6 +1449,10 @@ def generate_body(app: XmlApp, package_name: str,
                         style_expr = (
                             f"Merge_Part_Styles ({style_expr}, {c})"
                         )
+                if (link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties)) and root is not None and wid == root.wid:
+                    style_expr = (
+                        f"Merge_Part_Styles (Static_Root_Metadata.Root_Styles, {style_expr})"
+                    )
                 helper_procs += [
                     f"   procedure {proc_name}",
                     f"     (H : Widget_Handle) is",
@@ -1329,6 +1462,81 @@ def generate_body(app: XmlApp, package_name: str,
                     f"",
                 ]
                 lines.append(f"      {proc_name} (+{wid});")
+            lines.append("")
+    elif root is not None and (live_css or link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties)):
+        if live_css:
+            lines.append("      --  Register root metadata / load dynamic CSS")
+            lines.append("      Adi.CSS_Source.Clear_Static_Entries (Source);")
+            if link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties):
+                lines.append(
+                    "      Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);"
+                )
+            lines.append("      declare")
+            lines.append("         Loaded, Mode_OK : Boolean;")
+            lines.append("      begin")
+            has_link = bool(any(link.href for link in app.css_links))
+            has_style = bool(app.css_styles)
+            for link in app.css_links:
+                if link.href:
+                    lines.append(
+                        "         Adi.CSS_Source.Add_Dynamic_File"
+                    )
+                    lines.append(
+                        f'           (Source, "{link.href}", Loaded);'
+                    )
+            if has_style and inline_css_path:
+                lines.append(
+                    "         Adi.CSS_Source.Add_Dynamic_File"
+                )
+                lines.append(
+                    f'           (Source, "{inline_css_path}", Loaded);'
+                )
+            if not has_link and not has_style:
+                lines.append("         Loaded := False;")
+            lines.append("         if Loaded then")
+            lines.append(
+                "            Adi.CSS_Source.Set_Mode"
+            )
+            lines.append(
+                "              (Source, Adi.CSS_Source.Dynamic_Mode, Mode_OK);"
+            )
+            lines.append("         else")
+            lines.append("            Mode_OK := False;")
+            lines.append("         end if;")
+            lines.append("         if not Mode_OK then")
+            lines.append(
+                "            Adi.CSS_Source.Set_Mode"
+            )
+            lines.append(
+                "              (Source, Adi.CSS_Source.Static_Mode, Mode_OK);"
+            )
+            lines.append("         end if;")
+            lines.append("      end;")
+            lines.append(
+                f"      Adi.CSS_Source.Bind_Root_Metadata (Source, +{root.wid});"
+            )
+            lines.append("")
+        else:
+            lines.append("      --  Apply static root metadata")
+            lines.append("      declare")
+            lines.append("         Root_Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=")
+            lines.append("           Static_Root_Metadata;")
+            lines.append("      begin")
+            lines.append("         if Root_Meta.Has_Root_Font_Size then")
+            lines.append(
+                "            Adi.Layout_Util.Set_Active_Root_Font_Size"
+                " (Adi.Layout_Util.Length_To_Px"
+                " (Root_Meta.Root_Font_Size,"
+                " Root_Font_Size =>"
+                " Adi.Layout_Util.Default_Root_Font_Size_Px));"
+            )
+            lines.append("         end if;")
+            lines.append("         if Root_Meta.Has_Root_Style then")
+            lines.append(
+                f"            Set_Part_Styles (+{root.wid}, Root_Meta.Root_Styles);"
+            )
+            lines.append("         end if;")
+            lines.append("      end;")
             lines.append("")
 
     # Splice style helper procedures before the Build function so each call

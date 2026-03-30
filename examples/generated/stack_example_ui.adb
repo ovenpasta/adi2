@@ -3,6 +3,7 @@
 
 pragma Ada_2022;
 
+with Adi.CSS_Parser;
 with Adi.CSS_Source; use Adi.CSS_Source;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget; use Adi.Widget;
@@ -10,7 +11,6 @@ with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Button; use Adi.Widget.Button;
 with Adi.Widget.Label; use Adi.Widget.Label;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
-with Adi.Window; use Adi.Window;
 with Stack_Example_Styles; use Stack_Example_Styles;
 with Stack_Example_Tabs_Styles; use Stack_Example_Tabs_Styles;
 
@@ -83,7 +83,35 @@ package body Stack_Example_UI is
       others => <>
    ];
 
-   use type My_Stack.Page_Changed_Callback;
+
+   function Merge_Metadata
+     (Base, Override : Adi.CSS_Parser.Stylesheet_Metadata)
+      return Adi.CSS_Parser.Stylesheet_Metadata is
+      Result : Adi.CSS_Parser.Stylesheet_Metadata := Base;
+   begin
+      if Override.Has_Root_Style then
+         if Result.Has_Root_Style then
+            Result.Root_Styles :=
+              Merge_Part_Styles (Result.Root_Styles, Override.Root_Styles);
+         else
+            Result.Root_Styles := Override.Root_Styles;
+            Result.Has_Root_Style := True;
+         end if;
+      end if;
+      if Override.Has_Root_Font_Size then
+         Result.Has_Root_Font_Size := True;
+         Result.Root_Font_Size := Override.Root_Font_Size;
+      end if;
+      return Result;
+   end Merge_Metadata;
+
+   function Static_Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
+      Result : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);
+   begin
+      Result := Merge_Metadata (Result, Stack_Example_Styles.Root_Metadata);
+      Result := Merge_Metadata (Result, Stack_Example_Tabs_Styles.Root_Metadata);
+      return Result;
+   end Static_Root_Metadata;
    Tab_Options_Group : aliased Tab_Options.Option_Group;
    Tab_Options_Group_Conn : Tab_Options.Option_Changed_Signals.Connection_Id :=
      Tab_Options.Option_Changed_Signals.No_Connection;
@@ -236,6 +264,7 @@ package body Stack_Example_UI is
       Register_Page_Blue_Styles (Source);
       Register_Page_Title_Styles (Source);
       Register_Page_Desc_Styles (Source);
+      Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
       --  Load dynamic CSS and choose mode
       declare
@@ -260,6 +289,7 @@ package body Stack_Example_UI is
       end;
 
       --  Bind every widget that has a CSS class
+      Adi.CSS_Source.Bind_Root_Metadata (Source, +Root);
       Adi.CSS_Source.Bind_Class (Source, "root", +Root);
       Adi.CSS_Source.Bind_Class (Source, "tab-bar", +Tab_Bar);
       Adi.CSS_Source.Bind_Class (Source, "tab-left", +Btn_Red);

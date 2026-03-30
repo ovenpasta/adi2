@@ -3,6 +3,7 @@
 
 pragma Ada_2022;
 
+with Adi.CSS_Parser;
 with Adi.CSS_Source; use Adi.CSS_Source;
 with Adi.I18N; use Adi.I18N;
 with Adi.Widget; use Adi.Widget;
@@ -12,7 +13,6 @@ with Adi.Widget.Button.Switch; use Adi.Widget.Button.Switch;
 with Adi.Widget.Combo_Box; use Adi.Widget.Combo_Box;
 with Adi.Widget.Label; use Adi.Widget.Label;
 with Adi.Widget.Text_Input; use Adi.Widget.Text_Input;
-with Adi.Window; use Adi.Window;
 with Material_Demo_Styles; use Material_Demo_Styles;
 
 package body Material_Demo_UI is
@@ -23,10 +23,34 @@ package body Material_Demo_UI is
    use Int_Value_Input;
    use Page_Stack;
    Source : aliased Adi.CSS_Source.Style_Source;
-   use type Page_Stack.Page_Changed_Callback;
-   use type Adi.Widget.Button.Toggle_Callback;
-   use type Adi.Widget.Button.Click_Callback;
-   use type Adi.Widget.Button.Toggle_Callback;
+
+   function Merge_Metadata
+     (Base, Override : Adi.CSS_Parser.Stylesheet_Metadata)
+      return Adi.CSS_Parser.Stylesheet_Metadata is
+      Result : Adi.CSS_Parser.Stylesheet_Metadata := Base;
+   begin
+      if Override.Has_Root_Style then
+         if Result.Has_Root_Style then
+            Result.Root_Styles :=
+              Merge_Part_Styles (Result.Root_Styles, Override.Root_Styles);
+         else
+            Result.Root_Styles := Override.Root_Styles;
+            Result.Has_Root_Style := True;
+         end if;
+      end if;
+      if Override.Has_Root_Font_Size then
+         Result.Has_Root_Font_Size := True;
+         Result.Root_Font_Size := Override.Root_Font_Size;
+      end if;
+      return Result;
+   end Merge_Metadata;
+
+   function Static_Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
+      Result : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);
+   begin
+      Result := Merge_Metadata (Result, Material_Demo_Styles.Root_Metadata);
+      return Result;
+   end Static_Root_Metadata;
 
    procedure On_Page_Option_Wrapper (Value : Page) is
    begin
@@ -389,6 +413,7 @@ package body Material_Demo_UI is
       Register_Num_Field_Styles (Source);
       Register_Setting_Row_Styles (Source);
       Register_Setting_Label_Styles (Source);
+      Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
       --  Load dynamic CSS and choose mode
       declare
@@ -409,6 +434,7 @@ package body Material_Demo_UI is
       end;
 
       --  Bind every widget that has a CSS class
+      Adi.CSS_Source.Bind_Root_Metadata (Source, +Root);
       Adi.CSS_Source.Bind_Class (Source, "root", +Root);
       Adi.CSS_Source.Bind_Class (Source, "app-bar", +Box_1);
       Adi.CSS_Source.Bind_Class (Source, "app-title", +App_Title);

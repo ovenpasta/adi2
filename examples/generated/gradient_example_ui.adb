@@ -3,17 +3,45 @@
 
 pragma Ada_2022;
 
+with Adi.CSS_Parser;
 with Adi.CSS_Source; use Adi.CSS_Source;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Label; use Adi.Widget.Label;
-with Adi.Window; use Adi.Window;
 with Gradient_Example_Styles; use Gradient_Example_Styles;
 
 package body Gradient_Example_UI is
 
    package body Instance is
    Source : aliased Adi.CSS_Source.Style_Source;
+
+   function Merge_Metadata
+     (Base, Override : Adi.CSS_Parser.Stylesheet_Metadata)
+      return Adi.CSS_Parser.Stylesheet_Metadata is
+      Result : Adi.CSS_Parser.Stylesheet_Metadata := Base;
+   begin
+      if Override.Has_Root_Style then
+         if Result.Has_Root_Style then
+            Result.Root_Styles :=
+              Merge_Part_Styles (Result.Root_Styles, Override.Root_Styles);
+         else
+            Result.Root_Styles := Override.Root_Styles;
+            Result.Has_Root_Style := True;
+         end if;
+      end if;
+      if Override.Has_Root_Font_Size then
+         Result.Has_Root_Font_Size := True;
+         Result.Root_Font_Size := Override.Root_Font_Size;
+      end if;
+      return Result;
+   end Merge_Metadata;
+
+   function Static_Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
+      Result : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);
+   begin
+      Result := Merge_Metadata (Result, Gradient_Example_Styles.Root_Metadata);
+      return Result;
+   end Static_Root_Metadata;
 
    procedure Tick_Styles (Reloaded : out Boolean;
                           Success  : out Boolean) is
@@ -335,6 +363,7 @@ package body Gradient_Example_UI is
       Register_Grad_16stop_Styles (Source);
       Register_Grad_Pill_Styles (Source);
       Register_Grad_Border_Styles (Source);
+      Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
       --  Load dynamic CSS and choose mode
       declare
@@ -355,6 +384,7 @@ package body Gradient_Example_UI is
       end;
 
       --  Bind every widget that has a CSS class
+      Adi.CSS_Source.Bind_Root_Metadata (Source, +Root);
       Adi.CSS_Source.Bind_Class (Source, "root", +Root);
       Adi.CSS_Source.Bind_Class (Source, "title", +Label_1);
       Adi.CSS_Source.Bind_Class (Source, "row", +Box_1);

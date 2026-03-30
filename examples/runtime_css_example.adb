@@ -130,21 +130,66 @@ begin
       Status : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("Waiting for CSS load...");
 
-      Static_Entries : constant Adi.CSS_Source.Static_Style_Entry_Array := [
-        Adi.CSS_Source.Class_Entry ("root", Runtime_Css_Example_Styles.Root_Class_Part_Styles),
-        Adi.CSS_Source.Class_Entry ("header", Runtime_Css_Example_Styles.Header_Class_Part_Styles),
-        Adi.CSS_Source.Class_Entry ("content", Runtime_Css_Example_Styles.Content_Class_Part_Styles),
-        Adi.CSS_Source.Class_Entry ("card-left", Runtime_Css_Example_Styles.Card_Left_Class_Part_Styles),
-        Adi.CSS_Source.Class_Entry ("card-right", Runtime_Css_Example_Styles.Card_Right_Class_Part_Styles),
-        Adi.CSS_Source.Class_Entry ("title", Runtime_Css_Example_Styles.Title_Class_Part_Styles),
-        Adi.CSS_Source.Class_Entry ("subtitle", Runtime_Css_Example_Styles.Subtitle_Class_Part_Styles),
-        Adi.CSS_Source.Class_Entry ("badge", Runtime_Css_Example_Styles.Badge_Class_Part_Styles),
-        Adi.CSS_Source.Class_Entry ("mode-button", Runtime_Css_Example_Styles.Mode_Button_Class_Part_Styles),
-        Adi.CSS_Source.Tag_Entry ("button", Runtime_Css_Example_Styles.Button_Tag_Part_Styles),
-        Adi.CSS_Source.Id_Entry ("mode-switch", Runtime_Css_Example_Styles.Mode_Switch_Id_Part_Styles),
-        Adi.CSS_Source.Class_Entry ("card-title", Runtime_Css_Example_Styles.Card_Title_Class_Part_Styles),
-        Adi.CSS_Source.Class_Entry ("card-body", Runtime_Css_Example_Styles.Card_Body_Class_Part_Styles),
-        Adi.CSS_Source.Class_Entry ("status", Runtime_Css_Example_Styles.Status_Class_Part_Styles)];
+      procedure Register_Static_Styles is
+      begin
+         Adi.CSS_Source.Clear_Static_Entries (Source);
+         Adi.CSS_Source.Add_Static_Entry
+           (Source,
+            Adi.CSS_Source.Class_Entry
+              ("root", Runtime_Css_Example_Styles.Root_Class_Part_Styles));
+         Adi.CSS_Source.Add_Static_Entry
+           (Source,
+            Adi.CSS_Source.Class_Entry
+              ("header", Runtime_Css_Example_Styles.Header_Class_Part_Styles));
+         Adi.CSS_Source.Add_Static_Entry
+           (Source,
+            Adi.CSS_Source.Class_Entry
+              ("content", Runtime_Css_Example_Styles.Content_Class_Part_Styles));
+         Adi.CSS_Source.Add_Static_Entry
+           (Source,
+            Adi.CSS_Source.Class_Entry
+              ("card-left", Runtime_Css_Example_Styles.Card_Left_Class_Part_Styles));
+         Adi.CSS_Source.Add_Static_Entry
+           (Source,
+            Adi.CSS_Source.Class_Entry
+              ("card-right", Runtime_Css_Example_Styles.Card_Right_Class_Part_Styles));
+         Adi.CSS_Source.Add_Static_Entry
+           (Source,
+            Adi.CSS_Source.Class_Entry
+              ("title", Runtime_Css_Example_Styles.Title_Class_Part_Styles));
+         Adi.CSS_Source.Add_Static_Entry
+           (Source,
+            Adi.CSS_Source.Class_Entry
+              ("subtitle", Runtime_Css_Example_Styles.Subtitle_Class_Part_Styles));
+         Adi.CSS_Source.Add_Static_Entry
+           (Source,
+            Adi.CSS_Source.Class_Entry
+              ("badge", Runtime_Css_Example_Styles.Badge_Class_Part_Styles));
+         Adi.CSS_Source.Add_Static_Entry
+           (Source,
+            Adi.CSS_Source.Class_Entry
+              ("mode-button", Runtime_Css_Example_Styles.Mode_Button_Class_Part_Styles));
+         Adi.CSS_Source.Add_Static_Entry
+           (Source,
+            Adi.CSS_Source.Tag_Entry
+              ("button", Runtime_Css_Example_Styles.Button_Tag_Part_Styles));
+         Adi.CSS_Source.Add_Static_Entry
+           (Source,
+            Adi.CSS_Source.Id_Entry
+              ("mode-switch", Runtime_Css_Example_Styles.Mode_Switch_Id_Part_Styles));
+         Adi.CSS_Source.Add_Static_Entry
+           (Source,
+            Adi.CSS_Source.Class_Entry
+              ("card-title", Runtime_Css_Example_Styles.Card_Title_Class_Part_Styles));
+         Adi.CSS_Source.Add_Static_Entry
+           (Source,
+            Adi.CSS_Source.Class_Entry
+              ("card-body", Runtime_Css_Example_Styles.Card_Body_Class_Part_Styles));
+         Adi.CSS_Source.Add_Static_Entry
+           (Source,
+            Adi.CSS_Source.Class_Entry
+              ("status", Runtime_Css_Example_Styles.Status_Class_Part_Styles));
+      end Register_Static_Styles;
 
       procedure Update_Mode_UI is
       begin
@@ -206,7 +251,13 @@ begin
       Adi.Widget.Add_Child (+Card_Right, +Right_Title);
       Adi.Widget.Add_Child (+Card_Right, +Right_Body);
 
-      Adi.CSS_Source.Set_Static_Entries (Source, Static_Entries);
+      Register_Static_Styles;
+      if Runtime_Css_Example_Styles.Has_Root_Styles
+        or else Runtime_Css_Example_Styles.Has_Root_Font_Size
+      then
+         Adi.CSS_Source.Set_Static_Metadata
+           (Source, Runtime_Css_Example_Styles.Root_Metadata);
+      end if;
       Adi.CSS_Source.Add_Dynamic_File (Source, CSS_Path, Loaded);
       if Loaded then
          Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, Mode_OK);
@@ -223,6 +274,7 @@ begin
 
       Adi.Widget.Button.Connect_Clicked (Mode_Button, Toggle_Mode'Unrestricted_Access);
 
+      Adi.CSS_Source.Bind_Root_Metadata (Source, Root_H);
       Adi.CSS_Source.Bind_Class (Source, "root", Root_H);
       Adi.CSS_Source.Bind_Class (Source, "header", +Header);
       Adi.CSS_Source.Bind_Class (Source, "content", +Content);

@@ -324,8 +324,15 @@ class TestDialogCodeGeneration(unittest.TestCase):
             "procedure Attach_Window (D : Adi.Widget.Dialog.Dialog_Handle; Host : Adi.Window.Window_Handle);",
             spec,
         )
-        self.assertIn("with Dialog_Styles;", body)
-        self.assertNotIn("with Dialog_Styles; use Dialog_Styles;", body)
+        self.assertIn("with Dialog_Styles; use Dialog_Styles;", body)
+        self.assertIn(
+            "Adi.Widget.Dialog.Set_Button_Style (D, Dialog_Btn_Class_Part_Styles);",
+            body,
+        )
+        self.assertIn(
+            "Adi.Widget.Dialog.Set_Primary_Button_Style (D, Dialog_Btn_Primary_Class_Part_Styles);",
+            body,
+        )
         self.assertIn(
             "Adi.CSS_Source.Bind_Class (Source, \"backdrop\", Adi.Widget.Dialog.To_Widget_Handle (D));",
             body,

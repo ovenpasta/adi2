@@ -958,11 +958,18 @@ def generate_body(app: XmlApp, package_name: str,
             or app.dialog.primary_button_classes
         )
     )
+    has_dialog_button_style_targets = bool(
+        app.dialog
+        and (
+            app.dialog.button_classes
+            or app.dialog.primary_button_classes
+        )
+    )
     has_widget_class_targets = any(w.css_classes for w in all_widgets)
     needs_link_pkg_use = bool(
         link_pkgs
         and (
-            (live_css and has_widget_class_targets)
+            (live_css and (has_widget_class_targets or has_dialog_button_style_targets))
             or (not live_css and (has_widget_class_targets or has_dialog_class_targets))
         )
     )
@@ -1893,16 +1900,16 @@ def generate_body(app: XmlApp, package_name: str,
                     "      Adi.Widget.Dialog.Set_Button_Row_Style"
                     f" (D, {class_style_expr(dlg.button_row_classes)});"
                 )
-            if dlg.button_classes:
-                lines.append(
-                    "      Adi.Widget.Dialog.Set_Button_Style"
-                    f" (D, {class_style_expr(dlg.button_classes)});"
-                )
-            if dlg.primary_button_classes:
-                lines.append(
-                    "      Adi.Widget.Dialog.Set_Primary_Button_Style"
-                    f" (D, {class_style_expr(dlg.primary_button_classes)});"
-                )
+        if dlg.button_classes:
+            lines.append(
+                "      Adi.Widget.Dialog.Set_Button_Style"
+                f" (D, {class_style_expr(dlg.button_classes)});"
+            )
+        if dlg.primary_button_classes:
+            lines.append(
+                "      Adi.Widget.Dialog.Set_Primary_Button_Style"
+                f" (D, {class_style_expr(dlg.primary_button_classes)});"
+            )
         if live_css:
             lines.append("      --  Bind dialog live CSS")
             lines.append(

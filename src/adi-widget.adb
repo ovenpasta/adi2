@@ -1440,7 +1440,7 @@ package body Adi.Widget is
                Lbl_Attrs : constant Adi.Font.Font_Attributes :=
                  Adi.Font.Make_Attributes
                    (Family     => Lbl_Style.Font_Family,
-                    Size       => Float (Length_To_Px (Lbl_Style.Font_Size)),
+                    Size       => Float (Font_Length_To_Px (Lbl_Style.Font_Size)),
                     Weight     => Lbl_Style.Font_Weight,
                     Style      => Lbl_Style.Font_Style,
                     Decoration => Lbl_Style.Text_Decoration);
@@ -5078,7 +5078,7 @@ package body Adi.Widget is
       end if;
 
       --  Calculate font size
-      Font_Sz := Float (Length_To_Px (Style.Font_Size, Container_Size => Geom.Height));
+      Font_Sz := Float (Font_Length_To_Px (Style.Font_Size, Container_Size => Geom.Height));
       if Font_Sz = 0.0 then
          Font_Sz := Adi.Font.Default_Font_Size_Px;
       end if;

@@ -497,20 +497,39 @@ procedure Main is
    end Test_Typography_Resolve;
 
    procedure Test_DIP_Scaling is
-      Saved : constant Pixel_Type := Get_Active_DIP_Scale;
+      Saved_DIP : constant Pixel_Type := Get_Active_DIP_Scale;
+      Saved_UI  : constant Pixel_Type := Get_Active_UI_Scale;
       V_Px  : Float;
       V_Dip : Float;
    begin
       Put_Line ("Test: DIP Scaling");
       Set_Active_DIP_Scale (2.0);
+      Set_Active_UI_Scale (1.0);
       V_Px := Float (Length_To_Px (Px (10)));
       V_Dip := Float (Length_To_Px (Dip (10)));
-      Set_Active_DIP_Scale (Saved);
+      Set_Active_UI_Scale (Saved_UI);
+      Set_Active_DIP_Scale (Saved_DIP);
 
       Assert (V_Px = 10.0, "Px should be unchanged by active DIP scale");
       Assert (V_Dip = 20.0, "Dip should scale with active DIP scale");
       New_Line;
    end Test_DIP_Scaling;
+
+   procedure Test_UI_Scaling is
+      Saved_DIP : constant Pixel_Type := Get_Active_DIP_Scale;
+      Saved_UI  : constant Pixel_Type := Get_Active_UI_Scale;
+      V_Dip : Float;
+   begin
+      Put_Line ("Test: UI Scaling");
+      Set_Active_DIP_Scale (2.0);
+      Set_Active_UI_Scale (1.25);
+      V_Dip := Float (Length_To_Px (Dip (10)));
+      Set_Active_UI_Scale (Saved_UI);
+      Set_Active_DIP_Scale (Saved_DIP);
+
+      Assert (V_Dip = 25.0, "Dip should scale with OS DIP scale and active UI scale");
+      New_Line;
+   end Test_UI_Scaling;
 
    procedure Test_Root_Em_Scaling is
       Saved : constant Pixel_Type := Get_Active_Root_Font_Size;
@@ -524,6 +543,28 @@ procedure Main is
       Assert (V_Rem = 40.0, "Root_Em should use active root font size");
       New_Line;
    end Test_Root_Em_Scaling;
+
+   procedure Test_Text_Scaling is
+      Saved_Text : constant Pixel_Type := Get_Active_Text_Scale;
+      Saved_Root : constant Pixel_Type := Get_Active_Root_Font_Size;
+      V_Plain : Float;
+      V_Font  : Float;
+      V_Rem   : Float;
+   begin
+      Put_Line ("Test: Text Scaling");
+      Set_Active_Text_Scale (1.5);
+      Set_Active_Root_Font_Size (16.0);
+      V_Plain := Float (Length_To_Px (Dip (10)));
+      V_Font := Float (Font_Length_To_Px (Dip (10)));
+      V_Rem := Float (Font_Length_To_Px (Root_Em (1.25)));
+      Set_Active_Root_Font_Size (Saved_Root);
+      Set_Active_Text_Scale (Saved_Text);
+
+      Assert (V_Plain = 10.0, "Text scale should not affect non-font length conversion");
+      Assert (V_Font = 15.0, "Font_Length_To_Px should apply active text scale");
+      Assert (V_Rem = 30.0, "Font rem sizes should apply root font size and active text scale");
+      New_Line;
+   end Test_Text_Scaling;
 
 begin
    Put_Line ("========================================");
@@ -566,7 +607,9 @@ begin
    Put_Line ("*** DIP SCALING TESTS ***");
    New_Line;
    Test_DIP_Scaling;
+   Test_UI_Scaling;
    Test_Root_Em_Scaling;
+    Test_Text_Scaling;
 
    --  Summary
    Put_Line ("========================================");

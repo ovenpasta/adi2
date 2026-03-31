@@ -1,6 +1,8 @@
 package body Adi.Layout_Util is
 
    Active_DIP_Scale : Pixel_Type := 1.0;
+   Active_UI_Scale : Pixel_Type := 1.0;
+   Active_Text_Scale : Pixel_Type := 1.0;
    Active_Root_Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
    Active_Viewport_Width  : Pixel_Type := 0.0;
    Active_Viewport_Height : Pixel_Type := 0.0;
@@ -14,6 +16,26 @@ package body Adi.Layout_Util is
    begin
       return Active_DIP_Scale;
    end Get_Active_DIP_Scale;
+
+   procedure Set_Active_UI_Scale (Scale : Pixel_Type) is
+   begin
+      Active_UI_Scale := Pixel_Type'Max (0.01, Scale);
+   end Set_Active_UI_Scale;
+
+   function Get_Active_UI_Scale return Pixel_Type is
+   begin
+      return Active_UI_Scale;
+   end Get_Active_UI_Scale;
+
+   procedure Set_Active_Text_Scale (Scale : Pixel_Type) is
+   begin
+      Active_Text_Scale := Pixel_Type'Max (0.01, Scale);
+   end Set_Active_Text_Scale;
+
+   function Get_Active_Text_Scale return Pixel_Type is
+   begin
+      return Active_Text_Scale;
+   end Get_Active_Text_Scale;
 
    procedure Set_Active_Root_Font_Size (Size : Pixel_Type) is
    begin
@@ -66,7 +88,7 @@ package body Adi.Layout_Util is
          when Px =>
             return Pixel_Type (L.Amount);
          when Dip =>
-            return Pixel_Type (L.Amount) * Active_DIP_Scale;
+            return Pixel_Type (L.Amount) * Active_DIP_Scale * Active_UI_Scale;
          when Em =>
             return Pixel_Type (L.Amount * Float (Font_Size));
          when Root_Em =>
@@ -79,6 +101,25 @@ package body Adi.Layout_Util is
             return Pixel_Type (L.Amount / 100.0 * Float (Vh_Size));
       end case;
    end Length_To_Px;
+
+   function Font_Length_To_Px
+     (L : CSS_Styles.Length_Value;
+      Container_Size : Pixel_Type := 0.0;
+      Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
+      Root_Font_Size : Pixel_Type := 0.0;
+      Viewport_Width : Pixel_Type := 0.0;
+      Viewport_Height : Pixel_Type := 0.0)
+      return Pixel_Type
+   is
+   begin
+      return Length_To_Px
+        (L,
+         Container_Size,
+         Font_Size,
+         Root_Font_Size,
+         Viewport_Width,
+         Viewport_Height) * Active_Text_Scale;
+   end Font_Length_To_Px;
 
    function Inset_To_Px (V : CSS_Styles.Inset_Value;
                           Container_Size : Pixel_Type := 0.0)

@@ -32,6 +32,37 @@ package Material_Demo_Light_Styles is
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
 
+   function Var_Space_1 return Length_Value is (Dip (4.0));
+   function Var_Space_2 return Length_Value is (Dip (8.0));
+   function Var_Space_3 return Length_Value is (Dip (12.0));
+   function Var_Space_4 return Length_Value is (Dip (16.0));
+   function Var_Space_5 return Length_Value is (Dip (20.0));
+   function Var_Space_6 return Length_Value is (Dip (24.0));
+   function Var_Space_7 return Length_Value is (Dip (28.0));
+   function Var_Radius_Sm return Length_Value is (Dip (8.0));
+   function Var_Radius_Md return Length_Value is (Dip (12.0));
+   function Var_Radius_Lg return Length_Value is (Dip (16.0));
+   function Var_Radius_Xl return Length_Value is (Dip (20.0));
+   function Var_Radius_Dialog return Length_Value is (Dip (28.0));
+   function Var_Radius_Pill return Length_Value is (Dip (999.0));
+   function Var_Icon_Size return Length_Value is (Dip (28.0));
+   function Var_Dialog_Icon_Size return Length_Value is (Dip (32.0));
+   function Var_Control_Height return Length_Value is (Dip (44.0));
+   function Var_Switch_Width return Length_Value is (Dip (52.0));
+   function Var_Switch_Height return Length_Value is (Dip (32.0));
+   function Var_Switch_Knob_Size return Length_Value is (Dip (24.0));
+   function Var_Slider_Width return Length_Value is (Dip (200.0));
+   function Var_Slider_Height return Length_Value is (Dip (20.0));
+   function Var_Slider_Knob_Size return Length_Value is (Dip (20.0));
+   function Var_Dialog_Min_Width return Length_Value is (Dip (320.0));
+   function Var_Dialog_Max_Width return Length_Value is (Dip (460.0));
+   function Var_Dropdown_Max_Height return Length_Value is (Vh (40.0));
+   function Var_Font_Caption return Length_Value is (Root_Em (0.75));
+   function Var_Font_Body return Length_Value is (Root_Em (0.875));
+   function Var_Font_Setting return Length_Value is (Root_Em (1.0));
+   function Var_Font_Title return Length_Value is (Root_Em (1.25));
+   function Var_Font_Dialog_Title return Length_Value is (Root_Em (1.5));
+   function Var_Font_App_Title return Length_Value is (Root_Em (1.375));
    function Var_App_Title return String is ("Material Demo (Light)");
    function Var_Welcome_Title return String is ("Welcome!");
    function Var_Welcome_Message return String is ("Thanks for trying the Material Demo. Click OK to explore the Forms page, or dismiss to stay on Home.");
@@ -54,7 +85,7 @@ package Material_Demo_Light_Styles is
       Align_Items => Set (Center),
       Flex_Shrink => Set (0.0),
       Background_Color => Set_Bg (RGB (255, 251, 254)),
-      Padding => Set (CSS_Box (Px (16.0), Px (24.0), Px (16.0), Px (24.0))),
+      Padding => Set (CSS_Box (Dip (16.0), Dip (24.0), Dip (16.0), Dip (24.0))),
       others => <>);
 
    --  Base style for class 'app-title'
@@ -63,14 +94,14 @@ package Material_Demo_Light_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Align_Items => Set (Center),
-      Gap => Set (Gap (Px (10.0))),
+      Gap => Set (Gap (Dip (10.0))),
       others => <>);
 
    --  Base style for class 'app-title'::icon
    function App_Title_Class_Icon_Base_Style return Style_Rules is
      (
-      Width => Set (Size (Px (28.0))),
-      Height => Set (Size (Px (28.0))),
+      Width => Set (Size (Dip (28.0))),
+      Height => Set (Size (Dip (28.0))),
       others => <>);
 
    --  Base style for class 'app-title'::label
@@ -87,9 +118,15 @@ package Material_Demo_Light_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Align_Items => Set (Center),
-      Gap => Set (Gap (Px (4.0))),
+      Gap => Set (Gap (Dip (4.0))),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
-      Padding => Set (CSS_Box (Px (4.0), Px (16.0), Px (4.0), Px (16.0))),
+      Padding => Set (CSS_Box (Dip (4.0), Dip (16.0), Dip (4.0), Dip (16.0))),
+      others => <>);
+
+   --  Base style for class 'lock-bar'
+   function Lock_Bar_Class_Base_Style return Style_Rules is
+     (
+      Padding => Set (CSS_Box (Dip (8.0), Dip (20.0), Dip (8.0), Dip (20.0))),
       others => <>);
 
    --  Base style for class 'nav-btn'
@@ -100,8 +137,8 @@ package Material_Demo_Light_Styles is
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
-      Border_Radius => Set (Radius (Px (20.0))),
+      Padding => Set (CSS_Box (Dip (12.0), Dip (24.0), Dip (12.0), Dip (24.0))),
+      Border_Radius => Set (Radius (Dip (999.0))),
       others => <>);
 
    --  Style for class 'nav-btn' when widget State_Hovered
@@ -152,7 +189,7 @@ package Material_Demo_Light_Styles is
    function Pages_Class_Base_Style return Style_Rules is
      (
       Flex_Grow => Set (1.0),
-      Padding => Set (CSS_Box (Px (16.0), Px (16.0), Px (16.0), Px (16.0))),
+      Padding => Set (CSS_Box (Vh (2.0), Vw (2.5), Vh (2.0), Vw (2.5))),
       others => <>);
 
    --  Base style for class 'page'
@@ -160,8 +197,8 @@ package Material_Demo_Light_Styles is
      (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
-      Gap => Set (Gap (Px (16.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
+      Gap => Set (Gap (Dip (16.0))),
+      Padding => Set (CSS_Box (Dip (8.0), Dip (8.0), Dip (8.0), Dip (8.0))),
       others => <>);
 
    --  Base style for class 'card'
@@ -170,11 +207,11 @@ package Material_Demo_Light_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
-      Gap => Set (Gap (Px (12.0))),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (1.0), Px (4.0), Px (0.0), RGBA (0, 0, 0, 0.15))),
+      Gap => Set (Gap (Dip (12.0))),
+      Box_Shadow => Set (Shadow (Dip (0.0), Dip (1.0), Dip (4.0), Dip (0.0), RGBA (0, 0, 0, 0.15))),
       Transition => Set ((Duration => 0.25, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
-      Border_Radius => Set (Radius (Px (16.0))),
+      Padding => Set (CSS_Box (Dip (24.0), Dip (24.0), Dip (24.0), Dip (24.0))),
+      Border_Radius => Set (Radius (Dip (16.0))),
       others => <>);
 
    --  Base style for class 'card-title'
@@ -228,9 +265,9 @@ package Material_Demo_Light_Styles is
       Display => Set (Grid),
       Grid_Columns => Set (Grid_Columns_Value (3)),
       Grid_Column_Tracks => (Count => 3, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), others => <>]),
-      Gap => Set (Gap (Px (12.0), Px (16.0))),
+      Gap => Set (Gap (Dip (12.0), Dip (16.0))),
       Align_Items => Set (Center),
-      Padding => Set (CSS_Box (Px (4.0), Px (0.0), Px (4.0), Px (0.0))),
+      Padding => Set (CSS_Box (Dip (4.0), Dip (0.0), Dip (4.0), Dip (0.0))),
       others => <>);
 
    --  Base style for class 'grid-header'::label
@@ -263,19 +300,20 @@ package Material_Demo_Light_Styles is
       Display => Set (Inline_Flex),
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
+      Height => Set (Size (Dip (44.0))),
       Background_Color => Set_Bg (RGB (103, 80, 164)),
       Cursor => Set (Cursor_Pointer),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (1.0), Px (3.0), Px (0.0), RGBA (0, 0, 0, 0.15))),
+      Box_Shadow => Set (Shadow (Dip (0.0), Dip (1.0), Dip (3.0), Dip (0.0), RGBA (0, 0, 0, 0.15))),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
-      Border_Radius => Set (Radius (Px (20.0))),
+      Padding => Set (CSS_Box (Dip (0.0), Dip (24.0), Dip (0.0), Dip (24.0))),
+      Border_Radius => Set (Radius (Dip (999.0))),
       others => <>);
 
    --  Style for class 'btn-primary' when widget State_Hovered
    function Btn_Primary_Class_Widget_Hovered_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (122, 100, 180)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (2.0), Px (6.0), Px (0.0), RGBA (0, 0, 0, 0.2))),
+      Box_Shadow => Set (Shadow (Dip (0.0), Dip (2.0), Dip (6.0), Dip (0.0), RGBA (0, 0, 0, 0.2))),
       others => <>);
 
    --  Style for class 'btn-primary' when widget State_Pressed
@@ -316,21 +354,22 @@ package Material_Demo_Light_Styles is
       Display => Set (Inline_Flex),
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
+      Height => Set (Size (Dip (44.0))),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
+      Padding => Set (CSS_Box (Dip (0.0), Dip (24.0), Dip (0.0), Dip (24.0))),
       Border_Width => Set (Border_Width (Px (2.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (121, 116, 126))),
-      Border_Radius => Set (Radius (Px (20.0))),
+      Border_Radius => Set (Radius (Dip (999.0))),
       others => <>);
 
    --  Style for class 'btn-secondary' when widget State_Hovered
    function Btn_Secondary_Class_Widget_Hovered_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGBA (103, 80, 164, 0.08)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (1.0), Px (4.0), Px (0.0), RGBA (0, 0, 0, 0.12))),
+      Box_Shadow => Set (Shadow (Dip (0.0), Dip (1.0), Dip (4.0), Dip (0.0), RGBA (0, 0, 0, 0.12))),
       others => <>);
 
    --  Style for class 'btn-secondary' when widget State_Pressed
@@ -370,8 +409,8 @@ package Material_Demo_Light_Styles is
      (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
-      Gap => Set (Gap (Px (12.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (0.0), Px (0.0), Px (0.0))),
+      Gap => Set (Gap (Dip (12.0))),
+      Padding => Set (CSS_Box (Dip (8.0), Dip (0.0), Dip (0.0), Dip (0.0))),
       others => <>);
 
    --  Base style for class 'field-label'
@@ -379,28 +418,29 @@ package Material_Demo_Light_Styles is
      (
       Flex_Shrink => Set (0.0),
       Display => Set (Inline_Flex),
-      Padding => Set (CSS_Box (Px (4.0), Px (0.0), Px (0.0), Px (0.0))),
+      Padding => Set (CSS_Box (Dip (4.0), Dip (0.0), Dip (0.0), Dip (0.0))),
       others => <>);
 
    --  Base style for class 'field-label'::label
    function Field_Label_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (73, 69, 79)),
-      Font_Size => Set_Font (Px (12.0)),
+      Font_Size => Set_Font (Root_Em (0.75)),
       Font_Weight => Set (Weight_Medium),
       others => <>);
 
    --  Base style for class 'text-field'
    function Text_Field_Class_Base_Style return Style_Rules is
      (
+      Height => Set (Size (Dip (44.0))),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Cursor => Set (Cursor_Text),
       Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Border_Color))),
-      Padding => Set (CSS_Box (Px (12.0), Px (16.0), Px (12.0), Px (16.0))),
+      Padding => Set (CSS_Box (Dip (0.0), Dip (16.0), Dip (0.0), Dip (16.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (121, 116, 126))),
-      Border_Radius => Set (Radius (Px (8.0))),
+      Border_Radius => Set (Radius (Dip (8.0))),
       others => <>);
 
    --  Style for class 'text-field' when widget State_Focused
@@ -427,13 +467,13 @@ package Material_Demo_Light_Styles is
    function Text_Field_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (73, 69, 79)),
-      Font_Size => Set_Font (Px (12.0)),
+      Font_Size => Set_Font (Root_Em (0.75)),
       Font_Weight => Set (Weight_Medium),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       Text_Wrap_Mode => Set (TWM_Nowrap),
-      Top => Set_Top (Inset (Px (-8.0))),
-      Left => Set_Left (Inset (Px (12.0))),
-      Padding => Set (CSS_Box (Px (0.0), Px (4.0), Px (0.0), Px (4.0))),
+      Top => Set_Top (Inset (Dip (-8.0))),
+      Left => Set_Left (Inset (Dip (12.0))),
+      Padding => Set (CSS_Box (Dip (0.0), Dip (4.0), Dip (0.0), Dip (4.0))),
       others => <>);
 
    --  Style for class 'text-field'::label when widget State_Focused
@@ -452,34 +492,34 @@ package Material_Demo_Light_Styles is
    function Text_Field_Class_Text_Base_Style return Style_Rules is
      (
       Color => Set (RGB (28, 27, 31)),
-      Font_Size => Set_Font (Px (14.0)),
+      Font_Size => Set_Font (Root_Em (0.875)),
       others => <>);
 
    --  Base style for class 'combo'
    function Combo_Class_Base_Style return Style_Rules is
      (
-      Height => Set (Size (Px (44.0))),
+      Height => Set (Size (Dip (44.0))),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (231, 224, 236)),
       Cursor => Set (Cursor_Pointer),
-      Padding => Set (CSS_Box (Px (9.0), Px (16.0), Px (9.0), Px (16.0))),
+      Padding => Set (CSS_Box (Dip (9.0), Dip (16.0), Dip (9.0), Dip (16.0))),
       Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (121, 116, 126))),
-      Border_Radius => Set (Radius (Px (8.0), Px (8.0), Px (0.0), Px (0.0))),
+      Border_Radius => Set (Radius (Dip (8.0), Dip (8.0), Dip (0.0), Dip (0.0))),
       others => <>);
 
    --  Style for class 'combo' when widget State_Hovered
    function Combo_Class_Widget_Hovered_Style return Style_Rules is
      (
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (0.0), RGBA (103, 80, 164, 0.12))),
+      Box_Shadow => Set (Shadow (Dip (0.0), Dip (0.0), Dip (8.0), Dip (0.0), RGBA (103, 80, 164, 0.12))),
       Border_Color => Set (Border_Color (RGB (103, 80, 164))),
       others => <>);
 
    --  Style for class 'combo' when widget State_Focused
    function Combo_Class_Widget_Focused_Style return Style_Rules is
      (
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (0.0), RGBA (103, 80, 164, 0.4))),
+      Box_Shadow => Set (Shadow (Dip (0.0), Dip (0.0), Dip (10.0), Dip (0.0), RGBA (103, 80, 164, 0.4))),
       Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
       Border_Color => Set (Border_Color (RGB (103, 80, 164))),
       others => <>);
@@ -495,14 +535,14 @@ package Material_Demo_Light_Styles is
    function Combo_Class_Indicator_Base_Style return Style_Rules is
      (
       Color => Set (RGB (73, 69, 79)),
-      Font_Size => Set_Font (Px (12.0)),
+      Font_Size => Set_Font (Root_Em (0.75)),
       others => <>);
 
    --  Base style for class 'combo'::text
    function Combo_Class_Text_Base_Style return Style_Rules is
      (
       Color => Set (RGB (28, 27, 31)),
-      Font_Size => Set_Font (Px (14.0)),
+      Font_Size => Set_Font (Root_Em (0.875)),
       others => <>);
 
    --  Base style for class 'setting-row'
@@ -512,7 +552,7 @@ package Material_Demo_Light_Styles is
       Flex_Direction => Set (Row),
       Align_Items => Set (Center),
       Justify_Content => Set (Space_Between),
-      Padding => Set (CSS_Box (Px (8.0), Px (0.0), Px (8.0), Px (0.0))),
+      Padding => Set (CSS_Box (Dip (8.0), Dip (0.0), Dip (8.0), Dip (0.0))),
       others => <>);
 
    --  Base style for class 'setting-label'
@@ -526,23 +566,25 @@ package Material_Demo_Light_Styles is
    function Setting_Label_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (28, 27, 31)),
-      Font_Size => Set_Font (Px (16.0)),
+      Font_Size => Set_Font (Root_Em (1.0)),
       Font_Weight => Set (Weight_Normal),
+      White_Space => Set (WS_Nowrap),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>);
 
    --  Base style for class 'setting-switch'
    function Setting_Switch_Class_Base_Style return Style_Rules is
      (
       Flex_Shrink => Set (0.0),
-      Width => Set (Size (Px (52.0))),
-      Height => Set (Size (Px (32.0))),
+      Width => Set (Size (Dip (52.0))),
+      Height => Set (Size (Dip (32.0))),
       Background_Color => Set_Bg (RGB (231, 224, 236)),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Border_Width => Set (Border_Width (Px (2.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (121, 116, 126))),
-      Border_Radius => Set (Radius (Px (16.0))),
+      Border_Radius => Set (Radius (Dip (999.0))),
       others => <>);
 
    --  Style for class 'setting-switch' when widget State_Selected
@@ -580,32 +622,32 @@ package Material_Demo_Light_Styles is
    --  Base style for class 'setting-switch'::knob
    function Setting_Switch_Class_Knob_Base_Style return Style_Rules is
      (
-      Width => Set (Size (Px (24.0))),
-      Height => Set (Size (Px (24.0))),
+      Width => Set (Size (Dip (24.0))),
+      Height => Set (Size (Dip (24.0))),
       Background_Color => Set_Bg (RGB (121, 116, 126)),
       Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Margin))),
-      Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (0.0), Px (2.0))),
-      Border_Radius => Set (Radius (Px (12.0))),
+      Margin => Set (CSS_Box (Dip (2.0), Dip (0.0), Dip (0.0), Dip (2.0))),
+      Border_Radius => Set (Radius (Dip (999.0))),
       others => <>);
 
    --  Style for class 'setting-switch'::knob when widget State_Selected
    function Setting_Switch_Class_Knob_Widget_Selected_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (255, 255, 255)),
-      Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (0.0), Px (22.0))),
+      Margin => Set (CSS_Box (Dip (2.0), Dip (0.0), Dip (0.0), Dip (22.0))),
       others => <>);
 
    --  Base style for class 'combo-dropdown'
    function Combo_Dropdown_Class_Base_Style return Style_Rules is
      (
-      Max_Height => Set (Size (Px (240.0))),
+      Max_Height => Set (Size (Vh (40.0))),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (20.0), Px (0.0), RGBA (0, 0, 0, 0.15))),
-      Padding => Set (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0))),
+      Box_Shadow => Set (Shadow (Dip (0.0), Dip (8.0), Dip (20.0), Dip (0.0), RGBA (0, 0, 0, 0.15))),
+      Padding => Set (CSS_Box (Dip (4.0), Dip (4.0), Dip (4.0), Dip (4.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (121, 116, 126))),
-      Border_Radius => Set (Radius (Px (12.0))),
+      Border_Radius => Set (Radius (Dip (12.0))),
       Overflow_X => Set_Overflow_X (Overflow_Auto),
       Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>);
@@ -615,9 +657,9 @@ package Material_Demo_Light_Styles is
      (
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (10.0), Px (14.0), Px (10.0), Px (14.0))),
-      Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (2.0), Px (0.0))),
-      Border_Radius => Set (Radius (Px (8.0))),
+      Padding => Set (CSS_Box (Dip (10.0), Dip (14.0), Dip (10.0), Dip (14.0))),
+      Margin => Set (CSS_Box (Dip (2.0), Dip (0.0), Dip (2.0), Dip (0.0))),
+      Border_Radius => Set (Radius (Dip (8.0))),
       others => <>);
 
    --  Style for class 'combo-option' when widget State_Hovered
@@ -636,7 +678,7 @@ package Material_Demo_Light_Styles is
    function Combo_Option_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (28, 27, 31)),
-      Font_Size => Set_Font (Px (14.0)),
+      Font_Size => Set_Font (Root_Em (0.875)),
       others => <>);
 
    --  Style for class 'combo-option'::label when widget State_Selected
@@ -656,13 +698,13 @@ package Material_Demo_Light_Styles is
      (
       Display => Set (Flex),
       Flex_Direction => Set (Column),
-      Gap => Set (Gap (Px (16.0))),
-      Min_Width => Set (Size (Px (320.0))),
-      Max_Width => Set (Size (Px (460.0))),
+      Gap => Set (Gap (Dip (16.0))),
+      Min_Width => Set (Size (Dip (320.0))),
+      Max_Width => Set (Size (Dip (460.0))),
       Background_Color => Set_Bg (RGB (238, 232, 244)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (32.0), Px (0.0), RGBA (0, 0, 0, 0.18))),
-      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
-      Border_Radius => Set (Radius (Px (28.0))),
+      Box_Shadow => Set (Shadow (Dip (0.0), Dip (8.0), Dip (32.0), Dip (0.0), RGBA (0, 0, 0, 0.18))),
+      Padding => Set (CSS_Box (Dip (24.0), Dip (24.0), Dip (24.0), Dip (24.0))),
+      Border_Radius => Set (Radius (Dip (28.0))),
       others => <>);
 
    --  Base style for class 'dialog-message'
@@ -670,21 +712,21 @@ package Material_Demo_Light_Styles is
      (
       Flex_Direction => Set (Row),
       Align_Items => Set (Flex_Start),
-      Gap => Set (Gap (Px (12.0))),
+      Gap => Set (Gap (Dip (12.0))),
       others => <>);
 
    --  Base style for class 'dialog-message'::icon
    function Dialog_Message_Class_Icon_Base_Style return Style_Rules is
      (
-      Width => Set (Size (Px (32.0))),
-      Height => Set (Size (Px (32.0))),
+      Width => Set (Size (Dip (32.0))),
+      Height => Set (Size (Dip (32.0))),
       others => <>);
 
    --  Base style for class 'dialog-message'::label
    function Dialog_Message_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (73, 69, 79)),
-      Font_Size => Set_Font (Px (14.0)),
+      Font_Size => Set_Font (Root_Em (0.875)),
       Text_Wrap_Mode => Set (TWM_Wrap),
       others => <>);
 
@@ -698,7 +740,7 @@ package Material_Demo_Light_Styles is
    function Dialog_Title_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (28, 27, 31)),
-      Font_Size => Set_Font (Px (24.0)),
+      Font_Size => Set_Font (Root_Em (1.5)),
       Font_Weight => Set (Weight_Semi_Bold),
       others => <>);
 
@@ -708,8 +750,8 @@ package Material_Demo_Light_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Row),
       Justify_Content => Set (Flex_End),
-      Gap => Set (Gap (Px (8.0))),
-      Padding => Set (CSS_Box (Px (8.0), Px (0.0), Px (0.0), Px (0.0))),
+      Gap => Set (Gap (Dip (8.0))),
+      Padding => Set (CSS_Box (Dip (8.0), Dip (0.0), Dip (0.0), Dip (0.0))),
       others => <>);
 
    --  Base style for class 'dialog-btn'
@@ -718,10 +760,11 @@ package Material_Demo_Light_Styles is
       Display => Set (Inline_Flex),
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
+      Height => Set (Size (Dip (44.0))),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (10.0), Px (24.0), Px (10.0), Px (24.0))),
-      Border_Radius => Set (Radius (Px (20.0))),
+      Padding => Set (CSS_Box (Dip (0.0), Dip (24.0), Dip (0.0), Dip (24.0))),
+      Border_Radius => Set (Radius (Dip (999.0))),
       others => <>);
 
    --  Style for class 'dialog-btn' when widget State_Hovered
@@ -746,7 +789,7 @@ package Material_Demo_Light_Styles is
    function Dialog_Btn_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (103, 80, 164)),
-      Font_Size => Set_Font (Px (14.0)),
+      Font_Size => Set_Font (Root_Em (0.875)),
       Font_Weight => Set (Weight_Semi_Bold),
       Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>);
@@ -754,11 +797,11 @@ package Material_Demo_Light_Styles is
    --  Base style for class 'slider'
    function Slider_Class_Base_Style return Style_Rules is
      (
-      Width => Set (Size (Px (200.0))),
-      Height => Set (Size (Px (20.0))),
+      Width => Set (Size (Dip (200.0))),
+      Height => Set (Size (Dip (20.0))),
       Background_Color => Set_Bg (RGB (231, 224, 236)),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Border_Radius => Set (Radius (Px (10.0))),
+      Border_Radius => Set (Radius (Dip (999.0))),
       others => <>);
 
    --  Style for class 'slider' when widget State_Focused
@@ -780,13 +823,13 @@ package Material_Demo_Light_Styles is
    function Slider_Class_Indicator_Base_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (103, 80, 164)),
-      Border_Radius => Set (Radius (Px (10.0))),
+      Border_Radius => Set (Radius (Dip (999.0))),
       others => <>);
 
    --  Base style for class 'slider'::knob
    function Slider_Class_Knob_Base_Style return Style_Rules is
      (
-      Width => Set (Size (Px (20.0))),
+      Width => Set (Size (Dip (20.0))),
       Background_Color => Set_Bg (RGB (73, 69, 79)),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Border_Radius => Set (Radius (Pct (50.0))),
@@ -947,6 +990,18 @@ package Material_Demo_Light_Styles is
    function Nav_Bar_Class_Part_Styles return Part_Style_Array is
      ([
       Main_Part => (Style => Nav_Bar_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'lock-bar'
+   function Lock_Bar_Class_Widget return Widget_Style is
+     (From (Lock_Bar_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'lock-bar'
+   function Lock_Bar_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Lock_Bar_Class_Widget, Enabled => True),
       others => <>
    ]);
 

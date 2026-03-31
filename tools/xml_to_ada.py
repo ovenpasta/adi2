@@ -1047,6 +1047,13 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append("      return Result;")
         lines.append("   end Static_Root_Metadata;")
 
+    value_changed_use_types: set[str] = set()
+    for cb in app.callbacks:
+        if cb.cb_type.endswith("Value_Changed_Callback"):
+            value_changed_use_types.add(cb.cb_type)
+    for cb_type in sorted(value_changed_use_types):
+        lines.append(f"   use type {cb_type};")
+
     # Package-level option group variables (only those without id, others are in spec)
     for og in app.option_groups:
         if not og.id:

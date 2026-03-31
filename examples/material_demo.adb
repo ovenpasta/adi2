@@ -2,10 +2,13 @@ pragma Ada_2022;
 with Ada.Command_Line;
 with Ada.Text_IO;
 with Adi.App;
+with Adi.Core;
 with Adi.I18N;
 with Adi.Image;              use Adi.Image;
+with Adi.Layout_Util;
 with Adi.MCP;
 with Adi.Widget;              use Adi.Widget;
+with Adi.Widget.Box;          use Adi.Widget.Box;
 with Adi.Widget.Combo_Box;    use Adi.Widget.Combo_Box;
 with Adi.Widget.Context_Menu;
 with Adi.Widget.Dialog;       use Adi.Widget.Dialog;
@@ -57,6 +60,28 @@ procedure Material_Demo is
    begin
       Set_Disabled (Page_Stack."+" (UI.Pages), Active);
    end On_Lock_UI;
+
+   procedure On_UI_Scale
+     (W     : Widget_Handle;
+      Value : Float)
+   is
+      pragma Unreferenced (W);
+   begin
+      Adi.Layout_Util.Set_Active_UI_Scale
+        (Adi.Core.Pixel_Type (Value / 100.0));
+      Mark_Dirty (+UI.Root);
+   end On_UI_Scale;
+
+   procedure On_Text_Scale
+     (W     : Widget_Handle;
+      Value : Float)
+   is
+      pragma Unreferenced (W);
+   begin
+      Adi.Layout_Util.Set_Active_Text_Scale
+        (Adi.Core.Pixel_Type (Value / 100.0));
+      Mark_Dirty (+UI.Root);
+   end On_Text_Scale;
 
    procedure On_Welcome_Result
      (W            : Widget_Handle;
@@ -126,6 +151,8 @@ begin
    UI.On_Dark_Mode := On_Dark_Mode'Unrestricted_Access;
    UI.On_Get_Started := On_Get_Started'Unrestricted_Access;
    UI.On_Lock_UI := On_Lock_UI'Unrestricted_Access;
+   UI.On_UI_Scale := On_UI_Scale'Unrestricted_Access;
+   UI.On_Text_Scale := On_Text_Scale'Unrestricted_Access;
 
    --  Set package-level context menu styles (applies to all context menus)
    Adi.Widget.Context_Menu.Set_Default_Menu_Styles (Context_Menu_Class_Part_Styles);

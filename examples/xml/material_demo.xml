@@ -12,6 +12,8 @@
   <callback name="On_Dark_Mode" type="Adi.Widget.Button.Toggle_Callback"/>
   <callback name="On_Get_Started" type="Adi.Widget.Button.Click_Callback"/>
   <callback name="On_Lock_UI" type="Adi.Widget.Button.Toggle_Callback"/>
+  <callback name="On_UI_Scale" type="Float_Slider.Value_Changed_Callback"/>
+  <callback name="On_Text_Scale" type="Float_Slider.Value_Changed_Callback"/>
 
   <window title="Material Demo" width="800" height="600">
     <box id="Root" class="root">
@@ -105,6 +107,14 @@
                 <switch id="Dark_Switch" checked="true" class="setting-switch" on-toggled="On_Dark_Mode"/>
               </box>
               <box class="setting-row">
+                <label text="UI Scale" class="label-inline setting-label"/>
+                <slider id="UI_Scale_Slider" generic="Float_Slider" min="80.0" max="160.0" value="100.0" class="slider" on-changed="On_UI_Scale"/>
+              </box>
+              <box class="setting-row">
+                <label text="Text Scale" class="label-inline setting-label"/>
+                <slider id="Text_Scale_Slider" generic="Float_Slider" min="80.0" max="160.0" value="100.0" class="slider" on-changed="On_Text_Scale"/>
+              </box>
+              <box class="setting-row">
                 <label text="Notifications" class="label-inline setting-label"/>
                 <switch checked="true" class="setting-switch"/>
               </box>
@@ -116,7 +126,7 @@
           </box>
         </page>
       </stack>
-      <box id="Lock_Bar" class="nav-bar setting-row">
+      <box id="Lock_Bar" class="nav-bar setting-row lock-bar">
         <label text="Lock UI" class="label-inline setting-label"/>
         <switch id="Lock_Switch" class="setting-switch" on-toggled="On_Lock_UI"/>
       </box>

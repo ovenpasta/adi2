@@ -11,6 +11,15 @@ package Adi.Layout_Util is
    procedure Set_Active_DIP_Scale (Scale : Pixel_Type);
    function Get_Active_DIP_Scale return Pixel_Type;
 
+   --  Active user UI scale applied on top of the OS DIP scale for logical
+   --  layout units such as dp/dip.
+   procedure Set_Active_UI_Scale (Scale : Pixel_Type);
+   function Get_Active_UI_Scale return Pixel_Type;
+
+   --  Active user text scale applied when a length is used as a font size.
+   procedure Set_Active_Text_Scale (Scale : Pixel_Type);
+   function Get_Active_Text_Scale return Pixel_Type;
+
    --  Active root font size used by Length_To_Px for Root_Em units when
    --  explicit root font size is not provided at call sites.
    procedure Set_Active_Root_Font_Size (Size : Pixel_Type);
@@ -174,6 +183,16 @@ package Adi.Layout_Util is
                            Viewport_Width : Pixel_Type := 0.0;
                            Viewport_Height : Pixel_Type := 0.0)
        return Pixel_Type;
+
+   --  Convert a font-related length to pixels, applying the active text scale.
+   function Font_Length_To_Px
+     (L : CSS_Styles.Length_Value;
+      Container_Size : Pixel_Type := 0.0;
+      Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
+      Root_Font_Size : Pixel_Type := 0.0;
+      Viewport_Width : Pixel_Type := 0.0;
+      Viewport_Height : Pixel_Type := 0.0)
+      return Pixel_Type;
 
    --  Convert Inset_Value to pixels; Auto yields 0.0
    function Inset_To_Px (V : CSS_Styles.Inset_Value;

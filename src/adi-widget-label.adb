@@ -199,7 +199,7 @@ package body Adi.Widget.Label is
             Font_Attrs : constant Adi.Font.Font_Attributes :=
               Adi.Font.Make_Attributes
                 (Family     => Label_Style.Font_Family,
-                 Size       => Float (Length_To_Px (Label_Style.Font_Size)),
+                 Size       => Float (Font_Length_To_Px (Label_Style.Font_Size)),
                  Weight     => Label_Style.Font_Weight,
                  Style      => Label_Style.Font_Style,
                  Decoration => Label_Style.Text_Decoration);
@@ -261,7 +261,7 @@ package body Adi.Widget.Label is
             Font_Attrs : constant Adi.Font.Font_Attributes :=
               Adi.Font.Make_Attributes
                 (Family     => Label_Style.Font_Family,
-                 Size       => Float (Length_To_Px (Label_Style.Font_Size)),
+                 Size       => Float (Font_Length_To_Px (Label_Style.Font_Size)),
                  Weight     => Label_Style.Font_Weight,
                  Style      => Label_Style.Font_Style,
                  Decoration => Label_Style.Text_Decoration);
@@ -378,7 +378,7 @@ package body Adi.Widget.Label is
             Font_Attrs  : constant Adi.Font.Font_Attributes :=
               Adi.Font.Make_Attributes
                 (Family     => Label_Style.Font_Family,
-                 Size       => Float (Length_To_Px (Label_Style.Font_Size)),
+                 Size       => Float (Font_Length_To_Px (Label_Style.Font_Size)),
                  Weight     => Label_Style.Font_Weight,
                  Style      => Label_Style.Font_Style,
                  Decoration => Label_Style.Text_Decoration);
@@ -444,7 +444,7 @@ package body Adi.Widget.Label is
                               Font_Attrs : constant Adi.Font.Font_Attributes :=
                                 Adi.Font.Make_Attributes
                                   (Family     => Label_Style.Font_Family,
-                                   Size       => Float (Length_To_Px (Label_Style.Font_Size)),
+                                   Size       => Float (Font_Length_To_Px (Label_Style.Font_Size)),
                                    Weight     => Label_Style.Font_Weight,
                                    Style      => Label_Style.Font_Style,
                                    Decoration => Label_Style.Text_Decoration);

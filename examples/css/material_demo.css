@@ -2,6 +2,37 @@
 
 :root {
   font-size: 16dp;
+  --space-1: 4dp;
+  --space-2: 8dp;
+  --space-3: 12dp;
+  --space-4: 16dp;
+  --space-5: 20dp;
+  --space-6: 24dp;
+  --space-7: 28dp;
+  --radius-sm: 8dp;
+  --radius-md: 12dp;
+  --radius-lg: 16dp;
+  --radius-xl: 20dp;
+  --radius-dialog: 28dp;
+  --radius-pill: 999dp;
+  --icon-size: 28dp;
+  --dialog-icon-size: 32dp;
+  --control-height: 44dp;
+  --switch-width: 52dp;
+  --switch-height: 32dp;
+  --switch-knob-size: 24dp;
+  --slider-width: 200dp;
+  --slider-height: 20dp;
+  --slider-knob-size: 20dp;
+  --dialog-min-width: 320dp;
+  --dialog-max-width: 460dp;
+  --dropdown-max-height: 40vh;
+  --font-caption: 0.75rem;
+  --font-body: 0.875rem;
+  --font-setting: 1rem;
+  --font-title: 1.25rem;
+  --font-dialog-title: 1.5rem;
+  --font-app-title: 1.375rem;
   --app-title: "Material Demo (Dark)";
   --welcome-title: "Welcome!";
   --welcome-message: "Thanks for trying the Material Demo. Click OK to explore the Forms page, or dismiss to stay on Home.";
@@ -22,7 +53,7 @@
   flex-direction: row;
   align-items: center;
   flex-shrink: 0;
-  padding: 16px 24px;
+  padding: var(--space-4) var(--space-6);
   background-color: rgb(28, 27, 31);
 }
 
@@ -33,17 +64,17 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 10px;
+  gap: 10dp;
 }
 
 .app-title::icon {
-  width: 28px;
-  height: 28px;
+  width: var(--icon-size);
+  height: var(--icon-size);
 }
 
 .app-title::label {
   color: rgb(230, 225, 229);
-  font-size: 1.375rem;
+  font-size: var(--font-app-title);
   font-weight: 700;
 }
 
@@ -53,24 +84,28 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 4px 16px;
-  gap: 4px;
+  padding: var(--space-1) var(--space-4);
+  gap: var(--space-1);
   background-color: rgb(43, 41, 48);
+}
+
+.lock-bar {
+  padding: var(--space-2) var(--space-5);
 }
 
 .nav-btn::main {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  padding: 12px 24px;
-  border-radius: 20px;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-pill);
   background-color: rgba(0, 0, 0, 0);
   transition: background-color 0.15s ease-in-out;
 }
 
 .nav-btn::label {
   color: rgb(202, 196, 208);
-  font-size: 0.875rem;
+  font-size: var(--font-body);
   font-weight: 500;
   text-wrap-mode: nowrap;
   transition: color 0.15s ease-in-out;
@@ -102,14 +137,14 @@
 
 .pages {
   flex-grow: 1;
-  padding: 16px;
+  padding: 2vh 2.5vw;
 }
 
 .page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 8px;
+  gap: var(--space-4);
+  padding: var(--space-2);
 }
 
 /* ── Shared Label Base ───────────────────────── */
@@ -128,28 +163,28 @@
   display: flex;
   flex-direction: column;
   background-color: rgb(43, 41, 48);
-  border-radius: 16px;
-  padding: 24px;
-  gap: 12px;
-  box-shadow: 0px 2px 8px 0px rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  gap: var(--space-3);
+  box-shadow: 0dp 2dp 8dp 0dp rgba(0, 0, 0, 0.3);
   transition: background-color 0.25s ease-in-out, box-shadow 0.25s ease-in-out;
 }
 
 .card-title::label {
   color: rgb(230, 225, 229);
-  font-size: 1.25rem;
+  font-size: var(--font-title);
   font-weight: 600;
 }
 
 .card-body::label {
   color: rgb(202, 196, 208);
-  font-size: 0.875rem;
+  font-size: var(--font-body);
   font-weight: 400;
 }
 
 .card-hint::label {
   color: rgba(202, 196, 208, 0.6);
-  font-size: 0.75rem;
+  font-size: var(--font-caption);
   font-weight: 400;
 }
 
@@ -158,20 +193,20 @@
 .control-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px 16px;
+  gap: var(--space-3) var(--space-4);
   align-items: center;
-  padding: 4px 0px;
+  padding: var(--space-1) 0dp;
 }
 
 .grid-header::label {
   color: rgba(202, 196, 208, 0.6);
-  font-size: 0.75rem;
+  font-size: var(--font-caption);
   font-weight: 600;
 }
 
 .grid-label::label {
   color: rgb(202, 196, 208);
-  font-size: 0.875rem;
+  font-size: var(--font-body);
   font-weight: 500;
   text-wrap-mode: nowrap;
 }
@@ -187,21 +222,22 @@
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  padding: 12px 24px;
-  border-radius: 20px;
+  height: var(--control-height);
+  padding: 0dp var(--space-6);
+  border-radius: var(--radius-pill);
   cursor: pointer;
   transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 .btn::label {
-  font-size: 0.875rem;
+  font-size: var(--font-body);
   font-weight: 600;
   text-wrap-mode: nowrap;
 }
 
 .btn-primary::main {
   background-color: rgb(208, 188, 255);
-  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.3);
+  box-shadow: 0dp 1dp 3dp 0dp rgba(0, 0, 0, 0.3);
 }
 
 .btn-primary::label {
@@ -210,7 +246,7 @@
 
 .btn-primary:hover::main {
   background-color: rgb(220, 204, 255);
-  box-shadow: 0px 2px 6px 0px rgba(0, 0, 0, 0.35);
+  box-shadow: 0dp 2dp 6dp 0dp rgba(0, 0, 0, 0.35);
 }
 
 .btn-primary:pressed::main {
@@ -234,7 +270,7 @@
 
 .btn-secondary:hover::main {
   background-color: rgba(208, 188, 255, 0.08);
-  box-shadow: 0px 1px 4px 0px rgba(0, 0, 0, 0.25);
+  box-shadow: 0dp 1dp 4dp 0dp rgba(0, 0, 0, 0.25);
 }
 
 .btn-secondary:pressed::main {
@@ -250,25 +286,26 @@
 .btn-row {
   display: flex;
   flex-direction: row;
-  gap: 12px;
-  padding: 8px 0px 0px 0px;
+  gap: var(--space-3);
+  padding: var(--space-2) 0dp 0dp 0dp;
 }
 
 /* ── Form Controls ───────────────────────────── */
 
 .field-label::main {
-  padding: 4px 0px 0px 0px;
+  padding: var(--space-1) 0dp 0dp 0dp;
 }
 
 .field-label::label {
   color: rgb(202, 196, 208);
-  font-size: 12px;
+  font-size: var(--font-caption);
   font-weight: 500;
 }
 
 .text-field::main {
-  padding: 12px 16px;
-  border-radius: 8px;
+  height: var(--control-height);
+  padding: 0dp var(--space-4);
+  border-radius: var(--radius-sm);
   background-color: rgba(0, 0, 0, 0);
   border-width: 1px;
   border-style: solid;
@@ -283,7 +320,7 @@
 
 .text-field::text {
   color: rgb(230, 225, 229);
-  font-size: 14px;
+  font-size: var(--font-body);
 }
 
 .text-field::cursor {
@@ -297,13 +334,13 @@
 
 .text-field::label {
   color: rgb(147, 143, 153);
-  font-size: 12px;
+  font-size: var(--font-caption);
   font-weight: 500;
   background-color: rgb(43, 41, 48);
   text-wrap-mode: nowrap;
-  top: -8px;
-  left: 12px;
-  padding: 0px 4px;
+  top: -8dp;
+  left: var(--space-3);
+  padding: 0dp var(--space-1);
 }
 
 .text-field:focus::label {
@@ -311,10 +348,10 @@
 }
 
 .combo {
-  height: 44px;
-  padding: 9px 16px;
+  height: var(--control-height);
+  padding: 9dp var(--space-4);
   align-items: center;
-  border-radius: 8px 8px 0px 0px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0dp 0dp;
   background-color: rgb(54, 52, 59);
   border-width: 0px 0px 2px 0px;
   border-style: solid;
@@ -324,23 +361,23 @@
 
 .combo:hover {
   border-color: rgb(208, 188, 255);
-  box-shadow: 0px 0px 8px 0px rgba(208, 188, 255, 0.15);
+  box-shadow: 0dp 0dp 8dp 0dp rgba(208, 188, 255, 0.15);
 }
 
 .combo:focus {
   border-width: 0px 0px 2px 0px;
   border-color: rgb(208, 188, 255);
-  box-shadow: 0px 0px 10px 0px rgba(208, 188, 255, 0.5);
+  box-shadow: 0dp 0dp 10dp 0dp rgba(208, 188, 255, 0.5);
 }
 
 .combo::text {
   color: rgb(230, 225, 229);
-  font-size: 14px;
+  font-size: var(--font-body);
 }
 
 .combo::indicator {
   color: rgb(202, 196, 208);
-  font-size: 12px;
+  font-size: var(--font-caption);
 }
 
 /* ── Settings ────────────────────────────────── */
@@ -350,7 +387,7 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0px;
+  padding: var(--space-2) 0dp;
 }
 
 .setting-label {
@@ -358,23 +395,25 @@
 
 .setting-label::label {
   color: rgb(230, 225, 229);
-  font-size: 16px;
+  font-size: var(--font-setting);
   font-weight: 400;
+  white-space: nowrap;
+  text-wrap-mode: nowrap;
 }
 
 .setting-switch {
-  width: 52px;
+  width: var(--switch-width);
   flex-shrink: 0;
 }
 
 .setting-switch::main {
-  width: 52px;
-  height: 32px;
+  width: var(--switch-width);
+  height: var(--switch-height);
   background-color: rgb(73, 69, 79);
   border-width: 2px;
   border-style: solid;
   border-color: rgb(147, 143, 153);
-  border-radius: 16px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
@@ -395,38 +434,38 @@
 }
 
 .setting-switch::knob {
-  width: 24px;
-  height: 24px;
-  margin: 2px 0px 0px 2px;
+  width: var(--switch-knob-size);
+  height: var(--switch-knob-size);
+  margin: 2dp 0dp 0dp 2dp;
   background-color: rgb(147, 143, 153);
-  border-radius: 12px;
+  border-radius: var(--radius-pill);
   transition: margin 0.2s ease-in-out, background-color 0.2s ease-in-out;
 }
 
 .setting-switch:selected::knob {
-  margin: 2px 0px 0px 22px;
+  margin: 2dp 0dp 0dp 22dp;
   background-color: rgb(56, 30, 114);
 }
 
 /* ── Combo Dropdown ─────────────────────────── */
 
 .combo-dropdown {
-  max-height: 240px;
+  max-height: var(--dropdown-max-height);
   overflow: auto;
-  padding: 4px;
+  padding: var(--space-1);
   background-color: rgb(54, 52, 60);
   border-width: 1px;
   border-style: solid;
   border-color: rgb(73, 69, 79);
-  border-radius: 12px;
-  box-shadow: 0px 8px 20px 0px rgba(0, 0, 0, 0.4);
+  border-radius: var(--radius-md);
+  box-shadow: 0dp 8dp 20dp 0dp rgba(0, 0, 0, 0.4);
 }
 
 .combo-option {
-  padding: 10px 14px;
-  margin: 2px 0px;
+  padding: 10dp 14dp;
+  margin: 2dp 0dp;
   background-color: rgba(0, 0, 0, 0);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   transition: background-color 150ms ease-out;
 }
 
@@ -440,7 +479,7 @@
 
 .combo-option::label {
   color: rgb(230, 225, 229);
-  font-size: 14px;
+  font-size: var(--font-body);
 }
 
 .combo-option::label:selected {
@@ -456,24 +495,24 @@
 .dialog-panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  min-width: 320px;
-  max-width: 460px;
-  padding: 24px;
+  gap: var(--space-4);
+  min-width: var(--dialog-min-width);
+  max-width: var(--dialog-max-width);
+  padding: var(--space-6);
   background-color: rgb(48, 45, 56);
-  border-radius: 28px;
-  box-shadow: 0px 8px 32px 0px rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-dialog);
+  box-shadow: 0dp 8dp 32dp 0dp rgba(0, 0, 0, 0.5);
 }
 
 .dialog-message {
   flex-direction: row;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .dialog-message::icon {
-  width: 32px;
-  height: 32px;
+  width: var(--dialog-icon-size);
+  height: var(--dialog-icon-size);
 }
 
 .dialog-title {
@@ -482,13 +521,13 @@
 
 .dialog-title::label {
   color: rgb(230, 225, 229);
-  font-size: 24px;
+  font-size: var(--font-dialog-title);
   font-weight: 600;
 }
 
 .dialog-message::label {
   color: rgb(202, 196, 208);
-  font-size: 14px;
+  font-size: var(--font-body);
   text-wrap-mode: wrap;
 }
 
@@ -496,23 +535,24 @@
   display: flex;
   flex-direction: row;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 8px 0px 0px 0px;
+  gap: var(--space-2);
+  padding: var(--space-2) 0dp 0dp 0dp;
 }
 
 .dialog-btn::main {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  padding: 10px 24px;
-  border-radius: 20px;
+  height: var(--control-height);
+  padding: 0dp var(--space-6);
+  border-radius: var(--radius-pill);
   background-color: rgba(0, 0, 0, 0);
   transition: background-color 0.15s ease-in-out;
 }
 
 .dialog-btn::label {
   color: rgb(208, 188, 255);
-  font-size: 14px;
+  font-size: var(--font-body);
   font-weight: 600;
   text-wrap-mode: nowrap;
 }
@@ -532,20 +572,20 @@
 /* ── Slider ──────────────────────────────────── */
 
 .slider {
-  width: 200px;
-  height: 20px;
-  border-radius: 10px;
+  width: var(--slider-width);
+  height: var(--slider-height);
+  border-radius: var(--radius-pill);
   background-color: rgb(73, 69, 79);
   transition: background-color 0.15s ease-in-out;
 }
 
 .slider::indicator {
   background-color: rgb(208, 188, 255);
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
 }
 
 .slider::knob {
-  width: 20px;
+  width: var(--slider-knob-size);
   background-color: rgb(230, 225, 229);
   border-radius: 50%;
   transition: background-color 0.15s ease-in-out;

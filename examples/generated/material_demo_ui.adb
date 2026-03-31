@@ -50,6 +50,7 @@ package body Material_Demo_UI is
       Result := Merge_Metadata (Result, Material_Demo_Styles.Root_Metadata);
       return Result;
    end Static_Root_Metadata;
+   use type Float_Slider.Value_Changed_Callback;
 
    procedure On_Page_Option_Wrapper (Value : Page) is
    begin
@@ -289,6 +290,13 @@ package body Material_Demo_UI is
         (S, Class_Entry ("setting-label", Setting_Label_Class_Part_Styles));
    end Register_Setting_Label_Styles;
 
+   procedure Register_Lock_Bar_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("lock-bar", Lock_Bar_Class_Part_Styles));
+   end Register_Lock_Bar_Styles;
+
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
@@ -330,12 +338,16 @@ package body Material_Demo_UI is
       Box_12 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Label_17 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Dark Mode");
       Box_13 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_18 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Notifications");
-      Switch_3 : constant Adi.Widget.Button.Switch.Switch_Handle := Adi.Widget.Button.Switch.Create_Handle (True);
+      Label_18 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("UI Scale");
       Box_14 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_19 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Auto-save");
+      Label_19 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Text Scale");
+      Box_15 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_20 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Notifications");
+      Switch_3 : constant Adi.Widget.Button.Switch.Switch_Handle := Adi.Widget.Button.Switch.Create_Handle (True);
+      Box_16 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_21 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Auto-save");
       Switch_4 : constant Adi.Widget.Button.Switch.Switch_Handle := Adi.Widget.Button.Switch.Create_Handle (True);
-      Label_20 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Lock UI");
+      Label_22 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Lock UI");
    begin
       --  Create widgets
       Root := Adi.Widget.Box.Create_Handle;
@@ -357,6 +369,8 @@ package body Material_Demo_UI is
       Enabled_Value_Input := Float_Value_Input.Create_Handle (Min => 0.0, Max => 100.0, Value => 50.0);
       Disabled_Value_Input := Int_Value_Input.Create_Handle (Min => 0, Max => 100, Value => 75);
       Dark_Switch := Adi.Widget.Button.Switch.Create_Handle (True);
+      UI_Scale_Slider := Float_Slider.Create_Handle (Min => 80.0, Max => 160.0, Value => 100.0);
+      Text_Scale_Slider := Float_Slider.Create_Handle (Min => 80.0, Max => 160.0, Value => 100.0);
       Lock_Bar := Adi.Widget.Box.Create_Handle;
       Lock_Switch := Adi.Widget.Button.Switch.Create_Handle (False);
 
@@ -377,6 +391,12 @@ package body Material_Demo_UI is
       end if;
       if On_Dark_Mode /= null then
          Adi.Widget.Button.Switch.Connect_Toggled (Dark_Switch, On_Dark_Mode);
+      end if;
+      if On_UI_Scale /= null then
+         Float_Slider.Connect_Changed (UI_Scale_Slider, On_UI_Scale);
+      end if;
+      if On_Text_Scale /= null then
+         Float_Slider.Connect_Changed (Text_Scale_Slider, On_Text_Scale);
       end if;
       if On_Lock_UI /= null then
          Adi.Widget.Button.Switch.Connect_Toggled (Lock_Switch, On_Lock_UI);
@@ -412,6 +432,7 @@ package body Material_Demo_UI is
       Register_Num_Field_Styles (Source);
       Register_Setting_Row_Styles (Source);
       Register_Setting_Label_Styles (Source);
+      Register_Lock_Bar_Styles (Source);
       Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
       --  Load dynamic CSS and choose mode
@@ -491,12 +512,18 @@ package body Material_Demo_UI is
       Adi.CSS_Source.Bind_Class (Source, "setting-switch", +Dark_Switch);
       Adi.CSS_Source.Bind_Class (Source, "setting-row", +Box_13);
       Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", +Label_18);
-      Adi.CSS_Source.Bind_Class (Source, "setting-switch", +Switch_3);
+      Adi.CSS_Source.Bind_Class (Source, "slider", +UI_Scale_Slider);
       Adi.CSS_Source.Bind_Class (Source, "setting-row", +Box_14);
       Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", +Label_19);
-      Adi.CSS_Source.Bind_Class (Source, "setting-switch", +Switch_4);
-      Adi.CSS_Source.Bind_Class (Source, "nav-bar setting-row", +Lock_Bar);
+      Adi.CSS_Source.Bind_Class (Source, "slider", +Text_Scale_Slider);
+      Adi.CSS_Source.Bind_Class (Source, "setting-row", +Box_15);
       Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", +Label_20);
+      Adi.CSS_Source.Bind_Class (Source, "setting-switch", +Switch_3);
+      Adi.CSS_Source.Bind_Class (Source, "setting-row", +Box_16);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", +Label_21);
+      Adi.CSS_Source.Bind_Class (Source, "setting-switch", +Switch_4);
+      Adi.CSS_Source.Bind_Class (Source, "nav-bar setting-row lock-bar", +Lock_Bar);
+      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", +Label_22);
       Adi.CSS_Source.Bind_Class (Source, "setting-switch", +Lock_Switch);
 
       --  Build hierarchy
@@ -552,19 +579,25 @@ package body Material_Demo_UI is
       Adi.Widget.Add_Child (+Box_12, +Label_17);
       Adi.Widget.Add_Child (+Box_12, +Dark_Switch);
       Adi.Widget.Add_Child (+Box_13, +Label_18);
-      Adi.Widget.Add_Child (+Box_13, +Switch_3);
+      Adi.Widget.Add_Child (+Box_13, +UI_Scale_Slider);
       Adi.Widget.Add_Child (+Box_14, +Label_19);
-      Adi.Widget.Add_Child (+Box_14, +Switch_4);
+      Adi.Widget.Add_Child (+Box_14, +Text_Scale_Slider);
+      Adi.Widget.Add_Child (+Box_15, +Label_20);
+      Adi.Widget.Add_Child (+Box_15, +Switch_3);
+      Adi.Widget.Add_Child (+Box_16, +Label_21);
+      Adi.Widget.Add_Child (+Box_16, +Switch_4);
       Adi.Widget.Add_Child (+Box_11, +Label_16);
       Adi.Widget.Add_Child (+Box_11, +Box_12);
       Adi.Widget.Add_Child (+Box_11, +Box_13);
       Adi.Widget.Add_Child (+Box_11, +Box_14);
+      Adi.Widget.Add_Child (+Box_11, +Box_15);
+      Adi.Widget.Add_Child (+Box_11, +Box_16);
       Adi.Widget.Add_Child (+Box_10, +Box_11);
       Page_Stack.Add_Page (Pages, Home, +Box_2);
       Page_Stack.Add_Page (Pages, Forms, +Box_4);
       Page_Stack.Add_Page (Pages, Controls, +Box_7);
       Page_Stack.Add_Page (Pages, Settings, +Box_10);
-      Adi.Widget.Add_Child (+Lock_Bar, +Label_20);
+      Adi.Widget.Add_Child (+Lock_Bar, +Label_22);
       Adi.Widget.Add_Child (+Lock_Bar, +Lock_Switch);
       Adi.Widget.Add_Child (+Root, +Box_1);
       Adi.Widget.Add_Child (+Root, +Nav_Bar);

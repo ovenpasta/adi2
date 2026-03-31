@@ -33,6 +33,8 @@ package Material_Demo_UI is
       On_Dark_Mode : Adi.Widget.Button.Toggle_Callback := null;
       On_Get_Started : Adi.Widget.Button.Click_Callback := null;
       On_Lock_UI : Adi.Widget.Button.Toggle_Callback := null;
+      On_UI_Scale : Float_Slider.Value_Changed_Callback := null;
+      On_Text_Scale : Float_Slider.Value_Changed_Callback := null;
 
       Root : Adi.Widget.Box.Box_Handle;
       App_Title : Adi.Widget.Label.Label_Handle;
@@ -53,6 +55,8 @@ package Material_Demo_UI is
       Enabled_Value_Input : Float_Value_Input.Value_Input_Handle;
       Disabled_Value_Input : Int_Value_Input.Value_Input_Handle;
       Dark_Switch : Adi.Widget.Button.Switch.Switch_Handle;
+      UI_Scale_Slider : Float_Slider.Slider_Handle;
+      Text_Scale_Slider : Float_Slider.Slider_Handle;
       Lock_Bar : Adi.Widget.Box.Box_Handle;
       Lock_Switch : Adi.Widget.Button.Switch.Switch_Handle;
 

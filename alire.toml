@@ -106,6 +106,10 @@ command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=text_editor_test"]
 
 [[actions]]
 type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=mcp_test"]
+
+[[actions]]
+type = "post-build"
 command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=gradient_example"]
 
 [build-switches]

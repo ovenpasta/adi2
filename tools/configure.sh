@@ -244,7 +244,8 @@ project Tests_Build is
       "text_editor_test",
       "handle_store_test",
       "widget_handle_test",
-      "combo_box_item_test");
+      "combo_box_item_test",
+      "dialog_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("${SOURCE_DIR}/tests/src");
@@ -408,6 +409,7 @@ TEST_KINDS=(
   handle_store_test
   widget_handle_test
   combo_box_item_test
+  dialog_test
 )
 
 for kind in "\${TEST_KINDS[@]}"; do

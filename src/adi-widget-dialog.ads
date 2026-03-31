@@ -75,6 +75,12 @@ package Adi.Widget.Dialog is
    procedure Set_Dismiss_On_Escape
      (W : in out Dialog_Widget; Value : Boolean := True);
 
+   --  Auto-close on button click (default True).
+   --  When False the result callback fires but the dialog stays visible;
+   --  the application must call Hide explicitly.
+   procedure Set_Auto_Close
+     (W : in out Dialog_Widget; Value : Boolean := True);
+
    --  Result callback: Button_Index=0 means dismissed (backdrop/escape)
    type Dialog_Result_Callback is access procedure
      (W            : Widget_Handle;
@@ -141,6 +147,8 @@ package Adi.Widget.Dialog is
    procedure Set_Dismiss_On_Backdrop
      (H : Dialog_Handle; Value : Boolean := True);
    procedure Set_Dismiss_On_Escape
+     (H : Dialog_Handle; Value : Boolean := True);
+   procedure Set_Auto_Close
      (H : Dialog_Handle; Value : Boolean := True);
    procedure Connect_Result
      (H : Dialog_Handle; CB : Dialog_Result_Callback);
@@ -218,6 +226,7 @@ private
       Shown         : Boolean := False;
       Dismiss_On_Backdrop_Flag : Boolean := True;
       Dismiss_On_Escape_Flag   : Boolean := True;
+      Auto_Close_Flag          : Boolean := True;
       Result : Result_Signals.Signal;
       Button_Styles : Part_Style_Array := Empty_Part_Styles;
       Has_Button_Styles : Boolean := False;

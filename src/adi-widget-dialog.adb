@@ -188,7 +188,9 @@ package body Adi.Widget.Dialog is
          begin
             Emit (Dialog_Widget (Owner.all).Result);
          end;
-         Hide (Dialog_Widget (Owner.all));
+         if Dialog_Widget (Owner.all).Auto_Close_Flag then
+            Hide (Dialog_Widget (Owner.all));
+         end if;
       end;
    end On_Button_Clicked;
 
@@ -573,6 +575,13 @@ package body Adi.Widget.Dialog is
    begin
       W.Dismiss_On_Escape_Flag := Value;
    end Set_Dismiss_On_Escape;
+
+   procedure Set_Auto_Close
+     (W : in out Dialog_Widget; Value : Boolean := True)
+   is
+   begin
+      W.Auto_Close_Flag := Value;
+   end Set_Auto_Close;
 
    ---------------------------------------------------------------------------
    --  Result callback
@@ -1128,6 +1137,16 @@ package body Adi.Widget.Dialog is
          Set_Dismiss_On_Escape (Dialog_Widget (Ptr.all), Value);
       end if;
    end Set_Dismiss_On_Escape;
+
+   procedure Set_Auto_Close
+     (H : Dialog_Handle; Value : Boolean := True)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Auto_Close (Dialog_Widget (Ptr.all), Value);
+      end if;
+   end Set_Auto_Close;
 
    procedure Connect_Result
      (H : Dialog_Handle; CB : Dialog_Result_Callback)

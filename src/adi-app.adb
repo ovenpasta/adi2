@@ -260,7 +260,15 @@ package body Adi.App is
 
             --  Drain deferred dispatch queue (posted from background
             --  tasks or previous-frame callbacks).
-            Adi.Dispatch.Drain;
+            declare
+               Had_Dispatch : constant Boolean :=
+                 Adi.Dispatch.Pending_Count > 0;
+            begin
+               Adi.Dispatch.Drain;
+               if Had_Dispatch and then Main /= null then
+                  Main.Request_Redraw;
+               end if;
+            end;
 
             --  Drain deferred handle-store destroys.
             Adi.Widget.Pump_Widget_Store;

@@ -89,6 +89,7 @@ package body Delete_Dialog_UI is
          Root_Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=
            Static_Root_Metadata;
       begin
+         null;
       end;
       Apply_Box_1_Styles (+Box_1);
       Apply_Label_1_Styles (+Label_1);

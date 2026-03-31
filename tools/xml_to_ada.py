@@ -1564,7 +1564,7 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append("         end if;")
             lines.append("      end;")
             lines.append("")
-            if not has_dialog:
+            if has_window:
                 lines.append(
                     "      Adi.CSS_Source.Attach_Window (Source, W);"
                 )
@@ -1592,12 +1592,19 @@ def generate_body(app: XmlApp, package_name: str,
                 lines.append("         Root_Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=")
                 lines.append("           Static_Root_Metadata;")
                 lines.append("      begin")
-                if root is not None and not has_dialog and root.wid not in {wid for wid, _cls in styled_widgets}:
+                has_body = (
+                    root is not None
+                    and not has_dialog
+                    and root.wid not in {wid for wid, _cls in styled_widgets}
+                )
+                if has_body:
                     lines.append("         if Root_Meta.Has_Root_Style then")
                     lines.append(
                         f"            Set_Part_Styles (+{root.wid}, Root_Meta.Root_Styles);"
                     )
                     lines.append("         end if;")
+                else:
+                    lines.append("         null;")
                 lines.append("      end;")
             for wid, cls_list in styled_widgets:
                 proc_name = f"Apply_{wid}_Styles"
@@ -1684,7 +1691,7 @@ def generate_body(app: XmlApp, package_name: str,
             )
             lines.append("         end if;")
             lines.append("      end;")
-            if not has_dialog:
+            if has_window:
                 lines.append(
                     "      Adi.CSS_Source.Attach_Window (Source, W);"
                 )
@@ -1695,7 +1702,7 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append("")
         else:
             lines.append("      --  Apply static root metadata")
-            if not has_dialog:
+            if has_window:
                 lines.append(
                     "      Adi.CSS_Source.Attach_Window (Source, W);"
                 )
@@ -1709,6 +1716,8 @@ def generate_body(app: XmlApp, package_name: str,
                     f"            Set_Part_Styles (+{root.wid}, Root_Meta.Root_Styles);"
                 )
                 lines.append("         end if;")
+            else:
+                lines.append("         null;")
             lines.append("      end;")
             lines.append("")
 

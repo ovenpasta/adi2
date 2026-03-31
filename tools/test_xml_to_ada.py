@@ -58,6 +58,26 @@ class TestDialogParsing(unittest.TestCase):
         self.assertEqual(len(app.dialog.content_widget.children), 1)
         self.assertEqual(app.dialog.content_widget.children[0].tag, "label")
 
+    def test_dialog_style_attributes(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <dialog class="backdrop"
+          panel-class="panel"
+          title-class="dialog-title"
+          message-class="dialog-message"
+          button-row-class="button-row"
+          button-class="dialog-btn"
+          primary-button-class="dialog-btn-primary"/>
+</adi>"""
+        app = parse_xml(xml)
+        self.assertEqual(app.dialog.css_classes, ["backdrop"])
+        self.assertEqual(app.dialog.panel_classes, ["panel"])
+        self.assertEqual(app.dialog.title_classes, ["dialog-title"])
+        self.assertEqual(app.dialog.message_classes, ["dialog-message"])
+        self.assertEqual(app.dialog.button_row_classes, ["button-row"])
+        self.assertEqual(app.dialog.button_classes, ["dialog-btn"])
+        self.assertEqual(app.dialog.primary_button_classes, ["dialog-btn-primary"])
+
     def test_dialog_no_attributes(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <adi>
@@ -281,6 +301,78 @@ class TestDialogCodeGeneration(unittest.TestCase):
         body = xml_to_ada.generate_body(app, "Test_UI")
         # The content widget with a class should get style wiring
         self.assertIn("Dialog_Content_Class_Part_Styles", body)
+
+    def test_live_css_dialog_emits_attach_window_and_explicit_internal_bindings(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="dialog.css" package="Dialog_Styles"/>
+  <dialog title="Styled"
+          buttons="ok-cancel"
+          class="backdrop"
+          panel-class="panel"
+          title-class="dialog-title"
+          message-class="dialog-message"
+          button-row-class="button-row"
+          button-class="dialog-btn"
+          primary-button-class="dialog-btn-primary"/>
+</adi>"""
+        app = parse_xml(xml)
+        spec = xml_to_ada.generate_spec(app, "Test_UI")
+        body = xml_to_ada.generate_body(app, "Test_UI")
+        self.assertIn("with Adi.Window;", spec)
+        self.assertIn(
+            "procedure Attach_Window (D : Adi.Widget.Dialog.Dialog_Handle; Host : Adi.Window.Window_Handle);",
+            spec,
+        )
+        self.assertIn("with Dialog_Styles;", body)
+        self.assertNotIn("with Dialog_Styles; use Dialog_Styles;", body)
+        self.assertIn(
+            "Adi.CSS_Source.Bind_Class (Source, \"backdrop\", Adi.Widget.Dialog.To_Widget_Handle (D));",
+            body,
+        )
+        self.assertIn(
+            "Adi.CSS_Source.Bind_Root_Metadata (Source, +Adi.Widget.Dialog.Get_Content_Panel_Handle (D));",
+            body,
+        )
+        self.assertIn(
+            "Adi.CSS_Source.Bind_Class (Source, \"panel\", +Adi.Widget.Dialog.Get_Content_Panel_Handle (D));",
+            body,
+        )
+        self.assertIn(
+            "Adi.CSS_Source.Bind_Class (Source, \"button-row\", +Adi.Widget.Dialog.Get_Button_Row_Handle (D));",
+            body,
+        )
+        self.assertIn(
+            "Adi.CSS_Source.Bind_Class (Source, \"dialog-btn dialog-btn-primary\", +Adi.Widget.Dialog.Get_Button_Handle (D, 2));",
+            body,
+        )
+        self.assertIn(
+            "Adi.Window.Connect_Tick (Host, Tick_Styles_CB'Unrestricted_Access);",
+            body,
+        )
+
+    def test_static_dialog_emits_explicit_internal_styles(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" styles="Dialog_Styles"/>
+  <dialog class="backdrop"
+          panel-class="panel"
+          title-class="dialog-title"
+          message-class="dialog-message"
+          button-row-class="button-row"
+          button-class="dialog-btn"
+          primary-button-class="dialog-btn-primary"
+          buttons="yes-no"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "Test_UI")
+        self.assertIn("Adi.Widget.Dialog.Set_Part_Styles (D, Backdrop_Class_Part_Styles);", body)
+        self.assertIn("Adi.Widget.Dialog.Set_Panel_Style (D, Panel_Class_Part_Styles);", body)
+        self.assertIn("Adi.Widget.Dialog.Set_Title_Style (D, Dialog_Title_Class_Part_Styles);", body)
+        self.assertIn("Adi.Widget.Dialog.Set_Message_Style (D, Dialog_Message_Class_Part_Styles);", body)
+        self.assertIn("Adi.Widget.Dialog.Set_Button_Row_Style (D, Button_Row_Class_Part_Styles);", body)
+        self.assertIn("Adi.Widget.Dialog.Set_Button_Style (D, Dialog_Btn_Class_Part_Styles);", body)
+        self.assertIn("Adi.Widget.Dialog.Set_Primary_Button_Style (D, Dialog_Btn_Primary_Class_Part_Styles);", body)
 
 
 class TestExistingFunctionality(unittest.TestCase):

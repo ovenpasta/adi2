@@ -17,11 +17,15 @@ with Adi.Window;
 with I18N_Example_Translations;
 with Material_Demo_Light_Styles;
 with Material_Demo_Styles;   use Material_Demo_Styles;
+with Material_Quit_Dialog_UI;
 with Material_Demo_UI;       use Material_Demo_UI;
+with Material_Welcome_Dialog_UI;
 
 procedure Material_Demo is
    A : Adi.App.App;
    package UI is new Material_Demo_UI.Instance;
+   package Welcome_UI is new Material_Welcome_Dialog_UI.Instance;
+   package Quit_UI is new Material_Quit_Dialog_UI.Instance;
    W : Adi.Window.Window_Handle;
 
    Welcome_Dialog : Adi.Widget.Dialog.Dialog_Handle;
@@ -35,11 +39,15 @@ procedure Material_Demo is
 
    procedure On_Dark_Mode (W : Widget_Handle; Active : Boolean) is
       pragma Unreferenced (W);
-      OK : Boolean;
+      UI_OK, Welcome_OK, Quit_OK : Boolean;
+      CSS_Path : constant String :=
+        (if Active
+         then "examples/css/material_demo.css"
+         else "examples/css/material_demo_light.css");
    begin
-      UI.Set_CSS_File ((if Active
-                        then "examples/css/material_demo.css"
-                        else "examples/css/material_demo_light.css"), OK);
+      UI.Set_CSS_File (CSS_Path, UI_OK);
+      Welcome_UI.Set_CSS_File (CSS_Path, Welcome_OK);
+      Quit_UI.Set_CSS_File (CSS_Path, Quit_OK);
       Adi.Widget.Label.Set_Text
         (UI.App_Title,
          (if Active
@@ -158,13 +166,6 @@ begin
    Adi.Widget.Context_Menu.Set_Default_Menu_Styles (Context_Menu_Class_Part_Styles);
    Adi.Widget.Context_Menu.Set_Default_Item_Styles (Context_Menu_Item_Class_Part_Styles);
 
-   --  Set package-level dialog styles (applies to all dialogs)
-   Set_Default_Panel_Style (Dialog_Panel_Class_Part_Styles);
-   Set_Default_Title_Style (Dialog_Title_Class_Part_Styles);
-   Set_Default_Message_Style (Dialog_Message_Class_Part_Styles);
-   Set_Default_Button_Row_Style (Dialog_Btn_Row_Class_Part_Styles);
-   Set_Default_Button_Style (Dialog_Btn_Class_Part_Styles);
-
    --  Set package-level combo box styles (applies to all combo boxes)
    Set_Default_Dropdown_Styles (Combo_Dropdown_Class_Part_Styles);
    Set_Default_Option_Row_Styles (Combo_Option_Class_Part_Styles);
@@ -189,13 +190,11 @@ begin
 
    Adi.Widget.Label.Set_Text (UI.App_Title, Var_App_Title);
 
-   --  Create welcome dialog (inherits default dialog styles)
-   Welcome_Dialog := Adi.Widget.Dialog.Create_Handle;
-   Attach_Window (Welcome_Dialog, W);
-   Set_Part_Styles (Welcome_Dialog, Dialog_Backdrop_Class_Part_Styles);
+   --  Create welcome dialog
+   Welcome_Dialog := Welcome_UI.Build;
+   Welcome_UI.Attach_Window (Welcome_Dialog, W);
    Set_Title (Welcome_Dialog, Var_Welcome_Title);
    Set_Message (Welcome_Dialog, Var_Welcome_Message);
-   Set_OK_Button (Welcome_Dialog);
    Connect_Result (Welcome_Dialog, On_Welcome_Result'Unrestricted_Access);
 
    --  Set welcome icon (Material Symbols "waving_hand" 24×24)
@@ -223,15 +222,11 @@ begin
    end;
 
    --  Create quit confirmation dialog
-   Quit_Dialog := Adi.Widget.Dialog.Create_Handle;
-   Attach_Window (Quit_Dialog, W);
-   Set_Part_Styles (Quit_Dialog, Dialog_Backdrop_Class_Part_Styles);
+   Quit_Dialog := Quit_UI.Build;
+   Quit_UI.Attach_Window (Quit_Dialog, W);
    Set_Title (Quit_Dialog, Var_Quit_Title);
    Set_Message (Quit_Dialog, Var_Quit_Message);
-   Add_Button (Quit_Dialog, "No");
-   Yes_Button_Index := Add_Button (Quit_Dialog, "Yes");
-   Set_Default_Button (Quit_Dialog, Yes_Button_Index);
-   Set_Dismiss_On_Escape (Quit_Dialog, True);
+   Yes_Button_Index := 2;
    Connect_Result (Quit_Dialog, On_Quit_Result'Unrestricted_Access);
 
    --  Intercept window close / app quit

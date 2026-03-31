@@ -8,7 +8,6 @@ package body Adi.Widget.Dialog is
 
    use type Adi.Widget.Box.Box_Handle;
    use type Adi.Widget.Label.Label_Handle;
-   use type Adi.Window.Window_Access;
 
    Default_Panel_Styles      : Part_Style_Holders.Holder;
    Default_Title_Styles      : Part_Style_Holders.Holder;
@@ -1008,6 +1007,50 @@ package body Adi.Widget.Dialog is
       end if;
       return Adi.Widget.Button.Null_Button_Handle;
    end Get_Button_Handle;
+
+   function Get_Content_Panel_Handle
+     (H : Dialog_Handle) return Adi.Widget.Box.Box_Handle
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Dialog_Widget (Ptr.all).Content_Panel;
+      end if;
+      return Adi.Widget.Box.Null_Box_Handle;
+   end Get_Content_Panel_Handle;
+
+   function Get_Title_Handle
+     (H : Dialog_Handle) return Adi.Widget.Label.Label_Handle
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Dialog_Widget (Ptr.all).Title_Label;
+      end if;
+      return Adi.Widget.Label.Null_Label_Handle;
+   end Get_Title_Handle;
+
+   function Get_Message_Handle
+     (H : Dialog_Handle) return Adi.Widget.Label.Label_Handle
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Dialog_Widget (Ptr.all).Message_Label;
+      end if;
+      return Adi.Widget.Label.Null_Label_Handle;
+   end Get_Message_Handle;
+
+   function Get_Button_Row_Handle
+     (H : Dialog_Handle) return Adi.Widget.Box.Box_Handle
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Dialog_Widget (Ptr.all).Button_Row;
+      end if;
+      return Adi.Widget.Box.Null_Box_Handle;
+   end Get_Button_Row_Handle;
 
    procedure Set_OK_Button (H : Dialog_Handle) is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);

@@ -123,6 +123,14 @@ package Adi.Widget.Dialog is
    function  Get_Button_Handle
      (H : Dialog_Handle; Index : Positive)
       return Adi.Widget.Button.Button_Handle;
+   function Get_Content_Panel_Handle
+     (H : Dialog_Handle) return Adi.Widget.Box.Box_Handle;
+   function Get_Title_Handle
+     (H : Dialog_Handle) return Adi.Widget.Label.Label_Handle;
+   function Get_Message_Handle
+     (H : Dialog_Handle) return Adi.Widget.Label.Label_Handle;
+   function Get_Button_Row_Handle
+     (H : Dialog_Handle) return Adi.Widget.Box.Box_Handle;
    procedure Set_OK_Button     (H : Dialog_Handle);
    procedure Set_OK_Cancel     (H : Dialog_Handle);
    procedure Set_Yes_No        (H : Dialog_Handle);

@@ -115,6 +115,13 @@ class XmlDialog:
     dismiss_on_backdrop: Optional[bool] = None
     dismiss_on_escape: Optional[bool] = None
     content_widget: Optional[XmlWidget] = None
+    css_classes: list[str] = field(default_factory=list)
+    panel_classes: list[str] = field(default_factory=list)
+    title_classes: list[str] = field(default_factory=list)
+    message_classes: list[str] = field(default_factory=list)
+    button_row_classes: list[str] = field(default_factory=list)
+    button_classes: list[str] = field(default_factory=list)
+    primary_button_classes: list[str] = field(default_factory=list)
 
 
 DIALOG_BUTTON_PRESETS = {
@@ -123,6 +130,36 @@ DIALOG_BUTTON_PRESETS = {
     "yes-no": "Set_Yes_No",
     "yes-no-cancel": "Set_Yes_No_Cancel",
 }
+
+DIALOG_DEFAULT_BUTTON_INDEX = {
+    "ok": 1,
+    "ok-cancel": 2,
+    "yes-no": 2,
+    "yes-no-cancel": 3,
+}
+
+DIALOG_BUTTON_COUNT = {
+    "ok": 1,
+    "ok-cancel": 2,
+    "yes-no": 2,
+    "yes-no-cancel": 3,
+}
+
+
+def get_dialog_default_button_index(dialog: Optional[XmlDialog]) -> int:
+    if dialog is None:
+        return 0
+    if dialog.default_button is not None:
+        return dialog.default_button
+    if dialog.buttons:
+        return DIALOG_DEFAULT_BUTTON_INDEX.get(dialog.buttons, 0)
+    return 0
+
+
+def get_dialog_button_count(dialog: Optional[XmlDialog]) -> int:
+    if dialog is None or not dialog.buttons:
+        return 0
+    return DIALOG_BUTTON_COUNT.get(dialog.buttons, 0)
 
 
 @dataclass
@@ -237,6 +274,20 @@ def to_ada_identifier(name: str) -> str:
     name = name.replace("-", "_")
     parts = name.split("_")
     return "_".join(part.capitalize() for part in parts)
+
+
+def parse_class_list(value: str) -> list[str]:
+    return [part for part in value.split() if part]
+
+
+def class_style_expr(classes: list[str]) -> str:
+    if len(classes) == 1:
+        return f"{to_ada_identifier(classes[0])}_Class_Part_Styles"
+    consts = [f"{to_ada_identifier(c)}_Class_Part_Styles" for c in classes]
+    expr = consts[0]
+    for const in consts[1:]:
+        expr = f"Merge_Part_Styles ({expr}, {const})"
+    return expr
 
 
 def widget_ada_type(widget: XmlWidget, generics_map: dict[str, XmlGeneric],
@@ -545,6 +596,20 @@ class Parser:
                     "Must be 'true' or 'false'"
                 )
             dialog.dismiss_on_escape = val == "true"
+        if "class" in elem.attrib:
+            dialog.css_classes = parse_class_list(elem.get("class", ""))
+        if "panel-class" in elem.attrib:
+            dialog.panel_classes = parse_class_list(elem.get("panel-class", ""))
+        if "title-class" in elem.attrib:
+            dialog.title_classes = parse_class_list(elem.get("title-class", ""))
+        if "message-class" in elem.attrib:
+            dialog.message_classes = parse_class_list(elem.get("message-class", ""))
+        if "button-row-class" in elem.attrib:
+            dialog.button_row_classes = parse_class_list(elem.get("button-row-class", ""))
+        if "button-class" in elem.attrib:
+            dialog.button_classes = parse_class_list(elem.get("button-class", ""))
+        if "primary-button-class" in elem.attrib:
+            dialog.primary_button_classes = parse_class_list(elem.get("primary-button-class", ""))
 
         # Parse child widgets (at most 1)
         widget_children = [c for c in elem if c.tag in WIDGET_TAGS]
@@ -681,6 +746,8 @@ def generate_spec(app: XmlApp, package_name: str) -> str:
         withs.add("Adi.Window")
     elif has_dialog:
         withs.add("Adi.Widget.Dialog")
+        if live_css or app.component_packages:
+            withs.add("Adi.Window")
     else:
         withs.add("Adi.Widget")
     for w in exported:
@@ -789,6 +856,14 @@ def generate_spec(app: XmlApp, package_name: str) -> str:
     lines.append("                             Success  : out Boolean);")
     lines.append("")
 
+    if has_dialog and (live_css or app.component_packages):
+        lines.append(
+            "      procedure Attach_Window"
+            " (D : Adi.Widget.Dialog.Dialog_Handle;"
+            " Host : Adi.Window.Window_Handle);"
+        )
+        lines.append("")
+
     # Set_CSS_File — only when dynamic <link> elements are present
     if live_css:
         lines.append(
@@ -832,6 +907,8 @@ def generate_body(app: XmlApp, package_name: str,
     has_window = app.window is not None
     has_dialog = app.dialog is not None
     live_css = bool(any(link.href for link in app.css_links) or app.css_styles)
+    dialog_default_button = get_dialog_default_button_index(app.dialog)
+    dialog_button_count = get_dialog_button_count(app.dialog)
 
     # Compute spec-level withs so we know what the body inherits
     spec_withs: set[str] = set()
@@ -839,6 +916,8 @@ def generate_body(app: XmlApp, package_name: str,
         spec_withs.add("Adi.Window")
     elif has_dialog:
         spec_withs.add("Adi.Widget.Dialog")
+        if live_css or app.component_packages:
+            spec_withs.add("Adi.Window")
     else:
         spec_withs.add("Adi.Widget")
     for w in exported:
@@ -867,10 +946,29 @@ def generate_body(app: XmlApp, package_name: str,
 
     # Import styles packages derived from <link> elements
     link_pkgs = list(dict.fromkeys(link.styles_pkg for link in app.css_links))
+    has_dialog_class_targets = bool(
+        app.dialog
+        and (
+            app.dialog.css_classes
+            or app.dialog.panel_classes
+            or app.dialog.title_classes
+            or app.dialog.message_classes
+            or app.dialog.button_row_classes
+            or app.dialog.button_classes
+            or app.dialog.primary_button_classes
+        )
+    )
+    needs_link_pkg_use = bool(
+        link_pkgs
+        and not live_css
+        and (any(w.css_classes for w in all_widgets) or has_dialog_class_targets)
+    )
     has_root_metadata = bool(
         link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties)
     )
-    needs_layout_util = bool(root is not None and not live_css and has_root_metadata)
+    needs_layout_util = bool(
+        (root is not None or has_dialog) and not live_css and has_root_metadata
+    )
 
     # Body needs Adi.Widget (for Set_Part_Styles, Add_Child, Widget_Access)
     # + any widget packages not already in the spec.
@@ -891,6 +989,11 @@ def generate_body(app: XmlApp, package_name: str,
         body_withs.append("Adi.Window")
     if has_dialog:
         body_withs.append("Adi.Widget.Dialog")
+        body_withs.append("Adi.Widget.Box")
+        body_withs.append("Adi.Widget.Label")
+        body_withs.append("Adi.Widget.Button")
+        if live_css or app.component_packages:
+            body_withs.append("Adi.Window")
     if inline_groups or (inline_stylesheet and inline_stylesheet.root_properties):
         body_withs.append("Adi.CSS_Styles")
         body_withs.append("Adi.Widget_Styles")
@@ -945,7 +1048,10 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append(f"with {bw}; use {bw};")
 
     for pkg in sorted(link_pkgs):
-        lines.append(f"with {pkg}; use {pkg};")
+        if needs_link_pkg_use:
+            lines.append(f"with {pkg}; use {pkg};")
+        else:
+            lines.append(f"with {pkg};")
 
     lines.append("")
     lines.append(f"package body {package_name} is")
@@ -971,6 +1077,12 @@ def generate_body(app: XmlApp, package_name: str,
         decl_lines = css_to_ada.generate_style_declarations(
             inline_groups, indent="   ")
         lines.extend(decl_lines)
+
+    if has_dialog and (live_css or app.component_packages):
+        lines.append(
+            "   Live_CSS_Host : Adi.Window.Window_Handle :="
+            " Adi.Window.Null_Window_Handle;"
+        )
 
     if inline_stylesheet and inline_stylesheet.root_properties:
         root_props = inline_stylesheet.root_properties
@@ -1053,6 +1165,8 @@ def generate_body(app: XmlApp, package_name: str,
             value_changed_use_types.add(cb.cb_type)
     for cb_type in sorted(value_changed_use_types):
         lines.append(f"   use type {cb_type};")
+    if has_dialog and (live_css or app.component_packages):
+        lines.append("   use type Adi.Window.Window_Handle;")
 
     # Package-level option group variables (only those without id, others are in spec)
     for og in app.option_groups:
@@ -1121,7 +1235,7 @@ def generate_body(app: XmlApp, package_name: str,
 
     lines.append("   end Tick_Styles;")
 
-    if has_window and (live_css or app.component_packages):
+    if (has_window or has_dialog) and (live_css or app.component_packages):
         lines.append("")
         lines.append("   procedure Tick_Styles_CB (DT : Duration) is")
         lines.append("      pragma Unreferenced (DT);")
@@ -1129,6 +1243,24 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append("   begin")
         lines.append("      Tick_Styles (Reloaded, Success);")
         lines.append("   end Tick_Styles_CB;")
+
+    if has_dialog and (live_css or app.component_packages):
+        lines.append("")
+        lines.append(
+            "   procedure Attach_Window"
+            " (D : Adi.Widget.Dialog.Dialog_Handle;"
+            " Host : Adi.Window.Window_Handle) is"
+        )
+        lines.append("   begin")
+        lines.append("      Adi.Widget.Dialog.Attach_Window (D, Host);")
+        lines.append("      if Live_CSS_Host /= Host then")
+        lines.append(
+            "         Adi.Window.Connect_Tick"
+            " (Host, Tick_Styles_CB'Unrestricted_Access);"
+        )
+        lines.append("         Live_CSS_Host := Host;")
+        lines.append("      end if;")
+        lines.append("   end Attach_Window;")
 
     # Set_CSS_File — clear + reload dynamic entries + enable live reload
     if live_css:
@@ -1306,6 +1438,20 @@ def generate_body(app: XmlApp, package_name: str,
     for w in all_widgets:
         if w.css_classes:
             styled_widgets.append((w.wid, w.css_classes))
+    dialog_style_targets: list[tuple[str, list[str]]] = []
+    if app.dialog is not None:
+        dialog_defs = [
+            ("dialog", app.dialog.css_classes),
+            ("dialog_panel", app.dialog.panel_classes),
+            ("dialog_title", app.dialog.title_classes),
+            ("dialog_message", app.dialog.message_classes),
+            ("dialog_button_row", app.dialog.button_row_classes),
+            ("dialog_button", app.dialog.button_classes),
+            ("dialog_primary_button", app.dialog.primary_button_classes),
+        ]
+        dialog_style_targets = [
+            (name, classes) for name, classes in dialog_defs if classes
+        ]
 
     if styled_widgets:
         if live_css:
@@ -1314,6 +1460,14 @@ def generate_body(app: XmlApp, package_name: str,
             seen_classes: set[str] = set()
             unique_entries: list[tuple[str, str]] = []
             for _, cls_list in styled_widgets:
+                for cls in cls_list:
+                    if cls not in seen_classes:
+                        seen_classes.add(cls)
+                        style_const = (
+                            f"{to_ada_identifier(cls)}_Class_Part_Styles"
+                        )
+                        unique_entries.append((cls, style_const))
+            for _, cls_list in dialog_style_targets:
                 for cls in cls_list:
                     if cls not in seen_classes:
                         seen_classes.add(cls)
@@ -1403,7 +1557,7 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append(
                 "      --  Bind every widget that has a CSS class"
             )
-            if root is not None:
+            if root is not None and not has_dialog:
                 lines.append(
                     f"      Adi.CSS_Source.Bind_Root_Metadata (Source, +{root.wid});"
                 )
@@ -1433,7 +1587,7 @@ def generate_body(app: XmlApp, package_name: str,
                     " Adi.Layout_Util.Default_Root_Font_Size_Px));"
                 )
                 lines.append("         end if;")
-                if root is not None and root.wid not in {wid for wid, _cls in styled_widgets}:
+                if root is not None and not has_dialog and root.wid not in {wid for wid, _cls in styled_widgets}:
                     lines.append("         if Root_Meta.Has_Root_Style then")
                     lines.append(
                         f"            Set_Part_Styles (+{root.wid}, Root_Meta.Root_Styles);"
@@ -1457,7 +1611,12 @@ def generate_body(app: XmlApp, package_name: str,
                         style_expr = (
                             f"Merge_Part_Styles ({style_expr}, {c})"
                         )
-                if (link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties)) and root is not None and wid == root.wid:
+                if (
+                    (link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties))
+                    and root is not None
+                    and not has_dialog
+                    and wid == root.wid
+                ):
                     style_expr = (
                         f"Merge_Part_Styles (Static_Root_Metadata.Root_Styles, {style_expr})"
                     )
@@ -1471,7 +1630,7 @@ def generate_body(app: XmlApp, package_name: str,
                 ]
                 lines.append(f"      {proc_name} (+{wid});")
             lines.append("")
-    elif root is not None and (live_css or link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties)):
+    elif (root is not None or has_dialog) and (live_css or link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties)):
         if live_css:
             lines.append("      --  Register root metadata / load dynamic CSS")
             lines.append("      Adi.CSS_Source.Clear_Static_Entries (Source);")
@@ -1520,9 +1679,10 @@ def generate_body(app: XmlApp, package_name: str,
             )
             lines.append("         end if;")
             lines.append("      end;")
-            lines.append(
-                f"      Adi.CSS_Source.Bind_Root_Metadata (Source, +{root.wid});"
-            )
+            if root is not None and not has_dialog:
+                lines.append(
+                    f"      Adi.CSS_Source.Bind_Root_Metadata (Source, +{root.wid});"
+                )
             lines.append("")
         else:
             lines.append("      --  Apply static root metadata")
@@ -1539,11 +1699,12 @@ def generate_body(app: XmlApp, package_name: str,
                 " Adi.Layout_Util.Default_Root_Font_Size_Px));"
             )
             lines.append("         end if;")
-            lines.append("         if Root_Meta.Has_Root_Style then")
-            lines.append(
-                f"            Set_Part_Styles (+{root.wid}, Root_Meta.Root_Styles);"
-            )
-            lines.append("         end if;")
+            if root is not None and not has_dialog:
+                lines.append("         if Root_Meta.Has_Root_Style then")
+                lines.append(
+                    f"            Set_Part_Styles (+{root.wid}, Root_Meta.Root_Styles);"
+                )
+                lines.append("         end if;")
             lines.append("      end;")
             lines.append("")
 
@@ -1682,6 +1843,110 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append(
                 f"      Adi.Widget.Dialog.Set_Content (D, +{dlg.content_widget.wid});"
             )
+        if not live_css and (link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties)):
+            lines.append("      declare")
+            lines.append("         Root_Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=")
+            lines.append("           Static_Root_Metadata;")
+            lines.append("      begin")
+            lines.append("         if Root_Meta.Has_Root_Font_Size then")
+            lines.append(
+                "            Adi.Layout_Util.Set_Active_Root_Font_Size"
+                " (Adi.Layout_Util.Length_To_Px"
+                " (Root_Meta.Root_Font_Size,"
+                " Root_Font_Size =>"
+                " Adi.Layout_Util.Default_Root_Font_Size_Px));"
+            )
+            lines.append("         end if;")
+            lines.append("         if Root_Meta.Has_Root_Style then")
+            lines.append(
+                "            Adi.Widget.Dialog.Set_Panel_Style"
+                " (D, Root_Meta.Root_Styles);"
+            )
+            lines.append("         end if;")
+            lines.append("      end;")
+        if not live_css:
+            if dlg.css_classes:
+                lines.append(
+                    "      Adi.Widget.Dialog.Set_Part_Styles"
+                    f" (D, {class_style_expr(dlg.css_classes)});"
+                )
+            if dlg.panel_classes:
+                lines.append(
+                    "      Adi.Widget.Dialog.Set_Panel_Style"
+                    f" (D, {class_style_expr(dlg.panel_classes)});"
+                )
+            if dlg.title_classes:
+                lines.append(
+                    "      Adi.Widget.Dialog.Set_Title_Style"
+                    f" (D, {class_style_expr(dlg.title_classes)});"
+                )
+            if dlg.message_classes:
+                lines.append(
+                    "      Adi.Widget.Dialog.Set_Message_Style"
+                    f" (D, {class_style_expr(dlg.message_classes)});"
+                )
+            if dlg.button_row_classes:
+                lines.append(
+                    "      Adi.Widget.Dialog.Set_Button_Row_Style"
+                    f" (D, {class_style_expr(dlg.button_row_classes)});"
+                )
+            if dlg.button_classes:
+                lines.append(
+                    "      Adi.Widget.Dialog.Set_Button_Style"
+                    f" (D, {class_style_expr(dlg.button_classes)});"
+                )
+            if dlg.primary_button_classes:
+                lines.append(
+                    "      Adi.Widget.Dialog.Set_Primary_Button_Style"
+                    f" (D, {class_style_expr(dlg.primary_button_classes)});"
+                )
+        if live_css:
+            lines.append("      --  Bind dialog live CSS")
+            lines.append(
+                "      Adi.CSS_Source.Bind_Root_Metadata"
+                " (Source, +Adi.Widget.Dialog.Get_Content_Panel_Handle (D));"
+            )
+            if dlg.css_classes:
+                lines.append(
+                    "      Adi.CSS_Source.Bind_Class"
+                    f' (Source, "{" ".join(dlg.css_classes)}",'
+                    " Adi.Widget.Dialog.To_Widget_Handle (D));"
+                )
+            if dlg.panel_classes:
+                lines.append(
+                    "      Adi.CSS_Source.Bind_Class"
+                    f' (Source, "{" ".join(dlg.panel_classes)}",'
+                    " +Adi.Widget.Dialog.Get_Content_Panel_Handle (D));"
+                )
+            if dlg.title_classes:
+                lines.append(
+                    "      Adi.CSS_Source.Bind_Class"
+                    f' (Source, "{" ".join(dlg.title_classes)}",'
+                    " +Adi.Widget.Dialog.Get_Title_Handle (D));"
+                )
+            if dlg.message_classes:
+                lines.append(
+                    "      Adi.CSS_Source.Bind_Class"
+                    f' (Source, "{" ".join(dlg.message_classes)}",'
+                    " +Adi.Widget.Dialog.Get_Message_Handle (D));"
+                )
+            if dlg.button_row_classes:
+                lines.append(
+                    "      Adi.CSS_Source.Bind_Class"
+                    f' (Source, "{" ".join(dlg.button_row_classes)}",'
+                    " +Adi.Widget.Dialog.Get_Button_Row_Handle (D));"
+                )
+            if dlg.button_classes or dlg.primary_button_classes:
+                for button_index in range(1, dialog_button_count + 1):
+                    button_classes = list(dlg.button_classes)
+                    if button_index == dialog_default_button:
+                        button_classes.extend(dlg.primary_button_classes)
+                    if button_classes:
+                        lines.append(
+                            "      Adi.CSS_Source.Bind_Class"
+                            f' (Source, "{" ".join(button_classes)}",'
+                            f" +Adi.Widget.Dialog.Get_Button_Handle (D, {button_index}));"
+                        )
         lines.append("      return D;")
         lines.append("   end Build;")
     else:

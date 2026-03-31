@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="examples/css/material_demo.css"/>
+
+  <dialog class="dialog-backdrop"
+          panel-class="dialog-panel"
+          title-class="dialog-title"
+          message-class="dialog-message"
+          button-row-class="dialog-btn-row"
+          button-class="dialog-btn"
+          buttons="ok"/>
+</adi>

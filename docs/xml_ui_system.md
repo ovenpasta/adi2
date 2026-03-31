@@ -98,6 +98,13 @@ With `<dialog>`, the `Build` function returns `Adi.Widget.Dialog.Dialog_Handle`.
 | `default-button` | `Set_Default_Button` | non-negative integer (0 clears) | omitted |
 | `dismiss-on-backdrop` | `Set_Dismiss_On_Backdrop` | `true`/`false` | omitted |
 | `dismiss-on-escape` | `Set_Dismiss_On_Escape` | `true`/`false` | omitted |
+| `class` | dialog/backdrop widget class list | space-separated names | omitted |
+| `panel-class` | content panel class list | space-separated names | omitted |
+| `title-class` | title label class list | space-separated names | omitted |
+| `message-class` | message label class list | space-separated names | omitted |
+| `button-row-class` | button row class list | space-separated names | omitted |
+| `button-class` | every dialog button class list | space-separated names | omitted |
+| `primary-button-class` | default button class list | space-separated names | omitted |
 
 A `<dialog>` can have 0 or 1 child widget. If present, it is passed to `Set_Content`. A dialog with no child relies on `title`/`message`/`buttons` only.
 
@@ -114,6 +121,16 @@ Generated `Build` returns `Dialog_Handle`:
 ```ada
 function Build return Adi.Widget.Dialog.Dialog_Handle;
 ```
+
+When a generated dialog package has live CSS (`href` links or inline `<style>`) or nested `<component>` instances, the instance also exposes:
+
+```ada
+procedure Attach_Window
+  (D    : Adi.Widget.Dialog.Dialog_Handle;
+   Host : Adi.Window.Window_Handle);
+```
+
+Use that helper instead of calling `Adi.Widget.Dialog.Attach_Window` directly so the host window also drives `Tick_Styles` for dialog live reload.
 
 Without `<window>` or `<dialog>`, a single root widget sits directly under `<adi>` and `Build` returns `Widget_Handle`:
 
@@ -315,9 +332,22 @@ For compile-time-only imports (styles-only links, no live CSS), generated code a
 
 When a `<window>` is present, `Tick_Styles_CB` is auto-wired to `Set_On_Tick` whenever the package has local live CSS or nested `<component>` instances. This ensures live reload also reaches component packages declared in separate XML files.
 
+For top-level `<dialog>` packages, the generated `Attach_Window` helper performs the corresponding host-window tick hookup.
+
 The generated package also exposes:
 - `Tick_Styles` — Always available; ticks local CSS source (if any) and all nested component instances
 - `Set_CSS_File` — Replace the dynamic CSS source at runtime; switches to `Dynamic_Mode` and enables auto-reload (only emitted when live CSS links/styles are present)
+
+Generated dialogs do not assume any built-in selector names for their internal widgets. To style those parts from XML-generated code, use the explicit `<dialog>` attributes:
+- `class`
+- `panel-class`
+- `title-class`
+- `message-class`
+- `button-row-class`
+- `button-class`
+- `primary-button-class`
+
+Those names are applied in both static and dynamic CSS modes, and the same explicit mappings are used for live-reload bindings.
 
 ---
 

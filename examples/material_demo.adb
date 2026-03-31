@@ -5,10 +5,8 @@ with Adi.App;
 with Adi.Core;
 with Adi.I18N;
 with Adi.Image;              use Adi.Image;
-with Adi.Layout_Util;
 with Adi.MCP;
 with Adi.Widget;              use Adi.Widget;
-with Adi.Widget.Box;          use Adi.Widget.Box;
 with Adi.Widget.Combo_Box;    use Adi.Widget.Combo_Box;
 with Adi.Widget.Context_Menu;
 with Adi.Widget.Dialog;       use Adi.Widget.Dialog;
@@ -70,25 +68,23 @@ procedure Material_Demo is
    end On_Lock_UI;
 
    procedure On_UI_Scale
-     (W     : Widget_Handle;
+     (Sender : Widget_Handle;
       Value : Float)
    is
-      pragma Unreferenced (W);
+      pragma Unreferenced (Sender);
    begin
-      Adi.Layout_Util.Set_Active_UI_Scale
-        (Adi.Core.Pixel_Type (Value / 100.0));
-      Mark_Dirty (+UI.Root);
+      Adi.Window.Set_UI_Scale
+        (W, Adi.Core.Pixel_Type (Value / 100.0));
    end On_UI_Scale;
 
    procedure On_Text_Scale
-     (W     : Widget_Handle;
+     (Sender : Widget_Handle;
       Value : Float)
    is
-      pragma Unreferenced (W);
+      pragma Unreferenced (Sender);
    begin
-      Adi.Layout_Util.Set_Active_Text_Scale
-        (Adi.Core.Pixel_Type (Value / 100.0));
-      Mark_Dirty (+UI.Root);
+      Adi.Window.Set_Text_Scale
+        (W, Adi.Core.Pixel_Type (Value / 100.0));
    end On_Text_Scale;
 
    procedure On_Welcome_Result

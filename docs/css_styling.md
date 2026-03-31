@@ -482,6 +482,8 @@ Duration formats: `100ms`, `0.3s`.
 | `vw` | Viewport width percentage |
 | `vh` | Viewport height percentage |
 
+`dp`/`dip` lengths follow the active OS display scale and the current app-level UI scale. Font-related length conversion also applies the current text scale. Application code should normally set those user scales via `Adi.Window.Set_UI_Scale` and `Adi.Window.Set_Text_Scale`.
+
 ### Colors
 
 | Format | Example |

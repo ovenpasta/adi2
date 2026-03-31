@@ -164,7 +164,7 @@
 - Flexbox and grid layout (`Compute_Grid_Layout` / `Grid_To_Rectangles`)
 - Grid track sizing: `Grid_Track_List` carries per-column `auto`/`fr`/`px` specs (up to 16 tracks). `Compute_Grid_Layout` implements a 5-pass algorithm: (1) size `auto` columns to max child preferred width, (2) assign initial widths from track specs (`px` fixed, `fr` = 0), (3) distribute remaining space to `fr` columns, (4) expand columns/rows for `min-width`/`min-height` (skips `fr` columns — their floor is 0), (5) re-distribute `fr` columns after Pass 4 may have grown `auto`/`px` columns. Rows use an analogous 2-pass scheme: Pass 4 expands to content minimums, then remaining height is shared equally. When `overflow: visible` and rows overflow the allocated height (e.g. after text-wrap discovery), the grid container grows to fit.
 - `fr` measurement in `Measure_Content` (`Adi.Widget.Box`): `fr` columns contribute their children's intrinsic **minimum** width (not the full preferred width) to the grid's content size. This follows CSS `minmax(auto, Xfr)` semantics — the grid allocates enough room for `fr` content at its minimum, while keeping `fr` columns shrinkable so text wraps when the container is constrained. `auto` columns still contribute their full preferred width.
-- DIP scaling: `Set/Get_Active_DIP_Scale`; `Length_To_Px` scales `dip` by active value
+- Low-level unit conversion state: `Length_To_Px` scales `dip` by OS DIP scale plus active user UI scale; `Font_Length_To_Px` also applies active text scale. App code should normally change user scaling through `Adi.Window`, not by mutating `Layout_Util` directly.
 
 **Adi.Window** (`adi-window.ads`): Window management.
 - Wraps SDL window/renderer, owns `Render_Context`
@@ -180,6 +180,7 @@
 - Click dispatch on left button release only
 - Overlay focus cleanup: `Remove_Overlay` and `Clear_Overlays` clear focus when the focused widget belongs to removed overlays, preventing stale detached focus targets
 - DIP scale refresh from `SDL_GetWindowDisplayScale`
+- App-facing scaling API: `Set_UI_Scale` and `Set_Text_Scale` update the active user scales and invalidate the window root plus overlays for relayout/redraw
 - **Layout-driven SDL minimum size**: `Set_Enforce_Layout_Min_Size` (default on) calls `SDL_SetWindowMinimumSize` from root layout sizing and reapplies it after each relayout pass (including resize-triggered relayouts), keeping SDL minimums synchronized with wrapped/unwrapped content changes. Minimum width uses a geometry-dependent guard: when preferred width tracks the current root geometry (typical wrapped-text feedback), width falls back to `Get_Min_Size(root)` to avoid ratcheting to the current window width. Minimum height follows preferred height so unwrap on widen can lower the enforced floor. Computed minimums are capped to display usable bounds via `SDL_GetDisplayUsableBounds`, and if current window size is already below the computed minimum, `SDL_SetWindowSize` clamps up immediately.
 - Deterministic teardown: widget trees are destroyed before SDL resources in `Finalize`; public `Destroy` invalidates window handles through the store.
 - Callback-safe destroy: destroy requests made during active window callback dispatch are queued and applied by `Pump_Window_Store` after dispatch unwinds.

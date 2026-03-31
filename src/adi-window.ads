@@ -52,6 +52,21 @@ package Adi.Window is
     function Get_Enforce_Layout_Min_Size (W : Window) return Boolean;
     function Get_Enforce_Layout_Min_Size (H : Window_Handle) return Boolean;
 
+    --  App-level user scaling layered on top of the OS display scale.
+    --  UI scale affects logical layout units such as dp/dip.
+    --  Text scale affects font-related pixel conversion only.
+    --  Both settings are currently process-global; setting them through a
+    --  window also invalidates that window's root and overlays for relayout.
+    procedure Set_UI_Scale (W : in out Window; Scale : Pixel_Type);
+    procedure Set_UI_Scale (H : Window_Handle; Scale : Pixel_Type);
+    function Get_UI_Scale (W : Window) return Pixel_Type;
+    function Get_UI_Scale (H : Window_Handle) return Pixel_Type;
+
+    procedure Set_Text_Scale (W : in out Window; Scale : Pixel_Type);
+    procedure Set_Text_Scale (H : Window_Handle; Scale : Pixel_Type);
+    function Get_Text_Scale (W : Window) return Pixel_Type;
+    function Get_Text_Scale (H : Window_Handle) return Pixel_Type;
+
     --  Overlay widgets render above the root tree and are hit-tested first.
     --  If focus currently points into an overlay being removed/cleared,
     --  focus is cleared to avoid stale detached targets.

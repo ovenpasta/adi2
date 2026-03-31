@@ -91,6 +91,8 @@ package body Adi.Window is
    function Window_Contains_Widget
      (W    : Window;
       Node : Widget_Handle) return Boolean;
+   procedure Invalidate_Subtree (Root : Widget_Handle);
+   procedure Invalidate_For_Scale_Change (W : in out Window);
    procedure Register_Live_Window (W : Window_Access);
    procedure Unregister_Live_Window
      (Win_Handle : Adi.SDL.Video.SDL_Window_Ptr);
@@ -193,12 +195,19 @@ package body Adi.Window is
    end Apply_Render_Logical_Presentation;
 
    function Refresh_DIP_Scale (W : in out Window) return Boolean is
-      Raw    : constant Pixel_Type :=
-        Pixel_Type (Adi.SDL.Video.SDL_GetWindowDisplayScale (W.Internal.win));
-      Scale  : constant Pixel_Type := Pixel_Type'Max (1.0, Raw);
+      Raw    : Pixel_Type := 1.0;
       Before : constant Pixel_Type := Get_Active_DIP_Scale;
    begin
-      Set_Active_DIP_Scale (Scale);
+      if W.Internal = null or else W.Internal.win = null then
+         return False;
+      end if;
+
+      Raw := Pixel_Type (Adi.SDL.Video.SDL_GetWindowDisplayScale (W.Internal.win));
+      declare
+         Scale : constant Pixel_Type := Pixel_Type'Max (1.0, Raw);
+      begin
+         Set_Active_DIP_Scale (Scale);
+      end;
       return abs (Get_Active_DIP_Scale - Before) > 0.0001;
    end Refresh_DIP_Scale;
 
@@ -477,6 +486,40 @@ package body Adi.Window is
 
       return False;
    end Window_Contains_Widget;
+
+   procedure Invalidate_Subtree (Root : Widget_Handle) is
+   begin
+      if not Is_Valid (Root) then
+         return;
+      end if;
+
+      for I in 1 .. Child_Count (Root) loop
+         Invalidate_Subtree (Get_Child_Handle (Root, I));
+      end loop;
+
+      Mark_Dirty (Root);
+   end Invalidate_Subtree;
+
+   procedure Invalidate_For_Scale_Change (W : in out Window) is
+   begin
+      if Is_Valid (W.Root) then
+         Invalidate_Subtree (W.Root);
+      end if;
+
+      for I in 1 .. Natural (W.Overlays.Length) loop
+         declare
+            Overlay : constant Widget_Handle := W.Overlays.Element (I);
+         begin
+            if Is_Valid (Overlay) then
+               Invalidate_Subtree (Overlay);
+            end if;
+         end;
+      end loop;
+
+      W.Needs_Layout := True;
+      W.Resize_Triggered_Layout := False;
+      W.Force_Redraw := True;
+   end Invalidate_For_Scale_Change;
 
    procedure Register_Live_Window (W : Window_Access) is
    begin
@@ -853,28 +896,30 @@ package body Adi.Window is
 
     procedure Render (W : in Out Window) is
        use Adi.SDL.Render;
-       Guard               : Dispatch_Guard;
+       Guard                : Dispatch_Guard;
        pragma Unreferenced (Guard);
-       Root_Valid           : constant Boolean := Is_Valid (W.Root);
-       Root_Dirty          : constant Boolean :=
-         (Root_Valid and then Is_Dirty (W.Root));
-       Overlay_Dirty       : constant Boolean := Is_Any_Overlay_Dirty (W);
-       Root_Layout_Dirty   : constant Boolean :=
-         (Root_Valid and then Is_Layout_Dirty (W.Root));
-       Overlay_Layout_Dirty : constant Boolean :=
-         Is_Any_Overlay_Layout_Dirty (W);
-       Needs_Relayout      : constant Boolean :=
-         W.Needs_Layout or else Root_Layout_Dirty or else Overlay_Layout_Dirty;
+       Root_Valid           : Boolean;
+       Root_Dirty           : Boolean;
+       Overlay_Dirty        : Boolean;
+       Root_Layout_Dirty    : Boolean;
+       Overlay_Layout_Dirty : Boolean;
+       Needs_Relayout       : Boolean;
        Render_Start : Time;
        Stage_Start  : Time;
     begin
        --  Keep unit conversion contexts in sync with current window state.
-       if W.Internal /= null and then W.Internal.win /= null then
-          Set_Active_DIP_Scale
-            (Pixel_Type'Max
-               (1.0, Pixel_Type (Adi.SDL.Video.SDL_GetWindowDisplayScale (W.Internal.win))));
+       if Refresh_DIP_Scale (W) then
+          Invalidate_For_Scale_Change (W);
        end if;
        Refresh_Viewport_Size (W);
+
+       Root_Valid := Is_Valid (W.Root);
+       Root_Dirty := Root_Valid and then Is_Dirty (W.Root);
+       Overlay_Dirty := Is_Any_Overlay_Dirty (W);
+       Root_Layout_Dirty := Root_Valid and then Is_Layout_Dirty (W.Root);
+       Overlay_Layout_Dirty := Is_Any_Overlay_Layout_Dirty (W);
+       Needs_Relayout :=
+         W.Needs_Layout or else Root_Layout_Dirty or else Overlay_Layout_Dirty;
 
        --  Only render if something changed or a redraw was forced
        --  (e.g. window exposed by the compositor).
@@ -1082,6 +1127,66 @@ package body Adi.Window is
       end if;
       return False;
    end Get_Enforce_Layout_Min_Size;
+
+   procedure Set_UI_Scale (W : in out Window; Scale : Pixel_Type) is
+      Before : constant Pixel_Type := Get_Active_UI_Scale;
+   begin
+      Set_Active_UI_Scale (Scale);
+      if abs (Get_Active_UI_Scale - Before) > 0.0001 then
+         Invalidate_For_Scale_Change (W);
+      end if;
+   end Set_UI_Scale;
+
+   procedure Set_UI_Scale (H : Window_Handle; Scale : Pixel_Type) is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         Set_UI_Scale (Ptr.all, Scale);
+      end if;
+   end Set_UI_Scale;
+
+   function Get_UI_Scale (W : Window) return Pixel_Type is
+      pragma Unreferenced (W);
+   begin
+      return Get_Active_UI_Scale;
+   end Get_UI_Scale;
+
+   function Get_UI_Scale (H : Window_Handle) return Pixel_Type is
+      pragma Unreferenced (H);
+   begin
+      return Get_Active_UI_Scale;
+   end Get_UI_Scale;
+
+   procedure Set_Text_Scale (W : in out Window; Scale : Pixel_Type) is
+      Before : constant Pixel_Type := Get_Active_Text_Scale;
+   begin
+      Set_Active_Text_Scale (Scale);
+      if abs (Get_Active_Text_Scale - Before) > 0.0001 then
+         Invalidate_For_Scale_Change (W);
+      end if;
+   end Set_Text_Scale;
+
+   procedure Set_Text_Scale (H : Window_Handle; Scale : Pixel_Type) is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         Set_Text_Scale (Ptr.all, Scale);
+      end if;
+   end Set_Text_Scale;
+
+   function Get_Text_Scale (W : Window) return Pixel_Type is
+      pragma Unreferenced (W);
+   begin
+      return Get_Active_Text_Scale;
+   end Get_Text_Scale;
+
+   function Get_Text_Scale (H : Window_Handle) return Pixel_Type is
+      pragma Unreferenced (H);
+   begin
+      return Get_Active_Text_Scale;
+   end Get_Text_Scale;
 
    procedure Connect_Tick (W : in out Window; CB : Tick_Callback) is
    begin
@@ -2291,19 +2396,7 @@ function Get_Size (W : in out Window) return Size_2D is
        Scale_Changed := Refresh_DIP_Scale (W);
        Refresh_Viewport_Size (W);
        if Scale_Changed then
-          if Is_Valid (W.Root) then
-             Mark_Dirty (W.Root);
-          end if;
-          for I in 1 .. Natural (W.Overlays.Length) loop
-             declare
-                Overlay : constant Widget_Handle := W.Overlays.Element (I);
-             begin
-                if Is_Valid (Overlay) then
-                   Mark_Dirty (Overlay);
-                end if;
-             end;
-          end loop;
-          W.Needs_Layout := True;
+          Invalidate_For_Scale_Change (W);
        end if;
     end Handle_Resize;
 

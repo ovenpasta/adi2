@@ -1231,6 +1231,91 @@ package body Adi.Window is
       return (Amount => Float (Default_Root_Font_Size_Px), Unit => CSS_Styles.Px);
    end Get_Root_Font_Size;
 
+   procedure Maximize (W : in out Window) is
+      Ignored : Adi.SDL.C_bool;
+   begin
+      Ignored := Adi.SDL.Video.SDL_MaximizeWindow (W.Internal.win);
+   end Maximize;
+
+   procedure Maximize (H : Window_Handle) is
+      Ptr : constant Window_Access := Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then Maximize (Ptr.all); end if;
+   end Maximize;
+
+   procedure Minimize (W : in out Window) is
+      Ignored : Adi.SDL.C_bool;
+   begin
+      Ignored := Adi.SDL.Video.SDL_MinimizeWindow (W.Internal.win);
+   end Minimize;
+
+   procedure Minimize (H : Window_Handle) is
+      Ptr : constant Window_Access := Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then Minimize (Ptr.all); end if;
+   end Minimize;
+
+   procedure Restore (W : in out Window) is
+      Ignored : Adi.SDL.C_bool;
+   begin
+      Ignored := Adi.SDL.Video.SDL_RestoreWindow (W.Internal.win);
+   end Restore;
+
+   procedure Restore (H : Window_Handle) is
+      Ptr : constant Window_Access := Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then Restore (Ptr.all); end if;
+   end Restore;
+
+   procedure Set_Fullscreen (W : in out Window; Enabled : Boolean) is
+      Ignored : Adi.SDL.C_bool;
+   begin
+      Ignored := Adi.SDL.Video.SDL_SetWindowFullscreen
+        (W.Internal.win, Adi.SDL.C_bool (Enabled));
+   end Set_Fullscreen;
+
+   procedure Set_Fullscreen (H : Window_Handle; Enabled : Boolean) is
+      Ptr : constant Window_Access := Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then Set_Fullscreen (Ptr.all, Enabled); end if;
+   end Set_Fullscreen;
+
+   function Is_Maximized (W : Window) return Boolean is
+   begin
+      return (Adi.SDL.Video.SDL_GetWindowFlags (W.Internal.win)
+              and Adi.SDL.Video.SDL_WINDOW_MAXIMIZED) /= 0;
+   end Is_Maximized;
+
+   function Is_Maximized (H : Window_Handle) return Boolean is
+      Ptr : constant Window_Access := Window_Access (Window_Stores.Get (H.Id));
+   begin
+      return Ptr /= null and then Is_Maximized (Ptr.all);
+   end Is_Maximized;
+
+   function Is_Minimized (W : Window) return Boolean is
+   begin
+      return (Adi.SDL.Video.SDL_GetWindowFlags (W.Internal.win)
+              and Adi.SDL.Video.SDL_WINDOW_MINIMIZED) /= 0;
+   end Is_Minimized;
+
+   function Is_Minimized (H : Window_Handle) return Boolean is
+      Ptr : constant Window_Access := Window_Access (Window_Stores.Get (H.Id));
+   begin
+      return Ptr /= null and then Is_Minimized (Ptr.all);
+   end Is_Minimized;
+
+   function Is_Fullscreen (W : Window) return Boolean is
+   begin
+      return (Adi.SDL.Video.SDL_GetWindowFlags (W.Internal.win)
+              and Adi.SDL.Video.SDL_WINDOW_FULLSCREEN) /= 0;
+   end Is_Fullscreen;
+
+   function Is_Fullscreen (H : Window_Handle) return Boolean is
+      Ptr : constant Window_Access := Window_Access (Window_Stores.Get (H.Id));
+   begin
+      return Ptr /= null and then Is_Fullscreen (Ptr.all);
+   end Is_Fullscreen;
+
    procedure Connect_Tick (W : in out Window; CB : Tick_Callback) is
    begin
       W.Tick_Sig.Connect (CB);

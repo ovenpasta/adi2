@@ -170,4 +170,32 @@ package Adi.SDL.Video is
         Convention => C,
         External_Name => "SDL_DestroyWindow";
 
+   function SDL_MaximizeWindow (window : SDL_Window_Ptr) return C_bool
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_MaximizeWindow";
+
+   function SDL_MinimizeWindow (window : SDL_Window_Ptr) return C_bool
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_MinimizeWindow";
+
+   function SDL_RestoreWindow (window : SDL_Window_Ptr) return C_bool
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_RestoreWindow";
+
+   function SDL_SetWindowFullscreen
+     (window     : SDL_Window_Ptr;
+      fullscreen : C_bool) return C_bool
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_SetWindowFullscreen";
+
+   function SDL_GetWindowFlags
+     (window : SDL_Window_Ptr) return SDL_WindowFlags
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_GetWindowFlags";
+
 end Adi.SDL.Video;

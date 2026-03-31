@@ -83,6 +83,23 @@ package Adi.Window is
     function Get_Root_Font_Size (H : Window_Handle)
       return Adi.CSS_Styles.Length_Value;
 
+    --  Window state control. SDL may not honor all requests on every platform
+    --  (e.g. tiling window managers may ignore maximize/fullscreen).
+    procedure Maximize       (W : in out Window);
+    procedure Maximize       (H : Window_Handle);
+    procedure Minimize       (W : in out Window);
+    procedure Minimize       (H : Window_Handle);
+    procedure Restore        (W : in out Window);
+    procedure Restore        (H : Window_Handle);
+    procedure Set_Fullscreen (W : in out Window; Enabled : Boolean);
+    procedure Set_Fullscreen (H : Window_Handle; Enabled : Boolean);
+    function  Is_Maximized   (W : Window)        return Boolean;
+    function  Is_Maximized   (H : Window_Handle) return Boolean;
+    function  Is_Minimized   (W : Window)        return Boolean;
+    function  Is_Minimized   (H : Window_Handle) return Boolean;
+    function  Is_Fullscreen  (W : Window)        return Boolean;
+    function  Is_Fullscreen  (H : Window_Handle) return Boolean;
+
     --  Overlay widgets render above the root tree and are hit-tested first.
     --  If focus currently points into an overlay being removed/cleared,
     --  focus is cleared to avoid stale detached targets.

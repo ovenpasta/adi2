@@ -204,6 +204,10 @@
   font-weight: 600;
 }
 
+.grid-label {
+  align-self: center;
+}
+
 .grid-label::label {
   color: rgb(202, 196, 208);
   font-size: var(--font-body);
@@ -571,6 +575,10 @@
 
 /* ── Slider ──────────────────────────────────── */
 
+.grid-slider {
+  width: 100%;
+}
+
 .slider {
   width: var(--slider-width);
   height: var(--slider-height);
@@ -626,7 +634,7 @@
 
 .num-field::text {
   color: rgb(230, 225, 229);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .num-field::cursor {

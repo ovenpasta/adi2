@@ -264,6 +264,12 @@ package Material_Demo_Styles is
       Font_Weight => Set (Weight_Semi_Bold),
       others => <>);
 
+   --  Base style for class 'grid-label'
+   function Grid_Label_Class_Base_Style return Style_Rules is
+     (
+      Align_Self => Set (Center),
+      others => <>);
+
    --  Base style for class 'grid-label'::label
    function Grid_Label_Class_Label_Base_Style return Style_Rules is
      (
@@ -766,6 +772,12 @@ package Material_Demo_Styles is
       Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>);
 
+   --  Base style for class 'grid-slider'
+   function Grid_Slider_Class_Base_Style return Style_Rules is
+     (
+      Width => Set (Size (Pct (100.0))),
+      others => <>);
+
    --  Base style for class 'slider'
    function Slider_Class_Base_Style return Style_Rules is
      (
@@ -879,7 +891,7 @@ package Material_Demo_Styles is
    function Num_Field_Class_Text_Base_Style return Style_Rules is
      (
       Color => Set (RGB (230, 225, 229)),
-      Font_Size => Set_Font (Px (14.0)),
+      Font_Size => Set_Font (Root_Em (0.875)),
       others => <>);
 
    --  Base style for class 'context-menu'
@@ -1120,6 +1132,11 @@ package Material_Demo_Styles is
       others => <>
    ]);
 
+   --  Complete widget style for class 'grid-label'
+   function Grid_Label_Class_Widget return Widget_Style is
+     (From (Grid_Label_Class_Base_Style)
+     .Build);
+
    --  Complete widget style for class 'grid-label'::label
    function Grid_Label_Class_Label_Widget return Widget_Style is
      (From (Grid_Label_Class_Label_Base_Style)
@@ -1128,6 +1145,7 @@ package Material_Demo_Styles is
    --  Part styles bundle for class 'grid-label'
    function Grid_Label_Class_Part_Styles return Part_Style_Array is
      ([
+      Main_Part => (Style => Grid_Label_Class_Widget, Enabled => True),
       Label_Part => (Style => Grid_Label_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
@@ -1483,6 +1501,18 @@ package Material_Demo_Styles is
      ([
       Main_Part => (Style => Dialog_Btn_Class_Widget, Enabled => True),
       Label_Part => (Style => Dialog_Btn_Class_Label_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'grid-slider'
+   function Grid_Slider_Class_Widget return Widget_Style is
+     (From (Grid_Slider_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'grid-slider'
+   function Grid_Slider_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Grid_Slider_Class_Widget, Enabled => True),
       others => <>
    ]);
 

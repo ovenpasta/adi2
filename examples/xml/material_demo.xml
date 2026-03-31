@@ -88,8 +88,8 @@
                 </combo-box>
                 <!-- Slider row -->
                 <label text="Slider" class="label-inline grid-label"/>
-                <slider id="Enabled_Slider" generic="Float_Slider" min="0.0" max="100.0" value="50.0" class="slider grid-cell"/>
-                <slider id="Disabled_Slider" generic="Float_Slider" min="0.0" max="100.0" value="75.0" class="slider grid-cell" disabled="true"/>
+                <slider id="Enabled_Slider" generic="Float_Slider" min="0.0" max="100.0" value="50.0" class="slider grid-cell grid-slider"/>
+                <slider id="Disabled_Slider" generic="Float_Slider" min="0.0" max="100.0" value="75.0" class="slider grid-cell grid-slider" disabled="true"/>
                 <!-- Value Input row -->
                 <label text="Value Input" class="label-inline grid-label"/>
                 <value-input id="Enabled_Value_Input" generic="Float_Value_Input" min="0.0" max="100.0" value="50.0" class="num-field grid-cell"/>

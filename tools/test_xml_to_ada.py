@@ -351,6 +351,24 @@ class TestDialogCodeGeneration(unittest.TestCase):
             body,
         )
 
+    def test_live_css_with_class_fallback_emits_styles_package_use(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="dialog.css" package="Dialog_Styles"/>
+  <dialog title="Styled">
+    <box class="dialog-content">
+      <label text="Hello"/>
+    </box>
+  </dialog>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "Test_UI")
+        self.assertIn("with Dialog_Styles; use Dialog_Styles;", body)
+        self.assertIn(
+            'Add_Static_Entry\n        (S, Class_Entry ("dialog-content", Dialog_Content_Class_Part_Styles));',
+            body,
+        )
+
     def test_static_dialog_emits_explicit_internal_styles(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <adi>

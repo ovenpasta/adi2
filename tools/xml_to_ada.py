@@ -958,10 +958,13 @@ def generate_body(app: XmlApp, package_name: str,
             or app.dialog.primary_button_classes
         )
     )
+    has_widget_class_targets = any(w.css_classes for w in all_widgets)
     needs_link_pkg_use = bool(
         link_pkgs
-        and not live_css
-        and (any(w.css_classes for w in all_widgets) or has_dialog_class_targets)
+        and (
+            (live_css and has_widget_class_targets)
+            or (not live_css and (has_widget_class_targets or has_dialog_class_targets))
+        )
     )
     has_root_metadata = bool(
         link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties)

@@ -657,6 +657,13 @@ package body Adi.Window is
          return;
       end if;
 
+      --  Maximized and fullscreen windows are sized by the WM; enforcing a
+      --  layout-derived minimum would prevent them from being restored to a
+      --  size smaller than the current content minimum.
+      if Is_Maximized (W) or else Is_Fullscreen (W) then
+         return;
+      end if;
+
       if Is_Valid (W.Root) then
          declare
             Pref : constant Size_2D := Get_Preferred_Size (W.Root);

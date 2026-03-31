@@ -2,6 +2,7 @@ pragma Ada_2022;
 
 with Adi.CSS_Parser;
 with Adi.Widget;
+with Adi.Window;
 with Ada.Strings.Unbounded;
 
 package Adi.CSS_Source is
@@ -131,6 +132,14 @@ package Adi.CSS_Source is
 
    function Merge_Part_Styles (Base, Override : Adi.Widget.Part_Style_Array)
      return Adi.Widget.Part_Style_Array;
+
+   --  Attach a window so that CSS metadata is applied to it automatically.
+   --  Currently propagates: root font size (`:root { font-size: ... }`).
+   --  Applied immediately and again on every CSS reload or static update.
+   --  Properties absent from the CSS leave the window unchanged.
+   procedure Attach_Window
+     (Source : in out Style_Source;
+      W      : Adi.Window.Window_Handle);
 
    function Get_Metadata
      (Source : Style_Source) return Adi.CSS_Parser.Stylesheet_Metadata;

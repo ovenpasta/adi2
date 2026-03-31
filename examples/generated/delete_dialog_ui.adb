@@ -8,6 +8,7 @@ with Adi.CSS_Source; use Adi.CSS_Source;
 with Adi.Layout_Util;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
+with Adi.Widget.Button; use Adi.Widget.Button;
 with Adi.Widget.Label; use Adi.Widget.Label;
 with Dialog_Example_Styles; use Dialog_Example_Styles;
 
@@ -53,7 +54,7 @@ package body Delete_Dialog_UI is
    procedure Apply_Box_1_Styles
      (H : Widget_Handle) is
    begin
-      Set_Part_Styles (H, Merge_Part_Styles (Static_Root_Metadata.Root_Styles, Custom_Content_Class_Part_Styles));
+      Set_Part_Styles (H, Custom_Content_Class_Part_Styles);
    end Apply_Box_1_Styles;
 
    procedure Apply_Label_1_Styles
@@ -88,9 +89,6 @@ package body Delete_Dialog_UI is
          Root_Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=
            Static_Root_Metadata;
       begin
-         if Root_Meta.Has_Root_Font_Size then
-            Adi.Layout_Util.Set_Active_Root_Font_Size (Adi.Layout_Util.Length_To_Px (Root_Meta.Root_Font_Size, Root_Font_Size => Adi.Layout_Util.Default_Root_Font_Size_Px));
-         end if;
       end;
       Apply_Box_1_Styles (+Box_1);
       Apply_Label_1_Styles (+Label_1);
@@ -109,6 +107,14 @@ package body Delete_Dialog_UI is
       Adi.Widget.Dialog.Set_Default_Button (D, 2);
       Adi.Widget.Dialog.Set_Dismiss_On_Escape (D, True);
       Adi.Widget.Dialog.Set_Content (D, +Box_1);
+      declare
+         Root_Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=
+           Static_Root_Metadata;
+      begin
+         if Root_Meta.Has_Root_Style then
+            Adi.Widget.Dialog.Set_Panel_Style (D, Root_Meta.Root_Styles);
+         end if;
+      end;
       return D;
    end Build;
 

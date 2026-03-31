@@ -1,6 +1,7 @@
 with Ada.Finalization;
 with Ada.Containers.Vectors;
 with Adi.Core;       use Adi.Core;
+with Adi.CSS_Styles;
 with Adi.Widget;     use Adi.Widget;
 with Adi.Render;     use Adi.Render;
 with Adi.SDL.Video;  use Adi.SDL.Video;
@@ -66,6 +67,21 @@ package Adi.Window is
     procedure Set_Text_Scale (H : Window_Handle; Scale : Pixel_Type);
     function Get_Text_Scale (W : Window) return Pixel_Type;
     function Get_Text_Scale (H : Window_Handle) return Pixel_Type;
+
+    --  Root font size used for CSS `rem` units (default 16px).
+    --  Accepts any CSS length unit (px, dip, vh, …); the pixel value is
+    --  recomputed each frame so dip/vh values track the current scale.
+    --  Setting this through a window invalidates the window for relayout.
+    procedure Set_Root_Font_Size
+      (W    : in out Window;
+       Size : Adi.CSS_Styles.Length_Value);
+    procedure Set_Root_Font_Size
+      (H    : Window_Handle;
+       Size : Adi.CSS_Styles.Length_Value);
+    function Get_Root_Font_Size (W : Window)
+      return Adi.CSS_Styles.Length_Value;
+    function Get_Root_Font_Size (H : Window_Handle)
+      return Adi.CSS_Styles.Length_Value;
 
     --  Overlay widgets render above the root tree and are hit-tested first.
     --  If focus currently points into an overlay being removed/cleared,
@@ -280,6 +296,8 @@ private
         Scroll_Claimed : Boolean       := False;
         Focused_Widget : Widget_Handle := Null_Handle;
         Overlays       : Overlay_Vectors.Vector;
+        Root_Font_Size  : Adi.CSS_Styles.Length_Value :=
+                            (Amount => 16.0, Unit => Adi.CSS_Styles.Px);
         Enforce_Layout_Min_Size : Boolean := True;
         Needs_Layout   : Boolean       := True;
         Resize_Triggered_Layout : Boolean := False;

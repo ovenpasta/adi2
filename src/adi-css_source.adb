@@ -12,6 +12,8 @@ with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Layout_Util;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
+with Adi.Window;
+use type Adi.Window.Window_Handle;
 
 package body Adi.CSS_Source is
 
@@ -60,16 +62,17 @@ package body Adi.CSS_Source is
       Element_Type => Dynamic_Entry);
 
    type Style_Source_Impl is record
-      Mode           : Source_Mode := Dynamic_Mode;
-      Auto_Reload    : Boolean := True;
-      Entries        : Dynamic_Entry_Vectors.Vector;
-      Dynamic_Loaded : Boolean := False;
-      Sheet          : Adi.CSS_Parser.Stylesheet;
-      Root_Target    : Widget_Access := null;
-      Last_Error     : Unbounded_String;
-      Static_Metadata : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);
-      Static_Styles  : Entry_Vectors.Vector;
-      Bindings       : Binding_Vectors.Vector;
+      Mode             : Source_Mode := Dynamic_Mode;
+      Auto_Reload      : Boolean := True;
+      Entries          : Dynamic_Entry_Vectors.Vector;
+      Dynamic_Loaded   : Boolean := False;
+      Sheet            : Adi.CSS_Parser.Stylesheet;
+      Root_Target      : Widget_Access := null;
+      Last_Error       : Unbounded_String;
+      Static_Metadata  : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);
+      Static_Styles    : Entry_Vectors.Vector;
+      Bindings         : Binding_Vectors.Vector;
+      Attached_Window  : Adi.Window.Window_Handle := Adi.Window.Null_Window_Handle;
    end record;
 
    procedure Ensure_Impl (Source : in out Style_Source) is
@@ -92,21 +95,6 @@ package body Adi.CSS_Source is
 
       return Source.Impl.Static_Metadata;
    end Active_Metadata;
-
-   procedure Apply_Active_Metadata (Source : Style_Source) is
-      Metadata : constant Adi.CSS_Parser.Stylesheet_Metadata :=
-        Active_Metadata (Source);
-   begin
-      if Metadata.Has_Root_Font_Size then
-         Adi.Layout_Util.Set_Active_Root_Font_Size
-           (Adi.Layout_Util.Length_To_Px
-              (Metadata.Root_Font_Size,
-               Root_Font_Size => Adi.Layout_Util.Default_Root_Font_Size_Px));
-      else
-         Adi.Layout_Util.Set_Active_Root_Font_Size
-           (Adi.Layout_Util.Default_Root_Font_Size_Px);
-      end if;
-   end Apply_Active_Metadata;
 
    procedure Apply_Root_Metadata_Impl
      (Source : Style_Source;
@@ -262,7 +250,6 @@ package body Adi.CSS_Source is
       Metadata : constant Adi.CSS_Parser.Stylesheet_Metadata :=
         Active_Metadata (Source);
    begin
-      Apply_Active_Metadata (Source);
       if Metadata.Has_Root_Style then
          Set_Part_Styles (W, Metadata.Root_Styles);
       end if;
@@ -314,8 +301,6 @@ package body Adi.CSS_Source is
          return;
       end if;
 
-      Apply_Active_Metadata (Source);
-
       if Source.Impl.Root_Target /= null then
          Apply_Root_Metadata_Impl (Source, Source.Impl.Root_Target.all);
       end if;
@@ -348,6 +333,20 @@ package body Adi.CSS_Source is
             end if;
          end;
       end loop;
+
+      --  Apply :root { font-size } to the bound window, if any.
+      --  No else: when the CSS has no root font-size we leave the window alone.
+      declare
+         Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=
+           Active_Metadata (Source);
+      begin
+         if Meta.Has_Root_Font_Size
+           and then Source.Impl.Attached_Window /= Adi.Window.Null_Window_Handle
+         then
+            Adi.Window.Set_Root_Font_Size
+              (Source.Impl.Attached_Window, Meta.Root_Font_Size);
+         end if;
+      end;
    end Reapply_Bindings;
 
    function Read_File (Path : String) return String is
@@ -889,6 +888,20 @@ package body Adi.CSS_Source is
       when Constraint_Error =>
          null;
    end Bind_Selector_Set;
+
+   procedure Attach_Window
+     (Source : in out Style_Source;
+      W      : Adi.Window.Window_Handle)
+   is
+      Meta : Adi.CSS_Parser.Stylesheet_Metadata;
+   begin
+      Ensure_Impl (Source);
+      Source.Impl.Attached_Window := W;
+      Meta := Active_Metadata (Source);
+      if Meta.Has_Root_Font_Size then
+         Adi.Window.Set_Root_Font_Size (W, Meta.Root_Font_Size);
+      end if;
+   end Attach_Window;
 
    function Get_Metadata
      (Source : Style_Source) return Adi.CSS_Parser.Stylesheet_Metadata is

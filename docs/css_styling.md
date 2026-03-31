@@ -477,12 +477,14 @@ Duration formats: `100ms`, `0.3s`.
 | `px` | Pixels (default if no unit given) |
 | `dip` / `dp` | Device-independent pixels |
 | `em` | Relative to element font size |
-| `rem` | Relative to stylesheet root font size (`:root { font-size: ... }`, default `16px`) |
+| `rem` | Relative to the window root font size (default `16px`). Set programmatically via `Adi.Window.Set_Root_Font_Size(W, Length_Value)`, or drive it from CSS with `Adi.CSS_Source.Attach_Window(Source, W)` + `:root { font-size: ... }`. |
 | `%` | Percentage of parent |
 | `vw` | Viewport width percentage |
 | `vh` | Viewport height percentage |
 
 `dp`/`dip` lengths follow the active OS display scale and the current app-level UI scale. Font-related length conversion also applies the current text scale. Application code should normally set those user scales via `Adi.Window.Set_UI_Scale` and `Adi.Window.Set_Text_Scale`.
+
+The root font size (for `rem`) is stored per-window as a `CSS_Styles.Length_Value` and re-evaluated every frame, so expressing it in `dip` units (e.g. `16dip`) keeps `rem`-based sizes correctly scaled across monitor changes. Use `Set_Root_Font_Size` to set it directly, or call `CSS_Source.Attach_Window` to have `:root { font-size }` in the stylesheet drive it automatically — including on hot-reload.
 
 ### Colors
 

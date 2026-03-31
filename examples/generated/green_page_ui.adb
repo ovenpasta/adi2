@@ -123,6 +123,7 @@ package body Green_Page_UI is
          end if;
       end;
 
+      Adi.CSS_Source.Attach_Window (Source, W);
       --  Bind every widget that has a CSS class
       Adi.CSS_Source.Bind_Root_Metadata (Source, +Box_1);
       Adi.CSS_Source.Bind_Class (Source, "page-green", +Box_1);

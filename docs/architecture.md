@@ -31,6 +31,7 @@
 - `Bind_Class` accepts space-separated class names; styles are merged left-to-right
 - Public `Merge_Part_Styles` for combining `Part_Style_Array` values outside the binding system
 - Composite specificity: tag < class < id
+- `Attach_Window(Source, Window_Handle)`: associates a window with the source so CSS metadata is applied to it automatically on every load/reload. Currently propagates `:root { font-size }` → `Window.Set_Root_Font_Size`. Properties absent from the CSS leave the window unchanged (no reset to defaults).
 
 **Adi.Widget_Styles** (`adi-widget_styles.ads`): Widget state-based styling.
 - States: Normal, Hovered, Pressed, Focused, Disabled, Selected

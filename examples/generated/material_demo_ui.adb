@@ -269,6 +269,13 @@ package body Material_Demo_UI is
         (S, Class_Entry ("slider", Slider_Class_Part_Styles));
    end Register_Slider_Styles;
 
+   procedure Register_Grid_Slider_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("grid-slider", Grid_Slider_Class_Part_Styles));
+   end Register_Grid_Slider_Styles;
+
    procedure Register_Num_Field_Styles
      (S : in out Style_Source) is
    begin
@@ -429,6 +436,7 @@ package body Material_Demo_UI is
       Register_Grid_Cell_Styles (Source);
       Register_Setting_Switch_Styles (Source);
       Register_Slider_Styles (Source);
+      Register_Grid_Slider_Styles (Source);
       Register_Num_Field_Styles (Source);
       Register_Setting_Row_Styles (Source);
       Register_Setting_Label_Styles (Source);
@@ -453,6 +461,7 @@ package body Material_Demo_UI is
          end if;
       end;
 
+      Adi.CSS_Source.Attach_Window (Source, W);
       --  Bind every widget that has a CSS class
       Adi.CSS_Source.Bind_Root_Metadata (Source, +Root);
       Adi.CSS_Source.Bind_Class (Source, "root", +Root);
@@ -499,8 +508,8 @@ package body Material_Demo_UI is
       Adi.CSS_Source.Bind_Class (Source, "combo grid-cell", +Enabled_Combo);
       Adi.CSS_Source.Bind_Class (Source, "combo grid-cell", +Disabled_Combo);
       Adi.CSS_Source.Bind_Class (Source, "label-inline grid-label", +Label_14);
-      Adi.CSS_Source.Bind_Class (Source, "slider grid-cell", +Enabled_Slider);
-      Adi.CSS_Source.Bind_Class (Source, "slider grid-cell", +Disabled_Slider);
+      Adi.CSS_Source.Bind_Class (Source, "slider grid-cell grid-slider", +Enabled_Slider);
+      Adi.CSS_Source.Bind_Class (Source, "slider grid-cell grid-slider", +Disabled_Slider);
       Adi.CSS_Source.Bind_Class (Source, "label-inline grid-label", +Label_15);
       Adi.CSS_Source.Bind_Class (Source, "num-field grid-cell", +Enabled_Value_Input);
       Adi.CSS_Source.Bind_Class (Source, "num-field grid-cell", +Disabled_Value_Input);

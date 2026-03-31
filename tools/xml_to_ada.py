@@ -1564,6 +1564,10 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append("         end if;")
             lines.append("      end;")
             lines.append("")
+            if not has_dialog:
+                lines.append(
+                    "      Adi.CSS_Source.Attach_Window (Source, W);"
+                )
             lines.append(
                 "      --  Bind every widget that has a CSS class"
             )
@@ -1588,15 +1592,6 @@ def generate_body(app: XmlApp, package_name: str,
                 lines.append("         Root_Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=")
                 lines.append("           Static_Root_Metadata;")
                 lines.append("      begin")
-                lines.append("         if Root_Meta.Has_Root_Font_Size then")
-                lines.append(
-                    "            Adi.Layout_Util.Set_Active_Root_Font_Size"
-                    " (Adi.Layout_Util.Length_To_Px"
-                    " (Root_Meta.Root_Font_Size,"
-                    " Root_Font_Size =>"
-                    " Adi.Layout_Util.Default_Root_Font_Size_Px));"
-                )
-                lines.append("         end if;")
                 if root is not None and not has_dialog and root.wid not in {wid for wid, _cls in styled_widgets}:
                     lines.append("         if Root_Meta.Has_Root_Style then")
                     lines.append(
@@ -1689,6 +1684,10 @@ def generate_body(app: XmlApp, package_name: str,
             )
             lines.append("         end if;")
             lines.append("      end;")
+            if not has_dialog:
+                lines.append(
+                    "      Adi.CSS_Source.Attach_Window (Source, W);"
+                )
             if root is not None and not has_dialog:
                 lines.append(
                     f"      Adi.CSS_Source.Bind_Root_Metadata (Source, +{root.wid});"
@@ -1696,19 +1695,14 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append("")
         else:
             lines.append("      --  Apply static root metadata")
+            if not has_dialog:
+                lines.append(
+                    "      Adi.CSS_Source.Attach_Window (Source, W);"
+                )
             lines.append("      declare")
             lines.append("         Root_Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=")
             lines.append("           Static_Root_Metadata;")
             lines.append("      begin")
-            lines.append("         if Root_Meta.Has_Root_Font_Size then")
-            lines.append(
-                "            Adi.Layout_Util.Set_Active_Root_Font_Size"
-                " (Adi.Layout_Util.Length_To_Px"
-                " (Root_Meta.Root_Font_Size,"
-                " Root_Font_Size =>"
-                " Adi.Layout_Util.Default_Root_Font_Size_Px));"
-            )
-            lines.append("         end if;")
             if root is not None and not has_dialog:
                 lines.append("         if Root_Meta.Has_Root_Style then")
                 lines.append(
@@ -1858,15 +1852,6 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append("         Root_Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=")
             lines.append("           Static_Root_Metadata;")
             lines.append("      begin")
-            lines.append("         if Root_Meta.Has_Root_Font_Size then")
-            lines.append(
-                "            Adi.Layout_Util.Set_Active_Root_Font_Size"
-                " (Adi.Layout_Util.Length_To_Px"
-                " (Root_Meta.Root_Font_Size,"
-                " Root_Font_Size =>"
-                " Adi.Layout_Util.Default_Root_Font_Size_Px));"
-            )
-            lines.append("         end if;")
             lines.append("         if Root_Meta.Has_Root_Style then")
             lines.append(
                 "            Adi.Widget.Dialog.Set_Panel_Style"

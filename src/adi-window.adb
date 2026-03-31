@@ -908,6 +908,9 @@ package body Adi.Window is
        Stage_Start  : Time;
     begin
        --  Keep unit conversion contexts in sync with current window state.
+       Set_Active_Root_Font_Size
+         (Length_To_Px (W.Root_Font_Size,
+                        Root_Font_Size => Default_Root_Font_Size_Px));
        if Refresh_DIP_Scale (W) then
           Invalidate_For_Scale_Change (W);
        end if;
@@ -1187,6 +1190,46 @@ package body Adi.Window is
    begin
       return Get_Active_Text_Scale;
    end Get_Text_Scale;
+
+   procedure Set_Root_Font_Size
+     (W    : in out Window;
+      Size : CSS_Styles.Length_Value)
+   is
+   begin
+      if W.Root_Font_Size /= Size then
+         W.Root_Font_Size := Size;
+         Invalidate_For_Scale_Change (W);
+      end if;
+   end Set_Root_Font_Size;
+
+   procedure Set_Root_Font_Size
+     (H    : Window_Handle;
+      Size : CSS_Styles.Length_Value)
+   is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         Set_Root_Font_Size (Ptr.all, Size);
+      end if;
+   end Set_Root_Font_Size;
+
+   function Get_Root_Font_Size (W : Window) return CSS_Styles.Length_Value is
+   begin
+      return W.Root_Font_Size;
+   end Get_Root_Font_Size;
+
+   function Get_Root_Font_Size (H : Window_Handle)
+     return CSS_Styles.Length_Value
+   is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         return Ptr.Root_Font_Size;
+      end if;
+      return (Amount => Float (Default_Root_Font_Size_Px), Unit => CSS_Styles.Px);
+   end Get_Root_Font_Size;
 
    procedure Connect_Tick (W : in out Window; CB : Tick_Callback) is
    begin

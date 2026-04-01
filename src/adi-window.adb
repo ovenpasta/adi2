@@ -733,21 +733,27 @@ package body Adi.Window is
    -- Create_Window --
    -------------------
    function Create_Window_Handle
-     (Title : String;
-      S     : Size_2D) return Window_Handle
+     (Title     : String;
+      S         : Size_2D;
+      Maximized : Boolean := False) return Window_Handle
    is
       use Interfaces.C.Strings;
+      use Adi.SDL.Video;
       C_Title_Str : chars_ptr := New_String (Title);
       Win_Ptr : aliased Adi.SDL.Video.SDL_Window_Ptr;
       Ren_Ptr : aliased Adi.SDL.Render.SDL_Renderer_Ptr;
       Success : Adi.SDL.C_bool;
+      Flags   : SDL_WindowFlags :=
+        SDL_WINDOW_RESIZABLE or SDL_WINDOW_HIGH_PIXEL_DENSITY;
    begin
+      if Maximized then
+         Flags := Flags or SDL_WINDOW_MAXIMIZED;
+      end if;
       Success := Adi.SDL.Render.SDL_CreateWindowAndRenderer
         (C_Title_Str,
          int (S.Width),
          int (S.Height),
-         Adi.SDL.Video.SDL_WINDOW_RESIZABLE
-           or Adi.SDL.Video.SDL_WINDOW_HIGH_PIXEL_DENSITY,
+         Flags,
          Win_Ptr,
          Ren_Ptr);
       Free (C_Title_Str);

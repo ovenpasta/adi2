@@ -104,6 +104,7 @@ class XmlWindow:
     width: float
     height: float
     root_widget: XmlWidget
+    maximized: bool = False
 
 
 @dataclass
@@ -549,6 +550,7 @@ class Parser:
             width=float(elem.get("width", "800")),
             height=float(elem.get("height", "600")),
             root_widget=self._parse_widget(widget_children[0]),
+            maximized=elem.get("maximized", "false").lower() == "true",
         )
 
     def _parse_dialog(self, elem) -> XmlDialog:
@@ -1313,9 +1315,10 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append(
             f'      W : constant Adi.Window.Window_Handle :='
         )
+        maximized_arg = ", Maximized => True" if win.maximized else ""
         lines.append(
             f'        Adi.Window.Create_Window_Handle ("{title}",'
-            f" ({win.width}, {win.height}));"
+            f" ({win.width}, {win.height}){maximized_arg});"
         )
     elif has_dialog:
         lines.append("   function Build")

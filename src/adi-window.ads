@@ -16,7 +16,9 @@ package Adi.Window is
     type Window_Handle is private;
     Null_Window_Handle : constant Window_Handle;
 
-    function Create_Window_Handle (Title : String; S : Size_2D)
+    function Create_Window_Handle (Title     : String;
+                                    S         : Size_2D;
+                                    Maximized : Boolean := False)
       return Window_Handle;
     function Get_Handle (W : Window) return Window_Handle;
     function Is_Valid (H : Window_Handle) return Boolean;

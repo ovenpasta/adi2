@@ -284,6 +284,7 @@
 - Block flow applies per-element margin/padding in the html layout pass
 - Optional content scale API (`Set/Get_Content_Scale`) scales absolute/content units without changing `%`/`vw`/`vh` fit semantics
 - Html `vw`/`vh` resolve against the html content viewport (normal widget `vw`/`vh` resolve against SDL window size)
+- `:root` metadata is host-scoped to each `Html_View`: the widget stores its own root font size for `rem`, and parsing embedded/linked css does not mutate global parser root-font state
 - Hyperlink interaction via `Set_On_Link_Click` with clipping-aware hit regions from final laid-out runs
 - Resource loading is callback-driven: `Set_On_Load_Asset` for `img`, `Set_On_Load_Resource` for linked stylesheets
 - Embedded `<style>` and callback-loaded `<link rel="stylesheet">` are parsed with `Adi.CSS_Parser`

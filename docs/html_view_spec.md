@@ -120,6 +120,7 @@ Package: `Adi.Widget.Html_View`
   - `function Get_Content_Scale (Self : Html_View) return Pixel_Type;`
   - Scale affects absolute/content units (`px`, `dip`, `em`, `rem`) and typography metrics.
   - Scale does not multiply `%`, `vw`, or `vh` resolution.
+  - `rem` remains scoped to the `Html_View` stylesheet root (`:root { font-size: ... }`), not to global parser state.
 
 ## Internal Model
 
@@ -200,6 +201,10 @@ Package: `Adi.Widget.Html_View`
 - Implemented precedence: `defaults < default-stylesheet < tag < class < id < inline`.
 - The widget ships with no built-in visual defaults. Users may load `examples/assets/html/default.css` via `Set_Default_Stylesheet` for browser-like typographic defaults (font sizes, weights, margins, text-decoration). Document CSS always overrides the default stylesheet.
 - Inline style declarations are parsed once and cached by normalized declaration text.
+- `:root` metadata is host-scoped inside the widget:
+  - root styles apply to the html content root only
+  - `:root { font-size: ... }` defines the local `rem` base for that `Html_View`
+  - parsing html-local CSS does not mutate window-level or global root-font state
 
 ### Runtime property coverage used by Html_View
 - Typography/text flow: `font-size`, `font-weight`, `font-style`, `text-align`, `text-decoration`, `white-space`, `text-wrap-mode`, `text-overflow`, `line-height`.
@@ -211,6 +216,7 @@ Package: `Adi.Widget.Html_View`
 ## Unit Resolution Semantics
 - Supported length units include: `px`, `dip`/`dp`, `em`, `rem`, `%`, `vw`, `vh`.
 - For `Html_View`, `vw`/`vh` are resolved against the html content viewport.
+- For `Html_View`, `rem` is resolved from the widget's own stylesheet root font, falling back to the default root size when the document does not specify one.
 - For normal widget styling, `vw`/`vh` are resolved against SDL window pixel size.
 
 ## Parser Recovery Rules

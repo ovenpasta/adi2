@@ -855,6 +855,17 @@ package body Adi.Widget.Html_View is
          Adi.Log.Error
            ("Html_View CSS parse failed: " &
             Adi.CSS_Parser.Get_Last_Error (Self.CSS_Sheet));
+      else
+         declare
+            Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=
+              Adi.CSS_Parser.Get_Metadata (Self.CSS_Sheet);
+         begin
+            if Meta.Has_Root_Font_Size then
+               Self.Root_Font_Size := Meta.Root_Font_Size;
+            else
+               Self.Root_Font_Size := Default_Font_Size;
+            end if;
+         end;
       end if;
    end Load_Combined_CSS;
 
@@ -1279,21 +1290,44 @@ package body Adi.Widget.Html_View is
       return L.Unit not in Pct | Vw | Vh;
    end Should_Apply_Content_Scale;
 
+   function Html_Root_Font_Size_Px
+     (Root_Font       : Length_Value;
+      Scale           : Pixel_Type;
+      Viewport_Width  : Pixel_Type := 0.0;
+      Viewport_Height : Pixel_Type := 0.0) return Pixel_Type
+   is
+      Base : constant Pixel_Type :=
+        Length_To_Px
+          (Root_Font,
+           Font_Size       => Default_Root_Font_Size_Px,
+           Root_Font_Size  => Default_Root_Font_Size_Px,
+           Viewport_Width  => Viewport_Width,
+           Viewport_Height => Viewport_Height);
+   begin
+      if Should_Apply_Content_Scale (Root_Font) then
+         return Base * Pixel_Type'Max (0.01, Scale);
+      end if;
+
+      return Base;
+   end Html_Root_Font_Size_Px;
+
    function Html_Length_To_Px
      (L               : Length_Value;
       Scale           : Pixel_Type;
       Container_Size  : Pixel_Type := 0.0;
       Font_Size       : Pixel_Type := Default_Root_Font_Size_Px;
+      Root_Font_Size  : Pixel_Type := Default_Root_Font_Size_Px;
       Viewport_Width  : Pixel_Type := 0.0;
       Viewport_Height : Pixel_Type := 0.0) return Pixel_Type
    is
       Base : constant Pixel_Type :=
         Length_To_Px
           (L,
-           Container_Size,
-           Font_Size,
-           Viewport_Width,
-           Viewport_Height);
+           Container_Size  => Container_Size,
+           Font_Size       => Font_Size,
+           Root_Font_Size  => Root_Font_Size,
+           Viewport_Width  => Viewport_Width,
+           Viewport_Height => Viewport_Height);
    begin
       if Should_Apply_Content_Scale (L) then
          return Base * Pixel_Type'Max (0.01, Scale);
@@ -1306,6 +1340,7 @@ package body Adi.Widget.Html_View is
      (Style : Resolved_Style;
       S     : String;
       Scale : Pixel_Type;
+      Root_Font_Size : Pixel_Type;
       Viewport_Width : Pixel_Type;
       Viewport_Height : Pixel_Type) return Size_2D
    is
@@ -1316,6 +1351,7 @@ package body Adi.Widget.Html_View is
             Scale,
             Container_Size  => Viewport_Width,
             Font_Size       => Default_Root_Font_Size_Px,
+            Root_Font_Size  => Root_Font_Size,
             Viewport_Width  => Viewport_Width,
             Viewport_Height => Viewport_Height));
       Font_Attrs : constant Adi.Font.Font_Attributes :=
@@ -1341,6 +1377,7 @@ package body Adi.Widget.Html_View is
    function Measure_Line_Height
      (Style : Resolved_Style;
       Scale : Pixel_Type;
+      Root_Font_Size : Pixel_Type;
       Viewport_Width : Pixel_Type;
       Viewport_Height : Pixel_Type) return Pixel_Type
    is
@@ -1351,6 +1388,7 @@ package body Adi.Widget.Html_View is
             Scale,
             Container_Size  => Viewport_Width,
             Font_Size       => Default_Root_Font_Size_Px,
+            Root_Font_Size  => Root_Font_Size,
             Viewport_Width  => Viewport_Width,
             Viewport_Height => Viewport_Height));
       Font_Attrs : constant Adi.Font.Font_Attributes :=
@@ -1362,7 +1400,13 @@ package body Adi.Widget.Html_View is
            Decoration => Style.Text_Decoration);
       Font : constant TTF_Font_Access := Adi.Font.Get_TTF_Font (Font_Attrs);
       M_H  : constant Pixel_Type :=
-        Measure_Text (Style, "M", Scale, Viewport_Width, Viewport_Height).Height;
+        Measure_Text
+          (Style,
+           "M",
+           Scale,
+           Root_Font_Size,
+           Viewport_Width,
+           Viewport_Height).Height;
       Natural_Line : Pixel_Type := Pixel_Type'Max (1.0, M_H);
       Result : Pixel_Type := 0.0;
    begin
@@ -1382,7 +1426,8 @@ package body Adi.Widget.Html_View is
                  (Style.Line_Height.Height,
                   Scale,
                   Container_Size => Natural_Line,
-                  Font_Size => Font_Px,
+                  Font_Size      => Font_Px,
+                  Root_Font_Size => Root_Font_Size,
                   Viewport_Width => Viewport_Width,
                   Viewport_Height => Viewport_Height));
       end case;
@@ -1393,6 +1438,7 @@ package body Adi.Widget.Html_View is
    function Measure_Ascent
      (Style : Resolved_Style;
       Scale : Pixel_Type;
+      Root_Font_Size : Pixel_Type;
       Viewport_Width : Pixel_Type;
       Viewport_Height : Pixel_Type) return Pixel_Type
    is
@@ -1403,6 +1449,7 @@ package body Adi.Widget.Html_View is
             Scale,
             Container_Size  => Viewport_Width,
             Font_Size       => Default_Root_Font_Size_Px,
+            Root_Font_Size  => Root_Font_Size,
             Viewport_Width  => Viewport_Width,
             Viewport_Height => Viewport_Height));
       Font_Attrs : constant Adi.Font.Font_Attributes :=
@@ -1414,7 +1461,12 @@ package body Adi.Widget.Html_View is
            Decoration => Style.Text_Decoration);
       Font   : constant TTF_Font_Access := Adi.Font.Get_TTF_Font (Font_Attrs);
       Line_H : constant Pixel_Type :=
-        Measure_Line_Height (Style, Scale, Viewport_Width, Viewport_Height);
+        Measure_Line_Height
+          (Style,
+           Scale,
+           Root_Font_Size,
+           Viewport_Width,
+           Viewport_Height);
       Asc    : Pixel_Type := Line_H * 0.8;
    begin
       if Font /= null then
@@ -1430,6 +1482,7 @@ package body Adi.Widget.Html_View is
    function Measure_Descent
      (Style : Resolved_Style;
       Scale : Pixel_Type;
+      Root_Font_Size : Pixel_Type;
       Viewport_Width : Pixel_Type;
       Viewport_Height : Pixel_Type) return Pixel_Type
    is
@@ -1440,6 +1493,7 @@ package body Adi.Widget.Html_View is
             Scale,
             Container_Size  => Viewport_Width,
             Font_Size       => Default_Root_Font_Size_Px,
+            Root_Font_Size  => Root_Font_Size,
             Viewport_Width  => Viewport_Width,
             Viewport_Height => Viewport_Height));
       Font_Attrs : constant Adi.Font.Font_Attributes :=
@@ -1451,13 +1505,23 @@ package body Adi.Widget.Html_View is
            Decoration => Style.Text_Decoration);
       Font   : constant TTF_Font_Access := Adi.Font.Get_TTF_Font (Font_Attrs);
       Line_H : constant Pixel_Type :=
-        Measure_Line_Height (Style, Scale, Viewport_Width, Viewport_Height);
+        Measure_Line_Height
+          (Style,
+           Scale,
+           Root_Font_Size,
+           Viewport_Width,
+           Viewport_Height);
       Desc   : Pixel_Type := 0.0;
    begin
       if Font = null then
          return Pixel_Type'Max
            (0.0,
-            Line_H - Measure_Ascent (Style, Scale, Viewport_Width, Viewport_Height));
+            Line_H - Measure_Ascent
+              (Style,
+               Scale,
+               Root_Font_Size,
+               Viewport_Width,
+               Viewport_Height));
       end if;
 
       Desc := Pixel_Type (TTF_GetFontDescent (Font));
@@ -1468,7 +1532,12 @@ package body Adi.Widget.Html_View is
       if Desc <= 0.0 then
          Desc := Pixel_Type'Max
            (0.0,
-            Line_H - Measure_Ascent (Style, Scale, Viewport_Width, Viewport_Height));
+            Line_H - Measure_Ascent
+              (Style,
+               Scale,
+               Root_Font_Size,
+               Viewport_Width,
+               Viewport_Height));
       end if;
 
       return Pixel_Type'Min (Line_H, Pixel_Type'Max (0.0, Desc));
@@ -1500,6 +1569,14 @@ package body Adi.Widget.Html_View is
       Main_Style       : constant Resolved_Style := Get_Resolved_Part_Style (Self, Main_Part);
       Text_Part_Style : constant Resolved_Style := Get_Resolved_Part_Style (Self, Text_Part);
       Content          : constant Rectangle := Content_Box (Self.Geometry, Main_Style);
+      Root_Font_Px     : constant Pixel_Type :=
+        Pixel_Type'Max
+          (1.0,
+           Html_Root_Font_Size_Px
+             (Self.Root_Font_Size,
+              Self.Content_Scale,
+              Content.Width,
+              Content.Height));
 
       Document_Rules   : Style_Rules := Tag_Default_Style ("body");
       Document_Style   : Resolved_Style;
@@ -1591,7 +1668,8 @@ package body Adi.Widget.Html_View is
               (Style.Font_Size,
                Self.Content_Scale,
                Container_Size => Content.Height,
-               Font_Size => Default_Root_Font_Size_Px,
+               Font_Size      => Default_Root_Font_Size_Px,
+               Root_Font_Size => Root_Font_Px,
                Viewport_Width => Content.Width,
                Viewport_Height => Content.Height));
       end Local_Font_Size_Px;
@@ -1604,11 +1682,12 @@ package body Adi.Widget.Html_View is
       begin
          return Html_Length_To_Px
            (L,
-            Self.Content_Scale,
-            Container_Size,
-            Font_Size,
-            Content.Width,
-            Content.Height);
+            Scale           => Self.Content_Scale,
+            Container_Size  => Container_Size,
+            Font_Size       => Font_Size,
+            Root_Font_Size  => Root_Font_Px,
+            Viewport_Width  => Content.Width,
+            Viewport_Height => Content.Height);
       end Local_Length_To_Px;
 
       function Current_Line_Width return Pixel_Type is
@@ -1707,9 +1786,10 @@ package body Adi.Widget.Html_View is
                H   : Pixel_Type := 0.0;
                Target_H : Pixel_Type := Pixel_Type'Max
                  (4.0,
-                  Measure_Line_Height
+                 Measure_Line_Height
                     (Style,
                      Self.Content_Scale,
+                     Root_Font_Px,
                      Content.Width,
                      Content.Height) * 0.72);
             begin
@@ -1737,6 +1817,7 @@ package body Adi.Widget.Html_View is
                      Measure_Line_Height
                        (Style,
                         Self.Content_Scale,
+                        Root_Font_Px,
                         Content.Width,
                         Content.Height) * 0.55);
                begin
@@ -1767,6 +1848,7 @@ package body Adi.Widget.Html_View is
                 (Style,
                  Marker_Text,
                  Self.Content_Scale,
+                 Root_Font_Px,
                  Content.Width,
                  Content.Height);
             Marker_Width := Pixel_Type'Max (1.0, Marker_Size.Width);
@@ -1775,6 +1857,7 @@ package body Adi.Widget.Html_View is
                Measure_Line_Height
                  (Style,
                   Self.Content_Scale,
+                  Root_Font_Px,
                   Content.Width,
                   Content.Height));
             Marker := (Kind => Text_Marker,
@@ -1967,6 +2050,7 @@ package body Adi.Widget.Html_View is
                   (Style,
                    Text,
                    Self.Content_Scale,
+                   Root_Font_Px,
                    Content.Width,
                    Content.Height).Width > Line_Right
          then
@@ -1991,11 +2075,30 @@ package body Adi.Widget.Html_View is
              (Style,
               To_String (Draw_Text),
               Self.Content_Scale,
+              Root_Font_Px,
               Content.Width,
               Content.Height).Width;
-         Run_H := Measure_Line_Height (Style, Self.Content_Scale, Content.Width, Content.Height);
-         Run_Ascent := Measure_Ascent (Style, Self.Content_Scale, Content.Width, Content.Height);
-         Run_Descent := Measure_Descent (Style, Self.Content_Scale, Content.Width, Content.Height);
+         Run_H :=
+           Measure_Line_Height
+             (Style,
+              Self.Content_Scale,
+              Root_Font_Px,
+              Content.Width,
+              Content.Height);
+         Run_Ascent :=
+           Measure_Ascent
+             (Style,
+              Self.Content_Scale,
+              Root_Font_Px,
+              Content.Width,
+              Content.Height);
+         Run_Descent :=
+           Measure_Descent
+             (Style,
+              Self.Content_Scale,
+              Root_Font_Px,
+              Content.Width,
+              Content.Height);
 
          if Run_Ascent > Current_Line_Ascent then
             declare
@@ -2383,6 +2486,7 @@ package body Adi.Widget.Html_View is
                Measure_Line_Height
                  (Style,
                   Self.Content_Scale,
+                  Root_Font_Px,
                   Content.Width,
                   Content.Height));
          end if;
@@ -2624,16 +2728,18 @@ package body Adi.Widget.Html_View is
 
                            Line_Base_H := Pixel_Type'Max
                              (1.0,
-                              Measure_Line_Height
-                                (Style,
-                                 Self.Content_Scale,
-                                 Content.Width,
-                                 Content.Height));
+               Measure_Line_Height
+                 (Style,
+                  Self.Content_Scale,
+                  Root_Font_Px,
+                  Content.Width,
+                  Content.Height));
                            Line_Base_Ascent := Pixel_Type'Max
                              (1.0,
                               Measure_Ascent
                                 (Style,
                                  Self.Content_Scale,
+                                 Root_Font_Px,
                                  Content.Width,
                                  Content.Height));
                            Line_Base_Descent := Pixel_Type'Max
@@ -2641,6 +2747,7 @@ package body Adi.Widget.Html_View is
                               Measure_Descent
                                 (Style,
                                  Self.Content_Scale,
+                                 Root_Font_Px,
                                  Content.Width,
                                  Content.Height));
                            Current_Line_H := Line_Base_H;
@@ -2774,6 +2881,7 @@ package body Adi.Widget.Html_View is
          Measure_Line_Height
            (Document_Style,
             Self.Content_Scale,
+            Root_Font_Px,
             Content.Width,
             Content.Height));
       Line_Base_Ascent := Pixel_Type'Max
@@ -2781,6 +2889,7 @@ package body Adi.Widget.Html_View is
          Measure_Ascent
            (Document_Style,
             Self.Content_Scale,
+            Root_Font_Px,
             Content.Width,
             Content.Height));
       Line_Base_Descent := Pixel_Type'Max
@@ -2788,6 +2897,7 @@ package body Adi.Widget.Html_View is
          Measure_Descent
            (Document_Style,
             Self.Content_Scale,
+            Root_Font_Px,
             Content.Width,
             Content.Height));
       Current_Line_H := Line_Base_H;

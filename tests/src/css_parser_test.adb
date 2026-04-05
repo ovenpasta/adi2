@@ -2,9 +2,11 @@ pragma Ada_2022;
 
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Adi.Core; use Adi.Core;
 with Adi.CSS_Parser;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Font;
+with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.SDL;
 with Adi.SDL.TTF;
 with Adi.Widget; use Adi.Widget;
@@ -289,7 +291,9 @@ procedure Css_Parser_Test is
            ":root { color: red; font-size: 20dp; --accent: blue; } "
            & ".x { color: var(--accent); }";
          Meta      : Adi.CSS_Parser.Stylesheet_Metadata;
+         Saved_Root : constant Pixel_Type := Get_Active_Root_Font_Size;
       begin
+         Set_Active_Root_Font_Size (37.0);
          Adi.CSS_Parser.Load_String (Var_Sheet, Var_CSS, Var_OK);
          Assert (Var_OK, ":root metadata CSS should parse");
          Assert (Adi.CSS_Parser.Has_Custom_Property (Var_Sheet, "--accent"),
@@ -316,6 +320,9 @@ procedure Css_Parser_Test is
             Assert (Root_Resolved.Color = (Kind => Named, Name => Red),
                     "Get_Metadata should keep :root style properties");
          end;
+         Assert (Get_Active_Root_Font_Size = 37.0,
+                 "Load_String should not mutate active root font size");
+         Set_Active_Root_Font_Size (Saved_Root);
       end;
 
       --  Non-root custom property should be stripped

@@ -192,6 +192,8 @@ private
       On_Load_Asset   : Asset_Load_Callback := null;
       On_Load_Resource : Resource_Load_Callback := null;
       CSS_Sheet       : Adi.CSS_Parser.Stylesheet;
+      Root_Font_Size  : Adi.CSS_Styles.Length_Value :=
+        Adi.CSS_Styles.Default_Font_Size;
       Hovered_Href    : Unbounded_String := Null_Unbounded_String;
       Pressed_Href    : Unbounded_String := Null_Unbounded_String;
       Pressed_Is_Link : Boolean := False;

@@ -13,7 +13,6 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
-with Adi.Layout_Util;   use Adi.Layout_Util;
 with Adi.Widget;        use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
@@ -111,15 +110,6 @@ package body Adi.CSS_Parser is
      (Metadata : Stylesheet_Metadata;
       W        : in out Adi.Widget.Widget'Class) is
    begin
-      if Metadata.Has_Root_Font_Size then
-         Set_Active_Root_Font_Size
-           (Length_To_Px
-              (Metadata.Root_Font_Size,
-               Root_Font_Size => Default_Root_Font_Size_Px));
-      else
-         Set_Active_Root_Font_Size (Default_Root_Font_Size_Px);
-      end if;
-
       if Metadata.Has_Root_Style then
          Set_Part_Styles (W, Metadata.Root_Styles);
       end if;
@@ -3537,14 +3527,6 @@ package body Adi.CSS_Parser is
 
       Sheet.Impl.Metadata := Metadata;
       Sheet.Impl.Variables := Vars;
-      if Metadata.Has_Root_Font_Size then
-         Set_Active_Root_Font_Size
-           (Length_To_Px
-              (Metadata.Root_Font_Size,
-               Root_Font_Size => Default_Root_Font_Size_Px));
-      else
-         Set_Active_Root_Font_Size (Default_Root_Font_Size_Px);
-      end if;
 
       Build_Styles (Sheet.Impl.all, Rules, Success);
       if Success then

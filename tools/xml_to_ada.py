@@ -759,6 +759,14 @@ def generate_spec(app: XmlApp, package_name: str) -> str:
         withs.add(gen.package)
     for comp_pkg in app.component_packages:
         withs.add(comp_pkg)
+    # Callback types declared in the spec need their defining package withed
+    # too (unless the prefix is a local generic alias like "Page_Stack").
+    generic_alias_names = {gen.name for gen in app.generics}
+    for cb in app.callbacks:
+        if "." in cb.cb_type:
+            prefix = cb.cb_type.rsplit(".", 1)[0]
+            if prefix not in generic_alias_names:
+                withs.add(prefix)
 
     lines = [
         "--  Auto-generated from XML",
@@ -929,6 +937,14 @@ def generate_body(app: XmlApp, package_name: str,
         spec_withs.add(gen.package)
     for comp_pkg in app.component_packages:
         spec_withs.add(comp_pkg)
+    # Callback types declared in the spec need their defining package withed
+    # too (unless the prefix is a local generic alias like "Page_Stack").
+    generic_alias_names = {gen.name for gen in app.generics}
+    for cb in app.callbacks:
+        if "." in cb.cb_type:
+            prefix = cb.cb_type.rsplit(".", 1)[0]
+            if prefix not in generic_alias_names:
+                spec_withs.add(prefix)
 
     # Compile inline <style> CSS to Ada constants
     inline_stylesheet: Optional[css_to_ada.ParsedStylesheet] = None

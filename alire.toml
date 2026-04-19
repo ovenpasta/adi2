@@ -1,12 +1,13 @@
-name = "adi"
-description = "The Adi GUI Library"
+name = "adi2"
+description = "The Adi2 GUI Library"
 version = "0.1.0-dev"
 
 authors = ["Aldo Nicolas Bruno"]
 maintainers = ["Aldo Nicolas Bruno <ovenpasta@pizzahack.eu>"]
-licenses = "custom-proprietary"
+licenses = "Apache-2.0"
 website = ""
 tags = ["gui"]
+project-files = ["adi.gpr"]
 
 [[actions]]
 type = "post-build"

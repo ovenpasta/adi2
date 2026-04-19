@@ -1,0 +1,36 @@
+/* Window root: vertical column with some breathing room */
+.root {
+  display: flex;
+  flex-direction: column;
+  background-color: rgb(24, 26, 32);
+  padding: 24px;
+  gap: 16px;
+}
+
+/* Welcome text */
+.welcome::label {
+  color: rgb(220, 225, 240);
+  font-size: 18px;
+}
+
+/* Primary button: body + label + hover variant */
+.primary {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(37, 99, 235);
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.primary:hover {
+  background-color: rgb(29, 78, 216);
+}
+
+.primary::label {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+}

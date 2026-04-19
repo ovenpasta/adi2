@@ -32,6 +32,8 @@ ALL_EXAMPLES=(
   slider_example
   value_input_example
   assets_example
+  hello_example
+  hello_raw_example
 )
 
 if [ $# -eq 0 ]; then

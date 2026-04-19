@@ -313,7 +313,9 @@ project Examples_Build is
       "slider_example",
       "value_input_example",
       "assets_example",
-      "gradient_example");
+      "gradient_example",
+      "hello_example",
+      "hello_raw_example");
    Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");
 
    for Source_Dirs use ("${SOURCE_DIR}/examples", "${SOURCE_DIR}/examples/generated");
@@ -442,6 +444,8 @@ EXAMPLE_KINDS=(
   value_input_example
   assets_example
   gradient_example
+  hello_example
+  hello_raw_example
 )
 
 for kind in "\${EXAMPLE_KINDS[@]}"; do

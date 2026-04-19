@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="examples/css/hello_example.css"/>
+
+  <callback name="On_Hello_Click" type="Adi.Widget.Button.Click_Callback"/>
+
+  <window title="Hello, Adi" width="320" height="180">
+    <box class="root">
+      <label text="Welcome to Adi" class="welcome"/>
+      <button text="Click me" class="primary" on-clicked="On_Hello_Click"/>
+    </box>
+  </window>
+</adi>

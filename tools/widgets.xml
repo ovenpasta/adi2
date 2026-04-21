@@ -89,6 +89,8 @@
     <attribute name="label" type="string" create-param="true"/>
     <attribute name="min-visible-chars" type="int" setter="Set_Min_Visible_Chars"/>
     <attribute name="disabled" type="bool" setter="Set_Disabled" setter-style="flag" setter-target="base"/>
+    <attribute name="password-mode" type="bool" setter="Set_Password_Mode" setter-style="flag"/>
+    <attribute name="password-character" type="string" setter="Set_Password_Character"/>
     <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
   </widget>
 

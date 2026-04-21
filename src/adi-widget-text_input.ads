@@ -1,10 +1,11 @@
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-with Adi.Core;              use Adi.Core;
+with Ada.Strings.Unbounded;                use Ada.Strings.Unbounded;
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
+with Adi.Core;                              use Adi.Core;
 with Adi.SDL.Events;
 with Adi.Signal;
 with Adi.Text_Buffer;
 with Adi.Widget.Context_Menu;
-with Adi.Widget;            use Adi.Widget;
+with Adi.Widget;                            use Adi.Widget;
 with Adi.Window;
 
 package Adi.Widget.Text_Input is
@@ -49,6 +50,22 @@ package Adi.Widget.Text_Input is
      (W      : in out Text_Input_Widget;
       Styles : Part_Style_Array);
 
+   --  Password mode: when On, each codepoint of the buffer is rendered as
+   --  Password_Character, and clipboard Cut/Copy (key shortcuts and
+   --  context-menu items) are suppressed. The underlying buffer is not
+   --  modified -- Get_Text still returns the real text. Paste is unaffected.
+   procedure Set_Password_Mode
+     (W : in out Text_Input_Widget; Value : Boolean := True);
+   function  Is_Password_Mode (W : Text_Input_Widget) return Boolean;
+
+   --  The mask drawn for each codepoint when Password_Mode is on. Char must
+   --  hold exactly one UTF-8 codepoint; other inputs (empty, or two or more
+   --  codepoints) are rejected silently and leave the mask unchanged.
+   --  Default is U+2022 BULLET.
+   procedure Set_Password_Character
+     (W : in out Text_Input_Widget; Char : String);
+   function  Get_Password_Character (W : Text_Input_Widget) return String;
+
    type Change_Callback is access procedure
      (W : Widget_Handle; Text : String);
 
@@ -73,6 +90,12 @@ package Adi.Widget.Text_Input is
      (H : Text_Input_Handle; Styles : Part_Style_Array);
    procedure Set_Context_Menu_Item_Part_Styles
      (H : Text_Input_Handle; Styles : Part_Style_Array);
+   procedure Set_Password_Mode
+     (H : Text_Input_Handle; Value : Boolean := True);
+   function  Is_Password_Mode (H : Text_Input_Handle) return Boolean;
+   procedure Set_Password_Character
+     (H : Text_Input_Handle; Char : String);
+   function  Get_Password_Character (H : Text_Input_Handle) return String;
    procedure Connect_Changed
      (H : Text_Input_Handle; CB : Change_Callback);
    function  Connect_Changed
@@ -120,6 +143,12 @@ private
    Text_Idx      : constant Positive := 3;
    Cursor_Idx    : constant Positive := 4;
 
+   --  U+2022 BULLET, encoded once as UTF-8 so the record default can be
+   --  a plain String literal rather than raw byte values.
+   Default_Password_Char : constant String :=
+     Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode
+       (Wide_Wide_String'(1 => Wide_Wide_Character'Val (16#2022#)));
+
    type Text_Input_Widget is new Widget with record
       Buffer     : aliased Adi.Text_Buffer.Text_Buffer;
       Changed : Change_Signals.Signal;
@@ -135,6 +164,9 @@ private
       Has_Context_Menu_Styles : Boolean := False;
       Context_Item_Styles : Part_Style_Array := Empty_Part_Styles;
       Has_Context_Item_Styles : Boolean := False;
+      Password_Mode : Boolean := False;
+      Password_Character : Unbounded_String :=
+        To_Unbounded_String (Default_Password_Char);
    end record;
 
    type Text_Input_Handle is record

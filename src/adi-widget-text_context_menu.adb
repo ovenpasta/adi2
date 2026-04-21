@@ -71,6 +71,15 @@ package body Adi.Widget.Text_Context_Menu is
          end case;
       end if;
 
+      if Command_Bindings.Element (Binding_Idx).Is_Password /= null
+        and then Command_Bindings.Element (Binding_Idx).Is_Password (Menu)
+      then
+         case Command is
+            when Cmd_Cut | Cmd_Copy => return;
+            when others => null;
+         end case;
+      end if;
+
       if Command_Bindings.Element (Binding_Idx).Buffer = null then
          return;
       end if;
@@ -127,6 +136,7 @@ package body Adi.Widget.Text_Context_Menu is
               Request_Bindings.Element (Idx).Menu;
             Cmd_Idx : constant Natural := Find_Command_Binding (M_H);
             RO      : Boolean := False;
+            Pwd     : Boolean := False;
          begin
             if Cmd_Idx /= 0
               and then Command_Bindings.Element (Cmd_Idx).Is_Read_Only /= null
@@ -134,14 +144,21 @@ package body Adi.Widget.Text_Context_Menu is
                RO := Command_Bindings.Element (Cmd_Idx).Is_Read_Only (M_H);
             end if;
 
-            --  Undo(1), Redo(2), Cut(3): disabled when read-only
-            --  Copy(4): always enabled
+            if Cmd_Idx /= 0
+              and then Command_Bindings.Element (Cmd_Idx).Is_Password /= null
+            then
+               Pwd := Command_Bindings.Element (Cmd_Idx).Is_Password (M_H);
+            end if;
+
+            --  Undo(1), Redo(2): disabled when read-only
+            --  Cut(3): disabled when read-only or password
+            --  Copy(4): disabled when password
             --  Paste(5): disabled when read-only
             --  Select All(6): always enabled
             Adi.Widget.Context_Menu.Set_Item_Disabled (M_H, 1, RO);
             Adi.Widget.Context_Menu.Set_Item_Disabled (M_H, 2, RO);
-            Adi.Widget.Context_Menu.Set_Item_Disabled (M_H, 3, RO);
-            Adi.Widget.Context_Menu.Set_Item_Disabled (M_H, 4, False);
+            Adi.Widget.Context_Menu.Set_Item_Disabled (M_H, 3, RO or Pwd);
+            Adi.Widget.Context_Menu.Set_Item_Disabled (M_H, 4, Pwd);
             Adi.Widget.Context_Menu.Set_Item_Disabled (M_H, 5, RO);
             Adi.Widget.Context_Menu.Set_Item_Disabled (M_H, 6, False);
          end;
@@ -156,7 +173,8 @@ package body Adi.Widget.Text_Context_Menu is
       Host         : Adi.Window.Window_Access;
       Single_Line  : Boolean := False;
       On_Applied   : Command_Applied_Callback := null;
-      Is_Read_Only : Read_Only_Query := null)
+      Is_Read_Only : Read_Only_Query := null;
+      Is_Password  : Password_Query  := null)
       return Adi.Widget.Context_Menu.Context_Menu_Access
    is
       Menu : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
@@ -188,7 +206,8 @@ package body Adi.Widget.Text_Context_Menu is
                     Buffer       => Buffer,
                     Single_Line  => Single_Line,
                     On_Applied   => On_Applied,
-                    Is_Read_Only => Is_Read_Only));
+                    Is_Read_Only => Is_Read_Only,
+                    Is_Password  => Is_Password));
          else
             Command_Bindings.Replace_Element
               (I,
@@ -196,7 +215,8 @@ package body Adi.Widget.Text_Context_Menu is
                 Buffer       => Buffer,
                 Single_Line  => Single_Line,
                 On_Applied   => On_Applied,
-                Is_Read_Only => Is_Read_Only));
+                Is_Read_Only => Is_Read_Only,
+                Is_Password  => Is_Password));
          end if;
       end;
 
@@ -208,7 +228,8 @@ package body Adi.Widget.Text_Context_Menu is
       Host         : Adi.Window.Window_Handle;
       Single_Line  : Boolean := False;
       On_Applied   : Command_Applied_Callback := null;
-      Is_Read_Only : Read_Only_Query := null)
+      Is_Read_Only : Read_Only_Query := null;
+      Is_Password  : Password_Query  := null)
       return Adi.Widget.Context_Menu.Context_Menu_Access
    is
       Menu : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
@@ -239,7 +260,8 @@ package body Adi.Widget.Text_Context_Menu is
                     Buffer       => Buffer,
                     Single_Line  => Single_Line,
                     On_Applied   => On_Applied,
-                    Is_Read_Only => Is_Read_Only));
+                    Is_Read_Only => Is_Read_Only,
+                    Is_Password  => Is_Password));
          else
             Command_Bindings.Replace_Element
               (I,
@@ -247,7 +269,8 @@ package body Adi.Widget.Text_Context_Menu is
                 Buffer       => Buffer,
                 Single_Line  => Single_Line,
                 On_Applied   => On_Applied,
-                Is_Read_Only => Is_Read_Only));
+                Is_Read_Only => Is_Read_Only,
+                Is_Password  => Is_Password));
          end if;
       end;
 
@@ -259,7 +282,8 @@ package body Adi.Widget.Text_Context_Menu is
       Host         : Adi.Window.Window_Access;
       Single_Line  : Boolean := False;
       On_Applied   : Command_Applied_Callback := null;
-      Is_Read_Only : Read_Only_Query := null)
+      Is_Read_Only : Read_Only_Query := null;
+      Is_Password  : Password_Query  := null)
       return Adi.Widget.Context_Menu.Menu_Handle
    is
       M : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
@@ -268,7 +292,8 @@ package body Adi.Widget.Text_Context_Menu is
            Host         => Host,
            Single_Line  => Single_Line,
            On_Applied   => On_Applied,
-           Is_Read_Only => Is_Read_Only);
+           Is_Read_Only => Is_Read_Only,
+           Is_Password  => Is_Password);
    begin
       if M = null then
          return Adi.Widget.Context_Menu.Null_Menu_Handle;
@@ -281,7 +306,8 @@ package body Adi.Widget.Text_Context_Menu is
       Host         : Adi.Window.Window_Handle;
       Single_Line  : Boolean := False;
       On_Applied   : Command_Applied_Callback := null;
-      Is_Read_Only : Read_Only_Query := null)
+      Is_Read_Only : Read_Only_Query := null;
+      Is_Password  : Password_Query  := null)
       return Adi.Widget.Context_Menu.Menu_Handle
    is
       M : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
@@ -290,7 +316,8 @@ package body Adi.Widget.Text_Context_Menu is
            Host         => Host,
            Single_Line  => Single_Line,
            On_Applied   => On_Applied,
-           Is_Read_Only => Is_Read_Only);
+           Is_Read_Only => Is_Read_Only,
+           Is_Password  => Is_Password);
    begin
       if M = null then
          return Adi.Widget.Context_Menu.Null_Menu_Handle;

@@ -1,5 +1,6 @@
 with Ada.Characters.Latin_1;
 with Ada.Containers.Vectors;
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Adi.CSS_Styles;          use Adi.CSS_Styles;
 with Adi.Font;
 with Adi.Layout_Util;         use Adi.Layout_Util;
@@ -43,6 +44,17 @@ package body Adi.Widget.Text_Input is
       end loop;
       return null;
    end Find_Owner_By_Menu;
+
+   function Is_Owner_Password_By_Menu
+     (Menu : Adi.Widget.Context_Menu.Menu_Handle) return Boolean
+   is
+      Owner : constant Text_Input_Widget_Access := Find_Owner_By_Menu (Menu);
+   begin
+      if Owner = null then
+         return False;
+      end if;
+      return Owner.Password_Mode;
+   end Is_Owner_Password_By_Menu;
 
    procedure Register_Menu_Binding
      (Menu  : Adi.Widget.Context_Menu.Menu_Handle;
@@ -170,6 +182,48 @@ package body Adi.Widget.Text_Input is
       return C;
    end Normalize_Column;
 
+   package WWS renames Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
+
+   function Masked_Line (Source : String; Mask : String) return String is
+      N : constant Natural := WWS.Decode (Source)'Length;
+      Result : String (1 .. N * Mask'Length);
+   begin
+      for I in 1 .. N loop
+         Result ((I - 1) * Mask'Length + 1 .. I * Mask'Length) := Mask;
+      end loop;
+      return Result;
+   end Masked_Line;
+
+   function Source_Col_To_Display_Col
+     (Source : String; Col : Natural; Mask : String) return Natural
+   is
+      Bound      : constant Natural := Natural'Min (Col, Source'Length);
+      Codepoints : constant Natural :=
+        (if Bound = 0 then 0
+         else WWS.Decode
+                (Source (Source'First .. Source'First + Bound - 1))'Length);
+   begin
+      return Codepoints * Mask'Length;
+   end Source_Col_To_Display_Col;
+
+   function Display_Col_To_Source_Col
+     (Source : String; Display_Col : Natural; Mask : String) return Natural
+   is
+      Codepoints : constant Natural := Display_Col / Mask'Length;
+      Decoded    : constant Wide_Wide_String := WWS.Decode (Source);
+      Take       : constant Natural := Natural'Min (Codepoints, Decoded'Length);
+   begin
+      if Take = 0 then
+         return 0;
+      end if;
+      declare
+         Encoded : constant String :=
+           WWS.Encode (Decoded (Decoded'First .. Decoded'First + Take - 1));
+      begin
+         return Encoded'Length;
+      end;
+   end Display_Col_To_Source_Col;
+
    function Prefix_Width_For_Column
      (Label_Style : Resolved_Style;
       Line        : String;
@@ -212,11 +266,15 @@ package body Adi.Widget.Text_Input is
       X : Pixel_Type) return Natural
    is
       use Interfaces.C;
-      Main_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      Label_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Text_Part);
-      Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
-      Line        : constant String := Get_Line (W.Buffer, 1);
-      Line_Len    : constant Natural := Line'Length;
+      Main_Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Label_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Text_Part);
+      Content      : constant Rectangle := Content_Box (W.Geometry, Main_Style);
+      Source_Line  : constant String := Get_Line (W.Buffer, 1);
+      Mask         : constant String := To_String (W.Password_Character);
+      Display_Line : constant String :=
+        (if W.Password_Mode then Masked_Line (Source_Line, Mask)
+         else Source_Line);
+      Line_Len    : constant Natural := Display_Line'Length;
       Font_Attrs  : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Label_Style.Font_Family,
@@ -232,12 +290,13 @@ package body Adi.Widget.Text_Input is
       Measured_W  : aliased int := 0;
       Measured_L  : aliased size_t := 0;
       Ok          : Adi.SDL.C_bool;
+      Display_Col : Natural;
    begin
       if Line_Len = 0 or else Font = null then
          return 0;
       end if;
 
-      C_Text := New_String (Line);
+      C_Text := New_String (Display_Line);
       Ok := TTF_MeasureString
         (Font            => Font,
          Text            => C_Text,
@@ -251,7 +310,13 @@ package body Adi.Widget.Text_Input is
          return 0;
       end if;
 
-      return Normalize_Column (Line, Natural (Measured_L));
+      Display_Col := Normalize_Column (Display_Line, Natural (Measured_L));
+
+      if W.Password_Mode then
+         return Display_Col_To_Source_Col (Source_Line, Display_Col, Mask);
+      else
+         return Display_Col;
+      end if;
    end Column_At_X;
 
    procedure Set_Caret_From_X
@@ -332,7 +397,8 @@ package body Adi.Widget.Text_Input is
         (Buffer      => W.Buffer'Unchecked_Access,
          Host        => Adi.Window.Null_Window_Handle,
          Single_Line => True,
-         On_Applied  => On_Menu_Command_Applied'Access);
+         On_Applied  => On_Menu_Command_Applied'Access,
+         Is_Password => Is_Owner_Password_By_Menu'Access);
       Register_Menu_Binding (W.Context_Menu, Self);
       Adi.Widget.Text_Context_Menu.Bind_Widget_Request
         (Get_Handle (W), W.Context_Menu);
@@ -466,6 +532,44 @@ package body Adi.Widget.Text_Input is
       end if;
    end Set_Context_Menu_Item_Part_Styles;
 
+   procedure Set_Password_Mode
+     (H : Text_Input_Handle; Value : Boolean := True)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Password_Mode (Text_Input_Widget (Ptr.all), Value);
+      end if;
+   end Set_Password_Mode;
+
+   function Is_Password_Mode (H : Text_Input_Handle) return Boolean is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Is_Password_Mode (Text_Input_Widget (Ptr.all));
+      end if;
+      return False;
+   end Is_Password_Mode;
+
+   procedure Set_Password_Character
+     (H : Text_Input_Handle; Char : String)
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Password_Character (Text_Input_Widget (Ptr.all), Char);
+      end if;
+   end Set_Password_Character;
+
+   function Get_Password_Character (H : Text_Input_Handle) return String is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         return Get_Password_Character (Text_Input_Widget (Ptr.all));
+      end if;
+      return "";
+   end Get_Password_Character;
+
    procedure Connect_Changed
      (H : Text_Input_Handle; CB : Change_Callback)
    is
@@ -557,6 +661,44 @@ package body Adi.Widget.Text_Input is
       Apply_Context_Menu_Styles (W);
    end Set_Context_Menu_Item_Part_Styles;
 
+   procedure Set_Password_Mode
+     (W : in out Text_Input_Widget; Value : Boolean := True) is
+   begin
+      if W.Password_Mode = Value then
+         return;
+      end if;
+      W.Password_Mode := Value;
+      Mark_Dirty (W);
+   end Set_Password_Mode;
+
+   function Is_Password_Mode (W : Text_Input_Widget) return Boolean is
+   begin
+      return W.Password_Mode;
+   end Is_Password_Mode;
+
+   procedure Set_Password_Character
+     (W : in out Text_Input_Widget; Char : String) is
+   begin
+      --  Must hold exactly one codepoint: the rendering and caret math
+      --  assume every source codepoint maps to Char'Length display bytes.
+      --  Reject silently on any other shape so misuse doesn't corrupt
+      --  hit-testing at runtime.
+      if Char'Length = 0
+        or else WWS.Decode (Char)'Length /= 1
+      then
+         return;
+      end if;
+      W.Password_Character := To_Unbounded_String (Char);
+      if W.Password_Mode then
+         Mark_Dirty (W);
+      end if;
+   end Set_Password_Character;
+
+   function Get_Password_Character (W : Text_Input_Widget) return String is
+   begin
+      return To_String (W.Password_Character);
+   end Get_Password_Character;
+
    procedure Connect_Changed (W : in out Text_Input_Widget;
                               CB : Change_Callback) is
    begin
@@ -610,7 +752,11 @@ package body Adi.Widget.Text_Input is
       Label_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Text_Part);
       Content      : constant Rectangle := Content_Box (W.Geometry, Main_Style);
       Full_Text    : constant String := Get_Text (W.Buffer);
-      First_Line   : constant String := Get_Line (W.Buffer, 1);
+      Source_Line  : constant String := Get_Line (W.Buffer, 1);
+      Mask         : constant String := To_String (W.Password_Character);
+      Display_Line : constant String :=
+        (if W.Password_Mode then Masked_Line (Source_Line, Mask)
+         else Source_Line);
       Caret        : constant Position := Get_Caret (W.Buffer);
       Sel_Start    : Position;
       Sel_Stop     : Position;
@@ -623,14 +769,19 @@ package body Adi.Widget.Text_Input is
            Style      => Label_Style.Font_Style,
            Decoration => Label_Style.Text_Decoration);
       Text_Size    : constant Size_2D :=
-        Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => First_Line);
+        Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => Display_Line);
       Metric_Text  : constant String :=
-        (if First_Line'Length = 0 then "M" else First_Line);
+        (if Display_Line'Length = 0 then "M" else Display_Line);
       Line_Height  : constant Pixel_Type :=
         Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => Metric_Text).Height;
-      Caret_Col    : constant Natural := Normalize_Column (First_Line, Caret.Column);
+      Source_Caret_Col : constant Natural :=
+        Normalize_Column (Source_Line, Caret.Column);
+      Caret_Col    : constant Natural :=
+        (if W.Password_Mode
+         then Source_Col_To_Display_Col (Source_Line, Source_Caret_Col, Mask)
+         else Source_Caret_Col);
       Prefix_W     : constant Pixel_Type :=
-        Prefix_Width_For_Column (Label_Style, First_Line, Caret_Col);
+        Prefix_Width_For_Column (Label_Style, Display_Line, Caret_Col);
       Scroll_X     : Pixel_Type := Pixel_Type'Max (0.0, W.Horizontal_Scroll);
       Max_Scroll   : constant Pixel_Type :=
         Pixel_Type'Max (0.0, Text_Size.Width - Content.Width);
@@ -668,14 +819,24 @@ package body Adi.Widget.Text_Input is
       begin
          if Has_Sel and then Sel_Start.Line = 1 and then Sel_Stop.Line = 1 then
             declare
+               Source_Start_Col : constant Natural :=
+                 Normalize_Column (Source_Line, Sel_Start.Column);
+               Source_Stop_Col  : constant Natural :=
+                 Normalize_Column (Source_Line, Sel_Stop.Column);
                Start_Col : constant Natural :=
-                 Normalize_Column (First_Line, Sel_Start.Column);
+                 (if W.Password_Mode
+                  then Source_Col_To_Display_Col
+                         (Source_Line, Source_Start_Col, Mask)
+                  else Source_Start_Col);
                Stop_Col  : constant Natural :=
-                 Normalize_Column (First_Line, Sel_Stop.Column);
+                 (if W.Password_Mode
+                  then Source_Col_To_Display_Col
+                         (Source_Line, Source_Stop_Col, Mask)
+                  else Source_Stop_Col);
                Start_X : constant Pixel_Type :=
-                 Content.X + Prefix_Width_For_Column (Label_Style, First_Line, Start_Col) - Scroll_X;
+                 Content.X + Prefix_Width_For_Column (Label_Style, Display_Line, Start_Col) - Scroll_X;
                Stop_X  : constant Pixel_Type :=
-                 Content.X + Prefix_Width_For_Column (Label_Style, First_Line, Stop_Col) - Scroll_X;
+                 Content.X + Prefix_Width_For_Column (Label_Style, Display_Line, Stop_Col) - Scroll_X;
                Sel_Left  : constant Pixel_Type :=
                  Pixel_Type'Max (Content.X, Start_X);
                Sel_Right : constant Pixel_Type :=
@@ -695,7 +856,7 @@ package body Adi.Widget.Text_Input is
          Text_It : Item renames W.Items.Reference (Text_Idx).Element.all;
       begin
          Text_It.Text_Content := To_Unbounded_String
-           ((if Full_Text'Length = 0 then "" else First_Line));
+           ((if Full_Text'Length = 0 then "" else Display_Line));
          Text_It.Geometry := (X      => Content.X,
                               Y      => Text_Y,
                               Width  => Content.Width,
@@ -751,17 +912,21 @@ package body Adi.Widget.Text_Input is
          return;
       end if;
 
-      --  Ctrl+C: Copy
+      --  Ctrl+C: Copy (suppressed in password mode)
       if Ctrl and then Scancode = SDL_SCANCODE_C then
-         if Copy_Selection_To_Clipboard (W.Buffer) then
+         if not W.Password_Mode
+           and then Copy_Selection_To_Clipboard (W.Buffer)
+         then
             null;
          end if;
          return;
       end if;
 
-      --  Ctrl+X: Cut
+      --  Ctrl+X: Cut (suppressed in password mode)
       if Ctrl and then Scancode = SDL_SCANCODE_X then
-         if Cut_Selection_To_Clipboard (W.Buffer) then
+         if not W.Password_Mode
+           and then Cut_Selection_To_Clipboard (W.Buffer)
+         then
             Fire_Changed (W);
          end if;
          return;
@@ -851,8 +1016,16 @@ package body Adi.Widget.Text_Input is
          W.Pending_Word_Select := False;
          W.Drag_Selecting := False;
       elsif Clicks = 2 then
-         W.Pending_Word_Select := True;
-         W.Drag_Selecting := False;
+         if W.Password_Mode then
+            --  Word boundaries would leak the structure of the real text
+            --  (e.g. the space in "abc def"). Fall back to Select_All.
+            Select_All (W.Buffer);
+            W.Pending_Word_Select := False;
+            W.Drag_Selecting := False;
+         else
+            W.Pending_Word_Select := True;
+            W.Drag_Selecting := False;
+         end if;
       else
          W.Pending_Word_Select := False;
          W.Drag_Selecting := True;

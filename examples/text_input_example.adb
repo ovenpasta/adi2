@@ -44,33 +44,46 @@ begin
       Title     : constant Label_Handle := Create_Handle ("Text Input Widget Demo");
       Hint      : constant Label_Handle := Create_Handle
         ("Click the field below and type. Use arrows/Home/End/Backspace/Delete.");
+      Pwd_Hint  : constant Label_Handle := Create_Handle
+        ("Password field (masked). Cut/Copy are disabled; the echo below "
+         & "still shows the real text.");
       Input     : constant Text_Input_Handle := Adi.Widget.Text_Input.Create_Handle ("Hello Adi");
       Input_2   : constant Text_Input_Handle := Adi.Widget.Text_Input.Create_Handle ("Second field");
+      Input_Pwd : constant Text_Input_Handle :=
+        Adi.Widget.Text_Input.Create_Handle ("hunter2");
    begin
+      Set_Password_Mode (Input_Pwd);
       Echo_Label := Create_Handle ("You typed: Hello Adi");
       Length_Label := Create_Handle ("Length: 9");
 
       Connect_Changed (Input, On_Input_Changed'Unrestricted_Access);
+      Connect_Changed (Input_Pwd, On_Input_Changed'Unrestricted_Access);
 
       Set_Part_Styles (Root, Root_Class_Part_Styles);
       Set_Part_Styles (Container, Container_Class_Part_Styles);
       Set_Part_Styles (Title, Title_Class_Part_Styles);
       Set_Part_Styles (Hint, Hint_Class_Part_Styles);
+      Set_Part_Styles (Pwd_Hint, Hint_Class_Part_Styles);
       Set_Part_Styles (Echo_Label, Echo_Label_Class_Part_Styles);
       Set_Part_Styles (Length_Label, Length_Label_Class_Part_Styles);
 
       Set_Part_Styles (Input, Input_Class_Part_Styles);
       Set_Part_Styles (Input_2, Input_Class_Part_Styles);
+      Set_Part_Styles (Input_Pwd, Input_Class_Part_Styles);
       Set_Context_Menu_Part_Styles (Input, Context_Menu_Class_Part_Styles);
       Set_Context_Menu_Item_Part_Styles (Input, Context_Menu_Item_Class_Part_Styles);
       Set_Context_Menu_Part_Styles (Input_2, Context_Menu_Class_Part_Styles);
       Set_Context_Menu_Item_Part_Styles (Input_2, Context_Menu_Item_Class_Part_Styles);
+      Set_Context_Menu_Part_Styles (Input_Pwd, Context_Menu_Class_Part_Styles);
+      Set_Context_Menu_Item_Part_Styles (Input_Pwd, Context_Menu_Item_Class_Part_Styles);
 
       Add_Child (Root, +Container);
       Add_Child (Container, +Title);
       Add_Child (Container, +Hint);
       Add_Child (Container, +Input);
       Add_Child (Container, +Input_2);
+      Add_Child (Container, +Pwd_Hint);
+      Add_Child (Container, +Input_Pwd);
       Add_Child (Container, +Echo_Label);
       Add_Child (Container, +Length_Label);
 

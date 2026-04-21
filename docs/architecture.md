@@ -221,6 +221,7 @@
 
 **Text_Input**: Single-line editor using `Text_Buffer`. Horizontal scroll, caret, selection, context menu. Double-click word select, triple-click select all.
 - `Min_Visible_Chars` (default 20): controls the preferred width as a character count. The input does not grow with its text content; long text scrolls horizontally. Set via `Set_Min_Visible_Chars`, query via `Get_Min_Visible_Chars`. Width is computed as `char_width("M") × Min_Visible_Chars` plus padding/border.
+- **Password mode**: `Set_Password_Mode`/`Is_Password_Mode` masks each codepoint of the buffer with `Password_Character` (default U+2022 BULLET `•`, configurable via `Set_Password_Character`, which rejects anything that is not exactly one UTF-8 codepoint). The buffer itself is unchanged, so `Get_Text` still returns the real text. Clipboard export is suppressed: Ctrl+C / Ctrl+X are no-ops and the context-menu `Cut` / `Copy` items are disabled while password mode is on; `Paste` is unaffected. Double-click falls back to `Select_All` so word boundaries cannot leak the underlying structure. XML grammar exposes `password-mode` and `password-character` on `<text-input>`.
 
 **Text_Editor**: Multiline editor using `Text_Buffer` + `Text_Layout`. Vertical scrollbar, visual-row navigation, word/line selection.
 - **Read-only mode**: `Set_Read_Only`/`Is_Read_Only` blocks keyboard editing (insert, delete, backspace, return, tab, undo, redo, cut, paste) while allowing navigation, selection, and copy. Context menu disables undo/redo/cut/paste items when read-only.

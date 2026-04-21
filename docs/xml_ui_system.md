@@ -155,7 +155,7 @@ All 18 widget tags defined in `tools/widgets.xml`:
 | `button` | `Adi.Widget.Button` | children | no | `text`, `toggleable`, `on-clicked`, `on-toggled` |
 | `switch` | `Adi.Widget.Button.Switch` | children | no | `checked`, `on-toggled` |
 | `stack` | `Adi.Widget.Stack` | pages | yes | `generic`, `on-changed` |
-| `text-input` | `Adi.Widget.Text_Input` | children | no | `text`, `label`, `min-visible-chars`, `disabled`, `on-changed` |
+| `text-input` | `Adi.Widget.Text_Input` | children | no | `text`, `label`, `min-visible-chars`, `disabled`, `password-mode`, `password-character`, `on-changed` |
 | `text-editor` | `Adi.Widget.Text_Editor` | children | no | `text`, `disabled`, `read-only`, `on-changed` |
 | `combo-box` | `Adi.Widget.Combo_Box` | items | no | `on-selection-changed` |
 | `animated-image` | `Adi.Widget.Animated_Image` | children | no | `looping` |
@@ -201,6 +201,8 @@ All widgets support:
 | `min-visible-chars` | text-input | int | Minimum visible character width before scrolling (calls `Set_Min_Visible_Chars`) |
 | `disabled` | button, switch, text-input, text-editor, combo-box, slider, integer-slider, value-input, integer-value-input | bool | Disables the widget (flag setter) |
 | `read-only` | text-editor | bool | Makes the editor read-only (flag setter) |
+| `password-mode` | text-input | bool | Masks each codepoint with `password-character`; also suppresses Cut/Copy (keys and menu) (flag setter) |
+| `password-character` | text-input | string | Mask character — exactly one UTF-8 codepoint; default `•` (U+2022 BULLET). Other lengths are ignored |
 | `icon` | label, button | image | Icon image (calls `Set_Icon` with `Adi.Assets.Get_Image`) |
 | `src` | image | image | Image source (calls `Set_Image` with `Adi.Assets.Get_Image`) |
 | `generic` | stack, list-box, slider, integer-slider, value-input, integer-value-input | string | Name of generic instantiation (meta; not emitted as Ada) |

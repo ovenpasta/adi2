@@ -22,12 +22,20 @@ package Adi.Widget.Text_Context_Menu is
    type Read_Only_Query is access function
      (Menu : Adi.Widget.Context_Menu.Menu_Handle) return Boolean;
 
+   --  Returns True when the bound widget is in password mode. When True,
+   --  Cut and Copy are suppressed (both menu-driven and key-driven via
+   --  the widget's own handlers); the corresponding menu items are
+   --  disabled. Paste remains enabled.
+   type Password_Query is access function
+     (Menu : Adi.Widget.Context_Menu.Menu_Handle) return Boolean;
+
    function Create_Default
      (Buffer       : Adi.Text_Buffer.Text_Buffer_Access;
       Host         : Adi.Window.Window_Access;
       Single_Line  : Boolean := False;
       On_Applied   : Command_Applied_Callback := null;
-      Is_Read_Only : Read_Only_Query := null)
+      Is_Read_Only : Read_Only_Query := null;
+      Is_Password  : Password_Query  := null)
       return Adi.Widget.Context_Menu.Context_Menu_Access
      with Obsolescent => "Use Create_Default_Handle";
    function Create_Default
@@ -35,7 +43,8 @@ package Adi.Widget.Text_Context_Menu is
       Host         : Adi.Window.Window_Handle;
       Single_Line  : Boolean := False;
       On_Applied   : Command_Applied_Callback := null;
-      Is_Read_Only : Read_Only_Query := null)
+      Is_Read_Only : Read_Only_Query := null;
+      Is_Password  : Password_Query  := null)
       return Adi.Widget.Context_Menu.Context_Menu_Access
      with Obsolescent => "Use Create_Default_Handle";
    function Create_Default_Handle
@@ -43,7 +52,8 @@ package Adi.Widget.Text_Context_Menu is
       Host         : Adi.Window.Window_Access;
       Single_Line  : Boolean := False;
       On_Applied   : Command_Applied_Callback := null;
-      Is_Read_Only : Read_Only_Query := null)
+      Is_Read_Only : Read_Only_Query := null;
+      Is_Password  : Password_Query  := null)
       return Adi.Widget.Context_Menu.Menu_Handle
      with Obsolescent => "Use Create_Default_Handle with Window_Handle";
    function Create_Default_Handle
@@ -51,7 +61,8 @@ package Adi.Widget.Text_Context_Menu is
       Host         : Adi.Window.Window_Handle;
       Single_Line  : Boolean := False;
       On_Applied   : Command_Applied_Callback := null;
-      Is_Read_Only : Read_Only_Query := null)
+      Is_Read_Only : Read_Only_Query := null;
+      Is_Password  : Password_Query  := null)
       return Adi.Widget.Context_Menu.Menu_Handle;
 
    procedure Bind_Widget_Request
@@ -76,6 +87,7 @@ private
       Single_Line  : Boolean := False;
       On_Applied   : Command_Applied_Callback := null;
       Is_Read_Only : Read_Only_Query := null;
+      Is_Password  : Password_Query  := null;
    end record;
 
    package Command_Binding_Vectors is new Ada.Containers.Vectors

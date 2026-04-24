@@ -358,6 +358,42 @@ class TestDialogCodeGeneration(unittest.TestCase):
             body,
         )
 
+    def test_live_css_childless_dialog_emits_static_fallback_for_own_classes(self):
+        """A childless dialog with style classes must still register
+        Add_Static_Entry for its own classes, otherwise the Static_Mode
+        fallback (used when the dynamic .css file is missing at runtime,
+        e.g. in a release build) leaves Bind_Class resolving to empty
+        styles and the dialog renders invisibly."""
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="dialog.css" package="Dialog_Styles"/>
+  <dialog title="Prompt"
+          class="prompt-backdrop"
+          panel-class="prompt-panel"
+          title-class="prompt-title"
+          message-class="prompt-message"
+          button-row-class="prompt-button-row"
+          button-class="prompt-btn"
+          primary-button-class="prompt-btn-primary"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "Test_UI")
+        for css_class, style_const in [
+            ("prompt-backdrop", "Prompt_Backdrop_Class_Part_Styles"),
+            ("prompt-panel", "Prompt_Panel_Class_Part_Styles"),
+            ("prompt-title", "Prompt_Title_Class_Part_Styles"),
+            ("prompt-message", "Prompt_Message_Class_Part_Styles"),
+            ("prompt-button-row", "Prompt_Button_Row_Class_Part_Styles"),
+            ("prompt-btn", "Prompt_Btn_Class_Part_Styles"),
+            ("prompt-btn-primary", "Prompt_Btn_Primary_Class_Part_Styles"),
+        ]:
+            self.assertIn(
+                f'Add_Static_Entry\n        (S, Class_Entry ("{css_class}",'
+                f" {style_const}));",
+                body,
+                f"missing Add_Static_Entry for {css_class}",
+            )
+
     def test_live_css_with_class_fallback_emits_styles_package_use(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <adi>

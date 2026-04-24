@@ -1482,7 +1482,13 @@ def generate_body(app: XmlApp, package_name: str,
             (name, classes) for name, classes in dialog_defs if classes
         ]
 
-    if styled_widgets:
+    if styled_widgets or dialog_style_targets:
+        # `dialog_style_targets` carries the dialog's own backdrop/panel/title/
+        # etc. classes. They must register Add_Static_Entry for the
+        # Static_Mode fallback even when the dialog has no styled child
+        # widgets — otherwise dynamic CSS load failures (e.g. a release
+        # build that doesn't ship the .css file at the expected path) leave
+        # those Bind_Class calls resolving to Empty_Part_Styles.
         if live_css:
             # CSS_Source mode — decided at codegen time
             # Deduplicate static entries by individual class name

@@ -732,15 +732,24 @@ def get_root_widget(app: XmlApp) -> Optional[XmlWidget]:
     return app.root_widget
 
 
-def generate_spec(app: XmlApp, package_name: str) -> str:
-    """Generate the .ads (spec) file."""
+def generate_spec(app: XmlApp, package_name: str,
+                  no_live_css: bool = False) -> str:
+    """Generate the .ads (spec) file.
+
+    When `no_live_css` is True, CSS_Source dynamic loading is disabled
+    regardless of `<link>`/`<style>` presence, forcing static-only
+    codegen (direct Set_Part_Styles calls, no Add_Dynamic_File).
+    """
     generics_map = {g.name: g for g in app.generics}
     root = get_root_widget(app)
     all_widgets = collect_all_widgets(root) if root else []
     exported = [w for w in all_widgets if w.explicit_id]
     has_window = app.window is not None
     has_dialog = app.dialog is not None
-    live_css = bool(any(link.href for link in app.css_links) or app.css_styles)
+    live_css = (
+        not no_live_css
+        and bool(any(link.href for link in app.css_links) or app.css_styles)
+    )
 
     # Compute with clauses — only packages referenced in the spec
     withs: set[str] = set()
@@ -907,8 +916,14 @@ def ada_string_literal(s: str) -> str:
 
 def generate_body(app: XmlApp, package_name: str,
                    inline_css_path: str = "",
-                   i18n: bool = False) -> str:
-    """Generate the .adb (body) file."""
+                   i18n: bool = False,
+                   no_live_css: bool = False) -> str:
+    """Generate the .adb (body) file.
+
+    When `no_live_css` is True, CSS_Source dynamic loading is disabled
+    regardless of `<link>`/`<style>` presence, forcing static-only
+    codegen (direct Set_Part_Styles calls, no Add_Dynamic_File).
+    """
     generics_map = {g.name: g for g in app.generics}
     root = get_root_widget(app)
     all_widgets = collect_all_widgets(root) if root else []
@@ -916,7 +931,10 @@ def generate_body(app: XmlApp, package_name: str,
     internal = [w for w in all_widgets if not w.explicit_id]
     has_window = app.window is not None
     has_dialog = app.dialog is not None
-    live_css = bool(any(link.href for link in app.css_links) or app.css_styles)
+    live_css = (
+        not no_live_css
+        and bool(any(link.href for link in app.css_links) or app.css_styles)
+    )
     dialog_default_button = get_dialog_default_button_index(app.dialog)
     dialog_button_count = get_dialog_button_count(app.dialog)
 
@@ -2016,6 +2034,15 @@ def main():
         "--i18n", action="store_true", default=False,
         help="Wrap translatable strings with Adi.I18N.T() calls"
     )
+    parser.add_argument(
+        "--no-live-css", action="store_true", default=False,
+        help=(
+            "Disable CSS live-reload: emit static-only codegen even when "
+            "<link> or <style> are present (no Add_Dynamic_File, no "
+            "Dynamic_Mode). Use for release builds that must not touch "
+            "the filesystem at startup."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -2059,10 +2086,12 @@ def main():
             f.write(combined_css)
         print(f"Generated {css_file}")
 
-    spec_code = generate_spec(app, args.package_name)
+    spec_code = generate_spec(app, args.package_name,
+                              no_live_css=args.no_live_css)
     body_code = generate_body(app, args.package_name,
                               inline_css_path=inline_css_path,
-                              i18n=args.i18n)
+                              i18n=args.i18n,
+                              no_live_css=args.no_live_css)
 
     with open(spec_path, "w") as f:
         f.write(spec_code)

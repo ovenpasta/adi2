@@ -412,6 +412,71 @@ class TestDialogCodeGeneration(unittest.TestCase):
             body,
         )
 
+    def test_no_live_css_forces_static_codegen_on_dialog_with_link(self):
+        """A dialog whose XML declares <link href="..."> would normally
+        emit live-CSS codegen (Add_Dynamic_File + Bind_Class). When
+        no_live_css=True is passed, the generator must degrade to the
+        static-only path — direct Set_Panel_Style etc. — so release
+        builds never touch the filesystem at startup."""
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="dialog.css" package="Dialog_Styles"/>
+  <dialog title="Prompt"
+          class="prompt-backdrop"
+          panel-class="prompt-panel"
+          title-class="prompt-title"
+          message-class="prompt-message"
+          button-row-class="prompt-button-row"
+          button-class="prompt-btn"
+          primary-button-class="prompt-btn-primary"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "Test_UI", no_live_css=True)
+        self.assertNotIn("Add_Dynamic_File", body)
+        self.assertNotIn("Bind_Class", body)
+        self.assertNotIn("Dynamic_Mode", body)
+        self.assertIn(
+            "Adi.Widget.Dialog.Set_Part_Styles (D, Prompt_Backdrop_Class_Part_Styles);",
+            body,
+        )
+        self.assertIn(
+            "Adi.Widget.Dialog.Set_Panel_Style (D, Prompt_Panel_Class_Part_Styles);",
+            body,
+        )
+        self.assertIn(
+            "Adi.Widget.Dialog.Set_Title_Style (D, Prompt_Title_Class_Part_Styles);",
+            body,
+        )
+        self.assertIn(
+            "Adi.Widget.Dialog.Set_Message_Style (D, Prompt_Message_Class_Part_Styles);",
+            body,
+        )
+        self.assertIn(
+            "Adi.Widget.Dialog.Set_Button_Row_Style (D, Prompt_Button_Row_Class_Part_Styles);",
+            body,
+        )
+        self.assertIn(
+            "Adi.Widget.Dialog.Set_Button_Style (D, Prompt_Btn_Class_Part_Styles);",
+            body,
+        )
+        self.assertIn(
+            "Adi.Widget.Dialog.Set_Primary_Button_Style (D, Prompt_Btn_Primary_Class_Part_Styles);",
+            body,
+        )
+
+    def test_no_live_css_also_applies_to_spec(self):
+        """The spec must not import Adi.CSS_Source or declare the
+        tick-refresh machinery when no_live_css disables live-CSS mode."""
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="dialog.css" package="Dialog_Styles"/>
+  <dialog title="Prompt" panel-class="prompt-panel"/>
+</adi>"""
+        app = parse_xml(xml)
+        spec = xml_to_ada.generate_spec(app, "Test_UI", no_live_css=True)
+        self.assertNotIn("Adi.CSS_Source", spec)
+        self.assertNotIn("Tick_Styles_CB", spec)
+
     def test_static_dialog_emits_explicit_internal_styles(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <adi>

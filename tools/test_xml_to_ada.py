@@ -185,8 +185,10 @@ class TestDialogCodeGeneration(unittest.TestCase):
             "function Build return Adi.Widget.Dialog.Dialog_Handle;",
             spec,
         )
-        # Should NOT have Adi.Window or bare Adi.Widget return
-        self.assertNotIn("Adi.Window", spec)
+        #  Build's return type must be a Dialog_Handle, not a window or
+        #  a bare widget. (Adi.Window itself does appear in the with-list
+        #  because Instance.Attach_Window takes a Window_Handle parameter.)
+        self.assertNotIn("return Adi.Window.Window_Handle", spec)
         self.assertNotIn("return Adi.Widget.Widget_Access", spec)
 
     def test_body_creates_dialog_and_sets_title(self):
@@ -476,6 +478,68 @@ class TestDialogCodeGeneration(unittest.TestCase):
         spec = xml_to_ada.generate_spec(app, "Test_UI", no_live_css=True)
         self.assertNotIn("Adi.CSS_Source", spec)
         self.assertNotIn("Tick_Styles_CB", spec)
+
+    def test_dialog_attach_window_always_emitted(self):
+        """`Instance.Attach_Window` is part of the dialog API contract.
+        It must be declared in the spec and defined in the body whenever
+        the app is a <dialog>, regardless of CSS mode or component
+        presence — otherwise downstream callers like
+        `My_Dlg.Attach_Window (D, Win)` fail to compile under
+        --no-live-css for dialogs without component packages."""
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <dialog title="Plain"/>
+</adi>"""
+        app = parse_xml(xml)
+
+        #  No <link>, no <style>, no components: live_css is naturally
+        #  False — the original guard would have skipped Attach_Window.
+        spec = xml_to_ada.generate_spec(app, "Test_UI")
+        body = xml_to_ada.generate_body(app, "Test_UI")
+        self.assertIn(
+            "procedure Attach_Window"
+            " (D : Adi.Widget.Dialog.Dialog_Handle;"
+            " Host : Adi.Window.Window_Handle);",
+            spec,
+        )
+        self.assertIn("with Adi.Window;", spec)
+        self.assertIn(
+            "procedure Attach_Window"
+            " (D : Adi.Widget.Dialog.Dialog_Handle;"
+            " Host : Adi.Window.Window_Handle) is",
+            body,
+        )
+        self.assertIn(
+            "Adi.Widget.Dialog.Attach_Window (D, Host);", body
+        )
+        #  No tick-hook when there's nothing to tick.
+        self.assertNotIn("Live_CSS_Host", body)
+        self.assertNotIn("Connect_Tick", body)
+
+    def test_dialog_attach_window_emitted_under_no_live_css(self):
+        """Same as above but for the realistic case: the XML *has* a
+        <link> (so live-CSS would normally be on), but --no-live-css
+        forces the static-only path. The wrapper must still be a stable
+        pass-through for callers."""
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="dlg.css" package="Dlg_Styles"/>
+  <dialog title="Plain" panel-class="plain-panel"/>
+</adi>"""
+        app = parse_xml(xml)
+        spec = xml_to_ada.generate_spec(app, "Test_UI", no_live_css=True)
+        body = xml_to_ada.generate_body(app, "Test_UI", no_live_css=True)
+        self.assertIn(
+            "procedure Attach_Window"
+            " (D : Adi.Widget.Dialog.Dialog_Handle;"
+            " Host : Adi.Window.Window_Handle);",
+            spec,
+        )
+        self.assertIn(
+            "Adi.Widget.Dialog.Attach_Window (D, Host);", body
+        )
+        self.assertNotIn("Live_CSS_Host", body)
+        self.assertNotIn("Connect_Tick", body)
 
     def test_static_dialog_emits_explicit_internal_styles(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>

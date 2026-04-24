@@ -51,6 +51,11 @@ package body Delete_Dialog_UI is
       Success := True;
    end Tick_Styles;
 
+   procedure Attach_Window (D : Adi.Widget.Dialog.Dialog_Handle; Host : Adi.Window.Window_Handle) is
+   begin
+      Adi.Widget.Dialog.Attach_Window (D, Host);
+   end Attach_Window;
+
    procedure Apply_Box_1_Styles
      (H : Widget_Handle) is
    begin

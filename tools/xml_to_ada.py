@@ -757,8 +757,10 @@ def generate_spec(app: XmlApp, package_name: str,
         withs.add("Adi.Window")
     elif has_dialog:
         withs.add("Adi.Widget.Dialog")
-        if live_css or app.component_packages:
-            withs.add("Adi.Window")
+        # `Instance.Attach_Window` is always emitted when the app is a
+        # dialog (regardless of CSS mode), so its `Window_Handle`
+        # parameter type always needs Adi.Window in scope.
+        withs.add("Adi.Window")
     else:
         withs.add("Adi.Widget")
     for w in exported:
@@ -875,7 +877,13 @@ def generate_spec(app: XmlApp, package_name: str,
     lines.append("                             Success  : out Boolean);")
     lines.append("")
 
-    if has_dialog and (live_css or app.component_packages):
+    if has_dialog:
+        # Always declare Attach_Window for dialog apps so callers have a
+        # stable API regardless of CSS mode. When live-CSS is off and the
+        # app has no component packages, the body is just a pass-through
+        # to Adi.Widget.Dialog.Attach_Window — but the wrapper must still
+        # exist so downstream code that calls `Xyz_Dlg.Attach_Window`
+        # keeps compiling under --no-live-css.
         lines.append(
             "      procedure Attach_Window"
             " (D : Adi.Widget.Dialog.Dialog_Handle;"
@@ -944,8 +952,9 @@ def generate_body(app: XmlApp, package_name: str,
         spec_withs.add("Adi.Window")
     elif has_dialog:
         spec_withs.add("Adi.Widget.Dialog")
-        if live_css or app.component_packages:
-            spec_withs.add("Adi.Window")
+        # Mirrors the spec: `Instance.Attach_Window` is always emitted
+        # when the app is a dialog, so Adi.Window is always inherited.
+        spec_withs.add("Adi.Window")
     else:
         spec_withs.add("Adi.Widget")
     for w in exported:
@@ -1290,7 +1299,7 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append("      Tick_Styles (Reloaded, Success);")
         lines.append("   end Tick_Styles_CB;")
 
-    if has_dialog and (live_css or app.component_packages):
+    if has_dialog:
         lines.append("")
         lines.append(
             "   procedure Attach_Window"
@@ -1299,13 +1308,17 @@ def generate_body(app: XmlApp, package_name: str,
         )
         lines.append("   begin")
         lines.append("      Adi.Widget.Dialog.Attach_Window (D, Host);")
-        lines.append("      if Live_CSS_Host /= Host then")
-        lines.append(
-            "         Adi.Window.Connect_Tick"
-            " (Host, Tick_Styles_CB'Unrestricted_Access);"
-        )
-        lines.append("         Live_CSS_Host := Host;")
-        lines.append("      end if;")
+        if live_css or app.component_packages:
+            #  Tick-hook is only meaningful when CSS_Source live-reload or
+            #  child component instances exist. Otherwise the body is a
+            #  pass-through wrapper.
+            lines.append("      if Live_CSS_Host /= Host then")
+            lines.append(
+                "         Adi.Window.Connect_Tick"
+                " (Host, Tick_Styles_CB'Unrestricted_Access);"
+            )
+            lines.append("         Live_CSS_Host := Host;")
+            lines.append("      end if;")
         lines.append("   end Attach_Window;")
 
     # Set_CSS_File — clear + reload dynamic entries + enable live reload

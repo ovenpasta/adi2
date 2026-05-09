@@ -227,6 +227,28 @@ line breaks should be preserved.</p>
     </p>
   </div>
 
+  <h2>5b) Margin Collapse-Through</h2>
+  <p class="panel" style="margin: 0 0 24px 0;">
+    Sibling above with margin-bottom 24px. The transparent
+    <code>&lt;center&gt;</code> below has no padding/border, so its
+    last child's bottom margin should collapse with the next paragraph's
+    top margin (max wins, not sum).
+  </p>
+  <center style="margin: 0; padding: 0;">
+    <p class="panel" style="margin: 24px 0;">
+      Inside center: this paragraph's top and bottom margins should
+      propagate outward through center.
+    </p>
+  </center>
+  <p class="panel" style="margin: 24px 0 0 0;">
+    Sibling below with margin-top 24px. Gap above should be ~24px,
+    not 24+24=48px.
+  </p>
+  <p class="panel preline" style="margin: 32px 0 0 0;">A pre-line block:
+the rendered newline above committed margins, so this paragraph's
+margin-top collapses with the previous paragraph's margin-bottom
+exactly as for normal blocks.</p>
+
   <h2>6) Lists and Marker Styles</h2>
   <p class="panel">
     The next lists showcase all marker styles supported by the widget:

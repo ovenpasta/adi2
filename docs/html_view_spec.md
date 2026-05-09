@@ -19,6 +19,8 @@
 - Added default stylesheet system (`Set_Default_Stylesheet`, `Set_Default_Stylesheet_String`) with browser-like typographic defaults in `examples/assets/html/default.css`.
 - Fixed `em` unit resolution in text measurement functions (was incorrectly using viewport height as font size).
 - `hr` block element now respects CSS margins.
+- Phase 4 milestone completed on 2026-05-09.
+- Implemented full CSS vertical margin collapsing: adjacent siblings, parent ↔ first/last child collapse-through across transparent wrappers, padding/border as collapse stoppers, and rendered-newline / `<br>` / `<hr>` commit semantics.
 - Temporary decoration workaround is active in `Adi.Widget` for `underline`, `line-through`, and `overline`.
   - Reason: current SDL_ttf renderer text engine can render decoration fill ops with white RGB for non-white text colors.
   - Upstream issue draft and patch are tracked in `deps/issues/sdl_ttf_text_decoration_color_issue.md` and `deps/issues/sdl_ttf_text_decoration_color.patch`.
@@ -146,6 +148,28 @@ Package: `Adi.Widget.Html_View`
 - Vertical margins/padding/border participate via existing style resolution.
 - Block elements emit panel items with the resolved element style, so block
   `background-color`/`border*` visuals are rendered.
+
+### Vertical Margin Collapsing
+The renderer implements CSS-style vertical margin collapsing:
+
+- **Adjacent siblings**: two adjacent block siblings' touching margins
+  collapse to `max(prev.bottom, next.top)`, not the sum.
+- **Collapse-through (parent ↔ first/last child)**: when a parent has no
+  top padding/border, its top margin collapses with the first child's top
+  margin and propagates outward; same for bottom. This makes transparent
+  wrappers like `<center>`, `<div>` (no padding), and `<section>` rhythm
+  the same way as inline-level structural HTML.
+- **Stoppers**: any of the following commits a pending margin and
+  prevents collapse-through past it:
+  - Top/bottom padding or border on the block.
+  - Inline content (text run, `<img>`, `<svg>`).
+  - `<br>` and rendered newlines inside `white-space: pre`, `pre-wrap`,
+    or `pre-line`.
+  - `<hr>` (rendered as a replaced block; participates in collapsing on
+    both sides but does not allow collapse through itself).
+- **Whitespace-only text nodes** between block boundaries (the indentation
+  in pretty-printed HTML) are not committing events: they leave the
+  pending margin alone so collapse-through survives source formatting.
 
 ### Inline Flow
 - Inline content is line-wrapped by available width (similar to text widgets).
@@ -299,6 +323,18 @@ Package: `Adi.Widget.Html_View`
   - User CSS overrides default stylesheet rules.
   - Defaults survive `Clear` + re-set.
   - Late `Set_Default_Stylesheet_String` triggers reparse of current content.
+- Vertical margin collapsing:
+  - Adjacent siblings collapse to `max(prev.bottom, next.top)`.
+  - Collapse-through last child of a transparent parent (e.g. `<center>`)
+    on pretty-printed source.
+  - Collapse-through first child of a transparent parent on pretty-printed
+    source.
+  - Top padding/border traps the inner block's top margin
+    (collapse-through stops at the padding edge).
+  - `<br>` commits pending margins and stops collapse-through.
+  - Rendered newlines inside `white-space: pre-line` commit pending
+    margins (same path also covers `pre` and `pre-wrap`).
+  - `<hr>` participates in collapsing on both top and bottom edges.
 
 ## Implementation Milestones
 1. Parser + normalized node model + recovery/entity handling.

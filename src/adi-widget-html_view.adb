@@ -1595,9 +1595,19 @@ package body Adi.Widget.Html_View is
       Current_Line_Align   : Text_Align_Value := Text_Start;
       Pending_Space : Boolean := False;
 
-      --  Vertical margin collapsing: track the previous block's bottom margin
-      --  so adjacent block margins collapse to max(bottom, top) per CSS spec.
+      --  Vertical margin collapsing: track the running pending margin
+      --  so adjacent block margins collapse to max(bottom, top), and so
+      --  margins propagate through transparent parents (collapse-through).
       Prev_Block_Margin_Bottom : Pixel_Type := 0.0;
+
+      --  Panels whose top Y was tentatively set while a margin was still
+      --  pending. Their Geometry.Y is rewritten to the committed Y when
+      --  Flush_Pending_Margin actually advances Y.
+      package Pending_Top_Vectors is new Ada.Containers.Vectors
+        (Index_Type   => Positive,
+         Element_Type => Positive);
+
+      Pending_Tops : Pending_Top_Vectors.Vector;
 
       type List_Marker_Kind is (No_Marker, Text_Marker, Image_Marker);
 
@@ -1646,6 +1656,13 @@ package body Adi.Widget.Html_View is
          Height     : Pixel_Type;
          Href       : String;
          Style      : Resolved_Style);
+
+      procedure Flush_Pending_Margin;
+
+      function Resolve_Box_Edges
+        (Box             : CSS_Box_Value;
+         Style           : Resolved_Style;
+         Container_Width : Pixel_Type) return Edge_Pixels;
 
       function Clip_To_Content (R : Rectangle) return Rectangle is
          X1 : constant Pixel_Type := Pixel_Type'Max (R.X, Content.X);
@@ -2043,6 +2060,8 @@ package body Adi.Widget.Html_View is
             return;
          end if;
 
+         Flush_Pending_Margin;
+
          if Wrap_Allowed (Style)
            and then X > Line_Left
             and then X
@@ -2170,6 +2189,8 @@ package body Adi.Widget.Html_View is
             return;
          end if;
 
+         Flush_Pending_Margin;
+
          if Wrap_Allowed (Style)
            and then X > Line_Left
            and then X + Width > Line_Right
@@ -2229,45 +2250,21 @@ package body Adi.Widget.Html_View is
       end Add_Image_Run;
 
       procedure Add_Horizontal_Rule (Style : Resolved_Style) is
+         Margin_Edges : constant Edge_Pixels :=
+           Resolve_Box_Edges (Style.Margin, Style, Current_Line_Width);
          Rule_H : Pixel_Type := 1.0;
          Rule_Geom : Rectangle;
-         Font_Px : constant Pixel_Type := Local_Font_Size_Px (Style);
-
-         function Margin_Top return Pixel_Type is
-         begin
-            case Style.Margin.Kind is
-               when Gap_Uniform =>
-                  return Local_Length_To_Px
-                    (Style.Margin.All_Sides, Current_Line_Width, Font_Px);
-               when Axis =>
-                  return Local_Length_To_Px
-                    (Style.Margin.Vertical, Current_Line_Width, Font_Px);
-               when Per_Side =>
-                  return Local_Length_To_Px
-                    (Style.Margin.Sides (Top), Current_Line_Width, Font_Px);
-            end case;
-         end Margin_Top;
-
-         function Margin_Bottom return Pixel_Type is
-         begin
-            case Style.Margin.Kind is
-               when Gap_Uniform =>
-                  return Local_Length_To_Px
-                    (Style.Margin.All_Sides, Current_Line_Width, Font_Px);
-               when Axis =>
-                  return Local_Length_To_Px
-                    (Style.Margin.Vertical, Current_Line_Width, Font_Px);
-               when Per_Side =>
-                  return Local_Length_To_Px
-                    (Style.Margin.Sides (Bottom), Current_Line_Width, Font_Px);
-            end case;
-         end Margin_Bottom;
       begin
          if Has_Line_Content or else Pending_Space then
             New_Line;
          end if;
 
-         Y := Y + Margin_Top;
+         --  Collapse hr's top margin with anything pending (siblings or a
+         --  transparent parent), then commit Y so the rule lands beneath
+         --  the collapsed gap.
+         Prev_Block_Margin_Bottom :=
+           Pixel_Type'Max (Prev_Block_Margin_Bottom, Margin_Edges.Top);
+         Flush_Pending_Margin;
 
          if Style.Height.Kind = Fixed then
             Rule_H := Pixel_Type'Max
@@ -2294,7 +2291,10 @@ package body Adi.Widget.Html_View is
          end;
 
          New_Line;
-         Y := Y + Margin_Bottom;
+
+         --  Defer hr's bottom margin so it collapses with the next
+         --  sibling or propagates outward through a transparent parent.
+         Prev_Block_Margin_Bottom := Margin_Edges.Bottom;
       end Add_Horizontal_Rule;
 
       procedure Process_Collapsed_Text
@@ -2307,7 +2307,13 @@ package body Adi.Widget.Html_View is
       begin
          while Start <= Text'Last loop
             if Is_Whitespace (Text (Start)) then
-               Pending_Space := True;
+               --  Only latch a pending space when there is real preceding
+               --  inline content. Inter-block indentation/newlines must not
+               --  set this flag, otherwise block-enter would call New_Line
+               --  and bump Y by a line height for nothing.
+               if Has_Line_Content then
+                  Pending_Space := True;
+               end if;
                Start := Start + 1;
             else
                Stop := Start;
@@ -2344,6 +2350,9 @@ package body Adi.Widget.Html_View is
                   Add_Text_Run (To_String (Buffer), Href, Style);
                   Buffer := Null_Unbounded_String;
                end if;
+               --  A rendered newline is real content; commit any pending
+               --  margin so it stops collapse-through, mirroring <br>.
+               Flush_Pending_Margin;
                New_Line;
             else
                Append (Buffer, C);
@@ -2371,6 +2380,9 @@ package body Adi.Widget.Html_View is
                   Process_Collapsed_Text (Text (Segment_Start .. I - 1), Href, Style);
                end if;
 
+               --  A rendered newline is real content; commit any pending
+               --  margin so it stops collapse-through, mirroring <br>.
+               Flush_Pending_Margin;
                New_Line;
                Pending_Space := False;
 
@@ -2388,13 +2400,18 @@ package body Adi.Widget.Html_View is
          end if;
       end Process_Pre_Line_Text;
 
-      --  Flush any deferred block bottom margin into Y before inline content.
+      --  Commit any deferred margin and finalize the top Y of any panels
+      --  whose position was tentatively set while waiting for collapse.
       procedure Flush_Pending_Margin is
       begin
          if Prev_Block_Margin_Bottom > 0.0 then
             Y := Y + Prev_Block_Margin_Bottom;
             Prev_Block_Margin_Bottom := 0.0;
          end if;
+         for Idx of Pending_Tops loop
+            Self.Items.Reference (Idx).Geometry.Y := Y;
+         end loop;
+         Pending_Tops.Clear;
       end Flush_Pending_Margin;
 
       procedure Process_Text_Node
@@ -2406,7 +2423,10 @@ package body Adi.Widget.Html_View is
          if Text'Length = 0 then
             return;
          end if;
-         Flush_Pending_Margin;
+
+         --  Note: Flush_Pending_Margin is now called inside Add_Text_Run /
+         --  Add_Image_Run. Whitespace-only text in collapsed mode never
+         --  reaches those, so it must not commit a pending margin.
 
          case Style.White_Space is
             when WS_Pre | WS_Pre_Wrap =>
@@ -2567,6 +2587,10 @@ package body Adi.Widget.Html_View is
                Process_Text_Node (To_String (N.Text), Active_Link, Parent_Style);
 
             when Break_Node =>
+               --  <br> is rendered content; commit any pending margin so
+               --  the break stops collapse-through (a forced line break
+               --  cannot be papered over by margin collapsing).
+               Flush_Pending_Margin;
                New_Line;
 
             when Element_Node =>
@@ -2589,7 +2613,6 @@ package body Adi.Widget.Html_View is
                      null;
 
                   elsif Tag = "img" then
-                     Flush_Pending_Margin;
                      declare
                         Src : constant String := To_String (N.Attrs.Src_Attr);
                         Alt : constant String := To_String (N.Attrs.Alt_Attr);
@@ -2615,7 +2638,6 @@ package body Adi.Widget.Html_View is
                      end;
 
                   elsif Tag = "svg" then
-                     Flush_Pending_Margin;
                      declare
                         Src : constant String := To_String (N.Attrs.Svg_Source_Attr);
                         Img : constant Adi.Image.Image_Access := Resolve_Inline_SVG (Self, Src);
@@ -2638,7 +2660,6 @@ package body Adi.Widget.Html_View is
                      end;
 
                   elsif Tag = "hr" then
-                     Flush_Pending_Margin;
                      Add_Horizontal_Rule (Style);
 
                   else
@@ -2683,39 +2704,56 @@ package body Adi.Widget.Html_View is
                            Margin_Edges := Resolve_Box_Edges (Style.Margin, Style, Local_Container_W);
                            Padding_Edges := Resolve_Box_Edges (Style.Padding, Style, Local_Container_W);
 
-                           --  Vertical margin collapsing: adjacent block margins
-                           --  collapse to max(prev_bottom, this_top) per CSS spec.
+                           --  Vertical margin collapsing. Defer the commit
+                           --  when there is no top padding/border so the
+                           --  parent's top margin can collapse-through with
+                           --  its first child's top margin (CSS spec).
                            declare
-                              Collapsed_Top : constant Pixel_Type :=
-                                Pixel_Type'Max (Margin_Edges.Top, Prev_Block_Margin_Bottom);
+                              Border_Edges : constant Edge_Pixels :=
+                                Get_Border_Width_Px (Style);
+                              Has_Top_Sep : constant Boolean :=
+                                Padding_Edges.Top > 0.0
+                                  or else Border_Edges.Top > 0.0;
+                              Combined : constant Pixel_Type :=
+                                Pixel_Type'Max
+                                  (Margin_Edges.Top, Prev_Block_Margin_Bottom);
                            begin
-                              Block_Top_Y := Y + Collapsed_Top;
-                              Prev_Block_Margin_Bottom := 0.0;
-                           end;
-                           Block_Left_X := Prev_Line_Left + Margin_Edges.Left;
-                           Block_Width :=
-                             Pixel_Type'Max
-                               (0.0,
-                                (Prev_Line_Right - Prev_Line_Left)
-                                - Margin_Edges.Left - Margin_Edges.Right);
+                              Prev_Block_Margin_Bottom := Combined;
+                              Block_Top_Y := Y + Combined;
+                              Block_Left_X := Prev_Line_Left + Margin_Edges.Left;
+                              Block_Width :=
+                                Pixel_Type'Max
+                                  (0.0,
+                                   (Prev_Line_Right - Prev_Line_Left)
+                                   - Margin_Edges.Left - Margin_Edges.Right);
 
-                           declare
-                              It : Item :=
-                                Make_Panel
-                                  (Any_Part,
-                                   (X      => Block_Left_X,
-                                    Y      => Block_Top_Y,
-                                    Width  => Block_Width,
-                                    Height => 0.0),
-                                   0);
-                           begin
-                              It.Has_Style_Override := True;
-                              It.Style_Override := Style;
-                              Add_Item (Self, It);
-                              Block_Item_Index := Natural (Self.Items.Last_Index);
-                           end;
+                              declare
+                                 It : Item :=
+                                   Make_Panel
+                                     (Any_Part,
+                                      (X      => Block_Left_X,
+                                       Y      => Block_Top_Y,
+                                       Width  => Block_Width,
+                                       Height => 0.0),
+                                      0);
+                              begin
+                                 It.Has_Style_Override := True;
+                                 It.Style_Override := Style;
+                                 Add_Item (Self, It);
+                                 Block_Item_Index := Natural (Self.Items.Last_Index);
+                              end;
 
-                           Y := Block_Top_Y + Padding_Edges.Top;
+                              if Has_Top_Sep then
+                                 Flush_Pending_Margin;
+                                 Y := Block_Top_Y + Padding_Edges.Top;
+                              else
+                                 Pending_Tops.Append (Positive (Block_Item_Index));
+                                 --  Y stays put; first content commits via
+                                 --  Flush_Pending_Margin and the panel's Y
+                                 --  is rewritten to the committed Y at that
+                                 --  point.
+                              end if;
+                           end;
 
                            Line_Left := Prev_Line_Left + Margin_Edges.Left + Padding_Edges.Left;
                            Line_Right := Prev_Line_Right - Margin_Edges.Right - Padding_Edges.Right;
@@ -2810,21 +2848,47 @@ package body Adi.Widget.Html_View is
                               List_Stack.Delete_Last;
                            end if;
 
+                           declare
+                              Border_Edges : constant Edge_Pixels :=
+                                Get_Border_Width_Px (Style);
+                              Has_Bot_Sep : constant Boolean :=
+                                Padding_Edges.Bottom > 0.0
+                                  or else Border_Edges.Bottom > 0.0;
+                           begin
+                              if Has_Bot_Sep then
+                                 --  Bottom padding/border anchors the box;
+                                 --  flush any descendant pending margin
+                                 --  and then add our padding.
+                                 Flush_Pending_Margin;
+                                 Y := Y + Padding_Edges.Bottom;
+                                 Prev_Block_Margin_Bottom := Margin_Edges.Bottom;
+                              else
+                                 --  No bottom separation: collapse-through.
+                                 --  Our bottom margin merges with whatever
+                                 --  the last child deferred.
+                                 Prev_Block_Margin_Bottom :=
+                                   Pixel_Type'Max
+                                     (Prev_Block_Margin_Bottom,
+                                      Margin_Edges.Bottom);
+                              end if;
+                           end;
+
                            if Block_Item_Index > 0 then
                               declare
-                                 Block_Bottom_Y : constant Pixel_Type := Y + Padding_Edges.Bottom;
+                                 --  Re-read panel Y in case Flush_Pending_Margin
+                                 --  moved it after this block was added.
+                                 Final_Top : constant Pixel_Type :=
+                                   Self.Items.Reference
+                                     (Positive (Block_Item_Index)).Geometry.Y;
+                                 Block_Bottom_Y : constant Pixel_Type := Y;
                               begin
                                  Self.Items.Reference (Positive (Block_Item_Index)).Geometry :=
                                    (X      => Block_Left_X,
-                                    Y      => Block_Top_Y,
+                                    Y      => Final_Top,
                                     Width  => Block_Width,
-                                    Height => Pixel_Type'Max (0.0, Block_Bottom_Y - Block_Top_Y));
+                                    Height => Pixel_Type'Max (0.0, Block_Bottom_Y - Final_Top));
                               end;
                            end if;
-
-                           Y := Y + Padding_Edges.Bottom;
-                           --  Defer bottom margin for collapsing with next block
-                           Prev_Block_Margin_Bottom := Margin_Edges.Bottom;
 
                            Line_Left := Prev_Line_Left;
                            Line_Right := Prev_Line_Right;

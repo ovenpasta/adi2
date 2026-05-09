@@ -1278,6 +1278,351 @@ procedure Html_View_Test is
       New_Line;
    end Test_Margin_Collapsing;
 
+   procedure Test_Margin_Collapse_Through_Last_Child is
+      --  Pretty-printed HTML: a transparent <center> wraps a styled
+      --  heading. The heading's bottom margin must collapse with the next
+      --  sibling's top margin even though center sits between them, and
+      --  whitespace-only text nodes from indentation must not commit any
+      --  margin or insert a blank line.
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      A_Idx, B_Idx, C_Idx : Natural := 0;
+   begin
+      Put_Line ("Test: margin collapse-through last child (pretty-printed)");
+
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 400.0, Height => 400.0));
+
+      Adi.Widget.Html_View.Set_HTML
+        (W,
+         "<style>" &
+         "h1 { font-size: 16px; line-height: 1; margin: 30px 0 30px 0; }" &
+         "p  { font-size: 16px; line-height: 1; margin: 10px 0 0 0; }" &
+         "center { margin: 0px; padding: 0px; }" &
+         "</style>" &
+         "<h1>aaa</h1>" & ASCII.LF &
+         "<center>" & ASCII.LF &
+         "  <h1>bbb</h1>" & ASCII.LF &
+         "</center>" & ASCII.LF &
+         "<p>ccc</p>");
+      Adi.Widget.Build_Items (+W);
+
+      A_Idx := Find_Text_Item_Index (W, "aaa");
+      B_Idx := Find_Text_Item_Index (W, "bbb");
+      C_Idx := Find_Text_Item_Index (W, "ccc");
+      Assert (A_Idx > 0 and then B_Idx > 0 and then C_Idx > 0,
+              "collapse-through last child: all three blocks exist");
+
+      if A_Idx > 0 and then B_Idx > 0 and then C_Idx > 0 then
+         declare
+            A : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (A_Idx));
+            B : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (B_Idx));
+            C : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (C_Idx));
+            Gap_AB : constant Adi.Core.Pixel_Type :=
+              B.Geometry.Y - (A.Geometry.Y + A.Geometry.Height);
+            Gap_BC : constant Adi.Core.Pixel_Type :=
+              C.Geometry.Y - (B.Geometry.Y + B.Geometry.Height);
+         begin
+            --  h1 #1 -> h1 #2 sibling collapse through transparent
+            --  center: max(30, 30) = 30, not 30 + 30 = 60.
+            Assert (Gap_AB >= 26.0 and then Gap_AB <= 34.0,
+                    "collapse-through: h1->h1 gap ~30px (got" & Gap_AB'Image & ")");
+            --  h1 #2 -> p collapse-through center's last-child boundary:
+            --  max(30, 10) = 30, not 10 (current bug drops 30).
+            Assert (Gap_BC >= 26.0 and then Gap_BC <= 34.0,
+                    "collapse-through last child: h1->p gap ~30px (got" & Gap_BC'Image & ")");
+            Assert (Gap_BC > 16.0,
+                    "collapse-through last child: not just next sibling's margin");
+         end;
+      end if;
+
+      New_Line;
+   end Test_Margin_Collapse_Through_Last_Child;
+
+   procedure Test_Margin_Collapse_Through_First_Child is
+      --  Symmetric to last-child: the prior sibling's bottom margin must
+      --  collapse with the first child's top margin even though center
+      --  sits between them.
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      A_Idx, B_Idx : Natural := 0;
+   begin
+      Put_Line ("Test: margin collapse-through first child (pretty-printed)");
+
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 400.0, Height => 400.0));
+
+      Adi.Widget.Html_View.Set_HTML
+        (W,
+         "<style>" &
+         "p  { font-size: 16px; line-height: 1; margin: 0 0 10px 0; }" &
+         "h1 { font-size: 16px; line-height: 1; margin: 30px 0 0 0; }" &
+         "center { margin: 0px; padding: 0px; }" &
+         "</style>" &
+         "<p>aaa</p>" & ASCII.LF &
+         "<center>" & ASCII.LF &
+         "  <h1>bbb</h1>" & ASCII.LF &
+         "</center>");
+      Adi.Widget.Build_Items (+W);
+
+      A_Idx := Find_Text_Item_Index (W, "aaa");
+      B_Idx := Find_Text_Item_Index (W, "bbb");
+      Assert (A_Idx > 0 and then B_Idx > 0,
+              "collapse-through first child: both blocks exist");
+
+      if A_Idx > 0 and then B_Idx > 0 then
+         declare
+            A : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (A_Idx));
+            B : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (B_Idx));
+            Gap : constant Adi.Core.Pixel_Type :=
+              B.Geometry.Y - (A.Geometry.Y + A.Geometry.Height);
+         begin
+            --  Should be max(10, 30, 0) = 30, not 10 + 30 = 40.
+            Assert (Gap >= 26.0 and then Gap <= 34.0,
+                    "collapse-through first child: gap ~30px (got" & Gap'Image & ")");
+            Assert (Gap < 36.0,
+                    "collapse-through first child: not sum of margins");
+         end;
+      end if;
+
+      New_Line;
+   end Test_Margin_Collapse_Through_First_Child;
+
+   procedure Test_Margin_Padding_Stops_Collapse is
+      --  A parent with non-zero top padding traps the inner block's top
+      --  margin: collapse-through stops at the padding edge.
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      A_Idx, B_Idx : Natural := 0;
+   begin
+      Put_Line ("Test: padding/border stops margin collapse-through");
+
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 400.0, Height => 400.0));
+
+      Adi.Widget.Html_View.Set_HTML
+        (W,
+         "<style>" &
+         "p { font-size: 16px; line-height: 1; margin: 0 0 20px 0; }" &
+         ".padbox { padding: 14px; margin: 0px; }" &
+         "</style>" &
+         "<p>aaa</p>" & ASCII.LF &
+         "<div class=""padbox"">" & ASCII.LF &
+         "  <p style=""margin: 20px 0 0 0;"">bbb</p>" & ASCII.LF &
+         "</div>");
+      Adi.Widget.Build_Items (+W);
+
+      A_Idx := Find_Text_Item_Index (W, "aaa");
+      B_Idx := Find_Text_Item_Index (W, "bbb");
+      Assert (A_Idx > 0 and then B_Idx > 0,
+              "padding stops collapse: both blocks exist");
+
+      if A_Idx > 0 and then B_Idx > 0 then
+         declare
+            A : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (A_Idx));
+            B : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (B_Idx));
+            Gap : constant Adi.Core.Pixel_Type :=
+              B.Geometry.Y - (A.Geometry.Y + A.Geometry.Height);
+         begin
+            --  Outside collapse: max(p.bottom=20, div.top=0) = 20.
+            --  Then div has padding-top 14 which traps the inner p's
+            --  top margin (20).
+            --  So total gap = 20 + 14 + 20 = 54 (±5 tolerance).
+            Assert (Gap >= 49.0 and then Gap <= 59.0,
+                    "padding traps inner margin: gap ~54px (got" & Gap'Image & ")");
+         end;
+      end if;
+
+      New_Line;
+   end Test_Margin_Padding_Stops_Collapse;
+
+   procedure Test_Br_Stops_Collapse_Through is
+      --  <br> is rendered content; it must commit pending margins so the
+      --  h1 below cannot collapse-through with the parent's own outer
+      --  margin context.
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      A_Idx, B_Idx : Natural := 0;
+   begin
+      Put_Line ("Test: <br> blocks margin collapse-through");
+
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 400.0, Height => 400.0));
+
+      Adi.Widget.Html_View.Set_HTML
+        (W,
+         "<style>" &
+         "p  { font-size: 16px; line-height: 1; margin: 0 0 20px 0; }" &
+         "h1 { font-size: 16px; line-height: 1; margin: 30px 0 0 0; }" &
+         "div { margin: 0px; padding: 0px; }" &
+         "</style>" &
+         "<p>aaa</p>" & ASCII.LF &
+         "<div>" & ASCII.LF &
+         "  <br>" & ASCII.LF &
+         "  <h1>bbb</h1>" & ASCII.LF &
+         "</div>");
+      Adi.Widget.Build_Items (+W);
+
+      A_Idx := Find_Text_Item_Index (W, "aaa");
+      B_Idx := Find_Text_Item_Index (W, "bbb");
+      Assert (A_Idx > 0 and then B_Idx > 0,
+              "br stops collapse-through: both blocks exist");
+
+      if A_Idx > 0 and then B_Idx > 0 then
+         declare
+            A : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (A_Idx));
+            B : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (B_Idx));
+            Gap : constant Adi.Core.Pixel_Type :=
+              B.Geometry.Y - (A.Geometry.Y + A.Geometry.Height);
+         begin
+            --  Without <br> blocking, this would be max(20, 30) = 30.
+            --  With <br>, p.margin_bottom=20 commits, then <br> adds a
+            --  line height (~16), then h1.margin_top=30 collapses with
+            --  no pending margin (br already committed) so adds 30.
+            --  Total ≥ 30 + line_height ≈ 46+.
+            Assert (Gap > 40.0,
+                    "br stops collapse-through: gap > 40px (got" & Gap'Image & ")");
+         end;
+      end if;
+
+      New_Line;
+   end Test_Br_Stops_Collapse_Through;
+
+   procedure Test_Pre_Line_Newline_Stops_Collapse_Through is
+      --  A rendered newline inside white-space: pre-line is real content
+      --  (it produces a visible line break), so it must commit pending
+      --  margins. Otherwise the following block child can collapse-through
+      --  with the previous sibling's bottom margin past content that
+      --  should separate them.
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      A_Idx, B_Idx : Natural := 0;
+   begin
+      Put_Line ("Test: pre-line rendered newline blocks margin collapse-through");
+
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 400.0, Height => 400.0));
+
+      Adi.Widget.Html_View.Set_HTML
+        (W,
+         "<style>" &
+         "p { font-size: 16px; line-height: 1; margin: 0 0 20px 0; }" &
+         "h1 { font-size: 16px; line-height: 1; margin: 30px 0 0 0; }" &
+         "div { margin: 0; padding: 0; white-space: pre-line; }" &
+         "</style>" &
+         "<p>aaa</p>" & ASCII.LF &
+         "<div>" & ASCII.LF &
+         "  <h1>bbb</h1>" & ASCII.LF &
+         "</div>");
+      Adi.Widget.Build_Items (+W);
+
+      A_Idx := Find_Text_Item_Index (W, "aaa");
+      B_Idx := Find_Text_Item_Index (W, "bbb");
+      Assert (A_Idx > 0 and then B_Idx > 0,
+              "pre-line newline stops collapse: both blocks exist");
+
+      if A_Idx > 0 and then B_Idx > 0 then
+         declare
+            A : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (A_Idx));
+            B : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (B_Idx));
+            Gap : constant Adi.Core.Pixel_Type :=
+              B.Geometry.Y - (A.Geometry.Y + A.Geometry.Height);
+         begin
+            --  With the rendered \n committing margins:
+            --    p.bottom (20) + line_h (~16) + h1.top (30) ≈ 66.
+            --  Without (bug): h1.top collapses past the \n with p.bottom,
+            --    giving line_h + max(30, 20) ≈ 46.
+            Assert (Gap > 55.0,
+                    "pre-line newline stops collapse: gap > 55px (got" & Gap'Image & ")");
+         end;
+      end if;
+
+      New_Line;
+   end Test_Pre_Line_Newline_Stops_Collapse_Through;
+
+   procedure Test_Hr_Margin_Collapse is
+      --  <hr> margins must participate in the unified collapse model.
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      A_Idx, C_Idx : Natural := 0;
+
+      function Find_Hr_Item_Index return Natural is
+         use type Adi.Widget.Item_Kind;
+      begin
+         --  hr renders as a Panel_Item with very small height.
+         for I in 2 .. Adi.Widget.Item_Count (+W) loop
+            declare
+               It : constant Adi.Widget.Item :=
+                 Adi.Widget.Get_Item (+W, I);
+            begin
+               if It.Kind = Adi.Widget.Panel_Item
+                 and then It.Geometry.Height > 0.0
+                 and then It.Geometry.Height <= 3.0
+                 and then It.Geometry.Width > 100.0
+               then
+                  return I;
+               end if;
+            end;
+         end loop;
+         return 0;
+      end Find_Hr_Item_Index;
+   begin
+      Put_Line ("Test: <hr> participates in margin collapsing");
+
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 400.0, Height => 400.0));
+
+      --  Sibling collapse: <p m_bot=20><hr m_top=30> should be max(20, 30) = 30.
+      Adi.Widget.Html_View.Set_HTML
+        (W,
+         "<style>" &
+         "p { font-size: 16px; line-height: 1; margin: 0 0 20px 0; }" &
+         ".after { margin: 30px 0 0 0; }" &
+         "hr { height: 1px; margin: 30px 0 30px 0; }" &
+         "</style>" &
+         "<p>aaa</p>" & ASCII.LF &
+         "<hr>" & ASCII.LF &
+         "<p class=""after"">ccc</p>");
+      Adi.Widget.Build_Items (+W);
+
+      A_Idx := Find_Text_Item_Index (W, "aaa");
+      C_Idx := Find_Text_Item_Index (W, "ccc");
+      declare
+         Hr_Idx : constant Natural := Find_Hr_Item_Index;
+      begin
+         Assert (A_Idx > 0 and then C_Idx > 0 and then Hr_Idx > 0,
+                 "hr collapse: text and hr items exist");
+
+         if A_Idx > 0 and then C_Idx > 0 and then Hr_Idx > 0 then
+            declare
+               A  : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (A_Idx));
+               H  : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (Hr_Idx));
+               C  : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (C_Idx));
+               Top_Gap : constant Adi.Core.Pixel_Type :=
+                 H.Geometry.Y - (A.Geometry.Y + A.Geometry.Height);
+               Bot_Gap : constant Adi.Core.Pixel_Type :=
+                 C.Geometry.Y - (H.Geometry.Y + H.Geometry.Height);
+            begin
+               --  Sibling collapse on top side: max(20, 30) = 30. The hr
+               --  is centered within Current_Line_H so the rendered Y is
+               --  offset by up to half a line height (~8px); allow that.
+               Assert (Top_Gap >= 26.0 and then Top_Gap <= 42.0,
+                       "hr top sibling collapse: gap ~30-40px (got" & Top_Gap'Image & ")");
+               Assert (Top_Gap < 46.0,
+                       "hr top: not the additive sum of margins (50)");
+               --  Sibling collapse on bottom side: max(30, 30) = 30, same
+               --  centering offset.
+               Assert (Bot_Gap >= 22.0 and then Bot_Gap <= 42.0,
+                       "hr bottom sibling collapse: gap ~30-40px (got" & Bot_Gap'Image & ")");
+               Assert (Bot_Gap < 56.0,
+                       "hr bottom: not the additive sum of margins (60)");
+            end;
+         end if;
+      end;
+
+      New_Line;
+   end Test_Hr_Margin_Collapse;
+
    procedure Test_Default_Stylesheet is
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
         Adi.Widget.Html_View.Create_Handle;
@@ -1462,6 +1807,12 @@ begin
    Test_HTML_Folder_Stress;
    Test_Line_Height_Number_Uses_Font_Size;
    Test_Margin_Collapsing;
+   Test_Margin_Collapse_Through_Last_Child;
+   Test_Margin_Collapse_Through_First_Child;
+   Test_Margin_Padding_Stops_Collapse;
+   Test_Br_Stops_Collapse_Through;
+   Test_Pre_Line_Newline_Stops_Collapse_Through;
+   Test_Hr_Margin_Collapse;
    Test_Default_Stylesheet;
 
    Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");

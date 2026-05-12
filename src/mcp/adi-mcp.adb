@@ -25,7 +25,7 @@ package body Adi.MCP is
 
    Active     : Boolean := False;
    MCP_Dir    : Unbounded_String;
-   MCP_Window : access Adi.Window.Window'Class := null;
+   MCP_Window : Adi.Window.Window_Handle := Adi.Window.Null_Window_Handle;
 
    --  Connection IDs for signal-based disconnect in Finalize
    Frame_Conn       : Adi.Window.Frame_Signals.Connection_Id :=
@@ -176,10 +176,11 @@ package body Adi.MCP is
      (JSON   : String;
       Result_Path : out Unbounded_String) return Widget_Handle
    is
+      Win      : Adi.Window.Window_Ref := Adi.Window.Borrow (MCP_Window);
       Id       : constant Integer := JSON_Get_Int (JSON, "id");
       Path_Str : constant String := JSON_Get_String (JSON, "path");
       Root_H   : constant Widget_Handle :=
-        Adi.Window.Get_Root_Handle (MCP_Window.all);
+        Adi.Window.Get_Root_Handle (Win);
    begin
       Result_Path := Null_Unbounded_String;
 
@@ -196,10 +197,10 @@ package body Adi.MCP is
                end if;
             end;
          end if;
-         for I in 1 .. Adi.Window.Overlay_Count (MCP_Window.all) loop
+         for I in 1 .. Adi.Window.Overlay_Count (Win) loop
             declare
                OV_H   : constant Widget_Handle :=
-                 Adi.Window.Get_Overlay_Handle (MCP_Window.all, I);
+                 Adi.Window.Get_Overlay_Handle (Win, I);
                OV     : constant Widget_Access := To_Access (OV_H);
                W      : constant Widget_Access := Find_By_Id (OV, Id);
             begin
@@ -235,12 +236,12 @@ package body Adi.MCP is
                   Sub_Path   : constant String :=
                     Path_Str (Colon + 1 .. Path_Str'Last);
                   OV_Count   : constant Natural :=
-                    Adi.Window.Overlay_Count (MCP_Window.all);
+                    Adi.Window.Overlay_Count (Win);
                begin
                   if OV_Idx <= OV_Count then
                      declare
                         OV_H   : constant Widget_Handle :=
-                          Adi.Window.Get_Overlay_Handle (MCP_Window.all, OV_Idx);
+                          Adi.Window.Get_Overlay_Handle (Win, OV_Idx);
                         OV     : constant Widget_Access := To_Access (OV_H);
                         W      : constant Widget_Access :=
                           Find_By_Path (OV, Sub_Path);
@@ -272,10 +273,10 @@ package body Adi.MCP is
          end if;
 
          --  Fallback: try each overlay with the plain path
-         for I in 1 .. Adi.Window.Overlay_Count (MCP_Window.all) loop
+         for I in 1 .. Adi.Window.Overlay_Count (Win) loop
             declare
                OV_H   : constant Widget_Handle :=
-                 Adi.Window.Get_Overlay_Handle (MCP_Window.all, I);
+                 Adi.Window.Get_Overlay_Handle (Win, I);
                OV     : constant Widget_Access := To_Access (OV_H);
                W      : constant Widget_Access := Find_By_Path (OV, Path_Str);
             begin
@@ -784,11 +785,12 @@ package body Adi.MCP is
      (Cmd      : String;
       Req_Id   : String) return String
    is
+      Win : Adi.Window.Window_Ref := Adi.Window.Borrow (MCP_Window);
    begin
       if Cmd = "widget_tree" then
          declare
             Root : constant Widget_Handle :=
-              Adi.Window.Get_Root_Handle (MCP_Window.all);
+              Adi.Window.Get_Root_Handle (Win);
             W    : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             W.Start_Object;
@@ -804,7 +806,7 @@ package body Adi.MCP is
             --  Overlays
             declare
                OC : constant Natural :=
-                 Adi.Window.Overlay_Count (MCP_Window.all);
+                 Adi.Window.Overlay_Count (Win);
             begin
                if OC > 0 then
                   W.Key ("overlays");
@@ -812,7 +814,7 @@ package body Adi.MCP is
                   for I in 1 .. OC loop
                      declare
                         OV : constant Widget_Handle :=
-                          Adi.Window.Get_Overlay_Handle (MCP_Window.all, I);
+                          Adi.Window.Get_Overlay_Handle (Win, I);
                      begin
                         Serialize_Widget_Tree
                           (OV,
@@ -832,7 +834,7 @@ package body Adi.MCP is
       elsif Cmd = "perf_stats" then
          declare
             Stats : constant Adi.Window.Frame_Stats :=
-              Adi.Window.Get_Frame_Stats (MCP_Window.all);
+              Adi.Window.Get_Frame_Stats (Win);
             W     : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             W.Start_Object;
@@ -862,9 +864,9 @@ package body Adi.MCP is
       elsif Cmd = "get_focus" then
          declare
             Focused : constant Widget_Handle :=
-              Adi.Window.Get_Focus_Handle (MCP_Window.all);
+              Adi.Window.Get_Focus_Handle (Win);
             Root    : constant Widget_Handle :=
-              Adi.Window.Get_Root_Handle (MCP_Window.all);
+              Adi.Window.Get_Root_Handle (Win);
             W       : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             W.Start_Object;
@@ -897,6 +899,7 @@ package body Adi.MCP is
       Cmd      : String;
       Req_Id   : String) return String
    is
+      Win : Adi.Window.Window_Ref := Adi.Window.Borrow (MCP_Window);
    begin
       if Cmd = "widget_info" then
          declare
@@ -924,7 +927,7 @@ package body Adi.MCP is
             Query : constant String := JSON_Get_String (JSON, "query");
             Exact : constant Boolean := JSON_Get_Bool (JSON, "exact");
             Root  : constant Widget_Handle :=
-              Adi.Window.Get_Root_Handle (MCP_Window.all);
+              Adi.Window.Get_Root_Handle (Win);
             Results : Match_Vectors.Vector;
             W       : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
@@ -937,10 +940,10 @@ package body Adi.MCP is
             end if;
 
             --  Search overlays too
-            for I in 1 .. Adi.Window.Overlay_Count (MCP_Window.all) loop
+            for I in 1 .. Adi.Window.Overlay_Count (Win) loop
                declare
                   OV      : constant Widget_Handle :=
-                    Adi.Window.Get_Overlay_Handle (MCP_Window.all, I);
+                    Adi.Window.Get_Overlay_Handle (Win, I);
                   OV_Hits : constant Match_Vectors.Vector :=
                     Find_By_Text (To_Access (OV), Query, Exact);
                begin
@@ -965,7 +968,7 @@ package body Adi.MCP is
             Type_Name : constant String :=
               JSON_Get_String (JSON, "type_name");
             Root    : constant Widget_Handle :=
-              Adi.Window.Get_Root_Handle (MCP_Window.all);
+              Adi.Window.Get_Root_Handle (Win);
             Results : Match_Vectors.Vector;
             W       : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
@@ -977,10 +980,10 @@ package body Adi.MCP is
                Results := Find_By_Type (To_Access (Root), Type_Name);
             end if;
 
-            for I in 1 .. Adi.Window.Overlay_Count (MCP_Window.all) loop
+            for I in 1 .. Adi.Window.Overlay_Count (Win) loop
                declare
                   OV      : constant Widget_Handle :=
-                    Adi.Window.Get_Overlay_Handle (MCP_Window.all, I);
+                    Adi.Window.Get_Overlay_Handle (Win, I);
                   OV_Hits : constant Match_Vectors.Vector :=
                     Find_By_Type (To_Access (OV), Type_Name);
                begin
@@ -1026,9 +1029,9 @@ package body Adi.MCP is
                  Geom.Y + Geom.Height / 2.0;
             begin
                Adi.Window.On_Mouse_Down
-                 (MCP_Window.all, CX, CY, Left_Button, 1);
+                 (Win, CX, CY, Left_Button, 1);
                Adi.Window.On_Mouse_Up
-                 (MCP_Window.all, CX, CY, Left_Button);
+                 (Win, CX, CY, Left_Button);
             end;
 
             W.Start_Object;
@@ -1049,7 +1052,7 @@ package body Adi.MCP is
                return Error_Response (Req_Id, "missing keys parameter");
             end if;
 
-            Parse_And_Send_Keys (MCP_Window, Keys);
+            Parse_And_Send_Keys (Win.Ptr, Keys);
 
             W.Start_Object;
             W.Key_Value ("status", "ok");
@@ -1107,7 +1110,7 @@ package body Adi.MCP is
                return Error_Response (Req_Id, "widget not found");
             end if;
 
-            Adi.Window.Set_Focus (MCP_Window.all, Target);
+            Adi.Window.Set_Focus (Win, Target);
 
             W.Start_Object;
             W.Key_Value ("status", "ok");
@@ -1365,7 +1368,7 @@ package body Adi.MCP is
       end if;
 
       MCP_Dir := To_Unbounded_String (Dir);
-      MCP_Window := Win;
+      MCP_Window := Adi.Window.Get_Handle (Win.all);
       Active := True;
 
       Write_File (Dir & "/ready", Pid_Str);
@@ -1396,12 +1399,16 @@ package body Adi.MCP is
    begin
       if not Active then return; end if;
 
-      if MCP_Window /= null then
-         Adi.Window.Disconnect_Frame (MCP_Window.all, Frame_Conn);
-         Adi.Window.Disconnect_Post_Render (MCP_Window.all, Post_Render_Conn);
-         Frame_Conn := Adi.Window.Frame_Signals.No_Connection;
-         Post_Render_Conn := Adi.Window.Post_Render_Signals.No_Connection;
+      if Adi.Window.Is_Valid (MCP_Window) then
+         declare
+            Win : Adi.Window.Window_Ref := Adi.Window.Borrow (MCP_Window);
+         begin
+            Adi.Window.Disconnect_Frame (Win, Frame_Conn);
+            Adi.Window.Disconnect_Post_Render (Win, Post_Render_Conn);
+         end;
       end if;
+      Frame_Conn := Adi.Window.Frame_Signals.No_Connection;
+      Post_Render_Conn := Adi.Window.Post_Render_Signals.No_Connection;
 
       if Exists (Dir) then
          declare
@@ -1426,7 +1433,7 @@ package body Adi.MCP is
       end if;
 
       Active := False;
-      MCP_Window := null;
+      MCP_Window := Adi.Window.Null_Window_Handle;
    end Finalize;
 
    function Is_Active return Boolean is

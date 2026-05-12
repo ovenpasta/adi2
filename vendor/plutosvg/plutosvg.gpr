@@ -2,6 +2,7 @@ project PlutoSVG is
 
    type Build_Profile_Kind is ("release", "validation", "development");
    Build_Profile : Build_Profile_Kind := external ("ADI_BUILD_PROFILE", "development");
+   Platform_Name := external ("ADI_PLATFORM", "linux");
    User_C_Compiler_Switches := External_As_List ("CFLAGS", " ");
 
    for Languages use ("C");
@@ -33,9 +34,33 @@ project PlutoSVG is
       "-DPLUTOSVG_BUILD",
       "-DPLUTOSVG_BUILD_STATIC");
 
+   --  On macOS we drive C through Apple clang. clang ignores gprbuild's
+   --  GCC-style -specs= include-path injection, so mirror Source_Dirs as
+   --  explicit -I flags.
+   Platform_C_Switches := ();
+   case Platform_Name is
+      when "darwin" =>
+         Platform_C_Switches :=
+           ("-mmacosx-version-min=11.0",
+            "-I" & Project'Project_Dir & "source",
+            "-I" & Project'Project_Dir & "plutovg/source",
+            "-I" & Project'Project_Dir & "plutovg/include");
+      when others =>
+         null;
+   end case;
+
    package Compiler is
+      case Platform_Name is
+         when "darwin" =>
+            --  See rlottie.gpr: use Apple clang to bypass GNAT FSF's stale
+            --  fixincludes headers under macOS 15+ SDKs.
+            for Driver ("C") use "/usr/bin/clang";
+         when others =>
+            null;
+      end case;
       for Default_Switches ("C") use
-        Profile_C_Compiler_Switches & User_C_Compiler_Switches & C_Switches;
+        Profile_C_Compiler_Switches & User_C_Compiler_Switches
+        & C_Switches & Platform_C_Switches;
    end Compiler;
 
 end PlutoSVG;

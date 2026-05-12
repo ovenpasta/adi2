@@ -28,49 +28,32 @@ project Adi is
       when "validation"  => Profile_Config_Dir := "config/validation";
    end case;
 
+   Target_Config_Dir := "config/posix";
    case Platform_Name is
-      when "windows" =>
-         case SVG_Backend is
-            when "ada" =>
-               for Source_Dirs use
-                 ("src/",
-                  "src/svg",
-                  "src/svg/ada",
-                  "config/windows",
-                  Profile_Config_Dir,
-                  "vendor/json-ada/src",
-                  MCP_Source_Dir);
-            when "plutosvg" =>
-               for Source_Dirs use
-                 ("src/",
-                  "src/svg",
-                  "src/svg/plutosvg",
-                  "config/windows",
-                  Profile_Config_Dir,
-                  "vendor/json-ada/src",
-                  MCP_Source_Dir);
-         end case;
-      when others =>
-         case SVG_Backend is
-            when "ada" =>
-               for Source_Dirs use
-                 ("src/",
-                  "src/svg",
-                  "src/svg/ada",
-                  "config/posix",
-                  Profile_Config_Dir,
-                  "vendor/json-ada/src",
-                  MCP_Source_Dir);
-            when "plutosvg" =>
-               for Source_Dirs use
-                 ("src/",
-                  "src/svg",
-                  "src/svg/plutosvg",
-                  "config/posix",
-                  Profile_Config_Dir,
-                  "vendor/json-ada/src",
-                  MCP_Source_Dir);
-         end case;
+      when "windows" => Target_Config_Dir := "config/windows";
+      when "darwin"  => Target_Config_Dir := "config/darwin";
+      when others    => Target_Config_Dir := "config/posix";
+   end case;
+
+   case SVG_Backend is
+      when "ada" =>
+         for Source_Dirs use
+           ("src/",
+            "src/svg",
+            "src/svg/ada",
+            Target_Config_Dir,
+            Profile_Config_Dir,
+            "vendor/json-ada/src",
+            MCP_Source_Dir);
+      when "plutosvg" =>
+         for Source_Dirs use
+           ("src/",
+            "src/svg",
+            "src/svg/plutosvg",
+            Target_Config_Dir,
+            Profile_Config_Dir,
+            "vendor/json-ada/src",
+            MCP_Source_Dir);
    end case;
    for Object_Dir use "obj/" & Build_Profile;
    for Create_Missing_Dirs use "True";

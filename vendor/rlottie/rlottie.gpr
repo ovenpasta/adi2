@@ -2,6 +2,7 @@ project RLottie is
 
    type Build_Profile_Kind is ("release", "validation", "development");
    Build_Profile : Build_Profile_Kind := external ("ADI_BUILD_PROFILE", "development");
+   Platform_Name := external ("ADI_PLATFORM", "linux");
    User_CXX_Compiler_Switches := External_As_List ("CXXFLAGS", " ");
 
    for Languages use ("C++");
@@ -44,9 +45,45 @@ project RLottie is
       "-Wno-unused-parameter",
       "-DRLOTTIE_BUILD");
 
+   --  On macOS we drive C++ through Apple clang (see Compiler package). clang
+   --  ignores gprbuild's GCC-style -specs= include-path injection, so we
+   --  must mirror Source_Dirs as explicit -I flags here.
+   Platform_CXX_Switches := ();
+   case Platform_Name is
+      when "darwin" =>
+         --  Apple clang on aarch64 defines __ARM_NEON__, which activates
+         --  rlottie's NEON path in vdrawhelper_neon.cpp. That path calls
+         --  into src/vector/pixman/pixman-arm-neon-asm.S, but the assembly
+         --  there is 32-bit ARM only and does not build on aarch64. Undef
+         --  the macro so the scalar fallback is used.
+         Platform_CXX_Switches :=
+           ("-mmacosx-version-min=11.0",
+            "-U__ARM_NEON__",
+            "-I" & Project'Project_Dir & "inc",
+            "-I" & Project'Project_Dir & "src",
+            "-I" & Project'Project_Dir & "src/lottie",
+            "-I" & Project'Project_Dir & "src/lottie/zip",
+            "-I" & Project'Project_Dir & "src/vector",
+            "-I" & Project'Project_Dir & "src/vector/freetype",
+            "-I" & Project'Project_Dir & "src/vector/stb",
+            "-I" & Project'Project_Dir & "src/binding/c");
+      when others =>
+         null;
+   end case;
+
    package Compiler is
+      case Platform_Name is
+         when "darwin" =>
+            --  GNAT FSF's bundled g++ has stale fixincludes headers that
+            --  conflict with the macOS 15+ SDK. Apple clang has built-in
+            --  SDK integration and avoids the issue.
+            for Driver ("C++") use "/usr/bin/clang++";
+         when others =>
+            null;
+      end case;
       for Default_Switches ("C++") use
-        Profile_Compiler_Switches & User_CXX_Compiler_Switches & CXX_Switches;
+        Profile_Compiler_Switches & User_CXX_Compiler_Switches
+        & CXX_Switches & Platform_CXX_Switches;
    end Compiler;
 
 end RLottie;

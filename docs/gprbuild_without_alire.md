@@ -18,6 +18,21 @@ tools/configure.sh \
   --cgpr path/to/win32.cgpr
 ```
 
+macOS example:
+
+```bash
+tools/configure.sh --build-dir build-macos --target darwin
+# Override the SDK path if `xcrun --show-sdk-path` is not what you want:
+tools/configure.sh --build-dir build-macos --target darwin \
+  --macos-sdkroot /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk
+```
+
+The darwin target adds `-Wl,-syslibroot,<sdk>`, `-L/opt/homebrew/lib`,
+`-Wl,-rpath,/opt/homebrew/lib`, and `-lc++` to the linker switches. SDL3 is
+expected at the Homebrew default prefix; install via `brew install sdl3
+sdl3_image sdl3_ttf`. Vendor C/C++ (rlottie, plutosvg) uses Apple `clang`
+on darwin (set by the project gpr files via `-XADI_PLATFORM=darwin`).
+
 Optional explicit source dir:
 
 ```bash
@@ -55,5 +70,5 @@ gprbuild --config=path/to/target.cgpr -P build-win32/projects/tests_build.gpr -X
 
 Notes:
 - No writes to source `config/`; all generated files live under `--build-dir`.
-- Platform is explicit: `--target linux|windows` in `configure.sh` and `-XADI_PLATFORM=<linux|windows>` in manual `gprbuild`.
+- Platform is explicit: `--target linux|darwin|windows` in `configure.sh` and `-XADI_PLATFORM=<linux|darwin|windows>` in manual `gprbuild`.
 - Alire builds remain supported (`alr build`, `alr exec -- gprbuild ...`).

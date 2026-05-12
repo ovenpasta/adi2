@@ -116,7 +116,9 @@ Writes only under `--build-dir`:
 
 Target selection:
 - `--target linux` uses `config/posix`
+- `--target darwin` uses `config/darwin` (adds macOS SDK syslibroot + Homebrew lib path + `-lc++` to linker switches; vendor C/C++ uses Apple clang)
 - `--target windows` uses `config/windows`
+- `--macos-sdkroot <path>` overrides the auto-detected SDK (default: `xcrun --show-sdk-path`)
 - `--build-profile` sets default profile for generated `build_all.sh`: `development`, `validation`, or `release`
 - generated build scripts pass `-XADI_PLATFORM=<target>`
 
@@ -126,4 +128,4 @@ See also: [docs/gprbuild_without_alire.md](gprbuild_without_alire.md)
 - Library/runtime logging goes through `Adi.Log`.
 - Logging is a **no-op** in `release` and `validation` build profiles — no `debug.log` is created and nothing is written to stdout.
 - In the `development` profile, on Windows (`-XADI_PLATFORM=windows`), logs are written to `debug.log` to avoid crashes from missing console output handles in GUI apps.
-- In the `development` profile, on Linux (`-XADI_PLATFORM=linux`), logs go to standard output.
+- In the `development` profile, on Linux (`-XADI_PLATFORM=linux`) and macOS (`-XADI_PLATFORM=darwin`), logs go to standard output.

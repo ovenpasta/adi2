@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  tools/configure.sh --build-dir <dir> [--source-dir <dir>] [--pkg-config <bin>] [--cgpr <file>] [--target <linux|windows>] [--build-profile <development|validation|release>] [--svg-backend <ada|plutosvg>]
+  tools/configure.sh --build-dir <dir> [--source-dir <dir>] [--pkg-config <bin>] [--cgpr <file>] [--target <linux|darwin|windows>] [--build-profile <development|validation|release>] [--svg-backend <ada|plutosvg>] [--macos-sdkroot <path>]
 
 Generates build files in <build-dir> (no writes to source dir):
   <build-dir>/config/adi_linker_config.gpr
@@ -22,6 +22,7 @@ CGPR_FILE=""
 TARGET_PLATFORM="linux"
 BUILD_PROFILE_DEFAULT="development"
 SVG_BACKEND_DEFAULT="plutosvg"
+MACOS_SDKROOT=""
 
 while (($#)); do
   case "$1" in
@@ -52,6 +53,10 @@ while (($#)); do
     --svg-backend)
       shift
       SVG_BACKEND_DEFAULT="${1:-}"
+      ;;
+    --macos-sdkroot)
+      shift
+      MACOS_SDKROOT="${1:-}"
       ;;
     -h|--help)
       usage
@@ -95,9 +100,20 @@ if [[ -n "${CGPR_FILE}" ]]; then
   CGPR_FILE="$(cd "$(dirname "${CGPR_FILE}")" && pwd)/$(basename "${CGPR_FILE}")"
 fi
 
-if [[ "${TARGET_PLATFORM}" != "linux" && "${TARGET_PLATFORM}" != "windows" ]]; then
-  echo "--target must be either linux or windows" >&2
+if [[ "${TARGET_PLATFORM}" != "linux" \
+   && "${TARGET_PLATFORM}" != "darwin" \
+   && "${TARGET_PLATFORM}" != "windows" ]]; then
+  echo "--target must be one of linux, darwin, windows" >&2
   exit 1
+fi
+
+if [[ "${TARGET_PLATFORM}" == "darwin" && -z "${MACOS_SDKROOT}" ]]; then
+  if command -v xcrun >/dev/null 2>&1; then
+    MACOS_SDKROOT="$(xcrun --show-sdk-path 2>/dev/null || true)"
+  fi
+  if [[ -z "${MACOS_SDKROOT}" ]]; then
+    MACOS_SDKROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+  fi
 fi
 
 if [[ "${BUILD_PROFILE_DEFAULT}" != "development" \
@@ -167,10 +183,16 @@ else
   echo "[configure] pkg-config binary not found (${PKG_CONFIG_BIN}); using defaults"
 fi
 
+PLATFORM_LINKER_LIST='("-lm")'
+if [[ "${TARGET_PLATFORM}" == "darwin" ]]; then
+  PLATFORM_LINKER_LIST="$(to_gpr_list \
+    "-Wl,-syslibroot,${MACOS_SDKROOT} -L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib -lc++ -lm")"
+fi
+
 cat > "${BUILD_DIR}/config/adi_linker_config.gpr" <<EOF
 abstract project Adi_Linker_Config is
    SDL_Linker_Switches := $(to_gpr_list "${SDL_LIBS}");
-   Platform_Linker_Switches := ("-lm");
+   Platform_Linker_Switches := ${PLATFORM_LINKER_LIST};
 end Adi_Linker_Config;
 EOF
 
@@ -195,7 +217,7 @@ with "plutosvg_build.gpr";
 with "rlottie_build.gpr";
 
 project Adi_Build extends "${SOURCE_DIR}/adi.gpr" is
-   type Platform_Kind is ("linux", "windows");
+   type Platform_Kind is ("linux", "darwin", "windows");
    Platform_Name : Platform_Kind := external ("ADI_PLATFORM", "linux");
    type SVG_Backend_Kind is ("ada", "plutosvg");
    SVG_Backend : SVG_Backend_Kind := external ("ADI_SVG_BACKEND", "plutosvg");
@@ -480,6 +502,9 @@ else
   echo "[configure] cgpr: (none)"
 fi
 echo "[configure] target: ${TARGET_PLATFORM}"
+if [[ "${TARGET_PLATFORM}" == "darwin" ]]; then
+  echo "[configure] macOS SDK root: ${MACOS_SDKROOT}"
+fi
 echo "[configure] build profile: ${BUILD_PROFILE_DEFAULT}"
 echo "[configure] svg backend default: ${SVG_BACKEND_DEFAULT}"
 echo "[configure] generated projects in ${BUILD_DIR}/projects"

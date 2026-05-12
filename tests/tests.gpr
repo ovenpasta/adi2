@@ -34,7 +34,8 @@ project Tests is
       "widget_handle_test",
       "combo_box_item_test",
       "dialog_test",
-      "text_input_test");
+      "text_input_test",
+      "font_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    Platform_Name := external ("ADI_PLATFORM", "linux");
 

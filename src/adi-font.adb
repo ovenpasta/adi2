@@ -246,7 +246,7 @@ package body Adi.Font is
          Ext : constant String :=
            Ada.Characters.Handling.To_Lower (Name (Name'Last - 3 .. Name'Last));
       begin
-         return Ext = ".ttf" or else Ext = ".otf";
+         return Ext = ".ttf" or else Ext = ".otf" or else Ext = ".ttc";
       end;
    end Has_Font_Extension;
 

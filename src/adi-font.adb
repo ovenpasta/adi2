@@ -4,6 +4,7 @@ with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Directories;
+with Ada.Environment_Variables;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with System;
 with System.Storage_Elements; use System.Storage_Elements;
@@ -161,10 +162,19 @@ package body Adi.Font is
    Default_Fallback_Handle : Font_Handle := Null_Font;
    Fallback_Found : Boolean := False;
 
-   Posix_Fallback_Paths : constant array (Positive range 1 .. 3) of access constant String :=
+   Linux_Fallback_Paths : constant array (Positive range 1 .. 3) of access constant String :=
      (1 => new String'("/usr/share/fonts"),
       2 => new String'("/usr/local/share/fonts"),
       3 => new String'("/usr/share/fonts/truetype"));
+
+   --  macOS bundles UI fonts (Helvetica, Menlo, …) under /System/Library/Fonts,
+   --  bundled-but-not-system fonts (Arial, Courier New, Georgia, …) under its
+   --  Supplemental/ subdirectory (covered by Scan_Dir's recursion), admin-
+   --  installed fonts under /Library/Fonts, and per-user fonts under
+   --  $HOME/Library/Fonts (resolved at runtime in Search_System_Font).
+   macOS_Fallback_Paths : constant array (Positive range 1 .. 2) of access constant String :=
+     (1 => new String'("/System/Library/Fonts"),
+      2 => new String'("/Library/Fonts"));
 
    Windows_Fallback_Paths : constant array (Positive range 1 .. 2) of access constant String :=
      (1 => new String'("C:\Windows\Fonts"),
@@ -175,11 +185,23 @@ package body Adi.Font is
       Family_Name : access constant String;  --  lowercased expected TTF family name
    end record;
 
-   Posix_Fallback_Fonts : constant array (Positive range 1 .. 2) of Fallback_Font_Entry :=
+   Linux_Fallback_Fonts : constant array (Positive range 1 .. 2) of Fallback_Font_Entry :=
      (1 => (File_Prefix => new String'("DejaVuSans"),
             Family_Name => new String'("dejavu sans")),
       2 => (File_Prefix => new String'("NotoSans"),
             Family_Name => new String'("noto sans")));
+
+   --  macOS UI fonts. Helvetica and HelveticaNeue ship on every install;
+   --  Arial is in /System/Library/Fonts/Supplemental on consumer macOS.
+   --  (SFNS.ttf reports its family as "System Font", not stable enough to
+   --  match against.)
+   macOS_Fallback_Fonts : constant array (Positive range 1 .. 3) of Fallback_Font_Entry :=
+     (1 => (File_Prefix => new String'("Helvetica"),
+            Family_Name => new String'("helvetica")),
+      2 => (File_Prefix => new String'("HelveticaNeue"),
+            Family_Name => new String'("helvetica neue")),
+      3 => (File_Prefix => new String'("Arial"),
+            Family_Name => new String'("arial")));
 
    Windows_Fallback_Fonts : constant array (Positive range 1 .. 2) of Fallback_Font_Entry :=
      (1 => (File_Prefix => new String'("segoeui"),
@@ -465,8 +487,21 @@ package body Adi.Font is
             for Dir of Windows_Fallback_Paths loop
                Scan_Dir (State, Dir.all, File_Prefix, Family_Name);
             end loop;
-         when Adi.Build_Target.Linux | Adi.Build_Target.macOS =>
-            for Dir of Posix_Fallback_Paths loop
+         when Adi.Build_Target.macOS =>
+            for Dir of macOS_Fallback_Paths loop
+               Scan_Dir (State, Dir.all, File_Prefix, Family_Name);
+            end loop;
+            declare
+               Home : constant String :=
+                 Ada.Environment_Variables.Value ("HOME", "");
+            begin
+               if Home'Length > 0 then
+                  Scan_Dir (State, Home & "/Library/Fonts",
+                            File_Prefix, Family_Name);
+               end if;
+            end;
+         when Adi.Build_Target.Linux =>
+            for Dir of Linux_Fallback_Paths loop
                Scan_Dir (State, Dir.all, File_Prefix, Family_Name);
             end loop;
       end case;
@@ -497,8 +532,21 @@ package body Adi.Font is
                   end if;
                end;
             end loop;
-         when Adi.Build_Target.Linux | Adi.Build_Target.macOS =>
-            for FE of Posix_Fallback_Fonts loop
+         when Adi.Build_Target.macOS =>
+            for FE of macOS_Fallback_Fonts loop
+               declare
+                  H : constant Font_Handle :=
+                    Search_System_Font (FE.Family_Name.all, FE.File_Prefix.all);
+               begin
+                  if H /= Null_Font then
+                     Default_Fallback_Handle := H;
+                     Fallback_Found := True;
+                     return;
+                  end if;
+               end;
+            end loop;
+         when Adi.Build_Target.Linux =>
+            for FE of Linux_Fallback_Fonts loop
                declare
                   H : constant Font_Handle :=
                     Search_System_Font (FE.Family_Name.all, FE.File_Prefix.all);

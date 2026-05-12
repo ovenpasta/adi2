@@ -93,6 +93,8 @@ package Adi.Font is
    --  System directories searched:
    --    Linux:   /usr/share/fonts, /usr/local/share/fonts,
    --             /usr/share/fonts/truetype
+   --    macOS:   /System/Library/Fonts (incl. Supplemental/),
+   --             /Library/Fonts, $HOME/Library/Fonts
    --    Windows: C:\Windows\Fonts, C:\WINNT\Fonts
    ---------------------------------------------------------------------------
 

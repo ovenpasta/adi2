@@ -40,11 +40,12 @@ package body Adi.Log is
    procedure Write (Msg : String) is
    begin
       if Adi.Build_Profile.Is_Development then
-         if Adi.Build_Target.Is_Windows then
-            Write_To_File (Msg);
-         else
-            Write_To_Console (Msg);
-         end if;
+         case Adi.Build_Target.Platform is
+            when Adi.Build_Target.Windows =>
+               Write_To_File (Msg);
+            when Adi.Build_Target.Linux | Adi.Build_Target.macOS =>
+               Write_To_Console (Msg);
+         end case;
       end if;
    end Write;
 

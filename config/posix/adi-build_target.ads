@@ -1,3 +1,4 @@
 package Adi.Build_Target is
-   Is_Windows : constant Boolean := False;
+   type Platform_Kind is (Linux, macOS, Windows);
+   Platform : constant Platform_Kind := Linux;
 end Adi.Build_Target;

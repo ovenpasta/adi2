@@ -460,15 +460,16 @@ package body Adi.Font is
    is
       State : Scan_State;
    begin
-      if Adi.Build_Target.Is_Windows then
-         for Dir of Windows_Fallback_Paths loop
-            Scan_Dir (State, Dir.all, File_Prefix, Family_Name);
-         end loop;
-      else
-         for Dir of Posix_Fallback_Paths loop
-            Scan_Dir (State, Dir.all, File_Prefix, Family_Name);
-         end loop;
-      end if;
+      case Adi.Build_Target.Platform is
+         when Adi.Build_Target.Windows =>
+            for Dir of Windows_Fallback_Paths loop
+               Scan_Dir (State, Dir.all, File_Prefix, Family_Name);
+            end loop;
+         when Adi.Build_Target.Linux | Adi.Build_Target.macOS =>
+            for Dir of Posix_Fallback_Paths loop
+               Scan_Dir (State, Dir.all, File_Prefix, Family_Name);
+            end loop;
+      end case;
       return Load_Scanned (State);
    end Search_System_Font;
 
@@ -482,33 +483,34 @@ package body Adi.Font is
          return;
       end if;
 
-      if Adi.Build_Target.Is_Windows then
-         for FE of Windows_Fallback_Fonts loop
-            declare
-               H : constant Font_Handle :=
-                 Search_System_Font (FE.Family_Name.all, FE.File_Prefix.all);
-            begin
-               if H /= Null_Font then
-                  Default_Fallback_Handle := H;
-                  Fallback_Found := True;
-                  return;
-               end if;
-            end;
-         end loop;
-      else
-         for FE of Posix_Fallback_Fonts loop
-            declare
-               H : constant Font_Handle :=
-                 Search_System_Font (FE.Family_Name.all, FE.File_Prefix.all);
-            begin
-               if H /= Null_Font then
-                  Default_Fallback_Handle := H;
-                  Fallback_Found := True;
-                  return;
-               end if;
-            end;
-         end loop;
-      end if;
+      case Adi.Build_Target.Platform is
+         when Adi.Build_Target.Windows =>
+            for FE of Windows_Fallback_Fonts loop
+               declare
+                  H : constant Font_Handle :=
+                    Search_System_Font (FE.Family_Name.all, FE.File_Prefix.all);
+               begin
+                  if H /= Null_Font then
+                     Default_Fallback_Handle := H;
+                     Fallback_Found := True;
+                     return;
+                  end if;
+               end;
+            end loop;
+         when Adi.Build_Target.Linux | Adi.Build_Target.macOS =>
+            for FE of Posix_Fallback_Fonts loop
+               declare
+                  H : constant Font_Handle :=
+                    Search_System_Font (FE.Family_Name.all, FE.File_Prefix.all);
+               begin
+                  if H /= Null_Font then
+                     Default_Fallback_Handle := H;
+                     Fallback_Found := True;
+                     return;
+                  end if;
+               end;
+            end loop;
+      end case;
 
       Log ("ERROR: No fallback font found");
       Fallback_Found := True;

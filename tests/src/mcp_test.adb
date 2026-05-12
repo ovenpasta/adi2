@@ -31,8 +31,12 @@ procedure MCP_Test is
       end if;
    end Assert;
 
-   function H (W : Widget'Class) return Widget_Handle is
-     (Get_Handle (W));
+   function New_Box return Widget_Handle is
+     (Adi.Widget.Box.To_Widget_Handle (Adi.Widget.Box.Create_Handle));
+
+   function New_Label (Text : String := "") return Widget_Handle is
+     (Adi.Widget.Label.To_Widget_Handle
+        (Adi.Widget.Label.Create_Handle (Text)));
 
    ---------------------------------------------------------------------------
    --  Test: JSON parsing with json-ada (replaces hand-rolled parser tests)
@@ -163,18 +167,18 @@ procedure MCP_Test is
 
       --  Create a simple hierarchy: Box with 2 children
       declare
-         Root  : aliased Adi.Widget.Box.Box_Widget;
-         Child1 : aliased Adi.Widget.Box.Box_Widget;
-         Child2 : aliased Adi.Widget.Box.Box_Widget;
+         Root   : constant Widget_Handle := New_Box;
+         Child1 : constant Widget_Handle := New_Box;
+         Child2 : constant Widget_Handle := New_Box;
       begin
-         Add_Child (H (Root), H (Child1));
-         Add_Child (H (Root), H (Child2));
+         Add_Child (Root, Child1);
+         Add_Child (Root, Child2);
 
-         Assert (Child_Count (H (Root)) = 2, "root has 2 children");
+         Assert (Child_Count (Root) = 2, "root has 2 children");
 
          declare
-            C1 : constant Widget_Handle := Get_Child_Handle (H (Root), 1);
-            C2 : constant Widget_Handle := Get_Child_Handle (H (Root), 2);
+            C1 : constant Widget_Handle := Get_Child_Handle (Root, 1);
+            C2 : constant Widget_Handle := Get_Child_Handle (Root, 2);
          begin
             Assert (Is_Valid (C1), "child 1 not null");
             Assert (Is_Valid (C2), "child 2 not null");
@@ -182,10 +186,9 @@ procedure MCP_Test is
 
          --  External_Tag gives the type name
          declare
-            CW      : Widget'Class renames Widget'Class (Root);
             Tag_Str : constant String :=
               Ada.Characters.Handling.To_Lower
-                (Ada.Tags.External_Tag (CW'Tag));
+                (Ada.Tags.External_Tag (Resolve_Handle (Root).all'Tag));
          begin
             Assert (Ada.Strings.Fixed.Index (Tag_Str, "box") > 0,
                     "external tag contains 'box': " & Tag_Str);
@@ -193,22 +196,22 @@ procedure MCP_Test is
 
          --  Nested children
          declare
-            Nested : aliased Adi.Widget.Box.Box_Widget;
+            Nested : constant Widget_Handle := New_Box;
          begin
-            Add_Child (H (Child1), H (Nested));
-            Assert (Child_Count (H (Child1)) = 1, "child1 has 1 nested child");
+            Add_Child (Child1, Nested);
+            Assert (Child_Count (Child1) = 1, "child1 has 1 nested child");
 
             declare
-               Deep : constant Widget_Handle := Get_Child_Handle (H (Child1), 1);
+               Deep : constant Widget_Handle := Get_Child_Handle (Child1, 1);
             begin
                Assert (Is_Valid (Deep), "nested child not null");
             end;
 
-            Remove_Child (H (Child1), H (Nested));
+            Remove_Child (Child1, Nested);
          end;
 
-         Remove_Child (H (Root), H (Child2));
-         Remove_Child (H (Root), H (Child1));
+         Remove_Child (Root, Child2);
+         Remove_Child (Root, Child1);
       end;
    end Test_Widget_Tree_Structure;
 
@@ -221,11 +224,11 @@ procedure MCP_Test is
       Put_Line ("-- Widget States & Flags Tests --");
 
       declare
-         W : aliased Adi.Widget.Box.Box_Widget;
+         W : constant Widget_Handle := New_Box;
       begin
          --  Default states
          declare
-            States : constant Widget_States := Get_States (H (W));
+            States : constant Widget_States := Get_States (W);
          begin
             Assert (not States (State_Hovered), "not hovered by default");
             Assert (not States (State_Pressed), "not pressed by default");
@@ -233,14 +236,14 @@ procedure MCP_Test is
          end;
 
          --  Set a state
-         Set_Hovered (H (W), True);
-         Assert (Has_State (H (W), State_Hovered), "hovered after set");
+         Set_Hovered (W, True);
+         Assert (Has_State (W, State_Hovered), "hovered after set");
 
          --  Check flags
-         Assert (Has_Flag (H (W), Visible), "visible by default");
-         Assert (not Has_Flag (H (W), Focusable), "not focusable by default (Box)");
+         Assert (Has_Flag (W, Visible), "visible by default");
+         Assert (not Has_Flag (W, Focusable), "not focusable by default (Box)");
 
-         Set_Hovered (H (W), False);
+         Set_Hovered (W, False);
       end;
    end Test_Widget_States_Flags;
 
@@ -253,24 +256,24 @@ procedure MCP_Test is
       Put_Line ("-- Widget ID Tests --");
 
       declare
-         W1 : aliased Adi.Widget.Box.Box_Widget;
-         W2 : aliased Adi.Widget.Box.Box_Widget;
-         W3 : aliased Adi.Widget.Label.Label_Widget;
+         W1 : constant Widget_Handle := New_Box;
+         W2 : constant Widget_Handle := New_Box;
+         W3 : constant Widget_Handle := New_Label;
       begin
          --  IDs should be unique
-         Assert (Get_Id (H (W1)) /= Get_Id (H (W2)),
+         Assert (Get_Id (W1) /= Get_Id (W2),
                  "w1 and w2 have different IDs");
-         Assert (Get_Id (H (W2)) /= Get_Id (H (W3)),
+         Assert (Get_Id (W2) /= Get_Id (W3),
                  "w2 and w3 have different IDs");
 
          --  IDs should be monotonically increasing
-         Assert (Get_Id (H (W1)) < Get_Id (H (W2)),
+         Assert (Get_Id (W1) < Get_Id (W2),
                  "w1 ID < w2 ID (monotonic)");
-         Assert (Get_Id (H (W2)) < Get_Id (H (W3)),
+         Assert (Get_Id (W2) < Get_Id (W3),
                  "w2 ID < w3 ID (monotonic)");
 
          --  IDs should be positive
-         Assert (Get_Id (H (W1)) > 0, "widget ID > 0");
+         Assert (Get_Id (W1) > 0, "widget ID > 0");
       end;
    end Test_Widget_Ids;
 
@@ -284,27 +287,26 @@ procedure MCP_Test is
 
       --  Label widget
       declare
-         L : aliased Adi.Widget.Label.Label_Widget;
+         L : constant Widget_Handle := New_Label ("Hello World");
       begin
-         Adi.Widget.Label.Set_Text (L, "Hello World");
-         Assert (Get_Text (L'Unchecked_Access) = "Hello World",
+         Assert (Get_Text (Resolve_Handle (L)) = "Hello World",
                  "Get_Text for label");
       end;
 
       --  Box widget (no text by default)
       declare
-         B : aliased Adi.Widget.Box.Box_Widget;
+         B : constant Widget_Handle := New_Box;
       begin
-         Assert (Get_Text (B'Unchecked_Access) = "",
+         Assert (Get_Text (Resolve_Handle (B)) = "",
                  "Get_Text for box (empty)");
       end;
 
       --  Box with floating label
       declare
-         B : aliased Adi.Widget.Box.Box_Widget;
+         B : constant Widget_Handle := New_Box;
       begin
-         Set_Label (H (B), "My Label");
-         Assert (Get_Text (B'Unchecked_Access) = "My Label",
+         Set_Label (B, "My Label");
+         Assert (Get_Text (Resolve_Handle (B)) = "My Label",
                  "Get_Text for box with floating label");
       end;
    end Test_Introspection_Get_Text;
@@ -318,41 +320,42 @@ procedure MCP_Test is
       Put_Line ("-- Introspection Find Tests --");
 
       declare
-         Root   : aliased Adi.Widget.Box.Box_Widget;
-         Child1 : aliased Adi.Widget.Box.Box_Widget;
-         Child2 : aliased Adi.Widget.Label.Label_Widget;
-         Nested : aliased Adi.Widget.Box.Box_Widget;
+         Root   : constant Widget_Handle := New_Box;
+         Child1 : constant Widget_Handle := New_Box;
+         Child2 : constant Widget_Handle := New_Label;
+         Nested : constant Widget_Handle := New_Box;
+         Root_Acc   : constant Widget_Access := Resolve_Handle (Root);
+         Child2_Acc : constant Widget_Access := Resolve_Handle (Child2);
+         Nested_Acc : constant Widget_Access := Resolve_Handle (Nested);
       begin
-         Add_Child (H (Root), H (Child1));
-         Add_Child (H (Root), H (Child2));
-         Add_Child (H (Child1), H (Nested));
+         Add_Child (Root, Child1);
+         Add_Child (Root, Child2);
+         Add_Child (Child1, Nested);
 
          --  Find_By_Id
          declare
-            Target_Id : constant Natural := Get_Id (H (Child2));
+            Target_Id : constant Natural := Get_Id (Child2);
             Found     : constant Widget_Access :=
-              Find_By_Id (Root'Unchecked_Access, Target_Id);
+              Find_By_Id (Root_Acc, Target_Id);
          begin
             Assert (Found /= null, "Find_By_Id: found widget");
-            Assert (Found = Child2'Unchecked_Access,
-                    "Find_By_Id: correct widget");
+            Assert (Found = Child2_Acc, "Find_By_Id: correct widget");
          end;
 
          --  Find_By_Id for nested
          declare
-            Target_Id : constant Natural := Get_Id (H (Nested));
+            Target_Id : constant Natural := Get_Id (Nested);
             Found     : constant Widget_Access :=
-              Find_By_Id (Root'Unchecked_Access, Target_Id);
+              Find_By_Id (Root_Acc, Target_Id);
          begin
             Assert (Found /= null, "Find_By_Id: found nested widget");
-            Assert (Found = Nested'Unchecked_Access,
-                    "Find_By_Id: correct nested widget");
+            Assert (Found = Nested_Acc, "Find_By_Id: correct nested widget");
          end;
 
          --  Find_By_Id for non-existent
          declare
             Found : constant Widget_Access :=
-              Find_By_Id (Root'Unchecked_Access, 999999);
+              Find_By_Id (Root_Acc, 999999);
          begin
             Assert (Found = null, "Find_By_Id: null for non-existent ID");
          end;
@@ -360,27 +363,25 @@ procedure MCP_Test is
          --  Find_By_Path
          declare
             Found : constant Widget_Access :=
-              Find_By_Path (Root'Unchecked_Access, "2");
+              Find_By_Path (Root_Acc, "2");
          begin
             Assert (Found /= null, "Find_By_Path '2': found widget");
-            Assert (Found = Child2'Unchecked_Access,
-                    "Find_By_Path '2': correct widget");
+            Assert (Found = Child2_Acc, "Find_By_Path '2': correct widget");
          end;
 
          --  Find_By_Path nested
          declare
             Found : constant Widget_Access :=
-              Find_By_Path (Root'Unchecked_Access, "1.1");
+              Find_By_Path (Root_Acc, "1.1");
          begin
             Assert (Found /= null, "Find_By_Path '1.1': found widget");
-            Assert (Found = Nested'Unchecked_Access,
+            Assert (Found = Nested_Acc,
                     "Find_By_Path '1.1': correct nested widget");
          end;
 
          --  Find_Path (reverse lookup)
          declare
-            Path : constant String :=
-              Find_Path (Root'Unchecked_Access, Nested'Unchecked_Access);
+            Path : constant String := Find_Path (Root_Acc, Nested_Acc);
          begin
             Assert (Path = "1.1",
                     "Find_Path for nested: " & Path);
@@ -388,21 +389,21 @@ procedure MCP_Test is
 
          --  Round-trip: Find_By_Id -> Find_Path
          declare
-            Target_Id : constant Natural := Get_Id (H (Nested));
+            Target_Id : constant Natural := Get_Id (Nested);
             Found     : constant Widget_Access :=
-              Find_By_Id (Root'Unchecked_Access, Target_Id);
+              Find_By_Id (Root_Acc, Target_Id);
             Path      : constant String :=
-              Find_Path (Root'Unchecked_Access, Found);
+              Find_Path (Root_Acc, Found);
             Found2    : constant Widget_Access :=
-              Find_By_Path (Root'Unchecked_Access, Path);
+              Find_By_Path (Root_Acc, Path);
          begin
             Assert (Found2 = Found,
                     "round-trip Find_By_Id -> Find_Path -> Find_By_Path");
          end;
 
-         Remove_Child (H (Child1), H (Nested));
-         Remove_Child (H (Root), H (Child2));
-         Remove_Child (H (Root), H (Child1));
+         Remove_Child (Child1, Nested);
+         Remove_Child (Root, Child2);
+         Remove_Child (Root, Child1);
       end;
    end Test_Introspection_Find;
 
@@ -415,23 +416,20 @@ procedure MCP_Test is
       Put_Line ("-- Introspection Find_By_Text Tests --");
 
       declare
-         Root   : aliased Adi.Widget.Box.Box_Widget;
-         Label1 : aliased Adi.Widget.Label.Label_Widget;
-         Label2 : aliased Adi.Widget.Label.Label_Widget;
-         Label3 : aliased Adi.Widget.Label.Label_Widget;
+         Root     : constant Widget_Handle := New_Box;
+         Label1   : constant Widget_Handle := New_Label ("Save File");
+         Label2   : constant Widget_Handle := New_Label ("Save As...");
+         Label3   : constant Widget_Handle := New_Label ("Open File");
+         Root_Acc : constant Widget_Access := Resolve_Handle (Root);
       begin
-         Adi.Widget.Label.Set_Text (Label1, "Save File");
-         Adi.Widget.Label.Set_Text (Label2, "Save As...");
-         Adi.Widget.Label.Set_Text (Label3, "Open File");
-
-         Add_Child (H (Root), H (Label1));
-         Add_Child (H (Root), H (Label2));
-         Add_Child (H (Root), H (Label3));
+         Add_Child (Root, Label1);
+         Add_Child (Root, Label2);
+         Add_Child (Root, Label3);
 
          --  Substring match
          declare
             Matches : constant Match_Vectors.Vector :=
-              Find_By_Text (Root'Unchecked_Access, "Save");
+              Find_By_Text (Root_Acc, "Save");
          begin
             Assert (Integer (Matches.Length) = 2,
                     "Find_By_Text 'Save': 2 matches");
@@ -440,7 +438,7 @@ procedure MCP_Test is
          --  Exact match
          declare
             Matches : constant Match_Vectors.Vector :=
-              Find_By_Text (Root'Unchecked_Access, "save file", Exact => True);
+              Find_By_Text (Root_Acc, "save file", Exact => True);
          begin
             Assert (Integer (Matches.Length) = 1,
                     "Find_By_Text exact 'save file': 1 match");
@@ -449,7 +447,7 @@ procedure MCP_Test is
          --  Case insensitive
          declare
             Matches : constant Match_Vectors.Vector :=
-              Find_By_Text (Root'Unchecked_Access, "OPEN");
+              Find_By_Text (Root_Acc, "OPEN");
          begin
             Assert (Integer (Matches.Length) = 1,
                     "Find_By_Text 'OPEN': 1 match (case insensitive)");
@@ -458,15 +456,15 @@ procedure MCP_Test is
          --  No match
          declare
             Matches : constant Match_Vectors.Vector :=
-              Find_By_Text (Root'Unchecked_Access, "Delete");
+              Find_By_Text (Root_Acc, "Delete");
          begin
             Assert (Integer (Matches.Length) = 0,
                     "Find_By_Text 'Delete': 0 matches");
          end;
 
-         Remove_Child (H (Root), H (Label3));
-         Remove_Child (H (Root), H (Label2));
-         Remove_Child (H (Root), H (Label1));
+         Remove_Child (Root, Label3);
+         Remove_Child (Root, Label2);
+         Remove_Child (Root, Label1);
       end;
    end Test_Introspection_Find_By_Text;
 
@@ -479,17 +477,18 @@ procedure MCP_Test is
       Put_Line ("-- Introspection Find_By_Type Tests --");
 
       declare
-         Root   : aliased Adi.Widget.Box.Box_Widget;
-         Child1 : aliased Adi.Widget.Box.Box_Widget;
-         Label1 : aliased Adi.Widget.Label.Label_Widget;
+         Root     : constant Widget_Handle := New_Box;
+         Child1   : constant Widget_Handle := New_Box;
+         Label1   : constant Widget_Handle := New_Label;
+         Root_Acc : constant Widget_Access := Resolve_Handle (Root);
       begin
-         Add_Child (H (Root), H (Child1));
-         Add_Child (H (Root), H (Label1));
+         Add_Child (Root, Child1);
+         Add_Child (Root, Label1);
 
          --  Find boxes
          declare
             Matches : constant Match_Vectors.Vector :=
-              Find_By_Type (Root'Unchecked_Access, "box");
+              Find_By_Type (Root_Acc, "box");
          begin
             --  Root + Child1 = 2 boxes
             Assert (Integer (Matches.Length) = 2,
@@ -499,14 +498,14 @@ procedure MCP_Test is
          --  Find labels
          declare
             Matches : constant Match_Vectors.Vector :=
-              Find_By_Type (Root'Unchecked_Access, "label");
+              Find_By_Type (Root_Acc, "label");
          begin
             Assert (Integer (Matches.Length) = 1,
                     "Find_By_Type 'label': 1 match");
          end;
 
-         Remove_Child (H (Root), H (Label1));
-         Remove_Child (H (Root), H (Child1));
+         Remove_Child (Root, Label1);
+         Remove_Child (Root, Child1);
       end;
    end Test_Introspection_Find_By_Type;
 
@@ -519,15 +518,13 @@ procedure MCP_Test is
       Put_Line ("-- Introspection Get_Info Tests --");
 
       declare
-         L : aliased Adi.Widget.Label.Label_Widget;
+         L : constant Widget_Handle := New_Label ("Test Label");
       begin
-         Adi.Widget.Label.Set_Text (L, "Test Label");
-
          declare
             Info : constant Widget_Info :=
-              Get_Info (L'Unchecked_Access, "1");
+              Get_Info (Resolve_Handle (L), "1");
          begin
-            Assert (Info.Id = Get_Id (H (L)),
+            Assert (Info.Id = Get_Id (L),
                     "Get_Info: correct ID");
             Assert (To_String (Info.Text) = "Test Label",
                     "Get_Info: correct text");

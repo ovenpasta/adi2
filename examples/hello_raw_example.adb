@@ -1,5 +1,6 @@
 pragma Ada_2022;
 with Adi.App;
+with Adi.Layout_Util;
 with Adi.Log;
 with Adi.Window;        use Adi.Window;
 with Adi.Widget;        use Adi.Widget;
@@ -72,6 +73,7 @@ procedure Hello_Raw_Example is
 
 begin
    A.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
 
    W := Create_Window_Handle ("Hello, Adi (raw)", (320.0, 180.0));

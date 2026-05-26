@@ -3,6 +3,7 @@ pragma Ada_2022;
 with Ada.Directories;
 
 with Adi.App;
+with Adi.Layout_Util;
 with Adi.CSS_Source;
 with Adi.Widget;
 with Adi.Widget.Button;
@@ -80,6 +81,7 @@ procedure Runtime_Css_Example is
 
 begin
    A.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
 
    declare
       W : constant Adi.Window.Window_Handle :=

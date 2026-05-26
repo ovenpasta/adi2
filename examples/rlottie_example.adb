@@ -2,6 +2,7 @@ pragma Ada_2022;
 
 with Ada.Directories;
 with Adi.App;
+with Adi.Layout_Util;
 with Adi.RLottie;               use Adi.RLottie;
 with Adi.Window;                use Adi.Window;
 with Adi.Widget;                use Adi.Widget;
@@ -35,6 +36,7 @@ procedure RLottie_Example is
 
 begin
    A.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
 
    declare

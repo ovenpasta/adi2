@@ -1,5 +1,6 @@
 pragma Ada_2022;
 with Adi.App;
+with Adi.Layout_Util;
 with Stack_Example_UI; use Stack_Example_UI;
 
 procedure Stack_Example is
@@ -13,6 +14,7 @@ procedure Stack_Example is
 
 begin
    A.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
    UI.On_Tab := On_Tab'Unrestricted_Access;
    A.Add_Window (UI.Build);

@@ -1,5 +1,6 @@
 pragma Ada_2022;
 with Adi.App;
+with Adi.Layout_Util;
 with Adi.Log;
 with Adi.Widget;        use Adi.Widget;
 with Adi.Window;        use Adi.Window;
@@ -17,6 +18,7 @@ procedure Hello_Example is
    end On_Hello_Click;
 begin
    A.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
    UI.On_Hello_Click := On_Hello_Click'Unrestricted_Access;
    W := UI.Build;

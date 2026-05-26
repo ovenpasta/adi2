@@ -1,5 +1,6 @@
 pragma Ada_2022;
 with Adi.App;
+with Adi.Layout_Util;
 with Adi.Window;        use Adi.Window;
 with Adi.Widget;        use Adi.Widget;
 with Adi.Widget.Box;
@@ -50,6 +51,7 @@ procedure Transition_Example is
 
 begin
    A.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
 
    declare

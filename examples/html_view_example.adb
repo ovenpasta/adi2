@@ -4,6 +4,7 @@ with Ada.Strings;       use Ada.Strings;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 
 with Adi.App;
+with Adi.Layout_Util;
 with Adi.Assets;
 with Adi.Core;
 with Adi.Image;
@@ -38,6 +39,7 @@ procedure Html_View_Example is
 
 begin
    A.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
 
    declare
       W : constant Adi.Window.Window_Handle :=

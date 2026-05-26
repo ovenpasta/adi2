@@ -1,6 +1,7 @@
 pragma Ada_2022;
 
 with Adi.App;
+with Adi.Layout_Util;
 with Adi.Assets;
 with Adi.Font;
 with Adi.Window; use Adi.Window;
@@ -13,6 +14,7 @@ procedure Assets_Example is
    W : Window_Handle;
 begin
    A.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    Assets_Example_Bundle.Register_All;
    Adi.Assets.Set_Mode (Adi.Assets.Bundle_Mode);
 

@@ -1,6 +1,7 @@
 pragma Ada_2022;
 
 with Adi.App;
+with Adi.Layout_Util;
 with Adi.Core;
 with Adi.Image;        use Adi.Image;
 with Adi.Widget.Image; use Adi.Widget.Image;
@@ -38,6 +39,7 @@ procedure Image_Example is
      & "h16v-1l-2-2z";
 begin
    A.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
    W := UI.Build;
 

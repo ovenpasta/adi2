@@ -3,6 +3,7 @@ pragma Ada_2022;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Adi.App;
+with Adi.Layout_Util;
 with Adi.CSS_Styles;          use Adi.CSS_Styles;
 with Adi.OS;
 with Adi.Window;              use Adi.Window;
@@ -78,6 +79,7 @@ procedure Text_Editor_Example is
 
 begin
    A.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
 
    declare

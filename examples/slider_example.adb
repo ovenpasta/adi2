@@ -4,6 +4,7 @@ with Ada.Strings;       use Ada.Strings;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Text_IO;
 with Adi.App;
+with Adi.Layout_Util;
 with Adi.Window;          use Adi.Window;
 with Adi.Widget;          use Adi.Widget;
 with Adi.Widget.Box;
@@ -94,6 +95,7 @@ procedure Slider_Example is
 
 begin
    A.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
 
    --  Set context menu styles

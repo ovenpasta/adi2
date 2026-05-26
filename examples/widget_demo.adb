@@ -1,4 +1,5 @@
 with Adi.App;
+with Adi.Layout_Util;
 with Adi.Assets;
 with Adi.Window;        use Adi.Window;
 with Adi.Widget;        use Adi.Widget;
@@ -10,6 +11,7 @@ procedure Widget_Demo is
    A : Adi.App.App;
 begin
    A.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
 
    --  Register asset search path so CSS url(bg.jpg) resolves
    Adi.Assets.Add_Path ("examples/assets");

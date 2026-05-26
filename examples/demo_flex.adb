@@ -5,6 +5,7 @@ with Ada.Exceptions; use Ada.Exceptions;
 with GNAT.Traceback.Symbolic;
 
 with Adi.App;
+with Adi.Layout_Util;
 with Adi.Window;use Adi.Window;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box;
@@ -529,6 +530,7 @@ begin
 
    --  Initialize
    App.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
 
    --  Create window
    Window := Adi.Window.Create_Window_Handle ("Flex Layout Demo", (800.0, 700.0));

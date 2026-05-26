@@ -3,6 +3,7 @@ pragma Ada_2022;
 with Ada.Strings;                use Ada.Strings;
 with Ada.Strings.Fixed;          use Ada.Strings.Fixed;
 with Adi.App;
+with Adi.Layout_Util;
 with Adi.Core;                   use Adi.Core;
 with Adi.Image;                  use Adi.Image;
 with Adi.Window;                 use Adi.Window;
@@ -34,6 +35,7 @@ procedure Combo_Box_Example is
 
 begin
    A.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
 
    declare

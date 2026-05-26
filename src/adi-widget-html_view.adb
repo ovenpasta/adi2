@@ -2157,7 +2157,7 @@ package body Adi.Widget.Html_View is
             It.Wrap_Text := False;
             It.Text_Offset_Y := Current_Line_Ascent - Run_Ascent;
             It.Has_Style_Override := True;
-            Render_Style.Font_Size := Px (Float (Local_Font_Size_Px (Style)));
+            Render_Style.Font_Size := Pixels_As_Length (Local_Font_Size_Px (Style));
             It.Style_Override := Render_Style;
             Add_Item (Self, It);
 

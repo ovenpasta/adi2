@@ -1,3 +1,12 @@
+:root {
+  font-size: 18dp;
+  --font-caption: 0.72rem;
+  --font-small:   0.78rem;
+  --font-body:    1rem;
+  --font-title:   1.33rem;
+  --font-large:   1.56rem;
+}
+
 .root {
   display: flex;
   flex-direction: column;
@@ -53,18 +62,18 @@
 
 .title::label {
   color: white;
-  font-size: 24px;
+  font-size: var(--font-title);
   font-weight: 700;
 }
 
 .hint::label {
   color: rgb(191, 219, 254);
-  font-size: 13px;
+  font-size: var(--font-caption);
 }
 
 .section_title::label {
   color: rgb(147, 197, 253);
-  font-size: 14px;
+  font-size: var(--font-small);
   font-weight: 600;
 }
 
@@ -84,7 +93,7 @@
 
 .sample::label {
   color: rgb(226, 232, 240);
-  font-size: 18px;
+  font-size: var(--font-body);
   text-wrap-mode: nowrap;
 }
 
@@ -121,15 +130,15 @@
 }
 
 .size_small::label {
-  font-size: 12px;
+  font-size: var(--font-caption);
 }
 
 .size_base::label {
-  font-size: 18px;
+  font-size: var(--font-body);
 }
 
 .size_large::label {
-  font-size: 28px;
+  font-size: var(--font-large);
 }
 
 .decor_underline::label {
@@ -157,7 +166,7 @@
 
 .wrap_sample::label {
   color: rgb(219, 234, 254);
-  font-size: 14px;
+  font-size: var(--font-small);
   text-wrap-mode: wrap;
 }
 

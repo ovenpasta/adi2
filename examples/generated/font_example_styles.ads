@@ -10,11 +10,20 @@ with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 package Font_Example_Styles is
 
-   function Has_Root_Font_Size return Boolean is (False);
-   function Root_Font_Size return Length_Value is (Default_Font_Size);
+   function Has_Root_Font_Size return Boolean is (True);
+   function Root_Font_Size return Length_Value is (Dip (18.0));
 
-   function Has_Root_Styles return Boolean is (False);
-   function Root_Part_Styles return Part_Style_Array is (Empty_Part_Styles);
+   function Root_Base_Style return Style_Rules is
+     (
+      Font_Size => Set_Font (Dip (18.0)),
+      others => <>);
+
+   function Has_Root_Styles return Boolean is (True);
+   function Root_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => From (Root_Base_Style).Build, Enabled => True),
+      others => <>
+   ]);
 
    function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
      (
@@ -22,6 +31,13 @@ package Font_Example_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
+
+   function Var_Font_Caption return Length_Value is (Root_Em (0.72));
+   function Var_Font_Small return Length_Value is (Root_Em (0.78));
+   function Var_Font_Body return Length_Value is (Root_Em (1.0));
+   function Var_Font_Title return Length_Value is (Root_Em (1.33));
+   function Var_Font_Large return Length_Value is (Root_Em (1.56));
+
    --  Base style for class 'root'
    function Root_Class_Base_Style return Style_Rules is
      (
@@ -102,7 +118,7 @@ package Font_Example_Styles is
    function Title_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (C (White)),
-      Font_Size => Set_Font (Px (24.0)),
+      Font_Size => Set_Font (Root_Em (1.33)),
       Font_Weight => Set (Weight_Bold),
       others => <>);
 
@@ -116,7 +132,7 @@ package Font_Example_Styles is
    function Hint_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (191, 219, 254)),
-      Font_Size => Set_Font (Px (13.0)),
+      Font_Size => Set_Font (Root_Em (0.72)),
       others => <>);
 
    --  Base style for class 'section_title'
@@ -129,7 +145,7 @@ package Font_Example_Styles is
    function Section_Title_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (147, 197, 253)),
-      Font_Size => Set_Font (Px (14.0)),
+      Font_Size => Set_Font (Root_Em (0.78)),
       Font_Weight => Set (Weight_Semi_Bold),
       others => <>);
 
@@ -149,7 +165,7 @@ package Font_Example_Styles is
    function Sample_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (226, 232, 240)),
-      Font_Size => Set_Font (Px (18.0)),
+      Font_Size => Set_Font (Root_Em (1.0)),
       Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>);
 
@@ -204,19 +220,19 @@ package Font_Example_Styles is
    --  Base style for class 'size_small'::label
    function Size_Small_Class_Label_Base_Style return Style_Rules is
      (
-      Font_Size => Set_Font (Px (12.0)),
+      Font_Size => Set_Font (Root_Em (0.72)),
       others => <>);
 
    --  Base style for class 'size_base'::label
    function Size_Base_Class_Label_Base_Style return Style_Rules is
      (
-      Font_Size => Set_Font (Px (18.0)),
+      Font_Size => Set_Font (Root_Em (1.0)),
       others => <>);
 
    --  Base style for class 'size_large'::label
    function Size_Large_Class_Label_Base_Style return Style_Rules is
      (
-      Font_Size => Set_Font (Px (28.0)),
+      Font_Size => Set_Font (Root_Em (1.56)),
       others => <>);
 
    --  Base style for class 'decor_underline'::label
@@ -254,7 +270,7 @@ package Font_Example_Styles is
    function Wrap_Sample_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (219, 234, 254)),
-      Font_Size => Set_Font (Px (14.0)),
+      Font_Size => Set_Font (Root_Em (0.78)),
       Text_Wrap_Mode => Set (TWM_Wrap),
       others => <>);
 

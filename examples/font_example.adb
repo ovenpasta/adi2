@@ -190,6 +190,10 @@ begin
             others    => <>),
            Body_Font);
    begin
+      if Font_Example_Styles.Has_Root_Font_Size then
+         Set_Root_Font_Size (W, Font_Example_Styles.Root_Font_Size);
+      end if;
+
       Adi.Widget.Box.Set_Part_Styles (Root, Root_Class_Part_Styles);
       Adi.Widget.Box.Set_Part_Styles (Container, Container_Class_Part_Styles);
 

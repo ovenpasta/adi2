@@ -33,6 +33,17 @@ package Adi.Layout_Util is
    function Get_Active_Viewport_Width return Pixel_Type;
    function Get_Active_Viewport_Height return Pixel_Type;
 
+   procedure Set_Px_Maps_To_Dip (Enabled : Boolean);
+   function  Get_Px_Maps_To_Dip return Boolean;
+
+   --  Build a Length_Value that, when passed through Length_To_Px, yields
+   --  exactly P pixels regardless of the Px_Maps_To_Dip toggle and current
+   --  DIP / UI scales. Use this when a widget has already resolved a length
+   --  to its final pixel value and needs to store that value in a
+   --  Length_Value field (e.g. Style_Override.Font_Size) that will be
+   --  re-resolved later by the rendering pipeline.
+   function Pixels_As_Length (P : Pixel_Type) return CSS_Styles.Length_Value;
+
 
    -------------------------------------------------
    -- Alignment Types

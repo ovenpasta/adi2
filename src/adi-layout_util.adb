@@ -6,6 +6,7 @@ package body Adi.Layout_Util is
    Active_Root_Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
    Active_Viewport_Width  : Pixel_Type := 0.0;
    Active_Viewport_Height : Pixel_Type := 0.0;
+   Px_Maps_To_Dip_Flag : Boolean := False;
 
    procedure Set_Active_DIP_Scale (Scale : Pixel_Type) is
    begin
@@ -65,6 +66,23 @@ package body Adi.Layout_Util is
       return Active_Viewport_Height;
    end Get_Active_Viewport_Height;
 
+   procedure Set_Px_Maps_To_Dip (Enabled : Boolean) is
+   begin
+      Px_Maps_To_Dip_Flag := Enabled;
+   end Set_Px_Maps_To_Dip;
+
+   function Get_Px_Maps_To_Dip return Boolean is
+   begin
+      return Px_Maps_To_Dip_Flag;
+   end Get_Px_Maps_To_Dip;
+
+   function Pixels_As_Length (P : Pixel_Type) return CSS_Styles.Length_Value is
+      Divisor : constant Pixel_Type :=
+        Pixel_Type'Max (0.0001, Active_DIP_Scale * Active_UI_Scale);
+   begin
+      return Dip (Float (P / Divisor));
+   end Pixels_As_Length;
+
    -------------------------------------------------
    -- Length Conversion
    -------------------------------------------------
@@ -86,7 +104,12 @@ package body Adi.Layout_Util is
    begin
       case L.Unit is
          when Px =>
-            return Pixel_Type (L.Amount);
+            if Px_Maps_To_Dip_Flag then
+               return Pixel_Type (L.Amount)
+                      * Active_DIP_Scale * Active_UI_Scale;
+            else
+               return Pixel_Type (L.Amount);
+            end if;
          when Dip =>
             return Pixel_Type (L.Amount) * Active_DIP_Scale * Active_UI_Scale;
          when Em =>

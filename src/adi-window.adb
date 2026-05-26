@@ -186,11 +186,17 @@ package body Adi.Window is
          return;
       end if;
 
+      --  Render in the window's physical-pixel space (1 unit = 1 pixel) so
+      --  glyphs and lines land on pixel boundaries on HiDPI displays. With
+      --  SDL_WINDOW_HIGH_PIXEL_DENSITY set, the renderer's drawable already
+      --  matches the physical framebuffer; STRETCH would force a logical
+      --  upscale and blur everything. The dp unit (Active_DIP_Scale) is what
+      --  size-independent layout should use.
       Success := Adi.SDL.Render.SDL_SetRenderLogicalPresentation
         (Renderer => W.Internal.ren,
-         W        => int (Integer (Float'Ceiling (Float (W.Size.Width)))),
-         H        => int (Integer (Float'Ceiling (Float (W.Size.Height)))),
-         Mode     => Adi.SDL.Render.SDL_LOGICAL_PRESENTATION_STRETCH);
+         W        => 0,
+         H        => 0,
+         Mode     => Adi.SDL.Render.SDL_LOGICAL_PRESENTATION_DISABLED);
       SDL_Assert (Success, "SDL_SetRenderLogicalPresentation");
    end Apply_Render_Logical_Presentation;
 
@@ -760,13 +766,25 @@ package body Adi.Window is
       SDL_Assert (Success, "SDL_CreateWindowAndRenderer");
       declare
          W : constant Window_Access := new Window;
+         Pixel_Size : Size_2D := S;
+         W_Px       : aliased int := 0;
+         H_Px       : aliased int := 0;
       begin
          W.Internal := new Internal;
          W.Internal.win := Win_Ptr;
          W.Internal.ren := Ren_Ptr;
          Adi.Render.Create (W.Ctx, Ren_Ptr);
-         W.Size := S;
-         W.Geometry := (0.0, 0.0, S.Width, S.Height);
+         --  S is the SDL window size (interpreted by SDL as logical points
+         --  on HiDPI platforms). Adi's API exposes pixels everywhere, so
+         --  store the actual framebuffer pixel size in W.Size/W.Geometry.
+         if Adi.SDL.Video.SDL_GetWindowSizeInPixels
+              (Win_Ptr, W_Px'Access, H_Px'Access)
+         then
+            Pixel_Size := (Width  => Pixel_Type (W_Px),
+                           Height => Pixel_Type (H_Px));
+         end if;
+         W.Size := Pixel_Size;
+         W.Geometry := (0.0, 0.0, Pixel_Size.Width, Pixel_Size.Height);
          Apply_Render_Logical_Presentation (W.all);
          if Refresh_DIP_Scale (W.all) then
             null;
@@ -2404,7 +2422,10 @@ function Get_Size (W : in out Window) return Size_2D is
        use Adi.SDL.Video;
        W_Width, W_Height : aliased int;
     begin
-       SDL_Assert (SDL_GetWindowSize (W.Internal.win, W_Width'Access, W_Height'Access), "SDL_GetWindowSize");
+       --  Pixel size, not point size: the layout system, mouse coords (via
+       --  SDL_ConvertEventToRenderCoordinates) and the renderer all operate
+       --  in physical pixels.
+       SDL_Assert (SDL_GetWindowSizeInPixels (W.Internal.win, W_Width'Access, W_Height'Access), "SDL_GetWindowSizeInPixels");
        return (Width => Pixel_Type (W_Width), Height => Pixel_Type (W_Height));
     end Actual_Size;
 

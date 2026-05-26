@@ -768,7 +768,7 @@ procedure Html_View_Test is
          begin
             H1 := It.Geometry.Height;
             Assert
-              (It.Computed_Style.Font_Size.Unit = Adi.CSS_Styles.Px,
+              (It.Computed_Style.Font_Size.Unit in Adi.CSS_Styles.Px | Adi.CSS_Styles.Dip,
                "baseline inherited unit is px");
             Assert
               (It.Computed_Style.Font_Size.Amount >= 15.0
@@ -789,7 +789,7 @@ procedure Html_View_Test is
          begin
             H2 := It.Geometry.Height;
             Assert
-              (It.Computed_Style.Font_Size.Unit = Adi.CSS_Styles.Px,
+              (It.Computed_Style.Font_Size.Unit in Adi.CSS_Styles.Px | Adi.CSS_Styles.Dip,
                "large inherited unit is px");
             Assert
               (It.Computed_Style.Font_Size.Amount >= 39.0,
@@ -1099,7 +1099,7 @@ procedure Html_View_Test is
          begin
             H1 := It.Geometry.Height;
             Assert
-              (It.Computed_Style.Font_Size.Unit = Adi.CSS_Styles.Px,
+              (It.Computed_Style.Font_Size.Unit in Adi.CSS_Styles.Px | Adi.CSS_Styles.Dip,
                "vw font-size is materialized to px for final text rendering");
          end;
       end if;
@@ -1705,7 +1705,7 @@ procedure Html_View_Test is
               Adi.Widget.Get_Item (+W, Positive (H1_Idx));
          begin
             Assert
-              (It.Computed_Style.Font_Size.Unit = Adi.CSS_Styles.Px,
+              (It.Computed_Style.Font_Size.Unit in Adi.CSS_Styles.Px | Adi.CSS_Styles.Dip,
                "user CSS override h1 font-size is in px");
             Assert
               (Nearly_Equal

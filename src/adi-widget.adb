@@ -2081,14 +2081,16 @@ package body Adi.Widget is
 
    procedure Clamp_Scroll_Offset (W : in out Widget'Class) is
       Max_Offset : constant Pixel_Type :=
-        Pixel_Type'Max (0.0, W.Scroll_Content_H - W.Scroll_Viewport_H);
+        Pixel_Type'Max
+          (0.0, Get_Scroll_Content_Height (W) - W.Scroll_Viewport_H);
    begin
       W.Scroll_Offset_Y := Clamp (W.Scroll_Offset_Y, 0.0, Max_Offset);
    end Clamp_Scroll_Offset;
 
    function Get_Scroll_Max_Offset_Y (W : Widget'Class) return Pixel_Type is
    begin
-      return Pixel_Type'Max (0.0, W.Scroll_Content_H - W.Scroll_Viewport_H);
+      return Pixel_Type'Max
+        (0.0, Get_Scroll_Content_Height (W) - W.Scroll_Viewport_H);
    end Get_Scroll_Max_Offset_Y;
 
    procedure Set_Scroll_Offset_Y (W : in out Widget'Class; Offset : Pixel_Type) is
@@ -2099,6 +2101,7 @@ package body Adi.Widget is
       if W.Scroll_Offset_Y /= Old then
          Update_Scrollbar_Geometry (W);
          Mark_Render_Dirty (W);
+         On_Scroll_Changed (W, Old, W.Scroll_Offset_Y);
       end if;
    end Set_Scroll_Offset_Y;
 
@@ -2112,13 +2115,13 @@ package body Adi.Widget is
       Set_Scroll_Offset_Y (W, W.Scroll_Offset_Y + Delta_Y);
    end Scroll_By_Y;
 
-   function Get_Scroll_Content_Height (W : Widget'Class) return Pixel_Type is
+   function Get_Scroll_Content_Height (W : Widget) return Pixel_Type is
    begin
       return W.Scroll_Content_H;
    end Get_Scroll_Content_Height;
 
    function Get_Scroll_Content_Height_W is
-     new Wrap_CW_Func (Pixel_Type, 0.0, Get_Scroll_Content_Height);
+     new Wrap_Prim_Func (Pixel_Type, 0.0, Get_Scroll_Content_Height);
    function Get_Scroll_Content_Height (H : Widget_Handle) return Pixel_Type
      renames Get_Scroll_Content_Height_W;
 
@@ -2227,7 +2230,10 @@ package body Adi.Widget is
          Width  => Metrics.Width,
          Height => Track_H);
 
-      Ratio := Float'Min (1.0, Float (W.Scroll_Viewport_H / Pixel_Type'Max (1.0, W.Scroll_Content_H)));
+      Ratio := Float'Min
+        (1.0,
+         Float (W.Scroll_Viewport_H
+                / Pixel_Type'Max (1.0, Get_Scroll_Content_Height (W))));
       Knob_H := Pixel_Type'Max (Metrics.Min_Knob_H, Track_H * Pixel_Type (Ratio));
       Knob_H := Pixel_Type'Min (Track_H, Knob_H);
 

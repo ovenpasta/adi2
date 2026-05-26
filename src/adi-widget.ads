@@ -316,7 +316,6 @@ package Adi.Widget is
    function  Get_Scroll_Offset_Y (W : Widget'Class) return Pixel_Type;
    function  Get_Scroll_Offset_Y (H : Widget_Handle) return Pixel_Type;
    procedure Scroll_By_Y (W : in out Widget'Class; Delta_Y : Pixel_Type);
-   function  Get_Scroll_Content_Height (W : Widget'Class) return Pixel_Type;
    function  Get_Scroll_Content_Height (H : Widget_Handle) return Pixel_Type;
    function  Get_Scroll_Max_Offset_Y (W : Widget'Class) return Pixel_Type;
    function  Get_Scroll_Max_Offset_Y (H : Widget_Handle) return Pixel_Type;
@@ -432,6 +431,13 @@ package Adi.Widget is
    procedure Layout (W : in out Widget) is abstract;
    procedure Layout (H : Widget_Handle);
 
+   --  Total scrollable content height for overflow-y. Default returns the
+   --  cached W.Scroll_Content_H that Update_Shared_Scroll_Layout populates
+   --  from child geometries; widgets that scroll over a virtual document
+   --  (no child per row) override this to report the document size without
+   --  materialising the children.
+   function Get_Scroll_Content_Height (W : Widget) return Pixel_Type;
+
    --  Called when the widget is clicked (mouse-up within bounds of clickable widget)
    --  Default does nothing; override in derived widgets (e.g., Button).
    procedure On_Click (W : in out Widget) is null;
@@ -522,6 +528,16 @@ package Adi.Widget is
 
    --  Per-frame callback (default: no-op). DT is in seconds.
    procedure On_Tick (W : in out Widget; DT : Duration);
+
+   --  Called from Set_Scroll_Offset_Y after a real change to Scroll_Offset_Y
+   --  (no-op writes do not fire). Old_Offset is the value before the write,
+   --  New_Offset is the post-clamp value the widget actually holds. Virtualised
+   --  widgets override this to refill / recycle their item pool when the
+   --  visible window moves, instead of polling from On_Tick.
+   procedure On_Scroll_Changed
+     (W          : in out Widget;
+      Old_Offset : Pixel_Type;
+      New_Offset : Pixel_Type) is null;
 
    ---------------------------------------------------------------------------
    --  Update/Render Cycle

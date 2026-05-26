@@ -474,8 +474,8 @@ Duration formats: `100ms`, `0.3s`.
 
 | Unit | Description |
 |------|-------------|
-| `px` | Pixels (default if no unit given) |
-| `dip` / `dp` | Device-independent pixels |
+| `px` | **Physical pixels**, 1:1 with the framebuffer (default if no unit given). Does *not* scale with display density — `1px` is one pixel on every display. |
+| `dip` / `dp` | Density-independent pixels. Multiplied by the current OS display scale and app-level UI scale, so `1dp` is one CSS-style "logical pixel" (≈ one pixel on a 1× display, two on a 2× Retina, etc.). |
 | `em` | Relative to element font size |
 | `rem` | Relative to the window root font size (default `16px`). Set programmatically via `Adi.Window.Set_Root_Font_Size(W, Length_Value)`, or drive it from CSS with `Adi.CSS_Source.Attach_Window(Source, W)` + `:root { font-size: ... }`. |
 | `%` | Percentage of parent |
@@ -485,6 +485,63 @@ Duration formats: `100ms`, `0.3s`.
 `dp`/`dip` lengths follow the active OS display scale and the current app-level UI scale. Font-related length conversion also applies the current text scale. Application code should normally set those user scales via `Adi.Window.Set_UI_Scale` and `Adi.Window.Set_Text_Scale`.
 
 The root font size (for `rem`) is stored per-window as a `CSS_Styles.Length_Value` and re-evaluated every frame, so expressing it in `dip` units (e.g. `16dip`) keeps `rem`-based sizes correctly scaled across monitor changes. Use `Set_Root_Font_Size` to set it directly, or call `CSS_Source.Attach_Window` to have `:root { font-size }` in the stylesheet drive it automatically — including on hot-reload.
+
+### Pixels and high-DPI displays
+
+The Adi runtime exposes **physical pixels everywhere**: widget geometry, mouse coordinates, viewport size, the renderer's coordinate system. Windows are created with `SDL_WINDOW_HIGH_PIXEL_DENSITY` and the renderer runs with `SDL_LOGICAL_PRESENTATION_DISABLED`, so `1` render unit = `1` physical pixel — no logical-point↔pixel stretch step that would soften glyphs on Retina/HiDPI screens.
+
+That makes the unit story simple:
+
+- Use **`px`** when you mean *exactly N device pixels*, regardless of display: hairlines (`1px` borders), pixel-snapped icon work, anywhere you don't want the OS to "resize" your value.
+- Use **`dp` / `dip`** for everything that should look the same physical size on every display: padding, gaps, icon sizes, font sizes, control heights. On a 2× Retina display, `16dp` resolves to 32 pixels and looks the same physical size as `16dp` on a 1× display.
+- Use **`rem`** to chain off a single density-aware root size. The standard pattern is:
+
+  ```css
+  :root {
+    font-size: 18dp;
+    --font-body: 1rem;
+    --font-title: 1.33rem;
+  }
+  ```
+
+  The root font size is `dp`, so it scales with display density, and every `rem`-based size inherits that scale automatically.
+
+**Static-styles caveat.** When CSS is consumed via `tools/css_to_ada.py` and applied through generated `*_Styles` packages (rather than `Adi.CSS_Source.Set_CSS_File` at runtime), `:root { font-size }` is **not** auto-applied to the window — the runtime `CSS_Source` attach path is what wires that up. Until that gap is closed at the codegen level, examples that rely on `rem` and use static styles must call `Adi.Window.Set_Root_Font_Size (W, <Pkg>.Root_Font_Size)` themselves before the first frame. Generated packages expose `Has_Root_Font_Size` / `Root_Font_Size` for exactly this purpose.
+
+### Why `px` is honest (≠ browser/Qt/GTK)
+
+Browsers, Qt and GTK all redefine `px` to mean a *logical* pixel that the renderer scales by the display ratio. This works cleanly on Apple's 2× and 3× integer Retina scales — `1 logical px` always lands on a device-pixel boundary. It falls apart on **fractional** scales (Windows 125 % / 150 % / 175 %, mid-range Android densities, some Linux setups):
+
+- A `1px` border rounds to 1 or 2 device pixels — neither is the intended hairline. Stack three and you get 4.5 → uneven edges depending on rounding.
+- Snap-to-pixel rendering (charts, grids, alignment lines, icon strokes) becomes impossible without escape hatches, because every `px` silently shifts off the device-pixel grid. This is the "blurry borders on Windows @ 125 %" problem that Qt and browsers paper over with subpixel positioning and snap heuristics.
+
+Adi's split makes the contract unambiguous per property: `border: 1px;` is *one device pixel, snapped to the grid* on every display; `padding: 16dp;` is *approximate physical size, OK with rounding*. No global mode switches, no per-display surprises. The cost is a muscle-memory mismatch for web/Qt refugees — `1px` looks hairline-thin on Retina until you reach for `dp` instead.
+
+### Treating CSS `px` as logical pixels
+
+The split above (physical `px` vs density-independent `dp`) is one valid design. The other is the web convention: `px` is a *logical* unit that the runtime scales by display density automatically, and the application never writes `dp` at all. Adi exposes that as a single per-app toggle in `Adi.Layout_Util`:
+
+```ada
+with Adi.Layout_Util;
+...
+begin
+   App.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);   --  CSS px now behaves like dp
+   ...
+```
+
+When the flag is on, `Length_To_Px` resolves every `px` value as `Amount * Active_DIP_Scale * Active_UI_Scale` — identical to how `dp` resolves. `1px` on a 2× Retina display becomes 2 device pixels; `1px` borders, paddings and font sizes all scale uniformly with the display.
+
+The two designs are equally specific — pick one per app:
+
+| Design | CSS spells it as | Mental model |
+|---|---|---|
+| Physical `px` + explicit `dp` | `border: 1px;` `padding: 16dp;` | Each property states the convention it wants; hairlines stay hairline on every display. `material_demo` and `font_example` use this style. |
+| Logical `px` only (toggle on) | `border: 1px;` `padding: 16px;` | Browser/Qt-style; CSS reads naturally to web refugees; everything scales together. The other ~20 bundled examples use this style. |
+
+The toggle is a process-global call — there is no per-widget or per-stylesheet switch — so the convention is chosen once at startup and applies to every `px` value the runtime resolves from then on. The visible consequence is that `1px` and `1dp` become equivalent: any CSS or Ada code that relies on the distinction (e.g. `font_example`'s side-by-side `Px(18)` "fixed pixels" vs `Dip(18)` "display-scale aware" samples) renders identically once the toggle is on, which is why `font_example` deliberately leaves it off.
+
+`Adi.Layout_Util` also exposes `Pixels_As_Length (P : Pixel_Type) return Length_Value` for widgets that pre-resolve a length to its final pixel count and need to stash that value in a `Length_Value` field (e.g. an item's `Style_Override.Font_Size`) without it being scaled a second time when the rendering pipeline calls `Length_To_Px` again. The HTML view uses this for its measure→render handoff; new widgets following the same pattern should use it too.
 
 ### Colors
 

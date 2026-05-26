@@ -6,6 +6,15 @@ This guide walks through registering a new example program in the Adi build syst
 
 Create `examples/css/<name>.css` with your stylesheet. Follow existing examples for conventions (dark themes, class selectors, part selectors like `::label` and `::icon`).
 
+### Pick a pixel convention
+
+Adi supports two equally valid CSS unit conventions; both are present in the bundled examples. Pick one per example and stick with it:
+
+- **Physical `px` + explicit `dp`** (used by `material_demo`, `font_example`). `border: 1px` is one device pixel on every display; everything that should scale uses `dp`, `dip`, or `rem`. Hairlines stay hairline on Retina, fractional Windows scales etc. Your `.adb` does not touch `Adi.Layout_Util`.
+- **Logical `px` everywhere** (used by `label_example`, `widget_demo`, and most other bundled examples). All sizes are written in `px`; the app opts the runtime into web-style scaling by calling `Adi.Layout_Util.Set_Px_Maps_To_Dip (True)` right after `App.Init`. CSS reads naturally to readers coming from the web, and every length scales together.
+
+See `docs/css_styling.md` "Treating CSS `px` as logical pixels" for the trade-off. Don't mix within one example — the contrast between `1px` and `1dp` only exists when the toggle is off.
+
 ## 2. Create the XML UI file (optional)
 
 If using the XML UI system, create `examples/xml/<name>.xml`. The root element is `<adi>`, containing a `<link>` to the CSS file and a `<window>` with widget children:
@@ -75,6 +84,7 @@ Create `examples/<name>.adb`. For XML-based examples, the pattern is:
 pragma Ada_2022;
 
 with Adi.App;
+with Adi.Layout_Util;            --  only if using the logical-px convention
 with Adi.Window; use Adi.Window;
 with Image_Example_UI;
 
@@ -84,6 +94,8 @@ procedure Image_Example is
    W : Window_Handle;
 begin
    A.Init;
+   Adi.Layout_Util.Set_Px_Maps_To_Dip (True);  --  drop this line for the
+                                               --  physical-px convention
    A.Set_Target_FPS (60);
    W := UI.Build;
 

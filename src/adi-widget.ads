@@ -403,6 +403,15 @@ package Adi.Widget is
    procedure Mark_Render_Dirty (W : in out Widget'Class);
    procedure Mark_Render_Dirty (H : Widget_Handle);
    procedure Mark_Clean (W : in out Widget'Class);
+
+   --  Library-finalization escape hatch.  Adi.Window.Finalize sets this
+   --  before walking its widget tree to skip dispatching On_Destroy /
+   --  Clear_Items on widgets whose tagged-type scope has already been
+   --  finalized — the vtable is gone by then and a dispatching call
+   --  faults below the level where GNAT's signal-to-exception mapping
+   --  is still active, so an exception handler cannot catch it.
+   procedure Begin_Library_Finalization;
+   procedure End_Library_Finalization;
    function  Is_Dirty (W : Widget'Class) return Boolean;
    function  Is_Dirty (H : Widget_Handle) return Boolean;
    function  Is_Layout_Dirty (W : Widget'Class) return Boolean;

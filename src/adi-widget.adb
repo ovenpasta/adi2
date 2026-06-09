@@ -120,6 +120,20 @@ package body Adi.Widget is
       H.Id := Widget_Stores.Null_Id;
    end Destroy;
 
+   Library_Finalizing : Boolean := False;
+
+   function In_Library_Finalization return Boolean is (Library_Finalizing);
+
+   procedure Begin_Library_Finalization is
+   begin
+      Library_Finalizing := True;
+   end Begin_Library_Finalization;
+
+   procedure End_Library_Finalization is
+   begin
+      Library_Finalizing := False;
+   end End_Library_Finalization;
+
    procedure Destroy_Subtree (W : not null Widget_Access) is
       use Widget_List;
    begin
@@ -142,10 +156,39 @@ package body Adi.Widget is
          end loop;
       end;
 
+      --  Skip dispatching ops AND the unchecked-deallocation path during
+      --  library finalization.
+      --
+      --  Library-level finalization (running after main returns) eventually
+      --  reaches Adi.Window.Finalize, which walks the widget tree owned by
+      --  the package-level Window_Stores.  If the widgets were created by
+      --  local generic instantiations or stack-scoped tagged types whose
+      --  enclosing scope has already been finalized, W.all'Tag now points
+      --  at a torn-down vtable; the dispatching On_Destroy / Clear_Items
+      --  calls fault, and Widget_Stores.Request_Destroy → Really_Free
+      --  → Unchecked_Deallocation also faults because freeing a
+      --  controlled object dispatches into its (gone) Finalize slot.
+      --  This all happens past the point where GNAT's signal-to-exception
+      --  mapping is still active, so an Ada exception handler cannot
+      --  catch it — we must avoid making the call at all.  At process
+      --  exit the OS reclaims everything regardless, so skipping the
+      --  store cleanup is harmless here.  Widgets destroyed explicitly
+      --  (Destroy (H) from user code) still get the full path.
+      --
+      --  TODO: the root cause is finalization-ordering between the Window
+      --  store and consumer-owned tagged types.  A structural fix would
+      --  either avoid dispatching from library finalization or require
+      --  callers to Destroy windows before their tagged-type scopes end.
+      --  Tracked separately.
+      if In_Library_Finalization then
+         W.Children.Clear;
+         return;
+      end if;
+
       On_Destroy (Widget'Class (W.all));
+      Clear_Items (Widget'Class (W.all));
 
       W.Children.Clear;
-      Clear_Items (Widget'Class (W.all));
 
       if W.Store_Index > 0 then
          Widget_Stores.Request_Destroy

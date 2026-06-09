@@ -2556,8 +2556,16 @@ function Get_Size (W : in out Window) return Size_2D is
       use Adi.SDL.Render;
    begin
       --  Destroy widget trees if not already done by Destroy_Widget_Tree.
+      --  Flip the library-finalization flag so that Adi.Widget skips the
+      --  dispatching On_Destroy / Clear_Items calls — by this point the
+      --  widget's tagged-type vtable may already be torn down (its scope
+      --  has been finalized) and a dispatching call would fault below
+      --  the level where GNAT's signal-to-exception mapping is still
+      --  active.  See Destroy_Subtree's comment for the full rationale.
       if Is_Valid (W.Root) or else not W.Overlays.Is_Empty then
+         Adi.Widget.Begin_Library_Finalization;
          Destroy_Widget_Tree (W);
+         Adi.Widget.End_Library_Finalization;
       end if;
 
       if W.Internal /= null then

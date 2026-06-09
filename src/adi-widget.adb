@@ -5113,6 +5113,31 @@ package body Adi.Widget is
          Font := It.Cached_Font;
       end if;
 
+      --  Resolve and apply CSS line-height onto the shared TTF font before
+      --  any layout-triggering call (CreateText / SetTextFont /
+      --  SetTextString / SetTextWrapWidth all re-run wrap layout against the
+      --  font's current line skip).  If the cached TTF_Text was laid out at
+      --  a different skip, drop it so the new skip takes effect.
+      declare
+         Desired_Skip : constant Pixel_Type :=
+           Adi.Font.Resolve_Line_Skip_Px
+             (Line_Height  => Style.Line_Height,
+              Font_Size_Px => Pixel_Type (Font_Sz),
+              Font         => Font);
+      begin
+         TTF_SetFontLineSkip (Font, int (Desired_Skip));
+
+         if It.Cached_TTF_Text /= null
+           and then It.Cached_Line_Skip_Px /= Desired_Skip
+         then
+            TTF_DestroyText (It.Cached_TTF_Text);
+            It.Cached_TTF_Text := null;
+            It.Cached_Text_String := Null_Unbounded_String;
+         end if;
+
+         It.Cached_Line_Skip_Px := Desired_Skip;
+      end;
+
       --  Reuse or create cached text object
       Text_Obj := It.Cached_TTF_Text;
 

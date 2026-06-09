@@ -176,14 +176,37 @@ package Adi.Font is
                                   Decoration : Text_Decoration_Value)
       return Size_2D;
 
-   function Measure_Text_Wrapped (Attrs      : Font_Attributes;
-                                  Content    : String;
-                                  Wrap_Width : Pixel_Type) return Size_2D;
+   function Measure_Text_Wrapped (Attrs       : Font_Attributes;
+                                  Content     : String;
+                                  Wrap_Width  : Pixel_Type;
+                                  Line_Height : Line_Height_Value :=
+                                                  Normal_Line_Height)
+      return Size_2D;
 
    --  Return the width of the longest word in Content.
    --  Words are separated by spaces, tabs, and newlines.
    --  This gives the minimum intrinsic width for wrappable text.
    function Measure_Min_Text_Width (Attrs   : Font_Attributes;
                                     Content : String) return Pixel_Type;
+
+   ---------------------------------------------------------------------------
+   --  Line spacing
+   ---------------------------------------------------------------------------
+
+   --  Font's intrinsic line skip in pixels, captured on first acquisition
+   --  before any TTF_SetFontLineSkip override may have mutated it.  Cached
+   --  per Font pointer.
+   function Natural_Line_Skip_Px (Font : TTF_Font_Access) return Pixel_Type;
+
+   --  Resolve a CSS line-height into an absolute pixel line-skip:
+   --    LH_Normal -> Natural_Line_Skip_Px (Font)
+   --    LH_Number -> Font_Size_Px * Multiplier
+   --    LH_Length -> length resolved against the font size
+   --  Caller is responsible for applying this via TTF_SetFontLineSkip when
+   --  driving wrapped text measurement or layout.
+   function Resolve_Line_Skip_Px
+     (Line_Height  : Line_Height_Value;
+      Font_Size_Px : Pixel_Type;
+      Font         : TTF_Font_Access) return Pixel_Type;
 
 end Adi.Font;

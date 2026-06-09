@@ -1,4 +1,5 @@
 with Ada.Characters.Handling;
+with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
@@ -10,6 +11,7 @@ with System;
 with System.Storage_Elements; use System.Storage_Elements;
 with Adi.Assets;
 with Adi.Build_Target;
+with Adi.Layout_Util;
 with Adi.Log;
 with Adi.SDL;
 with Adi.SDL.IO;            use Adi.SDL.IO;
@@ -158,6 +160,25 @@ package body Adi.Font is
       Element_Type => TTF_Font_Access);
 
    Sized_Cache : Sized_Font_Maps.Map;
+
+   --  Per-font natural line-skip cache.  SDL3_ttf reports the original font
+   --  metrics via TTF_GetFontLineSkip, but any prior TTF_SetFontLineSkip call
+   --  overwrites it.  We snapshot the value the first time a font is queried
+   --  and serve subsequent queries from this cache so callers can always
+   --  recover the "use the font's default" pixel value.
+   function Hash_Font (F : TTF_Font_Access) return Ada.Containers.Hash_Type is
+     (if F = null then 0
+      else Ada.Containers.Hash_Type
+             (System.Storage_Elements.To_Integer (F.all'Address)
+                mod 2**32));
+
+   package Font_Skip_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => TTF_Font_Access,
+      Element_Type    => Pixel_Type,
+      Hash            => Hash_Font,
+      Equivalent_Keys => "=");
+
+   Natural_Skip_Cache : Font_Skip_Maps.Map;
 
    Default_Fallback_Handle : Font_Handle := Null_Font;
    Fallback_Found : Boolean := False;
@@ -1409,9 +1430,12 @@ package body Adi.Font is
          Wrap_Width => Wrap_Width);
    end Measure_Text_Wrapped;
 
-   function Measure_Text_Wrapped (Attrs      : Font_Attributes;
-                                  Content    : String;
-                                  Wrap_Width : Pixel_Type) return Size_2D
+   function Measure_Text_Wrapped (Attrs       : Font_Attributes;
+                                  Content     : String;
+                                  Wrap_Width  : Pixel_Type;
+                                  Line_Height : Line_Height_Value :=
+                                                  Normal_Line_Height)
+      return Size_2D
    is
       F      : constant TTF_Font_Access := Get_TTF_Font (Attrs);
       C_Text : chars_ptr;
@@ -1421,6 +1445,16 @@ package body Adi.Font is
       if F = null or else Content'Length = 0 then
          return (0.0, 0.0);
       end if;
+
+      --  Push CSS line-height onto the shared TTF font before measuring;
+      --  TTF_GetStringSizeWrapped uses the font's current line skip when
+      --  computing the multi-line height.
+      TTF_SetFontLineSkip
+        (F,
+         int (Resolve_Line_Skip_Px
+                (Line_Height  => Line_Height,
+                 Font_Size_Px => Pixel_Type (Attrs.Size),
+                 Font         => F)));
 
       C_Text := New_String (Content);
       Ignore := TTF_GetStringSizeWrapped (F, C_Text,
@@ -1477,6 +1511,52 @@ package body Adi.Font is
 
       return Max_W;
    end Measure_Min_Text_Width;
+
+   ---------------------------------------------------------------------------
+   --  Line spacing
+   ---------------------------------------------------------------------------
+
+   function Natural_Line_Skip_Px (Font : TTF_Font_Access) return Pixel_Type is
+      Cur : Font_Skip_Maps.Cursor;
+   begin
+      if Font = null then
+         return 0.0;
+      end if;
+      Cur := Natural_Skip_Cache.Find (Font);
+      if Font_Skip_Maps.Has_Element (Cur) then
+         return Font_Skip_Maps.Element (Cur);
+      end if;
+      declare
+         Skip : constant Pixel_Type := Pixel_Type (TTF_GetFontLineSkip (Font));
+      begin
+         Natural_Skip_Cache.Insert (Font, Skip);
+         return Skip;
+      end;
+   end Natural_Line_Skip_Px;
+
+   function Resolve_Line_Skip_Px
+     (Line_Height  : Line_Height_Value;
+      Font_Size_Px : Pixel_Type;
+      Font         : TTF_Font_Access) return Pixel_Type
+   is
+      Natural_Skip : constant Pixel_Type :=
+        (if Font = null then Font_Size_Px else Natural_Line_Skip_Px (Font));
+   begin
+      case Line_Height.Kind is
+         when LH_Normal =>
+            return Pixel_Type'Max (1.0, Natural_Skip);
+         when LH_Number =>
+            return Pixel_Type'Max
+              (1.0, Font_Size_Px * Pixel_Type (Line_Height.Multiplier));
+         when LH_Length =>
+            return Pixel_Type'Max
+              (1.0,
+               Adi.Layout_Util.Length_To_Px
+                 (Line_Height.Height,
+                  Container_Size => Natural_Skip,
+                  Font_Size      => Font_Size_Px));
+      end case;
+   end Resolve_Line_Skip_Px;
 
    procedure Set_Default_Font (Handle : Font_Handle) is
    begin

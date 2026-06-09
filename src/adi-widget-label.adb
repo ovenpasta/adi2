@@ -206,14 +206,37 @@ package body Adi.Widget.Label is
             Can_Wrap : constant Boolean :=
               Label_Style.Text_Wrap_Mode = TWM_Wrap
               and then Label_Style.White_Space /= WS_NoWrap;
-            Wrap_W : constant Pixel_Type :=
+            Wrap_W : Pixel_Type :=
               Content_Box (W.Geometry, Main_Style).Width;
          begin
+            --  Newly-visible children enter Measure_Content with Geometry = 0
+            --  (they were hidden, never laid out).  The parent's flex pass
+            --  asks Get_Preferred_Size before assigning a slot — without a
+            --  wrap-width hint we'd return the unwrapped single-line size,
+            --  the parent would allocate a single-line slot, and the label
+            --  would clip on first reveal.  Fall back to the parent's
+            --  content width: for column-flex with align-items: stretch
+            --  (the common case for wrapped body text) this is exactly the
+            --  slot width the parent is about to assign.
+            if Can_Wrap and then Wrap_W <= 0.0
+              and then W.Parent /= null
+              and then W.Parent.Geometry.Width > 0.0
+            then
+               declare
+                  Parent_Style : constant Resolved_Style :=
+                    Get_Resolved_Part_Style (W.Parent.all, Main_Part);
+               begin
+                  Wrap_W := Content_Box
+                              (W.Parent.Geometry, Parent_Style).Width;
+               end;
+            end if;
+
             if Can_Wrap and then Wrap_W > 0.0 then
                Text_Size := Adi.Font.Measure_Text_Wrapped
-                 (Attrs      => Font_Attrs,
-                  Content    => To_String (W.Text),
-                  Wrap_Width => Wrap_W);
+                 (Attrs       => Font_Attrs,
+                  Content     => To_String (W.Text),
+                  Wrap_Width  => Wrap_W,
+                  Line_Height => Label_Style.Line_Height);
             else
                Text_Size := Adi.Font.Measure_Text
                  (Attrs   => Font_Attrs,
@@ -450,9 +473,10 @@ package body Adi.Widget.Label is
                                    Decoration => Label_Style.Text_Decoration);
                               Wrapped : constant Size_2D :=
                                 Adi.Font.Measure_Text_Wrapped
-                                  (Attrs      => Font_Attrs,
-                                   Content    => To_String (W.Text),
-                                   Wrap_Width => L_Item.Geometry.Width);
+                                  (Attrs       => Font_Attrs,
+                                   Content     => To_String (W.Text),
+                                   Wrap_Width  => L_Item.Geometry.Width,
+                                   Line_Height => Label_Style.Line_Height);
                            begin
                               if Wrapped.Height /= L_Item.Geometry.Height
                               then

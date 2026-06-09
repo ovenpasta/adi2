@@ -176,10 +176,11 @@ package body Adi.Widget is
       --  (Destroy (H) from user code) still get the full path.
       --
       --  TODO: the root cause is finalization-ordering between the Window
-      --  store and consumer-owned tagged types.  A structural fix would
-      --  either avoid dispatching from library finalization or require
-      --  callers to Destroy windows before their tagged-type scopes end.
-      --  Tracked separately.
+      --  store and consumer-owned tagged-type packages.  Three structural
+      --  options (type-erased cleanup at registration, Elaborate_All on
+      --  every widget child package, or mandatory explicit Destroy) are
+      --  written up in docs/finalization_ordering.md; Option 2 there is
+      --  the recommended fix.
       if In_Library_Finalization then
          W.Children.Clear;
          return;

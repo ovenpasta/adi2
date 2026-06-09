@@ -708,7 +708,7 @@ procedure Window_Resize_Safety_Test is
       Assert
         (Has_State (+Btn_2, State_Focused),
          "Show should autofocus default button");
-      Adi.Window.On_Key_Down (W, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
+      Adi.Window.On_Key_Down (W, SDL_SCANCODE_RETURN, 0, SDL_Keymod (0), False);
       Adi.Window.On_Key_Up (W, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
       Assert
         (Last_Index = 2,
@@ -721,7 +721,7 @@ procedure Window_Resize_Safety_Test is
       Assert
         (Has_State (+Btn_1, State_Focused),
          "Explicit Set_Focus should override initial default focus");
-      Adi.Window.On_Key_Down (W, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
+      Adi.Window.On_Key_Down (W, SDL_SCANCODE_RETURN, 0, SDL_Keymod (0), False);
       Adi.Window.On_Key_Up (W, SDL_SCANCODE_RETURN, SDL_Keymod (0), False);
       Assert
         (Last_Index = 1,

@@ -110,6 +110,7 @@ procedure Window_Resize_Safety_Test is
       Adi.Window.Render (W);
 
       Assert (True, "Render path survives zero-height resize without exception");
+      Adi.Window.Destroy (W);
    exception
       when E : others =>
          Assert
@@ -238,6 +239,7 @@ procedure Window_Resize_Safety_Test is
         (Adi.Window.Get_SDL_Window (W), Min_W_3'Access, Min_H_3'Access);
       Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed (downsized)");
       Assert (Min_W_3 > 0, "Window minimum width should stay positive after downsize");
+      Adi.Window.Destroy (W);
    exception
       when E : others =>
          Assert
@@ -331,6 +333,7 @@ procedure Window_Resize_Safety_Test is
       Assert
         (Min_W_2 <= Min_W_1 + 2,
          "Wrapped text min width should not ratchet upward with current window width");
+      Adi.Window.Destroy (W);
    exception
       when E : others =>
          Assert
@@ -413,6 +416,7 @@ procedure Window_Resize_Safety_Test is
       Assert
         (Min_W_After <= Cur_W - 50,
          "Showing hidden wrapped content should not lock min width to current width");
+      Adi.Window.Destroy (W);
    exception
       when E : others =>
          Assert
@@ -478,6 +482,7 @@ procedure Window_Resize_Safety_Test is
       Assert
         (Min_H_Wide <= Min_H_Narrow,
          "Window minimum height should decrease or stay equal after widening");
+      Adi.Window.Destroy (W);
    exception
       when E : others =>
          Assert
@@ -535,6 +540,7 @@ procedure Window_Resize_Safety_Test is
       Assert
         (After_W < Before_W - 1.0,
          "Dialog panel should reflow immediately on resize (no hover needed)");
+      Adi.Window.Destroy (W);
    exception
       when E : others =>
          Assert
@@ -647,6 +653,7 @@ procedure Window_Resize_Safety_Test is
       Assert
         (not Has_State (+Btn_1, State_Focused),
          "Clear_Overlays should clear focused state on detached overlay button");
+      Adi.Window.Destroy (W);
    exception
       when E : others =>
          Assert
@@ -726,6 +733,7 @@ procedure Window_Resize_Safety_Test is
       Assert
         (Last_Index = 1,
          "Enter should activate override-focused non-default button");
+      Adi.Window.Destroy (W);
    exception
       when E : others =>
          Assert
@@ -796,6 +804,7 @@ procedure Window_Resize_Safety_Test is
       Assert
         (Offset_After = Offset_Before,
          "Root scroll should not change while overlay backdrop is shown");
+      Adi.Window.Destroy (W);
    exception
       when E : others =>
          Assert
@@ -844,6 +853,7 @@ procedure Window_Resize_Safety_Test is
       Assert
         (Get_Scroll_Offset_Y (+Root) > 0.0,
          "Root should scroll after wheel event without overlay");
+      Adi.Window.Destroy (W);
    exception
       when E : others =>
          Assert
@@ -959,6 +969,7 @@ procedure Window_Resize_Safety_Test is
       Assert
         (Min_H_Wide <= Cur_H - 50,
          "Stack min height should not ratchet to current window height");
+      Adi.Window.Destroy (W);
    exception
       when E : others =>
          Assert

@@ -1376,6 +1376,36 @@ package body Adi.Window is
       W.Tick_Sig.Disconnect (Id);
    end Disconnect_Tick;
 
+   procedure Connect_Key_Down (W : in out Window; CB : Key_Down_Callback) is
+   begin
+      W.Key_Down_Sig.Connect (CB);
+   end Connect_Key_Down;
+
+   procedure Connect_Key_Down
+     (H  : Window_Handle;
+      CB : Key_Down_Callback)
+   is
+      Ptr : constant Window_Access :=
+        Window_Access (Window_Stores.Get (H.Id));
+   begin
+      if Ptr /= null then
+         Connect_Key_Down (Ptr.all, CB);
+      end if;
+   end Connect_Key_Down;
+
+   function Connect_Key_Down
+     (W : in out Window; CB : Key_Down_Callback)
+      return Key_Down_Signals.Connection_Id is
+   begin
+      return W.Key_Down_Sig.Connect (CB);
+   end Connect_Key_Down;
+
+   procedure Disconnect_Key_Down
+     (W : in out Window; Id : Key_Down_Signals.Connection_Id) is
+   begin
+      W.Key_Down_Sig.Disconnect (Id);
+   end Disconnect_Key_Down;
+
    procedure Add_Overlay (W : in out Window; Overlay : Widget_Handle) is
    begin
       if not Is_Valid (Overlay) then
@@ -1594,6 +1624,7 @@ package body Adi.Window is
    procedure On_Key_Down
       (H        : Window_Handle;
        Scancode : Adi.SDL.Events.SDL_Scancode;
+       Keycode  : Adi.SDL.Events.SDL_Keycode;
        Key_Mod  : Adi.SDL.Events.SDL_Keymod;
        Repeat   : Boolean)
    is
@@ -1601,7 +1632,7 @@ package body Adi.Window is
         Window_Access (Window_Stores.Get (H.Id));
    begin
       if Ptr /= null then
-         On_Key_Down (Ptr.all, Scancode, Key_Mod, Repeat);
+         On_Key_Down (Ptr.all, Scancode, Keycode, Key_Mod, Repeat);
       end if;
    end On_Key_Down;
 
@@ -2256,6 +2287,7 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
    procedure On_Key_Down
      (W        : in out Window;
       Scancode : Adi.SDL.Events.SDL_Scancode;
+      Keycode  : Adi.SDL.Events.SDL_Keycode;
       Key_Mod  : Adi.SDL.Events.SDL_Keymod;
       Repeat   : Boolean)
    is
@@ -2267,7 +2299,28 @@ procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
         (Key_Mod and Adi.SDL.Events.SDL_KMOD_SHIFT) /= 0;
       Next_Focus : Widget_Handle := Null_Handle;
       Key_Root   : constant Widget_Handle := Active_Key_Root (W);
+      Handled    : Boolean := False;
    begin
+      declare
+         SC : constant Adi.SDL.Events.SDL_Scancode := Scancode;
+         KC : constant Adi.SDL.Events.SDL_Keycode  := Keycode;
+         KM : constant Adi.SDL.Events.SDL_Keymod   := Key_Mod;
+         R  : constant Boolean                     := Repeat;
+         procedure Call (CB : Key_Down_Callback) is
+         begin CB (SC, KC, KM, R, Handled); end Call;
+         procedure Emit is new Key_Down_Signals.For_Each (Call);
+      begin
+         Emit (W.Key_Down_Sig);
+      end;
+
+      --  An app-level hook consumed the event: skip Tab traversal and the
+      --  focused-widget dispatch below.  This is the contract that lets
+      --  app shortcuts (Esc, Space-to-advance, F-keys) win over whatever
+      --  widget happens to have focus.
+      if Handled then
+         return;
+      end if;
+
       if Scancode = Adi.SDL.Events.SDL_SCANCODE_TAB then
          if Shift_Mod then
             Next_Focus := Prev_Focusable (Key_Root, W.Focused_Widget);

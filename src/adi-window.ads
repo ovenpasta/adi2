@@ -133,6 +133,7 @@ package Adi.Window is
     procedure On_Key_Down
        (H        : Window_Handle;
         Scancode : Adi.SDL.Events.SDL_Scancode;
+        Keycode  : Adi.SDL.Events.SDL_Keycode;
         Key_Mod  : Adi.SDL.Events.SDL_Keymod;
         Repeat   : Boolean);
     procedure On_Key_Up
@@ -169,6 +170,7 @@ package Adi.Window is
     procedure On_Key_Down
        (W        : in out Window;
         Scancode : Adi.SDL.Events.SDL_Scancode;
+        Keycode  : Adi.SDL.Events.SDL_Keycode;
         Key_Mod  : Adi.SDL.Events.SDL_Keymod;
         Repeat   : Boolean);
     procedure On_Key_Up
@@ -192,6 +194,40 @@ package Adi.Window is
        return Tick_Signals.Connection_Id;
     procedure Disconnect_Tick
       (W : in out Window; Id : Tick_Signals.Connection_Id);
+
+    --  Window-level key-down hook.  Fires for every key-down event the
+    --  window receives, regardless of which (if any) widget currently
+    --  has focus, BEFORE the event reaches the focused widget.  Set
+    --  Handled := True to consume the event — the focused widget will
+    --  not see it.  Leave Handled untouched (it stays False) to let the
+    --  event continue through the normal focus-dispatch path.  This is
+    --  the right hook for app-wide shortcuts (Esc, function keys,
+    --  Ctrl+combinations) that should win over widget-local behaviour.
+    --
+    --  Scancode is the physical key position (US-layout); Keycode is the
+    --  post-layout character (typically an ASCII/Unicode code point).
+    --  Match on Keycode when you want layout-independent shortcuts (e.g.
+    --  `+` / `-` for zoom — these live at different physical positions
+    --  on AZERTY / QWERTZ / Italian QWERTY); match on Scancode for keys
+    --  with no printable character (arrows, function keys, Esc, Home).
+    type Key_Down_Callback is access procedure
+      (Scancode : Adi.SDL.Events.SDL_Scancode;
+       Keycode  : Adi.SDL.Events.SDL_Keycode;
+       Key_Mod  : Adi.SDL.Events.SDL_Keymod;
+       Repeat   : Boolean;
+       Handled  : in out Boolean);
+
+    package Key_Down_Signals is new Adi.Signal (Key_Down_Callback, null);
+
+    procedure Connect_Key_Down
+      (W : in out Window; CB : Key_Down_Callback);
+    procedure Connect_Key_Down
+      (H : Window_Handle; CB : Key_Down_Callback);
+    function Connect_Key_Down
+      (W : in out Window; CB : Key_Down_Callback)
+       return Key_Down_Signals.Connection_Id;
+    procedure Disconnect_Key_Down
+      (W : in out Window; Id : Key_Down_Signals.Connection_Id);
 
     --  Advance animations by DT seconds on all widgets in this window
     procedure Tick (W : in out Window; DT : Duration);
@@ -322,6 +358,7 @@ private
         Resize_Triggered_Layout : Boolean := False;
         Force_Redraw   : Boolean       := False;
         Tick_Sig       : Tick_Signals.Signal;
+        Key_Down_Sig   : Key_Down_Signals.Signal;
         Post_Render    : Post_Render_Signals.Signal;
         Frame          : Frame_Signals.Signal;
         Close_Request  : Close_Request_Signals.Signal;

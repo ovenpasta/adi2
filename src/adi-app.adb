@@ -218,6 +218,7 @@ package body Adi.App is
                             begin
                                 Main.On_Key_Down
                                   (Scancode => Key_Event.Scancode,
+                                   Keycode  => Key_Event.Key,
                                    Key_Mod  => Key_Event.Key_Mod,
                                    Repeat   => Boolean (Key_Event.Is_Repeat));
                             end;

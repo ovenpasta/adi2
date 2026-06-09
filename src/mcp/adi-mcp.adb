@@ -760,8 +760,12 @@ package body Adi.MCP is
                      end if;
 
                      if SC /= 0 then
+                        --  Named MCP keys (return/escape/arrows/…) carry no
+                        --  printable character — pass Keycode => 0.  Apps
+                        --  match these on Scancode anyway.
                         Adi.Window.On_Key_Down
-                          (Win.all, SC, Key_Mod => 0, Repeat => False);
+                          (Win.all, SC, Keycode => 0,
+                           Key_Mod => 0, Repeat => False);
                         Adi.Window.On_Key_Up
                           (Win.all, SC, Key_Mod => 0, Repeat => False);
                      end if;

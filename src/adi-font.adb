@@ -622,8 +622,19 @@ package body Adi.Font is
       Family_Generation.Replace_Element (Index, Value + 1);
    end Bump_Generation;
 
+   --  Quantization step used to key the sized-font cache.
+   --
+   --  FreeType internally uses 1/64-px precision but we don't need that
+   --  for caching — two sizes a fraction of a pixel apart look
+   --  indistinguishable.  We round to 1/2 px, which collapses adjacent
+   --  scale values to a single TTF_Font.  Critical for live UI-scale
+   --  sliders: at 1/64 step the cache grew unbounded under continuous
+   --  drag and every new TTF_Font kept an SDL_IO handle open, eventually
+   --  exhausting the process FD table.
+   Size_Quantum : constant := 2.0;  --  steps per pixel (1/2 px grain)
+
    function Quantize_Size (Size : Float) return Natural is
-      Q : constant Integer := Integer (Float'Rounding (Size * 64.0));
+      Q : constant Integer := Integer (Float'Rounding (Size * Size_Quantum));
    begin
       if Q < 1 then
          return 1;

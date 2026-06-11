@@ -168,6 +168,17 @@ begin
 
    W := UI.Build;
 
+   --  Don't let content reflow ratchet the OS window min-size — the
+   --  user picks a size; we render whatever fits.
+   Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+
+   --  Snap the UI / Text scale sliders to 10-percent increments.
+   --  Continuous dragging would otherwise spawn a fresh TTF_Font for
+   --  every fractional pixel size — fine in itself with the cache, but
+   --  pointless granularity for a visual demo.
+   Float_Slider.Set_Step (UI.UI_Scale_Slider,   10.0);
+   Float_Slider.Set_Step (UI.Text_Scale_Slider, 10.0);
+
    --  Enable MCP introspection (development builds only)
    Adi.MCP.Initialize (W);
 

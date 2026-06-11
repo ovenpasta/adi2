@@ -199,6 +199,16 @@ private
       Pressed_Is_Link : Boolean := False;
       Content_Scale   : Pixel_Type := 1.0;
       Default_CSS : Unbounded_String := Null_Unbounded_String;
+
+      --  Cached size from the most recent Layout_And_Build pass.  Used
+      --  by Measure_Content so the widget reports its real document
+      --  height (and the width it was laid out at) instead of a
+      --  constant stub.  Zero means "not measured yet" — first frame
+      --  falls back to a small default so the parent flex has something
+      --  to assign, after which Layout_And_Build fills these in and
+      --  subsequent measures return the real values.
+      Cached_Content_W : Pixel_Type := 0.0;
+      Cached_Content_H : Pixel_Type := 0.0;
    end record;
 
    type Html_View_Handle is record

@@ -284,6 +284,13 @@ The renderer implements CSS-style vertical margin collapsing:
 - Re-layout only when width or style-affecting state changes.
 - Image cache is keyed by `src` within the widget instance to avoid repeated callback loads.
 - Inline style declarations are cached to reduce repeated parse cost.
+- `Measure_Content` reports the real document height the document needs at its current width (cached in `Cached_Content_W` / `Cached_Content_H`, populated at the end of every `Layout_And_Build` pass). On the very first measure — before any layout has run — it returns a small `(320, 120)` stub so the parent flex has something to assign; subsequent measures use the cached real values. `Set_HTML` invalidates both fields.
+
+## Scroll Behavior and CSS Overflow
+- `Html_View` does **not** set the legacy `Scrollable` widget flag in `Create`. Scrollability and clipping are entirely driven by CSS `overflow-x` / `overflow-y`.
+- The widget's `Default_Internal_Part_Styles` set `overflow-x: auto` and `overflow-y: auto`, so a freshly-created `Html_View` scrolls by default.
+- **Caveat — class CSS replaces defaults.** `Set_Part_Styles` (called by `Adi.CSS_Source.Apply_To_Widget` when a class binding is applied) replaces the part-style array rather than merging with widget intrinsics. A user-supplied class that doesn't restate `overflow-x` / `overflow-y` therefore loses the widget defaults: the resolved overflow falls back to the spec default (`visible`), and clipping + scrolling stop working. Authors binding `Html_View` widgets via class CSS must restate `overflow-y: auto` (or whatever they want) explicitly in the class. A merging cascade for widget intrinsic defaults is on the roadmap.
+- Opting out of scrolling: set `overflow-y: visible` (and usually `overflow-x: visible`) on the widget's class. `Get_Preferred_Size` then routes through `Measure_Content` and the widget sizes itself to its document height — useful when embedding `Html_View` for short, static documents (e.g. inline code blocks) that should grow to fit instead of clipping and scrolling.
 
 ## Testing Coverage (`tests/src/html_view_test.adb`)
 - Parsing and recovery:

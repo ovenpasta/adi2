@@ -3004,6 +3004,15 @@ package body Adi.Widget.Html_View is
 
          Self.Scroll_Content_H :=
            Pixel_Type'Max (Content.Height, (Content_End_Y + Scroll_Offset) - Content.Y);
+
+         --  Track the document's intrinsic size so Measure_Content can
+         --  return it.  Cached_Content_H is the real (un-clamped) bottom
+         --  of the last block — what the parent flex should size to,
+         --  not the max(viewport, content) value that Scroll_Content_H
+         --  holds for scrollbar math.
+         Self.Cached_Content_W := Content.Width;
+         Self.Cached_Content_H :=
+           Pixel_Type'Max (0.0, (Content_End_Y + Scroll_Offset) - Content.Y);
       end;
 
       Self.Scroll_Viewport_H := Content.Height;
@@ -3015,7 +3024,9 @@ package body Adi.Widget.Html_View is
    begin
       Set_Flag (Result.all, Visible, True);
       Set_Flag (Result.all, Clickable, True);
-      Set_Flag (Result.all, Scrollable, True);
+      --  Scrollability comes from CSS overflow-y (Default_Internal_Part_Styles
+      --  sets overflow-y: auto).  Authors can opt out with overflow-y: visible
+      --  to size the widget to its content instead of clipping + scrolling.
       Set_Part_Styles (Result.all, Default_Internal_Part_Styles);
       Register_Widget (Widget_Access (Result));
       return Result;
@@ -3201,6 +3212,10 @@ package body Adi.Widget.Html_View is
       Self.Inline_Style_Cache.Clear;
       Set_Scroll_Offset_Y (Self, 0.0);
       Parse_HTML (Self, Source);
+      --  Invalidate measure cache so next layout pass re-measures the
+      --  document — the new source may be a different height.
+      Self.Cached_Content_W := 0.0;
+      Self.Cached_Content_H := 0.0;
       Mark_Dirty (Self);
    end Set_HTML;
 
@@ -3335,9 +3350,21 @@ package body Adi.Widget.Html_View is
    end Layout;
 
    overriding function Measure_Content (Self : Html_View) return Size_2D is
-      pragma Unreferenced (Self);
+      Main_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (Self, Main_Part);
+      --  Once Layout_And_Build has run we know the real document size;
+      --  before that we report a small stub so the parent flex has
+      --  something to assign on the first pass.  When the parent gives
+      --  the widget a constrained slot (max-height / explicit height)
+      --  the document still scrolls — Scroll_Content_H is independent.
+      W : constant Pixel_Type :=
+        (if Self.Cached_Content_W > 0.0 then Self.Cached_Content_W
+         else 320.0);
+      H : constant Pixel_Type :=
+        (if Self.Cached_Content_H > 0.0 then Self.Cached_Content_H
+         else 120.0);
    begin
-      return (Width => 320.0, Height => 120.0);
+      return Outer_Size ((W, H), Main_Style);
    end Measure_Content;
 
    overriding procedure On_Mouse_Down

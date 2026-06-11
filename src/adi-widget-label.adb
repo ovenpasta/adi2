@@ -214,20 +214,53 @@ package body Adi.Widget.Label is
             --  asks Get_Preferred_Size before assigning a slot — without a
             --  wrap-width hint we'd return the unwrapped single-line size,
             --  the parent would allocate a single-line slot, and the label
-            --  would clip on first reveal.  Fall back to the parent's
-            --  content width: for column-flex with align-items: stretch
-            --  (the common case for wrapped body text) this is exactly the
-            --  slot width the parent is about to assign.
-            if Can_Wrap and then Wrap_W <= 0.0
-              and then W.Parent /= null
-              and then W.Parent.Geometry.Width > 0.0
-            then
+            --  would clip on first reveal.  Walk up the ancestor chain
+            --  looking for the first container whose content box has a
+            --  positive width and use that as the wrap-width hint.  In a
+            --  column-flex tree with align-items: stretch (the common
+            --  case for slide body text) this is exactly the slot width
+            --  the parent will assign.
+            if Can_Wrap and then Wrap_W <= 0.0 then
                declare
-                  Parent_Style : constant Resolved_Style :=
-                    Get_Resolved_Part_Style (W.Parent.all, Main_Part);
+                  P : Widget_Access := W.Parent;
                begin
-                  Wrap_W := Content_Box
-                              (W.Parent.Geometry, Parent_Style).Width;
+                  while P /= null loop
+                     if P.Geometry.Width > 0.0 then
+                        declare
+                           Parent_Style : constant Resolved_Style :=
+                             Get_Resolved_Part_Style (P.all, Main_Part);
+                           Parent_W : constant Pixel_Type :=
+                             Content_Box (P.Geometry, Parent_Style).Width;
+                        begin
+                           if Parent_W > 0.0 then
+                              Wrap_W := Parent_W;
+                              exit;
+                           end if;
+                        end;
+                     end if;
+                     P := P.Parent;
+                  end loop;
+               end;
+            end if;
+
+            --  When an icon shares the label's main flex row, the text
+            --  column is narrower than the full content box by the icon
+            --  width + gap.  Subtract that share so the wrap pass uses the
+            --  same width the renderer will give the text; otherwise the
+            --  second line packs more glyphs than the text column can
+            --  render and the tail clips off the right edge ("…runtime to
+            --  [ship]" with "ship" missing).  Only meaningful when the
+            --  flex direction is row (or row-reverse) — column layouts
+            --  stack icon above/below and the full width is available.
+            if Can_Wrap and then Wrap_W > 0.0 and then Has_Icon then
+               declare
+                  Dir : constant Flex_Direction_Value :=
+                    Main_Style.Flex_Direction;
+               begin
+                  if Dir in Row | Row_Reverse then
+                     Wrap_W := Pixel_Type'Max
+                       (0.0, Wrap_W - Icon_Size.Width - Gap);
+                  end if;
                end;
             end if;
 

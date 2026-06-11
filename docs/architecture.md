@@ -344,6 +344,21 @@ Three optimizations reduce layout cost for large widget trees (e.g. 280+ widgets
 
 **Performance counters**: `Reset_Perf_Counters` / `Get_Perf_*` functions in `Adi.Widget` track style resolves, cache hits, layout calls, layout skips, preferred-size calls, and preferred-size cache hits per frame. Counters are reset before `Update` so that all work (including `Build_Items`) is captured. The Window captures these after each layout pass for the debug stats overlay.
 
+### Multi-Pass Layout Convergence (Width-Aware Text Wrap)
+
+A single `Layout_Tree` pass is **measure → assign → recursive-layout** in a top-down sweep. Each level measures its children with `Get_Preferred_Size`, distributes space, then sets child geometries and recurses. Wrap-aware widgets (`Adi.Widget.Label` with `text-wrap: wrap`) need their assigned width to compute the correct wrapped height — but during the measure step the widget's `Geometry.Width` is still zero (it hasn't been assigned yet that pass).
+
+`Label.Measure_Content` works around this by walking up the ancestor chain looking for a parent with `Geometry.Width > 0` and using that as the wrap-width hint. That works after the first `Layout_Tree` pass has run (when the immediate parent's width has been set), but on the **very first** pass — fresh window, no prior layout — every ancestor up to the root is also `0`, so the walk falls through to root, which is too wide. The wrap call then reports "fits on one line" and the parent allocates a single-line slot. After that pass's assign phase the widget *does* get its real `Geometry.Width`, but the cached preferred size is locked in for the rest of that epoch.
+
+**Convergence pattern**: two `Layout_Tree` passes after `Set_Root` are sufficient.
+- Pass 1: measurements use the too-wide root width → heights wrong → assign phase sets widget widths correctly but heights at the bad single-line value.
+- Pass 2: new epoch, preferred-size cache misses. Measurements now use `W.Geometry.Width` (set by pass 1) → wrap returns the real multi-line height → assign reflows with correct heights.
+- Subsequent passes are no-ops (geometries are stable).
+
+Applications that load a non-trivial pre-rendered tree before `App.Run` (e.g. a slide deck restoring its last active page from settings, where the first frame the user sees needs to be fully wrapped) should call `Adi.Widget.Layout_Tree (Adi.Window.Get_Root_Handle (W))` twice between `Set_Root` and `Run`. The render loop only re-layouts when `Needs_Layout` is dirty, which isn't reliable for this case.
+
+The proper architectural fix is a width-hint parameter on `Measure_Content` (so the parent's flex pass can pass the slot width it's about to assign), eliminating the convergence requirement. Tracked as a roadmap item; the warmup pattern is the interim workaround.
+
 ## Settings
 
 **Adi.Settings** (`adi-settings.ads`): Persistent key-value store for application settings. `Setting_Value` is a managed recursive variant (null, string, integer, float, boolean, list, map) with controlled deep-copy/free semantics. `Settings_Store` provides typed getters/setters with dot-path keys (`.` separator, `\.` escape) and auto-creation of intermediate maps. Pluggable `Settings_Backend` interface; default `JSON_Settings_Backend` serializes via `Adi.JSON.JSON_Writer` and reads via `Adi.JSON.Parsers`. File path: `Pref_Path(Org, App) & "settings.json"`. Saves atomically (temp + rename). Full reference in `docs/settings.md`.

@@ -315,6 +315,8 @@
 
 Render scheduling note: relayout runs only when layout/geometry is dirty (`Mark_Dirty`); pure visual updates (state changes, scroll-offset, visual-only animations) use `Mark_Render_Dirty` for repaint without forcing full tree relayout.
 
+**State-change dirty classification** (`Set_State` / `Set_Part_State`): when a state flips, the runtime compares the old and new resolved styles via `Widget_State_Style_Effect` / `Part_State_Style_Effect`, which return `Diff_None` / `Diff_Render_Only` / `Diff_Layout_Affecting`. The result picks the cheapest valid invalidation: `Diff_None` → no work; `Diff_Render_Only` → `Mark_Render_Dirty`; `Diff_Layout_Affecting` → `Mark_Dirty`. `Layout_Affecting_Diff` covers the layout surface (border, padding, margin, width/height, min/max, font, line-height, text wrap, white-space, display, position, inset, overflow, flex-*, grid-*, gap). Without this classification, a `:selected` rule that toggles only `display: none ↔ block` (a layout-affecting change) would only mark render-dirty and the bullet's new size wouldn't be assigned until the next genuine layout invalidation — the cause of the "first reveal step shows nothing" bug we hit on the workshop deck.
+
 **Debug stats overlay**: `Set_Debug_Stats(True)` enables a 2-line HUD showing frame number, FPS, per-stage timing (Update/Layout/Draw/Present in microseconds), layout count, layout trigger reason, style cache hit ratio (`S:hits/total`), layout call/skip counts (`LC:calls+skips`), and preferred-size cache ratio (`P:hits/total`). Renders only when the scene is already being redrawn — does not force extra frames.
 
 ### Layout Performance Optimizations

@@ -821,13 +821,75 @@ package body Adi.Widget is
       return Style_From_Handle (H).all;
    end Effective_Part_Style;
 
-   function Widget_State_Affects_Resolved_Styles
+   --  Classification of a state-driven style change.  Used to decide
+   --  whether we only need to re-render or also need to re-layout.
+   type Style_Diff_Kind is
+     (Diff_None,                 --  resolved styles identical
+      Diff_Render_Only,          --  differ in render-only fields (color,
+                                 --  background, opacity, etc.) — layout
+                                 --  can stay; just repaint
+      Diff_Layout_Affecting);    --  differ in at least one field that
+                                 --  affects size, position, intrinsic
+                                 --  metrics or layout participation —
+                                 --  must re-layout
+
+   function Layout_Affecting_Diff (L, R : Resolved_Style) return Boolean is
+     (L.Border_Width        /= R.Border_Width
+      or else L.Padding           /= R.Padding
+      or else L.Margin            /= R.Margin
+      or else L.Width             /= R.Width
+      or else L.Height            /= R.Height
+      or else L.Min_Width         /= R.Min_Width
+      or else L.Max_Width         /= R.Max_Width
+      or else L.Min_Height        /= R.Min_Height
+      or else L.Max_Height        /= R.Max_Height
+      or else L.Font_Family       /= R.Font_Family
+      or else L.Font_Size         /= R.Font_Size
+      or else L.Font_Weight       /= R.Font_Weight
+      or else L.Font_Style        /= R.Font_Style
+      or else L.Text_Decoration   /= R.Text_Decoration
+      or else L.List_Style_Type   /= R.List_Style_Type
+      or else L.List_Style_Image  /= R.List_Style_Image
+      or else L.List_Style_Position /= R.List_Style_Position
+      or else L.White_Space       /= R.White_Space
+      or else L.Text_Overflow     /= R.Text_Overflow
+      or else L.Text_Wrap_Mode    /= R.Text_Wrap_Mode
+      or else L.Line_Height       /= R.Line_Height
+      or else L.Display           /= R.Display
+      or else L.Position          /= R.Position
+      or else L.Top               /= R.Top
+      or else L.Right             /= R.Right
+      or else L.Bottom            /= R.Bottom
+      or else L.Left              /= R.Left
+      or else L.Overflow_X        /= R.Overflow_X
+      or else L.Overflow_Y        /= R.Overflow_Y
+      or else L.Flex_Direction    /= R.Flex_Direction
+      or else L.Flex_Wrap         /= R.Flex_Wrap
+      or else L.Justify_Content   /= R.Justify_Content
+      or else L.Align_Items       /= R.Align_Items
+      or else L.Align_Content     /= R.Align_Content
+      or else L.Gap               /= R.Gap
+      or else L.Grid_Columns      /= R.Grid_Columns
+      or else L.Grid_Rows         /= R.Grid_Rows
+      or else L.Grid_Column_Tracks /= R.Grid_Column_Tracks
+      or else L.Align_Self        /= R.Align_Self
+      or else L.Flex_Grow         /= R.Flex_Grow
+      or else L.Flex_Shrink       /= R.Flex_Shrink
+      or else L.Flex_Basis        /= R.Flex_Basis
+      or else L.Order             /= R.Order
+      or else L.Grid_Column       /= R.Grid_Column
+      or else L.Grid_Row          /= R.Grid_Row
+      or else L.Grid_Column_Span  /= R.Grid_Column_Span
+      or else L.Grid_Row_Span     /= R.Grid_Row_Span);
+
+   function Widget_State_Style_Effect
      (W          : Widget'Class;
-      Old_States : Widget_States) return Boolean
+      Old_States : Widget_States) return Style_Diff_Kind
    is
       Changed : Widget_State;
       Found   : Boolean := False;
       Eff_States : constant Widget_States := Get_States (W);
+      Worst   : Style_Diff_Kind := Diff_None;
    begin
       --  Identify which state changed
       for S in Widget_State loop
@@ -838,7 +900,7 @@ package body Adi.Widget is
          end if;
       end loop;
       if not Found then
-         return False;
+         return Diff_None;
       end if;
 
       --  Only check parts whose rules reference the changed state
@@ -862,24 +924,31 @@ package body Adi.Widget is
                             (Prepared.all, Eff_States, W.Part_States (P)));
                   begin
                      if Old_Resolved /= New_Resolved then
-                        return True;
+                        if Layout_Affecting_Diff
+                             (Old_Resolved, New_Resolved)
+                        then
+                           --  Can't get worse; short-circuit.
+                           return Diff_Layout_Affecting;
+                        end if;
+                        Worst := Diff_Render_Only;
                      end if;
                   end;
                end if;
             end;
          end if;
       end loop;
-      return False;
-   end Widget_State_Affects_Resolved_Styles;
+      return Worst;
+   end Widget_State_Style_Effect;
 
-   function Part_State_Affects_Resolved_Styles
+   function Part_State_Style_Effect
      (W          : Widget'Class;
       Changed    : Part_Kind;
-      Old_States : Widget_States) return Boolean
+      Old_States : Widget_States) return Style_Diff_Kind
    is
       Changed_State : Widget_State;
       Found         : Boolean := False;
       Eff_States    : constant Widget_States := Get_States (W);
+      Worst         : Style_Diff_Kind := Diff_None;
    begin
       --  Identify which part state changed
       for S in Widget_State loop
@@ -890,7 +959,7 @@ package body Adi.Widget is
          end if;
       end loop;
       if not Found then
-         return False;
+         return Diff_None;
       end if;
 
       --  Only the changed part can be affected, and only if rules use this state
@@ -914,15 +983,20 @@ package body Adi.Widget is
                             (Prepared.all, Eff_States, W.Part_States (P)));
                   begin
                      if Old_Resolved /= New_Resolved then
-                        return True;
+                        if Layout_Affecting_Diff
+                             (Old_Resolved, New_Resolved)
+                        then
+                           return Diff_Layout_Affecting;
+                        end if;
+                        Worst := Diff_Render_Only;
                      end if;
                   end;
                end if;
             end;
          end if;
       end loop;
-      return False;
-   end Part_State_Affects_Resolved_Styles;
+      return Worst;
+   end Part_State_Style_Effect;
 
    procedure Bump_Style_Version (W : in out Widget'Class) is
    begin
@@ -954,9 +1028,11 @@ package body Adi.Widget is
          W.States (S) := Active;
          Bump_Style_Version (W);
          On_State_Changed (W, S, Active);
-         if Widget_State_Affects_Resolved_Styles (W, Old_States) then
-            Mark_Render_Dirty (W);
-         end if;
+         case Widget_State_Style_Effect (W, Old_States) is
+            when Diff_None            => null;
+            when Diff_Render_Only     => Mark_Render_Dirty (W);
+            when Diff_Layout_Affecting => Mark_Dirty (W);
+         end case;
       end if;
    end Set_State;
 
@@ -985,9 +1061,11 @@ package body Adi.Widget is
          Old_States := W.Part_States (P);
          W.Part_States (P) (S) := Active;
          Bump_Style_Version (W);
-         if Part_State_Affects_Resolved_Styles (W, P, Old_States) then
-            Mark_Render_Dirty (W);
-         end if;
+         case Part_State_Style_Effect (W, P, Old_States) is
+            when Diff_None            => null;
+            when Diff_Render_Only     => Mark_Render_Dirty (W);
+            when Diff_Layout_Affecting => Mark_Dirty (W);
+         end case;
       end if;
    end Set_Part_State;
 

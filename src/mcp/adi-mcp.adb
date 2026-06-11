@@ -757,6 +757,22 @@ package body Adi.MCP is
                         SC := SDL_SCANCODE_DOWN;
                      elsif Name = "up" then
                         SC := SDL_SCANCODE_UP;
+                     elsif Name'Length in 2 .. 3
+                       and then Name (Name'First) = 'f'
+                       and then (for all C of
+                                 Name (Name'First + 1 .. Name'Last)
+                                 => C in '0' .. '9')
+                     then
+                        --  {f1}..{f12} — SDL_SCANCODE_F1=58, F12=69.
+                        declare
+                           N : constant Integer :=
+                             Integer'Value
+                               (Name (Name'First + 1 .. Name'Last));
+                        begin
+                           if N in 1 .. 12 then
+                              SC := SDL_Scancode (57 + N);
+                           end if;
+                        end;
                      end if;
 
                      if SC /= 0 then

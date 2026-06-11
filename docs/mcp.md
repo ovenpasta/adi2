@@ -114,8 +114,12 @@ Regular characters are sent as text input. Special keys use `{Name}` notation:
 | `{PageUp}` | Page Up |
 | `{PageDown}` | Page Down |
 | `{Right}`, `{Left}`, `{Down}`, `{Up}` | Arrow keys |
+| `{F1}` … `{F12}` | Function keys |
+
+Tokens are case-insensitive.
 
 Example: `"Hello{Return}"` types "Hello" then presses Enter.
+Example: `"{F1}"` triggers the app's F1 handler (e.g. a help dialog).
 
 ## CSS Parts
 

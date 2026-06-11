@@ -38,3 +38,6 @@ tools/__pycache__/
 /bindings/
 
 /scratch/
+
+# workshop2026 is its own git repository — not part of adi2
+/workshop2026/

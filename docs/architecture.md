@@ -223,6 +223,8 @@
 - `On_Tick(DT)` per-frame hook
 - Image rendering: `object-fit` modes (Fill, Cover, Contain, None, Scale_Down), rounded clipping
 - Label icon sizing honors `Icon_Part` `width`/`height` styles in both measurement and layout
+- Label text Y-offset honours CSS `vertical-align` on the label part: `baseline`/`top` (default) pins text to the top of the assigned slot, `middle` centres it, `bottom`/`text-bottom` pins it to the bottom. The slack is `slot_height − measured_text_height`; the default keeps historical top-aligned rendering so existing layouts are unaffected
+- **No hardcoded sizing fallbacks.** Widgets that have no inherent content size (e.g. `Adi.Widget.Button.Switch`) return `(0, 0)` from `Measure_Content` instead of a hardcoded pixel constant. CSS class rules must set `width`/`height` on the widget and `::knob`/`::indicator`/etc. on the moving parts; a class that forgets to size the switch produces a 0×0 widget — loud failure, surfaces the missing CSS rule. Avoids the trap where a hardcoded fallback rendered at "physical pixels regardless of DIP scale" — looking microscopic on Retina even though CSS lengths around it scaled correctly
 
 **Text_Input**: Single-line editor using `Text_Buffer`. Horizontal scroll, caret, selection, context menu. Double-click word select, triple-click select all.
 - `Min_Visible_Chars` (default 20): controls the preferred width as a character count. The input does not grow with its text content; long text scrolls horizontally. Set via `Set_Min_Visible_Chars`, query via `Get_Min_Visible_Chars`. Width is computed as `char_width("M") × Min_Visible_Chars` plus padding/border.

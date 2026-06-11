@@ -259,8 +259,13 @@ package body Adi.Widget.Button.Switch is
    overriding function Measure_Content (W : Switch_Widget) return Size_2D is
       pragma Unreferenced (W);
    begin
-      --  Sensible default size when width/height are auto.
-      return (Width => 52.0, Height => 30.0);
+      --  A switch has no inherent content size — no text, no image, just
+      --  a pill and a knob whose dimensions are pure design decisions.
+      --  Following Adi's "no style in widget code" principle, return zero
+      --  and require the CSS class to set width/height on the switch and
+      --  ::knob.  The widget renders nothing if the class is incomplete;
+      --  that's the intended loud failure mode for the missing rule.
+      return (0.0, 0.0);
    end Measure_Content;
 
    -----------------

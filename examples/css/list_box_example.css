@@ -79,6 +79,8 @@
 }
 
 .inertia-switch {
+  width: 56px;
+  height: 30px;
   padding: 2px;
   background-color: rgb(203, 213, 225);
   border-width: 1px;
@@ -102,6 +104,8 @@
 }
 
 .inertia-switch::knob {
+  width: 24px;
+  height: 24px;
   background-color: white;
   border-width: 1px;
   border-style: solid;
@@ -110,6 +114,8 @@
 }
 
 .debug-switch {
+  width: 56px;
+  height: 30px;
   padding: 2px;
   background-color: rgb(203, 213, 225);
   border-width: 1px;
@@ -133,6 +139,8 @@
 }
 
 .debug-switch::knob {
+  width: 24px;
+  height: 24px;
   background-color: white;
   border-width: 1px;
   border-style: solid;

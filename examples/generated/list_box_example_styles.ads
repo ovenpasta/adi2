@@ -126,6 +126,8 @@ package List_Box_Example_Styles is
    --  Base style for class 'inertia-switch'
    function Inertia_Switch_Class_Base_Style return Style_Rules is
      (
+      Width => Set (Size (Px (56.0))),
+      Height => Set (Size (Px (30.0))),
       Background_Color => Set_Bg (RGB (203, 213, 225)),
       Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
@@ -157,6 +159,8 @@ package List_Box_Example_Styles is
    --  Base style for class 'inertia-switch'::knob
    function Inertia_Switch_Class_Knob_Base_Style return Style_Rules is
      (
+      Width => Set (Size (Px (24.0))),
+      Height => Set (Size (Px (24.0))),
       Background_Color => Set_Bg (C (White)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -167,6 +171,8 @@ package List_Box_Example_Styles is
    --  Base style for class 'debug-switch'
    function Debug_Switch_Class_Base_Style return Style_Rules is
      (
+      Width => Set (Size (Px (56.0))),
+      Height => Set (Size (Px (30.0))),
       Background_Color => Set_Bg (RGB (203, 213, 225)),
       Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
@@ -198,6 +204,8 @@ package List_Box_Example_Styles is
    --  Base style for class 'debug-switch'::knob
    function Debug_Switch_Class_Knob_Base_Style return Style_Rules is
      (
+      Width => Set (Size (Px (24.0))),
+      Height => Set (Size (Px (24.0))),
       Background_Color => Set_Bg (C (White)),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),

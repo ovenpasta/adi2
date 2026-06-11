@@ -832,7 +832,14 @@ package body Adi.Window is
 
     procedure Render_Debug_Stats (W : Window) is
        use Adi.SDL.Render;
-       Bar_H  : constant Float := 16.0;
+       --  SDL_RenderDebugText draws an 8 px-tall bitmap font at 1:1
+       --  device pixels.  On HiDPI (Retina) the window's render target
+       --  is in physical pixels, so without scaling the bar comes out
+       --  microscopic.  Scale by the active DIP factor (clamped to 1.0
+       --  so non-Retina output is unchanged).
+       Scale  : constant Float :=
+         Float'Max (1.0, Float (Get_Active_DIP_Scale));
+       Bar_H  : constant Float := 16.0 * Scale;
        Win_H  : constant Float := Float (W.Size.Height);
        Win_W  : constant Float := Float (W.Size.Width);
        Bar    : aliased SDL_FRect :=
@@ -913,12 +920,18 @@ package body Adi.Window is
        Dummy := SDL_SetRenderDrawColor (W.Internal.ren, 0, 0, 0, 200);
        Dummy := SDL_RenderFillRect (W.Internal.ren, Bar'Access);
 
-       --  Draw text
+       --  Draw text — scale the renderer so the debug font is legible
+       --  on HiDPI.  Restore scale to 1:1 afterwards.
        Dummy := SDL_SetRenderDrawColor (W.Internal.ren, 180, 255, 180, 255);
+       Dummy := SDL_SetRenderScale (W.Internal.ren, Scale, Scale);
        C_Str := Interfaces.C.Strings.New_String (Buf (1 .. Len));
        Dummy := SDL_RenderDebugText
-         (W.Internal.ren, 6.0, Win_H - Bar_H + 2.0, C_Str);
+         (W.Internal.ren,
+          6.0,
+          (Win_H - Bar_H + 2.0 * Scale) / Scale,
+          C_Str);
        Interfaces.C.Strings.Free (C_Str);
+       Dummy := SDL_SetRenderScale (W.Internal.ren, 1.0, 1.0);
 
        --  Restore blend mode
        Dummy := SDL_SetRenderDrawBlendMode

@@ -173,6 +173,8 @@ Runtime (`Adi.CSS_Parser`) and compile-time (`css_to_ada.py`) both support `bord
 For asymmetric corners, prefer `border-radius` shorthand when possible (for example, top-only rounding: `border-radius: 8px 8px 0px 0px;`) and use corner longhands only for targeted overrides.
 Corner radius longhands currently accept a single value only (elliptical two-value corner syntax is not supported yet).
 
+> **Border-radius resolution**: each corner length is resolved through `Adi.Layout_Util.Resolve_Border_Radius_Px`, which routes the value through `Length_To_Px`. That means `border-radius: 8px` honours the `Set_Px_Maps_To_Dip` convention and the active DIP scale exactly like every other length property — `8px` on a Retina display where `Set_Px_Maps_To_Dip` is on resolves to `16` physical pixels, the same way `width: 8px` would. (The plain `Adi.CSS_Styles.Get_Border_Radius_Px` returns raw `.Amount` values and bypasses unit handling — don't use it for rendering; it exists only for legacy callers.)
+
 ### Colors
 
 | Property | Values | Example |
@@ -191,6 +193,8 @@ Corner radius longhands currently accept a single value only (elliptical two-val
 | `font-style` | `normal`, `italic`, `oblique` | `font-style: italic;` |
 | `text-align` | `left`, `right`, `center`, `justify`, `start`, `end` | `text-align: center;` |
 | `vertical-align` | `baseline`, `top`, `middle`, `bottom`, `text-top`, `text-bottom` | `vertical-align: middle;` |
+
+> **Label vertical alignment**: `Adi.Widget.Label` honours `vertical-align` for positioning text within the assigned label-part slot. When a label sits in a flex-row container that stretches its slot taller than the text — the common case for a fixed-height button (`height: 36px; padding: 7px 16px; font-size: 13px` leaves the label slot taller than a single line of text) — the default `baseline` / `top` keeps text at the top of the slot (historical behaviour), `middle` centres it (typical button styling), and `bottom` / `text-bottom` pins it to the bottom. Add `vertical-align: middle` to your button's `::label` rule if the text otherwise looks "high".
 | `text-decoration` | `none`, `underline`, `overline`, `line-through` | `text-decoration: underline;` |
 | `line-height` | `normal`, number, length | `line-height: 1.5;` |
 | `white-space` | `normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line` | `white-space: nowrap;` |

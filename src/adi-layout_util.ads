@@ -219,6 +219,22 @@ package Adi.Layout_Util is
                          Viewport_Height : Pixel_Type := 0.0)
        return Pixel_Type;
 
+   --  Resolve Border_Radius_Value to per-corner pixel values, properly
+   --  routing each corner Length_Value through Length_To_Px so px ↔ dp
+   --  mapping and DIP scaling are honoured.  The plain
+   --  Adi.CSS_Styles.Get_Border_Radius_Px returns raw .Amount values and
+   --  bypasses unit handling — use this instead for any geometry-aware
+   --  rendering or layout calculation.
+   function Resolve_Border_Radius_Px
+     (R : CSS_Styles.Border_Radius_Value;
+      Container_Width  : Pixel_Type := 0.0;
+      Container_Height : Pixel_Type := 0.0;
+      Font_Size        : Pixel_Type := Default_Root_Font_Size_Px;
+      Root_Font_Size   : Pixel_Type := 0.0;
+      Viewport_Width   : Pixel_Type := 0.0;
+      Viewport_Height  : Pixel_Type := 0.0)
+      return CSS_Styles.Corner_Pixels;
+
 -------------------------------------------------
    -- Flex Layout Types
    -------------------------------------------------

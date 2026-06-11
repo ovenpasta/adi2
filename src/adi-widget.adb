@@ -704,9 +704,13 @@ package body Adi.Widget is
       Spread_Px : constant Float :=
          Float (Length_To_Px (Shadow.Spread_Radius, Geom.Width));
 
-      --  Get corner radius from style
+      --  Get corner radius from style — Resolve_Border_Radius_Px honours
+      --  px ↔ dp mapping and DIP scaling per Length_To_Px (the plain
+      --  Get_Border_Radius_Px in Adi.CSS_Styles bypasses both).
       Radius_Vals : constant Corner_Pixels :=
-         Get_Border_Radius_Px (Style.Border_Radius);
+         Resolve_Border_Radius_Px (Style.Border_Radius,
+                                    Container_Width  => Geom.Width,
+                                    Container_Height => Geom.Height);
       Max_Rad : constant Natural :=
          Natural (Float'Max
             (Float'Max (Radius_Vals.Top_Left, Radius_Vals.Top_Right),
@@ -4835,7 +4839,10 @@ package body Adi.Widget is
       end if;
 
       Border_W := Get_Border_Width_Px (Style);
-      Radius_Px := Get_Border_Radius_Px (Style.Border_Radius);
+      Radius_Px :=
+        Resolve_Border_Radius_Px (Style.Border_Radius,
+                                   Container_Width  => Geom.Width,
+                                   Container_Height => Geom.Height);
       Max_Rad := Float'Max
          (Float'Max (Radius_Px.Top_Left, Radius_Px.Top_Right),
           Float'Max (Radius_Px.Bottom_Right, Radius_Px.Bottom_Left));
@@ -5682,7 +5689,10 @@ package body Adi.Widget is
       end if;
 
       --  Border radius for clipping
-      Radius_Px := Get_Border_Radius_Px (Style.Border_Radius);
+      Radius_Px :=
+        Resolve_Border_Radius_Px (Style.Border_Radius,
+                                   Container_Width  => Geom.Width,
+                                   Container_Height => Geom.Height);
       Max_Rad := Float'Max
          (Float'Max (Radius_Px.Top_Left, Radius_Px.Top_Right),
           Float'Max (Radius_Px.Bottom_Right, Radius_Px.Bottom_Left));

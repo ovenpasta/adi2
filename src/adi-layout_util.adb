@@ -179,6 +179,50 @@ package body Adi.Layout_Util is
       end case;
    end Size_To_Px;
 
+   function Resolve_Border_Radius_Px
+     (R : CSS_Styles.Border_Radius_Value;
+      Container_Width  : Pixel_Type := 0.0;
+      Container_Height : Pixel_Type := 0.0;
+      Font_Size        : Pixel_Type := Default_Root_Font_Size_Px;
+      Root_Font_Size   : Pixel_Type := 0.0;
+      Viewport_Width   : Pixel_Type := 0.0;
+      Viewport_Height  : Pixel_Type := 0.0)
+      return CSS_Styles.Corner_Pixels
+   is
+      --  Per CSS spec, percent border-radius resolves against the box's
+      --  width for horizontal radii — we use Container_Width as the
+      --  reference for all four corners (the simpler interpretation; CSS
+      --  technically distinguishes horizontal vs vertical radii but this
+      --  codebase stores only a single radius per corner).
+      pragma Unreferenced (Container_Height);
+      function Cnv (L : CSS_Styles.Length_Value) return Float is
+      begin
+         return Float (Length_To_Px
+           (L,
+            Container_Width,
+            Font_Size,
+            Root_Font_Size,
+            Viewport_Width,
+            Viewport_Height));
+      end Cnv;
+      use CSS_Styles;
+   begin
+      case R.Kind is
+         when Gap_Uniform =>
+            declare
+               V : constant Float := Cnv (R.All_Corners);
+            begin
+               return (V, V, V, V);
+            end;
+         when Per_Corner =>
+            return (
+               Top_Left     => Cnv (R.Corners (Top_Left)),
+               Top_Right    => Cnv (R.Corners (Top_Right)),
+               Bottom_Right => Cnv (R.Corners (Bottom_Right)),
+               Bottom_Left  => Cnv (R.Corners (Bottom_Left)));
+      end case;
+   end Resolve_Border_Radius_Px;
+
    -------------------------------------------------
    -- CSS_Box to Pixels
    -------------------------------------------------

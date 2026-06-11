@@ -635,9 +635,33 @@ package body Adi.Widget.Label is
            Label_Style.Text_Wrap_Mode = TWM_Wrap
            and then Label_Style.White_Space /= WS_NoWrap;
          Text_It.Geometry := (0.0, 0.0, 0.0, 0.0);
+         Text_It.Text_Offset_X := 0.0;
+         Text_It.Text_Offset_Y := 0.0;
          for L_Item of W.Layout_Items loop
             if L_Item.Part = Label_Part then
                Text_It.Geometry := Clamp_Horizontal_To_Content (L_Item.Geometry);
+               --  Honour CSS vertical-align on the label part.  When the
+               --  inner flex layout stretches the label slot taller than
+               --  the text (e.g. a fixed-height button), text would
+               --  otherwise render at the top of the slot.  Default
+               --  (VA_Baseline) preserves the historical top-aligned
+               --  rendering; VA_Middle / VA_Bottom adjust the offset.
+               declare
+                  Slack : constant Pixel_Type :=
+                    Pixel_Type'Max
+                      (0.0,
+                       L_Item.Geometry.Height
+                         - Pixel_Type (L_Item.Content_Height));
+               begin
+                  case Label_Style.Vertical_Align is
+                     when VA_Middle =>
+                        Text_It.Text_Offset_Y := Slack / 2.0;
+                     when VA_Bottom | VA_Text_Bottom =>
+                        Text_It.Text_Offset_Y := Slack;
+                     when VA_Baseline | VA_Top | VA_Text_Top =>
+                        Text_It.Text_Offset_Y := 0.0;
+                  end case;
+               end;
                Found := True;
                exit;
             end if;

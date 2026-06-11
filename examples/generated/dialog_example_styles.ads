@@ -116,6 +116,7 @@ package Dialog_Example_Styles is
       Font_Size => Set_Font (Px (14.0)),
       Font_Weight => Set (Weight_Semi_Bold),
       Text_Align => Set (Text_Center),
+      Vertical_Align => Set (VA_Middle),
       White_Space => Set (WS_Nowrap),
       others => <>);
 
@@ -228,6 +229,7 @@ package Dialog_Example_Styles is
       Font_Size => Set_Font (Px (13.0)),
       Font_Weight => Set (Weight_Medium),
       Text_Align => Set (Text_Center),
+      Vertical_Align => Set (VA_Middle),
       White_Space => Set (WS_Nowrap),
       others => <>);
 
@@ -272,6 +274,7 @@ package Dialog_Example_Styles is
       Font_Size => Set_Font (Px (13.0)),
       Font_Weight => Set (Weight_Semi_Bold),
       Text_Align => Set (Text_Center),
+      Vertical_Align => Set (VA_Middle),
       White_Space => Set (WS_Nowrap),
       others => <>);
 

@@ -150,10 +150,10 @@ package Material_Demo_Styles is
    --  Style for class 'nav-btn' when widget State_Focused
    function Nav_Btn_Class_Widget_Focused_Style return Style_Rules is
      (
-      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Width => Set_Outline_Width (Dip (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
-      Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      Outline_Offset => Set_Outline_Offset (Dip (2.0)),
       others => <>);
 
    --  Style for class 'nav-btn' when widget State_Selected
@@ -332,16 +332,16 @@ package Material_Demo_Styles is
    function Btn_Primary_Class_Widget_Pressed_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (190, 168, 240)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (2.0), Px (0.0), RGBA (0, 0, 0, 0.2))),
+      Box_Shadow => Set (Shadow (Dip (0.0), Dip (0.0), Dip (2.0), Dip (0.0), RGBA (0, 0, 0, 0.2))),
       others => <>);
 
    --  Style for class 'btn-primary' when widget State_Focused
    function Btn_Primary_Class_Widget_Focused_Style return Style_Rules is
      (
-      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Width => Set_Outline_Width (Dip (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (255, 255, 255)),
-      Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      Outline_Offset => Set_Outline_Offset (Dip (2.0)),
       others => <>);
 
    --  Base style for class 'btn-primary'::label
@@ -374,10 +374,10 @@ package Material_Demo_Styles is
    --  Style for class 'btn-secondary' when widget State_Focused
    function Btn_Secondary_Class_Widget_Focused_Style return Style_Rules is
      (
-      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Width => Set_Outline_Width (Dip (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
-      Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      Outline_Offset => Set_Outline_Offset (Dip (2.0)),
       others => <>);
 
    --  Base style for class 'btn-secondary'::label
@@ -417,7 +417,7 @@ package Material_Demo_Styles is
       Cursor => Set (Cursor_Text),
       Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Border_Color))),
       Padding => Set (CSS_Box (Dip (0.0), Dip (16.0), Dip (0.0), Dip (16.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Width => Set (Border_Width (Dip (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (147, 143, 153))),
       Border_Radius => Set (Radius (Dip (8.0))),
@@ -440,7 +440,7 @@ package Material_Demo_Styles is
    function Text_Field_Class_Cursor_Base_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (208, 188, 255)),
-      Width => Set (Size (Px (2.0))),
+      Width => Set (Size (Dip (2.0))),
       others => <>);
 
    --  Base style for class 'text-field'::label
@@ -483,7 +483,7 @@ package Material_Demo_Styles is
       Background_Color => Set_Bg (RGB (54, 52, 59)),
       Cursor => Set (Cursor_Pointer),
       Padding => Set (CSS_Box (Dip (9.0), Dip (16.0), Dip (9.0), Dip (16.0))),
-      Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
+      Border_Width => Set (Border_Width (Dip (0.0), Dip (0.0), Dip (2.0), Dip (0.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (147, 143, 153))),
       Border_Radius => Set (Radius (Dip (8.0), Dip (8.0), Dip (0.0), Dip (0.0))),
@@ -500,7 +500,7 @@ package Material_Demo_Styles is
    function Combo_Class_Widget_Focused_Style return Style_Rules is
      (
       Box_Shadow => Set (Shadow (Dip (0.0), Dip (0.0), Dip (10.0), Dip (0.0), RGBA (208, 188, 255, 0.5))),
-      Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
+      Border_Width => Set (Border_Width (Dip (0.0), Dip (0.0), Dip (2.0), Dip (0.0))),
       Border_Color => Set (Border_Color (RGB (208, 188, 255))),
       others => <>);
 
@@ -559,7 +559,7 @@ package Material_Demo_Styles is
       Background_Color => Set_Bg (RGB (73, 69, 79)),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Border_Width => Set (Border_Width (Px (2.0))),
+      Border_Width => Set (Border_Width (Dip (2.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (147, 143, 153))),
       Border_Radius => Set (Radius (Dip (999.0))),
@@ -575,19 +575,19 @@ package Material_Demo_Styles is
    --  Style for class 'setting-switch' when widget State_Focused
    function Setting_Switch_Class_Widget_Focused_Style return Style_Rules is
      (
-      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Width => Set_Outline_Width (Dip (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
-      Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      Outline_Offset => Set_Outline_Offset (Dip (2.0)),
       others => <>);
 
    --  Style for class 'setting-switch' when widget State_Selected, widget State_Focused
    function Setting_Switch_Class_Widget_Selected_Widget_Focused_Style return Style_Rules is
      (
-      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Width => Set_Outline_Width (Dip (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
-      Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      Outline_Offset => Set_Outline_Offset (Dip (2.0)),
       others => <>);
 
    --  Style for class 'setting-switch' when widget State_Disabled
@@ -622,7 +622,7 @@ package Material_Demo_Styles is
       Background_Color => Set_Bg (RGB (54, 52, 60)),
       Box_Shadow => Set (Shadow (Dip (0.0), Dip (8.0), Dip (20.0), Dip (0.0), RGBA (0, 0, 0, 0.4))),
       Padding => Set (CSS_Box (Dip (4.0), Dip (4.0), Dip (4.0), Dip (4.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Width => Set (Border_Width (Dip (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (73, 69, 79))),
       Border_Radius => Set (Radius (Dip (12.0))),
@@ -791,10 +791,10 @@ package Material_Demo_Styles is
    --  Style for class 'slider' when widget State_Focused
    function Slider_Class_Widget_Focused_Style return Style_Rules is
      (
-      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Width => Set_Outline_Width (Dip (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
-      Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      Outline_Offset => Set_Outline_Offset (Dip (2.0)),
       others => <>);
 
    --  Style for class 'slider' when widget State_Disabled
@@ -846,24 +846,24 @@ package Material_Demo_Styles is
    --  Base style for class 'num-field'
    function Num_Field_Class_Base_Style return Style_Rules is
      (
-      Width => Set (Size (Px (100.0))),
+      Width => Set (Size (Dip (100.0))),
       Background_Color => Set_Bg (RGB (54, 52, 59)),
       Cursor => Set (Cursor_Text),
       Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Border_Color))),
-      Padding => Set (CSS_Box (Px (10.0), Px (12.0), Px (10.0), Px (12.0))),
-      Border_Width => Set (Border_Width (Px (0.0), Px (0.0), Px (2.0), Px (0.0))),
+      Padding => Set (CSS_Box (Dip (10.0), Dip (12.0), Dip (10.0), Dip (12.0))),
+      Border_Width => Set (Border_Width (Dip (0.0), Dip (0.0), Dip (2.0), Dip (0.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (147, 143, 153))),
-      Border_Radius => Set (Radius (Px (8.0), Px (8.0), Px (0.0), Px (0.0))),
+      Border_Radius => Set (Radius (Dip (8.0), Dip (8.0), Dip (0.0), Dip (0.0))),
       others => <>);
 
    --  Style for class 'num-field' when widget State_Focused
    function Num_Field_Class_Widget_Focused_Style return Style_Rules is
      (
-      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Width => Set_Outline_Width (Dip (2.0)),
       Outline_Style => Set (Outline_Solid),
       Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
-      Outline_Offset => Set_Outline_Offset (Px (2.0)),
+      Outline_Offset => Set_Outline_Offset (Dip (2.0)),
       Border_Color => Set (Border_Color (RGB (208, 188, 255))),
       others => <>);
 
@@ -878,7 +878,7 @@ package Material_Demo_Styles is
    function Num_Field_Class_Cursor_Base_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (208, 188, 255)),
-      Width => Set (Size (Px (2.0))),
+      Width => Set (Size (Dip (2.0))),
       others => <>);
 
    --  Base style for class 'num-field'::selected
@@ -897,23 +897,23 @@ package Material_Demo_Styles is
    --  Base style for class 'context-menu'
    function Context_Menu_Class_Base_Style return Style_Rules is
      (
-      Width => Set (Size (Px (180.0))),
+      Width => Set (Size (Dip (180.0))),
       Background_Color => Set_Bg (RGB (54, 52, 60)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (24.0), Px (0.0), RGBA (0, 0, 0, 0.45))),
-      Padding => Set (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
+      Box_Shadow => Set (Shadow (Dip (0.0), Dip (8.0), Dip (24.0), Dip (0.0), RGBA (0, 0, 0, 0.45))),
+      Padding => Set (CSS_Box (Dip (6.0), Dip (6.0), Dip (6.0), Dip (6.0))),
+      Border_Width => Set (Border_Width (Dip (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (73, 69, 79))),
-      Border_Radius => Set (Radius (Px (8.0))),
+      Border_Radius => Set (Radius (Dip (8.0))),
       others => <>);
 
    --  Base style for class 'context-menu-item'
    function Context_Menu_Item_Class_Base_Style return Style_Rules is
      (
-      Min_Height => Set (Size (Px (28.0))),
+      Min_Height => Set (Size (Dip (28.0))),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
-      Padding => Set (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0))),
-      Border_Radius => Set (Radius (Px (6.0))),
+      Padding => Set (CSS_Box (Dip (6.0), Dip (10.0), Dip (6.0), Dip (10.0))),
+      Border_Radius => Set (Radius (Dip (6.0))),
       others => <>);
 
    --  Style for class 'context-menu-item' when widget State_Hovered
@@ -926,7 +926,7 @@ package Material_Demo_Styles is
    function Context_Menu_Item_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (230, 225, 229)),
-      Font_Size => Set_Font (Px (13.0)),
+      Font_Size => Set_Font (Dip (13.0)),
       others => <>);
 
    --  Complete widget style for class 'root'

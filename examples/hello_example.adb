@@ -22,6 +22,14 @@ begin
    A.Set_Target_FPS (60);
    UI.On_Hello_Click := On_Hello_Click'Unrestricted_Access;
    W := UI.Build;
+   declare
+      OK : Boolean;
+   begin
+      UI.Set_CSS_File ("examples/css/hello_example.css", OK);
+      if not OK then
+         Adi.Log.Warning ("hello_example: live CSS reload not enabled");
+      end if;
+   end;
    A.Add_Window (W);
    A.Run;
 end Hello_Example;

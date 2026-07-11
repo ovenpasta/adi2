@@ -46,28 +46,11 @@ gprbuild -P examples/examples.gpr -XADI_PLATFORM=linux -XEXAMPLE_KIND=label_exam
 gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMPLE_KIND=label_example
 ```
 
-### SVG backend selection
+### SVG rendering
 
-`Adi` now supports two compile-time SVG backends:
-
-- `plutosvg` (default): vendored C backend (`vendor/plutosvg/` + `vendor/plutosvg/plutovg/`)
-- `ada`: native Ada backend (`src/svg/ada`)
-
-Select backend with `ADI_SVG_BACKEND`:
-
-```bash
-# default (plutosvg)
-gprbuild -P adi.gpr -XADI_PLATFORM=linux
-
-# force Ada backend
-gprbuild -P adi.gpr -XADI_PLATFORM=linux -XADI_SVG_BACKEND=ada
-```
-
-Configure-generated builds can also set backend default:
-
-```bash
-tools/configure.sh --build-dir build-linux --target linux --svg-backend plutosvg
-```
+SVG is rendered through the vendored plutosvg / plutovg C library
+(`vendor/plutosvg/`). There is nothing to configure — it is built
+automatically as part of the library.
 
 ### Valid TEST_KIND values
 `styles`, `layout_test`, `layout_flex_grid_test`, `css_parser_test`, `css_source_test`, `text_buffer_test`, `text_layout_test`, `html_view_test`, `svg_test`, `svg_perf_test`, `disabled_test`, `image_widget_test`, `slider_test`, `value_input_test`, `svg_sprites_test`, `min_size_test`, `layout_perf_test`, `style_storage_equivalence_test`, `window_resize_safety_test`, `mcp_test`, `bundle_test`, `signal_test`, `dispatch_test`, `i18n_test`, `settings_test`, `close_request_test`, `window_handle_test`, `text_editor_test`, `handle_store_test`, `widget_handle_test`

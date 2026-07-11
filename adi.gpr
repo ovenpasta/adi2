@@ -5,8 +5,6 @@ project Adi is
 
    type Build_Profile_Kind is ("release", "validation", "development");
    Build_Profile : Build_Profile_Kind := external ("ADI_BUILD_PROFILE", "development");
-   type SVG_Backend_Kind is ("ada", "plutosvg");
-   SVG_Backend : SVG_Backend_Kind := external ("ADI_SVG_BACKEND", "plutosvg");
    Crate_Version := external ("ADI_LIBRARY_VERSION", "0.1.0-dev");
    User_Ada_Compiler_Switches := External_As_List ("ADAFLAGS", " ");
    Platform_Name := external ("ADI_PLATFORM", "linux");
@@ -35,26 +33,15 @@ project Adi is
       when others    => Target_Config_Dir := "config/posix";
    end case;
 
-   case SVG_Backend is
-      when "ada" =>
-         for Source_Dirs use
-           ("src/",
-            "src/svg",
-            "src/svg/ada",
-            Target_Config_Dir,
-            Profile_Config_Dir,
-            "vendor/json-ada/src",
-            MCP_Source_Dir);
-      when "plutosvg" =>
-         for Source_Dirs use
-           ("src/",
-            "src/svg",
-            "src/svg/plutosvg",
-            Target_Config_Dir,
-            Profile_Config_Dir,
-            "vendor/json-ada/src",
-            MCP_Source_Dir);
-   end case;
+   --  SVG rendering goes through the vendored plutosvg backend.
+   for Source_Dirs use
+     ("src/",
+      "src/svg",
+      "src/svg/plutosvg",
+      Target_Config_Dir,
+      Profile_Config_Dir,
+      "vendor/json-ada/src",
+      MCP_Source_Dir);
    for Object_Dir use "obj/" & Build_Profile;
    for Create_Missing_Dirs use "True";
    for Library_Dir use "lib/" & Build_Profile;

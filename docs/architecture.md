@@ -98,10 +98,9 @@
 - CSS `background-image: url(...)` resolves through this module — widgets call `Get_Image(URI)` in `Build_Items`
 
 **Adi.SVG** (`src/svg/adi-svg.ads`): SVG loading/raster API used by `Adi.Image` and HTML image flows.
-- Compile-time backend selection via `-XADI_SVG_BACKEND=<plutosvg|ada>`
-- `plutosvg` backend (default) lives in `src/svg/plutosvg` and uses vendored C libraries under `vendor/plutosvg/`
-- `ada` backend lives in `src/svg/ada` (native parser/rasterizer)
-- Shared public API surface: `Load_From_File`, `Load_From_String`, `Get_Size`, `Render_ARGB32`, `Destroy`, `Backend_Name`
+- Rendering backend lives in `src/svg/plutosvg` and uses the vendored plutosvg / plutovg C libraries under `vendor/plutosvg/`
+- Public API surface: `Load_From_File`, `Load_From_String`, `Get_Size`, `Render_ARGB32`, `Destroy`, `Backend_Name`
+- The SVG path parser (`src/svg/adi-svg-parser.ads`) is shared and also drives `Adi.SVG_Sprites`
 
 **Adi.SVG_Sprites** (`adi-svg_sprites.ads`): SVG sprite sheet loader for icon fonts (e.g. FontAwesome).
 - Parses `<symbol>` elements from SVG sprite files, keyed by `id`

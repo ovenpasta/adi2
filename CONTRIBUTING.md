@@ -1,20 +1,37 @@
 # Contributing
 
-**Issues welcome. Pull requests are not accepted.**
+Issues and pull requests are welcome.
 
-Adi2 is a single-author project. Keeping all copyright in one set of hands lets the project evolve — including future relicensing — without having to track down or negotiate with past contributors.
+## Issues
 
-## What you can do
+- Report bugs with what you observed, what you expected, a minimal
+  reproduction if possible, and the relevant version / build profile /
+  platform.
+- Feature ideas, design discussion, and documentation gaps are all fair
+  game.
 
-- **Open issues** for bugs, feature ideas, design discussion, documentation gaps, or anything else. These are read and appreciated.
-- **Describe the problem** clearly: what you observed, what you expected, a minimal reproduction if it's a bug, and the relevant version / build profile / platform.
-- **Suggest fixes in prose** in the issue body. Code snippets in issues are fine as illustration.
+## Pull requests
 
-## What will not be accepted
+- **For anything beyond a small fix, open an issue first** so the
+  approach can be discussed before you invest time in it.
+- Match the existing code style — see
+  [`docs/coding_conventions.md`](docs/coding_conventions.md).
+- Keep the test suite green (`alr build -- -j0` builds the library and
+  tests; binaries land in `tests/bin/`). Add tests for new behaviour —
+  see [`docs/adding_test.md`](docs/adding_test.md).
+- Never weaken or delete a test to make an implementation pass; raise
+  the mismatch in the issue or PR instead.
+- Keep commits focused, with a short subject line and a body explaining
+  what changed and why.
 
-- **Pull requests will be closed unapplied**, regardless of how good they are. Please do not be offended — this is policy, not a judgment of the code.
-- If a fix you suggested in an issue turns out to be the right one, it will be re-implemented from scratch from the idea, so no foreign copyright enters the tree.
+## Licensing of contributions
+
+Adi2 is licensed under **Apache-2.0**. Unless you explicitly state
+otherwise, any contribution intentionally submitted for inclusion is
+understood to be under the same license, as defined in Section 5 of the
+Apache License 2.0. There is no CLA to sign.
 
 ## Commercial support
 
-For commercial support, custom development, or licensing arrangements outside Apache-2.0, contact **adi@aldustechnology.com**.
+For commercial support or custom development, contact
+**adi@aldustechnology.com**.

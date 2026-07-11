@@ -184,11 +184,11 @@ Rendering goes through the SDL renderer abstraction, so you get hardware-acceler
 
 ## Contributing
 
-**Issues welcome. Pull requests are not accepted.**
+**Issues and pull requests welcome.**
 
-Adi2 is a single-author project. Keeping all copyright in one set of hands lets the project evolve — including future relicensing — without having to track down or negotiate with past contributors.
+For anything beyond a small fix, please open an issue first so the approach can be discussed before you invest time in it. Match the existing code style ([`docs/coding_conventions.md`](docs/coding_conventions.md)), keep the tests green, and add tests for new behaviour.
 
-If you suggest a fix in an issue and it turns out to be the right one, it will be re-implemented from scratch from the idea, so no foreign copyright enters the tree. PRs will be closed unapplied regardless of how good they are — please don't take it personally; it's policy. Full details in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Unless you explicitly state otherwise, contributions you submit are understood to be under the Apache-2.0 license, as per its Section 5 — no CLA to sign. Full details in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ---
 
@@ -196,9 +196,7 @@ If you suggest a fix in an issue and it turns out to be the right one, it will b
 
 Apache-2.0. See [`LICENSE`](LICENSE).
 
-The library is new and the licensing terms may evolve over time. **Commercial licenses outside Apache-2.0 are available** — contact **adi@aldustechnology.com**.
-
-Vendored third-party code under [`vendor/`](vendor/) retains its original licenses.
+Vendored third-party code under [`vendor/`](vendor/) retains its original licenses (MIT, Apache-2.0, OFL, and similar permissive terms).
 
 ---
 

@@ -223,8 +223,16 @@ def generate(po_files: list[PoFile], package_name: str) -> tuple[str, str]:
         f'end {package_name};',
     ]
 
-    # Body
+    # Body.
+    #  The translated msgstr are plain String literals holding raw UTF-8
+    #  bytes (what Adi.I18N / the text renderer consume). They are only
+    #  correct when NOT UTF-8-decoded at compile time: a project-wide
+    #  -gnatW8 would collapse each accent to a single Latin-1 byte, which
+    #  the renderer then sees as invalid UTF-8 and draws as a box. The
+    #  pragma forces this one file to keep the bytes verbatim; it is a
+    #  no-op for consumers that don't use -gnatW8 (Brackets is the default).
     body_lines = [
+        'pragma Wide_Character_Encoding (Brackets);',
         'pragma Ada_2022;',
         '',
         'with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;',

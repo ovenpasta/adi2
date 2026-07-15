@@ -1,5 +1,4 @@
 with Ada.Characters.Handling;
-with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
@@ -166,17 +165,18 @@ package body Adi.Font is
    --  overwrites it.  We snapshot the value the first time a font is queried
    --  and serve subsequent queries from this cache so callers can always
    --  recover the "use the font's default" pixel value.
-   function Hash_Font (F : TTF_Font_Access) return Ada.Containers.Hash_Type is
-     (if F = null then 0
-      else Ada.Containers.Hash_Type
-             (System.Storage_Elements.To_Integer (F.all'Address)
-                mod 2**32));
+   --  Keyed by the font pointer's address.  An Ordered_Map (like the other
+   --  font caches in this package) rather than a Hashed_Map: the hashed
+   --  variant's first Insert deadlocked on 32-bit MinGW, while the ordered
+   --  maps used everywhere else here work fine.
+   function Font_Addr_Lt (L, R : TTF_Font_Access) return Boolean is
+     (System.Storage_Elements.To_Integer (L.all'Address) <
+      System.Storage_Elements.To_Integer (R.all'Address));
 
-   package Font_Skip_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => TTF_Font_Access,
-      Element_Type    => Pixel_Type,
-      Hash            => Hash_Font,
-      Equivalent_Keys => "=");
+   package Font_Skip_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => TTF_Font_Access,
+      Element_Type => Pixel_Type,
+      "<"          => Font_Addr_Lt);
 
    Natural_Skip_Cache : Font_Skip_Maps.Map;
 

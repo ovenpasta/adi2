@@ -18,6 +18,12 @@ project Adi is
       when "development" => MCP_Source_Dir := "src/mcp";
       when others        => MCP_Source_Dir := "src/mcp_stub";
    end case;
+   --  Real MCP imports POSIX kill (src/mcp/adi-mcp.adb) and cannot link on
+   --  Windows; force the stub there regardless of profile.
+   case Platform_Name is
+      when "windows" => MCP_Source_Dir := "src/mcp_stub";
+      when others    => null;
+   end case;
 
    Profile_Config_Dir := "";
    case Build_Profile is

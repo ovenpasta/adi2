@@ -1336,15 +1336,21 @@ package body Adi.Widget.Html_View is
       return Base;
    end Html_Length_To_Px;
 
-   function Measure_Text
-     (Style : Resolved_Style;
-      S     : String;
-      Scale : Pixel_Type;
-      Root_Font_Size : Pixel_Type;
-      Viewport_Width : Pixel_Type;
-      Viewport_Height : Pixel_Type) return Size_2D
+   --  Resolve a style's font-size to device pixels, mirroring the global
+   --  Font_Length_To_Px: Html_Length_To_Px plus the active text scale. The
+   --  render path draws Text_Part items through Font_Length_To_Px (which
+   --  applies the text scale), so measurement must apply it too — otherwise
+   --  measured word advances come out narrower than the drawn glyphs and
+   --  words overlap horizontally under an active text scale.
+   function Html_Font_Size_To_Px
+     (Style           : Resolved_Style;
+      Scale           : Pixel_Type;
+      Root_Font_Size  : Pixel_Type;
+      Viewport_Width  : Pixel_Type;
+      Viewport_Height : Pixel_Type) return Pixel_Type
    is
-      Font_Px : constant Pixel_Type := Pixel_Type'Max
+   begin
+      return Pixel_Type'Max
         (1.0,
          Html_Length_To_Px
            (Style.Font_Size,
@@ -1353,7 +1359,21 @@ package body Adi.Widget.Html_View is
             Font_Size       => Default_Root_Font_Size_Px,
             Root_Font_Size  => Root_Font_Size,
             Viewport_Width  => Viewport_Width,
-            Viewport_Height => Viewport_Height));
+            Viewport_Height => Viewport_Height)
+         * Get_Active_Text_Scale);
+   end Html_Font_Size_To_Px;
+
+   function Measure_Text
+     (Style : Resolved_Style;
+      S     : String;
+      Scale : Pixel_Type;
+      Root_Font_Size : Pixel_Type;
+      Viewport_Width : Pixel_Type;
+      Viewport_Height : Pixel_Type) return Size_2D
+   is
+      Font_Px : constant Pixel_Type :=
+        Html_Font_Size_To_Px
+          (Style, Scale, Root_Font_Size, Viewport_Width, Viewport_Height);
       Font_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Style.Font_Family,
@@ -1381,16 +1401,9 @@ package body Adi.Widget.Html_View is
       Viewport_Width : Pixel_Type;
       Viewport_Height : Pixel_Type) return Pixel_Type
    is
-      Font_Px : constant Pixel_Type := Pixel_Type'Max
-        (1.0,
-         Html_Length_To_Px
-           (Style.Font_Size,
-            Scale,
-            Container_Size  => Viewport_Width,
-            Font_Size       => Default_Root_Font_Size_Px,
-            Root_Font_Size  => Root_Font_Size,
-            Viewport_Width  => Viewport_Width,
-            Viewport_Height => Viewport_Height));
+      Font_Px : constant Pixel_Type :=
+        Html_Font_Size_To_Px
+          (Style, Scale, Root_Font_Size, Viewport_Width, Viewport_Height);
       Font_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Style.Font_Family,
@@ -1442,16 +1455,9 @@ package body Adi.Widget.Html_View is
       Viewport_Width : Pixel_Type;
       Viewport_Height : Pixel_Type) return Pixel_Type
    is
-      Font_Px : constant Pixel_Type := Pixel_Type'Max
-        (1.0,
-         Html_Length_To_Px
-           (Style.Font_Size,
-            Scale,
-            Container_Size  => Viewport_Width,
-            Font_Size       => Default_Root_Font_Size_Px,
-            Root_Font_Size  => Root_Font_Size,
-            Viewport_Width  => Viewport_Width,
-            Viewport_Height => Viewport_Height));
+      Font_Px : constant Pixel_Type :=
+        Html_Font_Size_To_Px
+          (Style, Scale, Root_Font_Size, Viewport_Width, Viewport_Height);
       Font_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Style.Font_Family,
@@ -1486,16 +1492,9 @@ package body Adi.Widget.Html_View is
       Viewport_Width : Pixel_Type;
       Viewport_Height : Pixel_Type) return Pixel_Type
    is
-      Font_Px : constant Pixel_Type := Pixel_Type'Max
-        (1.0,
-         Html_Length_To_Px
-           (Style.Font_Size,
-            Scale,
-            Container_Size  => Viewport_Width,
-            Font_Size       => Default_Root_Font_Size_Px,
-            Root_Font_Size  => Root_Font_Size,
-            Viewport_Width  => Viewport_Width,
-            Viewport_Height => Viewport_Height));
+      Font_Px : constant Pixel_Type :=
+        Html_Font_Size_To_Px
+          (Style, Scale, Root_Font_Size, Viewport_Width, Viewport_Height);
       Font_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Style.Font_Family,

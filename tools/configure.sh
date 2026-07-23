@@ -346,7 +346,10 @@ project Examples_Build is
       when "validation" =>
          Profile_Ada_Compiler_Switches := ("-O2", "-g", "-gnata");
       when "development" =>
-         Profile_Ada_Compiler_Switches := ("-Og", "-g", "-gnatwa", "-gnatw.X", "-gnatVa", "-gnatW8");
+         --  No -gnatW8 here: generated example sources carry raw UTF-8 in
+         --  String literals (matches the Alire examples.gpr, which also
+         --  builds them without -gnatW8).
+         Profile_Ada_Compiler_Switches := ("-Og", "-g", "-gnatwa", "-gnatw.X", "-gnatVa");
    end case;
    Ada_Switches := ("-gnat2022", "-gnatX0", "-gnatef");
    package Compiler is

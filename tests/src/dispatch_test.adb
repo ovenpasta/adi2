@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Ada.Command_Line;
 with Adi.Dispatch;
 with Adi.Log;
 
@@ -146,6 +147,7 @@ begin
                  Failed'Image & " failed");
    if Failed > 0 then
       Adi.Log.Error ("DISPATCH TEST FAILED");
+      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    end if;
 
 end Dispatch_Test;

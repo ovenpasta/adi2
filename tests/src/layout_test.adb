@@ -1,4 +1,5 @@
 pragma Ada_2022;
+with Ada.Command_Line;
 with Ada.Text_IO; use Ada.Text_IO;
 with Adi.Core; use Adi.Core;
 with Adi.Widget; use Adi.Widget;
@@ -6,6 +7,8 @@ with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 procedure Layout_Test is
+
+   Failed : Natural := 0;
 
    procedure Test_Horizontal_Icon_Text is
       Items : Layout_Item_List.Vector;
@@ -85,17 +88,21 @@ procedure Layout_Test is
          --  Check icon
          if Icon_Result.Geometry.X /= 0.0 then
             Put_Line ("FAIL: Icon X=" & Icon_Result.Geometry.X'Image & " (expected 0.0)");
+            Failed := Failed + 1;
          end if;
          if Icon_Result.Geometry.Width /= 24.0 then
             Put_Line ("FAIL: Icon Width=" & Icon_Result.Geometry.Width'Image & " (expected 24.0)");
+            Failed := Failed + 1;
          end if;
          if Icon_Result.Geometry.Height /= 24.0 then
             Put_Line ("FAIL: Icon Height=" & Icon_Result.Geometry.Height'Image & " (expected 24.0)");
+            Failed := Failed + 1;
          end if;
 
          --  Check text
          if Text_Result.Geometry.Height /= 20.0 then
             Put_Line ("FAIL: Text Height=" & Text_Result.Geometry.Height'Image & " (expected 20.0)");
+            Failed := Failed + 1;
          end if;
 
          Put_Line ("Test completed.");
@@ -181,17 +188,21 @@ procedure Layout_Test is
          --  Check icon
          if Icon_Result.Geometry.Y /= 0.0 then
             Put_Line ("FAIL: Icon Y=" & Icon_Result.Geometry.Y'Image & " (expected 0.0)");
+            Failed := Failed + 1;
          end if;
          if Icon_Result.Geometry.Width /= 48.0 then
             Put_Line ("FAIL: Icon Width=" & Icon_Result.Geometry.Width'Image & " (expected 48.0)");
+            Failed := Failed + 1;
          end if;
          if Icon_Result.Geometry.Height /= 48.0 then
             Put_Line ("FAIL: Icon Height=" & Icon_Result.Geometry.Height'Image & " (expected 48.0)");
+            Failed := Failed + 1;
          end if;
 
          --  Check text
          if Text_Result.Geometry.Height /= 20.0 then
             Put_Line ("FAIL: Text Height=" & Text_Result.Geometry.Height'Image & " (expected 20.0)");
+            Failed := Failed + 1;
          end if;
 
          Put_Line ("Test completed.");
@@ -254,12 +265,15 @@ procedure Layout_Test is
          --  Check text
          if Text_Result.Geometry.X /= 10.0 then
             Put_Line ("FAIL: Text X=" & Text_Result.Geometry.X'Image & " (expected 10.0)");
+            Failed := Failed + 1;
          end if;
          if Text_Result.Geometry.Width /= 300.0 then
             Put_Line ("FAIL: Text Width=" & Text_Result.Geometry.Width'Image & " (expected 300.0)");
+            Failed := Failed + 1;
          end if;
          if Text_Result.Geometry.Height /= 18.0 then
             Put_Line ("FAIL: Text Height=" & Text_Result.Geometry.Height'Image & " (expected 18.0)");
+            Failed := Failed + 1;
          end if;
 
          Put_Line ("Test completed.");
@@ -280,4 +294,7 @@ begin
    Put_Line ("========================================");
    Put_Line ("  ALL TESTS COMPLETED");
    Put_Line ("========================================");
+   if Failed > 0 then
+      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+   end if;
 end Layout_Test;

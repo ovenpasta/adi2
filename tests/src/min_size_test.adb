@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Ada.Command_Line;
 with Ada.Text_IO;
 with Adi.App;
 with Adi.Core;          use Adi.Core;
@@ -1006,5 +1007,6 @@ begin
 
    if Fail_Count > 0 then
       Ada.Text_IO.Put_Line ("FAILURES DETECTED");
+      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    end if;
 end Min_Size_Test;

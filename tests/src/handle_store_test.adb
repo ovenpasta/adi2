@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Ada.Command_Line;
 with Ada.Text_IO; use Ada.Text_IO;
 with Adi.Handle_Store;
 
@@ -393,6 +394,7 @@ begin
              Failed'Image & " failed");
    if Failed > 0 then
       Put_Line ("SOME TESTS FAILED");
+      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    else
       Put_Line ("ALL TESTS PASSED");
    end if;

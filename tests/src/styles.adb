@@ -1,3 +1,4 @@
+with Ada.Command_Line;
 with Ada.Text_IO; use Ada.Text_IO;
 with Adi.Core;         use Adi.Core;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
@@ -624,6 +625,7 @@ begin
       Put_Line ("All tests PASSED!");
    else
       Put_Line ("Some tests FAILED!");
+      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    end if;
    Put_Line ("========================================");
 

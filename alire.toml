@@ -91,6 +91,34 @@ command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=min_size_test"]
 
 [[actions]]
 type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=layout_perf_test"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=style_storage_equivalence_test"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=window_resize_safety_test"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=mcp_test"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=bundle_test"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=signal_test"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=dispatch_test"]
+
+[[actions]]
+type = "post-build"
 command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=i18n_test"]
 
 [[actions]]
@@ -103,15 +131,31 @@ command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=close_request_test"
 
 [[actions]]
 type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=window_handle_test"]
+
+[[actions]]
+type = "post-build"
 command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=text_editor_test"]
 
 [[actions]]
 type = "post-build"
-command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=text_input_test"]
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=handle_store_test"]
 
 [[actions]]
 type = "post-build"
-command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=mcp_test"]
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=widget_handle_test"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=combo_box_item_test"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=dialog_test"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=text_input_test"]
 
 [[actions]]
 type = "post-build"
@@ -120,10 +164,6 @@ command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=font_test"]
 [[actions]]
 type = "post-build"
 command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=scroll_primitives_test"]
-
-[[actions]]
-type = "post-build"
-command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=handle_store_test"]
 
 [[actions]]
 type = "post-build"
@@ -136,6 +176,10 @@ command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=clock_test"]
 [[actions]]
 type = "post-build"
 command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=gradient_example"]
+
+[[actions]]
+type = "test"
+command = ["bash", "tools/run_tests.sh"]
 
 [build-switches]
 "*".style_checks = "No"

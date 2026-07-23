@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Ada.Command_Line;
 with Ada.Environment_Variables;
 with Ada.Text_IO;  use Ada.Text_IO;
 with Adi.SDL;      use Adi.SDL;
@@ -185,5 +186,6 @@ begin
              Fail_Count'Image & " failed ===");
    if Fail_Count > 0 then
       Put_Line ("CLOSE REQUEST TEST FAILED");
+      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    end if;
 end Close_Request_Test;

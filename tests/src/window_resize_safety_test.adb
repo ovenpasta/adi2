@@ -1,6 +1,7 @@
 pragma Ada_2022;
 
 with Ada.Characters.Latin_1;
+with Ada.Command_Line;
 with Ada.Environment_Variables;
 with Ada.Exceptions;          use Ada.Exceptions;
 with Ada.Text_IO;             use Ada.Text_IO;
@@ -1010,6 +1011,7 @@ begin
       Put_Line ("All tests PASSED!");
    else
       Put_Line ("Some tests FAILED!");
+      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    end if;
    Put_Line ("========================================");
 end Window_Resize_Safety_Test;

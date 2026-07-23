@@ -1,4 +1,7 @@
-with Ada.Real_Time;
+--  Copyright (C) 2026 Aldo Nicolas Bruno
+--  SPDX-License-Identifier: Apache-2.0
+
+with Adi.Clock;
 with Adi.Window; use Adi.Window;
 
 package Adi.App is
@@ -25,9 +28,9 @@ private
     type App is tagged record
         Main_Window   : Window_Handle := Null_Window_Handle;
         Target_FPS    : Positive := 60;
-        Frame_Period  : Ada.Real_Time.Time_Span :=
-           Ada.Real_Time.Microseconds (16_667);  -- ~60 FPS
-        Last_Frame    : Ada.Real_Time.Time := Ada.Real_Time.Clock;
+        Frame_Period  : Adi.Clock.Time_Span :=
+           Adi.Clock.Microseconds (16_667);  -- ~60 FPS
+        Last_Frame    : Adi.Clock.Time := Adi.Clock.Zero;
         Current_Delta : Duration := 0.0;
     end record;
 end Adi.App;

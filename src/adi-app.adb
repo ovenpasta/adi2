@@ -1,3 +1,6 @@
+--  Copyright (C) 2026 Aldo Nicolas Bruno
+--  SPDX-License-Identifier: Apache-2.0
+
 pragma Ada_2022;
 with Adi.Core; use Adi.Core;
 with Adi.SDL;
@@ -9,7 +12,7 @@ with Adi.Widget;
 with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings;
 with Ada.Unchecked_Conversion;
-with Ada.Real_Time; use Ada.Real_Time;
+with Adi.Clock; use Adi.Clock;
 with Adi.Dispatch;
 with Adi.Log;
 with Adi.Widget.Context_Menu;
@@ -71,7 +74,7 @@ package body Adi.App is
         function To_Text_Input_Event is new Ada.Unchecked_Conversion
            (SDL_Event, SDL_TextInputEvent);
 
-        Now        : Time;
+        Frame_Start : Time;
         Next_Frame : Time;
         DT         : Duration;
 
@@ -98,7 +101,7 @@ package body Adi.App is
              (Renderer, Event'Access);
         end Convert_Event_To_Render_Coordinates;
     begin
-        A.Last_Frame := Clock;
+        A.Last_Frame := Now;
 
         while not Should_Quit loop
             Close_Handled := False;
@@ -283,10 +286,10 @@ package body Adi.App is
             end if;
 
             --  Compute delta time
-            Now := Clock;
-            DT := To_Duration (Now - A.Last_Frame);
+            Frame_Start := Now;
+            DT := To_Duration (Frame_Start - A.Last_Frame);
             A.Current_Delta := DT;
-            A.Last_Frame := Now;
+            A.Last_Frame := Frame_Start;
 
             --  Tick animations before rendering
             if Main /= null then
@@ -299,8 +302,8 @@ package body Adi.App is
             end if;
 
             --  Frame rate limiting: delay until next frame
-            Next_Frame := Now + A.Frame_Period;
-            delay until Next_Frame;
+            Next_Frame := Frame_Start + A.Frame_Period;
+            Sleep_Until (Next_Frame);
         end loop;
 
         --  Destroy window/store entry eagerly while caller scopes are alive.

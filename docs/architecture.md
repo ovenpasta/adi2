@@ -190,7 +190,9 @@
 - Callback-safe destroy: destroy requests made during active window callback dispatch are queued and applied by `Pump_Window_Store` after dispatch unwinds.
 - Debug: `ADI_DEBUG_LOOP=1` for tick/render diagnostics
 
-**Adi.App** (`adi-app.ads`): Application entry point, main loop, frame timing (`Ada.Real_Time`), `Set_Target_FPS`.
+**Adi.App** (`adi-app.ads`): Application entry point, main loop, frame timing (`Adi.Clock`), `Set_Target_FPS`.
+
+**Adi.Clock** (`adi-clock.ads`): Monotonic program clock (`Time`, `Time_Span`, `Now`, `Sleep_Until`) — the single seam between library timing and the platform. Native body wraps `Ada.Real_Time`; WASM builds substitute an SDL-ticks body.
 - Main window ownership is now `Window_Handle` (with access overload bridge in `Add_Window`).
 - Per-frame store drain includes widget/menu/window stores.
 

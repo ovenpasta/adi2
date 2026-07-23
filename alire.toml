@@ -131,6 +131,10 @@ command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=label_wrap_test"]
 
 [[actions]]
 type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=clock_test"]
+
+[[actions]]
+type = "post-build"
 command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=gradient_example"]
 
 [build-switches]

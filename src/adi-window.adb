@@ -1,7 +1,10 @@
+--  Copyright (C) 2026 Aldo Nicolas Bruno
+--  SPDX-License-Identifier: Apache-2.0
+
 pragma Ada_2022;
 with Ada.Containers.Vectors;
 with Ada.Finalization;
-with Ada.Real_Time; use Ada.Real_Time;
+with Adi.Clock; use Adi.Clock;
 with Ada.Environment_Variables;
 with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings;
@@ -975,7 +978,7 @@ package body Adi.Window is
           W.Force_Redraw := False;
           W.Stats_Frame_No := W.Stats_Frame_No + 1;
           W.Stats_Layout_Count := 0;
-          Render_Start := Clock;
+          Render_Start := Now;
 
           Debug_Log
             ("render tick=" & Natural'Image (Debug_Tick_No)
@@ -992,13 +995,13 @@ package body Adi.Window is
           Adi.Widget.Reset_Perf_Counters;
 
           --  Rebuild dirty items first.
-          Stage_Start := Clock;
+          Stage_Start := Now;
           Update (W);
           W.Stats_Update_Us := Natural
-            (To_Duration (Clock - Stage_Start) * 1_000_000.0);
+            (To_Duration (Now - Stage_Start) * 1_000_000.0);
 
           --  Relayout only when required by geometry-affecting changes.
-          Stage_Start := Clock;
+          Stage_Start := Now;
           if W.Needs_Layout then
              W.Stats_Layout_Reason := 'W';
           elsif Root_Layout_Dirty then
@@ -1033,7 +1036,7 @@ package body Adi.Window is
              W.Resize_Triggered_Layout := False;
           end if;
           W.Stats_Layout_Us := Natural
-            (To_Duration (Clock - Stage_Start) * 1_000_000.0);
+            (To_Duration (Now - Stage_Start) * 1_000_000.0);
           W.Stats_Style_Resolves := Adi.Widget.Get_Perf_Style_Resolves;
           W.Stats_Style_Hits     := Adi.Widget.Get_Perf_Style_Hits;
           W.Stats_Layout_Calls   := Adi.Widget.Get_Perf_Layout_Calls;
@@ -1042,7 +1045,7 @@ package body Adi.Window is
           W.Stats_Pref_Hits      := Adi.Widget.Get_Perf_Pref_Hits;
 
           --  Draw all widget trees
-          Stage_Start := Clock;
+          Stage_Start := Now;
           if Root_Valid then
              Render_Tree (W.Root, W.Ctx);
           end if;
@@ -1057,11 +1060,11 @@ package body Adi.Window is
              end;
           end loop;
           W.Stats_Draw_Us := Natural
-            (To_Duration (Clock - Stage_Start) * 1_000_000.0);
+            (To_Duration (Now - Stage_Start) * 1_000_000.0);
 
           --  Compute total render time (before present)
           W.Stats_Render_Us := Natural
-            (To_Duration (Clock - Render_Start) * 1_000_000.0);
+            (To_Duration (Now - Render_Start) * 1_000_000.0);
 
           --  Debug stats overlay
           if W.Debug_Stats_On then
@@ -1080,10 +1083,10 @@ package body Adi.Window is
           end;
 
           --  Present the rendered frame
-          Stage_Start := Clock;
+          Stage_Start := Now;
           SDL_Assert (SDL_RenderPresent (W.Internal.ren), "SDL_RenderPresent");
           W.Stats_Present_Us := Natural
-            (To_Duration (Clock - Stage_Start) * 1_000_000.0);
+            (To_Duration (Now - Stage_Start) * 1_000_000.0);
        end if;
 
        --  Per-frame callback (runs unconditionally, even when idle)

@@ -1,3 +1,6 @@
+--  Copyright (C) 2026 Aldo Nicolas Bruno
+--  SPDX-License-Identifier: Apache-2.0
+
 with Ada.Containers.Indefinite_Holders;
 with Ada.Strings.Unbounded;                use Ada.Strings.Unbounded;
 with Adi.CSS_Styles;       use Adi.CSS_Styles;

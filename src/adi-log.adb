@@ -1,3 +1,6 @@
+--  Copyright (C) 2026 Aldo Nicolas Bruno
+--  SPDX-License-Identifier: Apache-2.0
+
 with Ada.Text_IO;
 with Adi.Build_Target;
 with Adi.Build_Profile;

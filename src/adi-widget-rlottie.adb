@@ -1,3 +1,6 @@
+--  Copyright (C) 2026 Aldo Nicolas Bruno
+--  SPDX-License-Identifier: Apache-2.0
+
 with Adi.Layout_Util; use Adi.Layout_Util;
 
 package body Adi.Widget.RLottie is

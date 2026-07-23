@@ -1,3 +1,6 @@
+--  Copyright (C) 2026 Aldo Nicolas Bruno
+--  SPDX-License-Identifier: Apache-2.0
+
 with Adi.Core;            use Adi.Core;
 with Adi.Animated_Image;  use Adi.Animated_Image;
 with Adi.Image;           use Adi.Image;

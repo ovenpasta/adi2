@@ -1,3 +1,6 @@
+--  Copyright (C) 2026 Aldo Nicolas Bruno
+--  SPDX-License-Identifier: Apache-2.0
+
 with Adi.Core;         use Adi.Core;
 with Adi.RLottie;      use Adi.RLottie;
 with Adi.Widget;       use Adi.Widget;

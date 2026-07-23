@@ -1,3 +1,6 @@
+--  Copyright (C) 2026 Aldo Nicolas Bruno
+--  SPDX-License-Identifier: Apache-2.0
+
 with System;
 with Interfaces.C; use Interfaces.C;
 with Adi.SDL;      use Adi.SDL;

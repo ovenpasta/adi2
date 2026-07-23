@@ -1,3 +1,6 @@
+--  Copyright (C) 2026 Aldo Nicolas Bruno
+--  SPDX-License-Identifier: Apache-2.0
+
 with Adi.RLottie; use Adi.RLottie;
 
 package Adi.Widget.Animated_Widget.RLottie is

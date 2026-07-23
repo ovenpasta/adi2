@@ -1,3 +1,6 @@
+--  Copyright (C) 2026 Aldo Nicolas Bruno
+--  SPDX-License-Identifier: Apache-2.0
+
 with System;
 with System.Storage_Elements;
 with Adi.Core;       use Adi.Core;

@@ -1,3 +1,4 @@
+pragma Wide_Character_Encoding (Brackets);
 pragma Ada_2022;
 
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;

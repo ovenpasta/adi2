@@ -131,6 +131,8 @@ tools/build_examples.sh stack_example
 ./examples/bin/html_view_example
 ```
 
+To use Adi2 from your own project, `with "adi.gpr"` — SDL linker options come with it. The library's public specs use Ada 2022 with GNAT extensions, so compile your units that `with Adi.*` packages with `-gnat2022 -gnatX0`.
+
 Full build instructions, including building without Alire, in [`docs/build.md`](docs/build.md) and [`docs/gprbuild_without_alire.md`](docs/gprbuild_without_alire.md).
 
 ---
@@ -139,7 +141,6 @@ Full build instructions, including building without Alire, in [`docs/build.md`](
 
 - **Better generated docs** — produce browsable API documentation with `gnatdoc`.
 - **Live reload for XML UIs** — CSS already hot-reloads during development; XML widget trees should too.
-- **WebAssembly target** — run Adi2 apps in the browser via Emscripten.
 - **SPARK / contracts** — add `Pre`/`Post`/`Type_Invariant` and SPARK-mode subsets to the core for stronger guarantees on widget lifecycle and style cascade.
 - **C API** — expose a stable C-callable interface so non-Ada languages (C, C++, Rust, Python via FFI, etc.) can drive Adi2.
 

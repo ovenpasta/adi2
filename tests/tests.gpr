@@ -57,35 +57,6 @@ project Tests is
       for Switches ("Ada") use ("-E");  -- Store exception traceback
     end Binder;
 
-   Default_SDL_Linker_Switches := ("-lSDL3", "-lSDL3_ttf", "-lSDL3_image", "-lm");
-
-   --  On macOS:
-   --    * GNAT FSF g++ was built expecting MacOSX14.sdk; with no such SDK
-   --      present the linker fails to find -lSystem. Pass -Wl,-syslibroot
-   --      pointing at the current CommandLineTools SDK (or an override
-   --      from $MACOS_SDKROOT).
-   --    * SDL3 is installed via Homebrew at /opt/homebrew/lib, which is
-   --      not on the default linker search path. Add it plus an rpath so
-   --      the binaries also locate the dylibs at runtime.
-   Macos_SDK_Root := external
-     ("MACOS_SDKROOT", "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk");
-   Platform_Linker_Switches := ();
-   case Platform_Name is
-      when "darwin" =>
-         Platform_Linker_Switches :=
-           ("-Wl,-syslibroot," & Macos_SDK_Root,
-            "-L/opt/homebrew/lib",
-            "-Wl,-rpath,/opt/homebrew/lib",
-            --  Vendor C/C++ is compiled with Apple clang against libc++,
-            --  but GNAT g++ defaults to libstdc++. Pull in libc++ so the
-            --  C++ runtime symbols resolve.
-            "-lc++");
-      when others =>
-         null;
-   end case;
-
-   package Linker is
-      for Default_Switches ("Ada") use
-        Platform_Linker_Switches & Default_SDL_Linker_Switches;
-   end Linker;
+   --  SDL and platform linker switches come transitively from
+   --  adi.gpr, which exports them as Linker_Options.
 end Tests;

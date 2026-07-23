@@ -63,6 +63,30 @@ automatically as part of the library.
 ```bash
 ./tests/bin/<test_name>       # e.g. ./tests/bin/styles
 ./examples/bin/<example_name> # e.g. ./examples/bin/label_example
+
+# Whole test suite (Ada binaries + Python generator tests, exits
+# nonzero on any failure; uses SDL's dummy video driver when headless):
+tools/run_tests.sh
+```
+
+## Using Adi from another project
+
+`with "adi.gpr"` in your project file. The SDL linker options
+(`-lSDL3 -lSDL3_ttf -lSDL3_image -lm`, plus the macOS SDK/Homebrew
+switches) are exported from `adi.gpr` as `Linker_Options`, so your
+executable links without repeating them.
+
+Adi's public specs use Ada 2022 with GNAT extensions: units that
+`with Adi.*` packages must be compiled with `-gnat2022 -gnatX0`.
+
+```
+with "path/to/adi2/adi.gpr";
+project My_App is
+   for Main use ("my_app.adb");
+   package Compiler is
+      for Default_Switches ("Ada") use ("-gnat2022", "-gnatX0");
+   end Compiler;
+end My_App;
 ```
 
 ## SVG performance comparison

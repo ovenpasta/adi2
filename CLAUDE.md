@@ -142,7 +142,7 @@ When adding new SDL API bindings (new functions, new subsystems), follow this wo
 1. **Check `bindings/` first** — it contains 80+ auto-generated Ada bindings from SDL3/SDL3_ttf/SDL3_image C headers. These are the reference for function signatures, types, and constants.
 2. **Do not use the auto-generated bindings directly** — they have complex dependency chains (`stddef_h`, `SDL3_SDL_stdinc_h`, etc.) and raw C types.
 3. **Create or extend hand-crafted bindings in `src/adi-sdl*.ads`** — scan the relevant auto-generated file in `bindings/` for the function signature, then write a clean Ada binding in the appropriate `Adi.SDL.*` child package.
-4. **Follow the established binding pattern** documented in `src/SDL_BINDINGS_README.md`:
+4. **Follow the established binding pattern** documented in `docs/sdl_bindings.md`:
    - Use native Ada types from `Adi.SDL` (`Uint8`, `Uint32`, `C_bool`, `int`, `Float`)
    - Use incomplete types for opaque structures: `type T is limited null record;`
    - Use Ada enumerations with `Convention => C` for C enums

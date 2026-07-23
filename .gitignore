@@ -45,3 +45,6 @@ tools/__pycache__/
 # Local copy of the Ada 2022 Reference Manual text (LLM aid) —
 # deliberately not distributed with the repo.
 /rm-22-txt/
+
+# Article/paper manuscripts — not part of the library distribution
+/paper/

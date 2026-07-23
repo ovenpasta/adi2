@@ -1,6 +1,25 @@
+--  Copyright (C) 2026 Aldo Nicolas Bruno
+--  SPDX-License-Identifier: Apache-2.0
+
 pragma Ada_2022;
 
 package body Adi.Widget_Styles is
+
+   -----------------
+   -- Specificity --
+   -----------------
+
+   function Specificity (Selector : State_Selector) return Natural is
+      Count : Natural := 0;
+   begin
+      for S in Widget_State loop
+         if Selector.Widget_Required (S) then Count := Count + 1; end if;
+         if Selector.Widget_Excluded (S) then Count := Count + 1; end if;
+         if Selector.Part_Required (S) then Count := Count + 1; end if;
+         if Selector.Part_Excluded (S) then Count := Count + 1; end if;
+      end loop;
+      return Count;
+   end Specificity;
 
    -------------------------------------------------
    -- Widget Style Operations

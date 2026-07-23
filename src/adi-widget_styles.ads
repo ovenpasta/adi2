@@ -1,3 +1,6 @@
+--  Copyright (C) 2026 Aldo Nicolas Bruno
+--  SPDX-License-Identifier: Apache-2.0
+
 pragma Ada_2022;
 
 with Adi.CSS_Styles; use Adi.CSS_Styles;
@@ -82,13 +85,10 @@ package Adi.Widget_Styles is
    function Matches (Selector : State_Selector; Active : Widget_States) return Boolean is
      (Matches (Selector, Active, No_States));
 
-    --  Compute specificity (number of required + excluded conditions)
-   function Specificity (Selector : State_Selector) return Natural is
-     ([for S in Widget_State => (if Selector.Widget_Required (S) then 1 else 0)]'Reduce ("+", 0) +
-      [for S in Widget_State => (if Selector.Widget_Excluded (S) then 1 else 0)]'Reduce ("+", 0) +
-      [for S in Widget_State => (if Selector.Part_Required (S) then 1 else 0)]'Reduce ("+", 0) +
-      [for S in Widget_State => (if Selector.Part_Excluded (S) then 1 else 0)]'Reduce ("+", 0));
-         
+   --  Compute specificity (number of required + excluded conditions)
+   function Specificity (Selector : State_Selector) return Natural;
+
+
    -------------------------------------------------
    -- State Rules
    -------------------------------------------------

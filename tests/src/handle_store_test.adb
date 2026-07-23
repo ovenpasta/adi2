@@ -32,6 +32,29 @@ procedure Handle_Store_Test is
    package Stores is new Adi.Handle_Store (Test_Object, Test_Access);
    use Stores;
 
+   --  In strict mode (the default), Get raises Program_Error for stale
+   --  non-null Ids.  True when Get (Id) raised as expected.
+   function Get_Raises_Stale (Id : Object_Id) return Boolean is
+      Obj : Test_Access;
+   begin
+      Obj := Get (Id);
+      pragma Unreferenced (Obj);
+      return False;
+   exception
+      when Program_Error =>
+         return True;
+   end Get_Raises_Stale;
+
+   --  Get (Id) with strict mode temporarily disabled.
+   function Lenient_Get (Id : Object_Id) return Test_Access is
+      Prev : constant Boolean := Is_Strict;
+   begin
+      Set_Strict (False);
+      return Obj : constant Test_Access := Get (Id) do
+         Set_Strict (Prev);
+      end return;
+   end Lenient_Get;
+
    ---------------------------------------------------------------------------
    --  Test: Null_Id is invalid
    ---------------------------------------------------------------------------
@@ -69,7 +92,9 @@ procedure Handle_Store_Test is
       Assert (Is_Valid (Id), "before destroy: valid");
       Request_Destroy (Id);
       Assert (not Is_Valid (Id), "after destroy: stale");
-      Assert (Get (Id) = null, "Get after destroy: null");
+      Assert (Get_Raises_Stale (Id),
+              "strict Get after destroy: raises Program_Error");
+      Assert (Lenient_Get (Id) = null, "lenient Get after destroy: null");
    end Test_Destroy_Stale;
 
    ---------------------------------------------------------------------------
@@ -88,7 +113,9 @@ procedure Handle_Store_Test is
 
       Unpin (Id);
       Assert (not Is_Valid (Id), "after unpin: stale (deferred free)");
-      Assert (Get (Id) = null, "after unpin: Get returns null");
+      Assert (Get_Raises_Stale (Id),
+              "after unpin: strict Get raises Program_Error");
+      Assert (Lenient_Get (Id) = null, "after unpin: lenient Get null");
    end Test_Deferred_Destroy;
 
    ---------------------------------------------------------------------------
@@ -183,6 +210,22 @@ procedure Handle_Store_Test is
       Put_Line ("-- Borrow stale tests --");
       Request_Destroy (Id);
 
+      --  Strict mode (default): the Get inside Borrow raises Program_Error
+      --  for a stale Id before Borrow's own Constraint_Error check.
+      begin
+         declare
+            R : Object_Ref := Borrow (Id);
+            pragma Unreferenced (R);
+         begin
+            Assert (False, "should have raised Program_Error");
+         end;
+      exception
+         when Program_Error =>
+            Assert (True, "strict: stale Borrow raises Program_Error");
+      end;
+
+      --  Non-strict: Get returns null, Borrow raises Constraint_Error.
+      Set_Strict (False);
       begin
          declare
             R : Object_Ref := Borrow (Id);
@@ -192,8 +235,9 @@ procedure Handle_Store_Test is
          end;
       exception
          when Constraint_Error =>
-            Assert (True, "stale Borrow raises Constraint_Error");
+            Assert (True, "non-strict: stale Borrow raises Constraint_Error");
       end;
+      Set_Strict (True);
 
       --  Also test Null_Id
       begin
@@ -208,6 +252,30 @@ procedure Handle_Store_Test is
             Assert (True, "Null_Id Borrow raises Constraint_Error");
       end;
    end Test_Borrow_Stale;
+
+   ---------------------------------------------------------------------------
+   --  Test: Strict-mode policy (Set_Strict / Is_Strict)
+   ---------------------------------------------------------------------------
+
+   procedure Test_Strict_Mode is
+      Obj : constant Test_Access := new Concrete_Object'(Value => 7);
+      Id  : constant Object_Id := Register (Obj);
+   begin
+      Put_Line ("-- Strict mode tests --");
+      Assert (Is_Strict, "strict mode is the default");
+
+      Request_Destroy (Id);
+
+      Set_Strict (False);
+      Assert (not Is_Strict, "Set_Strict(False) reflected by Is_Strict");
+      Assert (Get (Id) = null, "non-strict: stale Get returns null");
+      Assert (Get (Null_Id) = null, "non-strict: Null_Id Get returns null");
+
+      Set_Strict (True);
+      Assert (Is_Strict, "Set_Strict(True) reflected by Is_Strict");
+      Assert (Get_Raises_Stale (Id), "strict again: stale Get raises");
+      Assert (Get (Null_Id) = null, "strict: Null_Id Get still null");
+   end Test_Strict_Mode;
 
    ---------------------------------------------------------------------------
    --  Test: Slot reuse with generation bump
@@ -315,6 +383,7 @@ begin
    Test_Pump_No_Pins;
    Test_Borrow;
    Test_Borrow_Stale;
+   Test_Strict_Mode;
    Test_Generation_Reuse;
    Test_For_Each_Alive;
    Test_Growth;

@@ -1,12 +1,12 @@
 name = "adi2"
-description = "The Adi2 GUI Library"
+description = "Widget-based GUI library with CSS styling and XML UI, on SDL3"
 version = "0.1.0-dev"
 
 authors = ["Aldo Nicolas Bruno"]
 maintainers = ["Aldo Nicolas Bruno <ovenpasta@pizzahack.eu>"]
 licenses = "Apache-2.0"
-website = ""
-tags = ["gui"]
+website = "https://github.com/ovenpasta/adi2"
+tags = ["gui", "sdl", "widgets", "css", "ui", "graphics"]
 project-files = ["adi.gpr"]
 
 [[actions]]
@@ -120,6 +120,14 @@ command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=font_test"]
 [[actions]]
 type = "post-build"
 command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=scroll_primitives_test"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=handle_store_test"]
+
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tests/tests.gpr", "-XTEST_KIND=label_wrap_test"]
 
 [[actions]]
 type = "post-build"

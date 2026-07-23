@@ -18,6 +18,7 @@ Adi2 gives you a real widget toolkit with the niceties developers expect from a 
 - **Animate without boilerplate.** CSS transitions on color, padding, shadows, opacity, font-size — the framework handles interpolation and timing.
 - **HiDPI-ready units.** `dp`/`dip` for layout, `rem` for typography — see [`docs/css_styling.md`](docs/css_styling.md).
 - **Built for tooling and automation.** A development-only MCP bridge lets editors and AI assistants screenshot the running app, walk the widget tree, *and* drive it — clicking buttons, typing into inputs, moving focus, reading performance counters. Great for end-to-end tests written by your AI of choice.
+- **Runs in the browser.** The examples compile to WebAssembly with GNAT-LLVM and Emscripten — [try them live](https://pizzahack.eu/adi2/demo/), or see [`wasm/`](wasm/) for the build.
 
 Backed by SDL3 for windowing/rendering and SDL3_ttf for text. Written in Ada with GNAT extensions.
 

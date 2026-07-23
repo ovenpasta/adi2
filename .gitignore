@@ -48,3 +48,9 @@ tools/__pycache__/
 
 # Article/paper manuscripts — not part of the library distribution
 /paper/
+
+# WebAssembly build artifacts (wasm/README.md)
+/wasm/obj/
+/wasm/out/
+/wasm/dist/
+/wasm/sdl3-ttf-prefix/

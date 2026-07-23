@@ -106,6 +106,9 @@ package body Adi.App is
         while not Should_Quit loop
             Close_Handled := False;
 
+            --  The event dispatch below is duplicated in
+            --  wasm/src/adi-app__wasm.adb (SDL main-callback body used by
+            --  the WASM callbacks mode). Apply changes to both.
             Poll_Events :
             while SDL_PollEvent (Event'Access) loop
                 case Event.Event_Type is

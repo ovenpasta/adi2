@@ -192,7 +192,7 @@
 
 **Adi.App** (`adi-app.ads`): Application entry point, main loop, frame timing (`Adi.Clock`), `Set_Target_FPS`.
 
-**Adi.Clock** (`adi-clock.ads`): Monotonic program clock (`Time`, `Time_Span`, `Now`, `Sleep_Until`) — the single seam between library timing and the platform. Native body wraps `Ada.Real_Time`; WASM builds substitute an SDL-ticks body.
+**Adi.Clock** (`adi-clock.ads`): Monotonic program clock (`Time`, `Time_Span`, `Now`, `Sleep_Until`) — the single seam between library timing and the platform. Native body wraps `Ada.Real_Time`; WASM builds substitute an SDL-ticks body (`wasm/PORT_REPORT.md`).
 - Main window ownership is now `Window_Handle` (with access overload bridge in `Add_Window`).
 - Per-frame store drain includes widget/menu/window stores.
 

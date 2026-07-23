@@ -1,0 +1,92 @@
+--  WebAssembly build of the Adi library + one example, compiled with
+--  GNAT-LLVM against the EH-enabled Emscripten runtime. This project is
+--  independent of the desktop ../adi.gpr: gprbuild only compiles and
+--  binds here (-c -b); the final link is emcc, driven by ../wasm/Makefile.
+--
+--  Usage (via Makefile):
+--    gprbuild --target=llvm --RTS=<rts-wasm-emcc-eh> -c -b -p \
+--      -P adi_wasm.gpr -XWASM_EXAMPLE=label_example
+
+project Adi_Wasm is
+
+   Example := external ("WASM_EXAMPLE", "label_example");
+
+   --  Main-loop strategy:
+   --  "callbacks": SDL main-callback body (adi-app__wasm.adb) — the
+   --      normal, portable mode. Runs in every browser; main's stack
+   --      dies after startup, so application state and callbacks must
+   --      live at package level.
+   --  "blocking": the NATIVE Adi.App body (classic loop); Sleep_Until
+   --      suspends via JSPI (emscripten_sleep), so main's stack — and
+   --      every example local and nested callback frame — stays alive.
+   --      Exists to run the desktop examples verbatim; requires emcc
+   --      -sJSPI and a JSPI-capable browser. The external default is
+   --      "blocking" only for the example showcase.
+   type Loop_Kind is ("blocking", "callbacks");
+   Main_Loop : Loop_Kind := external ("WASM_MAIN_LOOP", "blocking");
+
+   for Target use "llvm";
+   for Languages use ("Ada");
+
+   for Source_Dirs use
+     ("src",                     --  WASM substitute bodies (__wasm)
+      "../src",
+      "../src/svg",
+      "../src/svg/plutosvg",
+      "../src/mcp_stub",         --  MCP is always the no-op stub on WASM
+      "../config/posix",
+      "../config/development",
+      "../vendor/json-ada/src",
+      "../examples",
+      "../examples/generated");
+
+   --  Shared per-loop-mode object dir: the library compiles once, each
+   --  example adds only its own main + generated packages. The Makefile
+   --  link step picks the right closure (excludes other mains/binders).
+   for Object_Dir use "obj/" & Main_Loop;
+   for Create_Missing_Dirs use "True";
+   for Main use (Example & ".adb");
+
+   --  Native bodies replaced by wasm/src (see Naming below), and the
+   --  rlottie stack (tasks + protected objects + C++ vendor lib).
+   Common_Excluded :=
+     ("adi-clock.adb",
+      "adi-dispatch.adb",
+      "adi-rlottie.ads",
+      "adi-rlottie.adb",
+      "adi-widget-rlottie.ads",
+      "adi-widget-rlottie.adb",
+      "adi-widget-animated_widget-rlottie.ads",
+      "adi-widget-animated_widget-rlottie.adb");
+
+   case Main_Loop is
+      when "blocking" =>
+         --  Native Adi.App body (../src/adi-app.adb) is used as-is.
+         for Excluded_Source_Files use
+           Common_Excluded & ("adi-app__wasm.adb", "adi-clock__wasm.adb");
+      when "callbacks" =>
+         for Excluded_Source_Files use
+           Common_Excluded & ("adi-app.adb", "adi-clock__wasm_jspi.adb");
+   end case;
+
+   package Naming is
+      for Body ("Adi.Dispatch") use "adi-dispatch__wasm.adb";
+      case Main_Loop is
+         when "blocking" =>
+            for Body ("Adi.Clock") use "adi-clock__wasm_jspi.adb";
+         when "callbacks" =>
+            for Body ("Adi.Clock") use "adi-clock__wasm.adb";
+            for Body ("Adi.App")   use "adi-app__wasm.adb";
+      end case;
+   end Naming;
+
+   package Compiler is
+      --  No -gnatW8: the native examples build without it, and some
+      --  generated UI packages carry raw UTF-8 in String literals
+      --  (byte semantics). W8 would lex those as wide chars and reject
+      --  them ("literal out of range of Standard.Character").
+      for Default_Switches ("Ada") use
+        ("--target=wasm32", "-O1", "-gnat2022", "-gnatX0");
+   end Compiler;
+
+end Adi_Wasm;

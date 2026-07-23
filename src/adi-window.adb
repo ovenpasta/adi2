@@ -4,6 +4,7 @@
 pragma Ada_2022;
 with Ada.Containers.Vectors;
 with Ada.Finalization;
+with Ada.Unchecked_Deallocation;
 with Adi.Clock; use Adi.Clock;
 with Ada.Environment_Variables;
 with Interfaces.C; use Interfaces.C;
@@ -2570,6 +2571,8 @@ function Get_Size (W : in out Window) return Size_2D is
    overriding procedure Finalize (W : in Out Window) is
       use Adi.SDL.Video;
       use Adi.SDL.Render;
+      procedure Free is new Ada.Unchecked_Deallocation
+        (Internal, Internal_Access);
    begin
       --  Destroy widget trees if not already done by Destroy_Widget_Tree.
       --  Flip the library-finalization flag so that Adi.Widget skips the
@@ -2596,6 +2599,7 @@ function Get_Size (W : in out Window) return Size_2D is
          if W.Internal.win /= null then
             SDL_DestroyWindow (W.Internal.win);
          end if;
+         Free (W.Internal);
       end if;
    end Finalize;
 

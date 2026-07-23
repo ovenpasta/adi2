@@ -7,6 +7,7 @@ with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Vectors;
 with Ada.Unchecked_Conversion;
+with Ada.Unchecked_Deallocation;
 with Adi.Animation; use Adi.Animation;
 with Adi.Core; use Adi.Core;
 with Adi.Font;
@@ -575,6 +576,8 @@ package body Adi.Widget is
          --  Alpha buffers for blur (heap-allocated)
          type Alpha_Array is array (0 .. Total_Px - 1) of Float;
          type Alpha_Ptr is access Alpha_Array;
+         procedure Free is new Ada.Unchecked_Deallocation
+           (Alpha_Array, Alpha_Ptr);
          Buf_A : Alpha_Ptr;
          Buf_B : Alpha_Ptr;
       begin
@@ -667,6 +670,8 @@ package body Adi.Widget is
             end loop;
          end if;
 
+         Free (Buf_A);
+         Free (Buf_B);
       end;
 
       --  Upload to GPU texture

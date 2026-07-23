@@ -62,7 +62,13 @@ package body Adi.App is
         Should_Quit   : Boolean := False;
         Close_Handled : Boolean;
 
-        --  Unchecked conversions to access specific event data
+        --  Unchecked conversions to access specific event data.
+        --  SDL_Event is C's event union; every sub-event record is a
+        --  prefix of it, so converting the (larger) union to a sub-event
+        --  reads exactly the bytes SDL wrote. The size-mismatch warning
+        --  is expected and harmless here.
+        pragma Warnings
+          (Off, "types for unchecked conversion have different sizes");
         function To_Mouse_Motion_Event is new Ada.Unchecked_Conversion
            (SDL_Event, SDL_MouseMotionEvent);
         function To_Mouse_Button_Event is new Ada.Unchecked_Conversion
@@ -73,6 +79,8 @@ package body Adi.App is
            (SDL_Event, SDL_KeyboardEvent);
         function To_Text_Input_Event is new Ada.Unchecked_Conversion
            (SDL_Event, SDL_TextInputEvent);
+        pragma Warnings
+          (On, "types for unchecked conversion have different sizes");
 
         Frame_Start : Time;
         Next_Frame : Time;

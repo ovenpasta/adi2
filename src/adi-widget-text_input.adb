@@ -236,7 +236,7 @@ package body Adi.Widget.Text_Input is
       Safe_Col : constant Natural := Normalize_Column (Line, Col);
       Prefix   : constant String :=
         (if Safe_Col = 0 then ""
-         else Line (1 .. Integer (Safe_Col)));
+         else Line (Line'First .. Line'First - 1 + Integer (Safe_Col)));
       Font_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Label_Style.Font_Family,
@@ -1005,7 +1005,6 @@ package body Adi.Widget.Text_Input is
       Button : Adi.Core.Mouse_Button;
       Clicks : Natural := 1)
    is
-      pragma Unreferenced (Y);
    begin
       if Button /= Left_Button then
          return;
@@ -1040,7 +1039,6 @@ package body Adi.Widget.Text_Input is
      (W    : in out Text_Input_Widget;
       X, Y : Pixel_Type)
    is
-      pragma Unreferenced (Y);
    begin
       if W.Pending_Word_Select then
          if abs (X - W.Press_X) > Drag_Threshold_Px

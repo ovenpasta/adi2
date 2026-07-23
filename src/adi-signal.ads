@@ -3,6 +3,7 @@
 
 pragma Ada_2022;
 
+with Ada.Finalization;
 with Ada.Unchecked_Deallocation;
 
 generic
@@ -91,10 +92,12 @@ private
    procedure Free is new Ada.Unchecked_Deallocation
      (Slot_Array, Slot_Array_Access);
 
-   type Signal is tagged limited record
+   type Signal is new Ada.Finalization.Limited_Controlled with record
       Slots   : Slot_Array_Access := null;
       Count   : Natural := 0;     --  High-water slot index
       Next_Id : Connection_Id := 1;
    end record;
+
+   overriding procedure Finalize (S : in out Signal);
 
 end Adi.Signal;

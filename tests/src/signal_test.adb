@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Ada.Command_Line;
 with Adi.Signal;
 with Adi.Log;
 
@@ -119,6 +120,14 @@ procedure Signal_Test is
       --  This should NOT be called if disconnected during emit
       Call_Count := Call_Count + 1;
    end Handler_After_Disconnect;
+
+   procedure Handler_That_Disconnects_All (Value : Positive) is
+      pragma Unreferenced (Value);
+   begin
+      Call_Count := Call_Count + 1;
+      --  Clear the emitting signal from inside its own emission
+      Modify_Sig.Disconnect_All;
+   end Handler_That_Disconnects_All;
 
    procedure Emit_Modify is new Test_Signals.For_Each (Call_With_Value);
 
@@ -280,6 +289,31 @@ begin
       --  disconnected during the emit.
       Assert (Call_Count = 1,
               "disconnect during emit: disconnected subscriber is skipped");
+   end;
+
+   ---------------------------------------------------------------------------
+   --  Test 10b: Disconnect_All during emit — no crash, rest skipped
+   --  (regression: Disconnect_All used to free the slot array while
+   --  For_Each was still iterating it)
+   ---------------------------------------------------------------------------
+   begin
+      Reset_Log;
+      Modify_Sig.Disconnect_All;
+      Modify_Sig.Connect (Handler_That_Disconnects_All'Unrestricted_Access);
+      Modify_Sig.Connect (Handler_After_Disconnect'Unrestricted_Access);
+      Emit_Value := 1;
+      Emit_Modify (Modify_Sig);
+      Assert (Call_Count = 1,
+              "disconnect_all during emit: remaining subscribers skipped");
+      Assert (Modify_Sig.Subscriber_Count = 0,
+              "disconnect_all during emit: signal empty afterwards");
+      --  Signal stays usable after the mid-emit clear
+      Modify_Sig.Connect (Handler_A'Unrestricted_Access);
+      Reset_Log;
+      Emit_Modify (Modify_Sig);
+      Assert (Call_Count = 1,
+              "disconnect_all during emit: signal usable afterwards");
+      Modify_Sig.Disconnect_All;
    end;
 
    ---------------------------------------------------------------------------
@@ -445,6 +479,7 @@ begin
                  Failed'Image & " failed");
    if Failed > 0 then
       Adi.Log.Error ("SIGNAL TEST FAILED");
+      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    end if;
 
 end Signal_Test;

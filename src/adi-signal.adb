@@ -120,11 +120,32 @@ package body Adi.Signal is
 
    procedure Disconnect_All (S : in out Signal) is
    begin
+      --  Tombstone every slot instead of freeing the array: an
+      --  in-progress For_Each (a callback may call Disconnect_All on
+      --  the signal that is emitting) still dereferences its snapshot
+      --  range and skips inactive slots. The array is reclaimed by
+      --  Finalize.
+      if S.Slots /= null then
+         for I in 1 .. S.Count loop
+            S.Slots (I) := Slot'(CB     => Null_Callback,
+                                 Id     => No_Connection,
+                                 Active => False);
+         end loop;
+      end if;
+      S.Count := 0;
+   end Disconnect_All;
+
+   --------------
+   -- Finalize --
+   --------------
+
+   overriding procedure Finalize (S : in out Signal) is
+   begin
       if S.Slots /= null then
          Free (S.Slots);
       end if;
       S.Count := 0;
-   end Disconnect_All;
+   end Finalize;
 
    ----------------------
    -- Subscriber_Count --

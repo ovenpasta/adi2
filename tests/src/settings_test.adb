@@ -513,6 +513,28 @@ procedure Settings_Test is
    end Test_Missing_File;
 
    ---------------------------------------------------------------------------
+   --  Test: Save to an unwritable path propagates the failure
+   --  (regression: write errors used to be swallowed, so disk-full and
+   --  permission failures looked like successful saves)
+   ---------------------------------------------------------------------------
+
+   procedure Test_Save_Failure_Raises is
+      B : aliased JSON_Settings_Backend;
+      V : Setting_Value := Empty_Map;
+   begin
+      Put_Line ("-- Save Failure Tests --");
+
+      Insert (V, "key", To_Value ("value"));
+      begin
+         B.Save ("/nonexistent_adi_dir/settings.json", V);
+         Assert (False, "Save to unwritable path should raise");
+      exception
+         when others =>
+            Assert (True, "Save to unwritable path raises");
+      end;
+   end Test_Save_Failure_Raises;
+
+   ---------------------------------------------------------------------------
    --  Test: Empty store
    ---------------------------------------------------------------------------
 
@@ -673,6 +695,7 @@ begin
    Test_JSON_Round_Trip;
    Test_Special_Chars;
    Test_Missing_File;
+   Test_Save_Failure_Raises;
    Test_Empty_Store;
    Test_Nested_Structures;
    Test_Null_Value_Contains;

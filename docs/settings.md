@@ -107,7 +107,7 @@ Store.Load;   --  Read settings.json into memory
 Store.Save;   --  Write memory to settings.json
 ```
 
-`Load` replaces all in-memory settings. If the file does not exist or cannot be parsed, the store starts with an empty map. `Save` writes atomically (temp file + rename, with direct-write fallback).
+`Load` replaces all in-memory settings. If the file does not exist or cannot be parsed, the store starts with an empty map. `Save` writes atomically (temp file + rename, with direct-write fallback). If the write fails (disk full, missing directory, permissions), the underlying `Ada.Text_IO` exception propagates out of `Save` — a save that raises no exception is on disk.
 
 Both raise `Program_Error` if called before `Initialize`.
 

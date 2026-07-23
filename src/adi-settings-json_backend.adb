@@ -159,7 +159,11 @@ package body Adi.Settings.JSON_Backend is
       Close (F);
    exception
       when others =>
+         --  Close the handle, then propagate: silently reporting
+         --  success on a failed write (disk full, permissions) would
+         --  break the atomic-save contract.
          if Is_Open (F) then Close (F); end if;
+         raise;
    end Write_File;
 
    procedure Atomic_Write (Path : String; Content : String) is

@@ -217,48 +217,22 @@ project Adi_Build extends "${SOURCE_DIR}/adi.gpr" is
 end Adi_Build;
 EOF
 
+#  Derive the test list from tests/tests.gpr so the generated project
+#  and build_all.sh cannot drift from the declared Test_Kind set.
+TEST_KINDS_LIST=$(sed -n '/type Test_Kind is/,/);/p' "${SOURCE_DIR}/tests/tests.gpr" \
+                  | grep -oE '"[a-z_0-9]+"' | tr -d '"')
+TEST_KIND_GPR=""
+for k in ${TEST_KINDS_LIST}; do
+  TEST_KIND_GPR="${TEST_KIND_GPR}\"${k}\", "
+done
+TEST_KIND_GPR="${TEST_KIND_GPR%, }"
+
 cat > "${BUILD_DIR}/projects/tests_build.gpr" <<EOF
 with "adi_build.gpr";
 with "../config/adi_linker_config.gpr";
 
 project Tests_Build is
-   type Test_Kind is
-     ("styles",
-      "layout_test",
-      "layout_flex_grid_test",
-      "css_parser_test",
-      "css_source_test",
-      "text_buffer_test",
-      "text_layout_test",
-      "html_view_test",
-      "svg_test",
-      "svg_perf_test",
-      "disabled_test",
-      "image_widget_test",
-      "slider_test",
-      "value_input_test",
-      "svg_sprites_test",
-      "min_size_test",
-      "layout_perf_test",
-      "style_storage_equivalence_test",
-      "window_resize_safety_test",
-      "mcp_test",
-      "bundle_test",
-      "signal_test",
-      "dispatch_test",
-      "i18n_test",
-      "settings_test",
-      "close_request_test",
-      "window_handle_test",
-      "text_editor_test",
-      "handle_store_test",
-      "widget_handle_test",
-      "combo_box_item_test",
-      "dialog_test",
-      "text_input_test",
-      "font_test",
-      "scroll_primitives_test",
-      "clock_test");
+   type Test_Kind is (${TEST_KIND_GPR});
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
    for Source_Dirs use ("${SOURCE_DIR}/tests/src");
@@ -394,44 +368,8 @@ bash "\${SOURCE_DIR}/tools/generate_example_ui.sh"
 echo "[build_all] build library"
 gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}"
 
-TEST_KINDS=(
-  styles
-  layout_test
-  layout_flex_grid_test
-  css_parser_test
-  css_source_test
-  text_buffer_test
-  text_layout_test
-  html_view_test
-  svg_test
-  svg_perf_test
-  disabled_test
-  image_widget_test
-  slider_test
-  value_input_test
-  svg_sprites_test
-  min_size_test
-  layout_perf_test
-  style_storage_equivalence_test
-  window_resize_safety_test
-  mcp_test
-  bundle_test
-  signal_test
-  dispatch_test
-  i18n_test
-  settings_test
-  close_request_test
-  window_handle_test
-  text_editor_test
-  handle_store_test
-  widget_handle_test
-  combo_box_item_test
-  dialog_test
-  text_input_test
-  font_test
-  scroll_primitives_test
-  clock_test
-)
+#  Expanded at configure time from tests/tests.gpr (single source of truth).
+TEST_KINDS=(${TEST_KINDS_LIST})
 
 for kind in "\${TEST_KINDS[@]}"; do
   echo "[build_all] build test: \${kind}"

@@ -417,7 +417,6 @@ wasm/
                        NotoSans embedded at /usr/share/fonts for the
                        Adi.Font fallback scan (works over MEMFS)
   pre-js/              sdl3_ada_pre.js (deferred main), ada_runtime_support.js
-  sdl3-ttf-prefix/     SDL3_ttf rebuilt with -fwasm-exceptions (local)
   site/index.html      instant redirect to the default example
                        (material_demo) — no gallery page; the shell's
                        dropdown is the navigation
@@ -558,9 +557,11 @@ Hard-won link facts:
   Emscripten's default JS-SJLJ cannot link into a `-fwasm-exceptions`
   binary (`undefined symbol: emscripten_longjmp`). Anything using SJLJ
   must be compiled with `-fwasm-exceptions` too: plutovg gets it in
-  `PLUTO_CFLAGS`, and SDL3_ttf is rebuilt into `wasm/sdl3-ttf-prefix`
-  with `CMAKE_C_FLAGS=-fwasm-exceptions`. `libSDL3.a` and
-  `libSDL3_image.a` contain no SJLJ users and link as-is.
+  `PLUTO_CFLAGS`, and the SDL3/SDL3_ttf/SDL3_image prefixes come from
+  adawebpack, which now builds all three with `-fwasm-exceptions` (its
+  sdl3 examples README; SDL3_ttf was originally rebuilt locally into
+  `wasm/sdl3-ttf-prefix` until that landed upstream). `libSDL3.a` and
+  `libSDL3_image.a` contain no SJLJ users anyway.
 - **RTS wart (upstream)**: wasm-ld warns about signature mismatches for
   `__gnat_dup2` / `__gnat_lseek` / `strncpy` between `s-os_lib.o`
   (procedure imports) and `adaint.o`/libc (int-returning). Harmless

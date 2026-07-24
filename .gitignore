@@ -53,4 +53,3 @@ tools/__pycache__/
 /wasm/obj/
 /wasm/out/
 /wasm/dist/
-/wasm/sdl3-ttf-prefix/

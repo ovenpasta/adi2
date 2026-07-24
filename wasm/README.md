@@ -11,13 +11,11 @@ instructions included in their READMEs:
 - <https://github.com/ovenpasta/gnat-llvm> — GNAT-LLVM with the wasm32
   target (build the EH runtime: `make wasm-emcc-eh`)
 - <https://github.com/ovenpasta/adawebpack> — WASM RTS overrides, JS
-  glue, and the SDL3/SDL3_image wasm prefixes (checked out inside
+  glue, and the SDL3/SDL3_ttf/SDL3_image wasm prefixes, all built with
+  `-fwasm-exceptions` per its sdl3 examples README (checked out inside
   gnat-llvm as `llvm-interface/adawebpack_src`)
 
-Plus a system `emscripten`. SDL3_ttf must be rebuilt once with
-`-fwasm-exceptions` into `wasm/sdl3-ttf-prefix/` (freetype uses
-setjmp/longjmp, which cannot mix JS-SJLJ with wasm exception handling —
-see PORT_REPORT.md, "Hard-won link facts").
+Plus a system `emscripten`.
 
 Makefile variables and their defaults, override as needed:
 

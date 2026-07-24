@@ -230,11 +230,19 @@ Key points from the basic example:
 
 From `adawebpack_src/examples/sdl3/README.md`:
 
+All three are built with `-fwasm-exceptions`: the EH runtime links with
+that flag, and every static library in the link must carry it too
+(SDL3_ttf's vendored freetype uses setjmp/longjmp, and JS-based and
+wasm-based longjmp encodings cannot mix in one link). The adawebpack
+sdl3 examples README has the full pinned-version recipe; the shape is:
+
 ```bash
 # SDL3
 git clone --depth=1 https://github.com/libsdl-org/SDL.git sdl3-src
 cd sdl3-src
 emcmake cmake -B build-wasm \
+   -DCMAKE_C_FLAGS="-fwasm-exceptions" \
+   -DCMAKE_CXX_FLAGS="-fwasm-exceptions" \
    -DSDL_STATIC=ON -DSDL_SHARED=OFF \
    -DCMAKE_INSTALL_PREFIX=$PWD/../sdl3-prefix
 cmake --build build-wasm --target install -- -j$(nproc)
@@ -244,6 +252,8 @@ git clone --depth=1 https://github.com/libsdl-org/SDL_ttf.git sdl3-ttf-src
 cd sdl3-ttf-src
 ./external/download.sh
 emcmake cmake -B build-wasm \
+   -DCMAKE_C_FLAGS="-fwasm-exceptions" \
+   -DCMAKE_CXX_FLAGS="-fwasm-exceptions" \
    -DSDL3_DIR=$PWD/../sdl3-prefix/lib/cmake/SDL3 \
    -DCMAKE_INSTALL_PREFIX=$PWD/../sdl3-ttf-prefix
 cmake --build build-wasm --target install -- -j$(nproc)
@@ -259,7 +269,7 @@ at link time by `emcc`.
 The SDL3 example `common.mk` shows the link step:
 
 ```
-EMCC_COMMON_FLAGS = -O2 -sALLOW_MEMORY_GROWTH=1
+EMCC_COMMON_FLAGS = -O2 -fwasm-exceptions -sALLOW_MEMORY_GROWTH=1
 ADA_EMCC_FLAGS    = -sSTACK_SIZE=8388608 -sINVOKE_RUN=0
 
 emcc $(EMCC_COMMON_FLAGS) $(ADA_EMCC_FLAGS) \

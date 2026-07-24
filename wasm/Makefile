@@ -35,12 +35,13 @@ LLVM_LIBRARY_PATH ?= /usr/lib/llvm21/lib
 ADA_RTS ?= $(LLVM_INTERFACE_DIR)/lib/gnat-llvm/wasm32/rts-wasm-emcc-eh
 ADA_RUNTIME_LIB = $(ADA_RTS)/adalib/libgnat.a
 
+#  All three SDL prefixes come from adawebpack's sdl3 examples, whose
+#  README builds them with -fwasm-exceptions (required: freetype inside
+#  SDL3_ttf uses setjmp/longjmp, and JS-based SJLJ cannot be mixed with
+#  wasm EH in one link).
 SDL3_ROOT ?= $(LLVM_INTERFACE_DIR)/adawebpack_src/examples/sdl3
 SDL3_PREFIX ?= $(SDL3_ROOT)/sdl3-prefix
-#  SDL3_ttf must be built with -fwasm-exceptions: freetype uses
-#  setjmp/longjmp, and JS-based SJLJ cannot be mixed with wasm EH.
-#  Built locally into wasm/sdl3-ttf-prefix (see PORT_REPORT.md).
-SDL3_TTF_PREFIX ?= sdl3-ttf-prefix
+SDL3_TTF_PREFIX ?= $(SDL3_ROOT)/sdl3-ttf-prefix
 SDL3_IMAGE_PREFIX ?= $(SDL3_ROOT)/sdl3-image-prefix
 
 EMCC ?= /usr/lib/emscripten/emcc

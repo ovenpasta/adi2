@@ -1936,7 +1936,15 @@ package body Adi.Widget.Html_View is
             declare
                Item_Ref : Item renames Self.Items.Reference (Run.Item_Index).Element.all;
             begin
-               Item_Ref.Geometry.Height := Pixel_Type'Max (Item_Ref.Geometry.Height, Current_Line_H);
+               --  Images are replaced content: they render at their used
+               --  size (explicit CSS box or intrinsic dimensions) and are
+               --  never stretched to the line box — standard CSS
+               --  behavior. Only text runs take the line-box height;
+               --  their geometry is the line box (selection/backgrounds)
+               --  and the glyphs are unaffected by it.
+               if Item_Ref.Kind /= Image_Item then
+                  Item_Ref.Geometry.Height := Pixel_Type'Max (Item_Ref.Geometry.Height, Current_Line_H);
+               end if;
             end;
          end loop;
       end Sync_Line_Heights;

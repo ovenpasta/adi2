@@ -534,6 +534,84 @@ procedure Html_View_Test is
       New_Line;
    end Test_Inline_SVG_Element;
 
+   --  Regression: Sync_Line_Heights used to floor every run's geometry
+   --  height at the line height. Images fill their geometry, so any
+   --  image smaller than the line box was stretched vertically
+   --  (requested width x floored height). Standard CSS never stretches
+   --  replaced content to the line box.
+   procedure Test_Image_Not_Stretched_To_Line_Height is
+      Tol : constant := 0.5;
+   begin
+      Put_Line ("Test: images keep their used size (no line-height stretch)");
+
+      --  Explicit CSS box smaller than the surrounding line height
+      declare
+         W : constant Adi.Widget.Html_View.Html_View_Handle :=
+           Adi.Widget.Html_View.Create_Handle;
+         Idx : Natural := 0;
+      begin
+         Adi.Widget.Set_Geometry
+           (+W, (X => 0.0, Y => 0.0, Width => 480.0, Height => 220.0));
+         Adi.Widget.Html_View.Set_HTML
+           (W,
+            "<style>" &
+            "p { font-size: 20px; line-height: 1.5; }" &
+            "svg { width: 12px; height: 12px; }" &
+            "</style>" &
+            "<p>text <svg viewBox='0 0 24 24'>" &
+            "<path fill='tomato' d='M4 4 L20 4 L20 20 L4 20 Z'/>" &
+            "</svg> more</p>");
+         Adi.Widget.Build_Items (+W);
+
+         Idx := Find_First_Image_Item_Index (W);
+         Assert (Idx > 0, "sized icon produces an image item");
+         if Idx > 0 then
+            declare
+               It : constant Adi.Widget.Item :=
+                 Adi.Widget.Get_Item (+W, Positive (Idx));
+            begin
+               Assert (abs (It.Geometry.Width - 12.0) < Tol,
+                       "sized icon keeps requested width");
+               Assert (abs (It.Geometry.Height - 12.0) < Tol,
+                       "sized icon keeps requested height " &
+                       "(not floored to line height)");
+            end;
+         end if;
+      end;
+
+      --  Unsized image: intrinsic size, likewise never stretched
+      declare
+         W : constant Adi.Widget.Html_View.Html_View_Handle :=
+           Adi.Widget.Html_View.Create_Handle;
+         Idx : Natural := 0;
+      begin
+         Adi.Widget.Set_Geometry
+           (+W, (X => 0.0, Y => 0.0, Width => 480.0, Height => 220.0));
+         Adi.Widget.Html_View.Set_HTML
+           (W,
+            "<style>p { font-size: 40px; line-height: 1.5; }</style>" &
+            "<p>text <svg width='24' height='24' viewBox='0 0 24 24'>" &
+            "<path fill='tomato' d='M4 4 L20 4 L20 20 L4 20 Z'/>" &
+            "</svg> more</p>");
+         Adi.Widget.Build_Items (+W);
+
+         Idx := Find_First_Image_Item_Index (W);
+         Assert (Idx > 0, "unsized icon produces an image item");
+         if Idx > 0 then
+            declare
+               It : constant Adi.Widget.Item :=
+                 Adi.Widget.Get_Item (+W, Positive (Idx));
+            begin
+               Assert (abs (It.Geometry.Height - 24.0) < Tol,
+                       "unsized icon keeps intrinsic height " &
+                       "(not stretched to 60px line box)");
+            end;
+         end if;
+      end;
+
+      New_Line;
+   end Test_Image_Not_Stretched_To_Line_Height;
+
    procedure Test_Mixed_Inline_Baseline is
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
         Adi.Widget.Html_View.Create_Handle;
@@ -1791,6 +1869,7 @@ begin
    Test_Cascade_Precedence;
    Test_SVG_Named_Colors;
    Test_Inline_SVG_Element;
+   Test_Image_Not_Stretched_To_Line_Height;
    Test_Mixed_Inline_Baseline;
    Test_Clipping_Aware_Link_Hit_Test;
    Test_Link_Does_Not_Consume_Leading_Space;

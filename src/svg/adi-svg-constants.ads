@@ -1,6 +1,8 @@
 --  Copyright (C) 2026 Aldo Nicolas Bruno
 --  SPDX-License-Identifier: Apache-2.0
 
+pragma Ada_2022;
+
 package Adi.SVG.Constants is
 
    Default_DPI            : constant Float := 96.0;

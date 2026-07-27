@@ -1,6 +1,8 @@
 --  Copyright (C) 2026 Aldo Nicolas Bruno
 --  SPDX-License-Identifier: Apache-2.0
 
+pragma Ada_2022;
+
 with Adi.Font;
 with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.SDL;

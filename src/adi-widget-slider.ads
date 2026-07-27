@@ -44,8 +44,8 @@ package Adi.Widget.Slider is
      (Min   : Value_Type;
       Max   : Value_Type;
       Value : Value_Type := 0.0) return Slider_Widget_Access
-     renames Impl.Create;
-   pragma Obsolescent (Create, "Use Create_Handle");
+     renames Impl.Create
+     with Obsolescent => "Use Create_Handle";
    function Create_Handle
      (Min   : Value_Type;
       Max   : Value_Type;

@@ -2,6 +2,8 @@
 --  SPDX-License-Identifier: Apache-2.0
 
 
+pragma Ada_2022;
+
 with Ada.Numerics.Elementary_Functions; use Ada.Numerics.Elementary_Functions;
 with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Hashed_Maps;
@@ -7042,7 +7044,7 @@ package body Adi.Widget is
       end loop;
    end Full_Layout;
 
-    procedure Update (W : in Out Widget'Class) is
+    procedure Update (W : in out Widget'Class) is
     begin
        if Is_Dirty (W) then
           --  Layout must have been called before this.

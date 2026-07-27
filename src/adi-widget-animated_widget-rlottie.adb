@@ -1,6 +1,8 @@
 --  Copyright (C) 2026 Aldo Nicolas Bruno
 --  SPDX-License-Identifier: Apache-2.0
 
+pragma Ada_2022;
+
 package body Adi.Widget.Animated_Widget.RLottie is
 
    type RLottie_Backend is new Animation_Backend with record

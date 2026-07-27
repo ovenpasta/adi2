@@ -3,6 +3,8 @@
 
 
 
+pragma Ada_2022;
+
 package Adi.Backend is
 
    

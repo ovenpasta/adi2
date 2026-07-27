@@ -811,7 +811,7 @@ package body Adi.Window is
    -- Update --
    ------------
 
-   procedure Update (W : in Out Window) is
+   procedure Update (W : in out Window) is
    begin
       if Is_Valid (W.Focused_Widget)
         and then not Is_Focus_Candidate (W.Focused_Widget)
@@ -942,7 +942,7 @@ package body Adi.Window is
          (W.Internal.ren, SDL_BLENDMODE_NONE);
     end Render_Debug_Stats;
 
-    procedure Render (W : in Out Window) is
+    procedure Render (W : in out Window) is
        use Adi.SDL.Render;
        Guard                : Dispatch_Guard;
        pragma Unreferenced (Guard);
@@ -1707,7 +1707,7 @@ package body Adi.Window is
       return W.Internal.win;
    end Get_SDL_Window;
 
-   function Get_Renderer (W : in Out Window) return SDL_Renderer_Ptr is
+   function Get_Renderer (W : in out Window) return SDL_Renderer_Ptr is
    begin
       return W.Internal.ren;
    end Get_Renderer;
@@ -1957,7 +1957,7 @@ package body Adi.Window is
    -------------------
    -- On_Mouse_Move --
    -------------------
-procedure On_Mouse_Move (W : in Out Window; X, Y : Pixel_Type) is
+procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
       New_Hovered : Widget_Handle;
       New_Part    : Part_Kind;
       Max_Ancestor_Depth : constant := 64;
@@ -2503,7 +2503,7 @@ function Get_Size (W : in out Window) return Size_2D is
    -- Initialize --
    ----------------
 
-   overriding procedure Initialize (W : in Out Window) is
+   overriding procedure Initialize (W : in out Window) is
    begin
       null;
    end Initialize;
@@ -2568,7 +2568,7 @@ function Get_Size (W : in out Window) return Size_2D is
    -- Finalize --
    --------------
 
-   overriding procedure Finalize (W : in Out Window) is
+   overriding procedure Finalize (W : in out Window) is
       use Adi.SDL.Video;
       use Adi.SDL.Render;
       procedure Free is new Ada.Unchecked_Deallocation

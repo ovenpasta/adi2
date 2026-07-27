@@ -1,6 +1,8 @@
 --  Copyright (C) 2026 Aldo Nicolas Bruno
 --  SPDX-License-Identifier: Apache-2.0
 
+pragma Ada_2022;
+
 package Adi.SDL.Pixelformat is 
    subtype SDL_PixelFormat is unsigned;
    SDL_PIXELFORMAT_UNKNOWN : constant SDL_PixelFormat := 0;

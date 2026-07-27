@@ -1,6 +1,8 @@
 --  Copyright (C) 2026 Aldo Nicolas Bruno
 --  SPDX-License-Identifier: Apache-2.0
 
+pragma Ada_2022;
+
 with Ada.Characters.Latin_1;
 with Ada.Containers.Vectors;
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;

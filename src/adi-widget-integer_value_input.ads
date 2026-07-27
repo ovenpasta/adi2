@@ -47,8 +47,8 @@ package Adi.Widget.Integer_Value_Input is
      (Min   : Value_Type;
       Max   : Value_Type;
       Value : Value_Type := 0) return Value_Input_Widget_Access
-     renames Impl.Create;
-   pragma Obsolescent (Create, "Use Create_Handle");
+     renames Impl.Create
+     with Obsolescent => "Use Create_Handle";
    function Create_Handle
      (Min   : Value_Type;
       Max   : Value_Type;

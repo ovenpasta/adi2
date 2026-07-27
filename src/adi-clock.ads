@@ -11,6 +11,8 @@
 --  ticks, because Ada.Real_Time is not part of the WebAssembly runtime
 --  and the browser owns frame cadence (see wasm/PORT_REPORT.md).
 
+pragma Ada_2022;
+
 package Adi.Clock is
    pragma Elaborate_Body;
 

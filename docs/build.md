@@ -64,8 +64,10 @@ automatically as part of the library.
 ./tests/bin/<test_name>       # e.g. ./tests/bin/styles
 ./examples/bin/<example_name> # e.g. ./examples/bin/label_example
 
-# Whole test suite (Ada binaries + Python generator tests, exits
-# nonzero on any failure; uses SDL's dummy video driver when headless):
+# Whole test suite: builds every Ada test (sequentially), runs them
+# plus the Python generator tests, exits nonzero on any failure; uses
+# SDL's dummy video driver when headless. Also wired as the alr test
+# action.
 tools/run_tests.sh
 ```
 

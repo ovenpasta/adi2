@@ -3,6 +3,8 @@
 
 
 
+pragma Ada_2022;
+
 with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
 
 package Adi.SDL.Surface is 

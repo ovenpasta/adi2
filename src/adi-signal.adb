@@ -167,13 +167,20 @@ package body Adi.Signal is
    --------------
 
    procedure For_Each (S : Signal) is
-      --  Snapshot length at entry: connects during iteration append beyond
-      --  this range and will not fire until the next emit. Disconnects set
-      --  the tombstone immediately, and we re-check Active each iteration.
-      Len : constant Natural := S.Count;
+      --  Snapshot length and the id watermark at entry. Disconnects set
+      --  the tombstone immediately, and we re-check Active each
+      --  iteration. The length snapshot alone is not enough to keep
+      --  connects made during the emit from firing: a disconnect (or
+      --  Disconnect_All) can shrink Count mid-emit, letting a new
+      --  connection land inside the snapshotted range. Ids are
+      --  monotonic and never reused, so skipping any slot whose id is
+      --  at or above the entry watermark filters those out wherever
+      --  they land.
+      Len     : constant Natural := S.Count;
+      Snap_Id : constant Connection_Id := S.Next_Id;
    begin
       for I in 1 .. Len loop
-         if S.Slots (I).Active then
+         if S.Slots (I).Active and then S.Slots (I).Id < Snap_Id then
             Visitor (S.Slots (I).CB);
          end if;
       end loop;

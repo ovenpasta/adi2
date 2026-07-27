@@ -129,6 +129,24 @@ procedure Signal_Test is
       Modify_Sig.Disconnect_All;
    end Handler_That_Disconnects_All;
 
+   procedure Handler_That_Disconnects_Then_Connects (Value : Positive) is
+      pragma Unreferenced (Value);
+   begin
+      Call_Count := Call_Count + 1;
+      --  Disconnect a trailing subscriber (compacts Count), then
+      --  connect a replacement — it lands inside the snapshot range
+      Modify_Sig.Disconnect (Disconnect_Target);
+      Modify_Sig.Connect (Handler_C'Unrestricted_Access);
+   end Handler_That_Disconnects_Then_Connects;
+
+   procedure Handler_That_Clears_Then_Connects (Value : Positive) is
+      pragma Unreferenced (Value);
+   begin
+      Call_Count := Call_Count + 1;
+      Modify_Sig.Disconnect_All;
+      Modify_Sig.Connect (Handler_C'Unrestricted_Access);
+   end Handler_That_Clears_Then_Connects;
+
    procedure Emit_Modify is new Test_Signals.For_Each (Call_With_Value);
 
 begin
@@ -313,6 +331,69 @@ begin
       Emit_Modify (Modify_Sig);
       Assert (Call_Count = 1,
               "disconnect_all during emit: signal usable afterwards");
+      Modify_Sig.Disconnect_All;
+   end;
+
+   ---------------------------------------------------------------------------
+   --  Test 10c: Disconnect-then-connect during emit — the replacement
+   --  lands inside the snapshot range after compaction but must NOT
+   --  fire until the next emit (regression: the length snapshot alone
+   --  let it fire in the same emission)
+   ---------------------------------------------------------------------------
+   begin
+      Reset_Log;
+      Modify_Sig.Disconnect_All;
+      Modify_Sig.Connect
+        (Handler_That_Disconnects_Then_Connects'Unrestricted_Access);
+      Disconnect_Target :=
+        Modify_Sig.Connect (Handler_After_Disconnect'Unrestricted_Access);
+      Emit_Value := 1;
+      Emit_Modify (Modify_Sig);
+      Assert (Call_Count = 1,
+              "disconnect-then-connect during emit: " &
+              "replacement does not fire in current emit");
+      Assert (Modify_Sig.Subscriber_Count = 2,
+              "disconnect-then-connect during emit: " &
+              "replacement registered for next emit");
+
+      Reset_Log;
+      Emit_Modify (Modify_Sig);
+      --  Second emit: the mutating handler fires (stale disconnect is a
+      --  no-op, and the C it connects now is again deferred), plus the
+      --  C connected during the first emit.
+      Assert (Call_Count = 2,
+              "disconnect-then-connect during emit: " &
+              "replacement fires on the next emit");
+      Modify_Sig.Disconnect_All;
+   end;
+
+   ---------------------------------------------------------------------------
+   --  Test 10d: Disconnect_All-then-connect during emit — Count drops
+   --  to zero, the replacement lands in slot 1 inside the snapshot
+   --  range and must NOT fire until the next emit
+   ---------------------------------------------------------------------------
+   begin
+      Reset_Log;
+      Modify_Sig.Disconnect_All;
+      Modify_Sig.Connect
+        (Handler_That_Clears_Then_Connects'Unrestricted_Access);
+      Modify_Sig.Connect (Handler_After_Disconnect'Unrestricted_Access);
+      Emit_Value := 1;
+      Emit_Modify (Modify_Sig);
+      Assert (Call_Count = 1,
+              "disconnect_all-then-connect during emit: " &
+              "only the clearing handler fires");
+      Assert (Modify_Sig.Subscriber_Count = 1,
+              "disconnect_all-then-connect during emit: " &
+              "replacement registered for next emit");
+
+      Reset_Log;
+      Emit_Modify (Modify_Sig);
+      Assert (Call_Count = 1
+              and then Call_Log_Len = 1
+              and then Call_Log (1).Handler_Id = 3,
+              "disconnect_all-then-connect during emit: " &
+              "only the replacement fires on the next emit");
       Modify_Sig.Disconnect_All;
    end;
 

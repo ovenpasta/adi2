@@ -24,9 +24,13 @@ package Adi.Signal is
    --  trailing tombstones to reclaim space for future connects.
    --  Connecting a null callback is a no-op (returns No_Connection).
    --
-   --  Emit-during-modify safety: For_Each snapshots Length at entry.
-   --  Connects during emit append beyond snapshot range (fire next emit).
-   --  Disconnects during emit tombstone immediately (skipped by iteration).
+   --  Emit-during-modify safety: For_Each snapshots Length and the
+   --  Connection_Id watermark at entry. Connections made during the
+   --  emit never fire in that emit — even when a mid-emit disconnect
+   --  compacts slots and the new connection lands inside the snapshot
+   --  range, its id is at or above the watermark and is skipped.
+   --  Disconnects during emit tombstone immediately (skipped by
+   --  iteration).
    ---------------------------------------------------------------------------
 
    type Signal is tagged limited private;

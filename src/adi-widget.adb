@@ -489,6 +489,63 @@ package body Adi.Widget is
    function Item_Is_Rendered (Style : Resolved_Style) return Boolean;
 
    ---------------------------------------------------------------------------
+   --  Renderer clip save / restore
+   --
+   --  Narrowing the clip means putting the previous one back afterwards,
+   --  so the two states must stay distinct:
+   --
+   --    Was_Enabled  SDL reports an active clip rectangle.
+   --    Saved        that rectangle was successfully read into Prev.
+   --
+   --  Replacing is only safe when there was nothing to lose
+   --  (not Was_Enabled) or when we can put it back (Saved). If a clip is
+   --  active but unreadable, leaving it alone renders content clipped to
+   --  the caller's region — narrower than intended, but correct —
+   --  whereas replacing it would end with a null restore that silently
+   --  drops the caller's clip entirely.
+   ---------------------------------------------------------------------------
+
+   procedure Save_Clip
+     (Renderer    : SDL_Renderer_Ptr;
+      Prev        : access Adi.SDL.SDL_Rect;
+      Was_Enabled : out Boolean;
+      Saved       : out Boolean);
+
+   function Can_Replace_Clip (Was_Enabled, Saved : Boolean) return Boolean is
+     (not Was_Enabled or else Saved);
+
+   procedure Restore_Clip
+     (Renderer : SDL_Renderer_Ptr;
+      Prev     : access Adi.SDL.SDL_Rect;
+      Saved    : Boolean);
+
+   procedure Save_Clip
+     (Renderer    : SDL_Renderer_Ptr;
+      Prev        : access Adi.SDL.SDL_Rect;
+      Was_Enabled : out Boolean;
+      Saved       : out Boolean) is
+   begin
+      Prev.all := (0, 0, 0, 0);
+      Was_Enabled := Boolean (SDL_RenderClipEnabled (Renderer));
+      Saved :=
+        Was_Enabled and then Boolean (SDL_GetRenderClipRect (Renderer, Prev));
+   end Save_Clip;
+
+   procedure Restore_Clip
+     (Renderer : SDL_Renderer_Ptr;
+      Prev     : access Adi.SDL.SDL_Rect;
+      Saved    : Boolean)
+   is
+      Unused : Adi.SDL.C_bool;
+   begin
+      if Saved then
+         Unused := SDL_SetRenderClipRect (Renderer, Prev);
+      else
+         Unused := SDL_SetRenderClipRect (Renderer, null);
+      end if;
+   end Restore_Clip;
+
+   ---------------------------------------------------------------------------
    --  Generate_Shadow_Texture
    ---------------------------------------------------------------------------
 
@@ -2084,7 +2141,7 @@ package body Adi.Widget is
      Content  : Rectangle;
       Clip_X   : Boolean;
       Clip_Y   : Boolean;
-      Had_Clip : Boolean;
+      Prev_Saved : Boolean;   --  Prev_Clip holds a saved rectangle
       Prev_Clip : Adi.SDL.SDL_Rect := (0, 0, 0, 0);
       Out_Clip : out Adi.SDL.SDL_Rect) return Boolean
    is
@@ -2102,7 +2159,7 @@ package body Adi.Widget is
          return False;
       end if;
 
-      if not Had_Clip then
+      if not Prev_Saved then
          Success := SDL_GetRenderViewport (Renderer, Viewport'Access);
          if not Boolean (Success)
            or else Integer (Viewport.w) <= 0
@@ -2116,7 +2173,7 @@ package body Adi.Widget is
          end if;
       end if;
 
-      if Had_Clip then
+      if Prev_Saved then
          Prev_X1 := Integer (Prev_Clip.x);
          Prev_Y1 := Integer (Prev_Clip.y);
          Prev_X2 := Integer (Prev_Clip.x) + Integer (Prev_Clip.w);
@@ -2126,29 +2183,29 @@ package body Adi.Widget is
       X1 :=
         (if Clip_X
          then Integer (Float'Floor (Float (Content.X)))
-         elsif Had_Clip
+         elsif Prev_Saved
          then Prev_X1
          else Integer (Viewport.x));
       Y1 :=
         (if Clip_Y
          then Integer (Float'Floor (Float (Content.Y)))
-         elsif Had_Clip
+         elsif Prev_Saved
          then Prev_Y1
          else Integer (Viewport.y));
       X2 :=
         (if Clip_X
          then X1 + Integer (Float'Ceiling (Float (Content.Width)))
-         elsif Had_Clip
+         elsif Prev_Saved
          then Prev_X2
          else Integer (Viewport.x) + Integer (Viewport.w));
       Y2 :=
         (if Clip_Y
          then Y1 + Integer (Float'Ceiling (Float (Content.Height)))
-         elsif Had_Clip
+         elsif Prev_Saved
          then Prev_Y2
          else Integer (Viewport.y) + Integer (Viewport.h));
 
-      if Had_Clip then
+      if Prev_Saved then
          X1 := Integer'Max (X1, Prev_X1);
          Y1 := Integer'Max (Y1, Prev_Y1);
          X2 := Integer'Min (X2, Prev_X2);
@@ -3997,7 +4054,9 @@ package body Adi.Widget is
       Nx       : constant Float := -Dy;
       Ny       : constant Float :=  Dx;
 
-      Had_Clip  : Boolean             := False;
+      Clip_Was_Enabled : Boolean := False;
+      Clip_Saved       : Boolean := False;
+      Clip_Replaced    : Boolean := False;
       Prev_Clip : aliased Adi.SDL.SDL_Rect := (0, 0, 0, 0);
       Clip      : aliased Adi.SDL.SDL_Rect;
       Unused   : Adi.SDL.C_bool;
@@ -4054,13 +4113,15 @@ package body Adi.Widget is
       end if;
 
       --  Set clip rect to contain strips within the widget bounds
-      Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer))
-        and then Boolean (SDL_GetRenderClipRect (Renderer, Prev_Clip'Access));
-      Clip := (x => int (Float'Floor (Rect.x)),
-               y => int (Float'Floor (Rect.y)),
-               w => int (Float'Ceiling (Rect.w)),
-               h => int (Float'Ceiling (Rect.h)));
-      Unused := SDL_SetRenderClipRect (Renderer, Clip'Access);
+      Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved);
+      Clip_Replaced := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
+      if Clip_Replaced then
+         Clip := (x => int (Float'Floor (Rect.x)),
+                  y => int (Float'Floor (Rect.y)),
+                  w => int (Float'Ceiling (Rect.w)),
+                  h => int (Float'Ceiling (Rect.h)));
+         Unused := SDL_SetRenderClipRect (Renderer, Clip'Access);
+      end if;
 
       --  Solid band before the first stop (CSS spec: first color extends back)
       if G_Stops (1).Pos > 0.0 then
@@ -4079,10 +4140,8 @@ package body Adi.Widget is
                        G_Stops (G_Count).Color, G_Stops (G_Count).Color);
       end if;
 
-      if Had_Clip then
-         Unused := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
-      else
-         Unused := SDL_SetRenderClipRect (Renderer, null);
+      if Clip_Replaced then
+         Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved);
       end if;
    end Render_Gradient_Rect;
 
@@ -5163,7 +5222,9 @@ package body Adi.Widget is
       Renderer   : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
       Prev_Clip  : aliased Adi.SDL.SDL_Rect := (0, 0, 0, 0);
       Clip_Rect  : aliased Adi.SDL.SDL_Rect;
-      Had_Clip   : Boolean := False;
+      Clip_Was_Enabled : Boolean := False;
+      Clip_Saved       : Boolean := False;
+      Clip_Replaced    : Boolean := False;
       Use_Clip   : constant Boolean :=
         Renderer /= null and then Has_Visible_Area (Geom);
       X1, Y1, X2, Y2 : Integer;
@@ -5293,15 +5354,17 @@ package body Adi.Widget is
 
       --  Clip text to item bounds to prevent overflow bleed.
       if Use_Clip then
-         Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer))
-           and then Boolean (SDL_GetRenderClipRect (Renderer, Prev_Clip'Access));
+         Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved);
+         Clip_Replaced := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
+      end if;
 
+      if Clip_Replaced then
          X1 := Integer (Float'Floor (Float (Geom.X)));
          Y1 := Integer (Float'Floor (Float (Geom.Y)));
          X2 := X1 + Integer (Float'Ceiling (Float (Geom.Width)));
          Y2 := Y1 + Integer (Float'Ceiling (Float (Geom.Height)));
 
-         if Had_Clip then
+         if Clip_Saved then
             X1 := Integer'Max (X1, Integer (Prev_Clip.x));
             Y1 := Integer'Max (Y1, Integer (Prev_Clip.y));
             X2 := Integer'Min (X2, Integer (Prev_Clip.x + Prev_Clip.w));
@@ -5309,11 +5372,7 @@ package body Adi.Widget is
          end if;
 
          if X2 <= X1 or else Y2 <= Y1 then
-            if Had_Clip then
-               Success := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
-            else
-               Success := SDL_SetRenderClipRect (Renderer, null);
-            end if;
+            Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved);
             return;
          end if;
 
@@ -5431,12 +5490,8 @@ package body Adi.Widget is
          end if;
       end if;
 
-      if Use_Clip then
-         if Had_Clip then
-            Success := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
-         else
-            Success := SDL_SetRenderClipRect (Renderer, null);
-         end if;
+      if Clip_Replaced then
+         Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved);
       end if;
    end Render_Text_Item;
 
@@ -5637,7 +5692,9 @@ package body Adi.Widget is
       Success          : Adi.SDL.C_bool;
       Prev_Clip        : aliased Adi.SDL.SDL_Rect;
       Clip_Rect        : aliased Adi.SDL.SDL_Rect;
-      Had_Clip         : Boolean := False;
+      Clip_Was_Enabled : Boolean := False;
+      Clip_Saved       : Boolean := False;
+      Clip_Replaced    : Boolean := False;
       Use_Clip         : constant Boolean :=
         Renderer /= null and then Has_Visible_Area (Geom);
       X1, Y1, X2, Y2   : Integer;
@@ -5829,15 +5886,17 @@ package body Adi.Widget is
       --  Clip image rendering to item bounds so object-fit:none and oversized
       --  images are cropped instead of bleeding outside the widget viewport.
       if Use_Clip then
-         Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer))
-           and then Boolean (SDL_GetRenderClipRect (Renderer, Prev_Clip'Access));
+         Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved);
+         Clip_Replaced := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
+      end if;
 
+      if Clip_Replaced then
          X1 := Integer (Float'Floor (Float (Geom.X)));
          Y1 := Integer (Float'Floor (Float (Geom.Y)));
          X2 := X1 + Integer (Float'Ceiling (Float (Geom.Width)));
          Y2 := Y1 + Integer (Float'Ceiling (Float (Geom.Height)));
 
-         if Had_Clip then
+         if Clip_Saved then
             X1 := Integer'Max (X1, Integer (Prev_Clip.x));
             Y1 := Integer'Max (Y1, Integer (Prev_Clip.y));
             X2 := Integer'Min (X2, Integer (Prev_Clip.x + Prev_Clip.w));
@@ -5845,11 +5904,7 @@ package body Adi.Widget is
          end if;
 
          if X2 <= X1 or else Y2 <= Y1 then
-            if Had_Clip then
-               Success := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
-            else
-               Success := SDL_SetRenderClipRect (Renderer, null);
-            end if;
+            Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved);
             return;
          end if;
 
@@ -5949,12 +6004,8 @@ package body Adi.Widget is
          end if;
       end if;
 
-      if Use_Clip then
-         if Had_Clip then
-            Success := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
-         else
-            Success := SDL_SetRenderClipRect (Renderer, null);
-         end if;
+      if Clip_Replaced then
+         Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved);
       end if;
    end Render_Image_Item;
 
@@ -6015,7 +6066,8 @@ package body Adi.Widget is
       Clip_By_Scrollable : constant Boolean := Has_Flag (W, Scrollable);
       Prev_Clip : aliased Adi.SDL.SDL_Rect := (0, 0, 0, 0);
       Clip_Rect : aliased Adi.SDL.SDL_Rect;
-      Had_Clip  : Boolean := False;
+      Clip_Was_Enabled : Boolean := False;
+      Clip_Saved       : Boolean := False;
       Use_Clip  : Boolean := False;
       Clip_Valid : Boolean := False;
       Clip_Active : Boolean := False;
@@ -6027,11 +6079,7 @@ package body Adi.Widget is
             return;
          end if;
 
-         if Had_Clip then
-            Unused := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
-         else
-            Unused := SDL_SetRenderClipRect (Renderer, null);
-         end if;
+         Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved);
          Clip_Active := False;
       end Restore_Previous_Clip;
 
@@ -6053,17 +6101,17 @@ package body Adi.Widget is
    begin
       if Renderer /= null and then (Clip_X or else Clip_Y or else Clip_By_Scrollable) then
          if Has_Visible_Area (Content) then
-            Use_Clip := True;
-            Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer))
-              and then Boolean
-                (SDL_GetRenderClipRect (Renderer, Prev_Clip'Access));
-            Clip_Valid :=
-              Build_Content_Clip_Rect (
+            Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved);
+            --  An unsaveable clip stays untouched; items then render
+            --  within the caller's clip instead of a narrower one.
+            Use_Clip := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
+            Clip_Valid := Use_Clip
+              and then Build_Content_Clip_Rect (
                 Renderer  => Renderer,
                 Content   => Content,
                 Clip_X    => Clip_X,
                 Clip_Y    => (Clip_Y or else Clip_By_Scrollable),
-                Had_Clip  => Had_Clip,
+                Prev_Saved => Clip_Saved,
                 Prev_Clip => Prev_Clip,
                 Out_Clip  => Clip_Rect);
          end if;
@@ -6155,7 +6203,8 @@ package body Adi.Widget is
         Widget_Visibility = Visibility_Visible;
       Prev_Clip  : aliased Adi.SDL.SDL_Rect := (0, 0, 0, 0);
       Clip_Rect  : aliased Adi.SDL.SDL_Rect;
-      Had_Clip   : Boolean := False;
+      Clip_Was_Enabled : Boolean := False;
+      Clip_Saved       : Boolean := False;
       Use_Clip   : Boolean := False;
       Skip_Children : Boolean := False;
       Unused    : Adi.SDL.C_bool;
@@ -6209,16 +6258,17 @@ package body Adi.Widget is
                if not Has_Visible_Area (Content) then
                   Skip_Children := True;
                else
-                  Use_Clip := True;
-                  Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer))
-                    and then Boolean
-                      (SDL_GetRenderClipRect (Renderer, Prev_Clip'Access));
-                  if Build_Content_Clip_Rect (
+                  Save_Clip
+                    (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved);
+                  --  An unsaveable clip stays untouched; the subtree then
+                  --  renders within the caller's clip instead.
+                  Use_Clip := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
+                  if Use_Clip and then Build_Content_Clip_Rect (
                      Renderer  => Renderer,
                      Content   => Content,
                      Clip_X    => Clip_X,
                      Clip_Y    => (Clip_Y or else Clip_By_Scrollable),
-                     Had_Clip  => Had_Clip,
+                     Prev_Saved => Clip_Saved,
                      Prev_Clip => Prev_Clip,
                      Out_Clip  => Clip_Rect)
                   then
@@ -6247,11 +6297,7 @@ package body Adi.Widget is
       end if;
 
       if Use_Clip then
-         if Had_Clip then
-            Unused := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
-         else
-            Unused := SDL_SetRenderClipRect (Renderer, null);
-         end if;
+         Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved);
       end if;
 
       if Widget_Is_Visible then

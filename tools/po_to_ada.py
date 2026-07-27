@@ -231,11 +231,21 @@ def generate(po_files: list[PoFile], package_name: str) -> tuple[str, str]:
     #  the renderer then sees as invalid UTF-8 and draws as a box. The
     #  pragma forces this one file to keep the bytes verbatim; it is a
     #  no-op for consumers that don't use -gnatW8 (Brackets is the default).
+    #  Ada.Strings.Unbounded is only referenced by the plural-form
+    #  registrations (To_Unbounded_String); emitting it unconditionally
+    #  gives consumers an unreferenced-unit warning.
+    has_plurals = any(
+        entry.msgid_plural for po in po_files for entry in po.entries)
+
     body_lines = [
         'pragma Wide_Character_Encoding (Brackets);',
         'pragma Ada_2022;',
         '',
-        'with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;',
+    ]
+    if has_plurals:
+        body_lines.append(
+            'with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;')
+    body_lines += [
         'with Adi.I18N; use Adi.I18N;',
         '',
         f'package body {package_name} is',

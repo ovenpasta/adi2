@@ -4,8 +4,13 @@
 
 ### Alire
 ```bash
-alr build                    # builds library + all tests + examples (and runs incremental example CSS generation)
+alr build          # the library only
+alr test           # build and run every test (tools/run_tests.sh)
+tools/build_examples.sh   # regenerate example sources, then build examples
 ```
+
+Each command does one thing: `alr build` never builds tests or
+examples, so a consumer pulling the crate pays only for the library.
 
 ### Direct gprbuild (configure once, build from generated projects)
 ```bash
@@ -16,11 +21,14 @@ tools/configure.sh --build-dir build-linux --target linux --build-profile develo
 build-linux/build_all.sh
 ```
 
-When building outside Alire (no post-build actions), run code generation scripts first:
+Example sources are generated from their CSS/XML/asset/PO inputs.
+`tools/build_examples.sh` runs the generators for you; when driving
+gprbuild directly, run them first:
 ```bash
 bash tools/generate_example_styles.sh
 bash tools/generate_example_ui.sh
 bash tools/generate_example_bundles.sh
+bash tools/generate_example_translations.sh
 ```
 
 ### Cross-compile
@@ -53,10 +61,12 @@ SVG is rendered through the vendored plutosvg / plutovg C library
 automatically as part of the library.
 
 ### Valid TEST_KIND values
-`styles`, `layout_test`, `layout_flex_grid_test`, `css_parser_test`, `css_source_test`, `text_buffer_test`, `text_layout_test`, `html_view_test`, `svg_test`, `svg_perf_test`, `disabled_test`, `image_widget_test`, `slider_test`, `value_input_test`, `svg_sprites_test`, `min_size_test`, `layout_perf_test`, `style_storage_equivalence_test`, `window_resize_safety_test`, `mcp_test`, `bundle_test`, `signal_test`, `dispatch_test`, `i18n_test`, `settings_test`, `close_request_test`, `window_handle_test`, `text_editor_test`, `handle_store_test`, `widget_handle_test`
+The `Test_Kind` enumeration in `tests/tests.gpr` is the single source of
+truth — `tools/configure.sh` and `tools/run_tests.sh` both derive their
+lists from it.
 
 ### Valid EXAMPLE_KIND values
-`label_example`, `widget_demo`, `button_example`, `transition_example`, `text_input_example`, `text_editor_example`, `demo_flex`, `stack_example`, `list_box_example`, `combo_box_example`, `overflow_example`, `grid_example`, `dialog_example`, `font_example`, `runtime_css_example`, `animated_image_example`, `rlottie_example`, `html_view_example`, `assets_example`
+See the `Example_Kind` enumeration in `examples/examples.gpr`.
 
 ## Running
 

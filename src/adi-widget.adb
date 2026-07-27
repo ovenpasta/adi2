@@ -2085,7 +2085,7 @@ package body Adi.Widget is
       Clip_X   : Boolean;
       Clip_Y   : Boolean;
       Had_Clip : Boolean;
-      Prev_Clip : Adi.SDL.SDL_Rect;
+      Prev_Clip : Adi.SDL.SDL_Rect := (0, 0, 0, 0);
       Out_Clip : out Adi.SDL.SDL_Rect) return Boolean
    is
       Viewport : aliased Adi.SDL.SDL_Rect;
@@ -3998,7 +3998,7 @@ package body Adi.Widget is
       Ny       : constant Float :=  Dx;
 
       Had_Clip  : Boolean             := False;
-      Prev_Clip : aliased Adi.SDL.SDL_Rect;
+      Prev_Clip : aliased Adi.SDL.SDL_Rect := (0, 0, 0, 0);
       Clip      : aliased Adi.SDL.SDL_Rect;
       Unused   : Adi.SDL.C_bool;
 
@@ -4054,10 +4054,8 @@ package body Adi.Widget is
       end if;
 
       --  Set clip rect to contain strips within the widget bounds
-      Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
-      if Had_Clip then
-         Unused := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
-      end if;
+      Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer))
+        and then Boolean (SDL_GetRenderClipRect (Renderer, Prev_Clip'Access));
       Clip := (x => int (Float'Floor (Rect.x)),
                y => int (Float'Floor (Rect.y)),
                w => int (Float'Ceiling (Rect.w)),
@@ -5163,7 +5161,7 @@ package body Adi.Widget is
         Draw_Underline or else Draw_Overline or else Draw_Strike;
       Engine     : TTF_TextEngine_Access;
       Renderer   : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
-      Prev_Clip  : aliased Adi.SDL.SDL_Rect;
+      Prev_Clip  : aliased Adi.SDL.SDL_Rect := (0, 0, 0, 0);
       Clip_Rect  : aliased Adi.SDL.SDL_Rect;
       Had_Clip   : Boolean := False;
       Use_Clip   : constant Boolean :=
@@ -5295,10 +5293,8 @@ package body Adi.Widget is
 
       --  Clip text to item bounds to prevent overflow bleed.
       if Use_Clip then
-         Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
-         if Had_Clip then
-            Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
-         end if;
+         Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer))
+           and then Boolean (SDL_GetRenderClipRect (Renderer, Prev_Clip'Access));
 
          X1 := Integer (Float'Floor (Float (Geom.X)));
          Y1 := Integer (Float'Floor (Float (Geom.Y)));
@@ -5833,10 +5829,8 @@ package body Adi.Widget is
       --  Clip image rendering to item bounds so object-fit:none and oversized
       --  images are cropped instead of bleeding outside the widget viewport.
       if Use_Clip then
-         Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
-         if Had_Clip then
-            Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
-         end if;
+         Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer))
+           and then Boolean (SDL_GetRenderClipRect (Renderer, Prev_Clip'Access));
 
          X1 := Integer (Float'Floor (Float (Geom.X)));
          Y1 := Integer (Float'Floor (Float (Geom.Y)));
@@ -6019,7 +6013,7 @@ package body Adi.Widget is
       Clip_X : constant Boolean := Overflow_Clips (Main_Style.Overflow_X);
       Clip_Y : constant Boolean := Overflow_Clips (Main_Style.Overflow_Y);
       Clip_By_Scrollable : constant Boolean := Has_Flag (W, Scrollable);
-      Prev_Clip : aliased Adi.SDL.SDL_Rect;
+      Prev_Clip : aliased Adi.SDL.SDL_Rect := (0, 0, 0, 0);
       Clip_Rect : aliased Adi.SDL.SDL_Rect;
       Had_Clip  : Boolean := False;
       Use_Clip  : Boolean := False;
@@ -6060,10 +6054,9 @@ package body Adi.Widget is
       if Renderer /= null and then (Clip_X or else Clip_Y or else Clip_By_Scrollable) then
          if Has_Visible_Area (Content) then
             Use_Clip := True;
-            Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
-            if Had_Clip then
-               Unused := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
-            end if;
+            Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer))
+              and then Boolean
+                (SDL_GetRenderClipRect (Renderer, Prev_Clip'Access));
             Clip_Valid :=
               Build_Content_Clip_Rect (
                 Renderer  => Renderer,
@@ -6160,7 +6153,7 @@ package body Adi.Widget is
         Resolve_Effective_Visibility (W, Parent_Visibility);
       Widget_Is_Visible : constant Boolean :=
         Widget_Visibility = Visibility_Visible;
-      Prev_Clip  : aliased Adi.SDL.SDL_Rect;
+      Prev_Clip  : aliased Adi.SDL.SDL_Rect := (0, 0, 0, 0);
       Clip_Rect  : aliased Adi.SDL.SDL_Rect;
       Had_Clip   : Boolean := False;
       Use_Clip   : Boolean := False;
@@ -6217,10 +6210,9 @@ package body Adi.Widget is
                   Skip_Children := True;
                else
                   Use_Clip := True;
-                  Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
-                  if Had_Clip then
-                     Unused := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
-                  end if;
+                  Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer))
+                    and then Boolean
+                      (SDL_GetRenderClipRect (Renderer, Prev_Clip'Access));
                   if Build_Content_Clip_Rect (
                      Renderer  => Renderer,
                      Content   => Content,

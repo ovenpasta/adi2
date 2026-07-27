@@ -1,7 +1,6 @@
 pragma Wide_Character_Encoding (Brackets);
 pragma Ada_2022;
 
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Adi.I18N; use Adi.I18N;
 
 package body I18N_Example_Translations is

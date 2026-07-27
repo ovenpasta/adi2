@@ -1,6 +1,6 @@
 name = "adi2"
 description = "Widget-based GUI library with CSS styling and XML UI, on SDL3"
-version = "0.1.0-dev"
+version = "0.9.0"
 
 authors = ["Aldo Nicolas Bruno"]
 maintainers = ["Aldo Nicolas Bruno <ovenpasta@pizzahack.eu>"]
@@ -8,26 +8,6 @@ licenses = "Apache-2.0"
 website = "https://github.com/ovenpasta/adi2"
 tags = ["gui", "sdl", "widgets", "css", "ui", "graphics"]
 project-files = ["adi.gpr"]
-
-[[actions]]
-type = "post-build"
-command = ["bash", "tools/generate_example_styles.sh"]
-
-[[actions]]
-type = "post-build"
-command = ["bash", "tools/generate_example_ui.sh"]
-
-[[actions]]
-type = "post-build"
-command = ["bash", "tools/generate_example_bundles.sh"]
-
-[[actions]]
-type = "post-build"
-command = ["bash", "tools/generate_example_translations.sh"]
-
-[[actions]]
-type = "post-build"
-command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=gradient_example"]
 
 [[actions]]
 type = "test"

@@ -38,7 +38,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 > ⚠️ Build safety: never run more than one `gprbuild` command at the same time in this repo. Concurrent `gprbuild` processes can race on shared artifacts and produce truncated/corrupted archives.
 
 ```bash
-# Build the library (tests and examples are NOT built here)
+# Build the library only (tests and examples are NOT built here)
 alr build -- -j0
 
 # Build + run the whole test suite (Ada + Python); also the alr test action
@@ -47,7 +47,10 @@ tools/run_tests.sh
 # Build a specific test
 alr exec -- gprbuild -j0 -P tests/tests.gpr -XTEST_KIND=css_parser_test
 
-# Build a specific example (always build explicitly by name)
+# Build examples (regenerates their generated sources first)
+tools/build_examples.sh stack_example
+
+# Build a specific example directly (generated sources must be current)
 alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 
 # Run Ada tests (built to tests/bin/)

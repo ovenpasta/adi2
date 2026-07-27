@@ -5,7 +5,7 @@ project Adi is
 
    type Build_Profile_Kind is ("release", "validation", "development");
    Build_Profile : Build_Profile_Kind := external ("ADI_BUILD_PROFILE", "development");
-   Crate_Version := external ("ADI_LIBRARY_VERSION", "0.1.0-dev");
+   Crate_Version := external ("ADI_LIBRARY_VERSION", "0.9.0");
    User_Ada_Compiler_Switches := External_As_List ("ADAFLAGS", " ");
    Platform_Name := external ("ADI_PLATFORM", "linux");
 

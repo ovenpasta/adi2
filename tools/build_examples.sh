@@ -43,6 +43,14 @@ else
   EXAMPLES=("$@")
 fi
 
+#  Regenerate example sources from their CSS/XML/asset/PO inputs. Each
+#  script is incremental: it rewrites only what is out of date.
+echo "=== Generating example sources ==="
+bash tools/generate_example_styles.sh
+bash tools/generate_example_ui.sh
+bash tools/generate_example_bundles.sh
+bash tools/generate_example_translations.sh
+
 FAILED=()
 
 for ex in "${EXAMPLES[@]}"; do

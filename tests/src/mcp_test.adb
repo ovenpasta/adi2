@@ -1,6 +1,5 @@
 pragma Ada_2022;
 
-with Ada.Command_Line;
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
@@ -15,21 +14,9 @@ with Adi.Widget.Introspection; use Adi.Widget.Introspection;
 with Adi.Widget_Styles;        use Adi.Widget_Styles;
 with Adi.MCP;
 
+with Test_Support; use Test_Support;
+
 procedure MCP_Test is
-
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-
-   procedure Assert (Cond : Boolean; Msg : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Cond then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Msg);
-      else
-         Put_Line ("  [FAIL] " & Msg);
-      end if;
-   end Assert;
 
    function New_Box return Widget_Handle is
      (Adi.Widget.Box.To_Widget_Handle (Adi.Widget.Box.Create_Handle));
@@ -45,7 +32,7 @@ procedure MCP_Test is
    procedure Test_JSON_Parsing is
       use Adi.JSON;
    begin
-      Put_Line ("-- JSON Parsing Tests --");
+      Section ("JSON Parsing Tests");
 
       --  Basic key extraction (no spaces after colon — old format)
       declare
@@ -144,7 +131,7 @@ procedure MCP_Test is
 
    procedure Test_Lifecycle is
    begin
-      Put_Line ("-- MCP Lifecycle Tests --");
+      Section ("MCP Lifecycle Tests");
 
       Assert (not Adi.MCP.Is_Active, "not active before init");
 
@@ -163,7 +150,7 @@ procedure MCP_Test is
 
    procedure Test_Widget_Tree_Structure is
    begin
-      Put_Line ("-- Widget Tree Structure Tests --");
+      Section ("Widget Tree Structure Tests");
 
       --  Create a simple hierarchy: Box with 2 children
       declare
@@ -221,7 +208,7 @@ procedure MCP_Test is
 
    procedure Test_Widget_States_Flags is
    begin
-      Put_Line ("-- Widget States & Flags Tests --");
+      Section ("Widget States & Flags Tests");
 
       declare
          W : constant Widget_Handle := New_Box;
@@ -253,7 +240,7 @@ procedure MCP_Test is
 
    procedure Test_Widget_Ids is
    begin
-      Put_Line ("-- Widget ID Tests --");
+      Section ("Widget ID Tests");
 
       declare
          W1 : constant Widget_Handle := New_Box;
@@ -283,7 +270,7 @@ procedure MCP_Test is
 
    procedure Test_Introspection_Get_Text is
    begin
-      Put_Line ("-- Introspection Get_Text Tests --");
+      Section ("Introspection Get_Text Tests");
 
       --  Label widget
       declare
@@ -317,7 +304,7 @@ procedure MCP_Test is
 
    procedure Test_Introspection_Find is
    begin
-      Put_Line ("-- Introspection Find Tests --");
+      Section ("Introspection Find Tests");
 
       declare
          Root   : constant Widget_Handle := New_Box;
@@ -413,7 +400,7 @@ procedure MCP_Test is
 
    procedure Test_Introspection_Find_By_Text is
    begin
-      Put_Line ("-- Introspection Find_By_Text Tests --");
+      Section ("Introspection Find_By_Text Tests");
 
       declare
          Root     : constant Widget_Handle := New_Box;
@@ -474,7 +461,7 @@ procedure MCP_Test is
 
    procedure Test_Introspection_Find_By_Type is
    begin
-      Put_Line ("-- Introspection Find_By_Type Tests --");
+      Section ("Introspection Find_By_Type Tests");
 
       declare
          Root     : constant Widget_Handle := New_Box;
@@ -515,7 +502,7 @@ procedure MCP_Test is
 
    procedure Test_Introspection_Get_Info is
    begin
-      Put_Line ("-- Introspection Get_Info Tests --");
+      Section ("Introspection Get_Info Tests");
 
       declare
          L : constant Widget_Handle := New_Label ("Test Label");
@@ -540,7 +527,7 @@ procedure MCP_Test is
    end Test_Introspection_Get_Info;
 
 begin
-   Put_Line ("=== MCP Test Suite ===");
+   Start_Suite ("MCP Test Suite");
    Put_Line ("");
 
    Test_JSON_Parsing;
@@ -554,11 +541,5 @@ begin
    Test_Introspection_Find_By_Type;
    Test_Introspection_Get_Info;
 
-   Put_Line ("");
-   Put_Line ("Results:" & Natural'Image (Pass_Count) &
-             " /" & Natural'Image (Test_Count) & " passed");
-   if Pass_Count /= Test_Count then
-      Put_Line ("SOME TESTS FAILED");
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-   end if;
+   Test_Support.Finish;
 end MCP_Test;

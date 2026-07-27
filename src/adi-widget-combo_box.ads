@@ -5,11 +5,9 @@ pragma Ada_2022;
 
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
-with Adi.Core;              use Adi.Core;
 with Adi.Image;
 with Adi.SDL.Events;
 with Adi.Signal;
-with Adi.Widget;            use Adi.Widget;
 with Adi.Widget.Label;
 with Adi.Widget.List_Box;
 with Adi.Window;

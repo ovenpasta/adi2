@@ -11,8 +11,6 @@ with Adi.Widget_Styles;     use Adi.Widget_Styles;
 with Adi.CSS_Styles;        use Adi.CSS_Styles;
 with Adi.Animation;         use Adi.Animation;
 with Adi.Font;
-with Adi.Layout_Util;       use Adi.Layout_Util;
-with Adi.SDL.Render;        use Adi.SDL.Render;
 with Adi.SDL.TTF;
 with Adi.SDL.TTF.TextEngine;
 with Adi.SDL.Events;
@@ -123,7 +121,7 @@ package Adi.Widget is
    type Widget_Flag is (Clickable, Focusable, Scrollable, Draggable, Visible);
    type Widget_Flags is array (Widget_Flag) of Boolean;
 
-   Default_Flags : constant Widget_Flags := (Visible => True, others => False);
+   Default_Flags : constant Widget_Flags := [Visible => True, others => False];
 
    ---------------------------------------------------------------------------
    --  Item Types - Renderable primitives that compose a widget
@@ -223,7 +221,7 @@ package Adi.Widget is
 
    type Part_Style_Array is array (Part_Kind) of Part_Style;
 
-   Empty_Part_Styles : constant Part_Style_Array := (others => <>);
+   Empty_Part_Styles : constant Part_Style_Array := [others => <>];
 
    ---------------------------------------------------------------------------
    --  Unique Widget Identifier

@@ -7,22 +7,9 @@ with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box;    use type Adi.Widget.Box.Box_Handle;
 with Adi.Widget.Label;  use type Adi.Widget.Label.Label_Handle;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
+with Test_Support;
 
 procedure Style_Storage_Equivalence_Test is
-
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-
-   procedure Assert (Cond : Boolean; Msg : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Cond then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Msg);
-      else
-         Put_Line ("  [FAIL] " & Msg);
-      end if;
-   end Assert;
 
    function Is_RGB_Color (Col : Color_Value; R, G, B : Natural) return Boolean is
    begin
@@ -55,9 +42,9 @@ procedure Style_Storage_Equivalence_Test is
          Main_Resolved  : constant Resolved_Style :=
            Get_Resolved_Part_Style (+W, Main_Part);
       begin
-         Assert (Is_RGB_Color (Label_Resolved.Color, 10, 20, 30),
+         Test_Support.Assert (Is_RGB_Color (Label_Resolved.Color, 10, 20, 30),
                  "Label_Part uses Any_Part fallback when part style is empty");
-         Assert (Is_RGB_Color (Main_Resolved.Color, 10, 20, 30),
+         Test_Support.Assert (Is_RGB_Color (Main_Resolved.Color, 10, 20, 30),
                  "Main_Part resolves to Any_Part style when only Any_Part is set");
       end;
 
@@ -72,9 +59,9 @@ procedure Style_Storage_Equivalence_Test is
          Main_Resolved  : constant Resolved_Style :=
            Get_Resolved_Part_Style (+W, Main_Part);
       begin
-         Assert (Is_RGB_Color (Label_Resolved.Color, 50, 60, 70),
+         Test_Support.Assert (Is_RGB_Color (Label_Resolved.Color, 50, 60, 70),
                  "Part-specific style overrides Any_Part fallback");
-         Assert (Is_RGB_Color (Main_Resolved.Color, 10, 20, 30),
+         Test_Support.Assert (Is_RGB_Color (Main_Resolved.Color, 10, 20, 30),
                  "Any_Part style still applies to Main_Part");
       end;
    end Test_Any_Part_Fallback;
@@ -100,13 +87,13 @@ procedure Style_Storage_Equivalence_Test is
          Label_Resolved : constant Resolved_Style :=
            Get_Resolved_Part_Style (+W, Label_Part);
       begin
-         Assert (Is_RGB_Color (Main_Resolved.Background_Color, 1, 2, 3),
+         Test_Support.Assert (Is_RGB_Color (Main_Resolved.Background_Color, 1, 2, 3),
                  "Main_Part style resolves even when part is marked disabled");
-         Assert (Is_RGB_Color (Label_Resolved.Color, 4, 5, 6),
+         Test_Support.Assert (Is_RGB_Color (Label_Resolved.Color, 4, 5, 6),
                  "Enabled Label_Part style resolves correctly");
-         Assert (Get_Part_Style (+W, Main_Part) = Main_WS,
+         Test_Support.Assert (Get_Part_Style (+W, Main_Part) = Main_WS,
                  "Get_Part_Style preserves stored style for disabled part");
-         Assert (Get_Part_Style (+W, Label_Part) = Label_WS,
+         Test_Support.Assert (Get_Part_Style (+W, Label_Part) = Label_WS,
                  "Get_Part_Style preserves stored style for enabled part");
       end;
    end Test_Enabled_Disabled_Parts;
@@ -140,7 +127,7 @@ procedure Style_Storage_Equivalence_Test is
       declare
          R : constant Resolved_Style := Get_Resolved_Part_Style (+W, Main_Part);
       begin
-         Assert (Is_RGB_Color (R.Color, 10, 200, 10),
+         Test_Support.Assert (Is_RGB_Color (R.Color, 10, 200, 10),
                  "Equal-priority rules keep source order (later rule wins)");
       end;
 
@@ -155,7 +142,7 @@ procedure Style_Storage_Equivalence_Test is
       declare
          R : constant Resolved_Style := Get_Resolved_Part_Style (+W, Main_Part);
       begin
-         Assert (Is_RGB_Color (R.Color, 210, 210, 40),
+         Test_Support.Assert (Is_RGB_Color (R.Color, 210, 210, 40),
                  "Higher-priority rule overrides lower-priority rule");
       end;
    end Test_Priority_And_Tie_Order;
@@ -193,7 +180,7 @@ procedure Style_Storage_Equivalence_Test is
 
       Adi.CSS_Source.Set_Static_Entries (Source, Entries);
       Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Static_Mode, OK);
-      Assert (OK, "Static mode setup succeeds for churn test");
+      Test_Support.Assert (OK, "Static mode setup succeeds for churn test");
 
       for I in 1 .. 180 loop
          case I mod 3 is
@@ -253,13 +240,13 @@ procedure Style_Storage_Equivalence_Test is
          end;
       end loop;
 
-      Assert (Class_Only_OK,
+      Test_Support.Assert (Class_Only_OK,
               "Repeated class-only rebinding remains stable across churn");
-      Assert (Class_Id_OK,
+      Test_Support.Assert (Class_Id_OK,
               "Repeated class+id rebinding remains stable across churn");
-      Assert (Alt_Class_Id_OK,
+      Test_Support.Assert (Alt_Class_Id_OK,
               "Repeated alt-class+id rebinding remains stable across churn");
-      Assert (Tag_Opacity_OK,
+      Test_Support.Assert (Tag_Opacity_OK,
               "Tag-only properties remain stable across churn");
    end Test_Dynamic_Style_Churn;
 
@@ -271,8 +258,5 @@ begin
    Test_Priority_And_Tie_Order;
    Test_Dynamic_Style_Churn;
 
-   Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");
-   if Pass_Count /= Test_Count then
-      raise Program_Error with "style storage equivalence test failed";
-   end if;
+   Test_Support.Finish;
 end Style_Storage_Equivalence_Test;

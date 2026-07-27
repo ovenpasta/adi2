@@ -14,9 +14,7 @@ with Adi.SDL.Events;          use Adi.SDL.Events;
 with Adi.SDL.TTF;             use Adi.SDL.TTF;
 with Adi.Text_Layout;         use Adi.Text_Layout;
 with Adi.Text_Buffer;         use Adi.Text_Buffer;
-with Adi.Widget.Context_Menu;
 with Adi.Widget.Text_Context_Menu;
-with Adi.Window;
 
 package body Adi.Widget.Text_Editor is
 

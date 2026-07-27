@@ -128,8 +128,7 @@ package body Adi.I18N is
    function Lookup_Formula_With_Fallback
      (Lang : String) return Catalog.Formula_Record
    is
-      use type Ada.Strings.Unbounded.Unbounded_String;
-      Result : Catalog.Formula_Record := Catalog.Lookup_Formula (Lang);
+      Result : constant Catalog.Formula_Record := Catalog.Lookup_Formula (Lang);
    begin
       --  If we got the default and there's a base language, try that
       if Result.Formula = To_Unbounded_String ("n != 1") then

@@ -4,7 +4,7 @@
 
 pragma Ada_2022;
 
-with Interfaces.C.Extensions; use Interfaces.C.Extensions;
+with Interfaces.C.Extensions;
 
 package Adi.Core is
    pragma Elaborate_Body;

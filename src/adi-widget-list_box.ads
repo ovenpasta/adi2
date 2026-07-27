@@ -7,7 +7,6 @@ with Ada.Containers.Vectors;
 with Adi.Core;              use Adi.Core;
 with Adi.SDL.Events;
 with Adi.Signal;
-with Adi.Widget;            use Adi.Widget;
 
 generic
    type Row_Widget is new Widget with private;

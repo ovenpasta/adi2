@@ -11,22 +11,9 @@ with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Label; use Adi.Widget.Label;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
+with Test_Support; use Test_Support;
 
 procedure Css_Source_Test is
-
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-
-   procedure Assert (Cond : Boolean; Msg : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Cond then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Msg);
-      else
-         Put_Line ("  [FAIL] " & Msg);
-      end if;
-   end Assert;
 
    function Is_RGB_Color (Col : Color_Value; R, G, B : Natural) return Boolean is
    begin
@@ -45,7 +32,7 @@ procedure Css_Source_Test is
      ([Main_Part => (Style => From (Rules).Build, Enabled => True), others => <>]);
 
 begin
-   Put_Line ("CSS source test");
+   Start_Suite ("CSS source test");
 
    declare
       Source : Adi.CSS_Source.Style_Source;
@@ -564,8 +551,5 @@ begin
               "Preferred width should increase after larger font-size reload");
    end;
 
-   Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");
-   if Pass_Count /= Test_Count then
-      raise Program_Error with "css source test failed";
-   end if;
+   Finish;
 end Css_Source_Test;

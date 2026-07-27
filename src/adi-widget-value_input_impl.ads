@@ -13,7 +13,6 @@ generic
    with function "+" (L, R : Value_Type) return Value_Type is <>;
    with function "-" (L, R : Value_Type) return Value_Type is <>;
    with function "<" (L, R : Value_Type) return Boolean is <>;
-   with function "<=" (L, R : Value_Type) return Boolean is <>;
    with function To_Float (V : Value_Type) return Float;
    with function From_Float (F : Float) return Value_Type;
    with function Image (V : Value_Type) return String;
@@ -41,8 +40,7 @@ package Adi.Widget.Value_Input_Impl is
    function Create
      (Min   : Value_Type;
       Max   : Value_Type;
-      Value : Value_Type) return Value_Input_Widget_Access
-     with Obsolescent => "Use Create_Handle";
+      Value : Value_Type) return Value_Input_Widget_Access;
    function Create_Handle
      (Min   : Value_Type;
       Max   : Value_Type;

@@ -10,8 +10,6 @@ with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-with System;
-with System.Storage_Elements;
 with Interfaces.C;    use Interfaces.C;
 with Adi.Log;
 with Adi.SDL;         use Adi.SDL;
@@ -21,8 +19,6 @@ with Adi.Assets.Bundle;
 
 package body Adi.Assets is
 
-   use type Adi.SDL.C_bool;
-   use type Adi.SVG_Sprites.Sprite_Sheet_Access;
    use type System.Address;
 
    ---------------------------------------------------------------------------
@@ -236,9 +232,9 @@ package body Adi.Assets is
         (Search,
          Directory => Dir,
          Pattern   => "",
-         Filter    => (Directory     => True,
+         Filter    => [Directory     => True,
                        Ordinary_File => True,
-                       others        => False));
+                       others        => False]);
 
       while More_Entries (Search) loop
          Get_Next_Entry (Search, Dir_Ent);

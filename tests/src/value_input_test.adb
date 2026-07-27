@@ -1,29 +1,13 @@
 pragma Ada_2022;
-with Ada.Command_Line;
 with Ada.Text_IO;      use Ada.Text_IO;
 with Adi.Widget;       use Adi.Widget;
 with Adi.SDL.Events;   use Adi.SDL.Events;
 with Adi.Widget.Text_Input;  use type Adi.Widget.Text_Input.Text_Input_Handle;
 with Adi.Widget.Value_Input;
 with Adi.Widget.Integer_Value_Input;
+with Test_Support;     use Test_Support;
 
 procedure Value_Input_Test is
-
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-   Fail_Count : Natural := 0;
-
-   procedure Assert (Condition : Boolean; Message : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Condition then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Message);
-      else
-         Fail_Count := Fail_Count + 1;
-         Put_Line ("  [FAIL] " & Message);
-      end if;
-   end Assert;
 
    --  Helper: get the text from a Value_Input via its Text_Input handle API
    function Get_Text_Via_Handle (H : Widget_Handle) return String is
@@ -554,9 +538,7 @@ procedure Value_Input_Test is
    end Test_Label_Items_Part;
 
 begin
-   Put_Line ("========================================");
-   Put_Line ("   Value Input Widget Tests");
-   Put_Line ("========================================");
+   Start_Suite ("Value Input Widget Tests");
    New_Line;
 
    Test_Create;
@@ -601,19 +583,5 @@ begin
    Test_Label_Items_Part;
    New_Line;
 
-   Put_Line ("========================================");
-   Put_Line ("   Test Summary");
-   Put_Line ("========================================");
-   Put_Line ("Total tests:" & Test_Count'Image);
-   Put_Line ("Passed:     " & Pass_Count'Image);
-   Put_Line ("Failed:     " & Fail_Count'Image);
-   New_Line;
-
-   if Fail_Count = 0 then
-      Put_Line ("All tests PASSED!");
-   else
-      Put_Line ("Some tests FAILED!");
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-   end if;
-   Put_Line ("========================================");
+   Finish;
 end Value_Input_Test;

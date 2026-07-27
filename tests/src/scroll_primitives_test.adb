@@ -1,11 +1,11 @@
 pragma Ada_2022;
 
-with Ada.Command_Line;
 with Ada.Containers.Vectors;
 with Ada.Text_IO; use Ada.Text_IO;
 
 with Adi.Core;    use Adi.Core;
 with Adi.Widget;  use Adi.Widget;
+with Test_Support;
 
 procedure Scroll_Primitives_Test is
 
@@ -69,29 +69,15 @@ procedure Scroll_Primitives_Test is
       Recorded.Append (Offset_Pair'(Old_Offset, New_Offset));
    end On_Scroll_Changed;
 
-   Passed : Natural := 0;
-   Failed : Natural := 0;
-
-   procedure Assert (Cond : Boolean; Msg : String) is
-   begin
-      if Cond then
-         Passed := Passed + 1;
-         Put_Line ("  [PASS] " & Msg);
-      else
-         Failed := Failed + 1;
-         Put_Line ("  [FAIL] " & Msg);
-      end if;
-   end Assert;
-
    --  Tests --------------------------------------------------------------
 
    procedure Test_Virtual_Content_Height is
       W : aliased Virtual_Widget;
    begin
-      Put_Line ("-- Virtual content height --");
-      Assert (Get_Scroll_Content_Height (W) = Virtual_Height,
+      Test_Support.Section ("Virtual content height");
+      Test_Support.Assert (Get_Scroll_Content_Height (W) = Virtual_Height,
               "primitive dispatches to subclass override");
-      Assert (Get_Scroll_Max_Offset_Y (W) = Virtual_Height,
+      Test_Support.Assert (Get_Scroll_Max_Offset_Y (W) = Virtual_Height,
               "max offset reflects virtual height "
               & "(viewport height defaults to 0)");
    end Test_Virtual_Content_Height;
@@ -99,27 +85,27 @@ procedure Scroll_Primitives_Test is
    procedure Test_On_Scroll_Changed_Fires is
       W : aliased Tracking_Widget;
    begin
-      Put_Line ("-- On_Scroll_Changed fires once per real change --");
+      Test_Support.Section ("On_Scroll_Changed fires once per real change");
       Recorded.Clear;
 
       Set_Scroll_Offset_Y (W, 10.0);
-      Assert (Natural (Recorded.Length) = 1
+      Test_Support.Assert (Natural (Recorded.Length) = 1
               and then Recorded (1).Old_Offset = 0.0
               and then Recorded (1).New_Offset = 10.0,
               "first write fires (0 -> 10)");
 
       Set_Scroll_Offset_Y (W, 10.0);  --  same value, no-op
-      Assert (Natural (Recorded.Length) = 1,
+      Test_Support.Assert (Natural (Recorded.Length) = 1,
               "no-op write does not fire");
 
       Scroll_By_Y (W, 5.0);
-      Assert (Natural (Recorded.Length) = 2
+      Test_Support.Assert (Natural (Recorded.Length) = 2
               and then Recorded (2).Old_Offset = 10.0
               and then Recorded (2).New_Offset = 15.0,
               "Scroll_By_Y funnels through Set_Scroll_Offset_Y (10 -> 15)");
 
       Set_Scroll_Offset_Y (W, 0.0);
-      Assert (Natural (Recorded.Length) = 3
+      Test_Support.Assert (Natural (Recorded.Length) = 3
               and then Recorded (3).Old_Offset = 15.0
               and then Recorded (3).New_Offset = 0.0,
               "write back to 0 fires (15 -> 0)");
@@ -128,18 +114,18 @@ procedure Scroll_Primitives_Test is
    procedure Test_Offset_Clamps_To_Max is
       W : aliased Tracking_Widget;
    begin
-      Put_Line ("-- Scroll offset clamps to Max_Offset --");
+      Test_Support.Section ("Scroll offset clamps to Max_Offset");
       Recorded.Clear;
       Set_Scroll_Offset_Y (W, Virtual_Height * 2.0);
-      Assert (Get_Scroll_Offset_Y (W) = Virtual_Height,
+      Test_Support.Assert (Get_Scroll_Offset_Y (W) = Virtual_Height,
               "offset clamps to max (= virtual height with viewport 0)");
-      Assert (Natural (Recorded.Length) = 1
+      Test_Support.Assert (Natural (Recorded.Length) = 1
               and then Recorded (1).New_Offset = Virtual_Height,
               "On_Scroll_Changed sees the post-clamp value, not the raw write");
    end Test_Offset_Clamps_To_Max;
 
 begin
-   Put_Line ("=== Scroll Primitives Test ===");
+   Test_Support.Start_Suite ("Scroll Primitives Test");
    New_Line;
    Test_Virtual_Content_Height;
    New_Line;
@@ -147,10 +133,5 @@ begin
    New_Line;
    Test_Offset_Clamps_To_Max;
    New_Line;
-   Put_Line ("=== Results:"
-             & Natural'Image (Passed) & " passed,"
-             & Natural'Image (Failed) & " failed ===");
-   if Failed > 0 then
-      Ada.Command_Line.Set_Exit_Status (1);
-   end if;
+   Test_Support.Finish;
 end Scroll_Primitives_Test;

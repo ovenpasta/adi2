@@ -4,7 +4,6 @@
 pragma Ada_2022;
 
 with Ada.Characters.Latin_1;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Adi.SDL;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 
@@ -85,10 +84,9 @@ package body Adi.Text_Buffer is
       end if;
 
       Last := Positive (B.Lines.Last_Index);
+      --  No lower clamp: Position.Line is Positive.
       if Result.Line > Last then
          Result.Line := Last;
-      elsif Result.Line < 1 then
-         Result.Line := 1;
       end if;
 
       declare
@@ -343,7 +341,6 @@ package body Adi.Text_Buffer is
 
       --  Multi-line: first partial + middle full lines + last partial
       declare
-         use Ada.Strings.Unbounded;
          Result : Unbounded_String;
          First_L : constant String := Get_Line (B, Start.Line);
          Last_L  : constant String := Get_Line (B, Stop.Line);

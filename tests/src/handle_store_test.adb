@@ -1,23 +1,10 @@
 pragma Ada_2022;
 
-with Ada.Command_Line;
 with Ada.Text_IO; use Ada.Text_IO;
+with Test_Support; use Test_Support;
 with Adi.Handle_Store;
 
 procedure Handle_Store_Test is
-
-   Passed : Natural := 0;
-   Failed : Natural := 0;
-
-   procedure Assert (Cond : Boolean; Msg : String) is
-   begin
-      if Cond then
-         Passed := Passed + 1;
-      else
-         Failed := Failed + 1;
-         Put_Line ("  [FAIL] " & Msg);
-      end if;
-   end Assert;
 
    ---------------------------------------------------------------------------
    --  A simple tagged type to test with
@@ -373,7 +360,7 @@ procedure Handle_Store_Test is
    end Test_Growth;
 
 begin
-   Put_Line ("=== Handle Store Tests ===");
+   Start_Suite ("Handle Store Tests");
 
    Test_Null_Id;
    Test_Register_Get;
@@ -390,12 +377,5 @@ begin
    Test_Growth;
 
    New_Line;
-   Put_Line ("Results:" & Passed'Image & " passed," &
-             Failed'Image & " failed");
-   if Failed > 0 then
-      Put_Line ("SOME TESTS FAILED");
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-   else
-      Put_Line ("ALL TESTS PASSED");
-   end if;
+   Test_Support.Finish;
 end Handle_Store_Test;

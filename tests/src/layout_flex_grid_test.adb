@@ -1,6 +1,5 @@
 pragma Ada_2022;
 
-with Ada.Text_IO;      use Ada.Text_IO;
 with Adi.Core;         use Adi.Core;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Layout_Util;  use Adi.Layout_Util;
@@ -8,19 +7,13 @@ with Adi.Widget;       use Adi.Widget;
 with Adi.Widget.Box;   use type Adi.Widget.Box.Box_Handle;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
+with Test_Support;
+
 procedure Layout_Flex_Grid_Test is
    Eps : constant Pixel_Type := 0.001;
 
-   Checks : Natural := 0;
-
-   procedure Assert_True (Cond : Boolean; Msg : String) is
-   begin
-      Checks := Checks + 1;
-      if not Cond then
-         Put_Line ("FAIL: " & Msg);
-         raise Program_Error with Msg;
-      end if;
-   end Assert_True;
+   procedure Assert_True (Cond : Boolean; Msg : String)
+     renames Test_Support.Assert;
 
    procedure Assert_Close
      (Actual, Expected : Pixel_Type; Msg : String) is
@@ -678,7 +671,7 @@ procedure Layout_Flex_Grid_Test is
    end Test_Grid_Fr_Ample_Space;
 
 begin
-   Put_Line ("Running layout_flex_grid_test...");
+   Test_Support.Start_Suite ("layout_flex_grid_test");
 
    Test_Flex_Grow_Resize;
    Test_Flex_Shrink_Min;
@@ -697,5 +690,5 @@ begin
    Test_Absolute_Right_Bottom_Anchor;
    Test_Absolute_Zero_Inset_Explicit;
 
-   Put_Line ("PASS: layout_flex_grid_test checks=" & Checks'Image);
+   Test_Support.Finish;
 end Layout_Flex_Grid_Test;

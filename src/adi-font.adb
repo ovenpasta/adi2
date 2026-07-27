@@ -19,7 +19,6 @@ with Adi.Layout_Util;
 with Adi.Log;
 with Adi.SDL;
 with Adi.SDL.IO;            use Adi.SDL.IO;
-with Adi.SDL.TTF;           use Adi.SDL.TTF;
 with Interfaces.C;          use Interfaces.C;
 with Interfaces.C.Strings;  use Interfaces.C.Strings;
 
@@ -188,52 +187,56 @@ package body Adi.Font is
    Default_Fallback_Handle : Font_Handle := Null_Font;
    Fallback_Found : Boolean := False;
 
-   Linux_Fallback_Paths : constant array (Positive range 1 .. 3) of access constant String :=
-     (1 => new String'("/usr/share/fonts"),
+   --  Named (not anonymous) so the string-table allocators below have
+   --  an explicit designated type.
+   type Font_Path_Ref is access constant String;
+
+   Linux_Fallback_Paths : constant array (Positive range 1 .. 3) of Font_Path_Ref :=
+     [1 => new String'("/usr/share/fonts"),
       2 => new String'("/usr/local/share/fonts"),
-      3 => new String'("/usr/share/fonts/truetype"));
+      3 => new String'("/usr/share/fonts/truetype")];
 
    --  macOS bundles UI fonts (Helvetica, Menlo, …) under /System/Library/Fonts,
    --  bundled-but-not-system fonts (Arial, Courier New, Georgia, …) under its
    --  Supplemental/ subdirectory (covered by Scan_Dir's recursion), admin-
    --  installed fonts under /Library/Fonts, and per-user fonts under
    --  $HOME/Library/Fonts (resolved at runtime in Search_System_Font).
-   macOS_Fallback_Paths : constant array (Positive range 1 .. 2) of access constant String :=
-     (1 => new String'("/System/Library/Fonts"),
-      2 => new String'("/Library/Fonts"));
+   macOS_Fallback_Paths : constant array (Positive range 1 .. 2) of Font_Path_Ref :=
+     [1 => new String'("/System/Library/Fonts"),
+      2 => new String'("/Library/Fonts")];
 
-   Windows_Fallback_Paths : constant array (Positive range 1 .. 2) of access constant String :=
-     (1 => new String'("C:\Windows\Fonts"),
-      2 => new String'("C:\WINNT\Fonts"));
+   Windows_Fallback_Paths : constant array (Positive range 1 .. 2) of Font_Path_Ref :=
+     [1 => new String'("C:\Windows\Fonts"),
+      2 => new String'("C:\WINNT\Fonts")];
 
    type Fallback_Font_Entry is record
-      File_Prefix : access constant String;
-      Family_Name : access constant String;  --  lowercased expected TTF family name
+      File_Prefix : Font_Path_Ref;
+      Family_Name : Font_Path_Ref;  --  lowercased expected TTF family name
    end record;
 
    Linux_Fallback_Fonts : constant array (Positive range 1 .. 2) of Fallback_Font_Entry :=
-     (1 => (File_Prefix => new String'("DejaVuSans"),
+     [1 => (File_Prefix => new String'("DejaVuSans"),
             Family_Name => new String'("dejavu sans")),
       2 => (File_Prefix => new String'("NotoSans"),
-            Family_Name => new String'("noto sans")));
+            Family_Name => new String'("noto sans"))];
 
    --  macOS UI fonts. Helvetica and HelveticaNeue ship on every install;
    --  Arial is in /System/Library/Fonts/Supplemental on consumer macOS.
    --  (SFNS.ttf reports its family as "System Font", not stable enough to
    --  match against.)
    macOS_Fallback_Fonts : constant array (Positive range 1 .. 3) of Fallback_Font_Entry :=
-     (1 => (File_Prefix => new String'("Helvetica"),
+     [1 => (File_Prefix => new String'("Helvetica"),
             Family_Name => new String'("helvetica")),
       2 => (File_Prefix => new String'("HelveticaNeue"),
             Family_Name => new String'("helvetica neue")),
       3 => (File_Prefix => new String'("Arial"),
-            Family_Name => new String'("arial")));
+            Family_Name => new String'("arial"))];
 
    Windows_Fallback_Fonts : constant array (Positive range 1 .. 2) of Fallback_Font_Entry :=
-     (1 => (File_Prefix => new String'("segoeui"),
+     [1 => (File_Prefix => new String'("segoeui"),
             Family_Name => new String'("segoe ui")),
       2 => (File_Prefix => new String'("arial"),
-            Family_Name => new String'("arial")));
+            Family_Name => new String'("arial"))];
 
    function Is_Valid_Handle (Handle : Font_Handle) return Boolean is
    begin
@@ -258,25 +261,6 @@ package body Adi.Font is
       end loop;
       return "/";
    end Path_Separator;
-
-   function Is_Usable_Font_File (Path : String) return Boolean is
-      C_Path : chars_ptr;
-      F      : TTF_Font_Access;
-   begin
-      if Path'Length = 0 then
-         return False;
-      end if;
-
-      C_Path := New_String (Path);
-      F := TTF_OpenFont (C_Path, Default_Font_Size_Px);
-      Free (C_Path);
-
-      if F /= null then
-         TTF_CloseFont (F);
-         return True;
-      end if;
-      return False;
-   end Is_Usable_Font_File;
 
    function Load_Internal (Path : String; Override_Name : String) return Font_Handle;
 
@@ -358,7 +342,7 @@ package body Adi.Font is
         (Search,
          Directory => Dir,
          Pattern   => "",
-         Filter    => (Ordinary_File => True, others => False));
+         Filter    => [Ordinary_File => True, others => False]);
 
       while More_Entries (Search) loop
          Get_Next_Entry (Search, Dir_Ent);
@@ -427,7 +411,7 @@ package body Adi.Font is
            (Sub_Search,
             Directory => Dir,
             Pattern   => "",
-            Filter    => (Ada.Directories.Directory => True, others => False));
+            Filter    => [Ada.Directories.Directory => True, others => False]);
 
          while More_Entries (Sub_Search) loop
             Get_Next_Entry (Sub_Search, Sub_Dir_Ent);

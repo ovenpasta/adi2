@@ -3,9 +3,7 @@
 
 pragma Ada_2022;
 
-with Adi.Core;         use Adi.Core;
 with Adi.RLottie;      use Adi.RLottie;
-with Adi.Widget;       use Adi.Widget;
 
 package Adi.Widget.RLottie is
 

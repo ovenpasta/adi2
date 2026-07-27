@@ -7,12 +7,8 @@ pragma Ada_2022;
 with Ada.Numerics.Elementary_Functions; use Ada.Numerics.Elementary_Functions;
 with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Hashed_Maps;
-with Ada.Containers.Vectors;
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
-with Adi.Animation; use Adi.Animation;
-with Adi.Core; use Adi.Core;
-with Adi.Font;
 with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.Log;
 with Adi.SDL; use Adi.SDL;
@@ -191,8 +187,8 @@ package body Adi.Widget is
          return;
       end if;
 
-      On_Destroy (Widget'Class (W.all));
-      Clear_Items (Widget'Class (W.all));
+      On_Destroy (W.all);
+      Clear_Items (W.all);
 
       W.Children.Clear;
 
@@ -519,7 +515,7 @@ package body Adi.Widget is
 
       Surface : SDL_Surface_Ptr;
       Texture : SDL_Texture_Ptr;
-      Success : Adi.SDL.C_bool;
+      Unused : Adi.SDL.C_bool;
 
       --  Pack pixel from RGBA components (RGBA32 = ABGR8888 on little-endian:
       --  bytes in memory are R, G, B, A)
@@ -685,8 +681,8 @@ package body Adi.Widget is
       end if;
 
       --  Enable alpha blending and linear scaling
-      Success := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
-      Success := SDL_SetTextureScaleMode (Texture, SDL_SCALEMODE_LINEAR);
+      Unused := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
+      Unused := SDL_SetTextureScaleMode (Texture, SDL_SCALEMODE_LINEAR);
 
       return Texture;
    end Generate_Shadow_Texture;
@@ -737,7 +733,7 @@ package body Adi.Widget is
 
       Key     : Shadow_Key;
       Texture : SDL_Texture_Ptr;
-      Success : Adi.SDL.C_bool;
+      Unused : Adi.SDL.C_bool;
 
       --  9-grid border = full blur extent (3*blur) + corner_radius
       Grid_Border : constant Float := Float (3 * Blur_Px + Effective_Rad);
@@ -791,11 +787,11 @@ package body Adi.Widget is
       Grid_Bottom := Grid_Top;
 
       --  Texture stores only alpha; tint and alpha are applied at draw time.
-      Success := SDL_SetTextureColorMod (Texture, SR, SG, SB);
-      Success := SDL_SetTextureAlphaMod (Texture, SA);
+      Unused := SDL_SetTextureColorMod (Texture, SR, SG, SB);
+      Unused := SDL_SetTextureAlphaMod (Texture, SA);
 
       --  Render using 9-grid stretching
-      Success := SDL_RenderTexture9Grid
+      Unused := SDL_RenderTexture9Grid
          (Renderer      => Renderer,
           Texture       => Texture,
           Srcrect       => null,
@@ -824,15 +820,6 @@ package body Adi.Widget is
       end if;
       return W.Part_Style_Handles (P);
    end Effective_Part_Handle;
-
-   function Effective_Part_Style
-     (W : Widget'Class;
-      P : Part_Kind) return Widget_Style
-   is
-      H : constant Style_Handle := Effective_Part_Handle (W, P);
-   begin
-      return Style_From_Handle (H).all;
-   end Effective_Part_Style;
 
    --  Classification of a state-driven style change.  Used to decide
    --  whether we only need to re-render or also need to re-layout.
@@ -1500,7 +1487,6 @@ package body Adi.Widget is
    end Add_Item;
 
    procedure Clear_Items (W : in out Widget'Class) is
-      use Adi.SDL.TTF.TextEngine;
    begin
       for I in 1 .. Natural (W.Items.Length) loop
          declare
@@ -1822,7 +1808,7 @@ package body Adi.Widget is
    procedure Add_Child (Parent : Widget_Handle; Child : Widget_Handle) is
    begin
       declare
-         P_Ref : Widget_Ref := Borrow (Parent);
+         P_Ref : constant Widget_Ref := Borrow (Parent);
       begin
          Add_Child (P_Ref.Ptr.all, Child);
       end;
@@ -1851,7 +1837,7 @@ package body Adi.Widget is
    procedure Remove_Child (Parent : Widget_Handle; Child : Widget_Handle) is
    begin
       declare
-         P_Ref : Widget_Ref := Borrow (Parent);
+         P_Ref : constant Widget_Ref := Borrow (Parent);
          C_Ref : Widget_Ref := Borrow (Child);
       begin
          Remove_Child (P_Ref.Ptr.all, C_Ref.Ptr);
@@ -1883,7 +1869,7 @@ package body Adi.Widget is
    procedure Set_Parent (W : Widget_Handle; P : Widget_Handle) is
    begin
       declare
-         W_Ref : Widget_Ref := Borrow (W);
+         W_Ref : constant Widget_Ref := Borrow (W);
       begin
          if P = Null_Handle then
             Set_Parent (W_Ref.Ptr.all, null);
@@ -1916,7 +1902,7 @@ package body Adi.Widget is
    function Get_Parent_Handle (H : Widget_Handle) return Widget_Handle is
    begin
       declare
-         R : Widget_Ref := Borrow (H);
+         R : constant Widget_Ref := Borrow (H);
       begin
          return Get_Parent_Handle (R.Ptr.all);
       end;
@@ -1938,22 +1924,6 @@ package body Adi.Widget is
       end if;
       return 0;
    end Child_Count;
-
-   ---------------------
-   -- Point_In_Widget --
-   ---------------------
-
-   function Point_In_Widget (Wgt : Widget_Access; X, Y : Pixel_Type) return Boolean is
-      G : Rectangle;
-   begin
-      if Wgt = null then
-         return False;
-      end if;
-
-      G := Get_Geometry (Wgt.all);
-      return X >= G.X and then X <= G.X + G.Width and then
-             Y >= G.Y and then Y <= G.Y + G.Height;
-   end Point_In_Widget;
 
    --------------------
    -- Find_Widget_At --
@@ -1989,7 +1959,7 @@ package body Adi.Widget is
    is
    begin
       declare
-         R : Widget_Ref := Borrow (H);
+         R : constant Widget_Ref := Borrow (H);
       begin
          return Get_Child_Handle (R.Ptr.all, Index);
       end;
@@ -2538,7 +2508,7 @@ package body Adi.Widget is
       while Node /= Null_Handle loop
          begin
             declare
-               R : Widget_Ref := Borrow (Node);
+               R : constant Widget_Ref := Borrow (Node);
             begin
                if Show_Context_Menu (R.Ptr.all, X, Y) then
                   return True;
@@ -3242,7 +3212,7 @@ package body Adi.Widget is
       X1 : constant Float := Rect.x + Rect.w;
       Y1 : constant Float := Rect.y + Rect.h;
 
-      Success : Adi.SDL.C_bool;
+      Unused : Adi.SDL.C_bool;
    begin
       if not Is_Visible_FRect (Rect) then
          return;
@@ -3288,7 +3258,7 @@ package body Adi.Widget is
                   "SDL_SetRenderDrawBlendMode");
 
       --  Render all geometry in one call
-      Success := SDL_RenderGeometry
+      Unused := SDL_RenderGeometry
          (Renderer     => Renderer,
           Texture      => null,
           Vertices     => Verts (0)'Access,
@@ -3371,7 +3341,7 @@ package body Adi.Widget is
       Center_Idx    : Natural;
       First_Outline : Natural;
       Step : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
-      Success : Adi.SDL.C_bool;
+      Unused : Adi.SDL.C_bool;
    begin
       if not Is_Visible_FRect (Rect) then
          return;
@@ -3452,7 +3422,7 @@ package body Adi.Widget is
       SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
                   "SDL_SetRenderDrawBlendMode");
 
-      Success := SDL_RenderGeometry
+      Unused := SDL_RenderGeometry
          (Renderer     => Renderer,
           Texture      => null,
           Vertices     => Verts (0)'Access,
@@ -3548,7 +3518,7 @@ package body Adi.Widget is
 
       Outer_Start : Natural;
       Inner_Start : Natural;
-      Success     : Adi.SDL.C_bool;
+      Unused     : Adi.SDL.C_bool;
    begin
       if not Is_Visible_FRect (Outer_Rect) then
          return;
@@ -3666,7 +3636,7 @@ package body Adi.Widget is
       SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
                   "SDL_SetRenderDrawBlendMode");
 
-      Success := SDL_RenderGeometry
+      Unused := SDL_RenderGeometry
          (Renderer     => Renderer,
           Texture      => null,
           Vertices     => Verts (0)'Access,
@@ -3758,7 +3728,7 @@ package body Adi.Widget is
       Y1 : constant Float := Rect.y + Rect.h;
 
       Step    : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
-      Success : Adi.SDL.C_bool;
+      Unused : Adi.SDL.C_bool;
    begin
       if not Is_Visible_FRect (Rect) then
          return;
@@ -3840,7 +3810,7 @@ package body Adi.Widget is
       SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
                   "SDL_SetRenderDrawBlendMode");
 
-      Success := SDL_RenderGeometry
+      Unused := SDL_RenderGeometry
          (Renderer     => Renderer,
           Texture      => null,
           Vertices     => Verts (0)'Access,
@@ -4030,7 +4000,7 @@ package body Adi.Widget is
       Had_Clip  : Boolean             := False;
       Prev_Clip : aliased Adi.SDL.SDL_Rect;
       Clip      : aliased Adi.SDL.SDL_Rect;
-      Success   : Adi.SDL.C_bool;
+      Unused   : Adi.SDL.C_bool;
 
       Verts   : SDL_Vertex_Array (0 .. 3);
       Idxs    : Int_Array (0 .. 5);
@@ -4064,7 +4034,7 @@ package body Adi.Widget is
          Idxs (3) := 0; Idxs (4) := 2; Idxs (5) := 3;
          SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
                      "SDL_SetRenderDrawBlendMode");
-         Success := SDL_RenderGeometry
+         Unused := SDL_RenderGeometry
            (Renderer     => Renderer,
             Texture      => null,
             Vertices     => Verts (0)'Access,
@@ -4086,13 +4056,13 @@ package body Adi.Widget is
       --  Set clip rect to contain strips within the widget bounds
       Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
       if Had_Clip then
-         Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
+         Unused := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
       end if;
       Clip := (x => int (Float'Floor (Rect.x)),
                y => int (Float'Floor (Rect.y)),
                w => int (Float'Ceiling (Rect.w)),
                h => int (Float'Ceiling (Rect.h)));
-      Success := SDL_SetRenderClipRect (Renderer, Clip'Access);
+      Unused := SDL_SetRenderClipRect (Renderer, Clip'Access);
 
       --  Solid band before the first stop (CSS spec: first color extends back)
       if G_Stops (1).Pos > 0.0 then
@@ -4112,9 +4082,9 @@ package body Adi.Widget is
       end if;
 
       if Had_Clip then
-         Success := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
+         Unused := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
       else
-         Success := SDL_SetRenderClipRect (Renderer, null);
+         Unused := SDL_SetRenderClipRect (Renderer, null);
       end if;
    end Render_Gradient_Rect;
 
@@ -4166,7 +4136,7 @@ package body Adi.Widget is
       Center_Idx    : Natural;
       First_Outline : Natural;
       Step    : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
-      Success : Adi.SDL.C_bool;
+      Unused : Adi.SDL.C_bool;
 
       G_Stops : Resolved_Stop_Array;
       G_Count : Natural;
@@ -4267,7 +4237,7 @@ package body Adi.Widget is
       SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
                   "SDL_SetRenderDrawBlendMode");
 
-      Success := SDL_RenderGeometry
+      Unused := SDL_RenderGeometry
         (Renderer     => Renderer,
          Texture      => null,
          Vertices     => Verts (0)'Access,
@@ -4342,7 +4312,7 @@ package body Adi.Widget is
       X1   : constant Float := Rect.x + Rect.w;
       Y1   : constant Float := Rect.y + Rect.h;
       Step : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
-      Success : Adi.SDL.C_bool;
+      Unused : Adi.SDL.C_bool;
    begin
       if not Is_Visible_FRect (Rect) then
          return;
@@ -4404,7 +4374,7 @@ package body Adi.Widget is
 
       SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
                   "SDL_SetRenderDrawBlendMode");
-      Success := SDL_RenderGeometry
+      Unused := SDL_RenderGeometry
         (Renderer     => Renderer,
          Texture      => null,
          Vertices     => Verts (0)'Access,
@@ -4578,7 +4548,7 @@ package body Adi.Widget is
             b => Float (B) / 255.0,
             a => Float (A) / 255.0);
          Zero_TC : constant SDL_FPoint := (x => 0.0, y => 0.0);
-         Success : Adi.SDL.C_bool;
+         Unused : Adi.SDL.C_bool;
          begin
          if Outer_R <= 0.0
            or else Float'Max (Start_Thickness, End_Thickness) <= 0.0
@@ -4635,7 +4605,7 @@ package body Adi.Widget is
 
          SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
                      "SDL_SetRenderDrawBlendMode");
-         Success := SDL_RenderGeometry
+         Unused := SDL_RenderGeometry
            (Renderer     => Renderer,
             Texture      => null,
             Vertices     => Verts (0)'Access,
@@ -4891,12 +4861,12 @@ package body Adi.Widget is
             OW : constant Float := Style.Outline_Width.Amount;
             OO : constant Float := Style.Outline_Offset.Amount;
             Expand : constant Float := OO + OW;
-            Outline_Outer : aliased SDL_FRect :=
+            Outline_Outer : aliased constant SDL_FRect :=
               (x => Rect.x - Expand,
                y => Rect.y - Expand,
                w => Rect.w + 2.0 * Expand,
                h => Rect.h + 2.0 * Expand);
-            Outline_Inner : aliased SDL_FRect :=
+            Outline_Inner : aliased constant SDL_FRect :=
               (x => Rect.x - OO,
                y => Rect.y - OO,
                w => Rect.w + 2.0 * OO,
@@ -5153,7 +5123,6 @@ package body Adi.Widget is
       Ctx : in out Render_Context;
       It  : in out Item)
    is
-      use Interfaces.C;
       use Interfaces.C.Strings;
       use type Adi.Font.Font_Attributes;
 
@@ -5550,7 +5519,7 @@ package body Adi.Widget is
       Center_Idx    : Natural;
       First_Outline : Natural;
       Step : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
-      Success : Adi.SDL.C_bool;
+      Unused : Adi.SDL.C_bool;
    begin
       if not Is_Visible_FRect (Rect) then
          return;
@@ -5560,7 +5529,7 @@ package body Adi.Widget is
          --  No rounding — simple quad with UV mapping
          declare
             Q : SDL_Vertex_Array (0 .. 3);
-            QI : Int_Array (0 .. 5) := (0, 1, 2, 0, 2, 3);
+            QI : Int_Array (0 .. 5) := [0, 1, 2, 0, 2, 3];
          begin
             Q (0) := (position => (x => X0, y => Y0), color => FC,
                       tex_coord => (x => Src_U0, y => Src_V0));
@@ -5570,8 +5539,8 @@ package body Adi.Widget is
                       tex_coord => (x => Src_U1, y => Src_V1));
             Q (3) := (position => (x => X0, y => Y1), color => FC,
                       tex_coord => (x => Src_U0, y => Src_V1));
-            Success := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
-            Success := SDL_RenderGeometry
+            Unused := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
+            Unused := SDL_RenderGeometry
                (Renderer, Texture, Q (0)'Access, 4, QI (0)'Access, 6);
             return;
          end;
@@ -5637,11 +5606,11 @@ package body Adi.Widget is
          end;
       end loop;
 
-      Success := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
+      Unused := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
       SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
                   "SDL_SetRenderDrawBlendMode");
 
-      Success := SDL_RenderGeometry
+      Unused := SDL_RenderGeometry
          (Renderer     => Renderer,
           Texture      => Texture,
           Vertices     => Verts (0)'Access,
@@ -5656,7 +5625,6 @@ package body Adi.Widget is
       Source     : Image_Access;
       Style      : Resolved_Style)
    is
-      use Interfaces.C;
       Color_Tint : constant Boolean :=
         Source /= null and then Adi.Image.Is_Tintable (Source.all);
       Texture          : SDL_Texture_Ptr;
@@ -5762,14 +5730,14 @@ package body Adi.Widget is
             Dst_Y := Geom.Y + (Geom.Height - Dst_H) / 2.0;
 
          when Fit_None =>
-            Dst_W := Pixel_Type (Img_W);
-            Dst_H := Pixel_Type (Img_H);
+            Dst_W := Img_W;
+            Dst_H := Img_H;
             Dst_X := Geom.X;
             Dst_Y := Geom.Y;
 
          when Fit_Scale_Down =>
-            if Pixel_Type (Img_W) > Geom.Width
-               or Pixel_Type (Img_H) > Geom.Height
+            if Img_W > Geom.Width
+               or Img_H > Geom.Height
             then
                Scale_X := Float (Geom.Width) / Float (Img_W);
                Scale_Y := Float (Geom.Height) / Float (Img_H);
@@ -5780,8 +5748,8 @@ package body Adi.Widget is
                   Dst_H := Pixel_Type (Float (Img_H) * S);
                end;
             else
-               Dst_W := Pixel_Type (Img_W);
-               Dst_H := Pixel_Type (Img_H);
+               Dst_W := Img_W;
+               Dst_H := Img_H;
             end if;
             Dst_X := Geom.X + (Geom.Width - Dst_W) / 2.0;
             Dst_Y := Geom.Y + (Geom.Height - Dst_H) / 2.0;
@@ -6057,7 +6025,7 @@ package body Adi.Widget is
       Use_Clip  : Boolean := False;
       Clip_Valid : Boolean := False;
       Clip_Active : Boolean := False;
-      Success : Adi.SDL.C_bool;
+      Unused : Adi.SDL.C_bool;
 
       procedure Restore_Previous_Clip is
       begin
@@ -6066,9 +6034,9 @@ package body Adi.Widget is
          end if;
 
          if Had_Clip then
-            Success := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
+            Unused := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
          else
-            Success := SDL_SetRenderClipRect (Renderer, null);
+            Unused := SDL_SetRenderClipRect (Renderer, null);
          end if;
          Clip_Active := False;
       end Restore_Previous_Clip;
@@ -6081,7 +6049,7 @@ package body Adi.Widget is
 
          if Need_Clip and then not Clip_Active then
             if Clip_Valid then
-               Success := SDL_SetRenderClipRect (Renderer, Clip_Rect'Access);
+               Unused := SDL_SetRenderClipRect (Renderer, Clip_Rect'Access);
                Clip_Active := True;
             end if;
          elsif not Need_Clip and then Clip_Active then
@@ -6094,7 +6062,7 @@ package body Adi.Widget is
             Use_Clip := True;
             Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
             if Had_Clip then
-               Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
+               Unused := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
             end if;
             Clip_Valid :=
               Build_Content_Clip_Rect (
@@ -6197,7 +6165,7 @@ package body Adi.Widget is
       Had_Clip   : Boolean := False;
       Use_Clip   : Boolean := False;
       Skip_Children : Boolean := False;
-      Success    : Adi.SDL.C_bool;
+      Unused    : Adi.SDL.C_bool;
    begin
       if not Widget_Participates (W) then
          return;
@@ -6251,7 +6219,7 @@ package body Adi.Widget is
                   Use_Clip := True;
                   Had_Clip := Boolean (SDL_RenderClipEnabled (Renderer));
                   if Had_Clip then
-                     Success := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
+                     Unused := SDL_GetRenderClipRect (Renderer, Prev_Clip'Access);
                   end if;
                   if Build_Content_Clip_Rect (
                      Renderer  => Renderer,
@@ -6262,7 +6230,7 @@ package body Adi.Widget is
                      Prev_Clip => Prev_Clip,
                      Out_Clip  => Clip_Rect)
                   then
-                     Success := SDL_SetRenderClipRect (Renderer, Clip_Rect'Access);
+                     Unused := SDL_SetRenderClipRect (Renderer, Clip_Rect'Access);
                   else
                      Use_Clip := False;
                      Skip_Children := True;
@@ -6288,9 +6256,9 @@ package body Adi.Widget is
 
       if Use_Clip then
          if Had_Clip then
-            Success := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
+            Unused := SDL_SetRenderClipRect (Renderer, Prev_Clip'Access);
          else
-            Success := SDL_SetRenderClipRect (Renderer, null);
+            Unused := SDL_SetRenderClipRect (Renderer, null);
          end if;
       end if;
 
@@ -6894,8 +6862,6 @@ package body Adi.Widget is
        Container_Style : Resolved_Style;
        Items           : in out Layout_Item_List.Vector)
    is
-      use Adi.Layout_Util;
-
       Num_Items : constant Natural := Natural (Items.Length);
    begin
       --  Preconditions
@@ -7017,32 +6983,6 @@ package body Adi.Widget is
          end loop;
       end;
    end Perform_Item_Flex_Layout;
-
-   -- In Adi.Widget (new procedures):
-
-   procedure Full_Layout (W : in out Widget'Class) is
-   begin
-      -- Phase 1: Measure content sizes (bottom-up via recursion in Measure_Content)
-      -- Already exists but may need explicit call
-
-      -- Phase 2: Layout (top-down)
-      Layout (W);  -- This sets children's geometry
-
-      -- Phase 3: Build items with final geometry
-      Build_Items (W);
-      Apply_Styles_To_Items (W);
-
-      -- Recurse to children (they've been laid out, now build their items)
-      for Child of W.Children loop
-         -- Child geometry was set by parent's Layout
-         Build_Items (Child.all);
-         Apply_Styles_To_Items (Child.all);
-         -- Recurse for grandchildren
-         for Grandchild of Child.Children loop
-            Full_Layout (Grandchild.all);
-         end loop;
-      end loop;
-   end Full_Layout;
 
     procedure Update (W : in out Widget'Class) is
     begin

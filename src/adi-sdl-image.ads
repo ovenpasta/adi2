@@ -5,7 +5,6 @@ pragma Ada_2022;
 
 with Interfaces.C.Strings;
 with System;
-with Adi.SDL;         use Adi.SDL;
 with Adi.SDL.IO;      use Adi.SDL.IO;
 with Adi.SDL.Surface; use Adi.SDL.Surface;
 with Adi.SDL.Render;  use Adi.SDL.Render;

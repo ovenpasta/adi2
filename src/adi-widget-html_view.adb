@@ -4,12 +4,10 @@
 pragma Ada_2022;
 
 with Ada.Characters.Handling;
-with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
 with Ada.Strings;
 with Ada.Strings.Fixed;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Adi.CSS_Styles;        use Adi.CSS_Styles;
 with Adi.Widget_Styles;     use Adi.Widget_Styles;
 with Adi.Log;
@@ -1805,7 +1803,7 @@ package body Adi.Widget.Html_View is
                Img : constant Adi.Image.Image_Access := Resolve_Image (Self, URI);
                W   : Pixel_Type := 0.0;
                H   : Pixel_Type := 0.0;
-               Target_H : Pixel_Type := Pixel_Type'Max
+               Target_H : constant Pixel_Type := Pixel_Type'Max
                  (4.0,
                  Measure_Line_Height
                     (Style,

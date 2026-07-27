@@ -11,6 +11,7 @@ with Adi.Image;
 with Adi.Layout_Util;
 with Adi.Widget;
 with Adi.Widget.Html_View;
+with Test_Support; use Test_Support;
 
 procedure Html_View_Test is
    package WW_Encode renames Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
@@ -24,9 +25,6 @@ procedure Html_View_Test is
    use type Adi.Image.Image_Access;
    use type Adi.Widget.Html_View.Html_View_Handle;
 
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-
    UTF8_Disc : constant String :=
      WW_Encode.Encode
        (Item => Wide_Wide_String'("•"),
@@ -35,17 +33,6 @@ procedure Html_View_Test is
      WW_Encode.Encode
        (Item => Wide_Wide_String'("■"),
         Output_BOM => False);
-
-   procedure Assert (Cond : Boolean; Msg : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Cond then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Msg);
-      else
-         Put_Line ("  [FAIL] " & Msg);
-      end if;
-   end Assert;
 
    function Find_Text_Item_Index
      (W      : Adi.Widget.Html_View.Html_View_Handle;
@@ -1859,8 +1846,7 @@ procedure Html_View_Test is
    end Test_Default_Stylesheet;
 
 begin
-   Put_Line ("HTML view widget test");
-   Put_Line ("");
+   Test_Support.Start_Suite ("HTML view widget test");
 
    Test_Set_Get_Clear;
    Test_Callback_Registration_And_Mouse_Safety;
@@ -1894,8 +1880,5 @@ begin
    Test_Hr_Margin_Collapse;
    Test_Default_Stylesheet;
 
-   Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");
-   if Pass_Count /= Test_Count then
-      raise Program_Error with "html view test failed";
-   end if;
+   Test_Support.Finish;
 end Html_View_Test;

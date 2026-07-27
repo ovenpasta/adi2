@@ -1474,11 +1474,11 @@ package body Adi.CSS_Parser is
          when Gap_Uniform =>
             return [others => B.All_Sides];
          when Axis =>
-            return (
+            return [
               Top => B.Vertical,
               Right => B.Horizontal,
               Bottom => B.Vertical,
-              Left => B.Horizontal);
+              Left => B.Horizontal];
          when Per_Side =>
             return B.Sides;
       end case;

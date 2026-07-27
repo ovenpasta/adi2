@@ -4,14 +4,11 @@
 pragma Ada_2022;
 
 with Adi.Text_Buffer; use Adi.Text_Buffer;
-with Adi.Widget;      use Adi.Widget;
-with Adi.Widget.Context_Menu;
 
 package body Adi.Widget.Text_Context_Menu is
 
    use type Adi.Widget.Context_Menu.Context_Menu_Access;
    use type Adi.Widget.Context_Menu.Menu_Handle;
-   use type Adi.Text_Buffer.Text_Buffer_Access;
    use type Adi.Window.Window_Access;
    use type Context_Menu_Signals.Connection_Id;
 
@@ -21,7 +18,6 @@ package body Adi.Widget.Text_Context_Menu is
    function Find_Command_Binding
      (Menu : Adi.Widget.Context_Menu.Menu_Handle) return Natural
    is
-      use type Adi.Widget.Context_Menu.Menu_Handle;
    begin
       for I in 1 .. Natural (Command_Bindings.Length) loop
          if Command_Bindings.Element (I).Menu = Menu then
@@ -90,7 +86,7 @@ package body Adi.Widget.Text_Context_Menu is
       end if;
 
       declare
-         B : Adi.Text_Buffer.Text_Buffer_Access :=
+         B : constant Adi.Text_Buffer.Text_Buffer_Access :=
            Command_Bindings.Element (Binding_Idx).Buffer;
          Single_Line : constant Boolean :=
            Command_Bindings.Element (Binding_Idx).Single_Line;
@@ -378,7 +374,7 @@ package body Adi.Widget.Text_Context_Menu is
 
       begin
          declare
-            R : Widget_Ref := Borrow (Target);
+            R : constant Widget_Ref := Borrow (Target);
             T_Handle : constant Adi.Widget.Widget_Handle := Get_Handle (R.Ptr.all);
             I        : constant Natural := Find_Request_Binding (T_Handle);
             Conn     : Context_Menu_Signals.Connection_Id;
@@ -447,7 +443,7 @@ package body Adi.Widget.Text_Context_Menu is
                     and then B.Conn_Id /= Context_Menu_Signals.No_Connection
                   then
                      declare
-                        R : Widget_Ref := Borrow (B.Target);
+                        R : constant Widget_Ref := Borrow (B.Target);
                      begin
                         Disconnect_Context_Menu (R.Ptr.all, B.Conn_Id);
                      end;

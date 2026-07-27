@@ -40,8 +40,7 @@ package Adi.Widget.Slider_Impl is
    function Create
      (Min   : Value_Type;
       Max   : Value_Type;
-      Value : Value_Type) return Slider_Widget_Access
-     with Obsolescent => "Use Create_Handle";
+      Value : Value_Type) return Slider_Widget_Access;
    function Create_Handle
      (Min   : Value_Type;
       Max   : Value_Type;

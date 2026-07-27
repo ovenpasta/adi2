@@ -7,7 +7,6 @@ with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-with Ada.Tags;
 with Ada.Text_IO;
 with GNAT.OS_Lib;
 
@@ -179,7 +178,7 @@ package body Adi.MCP is
      (JSON   : String;
       Result_Path : out Unbounded_String) return Widget_Handle
    is
-      Win      : Adi.Window.Window_Ref := Adi.Window.Borrow (MCP_Window);
+      Win      : constant Adi.Window.Window_Ref := Adi.Window.Borrow (MCP_Window);
       Id       : constant Integer := JSON_Get_Int (JSON, "id");
       Path_Str : constant String := JSON_Get_String (JSON, "path");
       Root_H   : constant Widget_Handle :=
@@ -312,7 +311,6 @@ package body Adi.MCP is
       Path   : String;
       W      : in out Adi.JSON.JSON_Writer)
    is
-      use Adi.Widget.Introspection;
       Target_Ptr : constant Widget_Access := To_Access (Target);
       Info       : constant Widget_Info := Get_Info (Target_Ptr, Path);
       Txt        : constant String := To_String (Info.Text);
@@ -700,8 +698,6 @@ package body Adi.MCP is
    --  send_keys: Key Token Parsing
    ---------------------------------------------------------------------------
 
-   type Key_Token_Kind is (Char_Token, Named_Token);
-
    procedure Parse_And_Send_Keys
      (Win  : not null access Adi.Window.Window'Class;
       Keys : String)
@@ -808,7 +804,7 @@ package body Adi.MCP is
      (Cmd      : String;
       Req_Id   : String) return String
    is
-      Win : Adi.Window.Window_Ref := Adi.Window.Borrow (MCP_Window);
+      Win : constant Adi.Window.Window_Ref := Adi.Window.Borrow (MCP_Window);
    begin
       if Cmd = "widget_tree" then
          declare
@@ -1424,7 +1420,7 @@ package body Adi.MCP is
 
       if Adi.Window.Is_Valid (MCP_Window) then
          declare
-            Win : Adi.Window.Window_Ref := Adi.Window.Borrow (MCP_Window);
+            Win : constant Adi.Window.Window_Ref := Adi.Window.Borrow (MCP_Window);
          begin
             Adi.Window.Disconnect_Frame (Win, Frame_Conn);
             Adi.Window.Disconnect_Post_Render (Win, Post_Render_Conn);

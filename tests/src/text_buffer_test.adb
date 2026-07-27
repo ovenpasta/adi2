@@ -1,23 +1,10 @@
 pragma Ada_2022;
 
 with Ada.Text_IO; use Ada.Text_IO;
+with Test_Support; use Test_Support;
 with Adi.Text_Buffer; use Adi.Text_Buffer;
 
 procedure Text_Buffer_Test is
-
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-
-   procedure Assert (Cond : Boolean; Msg : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Cond then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Msg);
-      else
-         Put_Line ("  [FAIL] " & Msg);
-      end if;
-   end Assert;
 
    procedure Assert_Text (B : Text_Buffer; Expected : String; Msg : String) is
    begin
@@ -229,7 +216,7 @@ procedure Text_Buffer_Test is
    end Test_History_Depth_Cap;
 
 begin
-   Put_Line ("Text buffer undo/redo test");
+   Start_Suite ("Text buffer undo/redo test");
    Put_Line ("");
 
    Test_Basic_Undo_Redo;
@@ -243,8 +230,5 @@ begin
    Test_UTF8_Boundary_Delete_Undo;
    Test_History_Depth_Cap;
 
-   Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");
-   if Pass_Count /= Test_Count then
-      raise Program_Error with "text buffer test failed";
-   end if;
+   Test_Support.Finish;
 end Text_Buffer_Test;

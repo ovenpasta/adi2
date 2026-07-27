@@ -156,7 +156,7 @@ package body Adi.Widget.Combo_Box is
                Row_H := Default_Popup_Row_Height;
             else
                declare
-                  R : Widget_Ref := Borrow (Row_Hnd);
+                  R : constant Widget_Ref := Borrow (Row_Hnd);
                begin
                   Pref := Get_Preferred_Size (R.Ptr.all);
                end;
@@ -169,7 +169,7 @@ package body Adi.Widget.Combo_Box is
 
       if Count > 1 then
          declare
-            R : Widget_Ref := Borrow (+W.Popup);
+            R : constant Widget_Ref := Borrow (+W.Popup);
             S : constant Resolved_Style :=
               Get_Resolved_Part_Style (R.Ptr.all, Main_Part);
          begin
@@ -218,7 +218,7 @@ package body Adi.Widget.Combo_Box is
      (W        : Combo_Box_Widget;
       Win_Size : Size_2D) return Pixel_Type
    is
-      R : Widget_Ref := Borrow (+W.Popup);
+      R : constant Widget_Ref := Borrow (+W.Popup);
       Popup_Style : constant Resolved_Style := Get_Resolved_Part_Style (R.Ptr.all, Main_Part);
       Content_H   : constant Pixel_Type := Resolve_Popup_Row_Content_Height (W);
       Max_H       : constant Pixel_Type := Resolve_Popup_Max_Height (Popup_Style, Win_Size.Height);
@@ -623,12 +623,12 @@ package body Adi.Widget.Combo_Box is
       end;
 
       declare
-         R : Widget_Ref := Borrow (+W.Popup);
+         R : constant Widget_Ref := Borrow (+W.Popup);
       begin
          Set_Geometry
            (R.Ptr.all,
             (X => X_Pos, Y => Y_Pos, Width => Anchor.Width, Height => Popup_H));
-         Layout (Widget'Class (R.Ptr.all));
+         Layout (R.Ptr.all);
       end;
    end Position_Popup;
 
@@ -1030,10 +1030,10 @@ package body Adi.Widget.Combo_Box is
                Open_Dropdown (W);
             elsif Popup_Lists.Is_Valid (W.Popup) then
                declare
-                  R : Widget_Ref := Borrow (+W.Popup);
+                  R : constant Widget_Ref := Borrow (+W.Popup);
                begin
                   On_Key_Down
-                    (Widget'Class (R.Ptr.all), Scancode, Key_Mod, Repeat);
+                    (R.Ptr.all, Scancode, Key_Mod, Repeat);
                end;
                Sync_Selected_From_Popup (W);
             end if;

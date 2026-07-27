@@ -1,6 +1,5 @@
 pragma Ada_2022;
 
-with Ada.Command_Line;
 with Ada.Text_IO;          use Ada.Text_IO;
 with Adi.Core;             use Adi.Core;
 with Adi.CSS_Styles;       use Adi.CSS_Styles;
@@ -10,30 +9,15 @@ with Adi.Widget_Styles;    use Adi.Widget_Styles;
 with Adi.Widget.Image;     use Adi.Widget.Image;
 with Adi.Widget.Box;       use type Adi.Widget.Box.Box_Handle;
 with Adi.Layout_Util;      use Adi.Layout_Util;
+with Test_Support;
 
 procedure Image_Widget_Test is
    Eps : constant Pixel_Type := 0.5;
 
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-   Fail_Count : Natural := 0;
-
-   procedure Assert (Condition : Boolean; Message : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Condition then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Message);
-      else
-         Fail_Count := Fail_Count + 1;
-         Put_Line ("  [FAIL] " & Message);
-      end if;
-   end Assert;
-
    procedure Assert_Close
      (Actual, Expected : Pixel_Type; Msg : String) is
    begin
-      Assert (abs (Actual - Expected) <= Eps,
+      Test_Support.Assert (abs (Actual - Expected) <= Eps,
               Msg & " actual=" & Actual'Image & " expected=" & Expected'Image);
    end Assert_Close;
 
@@ -57,7 +41,7 @@ procedure Image_Widget_Test is
       W : constant Image_Handle := Create_Handle;
    begin
       Put_Line ("Test: Create with no image");
-      Assert (Get_Image (W) = null,
+      Test_Support.Assert (Get_Image (W) = null,
               "Default image should be null");
    end Test_Create_Default;
 
@@ -66,7 +50,7 @@ procedure Image_Widget_Test is
       W   : constant Image_Handle := Create_Handle (Img);
    begin
       Put_Line ("Test: Create with image");
-      Assert (Get_Image (W) = Img,
+      Test_Support.Assert (Get_Image (W) = Img,
               "Get_Image should return the image passed to Create");
    end Test_Create_With_Image;
 
@@ -75,9 +59,9 @@ procedure Image_Widget_Test is
       Img : constant Image_Access := Make_Test_Image (64.0, 48.0);
    begin
       Put_Line ("Test: Set_Image replaces the image");
-      Assert (Get_Image (W) = null, "Initially null");
+      Test_Support.Assert (Get_Image (W) = null, "Initially null");
       Set_Image (W, Img);
-      Assert (Get_Image (W) = Img,
+      Test_Support.Assert (Get_Image (W) = Img,
               "Get_Image should return the new image after Set_Image");
    end Test_Set_Image;
 
@@ -87,7 +71,7 @@ procedure Image_Widget_Test is
    begin
       Put_Line ("Test: Set_Image to null clears the image");
       Set_Image (W, null);
-      Assert (Get_Image (W) = null,
+      Test_Support.Assert (Get_Image (W) = null,
               "Get_Image should return null after Set_Image(null)");
    end Test_Set_Image_To_Null;
 
@@ -253,7 +237,7 @@ procedure Image_Widget_Test is
       Put_Line ("Test: Build_Items creates panel and image items");
       Set_Geometry (+W, (X => 0.0, Y => 0.0, Width => 100.0, Height => 100.0));
       Build_Items (+W);
-      Assert (Item_Count (+W) = 2,
+      Test_Support.Assert (Item_Count (+W) = 2,
               "Should have exactly 2 items (panel + image)");
    end Test_Build_Items;
 
@@ -265,7 +249,7 @@ procedure Image_Widget_Test is
       Set_Geometry (+W, (X => 0.0, Y => 0.0, Width => 100.0, Height => 100.0));
       Build_Items (+W);
       Build_Items (+W);
-      Assert (Item_Count (+W) = 2,
+      Test_Support.Assert (Item_Count (+W) = 2,
               "Should still have exactly 2 items after second Build_Items");
    end Test_Build_Items_Idempotent;
 
@@ -273,7 +257,7 @@ procedure Image_Widget_Test is
       W : constant Image_Handle := Create_Handle;
    begin
       Put_Line ("Test: Fresh image widget has 0 items before first render");
-      Assert (Item_Count (+W) = 0,
+      Test_Support.Assert (Item_Count (+W) = 0,
               "Item_Count should be 0 for a freshly created widget");
    end Test_Initial_Item_Count;
 
@@ -332,19 +316,5 @@ begin
    Test_Image_In_Flex_Box;
    New_Line;
 
-   Put_Line ("========================================");
-   Put_Line ("   Test Summary");
-   Put_Line ("========================================");
-   Put_Line ("Total tests:" & Test_Count'Image);
-   Put_Line ("Passed:     " & Pass_Count'Image);
-   Put_Line ("Failed:     " & Fail_Count'Image);
-   New_Line;
-
-   if Fail_Count = 0 then
-      Put_Line ("All tests PASSED!");
-   else
-      Put_Line ("Some tests FAILED!");
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-   end if;
-   Put_Line ("========================================");
+   Test_Support.Finish;
 end Image_Widget_Test;

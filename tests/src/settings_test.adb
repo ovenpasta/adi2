@@ -2,25 +2,16 @@ pragma Ada_2022;
 
 with Ada.Directories;
 with Ada.Text_IO; use Ada.Text_IO;
-with Ada.Command_Line;
 
 with Adi.Settings;              use Adi.Settings;
 with Adi.Settings.JSON_Backend; use Adi.Settings.JSON_Backend;
 
+with Test_Support;
+
 procedure Settings_Test is
 
-   Passed : Natural := 0;
-   Failed : Natural := 0;
-
-   procedure Assert (Cond : Boolean; Msg : String) is
-   begin
-      if Cond then
-         Passed := Passed + 1;
-      else
-         Failed := Failed + 1;
-         Put_Line ("  [FAIL] " & Msg);
-      end if;
-   end Assert;
+   procedure Assert (Cond : Boolean; Msg : String)
+     renames Test_Support.Assert;
 
    --  Temporary directory for test files
    Tmp_Dir : constant String := "/tmp/adi_settings_test/";
@@ -681,7 +672,7 @@ procedure Settings_Test is
    end Test_Long_Lines;
 
 begin
-   Put_Line ("=== Adi.Settings Test Suite ===");
+   Test_Support.Start_Suite ("Adi.Settings Test Suite");
    Put_Line ("");
 
    Test_Scalar_Values;
@@ -705,12 +696,5 @@ begin
    --  Cleanup temp files
    Cleanup;
 
-   Put_Line ("");
-   Put_Line ("Results:" & Natural'Image (Passed) & " passed," &
-             Natural'Image (Failed) & " failed out of" &
-             Natural'Image (Passed + Failed) & " tests.");
-
-   if Failed > 0 then
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-   end if;
+   Test_Support.Finish;
 end Settings_Test;

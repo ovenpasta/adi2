@@ -3,8 +3,6 @@
 
 pragma Ada_2022;
 
-with Adi.Widget_Styles; use Adi.Widget_Styles;
-with Adi.CSS_Styles;    use Adi.CSS_Styles;
 
 package Adi.Widget.Part_Styles is
 

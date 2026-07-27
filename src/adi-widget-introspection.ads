@@ -4,7 +4,6 @@
 pragma Ada_2022;
 
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 package Adi.Widget.Introspection is
 

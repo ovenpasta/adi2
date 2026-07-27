@@ -4,8 +4,6 @@
 pragma Ada_2022;
 
 with System;
-with Interfaces.C; use Interfaces.C;
-with Adi.SDL;      use Adi.SDL;
 
 package Adi.SDL.IO is
 

@@ -3,7 +3,6 @@
 
 pragma Ada_2022;
 
-with Adi.Font;
 with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.SDL;
 with Adi.SDL.TTF;      use Adi.SDL.TTF;

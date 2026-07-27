@@ -5,7 +5,6 @@ pragma Ada_2022;
 
 with Ada.Characters.Latin_1;
 with Ada.Containers.Vectors;
-with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Adi.CSS_Styles;          use Adi.CSS_Styles;
 with Adi.Font;
 with Adi.Layout_Util;         use Adi.Layout_Util;
@@ -13,9 +12,7 @@ with Adi.SDL;
 with Adi.SDL.Events;          use Adi.SDL.Events;
 with Adi.SDL.TTF;             use Adi.SDL.TTF;
 with Adi.Text_Buffer;         use Adi.Text_Buffer;
-with Adi.Widget.Context_Menu;
 with Adi.Widget.Text_Context_Menu;
-with Adi.Window;
 with Interfaces.C;            use Interfaces.C;
 with Interfaces.C.Strings;    use Interfaces.C.Strings;
 
@@ -234,7 +231,6 @@ package body Adi.Widget.Text_Input is
       Line        : String;
       Col         : Natural) return Pixel_Type
    is
-      use Interfaces.C;
       Safe_Col : constant Natural := Normalize_Column (Line, Col);
       Prefix   : constant String :=
         (if Safe_Col = 0 then ""
@@ -270,7 +266,6 @@ package body Adi.Widget.Text_Input is
      (W : Text_Input_Widget;
       X : Pixel_Type) return Natural
    is
-      use Interfaces.C;
       Main_Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Label_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Text_Part);
       Content      : constant Rectangle := Content_Box (W.Geometry, Main_Style);

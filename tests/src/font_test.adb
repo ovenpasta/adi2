@@ -1,26 +1,23 @@
-with Ada.Command_Line;
 with Ada.Text_IO;          use Ada.Text_IO;
 with Adi.SDL;
 with Adi.SDL.TTF;
 with Adi.Build_Target;
 with Adi.CSS_Styles;       use Adi.CSS_Styles;
 with Adi.Font;
+with Test_Support;
 
 procedure Font_Test is
    Sdl_OK   : Adi.SDL.C_bool;
    Ttf_OK   : Adi.SDL.C_bool;
-   Passed   : Natural := 0;
-   Failed   : Natural := 0;
 
    procedure Check (Name : String; H : Font_Handle; Expect_Found : Boolean) is
-      OK : constant Boolean := (H /= Null_Font) = Expect_Found;
    begin
-      Put_Line ((if OK then "  [PASS] " else "  [FAIL] ")
-                & "Find (" & Name & ") -> handle"
-                & Font_Handle'Image (H)
-                & (if Expect_Found then " (expected non-zero)"
-                                  else " (expected zero)"));
-      if OK then Passed := Passed + 1; else Failed := Failed + 1; end if;
+      Test_Support.Assert
+        ((H /= Null_Font) = Expect_Found,
+         "Find (" & Name & ") -> handle"
+         & Font_Handle'Image (H)
+         & (if Expect_Found then " (expected non-zero)"
+                            else " (expected zero)"));
    end Check;
 
 begin
@@ -66,11 +63,5 @@ begin
    Check ("ThisDoesNotExist",
           Adi.Font.Find ("ThisDoesNotExist"), False);
 
-   New_Line;
-   Put_Line ("=== Results:"
-             & Natural'Image (Passed) & " passed,"
-             & Natural'Image (Failed) & " failed ===");
-   if Failed > 0 then
-      Ada.Command_Line.Set_Exit_Status (1);
-   end if;
+   Test_Support.Finish;
 end Font_Test;

@@ -1,23 +1,9 @@
 pragma Ada_2022;
 
-with Ada.Command_Line;
 with Adi.Signal;
-with Adi.Log;
+with Test_Support; use Test_Support;
 
 procedure Signal_Test is
-
-   Passed : Natural := 0;
-   Failed : Natural := 0;
-
-   procedure Assert (Cond : Boolean; Msg : String) is
-   begin
-      if Cond then
-         Passed := Passed + 1;
-      else
-         Failed := Failed + 1;
-         Adi.Log.Error ("FAIL: " & Msg);
-      end if;
-   end Assert;
 
    ---------------------------------------------------------------------------
    --  Callback type for testing: increments a counter
@@ -150,7 +136,7 @@ procedure Signal_Test is
    procedure Emit_Modify is new Test_Signals.For_Each (Call_With_Value);
 
 begin
-   Adi.Log.Info ("=== Signal Test ===");
+   Start_Suite ("Signal Test");
 
    ---------------------------------------------------------------------------
    --  Test 1: Emit with zero subscribers
@@ -556,11 +542,6 @@ begin
    --  Summary
    ---------------------------------------------------------------------------
 
-   Adi.Log.Info ("Signal_Test: " & Passed'Image & " passed," &
-                 Failed'Image & " failed");
-   if Failed > 0 then
-      Adi.Log.Error ("SIGNAL TEST FAILED");
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-   end if;
+   Finish;
 
 end Signal_Test;

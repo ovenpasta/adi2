@@ -12,23 +12,11 @@ with Adi.Font;       use Adi.Font;
 with Adi.Image;      use Adi.Image;
 with Adi.Log;
 with Adi.SDL.TTF;    use Adi.SDL.TTF;
+with Test_Support;
 
 procedure Bundle_Test is
    use type System.Address;
    use type Adi.Assets.Asset_Mode;
-
-   Passed : Natural := 0;
-   Failed : Natural := 0;
-
-   procedure Assert (Cond : Boolean; Msg : String) is
-   begin
-      if Cond then
-         Passed := Passed + 1;
-      else
-         Failed := Failed + 1;
-         Adi.Log.Error ("FAIL: " & Msg);
-      end if;
-   end Assert;
 
    ---------------------------------------------------------------------------
    --  Minimal 1x1 red PNG (69 bytes)
@@ -86,17 +74,17 @@ begin
    --  Mode tests
    ---------------------------------------------------------------------------
 
-   Assert (Adi.Assets.Get_Mode = Adi.Assets.File_Mode,
+   Test_Support.Assert (Adi.Assets.Get_Mode = Adi.Assets.File_Mode,
            "default mode is File_Mode");
 
    Adi.Assets.Set_Mode (Adi.Assets.Bundle_Mode);
-   Assert (Adi.Assets.Get_Mode = Adi.Assets.Bundle_Mode,
+   Test_Support.Assert (Adi.Assets.Get_Mode = Adi.Assets.Bundle_Mode,
            "Set_Mode to Bundle_Mode");
 
    --  Reset to File_Mode for further tests (no assets loaded yet in the
    --  test because we haven't called Get_Image etc)
    Adi.Assets.Set_Mode (Adi.Assets.File_Mode);
-   Assert (Adi.Assets.Get_Mode = Adi.Assets.File_Mode,
+   Test_Support.Assert (Adi.Assets.Get_Mode = Adi.Assets.File_Mode,
            "Set_Mode back to File_Mode");
 
    ---------------------------------------------------------------------------
@@ -120,23 +108,23 @@ begin
       BD : Adi.Assets.Asset_Data;
    begin
       BD := Adi.Assets.Bundle_Lookup ("test.png");
-      Assert (BD.Addr /= System.Null_Address,
+      Test_Support.Assert (BD.Addr /= System.Null_Address,
               "Bundle_Lookup finds test.png");
-      Assert (BD.Length = Test_PNG'Length,
+      Test_Support.Assert (BD.Length = Test_PNG'Length,
               "Bundle_Lookup test.png has correct length");
 
       BD := Adi.Assets.Bundle_Lookup ("nonexistent.png");
-      Assert (BD.Addr = System.Null_Address,
+      Test_Support.Assert (BD.Addr = System.Null_Address,
               "Bundle_Lookup returns Null_Asset for unknown key");
 
       --  Key format: exact match, no normalization
       BD := Adi.Assets.Bundle_Lookup ("./test.png");
-      Assert (BD.Addr = System.Null_Address,
+      Test_Support.Assert (BD.Addr = System.Null_Address,
               "./test.png does NOT match test.png (distinct keys)");
 
       --  Scheme URI key
       BD := Adi.Assets.Bundle_Lookup ("app://icons.svg");
-      Assert (BD.Addr /= System.Null_Address,
+      Test_Support.Assert (BD.Addr /= System.Null_Address,
               "Bundle_Lookup finds app://icons.svg");
    end;
 
@@ -150,7 +138,7 @@ begin
    declare
       S : constant String := Adi.Assets.Get_String ("greeting.txt");
    begin
-      Assert (S = "Hello, bundle world!",
+      Test_Support.Assert (S = "Hello, bundle world!",
               "Get_String returns correct content from bundle");
    end;
 
@@ -158,7 +146,7 @@ begin
    declare
       S : constant String := Adi.Assets.Get_String ("missing.txt");
    begin
-      Assert (S = "",
+      Test_Support.Assert (S = "",
               "Get_String returns empty for unknown bundle key");
    end;
 
@@ -167,14 +155,14 @@ begin
       Img : constant Adi.Image.Image_Access :=
         Adi.Assets.Get_Image ("test.png");
    begin
-      Assert (Img /= null, "Get_Image returns non-null for bundled PNG");
+      Test_Support.Assert (Img /= null, "Get_Image returns non-null for bundled PNG");
       if Img /= null then
          declare
             W, H : Adi.Core.Pixel_Type;
          begin
             Adi.Image.Get_Size (Img.all, W, H);
-            Assert (W = 1.0, "bundled PNG width = 1");
-            Assert (H = 1.0, "bundled PNG height = 1");
+            Test_Support.Assert (W = 1.0, "bundled PNG width = 1");
+            Test_Support.Assert (H = 1.0, "bundled PNG height = 1");
          end;
       end if;
    end;
@@ -184,7 +172,7 @@ begin
       Img : constant Adi.Image.Image_Access :=
         Adi.Assets.Get_Image ("nosuch.png");
    begin
-      Assert (Img = null,
+      Test_Support.Assert (Img = null,
               "Get_Image returns null for unknown bundle key (no fallback)");
    end;
 
@@ -193,7 +181,7 @@ begin
       Img : constant Adi.Image.Image_Access :=
         Adi.Assets.Get_Image ("icons.svg?id=home");
    begin
-      Assert (Img /= null,
+      Test_Support.Assert (Img /= null,
               "Get_Image SVG sprite from bundle works");
    end;
 
@@ -202,7 +190,7 @@ begin
       Img : constant Adi.Image.Image_Access :=
         Adi.Assets.Get_Image ("icons.svg?id=star");
    begin
-      Assert (Img /= null,
+      Test_Support.Assert (Img /= null,
               "Get_Image SVG sprite 'star' from bundle works");
    end;
 
@@ -211,7 +199,7 @@ begin
       Img : constant Adi.Image.Image_Access :=
         Adi.Assets.Get_Image ("icons.svg?id=nonexistent");
    begin
-      Assert (Img = null,
+      Test_Support.Assert (Img = null,
               "Get_Image SVG sprite with unknown id returns null");
    end;
 
@@ -220,7 +208,7 @@ begin
       Img : constant Adi.Image.Image_Access :=
         Adi.Assets.Get_Image ("app://icons.svg?id=home");
    begin
-      Assert (Img /= null,
+      Test_Support.Assert (Img /= null,
               "Get_Image scheme URI sprite from bundle works");
    end;
 
@@ -234,7 +222,7 @@ begin
          when Program_Error =>
             Raised := True;
       end;
-      Assert (Raised,
+      Test_Support.Assert (Raised,
               "Set_Mode after asset load raises Program_Error");
    end;
 
@@ -271,7 +259,7 @@ begin
                  Adi.Font.Load_From_Memory
                    (Font_Data'Address, Font_Data'Length);
             begin
-               Assert (H /= Null_Font,
+               Test_Support.Assert (H /= Null_Font,
                        "Load_From_Memory returns valid handle");
 
                if H /= Null_Font then
@@ -282,9 +270,9 @@ begin
                      F24 : constant TTF_Font_Access :=
                        Adi.Font.Get_TTF_Font (H, 24.0);
                   begin
-                     Assert (F16 /= null,
+                     Test_Support.Assert (F16 /= null,
                              "Get_TTF_Font 16px from memory font");
-                     Assert (F24 /= null,
+                     Test_Support.Assert (F24 /= null,
                              "Get_TTF_Font 24px from memory font");
                   end;
                end if;
@@ -297,7 +285,7 @@ begin
                    (Font_Data'Address, Font_Data'Length,
                     Name => "TestCustomName");
             begin
-               Assert (H2 /= Null_Font,
+               Test_Support.Assert (H2 /= Null_Font,
                        "Load_From_Memory with explicit Name works");
             end;
 
@@ -309,7 +297,7 @@ begin
                H3 : constant Font_Handle :=
                  Adi.Font.Load_Asset ("test-font.ttf");
             begin
-               Assert (H3 /= Null_Font,
+               Test_Support.Assert (H3 /= Null_Font,
                        "Load_Asset finds font from bundle");
             end;
 
@@ -318,7 +306,7 @@ begin
                H4 : constant Font_Handle :=
                  Adi.Font.Load_Asset ("nosuch-font.ttf");
             begin
-               Assert (H4 = Null_Font,
+               Test_Support.Assert (H4 = Null_Font,
                        "Load_Asset returns Null_Font for unknown key");
             end;
          end;
@@ -338,7 +326,7 @@ begin
          when Program_Error =>
             Raised := True;
       end;
-      Assert (Raised,
+      Test_Support.Assert (Raised,
               "Set_Mode after Load_Asset raises Program_Error");
    end;
 
@@ -346,10 +334,5 @@ begin
    --  Summary
    ---------------------------------------------------------------------------
 
-   Adi.Log.Info ("Bundle test: " & Natural'Image (Passed) & " passed,"
-                 & Natural'Image (Failed) & " failed");
-
-   if Failed > 0 then
-      raise Program_Error with "Bundle test failed";
-   end if;
+   Test_Support.Finish;
 end Bundle_Test;

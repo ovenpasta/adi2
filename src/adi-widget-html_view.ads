@@ -3,14 +3,11 @@
 
 pragma Ada_2022;
 
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Containers.Vectors;
-with Adi.Core;              use Adi.Core;
 with Adi.CSS_Parser;
 with Adi.CSS_Styles;
 with Adi.Image;
 with Adi.Signal;
-with Adi.Widget;            use Adi.Widget;
 
 package Adi.Widget.Html_View is
 

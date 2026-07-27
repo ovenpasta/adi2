@@ -16,7 +16,6 @@ with Adi.Clock; use Adi.Clock;
 with Adi.Dispatch;
 with Adi.Log;
 with Adi.Widget.Context_Menu;
-with Ada.Text_IO;
 
 package body Adi.App is
 

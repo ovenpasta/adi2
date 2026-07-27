@@ -3,7 +3,6 @@
 
 pragma Ada_2022;
 
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 private package Adi.I18N.Catalog is
 

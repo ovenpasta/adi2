@@ -1,6 +1,5 @@
 pragma Ada_2022;
 
-with Ada.Command_Line;
 with Ada.Text_IO;        use Ada.Text_IO;
 with Adi.App;
 with Adi.Core;           use Adi.Core;
@@ -10,24 +9,17 @@ with Adi.Widget;         use Adi.Widget;
 with Adi.Widget.Box;
 with Adi.Widget.Label;
 with Adi.Widget_Styles;  use Adi.Widget_Styles;
+with Test_Support;
 
 procedure Label_Wrap_Test is
    A          : Adi.App.App;
-   Pass_Count : Natural := 0;
-   Fail_Count : Natural := 0;
 
    use type Adi.Widget.Box.Box_Handle;
    use type Adi.Widget.Label.Label_Handle;
 
    procedure Check (Name : String; Cond : Boolean) is
    begin
-      if Cond then
-         Put_Line ("  [PASS] " & Name);
-         Pass_Count := Pass_Count + 1;
-      else
-         Put_Line ("  [FAIL] " & Name);
-         Fail_Count := Fail_Count + 1;
-      end if;
+      Test_Support.Assert (Cond, Name);
    end Check;
 
    --  Style helpers
@@ -77,7 +69,7 @@ procedure Label_Wrap_Test is
 
 begin
    A.Init;
-   Put_Line ("=== Label_Wrap_Test ===");
+   Test_Support.Start_Suite ("Label_Wrap_Test");
    New_Line;
 
    ----------------------------------------------------------------------
@@ -186,11 +178,5 @@ begin
 
    New_Line;
 
-   Put_Line ("=== Results:"
-             & Natural'Image (Pass_Count) & " passed,"
-             & Natural'Image (Fail_Count) & " failed ===");
-
-   if Fail_Count > 0 then
-      Ada.Command_Line.Set_Exit_Status (1);
-   end if;
+   Test_Support.Finish;
 end Label_Wrap_Test;

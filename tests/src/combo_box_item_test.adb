@@ -1,6 +1,5 @@
 pragma Ada_2022;
 
-with Ada.Command_Line;
 with Ada.Text_IO; use Ada.Text_IO;
 with Adi.Core; use Adi.Core;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
@@ -8,29 +7,15 @@ with Adi.Image;   use Adi.Image;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Combo_Box; use Adi.Widget.Combo_Box;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
+with Test_Support;
 
 procedure Combo_Box_Item_Test is
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-   Fail_Count : Natural := 0;
-
-   procedure Assert (Condition : Boolean; Message : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Condition then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Message);
-      else
-         Fail_Count := Fail_Count + 1;
-         Put_Line ("  [FAIL] " & Message);
-      end if;
-   end Assert;
 
    procedure Assert_Close
      (Actual, Expected : Pixel_Type; Message : String) is
       Eps : constant Pixel_Type := 0.5;
    begin
-      Assert
+      Test_Support.Assert
         (abs (Actual - Expected) <= Eps,
          Message & " actual=" & Actual'Image & " expected=" & Expected'Image);
    end Assert_Close;
@@ -57,11 +42,11 @@ procedure Combo_Box_Item_Test is
    begin
       Put_Line ("Test: text-only Add_Item");
       Add_Item (H, "Hello");
-      Assert (Option_Count (H) = 1, "option count = 1");
-      Assert (Get_Item_Data (H, 1) = null, "Get_Item_Data = null for text-only");
-      Assert (Get_Item_Icon (H, 1) = null, "Get_Item_Icon = null for text-only");
-      Assert (Get_Selected_Text (H) = "Hello", "Get_Selected_Text = Hello");
-      Assert (Get_Selected_Data (H) = null, "Get_Selected_Data = null");
+      Test_Support.Assert (Option_Count (H) = 1, "option count = 1");
+      Test_Support.Assert (Get_Item_Data (H, 1) = null, "Get_Item_Data = null for text-only");
+      Test_Support.Assert (Get_Item_Icon (H, 1) = null, "Get_Item_Icon = null for text-only");
+      Test_Support.Assert (Get_Selected_Text (H) = "Hello", "Get_Selected_Text = Hello");
+      Test_Support.Assert (Get_Selected_Data (H) = null, "Get_Selected_Data = null");
    end Test_Text_Only_Item;
 
    procedure Test_Icon_Item is
@@ -72,9 +57,9 @@ procedure Combo_Box_Item_Test is
    begin
       Put_Line ("Test: Add_Item with icon");
       Add_Item (H, "With Icon", Icon);
-      Assert (Option_Count (H) = 1, "option count = 1");
-      Assert (Get_Item_Icon (H, 1) = Icon, "Get_Item_Icon returns supplied icon");
-      Assert (Get_Item_Data (H, 1) = null, "Get_Item_Data = null when no data");
+      Test_Support.Assert (Option_Count (H) = 1, "option count = 1");
+      Test_Support.Assert (Get_Item_Icon (H, 1) = Icon, "Get_Item_Icon returns supplied icon");
+      Test_Support.Assert (Get_Item_Data (H, 1) = null, "Get_Item_Data = null when no data");
    end Test_Icon_Item;
 
    procedure Test_Data_Item is
@@ -83,13 +68,13 @@ procedure Combo_Box_Item_Test is
    begin
       Put_Line ("Test: Add_Item with data");
       Add_Item (H, "With Data", Data => D'Unchecked_Access);
-      Assert (Option_Count (H) = 1, "option count = 1");
-      Assert (Get_Item_Icon (H, 1) = null, "Get_Item_Icon = null when no icon");
+      Test_Support.Assert (Option_Count (H) = 1, "option count = 1");
+      Test_Support.Assert (Get_Item_Icon (H, 1) = null, "Get_Item_Icon = null when no icon");
       declare
          Got : constant Item_Data_Access := Get_Item_Data (H, 1);
       begin
-         Assert (Got /= null, "Get_Item_Data not null");
-         Assert (My_Data (Got.all).Id = 42, "data Id = 42");
+         Test_Support.Assert (Got /= null, "Get_Item_Data not null");
+         Test_Support.Assert (My_Data (Got.all).Id = 42, "data Id = 42");
       end;
    end Test_Data_Item;
 
@@ -102,11 +87,11 @@ procedure Combo_Box_Item_Test is
       Add_Item (H, "One",   Data => D1'Unchecked_Access);
       Add_Item (H, "Two",   Data => D2'Unchecked_Access);
       --  First item auto-selected on first Add_Item
-      Assert (Get_Selected_Data (H) /= null, "selected data not null");
-      Assert (My_Data (Get_Selected_Data (H).all).Id = 1,
+      Test_Support.Assert (Get_Selected_Data (H) /= null, "selected data not null");
+      Test_Support.Assert (My_Data (Get_Selected_Data (H).all).Id = 1,
               "selected data Id = 1 initially");
       Set_Selected_Index (H, 2);
-      Assert (My_Data (Get_Selected_Data (H).all).Id = 2,
+      Test_Support.Assert (My_Data (Get_Selected_Data (H).all).Id = 2,
               "selected data Id = 2 after Set_Selected_Index");
    end Test_Get_Selected_Data;
 
@@ -115,8 +100,8 @@ procedure Combo_Box_Item_Test is
    begin
       Put_Line ("Test: out-of-range accessors return null");
       Add_Item (H, "Only");
-      Assert (Get_Item_Data (H, 2) = null, "Get_Item_Data out of range = null");
-      Assert (Get_Item_Icon (H, 2) = null, "Get_Item_Icon out of range = null");
+      Test_Support.Assert (Get_Item_Data (H, 2) = null, "Get_Item_Data out of range = null");
+      Test_Support.Assert (Get_Item_Icon (H, 2) = null, "Get_Item_Icon out of range = null");
    end Test_Out_Of_Range;
 
    procedure Test_Clear_Items is
@@ -126,9 +111,9 @@ procedure Combo_Box_Item_Test is
       Put_Line ("Test: Clear_Items resets selections");
       Add_Item (H, "Item", Data => D'Unchecked_Access);
       Clear_Items (H);
-      Assert (Option_Count (H) = 0, "option count = 0 after clear");
-      Assert (Get_Selected_Data (H) = null, "Get_Selected_Data = null after clear");
-      Assert (Get_Selected_Text (H) = "", "Get_Selected_Text = empty after clear");
+      Test_Support.Assert (Option_Count (H) = 0, "option count = 0 after clear");
+      Test_Support.Assert (Get_Selected_Data (H) = null, "Get_Selected_Data = null after clear");
+      Test_Support.Assert (Get_Selected_Text (H) = "", "Get_Selected_Text = empty after clear");
    end Test_Clear_Items;
 
    procedure Test_Handle_Widget_Agreement is
@@ -141,10 +126,10 @@ procedure Combo_Box_Item_Test is
       Put_Line ("Test: handle overloads agree with widget overloads");
       Add_Item (H, "Test", Icon, D'Unchecked_Access);
       --  Handle accessors already delegate to widget overloads; verify values
-      Assert (Get_Selected_Text (H) = "Test", "text matches via handle");
-      Assert (Get_Item_Icon (H, 1) = Icon,    "icon matches via handle");
-      Assert (Get_Item_Data (H, 1) /= null,   "data non-null via handle");
-      Assert (My_Data (Get_Item_Data (H, 1).all).Id = 99,
+      Test_Support.Assert (Get_Selected_Text (H) = "Test", "text matches via handle");
+      Test_Support.Assert (Get_Item_Icon (H, 1) = Icon,    "icon matches via handle");
+      Test_Support.Assert (Get_Item_Data (H, 1) /= null,   "data non-null via handle");
+      Test_Support.Assert (My_Data (Get_Item_Data (H, 1).all).Id = 99,
               "data Id matches via handle");
    end Test_Handle_Widget_Agreement;
 
@@ -214,7 +199,7 @@ procedure Combo_Box_Item_Test is
          end;
       end loop;
 
-      Assert (Found, "Indicator item should exist");
+      Test_Support.Assert (Found, "Indicator item should exist");
       if Found then
          Assert_Close
            (Indicator_Item.Geometry.Width, 36.0,
@@ -243,15 +228,5 @@ begin
    Test_Selected_Icon_Measure_Uses_CSS_Size;
    Test_Indicator_Uses_CSS_Size;
 
-   Put_Line ("Total:" & Test_Count'Image
-             & "  Passed:" & Pass_Count'Image
-             & "  Failed:" & Fail_Count'Image);
-   if Fail_Count > 0 then
-      Put_Line ("FAILED");
-   else
-      Put_Line ("All tests PASSED!");
-   end if;
-   if Fail_Count > 0 then
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-   end if;
+   Test_Support.Finish;
 end Combo_Box_Item_Test;

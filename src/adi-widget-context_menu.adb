@@ -6,7 +6,6 @@ pragma Ada_2022;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Adi.CSS_Styles;         use Adi.CSS_Styles;
 with Adi.Layout_Util;        use Adi.Layout_Util;
-with Adi.Widget;             use Adi.Widget;
 
 package body Adi.Widget.Context_Menu is
 
@@ -122,18 +121,6 @@ package body Adi.Widget.Context_Menu is
    Default_Item_Styles : Part_Style_Holders.Holder;
 
    function Find_Owner
-     (Popup_WH : Widget_Handle) return Context_Menu_Access
-   is
-   begin
-      for I in 1 .. Natural (Menu_Bindings.Length) loop
-         if Menu_Bindings.Element (I).Popup_WH = Popup_WH then
-            return Menu_Bindings.Element (I).Owner;
-         end if;
-      end loop;
-      return null;
-   end Find_Owner;
-
-   function Find_Owner
      (Dismiss : Dismiss_Layer_Widget_Access) return Context_Menu_Access
    is
    begin
@@ -216,7 +203,7 @@ package body Adi.Widget.Context_Menu is
          begin
             if Is_Valid (Row) then
                declare
-                  R : Widget_Ref := Borrow (Row);
+                  R : constant Widget_Ref := Borrow (Row);
                begin
                   Pref := Get_Preferred_Size (R.Ptr.all);
                end;
@@ -248,7 +235,7 @@ package body Adi.Widget.Context_Menu is
                Row_H := Default_Row_Height;
             else
                declare
-                  R : Widget_Ref := Borrow (Row);
+                  R : constant Widget_Ref := Borrow (Row);
                begin
                   Pref := Get_Preferred_Size (R.Ptr.all);
                end;
@@ -261,7 +248,7 @@ package body Adi.Widget.Context_Menu is
 
       if Count > 1 then
          declare
-            R : Widget_Ref := Borrow (+Menu.Popup);
+            R : constant Widget_Ref := Borrow (+Menu.Popup);
             S : constant Resolved_Style :=
               Get_Resolved_Part_Style (R.Ptr.all, Main_Part);
          begin
@@ -315,7 +302,7 @@ package body Adi.Widget.Context_Menu is
 
       Win_Size := Adi.Window.Get_Size (Menu.Host_Window.all);
       declare
-         R : Widget_Ref := Borrow (+Menu.Popup);
+         R : constant Widget_Ref := Borrow (+Menu.Popup);
       begin
          Popup_Style := Get_Resolved_Part_Style (R.Ptr.all, Main_Part);
          Content_Outer := Outer_Size
@@ -342,7 +329,7 @@ package body Adi.Widget.Context_Menu is
          Set_Geometry
            (R.Ptr.all,
             (X => X_Pos, Y => Y_Pos, Width => Wd, Height => Ht));
-         Layout (Widget'Class (R.Ptr.all));
+         Layout (R.Ptr.all);
       end;
    end Position_Popup;
 
@@ -442,7 +429,7 @@ package body Adi.Widget.Context_Menu is
       end if;
 
       declare
-         R : Adi.Window.Window_Ref := Adi.Window.Borrow (Host);
+         R : constant Adi.Window.Window_Ref := Adi.Window.Borrow (Host);
       begin
          Attach_Window (Menu, Adi.Window.Window (R.Ptr.all)'Unchecked_Access);
       end;

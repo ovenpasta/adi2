@@ -1,6 +1,7 @@
 pragma Ada_2022;
 
 with Ada.Text_IO; use Ada.Text_IO;
+with Test_Support;      use Test_Support;
 with Adi.Core;          use Adi.Core;
 with Adi.Widget;        use Adi.Widget;
 with Adi.Widget.Box;    use type Adi.Widget.Box.Box_Handle;
@@ -14,22 +15,6 @@ with Adi.Widget_Styles; use Adi.Widget_Styles;
 --    3. Perf-counter infrastructure (Phase 0)
 
 procedure Layout_Perf_Test is
-
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-   Fail_Count : Natural := 0;
-
-   procedure Assert (Condition : Boolean; Message : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Condition then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Message);
-      else
-         Fail_Count := Fail_Count + 1;
-         Put_Line ("  [FAIL] " & Message);
-      end if;
-   end Assert;
 
    ---------------------------------------------------------------------------
    --  Test: Layout_Tree on a root with children must actually lay them out.
@@ -413,9 +398,7 @@ procedure Layout_Perf_Test is
    end Test_Pref_Size_Content_Invalidation;
 
 begin
-   Put_Line ("========================================");
-   Put_Line ("   Layout Performance Test Suite");
-   Put_Line ("========================================");
+   Start_Suite ("Layout Performance Test Suite");
 
    Test_Layout_Tree_First_Frame;
    Test_Epoch_Dedup;
@@ -428,13 +411,5 @@ begin
    Test_Pref_Size_Content_Invalidation;
 
    Put_Line ("");
-   Put_Line ("Total:" & Test_Count'Image
-             & "  Passed:" & Pass_Count'Image
-             & "  Failed:" & Fail_Count'Image);
-   if Fail_Count > 0 then
-      Put_Line ("FAILED");
-      raise Program_Error with "layout_perf_test failed";
-   else
-      Put_Line ("All tests PASSED!");
-   end if;
+   Test_Support.Finish;
 end Layout_Perf_Test;

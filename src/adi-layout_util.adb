@@ -210,7 +210,6 @@ package body Adi.Layout_Util is
             Viewport_Width,
             Viewport_Height));
       end Cnv;
-      use CSS_Styles;
    begin
       case R.Kind is
          when Gap_Uniform =>
@@ -389,8 +388,8 @@ package body Adi.Layout_Util is
       Min_Size  : Size_2D;
       Max_Size  : Size_2D) return Rectangle
    is
-      Min_W : Pixel_Type := Pixel_Type'Max (0.0, Min_Size.Width);
-      Min_H : Pixel_Type := Pixel_Type'Max (0.0, Min_Size.Height);
+      Min_W : constant Pixel_Type := Pixel_Type'Max (0.0, Min_Size.Width);
+      Min_H : constant Pixel_Type := Pixel_Type'Max (0.0, Min_Size.Height);
       Max_W : Pixel_Type := Pixel_Type'Max (0.0, Max_Size.Width);
       Max_H : Pixel_Type := Pixel_Type'Max (0.0, Max_Size.Height);
       Final_W : Pixel_Type;
@@ -608,7 +607,7 @@ package body Adi.Layout_Util is
 
       Result      : Pixel_Array (Items'Range);
       Total_Gaps  : constant Pixel_Type := Gap * Pixel_Type (Items'Length - 1);
-      Space       : Pixel_Type := Available - Total_Gaps;
+      Space       : constant Pixel_Type := Available - Total_Gaps;
       Total_Grow  : Float := 0.0;
       Total_Min   : Pixel_Type := 0.0;
    begin
@@ -621,7 +620,7 @@ package body Adi.Layout_Util is
       --  Simple distribution (doesn't handle shrink yet)
       if Total_Grow > 0.0 then
          declare
-            Remaining : Pixel_Type := Space - Total_Min;
+            Remaining : constant Pixel_Type := Space - Total_Min;
          begin
             for I in Items'Range loop
                if Items (I).Flex_Grow > 0.0 then

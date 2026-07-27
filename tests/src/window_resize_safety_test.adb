@@ -1,7 +1,6 @@
 pragma Ada_2022;
 
 with Ada.Characters.Latin_1;
-with Ada.Command_Line;
 with Ada.Environment_Variables;
 with Ada.Exceptions;          use Ada.Exceptions;
 with Ada.Text_IO;             use Ada.Text_IO;
@@ -22,29 +21,15 @@ with Adi.Widget.Stack;
 with Adi.Widget.Text_Editor;
 with Adi.Widget_Styles;       use Adi.Widget_Styles;
 with Adi.Window;
+with Test_Support;            use Test_Support;
 
 procedure Window_Resize_Safety_Test is
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-   Fail_Count : Natural := 0;
 
    use type Adi.Widget.Box.Box_Handle;
    use type Adi.Widget.Label.Label_Handle;
    use type Adi.Widget.Button.Button_Handle;
    use type Adi.Widget.Dialog.Dialog_Handle;
    use type Adi.Widget.Text_Editor.Text_Editor_Handle;
-
-   procedure Assert (Condition : Boolean; Message : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Condition then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Message);
-      else
-         Fail_Count := Fail_Count + 1;
-         Put_Line ("  [FAIL] " & Message);
-      end if;
-   end Assert;
 
    procedure Write_Text_File (Path : String; Content : String) is
       F : File_Type;
@@ -999,19 +984,5 @@ begin
    Test_Stack_Page_Switch_Does_Not_Ratchet_Min_Size;
    New_Line;
 
-   Put_Line ("========================================");
-   Put_Line ("   Test Summary");
-   Put_Line ("========================================");
-   Put_Line ("Total tests:" & Test_Count'Image);
-   Put_Line ("Passed:     " & Pass_Count'Image);
-   Put_Line ("Failed:     " & Fail_Count'Image);
-   New_Line;
-
-   if Fail_Count = 0 then
-      Put_Line ("All tests PASSED!");
-   else
-      Put_Line ("Some tests FAILED!");
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-   end if;
-   Put_Line ("========================================");
+   Finish;
 end Window_Resize_Safety_Test;

@@ -10,7 +10,6 @@ with System.Storage_Elements;
 with Adi.Log;
 with Adi.SDL;
 with Adi.SDL.Dialog;
-with Adi.SDL.Filesystem;
 with Adi.SDL.Misc;
 with Adi.SDL.Video;
 

@@ -3,7 +3,7 @@
 
 pragma Ada_2022;
 
-with Interfaces.C;         use Interfaces.C;
+with Interfaces.C;
 with Interfaces.C.Strings;
 with System;
 

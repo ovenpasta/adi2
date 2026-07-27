@@ -1,28 +1,12 @@
 pragma Ada_2022;
-with Ada.Command_Line;
 with Ada.Text_IO;      use Ada.Text_IO;
 with Adi.Widget;       use Adi.Widget;
 with Adi.SDL.Events;   use Adi.SDL.Events;
 with Adi.Widget.Slider;
 with Adi.Widget.Integer_Slider;
+with Test_Support;
 
 procedure Slider_Test is
-
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-   Fail_Count : Natural := 0;
-
-   procedure Assert (Condition : Boolean; Message : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Condition then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Message);
-      else
-         Fail_Count := Fail_Count + 1;
-         Put_Line ("  [FAIL] " & Message);
-      end if;
-   end Assert;
 
    -------------------------------------------
    --  Float slider tests
@@ -36,11 +20,11 @@ procedure Slider_Test is
         Float_Slider.Create_Handle (Min => 0.0, Max => 100.0, Value => 50.0);
    begin
       Put_Line ("Test: Float slider Create");
-      Assert (Float_Slider.Get_Value (S) = 50.0,
+      Test_Support.Assert (Float_Slider.Get_Value (S) = 50.0,
               "Value should be 50.0");
-      Assert (Float_Slider.Get_Min (S) = 0.0,
+      Test_Support.Assert (Float_Slider.Get_Min (S) = 0.0,
               "Min should be 0.0");
-      Assert (Float_Slider.Get_Max (S) = 100.0,
+      Test_Support.Assert (Float_Slider.Get_Max (S) = 100.0,
               "Max should be 100.0");
    end Test_Create;
 
@@ -50,7 +34,7 @@ procedure Slider_Test is
    begin
       Put_Line ("Test: Float slider Set_Value");
       Float_Slider.Set_Value (S, 75.0);
-      Assert (Float_Slider.Get_Value (S) = 75.0,
+      Test_Support.Assert (Float_Slider.Get_Value (S) = 75.0,
               "Value should be 75.0 after Set_Value");
    end Test_Set_Value;
 
@@ -60,7 +44,7 @@ procedure Slider_Test is
    begin
       Put_Line ("Test: Float slider clamp above max");
       Float_Slider.Set_Value (S, 200.0);
-      Assert (Float_Slider.Get_Value (S) = 100.0,
+      Test_Support.Assert (Float_Slider.Get_Value (S) = 100.0,
               "Value should be clamped to 100.0");
    end Test_Clamp_Above_Max;
 
@@ -70,7 +54,7 @@ procedure Slider_Test is
    begin
       Put_Line ("Test: Float slider clamp below min");
       Float_Slider.Set_Value (S, 5.0);
-      Assert (Float_Slider.Get_Value (S) = 10.0,
+      Test_Support.Assert (Float_Slider.Get_Value (S) = 10.0,
               "Value should be clamped to 10.0");
    end Test_Clamp_Below_Min;
 
@@ -79,7 +63,7 @@ procedure Slider_Test is
         Float_Slider.Create_Handle (Min => 0.0, Max => 50.0, Value => 999.0);
    begin
       Put_Line ("Test: Float slider Create clamps value");
-      Assert (Float_Slider.Get_Value (S) = 50.0,
+      Test_Support.Assert (Float_Slider.Get_Value (S) = 50.0,
               "Value should be clamped to max on create");
    end Test_Create_Clamps;
 
@@ -89,9 +73,9 @@ procedure Slider_Test is
    begin
       Put_Line ("Test: Float slider Set_Range reclamps value");
       Float_Slider.Set_Range (S, Min => 0.0, Max => 50.0);
-      Assert (Float_Slider.Get_Value (S) = 50.0,
+      Test_Support.Assert (Float_Slider.Get_Value (S) = 50.0,
               "Value should be reclamped to new max");
-      Assert (Float_Slider.Get_Max (S) = 50.0,
+      Test_Support.Assert (Float_Slider.Get_Max (S) = 50.0,
               "Max should be updated to 50.0");
    end Test_Set_Range;
 
@@ -100,10 +84,10 @@ procedure Slider_Test is
         Float_Slider.Create_Handle (Min => 0.0, Max => 100.0, Value => 0.0);
    begin
       Put_Line ("Test: Float slider step default");
-      Assert (Float_Slider.Get_Step (S) = 0.0,
+      Test_Support.Assert (Float_Slider.Get_Step (S) = 0.0,
               "Default step should be 0.0 (continuous)");
       Float_Slider.Set_Step (S, 10.0);
-      Assert (Float_Slider.Get_Step (S) = 10.0,
+      Test_Support.Assert (Float_Slider.Get_Step (S) = 10.0,
               "Step should be 10.0 after Set_Step");
    end Test_Step;
 
@@ -112,10 +96,10 @@ procedure Slider_Test is
         Float_Slider.Create_Handle (Min => 0.0, Max => 100.0, Value => 0.0);
    begin
       Put_Line ("Test: Float slider orientation");
-      Assert (Float_Slider.Get_Orientation (S) = Float_Slider.Horizontal,
+      Test_Support.Assert (Float_Slider.Get_Orientation (S) = Float_Slider.Horizontal,
               "Default orientation should be Horizontal");
       Float_Slider.Set_Orientation (S, Float_Slider.Vertical);
-      Assert (Float_Slider.Get_Orientation (S) = Float_Slider.Vertical,
+      Test_Support.Assert (Float_Slider.Get_Orientation (S) = Float_Slider.Vertical,
               "Orientation should be Vertical after set");
    end Test_Orientation;
 
@@ -124,11 +108,11 @@ procedure Slider_Test is
         Float_Slider.Create_Handle (Min => 0.0, Max => 100.0, Value => 0.0);
    begin
       Put_Line ("Test: Float slider has correct flags");
-      Assert (Has_Flag (+S, Clickable),
+      Test_Support.Assert (Has_Flag (+S, Clickable),
               "Slider should be Clickable");
-      Assert (Has_Flag (+S, Focusable),
+      Test_Support.Assert (Has_Flag (+S, Focusable),
               "Slider should be Focusable");
-      Assert (Has_Flag (+S, Visible),
+      Test_Support.Assert (Has_Flag (+S, Visible),
               "Slider should be Visible");
    end Test_Flags;
 
@@ -158,8 +142,8 @@ procedure Slider_Test is
          Scancode => Adi.SDL.Events.SDL_SCANCODE_RIGHT,
          Key_Mod  => 0,
          Repeat   => False);
-      Assert (Callback_Fired, "Callback should fire on key right");
-      Assert (Callback_Value > 0.0, "Value should increase on key right");
+      Test_Support.Assert (Callback_Fired, "Callback should fire on key right");
+      Test_Support.Assert (Callback_Value > 0.0, "Value should increase on key right");
    end Test_Callback;
 
    -------------------------------------------
@@ -172,11 +156,11 @@ procedure Slider_Test is
         Int_Slider.Create_Handle (Min => 0, Max => 255, Value => 128);
    begin
       Put_Line ("Test: Integer slider Create");
-      Assert (Int_Slider.Get_Value (S) = 128,
+      Test_Support.Assert (Int_Slider.Get_Value (S) = 128,
               "Value should be 128");
-      Assert (Int_Slider.Get_Min (S) = 0,
+      Test_Support.Assert (Int_Slider.Get_Min (S) = 0,
               "Min should be 0");
-      Assert (Int_Slider.Get_Max (S) = 255,
+      Test_Support.Assert (Int_Slider.Get_Max (S) = 255,
               "Max should be 255");
    end Test_Int_Create;
 
@@ -185,7 +169,7 @@ procedure Slider_Test is
         Int_Slider.Create_Handle (Min => 0, Max => 100, Value => 200);
    begin
       Put_Line ("Test: Integer slider clamp");
-      Assert (Int_Slider.Get_Value (S) = 100,
+      Test_Support.Assert (Int_Slider.Get_Value (S) = 100,
               "Value should be clamped to 100");
    end Test_Int_Clamp;
 
@@ -195,7 +179,7 @@ procedure Slider_Test is
    begin
       Put_Line ("Test: Integer slider step");
       Int_Slider.Set_Step (S, 5);
-      Assert (Int_Slider.Get_Step (S) = 5,
+      Test_Support.Assert (Int_Slider.Get_Step (S) = 5,
               "Step should be 5");
    end Test_Int_Step;
 
@@ -207,10 +191,10 @@ procedure Slider_Test is
       Set_Geometry (+S, (X => 0.0, Y => 0.0, Width => 200.0, Height => 24.0));
       Build_Items (+S);
       On_Key_Down (+S, SDL_SCANCODE_HOME, 0, False);
-      Assert (Float_Slider.Get_Value (S) = 0.0,
+      Test_Support.Assert (Float_Slider.Get_Value (S) = 0.0,
               "Home should set value to min");
       On_Key_Down (+S, SDL_SCANCODE_END, 0, False);
-      Assert (Float_Slider.Get_Value (S) = 100.0,
+      Test_Support.Assert (Float_Slider.Get_Value (S) = 100.0,
               "End should set value to max");
    end Test_Key_Home_End;
 
@@ -240,19 +224,5 @@ begin
    Test_Key_Home_End;
    New_Line;
 
-   Put_Line ("========================================");
-   Put_Line ("   Test Summary");
-   Put_Line ("========================================");
-   Put_Line ("Total tests:" & Test_Count'Image);
-   Put_Line ("Passed:     " & Pass_Count'Image);
-   Put_Line ("Failed:     " & Fail_Count'Image);
-   New_Line;
-
-   if Fail_Count = 0 then
-      Put_Line ("All tests PASSED!");
-   else
-      Put_Line ("Some tests FAILED!");
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-   end if;
-   Put_Line ("========================================");
+   Test_Support.Finish;
 end Slider_Test;

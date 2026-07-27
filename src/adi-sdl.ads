@@ -5,7 +5,7 @@ pragma Ada_2022;
 
 with Interfaces.C;            use Interfaces.C;
 with Interfaces.C.Strings;
-with Interfaces.C.Extensions; use Interfaces.C.Extensions;
+with Interfaces.C.Extensions;
 with System;
 package Adi.SDL is
 

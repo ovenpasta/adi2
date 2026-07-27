@@ -1,28 +1,12 @@
 pragma Ada_2022;
 
-with Ada.Command_Line;
 with Ada.Text_IO; use Ada.Text_IO;
 with Adi.Core; use Adi.Core;
 with Adi.SVG_Sprites;
 with Adi.Image;
+with Test_Support; use Test_Support;
 
 procedure SVG_Sprites_Test is
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-   Fail_Count : Natural := 0;
-
-   procedure Assert (Condition : Boolean; Message : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Condition then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Message);
-      else
-         Fail_Count := Fail_Count + 1;
-         Put_Line ("  [FAIL] " & Message);
-      end if;
-   end Assert;
-
    Sample_SVG : constant String :=
      "<?xml version=""1.0"" encoding=""UTF-8""?>" &
      "<svg xmlns=""http://www.w3.org/2000/svg"" style=""display: none;"">" &
@@ -104,23 +88,11 @@ procedure SVG_Sprites_Test is
    end Test_Empty_Source;
 
 begin
-   Put_Line ("========================================");
-   Put_Line ("   SVG Sprites Test Suite");
-   Put_Line ("========================================");
+   Test_Support.Start_Suite ("SVG Sprites Test Suite");
 
    Test_Load_From_String;
    Test_Get_Image;
    Test_Empty_Source;
 
-   Put_Line ("Total:" & Test_Count'Image
-             & "  Passed:" & Pass_Count'Image
-             & "  Failed:" & Fail_Count'Image);
-   if Fail_Count > 0 then
-      Put_Line ("FAILED");
-   else
-      Put_Line ("All tests PASSED!");
-   end if;
-   if Fail_Count > 0 then
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-   end if;
+   Test_Support.Finish;
 end SVG_Sprites_Test;

@@ -5,15 +5,11 @@ pragma Ada_2022;
 
 with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings;
-with System;
 with Adi.Log;
 with Adi.SDL;       use Adi.SDL;
 with Adi.SDL.IO;    use Adi.SDL.IO;
 with Adi.SDL.Image; use Adi.SDL.Image;
-with Adi.SDL.Render; use Adi.SDL.Render;
-with Adi.SDL.Surface; use Adi.SDL.Surface;
 with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
-with Adi.SVG;
 with Ada.Characters.Handling;
 with Ada.Strings;
 with Ada.Strings.Fixed;
@@ -150,7 +146,6 @@ package body Adi.Image is
    end Opacity_String;
 
    function Decimal_String (V : Pixel_Type) return String is
-      use type Pixel_Type;
       Scaled : Integer := Integer (Float'Rounding (Float (V * 1000.0)));
       Int_Part : Integer;
       Frac : Integer;
@@ -481,7 +476,6 @@ package body Adi.Image is
    function To_SDL
      (Mode : Image_Scale_Mode) return Adi.SDL.Render.SDL_ScaleMode
    is
-      use Adi.SDL.Render;
    begin
       case Mode is
          when Scale_Linear   => return SDL_SCALEMODE_LINEAR;

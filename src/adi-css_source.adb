@@ -12,7 +12,6 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with Adi.CSS_Styles; use Adi.CSS_Styles;
-with Adi.Layout_Util;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.Window;

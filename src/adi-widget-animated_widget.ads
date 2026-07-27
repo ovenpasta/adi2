@@ -3,10 +3,7 @@
 
 pragma Ada_2022;
 
-with Adi.Core;            use Adi.Core;
 with Adi.Animated_Image;  use Adi.Animated_Image;
-with Adi.Image;           use Adi.Image;
-with Adi.Widget;          use Adi.Widget;
 
 package Adi.Widget.Animated_Widget is
 

@@ -8,7 +8,6 @@ with Ada.Unchecked_Deallocation;
 with Interfaces;
 with Interfaces.C;
 with Interfaces.C.Strings;
-with System;
 with System.Address_To_Access_Conversions;
 with System.Storage_Elements;
 
@@ -161,7 +160,7 @@ package body Adi.SVG is
    end Get_Size;
 
    function Load_From_File (Path : String) return Document_Access is
-      Doc    : Document_Access := new Document;
+      Doc    : constant Document_Access := new Document;
       C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.Null_Ptr;
       Handle : Plutosvg_Document_Ptr;
    begin
@@ -192,7 +191,7 @@ package body Adi.SVG is
    end Load_From_File;
 
    function Load_From_String (Source : String) return Document_Access is
-      Doc    : Document_Access := new Document;
+      Doc    : constant Document_Access := new Document;
       Handle : Plutosvg_Document_Ptr := null;
    begin
       if Source'Length = 0 then

@@ -2,26 +2,19 @@
 --  SPDX-License-Identifier: Apache-2.0
 
 pragma Ada_2022;
-with Ada.Containers.Vectors;
-with Ada.Finalization;
 with Ada.Unchecked_Deallocation;
 with Adi.Clock; use Adi.Clock;
 with Ada.Environment_Variables;
 with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings;
-with Adi.Core;
 with Adi.Log;
 with Adi.SDL; use Adi.SDL;
-with Adi.SDL.Video;
-with Adi.SDL.Render;
 with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.Image;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget_Styles;
 
 package body Adi.Window is
-   use type Adi.SDL.Video.SDL_Window_Ptr;
-   use type Adi.SDL.Video.SDL_WindowFlags;
 
    Debug_Checked : Boolean := False;
    Debug_On      : Boolean := False;
@@ -748,7 +741,6 @@ package body Adi.Window is
       Maximized : Boolean := False) return Window_Handle
    is
       use Interfaces.C.Strings;
-      use Adi.SDL.Video;
       C_Title_Str : chars_ptr := New_String (Title);
       Win_Ptr : aliased Adi.SDL.Video.SDL_Window_Ptr;
       Ren_Ptr : aliased Adi.SDL.Render.SDL_Renderer_Ptr;
@@ -835,7 +827,6 @@ package body Adi.Window is
    end Update;
 
     procedure Render_Debug_Stats (W : Window) is
-       use Adi.SDL.Render;
        --  SDL_RenderDebugText draws an 8 px-tall bitmap font at 1:1
        --  device pixels.  On HiDPI (Retina) the window's render target
        --  is in physical pixels, so without scaling the bar comes out
@@ -904,7 +895,7 @@ package body Adi.Window is
        Append_Ms (W.Stats_Present_Us);
        Append ("  L:");
        Append_Nat (W.Stats_Layout_Count, 1);
-       Append ((1 => W.Stats_Layout_Reason));
+       Append ([1 => W.Stats_Layout_Reason]);
        Append ("  S:");
        Append_Nat (W.Stats_Style_Hits, 4);
        Append ("/");
@@ -943,7 +934,6 @@ package body Adi.Window is
     end Render_Debug_Stats;
 
     procedure Render (W : in out Window) is
-       use Adi.SDL.Render;
        Guard                : Dispatch_Guard;
        pragma Unreferenced (Guard);
        Root_Valid           : Boolean;
@@ -2489,7 +2479,6 @@ function Get_Size (W : in out Window) return Size_2D is
    end Get_Size;
 
     function Actual_Size(W: in out Window) return Size_2D is
-       use Adi.SDL.Video;
        W_Width, W_Height : aliased int;
     begin
        --  Pixel size, not point size: the layout system, mouse coords (via
@@ -2522,7 +2511,7 @@ function Get_Size (W : in out Window) return Size_2D is
 
       --  Destroy overlay widgets (snapshot list since Destroy modifies it)
       declare
-         Snapshot : Overlay_Vectors.Vector := W.Overlays;
+         Snapshot : constant Overlay_Vectors.Vector := W.Overlays;
       begin
          W.Overlays.Clear;
          for OH of Snapshot loop
@@ -2569,8 +2558,6 @@ function Get_Size (W : in out Window) return Size_2D is
    --------------
 
    overriding procedure Finalize (W : in out Window) is
-      use Adi.SDL.Video;
-      use Adi.SDL.Render;
       procedure Free is new Ada.Unchecked_Deallocation
         (Internal, Internal_Access);
    begin
@@ -2768,7 +2755,6 @@ function Get_Size (W : in out Window) return Size_2D is
    ---------------------------------------------------------------------------
 
    procedure On_Widget_Destroy (W : not null Widget_Access) is
-      use type Window_Access;
       WH   : constant Widget_Handle := Get_Handle (W.all);
       Host : constant Window_Access := Find_Host_Window (WH);
    begin

@@ -1,6 +1,5 @@
 pragma Ada_2022;
 
-with Ada.Command_Line;
 with Ada.Text_IO;
 with Adi.App;
 with Adi.Core;          use Adi.Core;
@@ -10,6 +9,7 @@ with Adi.Widget.Box;
 with Adi.Widget.List_Box;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
+with Test_Support;
 
 procedure Min_Size_Test is
    A          : Adi.App.App;
@@ -21,23 +21,10 @@ procedure Min_Size_Test is
    use type Adi.Widget.Label.Label_Handle;
    use type Box_Row_List.List_Box_Handle;
    use type Label_Row_List.List_Box_Handle;
-   Pass_Count : Natural := 0;
-   Fail_Count : Natural := 0;
-
-   procedure Check (Name : String; Cond : Boolean) is
-   begin
-      if Cond then
-         Ada.Text_IO.Put_Line ("  [PASS] " & Name);
-         Pass_Count := Pass_Count + 1;
-      else
-         Ada.Text_IO.Put_Line ("  [FAIL] " & Name);
-         Fail_Count := Fail_Count + 1;
-      end if;
-   end Check;
 begin
    A.Init;
 
-   Ada.Text_IO.Put_Line ("=== Min Size Dispatching Test ===");
+   Test_Support.Start_Suite ("Min Size Dispatching Test");
    Ada.Text_IO.New_Line;
 
    --  Test 1: Label Get_Min_Size dispatches with CSS min-width
@@ -57,17 +44,17 @@ begin
       Min_Before := Get_Min_Size (L);
       Ada.Text_IO.Put_Line
          ("  Before CSS: min_w=" & Pixel_Type'Image (Min_Before.Width));
-      Check
-         ("Label min-width without CSS is intrinsic text width",
-          Min_Before.Width > 0.0);
+      Test_Support.Assert
+         (Min_Before.Width > 0.0,
+          "Label min-width without CSS is intrinsic text width");
 
       Set_Part_Styles (L, Parts);
       Min_After := Get_Min_Size (L);
       Ada.Text_IO.Put_Line
          ("  After CSS 300px: min_w=" & Pixel_Type'Image (Min_After.Width));
-      Check
-         ("Label min-width with CSS 300 is >= 300",
-          Min_After.Width >= 300.0);
+      Test_Support.Assert
+         (Min_After.Width >= 300.0,
+          "Label min-width with CSS 300 is >= 300");
    end;
 
    Ada.Text_IO.New_Line;
@@ -113,9 +100,9 @@ begin
              & Pixel_Type'Image (Geom.Width)
              & " h="
              & Pixel_Type'Image (Geom.Height));
-         Check
-            ("Label width in flex >= 200 (CSS min-width)",
-             Geom.Width >= 200.0);
+         Test_Support.Assert
+            (Geom.Width >= 200.0,
+             "Label width in flex >= 200 (CSS min-width)");
       end;
    end;
 
@@ -143,11 +130,12 @@ begin
           & Pixel_Type'Image (Pref.Width)
           & "  Min_w="
           & Pixel_Type'Image (Min.Width));
-      Check
-         ("Get_Min_Size >= 400 with CSS min-width 400", Min.Width >= 400.0);
-      Check
-         ("Get_Min_Size > Get_Preferred_Size when CSS min > text width",
-          Min.Width > Pref.Width);
+      Test_Support.Assert
+         (Min.Width >= 400.0,
+          "Get_Min_Size >= 400 with CSS min-width 400");
+      Test_Support.Assert
+         (Min.Width > Pref.Width,
+          "Get_Min_Size > Get_Preferred_Size when CSS min > text width");
    end;
 
    Ada.Text_IO.New_Line;
@@ -215,11 +203,12 @@ begin
 
       --  Expected: 80 + 60 + 40 + 500 (fr content min) = 680.
       --  Fr columns contribute their intrinsic content width per CSS spec.
-      Check
-         ("Grid preferred width includes fr content (>= 680px)",
-          Pref.Width >= 680.0);
-      Check
-         ("Grid preferred width reasonable (< 800px)", Pref.Width < 800.0);
+      Test_Support.Assert
+         (Pref.Width >= 680.0,
+          "Grid preferred width includes fr content (>= 680px)");
+      Test_Support.Assert
+         (Pref.Width < 800.0,
+          "Grid preferred width reasonable (< 800px)");
    end;
 
    Ada.Text_IO.New_Line;
@@ -283,12 +272,12 @@ begin
 
       --  Expected: col 1 = 100px (max of Auto_C1 and Auto_C2),
       --  col 2 = 800px (fr content min).  Total = 900.
-      Check
-         ("Fr content included in grid preferred width (>= 900px)",
-          Pref.Width >= 900.0);
-      Check
-         ("Auto column sized to its content (>= 100px)",
-          Pref.Width >= 100.0);
+      Test_Support.Assert
+         (Pref.Width >= 900.0,
+          "Fr content included in grid preferred width (>= 900px)");
+      Test_Support.Assert
+         (Pref.Width >= 100.0,
+          "Auto column sized to its content (>= 100px)");
    end;
 
    Ada.Text_IO.New_Line;
@@ -356,13 +345,13 @@ begin
           & Pixel_Type'Image (Fr_Geom.X + Fr_Geom.Width));
 
       --  The fr child's right edge must not exceed the container.
-      Check
-         ("fr column right edge <= container width (no overflow)",
-          Fr_Geom.X + Fr_Geom.Width <= Container_W);
+      Test_Support.Assert
+         (Fr_Geom.X + Fr_Geom.Width <= Container_W,
+          "fr column right edge <= container width (no overflow)");
       --  The fr column must not have been expanded to the child's min-width.
-      Check
-         ("fr column width < fr child min-width (800px)",
-          Fr_Geom.Width < 800.0);
+      Test_Support.Assert
+         (Fr_Geom.Width < 800.0,
+          "fr column width < fr child min-width (800px)");
    end;
 
    --  Test 7: text-wrap height adaptation in a grid.
@@ -425,12 +414,12 @@ begin
           & Pixel_Type'Image (Desc_Geom.Width)
           & " h="
           & Pixel_Type'Image (Desc_Geom.Height));
-      Check
-         ("Desc label width fits in fr column (< 110px)",
-          Desc_Geom.Width < 110.0 and then Desc_Geom.Width > 0.0);
-      Check
-         ("Desc label height > single-line (text wrapped)",
-          Desc_Geom.Height > Single_Line_H);
+      Test_Support.Assert
+         (Desc_Geom.Width < 110.0 and then Desc_Geom.Width > 0.0,
+          "Desc label width fits in fr column (< 110px)");
+      Test_Support.Assert
+         (Desc_Geom.Height > Single_Line_H,
+          "Desc label height > single-line (text wrapped)");
    end;
 
    Ada.Text_IO.New_Line;
@@ -496,18 +485,18 @@ begin
           & "  C2 H="
           & Pixel_Type'Image (C2_Geom.Height));
 
-      Check
-         ("Row 1 height >= child1 min-height (60px)",
-          C1_Geom.Height >= 60.0);
-      Check
-         ("Row 2 height >= child2 min-height (40px)",
-          C2_Geom.Height >= 40.0);
-      Check
-         ("Grid container grew beyond initial 50px",
-          Grid_Geom.Height >= 100.0);
-      Check
-         ("Child 2 does not overflow grid (no clipping)",
-          C2_Geom.Y + C2_Geom.Height <= Grid_Geom.Y + Grid_Geom.Height);
+      Test_Support.Assert
+         (C1_Geom.Height >= 60.0,
+          "Row 1 height >= child1 min-height (60px)");
+      Test_Support.Assert
+         (C2_Geom.Height >= 40.0,
+          "Row 2 height >= child2 min-height (40px)");
+      Test_Support.Assert
+         (Grid_Geom.Height >= 100.0,
+          "Grid container grew beyond initial 50px");
+      Test_Support.Assert
+         (C2_Geom.Y + C2_Geom.Height <= Grid_Geom.Y + Grid_Geom.Height,
+          "Child 2 does not overflow grid (no clipping)");
    end;
 
    --  Test 9: overflow:hidden grid must NOT grow when content exceeds height.
@@ -564,9 +553,9 @@ begin
           & Pixel_Type'Image (Container_H)
           & ")");
 
-      Check
-         ("overflow:hidden grid height unchanged (no growth)",
-          Grid_Geom.Height = Container_H);
+      Test_Support.Assert
+         (Grid_Geom.Height = Container_H,
+          "overflow:hidden grid height unchanged (no growth)");
    end;
 
    --  Test 10: fr column in a content-sized grid must not collapse to zero.
@@ -633,9 +622,9 @@ begin
       Grid_Pref := Get_Preferred_Size (Grid_Box);
       Ada.Text_IO.Put_Line
          ("  Grid preferred width: " & Pixel_Type'Image (Grid_Pref.Width));
-      Check
-         ("Content-sized grid includes fr content (pref >= 280)",
-          Grid_Pref.Width >= 280.0);
+      Test_Support.Assert
+         (Grid_Pref.Width >= 280.0,
+          "Content-sized grid includes fr content (pref >= 280)");
 
       --  Layout the wrapper with generous space — grid gets content-sized width.
       Set_Geometry
@@ -647,11 +636,13 @@ begin
          ("  Fr child: W=" & Pixel_Type'Image (Fr_Geom.Width));
 
       --  The fr column must have a non-zero width.
-      Check
-         ("Fr column width > 0 in content-sized grid", Fr_Geom.Width > 0.0);
+      Test_Support.Assert
+         (Fr_Geom.Width > 0.0,
+          "Fr column width > 0 in content-sized grid");
       --  The fr column must be at least as wide as its content minimum.
-      Check
-         ("Fr column width >= content min (200px)", Fr_Geom.Width >= 200.0);
+      Test_Support.Assert
+         (Fr_Geom.Width >= 200.0,
+          "Fr column width >= content min (200px)");
    end;
 
    --  Test 11: fr column uses intrinsic minimum (not preferred) in measurement.
@@ -713,10 +704,12 @@ begin
       Ada.Text_IO.Put_Line
          ("  Grid preferred width:  " & Pixel_Type'Image (Grid_Pref.Width));
 
-      Check
-         ("Grid pref width < label pref width (fr uses min, not pref)",
-          Grid_Pref.Width < Label_Pref.Width);
-      Check ("Grid pref width >= auto col (80px)", Grid_Pref.Width >= 80.0);
+      Test_Support.Assert
+         (Grid_Pref.Width < Label_Pref.Width,
+          "Grid pref width < label pref width (fr uses min, not pref)");
+      Test_Support.Assert
+         (Grid_Pref.Width >= 80.0,
+          "Grid pref width >= auto col (80px)");
 
       --  Layout at a width narrower than the label's preferred (but wide
       --  enough for wrapping).  Text in the fr column should wrap.
@@ -733,13 +726,13 @@ begin
 
       --  The fr column must have shrunk to fit the container, not stayed at
       --  full preferred width.
-      Check
-         ("Fr label width fits in container (< 230px)",
-          Fr_Geom.Width < 230.0 and then Fr_Geom.Width > 0.0);
+      Test_Support.Assert
+         (Fr_Geom.Width < 230.0 and then Fr_Geom.Width > 0.0,
+          "Fr label width fits in container (< 230px)");
       --  Text should have wrapped, making the label taller than single-line.
-      Check
-         ("Fr label height > single-line (text wrapped)",
-          Fr_Geom.Height > Label_Pref.Height);
+      Test_Support.Assert
+         (Fr_Geom.Height > Label_Pref.Height,
+          "Fr label height > single-line (text wrapped)");
    end;
 
    Ada.Text_IO.New_Line;
@@ -788,15 +781,15 @@ begin
 
       Pref_After := Get_Preferred_Size (LB_WH);
 
-      Check
-         ("List-box preferred height honors min/chrome floor before rows",
-          Pref_Before.Height >= 120.0);
-      Check
-         ("List-box preferred height does not grow with internal row content",
-          abs (Pref_After.Height - Pref_Before.Height) <= 1.0);
-      Check
-         ("List-box preferred height remains bounded despite many rows",
-          Pref_After.Height < 300.0);
+      Test_Support.Assert
+         (Pref_Before.Height >= 120.0,
+          "List-box preferred height honors min/chrome floor before rows");
+      Test_Support.Assert
+         (abs (Pref_After.Height - Pref_Before.Height) <= 1.0,
+          "List-box preferred height does not grow with internal row content");
+      Test_Support.Assert
+         (Pref_After.Height < 300.0,
+          "List-box preferred height remains bounded despite many rows");
    end;
 
    Ada.Text_IO.New_Line;
@@ -840,15 +833,15 @@ begin
 
       Pref_After := Get_Preferred_Size (LB_WH);
 
-      Check
-         ("List-box preferred width honors min/chrome floor before rows",
-          Pref_Before.Width >= 120.0);
-      Check
-         ("List-box preferred width does not grow with internal row content",
-          abs (Pref_After.Width - Pref_Before.Width) <= 1.0);
-      Check
-         ("List-box preferred width remains bounded despite wide rows",
-          Pref_After.Width < 300.0);
+      Test_Support.Assert
+         (Pref_Before.Width >= 120.0,
+          "List-box preferred width honors min/chrome floor before rows");
+      Test_Support.Assert
+         (abs (Pref_After.Width - Pref_Before.Width) <= 1.0,
+          "List-box preferred width does not grow with internal row content");
+      Test_Support.Assert
+         (Pref_After.Width < 300.0,
+          "List-box preferred width remains bounded despite wide rows");
    end;
 
    Ada.Text_IO.New_Line;
@@ -885,15 +878,15 @@ begin
       Add_Child (Parent, Child);
       Pref_After := Get_Preferred_Size (Parent);
 
-      Check
-         ("overflow-x floor: preferred width honors min/chrome before child",
-          Pref_Before.Width >= 120.0);
-      Check
-         ("overflow-x floor: preferred width does not inflate from child content",
-          abs (Pref_After.Width - Pref_Before.Width) <= 1.0);
-      Check
-         ("overflow-x floor: preferred width remains bounded",
-          Pref_After.Width < 300.0);
+      Test_Support.Assert
+         (Pref_Before.Width >= 120.0,
+          "overflow-x floor: preferred width honors min/chrome before child");
+      Test_Support.Assert
+         (abs (Pref_After.Width - Pref_Before.Width) <= 1.0,
+          "overflow-x floor: preferred width does not inflate from child content");
+      Test_Support.Assert
+         (Pref_After.Width < 300.0,
+          "overflow-x floor: preferred width remains bounded");
    end;
 
    Ada.Text_IO.New_Line;
@@ -944,15 +937,15 @@ begin
       Set_Flag (Child_B, Visible, False);
       Pref_Visible_False := Get_Preferred_Size (Parent);
 
-      Check
-         ("display:none child removed from parent preferred width",
-          Pref_Display_None.Width < Pref_Both.Width);
-      Check
-         ("visibility:hidden child still contributes parent preferred width",
-          Pref_Visibility_Hide.Width >= Pref_Both.Width);
-      Check
-         ("Visible=False child removed from parent preferred width",
-          Pref_Visible_False.Width < Pref_Visibility_Hide.Width);
+      Test_Support.Assert
+         (Pref_Display_None.Width < Pref_Both.Width,
+          "display:none child removed from parent preferred width");
+      Test_Support.Assert
+         (Pref_Visibility_Hide.Width >= Pref_Both.Width,
+          "visibility:hidden child still contributes parent preferred width");
+      Test_Support.Assert
+         (Pref_Visible_False.Width < Pref_Visibility_Hide.Width,
+          "Visible=False child removed from parent preferred width");
    end;
 
    Ada.Text_IO.New_Line;
@@ -989,24 +982,14 @@ begin
       Set_Part_Styles (L, Label_Visibility_Hidden_Parts);
       Pref_Label_Hidden := Get_Preferred_Size (L);
 
-      Check
-         ("Label_Part display:none removes text from label internal layout",
-          Pref_Label_None.Width < Pref_Default.Width);
-      Check
-         ("Label_Part visibility:hidden keeps label internal layout size",
-          Pref_Label_Hidden.Width >= Pref_Default.Width);
+      Test_Support.Assert
+         (Pref_Label_None.Width < Pref_Default.Width,
+          "Label_Part display:none removes text from label internal layout");
+      Test_Support.Assert
+         (Pref_Label_Hidden.Width >= Pref_Default.Width,
+          "Label_Part visibility:hidden keeps label internal layout size");
    end;
 
    Ada.Text_IO.New_Line;
-   Ada.Text_IO.Put_Line
-      ("Summary: "
-       & Natural'Image (Pass_Count)
-       & "/"
-       & Natural'Image (Pass_Count + Fail_Count)
-       & " passing");
-
-   if Fail_Count > 0 then
-      Ada.Text_IO.Put_Line ("FAILURES DETECTED");
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-   end if;
+   Test_Support.Finish;
 end Min_Size_Test;

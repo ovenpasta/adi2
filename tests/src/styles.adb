@@ -1,35 +1,11 @@
-with Ada.Command_Line;
 with Ada.Text_IO; use Ada.Text_IO;
 with Adi.Core;         use Adi.Core;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Layout_Util;  use Adi.Layout_Util;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
+with Test_Support;     use Test_Support;
 
 procedure Main is
-
-   -------------------------------------------------
-   -- Test tracking
-   -------------------------------------------------
-   
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-   Fail_Count : Natural := 0;
-
-   -------------------------------------------------
-   -- Assertion helpers
-   -------------------------------------------------
-
-   procedure Assert (Condition : Boolean; Message : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Condition then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Message);
-      else
-         Fail_Count := Fail_Count + 1;
-         Put_Line ("  [FAIL] " & Message);
-      end if;
-   end Assert;
 
    function Colors_Equal (A, B : Color_Value) return Boolean is
    begin
@@ -568,9 +544,7 @@ procedure Main is
    end Test_Text_Scaling;
 
 begin
-   Put_Line ("========================================");
-   Put_Line ("   Widget Style System Tests");
-   Put_Line ("========================================");
+   Start_Suite ("Widget Style System Tests");
    New_Line;
 
    --  Button tests
@@ -612,21 +586,6 @@ begin
    Test_Root_Em_Scaling;
     Test_Text_Scaling;
 
-   --  Summary
-   Put_Line ("========================================");
-   Put_Line ("   Test Summary");
-   Put_Line ("========================================");
-   Put_Line ("Total tests:" & Test_Count'Image);
-   Put_Line ("Passed:     " & Pass_Count'Image);
-   Put_Line ("Failed:     " & Fail_Count'Image);
-   New_Line;
-   
-   if Fail_Count = 0 then
-      Put_Line ("All tests PASSED!");
-   else
-      Put_Line ("Some tests FAILED!");
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-   end if;
-   Put_Line ("========================================");
+   Finish;
 
 end Main;

@@ -1,6 +1,6 @@
 pragma Ada_2022;
-with Ada.Command_Line;
 with Ada.Text_IO;        use Ada.Text_IO;
+with Test_Support;       use Test_Support;
 with Adi.Widget;         use Adi.Widget;
 with Adi.Widget_Styles;  use Adi.Widget_Styles;
 with Adi.CSS_Styles;     use Adi.CSS_Styles;
@@ -10,22 +10,6 @@ with Adi.Widget.Label;   use type Adi.Widget.Label.Label_Handle;
 with Adi.Widget.Text_Input; use type Adi.Widget.Text_Input.Text_Input_Handle;
 
 procedure Disabled_Test is
-
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-   Fail_Count : Natural := 0;
-
-   procedure Assert (Condition : Boolean; Message : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Condition then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Message);
-      else
-         Fail_Count := Fail_Count + 1;
-         Put_Line ("  [FAIL] " & Message);
-      end if;
-   end Assert;
 
    function Normalize_Visibility (V : Visibility_Value) return Visibility_Value is
    begin
@@ -409,9 +393,7 @@ procedure Disabled_Test is
    end Test_Focus_Candidate_Parent_Disabled;
 
 begin
-   Put_Line ("========================================");
-   Put_Line ("   Disabled State Tests");
-   Put_Line ("========================================");
+   Start_Suite ("Disabled State Tests");
    New_Line;
 
    Test_Disabled_Default;
@@ -444,19 +426,5 @@ begin
    Test_Focus_Candidate_Parent_Disabled;
    New_Line;
 
-   Put_Line ("========================================");
-   Put_Line ("   Test Summary");
-   Put_Line ("========================================");
-   Put_Line ("Total tests:" & Test_Count'Image);
-   Put_Line ("Passed:     " & Pass_Count'Image);
-   Put_Line ("Failed:     " & Fail_Count'Image);
-   New_Line;
-
-   if Fail_Count = 0 then
-      Put_Line ("All tests PASSED!");
-   else
-      Put_Line ("Some tests FAILED!");
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-   end if;
-   Put_Line ("========================================");
+   Test_Support.Finish;
 end Disabled_Test;

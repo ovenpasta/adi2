@@ -5,7 +5,6 @@ pragma Ada_2022;
 
 with Ada.Containers.Vectors;
 with Adi.Text_Buffer;
-with Adi.Widget;
 with Adi.Widget.Context_Menu;
 with Adi.Window;
 

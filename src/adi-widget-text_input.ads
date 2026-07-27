@@ -3,14 +3,12 @@
 
 pragma Ada_2022;
 
-with Ada.Strings.Unbounded;                use Ada.Strings.Unbounded;
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
-with Adi.Core;                              use Adi.Core;
+with Adi.Core;
 with Adi.SDL.Events;
 with Adi.Signal;
 with Adi.Text_Buffer;
 with Adi.Widget.Context_Menu;
-with Adi.Widget;                            use Adi.Widget;
 with Adi.Window;
 
 package Adi.Widget.Text_Input is

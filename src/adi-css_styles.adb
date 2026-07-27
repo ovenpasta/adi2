@@ -60,7 +60,7 @@ package body Adi.CSS_Styles is
    end record;
 
    Named_Color_RGB : constant array (Named_Color) of RGB_Entry :=
-     (
+     [
       Black => (R => 0, G => 0, B => 0),
       White => (R => 255, G => 255, B => 255),
       Red => (R => 255, G => 0, B => 0),
@@ -208,15 +208,17 @@ package body Adi.CSS_Styles is
       Transparent => (R => 0, G => 0, B => 0),
       Inherit => (R => 0, G => 0, B => 0),
       Current_Color => (R => 0, G => 0, B => 0)
-     );
+     ];
+
+   type Color_Name_Ref is access constant String;
 
    type Name_Entry is record
-      Name  : access constant String;
+      Name  : Color_Name_Ref;
       Value : Named_Color;
    end record;
 
    Named_Color_Name_Map : constant array (Positive range <>) of Name_Entry :=
-     (
+     [
       (Name => new String'("black"), Value => Black),
       (Name => new String'("silver"), Value => Silver),
       (Name => new String'("gray"), Value => Gray),
@@ -367,7 +369,7 @@ package body Adi.CSS_Styles is
       (Name => new String'("transparent"), Value => Transparent),
       (Name => new String'("inherit"), Value => Inherit),
       (Name => new String'("currentcolor"), Value => Current_Color)
-     );
+     ];
 
    function Is_Whitespace (C : Character) return Boolean is
      (C = ' ' or else C = ASCII.HT or else C = ASCII.LF or else C = ASCII.CR);

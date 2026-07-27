@@ -629,7 +629,7 @@ package body Adi.Widget.List_Box is
       if Cols > 1 and then N > 0 then
          --  Grid layout using Compute_Grid_Layout.
          declare
-            Ctx : Grid_Layout_Context :=
+            Ctx : constant Grid_Layout_Context :=
               (Container          => (X => 0.0, Y => 0.0,
                                       Width => Content.Width,
                                       Height => Content.Height),
@@ -880,9 +880,9 @@ package body Adi.Widget.List_Box is
       Ctrl  : constant Boolean := Is_Mod_Active (Key_Mod, SDL_KMOD_CTRL);
       Count : constant Natural := Natural (W.Rows.Length);
       Content : constant Rectangle := Main_Content_Box (W);
-      Avg_Row_H : Pixel_Type :=
+      Avg_Row_H : constant Pixel_Type :=
         (if Count > 0 then Get_Scroll_Content_Height (W) / Pixel_Type (Count) else Default_Row_Height);
-      Page_Rows : Integer :=
+      Page_Rows : constant Integer :=
         Integer'Max (1, Integer (Float (Content.Height / Pixel_Type'Max (1.0, Avg_Row_H))));
       Cols : constant Natural := Get_Grid_Cols (W);
    begin

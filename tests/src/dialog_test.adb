@@ -8,23 +8,9 @@ with Adi.Widget;           use Adi.Widget;
 with Adi.Widget.Button;
 with Adi.Widget.Dialog;    use Adi.Widget.Dialog;
 with Adi.Window;           use Adi.Window;
+with Test_Support;         use Test_Support;
 
 procedure Dialog_Test is
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-   Fail_Count : Natural := 0;
-
-   procedure Assert (Condition : Boolean; Message : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Condition then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Message);
-      else
-         Fail_Count := Fail_Count + 1;
-         Put_Line ("  [FAIL] " & Message);
-      end if;
-   end Assert;
 
    procedure Ensure_SDL_Initialized (Ready : out Boolean) is
       Ok     : Adi.SDL.C_bool;
@@ -83,7 +69,7 @@ procedure Dialog_Test is
       Btn : Widget_Handle;
       Ready : Boolean := False;
    begin
-      Put_Line ("-- Auto-close default (True) --");
+      Section ("Auto-close default (True)");
       Ensure_SDL_Initialized (Ready);
       if not Ready then
          Put_Line ("  [SKIP] SDL not available");
@@ -120,7 +106,7 @@ procedure Dialog_Test is
       Btn : Widget_Handle;
       Ready : Boolean := False;
    begin
-      Put_Line ("-- Auto-close False --");
+      Section ("Auto-close False");
       Ensure_SDL_Initialized (Ready);
       if not Ready then
          Put_Line ("  [SKIP] SDL not available");
@@ -161,7 +147,7 @@ procedure Dialog_Test is
       Btn : Widget_Handle;
       Ready : Boolean := False;
    begin
-      Put_Line ("-- Auto-close re-enabled --");
+      Section ("Auto-close re-enabled");
       Ensure_SDL_Initialized (Ready);
       if not Ready then
          Put_Line ("  [SKIP] SDL not available");
@@ -189,15 +175,10 @@ procedure Dialog_Test is
    end Test_Auto_Close_Re_Enable;
 
 begin
-   Put_Line ("=== Dialog Auto-Close Tests ===");
+   Start_Suite ("Dialog Auto-Close Tests");
    Test_Auto_Close_Default;
    Test_Auto_Close_False;
    Test_Auto_Close_Re_Enable;
 
-   Put_Line ("Results:" & Pass_Count'Image & " passed," &
-             Fail_Count'Image & " failed");
-   if Fail_Count > 0 then
-      raise Program_Error with "dialog_test FAILED";
-   end if;
-   Put_Line ("ALL TESTS PASSED");
+   Finish;
 end Dialog_Test;

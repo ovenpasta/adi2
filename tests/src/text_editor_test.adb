@@ -6,22 +6,9 @@ with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Text_Editor; use Adi.Widget.Text_Editor;
 with Adi.Widget.Context_Menu;
 with Adi.SDL.Events; use Adi.SDL.Events;
+with Test_Support;
 
 procedure Text_Editor_Test is
-
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-
-   procedure Assert (Cond : Boolean; Msg : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Cond then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Msg);
-      else
-         Put_Line ("  [FAIL] " & Msg);
-      end if;
-   end Assert;
 
    ---------------------------------------------------------------------------
    --  Buffer-level: Append_Text
@@ -40,11 +27,11 @@ procedure Text_Editor_Test is
          C_Before : constant Position := Get_Caret (B);
       begin
          Append_Text (B, " World");
-         Assert (Get_Text (B) = "Hello World",
+         Test_Support.Assert (Get_Text (B) = "Hello World",
                  "content is 'Hello World'");
-         Assert (Get_Caret (B) = C_Before,
+         Test_Support.Assert (Get_Caret (B) = C_Before,
                  "caret unchanged after append");
-         Assert (Content_Version (B) > V_Before,
+         Test_Support.Assert (Content_Version (B) > V_Before,
                  "content version incremented");
       end;
       New_Line;
@@ -59,11 +46,11 @@ procedure Text_Editor_Test is
       Insert_Text (B, "line1");
       Move_To_Start (B);
       Append_Text (B, LF & "line2" & LF & "line3");
-      Assert (Get_Line_Count (B) = 3, "3 lines after append");
-      Assert (Get_Line (B, 1) = "line1", "line 1 correct");
-      Assert (Get_Line (B, 2) = "line2", "line 2 correct");
-      Assert (Get_Line (B, 3) = "line3", "line 3 correct");
-      Assert (Get_Caret (B) = (Line => 1, Column => 0),
+      Test_Support.Assert (Get_Line_Count (B) = 3, "3 lines after append");
+      Test_Support.Assert (Get_Line (B, 1) = "line1", "line 1 correct");
+      Test_Support.Assert (Get_Line (B, 2) = "line2", "line 2 correct");
+      Test_Support.Assert (Get_Line (B, 3) = "line3", "line 3 correct");
+      Test_Support.Assert (Get_Caret (B) = (Line => 1, Column => 0),
               "caret still at start");
       New_Line;
    end Test_Append_Text_With_Newlines;
@@ -77,14 +64,14 @@ procedure Text_Editor_Test is
       --  Select "BCD" (caret at col 1, extend to col 4)
       Set_Caret (B, (Line => 1, Column => 1));
       Set_Caret (B, (Line => 1, Column => 4), Extend_Selection => True);
-      Assert (Has_Selection (B), "selection active before append");
-      Assert (Get_Selected_Text (B) = "BCD", "selected text is BCD");
+      Test_Support.Assert (Has_Selection (B), "selection active before append");
+      Test_Support.Assert (Get_Selected_Text (B) = "BCD", "selected text is BCD");
 
       Append_Text (B, "GHI");
-      Assert (Has_Selection (B), "selection still active after append");
-      Assert (Get_Selected_Text (B) = "BCD",
+      Test_Support.Assert (Has_Selection (B), "selection still active after append");
+      Test_Support.Assert (Get_Selected_Text (B) = "BCD",
               "selected text unchanged after append");
-      Assert (Get_Text (B) = "ABCDEFGHI", "full text correct");
+      Test_Support.Assert (Get_Text (B) = "ABCDEFGHI", "full text correct");
       New_Line;
    end Test_Append_Text_Preserves_Selection;
 
@@ -105,15 +92,15 @@ procedure Text_Editor_Test is
       end;
 
       Append_Text (B, " extra");
-      Assert (Get_Text (B) = "base extra", "text after append");
-      Assert (Can_Undo (B), "can undo after append");
+      Test_Support.Assert (Get_Text (B) = "base extra", "text after append");
+      Test_Support.Assert (Can_Undo (B), "can undo after append");
 
       declare
          Dummy : Boolean;
       begin
          Dummy := Undo (B);
       end;
-      Assert (Get_Text (B) = "base", "undo restores pre-append text");
+      Test_Support.Assert (Get_Text (B) = "base", "undo restores pre-append text");
       New_Line;
    end Test_Append_Text_Is_Undoable;
 
@@ -124,8 +111,8 @@ procedure Text_Editor_Test is
       --  Fresh buffer (no Clear — Clear records undo)
       Append_Text (B, "base", Record_Undo => False);
       Append_Text (B, " log", Record_Undo => False);
-      Assert (Get_Text (B) = "base log", "text after no-undo append");
-      Assert (not Can_Undo (B),
+      Test_Support.Assert (Get_Text (B) = "base log", "text after no-undo append");
+      Test_Support.Assert (not Can_Undo (B),
               "no undo after append with Record_Undo => False");
       New_Line;
    end Test_Append_Text_No_Undo;
@@ -136,14 +123,14 @@ procedure Text_Editor_Test is
       Put_Line ("Test: Append_Text no-undo clears stale redo");
       --  Set up: insert text, then undo so redo is available
       Insert_Text (B, "hello");
-      Assert (Can_Undo (B), "can undo after insert");
+      Test_Support.Assert (Can_Undo (B), "can undo after insert");
       declare
          Dummy : Boolean;
       begin
          Dummy := Undo (B);
       end;
-      Assert (Get_Text (B) = "", "text empty after undo");
-      Assert (Can_Redo (B), "redo available after undo");
+      Test_Support.Assert (Get_Text (B) = "", "text empty after undo");
+      Test_Support.Assert (Can_Redo (B), "redo available after undo");
 
       --  Redo to restore, then undo again to get redo back
       declare
@@ -151,18 +138,18 @@ procedure Text_Editor_Test is
       begin
          Dummy := Redo (B);
       end;
-      Assert (Get_Text (B) = "hello", "text restored after redo");
+      Test_Support.Assert (Get_Text (B) = "hello", "text restored after redo");
       declare
          Dummy : Boolean;
       begin
          Dummy := Undo (B);
       end;
-      Assert (Can_Redo (B), "redo available before append");
+      Test_Support.Assert (Can_Redo (B), "redo available before append");
 
       --  Append with Record_Undo => False — must invalidate stale redo
       Append_Text (B, " world", Record_Undo => False);
-      Assert (Get_Text (B) = " world", "appended to empty buffer");
-      Assert (not Can_Redo (B),
+      Test_Support.Assert (Get_Text (B) = " world", "appended to empty buffer");
+      Test_Support.Assert (not Can_Redo (B),
               "redo cleared after no-undo append");
       New_Line;
    end Test_Append_No_Undo_Clears_Redo;
@@ -175,11 +162,11 @@ procedure Text_Editor_Test is
       W : constant Text_Editor_Handle := Create_Handle ("test");
    begin
       Put_Line ("Test: Read-only default");
-      Assert (not Is_Read_Only (W), "read-only is false by default");
+      Test_Support.Assert (not Is_Read_Only (W), "read-only is false by default");
       Set_Read_Only (W, True);
-      Assert (Is_Read_Only (W), "read-only is true after set");
+      Test_Support.Assert (Is_Read_Only (W), "read-only is true after set");
       Set_Read_Only (W, False);
-      Assert (not Is_Read_Only (W), "read-only is false after unset");
+      Test_Support.Assert (not Is_Read_Only (W), "read-only is false after unset");
       New_Line;
    end Test_Read_Only_Default;
 
@@ -189,7 +176,7 @@ procedure Text_Editor_Test is
       Put_Line ("Test: Read-only blocks On_Text_Input");
       Set_Read_Only (W, True);
       On_Text_Input (+W, "xyz");
-      Assert (Get_Text (W) = "hello",
+      Test_Support.Assert (Get_Text (W) = "hello",
               "text unchanged after On_Text_Input in read-only");
       New_Line;
    end Test_Read_Only_Blocks_Text_Input;
@@ -202,36 +189,36 @@ procedure Text_Editor_Test is
 
       --  Backspace
       On_Key_Down (+W, SDL_SCANCODE_BACKSPACE, 0, False);
-      Assert (Get_Text (W) = "hello", "backspace blocked");
+      Test_Support.Assert (Get_Text (W) = "hello", "backspace blocked");
 
       --  Delete
       On_Key_Down (+W, SDL_SCANCODE_DELETE, 0, False);
-      Assert (Get_Text (W) = "hello", "delete blocked");
+      Test_Support.Assert (Get_Text (W) = "hello", "delete blocked");
 
       --  Return
       On_Key_Down (+W, SDL_SCANCODE_RETURN, 0, False);
-      Assert (Get_Text (W) = "hello", "return blocked");
+      Test_Support.Assert (Get_Text (W) = "hello", "return blocked");
 
       --  Tab
       On_Key_Down (+W, SDL_SCANCODE_TAB, 0, False);
-      Assert (Get_Text (W) = "hello", "tab blocked");
+      Test_Support.Assert (Get_Text (W) = "hello", "tab blocked");
 
       --  Ctrl+V (paste) — may be a no-op if clipboard is empty, but
       --  should not modify text regardless
       On_Key_Down (+W, SDL_SCANCODE_V, SDL_KMOD_CTRL, False);
-      Assert (Get_Text (W) = "hello", "ctrl+v blocked");
+      Test_Support.Assert (Get_Text (W) = "hello", "ctrl+v blocked");
 
       --  Ctrl+Z (undo)
       On_Key_Down (+W, SDL_SCANCODE_Z, SDL_KMOD_CTRL, False);
-      Assert (Get_Text (W) = "hello", "ctrl+z blocked");
+      Test_Support.Assert (Get_Text (W) = "hello", "ctrl+z blocked");
 
       --  Ctrl+Y (redo)
       On_Key_Down (+W, SDL_SCANCODE_Y, SDL_KMOD_CTRL, False);
-      Assert (Get_Text (W) = "hello", "ctrl+y blocked");
+      Test_Support.Assert (Get_Text (W) = "hello", "ctrl+y blocked");
 
       --  Ctrl+X (cut)
       On_Key_Down (+W, SDL_SCANCODE_X, SDL_KMOD_CTRL, False);
-      Assert (Get_Text (W) = "hello", "ctrl+x blocked");
+      Test_Support.Assert (Get_Text (W) = "hello", "ctrl+x blocked");
       New_Line;
    end Test_Read_Only_Blocks_Editing_Keys;
 
@@ -248,12 +235,12 @@ procedure Text_Editor_Test is
       --  We can't directly access W.Buffer from here, so check via
       --  Ctrl+A (select all) + verify it doesn't crash
       On_Key_Down (+W, SDL_SCANCODE_A, SDL_KMOD_CTRL, False);
-      Assert (Get_Text (W) = "hello",
+      Test_Support.Assert (Get_Text (W) = "hello",
               "navigation + select all works in read-only");
 
       --  Ctrl+C (copy) should not crash or modify
       On_Key_Down (+W, SDL_SCANCODE_C, SDL_KMOD_CTRL, False);
-      Assert (Get_Text (W) = "hello",
+      Test_Support.Assert (Get_Text (W) = "hello",
               "ctrl+c works in read-only");
       New_Line;
    end Test_Read_Only_Allows_Navigation;
@@ -271,19 +258,19 @@ procedure Text_Editor_Test is
       Add_Item (Menu, "Redo");
       Add_Item (Menu, "Copy");
 
-      Assert (not Is_Item_Disabled (Menu, 1),
+      Test_Support.Assert (not Is_Item_Disabled (Menu, 1),
               "item 1 enabled by default");
-      Assert (not Is_Item_Disabled (Menu, 2),
+      Test_Support.Assert (not Is_Item_Disabled (Menu, 2),
               "item 2 enabled by default");
 
       Set_Item_Disabled (Menu, 1, True);
-      Assert (Is_Item_Disabled (Menu, 1),
+      Test_Support.Assert (Is_Item_Disabled (Menu, 1),
               "item 1 disabled after set");
-      Assert (not Is_Item_Disabled (Menu, 2),
+      Test_Support.Assert (not Is_Item_Disabled (Menu, 2),
               "item 2 still enabled");
 
       Set_Item_Disabled (Menu, 1, False);
-      Assert (not Is_Item_Disabled (Menu, 1),
+      Test_Support.Assert (not Is_Item_Disabled (Menu, 1),
               "item 1 re-enabled");
       New_Line;
    end Test_Context_Menu_Disabled_State;
@@ -304,8 +291,5 @@ begin
    Test_Read_Only_Allows_Navigation;
    Test_Context_Menu_Disabled_State;
 
-   Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");
-   if Pass_Count /= Test_Count then
-      raise Program_Error with "text editor test failed";
-   end if;
+   Test_Support.Finish;
 end Text_Editor_Test;

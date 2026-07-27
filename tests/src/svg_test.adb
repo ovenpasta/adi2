@@ -8,6 +8,7 @@ with Adi.Image;
 with Adi.SDL;
 with Adi.SVG;
 with Interfaces;
+with Test_Support;
 
 procedure Svg_Test is
    use type Adi.Core.Pixel_Type;
@@ -43,9 +44,6 @@ procedure Svg_Test is
    Strict_AA_Expected : constant Boolean :=
      (if Is_Ada_Backend then Effective_AA_Scale > 1 else True);
 
-   Test_Count : Natural := 0;
-   Pass_Count : Natural := 0;
-
    procedure Free_Pixels is
      new Ada.Unchecked_Deallocation (Adi.SVG.Pixel_Buffer, Adi.SVG.Pixel_Buffer_Access);
    procedure Free_Document is
@@ -53,16 +51,8 @@ procedure Svg_Test is
    procedure Free_Image is
      new Ada.Unchecked_Deallocation (Adi.Image.Image'Class, Adi.Image.Image_Access);
 
-   procedure Assert (Cond : Boolean; Msg : String) is
-   begin
-      Test_Count := Test_Count + 1;
-      if Cond then
-         Pass_Count := Pass_Count + 1;
-         Put_Line ("  [PASS] " & Msg);
-      else
-         Put_Line ("  [FAIL] " & Msg);
-      end if;
-   end Assert;
+   procedure Assert (Cond : Boolean; Msg : String)
+     renames Test_Support.Assert;
 
    procedure Assert_If_Ada (Cond : Boolean; Msg : String) is
    begin
@@ -876,8 +866,5 @@ begin
    Test_Root_ViewBox_Preserve_Aspect;
    Test_Complex_SVG_Rendering;
 
-   Put_Line ("Summary: " & Pass_Count'Image & "/" & Test_Count'Image & " passing");
-   if Pass_Count /= Test_Count then
-      raise Program_Error with "svg test failed";
-   end if;
+   Test_Support.Finish;
 end Svg_Test;

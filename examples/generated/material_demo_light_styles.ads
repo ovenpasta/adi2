@@ -294,6 +294,12 @@ package Material_Demo_Light_Styles is
       Align_Self => Set (Center),
       others => <>);
 
+   --  Base style for class 'btn'
+   function Btn_Class_Base_Style return Style_Rules is
+     (
+      Min_Height => Set (Size (Dip (44.0))),
+      others => <>);
+
    --  Base style for class 'btn-primary'
    function Btn_Primary_Class_Base_Style return Style_Rules is
      (
@@ -1163,6 +1169,18 @@ package Material_Demo_Light_Styles is
    function Grid_Cell_Class_Part_Styles return Part_Style_Array is
      ([
       Main_Part => (Style => Grid_Cell_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'btn'
+   function Btn_Class_Widget return Widget_Style is
+     (From (Btn_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'btn'
+   function Btn_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Btn_Class_Widget, Enabled => True),
       others => <>
    ]);
 

@@ -293,6 +293,7 @@ package Material_Demo_Styles is
       Justify_Content => Set (Center),
       Align_Items => Set (Center),
       Height => Set (Size (Dip (44.0))),
+      Min_Height => Set (Size (Dip (44.0))),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Dip (0.0), Dip (24.0), Dip (0.0), Dip (24.0))),

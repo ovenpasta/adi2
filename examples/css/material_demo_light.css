@@ -232,6 +232,12 @@
 
 /* ── Buttons ─────────────────────────────────── */
 
+.btn::main {
+  /* Flex items shrink by default; without a floor the declared height
+     collapses in a cramped column and the label overflows the pill. */
+  min-height: var(--control-height);
+}
+
 .btn-primary::main {
   display: inline-flex;
   justify-content: center;

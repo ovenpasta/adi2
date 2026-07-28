@@ -308,7 +308,7 @@ package body Material_Demo_UI is
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
-        Adi.Window.Create_Window_Handle ("Material Demo", (800.0, 600.0));
+        Adi.Window.Create_Window_Handle ("Material Demo", (900.0, 720.0));
       Box_1 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_2 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_3 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;

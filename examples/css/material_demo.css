@@ -227,6 +227,9 @@
   justify-content: center;
   align-items: center;
   height: var(--control-height);
+  /* Flex items shrink by default; without a floor the declared height
+     collapses in a cramped column and the label overflows the pill. */
+  min-height: var(--control-height);
   padding: 0dp var(--space-6);
   border-radius: var(--radius-pill);
   cursor: pointer;

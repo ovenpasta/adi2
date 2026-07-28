@@ -502,12 +502,15 @@ package body Adi.Widget is
    --  clip we could not read ends in a null restore that drops the
    --  caller's clip entirely.
    --
-   --  Content is always drawn, clipped or not. There is no useful
-   --  fallback to design here, because these calls fail only on an
-   --  invalid renderer and such a renderer fails the draw calls too —
-   --  dropping the content and drawing it unclipped look identical on
-   --  screen. What matters is not swallowing the error, so every failure
-   --  goes through Report_Clip_Failure.
+   --  Content is always drawn, clipped or not. That is a deliberate
+   --  choice, not a claim that the failure is harmless: SDL only
+   --  promises false-on-failure and does not say the renderer is
+   --  unusable, so the draw may well succeed and overflow its widget.
+   --  Drawing it makes the fault visible on screen; dropping the content
+   --  would leave a silent gap with nothing to trace back. Every failure
+   --  also goes through Report_Clip_Failure, though note that Adi.Log is
+   --  a no-op outside development builds, so on a release build the
+   --  overflow itself is the only signal.
    ---------------------------------------------------------------------------
 
    --  Which clip call failed, and which rendering path it served. Both
@@ -535,8 +538,9 @@ package body Adi.Widget is
       Rect     : access Adi.SDL.SDL_Rect;
       Site     : Clip_Site) return Boolean;
 
-   --  For callers that draw whether or not the clip took: the failure is
-   --  already reported, and there is nothing further for them to decide.
+   --  For callers that draw whether or not the clip took. They cannot
+   --  act on the result: skipping the content would hide the fault
+   --  rather than fix it, so they let it render and overflow visibly.
    procedure Set_Clip
      (Renderer : SDL_Renderer_Ptr;
       Rect     : access Adi.SDL.SDL_Rect;
@@ -623,8 +627,8 @@ package body Adi.Widget is
         ("Adi.Widget: renderer clip " & Clip_Op'Image (Op)
          & " failed in " & Clip_Site'Image (Site) & ": "
          & Interfaces.C.Strings.Value (Adi.SDL.SDL_GetError)
-         & ". The renderer is invalid; drawing will fail too. Later "
-         & "clip failures are not reported.");
+         & ". Affected content is drawn without its clip and may "
+         & "overflow its widget. Later clip failures are not reported.");
    end Report_Clip_Failure;
 
    ---------------------------------------------------------------------------

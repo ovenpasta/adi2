@@ -498,11 +498,16 @@ package body Adi.Widget is
    --    Saved        that rectangle was successfully read into Prev.
    --
    --  Replacing is only safe when there was nothing to lose
-   --  (not Was_Enabled) or when we can put it back (Saved). If a clip is
-   --  active but unreadable, leaving it alone renders content clipped to
-   --  the caller's region — narrower than intended, but correct —
-   --  whereas replacing it would end with a null restore that silently
-   --  drops the caller's clip entirely.
+   --  (not Was_Enabled) or when we can put it back (Saved): replacing a
+   --  clip we could not read ends in a null restore that drops the
+   --  caller's clip entirely.
+   --
+   --  Content is always drawn, clipped or not. There is no useful
+   --  fallback to design here, because these calls fail only on an
+   --  invalid renderer and such a renderer fails the draw calls too —
+   --  dropping the content and drawing it unclipped look identical on
+   --  screen. What matters is not swallowing the error, so every failure
+   --  goes through Report_Clip_Failure.
    ---------------------------------------------------------------------------
 
    procedure Save_Clip
@@ -514,10 +519,32 @@ package body Adi.Widget is
    function Can_Replace_Clip (Was_Enabled, Saved : Boolean) return Boolean is
      (not Was_Enabled or else Saved);
 
+   --  The clip operation that failed, for the diagnostic.
+   type Clip_Site is
+     (Save,
+      Restore,
+      Gradient_Rect,
+      Text_Item,
+      Image_Item,
+      Item_List,
+      Widget_Tree);
+
+   --  Narrow the clip to Rect. Site names the caller in the log if SDL
+   --  rejects it; the caller draws either way.
+   procedure Set_Clip
+     (Renderer : SDL_Renderer_Ptr;
+      Rect     : access Adi.SDL.SDL_Rect;
+      Site     : Clip_Site);
+
    procedure Restore_Clip
      (Renderer : SDL_Renderer_Ptr;
       Prev     : access Adi.SDL.SDL_Rect;
       Saved    : Boolean);
+
+   --  Report the first renderer clip failure. A broken renderer fails
+   --  every frame, so only the first is logged. Called by the three
+   --  operations above, never by their callers.
+   procedure Report_Clip_Failure (Site : Clip_Site);
 
    procedure Save_Clip
      (Renderer    : SDL_Renderer_Ptr;
@@ -529,21 +556,53 @@ package body Adi.Widget is
       Was_Enabled := Boolean (SDL_RenderClipEnabled (Renderer));
       Saved :=
         Was_Enabled and then Boolean (SDL_GetRenderClipRect (Renderer, Prev));
+      if Was_Enabled and then not Saved then
+         Report_Clip_Failure (Save);
+      end if;
    end Save_Clip;
+
+   procedure Set_Clip
+     (Renderer : SDL_Renderer_Ptr;
+      Rect     : access Adi.SDL.SDL_Rect;
+      Site     : Clip_Site) is
+   begin
+      if not Boolean (SDL_SetRenderClipRect (Renderer, Rect)) then
+         Report_Clip_Failure (Site);
+      end if;
+   end Set_Clip;
 
    procedure Restore_Clip
      (Renderer : SDL_Renderer_Ptr;
       Prev     : access Adi.SDL.SDL_Rect;
       Saved    : Boolean)
    is
-      Unused : Adi.SDL.C_bool;
+      Ok : Adi.SDL.C_bool;
    begin
       if Saved then
-         Unused := SDL_SetRenderClipRect (Renderer, Prev);
+         Ok := SDL_SetRenderClipRect (Renderer, Prev);
       else
-         Unused := SDL_SetRenderClipRect (Renderer, null);
+         Ok := SDL_SetRenderClipRect (Renderer, null);
+      end if;
+      if not Boolean (Ok) then
+         Report_Clip_Failure (Restore);
       end if;
    end Restore_Clip;
+
+   Clip_Failure_Reported : Boolean := False;
+
+   procedure Report_Clip_Failure (Site : Clip_Site) is
+   begin
+      if Clip_Failure_Reported then
+         return;
+      end if;
+      Clip_Failure_Reported := True;
+      Adi.Log.Error
+        ("Adi.Widget: renderer clip operation failed at "
+         & Clip_Site'Image (Site) & ": "
+         & Interfaces.C.Strings.Value (Adi.SDL.SDL_GetError)
+         & ". The renderer is invalid; drawing will fail too. Later "
+         & "clip failures are not reported.");
+   end Report_Clip_Failure;
 
    ---------------------------------------------------------------------------
    --  Generate_Shadow_Texture
@@ -4114,18 +4173,13 @@ package body Adi.Widget is
 
       --  Set clip rect to contain strips within the widget bounds
       Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved);
-      if not Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved) then
-         return;
-      end if;
-
-      Clip := (x => int (Float'Floor (Rect.x)),
-               y => int (Float'Floor (Rect.y)),
-               w => int (Float'Ceiling (Rect.w)),
-               h => int (Float'Ceiling (Rect.h)));
-      Clip_Replaced := Boolean (SDL_SetRenderClipRect (Renderer, Clip'Access));
-      if not Clip_Replaced then
-         Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved);
-         return;
+      Clip_Replaced := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
+      if Clip_Replaced then
+         Clip := (x => int (Float'Floor (Rect.x)),
+                  y => int (Float'Floor (Rect.y)),
+                  w => int (Float'Ceiling (Rect.w)),
+                  h => int (Float'Ceiling (Rect.h)));
+         Set_Clip (Renderer, Clip'Access, Gradient_Rect);
       end if;
 
       --  Solid band before the first stop (CSS spec: first color extends back)
@@ -5360,12 +5414,10 @@ package body Adi.Widget is
       --  Clip text to item bounds to prevent overflow bleed.
       if Use_Clip then
          Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved);
-         if not Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved) then
-            return;
-         end if;
+         Clip_Replaced := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
       end if;
 
-      if Use_Clip then
+      if Clip_Replaced then
          X1 := Integer (Float'Floor (Float (Geom.X)));
          Y1 := Integer (Float'Floor (Float (Geom.Y)));
          X2 := X1 + Integer (Float'Ceiling (Float (Geom.Width)));
@@ -5388,12 +5440,7 @@ package body Adi.Widget is
             y => int (Y1),
             w => int (X2 - X1),
             h => int (Y2 - Y1));
-         Clip_Replaced :=
-           Boolean (SDL_SetRenderClipRect (Renderer, Clip_Rect'Access));
-         if not Clip_Replaced then
-            Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved);
-            return;
-         end if;
+         Set_Clip (Renderer, Clip_Rect'Access, Text_Item);
       end if;
 
       --  Draw the text (snap to integer pixels to avoid sub-pixel blurring)
@@ -5899,12 +5946,10 @@ package body Adi.Widget is
       --  images are cropped instead of bleeding outside the widget viewport.
       if Use_Clip then
          Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved);
-         if not Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved) then
-            return;
-         end if;
+         Clip_Replaced := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
       end if;
 
-      if Use_Clip then
+      if Clip_Replaced then
          X1 := Integer (Float'Floor (Float (Geom.X)));
          Y1 := Integer (Float'Floor (Float (Geom.Y)));
          X2 := X1 + Integer (Float'Ceiling (Float (Geom.Width)));
@@ -5927,12 +5972,7 @@ package body Adi.Widget is
             y => int (Y1),
             w => int (X2 - X1),
             h => int (Y2 - Y1));
-         Clip_Replaced :=
-           Boolean (SDL_SetRenderClipRect (Renderer, Clip_Rect'Access));
-         if not Clip_Replaced then
-            Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved);
-            return;
-         end if;
+         Set_Clip (Renderer, Clip_Rect'Access, Image_Item);
       end if;
 
       --  For modes where the image may not fill the container (Contain,
@@ -6087,9 +6127,10 @@ package body Adi.Widget is
       Clip_Rect : aliased Adi.SDL.SDL_Rect;
       Clip_Was_Enabled : Boolean := False;
       Clip_Saved       : Boolean := False;
-      Content_Clip_Required : Boolean := False;
+      Use_Clip  : Boolean := False;
       Clip_Valid : Boolean := False;
       Clip_Active : Boolean := False;
+      Unused : Adi.SDL.C_bool;
 
       procedure Restore_Previous_Clip is
       begin
@@ -6101,39 +6142,29 @@ package body Adi.Widget is
          Clip_Active := False;
       end Restore_Previous_Clip;
 
-      function Prepare_Item_Clip (Need_Clip : Boolean) return Boolean is
+      procedure Set_Item_Clip (Need_Clip : Boolean) is
       begin
-         if not Content_Clip_Required then
-            return True;
+         if not Use_Clip or else Renderer = null then
+            return;
          end if;
 
-         if Need_Clip then
-            if not Clip_Valid then
-               return False;
-            end if;
-
-            if not Clip_Active then
-               if not Boolean
-                 (SDL_SetRenderClipRect (Renderer, Clip_Rect'Access))
-               then
-                  Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved);
-                  return False;
-               end if;
+         if Need_Clip and then not Clip_Active then
+            if Clip_Valid then
+               Set_Clip (Renderer, Clip_Rect'Access, Item_List);
                Clip_Active := True;
             end if;
-         elsif Clip_Active then
+         elsif not Need_Clip and then Clip_Active then
             Restore_Previous_Clip;
          end if;
-         return True;
-      end Prepare_Item_Clip;
+      end Set_Item_Clip;
    begin
       if Renderer /= null and then (Clip_X or else Clip_Y or else Clip_By_Scrollable) then
-         Content_Clip_Required := True;
          if Has_Visible_Area (Content) then
             Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved);
-            --  If an active caller clip cannot be saved, leave it untouched
-            --  and omit item content that requires a narrower clip.
-            Clip_Valid := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved)
+            --  An unsaveable clip stays untouched; items then render
+            --  within the caller's clip instead of a narrower one.
+            Use_Clip := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
+            Clip_Valid := Use_Clip
               and then Build_Content_Clip_Rect (
                 Renderer  => Renderer,
                 Content   => Content,
@@ -6150,16 +6181,20 @@ package body Adi.Widget is
             Current : Item renames W.Items.Reference (I).Element.all;
             Style   : Resolved_Style renames Current.Computed_Style;
             Need_Item_Clip : constant Boolean :=
-              Content_Clip_Required and then not
+              Use_Clip and then not
                 (Current.Kind = Panel_Item and then Current.Part = Main_Part);
             Scroll_Shift : constant Pixel_Type := Pixel_Type (Get_Scroll_Y (Ctx));
          begin
             --  Temporarily apply scroll offset for rendering
             Current.Geometry.Y := Current.Geometry.Y + Scroll_Shift;
 
-            if not Item_Is_Rendered (Style) then
+            if Need_Item_Clip and then not Clip_Valid then
                null;
-            elsif Prepare_Item_Clip (Need_Item_Clip) then
+            elsif not Item_Is_Rendered (Style) then
+               null;
+            else
+               Set_Item_Clip (Need_Item_Clip);
+
                case Current.Kind is
                   when Panel_Item =>
                      if Style.Box_Shadow /= No_Shadow then
@@ -6231,6 +6266,7 @@ package body Adi.Widget is
       Clip_Saved       : Boolean := False;
       Use_Clip   : Boolean := False;
       Skip_Children : Boolean := False;
+      Unused    : Adi.SDL.C_bool;
    begin
       if not Widget_Participates (W) then
          return;
@@ -6283,8 +6319,8 @@ package body Adi.Widget is
                else
                   Save_Clip
                     (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved);
-                  --  If an active caller clip cannot be saved, leave it
-                  --  untouched and omit the subtree that requires narrowing.
+                  --  An unsaveable clip stays untouched; the subtree then
+                  --  renders within the caller's clip instead.
                   Use_Clip := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
                   if Use_Clip and then Build_Content_Clip_Rect (
                      Renderer  => Renderer,
@@ -6295,15 +6331,7 @@ package body Adi.Widget is
                      Prev_Clip => Prev_Clip,
                      Out_Clip  => Clip_Rect)
                   then
-                     Use_Clip :=
-                       Boolean
-                         (SDL_SetRenderClipRect
-                            (Renderer, Clip_Rect'Access));
-                     Skip_Children := not Use_Clip;
-                     if not Use_Clip then
-                        Restore_Clip
-                          (Renderer, Prev_Clip'Access, Clip_Saved);
-                     end if;
+                     Set_Clip (Renderer, Clip_Rect'Access, Widget_Tree);
                   else
                      Use_Clip := False;
                      Skip_Children := True;

@@ -177,6 +177,10 @@ The Python client enforces single-flight per PID (one in-flight command per app)
 
 - `No running Adi application found`:
   Confirm the app called `Adi.MCP.Initialize` and is running in development profile.
+- `Multiple running Adi applications found (PIDs: ...)`:
+  Auto-discovery does not guess between live applications, because the
+  most recently active one is not necessarily the one you mean. Re-run
+  targeting a specific process with `--pid <PID>`.
 - Timeouts:
   Check that the app is still alive and rendering frames.
 - Mismatched directories:

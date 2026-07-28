@@ -108,8 +108,18 @@ def find_mcp_dir(pid: int | None = None) -> Path:
             "No running Adi application found. "
             "Start your app with Adi.MCP.Initialize enabled."
         )
-    # Use the most recently modified one
-    live.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+
+    if len(live) > 1:
+        #  Picking the most recently modified one silently targets
+        #  whichever app rendered last, which is not necessarily the one
+        #  the caller meant. Make the ambiguity explicit instead.
+        pids = sorted(int(p.parent.name) for p in live)
+        raise RuntimeError(
+            "Multiple running Adi applications found (PIDs: "
+            + ", ".join(str(x) for x in pids)
+            + "). Select one with --pid <PID>."
+        )
+
     return live[0].parent
 
 

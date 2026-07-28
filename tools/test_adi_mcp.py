@@ -53,6 +53,60 @@ class TestFindMcpDir(unittest.TestCase):
                     adi_mcp_server.find_mcp_dir()
                 self.assertIn("No running Adi application", str(ctx.exception))
 
+    def test_auto_discover_single_app(self):
+        """Auto-discovery selects the only live application."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            parent = Path(tmpdir) / ".adi_mcp"
+            parent.mkdir()
+            pid = os.getpid()
+            mcp_dir = parent / str(pid)
+            mcp_dir.mkdir()
+            (mcp_dir / "ready").write_text(str(pid))
+
+            with patch.object(adi_mcp_server, 'MCP_DIR_PARENT', parent):
+                self.assertEqual(adi_mcp_server.find_mcp_dir(), mcp_dir)
+
+    def test_auto_discover_multiple_apps_is_ambiguous(self):
+        """Refuses to guess between several live applications.
+
+        Silently picking the most recently modified directory targets
+        whichever app rendered last, not the one the caller meant.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            parent = Path(tmpdir) / ".adi_mcp"
+            parent.mkdir()
+            #  Two directories that both look alive: this process, and
+            #  its parent, which is necessarily running too.
+            pids = [os.getpid(), os.getppid()]
+            for pid in pids:
+                mcp_dir = parent / str(pid)
+                mcp_dir.mkdir()
+                (mcp_dir / "ready").write_text(str(pid))
+
+            with patch.object(adi_mcp_server, 'MCP_DIR_PARENT', parent):
+                with self.assertRaises(RuntimeError) as ctx:
+                    adi_mcp_server.find_mcp_dir()
+                message = str(ctx.exception)
+                self.assertIn("Multiple running Adi applications", message)
+                self.assertIn("--pid", message)
+                for pid in pids:
+                    self.assertIn(str(pid), message)
+
+    def test_explicit_pid_wins_over_ambiguity(self):
+        """An explicit --pid still resolves when several apps are live."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            parent = Path(tmpdir) / ".adi_mcp"
+            parent.mkdir()
+            pids = [os.getpid(), os.getppid()]
+            for pid in pids:
+                mcp_dir = parent / str(pid)
+                mcp_dir.mkdir()
+                (mcp_dir / "ready").write_text(str(pid))
+
+            with patch.object(adi_mcp_server, 'MCP_DIR_PARENT', parent):
+                result = adi_mcp_server.find_mcp_dir(pid=pids[0])
+                self.assertEqual(result, parent / str(pids[0]))
+
 
 class TestSendCommand(unittest.TestCase):
     """Tests for the IPC send/receive protocol."""

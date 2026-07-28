@@ -991,5 +991,147 @@ begin
    end;
 
    Ada.Text_IO.New_Line;
+
+   --  Automatic minimum size of flex items (CSS Flexbox 4.5).
+   --
+   --  A flex item may not be squeezed below its content-based minimum:
+   --  min (specified size suggestion, min-content size). Adi contributes
+   --  no intrinsic *height* for text (Label's Get_Min_Size returns the
+   --  CSS min-height and an intrinsic width only), so a cramped column
+   --  crushes labels to nothing and the text spills out of its box.
+   --
+   --  Expectations are measured from the widget rather than hard-coded,
+   --  so they hold across fonts and DPI. For a single-line nowrap label
+   --  the min-content height is its preferred height.
+   declare
+      Probe : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle ("Hello");
+      Nowrap_Style : constant Style_Rules :=
+         (Text_Wrap_Mode => Set (TWM_Nowrap), others => <>);
+      Nowrap_WS    : constant Widget_Style := From (Nowrap_Style).Build;
+      Nowrap_Parts : constant Part_Style_Array :=
+         [Main_Part => (Style => Nowrap_WS, Enabled => True),
+          others    => <>];
+      Line_H : Pixel_Type;
+
+      function Column_Style (Scrolls : Boolean) return Part_Style_Array is
+         Base : constant Style_Rules :=
+           (Display        => Set (Flex),
+            Flex_Direction => Set (Adi.CSS_Styles.Column),
+            others         => <>);
+         Scroll_Rules : constant Style_Rules :=
+           (Display        => Set (Flex),
+            Flex_Direction => Set (Adi.CSS_Styles.Column),
+            Overflow_Y     => Set (Overflow_Auto),
+            others         => <>);
+         WS : constant Widget_Style :=
+           From (if Scrolls then Scroll_Rules else Base).Build;
+      begin
+         return [Main_Part => (Style => WS, Enabled => True), others => <>];
+      end Column_Style;
+
+      --  Lay two nowrap labels out in a column far too short for them
+      --  and report the height each one ended up with.
+      function Squeezed_Label_Height (Scrolls : Boolean) return Pixel_Type is
+         Col : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+         A   : constant Widget_Handle :=
+            +Adi.Widget.Label.Create_Handle ("Hello");
+         B   : constant Widget_Handle :=
+            +Adi.Widget.Label.Create_Handle ("World");
+      begin
+         Set_Part_Styles (Col, Column_Style (Scrolls));
+         Set_Part_Styles (A, Nowrap_Parts);
+         Set_Part_Styles (B, Nowrap_Parts);
+         Add_Child (Col, A);
+         Add_Child (Col, B);
+         Set_Geometry
+            (Col, (X => 0.0, Y => 0.0, Width => 200.0, Height => 10.0));
+         Layout (Col);
+         return Get_Geometry (A).Height;
+      end Squeezed_Label_Height;
+
+      Clipping_H  : Pixel_Type;
+      Scrolling_H : Pixel_Type;
+   begin
+      Set_Part_Styles (Probe, Nowrap_Parts);
+      Line_H := Get_Preferred_Size (Probe).Height;
+
+      Clipping_H  := Squeezed_Label_Height (Scrolls => False);
+      Scrolling_H := Squeezed_Label_Height (Scrolls => True);
+
+      Ada.Text_IO.Put_Line
+         ("  Label min-content height=" & Pixel_Type'Image (Line_H)
+          & " squeezed: clipping=" & Pixel_Type'Image (Clipping_H)
+          & " scrolling=" & Pixel_Type'Image (Scrolling_H));
+
+      Test_Support.Assert
+         (Clipping_H >= Line_H - 0.001,
+          "flex item is not squeezed below its min-content height");
+
+      --  The automatic minimum is a property of the item, so whether the
+      --  container scrolls must not change it.
+      Test_Support.Assert
+         (abs (Scrolling_H - Clipping_H) <= 0.001,
+          "container overflow does not change an item's automatic minimum");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  Guards against over-correcting the above: the automatic minimum is
+   --  capped by the specified size, so a declared height is a flex base,
+   --  not a floor. Only min-height is a floor.
+   declare
+      Col : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Sized     : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle ("Hi");
+      Floored   : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle ("Hi");
+
+      Col_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          others         => <>);
+      Col_WS    : constant Widget_Style := From (Col_Style).Build;
+      Col_Parts : constant Part_Style_Array :=
+         [Main_Part => (Style => Col_WS, Enabled => True), others => <>];
+
+      --  height: 200px — a flex base, shrinkable toward min-content.
+      Sized_Style : constant Style_Rules :=
+         (Height => Set (Size (Px (200.0))), others => <>);
+      Sized_WS    : constant Widget_Style := From (Sized_Style).Build;
+      Sized_Parts : constant Part_Style_Array :=
+         [Main_Part => (Style => Sized_WS, Enabled => True), others => <>];
+
+      --  min-height: 60px — an actual floor.
+      Floored_Style : constant Style_Rules :=
+         (Min_Height => Set (Size (Px (60.0))), others => <>);
+      Floored_WS    : constant Widget_Style := From (Floored_Style).Build;
+      Floored_Parts : constant Part_Style_Array :=
+         [Main_Part => (Style => Floored_WS, Enabled => True), others => <>];
+   begin
+      Set_Part_Styles (Col, Col_Parts);
+      Set_Part_Styles (Sized, Sized_Parts);
+      Set_Part_Styles (Floored, Floored_Parts);
+      Add_Child (Col, Sized);
+      Add_Child (Col, Floored);
+
+      Set_Geometry
+         (Col, (X => 0.0, Y => 0.0, Width => 200.0, Height => 100.0));
+      Layout (Col);
+
+      Ada.Text_IO.Put_Line
+         ("  Sized child h=" & Pixel_Type'Image (Get_Geometry (Sized).Height)
+          & " floored child h="
+          & Pixel_Type'Image (Get_Geometry (Floored).Height));
+
+      Test_Support.Assert
+         (Get_Geometry (Sized).Height < 200.0,
+          "declared height is a flex base, not a minimum");
+      Test_Support.Assert
+         (Get_Geometry (Floored).Height >= 60.0 - 0.001,
+          "explicit min-height is honoured under shrink");
+   end;
+
+   Ada.Text_IO.New_Line;
    Test_Support.Finish;
 end Min_Size_Test;

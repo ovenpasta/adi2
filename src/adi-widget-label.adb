@@ -316,6 +316,7 @@ package body Adi.Widget.Label is
         Get_Resolved_Part_Style (W, Label_Part);
       Has_Text    : constant Boolean := Length (W.Text) > 0;
       Min_W       : Pixel_Type := CSS_Min.Width;
+      Min_H       : Pixel_Type := CSS_Min.Height;
    begin
       if Has_Text then
          declare
@@ -330,27 +331,63 @@ package body Adi.Widget.Label is
               Label_Style.Text_Wrap_Mode = TWM_Wrap
               and then Label_Style.White_Space /= WS_NoWrap;
             Text_Min_W  : Pixel_Type;
+
+            --  Min-content height: what the text needs once laid out at
+            --  its min-content width. Reporting zero (as this did) lets
+            --  flex squeeze the label until its text spills out of its
+            --  own box, because a flex item's automatic minimum is
+            --  bounded by exactly this value.
+            Text_Min_H  : Pixel_Type;
          begin
             if Can_Wrap then
                Text_Min_W := Adi.Font.Measure_Min_Text_Width
                  (Attrs => Font_Attrs, Content => To_String (W.Text));
+
+               --  Height is a block-direction minimum, so it is measured
+               --  at the width the label actually has, not at Text_Min_W:
+               --  wrapping to the longest word would report a
+               --  one-word-per-line height and ratchet every ancestor's
+               --  minimum up with it. Before the first layout there is no
+               --  width yet, so fall back to a single line.
+               declare
+                  Avail : constant Pixel_Type :=
+                    Content_Box (W.Geometry, Main_Style).Width;
+               begin
+                  if Avail > 0.0 then
+                     Text_Min_H := Adi.Font.Measure_Text_Wrapped
+                       (Attrs       => Font_Attrs,
+                        Content     => To_String (W.Text),
+                        Wrap_Width  => Avail,
+                        Line_Height => Label_Style.Line_Height).Height;
+                  else
+                     Text_Min_H := Adi.Font.Measure_Text
+                       (Attrs   => Font_Attrs,
+                        Content => To_String (W.Text)).Height;
+                  end if;
+               end;
             else
-               Text_Min_W := Adi.Font.Measure_Text
-                 (Attrs => Font_Attrs, Content => To_String (W.Text)).Width;
+               declare
+                  Full : constant Size_2D := Adi.Font.Measure_Text
+                    (Attrs => Font_Attrs, Content => To_String (W.Text));
+               begin
+                  Text_Min_W := Full.Width;
+                  Text_Min_H := Full.Height;
+               end;
             end if;
 
-            --  Include padding + border chrome around the text min-width
+            --  Include padding + border chrome around the text minimums
             declare
-               Content_Min : constant Size_2D := (Text_Min_W, 0.0);
+               Content_Min : constant Size_2D := (Text_Min_W, Text_Min_H);
                Outer_Min   : constant Size_2D :=
                  Outer_Size (Content_Min, Main_Style);
             begin
                Min_W := Pixel_Type'Max (Min_W, Outer_Min.Width);
+               Min_H := Pixel_Type'Max (Min_H, Outer_Min.Height);
             end;
          end;
       end if;
 
-      return (Min_W, CSS_Min.Height);
+      return (Min_W, Min_H);
    end Get_Min_Size;
 
    ------------

@@ -290,10 +290,15 @@ begin
 
    Ada.Text_IO.New_Line;
 
-   --  Test 6: fr column must not expand beyond available width at layout time.
-   --  Regression: pass-4 of Compute_Grid_Layout used to apply min-width to fr
-   --  tracks unconditionally, pushing the total layout past the container when
-   --  the window is narrower than the fr child's min-width.
+   --  Test 6: a flexible track may not shrink below its item's minimum;
+   --  when the minimums do not fit, the grid overflows.
+   --
+   --  Bare Nfr is minmax(auto, Nfr), so the track's floor is its items'
+   --  minimum contribution. Adi used to discard that floor to keep the
+   --  layout inside its container, which silently violated an explicit
+   --  min-width — the visible symptom being clipped button labels. A
+   --  minimum that yields under pressure is not a minimum: the correct
+   --  outcome is to honour it and overflow.
    Ada.Text_IO.Put_Line ("=== fr column overflow regression (layout) ===");
    Ada.Text_IO.New_Line;
    declare
@@ -352,14 +357,14 @@ begin
           & "  right="
           & Pixel_Type'Image (Fr_Geom.X + Fr_Geom.Width));
 
-      --  The fr child's right edge must not exceed the container.
+      --  The floor is honoured even though it does not fit.
       Test_Support.Assert
-         (Fr_Geom.X + Fr_Geom.Width <= Container_W,
-          "fr column right edge <= container width (no overflow)");
-      --  The fr column must not have been expanded to the child's min-width.
+         (Fr_Geom.Width >= 800.0,
+          "fr column is at least its child's min-width (800px)");
+      --  And the consequence is overflow, not a violated minimum.
       Test_Support.Assert
-         (Fr_Geom.Width < 800.0,
-          "fr column width < fr child min-width (800px)");
+         (Fr_Geom.X + Fr_Geom.Width > Container_W,
+          "the grid overflows when the floors exceed the container");
    end;
 
    --  Test 7: text-wrap height adaptation in a grid.
@@ -1478,6 +1483,104 @@ begin
             < Get_Preferred_Size (Flexible).Width,
           "a grid holding only flexible content keeps a minimum below "
           & "that content's preferred width");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  Freezing one flexible track shrinks the pool for the rest, which
+   --  can push another below its own floor, and so on. Three 1fr tracks
+   --  in 300px with floors 150 / 90 / 0 must settle at 150 / 90 / 60:
+   --  a single pass would hand each 100 and leave the second short.
+   Ada.Text_IO.Put_Line ("=== fr freezing cascades ===");
+   declare
+      Grid_Box : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      C1 : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      C2 : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      C3 : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+      Grid_Style : constant Style_Rules :=
+         (Display            => Set (Grid),
+          Grid_Columns       => Set (Grid_Columns_Value (3)),
+          Grid_Column_Tracks =>
+             (Count  => 3,
+              Tracks =>
+                 [1      => (Track_Fr, 1.0),
+                  2      => (Track_Fr, 1.0),
+                  3      => (Track_Fr, 1.0),
+                  others => <>]),
+          others             => <>);
+
+      function Floor_Of (W : Float) return Part_Style_Array is
+         R : constant Style_Rules :=
+            (Min_Width => Set (Size (Px (W))), others => <>);
+      begin
+         return [Main_Part => (Style => From (R).Build, Enabled => True),
+                 others    => <>];
+      end Floor_Of;
+   begin
+      Set_Part_Styles
+         (Grid_Box, [Main_Part => (Style => From (Grid_Style).Build,
+                                   Enabled => True), others => <>]);
+      Set_Part_Styles (C1, Floor_Of (150.0));
+      Set_Part_Styles (C2, Floor_Of (90.0));
+      Set_Part_Styles (C3, Floor_Of (0.0));
+      Add_Child (Grid_Box, C1);
+      Add_Child (Grid_Box, C2);
+      Add_Child (Grid_Box, C3);
+
+      Set_Geometry
+         (Grid_Box, (X => 0.0, Y => 0.0, Width => 300.0, Height => 50.0));
+      Layout (Grid_Box);
+
+      Ada.Text_IO.Put_Line
+         ("  widths: " & Pixel_Type'Image (Get_Geometry (C1).Width)
+          & Pixel_Type'Image (Get_Geometry (C2).Width)
+          & Pixel_Type'Image (Get_Geometry (C3).Width));
+
+      Test_Support.Assert
+         (abs (Get_Geometry (C1).Width - 150.0) < 0.001,
+          "first track freezes at its floor");
+      Test_Support.Assert
+         (abs (Get_Geometry (C2).Width - 90.0) < 0.001,
+          "the second freezes once the first has taken its share");
+      Test_Support.Assert
+         (abs (Get_Geometry (C3).Width - 60.0) < 0.001,
+          "the last takes what remains");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  Flex factors summing below 1 leave the rest of the space unused,
+   --  rather than the single track claiming all of it.
+   Ada.Text_IO.Put_Line ("=== fractional fr factors ===");
+   declare
+      Grid_Box : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Only     : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+      Grid_Style : constant Style_Rules :=
+         (Display            => Set (Grid),
+          Grid_Columns       => Set (Grid_Columns_Value (1)),
+          Grid_Column_Tracks =>
+             (Count  => 1,
+              Tracks => [1 => (Track_Fr, 0.5), others => <>]),
+          others             => <>);
+   begin
+      Set_Part_Styles
+         (Grid_Box, [Main_Part => (Style => From (Grid_Style).Build,
+                                   Enabled => True), others => <>]);
+      Add_Child (Grid_Box, Only);
+
+      Set_Geometry
+         (Grid_Box, (X => 0.0, Y => 0.0, Width => 200.0, Height => 50.0));
+      Layout (Grid_Box);
+
+      Ada.Text_IO.Put_Line
+         ("  0.5fr of 200px -> "
+          & Pixel_Type'Image (Get_Geometry (Only).Width));
+
+      Test_Support.Assert
+         (abs (Get_Geometry (Only).Width - 100.0) < 0.001,
+          "a lone 0.5fr track takes half the space, not all of it");
    end;
 
    Ada.Text_IO.New_Line;

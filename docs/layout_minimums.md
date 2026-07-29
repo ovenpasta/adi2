@@ -61,10 +61,36 @@ freely".
 
 ## Grid
 
-CSS Grid's bare `1fr` is `minmax(auto, 1fr)`, so a track is not supposed
-to shrink below its items' minimum contribution. Adi currently floors
-`fr` tracks at zero (`Adi.Layout_Util`, pass 4) to stop content-sized
-grids from overflowing their container, and
-`tests/src/min_size_test.adb` locks that in. This is a known deviation:
-an item with an explicit `min-width` inside a `1fr` track can be
-allocated less than it asked for.
+CSS Grid's bare `Nfr` is `minmax(auto, Nfr)`, so a flexible track may not
+shrink below its items' minimum contribution. Adi honours that floor:
+each `fr` track records one, and track sizing allocates by flex factor,
+freezes any track landing below its floor, and shares what is left among
+those still flexible — repeating, because freezing one track shrinks the
+pool for the others. Flex factors summing below 1 divide by 1, so a lone
+`0.5fr` track takes half the space rather than all of it.
+
+The floor comes from the item's *minimum* width, never from `Req_W`:
+under visible overflow that carries the preferred width, and freezing on
+it would pin wrapping content at its full unwrapped width.
+
+When the floors together exceed the space available, every track freezes
+and **the grid overflows**. That is the point of a minimum — one that
+yields under pressure is not a minimum. `tests/src/min_size_test.adb`
+covers the cascade (three `1fr` tracks in 300px with floors 150/90/0
+settling at 150/90/60) and the overflow case.
+
+Not yet implemented, and tracked as follow-up work:
+
+- Indefinite preferred sizing still measures `fr` tracks from their
+  minimum contribution, so a one-column `1fr` grid reports the same
+  preferred and min-content width. CSS derives a common flex fraction
+  from max-content contributions instead.
+- Weighted tracks (`1fr 2fr`) need that common fraction rather than
+  summing each track independently.
+- Items spanning several tracks still divide their contribution equally,
+  which breaks once tracks have different frozen bases.
+- `minmax(0, Nfr)` has no representation in `Grid_Track_Spec`, and an
+  item's explicit `min-width: 0` cannot override the automatic minimum:
+  `Effective_Child_Min` takes the larger of the explicit and content
+  minimums, so an explicit zero behaves like `auto`. The flex automatic
+  minimum has the same gap.

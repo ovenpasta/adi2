@@ -227,21 +227,9 @@ package body Adi.Widget.Stack is
 
       --  Like Box: an axis the stack clips in absorbs its pages'
       --  minimum rather than propagating it upward.
+      --  Only clipping is sound here; Layout diagnoses the scrolling
+      --  case, which it sees on every frame.
       --
-      --  Only clipping, though. Scrolling a Stack directly is not
-      --  supported: Layout gives each page the stack's content box, so a
-      --  page taller than the viewport keeps content that is drawn and
-      --  scrolled but sits outside the page's own geometry, where hit
-      --  testing will not reach it. Put the overflow on the page
-      --  instead — it then owns the viewport, and each page keeps its
-      --  own scroll offset. Warn once rather than lay out something the
-      --  user cannot click.
-      if Overflow_Is_Scrollable (Style.Overflow_Y)
-        or else Overflow_Is_Scrollable (Style.Overflow_X)
-      then
-         Warn_Unsupported_Stack_Scrolling;
-      end if;
-
       if Style.Overflow_Y /= Overflow_Visible then
          Result.Height := 0.0;
       end if;
@@ -303,6 +291,18 @@ package body Adi.Widget.Stack is
          (X => Content_X, Y => Content_Y,
           Width => Content_W, Height => Content_H);
    begin
+      --  Scrolling a Stack directly is not supported: every page gets the
+      --  stack's content box, so a page taller than the viewport keeps
+      --  content that is drawn and scrolled yet sits outside the page's
+      --  own geometry, where hit testing will not reach it. Put the
+      --  overflow on the page instead — it then owns the viewport, and
+      --  each page keeps its own scroll offset.
+      if Overflow_Is_Scrollable (Style.Overflow_Y)
+        or else Overflow_Is_Scrollable (Style.Overflow_X)
+      then
+         Warn_Unsupported_Stack_Scrolling;
+      end if;
+
       --  Each page gets the stack's content box. A page that needs to
       --  scroll declares its own overflow and becomes its own viewport,
       --  which keeps a separate offset per page.

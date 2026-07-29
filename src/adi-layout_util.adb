@@ -1111,6 +1111,12 @@ package body Adi.Layout_Util is
              (0.0, Context.Container.Height - Pixel_Type (Rows - 1) * Context.Row_Gap);
          Col_Widths  : Pixel_Array (1 .. Cols) := [others => 0.0];
          Row_Heights : Pixel_Array (1 .. Rows) := [others => 0.0];
+         --  Smallest each column may become. Bare Nfr behaves as
+         --  minmax(auto, Nfr), so a flexible track may not shrink below
+         --  its items' minimum contribution. Taken from Min_Width only:
+         --  Req_W may hold the preferred width, and freezing on that
+         --  would stop flexible content wrapping.
+         Col_Floors  : Pixel_Array (1 .. Cols) := [others => 0.0];
       begin
          --  Initialise column widths: use track-sizing when a matching track
          --  list is provided, otherwise fall back to equal distribution.
@@ -1205,6 +1211,7 @@ package body Adi.Layout_Util is
                      Req_W : Pixel_Type := Child.Min_Width;
                      Req_H : Pixel_Type := Child.Min_Height;
                      Req_Per_Col : Pixel_Type;
+                     Min_Per_Col : Pixel_Type;
                      Req_Per_Row : Pixel_Type;
                   begin
                      if Context.Use_Preferred_Floor then
@@ -1218,6 +1225,12 @@ package body Adi.Layout_Util is
                           Req_W
                           - Context.Column_Gap * Pixel_Type'Max (0.0, Pixel_Type (CS - 1)))
                        / Pixel_Type (CS);
+                     Min_Per_Col :=
+                       Pixel_Type'Max
+                         (0.0,
+                          Child.Min_Width
+                          - Context.Column_Gap * Pixel_Type'Max (0.0, Pixel_Type (CS - 1)))
+                       / Pixel_Type (CS);
                      Req_Per_Row :=
                        Pixel_Type'Max
                          (0.0,
@@ -1226,17 +1239,18 @@ package body Adi.Layout_Util is
                        / Pixel_Type (RS);
 
                      for K in C .. C + CS - 1 loop
-                        --  fr tracks keep their Pass 3 allocation (which may
-                        --  be zero when the container is content-sized).
-                        --  Expanding them here would push the total layout
-                        --  past the container in fixed-width scenarios.
-                        --  Content-sized grids are handled by Measure_Content
-                        --  which includes fr content in the preferred width.
+                        --  Non-flexible tracks grow to hold their content
+                        --  outright. Flexible ones keep their Pass 3
+                        --  allocation here and instead record a floor,
+                        --  which Pass 5 honours by freezing.
                         if Context.Column_Tracks.Count /= Cols
                           or else Context.Column_Tracks.Tracks (K).Kind /= Track_Fr
                         then
                            Col_Widths (K) :=
                              Pixel_Type'Max (Col_Widths (K), Req_Per_Col);
+                        else
+                           Col_Floors (K) :=
+                             Pixel_Type'Max (Col_Floors (K), Min_Per_Col);
                         end if;
                      end loop;
                      for K in R .. R + RS - 1 loop
@@ -1255,26 +1269,70 @@ package body Adi.Layout_Util is
             declare
                Tracks     : Grid_Track_Array renames Context.Column_Tracks.Tracks;
                Fixed_Post : Pixel_Type := 0.0;
-               Total_Fr   : Float      := 0.0;
                Fr_Px      : Pixel_Type;
             begin
                for C in 1 .. Cols loop
                   if Tracks (C).Kind /= Track_Fr then
                      Fixed_Post := Fixed_Post + Col_Widths (C);
-                  else
-                     Total_Fr := Total_Fr + Tracks (C).Value;
                   end if;
                end loop;
-               Fr_Px :=
-                 (if Total_Fr > 0.0
-                  then Pixel_Type'Max (0.0, Available_W - Fixed_Post)
-                         / Pixel_Type (Total_Fr)
-                  else 0.0);
-               for C in 1 .. Cols loop
-                  if Tracks (C).Kind = Track_Fr then
-                     Col_Widths (C) := Pixel_Type (Tracks (C).Value) * Fr_Px;
-                  end if;
-               end loop;
+               --  Freeze-and-redistribute: allocate by fr weight, freeze
+               --  any track that lands below its floor, and share the
+               --  remainder among those still flexible. Repeats because
+               --  freezing one track shrinks the pool for the others.
+               --  When the floors alone exceed the space, every track
+               --  ends up frozen and the grid overflows, which is what
+               --  the minimum being a minimum means.
+               declare
+                  Frozen    : array (1 .. Cols) of Boolean := [others => False];
+                  Pool      : Pixel_Type;
+                  Weight    : Float;
+                  Changed   : Boolean := True;
+               begin
+                  while Changed loop
+                     Changed := False;
+                     Pool    := Pixel_Type'Max (0.0, Available_W - Fixed_Post);
+                     Weight  := 0.0;
+
+                     for C in 1 .. Cols loop
+                        if Tracks (C).Kind = Track_Fr then
+                           if Frozen (C) then
+                              Pool := Pool - Col_Widths (C);
+                           else
+                              Weight := Weight + Tracks (C).Value;
+                           end if;
+                        end if;
+                     end loop;
+
+                     Pool := Pixel_Type'Max (0.0, Pool);
+                     --  Flex factors below 1 in total do not claim the
+                     --  whole leftover space: a lone 0.5fr track takes
+                     --  half of it. CSS divides by max (sum, 1).
+                     Fr_Px :=
+                       (if Weight > 0.0
+                        then Pool / Pixel_Type (Float'Max (Weight, 1.0))
+                        else 0.0);
+
+                     for C in 1 .. Cols loop
+                        if Tracks (C).Kind = Track_Fr
+                          and then not Frozen (C)
+                        then
+                           declare
+                              Share : constant Pixel_Type :=
+                                Pixel_Type (Tracks (C).Value) * Fr_Px;
+                           begin
+                              if Share < Col_Floors (C) then
+                                 Col_Widths (C) := Col_Floors (C);
+                                 Frozen (C) := True;
+                                 Changed := True;
+                              else
+                                 Col_Widths (C) := Share;
+                              end if;
+                           end;
+                        end if;
+                     end loop;
+                  end loop;
+               end;
             end;
          end if;
 

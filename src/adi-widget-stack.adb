@@ -179,8 +179,10 @@ package body Adi.Widget.Stack is
       return Outer_Size (Result, Style);
    end Measure_Content;
 
-   --  Largest minimum over the pages: a stack shows one at a time but
-   --  must be able to hold whichever is active. Content_Min selects each
+   --  Minimum over the participating pages, taken as a max on both
+   --  axes because pages overlap rather than stack. Child_Participates
+   --  excludes hidden pages, so in practice this measures the active
+   --  page, not the tallest registered one. Content_Min selects each
    --  page's content floor instead of what it demands.
    function Aggregate_Page_Minimums
      (W : Stack_Widget; Content_Min : Boolean) return Size_2D
@@ -272,6 +274,9 @@ package body Adi.Widget.Stack is
          (X => Content_X, Y => Content_Y,
           Width => Content_W, Height => Content_H);
    begin
+      --  Each page gets the stack's content box. A page that needs to
+      --  scroll declares its own overflow and becomes its own viewport,
+      --  which keeps a separate offset per page.
       for I in 1 .. Child_Count (W) loop
          declare
             Child_H : constant Widget_Handle := Get_Child_Handle (W, I);

@@ -138,15 +138,14 @@
 .pages {
   flex-grow: 1;
   padding: 2vh 2.5vw;
-  /* Pages taller than the viewport (Forms, Controls) stay reachable at
-     any window size, DPI or UI scale. Children keep their content size
-     and this scrolls, rather than everything being squeezed to fit. */
-  overflow-y: auto;
 }
 
 .page {
   display: flex;
   flex-direction: column;
+  /* The page is the viewport: content taller than it scrolls here, and
+     each page keeps its own offset across tab switches. */
+  overflow-y: auto;
   gap: var(--space-4);
   padding: var(--space-2);
 }

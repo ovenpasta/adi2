@@ -190,7 +190,6 @@ package Material_Demo_Light_Styles is
      (
       Flex_Grow => Set (1.0),
       Padding => Set (CSS_Box (Vh (2.0), Vw (2.5), Vh (2.0), Vw (2.5))),
-      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>);
 
    --  Base style for class 'page'
@@ -200,6 +199,7 @@ package Material_Demo_Light_Styles is
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Dip (16.0))),
       Padding => Set (CSS_Box (Dip (8.0), Dip (8.0), Dip (8.0), Dip (8.0))),
+      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>);
 
    --  Base style for class 'card'

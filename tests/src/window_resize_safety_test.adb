@@ -1044,6 +1044,299 @@ procedure Window_Resize_Safety_Test is
          Assert (False, "Unexpected exception: " & Exception_Name (E));
    end Test_Hit_Test_Follows_Scrolled_Content;
 
+   --  Same as above, but the scrolled box sits inside a Stack. The page
+   --  is the viewport and carries the offset; the Stack only hands it a
+   --  content box. Worth covering separately from the plain Box case
+   --  because the hit test then descends through the Stack.
+   procedure Test_Hit_Test_Follows_Scrolled_Stack is
+      type Page_Id is (Only_Page);
+      package Probe_Stack is new Adi.Widget.Stack (Page_Id);
+      use type Probe_Stack.Stack_Handle;
+
+      Ready  : Boolean;
+      W      : Adi.Window.Window_Handle;
+      Root   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Pages  : constant Probe_Stack.Stack_Handle :=
+        Probe_Stack.Create_Handle;
+      Page   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Top    : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Top");
+      Bottom : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Bottom");
+
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         others         => <>);
+      Pages_Rules : constant Style_Rules :=
+        (Height => Set (Size (Px (100.0))), others => <>);
+      Page_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         Overflow_Y     => Set (Overflow_Auto),
+         others         => <>);
+      Item_Rules : constant Style_Rules :=
+        (Height         => Set (Size (Px (80.0))),
+         Min_Height     => Set (Size (Px (80.0))),
+         Text_Wrap_Mode => Set (TWM_Nowrap),
+         others         => <>);
+
+      Probe_Y   : constant Pixel_Type := 40.0;
+      Scroll_By : constant Pixel_Type := 80.0;
+      Win       : Adi.Window.Window_Access;
+   begin
+      Put_Line ("Test: hit testing follows a scrolled stack");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Pages, Main_Part, From (Pages_Rules).Build);
+      Set_Part_Style (+Page, Main_Part, From (Page_Rules).Build);
+      Set_Part_Style (+Top, Main_Part, From (Item_Rules).Build);
+      Set_Part_Style (+Bottom, Main_Part, From (Item_Rules).Build);
+
+      Add_Child (+Page, +Top);
+      Add_Child (+Page, +Bottom);
+      Probe_Stack.Add_Page (Pages, Only_Page, +Page);
+      Add_Child (+Root, +Pages);
+
+      W := Adi.Window.Create_Window_Handle ("Stack Scroll Hit", (300.0, 200.0));
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
+      Win := Adi.Window.Resolve_Window_Handle (W);
+
+      Win.On_Mouse_Move (20.0, Probe_Y);
+      Assert (Has_State (+Top, State_Hovered),
+              "stack unscrolled: probe hits the first child");
+
+      Set_Scroll_Offset_Y (+Page, Scroll_By);
+      Adi.Window.Render (W);
+
+      Win.On_Mouse_Move (20.0, Probe_Y);
+      Assert (Has_State (+Bottom, State_Hovered),
+              "stack scrolled: probe hits the child now under the cursor");
+
+      --  Finding the widget is only half of it. The window then hands the
+      --  widget the raw screen coordinate, and the widget compares that
+      --  against its own geometry, which is stored unshifted. A control
+      --  that decides what was hit from those coordinates — a switch
+      --  knob, a text caret — therefore misreads a scrolled click.
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Hit_Test_Follows_Scrolled_Stack;
+
+   --  Finding the widget under a scrolled pointer is only half the job:
+   --  the window then hands the widget a raw window coordinate while the
+   --  widget's geometry is stored unshifted, so anything that decides
+   --  what was hit from those coordinates misreads it. The observable
+   --  consequence is that a scrolled button never reports a click.
+   Scrolled_Click_Count : Natural := 0;
+
+   procedure On_Scrolled_Click (Btn : Widget_Handle) is
+      pragma Unreferenced (Btn);
+   begin
+      Scrolled_Click_Count := Scrolled_Click_Count + 1;
+   end On_Scrolled_Click;
+
+   procedure Test_Click_On_Scrolled_Button is
+      type Page_Id is (Only_Page);
+      package Probe_Stack is new Adi.Widget.Stack (Page_Id);
+      use type Probe_Stack.Stack_Handle;
+
+      Ready  : Boolean;
+      W      : Adi.Window.Window_Handle;
+      Root   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Pages  : constant Probe_Stack.Stack_Handle :=
+        Probe_Stack.Create_Handle;
+      Page   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Spacer : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Spacer");
+      Btn    : constant Adi.Widget.Button.Button_Handle :=
+        Adi.Widget.Button.Create_Handle ("Press");
+
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         others         => <>);
+      Pages_Rules : constant Style_Rules :=
+        (Height => Set (Size (Px (100.0))), others => <>);
+      --  The page is its own viewport and scrolls its own content.
+      Page_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         Overflow_Y     => Set (Overflow_Auto),
+         others         => <>);
+      Item_Rules : constant Style_Rules :=
+        (Height         => Set (Size (Px (80.0))),
+         Min_Height     => Set (Size (Px (80.0))),
+         Text_Wrap_Mode => Set (TWM_Nowrap),
+         others         => <>);
+
+      --  Deep into the scrolled button, well past where the first item
+      --  used to sit: the case where a control that started below the
+      --  viewport stops responding.
+      Probe_Y   : constant Pixel_Type := 70.0;
+      Scroll_By : constant Pixel_Type := 80.0;
+      Win       : Adi.Window.Window_Access;
+   begin
+      Put_Line ("Test: clicking a scrolled button fires its callback");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Pages, Main_Part, From (Pages_Rules).Build);
+      Set_Part_Style (+Page, Main_Part, From (Page_Rules).Build);
+      Set_Part_Style (+Spacer, Main_Part, From (Item_Rules).Build);
+      Set_Part_Style (+Btn, Main_Part, From (Item_Rules).Build);
+
+      Adi.Widget.Button.Connect_Clicked
+        (Btn, On_Scrolled_Click'Unrestricted_Access);
+
+      Add_Child (+Page, +Spacer);
+      Add_Child (+Page, +Btn);
+      Probe_Stack.Add_Page (Pages, Only_Page, +Page);
+      Add_Child (+Root, +Pages);
+
+      W := Adi.Window.Create_Window_Handle ("Scrolled Click", (300.0, 200.0));
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
+      Win := Adi.Window.Resolve_Window_Handle (W);
+
+      --  Unscrolled, the button's top strip is visible at the bottom of
+      --  the 100px viewport; clicking there works.
+      Scrolled_Click_Count := 0;
+      Win.On_Mouse_Down (20.0, 90.0, Adi.Core.Left_Button, 1);
+      Win.On_Mouse_Up (20.0, 90.0, Adi.Core.Left_Button);
+      Assert (Scrolled_Click_Count = 1,
+              "unscrolled: clicking the button fires its callback");
+
+      --  Scroll the spacer away and click where the button now is.
+      Set_Scroll_Offset_Y (+Page, Scroll_By);
+      Adi.Window.Render (W);
+
+      Scrolled_Click_Count := 0;
+      Win.On_Mouse_Down (20.0, Probe_Y, Adi.Core.Left_Button, 1);
+      Win.On_Mouse_Up (20.0, Probe_Y, Adi.Core.Left_Button);
+      Assert (Scrolled_Click_Count = 1,
+              "scrolled: clicking the button still fires its callback");
+
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Click_On_Scrolled_Button;
+
+   --  Each page owning its overflow means each keeps its own scroll
+   --  position. A shared scroller outside the stack would carry one
+   --  page's offset over to the next.
+   procedure Test_Pages_Keep_Their_Own_Scroll_Offset is
+      type Page_Id is (First_Page, Second_Page);
+      package Probe_Stack is new Adi.Widget.Stack (Page_Id);
+      use type Probe_Stack.Stack_Handle;
+
+      Ready : Boolean;
+      W     : Adi.Window.Window_Handle;
+      Root  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Pages : constant Probe_Stack.Stack_Handle :=
+        Probe_Stack.Create_Handle;
+      Page_A : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Page_B : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      A1 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("A1");
+      A2 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("A2");
+      B1 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("B1");
+      B2 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("B2");
+
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         others         => <>);
+      Pages_Rules : constant Style_Rules :=
+        (Height => Set (Size (Px (100.0))), others => <>);
+      Page_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         Overflow_Y     => Set (Overflow_Auto),
+         others         => <>);
+      Item_Rules : constant Style_Rules :=
+        (Height         => Set (Size (Px (80.0))),
+         Min_Height     => Set (Size (Px (80.0))),
+         Text_Wrap_Mode => Set (TWM_Nowrap),
+         others         => <>);
+   begin
+      Put_Line ("Test: each page keeps its own scroll offset");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Pages, Main_Part, From (Pages_Rules).Build);
+      Set_Part_Style (+Page_A, Main_Part, From (Page_Rules).Build);
+      Set_Part_Style (+Page_B, Main_Part, From (Page_Rules).Build);
+      Set_Part_Style (+A1, Main_Part, From (Item_Rules).Build);
+      Set_Part_Style (+A2, Main_Part, From (Item_Rules).Build);
+      Set_Part_Style (+B1, Main_Part, From (Item_Rules).Build);
+      Set_Part_Style (+B2, Main_Part, From (Item_Rules).Build);
+
+      Add_Child (+Page_A, +A1);
+      Add_Child (+Page_A, +A2);
+      Add_Child (+Page_B, +B1);
+      Add_Child (+Page_B, +B2);
+      Probe_Stack.Add_Page (Pages, First_Page, +Page_A);
+      Probe_Stack.Add_Page (Pages, Second_Page, +Page_B);
+      Add_Child (+Root, +Pages);
+
+      W := Adi.Window.Create_Window_Handle ("Per Page Scroll", (300.0, 200.0));
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
+
+      --  Scroll the first page, then visit the second and come back.
+      Set_Scroll_Offset_Y (+Page_A, 40.0);
+      Adi.Window.Render (W);
+
+      Probe_Stack.Set_Active (Pages, Second_Page);
+      Adi.Window.Render (W);
+
+      Assert (Get_Scroll_Offset_Y (+Page_B) = 0.0,
+              "a freshly shown page starts unscrolled");
+
+      Set_Scroll_Offset_Y (+Page_B, 20.0);
+      Adi.Window.Render (W);
+
+      Probe_Stack.Set_Active (Pages, First_Page);
+      Adi.Window.Render (W);
+
+      Assert (Get_Scroll_Offset_Y (+Page_A) = 40.0,
+              "returning to a page restores its own scroll offset");
+      Assert (Get_Scroll_Offset_Y (+Page_B) = 20.0,
+              "the other page keeps its offset independently");
+
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Pages_Keep_Their_Own_Scroll_Offset;
+
 begin
    Put_Line ("========================================");
    Put_Line ("   Window Resize Safety Tests");
@@ -1064,6 +1357,9 @@ begin
    Test_Wheel_Root_Works_Without_Overlay;
    Test_Stack_Page_Switch_Does_Not_Ratchet_Min_Size;
    Test_Hit_Test_Follows_Scrolled_Content;
+   Test_Hit_Test_Follows_Scrolled_Stack;
+   Test_Click_On_Scrolled_Button;
+   Test_Pages_Keep_Their_Own_Scroll_Offset;
    New_Line;
 
    Finish;

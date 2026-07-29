@@ -428,6 +428,31 @@ package body Adi.Widget.Box is
    --  Shared by Get_Min_Size and Get_Content_Min_Size: identical
    --  aggregation over the children, differing only in which child
    --  measurement it sums. Content_Min selects Get_Content_Min_Size.
+   --  What a grid item contributes to its track's minimum. Placement
+   --  honours a definite width or height unconditionally, so a track
+   --  sized from the item's minimum alone would leave the item hanging
+   --  out of its own cell. Percentages resolve against the track being
+   --  computed, so they contribute nothing here.
+   function Grid_Min_Contribution (Child : Widget'Class) return Size_2D is
+      Style  : constant Resolved_Style :=
+        Get_Resolved_Part_Style (Child, Main_Part);
+      Result : Size_2D := Effective_Child_Min (Child);
+   begin
+      if Style.Width.Kind = Fixed
+        and then Style.Width.Size.Unit /= Pct
+      then
+         Result.Width :=
+           Pixel_Type'Max (Result.Width, Size_To_Px (Style.Width, 0.0));
+      end if;
+      if Style.Height.Kind = Fixed
+        and then Style.Height.Size.Unit /= Pct
+      then
+         Result.Height :=
+           Pixel_Type'Max (Result.Height, Size_To_Px (Style.Height, 0.0));
+      end if;
+      return Result;
+   end Grid_Min_Contribution;
+
    function Aggregate_Child_Minimums
      (W : Box_Widget; Content_Min : Boolean) return Size_2D
    is
@@ -520,10 +545,9 @@ package body Adi.Widget.Box is
                               Margin : constant Edge_Pixels :=
                                 Get_Margin_Px (Child_Style);
                               --  Grid tracks size to what a child truly
-                              --  needs: what it demands via CSS, and what
-                              --  its own content cannot go below.
+                              --  needs, definite sizes included.
                               Min : constant Size_2D :=
-                                Effective_Child_Min (Child.all);
+                                Grid_Min_Contribution (Child.all);
                               C  : Natural :=
                                 Natural (Child_Style.Grid_Column);
                               R  : Natural :=
@@ -764,10 +788,10 @@ overriding procedure Layout (W : in out Box_Widget) is
                              Get_Resolved_Part_Style (Child.all, Main_Part);
                            Child_Pref : constant Size_2D :=
                              Get_Preferred_Size (Child.all);
-                           --  Track sizing must see the content floor as
-                           --  well as the declared minimum.
+                           --  Same contribution the aggregation uses, so
+                           --  measurement and placement agree.
                            Child_Min  : constant Size_2D :=
-                             Effective_Child_Min (Child.all);
+                             Grid_Min_Contribution (Child.all);
                         begin
                            --  Absolute children are out of flow
                            if Child_Style.Position = Absolute then

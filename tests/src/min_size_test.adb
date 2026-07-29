@@ -1329,5 +1329,114 @@ begin
    end;
 
    Ada.Text_IO.New_Line;
+
+   --  A definite size on a grid item is honoured unconditionally when
+   --  the item is placed, so it has to count toward the track's minimum
+   --  as well. Reporting a smaller minimum promises a flexibility the
+   --  grid will not deliver: the parent shrinks to that promise and the
+   --  items then lay out at their declared sizes and escape the box.
+   --  These children carry height but deliberately no min-height.
+   Ada.Text_IO.Put_Line ("=== definite item heights count as grid minimums ===");
+   declare
+      Card : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Grid_Box : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Tall  : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Short : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+      Row_Gap_Px : constant := 10.0;
+      Tall_H     : constant := 60.0;
+      Short_H    : constant := 40.0;
+
+      Card_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          others         => <>);
+      Grid_Style : constant Style_Rules :=
+         (Display            => Set (Grid),
+          Grid_Columns       => Set (Grid_Columns_Value (1)),
+          Grid_Column_Tracks =>
+             (Count  => 1,
+              Tracks => [1 => (Track_Fr, 1.0), others => <>]),
+          Gap                => Set (Gap (Px (Row_Gap_Px))),
+          others             => <>);
+
+      function Fixed_Height (H : Float) return Part_Style_Array is
+         R : constant Style_Rules :=
+            (Height => Set (Size (Px (H))), others => <>);
+      begin
+         return [Main_Part => (Style => From (R).Build, Enabled => True),
+                 others    => <>];
+      end Fixed_Height;
+
+      Grid_Min : Size_2D;
+   begin
+      Set_Part_Styles
+         (Card, [Main_Part => (Style => From (Card_Style).Build,
+                               Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Grid_Box, [Main_Part => (Style => From (Grid_Style).Build,
+                                   Enabled => True), others => <>]);
+      Set_Part_Styles (Tall, Fixed_Height (Tall_H));
+      Set_Part_Styles (Short, Fixed_Height (Short_H));
+
+      Add_Child (Grid_Box, Tall);
+      Add_Child (Grid_Box, Short);
+      Add_Child (Card, Grid_Box);
+
+      Grid_Min := Get_Content_Min_Size (Grid_Box);
+      Ada.Text_IO.Put_Line
+         ("  grid content min h=" & Pixel_Type'Image (Grid_Min.Height)
+          & " (rows " & Pixel_Type'Image (Tall_H)
+          & " +" & Pixel_Type'Image (Short_H)
+          & " + gap" & Pixel_Type'Image (Row_Gap_Px) & ")");
+
+      Test_Support.Assert
+         (Grid_Min.Height >= Tall_H + Short_H + Row_Gap_Px - 0.001,
+          "grid content minimum includes its items' definite heights");
+
+      --  Squeeze the card far below that and check nothing escapes.
+      Set_Geometry
+         (Card, (X => 0.0, Y => 0.0, Width => 200.0, Height => 30.0));
+      Layout (Card);
+
+      declare
+         G  : constant Rectangle := Get_Geometry (Grid_Box);
+         S  : constant Rectangle := Get_Geometry (Short);
+      begin
+         Ada.Text_IO.Put_Line
+            ("  after squeeze: grid bottom="
+             & Pixel_Type'Image (G.Y + G.Height)
+             & " last item bottom=" & Pixel_Type'Image (S.Y + S.Height));
+         Test_Support.Assert
+            (S.Y + S.Height <= G.Y + G.Height + 0.001,
+             "items stay inside the grid when the card is squeezed");
+      end;
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  Counter-test: content with no definite size must stay flexible, so
+   --  preferred size does not quietly become the minimum.
+   declare
+      Flexible : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle ("Flexible content here");
+      Wrap_Style : constant Style_Rules :=
+         (Text_Wrap_Mode => Set (TWM_Wrap), others => <>);
+   begin
+      Set_Part_Styles
+         (Flexible, [Main_Part => (Style => From (Wrap_Style).Build,
+                                   Enabled => True), others => <>]);
+      Ada.Text_IO.Put_Line
+         ("  flexible label: pref w="
+          & Pixel_Type'Image (Get_Preferred_Size (Flexible).Width)
+          & " content min w="
+          & Pixel_Type'Image (Get_Content_Min_Size (Flexible).Width));
+      Test_Support.Assert
+         (Get_Content_Min_Size (Flexible).Width
+            < Get_Preferred_Size (Flexible).Width,
+          "a wrappable label's minimum stays below its preferred width");
+   end;
+
+   Ada.Text_IO.New_Line;
    Test_Support.Finish;
 end Min_Size_Test;

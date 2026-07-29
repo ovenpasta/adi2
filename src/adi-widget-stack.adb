@@ -5,6 +5,7 @@ pragma Ada_2022;
 
 with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.Layout_Util; use Adi.Layout_Util;
+with Adi.Log;
 
 package body Adi.Widget.Stack is
 
@@ -184,6 +185,21 @@ package body Adi.Widget.Stack is
    --  excludes hidden pages, so in practice this measures the active
    --  page, not the tallest registered one. Content_Min selects each
    --  page's content floor instead of what it demands.
+   Stack_Scrolling_Warned : Boolean := False;
+
+   procedure Warn_Unsupported_Stack_Scrolling is
+   begin
+      if Stack_Scrolling_Warned then
+         return;
+      end if;
+      Stack_Scrolling_Warned := True;
+      Adi.Log.Warning
+        ("Adi.Widget.Stack: overflow scroll/auto on a stack is not "
+         & "supported and leaves content unclickable. Put the overflow "
+         & "on the page instead, which also gives each page its own "
+         & "scroll offset. overflow:hidden on a stack is fine.");
+   end Warn_Unsupported_Stack_Scrolling;
+
    function Aggregate_Page_Minimums
      (W : Stack_Widget; Content_Min : Boolean) return Size_2D
    is
@@ -209,10 +225,23 @@ package body Adi.Widget.Stack is
          end if;
       end loop;
 
-      --  Like Box: an axis the stack does not show overflow in absorbs
-      --  its pages' minimum rather than propagating it upward. Without
-      --  this a scrollable page area is forced as tall as its tallest
-      --  page and pushes its siblings out of the window.
+      --  Like Box: an axis the stack clips in absorbs its pages'
+      --  minimum rather than propagating it upward.
+      --
+      --  Only clipping, though. Scrolling a Stack directly is not
+      --  supported: Layout gives each page the stack's content box, so a
+      --  page taller than the viewport keeps content that is drawn and
+      --  scrolled but sits outside the page's own geometry, where hit
+      --  testing will not reach it. Put the overflow on the page
+      --  instead — it then owns the viewport, and each page keeps its
+      --  own scroll offset. Warn once rather than lay out something the
+      --  user cannot click.
+      if Overflow_Is_Scrollable (Style.Overflow_Y)
+        or else Overflow_Is_Scrollable (Style.Overflow_X)
+      then
+         Warn_Unsupported_Stack_Scrolling;
+      end if;
+
       if Style.Overflow_Y /= Overflow_Visible then
          Result.Height := 0.0;
       end if;

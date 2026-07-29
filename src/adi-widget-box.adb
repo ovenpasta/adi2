@@ -544,10 +544,15 @@ package body Adi.Widget.Box is
                            declare
                               Margin : constant Edge_Pixels :=
                                 Get_Margin_Px (Child_Style);
-                              --  Grid tracks size to what a child truly
-                              --  needs, definite sizes included.
+                              --  Same split as the flex branch: what the
+                              --  grid *demands* is only what its children
+                              --  demand, while its content minimum also
+                              --  takes in their intrinsic and definite
+                              --  sizes.
                               Min : constant Size_2D :=
-                                Grid_Min_Contribution (Child.all);
+                                (if Content_Min
+                                 then Grid_Min_Contribution (Child.all)
+                                 else Get_Min_Size (Child.all));
                               C  : Natural :=
                                 Natural (Child_Style.Grid_Column);
                               R  : Natural :=

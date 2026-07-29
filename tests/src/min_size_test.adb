@@ -1394,47 +1394,90 @@ begin
          (Grid_Min.Height >= Tall_H + Short_H + Row_Gap_Px - 0.001,
           "grid content minimum includes its items' definite heights");
 
-      --  Squeeze the card far below that and check nothing escapes.
-      Set_Geometry
-         (Card, (X => 0.0, Y => 0.0, Width => 200.0, Height => 30.0));
-      Layout (Card);
+      --  The card must carry that minimum outward, or its own parent
+      --  will squeeze it below what the grid needs.
+      Test_Support.Assert
+         (Get_Content_Min_Size (Card).Height >= Grid_Min.Height - 0.001,
+          "the card's content minimum covers the grid it holds");
+
+      --  Squeeze from outside, through a column, and check nothing
+      --  escapes at either level.
+      declare
+         Column : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      begin
+         Set_Part_Styles
+            (Column, [Main_Part => (Style => From (Card_Style).Build,
+                                    Enabled => True), others => <>]);
+         Add_Child (Column, Card);
+         Set_Geometry
+            (Column, (X => 0.0, Y => 0.0, Width => 200.0, Height => 30.0));
+         Layout (Column);
+      end;
 
       declare
+         C  : constant Rectangle := Get_Geometry (Card);
          G  : constant Rectangle := Get_Geometry (Grid_Box);
          S  : constant Rectangle := Get_Geometry (Short);
       begin
          Ada.Text_IO.Put_Line
-            ("  after squeeze: grid bottom="
-             & Pixel_Type'Image (G.Y + G.Height)
+            ("  after squeeze: card bottom="
+             & Pixel_Type'Image (C.Y + C.Height)
+             & " grid bottom=" & Pixel_Type'Image (G.Y + G.Height)
              & " last item bottom=" & Pixel_Type'Image (S.Y + S.Height));
          Test_Support.Assert
             (S.Y + S.Height <= G.Y + G.Height + 0.001,
              "items stay inside the grid when the card is squeezed");
+         Test_Support.Assert
+            (G.Y + G.Height <= C.Y + C.Height + 0.001,
+             "the grid stays inside the card when squeezed");
       end;
    end;
 
    Ada.Text_IO.New_Line;
 
-   --  Counter-test: content with no definite size must stay flexible, so
-   --  preferred size does not quietly become the minimum.
+   --  Counter-test, inside a grid so it would catch the aggregation
+   --  quietly using max (preferred, minimum): content with no definite
+   --  size must stay flexible.
    declare
+      Grid_Box : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
       Flexible : constant Widget_Handle :=
          +Adi.Widget.Label.Create_Handle ("Flexible content here");
+      Grid_Style : constant Style_Rules :=
+         (Display            => Set (Grid),
+          Grid_Columns       => Set (Grid_Columns_Value (1)),
+          Grid_Column_Tracks =>
+             (Count  => 1,
+              Tracks => [1 => (Track_Fr, 1.0), others => <>]),
+          others             => <>);
       Wrap_Style : constant Style_Rules :=
          (Text_Wrap_Mode => Set (TWM_Wrap), others => <>);
    begin
       Set_Part_Styles
+         (Grid_Box, [Main_Part => (Style => From (Grid_Style).Build,
+                                   Enabled => True), others => <>]);
+      Set_Part_Styles
          (Flexible, [Main_Part => (Style => From (Wrap_Style).Build,
                                    Enabled => True), others => <>]);
+      Add_Child (Grid_Box, Flexible);
+
       Ada.Text_IO.Put_Line
-         ("  flexible label: pref w="
-          & Pixel_Type'Image (Get_Preferred_Size (Flexible).Width)
-          & " content min w="
-          & Pixel_Type'Image (Get_Content_Min_Size (Flexible).Width));
+         ("  flexible label in grid: grid pref w="
+          & Pixel_Type'Image (Get_Preferred_Size (Grid_Box).Width)
+          & " grid content min w="
+          & Pixel_Type'Image (Get_Content_Min_Size (Grid_Box).Width));
       Test_Support.Assert
          (Get_Content_Min_Size (Flexible).Width
             < Get_Preferred_Size (Flexible).Width,
           "a wrappable label's minimum stays below its preferred width");
+      --  Compared against the child's preferred width, not the grid's:
+      --  a grid whose only column is 1fr currently reports the
+      --  min-content width as its preferred width too, so comparing the
+      --  two would pass for the wrong reason. Tracked separately.
+      Test_Support.Assert
+         (Get_Content_Min_Size (Grid_Box).Width
+            < Get_Preferred_Size (Flexible).Width,
+          "a grid holding only flexible content keeps a minimum below "
+          & "that content's preferred width");
    end;
 
    Ada.Text_IO.New_Line;

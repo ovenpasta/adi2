@@ -1719,6 +1719,42 @@ package body Adi.Window is
    end Point_In_Widget;
 
 
+   ---------------------------------
+   -- Map_Window_Point_To_Widget --
+   --
+   --  Window coordinates are what the pointer reports; widget geometry
+   --  is stored unshifted by scrolling. Rendering bridges the two by
+   --  translating children of a scrolled widget, so a point handed to a
+   --  widget has to be translated the same way before that widget can
+   --  compare it against its own geometry.
+   --
+   --  Adds the scroll offset of every ancestor of Target, excluding
+   --  Target itself: a widget's own scrolling moves its children, not
+   --  the widget.
+   ---------------------------------
+
+   procedure Map_Window_Point_To_Widget
+     (Target : Widget_Handle;
+      X, Y   : in out Pixel_Type)
+   is
+      Node : Widget_Handle := Get_Parent_Handle (Target);
+   begin
+      while Is_Valid (Node) loop
+         Y := Y + Get_Scroll_Offset_Y (Node);
+         Node := Get_Parent_Handle (Node);
+      end loop;
+   end Map_Window_Point_To_Widget;
+
+   function Mapped_Y
+     (Target : Widget_Handle; X, Y : Pixel_Type) return Pixel_Type
+   is
+      Mx : Pixel_Type := X;
+      My : Pixel_Type := Y;
+   begin
+      Map_Window_Point_To_Widget (Target, Mx, My);
+      return My;
+   end Mapped_Y;
+
    function Find_Widget_At (W : Window; X, Y : Pixel_Type) return Widget_Handle is
 
       function Find_Deepest
@@ -1873,8 +1909,13 @@ package body Adi.Window is
    is
       Node : Widget_Handle := Find_Widget_At (W, X, Y);
    begin
+      --  Each candidate sits under a different set of scrolled
+      --  ancestors, so the point is re-mapped per candidate rather than
+      --  translated once for the whole walk.
       while Is_Valid (Node) loop
-         if Get_Part_At (Node, X, Y) in Scroll_Part | Knob_Part then
+         if Get_Part_At (Node, X, Mapped_Y (Node, X, Y))
+              in Scroll_Part | Knob_Part
+         then
             return Node;
          end if;
          Node := Get_Parent_Handle (Node);
@@ -2048,7 +2089,8 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
 
          --  Set hover on new widget
          if Is_Valid (New_Hovered) then
-            New_Part := Get_Part_At (New_Hovered, X, Y);
+            New_Part := Get_Part_At (New_Hovered, X,
+                                     Mapped_Y (New_Hovered, X, Y));
             Set_Hover_For_Part (New_Hovered, New_Part);
             W.Hovered_Part := New_Part;
          else
@@ -2057,7 +2099,8 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
 
          W.Hovered_Widget := New_Hovered;
       elsif Is_Valid (W.Hovered_Widget) then
-         New_Part := Get_Part_At (W.Hovered_Widget, X, Y);
+         New_Part := Get_Part_At (W.Hovered_Widget, X,
+                                  Mapped_Y (W.Hovered_Widget, X, Y));
          if New_Part /= W.Hovered_Part then
             Clear_Hover_For_Part (W.Hovered_Widget, W.Hovered_Part);
             Set_Hover_For_Part (W.Hovered_Widget, New_Part);
@@ -2069,11 +2112,16 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
       if W.Mouse_Down and then Is_Valid (W.Pressed_Widget)
         and then not Is_Disabled (W.Pressed_Widget)
       then
-         if W.Scroll_Claimed then
-            Handle_Scroll_Mouse_Move (W.Pressed_Widget, X, Y);
-         else
-            Adi.Widget.On_Mouse_Move (W.Pressed_Widget, X, Y);
-         end if;
+         declare
+            MY : constant Pixel_Type :=
+              Mapped_Y (W.Pressed_Widget, X, Y);
+         begin
+            if W.Scroll_Claimed then
+               Handle_Scroll_Mouse_Move (W.Pressed_Widget, X, MY);
+            else
+               Adi.Widget.On_Mouse_Move (W.Pressed_Widget, X, MY);
+            end if;
+         end;
       end if;
    end On_Mouse_Move;
 
@@ -2127,28 +2175,36 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
       --  Allow dragging scrollbar parts on non-clickable containers
       --  (e.g. a scrollable root panel).
       if not Is_Valid (Click_Target) and then Is_Valid (Scroll_Target) then
-         if Get_Part_At (Scroll_Target, X, Y) in Scroll_Part | Knob_Part then
+         if Get_Part_At (Scroll_Target, X, Mapped_Y (Scroll_Target, X, Y))
+              in Scroll_Part | Knob_Part
+         then
             Click_Target := Scroll_Target;
          end if;
       end if;
 
       if Is_Valid (Click_Target) then
-         W.Pressed_Part := Get_Part_At (Click_Target, X, Y);
-         Set_Pressed (Click_Target, True);
-         Set_Part_State (Click_Target,
-                         W.Pressed_Part,
-                         Adi.Widget_Styles.State_Pressed,
-                         True);
-         W.Pressed_Widget := Click_Target;
-         if W.Pressed_Part in Scroll_Part | Knob_Part then
-            W.Scroll_Claimed :=
-              Handle_Scroll_Mouse_Down (Click_Target, X, Y, Button);
-            if not W.Scroll_Claimed then
-               Adi.Widget.On_Mouse_Down (Click_Target, X, Y, Button, Clicks);
+         declare
+            --  Translate into the target's own space before anything
+            --  compares this point against its geometry.
+            CY : constant Pixel_Type := Mapped_Y (Click_Target, X, Y);
+         begin
+            W.Pressed_Part := Get_Part_At (Click_Target, X, CY);
+            Set_Pressed (Click_Target, True);
+            Set_Part_State (Click_Target,
+                            W.Pressed_Part,
+                            Adi.Widget_Styles.State_Pressed,
+                            True);
+            W.Pressed_Widget := Click_Target;
+            if W.Pressed_Part in Scroll_Part | Knob_Part then
+               W.Scroll_Claimed :=
+                 Handle_Scroll_Mouse_Down (Click_Target, X, CY, Button);
+               if not W.Scroll_Claimed then
+                  Adi.Widget.On_Mouse_Down (Click_Target, X, CY, Button, Clicks);
+               end if;
+            else
+               Adi.Widget.On_Mouse_Down (Click_Target, X, CY, Button, Clicks);
             end if;
-         else
-            Adi.Widget.On_Mouse_Down (Click_Target, X, Y, Button, Clicks);
-         end if;
+         end;
       else
          W.Pressed_Widget := Null_Handle;
          W.Pressed_Part := Main_Part;
@@ -2156,6 +2212,25 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
 
       Set_Focused_Widget (W, Focus_Target);
    end On_Mouse_Down;
+
+   --  A release completes a click only while the pointer is still over
+   --  the widget that was pressed. Ask the hit test rather than
+   --  comparing raw geometry: that way a release over a clipped-away
+   --  part of the widget, or over an overlay covering it, does not
+   --  count.
+   function Release_Is_Within
+     (W : Window; PW : Widget_Handle; X, Y : Pixel_Type) return Boolean
+   is
+      Hit : Widget_Handle := Find_Widget_At (W, X, Y);
+   begin
+      while Is_Valid (Hit) loop
+         if Hit = PW then
+            return True;
+         end if;
+         Hit := Get_Parent_Handle (Hit);
+      end loop;
+      return False;
+   end Release_Is_Within;
 
    -----------------
    -- On_Mouse_Up --
@@ -2179,7 +2254,7 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
          if W.Scroll_Claimed then
             Handle_Scroll_Mouse_Up (PW, Button);
          else
-            Adi.Widget.On_Mouse_Up (PW, X, Y, Button);
+            Adi.Widget.On_Mouse_Up (PW, X, Mapped_Y (PW, X, Y), Button);
          end if;
 
          --  Re-read: callback may have cleared W.Pressed_Widget
@@ -2189,7 +2264,7 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
          end if;
 
          if Is_Valid (PW)
-            and then Point_In_Widget (PW, X, Y)
+            and then Release_Is_Within (W, PW, X, Y)
             and then Has_Flag (PW, Clickable)
             and then Button = Left_Button
             and then not Is_Disabled (PW)

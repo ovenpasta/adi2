@@ -1733,17 +1733,37 @@ package body Adi.Window is
    --  the widget.
    ---------------------------------
 
+   function Ancestor_Scroll_Offset_Y (Target : Widget_Handle) return Pixel_Type
+   is
+      Node : Widget_Handle := Get_Parent_Handle (Target);
+      Sum  : Pixel_Type := 0.0;
+   begin
+      while Is_Valid (Node) loop
+         Sum := Sum + Get_Scroll_Offset_Y (Node);
+         Node := Get_Parent_Handle (Node);
+      end loop;
+      return Sum;
+   end Ancestor_Scroll_Offset_Y;
+
    procedure Map_Window_Point_To_Widget
      (Target : Widget_Handle;
       X, Y   : in out Pixel_Type)
    is
-      Node : Widget_Handle := Get_Parent_Handle (Target);
    begin
-      while Is_Valid (Node) loop
-         Y := Y + Get_Scroll_Offset_Y (Node);
-         Node := Get_Parent_Handle (Node);
-      end loop;
+      Y := Y + Ancestor_Scroll_Offset_Y (Target);
    end Map_Window_Point_To_Widget;
+
+   function To_Window_Space
+     (Wgt : Widget_Handle; R : Rectangle) return Rectangle is
+   begin
+      if not Is_Valid (Wgt) then
+         return R;
+      end if;
+      return (X      => R.X,
+              Y      => R.Y - Ancestor_Scroll_Offset_Y (Wgt),
+              Width  => R.Width,
+              Height => R.Height);
+   end To_Window_Space;
 
    function Mapped_Y
      (Target : Widget_Handle; X, Y : Pixel_Type) return Pixel_Type

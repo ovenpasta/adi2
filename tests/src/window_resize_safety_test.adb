@@ -1337,6 +1337,93 @@ procedure Window_Resize_Safety_Test is
          Assert (False, "Unexpected exception: " & Exception_Name (E));
    end Test_Pages_Keep_Their_Own_Scroll_Offset;
 
+   --  Overlays are placed in window space, so anything anchored to a
+   --  widget's geometry has to be converted first — the geometry is
+   --  stored unshifted. A combo box's dropdown inside a scrolled page
+   --  was appearing where the combo would be if nothing had scrolled.
+   procedure Test_Overlay_Anchor_Follows_Scroll is
+      Ready : Boolean;
+      W     : Adi.Window.Window_Handle;
+      Root  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Page  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Above : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Above");
+      Anchor_W : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Anchor");
+
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         others         => <>);
+      Page_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         Overflow_Y     => Set (Overflow_Auto),
+         Height         => Set (Size (Px (100.0))),
+         others         => <>);
+      Item_Rules : constant Style_Rules :=
+        (Height         => Set (Size (Px (80.0))),
+         Min_Height     => Set (Size (Px (80.0))),
+         Text_Wrap_Mode => Set (TWM_Nowrap),
+         others         => <>);
+
+      Scroll_By : constant Pixel_Type := 60.0;
+   begin
+      Put_Line ("Test: overlay anchors follow scrolling");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Page, Main_Part, From (Page_Rules).Build);
+      Set_Part_Style (+Above, Main_Part, From (Item_Rules).Build);
+      Set_Part_Style (+Anchor_W, Main_Part, From (Item_Rules).Build);
+
+      Add_Child (+Page, +Above);
+      Add_Child (+Page, +Anchor_W);
+      Add_Child (+Root, +Page);
+
+      W := Adi.Window.Create_Window_Handle ("Overlay Anchor", (300.0, 200.0));
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
+
+      declare
+         Unscrolled : constant Rectangle :=
+           Adi.Window.To_Window_Space (+Anchor_W, Get_Geometry (+Anchor_W));
+      begin
+         Assert (abs (Unscrolled.Y - Get_Geometry (+Anchor_W).Y) < 0.001,
+                 "unscrolled: window space matches widget space");
+      end;
+
+      Set_Scroll_Offset_Y (+Page, Scroll_By);
+      Adi.Window.Render (W);
+
+      declare
+         G : constant Rectangle := Get_Geometry (+Anchor_W);
+         S : constant Rectangle := Adi.Window.To_Window_Space (+Anchor_W, G);
+      begin
+         Put_Line ("    widget y=" & Pixel_Type'Image (G.Y)
+                   & " window y=" & Pixel_Type'Image (S.Y)
+                   & " offset=" & Pixel_Type'Image
+                                    (Get_Scroll_Offset_Y (+Page)));
+         Assert
+           (abs (S.Y - (G.Y - Get_Scroll_Offset_Y (+Page))) < 0.001,
+            "scrolled: window space is the widget's on-screen position");
+         Assert (S.X = G.X and then S.Width = G.Width
+                   and then S.Height = G.Height,
+                 "conversion leaves the other fields alone");
+      end;
+
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Overlay_Anchor_Follows_Scroll;
+
 begin
    Put_Line ("========================================");
    Put_Line ("   Window Resize Safety Tests");
@@ -1360,6 +1447,7 @@ begin
    Test_Hit_Test_Follows_Scrolled_Stack;
    Test_Click_On_Scrolled_Button;
    Test_Pages_Keep_Their_Own_Scroll_Offset;
+   Test_Overlay_Anchor_Follows_Scroll;
    New_Line;
 
    Finish;

@@ -600,7 +600,9 @@ package body Adi.Widget.Combo_Box is
          return;
       end if;
 
-      Anchor := Get_Geometry (W);
+      --  The popup is a window overlay, so anchor it where the combo
+      --  actually appears rather than where its unscrolled geometry says.
+      Anchor := Adi.Window.To_Window_Space (Get_Handle (W), Get_Geometry (W));
       Win_Size := Adi.Window.Get_Size (W.Host_Window.all);
       Popup_H := Resolve_Popup_Height (W, Win_Size);
 

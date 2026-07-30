@@ -160,7 +160,8 @@ procedure Layout_Flex_Grid_Test is
          Explicit_Rows => 0,
          Row_Gap => 0.0,
          Column_Gap => 0.0,
-         Use_Preferred_Floor => False,
+         Use_Preferred_Floor_X => False,
+         Use_Preferred_Floor_Y => False,
          others => <>
       );
       Kids : Grid_Child_Info_Array (1 .. 4);
@@ -206,7 +207,8 @@ procedure Layout_Flex_Grid_Test is
          Explicit_Rows => 1,
          Row_Gap => 0.0,
          Column_Gap => 0.0,
-         Use_Preferred_Floor => False,
+         Use_Preferred_Floor_X => False,
+         Use_Preferred_Floor_Y => False,
          others => <>
       );
       Rects : Rectangle_Array (1 .. 2);
@@ -218,7 +220,8 @@ procedure Layout_Flex_Grid_Test is
       Assert_Close (Rects (2).Width, 120.0, "grid shrink width hidden policy item2");
 
       --  Enable preferred floor (overflow visible policy): item1 keeps 140.
-      Ctx.Use_Preferred_Floor := True;
+      Ctx.Use_Preferred_Floor_X := True;
+      Ctx.Use_Preferred_Floor_Y := True;
       Compute_Grid_Layout (Ctx, Kids);
       Rects := Grid_To_Rectangles (Kids);
       Assert_True (Rects (1).Width >= 140.0 - Eps,
@@ -670,11 +673,81 @@ procedure Layout_Flex_Grid_Test is
       Assert_Close (Rects (2).X, 80.0, "fr-ample fr col position");
    end Test_Grid_Fr_Ample_Space;
 
+   --  The preferred-size floor is chosen per axis. One flag for both
+   --  meant a horizontal overflow setting silently changed row heights.
+   --  Min and preferred are kept apart here so only the policy can
+   --  decide the answer: a definite size would be promoted into
+   --  Min_Height and both policies would agree regardless.
+   procedure Test_Preferred_Floor_Is_Per_Axis is
+      function Row_Height (Floor_X, Floor_Y : Boolean) return Pixel_Type is
+         Ctx : Grid_Layout_Context :=
+           (Container             => (0.0, 0.0, 40.0, 40.0),
+            Columns               => 1,
+            Explicit_Rows         => 1,
+            Row_Gap               => 0.0,
+            Column_Gap            => 0.0,
+            Use_Preferred_Floor_X => Floor_X,
+            Use_Preferred_Floor_Y => Floor_Y,
+            others                => <>);
+         Kids  : Grid_Child_Info_Array (1 .. 1);
+         Rects : Rectangle_Array (1 .. 1);
+      begin
+         Kids (1) := (Active      => True,
+                      Grid_Column => 1, Grid_Row => 1,
+                      Min_Width   => 20.0, Pref_Width  => 70.0,
+                      Min_Height  => 20.0, Pref_Height => 70.0,
+                      others      => <>);
+         Compute_Grid_Layout (Ctx, Kids);
+         Rects := Grid_To_Rectangles (Kids);
+         return Rects (1).Height;
+      end Row_Height;
+
+      function Row_Width (Floor_X, Floor_Y : Boolean) return Pixel_Type is
+         Ctx : Grid_Layout_Context :=
+           (Container             => (0.0, 0.0, 40.0, 40.0),
+            Columns               => 1,
+            Explicit_Rows         => 1,
+            Row_Gap               => 0.0,
+            Column_Gap            => 0.0,
+            Use_Preferred_Floor_X => Floor_X,
+            Use_Preferred_Floor_Y => Floor_Y,
+            others                => <>);
+         Kids  : Grid_Child_Info_Array (1 .. 1);
+         Rects : Rectangle_Array (1 .. 1);
+      begin
+         Kids (1) := (Active      => True,
+                      Grid_Column => 1, Grid_Row => 1,
+                      Min_Width   => 20.0, Pref_Width  => 70.0,
+                      Min_Height  => 20.0, Pref_Height => 70.0,
+                      others      => <>);
+         Compute_Grid_Layout (Ctx, Kids);
+         Rects := Grid_To_Rectangles (Kids);
+         return Rects (1).Width;
+      end Row_Width;
+   begin
+      --  The container is 40x40 while the child prefers 70x70 and needs
+      --  only 20x20. With the floor on, the track keeps 70 and overflows;
+      --  with it off the track starts at 20 and grows to fill the 40
+      --  available. Those two outcomes are what tells the policies apart.
+      Assert_Close (Row_Height (Floor_X => False, Floor_Y => True), 70.0,
+                    "row keeps its preferred height under the Y policy");
+      Assert_Close (Row_Width (Floor_X => False, Floor_Y => True), 40.0,
+                    "column ignores preferred width when the X policy "
+                    & "is off");
+
+      --  Swapping the policies swaps which axis overflows.
+      Assert_Close (Row_Height (Floor_X => True, Floor_Y => False), 40.0,
+                    "row ignores preferred height when the Y policy is off");
+      Assert_Close (Row_Width (Floor_X => True, Floor_Y => False), 70.0,
+                    "column keeps its preferred width under the X policy");
+   end Test_Preferred_Floor_Is_Per_Axis;
+
 begin
    Test_Support.Start_Suite ("layout_flex_grid_test");
 
    Test_Flex_Grow_Resize;
    Test_Flex_Shrink_Min;
+   Test_Preferred_Floor_Is_Per_Axis;
    Test_Flex_Margins;
    Test_Grid_Auto_And_Span;
    Test_Grid_Resize_And_Overflow_Policy;

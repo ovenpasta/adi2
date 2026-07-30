@@ -775,7 +775,10 @@ overriding procedure Layout (W : in out Box_Widget) is
                   Explicit_Rows       => Natural (Style.Grid_Rows),
                   Row_Gap             => Get_Row_Gap (Style.Gap),
                   Column_Gap          => Get_Column_Gap (Style.Gap),
-                  Use_Preferred_Floor => Style.Overflow_X = Overflow_Visible,
+                  Use_Preferred_Floor_X =>
+                    Style.Overflow_X = Overflow_Visible,
+                  Use_Preferred_Floor_Y =>
+                    Style.Overflow_Y = Overflow_Visible,
                   Column_Tracks       => Style.Grid_Column_Tracks);
                Children_Info : Grid_Child_Info_Array (1 .. N);
                Rects : Rectangle_Array (1 .. N);

@@ -198,7 +198,8 @@ procedure Image_Widget_Test is
          Explicit_Rows       => 1,
          Row_Gap             => 0.0,
          Column_Gap          => 0.0,
-         Use_Preferred_Floor => True,
+         Use_Preferred_Floor_X => True,
+         Use_Preferred_Floor_Y => True,
          others              => <>
       );
       Kids (1) := (Active => True,

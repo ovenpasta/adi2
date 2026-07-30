@@ -342,7 +342,11 @@ package Adi.Layout_Util is
       Explicit_Rows       : Natural := 0;  -- 0 => auto
       Row_Gap             : Pixel_Type := 0.0;
       Column_Gap          : Pixel_Type := 0.0;
-      Use_Preferred_Floor : Boolean := False;
+      --  Whether tracks are floored at their items' preferred size, per
+      --  axis. One flag for both let a horizontal overflow setting
+      --  change row heights.
+      Use_Preferred_Floor_X : Boolean := False;
+      Use_Preferred_Floor_Y : Boolean := False;
       Column_Tracks       : Grid_Track_List := Default_Grid_Track_List;
    end record;
 

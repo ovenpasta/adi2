@@ -1140,7 +1140,7 @@ package body Adi.Layout_Util is
                         declare
                            W : Pixel_Type := Child.Pref_Width;
                         begin
-                           if not Context.Use_Preferred_Floor then
+                           if not Context.Use_Preferred_Floor_X then
                               W := Pixel_Type'Max (W, Child.Min_Width);
                            end if;
                            Auto_W (C) := Pixel_Type'Max (Auto_W (C), W);
@@ -1214,8 +1214,10 @@ package body Adi.Layout_Util is
                      Min_Per_Col : Pixel_Type;
                      Req_Per_Row : Pixel_Type;
                   begin
-                     if Context.Use_Preferred_Floor then
+                     if Context.Use_Preferred_Floor_X then
                         Req_W := Pixel_Type'Max (Req_W, Child.Pref_Width);
+                     end if;
+                     if Context.Use_Preferred_Floor_Y then
                         Req_H := Pixel_Type'Max (Req_H, Child.Pref_Height);
                      end if;
 

@@ -6353,23 +6353,30 @@ package body Adi.Widget is
                   Save_Clip
                     (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved,
                      Widget_Tree);
-                  --  An unsaveable clip stays untouched; the subtree then
-                  --  renders within the caller's clip instead.
+                  --  A clip we cannot save is one we cannot restore, so
+                  --  leave it in place and draw the subtree within the
+                  --  caller's region: narrower than intended, but there.
+                  --  Dropping the subtree would hide the failure instead
+                  --  of showing it.
                   Use_Clip := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
-                  if Use_Clip and then Build_Content_Clip_Rect (
-                     Renderer  => Renderer,
-                     Content   => Content,
-                     Clip_X    => Clip_X,
-                     Clip_Y    => (Clip_Y or else Clip_By_Scrollable),
-                     Prev_Saved => Clip_Saved,
-                     Prev_Clip => Prev_Clip,
-                     Out_Clip  => Clip_Rect)
-                  then
-                     Use_Clip :=
-                       Set_Clip (Renderer, Clip_Rect'Access, Widget_Tree);
-                  else
-                     Use_Clip := False;
-                     Skip_Children := True;
+                  if Use_Clip then
+                     if Build_Content_Clip_Rect (
+                        Renderer  => Renderer,
+                        Content   => Content,
+                        Clip_X    => Clip_X,
+                        Clip_Y    => (Clip_Y or else Clip_By_Scrollable),
+                        Prev_Saved => Clip_Saved,
+                        Prev_Clip => Prev_Clip,
+                        Out_Clip  => Clip_Rect)
+                     then
+                        Use_Clip :=
+                          Set_Clip (Renderer, Clip_Rect'Access, Widget_Tree);
+                     else
+                        --  Empty intersection: none of this subtree can
+                        --  be seen, so there is nothing to draw.
+                        Use_Clip := False;
+                        Skip_Children := True;
+                     end if;
                   end if;
                end if;
             end if;

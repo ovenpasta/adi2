@@ -865,6 +865,26 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
         ada = self._gen({"gap": "5px 10px"})
         self.assertIn("Gap => Set (Gap (Px (5.0), Px (10.0)))", ada)
 
+    def test_row_gap_alone_names_only_the_row_axis(self):
+        #  Gap_Row leaves the column axis unnamed so the cascade keeps it.
+        ada = self._gen({"row-gap": "4px"})
+        self.assertIn("Gap => Set (Gap_Row (Px (4.0)))", ada)
+
+    def test_column_gap_alone_names_only_the_column_axis(self):
+        ada = self._gen({"column-gap": "14px"})
+        self.assertIn("Gap => Set (Gap_Column (Px (14.0)))", ada)
+
+    def test_row_and_column_gap_combine_into_one_field(self):
+        ada = self._gen({"row-gap": "4px", "column-gap": "14px"})
+        self.assertIn("Gap => Set (Gap (Px (4.0), Px (14.0)))", ada)
+        #  Two Gap fields in one aggregate do not compile.
+        self.assertEqual(1, ada.count("Gap =>"))
+
+    def test_row_gap_overrides_the_shorthand_it_follows(self):
+        ada = self._gen({"gap": "10px", "row-gap": "4px"})
+        self.assertIn("Gap => Set (Gap (Px (4.0), Px (10.0)))", ada)
+        self.assertEqual(1, ada.count("Gap =>"))
+
     def test_flex_grow(self):
         ada = self._gen({"flex-grow": "2"})
         self.assertIn("Flex_Grow => Set (2.0)", ada)

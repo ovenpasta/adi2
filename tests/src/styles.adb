@@ -195,6 +195,37 @@ procedure Main is
    -- Test procedures
    -------------------------------------------------
 
+   --  Style_Rules keeps both gap axes in one field, so Merge has to
+   --  combine them axis by axis: a rule naming one axis must leave the
+   --  other as the base had it. This is the programmatic side of the CSS
+   --  cascade case, for callers building Style_Rules by hand.
+   procedure Test_Gap_Merges_Per_Axis is
+      Uniform  : constant Style_Rules :=
+        (Gap => Set (Gap (Px (10.0))), others => <>);
+      Row_Only : constant Style_Rules :=
+        (Gap => Set (Gap_Row (Px (4.0))), others => <>);
+      Col_Only : constant Style_Rules :=
+        (Gap => Set (Gap_Column (Px (14.0))), others => <>);
+
+      Row_Over_Uniform : constant Style_Rules := Merge (Uniform, Row_Only);
+      Both_Longhands   : constant Style_Rules := Merge (Row_Only, Col_Only);
+      Uniform_Last     : constant Style_Rules := Merge (Both_Longhands, Uniform);
+   begin
+      Section ("Gap merges per axis");
+      Assert (Get_Row_Gap (Opt_Gap.Resolve (Row_Over_Uniform.Gap)) = 4.0
+              and then Get_Column_Gap
+                         (Opt_Gap.Resolve (Row_Over_Uniform.Gap)) = 10.0,
+              "row-only override keeps the base column gap");
+      Assert (Get_Row_Gap (Opt_Gap.Resolve (Both_Longhands.Gap)) = 4.0
+              and then Get_Column_Gap
+                         (Opt_Gap.Resolve (Both_Longhands.Gap)) = 14.0,
+              "two one-axis rules combine into both axes");
+      Assert (Get_Row_Gap (Opt_Gap.Resolve (Uniform_Last.Gap)) = 10.0
+              and then Get_Column_Gap
+                         (Opt_Gap.Resolve (Uniform_Last.Gap)) = 10.0,
+              "a uniform gap on top replaces both axes");
+   end Test_Gap_Merges_Per_Axis;
+
    procedure Test_Button_Normal is
       R : constant Resolved_Style := Compute_Resolved (My_Button, (others => False));
    begin
@@ -578,6 +609,7 @@ begin
    Put_Line ("*** TYPOGRAPHY TESTS ***");
    New_Line;
    Test_Typography_Resolve;
+   Test_Gap_Merges_Per_Axis;
 
    Put_Line ("*** DIP SCALING TESTS ***");
    New_Line;

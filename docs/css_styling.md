@@ -256,7 +256,18 @@ Additional part behavior:
 | `justify-content` | `flex-start`, `flex-end`, `center`, `space-between`, `space-around`, `space-evenly` | `justify-content: center;` |
 | `align-items` | `flex-start`, `flex-end`, `center`, `baseline`, `stretch` | `align-items: stretch;` |
 | `align-content` | `flex-start`, `flex-end`, `center`, `space-between`, `space-around`, `stretch` | `align-content: center;` |
-| `gap` | length | `gap: 12px;` |
+| `gap` | one or two lengths (`row column`) | `gap: 12px;` / `gap: 4px 14px;` |
+| `row-gap` / `column-gap` | length | `row-gap: 4px;` |
+
+Both axes live in a single `Gap` value, which records *which* axes a rule named. Merging is therefore per axis, within a rule and across the cascade alike — a rule saying only `row-gap` leaves the column gap alone:
+
+```css
+.base    { gap: 10px; }        /* both axes */
+.compact { row-gap: 4px; }     /* rows only */
+/* class="base compact" → 4px between rows, 10px between columns */
+```
+
+Building rules in Ada follows the same shape: `Gap (L)` and `Gap (Row, Column)` name both axes, while `Gap_Row (L)` / `Gap_Column (L)` name one and leave the other for whatever the cascade already established.
 
 ### Flexbox Item
 

@@ -2473,6 +2473,9 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
     list_style_position = None
     overflow_x = None
     overflow_y = None
+    gap_row = None
+    gap_column = None
+    gap_slot = None
     edge_index = {"top": 0, "right": 1, "bottom": 2, "left": 3}
     corner_index = {
         "top-left": 0,
@@ -2968,18 +2971,26 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         
         # Gap (shorthand and individual)
         elif prop in ("gap", "row-gap", "column-gap"):
+            #  One Style_Rules field holds both axes, so the shorthand and
+            #  the two longhands are accumulated and emitted once. Two Gap
+            #  fields in one aggregate would not compile.
             if prop == "gap":
                 lengths = parse_box_values(value)
                 if lengths:
-                    if len(lengths) == 1:
-                        ada_field = f"Gap => Set (Gap ({generate_length_ada(lengths[0])}))"
-                    elif len(lengths) >= 2:
-                        ada_field = f"Gap => Set (Gap ({generate_length_ada(lengths[0])}, {generate_length_ada(lengths[1])}))"
+                    gap_row = lengths[0]
+                    gap_column = lengths[1] if len(lengths) >= 2 else lengths[0]
             else:
                 length = parse_length(value)
                 if length:
-                    # row-gap and column-gap map to the two-value Gap form
-                    ada_field = f"Gap => Set (Gap ({generate_length_ada(length)}))"
+                    if prop == "row-gap":
+                        gap_row = length
+                    else:
+                        gap_column = length
+            #  Hold the spot of the first gap declaration so the field keeps
+            #  its place in the aggregate.
+            if gap_slot is None and (gap_row is not None or gap_column is not None):
+                gap_slot = len(fields)
+                fields.append(None)
         
         # Flex grow
         elif prop == "flex-grow":
@@ -3152,6 +3163,21 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         fields.append(f"{indent}List_Style_Image => Set ({list_style_image})")
     if list_style_position is not None:
         fields.append(f"{indent}List_Style_Position => Set ({list_style_position})")
+    if gap_slot is not None:
+        #  A rule that names one axis must say so, or the cascade cannot
+        #  tell it from one that set the other axis to zero.
+        if gap_row is not None and gap_column is not None:
+            if gap_row == gap_column:
+                fields[gap_slot] = f"{indent}Gap => Set (Gap ({generate_length_ada(gap_row)}))"
+            else:
+                fields[gap_slot] = (
+                    f"{indent}Gap => Set (Gap ({generate_length_ada(gap_row)}, "
+                    f"{generate_length_ada(gap_column)}))"
+                )
+        elif gap_row is not None:
+            fields[gap_slot] = f"{indent}Gap => Set (Gap_Row ({generate_length_ada(gap_row)}))"
+        else:
+            fields[gap_slot] = f"{indent}Gap => Set (Gap_Column ({generate_length_ada(gap_column)}))"
     if overflow_x is not None:
         fields.append(f"{indent}Overflow_X => Set_Overflow_X ({overflow_x})")
     if overflow_y is not None:

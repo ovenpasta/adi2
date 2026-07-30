@@ -2545,6 +2545,23 @@ package body Adi.CSS_Parser is
             elsif Ls.Length >= 2 then Rules.Gap := Set (Gap (To_Length (Ls (1)), To_Length (Ls (2))));
             end if;
          end if;
+      elsif P = "row-gap" or else P = "column-gap" then
+         if Parse_Length (V, LVal) then
+            declare
+               --  One field carries both axes, so a longhand overlays its
+               --  own axis and leaves the other as it was — unnamed here,
+               --  or whatever a preceding shorthand in this rule set.
+               Axis : constant Gap_Value :=
+                 (if P = "row-gap" then Gap_Row (To_Length (LVal))
+                  else Gap_Column (To_Length (LVal)));
+            begin
+               if Opt_Gap.Is_Set (Rules.Gap) then
+                  Rules.Gap := Set (Overlay (Rules.Gap.Value, Axis));
+               else
+                  Rules.Gap := Set (Axis);
+               end if;
+            end;
+         end if;
       elsif P = "flex-grow" then
          if Parse_Number (V, F) then Rules.Flex_Grow := Set (Flex_Grow_Value (F)); end if;
       elsif P = "flex-shrink" then

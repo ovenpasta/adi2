@@ -127,6 +127,16 @@ procedure Css_Parser_Test is
        ".flexextra { flex-wrap: wrap; align-self: stretch; align-content: space-between; }" & ASCII.LF &
        ".gridcontainer { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; gap: 10px; }" & ASCII.LF &
        ".gridmixed { display: grid; grid-template-columns: auto auto 1fr; }" & ASCII.LF &
+       ".gridgaps { display: grid; row-gap: 4px; column-gap: 14px; }" & ASCII.LF &
+       ".gridgapover { display: grid; gap: 10px; row-gap: 4px; }" & ASCII.LF &
+       --  Same class twice: the second block cascades onto the first.
+       ".gapcas1 { gap: 10px; }" & ASCII.LF &
+       ".gapcas1 { row-gap: 4px; }" & ASCII.LF &
+       ".gapcas2 { row-gap: 4px; }" & ASCII.LF &
+       ".gapcas2 { column-gap: 14px; }" & ASCII.LF &
+       ".gapcas3 { row-gap: 4px; column-gap: 14px; }" & ASCII.LF &
+       ".gapcas3 { gap: 7px; }" & ASCII.LF &
+       ".gapcas4 { row-gap: 4px; gap: 10px; }" & ASCII.LF &
        ".griditem { grid-column: 1 / 3; grid-row: span 2; }" & ASCII.LF &
        ".shadowtest { box-shadow: none; }" & ASCII.LF &
        ".pad1 { padding: 5px; }" & ASCII.LF &
@@ -1303,6 +1313,18 @@ procedure Css_Parser_Test is
         Adi.CSS_Parser.Styles_For_Class (Sheet, "gridmixed");
       Griditem_Styles  : constant Part_Style_Array :=
         Adi.CSS_Parser.Styles_For_Class (Sheet, "griditem");
+      Gridgaps_Styles  : constant Part_Style_Array :=
+        Adi.CSS_Parser.Styles_For_Class (Sheet, "gridgaps");
+      Gridgapover_Styles : constant Part_Style_Array :=
+        Adi.CSS_Parser.Styles_For_Class (Sheet, "gridgapover");
+      Gapcas1_Styles : constant Part_Style_Array :=
+        Adi.CSS_Parser.Styles_For_Class (Sheet, "gapcas1");
+      Gapcas2_Styles : constant Part_Style_Array :=
+        Adi.CSS_Parser.Styles_For_Class (Sheet, "gapcas2");
+      Gapcas3_Styles : constant Part_Style_Array :=
+        Adi.CSS_Parser.Styles_For_Class (Sheet, "gapcas3");
+      Gapcas4_Styles : constant Part_Style_Array :=
+        Adi.CSS_Parser.Styles_For_Class (Sheet, "gapcas4");
       Flexextra_Main : constant Resolved_Style :=
         Compute_Resolved (Flexextra_Styles (Main_Part).Style, No_States, No_States);
       Gridcon_Main   : constant Resolved_Style :=
@@ -1311,6 +1333,18 @@ procedure Css_Parser_Test is
         Compute_Resolved (Gridmixed_Styles (Main_Part).Style, No_States, No_States);
       Griditem_Main  : constant Resolved_Style :=
         Compute_Resolved (Griditem_Styles (Main_Part).Style, No_States, No_States);
+      Gridgaps_Main  : constant Resolved_Style :=
+        Compute_Resolved (Gridgaps_Styles (Main_Part).Style, No_States, No_States);
+      Gridgapover_Main : constant Resolved_Style :=
+        Compute_Resolved (Gridgapover_Styles (Main_Part).Style, No_States, No_States);
+      Gapcas1_Main : constant Resolved_Style :=
+        Compute_Resolved (Gapcas1_Styles (Main_Part).Style, No_States, No_States);
+      Gapcas2_Main : constant Resolved_Style :=
+        Compute_Resolved (Gapcas2_Styles (Main_Part).Style, No_States, No_States);
+      Gapcas3_Main : constant Resolved_Style :=
+        Compute_Resolved (Gapcas3_Styles (Main_Part).Style, No_States, No_States);
+      Gapcas4_Main : constant Resolved_Style :=
+        Compute_Resolved (Gapcas4_Styles (Main_Part).Style, No_States, No_States);
    begin
       Test_Support.Assert (Flexextra_Main.Flex_Wrap = Wrap,
               "flex-wrap wrap should parse");
@@ -1351,6 +1385,33 @@ procedure Css_Parser_Test is
               "grid-column span should parse from start/end shorthand");
       Test_Support.Assert (Griditem_Main.Grid_Row_Span = 2,
               "grid-row span should parse");
+
+      --  The longhands write the two halves of one Gap value, so each has
+      --  to keep what the other set.
+      Test_Support.Assert (Gridgaps_Main.Gap.Kind = Gap_Separate
+              and then Gridgaps_Main.Gap.Row_Gap.Amount = 4.0
+              and then Gridgaps_Main.Gap.Column_Gap.Amount = 14.0,
+              "row-gap and column-gap should parse into one separate gap");
+      Test_Support.Assert (Gridgapover_Main.Gap.Kind = Gap_Separate
+              and then Gridgapover_Main.Gap.Row_Gap.Amount = 4.0
+              and then Gridgapover_Main.Gap.Column_Gap.Amount = 10.0,
+              "row-gap should override only the row half of a preceding gap");
+
+      --  The two axes are one property internally, so the cascade has to
+      --  merge them per axis: a rule that names only one axis must not
+      --  discard what an earlier matching rule said about the other.
+      Test_Support.Assert (Get_Row_Gap (Gapcas1_Main.Gap) = 4.0
+              and then Get_Column_Gap (Gapcas1_Main.Gap) = 10.0,
+              "a later row-gap keeps the column gap of an earlier shorthand");
+      Test_Support.Assert (Get_Row_Gap (Gapcas2_Main.Gap) = 4.0
+              and then Get_Column_Gap (Gapcas2_Main.Gap) = 14.0,
+              "row-gap and column-gap from separate rules combine");
+      Test_Support.Assert (Get_Row_Gap (Gapcas3_Main.Gap) = 7.0
+              and then Get_Column_Gap (Gapcas3_Main.Gap) = 7.0,
+              "a later shorthand replaces both earlier longhands");
+      Test_Support.Assert (Get_Row_Gap (Gapcas4_Main.Gap) = 10.0
+              and then Get_Column_Gap (Gapcas4_Main.Gap) = 10.0,
+              "a shorthand after a longhand in one rule wins on both axes");
    end Test_Flex_Grid;
 
    procedure Test_Shadow_Spacing is

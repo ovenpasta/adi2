@@ -37,6 +37,36 @@ package body Adi.CSS_Styles is
    -- Get_Border_Radius_Px
    -------------------------------------------------
 
+   function Overlay (Base, Override : Gap_Value) return Gap_Value is
+      --  A uniform value names both axes, so it simply replaces Base.
+      function Row_Of (G : Gap_Value) return Length_Value is
+        (if G.Kind = Gap_Uniform then G.All_Gap else G.Row_Gap);
+      function Col_Of (G : Gap_Value) return Length_Value is
+        (if G.Kind = Gap_Uniform then G.All_Gap else G.Column_Gap);
+      function Names_Row (G : Gap_Value) return Boolean is
+        (G.Kind = Gap_Uniform or else G.Has_Row);
+      function Names_Col (G : Gap_Value) return Boolean is
+        (G.Kind = Gap_Uniform or else G.Has_Column);
+
+      Row      : constant Length_Value :=
+        (if Names_Row (Override) then Row_Of (Override) else Row_Of (Base));
+      Col      : constant Length_Value :=
+        (if Names_Col (Override) then Col_Of (Override) else Col_Of (Base));
+      Has_R    : constant Boolean :=
+        Names_Row (Override) or else Names_Row (Base);
+      Has_C    : constant Boolean :=
+        Names_Col (Override) or else Names_Col (Base);
+   begin
+      if Has_R and then Has_C and then Row = Col then
+         return Gap (Row);
+      end if;
+      return (Kind       => Gap_Separate,
+              Row_Gap    => Row,
+              Column_Gap => Col,
+              Has_Row    => Has_R,
+              Has_Column => Has_C);
+   end Overlay;
+
    function Get_Border_Radius_Px (R : Border_Radius_Value) return Corner_Pixels is
    begin
       case R.Kind is
@@ -431,6 +461,17 @@ package body Adi.CSS_Styles is
    -- Merge: Combine two Style_Rules (Override wins for set values)
    -------------------------------------------------
 
+   function Merge_Gap
+     (Base, Override : Opt_Gap.Optional) return Opt_Gap.Optional is
+   begin
+      if not Opt_Gap.Is_Set (Override) then
+         return Opt_Gap.Merge (Base, Override);
+      elsif not Opt_Gap.Is_Set (Base) then
+         return Override;
+      end if;
+      return Set (Overlay (Base.Value, Override.Value));
+   end Merge_Gap;
+
    function Merge (Base, Override : Style_Rules) return Style_Rules is
    begin
       return (
@@ -506,7 +547,9 @@ package body Adi.CSS_Styles is
          Justify_Content  => Opt_Justify.Merge (Base.Justify_Content, Override.Justify_Content),
          Align_Items      => Opt_Align_Items.Merge (Base.Align_Items, Override.Align_Items),
          Align_Content    => Opt_Align_Content.Merge (Base.Align_Content, Override.Align_Content),
-         Gap              => Opt_Gap.Merge (Base.Gap, Override.Gap),
+         --  Not Opt_Gap.Merge: a rule naming one axis must not drop the
+         --  other axis an earlier rule set.
+         Gap              => Merge_Gap (Base.Gap, Override.Gap),
          Grid_Columns     => Opt_Grid_Cols.Merge (Base.Grid_Columns, Override.Grid_Columns),
          Grid_Rows        => Opt_Grid_Rows.Merge (Base.Grid_Rows, Override.Grid_Rows),
          Grid_Column_Tracks =>

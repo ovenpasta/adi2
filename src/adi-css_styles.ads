@@ -893,17 +893,36 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    -- Gap (row-gap, column-gap)
    type Gap_Kind is (Gap_Uniform, Gap_Separate);
 
+   --  Gap_Separate records which axes the style actually named. Both
+   --  longhands write this one field, so the cascade has to tell an axis
+   --  that was set to zero from one that was never mentioned — otherwise
+   --  a rule saying only `row-gap` would wipe an inherited column gap.
    type Gap_Value (Kind : Gap_Kind := Gap_Uniform) is record
       case Kind is
          when Gap_Uniform  => All_Gap : Length_Value := Zero_Length;
-         when Gap_Separate => Row_Gap, Column_Gap : Length_Value := Zero_Length;
+         when Gap_Separate =>
+            Row_Gap, Column_Gap : Length_Value := Zero_Length;
+            Has_Row, Has_Column : Boolean := True;
       end case;
    end record;
 
    function Gap (All_L : Length_Value) return Gap_Value is
       ((Kind => Gap_Uniform, All_Gap => All_L));
    function Gap (Row_G, Column_G : Length_Value) return Gap_Value is
-      ((Kind => Gap_Separate, Row_Gap => Row_G, Column_Gap => Column_G));
+      ((Kind => Gap_Separate, Row_Gap => Row_G, Column_Gap => Column_G,
+        Has_Row => True, Has_Column => True));
+
+   --  One axis only, as `row-gap` / `column-gap` express it.
+   function Gap_Row (L : Length_Value) return Gap_Value is
+      ((Kind => Gap_Separate, Row_Gap => L, Column_Gap => Zero_Length,
+        Has_Row => True, Has_Column => False));
+   function Gap_Column (L : Length_Value) return Gap_Value is
+      ((Kind => Gap_Separate, Row_Gap => Zero_Length, Column_Gap => L,
+        Has_Row => False, Has_Column => True));
+
+   --  Axis-wise override: each axis Override names wins, the other keeps
+   --  what Base had. Used both within a rule and across the cascade.
+   function Overlay (Base, Override : Gap_Value) return Gap_Value;
 
    Default_Gap : constant Gap_Value := Gap (Zero_Length);
 

@@ -476,14 +476,14 @@
 .setting-switch::knob {
   width: var(--switch-knob-size);
   height: var(--switch-knob-size);
-  margin: 2dp 0dp 0dp 2dp;
+  margin: 2dp;
   background-color: rgb(121, 116, 126);
   border-radius: var(--radius-pill);
   transition: margin 0.2s ease-in-out, background-color 0.2s ease-in-out;
 }
 
 .setting-switch:selected::knob {
-  margin: 2dp 0dp 0dp 22dp;
+  margin: 2dp 2dp 2dp 22dp;
   background-color: rgb(255, 255, 255);
 }
 

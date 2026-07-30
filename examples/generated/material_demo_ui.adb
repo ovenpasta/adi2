@@ -52,6 +52,7 @@ package body Material_Demo_UI is
       return Result;
    end Static_Root_Metadata;
    use type Float_Slider.Value_Changed_Callback;
+   use type Float_Value_Input.Value_Changed_Callback;
 
    procedure On_Page_Option_Wrapper (Value : Page) is
    begin
@@ -396,6 +397,12 @@ package body Material_Demo_UI is
       --  Wire callbacks
       if On_Get_Started /= null then
          Adi.Widget.Button.Connect_Clicked (Button_1, On_Get_Started);
+      end if;
+      if On_Control_Slider /= null then
+         Float_Slider.Connect_Changed (Enabled_Slider, On_Control_Slider);
+      end if;
+      if On_Control_Value /= null then
+         Float_Value_Input.Connect_Value_Changed (Enabled_Value_Input, On_Control_Value);
       end if;
       if On_Dark_Mode /= null then
          Adi.Widget.Button.Switch.Connect_Toggled (Dark_Switch, On_Dark_Mode);

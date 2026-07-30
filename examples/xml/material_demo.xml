@@ -14,6 +14,10 @@
   <callback name="On_Lock_UI" type="Adi.Widget.Button.Toggle_Callback"/>
   <callback name="On_UI_Scale" type="Float_Slider.Value_Changed_Callback"/>
   <callback name="On_Text_Scale" type="Float_Slider.Value_Changed_Callback"/>
+  <!-- The Controls slider and value input show the same number,
+       each editable, so moving one updates the other. -->
+  <callback name="On_Control_Slider" type="Float_Slider.Value_Changed_Callback"/>
+  <callback name="On_Control_Value" type="Float_Value_Input.Value_Changed_Callback"/>
 
   <window title="Material Demo" width="900" height="720">
     <box id="Root" class="root">
@@ -88,11 +92,11 @@
                 </combo-box>
                 <!-- Slider row -->
                 <label text="Slider" class="label-inline grid-label"/>
-                <slider id="Enabled_Slider" generic="Float_Slider" min="0.0" max="100.0" value="50.0" class="slider grid-cell grid-slider"/>
+                <slider id="Enabled_Slider" generic="Float_Slider" min="0.0" max="100.0" value="50.0" class="slider grid-cell grid-slider" on-changed="On_Control_Slider"/>
                 <slider id="Disabled_Slider" generic="Float_Slider" min="0.0" max="100.0" value="75.0" class="slider grid-cell grid-slider" disabled="true"/>
                 <!-- Value Input row -->
                 <label text="Value Input" class="label-inline grid-label"/>
-                <value-input id="Enabled_Value_Input" generic="Float_Value_Input" min="0.0" max="100.0" value="50.0" class="num-field grid-cell"/>
+                <value-input id="Enabled_Value_Input" generic="Float_Value_Input" min="0.0" max="100.0" value="50.0" class="num-field grid-cell" on-value-changed="On_Control_Value"/>
                 <integer-value-input id="Disabled_Value_Input" generic="Int_Value_Input" min="0" max="100" value="75" class="num-field grid-cell" disabled="true"/>
               </box>
             </box>

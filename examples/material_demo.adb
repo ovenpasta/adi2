@@ -87,6 +87,27 @@ procedure Material_Demo is
         (W, Adi.Core.Pixel_Type (Value / 100.0));
    end On_Text_Scale;
 
+   --  Slider and value input over the same 0 .. 100 range, kept in step.
+   --  Neither Set_Value emits Value_Changed -- both only mark the widget
+   --  dirty -- so writing the other one here cannot echo back.
+   procedure On_Control_Slider
+     (Sender : Widget_Handle;
+      Value  : Float)
+   is
+      pragma Unreferenced (Sender);
+   begin
+      Float_Value_Input.Set_Value (UI.Enabled_Value_Input, Value);
+   end On_Control_Slider;
+
+   procedure On_Control_Value
+     (Sender : Widget_Handle;
+      Value  : Float)
+   is
+      pragma Unreferenced (Sender);
+   begin
+      Float_Slider.Set_Value (UI.Enabled_Slider, Value);
+   end On_Control_Value;
+
    procedure On_Welcome_Result
      (W            : Widget_Handle;
       Button_Index : Natural;
@@ -157,6 +178,8 @@ begin
    UI.On_Lock_UI := On_Lock_UI'Unrestricted_Access;
    UI.On_UI_Scale := On_UI_Scale'Unrestricted_Access;
    UI.On_Text_Scale := On_Text_Scale'Unrestricted_Access;
+   UI.On_Control_Slider := On_Control_Slider'Unrestricted_Access;
+   UI.On_Control_Value := On_Control_Value'Unrestricted_Access;
 
    --  Set package-level context menu styles (applies to all context menus)
    Adi.Widget.Context_Menu.Set_Default_Menu_Styles (Context_Menu_Class_Part_Styles);

@@ -35,6 +35,8 @@ package Material_Demo_UI is
       On_Lock_UI : Adi.Widget.Button.Toggle_Callback := null;
       On_UI_Scale : Float_Slider.Value_Changed_Callback := null;
       On_Text_Scale : Float_Slider.Value_Changed_Callback := null;
+      On_Control_Slider : Float_Slider.Value_Changed_Callback := null;
+      On_Control_Value : Float_Value_Input.Value_Changed_Callback := null;
 
       Root : Adi.Widget.Box.Box_Handle;
       App_Title : Adi.Widget.Label.Label_Handle;

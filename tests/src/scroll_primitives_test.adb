@@ -124,6 +124,54 @@ procedure Scroll_Primitives_Test is
               "On_Scroll_Changed sees the post-clamp value, not the raw write");
    end Test_Offset_Clamps_To_Max;
 
+   --  Scroll_Changed identifies the widget that scrolled. Nothing puts a
+   --  widget in the handle store on its own — these test subclasses are
+   --  never registered, yet they scroll through the public API — so the
+   --  event carries a pointer. Reporting a handle instead raised in
+   --  strict mode, and suppressing the event for such widgets left
+   --  anything anchored to them, a combo dropdown in particular,
+   --  stranded where it was.
+   Observed : access Adi.Widget.Widget'Class := null;
+   Observed_Count : Natural := 0;
+
+   procedure Note_Scroll
+     (Scrolled : not null access Adi.Widget.Widget'Class) is
+   begin
+      Observed := Scrolled;
+      Observed_Count := Observed_Count + 1;
+   end Note_Scroll;
+
+   procedure Test_Scroll_Changed_Reports_The_Widget is
+      W  : aliased Tracking_Widget;
+      Id : constant Scroll_Signals.Connection_Id :=
+        Connect_Scroll_Changed (Note_Scroll'Unrestricted_Access);
+      Expect : constant access Adi.Widget.Widget'Class :=
+        Adi.Widget.Widget'Class (W)'Unchecked_Access;
+   begin
+      Test_Support.Section ("Scroll_Changed reports the widget that scrolled");
+      Observed := null;
+      Observed_Count := 0;
+
+      Set_Scroll_Offset_Y (W, 25.0);
+      Test_Support.Assert (Observed_Count = 1,
+              "an unregistered widget still notifies observers");
+      Test_Support.Assert (Observed = Expect,
+              "the observer is told which widget scrolled");
+
+      Set_Scroll_Offset_Y (W, 25.0);  --  no-op
+      Test_Support.Assert (Observed_Count = 1,
+              "a write that changes nothing does not notify");
+
+      Disconnect_Scroll_Changed (Id);
+      Set_Scroll_Offset_Y (W, 40.0);
+      Test_Support.Assert (Observed_Count = 1,
+              "a disconnected observer stops hearing about scrolling");
+
+      --  The pointer is borrowed for the call only, and W is about to go
+      --  out of scope: drop it rather than leave a dangling one behind.
+      Observed := null;
+   end Test_Scroll_Changed_Reports_The_Widget;
+
 begin
    Test_Support.Start_Suite ("Scroll Primitives Test");
    New_Line;
@@ -132,6 +180,8 @@ begin
    Test_On_Scroll_Changed_Fires;
    New_Line;
    Test_Offset_Clamps_To_Max;
+   New_Line;
+   Test_Scroll_Changed_Reports_The_Widget;
    New_Line;
    Test_Support.Finish;
 end Scroll_Primitives_Test;

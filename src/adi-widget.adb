@@ -2341,6 +2341,36 @@ package body Adi.Widget is
         (0.0, Get_Scroll_Content_Height (W) - W.Scroll_Viewport_H);
    end Get_Scroll_Max_Offset_Y;
 
+   procedure Connect_Scroll_Changed (CB : Scroll_Observer) is
+   begin
+      Scroll_Signals.Connect (Scroll_Changed, CB);
+   end Connect_Scroll_Changed;
+
+   function Connect_Scroll_Changed
+     (CB : Scroll_Observer) return Scroll_Signals.Connection_Id is
+   begin
+      return Scroll_Signals.Connect (Scroll_Changed, CB);
+   end Connect_Scroll_Changed;
+
+   procedure Disconnect_Scroll_Changed
+     (Id : Scroll_Signals.Connection_Id) is
+   begin
+      Scroll_Signals.Disconnect (Scroll_Changed, Id);
+   end Disconnect_Scroll_Changed;
+
+   procedure Emit_Scroll_Changed (W : in out Widget'Class) is
+      Scrolled : constant not null access Widget'Class := W'Unchecked_Access;
+
+      procedure Notify (CB : Scroll_Observer) is
+      begin
+         CB (Scrolled);
+      end Notify;
+
+      procedure Emit is new Scroll_Signals.For_Each (Notify);
+   begin
+      Emit (Scroll_Changed);
+   end Emit_Scroll_Changed;
+
    procedure Set_Scroll_Offset_Y (W : in out Widget'Class; Offset : Pixel_Type) is
       Old : constant Pixel_Type := W.Scroll_Offset_Y;
    begin
@@ -2350,6 +2380,7 @@ package body Adi.Widget is
          Update_Scrollbar_Geometry (W);
          Mark_Render_Dirty (W);
          On_Scroll_Changed (W, Old, W.Scroll_Offset_Y);
+         Emit_Scroll_Changed (W);
       end if;
    end Set_Scroll_Offset_Y;
 

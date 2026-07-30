@@ -67,6 +67,35 @@ package Adi.Widget is
      (W : not null Widget_Access);
    Destroy_Detach_Hook : Destroy_Detach_Proc := null;
 
+   --  Fired after a widget's scroll offset changes, carrying the widget
+   --  that scrolled. Overlays anchored to a widget's geometry — combo
+   --  dropdowns — need this because scrolling only marks rendering
+   --  dirty, so layout, where such overlays are placed, does not re-run
+   --  and the overlay is left behind.
+   --
+   --  A signal rather than a single hook: more than one subsystem may
+   --  care, and knowing which widget scrolled lets each ignore the ones
+   --  that cannot affect it instead of re-examining everything.
+   --
+   --  Fires for every widget. The scrolled widget is passed as a
+   --  pointer, not a handle, because parent links are pointers too: the
+   --  access-based Add_Child/Set_Parent allow unregistered widgets in
+   --  the tree, and those have no handle to report or walk through.
+   --
+   --  Scrolled is borrowed for the length of the call only. Widgets need
+   --  not be heap-allocated, so an observer that stores the pointer can
+   --  end up with a dangling one; take a Widget_Handle if the widget is
+   --  registered and something has to outlive the callback.
+   type Scroll_Observer is access procedure
+     (Scrolled : not null access Widget'Class);
+   package Scroll_Signals is new Adi.Signal (Scroll_Observer, null);
+
+   procedure Connect_Scroll_Changed (CB : Scroll_Observer);
+   function Connect_Scroll_Changed
+     (CB : Scroll_Observer) return Scroll_Signals.Connection_Id;
+   procedure Disconnect_Scroll_Changed
+     (Id : Scroll_Signals.Connection_Id);
+
    ---------------------------------------------------------------------------
    --  Common Widget_Handle base overloads
    --  No-op on stale handles; Boolean returns False, Natural returns 0.
@@ -665,6 +694,10 @@ private
 
    package Widget_List is new
      Ada.Containers.Doubly_Linked_Lists (Widget_Access);
+
+   --  Kept private so no consumer can drop another subsystem's
+   --  subscription with Disconnect_All.
+   Scroll_Changed : Scroll_Signals.Signal;
 
    ---------------------------------------------------------------------------
    --  Widget Record

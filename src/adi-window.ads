@@ -114,12 +114,18 @@ package Adi.Window is
     procedure Remove_Overlay (W : in out Window; Overlay : Widget_Handle);
     procedure Clear_Overlays (W : in out Window);
 
-    --  Convert a rectangle from a widget's own coordinate space into
-    --  window space, undoing the scrolling applied by its ancestors.
-    --  Overlays are positioned in window space, so anything anchored to
-    --  a widget's geometry — a dropdown under its combo box, say — has
-    --  to come through here, or it will sit where the widget would be
-    --  if nothing had scrolled.
+    --  Where a widget actually is on screen: its stored geometry with
+    --  its ancestors' scrolling undone. Overlays are placed in window
+    --  space, so anything anchored to a widget — a dropdown under its
+    --  combo box, say — must use this rather than Get_Geometry, or it
+    --  will sit where the widget would be if nothing had scrolled.
+    function Geometry_In_Window (Wgt : Widget_Handle) return Rectangle;
+
+    --  Same conversion for a rectangle already expressed in Adi's stored
+    --  layout coordinates — one derived from Get_Geometry, not a
+    --  widget-local rectangle: this does not offset by the widget's own
+    --  position. Prefer Geometry_In_Window unless you have adjusted the
+    --  rectangle yourself.
     function To_Window_Space
        (Wgt : Widget_Handle; R : Rectangle) return Rectangle;
     function Overlay_Count (W : Window) return Natural;

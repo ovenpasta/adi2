@@ -1749,9 +1749,18 @@ package body Adi.Window is
      (Target : Widget_Handle;
       X, Y   : in out Pixel_Type)
    is
+      --  X passes through untouched: there is no horizontal scrolling
+      --  yet. It stays in the profile so call sites need not change
+      --  when there is.
+      pragma Unreferenced (X);
    begin
       Y := Y + Ancestor_Scroll_Offset_Y (Target);
    end Map_Window_Point_To_Widget;
+
+   function Geometry_In_Window (Wgt : Widget_Handle) return Rectangle is
+   begin
+      return To_Window_Space (Wgt, Get_Geometry (Wgt));
+   end Geometry_In_Window;
 
    function To_Window_Space
      (Wgt : Widget_Handle; R : Rectangle) return Rectangle is

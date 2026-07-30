@@ -15,6 +15,7 @@ with Adi.SDL.Video;
 with Adi.Widget;              use Adi.Widget;
 with Adi.Widget.Button;
 with Adi.Widget.Box;
+with Adi.Widget.Combo_Box;
 with Adi.Widget.Dialog;
 with Adi.Widget.Label;
 with Adi.Widget.Stack;
@@ -26,6 +27,7 @@ with Test_Support;            use Test_Support;
 procedure Window_Resize_Safety_Test is
 
    use type Adi.Widget.Box.Box_Handle;
+   use type Adi.Widget.Combo_Box.Combo_Box_Handle;
    use type Adi.Widget.Label.Label_Handle;
    use type Adi.Widget.Button.Button_Handle;
    use type Adi.Widget.Dialog.Dialog_Handle;
@@ -1121,11 +1123,6 @@ procedure Window_Resize_Safety_Test is
       Assert (Has_State (+Bottom, State_Hovered),
               "stack scrolled: probe hits the child now under the cursor");
 
-      --  Finding the widget is only half of it. The window then hands the
-      --  widget the raw screen coordinate, and the widget compares that
-      --  against its own geometry, which is stored unshifted. A control
-      --  that decides what was hit from those coordinates — a switch
-      --  knob, a text caret — therefore misreads a scrolled click.
       Adi.Window.Destroy (W);
    exception
       when E : others =>
@@ -1424,6 +1421,105 @@ procedure Window_Resize_Safety_Test is
          Assert (False, "Unexpected exception: " & Exception_Name (E));
    end Test_Overlay_Anchor_Follows_Scroll;
 
+   --  Y of the topmost overlay, which is the open dropdown.
+   function Popup_Overlay_Y (W : Adi.Window.Window_Handle) return Pixel_Type is
+      Win : constant Adi.Window.Window_Access :=
+        Adi.Window.Resolve_Window_Handle (W);
+      N   : constant Natural := Adi.Window.Overlay_Count (Win.all);
+   begin
+      if N = 0 then
+         return -1.0;
+      end if;
+      return Get_Geometry
+        (Adi.Window.Get_Overlay_Handle (Win.all, N)).Y;
+   end Popup_Overlay_Y;
+
+   --  The helper's arithmetic is not enough on its own: the dropdown has
+   --  to be placed through it, and re-placed when the page scrolls
+   --  underneath an already-open popup. Scrolling marks rendering dirty
+   --  but not layout, so nothing would otherwise move the overlay.
+   procedure Test_Open_Dropdown_Follows_Scroll is
+      Ready : Boolean;
+      W     : Adi.Window.Window_Handle;
+      Root  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Page  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Above : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Above");
+      Combo : constant Adi.Widget.Combo_Box.Combo_Box_Handle :=
+        Adi.Widget.Combo_Box.Create_Handle;
+
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         others         => <>);
+      Page_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         Overflow_Y     => Set (Overflow_Auto),
+         Height         => Set (Size (Px (150.0))),
+         others         => <>);
+      Item_Rules : constant Style_Rules :=
+        (Height         => Set (Size (Px (100.0))),
+         Min_Height     => Set (Size (Px (100.0))),
+         Text_Wrap_Mode => Set (TWM_Nowrap),
+         others         => <>);
+
+      Before, After : Pixel_Type;
+      Scroll_By : constant Pixel_Type := 40.0;
+   begin
+      Put_Line ("Test: an open dropdown follows the page it sits in");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Page, Main_Part, From (Page_Rules).Build);
+      Set_Part_Style (+Above, Main_Part, From (Item_Rules).Build);
+      Set_Part_Style (+Combo, Main_Part, From (Item_Rules).Build);
+
+      Adi.Widget.Combo_Box.Add_Item (Combo, "One");
+      Adi.Widget.Combo_Box.Add_Item (Combo, "Two");
+
+      Add_Child (+Page, +Above);
+      Add_Child (+Page, +Combo);
+      Add_Child (+Root, +Page);
+
+      W := Adi.Window.Create_Window_Handle ("Dropdown Scroll", (300.0, 250.0));
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
+
+      Adi.Widget.Combo_Box.Open_Dropdown (Combo);
+      Adi.Window.Render (W);
+
+      --  The popup is added above the dismiss layer, so it is the last
+      --  overlay. Read it there rather than exposing combo internals.
+      Before := Popup_Overlay_Y (W);
+
+      --  Scroll while it stays open.
+      Set_Scroll_Offset_Y (+Page, Scroll_By);
+      Adi.Window.Render (W);
+
+      After := Popup_Overlay_Y (W);
+
+      Put_Line ("    popup y before=" & Pixel_Type'Image (Before)
+                & " after=" & Pixel_Type'Image (After)
+                & " scrolled by" & Pixel_Type'Image (Scroll_By));
+
+      Assert (abs ((Before - After) - Scroll_By) < 1.0,
+              "the open dropdown moves with the combo when the page "
+              & "scrolls under it");
+
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Open_Dropdown_Follows_Scroll;
+
+
 begin
    Put_Line ("========================================");
    Put_Line ("   Window Resize Safety Tests");
@@ -1448,6 +1544,7 @@ begin
    Test_Click_On_Scrolled_Button;
    Test_Pages_Keep_Their_Own_Scroll_Offset;
    Test_Overlay_Anchor_Follows_Scroll;
+   Test_Open_Dropdown_Follows_Scroll;
    New_Line;
 
    Finish;

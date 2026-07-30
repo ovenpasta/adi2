@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Ada.Containers.Indefinite_Holders;
+with Ada.Finalization;
 with Ada.Strings.Unbounded;                use Ada.Strings.Unbounded;
 with Adi.CSS_Styles;       use Adi.CSS_Styles;
 with Adi.Font;
@@ -44,6 +45,17 @@ package body Adi.Widget.Combo_Box is
      (Positive, Popup_Binding);
 
    Popup_Bindings : Popup_Binding_Vectors.Vector;
+
+   --  Holds this package's subscription to Adi.Widget.Scroll_Changed;
+   --  the object itself is declared at the end of the body.
+   type Scroll_Subscription is new Ada.Finalization.Limited_Controlled with
+      record
+         Id : Adi.Widget.Scroll_Signals.Connection_Id :=
+            Adi.Widget.Scroll_Signals.No_Connection;
+      end record;
+
+   overriding procedure Finalize (S : in out Scroll_Subscription);
+
    Default_Popup_Max_Height : constant Pixel_Type := 240.0;
    Default_Popup_Row_Height : constant Pixel_Type := 24.0;
 
@@ -602,7 +614,7 @@ package body Adi.Widget.Combo_Box is
 
       --  The popup is a window overlay, so anchor it where the combo
       --  actually appears rather than where its unscrolled geometry says.
-      Anchor := Adi.Window.To_Window_Space (Get_Handle (W), Get_Geometry (W));
+      Anchor := Adi.Window.Geometry_In_Window (Get_Handle (W));
       Win_Size := Adi.Window.Get_Size (W.Host_Window.all);
       Popup_H := Resolve_Popup_Height (W, Win_Size);
 
@@ -1296,5 +1308,64 @@ package body Adi.Widget.Combo_Box is
       end if;
       return False;
    end Is_Open;
+
+   --  Scrolling moves a combo without re-running layout, so an open
+   --  dropdown would stay where it was. Only combos inside the widget
+   --  that scrolled can have moved, so the rest are left alone.
+   --  Walks the pointer chain rather than handles: a widget attached
+   --  through the access-based Add_Child never entered the store and has
+   --  no handle, and one of those in the middle of the chain must not
+   --  hide the combos below it.
+   function Is_Within
+     (Node     : not null access Widget'Class;
+      Ancestor : not null access Widget'Class) return Boolean
+   is
+      Cur : access Widget'Class := Node;
+   begin
+      while Cur /= null loop
+         if Cur = Ancestor then
+            return True;
+         end if;
+         Cur := Get_Parent (Cur.all);
+      end loop;
+      return False;
+   end Is_Within;
+
+   procedure Reposition_Open_Popups
+     (Scrolled : not null access Widget'Class) is
+   begin
+      for I in 1 .. Natural (Popup_Bindings.Length) loop
+         declare
+            B : constant Popup_Binding := Popup_Bindings.Element (I);
+         begin
+            if B.Owner /= null
+              and then B.Owner.Open
+              and then Popup_Lists.Is_Valid (B.Owner.Popup)
+              and then Is_Within
+                         (Widget'Class (B.Owner.all)'Unchecked_Access,
+                          Scrolled)
+            then
+               Position_Dismiss_Layer (Combo_Box_Widget (B.Owner.all));
+               Position_Popup (Combo_Box_Widget (B.Owner.all));
+               Mark_Dirty (+B.Owner.Popup);
+            end if;
+         end;
+      end loop;
+   end Reposition_Open_Popups;
+
+   overriding procedure Finalize (S : in out Scroll_Subscription) is
+   begin
+      Adi.Widget.Disconnect_Scroll_Changed (S.Id);
+      S.Id := Adi.Widget.Scroll_Signals.No_Connection;
+   end Finalize;
+
+   --  The callback reaches into Popup_Bindings, so the subscription must
+   --  not outlive it. Declared after the vector, hence finalized — and
+   --  disconnected — before it.
+   Popup_Scroll_Sub : Scroll_Subscription :=
+     (Ada.Finalization.Limited_Controlled with
+      Id => Adi.Widget.Connect_Scroll_Changed
+              (Reposition_Open_Popups'Access));
+   pragma Unreferenced (Popup_Scroll_Sub);
 
 end Adi.Widget.Combo_Box;

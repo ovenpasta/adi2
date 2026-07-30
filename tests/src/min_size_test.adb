@@ -4,6 +4,7 @@ with Ada.Text_IO;
 with Adi.App;
 with Adi.Core;          use Adi.Core;
 with Adi.Widget;        use Adi.Widget;
+with Adi.Image;
 with Adi.Widget.Label;
 with Adi.Widget.Box;
 with Adi.Widget.List_Box;
@@ -1581,6 +1582,69 @@ begin
       Test_Support.Assert
          (abs (Get_Geometry (Only).Width - 100.0) < 0.001,
           "a lone 0.5fr track takes half the space, not all of it");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  An icon beside wrapping text narrows the text column, and the
+   --  content minimum has to subtract the same column the preferred
+   --  path does. When only one icon dimension is definite the other
+   --  follows the aspect ratio, so resolving the icon differently in
+   --  the two paths made the minimum wrap at the wrong width and report
+   --  too few lines — the text would then be clipped vertically.
+   Ada.Text_IO.Put_Line ("=== icon column matches in both measurements ===");
+   declare
+      L : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle
+             ("Some wrapping label text that needs several lines");
+
+      --  Only the icon's height is definite; its width comes from the
+      --  aspect ratio.
+      Main_Rules : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Row),
+          Width          => Set (Size (Px (160.0))),
+          others         => <>);
+      Icon_Rules : constant Style_Rules :=
+         (Height => Set (Size (Px (40.0))), others => <>);
+      Text_Rules : constant Style_Rules :=
+         (Text_Wrap_Mode => Set (TWM_Wrap), others => <>);
+
+      Parts : constant Part_Style_Array :=
+         [Main_Part  => (Style => From (Main_Rules).Build, Enabled => True),
+          Icon_Part  => (Style => From (Icon_Rules).Build, Enabled => True),
+          Label_Part => (Style => From (Text_Rules).Build, Enabled => True),
+          others     => <>];
+
+      --  The label borrows the icon, so this test owns it.
+      Icon : Adi.Image.Image_Access :=
+         Adi.Image.Load_SVG_From_String
+           ("<svg width='20' height='10' viewBox='0 0 20 10'>"
+            & "<rect width='20' height='10' fill='red'/></svg>");
+   begin
+      Set_Part_Styles (L, Parts);
+      Adi.Widget.Label.Set_Icon
+        (Adi.Widget.Label.Try_As_Label (L), Icon);
+      Set_Geometry (L, (X => 0.0, Y => 0.0, Width => 160.0, Height => 200.0));
+      Layout (L);
+
+      Ada.Text_IO.Put_Line
+         ("  preferred h=" & Pixel_Type'Image (Get_Preferred_Size (L).Height)
+          & "  content min h="
+          & Pixel_Type'Image (Get_Content_Min_Size (L).Height));
+
+      --  Both paths lay the text out in the same column, so the minimum
+      --  height cannot be shorter than the preferred one here: the label
+      --  already has its final width.
+      Test_Support.Assert
+         (Get_Content_Min_Size (L).Height
+            >= Get_Preferred_Size (L).Height - 0.001,
+          "content minimum wraps in the same column as preferred sizing");
+
+      --  Detach before freeing: the label outlives this block.
+      Adi.Widget.Label.Set_Icon
+        (Adi.Widget.Label.Try_As_Label (L), null);
+      Adi.Image.Free (Icon);
    end;
 
    Ada.Text_IO.New_Line;

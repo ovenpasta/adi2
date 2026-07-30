@@ -146,6 +146,53 @@ package body Adi.Widget.Label is
    -- Measure_Content --
    ---------------------
 
+   --  The icon's laid-out size: its intrinsic size, overridden by a
+   --  definite width or height, with the other dimension following the
+   --  aspect ratio when only one is given. Shared so that preferred and
+   --  minimum measurement subtract the same icon column — differing
+   --  here made the minimum wrap text at the wrong width.
+   function Resolved_Icon_Size (W : Label_Widget) return Size_2D is
+      Icon_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Icon_Part);
+      Result     : Size_2D := (0.0, 0.0);
+   begin
+      if W.Icon = null or else Icon_Style.Display = Display_None then
+         return Result;
+      end if;
+
+      if Is_Valid (W.Icon.all) then
+         Get_Size (W.Icon.all, Result.Width, Result.Height);
+      else
+         Result := Default_Icon_Size;
+      end if;
+
+      declare
+         Intrinsic    : constant Size_2D := Result;
+         Width_Fixed  : constant Boolean := Icon_Style.Width.Kind = Fixed;
+         Height_Fixed : constant Boolean := Icon_Style.Height.Kind = Fixed;
+      begin
+         if Width_Fixed then
+            Result.Width := Size_To_Px (Icon_Style.Width, W.Geometry.Width);
+         end if;
+         if Height_Fixed then
+            Result.Height := Size_To_Px (Icon_Style.Height, W.Geometry.Height);
+         end if;
+
+         if Width_Fixed and then not Height_Fixed
+           and then Intrinsic.Width > 0.0
+         then
+            Result.Height := Result.Width * Intrinsic.Height / Intrinsic.Width;
+         elsif Height_Fixed and then not Width_Fixed
+           and then Intrinsic.Height > 0.0
+         then
+            Result.Width := Result.Height * Intrinsic.Width / Intrinsic.Height;
+         end if;
+      end;
+
+      return (Pixel_Type'Max (0.0, Result.Width),
+              Pixel_Type'Max (0.0, Result.Height));
+   end Resolved_Icon_Size;
+
    function Measure_Content (W : Label_Widget) return Size_2D is
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Label_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Label_Part);
@@ -165,34 +212,8 @@ package body Adi.Widget.Label is
       Gap := Get_Main_Gap (Main_Style.Gap, Main_Style.Flex_Direction);
 
       --  Get icon size
-      if Has_Icon and then Is_Valid (W.Icon.all) then
-         Get_Size (W.Icon.all, Icon_Size.Width, Icon_Size.Height);
-      elsif Has_Icon then
-         Icon_Size := Default_Icon_Size;
-      end if;
-
       if Has_Icon then
-         declare
-            Intrinsic : constant Size_2D := Icon_Size;
-            Width_Fixed  : constant Boolean := Icon_Style.Width.Kind = Fixed;
-            Height_Fixed : constant Boolean := Icon_Style.Height.Kind = Fixed;
-         begin
-            if Width_Fixed then
-               Icon_Size.Width := Size_To_Px (Icon_Style.Width, W.Geometry.Width);
-            end if;
-            if Height_Fixed then
-               Icon_Size.Height := Size_To_Px (Icon_Style.Height, W.Geometry.Height);
-            end if;
-
-            if Width_Fixed and then not Height_Fixed and then Intrinsic.Width > 0.0 then
-               Icon_Size.Height := Icon_Size.Width * Intrinsic.Height / Intrinsic.Width;
-            elsif Height_Fixed and then not Width_Fixed and then Intrinsic.Height > 0.0 then
-               Icon_Size.Width := Icon_Size.Height * Intrinsic.Width / Intrinsic.Height;
-            end if;
-
-            Icon_Size.Width := Pixel_Type'Max (0.0, Icon_Size.Width);
-            Icon_Size.Height := Pixel_Type'Max (0.0, Icon_Size.Height);
-         end;
+         Icon_Size := Resolved_Icon_Size (W);
       end if;
 
       --  Get text size from TTF measurement.
@@ -337,18 +358,7 @@ package body Adi.Widget.Label is
       end if;
 
       if Has_Icon then
-         if Is_Valid (W.Icon.all) then
-            Get_Size (W.Icon.all, Icon_Size.Width, Icon_Size.Height);
-         else
-            Icon_Size := Default_Icon_Size;
-         end if;
-         if Icon_Style.Width.Kind = Fixed then
-            Icon_Size.Width := Size_To_Px (Icon_Style.Width, W.Geometry.Width);
-         end if;
-         if Icon_Style.Height.Kind = Fixed then
-            Icon_Size.Height :=
-              Size_To_Px (Icon_Style.Height, W.Geometry.Height);
-         end if;
+         Icon_Size := Resolved_Icon_Size (W);
       end if;
 
       if Has_Text then
@@ -374,8 +384,23 @@ package body Adi.Widget.Label is
                --  and ratchet every ancestor's minimum up with it. No
                --  width yet before the first layout, so use a single line.
                declare
+                  --  The text column is narrower than the content box by
+                  --  the icon and gap beside it, exactly as
+                  --  Measure_Content accounts for. Measuring across the
+                  --  full width would report too few lines and let the
+                  --  text be clipped vertically.
+                  Side_By_Side : constant Boolean :=
+                    Has_Icon
+                    and then Main_Style.Flex_Direction in Row | Row_Reverse;
                   Avail : constant Pixel_Type :=
-                    Content_Box (W.Geometry, Main_Style).Width;
+                    (if Side_By_Side
+                     then Pixel_Type'Max
+                            (0.0,
+                             Content_Box (W.Geometry, Main_Style).Width
+                             - Icon_Size.Width
+                             - Get_Main_Gap (Main_Style.Gap,
+                                             Main_Style.Flex_Direction))
+                     else Content_Box (W.Geometry, Main_Style).Width);
                begin
                   if Avail > 0.0 then
                      Text_Min.Height := Adi.Font.Measure_Text_Wrapped
@@ -439,41 +464,10 @@ package body Adi.Widget.Label is
       if Has_Icon then
          declare
             Icon_Item : Layout_Item;
-            Icon_Size : Size_2D;
-            Intrinsic : Size_2D;
-            Width_Fixed  : constant Boolean := Icon_Style.Width.Kind = Fixed;
-            Height_Fixed : constant Boolean := Icon_Style.Height.Kind = Fixed;
+            --  Same resolution the two measurement paths use, so laid-out
+            --  geometry cannot drift from what was measured.
+            Icon_Size : constant Size_2D := Resolved_Icon_Size (W);
          begin
-            --  Get icon size from style or image
-            if Is_Valid (W.Icon.all) then
-               Get_Size (W.Icon.all, Intrinsic.Width, Intrinsic.Height);
-            else
-               Intrinsic := Default_Icon_Size;
-            end if;
-
-            Icon_Size := Intrinsic;
-
-            --  Honor fixed icon size from Icon_Part style.
-            if Width_Fixed then
-               Icon_Size.Width := Size_To_Px (Icon_Style.Width, W.Geometry.Width);
-            end if;
-            if Height_Fixed then
-               Icon_Size.Height := Size_To_Px (Icon_Style.Height, W.Geometry.Height);
-            end if;
-
-            --  If only one dimension is fixed, preserve intrinsic aspect ratio.
-            if Width_Fixed and then not Height_Fixed
-              and then Intrinsic.Width > 0.0
-            then
-               Icon_Size.Height := Icon_Size.Width * Intrinsic.Height / Intrinsic.Width;
-            elsif Height_Fixed and then not Width_Fixed
-              and then Intrinsic.Height > 0.0
-            then
-               Icon_Size.Width := Icon_Size.Height * Intrinsic.Width / Intrinsic.Height;
-            end if;
-
-            Icon_Size.Width := Pixel_Type'Max (0.0, Icon_Size.Width);
-            Icon_Size.Height := Pixel_Type'Max (0.0, Icon_Size.Height);
 
             Icon_Item := (
                Part           => Icon_Part,

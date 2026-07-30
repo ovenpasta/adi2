@@ -145,3 +145,122 @@
   border-style: solid;
   border-color: rgb(51, 65, 85);
 }
+
+/* --- Two columns so both halves fit on screen --- */
+
+.columns {
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+  gap: 16px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  flex-basis: 0px;
+  gap: 12px;
+}
+
+/* --- Mixed tracks: 120px 2fr 0.5fr auto, gaps set per axis --- */
+
+.mix-grid {
+  display: grid;
+  grid-template-columns: 120px 2fr 0.5fr auto;
+  grid-template-rows: 2;
+  row-gap: 4px;
+  column-gap: 14px;
+  padding: 10px;
+  background-color: rgb(15, 23, 42);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(71, 85, 105);
+  border-radius: 10px;
+}
+
+.mx-fixed {
+  background-color: rgb(30, 58, 138);
+}
+
+.mx-wide {
+  background-color: rgb(6, 78, 59);
+}
+
+.mx-narrow {
+  background-color: rgb(92, 46, 5);
+}
+
+.mx-auto {
+  background-color: rgb(76, 29, 78);
+}
+
+/* Placed on row 3 while grid-template-rows says 2: the row is implicit. */
+.mx-implicit {
+  grid-column: 1 / span 4;
+  grid-row: 3;
+  background-color: rgb(30, 41, 59);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(51, 65, 85);
+}
+
+/* A grid inside a grid cell, using the legacy count form for its own
+   columns: 'grid-template-columns: 3' means three equal 1fr tracks. */
+.nested-host {
+  grid-column: 1 / span 2;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: 3;
+  gap: 4px;
+  padding: 4px;
+  background-color: rgb(30, 41, 59);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(51, 65, 85);
+  border-radius: 6px;
+}
+
+.nested-cell {
+  background-color: rgb(51, 65, 85);
+}
+
+.mx-note {
+  grid-column: 3 / span 2;
+  grid-row: 2;
+  background-color: rgb(30, 41, 59);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(51, 65, 85);
+}
+
+/* --- A grid that scrolls: overflow-y on the grid container itself --- */
+
+.scroll-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  height: 150px;
+  overflow-y: auto;
+  padding: 10px;
+  background-color: rgb(15, 23, 42);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(71, 85, 105);
+  border-radius: 10px;
+}
+
+.scroll-grid::scroll {
+  width: 8px;
+  background-color: rgb(30, 41, 59);
+  border-radius: 4px;
+}
+
+.scroll-grid::knob {
+  background-color: rgb(100, 116, 139);
+  border-radius: 4px;
+}
+
+.sc-cell {
+  background-color: rgb(30, 58, 138);
+}

@@ -218,6 +218,151 @@ package Grid_Example_Styles is
       Border_Color => Set (Border_Color (RGB (51, 65, 85))),
       others => <>);
 
+   --  Base style for class 'columns'
+   function Columns_Class_Base_Style return Style_Rules is
+     (
+      Display => Set (Flex),
+      Flex_Direction => Set (Row),
+      Flex_Grow => Set (1.0),
+      Gap => Set (Gap (Px (16.0))),
+      others => <>);
+
+   --  Base style for class 'column'
+   function Column_Class_Base_Style return Style_Rules is
+     (
+      Display => Set (Flex),
+      Flex_Direction => Set (Column),
+      Flex_Grow => Set (1.0),
+      Flex_Basis => Set (Basis (Px (0.0))),
+      Gap => Set (Gap (Px (12.0))),
+      others => <>);
+
+   --  Base style for class 'mix-grid'
+   function Mix_Grid_Class_Base_Style return Style_Rules is
+     (
+      Display => Set (Grid),
+      Grid_Columns => Set (Grid_Columns_Value (4)),
+      Grid_Column_Tracks => (Count => 4, Tracks => [1 => (Track_Px, 120.0), 2 => (Track_Fr, 2.0), 3 => (Track_Fr, 0.5), 4 => (Track_Auto, 0.0), others => <>]),
+      Grid_Rows => Set (Grid_Rows_Value (2)),
+      Gap => Set (Gap (Px (4.0), Px (14.0))),
+      Background_Color => Set_Bg (RGB (15, 23, 42)),
+      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (71, 85, 105))),
+      Border_Radius => Set (Radius (Px (10.0))),
+      others => <>);
+
+   --  Base style for class 'mx-fixed'
+   function Mx_Fixed_Class_Base_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGB (30, 58, 138)),
+      others => <>);
+
+   --  Base style for class 'mx-wide'
+   function Mx_Wide_Class_Base_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGB (6, 78, 59)),
+      others => <>);
+
+   --  Base style for class 'mx-narrow'
+   function Mx_Narrow_Class_Base_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGB (92, 46, 5)),
+      others => <>);
+
+   --  Base style for class 'mx-auto'
+   function Mx_Auto_Class_Base_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGB (76, 29, 78)),
+      others => <>);
+
+   --  Base style for class 'mx-implicit'
+   function Mx_Implicit_Class_Base_Style return Style_Rules is
+     (
+      Grid_Column => Set (Grid_Column_Value (1)),
+      Grid_Column_Span => Set (Grid_Column_Span_Value (4)),
+      Grid_Row => Set (Grid_Row_Value (3)),
+      Background_Color => Set_Bg (RGB (30, 41, 59)),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (51, 65, 85))),
+      others => <>);
+
+   --  Base style for class 'nested-host'
+   function Nested_Host_Class_Base_Style return Style_Rules is
+     (
+      Grid_Column => Set (Grid_Column_Value (1)),
+      Grid_Column_Span => Set (Grid_Column_Span_Value (2)),
+      Grid_Row => Set (Grid_Row_Value (2)),
+      Display => Set (Grid),
+      Grid_Columns => Set (Grid_Columns_Value (3)),
+      Grid_Column_Tracks => (Count => 3, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), others => <>]),
+      Gap => Set (Gap (Px (4.0))),
+      Background_Color => Set_Bg (RGB (30, 41, 59)),
+      Padding => Set (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (51, 65, 85))),
+      Border_Radius => Set (Radius (Px (6.0))),
+      others => <>);
+
+   --  Base style for class 'nested-cell'
+   function Nested_Cell_Class_Base_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGB (51, 65, 85)),
+      others => <>);
+
+   --  Base style for class 'mx-note'
+   function Mx_Note_Class_Base_Style return Style_Rules is
+     (
+      Grid_Column => Set (Grid_Column_Value (3)),
+      Grid_Column_Span => Set (Grid_Column_Span_Value (2)),
+      Grid_Row => Set (Grid_Row_Value (2)),
+      Background_Color => Set_Bg (RGB (30, 41, 59)),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (51, 65, 85))),
+      others => <>);
+
+   --  Base style for class 'scroll-grid'
+   function Scroll_Grid_Class_Base_Style return Style_Rules is
+     (
+      Display => Set (Grid),
+      Grid_Columns => Set (Grid_Columns_Value (2)),
+      Grid_Column_Tracks => (Count => 2, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), others => <>]),
+      Gap => Set (Gap (Px (6.0))),
+      Height => Set (Size (Px (150.0))),
+      Background_Color => Set_Bg (RGB (15, 23, 42)),
+      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (71, 85, 105))),
+      Border_Radius => Set (Radius (Px (10.0))),
+      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
+      others => <>);
+
+   --  Base style for class 'scroll-grid'::knob
+   function Scroll_Grid_Class_Knob_Base_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGB (100, 116, 139)),
+      Border_Radius => Set (Radius (Px (4.0))),
+      others => <>);
+
+   --  Base style for class 'scroll-grid'::scroll
+   function Scroll_Grid_Class_Scroll_Base_Style return Style_Rules is
+     (
+      Width => Set (Size (Px (8.0))),
+      Background_Color => Set_Bg (RGB (30, 41, 59)),
+      Border_Radius => Set (Radius (Px (4.0))),
+      others => <>);
+
+   --  Base style for class 'sc-cell'
+   function Sc_Cell_Class_Base_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGB (30, 58, 138)),
+      others => <>);
+
    --  Complete widget style for class 'root'
    function Root_Class_Widget return Widget_Style is
      (From (Root_Class_Base_Style)
@@ -455,6 +600,174 @@ package Grid_Example_Styles is
    function Tr_Desc_Class_Part_Styles return Part_Style_Array is
      ([
       Main_Part => (Style => Tr_Desc_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'columns'
+   function Columns_Class_Widget return Widget_Style is
+     (From (Columns_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'columns'
+   function Columns_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Columns_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'column'
+   function Column_Class_Widget return Widget_Style is
+     (From (Column_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'column'
+   function Column_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Column_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'mix-grid'
+   function Mix_Grid_Class_Widget return Widget_Style is
+     (From (Mix_Grid_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'mix-grid'
+   function Mix_Grid_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Mix_Grid_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'mx-fixed'
+   function Mx_Fixed_Class_Widget return Widget_Style is
+     (From (Mx_Fixed_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'mx-fixed'
+   function Mx_Fixed_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Mx_Fixed_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'mx-wide'
+   function Mx_Wide_Class_Widget return Widget_Style is
+     (From (Mx_Wide_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'mx-wide'
+   function Mx_Wide_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Mx_Wide_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'mx-narrow'
+   function Mx_Narrow_Class_Widget return Widget_Style is
+     (From (Mx_Narrow_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'mx-narrow'
+   function Mx_Narrow_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Mx_Narrow_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'mx-auto'
+   function Mx_Auto_Class_Widget return Widget_Style is
+     (From (Mx_Auto_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'mx-auto'
+   function Mx_Auto_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Mx_Auto_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'mx-implicit'
+   function Mx_Implicit_Class_Widget return Widget_Style is
+     (From (Mx_Implicit_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'mx-implicit'
+   function Mx_Implicit_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Mx_Implicit_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'nested-host'
+   function Nested_Host_Class_Widget return Widget_Style is
+     (From (Nested_Host_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'nested-host'
+   function Nested_Host_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Nested_Host_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'nested-cell'
+   function Nested_Cell_Class_Widget return Widget_Style is
+     (From (Nested_Cell_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'nested-cell'
+   function Nested_Cell_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Nested_Cell_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'mx-note'
+   function Mx_Note_Class_Widget return Widget_Style is
+     (From (Mx_Note_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'mx-note'
+   function Mx_Note_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Mx_Note_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'scroll-grid'
+   function Scroll_Grid_Class_Widget return Widget_Style is
+     (From (Scroll_Grid_Class_Base_Style)
+     .Build);
+
+   --  Complete widget style for class 'scroll-grid'::knob
+   function Scroll_Grid_Class_Knob_Widget return Widget_Style is
+     (From (Scroll_Grid_Class_Knob_Base_Style)
+     .Build);
+
+   --  Complete widget style for class 'scroll-grid'::scroll
+   function Scroll_Grid_Class_Scroll_Widget return Widget_Style is
+     (From (Scroll_Grid_Class_Scroll_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'scroll-grid'
+   function Scroll_Grid_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Scroll_Grid_Class_Widget, Enabled => True),
+      Knob_Part => (Style => Scroll_Grid_Class_Knob_Widget, Enabled => True),
+      Scroll_Part => (Style => Scroll_Grid_Class_Scroll_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'sc-cell'
+   function Sc_Cell_Class_Widget return Widget_Style is
+     (From (Sc_Cell_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'sc-cell'
+   function Sc_Cell_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Sc_Cell_Class_Widget, Enabled => True),
       others => <>
    ]);
 

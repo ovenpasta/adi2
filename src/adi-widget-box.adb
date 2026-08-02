@@ -949,33 +949,32 @@ overriding procedure Layout (W : in out Box_Widget) is
                Compute_Grid_Layout (Context, Children_Info);
                Rects := Grid_To_Rectangles (Children_Info);
 
-               --  Sizing pass: give each child its assigned column width and a
-               --  large provisional height, then run Layout_Child so that labels
-               --  with text-wrap enabled can re-measure at that width.
-               --  Measure_Content for Label is width-aware when geometry.Width > 0,
-               --  so Get_Preferred_Size afterwards returns the wrapped height.
-               --  If any child needs more height, re-run Compute_Grid_Layout so
-               --  row heights grow to accommodate the wrapped content.
+               --  Sizing pass: ask each child how tall it is at the column
+               --  width it just got. Wrapping text answers differently
+               --  than it did unconstrained, and a row whose content
+               --  grew has to be recomputed so the rest shifts down.
+               --  This is a query -- no geometry is assigned here, so a
+               --  child cannot end up measured against a width the grid
+               --  later takes back.
                declare
                   Height_Changed : Boolean := False;
-                  Large_H : constant Pixel_Type := 32768.0;
                begin
                   for I in 1 .. N loop
                      declare
                         Child : constant Widget_Access :=
                           Child_At (W, Positive (I));
-                        Provisional : Rectangle := Rects (Positive (I));
+                        Cell : constant Rectangle := Rects (Positive (I));
                      begin
                         if Child /= null
                           and then Children_Info (Positive (I)).Active
-                          and then Provisional.Width > 0.0
+                          and then Cell.Width > 0.0
                         then
-                           Provisional.Height := Large_H;
-                           Set_Geometry (Child.all, Provisional);
-                           Layout_Child (Child.all);
                            declare
                               Actual_H : constant Pixel_Type :=
-                                Get_Preferred_Size (Child.all).Height;
+                                Measure_At_Width
+                                  (Child.all,
+                                   Grid_Child_Width
+                                     (Child.all, Cell.Width)).Height;
                            begin
                               if Actual_H > Children_Info (Positive (I)).Pref_Height
                               then
@@ -1031,10 +1030,9 @@ overriding procedure Layout (W : in out Box_Widget) is
                            CW   : Pixel_Type := Cell.Width;
                            CH   : Pixel_Type := Cell.Height;
                         begin
-                           --  Respect explicit width
-                           if CS.Width.Kind = Fixed then
-                              CW := Size_To_Px (CS.Width, Cell.Width);
-                           end if;
+                           --  Respect explicit width, the same way the
+                           --  measuring pass above did.
+                           CW := Grid_Child_Width (Child.all, Cell.Width);
                            --  Respect explicit height
                            if CS.Height.Kind = Fixed then
                               CH := Size_To_Px (CS.Height, Cell.Height);

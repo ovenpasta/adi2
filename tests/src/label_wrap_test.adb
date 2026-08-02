@@ -229,5 +229,79 @@ begin
 
    New_Line;
 
+   ----------------------------------------------------------------------
+   --  A grid measures a wrapping cell at the width that cell will
+   --  actually be rendered at -- its own declared width when it has one,
+   --  the track width otherwise -- and a declared height still wins over
+   --  whatever the text measures.
+   ----------------------------------------------------------------------
+
+   Put_Line ("--- grid measures a wrapping cell at its real width ---");
+   declare
+      --  One Main_Part style per case: wrap and font size have to travel
+      --  with the declared size, or setting the size again would drop
+      --  them and the text would not wrap at all.
+      function Kid_Rules
+        (Width_Px  : Pixel_Type := -1.0;
+         Height_Px : Pixel_Type := -1.0) return Style_Rules
+      is
+         R : Style_Rules :=
+           (Text_Wrap_Mode => Set (TWM_Wrap),
+            Font_Size      => Set_Font (Px (20)),
+            others         => <>);
+      begin
+         if Width_Px > 0.0 then
+            R.Width := Set (Size (Px (Float (Width_Px))));
+         end if;
+         if Height_Px > 0.0 then
+            R.Height := Set (Size (Px (Float (Height_Px))));
+         end if;
+         return R;
+      end Kid_Rules;
+
+      function Grid_Height (Child_Rules : Style_Rules) return Pixel_Type is
+         Host : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+         Kid  : constant Widget_Handle :=
+           +Adi.Widget.Label.Create_Handle (Long_Text);
+         Host_Rules : constant Style_Rules :=
+           (Display            => Set (Adi.CSS_Styles.Grid),
+            Grid_Columns       => Set (Grid_Columns_Value (1)),
+            Grid_Column_Tracks =>
+              (Count  => 1,
+               Tracks => [1 => (Track_Px, 300.0), others => <>]),
+            others             => <>);
+      begin
+         Set_Part_Style (Host, Main_Part, From (Host_Rules).Build);
+         Set_Part_Style (Kid, Main_Part, From (Child_Rules).Build);
+         Add_Child (Host, Kid);
+
+         --  Short host: the row grows to what the cell needs, and the
+         --  grid grows with it, so the host's height is the measurement.
+         Set_Geometry (Host, (0.0, 0.0, 300.0, 10.0));
+         Layout (Host);
+         return Get_Geometry (Host).Height;
+      end Grid_Height;
+
+      Full    : constant Pixel_Type := Grid_Height (Kid_Rules);
+      Narrow  : constant Pixel_Type := Grid_Height (Kid_Rules (Width_Px => 100.0));
+      Fixed_H : constant Pixel_Type := Grid_Height (Kid_Rules (Height_Px => 30.0));
+   begin
+      Put_Line ("  grid height: full=" & Pixel_Type'Image (Full)
+                & " child width:100px=" & Pixel_Type'Image (Narrow)
+                & " child height:30px=" & Pixel_Type'Image (Fixed_H));
+
+      --  The narrow case is the one that separates the two widths: its
+      --  cell is 300 wide while the child is 100, so measuring at the
+      --  cell would report roughly two lines. Measured at the width it
+      --  is actually rendered at, it needs many more.
+      Check ("a wrapping cell is measured at its own declared width, "
+             & "not at the track's",
+             Narrow > 3.0 * Full);
+      Check ("a declared height survives the width-constrained measurement",
+             abs (Fixed_H - 30.0) < 0.5);
+   end;
+
+   New_Line;
+
    Test_Support.Finish;
 end Label_Wrap_Test;

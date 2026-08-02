@@ -6988,6 +6988,32 @@ package body Adi.Widget is
                         Info.Content_Cross := Get_Cross_Size
                           (Child_Pref, Style.Flex_Direction);
 
+                        --  Whether that cross size was declared rather
+                        --  than measured decides if stretch may replace
+                        --  it. A percentage counts as declared, but the
+                        --  preferred size cannot resolve it -- there was
+                        --  no container to resolve against -- so resolve
+                        --  it here against the line.
+                        declare
+                           Declared_Cross : constant Size_Value :=
+                             (if Is_Row_Direction (Style.Flex_Direction)
+                              then Child_Style.Height
+                              else Child_Style.Width);
+                           Container_Cross : constant Pixel_Type :=
+                             Get_Cross_Size
+                               ((Content.Width, Content.Height),
+                                Style.Flex_Direction);
+                        begin
+                           Info.Cross_Is_Definite :=
+                             Declared_Cross.Kind = Fixed;
+                           if Info.Cross_Is_Definite
+                             and then Declared_Cross.Size.Unit = Pct
+                           then
+                              Info.Content_Cross :=
+                                Size_To_Px (Declared_Cross, Container_Cross);
+                           end if;
+                        end;
+
                         --  Margins
                         Info.Margin := Get_Margin_Px(Child_Style);
 

@@ -981,7 +981,12 @@ package body Adi.Layout_Util is
                     + (Cross_Available - Child.Computed_Cross) / 2.0;
 
                when Adi.CSS_Styles.Stretch =>
-                  Child.Computed_Cross := Cross_Available;
+                  --  A child that states its cross size keeps it and
+                  --  overflows if the line is narrower; stretch is for
+                  --  the ones that left that size to the layout.
+                  Child.Computed_Cross :=
+                    (if Child.Cross_Is_Definite
+                     then Child.Content_Cross else Cross_Available);
                   Child.Computed_Cross := Pixel_Type'Max(Child.Min_Cross,
                      Pixel_Type'Min(Child.Max_Cross, Child.Computed_Cross));
                   Cross_Start := Cross_Before_Margin;

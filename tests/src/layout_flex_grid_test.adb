@@ -678,6 +678,105 @@ procedure Layout_Flex_Grid_Test is
    --  Min and preferred are kept apart here so only the policy can
    --  decide the answer: a definite size would be promoted into
    --  Min_Height and both policies would agree regardless.
+   --  A column flex container stretches its children across the cross
+   --  axis, but only those that left that size to the layout. A child
+   --  that states width: 430px keeps it and overflows if the container
+   --  is narrower -- which is exactly what the overflow example's
+   --  horizontal row is meant to show.
+   procedure Test_Cross_Axis_Stretch_Respects_Declared_Size is
+      Column : constant Widget_Handle := Make_Flex_Container (300.0, 200.0);
+      Col_Style : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         others         => <>);
+      Fixed  : constant Widget_Handle :=
+        Make_Child ((Width  => Set (Size (Px (430.0))),
+                     Height => Set (Size (Px (40.0))),
+                     others => <>));
+      Auto   : constant Widget_Handle :=
+        Make_Child ((Height => Set (Size (Px (40.0))), others => <>));
+   begin
+      Set_Part_Style (Column, Main_Part, From (Col_Style).Build);
+      Add_Child (Column, Fixed);
+      Add_Child (Column, Auto);
+      Layout (Column);
+
+      Assert_Close (Get_Geometry (Fixed).Width, 430.0,
+                    "a declared width survives cross-axis stretch");
+      Assert_Close (Get_Geometry (Auto).Width, 300.0,
+                    "a child without a width still stretches");
+   end Test_Cross_Axis_Stretch_Respects_Declared_Size;
+
+   --  The same rule with the axes swapped, since the implementation asks
+   --  the direction which size is the cross one.
+   procedure Test_Row_Stretch_Respects_Declared_Height is
+      Row   : constant Widget_Handle := Make_Flex_Container (300.0, 200.0);
+      Fixed : constant Widget_Handle :=
+        Make_Child ((Width  => Set (Size (Px (40.0))),
+                     Height => Set (Size (Px (60.0))),
+                     others => <>));
+      Auto  : constant Widget_Handle :=
+        Make_Child ((Width => Set (Size (Px (40.0))), others => <>));
+   begin
+      Add_Child (Row, Fixed);
+      Add_Child (Row, Auto);
+      Layout (Row);
+
+      Assert_Close (Get_Geometry (Fixed).Height, 60.0,
+                    "a declared height survives cross-axis stretch in a row");
+      Assert_Close (Get_Geometry (Auto).Height, 200.0,
+                    "a child without a height still stretches in a row");
+   end Test_Row_Stretch_Respects_Declared_Height;
+
+   --  A percentage cross size is declared, so stretch must not replace
+   --  it -- but the preferred size cannot resolve a percentage, having
+   --  no container to resolve against, so the layout resolves it against
+   --  the line. Getting this wrong collapses such children to nothing.
+   procedure Test_Percentage_Cross_Size_Resolves_Against_The_Line is
+      Column : constant Widget_Handle := Make_Flex_Container (300.0, 200.0);
+      Col_Style : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         others         => <>);
+      Half : constant Widget_Handle :=
+        Make_Child ((Width  => Set (Size (Pct (50.0))),
+                     Height => Set (Size (Px (40.0))),
+                     others => <>));
+      Full : constant Widget_Handle :=
+        Make_Child ((Width  => Set (Size (Pct (100.0))),
+                     Height => Set (Size (Px (40.0))),
+                     others => <>));
+
+      Row : constant Widget_Handle := Make_Flex_Container (300.0, 200.0);
+      Half_H : constant Widget_Handle :=
+        Make_Child ((Width  => Set (Size (Px (40.0))),
+                     Height => Set (Size (Pct (50.0))),
+                     others => <>));
+      Full_H : constant Widget_Handle :=
+        Make_Child ((Width  => Set (Size (Px (40.0))),
+                     Height => Set (Size (Pct (100.0))),
+                     others => <>));
+   begin
+      Set_Part_Style (Column, Main_Part, From (Col_Style).Build);
+      Add_Child (Column, Half);
+      Add_Child (Column, Full);
+      Layout (Column);
+
+      Assert_Close (Get_Geometry (Half).Width, 150.0,
+                    "a 50% width resolves against the container, not stretch");
+      Assert_Close (Get_Geometry (Full).Width, 300.0,
+                    "a 100% width fills the line");
+
+      Add_Child (Row, Half_H);
+      Add_Child (Row, Full_H);
+      Layout (Row);
+
+      Assert_Close (Get_Geometry (Half_H).Height, 100.0,
+                    "a 50% height resolves against the row's cross size");
+      Assert_Close (Get_Geometry (Full_H).Height, 200.0,
+                    "a 100% height fills the row");
+   end Test_Percentage_Cross_Size_Resolves_Against_The_Line;
+
    procedure Test_Preferred_Floor_Is_Per_Axis is
       function Row_Height (Floor_X, Floor_Y : Boolean) return Pixel_Type is
          Ctx : Grid_Layout_Context :=
@@ -747,6 +846,9 @@ begin
 
    Test_Flex_Grow_Resize;
    Test_Flex_Shrink_Min;
+   Test_Cross_Axis_Stretch_Respects_Declared_Size;
+   Test_Row_Stretch_Respects_Declared_Height;
+   Test_Percentage_Cross_Size_Resolves_Against_The_Line;
    Test_Preferred_Floor_Is_Per_Axis;
    Test_Flex_Margins;
    Test_Grid_Auto_And_Span;

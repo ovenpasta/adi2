@@ -272,6 +272,11 @@ package Adi.Layout_Util is
       Content_Main  : Pixel_Type := 0.0;
       Content_Cross : Pixel_Type := 0.0;
 
+      --  Whether Content_Cross came from a declared size rather than the
+      --  child's content. Stretch fills the line only for items that left
+      --  their cross size to the layout.
+      Cross_Is_Definite : Boolean := False;
+
       --  Margins
       Margin : Edge_Pixels := Zero_Edges;
 

@@ -810,6 +810,35 @@ package body Adi.Widget.Combo_Box is
       end;
    end Build_Items;
 
+   overriding function Get_Content_Min_Size
+     (W : Combo_Box_Widget) return Size_2D
+   is
+      Main_Style  : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Main_Part);
+      Label_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Text_Part);
+      Ind_Style   : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Indicator_Part);
+      Label_Attrs : constant Adi.Font.Font_Attributes :=
+        Adi.Font.Make_Attributes
+          (Family     => Label_Style.Font_Family,
+           Size       => Float (Font_Length_To_Px (Label_Style.Font_Size)),
+           Weight     => Label_Style.Font_Weight,
+           Style      => Label_Style.Font_Style,
+           Decoration => Label_Style.Text_Decoration);
+      --  The selected text is elided when there is no room, so width
+      --  shrinks freely; height cannot go below one text row, and the
+      --  drop-down indicator has to keep its box.
+      Char_Size : constant Size_2D :=
+        Adi.Font.Measure_Text (Attrs => Label_Attrs, Content => "M");
+      Ind_H     : constant Pixel_Type :=
+        (if Ind_Style.Display = Display_None then 0.0 else 16.0);
+   begin
+      return Outer_Size
+        ((Char_Size.Width, Pixel_Type'Max (Char_Size.Height, Ind_H)),
+         Main_Style);
+   end Get_Content_Min_Size;
+
    overriding procedure Layout (W : in out Combo_Box_Widget) is
       Default_Icon_Size : constant Size_2D := (16.0, 16.0);
       Default_Indicator_Size : constant Size_2D := (16.0, 16.0);

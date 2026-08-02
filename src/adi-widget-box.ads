@@ -43,6 +43,7 @@ package Adi.Widget.Box is
    overriding procedure Layout (W : in out Box_Widget);
    overriding function Measure_Content (W : Box_Widget) return Size_2D;
    overriding function Get_Min_Size (W : Box_Widget) return Size_2D;
+   overriding function Get_Content_Min_Size (W : Box_Widget) return Size_2D;
 
 private
 

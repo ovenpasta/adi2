@@ -593,6 +593,17 @@ package Adi.Widget is
    function Get_Preferred_Size(W : Widget'Class) return Size_2D;
    function Get_Preferred_Size(H : Widget_Handle) return Size_2D;
 
+   --  Min-content size: the smallest this widget's content can be
+   --  squeezed into. Advisory — the parent applies the flex rules to it.
+   --  Contrast Get_Min_Size, which is the minimum the widget demands.
+   --  Default zero; see docs/layout_minimums.md.
+   --  True when this overflow value makes a box scroll its content
+   --  rather than grow to fit it.
+   function Overflow_Is_Scrollable (V : Overflow_Value) return Boolean;
+
+   function Get_Content_Min_Size (W : Widget) return Size_2D;
+   function Get_Content_Min_Size (H : Widget_Handle) return Size_2D;
+
    ---------------------------------------------------------------------------
    --  Flex Layout
    ---------------------------------------------------------------------------

@@ -54,7 +54,7 @@ package Adi.Widget.Label is
 
    --  Override size calculation
    overriding function Measure_Content (W : Label_Widget) return Size_2D;
-   overriding function Get_Min_Size (W : Label_Widget) return Size_2D;
+   overriding function Get_Content_Min_Size (W : Label_Widget) return Size_2D;
 
 private
 

@@ -306,18 +306,51 @@ package body Adi.Widget.Label is
    -- Get_Min_Size --
    ------------------
 
-   overriding function Get_Min_Size (W : Label_Widget) return Size_2D is
-      --  Return max(CSS min-width, intrinsic text min-width).
-      --  Intrinsic min = longest word width (wrappable) or full text (nowrap).
-      CSS_Min     : constant Size_2D := Get_Min_Size (Widget (W));
+   ----------------------------
+   -- Get_Content_Min_Size --
+   ----------------------------
+
+   overriding function Get_Content_Min_Size (W : Label_Widget) return Size_2D
+   is
       Main_Style  : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Main_Part);
       Label_Style : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Label_Part);
-      Has_Text    : constant Boolean := Length (W.Text) > 0;
-      Min_W       : Pixel_Type := CSS_Min.Width;
-      Min_H       : Pixel_Type := CSS_Min.Height;
+      Icon_Style  : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Icon_Part);
+
+      --  Mirror Measure_Content: a part that is display:none contributes
+      --  nothing, so hidden text must not hold the label open and an
+      --  icon-only label must not report zero.
+      Has_Icon : constant Boolean :=
+        W.Icon /= null and then Icon_Style.Display /= Display_None;
+      Has_Text : constant Boolean :=
+        Length (W.Text) > 0 and then Label_Style.Display /= Display_None;
+
+      Icon_Size : Size_2D := (0.0, 0.0);
+      Text_Min  : Size_2D := (0.0, 0.0);
+      Gap       : Pixel_Type := 0.0;
+      Result    : Size_2D;
    begin
+      if not Has_Icon and then not Has_Text then
+         return (0.0, 0.0);
+      end if;
+
+      if Has_Icon then
+         if Is_Valid (W.Icon.all) then
+            Get_Size (W.Icon.all, Icon_Size.Width, Icon_Size.Height);
+         else
+            Icon_Size := Default_Icon_Size;
+         end if;
+         if Icon_Style.Width.Kind = Fixed then
+            Icon_Size.Width := Size_To_Px (Icon_Style.Width, W.Geometry.Width);
+         end if;
+         if Icon_Style.Height.Kind = Fixed then
+            Icon_Size.Height :=
+              Size_To_Px (Icon_Style.Height, W.Geometry.Height);
+         end if;
+      end if;
+
       if Has_Text then
          declare
             Font_Attrs : constant Adi.Font.Font_Attributes :=
@@ -330,65 +363,59 @@ package body Adi.Widget.Label is
             Can_Wrap    : constant Boolean :=
               Label_Style.Text_Wrap_Mode = TWM_Wrap
               and then Label_Style.White_Space /= WS_NoWrap;
-            Text_Min_W  : Pixel_Type;
-
-            --  Min-content height: what the text needs once laid out at
-            --  its min-content width. Reporting zero (as this did) lets
-            --  flex squeeze the label until its text spills out of its
-            --  own box, because a flex item's automatic minimum is
-            --  bounded by exactly this value.
-            Text_Min_H  : Pixel_Type;
          begin
             if Can_Wrap then
-               Text_Min_W := Adi.Font.Measure_Min_Text_Width
+               Text_Min.Width := Adi.Font.Measure_Min_Text_Width
                  (Attrs => Font_Attrs, Content => To_String (W.Text));
 
                --  Height is a block-direction minimum, so it is measured
-               --  at the width the label actually has, not at Text_Min_W:
-               --  wrapping to the longest word would report a
-               --  one-word-per-line height and ratchet every ancestor's
-               --  minimum up with it. Before the first layout there is no
-               --  width yet, so fall back to a single line.
+               --  at the width the label actually has: wrapping to the
+               --  longest word would report a one-word-per-line height
+               --  and ratchet every ancestor's minimum up with it. No
+               --  width yet before the first layout, so use a single line.
                declare
                   Avail : constant Pixel_Type :=
                     Content_Box (W.Geometry, Main_Style).Width;
                begin
                   if Avail > 0.0 then
-                     Text_Min_H := Adi.Font.Measure_Text_Wrapped
+                     Text_Min.Height := Adi.Font.Measure_Text_Wrapped
                        (Attrs       => Font_Attrs,
                         Content     => To_String (W.Text),
                         Wrap_Width  => Avail,
                         Line_Height => Label_Style.Line_Height).Height;
                   else
-                     Text_Min_H := Adi.Font.Measure_Text
+                     Text_Min.Height := Adi.Font.Measure_Text
                        (Attrs   => Font_Attrs,
                         Content => To_String (W.Text)).Height;
                   end if;
                end;
             else
-               declare
-                  Full : constant Size_2D := Adi.Font.Measure_Text
-                    (Attrs => Font_Attrs, Content => To_String (W.Text));
-               begin
-                  Text_Min_W := Full.Width;
-                  Text_Min_H := Full.Height;
-               end;
+               Text_Min := Adi.Font.Measure_Text
+                 (Attrs => Font_Attrs, Content => To_String (W.Text));
             end if;
-
-            --  Include padding + border chrome around the text minimums
-            declare
-               Content_Min : constant Size_2D := (Text_Min_W, Text_Min_H);
-               Outer_Min   : constant Size_2D :=
-                 Outer_Size (Content_Min, Main_Style);
-            begin
-               Min_W := Pixel_Type'Max (Min_W, Outer_Min.Width);
-               Min_H := Pixel_Type'Max (Min_H, Outer_Min.Height);
-            end;
          end;
       end if;
 
-      return (Min_W, Min_H);
-   end Get_Min_Size;
+      if Has_Icon and then Has_Text then
+         Gap := Get_Main_Gap (Main_Style.Gap, Main_Style.Flex_Direction);
+      end if;
+
+      --  Icon and text share the main axis; the cross axis takes the
+      --  larger of the two.
+      declare
+         Dir : constant Flex_Direction_Value := Main_Style.Flex_Direction;
+      begin
+         Result := Make_Size
+           (Get_Main_Size (Icon_Size, Dir) + Get_Main_Size (Text_Min, Dir)
+              + Gap,
+            Pixel_Type'Max (Get_Cross_Size (Icon_Size, Dir),
+                            Get_Cross_Size (Text_Min, Dir)),
+            Dir);
+      end;
+
+      --  Include the padding + border chrome around the content.
+      return Outer_Size (Result, Main_Style);
+   end Get_Content_Min_Size;
 
    ------------
    -- Layout --

@@ -742,6 +742,29 @@ package body Adi.Widget.Text_Input is
               Height => Pixel_Type'Max (28.0, Outer.Height));
    end Measure_Content;
 
+   overriding function Get_Content_Min_Size
+     (W : Text_Input_Widget) return Size_2D
+   is
+      Main_Style  : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Main_Part);
+      Label_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Text_Part);
+      Font_Attrs  : constant Adi.Font.Font_Attributes :=
+        Adi.Font.Make_Attributes
+          (Family     => Label_Style.Font_Family,
+           Size       => Float (Font_Length_To_Px (Label_Style.Font_Size)),
+           Weight     => Label_Style.Font_Weight,
+           Style      => Label_Style.Font_Style,
+           Decoration => Label_Style.Text_Decoration);
+      --  One character is the least that can be shown; content scrolls
+      --  horizontally, so width shrinks freely below the preferred size
+      --  but a caret still needs a row to sit in.
+      Char_Size : constant Size_2D :=
+        Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => "M");
+   begin
+      return Outer_Size ((Char_Size.Width, Char_Size.Height), Main_Style);
+   end Get_Content_Min_Size;
+
    overriding procedure Layout (W : in out Text_Input_Widget) is
    begin
       null;

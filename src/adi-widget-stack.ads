@@ -78,6 +78,8 @@ package Adi.Widget.Stack is
    --  Implement abstract methods
    overriding function Measure_Content (W : Stack_Widget) return Size_2D;
    overriding function Get_Min_Size (W : Stack_Widget) return Size_2D;
+   overriding function Get_Content_Min_Size
+     (W : Stack_Widget) return Size_2D;
    overriding procedure Build_Items (W : in out Stack_Widget);
    overriding procedure Layout (W : in out Stack_Widget);
 

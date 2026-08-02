@@ -963,6 +963,87 @@ procedure Window_Resize_Safety_Test is
             "Unexpected exception: " & Exception_Name (E));
    end Test_Stack_Page_Switch_Does_Not_Ratchet_Min_Size;
 
+   --  Hit testing must follow content that has been scrolled out of
+   --  place: a click lands on whatever is under the cursor now, not on
+   --  whatever occupied that spot before scrolling.
+   procedure Test_Hit_Test_Follows_Scrolled_Content is
+      Ready  : Boolean;
+      W      : Adi.Window.Window_Handle;
+      Root   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Viewport : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Top    : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Top");
+      Bottom : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Bottom");
+
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         others         => <>);
+      --  A short viewport that scrolls a much taller stack of children.
+      View_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         Overflow_Y     => Set (Overflow_Auto),
+         Height         => Set (Size (Px (100.0))),
+         others         => <>);
+      Item_Rules : constant Style_Rules :=
+        (Height         => Set (Size (Px (80.0))),
+         Min_Height     => Set (Size (Px (80.0))),
+         Text_Wrap_Mode => Set (TWM_Nowrap),
+         others         => <>);
+
+      Probe_Y     : constant Pixel_Type := 40.0;
+      Scroll_By   : constant Pixel_Type := 80.0;
+      Win         : Adi.Window.Window_Access;
+   begin
+      Put_Line ("Test: hit testing follows scrolled content");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Viewport, Main_Part, From (View_Rules).Build);
+      Set_Part_Style (+Top, Main_Part, From (Item_Rules).Build);
+      Set_Part_Style (+Bottom, Main_Part, From (Item_Rules).Build);
+
+      Add_Child (+Viewport, +Top);
+      Add_Child (+Viewport, +Bottom);
+      Add_Child (+Root, +Viewport);
+
+      W := Adi.Window.Create_Window_Handle ("Scroll Hit Probe", (300.0, 200.0));
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
+
+      Win := Adi.Window.Resolve_Window_Handle (W);
+
+      --  Hover drives the same hit test a click does. Unscrolled, the
+      --  probe sits inside the first child.
+      Win.On_Mouse_Move (20.0, Probe_Y);
+      Assert (Has_State (+Top, State_Hovered),
+              "unscrolled: probe hits the first child");
+
+      --  Scroll the first child fully out of view. The same screen point
+      --  is now over the second child.
+      Set_Scroll_Offset_Y (+Viewport, Scroll_By);
+      Adi.Window.Render (W);
+
+      Win.On_Mouse_Move (20.0, Probe_Y);
+      Assert (Has_State (+Bottom, State_Hovered),
+              "scrolled: probe hits the child now under the cursor");
+      Assert (not Has_State (+Top, State_Hovered),
+              "scrolled: the child that moved away is no longer hit");
+
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Hit_Test_Follows_Scrolled_Content;
+
 begin
    Put_Line ("========================================");
    Put_Line ("   Window Resize Safety Tests");
@@ -982,6 +1063,7 @@ begin
    Test_Wheel_Blocked_By_Overlay_Backdrop;
    Test_Wheel_Root_Works_Without_Overlay;
    Test_Stack_Page_Switch_Does_Not_Ratchet_Min_Size;
+   Test_Hit_Test_Follows_Scrolled_Content;
    New_Line;
 
    Finish;

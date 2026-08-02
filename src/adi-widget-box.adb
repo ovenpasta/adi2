@@ -148,6 +148,18 @@ package body Adi.Widget.Box is
       end;
    end Build_Items;
 
+   --  How small a child can actually get: its own content minimum, but
+   --  never below the minimum it demands via CSS. A container that
+   --  ignored the latter would report a content minimum smaller than the
+   --  children it has to hold, and get squeezed until they overflow it.
+   function Effective_Child_Min (Child : Widget'Class) return Size_2D is
+      Demanded : constant Size_2D := Get_Min_Size (Child);
+      Content  : constant Size_2D := Get_Content_Min_Size (Child);
+   begin
+      return (Width  => Pixel_Type'Max (Demanded.Width, Content.Width),
+              Height => Pixel_Type'Max (Demanded.Height, Content.Height));
+   end Effective_Child_Min;
+
    overriding function Measure_Content (W : Box_Widget) return Size_2D is
       Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Gap    : constant Pixel_Type := Get_Main_Gap (Style.Gap, Style.Flex_Direction);
@@ -173,7 +185,7 @@ package body Adi.Widget.Box is
                         Pref : constant Size_2D :=
                           Get_Preferred_Size (Child.all);
                         Min  : constant Size_2D :=
-                          Get_Min_Size (Child.all);
+                          Effective_Child_Min (Child.all);
                         Effective : constant Size_2D :=
                           (Width  => Pixel_Type'Max (Pref.Width, Min.Width),
                            Height => Pixel_Type'Max (Pref.Height, Min.Height));
@@ -242,7 +254,7 @@ package body Adi.Widget.Box is
                                  Pref   : constant Size_2D :=
                                    Get_Preferred_Size (Child.all);
                                  Min    : constant Size_2D :=
-                                   Get_Min_Size (Child.all);
+                                   Effective_Child_Min (Child.all);
                                  Eff_W  : constant Pixel_Type :=
                                    Pixel_Type'Max (Pref.Width, Min.Width)
                                    + Margin.Left + Margin.Right;
@@ -332,7 +344,7 @@ package body Adi.Widget.Box is
                                  Pref : constant Size_2D :=
                                    Get_Preferred_Size (Child.all);
                                  Min  : constant Size_2D :=
-                                   Get_Min_Size (Child.all);
+                                   Effective_Child_Min (Child.all);
                                  Effective : constant Size_2D :=
                                    (Width  =>
                                       Pixel_Type'Max (Pref.Width, Min.Width),
@@ -391,7 +403,7 @@ package body Adi.Widget.Box is
                         Pref : constant Size_2D :=
                           Get_Preferred_Size (Child.all);
                         Min  : constant Size_2D :=
-                          Get_Min_Size (Child.all);
+                          Effective_Child_Min (Child.all);
                         Effective : constant Size_2D :=
                           (Width  =>
                              Pixel_Type'Max (Pref.Width, Min.Width),
@@ -413,9 +425,13 @@ package body Adi.Widget.Box is
       return Outer_Size (Result, Style);
    end Measure_Content;
 
-   overriding function Get_Min_Size (W : Box_Widget) return Size_2D is
+   --  Shared by Get_Min_Size and Get_Content_Min_Size: identical
+   --  aggregation over the children, differing only in which child
+   --  measurement it sums. Content_Min selects Get_Content_Min_Size.
+   function Aggregate_Child_Minimums
+     (W : Box_Widget; Content_Min : Boolean) return Size_2D
+   is
       Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      CSS_Min : constant Size_2D := Get_Min_Size (Widget (W));
       Gap : constant Pixel_Type := Get_Main_Gap (Style.Gap, Style.Flex_Direction);
       Row_Gap : constant Pixel_Type := Get_Row_Gap (Style.Gap);
       Col_Gap : constant Pixel_Type := Get_Column_Gap (Style.Gap);
@@ -436,7 +452,9 @@ package body Adi.Widget.Box is
                         Margin : constant Edge_Pixels :=
                           Get_Margin_Px (Child_Style);
                         Min : constant Size_2D :=
-                          Get_Min_Size (Child.all);
+                          (if Content_Min
+                           then Effective_Child_Min (Child.all)
+                           else Get_Min_Size (Child.all));
                         Main_Margins : constant Pixel_Type :=
                           (if Is_Row_Direction (Style.Flex_Direction)
                            then Margin.Left + Margin.Right
@@ -501,8 +519,11 @@ package body Adi.Widget.Box is
                            declare
                               Margin : constant Edge_Pixels :=
                                 Get_Margin_Px (Child_Style);
+                              --  Grid tracks size to what a child truly
+                              --  needs: what it demands via CSS, and what
+                              --  its own content cannot go below.
                               Min : constant Size_2D :=
-                                Get_Min_Size (Child.all);
+                                Effective_Child_Min (Child.all);
                               C  : Natural :=
                                 Natural (Child_Style.Grid_Column);
                               R  : Natural :=
@@ -651,7 +672,9 @@ package body Adi.Widget.Box is
                         Margin : constant Edge_Pixels :=
                           Get_Margin_Px (Child_Style);
                         Min : constant Size_2D :=
-                          Get_Min_Size (Child.all);
+                          (if Content_Min
+                           then Effective_Child_Min (Child.all)
+                           else Get_Min_Size (Child.all));
                      begin
                         Result.Width := Pixel_Type'Max
                           (Result.Width,
@@ -666,11 +689,39 @@ package body Adi.Widget.Box is
          end loop;
       end if;
 
-      Result := Outer_Size (Result, Style);
+      --  A box that does not show its overflow — scrolled, or simply
+      --  clipped — does not inherit its content's minimum in that axis.
+      --  Scrolling shows the content a piece at a time and hiding drops
+      --  the excess, so neither needs room for all of it. This matches
+      --  the automatic minimum the parent computes for the same box.
+      --  Without it a scrollable viewport is forced as tall as
+      --  everything inside, so nothing overflows and it never scrolls.
+      if Style.Overflow_Y /= Overflow_Visible then
+         Result.Height := 0.0;
+      end if;
+      if Style.Overflow_X /= Overflow_Visible then
+         Result.Width := 0.0;
+      end if;
+
+      return Outer_Size (Result, Style);
+   end Aggregate_Child_Minimums;
+
+   overriding function Get_Min_Size (W : Box_Widget) return Size_2D is
+      CSS_Min : constant Size_2D := Get_Min_Size (Widget (W));
+      Result  : constant Size_2D :=
+        Aggregate_Child_Minimums (W, Content_Min => False);
+   begin
       return
         (Width  => Pixel_Type'Max (CSS_Min.Width, Result.Width),
          Height => Pixel_Type'Max (CSS_Min.Height, Result.Height));
    end Get_Min_Size;
+
+   overriding function Get_Content_Min_Size (W : Box_Widget) return Size_2D is
+   begin
+      --  A container's content cannot be squeezed smaller than what its
+      --  children need; no CSS floor here, that is Get_Min_Size's job.
+      return Aggregate_Child_Minimums (W, Content_Min => True);
+   end Get_Content_Min_Size;
 
 overriding procedure Layout (W : in out Box_Widget) is
       Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
@@ -713,8 +764,10 @@ overriding procedure Layout (W : in out Box_Widget) is
                              Get_Resolved_Part_Style (Child.all, Main_Part);
                            Child_Pref : constant Size_2D :=
                              Get_Preferred_Size (Child.all);
+                           --  Track sizing must see the content floor as
+                           --  well as the declared minimum.
                            Child_Min  : constant Size_2D :=
-                             Get_Min_Size (Child.all);
+                             Effective_Child_Min (Child.all);
                         begin
                            --  Absolute children are out of flow
                            if Child_Style.Position = Absolute then

@@ -179,15 +179,27 @@ package body Adi.Widget.Stack is
       return Outer_Size (Result, Style);
    end Measure_Content;
 
-   overriding function Get_Min_Size (W : Stack_Widget) return Size_2D is
-      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      CSS_Min : constant Size_2D := Get_Min_Size (Widget (W));
+   --  Largest minimum over the pages: a stack shows one at a time but
+   --  must be able to hold whichever is active. Content_Min selects each
+   --  page's content floor instead of what it demands.
+   function Aggregate_Page_Minimums
+     (W : Stack_Widget; Content_Min : Boolean) return Size_2D
+   is
+      Style  : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Main_Part);
       Result : Size_2D := (0.0, 0.0);
    begin
       for Child of W.Children loop
          if Child_Participates (Child) then
             declare
-               Min : constant Size_2D := Get_Min_Size (Child.all);
+               Demanded : constant Size_2D := Get_Min_Size (Child.all);
+               Content  : constant Size_2D :=
+                 Get_Content_Min_Size (Child.all);
+               Min : constant Size_2D :=
+                 (if Content_Min
+                  then (Pixel_Type'Max (Demanded.Width, Content.Width),
+                        Pixel_Type'Max (Demanded.Height, Content.Height))
+                  else Demanded);
             begin
                Result.Width := Pixel_Type'Max (Result.Width, Min.Width);
                Result.Height := Pixel_Type'Max (Result.Height, Min.Height);
@@ -195,11 +207,35 @@ package body Adi.Widget.Stack is
          end if;
       end loop;
 
-      Result := Outer_Size (Result, Style);
+      --  Like Box: an axis the stack does not show overflow in absorbs
+      --  its pages' minimum rather than propagating it upward. Without
+      --  this a scrollable page area is forced as tall as its tallest
+      --  page and pushes its siblings out of the window.
+      if Style.Overflow_Y /= Overflow_Visible then
+         Result.Height := 0.0;
+      end if;
+      if Style.Overflow_X /= Overflow_Visible then
+         Result.Width := 0.0;
+      end if;
+
+      return Outer_Size (Result, Style);
+   end Aggregate_Page_Minimums;
+
+   overriding function Get_Min_Size (W : Stack_Widget) return Size_2D is
+      CSS_Min : constant Size_2D := Get_Min_Size (Widget (W));
+      Result  : constant Size_2D :=
+        Aggregate_Page_Minimums (W, Content_Min => False);
+   begin
       return
         (Width  => Pixel_Type'Max (CSS_Min.Width, Result.Width),
          Height => Pixel_Type'Max (CSS_Min.Height, Result.Height));
    end Get_Min_Size;
+
+   overriding function Get_Content_Min_Size (W : Stack_Widget) return Size_2D
+   is
+   begin
+      return Aggregate_Page_Minimums (W, Content_Min => True);
+   end Get_Content_Min_Size;
 
    ---------------------------------------------------------------------------
    --  Build_Items

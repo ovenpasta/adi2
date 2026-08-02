@@ -132,6 +132,8 @@ package Adi.Widget.Combo_Box is
    function Is_Open (H : Combo_Box_Handle) return Boolean;
 
    overriding procedure Build_Items (W : in out Combo_Box_Widget);
+   overriding function Get_Content_Min_Size
+     (W : Combo_Box_Widget) return Size_2D;
    overriding procedure Layout (W : in out Combo_Box_Widget);
    overriding procedure On_Mouse_Down
      (W      : in out Combo_Box_Widget;

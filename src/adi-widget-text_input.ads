@@ -108,6 +108,8 @@ package Adi.Widget.Text_Input is
      (H : Text_Input_Handle; Id : Change_Signals.Connection_Id);
 
    overriding procedure Build_Items (W : in out Text_Input_Widget);
+   overriding function Get_Content_Min_Size
+     (W : Text_Input_Widget) return Size_2D;
    overriding procedure Layout (W : in out Text_Input_Widget);
    overriding function Measure_Content (W : Text_Input_Widget) return Size_2D;
 

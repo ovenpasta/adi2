@@ -6530,6 +6530,16 @@ package body Adi.Widget is
       return (Min_W, Min_H);
    end Get_Min_Size;
 
+   ------------------------
+   -- Get_Content_Min_Size --
+   ------------------------
+
+   function Get_Content_Min_Size (W : Widget) return Size_2D is
+      pragma Unreferenced (W);
+   begin
+      return (0.0, 0.0);
+   end Get_Content_Min_Size;
+
    function Get_Preferred_Size (W : Widget'Class) return Size_2D is
       --  Pass-scoped + mutation-keyed cache.  Same 'Unrestricted_Access
       --  pattern as Get_Resolved_Part_Style — safe because the cache is
@@ -6630,6 +6640,11 @@ package body Adi.Widget is
      new Wrap_Prim_Func (Size_2D, (0.0, 0.0), Get_Min_Size);
    function Get_Min_Size (H : Widget_Handle) return Size_2D
      renames Get_Min_Size_W;
+
+   function Get_Content_Min_Size_W is
+     new Wrap_Prim_Func (Size_2D, (0.0, 0.0), Get_Content_Min_Size);
+   function Get_Content_Min_Size (H : Widget_Handle) return Size_2D
+     renames Get_Content_Min_Size_W;
 
    function Get_Preferred_Size_W is
      new Wrap_CW_Func (Size_2D, (0.0, 0.0), Get_Preferred_Size);
@@ -6844,14 +6859,58 @@ package body Adi.Widget is
                         --  Align self
                         Info.Align_Self := Child_Style.Align_Self;
 
-                        --  Size constraints
+                        --  Size constraints. Explicit CSS minimums first;
+                        --  the automatic minimum is added below.
                         Info.Min_Main := Get_Main_Size
                           (Child_Min, Style.Flex_Direction);
                         Info.Min_Cross := Get_Cross_Size
                           (Child_Min, Style.Flex_Direction);
 
-                        --  For visible overflow, preserve preferred main
-                        --  size only for non-shrinkable children.
+                        --  Automatic minimum size (CSS Flexbox 4.5), main
+                        --  axis only. See docs/layout_minimums.md.
+                        declare
+                           Is_Row : constant Boolean :=
+                             Style.Flex_Direction in Row | Row_Reverse;
+
+                           --  An item that scrolls its own content in the
+                           --  main axis needs no room for all of it.
+                           Item_Scrolls : constant Boolean :=
+                             (if Is_Row
+                              then Child_Style.Overflow_X /= Overflow_Visible
+                              else Child_Style.Overflow_Y /= Overflow_Visible);
+
+                           Specified : constant Size_Value :=
+                             (if Is_Row then Child_Style.Width
+                              else Child_Style.Height);
+
+                           Content_Min : constant Pixel_Type :=
+                             Get_Main_Size
+                               (Get_Content_Min_Size (Child.all),
+                                Style.Flex_Direction);
+
+                           Auto_Min : Pixel_Type := Content_Min;
+                        begin
+                           if Item_Scrolls then
+                              Auto_Min := 0.0;
+                           elsif Specified.Kind = Fixed then
+                              --  A declared size caps the floor: the item
+                              --  may shrink to it, just not past its
+                              --  content.
+                              Auto_Min := Pixel_Type'Min
+                                (Auto_Min,
+                                 Size_To_Px
+                                   (Specified,
+                                    Get_Main_Size
+                                      ((Content.Width, Content.Height),
+                                       Style.Flex_Direction)));
+                           end if;
+
+                           Info.Min_Main :=
+                             Pixel_Type'Max (Info.Min_Main, Auto_Min);
+                        end;
+
+                        --  Non-shrinkable children keep their preferred
+                        --  main size when the container does not clip.
                         if Main_Axis_Overflow
                              (Style, Style.Flex_Direction) = Overflow_Visible
                           and then Float (Child_Style.Flex_Shrink) = 0.0

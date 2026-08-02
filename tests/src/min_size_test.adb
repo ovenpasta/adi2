@@ -27,7 +27,10 @@ begin
    Test_Support.Start_Suite ("Min Size Dispatching Test");
    Ada.Text_IO.New_Line;
 
-   --  Test 1: Label Get_Min_Size dispatches with CSS min-width
+   --  Test 1: the two minimum questions are answered separately.
+   --  Get_Min_Size reports only what the widget demands (explicit CSS);
+   --  intrinsic text goes through Get_Content_Min_Size. Consumers take
+   --  the larger of the two. See docs/layout_minimums.md.
    declare
       L : constant Widget_Handle :=
          +Adi.Widget.Label.Create_Handle ("Hello");
@@ -43,10 +46,15 @@ begin
    begin
       Min_Before := Get_Min_Size (L);
       Ada.Text_IO.Put_Line
-         ("  Before CSS: min_w=" & Pixel_Type'Image (Min_Before.Width));
+         ("  Before CSS: min_w=" & Pixel_Type'Image (Min_Before.Width)
+          & " content_min_w="
+          & Pixel_Type'Image (Get_Content_Min_Size (L).Width));
       Test_Support.Assert
-         (Min_Before.Width > 0.0,
-          "Label min-width without CSS is intrinsic text width");
+         (Min_Before.Width = 0.0,
+          "Label demands no width of its own without CSS min-width");
+      Test_Support.Assert
+         (Get_Content_Min_Size (L).Width > 0.0,
+          "Label reports its intrinsic text width as a content minimum");
 
       Set_Part_Styles (L, Parts);
       Min_After := Get_Min_Size (L);
@@ -1130,6 +1138,194 @@ begin
       Test_Support.Assert
          (Get_Geometry (Floored).Height >= 60.0 - 0.001,
           "explicit min-height is honoured under shrink");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  The remaining automatic-minimum branches (CSS Flexbox 4.5): the
+   --  floor is capped by the item's specified size, and drops to zero
+   --  when the item scrolls its own content in the main axis.
+   declare
+      function Squeezed_Height (Rules : Style_Rules) return Pixel_Type is
+         Col : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+         Kid : constant Widget_Handle :=
+            +Adi.Widget.Label.Create_Handle ("Hello");
+         Col_Style : constant Style_Rules :=
+           (Display        => Set (Flex),
+            Flex_Direction => Set (Adi.CSS_Styles.Column),
+            others         => <>);
+         Col_Parts : constant Part_Style_Array :=
+           [Main_Part => (Style => From (Col_Style).Build, Enabled => True),
+            others    => <>];
+         Kid_Parts : constant Part_Style_Array :=
+           [Main_Part => (Style => From (Rules).Build, Enabled => True),
+            others    => <>];
+      begin
+         Set_Part_Styles (Col, Col_Parts);
+         Set_Part_Styles (Kid, Kid_Parts);
+         Add_Child (Col, Kid);
+         Set_Geometry
+            (Col, (X => 0.0, Y => 0.0, Width => 200.0, Height => 4.0));
+         Layout (Col);
+         return Get_Geometry (Kid).Height;
+      end Squeezed_Height;
+
+      Nowrap : constant Style_Rules :=
+        (Text_Wrap_Mode => Set (TWM_Nowrap), others => <>);
+
+      --  height smaller than the text: the specified size caps the floor.
+      Tiny_Height : constant Style_Rules :=
+        (Text_Wrap_Mode => Set (TWM_Nowrap),
+         Height         => Set (Size (Px (6.0))),
+         others         => <>);
+
+      --  the item scrolls itself: no floor at all.
+      Scrolling : constant Style_Rules :=
+        (Text_Wrap_Mode => Set (TWM_Nowrap),
+         Overflow_Y     => Set (Overflow_Auto),
+         others         => <>);
+
+      Plain_H  : constant Pixel_Type := Squeezed_Height (Nowrap);
+      Capped_H : constant Pixel_Type := Squeezed_Height (Tiny_Height);
+      Scroll_H : constant Pixel_Type := Squeezed_Height (Scrolling);
+   begin
+      Ada.Text_IO.Put_Line
+         ("  Automatic minimum: plain=" & Pixel_Type'Image (Plain_H)
+          & " height:6px=" & Pixel_Type'Image (Capped_H)
+          & " overflow-y:auto=" & Pixel_Type'Image (Scroll_H));
+
+      Test_Support.Assert
+         (Capped_H <= 6.0 + 0.001,
+          "specified height caps the automatic minimum");
+      Test_Support.Assert
+         (Capped_H < Plain_H,
+          "an item with a small declared height shrinks past its content");
+      Test_Support.Assert
+         (Scroll_H < Plain_H,
+          "an item that scrolls its own content has no automatic minimum");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  A grid inside a column that runs out of room must not be allocated
+   --  less than its rows need. When it is, the rows keep their own
+   --  minimums and simply render outside the grid box — the Controls
+   --  page showed exactly this, its value-input row hanging below the
+   --  card that was supposed to contain it.
+   Ada.Text_IO.Put_Line ("=== grid inside a squeezed column ===");
+   declare
+      Column : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Grid_Box : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Row_A_L  : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle ("Alpha");
+      Row_A_R  : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle ("One");
+      Row_B_L  : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle ("Beta");
+      Row_B_R  : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle ("Two");
+
+      Col_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          others         => <>);
+      Col_Parts : constant Part_Style_Array :=
+         [Main_Part => (Style => From (Col_Style).Build, Enabled => True),
+          others    => <>];
+
+      --  Two columns, both 1fr: bare fr is minmax(auto, 1fr), so the
+      --  tracks may not go below their items' minimum contribution.
+      Grid_Style : constant Style_Rules :=
+         (Display            => Set (Grid),
+          Grid_Columns       => Set (Grid_Columns_Value (2)),
+          Grid_Column_Tracks =>
+             (Count  => 2,
+              Tracks =>
+                 [1      => (Track_Fr, 1.0),
+                  2      => (Track_Fr, 1.0),
+                  others => <>]),
+          Gap                => Set (Gap (Px (30.0))),
+          others             => <>);
+      Grid_Parts : constant Part_Style_Array :=
+         [Main_Part => (Style => From (Grid_Style).Build, Enabled => True),
+          others    => <>];
+
+      Nowrap : constant Style_Rules :=
+         (Text_Wrap_Mode => Set (TWM_Nowrap), others => <>);
+      Cell_Parts : constant Part_Style_Array :=
+         [Main_Part => (Style => From (Nowrap).Build, Enabled => True),
+          others    => <>];
+
+      Card      : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      --  Like the demo card: padded, with a gap between heading and grid.
+      Card_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          Padding        => Set (CSS_Box (Px (24.0))),
+          others         => <>);
+      Card_Parts : constant Part_Style_Array :=
+         [Main_Part => (Style => From (Card_Style).Build, Enabled => True),
+          others    => <>];
+      Heading   : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle ("Heading");
+      Grid_Geom : Rectangle;
+      Card_Geom : Rectangle;
+      Cell_Geom : Rectangle;
+      Cell_Min  : Size_2D;
+   begin
+      Set_Part_Styles (Column, Col_Parts);
+      Set_Part_Styles (Card, Card_Parts);
+      Set_Part_Styles (Heading, Cell_Parts);
+      Set_Part_Styles (Grid_Box, Grid_Parts);
+      Set_Part_Styles (Row_A_L, Cell_Parts);
+      Set_Part_Styles (Row_A_R, Cell_Parts);
+      Set_Part_Styles (Row_B_L, Cell_Parts);
+      Set_Part_Styles (Row_B_R, Cell_Parts);
+      Add_Child (Grid_Box, Row_A_L);
+      Add_Child (Grid_Box, Row_A_R);
+      Add_Child (Grid_Box, Row_B_L);
+      Add_Child (Grid_Box, Row_B_R);
+
+      --  Mirror the demo: a card holding a heading plus the grid, itself
+      --  a flex item in a column with nowhere near enough room.
+      Add_Child (Card, Heading);
+      Add_Child (Card, Grid_Box);
+      Add_Child (Column, Card);
+
+      --  Far less room than two rows of text need.
+      Set_Geometry
+         (Column, (X => 0.0, Y => 0.0, Width => 400.0, Height => 10.0));
+      Layout (Column);
+
+      Grid_Geom := Get_Geometry (Grid_Box);
+      Card_Geom := Get_Geometry (Card);
+      Cell_Geom := Get_Geometry (Row_B_L);
+      Cell_Min  := Get_Content_Min_Size (Row_B_L);
+
+      Ada.Text_IO.Put_Line
+         ("  card h=" & Pixel_Type'Image (Card_Geom.Height)
+          & " card bottom="
+          & Pixel_Type'Image (Card_Geom.Y + Card_Geom.Height)
+          & " grid bottom="
+          & Pixel_Type'Image (Grid_Geom.Y + Grid_Geom.Height)
+          & " cell min h=" & Pixel_Type'Image (Cell_Min.Height));
+
+      Test_Support.Assert
+         (Cell_Geom.Y + Cell_Geom.Height
+            <= Grid_Geom.Y + Grid_Geom.Height + 0.001,
+          "grid rows stay inside the grid box");
+
+      Test_Support.Assert
+         (Grid_Geom.Y + Grid_Geom.Height
+            <= Card_Geom.Y + Card_Geom.Height + 0.001,
+          "the grid stays inside the card that holds it");
+
+      --  Horizontal counterpart: an fr track may not be narrower than
+      --  the cell's own content, which is what clips button labels.
+      Test_Support.Assert
+         (Get_Geometry (Row_A_L).Width >= Get_Content_Min_Size (Row_A_L).Width
+            - 0.001,
+          "an fr track is not narrower than its cell's content minimum");
    end;
 
    Ada.Text_IO.New_Line;

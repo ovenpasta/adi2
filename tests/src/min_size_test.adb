@@ -8,6 +8,7 @@ with Adi.Image;
 with Adi.Widget.Label;
 with Adi.Widget.Box;
 with Adi.Widget.List_Box;
+with Adi.Widget.Stack;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
 with Test_Support;
@@ -1645,6 +1646,99 @@ begin
       Adi.Widget.Label.Set_Icon
         (Adi.Widget.Label.Try_As_Label (L), null);
       Adi.Image.Free (Icon);
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  CSS caps an item's automatic minimum at the size it declares (the
+   --  "specified size suggestion"), and a container aggregating its
+   --  children has to apply the same cap. Without it a nowrap label
+   --  inside a 100px box makes the box demand the full text width, and
+   --  everything above it is forced open to fit text that was meant to
+   --  overflow.
+   Ada.Text_IO.Put_Line ("=== a definite size caps the content minimum ===");
+   declare
+      Long : constant String :=
+         "LONG TEXT: the quick brown fox jumps over the lazy dog";
+
+      Nowrap : constant Style_Rules :=
+         (Text_Wrap_Mode => Set (TWM_Nowrap), others => <>);
+
+      --  Builds: container(display:flex) > label(Long, nowrap) with the
+      --  label styled by Label_Rules.
+      type Page_Id is (Only_Page);
+      package Probe_Stack is new Adi.Widget.Stack (Page_Id);
+
+      function Make_Case
+        (Container_Rules : Style_Rules;
+         Label_Rules     : Style_Rules;
+         Use_Stack       : Boolean := False) return Widget_Handle
+      is
+         Box_H : constant Widget_Handle :=
+            (if Use_Stack then Probe_Stack.To_Widget_Handle
+                                 (Probe_Stack.Create_Handle)
+             else +Adi.Widget.Box.Create_Handle);
+         L     : constant Widget_Handle :=
+            +Adi.Widget.Label.Create_Handle (Long);
+      begin
+         Set_Part_Style (Box_H, Main_Part, From (Container_Rules).Build);
+         Set_Part_Style (L, Main_Part, From (Label_Rules).Build);
+         Set_Part_Style (L, Label_Part, From (Nowrap).Build);
+         Add_Child (Box_H, L);
+         return Box_H;
+      end Make_Case;
+
+      Flex_Col : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          others         => <>);
+
+      --  How wide the text really is, measured with nothing constraining
+      --  it: the number the cap has to suppress.
+      Uncapped : constant Widget_Handle :=
+         Make_Case (Flex_Col, (others => <>));
+      Text_Min : constant Pixel_Type := Get_Content_Min_Size (Uncapped).Width;
+
+      Capped : constant Widget_Handle :=
+         Make_Case (Flex_Col, (Width => Set (Size (Px (100.0))), others => <>));
+      Floored : constant Widget_Handle :=
+         Make_Case (Flex_Col,
+                    (Width     => Set (Size (Px (100.0))),
+                     Min_Width => Set (Size (Px (150.0))),
+                     others    => <>));
+      Percent : constant Widget_Handle :=
+         Make_Case (Flex_Col, (Width => Set (Size (Pct (50.0))), others => <>));
+      Stacked : constant Widget_Handle :=
+         Make_Case (Flex_Col,
+                    (Width => Set (Size (Px (100.0))), others => <>),
+                    Use_Stack => True);
+   begin
+      Ada.Text_IO.Put_Line
+         ("  text min w=" & Pixel_Type'Image (Text_Min)
+          & "  capped=" & Pixel_Type'Image (Get_Content_Min_Size (Capped).Width)
+          & "  floored="
+          & Pixel_Type'Image (Get_Content_Min_Size (Floored).Width)
+          & "  percent="
+          & Pixel_Type'Image (Get_Content_Min_Size (Percent).Width)
+          & "  stack="
+          & Pixel_Type'Image (Get_Content_Min_Size (Stacked).Width));
+
+      --  Guard the premise: the text really is wider than the caps below.
+      Test_Support.Assert (Text_Min > 200.0,
+          "the sample text is wider than the sizes capping it");
+
+      Test_Support.Assert
+         (abs (Get_Content_Min_Size (Capped).Width - 100.0) < 0.001,
+          "a definite width caps what the container aggregates");
+      Test_Support.Assert
+         (abs (Get_Content_Min_Size (Floored).Width - 150.0) < 0.001,
+          "an explicit min-width still floors the capped result");
+      Test_Support.Assert
+         (abs (Get_Content_Min_Size (Percent).Width - Text_Min) < 0.001,
+          "a percentage width is not definite here, so nothing is capped");
+      Test_Support.Assert
+         (abs (Get_Content_Min_Size (Stacked).Width - 100.0) < 0.001,
+          "a stack caps its pages the same way a box caps its children");
    end;
 
    Ada.Text_IO.New_Line;

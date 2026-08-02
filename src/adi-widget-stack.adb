@@ -210,14 +210,10 @@ package body Adi.Widget.Stack is
       for Child of W.Children loop
          if Child_Participates (Child) then
             declare
-               Demanded : constant Size_2D := Get_Min_Size (Child.all);
-               Content  : constant Size_2D :=
-                 Get_Content_Min_Size (Child.all);
+               --  Same cap-and-floor rule Box applies to its children.
                Min : constant Size_2D :=
-                 (if Content_Min
-                  then (Pixel_Type'Max (Demanded.Width, Content.Width),
-                        Pixel_Type'Max (Demanded.Height, Content.Height))
-                  else Demanded);
+                 (if Content_Min then Effective_Min_Size (Child.all)
+                  else Get_Min_Size (Child.all));
             begin
                Result.Width := Pixel_Type'Max (Result.Width, Min.Width);
                Result.Height := Pixel_Type'Max (Result.Height, Min.Height);

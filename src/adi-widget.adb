@@ -6684,6 +6684,31 @@ package body Adi.Widget is
    function Get_Content_Min_Size (H : Widget_Handle) return Size_2D
      renames Get_Content_Min_Size_W;
 
+   function Effective_Min_Size (W : Widget'Class) return Size_2D is
+      Style    : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Main_Part);
+      Demanded : constant Size_2D := Get_Min_Size (W);
+      Content  : constant Size_2D := Get_Content_Min_Size (W);
+
+      function On_Axis
+        (Declared : Size_Value; Demand, Content_Min : Pixel_Type)
+         return Pixel_Type
+      is
+         Result : Pixel_Type := Content_Min;
+      begin
+         if Declared.Kind = Fixed and then Declared.Size.Unit /= Pct then
+            Result :=
+              Pixel_Type'Min (Result, Size_To_Px (Declared, 0.0));
+         end if;
+         return Pixel_Type'Max (Demand, Result);
+      end On_Axis;
+   begin
+      return (Width  =>
+                On_Axis (Style.Width, Demanded.Width, Content.Width),
+              Height =>
+                On_Axis (Style.Height, Demanded.Height, Content.Height));
+   end Effective_Min_Size;
+
    function Get_Preferred_Size_W is
      new Wrap_CW_Func (Size_2D, (0.0, 0.0), Get_Preferred_Size);
    function Get_Preferred_Size (H : Widget_Handle) return Size_2D

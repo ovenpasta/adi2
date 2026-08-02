@@ -148,17 +148,10 @@ package body Adi.Widget.Box is
       end;
    end Build_Items;
 
-   --  How small a child can actually get: its own content minimum, but
-   --  never below the minimum it demands via CSS. A container that
-   --  ignored the latter would report a content minimum smaller than the
-   --  children it has to hold, and get squeezed until they overflow it.
-   function Effective_Child_Min (Child : Widget'Class) return Size_2D is
-      Demanded : constant Size_2D := Get_Min_Size (Child);
-      Content  : constant Size_2D := Get_Content_Min_Size (Child);
-   begin
-      return (Width  => Pixel_Type'Max (Demanded.Width, Content.Width),
-              Height => Pixel_Type'Max (Demanded.Height, Content.Height));
-   end Effective_Child_Min;
+   --  How small a child can actually get. Shared with Stack, so both
+   --  containers cap and floor a child the same way.
+   function Effective_Child_Min (Child : Widget'Class) return Size_2D
+     renames Effective_Min_Size;
 
    overriding function Measure_Content (W : Box_Widget) return Size_2D is
       Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);

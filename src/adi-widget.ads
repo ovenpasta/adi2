@@ -633,6 +633,32 @@ package Adi.Widget is
    function Get_Content_Min_Size (W : Widget) return Size_2D;
    function Get_Content_Min_Size (H : Widget_Handle) return Size_2D;
 
+   --  Content size when the widget is laid out at Assigned_Width as its
+   --  own outer width -- the width-aware counterpart of Measure_Content,
+   --  and like it, CSS width/height are not applied here. Override this
+   --  in a widget whose height depends on its width; the default ignores
+   --  the width and returns Measure_Content, which is right for every
+   --  widget whose height does not.
+   --
+   --  It must not change observable layout state: no geometry, no
+   --  committed sizes, nothing a later pass would read as fact. Internal
+   --  memoisation is fine -- callers ask this speculatively, and an
+   --  answer must not commit the widget to it.
+   function Measure_Content_At_Width
+     (W : Widget; Assigned_Width : Pixel_Type) return Size_2D;
+
+   --  Preferred outer size at that width, with CSS sizing applied on top
+   --  the way Get_Preferred_Size applies it to Measure_Content: a
+   --  declared height wins over whatever the content measured. The width
+   --  comes back as given -- the caller resolved it and will render at
+   --  it, so resolving the widget's own width again would apply a
+   --  percentage twice. Not dispatching: the widget-specific part is the
+   --  primitive above.
+   function Measure_At_Width
+     (W : Widget'Class; Assigned_Width : Pixel_Type) return Size_2D;
+   function Measure_At_Width
+     (H : Widget_Handle; Assigned_Width : Pixel_Type) return Size_2D;
+
    --  How small a child can actually be made, per axis: its content
    --  minimum capped by a definite size it declares — CSS's specified
    --  size suggestion — and then floored by the minimum it demands.

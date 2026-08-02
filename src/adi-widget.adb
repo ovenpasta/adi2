@@ -6709,6 +6709,57 @@ package body Adi.Widget is
    function Get_Content_Min_Size (H : Widget_Handle) return Size_2D
      renames Get_Content_Min_Size_W;
 
+   function Measure_Content_At_Width
+     (W : Widget; Assigned_Width : Pixel_Type) return Size_2D
+   is
+      pragma Unreferenced (Assigned_Width);
+   begin
+      return Measure_Content (W);
+   end Measure_Content_At_Width;
+
+   --  Same shape as Get_Preferred_Size: a declared size wins, and only
+   --  the axes left to the content are measured -- here at the width the
+   --  caller says the widget will get.
+   function Measure_At_Width
+     (W : Widget'Class; Assigned_Width : Pixel_Type) return Size_2D
+   is
+      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Scrollable_Y : constant Boolean := Is_Scroll_Enabled (W);
+      Pref_H : Pixel_Type := 0.0;
+      Need_Content_H : Boolean := False;
+   begin
+      --  Assigned_Width is the width the caller resolved and will render
+      --  at, so it is reported back unchanged. Resolving the widget's own
+      --  width again here would apply a percentage twice: a width: 50%
+      --  child already narrowed to 150 would come back as 75.
+
+      --  A percentage height resolves against a container this query
+      --  knows nothing about, so it is left to the layout pass that does.
+      case Style.Height.Kind is
+         when Fixed =>
+            if Style.Height.Size.Unit /= Pct then
+               Pref_H := Size_To_Px (Style.Height, W.Geometry.Height);
+            else
+               Need_Content_H := True;
+            end if;
+         when others =>
+            if Scrollable_Y then
+               --  A scroll container reports its floor, not its content:
+               --  the content is what it scrolls.
+               Pref_H :=
+                 Outer_Size ((0.0, Get_Min_Size (W).Height), Style).Height;
+            else
+               Need_Content_H := True;
+            end if;
+      end case;
+
+      if Need_Content_H then
+         Pref_H := Measure_Content_At_Width (W, Assigned_Width).Height;
+      end if;
+
+      return (Assigned_Width, Pref_H);
+   end Measure_At_Width;
+
    function Effective_Min_Size (W : Widget'Class) return Size_2D is
       Style    : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Main_Part);
@@ -6733,6 +6784,26 @@ package body Adi.Widget is
               Height =>
                 On_Axis (Style.Height, Demanded.Height, Content.Height));
    end Effective_Min_Size;
+
+   function Effective_Min_Size (H : Widget_Handle) return Size_2D is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr = null then
+         return (0.0, 0.0);
+      end if;
+      return Effective_Min_Size (Ptr.all);
+   end Effective_Min_Size;
+
+   function Measure_At_Width
+     (H : Widget_Handle; Assigned_Width : Pixel_Type) return Size_2D
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr = null then
+         return (0.0, 0.0);
+      end if;
+      return Measure_At_Width (Ptr.all, Assigned_Width);
+   end Measure_At_Width;
 
    function Get_Preferred_Size_W is
      new Wrap_CW_Func (Size_2D, (0.0, 0.0), Get_Preferred_Size);

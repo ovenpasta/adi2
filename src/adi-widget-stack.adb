@@ -162,6 +162,41 @@ package body Adi.Widget.Stack is
    --  Measurement
    ---------------------------------------------------------------------------
 
+   --  Pages overlap, so the stack is as tall at a given width as its
+   --  tallest participating page is at that same width.
+   overriding function Measure_Content_At_Width
+     (W : Stack_Widget; Assigned_Width : Pixel_Type) return Size_2D
+   is
+      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Padding : constant Edge_Pixels := Get_Padding_Px (Style);
+      Border  : constant Edge_Pixels := Get_Border_Width_Px (Style);
+      Content_W : constant Pixel_Type :=
+        Assigned_Width - Padding.Left - Padding.Right
+                       - Border.Left - Border.Right;
+      Tallest : Pixel_Type := 0.0;
+      Any : Boolean := False;
+   begin
+      if Content_W <= 0.0 then
+         return Get_Preferred_Size (W);
+      end if;
+
+      for Child of W.Children loop
+         if Child_Participates (Child) then
+            Any := True;
+            Tallest := Pixel_Type'Max
+              (Tallest, Measure_At_Width (Child.all, Content_W).Height);
+         end if;
+      end loop;
+
+      if not Any then
+         return Get_Preferred_Size (W);
+      end if;
+
+      return (Width  => Assigned_Width,
+              Height => Tallest + Padding.Top + Padding.Bottom
+                                + Border.Top + Border.Bottom);
+   end Measure_Content_At_Width;
+
    overriding function Measure_Content (W : Stack_Widget) return Size_2D is
       Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Result : Size_2D := (0.0, 0.0);

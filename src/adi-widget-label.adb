@@ -193,7 +193,13 @@ package body Adi.Widget.Label is
               Pixel_Type'Max (0.0, Result.Height));
    end Resolved_Icon_Size;
 
-   function Measure_Content (W : Label_Widget) return Size_2D is
+   --  Shared by the unconstrained and the width-constrained measurement.
+   --  Content_W is the width available to the label's own content box,
+   --  or a non-positive value when nothing constrains it -- then the
+   --  text is measured on one line, which is its max-content size.
+   function Measure_Label
+     (W : Label_Widget; Content_W : Pixel_Type) return Size_2D
+   is
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Label_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Label_Part);
       Icon_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Icon_Part);
@@ -232,42 +238,8 @@ package body Adi.Widget.Label is
             Can_Wrap : constant Boolean :=
               Label_Style.Text_Wrap_Mode = TWM_Wrap
               and then Label_Style.White_Space /= WS_NoWrap;
-            Wrap_W : Pixel_Type :=
-              Content_Box (W.Geometry, Main_Style).Width;
+            Wrap_W : Pixel_Type := Content_W;
          begin
-            --  Newly-visible children enter Measure_Content with Geometry = 0
-            --  (they were hidden, never laid out).  The parent's flex pass
-            --  asks Get_Preferred_Size before assigning a slot — without a
-            --  wrap-width hint we'd return the unwrapped single-line size,
-            --  the parent would allocate a single-line slot, and the label
-            --  would clip on first reveal.  Walk up the ancestor chain
-            --  looking for the first container whose content box has a
-            --  positive width and use that as the wrap-width hint.  In a
-            --  column-flex tree with align-items: stretch (the common
-            --  case for slide body text) this is exactly the slot width
-            --  the parent will assign.
-            if Can_Wrap and then Wrap_W <= 0.0 then
-               declare
-                  P : Widget_Access := W.Parent;
-               begin
-                  while P /= null loop
-                     if P.Geometry.Width > 0.0 then
-                        declare
-                           Parent_Style : constant Resolved_Style :=
-                             Get_Resolved_Part_Style (P.all, Main_Part);
-                           Parent_W : constant Pixel_Type :=
-                             Content_Box (P.Geometry, Parent_Style).Width;
-                        begin
-                           if Parent_W > 0.0 then
-                              Wrap_W := Parent_W;
-                              exit;
-                           end if;
-                        end;
-                     end if;
-                     P := P.Parent;
-                  end loop;
-               end;
-            end if;
 
             --  When an icon shares the label's main flex row, the text
             --  column is narrower than the full content box by the icon
@@ -321,7 +293,32 @@ package body Adi.Widget.Label is
       end;
 
       return Outer_Size (Result, Main_Style);
+   end Measure_Label;
+
+   --  Unconstrained: what the label would like, with the text on one
+   --  line. Nothing here reads the geometry, so the width the label was
+   --  given last time cannot become the width it asks for next time.
+   function Measure_Content (W : Label_Widget) return Size_2D is
+   begin
+      return Measure_Label (W, 0.0);
    end Measure_Content;
+
+   overriding function Measure_Content_At_Width
+     (W : Label_Widget; Assigned_Width : Pixel_Type) return Size_2D
+   is
+      Main_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Main_Part);
+      Padding : constant Edge_Pixels := Get_Padding_Px (Main_Style);
+      Border  : constant Edge_Pixels := Get_Border_Width_Px (Main_Style);
+      Content_W : constant Pixel_Type :=
+        Assigned_Width - Padding.Left - Padding.Right
+                       - Border.Left - Border.Right;
+   begin
+      if Content_W <= 0.0 then
+         return Measure_Label (W, 0.0);
+      end if;
+      return Measure_Label (W, Content_W);
+   end Measure_Content_At_Width;
 
    ------------------
    -- Get_Min_Size --

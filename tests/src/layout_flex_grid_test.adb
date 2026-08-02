@@ -777,6 +777,26 @@ procedure Layout_Flex_Grid_Test is
                     "a 100% height fills the row");
    end Test_Percentage_Cross_Size_Resolves_Against_The_Line;
 
+   --  Assigned_Width is the width the caller already resolved and is
+   --  about to render at, so the answer reports it back unchanged. A
+   --  child whose own width is a percentage would otherwise have it
+   --  applied twice -- narrowed to 150 by the caller, then to 75 here.
+   procedure Test_Measure_At_Width_Reports_The_Assigned_Width is
+      Half : constant Widget_Handle :=
+        Make_Child ((Width  => Set (Size (Pct (50.0))),
+                     Height => Set (Size (Px (20.0))),
+                     others => <>));
+      Plain : constant Widget_Handle :=
+        Make_Child ((Height => Set (Size (Px (20.0))), others => <>));
+   begin
+      Assert_Close (Measure_At_Width (Half, 150.0).Width, 150.0,
+                    "a percentage width is not resolved a second time");
+      Assert_Close (Measure_At_Width (Plain, 300.0).Width, 300.0,
+                    "the assigned width is what comes back");
+      Assert_Close (Measure_At_Width (Half, 150.0).Height, 20.0,
+                    "a declared height still wins over the measurement");
+   end Test_Measure_At_Width_Reports_The_Assigned_Width;
+
    procedure Test_Preferred_Floor_Is_Per_Axis is
       function Row_Height (Floor_X, Floor_Y : Boolean) return Pixel_Type is
          Ctx : Grid_Layout_Context :=
@@ -849,6 +869,7 @@ begin
    Test_Cross_Axis_Stretch_Respects_Declared_Size;
    Test_Row_Stretch_Respects_Declared_Height;
    Test_Percentage_Cross_Size_Resolves_Against_The_Line;
+   Test_Measure_At_Width_Reports_The_Assigned_Width;
    Test_Preferred_Floor_Is_Per_Axis;
    Test_Flex_Margins;
    Test_Grid_Auto_And_Span;

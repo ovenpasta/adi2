@@ -7152,10 +7152,64 @@ package body Adi.Widget is
 
             --  Convert to rectangles and apply
             declare
-               Assigned : constant Rectangle_Array :=
+               Assigned : Rectangle_Array :=
                   Flex_To_Rectangles(Context,
                     Children_Info (1 .. Num_Children));
+
+               --  The first pass sized every child from what it wants
+               --  unconstrained, so a child whose height depends on its
+               --  width -- wrapping text -- has not yet been asked the
+               --  question that decides its height: how tall are you at
+               --  the width you just got. Ask now, before any geometry
+               --  is set, and re-run the algorithm if an answer differs.
+               --  A declared height is not up for discussion.
+               Remeasured : Boolean := False;
             begin
+               for I in 1 .. Num_Children loop
+                  declare
+                     Child_Style : constant Resolved_Style :=
+                       Get_Resolved_Part_Style
+                         (Active_Children (I).all, Main_Part);
+                     Wanted : Size_2D;
+                  begin
+                     --  Direct flex sizing has already handled every
+                     --  declared height, percentages included, so those
+                     --  children are left alone here.
+                     if Child_Style.Height.Kind /= Fixed
+                       and then Assigned (I).Width > 0.0
+                     then
+                        Wanted := Measure_At_Width
+                          (Active_Children (I).all, Assigned (I).Width);
+
+                        if Is_Row_Direction (Style.Flex_Direction) then
+                           if abs (Wanted.Height
+                                   - Children_Info (I).Content_Cross) > 0.5
+                           then
+                              Children_Info (I).Content_Cross := Wanted.Height;
+                              Remeasured := True;
+                           end if;
+                        elsif abs (Wanted.Height
+                                   - Children_Info (I).Content_Main) > 0.5
+                        then
+                           --  Base size only. The automatic minimum is
+                           --  the flex pass's business: an item that
+                           --  scrolls its own content has none, and a
+                           --  floor set here would give it one.
+                           Children_Info (I).Content_Main := Wanted.Height;
+                           Children_Info (I).Flex_Basis  := Wanted.Height;
+                           Remeasured := True;
+                        end if;
+                     end if;
+                  end;
+               end loop;
+
+               if Remeasured then
+                  Compute_Flex_Layout
+                    (Context, Children_Info (1 .. Num_Children));
+                  Assigned := Flex_To_Rectangles
+                    (Context, Children_Info (1 .. Num_Children));
+               end if;
+
                for I in 1 .. Num_Children loop
                   Set_Geometry (Active_Children (I).all, Assigned (I));
                end loop;

@@ -670,19 +670,33 @@ package body Adi.Window is
       if Is_Valid (W.Root) then
          declare
             Pref : constant Size_2D := Get_Preferred_Size (W.Root);
-            Floor : constant Size_2D := Get_Min_Size (W.Root);
+            Floor : constant Size_2D := Effective_Min_Size (W.Root);
             Root_Geom : constant Rectangle := Get_Geometry (W.Root);
-            Pref_W : constant Float := Float (Pref.Width);
-            Floor_W : constant Float := Float (Floor.Width);
-            Root_W : constant Float := Float (Root_Geom.Width);
-            Width_Is_Geometry_Dependent : constant Boolean :=
-              Root_W > 0.0
-              and then abs (Pref_W - Root_W) <= 1.0
-              and then Floor_W + 1.0 < Pref_W;
-            Effective_W : constant Float :=
-              (if Width_Is_Geometry_Dependent then Floor_W else Pref_W);
-            Wf   : constant Float := Float'Max (1.0, Effective_W);
-            Hf   : constant Float := Float'Max (1.0, Float (Pref.Height));
+
+            --  How tall the content is at the width the window actually
+            --  has. Preferred height would be the unwrapped one, which
+            --  is too short to hold wrapped text -- and asking at the
+            --  current width is what lets the floor drop again when the
+            --  user widens and the text unwraps.
+            Fitted : constant Size_2D :=
+              (if Root_Geom.Width > 0.0
+               then Measure_At_Width (W.Root, Root_Geom.Width)
+               else Pref);
+
+            --  The smallest the content can be squeezed to, which is
+            --  what a minimum means. Preferred width is the max-content
+            --  width -- for wrapping content, the width at which it
+            --  would rather not wrap at all -- and pinning the window
+            --  there would deny the wrapping the layout is willing to
+            --  do. Taking the smaller of the two would instead ignore an
+            --  explicit min-width that exceeds the preferred width.
+            Wf   : constant Float := Float'Max (1.0, Float (Floor.Width));
+            --  Same rule as the width: an explicit min-height is a
+            --  floor, whatever the content at this width measures.
+            Hf   : constant Float :=
+              Float'Max (1.0,
+                         Float'Max (Float (Fitted.Height),
+                                    Float (Floor.Height)));
          begin
             Min_W := int (Integer (Float'Ceiling (Wf)));
             Min_H := int (Integer (Float'Ceiling (Hf)));

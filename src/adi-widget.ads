@@ -666,6 +666,7 @@ package Adi.Widget is
    --  measured, so they are not definite here and do not cap.
    --  Containers aggregate this rather than the raw content minimum.
    function Effective_Min_Size (W : Widget'Class) return Size_2D;
+   function Effective_Min_Size (H : Widget_Handle) return Size_2D;
 
    ---------------------------------------------------------------------------
    --  Flex Layout

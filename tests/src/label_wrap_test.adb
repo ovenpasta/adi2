@@ -73,16 +73,16 @@ begin
    New_Line;
 
    ----------------------------------------------------------------------
-   --  First-show wrap: the label is a fresh child of a flex column
-   --  whose width is set on the grandparent (not the immediate parent),
-   --  and the label itself has no geometry yet — the same shape the
-   --  slide deck hits when navigating to a new slide.  Without the
-   --  ancestor-walk fallback in Label.Measure_Content, Get_Preferred_Size
-   --  returns the unwrapped single-line height and the parent flex
-   --  reserves a slot too small for the wrapped text to render.
+   --  First layout: a label that has never been laid out is a fresh
+   --  child of a column whose width comes from its grandparent. The
+   --  parent must hand it a slot tall enough for the wrapped text on
+   --  that very first pass -- the shape a slide deck hits when it
+   --  navigates to a new slide. The label itself reports its
+   --  unconstrained size; the container is what discovers the wrap, by
+   --  asking how tall it is at the width it assigns.
    ----------------------------------------------------------------------
 
-   Put_Line ("--- ancestor-walk wrap fallback ---");
+   Put_Line ("--- wrapped height on the first layout ---");
    declare
       Grandparent : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
       Parent      : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
@@ -90,41 +90,30 @@ begin
         +Adi.Widget.Label.Create_Handle (Long_Text);
 
       Single_Line_H : Pixel_Type;
-      Pref          : Size_2D;
+      Laid_Out_H    : Pixel_Type;
    begin
-      --  Configure the label as wrap-enabled, then measure its single-line
-      --  height (with no parent → fallback width).
       Set_Part_Styles (Lbl, Wrap_Label_Parts);
 
+      --  Unconstrained, the label wants one line.
       Single_Line_H := Get_Preferred_Size (Lbl).Height;
       Put_Line
-        ("  single-line height (no parent): "
-         & Pixel_Type'Image (Single_Line_H));
+        ("  unconstrained height: " & Pixel_Type'Image (Single_Line_H));
 
-      --  Now assemble the tree:
-      --     grandparent (width: 200px, column-flex)
-      --       └ parent  (no geometry, no width set)
-      --            └ label
-      --  After Add_Child the label has Parent = parent (Geometry = 0),
-      --  Parent.Parent = grandparent (Geometry = 0 until we Set_Geometry).
       Set_Part_Styles (Grandparent, Column_Box_Parts (200.0));
       Set_Part_Styles (Parent,      Column_Box_Parts (200.0));
       Add_Child (Grandparent, Parent);
       Add_Child (Parent,      Lbl);
 
-      --  Set the grandparent's geometry only.  The immediate parent's
-      --  Geometry stays at (0, 0, 0, 0).
       Set_Geometry (Grandparent, (0.0, 0.0, 200.0, 600.0));
+      Layout (Grandparent);
 
-      Pref := Get_Preferred_Size (Lbl);
-      Put_Line
-        ("  preferred height with grandparent width: "
-         & Pixel_Type'Image (Pref.Height));
+      Laid_Out_H := Get_Geometry (Lbl).Height;
+      Put_Line ("  laid-out height: " & Pixel_Type'Image (Laid_Out_H));
 
       Check
-        ("Label.Measure_Content walks past Parent (Geometry = 0) up to "
-         & "Grandparent (width 200px) and reports the wrapped height",
-         Pref.Height > Single_Line_H);
+        ("the first layout already gives the label room for the wrapped "
+         & "text, without it having been laid out before",
+         Laid_Out_H > Single_Line_H);
    end;
 
    New_Line;
@@ -164,8 +153,8 @@ begin
       Add_Child (Parent, Lbl_Iconed);
       Set_Geometry (Parent, (0.0, 0.0, 260.0, 800.0));
 
-      Plain_H  := Get_Preferred_Size (Lbl_Plain).Height;
-      Iconed_H := Get_Preferred_Size (Lbl_Iconed).Height;
+      Plain_H  := Measure_At_Width (Lbl_Plain, 260.0).Height;
+      Iconed_H := Measure_At_Width (Lbl_Iconed, 260.0).Height;
 
       Put_Line ("  plain label height : " & Pixel_Type'Image (Plain_H));
       Put_Line ("  iconed label height: " & Pixel_Type'Image (Iconed_H));
@@ -174,6 +163,68 @@ begin
         ("Iconed label wraps to MORE lines than plain (icon column is "
          & "subtracted from wrap width, so the same text needs an extra line)",
          Iconed_H > Plain_H);
+
+      --  The icon is 60px tall, so a taller result could come from the
+      --  icon alone: require more than that to prove the extra line.
+      Check
+        ("the extra height is wrapped text, not just the icon's own size",
+         Iconed_H > 60.0 + 0.5);
+   end;
+
+   New_Line;
+
+   ----------------------------------------------------------------------
+   --  Reflow on widen.  A wrapping label in a row that is squeezed until
+   --  the text wraps must go back to one line when the row grows again.
+   --  It did not: the label measured itself at its own current width, so
+   --  the width it was given became the width it asked for next time --
+   --  a one-way ratchet. Shrinking fed itself and widening had no way
+   --  back, leaving the material demo's title stuck on two lines.
+   ----------------------------------------------------------------------
+
+   Put_Line ("--- reflow when the row widens again ---");
+   declare
+      Bar : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Lbl : constant Widget_Handle :=
+        +Adi.Widget.Label.Create_Handle (Long_Text);
+
+      Bar_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Row),
+         Align_Items    => Set (Center),
+         others         => <>);
+
+      function Height_At (W : Pixel_Type) return Pixel_Type is
+      begin
+         Set_Geometry (Bar, (0.0, 0.0, W, 80.0));
+         Layout (Bar);
+         return Get_Geometry (Lbl).Height;
+      end Height_At;
+
+      Wide_H, Narrow_H, Again_H, One_Line_H : Pixel_Type;
+   begin
+      Set_Part_Style (Bar, Main_Part, From (Bar_Rules).Build);
+      Set_Part_Styles (Lbl, Wrap_Label_Parts);
+      Add_Child (Bar, Lbl);
+
+      --  What one line costs, with nothing constraining the label.
+      One_Line_H := Get_Preferred_Size (Lbl).Height;
+
+      Wide_H   := Height_At (900.0);
+      Narrow_H := Height_At (420.0);
+      Again_H  := Height_At (900.0);
+
+      Put_Line ("  one line: " & Pixel_Type'Image (One_Line_H));
+      Put_Line ("  height at 900: " & Pixel_Type'Image (Wide_H));
+      Put_Line ("  height at 420: " & Pixel_Type'Image (Narrow_H));
+      Put_Line ("  height back at 900: " & Pixel_Type'Image (Again_H));
+
+      Check ("a row wide enough for the title keeps it on one line",
+             abs (Wide_H - One_Line_H) < 0.5);
+      Check ("squeezing the row wraps the title onto more lines",
+             Narrow_H > Wide_H + 0.5);
+      Check ("widening the row again unwraps the title",
+             abs (Again_H - Wide_H) < 0.5);
    end;
 
    New_Line;

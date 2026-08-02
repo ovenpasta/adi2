@@ -185,7 +185,7 @@
 - CSS-px-as-logical-px opt-in: `Adi.Layout_Util.Set_Px_Maps_To_Dip (True)` makes `Length_To_Px` route the `Px` branch through the same `Amount * Active_DIP_Scale * Active_UI_Scale` formula as `Dip`, so CSS `px` behaves like a browser/Qt logical pixel for the whole app. Off by default — both conventions are first-class; see `docs/css_styling.md` "Treating CSS `px` as logical pixels".
 - Widget helper for pre-resolved lengths: `Adi.Layout_Util.Pixels_As_Length (P)` returns a `Dip`-valued `Length_Value` that re-resolves to exactly `P` pixels regardless of the toggle or current scales. Widgets that compute a final pixel size during measurement and need to pass it through a `Length_Value` field (e.g. `Item.Style_Override.Font_Size`) use this to avoid being scaled a second time at render.
 - Window state API: `Maximize`, `Minimize`, `Restore`, `Set_Fullscreen` delegate directly to SDL3; `Is_Maximized`, `Is_Minimized`, `Is_Fullscreen` query the live SDL window flags. All have `Window` and `Window_Handle` overloads. SDL may not honor requests on all platforms.
-- **Layout-driven SDL minimum size**: `Set_Enforce_Layout_Min_Size` (default on) calls `SDL_SetWindowMinimumSize` from root layout sizing and reapplies it after each relayout pass (including resize-triggered relayouts), keeping SDL minimums synchronized with wrapped/unwrapped content changes. Minimum width uses a geometry-dependent guard: when preferred width tracks the current root geometry (typical wrapped-text feedback), width falls back to `Get_Min_Size(root)` to avoid ratcheting to the current window width. Minimum height follows preferred height so unwrap on widen can lower the enforced floor. Computed minimums are capped to display usable bounds via `SDL_GetDisplayUsableBounds`, and if current window size is already below the computed minimum, `SDL_SetWindowSize` clamps up immediately.
+- **Layout-driven SDL minimum size**: `Set_Enforce_Layout_Min_Size` (default on) calls `SDL_SetWindowMinimumSize` from root layout sizing and reapplies it after each relayout pass (including resize-triggered relayouts). Minimum **width** is `Effective_Min_Size (root)` — the smallest the content can be squeezed to, which is what a minimum means, and which honours an explicit `min-width` that exceeds the preferred width. Preferred width is the *max-content* width; pinning the window there would deny wrapping the layout is willing to do. Minimum **height** is `Measure_At_Width (root, current width)` — the height the content needs at the width the window actually has, so unwrapping on widen lowers the floor again. Computed minimums are capped to display usable bounds via `SDL_GetDisplayUsableBounds`, and if the current window size is already below the computed minimum, `SDL_SetWindowSize` clamps up immediately.
 - Deterministic teardown: widget trees are destroyed before SDL resources in `Finalize`; public `Destroy` invalidates window handles through the store.
 - Callback-safe destroy: destroy requests made during active window callback dispatch are queued and applied by `Pump_Window_Store` after dispatch unwinds.
 - Debug: `ADI_DEBUG_LOOP=1` for tick/render diagnostics
@@ -348,20 +348,26 @@ Three optimizations reduce layout cost for large widget trees (e.g. 280+ widgets
 
 **Performance counters**: `Reset_Perf_Counters` / `Get_Perf_*` functions in `Adi.Widget` track style resolves, cache hits, layout calls, layout skips, preferred-size calls, and preferred-size cache hits per frame. Counters are reset before `Update` so that all work (including `Build_Items`) is captured. The Window captures these after each layout pass for the debug stats overlay.
 
-### Multi-Pass Layout Convergence (Width-Aware Text Wrap)
+### Width-Aware Measurement (Text Wrap)
 
-A single `Layout_Tree` pass is **measure → assign → recursive-layout** in a top-down sweep. Each level measures its children with `Get_Preferred_Size`, distributes space, then sets child geometries and recurses. Wrap-aware widgets (`Adi.Widget.Label` with `text-wrap: wrap`) need their assigned width to compute the correct wrapped height — but during the measure step the widget's `Geometry.Width` is still zero (it hasn't been assigned yet that pass).
+A `Layout_Tree` pass is **measure → assign → recursive-layout** in a top-down sweep, and a wrapping widget's height depends on the width the assign step is about to give it — a question it cannot answer while it is being measured.
 
-`Label.Measure_Content` works around this by walking up the ancestor chain looking for a parent with `Geometry.Width > 0` and using that as the wrap-width hint. That works after the first `Layout_Tree` pass has run (when the immediate parent's width has been set), but on the **very first** pass — fresh window, no prior layout — every ancestor up to the root is also `0`, so the walk falls through to root, which is too wide. The wrap call then reports "fits on one line" and the parent allocates a single-line slot. After that pass's assign phase the widget *does* get its real `Geometry.Width`, but the cached preferred size is locked in for the rest of that epoch.
+Two primitives answer the two different questions:
 
-**Convergence pattern**: two `Layout_Tree` passes after `Set_Root` are sufficient.
-- Pass 1: measurements use the too-wide root width → heights wrong → assign phase sets widget widths correctly but heights at the bad single-line value.
-- Pass 2: new epoch, preferred-size cache misses. Measurements now use `W.Geometry.Width` (set by pass 1) → wrap returns the real multi-line height → assign reflows with correct heights.
-- Subsequent passes are no-ops (geometries are stable).
+- `Measure_Content` — the unconstrained (max-content) size. Geometry-independent: it must not consult the width the widget currently has, or the width it was given last pass becomes the width it asks for next pass, and the layout ratchets one way. That was the "title stays wrapped after you widen the window" bug.
+- `Measure_Content_At_Width (W, Assigned_Width)` — the same measurement with the assigned *outer* width known. Dispatching, defaults to `Measure_Content`, and overridden by widgets whose height depends on their width. It is a query: it must not change observable layout state (internal memoisation is fine — an answer must not commit the widget to it).
 
-Applications that load a non-trivial pre-rendered tree before `App.Run` (e.g. a slide deck restoring its last active page from settings, where the first frame the user sees needs to be fully wrapped) should call `Adi.Widget.Layout_Tree (Adi.Window.Get_Root_Handle (W))` twice between `Set_Root` and `Run`. The render loop only re-layouts when `Needs_Layout` is dirty, which isn't reliable for this case.
+`Measure_At_Width` is the non-dispatching wrapper around the second, applying CSS sizing on top exactly as `Get_Preferred_Size` does for the first: a definite declared width or height wins over what the content measured. A percentage size is left alone — it resolves against a container this query knows nothing about.
 
-The proper architectural fix is a width-hint parameter on `Measure_Content` (so the parent's flex pass can pass the slot width it's about to assign), eliminating the convergence requirement. Tracked as a roadmap item; the warmup pattern is the interim workaround.
+**Containers** ask the query after they know the width:
+
+- **Flex** computes intrinsic bases, assigns main sizes, then re-measures each child at its assigned width and re-runs if any answer changed. It updates base sizes only; the automatic minimum stays the flex pass's business, since an item that scrolls its own content has none.
+- **Grid** asks at the width the cell will actually render at — the child's own declared width when it has one, the track width otherwise (`Grid_Child_Width`), so a `width: 100px` label in a 300px cell is not measured at 300.
+
+**Implemented for**: `Label` (wrapping, icon column, padding/border), `Box`, `Stack`. Two deliberate fallbacks return the unconstrained preference instead:
+
+- `Box` with a **multi-child row** — knowing each child's width there means running the distribution, and a second implementation of flex could disagree with the real one. Columns and single-child rows are answered exactly.
+- `Html_View` — its layout writes into the widget (cached document size, block rectangles, scroll content height), so it cannot answer without mutating state. Refactoring it to measure purely is a follow-up.
 
 ## Settings
 

@@ -235,6 +235,53 @@ procedure Window_Resize_Safety_Test is
             "Unexpected exception: " & Exception_Name (E));
    end Test_Window_Min_Width_Updates_On_Live_Font_Reload;
 
+   --  An explicit minimum on the root is a floor the window must honour
+   --  on both axes, even when the content would happily be smaller:
+   --  measuring alone would report less on either.
+   procedure Test_Root_Min_Width_Is_Honoured is
+      Ready : Boolean;
+      W     : Adi.Window.Window_Handle;
+      Root  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         Min_Width      => Set (Size (Px (640.0))),
+         Min_Height     => Set (Size (Px (500.0))),
+         others         => <>);
+      Min_W, Min_H : aliased int := 0;
+      Got_Min : Adi.SDL.C_bool;
+   begin
+      Put_Line ("Test: explicit root minimums reach the window");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+
+      W := Adi.Window.Create_Window_Handle ("Min Width Probe", (900.0, 420.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, True);
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
+
+      Got_Min := Adi.SDL.Video.SDL_GetWindowMinimumSize
+        (Adi.Window.Get_SDL_Window (W), Min_W'Access, Min_H'Access);
+      Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed");
+      Put_Line ("    window minimum =" & Min_W'Image & " x" & Min_H'Image);
+      Assert (Min_W >= 640,
+              "an explicit root min-width is the window's minimum, even "
+              & "though its content would fit in less");
+      Assert (Min_H >= 500,
+              "an explicit root min-height is the window's minimum too");
+
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Root_Min_Width_Is_Honoured;
+
    procedure Test_Wrap_Label_Min_Width_Does_Not_Ratchet_With_Window_Width is
       Ready : Boolean := False;
       W : Adi.Window.Window_Handle;
@@ -1529,6 +1576,7 @@ begin
    Test_Zero_Height_Render_Does_Not_Raise;
    Test_Text_Editor_Page_Navigation_Zero_Viewport_Does_Not_Raise;
    Test_Window_Min_Width_Updates_On_Live_Font_Reload;
+   Test_Root_Min_Width_Is_Honoured;
    Test_Wrap_Label_Min_Width_Does_Not_Ratchet_With_Window_Width;
    Test_Hidden_Page_Activation_Does_Not_Lock_Window_Min_Width;
    Test_Widening_Unwraps_Text_And_Lowers_Min_Height;

@@ -130,24 +130,28 @@
 
 .item-a {
   height: 56px;
+  flex-shrink: 0;
   border-radius: 6px;
   background-color: rgb(239, 68, 68);
 }
 
 .item-b {
   height: 56px;
+  flex-shrink: 0;
   border-radius: 6px;
   background-color: rgb(245, 158, 11);
 }
 
 .item-c {
   height: 56px;
+  flex-shrink: 0;
   border-radius: 6px;
   background-color: rgb(59, 130, 246);
 }
 
 .item-d {
   height: 56px;
+  flex-shrink: 0;
   border-radius: 6px;
   background-color: rgb(16, 185, 129);
 }

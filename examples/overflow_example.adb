@@ -28,7 +28,12 @@ begin
 
    declare
       W : constant Window_Handle :=
-        Create_Window_Handle ("Overflow Example", (980.0, 560.0));
+        --  Big enough that the three rows fit side by side and stacked:
+        --  the panels are as wide as the fixed-width line they hold, so
+        --  a narrower window pushes the second column out of view. The
+        --  root deliberately does not scroll -- a scroll container
+        --  clips, which is exactly what the visible panels must not do.
+        Create_Window_Handle ("Overflow Example", (1460.0, 900.0));
 
       Root       : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Title      : constant Adi.Widget.Label.Label_Handle :=
@@ -185,6 +190,12 @@ begin
       Add_Child (+Root, +Panels_Row_1);
       Add_Child (+Root, +Panels_Row_2);
       Add_Child (+Root, +Panels_Row_3);
+
+      --  Overflow is the whole point here, so the window must be free to
+      --  be smaller than its content wants. Deriving the OS minimum from
+      --  the layout would pin it open at the size where nothing overflows,
+      --  so switch the policy off before the first layout runs.
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
 
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));
       A.Add_Window (W);

@@ -190,6 +190,7 @@ package Overflow_Example_Styles is
    function Item_A_Class_Base_Style return Style_Rules is
      (
       Height => Set (Size (Px (56.0))),
+      Flex_Shrink => Set (0.0),
       Background_Color => Set_Bg (RGB (239, 68, 68)),
       Border_Radius => Set (Radius (Px (6.0))),
       others => <>);
@@ -198,6 +199,7 @@ package Overflow_Example_Styles is
    function Item_B_Class_Base_Style return Style_Rules is
      (
       Height => Set (Size (Px (56.0))),
+      Flex_Shrink => Set (0.0),
       Background_Color => Set_Bg (RGB (245, 158, 11)),
       Border_Radius => Set (Radius (Px (6.0))),
       others => <>);
@@ -206,6 +208,7 @@ package Overflow_Example_Styles is
    function Item_C_Class_Base_Style return Style_Rules is
      (
       Height => Set (Size (Px (56.0))),
+      Flex_Shrink => Set (0.0),
       Background_Color => Set_Bg (RGB (59, 130, 246)),
       Border_Radius => Set (Radius (Px (6.0))),
       others => <>);
@@ -214,6 +217,7 @@ package Overflow_Example_Styles is
    function Item_D_Class_Base_Style return Style_Rules is
      (
       Height => Set (Size (Px (56.0))),
+      Flex_Shrink => Set (0.0),
       Background_Color => Set_Bg (RGB (16, 185, 129)),
       Border_Radius => Set (Radius (Px (6.0))),
       others => <>);

@@ -9,6 +9,7 @@ project Tests is
       "css_source_test",
       "text_buffer_test",
       "text_layout_test",
+      "text_overflow_test",
       "html_view_test",
       "svg_test",
       "svg_perf_test",

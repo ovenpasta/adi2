@@ -205,7 +205,7 @@
 - Migration direction is handle-first public APIs, with `Widget_Access` planned to move toward private/internal usage once compatibility bridges are no longer needed.
 - Part system: `Main_Part`, `Indicator_Part`, `Label_Part`, `Text_Part`, `Icon_Part`, `Cursor_Part`, `Selected_Part`, `Scroll_Part`, `Knob_Part`
 - Item system: `Panel_Item`, `Text_Item`, `Image_Item`
-- Flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`
+- Flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`. A separate private dispatching primitive, `Clips_Own_Content`, marks widgets that scroll their own content without being scroll containers — text inputs, and value inputs by inheritance. It clips only the parts the widget scrolls (`Text_Part`, `Cursor_Part`, `Selected_Part`) on both axes, so a floating `Label_Part` sitting above the border still draws. It is the equivalent of a browser's user-agent `overflow: hidden` on an input, and being private a stylesheet cannot switch it off.
 - Visibility model:
   - Hard hide (no layout/render/input): `Visible=False` or main-part `display:none`
   - Soft hide (layout kept, paint/input suppressed): `visibility:hidden|collapse`

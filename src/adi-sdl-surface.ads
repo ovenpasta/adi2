@@ -176,4 +176,13 @@ package Adi.SDL.Surface is
         Convention => C,
         External_Name => "SDL_BlitSurface";
 
+   --  One pixel as RGBA, whatever the surface's own format is.
+   function SDL_ReadSurfacePixel
+     (Surface    : SDL_Surface_Ptr;
+      X, Y       : int;
+      R, G, B, A : access Uint8) return C_bool
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_ReadSurfacePixel";
+
 end Adi.SDL.Surface;

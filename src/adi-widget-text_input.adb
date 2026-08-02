@@ -405,6 +405,14 @@ package body Adi.Widget.Text_Input is
       Apply_Context_Menu_Styles (W);
    end Ensure_Context_Menu;
 
+   overriding function Clips_Own_Content
+     (W : Text_Input_Widget) return Boolean
+   is
+      pragma Unreferenced (W);
+   begin
+      return True;
+   end Clips_Own_Content;
+
    function Create (Text : String := "";
                     Label : String := "") return Text_Input_Widget_Access is
       Result : constant Text_Input_Widget_Access := new Text_Input_Widget;

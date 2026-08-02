@@ -703,6 +703,15 @@ private
    package Widget_List is new
      Ada.Containers.Doubly_Linked_Lists (Widget_Access);
 
+   --  True for widgets that scroll their own content without being
+   --  scroll containers — a text input slides its line sideways as you
+   --  type, so what moved out of view must not be drawn beside the
+   --  field. It is the equivalent of a browser's user-agent
+   --  `overflow: hidden` on an input: dispatching, so a derived widget
+   --  such as a value input inherits it, and private, so a stylesheet
+   --  cannot switch it off. It clips only the parts the widget scrolls.
+   function Clips_Own_Content (W : Widget) return Boolean;
+
    --  Kept private so no consumer can drop another subsystem's
    --  subscription with Disconnect_All.
    Scroll_Changed : Scroll_Signals.Signal;

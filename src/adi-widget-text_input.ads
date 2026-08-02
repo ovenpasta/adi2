@@ -174,6 +174,12 @@ private
         To_Unbounded_String (Default_Password_Char);
    end record;
 
+   --  The field scrolls its line sideways once the text outgrows it,
+   --  so what scrolled out must not be drawn beside the field. Value
+   --  inputs derive from this type and inherit it.
+   overriding function Clips_Own_Content
+     (W : Text_Input_Widget) return Boolean;
+
    type Text_Input_Handle is record
       Id : Widget_Stores.Object_Id := Widget_Stores.Null_Id;
    end record;

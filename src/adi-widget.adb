@@ -5340,14 +5340,6 @@ package body Adi.Widget is
         Draw_Underline or else Draw_Overline or else Draw_Strike;
       Engine     : TTF_TextEngine_Access;
       Renderer   : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
-      Prev_Clip  : aliased Adi.SDL.SDL_Rect := (0, 0, 0, 0);
-      Clip_Rect  : aliased Adi.SDL.SDL_Rect;
-      Clip_Was_Enabled : Boolean := False;
-      Clip_Saved       : Boolean := False;
-      Clip_Replaced    : Boolean := False;
-      Use_Clip   : constant Boolean :=
-        Renderer /= null and then Has_Visible_Area (Geom);
-      X1, Y1, X2, Y2 : Integer;
    begin
       if Style.Display = Display_None
         or else Normalize_Visibility (Style.Visibility) = Visibility_Hidden
@@ -5472,38 +5464,10 @@ package body Adi.Widget is
          Success := TTF_SetTextWrapWidth (Text_Obj, 0);
       end if;
 
-      --  Clip text to item bounds to prevent overflow bleed.
-      if Use_Clip then
-         Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved,
-            Text_Item);
-         Clip_Replaced := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
-      end if;
-
-      if Clip_Replaced then
-         X1 := Integer (Float'Floor (Float (Geom.X)));
-         Y1 := Integer (Float'Floor (Float (Geom.Y)));
-         X2 := X1 + Integer (Float'Ceiling (Float (Geom.Width)));
-         Y2 := Y1 + Integer (Float'Ceiling (Float (Geom.Height)));
-
-         if Clip_Saved then
-            X1 := Integer'Max (X1, Integer (Prev_Clip.x));
-            Y1 := Integer'Max (Y1, Integer (Prev_Clip.y));
-            X2 := Integer'Min (X2, Integer (Prev_Clip.x + Prev_Clip.w));
-            Y2 := Integer'Min (Y2, Integer (Prev_Clip.y + Prev_Clip.h));
-         end if;
-
-         if X2 <= X1 or else Y2 <= Y1 then
-            Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved, Text_Item);
-            return;
-         end if;
-
-         Clip_Rect :=
-           (x => int (X1),
-            y => int (Y1),
-            w => int (X2 - X1),
-            h => int (Y2 - Y1));
-         Set_Clip (Renderer, Clip_Rect'Access, Text_Item);
-      end if;
+      --  No clip to the item's own box here. Text that does not fit is
+      --  drawn outside it, which is what overflow: visible means; the
+      --  widget's own overflow and its ancestors' already clip when they
+      --  ask for it.
 
       --  Draw the text (snap to integer pixels to avoid sub-pixel blurring)
       Text_Draw_X := Pixel_Type (Float'Floor (Float (Geom.X + It.Text_Offset_X)));
@@ -5611,9 +5575,6 @@ package body Adi.Widget is
          end if;
       end if;
 
-      if Clip_Replaced then
-         Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved, Text_Item);
-      end if;
    end Render_Text_Item;
 
    --  Render a texture clipped to a rounded rectangle via UV-mapped
@@ -6179,6 +6140,12 @@ package body Adi.Widget is
    procedure Build_Items_W is new Wrap_Prim_Proc (Build_Items);
    procedure Build_Items (H : Widget_Handle) renames Build_Items_W;
 
+   function Clips_Own_Content (W : Widget) return Boolean is
+      pragma Unreferenced (W);
+   begin
+      return False;
+   end Clips_Own_Content;
+
    procedure Render_Items (W : in out Widget'Class; Ctx : in out Render_Context) is
       Renderer : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
@@ -6186,13 +6153,31 @@ package body Adi.Widget is
       Clip_X : constant Boolean := Overflow_Clips (Main_Style.Overflow_X);
       Clip_Y : constant Boolean := Overflow_Clips (Main_Style.Overflow_Y);
       Clip_By_Scrollable : constant Boolean := Has_Flag (W, Scrollable);
-      Prev_Clip : aliased Adi.SDL.SDL_Rect := (0, 0, 0, 0);
-      Clip_Rect : aliased Adi.SDL.SDL_Rect;
+      --  A widget that scrolls its own content clips it on both axes,
+      --  but only the parts it actually scrolls: a floating label sits
+      --  outside the box on purpose. CSS overflow keeps its axes
+      --  independent, as the sizing code already treats them.
+      Clips_Own : constant Boolean := Clips_Own_Content (W);
+      Clip_Whole_Widget : constant Boolean :=
+        Clip_X or else Clip_Y or else Clip_By_Scrollable;
+
+      --  Two clips, never merged into one. The widget clip is what CSS
+      --  overflow asks for and applies to every item; the own-content
+      --  clip adds both axes for a widget that scrolls its own line and
+      --  applies only to the parts that move with it, so a part placed
+      --  outside the box on purpose -- a floating label -- keeps the
+      --  widget clip or none at all.
+      type Item_Clip is (No_Clip, Widget_Clip, Own_Clip);
+
+      Prev_Clip   : aliased Adi.SDL.SDL_Rect := (0, 0, 0, 0);
+      Widget_Rect : aliased Adi.SDL.SDL_Rect;
+      Own_Rect    : aliased Adi.SDL.SDL_Rect;
       Clip_Was_Enabled : Boolean := False;
       Clip_Saved       : Boolean := False;
-      Use_Clip  : Boolean := False;
-      Clip_Valid : Boolean := False;
-      Clip_Active : Boolean := False;
+      Use_Clip     : Boolean := False;
+      Widget_Valid : Boolean := False;
+      Own_Valid    : Boolean := False;
+      Active       : Item_Clip := No_Clip;
       Unused : Adi.SDL.C_bool;
 
       procedure Restore_Previous_Clip is
@@ -6202,33 +6187,59 @@ package body Adi.Widget is
          end if;
 
          Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved, Item_List);
-         Clip_Active := False;
+         Active := No_Clip;
       end Restore_Previous_Clip;
 
-      procedure Set_Item_Clip (Need_Clip : Boolean) is
+      --  Each rectangle is already intersected with the caller's clip,
+      --  so switching between them is a plain set, not a narrowing.
+      procedure Apply_Item_Clip (Want : Item_Clip) is
       begin
-         if not Use_Clip or else Renderer = null then
+         if not Use_Clip or else Renderer = null or else Want = Active then
             return;
          end if;
 
-         if Need_Clip and then not Clip_Active then
-            if Clip_Valid then
-               Clip_Active :=
-                 Set_Clip (Renderer, Clip_Rect'Access, Item_List);
-            end if;
-         elsif not Need_Clip and then Clip_Active then
-            Restore_Previous_Clip;
-         end if;
-      end Set_Item_Clip;
+         case Want is
+            when No_Clip =>
+               Restore_Previous_Clip;
+            when Widget_Clip =>
+               if Widget_Valid
+                 and then Set_Clip (Renderer, Widget_Rect'Access, Item_List)
+               then
+                  Active := Widget_Clip;
+               end if;
+            when Own_Clip =>
+               if Own_Valid
+                 and then Set_Clip (Renderer, Own_Rect'Access, Item_List)
+               then
+                  Active := Own_Clip;
+               end if;
+         end case;
+      end Apply_Item_Clip;
+
+      function Clip_For (It : Item) return Item_Clip is
+        (if It.Kind = Panel_Item and then It.Part = Main_Part then No_Clip
+         elsif Clips_Own
+           and then It.Part in Text_Part | Cursor_Part | Selected_Part
+         then Own_Clip
+         elsif Clip_Whole_Widget then Widget_Clip
+         else No_Clip);
+
+      function Clip_Is_Empty (Want : Item_Clip) return Boolean is
+        (case Want is
+            when No_Clip     => False,
+            when Widget_Clip => not Widget_Valid,
+            when Own_Clip    => not Own_Valid);
    begin
-      if Renderer /= null and then (Clip_X or else Clip_Y or else Clip_By_Scrollable) then
+      if Renderer /= null
+        and then (Clip_Whole_Widget or else Clips_Own)
+      then
          if Has_Visible_Area (Content) then
             Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved,
                Item_List);
             --  An unsaveable clip stays untouched; items then render
             --  within the caller's clip instead of a narrower one.
             Use_Clip := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
-            Clip_Valid := Use_Clip
+            Widget_Valid := Use_Clip and then Clip_Whole_Widget
               and then Build_Content_Clip_Rect (
                 Renderer  => Renderer,
                 Content   => Content,
@@ -6236,7 +6247,16 @@ package body Adi.Widget is
                 Clip_Y    => (Clip_Y or else Clip_By_Scrollable),
                 Prev_Saved => Clip_Saved,
                 Prev_Clip => Prev_Clip,
-                Out_Clip  => Clip_Rect);
+                Out_Clip  => Widget_Rect);
+            Own_Valid := Use_Clip and then Clips_Own
+              and then Build_Content_Clip_Rect (
+                Renderer  => Renderer,
+                Content   => Content,
+                Clip_X    => True,
+                Clip_Y    => True,
+                Prev_Saved => Clip_Saved,
+                Prev_Clip => Prev_Clip,
+                Out_Clip  => Own_Rect);
          end if;
       end if;
 
@@ -6244,20 +6264,20 @@ package body Adi.Widget is
          declare
             Current : Item renames W.Items.Reference (I).Element.all;
             Style   : Resolved_Style renames Current.Computed_Style;
-            Need_Item_Clip : constant Boolean :=
-              Use_Clip and then not
-                (Current.Kind = Panel_Item and then Current.Part = Main_Part);
+            Wants : constant Item_Clip :=
+              (if Use_Clip then Clip_For (Current) else No_Clip);
             Scroll_Shift : constant Pixel_Type := Pixel_Type (Get_Scroll_Y (Ctx));
          begin
             --  Temporarily apply scroll offset for rendering
             Current.Geometry.Y := Current.Geometry.Y + Scroll_Shift;
 
-            if Need_Item_Clip and then not Clip_Valid then
+            if Clip_Is_Empty (Wants) then
+               --  Nothing of this item could be seen anyway.
                null;
             elsif not Item_Is_Rendered (Style) then
                null;
             else
-               Set_Item_Clip (Need_Item_Clip);
+               Apply_Item_Clip (Wants);
 
                case Current.Kind is
                   when Panel_Item =>
@@ -6293,7 +6313,7 @@ package body Adi.Widget is
          end;
       end loop;
 
-      if Clip_Active then
+      if Active /= No_Clip then
          Restore_Previous_Clip;
       end if;
    end Render_Items;
@@ -6373,7 +6393,11 @@ package body Adi.Widget is
               Get_Resolved_Part_Style (W, Main_Part);
             Clip_X : constant Boolean := Overflow_Clips (Main_Style.Overflow_X);
             Clip_Y : constant Boolean := Overflow_Clips (Main_Style.Overflow_Y);
-            Clip_By_Scrollable : constant Boolean := Has_Flag (W, Scrollable);
+            --  Not Clips_Own_Content: that one clips the widget's own
+            --  scrolled items, not its subtree, so a part placed
+            --  outside the box on purpose still draws.
+            Clip_By_Scrollable : constant Boolean :=
+              Has_Flag (W, Scrollable);
             Content : constant Rectangle :=
               Padding_Box (Get_Geometry (W), Main_Style);
          begin
@@ -6395,7 +6419,8 @@ package body Adi.Widget is
                         Renderer  => Renderer,
                         Content   => Content,
                         Clip_X    => Clip_X,
-                        Clip_Y    => (Clip_Y or else Clip_By_Scrollable),
+                        Clip_Y    =>
+                          (Clip_Y or else Clip_By_Scrollable),
                         Prev_Saved => Clip_Saved,
                         Prev_Clip => Prev_Clip,
                         Out_Clip  => Clip_Rect)

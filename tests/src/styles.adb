@@ -159,8 +159,18 @@ procedure Main is
      .On_Hover_Not_Disabled ((Background_Color => Set_Bg (RGB (0, 120, 255)), others => <>))
      .Build;
 
+   --  The card this suite exercises.
+   Card_Base : constant Style_Rules :=
+     (Background_Color => Set_Bg (C (White)),
+      Border_Width     => Set (Border_Width (Dip (1))),
+      Border_Color     => Set (Border_Color (C (Light_Gray))),
+      Border_Style     => Set (Border_Style (Solid)),
+      Border_Radius    => Set (Radius (Dip (8))),
+      Padding          => Set (CSS_Box (Dip (16))),
+      others           => <>);
+
    Card_Widget : constant Widget_Style :=
-     From (Card_Style)
+     From (Card_Base)
      .On_Hover ((Border_Color => Set (Border_Color (C (Blue))), others => <>))
      .On_Selected ((Background_Color => Set_Bg (RGB (240, 248, 255)),
                     Border_Color => Set (Border_Color (C (Blue))),

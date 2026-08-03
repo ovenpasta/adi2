@@ -284,13 +284,14 @@ The renderer implements CSS-style vertical margin collapsing:
 - Re-layout only when width or style-affecting state changes.
 - Image cache is keyed by `src` within the widget instance to avoid repeated callback loads.
 - Inline style declarations are cached to reduce repeated parse cost.
-- `Measure_Content` reports the real document height the document needs at its current width (cached in `Cached_Content_W` / `Cached_Content_H`, populated at the end of every `Layout_And_Build` pass). On the very first measure — before any layout has run — it returns a small `(320, 120)` stub so the parent flex has something to assign; subsequent measures use the cached real values. `Set_HTML` invalidates both fields.
+- `Measure_Content` reports the real document height the document needs at its current width (cached in `Cached_Content_W` / `Cached_Content_H`, populated at the end of every `Layout_And_Build` pass). On the very first measure — before any layout has run — it returns a small `(320, 120)` stub so the parent flex has something to assign; subsequent measures use the cached real values. `Set_HTML` invalidates both fields, and `Clear` resets them along with the scroll offset, so a cleared view measures as one that never held a document.
 
 ## Scroll Behavior and CSS Overflow
-- `Html_View` does **not** set the legacy `Scrollable` widget flag in `Create`. Scrollability and clipping are entirely driven by CSS `overflow-x` / `overflow-y`.
-- The widget's `Default_Internal_Part_Styles` set `overflow-x: auto` and `overflow-y: auto`, so a freshly-created `Html_View` scrolls by default.
-- **Caveat — class CSS replaces defaults.** `Set_Part_Styles` (called by `Adi.CSS_Source.Apply_To_Widget` when a class binding is applied) replaces the part-style array rather than merging with widget intrinsics. A user-supplied class that doesn't restate `overflow-x` / `overflow-y` therefore loses the widget defaults: the resolved overflow falls back to the spec default (`visible`), and clipping + scrolling stop working. Authors binding `Html_View` widgets via class CSS must restate `overflow-y: auto` (or whatever they want) explicitly in the class. A merging cascade for widget intrinsic defaults is on the roadmap.
-- Opting out of scrolling: set `overflow-y: visible` (and usually `overflow-x: visible`) on the widget's class. `Get_Preferred_Size` then routes through `Measure_Content` and the widget sizes itself to its document height — useful when embedding `Html_View` for short, static documents (e.g. inline code blocks) that should grow to fit instead of clipping and scrolling.
+- `Html_View` installs no styles at construction and does not set the `Scrollable` flag. Scrolling and clipping come entirely from CSS `overflow-x` / `overflow-y`, whose initial value is `visible`.
+- Scrolling is opt-in: `overflow-y: auto` (or `scroll`) makes the widget a viewport that clips its document and scrolls it. `examples/css/html_view_example.css` shows the usual form.
+- Left at `visible`, `Get_Preferred_Size` routes through `Measure_Content` and the widget sizes itself to its document height — useful for short, static documents such as inline code blocks that should grow to fit.
+- Horizontal scrolling is not implemented: there is no horizontal scroll offset or scrollbar, so `overflow-x: auto` clips without any way to reach the clipped content.
+- Appearance — background, border, radius, padding, text and link colours, scrollbar track and knob — is entirely the stylesheet's. A fresh view draws none of it.
 
 ## Testing Coverage (`tests/src/html_view_test.adb`)
 - Parsing and recovery:

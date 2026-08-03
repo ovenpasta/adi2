@@ -9,6 +9,7 @@ with Adi.CSS_Styles;
 with Adi.Core;
 with Adi.Image;
 with Adi.Layout_Util;
+with Adi.Widget_Styles;
 with Adi.Widget;
 with Adi.Widget.Html_View;
 with Test_Support; use Test_Support;
@@ -651,6 +652,93 @@ procedure Html_View_Test is
       New_Line;
    end Test_Mixed_Inline_Baseline;
 
+   --  A fresh view brings nothing of its own -- no background, border,
+   --  padding, and no scrolling either. Appearance and layout behaviour
+   --  both belong to the stylesheet that uses it.
+   procedure Test_Fresh_View_Is_Neutral is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      use Adi.CSS_Styles;
+      R : constant Resolved_Style :=
+        Adi.Widget.Get_Resolved_Part_Style (+W, Adi.Widget.Main_Part);
+   begin
+      Put_Line ("Test: a fresh Html_View brings no appearance of its own");
+
+      --  Including its layout behaviour: scrolling is opt-in, declared
+      --  by whoever wants a viewport, not assumed by the widget.
+      Assert (R.Overflow_Y = Overflow_Visible,
+              "no scrolling of its own until asked for");
+      Assert (R.Background_Color = Default_Background,
+              "no background of its own");
+      Assert (R.Border_Width = Default_Border_Width,
+              "no border of its own");
+      Assert (R.Padding = CSS_Box (Zero_Length),
+              "no padding of its own");
+      New_Line;
+   end Test_Fresh_View_Is_Neutral;
+
+   --  Clearing the document clears the document. The styling an
+   --  application applied is not the widget's to throw away.
+   procedure Test_Clear_Keeps_Applied_Styles is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      use Adi.CSS_Styles;
+      use Adi.Widget_Styles;
+      Rules : constant Style_Rules :=
+        (Padding => Set (CSS_Box (Px (7.0))), others => <>);
+   begin
+      Put_Line ("Test: Clear keeps the styles the application applied");
+
+      Adi.Widget.Set_Part_Styles
+        (+W,
+         [Adi.Widget.Main_Part =>
+            (Style => From (Rules).Build, Enabled => True),
+          others => <>]);
+      --  A document big enough to scroll, laid out and scrolled, so the
+      --  measurements and offset Clear has to reset are non-zero.
+      Adi.Widget.Html_View.Set_HTML
+        (W,
+         "<p>one</p><p>two</p><p>three</p><p>four</p><p>five</p>" &
+         "<p>six</p><p>seven</p><p>eight</p><p>nine</p><p>ten</p>");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 200.0, Height => 40.0));
+      Adi.Widget.Build_Items (+W);
+      Adi.Widget.Set_Scroll_Offset_Y (+W, 20.0);
+
+      Assert (Adi.Widget.Get_Scroll_Offset_Y (+W) > 0.0,
+              "the document scrolled before clearing");
+      Assert (Adi.Widget.Measure_Content (+W).Height > 40.0,
+              "and measures taller than the viewport");
+
+      Adi.Widget.Html_View.Clear (W);
+
+      Assert
+        (Adi.Widget.Get_Resolved_Part_Style
+           (+W, Adi.Widget.Main_Part).Padding
+         = Set (CSS_Box (Px (7.0))).Value,
+         "the applied padding survives Clear");
+      Assert (Adi.Widget.Html_View.Get_HTML (W) = "",
+              "the document is gone");
+      Assert (Adi.Widget.Get_Scroll_Offset_Y (+W) = 0.0,
+              "the scroll offset goes with it");
+      --  Back to what a view with no document reports, rather than the
+      --  size of the one it used to hold.
+      declare
+         Fresh : constant Adi.Widget.Html_View.Html_View_Handle :=
+           Adi.Widget.Html_View.Create_Handle;
+      begin
+         Adi.Widget.Set_Part_Styles
+           (+Fresh,
+            [Adi.Widget.Main_Part =>
+               (Style => From (Rules).Build, Enabled => True),
+             others => <>]);
+         Assert (abs (Adi.Widget.Measure_Content (+W).Height
+                      - Adi.Widget.Measure_Content (+Fresh).Height) < 0.5,
+                 "and it measures like a view that never had one");
+      end;
+      New_Line;
+   end Test_Clear_Keeps_Applied_Styles;
+
    procedure Test_Clipping_Aware_Link_Hit_Test is
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
         Adi.Widget.Html_View.Create_Handle;
@@ -672,7 +760,35 @@ procedure Html_View_Test is
       Adi.Widget.Html_View.Set_HTML
         (W,
          "<p><a href='app://clip'>clip target link text for hit testing</a></p>" &
-         "<p>second line</p>");
+         "<p>second line</p><p>third line</p><p>fourth line</p>" &
+         "<p>fifth line</p><p>sixth line</p>");
+
+      --  The coordinates below assume this padding and text size, so the
+      --  test states them rather than leaning on widget defaults. The
+      --  overflow is what makes the scrolled-out half unclickable.
+      declare
+         use Adi.CSS_Styles;
+         use Adi.Widget_Styles;
+         Main_Rules : constant Style_Rules :=
+           (Padding    => Set (CSS_Box (Px (14.0))),
+            Overflow_Y => Set_Overflow_Y (Overflow_Auto),
+            others     => <>);
+         Text_Rules : constant Style_Rules :=
+           (Font_Size => Set_Font (Px (15.0)), others => <>);
+      begin
+         Adi.Widget.Set_Part_Styles
+           (+W,
+            [Adi.Widget.Main_Part =>
+               (Style => From (Main_Rules).Build, Enabled => True),
+             Adi.Widget.Text_Part =>
+               (Style => From (Text_Rules).Build, Enabled => True),
+             --  Links are drawn from Indicator_Part; same size as the
+             --  body text, or the line box changes height and the
+             --  coordinates below stop meaning what they say.
+             Adi.Widget.Indicator_Part =>
+               (Style => From (Text_Rules).Build, Enabled => True),
+             others => <>]);
+      end;
 
       Adi.Widget.Set_Geometry
         (+W, (X => 0.0, Y => 0.0, Width => 360.0, Height => 52.0));
@@ -684,7 +800,12 @@ procedure Html_View_Test is
         (+W, X => 26.0, Y => 26.0, Button => Adi.Core.Left_Button);
       Assert (Clicks = 1, "visible clipped link area remains clickable");
 
-      Adi.Widget.Set_Scroll_Offset_Y (+W, 28.0);
+      --  Scroll the link fully out of the viewport. The document has to
+      --  be tall enough for that: a short one clamps the offset and the
+      --  link stays half visible, which proves nothing.
+      Assert (Adi.Widget.Get_Scroll_Max_Offset_Y (+W) >= 40.0,
+              "the document is tall enough to scroll the link away");
+      Adi.Widget.Set_Scroll_Offset_Y (+W, 40.0);
       Adi.Widget.Build_Items (+W);
 
       Adi.Widget.On_Mouse_Down
@@ -1857,6 +1978,8 @@ begin
    Test_Inline_SVG_Element;
    Test_Image_Not_Stretched_To_Line_Height;
    Test_Mixed_Inline_Baseline;
+   Test_Fresh_View_Is_Neutral;
+   Test_Clear_Keeps_Applied_Styles;
    Test_Clipping_Aware_Link_Hit_Test;
    Test_Link_Does_Not_Consume_Leading_Space;
    Test_Scroll_Content_Height_Stability;

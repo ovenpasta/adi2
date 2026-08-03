@@ -9,7 +9,6 @@ with Ada.Streams.Stream_IO;
 with Ada.Strings;
 with Ada.Strings.Fixed;
 with Adi.CSS_Styles;        use Adi.CSS_Styles;
-with Adi.Widget_Styles;     use Adi.Widget_Styles;
 with Adi.Log;
 with Adi.Font;
 with Adi.Image;             use Adi.Image;
@@ -498,52 +497,6 @@ package body Adi.Widget.Html_View is
       Append_Child (Self, Parent_Index, Idx);
    end Append_Break_Node;
 
-   function Default_Internal_Part_Styles return Part_Style_Array is
-      Main_Base : constant Style_Rules := (
-        Flex_Grow => Set (1.0),
-        Min_Height => Set (Size (Px (0.0))),
-        Overflow_X => Set_Overflow_X (Overflow_Auto),
-        Overflow_Y => Set_Overflow_Y (Overflow_Auto),
-        Background_Color => Set_Bg (RGB (255, 252, 247)),
-        Border_Width => Set (Border_Width (Px (1.0))),
-        Border_Style => Set (Border_Style (Solid)),
-        Border_Color => Set (Border_Color (RGB (212, 199, 183))),
-        Border_Radius => Set (Radius (Px (10.0))),
-        Padding => Set (CSS_Box (Px (14.0))),
-        others => <>);
-
-      Label_Base : constant Style_Rules := (
-        Color => Set (RGB (51, 46, 39)),
-        Font_Size => Set_Font (Px (15.0)),
-        others => <>);
-
-      Link_Base : constant Style_Rules := (
-        Color => Set (RGB (24, 96, 186)),
-        Text_Decoration => Set (Decoration_Underline),
-        Font_Size => Set_Font (Px (15.0)),
-        others => <>);
-
-      Scroll_Base : constant Style_Rules := (
-        Width => Set (Size (Px (9.0))),
-        Background_Color => Set_Bg (RGBA (127, 103, 75, 0.55)),
-        Border_Radius => Set (Radius (Px (5.0))),
-        Padding => Set (CSS_Box (Px (2.0))),
-        others => <>);
-
-      Knob_Base : constant Style_Rules := (
-        Min_Height => Set (Size (Px (26.0))),
-        Background_Color => Set_Bg (RGBA (112, 92, 69, 0.70)),
-        Border_Radius => Set (Radius (Px (4.0))),
-        others => <>);
-   begin
-      return [
-        Main_Part      => (Style => From (Main_Base).Build, Enabled => True),
-        Text_Part     => (Style => From (Label_Base).Build, Enabled => True),
-        Indicator_Part => (Style => From (Link_Base).Build, Enabled => True),
-        Scroll_Part    => (Style => From (Scroll_Base).Build, Enabled => True),
-        Knob_Part      => (Style => From (Knob_Base).Build, Enabled => True),
-        others         => <>];
-   end Default_Internal_Part_Styles;
 
    function Default_Content_Style return Style_Rules is
    begin
@@ -3034,10 +2987,10 @@ package body Adi.Widget.Html_View is
    begin
       Set_Flag (Result.all, Visible, True);
       Set_Flag (Result.all, Clickable, True);
-      --  Scrollability comes from CSS overflow-y (Default_Internal_Part_Styles
-      --  sets overflow-y: auto).  Authors can opt out with overflow-y: visible
-      --  to size the widget to its content instead of clipping + scrolling.
-      Set_Part_Styles (Result.all, Default_Internal_Part_Styles);
+      --  No styles of its own: a fresh view brings neither appearance
+      --  nor layout behaviour. Scrolling is opt-in, like any other
+      --  widget -- declare overflow-y: auto to make it a viewport, or
+      --  leave it visible to size the widget to its document.
       Register_Widget (Widget_Access (Result));
       return Result;
    end Create;
@@ -3242,7 +3195,15 @@ package body Adi.Widget.Html_View is
       Self.Image_Cache.Clear;
       Self.Inline_Style_Cache.Clear;
       Load_Combined_CSS (Self, "");
-      Set_Part_Styles (Self, Default_Internal_Part_Styles);
+
+      --  Everything derived from the document goes with it: the cached
+      --  measurements would otherwise report the old size until another
+      --  layout ran, and the offset would scroll an empty view.
+      Self.Cached_Content_W := 0.0;
+      Self.Cached_Content_H := 0.0;
+      Set_Scroll_Offset_Y (Self, 0.0);
+
+      --  Styling belongs to whoever applied it, and stays.
       Mark_Dirty (Self);
    end Clear;
 

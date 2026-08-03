@@ -303,5 +303,56 @@ begin
 
    New_Line;
 
+   ----------------------------------------------------------------------
+   --  Squeezed past the point where the text can wrap any further, a
+   --  label reports the height it will actually have. Words do not
+   --  break, so below the widest word the line count stops falling --
+   --  and a container that believed otherwise grew to fit lines that
+   --  never get drawn.
+   ----------------------------------------------------------------------
+
+   Put_Line ("--- squeezed narrower than its widest word ---");
+   declare
+      Bar : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Lbl : constant Widget_Handle :=
+        +Adi.Widget.Label.Create_Handle ("Material Demo (Dark)");
+      Bar_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Row),
+         Align_Items    => Set (Center),
+         others         => <>);
+   begin
+      Set_Part_Style (Bar, Main_Part, From (Bar_Rules).Build);
+      Set_Part_Styles (Lbl, Wrap_Label_With_Icon_Parts);
+      Adi.Widget.Label.Set_Icon
+        (Adi.Widget.Label.Try_As_Label (Lbl), Adi.Image.Create_Empty);
+      Add_Child (Bar, Lbl);
+
+      Set_Geometry (Bar, (0.0, 0.0, 100.0, 80.0));
+      Layout (Bar);
+
+      declare
+         Squeezed : constant Pixel_Type := Measure_At_Width (Lbl, 100.0).Height;
+         Real_H   : constant Pixel_Type := Get_Geometry (Lbl).Height;
+         At_Own_W : constant Pixel_Type :=
+           Measure_At_Width (Lbl, Get_Geometry (Lbl).Width).Height;
+      begin
+         Put_Line ("  label  : " & Pixel_Type'Image (Get_Geometry (Lbl).Width)
+                   & " x" & Pixel_Type'Image (Real_H));
+         Put_Line ("  measured at 100: " & Pixel_Type'Image (Squeezed)
+                   & "  at its own width: " & Pixel_Type'Image (At_Own_W));
+
+         --  Asked about a column narrower than the text can occupy, the
+         --  label answers with the height it will really have: the words
+         --  cannot break, so the extra narrowness buys no extra lines.
+         Check ("a squeezed label reports the height it will really have",
+                abs (Squeezed - Real_H) < 0.5);
+         Check ("which is the same answer as at its own width",
+                abs (Squeezed - At_Own_W) < 0.5);
+      end;
+   end;
+
+   New_Line;
+
    Test_Support.Finish;
 end Label_Wrap_Test;

@@ -263,6 +263,9 @@ package body Adi.Widget.Label is
             end if;
 
             if Can_Wrap and then Wrap_W > 0.0 then
+               Wrap_W := Effective_Wrap_Width
+                 (Font_Attrs, To_String (W.Text), Wrap_W);
+
                Text_Size := Adi.Font.Measure_Text_Wrapped
                  (Attrs       => Font_Attrs,
                   Content     => To_String (W.Text),
@@ -403,7 +406,9 @@ package body Adi.Widget.Label is
                      Text_Min.Height := Adi.Font.Measure_Text_Wrapped
                        (Attrs       => Font_Attrs,
                         Content     => To_String (W.Text),
-                        Wrap_Width  => Avail,
+                        Wrap_Width  =>
+                          Effective_Wrap_Width
+                            (Font_Attrs, To_String (W.Text), Avail),
                         Line_Height => Label_Style.Line_Height).Height;
                   else
                      Text_Min.Height := Adi.Font.Measure_Text
@@ -568,7 +573,11 @@ package body Adi.Widget.Label is
                                 Adi.Font.Measure_Text_Wrapped
                                   (Attrs       => Font_Attrs,
                                    Content     => To_String (W.Text),
-                                   Wrap_Width  => L_Item.Geometry.Width,
+                                   Wrap_Width  =>
+                                     Effective_Wrap_Width
+                                       (Font_Attrs,
+                                        To_String (W.Text),
+                                        L_Item.Geometry.Width),
                                    Line_Height => Label_Style.Line_Height);
                            begin
                               if Wrapped.Height /= L_Item.Geometry.Height

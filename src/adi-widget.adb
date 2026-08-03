@@ -5457,9 +5457,14 @@ package body Adi.Widget is
       A := Apply_Opacity (A, Float (Style.Opacity));
       Success := TTF_SetTextColor (Text_Obj, R, G, B, A);
 
-      --  Configure wrapping per item.
+      --  Configure wrapping per item, at the same effective width the
+      --  measurement used: below the widest word the text overflows
+      --  rather than breaking mid-word, which is what layout reserved
+      --  room for.
       if It.Wrap_Text and then Is_Visible_Px (Geom.Width) then
-         Success := TTF_SetTextWrapWidth (Text_Obj, int (Geom.Width));
+         Success := TTF_SetTextWrapWidth
+           (Text_Obj,
+            int (Effective_Wrap_Width (Font_Attrs, Content, Geom.Width)));
       else
          Success := TTF_SetTextWrapWidth (Text_Obj, 0);
       end if;
@@ -6738,6 +6743,18 @@ package body Adi.Widget is
      new Wrap_Prim_Func (Size_2D, (0.0, 0.0), Get_Content_Min_Size);
    function Get_Content_Min_Size (H : Widget_Handle) return Size_2D
      renames Get_Content_Min_Size_W;
+
+   function Effective_Wrap_Width
+     (Attrs     : Adi.Font.Font_Attributes;
+      Content   : String;
+      Available : Pixel_Type) return Pixel_Type is
+   begin
+      if Available <= 0.0 or else Content'Length = 0 then
+         return Available;
+      end if;
+      return Pixel_Type'Max
+        (Available, Adi.Font.Measure_Min_Text_Width (Attrs, Content));
+   end Effective_Wrap_Width;
 
    function Measure_Content_At_Width
      (W : Widget; Assigned_Width : Pixel_Type) return Size_2D

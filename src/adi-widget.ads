@@ -633,6 +633,23 @@ package Adi.Widget is
    function Get_Content_Min_Size (W : Widget) return Size_2D;
    function Get_Content_Min_Size (H : Widget_Handle) return Size_2D;
 
+   --  The width text is actually wrapped at, given the room available.
+   --
+   --  Words are never broken, so a column narrower than the widest word
+   --  buys no extra lines -- the text overflows instead. Every path that
+   --  wraps or measures wrapped text goes through this, so measurement,
+   --  layout and rendering agree on where the lines fall.
+   --
+   --  It is an approximation of CSS overflow-wrap: normal, not that rule
+   --  itself: flooring the whole column at the widest word also lets
+   --  shorter words share a line wider than the box really is. Exact
+   --  behaviour needs whitespace-aware line breaking, and real
+   --  overflow-wrap / word-break support to opt out of it.
+   function Effective_Wrap_Width
+     (Attrs     : Adi.Font.Font_Attributes;
+      Content   : String;
+      Available : Pixel_Type) return Pixel_Type;
+
    --  Content size when the widget is laid out at Assigned_Width as its
    --  own outer width -- the width-aware counterpart of Measure_Content,
    --  and like it, CSS width/height are not applied here. Override this

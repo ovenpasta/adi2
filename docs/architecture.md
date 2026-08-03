@@ -359,6 +359,8 @@ Two primitives answer the two different questions:
 
 `Measure_At_Width` is the non-dispatching wrapper around the second, applying CSS sizing on top exactly as `Get_Preferred_Size` does for the first: a definite declared width or height wins over what the content measured. A percentage size is left alone — it resolves against a container this query knows nothing about.
 
+Wrapping itself never breaks a word: `Effective_Wrap_Width` floors the wrap width at the widest word, and the measurement, the post-flex re-measure and `Render_Text_Item` all go through it, so what layout reserves is what the renderer draws. See `docs/css_styling.md` for the policy and its limits — it approximates `overflow-wrap: normal` rather than implementing it.
+
 **Containers** ask the query after they know the width:
 
 - **Flex** computes intrinsic bases, assigns main sizes, then re-measures each child at its assigned width and re-runs if any answer changed. It updates base sizes only; the automatic minimum stays the flex pass's business, since an item that scrolls its own content has none.

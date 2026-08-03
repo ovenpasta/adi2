@@ -761,6 +761,92 @@ procedure Text_Overflow_Test is
          Assert (False, "Unexpected exception: " & Exception_Name (E));
    end Test_Nested_Scrollbar_Moves_With_Its_Widget;
 
+   --  Words are not broken. Given a box narrower than a single word, the
+   --  renderer draws that word past the edge instead of chopping it into
+   --  stacked fragments -- which is what layout reserved room for, since
+   --  measurement applies the same floor. Read from pixels: the geometry
+   --  comes from the same measurement code, so it cannot testify about
+   --  what the renderer did.
+   procedure Test_Renderer_Does_Not_Break_Words is
+      Ready : Boolean;
+      W     : Adi.Window.Window_Handle;
+      Root, Narrow : Adi.Widget.Box.Box_Handle;
+      Text  : Adi.Widget.Label.Label_Handle;
+
+      --  One word, far wider than the box it is given.
+      Word : constant String := "MMMMMMMMMMMM";
+      Box_W_Px : constant := 40;
+      Line_H   : constant := 34;
+
+      Inside, Beside, Below : Natural;
+   begin
+      Section ("the renderer overflows a long word instead of breaking it");
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      W := Adi.Window.Create_Window_Handle
+             ("Word Break", (Pixel_Type (Win_W), Pixel_Type (Win_H)));
+      Root   := Adi.Widget.Box.Create_Handle;
+      Narrow := Adi.Widget.Box.Create_Handle;
+      Text   := Adi.Widget.Label.Create_Handle (Word);
+
+      declare
+         Root_Rules : constant Style_Rules :=
+           (Display          => Set (Flex),
+            Flex_Direction   => Set (Adi.CSS_Styles.Column),
+            Background_Color => Set_Bg (RGB (0, 0, 0)),
+            others           => <>);
+         --  A cross-axis child of a column: no automatic minimum, so it
+         --  really does get a width narrower than the word.
+         Narrow_Rules : constant Style_Rules :=
+           (Display        => Set (Flex),
+            Flex_Direction => Set (Adi.CSS_Styles.Column),
+            Width          => Set (Size (Px (Box_W_Px))),
+            others         => <>);
+         Text_Rules : constant Style_Rules :=
+           (Color          => Set (RGB (255, 255, 255)),
+            Font_Size      => Set_Font (Px (24.0)),
+            Text_Wrap_Mode => Set (TWM_Wrap),
+            others         => <>);
+      begin
+         Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+         Set_Part_Style (+Narrow, Main_Part, From (Narrow_Rules).Build);
+         Set_Part_Style (+Text, Label_Part, From (Text_Rules).Build);
+      end;
+
+      Add_Child (+Narrow, +Text);
+      Add_Child (+Root, +Narrow);
+
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, Widget_Handle'(+Root));
+      Adi.Window.Connect_Post_Render
+        (Adi.Window.Resolve_Window_Handle (W).all,
+         Capture_Frame'Unrestricted_Access);
+      Adi.Window.Render (W);
+
+      Inside := Ink_Count (0, 0, Box_W_Px - 1, Line_H);
+      Beside := Ink_Count (Box_W_Px + 2, 0, Win_W - 1, Line_H);
+      Below  := Ink_Count (0, Line_H + 6, Win_W - 1, Win_H - 1);
+
+      Put_Line ("    ink inside=" & Inside'Image
+                & " beside=" & Beside'Image
+                & " below the first line=" & Below'Image);
+
+      Assert (Inside > 0, "the word renders");
+      Assert (Beside > 0,
+              "it runs past the box rather than being chopped to fit");
+      Assert (Below = 0,
+              "and it is not stacked into further lines below");
+
+      Release_Capture;
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Renderer_Does_Not_Break_Words;
+
 begin
    Start_Suite ("Text Overflow Test");
    New_Line;
@@ -777,6 +863,8 @@ begin
    Test_Scrolled_Clipping_Box_Keeps_Its_Children;
    New_Line;
    Test_Nested_Scrollbar_Moves_With_Its_Widget;
+   New_Line;
+   Test_Renderer_Does_Not_Break_Words;
    New_Line;
    Finish;
 end Text_Overflow_Test;

@@ -201,6 +201,12 @@ Corner radius longhands currently accept a single value only (elliptical two-val
 | `text-overflow` | `clip`, `ellipsis` | `text-overflow: ellipsis;` |
 | `text-wrap-mode` | `wrap`, `nowrap` | `text-wrap-mode: wrap;` |
 
+#### Wrapping never breaks a word
+
+Lines break at whitespace only. A box narrower than the widest word does not stack that word into fragments — the word is drawn past the edge, and clipping is then whatever `overflow` says. Every path agrees on this: `Adi.Widget.Effective_Wrap_Width` floors the wrap width at the widest word, and measurement, layout's re-measure pass and the renderer all wrap through it, so a container reserves the room the text will actually occupy.
+
+There is no `overflow-wrap` or `word-break` property yet, so the behaviour cannot be opted out of. It approximates CSS `overflow-wrap: normal` rather than implementing it: flooring the whole column at the widest word also lets *shorter* words share a line wider than the box really is. Exact behaviour needs whitespace-aware line breaking of our own plus those two properties.
+
 ### Layout & Display
 
 | Property | Values | Example |

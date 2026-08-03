@@ -6149,7 +6149,18 @@ package body Adi.Widget is
    procedure Render_Items (W : in out Widget'Class; Ctx : in out Render_Context) is
       Renderer : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      Content    : constant Rectangle := Padding_Box (Get_Geometry (W), Main_Style);
+
+      --  Items are drawn shifted by whatever the ancestors have scrolled,
+      --  so the clip has to move with them: a rectangle taken from the
+      --  stored geometry would sit where the widget would be if nothing
+      --  had scrolled, and cut away the content that did move.
+      Scroll_Shift : constant Pixel_Type := Pixel_Type (Get_Scroll_Y (Ctx));
+      Stored     : constant Rectangle := Padding_Box (Get_Geometry (W), Main_Style);
+      Content    : constant Rectangle :=
+        (X      => Stored.X,
+         Y      => Stored.Y + Scroll_Shift,
+         Width  => Stored.Width,
+         Height => Stored.Height);
       Clip_X : constant Boolean := Overflow_Clips (Main_Style.Overflow_X);
       Clip_Y : constant Boolean := Overflow_Clips (Main_Style.Overflow_Y);
       Clip_By_Scrollable : constant Boolean := Has_Flag (W, Scrollable);
@@ -6266,7 +6277,6 @@ package body Adi.Widget is
             Style   : Resolved_Style renames Current.Computed_Style;
             Wants : constant Item_Clip :=
               (if Use_Clip then Clip_For (Current) else No_Clip);
-            Scroll_Shift : constant Pixel_Type := Pixel_Type (Get_Scroll_Y (Ctx));
          begin
             --  Temporarily apply scroll offset for rendering
             Current.Geometry.Y := Current.Geometry.Y + Scroll_Shift;

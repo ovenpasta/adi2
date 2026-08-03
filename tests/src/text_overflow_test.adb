@@ -16,6 +16,7 @@ with Adi.SDL.TTF;
 with Adi.Widget;              use Adi.Widget;
 with Adi.Widget.Box;
 with Adi.Widget.Label;
+with Adi.Widget.Text_Input;
 with Adi.Widget.Value_Input;
 with Adi.Widget_Styles;       use Adi.Widget_Styles;
 with Adi.Window;
@@ -386,6 +387,108 @@ procedure Text_Overflow_Test is
          Assert (False, "Unexpected exception: " & Exception_Name (E));
    end Test_Value_Input_Clips_Its_Number;
 
+   --  A text input inside a scrolled page still shows its text. The
+   --  input clips its own line, and that clip is a rectangle in window
+   --  space: taking it from the widget's stored geometry while the items
+   --  are drawn shifted by the scroll offset put the two in different
+   --  places, and the text vanished as soon as the page moved.
+   procedure Test_Scrolled_Input_Still_Renders is
+      Ready : Boolean;
+      W     : Adi.Window.Window_Handle;
+      Root  : Adi.Widget.Box.Box_Handle;
+      Page  : Adi.Widget.Box.Box_Handle;
+      Spacer : Adi.Widget.Box.Box_Handle;
+      Field : Adi.Widget.Text_Input.Text_Input_Handle;
+
+      Scroll_By : constant Pixel_Type := 90.0;
+      Before, After : Natural;
+   begin
+      Section ("a scrolled text input keeps rendering its text");
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      W := Adi.Window.Create_Window_Handle
+             ("Scrolled Input", (Pixel_Type (Win_W), Pixel_Type (Win_H)));
+      Root   := Adi.Widget.Box.Create_Handle;
+      Page   := Adi.Widget.Box.Create_Handle;
+      Spacer := Adi.Widget.Box.Create_Handle;
+      Field  := Adi.Widget.Text_Input.Create_Handle ("WWWWWWWW");
+
+      declare
+         Root_Rules : constant Style_Rules :=
+           (Display          => Set (Flex),
+            Flex_Direction   => Set (Adi.CSS_Styles.Column),
+            Background_Color => Set_Bg (RGB (0, 0, 0)),
+            others           => <>);
+         Page_Rules : constant Style_Rules :=
+           (Display        => Set (Flex),
+            Flex_Direction => Set (Adi.CSS_Styles.Column),
+            Overflow_Y     => Set_Overflow_Y (Overflow_Auto),
+            Height         => Set (Size (Px (150.0))),
+            others         => <>);
+         Spacer_Rules : constant Style_Rules :=
+           (Height     => Set (Size (Px (200.0))),
+            Min_Height => Set (Size (Px (200.0))),
+            others     => <>);
+         Field_Rules : constant Style_Rules :=
+           (Height           => Set (Size (Px (40.0))),
+            Min_Height       => Set (Size (Px (40.0))),
+            Background_Color => Set_Bg (RGB (0, 0, 40)),
+            others           => <>);
+         Text_Rules : constant Style_Rules :=
+           (Color     => Set (RGB (255, 255, 255)),
+            Font_Size => Set_Font (Px (20.0)),
+            others    => <>);
+      begin
+         Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+         Set_Part_Style (+Page, Main_Part, From (Page_Rules).Build);
+         Set_Part_Style (+Spacer, Main_Part, From (Spacer_Rules).Build);
+         Set_Part_Style
+           (Adi.Widget.Text_Input.To_Widget_Handle (Field), Main_Part,
+            From (Field_Rules).Build);
+         Set_Part_Style
+           (Adi.Widget.Text_Input.To_Widget_Handle (Field), Text_Part,
+            From (Text_Rules).Build);
+      end;
+
+      Add_Child (+Page, +Spacer);
+      Add_Child (+Page, Adi.Widget.Text_Input.To_Widget_Handle (Field));
+      Add_Child (+Root, +Page);
+
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, Widget_Handle'(+Root));
+      Adi.Window.Connect_Post_Render
+        (Adi.Window.Resolve_Window_Handle (W).all,
+         Capture_Frame'Unrestricted_Access);
+      Adi.Window.Render (W);
+
+      --  The spacer is taller than the viewport, so the field starts out
+      --  below the fold: nothing of it is on screen yet.
+      Before := Ink_Count (0, 0, Win_W - 1, 149);
+      Assert (Before = 0, "the field is below the fold to begin with");
+
+      Set_Scroll_Offset_Y (+Page, Scroll_By);
+      Adi.Window.Render (W);
+      Assert (abs (Get_Scroll_Offset_Y (+Page) - Scroll_By) < 0.5,
+              "the page really scrolled");
+
+      --  Scrolled by 90, the field has come into view.
+      After := Ink_Count (0, 0, Win_W - 1, 149);
+
+      Put_Line ("    ink before scrolling=" & Before'Image
+                & " after=" & After'Image);
+
+      Assert (After > 0, "the field still renders its text once scrolled");
+
+      Release_Capture;
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Scrolled_Input_Still_Renders;
+
 begin
    Start_Suite ("Text Overflow Test");
    New_Line;
@@ -396,6 +499,8 @@ begin
    Test_Wrapped_Text_Overflows_Downward;
    New_Line;
    Test_Value_Input_Clips_Its_Number;
+   New_Line;
+   Test_Scrolled_Input_Still_Renders;
    New_Line;
    Finish;
 end Text_Overflow_Test;

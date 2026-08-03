@@ -1878,72 +1878,25 @@ package body Adi.Window is
       X, Y : Pixel_Type;
       F    : Widget_Flag) return Widget_Handle
    is
-      function Find_Deepest_Eligible
-        (Parent : Widget_Handle;
-         Hit_X  : Pixel_Type;
-         Hit_Y  : Pixel_Type;
-         Parent_Visibility : Visibility_Value) return Widget_Handle
-      is
-         Child_H : Widget_Handle;
-         Found   : Widget_Handle;
-         Child_Y : Pixel_Type;
-         Node_Visibility : Visibility_Value;
-      begin
-         if not Is_Valid (Parent) then
-            return Null_Handle;
-         end if;
-
-         if not Widget_Participates (Parent) then
-            return Null_Handle;
-         end if;
-
-         Node_Visibility :=
-           Resolve_Effective_Visibility (Parent, Parent_Visibility);
-
-         if not Point_In_Widget (Parent, Hit_X, Hit_Y) then
-            return Null_Handle;
-         end if;
-
-         Child_Y := Hit_Y;
-         if Get_Scroll_Offset_Y (Parent) > 0.0 then
-            Child_Y := Hit_Y + Get_Scroll_Offset_Y (Parent);
-         end if;
-
-         for I in reverse 1 .. Child_Count (Parent) loop
-            Child_H := Get_Child_Handle (Parent, I);
-            Found := Find_Deepest_Eligible (Child_H, Hit_X, Child_Y, Node_Visibility);
-            if Is_Valid (Found) then
-               return Found;
-            end if;
-         end loop;
-
-         if Node_Visibility = Visibility_Visible
-           and then Has_Flag (Parent, F)
-         then
-            return Parent;
-         end if;
-
-         return Null_Handle;
-      end Find_Deepest_Eligible;
+      --  Whatever is visually on top owns the point, so the search starts
+      --  there and walks up. Looking for the deepest widget *carrying the
+      --  flag* instead skips past whatever covers it: a dialog with
+      --  nothing focusable under the cursor let the focus search fall
+      --  through to the root tree and focus the widget behind it, whose
+      --  focus ring then lit up through the dialog.
+      --
+      --  Walking ancestors keeps the bubbling the filter was there for:
+      --  a click on the label inside a button still finds the button.
+      Node : Widget_Handle := Find_Widget_At (W, X, Y);
    begin
-      for I in reverse 1 .. Natural (W.Overlays.Length) loop
-         declare
-            Overlay : constant Widget_Handle := W.Overlays.Element (I);
-            Found   : Widget_Handle;
-         begin
-            if not Is_Valid (Overlay) then
-               null;
-            else
-               Found := Find_Deepest_Eligible
-                 (Overlay, X, Y, Visibility_Visible);
-               if Is_Valid (Found) then
-                  return Found;
-               end if;
-            end if;
-         end;
+      while Is_Valid (Node) loop
+         if Has_Flag (Node, F) then
+            return Node;
+         end if;
+         Node := Get_Parent_Handle (Node);
       end loop;
 
-      return Find_Deepest_Eligible (W.Root, X, Y, Visibility_Visible);
+      return Null_Handle;
    end Find_Widget_At_With_Flag;
 
    function Find_Scroll_Widget_At

@@ -847,6 +847,192 @@ procedure Window_Resize_Safety_Test is
             "Unexpected exception: " & Exception_Name (E));
    end Test_Wheel_Blocked_By_Overlay_Backdrop;
 
+   --  A dialog covering the window must swallow the click even where it
+   --  has nothing focusable of its own. The flag-filtered search used to
+   --  give up on the overlay and start again at the root, so a button
+   --  underneath took the focus -- visibly, as its focus ring lighting
+   --  up through the dialog.
+   procedure Test_Overlay_Blocks_Focus_Underneath is
+      Ready : Boolean := False;
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Btn : constant Adi.Widget.Button.Button_Handle :=
+        Adi.Widget.Button.Create_Handle ("Underneath");
+      Dlg : constant Adi.Widget.Dialog.Dialog_Handle :=
+        Adi.Widget.Dialog.Create_Handle;
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Column),
+         others         => <>);
+      Btn_Rules : constant Style_Rules :=
+        (Width  => Set (Size (Px (300.0))),
+         Height => Set (Size (Px (200.0))),
+         others => <>);
+      Focused_After : Widget_Handle;
+   begin
+      Put_Line ("Test: an overlay keeps focus off the widgets it covers");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Btn, Main_Part, From (Btn_Rules).Build);
+      Add_Child (+Root, +Btn);
+
+      W := Adi.Window.Create_Window_Handle
+             ("Overlay Focus Probe", (320.0, 240.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
+
+      --  The button is focusable and sits under the whole probe area.
+      Adi.Window.Resolve_Window_Handle (W).On_Mouse_Down
+        (100.0, 100.0, Left_Button);
+      Assert (Adi.Window.Get_Focus_Handle (W) = +Btn,
+              "the button takes focus when nothing covers it");
+
+      Adi.Widget.Dialog.Attach_Window (Dlg, W);
+      Adi.Widget.Dialog.Set_Title (Dlg, "Probe");
+      Adi.Widget.Dialog.Set_Message (Dlg, "blocking");
+      Adi.Widget.Dialog.Set_OK_Button (Dlg);
+      Adi.Widget.Dialog.Show (Dlg);
+      Adi.Window.Render (W);
+
+      --  Clear focus, then click the same point: the dialog covers it and
+      --  has nothing focusable there.
+      Adi.Window.Set_Focus (W, Null_Handle);
+      Adi.Window.Resolve_Window_Handle (W).On_Mouse_Down
+        (100.0, 100.0, Left_Button);
+      Focused_After := Adi.Window.Get_Focus_Handle (W);
+
+      Assert (Focused_After /= +Btn,
+              "a click on the dialog does not focus the button it covers");
+
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert
+           (False,
+            "Unexpected exception: " & Exception_Name (E));
+   end Test_Overlay_Blocks_Focus_Underneath;
+
+   --  The dialog's own widgets have to be reachable: its button must sit
+   --  inside the row that holds it and the row inside the panel, because
+   --  hit-testing descends only into children that contain the point. A
+   --  button hanging out of its row cannot be hovered or clicked, and the
+   --  click lands on whatever the dialog covers instead.
+   Dialog_Result_Index : Natural := Natural'Last;
+
+   procedure Note_Dialog_Result
+     (W            : Widget_Handle;
+      Button_Index : Natural;
+      Button_Text  : String)
+   is
+      pragma Unreferenced (W, Button_Text);
+   begin
+      Dialog_Result_Index := Button_Index;
+   end Note_Dialog_Result;
+
+   procedure Test_Dialog_Button_Is_Reachable is
+      Ready : Boolean := False;
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Dlg : constant Adi.Widget.Dialog.Dialog_Handle :=
+        Adi.Widget.Dialog.Create_Handle;
+
+      --  A button with a height of its own, the way a themed dialog gives
+      --  it one: the row has to grow to hold it. Measured from its text
+      --  instead, the row stayed short and the button hung out of it.
+      Btn_Rules : constant Style_Rules :=
+        (Height => Set (Size (Px (64.0))), others => <>);
+
+      function Contains (Outer, Inner : Rectangle) return Boolean is
+        (Inner.X >= Outer.X - 0.5
+         and then Inner.Y >= Outer.Y - 0.5
+         and then Inner.X + Inner.Width <= Outer.X + Outer.Width + 0.5
+         and then Inner.Y + Inner.Height <= Outer.Y + Outer.Height + 0.5);
+   begin
+      Put_Line ("Test: the dialog's button is inside its row and clickable");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      W := Adi.Window.Create_Window_Handle
+             ("Dialog Button Probe", (500.0, 400.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
+
+      Adi.Widget.Dialog.Attach_Window (Dlg, W);
+      Adi.Widget.Dialog.Set_Title (Dlg, "Probe");
+      Adi.Widget.Dialog.Set_Message (Dlg, "a message that takes a line");
+      Adi.Widget.Dialog.Set_OK_Button (Dlg);
+      --  The OK button is the default one, which takes the primary
+      --  style; set both so the height lands whichever path applies.
+      Adi.Widget.Dialog.Set_Button_Style
+        (Dlg,
+         [Main_Part => (Style => From (Btn_Rules).Build, Enabled => True),
+          others    => <>]);
+      Adi.Widget.Dialog.Set_Primary_Button_Style
+        (Dlg,
+         [Main_Part => (Style => From (Btn_Rules).Build, Enabled => True),
+          others    => <>]);
+      Adi.Widget.Dialog.Connect_Result
+        (Dlg, Note_Dialog_Result'Unrestricted_Access);
+      Adi.Widget.Dialog.Show (Dlg);
+      Adi.Window.Render (W);
+
+      declare
+         Panel : constant Widget_Handle :=
+           Adi.Widget.Box.To_Widget_Handle
+             (Adi.Widget.Dialog.Get_Content_Panel_Handle (Dlg));
+         Row   : constant Widget_Handle :=
+           Get_Child_Handle (Panel, Child_Count (Panel));
+         Btn   : constant Widget_Handle := Get_Child_Handle (Row, 1);
+         Panel_G : constant Rectangle := Get_Geometry (Panel);
+         Row_G   : constant Rectangle := Get_Geometry (Row);
+         Btn_G   : constant Rectangle := Get_Geometry (Btn);
+      begin
+         Put_Line ("    heights: panel" & Panel_G.Height'Image
+                   & " row" & Row_G.Height'Image
+                   & " button" & Btn_G.Height'Image);
+
+         Assert (abs (Btn_G.Height - 64.0) < 0.5,
+                 "the button keeps the height it was given");
+         Assert (Contains (Row_G, Btn_G),
+                 "the dialog button is inside the row that holds it");
+         Assert (Contains (Panel_G, Row_G),
+                 "the button row is inside the dialog panel");
+
+         --  And a real click on it reaches the button, rather than
+         --  falling through to whatever is behind the dialog.
+         Dialog_Result_Index := Natural'Last;
+         Adi.Window.Resolve_Window_Handle (W).On_Mouse_Down
+           (Btn_G.X + Btn_G.Width / 2.0, Btn_G.Y + Btn_G.Height / 2.0,
+            Left_Button);
+         Adi.Window.Resolve_Window_Handle (W).On_Mouse_Up
+           (Btn_G.X + Btn_G.Width / 2.0, Btn_G.Y + Btn_G.Height / 2.0,
+            Left_Button);
+
+         Assert (Dialog_Result_Index = 1,
+                 "clicking the button fires the dialog's result, not the "
+                 & "backdrop dismiss");
+      end;
+
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert
+           (False,
+            "Unexpected exception: " & Exception_Name (E));
+   end Test_Dialog_Button_Is_Reachable;
+
    procedure Test_Wheel_Root_Works_Without_Overlay is
       Ready : Boolean := False;
       W : Adi.Window.Window_Handle;
@@ -1585,6 +1771,8 @@ begin
    Test_Clear_Overlays_Clears_Focus_When_Focus_In_Overlay;
    Test_Show_Autofocus_Default_And_Override;
    Test_Wheel_Blocked_By_Overlay_Backdrop;
+   Test_Overlay_Blocks_Focus_Underneath;
+   Test_Dialog_Button_Is_Reachable;
    Test_Wheel_Root_Works_Without_Overlay;
    Test_Stack_Page_Switch_Does_Not_Ratchet_Min_Size;
    Test_Hit_Test_Follows_Scrolled_Content;

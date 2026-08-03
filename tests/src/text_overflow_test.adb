@@ -489,6 +489,278 @@ procedure Text_Overflow_Test is
          Assert (False, "Unexpected exception: " & Exception_Name (E));
    end Test_Scrolled_Input_Still_Renders;
 
+   --  A clipped container scrolled into view clips in the right place.
+   --  The subtree clip is a window-space rectangle built from stored
+   --  geometry, while the descendants inside it are drawn shifted by the
+   --  page's scroll: the two must move together, or the box crops its
+   --  own children -- or hides them entirely -- once the page moves.
+   procedure Test_Scrolled_Clipping_Box_Keeps_Its_Children is
+      Ready : Boolean;
+      W     : Adi.Window.Window_Handle;
+      Root, Page, Spacer, Clip_Box, Trailer : Adi.Widget.Box.Box_Handle;
+      Text  : Adi.Widget.Label.Label_Handle;
+
+      --  Content is 414 tall in a 150 viewport; this brings the box up
+      --  to roughly y=50, well clear of both viewport edges.
+      Scroll_By : constant Pixel_Type := 150.0;
+      Inside, Above, Below : Natural;
+   begin
+      Section ("a clipped box scrolled into view keeps clipping in place");
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      W := Adi.Window.Create_Window_Handle
+             ("Scrolled Clip", (Pixel_Type (Win_W), Pixel_Type (Win_H)));
+      Root     := Adi.Widget.Box.Create_Handle;
+      Page     := Adi.Widget.Box.Create_Handle;
+      Spacer   := Adi.Widget.Box.Create_Handle;
+      Clip_Box := Adi.Widget.Box.Create_Handle;
+      Trailer  := Adi.Widget.Box.Create_Handle;
+      Text     := Adi.Widget.Label.Create_Handle ("MMMM");
+
+      declare
+         Root_Rules : constant Style_Rules :=
+           (Display          => Set (Flex),
+            Flex_Direction   => Set (Adi.CSS_Styles.Column),
+            Background_Color => Set_Bg (RGB (0, 0, 0)),
+            others           => <>);
+         Page_Rules : constant Style_Rules :=
+           (Display        => Set (Flex),
+            Flex_Direction => Set (Adi.CSS_Styles.Column),
+            Overflow_Y     => Set_Overflow_Y (Overflow_Auto),
+            Height         => Set (Size (Px (150.0))),
+            others         => <>);
+         Spacer_Rules : constant Style_Rules :=
+           (Height     => Set (Size (Px (200.0))),
+            Min_Height => Set (Size (Px (200.0))),
+            others     => <>);
+         --  Half the label's height, so the bottom of the text is cut.
+         Box_Rules : constant Style_Rules :=
+           (Display          => Set (Flex),
+            Flex_Direction   => Set (Adi.CSS_Styles.Column),
+            Height           => Set (Size (Px (14.0))),
+            Min_Height       => Set (Size (Px (14.0))),
+            Overflow_Y       => Set_Overflow_Y (Overflow_Hidden),
+            Background_Color => Set_Bg (RGB (0, 0, 40)),
+            others           => <>);
+         Text_Rules : constant Style_Rules :=
+           (Color          => Set (RGB (255, 255, 255)),
+            Font_Size      => Set_Font (Px (28.0)),
+            Text_Wrap_Mode => Set (TWM_Nowrap),
+            others         => <>);
+      begin
+         Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+         Set_Part_Style (+Page, Main_Part, From (Page_Rules).Build);
+         Set_Part_Style (+Spacer, Main_Part, From (Spacer_Rules).Build);
+         Set_Part_Style (+Clip_Box, Main_Part, From (Box_Rules).Build);
+         Set_Part_Style (+Trailer, Main_Part, From (Spacer_Rules).Build);
+         Set_Part_Style (+Text, Label_Part, From (Text_Rules).Build);
+      end;
+
+      Add_Child (+Clip_Box, +Text);
+      Add_Child (+Page, +Spacer);
+      Add_Child (+Page, +Clip_Box);
+      --  Trailing content, so the box can be scrolled to the middle of
+      --  the viewport rather than sitting at its bottom edge -- there the
+      --  page's own clip would hide anything escaping downwards and the
+      --  test would pass without the box clipping at all.
+      Add_Child (+Page, +Trailer);
+      Add_Child (+Root, +Page);
+
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, Widget_Handle'(+Root));
+      Adi.Window.Connect_Post_Render
+        (Adi.Window.Resolve_Window_Handle (W).all,
+         Capture_Frame'Unrestricted_Access);
+      Adi.Window.Render (W);
+
+      Set_Scroll_Offset_Y (+Page, Scroll_By);
+      Adi.Window.Render (W);
+      Assert (abs (Get_Scroll_Offset_Y (+Page) - Scroll_By) < 0.5,
+              "the page really scrolled");
+
+      declare
+         Box_G : constant Rectangle := Get_Geometry (+Clip_Box);
+         --  Where the box is drawn: stored position, less the scroll.
+         Top    : constant Integer := Integer (Box_G.Y - Scroll_By);
+         Bottom : constant Integer := Top + Integer (Box_G.Height);
+      begin
+         --  With the trailer below it, the box is well inside the
+         --  viewport: anything escaping it would be visible rather than
+         --  cut off by the page.
+         Assert (Bottom < 140,
+                 "the box sits inside the viewport, not at its edge");
+
+         Inside := Ink_Count (0, Top, Win_W - 1, Bottom - 1);
+         Above  := Ink_Count (0, 0, Win_W - 1, Top - 2);
+         Below  := Ink_Count (0, Bottom + 1, Win_W - 1, 149);
+
+         Put_Line ("    box at" & Top'Image & " .." & Bottom'Image
+                   & "  ink inside=" & Inside'Image
+                   & " above=" & Above'Image
+                   & " below=" & Below'Image);
+
+         Assert (Inside > 0,
+                 "the clipped box still shows its child once scrolled");
+         Assert (Above = 0,
+                 "nothing of it is drawn above the box");
+         Assert (Below = 0,
+                 "and nothing escapes below it either");
+      end;
+
+      Release_Capture;
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Scrolled_Clipping_Box_Keeps_Its_Children;
+
+   --  A scrollable widget inside another scrolled container moves with
+   --  it, and so must its scrollbar: the track and knob are stored in
+   --  layout coordinates and drawn directly, so without the same shift
+   --  the bar stays behind while the widget it belongs to slides away.
+   procedure Test_Nested_Scrollbar_Moves_With_Its_Widget is
+      Ready : Boolean;
+      W     : Adi.Window.Window_Handle;
+      Root, Page, Spacer, Inner, Tall : Adi.Widget.Box.Box_Handle;
+
+      Scroll_By : constant Pixel_Type := 60.0;
+      --  A colour nothing else in the scene uses.
+
+      --  Count only the scrollbar's own colour.
+      function Bar_Ink (Y0, Y1 : Integer) return Natural is
+         Surf : constant SDL_Surface_Ptr := Captured;
+         R, G, B, A : aliased Uint8;
+         Count : Natural := 0;
+      begin
+         if Surf = null then
+            return 0;
+         end if;
+         for Y in Y0 .. Y1 loop
+            for X in 0 .. Win_W - 1 loop
+               if Y >= 0 and then Y < Integer (Surf.h)
+                 and then Boolean
+                            (SDL_ReadSurfacePixel
+                               (Surf, int (X), int (Y),
+                                R'Access, G'Access, B'Access, A'Access))
+                 and then Natural (R) > 200
+                 and then Natural (G) < 60
+                 and then Natural (B) < 60
+               then
+                  Count := Count + 1;
+               end if;
+            end loop;
+         end loop;
+         return Count;
+      end Bar_Ink;
+
+      Before, After_At_Old, After_At_New : Natural;
+   begin
+      Section ("a nested scrollbar moves with the widget it belongs to");
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      W := Adi.Window.Create_Window_Handle
+             ("Nested Scrollbar", (Pixel_Type (Win_W), Pixel_Type (Win_H)));
+      Root   := Adi.Widget.Box.Create_Handle;
+      Page   := Adi.Widget.Box.Create_Handle;
+      Spacer := Adi.Widget.Box.Create_Handle;
+      Inner  := Adi.Widget.Box.Create_Handle;
+      Tall   := Adi.Widget.Box.Create_Handle;
+
+      declare
+         Root_Rules : constant Style_Rules :=
+           (Display          => Set (Flex),
+            Flex_Direction   => Set (Adi.CSS_Styles.Column),
+            Background_Color => Set_Bg (RGB (0, 0, 0)),
+            others           => <>);
+         Page_Rules : constant Style_Rules :=
+           (Display        => Set (Flex),
+            Flex_Direction => Set (Adi.CSS_Styles.Column),
+            Overflow_Y     => Set_Overflow_Y (Overflow_Auto),
+            Height         => Set (Size (Px (150.0))),
+            others         => <>);
+         Spacer_Rules : constant Style_Rules :=
+           (Height     => Set (Size (Px (160.0))),
+            Min_Height => Set (Size (Px (160.0))),
+            others     => <>);
+         Inner_Rules : constant Style_Rules :=
+           (Display        => Set (Flex),
+            Flex_Direction => Set (Adi.CSS_Styles.Column),
+            Overflow_Y     => Set_Overflow_Y (Overflow_Auto),
+            Height         => Set (Size (Px (80.0))),
+            Min_Height     => Set (Size (Px (80.0))),
+            others         => <>);
+         Tall_Rules : constant Style_Rules :=
+           (Height     => Set (Size (Px (400.0))),
+            Min_Height => Set (Size (Px (400.0))),
+            others     => <>);
+         Bar_Rules : constant Style_Rules :=
+           (Background_Color => Set_Bg (RGB (255, 0, 0)), others => <>);
+      begin
+         Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+         Set_Part_Style (+Page, Main_Part, From (Page_Rules).Build);
+         Set_Part_Style (+Spacer, Main_Part, From (Spacer_Rules).Build);
+         Set_Part_Style (+Inner, Main_Part, From (Inner_Rules).Build);
+         Set_Part_Style (+Inner, Scroll_Part, From (Bar_Rules).Build);
+         Set_Part_Style (+Inner, Knob_Part, From (Bar_Rules).Build);
+         Set_Part_Style (+Tall, Main_Part, From (Tall_Rules).Build);
+      end;
+
+      Add_Child (+Inner, +Tall);
+      Add_Child (+Page, +Spacer);
+      Add_Child (+Page, +Inner);
+      Add_Child (+Root, +Page);
+
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, Widget_Handle'(+Root));
+      Adi.Window.Connect_Post_Render
+        (Adi.Window.Resolve_Window_Handle (W).all,
+         Capture_Frame'Unrestricted_Access);
+      Adi.Window.Render (W);
+
+      declare
+         Inner_G : constant Rectangle := Get_Geometry (+Inner);
+         Old_Top : constant Integer := Integer (Inner_G.Y);
+         New_Top : constant Integer := Integer (Inner_G.Y - Scroll_By);
+      begin
+         --  The inner box starts below the fold, so nothing of it shows
+         --  until the outer page scrolls it into view.
+         Before := Bar_Ink (0, Win_H - 1);
+         Assert (Before = 0, "the nested box starts out of view");
+
+         Set_Scroll_Offset_Y (+Page, Scroll_By);
+         Adi.Window.Render (W);
+         Assert (abs (Get_Scroll_Offset_Y (+Page) - Scroll_By) < 0.5,
+                 "the outer page really scrolled");
+
+         After_At_New :=
+           Bar_Ink (New_Top, New_Top + Integer (Inner_G.Height) - 1);
+         After_At_Old :=
+           Bar_Ink (New_Top + Integer (Inner_G.Height) + 2,
+                    Old_Top + Integer (Inner_G.Height) - 1);
+
+         Put_Line ("    bar ink: before=" & Before'Image
+                   & " after at the new position=" & After_At_New'Image
+                   & " left behind=" & After_At_Old'Image);
+
+         Assert (After_At_New > 0,
+                 "the scrollbar follows its widget up the page");
+         Assert (After_At_Old = 0,
+                 "and nothing of it is left at the old position");
+      end;
+
+      Release_Capture;
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Nested_Scrollbar_Moves_With_Its_Widget;
+
 begin
    Start_Suite ("Text Overflow Test");
    New_Line;
@@ -501,6 +773,10 @@ begin
    Test_Value_Input_Clips_Its_Number;
    New_Line;
    Test_Scrolled_Input_Still_Renders;
+   New_Line;
+   Test_Scrolled_Clipping_Box_Keeps_Its_Children;
+   New_Line;
+   Test_Nested_Scrollbar_Moves_With_Its_Widget;
    New_Line;
    Finish;
 end Text_Overflow_Test;

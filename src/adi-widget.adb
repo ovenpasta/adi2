@@ -6140,6 +6140,23 @@ package body Adi.Widget is
    procedure Build_Items_W is new Wrap_Prim_Proc (Build_Items);
    procedure Build_Items (H : Widget_Handle) renames Build_Items_W;
 
+   --  Where a stored rectangle is actually drawn this frame: layout
+   --  keeps geometry unshifted and the render pass offsets by whatever
+   --  the ancestors have scrolled, so anything compared against drawn
+   --  pixels -- clips, scrollbars, debug outlines -- has to go through
+   --  here or it ends up describing where the widget would be if nothing
+   --  had scrolled.
+   function In_Render_Space
+     (R : Rectangle; Ctx : Render_Context) return Rectangle
+   is
+      Shift : constant Pixel_Type := Pixel_Type (Get_Scroll_Y (Ctx));
+   begin
+      return (X      => R.X,
+              Y      => R.Y + Shift,
+              Width  => R.Width,
+              Height => R.Height);
+   end In_Render_Space;
+
    function Clips_Own_Content (W : Widget) return Boolean is
       pragma Unreferenced (W);
    begin
@@ -6150,17 +6167,10 @@ package body Adi.Widget is
       Renderer : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
 
-      --  Items are drawn shifted by whatever the ancestors have scrolled,
-      --  so the clip has to move with them: a rectangle taken from the
-      --  stored geometry would sit where the widget would be if nothing
-      --  had scrolled, and cut away the content that did move.
+      --  The clip has to sit where the items are actually drawn.
       Scroll_Shift : constant Pixel_Type := Pixel_Type (Get_Scroll_Y (Ctx));
-      Stored     : constant Rectangle := Padding_Box (Get_Geometry (W), Main_Style);
       Content    : constant Rectangle :=
-        (X      => Stored.X,
-         Y      => Stored.Y + Scroll_Shift,
-         Width  => Stored.Width,
-         Height => Stored.Height);
+        In_Render_Space (Padding_Box (Get_Geometry (W), Main_Style), Ctx);
       Clip_X : constant Boolean := Overflow_Clips (Main_Style.Overflow_X);
       Clip_Y : constant Boolean := Overflow_Clips (Main_Style.Overflow_Y);
       Clip_By_Scrollable : constant Boolean := Has_Flag (W, Scrollable);
@@ -6340,8 +6350,12 @@ package body Adi.Widget is
          return;
       end if;
 
-      Render_Panel (Renderer, W.Scroll_Track_Geom, Scroll_Style);
-      Render_Panel (Renderer, W.Scroll_Knob_Geom, Knob_Style);
+      --  A scrollable widget inside another scrolled container moves
+      --  with it; its scrollbar has to move too.
+      Render_Panel
+        (Renderer, In_Render_Space (W.Scroll_Track_Geom, Ctx), Scroll_Style);
+      Render_Panel
+        (Renderer, In_Render_Space (W.Scroll_Knob_Geom, Ctx), Knob_Style);
    end Render_Shared_Scrollbar;
 
    procedure Render_Tree_Impl
@@ -6376,7 +6390,10 @@ package body Adi.Widget is
          declare
             Main_Style : constant Resolved_Style :=
               Get_Resolved_Part_Style (W, Main_Part);
-            Geom : constant Rectangle := Get_Geometry (W);
+            --  Outlines are compared against drawn pixels by eye, so
+            --  they belong where the widget is drawn.
+            Geom : constant Rectangle :=
+              In_Render_Space (Get_Geometry (W), Ctx);
             Margin : constant Edge_Pixels := Get_Margin_Px (Main_Style);
             Margin_Box : constant Rectangle :=
               (X => Geom.X - Margin.Left,
@@ -6408,8 +6425,11 @@ package body Adi.Widget is
             --  outside the box on purpose still draws.
             Clip_By_Scrollable : constant Boolean :=
               Has_Flag (W, Scrollable);
+            --  Descendants render shifted by the ancestors' scroll, so
+            --  the rectangle that clips them has to move with them.
             Content : constant Rectangle :=
-              Padding_Box (Get_Geometry (W), Main_Style);
+              In_Render_Space
+                (Padding_Box (Get_Geometry (W), Main_Style), Ctx);
          begin
             if Clip_X or else Clip_Y or else Clip_By_Scrollable then
                if not Has_Visible_Area (Content) then

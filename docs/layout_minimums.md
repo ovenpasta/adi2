@@ -81,6 +81,21 @@ settling at 150/90/60) and the overflow case.
 
 Not yet implemented, and tracked as follow-up work:
 
+- **Mixed-axis `overflow` normalisation.** CSS computes a `visible` axis
+  to `auto` when the other axis is not visible, so a box that scrolls
+  vertically also clips horizontally. Adi keeps the two axes
+  independent: `Overflow_X` and `Overflow_Y` are honoured exactly as
+  written, and only the internal input clip (`Clips_Own_Content`, used
+  by text inputs) covers both axes. Normalising this is a cross-layout
+  change and wants its own tests.
+- **No direct regression for delivered mouse coordinates.** Hit testing
+  maps a window point into the widget's own space
+  (`Map_Window_Point_To_Widget`), and that mapping is covered, but
+  nothing asserts the coordinates a widget *receives* in `On_Mouse_Down`
+  once its ancestors have scrolled. A probe widget adopted into the tree
+  crashed at teardown; the eventual shape is a library-level test widget
+  or a text-editor caret test.
+
 - Indefinite preferred sizing still measures `fr` tracks from their
   minimum contribution, so a one-column `1fr` grid reports the same
   preferred and min-content width. CSS derives a common flex fraction

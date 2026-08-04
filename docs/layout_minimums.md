@@ -93,6 +93,9 @@ Not yet implemented, and tracked as follow-up work:
   523px to 48px. Do not implement normalisation until horizontal
   scrolling exists end to end, or until a deliberately specified partial
   policy preserves horizontal reachability.
+- **`flex-wrap` is inert.** The value is parsed, resolved and passed to
+  `Flex_Layout_Context.Wrap`, but `Compute_Flex_Layout` lays out a single
+  line and never reads it, so `wrap` and `nowrap` render identically.
 - Indefinite preferred sizing still measures `fr` tracks from their
   minimum contribution, so a one-column `1fr` grid reports the same
   preferred and min-content width. CSS derives a common flex fraction

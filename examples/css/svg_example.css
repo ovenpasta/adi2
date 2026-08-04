@@ -1,0 +1,102 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px;
+  background-color: rgb(14, 21, 37);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background-color: rgba(30, 41, 59, 0.62);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(148, 163, 184, 0.35);
+  border-radius: 12px;
+  box-shadow: 0px 10px 24px rgba(2, 6, 23, 0.55);
+}
+
+.title::label {
+  color: rgb(241, 245, 249);
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.subtitle::label {
+  color: rgb(148, 163, 184);
+  font-size: 14px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 10px;
+  padding: 14px;
+  background-color: rgba(15, 23, 42, 0.85);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(56, 189, 248, 0.38);
+  border-radius: 16px;
+  box-shadow: 0px 14px 28px rgba(2, 6, 23, 0.55);
+  min-height: 0px;
+}
+
+.panel-title::label {
+  color: rgb(186, 230, 253);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0px;
+  align-items: stretch;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  background-color: rgba(2, 6, 23, 0.72);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(148, 163, 184, 0.26);
+  border-radius: 12px;
+}
+
+.artwork {
+  flex-grow: 1;
+  min-height: 0px;
+}
+
+.artwork::icon {
+  object-fit: contain;
+  object-position: center center;
+}
+
+.caption {
+  flex-shrink: 0;
+}
+
+.caption::label {
+  color: rgb(148, 163, 184);
+  font-size: 12px;
+}
+
+.status {
+  min-height: 34px;
+  padding: 8px 10px;
+  background-color: rgba(15, 23, 42, 0.82);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(125, 211, 252, 0.32);
+  border-radius: 10px;
+}
+
+.status::label {
+  color: rgb(125, 211, 252);
+  font-size: 13px;
+}

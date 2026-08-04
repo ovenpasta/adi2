@@ -50,3 +50,4 @@ generate_if_needed "$CSS_DIR/value_input_example.css" "$OUT_DIR/value_input_exam
 generate_if_needed "$CSS_DIR/assets_example.css" "$OUT_DIR/assets_example_styles.ads" "Assets_Example_Styles"
 generate_if_needed "$CSS_DIR/gradient_example.css" "$OUT_DIR/gradient_example_styles.ads" "Gradient_Example_Styles"
 generate_if_needed "$CSS_DIR/hello_example.css" "$OUT_DIR/hello_example_styles.ads" "Hello_Example_Styles"
+generate_if_needed "$CSS_DIR/svg_example.css" "$OUT_DIR/svg_example_styles.ads" "Svg_Example_Styles"

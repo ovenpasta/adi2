@@ -35,6 +35,7 @@ ALL_EXAMPLES=(
   gradient_example
   hello_example
   hello_raw_example
+  svg_example
 )
 
 if [ $# -eq 0 ]; then

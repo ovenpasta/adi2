@@ -62,9 +62,6 @@ Every example program in [`examples/`](../examples/), captured as a screenshot. 
 ![slider_example](../examples/screenshots/slider_example.png)
 *`slider_example`*
 
-![slider_example_old](../examples/screenshots/slider_example_old.png)
-*`slider_example_old`*
-
 ![stack_example](../examples/screenshots/stack_example.png)
 *`stack_example`*
 

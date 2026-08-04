@@ -48,8 +48,6 @@ procedure Svg_Test is
      new Ada.Unchecked_Deallocation (Adi.SVG.Pixel_Buffer, Adi.SVG.Pixel_Buffer_Access);
    procedure Free_Document is
      new Ada.Unchecked_Deallocation (Adi.SVG.Document'Class, Adi.SVG.Document_Access);
-   procedure Free_Image is
-     new Ada.Unchecked_Deallocation (Adi.Image.Image'Class, Adi.Image.Image_Access);
 
    procedure Assert (Cond : Boolean; Msg : String)
      renames Test_Support.Assert;
@@ -139,13 +137,10 @@ procedure Svg_Test is
       end if;
    end Release;
 
-   procedure Release_Image (Img : in out Adi.Image.Image_Access) is
-   begin
-      if Img /= null then
-         Adi.Image.Destroy (Img.all);
-         Free_Image (Img);
-      end if;
-   end Release_Image;
+   --  Adi.Image.Free also drops the image from the registry that
+   --  Release_All_Textures_For_Renderer walks.
+   procedure Release_Image (Img : in out Adi.Image.Image_Access)
+     renames Adi.Image.Free;
 
    procedure Test_Document_Size_And_Validity is
       Doc : Adi.SVG.Document_Access := null;

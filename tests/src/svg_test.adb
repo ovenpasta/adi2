@@ -6,7 +6,9 @@ with Ada.Unchecked_Deallocation;
 with Adi.Core;
 with Adi.Image;
 with Adi.SDL;
+with Adi.SDL.Render;   use Adi.SDL.Render;
 with Adi.SVG;
+with Adi.Window;
 with Interfaces;
 with Test_Support;
 
@@ -842,6 +844,100 @@ procedure Svg_Test is
       New_Line;
    end Test_Complex_SVG_Rendering;
 
+   --  A widget that follows a window resize asks for a different pixel
+   --  size on every frame of the drag, so the per-size raster cache has
+   --  to drop what it no longer needs.
+   procedure Test_Sized_Texture_Cache_Is_Bounded is
+      Ok  : Adi.SDL.C_bool;
+      W   : Adi.Window.Window_Handle;
+      Img : Adi.Image.Image_Access := null;
+      Ren : SDL_Renderer_Ptr;
+      Tex : SDL_Texture_Ptr;
+      Cap : constant Natural := Adi.Image.Max_Sized_Textures;
+
+      function Size_W (I : Natural) return Adi.Core.Pixel_Type is
+        (Adi.Core.Pixel_Type (40 + I * 3));
+      function Size_H (I : Natural) return Adi.Core.Pixel_Type is
+        (Adi.Core.Pixel_Type (30 + I * 2));
+   begin
+      Put_Line ("Test: the sized-texture cache stays bounded");
+
+      Ada.Environment_Variables.Set ("SDL_VIDEODRIVER", "dummy");
+      Ok := Adi.SDL.SDL_Init (Adi.SDL.SDL_INIT_VIDEO);
+      Assert (Boolean (Ok), "SDL_Init(video) should succeed");
+      if not Boolean (Ok) then
+         return;
+      end if;
+
+      W := Adi.Window.Create_Window_Handle ("SVG Cache Probe", (200.0, 200.0));
+      Ren := Adi.Window.Get_Renderer (Adi.Window.Resolve_Window_Handle (W).all);
+      Assert (Ren /= null, "the probe window has a renderer");
+
+      Img := Adi.Image.Load_From_File ("tests/assets/size_viewbox.svg");
+      Assert (Img /= null, "the fixture SVG loads");
+
+      if Img /= null and then Ren /= null then
+         --  Fill the cache exactly, checking each raster was really
+         --  produced: a run of failed creations would satisfy any
+         --  bound-only assertion.
+         declare
+            All_Made : Boolean := True;
+         begin
+            for I in 1 .. Cap loop
+               Tex := Adi.Image.Get_Texture_For_Size
+                 (Img.all, Ren, Size_W (I), Size_H (I));
+               All_Made := All_Made and then Tex /= null;
+            end loop;
+
+            Assert (All_Made, "every raster up to the cap is created");
+            Assert
+              (Adi.Image.Cached_Texture_Count (Img.all) = Cap,
+               "the cache holds exactly the cap");
+         end;
+
+         --  Use the oldest entry again, then add one more. Under LRU the
+         --  refreshed entry survives and the *second* oldest goes; under
+         --  FIFO the refreshed one would have gone instead.
+         Tex := Adi.Image.Get_Texture_For_Size
+           (Img.all, Ren, Size_W (1), Size_H (1));
+         Assert (Tex /= null, "the oldest entry is still usable");
+
+         Tex := Adi.Image.Get_Texture_For_Size
+           (Img.all, Ren, Size_W (Cap + 1), Size_H (Cap + 1));
+         Assert (Tex /= null, "the raster past the cap is created");
+
+         Put_Line
+           ("    cached" & Adi.Image.Cached_Texture_Count (Img.all)'Image
+            & "  refreshed-oldest kept="
+            & Boolean'Image
+                (Adi.Image.Has_Sized_Texture
+                   (Img.all, Ren, Size_W (1), Size_H (1)))
+            & "  next-oldest kept="
+            & Boolean'Image
+                (Adi.Image.Has_Sized_Texture
+                   (Img.all, Ren, Size_W (2), Size_H (2))));
+
+         Assert
+           (Adi.Image.Cached_Texture_Count (Img.all) = Cap,
+            "the cache is still exactly at the cap");
+         Assert
+           (Adi.Image.Has_Sized_Texture (Img.all, Ren, Size_W (1), Size_H (1)),
+            "the entry used again survives");
+         Assert
+           (not Adi.Image.Has_Sized_Texture
+                  (Img.all, Ren, Size_W (2), Size_H (2)),
+            "the least recently used entry is the one dropped");
+         Assert
+           (Adi.Image.Has_Sized_Texture
+              (Img.all, Ren, Size_W (Cap + 1), Size_H (Cap + 1)),
+            "the new size is cached");
+      end if;
+
+      Release_Image (Img);
+      Adi.Window.Destroy (W);
+      New_Line;
+   end Test_Sized_Texture_Cache_Is_Bounded;
+
 begin
    Put_Line ("SVG renderer test backend=" & Adi.SVG.Backend_Name);
    Put_Line ("");
@@ -860,6 +956,7 @@ begin
    Test_Transforms_And_Units;
    Test_Root_ViewBox_Preserve_Aspect;
    Test_Complex_SVG_Rendering;
+   Test_Sized_Texture_Cache_Is_Bounded;
 
    Test_Support.Finish;
 end Svg_Test;

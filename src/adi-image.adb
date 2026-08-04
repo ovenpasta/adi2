@@ -45,6 +45,46 @@ package body Adi.Image is
 
    Live_Images : Image_Ptr_Vectors.Vector;
 
+   procedure Touch
+     (C       : in out Cached_Texture_Vectors.Vector;
+      Newest  : Natural);
+
+   --  Last_Used is a rank in 1 .. Length, 1 = oldest. Every rank is
+   --  computed before any is written: writing as we go would change the
+   --  values still being compared against.
+   procedure Touch
+     (C      : in out Cached_Texture_Vectors.Vector;
+      Newest : Natural)
+   is
+      Ranks : array (C.First_Index .. C.Last_Index) of Natural :=
+        [others => 0];
+   begin
+      for I in C.First_Index .. C.Last_Index loop
+         if I = Newest then
+            Ranks (I) := Natural (C.Length);
+         else
+            declare
+               Rank : Natural := 1;
+            begin
+               for J in C.First_Index .. C.Last_Index loop
+                  if J /= I and then J /= Newest
+                    and then (C (J).Last_Used < C (I).Last_Used
+                              or else (C (J).Last_Used = C (I).Last_Used
+                                       and then J < I))
+                  then
+                     Rank := Rank + 1;
+                  end if;
+               end loop;
+               Ranks (I) := Rank;
+            end;
+         end if;
+      end loop;
+
+      for I in C.First_Index .. C.Last_Index loop
+         C.Reference (I).Last_Used := Ranks (I);
+      end loop;
+   end Touch;
+
    procedure Register (Img : Image_Access) is
    begin
       if Img /= null then
@@ -587,7 +627,9 @@ package body Adi.Image is
               (Renderer  => Renderer,
                Width_Px  => Positive (Integer'Max (1, Integer (Img.Surface.w))),
                Height_Px => Positive (Integer'Max (1, Integer (Img.Surface.h))),
-               Texture   => Texture));
+               Texture   => Texture,
+               Last_Used => 0));
+         Touch (Img.Cache, Img.Cache.Last_Index);
          return Texture;
       end if;
 
@@ -620,12 +662,13 @@ package body Adi.Image is
       end if;
 
       --  Check cache by (renderer, width, height)
-      for Cache_Item of Img.Cache loop
-         if Cache_Item.Renderer = Renderer
-           and then Cache_Item.Width_Px = Target_W
-           and then Cache_Item.Height_Px = Target_H
+      for I in Img.Cache.First_Index .. Img.Cache.Last_Index loop
+         if Img.Cache (I).Renderer = Renderer
+           and then Img.Cache (I).Width_Px = Target_W
+           and then Img.Cache (I).Height_Px = Target_H
          then
-            return Cache_Item.Texture;
+            Touch (Img.Cache, I);
+            return Img.Cache (I).Texture;
          end if;
       end loop;
 
@@ -664,14 +707,70 @@ package body Adi.Image is
       Success := SDL_SetTextureScaleMode (Texture, To_SDL (Img.Scaling));
       pragma Unreferenced (Success);
 
+      --  Make room only now that there is a replacement to put in it, so
+      --  a request that fails to rasterize or upload costs nothing.
+      --  Candidates are limited to this renderer's entries: it is the one
+      --  being drawn with, so its textures are known live.
+      declare
+         Count  : Natural := 0;
+         Oldest : Natural := 0;
+         Oldest_Rank : Natural := Natural'Last;
+      begin
+         for I in Img.Cache.First_Index .. Img.Cache.Last_Index loop
+            if Img.Cache (I).Renderer = Renderer then
+               Count := Count + 1;
+               if Img.Cache (I).Last_Used < Oldest_Rank then
+                  Oldest_Rank := Img.Cache (I).Last_Used;
+                  Oldest := I;
+               end if;
+            end if;
+         end loop;
+
+         if Count >= Max_Sized_Textures and then Oldest /= 0 then
+            if Img.Cache (Oldest).Texture /= null then
+               SDL_DestroyTexture (Img.Cache (Oldest).Texture);
+            end if;
+            Img.Cache.Delete (Oldest);
+         end if;
+      end;
+
       Img.Cache.Append
         (New_Item => Cached_Texture'
            (Renderer  => Renderer,
             Width_Px  => Target_W,
             Height_Px => Target_H,
-            Texture   => Texture));
+            Texture   => Texture,
+            Last_Used => 0));
+      Touch (Img.Cache, Img.Cache.Last_Index);
       return Texture;
    end Get_Texture_For_Size;
+
+   function Cached_Texture_Count (Img : Image'Class) return Natural is
+   begin
+      return Natural (Img.Cache.Length);
+   end Cached_Texture_Count;
+
+   function Has_Sized_Texture
+     (Img      : Image'Class;
+      Renderer : SDL_Renderer_Ptr;
+      Width    : Pixel_Type;
+      Height   : Pixel_Type) return Boolean
+   is
+      Target_W : constant Positive :=
+        Positive (Integer'Max (1, Integer (Float'Ceiling (Float (Width)))));
+      Target_H : constant Positive :=
+        Positive (Integer'Max (1, Integer (Float'Ceiling (Float (Height)))));
+   begin
+      for I in Img.Cache.First_Index .. Img.Cache.Last_Index loop
+         if Img.Cache (I).Renderer = Renderer
+           and then Img.Cache (I).Width_Px = Target_W
+           and then Img.Cache (I).Height_Px = Target_H
+         then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Has_Sized_Texture;
 
    ---------------------------------------------------------------------------
    -- Destroy

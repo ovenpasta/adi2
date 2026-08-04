@@ -134,11 +134,27 @@ package Adi.Image is
    -- Get a texture rendered for a specific size.
    -- For raster images this returns the base texture for the renderer.
    -- For SVG images this lazily rasterizes and caches per (renderer, size).
+   -- At most Max_Sized_Textures rasters are kept per renderer; the least
+   -- recently used is dropped to make room. A widget that tracks a
+   -- window resize asks for a different size every frame, so the cache
+   -- has to forget.
    function Get_Texture_For_Size
      (Img      : in out Image'Class;
       Renderer : SDL_Renderer_Ptr;
       Width    : Pixel_Type;
       Height   : Pixel_Type) return SDL_Texture_Ptr;
+
+   Max_Sized_Textures : constant Positive := 8;
+
+   -- Number of cached textures, for tests and diagnostics.
+   function Cached_Texture_Count (Img : Image'Class) return Natural;
+
+   -- Whether a raster for this exact renderer and size is cached.
+   function Has_Sized_Texture
+     (Img      : Image'Class;
+      Renderer : SDL_Renderer_Ptr;
+      Width    : Pixel_Type;
+      Height   : Pixel_Type) return Boolean;
 
    ---------------------------------------------------------------------------
    -- Resource Management
@@ -175,6 +191,7 @@ private
       Width_Px  : Positive;
       Height_Px : Positive;
       Texture   : SDL_Texture_Ptr := null;
+      Last_Used : Natural := 0;
    end record;
 
    package Cached_Texture_Vectors is new Ada.Containers.Vectors

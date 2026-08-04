@@ -81,13 +81,18 @@ settling at 150/90/60) and the overflow case.
 
 Not yet implemented, and tracked as follow-up work:
 
-- **Mixed-axis `overflow` normalisation.** CSS computes a `visible` axis
-  to `auto` when the other axis is not visible, so a box that scrolls
-  vertically also clips horizontally. Adi keeps the two axes
-  independent: `Overflow_X` and `Overflow_Y` are honoured exactly as
-  written, and only the internal input clip (`Clips_Own_Content`, used
-  by text inputs) covers both axes. Normalising this is a cross-layout
-  change and wants its own tests.
+- **Mixed-axis `overflow` normalisation depends on horizontal
+  scrolling.** CSS computes a `visible` axis to `auto` when the other
+  axis is not visible. Adi currently keeps both axes independent:
+  `Overflow_X` and `Overflow_Y` are honoured exactly as written, and
+  only the internal input clip (`Clips_Own_Content`, used by text
+  inputs) covers both axes. Normalising them now would make
+  `overflow-y: auto` discard the horizontal content minimum and clip
+  horizontally, while Adi has no horizontal offset, scrollbar, or input
+  path to reach that content. A probe reduced the minimum width from
+  523px to 48px. Do not implement normalisation until horizontal
+  scrolling exists end to end, or until a deliberately specified partial
+  policy preserves horizontal reachability.
 - Indefinite preferred sizing still measures `fr` tracks from their
   minimum contribution, so a one-column `1fr` grid reports the same
   preferred and min-content width. CSS derives a common flex fraction

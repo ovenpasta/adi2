@@ -7,6 +7,7 @@ with Adi.CSS_Styles;     use Adi.CSS_Styles;
 with Adi.Image;
 with Adi.Widget;         use Adi.Widget;
 with Adi.Widget.Box;
+with Adi.Widget.Image;
 with Adi.Widget.Label;
 with Adi.Widget_Styles;  use Adi.Widget_Styles;
 with Test_Support;
@@ -350,6 +351,184 @@ begin
          Check ("which is the same answer as at its own width",
                 abs (Squeezed - At_Own_W) < 0.5);
       end;
+   end;
+
+   New_Line;
+
+   --  The width query has to be the widget's own measurement.
+   --
+   --  Most widgets do not answer the width query themselves: they
+   --  inherit the default, which forwards to Measure_Content. That
+   --  forward has to dispatch, or it answers out of the base item list
+   --  for widgets that deliberately measure differently. An image is the
+   --  clearest case: Adi.Widget.Image reports no size of its own,
+   --  because an image is scaled by the layout, while the item list
+   --  carries the bitmap's pixel dimensions.
+   Put_Line ("=== the width query dispatches to the widget's measurement ===");
+   declare
+      Pic : constant Adi.Widget.Image.Image_Handle :=
+        Adi.Widget.Image.Create_Handle;
+      PicW : constant Widget_Handle :=
+        Adi.Widget.Image.To_Widget_Handle (Pic);
+      Tall : Adi.Image.Image_Access :=
+        Adi.Image.Load_SVG_Path
+          (Path_Data => "M0 0h20v600h-20z",
+           Size      => (Width => 200.0, Height => 600.0),
+           Fill      => (R => 255, G => 255, B => 255, A => 255));
+      Loaded : constant Boolean :=
+        Adi.Image."/=" (Tall, null) and then Adi.Image.Is_Valid (Tall.all);
+      Unconstrained, At_Width : Pixel_Type;
+   begin
+      --  Without a real bitmap behind it there is nothing for the base
+      --  measurement to report, and the two answers would agree for the
+      --  wrong reason.
+      Check ("the fixture image loaded", Loaded);
+
+      if Loaded then
+         Adi.Widget.Image.Set_Image (Pic, Tall);
+
+         --  The item that carries the bitmap only exists once the widget
+         --  has been built, which is what a rendered frame does.
+         --  Measuring before that would find an empty item list and
+         --  agree by accident.
+         Set_Geometry (PicW, (0.0, 0.0, 100.0, 40.0));
+         Layout_Tree (PicW);
+         Rebuild_All_Items (PicW);
+         Put_Line ("  items on the image widget:"
+                   & Natural'Image (Item_Count (PicW)));
+
+         Unconstrained := Get_Preferred_Size (PicW).Height;
+         At_Width := Measure_At_Width (PicW, 100.0).Height;
+
+         Put_Line ("  image preferred h=" & Pixel_Type'Image (Unconstrained)
+                   & "  at width 100 h=" & Pixel_Type'Image (At_Width));
+
+         Check ("the image widget has an item carrying the bitmap",
+                Item_Count (PicW) > 0);
+         Check ("an image reports no height of its own",
+                Unconstrained = 0.0);
+         Check ("and answers the width query the same way, not with the "
+                & "bitmap's pixel height",
+                At_Width = Unconstrained);
+
+         --  Drop the item's reference to the bitmap before releasing it.
+         Adi.Widget.Image.Set_Image (Pic, null);
+         Rebuild_All_Items (PicW);
+         Adi.Image.Free (Tall);
+      end if;
+   end;
+
+   New_Line;
+
+   --  The same defect through the structure that showed it: a grid of
+   --  fixed height, each cell a column card holding scalable content
+   --  that grows and a caption that does not. The grid sizes rows by
+   --  asking each child its height at the cell width, so a card that
+   --  answers with its image's pixel height drags the row -- and the
+   --  whole grid -- to the size of the bitmap.
+   Put_Line ("=== a card of scalable content stays in its grid cell ===");
+   declare
+      Grid : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Card : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Pic  : constant Adi.Widget.Image.Image_Handle :=
+        Adi.Widget.Image.Create_Handle;
+      Cap  : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("caption");
+
+      Tall : Adi.Image.Image_Access :=
+        Adi.Image.Load_SVG_Path
+          (Path_Data => "M0 0h20v600h-20z",
+           Size      => (Width => 200.0, Height => 600.0),
+           Fill      => (R => 255, G => 255, B => 255, A => 255));
+      Loaded : constant Boolean :=
+        Adi.Image."/=" (Tall, null) and then Adi.Image.Is_Valid (Tall.all);
+
+      Grid_H : constant Pixel_Type := 150.0;
+      Grid_Rules : constant Style_Rules :=
+        (Display               => Set (Adi.CSS_Styles.Grid),
+         Grid_Columns          => Set (Grid_Columns_Value (2)),
+         Gap                   => Set (Gap (Px (8.0))),
+         Height                => Set (Size (Px (Float (Grid_H)))),
+         others                => <>);
+      Card_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Column),
+         Gap            => Set (Gap (Px (8.0))),
+         Padding        => Set (CSS_Box (Px (8), Px (8), Px (8), Px (8))),
+         others         => <>);
+      --  Scalable: takes what is left, demands nothing.
+      Pic_Rules : constant Style_Rules :=
+        (Flex_Grow => Set (1.0), others => <>);
+      --  The caption keeps its height whatever happens to the card.
+      Cap_Rules : constant Style_Rules :=
+        (Flex_Shrink => Set (0.0), others => <>);
+      function Contains (Outer, Inner : Rectangle) return Boolean is
+        (Inner.Y >= Outer.Y - 0.5
+         and then Inner.Y + Inner.Height <= Outer.Y + Outer.Height + 0.5);
+   begin
+      Check ("the fixture image loaded", Loaded);
+
+      if Loaded then
+         Adi.Widget.Image.Set_Image (Pic, Tall);
+
+         Set_Part_Style (+Grid, Main_Part, From (Grid_Rules).Build);
+         Set_Part_Style (+Card, Main_Part, From (Card_Rules).Build);
+         Set_Part_Style (Adi.Widget.Image.To_Widget_Handle (Pic), Main_Part,
+                         From (Pic_Rules).Build);
+         Set_Part_Style (+Cap, Main_Part, From (Cap_Rules).Build);
+
+         Add_Child (+Card, Adi.Widget.Image.To_Widget_Handle (Pic));
+         Add_Child (+Card, +Cap);
+         Add_Child (+Grid, +Card);
+
+         Set_Geometry (+Grid, (0.0, 0.0, 400.0, Grid_H));
+
+         --  Two frames: the first lays out and builds the items, the
+         --  second lays out again with those items in place. The grid
+         --  measures its cells on every pass, so the second one is where
+         --  a measurement taken off the bitmap would reach the row
+         --  heights.
+         Layout_Tree (+Grid);
+         Rebuild_All_Items (+Grid);
+         Mark_Dirty (+Grid);
+         Layout_Tree (+Grid);
+
+         declare
+            --  The box the grid was given, not the one it ended up
+            --  with: under the defect the grid grew to fit the bitmap,
+            --  so everything stayed nested inside a container that had
+            --  itself swollen off the screen.
+            Given : constant Rectangle := (0.0, 0.0, 400.0, Grid_H);
+            Grid_G : constant Rectangle := Get_Geometry (+Grid);
+            Card_G : constant Rectangle := Get_Geometry (+Card);
+            Cap_G  : constant Rectangle := Get_Geometry (+Cap);
+         begin
+            Put_Line ("  grid  y=" & Pixel_Type'Image (Grid_G.Y)
+                      & " h=" & Pixel_Type'Image (Grid_G.Height)
+                      & "   card y=" & Pixel_Type'Image (Card_G.Y)
+                      & " h=" & Pixel_Type'Image (Card_G.Height)
+                      & "   caption y=" & Pixel_Type'Image (Cap_G.Y)
+                      & " h=" & Pixel_Type'Image (Cap_G.Height));
+
+            Check ("the card stays within the height the grid was given",
+                   Contains (Given, Card_G));
+            Check ("the caption stays inside the card",
+                   Contains (Card_G, Cap_G));
+            --  The one that was visible: the caption ended up hundreds
+            --  of pixels below the grid, where nothing is drawn.
+            Check ("so the caption is still on screen",
+                   Contains (Given, Cap_G));
+            Check ("and the grid keeps the height it was set",
+                   abs (Grid_G.Height - Grid_H) < 0.5);
+         end;
+
+         --  Drop the item's reference to the bitmap before releasing it.
+         Adi.Widget.Image.Set_Image (Pic, null);
+         Rebuild_All_Items (+Grid);
+         Adi.Image.Free (Tall);
+      end if;
    end;
 
    New_Line;

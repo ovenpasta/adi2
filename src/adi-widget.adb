@@ -6756,12 +6756,20 @@ package body Adi.Widget is
         (Available, Adi.Font.Measure_Min_Text_Width (Attrs, Content));
    end Effective_Wrap_Width;
 
+   --  A widget whose size does not depend on the width it is given
+   --  answers the width query with its ordinary measurement. That has to
+   --  be the *widget's* measurement, not this base one: far more widgets
+   --  override Measure_Content than override this, so calling
+   --  Measure_Content on the Widget view here would answer for all of
+   --  those out of the item list -- reporting, for instance, an image's
+   --  intrinsic pixel height where Adi.Widget.Image deliberately reports
+   --  nothing, because an image is scaled by the layout.
    function Measure_Content_At_Width
      (W : Widget; Assigned_Width : Pixel_Type) return Size_2D
    is
       pragma Unreferenced (Assigned_Width);
    begin
-      return Measure_Content (W);
+      return Measure_Content (Widget'Class (W));
    end Measure_Content_At_Width;
 
    --  Same shape as Get_Preferred_Size: a declared size wins, and only

@@ -334,6 +334,53 @@ package Html_View_Example_Styles is
       Font_Size => Set_Font (Px (13.0)),
       others => <>);
 
+   --  Base style for class 'context-menu'
+   function Context_Menu_Class_Base_Style return Style_Rules is
+     (
+      Width => Set (Size (Px (200.0))),
+      Background_Color => Set_Bg (RGB (252, 248, 242)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (10.0), Px (26.0), Px (0.0), RGBA (72, 58, 43, 0.28))),
+      Padding => Set (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0))),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (178, 159, 136))),
+      Border_Radius => Set (Radius (Px (8.0))),
+      others => <>);
+
+   --  Base style for class 'context-menu-item'
+   function Context_Menu_Item_Class_Base_Style return Style_Rules is
+     (
+      Min_Height => Set (Size (Px (28.0))),
+      Background_Color => Set_Bg (RGBA (252, 248, 242, 0.0)),
+      Padding => Set (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0))),
+      Border_Radius => Set (Radius (Px (6.0))),
+      others => <>);
+
+   --  Style for class 'context-menu-item' when widget State_Hovered
+   function Context_Menu_Item_Class_Widget_Hovered_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGBA (134, 111, 86, 0.28)),
+      others => <>);
+
+   --  Style for class 'context-menu-item' when widget State_Disabled
+   function Context_Menu_Item_Class_Widget_Disabled_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGBA (252, 248, 242, 0.0)),
+      others => <>);
+
+   --  Base style for class 'context-menu-item'::label
+   function Context_Menu_Item_Class_Label_Base_Style return Style_Rules is
+     (
+      Color => Set (RGB (54, 46, 37)),
+      Font_Size => Set_Font (Px (13.0)),
+      others => <>);
+
+   --  Style for class 'context-menu-item'::label when widget State_Disabled
+   function Context_Menu_Item_Class_Label_Widget_Disabled_Style return Style_Rules is
+     (
+      Color => Set (RGB (160, 142, 121)),
+      others => <>);
+
    --  Complete widget style for class 'root'
    function Root_Class_Widget return Widget_Style is
      (From (Root_Class_Base_Style)
@@ -596,6 +643,39 @@ package Html_View_Example_Styles is
      ([
       Main_Part => (Style => Status_Class_Widget, Enabled => True),
       Label_Part => (Style => Status_Class_Label_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'context-menu'
+   function Context_Menu_Class_Widget return Widget_Style is
+     (From (Context_Menu_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'context-menu'
+   function Context_Menu_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Context_Menu_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'context-menu-item'
+   function Context_Menu_Item_Class_Widget return Widget_Style is
+     (From (Context_Menu_Item_Class_Base_Style)
+     .On (When_State (State_Hovered), Context_Menu_Item_Class_Widget_Hovered_Style)
+     .On (When_State (State_Disabled), Context_Menu_Item_Class_Widget_Disabled_Style)
+     .Build);
+
+   --  Complete widget style for class 'context-menu-item'::label
+   function Context_Menu_Item_Class_Label_Widget return Widget_Style is
+     (From (Context_Menu_Item_Class_Label_Base_Style)
+     .On (When_State (State_Disabled), Context_Menu_Item_Class_Label_Widget_Disabled_Style)
+     .Build);
+
+   --  Part styles bundle for class 'context-menu-item'
+   function Context_Menu_Item_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Context_Menu_Item_Class_Widget, Enabled => True),
+      Label_Part => (Style => Context_Menu_Item_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
 

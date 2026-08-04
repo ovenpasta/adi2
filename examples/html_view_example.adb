@@ -13,6 +13,7 @@ with Adi.Widget;          use Adi.Widget;
 with Adi.Widget.Button;   use Adi.Widget.Button;
 with Adi.Widget.Button.Options;
 with Adi.Widget.Box;
+with Adi.Widget.Context_Menu;
 with Adi.Widget.Html_View;
 with Adi.Widget.Label;
 with Adi.Widget.Slider;
@@ -40,6 +41,13 @@ procedure Html_View_Example is
 begin
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
+
+   --  The context menu is an overlay a widget raises for itself, so it
+   --  takes package defaults rather than a class on anything in the tree.
+   Adi.Widget.Context_Menu.Set_Default_Menu_Styles
+     (Html_View_Example_Styles.Context_Menu_Class_Part_Styles);
+   Adi.Widget.Context_Menu.Set_Default_Item_Styles
+     (Html_View_Example_Styles.Context_Menu_Item_Class_Part_Styles);
 
    declare
       W : constant Adi.Window.Window_Handle :=

@@ -809,43 +809,108 @@ package body Adi.Layout_Util is
       Free_Space := Available_Space - Total_Flex_Basis;
 
       --  Step 3: Distribute free space (grow or shrink)
-      if Free_Space > 0.0 and Total_Grow > 0.0 then
-         --  Grow items
-         for I in Children'Range loop
+      --
+      --  An item that hits its own minimum or maximum stops absorbing,
+      --  and what it could not take has to go to the items that still
+      --  have room. Distributing once and clamping drops that remainder:
+      --  a row of four where two are already at their minimum kept the
+      --  share meant for those two, so the line overflowed by exactly
+      --  that much even though the others could have shrunk further.
+      --
+      --  So: freeze the items that violate a limit, re-measure the space
+      --  left, and share it among the rest -- repeating, because freezing
+      --  one item changes every other item's share. Bounded by the
+      --  child count, since each pass freezes at least one item.
+      --  CSS Flexbox 9.7 "Resolving Flexible Lengths".
+      declare
+         Frozen : array (Children'Range) of Boolean := [others => False];
+
+         function Any_Unfrozen return Boolean is
+           (for some F of Frozen => not F);
+      begin
+         for Pass in 1 .. Num_Children loop
+            exit when not Any_Unfrozen;
+
             declare
-               Child : Flex_Child_Info renames Children(I);
-               Growth : Pixel_Type;
+               --  Space the unfrozen items have to absorb between them,
+               --  counting what the frozen ones have already taken.
+               Used    : Pixel_Type := 0.0;
+               Weights : Float := 0.0;
+               Remain  : Pixel_Type;
+               Growing : Boolean;
+               Violated : Boolean := False;
             begin
-               if Child.Flex_Grow > 0.0 then
-                  Growth := Pixel_Type(Float(Free_Space) * Child.Flex_Grow / Total_Grow);
-                  Child.Computed_Main := Child.Computed_Main + Growth;
-                  --  Clamp to max
-                  Child.Computed_Main := Pixel_Type'Min(Child.Max_Main, Child.Computed_Main);
-               end if;
+               for I in Children'Range loop
+                  Used := Used + Children (I).Computed_Main;
+               end loop;
+               Remain := Available_Space - Used;
+
+               exit when abs (Remain) < 0.01;
+               Growing := Remain > 0.0;
+
+               for I in Children'Range loop
+                  if not Frozen (I) then
+                     declare
+                        Child : Flex_Child_Info renames Children (I);
+                     begin
+                        if Growing then
+                           Weights := Weights + Child.Flex_Grow;
+                        else
+                           Weights := Weights + Child.Flex_Shrink
+                                                * Float (Child.Computed_Main);
+                        end if;
+                     end;
+                  end if;
+               end loop;
+
+               exit when Weights <= 0.0;
+
+               for I in Children'Range loop
+                  if not Frozen (I) then
+                     declare
+                        Child : Flex_Child_Info renames Children (I);
+                        Share : Float;
+                        Want  : Pixel_Type;
+                     begin
+                        if Growing then
+                           Share := Child.Flex_Grow / Weights;
+                        else
+                           Share := Child.Flex_Shrink
+                                    * Float (Child.Computed_Main) / Weights;
+                        end if;
+
+                        if Share > 0.0 then
+                           Want := Child.Computed_Main
+                                   + Pixel_Type (Float (Remain) * Share);
+
+                           --  A limit reached is a violation: take the
+                           --  limit and stop distributing to this item.
+                           if Want < Child.Min_Main then
+                              Child.Computed_Main := Child.Min_Main;
+                              Frozen (I) := True;
+                              Violated := True;
+                           elsif Want > Child.Max_Main then
+                              Child.Computed_Main := Child.Max_Main;
+                              Frozen (I) := True;
+                              Violated := True;
+                           else
+                              Child.Computed_Main := Want;
+                           end if;
+                        else
+                           --  No flexibility on this axis: it keeps its
+                           --  basis and takes no part in later passes.
+                           Frozen (I) := True;
+                        end if;
+                     end;
+                  end if;
+               end loop;
+
+               --  Nothing hit a limit, so the distribution landed
+               --  exactly and there is nothing left to reshare.
+               exit when not Violated;
             end;
          end loop;
-      elsif Free_Space < 0.0 and Total_Shrink > 0.0 then
-         --  Shrink items
-         declare
-            Shrink_Space : constant Pixel_Type := -Free_Space;
-         begin
-            for I in Children'Range loop
-               declare
-                  Child : Flex_Child_Info renames Children(I);
-                  Shrink_Factor : Float;
-                  Shrinkage : Pixel_Type;
-               begin
-                  if Child.Flex_Shrink > 0.0 then
-                     Shrink_Factor := Child.Flex_Shrink * Float(Child.Computed_Main) / Total_Shrink;
-                     Shrinkage := Pixel_Type(Float(Shrink_Space) * Shrink_Factor);
-                     Child.Computed_Main := Child.Computed_Main - Shrinkage;
-                     --  Clamp to min
-                     Child.Computed_Main := Pixel_Type'Max(Child.Min_Main, Child.Computed_Main);
-                  end if;
-               end;
-            end loop;
-         end;
-      end if;
+      end;
 
       --  Step 4: Calculate actual used space after grow/shrink
       declare

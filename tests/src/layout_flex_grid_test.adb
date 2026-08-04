@@ -99,6 +99,102 @@ procedure Layout_Flex_Grid_Test is
                    "flex items remain non-overlapping in order");
    end Test_Flex_Shrink_Min;
 
+   --  An item that cannot absorb its share leaves the rest to the items
+   --  that still can. Distributing once and clamping loses that share,
+   --  and the line overflows by exactly the amount the clamped items
+   --  refused -- even though the others had room for all of it.
+   procedure Test_Flex_Shrink_Redistributes_Past_Frozen_Items is
+      Container_W : constant Pixel_Type := 360.0;
+      Ctx : Flex_Layout_Context := (
+         Container       => (0.0, 0.0, Container_W, 40.0),
+         Direction       => Row,
+         Wrap            => No_Wrap,
+         Justify_Content => Flex_Start,
+         Align_Items     => Stretch,
+         Align_Content   => Stretch,
+         Row_Gap         => 0.0,
+         Column_Gap      => 0.0
+      );
+      --  Two items pinned at their minimum, two with room to give.
+      --  Bases total 700 against 360, and the minimums total 235, so a
+      --  correct distribution fits with room to spare.
+      Kids : Flex_Child_Info_Array (1 .. 4);
+      Rects : Rectangle_Array (1 .. 4);
+      Total : Pixel_Type := 0.0;
+   begin
+      Kids (1) := (Flex_Grow => 0.0, Flex_Shrink => 1.0, Flex_Basis => 100.0,
+                   Min_Main => 100.0, Max_Main => Pixel_Type'Last,
+                   Min_Cross => 0.0, Max_Cross => Pixel_Type'Last,
+                   Content_Main => 100.0, Content_Cross => 20.0, others => <>);
+      Kids (2) := (Flex_Grow => 0.0, Flex_Shrink => 1.0, Flex_Basis => 440.0,
+                   Min_Main => 0.0, Max_Main => Pixel_Type'Last,
+                   Min_Cross => 0.0, Max_Cross => Pixel_Type'Last,
+                   Content_Main => 440.0, Content_Cross => 20.0, others => <>);
+      Kids (3) := (Flex_Grow => 0.0, Flex_Shrink => 1.0, Flex_Basis => 60.0,
+                   Min_Main => 60.0, Max_Main => Pixel_Type'Last,
+                   Min_Cross => 0.0, Max_Cross => Pixel_Type'Last,
+                   Content_Main => 60.0, Content_Cross => 20.0, others => <>);
+      Kids (4) := (Flex_Grow => 0.0, Flex_Shrink => 1.0, Flex_Basis => 100.0,
+                   Min_Main => 75.0, Max_Main => Pixel_Type'Last,
+                   Min_Cross => 0.0, Max_Cross => Pixel_Type'Last,
+                   Content_Main => 100.0, Content_Cross => 20.0, others => <>);
+
+      Compute_Flex_Layout (Ctx, Kids);
+      Rects := Flex_To_Rectangles (Ctx, Kids);
+
+      for R of Rects loop
+         Total := Total + R.Width;
+      end loop;
+
+      Assert_True (Total <= Container_W + Eps,
+                   "shrinking fits the line when the minimums allow it");
+      Assert_True (Rects (1).Width >= 100.0 - Eps
+                   and then Rects (3).Width >= 60.0 - Eps
+                   and then Rects (4).Width >= 75.0 - Eps,
+                   "no item is shrunk below its own minimum");
+      Assert_True
+        (Rects (4).X + Rects (4).Width <= Container_W + Eps,
+         "the last item stays inside the container instead of hanging "
+         & "off the end");
+   end Test_Flex_Shrink_Redistributes_Past_Frozen_Items;
+
+   --  The same remainder rule going the other way: an item that hits its
+   --  maximum leaves the growth it cannot take to the others.
+   procedure Test_Flex_Grow_Redistributes_Past_Maxed_Items is
+      Container_W : constant Pixel_Type := 400.0;
+      Ctx : Flex_Layout_Context := (
+         Container       => (0.0, 0.0, Container_W, 40.0),
+         Direction       => Row,
+         Wrap            => No_Wrap,
+         Justify_Content => Flex_Start,
+         Align_Items     => Stretch,
+         Align_Content   => Stretch,
+         Row_Gap         => 0.0,
+         Column_Gap      => 0.0
+      );
+      Kids : Flex_Child_Info_Array (1 .. 2);
+      Rects : Rectangle_Array (1 .. 2);
+   begin
+      --  Equal grow factors over 300px of free space: 150 each, but the
+      --  first cannot pass 120, so the second should take the rest.
+      Kids (1) := (Flex_Grow => 1.0, Flex_Shrink => 1.0, Flex_Basis => 50.0,
+                   Min_Main => 0.0, Max_Main => 120.0,
+                   Min_Cross => 0.0, Max_Cross => Pixel_Type'Last,
+                   Content_Main => 50.0, Content_Cross => 20.0, others => <>);
+      Kids (2) := (Flex_Grow => 1.0, Flex_Shrink => 1.0, Flex_Basis => 50.0,
+                   Min_Main => 0.0, Max_Main => Pixel_Type'Last,
+                   Min_Cross => 0.0, Max_Cross => Pixel_Type'Last,
+                   Content_Main => 50.0, Content_Cross => 20.0, others => <>);
+
+      Compute_Flex_Layout (Ctx, Kids);
+      Rects := Flex_To_Rectangles (Ctx, Kids);
+
+      Assert_True (abs (Rects (1).Width - 120.0) < Eps,
+                   "the capped item stops at its maximum");
+      Assert_True (abs (Rects (2).Width - 280.0) < Eps,
+                   "the growth it could not take goes to the other item");
+   end Test_Flex_Grow_Redistributes_Past_Maxed_Items;
+
    procedure Test_Flex_Margins is
       Ctx : Flex_Layout_Context := (
          Container       => (0.0, 0.0, 200.0, 80.0),
@@ -866,6 +962,8 @@ begin
 
    Test_Flex_Grow_Resize;
    Test_Flex_Shrink_Min;
+   Test_Flex_Shrink_Redistributes_Past_Frozen_Items;
+   Test_Flex_Grow_Redistributes_Past_Maxed_Items;
    Test_Cross_Axis_Stretch_Respects_Declared_Size;
    Test_Row_Stretch_Respects_Declared_Height;
    Test_Percentage_Cross_Size_Resolves_Against_The_Line;

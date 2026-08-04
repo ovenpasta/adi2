@@ -15,6 +15,7 @@ Every example program in [`examples/`](../examples/), captured as a screenshot. 
 *`combo_box_example`*
 
 ![demo_flex](../examples/screenshots/demo_flex.png)
+![demo_flex](../examples/screenshots/demo_flex_2.png)
 *`demo_flex`*
 
 ![dialog_example](../examples/screenshots/dialog_example.png)

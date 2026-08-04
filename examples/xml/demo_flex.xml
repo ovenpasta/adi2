@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="examples/css/demo_flex.css"/>
+
+  <window title="Flex Layout Reference" width="900" height="760">
+    <box id="Root" class="root">
+      <label text="Flex Layout Reference" class="title"/>
+
+      <!-- flex-direction -->
+      <box class="section">
+        <label text="flex-direction" class="caption"/>
+        <label text="Which way the main axis runs, and from which end it starts."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="row" class="case-label"/>
+            <box class="demo tall dir-row">
+              <label text="1" class="item"/>
+              <label text="2" class="item"/>
+              <label text="3" class="item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="row-reverse" class="case-label"/>
+            <box class="demo tall dir-row-rev">
+              <label text="1" class="item"/>
+              <label text="2" class="item"/>
+              <label text="3" class="item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="column" class="case-label"/>
+            <box class="demo tall dir-col">
+              <label text="1" class="item"/>
+              <label text="2" class="item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="column-reverse" class="case-label"/>
+            <box class="demo tall dir-col-rev">
+              <label text="1" class="item"/>
+              <label text="2" class="item"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- flex-grow -->
+      <box class="section">
+        <label text="flex-grow" class="caption"/>
+        <label text="Free space is shared by grow factor: 1, 2, 1. The last item has grow 0 and keeps its 70px."
+               class="note"/>
+        <box class="demo short">
+          <box class="item bar grow-1"/>
+          <box class="item bar grow-2"/>
+          <box class="item bar grow-1"/>
+          <box class="item bar grow-0"/>
+        </box>
+      </box>
+
+      <!-- flex-shrink -->
+      <box class="section">
+        <label text="flex-shrink" class="caption"/>
+        <label text="Three 160px items in a 320px row. The red one has shrink 0 and keeps its width; the overflow comes off the other two."
+               class="note"/>
+        <box class="demo short w320">
+          <box class="item bar shrink-yes"/>
+          <box class="item bar shrink-no"/>
+          <box class="item bar shrink-yes"/>
+        </box>
+      </box>
+
+      <!-- flex-basis -->
+      <box class="section">
+        <label text="flex-basis" class="caption"/>
+        <label text="Starting sizes of 40, 120 and 200px. Equal grow factors add the same amount to each, so the differences survive."
+               class="note"/>
+        <box class="demo short">
+          <box class="item bar basis-40"/>
+          <box class="item bar basis-120"/>
+          <box class="item bar basis-200"/>
+        </box>
+      </box>
+
+      <!-- justify-content -->
+      <box class="section">
+        <label text="justify-content" class="caption"/>
+        <label text="Where leftover main-axis space goes." class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="flex-start" class="case-label"/>
+            <box class="demo short just-start">
+              <box class="item"/><box class="item"/><box class="item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="center" class="case-label"/>
+            <box class="demo short just-center">
+              <box class="item"/><box class="item"/><box class="item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="flex-end" class="case-label"/>
+            <box class="demo short just-end">
+              <box class="item"/><box class="item"/><box class="item"/>
+            </box>
+          </box>
+        </box>
+        <box class="cases">
+          <box class="case">
+            <label text="space-between" class="case-label"/>
+            <box class="demo short just-between">
+              <box class="item"/><box class="item"/><box class="item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="space-around" class="case-label"/>
+            <box class="demo short just-around">
+              <box class="item"/><box class="item"/><box class="item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="space-evenly" class="case-label"/>
+            <box class="demo short just-evenly">
+              <box class="item"/><box class="item"/><box class="item"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- align-items -->
+      <box class="section">
+        <label text="align-items" class="caption"/>
+        <label text="Cross-axis placement. The third item has no height of its own, so only stretch gives it one."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="flex-start" class="case-label"/>
+            <box class="demo tall align-start">
+              <box class="item h20"/><box class="item h40"/><box class="item h-auto"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="center" class="case-label"/>
+            <box class="demo tall align-center">
+              <box class="item h20"/><box class="item h40"/><box class="item h-auto"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="flex-end" class="case-label"/>
+            <box class="demo tall align-end">
+              <box class="item h20"/><box class="item h40"/><box class="item h-auto"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="stretch" class="case-label"/>
+            <box class="demo tall align-stretch">
+              <box class="item h20"/><box class="item h40"/><box class="item h-auto"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- min-size freeze and redistribution -->
+      <box class="section">
+        <label text="min-size freeze and redistribution" class="caption"/>
+        <label text="620px of flex-basis in a 480px row. The two red items are already at their min-width and can give up nothing, so the green ones absorb the whole overflow and the row still ends flush with its border. Sharing the overflow by basis alone would leave the red items' share unabsorbed and the row would spill past the right edge."
+               class="note"/>
+        <box class="demo short w480">
+          <box class="item bar pinned"/>
+          <box class="item bar elastic"/>
+          <box class="item bar pinned"/>
+          <box class="item bar elastic"/>
+        </box>
+      </box>
+    </box>
+  </window>
+</adi>

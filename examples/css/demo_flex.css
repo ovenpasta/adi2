@@ -1,26 +1,196 @@
-.box-base {
+/*  The bar sits over the content rather than beside it, so both track
+    and knob stay translucent and firm up only under the pointer. */
+
+.root::scroll {
+  width: 10px;
+  background-color: rgba(94, 129, 172, 0.06);
+  border-radius: 5px;
+  transition: background-color 160ms ease-out;
+}
+
+.root::scroll:hover {
+  background-color: rgba(94, 129, 172, 0.16);
+}
+
+.root::knob {
+  background-image: linear-gradient(to right,
+                                    rgba(129, 161, 193, 0.30),
+                                    rgba(94, 129, 172, 0.30));
   border-width: 1px;
-  border-color: gray;
   border-style: solid;
-  border-radius: 4px;
-  min-width: 20px;
-  min-height: 20px;
+  border-color: rgba(236, 239, 244, 0.10);
+  border-radius: 5px;
+  transition: background-image 160ms ease-out, border-color 160ms ease-out;
 }
 
-.flex-container {
+.root::knob:hover {
+  background-image: linear-gradient(to right,
+                                    rgba(143, 176, 209, 0.85),
+                                    rgba(108, 143, 186, 0.85));
+  border-color: rgba(236, 239, 244, 0.28);
+}
+
+.root {
   display: flex;
-  border-width: 2px;
-  border-color: gray;
-  border-style: solid;
-  border-radius: 8px;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+  overflow-y: auto;
+  background-color: rgb(24, 26, 33);
 }
 
-.row-base {
+.title::label {
+  color: rgb(236, 239, 244);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  padding-right: 14px;
+}
+
+.caption::label {
+  color: rgb(163, 190, 140);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.note::label {
+  color: rgb(150, 158, 172);
+  font-size: 12px;
+}
+
+.cases {
   display: flex;
   flex-direction: row;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* One value of an axis, under its own label. */
+.case {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   flex-grow: 1;
-  justify-content: flex-start;
-  align-items: stretch;
-  gap: 15px;
-  background-color: transparent;
+  min-width: 0px;
+}
+
+.case-label::label {
+  color: rgb(150, 158, 172);
+  font-size: 11px;
+}
+
+.demo {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  border-width: 2px;
+  border-color: rgb(94, 129, 172);
+  border-style: solid;
+  border-radius: 6px;
+  padding: 6px;
+  gap: 6px;
+  background-color: rgb(35, 38, 48);
+}
+
+.item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  background-color: rgb(94, 129, 172);
+}
+
+.item::label {
+  color: rgb(24, 26, 33);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tall  { height: 70px; }
+.short { height: 46px; }
+
+/* Items that size along the main axis instead of staying square. */
+.bar { width: auto; }
+
+/* flex-direction */
+
+.dir-row     { flex-direction: row; }
+.dir-row-rev { flex-direction: row-reverse; }
+.dir-col     { flex-direction: column; }
+.dir-col-rev { flex-direction: column-reverse; }
+
+/* flex-grow */
+
+.grow-1 { flex-grow: 1; background-color: rgb(163, 190, 140); }
+.grow-2 { flex-grow: 2; background-color: rgb(235, 203, 139); }
+.grow-0 { flex-grow: 0; width: 70px; }
+
+/* flex-shrink */
+
+.w320 { width: 320px; }
+
+.shrink-yes {
+  flex-basis: 160px;
+  flex-shrink: 1;
+  min-width: 0px;
+  background-color: rgb(163, 190, 140);
+}
+
+.shrink-no {
+  flex-basis: 160px;
+  flex-shrink: 0;
+  background-color: rgb(191, 97, 106);
+}
+
+/* flex-basis */
+
+.basis-40  { flex-basis: 40px;  flex-grow: 1; background-color: rgb(163, 190, 140); }
+.basis-120 { flex-basis: 120px; flex-grow: 1; background-color: rgb(235, 203, 139); }
+.basis-200 { flex-basis: 200px; flex-grow: 1; background-color: rgb(180, 142, 173); }
+
+/* justify-content */
+
+.just-start   { justify-content: flex-start; }
+.just-center  { justify-content: center; }
+.just-end     { justify-content: flex-end; }
+.just-around  { justify-content: space-around; }
+.just-between { justify-content: space-between; }
+.just-evenly  { justify-content: space-evenly; }
+
+/* align-items */
+
+.align-start   { align-items: flex-start; }
+.align-center  { align-items: center; }
+.align-end     { align-items: flex-end; }
+.align-stretch { align-items: stretch; }
+
+.h20  { height: 20px; }
+.h40  { height: 40px; background-color: rgb(94, 129, 172); }
+.h-auto { height: auto; background-color: rgb(180, 142, 173); }
+
+/* min-size freeze and redistribution */
+
+.w480 { width: 480px; }
+
+/* Basis equals min-width: these cannot give up any of their share. */
+.pinned {
+  flex-basis: 90px;
+  min-width: 90px;
+  flex-shrink: 1;
+  background-color: rgb(191, 97, 106);
+}
+
+.elastic {
+  flex-basis: 220px;
+  min-width: 0px;
+  flex-shrink: 1;
+  background-color: rgb(163, 190, 140);
 }

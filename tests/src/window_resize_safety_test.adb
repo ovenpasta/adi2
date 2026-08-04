@@ -22,6 +22,7 @@ with Adi.Widget.Stack;
 with Adi.Widget.Text_Editor;
 with Adi.Widget_Styles;       use Adi.Widget_Styles;
 with Adi.Window;
+with Test_Mouse_Probe;
 with Test_Support;            use Test_Support;
 
 procedure Window_Resize_Safety_Test is
@@ -1752,6 +1753,161 @@ procedure Window_Resize_Safety_Test is
          Assert (False, "Unexpected exception: " & Exception_Name (E));
    end Test_Open_Dropdown_Follows_Scroll;
 
+   --  Hit-testing finding the right widget is only half the contract:
+   --  the point handed to that widget has to be in stored layout space,
+   --  the one its own geometry is in, or everything the widget does with
+   --  it -- picking a part, placing a cursor, starting a drag -- lands
+   --  somewhere else. Scrolled ancestors are what separates that space
+   --  from the window's, so the probe sits under two of them.
+   procedure Test_Mouse_Coordinates_Cross_Scrolled_Ancestors is
+      Ready : Boolean := False;
+      W     : Adi.Window.Window_Handle;
+      Win   : Adi.Window.Window_Access;
+      Root  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Outer : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Inner : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Spacer_A : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Spacer_B : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Probe : constant Widget_Handle := Test_Mouse_Probe.Create_Handle;
+
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         others         => <>);
+      --  Both containers scroll their own content, and both are shorter
+      --  than what they hold.
+      Outer_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         Overflow_Y     => Set (Overflow_Auto),
+         Height         => Set (Size (Px (150.0))),
+         Min_Height     => Set (Size (Px (150.0))),
+         others         => <>);
+      Inner_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         Overflow_Y     => Set (Overflow_Auto),
+         Height         => Set (Size (Px (120.0))),
+         Min_Height     => Set (Size (Px (120.0))),
+         others         => <>);
+      Item_Rules : constant Style_Rules :=
+        (Height     => Set (Size (Px (100.0))),
+         Min_Height => Set (Size (Px (100.0))),
+         others     => <>);
+
+      Off_Outer, Off_Inner, Total_Off : Pixel_Type;
+      Probe_G : Rectangle;
+      Win_X, Win_Y : Pixel_Type;
+
+      function In_Probe (P : Point) return Boolean is
+        (P.X >= Probe_G.X and then P.X <= Probe_G.X + Probe_G.Width
+         and then P.Y >= Probe_G.Y
+         and then P.Y <= Probe_G.Y + Probe_G.Height);
+   begin
+      Put_Line ("Test: mouse coordinates arrive in stored layout space");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Outer, Main_Part, From (Outer_Rules).Build);
+      Set_Part_Style (+Inner, Main_Part, From (Inner_Rules).Build);
+      Set_Part_Style (+Spacer_A, Main_Part, From (Item_Rules).Build);
+      Set_Part_Style (+Spacer_B, Main_Part, From (Item_Rules).Build);
+      Set_Part_Style (Probe, Main_Part, From (Item_Rules).Build);
+
+      Add_Child (+Inner, +Spacer_B);
+      Add_Child (+Inner, Probe);
+      Add_Child (+Outer, +Spacer_A);
+      Add_Child (+Outer, +Inner);
+      Add_Child (+Root, +Outer);
+
+      W := Adi.Window.Create_Window_Handle ("Mouse Space Probe", (300.0, 400.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
+      Win := Adi.Window.Resolve_Window_Handle (W);
+
+      --  Scroll both containers as far as they will go, then read back
+      --  what they accepted: the clamp depends on measured content.
+      Set_Scroll_Offset_Y (+Outer, 70.0);
+      Set_Scroll_Offset_Y (+Inner, 80.0);
+      Adi.Window.Render (W);
+
+      Off_Outer := Get_Scroll_Offset_Y (+Outer);
+      Off_Inner := Get_Scroll_Offset_Y (+Inner);
+      Total_Off := Off_Outer + Off_Inner;
+
+      Assert (Off_Outer > 0.0 and then Off_Inner > 0.0,
+              "both containers actually scrolled, so the two spaces differ");
+      if Off_Outer <= 0.0 or else Off_Inner <= 0.0 then
+         Adi.Window.Destroy (W);
+         return;
+      end if;
+
+      --  Aim at the middle of the probe as it is drawn: stored position
+      --  less every ancestor offset that shifted it on screen.
+      Probe_G := Get_Geometry (Probe);
+      Win_X := Probe_G.X + 10.0;
+      Win_Y := Probe_G.Y + Probe_G.Height / 2.0 - Total_Off;
+
+      Put_Line ("    probe stored y=" & Pixel_Type'Image (Probe_G.Y)
+                & " offsets" & Pixel_Type'Image (Off_Outer)
+                & " +" & Pixel_Type'Image (Off_Inner)
+                & " window y=" & Pixel_Type'Image (Win_Y));
+
+      Test_Mouse_Probe.Reset (Probe);
+      Win.On_Mouse_Down (Win_X, Win_Y, Adi.Core.Left_Button, 1);
+      Win.On_Mouse_Move (Win_X, Win_Y + 5.0);
+      Win.On_Mouse_Up (Win_X, Win_Y, Adi.Core.Left_Button);
+
+      Assert (Test_Mouse_Probe.Down_Count (Probe) = 1
+              and then Test_Mouse_Probe.Move_Count (Probe) = 1
+              and then Test_Mouse_Probe.Up_Count (Probe) = 1,
+              "press, captured move and release all reach the probe");
+
+      declare
+         D : constant Point :=
+           Test_Mouse_Probe.Last_Down (Probe);
+         M : constant Point :=
+           Test_Mouse_Probe.Last_Move (Probe);
+         U : constant Point :=
+           Test_Mouse_Probe.Last_Up (Probe);
+      begin
+         Put_Line ("    delivered y: down" & Pixel_Type'Image (D.Y)
+                   & " move" & Pixel_Type'Image (M.Y)
+                   & " up" & Pixel_Type'Image (U.Y));
+
+         Assert (abs (D.Y - (Win_Y + Total_Off)) < 0.01,
+                 "mouse-down Y is the window Y plus both ancestor offsets");
+         Assert (abs (M.Y - (Win_Y + 5.0 + Total_Off)) < 0.01,
+                 "mouse-move Y is the window Y plus both ancestor offsets");
+         Assert (abs (U.Y - (Win_Y + Total_Off)) < 0.01,
+                 "mouse-up Y is the window Y plus both ancestor offsets");
+
+         Assert (In_Probe (D) and then In_Probe (M) and then In_Probe (U),
+                 "every delivered point lands inside the probe's stored "
+                 & "geometry");
+
+         --  X is delivered untouched while there is no horizontal
+         --  scrolling; the day there is, this is where it shows up.
+         Assert (D.X = Win_X and then M.X = Win_X and then U.X = Win_X,
+                 "X passes through unchanged");
+      end;
+
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Mouse_Coordinates_Cross_Scrolled_Ancestors;
+
 
 begin
    Put_Line ("========================================");
@@ -1781,6 +1937,7 @@ begin
    Test_Pages_Keep_Their_Own_Scroll_Offset;
    Test_Overlay_Anchor_Follows_Scroll;
    Test_Open_Dropdown_Follows_Scroll;
+   Test_Mouse_Coordinates_Cross_Scrolled_Ancestors;
    New_Line;
 
    Finish;

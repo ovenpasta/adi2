@@ -209,7 +209,7 @@ package body Assets_Example_UI is
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
-        Adi.Window.Create_Window_Handle ("Assets Example", (1000.0, 700.0));
+        Adi.Window.Create_Window_Handle ("Assets Example", (1000.0, 1040.0));
       Box_1 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Label_1 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("SVG Sprites (?id=)");
       Box_2 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;

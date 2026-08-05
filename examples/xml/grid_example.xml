@@ -2,7 +2,7 @@
 <adi>
   <link rel="stylesheet" href="examples/css/grid_example.css"/>
 
-  <window title="Grid Layout Reference" width="900" height="760">
+  <window title="Grid Layout Reference" width="900" height="900">
     <box id="Root" class="root">
       <label text="Grid Layout Reference" class="title"/>
 

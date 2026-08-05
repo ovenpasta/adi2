@@ -375,7 +375,7 @@ package body Demo_Flex_UI is
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
-        Adi.Window.Create_Window_Handle ("Flex Layout Reference", (900.0, 760.0));
+        Adi.Window.Create_Window_Handle ("Flex Layout Reference", (900.0, 900.0));
       Label_1 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Flex Layout Reference");
       Box_1 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Label_2 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-direction");

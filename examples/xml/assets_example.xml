@@ -2,7 +2,7 @@
 <adi>
   <link rel="stylesheet" href="examples/css/assets_example.css"/>
 
-  <window title="Assets Example" width="1000" height="700">
+  <window title="Assets Example" width="1000" height="1040">
     <box class="root">
 
       <!-- Section 1: SVG Sprites -->

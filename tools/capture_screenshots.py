@@ -57,8 +57,12 @@ class Shot:
     """One image: where it lands, and how to get the app to show it."""
 
     name: str
-    #  Wheel notches applied before capturing. Negative scrolls down.
+    #  Wheel notches applied before capturing. Negative scrolls down. A
+    #  step larger than the document clamps at the end, which is steadier
+    #  than counting notches: a notch is 36px plus scroll inertia.
     scroll: int = 0
+    #  Exact text of a widget to click first, to reach a tab or a dialog.
+    click: str = ""
 
 
 @dataclass
@@ -72,13 +76,30 @@ class Example:
 #  listed gets one capture under its own name.
 MULTI_SHOT: dict[str, Example] = {
     "demo_flex": Example(
-        shots=[Shot("demo_flex"), Shot("demo_flex_2", scroll=-6)]
+        shots=[Shot("demo_flex"), Shot("demo_flex_2", scroll=-40)]
     ),
     "grid_example": Example(
-        shots=[Shot("grid_example"), Shot("grid_example_2", scroll=-6)]
+        shots=[Shot("grid_example"), Shot("grid_example_2", scroll=-40)]
     ),
-    "assets_example": Example(
-        shots=[Shot("assets_example"), Shot("assets_example_2", scroll=-6)]
+    "font_example": Example(
+        shots=[Shot("font_example"), Shot("font_example_2", scroll=-40)]
+    ),
+    #  One tab holds only a few controls, so the gallery walks them.
+    "material_demo": Example(
+        shots=[Shot("material_demo"),
+               Shot("material_demo_2", click="Forms"),
+               Shot("material_demo_3", click="Settings"),
+               Shot("material_demo_4", click="Controls")]
+    ),
+    #  Preview and Source are the two halves of the widget.
+    "html_view_example": Example(
+        shots=[Shot("html_view_example"),
+               Shot("html_view_example_2", click="Source")]
+    ),
+    #  The buttons alone say nothing about what the example is for.
+    "dialog_example": Example(
+        shots=[Shot("dialog_example"),
+               Shot("dialog_example_2", click="Show Confirm")]
     ),
 }
 
@@ -140,6 +161,26 @@ def capture(name: str, spec: Example, out_dir: Path, timeout: float) -> list[str
         wait_for_ready(app.pid, timeout)
         time.sleep(spec.settle)
         for shot in spec.shots:
+            if shot.click:
+                found = ipc.send_command(
+                    {"command": "find_by_text", "query": shot.click,
+                     "exact": True},
+                    app.pid,
+                )
+                matches = found.get("matches") or []
+                if not matches:
+                    raise RuntimeError(
+                        f"{shot.name}: nothing labelled {shot.click!r} to click")
+                reply = ipc.send_command(
+                    {"command": "click_widget", "id": 0,
+                     "path": matches[0]["path"]},
+                    app.pid,
+                )
+                if reply.get("status") != "ok":
+                    raise RuntimeError(
+                        f"{shot.name}: click failed: "
+                        f"{reply.get('error', 'unknown error')}")
+                time.sleep(0.5)
             if shot.scroll:
                 # An app that rejects the command would otherwise be
                 # captured unscrolled, quietly duplicating the previous
@@ -154,7 +195,8 @@ def capture(name: str, spec: Example, out_dir: Path, timeout: float) -> list[str
                     raise RuntimeError(
                         f"{shot.name}: scroll failed: "
                         f"{reply.get('error', 'unknown error')}")
-                time.sleep(0.4)
+                #  Let the scroll inertia settle before capturing.
+                time.sleep(0.8)
             reply = ipc.send_command({"command": "screenshot"}, app.pid)
             if reply.get("status") != "ok":
                 raise RuntimeError(reply.get("error", "screenshot failed"))

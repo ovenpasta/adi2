@@ -1,6 +1,6 @@
 # Example gallery
 
-Every example program in [`examples/`](../examples/), captured as a screenshot. Build any of them with `tools/build_examples.sh <name>` and run from `examples/bin/<name>`.
+Each example program in [`examples/`](../examples/), captured as a screenshot. Build any of them with `tools/build_examples.sh <name>` and run from `examples/bin/<name>`.
 
 ![animated_image_example](../examples/screenshots/animated_image_example.png)
 *`animated_image_example`*
@@ -19,24 +19,25 @@ Every example program in [`examples/`](../examples/), captured as a screenshot. 
 *`demo_flex`*
 
 ![dialog_example](../examples/screenshots/dialog_example.png)
+![dialog_example](../examples/screenshots/dialog_example_2.png)
 *`dialog_example`*
 
 ![font_example](../examples/screenshots/font_example.png)
+![font_example](../examples/screenshots/font_example_2.png)
 *`font_example`*
 
 ![gradient_example](../examples/screenshots/gradient_example.png)
 *`gradient_example`*
 
 ![grid_example](../examples/screenshots/grid_example.png)
+![grid_example](../examples/screenshots/grid_example_2.png)
 *`grid_example`*
 
 ![hello_example](../examples/screenshots/hello_example.png)
 *`hello_example`*
 
-![hello_raw_example](../examples/screenshots/hello_raw_example.png)
-*`hello_raw_example`*
-
 ![html_view_example](../examples/screenshots/html_view_example.png)
+![html_view_example](../examples/screenshots/html_view_example_2.png)
 *`html_view_example`*
 
 ![image_example](../examples/screenshots/image_example.png)
@@ -49,6 +50,9 @@ Every example program in [`examples/`](../examples/), captured as a screenshot. 
 *`list_box_example`*
 
 ![material_demo](../examples/screenshots/material_demo.png)
+![material_demo](../examples/screenshots/material_demo_2.png)
+![material_demo](../examples/screenshots/material_demo_3.png)
+![material_demo](../examples/screenshots/material_demo_4.png)
 *`material_demo`*
 
 ![overflow_example](../examples/screenshots/overflow_example.png)

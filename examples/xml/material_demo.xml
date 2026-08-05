@@ -19,7 +19,7 @@
   <callback name="On_Control_Slider" type="Float_Slider.Value_Changed_Callback"/>
   <callback name="On_Control_Value" type="Float_Value_Input.Value_Changed_Callback"/>
 
-  <window title="Material Demo" width="900" height="720">
+  <window title="Material Demo" width="900" height="864">
     <box id="Root" class="root">
       <box class="app-bar">
         <label id="App_Title" text="Material Demo" class="app-title"/>

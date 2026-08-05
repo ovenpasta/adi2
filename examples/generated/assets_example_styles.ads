@@ -33,6 +33,39 @@ package Assets_Example_Styles is
       Overflow_Y => Set_Overflow_Y (Overflow_Auto),
       others => <>);
 
+   --  Base style for class 'root'::knob
+   function Root_Class_Knob_Base_Style return Style_Rules is
+     (
+      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGBA (129, 161, 193, 0.3)), Gradient_Stop_Auto (RGBA (94, 129, 172, 0.3)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
+      Transition => Set ((Duration => 0.16, Easing => Ease_Out, Properties => All_Properties)),
+      Border_Width => Set (Border_Width (Px (1.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGBA (236, 239, 244, 0.1))),
+      Border_Radius => Set (Radius (Px (5.0))),
+      others => <>);
+
+   --  Style for class 'root'::knob when part State_Hovered
+   function Root_Class_Knob_Part_Hovered_Style return Style_Rules is
+     (
+      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGBA (143, 176, 209, 0.85)), Gradient_Stop_Auto (RGBA (108, 143, 186, 0.85)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
+      Border_Color => Set (Border_Color (RGBA (236, 239, 244, 0.28))),
+      others => <>);
+
+   --  Base style for class 'root'::scroll
+   function Root_Class_Scroll_Base_Style return Style_Rules is
+     (
+      Width => Set (Size (Px (10.0))),
+      Background_Color => Set_Bg (RGBA (94, 129, 172, 0.06)),
+      Transition => Set ((Duration => 0.16, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Border_Radius => Set (Radius (Px (5.0))),
+      others => <>);
+
+   --  Style for class 'root'::scroll when part State_Hovered
+   function Root_Class_Scroll_Part_Hovered_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGBA (94, 129, 172, 0.16)),
+      others => <>);
+
    --  Base style for class 'section-title'
    function Section_Title_Class_Base_Style return Style_Rules is
      (
@@ -258,10 +291,24 @@ package Assets_Example_Styles is
      (From (Root_Class_Base_Style)
      .Build);
 
+   --  Complete widget style for class 'root'::knob
+   function Root_Class_Knob_Widget return Widget_Style is
+     (From (Root_Class_Knob_Base_Style)
+     .On (When_Part_State (State_Hovered), Root_Class_Knob_Part_Hovered_Style)
+     .Build);
+
+   --  Complete widget style for class 'root'::scroll
+   function Root_Class_Scroll_Widget return Widget_Style is
+     (From (Root_Class_Scroll_Base_Style)
+     .On (When_Part_State (State_Hovered), Root_Class_Scroll_Part_Hovered_Style)
+     .Build);
+
    --  Part styles bundle for class 'root'
    function Root_Class_Part_Styles return Part_Style_Array is
      ([
       Main_Part => (Style => Root_Class_Widget, Enabled => True),
+      Knob_Part => (Style => Root_Class_Knob_Widget, Enabled => True),
+      Scroll_Part => (Style => Root_Class_Scroll_Widget, Enabled => True),
       others => <>
    ]);
 

@@ -77,6 +77,9 @@ MULTI_SHOT: dict[str, Example] = {
     "grid_example": Example(
         shots=[Shot("grid_example"), Shot("grid_example_2", scroll=-6)]
     ),
+    "assets_example": Example(
+        shots=[Shot("assets_example"), Shot("assets_example_2", scroll=-6)]
+    ),
 }
 
 

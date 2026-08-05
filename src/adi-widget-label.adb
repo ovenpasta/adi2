@@ -741,6 +741,36 @@ package body Adi.Widget.Label is
                         Text_It.Text_Offset_Y := 0.0;
                   end case;
                end;
+
+               --  Honour CSS text-align the same way across the slot. The
+               --  text item grows to the content box, so the glyphs sit at
+               --  its left edge however wide the widget is; a label with a
+               --  declared width and no padding shows this plainly.
+               --  Only for text that does not wrap. Wrapped text is
+               --  aligned by SDL within its wrap width, per line, which an
+               --  offset applied to the whole block cannot reproduce.
+               --
+               --  The slack is measured against the clamped slot, which is
+               --  what the text is drawn into. Measuring the unclamped one
+               --  would push a partly clipped slot further out still.
+               declare
+                  Slack : constant Pixel_Type :=
+                    (if Text_It.Wrap_Text then 0.0
+                     else Pixel_Type'Max
+                            (0.0,
+                             Text_It.Geometry.Width
+                               - Pixel_Type (L_Item.Content_Width)));
+               begin
+                  case Label_Style.Text_Align is
+                     when Text_Center =>
+                        Text_It.Text_Offset_X := Slack / 2.0;
+                     --  No RTL anywhere yet, so end reads as right.
+                     when Text_Right | Text_End =>
+                        Text_It.Text_Offset_X := Slack;
+                     when Text_Left | Text_Start | Text_Justify =>
+                        Text_It.Text_Offset_X := 0.0;
+                  end case;
+               end;
                Found := True;
                exit;
             end if;

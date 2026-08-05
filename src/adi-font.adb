@@ -670,6 +670,20 @@ package body Adi.Font is
               Wrap_Align => Wrap_Align);
    end Make_Attributes;
 
+   function Wrap_Alignment_For
+     (Align : Text_Align_Value;
+      Wraps : Boolean) return Wrap_Alignment is
+   begin
+      if not Wraps then
+         return Wrap_Left;
+      end if;
+      case Align is
+         when Text_Center           => return Wrap_Center;
+         when Text_Right | Text_End => return Wrap_Right;
+         when Text_Left | Text_Start | Text_Justify => return Wrap_Left;
+      end case;
+   end Wrap_Alignment_For;
+
    function Line_Skip_Override
      (Line_Height  : Line_Height_Value;
       Font_Size_Px : Pixel_Type) return Natural is

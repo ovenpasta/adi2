@@ -533,5 +533,76 @@ begin
 
    New_Line;
 
+   --  text-align shifts the text block inside a slot wider than itself.
+   --  The label is given a declared width and no padding, so the slack is
+   --  all in one place and the offset is the whole of the alignment.
+   Put_Line ("=== text-align moves the text within its slot ===");
+   New_Line;
+   declare
+      Slot_Width : constant Pixel_Type := 200.0;
+
+      function Offset_With (Align : Text_Align_Value;
+                            Wrap  : Text_Wrap_Mode_Value := TWM_Nowrap)
+                            return Pixel_Type
+      is
+         L : constant Widget_Handle :=
+           +Adi.Widget.Label.Create_Handle ("hi");
+         Main_Rules : constant Style_Rules :=
+           (Width => Set (Size (Px (Float (Slot_Width)))), others => <>);
+         Lbl_Rules  : constant Style_Rules :=
+           (Text_Align     => Set (Align),
+            Text_Wrap_Mode => Set (Wrap),
+            Font_Size      => Set_Font (Px (20)),
+            others         => <>);
+      begin
+         Set_Part_Styles
+           (L, [Main_Part  => (Style   => From (Main_Rules).Build,
+                               Enabled => True),
+                Label_Part => (Style   => From (Lbl_Rules).Build,
+                               Enabled => True),
+                others     => <>]);
+         Set_Geometry
+           (L, (X => 0.0, Y => 0.0, Width => Slot_Width, Height => 40.0));
+         Layout (L);
+         Build_Items (L);
+
+         declare
+            Items : constant Items_List.Vector :=
+              Get_Items_For_Part (L, Label_Part);
+         begin
+            if Items.Is_Empty then
+               return -1.0;
+            end if;
+            return Items.First_Element.Text_Offset_X;
+         end;
+      end Offset_With;
+
+      Left_Off   : constant Pixel_Type := Offset_With (Text_Left);
+      Center_Off : constant Pixel_Type := Offset_With (Text_Center);
+      Right_Off  : constant Pixel_Type := Offset_With (Text_Right);
+      Wrapped    : constant Pixel_Type :=
+        Offset_With (Text_Center, TWM_Wrap);
+   begin
+      Put_Line ("  left=" & Pixel_Type'Image (Left_Off)
+                & "  center=" & Pixel_Type'Image (Center_Off)
+                & "  right=" & Pixel_Type'Image (Right_Off)
+                & "  wrapped-center=" & Pixel_Type'Image (Wrapped));
+
+      Check ("left alignment leaves the text at the slot's edge",
+             abs (Left_Off) < 0.001);
+      Check ("centring puts half the spare room before the text",
+             Center_Off > 0.0
+               and then abs (Center_Off - Right_Off / 2.0) < 0.001);
+      Check ("right alignment spends all of it",
+             Right_Off > Center_Off);
+      Check ("right alignment stays inside the slot",
+             Right_Off < Slot_Width);
+      --  Wrapping text is aligned by SDL within its wrap width instead,
+      --  so this path yields to it rather than offsetting the block.
+      Check ("wrapped text is left alone", abs (Wrapped) < 0.001);
+   end;
+
+   New_Line;
+
    Test_Support.Finish;
 end Label_Wrap_Test;

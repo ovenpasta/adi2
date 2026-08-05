@@ -58,6 +58,15 @@ package Adi.Font is
                              Wrap_Align : Wrap_Alignment := Wrap_Left)
       return Font_Attributes;
 
+   --  The wrap alignment an attribute set should carry. SDL aligns lines
+   --  within the wrap width, so text that does not wrap has no box to be
+   --  aligned in and always asks for Wrap_Left; Label positions that case
+   --  itself. `justify` is not implemented and reads as left; `end` reads
+   --  as right, there being no RTL support.
+   function Wrap_Alignment_For
+     (Align : Text_Align_Value;
+      Wraps : Boolean) return Wrap_Alignment;
+
    --  The line skip an attribute set should carry for a CSS line-height:
    --  0 when the font's own spacing is wanted (`normal`), otherwise the
    --  integer SDL will be given. Needs no font, so the cache key can be

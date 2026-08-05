@@ -5379,7 +5379,9 @@ package body Adi.Widget is
          Decoration =>
            (if Manual_Decoration then Decoration_None else Style.Text_Decoration),
          Line_Skip  =>
-           Adi.Font.Line_Skip_Override (Style.Line_Height, Pixel_Type (Font_Sz)));
+           Adi.Font.Line_Skip_Override (Style.Line_Height, Pixel_Type (Font_Sz)),
+         Wrap_Align =>
+           Adi.Font.Wrap_Alignment_For (Style.Text_Align, It.Wrap_Text));
 
       Font_Key_Changed :=
         It.Cached_Font = null

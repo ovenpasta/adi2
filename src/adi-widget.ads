@@ -193,7 +193,6 @@ package Adi.Widget is
         Adi.Font.Default_Font_Attributes;
       --  Line-skip the cached TTF_Text was laid out with.  -1.0 sentinel
       --  forces a relayout on the first render.
-      Cached_Line_Skip_Px : Pixel_Type := -1.0;
    end record;
 
    package Items_List is new

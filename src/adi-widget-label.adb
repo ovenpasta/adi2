@@ -234,7 +234,10 @@ package body Adi.Widget.Label is
                  Size       => Float (Font_Length_To_Px (Label_Style.Font_Size)),
                  Weight     => Label_Style.Font_Weight,
                  Style      => Label_Style.Font_Style,
-                 Decoration => Label_Style.Text_Decoration);
+                 Decoration => Label_Style.Text_Decoration,
+                 Line_Skip  => Adi.Font.Line_Skip_Override
+                   (Label_Style.Line_Height,
+                    Font_Length_To_Px (Label_Style.Font_Size)));
             Can_Wrap : constant Boolean :=
               Label_Style.Text_Wrap_Mode = TWM_Wrap
               and then Label_Style.White_Space /= WS_NoWrap;
@@ -269,8 +272,7 @@ package body Adi.Widget.Label is
                Text_Size := Adi.Font.Measure_Text_Wrapped
                  (Attrs       => Font_Attrs,
                   Content     => To_String (W.Text),
-                  Wrap_Width  => Wrap_W,
-                  Line_Height => Label_Style.Line_Height);
+                  Wrap_Width  => Wrap_W);
             else
                Text_Size := Adi.Font.Measure_Text
                  (Attrs   => Font_Attrs,
@@ -369,7 +371,10 @@ package body Adi.Widget.Label is
                  Size       => Float (Font_Length_To_Px (Label_Style.Font_Size)),
                  Weight     => Label_Style.Font_Weight,
                  Style      => Label_Style.Font_Style,
-                 Decoration => Label_Style.Text_Decoration);
+                 Decoration => Label_Style.Text_Decoration,
+                 Line_Skip  => Adi.Font.Line_Skip_Override
+                   (Label_Style.Line_Height,
+                    Font_Length_To_Px (Label_Style.Font_Size)));
             Can_Wrap    : constant Boolean :=
               Label_Style.Text_Wrap_Mode = TWM_Wrap
               and then Label_Style.White_Space /= WS_NoWrap;
@@ -408,8 +413,7 @@ package body Adi.Widget.Label is
                         Content     => To_String (W.Text),
                         Wrap_Width  =>
                           Effective_Wrap_Width
-                            (Font_Attrs, To_String (W.Text), Avail),
-                        Line_Height => Label_Style.Line_Height).Height;
+                            (Font_Attrs, To_String (W.Text), Avail)).Height;
                   else
                      Text_Min.Height := Adi.Font.Measure_Text
                        (Attrs   => Font_Attrs,
@@ -502,7 +506,10 @@ package body Adi.Widget.Label is
                  Size       => Float (Font_Length_To_Px (Label_Style.Font_Size)),
                  Weight     => Label_Style.Font_Weight,
                  Style      => Label_Style.Font_Style,
-                 Decoration => Label_Style.Text_Decoration);
+                 Decoration => Label_Style.Text_Decoration,
+                 Line_Skip  => Adi.Font.Line_Skip_Override
+                   (Label_Style.Line_Height,
+                    Font_Length_To_Px (Label_Style.Font_Size)));
             Text_Size   : constant Size_2D :=
               Adi.Font.Measure_Text (Attrs => Font_Attrs,
                                      Content => To_String (W.Text));
@@ -568,7 +575,11 @@ package body Adi.Widget.Label is
                                    Size       => Float (Font_Length_To_Px (Label_Style.Font_Size)),
                                    Weight     => Label_Style.Font_Weight,
                                    Style      => Label_Style.Font_Style,
-                                   Decoration => Label_Style.Text_Decoration);
+                                   Decoration => Label_Style.Text_Decoration,
+                                   Line_Skip  => Adi.Font.Line_Skip_Override
+                                     (Label_Style.Line_Height,
+                                      Font_Length_To_Px
+                                        (Label_Style.Font_Size)));
                               Wrapped : constant Size_2D :=
                                 Adi.Font.Measure_Text_Wrapped
                                   (Attrs       => Font_Attrs,
@@ -577,8 +588,7 @@ package body Adi.Widget.Label is
                                      Effective_Wrap_Width
                                        (Font_Attrs,
                                         To_String (W.Text),
-                                        L_Item.Geometry.Width),
-                                   Line_Height => Label_Style.Line_Height);
+                                        L_Item.Geometry.Width));
                            begin
                               if Wrapped.Height /= L_Item.Geometry.Height
                               then

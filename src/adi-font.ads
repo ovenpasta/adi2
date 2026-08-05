@@ -13,12 +13,27 @@ package Adi.Font is
 
    Default_Font_Size_Px : constant Float := Default_Font_Size.Amount;
 
+   --  SDL aligns wrapped lines three ways, and only per font.
+   type Wrap_Alignment is (Wrap_Left, Wrap_Center, Wrap_Right);
+
+   --  A font's full identity, layout state included. Line skip and wrap
+   --  alignment are font-level state in SDL: setting either re-lays every
+   --  TTF_Text built from that font. Carrying them here makes each
+   --  combination its own cached instance, set once when it is opened and
+   --  never mutated, so widgets that share a family and size but differ in
+   --  line-height or alignment cannot disturb each other.
    type Font_Attributes is record
       Family     : Font_Handle := Default_Font;
       Size       : Float := Default_Font_Size_Px;
       Weight     : Font_Weight_Value := Default_Font_Weight;
       Style      : Font_Style_Value := Default_Font_Style;
       Decoration : Text_Decoration_Value := Default_Text_Decoration;
+      --  The exact integer handed to TTF_SetFontLineSkip, or 0 to leave
+      --  the font's own spacing alone. Storing what is applied rather
+      --  than a rounded-off pixel value keeps identity and applied state
+      --  from ever disagreeing.
+      Line_Skip  : Natural := 0;
+      Wrap_Align : Wrap_Alignment := Wrap_Left;
    end record;
 
    function "=" (L, R : Font_Attributes) return Boolean;
@@ -28,7 +43,9 @@ package Adi.Font is
       Size       => Default_Font_Size_Px,
       Weight     => Default_Font_Weight,
       Style      => Default_Font_Style,
-      Decoration => Default_Text_Decoration);
+      Decoration => Default_Text_Decoration,
+      Line_Skip  => 0,
+      Wrap_Align => Wrap_Left);
 
    function Quantize_Size (Size : Float) return Natural;
 
@@ -36,8 +53,18 @@ package Adi.Font is
                              Size       : Float;
                              Weight     : Font_Weight_Value;
                              Style      : Font_Style_Value;
-                             Decoration : Text_Decoration_Value)
+                             Decoration : Text_Decoration_Value;
+                             Line_Skip  : Natural := 0;
+                             Wrap_Align : Wrap_Alignment := Wrap_Left)
       return Font_Attributes;
+
+   --  The line skip an attribute set should carry for a CSS line-height:
+   --  0 when the font's own spacing is wanted (`normal`), otherwise the
+   --  integer SDL will be given. Needs no font, so the cache key can be
+   --  built before one is opened.
+   function Line_Skip_Override
+     (Line_Height  : Line_Height_Value;
+      Font_Size_Px : Pixel_Type) return Natural;
 
    ---------------------------------------------------------------------------
    --  Font loading — registers a font family file, returns a handle.
@@ -181,12 +208,13 @@ package Adi.Font is
                                   Decoration : Text_Decoration_Value)
       return Size_2D;
 
-   function Measure_Text_Wrapped (Attrs       : Font_Attributes;
-                                  Content     : String;
-                                  Wrap_Width  : Pixel_Type;
-                                  Line_Height : Line_Height_Value :=
-                                                  Normal_Line_Height)
-      return Size_2D;
+   --  Wrapped height follows Attrs.Line_Skip, so the caller resolves the
+   --  CSS line-height into the attributes it asks with. Taking it as a
+   --  separate argument here would let it contradict the identity the
+   --  rest of Font_Attributes now carries.
+   function Measure_Text_Wrapped (Attrs      : Font_Attributes;
+                                  Content    : String;
+                                  Wrap_Width : Pixel_Type) return Size_2D;
 
    --  Return the width of the longest word in Content.
    --  Words are separated by spaces, tabs, and newlines.
@@ -208,8 +236,8 @@ package Adi.Font is
    --    LH_Number -> Font_Size_Px * Multiplier
    --    LH_Length -> length resolved against the font size, percentages
    --                 included
-   --  Caller is responsible for applying this via TTF_SetFontLineSkip when
-   --  driving wrapped text measurement or layout.
+   --  Applying this to a font is Get_TTF_Font's job, through the Line_Skip
+   --  field of Font_Attributes; nothing else may set it on a shared font.
    function Resolve_Line_Skip_Px
      (Line_Height  : Line_Height_Value;
       Font_Size_Px : Pixel_Type;

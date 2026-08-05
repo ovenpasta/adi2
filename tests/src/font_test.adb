@@ -1,6 +1,7 @@
 with Ada.Text_IO;          use Ada.Text_IO;
 with Adi.SDL;
-with Adi.SDL.TTF;
+with Adi.SDL.TTF;      use Adi.SDL.TTF;
+with Interfaces.C;      use type Interfaces.C.int;
 with Adi.Build_Target;
 with Adi.CSS_Styles;       use Adi.CSS_Styles;
 with Adi.Core;
@@ -166,6 +167,105 @@ begin
    end;
 
    New_Line;
+
+   --  Two widgets sharing a family and size but wanting different line
+   --  heights or wrap alignments must get different font instances.
+   --  Sharing one meant whichever rendered last left its line skip on the
+   --  font and silently re-laid the other's text.
+   Put_Line ("=== layout state makes distinct font instances ===");
+   declare
+      use Adi.Core;
+      use type Adi.SDL.TTF.TTF_Font_Access;
+
+      DJ  : constant Font_Handle := Adi.Font.Find ("DejaVu Sans");
+      NS  : constant Font_Handle := Adi.Font.Find ("Noto Sans");
+      Fam : constant Font_Handle := (if DJ /= Null_Font then DJ else NS);
+
+      function Variant (Skip  : Natural;
+                        Align : Adi.Font.Wrap_Alignment :=
+                                  Adi.Font.Wrap_Left)
+                        return Adi.SDL.TTF.TTF_Font_Access
+      is
+        (if Fam = Null_Font then null
+         else Adi.Font.Get_TTF_Font
+                (Adi.Font.Make_Attributes
+                   (Family     => Fam,
+                    Size       => 20.0,
+                    Weight     => Weight_Normal,
+                    Style      => Style_Normal,
+                    Decoration => Decoration_None,
+                    Line_Skip  => Skip,
+                    Wrap_Align => Align)));
+
+      Tight   : constant Adi.SDL.TTF.TTF_Font_Access := Variant (26);
+      Loose   : constant Adi.SDL.TTF.TTF_Font_Access := Variant (40);
+      Centred : constant Adi.SDL.TTF.TTF_Font_Access :=
+        Variant (26, Adi.Font.Wrap_Center);
+   begin
+      if Fam = Null_Font then
+         Put_Line ("  [SKIP] no system font to open variants of");
+      elsif Tight = null or else Loose = null or else Centred = null then
+         --  Not a skip: the family resolved, so every variant of it owes
+         --  us an instance. Failing here also keeps the getters below
+         --  away from a null font.
+         Test_Support.Assert
+           (False, "a resolvable family opens every layout variant");
+      else
+         Test_Support.Assert
+           (Tight /= Loose,
+            "two line heights are two instances, not one that gets reset");
+         Test_Support.Assert
+           (Tight /= Centred,
+            "wrap alignment separates instances the same way");
+
+         --  Distinct keys are only half of it: the instance must also
+         --  carry the state its key promises. Deleting both setters would
+         --  leave every assertion above passing.
+         Put_Line
+           ("  applied skip: tight="
+            & Interfaces.C.int'Image (TTF_GetFontLineSkip (Tight))
+            & " loose=" & Interfaces.C.int'Image (TTF_GetFontLineSkip (Loose))
+            & "  centred align="
+            & TTF_HorizontalAlignment'Image
+                (TTF_GetFontWrapAlignment (Centred)));
+
+         Test_Support.Assert
+           (TTF_GetFontLineSkip (Tight) = 26,
+            "the tight variant is opened carrying its own line skip");
+         Test_Support.Assert
+           (TTF_GetFontLineSkip (Loose) = 40,
+            "and the loose one carries its own, at the same time");
+         Test_Support.Assert
+           (TTF_GetFontWrapAlignment (Centred)
+              = TTF_HORIZONTAL_ALIGN_CENTER,
+            "the centred variant is opened already aligned");
+         Test_Support.Assert
+           (TTF_GetFontWrapAlignment (Tight) = TTF_HORIZONTAL_ALIGN_LEFT,
+            "and its left-aligned sibling is untouched by that");
+
+         Test_Support.Assert
+           (abs (Adi.Font.Natural_Line_Skip_Px (Tight)
+                   - Adi.Font.Natural_Line_Skip_Px (Loose)) < 0.001,
+            "an opened override does not become the face's natural spacing");
+
+         --  Alternating use is the case that used to corrupt: each call
+         --  must keep returning its own instance, never the other's.
+         for Round in 1 .. 3 loop
+            Test_Support.Assert
+              (Variant (26) = Tight and then Variant (40) = Loose,
+               "instances stay put when the two are used alternately, round"
+               & Integer'Image (Round));
+         end loop;
+
+         --  Line_Skip_Override is what feeds these keys from CSS.
+         Test_Support.Assert
+           (Adi.Font.Line_Skip_Override (Line_Height (Pct (150.0)), 20.0) = 30,
+            "a percentage line-height becomes the integer SDL is given");
+         Test_Support.Assert
+           (Adi.Font.Line_Skip_Override (Normal_Line_Height, 20.0) = 0,
+            "`normal` asks for no override, leaving the font's own spacing");
+      end if;
+   end;
 
    Test_Support.Finish;
 end Font_Test;

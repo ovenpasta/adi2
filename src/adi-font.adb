@@ -155,6 +155,13 @@ package body Adi.Font is
       if L.Attrs.Decoration /= R.Attrs.Decoration then
          return Text_Decoration_Value'Pos (L.Attrs.Decoration) < Text_Decoration_Value'Pos (R.Attrs.Decoration);
       end if;
+      if L.Attrs.Line_Skip /= R.Attrs.Line_Skip then
+         return L.Attrs.Line_Skip < R.Attrs.Line_Skip;
+      end if;
+      if L.Attrs.Wrap_Align /= R.Attrs.Wrap_Align then
+         return Wrap_Alignment'Pos (L.Attrs.Wrap_Align)
+                  < Wrap_Alignment'Pos (R.Attrs.Wrap_Align);
+      end if;
       return L.Generation < R.Generation;
    end "<";
 
@@ -637,14 +644,18 @@ package body Adi.Font is
         and then Quantize_Size (L.Size) = Quantize_Size (R.Size)
         and then L.Weight = R.Weight
         and then L.Style = R.Style
-        and then L.Decoration = R.Decoration;
+        and then L.Decoration = R.Decoration
+        and then L.Line_Skip = R.Line_Skip
+        and then L.Wrap_Align = R.Wrap_Align;
    end "=";
 
    function Make_Attributes (Family     : Font_Handle;
                              Size       : Float;
                              Weight     : Font_Weight_Value;
                              Style      : Font_Style_Value;
-                             Decoration : Text_Decoration_Value)
+                             Decoration : Text_Decoration_Value;
+                             Line_Skip  : Natural := 0;
+                             Wrap_Align : Wrap_Alignment := Wrap_Left)
       return Font_Attributes
    is
       Actual_Size : constant Float :=
@@ -654,8 +665,25 @@ package body Adi.Font is
               Size       => Actual_Size,
               Weight     => Weight,
               Style      => Style,
-              Decoration => Decoration);
+              Decoration => Decoration,
+              Line_Skip  => Line_Skip,
+              Wrap_Align => Wrap_Align);
    end Make_Attributes;
+
+   function Line_Skip_Override
+     (Line_Height  : Line_Height_Value;
+      Font_Size_Px : Pixel_Type) return Natural is
+   begin
+      --  `normal` is the font's own spacing, which is what it already has.
+      if Line_Height.Kind = LH_Normal then
+         return 0;
+      end if;
+      return Natural
+        (Pixel_Type'Max
+           (1.0,
+            Pixel_Type'Rounding
+              (Resolve_Line_Skip_Px (Line_Height, Font_Size_Px, null))));
+   end Line_Skip_Override;
 
    function Decoration_To_Flags (Decoration : Text_Decoration_Value)
       return TTF_FontStyleFlags
@@ -1291,14 +1319,18 @@ package body Adi.Font is
          Size       => Attrs.Size,
          Weight     => Attrs.Weight,
          Style      => Attrs.Style,
-         Decoration => Attrs.Decoration);
+         Decoration => Attrs.Decoration,
+         Line_Skip  => Attrs.Line_Skip,
+         Wrap_Align => Attrs.Wrap_Align);
       H      : constant Font_Handle := Canonical_Handle (Norm.Family);
       Key    : constant Sized_Font_Key :=
         (Attrs      => (Family     => H,
                         Size       => Norm.Size,
                         Weight     => Norm.Weight,
                         Style      => Norm.Style,
-                        Decoration => Norm.Decoration),
+                        Decoration => Norm.Decoration,
+                        Line_Skip  => Norm.Line_Skip,
+                        Wrap_Align => Norm.Wrap_Align),
          Size_Q     => Quantize_Size (Norm.Size),
          Generation => Get_Generation (H));
       Cursor : constant Sized_Font_Maps.Cursor := Sized_Cache.Find (Key);
@@ -1316,6 +1348,7 @@ package body Adi.Font is
       declare
          Request : constant Resolved_Request := Resolve_Request (Key.Attrs);
          F : TTF_Font_Access;
+         Ignore_Natural : Pixel_Type;
       begin
          if Request.From_Mem then
             F := Open_Sized_From_Memory (Request.Mem_Addr, Request.Mem_Len,
@@ -1338,6 +1371,22 @@ package body Adi.Font is
                  & ", flags=" & TTF_FontStyleFlags'Image (Request.Flags));
          end if;
          if F /= null then
+            --  Snapshot the face's own spacing first. Natural_Line_Skip_Px
+            --  caches whatever it finds on its first query, so it has to
+            --  see the font before the override below lands.
+            Ignore_Natural := Natural_Line_Skip_Px (F);
+
+            --  Set once, here, and never again: this instance belongs to
+            --  this key alone, so nothing else shares its layout state.
+            if Key.Attrs.Line_Skip > 0 then
+               TTF_SetFontLineSkip (F, int (Key.Attrs.Line_Skip));
+            end if;
+            TTF_SetFontWrapAlignment
+              (F,
+               (case Key.Attrs.Wrap_Align is
+                   when Wrap_Left   => TTF_HORIZONTAL_ALIGN_LEFT,
+                   when Wrap_Center => TTF_HORIZONTAL_ALIGN_CENTER,
+                   when Wrap_Right  => TTF_HORIZONTAL_ALIGN_RIGHT));
             Sized_Cache.Insert (Key, F);
          end if;
          return F;
@@ -1430,13 +1479,12 @@ package body Adi.Font is
          Wrap_Width => Wrap_Width);
    end Measure_Text_Wrapped;
 
-   function Measure_Text_Wrapped (Attrs       : Font_Attributes;
-                                  Content     : String;
-                                  Wrap_Width  : Pixel_Type;
-                                  Line_Height : Line_Height_Value :=
-                                                  Normal_Line_Height)
-      return Size_2D
+   function Measure_Text_Wrapped (Attrs      : Font_Attributes;
+                                  Content    : String;
+                                  Wrap_Width : Pixel_Type) return Size_2D
    is
+      --  TTF_GetStringSizeWrapped reads the font's line skip for the
+      --  multi-line height, and this instance already carries the caller's.
       F      : constant TTF_Font_Access := Get_TTF_Font (Attrs);
       C_Text : chars_ptr;
       W, H   : aliased int;
@@ -1445,16 +1493,6 @@ package body Adi.Font is
       if F = null or else Content'Length = 0 then
          return (0.0, 0.0);
       end if;
-
-      --  Push CSS line-height onto the shared TTF font before measuring;
-      --  TTF_GetStringSizeWrapped uses the font's current line skip when
-      --  computing the multi-line height.
-      TTF_SetFontLineSkip
-        (F,
-         int (Resolve_Line_Skip_Px
-                (Line_Height  => Line_Height,
-                 Font_Size_Px => Pixel_Type (Attrs.Size),
-                 Font         => F)));
 
       C_Text := New_String (Content);
       Ignore := TTF_GetStringSizeWrapped (F, C_Text,

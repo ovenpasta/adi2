@@ -5367,13 +5367,19 @@ package body Adi.Widget is
          Font_Sz := Adi.Font.Default_Font_Size_Px;
       end if;
 
+      --  Line skip is part of the font's identity, not something set on
+      --  it afterwards: SDL applies it to every TTF_Text the font owns, so
+      --  a shared instance cannot carry two line-heights at once. Asking
+      --  for it here also means Cached_Font_Attrs notices when it changes.
       Font_Attrs := Adi.Font.Make_Attributes
         (Family     => Style.Font_Family,
          Size       => Font_Sz,
          Weight     => Style.Font_Weight,
          Style      => Style.Font_Style,
          Decoration =>
-           (if Manual_Decoration then Decoration_None else Style.Text_Decoration));
+           (if Manual_Decoration then Decoration_None else Style.Text_Decoration),
+         Line_Skip  =>
+           Adi.Font.Line_Skip_Override (Style.Line_Height, Pixel_Type (Font_Sz)));
 
       Font_Key_Changed :=
         It.Cached_Font = null
@@ -5391,30 +5397,9 @@ package body Adi.Widget is
          Font := It.Cached_Font;
       end if;
 
-      --  Resolve and apply CSS line-height onto the shared TTF font before
-      --  any layout-triggering call (CreateText / SetTextFont /
-      --  SetTextString / SetTextWrapWidth all re-run wrap layout against the
-      --  font's current line skip).  If the cached TTF_Text was laid out at
-      --  a different skip, drop it so the new skip takes effect.
-      declare
-         Desired_Skip : constant Pixel_Type :=
-           Adi.Font.Resolve_Line_Skip_Px
-             (Line_Height  => Style.Line_Height,
-              Font_Size_Px => Pixel_Type (Font_Sz),
-              Font         => Font);
-      begin
-         TTF_SetFontLineSkip (Font, int (Desired_Skip));
-
-         if It.Cached_TTF_Text /= null
-           and then It.Cached_Line_Skip_Px /= Desired_Skip
-         then
-            TTF_DestroyText (It.Cached_TTF_Text);
-            It.Cached_TTF_Text := null;
-            It.Cached_Text_String := Null_Unbounded_String;
-         end if;
-
-         It.Cached_Line_Skip_Px := Desired_Skip;
-      end;
+      --  A line-height change arrives as a different font, so
+      --  Font_Key_Changed above has already dropped or re-pointed the
+      --  cached text. Nothing here mutates the font.
 
       --  Reuse or create cached text object
       Text_Obj := It.Cached_TTF_Text;

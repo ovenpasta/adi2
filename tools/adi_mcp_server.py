@@ -301,6 +301,42 @@ def click_widget(id: int = 0, path: str = "") -> str:
 
 
 @mcp.tool()
+def scroll(dy: int = 0, dx: int = 0, id: int = 0, path: str = "",
+           x: int = -1, y: int = -1) -> str:
+    """Scroll by simulating mouse wheel notches.
+
+    A wheel event goes to whichever scrollable widget is under the pointer,
+    so aim it one of three ways: at a widget (id or path), at a point
+    (x and y), or leave all of them out to use the middle of the window.
+
+    Args:
+        dy: Vertical notches. Positive scrolls up, negative scrolls down.
+        dx: Horizontal notches.
+        id: Unique widget ID to aim at (takes precedence over path).
+        path: Dot-separated 1-based child indices (e.g. "1.2.3").
+        x: Pointer X to aim at; used only when no id or path is given.
+        y: Pointer Y to aim at; used only when no id or path is given.
+
+    Returns the point the wheel was delivered to and the deltas applied.
+    """
+    if dx == 0 and dy == 0:
+        raise ValueError("scroll requires a non-zero dx or dy")
+    if (x >= 0) != (y >= 0):
+        raise ValueError("scroll needs both x and y, or neither")
+
+    result = send_command(
+        {"command": "scroll", "dy": dy, "dx": dx,
+         "id": id, "path": path, "x": x, "y": y},
+        _target_pid,
+    )
+    if result.get("status") != "ok":
+        raise RuntimeError(result.get("error", "scroll failed"))
+    return json.dumps(
+        {k: result.get(k) for k in ("x", "y", "dx", "dy")}, indent=2
+    )
+
+
+@mcp.tool()
 def send_keys(keys: str) -> str:
     """Send keystrokes to the focused widget.
 

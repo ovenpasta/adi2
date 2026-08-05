@@ -1041,7 +1041,10 @@ package body Adi.MCP is
             end if;
 
             declare
-               Geom       : constant Rectangle := Get_Geometry (Target);
+               --  Window space, not the layout space Get_Geometry reports:
+               --  a scrolled ancestor puts the two in different places.
+               Geom       : constant Rectangle :=
+                 Adi.Window.Geometry_In_Window (Target);
                CX   : constant Pixel_Type :=
                  Geom.X + Geom.Width / 2.0;
                CY   : constant Pixel_Type :=
@@ -1058,6 +1061,83 @@ package body Adi.MCP is
             W.Key_Value ("req_id", Req_Id);
             W.Key_Value ("id", Long_Integer (Get_Id (Target)));
             W.Key_Value ("path", To_String (Resolved_Path));
+            W.End_Object;
+            return W.To_String;
+         end;
+
+      elsif Cmd = "scroll" then
+         declare
+            Delta_X  : constant Integer := JSON_Get_Int (JSON, "dx", 0);
+            Delta_Y  : constant Integer := JSON_Get_Int (JSON, "dy", 0);
+            Id_Val   : constant Integer := JSON_Get_Int (JSON, "id");
+            Path_Val : constant String  := JSON_Get_String (JSON, "path");
+            --  Coordinates are never negative, so -1 reads as "not given".
+            X_Val    : constant Integer := JSON_Get_Int (JSON, "x", -1);
+            Y_Val    : constant Integer := JSON_Get_Int (JSON, "y", -1);
+
+            Resolved_Path : Unbounded_String;
+            PX, PY        : Pixel_Type;
+            W             : Adi.JSON.JSON_Writer := Adi.JSON.Create;
+         begin
+            if Delta_X = 0 and then Delta_Y = 0 then
+               return Error_Response
+                 (Req_Id, "scroll requires a non-zero dx or dy");
+            end if;
+
+            if (X_Val >= 0) /= (Y_Val >= 0) then
+               return Error_Response
+                 (Req_Id, "scroll needs both x and y, or neither");
+            end if;
+
+            --  A wheel event goes to whichever scrollable widget sits under
+            --  the pointer, so the caller has to aim it: at a widget, at a
+            --  point, or by default at the middle of the window. The point
+            --  is in window space, so widgets are located there too rather
+            --  than in the layout space Get_Geometry reports: once an
+            --  ancestor has scrolled, the two no longer agree.
+            if Id_Val /= 0 or else Path_Val'Length > 0 then
+               declare
+                  Target : constant Widget_Handle :=
+                    Resolve_Widget (JSON, Resolved_Path);
+               begin
+                  if not Is_Valid (Target) then
+                     return Error_Response (Req_Id, "widget not found");
+                  end if;
+                  declare
+                     Geom : constant Rectangle :=
+                       Adi.Window.Geometry_In_Window (Target);
+                  begin
+                     PX := Geom.X + Geom.Width / 2.0;
+                     PY := Geom.Y + Geom.Height / 2.0;
+                  end;
+               end;
+            elsif X_Val >= 0 and then Y_Val >= 0 then
+               PX := Pixel_Type (X_Val);
+               PY := Pixel_Type (Y_Val);
+            else
+               declare
+                  Root : constant Widget_Handle :=
+                    Adi.Window.Get_Root_Handle (Win);
+                  Geom : constant Rectangle :=
+                    Adi.Window.Geometry_In_Window (Root);
+               begin
+                  PX := Geom.X + Geom.Width / 2.0;
+                  PY := Geom.Y + Geom.Height / 2.0;
+               end;
+            end if;
+
+            Adi.Window.On_Mouse_Wheel
+              (Win, PX, PY,
+               Pixel_Type (Delta_X), Pixel_Type (Delta_Y));
+            Adi.Window.Request_Redraw (Win);
+
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
+            W.Key_Value ("x", Long_Integer (PX));
+            W.Key_Value ("y", Long_Integer (PY));
+            W.Key_Value ("dx", Long_Integer (Delta_X));
+            W.Key_Value ("dy", Long_Integer (Delta_Y));
             W.End_Object;
             return W.To_String;
          end;

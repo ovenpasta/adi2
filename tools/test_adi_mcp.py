@@ -14,9 +14,28 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 # Mock the mcp module since it's only available via uv run
 from unittest.mock import MagicMock
+
+
+class _PassThroughMCP:
+    """Stands in for FastMCP so @mcp.tool() leaves the function alone.
+
+    A MagicMock decorator would replace every tool with a mock, which
+    puts the tools themselves out of reach of these tests.
+    """
+
+    def tool(self, *args, **kwargs):
+        return lambda func: func
+
+    def run(self, *args, **kwargs):
+        pass
+
+
+_fastmcp = MagicMock()
+_fastmcp.FastMCP = lambda *a, **k: _PassThroughMCP()
+
 sys.modules['mcp'] = MagicMock()
 sys.modules['mcp.server'] = MagicMock()
-sys.modules['mcp.server.fastmcp'] = MagicMock()
+sys.modules['mcp.server.fastmcp'] = _fastmcp
 
 import adi_mcp_server
 
@@ -269,6 +288,57 @@ class TestCommandProtocol(unittest.TestCase):
         parsed2 = json.loads(serialized2)
         self.assertIsInstance(parsed2["id"], int)
         self.assertEqual(parsed2["id"], 42)
+
+
+class TestScroll(unittest.TestCase):
+    """Tests for the scroll tool itself, not a hand-written payload."""
+
+    def _call(self, ok=True, **kwargs):
+        """Call scroll() with send_command mocked; return (mock, result)."""
+        reply = ({"status": "ok", "x": 450, "y": 380,
+                  "dx": kwargs.get("dx", 0), "dy": kwargs.get("dy", 0)}
+                 if ok else {"status": "error", "error": "widget not found"})
+        with patch.object(adi_mcp_server, "send_command",
+                          return_value=reply) as sender:
+            return sender, adi_mcp_server.scroll(**kwargs)
+
+    def test_sends_expected_payload(self):
+        """Deltas and aim reach send_command under the right keys."""
+        sender, _ = self._call(dy=-3)
+        cmd = sender.call_args[0][0]
+        self.assertEqual(cmd["command"], "scroll")
+        self.assertEqual(cmd["dy"], -3)
+        self.assertEqual(cmd["dx"], 0)
+        self.assertEqual(cmd["x"], -1)
+        self.assertEqual(cmd["y"], -1)
+
+    def test_aims_at_a_widget(self):
+        """A path is forwarded so the wheel lands on that widget."""
+        sender, _ = self._call(dy=2, path="1.2.3")
+        self.assertEqual(sender.call_args[0][0]["path"], "1.2.3")
+
+    def test_returns_delivery_point(self):
+        """The reply is reduced to where the wheel went and by how much."""
+        _, result = self._call(dy=-3)
+        self.assertEqual(json.loads(result),
+                         {"x": 450, "y": 380, "dx": 0, "dy": -3})
+
+    def test_rejects_zero_delta(self):
+        """A scroll of nothing is a caller error, not a no-op request."""
+        with self.assertRaises(ValueError):
+            adi_mcp_server.scroll()
+
+    def test_rejects_partial_coordinates(self):
+        """Half a point would silently aim at the window middle instead."""
+        with self.assertRaises(ValueError):
+            adi_mcp_server.scroll(dy=-1, x=100)
+        with self.assertRaises(ValueError):
+            adi_mcp_server.scroll(dy=-1, y=100)
+
+    def test_raises_on_error_status(self):
+        """An error reply surfaces rather than being returned as data."""
+        with self.assertRaises(RuntimeError):
+            self._call(ok=False, dy=-1, path="99.99")
 
 
 if __name__ == "__main__":

@@ -76,6 +76,7 @@ Optional:
 | Tool | Description |
 |------|-------------|
 | `click_widget(id, path)` | Simulate mouse click at widget center |
+| `scroll(dy, dx, id, path, x, y)` | Simulate mouse wheel notches. Positive `dy` scrolls up, negative down |
 | `send_keys(keys)` | Send keystrokes to focused widget. Regular chars as text, special keys via `{Name}` syntax |
 | `set_text(id, text)` | Set widget text directly (model mutation, not input simulation) |
 | `get_focus()` | Get currently focused widget info |
@@ -96,6 +97,8 @@ All tools that target a widget accept both `id` (integer) and `path` (string):
 - **Overlay path**: `"overlayN:subpath"` syntax targets overlay widgets (e.g. `"overlay1:1.2"`). Plain paths also fall back to overlays if not found in root.
 
 Lookup scans the root widget tree and all overlays. `click_widget` requires an explicit `id` or `path` — omitting both returns an error rather than clicking root.
+
+`scroll` is aimed rather than targeted: a wheel event goes to whichever scrollable widget sits under the pointer, so it takes a widget (`id`/`path`), an explicit point (`x`/`y`), or neither, in which case it uses the middle of the window. It requires a non-zero `dx` or `dy`. Use it to reach parts of a window that are out of view — a scroll container that is not keyboard-focusable cannot be moved with `send_keys`.
 
 ## send_keys Syntax
 

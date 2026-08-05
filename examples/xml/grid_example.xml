@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="examples/css/grid_example.css"/>
+
+  <window title="Grid Layout Reference" width="900" height="760">
+    <box id="Root" class="root">
+      <label text="Grid Layout Reference" class="title"/>
+
+      <!-- grid-template-columns -->
+      <box class="section">
+        <label text="grid-template-columns" class="caption"/>
+        <label text="Track sizes across the row. repeat(N, size) expands to N tracks of that size."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="repeat(3, 1fr)" class="case-label"/>
+            <box class="demo cols-3fr">
+              <label text="1" class="cell"/>
+              <label text="2" class="cell"/>
+              <label text="3" class="cell"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="120px 1fr" class="case-label"/>
+            <box class="demo cols-px-fr">
+              <label text="120px" class="cell warm"/>
+              <label text="1fr" class="cell"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="auto 1fr" class="case-label"/>
+            <box class="demo cols-auto">
+              <label text="auto" class="cell alt"/>
+              <label text="1fr" class="cell"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="1fr 2fr 1fr" class="case-label"/>
+            <box class="demo cols-weight">
+              <label text="1" class="cell"/>
+              <label text="2" class="cell rose"/>
+              <label text="1" class="cell"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- mixed track kinds -->
+      <box class="section">
+        <label text="mixed track kinds" class="caption"/>
+        <label text="120px 2fr 0.5fr auto. The px track is fixed, auto takes its content, and what is left is split between the two fr tracks by factor."
+               class="note"/>
+        <box class="demo cols-mixed">
+          <label text="120px" class="cell warm"/>
+          <label text="2fr" class="cell"/>
+          <label text="0.5fr" class="cell rose"/>
+          <label text="auto" class="cell alt"/>
+        </box>
+      </box>
+
+      <!-- spans and placement -->
+      <box class="section">
+        <label text="grid-column and grid-row" class="caption"/>
+        <label text="Four columns, three rows. Items take a start line, a span, or both."
+               class="note"/>
+        <box class="demo board">
+          <label text="1 / span 2" class="cell span-2col"/>
+          <label text="col 3, 1 / span 2" class="cell rose span-2row"/>
+          <label text="col 4, row 1" class="cell at-4-1"/>
+          <label text="col 1, row 2" class="cell alt at-1-2"/>
+          <label text="col 2, row 2" class="cell alt at-2-2"/>
+          <label text="col 4, row 2" class="cell at-4-2"/>
+          <label text="col 1, row 3" class="cell at-1-3"/>
+          <label text="2 / span 3" class="cell warm span-3col"/>
+        </box>
+      </box>
+
+      <!-- gap per axis -->
+      <box class="section">
+        <label text="row-gap and column-gap" class="caption"/>
+        <label text="gap sets both axes; the longhands set one each and leave the other alone."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="gap: 14px" class="case-label"/>
+            <box class="demo gap-both">
+              <label text="1" class="cell"/><label text="2" class="cell"/><label text="3" class="cell"/>
+              <label text="4" class="cell"/><label text="5" class="cell"/><label text="6" class="cell"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="row-gap 20px, col 2px" class="case-label"/>
+            <box class="demo gap-row">
+              <label text="1" class="cell alt"/><label text="2" class="cell alt"/><label text="3" class="cell alt"/>
+              <label text="4" class="cell alt"/><label text="5" class="cell alt"/><label text="6" class="cell alt"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="row-gap 2px, col 20px" class="case-label"/>
+            <box class="demo gap-col">
+              <label text="1" class="cell rose"/><label text="2" class="cell rose"/><label text="3" class="cell rose"/>
+              <label text="4" class="cell rose"/><label text="5" class="cell rose"/><label text="6" class="cell rose"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- fr floors -->
+      <box class="section">
+        <label text="flexible tracks and their items' minimums" class="caption"/>
+        <label text="Three 1fr tracks in a 300px grid. A bare Nfr is minmax(auto, Nfr), so a track never shrinks below its item's minimum: the first two hold their tracks open and the third takes what is left."
+               class="note"/>
+        <box class="demo floor-grid">
+          <label text="min 150px" class="cell red floor-wide"/>
+          <label text="min 90px" class="cell warm floor-medium"/>
+          <label text="rest" class="cell alt floor-rest"/>
+        </box>
+      </box>
+
+      <!-- overflow against the automatic minimum -->
+      <box class="section">
+        <label text="an item that clips does not hold its track open" class="caption"/>
+        <label text="An item's automatic minimum is the room its content needs. An item that hides its overflow shows that content a piece at a time, so it asks for nothing and its 1fr track keeps its equal share. Same grid, same label, same width: only overflow differs."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="overflow: visible" class="case-label"/>
+            <box class="demo clip-grid">
+              <label text="a wide label with no minimum" class="cell red wide"/>
+              <label text="1fr" class="cell"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="overflow: hidden" class="case-label"/>
+            <box class="demo clip-grid">
+              <label text="a wide label with no minimum" class="cell alt wide clipped"/>
+              <label text="1fr" class="cell"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- scrolling grid -->
+      <box class="section">
+        <label text="a grid that scrolls" class="caption"/>
+        <label text="overflow-y on the grid container itself: rows past the fixed height scroll instead of growing it."
+               class="note"/>
+        <box class="demo scroll-grid">
+          <label text="1" class="cell"/><label text="2" class="cell"/><label text="3" class="cell"/>
+          <label text="4" class="cell alt"/><label text="5" class="cell alt"/><label text="6" class="cell alt"/>
+          <label text="7" class="cell rose"/><label text="8" class="cell rose"/><label text="9" class="cell rose"/>
+          <label text="10" class="cell warm"/><label text="11" class="cell warm"/><label text="12" class="cell warm"/>
+          <label text="13" class="cell"/><label text="14" class="cell"/><label text="15" class="cell"/>
+          <label text="16" class="cell alt"/><label text="17" class="cell alt"/><label text="18" class="cell alt"/>
+          <label text="19" class="cell rose"/><label text="20" class="cell rose"/><label text="21" class="cell rose"/>
+          <label text="22" class="cell warm"/><label text="23" class="cell warm"/><label text="24" class="cell warm"/>
+        </box>
+      </box>
+    </box>
+  </window>
+</adi>

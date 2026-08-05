@@ -104,8 +104,4 @@ Not yet implemented, and tracked as follow-up work:
   summing each track independently.
 - Items spanning several tracks still divide their contribution equally,
   which breaks once tracks have different frozen bases.
-- `minmax(0, Nfr)` has no representation in `Grid_Track_Spec`, and an
-  item's explicit `min-width: 0` cannot override the automatic minimum:
-  `Effective_Child_Min` takes the larger of the explicit and content
-  minimums, so an explicit zero behaves like `auto`. The flex automatic
-  minimum has the same gap.
+- `minmax(0, Nfr)` has no representation in `Grid_Track_Spec`.

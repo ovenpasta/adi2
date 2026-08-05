@@ -1744,6 +1744,240 @@ begin
 
    Ada.Text_IO.New_Line;
 
+   --  A box that hides or scrolls an axis shows its content a piece at a
+   --  time, so it needs no room for all of it: the automatic minimum on
+   --  that axis is zero. An explicit min-width/min-height is a demand
+   --  rather than a contribution, and still applies.
+   --  CSS Grid 2 automatic minimum size; CSS Overflow 3 classes hidden
+   --  as a scrollable overflow value.
+   Ada.Text_IO.Put_Line
+      ("=== overflow suppresses the automatic minimum, per axis ===");
+   Ada.Text_IO.New_Line;
+   declare
+      Sample : constant String :=
+         "Supercalifragilistic wording that will not fit";
+
+      function Label_With (R : Style_Rules) return Widget_Handle is
+         L : constant Widget_Handle :=
+            +Adi.Widget.Label.Create_Handle (Sample);
+         Nowrap : constant Style_Rules :=
+            (Text_Wrap_Mode => Set (TWM_Nowrap), others => <>);
+      begin
+         Set_Part_Styles
+            (L, [Main_Part =>
+                    (Style => From (Merge (Nowrap, R)).Build, Enabled => True),
+                 others => <>]);
+         return L;
+      end Label_With;
+
+      Visible : constant Widget_Handle := Label_With ((others => <>));
+      Hidden_X : constant Widget_Handle :=
+         Label_With ((Overflow_X => Set_Overflow_X (Overflow_Hidden),
+                      others     => <>));
+      Hidden_X_Floored : constant Widget_Handle :=
+         Label_With ((Overflow_X => Set_Overflow_X (Overflow_Hidden),
+                      Min_Width  => Set (Size (Px (40.0))),
+                      others     => <>));
+      Scrolling_X : constant Widget_Handle :=
+         Label_With ((Overflow_X => Set_Overflow_X (Overflow_Auto),
+                      others     => <>));
+   begin
+      Ada.Text_IO.Put_Line
+         ("  visible w=" & Pixel_Type'Image (Effective_Min_Size (Visible).Width)
+          & "  hidden w=" & Pixel_Type'Image (Effective_Min_Size (Hidden_X).Width)
+          & "  hidden+min w="
+          & Pixel_Type'Image (Effective_Min_Size (Hidden_X_Floored).Width));
+
+      Test_Support.Assert
+         (Effective_Min_Size (Visible).Width > 0.0,
+          "a visible nowrap label contributes its min-content width");
+      Test_Support.Assert
+         (Effective_Min_Size (Hidden_X).Width = 0.0,
+          "overflow-x hidden drops that contribution to zero");
+      Test_Support.Assert
+         (Effective_Min_Size (Scrolling_X).Width = 0.0,
+          "overflow-x auto drops it too: hidden and scroll are both "
+          & "scrollable overflow");
+      Test_Support.Assert
+         (abs (Effective_Min_Size (Hidden_X_Floored).Width - 40.0) < 0.001,
+          "an explicit min-width still wins over hidden overflow");
+      Test_Support.Assert
+         (abs (Effective_Min_Size (Hidden_X).Height
+               - Effective_Min_Size (Visible).Height) < 0.001,
+          "hiding X leaves the Y contribution alone");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  The reference case in grid_example: three 1fr tracks in 300px
+   --  where the third holds text too wide for its share. With that item
+   --  hiding its overflow the track floors are 150/90/0, so the grid
+   --  stays inside its 300px instead of being pushed wider.
+   Ada.Text_IO.Put_Line
+      ("=== a hidden-overflow item does not inflate its fr track ===");
+   Ada.Text_IO.New_Line;
+   declare
+      Grid_Box : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      C1 : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      C2 : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      C3 : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle
+             ("wording far too wide for one third of this grid");
+
+      Grid_Style : constant Style_Rules :=
+         (Display            => Set (Adi.CSS_Styles.Grid),
+          Grid_Columns       => Set (Grid_Columns_Value (3)),
+          Grid_Column_Tracks =>
+             (Count  => 3,
+              Tracks =>
+                 [1      => (Track_Fr, 1.0),
+                  2      => (Track_Fr, 1.0),
+                  3      => (Track_Fr, 1.0),
+                  others => <>]),
+          others             => <>);
+
+      function Floor_Of (W : Float) return Part_Style_Array is
+         R : constant Style_Rules :=
+            (Min_Width => Set (Size (Px (W))), others => <>);
+      begin
+         return [Main_Part => (Style => From (R).Build, Enabled => True),
+                 others    => <>];
+      end Floor_Of;
+
+      Clipped : constant Style_Rules :=
+         (Overflow_X     => Set_Overflow_X (Overflow_Hidden),
+          Text_Wrap_Mode => Set (TWM_Nowrap),
+          others         => <>);
+   begin
+      Set_Part_Styles
+         (Grid_Box, [Main_Part => (Style => From (Grid_Style).Build,
+                                   Enabled => True), others => <>]);
+      Set_Part_Styles (C1, Floor_Of (150.0));
+      Set_Part_Styles (C2, Floor_Of (90.0));
+      Set_Part_Styles
+         (C3, [Main_Part => (Style => From (Clipped).Build, Enabled => True),
+               others    => <>]);
+      Add_Child (Grid_Box, C1);
+      Add_Child (Grid_Box, C2);
+      Add_Child (Grid_Box, C3);
+
+      Set_Geometry
+         (Grid_Box, (X => 0.0, Y => 0.0, Width => 300.0, Height => 50.0));
+      Layout (Grid_Box);
+
+      Ada.Text_IO.Put_Line
+         ("  widths: " & Pixel_Type'Image (Get_Geometry (C1).Width)
+          & Pixel_Type'Image (Get_Geometry (C2).Width)
+          & Pixel_Type'Image (Get_Geometry (C3).Width));
+
+      Test_Support.Assert
+         (abs (Get_Geometry (C1).Width - 150.0) < 0.001,
+          "the 150px floor still freezes its track");
+      Test_Support.Assert
+         (abs (Get_Geometry (C2).Width - 90.0) < 0.001,
+          "the 90px floor still freezes its track");
+      Test_Support.Assert
+         (abs (Get_Geometry (C3).Width - 60.0) < 0.001,
+          "the clipped item takes the remainder rather than its text width");
+      Test_Support.Assert
+         (Get_Geometry (C1).Width + Get_Geometry (C2).Width
+            + Get_Geometry (C3).Width <= 300.001,
+          "so the grid stays inside the width it was given");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  An explicit minimum replaces the automatic one rather than joining
+   --  it, so `min-width: 0` really does let an item shrink past its own
+   --  content. Combining the two with max would make the zero a no-op,
+   --  and zero is the escape hatch CSS gives for exactly this.
+   Ada.Text_IO.Put_Line
+      ("=== an explicit minimum replaces the automatic one ===");
+   Ada.Text_IO.New_Line;
+   declare
+      Sample : constant String := "wording far wider than the room given";
+
+      function Label_With (R : Style_Rules) return Widget_Handle is
+         L : constant Widget_Handle :=
+            +Adi.Widget.Label.Create_Handle (Sample);
+         Nowrap : constant Style_Rules :=
+            (Text_Wrap_Mode => Set (TWM_Nowrap), others => <>);
+      begin
+         Set_Part_Styles
+            (L, [Main_Part =>
+                    (Style => From (Merge (Nowrap, R)).Build, Enabled => True),
+                 others => <>]);
+         return L;
+      end Label_With;
+
+      Plain : constant Widget_Handle := Label_With ((others => <>));
+      Zero  : constant Widget_Handle :=
+         Label_With ((Min_Width => Set (Size (Px (0.0))), others => <>));
+      Forty : constant Widget_Handle :=
+         Label_With ((Min_Width => Set (Size (Px (40.0))), others => <>));
+   begin
+      Ada.Text_IO.Put_Line
+         ("  auto=" & Pixel_Type'Image (Effective_Min_Size (Plain).Width)
+          & "  zero=" & Pixel_Type'Image (Effective_Min_Size (Zero).Width)
+          & "  forty=" & Pixel_Type'Image (Effective_Min_Size (Forty).Width));
+
+      Test_Support.Assert
+         (Effective_Min_Size (Plain).Width > 100.0,
+          "with no explicit minimum the content's width still applies");
+      Test_Support.Assert
+         (Effective_Min_Size (Zero).Width = 0.0,
+          "min-width: 0 drops the automatic minimum to nothing");
+      Test_Support.Assert
+         (abs (Effective_Min_Size (Forty).Width - 40.0) < 0.001,
+          "a smaller explicit minimum replaces the automatic one, "
+          & "rather than losing to it");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  The same rule down the flex path: a row item that declares
+   --  min-width: 0 shrinks to its share instead of holding the row open
+   --  at its text width.
+   Ada.Text_IO.Put_Line
+      ("=== min-width: 0 lets a flex item shrink past its text ===");
+   Ada.Text_IO.New_Line;
+   declare
+      Row_Box : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Kid     : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle
+             ("wording far wider than the row it sits in");
+
+      Row_Style : constant Style_Rules :=
+         (Display        => Set (Adi.CSS_Styles.Flex),
+          Flex_Direction => Set (Row),
+          others         => <>);
+      Kid_Style : constant Style_Rules :=
+         (Min_Width      => Set (Size (Px (0.0))),
+          Text_Wrap_Mode => Set (TWM_Nowrap),
+          others         => <>);
+   begin
+      Set_Part_Styles
+         (Row_Box, [Main_Part => (Style => From (Row_Style).Build,
+                                  Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Kid, [Main_Part => (Style => From (Kid_Style).Build,
+                              Enabled => True), others => <>]);
+      Add_Child (Row_Box, Kid);
+
+      Set_Geometry
+         (Row_Box, (X => 0.0, Y => 0.0, Width => 100.0, Height => 40.0));
+      Layout (Row_Box);
+
+      Ada.Text_IO.Put_Line
+         ("  row=100  child w=" & Pixel_Type'Image (Get_Geometry (Kid).Width));
+
+      Test_Support.Assert
+         (Get_Geometry (Kid).Width <= 100.001,
+          "the item stays inside the row it was given");
+   end;
+
+   Ada.Text_IO.New_Line;
+
    --  A Track_Px track carries an unresolved CSS number, not a pixel count,
    --  so it takes the px -> dip mapping like every other length. At a 2.0
    --  scale a 120px track is 240 device pixels on all three paths that read

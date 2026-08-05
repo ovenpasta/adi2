@@ -6800,29 +6800,56 @@ package body Adi.Widget is
       return (Assigned_Width, Pref_H);
    end Measure_At_Width;
 
+   function Axis_Minimum
+     (Minimum     : Size_Value;
+      Declared    : Size_Value;
+      Overflow    : Overflow_Value;
+      Demand      : Pixel_Type;
+      Content_Min : Pixel_Type;
+      Container   : Pixel_Type := 0.0) return Pixel_Type
+   is
+      Result : Pixel_Type;
+   begin
+      --  An explicit min-width or min-height replaces the automatic
+      --  minimum rather than joining it. `min-width: 0` is a definite
+      --  demand for nothing, and is how CSS lets an item shrink past its
+      --  own content; taking the larger of the two would make it a no-op.
+      if Minimum.Kind = Fixed then
+         return Demand;
+      end if;
+
+      --  Otherwise the minimum is automatic: the content's, except on an
+      --  axis that hides or scrolls its overflow. Such an axis shows the
+      --  content a piece at a time, so it needs room for none of it.
+      --  `hidden` counts alongside `scroll` and `auto` here: CSS Overflow
+      --  3 classes all three as scrollable overflow, and CSS Grid 2
+      --  zeroes the automatic minimum for a scroll container.
+      Result := (if Overflow = Overflow_Visible then Content_Min else 0.0);
+
+      --  A declared size caps that floor: the item may shrink to its
+      --  declared size, just not past its content. A percentage needs a
+      --  container to resolve against, so it only caps when one is known.
+      if Declared.Kind = Fixed
+        and then (Declared.Size.Unit /= Pct or else Container > 0.0)
+      then
+         Result := Pixel_Type'Min (Result, Size_To_Px (Declared, Container));
+      end if;
+
+      return Result;
+   end Axis_Minimum;
+
    function Effective_Min_Size (W : Widget'Class) return Size_2D is
       Style    : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Main_Part);
       Demanded : constant Size_2D := Get_Min_Size (W);
       Content  : constant Size_2D := Get_Content_Min_Size (W);
-
-      function On_Axis
-        (Declared : Size_Value; Demand, Content_Min : Pixel_Type)
-         return Pixel_Type
-      is
-         Result : Pixel_Type := Content_Min;
-      begin
-         if Declared.Kind = Fixed and then Declared.Size.Unit /= Pct then
-            Result :=
-              Pixel_Type'Min (Result, Size_To_Px (Declared, 0.0));
-         end if;
-         return Pixel_Type'Max (Demand, Result);
-      end On_Axis;
    begin
       return (Width  =>
-                On_Axis (Style.Width, Demanded.Width, Content.Width),
+                Axis_Minimum (Style.Min_Width, Style.Width, Style.Overflow_X,
+                              Demanded.Width, Content.Width),
               Height =>
-                On_Axis (Style.Height, Demanded.Height, Content.Height));
+                Axis_Minimum (Style.Min_Height, Style.Height, Style.Overflow_Y,
+                              Demanded.Height, Content.Height));
    end Effective_Min_Size;
 
    function Effective_Min_Size (H : Widget_Handle) return Size_2D is
@@ -7058,54 +7085,38 @@ package body Adi.Widget is
                         --  Align self
                         Info.Align_Self := Child_Style.Align_Self;
 
-                        --  Size constraints. Explicit CSS minimums first;
-                        --  the automatic minimum is added below.
-                        Info.Min_Main := Get_Main_Size
-                          (Child_Min, Style.Flex_Direction);
                         Info.Min_Cross := Get_Cross_Size
                           (Child_Min, Style.Flex_Direction);
 
                         --  Automatic minimum size (CSS Flexbox 4.5), main
-                        --  axis only. See docs/layout_minimums.md.
+                        --  axis only, through the same calculation grid
+                        --  and the containers use. See
+                        --  docs/layout_minimums.md.
                         declare
                            Is_Row : constant Boolean :=
                              Style.Flex_Direction in Row | Row_Reverse;
-
-                           --  An item that scrolls its own content in the
-                           --  main axis needs no room for all of it.
-                           Item_Scrolls : constant Boolean :=
-                             (if Is_Row
-                              then Child_Style.Overflow_X /= Overflow_Visible
-                              else Child_Style.Overflow_Y /= Overflow_Visible);
-
-                           Specified : constant Size_Value :=
-                             (if Is_Row then Child_Style.Width
-                              else Child_Style.Height);
-
-                           Content_Min : constant Pixel_Type :=
-                             Get_Main_Size
-                               (Get_Content_Min_Size (Child.all),
-                                Style.Flex_Direction);
-
-                           Auto_Min : Pixel_Type := Content_Min;
                         begin
-                           if Item_Scrolls then
-                              Auto_Min := 0.0;
-                           elsif Specified.Kind = Fixed then
-                              --  A declared size caps the floor: the item
-                              --  may shrink to it, just not past its
-                              --  content.
-                              Auto_Min := Pixel_Type'Min
-                                (Auto_Min,
-                                 Size_To_Px
-                                   (Specified,
-                                    Get_Main_Size
-                                      ((Content.Width, Content.Height),
-                                       Style.Flex_Direction)));
-                           end if;
-
-                           Info.Min_Main :=
-                             Pixel_Type'Max (Info.Min_Main, Auto_Min);
+                           Info.Min_Main := Axis_Minimum
+                             (Minimum     =>
+                                (if Is_Row then Child_Style.Min_Width
+                                 else Child_Style.Min_Height),
+                              Declared    =>
+                                (if Is_Row then Child_Style.Width
+                                 else Child_Style.Height),
+                              Overflow    =>
+                                (if Is_Row then Child_Style.Overflow_X
+                                 else Child_Style.Overflow_Y),
+                              Demand      =>
+                                Get_Main_Size
+                                  (Child_Min, Style.Flex_Direction),
+                              Content_Min =>
+                                Get_Main_Size
+                                  (Get_Content_Min_Size (Child.all),
+                                   Style.Flex_Direction),
+                              Container   =>
+                                Get_Main_Size
+                                  ((Content.Width, Content.Height),
+                                   Style.Flex_Direction));
                         end;
 
                         --  Non-shrinkable children keep their preferred

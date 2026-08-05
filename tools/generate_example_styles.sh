@@ -23,7 +23,6 @@ generate_if_needed() {
 
 generate_if_needed "$CSS_DIR/text_input_example.css" "$OUT_DIR/text_input_example_styles.ads" "Text_Input_Example_Styles"
 generate_if_needed "$CSS_DIR/label_example.css" "$OUT_DIR/label_example_styles.ads" "Label_Example_Styles"
-generate_if_needed "$CSS_DIR/widget_demo.css" "$OUT_DIR/widget_demo_styles.ads" "Widget_Demo_Styles"
 generate_if_needed "$CSS_DIR/button_example.css" "$OUT_DIR/button_example_styles.ads" "Button_Example_Styles"
 generate_if_needed "$CSS_DIR/demo_flex.css" "$OUT_DIR/demo_flex_styles.ads" "Demo_Flex_Styles"
 generate_if_needed "$CSS_DIR/transition_example.css" "$OUT_DIR/transition_example_styles.ads" "Transition_Example_Styles"

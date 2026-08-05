@@ -11,7 +11,7 @@ Create `examples/css/<name>.css` with your stylesheet. Follow existing examples 
 Adi supports two equally valid CSS unit conventions; both are present in the bundled examples. Pick one per example and stick with it:
 
 - **Physical `px` + explicit `dp`** (used by `material_demo`, `font_example`). `border: 1px` is one device pixel on every display; everything that should scale uses `dp`, `dip`, or `rem`. Hairlines stay hairline on Retina, fractional Windows scales etc. Your `.adb` does not touch `Adi.Layout_Util`.
-- **Logical `px` everywhere** (used by `label_example`, `widget_demo`, and most other bundled examples). All sizes are written in `px`; the app opts the runtime into web-style scaling by calling `Adi.Layout_Util.Set_Px_Maps_To_Dip (True)` right after `App.Init`. CSS reads naturally to readers coming from the web, and every length scales together.
+- **Logical `px` everywhere** (used by `label_example` and most other bundled examples). All sizes are written in `px`; the app opts the runtime into web-style scaling by calling `Adi.Layout_Util.Set_Px_Maps_To_Dip (True)` right after `App.Init`. CSS reads naturally to readers coming from the web, and every length scales together.
 
 See `docs/css_styling.md` "Treating CSS `px` as logical pixels" for the trade-off. Don't mix within one example — the contrast between `1px` and `1dp` only exists when the toggle is off.
 

@@ -127,7 +127,6 @@ tools/build_examples.sh stack_example
 
 # Try a demo
 ./examples/bin/material_demo
-./examples/bin/widget_demo
 ./examples/bin/html_view_example
 ```
 

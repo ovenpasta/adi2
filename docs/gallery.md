@@ -80,6 +80,3 @@ Every example program in [`examples/`](../examples/), captured as a screenshot. 
 
 ![value_input_example](../examples/screenshots/value_input_example.png)
 *`value_input_example`*
-
-![widget_demo](../examples/screenshots/widget_demo.png)
-*`widget_demo`*

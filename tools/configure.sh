@@ -278,7 +278,6 @@ with "../config/adi_linker_config.gpr";
 project Examples_Build is
    type Example_Kind is
      ("label_example",
-      "widget_demo",
       "button_example",
       "transition_example",
       "text_input_example",
@@ -378,7 +377,6 @@ done
 
 EXAMPLE_KINDS=(
   label_example
-  widget_demo
   button_example
   transition_example
   text_input_example

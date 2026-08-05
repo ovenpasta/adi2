@@ -10,7 +10,6 @@ set -euo pipefail
 
 ALL_EXAMPLES=(
   label_example
-  widget_demo
   button_example
   transition_example
   text_input_example

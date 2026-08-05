@@ -2122,6 +2122,107 @@ begin
       Adi.Layout_Util.Set_Active_UI_Scale (Saved_UI);
    end;
 
+   --  pix is an Adi unit meaning one renderer pixel, whatever the scales
+   --  are doing. px follows the px -> dip mapping when it is on, dp
+   --  always scales, and pix never does -- which is what makes it usable
+   --  for a hairline that must stay one pixel.
+   Ada.Text_IO.Put_Line
+      ("=== pix is a renderer pixel; px and dp scale ===");
+   Ada.Text_IO.New_Line;
+   declare
+      Saved_Maps : constant Boolean := Adi.Layout_Util.Get_Px_Maps_To_Dip;
+      Saved_DIP  : constant Pixel_Type := Adi.Layout_Util.Get_Active_DIP_Scale;
+      Saved_UI   : constant Pixel_Type := Adi.Layout_Util.Get_Active_UI_Scale;
+      Saved_Text : constant Pixel_Type := Adi.Layout_Util.Get_Active_Text_Scale;
+
+      function Track_Grid (Spec : Grid_Track_Spec) return Widget_Handle is
+         G : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+         R : constant Style_Rules :=
+            (Display            => Set (Adi.CSS_Styles.Grid),
+             Grid_Columns       => Set (Grid_Columns_Value (1)),
+             Grid_Column_Tracks =>
+                (Count  => 1,
+                 Tracks => [1 => Spec, others => <>]),
+             others             => <>);
+      begin
+         Set_Part_Styles
+            (G, [Main_Part => (Style => From (R).Build, Enabled => True),
+                 others    => <>]);
+         Add_Child (G, +Adi.Widget.Box.Create_Handle);
+         Set_Geometry
+            (G, (X => 0.0, Y => 0.0, Width => 600.0, Height => 80.0));
+         Layout (G);
+         return G;
+      end Track_Grid;
+   begin
+      --  2.0 x 1.25 = 2.5, so a scaled 10 lands on 25.
+      Adi.Layout_Util.Set_Active_DIP_Scale (2.0);
+      Adi.Layout_Util.Set_Active_UI_Scale (1.25);
+      Adi.Layout_Util.Set_Active_Text_Scale (1.0);
+      Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
+
+      Ada.Text_IO.Put_Line
+         ("  10px=" & Pixel_Type'Image (Adi.Layout_Util.Length_To_Px (Px (10.0)))
+          & "  10dp=" & Pixel_Type'Image (Adi.Layout_Util.Length_To_Px (Dip (10.0)))
+          & "  10pix=" & Pixel_Type'Image (Adi.Layout_Util.Length_To_Px (Pix (10.0))));
+
+      Test_Support.Assert
+         (abs (Adi.Layout_Util.Length_To_Px (Px (10.0)) - 25.0) < 0.001,
+          "10px takes the mapping and both scales");
+      Test_Support.Assert
+         (abs (Adi.Layout_Util.Length_To_Px (Dip (10.0)) - 25.0) < 0.001,
+          "10dp scales the same way, mapping or not");
+      Test_Support.Assert
+         (abs (Adi.Layout_Util.Length_To_Px (Pix (10.0)) - 10.0) < 0.001,
+          "10pix is ten renderer pixels");
+
+      --  Font sizes still take the accessibility text scale.
+      Adi.Layout_Util.Set_Active_Text_Scale (2.0);
+      Test_Support.Assert
+         (abs (Adi.Layout_Util.Font_Length_To_Px (Pix (10.0)) - 20.0) < 0.001,
+          "a font size in pix still takes the text scale");
+      Adi.Layout_Util.Set_Active_Text_Scale (1.0);
+
+      --  Turning the mapping off moves px but leaves pix and dp alone.
+      Adi.Layout_Util.Set_Px_Maps_To_Dip (False);
+      Test_Support.Assert
+         (abs (Adi.Layout_Util.Length_To_Px (Px (10.0)) - 10.0) < 0.001
+            and then abs (Adi.Layout_Util.Length_To_Px (Pix (10.0)) - 10.0)
+                       < 0.001
+            and then abs (Adi.Layout_Util.Length_To_Px (Dip (10.0)) - 25.0)
+                       < 0.001,
+          "with the mapping off px joins pix, while dp keeps scaling");
+
+      --  A track in each unit, measured and laid out.
+      Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
+      declare
+         Scaled : constant Widget_Handle := Track_Grid ((Track_Px, 40.0));
+         Exact  : constant Widget_Handle := Track_Grid ((Track_Pix, 40.0));
+      begin
+         Ada.Text_IO.Put_Line
+            ("  40px track=" & Pixel_Type'Image (Get_Geometry (Get_Child_Handle (Scaled, 1)).Width)
+             & "  40pix track=" & Pixel_Type'Image (Get_Geometry (Get_Child_Handle (Exact, 1)).Width));
+
+         Test_Support.Assert
+            (abs (Get_Geometry (Get_Child_Handle (Scaled, 1)).Width - 100.0)
+               < 0.001,
+             "a 40px track lays out at 100 renderer pixels");
+         Test_Support.Assert
+            (abs (Get_Geometry (Get_Child_Handle (Exact, 1)).Width - 40.0)
+               < 0.001,
+             "a 40pix track stays at 40");
+         Test_Support.Assert
+            (abs (Get_Content_Min_Size (Exact).Width - 40.0) < 0.001
+               and then abs (Get_Preferred_Size (Exact).Width - 40.0) < 0.001,
+             "and aggregates at 40 through both width queries");
+      end;
+
+      Adi.Layout_Util.Set_Px_Maps_To_Dip (Saved_Maps);
+      Adi.Layout_Util.Set_Active_DIP_Scale (Saved_DIP);
+      Adi.Layout_Util.Set_Active_UI_Scale (Saved_UI);
+      Adi.Layout_Util.Set_Active_Text_Scale (Saved_Text);
+   end;
+
    Ada.Text_IO.New_Line;
    Test_Support.Finish;
 end Min_Size_Test;

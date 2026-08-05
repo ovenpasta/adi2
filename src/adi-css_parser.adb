@@ -356,6 +356,11 @@ package body Adi.CSS_Parser is
                Spec := (Track_Fr, Num);
                return True;
             end if;
+         elsif T'Length > 3 and then T (T'Last - 2 .. T'Last) = "pix" then
+            if Parse_Number (T (T'First .. T'Last - 3), Num) and then Num >= 0.0 then
+               Spec := (Track_Pix, Num);
+               return True;
+            end if;
          elsif T'Length > 2 and then T (T'Last - 1 .. T'Last) = "px" then
             if Parse_Number (T (T'First .. T'Last - 2), Num) and then Num >= 0.0 then
                Spec := (Track_Px, Num);
@@ -486,6 +491,9 @@ package body Adi.CSS_Parser is
       elsif Ends_With (V, "dip") then
          Number := To_Unbounded_String (V (V'First .. V'Last - 3));
          L.Unit := Dip;
+      elsif Ends_With (V, "pix") then
+         Number := To_Unbounded_String (V (V'First .. V'Last - 3));
+         L.Unit := Pix;
       elsif Ends_With (V, "px") then
          Number := To_Unbounded_String (V (V'First .. V'Last - 2));
          L.Unit := Px;
@@ -897,6 +905,7 @@ package body Adi.CSS_Parser is
    begin
       case L.Unit is
          when Px      => return Px (L.Amount);
+         when Pix     => return Pix (L.Amount);
          when Dip     => return Dip (L.Amount);
          when Em      => return Em (L.Amount);
          when Root_Em => return Root_Em (L.Amount);

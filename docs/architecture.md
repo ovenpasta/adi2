@@ -7,7 +7,7 @@
 **Adi.Style** (`adi-style.ads`): CSS-like style system — dimension values (px, dip, %, fr), box model, flexbox, grid layout, typography, color constants, widget states, style rule management.
 
 **Adi.CSS_Styles** (`adi-css_styles.ads`): CSS value types and style resolution.
-- Length units: `Px`, `Dip`, `Em`, `Root_Em`, `Pct`
+- Length units: `Px`, `Pix`, `Dip`, `Em`, `Root_Em`, `Pct`, `Vw`, `Vh` — `Pix` is one renderer pixel regardless of scale or the `px` → dip mapping
 - `Style_Rules`: optional/unset values for CSS cascade/override semantics
 - `Resolved_Style`: fully concrete with defaults (safe to read directly)
 - `Transition_Spec` with duration, easing, and `Property_Set` filter
@@ -162,7 +162,7 @@
 **Adi.Layout_Util** (`adi-layout_util.ads`): Layout algorithms.
 - Box model, edge/border extraction, alignment
 - Flexbox and grid layout (`Compute_Grid_Layout` / `Grid_To_Rectangles`)
-- Grid track sizing: `Grid_Track_List` carries per-column `auto`/`fr`/`px` specs (up to 16 tracks). `Compute_Grid_Layout` implements a 5-pass algorithm: (1) size `auto` columns to max child preferred width, (2) assign initial widths from track specs (`px` fixed, `fr` = 0), (3) distribute remaining space to `fr` columns, (4) expand `auto`/`px` columns and rows for `min-width`/`min-height`, and record a floor for each `fr` column from its items' minimum contribution, (5) re-distribute `fr` columns by flex factor, freezing any that fall below their floor and resharing among the rest until stable — the grid overflows when the floors alone exceed the space. Rows use an analogous 2-pass scheme: Pass 4 expands to content minimums, then remaining height is shared equally. When `overflow: visible` and rows overflow the allocated height (e.g. after text-wrap discovery), the grid container grows to fit.
+- Grid track sizing: `Grid_Track_List` carries per-column `auto`/`fr`/`px`/`pix` specs (up to 16 tracks). `Compute_Grid_Layout` implements a 5-pass algorithm: (1) size `auto` columns to max child preferred width, (2) assign initial widths from track specs (`px` and `pix` fixed, `fr` = 0), (3) distribute remaining space to `fr` columns, (4) expand `auto`/`px`/`pix` columns and rows for `min-width`/`min-height`, and record a floor for each `fr` column from its items' minimum contribution, (5) re-distribute `fr` columns by flex factor, freezing any that fall below their floor and resharing among the rest until stable — the grid overflows when the floors alone exceed the space. Rows use an analogous 2-pass scheme: Pass 4 expands to content minimums, then remaining height is shared equally. When `overflow: visible` and rows overflow the allocated height (e.g. after text-wrap discovery), the grid container grows to fit.
 - `fr` measurement in `Measure_Content` (`Adi.Widget.Box`): `fr` columns contribute their children's intrinsic **minimum** width to the grid's content size, so `fr` columns stay shrinkable and text wraps when the container is constrained. `auto` columns contribute their full preferred width. Known deviation: this also makes a grid whose only column is `fr` report the same preferred and min-content width — CSS would derive a common flex fraction from max-content contributions. See `docs/layout_minimums.md`.
 - Low-level unit conversion state: `Length_To_Px` scales `dip` by OS DIP scale plus active user UI scale; `Font_Length_To_Px` also applies active text scale. App code should normally change user scaling through `Adi.Window`, not by mutating `Layout_Util` directly.
 

@@ -115,6 +115,9 @@ package body Adi.Layout_Util is
             else
                return Pixel_Type (L.Amount);
             end if;
+         when Pix =>
+            --  One renderer pixel, whatever the scales are doing.
+            return Pixel_Type (L.Amount);
          when Dip =>
             return Pixel_Type (L.Amount) * Active_DIP_Scale * Active_UI_Scale;
          when Em =>
@@ -1229,6 +1232,8 @@ package body Adi.Layout_Util is
                      when Track_Auto => Col_Widths (C) := Auto_W (C);
                      when Track_Px   =>
                         Col_Widths (C) := Length_To_Px (Px (Tracks (C).Value));
+                     when Track_Pix  =>
+                        Col_Widths (C) := Length_To_Px (Pix (Tracks (C).Value));
                      when Track_Fr   => Col_Widths (C) := 0.0;  -- set below
                   end case;
                end loop;

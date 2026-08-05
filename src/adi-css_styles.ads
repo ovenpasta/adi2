@@ -43,7 +43,12 @@ package Adi.CSS_Styles is
    -- Units
    -------------------------------------------------
 
-   type CSS_Unit is (Px, Dip, Em, Root_Em, Pct, Vw, Vh);
+   --  Pix is an Adi extension, not CSS: one renderer pixel, always.
+   --  It ignores the DIP and UI scales and the px -> dip mapping, which
+   --  is what makes it the unit for a guaranteed hairline. Font sizes in
+   --  pix still take the accessibility text scale.
+   --  Appended so the existing positions keep their values.
+   type CSS_Unit is (Px, Dip, Em, Root_Em, Pct, Vw, Vh, Pix);
 
    type Length_Value is record
       Amount : Float := 0.0;
@@ -52,6 +57,8 @@ package Adi.CSS_Styles is
 
    function Px (V : Float) return Length_Value is ((Amount => V, Unit => Px));
    function Px (V : Integer) return Length_Value is ((Amount => Float (V), Unit => Px));
+   function Pix (V : Float) return Length_Value is ((Amount => V, Unit => Pix));
+   function Pix (V : Integer) return Length_Value is ((Amount => Float (V), Unit => Pix));
    function Dip (V : Float) return Length_Value is ((Amount => V, Unit => Dip));
    function Dip (V : Integer) return Length_Value is ((Amount => Float (V), Unit => Dip));
    function Em (V : Float) return Length_Value is ((Amount => V, Unit => Em));
@@ -946,14 +953,16 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    Default_Grid_Row_Span : constant Grid_Row_Span_Value := 1;
 
    -- Per-column track sizing for grid-template-columns
-   type Grid_Track_Kind is (Track_Auto, Track_Fr, Track_Px);
+   type Grid_Track_Kind is (Track_Auto, Track_Fr, Track_Px, Track_Pix);
 
    type Grid_Track_Spec is record
       Kind  : Grid_Track_Kind := Track_Fr;
-      --  fr units, or for Track_Px the unresolved CSS px number; unused for
+      --  fr units, or for Track_Px/Track_Pix the unresolved CSS number;
+      --  unused for
       --  Track_Auto. A Track_Px value is not a pixel count: resolve it
       --  through Length_To_Px (Px (Value)) so it takes the px -> dip
-      --  mapping every other length takes.
+      --  mapping every other length takes. Track_Pix resolves through
+      --  Pix and stays at renderer pixels.
       Value : Float           := 1.0;
    end record;
 

@@ -100,6 +100,8 @@ procedure Css_Parser_Test is
       ".seconds { transition: opacity 1.25s linear; }" & ASCII.LF &
       ".sides { padding: 1px 2px 3px 4px; padding-left: 11px; margin: 5px; margin-top: 9px; }" & ASCII.LF &
       ".dpunit { padding: 7dp; }" & ASCII.LF &
+      ".pixunit { padding: 3pix; border-width: 1pix; " &
+      "grid-template-columns: 40pix 1fr; }" & ASCII.LF &
        ".listprobe { list-style: url(app://marker.svg) square outside; }" & ASCII.LF &
        ".listprobe2 { list-style: ""-> ""; }" & ASCII.LF &
        ".listprobe3 { list-style-type: disc; list-style-image: none; list-style-position: inside; }" & ASCII.LF &
@@ -1141,6 +1143,31 @@ procedure Css_Parser_Test is
               "cyan keyword should parse");
    end Test_Svg_Aqua_Cyan;
 
+   --  pix is an Adi unit, and must not be swallowed by the px branch
+   --  that shares its last two characters.
+   procedure Test_Pix_Unit is
+      Pix_Styles : constant Part_Style_Array :=
+        Adi.CSS_Parser.Styles_For_Class (Sheet, "pixunit");
+      Pix_Main   : constant Resolved_Style :=
+        Compute_Resolved (Pix_Styles (Main_Part).Style, No_States, No_States);
+   begin
+      Test_Support.Assert
+        (Pix_Main.Padding.Kind = Gap_Uniform
+           and then Pix_Main.Padding.All_Sides.Unit = Pix
+           and then Pix_Main.Padding.All_Sides.Amount = 3.0,
+         "a pix length parses as Pix, not Px");
+      Test_Support.Assert
+        (Pix_Main.Border_Width.All_Edges.Unit = Pix
+           and then Pix_Main.Border_Width.All_Edges.Amount = 1.0,
+         "1pix is the hairline border width");
+      Test_Support.Assert
+        (Pix_Main.Grid_Column_Tracks.Count = 2
+           and then Pix_Main.Grid_Column_Tracks.Tracks (1).Kind = Track_Pix
+           and then Pix_Main.Grid_Column_Tracks.Tracks (1).Value = 40.0
+           and then Pix_Main.Grid_Column_Tracks.Tracks (2).Kind = Track_Fr,
+         "a pix grid track parses as its own kind");
+   end Test_Pix_Unit;
+
    procedure Test_Missing_DP is
       Missing_Styles : constant Part_Style_Array :=
         Adi.CSS_Parser.Styles_For (Sheet, "missing");
@@ -1772,6 +1799,7 @@ begin
    Test_Svg_Colors;
    Test_Svg_Aqua_Cyan;
    Test_Missing_DP;
+   Test_Pix_Unit;
 
    Test_Outline;
    Test_Outline_Offset_None;

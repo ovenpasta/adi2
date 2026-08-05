@@ -37,6 +37,7 @@ from css_to_ada import (
     parse_linear_gradient,
     generate_gradient_ada,
     group_rules_by_widget,
+    parse_grid_track_list,
     generate_style_rules_ada,
     generate_ada_package,
     generate_length_ada,
@@ -1164,6 +1165,33 @@ class TestGenerateLengthAndColor(unittest.TestCase):
     def test_length(self):
         self.assertEqual(generate_length_ada(ParsedLength(10.0, "Px")), "Px (10.0)")
         self.assertEqual(generate_length_ada(ParsedLength(1.5, "Em")), "Em (1.5)")
+
+    def test_pix_grid_track_end_to_end(self):
+        """A pix track survives into the generated package.
+
+        The count fallback accepts a track list it cannot parse and emits
+        only Grid_Columns, so a dropped pix track turns into N equal
+        columns rather than a visible failure.
+        """
+        self.assertEqual(
+            parse_grid_track_list("40pix 1fr"), [("pix", 40.0), ("fr", 1.0)])
+        self.assertEqual(
+            parse_grid_track_list("repeat(2, 8pix)"),
+            [("pix", 8.0), ("pix", 8.0)])
+
+        rules = parse_css(".g { grid-template-columns: 40pix 1fr; }")
+        ada = generate_ada_package(group_rules_by_widget(rules),
+                                   "Pix_Grid_Styles")
+        self.assertIn("Track_Pix, 40.0", ada)
+        self.assertIn("Track_Fr, 1.0", ada)
+        self.assertIn("Grid_Columns_Value (2)", ada)
+
+    def test_pix_unit(self):
+        """pix parses as its own unit and is not mistaken for px."""
+        self.assertEqual(parse_length("40pix"), ParsedLength(40.0, "Pix"))
+        self.assertEqual(parse_length("40px"), ParsedLength(40.0, "Px"))
+        self.assertEqual(
+            generate_length_ada(ParsedLength(1.0, "Pix")), "Pix (1.0)")
 
     def test_color_named(self):
         self.assertEqual(generate_color_ada(ParsedColor(kind="named", name="Red")), "C (Red)")

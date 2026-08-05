@@ -304,7 +304,8 @@ Column tracks can be specified as a space-separated list of sizing tokens, or vi
 |-------|---------|
 | `auto` | Column sizes to fit its content |
 | `Xfr` | Column takes a fractional share of remaining space (e.g. `1fr`, `2fr`) |
-| `Xpx` | Column has a fixed pixel width |
+| `Xpx` | Column has a fixed pixel width, following the `px` convention |
+| `Xpix` | Column is exactly X renderer pixels |
 | `repeat(N, size)` | Expand `size` token N times |
 
 Mixed forms are supported — `repeat(3, auto) 1fr` is equivalent to `auto auto auto 1fr`.
@@ -497,8 +498,9 @@ Duration formats: `100ms`, `0.3s`.
 
 | Unit | Description |
 |------|-------------|
-| `px` | **Physical pixels**, 1:1 with the framebuffer (default if no unit given). Does *not* scale with display density — `1px` is one pixel on every display. |
-| `dip` / `dp` | Density-independent pixels. Multiplied by the current OS display scale and app-level UI scale, so `1dp` is one CSS-style "logical pixel" (≈ one pixel on a 1× display, two on a 2× Retina, etc.). |
+| `px` | Physical pixels by default (and the default when no unit is given), but **logical when `Adi.Layout_Util.Set_Px_Maps_To_Dip` is enabled**, in which case it scales exactly like `dp`. |
+| `pix` | **Always physical pixels**, 1:1 with the framebuffer. An Adi extension, not CSS. Ignores the display scale, the UI scale and the `px` → dip mapping, so `1pix` is one renderer pixel on every display and under every setting. A font size in `pix` still takes the accessibility text scale. |
+| `dip` / `dp` | **Always** density-independent pixels. Multiplied by the current OS display scale and app-level UI scale, so `1dp` is one CSS-style "logical pixel" (≈ one pixel on a 1× display, two on a 2× Retina, etc.). |
 | `em` | Relative to element font size |
 | `rem` | Relative to the window root font size (default `16px`). Set programmatically via `Adi.Window.Set_Root_Font_Size(W, Length_Value)`, or drive it from CSS with `Adi.CSS_Source.Attach_Window(Source, W)` + `:root { font-size: ... }`. |
 | `%` | Percentage of parent |
@@ -515,7 +517,8 @@ The Adi runtime exposes **physical pixels everywhere**: widget geometry, mouse c
 
 That makes the unit story simple:
 
-- Use **`px`** when you mean *exactly N device pixels*, regardless of display: hairlines (`1px` borders), pixel-snapped icon work, anywhere you don't want the OS to "resize" your value.
+- Use **`pix`** when you mean *exactly N renderer pixels* whatever else is configured: hairlines (`1pix` borders), pixel-snapped icon work. It is the only unit that survives `Set_Px_Maps_To_Dip`, so reach for it rather than `px` if the application enables that mapping — under it, `1px` is no longer one pixel.
+- Use **`px`** for values that should follow whichever convention the application chose. With the mapping off it means device pixels; with it on it behaves as `dp`.
 - Use **`dp` / `dip`** for everything that should look the same physical size on every display: padding, gaps, icon sizes, font sizes, control heights. On a 2× Retina display, `16dp` resolves to 32 pixels and looks the same physical size as `16dp` on a 1× display.
 - Use **`rem`** to chain off a single density-aware root size. The standard pattern is:
 
@@ -538,7 +541,7 @@ Browsers, Qt and GTK all redefine `px` to mean a *logical* pixel that the render
 - A `1px` border rounds to 1 or 2 device pixels — neither is the intended hairline. Stack three and you get 4.5 → uneven edges depending on rounding.
 - Snap-to-pixel rendering (charts, grids, alignment lines, icon strokes) becomes impossible without escape hatches, because every `px` silently shifts off the device-pixel grid. This is the "blurry borders on Windows @ 125 %" problem that Qt and browsers paper over with subpixel positioning and snap heuristics.
 
-Adi's split makes the contract unambiguous per property: `border: 1px;` is *one device pixel, snapped to the grid* on every display; `padding: 16dp;` is *approximate physical size, OK with rounding*. No global mode switches, no per-display surprises. The cost is a muscle-memory mismatch for web/Qt refugees — `1px` looks hairline-thin on Retina until you reach for `dp` instead.
+Adi's split makes the contract unambiguous per property: `border: 1pix;` is *one device pixel, snapped to the grid* on every display and under every scale setting; `padding: 16dp;` is *approximate physical size, OK with rounding*; `px` sits between them, following the application's `Set_Px_Maps_To_Dip` choice. No global mode switches, no per-display surprises. The cost is a muscle-memory mismatch for web/Qt refugees — `1px` looks hairline-thin on Retina until you reach for `dp` instead.
 
 ### Treating CSS `px` as logical pixels
 

@@ -483,6 +483,7 @@ package body Adi.MCP is
    begin
       case L.Unit is
          when Px      => return Amt & "px";
+         when Pix     => return Amt & "pix";
          when Dip     => return Amt & "dip";
          when Em      => return Amt & "em";
          when Root_Em => return Amt & "rem";

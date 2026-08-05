@@ -148,6 +148,25 @@ package body Adi.Widget.Box is
       end;
    end Build_Items;
 
+   --  A track whose size is a length rather than auto or a flex factor.
+   --  Both resolve here so a pix track sizes and aggregates like a px
+   --  one; only the scaling differs.
+   --
+   --  Written as exhaustive cases without `others` so a new track kind
+   --  is a compile error here rather than a track silently treated as
+   --  indefinite. Two of the three call sites are ifs, which the
+   --  compiler cannot check for us.
+   function Is_Definite_Track (Spec : Grid_Track_Spec) return Boolean is
+     (case Spec.Kind is
+         when Track_Auto | Track_Fr => False,
+         when Track_Px | Track_Pix  => True);
+
+   function Definite_Track_Px (Spec : Grid_Track_Spec) return Pixel_Type is
+     (case Spec.Kind is
+         when Track_Auto | Track_Fr => 0.0,
+         when Track_Px              => Length_To_Px (Px (Spec.Value)),
+         when Track_Pix             => Length_To_Px (Pix (Spec.Value)));
+
    --  How small a child can actually get. Shared with Stack, so both
    --  containers cap and floor a child the same way.
    function Effective_Child_Min (Child : Widget'Class) return Size_2D
@@ -354,8 +373,9 @@ package body Adi.Widget.Box is
                begin
                   --  Pre-pass: seed px column widths (regardless of child occupancy).
                   for C in 1 .. Cols loop
-                     if Tracks.Tracks (C).Kind = Track_Px then
-                        Col_Max_W (C) := Length_To_Px (Px (Tracks.Tracks (C).Value));
+                     if Is_Definite_Track (Tracks.Tracks (C)) then
+                        Col_Max_W (C) :=
+                          Definite_Track_Px (Tracks.Tracks (C));
                      end if;
                   end loop;
 
@@ -739,8 +759,9 @@ package body Adi.Widget.Box is
                begin
                   if Tracks.Count = Cols then
                      for C in 1 .. Cols loop
-                        if Tracks.Tracks (C).Kind = Track_Px then
-                           Col_Min_W (C) := Length_To_Px (Px (Tracks.Tracks (C).Value));
+                        if Is_Definite_Track (Tracks.Tracks (C)) then
+                           Col_Min_W (C) :=
+                             Definite_Track_Px (Tracks.Tracks (C));
                         end if;
                      end loop;
                   end if;
@@ -755,7 +776,7 @@ package body Adi.Widget.Box is
                               Sc : constant Natural := Infos (I).Col + Span_Offset;
                            begin
                               if Tracks.Count = Cols
-                                and then Tracks.Tracks (Sc).Kind = Track_Px
+                                and then Is_Definite_Track (Tracks.Tracks (Sc))
                               then
                                  null;
                               else

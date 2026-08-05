@@ -549,7 +549,7 @@ def parse_length(value: str) -> Optional[ParsedLength]:
     if value == "0":
         return ParsedLength(0.0, "Px")
     
-    match = re.match(r'^(-?\d*\.?\d+)(px|em|rem|%|dip|dp|vw|vh)?$', value)
+    match = re.match(r'^(-?\d*\.?\d+)(pix|px|em|rem|%|dip|dp|vw|vh)?$', value)
     if not match:
         return None
     
@@ -558,6 +558,7 @@ def parse_length(value: str) -> Optional[ParsedLength]:
     
     unit_map = {
         "px": "Px",
+        "pix": "Pix",
         "dip": "Dip",
         "dp": "Dip",
         "em": "Em",
@@ -596,7 +597,7 @@ def parse_grid_track_count(value: str) -> Optional[int]:
 
 def _parse_one_track_token(token: str) -> Optional[tuple[str, float]]:
     """Parse a single size token into (kind, value).
-    kind is 'auto', 'fr', or 'px'.  Returns None on unknown syntax."""
+    kind is 'auto', 'fr', 'px', or 'pix'.  Returns None on unknown syntax."""
     t = token.strip().lower()
     if t == "auto":
         return ("auto", 0.0)
@@ -604,6 +605,14 @@ def _parse_one_track_token(token: str) -> Optional[tuple[str, float]]:
         try:
             v = float(t[:-2])
             return ("fr", v) if v > 0.0 else None
+        except ValueError:
+            return None
+    # Before px: pix ends in "ix", so the px branch would not claim it,
+    # but the two are easy to reorder by accident.
+    if t.endswith("pix"):
+        try:
+            v = float(t[:-3])
+            return ("pix", v) if v >= 0.0 else None
         except ValueError:
             return None
     if t.endswith("px"):
@@ -3039,6 +3048,9 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
                     elif kind == "fr":
                         track_entries.append(
                             f"{idx} => (Track_Fr, {format_float(val)})")
+                    elif kind == "pix":
+                        track_entries.append(
+                            f"{idx} => (Track_Pix, {format_float(val)})")
                     else:  # px
                         track_entries.append(
                             f"{idx} => (Track_Px, {format_float(val)})")

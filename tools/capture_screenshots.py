@@ -65,7 +65,7 @@ class Shot:
 class Example:
     shots: list[Shot] = field(default_factory=list)
     #  Seconds to let the first frame settle before the first capture.
-    settle: float = 2.0
+    settle: float = 0.3
 
 
 #  Examples whose gallery entry is more than a single screen. Anything not
@@ -159,11 +159,10 @@ def capture(name: str, spec: Example, out_dir: Path, timeout: float) -> list[str
             shutil.copyfile(reply["path"], dest)
             written.append(dest.name)
     finally:
-        app.terminate()
-        try:
-            app.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            app.kill()
+        #  SIGKILL: an SDL event loop does not act on SIGTERM, so asking
+        #  politely only means waiting for the timeout before killing it.
+        app.kill()
+        app.wait()
     return written
 
 
@@ -172,7 +171,7 @@ def main() -> int:
     ap.add_argument("examples", nargs="*", help="default: every capturable one")
     ap.add_argument("--out-dir", type=Path, default=DEST_DIR)
     ap.add_argument("--no-build", action="store_true")
-    ap.add_argument("--timeout", type=float, default=60.0,
+    ap.add_argument("--timeout", type=float, default=5.0,
                     help="seconds to wait for an example to come up")
     args = ap.parse_args()
 

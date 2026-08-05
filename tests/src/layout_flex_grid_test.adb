@@ -195,6 +195,51 @@ procedure Layout_Flex_Grid_Test is
                    "the growth it could not take goes to the other item");
    end Test_Flex_Grow_Redistributes_Past_Maxed_Items;
 
+   --  `flex-basis: 0` is a real basis, not an absent one. Items that
+   --  declare it start from nothing and divide the container by their
+   --  grow factors alone, however wide their content is. Reading the
+   --  zero as "unset" would fall back to content and size them by it.
+   procedure Test_Definite_Zero_Basis is
+      Ctx : Flex_Layout_Context := (
+         Container       => (0.0, 0.0, 300.0, 40.0),
+         Direction       => Row,
+         Wrap            => No_Wrap,
+         Justify_Content => Flex_Start,
+         Align_Items     => Stretch,
+         Align_Content   => Stretch,
+         Row_Gap         => 0.0,
+         Column_Gap      => 0.0);
+      Kids  : Flex_Child_Info_Array (1 .. 2);
+      Rects : Rectangle_Array (1 .. 2);
+   begin
+      --  Same grow, very different content: only the basis decides.
+      Kids (1) := (Flex_Grow => 1.0, Flex_Shrink => 1.0,
+                   Flex_Basis => 0.0, Basis_Is_Definite => True,
+                   Min_Main => 0.0, Max_Main => Pixel_Type'Last,
+                   Min_Cross => 0.0, Max_Cross => Pixel_Type'Last,
+                   Content_Main => 20.0, Content_Cross => 20.0,
+                   others => <>);
+      Kids (2) := (Flex_Grow => 1.0, Flex_Shrink => 1.0,
+                   Flex_Basis => 0.0, Basis_Is_Definite => True,
+                   Min_Main => 0.0, Max_Main => Pixel_Type'Last,
+                   Min_Cross => 0.0, Max_Cross => Pixel_Type'Last,
+                   Content_Main => 220.0, Content_Cross => 20.0,
+                   others => <>);
+
+      Compute_Flex_Layout (Ctx, Kids);
+      Rects := Flex_To_Rectangles (Ctx, Kids);
+      Assert_Close (Rects (1).Width, 150.0, "definite zero basis, first");
+      Assert_Close (Rects (2).Width, 150.0, "definite zero basis, second");
+
+      --  Left indefinite, the same two items size from their content.
+      Kids (1).Basis_Is_Definite := False;
+      Kids (2).Basis_Is_Definite := False;
+      Compute_Flex_Layout (Ctx, Kids);
+      Rects := Flex_To_Rectangles (Ctx, Kids);
+      Assert_Close (Rects (1).Width, 50.0, "auto basis, first");
+      Assert_Close (Rects (2).Width, 250.0, "auto basis, second");
+   end Test_Definite_Zero_Basis;
+
    procedure Test_Flex_Margins is
       Ctx : Flex_Layout_Context := (
          Container       => (0.0, 0.0, 200.0, 80.0),
@@ -969,6 +1014,7 @@ begin
    Test_Percentage_Cross_Size_Resolves_Against_The_Line;
    Test_Measure_At_Width_Reports_The_Assigned_Width;
    Test_Preferred_Floor_Is_Per_Axis;
+   Test_Definite_Zero_Basis;
    Test_Flex_Margins;
    Test_Grid_Auto_And_Span;
    Test_Grid_Resize_And_Overflow_Policy;

@@ -785,8 +785,12 @@ package body Adi.Layout_Util is
             Basis : Pixel_Type;
          begin
             --  Determine flex basis
-            Basis := Child.Flex_Basis;
-            if Basis = 0.0 then
+            --  A non-zero basis speaks for itself; the flag is only needed
+            --  to tell a declared zero from an absent one, which is the
+            --  one case a pixel value cannot express.
+            if Child.Basis_Is_Definite or else Child.Flex_Basis /= 0.0 then
+               Basis := Child.Flex_Basis;
+            else
                --  Auto basis: use content size
                Basis := Child.Content_Main;
             end if;

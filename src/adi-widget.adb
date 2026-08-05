@@ -7081,6 +7081,10 @@ package body Adi.Widget is
                                     Style.Flex_Direction));
                         end case;
                         Info.Flex_Basis := Flex_Basis_Px;
+                        --  Auto and content both derive the basis from the
+                        --  child, so only a declared one is definite.
+                        Info.Basis_Is_Definite :=
+                          Child_Style.Flex_Basis.Kind = Fixed;
 
                         --  Align self
                         Info.Align_Self := Child_Style.Align_Self;

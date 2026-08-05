@@ -1978,6 +1978,65 @@ begin
 
    Ada.Text_IO.New_Line;
 
+   --  `flex-basis: 0` has to survive the trip from CSS through to the
+   --  layout. Two items with the same grow factor and very different
+   --  preferred widths split the row evenly only if the declared zero
+   --  arrives as a basis rather than as "unset" — which a test that sets
+   --  the record field by hand would never catch.
+   Ada.Text_IO.Put_Line
+      ("=== flex-basis: 0 reaches the layout from CSS ===");
+   Ada.Text_IO.New_Line;
+   declare
+      Basis_Row : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Narrow    : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle ("short");
+      Wide      : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle
+             ("a much longer label that prefers far more room");
+
+      Row_Style : constant Style_Rules :=
+         (Display        => Set (Adi.CSS_Styles.Flex),
+          Flex_Direction => Set (Row),
+          others         => <>);
+
+      --  Equal grow off a zero basis, and free to shrink past their text.
+      Kid_Style : constant Style_Rules :=
+         (Flex_Basis     => Set (Basis (Px (0.0))),
+          Flex_Grow      => Set (1.0),
+          Min_Width      => Set (Size (Px (0.0))),
+          Text_Wrap_Mode => Set (TWM_Nowrap),
+          others         => <>);
+   begin
+      Set_Part_Styles
+         (Basis_Row, [Main_Part => (Style => From (Row_Style).Build,
+                                    Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Narrow, [Main_Part => (Style => From (Kid_Style).Build,
+                                 Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Wide, [Main_Part => (Style => From (Kid_Style).Build,
+                               Enabled => True), others => <>]);
+      Add_Child (Basis_Row, Narrow);
+      Add_Child (Basis_Row, Wide);
+
+      Set_Geometry
+         (Basis_Row, (X => 0.0, Y => 0.0, Width => 300.0, Height => 40.0));
+      Layout (Basis_Row);
+
+      Ada.Text_IO.Put_Line
+         ("  narrow=" & Pixel_Type'Image (Get_Geometry (Narrow).Width)
+          & "  wide=" & Pixel_Type'Image (Get_Geometry (Wide).Width));
+
+      Test_Support.Assert
+         (abs (Get_Geometry (Narrow).Width - 150.0) < 0.001,
+          "a declared zero basis leaves grow alone to decide, narrow half");
+      Test_Support.Assert
+         (abs (Get_Geometry (Wide).Width - 150.0) < 0.001,
+          "and the wide item gets the same half, not more");
+   end;
+
+   Ada.Text_IO.New_Line;
+
    --  A Track_Px track carries an unresolved CSS number, not a pixel count,
    --  so it takes the px -> dip mapping like every other length. At a 2.0
    --  scale a 120px track is 240 device pixels on all three paths that read

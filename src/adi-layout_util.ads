@@ -260,6 +260,13 @@ package Adi.Layout_Util is
       Flex_Grow    : Float := 0.0;
       Flex_Shrink  : Float := 1.0;
       Flex_Basis   : Pixel_Type := 0.0;  -- Resolved to pixels
+
+      --  Set when Flex_Basis is a declared zero. A non-zero basis is
+      --  self-evidently declared, so only zero is ambiguous: `flex-basis:
+      --  0` and "no basis given" are the same pixel value and nothing
+      --  else can tell them apart.
+      Basis_Is_Definite : Boolean := False;
+
       Align_Self   : Align_Self_Value := Auto;
 
       --  Size constraints

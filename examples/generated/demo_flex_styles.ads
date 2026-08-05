@@ -155,9 +155,10 @@ package Demo_Flex_Styles is
    --  Base style for class 'item'::label
    function Item_Class_Label_Base_Style return Style_Rules is
      (
-      Color => Set (RGB (24, 26, 33)),
+      Color => Set (RGB (240, 243, 248)),
       Font_Size => Set_Font (Px (12.0)),
       Font_Weight => Set (Weight_Bold),
+      Text_Align => Set (Text_Center),
       others => <>);
 
    --  Base style for class 'tall'

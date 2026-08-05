@@ -108,10 +108,14 @@
   background-color: rgb(94, 129, 172);
 }
 
+/*  A fixed 26px square with no padding, so the text has to be centred
+    outright: with nothing padding it away from the edge, the default
+    left alignment leaves it sitting on the border. */
 .item::label {
-  color: rgb(24, 26, 33);
+  color: rgb(240, 243, 248);
   font-size: 12px;
   font-weight: 700;
+  text-align: center;
 }
 
 .tall  { height: 70px; }

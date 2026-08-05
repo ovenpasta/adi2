@@ -32,7 +32,13 @@
     min-width: 120px;
 }
 
-.label::label {
+/* Three of these share one row, so they ask only for their own text. */
+.label-narrow {
+    min-width: 24px;
+}
+
+.label::label,
+.label-narrow::label {
     color: #bac2de;
     font-size: 14px;
     text-wrap-mode: nowrap;

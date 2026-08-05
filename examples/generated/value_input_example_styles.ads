@@ -72,6 +72,20 @@ package Value_Input_Example_Styles is
       Text_Wrap_Mode => Set (TWM_Nowrap),
       others => <>);
 
+   --  Base style for class 'label-narrow'
+   function Label_Narrow_Class_Base_Style return Style_Rules is
+     (
+      Min_Width => Set (Size (Px (24.0))),
+      others => <>);
+
+   --  Base style for class 'label-narrow'::label
+   function Label_Narrow_Class_Label_Base_Style return Style_Rules is
+     (
+      Color => Set (RGB (186, 194, 222)),
+      Font_Size => Set_Font (Px (14.0)),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
+      others => <>);
+
    --  Base style for class 'value-label'::label
    function Value_Label_Class_Label_Base_Style return Style_Rules is
      (
@@ -292,6 +306,24 @@ package Value_Input_Example_Styles is
      ([
       Main_Part => (Style => Label_Class_Widget, Enabled => True),
       Label_Part => (Style => Label_Class_Label_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'label-narrow'
+   function Label_Narrow_Class_Widget return Widget_Style is
+     (From (Label_Narrow_Class_Base_Style)
+     .Build);
+
+   --  Complete widget style for class 'label-narrow'::label
+   function Label_Narrow_Class_Label_Widget return Widget_Style is
+     (From (Label_Narrow_Class_Label_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'label-narrow'
+   function Label_Narrow_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Label_Narrow_Class_Widget, Enabled => True),
+      Label_Part => (Style => Label_Narrow_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
 

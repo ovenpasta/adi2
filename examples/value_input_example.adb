@@ -172,9 +172,9 @@ begin
       Adi.Widget.Label.Set_Part_Styles (Label1, Label_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles (Label2, Label_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles (Label3, Label_Class_Part_Styles);
-      Adi.Widget.Label.Set_Part_Styles (Label_R, Label_Class_Part_Styles);
-      Adi.Widget.Label.Set_Part_Styles (Label_G, Label_Class_Part_Styles);
-      Adi.Widget.Label.Set_Part_Styles (Label_B, Label_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Label_R, Label_Narrow_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Label_G, Label_Narrow_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Label_B, Label_Narrow_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles
         (Float_Echo, Value_Label_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles

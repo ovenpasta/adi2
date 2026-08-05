@@ -290,6 +290,36 @@ class TestCommandProtocol(unittest.TestCase):
         self.assertEqual(parsed2["id"], 42)
 
 
+class TestQuit(unittest.TestCase):
+    """quit must not wait for a reply it cannot receive."""
+
+    def test_does_not_await_a_reply(self):
+        with patch.object(adi_mcp_server, "send_command",
+                          return_value={"status": "ok"}) as sender:
+            self.assertEqual(adi_mcp_server.quit_app(), "requested")
+        cmd, kwargs = sender.call_args[0][0], sender.call_args[1]
+        self.assertEqual(cmd["command"], "quit")
+        #  Awaiting one would block until the timeout: the app removes the
+        #  directory the reply lives in as it exits.
+        self.assertIs(kwargs.get("await_reply"), False)
+
+    def test_fire_and_forget_returns_without_a_response_file(self):
+        """send_command with await_reply=False answers without polling."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            parent = Path(tmpdir) / ".adi_mcp"
+            mcp_dir = parent / "4321"
+            mcp_dir.mkdir(parents=True)
+            (mcp_dir / "ready").write_text("4321")
+            with patch.object(adi_mcp_server, "MCP_DIR_PARENT", parent):
+                #  No responder exists, so a waiting call would time out.
+                result = adi_mcp_server.send_command(
+                    {"command": "quit"}, pid=4321, await_reply=False)
+            self.assertEqual(result["status"], "ok")
+            self.assertTrue(
+                any(p.name.startswith("cmd_") for p in mcp_dir.iterdir()),
+                "the command should still have been written")
+
+
 class TestScroll(unittest.TestCase):
     """Tests for the scroll tool itself, not a hand-written payload."""
 

@@ -10,6 +10,7 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with GNAT.OS_Lib;
 
+with Adi.App;
 with Adi.Core;                   use Adi.Core;
 with Adi.CSS_Styles;             use Adi.CSS_Styles;
 with Adi.JSON;
@@ -904,6 +905,23 @@ package body Adi.MCP is
             else
                W.Key_Null ("widget");
             end if;
+            W.End_Object;
+            return W.To_String;
+         end;
+
+      elsif Cmd = "quit" then
+         declare
+            W : Adi.JSON.JSON_Writer := Adi.JSON.Create;
+         begin
+            --  Goes through the ordinary quit path, so the app finalizes
+            --  as it would on a window close -- including any close
+            --  handler, which may refuse. The reply below is written, but
+            --  a caller asking to quit should not wait for it: Finalize
+            --  removes the directory it would be read from.
+            Adi.App.Request_Quit;
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
             W.End_Object;
             return W.To_String;
          end;

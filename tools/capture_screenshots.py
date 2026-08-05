@@ -162,11 +162,33 @@ def capture(name: str, spec: Example, out_dir: Path, timeout: float) -> list[str
             shutil.copyfile(reply["path"], dest)
             written.append(dest.name)
     finally:
-        #  SIGKILL: an SDL event loop does not act on SIGTERM, so asking
-        #  politely only means waiting for the timeout before killing it.
-        app.kill()
-        app.wait()
+        shutdown(app)
     return written
+
+
+def shutdown(app: subprocess.Popen, grace: float = 2.0) -> None:
+    """Ask the app to quit; kill it only if it will not.
+
+    A window whose close handler refuses the request stays up, and an app
+    that never came up cannot answer at all, so the signal remains the
+    backstop. SIGTERM is not tried: an SDL event loop does not act on it.
+    """
+    ipc_dir = ipc.MCP_DIR_PARENT / str(app.pid)
+    try:
+        ipc.send_command({"command": "quit"}, app.pid, await_reply=False)
+        rc = app.wait(timeout=grace)
+        #  A crash also ends the process, so a clean shutdown has to be
+        #  told apart from one: zero status, and the app removed its own
+        #  IPC directory on the way out.
+        if rc == 0 and not ipc_dir.exists():
+            return
+        print(f"warning: {app.pid} exited rc={rc}, "
+              f"ipc dir {'left behind' if ipc_dir.exists() else 'gone'}",
+              file=sys.stderr)
+    except Exception:
+        pass
+    app.kill()
+    app.wait()
 
 
 def main() -> int:

@@ -123,7 +123,8 @@ def find_mcp_dir(pid: int | None = None) -> Path:
     return live[0].parent
 
 
-def send_command(cmd: dict, pid: int | None = None) -> dict:
+def send_command(cmd: dict, pid: int | None = None,
+                 await_reply: bool = True) -> dict:
     """Send a command and wait for the response.
 
     Enforces single-flight per PID: concurrent calls to the same app
@@ -146,6 +147,12 @@ def send_command(cmd: dict, pid: int | None = None) -> dict:
         # Atomic write: write to .tmp, rename to final
         tmp_path.write_text(json.dumps(cmd))
         tmp_path.rename(cmd_path)
+
+        if not await_reply:
+            #  Nothing will answer once the app has torn its own IPC
+            #  directory down, so do not wait for a reply that is racing
+            #  the shutdown that the command asked for.
+            return {"status": "ok", "req_id": req_id}
 
         # Poll for response
         deadline = time.monotonic() + TIMEOUT
@@ -334,6 +341,21 @@ def scroll(dy: int = 0, dx: int = 0, id: int = 0, path: str = "",
     return json.dumps(
         {k: result.get(k) for k in ("x", "y", "dx", "dy")}, indent=2
     )
+
+
+@mcp.tool()
+def quit_app() -> str:
+    """Ask the application to exit.
+
+    Takes the ordinary quit path, so the app finalizes as it would on a
+    window close. A window with a close handler may refuse, in which case
+    the app keeps running and the caller has to fall back to a signal.
+
+    Nothing is awaited: the app removes its IPC directory as it exits, so
+    the reply would be racing its own shutdown.
+    """
+    send_command({"command": "quit"}, _target_pid, await_reply=False)
+    return "requested"
 
 
 @mcp.tool()

@@ -77,6 +77,7 @@ Optional:
 |------|-------------|
 | `click_widget(id, path)` | Simulate mouse click at widget center |
 | `scroll(dy, dx, id, path, x, y)` | Simulate mouse wheel notches. Positive `dy` scrolls up, negative down |
+| `quit_app()` | Ask the app to exit through its ordinary quit path; a close handler may refuse |
 | `send_keys(keys)` | Send keystrokes to focused widget. Regular chars as text, special keys via `{Name}` syntax |
 | `set_text(id, text)` | Set widget text directly (model mutation, not input simulation) |
 | `get_focus()` | Get currently focused widget info |

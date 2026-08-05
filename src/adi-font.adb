@@ -1553,7 +1553,7 @@ package body Adi.Font is
               (1.0,
                Adi.Layout_Util.Length_To_Px
                  (Line_Height.Height,
-                  Container_Size => Natural_Skip,
+                  Container_Size => Font_Size_Px,
                   Font_Size      => Font_Size_Px));
       end case;
    end Resolve_Line_Skip_Px;

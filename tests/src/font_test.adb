@@ -104,5 +104,68 @@ begin
       end if;
    end;
 
+   New_Line;
+
+   --  A percentage line-height resolves against the font size, which is
+   --  what adi-font.ads has always promised. Resolving it against the
+   --  font's own line skip made the answer move with whichever face was
+   --  loaded, so this needs a real font: with none, the natural skip
+   --  falls back to the font size and both readings agree by accident.
+   Put_Line ("=== line-height resolves against the font size ===");
+   declare
+      use Adi.Core;
+      use type Adi.SDL.TTF.TTF_Font_Access;
+
+      DJ  : constant Font_Handle := Adi.Font.Find ("DejaVu Sans");
+      NS  : constant Font_Handle := Adi.Font.Find ("Noto Sans");
+      Fam : constant Font_Handle := (if DJ /= Null_Font then DJ else NS);
+      F   : constant Adi.SDL.TTF.TTF_Font_Access :=
+        (if Fam = Null_Font then null
+         else Adi.Font.Get_TTF_Font
+                (Adi.Font.Make_Attributes
+                   (Family     => Fam,
+                    Size       => 20.0,
+                    Weight     => Weight_Normal,
+                    Style      => Style_Normal,
+                    Decoration => Decoration_None)));
+   begin
+      if F = null then
+         Put_Line ("  [SKIP] no measurable system font");
+      else
+         declare
+            Natural_Skip : constant Pixel_Type :=
+              Adi.Font.Natural_Line_Skip_Px (F);
+            Half_Again   : constant Pixel_Type :=
+              Adi.Font.Resolve_Line_Skip_Px
+                (Line_Height (Pct (150.0)), 20.0, F);
+            Doubled      : constant Pixel_Type :=
+              Adi.Font.Resolve_Line_Skip_Px (Line_Height (2.0), 20.0, F);
+            Untouched    : constant Pixel_Type :=
+              Adi.Font.Resolve_Line_Skip_Px (Normal_Line_Height, 20.0, F);
+         begin
+            Put_Line ("  natural=" & Pixel_Type'Image (Natural_Skip)
+                      & "  @150% =" & Pixel_Type'Image (Half_Again)
+                      & "  @2.0 =" & Pixel_Type'Image (Doubled));
+
+            Test_Support.Assert
+              (abs (Natural_Skip - 20.0) > 0.001,
+               "the face's own spacing differs from its size, so the two "
+               & "readings of a percentage cannot coincide");
+            Test_Support.Assert
+              (abs (Half_Again - 30.0) < 0.001,
+               "150% of a 20px font is a 30px line skip, measured against "
+               & "the size rather than the face");
+            Test_Support.Assert
+              (abs (Doubled - 40.0) < 0.001,
+               "a plain multiplier measures against the font size too");
+            Test_Support.Assert
+              (abs (Untouched - Natural_Skip) < 0.001,
+               "`normal` is still the face's own spacing");
+         end;
+      end if;
+   end;
+
+   New_Line;
+
    Test_Support.Finish;
 end Font_Test;

@@ -206,7 +206,8 @@ package Adi.Font is
    --  Resolve a CSS line-height into an absolute pixel line-skip:
    --    LH_Normal -> Natural_Line_Skip_Px (Font)
    --    LH_Number -> Font_Size_Px * Multiplier
-   --    LH_Length -> length resolved against the font size
+   --    LH_Length -> length resolved against the font size, percentages
+   --                 included
    --  Caller is responsible for applying this via TTF_SetFontLineSkip when
    --  driving wrapped text measurement or layout.
    function Resolve_Line_Skip_Px

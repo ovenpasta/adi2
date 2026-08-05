@@ -63,12 +63,22 @@ package Adi.SDL.TTF.TextEngine is
    type TTF_TextLayout is limited null record;
    type TTF_TextLayout_Access is access all TTF_TextLayout;
 
+   subtype TTF_SubStringFlags is Uint32;
+
+   TTF_SUBSTRING_DIRECTION_MASK : constant TTF_SubStringFlags := 16#0000_00FF#;
+   TTF_SUBSTRING_TEXT_START     : constant TTF_SubStringFlags := 16#0000_0100#;
+   TTF_SUBSTRING_LINE_START     : constant TTF_SubStringFlags := 16#0000_0200#;
+   TTF_SUBSTRING_LINE_END       : constant TTF_SubStringFlags := 16#0000_0400#;
+   TTF_SUBSTRING_TEXT_END       : constant TTF_SubStringFlags := 16#0000_0800#;
+
    type TTF_SubString is record
-      offset      : aliased int;
-      length      : aliased int;
-      line_index  : aliased int;
+      flags         : aliased TTF_SubStringFlags;
+      offset        : aliased int;
+      length        : aliased int;
+      line_index    : aliased int;
       cluster_index : aliased int;
-      rect        : aliased SDL_Rect;
+      --  Relative to the top left of the text, not to the window.
+      rect          : aliased SDL_Rect;
    end record with Convention => C_Pass_By_Copy;
 
    type TTF_SubString_Access is access all TTF_SubString;
@@ -148,6 +158,31 @@ package Adi.SDL.TTF.TextEngine is
       with Import        => True,
            Convention    => C,
            External_Name => "TTF_CreateText";
+
+   --  A text engine that needs no renderer, so text can be laid out
+   --  without a window. Used by tests to read back what SDL did.
+   function TTF_CreateSurfaceTextEngine return TTF_TextEngine_Access
+      with Import        => True,
+           Convention    => C,
+           External_Name => "TTF_CreateSurfaceTextEngine";
+
+   procedure TTF_DestroySurfaceTextEngine
+      (engine : TTF_TextEngine_Access)
+      with Import        => True,
+           Convention    => C,
+           External_Name => "TTF_DestroySurfaceTextEngine";
+
+   --  Fills a caller-owned record describing the given line; nothing is
+   --  allocated and nothing needs releasing. The rect it reports is
+   --  relative to the text's own origin, which is what makes it readable
+   --  as the alignment SDL applied within the wrap width.
+   function TTF_GetTextSubStringForLine
+      (text      : TTF_Text_Access;
+       line      : int;
+       substring : access TTF_SubString) return C_bool
+      with Import        => True,
+           Convention    => C,
+           External_Name => "TTF_GetTextSubStringForLine";
 
    procedure TTF_DestroyText
       (text : TTF_Text_Access)

@@ -2,6 +2,7 @@ pragma Ada_2022;
 with Adi.Log;
 with Adi.App;
 with Adi.Layout_Util;
+with Adi.MCP;
 with Adi.Window;             use Adi.Window;
 with Adi.Widget;             use Adi.Widget;
 with Adi.Widget.Box;
@@ -384,7 +385,9 @@ begin
       Label_List.Select_Row (Range_Listbox, 4);
 
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));
+      Adi.MCP.Initialize (W);
       A.Add_Window (W);
       A.Run;
+      Adi.MCP.Finalize;
    end;
 end List_Box_Example;

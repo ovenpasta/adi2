@@ -2,6 +2,7 @@ pragma Ada_2022;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.Log;
+with Adi.MCP;
 with Adi.Widget;        use Adi.Widget;
 with Adi.Window;        use Adi.Window;
 with Hello_Example_UI;
@@ -30,6 +31,8 @@ begin
          Adi.Log.Warning ("hello_example: live CSS reload not enabled");
       end if;
    end;
+   Adi.MCP.Initialize (W);
    A.Add_Window (W);
    A.Run;
+   Adi.MCP.Finalize;
 end Hello_Example;

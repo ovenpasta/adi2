@@ -5,6 +5,7 @@ with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Text_IO;
 with Adi.App;
 with Adi.Layout_Util;
+with Adi.MCP;
 with Adi.Window;          use Adi.Window;
 with Adi.Widget;          use Adi.Widget;
 with Adi.Widget.Box;
@@ -222,7 +223,9 @@ begin
       Add_Child (+Root, +Section4);
 
       Adi.Window.Set_Root (Win, Widget_Handle'(+Root));
+      Adi.MCP.Initialize (Win);
       A.Add_Window (Win);
       A.Run;
+      Adi.MCP.Finalize;
    end;
 end Value_Input_Example;

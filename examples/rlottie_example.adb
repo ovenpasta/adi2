@@ -3,6 +3,7 @@ pragma Ada_2022;
 with Ada.Directories;
 with Adi.App;
 with Adi.Layout_Util;
+with Adi.MCP;
 with Adi.RLottie;               use Adi.RLottie;
 with Adi.Window;                use Adi.Window;
 with Adi.Widget;                use Adi.Widget;
@@ -180,8 +181,10 @@ begin
       end if;
 
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));
+      Adi.MCP.Initialize (W);
       A.Add_Window (W);
       A.Run;
+      Adi.MCP.Finalize;
 
       if Anim /= null then
          Destroy (Anim.all);

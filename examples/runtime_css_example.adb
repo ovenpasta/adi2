@@ -5,6 +5,7 @@ with Ada.Directories;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.CSS_Source;
+with Adi.MCP;
 with Adi.Widget;
 with Adi.Widget.Button;
 with Adi.Widget.Box;
@@ -303,7 +304,9 @@ begin
       end if;
 
       Adi.Window.Set_Root (W, Root_H);
+      Adi.MCP.Initialize (W);
       A.Add_Window (W);
       A.Run;
+      Adi.MCP.Finalize;
    end;
 end Runtime_Css_Example;

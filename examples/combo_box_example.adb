@@ -6,6 +6,7 @@ with Adi.App;
 with Adi.Layout_Util;
 with Adi.Core;                   use Adi.Core;
 with Adi.Image;                  use Adi.Image;
+with Adi.MCP;
 with Adi.Window;                 use Adi.Window;
 with Adi.Widget;                 use Adi.Widget;
 with Adi.Widget.Box;             use Adi.Widget.Box;
@@ -156,7 +157,9 @@ begin
       Adi.Widget.Add_Child (+Container, +Status_Label);
 
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));
+      Adi.MCP.Initialize (W);
       A.Add_Window (W);
       A.Run;
+      Adi.MCP.Finalize;
    end;
 end Combo_Box_Example;

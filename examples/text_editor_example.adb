@@ -5,6 +5,7 @@ with Ada.Text_IO;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.CSS_Styles;          use Adi.CSS_Styles;
+with Adi.MCP;
 with Adi.OS;
 with Adi.Window;              use Adi.Window;
 with Adi.Widget;              use Adi.Widget;
@@ -218,7 +219,9 @@ begin
       Add_Child (+Root, +Editor);
 
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));
+      Adi.MCP.Initialize (W);
       A.Add_Window (W);
       A.Run;
+      Adi.MCP.Finalize;
    end;
 end Text_Editor_Example;

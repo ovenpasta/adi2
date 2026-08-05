@@ -4,6 +4,7 @@ with Adi.App;
 with Adi.Layout_Util;
 with Adi.Assets;
 with Adi.Font;
+with Adi.MCP;
 with Adi.Window; use Adi.Window;
 with Assets_Example_UI;
 with Assets_Example_Bundle;
@@ -23,6 +24,8 @@ begin
      (Adi.Font.Load_Asset ("OpenSans-Regular.ttf"));
 
    W := UI.Build;
+   Adi.MCP.Initialize (W);
    A.Add_Window (W);
    A.Run;
+   Adi.MCP.Finalize;
 end Assets_Example;

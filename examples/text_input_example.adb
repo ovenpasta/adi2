@@ -4,6 +4,7 @@ with Ada.Strings;            use Ada.Strings;
 with Ada.Strings.Fixed;      use Ada.Strings.Fixed;
 with Adi.App;
 with Adi.Layout_Util;
+with Adi.MCP;
 with Adi.Window;             use Adi.Window;
 with Adi.Widget;             use Adi.Widget;
 with Adi.Widget.Box;         use Adi.Widget.Box;
@@ -90,7 +91,9 @@ begin
       Add_Child (Container, +Length_Label);
 
       Adi.Window.Set_Root (W, +Root);
+      Adi.MCP.Initialize (W);
       A.Add_Window (W);
       A.Run;
+      Adi.MCP.Finalize;
    end;
 end Text_Input_Example;

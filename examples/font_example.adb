@@ -6,6 +6,7 @@ with Adi.App;
 with Adi.CSS_Styles;       use Adi.CSS_Styles;
 with Adi.Font;
 with Adi.Layout_Util;      use Adi.Layout_Util;
+with Adi.MCP;
 with Adi.Window;           use Adi.Window;
 with Adi.Widget;           use Adi.Widget;
 with Adi.Widget.Box;
@@ -267,7 +268,9 @@ begin
       Add_Child (+Container, +DPI_DIP_Sample);
 
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));
+      Adi.MCP.Initialize (W);
       A.Add_Window (W);
       A.Run;
+      Adi.MCP.Finalize;
    end;
 end Font_Example;

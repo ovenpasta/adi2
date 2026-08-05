@@ -4,6 +4,7 @@ with Adi.App;
 with Adi.Layout_Util;
 with Adi.Core;
 with Adi.Image;        use Adi.Image;
+with Adi.MCP;
 with Adi.Widget.Image; use Adi.Widget.Image;
 with Adi.Window;       use Adi.Window;
 with Image_Example_UI;
@@ -132,6 +133,9 @@ begin
       end if;
    end;
 
+   Adi.MCP.Initialize (W);
+
    A.Add_Window (W);
    A.Run;
+   Adi.MCP.Finalize;
 end Image_Example;

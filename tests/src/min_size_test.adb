@@ -9,6 +9,7 @@ with Adi.Widget.Label;
 with Adi.Widget.Box;
 with Adi.Widget.List_Box;
 with Adi.Widget.Stack;
+with Adi.Layout_Util;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
 with Test_Support;
@@ -1739,6 +1740,93 @@ begin
       Test_Support.Assert
          (abs (Get_Content_Min_Size (Stacked).Width - 100.0) < 0.001,
           "a stack caps its pages the same way a box caps its children");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  A Track_Px track carries an unresolved CSS number, not a pixel count,
+   --  so it takes the px -> dip mapping like every other length. At a 2.0
+   --  scale a 120px track is 240 device pixels on all three paths that read
+   --  the track list: the child's laid-out width, the grid's preferred
+   --  width, and the grid's content minimum.
+   Ada.Text_IO.Put_Line
+      ("=== a px grid track takes the px -> dip mapping ===");
+   Ada.Text_IO.New_Line;
+   declare
+      Saved_Maps : constant Boolean :=
+         Adi.Layout_Util.Get_Px_Maps_To_Dip;
+      Saved_DIP  : constant Pixel_Type :=
+         Adi.Layout_Util.Get_Active_DIP_Scale;
+      Saved_UI   : constant Pixel_Type :=
+         Adi.Layout_Util.Get_Active_UI_Scale;
+
+      Child : Widget_Handle;
+
+      --  One 120px track, in a grid far wider than it: a px track takes
+      --  its own size and leaves the rest, so the child is the track.
+      function Track_Grid return Widget_Handle is
+         G : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+         R : constant Style_Rules :=
+            (Display            => Set (Adi.CSS_Styles.Grid),
+             Grid_Columns       => Set (Grid_Columns_Value (1)),
+             Grid_Column_Tracks =>
+                (Count  => 1,
+                 Tracks => [1 => (Track_Px, 120.0), others => <>]),
+             others             => <>);
+      begin
+         Child := +Adi.Widget.Box.Create_Handle;
+         Set_Part_Styles
+            (G, [Main_Part => (Style => From (R).Build, Enabled => True),
+                 others    => <>]);
+         Add_Child (G, Child);
+         Set_Geometry
+            (G, (X => 0.0, Y => 0.0, Width => 600.0, Height => 80.0));
+         Layout (G);
+         return G;
+      end Track_Grid;
+   begin
+      Adi.Layout_Util.Set_Active_DIP_Scale (2.0);
+      Adi.Layout_Util.Set_Active_UI_Scale (1.0);
+      Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
+
+      declare
+         G : constant Widget_Handle := Track_Grid;
+      begin
+         Ada.Text_IO.Put_Line
+            ("  mapped: child w=" & Pixel_Type'Image (Get_Geometry (Child).Width)
+             & "  preferred w=" & Pixel_Type'Image (Get_Preferred_Size (G).Width)
+             & "  content min w="
+             & Pixel_Type'Image (Get_Content_Min_Size (G).Width));
+
+         Test_Support.Assert
+            (abs (Get_Geometry (Child).Width - 240.0) < 0.001,
+             "a 120px track lays its child out at 240 device pixels");
+         Test_Support.Assert
+            (abs (Get_Preferred_Size (G).Width - 240.0) < 0.001,
+             "the grid's preferred width counts the mapped track");
+         Test_Support.Assert
+            (abs (Get_Content_Min_Size (G).Width - 240.0) < 0.001,
+             "the grid's content minimum counts the mapped track");
+      end;
+
+      --  Mapping off leaves the number alone even at a 2.0 scale, which
+      --  is what catches a conversion applied twice.
+      Adi.Layout_Util.Set_Px_Maps_To_Dip (False);
+      declare
+         G : constant Widget_Handle := Track_Grid;
+      begin
+         Ada.Text_IO.Put_Line
+            ("  unmapped: child w="
+             & Pixel_Type'Image (Get_Geometry (Child).Width));
+         Test_Support.Assert
+            (abs (Get_Geometry (Child).Width - 120.0) < 0.001,
+             "with the mapping off the track stays 120 pixels");
+         pragma Unreferenced (G);
+      end;
+
+      Adi.Layout_Util.Set_Px_Maps_To_Dip (Saved_Maps);
+      Adi.Layout_Util.Set_Active_DIP_Scale (Saved_DIP);
+      Adi.Layout_Util.Set_Active_UI_Scale (Saved_UI);
    end;
 
    Ada.Text_IO.New_Line;

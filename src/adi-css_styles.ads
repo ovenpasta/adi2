@@ -950,7 +950,11 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
 
    type Grid_Track_Spec is record
       Kind  : Grid_Track_Kind := Track_Fr;
-      Value : Float           := 1.0;  -- fr units or px value; unused for Track_Auto
+      --  fr units, or for Track_Px the unresolved CSS px number; unused for
+      --  Track_Auto. A Track_Px value is not a pixel count: resolve it
+      --  through Length_To_Px (Px (Value)) so it takes the px -> dip
+      --  mapping every other length takes.
+      Value : Float           := 1.0;
    end record;
 
    Max_Grid_Tracks : constant := 16;

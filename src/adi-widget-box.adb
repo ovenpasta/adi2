@@ -355,7 +355,7 @@ package body Adi.Widget.Box is
                   --  Pre-pass: seed px column widths (regardless of child occupancy).
                   for C in 1 .. Cols loop
                      if Tracks.Tracks (C).Kind = Track_Px then
-                        Col_Max_W (C) := Pixel_Type (Tracks.Tracks (C).Value);
+                        Col_Max_W (C) := Length_To_Px (Px (Tracks.Tracks (C).Value));
                      end if;
                   end loop;
 
@@ -740,7 +740,7 @@ package body Adi.Widget.Box is
                   if Tracks.Count = Cols then
                      for C in 1 .. Cols loop
                         if Tracks.Tracks (C).Kind = Track_Px then
-                           Col_Min_W (C) := Pixel_Type (Tracks.Tracks (C).Value);
+                           Col_Min_W (C) := Length_To_Px (Px (Tracks.Tracks (C).Value));
                         end if;
                      end loop;
                   end if;

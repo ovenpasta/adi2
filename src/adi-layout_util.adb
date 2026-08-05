@@ -1224,7 +1224,7 @@ package body Adi.Layout_Util is
                   case Tracks (C).Kind is
                      when Track_Auto => Col_Widths (C) := Auto_W (C);
                      when Track_Px   =>
-                        Col_Widths (C) := Pixel_Type (Tracks (C).Value);
+                        Col_Widths (C) := Length_To_Px (Px (Tracks (C).Value));
                      when Track_Fr   => Col_Widths (C) := 0.0;  -- set below
                   end case;
                end loop;

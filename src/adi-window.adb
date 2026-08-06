@@ -174,12 +174,18 @@ package body Adi.Window is
       Window_Stores.Pump;
    end Pump_Window_Store;
 
+   --  Still backed by SDL. Destroy frees Internal whole rather than
+   --  clearing the pointers, and creation raises on failure, so a live
+   --  window has both or the record is gone.
+   function Is_Live (W : Window) return Boolean is
+     (W.Internal /= null
+        and then W.Internal.win /= null
+        and then W.Internal.ren /= null);
+
    procedure Apply_Render_Logical_Presentation (W : in out Window) is
       Success : Adi.SDL.C_bool;
    begin
-      if W.Internal = null
-        or else W.Internal.ren = null
-      then
+      if not Is_Live (W) then
          return;
       end if;
 
@@ -253,7 +259,6 @@ package body Adi.Window is
    function Extent
      (Width, Height : Adi.CSS_Styles.Length_Value) return Window_Extent
    is
-      use Adi.CSS_Styles;
       procedure Check (L : Length_Value) is
       begin
          if L.Amount <= 0.0 then
@@ -283,7 +288,6 @@ package body Adi.Window is
       Usable         : Size_2D;
       Px_Maps_To_Dip : Boolean) return Resolved_Extent
    is
-      use Adi.CSS_Styles;
       Density : constant Pixel_Type :=
         (if Pixel_Density > 0.0 then Pixel_Density else 1.0);
       --  Display scale only. Length_To_Px also applies the UI scale, but
@@ -325,11 +329,11 @@ package body Adi.Window is
       Raw    : Pixel_Type := 1.0;
       Before : constant Pixel_Type := Get_Active_DIP_Scale;
    begin
-      if W.Internal = null or else W.Internal.win = null then
+      if not Is_Live (W) then
          return False;
       end if;
 
-      Raw := Effective_Display_Scale (W.Internal.win);
+      Raw := Effective_Display_Scale (Get_SDL_Window (W));
       Set_Active_DIP_Scale (Raw);
       return abs (Get_Active_DIP_Scale - Before) > 0.0001;
    end Refresh_DIP_Scale;
@@ -773,10 +777,7 @@ package body Adi.Window is
       Min_H : int := 1;
       Success : Adi.SDL.C_bool;
    begin
-      if not W.Enforce_Layout_Min_Size
-        or else W.Internal = null
-        or else W.Internal.win = null
-      then
+      if not W.Enforce_Layout_Min_Size or else not Is_Live (W) then
          return;
       end if;
 
@@ -2984,8 +2985,6 @@ function Get_Size (W : in out Window) return Size_2D is
       S         : Window_Extent;
       Maximized : Boolean := False) return Window_Handle
    is
-      use Adi.CSS_Styles;
-
       --  Bootstrapped hidden and unmaximized: the scale and density are
       --  only knowable once a window exists, and SDL_SetWindowSize has no
       --  effect on a maximized window, so maximizing waits until the
@@ -3010,21 +3009,13 @@ function Get_Size (W : in out Window) return Size_2D is
          Destroy (H);
          raise Adi.SDL.SDL_Error with Message & Detail;
       end Fail;
+      Win : constant Adi.SDL.Video.SDL_Window_Ptr := Get_SDL_Window (H);
    begin
-      declare
-         Ref : Window_Ref := Borrow (H);
-      begin
-         if Ref.Ptr = null or else Ref.Ptr.Internal = null
-           or else Ref.Ptr.Internal.win = null
-         then
-            Fail ("window could not be created");
-         end if;
-      end;
+      if Win = null then
+         Fail ("window could not be created");
+      end if;
 
       declare
-         Ref     : Window_Ref := Borrow (H);
-         Win     : constant Adi.SDL.Video.SDL_Window_Ptr :=
-           Ref.Ptr.Internal.win;
          Raw_Den : constant Pixel_Type :=
            Pixel_Type (Adi.SDL.Video.SDL_GetWindowPixelDensity (Win));
          --  A failed query reads as zero; treating that as a tiny density

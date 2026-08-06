@@ -180,29 +180,29 @@ serve:
 	cd out && python3 -m http.server 8000
 
 #  ---- Deploy: content-hashed names (cache busting), hac_web pattern ----
-#  Entry .html pages keep plain names (dropdown links and bookmarks stay
-#  stable; fresh mtimes keep their heuristic-cache window short). Each
-#  page's .js/.wasm are copied as name-<hash12>.ext with references
+#  Inner example pages keep plain names so bookmarks and deep links stay
+#  stable. Their .js/.wasm are copied as name-<hash12>.ext with references
 #  rewritten inside-out: the wasm name inside the js first, then the js
-#  itself is hashed. A rebuild that changes a file changes its URL, so
-#  browsers refetch exactly what changed.
+#  itself is hashed. Each page's js hash also goes into index.html's BUILD
+#  map, which the navigator appends to the iframe URL — otherwise a
+#  plain-named page could be served from cache against a fresh build.
 DIST ?= dist
-DEPLOY_URL ?= https://pizzahack.eu/adi2/demo
 deploy:
 	rm -rf $(DIST)
 	mkdir -p $(DIST)
 	@set -e; \
+	map=""; \
 	for e in $(SHOWCASE_EXAMPLES); do \
 	  wh=$$(sha256sum out/$$e.wasm | cut -c1-12); \
 	  cp out/$$e.wasm $(DIST)/$$e-$$wh.wasm; \
 	  sed "s/$$e\.wasm/$$e-$$wh.wasm/g" out/$$e.js > $(DIST)/.js.tmp; \
 	  jh=$$(sha256sum $(DIST)/.js.tmp | cut -c1-12); \
 	  mv $(DIST)/.js.tmp $(DIST)/$$e-$$jh.js; \
-	  sed -e "s/$$e\.js/$$e-$$jh.js/g" \
-	      -e "s|$(DEPLOY_URL)/\([ \">]\)|$(DEPLOY_URL)/$$e.html\1|g" \
-	      out/$$e.html > $(DIST)/$$e.html; \
+	  sed "s/$$e\.js/$$e-$$jh.js/g" out/$$e.html > $(DIST)/$$e.html; \
+	  map="$$map\"$$e\":\"$$jh\","; \
 	done; \
-	cp out/index.html $(DIST)/index.html; \
+	sed "s|var BUILD = {};|var BUILD = {$${map%,}};|" out/index.html > $(DIST)/index.html; \
+	grep -q '"material_demo":' $(DIST)/index.html; \
 	cp site/og.png $(DIST)/og.png; \
 	echo "Deployed to $(DIST)/ with hashed js/wasm names"
 

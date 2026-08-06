@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
-<title>Adi2 — Ada GUI, running in your browser</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adi2 — a modern GUI library for Ada</title>
 <meta name="description" content="Adi2 — a modern GUI library for Ada: CSS-like styling with live reload, declarative XML layouts, animations, SVG, i18n and asset bundling, on SDL3. Live demo in your browser via WebAssembly. Public release coming soon.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Adi2">
@@ -17,10 +18,209 @@
 <meta name="twitter:title" content="Adi2 — a modern GUI library for Ada, in your browser">
 <meta name="twitter:description" content="CSS-like styling with live reload, declarative XML layouts, animations, SVG, i18n — the unmodified desktop examples, compiled to WebAssembly with GNAT-LLVM and rendered with SDL3. Public release coming soon.">
 <meta name="twitter:image" content="https://pizzahack.eu/adi2/demo/og.png">
-<meta http-equiv="refresh" content="0; url=material_demo.html">
-<script>location.replace('material_demo.html');</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+<style>
+  html, body { background: #f5f7fa; height: 100%; }
+  /*  The navbar keeps its height and the iframe takes the rest, so the
+      bar does not move as examples of differing window sizes swap in.
+      The inner page scrolls within it. */
+  body { display: flex; flex-direction: column; }
+  body > nav { flex: 0 0 auto; }
+  #viewport { flex: 1 1 auto; min-height: 0; display: flex; }
+  #viewport iframe {
+    display: block; flex: 1 1 auto; width: 100%;
+    border: 0; background: #f5f7fa;
+  }
+  #status:empty { display: none; }
+  #about-modal .modal-card { width: 56rem; max-width: calc(100vw - 2rem); }
+</style>
 </head>
 <body>
-<p><a href="material_demo.html">Open the Adi2 examples</a></p>
+
+<nav class="navbar is-link" role="navigation" aria-label="example navigation">
+  <div class="navbar-brand">
+    <a class="navbar-item has-text-weight-bold is-size-5" href="./">Adi2</a>
+  </div>
+  <div class="navbar-menu is-active">
+    <div class="navbar-start">
+      <div class="navbar-item">
+        <div class="select is-small">
+          <select id="example-select" aria-label="switch example">
+            <option value="hello_example">Hello</option>
+            <option value="label_example">Labels</option>
+            <option value="assets_example">Bundled assets</option>
+            <option value="font_example">Fonts</option>
+            <option value="button_example">Buttons</option>
+            <option value="slider_example">Sliders</option>
+            <option value="value_input_example">Value input</option>
+            <option value="text_input_example">Text input</option>
+            <option value="combo_box_example">Combo box</option>
+            <option value="list_box_example">List box</option>
+            <option value="dialog_example">Dialogs</option>
+            <option value="grid_example">Grid</option>
+            <option value="stack_example">Stack</option>
+            <option value="gradient_example">Gradients</option>
+            <option value="image_example">Images</option>
+            <option value="animated_image_example">Animated images</option>
+            <option value="transition_example">Transitions</option>
+            <option value="material_demo">Material demo</option>
+            <option value="html_view_example">HTML view</option>
+            <option value="overflow_example">Overflow</option>
+            <option value="demo_flex">Flex</option>
+            <option value="svg_example">SVG</option>
+          </select>
+        </div>
+      </div>
+      <span class="navbar-item is-size-7" id="status"></span>
+    </div>
+    <div class="navbar-end">
+      <a class="navbar-item" id="about-toggle">About</a>
+    </div>
+  </div>
+</nav>
+
+<div class="modal" id="about-modal">
+  <div class="modal-background" id="about-backdrop"></div>
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title">Adi2 — an Ada GUI library, in your browser</p>
+      <button class="delete" aria-label="close" id="about-close"></button>
+    </header>
+    <section class="modal-card-body content">
+      <p>
+        <strong>Adi2</strong> is a modern GUI library for Ada — a
+        real widget toolkit with the niceties developers expect from a
+        modern UI stack, implemented natively in Ada on top of SDL3.
+        Free software under the Apache-2.0 license.
+        <span class="tag is-warning is-light">In production use —
+        public release coming soon.</span>
+      </p>
+      <div class="columns">
+        <div class="column">
+          <p class="has-text-weight-semibold mb-2">Why Adi2?</p>
+          <ul class="mt-0">
+            <li><strong>Style your UI like the web.</strong> Selectors,
+              pseudo-classes, parts, gradients, box shadows — all in
+              familiar <code>.css</code> syntax, with HiDPI-ready
+              <code>dp</code>/<code>rem</code> units. Edit the file,
+              save, see the change: no recompile during development.
+              Prefer pure Ada? CSS rules are plain Ada aggregates you
+              can write by hand.</li>
+            <li><strong>Declarative — or not.</strong> Describe UIs in
+              XML and let the toolchain emit clean Ada packages, or
+              build the same widget tree directly in Ada. Both paths
+              target the exact same API.</li>
+            <li><strong>Animate without boilerplate.</strong> CSS
+              transitions on color, padding, shadows, opacity,
+              font-size — the framework handles interpolation and
+              timing.</li>
+            <li><strong>Render rich content.</strong> A built-in
+              lightweight HTML view renders documentation-style markup
+              with cascading styles. SVG graphics and animated images
+              are first-class widgets.</li>
+            <li><strong>Ship a single binary.</strong> CSS, fonts,
+              images, translations and SVG sprites bundle into the
+              executable — no filesystem needed at runtime.</li>
+            <li><strong>Speak the user's language.</strong>
+              Gettext-compatible i18n with plural forms and
+              <code>.po</code> → Ada compilation.</li>
+          </ul>
+        </div>
+        <div class="column">
+          <p class="has-text-weight-semibold mb-2">This showcase</p>
+          <ul class="mt-0">
+            <li>Every demo is the <strong>unmodified desktop example
+              program</strong> — the same Ada sources build anywhere
+              GNAT and SDL3 do: Linux, Windows, macOS, BSDs</li>
+            <li>Compiled to WebAssembly with GNAT-LLVM, with native
+              wasm exception handling and a JSPI (stack-switching)
+              main loop</li>
+            <li>Use the selector in the top bar to switch examples;
+              each one loads a few MB of WebAssembly — give it a
+              moment</li>
+            <li>Best viewed in <strong>Chrome or Edge</strong> (JSPI
+              ships there); Firefox needs
+              <code>javascript.options.wasm_js_promise_integration</code>
+              enabled</li>
+          </ul>
+        </div>
+      </div>
+      <p>
+        Built with <a href="https://github.com/ovenpasta/gnat-llvm">GNAT-LLVM</a>
+        and <a href="https://github.com/ovenpasta/adawebpack">AdaWebPack</a>,
+        SDL3 / SDL3_ttf / SDL3_image and plutosvg. Adi2 is written by
+        Aldo Nicolas Bruno —
+        <a href="mailto:adi@aldustechnology.com">adi@aldustechnology.com</a>.
+      </p>
+    </section>
+  </div>
+</div>
+
+<div id="viewport">
+  <iframe id="demo" title="Adi2 example"></iframe>
+</div>
+
+<script>
+(function () {
+  //  Deploy replaces this with an example -> js-hash map. The inner pages
+  //  keep plain names so bookmarks survive, so the hash rides in the query
+  //  string to bust their cache when the build changes.
+  var BUILD = {};
+
+  var DEFAULT = 'material_demo';
+  var select = document.getElementById('example-select');
+  var status = document.getElementById('status');
+  var viewport = document.getElementById('viewport');
+
+  var labels = {};
+  var known = {};
+  for (var i = 0; i < select.options.length; i++) {
+    known[select.options[i].value] = true;
+    labels[select.options[i].value] = select.options[i].text;
+  }
+
+  function wanted() {
+    var name = new URLSearchParams(location.search).get('example');
+    return known[name] ? name : DEFAULT;
+  }
+
+  //  Replace the element rather than assign .src: detaching the old
+  //  document is what drops its canvas and WebGL context.
+  function show(name) {
+    var next = document.createElement('iframe');
+    next.id = 'demo';
+    next.title = labels[name] + ' — Adi2 example';
+    next.src = name + '.html' + (BUILD[name] ? '?v=' + BUILD[name] : '');
+    document.getElementById('demo').replaceWith(next);
+    select.value = name;
+    status.textContent = 'loading…';
+    document.title = labels[name] + ' — Adi2 demo';
+  }
+
+  select.addEventListener('change', function () {
+    history.pushState({}, '', '?example=' + select.value);
+    show(select.value);
+  });
+
+  window.addEventListener('popstate', function () { show(wanted()); });
+
+  window.addEventListener('message', function (e) {
+    if (e.origin === location.origin && e.data && e.data.adi === 'status') {
+      status.textContent = e.data.text;
+    }
+  });
+
+  var modal = document.getElementById('about-modal');
+  function setAbout(open) { modal.classList.toggle('is-active', open); }
+  document.getElementById('about-toggle').addEventListener('click', function () { setAbout(true); });
+  document.getElementById('about-close').addEventListener('click', function () { setAbout(false); });
+  document.getElementById('about-backdrop').addEventListener('click', function () { setAbout(false); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { setAbout(false); }
+  });
+
+  show(wanted());
+})();
+</script>
 </body>
 </html>

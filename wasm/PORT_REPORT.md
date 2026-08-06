@@ -428,8 +428,9 @@ wasm/
                        app render — don't give it a visible
                        background/border), no emscripten branding. Keep
                        the dropdown list in sync with SHOWCASE_EXAMPLES.
-                       Excluded by user choice: hello_raw, overflow,
-                       widget_demo (19 examples shown). Browser caching:
+                       Excluded: hello_raw, rlottie, runtime_css,
+                       text_editor (22 examples shown).
+                       Browser caching:
                        python http.server + Chrome heuristics can serve
                        stale pages after a rebuild — hard-reload when
                        testing; use content-hashed deploys (hac_web
@@ -590,7 +591,9 @@ Once the library steps above land, the expected split is:
 **Showcase status (2026-07-19, `make showcase` + `wasm/site/index.html`
 → `out/index.html`, Bulma light theme):**
 
-- **All 22 examples build and run in `blocking` (JSPI) mode.**
+- **All 22 examples build and run in `blocking` (JSPI) mode.** (Count
+  as of 2026-07-19; the showcase has since gained `overflow_example`,
+  `demo_flex` and `svg_example`.)
   Verified interactively after the AREC fix (adawebpack `08b2a3d`):
   stack switching, dialogs (modal alert over backdrop), material_demo
   tabs + forms page, button callbacks with correct enum `'Image`, and
@@ -604,9 +607,10 @@ Once the library steps above land, the expected split is:
   longer special-cases it. Remaining upstream QoL item: exceptions
   escaping main surface as a raw `WebAssembly.Exception` with no
   message (no last-chance handler on that path).
-- `demo_flex` excluded: withs `GNAT.Traceback.Symbolic`; the RTS ships
-  `s-traceb`/`s-trasym` but not the `g-traceb`/`g-trasym` GNAT specs —
-  same one-line-spec family as the `g-os_lib` fix (upstream item).
+- `demo_flex` was excluded while it withed `GNAT.Traceback.Symbolic`,
+  which the RTS has no `g-traceb`/`g-trasym` spec for. The example is
+  now generated from XML and carries no GNAT dependency, so it is in the
+  showcase.
 - Build gotcha: do NOT compile with `-gnatW8` — native `examples.gpr`
   builds without it, and generated UI packages carry raw UTF-8 in
   String literals (byte semantics); W8 lexes them as wide characters

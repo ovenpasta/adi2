@@ -155,17 +155,16 @@ all: out/$(EXAMPLE).html
 #  ---- Showcase: every example expected to work in the browser ----
 #  Excluded: rlottie_example (tasks/C++), runtime_css_example (its whole
 #  point is filesystem live-reload), text_editor_example (native file
-#  dialogs). Sequential builds — NEVER run gprbuild concurrently.
-#  demo_flex additionally excluded: it withs GNAT.Traceback.Symbolic and
-#  the wasm RTS does not ship the g-traceb spec yet (upstream item, same
-#  one-line-rename family as g-os_lib was).
+#  dialogs), hello_raw_example (renders identically to hello_example).
+#  Sequential builds — NEVER run gprbuild concurrently.
 SHOWCASE_EXAMPLES = \
   hello_example label_example button_example \
   slider_example value_input_example text_input_example combo_box_example \
   list_box_example stack_example grid_example \
   gradient_example image_example animated_image_example assets_example \
   font_example transition_example material_demo \
-  dialog_example html_view_example
+  dialog_example html_view_example overflow_example demo_flex \
+  svg_example
 
 showcase: $(PLUTO_OBJS)
 	@fail=""; \

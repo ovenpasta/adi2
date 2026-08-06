@@ -95,13 +95,17 @@ begin
           ("WRAPPED TEXT: This is a single very long paragraph designed to wrap across many lines so the rendered text becomes taller than the clip container height. "
            & "When overflow is visible, the bottom lines should continue outside the panel boundary. "
            & "When overflow is hidden, those extra wrapped lines should be clipped and not visible. "
-           & "This sentence continues with additional words to ensure enough vertical text overflow for clear comparison.");
+           & "This sentence continues with additional words to ensure enough vertical text overflow for clear comparison. "
+           & "Several more sentences follow so the wrapped block is comfortably taller than the panel that holds it. "
+           & "Without that margin the two panels render alike and the comparison shows nothing at all.");
       Wrap_Line_Hidden : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle
           ("WRAPPED TEXT: This is a single very long paragraph designed to wrap across many lines so the rendered text becomes taller than the clip container height. "
            & "When overflow is visible, the bottom lines should continue outside the panel boundary. "
            & "When overflow is hidden, those extra wrapped lines should be clipped and not visible. "
-           & "This sentence continues with additional words to ensure enough vertical text overflow for clear comparison.");
+           & "This sentence continues with additional words to ensure enough vertical text overflow for clear comparison. "
+           & "Several more sentences follow so the wrapped block is comfortably taller than the panel that holds it. "
+           & "Without that margin the two panels render alike and the comparison shows nothing at all.");
    begin
       Adi.Widget.Box.Set_Part_Styles (Root, Root_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles (Title, Title_Class_Part_Styles);
@@ -148,11 +152,15 @@ begin
       Add_Child (+Visible_Content, +New_Item (Item_B_Class_Part_Styles));
       Add_Child (+Visible_Content, +New_Item (Item_C_Class_Part_Styles));
       Add_Child (+Visible_Content, +New_Item (Item_D_Class_Part_Styles));
+      Add_Child (+Visible_Content, +New_Item (Item_A_Class_Part_Styles));
+      Add_Child (+Visible_Content, +New_Item (Item_B_Class_Part_Styles));
 
       Add_Child (+Hidden_Content, +New_Item (Item_A_Class_Part_Styles));
       Add_Child (+Hidden_Content, +New_Item (Item_B_Class_Part_Styles));
       Add_Child (+Hidden_Content, +New_Item (Item_C_Class_Part_Styles));
       Add_Child (+Hidden_Content, +New_Item (Item_D_Class_Part_Styles));
+      Add_Child (+Hidden_Content, +New_Item (Item_A_Class_Part_Styles));
+      Add_Child (+Hidden_Content, +New_Item (Item_B_Class_Part_Styles));
 
       Add_Child (+Visible_Clip, +Visible_Content);
       Add_Child (+Hidden_Clip, +Hidden_Content);

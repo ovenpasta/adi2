@@ -17,11 +17,11 @@ instructions included in their READMEs:
 
 Plus a system `emscripten`.
 
-Makefile variables and their defaults, override as needed:
+Makefile variables, override as needed:
 
-| Variable             | Default                              |
+| Variable             | Value                                |
 |----------------------|--------------------------------------|
-| `LLVM_INTERFACE_DIR` | `/src/gnat-llvm/llvm-interface`      |
+| `LLVM_INTERFACE_DIR` | *(required)* — your gnat-llvm checkout's `llvm-interface` |
 | `LLVM_SYS_BIN`       | `/usr/lib/llvm21/bin`                |
 | `EMCC`               | `/usr/lib/emscripten/emcc`           |
 | `FONT_FILE`          | `/usr/share/fonts/noto/NotoSans-Regular.ttf` |
@@ -31,7 +31,11 @@ Makefile variables and their defaults, override as needed:
 
 ```sh
 cd wasm
-make EXAMPLE=button_example GPRBUILD="alr exec -- gprbuild"
+#  Exported once: every build goal needs it, only serve/deploy/clean do not.
+export LLVM_INTERFACE_DIR=/path/to/gnat-llvm/llvm-interface
+export GPRBUILD="alr exec -- gprbuild"   # under Alire
+
+make EXAMPLE=button_example
 make serve            # http://localhost:8000/button_example.html
 make showcase         # every browser-capable example + index page
 make deploy           # dist/ with content-hashed js/wasm names

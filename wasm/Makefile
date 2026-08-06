@@ -27,7 +27,16 @@ EXAMPLE ?= label_example
 #  showcase reuses desktop example code unchanged.
 LOOP ?= blocking
 
-LLVM_INTERFACE_DIR ?= /src/gnat-llvm/llvm-interface
+#  Your gnat-llvm checkout's llvm-interface directory. No default: it is
+#  a checkout path, not a system one, so a wrong guess fails deep in the
+#  link with a missing runtime rather than here.
+TOOLCHAIN_FREE_GOALS := serve serve-dist deploy clean
+ifneq ($(filter-out $(TOOLCHAIN_FREE_GOALS),$(or $(MAKECMDGOALS),$(.DEFAULT_GOAL))),)
+ifndef LLVM_INTERFACE_DIR
+$(error LLVM_INTERFACE_DIR is not set. Point it at the llvm-interface directory of your gnat-llvm checkout, e.g. make $(or $(MAKECMDGOALS),$(.DEFAULT_GOAL)) LLVM_INTERFACE_DIR=/path/to/gnat-llvm/llvm-interface)
+endif
+endif
+
 LLVM_BIN_DIR ?= $(LLVM_INTERFACE_DIR)/bin
 LLVM_SYS_BIN ?= /usr/lib/llvm21/bin
 LLVM_LIBRARY_PATH ?= /usr/lib/llvm21/lib

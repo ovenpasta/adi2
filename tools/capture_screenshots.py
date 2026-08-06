@@ -6,10 +6,12 @@ Every capture comes from the app's own renderer through the Adi MCP
 no window manager decoration. That makes a capture reproducible on any
 desktop, which a window-grabbing tool is not.
 
-The display's DIP scale is deliberately left alone. Running at a scale
-other than 1.0 is useful here: it puts the px -> dip mapping under the
-same scrutiny as the layout, and several examples only show that mapping
-off at a non-unit scale.
+Captures run with ADI_DISPLAY_SCALE_OVERRIDE=1 so the scale, geometry
+and image dimensions do not depend on the monitor of whoever regenerated
+them. Pixel density is untouched, so a high-density device still yields
+the same framebuffer from fewer window coordinates. This is not
+byte-identical output: fonts and rendering backends still differ between
+machines.
 
 An example can only be captured if it calls Adi.MCP.Initialize; the rest
 are reported and skipped rather than silently omitted.
@@ -23,6 +25,7 @@ are reported and skipped rather than silently omitted.
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -152,8 +155,11 @@ def capture(name: str, spec: Example, out_dir: Path, timeout: float) -> list[str
         raise RuntimeError(f"{binary} not built")
 
     written = []
+    #  Set for the child only: pinning the scale process-wide would
+    #  change any app the caller happens to run afterwards.
+    env = os.environ | {"ADI_DISPLAY_SCALE_OVERRIDE": "1"}
     app = subprocess.Popen(
-        [str(binary)], cwd=ROOT,
+        [str(binary)], cwd=ROOT, env=env,
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         start_new_session=True,
     )

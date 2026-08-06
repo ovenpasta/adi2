@@ -203,6 +203,53 @@ package body Adi.Window is
       Maximized : Boolean;
       Hidden    : Boolean) return Window_Handle;
 
+   --  The display scale everything derives from: layout units through
+   --  Refresh_DIP_Scale, and a window's initial size through
+   --  Create_Window_Handle. One function, so an override cannot lay a
+   --  window out at one scale and size it at another.
+   --
+   --  ADI_DISPLAY_SCALE_OVERRIDE pins it, which is what makes a capture
+   --  independent of the machine that took it. Pixel density is left
+   --  alone: at an override of 1 on a 2x device, a 600px target still
+   --  asks for 300 window coordinates and still yields 600 pixels.
+   --
+   --  Read once. It is a capture and debugging knob, not something to
+   --  re-parse every frame.
+   Scale_Override      : Pixel_Type := 0.0;
+   Scale_Override_Read : Boolean    := False;
+
+   function Effective_Display_Scale
+     (Win : Adi.SDL.Video.SDL_Window_Ptr) return Pixel_Type
+   is
+      use Ada.Environment_Variables;
+   begin
+      if not Scale_Override_Read then
+         Scale_Override_Read := True;
+         if Exists ("ADI_DISPLAY_SCALE_OVERRIDE") then
+            begin
+               Scale_Override :=
+                 Pixel_Type'Value (Value ("ADI_DISPLAY_SCALE_OVERRIDE"));
+               if Scale_Override <= 0.0 then
+                  Scale_Override := 0.0;
+                  Adi.Log.Error
+                    ("ADI_DISPLAY_SCALE_OVERRIDE must be positive; ignored");
+               end if;
+            exception
+               when others =>
+                  Scale_Override := 0.0;
+                  Adi.Log.Error
+                    ("ADI_DISPLAY_SCALE_OVERRIDE is not a number; ignored");
+            end;
+         end if;
+      end if;
+
+      if Scale_Override > 0.0 then
+         return Scale_Override;
+      end if;
+      return Pixel_Type'Max
+        (1.0, Pixel_Type (Adi.SDL.Video.SDL_GetWindowDisplayScale (Win)));
+   end Effective_Display_Scale;
+
    function Extent
      (Width, Height : Adi.CSS_Styles.Length_Value) return Window_Extent
    is
@@ -282,12 +329,8 @@ package body Adi.Window is
          return False;
       end if;
 
-      Raw := Pixel_Type (Adi.SDL.Video.SDL_GetWindowDisplayScale (W.Internal.win));
-      declare
-         Scale : constant Pixel_Type := Pixel_Type'Max (1.0, Raw);
-      begin
-         Set_Active_DIP_Scale (Scale);
-      end;
+      Raw := Effective_Display_Scale (W.Internal.win);
+      Set_Active_DIP_Scale (Raw);
       return abs (Get_Active_DIP_Scale - Before) > 0.0001;
    end Refresh_DIP_Scale;
 
@@ -2989,10 +3032,7 @@ function Get_Size (W : in out Window) return Size_2D is
          --  coordinates, so fall back to parity.
          Density : constant Pixel_Type :=
            (if Raw_Den > 0.0 then Raw_Den else 1.0);
-         Scale   : constant Pixel_Type :=
-           Pixel_Type'Max
-             (1.0,
-              Pixel_Type (Adi.SDL.Video.SDL_GetWindowDisplayScale (Win)));
+         Scale   : constant Pixel_Type := Effective_Display_Scale (Win);
          Bounds  : aliased SDL_Rect := (0, 0, 0, 0);
          --  Only percentages need the display's bounds, so a failure to
          --  read them is only fatal when one is in play.

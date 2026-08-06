@@ -2,7 +2,7 @@
 <adi>
   <link rel="stylesheet" href="examples/css/demo_flex.css"/>
 
-  <window title="Flex Layout Reference" width="900" height="900">
+  <window title="Flex Layout Reference" width="617px" height="617px">
     <box id="Root" class="root">
       <label text="Flex Layout Reference" class="title"/>
 

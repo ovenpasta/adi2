@@ -2,6 +2,7 @@ pragma Ada_2022;
 
 with Ada.Strings;            use Ada.Strings;
 with Ada.Strings.Fixed;      use Ada.Strings.Fixed;
+with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.MCP;
@@ -40,7 +41,7 @@ begin
    A.Set_Target_FPS (60);
 
    declare
-      W : constant Window_Handle := Create_Window_Handle ("Text Input Example", (760.0, 420.0));
+      W : constant Window_Handle := Create_Window_Handle ("Text Input Example", Adi.Window.Extent (Px (521.0), Px (288.0)));
 
       Root      : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Container : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;

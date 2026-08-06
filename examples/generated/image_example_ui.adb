@@ -5,6 +5,7 @@ pragma Ada_2022;
 
 with Adi.CSS_Parser;
 with Adi.CSS_Source; use Adi.CSS_Source;
+with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Image; use Adi.Widget.Image;
@@ -229,7 +230,7 @@ package body Image_Example_UI is
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
-        Adi.Window.Create_Window_Handle ("Image Example", (1100.0, 700.0));
+        Adi.Window.Create_Window_Handle ("Image Example", Adi.Window.Extent (Px (754.0), Px (480.0)));
       Label_1 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Image Widget Showcase");
       Label_2 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Demonstrating SVG path, SVG file, PNG, and JPG formats with all object-fit modes");
       Label_3 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Image Formats");

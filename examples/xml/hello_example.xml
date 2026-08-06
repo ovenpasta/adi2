@@ -4,7 +4,7 @@
 
   <callback name="On_Hello_Click" type="Adi.Widget.Button.Click_Callback"/>
 
-  <window title="Hello, Adi" width="320" height="180">
+  <window title="Hello, Adi" width="219px" height="123px">
     <box class="root">
       <label text="Welcome to Adi" class="welcome"/>
       <button text="Click me" class="primary" on-clicked="On_Hello_Click"/>

@@ -3,6 +3,7 @@ pragma Ada_2022;
 with Ada.Strings;       use Ada.Strings;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Text_IO;
+with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.MCP;
@@ -107,7 +108,7 @@ begin
 
    declare
       W : constant Window_Handle :=
-        Create_Window_Handle ("Slider Example", (600.0, 400.0));
+        Create_Window_Handle ("Slider Example", Adi.Window.Extent (Px (411.0), Px (274.0)));
 
       --  All widgets created via typed handles
       Root     : constant Adi.Widget.Box.Box_Handle :=

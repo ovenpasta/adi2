@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.MCP;
@@ -27,7 +28,7 @@ begin
 
    declare
       W : constant Window_Handle :=
-        Create_Window_Handle ("Animated Image Example", (920.0, 680.0));
+        Create_Window_Handle ("Animated Image Example", Adi.Window.Extent (Px (631.0), Px (466.0)));
 
       Root : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;

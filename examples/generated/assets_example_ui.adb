@@ -6,6 +6,7 @@ pragma Ada_2022;
 with Adi.Assets; use Adi.Assets;
 with Adi.CSS_Parser;
 with Adi.CSS_Source; use Adi.CSS_Source;
+with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Image; use Adi.Widget.Image;
@@ -209,7 +210,7 @@ package body Assets_Example_UI is
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
-        Adi.Window.Create_Window_Handle ("Assets Example", (1000.0, 1040.0));
+        Adi.Window.Create_Window_Handle ("Assets Example", Adi.Window.Extent (Px (686.0), Px (713.0)));
       Box_1 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Label_1 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("SVG Sprites (?id=)");
       Box_2 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;

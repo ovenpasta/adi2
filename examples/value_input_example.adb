@@ -3,6 +3,7 @@ pragma Ada_2022;
 with Ada.Strings;       use Ada.Strings;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Text_IO;
+with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.MCP;
@@ -75,7 +76,7 @@ begin
 
    declare
       Win : constant Window_Handle :=
-        Create_Window_Handle ("Value Input Example", (600.0, 420.0));
+        Create_Window_Handle ("Value Input Example", Adi.Window.Extent (Px (411.0), Px (288.0)));
 
       Root : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;

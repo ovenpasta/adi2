@@ -5,6 +5,7 @@ pragma Ada_2022;
 
 with Adi.CSS_Parser;
 with Adi.CSS_Source; use Adi.CSS_Source;
+with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Label; use Adi.Widget.Label;
@@ -256,7 +257,7 @@ package body Gradient_Example_UI is
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
-        Adi.Window.Create_Window_Handle ("Gradient Showcase", (960.0, 900.0));
+        Adi.Window.Create_Window_Handle ("Gradient Showcase", Adi.Window.Extent (Px (658.0), Px (617.0)));
       Label_1 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Linear Gradient Showcase");
       Box_1 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_2 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;

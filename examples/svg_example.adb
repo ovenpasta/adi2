@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.App;
 with Adi.Image;
 with Adi.Layout_Util;
@@ -29,7 +30,7 @@ begin
 
    declare
       W : constant Window_Handle :=
-        Create_Window_Handle ("SVG Example", (720.0, 640.0));
+        Create_Window_Handle ("SVG Example", Adi.Window.Extent (Px (494.0), Px (439.0)));
 
       Root : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;

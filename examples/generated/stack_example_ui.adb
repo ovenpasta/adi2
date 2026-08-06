@@ -240,7 +240,7 @@ package body Stack_Example_UI is
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
-        Adi.Window.Create_Window_Handle ("Stack Example", (600.0, 450.0));
+        Adi.Window.Create_Window_Handle ("Stack Example", Adi.Window.Extent (Px (411.0), Px (309.0)));
       Box_1 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Label_1 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Blue Page");
       Label_2 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("This is the third page with a deep blue background.");

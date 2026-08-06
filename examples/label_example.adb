@@ -1,4 +1,5 @@
 pragma Ada_2022;
+with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.MCP;
@@ -21,7 +22,7 @@ begin
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
 
    declare
-      W : constant Window_Handle := Create_Window_Handle ("Label Example", (600.0, 500.0));
+      W : constant Window_Handle := Create_Window_Handle ("Label Example", Adi.Window.Extent (Px (411.0), Px (343.0)));
 
       --  Root container
       Root : constant Adi.Widget.Box.Box_Handle :=

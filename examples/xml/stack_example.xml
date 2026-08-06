@@ -36,7 +36,7 @@
 
   <callback name="On_Tab" type="My_Stack.Page_Changed_Callback"/>
 
-  <window title="Stack Example" width="600" height="450">
+  <window title="Stack Example" width="411px" height="309px">
     <box id="Root" class="root">
       <box id="Tab_Bar" class="tab-bar">
         <button id="Btn_Red"   text="Red"   class="tab-left"/>

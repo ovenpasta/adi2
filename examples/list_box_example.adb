@@ -1,4 +1,5 @@
 pragma Ada_2022;
+with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.Log;
 with Adi.App;
 with Adi.Layout_Util;
@@ -162,7 +163,7 @@ begin
    A.Set_Target_FPS (60);
 
    declare
-      W : constant Window_Handle := Create_Window_Handle ("List Box Example", (1980.0, 640.0));
+      W : constant Window_Handle := Create_Window_Handle ("List Box Example", Adi.Window.Extent (Px (1358.0), Px (439.0)));
 
       Root         : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Controls_Row : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;

@@ -2,6 +2,7 @@ pragma Ada_2022;
 
 with Ada.Strings;                use Ada.Strings;
 with Ada.Strings.Fixed;          use Ada.Strings.Fixed;
+with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.Core;                   use Adi.Core;
@@ -41,7 +42,7 @@ begin
 
    declare
       W : constant Window_Handle :=
-        Create_Window_Handle ("Combo Box Overlay Example", (820.0, 520.0));
+        Create_Window_Handle ("Combo Box Overlay Example", Adi.Window.Extent (Px (562.0), Px (357.0)));
 
       Root       : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Container  : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;

@@ -5,6 +5,7 @@ pragma Ada_2022;
 
 with Adi.CSS_Parser;
 with Adi.CSS_Source; use Adi.CSS_Source;
+with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Button; use Adi.Widget.Button;
@@ -103,7 +104,7 @@ package body Hello_Example_UI is
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
-        Adi.Window.Create_Window_Handle ("Hello, Adi", (320.0, 180.0));
+        Adi.Window.Create_Window_Handle ("Hello, Adi", Adi.Window.Extent (Px (219.0), Px (123.0)));
       Box_1 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Label_1 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Welcome to Adi");
       Button_1 : constant Adi.Widget.Button.Button_Handle := Adi.Widget.Button.Create_Handle ("Click me");

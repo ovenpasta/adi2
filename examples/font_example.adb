@@ -104,7 +104,7 @@ begin
    A.Set_Target_FPS (60);
 
    declare
-      W : constant Window_Handle := Create_Window_Handle ("Font & Text Features", (980.0, 860.0));
+      W : constant Window_Handle := Create_Window_Handle ("Font & Text Features", Adi.Window.Extent (Pix (980.0), Pix (860.0)));
 
       Root      : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Container : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;

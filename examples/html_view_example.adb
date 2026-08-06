@@ -3,6 +3,7 @@ pragma Ada_2022;
 with Ada.Strings;       use Ada.Strings;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 
+with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.Assets;
@@ -51,7 +52,7 @@ begin
 
    declare
       W : constant Adi.Window.Window_Handle :=
-        Adi.Window.Create_Window_Handle ("HTML View Example", (980.0, 700.0));
+        Adi.Window.Create_Window_Handle ("HTML View Example", Adi.Window.Extent (Px (672.0), Px (480.0)));
 
       Root : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Title : constant Adi.Widget.Label.Label_Handle :=

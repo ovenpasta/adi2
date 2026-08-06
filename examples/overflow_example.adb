@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.MCP;
@@ -34,7 +35,7 @@ begin
         --  a narrower window pushes the second column out of view. The
         --  root deliberately does not scroll -- a scroll container
         --  clips, which is exactly what the visible panels must not do.
-        Create_Window_Handle ("Overflow Example", (1460.0, 900.0));
+        Create_Window_Handle ("Overflow Example", Adi.Window.Extent (Px (1001.0), Px (617.0)));
 
       Root       : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Title      : constant Adi.Widget.Label.Label_Handle :=

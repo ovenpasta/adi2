@@ -77,7 +77,7 @@ begin
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
 
-   W := Create_Window_Handle ("Hello, Adi (raw)", (320.0, 180.0));
+   W := Create_Window_Handle ("Hello, Adi (raw)", Adi.Window.Extent (Px (219.0), Px (123.0)));
 
    declare
       Root : constant Adi.Widget.Box.Box_Handle    := Adi.Widget.Box.Create_Handle;

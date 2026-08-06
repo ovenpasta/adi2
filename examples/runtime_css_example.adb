@@ -2,6 +2,7 @@ pragma Ada_2022;
 
 with Ada.Directories;
 
+with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.CSS_Source;
@@ -86,7 +87,7 @@ begin
 
    declare
       W : constant Adi.Window.Window_Handle :=
-        Adi.Window.Create_Window_Handle ("Runtime CSS Example", (980.0, 640.0));
+        Adi.Window.Create_Window_Handle ("Runtime CSS Example", Adi.Window.Extent (Px (672.0), Px (439.0)));
 
       Source : aliased Adi.CSS_Source.Style_Source;
       CSS_Path : constant String := Resolve_CSS_Path;

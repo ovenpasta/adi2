@@ -56,7 +56,7 @@ begin
    A.Set_Target_FPS (60);
 
    declare
-      W : constant Window_Handle := Create_Window_Handle ("Transition Examples", (900.0, 700.0));
+      W : constant Window_Handle := Create_Window_Handle ("Transition Examples", Adi.Window.Extent (Px (617.0), Px (480.0)));
 
       --  Root container
       Root : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;

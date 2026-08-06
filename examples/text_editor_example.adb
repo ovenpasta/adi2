@@ -85,7 +85,7 @@ begin
 
    declare
       W : constant Window_Handle :=
-        Create_Window_Handle ("Text Editor Example", (800.0, 600.0));
+        Create_Window_Handle ("Text Editor Example", Adi.Window.Extent (Px (549.0), Px (411.0)));
 
       Root   : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;

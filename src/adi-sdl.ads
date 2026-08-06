@@ -75,6 +75,13 @@ package Adi.SDL is
     --  SDL Error Handling
     ---------------------------------------------------------------------------
 
+    --  An SDL call failed in a way the caller cannot carry on from.
+    --  Distinct from Constraint_Error, which stays for arguments that are
+    --  wrong before SDL is reached. One exception for all of SDL: the
+    --  recovery is the same whichever subsystem refused, and the message
+    --  names the operation.
+    SDL_Error : exception;
+
     --  Get the last SDL error message
     function SDL_GetError return Interfaces.C.Strings.chars_ptr
     with Import => True,

@@ -197,6 +197,83 @@ package body Adi.Window is
       SDL_Assert (Success, "SDL_SetRenderLogicalPresentation");
    end Apply_Render_Logical_Presentation;
 
+   function Create_Window_Sized
+     (Title     : String;
+      S         : Size_2D;
+      Maximized : Boolean;
+      Hidden    : Boolean) return Window_Handle;
+
+   function Extent
+     (Width, Height : Adi.CSS_Styles.Length_Value) return Window_Extent
+   is
+      use Adi.CSS_Styles;
+      procedure Check (L : Length_Value) is
+      begin
+         if L.Amount <= 0.0 then
+            raise Constraint_Error with
+              "window extent must be positive, got" & L.Amount'Image;
+         end if;
+         case L.Unit is
+            when Pix | Px | Dip | Pct =>
+               null;
+            when Em | Root_Em | Vw | Vh =>
+               raise Constraint_Error with
+                 "window extent cannot use " & L.Unit'Image
+                 & ": no font context, and vw/vh would resolve against "
+                 & "the viewport being defined";
+         end case;
+      end Check;
+   begin
+      Check (Width);
+      Check (Height);
+      return (Width => Width, Height => Height);
+   end Extent;
+
+   function Resolve_Extent
+     (E              : Window_Extent;
+      Display_Scale  : Pixel_Type;
+      Pixel_Density  : Pixel_Type;
+      Usable         : Size_2D;
+      Px_Maps_To_Dip : Boolean) return Resolved_Extent
+   is
+      use Adi.CSS_Styles;
+      Density : constant Pixel_Type :=
+        (if Pixel_Density > 0.0 then Pixel_Density else 1.0);
+      --  Display scale only. Length_To_Px also applies the UI scale, but
+      --  that is application zoom within the viewport: growing the window
+      --  by it would undo the zoom, and it is process-global state that
+      --  is usually set after the window exists.
+      Logical : constant Pixel_Type := Display_Scale;
+
+      --  Percentages are a share of the usable bounds, which SDL reports
+      --  in window coordinates, so they land in that space directly.
+      --  Every other unit describes framebuffer pixels.
+      function Coords_Of (L : Length_Value; Bound : Pixel_Type)
+        return Pixel_Type is
+      begin
+         case L.Unit is
+            when Pct =>
+               return Pixel_Type (L.Amount) / 100.0 * Bound;
+            when Pix =>
+               return Pixel_Type (L.Amount) / Density;
+            when Dip =>
+               return Pixel_Type (L.Amount) * Logical / Density;
+            when Px =>
+               return (if Px_Maps_To_Dip
+                       then Pixel_Type (L.Amount) * Logical / Density
+                       else Pixel_Type (L.Amount) / Density);
+            when others =>
+               return Pixel_Type (L.Amount) / Density;
+         end case;
+      end Coords_Of;
+
+      W_Coords : constant Pixel_Type := Coords_Of (E.Width, Usable.Width);
+      H_Coords : constant Pixel_Type := Coords_Of (E.Height, Usable.Height);
+   begin
+      return (Coords => (W_Coords, H_Coords),
+              Pixels => (W_Coords * Density, H_Coords * Density));
+   end Resolve_Extent;
+
    function Refresh_DIP_Scale (W : in out Window) return Boolean is
       Raw    : Pixel_Type := 1.0;
       Before : constant Pixel_Type := Get_Active_DIP_Scale;
@@ -752,7 +829,14 @@ package body Adi.Window is
    function Create_Window_Handle
      (Title     : String;
       S         : Size_2D;
-      Maximized : Boolean := False) return Window_Handle
+      Maximized : Boolean := False) return Window_Handle is
+     (Create_Window_Sized (Title, S, Maximized, Hidden => False));
+
+   function Create_Window_Sized
+     (Title     : String;
+      S         : Size_2D;
+      Maximized : Boolean;
+      Hidden    : Boolean) return Window_Handle
    is
       use Interfaces.C.Strings;
       C_Title_Str : chars_ptr := New_String (Title);
@@ -765,6 +849,9 @@ package body Adi.Window is
       if Maximized then
          Flags := Flags or SDL_WINDOW_MAXIMIZED;
       end if;
+      if Hidden then
+         Flags := Flags or SDL_WINDOW_HIDDEN;
+      end if;
       Success := Adi.SDL.Render.SDL_CreateWindowAndRenderer
         (C_Title_Str,
          int (S.Width),
@@ -773,7 +860,14 @@ package body Adi.Window is
          Win_Ptr,
          Ren_Ptr);
       Free (C_Title_Str);
-      SDL_Assert (Success, "SDL_CreateWindowAndRenderer");
+      --  Not SDL_Assert: assertions are off in release builds, and
+      --  carrying on would register a Window holding null SDL pointers.
+      if not Boolean (Success) or else Win_Ptr = null or else Ren_Ptr = null
+      then
+         raise Adi.SDL.SDL_Error with
+           "SDL_CreateWindowAndRenderer failed: "
+           & Interfaces.C.Strings.Value (Adi.SDL.SDL_GetError);
+      end if;
       declare
          W : constant Window_Access := new Window;
          Pixel_Size : Size_2D := S;
@@ -810,7 +904,7 @@ package body Adi.Window is
          end;
          return Get_Handle (W.all);
       end;
-   end Create_Window_Handle;
+   end Create_Window_Sized;
 
 
    ------------
@@ -2842,6 +2936,128 @@ function Get_Size (W : in out Window) return Size_2D is
       Remove_Overlay (Host.all, WH);
    end On_Widget_Destroy;
 
+   function Create_Window_Handle
+     (Title     : String;
+      S         : Window_Extent;
+      Maximized : Boolean := False) return Window_Handle
+   is
+      use Adi.CSS_Styles;
+
+      --  Bootstrapped hidden and unmaximized: the scale and density are
+      --  only knowable once a window exists, and SDL_SetWindowSize has no
+      --  effect on a maximized window, so maximizing waits until the
+      --  restore size has been established. Nothing is shown until the
+      --  requested size has actually been applied.
+      H : Window_Handle :=
+        Create_Window_Sized (Title, (100.0, 100.0), Maximized => False,
+                             Hidden => True);
+
+      Wants_Bounds : constant Boolean :=
+        S.Width.Unit = Pct or else S.Height.Unit = Pct;
+
+      --  SDL's error is thread-local and cleanup may overwrite it, so it
+      --  is read before Destroy. Omitted where the failure is ours rather
+      --  than SDL's, since the last error would then be unrelated.
+      procedure Fail (Message : String; From_SDL : Boolean := True) is
+         Detail : constant String :=
+           (if From_SDL
+            then ": " & Interfaces.C.Strings.Value (Adi.SDL.SDL_GetError)
+            else "");
+      begin
+         Destroy (H);
+         raise Adi.SDL.SDL_Error with Message & Detail;
+      end Fail;
+   begin
+      declare
+         Ref : Window_Ref := Borrow (H);
+      begin
+         if Ref.Ptr = null or else Ref.Ptr.Internal = null
+           or else Ref.Ptr.Internal.win = null
+         then
+            Fail ("window could not be created");
+         end if;
+      end;
+
+      declare
+         Ref     : Window_Ref := Borrow (H);
+         Win     : constant Adi.SDL.Video.SDL_Window_Ptr :=
+           Ref.Ptr.Internal.win;
+         Raw_Den : constant Pixel_Type :=
+           Pixel_Type (Adi.SDL.Video.SDL_GetWindowPixelDensity (Win));
+         --  A failed query reads as zero; treating that as a tiny density
+         --  would turn a modest extent into tens of thousands of
+         --  coordinates, so fall back to parity.
+         Density : constant Pixel_Type :=
+           (if Raw_Den > 0.0 then Raw_Den else 1.0);
+         Scale   : constant Pixel_Type :=
+           Pixel_Type'Max
+             (1.0,
+              Pixel_Type (Adi.SDL.Video.SDL_GetWindowDisplayScale (Win)));
+         Bounds  : aliased SDL_Rect := (0, 0, 0, 0);
+         --  Only percentages need the display's bounds, so a failure to
+         --  read them is only fatal when one is in play.
+         Got_Bounds : constant Boolean :=
+           (if Wants_Bounds
+            then Boolean (Adi.SDL.Video.SDL_GetDisplayUsableBounds
+                            (Adi.SDL.Video.SDL_GetDisplayForWindow (Win),
+                             Bounds'Access))
+            else True);
+         Usable  : constant Size_2D :=
+           (Pixel_Type (Bounds.w), Pixel_Type (Bounds.h));
+         W_Px, H_Px : aliased int := 0;
+      begin
+         if Wants_Bounds
+           and then (not Got_Bounds
+                     or else Usable.Width <= 0.0 or else Usable.Height <= 0.0)
+         then
+            Fail ("a percentage extent needs the display's usable bounds, "
+                  & "which SDL did not report",
+                  From_SDL => not Got_Bounds);
+         end if;
+
+         declare
+            R : constant Resolved_Extent :=
+              Resolve_Extent (S, Scale, Density, Usable,
+                              Adi.Layout_Util.Get_Px_Maps_To_Dip);
+         begin
+            if not Boolean (Adi.SDL.Video.SDL_SetWindowSize
+                              (Win, int (R.Coords.Width),
+                               int (R.Coords.Height)))
+            then
+               Fail ("window could not be sized to its requested extent");
+            end if;
+         end;
+
+         --  SetWindowSize is asynchronous, so read back only once the
+         --  window manager has acted on it.
+         if not Boolean (Adi.SDL.Video.SDL_SyncWindow (Win)) then
+            Fail ("window size change was not applied");
+         end if;
+
+         --  The size a window ends up with is whatever was granted, so
+         --  take it from SDL rather than from the request. Leaving the
+         --  bootstrap size in place would be worse than failing.
+         if not Boolean (Adi.SDL.Video.SDL_GetWindowSizeInPixels
+                           (Win, W_Px'Access, H_Px'Access))
+         then
+            Fail ("window size could not be read back");
+         end if;
+         Handle_Resize (H, (Pixel_Type (W_Px), Pixel_Type (H_Px)));
+
+         if not Boolean (Adi.SDL.Video.SDL_ShowWindow (Win)) then
+            Fail ("window could not be shown");
+         end if;
+
+         if Maximized then
+            Maximize (H);
+         end if;
+      end;
+      return H;
+   end Create_Window_Handle;
+
 begin
    Adi.Widget.Destroy_Detach_Hook := On_Widget_Destroy'Access;
+
+
+
 end Adi.Window;

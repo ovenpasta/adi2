@@ -124,6 +124,31 @@ package Adi.SDL.Video is
         Convention => C,
         External_Name => "SDL_GetWindowDisplayScale";
 
+   --  Framebuffer pixels per window coordinate. 1.0 where the two spaces
+   --  coincide (Windows, X11); the density on macOS and Wayland, where a
+   --  window's size in coordinates is smaller than its pixel size.
+   --  Distinct from the display scale above, which SDL defines as the
+   --  content scale combined with this density, expressed relative to
+   --  the window's pixel size.
+   function SDL_GetWindowPixelDensity
+      (window : SDL_Window_Ptr) return Float
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_GetWindowPixelDensity";
+
+   function SDL_ShowWindow (window : SDL_Window_Ptr) return C_bool
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_ShowWindow";
+
+   --  Block until pending window changes have been handled by the window
+   --  manager: SDL_SetWindowSize is otherwise asynchronous, so a size
+   --  read straight after it may still be the old one.
+   function SDL_SyncWindow (window : SDL_Window_Ptr) return C_bool
+   with Import => True,
+        Convention => C,
+        External_Name => "SDL_SyncWindow";
+
    type SDL_DisplayID is new Uint32;
 
    function SDL_GetDisplayForWindow

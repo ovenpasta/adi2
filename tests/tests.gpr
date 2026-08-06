@@ -6,6 +6,7 @@ project Tests is
       "layout_test",
       "layout_flex_grid_test",
       "css_parser_test",
+      "window_extent_test",
       "css_source_test",
       "text_buffer_test",
       "text_layout_test",

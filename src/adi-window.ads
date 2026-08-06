@@ -25,6 +25,53 @@ package Adi.Window is
                                     S         : Size_2D;
                                     Maximized : Boolean := False)
       return Window_Handle;
+
+    --  A window size carrying its own unit, so the caller states whether
+    --  it means framebuffer pixels or something that scales with the
+    --  display. S : Size_2D above is unchanged: it is handed to SDL as
+    --  window coordinates, which equal pixels only where the pixel
+    --  density is 1 -- not on macOS or Wayland.
+    --
+    --    pix  target framebuffer pixels
+    --    dp   multiplied by the window's display scale; UI zoom does not
+    --         resize the native window
+    --    px   uses that display scale when Set_Px_Maps_To_Dip is enabled
+    --    %    fraction of the display's usable bounds
+    --
+    --  A size is a request: window coordinates are integers and the
+    --  window manager may constrain them, so the size a window ends up
+    --  with is whatever SDL reports afterwards.
+    type Window_Extent is private;
+
+    --  Raises Constraint_Error for units that cannot describe a window:
+    --  em and rem have no font context here, and vw/vh would resolve
+    --  against the viewport being defined.
+    function Extent
+      (Width, Height : Adi.CSS_Styles.Length_Value) return Window_Extent;
+
+    function Create_Window_Handle (Title     : String;
+                                    S         : Window_Extent;
+                                    Maximized : Boolean := False)
+      return Window_Handle;
+
+    --  Both sizes a caller needs: what the framebuffer should end up
+    --  being, and what SDL_CreateWindow/SDL_SetWindowSize take, which is
+    --  the same thing divided by the window's pixel density. The two
+    --  differ on macOS and Wayland.
+    type Resolved_Extent is record
+       Pixels : Size_2D;
+       Coords : Size_2D;
+    end record;
+
+    --  Pure: every input is explicit so the platform combinations can be
+    --  tested without a display. Usable is in window coordinates, as SDL
+    --  reports display bounds.
+    function Resolve_Extent
+      (E              : Window_Extent;
+       Display_Scale  : Pixel_Type;
+       Pixel_Density  : Pixel_Type;
+       Usable         : Size_2D;
+       Px_Maps_To_Dip : Boolean) return Resolved_Extent;
     function Get_Handle (W : Window) return Window_Handle;
     function Is_Valid (H : Window_Handle) return Boolean;
     function Resolve_Window_Handle (H : Window_Handle) return Window_Access;
@@ -348,6 +395,11 @@ package Adi.Window is
     end record;
     function Get_Frame_Stats (W : Window) return Frame_Stats;
 private
+
+    type Window_Extent is record
+       Width, Height : Adi.CSS_Styles.Length_Value;
+    end record;
+
     package Overlay_Vectors is new Ada.Containers.Vectors (Positive, Widget_Handle);
 
     type Internal;

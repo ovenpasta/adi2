@@ -9,6 +9,7 @@ Usage:
     python3 xml_to_ada.py input.xml --output-dir dir --package-name Name
 """
 
+import re
 import xml.etree.ElementTree as ET
 import argparse
 import sys
@@ -98,11 +99,57 @@ class XmlOptionGroup:
     options: list[XmlOption] = field(default_factory=list)
 
 
+
+#  Units a window size may carry. Unitless means px, matching CSS, which
+#  also means it follows Set_Px_Maps_To_Dip like every other length.
+#  em/rem and vw/vh are refused: there is no font context when a window
+#  is created, and vw/vh would resolve against the viewport being defined.
+WINDOW_UNITS = {
+    "": "Px",
+    "px": "Px",
+    "pix": "Pix",
+    "dp": "Dip",
+    "dip": "Dip",
+    "%": "Pct",
+}
+
+
+def parse_window_length(value: str) -> WindowLength:
+    """Split a window attribute into (amount, Ada length constructor)."""
+    text = str(value).strip().lower()
+    match = re.match(r"^(-?\d*\.?\d+)\s*([a-z%]*)$", text)
+    if not match:
+        raise ValueError(f"window size {value!r} is not a number with a unit")
+    unit = match.group(2)
+    if unit not in WINDOW_UNITS:
+        why = {
+            "em": "em and rem need a font context, which does not exist "
+                  "when a window is created",
+            "rem": "em and rem need a font context, which does not exist "
+                   "when a window is created",
+            "vw": "vw and vh resolve against the viewport, which is what a "
+                  "window size defines",
+            "vh": "vw and vh resolve against the viewport, which is what a "
+                  "window size defines",
+        }.get(unit, f"{unit!r} is not a length unit")
+        raise ValueError(
+            f"window size {value!r} cannot describe a window: {why}. "
+            f"Use one of px, pix, dp, dip or %")
+    amount = float(match.group(1))
+    if amount <= 0.0:
+        raise ValueError(f"window size {value!r} must be positive")
+    return amount, WINDOW_UNITS[unit]
+
+#  An amount paired with the Ada length constructor its unit maps to,
+#  e.g. (617.0, "Dip").
+WindowLength = tuple[float, str]
+
+
 @dataclass
 class XmlWindow:
     title: str
-    width: float
-    height: float
+    width: WindowLength
+    height: WindowLength
     root_widget: XmlWidget
     maximized: bool = False
 
@@ -547,8 +594,8 @@ class Parser:
             )
         return XmlWindow(
             title=elem.get("title", "App"),
-            width=float(elem.get("width", "800")),
-            height=float(elem.get("height", "600")),
+            width=parse_window_length(elem.get("width", "800")),
+            height=parse_window_length(elem.get("height", "600")),
             root_widget=self._parse_widget(widget_children[0]),
             maximized=elem.get("maximized", "false").lower() == "true",
         )
@@ -1042,6 +1089,9 @@ def generate_body(app: XmlApp, package_name: str,
         body_withs.append("Adi.Layout_Util")
     if has_window and live_css:
         body_withs.append("Adi.Window")
+    if has_window:
+        #  Window extents are written with the CSS length constructors.
+        body_withs.append("Adi.CSS_Styles")
     if has_dialog:
         body_withs.append("Adi.Widget.Dialog")
         body_withs.append("Adi.Widget.Box")
@@ -1094,7 +1144,7 @@ def generate_body(app: XmlApp, package_name: str,
         "Adi.Widget.Dialog",
         "Adi.Window",
     }
-    for bw in sorted(body_withs):
+    for bw in sorted(set(body_withs)):
         if bw in plain_with_only and bw in spec_withs:
             continue
         if bw in plain_with_only:
@@ -1363,9 +1413,13 @@ def generate_body(app: XmlApp, package_name: str,
             f'      W : constant Adi.Window.Window_Handle :='
         )
         maximized_arg = ", Maximized => True" if win.maximized else ""
+        w_amount, w_unit = win.width
+        h_amount, h_unit = win.height
         lines.append(
             f'        Adi.Window.Create_Window_Handle ("{title}",'
-            f" ({win.width}, {win.height}){maximized_arg});"
+            f" Adi.Window.Extent"
+            f" ({w_unit} ({w_amount}), {h_unit} ({h_amount}))"
+            f"{maximized_arg});"
         )
     elif has_dialog:
         lines.append("   function Build")

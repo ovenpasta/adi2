@@ -889,5 +889,65 @@ class TestI18N(unittest.TestCase):
         self.assertNotIn("Adi.I18N", body)
 
 
+class TestWindowExtentUnits(unittest.TestCase):
+    """Window sizes carry a unit; unitless means px, as in CSS."""
+
+    def _body(self, width, height):
+        xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <window title="App" width="{width}" height="{height}">
+    <box/>
+  </window>
+</adi>"""
+        app = parse_xml(xml)
+        return xml_to_ada.generate_body(app, "App_UI")
+
+    def test_units_map_to_length_constructors(self):
+        for value, ctor in [("800", "Px"), ("800px", "Px"), ("800pix", "Pix"),
+                            ("800dp", "Dip"), ("800dip", "Dip"),
+                            ("80%", "Pct")]:
+            self.assertEqual(
+                xml_to_ada.parse_window_length(value), (800.0 if ctor != "Pct"
+                                                        else 80.0, ctor),
+                f"{value} should parse as {ctor}")
+
+    def test_body_emits_an_extent(self):
+        body = self._body("617dp", "480dp")
+        self.assertIn("Adi.Window.Extent (Dip (617.0), Dip (480.0))", body)
+        #  The length constructors have to be visible where they are used.
+        self.assertIn("with Adi.CSS_Styles", body)
+
+    def test_axes_may_differ(self):
+        self.assertIn("Adi.Window.Extent (Pct (80.0), Pix (600.0))",
+                      self._body("80%", "600pix"))
+
+    def test_units_that_cannot_describe_a_window_are_refused(self):
+        #  The message has to say which of the two reasons applies, or a
+        #  caller learns only that their stylesheet-shaped value failed.
+        for bad, reason in [("10em", "font context"), ("10rem", "font context"),
+                            ("50vw", "viewport"), ("50vh", "viewport")]:
+            with self.assertRaises(ValueError, msg=bad) as ctx:
+                xml_to_ada.parse_window_length(bad)
+            self.assertIn(reason, str(ctx.exception), bad)
+
+    def test_a_window_needing_css_styles_withs_it_once(self):
+        #  Live CSS already pulls Adi.CSS_Styles in; the extent needs it
+        #  too, and Ada rejects a repeated with clause.
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="x.css"/>
+  <window title="App" width="617dp" height="480dp">
+    <box class="root"/>
+  </window>
+</adi>"""
+        body = xml_to_ada.generate_body(parse_xml(xml), "App_UI")
+        self.assertEqual(body.count("with Adi.CSS_Styles;"), 1)
+
+    def test_nonpositive_sizes_are_refused(self):
+        for bad in ["0", "-5", "0px"]:
+            with self.assertRaises(ValueError, msg=bad):
+                xml_to_ada.parse_window_length(bad)
+
+
 if __name__ == "__main__":
     unittest.main()

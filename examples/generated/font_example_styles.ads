@@ -274,6 +274,30 @@ package Font_Example_Styles is
       Text_Wrap_Mode => Set (TWM_Wrap),
       others => <>);
 
+   --  Base style for class 'lh_normal'::label
+   function Lh_Normal_Class_Label_Base_Style return Style_Rules is
+     (
+      Line_Height => Set (Normal_Line_Height),
+      others => <>);
+
+   --  Base style for class 'lh_number'::label
+   function Lh_Number_Class_Label_Base_Style return Style_Rules is
+     (
+      Line_Height => Set (Line_Height (1.8)),
+      others => <>);
+
+   --  Base style for class 'lh_percent'::label
+   function Lh_Percent_Class_Label_Base_Style return Style_Rules is
+     (
+      Line_Height => Set (Line_Height (Pct (150.0))),
+      others => <>);
+
+   --  Base style for class 'lh_length'::label
+   function Lh_Length_Class_Label_Base_Style return Style_Rules is
+     (
+      Line_Height => Set (Line_Height (Px (30.0))),
+      others => <>);
+
    --  Base style for class 'align_left'::label
    function Align_Left_Class_Label_Base_Style return Style_Rules is
      (
@@ -587,6 +611,54 @@ package Font_Example_Styles is
      ([
       Main_Part => (Style => Wrap_Sample_Class_Widget, Enabled => True),
       Label_Part => (Style => Wrap_Sample_Class_Label_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'lh_normal'::label
+   function Lh_Normal_Class_Label_Widget return Widget_Style is
+     (From (Lh_Normal_Class_Label_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'lh_normal'
+   function Lh_Normal_Class_Part_Styles return Part_Style_Array is
+     ([
+      Label_Part => (Style => Lh_Normal_Class_Label_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'lh_number'::label
+   function Lh_Number_Class_Label_Widget return Widget_Style is
+     (From (Lh_Number_Class_Label_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'lh_number'
+   function Lh_Number_Class_Part_Styles return Part_Style_Array is
+     ([
+      Label_Part => (Style => Lh_Number_Class_Label_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'lh_percent'::label
+   function Lh_Percent_Class_Label_Widget return Widget_Style is
+     (From (Lh_Percent_Class_Label_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'lh_percent'
+   function Lh_Percent_Class_Part_Styles return Part_Style_Array is
+     ([
+      Label_Part => (Style => Lh_Percent_Class_Label_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'lh_length'::label
+   function Lh_Length_Class_Label_Widget return Widget_Style is
+     (From (Lh_Length_Class_Label_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'lh_length'
+   function Lh_Length_Class_Part_Styles return Part_Style_Array is
+     ([
+      Label_Part => (Style => Lh_Length_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
 

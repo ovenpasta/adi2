@@ -170,6 +170,22 @@
   text-wrap-mode: wrap;
 }
 
+.lh_normal::label {
+  line-height: normal;
+}
+
+.lh_number::label {
+  line-height: 1.8;
+}
+
+.lh_percent::label {
+  line-height: 150%;
+}
+
+.lh_length::label {
+  line-height: 30px;
+}
+
 .align_left::label {
   text-align: left;
 }

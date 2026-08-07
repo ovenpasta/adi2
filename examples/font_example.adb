@@ -128,6 +128,8 @@ begin
         Adi.Widget.Label.Create_Handle ("Wrapping");
       Section_Align : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("Alignment");
+      Section_Line_Height : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Line Height");
       Section_DPI : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("DPI Units (px vs dip)");
 
@@ -179,6 +181,31 @@ begin
         & "the ragged edge falls on a different side in each of these "
         & "three boxes.";
 
+      --  Long enough to take three lines, which is where the spacing
+      --  between them becomes visible at all.
+      LH_Text : constant String :=
+        "Line height sets the distance from one baseline to the next. "
+        & "Normal is whatever the font itself asks for; a number "
+        & "multiplies the font size, and a length or percentage sets it "
+        & "outright.";
+
+      LH_Normal_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("line-height: normal — " & LH_Text,
+           Lh_Normal_Class_Label_Base_Style, Body_Font);
+      LH_Number_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("line-height: 1.8 — " & LH_Text,
+           Lh_Number_Class_Label_Base_Style, Body_Font);
+      LH_Percent_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("line-height: 150% — " & LH_Text,
+           Lh_Percent_Class_Label_Base_Style, Body_Font);
+      LH_Length_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("line-height: 30px — " & LH_Text,
+           Lh_Length_Class_Label_Base_Style, Body_Font);
+
       Align_Left_Sample : constant Adi.Widget.Label.Label_Handle :=
         Create_Wrap_Sample
           ("text-align: left — " & Align_Text,
@@ -229,6 +256,8 @@ begin
       Adi.Widget.Label.Set_Part_Styles (Section_Deco, Section_Title_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles (Section_Wrap, Section_Title_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles (Section_Align, Section_Title_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles
+        (Section_Line_Height, Section_Title_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles (Section_DPI, Section_Title_Class_Part_Styles);
 
       if Body_Font /= Null_Font then
@@ -247,6 +276,8 @@ begin
          Set_Part_Style (+Section_Wrap, Label_Part,
            Build_Label_Widget (Section_Title_Class_Label_Base_Style, Empty_Style, Body_Font));
          Set_Part_Style (+Section_Align, Label_Part,
+           Build_Label_Widget (Section_Title_Class_Label_Base_Style, Empty_Style, Body_Font));
+         Set_Part_Style (+Section_Line_Height, Label_Part,
            Build_Label_Widget (Section_Title_Class_Label_Base_Style, Empty_Style, Body_Font));
          Set_Part_Style (+Section_DPI, Label_Part,
            Build_Label_Widget (Section_Title_Class_Label_Base_Style, Empty_Style, Body_Font));
@@ -286,6 +317,12 @@ begin
       Add_Child (+Container, +Align_Left_Sample);
       Add_Child (+Container, +Align_Center_Sample);
       Add_Child (+Container, +Align_Right_Sample);
+
+      Add_Child (+Container, +Section_Line_Height);
+      Add_Child (+Container, +LH_Normal_Sample);
+      Add_Child (+Container, +LH_Number_Sample);
+      Add_Child (+Container, +LH_Percent_Sample);
+      Add_Child (+Container, +LH_Length_Sample);
 
       Add_Child (+Container, +Section_DPI);
       Add_Child (+Container, +DPI_Intro);

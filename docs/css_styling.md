@@ -151,7 +151,7 @@ For `::main`, interactive pseudos remain widget-scoped regardless of position:
 | `max-height` | length | `max-height: 240px;` |
 | `padding` | 1–4 lengths | `padding: 12px 24px;` |
 | `padding-top/right/bottom/left` | length | `padding-left: 16px;` |
-| `margin` | 1–4 lengths | `margin: 8px 0px;` |
+| `margin` | 1–4 lengths (no `auto`) | `margin: 8px 0px;` |
 | `margin-top/right/bottom/left` | length | `margin-top: 4px;` |
 
 ### Borders
@@ -286,6 +286,8 @@ Building rules in Ada follows the same shape: `Gap (L)` and `Gap (Row, Column)` 
 | `flex-basis` | `auto`, `content`, length | `flex-basis: 200px;` |
 | `align-self` | `auto`, `flex-start`, `flex-end`, `center`, `baseline`, `stretch` | `align-self: center;` |
 | `order` | integer | `order: -1;` |
+
+`margin: auto` is not supported. What it is normally reached for — pushing an item to the far edge, splitting a toolbar into two groups, centring a single item — is already expressible: `justify-content`, a `flex-grow: 1` spacer, or nesting the groups in their own flex box. Carrying `auto` through every margin side, the parser, the generator, measurement and the flex algorithm buys shorthand for those, and nothing they cannot already say.
 
 Two of those values are accepted but not yet acted on:
 

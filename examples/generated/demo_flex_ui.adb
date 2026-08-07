@@ -394,12 +394,26 @@ package body Demo_Flex_UI is
         (S, Class_Entry ("nowrap", Nowrap_Class_Part_Styles));
    end Register_Nowrap_Styles;
 
+   procedure Register_Align_Start_Items_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("align-start-items", Align_Start_Items_Class_Part_Styles));
+   end Register_Align_Start_Items_Styles;
+
    procedure Register_Tile_Styles
      (S : in out Style_Source) is
    begin
       Add_Static_Entry
         (S, Class_Entry ("tile", Tile_Class_Part_Styles));
    end Register_Tile_Styles;
+
+   procedure Register_Tile_Short_Styles
+     (S : in out Style_Source) is
+   begin
+      Add_Static_Entry
+        (S, Class_Entry ("tile-short", Tile_Short_Class_Part_Styles));
+   end Register_Tile_Short_Styles;
 
    procedure Register_Wrap_Styles
      (S : in out Style_Source) is
@@ -589,7 +603,7 @@ package body Demo_Flex_UI is
       Box_87 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_88 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Label_40 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-wrap");
-      Label_41 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Four 40px tiles in a 170px row. nowrap keeps one line and lets it run past the border; wrap breaks where the next tile stops fitting; wrap-reverse builds the same lines from the bottom up.");
+      Label_41 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Four 40px tiles in a 170px row, aligned to the start of their line. nowrap keeps one line and lets it run past the border; wrap breaks where the next tile stops fitting; wrap-reverse builds the lines from the bottom up and takes the start of each line with it, so the short tile drops instead of rising.");
       Box_89 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_90 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Label_42 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("nowrap");
@@ -709,7 +723,9 @@ package body Demo_Flex_UI is
       Register_H120_Styles (Source);
       Register_W170_Styles (Source);
       Register_Nowrap_Styles (Source);
+      Register_Align_Start_Items_Styles (Source);
       Register_Tile_Styles (Source);
+      Register_Tile_Short_Styles (Source);
       Register_Wrap_Styles (Source);
       Register_Ac_Start_Styles (Source);
       Register_Wrap_Reverse_Styles (Source);
@@ -874,23 +890,23 @@ package body Demo_Flex_UI is
       Adi.CSS_Source.Bind_Class (Source, "cases", +Box_89);
       Adi.CSS_Source.Bind_Class (Source, "case", +Box_90);
       Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_42);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 nowrap", +Box_91);
+      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 nowrap align-start-items", +Box_91);
       Adi.CSS_Source.Bind_Class (Source, "item tile", +Box_92);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Box_93);
+      Adi.CSS_Source.Bind_Class (Source, "item tile tile-short", +Box_93);
       Adi.CSS_Source.Bind_Class (Source, "item tile", +Box_94);
       Adi.CSS_Source.Bind_Class (Source, "item tile", +Box_95);
       Adi.CSS_Source.Bind_Class (Source, "case", +Box_96);
       Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_43);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap ac-start", +Box_97);
+      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap ac-start align-start-items", +Box_97);
       Adi.CSS_Source.Bind_Class (Source, "item tile", +Box_98);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Box_99);
+      Adi.CSS_Source.Bind_Class (Source, "item tile tile-short", +Box_99);
       Adi.CSS_Source.Bind_Class (Source, "item tile", +Box_100);
       Adi.CSS_Source.Bind_Class (Source, "item tile", +Box_101);
       Adi.CSS_Source.Bind_Class (Source, "case", +Box_102);
       Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_44);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap-reverse ac-start", +Box_103);
+      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap-reverse ac-start align-start-items", +Box_103);
       Adi.CSS_Source.Bind_Class (Source, "item tile", +Box_104);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Box_105);
+      Adi.CSS_Source.Bind_Class (Source, "item tile tile-short", +Box_105);
       Adi.CSS_Source.Bind_Class (Source, "item tile", +Box_106);
       Adi.CSS_Source.Bind_Class (Source, "item tile", +Box_107);
       Adi.CSS_Source.Bind_Class (Source, "section", +Box_108);

@@ -433,6 +433,18 @@ package Demo_Flex_Styles is
       Flex_Shrink => Set (0.0),
       others => <>);
 
+   --  Base style for class 'tile-short'
+   function Tile_Short_Class_Base_Style return Style_Rules is
+     (
+      Height => Set (Size (Px (18.0))),
+      others => <>);
+
+   --  Base style for class 'align-start-items'
+   function Align_Start_Items_Class_Base_Style return Style_Rules is
+     (
+      Align_Items => Set (Flex_Start),
+      others => <>);
+
    --  Base style for class 'pinned'
    function Pinned_Class_Base_Style return Style_Rules is
      (
@@ -1092,6 +1104,30 @@ package Demo_Flex_Styles is
    function Tile_Class_Part_Styles return Part_Style_Array is
      ([
       Main_Part => (Style => Tile_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'tile-short'
+   function Tile_Short_Class_Widget return Widget_Style is
+     (From (Tile_Short_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'tile-short'
+   function Tile_Short_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Tile_Short_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'align-start-items'
+   function Align_Start_Items_Class_Widget return Widget_Style is
+     (From (Align_Start_Items_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'align-start-items'
+   function Align_Start_Items_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Align_Start_Items_Class_Widget, Enabled => True),
       others => <>
    ]);
 

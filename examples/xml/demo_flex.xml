@@ -176,27 +176,27 @@
       <!-- flex-wrap -->
       <box class="section">
         <label text="flex-wrap" class="caption"/>
-        <label text="Four 40px tiles in a 170px row. nowrap keeps one line and lets it run past the border; wrap breaks where the next tile stops fitting; wrap-reverse builds the same lines from the bottom up."
+        <label text="Four 40px tiles in a 170px row, aligned to the start of their line. nowrap keeps one line and lets it run past the border; wrap breaks where the next tile stops fitting; wrap-reverse builds the lines from the bottom up and takes the start of each line with it, so the short tile drops instead of rising."
                class="note"/>
         <box class="cases">
           <box class="case">
             <label text="nowrap" class="case-label"/>
-            <box class="demo h120 w170 nowrap">
-              <box class="item tile"/><box class="item tile"/>
+            <box class="demo h120 w170 nowrap align-start-items">
+              <box class="item tile"/><box class="item tile tile-short"/>
               <box class="item tile"/><box class="item tile"/>
             </box>
           </box>
           <box class="case">
             <label text="wrap" class="case-label"/>
-            <box class="demo h120 w170 wrap ac-start">
-              <box class="item tile"/><box class="item tile"/>
+            <box class="demo h120 w170 wrap ac-start align-start-items">
+              <box class="item tile"/><box class="item tile tile-short"/>
               <box class="item tile"/><box class="item tile"/>
             </box>
           </box>
           <box class="case">
             <label text="wrap-reverse" class="case-label"/>
-            <box class="demo h120 w170 wrap-reverse ac-start">
-              <box class="item tile"/><box class="item tile"/>
+            <box class="demo h120 w170 wrap-reverse ac-start align-start-items">
+              <box class="item tile"/><box class="item tile tile-short"/>
               <box class="item tile"/><box class="item tile"/>
             </box>
           </box>

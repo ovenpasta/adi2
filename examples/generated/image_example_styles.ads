@@ -91,7 +91,9 @@ package Image_Example_Styles is
       Grid_Columns => Set (Grid_Columns_Value (5)),
       Grid_Column_Tracks => (Count => 5, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), 4 => (Track_Fr, 1.0), 5 => (Track_Fr, 1.0), others => <>]),
       Gap => Set (Gap (Px (16.0))),
-      Flex_Grow => Set (1.0),
+      Flex_Grow => Set (0.0),
+      Flex_Shrink => Set (0.0),
+      Height => Set (Size (Px (96.0))),
       others => <>);
 
    --  Base style for class 'card'

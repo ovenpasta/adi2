@@ -2,7 +2,7 @@
 <adi>
   <link rel="stylesheet" href="examples/css/image_example.css"/>
 
-  <window title="Image Example" width="754px" height="480px">
+  <window title="Image Example" width="754px" height="620px">
     <box id="Root" class="root">
       <label text="Image Widget Showcase" class="title"/>
       <label text="Demonstrating SVG path, SVG file, PNG, and JPG formats with all object-fit modes" class="subtitle"/>

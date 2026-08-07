@@ -230,7 +230,7 @@ package body Image_Example_UI is
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
-        Adi.Window.Create_Window_Handle ("Image Example", Adi.Window.Extent (Px (754.0), Px (480.0)));
+        Adi.Window.Create_Window_Handle ("Image Example", Adi.Window.Extent (Px (754.0), Px (620.0)));
       Label_1 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Image Widget Showcase");
       Label_2 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Demonstrating SVG path, SVG file, PNG, and JPG formats with all object-fit modes");
       Label_3 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Image Formats");

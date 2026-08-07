@@ -43,11 +43,16 @@
   flex-grow: 1;
 }
 
+/* Wide and short on purpose: the fit modes only differ when the box
+   and the image disagree about shape. Given a tall card the image fits
+   as it is and all five render alike. */
 .fit-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 16px;
-  flex-grow: 1;
+  flex-grow: 0;
+  flex-shrink: 0;
+  height: 96px;
 }
 
 .card {

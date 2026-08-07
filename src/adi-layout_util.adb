@@ -1001,15 +1001,17 @@ package body Adi.Layout_Util is
          end loop;
          Free_Space := (Container_Main - Total_Gaps) - Actual_Used;
 
-         --  Overflowing content keeps spacing non-negative, so items
-         --  spill past the end instead of piling up on each other.
+         --  flex-end and center keep their edge when the line overflows:
+         --  the items run off the start instead, which is what CSS asks
+         --  for. The distributing values clamp their spacing to zero
+         --  instead, so items never pile back over one another.
          case Context.Justify_Content is
             when Flex_Start =>
                Current_Pos := 0.0;
             when Flex_End =>
-               Current_Pos := Pixel_Type'Max (0.0, Free_Space);
+               Current_Pos := Free_Space;
             when Center =>
-               Current_Pos := Pixel_Type'Max (0.0, Free_Space) / 2.0;
+               Current_Pos := Free_Space / 2.0;
             when Space_Between =>
                Current_Pos := 0.0;
                if Count > 1 then

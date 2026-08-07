@@ -287,6 +287,11 @@ Building rules in Ada follows the same shape: `Gap (L)` and `Gap (Row, Column)` 
 | `align-self` | `auto`, `flex-start`, `flex-end`, `center`, `baseline`, `stretch` | `align-self: center;` |
 | `order` | integer | `order: -1;` |
 
+Two of those values are accepted but not yet acted on:
+
+- **`baseline`** (on `align-items` and `align-self`) falls back to `flex-start`. Aligning to a shared baseline needs per-item text metrics the flex pass does not collect.
+- **`order`** is parsed and resolved but never reorders anything; items lay out in document order.
+
 ### Grid
 
 | Property | Values | Example |

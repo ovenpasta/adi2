@@ -682,6 +682,10 @@ package body Adi.Widget.Box is
       Col_Gap : constant Pixel_Type := Get_Column_Gap (Style.Gap);
       Count : Natural := 0;
       Main_Sum : Pixel_Type := 0.0;
+      --  A container that wraps can put every item on a line of its own,
+      --  so along the main axis it only ever needs room for the largest
+      --  one -- and no gaps, because a line of one has nothing to space.
+      Main_Max : Pixel_Type := 0.0;
       Cross_Max : Pixel_Type := 0.0;
 
       --  A wrapping row needs room for every line, so the cross minimum
@@ -758,11 +762,17 @@ package body Adi.Widget.Box is
                                    Style.Flex_Direction)
                            else 0.0);
                      begin
-                        Main_Sum := Main_Sum
-                          + Pixel_Type'Max
-                              (Get_Main_Size (Min, Style.Flex_Direction),
-                               Base_Floor)
-                          + Main_Margins;
+                        declare
+                           Contribution : constant Pixel_Type :=
+                             Pixel_Type'Max
+                               (Get_Main_Size (Min, Style.Flex_Direction),
+                                Base_Floor)
+                             + Main_Margins;
+                        begin
+                           Main_Sum := Main_Sum + Contribution;
+                           Main_Max :=
+                             Pixel_Type'Max (Main_Max, Contribution);
+                        end;
                         declare
                            Cross : constant Pixel_Type :=
                              Pixel_Type'Max
@@ -787,7 +797,9 @@ package body Adi.Widget.Box is
             end if;
          end loop;
 
-         if Count > 1 then
+         if Style.Flex_Wrap /= No_Wrap then
+            Main_Sum := Main_Max;
+         elsif Count > 1 then
             Main_Sum := Main_Sum + Gap * Pixel_Type (Count - 1);
          end if;
 

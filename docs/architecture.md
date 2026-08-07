@@ -373,7 +373,9 @@ Minimums are width-dependent for the same reason, and have the same pair:
 
 Each line then flexes on its own: `Distribute_Main_Sizes` runs per line, so what one line grew into says nothing about what is left on the next, and items are justified and positioned relative to their own line. A line is as deep as its deepest item, except a single `nowrap` line, which takes the container's cross size — that is what lets `align-items: stretch` fill an unwrapped container. `align-content` then spreads the lines over the cross axis, and `wrap-reverse` mirrors their positions across it.
 
-`align-items`/`align-self` resolve against the item's *own line's* depth, not the container's, so a shallow item on a shallow line centres within that line.
+`align-items`/`align-self` resolve against the item's *own line's* depth, not the container's, so a shallow item on a shallow line centres within that line. `wrap-reverse` swaps cross-start for cross-end throughout: the margin on the starting side becomes the bottom one and placement is measured from the far edge back, so `flex-start` comes to rest at the bottom of a reversed row. `baseline` falls back to `flex-start`, and `order` does not reorder anything — both are accepted values with no effect (`docs/css_styling.md`).
+
+Along the main axis a wrapping container's minimum is its largest single item's contribution, with no gaps: it can always break, so it never needs room for the sum. `nowrap` needs every item plus the gaps between them.
 
 Measurement follows the same partition: a wrapping row is as deep as its lines summed plus the cross gaps between them, in both `Measure_Content_At_Width` and the minimum aggregation. Taking one global maximum there reserves a single line and lets every line below it escape the container.
 

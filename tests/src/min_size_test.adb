@@ -10,7 +10,7 @@ with Adi.Widget.Box;
 with Adi.Widget.List_Box;
 with Adi.Widget.Stack;
 with Adi.Widget.Text_Input;
-with Adi.Layout_Util;
+with Adi.Layout_Util;   use Adi.Layout_Util;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
 with Test_Support;
@@ -2549,6 +2549,245 @@ begin
          Test_Support.Assert
             (GC.Y + GC.Height <= R.Y + R.Height + 0.001,
              "the squeezed wrapping row still contains its last line");
+      end;
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  A container that wraps can put every item on its own line, so
+   --  along the main axis it needs room for the largest item and no
+   --  gaps. Summing them the way a nowrap container must would report a
+   --  width it can always avoid needing.
+   Ada.Text_IO.Put_Line ("=== wrapping takes the largest item, not the sum ===");
+   declare
+      function Row_Min (Wrapping : Boolean;
+                        Dir : Flex_Direction_Value;
+                        With_Out_Of_Flow : Boolean := False) return Pixel_Type
+      is
+         Row : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+         A : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+         B : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+         C : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+         Hidden : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+         Floating : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+         Row_Style : constant Style_Rules :=
+            (Display        => Set (Flex),
+             Flex_Direction => Set (Dir),
+             Flex_Wrap      => Set (if Wrapping then Adi.CSS_Styles.Wrap
+                                    else No_Wrap),
+             Gap            => Set (Gap (Px (10.0))),
+             others         => <>);
+         --  min-width/min-height, so the demand survives whatever the
+         --  content would have allowed.
+         function Tile (Extent : Float) return Style_Rules
+         is (if Is_Row_Direction (Dir)
+             then (Min_Width => Set (Size (Px (Extent))), others => <>)
+             else (Min_Height => Set (Size (Px (Extent))), others => <>));
+      begin
+         Set_Part_Styles
+            (Row, [Main_Part => (Style => From (Row_Style).Build,
+                                 Enabled => True), others => <>]);
+         Set_Part_Styles
+            (A, [Main_Part => (Style => From (Tile (40.0)).Build,
+                               Enabled => True), others => <>]);
+         Set_Part_Styles
+            (B, [Main_Part => (Style => From (Tile (60.0)).Build,
+                               Enabled => True), others => <>]);
+         Set_Part_Styles
+            (C, [Main_Part => (Style => From (Tile (30.0)).Build,
+                               Enabled => True), others => <>]);
+         Add_Child (Row, A);
+         Add_Child (Row, B);
+         Add_Child (Row, C);
+
+         if With_Out_Of_Flow then
+            --  Far larger than any in-flow item, so counting it would
+            --  change the answer whichever rule applied.
+            Set_Part_Styles
+               (Hidden, [Main_Part => (Style => From (Tile (500.0)).Build,
+                                       Enabled => True), others => <>]);
+            Set_Part_Styles
+               (Floating,
+                [Main_Part =>
+                   (Style => From (Merge (Tile (500.0),
+                                          (Position => Set (Absolute),
+                                           others => <>))).Build,
+                    Enabled => True), others => <>]);
+            Add_Child (Row, Hidden);
+            Set_Visible (Hidden, False);
+            Add_Child (Row, Floating);
+         end if;
+
+         return (if Is_Row_Direction (Dir)
+                 then Get_Content_Min_Size (Row).Width
+                 else Get_Content_Min_Size (Row).Height);
+      end Row_Min;
+   begin
+      Ada.Text_IO.Put_Line
+         ("  row wrap" & Pixel_Type'Image (Row_Min (True, Adi.CSS_Styles.Row))
+          & " nowrap" & Pixel_Type'Image (Row_Min (False, Adi.CSS_Styles.Row))
+          & "; column wrap"
+          & Pixel_Type'Image (Row_Min (True, Adi.CSS_Styles.Column))
+          & " nowrap"
+          & Pixel_Type'Image (Row_Min (False, Adi.CSS_Styles.Column)));
+
+      Test_Support.Assert
+         (abs (Row_Min (True, Adi.CSS_Styles.Row) - 60.0) < 0.001,
+          "a wrapping row asks for its largest item and no gaps");
+      Test_Support.Assert
+         (abs (Row_Min (False, Adi.CSS_Styles.Row) - (130.0 + 20.0)) < 0.001,
+          "a nowrap row asks for every item plus the gaps between them");
+      Test_Support.Assert
+         (abs (Row_Min (True, Adi.CSS_Styles.Column) - 60.0) < 0.001,
+          "a wrapping column asks for its tallest item");
+      Test_Support.Assert
+         (abs (Row_Min (False, Adi.CSS_Styles.Column) - (130.0 + 20.0)) < 0.001,
+          "a nowrap column asks for every item plus the gaps");
+      Test_Support.Assert
+         (abs (Row_Min (True, Adi.CSS_Styles.Row, With_Out_Of_Flow => True)
+                 - 60.0) < 0.001,
+          "hidden and absolute children are not the largest item");
+      Test_Support.Assert
+         (abs (Row_Min (False, Adi.CSS_Styles.Row, With_Out_Of_Flow => True)
+                 - (130.0 + 20.0)) < 0.001,
+          "nor do they add to the sum");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  The largest contribution is not just a declared minimum: it is
+   --  whatever the item will be laid out at, which for a non-shrinkable
+   --  item is its flex base, plus the margins that sit beside it on the
+   --  main axis.
+   Ada.Text_IO.Put_Line
+      ("=== the wrapping minimum covers basis and margins ===");
+   declare
+      Row : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Wide : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Small : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+      Basis_Px  : constant := 70.0;
+      Left_Px   : constant := 5.0;
+      Right_Px  : constant := 11.0;
+
+      Row_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Row),
+          Flex_Wrap      => Set (Adi.CSS_Styles.Wrap),
+          Gap            => Set (Gap (Px (10.0))),
+          others         => <>);
+      --  min-width: 0 so nothing but the basis and the margins is left
+      --  to account for.
+      Wide_Style : constant Style_Rules :=
+         (Min_Width   => Set (Size (Px (0.0))),
+          Flex_Basis  => Set (Basis (Px (Basis_Px))),
+          Flex_Shrink => Set (0.0),
+          Margin      => Set (CSS_Box (Px (0.0), Px (Right_Px),
+                                       Px (0.0), Px (Left_Px))),
+          others      => <>);
+      Small_Style : constant Style_Rules :=
+         (Min_Width => Set (Size (Px (20.0))), others => <>);
+   begin
+      Set_Part_Styles
+         (Row, [Main_Part => (Style => From (Row_Style).Build,
+                              Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Wide, [Main_Part => (Style => From (Wide_Style).Build,
+                               Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Small, [Main_Part => (Style => From (Small_Style).Build,
+                                Enabled => True), others => <>]);
+      Add_Child (Row, Wide);
+      Add_Child (Row, Small);
+
+      Ada.Text_IO.Put_Line
+         ("  row min w="
+          & Pixel_Type'Image (Get_Content_Min_Size (Row).Width)
+          & " (basis" & Pixel_Type'Image (Basis_Px)
+          & " + margins" & Pixel_Type'Image (Left_Px + Right_Px) & ")");
+
+      Test_Support.Assert
+         (abs (Get_Content_Min_Size (Row).Width
+                 - (Basis_Px + Left_Px + Right_Px)) < 0.001,
+          "the widest contribution is the flex base plus its margins");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  The point of the smaller minimum: a wrapping row inside something
+   --  narrower actually wraps, instead of being held open at the width
+   --  of all its items until someone writes min-width: 0.
+   Ada.Text_IO.Put_Line ("=== a squeezed wrapping row wraps on its own ===");
+   declare
+      Outer : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Row : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      A : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      B : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      C : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+      Tile_W : constant := 60.0;
+      Tile_H : constant := 30.0;
+      Outer_W : constant := 140.0;   --  two tiles wide, not three
+
+      Column_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          others         => <>);
+      Row_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Row),
+          Flex_Wrap      => Set (Adi.CSS_Styles.Wrap),
+          others         => <>);
+      Tile_Style : constant Style_Rules :=
+         (Width  => Set (Size (Px (Tile_W))),
+          Height => Set (Size (Px (Tile_H))),
+          Flex_Shrink => Set (0.0),
+          others => <>);
+   begin
+      Set_Part_Styles
+         (Outer, [Main_Part => (Style => From (Column_Style).Build,
+                                Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Row, [Main_Part => (Style => From (Row_Style).Build,
+                              Enabled => True), others => <>]);
+      for T of Widget_Pair'[A, B, C] loop
+         Set_Part_Styles
+            (T, [Main_Part => (Style => From (Tile_Style).Build,
+                               Enabled => True), others => <>]);
+      end loop;
+      Add_Child (Row, A);
+      Add_Child (Row, B);
+      Add_Child (Row, C);
+      Add_Child (Outer, Row);
+
+      Ada.Text_IO.Put_Line
+         ("  row min w="
+          & Pixel_Type'Image (Get_Content_Min_Size (Row).Width)
+          & " (one tile, not three)");
+      Test_Support.Assert
+         (abs (Get_Content_Min_Size (Row).Width - Tile_W) < 0.001,
+          "the row does not hold itself open at the width of every tile");
+
+      Set_Geometry
+         (Outer, (X => 0.0, Y => 0.0, Width => Outer_W, Height => 200.0));
+      Layout_Tree (Outer);
+
+      declare
+         GA : constant Rectangle := Get_Geometry (A);
+         GC : constant Rectangle := Get_Geometry (C);
+         R  : constant Rectangle := Get_Geometry (Row);
+      begin
+         Ada.Text_IO.Put_Line
+            ("  laid out at" & Pixel_Type'Image (Outer_W)
+             & ": row w=" & Pixel_Type'Image (R.Width)
+             & " third tile y=" & Pixel_Type'Image (GC.Y));
+         Test_Support.Assert
+            (R.Width <= Outer_W + 0.001,
+             "the row fits the container it was given");
+         Test_Support.Assert
+            (GC.Y > GA.Y + 0.001,
+             "the third tile wrapped without needing min-width: 0");
       end;
    end;
 

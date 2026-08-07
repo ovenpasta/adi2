@@ -627,6 +627,25 @@ package body Adi.Widget.Box is
                           (if Is_Row_Direction (Style.Flex_Direction)
                            then Margin.Top + Margin.Bottom
                            else Margin.Left + Margin.Right);
+                        Cross_Declared : constant Size_Value :=
+                          (if Is_Row_Direction (Style.Flex_Direction)
+                           then Child_Style.Height
+                           else Child_Style.Width);
+                        --  Only the main axis is flex-shrunk, so a
+                        --  definite cross size is the size the child
+                        --  will take. The container needs room for it,
+                        --  even though as a main size it would be a
+                        --  flex base and no floor at all. A percentage
+                        --  resolves against the container being sized,
+                        --  so it cannot floor it.
+                        Cross_Floor : constant Pixel_Type :=
+                          (if Content_Min
+                             and then Cross_Declared.Kind = Fixed
+                             and then Cross_Declared.Size.Unit /= Pct
+                           then Get_Cross_Size
+                                  (Get_Preferred_Size (Child.all),
+                                   Style.Flex_Direction)
+                           else 0.0);
                      begin
                         Main_Sum := Main_Sum
                           + Get_Main_Size (Min, Style.Flex_Direction)
@@ -634,7 +653,9 @@ package body Adi.Widget.Box is
                         Cross_Max :=
                           Pixel_Type'Max
                             (Cross_Max,
-                             Get_Cross_Size (Min, Style.Flex_Direction)
+                             Pixel_Type'Max
+                               (Get_Cross_Size (Min, Style.Flex_Direction),
+                                Cross_Floor)
                              + Cross_Margins);
                         Count := Count + 1;
                      end;

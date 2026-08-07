@@ -1490,6 +1490,103 @@ begin
 
    Ada.Text_IO.New_Line;
 
+   --  A definite cross size is not flex-shrunk, so a row is at least as
+   --  tall as the tallest child that declares a height. Reporting less
+   --  lets an outer column squeeze the row while its children keep that
+   --  height, and they spill over the row below instead of overflowing.
+   --  These children carry height but deliberately no min-height.
+   Ada.Text_IO.Put_Line ("=== definite cross sizes count as row minimums ===");
+   declare
+      Column : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Row_1  : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Row_2  : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Card_1 : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Card_2 : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+      Card_H    : constant := 60.0;
+      Col_Gap   : constant := 10.0;
+      --  Half of what the two rows and the gap need.
+      Squeeze_H : constant := 65.0;
+
+      Column_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          Gap            => Set (Gap (Px (Col_Gap))),
+          others         => <>);
+      Row_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Row),
+          others         => <>);
+      Card_Style : constant Style_Rules :=
+         (Height    => Set (Size (Px (Card_H))),
+          Flex_Grow => Set (1.0),
+          others    => <>);
+
+      Row_Min : Pixel_Type;
+   begin
+      Set_Part_Styles
+         (Column, [Main_Part => (Style => From (Column_Style).Build,
+                                 Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Row_1, [Main_Part => (Style => From (Row_Style).Build,
+                                Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Row_2, [Main_Part => (Style => From (Row_Style).Build,
+                                Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Card_1, [Main_Part => (Style => From (Card_Style).Build,
+                                 Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Card_2, [Main_Part => (Style => From (Card_Style).Build,
+                                 Enabled => True), others => <>]);
+
+      Add_Child (Row_1, Card_1);
+      Add_Child (Row_2, Card_2);
+      Add_Child (Column, Row_1);
+      Add_Child (Column, Row_2);
+
+      Row_Min := Get_Content_Min_Size (Row_1).Height;
+      Ada.Text_IO.Put_Line
+         ("  row content min h=" & Pixel_Type'Image (Row_Min)
+          & " (card height" & Pixel_Type'Image (Card_H) & ")");
+
+      Test_Support.Assert
+         (Row_Min >= Card_H - 0.001,
+          "a row's content minimum covers its child's definite height");
+
+      Set_Geometry
+         (Column, (X => 0.0, Y => 0.0, Width => 200.0, Height => Squeeze_H));
+      Layout (Column);
+
+      declare
+         R1 : constant Rectangle := Get_Geometry (Row_1);
+         R2 : constant Rectangle := Get_Geometry (Row_2);
+         C1 : constant Rectangle := Get_Geometry (Card_1);
+      begin
+         Ada.Text_IO.Put_Line
+            ("  squeezed to" & Pixel_Type'Image (Squeeze_H)
+             & ": row1 h=" & Pixel_Type'Image (R1.Height)
+             & " card1 h=" & Pixel_Type'Image (C1.Height)
+             & " row2 y=" & Pixel_Type'Image (R2.Y)
+             & " row1 bottom=" & Pixel_Type'Image (R1.Y + R1.Height));
+
+         Test_Support.Assert
+            (R1.Height >= Card_H - 0.001,
+             "a squeezed row keeps its child's definite height");
+         Test_Support.Assert
+            (C1.Y + C1.Height <= R1.Y + R1.Height + 0.001,
+             "the child stays inside its row when the column is squeezed");
+         Test_Support.Assert
+            (R2.Y >= R1.Y + R1.Height + Col_Gap - 0.001,
+             "the second row starts after the first plus the gap");
+         Test_Support.Assert
+            (R2.Y + R2.Height > Squeeze_H,
+             "the rows overflow the squeezed column rather than overlap");
+      end;
+   end;
+
+   Ada.Text_IO.New_Line;
+
    --  Freezing one flexible track shrinks the pool for the rest, which
    --  can push another below its own floor, and so on. Three 1fr tracks
    --  in 300px with floors 150 / 90 / 0 must settle at 150 / 90 / 60:

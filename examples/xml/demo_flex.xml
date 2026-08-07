@@ -182,22 +182,28 @@
           <box class="case">
             <label text="nowrap" class="case-label"/>
             <box class="demo h120 w170 nowrap align-start-items">
-              <box class="item tile"/><box class="item tile tile-short"/>
-              <box class="item tile"/><box class="item tile"/>
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile tile-short"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
             </box>
           </box>
           <box class="case">
             <label text="wrap" class="case-label"/>
             <box class="demo h120 w170 wrap ac-start align-start-items">
-              <box class="item tile"/><box class="item tile tile-short"/>
-              <box class="item tile"/><box class="item tile"/>
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile tile-short"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
             </box>
           </box>
           <box class="case">
             <label text="wrap-reverse" class="case-label"/>
             <box class="demo h120 w170 wrap-reverse ac-start align-start-items">
-              <box class="item tile"/><box class="item tile tile-short"/>
-              <box class="item tile"/><box class="item tile"/>
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile tile-short"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
             </box>
           </box>
         </box>
@@ -212,43 +218,55 @@
           <box class="case">
             <label text="flex-start" class="case-label"/>
             <box class="demo h120 w170 wrap ac-start">
-              <box class="item tile"/><box class="item tile"/>
-              <box class="item tile"/><box class="item tile"/>
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
             </box>
           </box>
           <box class="case">
             <label text="center" class="case-label"/>
             <box class="demo h120 w170 wrap ac-center">
-              <box class="item tile"/><box class="item tile"/>
-              <box class="item tile"/><box class="item tile"/>
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
             </box>
           </box>
           <box class="case">
             <label text="flex-end" class="case-label"/>
             <box class="demo h120 w170 wrap ac-end">
-              <box class="item tile"/><box class="item tile"/>
-              <box class="item tile"/><box class="item tile"/>
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
             </box>
           </box>
           <box class="case">
             <label text="space-between" class="case-label"/>
             <box class="demo h120 w170 wrap ac-between">
-              <box class="item tile"/><box class="item tile"/>
-              <box class="item tile"/><box class="item tile"/>
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
             </box>
           </box>
           <box class="case">
             <label text="space-around" class="case-label"/>
             <box class="demo h120 w170 wrap ac-around">
-              <box class="item tile"/><box class="item tile"/>
-              <box class="item tile"/><box class="item tile"/>
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
             </box>
           </box>
           <box class="case">
             <label text="stretch" class="case-label"/>
             <box class="demo h120 w170 wrap ac-stretch">
-              <box class="item tile"/><box class="item tile"/>
-              <box class="item tile"/><box class="item tile"/>
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
             </box>
           </box>
         </box>

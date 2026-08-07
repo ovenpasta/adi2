@@ -213,7 +213,7 @@
 /*  A shallower tile shows which edge of its line is the starting one:
     under wrap-reverse that is the bottom, so it drops rather than
     rises. Equal-height tiles would sit still and show nothing. */
-.tile-short { height: 18px; }
+.tile-short { height: 22px; }
 
 .align-start-items { align-items: flex-start; }
 

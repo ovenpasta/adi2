@@ -436,7 +436,7 @@ package Demo_Flex_Styles is
    --  Base style for class 'tile-short'
    function Tile_Short_Class_Base_Style return Style_Rules is
      (
-      Height => Set (Size (Px (18.0))),
+      Height => Set (Size (Px (22.0))),
       others => <>);
 
    --  Base style for class 'align-start-items'

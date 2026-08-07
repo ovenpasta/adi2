@@ -104,6 +104,7 @@ package Demo_Flex_Styles is
      (
       Display => Set (Flex),
       Flex_Direction => Set (Row),
+      Flex_Wrap => Set (Wrap),
       Gap => Set (Gap (Px (12.0))),
       Flex_Shrink => Set (0.0),
       others => <>);
@@ -355,6 +356,81 @@ package Demo_Flex_Styles is
    function W480_Class_Base_Style return Style_Rules is
      (
       Width => Set (Size (Px (480.0))),
+      others => <>);
+
+   --  Base style for class 'w170'
+   function W170_Class_Base_Style return Style_Rules is
+     (
+      Width => Set (Size (Px (170.0))),
+      others => <>);
+
+   --  Base style for class 'h120'
+   function H120_Class_Base_Style return Style_Rules is
+     (
+      Height => Set (Size (Px (120.0))),
+      others => <>);
+
+   --  Base style for class 'nowrap'
+   function Nowrap_Class_Base_Style return Style_Rules is
+     (
+      Flex_Wrap => Set (No_Wrap),
+      others => <>);
+
+   --  Base style for class 'wrap'
+   function Wrap_Class_Base_Style return Style_Rules is
+     (
+      Flex_Wrap => Set (Wrap),
+      others => <>);
+
+   --  Base style for class 'wrap-reverse'
+   function Wrap_Reverse_Class_Base_Style return Style_Rules is
+     (
+      Flex_Wrap => Set (Wrap_Reverse),
+      others => <>);
+
+   --  Base style for class 'ac-start'
+   function Ac_Start_Class_Base_Style return Style_Rules is
+     (
+      Align_Content => Set (Flex_Start),
+      others => <>);
+
+   --  Base style for class 'ac-center'
+   function Ac_Center_Class_Base_Style return Style_Rules is
+     (
+      Align_Content => Set (Center),
+      others => <>);
+
+   --  Base style for class 'ac-end'
+   function Ac_End_Class_Base_Style return Style_Rules is
+     (
+      Align_Content => Set (Flex_End),
+      others => <>);
+
+   --  Base style for class 'ac-between'
+   function Ac_Between_Class_Base_Style return Style_Rules is
+     (
+      Align_Content => Set (Space_Between),
+      others => <>);
+
+   --  Base style for class 'ac-around'
+   function Ac_Around_Class_Base_Style return Style_Rules is
+     (
+      Align_Content => Set (Space_Around),
+      others => <>);
+
+   --  Base style for class 'ac-stretch'
+   function Ac_Stretch_Class_Base_Style return Style_Rules is
+     (
+      Align_Content => Set (Stretch),
+      others => <>);
+
+   --  Base style for class 'tile'
+   function Tile_Class_Base_Style return Style_Rules is
+     (
+      Width => Set (Size (Px (40.0))),
+      Height => Set (Size (Px (34.0))),
+      Flex_Grow => Set (0.0),
+      Flex_Shrink => Set (0.0),
       others => <>);
 
    --  Base style for class 'pinned'
@@ -872,6 +948,150 @@ package Demo_Flex_Styles is
    function W480_Class_Part_Styles return Part_Style_Array is
      ([
       Main_Part => (Style => W480_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'w170'
+   function W170_Class_Widget return Widget_Style is
+     (From (W170_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'w170'
+   function W170_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => W170_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'h120'
+   function H120_Class_Widget return Widget_Style is
+     (From (H120_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'h120'
+   function H120_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => H120_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'nowrap'
+   function Nowrap_Class_Widget return Widget_Style is
+     (From (Nowrap_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'nowrap'
+   function Nowrap_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Nowrap_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'wrap'
+   function Wrap_Class_Widget return Widget_Style is
+     (From (Wrap_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'wrap'
+   function Wrap_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Wrap_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'wrap-reverse'
+   function Wrap_Reverse_Class_Widget return Widget_Style is
+     (From (Wrap_Reverse_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'wrap-reverse'
+   function Wrap_Reverse_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Wrap_Reverse_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'ac-start'
+   function Ac_Start_Class_Widget return Widget_Style is
+     (From (Ac_Start_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'ac-start'
+   function Ac_Start_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Ac_Start_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'ac-center'
+   function Ac_Center_Class_Widget return Widget_Style is
+     (From (Ac_Center_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'ac-center'
+   function Ac_Center_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Ac_Center_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'ac-end'
+   function Ac_End_Class_Widget return Widget_Style is
+     (From (Ac_End_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'ac-end'
+   function Ac_End_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Ac_End_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'ac-between'
+   function Ac_Between_Class_Widget return Widget_Style is
+     (From (Ac_Between_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'ac-between'
+   function Ac_Between_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Ac_Between_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'ac-around'
+   function Ac_Around_Class_Widget return Widget_Style is
+     (From (Ac_Around_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'ac-around'
+   function Ac_Around_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Ac_Around_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'ac-stretch'
+   function Ac_Stretch_Class_Widget return Widget_Style is
+     (From (Ac_Stretch_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'ac-stretch'
+   function Ac_Stretch_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Ac_Stretch_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'tile'
+   function Tile_Class_Widget return Widget_Style is
+     (From (Tile_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'tile'
+   function Tile_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Tile_Class_Widget, Enabled => True),
       others => <>
    ]);
 

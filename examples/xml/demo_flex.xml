@@ -173,6 +173,86 @@
           <box class="item bar elastic"/>
         </box>
       </box>
+      <!-- flex-wrap -->
+      <box class="section">
+        <label text="flex-wrap" class="caption"/>
+        <label text="Four 40px tiles in a 170px row. nowrap keeps one line and lets it run past the border; wrap breaks where the next tile stops fitting; wrap-reverse builds the same lines from the bottom up."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="nowrap" class="case-label"/>
+            <box class="demo h120 w170 nowrap">
+              <box class="item tile"/><box class="item tile"/>
+              <box class="item tile"/><box class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="wrap" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-start">
+              <box class="item tile"/><box class="item tile"/>
+              <box class="item tile"/><box class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="wrap-reverse" class="case-label"/>
+            <box class="demo h120 w170 wrap-reverse ac-start">
+              <box class="item tile"/><box class="item tile"/>
+              <box class="item tile"/><box class="item tile"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- align-content -->
+      <box class="section">
+        <label text="align-content" class="caption"/>
+        <label text="Where the lines sit once they are formed. Each row wraps into two lines and has cross-axis space left over; stretch is the only value that grows the lines themselves to take it up."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="flex-start" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-start">
+              <box class="item tile"/><box class="item tile"/>
+              <box class="item tile"/><box class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="center" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-center">
+              <box class="item tile"/><box class="item tile"/>
+              <box class="item tile"/><box class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="flex-end" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-end">
+              <box class="item tile"/><box class="item tile"/>
+              <box class="item tile"/><box class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="space-between" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-between">
+              <box class="item tile"/><box class="item tile"/>
+              <box class="item tile"/><box class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="space-around" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-around">
+              <box class="item tile"/><box class="item tile"/>
+              <box class="item tile"/><box class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="stretch" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-stretch">
+              <box class="item tile"/><box class="item tile"/>
+              <box class="item tile"/><box class="item tile"/>
+            </box>
+          </box>
+        </box>
+      </box>
     </box>
   </window>
 </adi>

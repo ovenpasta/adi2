@@ -67,6 +67,7 @@
 .cases {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   gap: 12px;
   flex-shrink: 0;
 }
@@ -183,6 +184,31 @@
 /* min-size freeze and redistribution */
 
 .w480 { width: 480px; }
+
+/*  A row too narrow for its four tiles: three fit, the fourth wraps.
+    Deep enough that align-content has room to place the two lines. */
+.w170 { width: 170px; }
+.h120 { height: 120px; }
+
+.nowrap { flex-wrap: nowrap; }
+.wrap { flex-wrap: wrap; }
+.wrap-reverse { flex-wrap: wrap-reverse; }
+
+.ac-start   { align-content: flex-start; }
+.ac-center  { align-content: center; }
+.ac-end     { align-content: flex-end; }
+.ac-between { align-content: space-between; }
+.ac-around  { align-content: space-around; }
+.ac-stretch { align-content: stretch; }
+
+/*  Tiles keep their own size, so what moves between the cases is the
+    placement of the lines and nothing else. */
+.tile {
+  width: 40px;
+  height: 34px;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
 
 /* Basis equals min-width: these cannot give up any of their share. */
 .pinned {

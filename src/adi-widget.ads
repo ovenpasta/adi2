@@ -19,6 +19,7 @@ with Adi.Render;            use Adi.Render;
 with Adi.Image;             use Adi.Image;
 with Ada.Finalization;
 with Adi.Handle_Store;
+with Adi.Layout_Util;
 
 package Adi.Widget is
    pragma Elaborate_Body;
@@ -683,6 +684,59 @@ package Adi.Widget is
    --  Containers aggregate this rather than the raw content minimum.
    function Effective_Min_Size (W : Widget'Class) return Size_2D;
    function Effective_Min_Size (H : Widget_Handle) return Size_2D;
+
+   --  Content minimum when the widget is laid out at Assigned_Width as
+   --  its own outer width -- the width-aware counterpart of
+   --  Get_Content_Min_Size. Override this in a widget whose block-axis
+   --  minimum depends on the width it is given; the default ignores the
+   --  width and returns Get_Content_Min_Size.
+   --
+   --  Same contract as Measure_Content_At_Width, and one rule beyond it:
+   --  the answer must not come from geometry. The caller is deciding a
+   --  width, so the width the widget happens to carry from the previous
+   --  layout would make the minimum one pass late.
+   function Get_Content_Min_Size_At_Width
+     (W : Widget; Assigned_Width : Pixel_Type) return Size_2D;
+
+   type Pixel_Array is array (Positive range <>) of Pixel_Type;
+
+   --  The widths the in-flow children of a flex row are laid out at,
+   --  in child order, given the row's content width.
+   --
+   --  This runs the real main-axis distribution rather than guessing at
+   --  it, and stops there: cross sizing would stretch the children and
+   --  contaminate an answer that was only asked how wide they are. It is
+   --  a query and leaves no geometry behind.
+   --
+   --  Empty unless W is a flex row with more than one in-flow child --
+   --  every other shape follows from the container's own width.
+   function Flex_Row_Child_Widths
+     (W : Widget'Class; Content_Width : Pixel_Type) return Pixel_Array;
+
+   --  The main-axis size a flex item is laid out from before it grows or
+   --  shrinks. A definite flex-basis is exactly that basis -- including
+   --  zero, which is a demand for nothing -- and otherwise the item's own
+   --  content size at the width it is being given.
+   --
+   --  Aggregation and the flex algorithm both resolve the base through
+   --  here, so a container cannot reserve room on one rule while the
+   --  layout places on another. Pass Unknown_Assigned_Width when no width
+   --  has been decided yet; the base then comes from the unconstrained
+   --  preferred size.
+   Unknown_Assigned_Width : constant Pixel_Type := -1.0;
+
+   function Resolved_Flex_Base
+     (Child          : Widget'Class;
+      Direction      : Flex_Direction_Value;
+      Assigned_Width : Pixel_Type;
+      Container_Main : Pixel_Type) return Pixel_Type;
+
+   --  Effective_Min_Size at that width. Not dispatching: the
+   --  widget-specific part is the primitive above.
+   function Effective_Min_Size_At_Width
+     (W : Widget'Class; Assigned_Width : Pixel_Type) return Size_2D;
+   function Effective_Min_Size_At_Width
+     (H : Widget_Handle; Assigned_Width : Pixel_Type) return Size_2D;
 
    ---------------------------------------------------------------------------
    --  Flex Layout

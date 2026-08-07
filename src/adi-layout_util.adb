@@ -732,54 +732,29 @@ package body Adi.Layout_Util is
    -- Flex Layout Algorithm
    -------------------------------------------------
 
-   procedure Compute_Flex_Layout(
-      Context   : Flex_Layout_Context;
-      Children  : in out Flex_Child_Info_Array)
+   procedure Distribute_Main_Sizes
+     (Container_Main : Pixel_Type;
+      Main_Gap       : Pixel_Type;
+      Direction      : Flex_Direction_Value;
+      Children       : in out Flex_Child_Info_Array)
    is
-      Container_Main  : constant Pixel_Type := Get_Main_Size(
-         (Context.Container.Width, Context.Container.Height), Context.Direction);
-      Container_Cross : constant Pixel_Type := Get_Cross_Size(
-         (Context.Container.Width, Context.Container.Height), Context.Direction);
-
-      Main_Gap : constant Pixel_Type := Context.Row_Gap;  -- Gap between items on main axis
-
-      --  For simplicity, we implement single-line (no wrap) first
-      --  Then extend to wrapping
-
-      Total_Flex_Basis : Pixel_Type := 0.0;
-      Total_Grow       : Float := 0.0;
-      Total_Shrink     : Float := 0.0;
-      Num_Children     : constant Natural := Children'Length;
-      Total_Gaps       : Pixel_Type := 0.0;
-
-      Available_Space  : Pixel_Type;
-      Free_Space       : Pixel_Type;
-
-      --  Current position along main axis
-      Current_Pos      : Pixel_Type := 0.0;
-
-      --  For space distribution
-      Space_Per_Item   : Pixel_Type := 0.0;
-      Initial_Space    : Pixel_Type := 0.0;
+      Num_Children       : constant Natural := Children'Length;
+      Total_Gaps         : Pixel_Type := 0.0;
       Total_Main_Margins : Pixel_Type := 0.0;
+      Available_Space    : Pixel_Type;
 
       function Main_Before (M : Edge_Pixels) return Pixel_Type is
-        (if Is_Row_Direction (Context.Direction) then M.Left else M.Top);
+        (if Is_Row_Direction (Direction) then M.Left else M.Top);
       function Main_After (M : Edge_Pixels) return Pixel_Type is
-        (if Is_Row_Direction (Context.Direction) then M.Right else M.Bottom);
-      function Cross_Before (M : Edge_Pixels) return Pixel_Type is
-        (if Is_Row_Direction (Context.Direction) then M.Top else M.Left);
-      function Cross_After (M : Edge_Pixels) return Pixel_Type is
-        (if Is_Row_Direction (Context.Direction) then M.Bottom else M.Right);
+        (if Is_Row_Direction (Direction) then M.Right else M.Bottom);
    begin
-      if Num_Children = 0 then
-         return;
-      end if;
+         if Num_Children = 0 then
+            return;
+         end if;
 
-      --  Calculate total gaps
-      if Num_Children > 1 then
-         Total_Gaps := Main_Gap * Pixel_Type(Num_Children - 1);
-      end if;
+         if Num_Children > 1 then
+            Total_Gaps := Main_Gap * Pixel_Type (Num_Children - 1);
+         end if;
 
       --  Step 1: Calculate flex basis and totals
       for I in Children'Range loop
@@ -803,9 +778,6 @@ package body Adi.Layout_Util is
                      Pixel_Type'Min(Child.Max_Main, Basis));
 
             Child.Computed_Main := Basis;
-            Total_Flex_Basis := Total_Flex_Basis + Basis;
-            Total_Grow := Total_Grow + Child.Flex_Grow;
-            Total_Shrink := Total_Shrink + Child.Flex_Shrink * Float(Basis);
             Total_Main_Margins :=
               Total_Main_Margins + Main_Before (Child.Margin) + Main_After (Child.Margin);
          end;
@@ -813,7 +785,6 @@ package body Adi.Layout_Util is
 
       --  Step 2: Calculate free space
       Available_Space := Container_Main - Total_Gaps - Total_Main_Margins;
-      Free_Space := Available_Space - Total_Flex_Basis;
 
       --  Step 3: Distribute free space (grow or shrink)
       --
@@ -918,6 +889,57 @@ package body Adi.Layout_Util is
             end;
          end loop;
       end;
+   end Distribute_Main_Sizes;
+
+   procedure Compute_Flex_Layout(
+      Context   : Flex_Layout_Context;
+      Children  : in out Flex_Child_Info_Array)
+   is
+      Container_Main  : constant Pixel_Type := Get_Main_Size(
+         (Context.Container.Width, Context.Container.Height), Context.Direction);
+      Container_Cross : constant Pixel_Type := Get_Cross_Size(
+         (Context.Container.Width, Context.Container.Height), Context.Direction);
+
+      Main_Gap : constant Pixel_Type := Context.Row_Gap;  -- Gap between items on main axis
+
+      --  For simplicity, we implement single-line (no wrap) first
+      --  Then extend to wrapping
+
+      Num_Children     : constant Natural := Children'Length;
+      Total_Gaps       : Pixel_Type := 0.0;
+
+      Free_Space       : Pixel_Type;
+
+      --  Current position along main axis
+      Current_Pos      : Pixel_Type := 0.0;
+
+      --  For space distribution
+      Space_Per_Item   : Pixel_Type := 0.0;
+      Initial_Space    : Pixel_Type := 0.0;
+
+      function Main_Before (M : Edge_Pixels) return Pixel_Type is
+        (if Is_Row_Direction (Context.Direction) then M.Left else M.Top);
+      function Main_After (M : Edge_Pixels) return Pixel_Type is
+        (if Is_Row_Direction (Context.Direction) then M.Right else M.Bottom);
+      function Cross_Before (M : Edge_Pixels) return Pixel_Type is
+        (if Is_Row_Direction (Context.Direction) then M.Top else M.Left);
+      function Cross_After (M : Edge_Pixels) return Pixel_Type is
+        (if Is_Row_Direction (Context.Direction) then M.Bottom else M.Right);
+   begin
+      if Num_Children = 0 then
+         return;
+      end if;
+
+      --  Calculate total gaps
+      if Num_Children > 1 then
+         Total_Gaps := Main_Gap * Pixel_Type(Num_Children - 1);
+      end if;
+
+      Distribute_Main_Sizes
+        (Container_Main => Container_Main,
+         Main_Gap       => Main_Gap,
+         Direction      => Context.Direction,
+         Children       => Children);
 
       --  Step 4: Calculate actual used space after grow/shrink
       declare

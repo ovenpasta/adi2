@@ -320,6 +320,16 @@ package Adi.Layout_Util is
    -------------------------------------------------
 
    --  Main entry point for flex layout
+   --  Resolve main-axis sizes only: flex bases, free space, and the
+   --  grow/shrink distribution. Cross sizing and positioning are left
+   --  alone, so a caller measuring a row can ask what width each child
+   --  will get without stretch contaminating the answer.
+   procedure Distribute_Main_Sizes
+     (Container_Main : Pixel_Type;
+      Main_Gap       : Pixel_Type;
+      Direction      : Flex_Direction_Value;
+      Children       : in out Flex_Child_Info_Array);
+
    procedure Compute_Flex_Layout(
       Context   : Flex_Layout_Context;
       Children  : in out Flex_Child_Info_Array);

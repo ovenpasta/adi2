@@ -333,7 +333,11 @@ package body Adi.Widget.Label is
    -- Get_Content_Min_Size --
    ----------------------------
 
-   overriding function Get_Content_Min_Size (W : Label_Widget) return Size_2D
+   --  Shared by both content-minimum entry points. Outer_Width is the
+   --  width the label is being sized at; the block-axis minimum of
+   --  wrapping text falls out of it.
+   function Content_Min_At
+     (W : Label_Widget; Outer_Width : Pixel_Type) return Size_2D
    is
       Main_Style  : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Main_Part);
@@ -397,15 +401,18 @@ package body Adi.Widget.Label is
                   Side_By_Side : constant Boolean :=
                     Has_Icon
                     and then Main_Style.Flex_Direction in Row | Row_Reverse;
+                  Outer : constant Rectangle :=
+                    (X => 0.0, Y => 0.0,
+                     Width => Outer_Width, Height => 0.0);
                   Avail : constant Pixel_Type :=
                     (if Side_By_Side
                      then Pixel_Type'Max
                             (0.0,
-                             Content_Box (W.Geometry, Main_Style).Width
+                             Content_Box (Outer, Main_Style).Width
                              - Icon_Size.Width
                              - Get_Main_Gap (Main_Style.Gap,
                                              Main_Style.Flex_Direction))
-                     else Content_Box (W.Geometry, Main_Style).Width);
+                     else Content_Box (Outer, Main_Style).Width);
                begin
                   if Avail > 0.0 then
                      Text_Min.Height := Adi.Font.Measure_Text_Wrapped
@@ -446,7 +453,23 @@ package body Adi.Widget.Label is
 
       --  Include the padding + border chrome around the content.
       return Outer_Size (Result, Main_Style);
+   end Content_Min_At;
+
+   overriding function Get_Content_Min_Size (W : Label_Widget) return Size_2D
+   is
+   begin
+      --  No width to measure at, and the width from the last layout
+      --  would make the answer a pass late. Zero reports the unwrapped
+      --  minimum; callers that know a width ask for it explicitly.
+      return Content_Min_At (W, 0.0);
    end Get_Content_Min_Size;
+
+   overriding function Get_Content_Min_Size_At_Width
+     (W : Label_Widget; Assigned_Width : Pixel_Type) return Size_2D
+   is
+   begin
+      return Content_Min_At (W, Assigned_Width);
+   end Get_Content_Min_Size_At_Width;
 
    ------------
    -- Layout --

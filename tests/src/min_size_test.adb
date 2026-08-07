@@ -9,6 +9,7 @@ with Adi.Widget.Label;
 with Adi.Widget.Box;
 with Adi.Widget.List_Box;
 with Adi.Widget.Stack;
+with Adi.Widget.Text_Input;
 with Adi.Layout_Util;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
@@ -20,6 +21,8 @@ procedure Min_Size_Test is
       Adi.Widget.List_Box (Adi.Widget.Box.Box_Widget);
    package Label_Row_List is new
       Adi.Widget.List_Box (Adi.Widget.Label.Label_Widget);
+   type Widget_Pair is array (Positive range <>) of Widget_Handle;
+
    use type Adi.Widget.Box.Box_Handle;
    use type Adi.Widget.Label.Label_Handle;
    use type Box_Row_List.List_Box_Handle;
@@ -1587,6 +1590,788 @@ begin
 
    Ada.Text_IO.New_Line;
 
+   --  A shrinkable column of non-shrinkable children may not report a
+   --  minimum below what those children occupy. The parent shrinks it to
+   --  that floor, the children keep their size, and the tail escapes the
+   --  box a scrollbar is measured from, so it can never be reached.
+   Ada.Text_IO.Put_Line
+      ("=== non-shrinkable children floor a column's minimum ===");
+   declare
+      Long_Text : constant String :=
+         "Wrapped text whose height depends on the width it is given, "
+         & "so measuring it on one line under-reports what it occupies.";
+
+      Viewport  : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Container : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Kid_1 : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle (Long_Text);
+      Kid_2 : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle (Long_Text);
+
+      Kid_Gap  : constant := 10.0;
+      View_W   : constant := 200.0;
+      --  Far shorter than the two wrapped children need.
+      View_H   : constant := 100.0;
+
+      Viewport_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          Overflow_Y     => Set_Overflow_Y (Overflow_Auto),
+          others         => <>);
+      Column_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          Gap            => Set (Gap (Px (Kid_Gap))),
+          others         => <>);
+      Kid_Style : constant Style_Rules :=
+         (Flex_Shrink    => Set (0.0),
+          Text_Wrap_Mode => Set (TWM_Wrap),
+          Font_Size      => Set_Font (Px (20)),
+          others         => <>);
+
+      Needed : Pixel_Type;
+   begin
+      Set_Part_Styles
+         (Viewport, [Main_Part => (Style => From (Viewport_Style).Build,
+                                   Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Container, [Main_Part => (Style => From (Column_Style).Build,
+                                    Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Kid_1, [Main_Part => (Style => From (Kid_Style).Build,
+                                Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Kid_2, [Main_Part => (Style => From (Kid_Style).Build,
+                                Enabled => True), others => <>]);
+
+      Add_Child (Container, Kid_1);
+      Add_Child (Container, Kid_2);
+      Add_Child (Viewport, Container);
+
+      Needed := Measure_At_Width (Container, View_W).Height;
+      Ada.Text_IO.Put_Line
+         ("  container needs" & Pixel_Type'Image (Needed)
+          & " at width" & Pixel_Type'Image (View_W)
+          & ", content min" & Pixel_Type'Image
+              (Get_Content_Min_Size (Container).Height)
+          & ", width-aware min" & Pixel_Type'Image
+              (Effective_Min_Size_At_Width (Container, View_W).Height));
+
+      Set_Geometry
+         (Viewport, (X => 0.0, Y => 0.0, Width => View_W, Height => View_H));
+      Layout_Tree (Viewport);
+
+      declare
+         C  : constant Rectangle := Get_Geometry (Container);
+         K2 : constant Rectangle := Get_Geometry (Kid_2);
+      begin
+         Ada.Text_IO.Put_Line
+            ("  container h=" & Pixel_Type'Image (C.Height)
+             & " bottom=" & Pixel_Type'Image (C.Y + C.Height)
+             & "  last child bottom=" & Pixel_Type'Image (K2.Y + K2.Height));
+
+         Test_Support.Assert
+            (C.Height >= Needed - 0.001,
+             "a column of non-shrinkable children keeps the height they need");
+         Test_Support.Assert
+            (K2.Y + K2.Height <= C.Y + C.Height + 0.001,
+             "the last child stays inside the column it belongs to");
+
+         --  Containment alone still hides the tail if the viewport's
+         --  scroll range stops short of it.
+         Ada.Text_IO.Put_Line
+            ("  scroll content h="
+             & Pixel_Type'Image (Get_Scroll_Content_Height (Viewport))
+             & " max offset y="
+             & Pixel_Type'Image (Get_Scroll_Max_Offset_Y (Viewport)));
+         Test_Support.Assert
+            (Get_Scroll_Content_Height (Viewport) >= Needed - 0.001,
+             "the viewport's scroll content covers what the column needs");
+         Test_Support.Assert
+            (Get_Scroll_Max_Offset_Y (Viewport) + View_H >= Needed - 0.001,
+             "scrolling to the end reaches the last child");
+      end;
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  The floor is width-dependent, so it has to be recomputed from the
+   --  width being assigned rather than read back from the last layout.
+   Ada.Text_IO.Put_Line ("=== the column's floor reflows with its width ===");
+   declare
+      Long_Text : constant String :=
+         "Wrapped text whose height depends on the width it is given, "
+         & "so measuring it on one line under-reports what it occupies.";
+
+      Viewport  : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Container : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Kid : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle (Long_Text);
+
+      Narrow : constant := 200.0;
+      Wide   : constant := 600.0;
+
+      Viewport_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          Overflow_Y     => Set_Overflow_Y (Overflow_Auto),
+          others         => <>);
+      Column_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          others         => <>);
+      Kid_Style : constant Style_Rules :=
+         (Flex_Shrink    => Set (0.0),
+          Text_Wrap_Mode => Set (TWM_Wrap),
+          Font_Size      => Set_Font (Px (20)),
+          others         => <>);
+
+      procedure Lay_Out_At (W : Pixel_Type) is
+      begin
+         Set_Geometry
+            (Viewport, (X => 0.0, Y => 0.0, Width => W, Height => 60.0));
+         Layout_Tree (Viewport);
+      end Lay_Out_At;
+
+      Expected_Narrow, Expected_Wide : Pixel_Type;
+      Narrow_H, Wide_H, Back_H : Pixel_Type;
+   begin
+      Set_Part_Styles
+         (Viewport, [Main_Part => (Style => From (Viewport_Style).Build,
+                                   Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Container, [Main_Part => (Style => From (Column_Style).Build,
+                                    Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Kid, [Main_Part => (Style => From (Kid_Style).Build,
+                              Enabled => True), others => <>]);
+
+      Add_Child (Container, Kid);
+      Add_Child (Viewport, Container);
+
+      --  Both expectations come from measurement, before any layout has
+      --  run, so no pass can be satisfied by the previous pass's geometry.
+      Expected_Narrow := Measure_At_Width (Container, Narrow).Height;
+      Expected_Wide   := Measure_At_Width (Container, Wide).Height;
+
+      Test_Support.Assert
+         (Expected_Wide < Expected_Narrow - 0.001,
+          "a wider column measures shorter than a narrow one");
+
+      Lay_Out_At (Narrow);
+      Narrow_H := Get_Geometry (Container).Height;
+      Lay_Out_At (Wide);
+      Wide_H := Get_Geometry (Container).Height;
+      Lay_Out_At (Narrow);
+      Back_H := Get_Geometry (Container).Height;
+
+      Ada.Text_IO.Put_Line
+         ("  narrow h=" & Pixel_Type'Image (Narrow_H)
+          & " (expected" & Pixel_Type'Image (Expected_Narrow) & ")"
+          & "  wide h=" & Pixel_Type'Image (Wide_H)
+          & " (expected" & Pixel_Type'Image (Expected_Wide) & ")"
+          & "  narrow again h=" & Pixel_Type'Image (Back_H));
+
+      Test_Support.Assert
+         (abs (Narrow_H - Expected_Narrow) < 0.001,
+          "the narrow layout matches what the narrow width measures");
+      Test_Support.Assert
+         (abs (Wide_H - Expected_Wide) < 0.001,
+          "the wide layout matches what the wide width measures");
+      Test_Support.Assert
+         (abs (Back_H - Expected_Narrow) < 0.001,
+          "returning to the narrow width restores the narrow height");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  Counter-test: the floor comes from the children being unable to
+   --  shrink, not from their being present. Shrinkable children with
+   --  small minimums must leave the column free to collapse.
+   Ada.Text_IO.Put_Line ("=== shrinkable children leave a column flexible ===");
+   declare
+      Container : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Kid_1 : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Kid_2 : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+      Column_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          others         => <>);
+      Kid_Style : constant Style_Rules :=
+         (Height     => Set (Size (Px (80.0))),
+          Min_Height => Set (Size (Px (5.0))),
+          others     => <>);
+   begin
+      Set_Part_Styles
+         (Container, [Main_Part => (Style => From (Column_Style).Build,
+                                    Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Kid_1, [Main_Part => (Style => From (Kid_Style).Build,
+                                Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Kid_2, [Main_Part => (Style => From (Kid_Style).Build,
+                                Enabled => True), others => <>]);
+
+      Add_Child (Container, Kid_1);
+      Add_Child (Container, Kid_2);
+
+      Ada.Text_IO.Put_Line
+         ("  content min h="
+          & Pixel_Type'Image (Get_Content_Min_Size (Container).Height)
+          & " (two shrinkable 80px children, min-height 5px)");
+
+      Test_Support.Assert
+         (abs (Get_Content_Min_Size (Container).Height - 2.0 * 5.0) < 0.001,
+          "shrinkable children contribute exactly their own minimums");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  flex-basis: 0 is a definite demand for nothing. A child that cannot
+   --  shrink still contributes only that basis, never its preferred size.
+   Ada.Text_IO.Put_Line ("=== a zero flex basis is not promoted ===");
+   declare
+      Container : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Kid : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+      Column_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          others         => <>);
+      Kid_Style : constant Style_Rules :=
+         (Flex_Shrink => Set (0.0),
+          Flex_Basis  => Set (Basis (Px (0.0))),
+          Height      => Set (Size (Px (90.0))),
+          others      => <>);
+   begin
+      Set_Part_Styles
+         (Container, [Main_Part => (Style => From (Column_Style).Build,
+                                    Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Kid, [Main_Part => (Style => From (Kid_Style).Build,
+                              Enabled => True), others => <>]);
+      Add_Child (Container, Kid);
+
+      Ada.Text_IO.Put_Line
+         ("  content min h="
+          & Pixel_Type'Image (Get_Content_Min_Size (Container).Height)
+          & " (flex-shrink 0, flex-basis 0, height 90px)");
+
+      Test_Support.Assert
+         (abs (Get_Content_Min_Size (Container).Height) < 0.001,
+          "a zero flex basis contributes nothing, not the child's height");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  A definite basis is the size a non-shrinkable child is laid out at,
+   --  so it is exactly what the container has to reserve -- no more from
+   --  the content, no less from the child's own minimum.
+   Ada.Text_IO.Put_Line ("=== a definite flex basis is reserved exactly ===");
+   declare
+      Container : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Kid : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle
+             ("Wrapping content that would measure far taller than the "
+              & "basis it declares, were the basis ignored.");
+
+      Basis_Px : constant := 70.0;
+
+      Column_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          others         => <>);
+      --  min-height: 0 takes the automatic minimum out of the question,
+      --  so what is left is the basis and nothing else. Without it the
+      --  content-based minimum legitimately dominates a smaller basis.
+      Kid_Style : constant Style_Rules :=
+         (Flex_Shrink    => Set (0.0),
+          Flex_Basis     => Set (Basis (Px (Basis_Px))),
+          Min_Height     => Set (Size (Px (0.0))),
+          Text_Wrap_Mode => Set (TWM_Wrap),
+          Font_Size      => Set_Font (Px (20)),
+          others         => <>);
+   begin
+      Set_Part_Styles
+         (Container, [Main_Part => (Style => From (Column_Style).Build,
+                                    Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Kid, [Main_Part => (Style => From (Kid_Style).Build,
+                              Enabled => True), others => <>]);
+      Add_Child (Container, Kid);
+
+      Ada.Text_IO.Put_Line
+         ("  content min h="
+          & Pixel_Type'Image
+              (Effective_Min_Size_At_Width (Container, 200.0).Height)
+          & " (flex-shrink 0, flex-basis" & Pixel_Type'Image (Basis_Px) & ")");
+
+      Test_Support.Assert
+         (abs (Effective_Min_Size_At_Width (Container, 200.0).Height
+                 - Basis_Px) < 0.001,
+          "a definite flex basis is reserved exactly, not the content size");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  The zero-basis rule has to survive a real layout, not just the
+   --  aggregation: nothing may promote the basis back to the content.
+   Ada.Text_IO.Put_Line ("=== a zero basis survives layout ===");
+   declare
+      Viewport  : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Container : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Kid : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle
+             ("Wrapping content with a zero basis and no minimum of its "
+              & "own, which may not hold the column open.");
+
+      Column_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          others         => <>);
+      Kid_Style : constant Style_Rules :=
+         (Flex_Shrink    => Set (0.0),
+          Flex_Basis     => Set (Basis (Px (0.0))),
+          Min_Height     => Set (Size (Px (0.0))),
+          Text_Wrap_Mode => Set (TWM_Wrap),
+          Font_Size      => Set_Font (Px (20)),
+          others         => <>);
+   begin
+      Set_Part_Styles
+         (Viewport, [Main_Part => (Style => From (Column_Style).Build,
+                                   Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Container, [Main_Part => (Style => From (Column_Style).Build,
+                                    Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Kid, [Main_Part => (Style => From (Kid_Style).Build,
+                              Enabled => True), others => <>]);
+      Add_Child (Container, Kid);
+      Add_Child (Viewport, Container);
+
+      Set_Geometry
+         (Viewport, (X => 0.0, Y => 0.0, Width => 200.0, Height => 400.0));
+      Layout_Tree (Viewport);
+
+      Ada.Text_IO.Put_Line
+         ("  after layout: content min h="
+          & Pixel_Type'Image
+              (Effective_Min_Size_At_Width (Container, 200.0).Height));
+
+      Test_Support.Assert
+         (abs (Effective_Min_Size_At_Width (Container, 200.0).Height) < 0.001,
+          "a zero basis is still zero once the tree has been laid out");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  The width-aware minimum is a new primitive with a default that
+   --  forwards to the old one. A widget that overrides only the old one
+   --  must still be heard, which needs the forward to dispatch.
+   Ada.Text_IO.Put_Line ("=== the width-aware default dispatches ===");
+   declare
+      --  Text_Input overrides only the widthless primitive, so it is
+      --  reached through the default forward or not at all.
+      Input : constant Widget_Handle :=
+         Adi.Widget.Text_Input.To_Widget_Handle
+           (Adi.Widget.Text_Input.Create_Handle);
+
+      Widthless : constant Pixel_Type :=
+         Get_Content_Min_Size (Input).Width;
+      At_Width  : constant Pixel_Type :=
+         Effective_Min_Size_At_Width (Input, 300.0).Width;
+   begin
+      Ada.Text_IO.Put_Line
+         ("  widthless=" & Pixel_Type'Image (Widthless)
+          & "  through the width-aware default="
+          & Pixel_Type'Image (At_Width));
+
+      Test_Support.Assert
+         (Widthless > 0.0,
+          "the widget reports a content minimum of its own");
+      Test_Support.Assert
+         (abs (At_Width - Widthless) < 0.001,
+          "an override of the widthless primitive is reached through "
+          & "the width-aware default");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  flex-basis: content sizes from the content, so it reflows with the
+   --  width like auto does. Aggregation and layout must agree on that:
+   --  one reserving the unwrapped height while the other places the
+   --  wrapped one is how a child ends up outside its parent.
+   Ada.Text_IO.Put_Line ("=== flex-basis content reflows with the width ===");
+   declare
+      Viewport  : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Container : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Kid : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle
+             ("A paragraph long enough to take several lines once it is "
+              & "given a narrow column to wrap inside of.");
+
+      View_W : constant := 200.0;
+
+      Column_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          others         => <>);
+      --  min-height: 0 so the automatic minimum cannot stand in for the
+      --  basis: what is reserved here is the basis or nothing.
+      Kid_Style : constant Style_Rules :=
+         (Flex_Shrink    => Set (0.0),
+          Flex_Basis     => Set (Content_Basis),
+          Min_Height     => Set (Size (Px (0.0))),
+          Text_Wrap_Mode => Set (TWM_Wrap),
+          Font_Size      => Set_Font (Px (20)),
+          others         => <>);
+
+      Reserved : Pixel_Type;
+   begin
+      Set_Part_Styles
+         (Viewport, [Main_Part => (Style => From (Column_Style).Build,
+                                   Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Container, [Main_Part => (Style => From (Column_Style).Build,
+                                    Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Kid, [Main_Part => (Style => From (Kid_Style).Build,
+                              Enabled => True), others => <>]);
+      Add_Child (Container, Kid);
+      Add_Child (Viewport, Container);
+
+      Reserved := Effective_Min_Size_At_Width (Container, View_W).Height;
+
+      Set_Geometry
+         (Viewport, (X => 0.0, Y => 0.0, Width => View_W, Height => 40.0));
+      Layout_Tree (Viewport);
+
+      Ada.Text_IO.Put_Line
+         ("  aggregation reserved" & Pixel_Type'Image (Reserved)
+          & ", layout placed"
+          & Pixel_Type'Image (Get_Geometry (Kid).Height));
+
+      Test_Support.Assert
+         (abs (Reserved - Get_Geometry (Kid).Height) < 0.001,
+          "flex-basis content reserves what layout places");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  A hidden or absolute sibling is not on the line, so the child that
+   --  is left is a lone row child and its width follows from the box's.
+   Ada.Text_IO.Put_Line ("=== out-of-flow siblings do not make a row ===");
+   declare
+      Row : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Only : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle
+             ("Text that wraps to more than one line inside this row.");
+      Hidden : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Floating : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+      Row_W : constant := 200.0;
+
+      Row_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Row),
+          others         => <>);
+      Only_Style : constant Style_Rules :=
+         (Flex_Grow      => Set (1.0),
+          Text_Wrap_Mode => Set (TWM_Wrap),
+          Font_Size      => Set_Font (Px (20)),
+          others         => <>);
+      Hidden_Style : constant Style_Rules :=
+         (Display => Set (Display_None), others => <>);
+      Floating_Style : constant Style_Rules :=
+         (Position => Set (Absolute), others => <>);
+   begin
+      Set_Part_Styles
+         (Row, [Main_Part => (Style => From (Row_Style).Build,
+                              Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Only, [Main_Part => (Style => From (Only_Style).Build,
+                               Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Hidden, [Main_Part => (Style => From (Hidden_Style).Build,
+                                 Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Floating, [Main_Part => (Style => From (Floating_Style).Build,
+                                   Enabled => True), others => <>]);
+
+      Add_Child (Row, Only);
+      Add_Child (Row, Hidden);
+      Add_Child (Row, Floating);
+
+      Ada.Text_IO.Put_Line
+         ("  row min at width" & Pixel_Type'Image
+             (Effective_Min_Size_At_Width (Row, Row_W).Height)
+          & ", child wrapped" & Pixel_Type'Image
+             (Measure_At_Width (Only, Row_W).Height)
+          & ", child unwrapped" & Pixel_Type'Image
+             (Get_Content_Min_Size (Only).Height));
+
+      --  Aggregation is the path that used to count stored children
+      --  rather than in-flow ones, hand back Unknown, and fall through
+      --  to the unwrapped minimum.
+      Test_Support.Assert
+         (abs (Effective_Min_Size_At_Width (Row, Row_W).Height
+                 - Measure_At_Width (Only, Row_W).Height) < 0.001,
+          "a row with one in-flow child aggregates at the real width");
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  A row of several children shares its line by the distribution, so
+   --  measuring one means running it. Answering from the unconstrained
+   --  preference instead reports a single line per child, and the cards
+   --  are then built too short for the text they hold.
+   Ada.Text_IO.Put_Line ("=== a multi-child row measures at real widths ===");
+   declare
+      Row : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Card_A : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Card_B : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Body_A : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle
+             ("A line of text long enough to wrap once the card holding "
+              & "it has been given half of the row.");
+      Body_B : constant Widget_Handle :=
+         +Adi.Widget.Label.Create_Handle
+             ("Another passage, also long enough that it cannot sit on a "
+              & "single line inside its own card.");
+
+      Row_W : constant := 400.0;
+
+      Row_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Row),
+          Gap            => Set (Gap (Px (10.0))),
+          others         => <>);
+      Card_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          Flex_Grow      => Set (1.0),
+          others         => <>);
+      Body_Style : constant Style_Rules :=
+         (Text_Wrap_Mode => Set (TWM_Wrap),
+          Font_Size      => Set_Font (Px (20)),
+          others         => <>);
+
+      Measured : Pixel_Type;
+   begin
+      Set_Part_Styles
+         (Row, [Main_Part => (Style => From (Row_Style).Build,
+                              Enabled => True), others => <>]);
+      for C of Widget_Pair'[Card_A, Card_B] loop
+         Set_Part_Styles
+            (C, [Main_Part => (Style => From (Card_Style).Build,
+                               Enabled => True), others => <>]);
+      end loop;
+      for L of Widget_Pair'[Body_A, Body_B] loop
+         Set_Part_Styles
+            (L, [Main_Part => (Style => From (Body_Style).Build,
+                               Enabled => True), others => <>]);
+      end loop;
+
+      Add_Child (Card_A, Body_A);
+      Add_Child (Card_B, Body_B);
+      Add_Child (Row, Card_A);
+      Add_Child (Row, Card_B);
+
+      Measured := Measure_At_Width (Row, Row_W).Height;
+
+      --  Measurement is a query: asking must leave no geometry behind.
+      Test_Support.Assert
+         ((for all H of Widget_Pair'[Card_A, Card_B, Body_A, Body_B] =>
+             Get_Geometry (H).Width = 0.0
+             and then Get_Geometry (H).Height = 0.0),
+          "measuring a row leaves its children's geometry alone");
+
+      Set_Geometry
+         (Row, (X => 0.0, Y => 0.0, Width => Row_W, Height => Measured));
+      Layout_Tree (Row);
+
+      Ada.Text_IO.Put_Line
+         ("  measured" & Pixel_Type'Image (Measured)
+          & ", laid out" & Pixel_Type'Image (Get_Geometry (Row).Height)
+          & "; card A h=" & Pixel_Type'Image (Get_Geometry (Card_A).Height)
+          & " body A bottom="
+          & Pixel_Type'Image (Get_Geometry (Body_A).Y
+                              + Get_Geometry (Body_A).Height));
+
+      Test_Support.Assert
+         (abs (Measured - Get_Geometry (Row).Height) < 0.001,
+          "a row measures the height it is then laid out at");
+
+      declare
+         A  : constant Rectangle := Get_Geometry (Card_A);
+         B  : constant Rectangle := Get_Geometry (Card_B);
+         BA : constant Rectangle := Get_Geometry (Body_A);
+         BB : constant Rectangle := Get_Geometry (Body_B);
+      begin
+         Test_Support.Assert
+            (BA.Y + BA.Height <= A.Y + A.Height + 0.001,
+             "the first card contains its wrapped text");
+         Test_Support.Assert
+            (BB.Y + BB.Height <= B.Y + B.Height + 0.001,
+             "the second card contains its wrapped text");
+      end;
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  A declared width is the item's basis on the main axis, not its
+   --  final width: it still shrinks when the line is too narrow, and a
+   --  lone item still grows past it. Measuring at the declared width
+   --  would report the wrong column to wrap text inside.
+   Ada.Text_IO.Put_Line ("=== declared widths are a basis, not the answer ===");
+   declare
+      Narrow_Row : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Wide_A : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Wide_B : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+      Grow_Row : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Only : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+      Row_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Row),
+          others         => <>);
+      Two_Hundred : constant Style_Rules :=
+         (Width => Set (Size (Px (200.0))), others => <>);
+      Hundred_Growing : constant Style_Rules :=
+         (Width     => Set (Size (Px (100.0))),
+          Flex_Grow => Set (1.0),
+          others    => <>);
+   begin
+      Set_Part_Styles
+         (Narrow_Row, [Main_Part => (Style => From (Row_Style).Build,
+                                     Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Wide_A, [Main_Part => (Style => From (Two_Hundred).Build,
+                                 Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Wide_B, [Main_Part => (Style => From (Two_Hundred).Build,
+                                 Enabled => True), others => <>]);
+      Add_Child (Narrow_Row, Wide_A);
+      Add_Child (Narrow_Row, Wide_B);
+
+      Set_Part_Styles
+         (Grow_Row, [Main_Part => (Style => From (Row_Style).Build,
+                                   Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Only, [Main_Part => (Style => From (Hundred_Growing).Build,
+                               Enabled => True), others => <>]);
+      Add_Child (Grow_Row, Only);
+
+      declare
+         Shrunk : constant Pixel_Array :=
+            Flex_Row_Child_Widths (Resolve_Handle (Narrow_Row).all, 300.0);
+         Grown  : constant Pixel_Array :=
+            Flex_Row_Child_Widths (Resolve_Handle (Grow_Row).all, 300.0);
+      begin
+         Ada.Text_IO.Put_Line
+            ("  two 200px in 300px ->" & Pixel_Type'Image (Shrunk (1))
+             & Pixel_Type'Image (Shrunk (2))
+             & "; one growing 100px in 300px ->"
+             & Pixel_Type'Image (Grown (1)));
+
+         --  Equal bases shrink equally: 150 each, not any pair that
+         --  happens to add up to the line.
+         Test_Support.Assert
+            (abs (Shrunk (1) - 150.0) < 0.001
+               and then abs (Shrunk (2) - 150.0) < 0.001,
+             "two equal declared widths shrink to half the line each");
+         Test_Support.Assert
+            (abs (Grown (1) - 300.0) < 0.001,
+             "a lone growing child passes its declared width");
+      end;
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  auto lets a declared main size stand in for the content;
+   --  content ignores it. Accepting both and treating them alike would
+   --  make the difference silently unavailable.
+   Ada.Text_IO.Put_Line ("=== flex-basis content ignores a declared size ===");
+   declare
+      Column : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Auto_Kid : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Content_Kid : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Inner_A : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Inner_C : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+      Declared_H : constant := 200.0;
+      Content_H  : constant := 40.0;
+
+      Column_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          others         => <>);
+      Inner_Style : constant Style_Rules :=
+         (Height => Set (Size (Px (Content_H))), others => <>);
+      Auto_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          Height         => Set (Size (Px (Declared_H))),
+          Flex_Basis     => Set (Auto_Basis),
+          others         => <>);
+      Content_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          Height         => Set (Size (Px (Declared_H))),
+          Flex_Basis     => Set (Content_Basis),
+          others         => <>);
+   begin
+      Set_Part_Styles
+         (Column, [Main_Part => (Style => From (Column_Style).Build,
+                                 Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Auto_Kid, [Main_Part => (Style => From (Auto_Style).Build,
+                                   Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Content_Kid, [Main_Part => (Style => From (Content_Style).Build,
+                                      Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Inner_A, [Main_Part => (Style => From (Inner_Style).Build,
+                                  Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Inner_C, [Main_Part => (Style => From (Inner_Style).Build,
+                                  Enabled => True), others => <>]);
+      Add_Child (Auto_Kid, Inner_A);
+      Add_Child (Content_Kid, Inner_C);
+
+      declare
+         Auto_Base : constant Pixel_Type :=
+            Resolved_Flex_Base
+              (Child          => Resolve_Handle (Auto_Kid).all,
+               Direction      => Adi.CSS_Styles.Column,
+               Assigned_Width => 100.0,
+               Container_Main => 0.0);
+         Content_Base : constant Pixel_Type :=
+            Resolved_Flex_Base
+              (Child          => Resolve_Handle (Content_Kid).all,
+               Direction      => Adi.CSS_Styles.Column,
+               Assigned_Width => 100.0,
+               Container_Main => 0.0);
+      begin
+         Ada.Text_IO.Put_Line
+            ("  auto base" & Pixel_Type'Image (Auto_Base)
+             & " (declared" & Pixel_Type'Image (Declared_H) & ")"
+             & ", content base" & Pixel_Type'Image (Content_Base)
+             & " (content" & Pixel_Type'Image (Content_H) & ")");
+
+         Test_Support.Assert
+            (abs (Auto_Base - Declared_H) < 0.001,
+             "an auto basis takes the declared height");
+         Test_Support.Assert
+            (abs (Content_Base - Content_H) < 0.001,
+             "a content basis ignores the declared height");
+      end;
+   end;
+
+   Ada.Text_IO.New_Line;
+
    --  Freezing one flexible track shrinks the pool for the rest, which
    --  can push another below its own floor, and so on. Three 1fr tracks
    --  in 300px with floors 150 / 90 / 0 must settle at 150 / 90 / 60:
@@ -1729,14 +2514,15 @@ begin
 
       Ada.Text_IO.Put_Line
          ("  preferred h=" & Pixel_Type'Image (Get_Preferred_Size (L).Height)
-          & "  content min h="
-          & Pixel_Type'Image (Get_Content_Min_Size (L).Height));
+          & "  content min h at 160="
+          & Pixel_Type'Image
+              (Effective_Min_Size_At_Width (L, 160.0).Height));
 
       --  Both paths lay the text out in the same column, so the minimum
-      --  height cannot be shorter than the preferred one here: the label
-      --  already has its final width.
+      --  height cannot be shorter than the preferred one at that width.
+      --  Asked explicitly: the widthless form has no column to wrap in.
       Test_Support.Assert
-         (Get_Content_Min_Size (L).Height
+         (Effective_Min_Size_At_Width (L, 160.0).Height
             >= Get_Preferred_Size (L).Height - 0.001,
           "content minimum wraps in the same column as preferred sizing");
 

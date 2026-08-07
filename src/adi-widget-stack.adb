@@ -236,10 +236,21 @@ package body Adi.Widget.Stack is
    end Warn_Unsupported_Stack_Scrolling;
 
    function Aggregate_Page_Minimums
-     (W : Stack_Widget; Content_Min : Boolean) return Size_2D
+     (W              : Stack_Widget;
+      Content_Min    : Boolean;
+      Assigned_Width : Pixel_Type := Unknown_Assigned_Width) return Size_2D
    is
       Style  : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Main_Part);
+      --  Pages are stacked, so each one spans the stack's content width.
+      Page_Width : constant Pixel_Type :=
+        (if Assigned_Width = Unknown_Assigned_Width
+         then Unknown_Assigned_Width
+         else Pixel_Type'Max
+                (0.0,
+                 Content_Box
+                   ((X => 0.0, Y => 0.0,
+                     Width => Assigned_Width, Height => 0.0), Style).Width));
       Result : Size_2D := (0.0, 0.0);
    begin
       for Child of W.Children loop
@@ -247,8 +258,10 @@ package body Adi.Widget.Stack is
             declare
                --  Same cap-and-floor rule Box applies to its children.
                Min : constant Size_2D :=
-                 (if Content_Min then Effective_Min_Size (Child.all)
-                  else Get_Min_Size (Child.all));
+                 (if not Content_Min then Get_Min_Size (Child.all)
+                  elsif Page_Width = Unknown_Assigned_Width
+                    then Effective_Min_Size (Child.all)
+                  else Effective_Min_Size_At_Width (Child.all, Page_Width));
             begin
                Result.Width := Pixel_Type'Max (Result.Width, Min.Width);
                Result.Height := Pixel_Type'Max (Result.Height, Min.Height);
@@ -286,6 +299,14 @@ package body Adi.Widget.Stack is
    begin
       return Aggregate_Page_Minimums (W, Content_Min => True);
    end Get_Content_Min_Size;
+
+   overriding function Get_Content_Min_Size_At_Width
+     (W : Stack_Widget; Assigned_Width : Pixel_Type) return Size_2D
+   is
+   begin
+      return Aggregate_Page_Minimums
+        (W, Content_Min => True, Assigned_Width => Assigned_Width);
+   end Get_Content_Min_Size_At_Width;
 
    ---------------------------------------------------------------------------
    --  Build_Items

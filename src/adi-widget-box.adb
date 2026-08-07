@@ -188,15 +188,68 @@ package body Adi.Widget.Box is
       return Cell_Width;
    end Grid_Child_Width;
 
-   --  How tall this box is at a given outer width.
+   --  Children that take part in this box's own layout: visible, and in
+   --  flow. A hidden or absolutely positioned child is not on the line,
+   --  so it neither takes width from the others nor turns a lone child
+   --  into a row that has to be distributed to be known.
+   function In_Flow_Count (W : Box_Widget) return Natural is
+      Count : Natural := 0;
+   begin
+      for Child of W.Children loop
+         if Child_Participates (Child)
+           and then Get_Resolved_Part_Style (Child.all, Main_Part).Position
+                      /= Absolute
+         then
+            Count := Count + 1;
+         end if;
+      end loop;
+      return Count;
+   end In_Flow_Count;
+
+   --  The width one child is laid out at, given the box's content width.
+   --  A row of several children shares its line by the flex distribution,
+   --  which the caller runs once through Flex_Row_Child_Widths and passes
+   --  back in as Row_Width -- the real algorithm rather than a second
+   --  implementation of it that could disagree.
    --
-   --  Answered exactly for the two shapes where the children's widths
-   --  follow from the box's own without running the flex algorithm: a
-   --  column, where each child spans the content width, and a row with a
-   --  single child. A row with several children needs the distribution
-   --  itself to know each width, and guessing it here would be a second
-   --  implementation of flex that could disagree with the real one, so
-   --  those fall back to the unconstrained preference.
+   --  Measurement and minimum aggregation both come through here, so a
+   --  child is never measured at a width it will not be laid out at.
+   function Child_Layout_Width
+     (W           : Box_Widget;
+      Child       : Widget'Class;
+      Inner_Width : Pixel_Type;
+      Row_Width   : Pixel_Type := Unknown_Assigned_Width) return Pixel_Type
+   is
+      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Child_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (Child, Main_Part);
+      Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
+      Room : constant Pixel_Type :=
+        Pixel_Type'Max (0.0, Inner_Width - Margin.Left - Margin.Right);
+   begin
+      if Inner_Width = Unknown_Assigned_Width then
+         return Unknown_Assigned_Width;
+      elsif Is_Row_Direction (Style.Flex_Direction) then
+         --  On the main axis the distribution has the last word, even
+         --  over a declared width: that width is the item's basis, and
+         --  it still grows or shrinks from there.
+         return Row_Width;
+      elsif Child_Style.Width.Kind = Fixed then
+         return Size_To_Px (Child_Style.Width, Inner_Width);
+      else
+         --  Column: stretch is the default, so a child without a width
+         --  of its own spans the line.
+         if Child_Style.Align_Self = Adi.CSS_Styles.Stretch
+           or else (Child_Style.Align_Self = Auto
+                    and then Style.Align_Items = Adi.CSS_Styles.Stretch)
+         then
+            return Room;
+         end if;
+         return Pixel_Type'Min (Room, Get_Preferred_Size (Child).Width);
+      end if;
+   end Child_Layout_Width;
+
+   --  How tall this box is at a given outer width.
    overriding function Measure_Content_At_Width
      (W : Box_Widget; Assigned_Width : Pixel_Type) return Size_2D
    is
@@ -212,35 +265,15 @@ package body Adi.Widget.Box is
       Count : Natural := 0;
       Height : Pixel_Type := 0.0;
 
-      --  The width a child ends up with, given the box's content width.
+      Row_Widths : constant Pixel_Array :=
+        Flex_Row_Child_Widths (W, Content_W);
+      Row_Index : Natural := 0;
+
       function Child_Width (Child : Widget'Class) return Pixel_Type is
-         Child_Style : constant Resolved_Style :=
-           Get_Resolved_Part_Style (Child, Main_Part);
-         Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
-         Room : constant Pixel_Type :=
-           Pixel_Type'Max (0.0, Content_W - Margin.Left - Margin.Right);
-      begin
-         if Child_Style.Width.Kind = Fixed then
-            return Size_To_Px (Child_Style.Width, Content_W);
-         elsif Is_Row_Direction (Style.Flex_Direction) then
-            --  Single child in a row: it grows into the line or keeps
-            --  the width it asks for, whichever the flex factors say.
-            if Child_Style.Flex_Grow > 0.0 then
-               return Room;
-            end if;
-            return Pixel_Type'Min (Room, Get_Preferred_Size (Child).Width);
-         else
-            --  Column: stretch is the default, so a child without a
-            --  width of its own spans the line.
-            if Child_Style.Align_Self = Adi.CSS_Styles.Stretch
-              or else (Child_Style.Align_Self = Auto
-                       and then Style.Align_Items = Adi.CSS_Styles.Stretch)
-            then
-               return Room;
-            end if;
-            return Pixel_Type'Min (Room, Get_Preferred_Size (Child).Width);
-         end if;
-      end Child_Width;
+        (Child_Layout_Width
+           (W, Child, Content_W,
+            (if Row_Index in Row_Widths'Range then Row_Widths (Row_Index)
+             else Unknown_Assigned_Width)));
    begin
       if Content_W <= 0.0
         or else (Style.Display /= Flex and then Style.Display /= Inline_Flex)
@@ -248,18 +281,9 @@ package body Adi.Widget.Box is
          return Get_Preferred_Size (W);
       end if;
 
-      for Child of W.Children loop
-         if Child_Participates (Child)
-           and then Get_Resolved_Part_Style (Child.all, Main_Part).Position
-                      /= Absolute
-         then
-            Count := Count + 1;
-         end if;
-      end loop;
+      Count := In_Flow_Count (W);
 
-      if Count = 0
-        or else (Is_Row_Direction (Style.Flex_Direction) and then Count > 1)
-      then
+      if Count = 0 then
          return Get_Preferred_Size (W);
       end if;
 
@@ -270,6 +294,7 @@ package body Adi.Widget.Box is
                  Get_Resolved_Part_Style (Child.all, Main_Part);
             begin
                if Child_Style.Position /= Absolute then
+                  Row_Index := Row_Index + 1;
                   declare
                      Margin : constant Edge_Pixels :=
                        Get_Margin_Px (Child_Style);
@@ -592,10 +617,36 @@ package body Adi.Widget.Box is
       return Result;
    end Grid_Min_Contribution;
 
+   --  Passed when the caller has no width to offer, which keeps the
+   --  aggregation width-unaware rather than inventing a width for it.
+   Unknown_Width : constant Pixel_Type := Unknown_Assigned_Width;
+
    function Aggregate_Child_Minimums
-     (W : Box_Widget; Content_Min : Boolean) return Size_2D
+     (W              : Box_Widget;
+      Content_Min    : Boolean;
+      Assigned_Width : Pixel_Type := Unknown_Width) return Size_2D
    is
       Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      --  The box's own content width, once padding and border are taken
+      --  off the width it was given.
+      Inner_Width : constant Pixel_Type :=
+        (if Assigned_Width = Unknown_Width then Unknown_Width
+         else Pixel_Type'Max
+                (0.0,
+                 Content_Box
+                   ((X => 0.0, Y => 0.0,
+                     Width => Assigned_Width, Height => 0.0), Style).Width));
+
+      Row_Widths : constant Pixel_Array :=
+        (if Inner_Width = Unknown_Assigned_Width then (1 .. 0 => 0.0)
+         else Flex_Row_Child_Widths (W, Inner_Width));
+      Row_Index : Natural := 0;
+
+      function Child_Measure_Width (Child : Widget'Class) return Pixel_Type is
+        (Child_Layout_Width
+           (W, Child, Inner_Width,
+            (if Row_Index in Row_Widths'Range then Row_Widths (Row_Index)
+             else Unknown_Assigned_Width)));
       Gap : constant Pixel_Type := Get_Main_Gap (Style.Gap, Style.Flex_Direction);
       Row_Gap : constant Pixel_Type := Get_Row_Gap (Style.Gap);
       Col_Gap : constant Pixel_Type := Get_Column_Gap (Style.Gap);
@@ -612,13 +663,35 @@ package body Adi.Widget.Box is
                     Get_Resolved_Part_Style (Child.all, Main_Part);
                begin
                   if Child_Style.Position /= Absolute then
+                     Row_Index := Row_Index + 1;
                      declare
                         Margin : constant Edge_Pixels :=
                           Get_Margin_Px (Child_Style);
+                        Child_W : constant Pixel_Type :=
+                          Child_Measure_Width (Child.all);
                         Min : constant Size_2D :=
+                          (if not Content_Min
+                             then Get_Min_Size (Child.all)
+                           elsif Child_W = Unknown_Width
+                             then Effective_Child_Min (Child.all)
+                           else Effective_Min_Size_At_Width
+                                  (Child.all, Child_W));
+                        --  A child that cannot shrink is laid out at its
+                        --  flex base, so the box needs room for that base
+                        --  even though the child would allow less. Zero is
+                        --  a basis like any other and stays zero.
+                        Base_Floor : constant Pixel_Type :=
                           (if Content_Min
-                           then Effective_Child_Min (Child.all)
-                           else Get_Min_Size (Child.all));
+                             and then Float (Child_Style.Flex_Shrink) = 0.0
+                           then Resolved_Flex_Base
+                                  (Child          => Child.all,
+                                   Direction      => Style.Flex_Direction,
+                                   Assigned_Width =>
+                                     (if Child_W = Unknown_Width
+                                      then Unknown_Assigned_Width
+                                      else Child_W),
+                                   Container_Main => 0.0)
+                           else 0.0);
                         Main_Margins : constant Pixel_Type :=
                           (if Is_Row_Direction (Style.Flex_Direction)
                            then Margin.Left + Margin.Right
@@ -648,7 +721,9 @@ package body Adi.Widget.Box is
                            else 0.0);
                      begin
                         Main_Sum := Main_Sum
-                          + Get_Main_Size (Min, Style.Flex_Direction)
+                          + Pixel_Type'Max
+                              (Get_Main_Size (Min, Style.Flex_Direction),
+                               Base_Floor)
                           + Main_Margins;
                         Cross_Max :=
                           Pixel_Type'Max
@@ -912,6 +987,13 @@ package body Adi.Widget.Box is
       --  children need; no CSS floor here, that is Get_Min_Size's job.
       return Aggregate_Child_Minimums (W, Content_Min => True);
    end Get_Content_Min_Size;
+
+   overriding function Get_Content_Min_Size_At_Width
+     (W : Box_Widget; Assigned_Width : Pixel_Type) return Size_2D is
+   begin
+      return Aggregate_Child_Minimums
+        (W, Content_Min => True, Assigned_Width => Assigned_Width);
+   end Get_Content_Min_Size_At_Width;
 
 overriding procedure Layout (W : in out Box_Widget) is
       Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);

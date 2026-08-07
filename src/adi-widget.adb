@@ -6863,6 +6863,301 @@ package body Adi.Widget is
       return Effective_Min_Size (Ptr.all);
    end Effective_Min_Size;
 
+   function Get_Content_Min_Size_At_Width
+     (W : Widget; Assigned_Width : Pixel_Type) return Size_2D
+   is
+      pragma Unreferenced (Assigned_Width);
+   begin
+      --  Class-wide, or a widget that overrides only the widthless
+      --  primitive would be bypassed by its own default.
+      return Get_Content_Min_Size (Widget'Class (W));
+   end Get_Content_Min_Size_At_Width;
+
+   --  One construction of a flex item's inputs, used by the layout that
+   --  places the children and by the measurement that only needs to know
+   --  how wide each of them ends up. Assigned_Width, when known, makes
+   --  the base and the automatic minimum reflect the width the child is
+   --  actually given rather than its unconstrained preference.
+   function Make_Flex_Child_Info
+     (Child          : Widget'Class;
+      Container      : Resolved_Style;
+      Content        : Rectangle;
+      Assigned_Width : Pixel_Type := Unknown_Assigned_Width)
+      return Flex_Child_Info
+   is
+      Child_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (Child, Main_Part);
+      Child_Pref : constant Size_2D :=
+        (if Assigned_Width = Unknown_Assigned_Width
+         then Get_Preferred_Size (Child)
+         else Measure_At_Width (Child, Assigned_Width));
+      Child_Min : constant Size_2D := Get_Min_Size (Child);
+      Flex_Basis_Px : Pixel_Type := 0.0;
+      Info : Flex_Child_Info;
+   begin
+      --  Flex properties
+      Info.Flex_Grow := Float(Child_Style.Flex_Grow);
+      Info.Flex_Shrink := Float(Child_Style.Flex_Shrink);
+
+      --  No width assigned yet, so the base comes from
+      --  the unconstrained preference; the pass below
+      --  asks again once a width is known.
+      Flex_Basis_Px := Resolved_Flex_Base
+        (Child          => Child,
+         Direction      => Container.Flex_Direction,
+         Assigned_Width => Unknown_Assigned_Width,
+         Container_Main => Get_Main_Size
+           ((Content.Width, Content.Height),
+            Container.Flex_Direction));
+      Info.Flex_Basis := Flex_Basis_Px;
+      --  Auto and content both derive the basis from the
+      --  child, so only a declared one is definite.
+      Info.Basis_Is_Definite :=
+        Child_Style.Flex_Basis.Kind = Fixed;
+
+      --  Align self
+      Info.Align_Self := Child_Style.Align_Self;
+
+      Info.Min_Cross := Get_Cross_Size
+        (Child_Min, Container.Flex_Direction);
+
+      --  Automatic minimum size (CSS Flexbox 4.5), main
+      --  axis only, through the same calculation grid
+      --  and the containers use. See
+      --  docs/layout_minimums.md.
+      declare
+         Is_Row : constant Boolean :=
+           Container.Flex_Direction in Row | Row_Reverse;
+      begin
+         Info.Min_Main := Axis_Minimum
+           (Minimum     =>
+              (if Is_Row then Child_Style.Min_Width
+               else Child_Style.Min_Height),
+            Declared    =>
+              (if Is_Row then Child_Style.Width
+               else Child_Style.Height),
+            Overflow    =>
+              (if Is_Row then Child_Style.Overflow_X
+               else Child_Style.Overflow_Y),
+            Demand      =>
+              Get_Main_Size
+                (Child_Min, Container.Flex_Direction),
+            Content_Min =>
+              Get_Main_Size
+                (Get_Content_Min_Size_At_Width (Child, Assigned_Width),
+                 Container.Flex_Direction),
+            Container   =>
+              Get_Main_Size
+                ((Content.Width, Content.Height),
+                 Container.Flex_Direction));
+      end;
+
+      --  A child that cannot shrink is laid out at its
+      --  flex base, so that base is its floor. Not the
+      --  preferred size: flex-basis: 0 is a definite
+      --  demand for nothing and must stay nothing.
+      --
+      --  The overflow that matters is the child's own:
+      --  an item that scrolls shows its content a piece
+      --  at a time and needs room for none of it. The
+      --  container's overflow says nothing about that,
+      --  and reading it there let a scroll viewport
+      --  squeeze children that could not shrink.
+      if Main_Axis_Overflow
+           (Child_Style, Container.Flex_Direction)
+           = Overflow_Visible
+        and then Float (Child_Style.Flex_Shrink) = 0.0
+      then
+         Info.Min_Main :=
+           Pixel_Type'Max (Info.Min_Main, Info.Flex_Basis);
+      end if;
+
+      --  Max constraints
+      declare
+         Max_W : Pixel_Type := Pixel_Type'Last;
+         Max_H : Pixel_Type := Pixel_Type'Last;
+      begin
+         case Child_Style.Max_Width.Kind is
+            when Fixed =>
+               Max_W := Size_To_Px
+                 (Child_Style.Max_Width, Content.Width);
+            when others => null;
+         end case;
+         case Child_Style.Max_Height.Kind is
+            when Fixed =>
+               Max_H := Size_To_Px
+                 (Child_Style.Max_Height, Content.Height);
+            when others => null;
+         end case;
+         Info.Max_Main := Get_Main_Size
+           ((Max_W, Max_H), Container.Flex_Direction);
+         Info.Max_Cross := Get_Cross_Size
+           ((Max_W, Max_H), Container.Flex_Direction);
+      end;
+
+      --  Content sizes
+      Info.Content_Main := Get_Main_Size
+        (Child_Pref, Container.Flex_Direction);
+      Info.Content_Cross := Get_Cross_Size
+        (Child_Pref, Container.Flex_Direction);
+
+      --  Whether that cross size was declared rather
+      --  than measured decides if stretch may replace
+      --  it. A percentage counts as declared, but the
+      --  preferred size cannot resolve it -- there was
+      --  no container to resolve against -- so resolve
+      --  it here against the line.
+      declare
+         Declared_Cross : constant Size_Value :=
+           (if Is_Row_Direction (Container.Flex_Direction)
+            then Child_Style.Height
+            else Child_Style.Width);
+         Container_Cross : constant Pixel_Type :=
+           Get_Cross_Size
+             ((Content.Width, Content.Height),
+              Container.Flex_Direction);
+      begin
+         Info.Cross_Is_Definite :=
+           Declared_Cross.Kind = Fixed;
+         if Info.Cross_Is_Definite
+           and then Declared_Cross.Size.Unit = Pct
+         then
+            Info.Content_Cross :=
+              Size_To_Px (Declared_Cross, Container_Cross);
+         end if;
+      end;
+
+      --  Margins
+      Info.Margin := Get_Margin_Px(Child_Style);
+      return Info;
+   end Make_Flex_Child_Info;
+
+   function Flex_Row_Child_Widths
+     (W : Widget'Class; Content_Width : Pixel_Type) return Pixel_Array
+   is
+      Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Main_Part);
+      Content : constant Rectangle :=
+        (X => 0.0, Y => 0.0, Width => Content_Width, Height => 0.0);
+
+      --  Same rule the containers use to decide who is on the line.
+      function Counts (Child : Widget_Access) return Boolean is
+        (Child /= null
+         and then Has_Flag (Child.all, Visible)
+         and then Get_Resolved_Part_Style (Child.all, Main_Part).Display
+                    /= Display_None
+         and then Get_Resolved_Part_Style (Child.all, Main_Part).Position
+                    /= Absolute);
+
+      N : Natural := 0;
+   begin
+      if (Style.Display /= Flex and then Style.Display /= Inline_Flex)
+        or else not Is_Row_Direction (Style.Flex_Direction)
+        or else Content_Width <= 0.0
+      then
+         return (1 .. 0 => 0.0);
+      end if;
+
+      for Child of W.Children loop
+         if Counts (Child) then
+            N := N + 1;
+         end if;
+      end loop;
+
+      if N = 0 then
+         return (1 .. 0 => 0.0);
+      end if;
+
+      declare
+         Infos  : Flex_Child_Info_Array (1 .. N);
+         Widths : Pixel_Array (1 .. N);
+         I      : Natural := 0;
+      begin
+         for Child of W.Children loop
+            if Counts (Child) then
+               I := I + 1;
+               Infos (I) := Make_Flex_Child_Info
+                 (Child     => Child.all,
+                  Container => Style,
+                  Content   => Content);
+            end if;
+         end loop;
+
+         Distribute_Main_Sizes
+           (Container_Main => Content_Width,
+            Main_Gap       =>
+              Get_Main_Gap (Style.Gap, Style.Flex_Direction),
+            Direction      => Style.Flex_Direction,
+            Children       => Infos);
+
+         for K in Widths'Range loop
+            Widths (K) := Infos (K).Computed_Main;
+         end loop;
+         return Widths;
+      end;
+   end Flex_Row_Child_Widths;
+
+   function Resolved_Flex_Base
+     (Child          : Widget'Class;
+      Direction      : Flex_Direction_Value;
+      Assigned_Width : Pixel_Type;
+      Container_Main : Pixel_Type) return Pixel_Type
+   is
+      Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (Child, Main_Part);
+   begin
+      case Style.Flex_Basis.Kind is
+         when Fixed =>
+            return Length_To_Px (Style.Flex_Basis.Size, Container_Main);
+         when CSS_Styles.Content =>
+            --  Sized from the content and nothing else. That is what
+            --  separates it from auto, which lets a declared width or
+            --  height stand in for the content first. Measure_Content
+            --  and its width-aware form both leave CSS sizing off.
+            if Assigned_Width = Unknown_Assigned_Width then
+               return Get_Main_Size (Measure_Content (Child), Direction);
+            end if;
+            return Get_Main_Size
+              (Measure_Content_At_Width (Child, Assigned_Width), Direction);
+         when Auto =>
+            --  Defers to a declared main size, which is exactly what
+            --  Measure_At_Width and Get_Preferred_Size apply on top.
+            if Assigned_Width = Unknown_Assigned_Width then
+               return Get_Main_Size (Get_Preferred_Size (Child), Direction);
+            end if;
+            return Get_Main_Size
+              (Measure_At_Width (Child, Assigned_Width), Direction);
+      end case;
+   end Resolved_Flex_Base;
+
+   function Effective_Min_Size_At_Width
+     (W : Widget'Class; Assigned_Width : Pixel_Type) return Size_2D
+   is
+      Style    : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Main_Part);
+      Demanded : constant Size_2D := Get_Min_Size (W);
+      Content  : constant Size_2D :=
+        Get_Content_Min_Size_At_Width (W, Assigned_Width);
+   begin
+      return (Width  =>
+                Axis_Minimum (Style.Min_Width, Style.Width, Style.Overflow_X,
+                              Demanded.Width, Content.Width),
+              Height =>
+                Axis_Minimum (Style.Min_Height, Style.Height, Style.Overflow_Y,
+                              Demanded.Height, Content.Height));
+   end Effective_Min_Size_At_Width;
+
+   function Effective_Min_Size_At_Width
+     (H : Widget_Handle; Assigned_Width : Pixel_Type) return Size_2D
+   is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr = null then
+         return (0.0, 0.0);
+      end if;
+      return Effective_Min_Size_At_Width (Ptr.all, Assigned_Width);
+   end Effective_Min_Size_At_Width;
+
    function Measure_At_Width
      (H : Widget_Handle; Assigned_Width : Pixel_Type) return Size_2D
    is
@@ -7063,138 +7358,11 @@ package body Adi.Widget is
                         Info : Flex_Child_Info;
                         Flex_Basis_Px : Pixel_Type := 0.0;
                      begin
-                        --  Flex properties
-                        Info.Flex_Grow := Float(Child_Style.Flex_Grow);
-                        Info.Flex_Shrink := Float(Child_Style.Flex_Shrink);
-
-                        --  Flex basis
-                        case Child_Style.Flex_Basis.Kind is
-                           when Auto =>
-                              Flex_Basis_Px := Get_Main_Size
-                                (Child_Pref, Style.Flex_Direction);
-                           when CSS_Styles.Content =>
-                              Flex_Basis_Px := Get_Main_Size
-                                (Child_Min, Style.Flex_Direction);
-                           when Fixed =>
-                              Flex_Basis_Px := Length_To_Px(
-                                 Child_Style.Flex_Basis.Size,
-                                 Get_Main_Size
-                                   ((Content.Width, Content.Height),
-                                    Style.Flex_Direction));
-                        end case;
-                        Info.Flex_Basis := Flex_Basis_Px;
-                        --  Auto and content both derive the basis from the
-                        --  child, so only a declared one is definite.
-                        Info.Basis_Is_Definite :=
-                          Child_Style.Flex_Basis.Kind = Fixed;
-
-                        --  Align self
-                        Info.Align_Self := Child_Style.Align_Self;
-
-                        Info.Min_Cross := Get_Cross_Size
-                          (Child_Min, Style.Flex_Direction);
-
-                        --  Automatic minimum size (CSS Flexbox 4.5), main
-                        --  axis only, through the same calculation grid
-                        --  and the containers use. See
-                        --  docs/layout_minimums.md.
-                        declare
-                           Is_Row : constant Boolean :=
-                             Style.Flex_Direction in Row | Row_Reverse;
-                        begin
-                           Info.Min_Main := Axis_Minimum
-                             (Minimum     =>
-                                (if Is_Row then Child_Style.Min_Width
-                                 else Child_Style.Min_Height),
-                              Declared    =>
-                                (if Is_Row then Child_Style.Width
-                                 else Child_Style.Height),
-                              Overflow    =>
-                                (if Is_Row then Child_Style.Overflow_X
-                                 else Child_Style.Overflow_Y),
-                              Demand      =>
-                                Get_Main_Size
-                                  (Child_Min, Style.Flex_Direction),
-                              Content_Min =>
-                                Get_Main_Size
-                                  (Get_Content_Min_Size (Child.all),
-                                   Style.Flex_Direction),
-                              Container   =>
-                                Get_Main_Size
-                                  ((Content.Width, Content.Height),
-                                   Style.Flex_Direction));
-                        end;
-
-                        --  Non-shrinkable children keep their preferred
-                        --  main size when the container does not clip.
-                        if Main_Axis_Overflow
-                             (Style, Style.Flex_Direction) = Overflow_Visible
-                          and then Float (Child_Style.Flex_Shrink) = 0.0
-                        then
-                           Info.Min_Main := Pixel_Type'Max
-                             (Info.Min_Main,
-                              Get_Main_Size
-                                (Child_Pref, Style.Flex_Direction));
-                        end if;
-
-                        --  Max constraints
-                        declare
-                           Max_W : Pixel_Type := Pixel_Type'Last;
-                           Max_H : Pixel_Type := Pixel_Type'Last;
-                        begin
-                           case Child_Style.Max_Width.Kind is
-                              when Fixed =>
-                                 Max_W := Size_To_Px
-                                   (Child_Style.Max_Width, Content.Width);
-                              when others => null;
-                           end case;
-                           case Child_Style.Max_Height.Kind is
-                              when Fixed =>
-                                 Max_H := Size_To_Px
-                                   (Child_Style.Max_Height, Content.Height);
-                              when others => null;
-                           end case;
-                           Info.Max_Main := Get_Main_Size
-                             ((Max_W, Max_H), Style.Flex_Direction);
-                           Info.Max_Cross := Get_Cross_Size
-                             ((Max_W, Max_H), Style.Flex_Direction);
-                        end;
-
-                        --  Content sizes
-                        Info.Content_Main := Get_Main_Size
-                          (Child_Pref, Style.Flex_Direction);
-                        Info.Content_Cross := Get_Cross_Size
-                          (Child_Pref, Style.Flex_Direction);
-
-                        --  Whether that cross size was declared rather
-                        --  than measured decides if stretch may replace
-                        --  it. A percentage counts as declared, but the
-                        --  preferred size cannot resolve it -- there was
-                        --  no container to resolve against -- so resolve
-                        --  it here against the line.
-                        declare
-                           Declared_Cross : constant Size_Value :=
-                             (if Is_Row_Direction (Style.Flex_Direction)
-                              then Child_Style.Height
-                              else Child_Style.Width);
-                           Container_Cross : constant Pixel_Type :=
-                             Get_Cross_Size
-                               ((Content.Width, Content.Height),
-                                Style.Flex_Direction);
-                        begin
-                           Info.Cross_Is_Definite :=
-                             Declared_Cross.Kind = Fixed;
-                           if Info.Cross_Is_Definite
-                             and then Declared_Cross.Size.Unit = Pct
-                           then
-                              Info.Content_Cross :=
-                                Size_To_Px (Declared_Cross, Container_Cross);
-                           end if;
-                        end;
-
-                        --  Margins
-                        Info.Margin := Get_Margin_Px(Child_Style);
-
+                        Info := Make_Flex_Child_Info
+                          (Child          => Child.all,
+                           Container      => Style,
+                           Content        => Content,
+                           Assigned_Width => Unknown_Assigned_Width);
                         Children_Info(Child_Index) := Info;
                      end;
                   end if;
@@ -7245,16 +7413,51 @@ package body Adi.Widget is
                               Children_Info (I).Content_Cross := Wanted.Height;
                               Remeasured := True;
                            end if;
-                        elsif abs (Wanted.Height
+                        else
+                           if abs (Wanted.Height
                                    - Children_Info (I).Content_Main) > 0.5
-                        then
-                           --  Base size only. The automatic minimum is
-                           --  the flex pass's business: an item that
-                           --  scrolls its own content has none, and a
-                           --  floor set here would give it one.
-                           Children_Info (I).Content_Main := Wanted.Height;
-                           Children_Info (I).Flex_Basis  := Wanted.Height;
-                           Remeasured := True;
+                           then
+                              Children_Info (I).Content_Main := Wanted.Height;
+                              Children_Info (I).Flex_Basis :=
+                                Resolved_Flex_Base
+                                  (Child          => Active_Children (I).all,
+                                   Direction      => Style.Flex_Direction,
+                                   Assigned_Width => Assigned (I).Width,
+                                   Container_Main => Get_Main_Size
+                                     ((Content.Width, Content.Height),
+                                      Style.Flex_Direction));
+                              Remeasured := True;
+                           end if;
+
+                           --  The automatic minimum is width-dependent
+                           --  too, and it is wrong whether or not the base
+                           --  size moved, so it is recomputed from the
+                           --  same width every time. An item that scrolls
+                           --  its own content still has none.
+                           if Main_Axis_Overflow
+                                (Child_Style, Style.Flex_Direction)
+                                = Overflow_Visible
+                           then
+                              declare
+                                 Floor : constant Pixel_Type :=
+                                   Pixel_Type'Max
+                                     (Get_Main_Size
+                                        (Effective_Min_Size_At_Width
+                                           (Active_Children (I).all,
+                                            Assigned (I).Width),
+                                         Style.Flex_Direction),
+                                      (if Float (Child_Style.Flex_Shrink) = 0.0
+                                       then Children_Info (I).Flex_Basis
+                                       else 0.0));
+                              begin
+                                 if abs (Floor
+                                         - Children_Info (I).Min_Main) > 0.5
+                                 then
+                                    Children_Info (I).Min_Main := Floor;
+                                    Remeasured := True;
+                                 end if;
+                              end;
+                           end if;
                         end if;
                      end if;
                   end;

@@ -46,6 +46,8 @@ package Adi.Widget.Box is
      (W : Box_Widget; Assigned_Width : Pixel_Type) return Size_2D;
    overriding function Get_Min_Size (W : Box_Widget) return Size_2D;
    overriding function Get_Content_Min_Size (W : Box_Widget) return Size_2D;
+   overriding function Get_Content_Min_Size_At_Width
+     (W : Box_Widget; Assigned_Width : Pixel_Type) return Size_2D;
 
 private
 

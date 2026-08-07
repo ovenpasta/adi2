@@ -82,6 +82,8 @@ package Adi.Widget.Stack is
    overriding function Get_Min_Size (W : Stack_Widget) return Size_2D;
    overriding function Get_Content_Min_Size
      (W : Stack_Widget) return Size_2D;
+   overriding function Get_Content_Min_Size_At_Width
+     (W : Stack_Widget; Assigned_Width : Pixel_Type) return Size_2D;
    overriding procedure Build_Items (W : in out Stack_Widget);
    overriding procedure Layout (W : in out Stack_Widget);
 

@@ -360,17 +360,30 @@ Two primitives answer the two different questions:
 
 `Measure_At_Width` is the non-dispatching wrapper around the second, applying CSS sizing on top exactly as `Get_Preferred_Size` does for the first: a definite declared width or height wins over what the content measured. A percentage size is left alone — it resolves against a container this query knows nothing about.
 
+Minimums are width-dependent for the same reason, and have the same pair:
+
+- `Get_Content_Min_Size` — the widthless content minimum. Geometry-independent for the reason above: a wrapping widget with no width to measure at reports its unwrapped minimum rather than reading back the width it happened to carry, which would make every answer one pass late.
+- `Get_Content_Min_Size_At_Width (W, Assigned_Width)` — the same minimum at a known width. Dispatching, defaults to `Get_Content_Min_Size` (dispatching through `Widget'Class`, so a widget that overrides only the widthless form is still heard), overridden by `Label`, `Box` and `Stack`.
+
+`Effective_Min_Size_At_Width` is the non-dispatching wrapper, applying `min-*`, declared sizes and overflow policy exactly as `Effective_Min_Size` does for the widthless form.
+
+`Resolved_Flex_Base` answers what main-axis size an item is laid out from before it grows or shrinks: a definite `flex-basis` exactly — including `0`, a demand for nothing — and otherwise the item's content size at its assigned width. Aggregation and the flex algorithm both resolve the base through it, so a container cannot reserve room on one rule while layout places on another.
+
+`auto` and `content` differ in what they let stand in for the content: `auto` takes the item's declared `width`/`height` when it has one, `content` ignores it and measures. Both reflow with the assigned width. `Resolved_Flex_Base` reaches the first through `Measure_At_Width`/`Get_Preferred_Size`, which apply CSS sizing, and the second through `Measure_Content_At_Width`/`Measure_Content`, which do not.
+
 Wrapping itself never breaks a word: `Effective_Wrap_Width` floors the wrap width at the widest word, and the measurement, the post-flex re-measure and `Render_Text_Item` all go through it, so what layout reserves is what the renderer draws. See `docs/css_styling.md` for the policy and its limits — it approximates `overflow-wrap: normal` rather than implementing it.
 
 **Containers** ask the query after they know the width:
 
-- **Flex** computes intrinsic bases, assigns main sizes, then re-measures each child at its assigned width and re-runs if any answer changed. It updates base sizes only; the automatic minimum stays the flex pass's business, since an item that scrolls its own content has none.
+- **Flex** computes intrinsic bases, assigns main sizes, then re-measures each child at its assigned width and re-runs if any answer changed. Base sizes and automatic minimums are both updated there — the minimum is width-dependent too, and is recomputed whether or not the base moved. A declared basis is not a measurement and is left alone. An item that scrolls *its own* content still has no automatic minimum; the container's overflow says nothing about that.
+- **Box** aggregating child minimums asks each child at the width that child will be laid out at. On a row that is whatever the distribution hands it — a declared width is the item's *basis* there and still grows or shrinks from it, so two `width: 200px` items in a 300px row are measured at 150, not 200. On a column it is the declared width, or the line when the child stretches, so a `width: 100px` wrapping label in a 300px column is not measured at 300. A non-shrinkable child is floored at its resolved flex base, because that is the size it will be placed at.
 - **Grid** asks at the width the cell will actually render at — the child's own declared width when it has one, the track width otherwise (`Grid_Child_Width`), so a `width: 100px` label in a 300px cell is not measured at 300.
 
-**Implemented for**: `Label` (wrapping, icon column, padding/border), `Box`, `Stack`. Two deliberate fallbacks return the unconstrained preference instead:
+**Implemented for**: `Label` (wrapping, icon column, padding/border), `Box`, `Stack`. One deliberate fallback returns the unconstrained preference instead:
 
-- `Box` with a **multi-child row** — knowing each child's width there means running the distribution, and a second implementation of flex could disagree with the real one. Columns and single-child rows are answered exactly.
 - `Html_View` — its layout writes into the widget (cached document size, block rectangles, scroll content height), so it cannot answer without mutating state. Refactoring it to measure purely is a follow-up.
+
+A **multi-child row** is answered by running the distribution itself: `Flex_Row_Child_Widths` builds each child's `Flex_Child_Info` through the same `Make_Flex_Child_Info` the layout uses, calls `Distribute_Main_Sizes`, and reports the resulting widths. Only the main axis is resolved — cross sizing would stretch the children and contaminate an answer that was asked how wide they are — and nothing is written back, so measurement stays a query.
 
 ## Settings
 

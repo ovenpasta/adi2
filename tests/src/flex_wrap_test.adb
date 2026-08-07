@@ -123,6 +123,82 @@ begin
          "the first line ends at the container's far edge");
    end;
 
+   --  wrap-reverse swaps cross-start for cross-end, so alignment inside
+   --  a line inverts with it: flex-start goes to the bottom. Mirroring
+   --  the line positions alone leaves this looking right only while
+   --  every item on a line is the same depth.
+   Ada.Text_IO.Put_Line ("--- wrap-reverse inverts alignment in the line ---");
+   declare
+      --  One line, two depths: 50 sets the line, 20 has 30 to move in.
+      function Shallow_At (AI : Align_Items_Value;
+                           Rev : Boolean) return Pixel_Type
+      is
+         Ctx : constant Flex_Layout_Context :=
+           Context (130.0, 200.0,
+                    Wrap => (if Rev then Wrap_Reverse else Adi.CSS_Styles.Wrap),
+                    Align_Content => Adi.CSS_Styles.Flex_Start,
+                    Align_Items => AI);
+         Kids : Flex_Child_Info_Array (1 .. 2) :=
+           [Rigid (60.0, 50.0), Rigid (60.0, 20.0)];
+      begin
+         Compute_Flex_Layout (Ctx, Kids);
+         --  Where the shallow item sits inside its own line.
+         return Kids (2).Computed_Pos_Cross - Kids (1).Computed_Pos_Cross;
+      end Shallow_At;
+   begin
+      Ada.Text_IO.Put_Line
+        ("  flex-start normal" & Shallow_At (Adi.CSS_Styles.Flex_Start, False)'Image
+         & " reversed" & Shallow_At (Adi.CSS_Styles.Flex_Start, True)'Image
+         & "; flex-end normal" & Shallow_At (Adi.CSS_Styles.Flex_End, False)'Image
+         & " reversed" & Shallow_At (Adi.CSS_Styles.Flex_End, True)'Image);
+
+      Assert_Close (Shallow_At (Adi.CSS_Styles.Flex_Start, False), 0.0,
+                    "flex-start puts the shallow item at the line's top");
+      Assert_Close (Shallow_At (Adi.CSS_Styles.Flex_Start, True), 30.0,
+                    "reversed, flex-start puts it at the line's bottom");
+      Assert_Close (Shallow_At (Adi.CSS_Styles.Flex_End, False), 30.0,
+                    "flex-end puts it at the line's bottom");
+      Assert_Close (Shallow_At (Adi.CSS_Styles.Flex_End, True), 0.0,
+                    "reversed, flex-end puts it at the line's top");
+      Assert_Close (Shallow_At (Adi.CSS_Styles.Center, False),
+                    Shallow_At (Adi.CSS_Styles.Center, True),
+                    "center is unchanged by the swap");
+   end;
+
+   --  The cross margins swap with the axis, so the margin that held an
+   --  item away from the top now holds it away from the bottom.
+   Ada.Text_IO.Put_Line ("--- wrap-reverse swaps the cross margins ---");
+   declare
+      function Shallow_Offset (Rev : Boolean) return Pixel_Type is
+         Ctx : constant Flex_Layout_Context :=
+           Context (130.0, 200.0,
+                    Wrap => (if Rev then Wrap_Reverse else Adi.CSS_Styles.Wrap),
+                    Align_Content => Adi.CSS_Styles.Flex_Start,
+                    Align_Items => Adi.CSS_Styles.Flex_Start);
+         Kids : Flex_Child_Info_Array (1 .. 2) :=
+           [Rigid (60.0, 50.0), Rigid (60.0, 20.0)];
+      begin
+         --  8px above the item and nothing below it.
+         Kids (2).Margin := (Top => 8.0, others => 0.0);
+         Compute_Flex_Layout (Ctx, Kids);
+         return Kids (2).Computed_Pos_Cross - Kids (1).Computed_Pos_Cross;
+      end Shallow_Offset;
+   begin
+      Ada.Text_IO.Put_Line
+        ("  normal" & Shallow_Offset (False)'Image
+         & "  reversed" & Shallow_Offset (True)'Image);
+
+      Assert_Close (Shallow_Offset (False), 8.0,
+                    "the top margin holds the item off the line's top");
+      --  Reversed, the starting edge is the bottom and the margin that
+      --  guarded the top now sits on the far side, so the item comes to
+      --  rest flush against the bottom: 50 - 20. Leaving the margins
+      --  unswapped would hold it 8px short of that, at 22.
+      Assert_Close (Shallow_Offset (True), 30.0,
+                    "reversed, the top margin no longer guards the "
+                    & "starting edge");
+   end;
+
    --  Growing is per line: an item alone on the second line takes that
    --  whole line, not what was left over from the first.
    Ada.Text_IO.Put_Line ("--- grow is distributed per line ---");

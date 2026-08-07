@@ -1174,8 +1174,18 @@ package body Adi.Layout_Util is
          for I in Lines (L).First .. Lines (L).Last loop
             declare
                Child : Flex_Child_Info renames Children (I);
-               Before : constant Pixel_Type := Cross_Before (Child.Margin);
-               After  : constant Pixel_Type := Cross_After (Child.Margin);
+               --  wrap-reverse swaps cross-start for cross-end, so the
+               --  margin on the starting side is the bottom one and the
+               --  placement below is measured from the far edge back.
+               --  Mirroring only the line positions would leave
+               --  align-items: flex-start at the top of a reversed row.
+               Rev : constant Boolean := Context.Wrap = Wrap_Reverse;
+               Before : constant Pixel_Type :=
+                 (if Rev then Cross_After (Child.Margin)
+                  else Cross_Before (Child.Margin));
+               After  : constant Pixel_Type :=
+                 (if Rev then Cross_Before (Child.Margin)
+                  else Cross_After (Child.Margin));
                Line_Cross : constant Pixel_Type := Lines (L).Cross_Size;
                Room : constant Pixel_Type :=
                  Pixel_Type'Max (0.0, Line_Cross - Before - After);
@@ -1229,7 +1239,10 @@ package body Adi.Layout_Util is
                      Cross_Start := Before;
                end case;
 
-               Child.Computed_Pos_Cross := Lines (L).Cross_Pos + Cross_Start;
+               Child.Computed_Pos_Cross := Lines (L).Cross_Pos
+                 + (if Rev
+                    then Line_Cross - Cross_Start - Child.Computed_Cross
+                    else Cross_Start);
             end;
          end loop;
       end loop;

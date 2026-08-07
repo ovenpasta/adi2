@@ -370,6 +370,12 @@ package Demo_Flex_Styles is
       Height => Set (Size (Px (120.0))),
       others => <>);
 
+   --  Base style for class 'h150'
+   function H150_Class_Base_Style return Style_Rules is
+     (
+      Height => Set (Size (Px (150.0))),
+      others => <>);
+
    --  Base style for class 'nowrap'
    function Nowrap_Class_Base_Style return Style_Rules is
      (
@@ -386,6 +392,55 @@ package Demo_Flex_Styles is
    function Wrap_Reverse_Class_Base_Style return Style_Rules is
      (
       Flex_Wrap => Set (Wrap_Reverse),
+      others => <>);
+
+   --  Base style for class 'self-center'
+   function Self_Center_Class_Base_Style return Style_Rules is
+     (
+      Align_Self => Set (Center),
+      others => <>);
+
+   --  Base style for class 'self-end'
+   function Self_End_Class_Base_Style return Style_Rules is
+     (
+      Align_Self => Set (Flex_End),
+      others => <>);
+
+   --  Base style for class 'self-stretch'
+   function Self_Stretch_Class_Base_Style return Style_Rules is
+     (
+      Align_Self => Set (Stretch),
+      Height => Set (Auto_Size),
+      others => <>);
+
+   --  Base style for class 'gap-row'
+   function Gap_Row_Class_Base_Style return Style_Rules is
+     (
+      Gap => Set (Gap (Px (24.0), Px (0.0))),
+      others => <>);
+
+   --  Base style for class 'gap-column'
+   function Gap_Column_Class_Base_Style return Style_Rules is
+     (
+      Gap => Set (Gap (Px (0.0), Px (24.0))),
+      others => <>);
+
+   --  Base style for class 'gap-both'
+   function Gap_Both_Class_Base_Style return Style_Rules is
+     (
+      Gap => Set (Gap (Px (24.0), Px (6.0))),
+      others => <>);
+
+   --  Base style for class 'tile-deep'
+   function Tile_Deep_Class_Base_Style return Style_Rules is
+     (
+      Height => Set (Size (Px (46.0))),
+      others => <>);
+
+   --  Base style for class 'w110'
+   function W110_Class_Base_Style return Style_Rules is
+     (
+      Width => Set (Size (Px (110.0))),
       others => <>);
 
    --  Base style for class 'ac-start'
@@ -987,6 +1042,18 @@ package Demo_Flex_Styles is
       others => <>
    ]);
 
+   --  Complete widget style for class 'h150'
+   function H150_Class_Widget return Widget_Style is
+     (From (H150_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'h150'
+   function H150_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => H150_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
    --  Complete widget style for class 'nowrap'
    function Nowrap_Class_Widget return Widget_Style is
      (From (Nowrap_Class_Base_Style)
@@ -1020,6 +1087,102 @@ package Demo_Flex_Styles is
    function Wrap_Reverse_Class_Part_Styles return Part_Style_Array is
      ([
       Main_Part => (Style => Wrap_Reverse_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'self-center'
+   function Self_Center_Class_Widget return Widget_Style is
+     (From (Self_Center_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'self-center'
+   function Self_Center_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Self_Center_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'self-end'
+   function Self_End_Class_Widget return Widget_Style is
+     (From (Self_End_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'self-end'
+   function Self_End_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Self_End_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'self-stretch'
+   function Self_Stretch_Class_Widget return Widget_Style is
+     (From (Self_Stretch_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'self-stretch'
+   function Self_Stretch_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Self_Stretch_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'gap-row'
+   function Gap_Row_Class_Widget return Widget_Style is
+     (From (Gap_Row_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'gap-row'
+   function Gap_Row_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Gap_Row_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'gap-column'
+   function Gap_Column_Class_Widget return Widget_Style is
+     (From (Gap_Column_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'gap-column'
+   function Gap_Column_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Gap_Column_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'gap-both'
+   function Gap_Both_Class_Widget return Widget_Style is
+     (From (Gap_Both_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'gap-both'
+   function Gap_Both_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Gap_Both_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'tile-deep'
+   function Tile_Deep_Class_Widget return Widget_Style is
+     (From (Tile_Deep_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'tile-deep'
+   function Tile_Deep_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Tile_Deep_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'w110'
+   function W110_Class_Widget return Widget_Style is
+     (From (W110_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'w110'
+   function W110_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => W110_Class_Widget, Enabled => True),
       others => <>
    ]);
 

@@ -271,6 +271,110 @@
           </box>
         </box>
       </box>
+      <!-- align-self -->
+      <box class="section">
+        <label text="align-self" class="caption"/>
+        <label text="One item stepping out of the row's align-items: flex-start. Item 2 takes its own value; the others stay where the container put them."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="center" class="case-label"/>
+            <box class="demo tall align-start">
+              <label text="1" class="item h20"/>
+              <label text="2" class="item h20 self-center"/>
+              <label text="3" class="item h20"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="flex-end" class="case-label"/>
+            <box class="demo tall align-start">
+              <label text="1" class="item h20"/>
+              <label text="2" class="item h20 self-end"/>
+              <label text="3" class="item h20"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="stretch" class="case-label"/>
+            <box class="demo tall align-start">
+              <label text="1" class="item h20"/>
+              <label text="2" class="item self-stretch"/>
+              <label text="3" class="item h20"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- gap axes -->
+      <box class="section">
+        <label text="row-gap and column-gap" class="caption"/>
+        <label text="The two axes are separate. In a wrapping row, column-gap sits between items on a line and row-gap sits between the lines; gap names both at once, rows first."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="row-gap: 24px" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-start gap-row">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="column-gap: 24px" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-start gap-column">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="gap: 24px 6px" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-start gap-both">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- per-line alignment -->
+      <box class="section">
+        <label text="align-items across lines" class="caption"/>
+        <label text="Each line is as deep as its own deepest item, and alignment happens inside that line rather than across the whole box. The first line is 46px deep and the second 34px, so the shallow item on each lands at a different offset under the same value."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="flex-start" class="case-label"/>
+            <box class="demo h150 w110 wrap ac-start align-start">
+              <label text="1" class="item tile tile-deep"/>
+              <label text="2" class="item tile tile-short"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile tile-short"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="center" class="case-label"/>
+            <box class="demo h150 w110 wrap ac-start align-center">
+              <label text="1" class="item tile tile-deep"/>
+              <label text="2" class="item tile tile-short"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile tile-short"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="flex-end" class="case-label"/>
+            <box class="demo h150 w110 wrap ac-start align-end">
+              <label text="1" class="item tile tile-deep"/>
+              <label text="2" class="item tile tile-short"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile tile-short"/>
+            </box>
+          </box>
+        </box>
+      </box>
     </box>
   </window>
 </adi>

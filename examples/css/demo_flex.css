@@ -189,10 +189,28 @@
     Deep enough that align-content has room to place the two lines. */
 .w170 { width: 170px; }
 .h120 { height: 120px; }
+.h150 { height: 150px; }
 
 .nowrap { flex-wrap: nowrap; }
 .wrap { flex-wrap: wrap; }
 .wrap-reverse { flex-wrap: wrap-reverse; }
+
+/* align-self: one item stepping out of the container's align-items. */
+.self-center  { align-self: center; }
+.self-end     { align-self: flex-end; }
+.self-stretch { align-self: stretch; height: auto; }
+
+/* Gaps, each axis on its own and then both at once. */
+.gap-row    { row-gap: 24px; column-gap: 0px; }
+.gap-column { row-gap: 0px; column-gap: 24px; }
+.gap-both   { gap: 24px 6px; }
+
+/* Unequal depths, so a line's own depth is what alignment sees. */
+.tile-deep { height: 46px; }
+
+/*  Two tiles per line, so both lines hold a deep item and a shallow one
+    and each line's own depth is what its shallow item aligns against. */
+.w110 { width: 110px; }
 
 .ac-start   { align-content: flex-start; }
 .ac-center  { align-content: center; }

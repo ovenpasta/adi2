@@ -78,8 +78,13 @@ class Example:
 #  Examples whose gallery entry is more than a single screen. Anything not
 #  listed gets one capture under its own name.
 MULTI_SHOT: dict[str, Example] = {
+    #  Four screens of reference; the shots step through it so no
+    #  section falls between two of them.
     "demo_flex": Example(
-        shots=[Shot("demo_flex"), Shot("demo_flex_2", scroll=-40)]
+        shots=[Shot("demo_flex"),
+               Shot("demo_flex_2", scroll=-8),
+               Shot("demo_flex_3", scroll=-16),
+               Shot("demo_flex_4", scroll=-28)]
     ),
     "grid_example": Example(
         shots=[Shot("grid_example"), Shot("grid_example_2", scroll=-40)]

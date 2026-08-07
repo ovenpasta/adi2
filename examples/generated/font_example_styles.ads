@@ -274,6 +274,24 @@ package Font_Example_Styles is
       Text_Wrap_Mode => Set (TWM_Wrap),
       others => <>);
 
+   --  Base style for class 'align_left'::label
+   function Align_Left_Class_Label_Base_Style return Style_Rules is
+     (
+      Text_Align => Set (Text_Left),
+      others => <>);
+
+   --  Base style for class 'align_center'::label
+   function Align_Center_Class_Label_Base_Style return Style_Rules is
+     (
+      Text_Align => Set (Text_Center),
+      others => <>);
+
+   --  Base style for class 'align_right'::label
+   function Align_Right_Class_Label_Base_Style return Style_Rules is
+     (
+      Text_Align => Set (Text_Right),
+      others => <>);
+
    --  Complete widget style for class 'root'
    function Root_Class_Widget return Widget_Style is
      (From (Root_Class_Base_Style)
@@ -569,6 +587,42 @@ package Font_Example_Styles is
      ([
       Main_Part => (Style => Wrap_Sample_Class_Widget, Enabled => True),
       Label_Part => (Style => Wrap_Sample_Class_Label_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'align_left'::label
+   function Align_Left_Class_Label_Widget return Widget_Style is
+     (From (Align_Left_Class_Label_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'align_left'
+   function Align_Left_Class_Part_Styles return Part_Style_Array is
+     ([
+      Label_Part => (Style => Align_Left_Class_Label_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'align_center'::label
+   function Align_Center_Class_Label_Widget return Widget_Style is
+     (From (Align_Center_Class_Label_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'align_center'
+   function Align_Center_Class_Part_Styles return Part_Style_Array is
+     ([
+      Label_Part => (Style => Align_Center_Class_Label_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'align_right'::label
+   function Align_Right_Class_Label_Widget return Widget_Style is
+     (From (Align_Right_Class_Label_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'align_right'
+   function Align_Right_Class_Part_Styles return Part_Style_Array is
+     ([
+      Label_Part => (Style => Align_Right_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
 

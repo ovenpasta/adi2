@@ -170,6 +170,18 @@
   text-wrap-mode: wrap;
 }
 
+.align_left::label {
+  text-align: left;
+}
+
+.align_center::label {
+  text-align: center;
+}
+
+.align_right::label {
+  text-align: right;
+}
+
 .title {
   flex-shrink: 0;
 }

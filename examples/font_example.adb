@@ -45,6 +45,7 @@ procedure Font_Example is
    end Create_Sample;
 
    function Create_Wrap_Sample (Text   : String;
+                                Extra  : Style_Rules;
                                 Family : Font_Handle) return Adi.Widget.Label.Label_Handle
    is
       L : constant Adi.Widget.Label.Label_Handle :=
@@ -52,7 +53,7 @@ procedure Font_Example is
    begin
       Adi.Widget.Label.Set_Part_Styles (L, Wrap_Sample_Class_Part_Styles);
       Set_Part_Style (+L, Label_Part,
-        Build_Label_Widget (Wrap_Sample_Class_Label_Base_Style, Empty_Style, Family));
+        Build_Label_Widget (Wrap_Sample_Class_Label_Base_Style, Extra, Family));
       return L;
    end Create_Wrap_Sample;
 
@@ -125,6 +126,8 @@ begin
         Adi.Widget.Label.Create_Handle ("Decorations");
       Section_Wrap : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("Wrapping");
+      Section_Align : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Alignment");
       Section_DPI : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("DPI Units (px vs dip)");
 
@@ -167,7 +170,27 @@ begin
         Create_Wrap_Sample
           ("This is a wrapping sample using the same font pipeline. "
            & "It should wrap naturally and keep typography style settings.",
-           Body_Font);
+           Empty_Style, Body_Font);
+
+      Align_Text : constant String :=
+        "Wrapped text takes its alignment from the label part, so every "
+        & "line of this sample is placed the same way. Each line is "
+        & "positioned on its own within the label's width, which is why "
+        & "the ragged edge falls on a different side in each of these "
+        & "three boxes.";
+
+      Align_Left_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("text-align: left — " & Align_Text,
+           Align_Left_Class_Label_Base_Style, Body_Font);
+      Align_Center_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("text-align: center — " & Align_Text,
+           Align_Center_Class_Label_Base_Style, Body_Font);
+      Align_Right_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("text-align: right — " & Align_Text,
+           Align_Right_Class_Label_Base_Style, Body_Font);
 
       DPI_Intro : constant Adi.Widget.Label.Label_Handle :=
         Create_Sample
@@ -205,6 +228,7 @@ begin
       Adi.Widget.Label.Set_Part_Styles (Section_Size, Section_Title_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles (Section_Deco, Section_Title_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles (Section_Wrap, Section_Title_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Section_Align, Section_Title_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles (Section_DPI, Section_Title_Class_Part_Styles);
 
       if Body_Font /= Null_Font then
@@ -221,6 +245,8 @@ begin
          Set_Part_Style (+Section_Deco, Label_Part,
            Build_Label_Widget (Section_Title_Class_Label_Base_Style, Empty_Style, Body_Font));
          Set_Part_Style (+Section_Wrap, Label_Part,
+           Build_Label_Widget (Section_Title_Class_Label_Base_Style, Empty_Style, Body_Font));
+         Set_Part_Style (+Section_Align, Label_Part,
            Build_Label_Widget (Section_Title_Class_Label_Base_Style, Empty_Style, Body_Font));
          Set_Part_Style (+Section_DPI, Label_Part,
            Build_Label_Widget (Section_Title_Class_Label_Base_Style, Empty_Style, Body_Font));
@@ -255,6 +281,11 @@ begin
 
       Add_Child (+Container, +Section_Wrap);
       Add_Child (+Container, +Wrap_Sample);
+
+      Add_Child (+Container, +Section_Align);
+      Add_Child (+Container, +Align_Left_Sample);
+      Add_Child (+Container, +Align_Center_Sample);
+      Add_Child (+Container, +Align_Right_Sample);
 
       Add_Child (+Container, +Section_DPI);
       Add_Child (+Container, +DPI_Intro);

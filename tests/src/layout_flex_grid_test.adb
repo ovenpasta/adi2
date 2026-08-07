@@ -35,8 +35,8 @@ procedure Layout_Flex_Grid_Test is
          Justify_Content => Flex_Start,
          Align_Items     => Stretch,
          Align_Content   => Stretch,
-         Row_Gap         => 0.0,
-         Column_Gap      => 0.0
+         Main_Gap        => 0.0,
+         Cross_Gap       => 0.0
       );
 
       Kids (1) := (Flex_Grow => 1.0, Flex_Shrink => 1.0, Flex_Basis => 0.0,
@@ -74,8 +74,8 @@ procedure Layout_Flex_Grid_Test is
          Justify_Content => Flex_Start,
          Align_Items     => Stretch,
          Align_Content   => Stretch,
-         Row_Gap         => 0.0,
-         Column_Gap      => 0.0
+         Main_Gap        => 0.0,
+         Cross_Gap       => 0.0
       );
       Kids : Flex_Child_Info_Array (1 .. 2);
       Rects : Rectangle_Array (1 .. 2);
@@ -112,8 +112,8 @@ procedure Layout_Flex_Grid_Test is
          Justify_Content => Flex_Start,
          Align_Items     => Stretch,
          Align_Content   => Stretch,
-         Row_Gap         => 0.0,
-         Column_Gap      => 0.0
+         Main_Gap        => 0.0,
+         Cross_Gap       => 0.0
       );
       --  Two items pinned at their minimum, two with room to give.
       --  Bases total 700 against 360, and the minimums total 235, so a
@@ -169,8 +169,8 @@ procedure Layout_Flex_Grid_Test is
          Justify_Content => Flex_Start,
          Align_Items     => Stretch,
          Align_Content   => Stretch,
-         Row_Gap         => 0.0,
-         Column_Gap      => 0.0
+         Main_Gap        => 0.0,
+         Cross_Gap       => 0.0
       );
       Kids : Flex_Child_Info_Array (1 .. 2);
       Rects : Rectangle_Array (1 .. 2);
@@ -207,8 +207,8 @@ procedure Layout_Flex_Grid_Test is
          Justify_Content => Flex_Start,
          Align_Items     => Stretch,
          Align_Content   => Stretch,
-         Row_Gap         => 0.0,
-         Column_Gap      => 0.0);
+         Main_Gap        => 0.0,
+         Cross_Gap       => 0.0);
       Kids  : Flex_Child_Info_Array (1 .. 2);
       Rects : Rectangle_Array (1 .. 2);
    begin
@@ -248,8 +248,8 @@ procedure Layout_Flex_Grid_Test is
          Justify_Content => Flex_Start,
          Align_Items     => Stretch,
          Align_Content   => Stretch,
-         Row_Gap         => 10.0,
-         Column_Gap      => 0.0
+         Main_Gap        => 10.0,
+         Cross_Gap       => 0.0
       );
       Kids : Flex_Child_Info_Array (1 .. 2);
       Rects : Rectangle_Array (1 .. 2);

@@ -2265,25 +2265,25 @@ begin
       Add_Child (Grow_Row, Only);
 
       declare
-         Shrunk : constant Pixel_Array :=
+         Shrunk : constant Flex_Row_Items :=
             Flex_Row_Child_Widths (Resolve_Handle (Narrow_Row).all, 300.0);
-         Grown  : constant Pixel_Array :=
+         Grown  : constant Flex_Row_Items :=
             Flex_Row_Child_Widths (Resolve_Handle (Grow_Row).all, 300.0);
       begin
          Ada.Text_IO.Put_Line
-            ("  two 200px in 300px ->" & Pixel_Type'Image (Shrunk (1))
-             & Pixel_Type'Image (Shrunk (2))
+            ("  two 200px in 300px ->" & Pixel_Type'Image (Shrunk (1).Width)
+             & Pixel_Type'Image (Shrunk (2).Width)
              & "; one growing 100px in 300px ->"
-             & Pixel_Type'Image (Grown (1)));
+             & Pixel_Type'Image (Grown (1).Width));
 
          --  Equal bases shrink equally: 150 each, not any pair that
          --  happens to add up to the line.
          Test_Support.Assert
-            (abs (Shrunk (1) - 150.0) < 0.001
-               and then abs (Shrunk (2) - 150.0) < 0.001,
+            (abs (Shrunk (1).Width - 150.0) < 0.001
+               and then abs (Shrunk (2).Width - 150.0) < 0.001,
              "two equal declared widths shrink to half the line each");
          Test_Support.Assert
-            (abs (Grown (1) - 300.0) < 0.001,
+            (abs (Grown (1).Width - 300.0) < 0.001,
              "a lone growing child passes its declared width");
       end;
    end;
@@ -2367,6 +2367,188 @@ begin
          Test_Support.Assert
             (abs (Content_Base - Content_H) < 0.001,
              "a content basis ignores the declared height");
+      end;
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  A wrapping row is as deep as its lines stacked up, not as deep as
+   --  its deepest item. Measuring it as one line makes the container too
+   --  short for everything below the first row of items.
+   Ada.Text_IO.Put_Line ("=== a wrapping row measures all its lines ===");
+   declare
+      Row : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      A : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      B : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      C : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+      Tile_W : constant := 60.0;
+      Tile_H : constant := 40.0;
+      Line_Gap : constant := 8.0;
+      Row_W  : constant := 130.0;   --  two tiles per line, not three
+
+      Row_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Row),
+          Flex_Wrap      => Set (Adi.CSS_Styles.Wrap),
+          Gap            => Set (Gap (Px (Line_Gap))),
+          others         => <>);
+      Tile_Style : constant Style_Rules :=
+         (Width  => Set (Size (Px (Tile_W))),
+          Height => Set (Size (Px (Tile_H))),
+          Flex_Shrink => Set (0.0),
+          others => <>);
+   begin
+      Set_Part_Styles
+         (Row, [Main_Part => (Style => From (Row_Style).Build,
+                              Enabled => True), others => <>]);
+      for T of Widget_Pair'[A, B, C] loop
+         Set_Part_Styles
+            (T, [Main_Part => (Style => From (Tile_Style).Build,
+                               Enabled => True), others => <>]);
+      end loop;
+      Add_Child (Row, A);
+      Add_Child (Row, B);
+      Add_Child (Row, C);
+
+      Ada.Text_IO.Put_Line
+         ("  row measures" & Pixel_Type'Image
+             (Measure_At_Width (Row, Row_W).Height)
+          & " at width" & Pixel_Type'Image (Row_W)
+          & " (two lines of" & Pixel_Type'Image (Tile_H)
+          & " plus" & Pixel_Type'Image (Line_Gap) & ")");
+
+      Test_Support.Assert
+         (abs (Measure_At_Width (Row, Row_W).Height
+                 - (2.0 * Tile_H + Line_Gap)) < 0.001,
+          "a wrapping row measures its lines plus the gap between them");
+
+      --  The minimum has to agree, or a parent that squeezes this row
+      --  reserves one line and the rest of them spill out.
+      Ada.Text_IO.Put_Line
+         ("  content min h="
+          & Pixel_Type'Image
+              (Effective_Min_Size_At_Width (Row, Row_W).Height));
+      Test_Support.Assert
+         (abs (Effective_Min_Size_At_Width (Row, Row_W).Height
+                 - (2.0 * Tile_H + Line_Gap)) < 0.001,
+          "a wrapping row's minimum covers every line and the gaps");
+
+      Set_Geometry
+         (Row, (X => 0.0, Y => 0.0, Width => Row_W,
+                Height => Measure_At_Width (Row, Row_W).Height));
+      Layout_Tree (Row);
+
+      declare
+         GA : constant Rectangle := Get_Geometry (A);
+         GC : constant Rectangle := Get_Geometry (C);
+      begin
+         Test_Support.Assert
+            (GC.Y > GA.Y + 0.001,
+             "the third tile is laid out on the second line");
+         Test_Support.Assert
+            (GC.Y + GC.Height <= Get_Geometry (Row).Height + 0.001,
+             "the second line fits inside the measured row");
+      end;
+   end;
+
+   Ada.Text_IO.New_Line;
+
+   --  The wrapping row inside a parent with nowhere near enough room:
+   --  the row must keep every line, and out-of-flow siblings must not
+   --  count toward the lines at all.
+   Ada.Text_IO.Put_Line ("=== a squeezed wrapping row keeps its lines ===");
+   declare
+      Viewport : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Row : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      A : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      B : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      C : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Hidden : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Floating : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+
+      Tile_W : constant := 60.0;
+      Tile_H : constant := 40.0;
+      Row_W  : constant := 130.0;
+
+      Column_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Column),
+          others         => <>);
+      Row_Style : constant Style_Rules :=
+         (Display        => Set (Flex),
+          Flex_Direction => Set (Adi.CSS_Styles.Row),
+          Flex_Wrap      => Set (Adi.CSS_Styles.Wrap),
+          others         => <>);
+      Tile_Style : constant Style_Rules :=
+         (Width  => Set (Size (Px (Tile_W))),
+          Height => Set (Size (Px (Tile_H))),
+          Flex_Shrink => Set (0.0),
+          others => <>);
+      --  Wide enough to change the line breaks if it were counted.
+      Out_Of_Flow : constant Style_Rules :=
+         (Width  => Set (Size (Px (Tile_W))),
+          Height => Set (Size (Px (Tile_H))),
+          others => <>);
+   begin
+      Set_Part_Styles
+         (Viewport, [Main_Part => (Style => From (Column_Style).Build,
+                                   Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Row, [Main_Part => (Style => From (Row_Style).Build,
+                              Enabled => True), others => <>]);
+      for T of Widget_Pair'[A, B, C] loop
+         Set_Part_Styles
+            (T, [Main_Part => (Style => From (Tile_Style).Build,
+                               Enabled => True), others => <>]);
+      end loop;
+      Set_Part_Styles
+         (Hidden, [Main_Part => (Style => From (Out_Of_Flow).Build,
+                                 Enabled => True), others => <>]);
+      Set_Part_Styles
+         (Floating,
+          [Main_Part =>
+             (Style => From (Merge (Out_Of_Flow,
+                                    (Position => Set (Absolute),
+                                     others => <>))).Build,
+              Enabled => True), others => <>]);
+
+      --  Between the first two tiles, so a regression in the filter
+      --  changes where the lines break rather than only their count.
+      Add_Child (Row, A);
+      Add_Child (Row, Hidden);
+      Set_Visible (Hidden, False);
+      Add_Child (Row, Floating);
+      Add_Child (Row, B);
+      Add_Child (Row, C);
+      Add_Child (Viewport, Row);
+
+      Ada.Text_IO.Put_Line
+         ("  row min h="
+          & Pixel_Type'Image
+              (Effective_Min_Size_At_Width (Row, Row_W).Height)
+          & " (two lines of" & Pixel_Type'Image (Tile_H) & ")");
+
+      Test_Support.Assert
+         (abs (Effective_Min_Size_At_Width (Row, Row_W).Height
+                 - 2.0 * Tile_H) < 0.001,
+          "hidden and absolute children do not form lines");
+
+      Set_Geometry
+         (Viewport, (X => 0.0, Y => 0.0, Width => Row_W, Height => 20.0));
+      Layout_Tree (Viewport);
+
+      declare
+         R : constant Rectangle := Get_Geometry (Row);
+         GC : constant Rectangle := Get_Geometry (C);
+      begin
+         Ada.Text_IO.Put_Line
+            ("  squeezed to 20: row h=" & Pixel_Type'Image (R.Height)
+             & " last tile bottom="
+             & Pixel_Type'Image (GC.Y + GC.Height));
+         Test_Support.Assert
+            (GC.Y + GC.Height <= R.Y + R.Height + 0.001,
+             "the squeezed wrapping row still contains its last line");
       end;
    end;
 

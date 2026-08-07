@@ -5,6 +5,7 @@ project Tests is
      ("styles",
       "layout_test",
       "layout_flex_grid_test",
+      "flex_wrap_test",
       "css_parser_test",
       "window_extent_test",
       "css_source_test",

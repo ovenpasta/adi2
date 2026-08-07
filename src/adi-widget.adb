@@ -7033,7 +7033,7 @@ package body Adi.Widget is
    end Make_Flex_Child_Info;
 
    function Flex_Row_Child_Widths
-     (W : Widget'Class; Content_Width : Pixel_Type) return Pixel_Array
+     (W : Widget'Class; Content_Width : Pixel_Type) return Flex_Row_Items
    is
       Style : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Main_Part);
@@ -7055,7 +7055,7 @@ package body Adi.Widget is
         or else not Is_Row_Direction (Style.Flex_Direction)
         or else Content_Width <= 0.0
       then
-         return (1 .. 0 => 0.0);
+         return (1 .. 0 => <>);
       end if;
 
       for Child of W.Children loop
@@ -7065,12 +7065,16 @@ package body Adi.Widget is
       end loop;
 
       if N = 0 then
-         return (1 .. 0 => 0.0);
+         return (1 .. 0 => <>);
       end if;
 
       declare
          Infos  : Flex_Child_Info_Array (1 .. N);
-         Widths : Pixel_Array (1 .. N);
+         Result : Flex_Row_Items (1 .. N);
+         Ranges : Flex_Line_Array (1 .. N);
+         Lines  : Natural := 0;
+         Gap    : constant Pixel_Type :=
+           Get_Main_Gap (Style.Gap, Style.Flex_Direction);
          I      : Natural := 0;
       begin
          for Child of W.Children loop
@@ -7083,17 +7087,29 @@ package body Adi.Widget is
             end if;
          end loop;
 
-         Distribute_Main_Sizes
+         --  Lines first, then each line flexes within the same width:
+         --  the arrangement measurement reports has to be the one
+         --  layout will produce.
+         Form_Flex_Lines
            (Container_Main => Content_Width,
-            Main_Gap       =>
-              Get_Main_Gap (Style.Gap, Style.Flex_Direction),
+            Main_Gap       => Gap,
             Direction      => Style.Flex_Direction,
-            Children       => Infos);
+            Wrap           => Style.Flex_Wrap,
+            Children       => Infos,
+            Lines          => Ranges,
+            Count          => Lines);
 
-         for K in Widths'Range loop
-            Widths (K) := Infos (K).Computed_Main;
+         for L in 1 .. Lines loop
+            Distribute_Main_Sizes
+              (Container_Main => Content_Width,
+               Main_Gap       => Gap,
+               Direction      => Style.Flex_Direction,
+               Children       => Infos (Ranges (L).First .. Ranges (L).Last));
+            for K in Ranges (L).First .. Ranges (L).Last loop
+               Result (K) := (Width => Infos (K).Computed_Main, Line => L);
+            end loop;
          end loop;
-         return Widths;
+         return Result;
       end;
    end Flex_Row_Child_Widths;
 
@@ -7331,8 +7347,8 @@ package body Adi.Widget is
             Justify_Content => Style.Justify_Content,
             Align_Items     => Style.Align_Items,
             Align_Content   => Style.Align_Content,
-            Row_Gap         => Get_Main_Gap(Style.Gap, Style.Flex_Direction),
-            Column_Gap      => Get_Cross_Gap(Style.Gap, Style.Flex_Direction)
+            Main_Gap        => Get_Main_Gap(Style.Gap, Style.Flex_Direction),
+            Cross_Gap       => Get_Cross_Gap(Style.Gap, Style.Flex_Direction)
          );
 
          --  Collect child information, separating absolute children
@@ -7578,8 +7594,8 @@ package body Adi.Widget is
             Justify_Content => Container_Style.Justify_Content,
             Align_Items     => Container_Style.Align_Items,
             Align_Content   => Container_Style.Align_Content,
-            Row_Gap         => Get_Main_Gap (Container_Style.Gap, Container_Style.Flex_Direction),
-            Column_Gap      => Get_Cross_Gap (Container_Style.Gap, Container_Style.Flex_Direction)
+            Main_Gap        => Get_Main_Gap (Container_Style.Gap, Container_Style.Flex_Direction),
+            Cross_Gap       => Get_Cross_Gap (Container_Style.Gap, Container_Style.Flex_Direction)
          );
 
          --  Convert Layout_Items to Flex_Child_Info

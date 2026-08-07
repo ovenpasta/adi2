@@ -251,8 +251,11 @@ package Adi.Layout_Util is
       Justify_Content : Justify_Content_Value;
       Align_Items     : Align_Items_Value;
       Align_Content   : Align_Content_Value;
-      Row_Gap         : Pixel_Type;
-      Column_Gap      : Pixel_Type;
+      --  Named by axis, not by CSS longhand: on a row the main gap is
+      --  column-gap and the cross gap is row-gap, and on a column they
+      --  swap. Get_Main_Gap and Get_Cross_Gap do that mapping.
+      Main_Gap        : Pixel_Type;
+      Cross_Gap       : Pixel_Type;
    end record;
 
    type Flex_Child_Info is record
@@ -301,25 +304,38 @@ package Adi.Layout_Util is
    type Rectangle_Array_Access is access all Rectangle_Array;
 
    -------------------------------------------------
-   -- Flex Line (for wrapping)
-   -------------------------------------------------
-
-   type Flex_Line is record
-      Start_Index  : Positive := 1;
-      End_Index    : Positive := 1;
-      Main_Size    : Pixel_Type := 0.0;
-      Cross_Size   : Pixel_Type := 0.0;
-      Total_Grow   : Float := 0.0;
-      Total_Shrink : Float := 0.0;
-   end record;
-
-   type Flex_Line_Array is array (Positive range <>) of Flex_Line;
-
-   -------------------------------------------------
    -- Flex Layout Functions
    -------------------------------------------------
 
-   --  Main entry point for flex layout
+   --  One line's extent in the item array. Items keep their order, so a
+   --  line is always a contiguous run of them.
+   type Flex_Line_Range is record
+      First, Last : Natural := 0;
+   end record;
+   type Flex_Line_Array is array (Positive range <>) of Flex_Line_Range;
+
+   --  Partition items into lines at the points where the next item no
+   --  longer fits the container's main size. A line always takes at
+   --  least one item, so an item larger than the container overflows its
+   --  own line rather than opening an empty one ahead of itself.
+   --
+   --  Lines must have room for one entry per item; Count says how many
+   --  were used. No_Wrap always yields a single line.
+   procedure Form_Flex_Lines
+     (Container_Main : Pixel_Type;
+      Main_Gap       : Pixel_Type;
+      Direction      : Flex_Direction_Value;
+      Wrap           : Flex_Wrap_Value;
+      Children       : Flex_Child_Info_Array;
+      Lines          : out Flex_Line_Array;
+      Count          : out Natural);
+
+   --  The main size an item asks for before any growing or shrinking:
+   --  its flex base clamped to its own limits. Line formation and the
+   --  distribution both start from this, so an item cannot be put on a
+   --  line at one size and then sized differently on it.
+   function Hypothetical_Main_Size (Child : Flex_Child_Info) return Pixel_Type;
+
    --  Resolve main-axis sizes only: flex bases, free space, and the
    --  grow/shrink distribution. Cross sizing and positioning are left
    --  alone, so a caller measuring a row can ask what width each child

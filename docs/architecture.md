@@ -367,6 +367,16 @@ Minimums are width-dependent for the same reason, and have the same pair:
 
 `Effective_Min_Size_At_Width` is the non-dispatching wrapper, applying `min-*`, declared sizes and overflow policy exactly as `Effective_Min_Size` does for the widthless form.
 
+### Flex Lines
+
+`Form_Flex_Lines` partitions items into lines wherever the next item's outer hypothetical main size no longer fits. A line always takes at least one item, so an item larger than the container overflows its own line rather than opening an empty one ahead of itself. `nowrap` yields a single line.
+
+Each line then flexes on its own: `Distribute_Main_Sizes` runs per line, so what one line grew into says nothing about what is left on the next, and items are justified and positioned relative to their own line. A line is as deep as its deepest item, except a single `nowrap` line, which takes the container's cross size — that is what lets `align-items: stretch` fill an unwrapped container. `align-content` then spreads the lines over the cross axis, and `wrap-reverse` mirrors their positions across it.
+
+`align-items`/`align-self` resolve against the item's *own line's* depth, not the container's, so a shallow item on a shallow line centres within that line.
+
+Measurement follows the same partition: a wrapping row is as deep as its lines summed plus the cross gaps between them, in both `Measure_Content_At_Width` and the minimum aggregation. Taking one global maximum there reserves a single line and lets every line below it escape the container.
+
 `Resolved_Flex_Base` answers what main-axis size an item is laid out from before it grows or shrinks: a definite `flex-basis` exactly — including `0`, a demand for nothing — and otherwise the item's content size at its assigned width. Aggregation and the flex algorithm both resolve the base through it, so a container cannot reserve room on one rule while layout places on another.
 
 `auto` and `content` differ in what they let stand in for the content: `auto` takes the item's declared `width`/`height` when it has one, `content` ignores it and measures. Both reflow with the assigned width. `Resolved_Flex_Base` reaches the first through `Measure_At_Width`/`Get_Preferred_Size`, which apply CSS sizing, and the second through `Measure_Content_At_Width`/`Measure_Content`, which do not.
@@ -375,7 +385,7 @@ Wrapping itself never breaks a word: `Effective_Wrap_Width` floors the wrap widt
 
 **Containers** ask the query after they know the width:
 
-- **Flex** computes intrinsic bases, assigns main sizes, then re-measures each child at its assigned width and re-runs if any answer changed. Base sizes and automatic minimums are both updated there — the minimum is width-dependent too, and is recomputed whether or not the base moved. A declared basis is not a measurement and is left alone. An item that scrolls *its own* content still has no automatic minimum; the container's overflow says nothing about that.
+- **Flex** forms lines, computes intrinsic bases, assigns main sizes, then re-measures each child at its assigned width and re-runs if any answer changed. Base sizes and automatic minimums are both updated there — the minimum is width-dependent too, and is recomputed whether or not the base moved. A declared basis is not a measurement and is left alone. An item that scrolls *its own* content still has no automatic minimum; the container's overflow says nothing about that.
 - **Box** aggregating child minimums asks each child at the width that child will be laid out at. On a row that is whatever the distribution hands it — a declared width is the item's *basis* there and still grows or shrinks from it, so two `width: 200px` items in a 300px row are measured at 150, not 200. On a column it is the declared width, or the line when the child stretches, so a `width: 100px` wrapping label in a 300px column is not measured at 300. A non-shrinkable child is floored at its resolved flex base, because that is the size it will be placed at.
 - **Grid** asks at the width the cell will actually render at — the child's own declared width when it has one, the track width otherwise (`Grid_Child_Width`), so a `width: 100px` label in a 300px cell is not measured at 300.
 

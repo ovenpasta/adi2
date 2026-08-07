@@ -732,6 +732,75 @@ package body Adi.Layout_Util is
    -- Flex Layout Algorithm
    -------------------------------------------------
 
+   procedure Form_Flex_Lines
+     (Container_Main : Pixel_Type;
+      Main_Gap       : Pixel_Type;
+      Direction      : Flex_Direction_Value;
+      Wrap           : Flex_Wrap_Value;
+      Children       : Flex_Child_Info_Array;
+      Lines          : out Flex_Line_Array;
+      Count          : out Natural)
+   is
+      function Main_Before (M : Edge_Pixels) return Pixel_Type is
+        (if Is_Row_Direction (Direction) then M.Left else M.Top);
+      function Main_After (M : Edge_Pixels) return Pixel_Type is
+        (if Is_Row_Direction (Direction) then M.Right else M.Bottom);
+
+      Line_First : Natural := Children'First;
+      Used       : Pixel_Type := 0.0;
+      On_Line    : Natural := 0;
+   begin
+      Count := 0;
+      if Children'Length = 0 then
+         return;
+      end if;
+
+      if Wrap = No_Wrap or else Container_Main <= 0.0 then
+         Count := 1;
+         Lines (Lines'First) := (Children'First, Children'Last);
+         return;
+      end if;
+
+      for I in Children'Range loop
+         declare
+            Outer : constant Pixel_Type :=
+              Hypothetical_Main_Size (Children (I))
+              + Main_Before (Children (I).Margin)
+              + Main_After (Children (I).Margin);
+         begin
+            if On_Line > 0
+              and then Used + Main_Gap + Outer > Container_Main + 0.01
+            then
+               Count := Count + 1;
+               Lines (Lines'First + Count - 1) := (Line_First, I - 1);
+               Line_First := I;
+               Used := Outer;
+               On_Line := 1;
+            else
+               Used := (if On_Line = 0 then Outer else Used + Main_Gap + Outer);
+               On_Line := On_Line + 1;
+            end if;
+         end;
+      end loop;
+
+      Count := Count + 1;
+      Lines (Lines'First + Count - 1) := (Line_First, Children'Last);
+   end Form_Flex_Lines;
+
+   function Hypothetical_Main_Size (Child : Flex_Child_Info) return Pixel_Type
+   is
+      --  A non-zero basis speaks for itself; the flag is only needed to
+      --  tell a declared zero from an absent one, which is the one case
+      --  a pixel value cannot express.
+      Basis : constant Pixel_Type :=
+        (if Child.Basis_Is_Definite or else Child.Flex_Basis /= 0.0
+         then Child.Flex_Basis
+         else Child.Content_Main);
+   begin
+      return Pixel_Type'Max
+        (Child.Min_Main, Pixel_Type'Min (Child.Max_Main, Basis));
+   end Hypothetical_Main_Size;
+
    procedure Distribute_Main_Sizes
      (Container_Main : Pixel_Type;
       Main_Gap       : Pixel_Type;
@@ -760,23 +829,8 @@ package body Adi.Layout_Util is
       for I in Children'Range loop
          declare
             Child : Flex_Child_Info renames Children(I);
-            Basis : Pixel_Type;
+            Basis : constant Pixel_Type := Hypothetical_Main_Size (Child);
          begin
-            --  Determine flex basis
-            --  A non-zero basis speaks for itself; the flag is only needed
-            --  to tell a declared zero from an absent one, which is the
-            --  one case a pixel value cannot express.
-            if Child.Basis_Is_Definite or else Child.Flex_Basis /= 0.0 then
-               Basis := Child.Flex_Basis;
-            else
-               --  Auto basis: use content size
-               Basis := Child.Content_Main;
-            end if;
-
-            --  Clamp to min/max
-            Basis := Pixel_Type'Max(Child.Min_Main,
-                     Pixel_Type'Min(Child.Max_Main, Basis));
-
             Child.Computed_Main := Basis;
             Total_Main_Margins :=
               Total_Main_Margins + Main_Before (Child.Margin) + Main_After (Child.Margin);
@@ -900,22 +954,10 @@ package body Adi.Layout_Util is
       Container_Cross : constant Pixel_Type := Get_Cross_Size(
          (Context.Container.Width, Context.Container.Height), Context.Direction);
 
-      Main_Gap : constant Pixel_Type := Context.Row_Gap;  -- Gap between items on main axis
+      Main_Gap  : constant Pixel_Type := Context.Main_Gap;
+      Cross_Gap : constant Pixel_Type := Context.Cross_Gap;
 
-      --  For simplicity, we implement single-line (no wrap) first
-      --  Then extend to wrapping
-
-      Num_Children     : constant Natural := Children'Length;
-      Total_Gaps       : Pixel_Type := 0.0;
-
-      Free_Space       : Pixel_Type;
-
-      --  Current position along main axis
-      Current_Pos      : Pixel_Type := 0.0;
-
-      --  For space distribution
-      Space_Per_Item   : Pixel_Type := 0.0;
-      Initial_Space    : Pixel_Type := 0.0;
+      Num_Children : constant Natural := Children'Length;
 
       function Main_Before (M : Edge_Pixels) return Pixel_Type is
         (if Is_Row_Direction (Context.Direction) then M.Left else M.Top);
@@ -925,176 +967,271 @@ package body Adi.Layout_Util is
         (if Is_Row_Direction (Context.Direction) then M.Top else M.Left);
       function Cross_After (M : Edge_Pixels) return Pixel_Type is
         (if Is_Row_Direction (Context.Direction) then M.Bottom else M.Right);
-   begin
-      if Num_Children = 0 then
-         return;
-      end if;
 
-      --  Calculate total gaps
-      if Num_Children > 1 then
-         Total_Gaps := Main_Gap * Pixel_Type(Num_Children - 1);
-      end if;
+      --  Items keep their order, so a line is a contiguous run of them.
+      type Placed_Line is record
+         First, Last : Natural := 0;
+         Cross_Size  : Pixel_Type := 0.0;
+         Cross_Pos   : Pixel_Type := 0.0;
+      end record;
 
-      Distribute_Main_Sizes
-        (Container_Main => Container_Main,
-         Main_Gap       => Main_Gap,
-         Direction      => Context.Direction,
-         Children       => Children);
+      Lines      : array (1 .. Natural'Max (1, Num_Children)) of Placed_Line;
+      Line_Count : Natural := 0;
 
-      --  Step 4: Calculate actual used space after grow/shrink
-      declare
-         Actual_Used : Pixel_Type := 0.0;
+      --  Cross size an item asks for, before stretch offers it the line.
+      function Hypothetical_Cross (C : Flex_Child_Info) return Pixel_Type is
+        (Pixel_Type'Max (C.Min_Cross,
+                         Pixel_Type'Min (C.Max_Cross, C.Content_Cross)));
+
+      --  Place one line's items along the main axis. Every line justifies
+      --  within the container's main size: they all span it.
+      procedure Justify_Line (First, Last : Positive) is
+         Count : constant Natural := Last - First + 1;
+         Total_Gaps : constant Pixel_Type :=
+           (if Count > 1 then Main_Gap * Pixel_Type (Count - 1) else 0.0);
+         Actual_Used    : Pixel_Type := 0.0;
+         Free_Space     : Pixel_Type;
+         Current_Pos    : Pixel_Type := 0.0;
+         Space_Per_Item : Pixel_Type := 0.0;
       begin
-         for I in Children'Range loop
+         for I in First .. Last loop
             Actual_Used := Actual_Used + Children (I).Computed_Main
               + Main_Before (Children (I).Margin)
               + Main_After (Children (I).Margin);
          end loop;
          Free_Space := (Container_Main - Total_Gaps) - Actual_Used;
-      end;
 
-      --  Step 5: Position items based on justify-content
-      --  When content overflows (Free_Space < 0), keep spacing non-negative
-      --  so items overflow instead of collapsing/overlapping.
-      case Context.Justify_Content is
-         when Flex_Start =>
-            Current_Pos := 0.0;
-            Space_Per_Item := 0.0;
-            Initial_Space := 0.0;
-
-         when Flex_End =>
-            Current_Pos := Pixel_Type'Max (0.0, Free_Space);
-            Space_Per_Item := 0.0;
-            Initial_Space := Current_Pos;
-
-         when Center =>
-            Current_Pos := Pixel_Type'Max (0.0, Free_Space) / 2.0;
-            Space_Per_Item := 0.0;
-            Initial_Space := Current_Pos;
-
-         when Space_Between =>
-            Current_Pos := 0.0;
-            Initial_Space := 0.0;
-            if Num_Children > 1 then
-               Space_Per_Item := Pixel_Type'Max (0.0, Free_Space)
-                 / Pixel_Type (Num_Children - 1);
-            else
-               Space_Per_Item := 0.0;
-            end if;
-
-         when Space_Around =>
-            if Num_Children > 0 then
-               Space_Per_Item := Pixel_Type'Max (0.0, Free_Space)
-                 / Pixel_Type (Num_Children);
-               Initial_Space := Space_Per_Item / 2.0;
-               Current_Pos := Initial_Space;
-            end if;
-
-         when Space_Evenly =>
-            if Num_Children > 0 then
-               Space_Per_Item := Pixel_Type'Max (0.0, Free_Space)
-                 / Pixel_Type (Num_Children + 1);
-               Initial_Space := Space_Per_Item;
-               Current_Pos := Space_Per_Item;
-            end if;
-      end case;
-
-      --  Handle reversed direction
-      if Is_Reversed(Context.Direction) then
-         Current_Pos := Container_Main - Current_Pos;
-      end if;
-
-      --  Step 6: Assign positions and cross sizes
-      for I in Children'Range loop
-         declare
-            Child : Flex_Child_Info renames Children(I);
-            Cross_Start : Pixel_Type := 0.0;
-            Effective_Align : Align_Items_Value;
-            Main_Before_Margin : constant Pixel_Type := Main_Before (Child.Margin);
-            Main_After_Margin  : constant Pixel_Type := Main_After (Child.Margin);
-            Cross_Before_Margin : constant Pixel_Type := Cross_Before (Child.Margin);
-            Cross_After_Margin  : constant Pixel_Type := Cross_After (Child.Margin);
-            Cross_Available : Pixel_Type := 0.0;
-         begin
-            --  Main axis position
-            if Is_Reversed(Context.Direction) then
-               Current_Pos := Current_Pos - Main_After_Margin - Child.Computed_Main;
-               Child.Computed_Pos_Main := Current_Pos;
-               Current_Pos := Current_Pos - Main_Before_Margin;
-               if I < Children'Last then
-                  Current_Pos := Current_Pos - Main_Gap - Space_Per_Item;
+         --  Overflowing content keeps spacing non-negative, so items
+         --  spill past the end instead of piling up on each other.
+         case Context.Justify_Content is
+            when Flex_Start =>
+               Current_Pos := 0.0;
+            when Flex_End =>
+               Current_Pos := Pixel_Type'Max (0.0, Free_Space);
+            when Center =>
+               Current_Pos := Pixel_Type'Max (0.0, Free_Space) / 2.0;
+            when Space_Between =>
+               Current_Pos := 0.0;
+               if Count > 1 then
+                  Space_Per_Item :=
+                    Pixel_Type'Max (0.0, Free_Space) / Pixel_Type (Count - 1);
                end if;
-            else
-               Child.Computed_Pos_Main := Current_Pos + Main_Before_Margin;
-               Current_Pos := Child.Computed_Pos_Main + Child.Computed_Main + Main_After_Margin;
-               if I < Children'Last then
-                  Current_Pos := Current_Pos + Main_Gap;
-                  if Context.Justify_Content in Space_Between | Space_Around | Space_Evenly then
-                     Current_Pos := Current_Pos + Space_Per_Item;
+            when Space_Around =>
+               Space_Per_Item :=
+                 Pixel_Type'Max (0.0, Free_Space) / Pixel_Type (Count);
+               Current_Pos := Space_Per_Item / 2.0;
+            when Space_Evenly =>
+               Space_Per_Item :=
+                 Pixel_Type'Max (0.0, Free_Space) / Pixel_Type (Count + 1);
+               Current_Pos := Space_Per_Item;
+         end case;
+
+         if Is_Reversed (Context.Direction) then
+            Current_Pos := Container_Main - Current_Pos;
+         end if;
+
+         for I in First .. Last loop
+            declare
+               Child : Flex_Child_Info renames Children (I);
+               Before : constant Pixel_Type := Main_Before (Child.Margin);
+               After  : constant Pixel_Type := Main_After (Child.Margin);
+            begin
+               if Is_Reversed (Context.Direction) then
+                  Current_Pos := Current_Pos - After - Child.Computed_Main;
+                  Child.Computed_Pos_Main := Current_Pos;
+                  Current_Pos := Current_Pos - Before;
+                  if I < Last then
+                     Current_Pos := Current_Pos - Main_Gap - Space_Per_Item;
+                  end if;
+               else
+                  Child.Computed_Pos_Main := Current_Pos + Before;
+                  Current_Pos :=
+                    Child.Computed_Pos_Main + Child.Computed_Main + After;
+                  if I < Last then
+                     Current_Pos := Current_Pos + Main_Gap;
+                     if Context.Justify_Content in
+                          Space_Between | Space_Around | Space_Evenly
+                     then
+                        Current_Pos := Current_Pos + Space_Per_Item;
+                     end if;
                   end if;
                end if;
-            end if;
+            end;
+         end loop;
+      end Justify_Line;
+   begin
+      if Num_Children = 0 then
+         return;
+      end if;
 
-            --  Cross axis sizing and alignment
-            --  Determine effective alignment
-            if Child.Align_Self = Auto then
-               Effective_Align := Context.Align_Items;
-            else
-               --  Map Align_Self to Align_Items
-               case Child.Align_Self is
-                  when Auto => Effective_Align := Context.Align_Items;
-                  when Adi.CSS_Styles.Flex_Start => Effective_Align := Adi.CSS_Styles.Flex_Start;
-                  when Adi.CSS_Styles.Flex_End => Effective_Align := Adi.CSS_Styles.Flex_End;
-                  when Adi.CSS_Styles.Center => Effective_Align := Adi.CSS_Styles.Center;
-                  when Adi.CSS_Styles.Baseline => Effective_Align := Adi.CSS_Styles.Baseline;
-                  when Adi.CSS_Styles.Stretch => Effective_Align := Adi.CSS_Styles.Stretch;
-               end case;
-            end if;
+      --  Step 1: form the lines.
+      declare
+         Ranges : Flex_Line_Array (1 .. Num_Children);
+      begin
+         Form_Flex_Lines
+           (Container_Main => Container_Main,
+            Main_Gap       => Main_Gap,
+            Direction      => Context.Direction,
+            Wrap           => Context.Wrap,
+            Children       => Children,
+            Lines          => Ranges,
+            Count          => Line_Count);
+         for L in 1 .. Line_Count loop
+            Lines (L) := (First => Ranges (L).First,
+                          Last  => Ranges (L).Last, others => <>);
+         end loop;
+      end;
 
-            Cross_Available :=
-              Pixel_Type'Max (0.0, Container_Cross - Cross_Before_Margin - Cross_After_Margin);
+      --  Step 2: size and place each line's items along the main axis.
+      --  Each line distributes on its own: an item that grew on one line
+      --  says nothing about what is left on the next.
+      for L in 1 .. Line_Count loop
+         Distribute_Main_Sizes
+           (Container_Main => Container_Main,
+            Main_Gap       => Main_Gap,
+            Direction      => Context.Direction,
+            Children       => Children (Lines (L).First .. Lines (L).Last));
+         Justify_Line (Lines (L).First, Lines (L).Last);
+      end loop;
 
-            case Effective_Align is
-               when Adi.CSS_Styles.Flex_Start =>
-                  Child.Computed_Cross := Child.Content_Cross;
-                  Child.Computed_Cross := Pixel_Type'Max(Child.Min_Cross,
-                     Pixel_Type'Min(Child.Max_Cross, Child.Computed_Cross));
-                  Cross_Start := Cross_Before_Margin;
-
-               when Adi.CSS_Styles.Flex_End =>
-                  Child.Computed_Cross := Child.Content_Cross;
-                  Child.Computed_Cross := Pixel_Type'Max(Child.Min_Cross,
-                     Pixel_Type'Min(Child.Max_Cross, Child.Computed_Cross));
-                  Cross_Start := Container_Cross - Cross_After_Margin - Child.Computed_Cross;
-
-               when Adi.CSS_Styles.Center =>
-                  Child.Computed_Cross := Child.Content_Cross;
-                  Child.Computed_Cross := Pixel_Type'Max(Child.Min_Cross,
-                     Pixel_Type'Min(Child.Max_Cross, Child.Computed_Cross));
-                  Cross_Start := Cross_Before_Margin
-                    + (Cross_Available - Child.Computed_Cross) / 2.0;
-
-               when Adi.CSS_Styles.Stretch =>
-                  --  A child that states its cross size keeps it and
-                  --  overflows if the line is narrower; stretch is for
-                  --  the ones that left that size to the layout.
-                  Child.Computed_Cross :=
-                    (if Child.Cross_Is_Definite
-                     then Child.Content_Cross else Cross_Available);
-                  Child.Computed_Cross := Pixel_Type'Max(Child.Min_Cross,
-                     Pixel_Type'Min(Child.Max_Cross, Child.Computed_Cross));
-                  Cross_Start := Cross_Before_Margin;
-
-               when Adi.CSS_Styles.Baseline =>
-                  --  Simplified: treat as flex-start
-                  Child.Computed_Cross := Child.Content_Cross;
-                  Child.Computed_Cross := Pixel_Type'Max(Child.Min_Cross,
-                     Pixel_Type'Min(Child.Max_Cross, Child.Computed_Cross));
-                  Cross_Start := Cross_Before_Margin;
-            end case;
-
-            Child.Computed_Pos_Cross := Cross_Start;
+      --  Step 3: each line is as deep as its deepest item. A single line
+      --  takes the container's cross size instead, which is what lets
+      --  align-items: stretch fill an unwrapped container.
+      for L in 1 .. Line_Count loop
+         declare
+            Deepest : Pixel_Type := 0.0;
+         begin
+            for I in Lines (L).First .. Lines (L).Last loop
+               Deepest := Pixel_Type'Max
+                 (Deepest,
+                  Hypothetical_Cross (Children (I))
+                  + Cross_Before (Children (I).Margin)
+                  + Cross_After (Children (I).Margin));
+            end loop;
+            Lines (L).Cross_Size :=
+              (if Line_Count = 1 and then Context.Wrap = No_Wrap
+               then Container_Cross else Deepest);
          end;
+      end loop;
+
+      --  Step 4: align-content spreads the lines over the cross axis.
+      declare
+         Total_Lines_Cross : Pixel_Type :=
+           (if Line_Count > 1 then Cross_Gap * Pixel_Type (Line_Count - 1)
+            else 0.0);
+         Free_Cross     : Pixel_Type;
+         Pos            : Pixel_Type := 0.0;
+         Between        : Pixel_Type := 0.0;
+      begin
+         for L in 1 .. Line_Count loop
+            Total_Lines_Cross := Total_Lines_Cross + Lines (L).Cross_Size;
+         end loop;
+         Free_Cross := Container_Cross - Total_Lines_Cross;
+
+         case Context.Align_Content is
+            when Adi.CSS_Styles.Flex_Start =>
+               Pos := 0.0;
+            when Adi.CSS_Styles.Flex_End =>
+               Pos := Pixel_Type'Max (0.0, Free_Cross);
+            when Adi.CSS_Styles.Center =>
+               Pos := Pixel_Type'Max (0.0, Free_Cross) / 2.0;
+            when Adi.CSS_Styles.Space_Between =>
+               if Line_Count > 1 then
+                  Between := Pixel_Type'Max (0.0, Free_Cross)
+                    / Pixel_Type (Line_Count - 1);
+               end if;
+            when Adi.CSS_Styles.Space_Around =>
+               Between := Pixel_Type'Max (0.0, Free_Cross)
+                 / Pixel_Type (Line_Count);
+               Pos := Between / 2.0;
+            when Adi.CSS_Styles.Stretch =>
+               --  Only free space is shared out; lines never shrink to
+               --  fit a container smaller than their content.
+               if Free_Cross > 0.0 then
+                  for L in 1 .. Line_Count loop
+                     Lines (L).Cross_Size := Lines (L).Cross_Size
+                       + Free_Cross / Pixel_Type (Line_Count);
+                  end loop;
+               end if;
+         end case;
+
+         for L in 1 .. Line_Count loop
+            Lines (L).Cross_Pos := Pos;
+            Pos := Pos + Lines (L).Cross_Size + Cross_Gap + Between;
+         end loop;
+
+         --  wrap-reverse stacks the lines from the far edge back.
+         if Context.Wrap = Wrap_Reverse then
+            for L in 1 .. Line_Count loop
+               Lines (L).Cross_Pos :=
+                 Container_Cross - Lines (L).Cross_Pos - Lines (L).Cross_Size;
+            end loop;
+         end if;
+      end;
+
+      --  Step 5: size and place each item across its own line.
+      for L in 1 .. Line_Count loop
+         for I in Lines (L).First .. Lines (L).Last loop
+            declare
+               Child : Flex_Child_Info renames Children (I);
+               Before : constant Pixel_Type := Cross_Before (Child.Margin);
+               After  : constant Pixel_Type := Cross_After (Child.Margin);
+               Line_Cross : constant Pixel_Type := Lines (L).Cross_Size;
+               Room : constant Pixel_Type :=
+                 Pixel_Type'Max (0.0, Line_Cross - Before - After);
+               Effective_Align : Align_Items_Value;
+               Cross_Start : Pixel_Type;
+            begin
+               if Child.Align_Self = Auto then
+                  Effective_Align := Context.Align_Items;
+               else
+                  case Child.Align_Self is
+                     when Auto =>
+                        Effective_Align := Context.Align_Items;
+                     when Adi.CSS_Styles.Flex_Start =>
+                        Effective_Align := Adi.CSS_Styles.Flex_Start;
+                     when Adi.CSS_Styles.Flex_End =>
+                        Effective_Align := Adi.CSS_Styles.Flex_End;
+                     when Adi.CSS_Styles.Center =>
+                        Effective_Align := Adi.CSS_Styles.Center;
+                     when Adi.CSS_Styles.Baseline =>
+                        Effective_Align := Adi.CSS_Styles.Baseline;
+                     when Adi.CSS_Styles.Stretch =>
+                        Effective_Align := Adi.CSS_Styles.Stretch;
+                  end case;
+               end if;
+
+               case Effective_Align is
+                  when Adi.CSS_Styles.Stretch =>
+                     --  A child that states its cross size keeps it and
+                     --  overflows if the line is shallower; stretch is
+                     --  for the ones that left that size to the layout.
+                     Child.Computed_Cross :=
+                       (if Child.Cross_Is_Definite
+                        then Child.Content_Cross else Room);
+                  when others =>
+                     Child.Computed_Cross := Child.Content_Cross;
+               end case;
+               Child.Computed_Cross := Pixel_Type'Max
+                 (Child.Min_Cross,
+                  Pixel_Type'Min (Child.Max_Cross, Child.Computed_Cross));
+
+               case Effective_Align is
+                  when Adi.CSS_Styles.Flex_End =>
+                     Cross_Start :=
+                       Line_Cross - After - Child.Computed_Cross;
+                  when Adi.CSS_Styles.Center =>
+                     Cross_Start :=
+                       Before + (Room - Child.Computed_Cross) / 2.0;
+                  when others =>
+                     --  Baseline has no baseline to align to yet, so it
+                     --  sits where flex-start would put it.
+                     Cross_Start := Before;
+               end case;
+
+               Child.Computed_Pos_Cross := Lines (L).Cross_Pos + Cross_Start;
+            end;
+         end loop;
       end loop;
    end Compute_Flex_Layout;
 

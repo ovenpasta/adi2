@@ -700,6 +700,15 @@ package Adi.Widget is
 
    type Pixel_Array is array (Positive range <>) of Pixel_Type;
 
+   --  What one child of a flex row gets: the width it is laid out at,
+   --  and which line it lands on. A wrapping row is as deep as the sum
+   --  of its lines, so a caller measuring one needs both.
+   type Flex_Row_Item is record
+      Width : Pixel_Type := 0.0;
+      Line  : Positive := 1;
+   end record;
+   type Flex_Row_Items is array (Positive range <>) of Flex_Row_Item;
+
    --  The widths the in-flow children of a flex row are laid out at,
    --  in child order, given the row's content width.
    --
@@ -708,10 +717,11 @@ package Adi.Widget is
    --  contaminate an answer that was only asked how wide they are. It is
    --  a query and leaves no geometry behind.
    --
-   --  Empty unless W is a flex row with more than one in-flow child --
-   --  every other shape follows from the container's own width.
+   --  Empty unless W is a flex row with in-flow children. A wrapping row
+   --  is broken into lines first and each line flexes on its own, so a
+   --  caller measuring one can also tell which line an item landed on.
    function Flex_Row_Child_Widths
-     (W : Widget'Class; Content_Width : Pixel_Type) return Pixel_Array;
+     (W : Widget'Class; Content_Width : Pixel_Type) return Flex_Row_Items;
 
    --  The main-axis size a flex item is laid out from before it grows or
    --  shrinks. A definite flex-basis is exactly that basis -- including

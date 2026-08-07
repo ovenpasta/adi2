@@ -265,14 +265,20 @@ package body Adi.Widget.Box is
       Count : Natural := 0;
       Height : Pixel_Type := 0.0;
 
-      Row_Widths : constant Pixel_Array :=
+      --  One entry per possible line; only the first Line_Count are used.
+      Line_Depth : array (1 .. Natural'Max (1, Child_Count (W)))
+        of Pixel_Type := [others => 0.0];
+      Line_Count : Natural := 0;
+
+      Row_Items : constant Flex_Row_Items :=
         Flex_Row_Child_Widths (W, Content_W);
       Row_Index : Natural := 0;
 
       function Child_Width (Child : Widget'Class) return Pixel_Type is
         (Child_Layout_Width
            (W, Child, Content_W,
-            (if Row_Index in Row_Widths'Range then Row_Widths (Row_Index)
+            (if Row_Index in Row_Items'Range
+             then Row_Items (Row_Index).Width
              else Unknown_Assigned_Width)));
    begin
       if Content_W <= 0.0
@@ -304,7 +310,21 @@ package body Adi.Widget.Box is
                        Kid.Height + Margin.Top + Margin.Bottom;
                   begin
                      if Is_Row_Direction (Style.Flex_Direction) then
-                        Height := Pixel_Type'Max (Height, Outer_H);
+                        --  Deepest item on each line; the lines are
+                        --  added up once the loop has seen them all.
+                        declare
+                           L : constant Natural :=
+                             (if Row_Index in Row_Items'Range
+                              then Row_Items (Row_Index).Line else 1);
+                        begin
+                           if L in Line_Depth'Range then
+                              Line_Depth (L) :=
+                                Pixel_Type'Max (Line_Depth (L), Outer_H);
+                              Line_Count := Natural'Max (Line_Count, L);
+                           else
+                              Height := Pixel_Type'Max (Height, Outer_H);
+                           end if;
+                        end;
                      else
                         Height := Height + Outer_H;
                      end if;
@@ -314,7 +334,16 @@ package body Adi.Widget.Box is
          end if;
       end loop;
 
-      if Count > 1 and then not Is_Row_Direction (Style.Flex_Direction) then
+      if Is_Row_Direction (Style.Flex_Direction) then
+         for L in 1 .. Line_Count loop
+            Height := Height + Line_Depth (L);
+         end loop;
+         if Line_Count > 1 then
+            Height := Height
+              + Get_Cross_Gap (Style.Gap, Style.Flex_Direction)
+                * Pixel_Type (Line_Count - 1);
+         end if;
+      elsif Count > 1 then
          Height := Height + Gap * Pixel_Type (Count - 1);
       end if;
 
@@ -637,15 +666,16 @@ package body Adi.Widget.Box is
                    ((X => 0.0, Y => 0.0,
                      Width => Assigned_Width, Height => 0.0), Style).Width));
 
-      Row_Widths : constant Pixel_Array :=
-        (if Inner_Width = Unknown_Assigned_Width then (1 .. 0 => 0.0)
+      Row_Items : constant Flex_Row_Items :=
+        (if Inner_Width = Unknown_Assigned_Width then (1 .. 0 => <>)
          else Flex_Row_Child_Widths (W, Inner_Width));
       Row_Index : Natural := 0;
 
       function Child_Measure_Width (Child : Widget'Class) return Pixel_Type is
         (Child_Layout_Width
            (W, Child, Inner_Width,
-            (if Row_Index in Row_Widths'Range then Row_Widths (Row_Index)
+            (if Row_Index in Row_Items'Range
+             then Row_Items (Row_Index).Width
              else Unknown_Assigned_Width)));
       Gap : constant Pixel_Type := Get_Main_Gap (Style.Gap, Style.Flex_Direction);
       Row_Gap : constant Pixel_Type := Get_Row_Gap (Style.Gap);
@@ -653,6 +683,14 @@ package body Adi.Widget.Box is
       Count : Natural := 0;
       Main_Sum : Pixel_Type := 0.0;
       Cross_Max : Pixel_Type := 0.0;
+
+      --  A wrapping row needs room for every line, so the cross minimum
+      --  is collected per line and added up, the way the measurement
+      --  does it. One entry per possible line.
+      Line_Cross : array (1 .. Natural'Max (1, Child_Count (W)))
+        of Pixel_Type := [others => 0.0];
+      Line_Used  : Natural := 0;
+
       Result : Size_2D := (0.0, 0.0);
    begin
       if Style.Display = Flex or else Style.Display = Inline_Flex then
@@ -725,13 +763,23 @@ package body Adi.Widget.Box is
                               (Get_Main_Size (Min, Style.Flex_Direction),
                                Base_Floor)
                           + Main_Margins;
-                        Cross_Max :=
-                          Pixel_Type'Max
-                            (Cross_Max,
+                        declare
+                           Cross : constant Pixel_Type :=
                              Pixel_Type'Max
                                (Get_Cross_Size (Min, Style.Flex_Direction),
                                 Cross_Floor)
-                             + Cross_Margins);
+                             + Cross_Margins;
+                           L : constant Natural :=
+                             (if Row_Index in Row_Items'Range
+                              then Row_Items (Row_Index).Line else 1);
+                        begin
+                           Cross_Max := Pixel_Type'Max (Cross_Max, Cross);
+                           if L in Line_Cross'Range then
+                              Line_Cross (L) :=
+                                Pixel_Type'Max (Line_Cross (L), Cross);
+                              Line_Used := Natural'Max (Line_Used, L);
+                           end if;
+                        end;
                         Count := Count + 1;
                      end;
                   end if;
@@ -741,6 +789,18 @@ package body Adi.Widget.Box is
 
          if Count > 1 then
             Main_Sum := Main_Sum + Gap * Pixel_Type (Count - 1);
+         end if;
+
+         --  Lines only exist once the widths are known, so a widthless
+         --  aggregation keeps the single-line answer.
+         if Line_Used > 1 then
+            Cross_Max := 0.0;
+            for L in 1 .. Line_Used loop
+               Cross_Max := Cross_Max + Line_Cross (L);
+            end loop;
+            Cross_Max := Cross_Max
+              + Get_Cross_Gap (Style.Gap, Style.Flex_Direction)
+                * Pixel_Type (Line_Used - 1);
          end if;
 
          Result := Make_Size (Main_Sum, Cross_Max, Style.Flex_Direction);

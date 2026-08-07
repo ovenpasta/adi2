@@ -1520,7 +1520,23 @@ package body Adi.Widget.Html_View is
       return "";
    end Find_Link_At;
 
-   procedure Layout_And_Build (Self : in out Html_View) is
+   --  What one layout pass decided, before any of it reaches the
+   --  widget. Item is the buffer: entries come from Make_* and so carry
+   --  null renderer caches, and this vector is never rendered -- only
+   --  copies emitted into Self.Items are.
+   type Document_Layout is record
+      Items      : Items_List.Vector;
+      Links      : Link_Fragment_Vectors.Vector;
+      Content_W  : Pixel_Type := 0.0;
+      Content_H  : Pixel_Type := 0.0;
+      Scroll_H   : Pixel_Type := 0.0;
+      Viewport_H : Pixel_Type := 0.0;
+      --  False when the widget had no visible area to lay out in.
+      Sized      : Boolean := False;
+   end record;
+
+   procedure Layout_Document
+     (Self : in out Html_View; Result : out Document_Layout) is
       Main_Style       : constant Resolved_Style := Get_Resolved_Part_Style (Self, Main_Part);
       Text_Part_Style : constant Resolved_Style := Get_Resolved_Part_Style (Self, Text_Part);
       Content          : constant Rectangle := Content_Box (Self.Geometry, Main_Style);
@@ -1887,7 +1903,7 @@ package body Adi.Widget.Html_View is
       begin
          for Run of Line_Runs loop
             declare
-               Item_Ref : Item renames Self.Items.Reference (Run.Item_Index).Element.all;
+               Item_Ref : Item renames Result.Items.Reference (Run.Item_Index).Element.all;
             begin
                --  Images are replaced content: they render at their used
                --  size (explicit CSS box or intrinsic dimensions) and are
@@ -1910,7 +1926,7 @@ package body Adi.Widget.Html_View is
 
          for Run of Line_Runs loop
             declare
-               Item_Ref : Item renames Self.Items.Reference (Run.Item_Index).Element.all;
+               Item_Ref : Item renames Result.Items.Reference (Run.Item_Index).Element.all;
             begin
                if Item_Ref.Kind = Text_Item then
                   Item_Ref.Text_Offset_Y := Item_Ref.Text_Offset_Y + Delta_Y;
@@ -1919,10 +1935,10 @@ package body Adi.Widget.Html_View is
                end if;
             end;
 
-            if Run.Link_Index > 0 and then Run.Link_Index <= Natural (Self.Links.Length) then
+            if Run.Link_Index > 0 and then Run.Link_Index <= Natural (Result.Links.Length) then
                declare
                   Link_Ref : Link_Fragment renames
-                    Self.Links.Reference (Positive (Run.Link_Index)).Element.all;
+                    Result.Links.Reference (Positive (Run.Link_Index)).Element.all;
                begin
                   Link_Ref.Geometry.Y := Link_Ref.Geometry.Y + Delta_Y;
                end;
@@ -1956,15 +1972,15 @@ package body Adi.Widget.Html_View is
 
          for Run of Line_Runs loop
             declare
-               Item_Ref : Item renames Self.Items.Reference (Run.Item_Index).Element.all;
+               Item_Ref : Item renames Result.Items.Reference (Run.Item_Index).Element.all;
             begin
                Item_Ref.Geometry.X := Item_Ref.Geometry.X + Shift_X;
             end;
 
-            if Run.Link_Index > 0 and then Run.Link_Index <= Natural (Self.Links.Length) then
+            if Run.Link_Index > 0 and then Run.Link_Index <= Natural (Result.Links.Length) then
                declare
                   Link_Ref : Link_Fragment renames
-                    Self.Links.Reference (Positive (Run.Link_Index)).Element.all;
+                    Result.Links.Reference (Positive (Run.Link_Index)).Element.all;
                begin
                   Link_Ref.Geometry.X := Link_Ref.Geometry.X + Shift_X;
                   Link_Ref.Geometry := Clip_To_Content (Link_Ref.Geometry);
@@ -2000,9 +2016,9 @@ package body Adi.Widget.Html_View is
             return 0;
          end if;
 
-         Self.Links.Append
+         Result.Links.Append
            (New_Item => Link_Fragment'(Geometry => Geom, Href => To_Unbounded_String (Href)));
-         return Natural (Self.Links.Last_Index);
+         return Natural (Result.Links.Last_Index);
       end Add_Link_Fragment;
 
       procedure Add_Text_Run
@@ -2122,9 +2138,9 @@ package body Adi.Widget.Html_View is
             It.Has_Style_Override := True;
             Render_Style.Font_Size := Pixels_As_Length (Local_Font_Size_Px (Style));
             It.Style_Override := Render_Style;
-            Add_Item (Self, It);
+            Result.Items.Append (It);
 
-            Item_Index := Positive (Self.Items.Last_Index);
+            Item_Index := Positive (Result.Items.Last_Index);
             Link_Index := Add_Link_Fragment (Full_Geom, Href);
             Line_Runs.Append
               (New_Item =>
@@ -2198,9 +2214,9 @@ package body Adi.Widget.Html_View is
                It.Style_Override.Object_Position :=
                  Object_Position (Pos_Center, Pos_Top);
             end if;
-            Add_Item (Self, It);
+            Result.Items.Append (It);
 
-            Item_Index := Positive (Self.Items.Last_Index);
+            Item_Index := Positive (Result.Items.Last_Index);
             Link_Index := Add_Link_Fragment (Full_Geom, Href);
             Line_Runs.Append
               (New_Item =>
@@ -2250,7 +2266,7 @@ package body Adi.Widget.Html_View is
          begin
             It.Has_Style_Override := True;
             It.Style_Override := Style;
-            Add_Item (Self, It);
+            Result.Items.Append (It);
          end;
 
          New_Line;
@@ -2372,7 +2388,7 @@ package body Adi.Widget.Html_View is
             Prev_Block_Margin_Bottom := 0.0;
          end if;
          for Idx of Pending_Tops loop
-            Self.Items.Reference (Idx).Geometry.Y := Y;
+            Result.Items.Reference (Idx).Geometry.Y := Y;
          end loop;
          Pending_Tops.Clear;
       end Flush_Pending_Margin;
@@ -2702,8 +2718,8 @@ package body Adi.Widget.Html_View is
                               begin
                                  It.Has_Style_Override := True;
                                  It.Style_Override := Style;
-                                 Add_Item (Self, It);
-                                 Block_Item_Index := Natural (Self.Items.Last_Index);
+                                 Result.Items.Append (It);
+                                 Block_Item_Index := Natural (Result.Items.Last_Index);
                               end;
 
                               if Has_Top_Sep then
@@ -2841,11 +2857,11 @@ package body Adi.Widget.Html_View is
                                  --  Re-read panel Y in case Flush_Pending_Margin
                                  --  moved it after this block was added.
                                  Final_Top : constant Pixel_Type :=
-                                   Self.Items.Reference
+                                   Result.Items.Reference
                                      (Positive (Block_Item_Index)).Geometry.Y;
                                  Block_Bottom_Y : constant Pixel_Type := Y;
                               begin
-                                 Self.Items.Reference (Positive (Block_Item_Index)).Geometry :=
+                                 Result.Items.Reference (Positive (Block_Item_Index)).Geometry :=
                                    (X      => Block_Left_X,
                                     Y      => Final_Top,
                                     Width  => Block_Width,
@@ -2872,16 +2888,10 @@ package body Adi.Widget.Html_View is
          end case;
       end Layout_Node;
    begin
-      if Item_Count (Self) = 0 then
-         Add_Item (Self, Make_Panel (Main_Part, Self.Geometry, 0));
-      end if;
-
-      Self.Items.Reference (Panel_Idx).Geometry := Self.Geometry;
-      while Item_Count (Self) > 1 loop
-         Self.Items.Delete_Last;
-      end loop;
-
-      Self.Links.Clear;
+      Result.Items.Clear;
+      Result.Links.Clear;
+      Result.Items.Append (Make_Panel (Main_Part, Self.Geometry, 0));
+      Result.Items.Reference (Panel_Idx).Geometry := Self.Geometry;
 
       if not Has_Visible_Area (Content) then
          return;
@@ -2954,9 +2964,9 @@ package body Adi.Widget.Html_View is
          Content_End_Y : Pixel_Type :=
            (if Has_Line_Content then Y + Current_Line_H else Y);
       begin
-         for I in 2 .. Item_Count (Self) loop
+         for I in 2 .. Natural (Result.Items.Length) loop
             declare
-               It : constant Item := Get_Item (Self, I);
+               It : constant Item := Result.Items.Element (I);
                Bottom : constant Pixel_Type := It.Geometry.Y + It.Geometry.Height;
             begin
                if Bottom > Content_End_Y then
@@ -2965,7 +2975,7 @@ package body Adi.Widget.Html_View is
             end;
          end loop;
 
-         Self.Scroll_Content_H :=
+         Result.Scroll_H :=
            Pixel_Type'Max (Content.Height, (Content_End_Y + Scroll_Offset) - Content.Y);
 
          --  Track the document's intrinsic size so Measure_Content can
@@ -2973,14 +2983,40 @@ package body Adi.Widget.Html_View is
          --  of the last block — what the parent flex should size to,
          --  not the max(viewport, content) value that Scroll_Content_H
          --  holds for scrollbar math.
-         Self.Cached_Content_W := Content.Width;
-         Self.Cached_Content_H :=
+         Result.Content_W := Content.Width;
+         Result.Content_H :=
            Pixel_Type'Max (0.0, (Content_End_Y + Scroll_Offset) - Content.Y);
       end;
 
-      Self.Scroll_Viewport_H := Content.Height;
-      Update_Scrollbar_Geometry (Self);
+      Result.Viewport_H := Content.Height;
+      --  Reached only when the widget had somewhere to lay out. An early
+      --  return leaves the previous metrics standing, as before.
+      Result.Sized := True;
+   end Layout_Document;
+   procedure Emit_Items (Self : in out Html_View; L : Document_Layout) is
+   begin
+      Clear_Items (Self);
+      for It of L.Items loop
+         Add_Item (Self, It);
+      end loop;
+      Self.Links := L.Links;
+
+      if L.Sized then
+         Self.Scroll_Content_H  := L.Scroll_H;
+         Self.Cached_Content_W  := L.Content_W;
+         Self.Cached_Content_H  := L.Content_H;
+         Self.Scroll_Viewport_H := L.Viewport_H;
+         Update_Scrollbar_Geometry (Self);
+      end if;
+   end Emit_Items;
+
+   procedure Layout_And_Build (Self : in out Html_View) is
+      L : Document_Layout;
+   begin
+      Layout_Document (Self, L);
+      Emit_Items (Self, L);
    end Layout_And_Build;
+
 
    function Create return Html_View_Access is
       Result : constant Html_View_Access := new Html_View;

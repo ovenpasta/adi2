@@ -16,6 +16,8 @@ Each example program in [`examples/`](../examples/), captured as a screenshot. B
 
 ![demo_flex](../examples/screenshots/demo_flex.png)
 ![demo_flex](../examples/screenshots/demo_flex_2.png)
+![demo_flex](../examples/screenshots/demo_flex_3.png)
+![demo_flex](../examples/screenshots/demo_flex_4.png)
 *`demo_flex`*
 
 ![dialog_example](../examples/screenshots/dialog_example.png)

@@ -6,6 +6,7 @@ pragma Ada_2022;
 with Ada.Containers.Vectors;
 with Adi.CSS_Parser;
 with Adi.CSS_Styles;
+with Adi.Font;
 with Adi.Image;
 with Adi.Signal;
 
@@ -184,6 +185,51 @@ private
      (Index_Type   => Positive,
       Element_Type => Inline_Style_Cache_Entry);
 
+   --  What one layout pass decided, before any of it reaches the
+   --  widget. Item is the buffer: entries come from Make_* and so carry
+   --  null renderer caches, and this vector is never rendered -- only
+   --  copies emitted into Self.Items are.
+   type Document_Layout is record
+      Items      : Items_List.Vector;
+      Links      : Link_Fragment_Vectors.Vector;
+      Content_W  : Pixel_Type := 0.0;
+      Content_H  : Pixel_Type := 0.0;
+      Scroll_H   : Pixel_Type := 0.0;
+      Viewport_H : Pixel_Type := 0.0;
+      --  False when the widget had no visible area to lay out in.
+      Sized      : Boolean := False;
+   end record;
+
+   --  Everything a layout depends on. Position and scroll are absent by
+   --  construction: the layout is in document space and emission places
+   --  it. The numeric scales are compared by value; the two generations
+   --  cover changes that leave every value here standing.
+   --  Wraps rather than raising, as the font counter does: only
+   --  equality matters here.
+   type Document_Generation is mod 2 ** 32;
+
+   --  Counts document layout passes. Wraps rather than raising; only
+   --  differences between two readings mean anything, and they are read
+   --  through Adi.Widget.Html_View.Testing.
+   type Pass_Count is mod 2 ** 32;
+
+   type Cache_Key is record
+      Valid       : Boolean := False;
+      Doc_Gen     : Document_Generation := 0;
+      Font_Gen    : Adi.Font.Font_Generation := 0;
+      Content_W   : Pixel_Type := 0.0;
+      Content_H   : Pixel_Type := 0.0;
+      DIP_Scale   : Pixel_Type := 0.0;
+      UI_Scale    : Pixel_Type := 0.0;
+      Text_Scale  : Pixel_Type := 0.0;
+      HTML_Scale  : Pixel_Type := 0.0;
+      Px_To_Dip   : Boolean := False;
+      Root_Font   : Adi.CSS_Styles.Length_Value :=
+        Adi.CSS_Styles.Default_Font_Size;
+      Main_Style  : Adi.CSS_Styles.Resolved_Style;
+      Text_Style  : Adi.CSS_Styles.Resolved_Style;
+   end record;
+
    type Html_View is new Widget with record
       Source          : Unbounded_String := Null_Unbounded_String;
       Nodes           : Node_Vectors.Vector;
@@ -211,6 +257,16 @@ private
       --  subsequent measures return the real values.
       Cached_Content_W : Pixel_Type := 0.0;
       Cached_Content_H : Pixel_Type := 0.0;
+
+      --  Advances whenever the document itself changes: new source, new
+      --  stylesheet, or a different asset loader, which drops the image
+      --  cache without touching the source.
+      Doc_Generation : Document_Generation := 0;
+
+      Layout_Cache : Document_Layout;
+      Layout_Key   : Cache_Key;
+
+      Layout_Passes : Pass_Count := 0;
    end record;
 
    type Html_View_Handle is record

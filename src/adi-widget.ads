@@ -880,6 +880,8 @@ private
       Cached_Resolved_Init : Part_Initialized_Array := [others => False];
       Cached_Style_Version : Natural := 0;
       Cached_Eff_States    : Widget_States := No_States;
+      --  The font environment those cached styles were resolved against.
+      Cached_Font_Gen      : Adi.Font.Font_Generation := 0;
       Cached_Part_States   : Part_State_Array := [others => No_States];
 
       --  Layout epoch for duplicate-call elimination (Phase 2)

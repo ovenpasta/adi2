@@ -166,6 +166,25 @@ package Adi.Font is
 
    procedure Set_Default_Font (Handle : Font_Handle);
 
+   --  Advances whenever anything that changes text metrics changes: a
+   --  variant registered, a family's faces replaced, a different default
+   --  font chosen. Family, size and the scales can all stay put across
+   --  such a change, so a cache keyed on those alone would not notice
+   --  it. Compare this alongside them.
+   --
+   --  Modular, so it wraps instead of raising: only equality matters,
+   --  and two keys can only alias after exactly 2**32 changes between
+   --  storing one and comparing it.
+   --
+   --  It makes the next resolution correct; it does not repaint what is
+   --  already on screen. Nothing here can mark a widget dirty -- widgets
+   --  depend on fonts, not the other way round -- so a font registered
+   --  while a window is up reaches it when something else invalidates
+   --  that widget, or when the caller asks for a rebuild, the way CSS
+   --  live reload does.
+   type Font_Generation is mod 2 ** 32;
+   function Environment_Generation return Font_Generation;
+
    ---------------------------------------------------------------------------
    --  Font access — returns a TTF_Font opened at the given point size.
    --  Each (Handle, Size) pair is cached: first call opens the font,

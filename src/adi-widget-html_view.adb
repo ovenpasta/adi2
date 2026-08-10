@@ -797,6 +797,9 @@ package body Adi.Widget.Html_View is
    is
       Success : Boolean := True;
    begin
+      --  Anything that rebuilds the document invalidates a layout of
+      --  the previous one.
+      Self.Doc_Generation := Self.Doc_Generation + 1;
       if Length (Self.Default_CSS) > 0 then
          declare
             Combined : constant String :=
@@ -844,6 +847,9 @@ package body Adi.Widget.Html_View is
          return Positive (Stack.Element (Positive (Stack.Last_Index)));
       end Current_Parent;
    begin
+      --  Anything that rebuilds the document invalidates a layout of
+      --  the previous one.
+      Self.Doc_Generation := Self.Doc_Generation + 1;
       Self.Nodes.Clear;
 
       Self.Nodes.Append
@@ -1519,21 +1525,6 @@ package body Adi.Widget.Html_View is
 
       return "";
    end Find_Link_At;
-
-   --  What one layout pass decided, before any of it reaches the
-   --  widget. Item is the buffer: entries come from Make_* and so carry
-   --  null renderer caches, and this vector is never rendered -- only
-   --  copies emitted into Self.Items are.
-   type Document_Layout is record
-      Items      : Items_List.Vector;
-      Links      : Link_Fragment_Vectors.Vector;
-      Content_W  : Pixel_Type := 0.0;
-      Content_H  : Pixel_Type := 0.0;
-      Scroll_H   : Pixel_Type := 0.0;
-      Viewport_H : Pixel_Type := 0.0;
-      --  False when the widget had no visible area to lay out in.
-      Sized      : Boolean := False;
-   end record;
 
    procedure Layout_Document
      (Self : in out Html_View; Result : out Document_Layout) is
@@ -3046,11 +3037,52 @@ package body Adi.Widget.Html_View is
       end if;
    end Emit_Items;
 
-   procedure Layout_And_Build (Self : in out Html_View) is
-      L : Document_Layout;
+   function Current_Key (Self : Html_View) return Cache_Key is
+      Main_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (Self, Main_Part);
+      Content : constant Rectangle := Content_Box (Self.Geometry, Main_Style);
    begin
-      Layout_Document (Self, L);
-      Emit_Items (Self, L);
+      return
+        (Valid      => True,
+         Doc_Gen    => Self.Doc_Generation,
+         Font_Gen   => Adi.Font.Environment_Generation,
+         Content_W  => Content.Width,
+         Content_H  => Content.Height,
+         DIP_Scale  => Get_Active_DIP_Scale,
+         UI_Scale   => Get_Active_UI_Scale,
+         Text_Scale => Get_Active_Text_Scale,
+         HTML_Scale => Self.Content_Scale,
+         Px_To_Dip  => Get_Px_Maps_To_Dip,
+         Root_Font  => Self.Root_Font_Size,
+         Main_Style => Main_Style,
+         Text_Style => Get_Resolved_Part_Style (Self, Text_Part));
+   end Current_Key;
+
+   --  The buffer must never have been rendered: rendering fills the
+   --  TTF and font caches on the items it draws, and those belong to
+   --  the copies in Self.Items, not to a layout that outlives them.
+   function Unrendered (L : Document_Layout) return Boolean is
+      use type Adi.SDL.TTF.TextEngine.TTF_Text_Access;
+      use type Adi.SDL.TTF.TTF_Font_Access;
+   begin
+      return (for all It of L.Items =>
+                It.Cached_TTF_Text = null and then It.Cached_Font = null);
+   end Unrendered;
+
+   procedure Layout_And_Build (Self : in out Html_View) is
+      Key : constant Cache_Key := Current_Key (Self);
+   begin
+      if not Self.Layout_Key.Valid or else Self.Layout_Key /= Key then
+         Self.Layout_Passes := Self.Layout_Passes + 1;
+         Layout_Document (Self, Self.Layout_Cache);
+         Self.Layout_Key := Key;
+         pragma Assert (Unrendered (Self.Layout_Cache),
+                        "a rendered layout must not be cached");
+      end if;
+
+      pragma Assert (Unrendered (Self.Layout_Cache),
+                     "the cached layout must still be unrendered");
+      Emit_Items (Self, Self.Layout_Cache);
    end Layout_And_Build;
 
 
@@ -3327,6 +3359,7 @@ package body Adi.Widget.Html_View is
    begin
       Self.On_Load_Asset := Callback;
       Self.Image_Cache.Clear;
+      Self.Doc_Generation := Self.Doc_Generation + 1;
       Mark_Dirty (Self);
    end Set_On_Load_Asset;
 

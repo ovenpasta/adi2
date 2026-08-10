@@ -604,11 +604,17 @@ package body Adi.Font is
       return Family_Generation.Element (Positive (H));
    end Get_Generation;
 
+   Env_Generation : Font_Generation := 0;
+
+   function Environment_Generation return Font_Generation is (Env_Generation);
+
    procedure Bump_Generation (Handle : Font_Handle) is
       H     : constant Font_Handle := Canonical_Handle (Handle);
       Index : Positive;
       Value : Natural;
    begin
+      Env_Generation := Env_Generation + 1;
+
       if H = Null_Font then
          return;
       end if;
@@ -1201,6 +1207,7 @@ package body Adi.Font is
    procedure Register_Name (Name : String; Handle : Font_Handle) is
       Key : constant String := Ada.Characters.Handling.To_Lower (Name);
    begin
+      Env_Generation := Env_Generation + 1;
       if Name_Registry.Contains (Key) then
          Name_Registry.Replace (Key, Handle);
       else
@@ -1612,12 +1619,14 @@ package body Adi.Font is
 
    procedure Set_Default_Font (Handle : Font_Handle) is
    begin
+      Env_Generation := Env_Generation + 1;
       Default_Fallback_Handle := Handle;
       Fallback_Found := Handle /= Null_Font;
    end Set_Default_Font;
 
    procedure Enable_System_Font_Search is
    begin
+      Env_Generation := Env_Generation + 1;
       Adi.CSS_Styles.Set_Font_Name_Resolver (Find'Access);
    end Enable_System_Font_Search;
 

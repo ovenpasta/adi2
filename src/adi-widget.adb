@@ -325,6 +325,10 @@ package body Adi.Widget is
       Widget_States      : Packed_State_Bits := 0;
       Part_States        : Packed_State_Bits := 0;
       Main_Part_States   : Packed_State_Bits := 0;
+      --  Resolving turns a font family named in CSS into a handle, so
+      --  two resolutions of the same rules differ when the name maps
+      --  somewhere else. Nothing above can see that.
+      Font_Gen           : Adi.Font.Font_Generation := 0;
    end record;
 
    function Hash_Resolved_Cache_Key
@@ -466,6 +470,7 @@ package body Adi.Widget is
       H := H xor Hash_Type (K.Widget_States);
       H := H xor Hash_Type (Interfaces.Shift_Left (K.Part_States, 4));
       H := H xor Hash_Type (Interfaces.Shift_Left (K.Main_Part_States, 8));
+      H := H xor Hash_Type (K.Font_Gen);
       return H;
    end Hash_Resolved_Cache_Key;
 
@@ -1519,7 +1524,8 @@ package body Adi.Widget is
         Main_Handle      => Main_Handle,
         Widget_States    => Pack_States (Eff),
         Part_States      => Pack_States (W.Part_States (P)),
-        Main_Part_States => Pack_States (W.Part_States (Main_Part)));
+        Main_Part_States => Pack_States (W.Part_States (Main_Part)),
+        Font_Gen         => Adi.Font.Environment_Generation);
       Result : Resolved_Style;
    begin
       Inc_Sat (Perf_Style_Resolves);
@@ -1530,12 +1536,19 @@ package body Adi.Widget is
       --  updates the shared key, making a subsequent Label_Part lookup
       --  appear cached even though Label_Part inherits from Main_Part
       --  and should also change.
+      --  A font registered or replaced after a style resolved changes
+      --  which face Font_Family names, and nothing else in the key can
+      --  see that. One modular comparison keeps runtime font changes
+      --  working instead of making registration startup-only.
       if W_Mut.Cached_Style_Version /= W.Style_Version
         or else W_Mut.Cached_Eff_States /= Eff
+        or else not Adi.Font."=" (W_Mut.Cached_Font_Gen,
+                                  Adi.Font.Environment_Generation)
       then
          W_Mut.Cached_Resolved_Init := [others => False];
          W_Mut.Cached_Style_Version := W.Style_Version;
          W_Mut.Cached_Eff_States := Eff;
+         W_Mut.Cached_Font_Gen := Adi.Font.Environment_Generation;
       end if;
 
       --  Cache hit?  (per-part key: init flag + part states)

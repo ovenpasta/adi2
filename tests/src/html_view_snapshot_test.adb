@@ -7,8 +7,13 @@ with Ada.Text_IO;           use Ada.Text_IO;
 with Adi.Core;              use Adi.Core;
 with Adi.CSS_Styles;        use Adi.CSS_Styles;
 with Adi.Widget;            use Adi.Widget;
+with Adi.Widget_Styles;
+with Adi.Font;
+with Adi.Layout_Util;
+with Adi.Widget.Box;
 with Adi.Widget.Html_View;
 with Adi.Image;
+with Adi.Widget.Html_View.Testing;
 with Test_Support;
 
 --  A characterisation of what laying out one document produces, held
@@ -30,6 +35,8 @@ with Test_Support;
 procedure Html_View_Snapshot_Test is
 
    package HV renames Adi.Widget.Html_View;
+   use type Adi.Widget.Box.Box_Handle;
+   use type Adi.Widget.Html_View.Testing.Layout_Pass_Counter;
    use type Adi.Image.Image_Access;
    use type HV.Html_View_Handle;
 
@@ -98,6 +105,14 @@ procedure Html_View_Snapshot_Test is
    end Item_Line;
 
    Clicked : Unbounded_String := Null_Unbounded_String;
+
+   function Probe_Loader (Self : HV.Html_View_Handle; URI : String)
+     return Adi.Image.Image_Access
+   is
+      pragma Unreferenced (Self, URI);
+   begin
+      return null;
+   end Probe_Loader;
 
    procedure On_Link_Click (Self : HV.Html_View_Handle; Href : String) is
       pragma Unreferenced (Self);
@@ -445,6 +460,197 @@ begin
                      Now.Y + Now.Height / 2.0) = "#deep",
             "and it answers a click once it is there");
       end;
+   end;
+
+   --  A cache that always misses renders correctly and costs what it
+   --  always did, so only the pass count can tell the difference.
+   Put_Line ("--- the layout is kept ---");
+   declare
+      C : constant HV.Html_View_Handle := HV.Create_Handle;
+
+      Before : Adi.Widget.Html_View.Testing.Layout_Pass_Counter;
+
+      Saved_DIP  : constant Pixel_Type := Adi.Layout_Util.Get_Active_DIP_Scale;
+      Saved_UI   : constant Pixel_Type := Adi.Layout_Util.Get_Active_UI_Scale;
+      Saved_Text : constant Pixel_Type :=
+        Adi.Layout_Util.Get_Active_Text_Scale;
+      Saved_Px_Dip : constant Boolean :=
+        Adi.Layout_Util.Get_Px_Maps_To_Dip;
+
+      procedure Rebuild is
+      begin
+         Build_Items (+C);
+      end Rebuild;
+
+      procedure Expect
+        (Passes : Adi.Widget.Html_View.Testing.Layout_Pass_Counter;
+         What   : String) is
+      begin
+         Test_Support.Assert
+           (Adi.Widget.Html_View.Testing.Layout_Pass_Count (C) = Before + Passes,
+            What & " ("
+            & Adi.Widget.Html_View.Testing.Layout_Pass_Counter'Image
+                (Adi.Widget.Html_View.Testing.Layout_Pass_Count (C) - Before)
+            & " passes)");
+         Before := Adi.Widget.Html_View.Testing.Layout_Pass_Count (C);
+      end Expect;
+   begin
+      HV.Set_HTML (C, Document);
+      Set_Geometry (+C, (X => 0.0, Y => 0.0,
+                         Width => View_W, Height => 100.0));
+      Rebuild;
+      Before := Adi.Widget.Html_View.Testing.Layout_Pass_Count (C);
+
+      --  Nothing a layout depends on has moved.
+      Rebuild;
+      Expect (0, "rebuilding unchanged lays nothing out again");
+
+      Set_Scroll_Offset_Y (+C, 20.0);
+      Rebuild;
+      Expect (0, "scrolling lays nothing out again");
+
+      Set_Geometry (+C, (X => 60.0, Y => 15.0,
+                         Width => View_W, Height => 100.0));
+      Rebuild;
+      Expect (0, "moving the widget lays nothing out again");
+
+      --  Each of these changes the document or how it measures.
+      Set_Geometry (+C, (X => 60.0, Y => 15.0,
+                         Width => View_W - 40.0, Height => 100.0));
+      Rebuild;
+      Expect (1, "a narrower widget lays out once");
+
+      Set_Geometry (+C, (X => 60.0, Y => 15.0,
+                         Width => View_W - 40.0, Height => 140.0));
+      Rebuild;
+      Expect (1, "a taller widget lays out once, since height sets the "
+                 & "root font size");
+
+      HV.Set_Content_Scale (C, 1.25);
+      Rebuild;
+      Expect (1, "a new content scale lays out once");
+
+      HV.Set_HTML (C, "<p>different</p>");
+      Rebuild;
+      Expect (1, "new source lays out once");
+
+      HV.Set_On_Load_Asset (C, Probe_Loader'Unrestricted_Access);
+      Rebuild;
+      Expect (1, "a different asset loader lays out once");
+
+      --  Nothing about this widget changed; the font environment did.
+      HV.Set_Default_Stylesheet_String (C, "p { margin-top: 4px; }");
+      Rebuild;
+      Expect (1, "a new stylesheet lays out once");
+
+      --  The scales and the px mapping are process-global. Each is put
+      --  back to whatever it was, not to an assumed default, so nothing
+      --  here depends on what ran before it.
+      Adi.Layout_Util.Set_Active_DIP_Scale (Saved_DIP + 0.5);
+      Rebuild;
+      Expect (1, "a new DIP scale lays out once");
+      Adi.Layout_Util.Set_Active_DIP_Scale (Saved_DIP);
+      Rebuild;
+      Expect (1, "and restoring it lays out once more");
+
+      Adi.Layout_Util.Set_Active_UI_Scale (Saved_UI + 0.25);
+      Rebuild;
+      Expect (1, "a new UI scale lays out once");
+      Adi.Layout_Util.Set_Active_UI_Scale (Saved_UI);
+      Rebuild;
+      Expect (1, "and restoring it lays out once more");
+
+      Adi.Layout_Util.Set_Active_Text_Scale (Saved_Text + 0.4);
+      Rebuild;
+      Expect (1, "a new text scale lays out once");
+      Adi.Layout_Util.Set_Active_Text_Scale (Saved_Text);
+      Rebuild;
+      Expect (1, "and restoring it lays out once more");
+
+      Adi.Layout_Util.Set_Px_Maps_To_Dip (not Saved_Px_Dip);
+      Rebuild;
+      Expect (1, "mapping px to dip lays out once");
+      Adi.Layout_Util.Set_Px_Maps_To_Dip (Saved_Px_Dip);
+      Rebuild;
+      Expect (1, "and unmapping it lays out once more");
+
+      --  The document's own key carries the font generation, separately
+      --  from the style memo: this name is referenced by nothing, so
+      --  only the generation can carry it.
+      Adi.Font.Register_Name ("cache-key-probe", Null_Font);
+      Rebuild;
+      Expect (1, "a font environment change lays the document out once");
+
+      --  Both parts are stored in the document layout. Change one part
+      --  at a time without changing the widget's content rectangle, so
+      --  neither case can miss through another cache-key field.
+      Set_Part_Style
+        (+C, Main_Part,
+         Adi.Widget_Styles.From
+           ((Background_Color =>
+                Adi.CSS_Styles.Set_Bg (Adi.CSS_Styles.RGB (17, 31, 47)),
+             others => <>)).Build);
+      Rebuild;
+      Expect (1, "a new main-part style lays out once");
+
+      Set_Part_Style
+        (+C, Text_Part,
+         Adi.Widget_Styles.From
+           ((Font_Size => Adi.CSS_Styles.Set_Font (Adi.CSS_Styles.Px (23.0)),
+             others => <>)).Build);
+      Rebuild;
+      Expect (1, "a new text-part style lays out once");
+   end;
+
+   --  Resolving turns a font family named in CSS into a handle. Remap
+   --  the name afterwards and the next resolution has to follow it, or
+   --  a font registered at runtime never reaches anything already
+   --  styled. No document here: the question is the style memo, and a
+   --  handle that names no loaded face must not be laid out with.
+   Put_Line ("--- a remapped font name reaches resolved styles ---");
+   declare
+      Probe_Widget : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Probe_Face   : constant Font_Handle := 1;
+      Before_Font  : Font_Handle;
+   begin
+      Set_Part_Style
+        (Probe_Widget, Main_Part,
+         Adi.Widget_Styles.From
+           ((Font_Family =>
+               Adi.CSS_Styles.Set_Font_Family ("memo-probe-family"),
+             others => <>)).Build);
+
+      Before_Font :=
+        Get_Resolved_Part_Style (Probe_Widget, Main_Part).Font_Family;
+
+      --  Nothing about the widget or its styles changes here.
+      Adi.Font.Register_Name ("memo-probe-family", Probe_Face);
+
+      Put_Line ("  before=" & Font_Handle'Image (Before_Font)
+                & " after=" & Font_Handle'Image
+                    (Get_Resolved_Part_Style
+                       (Probe_Widget, Main_Part).Font_Family));
+
+      Test_Support.Assert
+        (Before_Font /= Probe_Face,
+         "the name resolved to something else beforehand");
+      Test_Support.Assert
+        (Get_Resolved_Part_Style (Probe_Widget, Main_Part).Font_Family
+           = Probe_Face,
+         "and follows the name to its new face without any style change");
+   end;
+
+   --  Swapping the name resolver changes what every unresolved family
+   --  maps to, which no style or scale value can show.
+   declare
+      use type Adi.Font.Font_Generation;
+      Before_Gen : constant Adi.Font.Font_Generation :=
+        Adi.Font.Environment_Generation;
+   begin
+      Adi.Font.Enable_System_Font_Search;
+      Test_Support.Assert
+        (Adi.Font.Environment_Generation /= Before_Gen,
+         "enabling system font search advances the font generation");
    end;
 
    Test_Support.Finish;

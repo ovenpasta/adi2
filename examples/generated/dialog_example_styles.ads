@@ -50,7 +50,6 @@ package Dialog_Example_Styles is
    --  Base style for class 'title'
    function Title_Class_Base_Style return Style_Rules is
      (
-      Flex_Shrink => Set (0.0),
       others => <>);
 
    --  Base style for class 'title'::label
@@ -64,7 +63,6 @@ package Dialog_Example_Styles is
    --  Base style for class 'hint'
    function Hint_Class_Base_Style return Style_Rules is
      (
-      Flex_Shrink => Set (0.0),
       others => <>);
 
    --  Base style for class 'hint'::label
@@ -167,7 +165,6 @@ package Dialog_Example_Styles is
    --  Base style for class 'dialog-title'
    function Dialog_Title_Class_Base_Style return Style_Rules is
      (
-      Flex_Shrink => Set (0.0),
       others => <>);
 
    --  Base style for class 'dialog-title'::label

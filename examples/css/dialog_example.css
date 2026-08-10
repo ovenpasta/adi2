@@ -185,15 +185,12 @@
 }
 
 .title {
-  flex-shrink: 0;
 }
 
 .hint {
-  flex-shrink: 0;
 }
 
 .dialog-title {
-  flex-shrink: 0;
 }
 
 .custom-content {

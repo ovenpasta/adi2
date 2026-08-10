@@ -78,7 +78,6 @@
 }
 
 .caption {
-  flex-shrink: 0;
 }
 
 .caption::label {

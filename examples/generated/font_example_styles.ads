@@ -111,7 +111,6 @@ package Font_Example_Styles is
    --  Base style for class 'title'
    function Title_Class_Base_Style return Style_Rules is
      (
-      Flex_Shrink => Set (0.0),
       others => <>);
 
    --  Base style for class 'title'::label
@@ -125,7 +124,6 @@ package Font_Example_Styles is
    --  Base style for class 'hint'
    function Hint_Class_Base_Style return Style_Rules is
      (
-      Flex_Shrink => Set (0.0),
       others => <>);
 
    --  Base style for class 'hint'::label
@@ -138,7 +136,6 @@ package Font_Example_Styles is
    --  Base style for class 'section_title'
    function Section_Title_Class_Base_Style return Style_Rules is
      (
-      Flex_Shrink => Set (0.0),
       others => <>);
 
    --  Base style for class 'section_title'::label
@@ -153,7 +150,6 @@ package Font_Example_Styles is
    function Sample_Class_Base_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (15, 23, 42)),
-      Flex_Shrink => Set (0.0),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -258,7 +254,6 @@ package Font_Example_Styles is
      (
       Background_Color => Set_Bg (RGB (30, 41, 59)),
       Min_Height => Set (Size (Px (56.0))),
-      Flex_Shrink => Set (0.0),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),

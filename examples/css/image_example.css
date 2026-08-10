@@ -14,7 +14,6 @@
 }
 
 .title {
-  flex-shrink: 0;
 }
 
 .subtitle::label {
@@ -23,7 +22,6 @@
 }
 
 .subtitle {
-  flex-shrink: 0;
 }
 
 .section-title::label {
@@ -33,7 +31,6 @@
 }
 
 .section-title {
-  flex-shrink: 0;
 }
 
 .format-grid {
@@ -51,7 +48,6 @@
   grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   flex-grow: 0;
-  flex-shrink: 0;
   height: 96px;
 }
 
@@ -73,7 +69,6 @@
 }
 
 .card-label {
-  flex-shrink: 0;
 }
 
 .image {

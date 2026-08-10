@@ -78,7 +78,6 @@
 }
 
 .section_title {
-  flex-shrink: 0;
 }
 
 .sample {
@@ -88,7 +87,6 @@
   border-style: solid;
   border-color: rgb(71, 85, 105);
   border-radius: 8px;
-  flex-shrink: 0;
 }
 
 .sample::label {
@@ -161,7 +159,6 @@
   border-color: rgb(100, 116, 139);
   border-radius: 8px;
   min-height: 56px;
-  flex-shrink: 0;
 }
 
 .wrap_sample::label {
@@ -199,9 +196,7 @@
 }
 
 .title {
-  flex-shrink: 0;
 }
 
 .hint {
-  flex-shrink: 0;
 }

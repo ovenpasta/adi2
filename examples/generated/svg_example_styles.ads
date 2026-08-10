@@ -122,7 +122,6 @@ package Svg_Example_Styles is
    --  Base style for class 'caption'
    function Caption_Class_Base_Style return Style_Rules is
      (
-      Flex_Shrink => Set (0.0),
       others => <>);
 
    --  Base style for class 'caption'::label

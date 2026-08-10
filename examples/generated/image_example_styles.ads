@@ -36,7 +36,6 @@ package Image_Example_Styles is
    --  Base style for class 'title'
    function Title_Class_Base_Style return Style_Rules is
      (
-      Flex_Shrink => Set (0.0),
       others => <>);
 
    --  Base style for class 'title'::label
@@ -50,7 +49,6 @@ package Image_Example_Styles is
    --  Base style for class 'subtitle'
    function Subtitle_Class_Base_Style return Style_Rules is
      (
-      Flex_Shrink => Set (0.0),
       others => <>);
 
    --  Base style for class 'subtitle'::label
@@ -63,7 +61,6 @@ package Image_Example_Styles is
    --  Base style for class 'section-title'
    function Section_Title_Class_Base_Style return Style_Rules is
      (
-      Flex_Shrink => Set (0.0),
       others => <>);
 
    --  Base style for class 'section-title'::label
@@ -92,7 +89,6 @@ package Image_Example_Styles is
       Grid_Column_Tracks => (Count => 5, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), 4 => (Track_Fr, 1.0), 5 => (Track_Fr, 1.0), others => <>]),
       Gap => Set (Gap (Px (16.0))),
       Flex_Grow => Set (0.0),
-      Flex_Shrink => Set (0.0),
       Height => Set (Size (Px (96.0))),
       others => <>);
 
@@ -113,7 +109,6 @@ package Image_Example_Styles is
    --  Base style for class 'card-label'
    function Card_Label_Class_Base_Style return Style_Rules is
      (
-      Flex_Shrink => Set (0.0),
       others => <>);
 
    --  Base style for class 'card-label'::label

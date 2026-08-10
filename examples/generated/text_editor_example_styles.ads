@@ -39,7 +39,6 @@ package Text_Editor_Example_Styles is
    --  Base style for class 'title'
    function Title_Class_Base_Style return Style_Rules is
      (
-      Flex_Shrink => Set (0.0),
       others => <>);
 
    --  Base style for class 'title'::label

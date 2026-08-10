@@ -241,5 +241,211 @@ begin
          "the document lays out exactly as recorded");
    end;
 
+   --  The snapshot above sits at the origin unscrolled, where document
+   --  space and viewport space coincide, so it says nothing about the
+   --  placement. These do.
+   New_Line;
+   Put_Line ("--- placement ---");
+   declare
+      Off_X : constant Pixel_Type := 40.0;
+      Off_Y : constant Pixel_Type := 25.0;
+
+      Moved : constant HV.Html_View_Handle := HV.Create_Handle;
+
+      function Nth_Text (V : HV.Html_View_Handle; N : Positive)
+        return Rectangle
+      is
+         Seen : Natural := 0;
+      begin
+         for I in 1 .. Item_Count (+V) loop
+            if Get_Item (+V, I).Kind = Text_Item then
+               Seen := Seen + 1;
+               if Seen = N then
+                  return Get_Item (+V, I).Geometry;
+               end if;
+            end if;
+         end loop;
+         return (0.0, 0.0, 0.0, 0.0);
+      end Nth_Text;
+
+      Base  : constant Rectangle := Nth_Text (W, 1);
+      Shift : Rectangle;
+   begin
+      HV.Set_HTML (Moved, Document);
+      Set_Geometry (+Moved, (X => Off_X, Y => Off_Y,
+                             Width => View_W, Height => View_H));
+      Build_Items (+Moved);
+      Shift := Nth_Text (Moved, 1);
+
+      Put_Line ("  at origin [" & Rect_Image (Base) & "]  moved ["
+                & Rect_Image (Shift) & "]");
+
+      Test_Support.Assert
+        (abs (Shift.X - (Base.X + Off_X)) < 0.01
+           and then abs (Shift.Y - (Base.Y + Off_Y)) < 0.01,
+         "a widget moved by its parent places the same document at the "
+         & "new origin");
+      Test_Support.Assert
+        (abs (Shift.Width - Base.Width) < 0.01
+           and then abs (Shift.Height - Base.Height) < 0.01,
+         "and lays it out to the same size");
+   end;
+
+   --  Scrolling moves the document under the viewport by exactly the
+   --  offset, and leaves the extent it scrolls within alone.
+   declare
+      Delta_Y : constant Pixel_Type := 30.0;
+      --  Shorter than the document, or there is nothing to scroll and
+      --  the offset clamps straight back to zero.
+      Short_H : constant Pixel_Type := 100.0;
+      Before_Rect : Rectangle;
+      Before_Ext  : Pixel_Type;
+      After_Rect  : Rectangle;
+   begin
+      Set_Geometry (+W, (X => 0.0, Y => 0.0,
+                         Width => View_W, Height => Short_H));
+      Build_Items (+W);
+      Before_Rect := Get_Item (+W, 3).Geometry;
+      Before_Ext  := Get_Scroll_Content_Height (+W);
+
+      Set_Scroll_Offset_Y (+W, Delta_Y);
+      Build_Items (+W);
+      After_Rect := Get_Item (+W, 3).Geometry;
+
+      Put_Line ("  before [" & Rect_Image (Before_Rect) & "]  after ["
+                & Rect_Image (After_Rect) & "]");
+
+      Test_Support.Assert
+        (abs (After_Rect.Y - (Before_Rect.Y - Delta_Y)) < 0.01,
+         "scrolling moves an item up by exactly the offset");
+      Test_Support.Assert
+        (abs (After_Rect.X - Before_Rect.X) < 0.01,
+         "and not sideways");
+      Test_Support.Assert
+        (abs (Get_Scroll_Content_Height (+W) - Before_Ext) < 0.01,
+         "the scroll extent is unchanged by scrolling");
+      Set_Scroll_Offset_Y (+W, 0.0);
+      Set_Geometry (+W, (X => 0.0, Y => 0.0,
+                         Width => View_W, Height => View_H));
+      Build_Items (+W);
+   end;
+
+   --  A midpoint probe passes for any rectangle that merely contains it,
+   --  so the edges are probed too: a link must answer inside its own box
+   --  and stay silent a pixel outside it.
+   declare
+      Link_Rect : Rectangle := (0.0, 0.0, 0.0, 0.0);
+      Found     : Boolean := False;
+   begin
+      for I in 1 .. Item_Count (+W) loop
+         declare
+            G : constant Rectangle := Get_Item (+W, I).Geometry;
+         begin
+            if not Found and then Get_Item (+W, I).Kind = Text_Item
+              and then G.Width > 0.0
+              and then Href_At (W, G.X + G.Width / 2.0,
+                                G.Y + G.Height / 2.0) = "#two"
+            then
+               Link_Rect := G;
+               Found := True;
+            end if;
+         end;
+      end loop;
+
+      Test_Support.Assert (Found, "the list link was located");
+      Put_Line ("  link box [" & Rect_Image (Link_Rect) & "]");
+
+      Test_Support.Assert
+        (Href_At (W, Link_Rect.X + 1.0,
+                  Link_Rect.Y + Link_Rect.Height / 2.0) = "#two",
+         "the link answers just inside its left edge");
+      Test_Support.Assert
+        (Href_At (W, Link_Rect.X + Link_Rect.Width - 1.0,
+                  Link_Rect.Y + Link_Rect.Height / 2.0) = "#two",
+         "and just inside its right edge");
+      Test_Support.Assert
+        (Href_At (W, Link_Rect.X - 2.0,
+                  Link_Rect.Y + Link_Rect.Height / 2.0) /= "#two",
+         "and not past its left edge");
+      Test_Support.Assert
+        (Href_At (W, Link_Rect.X + Link_Rect.Width / 2.0,
+                  Link_Rect.Y - 2.0) /= "#two",
+         "nor above it");
+   end;
+
+   --  A link further down the document than the viewport is short. It
+   --  has to survive layout intact and become clickable once scrolled
+   --  to, which it cannot do if layout clips it to the first screen.
+   Put_Line ("--- a link below the fold ---");
+   declare
+      Tall : constant HV.Html_View_Handle := HV.Create_Handle;
+      Short_H : constant Pixel_Type := 60.0;
+      Target  : Rectangle := (0.0, 0.0, 0.0, 0.0);
+      Found   : Boolean := False;
+   begin
+      HV.Set_HTML
+        (Tall,
+         "<p>one</p><p>two</p><p>three</p><p>four</p><p>five</p>"
+         & "<p><a href='#deep'>deep link</a></p>");
+      Set_Geometry (+Tall, (X => 0.0, Y => 0.0,
+                            Width => View_W, Height => Short_H));
+      HV.Connect_Link_Click (Tall, On_Link_Click'Unrestricted_Access);
+      Build_Items (+Tall);
+
+      --  Where the link sits before any scrolling: below the viewport,
+      --  so its geometry is off the bottom rather than flattened.
+      for I in 1 .. Item_Count (+Tall) loop
+         declare
+            It : constant Item := Get_Item (+Tall, I);
+         begin
+            if not Found and then It.Kind = Text_Item
+              and then Index (It.Text_Content, "deep") > 0
+            then
+               Target := It.Geometry;
+               Found  := True;
+            end if;
+         end;
+      end loop;
+
+      Test_Support.Assert (Found, "the deep link's text was laid out");
+      Put_Line ("  unscrolled [" & Rect_Image (Target) & "] viewport h="
+                & Px_Image (Short_H));
+      Test_Support.Assert
+        (Target.Height > 0.0,
+         "a link below the viewport keeps its height");
+      Test_Support.Assert
+        (Target.Y > Short_H,
+         "and sits below the fold");
+
+      --  Scroll it into view and click it.
+      Set_Scroll_Offset_Y (+Tall, Target.Y);
+      Build_Items (+Tall);
+
+      declare
+         Now : Rectangle := (0.0, 0.0, 0.0, 0.0);
+      begin
+         for I in 1 .. Item_Count (+Tall) loop
+            declare
+               It : constant Item := Get_Item (+Tall, I);
+            begin
+               if It.Kind = Text_Item
+                 and then Index (It.Text_Content, "deep") > 0
+               then
+                  Now := It.Geometry;
+               end if;
+            end;
+         end loop;
+
+         Put_Line ("  scrolled to [" & Rect_Image (Now) & "]");
+         Test_Support.Assert
+           (Now.Y >= 0.0 and then Now.Y < Short_H,
+            "scrolling brings the link into the viewport");
+         Test_Support.Assert
+           (Href_At (Tall, Now.X + Now.Width / 2.0,
+                     Now.Y + Now.Height / 2.0) = "#deep",
+            "and it answers a click once it is there");
+      end;
+   end;
+
    Test_Support.Finish;
 end Html_View_Snapshot_Test;

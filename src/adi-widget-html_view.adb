@@ -1552,10 +1552,14 @@ package body Adi.Widget.Html_View is
       Document_Rules   : Style_Rules := Tag_Default_Style ("body");
       Document_Style   : Resolved_Style;
 
-      Line_Left  : Pixel_Type := Content.X;
-      Line_Right : Pixel_Type := Content.X + Content.Width;
-      X : Pixel_Type := Content.X;
-      Y : Pixel_Type := Content.Y - Get_Scroll_Offset_Y (Self);
+      --  Document space: the origin is the top-left of the content box
+      --  and the scroll offset is not in it. Emit_Items places the
+      --  result where the widget currently is and however far it is
+      --  scrolled, which is what lets one layout outlive both.
+      Line_Left  : Pixel_Type := 0.0;
+      Line_Right : Pixel_Type := Content.Width;
+      X : Pixel_Type := 0.0;
+      Y : Pixel_Type := 0.0;
 
       Line_Base_H       : Pixel_Type := 1.0;
       Line_Base_Ascent  : Pixel_Type := 1.0;
@@ -1635,18 +1639,6 @@ package body Adi.Widget.Html_View is
          Style           : Resolved_Style;
          Container_Width : Pixel_Type) return Edge_Pixels;
 
-      function Clip_To_Content (R : Rectangle) return Rectangle is
-         X1 : constant Pixel_Type := Pixel_Type'Max (R.X, Content.X);
-         Y1 : constant Pixel_Type := Pixel_Type'Max (R.Y, Content.Y);
-         X2 : constant Pixel_Type := Pixel_Type'Min (R.X + R.Width, Content.X + Content.Width);
-         Y2 : constant Pixel_Type := Pixel_Type'Min (R.Y + R.Height, Content.Y + Content.Height);
-      begin
-         return
-           (X      => X1,
-            Y      => Y1,
-             Width  => Pixel_Type'Max (0.0, X2 - X1),
-             Height => Pixel_Type'Max (0.0, Y2 - Y1));
-      end Clip_To_Content;
 
       function Local_Font_Size_Px (Style : Resolved_Style) return Pixel_Type is
       begin
@@ -1983,7 +1975,6 @@ package body Adi.Widget.Html_View is
                     Result.Links.Reference (Positive (Run.Link_Index)).Element.all;
                begin
                   Link_Ref.Geometry.X := Link_Ref.Geometry.X + Shift_X;
-                  Link_Ref.Geometry := Clip_To_Content (Link_Ref.Geometry);
                end;
             end if;
          end loop;
@@ -2890,8 +2881,11 @@ package body Adi.Widget.Html_View is
    begin
       Result.Items.Clear;
       Result.Links.Clear;
-      Result.Items.Append (Make_Panel (Main_Part, Self.Geometry, 0));
-      Result.Items.Reference (Panel_Idx).Geometry := Self.Geometry;
+      --  A placeholder so every index below lines up; emission gives it
+      --  the widget's own box, which is not part of the document.
+      Result.Items.Append
+        (Make_Panel (Main_Part, (0.0, 0.0, 0.0, 0.0), 0));
+
 
       if not Has_Visible_Area (Content) then
          return;
@@ -2960,7 +2954,6 @@ package body Adi.Widget.Html_View is
       Finalize_Line;
 
       declare
-         Scroll_Offset : constant Pixel_Type := Get_Scroll_Offset_Y (Self);
          Content_End_Y : Pixel_Type :=
            (if Has_Line_Content then Y + Current_Line_H else Y);
       begin
@@ -2976,7 +2969,7 @@ package body Adi.Widget.Html_View is
          end loop;
 
          Result.Scroll_H :=
-           Pixel_Type'Max (Content.Height, (Content_End_Y + Scroll_Offset) - Content.Y);
+           Pixel_Type'Max (Content.Height, Content_End_Y);
 
          --  Track the document's intrinsic size so Measure_Content can
          --  return it.  Cached_Content_H is the real (un-clamped) bottom
@@ -2984,8 +2977,7 @@ package body Adi.Widget.Html_View is
          --  not the max(viewport, content) value that Scroll_Content_H
          --  holds for scrollbar math.
          Result.Content_W := Content.Width;
-         Result.Content_H :=
-           Pixel_Type'Max (0.0, (Content_End_Y + Scroll_Offset) - Content.Y);
+         Result.Content_H := Pixel_Type'Max (0.0, Content_End_Y);
       end;
 
       Result.Viewport_H := Content.Height;
@@ -2994,12 +2986,56 @@ package body Adi.Widget.Html_View is
       Result.Sized := True;
    end Layout_Document;
    procedure Emit_Items (Self : in out Html_View; L : Document_Layout) is
+      Main_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (Self, Main_Part);
+      Content : constant Rectangle := Content_Box (Self.Geometry, Main_Style);
+      Origin_X : constant Pixel_Type := Content.X;
+      Origin_Y : constant Pixel_Type := Content.Y - Get_Scroll_Offset_Y (Self);
+
+      function Placed (R : Rectangle) return Rectangle is
+        ((X => R.X + Origin_X, Y => R.Y + Origin_Y,
+          Width => R.Width, Height => R.Height));
+
+      --  A link scrolled out of the viewport must not answer a click
+      --  inside it, so the clip is applied where the viewport is known.
+      function Clipped (R : Rectangle) return Rectangle is
+         X1 : constant Pixel_Type := Pixel_Type'Max (R.X, Content.X);
+         Y1 : constant Pixel_Type := Pixel_Type'Max (R.Y, Content.Y);
+         X2 : constant Pixel_Type :=
+           Pixel_Type'Min (R.X + R.Width, Content.X + Content.Width);
+         Y2 : constant Pixel_Type :=
+           Pixel_Type'Min (R.Y + R.Height, Content.Y + Content.Height);
+      begin
+         return (X => X1, Y => Y1,
+                 Width  => Pixel_Type'Max (0.0, X2 - X1),
+                 Height => Pixel_Type'Max (0.0, Y2 - Y1));
+      end Clipped;
+
+      First : Boolean := True;
    begin
       Clear_Items (Self);
       for It of L.Items loop
-         Add_Item (Self, It);
+         declare
+            Placed_Item : Item := It;
+         begin
+            --  The main panel is the widget's own box, not part of the
+            --  document that scrolls inside it.
+            if First then
+               Placed_Item.Geometry := Self.Geometry;
+               First := False;
+            else
+               Placed_Item.Geometry := Placed (It.Geometry);
+            end if;
+            Add_Item (Self, Placed_Item);
+         end;
       end loop;
-      Self.Links := L.Links;
+
+      Self.Links.Clear;
+      for Frag of L.Links loop
+         Self.Links.Append
+           (Link_Fragment'(Geometry => Clipped (Placed (Frag.Geometry)),
+                           Href     => Frag.Href));
+      end loop;
 
       if L.Sized then
          Self.Scroll_Content_H  := L.Scroll_H;

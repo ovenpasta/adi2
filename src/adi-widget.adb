@@ -1670,9 +1670,9 @@ package body Adi.Widget is
       end if;
 
       --  Guard against stale index: if items were removed without going
-      --  through Clear_Items (e.g. Html_View's Delete_Last loop), the
-      --  saved base may point past the end of the vector.  Reset so
-      --  the items are re-created on the next frame that needs them.
+      --  through Clear_Items, the saved base may point past the end of
+      --  the vector.  Reset so the items are re-created on the next
+      --  frame that needs them.
       if W.Label_Item_Base > 0
         and then W.Label_Item_Base + 1 > Item_Count (W)
       then

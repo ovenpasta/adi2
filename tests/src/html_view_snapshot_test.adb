@@ -653,5 +653,264 @@ begin
          "enabling system font search advances the font generation");
    end;
 
+   --  A document far taller than its viewport emits only what the
+   --  viewport can show, plus a band around it. What is left out still
+   --  counts toward the document's size and its scroll extent.
+   Put_Line ("--- only the visible part is emitted ---");
+   declare
+      Long : constant HV.Html_View_Handle := HV.Create_Handle;
+      View : constant Pixel_Type := 80.0;
+
+      Body_Text : Unbounded_String := Null_Unbounded_String;
+
+      Top_Count, Scrolled_Count : Natural;
+      Extent : Pixel_Type;
+
+      function Has_Text (Needle : String) return Boolean is
+      begin
+         for I in 1 .. Item_Count (+Long) loop
+            if Index (Get_Item (+Long, I).Text_Content, Needle) > 0 then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Has_Text;
+   begin
+      for I in 1 .. 60 loop
+         Append (Body_Text,
+                 "<p>paragraph" & Trim (Integer'Image (I)) & "</p>");
+      end loop;
+
+      HV.Set_HTML (Long, To_String (Body_Text));
+      Set_Geometry (+Long, (X => 0.0, Y => 0.0, Width => 300.0,
+                            Height => View));
+      Build_Items (+Long);
+
+      Top_Count := Item_Count (+Long);
+      Extent := Get_Scroll_Content_Height (+Long);
+
+      Put_Line ("  60 paragraphs in" & Px_Image (View)
+                & ": items=" & Trim (Natural'Image (Top_Count))
+                & " scroll extent=" & Px_Image (Extent));
+
+      Test_Support.Assert
+        (Top_Count < 60,
+         "far fewer items are emitted than the document holds");
+      Test_Support.Assert
+        (Extent > 10.0 * View,
+         "yet the scroll extent covers the whole document");
+      Test_Support.Assert
+        (Has_Text ("paragraph1"),
+         "the top of the document is emitted");
+      Test_Support.Assert
+        (not Has_Text ("paragraph60"),
+         "and the far end of it is not");
+
+      --  Scrolling to the end swaps which part is emitted, without
+      --  growing the set.
+      Set_Scroll_Offset_Y (+Long, Extent);
+      Build_Items (+Long);
+      Scrolled_Count := Item_Count (+Long);
+
+      Put_Line ("  scrolled to the end: items="
+                & Trim (Natural'Image (Scrolled_Count)));
+
+      Test_Support.Assert
+        (Has_Text ("paragraph60"),
+         "the far end is emitted once scrolled to");
+      Test_Support.Assert
+        (not Has_Text ("paragraph1"),
+         "and the top no longer is");
+      Test_Support.Assert
+        (Scrolled_Count <= Top_Count * 2,
+         "the emitted set stays bounded by the viewport, not the document");
+      Test_Support.Assert
+        (abs (Get_Scroll_Content_Height (+Long) - Extent) < 0.001,
+         "and the scroll extent is unchanged by which part is shown");
+
+      --  Items keep the order the document gave them.
+      declare
+         Last_Y : Pixel_Type := Pixel_Type'First;
+         Ordered : Boolean := True;
+      begin
+         for I in 2 .. Item_Count (+Long) loop
+            declare
+               G : constant Rectangle := Get_Item (+Long, I).Geometry;
+            begin
+               if G.Y < Last_Y - 0.001 then
+                  Ordered := False;
+               end if;
+               Last_Y := G.Y;
+            end;
+         end loop;
+         Test_Support.Assert
+           (Ordered, "the emitted items keep the document's order");
+      end;
+   end;
+
+   --  An item taller than the viewport starts far above it and must
+   --  still be emitted, or the middle of a long block goes blank.
+   Put_Line ("--- an item spanning the viewport is kept ---");
+   declare
+      Tall_One : constant HV.Html_View_Handle := HV.Create_Handle;
+      View : constant Pixel_Type := 60.0;
+   begin
+      --  One paragraph long enough to wrap into a block far taller than
+      --  the viewport; its panel is the spanning item.
+      declare
+         Long_Para : Unbounded_String :=
+           To_Unbounded_String ("<p>lead</p><p>");
+      begin
+         for I in 1 .. 120 loop
+            Append (Long_Para, "word" & Trim (Integer'Image (I)) & " ");
+         end loop;
+         Append (Long_Para, "</p><p>tail</p>");
+         HV.Set_HTML (Tall_One, To_String (Long_Para));
+      end;
+      Set_Geometry (+Tall_One, (X => 0.0, Y => 0.0, Width => 300.0,
+                                Height => View));
+      Build_Items (+Tall_One);
+
+      --  Scroll into the middle of the tall block, where its own origin
+      --  is hundreds of pixels above the viewport.
+      Set_Scroll_Offset_Y (+Tall_One, 350.0);
+      Build_Items (+Tall_One);
+
+      declare
+         Spanning : Boolean := False;
+      begin
+         for I in 1 .. Item_Count (+Tall_One) loop
+            declare
+               G : constant Rectangle := Get_Item (+Tall_One, I).Geometry;
+            begin
+               if G.Y < 0.0 and then G.Y + G.Height > View then
+                  Spanning := True;
+               end if;
+            end;
+         end loop;
+         Put_Line ("  items mid-block: "
+                   & Trim (Natural'Image (Item_Count (+Tall_One))));
+
+         Test_Support.Assert
+           (Spanning,
+            "a block starting above the viewport and ending below it is "
+            & "still emitted");
+      end;
+   end;
+
+   --  Culling asks Item_Paint_Bounds what an item can paint over, and
+   --  the renderer draws Resolve_Shadow_Geometry's rectangle. These pin
+   --  the arithmetic directly, since a shadow's reach is three blur
+   --  radii and dropping to one silently hides items whose shadow is
+   --  still on screen.
+   Put_Line ("--- a shadow reaches three blur radii ---");
+   declare
+      Box : constant Rectangle := (X => 100.0, Y => 100.0,
+                                   Width => 50.0, Height => 20.0);
+
+      function Shadowed (S : Adi.CSS_Styles.Box_Shadow_Value)
+        return Adi.CSS_Styles.Resolved_Style
+      is
+         St : Adi.CSS_Styles.Resolved_Style :=
+           Adi.CSS_Styles.Resolve (Adi.CSS_Styles.Empty_Style);
+      begin
+         St.Box_Shadow := S;
+         return St;
+      end Shadowed;
+
+      --  pix, so the expansion is in renderer pixels whatever the
+      --  scales are doing.
+      Plain : constant Adi.CSS_Styles.Box_Shadow_Value :=
+        (Offset_X => Adi.CSS_Styles.Pix (0.0),
+         Offset_Y => Adi.CSS_Styles.Pix (0.0),
+         Blur_Radius => Adi.CSS_Styles.Pix (40.0),
+         Spread_Radius => Adi.CSS_Styles.Pix (0.0),
+         others => <>);
+      Offset : constant Adi.CSS_Styles.Box_Shadow_Value :=
+        (Offset_X => Adi.CSS_Styles.Pix (10.0),
+         Offset_Y => Adi.CSS_Styles.Pix (-8.0),
+         Blur_Radius => Adi.CSS_Styles.Pix (0.0),
+         Spread_Radius => Adi.CSS_Styles.Pix (5.0),
+         others => <>);
+      Percent : constant Adi.CSS_Styles.Box_Shadow_Value :=
+        (Offset_X => Adi.CSS_Styles.Pct (10.0),
+         Offset_Y => Adi.CSS_Styles.Pct (50.0),
+         Blur_Radius => Adi.CSS_Styles.Pix (0.0),
+         Spread_Radius => Adi.CSS_Styles.Pix (0.0),
+         others => <>);
+
+      B : Rectangle;
+      G : Shadow_Geometry;
+      Saved_DIP_2 : constant Pixel_Type :=
+        Adi.Layout_Util.Get_Active_DIP_Scale;
+      Saved_Px_2 : constant Boolean := Adi.Layout_Util.Get_Px_Maps_To_Dip;
+   begin
+      B := Item_Paint_Bounds (Shadowed (Plain), Box);
+      Put_Line ("  blur 40: bounds [" & Rect_Image (B) & "]");
+      Test_Support.Assert
+        (abs (B.X - (Box.X - 120.0)) < 0.01,
+         "a 40 pixel blur expands the bounds by 120 on the left");
+      Test_Support.Assert
+        (abs (B.Width - (Box.Width + 240.0)) < 0.01,
+         "and by 120 on each side");
+
+      --  Offsets move the shadow rather than growing it symmetrically.
+      G := Resolve_Shadow_Geometry (Shadowed (Offset), Box);
+      B := Item_Paint_Bounds (Shadowed (Offset), Box);
+      Put_Line ("  offset 10,-8 spread 5: dst [" & Rect_Image (G.Dst)
+                & "] bounds [" & Rect_Image (B) & "]");
+      Test_Support.Assert
+        (abs (G.Dst.X - (Box.X - 5.0 + 10.0)) < 0.01
+           and then abs (G.Dst.Y - (Box.Y - 5.0 - 8.0)) < 0.01,
+         "spread expands and the offset moves the shadow's rectangle");
+      Test_Support.Assert
+        (abs (B.Y - (Box.Y - 13.0)) < 0.01,
+         "the bounds reach up to the shadow's top edge");
+      Test_Support.Assert
+        (abs ((B.X + B.Width) - (Box.X + Box.Width + 15.0)) < 0.01,
+         "and out to its right edge");
+
+      --  An outline is drawn from raw amounts, so the bounds must use
+      --  the same ones: resolving them through Length_To_Px would make
+      --  the bounds smaller than the outline wherever a scale is below
+      --  one, and cull something still on screen.
+      declare
+         Outlined : Adi.CSS_Styles.Resolved_Style :=
+           Adi.CSS_Styles.Resolve (Adi.CSS_Styles.Empty_Style);
+      begin
+         Outlined.Outline_Style := Adi.CSS_Styles.Outline_Solid;
+         Outlined.Outline_Width := Adi.CSS_Styles.Px (4.0);
+         Outlined.Outline_Offset := Adi.CSS_Styles.Px (3.0);
+
+         --  px only follows the DIP scale when mapping is on, and it
+         --  has to be on here or both ways of resolving agree.
+         Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
+         Adi.Layout_Util.Set_Active_DIP_Scale (0.5);
+         B := Item_Paint_Bounds (Outlined, Box);
+         Adi.Layout_Util.Set_Active_DIP_Scale (Saved_DIP_2);
+         Adi.Layout_Util.Set_Px_Maps_To_Dip (Saved_Px_2);
+
+         Put_Line ("  outline 4+3 at DIP 0.5: bounds [" & Rect_Image (B)
+                   & "]");
+         Test_Support.Assert
+           (abs (Outline_Expansion (Outlined) - 7.0) < 0.01,
+            "an outline reaches its raw width plus offset");
+         Test_Support.Assert
+           (abs (B.X - (Box.X - 7.0)) < 0.01,
+            "and the bounds follow it whatever the scale is doing");
+      end;
+
+      --  Percentages resolve against the box, x against width and y
+      --  against height, the way the renderer resolves them.
+      G := Resolve_Shadow_Geometry (Shadowed (Percent), Box);
+      Put_Line ("  offset 10%,50%: dst [" & Rect_Image (G.Dst) & "]");
+      Test_Support.Assert
+        (abs (G.Dst.X - (Box.X + 5.0)) < 0.01,
+         "a percentage x offset resolves against the width");
+      Test_Support.Assert
+        (abs (G.Dst.Y - (Box.Y + 10.0)) < 0.01,
+         "and a percentage y offset against the height");
+   end;
+
    Test_Support.Finish;
 end Html_View_Snapshot_Test;

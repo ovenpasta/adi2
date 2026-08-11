@@ -3002,6 +3002,31 @@ package body Adi.Widget.Html_View is
                  Height => Pixel_Type'Max (0.0, Y2 - Y1));
       end Clipped;
 
+      --  A band above and below the viewport. It covers what paints
+      --  outside a rectangle in ways this cannot measure -- an
+      --  antialiased fringe, a glyph that overhangs its line box -- and
+      --  keeps the emitted set from churning at the exact boundary
+      --  while a scroll is under way.
+      Overscan : constant Pixel_Type :=
+        Pixel_Type'Max (64.0, Content.Height / 2.0);
+
+      Band : constant Rectangle :=
+        (X      => Content.X,
+         Y      => Content.Y - Overscan,
+         Width  => Content.Width,
+         Height => Content.Height + 2.0 * Overscan);
+
+      --  What an item can actually paint over. The same helper the
+      --  renderer's expansion is derived from, so an item is never
+      --  dropped while its shadow still reaches the viewport.
+      function Paint_Bounds (It : Item; R : Rectangle) return Rectangle is
+        (if It.Has_Style_Override
+         then Item_Paint_Bounds (It.Style_Override, R)
+         else Item_Paint_Bounds (Get_Resolved_Part_Style (Self, It.Part), R));
+
+      function Overlaps_Band (R : Rectangle) return Boolean is
+        (R.Y + R.Height >= Band.Y and then R.Y <= Band.Y + Band.Height);
+
       First : Boolean := True;
    begin
       Clear_Items (Self);
@@ -3010,22 +3035,38 @@ package body Adi.Widget.Html_View is
             Placed_Item : Item := It;
          begin
             --  The main panel is the widget's own box, not part of the
-            --  document that scrolls inside it.
+            --  document that scrolls inside it, and it is always drawn.
             if First then
                Placed_Item.Geometry := Self.Geometry;
                First := False;
+               Add_Item (Self, Placed_Item);
             else
                Placed_Item.Geometry := Placed (It.Geometry);
+               --  Only what the viewport can show is emitted. The
+               --  document's size and scroll extent come from the whole
+               --  layout, so what is left out costs nothing but the
+               --  copy. Order and z-order survive because this walks
+               --  the layout in order and only skips.
+               if Overlaps_Band (Paint_Bounds (It, Placed_Item.Geometry)) then
+                  Add_Item (Self, Placed_Item);
+               end if;
             end if;
-            Add_Item (Self, Placed_Item);
          end;
       end loop;
 
+      --  Hit testing cannot reach outside the viewport either, so the
+      --  same band decides which links are worth keeping.
       Self.Links.Clear;
       for Frag of L.Links loop
-         Self.Links.Append
-           (Link_Fragment'(Geometry => Clipped (Placed (Frag.Geometry)),
-                           Href     => Frag.Href));
+         declare
+            Placed_Frag : constant Rectangle := Placed (Frag.Geometry);
+         begin
+            if Overlaps_Band (Placed_Frag) then
+               Self.Links.Append
+                 (Link_Fragment'(Geometry => Clipped (Placed_Frag),
+                                 Href     => Frag.Href));
+            end if;
+         end;
       end loop;
 
       if L.Sized then

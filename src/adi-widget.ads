@@ -698,6 +698,37 @@ package Adi.Widget is
    function Get_Content_Min_Size_At_Width
      (W : Widget; Assigned_Width : Pixel_Type) return Size_2D;
 
+   --  Where a box shadow lands, resolved once: the renderer draws this
+   --  rectangle and culling asks whether it is worth drawing, so the
+   --  two must not compute it separately.
+   type Shadow_Geometry is record
+      Blur     : Natural := 0;
+      Spread   : Pixel_Type := 0.0;
+      Offset_X : Pixel_Type := 0.0;
+      Offset_Y : Pixel_Type := 0.0;
+      Dst      : Rectangle := (0.0, 0.0, 0.0, 0.0);
+   end record;
+
+   function Resolve_Shadow_Geometry
+     (Style : Adi.CSS_Styles.Resolved_Style;
+      Geom  : Rectangle) return Shadow_Geometry;
+
+   --  How far an outline reaches outside the border box. Raw amounts,
+   --  because that is what the renderer draws: putting them through
+   --  Length_To_Px here would make culling disagree with painting
+   --  wherever a scale is not 1.
+   function Outline_Expansion
+     (Style : Adi.CSS_Styles.Resolved_Style) return Pixel_Type;
+
+   --  The rectangle an item can paint into, which is not its geometry:
+   --  a shadow is drawn at its own offset expanded by spread plus three
+   --  blur radii, and an outline sits outside the border box. Anything
+   --  deciding what is worth drawing has to agree with what drawing
+   --  actually covers, so both come through here.
+   function Item_Paint_Bounds
+     (Style : Adi.CSS_Styles.Resolved_Style;
+      Geom  : Rectangle) return Rectangle;
+
    type Pixel_Array is array (Positive range <>) of Pixel_Type;
 
    --  What one child of a flex row gets: the width it is laid out at,

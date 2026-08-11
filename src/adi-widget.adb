@@ -847,15 +847,10 @@ package body Adi.Widget is
       Renderer : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
       Shadow   : Box_Shadow_Value renames Style.Box_Shadow;
 
-      --  Convert shadow parameters to pixels
-      Offset_X : constant Float :=
-         Float (Length_To_Px (Shadow.Offset_X, Geom.Width));
-      Offset_Y : constant Float :=
-         Float (Length_To_Px (Shadow.Offset_Y, Geom.Height));
-      Blur_Px  : constant Natural :=
-         Natural'Max (0, Natural (Length_To_Px (Shadow.Blur_Radius, Geom.Width)));
-      Spread_Px : constant Float :=
-         Float (Length_To_Px (Shadow.Spread_Radius, Geom.Width));
+      --  Resolved once, shared with whatever decides this is worth
+      --  drawing at all.
+      Sh : constant Shadow_Geometry := Resolve_Shadow_Geometry (Style, Geom);
+      Blur_Px   : constant Natural := Sh.Blur;
 
       --  Get corner radius from style — Resolve_Border_Radius_Px honours
       --  px ↔ dp mapping and DIP scaling per Length_To_Px (the plain
@@ -912,15 +907,10 @@ package body Adi.Widget is
          Store_Shadow (Ctx, Key, Texture);
       end if;
 
-      --  Compute destination rect
-      declare
-         Expand_Amt : constant Float := Spread_Px + Float (3 * Blur_Px);
-      begin
-         Dst.x := Float (Geom.X) - Expand_Amt + Offset_X;
-         Dst.y := Float (Geom.Y) - Expand_Amt + Offset_Y;
-         Dst.w := Float (Geom.Width) + 2.0 * Expand_Amt;
-         Dst.h := Float (Geom.Height) + 2.0 * Expand_Amt;
-      end;
+      Dst.x := Float (Sh.Dst.X);
+      Dst.y := Float (Sh.Dst.Y);
+      Dst.w := Float (Sh.Dst.Width);
+      Dst.h := Float (Sh.Dst.Height);
 
       if Dst.w <= 0.0 or else Dst.h <= 0.0 then
          return;
@@ -5050,7 +5040,7 @@ package body Adi.Widget is
          declare
             OW : constant Float := Style.Outline_Width.Amount;
             OO : constant Float := Style.Outline_Offset.Amount;
-            Expand : constant Float := OO + OW;
+            Expand : constant Float := Float (Outline_Expansion (Style));
             Outline_Outer : aliased constant SDL_FRect :=
               (x => Rect.x - Expand,
                y => Rect.y - Expand,
@@ -7125,6 +7115,75 @@ package body Adi.Widget is
          return Result;
       end;
    end Flex_Row_Child_Widths;
+
+   function Outline_Expansion
+     (Style : Adi.CSS_Styles.Resolved_Style) return Pixel_Type is
+   begin
+      if Style.Outline_Style = Outline_None
+        or else Style.Outline_Width.Amount <= 0.0
+      then
+         return 0.0;
+      end if;
+      return Pixel_Type (Style.Outline_Offset.Amount
+                         + Style.Outline_Width.Amount);
+   end Outline_Expansion;
+
+   function Resolve_Shadow_Geometry
+     (Style : Adi.CSS_Styles.Resolved_Style;
+      Geom  : Rectangle) return Shadow_Geometry
+   is
+      Shadow : Box_Shadow_Value renames Style.Box_Shadow;
+      Offset_X : constant Pixel_Type :=
+        Length_To_Px (Shadow.Offset_X, Geom.Width);
+      Offset_Y : constant Pixel_Type :=
+        Length_To_Px (Shadow.Offset_Y, Geom.Height);
+      Blur : constant Natural :=
+        Natural'Max (0, Natural (Length_To_Px (Shadow.Blur_Radius,
+                                               Geom.Width)));
+      Spread : constant Pixel_Type :=
+        Length_To_Px (Shadow.Spread_Radius, Geom.Width);
+      --  A blurred shadow fades out over three radii, so that is how far
+      --  the texture reaches beyond the spread.
+      Expand : constant Pixel_Type := Spread + 3.0 * Pixel_Type (Blur);
+   begin
+      return
+        (Blur     => Blur,
+         Spread   => Spread,
+         Offset_X => Offset_X,
+         Offset_Y => Offset_Y,
+         Dst      =>
+           (X      => Geom.X - Expand + Offset_X,
+            Y      => Geom.Y - Expand + Offset_Y,
+            Width  => Geom.Width  + 2.0 * Expand,
+            Height => Geom.Height + 2.0 * Expand));
+   end Resolve_Shadow_Geometry;
+
+   function Item_Paint_Bounds
+     (Style : Adi.CSS_Styles.Resolved_Style;
+      Geom  : Rectangle) return Rectangle
+   is
+      Sh : constant Shadow_Geometry := Resolve_Shadow_Geometry (Style, Geom);
+
+      Outline : constant Pixel_Type := Outline_Expansion (Style);
+
+      --  Union of the box itself, its outline, and where the shadow
+      --  lands after being offset.
+      Left   : constant Pixel_Type :=
+        Pixel_Type'Min (Geom.X - Outline, Sh.Dst.X);
+      Top    : constant Pixel_Type :=
+        Pixel_Type'Min (Geom.Y - Outline, Sh.Dst.Y);
+      Right  : constant Pixel_Type :=
+        Pixel_Type'Max (Geom.X + Geom.Width + Outline,
+                        Sh.Dst.X + Sh.Dst.Width);
+      Bottom : constant Pixel_Type :=
+        Pixel_Type'Max (Geom.Y + Geom.Height + Outline,
+                        Sh.Dst.Y + Sh.Dst.Height);
+   begin
+      return (X      => Left,
+              Y      => Top,
+              Width  => Pixel_Type'Max (0.0, Right - Left),
+              Height => Pixel_Type'Max (0.0, Bottom - Top));
+   end Item_Paint_Bounds;
 
    function Resolved_Flex_Base
      (Child          : Widget'Class;

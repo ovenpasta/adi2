@@ -7379,11 +7379,6 @@ package body Adi.Widget is
                      Active_Children (Child_Index) := Child;
 
                      declare
-                        Child_Pref : constant Size_2D :=
-                          Get_Preferred_Size(Child.all);
-                        Child_Min  : constant Size_2D :=
-                          Get_Min_Size(Child.all);
-
                         Info : Flex_Child_Info;
                         Flex_Basis_Px : Pixel_Type := 0.0;
                      begin

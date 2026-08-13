@@ -34,18 +34,23 @@
   border-radius: 6px;
   padding: 12px 24px;
   cursor: pointer;
+  box-shadow: 0px 0px 8px 2px rgba(59, 130, 246, 0.50);
+  transition: background-color 180ms ease-out, box-shadow 180ms ease-out;
 }
 
 .primary::main:hover {
   background-color: rgb(37, 99, 235);
+  box-shadow: 0px 0px 10px 3px rgba(96, 165, 250, 0.70);
 }
 
 .primary::main:pressed {
   background-color: rgb(29, 58, 145);
+  box-shadow: 0px 0px 4px 1px rgba(37, 99, 235, 0.60);
 }
 
 .primary::main:focus {
-  box-shadow: 0px 0px 0px 2px rgba(191, 219, 254, 0.9);
+  outline: 2px solid rgba(191, 219, 254, 0.9);
+  outline-offset: 2px;
 }
 
 .primary::label {
@@ -65,18 +70,23 @@
   border-radius: 6px;
   padding: 12px 24px;
   cursor: pointer;
+  box-shadow: 0px 0px 8px 2px rgba(220, 38, 38, 0.50);
+  transition: background-color 180ms ease-out, box-shadow 180ms ease-out;
 }
 
 .danger::main:hover {
   background-color: rgb(185, 28, 28);
+  box-shadow: 0px 0px 10px 3px rgba(248, 113, 113, 0.70);
 }
 
 .danger::main:pressed {
   background-color: rgb(153, 27, 27);
+  box-shadow: 0px 0px 4px 1px rgba(185, 28, 28, 0.60);
 }
 
 .danger::main:focus {
-  box-shadow: 0px 0px 0px 2px rgba(254, 202, 202, 0.9);
+  outline: 2px solid rgba(254, 202, 202, 0.9);
+  outline-offset: 2px;
 }
 
 .danger::label {
@@ -97,19 +107,24 @@
   border-radius: 6px;
   padding: 12px 24px;
   cursor: pointer;
+  box-shadow: 0px 0px 8px 2px rgba(148, 163, 184, 0.35);
+  transition: background-color 180ms ease-out, box-shadow 180ms ease-out;
 }
 
 .outline::main:hover {
   background-color: rgba(148, 163, 184, 0.15);
+  box-shadow: 0px 0px 10px 3px rgba(203, 213, 225, 0.55);
 }
 
 .outline::main:pressed {
   background-color: rgba(148, 163, 184, 0.25);
+  box-shadow: 0px 0px 4px 1px rgba(148, 163, 184, 0.45);
 }
 
 .outline::main:focus {
   border-color: rgb(96, 165, 250);
-  box-shadow: 0px 0px 0px 2px rgba(147, 197, 253, 0.4);
+  outline: 2px solid rgba(147, 197, 253, 0.6);
+  outline-offset: 2px;
 }
 
 .outline::label {

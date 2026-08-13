@@ -66,6 +66,8 @@ package Button_Example_Styles is
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (59, 130, 246)),
       Cursor => Set (Cursor_Pointer),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (59, 130, 246, 0.5))),
+      Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
       Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
       Border_Width => Set (Border_Width (Px (0.0))),
       Border_Radius => Set (Radius (Px (6.0))),
@@ -75,18 +77,23 @@ package Button_Example_Styles is
    function Primary_Class_Widget_Hovered_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (37, 99, 235)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (3.0), RGBA (96, 165, 250, 0.7))),
       others => <>);
 
    --  Style for class 'primary' when widget State_Pressed
    function Primary_Class_Widget_Pressed_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (29, 58, 145)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (4.0), Px (1.0), RGBA (37, 99, 235, 0.6))),
       others => <>);
 
    --  Style for class 'primary' when widget State_Focused
    function Primary_Class_Widget_Focused_Style return Style_Rules is
      (
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (0.0), Px (2.0), RGBA (191, 219, 254, 0.9))),
+      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Style => Set (Outline_Solid),
+      Outline_Color => Set_Outline_Color (RGBA (191, 219, 254, 0.9)),
+      Outline_Offset => Set_Outline_Offset (Px (2.0)),
       others => <>);
 
    --  Base style for class 'primary'::label
@@ -107,6 +114,8 @@ package Button_Example_Styles is
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (220, 38, 38)),
       Cursor => Set (Cursor_Pointer),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (220, 38, 38, 0.5))),
+      Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
       Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
       Border_Width => Set (Border_Width (Px (0.0))),
       Border_Radius => Set (Radius (Px (6.0))),
@@ -116,18 +125,23 @@ package Button_Example_Styles is
    function Danger_Class_Widget_Hovered_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (185, 28, 28)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (3.0), RGBA (248, 113, 113, 0.7))),
       others => <>);
 
    --  Style for class 'danger' when widget State_Pressed
    function Danger_Class_Widget_Pressed_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (153, 27, 27)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (4.0), Px (1.0), RGBA (185, 28, 28, 0.6))),
       others => <>);
 
    --  Style for class 'danger' when widget State_Focused
    function Danger_Class_Widget_Focused_Style return Style_Rules is
      (
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (0.0), Px (2.0), RGBA (254, 202, 202, 0.9))),
+      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Style => Set (Outline_Solid),
+      Outline_Color => Set_Outline_Color (RGBA (254, 202, 202, 0.9)),
+      Outline_Offset => Set_Outline_Offset (Px (2.0)),
       others => <>);
 
    --  Base style for class 'danger'::label
@@ -147,6 +161,8 @@ package Button_Example_Styles is
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Cursor => Set (Cursor_Pointer),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (148, 163, 184, 0.35))),
+      Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
       Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -158,18 +174,23 @@ package Button_Example_Styles is
    function Outline_Class_Widget_Hovered_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.15)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (3.0), RGBA (203, 213, 225, 0.55))),
       others => <>);
 
    --  Style for class 'outline' when widget State_Pressed
    function Outline_Class_Widget_Pressed_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.25)),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (4.0), Px (1.0), RGBA (148, 163, 184, 0.45))),
       others => <>);
 
    --  Style for class 'outline' when widget State_Focused
    function Outline_Class_Widget_Focused_Style return Style_Rules is
      (
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (0.0), Px (2.0), RGBA (147, 197, 253, 0.4))),
+      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Style => Set (Outline_Solid),
+      Outline_Color => Set_Outline_Color (RGBA (147, 197, 253, 0.6)),
+      Outline_Offset => Set_Outline_Offset (Px (2.0)),
       Border_Color => Set (Border_Color (RGB (96, 165, 250))),
       others => <>);
 

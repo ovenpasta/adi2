@@ -31,19 +31,6 @@
   align-items: center;
 }
 
-.white-label {
-  color: white;
-  font-size: 13px;
-  font-weight: 500;
-  text-wrap-mode: nowrap;
-}
-
-.dark-label {
-  color: rgb(200, 200, 210);
-  font-size: 11px;
-  text-wrap-mode: nowrap;
-}
-
 .title::main {
   padding: 0px 4px;
 }
@@ -81,3 +68,92 @@
 .title {
   flex-shrink: 0;
 }
+
+/* ---------------------------------------------------------------------------
+   Demo buttons. Each carries .demo-base for the shared shape plus one class
+   below for what it demonstrates, so the transition and its hover live
+   together and the Ada side only builds the tree.
+   --------------------------------------------------------------------------- */
+
+.demo-base::label {
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  text-wrap-mode: nowrap;
+}
+
+/* Easing curves: same property and duration, different curve. */
+.t-linear   { transition: background-color 300ms linear; }
+.t-ease-in  { transition: background-color 300ms ease-in; }
+.t-ease-out { transition: background-color 300ms ease-out; }
+.t-ease-io  { transition: background-color 300ms ease-in-out; }
+
+.t-linear:hover    { background-color: rgb(59, 130, 246); }
+.t-linear:pressed  { background-color: rgb(37, 99, 235); }
+.t-ease-in:hover   { background-color: rgb(168, 85, 247); }
+.t-ease-in:pressed { background-color: rgb(126, 34, 206); }
+.t-ease-out:hover   { background-color: rgb(34, 197, 94); }
+.t-ease-out:pressed { background-color: rgb(22, 163, 74); }
+.t-ease-io:hover    { background-color: rgb(245, 158, 11); }
+.t-ease-io:pressed  { background-color: rgb(217, 119, 6); }
+
+/* One property at a time. */
+.t-bg { transition: background-color 250ms ease-in-out; }
+.t-bg:hover { background-color: rgb(59, 130, 246); }
+
+.t-border {
+  border-width: 2px;
+  border-color: rgb(75, 85, 99);
+  transition: border-color 300ms ease-in-out;
+}
+.t-border:hover { border-color: rgb(251, 191, 36); }
+
+.t-radius {
+  border-radius: 6px;
+  transition: border-radius 300ms ease-in-out;
+}
+.t-radius:hover { border-radius: 20px; }
+
+.t-shadow {
+  box-shadow: none;
+  transition: box-shadow 300ms ease-out;
+}
+.t-shadow:hover {
+  box-shadow: 0px 0px 10px 4px rgba(100, 255, 100, 1.0);
+}
+
+.t-opacity {
+  background-color: rgb(239, 68, 68);
+  opacity: 1.0;
+  transition: opacity 250ms ease-in-out;
+}
+.t-opacity:hover { opacity: 0.5; }
+
+/* Several named properties at once. */
+.t-multi {
+  transition: background-color 300ms ease-in-out,
+              border-color 300ms ease-in-out,
+              box-shadow 300ms ease-in-out;
+}
+.t-multi:hover {
+  background-color: rgb(79, 70, 229);
+  border-color: rgb(199, 210, 254);
+  box-shadow: 0px 4px 12px 4px rgba(165, 180, 252, 0.9);
+}
+
+/* No property named, so every animatable one comes along. */
+.t-everything { transition: 300ms ease-in-out; }
+.t-everything:hover {
+  background-color: rgb(6, 182, 212);
+  border-color: rgb(207, 250, 254);
+  border-radius: 16px;
+  padding: 10px 28px;
+  box-shadow: 0px 4px 14px 4px rgba(103, 232, 249, 0.9);
+}
+
+/* Same property and curve, different duration. */
+.t-fast { transition: background-color 50ms linear; }
+.t-fast:hover { background-color: rgb(16, 185, 129); }
+
+.t-slow { transition: background-color 800ms ease-in-out; }
+.t-slow:hover { background-color: rgb(236, 72, 153); }

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="examples/css/transition_example.css"/>
+
+  <window title="Transition Examples" width="617px" height="480px">
+    <box class="root">
+      <box class="content">
+
+        <box class="section">
+          <label class="title" text="EASING CURVES"/>
+          <box class="section-row">
+            <box class="col-style">
+              <button class="demo-base t-linear" text="Linear"/>
+              <label class="desc" text="Constant speed"/>
+            </box>
+            <box class="col-style">
+              <button class="demo-base t-ease-in" text="Ease In"/>
+              <label class="desc" text="Slow start"/>
+            </box>
+            <box class="col-style">
+              <button class="demo-base t-ease-out" text="Ease Out"/>
+              <label class="desc" text="Fast start"/>
+            </box>
+            <box class="col-style">
+              <button class="demo-base t-ease-io" text="Ease In Out"/>
+              <label class="desc" text="Smooth both"/>
+            </box>
+          </box>
+        </box>
+
+        <box class="section">
+          <label class="title" text="INDIVIDUAL PROPERTIES"/>
+          <box class="section-row">
+            <box class="col-style">
+              <button class="demo-base t-bg" text="Background"/>
+              <label class="desc" text="Prop_Background_Color"/>
+            </box>
+            <box class="col-style">
+              <button class="demo-base t-border" text="Border Color"/>
+              <label class="desc" text="Prop_Border_Color"/>
+            </box>
+            <box class="col-style">
+              <button class="demo-base t-radius" text="Radius"/>
+              <label class="desc" text="Prop_Border_Radius"/>
+            </box>
+            <box class="col-style">
+              <button class="demo-base t-shadow" text="Shadow"/>
+              <label class="desc" text="Prop_Box_Shadow"/>
+            </box>
+            <box class="col-style">
+              <button class="demo-base t-opacity" text="Opacity"/>
+              <label class="desc" text="Prop_Opacity"/>
+            </box>
+          </box>
+        </box>
+
+        <box class="section">
+          <label class="title" text="COMBINED &amp; DURATION"/>
+          <box class="section-row">
+            <box class="col-style">
+              <button class="demo-base t-multi" text="Multi-Property"/>
+              <label class="desc" text="bg + border + shadow"/>
+            </box>
+            <box class="col-style">
+              <button class="demo-base t-everything" text="Everything"/>
+              <label class="desc" text="no list: every property"/>
+            </box>
+            <box class="col-style">
+              <button class="demo-base t-fast" text="Fast (50ms)"/>
+              <label class="desc" text="50ms linear"/>
+            </box>
+            <box class="col-style">
+              <button class="demo-base t-slow" text="Slow (800ms)"/>
+              <label class="desc" text="800ms ease-in-out"/>
+            </box>
+          </box>
+        </box>
+
+      </box>
+    </box>
+  </window>
+</adi>

@@ -10,7 +10,7 @@ with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Image; use Adi.Widget.Image;
 with Adi.Widget.Label; use Adi.Widget.Label;
-with Image_Example_Styles; use Image_Example_Styles;
+with Image_Example_Styles;
 
 package body Image_Example_UI is
 
@@ -80,153 +80,6 @@ package body Image_Example_UI is
       end if;
    end Set_CSS_File;
 
-   procedure Register_Root_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("root", Root_Class_Part_Styles));
-   end Register_Root_Styles;
-
-   procedure Register_Title_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("title", Title_Class_Part_Styles));
-   end Register_Title_Styles;
-
-   procedure Register_Subtitle_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("subtitle", Subtitle_Class_Part_Styles));
-   end Register_Subtitle_Styles;
-
-   procedure Register_Section_Title_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("section-title", Section_Title_Class_Part_Styles));
-   end Register_Section_Title_Styles;
-
-   procedure Register_Format_Grid_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("format-grid", Format_Grid_Class_Part_Styles));
-   end Register_Format_Grid_Styles;
-
-   procedure Register_Card_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("card", Card_Class_Part_Styles));
-   end Register_Card_Styles;
-
-   procedure Register_Image_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("image", Image_Class_Part_Styles));
-   end Register_Image_Styles;
-
-   procedure Register_Card_Label_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("card-label", Card_Label_Class_Part_Styles));
-   end Register_Card_Label_Styles;
-
-   procedure Register_Fit_Grid_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("fit-grid", Fit_Grid_Class_Part_Styles));
-   end Register_Fit_Grid_Styles;
-
-   procedure Register_Fit_Fill_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("fit-fill", Fit_Fill_Class_Part_Styles));
-   end Register_Fit_Fill_Styles;
-
-   procedure Register_Fit_Contain_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("fit-contain", Fit_Contain_Class_Part_Styles));
-   end Register_Fit_Contain_Styles;
-
-   procedure Register_Fit_Cover_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("fit-cover", Fit_Cover_Class_Part_Styles));
-   end Register_Fit_Cover_Styles;
-
-   procedure Register_Fit_None_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("fit-none", Fit_None_Class_Part_Styles));
-   end Register_Fit_None_Styles;
-
-   procedure Register_Fit_Scale_Down_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("fit-scale-down", Fit_Scale_Down_Class_Part_Styles));
-   end Register_Fit_Scale_Down_Styles;
-
-   procedure Register_Tint_Grid_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tint-grid", Tint_Grid_Class_Part_Styles));
-   end Register_Tint_Grid_Styles;
-
-   procedure Register_Tint_Card_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tint-card", Tint_Card_Class_Part_Styles));
-   end Register_Tint_Card_Styles;
-
-   procedure Register_Tint_Icon_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tint-icon", Tint_Icon_Class_Part_Styles));
-   end Register_Tint_Icon_Styles;
-
-   procedure Register_Tint_Default_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tint-default", Tint_Default_Class_Part_Styles));
-   end Register_Tint_Default_Styles;
-
-   procedure Register_Tint_Warm_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tint-warm", Tint_Warm_Class_Part_Styles));
-   end Register_Tint_Warm_Styles;
-
-   procedure Register_Tint_Success_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tint-success", Tint_Success_Class_Part_Styles));
-   end Register_Tint_Success_Styles;
-
-   procedure Register_Tint_Danger_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tint-danger", Tint_Danger_Class_Part_Styles));
-   end Register_Tint_Danger_Styles;
-
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
@@ -284,27 +137,7 @@ package body Image_Example_UI is
 
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
-      Register_Root_Styles (Source);
-      Register_Title_Styles (Source);
-      Register_Subtitle_Styles (Source);
-      Register_Section_Title_Styles (Source);
-      Register_Format_Grid_Styles (Source);
-      Register_Card_Styles (Source);
-      Register_Image_Styles (Source);
-      Register_Card_Label_Styles (Source);
-      Register_Fit_Grid_Styles (Source);
-      Register_Fit_Fill_Styles (Source);
-      Register_Fit_Contain_Styles (Source);
-      Register_Fit_Cover_Styles (Source);
-      Register_Fit_None_Styles (Source);
-      Register_Fit_Scale_Down_Styles (Source);
-      Register_Tint_Grid_Styles (Source);
-      Register_Tint_Card_Styles (Source);
-      Register_Tint_Icon_Styles (Source);
-      Register_Tint_Default_Styles (Source);
-      Register_Tint_Warm_Styles (Source);
-      Register_Tint_Success_Styles (Source);
-      Register_Tint_Danger_Styles (Source);
+      Image_Example_Styles.Register_Selectors (Source);
       Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
       --  Load dynamic CSS and choose mode
@@ -326,56 +159,262 @@ package body Image_Example_UI is
       end;
 
       Adi.CSS_Source.Attach_Window (Source, W);
-      --  Bind every widget that has a CSS class
+      --  Bind every widget under the selectors naming it
       Adi.CSS_Source.Bind_Root_Metadata (Source, +Root);
-      Adi.CSS_Source.Bind_Class (Source, "root", +Root);
-      Adi.CSS_Source.Bind_Class (Source, "title", +Label_1);
-      Adi.CSS_Source.Bind_Class (Source, "subtitle", +Label_2);
-      Adi.CSS_Source.Bind_Class (Source, "section-title", +Label_3);
-      Adi.CSS_Source.Bind_Class (Source, "format-grid", +Box_1);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_2);
-      Adi.CSS_Source.Bind_Class (Source, "image", +Img_Svg_Path);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_4);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_3);
-      Adi.CSS_Source.Bind_Class (Source, "image", +Img_Svg);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_5);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_4);
-      Adi.CSS_Source.Bind_Class (Source, "image", +Img_Png);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_6);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_5);
-      Adi.CSS_Source.Bind_Class (Source, "image", +Img_Jpg);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_7);
-      Adi.CSS_Source.Bind_Class (Source, "section-title", +Label_8);
-      Adi.CSS_Source.Bind_Class (Source, "fit-grid", +Box_6);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_7);
-      Adi.CSS_Source.Bind_Class (Source, "image fit-fill", +Fit_Fill);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_9);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_8);
-      Adi.CSS_Source.Bind_Class (Source, "image fit-contain", +Fit_Contain);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_10);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_9);
-      Adi.CSS_Source.Bind_Class (Source, "image fit-cover", +Fit_Cover);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_11);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_10);
-      Adi.CSS_Source.Bind_Class (Source, "image fit-none", +Fit_None);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_12);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_11);
-      Adi.CSS_Source.Bind_Class (Source, "image fit-scale-down", +Fit_Scale_Down);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_13);
-      Adi.CSS_Source.Bind_Class (Source, "section-title", +Label_14);
-      Adi.CSS_Source.Bind_Class (Source, "tint-grid", +Box_12);
-      Adi.CSS_Source.Bind_Class (Source, "tint-card", +Box_13);
-      Adi.CSS_Source.Bind_Class (Source, "image tint-icon tint-default", +Tint_Default);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_15);
-      Adi.CSS_Source.Bind_Class (Source, "tint-card", +Box_14);
-      Adi.CSS_Source.Bind_Class (Source, "image tint-icon tint-warm", +Tint_Warm);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_16);
-      Adi.CSS_Source.Bind_Class (Source, "tint-card", +Box_15);
-      Adi.CSS_Source.Bind_Class (Source, "image tint-icon tint-success", +Tint_Success);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_17);
-      Adi.CSS_Source.Bind_Class (Source, "tint-card", +Box_16);
-      Adi.CSS_Source.Bind_Class (Source, "image tint-icon tint-danger", +Tint_Danger);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_18);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Root,
+         Tag_Name   => "box",
+         Class_Name => "root",
+         Id_Name    => "Root");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_1,
+         Tag_Name   => "label",
+         Class_Name => "title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_2,
+         Tag_Name   => "label",
+         Class_Name => "subtitle");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_3,
+         Tag_Name   => "label",
+         Class_Name => "section-title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_1,
+         Tag_Name   => "box",
+         Class_Name => "format-grid");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_2,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Img_Svg_Path,
+         Tag_Name   => "image",
+         Class_Name => "image",
+         Id_Name    => "Img_Svg_Path");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_4,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_3,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Img_Svg,
+         Tag_Name   => "image",
+         Class_Name => "image",
+         Id_Name    => "Img_Svg");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_5,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_4,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Img_Png,
+         Tag_Name   => "image",
+         Class_Name => "image",
+         Id_Name    => "Img_Png");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_6,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_5,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Img_Jpg,
+         Tag_Name   => "image",
+         Class_Name => "image",
+         Id_Name    => "Img_Jpg");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_7,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_8,
+         Tag_Name   => "label",
+         Class_Name => "section-title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_6,
+         Tag_Name   => "box",
+         Class_Name => "fit-grid");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_7,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Fit_Fill,
+         Tag_Name   => "image",
+         Class_Name => "image fit-fill",
+         Id_Name    => "Fit_Fill");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_9,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_8,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Fit_Contain,
+         Tag_Name   => "image",
+         Class_Name => "image fit-contain",
+         Id_Name    => "Fit_Contain");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_10,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_9,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Fit_Cover,
+         Tag_Name   => "image",
+         Class_Name => "image fit-cover",
+         Id_Name    => "Fit_Cover");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_11,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_10,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Fit_None,
+         Tag_Name   => "image",
+         Class_Name => "image fit-none",
+         Id_Name    => "Fit_None");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_12,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_11,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Fit_Scale_Down,
+         Tag_Name   => "image",
+         Class_Name => "image fit-scale-down",
+         Id_Name    => "Fit_Scale_Down");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_13,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_14,
+         Tag_Name   => "label",
+         Class_Name => "section-title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_12,
+         Tag_Name   => "box",
+         Class_Name => "tint-grid");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_13,
+         Tag_Name   => "box",
+         Class_Name => "tint-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Tint_Default,
+         Tag_Name   => "image",
+         Class_Name => "image tint-icon tint-default",
+         Id_Name    => "Tint_Default");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_15,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_14,
+         Tag_Name   => "box",
+         Class_Name => "tint-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Tint_Warm,
+         Tag_Name   => "image",
+         Class_Name => "image tint-icon tint-warm",
+         Id_Name    => "Tint_Warm");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_16,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_15,
+         Tag_Name   => "box",
+         Class_Name => "tint-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Tint_Success,
+         Tag_Name   => "image",
+         Class_Name => "image tint-icon tint-success",
+         Id_Name    => "Tint_Success");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_17,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_16,
+         Tag_Name   => "box",
+         Class_Name => "tint-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Tint_Danger,
+         Tag_Name   => "image",
+         Class_Name => "image tint-icon tint-danger",
+         Id_Name    => "Tint_Danger");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_18,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
 
       --  Build hierarchy
       Adi.Widget.Add_Child (+Box_2, +Img_Svg_Path);

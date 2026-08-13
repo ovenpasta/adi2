@@ -10,7 +10,7 @@ with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Label; use Adi.Widget.Label;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
-with Stack_Example_Styles; use Stack_Example_Styles;
+with Stack_Example_Styles;
 
 package body Red_Page_UI is
 
@@ -80,6 +80,27 @@ package body Red_Page_UI is
       others => <>
    ];
 
+   procedure Register_Inline_Selectors_1
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("page-title", Page_Title_Class_Part_Styles));
+   end Register_Inline_Selectors_1;
+   pragma No_Inline (Register_Inline_Selectors_1);
+
+   procedure Register_Inline_Selectors_2
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("page-desc", Page_Desc_Class_Part_Styles));
+   end Register_Inline_Selectors_2;
+   pragma No_Inline (Register_Inline_Selectors_2);
+
+   procedure Register_Inline_Selectors
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Register_Inline_Selectors_1 (S);
+      Register_Inline_Selectors_2 (S);
+   end Register_Inline_Selectors;
+
 
    function Merge_Metadata
      (Base, Override : Adi.CSS_Parser.Stylesheet_Metadata)
@@ -137,27 +158,6 @@ package body Red_Page_UI is
       end if;
    end Set_CSS_File;
 
-   procedure Register_Page_Red_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("page-red", Page_Red_Class_Part_Styles));
-   end Register_Page_Red_Styles;
-
-   procedure Register_Page_Title_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("page-title", Page_Title_Class_Part_Styles));
-   end Register_Page_Title_Styles;
-
-   procedure Register_Page_Desc_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("page-desc", Page_Desc_Class_Part_Styles));
-   end Register_Page_Desc_Styles;
-
    function Build
       return Adi.Widget.Widget_Handle is
       Box_1 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
@@ -166,9 +166,8 @@ package body Red_Page_UI is
    begin
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
-      Register_Page_Red_Styles (Source);
-      Register_Page_Title_Styles (Source);
-      Register_Page_Desc_Styles (Source);
+      Stack_Example_Styles.Register_Selectors (Source);
+      Register_Inline_Selectors (Source);
       Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
       --  Load dynamic CSS and choose mode
@@ -191,11 +190,23 @@ package body Red_Page_UI is
          end if;
       end;
 
-      --  Bind every widget that has a CSS class
+      --  Bind every widget under the selectors naming it
       Adi.CSS_Source.Bind_Root_Metadata (Source, +Box_1);
-      Adi.CSS_Source.Bind_Class (Source, "page-red", +Box_1);
-      Adi.CSS_Source.Bind_Class (Source, "page-title", +Label_1);
-      Adi.CSS_Source.Bind_Class (Source, "page-desc", +Label_2);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_1,
+         Tag_Name   => "box",
+         Class_Name => "page-red");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_1,
+         Tag_Name   => "label",
+         Class_Name => "page-title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_2,
+         Tag_Name   => "label",
+         Class_Name => "page-desc");
 
       --  Build hierarchy
       Adi.Widget.Add_Child (+Box_1, +Label_1);

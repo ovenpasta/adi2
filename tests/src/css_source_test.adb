@@ -221,6 +221,59 @@ begin
       end;
    end;
 
+   --  A selector set carries the widget's whole `class` attribute, which
+   --  may name several classes, so it splits the list the way Bind_Class
+   --  does and merges them left to right between the tag and the id.
+   declare
+      Source : Adi.CSS_Source.Style_Source;
+      Box    : constant Box_Handle := Create_Handle;
+      OK     : Boolean := False;
+      Css    : constant String :=
+        "button { background-color: rgb(10, 20, 30); opacity: 0.25; }"
+        & ASCII.LF &
+        ".base { background-color: rgb(40, 50, 60); padding: 6px; }"
+        & ASCII.LF &
+        ".accent { background-color: rgb(90, 100, 110); "
+        & "border-width: 3px; }" & ASCII.LF &
+        "#submit { margin: 4px; }" & ASCII.LF;
+   begin
+      Adi.CSS_Source.Add_Dynamic_String (Source, Css, OK);
+      Assert (OK, "Multi-class selector set should load its CSS");
+      Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, OK);
+      Assert (OK, "Multi-class selector set should enter dynamic mode");
+
+      Adi.CSS_Source.Bind_Selector_Set (
+        Source     => Source,
+        W          => +Box,
+        Tag_Name   => "button",
+        Class_Name => "base accent",
+        Id_Name    => "submit");
+
+      declare
+         R : constant Resolved_Style :=
+           Get_Resolved_Part_Style (+Box, Main_Part);
+      begin
+         Assert (Is_RGB_Color (R.Background_Color, 90, 100, 110),
+                 "Selector set should let the later class win over the "
+                 & "earlier one and over the tag");
+         Assert (R.Padding.Kind = Gap_Uniform
+                   and then R.Padding.All_Sides.Amount = 6.0,
+                 "Selector set should keep properties only the first "
+                 & "class sets");
+         Assert (R.Border_Width.Kind = Gap_Uniform
+                   and then R.Border_Width.All_Edges.Amount = 3.0,
+                 "Selector set should keep properties only the second "
+                 & "class sets");
+         Assert (Float (R.Opacity) = 0.25,
+                 "Selector set should keep tag properties no class "
+                 & "overrides");
+         Assert (R.Margin.Kind = Gap_Uniform
+                   and then R.Margin.All_Sides.Amount = 4.0,
+                 "Selector set should still apply the id after a class "
+                 & "list");
+      end;
+   end;
+
    --  ── Bind_Class tests (multi-class) ──────────────────────────────────
 
    --  Static mode: Bind_Class merges two class entries

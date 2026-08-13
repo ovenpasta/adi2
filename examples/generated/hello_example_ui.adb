@@ -10,7 +10,7 @@ with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Button; use Adi.Widget.Button;
 with Adi.Widget.Label; use Adi.Widget.Label;
-with Hello_Example_Styles; use Hello_Example_Styles;
+with Hello_Example_Styles;
 
 package body Hello_Example_UI is
 
@@ -80,27 +80,6 @@ package body Hello_Example_UI is
       end if;
    end Set_CSS_File;
 
-   procedure Register_Root_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("root", Root_Class_Part_Styles));
-   end Register_Root_Styles;
-
-   procedure Register_Welcome_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("welcome", Welcome_Class_Part_Styles));
-   end Register_Welcome_Styles;
-
-   procedure Register_Primary_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("primary", Primary_Class_Part_Styles));
-   end Register_Primary_Styles;
-
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
@@ -116,9 +95,7 @@ package body Hello_Example_UI is
 
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
-      Register_Root_Styles (Source);
-      Register_Welcome_Styles (Source);
-      Register_Primary_Styles (Source);
+      Hello_Example_Styles.Register_Selectors (Source);
       Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
       --  Load dynamic CSS and choose mode
@@ -140,11 +117,23 @@ package body Hello_Example_UI is
       end;
 
       Adi.CSS_Source.Attach_Window (Source, W);
-      --  Bind every widget that has a CSS class
+      --  Bind every widget under the selectors naming it
       Adi.CSS_Source.Bind_Root_Metadata (Source, +Box_1);
-      Adi.CSS_Source.Bind_Class (Source, "root", +Box_1);
-      Adi.CSS_Source.Bind_Class (Source, "welcome", +Label_1);
-      Adi.CSS_Source.Bind_Class (Source, "primary", +Button_1);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_1,
+         Tag_Name   => "box",
+         Class_Name => "root");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_1,
+         Tag_Name   => "label",
+         Class_Name => "welcome");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Button_1,
+         Tag_Name   => "button",
+         Class_Name => "primary");
 
       --  Build hierarchy
       Adi.Widget.Add_Child (+Box_1, +Label_1);

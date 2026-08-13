@@ -14,7 +14,7 @@ with Adi.Widget.Button.Switch; use Adi.Widget.Button.Switch;
 with Adi.Widget.Combo_Box; use Adi.Widget.Combo_Box;
 with Adi.Widget.Label; use Adi.Widget.Label;
 with Adi.Widget.Text_Input; use Adi.Widget.Text_Input;
-with Material_Demo_Styles; use Material_Demo_Styles;
+with Material_Demo_Styles;
 
 package body Material_Demo_UI is
 
@@ -96,216 +96,6 @@ package body Material_Demo_UI is
          Success := Mode_OK;
       end if;
    end Set_CSS_File;
-
-   procedure Register_Root_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("root", Root_Class_Part_Styles));
-   end Register_Root_Styles;
-
-   procedure Register_App_Bar_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("app-bar", App_Bar_Class_Part_Styles));
-   end Register_App_Bar_Styles;
-
-   procedure Register_App_Title_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("app-title", App_Title_Class_Part_Styles));
-   end Register_App_Title_Styles;
-
-   procedure Register_Nav_Bar_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("nav-bar", Nav_Bar_Class_Part_Styles));
-   end Register_Nav_Bar_Styles;
-
-   procedure Register_Nav_Btn_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("nav-btn", Nav_Btn_Class_Part_Styles));
-   end Register_Nav_Btn_Styles;
-
-   procedure Register_Pages_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("pages", Pages_Class_Part_Styles));
-   end Register_Pages_Styles;
-
-   procedure Register_Page_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("page", Page_Class_Part_Styles));
-   end Register_Page_Styles;
-
-   procedure Register_Card_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("card", Card_Class_Part_Styles));
-   end Register_Card_Styles;
-
-   procedure Register_Label_Inline_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("label-inline", Label_Inline_Class_Part_Styles));
-   end Register_Label_Inline_Styles;
-
-   procedure Register_Card_Title_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("card-title", Card_Title_Class_Part_Styles));
-   end Register_Card_Title_Styles;
-
-   procedure Register_Card_Body_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("card-body", Card_Body_Class_Part_Styles));
-   end Register_Card_Body_Styles;
-
-   procedure Register_Card_Hint_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("card-hint", Card_Hint_Class_Part_Styles));
-   end Register_Card_Hint_Styles;
-
-   procedure Register_Btn_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("btn", Btn_Class_Part_Styles));
-   end Register_Btn_Styles;
-
-   procedure Register_Btn_Primary_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("btn-primary", Btn_Primary_Class_Part_Styles));
-   end Register_Btn_Primary_Styles;
-
-   procedure Register_Text_Field_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("text-field", Text_Field_Class_Part_Styles));
-   end Register_Text_Field_Styles;
-
-   procedure Register_Field_Label_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("field-label", Field_Label_Class_Part_Styles));
-   end Register_Field_Label_Styles;
-
-   procedure Register_Combo_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("combo", Combo_Class_Part_Styles));
-   end Register_Combo_Styles;
-
-   procedure Register_Btn_Row_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("btn-row", Btn_Row_Class_Part_Styles));
-   end Register_Btn_Row_Styles;
-
-   procedure Register_Btn_Secondary_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("btn-secondary", Btn_Secondary_Class_Part_Styles));
-   end Register_Btn_Secondary_Styles;
-
-   procedure Register_Control_Grid_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("control-grid", Control_Grid_Class_Part_Styles));
-   end Register_Control_Grid_Styles;
-
-   procedure Register_Grid_Header_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grid-header", Grid_Header_Class_Part_Styles));
-   end Register_Grid_Header_Styles;
-
-   procedure Register_Grid_Label_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grid-label", Grid_Label_Class_Part_Styles));
-   end Register_Grid_Label_Styles;
-
-   procedure Register_Grid_Cell_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grid-cell", Grid_Cell_Class_Part_Styles));
-   end Register_Grid_Cell_Styles;
-
-   procedure Register_Setting_Switch_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("setting-switch", Setting_Switch_Class_Part_Styles));
-   end Register_Setting_Switch_Styles;
-
-   procedure Register_Slider_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("slider", Slider_Class_Part_Styles));
-   end Register_Slider_Styles;
-
-   procedure Register_Grid_Slider_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grid-slider", Grid_Slider_Class_Part_Styles));
-   end Register_Grid_Slider_Styles;
-
-   procedure Register_Num_Field_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("num-field", Num_Field_Class_Part_Styles));
-   end Register_Num_Field_Styles;
-
-   procedure Register_Setting_Row_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("setting-row", Setting_Row_Class_Part_Styles));
-   end Register_Setting_Row_Styles;
-
-   procedure Register_Setting_Label_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("setting-label", Setting_Label_Class_Part_Styles));
-   end Register_Setting_Label_Styles;
-
-   procedure Register_Lock_Bar_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("lock-bar", Lock_Bar_Class_Part_Styles));
-   end Register_Lock_Bar_Styles;
 
    function Build
       return Adi.Window.Window_Handle is
@@ -420,36 +210,7 @@ package body Material_Demo_UI is
 
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
-      Register_Root_Styles (Source);
-      Register_App_Bar_Styles (Source);
-      Register_App_Title_Styles (Source);
-      Register_Nav_Bar_Styles (Source);
-      Register_Nav_Btn_Styles (Source);
-      Register_Pages_Styles (Source);
-      Register_Page_Styles (Source);
-      Register_Card_Styles (Source);
-      Register_Label_Inline_Styles (Source);
-      Register_Card_Title_Styles (Source);
-      Register_Card_Body_Styles (Source);
-      Register_Card_Hint_Styles (Source);
-      Register_Btn_Styles (Source);
-      Register_Btn_Primary_Styles (Source);
-      Register_Text_Field_Styles (Source);
-      Register_Field_Label_Styles (Source);
-      Register_Combo_Styles (Source);
-      Register_Btn_Row_Styles (Source);
-      Register_Btn_Secondary_Styles (Source);
-      Register_Control_Grid_Styles (Source);
-      Register_Grid_Header_Styles (Source);
-      Register_Grid_Label_Styles (Source);
-      Register_Grid_Cell_Styles (Source);
-      Register_Setting_Switch_Styles (Source);
-      Register_Slider_Styles (Source);
-      Register_Grid_Slider_Styles (Source);
-      Register_Num_Field_Styles (Source);
-      Register_Setting_Row_Styles (Source);
-      Register_Setting_Label_Styles (Source);
-      Register_Lock_Bar_Styles (Source);
+      Material_Demo_Styles.Register_Selectors (Source);
       Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
       --  Load dynamic CSS and choose mode
@@ -471,78 +232,381 @@ package body Material_Demo_UI is
       end;
 
       Adi.CSS_Source.Attach_Window (Source, W);
-      --  Bind every widget that has a CSS class
+      --  Bind every widget under the selectors naming it
       Adi.CSS_Source.Bind_Root_Metadata (Source, +Root);
-      Adi.CSS_Source.Bind_Class (Source, "root", +Root);
-      Adi.CSS_Source.Bind_Class (Source, "app-bar", +Box_1);
-      Adi.CSS_Source.Bind_Class (Source, "app-title", +App_Title);
-      Adi.CSS_Source.Bind_Class (Source, "nav-bar", +Nav_Bar);
-      Adi.CSS_Source.Bind_Class (Source, "nav-btn", +Btn_Home);
-      Adi.CSS_Source.Bind_Class (Source, "nav-btn", +Btn_Forms);
-      Adi.CSS_Source.Bind_Class (Source, "nav-btn", +Btn_Settings);
-      Adi.CSS_Source.Bind_Class (Source, "nav-btn", +Btn_Controls);
-      Adi.CSS_Source.Bind_Class (Source, "pages", +Pages);
-      Adi.CSS_Source.Bind_Class (Source, "page", +Box_2);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_3);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline card-title", +Label_1);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline card-body", +Label_2);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline card-hint", +Label_3);
-      Adi.CSS_Source.Bind_Class (Source, "btn btn-primary", +Button_1);
-      Adi.CSS_Source.Bind_Class (Source, "page", +Box_4);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_5);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline card-title", +Label_4);
-      Adi.CSS_Source.Bind_Class (Source, "text-field", +Name_Input);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline field-label", +Label_5);
-      Adi.CSS_Source.Bind_Class (Source, "combo", +Country_Combo);
-      Adi.CSS_Source.Bind_Class (Source, "btn-row", +Box_6);
-      Adi.CSS_Source.Bind_Class (Source, "btn btn-primary", +Button_2);
-      Adi.CSS_Source.Bind_Class (Source, "btn btn-secondary", +Button_3);
-      Adi.CSS_Source.Bind_Class (Source, "page", +Box_7);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_8);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline card-title", +Label_6);
-      Adi.CSS_Source.Bind_Class (Source, "control-grid", +Box_9);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline grid-header", +Label_7);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline grid-header", +Label_8);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline grid-header", +Label_9);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline grid-label", +Label_10);
-      Adi.CSS_Source.Bind_Class (Source, "btn btn-primary grid-cell", +Button_4);
-      Adi.CSS_Source.Bind_Class (Source, "btn btn-primary grid-cell", +Button_5);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline grid-label", +Label_11);
-      Adi.CSS_Source.Bind_Class (Source, "text-field grid-cell", +Enabled_Input);
-      Adi.CSS_Source.Bind_Class (Source, "text-field grid-cell", +Disabled_Input);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline grid-label", +Label_12);
-      Adi.CSS_Source.Bind_Class (Source, "setting-switch grid-cell", +Switch_1);
-      Adi.CSS_Source.Bind_Class (Source, "setting-switch grid-cell", +Switch_2);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline grid-label", +Label_13);
-      Adi.CSS_Source.Bind_Class (Source, "combo grid-cell", +Enabled_Combo);
-      Adi.CSS_Source.Bind_Class (Source, "combo grid-cell", +Disabled_Combo);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline grid-label", +Label_14);
-      Adi.CSS_Source.Bind_Class (Source, "slider grid-cell grid-slider", +Enabled_Slider);
-      Adi.CSS_Source.Bind_Class (Source, "slider grid-cell grid-slider", +Disabled_Slider);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline grid-label", +Label_15);
-      Adi.CSS_Source.Bind_Class (Source, "num-field grid-cell", +Enabled_Value_Input);
-      Adi.CSS_Source.Bind_Class (Source, "num-field grid-cell", +Disabled_Value_Input);
-      Adi.CSS_Source.Bind_Class (Source, "page", +Box_10);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_11);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline card-title", +Label_16);
-      Adi.CSS_Source.Bind_Class (Source, "setting-row", +Box_12);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", +Label_17);
-      Adi.CSS_Source.Bind_Class (Source, "setting-switch", +Dark_Switch);
-      Adi.CSS_Source.Bind_Class (Source, "setting-row", +Box_13);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", +Label_18);
-      Adi.CSS_Source.Bind_Class (Source, "slider", +UI_Scale_Slider);
-      Adi.CSS_Source.Bind_Class (Source, "setting-row", +Box_14);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", +Label_19);
-      Adi.CSS_Source.Bind_Class (Source, "slider", +Text_Scale_Slider);
-      Adi.CSS_Source.Bind_Class (Source, "setting-row", +Box_15);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", +Label_20);
-      Adi.CSS_Source.Bind_Class (Source, "setting-switch", +Switch_3);
-      Adi.CSS_Source.Bind_Class (Source, "setting-row", +Box_16);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", +Label_21);
-      Adi.CSS_Source.Bind_Class (Source, "setting-switch", +Switch_4);
-      Adi.CSS_Source.Bind_Class (Source, "nav-bar setting-row lock-bar", +Lock_Bar);
-      Adi.CSS_Source.Bind_Class (Source, "label-inline setting-label", +Label_22);
-      Adi.CSS_Source.Bind_Class (Source, "setting-switch", +Lock_Switch);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Root,
+         Tag_Name   => "box",
+         Class_Name => "root",
+         Id_Name    => "Root");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_1,
+         Tag_Name   => "box",
+         Class_Name => "app-bar");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +App_Title,
+         Tag_Name   => "label",
+         Class_Name => "app-title",
+         Id_Name    => "App_Title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Nav_Bar,
+         Tag_Name   => "box",
+         Class_Name => "nav-bar",
+         Id_Name    => "Nav_Bar");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Btn_Home,
+         Tag_Name   => "button",
+         Class_Name => "nav-btn",
+         Id_Name    => "Btn_Home");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Btn_Forms,
+         Tag_Name   => "button",
+         Class_Name => "nav-btn",
+         Id_Name    => "Btn_Forms");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Btn_Settings,
+         Tag_Name   => "button",
+         Class_Name => "nav-btn",
+         Id_Name    => "Btn_Settings");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Btn_Controls,
+         Tag_Name   => "button",
+         Class_Name => "nav-btn",
+         Id_Name    => "Btn_Controls");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Pages,
+         Tag_Name   => "stack",
+         Class_Name => "pages",
+         Id_Name    => "Pages");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_2,
+         Tag_Name   => "box",
+         Class_Name => "page");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_3,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_1,
+         Tag_Name   => "label",
+         Class_Name => "label-inline card-title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_2,
+         Tag_Name   => "label",
+         Class_Name => "label-inline card-body");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_3,
+         Tag_Name   => "label",
+         Class_Name => "label-inline card-hint");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Button_1,
+         Tag_Name   => "button",
+         Class_Name => "btn btn-primary");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_4,
+         Tag_Name   => "box",
+         Class_Name => "page");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_5,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_4,
+         Tag_Name   => "label",
+         Class_Name => "label-inline card-title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Name_Input,
+         Tag_Name   => "text-input",
+         Class_Name => "text-field",
+         Id_Name    => "Name_Input");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_5,
+         Tag_Name   => "label",
+         Class_Name => "label-inline field-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Country_Combo,
+         Tag_Name   => "combo-box",
+         Class_Name => "combo",
+         Id_Name    => "Country_Combo");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_6,
+         Tag_Name   => "box",
+         Class_Name => "btn-row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Button_2,
+         Tag_Name   => "button",
+         Class_Name => "btn btn-primary");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Button_3,
+         Tag_Name   => "button",
+         Class_Name => "btn btn-secondary");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_7,
+         Tag_Name   => "box",
+         Class_Name => "page");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_8,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_6,
+         Tag_Name   => "label",
+         Class_Name => "label-inline card-title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_9,
+         Tag_Name   => "box",
+         Class_Name => "control-grid");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_7,
+         Tag_Name   => "label",
+         Class_Name => "label-inline grid-header");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_8,
+         Tag_Name   => "label",
+         Class_Name => "label-inline grid-header");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_9,
+         Tag_Name   => "label",
+         Class_Name => "label-inline grid-header");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_10,
+         Tag_Name   => "label",
+         Class_Name => "label-inline grid-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Button_4,
+         Tag_Name   => "button",
+         Class_Name => "btn btn-primary grid-cell");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Button_5,
+         Tag_Name   => "button",
+         Class_Name => "btn btn-primary grid-cell");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_11,
+         Tag_Name   => "label",
+         Class_Name => "label-inline grid-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Enabled_Input,
+         Tag_Name   => "text-input",
+         Class_Name => "text-field grid-cell",
+         Id_Name    => "Enabled_Input");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Disabled_Input,
+         Tag_Name   => "text-input",
+         Class_Name => "text-field grid-cell",
+         Id_Name    => "Disabled_Input");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_12,
+         Tag_Name   => "label",
+         Class_Name => "label-inline grid-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Switch_1,
+         Tag_Name   => "switch",
+         Class_Name => "setting-switch grid-cell");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Switch_2,
+         Tag_Name   => "switch",
+         Class_Name => "setting-switch grid-cell");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_13,
+         Tag_Name   => "label",
+         Class_Name => "label-inline grid-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Enabled_Combo,
+         Tag_Name   => "combo-box",
+         Class_Name => "combo grid-cell",
+         Id_Name    => "Enabled_Combo");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Disabled_Combo,
+         Tag_Name   => "combo-box",
+         Class_Name => "combo grid-cell",
+         Id_Name    => "Disabled_Combo");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_14,
+         Tag_Name   => "label",
+         Class_Name => "label-inline grid-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Enabled_Slider,
+         Tag_Name   => "slider",
+         Class_Name => "slider grid-cell grid-slider",
+         Id_Name    => "Enabled_Slider");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Disabled_Slider,
+         Tag_Name   => "slider",
+         Class_Name => "slider grid-cell grid-slider",
+         Id_Name    => "Disabled_Slider");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_15,
+         Tag_Name   => "label",
+         Class_Name => "label-inline grid-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Enabled_Value_Input,
+         Tag_Name   => "value-input",
+         Class_Name => "num-field grid-cell",
+         Id_Name    => "Enabled_Value_Input");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Disabled_Value_Input,
+         Tag_Name   => "integer-value-input",
+         Class_Name => "num-field grid-cell",
+         Id_Name    => "Disabled_Value_Input");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_10,
+         Tag_Name   => "box",
+         Class_Name => "page");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_11,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_16,
+         Tag_Name   => "label",
+         Class_Name => "label-inline card-title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_12,
+         Tag_Name   => "box",
+         Class_Name => "setting-row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_17,
+         Tag_Name   => "label",
+         Class_Name => "label-inline setting-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Dark_Switch,
+         Tag_Name   => "switch",
+         Class_Name => "setting-switch",
+         Id_Name    => "Dark_Switch");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_13,
+         Tag_Name   => "box",
+         Class_Name => "setting-row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_18,
+         Tag_Name   => "label",
+         Class_Name => "label-inline setting-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +UI_Scale_Slider,
+         Tag_Name   => "slider",
+         Class_Name => "slider",
+         Id_Name    => "UI_Scale_Slider");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_14,
+         Tag_Name   => "box",
+         Class_Name => "setting-row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_19,
+         Tag_Name   => "label",
+         Class_Name => "label-inline setting-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Text_Scale_Slider,
+         Tag_Name   => "slider",
+         Class_Name => "slider",
+         Id_Name    => "Text_Scale_Slider");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_15,
+         Tag_Name   => "box",
+         Class_Name => "setting-row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_20,
+         Tag_Name   => "label",
+         Class_Name => "label-inline setting-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Switch_3,
+         Tag_Name   => "switch",
+         Class_Name => "setting-switch");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_16,
+         Tag_Name   => "box",
+         Class_Name => "setting-row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_21,
+         Tag_Name   => "label",
+         Class_Name => "label-inline setting-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Switch_4,
+         Tag_Name   => "switch",
+         Class_Name => "setting-switch");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Lock_Bar,
+         Tag_Name   => "box",
+         Class_Name => "nav-bar setting-row lock-bar",
+         Id_Name    => "Lock_Bar");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_22,
+         Tag_Name   => "label",
+         Class_Name => "label-inline setting-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Lock_Switch,
+         Tag_Name   => "switch",
+         Class_Name => "setting-switch",
+         Id_Name    => "Lock_Switch");
 
       --  Build hierarchy
       Adi.Widget.Add_Child (+Box_1, +App_Title);

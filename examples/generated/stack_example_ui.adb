@@ -11,8 +11,8 @@ with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Button; use Adi.Widget.Button;
 with Adi.Widget.Label; use Adi.Widget.Label;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
-with Stack_Example_Styles; use Stack_Example_Styles;
-with Stack_Example_Tabs_Styles; use Stack_Example_Tabs_Styles;
+with Stack_Example_Styles;
+with Stack_Example_Tabs_Styles;
 
 package body Stack_Example_UI is
 
@@ -82,6 +82,27 @@ package body Stack_Example_UI is
       Label_Part => (Style => Page_Desc_Class_Label_Widget, Enabled => True),
       others => <>
    ];
+
+   procedure Register_Inline_Selectors_1
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("page-title", Page_Title_Class_Part_Styles));
+   end Register_Inline_Selectors_1;
+   pragma No_Inline (Register_Inline_Selectors_1);
+
+   procedure Register_Inline_Selectors_2
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("page-desc", Page_Desc_Class_Part_Styles));
+   end Register_Inline_Selectors_2;
+   pragma No_Inline (Register_Inline_Selectors_2);
+
+   procedure Register_Inline_Selectors
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Register_Inline_Selectors_1 (S);
+      Register_Inline_Selectors_2 (S);
+   end Register_Inline_Selectors;
 
 
    function Merge_Metadata
@@ -174,69 +195,6 @@ package body Stack_Example_UI is
       end if;
    end Set_CSS_File;
 
-   procedure Register_Root_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("root", Root_Class_Part_Styles));
-   end Register_Root_Styles;
-
-   procedure Register_Tab_Bar_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tab-bar", Tab_Bar_Class_Part_Styles));
-   end Register_Tab_Bar_Styles;
-
-   procedure Register_Tab_Left_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tab-left", Tab_Left_Class_Part_Styles));
-   end Register_Tab_Left_Styles;
-
-   procedure Register_Tab_Center_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tab-center", Tab_Center_Class_Part_Styles));
-   end Register_Tab_Center_Styles;
-
-   procedure Register_Tab_Right_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tab-right", Tab_Right_Class_Part_Styles));
-   end Register_Tab_Right_Styles;
-
-   procedure Register_Stack_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("stack", Stack_Class_Part_Styles));
-   end Register_Stack_Styles;
-
-   procedure Register_Page_Blue_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("page-blue", Page_Blue_Class_Part_Styles));
-   end Register_Page_Blue_Styles;
-
-   procedure Register_Page_Title_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("page-title", Page_Title_Class_Part_Styles));
-   end Register_Page_Title_Styles;
-
-   procedure Register_Page_Desc_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("page-desc", Page_Desc_Class_Part_Styles));
-   end Register_Page_Desc_Styles;
-
    function Build
       return Adi.Window.Window_Handle is
       W : constant Adi.Window.Window_Handle :=
@@ -255,15 +213,9 @@ package body Stack_Example_UI is
 
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
-      Register_Root_Styles (Source);
-      Register_Tab_Bar_Styles (Source);
-      Register_Tab_Left_Styles (Source);
-      Register_Tab_Center_Styles (Source);
-      Register_Tab_Right_Styles (Source);
-      Register_Stack_Styles (Source);
-      Register_Page_Blue_Styles (Source);
-      Register_Page_Title_Styles (Source);
-      Register_Page_Desc_Styles (Source);
+      Stack_Example_Styles.Register_Selectors (Source);
+      Stack_Example_Tabs_Styles.Register_Selectors (Source);
+      Register_Inline_Selectors (Source);
       Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
       --  Load dynamic CSS and choose mode
@@ -289,17 +241,59 @@ package body Stack_Example_UI is
       end;
 
       Adi.CSS_Source.Attach_Window (Source, W);
-      --  Bind every widget that has a CSS class
+      --  Bind every widget under the selectors naming it
       Adi.CSS_Source.Bind_Root_Metadata (Source, +Root);
-      Adi.CSS_Source.Bind_Class (Source, "root", +Root);
-      Adi.CSS_Source.Bind_Class (Source, "tab-bar", +Tab_Bar);
-      Adi.CSS_Source.Bind_Class (Source, "tab-left", +Btn_Red);
-      Adi.CSS_Source.Bind_Class (Source, "tab-center", +Btn_Green);
-      Adi.CSS_Source.Bind_Class (Source, "tab-right", +Btn_Blue);
-      Adi.CSS_Source.Bind_Class (Source, "stack", +Pages);
-      Adi.CSS_Source.Bind_Class (Source, "page-blue", +Box_1);
-      Adi.CSS_Source.Bind_Class (Source, "page-title", +Label_1);
-      Adi.CSS_Source.Bind_Class (Source, "page-desc", +Label_2);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Root,
+         Tag_Name   => "box",
+         Class_Name => "root",
+         Id_Name    => "Root");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Tab_Bar,
+         Tag_Name   => "box",
+         Class_Name => "tab-bar",
+         Id_Name    => "Tab_Bar");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Btn_Red,
+         Tag_Name   => "button",
+         Class_Name => "tab-left",
+         Id_Name    => "Btn_Red");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Btn_Green,
+         Tag_Name   => "button",
+         Class_Name => "tab-center",
+         Id_Name    => "Btn_Green");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Btn_Blue,
+         Tag_Name   => "button",
+         Class_Name => "tab-right",
+         Id_Name    => "Btn_Blue");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Pages,
+         Tag_Name   => "stack",
+         Class_Name => "stack",
+         Id_Name    => "Pages");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_1,
+         Tag_Name   => "box",
+         Class_Name => "page-blue");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_1,
+         Tag_Name   => "label",
+         Class_Name => "page-title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_2,
+         Tag_Name   => "label",
+         Class_Name => "page-desc");
 
       --  Build hierarchy
       Adi.Widget.Add_Child (+Tab_Bar, +Btn_Red);

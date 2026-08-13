@@ -9,7 +9,7 @@ with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Label; use Adi.Widget.Label;
-with Gradient_Example_Styles; use Gradient_Example_Styles;
+with Gradient_Example_Styles;
 
 package body Gradient_Example_UI is
 
@@ -78,181 +78,6 @@ package body Gradient_Example_UI is
          Success := Mode_OK;
       end if;
    end Set_CSS_File;
-
-   procedure Register_Root_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("root", Root_Class_Part_Styles));
-   end Register_Root_Styles;
-
-   procedure Register_Title_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("title", Title_Class_Part_Styles));
-   end Register_Title_Styles;
-
-   procedure Register_Row_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("row", Row_Class_Part_Styles));
-   end Register_Row_Styles;
-
-   procedure Register_Grad_V_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-v", Grad_V_Class_Part_Styles));
-   end Register_Grad_V_Styles;
-
-   procedure Register_Grad_Card_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-card", Grad_Card_Class_Part_Styles));
-   end Register_Grad_Card_Styles;
-
-   procedure Register_Grad_H_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-h", Grad_H_Class_Part_Styles));
-   end Register_Grad_H_Styles;
-
-   procedure Register_Grad_Default_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-default", Grad_Default_Class_Part_Styles));
-   end Register_Grad_Default_Styles;
-
-   procedure Register_Grad_Up_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-up", Grad_Up_Class_Part_Styles));
-   end Register_Grad_Up_Styles;
-
-   procedure Register_Grad_Left_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-left", Grad_Left_Class_Part_Styles));
-   end Register_Grad_Left_Styles;
-
-   procedure Register_Grad_Diag_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-diag", Grad_Diag_Class_Part_Styles));
-   end Register_Grad_Diag_Styles;
-
-   procedure Register_Grad_Diag_Tr_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-diag-tr", Grad_Diag_Tr_Class_Part_Styles));
-   end Register_Grad_Diag_Tr_Styles;
-
-   procedure Register_Grad_Diag_Bl_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-diag-bl", Grad_Diag_Bl_Class_Part_Styles));
-   end Register_Grad_Diag_Bl_Styles;
-
-   procedure Register_Grad_Diag_Rev_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-diag-rev", Grad_Diag_Rev_Class_Part_Styles));
-   end Register_Grad_Diag_Rev_Styles;
-
-   procedure Register_Grad_45_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-45", Grad_45_Class_Part_Styles));
-   end Register_Grad_45_Styles;
-
-   procedure Register_Grad_135_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-135", Grad_135_Class_Part_Styles));
-   end Register_Grad_135_Styles;
-
-   procedure Register_Grad_Turn_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-turn", Grad_Turn_Class_Part_Styles));
-   end Register_Grad_Turn_Styles;
-
-   procedure Register_Grad_Rad_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-rad", Grad_Rad_Class_Part_Styles));
-   end Register_Grad_Rad_Styles;
-
-   procedure Register_Grad_Grad_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-grad", Grad_Grad_Class_Part_Styles));
-   end Register_Grad_Grad_Styles;
-
-   procedure Register_Grad_Alpha_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-alpha", Grad_Alpha_Class_Part_Styles));
-   end Register_Grad_Alpha_Styles;
-
-   procedure Register_Grad_3stop_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-3stop", Grad_3stop_Class_Part_Styles));
-   end Register_Grad_3stop_Styles;
-
-   procedure Register_Grad_Pos_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-pos", Grad_Pos_Class_Part_Styles));
-   end Register_Grad_Pos_Styles;
-
-   procedure Register_Grad_Edge_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-edge", Grad_Edge_Class_Part_Styles));
-   end Register_Grad_Edge_Styles;
-
-   procedure Register_Grad_16stop_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-16stop", Grad_16stop_Class_Part_Styles));
-   end Register_Grad_16stop_Styles;
-
-   procedure Register_Grad_Pill_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-pill", Grad_Pill_Class_Part_Styles));
-   end Register_Grad_Pill_Styles;
-
-   procedure Register_Grad_Border_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grad-border", Grad_Border_Class_Part_Styles));
-   end Register_Grad_Border_Styles;
 
    function Build
       return Adi.Window.Window_Handle is
@@ -339,31 +164,7 @@ package body Gradient_Example_UI is
 
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
-      Register_Root_Styles (Source);
-      Register_Title_Styles (Source);
-      Register_Row_Styles (Source);
-      Register_Grad_V_Styles (Source);
-      Register_Grad_Card_Styles (Source);
-      Register_Grad_H_Styles (Source);
-      Register_Grad_Default_Styles (Source);
-      Register_Grad_Up_Styles (Source);
-      Register_Grad_Left_Styles (Source);
-      Register_Grad_Diag_Styles (Source);
-      Register_Grad_Diag_Tr_Styles (Source);
-      Register_Grad_Diag_Bl_Styles (Source);
-      Register_Grad_Diag_Rev_Styles (Source);
-      Register_Grad_45_Styles (Source);
-      Register_Grad_135_Styles (Source);
-      Register_Grad_Turn_Styles (Source);
-      Register_Grad_Rad_Styles (Source);
-      Register_Grad_Grad_Styles (Source);
-      Register_Grad_Alpha_Styles (Source);
-      Register_Grad_3stop_Styles (Source);
-      Register_Grad_Pos_Styles (Source);
-      Register_Grad_Edge_Styles (Source);
-      Register_Grad_16stop_Styles (Source);
-      Register_Grad_Pill_Styles (Source);
-      Register_Grad_Border_Styles (Source);
+      Gradient_Example_Styles.Register_Selectors (Source);
       Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
       --  Load dynamic CSS and choose mode
@@ -385,38 +186,159 @@ package body Gradient_Example_UI is
       end;
 
       Adi.CSS_Source.Attach_Window (Source, W);
-      --  Bind every widget that has a CSS class
+      --  Bind every widget under the selectors naming it
       Adi.CSS_Source.Bind_Root_Metadata (Source, +Root);
-      Adi.CSS_Source.Bind_Class (Source, "root", +Root);
-      Adi.CSS_Source.Bind_Class (Source, "title", +Label_1);
-      Adi.CSS_Source.Bind_Class (Source, "row", +Box_1);
-      Adi.CSS_Source.Bind_Class (Source, "grad-v grad-card", +Box_2);
-      Adi.CSS_Source.Bind_Class (Source, "grad-h grad-card", +Box_3);
-      Adi.CSS_Source.Bind_Class (Source, "grad-default grad-card", +Box_4);
-      Adi.CSS_Source.Bind_Class (Source, "row", +Box_5);
-      Adi.CSS_Source.Bind_Class (Source, "grad-up grad-card", +Box_6);
-      Adi.CSS_Source.Bind_Class (Source, "grad-left grad-card", +Box_7);
-      Adi.CSS_Source.Bind_Class (Source, "grad-diag grad-card", +Box_8);
-      Adi.CSS_Source.Bind_Class (Source, "row", +Box_9);
-      Adi.CSS_Source.Bind_Class (Source, "grad-diag-tr grad-card", +Box_10);
-      Adi.CSS_Source.Bind_Class (Source, "grad-diag-bl grad-card", +Box_11);
-      Adi.CSS_Source.Bind_Class (Source, "grad-diag-rev grad-card", +Box_12);
-      Adi.CSS_Source.Bind_Class (Source, "row", +Box_13);
-      Adi.CSS_Source.Bind_Class (Source, "grad-45 grad-card", +Box_14);
-      Adi.CSS_Source.Bind_Class (Source, "grad-135 grad-card", +Box_15);
-      Adi.CSS_Source.Bind_Class (Source, "grad-turn grad-card", +Box_16);
-      Adi.CSS_Source.Bind_Class (Source, "row", +Box_17);
-      Adi.CSS_Source.Bind_Class (Source, "grad-rad grad-card", +Box_18);
-      Adi.CSS_Source.Bind_Class (Source, "grad-grad grad-card", +Box_19);
-      Adi.CSS_Source.Bind_Class (Source, "grad-alpha grad-card", +Box_20);
-      Adi.CSS_Source.Bind_Class (Source, "row", +Box_21);
-      Adi.CSS_Source.Bind_Class (Source, "grad-3stop grad-card", +Box_22);
-      Adi.CSS_Source.Bind_Class (Source, "grad-pos grad-card", +Box_23);
-      Adi.CSS_Source.Bind_Class (Source, "grad-edge grad-card", +Box_24);
-      Adi.CSS_Source.Bind_Class (Source, "row", +Box_25);
-      Adi.CSS_Source.Bind_Class (Source, "grad-16stop grad-card", +Box_26);
-      Adi.CSS_Source.Bind_Class (Source, "grad-card grad-pill", +Box_27);
-      Adi.CSS_Source.Bind_Class (Source, "grad-border grad-card", +Box_28);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Root,
+         Tag_Name   => "box",
+         Class_Name => "root",
+         Id_Name    => "Root");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_1,
+         Tag_Name   => "label",
+         Class_Name => "title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_1,
+         Tag_Name   => "box",
+         Class_Name => "row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_2,
+         Tag_Name   => "box",
+         Class_Name => "grad-v grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_3,
+         Tag_Name   => "box",
+         Class_Name => "grad-h grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_4,
+         Tag_Name   => "box",
+         Class_Name => "grad-default grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_5,
+         Tag_Name   => "box",
+         Class_Name => "row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_6,
+         Tag_Name   => "box",
+         Class_Name => "grad-up grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_7,
+         Tag_Name   => "box",
+         Class_Name => "grad-left grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_8,
+         Tag_Name   => "box",
+         Class_Name => "grad-diag grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_9,
+         Tag_Name   => "box",
+         Class_Name => "row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_10,
+         Tag_Name   => "box",
+         Class_Name => "grad-diag-tr grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_11,
+         Tag_Name   => "box",
+         Class_Name => "grad-diag-bl grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_12,
+         Tag_Name   => "box",
+         Class_Name => "grad-diag-rev grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_13,
+         Tag_Name   => "box",
+         Class_Name => "row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_14,
+         Tag_Name   => "box",
+         Class_Name => "grad-45 grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_15,
+         Tag_Name   => "box",
+         Class_Name => "grad-135 grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_16,
+         Tag_Name   => "box",
+         Class_Name => "grad-turn grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_17,
+         Tag_Name   => "box",
+         Class_Name => "row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_18,
+         Tag_Name   => "box",
+         Class_Name => "grad-rad grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_19,
+         Tag_Name   => "box",
+         Class_Name => "grad-grad grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_20,
+         Tag_Name   => "box",
+         Class_Name => "grad-alpha grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_21,
+         Tag_Name   => "box",
+         Class_Name => "row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_22,
+         Tag_Name   => "box",
+         Class_Name => "grad-3stop grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_23,
+         Tag_Name   => "box",
+         Class_Name => "grad-pos grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_24,
+         Tag_Name   => "box",
+         Class_Name => "grad-edge grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_25,
+         Tag_Name   => "box",
+         Class_Name => "row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_26,
+         Tag_Name   => "box",
+         Class_Name => "grad-16stop grad-card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_27,
+         Tag_Name   => "box",
+         Class_Name => "grad-card grad-pill");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_28,
+         Tag_Name   => "box",
+         Class_Name => "grad-border grad-card");
 
       --  Build hierarchy
       Adi.Widget.Add_Child (+Box_1, +Box_2);

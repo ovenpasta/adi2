@@ -9,7 +9,7 @@ with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Label; use Adi.Widget.Label;
-with Demo_Flex_Styles; use Demo_Flex_Styles;
+with Demo_Flex_Styles;
 
 package body Demo_Flex_UI is
 
@@ -78,461 +78,6 @@ package body Demo_Flex_UI is
          Success := Mode_OK;
       end if;
    end Set_CSS_File;
-
-   procedure Register_Root_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("root", Root_Class_Part_Styles));
-   end Register_Root_Styles;
-
-   procedure Register_Title_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("title", Title_Class_Part_Styles));
-   end Register_Title_Styles;
-
-   procedure Register_Section_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("section", Section_Class_Part_Styles));
-   end Register_Section_Styles;
-
-   procedure Register_Caption_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("caption", Caption_Class_Part_Styles));
-   end Register_Caption_Styles;
-
-   procedure Register_Note_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("note", Note_Class_Part_Styles));
-   end Register_Note_Styles;
-
-   procedure Register_Cases_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("cases", Cases_Class_Part_Styles));
-   end Register_Cases_Styles;
-
-   procedure Register_Case_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("case", Case_Class_Part_Styles));
-   end Register_Case_Styles;
-
-   procedure Register_Case_Label_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("case-label", Case_Label_Class_Part_Styles));
-   end Register_Case_Label_Styles;
-
-   procedure Register_Demo_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("demo", Demo_Class_Part_Styles));
-   end Register_Demo_Styles;
-
-   procedure Register_Tall_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tall", Tall_Class_Part_Styles));
-   end Register_Tall_Styles;
-
-   procedure Register_Dir_Row_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("dir-row", Dir_Row_Class_Part_Styles));
-   end Register_Dir_Row_Styles;
-
-   procedure Register_Item_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("item", Item_Class_Part_Styles));
-   end Register_Item_Styles;
-
-   procedure Register_Dir_Row_Rev_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("dir-row-rev", Dir_Row_Rev_Class_Part_Styles));
-   end Register_Dir_Row_Rev_Styles;
-
-   procedure Register_Dir_Col_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("dir-col", Dir_Col_Class_Part_Styles));
-   end Register_Dir_Col_Styles;
-
-   procedure Register_Dir_Col_Rev_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("dir-col-rev", Dir_Col_Rev_Class_Part_Styles));
-   end Register_Dir_Col_Rev_Styles;
-
-   procedure Register_Short_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("short", Short_Class_Part_Styles));
-   end Register_Short_Styles;
-
-   procedure Register_Bar_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("bar", Bar_Class_Part_Styles));
-   end Register_Bar_Styles;
-
-   procedure Register_Grow_1_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grow-1", Grow_1_Class_Part_Styles));
-   end Register_Grow_1_Styles;
-
-   procedure Register_Grow_2_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grow-2", Grow_2_Class_Part_Styles));
-   end Register_Grow_2_Styles;
-
-   procedure Register_Grow_0_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("grow-0", Grow_0_Class_Part_Styles));
-   end Register_Grow_0_Styles;
-
-   procedure Register_W320_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("w320", W320_Class_Part_Styles));
-   end Register_W320_Styles;
-
-   procedure Register_Shrink_Yes_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("shrink-yes", Shrink_Yes_Class_Part_Styles));
-   end Register_Shrink_Yes_Styles;
-
-   procedure Register_Shrink_No_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("shrink-no", Shrink_No_Class_Part_Styles));
-   end Register_Shrink_No_Styles;
-
-   procedure Register_Basis_40_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("basis-40", Basis_40_Class_Part_Styles));
-   end Register_Basis_40_Styles;
-
-   procedure Register_Basis_120_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("basis-120", Basis_120_Class_Part_Styles));
-   end Register_Basis_120_Styles;
-
-   procedure Register_Basis_200_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("basis-200", Basis_200_Class_Part_Styles));
-   end Register_Basis_200_Styles;
-
-   procedure Register_Just_Start_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("just-start", Just_Start_Class_Part_Styles));
-   end Register_Just_Start_Styles;
-
-   procedure Register_Just_Center_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("just-center", Just_Center_Class_Part_Styles));
-   end Register_Just_Center_Styles;
-
-   procedure Register_Just_End_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("just-end", Just_End_Class_Part_Styles));
-   end Register_Just_End_Styles;
-
-   procedure Register_Just_Between_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("just-between", Just_Between_Class_Part_Styles));
-   end Register_Just_Between_Styles;
-
-   procedure Register_Just_Around_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("just-around", Just_Around_Class_Part_Styles));
-   end Register_Just_Around_Styles;
-
-   procedure Register_Just_Evenly_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("just-evenly", Just_Evenly_Class_Part_Styles));
-   end Register_Just_Evenly_Styles;
-
-   procedure Register_Align_Start_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("align-start", Align_Start_Class_Part_Styles));
-   end Register_Align_Start_Styles;
-
-   procedure Register_H20_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("h20", H20_Class_Part_Styles));
-   end Register_H20_Styles;
-
-   procedure Register_H40_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("h40", H40_Class_Part_Styles));
-   end Register_H40_Styles;
-
-   procedure Register_H_Auto_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("h-auto", H_Auto_Class_Part_Styles));
-   end Register_H_Auto_Styles;
-
-   procedure Register_Align_Center_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("align-center", Align_Center_Class_Part_Styles));
-   end Register_Align_Center_Styles;
-
-   procedure Register_Align_End_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("align-end", Align_End_Class_Part_Styles));
-   end Register_Align_End_Styles;
-
-   procedure Register_Align_Stretch_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("align-stretch", Align_Stretch_Class_Part_Styles));
-   end Register_Align_Stretch_Styles;
-
-   procedure Register_W480_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("w480", W480_Class_Part_Styles));
-   end Register_W480_Styles;
-
-   procedure Register_Pinned_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("pinned", Pinned_Class_Part_Styles));
-   end Register_Pinned_Styles;
-
-   procedure Register_Elastic_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("elastic", Elastic_Class_Part_Styles));
-   end Register_Elastic_Styles;
-
-   procedure Register_H120_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("h120", H120_Class_Part_Styles));
-   end Register_H120_Styles;
-
-   procedure Register_W170_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("w170", W170_Class_Part_Styles));
-   end Register_W170_Styles;
-
-   procedure Register_Nowrap_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("nowrap", Nowrap_Class_Part_Styles));
-   end Register_Nowrap_Styles;
-
-   procedure Register_Align_Start_Items_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("align-start-items", Align_Start_Items_Class_Part_Styles));
-   end Register_Align_Start_Items_Styles;
-
-   procedure Register_Tile_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tile", Tile_Class_Part_Styles));
-   end Register_Tile_Styles;
-
-   procedure Register_Tile_Short_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tile-short", Tile_Short_Class_Part_Styles));
-   end Register_Tile_Short_Styles;
-
-   procedure Register_Wrap_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("wrap", Wrap_Class_Part_Styles));
-   end Register_Wrap_Styles;
-
-   procedure Register_Ac_Start_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("ac-start", Ac_Start_Class_Part_Styles));
-   end Register_Ac_Start_Styles;
-
-   procedure Register_Wrap_Reverse_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("wrap-reverse", Wrap_Reverse_Class_Part_Styles));
-   end Register_Wrap_Reverse_Styles;
-
-   procedure Register_Ac_Center_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("ac-center", Ac_Center_Class_Part_Styles));
-   end Register_Ac_Center_Styles;
-
-   procedure Register_Ac_End_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("ac-end", Ac_End_Class_Part_Styles));
-   end Register_Ac_End_Styles;
-
-   procedure Register_Ac_Between_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("ac-between", Ac_Between_Class_Part_Styles));
-   end Register_Ac_Between_Styles;
-
-   procedure Register_Ac_Around_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("ac-around", Ac_Around_Class_Part_Styles));
-   end Register_Ac_Around_Styles;
-
-   procedure Register_Ac_Stretch_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("ac-stretch", Ac_Stretch_Class_Part_Styles));
-   end Register_Ac_Stretch_Styles;
-
-   procedure Register_Self_Center_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("self-center", Self_Center_Class_Part_Styles));
-   end Register_Self_Center_Styles;
-
-   procedure Register_Self_End_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("self-end", Self_End_Class_Part_Styles));
-   end Register_Self_End_Styles;
-
-   procedure Register_Self_Stretch_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("self-stretch", Self_Stretch_Class_Part_Styles));
-   end Register_Self_Stretch_Styles;
-
-   procedure Register_Gap_Row_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("gap-row", Gap_Row_Class_Part_Styles));
-   end Register_Gap_Row_Styles;
-
-   procedure Register_Gap_Column_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("gap-column", Gap_Column_Class_Part_Styles));
-   end Register_Gap_Column_Styles;
-
-   procedure Register_Gap_Both_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("gap-both", Gap_Both_Class_Part_Styles));
-   end Register_Gap_Both_Styles;
-
-   procedure Register_H150_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("h150", H150_Class_Part_Styles));
-   end Register_H150_Styles;
-
-   procedure Register_W110_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("w110", W110_Class_Part_Styles));
-   end Register_W110_Styles;
-
-   procedure Register_Tile_Deep_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tile-deep", Tile_Deep_Class_Part_Styles));
-   end Register_Tile_Deep_Styles;
 
    function Build
       return Adi.Window.Window_Handle is
@@ -813,71 +358,7 @@ package body Demo_Flex_UI is
 
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
-      Register_Root_Styles (Source);
-      Register_Title_Styles (Source);
-      Register_Section_Styles (Source);
-      Register_Caption_Styles (Source);
-      Register_Note_Styles (Source);
-      Register_Cases_Styles (Source);
-      Register_Case_Styles (Source);
-      Register_Case_Label_Styles (Source);
-      Register_Demo_Styles (Source);
-      Register_Tall_Styles (Source);
-      Register_Dir_Row_Styles (Source);
-      Register_Item_Styles (Source);
-      Register_Dir_Row_Rev_Styles (Source);
-      Register_Dir_Col_Styles (Source);
-      Register_Dir_Col_Rev_Styles (Source);
-      Register_Short_Styles (Source);
-      Register_Bar_Styles (Source);
-      Register_Grow_1_Styles (Source);
-      Register_Grow_2_Styles (Source);
-      Register_Grow_0_Styles (Source);
-      Register_W320_Styles (Source);
-      Register_Shrink_Yes_Styles (Source);
-      Register_Shrink_No_Styles (Source);
-      Register_Basis_40_Styles (Source);
-      Register_Basis_120_Styles (Source);
-      Register_Basis_200_Styles (Source);
-      Register_Just_Start_Styles (Source);
-      Register_Just_Center_Styles (Source);
-      Register_Just_End_Styles (Source);
-      Register_Just_Between_Styles (Source);
-      Register_Just_Around_Styles (Source);
-      Register_Just_Evenly_Styles (Source);
-      Register_Align_Start_Styles (Source);
-      Register_H20_Styles (Source);
-      Register_H40_Styles (Source);
-      Register_H_Auto_Styles (Source);
-      Register_Align_Center_Styles (Source);
-      Register_Align_End_Styles (Source);
-      Register_Align_Stretch_Styles (Source);
-      Register_W480_Styles (Source);
-      Register_Pinned_Styles (Source);
-      Register_Elastic_Styles (Source);
-      Register_H120_Styles (Source);
-      Register_W170_Styles (Source);
-      Register_Nowrap_Styles (Source);
-      Register_Align_Start_Items_Styles (Source);
-      Register_Tile_Styles (Source);
-      Register_Tile_Short_Styles (Source);
-      Register_Wrap_Styles (Source);
-      Register_Ac_Start_Styles (Source);
-      Register_Wrap_Reverse_Styles (Source);
-      Register_Ac_Center_Styles (Source);
-      Register_Ac_End_Styles (Source);
-      Register_Ac_Between_Styles (Source);
-      Register_Ac_Around_Styles (Source);
-      Register_Ac_Stretch_Styles (Source);
-      Register_Self_Center_Styles (Source);
-      Register_Self_End_Styles (Source);
-      Register_Self_Stretch_Styles (Source);
-      Register_Gap_Row_Styles (Source);
-      Register_Gap_Column_Styles (Source);
-      Register_Gap_Both_Styles (Source);
-      Register_H150_Styles (Source);
-      Register_W110_Styles (Source);
-      Register_Tile_Deep_Styles (Source);
+      Demo_Flex_Styles.Register_Selectors (Source);
       Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
       --  Load dynamic CSS and choose mode
@@ -899,278 +380,1359 @@ package body Demo_Flex_UI is
       end;
 
       Adi.CSS_Source.Attach_Window (Source, W);
-      --  Bind every widget that has a CSS class
+      --  Bind every widget under the selectors naming it
       Adi.CSS_Source.Bind_Root_Metadata (Source, +Root);
-      Adi.CSS_Source.Bind_Class (Source, "root", +Root);
-      Adi.CSS_Source.Bind_Class (Source, "title", +Label_1);
-      Adi.CSS_Source.Bind_Class (Source, "section", +Box_1);
-      Adi.CSS_Source.Bind_Class (Source, "caption", +Label_2);
-      Adi.CSS_Source.Bind_Class (Source, "note", +Label_3);
-      Adi.CSS_Source.Bind_Class (Source, "cases", +Box_2);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_3);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_4);
-      Adi.CSS_Source.Bind_Class (Source, "demo tall dir-row", +Box_4);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Label_5);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Label_6);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Label_7);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_5);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_8);
-      Adi.CSS_Source.Bind_Class (Source, "demo tall dir-row-rev", +Box_6);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Label_9);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Label_10);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Label_11);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_7);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_12);
-      Adi.CSS_Source.Bind_Class (Source, "demo tall dir-col", +Box_8);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Label_13);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Label_14);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_9);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_15);
-      Adi.CSS_Source.Bind_Class (Source, "demo tall dir-col-rev", +Box_10);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Label_16);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Label_17);
-      Adi.CSS_Source.Bind_Class (Source, "section", +Box_11);
-      Adi.CSS_Source.Bind_Class (Source, "caption", +Label_18);
-      Adi.CSS_Source.Bind_Class (Source, "note", +Label_19);
-      Adi.CSS_Source.Bind_Class (Source, "demo short", +Box_12);
-      Adi.CSS_Source.Bind_Class (Source, "item bar grow-1", +Box_13);
-      Adi.CSS_Source.Bind_Class (Source, "item bar grow-2", +Box_14);
-      Adi.CSS_Source.Bind_Class (Source, "item bar grow-1", +Box_15);
-      Adi.CSS_Source.Bind_Class (Source, "item bar grow-0", +Box_16);
-      Adi.CSS_Source.Bind_Class (Source, "section", +Box_17);
-      Adi.CSS_Source.Bind_Class (Source, "caption", +Label_20);
-      Adi.CSS_Source.Bind_Class (Source, "note", +Label_21);
-      Adi.CSS_Source.Bind_Class (Source, "demo short w320", +Box_18);
-      Adi.CSS_Source.Bind_Class (Source, "item bar shrink-yes", +Box_19);
-      Adi.CSS_Source.Bind_Class (Source, "item bar shrink-no", +Box_20);
-      Adi.CSS_Source.Bind_Class (Source, "item bar shrink-yes", +Box_21);
-      Adi.CSS_Source.Bind_Class (Source, "section", +Box_22);
-      Adi.CSS_Source.Bind_Class (Source, "caption", +Label_22);
-      Adi.CSS_Source.Bind_Class (Source, "note", +Label_23);
-      Adi.CSS_Source.Bind_Class (Source, "demo short", +Box_23);
-      Adi.CSS_Source.Bind_Class (Source, "item bar basis-40", +Box_24);
-      Adi.CSS_Source.Bind_Class (Source, "item bar basis-120", +Box_25);
-      Adi.CSS_Source.Bind_Class (Source, "item bar basis-200", +Box_26);
-      Adi.CSS_Source.Bind_Class (Source, "section", +Box_27);
-      Adi.CSS_Source.Bind_Class (Source, "caption", +Label_24);
-      Adi.CSS_Source.Bind_Class (Source, "note", +Label_25);
-      Adi.CSS_Source.Bind_Class (Source, "cases", +Box_28);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_29);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_26);
-      Adi.CSS_Source.Bind_Class (Source, "demo short just-start", +Box_30);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_31);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_32);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_33);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_34);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_27);
-      Adi.CSS_Source.Bind_Class (Source, "demo short just-center", +Box_35);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_36);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_37);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_38);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_39);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_28);
-      Adi.CSS_Source.Bind_Class (Source, "demo short just-end", +Box_40);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_41);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_42);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_43);
-      Adi.CSS_Source.Bind_Class (Source, "cases", +Box_44);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_45);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_29);
-      Adi.CSS_Source.Bind_Class (Source, "demo short just-between", +Box_46);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_47);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_48);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_49);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_50);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_30);
-      Adi.CSS_Source.Bind_Class (Source, "demo short just-around", +Box_51);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_52);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_53);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_54);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_55);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_31);
-      Adi.CSS_Source.Bind_Class (Source, "demo short just-evenly", +Box_56);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_57);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_58);
-      Adi.CSS_Source.Bind_Class (Source, "item", +Box_59);
-      Adi.CSS_Source.Bind_Class (Source, "section", +Box_60);
-      Adi.CSS_Source.Bind_Class (Source, "caption", +Label_32);
-      Adi.CSS_Source.Bind_Class (Source, "note", +Label_33);
-      Adi.CSS_Source.Bind_Class (Source, "cases", +Box_61);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_62);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_34);
-      Adi.CSS_Source.Bind_Class (Source, "demo tall align-start", +Box_63);
-      Adi.CSS_Source.Bind_Class (Source, "item h20", +Box_64);
-      Adi.CSS_Source.Bind_Class (Source, "item h40", +Box_65);
-      Adi.CSS_Source.Bind_Class (Source, "item h-auto", +Box_66);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_67);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_35);
-      Adi.CSS_Source.Bind_Class (Source, "demo tall align-center", +Box_68);
-      Adi.CSS_Source.Bind_Class (Source, "item h20", +Box_69);
-      Adi.CSS_Source.Bind_Class (Source, "item h40", +Box_70);
-      Adi.CSS_Source.Bind_Class (Source, "item h-auto", +Box_71);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_72);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_36);
-      Adi.CSS_Source.Bind_Class (Source, "demo tall align-end", +Box_73);
-      Adi.CSS_Source.Bind_Class (Source, "item h20", +Box_74);
-      Adi.CSS_Source.Bind_Class (Source, "item h40", +Box_75);
-      Adi.CSS_Source.Bind_Class (Source, "item h-auto", +Box_76);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_77);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_37);
-      Adi.CSS_Source.Bind_Class (Source, "demo tall align-stretch", +Box_78);
-      Adi.CSS_Source.Bind_Class (Source, "item h20", +Box_79);
-      Adi.CSS_Source.Bind_Class (Source, "item h40", +Box_80);
-      Adi.CSS_Source.Bind_Class (Source, "item h-auto", +Box_81);
-      Adi.CSS_Source.Bind_Class (Source, "section", +Box_82);
-      Adi.CSS_Source.Bind_Class (Source, "caption", +Label_38);
-      Adi.CSS_Source.Bind_Class (Source, "note", +Label_39);
-      Adi.CSS_Source.Bind_Class (Source, "demo short w480", +Box_83);
-      Adi.CSS_Source.Bind_Class (Source, "item bar pinned", +Box_84);
-      Adi.CSS_Source.Bind_Class (Source, "item bar elastic", +Box_85);
-      Adi.CSS_Source.Bind_Class (Source, "item bar pinned", +Box_86);
-      Adi.CSS_Source.Bind_Class (Source, "item bar elastic", +Box_87);
-      Adi.CSS_Source.Bind_Class (Source, "section", +Box_88);
-      Adi.CSS_Source.Bind_Class (Source, "caption", +Label_40);
-      Adi.CSS_Source.Bind_Class (Source, "note", +Label_41);
-      Adi.CSS_Source.Bind_Class (Source, "cases", +Box_89);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_90);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_42);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 nowrap align-start-items", +Box_91);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_43);
-      Adi.CSS_Source.Bind_Class (Source, "item tile tile-short", +Label_44);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_45);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_46);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_92);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_47);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap ac-start align-start-items", +Box_93);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_48);
-      Adi.CSS_Source.Bind_Class (Source, "item tile tile-short", +Label_49);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_50);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_51);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_94);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_52);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap-reverse ac-start align-start-items", +Box_95);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_53);
-      Adi.CSS_Source.Bind_Class (Source, "item tile tile-short", +Label_54);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_55);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_56);
-      Adi.CSS_Source.Bind_Class (Source, "section", +Box_96);
-      Adi.CSS_Source.Bind_Class (Source, "caption", +Label_57);
-      Adi.CSS_Source.Bind_Class (Source, "note", +Label_58);
-      Adi.CSS_Source.Bind_Class (Source, "cases", +Box_97);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_98);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_59);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap ac-start", +Box_99);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_60);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_61);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_62);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_63);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_100);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_64);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap ac-center", +Box_101);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_65);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_66);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_67);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_68);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_102);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_69);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap ac-end", +Box_103);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_70);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_71);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_72);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_73);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_104);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_74);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap ac-between", +Box_105);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_75);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_76);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_77);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_78);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_106);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_79);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap ac-around", +Box_107);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_80);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_81);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_82);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_83);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_108);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_84);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap ac-stretch", +Box_109);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_85);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_86);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_87);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_88);
-      Adi.CSS_Source.Bind_Class (Source, "section", +Box_110);
-      Adi.CSS_Source.Bind_Class (Source, "caption", +Label_89);
-      Adi.CSS_Source.Bind_Class (Source, "note", +Label_90);
-      Adi.CSS_Source.Bind_Class (Source, "cases", +Box_111);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_112);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_91);
-      Adi.CSS_Source.Bind_Class (Source, "demo tall align-start", +Box_113);
-      Adi.CSS_Source.Bind_Class (Source, "item h20", +Label_92);
-      Adi.CSS_Source.Bind_Class (Source, "item h20 self-center", +Label_93);
-      Adi.CSS_Source.Bind_Class (Source, "item h20", +Label_94);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_114);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_95);
-      Adi.CSS_Source.Bind_Class (Source, "demo tall align-start", +Box_115);
-      Adi.CSS_Source.Bind_Class (Source, "item h20", +Label_96);
-      Adi.CSS_Source.Bind_Class (Source, "item h20 self-end", +Label_97);
-      Adi.CSS_Source.Bind_Class (Source, "item h20", +Label_98);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_116);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_99);
-      Adi.CSS_Source.Bind_Class (Source, "demo tall align-start", +Box_117);
-      Adi.CSS_Source.Bind_Class (Source, "item h20", +Label_100);
-      Adi.CSS_Source.Bind_Class (Source, "item self-stretch", +Label_101);
-      Adi.CSS_Source.Bind_Class (Source, "item h20", +Label_102);
-      Adi.CSS_Source.Bind_Class (Source, "section", +Box_118);
-      Adi.CSS_Source.Bind_Class (Source, "caption", +Label_103);
-      Adi.CSS_Source.Bind_Class (Source, "note", +Label_104);
-      Adi.CSS_Source.Bind_Class (Source, "cases", +Box_119);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_120);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_105);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap ac-start gap-row", +Box_121);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_106);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_107);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_108);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_109);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_122);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_110);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap ac-start gap-column", +Box_123);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_111);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_112);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_113);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_114);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_124);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_115);
-      Adi.CSS_Source.Bind_Class (Source, "demo h120 w170 wrap ac-start gap-both", +Box_125);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_116);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_117);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_118);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_119);
-      Adi.CSS_Source.Bind_Class (Source, "section", +Box_126);
-      Adi.CSS_Source.Bind_Class (Source, "caption", +Label_120);
-      Adi.CSS_Source.Bind_Class (Source, "note", +Label_121);
-      Adi.CSS_Source.Bind_Class (Source, "cases", +Box_127);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_128);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_122);
-      Adi.CSS_Source.Bind_Class (Source, "demo h150 w110 wrap ac-start align-start", +Box_129);
-      Adi.CSS_Source.Bind_Class (Source, "item tile tile-deep", +Label_123);
-      Adi.CSS_Source.Bind_Class (Source, "item tile tile-short", +Label_124);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_125);
-      Adi.CSS_Source.Bind_Class (Source, "item tile tile-short", +Label_126);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_130);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_127);
-      Adi.CSS_Source.Bind_Class (Source, "demo h150 w110 wrap ac-start align-center", +Box_131);
-      Adi.CSS_Source.Bind_Class (Source, "item tile tile-deep", +Label_128);
-      Adi.CSS_Source.Bind_Class (Source, "item tile tile-short", +Label_129);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_130);
-      Adi.CSS_Source.Bind_Class (Source, "item tile tile-short", +Label_131);
-      Adi.CSS_Source.Bind_Class (Source, "case", +Box_132);
-      Adi.CSS_Source.Bind_Class (Source, "case-label", +Label_132);
-      Adi.CSS_Source.Bind_Class (Source, "demo h150 w110 wrap ac-start align-end", +Box_133);
-      Adi.CSS_Source.Bind_Class (Source, "item tile tile-deep", +Label_133);
-      Adi.CSS_Source.Bind_Class (Source, "item tile tile-short", +Label_134);
-      Adi.CSS_Source.Bind_Class (Source, "item tile", +Label_135);
-      Adi.CSS_Source.Bind_Class (Source, "item tile tile-short", +Label_136);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Root,
+         Tag_Name   => "box",
+         Class_Name => "root",
+         Id_Name    => "Root");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_1,
+         Tag_Name   => "label",
+         Class_Name => "title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_1,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_2,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_3,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_2,
+         Tag_Name   => "box",
+         Class_Name => "cases");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_3,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_4,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_4,
+         Tag_Name   => "box",
+         Class_Name => "demo tall dir-row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_5,
+         Tag_Name   => "label",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_6,
+         Tag_Name   => "label",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_7,
+         Tag_Name   => "label",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_5,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_8,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_6,
+         Tag_Name   => "box",
+         Class_Name => "demo tall dir-row-rev");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_9,
+         Tag_Name   => "label",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_10,
+         Tag_Name   => "label",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_11,
+         Tag_Name   => "label",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_7,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_12,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_8,
+         Tag_Name   => "box",
+         Class_Name => "demo tall dir-col");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_13,
+         Tag_Name   => "label",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_14,
+         Tag_Name   => "label",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_9,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_15,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_10,
+         Tag_Name   => "box",
+         Class_Name => "demo tall dir-col-rev");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_16,
+         Tag_Name   => "label",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_17,
+         Tag_Name   => "label",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_11,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_18,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_19,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_12,
+         Tag_Name   => "box",
+         Class_Name => "demo short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_13,
+         Tag_Name   => "box",
+         Class_Name => "item bar grow-1");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_14,
+         Tag_Name   => "box",
+         Class_Name => "item bar grow-2");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_15,
+         Tag_Name   => "box",
+         Class_Name => "item bar grow-1");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_16,
+         Tag_Name   => "box",
+         Class_Name => "item bar grow-0");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_17,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_20,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_21,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_18,
+         Tag_Name   => "box",
+         Class_Name => "demo short w320");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_19,
+         Tag_Name   => "box",
+         Class_Name => "item bar shrink-yes");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_20,
+         Tag_Name   => "box",
+         Class_Name => "item bar shrink-no");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_21,
+         Tag_Name   => "box",
+         Class_Name => "item bar shrink-yes");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_22,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_22,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_23,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_23,
+         Tag_Name   => "box",
+         Class_Name => "demo short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_24,
+         Tag_Name   => "box",
+         Class_Name => "item bar basis-40");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_25,
+         Tag_Name   => "box",
+         Class_Name => "item bar basis-120");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_26,
+         Tag_Name   => "box",
+         Class_Name => "item bar basis-200");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_27,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_24,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_25,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_28,
+         Tag_Name   => "box",
+         Class_Name => "cases");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_29,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_26,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_30,
+         Tag_Name   => "box",
+         Class_Name => "demo short just-start");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_31,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_32,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_33,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_34,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_27,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_35,
+         Tag_Name   => "box",
+         Class_Name => "demo short just-center");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_36,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_37,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_38,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_39,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_28,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_40,
+         Tag_Name   => "box",
+         Class_Name => "demo short just-end");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_41,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_42,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_43,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_44,
+         Tag_Name   => "box",
+         Class_Name => "cases");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_45,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_29,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_46,
+         Tag_Name   => "box",
+         Class_Name => "demo short just-between");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_47,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_48,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_49,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_50,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_30,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_51,
+         Tag_Name   => "box",
+         Class_Name => "demo short just-around");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_52,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_53,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_54,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_55,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_31,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_56,
+         Tag_Name   => "box",
+         Class_Name => "demo short just-evenly");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_57,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_58,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_59,
+         Tag_Name   => "box",
+         Class_Name => "item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_60,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_32,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_33,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_61,
+         Tag_Name   => "box",
+         Class_Name => "cases");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_62,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_34,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_63,
+         Tag_Name   => "box",
+         Class_Name => "demo tall align-start");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_64,
+         Tag_Name   => "box",
+         Class_Name => "item h20");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_65,
+         Tag_Name   => "box",
+         Class_Name => "item h40");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_66,
+         Tag_Name   => "box",
+         Class_Name => "item h-auto");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_67,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_35,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_68,
+         Tag_Name   => "box",
+         Class_Name => "demo tall align-center");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_69,
+         Tag_Name   => "box",
+         Class_Name => "item h20");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_70,
+         Tag_Name   => "box",
+         Class_Name => "item h40");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_71,
+         Tag_Name   => "box",
+         Class_Name => "item h-auto");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_72,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_36,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_73,
+         Tag_Name   => "box",
+         Class_Name => "demo tall align-end");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_74,
+         Tag_Name   => "box",
+         Class_Name => "item h20");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_75,
+         Tag_Name   => "box",
+         Class_Name => "item h40");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_76,
+         Tag_Name   => "box",
+         Class_Name => "item h-auto");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_77,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_37,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_78,
+         Tag_Name   => "box",
+         Class_Name => "demo tall align-stretch");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_79,
+         Tag_Name   => "box",
+         Class_Name => "item h20");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_80,
+         Tag_Name   => "box",
+         Class_Name => "item h40");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_81,
+         Tag_Name   => "box",
+         Class_Name => "item h-auto");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_82,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_38,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_39,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_83,
+         Tag_Name   => "box",
+         Class_Name => "demo short w480");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_84,
+         Tag_Name   => "box",
+         Class_Name => "item bar pinned");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_85,
+         Tag_Name   => "box",
+         Class_Name => "item bar elastic");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_86,
+         Tag_Name   => "box",
+         Class_Name => "item bar pinned");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_87,
+         Tag_Name   => "box",
+         Class_Name => "item bar elastic");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_88,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_40,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_41,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_89,
+         Tag_Name   => "box",
+         Class_Name => "cases");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_90,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_42,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_91,
+         Tag_Name   => "box",
+         Class_Name => "demo h120 w170 nowrap align-start-items");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_43,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_44,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_45,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_46,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_92,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_47,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_93,
+         Tag_Name   => "box",
+         Class_Name => "demo h120 w170 wrap ac-start align-start-items");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_48,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_49,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_50,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_51,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_94,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_52,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_95,
+         Tag_Name   => "box",
+         Class_Name => "demo h120 w170 wrap-reverse ac-start align-start-items");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_53,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_54,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_55,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_56,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_96,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_57,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_58,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_97,
+         Tag_Name   => "box",
+         Class_Name => "cases");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_98,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_59,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_99,
+         Tag_Name   => "box",
+         Class_Name => "demo h120 w170 wrap ac-start");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_60,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_61,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_62,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_63,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_100,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_64,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_101,
+         Tag_Name   => "box",
+         Class_Name => "demo h120 w170 wrap ac-center");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_65,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_66,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_67,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_68,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_102,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_69,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_103,
+         Tag_Name   => "box",
+         Class_Name => "demo h120 w170 wrap ac-end");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_70,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_71,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_72,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_73,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_104,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_74,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_105,
+         Tag_Name   => "box",
+         Class_Name => "demo h120 w170 wrap ac-between");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_75,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_76,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_77,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_78,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_106,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_79,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_107,
+         Tag_Name   => "box",
+         Class_Name => "demo h120 w170 wrap ac-around");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_80,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_81,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_82,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_83,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_108,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_84,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_109,
+         Tag_Name   => "box",
+         Class_Name => "demo h120 w170 wrap ac-stretch");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_85,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_86,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_87,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_88,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_110,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_89,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_90,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_111,
+         Tag_Name   => "box",
+         Class_Name => "cases");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_112,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_91,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_113,
+         Tag_Name   => "box",
+         Class_Name => "demo tall align-start");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_92,
+         Tag_Name   => "label",
+         Class_Name => "item h20");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_93,
+         Tag_Name   => "label",
+         Class_Name => "item h20 self-center");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_94,
+         Tag_Name   => "label",
+         Class_Name => "item h20");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_114,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_95,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_115,
+         Tag_Name   => "box",
+         Class_Name => "demo tall align-start");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_96,
+         Tag_Name   => "label",
+         Class_Name => "item h20");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_97,
+         Tag_Name   => "label",
+         Class_Name => "item h20 self-end");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_98,
+         Tag_Name   => "label",
+         Class_Name => "item h20");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_116,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_99,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_117,
+         Tag_Name   => "box",
+         Class_Name => "demo tall align-start");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_100,
+         Tag_Name   => "label",
+         Class_Name => "item h20");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_101,
+         Tag_Name   => "label",
+         Class_Name => "item self-stretch");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_102,
+         Tag_Name   => "label",
+         Class_Name => "item h20");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_118,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_103,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_104,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_119,
+         Tag_Name   => "box",
+         Class_Name => "cases");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_120,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_105,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_121,
+         Tag_Name   => "box",
+         Class_Name => "demo h120 w170 wrap ac-start gap-row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_106,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_107,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_108,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_109,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_122,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_110,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_123,
+         Tag_Name   => "box",
+         Class_Name => "demo h120 w170 wrap ac-start gap-column");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_111,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_112,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_113,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_114,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_124,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_115,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_125,
+         Tag_Name   => "box",
+         Class_Name => "demo h120 w170 wrap ac-start gap-both");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_116,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_117,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_118,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_119,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_126,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_120,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_121,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_127,
+         Tag_Name   => "box",
+         Class_Name => "cases");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_128,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_122,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_129,
+         Tag_Name   => "box",
+         Class_Name => "demo h150 w110 wrap ac-start align-start");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_123,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-deep");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_124,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_125,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_126,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_130,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_127,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_131,
+         Tag_Name   => "box",
+         Class_Name => "demo h150 w110 wrap ac-start align-center");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_128,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-deep");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_129,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_130,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_131,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_132,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_132,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_133,
+         Tag_Name   => "box",
+         Class_Name => "demo h150 w110 wrap ac-start align-end");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_133,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-deep");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_134,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_135,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_136,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-short");
 
       --  Build hierarchy
       Adi.Widget.Add_Child (+Box_4, +Label_5);

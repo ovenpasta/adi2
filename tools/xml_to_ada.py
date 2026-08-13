@@ -328,6 +328,7 @@ def parse_class_list(value: str) -> list[str]:
     return [part for part in value.split() if part]
 
 
+
 def class_style_expr(classes: list[str]) -> str:
     if len(classes) == 1:
         return f"{to_ada_identifier(classes[0])}_Class_Part_Styles"
@@ -1038,6 +1039,29 @@ def generate_body(app: XmlApp, package_name: str,
 
     # Import styles packages derived from <link> elements
     link_pkgs = list(dict.fromkeys(link.styles_pkg for link in app.css_links))
+
+    #  Selector manifests, in the order the sheets are loaded: links first,
+    #  then the inline <style>, matching the Add_Dynamic_File sequence below
+    #  so the static fallback cascades the way the live sheets do.
+    #  From the links, not the deduplicated with-list: a sheet listed twice
+    #  registers twice, which is how the later copy wins as CSS says it
+    #  should. link_pkgs stays deduplicated for the context clauses.
+    selector_sources = [
+        f"{link.styles_pkg}.Register_Selectors" for link in app.css_links
+    ]
+    if inline_groups:
+        selector_sources.append("Register_Inline_Selectors")
+
+    #  Both modes resolve widgets through a Style_Source now; only the
+    #  static one skips loading anything from disk. Root metadata and a
+    #  dynamic file each reach the source without naming a selector, so a
+    #  sheet carrying nothing but `:root` still needs one declared.
+    uses_css_source = bool(
+        selector_sources
+        or live_css
+        or link_pkgs
+        or (inline_stylesheet and inline_stylesheet.root_properties)
+    )
     has_dialog_class_targets = bool(
         app.dialog
         and (
@@ -1057,13 +1081,12 @@ def generate_body(app: XmlApp, package_name: str,
             or app.dialog.primary_button_classes
         )
     )
-    has_widget_class_targets = any(w.css_classes for w in all_widgets)
+    #  Widgets reach their styles through the selector manifests, which are
+    #  named qualified. Only the dialog parts still name style constants
+    #  directly, so they alone decide whether the packages need a use clause.
     needs_link_pkg_use = bool(
         link_pkgs
-        and (
-            (live_css and (has_widget_class_targets or has_dialog_button_style_targets))
-            or (not live_css and (has_widget_class_targets or has_dialog_class_targets))
-        )
+        and (has_dialog_class_targets or has_dialog_button_style_targets)
     )
     has_root_metadata = bool(
         link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties)
@@ -1075,13 +1098,24 @@ def generate_body(app: XmlApp, package_name: str,
     # Body needs Adi.Widget (for Set_Part_Styles, Add_Child, Widget_Access)
     # + any widget packages not already in the spec.
     # Always include Adi.Widget even if in spec — need `use` clause.
-    # Check if any widget uses multiple CSS classes (needs Merge_Part_Styles)
+    # A dialog part listing several classes merges their bundles inline,
+    # which needs Merge_Part_Styles in scope.
     has_multi_class = any(
-        len(w.css_classes) > 1 for w in all_widgets
+        len(classes) > 1 for _name, classes in (
+            [
+                ("dialog", app.dialog.css_classes),
+                ("panel", app.dialog.panel_classes),
+                ("title", app.dialog.title_classes),
+                ("message", app.dialog.message_classes),
+                ("button_row", app.dialog.button_row_classes),
+                ("button", app.dialog.button_classes),
+                ("primary_button", app.dialog.primary_button_classes),
+            ] if app.dialog is not None else []
+        )
     )
 
     body_withs: list[str] = ["Adi.Widget"]
-    if live_css or has_multi_class or app.css_links:
+    if live_css or has_multi_class or app.css_links or uses_css_source:
         body_withs.append("Adi.CSS_Source")
     if has_root_metadata:
         body_withs.append("Adi.CSS_Parser")
@@ -1168,8 +1202,9 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append(f"   use {gu};")
 
     # Package-level state for live CSS mode
-    if live_css:
+    if uses_css_source:
         lines.append("   Source : aliased Adi.CSS_Source.Style_Source;")
+    if live_css:
         # (Inline CSS is extracted to a companion .css file for live-reload)
         # Compiled inline style declarations (for static fallback)
         if inline_groups:
@@ -1177,11 +1212,19 @@ def generate_body(app: XmlApp, package_name: str,
             decl_lines = css_to_ada.generate_style_declarations(
                 inline_groups, indent="   ")
             lines.extend(decl_lines)
+            lines.extend(
+                css_to_ada.generate_selector_registration_body(
+                    inline_groups, prefix="Register_Inline_Selectors")
+            )
     elif inline_groups:
         lines.append("")
         decl_lines = css_to_ada.generate_style_declarations(
             inline_groups, indent="   ")
         lines.extend(decl_lines)
+        lines.extend(
+            css_to_ada.generate_selector_registration_body(
+                inline_groups, prefix="Register_Inline_Selectors")
+        )
 
     if has_dialog and (live_css or app.component_packages):
         lines.append(
@@ -1546,12 +1589,17 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append("")
 
     # Apply styles — codegen-time mode selection
-    # Build list of widgets with CSS classes:
-    # Each entry: (wid, css_classes_list, class_names_str)
-    styled_widgets = []
-    for w in all_widgets:
-        if w.css_classes:
-            styled_widgets.append((w.wid, w.css_classes))
+    #
+    # Every widget goes under the selectors that name it. What a stylesheet
+    # may select is fixed by the XML, not by the rules that happen to exist
+    # when the generator runs, so live reload can introduce a tag or id rule
+    # later and have it land. Names nothing defines resolve to empty styles
+    # and merge as no-ops.
+    # Each entry: (wid, css_classes_list, tag_selector, id_selector)
+    bound_widgets: list[tuple[str, list[str], str, str]] = [
+        (w.wid, w.css_classes, w.tag, w.wid if w.explicit_id else "")
+        for w in all_widgets
+    ]
     dialog_style_targets: list[tuple[str, list[str]]] = []
     if app.dialog is not None:
         dialog_defs = [
@@ -1567,7 +1615,7 @@ def generate_body(app: XmlApp, package_name: str,
             (name, classes) for name, classes in dialog_defs if classes
         ]
 
-    if styled_widgets or dialog_style_targets:
+    if uses_css_source and (bound_widgets or dialog_style_targets):
         # `dialog_style_targets` carries the dialog's own backdrop/panel/title/
         # etc. classes. They must register Add_Static_Entry for the
         # Static_Mode fallback even when the dialog has no styled child
@@ -1576,48 +1624,23 @@ def generate_body(app: XmlApp, package_name: str,
         # those Bind_Class calls resolving to Empty_Part_Styles.
         if live_css:
             # CSS_Source mode — decided at codegen time
-            # Deduplicate static entries by individual class name
-            seen_classes: set[str] = set()
-            unique_entries: list[tuple[str, str]] = []
-            for _, cls_list in styled_widgets:
-                for cls in cls_list:
-                    if cls not in seen_classes:
-                        seen_classes.add(cls)
-                        style_const = (
-                            f"{to_ada_identifier(cls)}_Class_Part_Styles"
-                        )
-                        unique_entries.append((cls, style_const))
-            for _, cls_list in dialog_style_targets:
-                for cls in cls_list:
-                    if cls not in seen_classes:
-                        seen_classes.add(cls)
-                        style_const = (
-                            f"{to_ada_identifier(cls)}_Class_Part_Styles"
-                        )
-                        unique_entries.append((cls, style_const))
-
-            if unique_entries:
+            #
+            # Each stylesheet package carries its own selector manifest, so
+            # register them whole, qualified, and in link order. Nothing here
+            # needs to know which selectors a sheet defines, which is what
+            # lets a styles-only <link> work and what makes two sheets that
+            # both define `button` merge in file order instead of colliding
+            # on one use-visible name.
+            if selector_sources or has_root_metadata:
                 lines.append(
                     "      --  Register precompiled styles as static fallback"
                 )
                 lines.append(
                     "      Adi.CSS_Source.Clear_Static_Entries (Source);"
                 )
-                for css_class, style_const in unique_entries:
-                    proc_name = (
-                        f"Register_{to_ada_identifier(css_class)}_Styles"
-                    )
-                    helper_procs += [
-                        f"   procedure {proc_name}",
-                        f"     (S : in out Style_Source) is",
-                        f"   begin",
-                        f"      Add_Static_Entry",
-                        f'        (S, Class_Entry ("{css_class}", {style_const}));',
-                        f"   end {proc_name};",
-                        f"",
-                    ]
-                    lines.append(f"      {proc_name} (Source);")
-                if link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties):
+                for source in selector_sources:
+                    lines.append(f"      {source} (Source);")
+                if has_root_metadata:
                     lines.append(
                         "      Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);"
                     )
@@ -1679,78 +1702,73 @@ def generate_body(app: XmlApp, package_name: str,
                     "      Adi.CSS_Source.Attach_Window (Source, W);"
                 )
             lines.append(
-                "      --  Bind every widget that has a CSS class"
+                "      --  Bind every widget under the selectors naming it"
             )
             if root is not None and not has_dialog:
                 lines.append(
                     f"      Adi.CSS_Source.Bind_Root_Metadata (Source, +{root.wid});"
                 )
-            for wid, cls_list in styled_widgets:
+            for wid, cls_list, tag_sel, id_sel in bound_widgets:
                 names_str = " ".join(cls_list)
-                lines.append(
-                    f"      Adi.CSS_Source.Bind_Class"
-                    f' (Source, "{names_str}", +{wid});'
-                )
+                lines.append("      Adi.CSS_Source.Bind_Selector_Set")
+                args = ["(Source     => Source,", f" W          => +{wid},"]
+                if tag_sel:
+                    args.append(f' Tag_Name   => "{tag_sel}",')
+                if names_str:
+                    args.append(f' Class_Name => "{names_str}",')
+                if id_sel:
+                    args.append(f' Id_Name    => "{id_sel}",')
+                args[-1] = args[-1][:-1] + ");"
+                for arg in args:
+                    lines.append(f"        {arg}")
             lines.append("")
         else:
-            # Static mode — direct Set_Part_Styles calls, each in its own
-            # private procedure so the Part_Style_Array temporary is released
-            # before the next call (avoids N × 169 KB stack accumulation).
+            #  Static mode — the same manifests and the same per-widget
+            #  selector sets as live mode, resolved once through a source
+            #  pinned to Static_Mode. Naming the selectors rather than the
+            #  Ada constants is what keeps a styles-only <link> working and
+            #  what lets two sheets defining the same selector merge in link
+            #  order instead of colliding on one use-visible name. Nothing
+            #  is loaded from disk, which is the point of --no-live-css.
             lines.append("      --  Apply precompiled styles")
-            if link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties):
-                lines.append("      declare")
-                lines.append("         Root_Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=")
-                lines.append("           Static_Root_Metadata;")
-                lines.append("      begin")
-                has_body = (
-                    root is not None
-                    and not has_dialog
-                    and root.wid not in {wid for wid, _cls in styled_widgets}
+            lines.append("      Adi.CSS_Source.Clear_Static_Entries (Source);")
+            for source in selector_sources:
+                lines.append(f"      {source} (Source);")
+            if has_root_metadata:
+                lines.append(
+                    "      Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);"
                 )
-                if has_body:
-                    lines.append("         if Root_Meta.Has_Root_Style then")
-                    lines.append(
-                        f"            Set_Part_Styles (+{root.wid}, Root_Meta.Root_Styles);"
-                    )
-                    lines.append("         end if;")
-                else:
-                    lines.append("         null;")
-                lines.append("      end;")
-            for wid, cls_list in styled_widgets:
-                proc_name = f"Apply_{wid}_Styles"
-                if len(cls_list) == 1:
-                    style_expr = (
-                        f"{to_ada_identifier(cls_list[0])}_Class_Part_Styles"
-                    )
-                else:
-                    # Merge multiple class styles
-                    consts = [
-                        f"{to_ada_identifier(c)}_Class_Part_Styles"
-                        for c in cls_list
-                    ]
-                    style_expr = consts[0]
-                    for c in consts[1:]:
-                        style_expr = (
-                            f"Merge_Part_Styles ({style_expr}, {c})"
-                        )
-                if (
-                    (link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties))
-                    and root is not None
-                    and not has_dialog
-                    and wid == root.wid
-                ):
-                    style_expr = (
-                        f"Merge_Part_Styles (Static_Root_Metadata.Root_Styles, {style_expr})"
-                    )
-                helper_procs += [
-                    f"   procedure {proc_name}",
-                    f"     (H : Widget_Handle) is",
-                    f"   begin",
-                    f"      Set_Part_Styles (H, {style_expr});",
-                    f"   end {proc_name};",
-                    f"",
-                ]
-                lines.append(f"      {proc_name} (+{wid});")
+            lines.append("      declare")
+            lines.append("         Mode_OK : Boolean;")
+            lines.append("      begin")
+            lines.append(
+                "         Adi.CSS_Source.Set_Mode"
+            )
+            lines.append(
+                "           (Source, Adi.CSS_Source.Static_Mode, Mode_OK);"
+            )
+            lines.append("      end;")
+            if has_window:
+                lines.append(
+                    "      Adi.CSS_Source.Attach_Window (Source, W);"
+                )
+            if root is not None and not has_dialog:
+                lines.append(
+                    f"      Adi.CSS_Source.Bind_Root_Metadata (Source, +{root.wid});"
+                )
+            for wid, cls_list, tag_sel, id_sel in bound_widgets:
+                names_str = " ".join(cls_list)
+                lines.append("      Adi.CSS_Source.Bind_Selector_Set")
+                args = ["(Source     => Source,", f" W          => +{wid},"]
+                if tag_sel:
+                    args.append(f' Tag_Name   => "{tag_sel}",')
+                if names_str:
+                    args.append(f' Class_Name => "{names_str}",')
+                if id_sel:
+                    args.append(f' Id_Name    => "{id_sel}",')
+                args[-1] = args[-1][:-1] + ");"
+                for arg in args:
+                    lines.append(f"        {arg}")
             lines.append("")
     elif (root is not None or has_dialog) and (live_css or link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties)):
         if live_css:

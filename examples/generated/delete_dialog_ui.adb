@@ -10,11 +10,12 @@ with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Button; use Adi.Widget.Button;
 with Adi.Widget.Label; use Adi.Widget.Label;
-with Dialog_Example_Styles; use Dialog_Example_Styles;
+with Dialog_Example_Styles;
 
 package body Delete_Dialog_UI is
 
    package body Instance is
+   Source : aliased Adi.CSS_Source.Style_Source;
 
    function Merge_Metadata
      (Base, Override : Adi.CSS_Parser.Stylesheet_Metadata)
@@ -56,30 +57,6 @@ package body Delete_Dialog_UI is
       Adi.Widget.Dialog.Attach_Window (D, Host);
    end Attach_Window;
 
-   procedure Apply_Box_1_Styles
-     (H : Widget_Handle) is
-   begin
-      Set_Part_Styles (H, Custom_Content_Class_Part_Styles);
-   end Apply_Box_1_Styles;
-
-   procedure Apply_Label_1_Styles
-     (H : Widget_Handle) is
-   begin
-      Set_Part_Styles (H, Detail_Label_Class_Part_Styles);
-   end Apply_Label_1_Styles;
-
-   procedure Apply_Label_2_Styles
-     (H : Widget_Handle) is
-   begin
-      Set_Part_Styles (H, Detail_Label_Class_Part_Styles);
-   end Apply_Label_2_Styles;
-
-   procedure Apply_Label_3_Styles
-     (H : Widget_Handle) is
-   begin
-      Set_Part_Styles (H, Detail_Label_Class_Part_Styles);
-   end Apply_Label_3_Styles;
-
    function Build
       return Adi.Widget.Dialog.Dialog_Handle is
       D : constant Adi.Widget.Dialog.Dialog_Handle :=
@@ -90,16 +67,35 @@ package body Delete_Dialog_UI is
       Label_3 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Storage used: 4.2 GB");
    begin
       --  Apply precompiled styles
+      Adi.CSS_Source.Clear_Static_Entries (Source);
+      Dialog_Example_Styles.Register_Selectors (Source);
+      Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
       declare
-         Root_Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=
-           Static_Root_Metadata;
+         Mode_OK : Boolean;
       begin
-         null;
+         Adi.CSS_Source.Set_Mode
+           (Source, Adi.CSS_Source.Static_Mode, Mode_OK);
       end;
-      Apply_Box_1_Styles (+Box_1);
-      Apply_Label_1_Styles (+Label_1);
-      Apply_Label_2_Styles (+Label_2);
-      Apply_Label_3_Styles (+Label_3);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_1,
+         Tag_Name   => "box",
+         Class_Name => "custom-content");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_1,
+         Tag_Name   => "label",
+         Class_Name => "detail-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_2,
+         Tag_Name   => "label",
+         Class_Name => "detail-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_3,
+         Tag_Name   => "label",
+         Class_Name => "detail-label");
 
       --  Build hierarchy
       Adi.Widget.Add_Child (+Box_1, +Label_1);

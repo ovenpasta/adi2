@@ -121,6 +121,10 @@ package Adi.CSS_Source is
      (Source : in out Style_Source;
       W      : Adi.Widget.Widget_Handle);
 
+   --  Bind a widget to every selector that names it, merged tag first,
+   --  then classes, then id. An empty argument means the widget is not
+   --  selectable that way; Class_Name may list several classes separated
+   --  by spaces, as Bind_Class does.
    procedure Bind_Selector_Set (Source     : in out Style_Source;
                                 W          : access Adi.Widget.Widget'Class;
                                 Tag_Name   : String := "";

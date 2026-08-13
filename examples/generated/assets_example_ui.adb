@@ -11,7 +11,7 @@ with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Image; use Adi.Widget.Image;
 with Adi.Widget.Label; use Adi.Widget.Label;
-with Assets_Example_Styles; use Assets_Example_Styles;
+with Assets_Example_Styles;
 
 package body Assets_Example_UI is
 
@@ -80,132 +80,6 @@ package body Assets_Example_UI is
          Success := Mode_OK;
       end if;
    end Set_CSS_File;
-
-   procedure Register_Root_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("root", Root_Class_Part_Styles));
-   end Register_Root_Styles;
-
-   procedure Register_Section_Title_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("section-title", Section_Title_Class_Part_Styles));
-   end Register_Section_Title_Styles;
-
-   procedure Register_Sprite_Grid_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("sprite-grid", Sprite_Grid_Class_Part_Styles));
-   end Register_Sprite_Grid_Styles;
-
-   procedure Register_Card_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("card", Card_Class_Part_Styles));
-   end Register_Card_Styles;
-
-   procedure Register_Sprite_Icon_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("sprite-icon", Sprite_Icon_Class_Part_Styles));
-   end Register_Sprite_Icon_Styles;
-
-   procedure Register_Tint_Blue_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tint-blue", Tint_Blue_Class_Part_Styles));
-   end Register_Tint_Blue_Styles;
-
-   procedure Register_Card_Label_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("card-label", Card_Label_Class_Part_Styles));
-   end Register_Card_Label_Styles;
-
-   procedure Register_Tint_Amber_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tint-amber", Tint_Amber_Class_Part_Styles));
-   end Register_Tint_Amber_Styles;
-
-   procedure Register_Tint_Red_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tint-red", Tint_Red_Class_Part_Styles));
-   end Register_Tint_Red_Styles;
-
-   procedure Register_Tint_Purple_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tint-purple", Tint_Purple_Class_Part_Styles));
-   end Register_Tint_Purple_Styles;
-
-   procedure Register_Tint_Green_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tint-green", Tint_Green_Class_Part_Styles));
-   end Register_Tint_Green_Styles;
-
-   procedure Register_Tint_Cyan_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("tint-cyan", Tint_Cyan_Class_Part_Styles));
-   end Register_Tint_Cyan_Styles;
-
-   procedure Register_Crop_Grid_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("crop-grid", Crop_Grid_Class_Part_Styles));
-   end Register_Crop_Grid_Styles;
-
-   procedure Register_Crop_Img_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("crop-img", Crop_Img_Class_Part_Styles));
-   end Register_Crop_Img_Styles;
-
-   procedure Register_Scale_Grid_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("scale-grid", Scale_Grid_Class_Part_Styles));
-   end Register_Scale_Grid_Styles;
-
-   procedure Register_Scale_Img_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("scale-img", Scale_Img_Class_Part_Styles));
-   end Register_Scale_Img_Styles;
-
-   procedure Register_Nav_Bar_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("nav-bar", Nav_Bar_Class_Part_Styles));
-   end Register_Nav_Bar_Styles;
-
-   procedure Register_Nav_Item_Styles
-     (S : in out Style_Source) is
-   begin
-      Add_Static_Entry
-        (S, Class_Entry ("nav-item", Nav_Item_Class_Part_Styles));
-   end Register_Nav_Item_Styles;
 
    function Build
       return Adi.Window.Window_Handle is
@@ -285,24 +159,7 @@ package body Assets_Example_UI is
 
       --  Register precompiled styles as static fallback
       Adi.CSS_Source.Clear_Static_Entries (Source);
-      Register_Root_Styles (Source);
-      Register_Section_Title_Styles (Source);
-      Register_Sprite_Grid_Styles (Source);
-      Register_Card_Styles (Source);
-      Register_Sprite_Icon_Styles (Source);
-      Register_Tint_Blue_Styles (Source);
-      Register_Card_Label_Styles (Source);
-      Register_Tint_Amber_Styles (Source);
-      Register_Tint_Red_Styles (Source);
-      Register_Tint_Purple_Styles (Source);
-      Register_Tint_Green_Styles (Source);
-      Register_Tint_Cyan_Styles (Source);
-      Register_Crop_Grid_Styles (Source);
-      Register_Crop_Img_Styles (Source);
-      Register_Scale_Grid_Styles (Source);
-      Register_Scale_Img_Styles (Source);
-      Register_Nav_Bar_Styles (Source);
-      Register_Nav_Item_Styles (Source);
+      Assets_Example_Styles.Register_Selectors (Source);
       Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
       --  Load dynamic CSS and choose mode
@@ -324,60 +181,268 @@ package body Assets_Example_UI is
       end;
 
       Adi.CSS_Source.Attach_Window (Source, W);
-      --  Bind every widget that has a CSS class
+      --  Bind every widget under the selectors naming it
       Adi.CSS_Source.Bind_Root_Metadata (Source, +Box_1);
-      Adi.CSS_Source.Bind_Class (Source, "root", +Box_1);
-      Adi.CSS_Source.Bind_Class (Source, "section-title", +Label_1);
-      Adi.CSS_Source.Bind_Class (Source, "sprite-grid", +Box_2);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_3);
-      Adi.CSS_Source.Bind_Class (Source, "sprite-icon tint-blue", +Image_1);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_2);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_4);
-      Adi.CSS_Source.Bind_Class (Source, "sprite-icon tint-amber", +Image_2);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_3);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_5);
-      Adi.CSS_Source.Bind_Class (Source, "sprite-icon tint-red", +Image_3);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_4);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_6);
-      Adi.CSS_Source.Bind_Class (Source, "sprite-icon tint-purple", +Image_4);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_5);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_7);
-      Adi.CSS_Source.Bind_Class (Source, "sprite-icon tint-green", +Image_5);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_6);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_8);
-      Adi.CSS_Source.Bind_Class (Source, "sprite-icon tint-cyan", +Image_6);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_7);
-      Adi.CSS_Source.Bind_Class (Source, "section-title", +Label_8);
-      Adi.CSS_Source.Bind_Class (Source, "crop-grid", +Box_9);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_10);
-      Adi.CSS_Source.Bind_Class (Source, "crop-img", +Image_7);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_9);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_11);
-      Adi.CSS_Source.Bind_Class (Source, "crop-img", +Image_8);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_10);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_12);
-      Adi.CSS_Source.Bind_Class (Source, "crop-img", +Image_9);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_11);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_13);
-      Adi.CSS_Source.Bind_Class (Source, "crop-img", +Image_10);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_12);
-      Adi.CSS_Source.Bind_Class (Source, "section-title", +Label_13);
-      Adi.CSS_Source.Bind_Class (Source, "scale-grid", +Box_14);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_15);
-      Adi.CSS_Source.Bind_Class (Source, "scale-img", +Image_11);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_14);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_16);
-      Adi.CSS_Source.Bind_Class (Source, "scale-img", +Image_12);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_15);
-      Adi.CSS_Source.Bind_Class (Source, "card", +Box_17);
-      Adi.CSS_Source.Bind_Class (Source, "scale-img", +Image_13);
-      Adi.CSS_Source.Bind_Class (Source, "card-label", +Label_16);
-      Adi.CSS_Source.Bind_Class (Source, "section-title", +Label_17);
-      Adi.CSS_Source.Bind_Class (Source, "nav-bar", +Box_18);
-      Adi.CSS_Source.Bind_Class (Source, "nav-item", +Label_18);
-      Adi.CSS_Source.Bind_Class (Source, "nav-item", +Label_19);
-      Adi.CSS_Source.Bind_Class (Source, "nav-item", +Label_20);
-      Adi.CSS_Source.Bind_Class (Source, "nav-item", +Label_21);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_1,
+         Tag_Name   => "box",
+         Class_Name => "root");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_1,
+         Tag_Name   => "label",
+         Class_Name => "section-title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_2,
+         Tag_Name   => "box",
+         Class_Name => "sprite-grid");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_3,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Image_1,
+         Tag_Name   => "image",
+         Class_Name => "sprite-icon tint-blue");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_2,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_4,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Image_2,
+         Tag_Name   => "image",
+         Class_Name => "sprite-icon tint-amber");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_3,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_5,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Image_3,
+         Tag_Name   => "image",
+         Class_Name => "sprite-icon tint-red");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_4,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_6,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Image_4,
+         Tag_Name   => "image",
+         Class_Name => "sprite-icon tint-purple");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_5,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_7,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Image_5,
+         Tag_Name   => "image",
+         Class_Name => "sprite-icon tint-green");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_6,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_8,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Image_6,
+         Tag_Name   => "image",
+         Class_Name => "sprite-icon tint-cyan");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_7,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_8,
+         Tag_Name   => "label",
+         Class_Name => "section-title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_9,
+         Tag_Name   => "box",
+         Class_Name => "crop-grid");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_10,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Image_7,
+         Tag_Name   => "image",
+         Class_Name => "crop-img");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_9,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_11,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Image_8,
+         Tag_Name   => "image",
+         Class_Name => "crop-img");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_10,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_12,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Image_9,
+         Tag_Name   => "image",
+         Class_Name => "crop-img");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_11,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_13,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Image_10,
+         Tag_Name   => "image",
+         Class_Name => "crop-img");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_12,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_13,
+         Tag_Name   => "label",
+         Class_Name => "section-title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_14,
+         Tag_Name   => "box",
+         Class_Name => "scale-grid");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_15,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Image_11,
+         Tag_Name   => "image",
+         Class_Name => "scale-img");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_14,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_16,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Image_12,
+         Tag_Name   => "image",
+         Class_Name => "scale-img");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_15,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_17,
+         Tag_Name   => "box",
+         Class_Name => "card");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Image_13,
+         Tag_Name   => "image",
+         Class_Name => "scale-img");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_16,
+         Tag_Name   => "label",
+         Class_Name => "card-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_17,
+         Tag_Name   => "label",
+         Class_Name => "section-title");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_18,
+         Tag_Name   => "box",
+         Class_Name => "nav-bar");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_18,
+         Tag_Name   => "label",
+         Class_Name => "nav-item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_19,
+         Tag_Name   => "label",
+         Class_Name => "nav-item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_20,
+         Tag_Name   => "label",
+         Class_Name => "nav-item");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_21,
+         Tag_Name   => "label",
+         Class_Name => "nav-item");
 
       --  Build hierarchy
       Adi.Widget.Add_Child (+Box_3, +Image_1);

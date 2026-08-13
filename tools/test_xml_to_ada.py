@@ -289,7 +289,7 @@ class TestDialogCodeGeneration(unittest.TestCase):
         self.assertNotIn("Set_OK", body)
 
     def test_dialog_with_css_link(self):
-        """Dialog with CSS link generates Bind_Class on content widget."""
+        """Dialog with CSS link wires its content widget to the stylesheet."""
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <adi>
   <link rel="stylesheet" styles="My_Styles"/>
@@ -302,7 +302,8 @@ class TestDialogCodeGeneration(unittest.TestCase):
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
         # The content widget with a class should get style wiring
-        self.assertIn("Dialog_Content_Class_Part_Styles", body)
+        self.assertIn("My_Styles.Register_Selectors (Source);", body)
+        self.assertIn('Class_Name => "dialog-content");', body)
 
     def test_live_css_dialog_emits_attach_window_and_explicit_internal_bindings(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -361,11 +362,11 @@ class TestDialogCodeGeneration(unittest.TestCase):
         )
 
     def test_live_css_childless_dialog_emits_static_fallback_for_own_classes(self):
-        """A childless dialog with style classes must still register
-        Add_Static_Entry for its own classes, otherwise the Static_Mode
-        fallback (used when the dynamic .css file is missing at runtime,
-        e.g. in a release build) leaves Bind_Class resolving to empty
-        styles and the dialog renders invisibly."""
+        """A childless dialog with style classes must still register the
+        stylesheet's entries, otherwise the Static_Mode fallback (used when
+        the dynamic .css file is missing at runtime, e.g. in a release
+        build) leaves Bind_Class resolving to empty styles and the dialog
+        renders invisibly."""
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <adi>
   <link rel="stylesheet" href="dialog.css" package="Dialog_Styles"/>
@@ -380,23 +381,20 @@ class TestDialogCodeGeneration(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
-        for css_class, style_const in [
-            ("prompt-backdrop", "Prompt_Backdrop_Class_Part_Styles"),
-            ("prompt-panel", "Prompt_Panel_Class_Part_Styles"),
-            ("prompt-title", "Prompt_Title_Class_Part_Styles"),
-            ("prompt-message", "Prompt_Message_Class_Part_Styles"),
-            ("prompt-button-row", "Prompt_Button_Row_Class_Part_Styles"),
-            ("prompt-btn", "Prompt_Btn_Class_Part_Styles"),
-            ("prompt-btn-primary", "Prompt_Btn_Primary_Class_Part_Styles"),
+        self.assertIn(
+            "      Adi.CSS_Source.Clear_Static_Entries (Source);\n"
+            "      Dialog_Styles.Register_Selectors (Source);",
+            body,
+        )
+        #  The dialog's own parts are not widgets in the tree, so they still
+        #  name their style constants directly.
+        for style_const in [
+            "Prompt_Btn_Class_Part_Styles",
+            "Prompt_Btn_Primary_Class_Part_Styles",
         ]:
-            self.assertIn(
-                f'Add_Static_Entry\n        (S, Class_Entry ("{css_class}",'
-                f" {style_const}));",
-                body,
-                f"missing Add_Static_Entry for {css_class}",
-            )
+            self.assertIn(style_const, body)
 
-    def test_live_css_with_class_fallback_emits_styles_package_use(self):
+    def test_live_css_with_class_fallback_registers_the_styles_package(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <adi>
   <link rel="stylesheet" href="dialog.css" package="Dialog_Styles"/>
@@ -408,11 +406,10 @@ class TestDialogCodeGeneration(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
-        self.assertIn("with Dialog_Styles; use Dialog_Styles;", body)
-        self.assertIn(
-            'Add_Static_Entry\n        (S, Class_Entry ("dialog-content", Dialog_Content_Class_Part_Styles));',
-            body,
-        )
+        #  Qualified, so no use clause is needed for the widget path.
+        self.assertIn("with Dialog_Styles;\n", body)
+        self.assertIn("Dialog_Styles.Register_Selectors (Source);", body)
+        self.assertIn('Class_Name => "dialog-content");', body)
 
     def test_no_live_css_forces_static_codegen_on_dialog_with_link(self):
         """A dialog whose XML declares <link href="..."> would normally
@@ -721,6 +718,30 @@ class TestInlineCSSCompanionPath(unittest.TestCase):
         self.assertIn("function Inline_Root_Font_Size return Length_Value is (Dip (20.0));", body)
         self.assertIn('Color => Set (C (Red))', body)
 
+    def test_root_only_inline_css_declares_the_source_it_uses(self):
+        #  A sheet with no selectors still reaches the source through its
+        #  root metadata, so Source has to be declared even though no
+        #  manifest is registered.
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>:root { font-size: 20dp; }</style>
+  <box id="Root"/>
+</adi>"""
+        app = parse_xml(xml)
+        for label, kwargs in (
+            ("live", {"inline_css_path": "gen/my_ui_inline.css"}),
+            ("static", {"no_live_css": True}),
+        ):
+            body = xml_to_ada.generate_body(app, "My_UI", **kwargs)
+            uses = body.count("(Source")
+            with self.subTest(label):
+                if uses:
+                    self.assertIn(
+                        "   Source : aliased Adi.CSS_Source.Style_Source;",
+                        body,
+                        f"{label} mode uses Source without declaring it",
+                    )
+
 
 class TestI18N(unittest.TestCase):
     """Tests for --i18n translation wrapping."""
@@ -947,6 +968,153 @@ class TestWindowExtentUnits(unittest.TestCase):
         for bad in ["0", "-5", "0px"]:
             with self.assertRaises(ValueError, msg=bad):
                 xml_to_ada.parse_window_length(bad)
+
+
+class TestIdAndTagSelectors(unittest.TestCase):
+    """Tag and id selectors reach widgets, not just class selectors."""
+
+    def generate(self, xml: str, css: str = "", **kwargs) -> str:
+        """Generate a body for an XML that links "s.css" holding `css`."""
+        with tempfile.TemporaryDirectory() as tmp:
+            with open(os.path.join(tmp, "s.css"), "w") as f:
+                f.write(css)
+            xml_path = os.path.join(tmp, "s.xml")
+            with open(xml_path, "w") as f:
+                f.write(xml)
+            app = xml_to_ada.Parser().parse(xml_path)
+            return xml_to_ada.generate_body(app, "Sel_UI", **kwargs)
+
+    LINKED = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="s.css"/>
+  <window title="Sel" width="300px" height="120px">
+    <box class="root">
+      <button id="Press" text="Press" class="primary"/>
+      <label id="Readout" text="hi"/>
+    </box>
+  </window>
+</adi>"""
+
+    def test_stylesheet_manifest_is_registered_qualified(self):
+        body = self.generate(self.LINKED, "button { padding: 4px; }")
+        self.assertIn("      S_Styles.Register_Selectors (Source);", body)
+
+    def test_every_stylesheet_registers_in_link_order(self):
+        xml = self.LINKED.replace(
+            '<link rel="stylesheet" href="s.css"/>',
+            '<link rel="stylesheet" href="s.css"/>\n'
+            '  <link rel="stylesheet" href="t.css"/>',
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in ("s.css", "t.css"):
+                with open(os.path.join(tmp, name), "w") as f:
+                    f.write("button { padding: 4px; }")
+            xml_path = os.path.join(tmp, "s.xml")
+            with open(xml_path, "w") as f:
+                f.write(xml)
+            app = xml_to_ada.Parser().parse(xml_path)
+            body = xml_to_ada.generate_body(app, "Sel_UI")
+        #  Both sheets define `button`; each registers its own manifest, so
+        #  the later one wins per CSS rather than colliding on one name.
+        self.assertLess(
+            body.index("S_Styles.Register_Selectors"),
+            body.index("T_Styles.Register_Selectors"),
+        )
+
+    def test_repeated_link_registers_twice_in_order(self):
+        #  A sheet listed twice must register twice, so the later copy wins
+        #  the way the dynamic loader already makes it win.
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" styles="A_Styles"/>
+  <link rel="stylesheet" styles="B_Styles"/>
+  <link rel="stylesheet" styles="A_Styles"/>
+  <window title="Sel" width="300px" height="120px">
+    <box class="root"/>
+  </window>
+</adi>"""
+        body = self.generate(xml)
+        calls = [line.strip() for line in body.splitlines()
+                 if "Register_Selectors (Source);" in line]
+        self.assertEqual(calls, ["A_Styles.Register_Selectors (Source);",
+                                 "B_Styles.Register_Selectors (Source);",
+                                 "A_Styles.Register_Selectors (Source);"])
+        #  The with-list stays deduplicated.
+        self.assertEqual(body.count("with A_Styles"), 1)
+
+    def test_styles_only_link_registers_and_binds(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" styles="My_Styles"/>
+  <window title="Sel" width="300px" height="120px">
+    <box class="root">
+      <button id="Press" text="Press" class="primary"/>
+    </box>
+  </window>
+</adi>"""
+        body = self.generate(xml)
+        self.assertIn("My_Styles.Register_Selectors (Source);", body)
+        self.assertIn('Tag_Name   => "button"', body)
+        self.assertIn('Id_Name    => "Press"', body)
+
+    def test_id_rule_matching_the_xml_id_is_bound(self):
+        body = self.generate(self.LINKED, "#Readout { color: red; }")
+        self.assertIn('Id_Name    => "Readout"', body)
+
+    def test_class_list_travels_with_the_selector_set(self):
+        xml = self.LINKED.replace('class="primary"', 'class="primary wide"')
+        body = self.generate(xml, "button { padding: 4px; }")
+        self.assertIn('Class_Name => "primary wide"', body)
+
+    def test_inline_style_rules_are_bound_too(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>
+    button { padding: 4px; }
+    #Press { color: red; }
+  </style>
+  <window title="Sel" width="300px" height="120px">
+    <box>
+      <button id="Press" text="Press"/>
+    </box>
+  </window>
+</adi>"""
+        body = self.generate(xml)
+        self.assertIn('Tag_Name   => "button"', body)
+        self.assertIn('Id_Name    => "Press"', body)
+
+    def test_static_mode_resolves_through_a_pinned_source(self):
+        body = self.generate(
+            self.LINKED,
+            "button { padding: 4px; }"
+            ".primary { color: red; }"
+            "#Press { color: blue; }",
+            no_live_css=True,
+        )
+        #  Same manifests and same selector sets as live mode, resolved once
+        #  against a source pinned to Static_Mode.
+        self.assertIn("S_Styles.Register_Selectors (Source);", body)
+        self.assertIn(
+            "         Adi.CSS_Source.Set_Mode\n"
+            "           (Source, Adi.CSS_Source.Static_Mode, Mode_OK);",
+            body,
+        )
+        self.assertIn(
+            "      Adi.CSS_Source.Bind_Selector_Set\n"
+            "        (Source     => Source,\n"
+            "         W          => +Press,\n"
+            '         Tag_Name   => "button",\n'
+            '         Class_Name => "primary",\n'
+            '         Id_Name    => "Press");',
+            body,
+        )
+
+    def test_static_mode_never_reads_the_filesystem(self):
+        body = self.generate(
+            self.LINKED, "button { padding: 4px; }", no_live_css=True
+        )
+        self.assertNotIn("Add_Dynamic_File", body)
+        self.assertNotIn("Dynamic_Mode", body)
 
 
 if __name__ == "__main__":

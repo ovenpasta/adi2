@@ -173,6 +173,34 @@ package body Adi.CSS_Source is
       return Adi.CSS_Parser.Styles_For (Source.Impl.Sheet, Kind, Name);
    end Selector_Styles;
 
+   function Multi_Class_Styles (Source : Style_Source;
+                                Names  : String) return Part_Style_Array is
+      Result : Part_Style_Array := Empty_Part_Styles;
+      First  : Positive := Names'First;
+      Last   : Natural;
+   begin
+      while First <= Names'Last loop
+         --  Skip leading spaces
+         while First <= Names'Last and then Names (First) = ' ' loop
+            First := First + 1;
+         end loop;
+         exit when First > Names'Last;
+
+         --  Find end of token
+         Last := First;
+         while Last < Names'Last and then Names (Last + 1) /= ' ' loop
+            Last := Last + 1;
+         end loop;
+
+         Result := Merge_Part_Styles (
+           Result,
+           Selector_Styles (Source, Adi.CSS_Parser.Class_Selector,
+                            Names (First .. Last)));
+         First := Last + 1;
+      end loop;
+      return Result;
+   end Multi_Class_Styles;
+
    function Combined_Styles (Source     : Style_Source;
                              Tag_Name   : String;
                              Class_Name : String;
@@ -185,10 +213,11 @@ package body Adi.CSS_Source is
            Selector_Styles (Source, Adi.CSS_Parser.Tag_Selector, Tag_Name));
       end if;
 
+      --  Class_Name is a space-separated list, the same as Bind_Class takes.
       if Class_Name /= "" then
          Result := Merge_Part_Styles (
            Result,
-           Selector_Styles (Source, Adi.CSS_Parser.Class_Selector, Class_Name));
+           Multi_Class_Styles (Source, Class_Name));
       end if;
 
       if Id_Name /= "" then
@@ -256,34 +285,6 @@ package body Adi.CSS_Source is
          Set_Part_Styles (W, Metadata.Root_Styles);
       end if;
    end Apply_Root_Metadata_Impl;
-
-   function Multi_Class_Styles (Source : Style_Source;
-                                Names  : String) return Part_Style_Array is
-      Result : Part_Style_Array := Empty_Part_Styles;
-      First  : Positive := Names'First;
-      Last   : Natural;
-   begin
-      while First <= Names'Last loop
-         --  Skip leading spaces
-         while First <= Names'Last and then Names (First) = ' ' loop
-            First := First + 1;
-         end loop;
-         exit when First > Names'Last;
-
-         --  Find end of token
-         Last := First;
-         while Last < Names'Last and then Names (Last + 1) /= ' ' loop
-            Last := Last + 1;
-         end loop;
-
-         Result := Merge_Part_Styles (
-           Result,
-           Selector_Styles (Source, Adi.CSS_Parser.Class_Selector,
-                            Names (First .. Last)));
-         First := Last + 1;
-      end loop;
-      return Result;
-   end Multi_Class_Styles;
 
    procedure Apply_Multi_Classes (Source : Style_Source;
                                   Names  : String;

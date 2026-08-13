@@ -19,6 +19,14 @@ Both paths use the same selector syntax, property set, and value types.
 | `#name` | ID | `#root { ... }` |
 | `name` | Tag | `label { ... }` |
 
+A widget can match all three, and they merge in that CSS order: tag first,
+then classes left to right, then id. Names are matched case-insensitively.
+
+What supplies each name depends on how the widget was created. From XML, the
+tag is the element name and the id is its `id` attribute (see
+[`xml_ui_system.md`](xml_ui_system.md#which-selectors-reach-a-widget)); in
+hand-written Ada you choose them at the `Bind_*` call.
+
 Comma-separated selector groups are supported and expanded per selector:
 
 ```css
@@ -820,7 +828,7 @@ Adi.CSS_Source.Bind_Selector_Set (Source, Widget,
    Id_Name    => "submit");
 ```
 
-When multiple class names are passed to `Bind_Class`, styles are looked up for each class individually and merged left-to-right (later classes override earlier ones for shared properties). This mirrors HTML's `class="base accent"` behavior.
+When multiple class names are passed to `Bind_Class`, styles are looked up for each class individually and merged left-to-right (later classes override earlier ones for shared properties). This mirrors HTML's `class="base accent"` behavior. `Bind_Selector_Set` accepts the same space-separated class list in `Class_Name`, so callers can pass a widget's class attribute without splitting it.
 
 #### Merging Part Styles
 

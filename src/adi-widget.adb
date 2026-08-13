@@ -11,6 +11,7 @@ with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.Log;
+with Adi.Shadow;
 with Adi.SDL; use Adi.SDL;
 with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
@@ -647,19 +648,11 @@ package body Adi.Widget is
       Blur   : constant Natural := Key.Blur_Px;
       Radius : constant Natural := Key.Corner_Radius;
 
-      --  Texture size: 3-pass box blur extends 3*Blur from shape edge
-      Pad : constant Natural := 3 * Blur;
-      Tex_Size : constant Natural :=
-         Natural'Max (4, 2 * (Pad + Radius) + 4);
-      Total_Px : constant Natural := Tex_Size * Tex_Size;
-      Pad_F    : constant Float := Float (Pad);
-      Rect_Sz  : constant Float := Float (Tex_Size) - 2.0 * Pad_F;
-      Half_X   : constant Float := Rect_Sz / 2.0;
-      Half_Y   : constant Float := Rect_Sz / 2.0;
-      Center_X : constant Float := Float (Tex_Size) / 2.0;
-      Center_Y : constant Float := Float (Tex_Size) / 2.0;
-      CR       : constant Float := Float'Min (Float (Radius),
-                                              Float'Min (Half_X, Half_Y));
+      Geom     : constant Adi.Shadow.Geometry :=
+         Adi.Shadow.Geometry_For (Blur, Radius);
+      Tex_Size : constant Natural := Geom.Tex_Size;
+      Mask     : constant Adi.Shadow.Coverage :=
+         Adi.Shadow.Build_Mask (Blur, Radius);
 
       Surface : SDL_Surface_Ptr;
       Texture : SDL_Texture_Ptr;
@@ -674,27 +667,6 @@ package body Adi.Widget is
             or (Uint32 (B) * 65536)
             or (Uint32 (A) * 16777216);
       end Pack_Pixel;
-
-      --  Extract alpha byte from packed pixel
-      function Unpack_Alpha (P : Uint32) return Uint8 is
-      begin
-         return Uint8 (P / 16777216);
-      end Unpack_Alpha;
-
-      --  Signed distance from point to rounded rect centered at (cx, cy)
-      --  with half-extents (hx, hy) and corner radius cr.
-      --  Negative inside, positive outside.
-      function SDF_Rounded_Rect
-         (Px, Py : Float;
-          Cx, Cy : Float;
-          Hx, Hy : Float;
-          CR     : Float) return Float
-      is
-         Dx : constant Float := Float'Max (0.0, abs (Px - Cx) - Hx + CR);
-         Dy : constant Float := Float'Max (0.0, abs (Py - Cy) - Hy + CR);
-      begin
-         return Sqrt (Dx * Dx + Dy * Dy) - CR;
-      end SDF_Rounded_Rect;
 
    begin
       --  Create surface
@@ -719,105 +691,19 @@ package body Adi.Widget is
 
          Pixels : constant Pixel_Buffer_Ptr := To_Pixels (Surface.pixels);
 
-         --  Alpha buffers for blur (heap-allocated)
-         type Alpha_Array is array (0 .. Total_Px - 1) of Float;
-         type Alpha_Ptr is access Alpha_Array;
-         procedure Free is new Ada.Unchecked_Deallocation
-           (Alpha_Array, Alpha_Ptr);
-         Buf_A : Alpha_Ptr;
-         Buf_B : Alpha_Ptr;
       begin
-         --  Rasterize: rounded-rect mask centered in texture.
+         --  Mask coverage straight into the surface's alpha.
          for Y in 0 .. Tex_Size - 1 loop
             for X in 0 .. Tex_Size - 1 loop
                declare
-                  Dist : constant Float := SDF_Rounded_Rect
-                     (Float (X) + 0.5, Float (Y) + 0.5,
-                      Center_X, Center_Y,
-                      Half_X, Half_Y, CR);
-                  A : Uint8;
+                  Alpha_F : constant Float :=
+                     Float'Min (1.0, Float'Max (0.0, Mask (Y * Tex_Size + X)));
                begin
-                  if Dist <= 0.0 then
-                     A := 255;
-                  else
-                     A := 0;
-                  end if;
                   Pixels (Y * Pitch + X) :=
-                     Pack_Pixel (255, 255, 255, A);
+                     Pack_Pixel (255, 255, 255, Uint8 (Alpha_F * 255.0));
                end;
             end loop;
          end loop;
-
-         --  Apply box blur x3 (approximates Gaussian) on alpha channel only
-         if Blur > 0 then
-            Buf_A := new Alpha_Array;
-            Buf_B := new Alpha_Array;
-
-            --  Extract alpha into Buf_A
-            for Y in 0 .. Tex_Size - 1 loop
-               for X in 0 .. Tex_Size - 1 loop
-                  Buf_A (Y * Tex_Size + X) :=
-                     Float (Unpack_Alpha (Pixels (Y * Pitch + X))) / 255.0;
-               end loop;
-            end loop;
-
-            --  Three passes of box blur
-            for Pass in 1 .. 3 loop
-               --  Horizontal blur into Buf_B
-               for Y in 0 .. Tex_Size - 1 loop
-                  for X in 0 .. Tex_Size - 1 loop
-                     declare
-                        Sum : Float := 0.0;
-                        KX  : Integer;
-                     begin
-                        for K in -Blur .. Blur loop
-                           KX := X + K;
-                           if KX >= 0 and then KX < Tex_Size then
-                              Sum := Sum + Buf_A (Y * Tex_Size + KX);
-                           end if;
-                        end loop;
-                        Buf_B (Y * Tex_Size + X) := Sum / Float (2 * Blur + 1);
-                     end;
-                  end loop;
-               end loop;
-
-               --  Vertical blur into Buf_A
-               for Y in 0 .. Tex_Size - 1 loop
-                  for X in 0 .. Tex_Size - 1 loop
-                     declare
-                        Sum : Float := 0.0;
-                        KY  : Integer;
-                     begin
-                        for K in -Blur .. Blur loop
-                           KY := Y + K;
-                           if KY >= 0 and then KY < Tex_Size then
-                              Sum := Sum + Buf_B (KY * Tex_Size + X);
-                           end if;
-                        end loop;
-                        Buf_A (Y * Tex_Size + X) := Sum / Float (2 * Blur + 1);
-                     end;
-                  end loop;
-               end loop;
-            end loop;
-
-            --  Write blurred alpha back into pixels
-            for Y in 0 .. Tex_Size - 1 loop
-               for X in 0 .. Tex_Size - 1 loop
-                  declare
-                     Alpha_F : constant Float :=
-                        Float'Min (1.0, Float'Max (0.0,
-                           Buf_A (Y * Tex_Size + X)));
-                     A : constant Uint8 := Uint8 (Alpha_F * 255.0);
-                  begin
-                     Pixels (Y * Pitch + X) :=
-                        Pack_Pixel (255, 255, 255, A);
-                  end;
-               end loop;
-            end loop;
-         end if;
-
-         Free (Buf_A);
-         Free (Buf_B);
       end;
 
       --  Upload to GPU texture
@@ -878,8 +764,10 @@ package body Adi.Widget is
       Texture : SDL_Texture_Ptr;
       Unused : Adi.SDL.C_bool;
 
-      --  9-grid border = full blur extent (3*blur) + corner_radius
-      Grid_Border : constant Float := Float (3 * Blur_Px + Effective_Rad);
+      --  The same geometry the texture was generated with, so slicing and
+      --  generation cannot drift apart.
+      Shadow_Geom : constant Adi.Shadow.Geometry :=
+        Adi.Shadow.Geometry_For (Blur_Px, Effective_Rad);
       Grid_Left   : Float;
       Grid_Right  : Float;
       Grid_Top    : Float;
@@ -916,12 +804,12 @@ package body Adi.Widget is
          return;
       end if;
 
-      --  Clamp 9-grid edges so they never overlap on very small widgets.
-      --  Without this, corners can cross and alpha blends twice, causing
-      --  dark seams/sharp artifacts.
-      Grid_Left := Float'Min (Grid_Border, Dst.w / 2.0);
+      --  Slice where the blur has developed, but never so wide that the
+      --  two sides meet: SDL would draw the shared line from both quads
+      --  and blend it twice, leaving a dark seam across the shadow.
+      Grid_Left := Adi.Shadow.Slice_Border (Shadow_Geom, Dst.w);
       Grid_Right := Grid_Left;
-      Grid_Top := Float'Min (Grid_Border, Dst.h / 2.0);
+      Grid_Top := Adi.Shadow.Slice_Border (Shadow_Geom, Dst.h);
       Grid_Bottom := Grid_Top;
 
       --  Texture stores only alpha; tint and alpha are applied at draw time.

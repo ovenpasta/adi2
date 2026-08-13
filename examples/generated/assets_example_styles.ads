@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Adi.CSS_Parser;
+with Adi.CSS_Source;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
@@ -564,5 +565,12 @@ package Assets_Example_Styles is
       Icon_Part => (Style => Tint_Cyan_Class_Icon_Widget, Enabled => True),
       others => <>
    ]);
+
+   --  Register every selector this stylesheet defines, in
+   --  source order. A consumer that knows only the package
+   --  name can install the whole sheet without reparsing the
+   --  CSS or guessing which constants exist.
+   procedure Register_Selectors
+     (S : in out Adi.CSS_Source.Style_Source);
 
 end Assets_Example_Styles;

@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Adi.CSS_Parser;
+with Adi.CSS_Source;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
@@ -246,7 +247,7 @@ package Button_Example_Styles is
       Background_Color => Set_Bg (RGB (71, 85, 105)),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (30, 41, 59, 0.22))),
       Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.28, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.28, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color) + Props (Prop_Box_Shadow))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGBA (148, 163, 184, 0.55))),
@@ -303,7 +304,7 @@ package Button_Example_Styles is
       Height => Set (Size (Px (26.0))),
       Background_Color => Set_Bg (RGB (248, 250, 252)),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (6.0), Px (1.0), RGBA (15, 23, 42, 0.22))),
-      Transition => Set ((Duration => 0.26, Easing => Ease_In_Out, Properties => Props (Prop_Margin))),
+      Transition => Set ((Duration => 0.26, Easing => Ease_In_Out, Properties => Props (Prop_Margin) + Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
       Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (0.0), Px (2.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -684,5 +685,12 @@ package Button_Example_Styles is
       Label_Part => (Style => Option_Right_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
+
+   --  Register every selector this stylesheet defines, in
+   --  source order. A consumer that knows only the package
+   --  name can install the whole sheet without reparsing the
+   --  CSS or guessing which constants exist.
+   procedure Register_Selectors
+     (S : in out Adi.CSS_Source.Style_Source);
 
 end Button_Example_Styles;

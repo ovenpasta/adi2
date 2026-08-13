@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Adi.CSS_Parser;
+with Adi.CSS_Source;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
@@ -88,7 +89,7 @@ package Combo_Box_Example_Styles is
       Height => Set (Size (Px (40.0))),
       Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (248, 250, 252)),
-      Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Border_Color))),
+      Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Border_Color) + Props (Prop_Box_Shadow) + Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (9.0), Px (10.0), Px (9.0), Px (10.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -202,7 +203,7 @@ package Combo_Box_Example_Styles is
    function Option_Row_Class_Base_Style return Style_Rules is
      (
       Background_Color => Set_Bg (C (White)),
-      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (2.0), Px (0.0))),
       Border_Width => Set (Border_Width (Px (0.0))),
@@ -394,5 +395,12 @@ package Combo_Box_Example_Styles is
       Label_Part => (Style => Option_Row_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
+
+   --  Register every selector this stylesheet defines, in
+   --  source order. A consumer that knows only the package
+   --  name can install the whole sheet without reparsing the
+   --  CSS or guessing which constants exist.
+   procedure Register_Selectors
+     (S : in out Adi.CSS_Source.Style_Source);
 
 end Combo_Box_Example_Styles;

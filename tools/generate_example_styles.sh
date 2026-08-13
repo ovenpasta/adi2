@@ -13,7 +13,10 @@ generate_if_needed() {
   local out_file="$2"
   local package_name="$3"
 
-  if [[ ! -f "$out_file" || "$css_file" -nt "$out_file" || "$GENERATOR" -nt "$out_file" ]]; then
+  local out_body="${out_file%.ads}.adb"
+
+  if [[ ! -f "$out_file" || ! -f "$out_body" \
+     || "$css_file" -nt "$out_file" || "$GENERATOR" -nt "$out_file" ]]; then
     echo "[styles] generate: $(basename "$out_file")"
     python3 "$GENERATOR" "$css_file" "$out_file" --package-name "$package_name"
   else

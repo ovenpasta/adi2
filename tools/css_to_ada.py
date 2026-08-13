@@ -3488,6 +3488,78 @@ def generate_style_declarations(groups: dict[str, WidgetStyleGroup],
     return lines
 
 
+def selector_entry_exprs(groups: dict[str, WidgetStyleGroup]) -> list[str]:
+    """The Static_Style_Entry for each selector, in stylesheet order."""
+    entries = []
+    for group in groups.values():
+        kind = selector_label(group.selector_type)
+        const = f"{to_ada_identifier(group.name)}_{kind}_Part_Styles"
+        entries.append(
+            f'Adi.CSS_Source.{kind}_Entry ("{group.name}", {const})'
+        )
+    return entries
+
+
+def generate_selector_registration_decl(
+    prefix: str = "Register_Selectors", indent: str = "   "
+) -> list[str]:
+    """Declare the stylesheet's registration procedure."""
+    return [
+        f"{indent}--  Register every selector this stylesheet defines, in",
+        f"{indent}--  source order. A consumer that knows only the package",
+        f"{indent}--  name can install the whole sheet without reparsing the",
+        f"{indent}--  CSS or guessing which constants exist.",
+        f"{indent}procedure {prefix}",
+        f"{indent}  (S : in out Adi.CSS_Source.Style_Source);",
+        "",
+    ]
+
+
+def generate_selector_registration_body(
+    groups: dict[str, WidgetStyleGroup],
+    prefix: str = "Register_Selectors",
+    indent: str = "   ",
+) -> list[str]:
+    """Emit the registration procedure and its one-entry helpers.
+
+    A Static_Style_Entry embeds a whole Part_Style_Array — hundreds of KB —
+    and GNAT gives every one it can see in a frame its own slot, whether
+    they are alternatives of a case expression, elements of an aggregate,
+    or successive statements. A stylesheet's worth in one frame overflows
+    the stack before the first entry is registered. One procedure per
+    selector keeps exactly one alive at a time.
+    """
+    entries = selector_entry_exprs(groups)
+    lines: list[str] = []
+    for i, entry in enumerate(entries, start=1):
+        lines += [
+            f"{indent}procedure {prefix}_{i}",
+            f"{indent}  (S : in out Adi.CSS_Source.Style_Source) is",
+            f"{indent}begin",
+            f"{indent}   Adi.CSS_Source.Add_Static_Entry (S, {entry});",
+            f"{indent}end {prefix}_{i};",
+            #  Inlining these back together would put every selector's
+            #  Part_Style_Array in one frame again, which is what having
+            #  separate procedures is for.
+            f"{indent}pragma No_Inline ({prefix}_{i});",
+            "",
+        ]
+    lines += [
+        f"{indent}procedure {prefix}",
+        f"{indent}  (S : in out Adi.CSS_Source.Style_Source) is",
+        f"{indent}begin",
+    ]
+    if entries:
+        for i in range(1, len(entries) + 1):
+            lines.append(f"{indent}   {prefix}_{i} (S);")
+    else:
+        #  The declarative part sits between the `is` and the `begin`.
+        lines.insert(len(lines) - 1, f"{indent}   pragma Unreferenced (S);")
+        lines.append(f"{indent}   null;")
+    lines += [f"{indent}end {prefix};", ""]
+    return lines
+
+
 def generate_ada_package(
     stylesheet_or_groups,
     groups_or_package_name,
@@ -3515,6 +3587,7 @@ def generate_ada_package(
         f"pragma Ada_2022;",
         f"",
         f"with Adi.CSS_Parser;",
+        f"with Adi.CSS_Source;",
         f"with Adi.CSS_Styles;   use Adi.CSS_Styles;",
         f"with Adi.Widget;       use Adi.Widget;",
         f"with Adi.Widget_Styles; use Adi.Widget_Styles;",
@@ -3663,9 +3736,10 @@ def generate_ada_package(
         lines.append(f"      others => <>")
         lines.append(f"   ]);")
         lines.append(f"")
-    
+
+    lines.extend(generate_selector_registration_decl())
     lines.append(f"end {package_name};")
-    
+
     return "\n".join(lines)
 
 
@@ -3686,6 +3760,7 @@ def generate_parent_package(
     ]
     for cn in child_names:
         lines.append(f"with {cn};")
+    lines.append(f"with Adi.CSS_Source;")
     lines.append(f"with Adi.CSS_Styles;    use Adi.CSS_Styles;")
     lines.append(f"with Adi.Widget;        use Adi.Widget;")
     lines.append(f"with Adi.Widget_Styles; use Adi.Widget_Styles;")
@@ -3719,6 +3794,7 @@ def generate_parent_package(
         lines.append(f"   function {psa_name} return Part_Style_Array renames {child_pkg}.{psa_name};")
         lines.append("")
 
+    lines.extend(generate_selector_registration_decl())
     lines.append(f"end {package_name};")
     return "\n".join(lines)
 
@@ -3818,6 +3894,32 @@ def main():
         print(f"Error writing output file: {e}", file=sys.stderr)
         sys.exit(1)
     print(f"Generated {args.output}")
+
+    #  The registration procedure needs sequential statements, so the
+    #  package gets a body alongside the spec.
+    body_path = re.sub(r"\.ads$", ".adb", args.output)
+    if body_path == args.output:
+        body_path = args.output + ".adb"
+    body_code = "\n".join(
+        [
+            "--  Auto-generated from CSS",
+            "--  Do not edit manually",
+            "",
+            "pragma Ada_2022;",
+            "",
+            f"package body {args.package_name} is",
+            "",
+        ]
+        + generate_selector_registration_body(groups)
+        + [f"end {args.package_name};", ""]
+    )
+    try:
+        with open(body_path, 'w') as f:
+            f.write(body_code)
+    except IOError as e:
+        print(f"Error writing output file: {e}", file=sys.stderr)
+        sys.exit(1)
+    print(f"Generated {body_path}")
 
 
 if __name__ == "__main__":

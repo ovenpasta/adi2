@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Adi.CSS_Parser;
+with Adi.CSS_Source;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
@@ -147,7 +148,7 @@ package RLottie_Example_Styles is
      (
       Width => Set (Size (Px (128.0))),
       Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Background_Color => Set_Bg (RGB (106, 186, 92)),
       Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
@@ -183,7 +184,7 @@ package RLottie_Example_Styles is
      (
       Width => Set (Size (Px (128.0))),
       Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Background_Color => Set_Bg (RGB (201, 102, 92)),
       Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
@@ -219,7 +220,7 @@ package RLottie_Example_Styles is
      (
       Width => Set (Size (Px (128.0))),
       Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Background_Color => Set_Bg (RGB (106, 134, 199)),
       Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
@@ -255,7 +256,7 @@ package RLottie_Example_Styles is
      (
       Width => Set (Size (Px (128.0))),
       Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Background_Color => Set_Bg (RGB (130, 108, 194)),
       Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
@@ -538,5 +539,12 @@ package RLottie_Example_Styles is
       Label_Part => (Style => Status_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
+
+   --  Register every selector this stylesheet defines, in
+   --  source order. A consumer that knows only the package
+   --  name can install the whole sheet without reparsing the
+   --  CSS or guessing which constants exist.
+   procedure Register_Selectors
+     (S : in out Adi.CSS_Source.Style_Source);
 
 end RLottie_Example_Styles;

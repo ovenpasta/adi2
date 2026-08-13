@@ -765,7 +765,15 @@ Adi.CSS_Source.Set_Static_Entries (Source, [
 
 Repeated entries for the same selector are merged in insertion order (later entries win).
 
-For large generated style sets, prefer incremental registration with `Clear_Static_Entries` + repeated `Add_Static_Entry` calls. This avoids building one large local aggregate on the stack.
+Each package `css_to_ada.py` generates exposes a `Register_Selectors` procedure that installs everything its stylesheet defines, so a whole sheet goes in at once — and several sheets in the order they should cascade:
+
+```ada
+Adi.CSS_Source.Clear_Static_Entries (Source);
+Base_Styles.Register_Selectors (Source);
+Theme_Styles.Register_Selectors (Source);
+```
+
+Each selector is registered by its own helper procedure, so only one `Part_Style_Array` is ever live: a whole sheet's worth in one frame is megabytes and overflows the stack. `Add_Static_Entry` remains for registering one selector by hand.
 
 If your stylesheet uses `:root` metadata, install it separately:
 

@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Adi.CSS_Parser;
+with Adi.CSS_Source;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
@@ -85,7 +86,7 @@ package Dialog_Example_Styles is
      (
       Height => Set (Size (Px (40.0))),
       Background_Color => Set_Bg (RGB (37, 99, 235)),
-      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Padding => Set (CSS_Box (Px (9.0), Px (16.0), Px (9.0), Px (16.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -190,7 +191,7 @@ package Dialog_Example_Styles is
      (
       Height => Set (Size (Px (36.0))),
       Background_Color => Set_Bg (RGB (241, 245, 249)),
-      Transition => Set ((Duration => 0.12, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.12, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Padding => Set (CSS_Box (Px (7.0), Px (16.0), Px (7.0), Px (16.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -235,7 +236,7 @@ package Dialog_Example_Styles is
      (
       Height => Set (Size (Px (36.0))),
       Background_Color => Set_Bg (RGB (37, 99, 235)),
-      Transition => Set ((Duration => 0.12, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.12, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Padding => Set (CSS_Box (Px (7.0), Px (16.0), Px (7.0), Px (16.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -531,5 +532,12 @@ package Dialog_Example_Styles is
       Label_Part => (Style => Detail_Label_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
+
+   --  Register every selector this stylesheet defines, in
+   --  source order. A consumer that knows only the package
+   --  name can install the whole sheet without reparsing the
+   --  CSS or guessing which constants exist.
+   procedure Register_Selectors
+     (S : in out Adi.CSS_Source.Style_Source);
 
 end Dialog_Example_Styles;

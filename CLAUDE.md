@@ -93,6 +93,9 @@ For direct gprbuild (no Alire), see `docs/gprbuild_without_alire.md` and `docs/b
 python3 tools/css_to_ada.py input.css output.ads --package-name=My_Styles
 ```
 
+Writes a companion `output.adb` beside the spec, holding the stylesheet's
+`Register_Selectors` procedure.
+
 Incremental build for all examples: `tools/generate_example_styles.sh`. Full reference in `docs/css_styling.md`.
 
 ### XML → Ada (`tools/xml_to_ada.py`)

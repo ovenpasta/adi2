@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Adi.CSS_Parser;
+with Adi.CSS_Source;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
@@ -128,7 +129,7 @@ package List_Box_Example_Styles is
       Width => Set (Size (Px (56.0))),
       Height => Set (Size (Px (30.0))),
       Background_Color => Set_Bg (RGB (203, 213, 225)),
-      Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -173,7 +174,7 @@ package List_Box_Example_Styles is
       Width => Set (Size (Px (56.0))),
       Height => Set (Size (Px (30.0))),
       Background_Color => Set_Bg (RGB (203, 213, 225)),
-      Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -287,7 +288,7 @@ package List_Box_Example_Styles is
    function Label_Row_Class_Base_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (255, 255, 255)),
-      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
@@ -337,7 +338,7 @@ package List_Box_Example_Styles is
       Flex_Direction => Set (Column),
       Background_Color => Set_Bg (RGB (63, 115, 176)),
       Height => Set (Size (Px (44.0))),
-      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       Margin => Set (CSS_Box (Px (0.0), Px (10.0), Px (0.0), Px (0.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
@@ -379,7 +380,7 @@ package List_Box_Example_Styles is
      (
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       Height => Set (Size (Px (50.0))),
-      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Padding => Set (CSS_Box (Px (12.0), Px (6.0), Px (12.0), Px (6.0))),
       Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (0.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
@@ -689,5 +690,12 @@ package List_Box_Example_Styles is
       Label_Part => (Style => Grid_Cell_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
+
+   --  Register every selector this stylesheet defines, in
+   --  source order. A consumer that knows only the package
+   --  name can install the whole sheet without reparsing the
+   --  CSS or guessing which constants exist.
+   procedure Register_Selectors
+     (S : in out Adi.CSS_Source.Style_Source);
 
 end List_Box_Example_Styles;

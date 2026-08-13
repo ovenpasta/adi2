@@ -1199,6 +1199,79 @@ class TestGenerateAdaPackage(unittest.TestCase):
         ada = generate_ada_package(groups, "Tag_Styles")
         self.assertIn("Button_Tag_Base_Style", ada)
 
+    def test_package_declares_a_registration_procedure(self):
+        groups = group_rules_by_widget(parse_css("button { color: green; }"))
+        ada = generate_ada_package(groups, "M_Styles")
+        self.assertIn(
+            "   procedure Register_Selectors\n"
+            "     (S : in out Adi.CSS_Source.Style_Source);",
+            ada,
+        )
+
+    def test_registration_body_lists_every_kind_in_source_order(self):
+        css = (
+            "button { color: green; } "
+            ".card { color: white; } "
+            "#submit { color: blue; }"
+        )
+        groups = group_rules_by_widget(parse_css(css))
+        body = "\n".join(css_to_ada.generate_selector_registration_body(groups))
+        for i, entry in enumerate(
+            [
+                'Adi.CSS_Source.Tag_Entry ("button", Button_Tag_Part_Styles)',
+                'Adi.CSS_Source.Class_Entry ("card", Card_Class_Part_Styles)',
+                'Adi.CSS_Source.Id_Entry ("submit", Submit_Id_Part_Styles)',
+            ],
+            start=1,
+        ):
+            self.assertIn(
+                f"   procedure Register_Selectors_{i}\n"
+                "     (S : in out Adi.CSS_Source.Style_Source) is\n"
+                "   begin\n"
+                f"      Adi.CSS_Source.Add_Static_Entry (S, {entry});\n"
+                f"   end Register_Selectors_{i};\n"
+                f"   pragma No_Inline (Register_Selectors_{i});",
+                body,
+            )
+        self.assertIn(
+            "   begin\n"
+            "      Register_Selectors_1 (S);\n"
+            "      Register_Selectors_2 (S);\n"
+            "      Register_Selectors_3 (S);\n"
+            "   end Register_Selectors;",
+            body,
+        )
+
+    def test_only_one_entry_is_ever_live_in_a_frame(self):
+        #  A Static_Style_Entry embeds a whole Part_Style_Array (hundreds of
+        #  KB) and GNAT gives every one visible in a frame its own slot —
+        #  aggregate elements, case alternatives and successive statements
+        #  alike. A stylesheet's worth in one frame overflows the 8 MB stack
+        #  before the first entry is registered, so each gets its own
+        #  procedure and the aggregator only calls them.
+        css = " ".join(f".c{i} {{ color: white; }}" for i in range(65))
+        groups = group_rules_by_widget(parse_css(css))
+        body = "\n".join(css_to_ada.generate_selector_registration_body(groups))
+        self.assertEqual(body.count("Add_Static_Entry"), 65)
+        for chunk in body.split("procedure Register_Selectors_")[1:]:
+            self.assertEqual(chunk.count("Add_Static_Entry"), 1)
+        self.assertNotIn("Static_Style_Entry_Array", body)
+        #  Optimisation must not merge the frames back together.
+        self.assertEqual(body.count("pragma No_Inline"), 65)
+
+    def test_registration_survives_a_sheet_with_no_selectors(self):
+        groups = group_rules_by_widget(parse_css(":root { font-size: 16px; }"))
+        body = "\n".join(css_to_ada.generate_selector_registration_body(groups))
+        self.assertIn(
+            "   procedure Register_Selectors\n"
+            "     (S : in out Adi.CSS_Source.Style_Source) is\n"
+            "      pragma Unreferenced (S);\n"
+            "   begin\n"
+            "      null;\n"
+            "   end Register_Selectors;",
+            body,
+        )
+
     def test_outline_in_package(self):
         css = ".focus { outline: 2px solid rgb(208, 188, 255); outline-offset: 2px; }"
         rules = parse_css(css)

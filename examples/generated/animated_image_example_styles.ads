@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Adi.CSS_Parser;
+with Adi.CSS_Source;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
@@ -126,7 +127,7 @@ package Animated_Image_Example_Styles is
       Width => Set (Size (Px (136.0))),
       Background_Color => Set_Bg (RGB (30, 64, 175)),
       Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.18, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.18, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
       Padding => Set (CSS_Box (Px (10.0), Px (16.0), Px (10.0), Px (16.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -168,7 +169,7 @@ package Animated_Image_Example_Styles is
       Width => Set (Size (Px (136.0))),
       Background_Color => Set_Bg (RGB (220, 38, 38)),
       Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.18, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.18, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
       Padding => Set (CSS_Box (Px (10.0), Px (16.0), Px (10.0), Px (16.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -406,5 +407,12 @@ package Animated_Image_Example_Styles is
       Label_Part => (Style => Status_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
+
+   --  Register every selector this stylesheet defines, in
+   --  source order. A consumer that knows only the package
+   --  name can install the whole sheet without reparsing the
+   --  CSS or guessing which constants exist.
+   procedure Register_Selectors
+     (S : in out Adi.CSS_Source.Style_Source);
 
 end Animated_Image_Example_Styles;

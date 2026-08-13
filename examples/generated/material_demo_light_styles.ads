@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Adi.CSS_Parser;
+with Adi.CSS_Source;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
@@ -210,7 +211,7 @@ package Material_Demo_Light_Styles is
       Background_Color => Set_Bg (RGB (255, 255, 255)),
       Gap => Set (Gap (Dip (12.0))),
       Box_Shadow => Set (Shadow (Dip (0.0), Dip (1.0), Dip (4.0), Dip (0.0), RGBA (0, 0, 0, 0.15))),
-      Transition => Set ((Duration => 0.25, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.25, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
       Padding => Set (CSS_Box (Dip (24.0), Dip (24.0), Dip (24.0), Dip (24.0))),
       Border_Radius => Set (Radius (Dip (16.0))),
       others => <>);
@@ -311,7 +312,7 @@ package Material_Demo_Light_Styles is
       Background_Color => Set_Bg (RGB (103, 80, 164)),
       Cursor => Set (Cursor_Pointer),
       Box_Shadow => Set (Shadow (Dip (0.0), Dip (1.0), Dip (3.0), Dip (0.0), RGBA (0, 0, 0, 0.15))),
-      Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
       Padding => Set (CSS_Box (Dip (0.0), Dip (24.0), Dip (0.0), Dip (24.0))),
       Border_Radius => Set (Radius (Dip (999.0))),
       others => <>);
@@ -364,7 +365,7 @@ package Material_Demo_Light_Styles is
       Height => Set (Size (Dip (44.0))),
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
       Padding => Set (CSS_Box (Dip (0.0), Dip (24.0), Dip (0.0), Dip (24.0))),
       Border_Width => Set (Border_Width (Dip (2.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -587,7 +588,7 @@ package Material_Demo_Light_Styles is
       Height => Set (Size (Dip (32.0))),
       Background_Color => Set_Bg (RGB (231, 224, 236)),
       Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
+      Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Border_Width => Set (Border_Width (Dip (2.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (121, 116, 126))),
@@ -632,7 +633,7 @@ package Material_Demo_Light_Styles is
       Width => Set (Size (Dip (24.0))),
       Height => Set (Size (Dip (24.0))),
       Background_Color => Set_Bg (RGB (121, 116, 126)),
-      Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Margin))),
+      Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Margin) + Props (Prop_Background_Color))),
       Margin => Set (CSS_Box (Dip (2.0), Dip (2.0), Dip (2.0), Dip (2.0))),
       Border_Radius => Set (Radius (Dip (999.0))),
       others => <>);
@@ -1600,5 +1601,12 @@ package Material_Demo_Light_Styles is
       Label_Part => (Style => Context_Menu_Item_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
+
+   --  Register every selector this stylesheet defines, in
+   --  source order. A consumer that knows only the package
+   --  name can install the whole sheet without reparsing the
+   --  CSS or guessing which constants exist.
+   procedure Register_Selectors
+     (S : in out Adi.CSS_Source.Style_Source);
 
 end Material_Demo_Light_Styles;

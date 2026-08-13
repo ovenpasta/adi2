@@ -118,7 +118,7 @@ begin
       Btn_Multi    : constant Adi.Widget.Button.Button_Handle :=
                        Adi.Widget.Button.Create_Handle ("Multi-Property");
       Btn_All      : constant Adi.Widget.Button.Button_Handle :=
-                       Adi.Widget.Button.Create_Handle ("All Properties");
+                       Adi.Widget.Button.Create_Handle ("Everything");
       Btn_Fast     : constant Adi.Widget.Button.Button_Handle :=
                        Adi.Widget.Button.Create_Handle ("Fast (50ms)");
       Btn_Slow     : constant Adi.Widget.Button.Button_Handle :=
@@ -315,29 +315,32 @@ begin
                                  Props (Prop_Background_Color)
                                + Props (Prop_Border_Color)
                                + Props (Prop_Box_Shadow)))))
+        --  The shadow needs spread to clear the button and a colour that is
+        --  not the button's own, or it hides behind the fill it is cast by.
         .On_Hover ((
           Background_Color => Set_Bg (RGB (79, 70, 229)),
-          Border_Color     => Set (Border_Color (RGB (129, 140, 248))),
-          Box_Shadow       => Set (Shadow (Px (0.0), Px (4.0), Px (12.0), Px (0.0),
-                                           RGBA (79, 70, 229, 0.4))),
+          Border_Color     => Set (Border_Color (RGB (199, 210, 254))),
+          Box_Shadow       => Set (Shadow (Px (0.0), Px (4.0), Px (12.0), Px (4.0),
+                                           RGBA (165, 180, 252, 0.9))),
           others           => <>))
         .Build);
       Set_Part_Style (Widget_Handle'(+Btn_Multi), Label_Part, White_Label);
 
-      --  All properties (default)
+      --  No property list. Transition_Spec.Properties defaults to
+      --  All_Properties, so every animatable property comes along -- here
+      --  the two the card above animates plus radius and padding, which
+      --  makes the button change shape as well as colour.
       Set_Part_Style (Widget_Handle'(+Btn_All), Main_Part,
         Style.Base ((Demo_Base with delta
-          Box_Shadow => Set (No_Shadow),
-          Transition => Set ((Duration   => 0.3,
-                              Easing     => Ease_In_Out,
-                              Properties => All_Properties))))
+          Transition => Set ((Duration => 0.3, Easing => Ease_In_Out,
+                              others   => <>))))
         .On_Hover ((
           Background_Color => Set_Bg (RGB (6, 182, 212)),
-          Border_Color     => Set (Border_Color (RGB (34, 211, 238))),
+          Border_Color     => Set (Border_Color (RGB (207, 250, 254))),
           Border_Radius    => Set (Radius (Px (16.0))),
           Padding          => Set (CSS_Box (Px (10.0), Px (28.0))),
-          Box_Shadow       => Set (Shadow (Px (0.0), Px (4.0), Px (14.0), Px (0.0),
-                                           RGBA (6, 182, 212, 0.4))),
+          Box_Shadow       => Set (Shadow (Px (0.0), Px (4.0), Px (14.0), Px (4.0),
+                                           RGBA (103, 232, 249, 0.9))),
           others           => <>))
         .Build);
       Set_Part_Style (Widget_Handle'(+Btn_All), Label_Part, White_Label);
@@ -429,7 +432,7 @@ begin
 
       Add_Child (+Sec3_Row, +Col_All);
       Add_Child (+Col_All, +Btn_All);
-      Add_Child (+Col_All, +Make_Desc ("All_Properties"));
+      Add_Child (+Col_All, +Make_Desc ("no list: every property"));
 
       Add_Child (+Sec3_Row, +Col_Fast);
       Add_Child (+Col_Fast, +Btn_Fast);

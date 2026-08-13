@@ -549,6 +549,85 @@ Tab_Options_Group.Set_On_Changed (On_Tab_Option_Wrapper'Unrestricted_Access);
 
 ---
 
+## Adding Your Own Widget Tags
+
+The generator rejects any tag it does not know, and the tags it knows come
+from `tools/widgets.xml`. To use a widget of your own — a type derived from
+one of Adi2's, or any package that presents the same shape — describe it in
+a grammar fragment of your own and pass it with `--grammar`. The fragment
+is merged with the built-in grammar rather than replacing it, so your tags
+sit alongside `<box>` and `<button>`.
+
+A minimal entry names the package, the types, and how to construct one:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<widgets>
+  <widget tag="card">
+    <package>My_Widgets.Card</package>
+    <access-type>Card_Widget_Access</access-type>
+    <handle-type>Card_Handle</handle-type>
+    <create>{package}.Create</create>
+    <create-handle>{package}.Create_Handle</create-handle>
+  </widget>
+</widgets>
+```
+
+```bash
+alr exec -- python3 "$ADI2_TOOLS/xml_to_ada.py" ui/main.xml \
+  --output-dir src/generated --package-name Main_UI \
+  --grammar ui/widgets-extra.xml
+```
+
+From inside this repository the same command is `python3
+tools/xml_to_ada.py ...`.
+
+`<card class="panel">` then generates the same code any built-in container
+would, and the generated package `with`s `My_Widgets.Card` for you.
+
+Attributes specific to your widget are declared the same way as the
+built-in ones, either as constructor arguments or as setters called after
+construction:
+
+```xml
+  <widget tag="gauge">
+    <package>My_Widgets.Gauge</package>
+    <access-type>Gauge_Widget_Access</access-type>
+    <handle-type>Gauge_Handle</handle-type>
+    <create>{package}.Create ({caption})</create>
+    <create-handle>{package}.Create_Handle ({caption})</create-handle>
+    <attribute name="caption" type="string" create-param="true"/>
+    <attribute name="value" type="string" setter="Set_Value"/>
+    <attribute name="on-changed" type="callback" setter="Connect_Changed"/>
+  </widget>
+```
+
+The full set of fields a `<widget>` accepts is documented in the comment at
+the top of `tools/widgets.xml`.
+
+What the grammar cannot do is make an arbitrary type usable. The generated
+code needs a handle type, a `Create_Handle` returning it, and a `"+"` that
+converts it to `Widget_Handle`; everything after construction — adding
+children, binding CSS classes, setting the window root — goes through that
+conversion, so classes and styling need nothing extra from your package.
+
+Providing those is the actual work, and it is the same work whether or not
+you ever write XML. `Adi.Widget.Adopt_Widget` registers a freshly allocated
+widget and returns its `Widget_Handle`, which is what a typed
+`Create_Handle` wraps:
+
+```ada
+   function Create_Handle return Card_Handle is
+      Ptr : constant Widget_Access := new Card_Widget;
+   begin
+      return (Id => Adopt_Widget (Ptr));
+   end Create_Handle;
+```
+
+Deriving from `Adi.Widget.Box` and re-exporting a handle of your own is the
+usual route; the widget packages under `src/adi-widget-*.ads` are the
+working examples of the pattern.
+
 ## Generated Code Structure
 
 ### Spec (`.ads`)

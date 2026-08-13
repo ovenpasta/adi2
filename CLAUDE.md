@@ -10,6 +10,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 
 | Topic | File |
 |-------|------|
+| First application, from an empty directory | `docs/getting_started.md` |
 | Architecture & core components | `docs/architecture.md` |
 | Handle ownership model (stores, handles, borrow, lifecycle) | `docs/handle_ownership.md` |
 | Coding conventions | `docs/coding_conventions.md` |

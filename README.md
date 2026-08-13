@@ -130,7 +130,9 @@ tools/build_examples.sh stack_example
 ./examples/bin/html_view_example
 ```
 
-To use Adi2 from your own project, `with "adi.gpr"` — SDL linker options come with it. The library's public specs use Ada 2022 with GNAT extensions, so compile your units that `with Adi.*` packages with `-gnat2022 -gnatX0`.
+To use Adi2 from your own project, `with "adi.gpr"` — SDL linker options come with it. The library's public specs use Ada 2022 constructs, so units that `with Adi.*` packages need `pragma Ada_2022;` or `-gnat2022`.
+
+**Starting your own project?** [`docs/getting_started.md`](docs/getting_started.md) walks from an empty directory to a working window, in XML/CSS and again in plain Ada.
 
 Full build instructions, including building without Alire, in [`docs/build.md`](docs/build.md) and [`docs/gprbuild_without_alire.md`](docs/gprbuild_without_alire.md).
 
@@ -166,6 +168,7 @@ Rendering goes through the SDL renderer abstraction, so you get hardware-acceler
 
 | Topic | Doc |
 |---|---|
+| Your first Adi2 application | [`docs/getting_started.md`](docs/getting_started.md) |
 | High-level architecture and core components | [`docs/architecture.md`](docs/architecture.md) |
 | CSS styling — selectors, properties, runtime API, codegen | [`docs/css_styling.md`](docs/css_styling.md) |
 | Declarative XML UIs and the widget grammar | [`docs/xml_ui_system.md`](docs/xml_ui_system.md) |

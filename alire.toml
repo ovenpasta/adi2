@@ -13,5 +13,13 @@ project-files = ["adi.gpr"]
 type = "test"
 command = ["bash", "tools/run_tests.sh"]
 
+#  Where the code generators live, so a project using Adi2 can run them
+#  on its own CSS and XML without knowing Alire's cache layout:
+#      alr exec -- sh -c 'python3 "$ADI2_TOOLS/xml_to_ada.py" ...'
+#  The inner shell is what expands it: alr exec sets the variable for
+#  the command it runs, not for the shell that typed it.
+[environment]
+ADI2_TOOLS.set = "${CRATE_ROOT}/tools"
+
 [build-switches]
 "*".style_checks = "No"

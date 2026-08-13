@@ -88,15 +88,17 @@ tools/run_tests.sh
 switches) are exported from `adi.gpr` as `Linker_Options`, so your
 executable links without repeating them.
 
-Adi's public specs use Ada 2022 with GNAT extensions: units that
-`with Adi.*` packages must be compiled with `-gnat2022 -gnatX0`.
+Adi's public specs use Ada 2022 constructs, and GNAT defaults to Ada 2012,
+so units that `with Adi.*` packages need `pragma Ada_2022;` or the
+`-gnat2022` switch. Adi itself is built with `-gnatX0`, but that is
+internal and does not carry over.
 
 ```
 with "path/to/adi2/adi.gpr";
 project My_App is
    for Main use ("my_app.adb");
    package Compiler is
-      for Default_Switches ("Ada") use ("-gnat2022", "-gnatX0");
+      for Default_Switches ("Ada") use ("-gnat2022");
    end Compiler;
 end My_App;
 ```

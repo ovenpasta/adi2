@@ -247,7 +247,10 @@ package Button_Example_Styles is
    --  Style for class 'toggle' when widget State_Focused
    function Toggle_Class_Widget_Focused_Style return Style_Rules is
      (
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (0.0), Px (2.0), RGBA (96, 165, 250, 0.35))),
+      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Style => Set (Outline_Solid),
+      Outline_Color => Set_Outline_Color (RGBA (96, 165, 250, 0.55)),
+      Outline_Offset => Set_Outline_Offset (Px (2.0)),
       Border_Color => Set (Border_Color (RGB (147, 197, 253))),
       others => <>);
 
@@ -279,21 +282,21 @@ package Button_Example_Styles is
    function Switch_Class_Widget_Hovered_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (100, 116, 139)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (3.0), RGBA (71, 85, 105, 0.3))),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (3.0), RGBA (203, 213, 225, 0.65))),
       others => <>);
 
    --  Style for class 'switch' when widget State_Pressed
    function Switch_Class_Widget_Pressed_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (51, 65, 85)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (1.0), Px (3.0), Px (0.0), RGBA (15, 23, 42, 0.14))),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (6.0), Px (2.0), RGBA (148, 163, 184, 0.55))),
       others => <>);
 
    --  Style for class 'switch' when widget State_Selected
    function Switch_Class_Widget_Selected_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (16, 185, 129)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (12.0), Px (4.0), RGBA (16, 185, 129, 0.34))),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (12.0), Px (4.0), RGBA (52, 211, 153, 0.55))),
       Border_Color => Set (Border_Color (RGB (5, 150, 105))),
       others => <>);
 
@@ -301,7 +304,7 @@ package Button_Example_Styles is
    function Switch_Class_Widget_Selected_Widget_Hovered_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (5, 150, 105)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (14.0), Px (5.0), RGBA (5, 150, 105, 0.4))),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (14.0), Px (5.0), RGBA (110, 231, 183, 0.7))),
       Border_Color => Set (Border_Color (RGB (4, 120, 87))),
       others => <>);
 
@@ -309,13 +312,16 @@ package Button_Example_Styles is
    function Switch_Class_Widget_Selected_Widget_Pressed_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (4, 120, 87)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (6, 78, 59, 0.26))),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (52, 211, 153, 0.5))),
       others => <>);
 
    --  Style for class 'switch' when widget State_Focused
    function Switch_Class_Widget_Focused_Style return Style_Rules is
      (
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (0.0), Px (2.0), RGBA (134, 239, 172, 0.36))),
+      Outline_Width => Set_Outline_Width (Px (2.0)),
+      Outline_Style => Set (Outline_Solid),
+      Outline_Color => Set_Outline_Color (RGBA (134, 239, 172, 0.6)),
+      Outline_Offset => Set_Outline_Offset (Px (2.0)),
       others => <>);
 
    --  Base style for class 'switch'::knob
@@ -325,8 +331,8 @@ package Button_Example_Styles is
       Height => Set (Size (Px (26.0))),
       Background_Color => Set_Bg (RGB (248, 250, 252)),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (6.0), Px (1.0), RGBA (15, 23, 42, 0.22))),
-      Transition => Set ((Duration => 0.26, Easing => Ease_In_Out, Properties => Props (Prop_Margin) + Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
-      Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (0.0), Px (2.0))),
+      Transition => Set ((Duration => 0.26, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
+      Margin => Set (CSS_Box (Px (0.0), Px (2.0), Px (0.0), Px (2.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGBA (15, 23, 42, 0.12))),
@@ -352,7 +358,6 @@ package Button_Example_Styles is
      (
       Background_Color => Set_Bg (RGB (240, 253, 244)),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (5, 150, 105, 0.3))),
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (28.0))),
       others => <>);
 
    --  Base style for class 'option-left'

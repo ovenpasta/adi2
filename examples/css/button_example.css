@@ -167,7 +167,8 @@
 
 .toggle::main:focus {
   border-color: rgb(147, 197, 253);
-  box-shadow: 0px 0px 0px 2px rgba(96, 165, 250, 0.35);
+  outline: 2px solid rgba(96, 165, 250, 0.55);
+  outline-offset: 2px;
 }
 
 .toggle::label {
@@ -192,46 +193,47 @@
 
 .switch::main:hover {
   background-color: rgb(100, 116, 139);
-  box-shadow: 0px 0px 10px 3px rgba(71, 85, 105, 0.30);
+  box-shadow: 0px 0px 10px 3px rgba(203, 213, 225, 0.65);
 }
 
 .switch::main:pressed {
   background-color: rgb(51, 65, 85);
-  box-shadow: 0px 1px 3px 0px rgba(15, 23, 42, 0.14);
+  box-shadow: 0px 0px 6px 2px rgba(148, 163, 184, 0.55);
 }
 
 .switch::main:selected {
   background-color: rgb(16, 185, 129);
   border-color: rgb(5, 150, 105);
-  box-shadow: 0px 0px 12px 4px rgba(16, 185, 129, 0.34);
+  box-shadow: 0px 0px 12px 4px rgba(52, 211, 153, 0.55);
 }
 
 .switch::main:selected:hover {
   background-color: rgb(5, 150, 105);
   border-color: rgb(4, 120, 87);
-  box-shadow: 0px 0px 14px 5px rgba(5, 150, 105, 0.40);
+  box-shadow: 0px 0px 14px 5px rgba(110, 231, 183, 0.70);
 }
 
 .switch::main:selected:pressed {
   background-color: rgb(4, 120, 87);
-  box-shadow: 0px 0px 8px 2px rgba(6, 78, 59, 0.26);
+  box-shadow: 0px 0px 8px 2px rgba(52, 211, 153, 0.50);
 }
 
 .switch::main:focus {
-  box-shadow: 0px 0px 0px 2px rgba(134, 239, 172, 0.36), 0px 0px 14px 5px rgba(5, 150, 105, 0.34);
+  outline: 2px solid rgba(134, 239, 172, 0.6);
+  outline-offset: 2px;
 }
 
 .switch::knob {
   width: 26px;
   height: 26px;
-  margin: 2px 0px 0px 2px;
+  margin: 0px 2px;
   background-color: rgb(248, 250, 252);
   border-width: 1px;
   border-color: rgba(15, 23, 42, 0.12);
   border-style: solid;
   border-radius: 13px;
   box-shadow: 0px 0px 6px 1px rgba(15, 23, 42, 0.22);
-  transition: margin 260ms ease-in-out, background-color 260ms ease-in-out, box-shadow 380ms ease-out;
+  transition: background-color 260ms ease-in-out, box-shadow 380ms ease-out;
 }
 
 .switch::knob:hover {
@@ -245,7 +247,6 @@
 }
 
 .switch::knob:selected {
-  margin-left: 28px;
   background-color: rgb(240, 253, 244);
   box-shadow: 0px 0px 8px 2px rgba(5, 150, 105, 0.30);
 }

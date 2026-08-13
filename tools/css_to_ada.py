@@ -1096,6 +1096,23 @@ TRANSITION_PROPERTY_MAP = {
 }
 
 
+def _transition_duration(token: str) -> Optional[float]:
+    """Seconds if the token is a duration, else None.
+
+    A property name can end in `s` -- border-radius does -- so a token only
+    counts as a duration when what precedes the unit is a number. Treating
+    the suffix alone as proof drops the whole declaration, which the runtime
+    parser does not do.
+    """
+    for suffix, scale in (("ms", 0.001), ("s", 1.0)):
+        if token.endswith(suffix) and len(token) > len(suffix):
+            try:
+                return float(token[: -len(suffix)]) * scale
+            except ValueError:
+                return None
+    return None
+
+
 def parse_transition(value: str) -> Optional[ParsedTransition]:
     """Parse a CSS transition, single or comma-separated.
 
@@ -1134,18 +1151,8 @@ def parse_transition(value: str) -> Optional[ParsedTransition]:
             continue
         property_name = "all"
         for token in re.split(r"\s+", entry):
-            if token.endswith("ms"):
-                try:
-                    seconds = float(token[:-2]) / 1000.0
-                except ValueError:
-                    return None
-                if index == 0:
-                    duration_seconds = seconds
-            elif token.endswith("s"):
-                try:
-                    seconds = float(token[:-1])
-                except ValueError:
-                    return None
+            seconds = _transition_duration(token)
+            if seconds is not None:
                 if index == 0:
                     duration_seconds = seconds
             elif token in TRANSITION_EASING_MAP:

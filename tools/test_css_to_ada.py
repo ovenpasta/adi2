@@ -1139,6 +1139,15 @@ class TestTransitionLists(unittest.TestCase):
             with self.subTest(bad):
                 self.assertIsNone(self.parse(bad))
 
+    def test_property_ending_in_s_is_not_read_as_a_duration(self):
+        #  border-radius ends in `s`, so a suffix check alone parses
+        #  "border-radiu" as a number, fails, and drops the declaration --
+        #  which the runtime parser does not do.
+        t = self.parse("border-radius 300ms ease-in-out")
+        self.assertIsNotNone(t)
+        self.assertEqual(t.property_set, "Props (Prop_Border_Radius)")
+        self.assertAlmostEqual(t.duration_seconds, 0.3)
+
     def test_no_duration_in_first_entry_is_rejected(self):
         self.assertIsNone(self.parse("border-color, box-shadow 200ms"))
         self.assertIsNone(self.parse("none"))

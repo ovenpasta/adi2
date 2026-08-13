@@ -1084,6 +1084,7 @@ TRANSITION_PROPERTY_MAP = {
     "all": "All_Properties",
     "color": "Props (Prop_Color)",
     "background-color": "Props (Prop_Background_Color)",
+    "background": "Props (Prop_Background_Color)",
     "border-color": "Props (Prop_Border_Color)",
     "border-width": "Props (Prop_Border_Width)",
     "border-radius": "Props (Prop_Border_Radius)",
@@ -1096,44 +1097,79 @@ TRANSITION_PROPERTY_MAP = {
 
 
 def parse_transition(value: str) -> Optional[ParsedTransition]:
-    """Parse a simple CSS transition: <property> <duration> [easing]"""
+    """Parse a CSS transition, single or comma-separated.
+
+    Transition_Spec holds one duration and one easing for the whole set, so
+    a list cannot keep per-entry timings. The first entry supplies them and
+    the properties are unioned, so listing several still animates all of
+    them rather than only the first.
+    """
     value = value.strip().lower()
     if not value or value == "none":
         return None
 
-    # Keep first transition when comma-separated values are provided.
-    first = value.split(",", 1)[0].strip()
-    tokens = re.split(r"\s+", first)
-    if not tokens:
+    #  The splitter drops empty entries, so a leading, trailing or doubled
+    #  top-level comma would pass unnoticed. Count them instead.
+    depth = 0
+    commas = 0
+    for ch in value:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth = max(0, depth - 1)
+        elif ch == "," and depth == 0:
+            commas += 1
+
+    entries = split_css_comma_tokens(value)
+    if len(entries) != commas + 1:
         return None
 
-    property_name = "all"
     duration_seconds = None
     easing = "Ease_In_Out"
+    named: list[str] = []
 
-    for token in tokens:
-        if token.endswith("ms"):
-            try:
-                duration_seconds = float(token[:-2]) / 1000.0
-            except ValueError:
-                return None
-        elif token.endswith("s"):
-            try:
-                duration_seconds = float(token[:-1])
-            except ValueError:
-                return None
-        elif token in TRANSITION_EASING_MAP:
-            easing = TRANSITION_EASING_MAP[token]
-        elif token in TRANSITION_PROPERTY_MAP:
-            property_name = token
+    for index, entry in enumerate(entries):
+        entry = entry.strip()
+        if not entry:
+            continue
+        property_name = "all"
+        for token in re.split(r"\s+", entry):
+            if token.endswith("ms"):
+                try:
+                    seconds = float(token[:-2]) / 1000.0
+                except ValueError:
+                    return None
+                if index == 0:
+                    duration_seconds = seconds
+            elif token.endswith("s"):
+                try:
+                    seconds = float(token[:-1])
+                except ValueError:
+                    return None
+                if index == 0:
+                    duration_seconds = seconds
+            elif token in TRANSITION_EASING_MAP:
+                if index == 0:
+                    easing = TRANSITION_EASING_MAP[token]
+            elif token in TRANSITION_PROPERTY_MAP:
+                property_name = token
+        if property_name not in named:
+            named.append(property_name)
 
+    #  Only the first entry's duration counts, so a list whose first entry
+    #  has none is as invalid as a bare one.
     if duration_seconds is None:
         return None
+
+    if "all" in named:
+        property_set = "All_Properties"
+    else:
+        property_set = " + ".join(TRANSITION_PROPERTY_MAP[n] for n in named)
 
     return ParsedTransition(
         duration_seconds=duration_seconds,
         easing=easing,
-        property_set=TRANSITION_PROPERTY_MAP.get(property_name, "All_Properties"),
+        property_set=property_set,
     )
 
 

@@ -98,6 +98,22 @@ procedure Css_Parser_Test is
      "#submit { background-color: rgb(12, 34, 56); }" & ASCII.LF &
      "button { color: rgb(9, 8, 7); }" & ASCII.LF &
       ".seconds { transition: opacity 1.25s linear; }" & ASCII.LF &
+      ".tri { transition: background-color 300ms ease-in-out," &
+      " border-color 300ms ease-in-out, box-shadow 300ms ease-in-out; }"
+      & ASCII.LF &
+      ".tlater { transition: border-color 180ms ease-out," &
+      " box-shadow 500ms linear; }" & ASCII.LF &
+      ".tall { transition: all 300ms ease-in-out; }" & ASCII.LF &
+      ".tdup { transition: box-shadow 200ms, box-shadow 200ms; }"
+      & ASCII.LF &
+      ".tbare { transition: 250ms ease-out, box-shadow 250ms; }"
+      & ASCII.LF &
+      ".tfunc { transition: opacity 1s cubic-bezier(0,0,1,1); }" & ASCII.LF &
+      ".talias { transition: border-color 200ms, background 200ms; }"
+      & ASCII.LF &
+      ".tlead { color: rgb(1,2,3); transition: , opacity 1s; }" & ASCII.LF &
+      ".tgap { color: rgb(1,2,3);" &
+      " transition: opacity 1s,,box-shadow 1s; }" & ASCII.LF &
       ".sides { padding: 1px 2px 3px 4px; padding-left: 11px; margin: 5px; margin-top: 9px; }" & ASCII.LF &
       ".dpunit { padding: 7dp; }" & ASCII.LF &
       ".pixunit { padding: 3pix; border-width: 1pix; " &
@@ -1051,6 +1067,95 @@ procedure Css_Parser_Test is
               and then Seconds_Main.Transition.Properties (Prop_Opacity)
               and then not Seconds_Main.Transition.Properties (Prop_Background_Color),
               "Transition should parse seconds duration and linear easing");
+
+      --  A comma-separated list cannot keep per-entry timings, since
+      --  Transition_Spec holds one duration and one easing. The first entry
+      --  supplies those; the properties are unioned so every listed one
+      --  still animates.
+      declare
+         function Spec (Name : String) return Transition_Spec is
+           (Compute_Resolved
+              (Adi.CSS_Parser.Styles_For_Class (Sheet, Name) (Main_Part).Style,
+               No_States, No_States).Transition);
+         Tri    : constant Transition_Spec := Spec ("tri");
+         Later  : constant Transition_Spec := Spec ("tlater");
+         All_T  : constant Transition_Spec := Spec ("tall");
+         Dup    : constant Transition_Spec := Spec ("tdup");
+         Bare   : constant Transition_Spec := Spec ("tbare");
+      begin
+         Test_Support.Assert
+           (Tri.Properties (Prop_Background_Color)
+              and then Tri.Properties (Prop_Border_Color)
+              and then Tri.Properties (Prop_Box_Shadow),
+            "Three listed properties should all animate");
+         Test_Support.Assert
+           (not Tri.Properties (Prop_Opacity)
+              and then not Tri.Properties (Prop_Padding),
+            "A list should not animate properties it does not name");
+         Test_Support.Assert
+           (Nearly_Equal (Tri.Duration, 0.3)
+              and then Tri.Easing = Ease_In_Out,
+            "The first entry should supply the timing");
+
+         Test_Support.Assert
+           (Nearly_Equal (Later.Duration, 0.18)
+              and then Later.Easing = Ease_Out
+              and then Later.Properties (Prop_Border_Color)
+              and then Later.Properties (Prop_Box_Shadow),
+            "A later entry's own timing should be ignored, its property"
+            & " kept");
+
+         Test_Support.Assert
+           (All_T.Properties = All_Properties
+              and then Nearly_Equal (All_T.Duration, 0.3),
+            "all should animate every property");
+
+         Test_Support.Assert
+           (Dup.Properties (Prop_Box_Shadow)
+              and then not Dup.Properties (Prop_Color)
+              and then Nearly_Equal (Dup.Duration, 0.2),
+            "A repeated property should stay a single property");
+
+         Test_Support.Assert
+           (Bare.Properties = All_Properties,
+            "An entry naming no property should mean every property");
+
+         --  A timing function carries its own commas; splitting on those
+         --  would read each argument as another entry and widen the set.
+         declare
+            Func : constant Transition_Spec := Spec ("tfunc");
+         begin
+            Test_Support.Assert
+              (Func.Properties (Prop_Opacity)
+                 and then not Func.Properties (Prop_Background_Color),
+               "Commas inside a timing function should not start an entry");
+         end;
+
+         --  `background` is an accepted alias, and must stay one so a sheet
+         --  resolves the same way generated as parsed.
+         declare
+            Alias : constant Transition_Spec := Spec ("talias");
+         begin
+            Test_Support.Assert
+              (Alias.Properties (Prop_Border_Color)
+                 and then Alias.Properties (Prop_Background_Color),
+               "background should alias background-color in a list");
+         end;
+
+         --  An empty entry is a malformed list, not an entry to skip. The
+         --  declaration is dropped, leaving the rule's other ones alone.
+         declare
+            Lead : constant Transition_Spec := Spec ("tlead");
+            Gap  : constant Transition_Spec := Spec ("tgap");
+         begin
+            Test_Support.Assert
+              (Lead.Duration = 0.0,
+               "A leading comma should make the transition invalid");
+            Test_Support.Assert
+              (Gap.Duration = 0.0,
+               "A doubled comma should make the transition invalid");
+         end;
+      end;
       Test_Support.Assert (Sides_Main.Padding.Kind = Per_Side
               and then Sides_Main.Padding.Sides (Top).Amount = 1.0
               and then Sides_Main.Padding.Sides (Right).Amount = 2.0

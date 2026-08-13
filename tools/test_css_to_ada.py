@@ -17,6 +17,7 @@ import unittest
 # Add tools directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import css_to_ada
 from css_to_ada import (
     parse_length,
     parse_color,
@@ -1067,6 +1068,80 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
     def test_font_family_comma_list(self):
         ada = self._gen({"font-family": '"A", "B"'})
         self.assertIn('Font_Family => Set_Font_Family ("""A"", ""B""")', ada)
+
+
+class TestTransitionLists(unittest.TestCase):
+    """Comma-separated transitions: first entry times, properties union."""
+
+    def parse(self, value):
+        return css_to_ada.parse_transition(value)
+
+    def test_three_properties_all_animate(self):
+        t = self.parse("background-color 300ms ease-in-out,"
+                       " border-color 300ms ease-in-out,"
+                       " box-shadow 300ms ease-in-out")
+        self.assertEqual(
+            t.property_set,
+            "Props (Prop_Background_Color) + Props (Prop_Border_Color)"
+            " + Props (Prop_Box_Shadow)")
+        self.assertAlmostEqual(t.duration_seconds, 0.3)
+        self.assertEqual(t.easing, "Ease_In_Out")
+
+    def test_later_entry_timing_is_ignored(self):
+        t = self.parse("border-color 180ms ease-out, box-shadow 500ms linear")
+        self.assertAlmostEqual(t.duration_seconds, 0.18)
+        self.assertEqual(t.easing, "Ease_Out")
+        self.assertEqual(
+            t.property_set,
+            "Props (Prop_Border_Color) + Props (Prop_Box_Shadow)")
+
+    def test_all_wins_over_named_entries(self):
+        t = self.parse("box-shadow 200ms, all 400ms")
+        self.assertEqual(t.property_set, "All_Properties")
+
+    def test_duplicate_property_stays_single(self):
+        t = self.parse("box-shadow 200ms, box-shadow 200ms")
+        self.assertEqual(t.property_set, "Props (Prop_Box_Shadow)")
+
+    def test_single_property_is_unchanged(self):
+        t = self.parse("background-color 150ms ease-out")
+        self.assertAlmostEqual(t.duration_seconds, 0.15)
+        self.assertEqual(t.easing, "Ease_Out")
+        self.assertEqual(t.property_set, "Props (Prop_Background_Color)")
+
+    def test_entry_naming_no_property_means_all(self):
+        self.assertEqual(self.parse("300ms").property_set, "All_Properties")
+
+    def test_commas_inside_a_timing_function_are_not_entries(self):
+        #  cubic-bezier and steps carry their own commas; splitting on those
+        #  would read each argument as another transition and widen the
+        #  property set to everything.
+        t = self.parse("opacity 1s cubic-bezier(0,0,1,1)")
+        self.assertEqual(t.property_set, "Props (Prop_Opacity)")
+        self.assertAlmostEqual(t.duration_seconds, 1.0)
+        t = self.parse("opacity 300ms steps(4, end)")
+        self.assertEqual(t.property_set, "Props (Prop_Opacity)")
+
+    def test_background_is_an_alias_for_background_color(self):
+        #  The runtime parser accepts it, so the generator must too or the
+        #  same sheet resolves differently in static and dynamic mode.
+        self.assertEqual(self.parse("background 200ms").property_set,
+                         "Props (Prop_Background_Color)")
+        self.assertEqual(
+            self.parse("border-color 200ms, background 200ms").property_set,
+            "Props (Prop_Border_Color) + Props (Prop_Background_Color)")
+
+    def test_empty_entries_are_rejected(self):
+        #  The splitter discards empty entries, so these would otherwise be
+        #  silently normalised rather than refused.
+        for bad in (", opacity 1s", "opacity 1s,",
+                    "opacity 1s,,box-shadow 1s"):
+            with self.subTest(bad):
+                self.assertIsNone(self.parse(bad))
+
+    def test_no_duration_in_first_entry_is_rejected(self):
+        self.assertIsNone(self.parse("border-color, box-shadow 200ms"))
+        self.assertIsNone(self.parse("none"))
 
 
 class TestGenerateAdaPackage(unittest.TestCase):

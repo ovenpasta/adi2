@@ -1632,61 +1632,115 @@ package body Adi.CSS_Parser is
       return True;
    end Parse_Transition_Property;
 
+   --  A comma-separated transition list gives every entry its own timing,
+   --  which Transition_Spec cannot hold: it carries one duration and one
+   --  easing for the whole set. The first entry supplies those and the
+   --  properties are unioned, so listing several still animates all of them.
    function Parse_Transition (Input : String; Out_Transition : out Transition_Spec) return Boolean is
       V : constant String := Lower (Trimmed (Input));
-      First_End : constant Natural := Fix.Index (V, ",");
-      First : constant String :=
-        (if First_End = 0 then V else Trimmed (V (V'First .. First_End - 1)));
 
-      Pos : Positive;
       Duration : Float := 0.0;
       Duration_Set : Boolean := False;
       Easing : Easing_Kind := Ease_In_Out;
-      Properties : Property_Set := All_Properties;
-      Tmp_Duration : Float;
-      Tmp_Easing : Easing_Kind;
-      Tmp_Props : Property_Set;
+      Properties : Property_Set := No_Properties;
+
+      Is_First : Boolean := True;
+
+      --  Read one entry, folding its property into the running union and,
+      --  for the first entry only, taking the timing.
+      procedure Take_Entry (Text : String) is
+         Pos        : Positive := Text'First;
+         Named      : Boolean := False;
+         Entry_Props : Property_Set := All_Properties;
+         Tmp_Duration : Float;
+         Tmp_Easing   : Easing_Kind;
+         Tmp_Props    : Property_Set;
+      begin
+         while Pos <= Text'Last loop
+            while Pos <= Text'Last and then Is_Whitespace (Text (Pos)) loop
+               Pos := Pos + 1;
+            end loop;
+            exit when Pos > Text'Last;
+
+            declare
+               Token_End : Natural := Pos;
+            begin
+               while Token_End <= Text'Last
+                 and then not Is_Whitespace (Text (Token_End))
+               loop
+                  Token_End := Token_End + 1;
+               end loop;
+
+               declare
+                  Token : constant String := Text (Pos .. Token_End - 1);
+               begin
+                  if Parse_Transition_Duration (Token, Tmp_Duration) then
+                     if Is_First then
+                        Duration := Tmp_Duration;
+                        Duration_Set := True;
+                     end if;
+                  elsif Parse_Transition_Easing (Token, Tmp_Easing) then
+                     if Is_First then
+                        Easing := Tmp_Easing;
+                     end if;
+                  elsif Parse_Transition_Property (Token, Tmp_Props) then
+                     Entry_Props := Tmp_Props;
+                     Named := True;
+                  end if;
+               end;
+
+               Pos := Token_End + 1;
+            end;
+         end loop;
+
+         --  An entry naming no property means every property, as in CSS.
+         if Named or else Text'Length > 0 then
+            Properties := Properties + Entry_Props;
+         end if;
+         Is_First := False;
+      end Take_Entry;
+
    begin
       if V = "none" then
          Out_Transition := No_Transition;
          return True;
       end if;
 
-      if First'Length = 0 then
+      if V'Length = 0 then
          return False;
       end if;
 
-      Pos := First'First;
-      while Pos <= First'Last loop
-         while Pos <= First'Last and then Is_Whitespace (First (Pos)) loop
-            Pos := Pos + 1;
+      --  Split at paren depth 0, or a timing function's own commas would
+      --  each look like another entry. The splitter drops empty entries, so
+      --  count the separators too: a leading, trailing or doubled comma
+      --  would otherwise pass unnoticed.
+      declare
+         Entries : Token_Vectors.Vector;
+         Depth   : Natural := 0;
+         Commas  : Natural := 0;
+      begin
+         for C of V loop
+            if C = '(' then
+               Depth := Depth + 1;
+            elsif C = ')' then
+               Depth := Natural'Max (0, Depth - 1);
+            elsif C = ',' and then Depth = 0 then
+               Commas := Commas + 1;
+            end if;
          end loop;
-         exit when Pos > First'Last;
 
-         declare
-            Token_End : Natural := Pos;
-         begin
-            while Token_End <= First'Last and then not Is_Whitespace (First (Token_End)) loop
-               Token_End := Token_End + 1;
-            end loop;
+         Split_Comma_Tokens (V, Entries);
+         if Natural (Entries.Length) /= Commas + 1 then
+            return False;
+         end if;
 
-            declare
-               Token : constant String := First (Pos .. Token_End - 1);
-            begin
-               if Parse_Transition_Duration (Token, Tmp_Duration) then
-                  Duration := Tmp_Duration;
-                  Duration_Set := True;
-               elsif Parse_Transition_Easing (Token, Tmp_Easing) then
-                  Easing := Tmp_Easing;
-               elsif Parse_Transition_Property (Token, Tmp_Props) then
-                  Properties := Tmp_Props;
-               end if;
-            end;
+         for E of Entries loop
+            Take_Entry (Trimmed (To_String (E)));
+         end loop;
+      end;
 
-            Pos := Token_End + 1;
-         end;
-      end loop;
-
+      --  Only the first entry's duration counts, so a list whose first
+      --  entry has no duration is as invalid as a bare one.
       if not Duration_Set then
          return False;
       end if;

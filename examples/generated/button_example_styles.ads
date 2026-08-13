@@ -269,7 +269,7 @@ package Button_Example_Styles is
       Width => Set (Size (Px (56.0))),
       Height => Set (Size (Px (32.0))),
       Background_Color => Set_Bg (RGB (71, 85, 105)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (30, 41, 59, 0.22))),
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (148, 163, 184, 0.4))),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.28, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color) + Props (Prop_Box_Shadow))),
       Border_Width => Set (Border_Width (Px (1.0))),

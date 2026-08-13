@@ -7,22 +7,20 @@
   gap: 16px;
 }
 
-/* Welcome text */
-.welcome::label {
-  color: rgb(220, 225, 240);
-  font-size: 18px;
-}
-
-/* Primary button: body + label + hover variant */
-.primary {
+/* Element selector: shape shared by every <button> in this window */
+button {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  background-color: rgb(37, 99, 235);
   border-radius: 8px;
   padding: 10px 16px;
   cursor: pointer;
   transition: background-color 150ms ease-out;
+}
+
+/* Class selector: the colour that makes a button the primary one */
+.primary {
+  background-color: rgb(37, 99, 235);
 }
 
 .primary:hover {
@@ -33,4 +31,10 @@
   color: white;
   font-size: 14px;
   font-weight: 500;
+}
+
+/* Id selector: one widget, addressed by the id its XML element carries */
+#Greeting::label {
+  color: rgb(220, 225, 240);
+  font-size: 18px;
 }

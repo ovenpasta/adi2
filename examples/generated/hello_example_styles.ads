@@ -33,24 +33,22 @@ package Hello_Example_Styles is
       Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
       others => <>);
 
-   --  Base style for class 'welcome'::label
-   function Welcome_Class_Label_Base_Style return Style_Rules is
+   --  Base style for tag 'button'
+   function Button_Tag_Base_Style return Style_Rules is
      (
-      Color => Set (RGB (220, 225, 240)),
-      Font_Size => Set_Font (Px (18.0)),
+      Display => Set (Inline_Flex),
+      Justify_Content => Set (Center),
+      Align_Items => Set (Center),
+      Cursor => Set (Cursor_Pointer),
+      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
+      Padding => Set (CSS_Box (Px (10.0), Px (16.0), Px (10.0), Px (16.0))),
+      Border_Radius => Set (Radius (Px (8.0))),
       others => <>);
 
    --  Base style for class 'primary'
    function Primary_Class_Base_Style return Style_Rules is
      (
-      Display => Set (Inline_Flex),
-      Justify_Content => Set (Center),
-      Align_Items => Set (Center),
       Background_Color => Set_Bg (RGB (37, 99, 235)),
-      Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (10.0), Px (16.0), Px (10.0), Px (16.0))),
-      Border_Radius => Set (Radius (Px (8.0))),
       others => <>);
 
    --  Style for class 'primary' when widget State_Hovered
@@ -67,6 +65,13 @@ package Hello_Example_Styles is
       Font_Weight => Set (Weight_Medium),
       others => <>);
 
+   --  Base style for id 'Greeting'::label
+   function Greeting_Id_Label_Base_Style return Style_Rules is
+     (
+      Color => Set (RGB (220, 225, 240)),
+      Font_Size => Set_Font (Px (18.0)),
+      others => <>);
+
    --  Complete widget style for class 'root'
    function Root_Class_Widget return Widget_Style is
      (From (Root_Class_Base_Style)
@@ -79,15 +84,15 @@ package Hello_Example_Styles is
       others => <>
    ]);
 
-   --  Complete widget style for class 'welcome'::label
-   function Welcome_Class_Label_Widget return Widget_Style is
-     (From (Welcome_Class_Label_Base_Style)
+   --  Complete widget style for tag 'button'
+   function Button_Tag_Widget return Widget_Style is
+     (From (Button_Tag_Base_Style)
      .Build);
 
-   --  Part styles bundle for class 'welcome'
-   function Welcome_Class_Part_Styles return Part_Style_Array is
+   --  Part styles bundle for tag 'button'
+   function Button_Tag_Part_Styles return Part_Style_Array is
      ([
-      Label_Part => (Style => Welcome_Class_Label_Widget, Enabled => True),
+      Main_Part => (Style => Button_Tag_Widget, Enabled => True),
       others => <>
    ]);
 
@@ -107,6 +112,18 @@ package Hello_Example_Styles is
      ([
       Main_Part => (Style => Primary_Class_Widget, Enabled => True),
       Label_Part => (Style => Primary_Class_Label_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for id 'Greeting'::label
+   function Greeting_Id_Label_Widget return Widget_Style is
+     (From (Greeting_Id_Label_Base_Style)
+     .Build);
+
+   --  Part styles bundle for id 'Greeting'
+   function Greeting_Id_Part_Styles return Part_Style_Array is
+     ([
+      Label_Part => (Style => Greeting_Id_Label_Widget, Enabled => True),
       others => <>
    ]);
 

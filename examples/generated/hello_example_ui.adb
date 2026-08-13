@@ -85,9 +85,11 @@ package body Hello_Example_UI is
       W : constant Adi.Window.Window_Handle :=
         Adi.Window.Create_Window_Handle ("Hello, Adi", Adi.Window.Extent (Px (219.0), Px (123.0)));
       Box_1 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_1 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Welcome to Adi");
       Button_1 : constant Adi.Widget.Button.Button_Handle := Adi.Widget.Button.Create_Handle ("Click me");
    begin
+      --  Create widgets
+      Greeting := Adi.Widget.Label.Create_Handle ("Welcome to Adi");
+
       --  Wire callbacks
       if On_Hello_Click /= null then
          Adi.Widget.Button.Connect_Clicked (Button_1, On_Hello_Click);
@@ -126,9 +128,9 @@ package body Hello_Example_UI is
          Class_Name => "root");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_1,
+         W          => +Greeting,
          Tag_Name   => "label",
-         Class_Name => "welcome");
+         Id_Name    => "Greeting");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Button_1,
@@ -136,7 +138,7 @@ package body Hello_Example_UI is
          Class_Name => "primary");
 
       --  Build hierarchy
-      Adi.Widget.Add_Child (+Box_1, +Label_1);
+      Adi.Widget.Add_Child (+Box_1, +Greeting);
       Adi.Widget.Add_Child (+Box_1, +Button_1);
 
       --  Auto-wire CSS live reload

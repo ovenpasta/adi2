@@ -6,7 +6,7 @@
 
   <window title="Hello, Adi" width="219px" height="123px">
     <box class="root">
-      <label text="Welcome to Adi" class="welcome"/>
+      <label id="Greeting" text="Welcome to Adi"/>
       <button text="Click me" class="primary" on-clicked="On_Hello_Click"/>
     </box>
   </window>

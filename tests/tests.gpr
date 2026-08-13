@@ -45,7 +45,8 @@ project Tests is
       "label_wrap_test",
       "clock_test",
       "shadow_test",
-      "shadow_slice_test");
+      "shadow_slice_test",
+      "panel_aa_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    Platform_Name := external ("ADI_PLATFORM", "linux");
 

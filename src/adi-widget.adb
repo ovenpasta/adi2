@@ -5042,10 +5042,24 @@ package body Adi.Widget is
                    Bottom_Right => Float'Max (0.0, Radius_Px.Bottom_Right - BW_Top),
                    Bottom_Left  => Float'Max (0.0, Radius_Px.Bottom_Left - BW_Top));
                BR, BG, BB, BA : Uint8;
+               --  The border's own alpha, before the widget's opacity is
+               --  folded in. How much a border can blend is a property of
+               --  the style; the panel's opacity fades border and fill
+               --  alike and must not make an opaque border look absent.
+               Declared_BA : Uint8;
             begin
                --  Border ring
                Set_Edge_Color (Top);
                BR := R; BG := G; BB := B; BA := A;
+               case Style.Border_Color.Kind is
+                  when Gap_Uniform =>
+                     CSS_Color_To_SDL (Style.Border_Color.All_Edges,
+                                       R, G, B, Declared_BA);
+                  when Per_Edge =>
+                     CSS_Color_To_SDL (Style.Border_Color.Edges (Top),
+                                       R, G, B, Declared_BA);
+               end case;
+               R := BR; G := BG; B := BB;
                Render_Rounded_Border_Ring
                   (Renderer, Rect, Inner, Radius_Px, Inner_Radii, R, G, B, A,
                    Min_Segments => Seg);
@@ -5072,6 +5086,33 @@ package body Adi.Widget is
                         Render_Rounded_Rect
                            (Renderer, Inner, Inner_Radii, R, G, B, A,
                             Min_Segments => Seg);
+                     end if;
+
+                     --  Carry the fill one pixel outward over the ring.
+                     --  The inward fringe below is drawn in the border's
+                     --  colour, so a translucent border cannot blend a
+                     --  contrasting fill into what lies behind it: the edge
+                     --  steps straight from backdrop to fill and the curve
+                     --  reads as stairs. Fading the fill outward supplies
+                     --  the intermediate pixel that the border cannot.
+                     --  Weighted by what the border cannot supply: an
+                     --  opaque border already stands between the fill and
+                     --  the backdrop, and fading the fill over it would
+                     --  eat a one-pixel border. A transparent one supplies
+                     --  nothing, so the fill carries the whole blend.
+                     if not Has_Gradient and then Declared_BA < 255 then
+                        declare
+                           Blend : constant Float :=
+                              1.0 - Float (Declared_BA) / 255.0;
+                           FA : constant Uint8 :=
+                              Uint8 (Float (A) * Blend);
+                        begin
+                           if FA > 0 then
+                              Render_AA_Fringe
+                                 (Renderer, Inner, Inner_Radii, R, G, B, FA,
+                                  Min_Segments => Seg);
+                           end if;
+                        end;
                      end if;
                   end if;
                end if;

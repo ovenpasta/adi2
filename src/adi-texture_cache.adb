@@ -11,6 +11,7 @@ with Adi.SDL.Render; use Adi.SDL.Render;
 package body Adi.Texture_Cache is
 
    use type Ada.Containers.Count_Type;
+   use type Adi.Clock.Time_Span;
 
    function "<" (L, R : Texture_Key) return Boolean is
    begin
@@ -77,6 +78,8 @@ package body Adi.Texture_Cache is
       --  touched afterwards is measured from here, so it competes with
       --  what has been used since rather than with its own history.
       Floor   : Priority := 0;
+      Stats   : Kind_Stats_Array := [others => <>];
+      Peak    : Byte_Count := 0;
    end record;
 
    procedure Free_Data is new Ada.Unchecked_Deallocation
@@ -151,6 +154,28 @@ package body Adi.Texture_Cache is
       D.Floor := 0;
    end Renormalize;
 
+   --  Why an entry stopped being findable. Only Pressure reflects on the
+   --  budget; the rest are the program's own doing.
+   type Retire_Cause is
+     (Pressure, Headroom, Replaced, Cleared, Discarded);
+
+   --  Recomputed rather than tracked incrementally: an entry retired while
+   --  borrowed still holds its bytes, so a decrement at retirement would
+   --  disagree with what the budget is actually working against.
+   procedure Note_Residency (D : Cache_Data_Access; K : Texture_Kind) is
+      S : Kind_Stats renames D.Stats (K);
+   begin
+      if S.Bytes > S.Peak_Bytes then
+         S.Peak_Bytes := S.Bytes;
+      end if;
+      if S.Count > S.Peak_Count then
+         S.Peak_Count := S.Count;
+      end if;
+      if D.Bytes > D.Peak then
+         D.Peak := D.Bytes;
+      end if;
+   end Note_Residency;
+
    --  Release the SDL texture and return the slot to the free list. Only
    --  called once nothing is borrowing it.
    procedure Release (D : Cache_Data_Access; Index : Slot_Index) is
@@ -158,6 +183,7 @@ package body Adi.Texture_Cache is
    begin
       SDL_DestroyTexture (S.Region.Texture);
       D.Bytes := D.Bytes - S.Bytes;
+      D.Stats (S.Key.Kind).Bytes := D.Stats (S.Key.Kind).Bytes - S.Bytes;
       S.all := (Gen      => S.Gen + 1,
                 Occupied => False,
                 others   => <>);
@@ -167,12 +193,29 @@ package body Adi.Texture_Cache is
    --  Stop an entry being found, and free it if nothing holds it. Its
    --  bytes stay charged while a borrow does, because they cannot be
    --  reused until that ends.
-   procedure Retire (D : Cache_Data_Access; Index : Slot_Index) is
+   procedure Retire
+     (D : Cache_Data_Access; Index : Slot_Index; Why : Retire_Cause)
+   is
       S : constant Slot_Access := D.Slots (Index);
    begin
       if D.By_Key.Contains (S.Key) then
          D.By_Key.Delete (S.Key);
+         D.Stats (S.Key.Kind).Count := D.Stats (S.Key.Kind).Count - 1;
       end if;
+
+      case Why is
+         when Pressure  =>
+            D.Stats (S.Key.Kind).Pressure := D.Stats (S.Key.Kind).Pressure + 1;
+         when Headroom  =>
+            D.Stats (S.Key.Kind).Headroom := D.Stats (S.Key.Kind).Headroom + 1;
+         when Replaced  =>
+            D.Stats (S.Key.Kind).Replaced := D.Stats (S.Key.Kind).Replaced + 1;
+         when Cleared   =>
+            D.Stats (S.Key.Kind).Cleared := D.Stats (S.Key.Kind).Cleared + 1;
+         when Discarded =>
+            D.Stats (S.Key.Kind).Discarded :=
+              D.Stats (S.Key.Kind).Discarded + 1;
+      end case;
 
       if S.Pins = 0 then
          Release (D, Index);
@@ -181,16 +224,50 @@ package body Adi.Texture_Cache is
       end if;
    end Retire;
 
-   --  Drop the entry standing lowest and raise the floor to what it stood
-   --  at. Scanning is affordable: it happens only under pressure, beside
-   --  building the texture that caused it, which costs far more.
-   procedure Evict_One (D : Cache_Data_Access; Evicted : out Boolean) is
+   --  An entry the scene is not using. Borrowed entries are in use by
+   --  definition; so is anything drawn this frame or last, since the frame
+   --  advances before the scene is traversed and a texture drawn in the
+   --  previous frame is about to be asked for again.
+   --
+   --  The distance is modular, so the serial wrapping does not turn a
+   --  just-used entry into an ancient one.
+   function Is_Idle (D : Cache_Data_Access; S : Slot) return Boolean is
+     (S.Pins = 0 and then D.Frame - S.Last_Used > 1);
+
+   --  What the budget is measured against: entries the cache is holding
+   --  on speculation, rather than ones the scene needs.
+   function Idle_Bytes (D : Cache_Data_Access) return Byte_Count is
+      Total : Byte_Count := 0;
+   begin
+      for Pos in D.By_Key.Iterate loop
+         declare
+            S : constant Slot_Access := D.Slots (Key_Maps.Element (Pos));
+         begin
+            if Is_Idle (D, S.all) then
+               Total := Total + S.Bytes;
+            end if;
+         end;
+      end loop;
+      return Total;
+   end Idle_Bytes;
+
+   --  Drop the idle entry standing lowest and raise the floor to what it
+   --  stood at. Scanning is affordable: it runs only when idle residency
+   --  is over budget, beside the drawing that put it there, and a trim
+   --  that needs several passes is one that has several entries to drop.
+   procedure Evict_One
+     (D       : Cache_Data_Access;
+      Why     : Retire_Cause;
+      Evicted : out Boolean;
+      Freed   : out Byte_Count)
+   is
       Victim : Slot_Index := No_Slot;
       Lowest : Priority := Priority'Last;
       Idlest : Frame_Serial := 0;
       Now    : constant Frame_Serial := D.Frame;
    begin
       Evicted := False;
+      Freed   := 0;
 
       for Pos in D.By_Key.Iterate loop
          declare
@@ -198,9 +275,10 @@ package body Adi.Texture_Cache is
             S     : constant Slot_Access := D.Slots (Index);
             Idle  : constant Frame_Serial := Now - S.Last_Used;
          begin
-            if Victim = No_Slot
-              or else S.Standing < Lowest
-              or else (S.Standing = Lowest and then Idle > Idlest)
+            if Is_Idle (D, S.all)
+              and then (Victim = No_Slot
+                        or else S.Standing < Lowest
+                        or else (S.Standing = Lowest and then Idle > Idlest))
             then
                Victim := Index;
                Lowest := S.Standing;
@@ -211,7 +289,8 @@ package body Adi.Texture_Cache is
 
       if Victim /= No_Slot then
          D.Floor := Lowest;
-         Retire (D, Victim);
+         Freed := D.Slots (Victim).Bytes;
+         Retire (D, Victim, Why);
          Evicted := True;
 
          if D.Floor > Priority'Last / 2 then
@@ -220,29 +299,36 @@ package body Adi.Texture_Cache is
       end if;
    end Evict_One;
 
-   --  Evict until residency is at or below Ceiling, or until nothing
-   --  findable remains to evict.
-   procedure Evict_Down_To (D : Cache_Data_Access; Ceiling : Byte_Count) is
+   --  Evict idle entries until idle residency is at or below Ceiling, or
+   --  until nothing idle remains. Active entries are never candidates: the
+   --  scene needs them, and taking one would only rebuild it next frame.
+   procedure Trim_Idle (D : Cache_Data_Access; Ceiling : Byte_Count) is
+      Idle    : Byte_Count := Idle_Bytes (D);
       Evicted : Boolean;
+      Freed   : Byte_Count;
    begin
-      while D.Bytes > Ceiling loop
-         Evict_One (D, Evicted);
+      while Idle > Ceiling loop
+         Evict_One (D, Pressure, Evicted, Freed);
+         exit when not Evicted;
+         Idle := (if Freed > Idle then 0 else Idle - Freed);
+      end loop;
+   end Trim_Idle;
+
+   --  Free enough for an incoming charge to be added without the total
+   --  leaving what Byte_Count can hold. This is arithmetic headroom, not
+   --  budget enforcement: an arriving texture is by definition active, and
+   --  the budget does not apply to those.
+   procedure Make_Headroom
+     (D : Cache_Data_Access; Incoming : Texture_Charge)
+   is
+      Evicted : Boolean;
+      Freed   : Byte_Count;
+   begin
+      while D.Bytes > Byte_Count'Last - Incoming loop
+         Evict_One (D, Headroom, Evicted, Freed);
          exit when not Evicted;
       end loop;
-   end Evict_Down_To;
-
-   --  Make room for an incoming charge without ever forming the sum of it
-   --  and what is already resident: two individually legal charges can
-   --  exceed Byte_Count together, and the addition would raise before the
-   --  cache had a chance to evict anything.
-   procedure Make_Room (D : Cache_Data_Access; Incoming : Texture_Charge) is
-   begin
-      if Incoming > D.Limit then
-         Evict_Down_To (D, 0);
-      else
-         Evict_Down_To (D, D.Limit - Incoming);
-      end if;
-   end Make_Room;
+   end Make_Headroom;
 
    --------------
    -- Is_Valid --
@@ -353,11 +439,12 @@ package body Adi.Texture_Cache is
       declare
          D : constant Cache_Data_Access := C.Owner.Data;
       begin
-      D.Limit := Bytes;
-      --  A budget describes what is resident now, not merely what the next
-      --  store may add, so lowering it takes effect at once -- strictly,
-      --  including over an entry that was oversized when it arrived.
-         Evict_Down_To (D, Bytes);
+         D.Limit := Bytes;
+         --  A budget describes what is retained now, not merely what the
+         --  next store may add, so lowering it takes effect at once. It
+         --  reaches only what is idle: an entry the scene is drawing is
+         --  not the cache's to give back.
+         Trim_Idle (D, Bytes);
       end;
    end Set_Budget;
 
@@ -372,12 +459,16 @@ package body Adi.Texture_Cache is
       D : constant Cache_Data_Access := C.Owner.Data;
    begin
       if D /= null then
+         --  The frame moves first, so what was drawn two frames ago
+         --  becomes idle and is judged on this pass.
          D.Frame := D.Frame + Frame_Serial (Frames);
+         Trim_Idle (D, D.Limit);
       end if;
    end Advance_Frame;
 
    function Frames (C : Cache) return Frame_Count is
      (if C.Owner.Data = null then 0 else C.Owner.Data.Frame);
+
 
    ----------
    -- Find --
@@ -394,9 +485,15 @@ package body Adi.Texture_Cache is
       declare
          Pos : constant Key_Maps.Cursor := D.By_Key.Find (Key);
       begin
+         --  D is reached through an access, so counting a lookup does not
+         --  need Find to take the cache in out: what changes is the block
+         --  it points at, not the cache object.
          if Key_Maps.Has_Element (Pos) = False then
+            D.Stats (Key.Kind).Misses := D.Stats (Key.Kind).Misses + 1;
             return Null_Texture;
          end if;
+
+         D.Stats (Key.Kind).Hits := D.Stats (Key.Kind).Hits + 1;
 
          declare
             Index : constant Slot_Index := Key_Maps.Element (Pos);
@@ -442,20 +539,22 @@ package body Adi.Texture_Cache is
          Pos : constant Key_Maps.Cursor := D.By_Key.Find (Key);
       begin
          if Key_Maps.Has_Element (Pos) then
-            Retire (D, Key_Maps.Element (Pos));
+            Retire (D, Key_Maps.Element (Pos), Replaced);
          end if;
       end;
 
-      --  Make room before the entry exists, so the arriving texture is
-      --  never a candidate for its own eviction: the caller is about to
-      --  draw with what this call returns.
-      Make_Room (D, Bytes);
+      --  Only enough for the arithmetic to hold. A texture being stored is
+      --  one the caller is about to draw, so the budget does not decide
+      --  whether it may be resident; the budget trims what is idle, once a
+      --  frame.
+      Make_Headroom (D, Bytes);
 
-      --  Entries under borrow cannot be evicted, so room may not have been
+      --  Entries in use cannot be taken, so headroom may not have been
       --  found. Refuse rather than form a total the type cannot hold: the
       --  insert would otherwise raise after the slot and key were already
       --  in place, leaving the accounting wrong.
       if D.Bytes > Byte_Count'Last - Bytes then
+         D.Stats (Key.Kind).Refused := D.Stats (Key.Kind).Refused + 1;
          return Null_Texture;
       end if;
 
@@ -485,6 +584,16 @@ package body Adi.Texture_Cache is
       D.By_Key.Insert (Key, Index);
       D.Bytes := D.Bytes + Bytes;
 
+      declare
+         S : Kind_Stats renames D.Stats (Key.Kind);
+      begin
+         S.Bytes := S.Bytes + Bytes;
+         S.Count := S.Count + 1;
+         S.Stores := S.Stores + 1;
+         S.Build_Time := S.Build_Time + Build_Time;
+      end;
+      Note_Residency (D, Key.Kind);
+
       return (Owner => D.Serial, Slot => Index, Gen => Fresh.Gen);
    end Store;
 
@@ -500,7 +609,7 @@ package body Adi.Texture_Cache is
       end if;
 
       while not D.By_Key.Is_Empty loop
-         Retire (D, D.By_Key.First_Element);
+         Retire (D, D.By_Key.First_Element, Cleared);
       end loop;
       D.Floor := 0;
    end Clear;
@@ -520,7 +629,7 @@ package body Adi.Texture_Cache is
       --  Retire everything findable first, so nothing can still be looked
       --  up while the textures are going.
       while not D.By_Key.Is_Empty loop
-         Retire (D, D.By_Key.First_Element);
+         Retire (D, D.By_Key.First_Element, Discarded);
       end loop;
 
       --  The renderer is going, so every texture goes with it, borrowed or
@@ -545,6 +654,47 @@ package body Adi.Texture_Cache is
 
    function Bytes_Used (C : Cache) return Byte_Count is
      (if C.Owner.Data = null then 0 else C.Owner.Data.Bytes);
+
+   --  The partitions are computed here rather than tracked as entries
+   --  change: an entry becomes idle because a frame passed, which is not
+   --  an event anything could have counted. Scanning uses the same Is_Idle
+   --  the eviction does, so the figures cannot describe a different cache
+   --  from the one being trimmed.
+   function Statistics (C : Cache) return Kind_Stats_Array is
+      D : constant Cache_Data_Access := C.Owner.Data;
+   begin
+      if D = null then
+         return [others => <>];
+      end if;
+
+      return Result : Kind_Stats_Array := D.Stats do
+         for I in D.Slots.First_Index .. D.Slots.Last_Index loop
+            declare
+               S : constant Slot_Access := D.Slots (I);
+               R : Kind_Stats renames Result (S.Key.Kind);
+            begin
+               if S.Occupied then
+                  if S.Retiring then
+                     R.Retired_Bytes := R.Retired_Bytes + S.Bytes;
+                     R.Retired_Count := R.Retired_Count + 1;
+                  elsif Is_Idle (D, S.all) then
+                     R.Idle_Bytes := R.Idle_Bytes + S.Bytes;
+                     R.Idle_Count := R.Idle_Count + 1;
+                  else
+                     R.Active_Bytes := R.Active_Bytes + S.Bytes;
+                     R.Active_Count := R.Active_Count + 1;
+                  end if;
+               end if;
+            end;
+         end loop;
+      end return;
+   end Statistics;
+
+   function Idle_Bytes_Used (C : Cache) return Byte_Count is
+     (if C.Owner.Data = null then 0 else Idle_Bytes (C.Owner.Data));
+
+   function Peak_Bytes_Used (C : Cache) return Byte_Count is
+     (if C.Owner.Data = null then 0 else C.Owner.Data.Peak);
 
    function Count (C : Cache) return Natural is
      (if C.Owner.Data = null then 0

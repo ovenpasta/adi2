@@ -76,6 +76,15 @@ procedure Texture_Cache_Test is
    function Charge (Side : Positive) return Byte_Count is
      (Byte_Count (Side) * Byte_Count (Side) * 4);
 
+   --  Let everything stored so far fall out of the scene. An entry is
+   --  active for the frame it was used in and the one after, so two
+   --  advances make it idle; the second is also what runs the trim.
+   procedure Settle (C : in out Cache) is
+   begin
+      Advance_Frame (C);
+      Advance_Frame (C);
+   end Settle;
+
    type Cache_Access is access Cache;
    procedure Free_Cache is
      new Ada.Unchecked_Deallocation (Cache, Cache_Access);
@@ -113,6 +122,8 @@ begin
       --  One more of any size pushes past 300 KB and forces an eviction,
       --  though only two entries are held.
       Put (C, Shadow_Key (3), 64, Micros => 100);
+      Settle (C);
+
       Assert (Bytes_Used (C) <= Byte_Count (300) * KB,
               "Storing past the budget should evict until it fits:"
               & Byte_Count'Image (Bytes_Used (C)));
@@ -130,6 +141,8 @@ begin
       Put (C, Shadow_Key (1), 32,  Micros => 20);   --   4 KB,  20us
       Put (C, Shadow_Key (2), 300, Micros => 20_000);   -- 351 KB,  20ms
       Put (C, Shadow_Key (3), 32,  Micros => 20);   --   4 KB, tips over
+
+      Settle (C);
 
       Assert (Held (C, Shadow_Key (2)),
               "A large texture that was expensive to build should keep its"
@@ -149,6 +162,8 @@ begin
       Put (C, Shadow_Key (1), 32,  Micros => 10_000);   --   4 KB,  10ms
       Put (C, Shadow_Key (2), 300, Micros => 50);   -- 351 KB,  50us
       Put (C, Shadow_Key (3), 32,  Micros => 10_000);   --   4 KB, tips over
+
+      Settle (C);
 
       Assert (not Held (C, Shadow_Key (2)),
               "A large texture that was cheap to build should go first");
@@ -171,6 +186,8 @@ begin
       Put (C, Shadow_Key (2), 300, Micros => 5_000);  -- 351 KB,   5ms
       Put (C, Shadow_Key (3), 32,  Micros => 200);  --   4 KB, tips over
 
+      Settle (C);
+
       Assert (not Held (C, Shadow_Key (2)),
               "The entry buying least time per byte should go, even though"
               & " it cost the most to build outright");
@@ -188,6 +205,8 @@ begin
       Put (C, Shadow_Key (1), 64, Micros => 5_000);   --  16 KB, 5ms
       Put (C, Shadow_Key (2), 64, Micros => 10);   --  16 KB, 10us
       Put (C, Shadow_Key (3), 64, Micros => 1_000);   --  16 KB, tips over
+
+      Settle (C);
 
       Assert (not Held (C, Shadow_Key (2)),
               "The cheapest to rebuild should be evicted first");
@@ -209,6 +228,8 @@ begin
       end loop;
 
       Put (C, Shadow_Key (3), 64, Micros => 100);
+
+      Settle (C);
 
       Assert (Held (C, Shadow_Key (1)),
               "A heavily used entry should outlive a newly stored one");
@@ -235,10 +256,13 @@ begin
       --  Churn: each store evicts something and lifts the floor. Entry 2
       --  is touched every round and keeps being re-based to the current
       --  floor; entry 1 is never touched again.
-      for N in 0 .. 80 loop
+      for N in 0 .. 400 loop
          Touch (C, Shadow_Key (2));
          Put (C, (Kind => Shadow_Texture, Extent_A => 900 + N,
                   others => <>), 64, Micros => 100);
+         --  A round is a frame: without one nothing falls out of the
+         --  scene, and a cache holding a scene evicts nothing.
+         Advance_Frame (C);
       end loop;
 
       Assert (not Held (C, Shadow_Key (1)),
@@ -261,14 +285,14 @@ begin
    declare
       C : Cache;
    begin
-      Set_Budget (C, Charge (64) * 2);
+      --  Room for one idle entry, so exactly one of the two must go.
+      Set_Budget (C, Charge (64));
 
       Put (C, Shadow_Key (2), 64, Micros => 100);   --  older, sorts later
       Advance_Frame (C);
       Put (C, Shadow_Key (1), 64, Micros => 100);   --  newer, sorts first
       Advance_Frame (C);
-
-      Put (C, Shadow_Key (3), 64, Micros => 100);   --  forces one out
+      Advance_Frame (C);   --  both are idle now, and the trim runs
 
       Assert (Held (C, Shadow_Key (1)),
               "Between entries of equal standing, the more recently used"
@@ -286,7 +310,7 @@ begin
    declare
       C : Cache;
    begin
-      Set_Budget (C, Charge (64) * 2);
+      Set_Budget (C, Charge (64));
 
       --  Two calls of Positive'Last leave the serial two short of wrapping.
       Advance_Frame (C, Frames => Positive'Last);
@@ -302,6 +326,7 @@ begin
       Advance_Frame (C, Frames => 8);       --  crosses the wrap
 
       Put (C, Shadow_Key (3), 64, Micros => 100);
+      Advance_Frame (C);   --  1 and 2 are idle; 3 is not, and the trim runs
 
       Assert (Held (C, Shadow_Key (1)),
               "Crossing the serial's wrap should not make the most recently"
@@ -343,6 +368,8 @@ begin
       end loop;
       Assert (Count (C) = 4, "All four should fit the original budget");
 
+      --  Idle, so the budget applies to them at all.
+      Settle (C);
       Set_Budget (C, Charge (64));
       Assert (Count (C) = 1,
               "Lowering the budget should evict immediately:"
@@ -392,6 +419,436 @@ begin
 
       Assert (Count (C) = 3,
               "The same extents under different kinds are different keys");
+      Clear (C);
+   end;
+
+   --  A budget bounds what the cache retains, not what the scene needs.
+   --  Two textures that are both drawn every frame do not fit together
+   --  under this budget, and evicting either to admit the other rebuilds
+   --  it a frame later: the pair would be rebuilt for as long as the
+   --  scene is displayed, having been used the whole time.
+   declare
+      C : Cache;
+      A : constant Texture_Key :=
+        (Kind => Shadow_Texture, Extent_A => 1, others => <>);
+      B : constant Texture_Key :=
+        (Kind => Shadow_Texture, Extent_A => 2, others => <>);
+   begin
+      --  Room for one of them, not both.
+      Set_Budget (C, Charge (64) + Charge (64) / 2);
+
+      Advance_Frame (C);
+      Put (C, A, 64, Micros => 1_000);
+      Put (C, B, 64, Micros => 1_000);
+
+      Assert (Held (C, A) and then Held (C, B),
+              "Both textures the frame is drawing should be resident, even"
+              & " together exceeding the budget");
+
+      --  Second frame: both are drawn again, so both should be found
+      --  rather than rebuilt.
+      Advance_Frame (C);
+      Touch (C, A);
+      Touch (C, B);
+
+      Assert (Statistics (C) (Shadow_Texture).Stores = 2,
+              "and drawing them again should build nothing: a texture used"
+              & " every frame is not what a budget is meant to reclaim");
+      Assert (Statistics (C) (Shadow_Texture).Pressure = 0,
+              "nor evict anything under pressure");
+      Clear (C);
+   end;
+
+   --  An entry is protected for the frame it was drawn in and the one
+   --  after, because the frame advances before the scene is traversed: a
+   --  texture drawn last frame is about to be asked for again.
+   declare
+      C : Cache;
+   begin
+      Set_Budget (C, 0);   --  retain nothing idle
+
+      Put (C, Shadow_Key (1), 64, Micros => 100);
+
+      Advance_Frame (C);
+      Assert (Held (C, Shadow_Key (1)),
+              "An entry drawn in the previous frame is still in the scene"
+              & " and must survive a budget that retains nothing");
+
+      Advance_Frame (C);
+      Assert (not Held (C, Shadow_Key (1)),
+              "A second frame without it makes it idle, and a budget of"
+              & " nothing keeps nothing");
+      Clear (C);
+   end;
+
+   --  Drawing two things in either order must not make them take turns.
+   --  A cache that evicted to admit would rebuild whichever was drawn
+   --  first, every frame, for as long as both were on screen.
+   declare
+      C : Cache;
+      A : constant Texture_Key :=
+        (Kind => Shadow_Texture, Extent_A => 1, others => <>);
+      B : constant Texture_Key :=
+        (Kind => Shadow_Texture, Extent_A => 2, others => <>);
+   begin
+      Set_Budget (C, 0);
+      Put (C, A, 64, Micros => 1_000);
+      Put (C, B, 64, Micros => 1_000);
+
+      for Frame in 1 .. 20 loop
+         Advance_Frame (C);
+         --  Alternating, so neither is consistently the older.
+         if Frame mod 2 = 0 then
+            Touch (C, A);
+            Touch (C, B);
+         else
+            Touch (C, B);
+            Touch (C, A);
+         end if;
+      end loop;
+
+      Assert (Held (C, A) and then Held (C, B),
+              "Two textures drawn every frame should both survive twenty"
+              & " frames of it, in whichever order they are drawn");
+      Assert (Statistics (C) (Shadow_Texture).Pressure = 0,
+              "and nothing should have been evicted under pressure");
+      Clear (C);
+   end;
+
+   --  A texture the scene keeps using survives a budget lowered beneath
+   --  it, while what has fallen out of the scene does not.
+   declare
+      C : Cache;
+      Live : constant Texture_Key :=
+        (Kind => Shadow_Texture, Extent_A => 1, others => <>);
+      Gone : constant Texture_Key :=
+        (Kind => Shadow_Texture, Extent_A => 2, others => <>);
+   begin
+      Set_Budget (C, Charge (64) * 4);
+      Put (C, Live, 64, Micros => 100);
+      Put (C, Gone, 64, Micros => 100);
+
+      --  Two frames on, with only one of them still drawn.
+      Advance_Frame (C);
+      Touch (C, Live);
+      Advance_Frame (C);
+      Touch (C, Live);
+
+      Set_Budget (C, 0);
+
+      Assert (Held (C, Live),
+              "Lowering the budget must not take what the scene is drawing");
+      Assert (not Held (C, Gone),
+              "but should take what it is not");
+      Clear (C);
+   end;
+
+   --  Protection is a modular distance, so an entry drawn just before the
+   --  serial wraps must not look ancient just after it.
+   declare
+      C : Cache;
+   begin
+      Set_Budget (C, 0);
+      Advance_Frame (C, Frames => Positive'Last);
+      Advance_Frame (C, Frames => Positive'Last);
+      Advance_Frame (C);   --  one short of the wrap
+
+      --  Drawn in the last frame before the serial turns over.
+      Put (C, Shadow_Key (1), 64, Micros => 100);
+
+      Advance_Frame (C);   --  crosses it: the distance is one, not 2**32
+
+      Assert (Held (C, Shadow_Key (1)),
+              "An entry drawn in the frame before the serial wraps is one"
+              & " frame old after it, not an age, and stays protected");
+
+      --  And it still goes idle on schedule afterwards.
+      Advance_Frame (C);
+      Assert (not Held (C, Shadow_Key (1)),
+              "and becomes idle a frame later as it would anywhere else");
+      Clear (C);
+   end;
+
+   --  A texture too large for the budget, drawn every frame, is stored
+   --  once and found thereafter. Rebuilding it per frame is the failure a
+   --  scene-aware budget exists to prevent.
+   declare
+      C : Cache;
+      Big : constant Texture_Key :=
+        (Kind => Raster_Texture, Source => 1, others => <>);
+   begin
+      Set_Budget (C, Charge (64));      --  far smaller than the entry
+      Put (C, Big, 512, Micros => 50_000);
+
+      for Frame in 1 .. 30 loop
+         Advance_Frame (C);
+         Touch (C, Big);
+      end loop;
+
+      Assert (Statistics (C) (Raster_Texture).Stores = 1,
+              "A texture larger than the budget but drawn every frame"
+              & " should be built once");
+      Assert (Statistics (C) (Raster_Texture).Pressure = 0,
+              "and never evicted while the scene is using it");
+      Assert (Held (C, Big), "and still be there at the end");
+      Clear (C);
+   end;
+
+   --  Diagnostics exist to choose a budget, so what they have to get
+   --  right is which producer filled it and whether the budget was the
+   --  thing that bit.
+   declare
+      C : Cache;
+      SK : constant Texture_Key :=
+        (Kind => Shadow_Texture, Extent_A => 1, others => <>);
+      RK : constant Texture_Key :=
+        (Kind => Raster_Texture, Source => 7, others => <>);
+   begin
+      Set_Budget (C, Byte_Count (400) * KB);
+
+      Put (C, SK, 64, Micros => 100);
+      Put (C, RK, 32, Micros => 400);
+
+      Assert (Statistics (C) (Shadow_Texture).Bytes = Charge (64)
+                and then Statistics (C) (Raster_Texture).Bytes = Charge (32),
+              "Residency should be attributed to the kind that stored it");
+      Assert (Statistics (C) (SVG_Texture).Bytes = 0,
+              "and a kind that stored nothing should show nothing");
+      Assert (Statistics (C) (Shadow_Texture).Stores = 1
+                and then Statistics (C) (Raster_Texture).Stores = 1,
+              "each store counted against its own kind");
+
+      --  The per-kind figures are a partition of residency, not a
+      --  parallel tally: if they drift, the budget and the diagnostics
+      --  disagree about the same bytes.
+      declare
+         Sum : Byte_Count := 0;
+      begin
+         for K in Texture_Kind loop
+            Sum := Sum + Statistics (C) (K).Bytes;
+         end loop;
+         Assert (Sum = Bytes_Used (C),
+                 "Per-kind residency should sum to what the budget works"
+                 & " against");
+      end;
+
+      --  A lookup that resolves and one that does not.
+      declare
+         Ignore : Texture_Handle;
+      begin
+         Ignore := Find (C, SK);
+         Ignore := Find (C, (Kind => Shadow_Texture, Extent_A => 999,
+                             others => <>));
+      end;
+
+      Assert (Statistics (C) (Shadow_Texture).Hits = 1
+                and then Statistics (C) (Shadow_Texture).Misses = 1,
+              "A lookup that finds an entry is a hit and one that does not"
+              & " is a miss, which is what costs a rebuild");
+
+      --  Peak outlives the residency that set it: a budget has to cover
+      --  the worst moment, and a cache read while idle looks comfortable
+      --  at any figure.
+      declare
+         Was : constant Byte_Count := Bytes_Used (C);
+      begin
+         Clear (C);
+         Assert (Bytes_Used (C) = 0, "Clear empties the cache");
+         Assert (Peak_Bytes_Used (C) >= Was,
+                 "but peak residency should remember what it held");
+      end;
+   end;
+
+   --  Only pressure reflects on the budget. Replacing a key, clearing,
+   --  and teardown are the program's own doing, and counting them as
+   --  pressure would make any budget look thrashed at shutdown.
+   declare
+      C : Cache;
+   begin
+      Set_Budget (C, Charge (64) * 2);
+
+      Put (C, Shadow_Key (1), 64, Micros => 100);
+      Put (C, Shadow_Key (2), 64, Micros => 100);
+      Put (C, Shadow_Key (3), 64, Micros => 100);
+      Settle (C);   --  all idle, so the budget now applies to them
+
+      Assert (Statistics (C) (Shadow_Texture).Pressure = 1,
+              "An entry dropped to make room counts as pressure");
+      Assert (Statistics (C) (Shadow_Texture).Replaced = 0,
+              "and nothing was replaced");
+
+      --  Same key again: the entry it displaces did not go for room.
+      Put (C, Shadow_Key (3), 64, Micros => 100);
+
+      Assert (Statistics (C) (Shadow_Texture).Replaced = 1,
+              "A source rebuilt under a stable key replaces rather than"
+              & " being evicted for room");
+
+      declare
+         Before : constant Event_Count :=
+           Statistics (C) (Shadow_Texture).Pressure;
+      begin
+         Clear (C);
+         Assert (Statistics (C) (Shadow_Texture).Pressure = Before,
+                 "and clearing the cache is not pressure either");
+         Assert (Statistics (C) (Shadow_Texture).Cleared > 0,
+                 "though it is counted, under its own cause");
+         Assert (Statistics (C) (Shadow_Texture).Discarded = 0,
+                 "and an explicit Clear is not the cache going away");
+      end;
+
+      --  Checked again now that entries have been evicted, replaced and
+      --  cleared: an attribution that only adds would still agree with
+      --  residency before anything left.
+      declare
+         Sum : Byte_Count := 0;
+      begin
+         for K in Texture_Kind loop
+            Sum := Sum + Statistics (C) (K).Bytes;
+         end loop;
+         Assert (Sum = Bytes_Used (C),
+                 "Per-kind residency should still sum to the total after"
+                 & " entries have left by every route");
+      end;
+   end;
+
+   --  The partitions describe the same cache the trim works on, so they
+   --  have to divide residency exactly. All three states are held at
+   --  once: one entry the scene keeps drawing, one that has fallen out of
+   --  it, and one displaced under an open lease.
+   declare
+      C : Cache;
+      Live : constant Texture_Key :=
+        (Kind => Shadow_Texture, Extent_A => 1, others => <>);
+      Aged : constant Texture_Key :=
+        (Kind => Shadow_Texture, Extent_A => 2, others => <>);
+      Slot_Key : constant Texture_Key :=
+        (Kind => Raster_Texture, Source => 3, others => <>);
+      H : Texture_Handle;
+   begin
+      --  Generous, so nothing is trimmed and the partitions are what the
+      --  test arranged rather than what eviction left.
+      Set_Budget (C, Byte_Count (400) * KB);
+
+      Put (C, Live, 64, Micros => 100);
+      Put (C, Aged, 48, Micros => 100);
+      H := Store (C, Slot_Key, New_Texture, Width => 32, Height => 32,
+                  Bytes => Charge (32),
+                  Build_Time => Adi.Clock.Microseconds (100));
+
+      declare
+         Lease : constant Texture_Ref := Borrow (C, H);
+      begin
+         pragma Assert (Lease.Texture /= null);
+
+         --  Two frames on, drawing Live and the leased entry but not
+         --  Aged, which therefore goes idle.
+         Advance_Frame (C);
+         Touch (C, Live);
+         Advance_Frame (C);
+         Touch (C, Live);
+
+         --  The same key again while the first is still leased: the old
+         --  value becomes retired, the replacement is active.
+         declare
+            Replacement : constant Texture_Handle :=
+              Store (C, Slot_Key, New_Texture, Width => 32, Height => 32,
+                     Bytes => Charge (32),
+                     Build_Time => Adi.Clock.Microseconds (100));
+         begin
+            Assert (Is_Valid (C, Replacement),
+                    "A key stored again under an open lease should take");
+            Assert (not Is_Valid (C, H),
+                    "and the handle to what it displaced should stop"
+                    & " resolving");
+         end;
+
+         declare
+            S : constant Kind_Stats_Array := Statistics (C);
+            Bytes_Sum : Byte_Count := 0;
+            Count_Sum : Natural := 0;
+         begin
+            --  Exact figures, so a branch that never ran would show.
+            Assert (S (Shadow_Texture).Active_Bytes = Charge (64),
+                    "The entry drawn this frame is active");
+            Assert (S (Shadow_Texture).Idle_Bytes = Charge (48),
+                    "the one nothing has drawn for two frames is idle");
+            Assert (S (Shadow_Texture).Retired_Bytes = 0,
+                    "and neither is retired");
+            Assert (S (Raster_Texture).Active_Bytes = Charge (32),
+                    "The replacement is active");
+            Assert (S (Raster_Texture).Retired_Bytes = Charge (32),
+                    "and what it displaced is retired, still charged"
+                    & " because a lease holds it");
+            Assert (S (Raster_Texture).Idle_Bytes = 0,
+                    "with nothing idle");
+
+            Assert (S (Shadow_Texture).Active_Count = 1
+                      and then S (Shadow_Texture).Idle_Count = 1
+                      and then S (Raster_Texture).Active_Count = 1
+                      and then S (Raster_Texture).Retired_Count = 1,
+                    "and the counts should agree with the bytes");
+
+            for K in Texture_Kind loop
+               Assert (S (K).Active_Bytes + S (K).Idle_Bytes
+                         + S (K).Retired_Bytes = S (K).Bytes,
+                       "Active, idle and retired bytes should divide what"
+                       & " the kind holds");
+               Assert (S (K).Active_Count + S (K).Idle_Count = S (K).Count,
+                       "and the findable counts should divide Count, which"
+                       & " retired entries are outside of");
+               Bytes_Sum := Bytes_Sum + S (K).Bytes;
+               Count_Sum := Count_Sum + S (K).Count;
+            end loop;
+
+            Assert (Bytes_Sum = Bytes_Used (C),
+                    "summing to total residency");
+            Assert (Count_Sum = Count (C), "and to the findable count");
+            Assert (Idle_Bytes_Used (C) = Charge (48),
+                    "and the figure the budget is compared against should"
+                    & " be the idle one alone");
+         end;
+      end;
+      Clear (C);
+   end;
+
+   --  Headroom is arithmetic, not policy. An eviction made so that a
+   --  charge can be added without leaving what Byte_Count can hold says
+   --  nothing about the budget, and reporting it as pressure would.
+   declare
+      C : Cache;
+      Huge : constant Texture_Charge := (Byte_Count'Last / 4) * 3;
+   begin
+      Set_Budget (C, Byte_Count'Last);
+
+      Put (C, Shadow_Key (1), 1, Micros => 100);
+      Advance_Frame (C);
+      Advance_Frame (C);   --  idle, so it can be taken for headroom
+
+      declare
+         Ignore : constant Texture_Handle :=
+           Store (C, Shadow_Key (2), New_Texture, Width => 1, Height => 1,
+                  Bytes => Huge, Build_Time => Adi.Clock.Microseconds (10));
+         pragma Unreferenced (Ignore);
+      begin
+         null;
+      end;
+
+      declare
+         Ignore : constant Texture_Handle :=
+           Store (C, Shadow_Key (3), New_Texture, Width => 1, Height => 1,
+                  Bytes => Huge, Build_Time => Adi.Clock.Microseconds (10));
+         pragma Unreferenced (Ignore);
+      begin
+         null;
+      end;
+
+      Assert (Statistics (C) (Shadow_Texture).Headroom > 0,
+              "An eviction made for arithmetic room should be counted as"
+              & " headroom");
+      Assert (Statistics (C) (Shadow_Texture).Pressure = 0,
+              "and never as budget pressure: the budget was never the"
+              & " thing that bit");
       Clear (C);
    end;
 
@@ -455,12 +912,13 @@ begin
          Assert (Bytes_Used (C) = Byte_Count (Huge),
                  "A refused charge should leave residency where it was");
 
-         --  Room was made before the charge was found unaccountable, so
-         --  the resident it displaced is gone regardless. Its bytes stay
-         --  charged only because a borrow still holds them.
-         Assert (not Held (C, Shadow_Key (1)),
-                 "Making room for a charge that is then refused still"
-                 & " evicts what it displaced");
+         --  Nothing was displaced. The only entry resident is borrowed,
+         --  so it is in use and not a candidate; the arriving charge is
+         --  refused rather than paid for by dropping what the caller is
+         --  drawing with.
+         Assert (Held (C, Shadow_Key (1)),
+                 "A refused charge should leave the entry it could not fit"
+                 & " beside untouched");
 
          --  Refused means the cache never took ownership, so releasing it
          --  is the caller's to do.
@@ -477,11 +935,15 @@ begin
    begin
       Set_Budget (C, Charge (64) * 2);
 
-      --  Each store costs the ceiling in microseconds, so standings climb
-      --  as fast as the type allows and the floor is driven upward hard.
+      --  A long run of frames, each storing something and dropping what
+      --  went idle. Every eviction lifts the floor, so by the end entries
+      --  start far above where the first ones did. The cost here is
+      --  modest on purpose: the churn is meant to raise the floor, not to
+      --  leave behind entries that outrank everything stored later.
       for N in 0 .. 400 loop
          Put (C, (Kind => Shadow_Texture, Extent_A => 3_000 + N,
-                  others => <>), 64, Micros => Integer'Last / 4);
+                  others => <>), 64, Micros => 1_000);
+         Advance_Frame (C);
       end loop;
 
       --  Cost must still separate entries afterwards: an expensive one
@@ -489,6 +951,7 @@ begin
       Put (C, Shadow_Key (1), 64, Micros => 100_000);
       Put (C, Shadow_Key (2), 64, Micros => 1);
       Put (C, Shadow_Key (3), 64, Micros => 100_000);
+      Settle (C);
 
       Assert (not Held (C, Shadow_Key (2)),
               "With the floor raised, cost should still decide -- the cheap"
@@ -513,9 +976,10 @@ begin
       C : Cache;
       H : Texture_Handle;
    begin
-      --  One byte holds one entry, so every store evicts its predecessor
-      --  and every round contributes a full lift to the floor.
-      Set_Budget (C, 1);
+      --  Nothing idle may be retained, so each round's entry goes as soon
+      --  as the next frame makes it idle, and every eviction lifts the
+      --  floor by the most a single entry can contribute.
+      Set_Budget (C, 0);
 
       for Round in 1 .. 8 loop
          H := Store (C, Shadow_Key (1_000 + Round), New_Texture,
@@ -531,6 +995,10 @@ begin
                pragma Assert (Ref.Texture /= null);
             end;
          end loop;
+
+         --  A round is a frame: the previous round's entry becomes idle
+         --  here and is evicted, which is what raises the floor.
+         Advance_Frame (C);
       end loop;
 
       --  Room for the tiny entry and two ordinary ones. Cost has to pick
@@ -540,6 +1008,7 @@ begin
       Put (C, Shadow_Key (1), 64, Micros => 100_000);
       Put (C, Shadow_Key (2), 64, Micros => 1);
       Put (C, Shadow_Key (3), 64, Micros => 100_000);
+      Settle (C);
 
       Assert (not Held (C, Shadow_Key (2)),
               "Renormalising should keep the floor low enough for cost to"
@@ -563,6 +1032,7 @@ begin
 
       Put (C, Shadow_Key (2), 64, Micros => 10_000);
       Put (C, Shadow_Key (3), 64, Micros => 10_000);
+      Settle (C);
 
       Assert (not Is_Valid (C, H),
               "A handle should stop being valid once its entry is evicted");
@@ -593,21 +1063,23 @@ begin
       begin
          Assert (Ref.Texture /= null, "A live handle should borrow");
 
-         --  Force it out while the borrow is open.
-         Put (C, Shadow_Key (2), 64, Micros => 10_000);
-         Put (C, Shadow_Key (3), 64, Micros => 10_000);
+         --  Pressure cannot reach it: a borrowed entry is in use, and the
+         --  budget only ever takes idle ones. Clear is the route that can,
+         --  being an explicit instruction rather than a policy decision.
+         Clear (C);
 
          Assert (not Held (C, Shadow_Key (1)),
-                 "An evicted entry should stop being findable at once");
+                 "An entry cleared under an open borrow should stop being"
+                 & " findable at once");
          Assert (Ref.Texture /= null,
                  "The borrowed texture must stay usable until the borrow"
                  & " ends");
-         Assert (Bytes_Used (C) > Charge (64) * 2 - Charge (64),
+         Assert (Bytes_Used (C) = Charge (64),
                  "Bytes awaiting the end of a borrow are still charged");
       end;
 
       --  Borrow over: the deferred destruction can complete.
-      Assert (Bytes_Used (C) <= Charge (64) * 2,
+      Assert (Bytes_Used (C) = 0,
               "Ending the last borrow should release the bytes");
       Clear (C);
    end;

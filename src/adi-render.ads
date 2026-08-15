@@ -33,8 +33,16 @@ package Adi.Render is
    --  have two renderers, and a texture from one cannot be drawn with the
    --  other.
    --
-   --  The default a context starts with. A budget is a residency target,
-   --  not a reservation: nothing is allocated until textures are stored.
+   --  How much the cache retains for reuse. It bounds idle textures, not
+   --  what the scene may display: a window drawing more than this holds
+   --  it all, and the budget governs only what stops being drawn.
+   --
+   --  A fixed per-renderer figure, roughly two decoded 4K RGBA images.
+   --  It is a policy, not a measurement: the example suite here is far
+   --  too small to derive one from, and an application's size is not the
+   --  sizing variable anyway -- what it draws now is protected regardless,
+   --  and this bounds only what it has stopped drawing. An image-heavy
+   --  program raises it through Set_Texture_Budget.
    Default_Texture_Budget : constant Adi.Texture_Cache.Byte_Count :=
      Adi.Texture_Cache.Byte_Count (64 * 1024 * 1024);
 
@@ -85,8 +93,13 @@ package Adi.Render is
    type Texture_Stats is record
       Budget     : Adi.Texture_Cache.Byte_Count := 0;
       Bytes_Used : Adi.Texture_Cache.Byte_Count := 0;
+      Peak_Bytes : Adi.Texture_Cache.Byte_Count := 0;
+      --  What the budget is compared against.
+      Idle_Bytes : Adi.Texture_Cache.Byte_Count := 0;
       Count      : Natural := 0;
       Frames     : Adi.Texture_Cache.Frame_Count := 0;
+      --  What each producer costs and how often the budget bit for it.
+      By_Kind    : Adi.Texture_Cache.Kind_Stats_Array := [others => <>];
    end record;
 
    function Get_Texture_Stats (Ctx : Render_Context) return Texture_Stats;

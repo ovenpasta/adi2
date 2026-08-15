@@ -470,43 +470,48 @@ procedure Render_Textures_Test is
       Adi.Render.Destroy (Ctx);
    end Test_Distinct_Shapes_Are_Distinct_Entries;
 
-   procedure Test_Budget_For_One_Shadow_Evicts is
+   procedure Test_Budget_Retains_Idle_Shadows is
       Ctx : Adi.Render.Render_Context;
       A, B : Adi.Widget.Box.Box_Handle;
    begin
-      Section ("a budget holding one shadow holds one");
+      Section ("the budget retains idle shadows, not drawn ones");
 
       Adi.Render.Create (Ctx, Renderer);
 
       A := Shadowed_Box (Blur_Px => 4.0, Radius_Px => 6.0, Spread_Px => 0.0);
       B := Shadowed_Box (Blur_Px => 12.0, Radius_Px => 6.0, Spread_Px => 0.0);
 
-      --  Room for the larger of the two and no more, so the second draw
-      --  cannot keep the first.
+      --  Room to retain one shadow that nothing is drawing any more.
       Adi.Render.Set_Texture_Budget (Ctx, Shadow_Charge (12, 6));
 
       Draw_Once (Ctx, A);
       Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = 1,
               "The first shadow should be resident");
 
+      --  Both drawn in the same frame: both are in the scene, so both
+      --  stay even though together they exceed the budget. Evicting
+      --  either would rebuild it on the next frame that drew it.
       Draw_Once (Ctx, B);
+      Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = 2,
+              "Two shadows the frame is drawing should both be resident,"
+              & " whatever the budget retains");
+
+      --  Now stop drawing them and let the frames pass. Both fall out of
+      --  the scene, and the budget keeps only what it has room for.
+      for I in 1 .. 3 loop
+         Adi.Render.Advance_Frame (Ctx);
+      end loop;
 
       Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = 1,
-              "A budget with room for one shadow should hold one, not two");
+              "Once nothing is drawing them, the budget should retain one");
       Assert (Adi.Render.Get_Texture_Stats (Ctx).Bytes_Used
                 <= Shadow_Charge (12, 6),
-              "and residency should be inside the budget");
-
-      --  The survivor is the one just drawn, so drawing the first again
-      --  rebuilds it rather than finding it.
-      Draw_Once (Ctx, A);
-      Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = 1,
-              "and drawing the evicted shape again should still leave one");
+              "and idle residency should be inside the budget");
 
       Drop (A);
       Drop (B);
       Adi.Render.Destroy (Ctx);
-   end Test_Budget_For_One_Shadow_Evicts;
+   end Test_Budget_Retains_Idle_Shadows;
 
 begin
    Ada.Environment_Variables.Set ("SDL_VIDEODRIVER", "dummy");
@@ -534,7 +539,7 @@ begin
    Test_Raster_Scale_Mode_Is_Keyed;
    Test_Shadow_Is_Cached_And_Charged;
    Test_Distinct_Shapes_Are_Distinct_Entries;
-   Test_Budget_For_One_Shadow_Evicts;
+   Test_Budget_Retains_Idle_Shadows;
 
    SDL_DestroyRenderer (Renderer);
    SDL_DestroySurface (Canvas);

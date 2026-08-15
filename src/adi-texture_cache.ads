@@ -49,8 +49,8 @@ package Adi.Texture_Cache is
    --  counter handing them out cannot overflow into an exception.
    type Source_Id is mod 2 ** 64;
 
-   --  Bumped when a source's content changes, so entries built from the
-   --  old content are simply never found again.
+   --  Bumped when a source's content changes, so entries built from
+   --  the old content are simply never found again.
    type Generation_Id is mod 2 ** 32;
 
    --  Names a texture without naming what produced it, so this package
@@ -143,15 +143,15 @@ package Adi.Texture_Cache is
    --  Residency
    ---------------------------------------------------------------------------
 
-   --  A texture larger than the whole budget is kept when it is stored,
-   --  rather than rebuilt every frame: evicting it would free room nothing
-   --  else can use and repeat the work at once. Bytes_Used can therefore
-   --  exceed Budget by that one entry.
+   --  The budget limits idle residency -- textures the cache is holding
+   --  in case they are wanted again -- and not the scene. A texture being
+   --  drawn is not something to reclaim: taking it would rebuild it on the
+   --  next frame that drew it, having freed nothing for longer than a
+   --  frame. Bytes_Used therefore exceeds Budget by whatever the scene is
+   --  using, and by anything awaiting the end of a borrow.
    --
-   --  Lowering the budget is strict over everything evictable, including
-   --  an entry that was oversized when it arrived. Entries under borrow
-   --  cannot be evicted, so residency may stay above the budget until
-   --  those borrows end.
+   --  Lowering it trims idle entries at once, and only those. Residency
+   --  falls to the new figure as entries leave the scene, not before.
    procedure Set_Budget (C : in out Cache; Bytes : Byte_Count);
    function Budget (C : Cache) return Byte_Count;
 
@@ -182,9 +182,10 @@ package Adi.Texture_Cache is
    --  Null_Texture means the cache did not take it and the caller still
    --  owns the texture. That happens only when the charge cannot be
    --  accounted for -- residency plus this entry would exceed what
-   --  Byte_Count can represent, which needs pinned entries holding down
-   --  most of a terabyte. Room is made before that is known, so a refused
-   --  store still evicts whatever it displaced.
+   --  Byte_Count can represent, and nothing idle remains to drop. Entries
+   --  in use, borrowed or drawn this frame, cannot be taken for it.
+   --  Storing never evicts to fit the budget: what arrives is about to be
+   --  drawn, and the budget governs what is idle.
    --
    --  Build_Time is what producing it actually took -- the whole path, not
    --  only the upload. Measure it with Adi.Clock. There is no default: an
@@ -209,6 +210,93 @@ package Adi.Texture_Cache is
 
    --  Findable entries only.
    function Count (C : Cache) return Natural;
+
+   ---------------------------------------------------------------------------
+   --  Diagnostics
+   ---------------------------------------------------------------------------
+
+   --  Per kind, because choosing a budget means knowing which producer
+   --  fills it. A total says the cache is full; it does not say whether
+   --  shadows or rasterised artwork put it there, and those answer to
+   --  different fixes.
+   --
+   --  Peak_Bytes is total residency at its highest, so it describes the
+   --  working set the program needs rather than the budget it wants. What
+   --  sizes the budget is idle residency together with pressure: idle
+   --  bytes are what a budget retains, and pressure evictions are what a
+   --  budget too small produces.
+   --
+   --  Evictions are separated by cause. Only Pressure means the budget
+   --  was too small; a replacement is a source changing under a stable
+   --  key, and clearing and teardown are the program's own doing. Counting
+   --  them together would make any budget look thrashed at shutdown.
+   --  Events accumulate for as long as the program runs, so a counter
+   --  that can raise on overflow would make diagnostics a source of
+   --  failure. Modular, and wide enough that the wrap is unreachable: a
+   --  million cache events a second would take a quarter of a million
+   --  years. One bit short of the full word so that every value converts
+   --  to a signed 64-bit integer, which is what serialising it needs.
+   type Event_Count is mod 2 ** 63;
+
+   type Kind_Stats is record
+      Bytes        : Byte_Count := 0;
+      Peak_Bytes   : Byte_Count := 0;
+      --  Residency, bounded by what is resident rather than by history.
+      Count        : Natural := 0;
+      Peak_Count   : Natural := 0;
+      --  How that residency divides right now. Active is what the scene
+      --  is drawing and the budget does not govern; Idle is what the
+      --  cache is holding on speculation and the budget does; Retired is
+      --  unfindable already and alive only until a borrow ends.
+      --
+      --  Active_Bytes + Idle_Bytes + Retired_Bytes = Bytes, and
+      --  Active_Count + Idle_Count = Count -- retired entries are outside
+      --  Count, which means findable.
+      Active_Bytes  : Byte_Count := 0;
+      Active_Count  : Natural := 0;
+      Idle_Bytes    : Byte_Count := 0;
+      Idle_Count    : Natural := 0;
+      Retired_Bytes : Byte_Count := 0;
+      Retired_Count : Natural := 0;
+      --  Lookups that found a live entry, and those that did not. A miss
+      --  is what costs a rebuild.
+      Hits         : Event_Count := 0;
+      Misses       : Event_Count := 0;
+      Stores       : Event_Count := 0;
+      --  Dropped to make room. Counted against the kind that was evicted,
+      --  not the kind whose arrival caused the pressure. This is the
+      --  number that says a budget is too small, and the one to read
+      --  against Misses: evictions feeding misses feeding stores is
+      --  thrashing.
+      Pressure     : Event_Count := 0;
+      --  Dropped so that residency plus an arriving charge stays inside
+      --  what Byte_Count can hold. Arithmetic, not policy: a figure here
+      --  says the type is near its ceiling, not that the budget is small.
+      Headroom     : Event_Count := 0;
+      Replaced     : Event_Count := 0;
+      --  Dropped by an explicit Clear, and by the cache going away with
+      --  its renderer. Neither says anything about the budget.
+      Cleared      : Event_Count := 0;
+      Discarded    : Event_Count := 0;
+      --  Stores the cache would not take. Needs pinned entries holding
+      --  down most of a terabyte, so a non-zero figure here is a defect
+      --  rather than a budget signal.
+      Refused      : Event_Count := 0;
+      --  What building this kind has cost over the cache's life, so a
+      --  budget can be weighed against the work it saves.
+      Build_Time   : Adi.Clock.Time_Span := Adi.Clock.Zero_Span;
+   end record;
+
+   type Kind_Stats_Array is array (Texture_Kind) of Kind_Stats;
+
+   function Statistics (C : Cache) return Kind_Stats_Array;
+
+   --  Residency across all kinds at its highest, which is not the sum of
+   --  the per-kind peaks: those need not have happened together.
+   function Peak_Bytes_Used (C : Cache) return Byte_Count;
+
+   --  What the budget is actually compared against.
+   function Idle_Bytes_Used (C : Cache) return Byte_Count;
 
 private
 

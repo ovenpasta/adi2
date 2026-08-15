@@ -104,8 +104,14 @@ package body Adi.Render is
       end if;
       return (Budget     => Adi.Texture_Cache.Budget (Ctx.Data.Textures),
               Bytes_Used => Adi.Texture_Cache.Bytes_Used (Ctx.Data.Textures),
+              Peak_Bytes =>
+                Adi.Texture_Cache.Peak_Bytes_Used (Ctx.Data.Textures),
+              Idle_Bytes =>
+                Adi.Texture_Cache.Idle_Bytes_Used (Ctx.Data.Textures),
               Count      => Adi.Texture_Cache.Count (Ctx.Data.Textures),
-              Frames     => Adi.Texture_Cache.Frames (Ctx.Data.Textures));
+              Frames     => Adi.Texture_Cache.Frames (Ctx.Data.Textures),
+              By_Kind    =>
+                Adi.Texture_Cache.Statistics (Ctx.Data.Textures));
    end Get_Texture_Stats;
 
    -------------

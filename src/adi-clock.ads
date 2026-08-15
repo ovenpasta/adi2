@@ -26,6 +26,10 @@ package Adi.Clock is
    function "-" (Later, Earlier : Time) return Time_Span;
    function "+" (T : Time; S : Time_Span) return Time;
 
+   --  Accumulating spans, for totals over many measured intervals.
+   function "+" (L, R : Time_Span) return Time_Span;
+   Zero_Span : constant Time_Span;
+
    function Microseconds (US : Integer) return Time_Span;
    function To_Duration (S : Time_Span) return Duration;
 
@@ -47,6 +51,11 @@ private
 
    function "+" (T : Time; S : Time_Span) return Time is
      (Time (Duration (T) + Duration (S)));
+
+   function "+" (L, R : Time_Span) return Time_Span is
+     (Time_Span (Duration (L) + Duration (R)));
+
+   Zero_Span : constant Time_Span := 0.0;
 
    function Microseconds (US : Integer) return Time_Span is
      (Time_Span (Duration (US) / 1_000_000));

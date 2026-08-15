@@ -3,29 +3,16 @@
 
 pragma Ada_2022;
 
-with Ada.Containers.Ordered_Maps;
 with Ada.Unchecked_Deallocation;
 with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.SDL.TTF.TextEngine; use Adi.SDL.TTF.TextEngine;
 
 package body Adi.Render is
 
-   Max_Shadow_Cache_Size : constant := 256;
-
-   function "<" (L, R : Shadow_Key) return Boolean is
-   begin
-      if L.Blur_Px /= R.Blur_Px then return L.Blur_Px < R.Blur_Px; end if;
-      return L.Corner_Radius < R.Corner_Radius;
-   end "<";
-
-   package Shadow_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type => Shadow_Key, Element_Type => SDL_Texture_Ptr);
-
    type Render_Data is limited record
-      Renderer     : SDL_Renderer_Ptr;
-      Shadow_Cache : Shadow_Maps.Map;
-      Text_Engine  : TTF_TextEngine_Access := null;
-      Textures     : Adi.Texture_Cache.Cache;
+      Renderer    : SDL_Renderer_Ptr;
+      Text_Engine : TTF_TextEngine_Access := null;
+      Textures    : Adi.Texture_Cache.Cache;
    end record;
 
    procedure Free is new Ada.Unchecked_Deallocation
@@ -126,17 +113,10 @@ package body Adi.Render is
    -------------
 
    procedure Destroy (Ctx : in out Render_Context) is
-      use Shadow_Maps;
    begin
       if Ctx.Data = null then
          return;
       end if;
-
-      --  Destroy all cached shadow textures
-      for C in Ctx.Data.Shadow_Cache.Iterate loop
-         SDL_DestroyTexture (Element (C));
-      end loop;
-      Ctx.Data.Shadow_Cache.Clear;
 
       --  Destroy text engine
       if Ctx.Data.Text_Engine /= null then
@@ -160,48 +140,6 @@ package body Adi.Render is
    begin
       return Ctx.Data.Renderer;
    end Get_Renderer;
-
-   -----------------
-   -- Find_Shadow --
-   -----------------
-
-   function Find_Shadow
-     (Ctx : Render_Context;
-      Key : Shadow_Key) return SDL_Texture_Ptr
-   is
-      use Shadow_Maps;
-      Pos : constant Cursor := Ctx.Data.Shadow_Cache.Find (Key);
-   begin
-      if Pos /= No_Element then
-         return Element (Pos);
-      end if;
-      return null;
-   end Find_Shadow;
-
-   ------------------
-   -- Store_Shadow --
-   ------------------
-
-   procedure Store_Shadow
-     (Ctx : in out Render_Context;
-      Key : Shadow_Key;
-      Tex : SDL_Texture_Ptr)
-   is
-      use Shadow_Maps;
-   begin
-      --  Evict oldest if cache is full
-      if Natural (Ctx.Data.Shadow_Cache.Length) >= Max_Shadow_Cache_Size then
-         declare
-            First_Pos : Cursor := Ctx.Data.Shadow_Cache.First;
-            Old_Tex   : constant SDL_Texture_Ptr := Element (First_Pos);
-         begin
-            SDL_DestroyTexture (Old_Tex);
-            Ctx.Data.Shadow_Cache.Delete (First_Pos);
-         end;
-      end if;
-
-      Ctx.Data.Shadow_Cache.Insert (Key, Tex);
-   end Store_Shadow;
 
    ---------------------
    -- Get_Text_Engine --

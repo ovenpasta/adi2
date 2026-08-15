@@ -11,7 +11,9 @@ with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.Log;
+with Adi.Clock;
 with Adi.Shadow;
+with Adi.Texture_Cache;
 with Adi.SDL; use Adi.SDL;
 with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
@@ -643,11 +645,9 @@ package body Adi.Widget is
 
    function Generate_Shadow_Texture
       (Renderer : SDL_Renderer_Ptr;
-       Key      : Shadow_Key) return SDL_Texture_Ptr
+       Blur     : Natural;
+       Radius   : Natural) return SDL_Texture_Ptr
    is
-      Blur   : constant Natural := Key.Blur_Px;
-      Radius : constant Natural := Key.Corner_Radius;
-
       Geom     : constant Adi.Shadow.Geometry :=
          Adi.Shadow.Geometry_For (Blur, Radius);
       Tex_Size : constant Natural := Geom.Tex_Size;
@@ -760,10 +760,6 @@ package body Adi.Widget is
       --  Get shadow color
       SR, SG, SB, SA : Uint8;
 
-      Key     : Shadow_Key;
-      Texture : SDL_Texture_Ptr;
-      Unused : Adi.SDL.C_bool;
-
       --  The same geometry the texture was generated with, so slicing and
       --  generation cannot drift apart.
       Shadow_Geom : constant Adi.Shadow.Geometry :=
@@ -773,8 +769,52 @@ package body Adi.Widget is
       Grid_Top    : Float;
       Grid_Bottom : Float;
 
+      --  Blur and radius are the whole of a shadow's shape: the colour is
+      --  modulated at draw time, so one texture serves every tint.
+      Key : constant Adi.Texture_Cache.Texture_Key :=
+        (Kind     => Adi.Texture_Cache.Shadow_Texture,
+         Extent_A => Blur_Px,
+         Extent_B => Effective_Rad,
+         others   => <>);
+
+      --  RGBA32, one texture, no padding beyond the surface pitch.
+      use type Adi.Texture_Cache.Byte_Count;
+      use type Adi.Clock.Time;
+
+      Charge : constant Adi.Texture_Cache.Texture_Charge :=
+        Adi.Texture_Cache.Texture_Charge
+          (Adi.Texture_Cache.Byte_Count (Shadow_Geom.Tex_Size)
+           * Adi.Texture_Cache.Byte_Count (Shadow_Geom.Tex_Size)
+           * 4);
+
+      Handle : Adi.Texture_Cache.Texture_Handle;
+
+      --  Set only when the cache declined the texture we just built, which
+      --  leaves us owning it. Drawn once, then destroyed.
+      Unowned : SDL_Texture_Ptr := null;
+
       --  Destination rect: widget rect expanded by spread + blur, offset
       Dst : aliased SDL_FRect;
+
+      procedure Draw (Texture : SDL_Texture_Ptr) is
+         Unused : Adi.SDL.C_bool;
+      begin
+         --  Texture stores only alpha; tint and alpha applied at draw time.
+         Unused := SDL_SetTextureColorMod (Texture, SR, SG, SB);
+         Unused := SDL_SetTextureAlphaMod (Texture, SA);
+
+         Unused := SDL_RenderTexture9Grid
+            (Renderer      => Renderer,
+             Texture       => Texture,
+             Srcrect       => null,
+             Left_Width    => Grid_Left,
+             Right_Width   => Grid_Right,
+             Top_Height    => Grid_Top,
+             Bottom_Height => Grid_Bottom,
+             Scale         => 1.0,
+             Dstrect       => Dst'Access);
+      end Draw;
+
    begin
       CSS_Color_To_SDL (Shadow.Color, SR, SG, SB, SA);
 
@@ -782,24 +822,13 @@ package body Adi.Widget is
          return;  --  Fully transparent shadow
       end if;
 
-      Key := (Blur_Px       => Blur_Px,
-              Corner_Radius => Effective_Rad);
-
-      --  Cache lookup or generate
-      Texture := Find_Shadow (Ctx, Key);
-      if Texture = null then
-         Texture := Generate_Shadow_Texture (Renderer, Key);
-         if Texture = null then
-            return;
-         end if;
-         Store_Shadow (Ctx, Key, Texture);
-      end if;
-
       Dst.x := Float (Sh.Dst.X);
       Dst.y := Float (Sh.Dst.Y);
       Dst.w := Float (Sh.Dst.Width);
       Dst.h := Float (Sh.Dst.Height);
 
+      --  Decided before anything is built: a shadow with no destination is
+      --  not worth a texture.
       if Dst.w <= 0.0 or else Dst.h <= 0.0 then
          return;
       end if;
@@ -812,21 +841,54 @@ package body Adi.Widget is
       Grid_Top := Adi.Shadow.Slice_Border (Shadow_Geom, Dst.h);
       Grid_Bottom := Grid_Top;
 
-      --  Texture stores only alpha; tint and alpha are applied at draw time.
-      Unused := SDL_SetTextureColorMod (Texture, SR, SG, SB);
-      Unused := SDL_SetTextureAlphaMod (Texture, SA);
+      Handle := Find_Texture (Ctx, Key);
 
-      --  Render using 9-grid stretching
-      Unused := SDL_RenderTexture9Grid
-         (Renderer      => Renderer,
-          Texture       => Texture,
-          Srcrect       => null,
-          Left_Width    => Grid_Left,
-          Right_Width   => Grid_Right,
-          Top_Height    => Grid_Top,
-          Bottom_Height => Grid_Bottom,
-          Scale         => 1.0,
-          Dstrect       => Dst'Access);
+      if not Is_Valid_Texture (Ctx, Handle) then
+         declare
+            --  What the cache ranks this entry by. The whole path counts:
+            --  the mask, the surface, the upload and the mode calls all
+            --  have to be repeated if this is evicted.
+            Started : constant Adi.Clock.Time := Adi.Clock.Now;
+            Built   : constant SDL_Texture_Ptr :=
+              Generate_Shadow_Texture (Renderer, Blur_Px, Effective_Rad);
+            Took    : constant Adi.Clock.Time_Span := Adi.Clock.Now - Started;
+         begin
+            if Built = null then
+               return;
+            end if;
+
+            Handle := Store_Texture
+              (Ctx, Key, Built,
+               Width      => Shadow_Geom.Tex_Size,
+               Height     => Shadow_Geom.Tex_Size,
+               Bytes      => Charge,
+               Build_Time => Took);
+
+            --  Refused: the cache took no ownership, so this frame draws
+            --  with it and then releases it.
+            if not Is_Valid_Texture (Ctx, Handle) then
+               Unowned := Built;
+            end if;
+         end;
+      end if;
+
+      if Unowned /= null then
+         Draw (Unowned);
+         SDL_DestroyTexture (Unowned);
+         return;
+      end if;
+
+      --  The borrow lasts the whole draw: an eviction between the
+      --  modulation and the 9-grid would otherwise free the texture
+      --  between setting its colour and using it.
+      declare
+         Ref : constant Adi.Texture_Cache.Texture_Ref :=
+           Borrow_Texture (Ctx, Handle);
+      begin
+         if Ref.Texture /= null then
+            Draw (Ref.Texture);
+         end if;
+      end;
    end Render_Box_Shadow;
 
    ---------------------------------------------------------------------------

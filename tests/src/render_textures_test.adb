@@ -6,8 +6,14 @@ with Adi.SDL.Render;      use Adi.SDL.Render;
 with Adi.SDL.Surface;     use Adi.SDL.Surface;
 with Adi.SDL.PixelFormat; use Adi.SDL.PixelFormat;
 with Adi.Clock;
+with Adi.Core;            use Adi.Core;
+with Adi.CSS_Styles;      use Adi.CSS_Styles;
 with Adi.Render;
+with Adi.Shadow;
 with Adi.Texture_Cache;
+with Adi.Widget;          use Adi.Widget;
+with Adi.Widget.Box;
+with Adi.Widget_Styles;   use Adi.Widget_Styles;
 with Adi.Window;
 with Test_Support;        use Test_Support;
 
@@ -16,8 +22,10 @@ with Test_Support;        use Test_Support;
 --  context has a cache with a budget, that only drawn frames age it, and
 --  that two windows hold two independent caches rather than sharing one.
 --
---  Nothing is migrated into the cache yet, so what is stored here is stored
---  by the test.
+--  Box shadows are the cache's first real producer, so the last sections
+--  drive the widget render path and read the cache back through the
+--  context: what the shape of a shadow costs, that drawing it twice builds
+--  it once, and what a budget too small for two of them does.
 
 procedure Render_Textures_Test is
 
@@ -233,6 +241,192 @@ procedure Render_Textures_Test is
       Adi.Window.Destroy (W);
    end Test_Only_Drawn_Frames_Age_The_Cache;
 
+   ---------------------------------------------------------------------------
+   --  Box shadows through the widget render path
+   ---------------------------------------------------------------------------
+
+   --  Blur and corner radius are the whole of a shadow's shape, so they are
+   --  the whole of its key. Everything else about a shadow -- its colour,
+   --  its offset, the widget it belongs to -- is applied when it is drawn.
+   function Shadowed_Box
+     (Blur_Px, Radius_Px, Spread_Px : Float)
+      return Adi.Widget.Box.Box_Handle
+   is
+      B     : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle (40.0, 40.0, 60.0, 60.0);
+      Rules : Style_Rules;
+   begin
+      Rules.Background_Color := Set_Bg (RGBA (255, 255, 255, 1.0));
+      Rules.Border_Radius := Set (Radius (Px (Radius_Px)));
+      Rules.Box_Shadow := Set (Shadow (Offset_X => Px (0.0),
+                                       Offset_Y => Px (2.0),
+                                       Blur     => Px (Blur_Px),
+                                       Spread   => Px (Spread_Px),
+                                       Color    => RGBA (0, 0, 0, 0.6)));
+      Set_Part_Style (Adi.Widget.Box.To_Widget_Handle (B), Main_Part,
+                      From (Rules).Build);
+      return B;
+   end Shadowed_Box;
+
+   procedure Draw_Once
+     (Ctx : in out Adi.Render.Render_Context;
+      B   : Adi.Widget.Box.Box_Handle)
+   is
+      H : constant Widget_Handle := Adi.Widget.Box.To_Widget_Handle (B);
+   begin
+      Layout_Tree (H);
+      Adi.Widget.Update (H);
+      Adi.Widget.Render_Tree (H, Ctx);
+   end Draw_Once;
+
+   procedure Drop (B : Adi.Widget.Box.Box_Handle) is
+      H : Widget_Handle := Adi.Widget.Box.To_Widget_Handle (B);
+   begin
+      Adi.Widget.Destroy (H);
+   end Drop;
+
+   --  The key Render_Box_Shadow stores a shadow under. Naming it here is
+   --  what lets a test hold a handle into the cache across a draw.
+   function Shape_Key (Blur, Radius : Natural)
+                       return Adi.Texture_Cache.Texture_Key
+   is ((Kind     => Adi.Texture_Cache.Shadow_Texture,
+        Extent_A => Blur,
+        Extent_B => Radius,
+        others   => <>));
+
+   --  What Render_Box_Shadow charges: the generated texture is square, of
+   --  the side Adi.Shadow decides, at four bytes a pixel.
+   function Shadow_Charge (Blur, Radius : Natural)
+                           return Adi.Texture_Cache.Byte_Count
+   is
+      Geom : constant Adi.Shadow.Geometry :=
+        Adi.Shadow.Geometry_For (Blur, Radius);
+   begin
+      return Adi.Texture_Cache.Byte_Count (Geom.Tex_Size)
+             * Adi.Texture_Cache.Byte_Count (Geom.Tex_Size) * 4;
+   end Shadow_Charge;
+
+   procedure Test_Shadow_Is_Cached_And_Charged is
+      Ctx : Adi.Render.Render_Context;
+      Box : Adi.Widget.Box.Box_Handle;
+   begin
+      Section ("a drawn shadow is cached at its real size");
+
+      Adi.Render.Create (Ctx, Renderer);
+      Box := Shadowed_Box (Blur_Px => 8.0, Radius_Px => 6.0, Spread_Px => 0.0);
+
+      Draw_Once (Ctx, Box);
+
+      Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = 1,
+              "Drawing a box shadow should leave its texture in the cache");
+      Assert (Adi.Render.Get_Texture_Stats (Ctx).Bytes_Used
+                = Shadow_Charge (8, 6),
+              "and charge it the whole texture at four bytes a pixel");
+
+      --  The key is the shape, so the same shape drawn again is the same
+      --  entry. Counting entries cannot tell reuse from rebuilding over
+      --  the same key -- both leave one. Holding a handle can: a rebuild
+      --  retires what it replaces, and the handle stops resolving.
+      declare
+         Held : constant Adi.Texture_Cache.Texture_Handle :=
+           Adi.Render.Find_Texture (Ctx, Shape_Key (8, 6));
+      begin
+         Assert (Adi.Render.Is_Valid_Texture (Ctx, Held),
+                 "The shadow should be findable under its shape");
+
+         Draw_Once (Ctx, Box);
+
+         Assert (Adi.Render.Is_Valid_Texture (Ctx, Held),
+                 "Drawing the same shadow again should reuse the entry"
+                 & " rather than build over it");
+      end;
+
+      Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = 1,
+              "and leave exactly one entry");
+      Assert (Adi.Render.Get_Texture_Stats (Ctx).Bytes_Used
+                = Shadow_Charge (8, 6),
+              "charged nothing further for it");
+
+      Drop (Box);
+      Adi.Render.Destroy (Ctx);
+   end Test_Shadow_Is_Cached_And_Charged;
+
+   procedure Test_Distinct_Shapes_Are_Distinct_Entries is
+      Ctx : Adi.Render.Render_Context;
+      A, B, C : Adi.Widget.Box.Box_Handle;
+   begin
+      Section ("each shadow shape is its own entry");
+
+      Adi.Render.Create (Ctx, Renderer);
+
+      --  Same radius, different blur.
+      A := Shadowed_Box (Blur_Px => 4.0, Radius_Px => 6.0, Spread_Px => 0.0);
+      --  Same blur, different radius.
+      B := Shadowed_Box (Blur_Px => 4.0, Radius_Px => 14.0, Spread_Px => 0.0);
+      --  Same shape as A, different spread: spread moves and grows the
+      --  destination rectangle, it does not change the texture.
+      C := Shadowed_Box (Blur_Px => 4.0, Radius_Px => 6.0, Spread_Px => 3.0);
+
+      Draw_Once (Ctx, A);
+      Draw_Once (Ctx, B);
+
+      Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = 2,
+              "Blur and radius each identify a shadow, so two shapes should"
+              & " occupy two entries");
+      Assert (Adi.Render.Get_Texture_Stats (Ctx).Bytes_Used
+                = Shadow_Charge (4, 6) + Shadow_Charge (4, 14),
+              "charged as the sum of both textures");
+
+      Draw_Once (Ctx, C);
+
+      Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = 2,
+              "Spread is not part of a shadow's texture, so it should not"
+              & " produce a third entry");
+
+      Drop (A);
+      Drop (B);
+      Drop (C);
+      Adi.Render.Destroy (Ctx);
+   end Test_Distinct_Shapes_Are_Distinct_Entries;
+
+   procedure Test_Budget_For_One_Shadow_Evicts is
+      Ctx : Adi.Render.Render_Context;
+      A, B : Adi.Widget.Box.Box_Handle;
+   begin
+      Section ("a budget holding one shadow holds one");
+
+      Adi.Render.Create (Ctx, Renderer);
+
+      A := Shadowed_Box (Blur_Px => 4.0, Radius_Px => 6.0, Spread_Px => 0.0);
+      B := Shadowed_Box (Blur_Px => 12.0, Radius_Px => 6.0, Spread_Px => 0.0);
+
+      --  Room for the larger of the two and no more, so the second draw
+      --  cannot keep the first.
+      Adi.Render.Set_Texture_Budget (Ctx, Shadow_Charge (12, 6));
+
+      Draw_Once (Ctx, A);
+      Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = 1,
+              "The first shadow should be resident");
+
+      Draw_Once (Ctx, B);
+
+      Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = 1,
+              "A budget with room for one shadow should hold one, not two");
+      Assert (Adi.Render.Get_Texture_Stats (Ctx).Bytes_Used
+                <= Shadow_Charge (12, 6),
+              "and residency should be inside the budget");
+
+      --  The survivor is the one just drawn, so drawing the first again
+      --  rebuilds it rather than finding it.
+      Draw_Once (Ctx, A);
+      Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = 1,
+              "and drawing the evicted shape again should still leave one");
+
+      Drop (A);
+      Drop (B);
+      Adi.Render.Destroy (Ctx);
+   end Test_Budget_For_One_Shadow_Evicts;
+
 begin
    Ada.Environment_Variables.Set ("SDL_VIDEODRIVER", "dummy");
 
@@ -255,6 +449,10 @@ begin
    Test_Context_Owns_A_Cache;
    Test_Destroy_Releases_Textures;
    Test_Advance_Frame_Threads_Through;
+
+   Test_Shadow_Is_Cached_And_Charged;
+   Test_Distinct_Shapes_Are_Distinct_Entries;
+   Test_Budget_For_One_Shadow_Evicts;
 
    SDL_DestroyRenderer (Renderer);
    SDL_DestroySurface (Canvas);

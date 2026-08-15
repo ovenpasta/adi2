@@ -11,11 +11,6 @@ with Adi.Texture_Cache;
 
 package Adi.Render is
 
-   type Shadow_Key is record
-      Blur_Px       : Natural;
-      Corner_Radius : Natural;
-   end record;
-
    type Render_Context is limited private;
    type Render_Context_Access is access all Render_Context;
 
@@ -27,16 +22,6 @@ package Adi.Render is
 
    function Get_Renderer
      (Ctx : Render_Context) return Adi.SDL.Render.SDL_Renderer_Ptr;
-
-   --  Shadow texture cache
-   function Find_Shadow
-     (Ctx : Render_Context;
-      Key : Shadow_Key) return Adi.SDL.Render.SDL_Texture_Ptr;
-
-   procedure Store_Shadow
-     (Ctx : in out Render_Context;
-      Key : Shadow_Key;
-      Tex : Adi.SDL.Render.SDL_Texture_Ptr);
 
    ---------------------------------------------------------------------------
    --  Texture cache

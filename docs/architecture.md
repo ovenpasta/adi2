@@ -50,7 +50,16 @@
 **Adi.Render** (`adi-render.ads`): Per-renderer context and caches.
 - `Render_Context`: bundles `SDL_Renderer_Ptr` with shadow texture cache and TTF text engine
 - Shadow cache: shape-based `Shadow_Key` (blur + corner radius), color applied via texture modulation
+- Texture cache: reached through `Find_Texture`/`Store_Texture`/`Borrow_Texture`, never handed out — a reference to it could outlive `Destroy`. Budgeted at `Default_Texture_Budget` (64 MiB), per context and never per process: a texture belongs to the renderer that made it
+- `Advance_Frame`: called by `Adi.Window` once per frame that is actually drawn, so idle ticks do not age entries
 - Owned by `Adi.Window`; threaded through render calls
+- Budget and residency are reachable from a window via `Set_Texture_Budget` and `Get_Texture_Stats`
+
+**Adi.Texture_Cache** (`adi-texture_cache.ads`): GPU textures under a byte budget.
+- Budget is bytes, not entries: a blurred shadow runs from under 2 KB to several MB
+- Eviction ranks by rebuilding time per byte held; build time is measured by the caller, never guessed
+- Standings sit on a floor that rises to whatever was last evicted, so entries lose ground as the cache works rather than as the clock runs
+- Callers keep generational `Texture_Handle`s; the SDL pointer is reachable only inside a scoped `Borrow`, which pins the entry against eviction mid-draw
 
 **Adi.Animation** (`adi-animation.ads`): CSS-like style transitions.
 - `Part_Transition`: per-widget-part animation state

@@ -1123,6 +1123,10 @@ package body Adi.Window is
           W.Stats_Layout_Count := 0;
           Render_Start := Now;
 
+          --  Only frames that are drawn count: ticks spent idle must not
+          --  age cached textures that had no chance to be used.
+          Adi.Render.Advance_Frame (W.Ctx);
+
           Debug_Log
             ("render tick=" & Natural'Image (Debug_Tick_No)
              & " root_dirty=" & Boolean'Image (Root_Dirty)
@@ -2862,6 +2866,36 @@ function Get_Size (W : in out Window) return Size_2D is
           Set_Debug_Stats (Ptr.all, Enabled);
        end if;
     end Set_Debug_Stats;
+
+    procedure Set_Texture_Budget
+      (W : in out Window; Bytes : Adi.Texture_Cache.Byte_Count) is
+    begin
+       Adi.Render.Set_Texture_Budget (W.Ctx, Bytes);
+    end Set_Texture_Budget;
+
+    procedure Set_Texture_Budget
+      (H : Window_Handle; Bytes : Adi.Texture_Cache.Byte_Count)
+    is
+       Ptr : constant Window_Access :=
+         Window_Access (Window_Stores.Get (H.Id));
+    begin
+       if Ptr /= null then
+          Set_Texture_Budget (Ptr.all, Bytes);
+       end if;
+    end Set_Texture_Budget;
+
+    function Get_Texture_Stats (W : Window) return Texture_Stats
+    is (Adi.Render.Get_Texture_Stats (W.Ctx));
+
+    function Get_Texture_Stats (H : Window_Handle) return Texture_Stats is
+       Ptr : constant Window_Access :=
+         Window_Access (Window_Stores.Get (H.Id));
+    begin
+       if Ptr = null then
+          return (others => <>);
+       end if;
+       return Get_Texture_Stats (Ptr.all);
+    end Get_Texture_Stats;
 
     procedure Connect_Post_Render
       (W : in out Window; CB : Post_Render_Proc) is

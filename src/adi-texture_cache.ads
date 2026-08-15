@@ -131,6 +131,12 @@ package Adi.Texture_Cache is
 
    function Borrow (C : in out Cache; H : Texture_Handle) return Texture_Ref;
 
+   --  A borrow of nothing: an empty region, holding no entry. What Borrow
+   --  itself returns for a handle that no longer names anything, and what
+   --  a caller with no cache left to borrow from can return in its place
+   --  rather than raising.
+   function Null_Borrow return Texture_Ref;
+
    ---------------------------------------------------------------------------
    --  Residency
    ---------------------------------------------------------------------------
@@ -147,12 +153,20 @@ package Adi.Texture_Cache is
    procedure Set_Budget (C : in out Cache; Bytes : Byte_Count);
    function Budget (C : Cache) return Byte_Count;
 
+   --  What recency is measured in. Wraps, and is only ever compared as a
+   --  difference, so the wrap costs nothing.
+   type Frame_Count is mod 2 ** 32;
+
    --  Call once per drawn frame. Recency breaks ties between entries of
    --  equal standing, and is counted in frames that were actually drawn: a
    --  serial advancing while nothing renders would penalise entries that
    --  never had the chance to be used. Frames above one covers a stretch
    --  that went undrawn.
    procedure Advance_Frame (C : in out Cache; Frames : Positive := 1);
+
+   --  How far the count has got, so a caller can confirm what it is
+   --  advancing and how often.
+   function Frames (C : Cache) return Frame_Count;
 
    --  Resolves a key to a handle without counting as a use. Null_Texture
    --  on a miss.
@@ -196,7 +210,7 @@ package Adi.Texture_Cache is
 
 private
 
-   type Frame_Serial is mod 2 ** 32;
+   subtype Frame_Serial is Frame_Count;
    type Slot_Generation is mod 2 ** 64;
    type Slot_Index is new Natural;
    type Cache_Serial is mod 2 ** 64;

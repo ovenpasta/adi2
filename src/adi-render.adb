@@ -21,10 +21,11 @@ package body Adi.Render is
    package Shadow_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type => Shadow_Key, Element_Type => SDL_Texture_Ptr);
 
-   type Render_Data is record
+   type Render_Data is limited record
       Renderer     : SDL_Renderer_Ptr;
       Shadow_Cache : Shadow_Maps.Map;
       Text_Engine  : TTF_TextEngine_Access := null;
+      Textures     : Adi.Texture_Cache.Cache;
    end record;
 
    procedure Free is new Ada.Unchecked_Deallocation
@@ -41,7 +42,84 @@ package body Adi.Render is
    begin
       Ctx.Data := new Render_Data;
       Ctx.Data.Renderer := Renderer;
+      Adi.Texture_Cache.Set_Budget
+        (Ctx.Data.Textures, Default_Texture_Budget);
    end Create;
+
+   -------------------
+   -- Texture cache --
+   -------------------
+
+   function Find_Texture
+     (Ctx : Render_Context;
+      Key : Adi.Texture_Cache.Texture_Key)
+      return Adi.Texture_Cache.Texture_Handle
+   is (if Ctx.Data = null then Adi.Texture_Cache.Null_Texture
+       else Adi.Texture_Cache.Find (Ctx.Data.Textures, Key));
+
+   function Is_Valid_Texture
+     (Ctx : Render_Context;
+      H   : Adi.Texture_Cache.Texture_Handle) return Boolean
+   is (Ctx.Data /= null
+       and then Adi.Texture_Cache.Is_Valid (Ctx.Data.Textures, H));
+
+   function Store_Texture
+     (Ctx        : in out Render_Context;
+      Key        : Adi.Texture_Cache.Texture_Key;
+      Texture    : SDL_Texture_Ptr;
+      Width      : Natural;
+      Height     : Natural;
+      Bytes      : Adi.Texture_Cache.Texture_Charge;
+      Build_Time : Adi.Clock.Time_Span)
+      return Adi.Texture_Cache.Texture_Handle
+   is (if Ctx.Data = null then Adi.Texture_Cache.Null_Texture
+       else Adi.Texture_Cache.Store
+              (Ctx.Data.Textures, Key, Texture, Width, Height, Bytes,
+               Build_Time));
+
+   function Borrow_Texture
+     (Ctx : in out Render_Context;
+      H   : Adi.Texture_Cache.Texture_Handle)
+      return Adi.Texture_Cache.Texture_Ref
+   is (if Ctx.Data = null then Adi.Texture_Cache.Null_Borrow
+       else Adi.Texture_Cache.Borrow (Ctx.Data.Textures, H));
+
+   procedure Clear_Textures (Ctx : in out Render_Context) is
+   begin
+      if Ctx.Data /= null then
+         Adi.Texture_Cache.Clear (Ctx.Data.Textures);
+      end if;
+   end Clear_Textures;
+
+   -------------------
+   -- Advance_Frame --
+   -------------------
+
+   procedure Advance_Frame (Ctx : in out Render_Context) is
+   begin
+      if Ctx.Data /= null then
+         Adi.Texture_Cache.Advance_Frame (Ctx.Data.Textures);
+      end if;
+   end Advance_Frame;
+
+   procedure Set_Texture_Budget
+     (Ctx : in out Render_Context; Bytes : Adi.Texture_Cache.Byte_Count) is
+   begin
+      if Ctx.Data /= null then
+         Adi.Texture_Cache.Set_Budget (Ctx.Data.Textures, Bytes);
+      end if;
+   end Set_Texture_Budget;
+
+   function Get_Texture_Stats (Ctx : Render_Context) return Texture_Stats is
+   begin
+      if Ctx.Data = null then
+         return (others => <>);
+      end if;
+      return (Budget     => Adi.Texture_Cache.Budget (Ctx.Data.Textures),
+              Bytes_Used => Adi.Texture_Cache.Bytes_Used (Ctx.Data.Textures),
+              Count      => Adi.Texture_Cache.Count (Ctx.Data.Textures),
+              Frames     => Adi.Texture_Cache.Frames (Ctx.Data.Textures));
+   end Get_Texture_Stats;
 
    -------------
    -- Destroy --
@@ -66,6 +144,9 @@ package body Adi.Render is
          Ctx.Data.Text_Engine := null;
       end if;
 
+      --  Finalizes the texture cache, which destroys the textures it holds.
+      --  The caller must not have destroyed the renderer yet: these textures
+      --  belong to it.
       Free (Ctx.Data);
    end Destroy;
 

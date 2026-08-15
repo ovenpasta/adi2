@@ -270,15 +270,20 @@ package body Adi.Texture_Cache is
    -- Borrow --
    ------------
 
+   function Null_Borrow return Texture_Ref is
+   begin
+      return (Ada.Finalization.Limited_Controlled with
+              Region => Null_Region'Access,
+              Data   => null,
+              Slot   => No_Slot);
+   end Null_Borrow;
+
    function Borrow (C : in out Cache; H : Texture_Handle) return Texture_Ref
    is
       D : constant Cache_Data_Access := C.Owner.Data;
    begin
       if not Is_Valid (C, H) then
-         return (Ada.Finalization.Limited_Controlled with
-                 Region => Null_Region'Access,
-                 Data   => null,
-                 Slot   => No_Slot);
+         return Null_Borrow;
       end if;
 
       declare
@@ -369,6 +374,9 @@ package body Adi.Texture_Cache is
          D.Frame := D.Frame + Frame_Serial (Frames);
       end if;
    end Advance_Frame;
+
+   function Frames (C : Cache) return Frame_Count is
+     (if C.Owner.Data = null then 0 else C.Owner.Data.Frame);
 
    ----------
    -- Find --

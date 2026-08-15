@@ -14,6 +14,7 @@ with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.SDL.Events;
 with Adi.Signal;
 with Adi.Handle_Store;
+with Adi.Texture_Cache;
 
 package Adi.Window is
     type Window is new Ada.Finalization.Limited_Controlled with private;
@@ -325,6 +326,26 @@ package Adi.Window is
     --  On-screen debug stats overlay (frame count, FPS, render time, layout count)
     procedure Set_Debug_Stats (W : in out Window; Enabled : Boolean);
     procedure Set_Debug_Stats (H : Window_Handle; Enabled : Boolean);
+
+    --  How many bytes of GPU textures this window keeps resident, defaulting
+    --  to Adi.Render.Default_Texture_Budget. Per window rather than per
+    --  process: a texture belongs to the renderer that made it, so two
+    --  windows cannot share one.
+    --
+    --  Lowering it evicts down to the new figure at once, except for entries
+    --  a draw currently holds.
+    procedure Set_Texture_Budget
+      (W : in out Window; Bytes : Adi.Texture_Cache.Byte_Count);
+    procedure Set_Texture_Budget
+      (H : Window_Handle; Bytes : Adi.Texture_Cache.Byte_Count);
+
+    --  What the cache holds now, for a program sizing its budget against
+    --  what it actually uses. Frames counts only the frames this window
+    --  drew, which is what the cache ages entries by.
+    subtype Texture_Stats is Adi.Render.Texture_Stats;
+
+    function Get_Texture_Stats (W : Window) return Texture_Stats;
+    function Get_Texture_Stats (H : Window_Handle) return Texture_Stats;
 
     --  Post-render callback, invoked after all widget rendering (including
     --  debug stats overlay) but before SDL_RenderPresent.

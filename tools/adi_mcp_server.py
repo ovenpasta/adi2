@@ -227,7 +227,14 @@ def perf_stats() -> str:
     """Get performance stats from the running Adi application.
 
     Returns frame number, FPS, and timing breakdowns (render, layout,
-    draw, present) in microseconds.
+    draw, present) in microseconds, plus a texture_cache object holding
+    the renderer's byte budget, current and peak residency, and a
+    breakdown per producer (shadow, raster, svg).
+
+    The budget bounds idle residency, not the scene: read idle_bytes
+    against it, not bytes. Each producer reports how its residency
+    divides now (active/idle/retired), plus hits, misses, stores,
+    pressure_evictions, headroom_evictions and cumulative build_us.
     """
     result = send_command({"command": "perf_stats"}, _target_pid)
     if result.get("status") != "ok":
@@ -235,6 +242,22 @@ def perf_stats() -> str:
     # Return all fields except status/req_id
     stats = {k: v for k, v in result.items() if k not in ("status", "req_id")}
     return json.dumps(stats, indent=2)
+
+
+@mcp.tool()
+def set_texture_budget(bytes: int) -> str:
+    """Set the window's idle texture budget, in bytes. Development only.
+
+    The budget bounds textures the cache retains for reuse, not those the
+    scene is drawing, so applying it after startup does not disturb an
+    active working set. Check that idle_bytes is zero before relying on a
+    measurement taken across a change of budget.
+    """
+    result = send_command(
+        {"command": "set_texture_budget", "bytes": int(bytes)}, _target_pid)
+    if result.get("status") != "ok":
+        raise RuntimeError(result.get("error", "set_texture_budget failed"))
+    return json.dumps({"budget": result.get("budget")}, indent=2)
 
 
 # ---------------------------------------------------------------------------

@@ -13,6 +13,9 @@ with Adi.Widget.Label;
 with Adi.Widget.Introspection; use Adi.Widget.Introspection;
 with Adi.Widget_Styles;        use Adi.Widget_Styles;
 with Adi.MCP;
+with Adi.MCP.Testing;
+with Adi.Render;
+with Adi.Texture_Cache;
 
 with Test_Support; use Test_Support;
 
@@ -526,6 +529,110 @@ procedure MCP_Test is
       end;
    end Test_Introspection_Get_Info;
 
+   --  The perf_stats texture_cache section. Asserted here rather than
+   --  against a running application, so a renamed or dropped field fails
+   --  the gate instead of surfacing the next time someone looks.
+   procedure Test_Texture_Cache_Schema is
+      use Adi.Texture_Cache;
+      use Ada.Strings.Fixed;
+
+      Stats : Adi.Render.Texture_Stats;
+      W     : Adi.JSON.JSON_Writer := Adi.JSON.Create;
+   begin
+      Section ("perf_stats texture cache schema");
+
+      Stats.Budget     := 64 * 1024 * 1024;
+      Stats.Bytes_Used := 3_000;
+      Stats.Peak_Bytes := 4_000;
+      Stats.Idle_Bytes := 1_000;
+      Stats.Count      := 2;
+      Stats.Frames     := 17;
+
+      --  Distinct per kind, so a serializer emitting one kind three times
+      --  would not agree with what it was given.
+      Stats.By_Kind (Shadow_Texture).Bytes    := 111;
+      Stats.By_Kind (Raster_Texture).Bytes    := 222;
+      Stats.By_Kind (SVG_Texture).Bytes       := 333;
+      Stats.By_Kind (Shadow_Texture).Pressure := 7;
+      Stats.By_Kind (Shadow_Texture).Headroom := 9;
+
+      W.Start_Object;
+      W.Key ("texture_cache");
+      Adi.MCP.Testing.Write_Texture_Cache (W, Stats);
+      W.End_Object;
+
+      declare
+         Doc : constant String := W.To_String;
+
+         function Occurrences (Field : String) return Natural is
+            Needle : constant String := """" & Field & """";
+            Found  : Natural := 0;
+            From   : Natural := Doc'First;
+            At_Pos : Natural;
+         begin
+            loop
+               exit when From > Doc'Last;
+               At_Pos := Index (Doc (From .. Doc'Last), Needle);
+               exit when At_Pos = 0;
+               Found := Found + 1;
+               From := At_Pos + Needle'Length;
+            end loop;
+            return Found;
+         end Occurrences;
+
+         procedure Expect (Field : String) is
+         begin
+            Assert (Occurrences (Field) > 0,
+                    "perf_stats texture_cache should carry " & Field);
+         end Expect;
+
+         --  Per-kind fields appear once for each of the three producers.
+         --  Counting matters for names the outer object also uses: a
+         --  missing per-kind figure would otherwise be masked by the
+         --  total that shares its name.
+         procedure Expect_Per_Kind (Field : String) is
+         begin
+            Assert (Occurrences (Field) >= 3,
+                    "every producer should report " & Field);
+         end Expect_Per_Kind;
+      begin
+         Expect ("texture_cache");
+         Expect ("budget");
+         Expect_Per_Kind ("bytes");
+         Expect_Per_Kind ("peak_bytes");
+         Expect_Per_Kind ("idle_bytes");
+         Expect_Per_Kind ("count");
+         Expect ("frames");
+         Expect ("shadow");
+         Expect ("raster");
+         Expect ("svg");
+         Expect_Per_Kind ("active_bytes");
+         Expect_Per_Kind ("active_count");
+         Expect_Per_Kind ("idle_count");
+         Expect_Per_Kind ("retired_bytes");
+         Expect_Per_Kind ("retired_count");
+         Expect_Per_Kind ("peak_count");
+         Expect_Per_Kind ("hits");
+         Expect_Per_Kind ("misses");
+         Expect_Per_Kind ("stores");
+         Expect_Per_Kind ("pressure_evictions");
+         Expect_Per_Kind ("headroom_evictions");
+         Expect_Per_Kind ("replaced");
+         Expect_Per_Kind ("cleared");
+         Expect_Per_Kind ("discarded");
+         Expect_Per_Kind ("refused");
+         Expect_Per_Kind ("build_us");
+
+         Assert (Index (Doc, "111") > 0
+                   and then Index (Doc, "222") > 0
+                   and then Index (Doc, "333") > 0,
+                 "and each kind's own figures, not one kind three times");
+         Assert (Index (Doc, "7") > 0 and then Index (Doc, "9") > 0,
+                 "with pressure and headroom both reported");
+      end;
+   end Test_Texture_Cache_Schema;
+
+
 begin
    Start_Suite ("MCP Test Suite");
    Put_Line ("");
@@ -540,6 +647,8 @@ begin
    Test_Introspection_Find_By_Text;
    Test_Introspection_Find_By_Type;
    Test_Introspection_Get_Info;
+
+   Test_Texture_Cache_Schema;
 
    Test_Support.Finish;
 end MCP_Test;

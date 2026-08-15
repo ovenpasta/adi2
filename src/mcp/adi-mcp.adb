@@ -11,11 +11,14 @@ with Ada.Text_IO;
 with GNAT.OS_Lib;
 
 with Adi.App;
+with Adi.Clock;
 with Adi.Core;                   use Adi.Core;
 with Adi.CSS_Styles;             use Adi.CSS_Styles;
 with Adi.JSON;
+with Adi.Render;
 with Adi.Screenshot;
 with Adi.SDL.Events;             use Adi.SDL.Events;
+with Adi.Texture_Cache;
 with Adi.SDL.Render;             use Adi.SDL.Render;
 with Adi.Widget;                 use Adi.Widget;
 with Adi.Widget.Introspection;   use Adi.Widget.Introspection;
@@ -25,6 +28,59 @@ with Adi.Widget.Text_Editor;
 with Adi.Widget_Styles;          use Adi.Widget_Styles;
 
 package body Adi.MCP is
+
+   procedure Write_Texture_Cache
+     (W     : in out Adi.JSON.JSON_Writer;
+      Stats : Adi.Render.Texture_Stats)
+   is
+      procedure Emit_Kind
+        (Name : String; K : Adi.Texture_Cache.Texture_Kind)
+      is
+         S : Adi.Texture_Cache.Kind_Stats renames Stats.By_Kind (K);
+      begin
+         W.Key (Name);
+         W.Start_Object;
+         W.Key_Value ("bytes", Long_Integer (S.Bytes));
+         W.Key_Value ("peak_bytes", Long_Integer (S.Peak_Bytes));
+         W.Key_Value ("count", Long_Integer (S.Count));
+         W.Key_Value ("peak_count", Long_Integer (S.Peak_Count));
+         --  How that residency divides now: the budget governs idle only,
+         --  so idle_bytes is what to read against it.
+         W.Key_Value ("active_bytes", Long_Integer (S.Active_Bytes));
+         W.Key_Value ("active_count", Long_Integer (S.Active_Count));
+         W.Key_Value ("idle_bytes", Long_Integer (S.Idle_Bytes));
+         W.Key_Value ("idle_count", Long_Integer (S.Idle_Count));
+         W.Key_Value ("retired_bytes", Long_Integer (S.Retired_Bytes));
+         W.Key_Value ("retired_count", Long_Integer (S.Retired_Count));
+         W.Key_Value ("hits", Long_Integer (S.Hits));
+         W.Key_Value ("misses", Long_Integer (S.Misses));
+         W.Key_Value ("stores", Long_Integer (S.Stores));
+         --  Counts the kind evicted, not the kind whose arrival caused
+         --  the pressure.
+         W.Key_Value ("pressure_evictions", Long_Integer (S.Pressure));
+         W.Key_Value ("headroom_evictions", Long_Integer (S.Headroom));
+         W.Key_Value ("replaced", Long_Integer (S.Replaced));
+         W.Key_Value ("cleared", Long_Integer (S.Cleared));
+         W.Key_Value ("discarded", Long_Integer (S.Discarded));
+         W.Key_Value ("refused", Long_Integer (S.Refused));
+         W.Key_Value ("build_us",
+           Long_Integer (Adi.Clock.To_Duration (S.Build_Time)
+                         * 1_000_000.0));
+         W.End_Object;
+      end Emit_Kind;
+   begin
+      W.Start_Object;
+      W.Key_Value ("budget", Long_Integer (Stats.Budget));
+      W.Key_Value ("bytes", Long_Integer (Stats.Bytes_Used));
+      W.Key_Value ("peak_bytes", Long_Integer (Stats.Peak_Bytes));
+      W.Key_Value ("idle_bytes", Long_Integer (Stats.Idle_Bytes));
+      W.Key_Value ("count", Long_Integer (Stats.Count));
+      W.Key_Value ("frames", Long_Integer (Stats.Frames));
+      Emit_Kind ("shadow", Adi.Texture_Cache.Shadow_Texture);
+      Emit_Kind ("raster", Adi.Texture_Cache.Raster_Texture);
+      Emit_Kind ("svg", Adi.Texture_Cache.SVG_Texture);
+      W.End_Object;
+   end Write_Texture_Cache;
 
    Active     : Boolean := False;
    MCP_Dir    : Unbounded_String;
@@ -111,6 +167,27 @@ package body Adi.MCP is
    exception
       when others => return "";
    end JSON_Get_String;
+
+   --  Byte counts reach past what Integer holds, and the JSON layer
+   --  already parses this width, so narrowing on the way in would reject
+   --  figures the cache can represent.
+   function JSON_Get_Long
+     (JSON_Text : String;
+      Key       : String;
+      Default   : Long_Integer := 0) return Long_Integer
+   is
+      use Adi.JSON;
+      P    : Parsers.Parser := Parsers.Create (JSON_Text);
+      Root : constant Types.JSON_Value := P.Parse;
+   begin
+      if Root.Contains (Key) then
+         return Long_Integer'(Root.Get (Key).Value);
+      end if;
+      return Default;
+   exception
+      when others =>
+         return Default;
+   end JSON_Get_Long;
 
    function JSON_Get_Int
      (JSON_Text : String; Key : String; Default : Integer := 0) return Integer
@@ -878,6 +955,10 @@ package body Adi.MCP is
             else
                W.Key_Value ("fps", Long_Float (0.0));
             end if;
+
+            W.Key ("texture_cache");
+            Write_Texture_Cache (W, Adi.Window.Get_Texture_Stats (Win));
+
             W.End_Object;
             return W.To_String;
          end;
@@ -1213,6 +1294,38 @@ package body Adi.MCP is
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
             W.Key_Value ("id", Long_Integer (Get_Id (Target)));
+            W.End_Object;
+            return W.To_String;
+         end;
+
+      elsif Cmd = "set_texture_budget" then
+         --  Development only, for measurement. Safe to apply after
+         --  startup: the budget governs idle residency, and a scene's
+         --  active textures are outside it either way. A harness should
+         --  still check that the baseline reports no idle bytes, since
+         --  lowering the budget over an existing idle set would evict
+         --  what the run was meant to observe.
+         declare
+            Bytes : constant Long_Integer :=
+              JSON_Get_Long (JSON, "bytes", Default => -1);
+            W     : Adi.JSON.JSON_Writer := Adi.JSON.Create;
+         begin
+            if Bytes < 0 then
+               return Error_Response (Req_Id, "bytes must be non-negative");
+            end if;
+            if Bytes > Long_Integer (Adi.Texture_Cache.Byte_Count'Last) then
+               return Error_Response
+                 (Req_Id, "bytes exceeds what the cache can account for");
+            end if;
+
+            Adi.Window.Set_Texture_Budget
+              (Win, Adi.Texture_Cache.Byte_Count (Bytes));
+
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
+            W.Key_Value ("budget",
+              Long_Integer (Adi.Window.Get_Texture_Stats (Win).Budget));
             W.End_Object;
             return W.To_String;
          end;

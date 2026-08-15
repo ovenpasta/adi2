@@ -3,6 +3,8 @@
 
 pragma Ada_2022;
 
+with Adi.JSON;
+with Adi.Render;
 with Adi.Window;
 
 package Adi.MCP is
@@ -24,5 +26,17 @@ package Adi.MCP is
 
    --  Whether MCP has been initialized and is active.
    function Is_Active return Boolean;
+
+
+
+private
+
+   --  The texture-cache section of perf_stats. Reachable from the testing
+   --  child so its schema can be asserted without a running application:
+   --  a renamed or dropped field would otherwise only show up against a
+   --  live process. Writes one object; the caller supplies the key.
+   procedure Write_Texture_Cache
+     (W     : in out Adi.JSON.JSON_Writer;
+      Stats : Adi.Render.Texture_Stats);
 
 end Adi.MCP;

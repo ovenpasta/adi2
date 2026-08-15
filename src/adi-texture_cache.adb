@@ -1,0 +1,544 @@
+--  Copyright (C) 2026 Aldo Nicolas Bruno
+--  SPDX-License-Identifier: Apache-2.0
+
+pragma Ada_2022;
+
+with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Vectors;
+with Ada.Unchecked_Deallocation;
+with Adi.SDL.Render; use Adi.SDL.Render;
+
+package body Adi.Texture_Cache is
+
+   use type Ada.Containers.Count_Type;
+
+   function "<" (L, R : Texture_Key) return Boolean is
+   begin
+      if L.Kind /= R.Kind then
+         return L.Kind < R.Kind;
+      elsif L.Source /= R.Source then
+         return L.Source < R.Source;
+      elsif L.Generation /= R.Generation then
+         return L.Generation < R.Generation;
+      elsif L.Extent_A /= R.Extent_A then
+         return L.Extent_A < R.Extent_A;
+      elsif L.Extent_B /= R.Extent_B then
+         return L.Extent_B < R.Extent_B;
+      end if;
+      return L.Variant < R.Variant;
+   end "<";
+
+   --  A slot outlives the entry occupying it: eviction bumps the
+   --  generation so handles issued for the old occupant stop matching,
+   --  and the index goes back on the free list for the next one.
+   type Slot is record
+      Region    : aliased Texture_Region;
+      Gen       : Slot_Generation := 1;
+      Occupied  : Boolean := False;
+      Pins      : Natural := 0;
+      --  Evicted while borrowed: unfindable already, destroyed when the
+      --  last borrow ends, and still charged until then.
+      Retiring  : Boolean := False;
+      Key       : Texture_Key;
+      Bytes     : Byte_Count := 0;
+      Micros    : Priority := 1;
+      Hits      : Natural := 1;
+      Last_Used : Frame_Serial := 0;
+      Standing  : Priority := 0;
+   end record;
+
+   type Slot_Access is access Slot;
+   procedure Free_Slot is new Ada.Unchecked_Deallocation (Slot, Slot_Access);
+
+   --  The table of pointers may be reallocated as it grows; the slots it
+   --  points at are not, so a region borrowed from one keeps its address.
+   package Slot_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Slot_Index, Element_Type => Slot_Access);
+
+   package Index_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Slot_Index);
+
+   package Key_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type => Texture_Key, Element_Type => Slot_Index);
+
+   type Cache_Data is record
+      Slots   : Slot_Vectors.Vector;
+      Free    : Index_Vectors.Vector;
+      By_Key  : Key_Maps.Map;
+      Bytes   : Byte_Count := 0;
+      Limit   : Byte_Count := 0;
+      Frame   : Frame_Serial := 0;
+      Serial  : Cache_Serial := 0;
+      --  Live borrows, and whether the cache itself has gone. The block is
+      --  freed by whichever of the two finishes last.
+      Refs        : Natural := 0;
+      Owner_Gone  : Boolean := False;
+      --  The floor: the standing of whatever was evicted last. An entry
+      --  touched afterwards is measured from here, so it competes with
+      --  what has been used since rather than with its own history.
+      Floor   : Priority := 0;
+   end record;
+
+   procedure Free_Data is new Ada.Unchecked_Deallocation
+     (Cache_Data, Cache_Data_Access);
+
+   Next_Serial : Cache_Serial := 0;
+
+   --  Free the block and every slot it allocated. Called by whichever of
+   --  the cache and its last borrow finishes second.
+   procedure Discard (D : in out Cache_Data_Access) is
+   begin
+      for I in D.Slots.First_Index .. D.Slots.Last_Index loop
+         declare
+            S : Slot_Access := D.Slots (I);
+         begin
+            Free_Slot (S);
+         end;
+      end loop;
+      Free_Data (D);
+   end Discard;
+
+   procedure Ensure (C : in out Cache) is
+   begin
+      if C.Owner.Data = null then
+         C.Owner.Data := new Cache_Data;
+         --  Slot 0 is the null sentinel and never occupied.
+         C.Owner.Data.Slots.Append (new Slot);
+         Next_Serial := Next_Serial + 1;
+         C.Owner.Data.Serial := Next_Serial;
+      end if;
+   end Ensure;
+
+   --  Microseconds of rebuilding this entry's use has saved, per byte it
+   --  holds. Scaled so a ratio below one survives integer division.
+   function Earned (S : Slot) return Priority is
+      Saved : constant Priority :=
+        Priority (S.Hits) * S.Micros * Ratio_Scale;
+   begin
+      if S.Bytes = 0 then
+         return Saved;
+      end if;
+      return Saved / Priority (S.Bytes);
+   end Earned;
+
+   function Standing_Of (Floor : Priority; S : Slot) return Priority is
+      Gain : constant Priority := Earned (S);
+   begin
+      if Gain > Priority'Last - Floor then
+         return Priority'Last;
+      end if;
+      return Floor + Gain;
+   end Standing_Of;
+
+   --  Bring every standing down by the floor and reset it. The ordering
+   --  between entries is unchanged, but the headroom is recovered: left to
+   --  climb, the floor eventually pins every standing at Priority'Last,
+   --  where cost and frequency stop separating anything and the policy
+   --  quietly degrades to recency.
+   procedure Renormalize (D : Cache_Data_Access) is
+      Floor : constant Priority := D.Floor;
+   begin
+      for I in D.Slots.First_Index .. D.Slots.Last_Index loop
+         declare
+            S : constant Slot_Access := D.Slots (I);
+         begin
+            if S.Occupied then
+               S.Standing := (if S.Standing > Floor then S.Standing - Floor
+                              else 0);
+            end if;
+         end;
+      end loop;
+      D.Floor := 0;
+   end Renormalize;
+
+   --  Release the SDL texture and return the slot to the free list. Only
+   --  called once nothing is borrowing it.
+   procedure Release (D : Cache_Data_Access; Index : Slot_Index) is
+      S : constant Slot_Access := D.Slots (Index);
+   begin
+      SDL_DestroyTexture (S.Region.Texture);
+      D.Bytes := D.Bytes - S.Bytes;
+      S.all := (Gen      => S.Gen + 1,
+                Occupied => False,
+                others   => <>);
+      D.Free.Append (Index);
+   end Release;
+
+   --  Stop an entry being found, and free it if nothing holds it. Its
+   --  bytes stay charged while a borrow does, because they cannot be
+   --  reused until that ends.
+   procedure Retire (D : Cache_Data_Access; Index : Slot_Index) is
+      S : constant Slot_Access := D.Slots (Index);
+   begin
+      if D.By_Key.Contains (S.Key) then
+         D.By_Key.Delete (S.Key);
+      end if;
+
+      if S.Pins = 0 then
+         Release (D, Index);
+      else
+         S.Retiring := True;
+      end if;
+   end Retire;
+
+   --  Drop the entry standing lowest and raise the floor to what it stood
+   --  at. Scanning is affordable: it happens only under pressure, beside
+   --  building the texture that caused it, which costs far more.
+   procedure Evict_One (D : Cache_Data_Access; Evicted : out Boolean) is
+      Victim : Slot_Index := No_Slot;
+      Lowest : Priority := Priority'Last;
+      Idlest : Frame_Serial := 0;
+      Now    : constant Frame_Serial := D.Frame;
+   begin
+      Evicted := False;
+
+      for Pos in D.By_Key.Iterate loop
+         declare
+            Index : constant Slot_Index := Key_Maps.Element (Pos);
+            S     : constant Slot_Access := D.Slots (Index);
+            Idle  : constant Frame_Serial := Now - S.Last_Used;
+         begin
+            if Victim = No_Slot
+              or else S.Standing < Lowest
+              or else (S.Standing = Lowest and then Idle > Idlest)
+            then
+               Victim := Index;
+               Lowest := S.Standing;
+               Idlest := Idle;
+            end if;
+         end;
+      end loop;
+
+      if Victim /= No_Slot then
+         D.Floor := Lowest;
+         Retire (D, Victim);
+         Evicted := True;
+
+         if D.Floor > Priority'Last / 2 then
+            Renormalize (D);
+         end if;
+      end if;
+   end Evict_One;
+
+   --  Evict until residency is at or below Ceiling, or until nothing
+   --  findable remains to evict.
+   procedure Evict_Down_To (D : Cache_Data_Access; Ceiling : Byte_Count) is
+      Evicted : Boolean;
+   begin
+      while D.Bytes > Ceiling loop
+         Evict_One (D, Evicted);
+         exit when not Evicted;
+      end loop;
+   end Evict_Down_To;
+
+   --  Make room for an incoming charge without ever forming the sum of it
+   --  and what is already resident: two individually legal charges can
+   --  exceed Byte_Count together, and the addition would raise before the
+   --  cache had a chance to evict anything.
+   procedure Make_Room (D : Cache_Data_Access; Incoming : Texture_Charge) is
+   begin
+      if Incoming > D.Limit then
+         Evict_Down_To (D, 0);
+      else
+         Evict_Down_To (D, D.Limit - Incoming);
+      end if;
+   end Make_Room;
+
+   --------------
+   -- Is_Valid --
+   --------------
+
+   function Is_Valid (C : Cache; H : Texture_Handle) return Boolean is
+      D : constant Cache_Data_Access := C.Owner.Data;
+   begin
+      if D = null
+        or else H.Slot = No_Slot
+        or else H.Owner /= D.Serial
+        or else H.Slot > D.Slots.Last_Index
+      then
+         return False;
+      end if;
+
+      declare
+         S : constant Slot_Access := D.Slots (H.Slot);
+      begin
+         return S.Occupied and then not S.Retiring and then S.Gen = H.Gen;
+      end;
+   end Is_Valid;
+
+   ------------
+   -- Borrow --
+   ------------
+
+   function Borrow (C : in out Cache; H : Texture_Handle) return Texture_Ref
+   is
+      D : constant Cache_Data_Access := C.Owner.Data;
+   begin
+      if not Is_Valid (C, H) then
+         return (Ada.Finalization.Limited_Controlled with
+                 Region => Null_Region'Access,
+                 Data   => null,
+                 Slot   => No_Slot);
+      end if;
+
+      declare
+         S : constant Slot_Access := D.Slots (H.Slot);
+      begin
+         S.Pins := S.Pins + 1;
+         --  Drawing it is what using it means, so the count and the frame
+         --  move here rather than in Find: a consumer that keeps a handle
+         --  and borrows every frame would otherwise look untouched.
+         if S.Hits < Hit_Ceiling then
+            S.Hits := S.Hits + 1;
+         end if;
+         S.Last_Used := D.Frame;
+         S.Standing := Standing_Of (D.Floor, S.all);
+
+         D.Refs := D.Refs + 1;
+
+         return (Ada.Finalization.Limited_Controlled with
+                 Region => S.Region'Access,
+                 Data   => D,
+                 Slot   => H.Slot);
+      end;
+   end Borrow;
+
+   overriding procedure Finalize (R : in out Texture_Ref) is
+   begin
+      if R.Data = null or else R.Slot = No_Slot then
+         return;
+      end if;
+
+      declare
+         D : Cache_Data_Access := R.Data;
+         S : constant Slot_Access := D.Slots (R.Slot);
+      begin
+         if S.Pins > 0 then
+            S.Pins := S.Pins - 1;
+         end if;
+
+         --  The eviction that happened while this borrow was open is only
+         --  now able to complete.
+         if S.Pins = 0 and then S.Retiring then
+            Release (D, R.Slot);
+         end if;
+
+         R.Data := null;
+         R.Slot := No_Slot;
+
+         D.Refs := D.Refs - 1;
+
+         --  Whichever of the cache and its last borrow finishes second
+         --  frees the block, so a borrow can outlive the cache without
+         --  reading freed memory.
+         if D.Owner_Gone and then D.Refs = 0 then
+            Discard (D);
+         end if;
+      end;
+   end Finalize;
+
+   ----------------
+   -- Set_Budget --
+   ----------------
+
+   procedure Set_Budget (C : in out Cache; Bytes : Byte_Count) is
+   begin
+      Ensure (C);
+      declare
+         D : constant Cache_Data_Access := C.Owner.Data;
+      begin
+      D.Limit := Bytes;
+      --  A budget describes what is resident now, not merely what the next
+      --  store may add, so lowering it takes effect at once -- strictly,
+      --  including over an entry that was oversized when it arrived.
+         Evict_Down_To (D, Bytes);
+      end;
+   end Set_Budget;
+
+   function Budget (C : Cache) return Byte_Count is
+     (if C.Owner.Data = null then 0 else C.Owner.Data.Limit);
+
+   -------------------
+   -- Advance_Frame --
+   -------------------
+
+   procedure Advance_Frame (C : in out Cache; Frames : Positive := 1) is
+      D : constant Cache_Data_Access := C.Owner.Data;
+   begin
+      if D /= null then
+         D.Frame := D.Frame + Frame_Serial (Frames);
+      end if;
+   end Advance_Frame;
+
+   ----------
+   -- Find --
+   ----------
+
+   function Find (C : Cache; Key : Texture_Key) return Texture_Handle
+   is
+      D : constant Cache_Data_Access := C.Owner.Data;
+   begin
+      if D = null then
+         return Null_Texture;
+      end if;
+
+      declare
+         Pos : constant Key_Maps.Cursor := D.By_Key.Find (Key);
+      begin
+         if Key_Maps.Has_Element (Pos) = False then
+            return Null_Texture;
+         end if;
+
+         declare
+            Index : constant Slot_Index := Key_Maps.Element (Pos);
+            S     : constant Slot_Access := D.Slots (Index);
+         begin
+            --  Resolving is not using: the hit is counted when the entry
+            --  is actually borrowed to be drawn.
+            return (Owner => D.Serial, Slot => Index, Gen => S.Gen);
+         end;
+      end;
+   end Find;
+
+   -----------
+   -- Store --
+   -----------
+
+   function Store
+     (C          : in out Cache;
+      Key        : Texture_Key;
+      Texture    : SDL_Texture_Ptr;
+      Width      : Natural;
+      Height     : Natural;
+      Bytes      : Texture_Charge;
+      Build_Time : Adi.Clock.Time_Span) return Texture_Handle
+   is
+      Raw    : constant Duration := Adi.Clock.To_Duration (Build_Time);
+      Micros : constant Priority :=
+        Priority'Max (1, Priority'Min (Micros_Ceiling,
+                                       Priority (Raw * 1_000_000.0)));
+      Index  : Slot_Index;
+      Fresh  : Slot;
+      D      : Cache_Data_Access;
+   begin
+      Ensure (C);
+      D := C.Owner.Data;
+
+      if Texture = null then
+         return Null_Texture;
+      end if;
+
+      --  Replacing an entry retires the one it displaces.
+      declare
+         Pos : constant Key_Maps.Cursor := D.By_Key.Find (Key);
+      begin
+         if Key_Maps.Has_Element (Pos) then
+            Retire (D, Key_Maps.Element (Pos));
+         end if;
+      end;
+
+      --  Make room before the entry exists, so the arriving texture is
+      --  never a candidate for its own eviction: the caller is about to
+      --  draw with what this call returns.
+      Make_Room (D, Bytes);
+
+      --  Entries under borrow cannot be evicted, so room may not have been
+      --  found. Refuse rather than form a total the type cannot hold: the
+      --  insert would otherwise raise after the slot and key were already
+      --  in place, leaving the accounting wrong.
+      if D.Bytes > Byte_Count'Last - Bytes then
+         return Null_Texture;
+      end if;
+
+      if D.Free.Is_Empty then
+         D.Slots.Append (new Slot);
+         Index := D.Slots.Last_Index;
+      else
+         Index := D.Free.Last_Element;
+         D.Free.Delete_Last;
+      end if;
+
+      Fresh := D.Slots (Index).all;
+      Fresh.Region := (Texture => Texture, X => 0, Y => 0,
+                       Width => Width, Height => Height);
+      Fresh.Occupied := True;
+      Fresh.Retiring := False;
+      Fresh.Pins := 0;
+      Fresh.Key := Key;
+      Fresh.Bytes := Bytes;
+      Fresh.Micros := Micros;
+      Fresh.Hits := 1;
+      Fresh.Last_Used := D.Frame;
+      Fresh.Standing := 0;
+      Fresh.Standing := Standing_Of (D.Floor, Fresh);
+
+      D.Slots (Index).all := Fresh;
+      D.By_Key.Insert (Key, Index);
+      D.Bytes := D.Bytes + Bytes;
+
+      return (Owner => D.Serial, Slot => Index, Gen => Fresh.Gen);
+   end Store;
+
+   -----------
+   -- Clear --
+   -----------
+
+   procedure Clear (C : in out Cache) is
+      D : constant Cache_Data_Access := C.Owner.Data;
+   begin
+      if D = null then
+         return;
+      end if;
+
+      while not D.By_Key.Is_Empty loop
+         Retire (D, D.By_Key.First_Element);
+      end loop;
+      D.Floor := 0;
+   end Clear;
+
+   --------------
+   -- Finalize --
+   --------------
+
+   overriding procedure Finalize (O : in out Cache_Owner) is
+      D : Cache_Data_Access := O.Data;
+   begin
+      if D = null then
+         return;
+      end if;
+      O.Data := null;
+
+      --  Retire everything findable first, so nothing can still be looked
+      --  up while the textures are going.
+      while not D.By_Key.Is_Empty loop
+         Retire (D, D.By_Key.First_Element);
+      end loop;
+
+      --  The renderer is going, so every texture goes with it, borrowed or
+      --  not: leaving one alive would outlast the renderer that owns it.
+      --  A borrow still open is left pointing at a null texture, which it
+      --  can see, rather than at a freed one, which it cannot.
+      for I in D.Slots.First_Index .. D.Slots.Last_Index loop
+         if D.Slots (I).Occupied then
+            SDL_DestroyTexture (D.Slots (I).Region.Texture);
+            D.Slots (I).Region.Texture := null;
+         end if;
+      end loop;
+
+      D.Owner_Gone := True;
+
+      --  The bookkeeping outlives the cache when a borrow is still open;
+      --  that borrow frees it.
+      if D.Refs = 0 then
+         Discard (D);
+      end if;
+   end Finalize;
+
+   function Bytes_Used (C : Cache) return Byte_Count is
+     (if C.Owner.Data = null then 0 else C.Owner.Data.Bytes);
+
+   function Count (C : Cache) return Natural is
+     (if C.Owner.Data = null then 0
+      else Natural (C.Owner.Data.By_Key.Length));
+
+end Adi.Texture_Cache;

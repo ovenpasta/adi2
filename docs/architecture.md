@@ -69,22 +69,20 @@
 
 **Adi.Image** (`adi-image.ads`): Image resource with surface-based loading and lazy GPU texture creation.
 - Raster images are loaded as `SDL_Surface` (CPU memory) via `IMG_Load` — no renderer required at load time
-- GPU textures are created lazily per renderer on first `Get_Texture(Renderer)` call, cached by renderer pointer for multi-window support
+- GPU textures are created lazily on first lease and held by the render context's texture cache, so two windows keep two sets
 - SVG images store the parsed document and rasterize on demand per `(renderer, size)` tuple
 - `Load_From_File(Path)`: loads raster as surface, SVG as parsed document — no renderer parameter
 - `Load_SVG_From_String(Source)`: loads SVG markup directly into an image resource
 - `Load_SVG_Path(Path_Data, Size, ...)`: builds an SVG image from a single path string
 - `Create_From_Surface(Surface)`: wraps an existing `SDL_Surface` — used by raster crop in `Adi.Assets`
-- `Get_Surface(Img)`: returns the underlying `SDL_Surface_Ptr` (null for SVG/texture-only images)
-- `Get_Texture(Img, Renderer)`: returns cached texture or creates one from the surface for that renderer
-- `Get_Texture_For_Size(Img, Renderer, W, H)`: for SVG, rasterizes and caches per `(renderer, width, height)`. The cache holds at most `Max_Sized_Textures` (8) rasters **per image, per renderer**; a ninth size evicts the least recently used one. Eviction only ever destroys textures belonging to the renderer being drawn with, which is live by construction. Recency is stored as a rank within the cache rather than a running counter, so nothing accumulates over process lifetime. `Cached_Texture_Count(Img)` reports the current total across renderers and `Has_Sized_Texture(Img, Renderer, W, H)` tests for one entry. Eviction runs after the replacement raster is uploaded, so a request that fails to rasterize leaves the cache intact. The bound is a count, not a byte budget, so it is generous for icons and coarse for large artwork: eight rasters of a 2560×1314 image is ~108 MB. A widget that fills a resizing window therefore holds up to eight full-size rasters — size-aware budgeting or quantized rasterization sizes would bound that properly.
+- `Get_Surface(Img)`: returns the underlying `SDL_Surface_Ptr` (null for SVG images)
+- `Acquire_Texture(Img, Ctx, W, H)`: leases a texture from the context's `Adi.Texture_Cache`, rasterizing or uploading one if none is held. The SDL pointer is reachable only through the returned `Texture_Ref` and only while it lives; the lease pins the entry against eviction and outlives the image with its texture intact; it may outlive the context only as readable bookkeeping with a null texture, since the renderer goes with the context
 - `Image_Scale_Mode`: `Scale_Linear` (default bilinear), `Scale_Nearest` (sharp nearest-neighbor), `Scale_Pixelart` (nearest with integer snap, SDL 3.3+)
-- `Set_Scale_Mode(Img, Mode)` / `Get_Scale_Mode(Img)`: per-image texture scaling; `Set_Scale_Mode` updates all existing cached textures in-place; new textures inherit the mode at creation
+- `Set_Scale_Mode(Img, Mode)` / `Get_Scale_Mode(Img)`: per-image texture scaling; the mode is part of a texture's key, so a later lease finds or builds one made for it
 - `Set_Tintable(Img)` / `Is_Tintable(Img)`: mark/query tintable flag (white-on-transparent, recolored by CSS `color`)
-- `Release_Textures_For_Renderer(Img, Renderer)`: evicts and destroys all cached textures for a specific renderer from one image
-- `Release_All_Textures_For_Renderer(Renderer)`: global — iterates all live images via an internal registry and evicts textures for that renderer; called automatically by `Adi.Window.Finalize` before destroying the renderer
-- `Free(Img)`: destroys internals, unregisters from the live image registry, and deallocates the `Image_Access` object; safe to call with null
-- All constructors register the returned `Image_Access` in a package-body-level live image set; `Destroy`/`Free` unregister
+- Freeing an image leaves its entries resident until budget pressure or context destruction reclaims them. They keep the standing they earned; what changes is that nothing hits them again, so the rising floor overtakes them
+- `Free(Img)`: destroys internals and deallocates the `Image_Access` object; safe to call with null
+- Each constructor assigns a `Source_Id` from a counter rather than reusing the image's address, which a later allocation could repeat and so find a dead image's cache entries
 
 **Adi.Assets** (`adi-assets.ads`): Global cached asset loader with scheme-based URI routing.
 - Module-level API (like `Adi.Font`) — no instance type, no Window/Renderer dependency

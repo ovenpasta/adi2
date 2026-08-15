@@ -10,7 +10,6 @@ with Interfaces.C.Strings;
 with Adi.Log;
 with Adi.SDL; use Adi.SDL;
 with Adi.Layout_Util; use Adi.Layout_Util;
-with Adi.Image;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget_Styles;
 
@@ -2793,7 +2792,6 @@ function Get_Size (W : in out Window) return Size_2D is
       Adi.Render.Destroy (W.Ctx);
       if W.Internal /= null then
          if W.Internal.ren /= null then
-            Adi.Image.Release_All_Textures_For_Renderer (W.Internal.ren);
             SDL_DestroyRenderer (W.Internal.ren);
          end if;
          if W.Internal.win /= null then

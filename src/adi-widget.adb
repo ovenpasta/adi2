@@ -5739,11 +5739,12 @@ package body Adi.Widget is
    end Render_Rounded_Image;
 
    procedure Render_Image_Item (
-      Renderer   : SDL_Renderer_Ptr;
+      Ctx        : in out Render_Context;
       Geom       : Rectangle;
       Source     : Image_Access;
       Style      : Resolved_Style)
    is
+      Renderer   : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
       Color_Tint : constant Boolean :=
         Source /= null and then Adi.Image.Is_Tintable (Source.all);
       Texture          : SDL_Texture_Ptr;
@@ -5930,152 +5931,159 @@ package body Adi.Widget is
          end;
       end if;
 
-      Texture := Get_Texture_For_Size (Source.all, Renderer, Req_W, Req_H);
-      if Texture = null then
-         Texture := Get_Texture (Source.all, Renderer);
-      end if;
-      if Texture = null then
-         return;
-      end if;
-
-      Tex_W_F := Float (Img_W);
-      Tex_H_F := Float (Img_H);
-      Success := SDL_GetTextureSize (Texture, Tex_W_F'Access, Tex_H_F'Access);
-      if not Boolean (Success) or else Tex_W_F <= 0.0 or else Tex_H_F <= 0.0 then
-         Tex_W_F := Float (Img_W);
-         Tex_H_F := Float (Img_H);
-      end if;
-
-      Dst_Rect.x := Float (Dst_X);
-      Dst_Rect.y := Float (Dst_Y);
-      Dst_Rect.w := Float (Dst_W);
-      Dst_Rect.h := Float (Dst_H);
-
-      --  Clip image rendering to item bounds so object-fit:none and oversized
-      --  images are cropped instead of bleeding outside the widget viewport.
-      if Use_Clip then
-         Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved,
-            Image_Item);
-         Clip_Replaced := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
-      end if;
-
-      if Clip_Replaced then
-         X1 := Integer (Float'Floor (Float (Geom.X)));
-         Y1 := Integer (Float'Floor (Float (Geom.Y)));
-         X2 := X1 + Integer (Float'Ceiling (Float (Geom.Width)));
-         Y2 := Y1 + Integer (Float'Ceiling (Float (Geom.Height)));
-
-         if Clip_Saved then
-            X1 := Integer'Max (X1, Integer (Prev_Clip.x));
-            Y1 := Integer'Max (Y1, Integer (Prev_Clip.y));
-            X2 := Integer'Min (X2, Integer (Prev_Clip.x + Prev_Clip.w));
-            Y2 := Integer'Min (Y2, Integer (Prev_Clip.y + Prev_Clip.h));
-         end if;
-
-         if X2 <= X1 or else Y2 <= Y1 then
-            Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved, Image_Item);
+      --  The lease lasts the whole draw. Every step below reads the
+      --  texture again -- its size, its clip, its modulation, its
+      --  rendering -- and the image's textures are evictable, so a
+      --  pointer taken now and used later would outlive what it names.
+      declare
+         Lease : constant Adi.Texture_Cache.Texture_Ref :=
+           Adi.Image.Acquire_Texture (Source.all, Ctx, Req_W, Req_H);
+      begin
+         Texture := Lease.Texture;
+         if Texture = null then
             return;
          end if;
 
-         Clip_Rect :=
-           (x => int (X1),
-            y => int (Y1),
-            w => int (X2 - X1),
-            h => int (Y2 - Y1));
-         Set_Clip (Renderer, Clip_Rect'Access, Image_Item);
-      end if;
 
-      --  For modes where the image may not fill the container (Contain,
-      --  None, Scale_Down), reduce corner radii based on how much the
-      --  image is inset from each container edge.  If the image edge
-      --  doesn't reach the container's rounded corner region, that
-      --  corner needs no rounding.
-      if Style.Object_Fit /= Fit_Fill
-         and then Style.Object_Fit /= Fit_Cover
-         and then Max_Rad > 0.0
-      then
-         declare
-            Inset_L : constant Float := Float (Dst_X - Geom.X);
-            Inset_T : constant Float := Float (Dst_Y - Geom.Y);
-            Inset_R : constant Float :=
-               Float ((Geom.X + Geom.Width) - (Dst_X + Dst_W));
-            Inset_B : constant Float :=
-               Float ((Geom.Y + Geom.Height) - (Dst_Y + Dst_H));
-         begin
-            Radius_Px.Top_Left := Float'Max (0.0, Float'Min (
-               Radius_Px.Top_Left - Inset_L,
-               Radius_Px.Top_Left - Inset_T));
-            Radius_Px.Top_Right := Float'Max (0.0, Float'Min (
-               Radius_Px.Top_Right - Inset_R,
-               Radius_Px.Top_Right - Inset_T));
-            Radius_Px.Bottom_Right := Float'Max (0.0, Float'Min (
-               Radius_Px.Bottom_Right - Inset_R,
-               Radius_Px.Bottom_Right - Inset_B));
-            Radius_Px.Bottom_Left := Float'Max (0.0, Float'Min (
-               Radius_Px.Bottom_Left - Inset_L,
-               Radius_Px.Bottom_Left - Inset_B));
-            Max_Rad := Float'Max
-               (Float'Max (Radius_Px.Top_Left, Radius_Px.Top_Right),
-                Float'Max (Radius_Px.Bottom_Right, Radius_Px.Bottom_Left));
-         end;
-      end if;
+         Tex_W_F := Float (Img_W);
+         Tex_H_F := Float (Img_H);
+         Success := SDL_GetTextureSize (Texture, Tex_W_F'Access, Tex_H_F'Access);
+         if not Boolean (Success) or else Tex_W_F <= 0.0 or else Tex_H_F <= 0.0 then
+            Tex_W_F := Float (Img_W);
+            Tex_H_F := Float (Img_H);
+         end if;
 
-      if Max_Rad > 0.0 then
-         if Color_Tint then
+         Dst_Rect.x := Float (Dst_X);
+         Dst_Rect.y := Float (Dst_Y);
+         Dst_Rect.w := Float (Dst_W);
+         Dst_Rect.h := Float (Dst_H);
+
+         --  Clip image rendering to item bounds so object-fit:none and oversized
+         --  images are cropped instead of bleeding outside the widget viewport.
+         if Use_Clip then
+            Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved,
+               Image_Item);
+            Clip_Replaced := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
+         end if;
+
+         if Clip_Replaced then
+            X1 := Integer (Float'Floor (Float (Geom.X)));
+            Y1 := Integer (Float'Floor (Float (Geom.Y)));
+            X2 := X1 + Integer (Float'Ceiling (Float (Geom.Width)));
+            Y2 := Y1 + Integer (Float'Ceiling (Float (Geom.Height)));
+
+            if Clip_Saved then
+               X1 := Integer'Max (X1, Integer (Prev_Clip.x));
+               Y1 := Integer'Max (Y1, Integer (Prev_Clip.y));
+               X2 := Integer'Min (X2, Integer (Prev_Clip.x + Prev_Clip.w));
+               Y2 := Integer'Min (Y2, Integer (Prev_Clip.y + Prev_Clip.h));
+            end if;
+
+            if X2 <= X1 or else Y2 <= Y1 then
+               Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved, Image_Item);
+               return;
+            end if;
+
+            Clip_Rect :=
+              (x => int (X1),
+               y => int (Y1),
+               w => int (X2 - X1),
+               h => int (Y2 - Y1));
+            Set_Clip (Renderer, Clip_Rect'Access, Image_Item);
+         end if;
+
+         --  For modes where the image may not fill the container (Contain,
+         --  None, Scale_Down), reduce corner radii based on how much the
+         --  image is inset from each container edge.  If the image edge
+         --  doesn't reach the container's rounded corner region, that
+         --  corner needs no rounding.
+         if Style.Object_Fit /= Fit_Fill
+            and then Style.Object_Fit /= Fit_Cover
+            and then Max_Rad > 0.0
+         then
             declare
-               CR, CG, CB, CA : Uint8;
+               Inset_L : constant Float := Float (Dst_X - Geom.X);
+               Inset_T : constant Float := Float (Dst_Y - Geom.Y);
+               Inset_R : constant Float :=
+                  Float ((Geom.X + Geom.Width) - (Dst_X + Dst_W));
+               Inset_B : constant Float :=
+                  Float ((Geom.Y + Geom.Height) - (Dst_Y + Dst_H));
             begin
-               CSS_Color_To_SDL (Style.Color, CR, CG, CB, CA);
+               Radius_Px.Top_Left := Float'Max (0.0, Float'Min (
+                  Radius_Px.Top_Left - Inset_L,
+                  Radius_Px.Top_Left - Inset_T));
+               Radius_Px.Top_Right := Float'Max (0.0, Float'Min (
+                  Radius_Px.Top_Right - Inset_R,
+                  Radius_Px.Top_Right - Inset_T));
+               Radius_Px.Bottom_Right := Float'Max (0.0, Float'Min (
+                  Radius_Px.Bottom_Right - Inset_R,
+                  Radius_Px.Bottom_Right - Inset_B));
+               Radius_Px.Bottom_Left := Float'Max (0.0, Float'Min (
+                  Radius_Px.Bottom_Left - Inset_L,
+                  Radius_Px.Bottom_Left - Inset_B));
+               Max_Rad := Float'Max
+                  (Float'Max (Radius_Px.Top_Left, Radius_Px.Top_Right),
+                   Float'Max (Radius_Px.Bottom_Right, Radius_Px.Bottom_Left));
+            end;
+         end if;
+
+         if Max_Rad > 0.0 then
+            if Color_Tint then
+               declare
+                  CR, CG, CB, CA : Uint8;
+               begin
+                  CSS_Color_To_SDL (Style.Color, CR, CG, CB, CA);
+                  Render_Rounded_Image
+                     (Renderer, Dst_Rect, Radius_Px, Texture,
+                      U0, V0, U1, V1, Float (Style.Opacity),
+                      Tint_R => Float (CR) / 255.0,
+                      Tint_G => Float (CG) / 255.0,
+                      Tint_B => Float (CB) / 255.0);
+               end;
+            else
                Render_Rounded_Image
                   (Renderer, Dst_Rect, Radius_Px, Texture,
-                   U0, V0, U1, V1, Float (Style.Opacity),
-                   Tint_R => Float (CR) / 255.0,
-                   Tint_G => Float (CG) / 255.0,
-                   Tint_B => Float (CB) / 255.0);
-            end;
+                   U0, V0, U1, V1, Float (Style.Opacity));
+            end if;
          else
-            Render_Rounded_Image
-               (Renderer, Dst_Rect, Radius_Px, Texture,
-                U0, V0, U1, V1, Float (Style.Opacity));
-         end if;
-      else
-         if Color_Tint then
-            declare
-               CR, CG, CB, CA : Uint8;
-            begin
-               CSS_Color_To_SDL (Style.Color, CR, CG, CB, CA);
-               Success := SDL_SetTextureColorModFloat
-                 (Texture,
-                  Float (CR) / 255.0,
-                  Float (CG) / 255.0,
-                  Float (CB) / 255.0);
-            end;
-         end if;
-         Success := SDL_SetTextureAlphaModFloat
-           (Texture, Float (Style.Opacity));
-         if U0 /= 0.0 or else V0 /= 0.0
-            or else U1 /= 1.0 or else V1 /= 1.0
-         then
-            --  Cropped source (Cover mode without rounding)
-            declare
-               Src_Rect : aliased SDL_FRect :=
-                  (x => U0 * Tex_W_F,
-                   y => V0 * Tex_H_F,
-                   w => (U1 - U0) * Tex_W_F,
-                   h => (V1 - V0) * Tex_H_F);
-            begin
+            if Color_Tint then
+               declare
+                  CR, CG, CB, CA : Uint8;
+               begin
+                  CSS_Color_To_SDL (Style.Color, CR, CG, CB, CA);
+                  Success := SDL_SetTextureColorModFloat
+                    (Texture,
+                     Float (CR) / 255.0,
+                     Float (CG) / 255.0,
+                     Float (CB) / 255.0);
+               end;
+            end if;
+            Success := SDL_SetTextureAlphaModFloat
+              (Texture, Float (Style.Opacity));
+            if U0 /= 0.0 or else V0 /= 0.0
+               or else U1 /= 1.0 or else V1 /= 1.0
+            then
+               --  Cropped source (Cover mode without rounding)
+               declare
+                  Src_Rect : aliased SDL_FRect :=
+                     (x => U0 * Tex_W_F,
+                      y => V0 * Tex_H_F,
+                      w => (U1 - U0) * Tex_W_F,
+                      h => (V1 - V0) * Tex_H_F);
+               begin
+                  Success := SDL_RenderTexture
+                     (Renderer, Texture, Src_Rect'Access, Dst_Rect'Access);
+               end;
+            else
                Success := SDL_RenderTexture
-                  (Renderer, Texture, Src_Rect'Access, Dst_Rect'Access);
-            end;
-         else
-            Success := SDL_RenderTexture
-               (Renderer, Texture, null, Dst_Rect'Access);
+                  (Renderer, Texture, null, Dst_Rect'Access);
+            end if;
          end if;
-      end if;
 
-      if Clip_Replaced then
-         Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved, Image_Item);
-      end if;
+         if Clip_Replaced then
+            Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved, Image_Item);
+         end if;
+      end;
    end Render_Image_Item;
 
    ---------------------------------------------------------------------------
@@ -6297,7 +6305,7 @@ package body Adi.Widget is
 
                   when Image_Item =>
                      Render_Image_Item (
-                        Renderer,
+                        Ctx,
                         Current.Geometry,
                         Current.Image_Source,
                         Style);

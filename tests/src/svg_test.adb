@@ -6,7 +6,9 @@ with Ada.Unchecked_Deallocation;
 with Adi.Core;
 with Adi.Image;
 with Adi.SDL;
+with Adi.Render;
 with Adi.SDL.Render;   use Adi.SDL.Render;
+with Adi.Texture_Cache;
 with Adi.SVG;
 with Adi.Window;
 with Interfaces;
@@ -139,8 +141,6 @@ procedure Svg_Test is
       end if;
    end Release;
 
-   --  Adi.Image.Free also drops the image from the registry that
-   --  Release_All_Textures_For_Renderer walks.
    procedure Release_Image (Img : in out Adi.Image.Image_Access)
      renames Adi.Image.Free;
 
@@ -844,23 +844,36 @@ procedure Svg_Test is
       New_Line;
    end Test_Complex_SVG_Rendering;
 
-   --  A widget that follows a window resize asks for a different pixel
-   --  size on every frame of the drag, so the per-size raster cache has
-   --  to drop what it no longer needs.
-   procedure Test_Sized_Texture_Cache_Is_Bounded is
+   --  What is SVG-specific about caching: a document rasterises to a
+   --  distinct texture per size and per scale mode, a lease keeps what it
+   --  names alive through churn, and residency is charged in bytes by the
+   --  renderer rather than counted per image.
+   --
+   --  Which entry an eviction picks is the cache's policy, not this
+   --  document's, and is settled in texture_cache_test where cost and
+   --  charge can be supplied rather than measured.
+   procedure Test_Sized_Rasters_Are_Distinct_Entries is
       Ok  : Adi.SDL.C_bool;
       W   : Adi.Window.Window_Handle;
       Img : Adi.Image.Image_Access := null;
       Ren : SDL_Renderer_Ptr;
-      Tex : SDL_Texture_Ptr;
-      Cap : constant Natural := Adi.Image.Max_Sized_Textures;
+      Ctx : Adi.Render.Render_Context;
+
+      use type Adi.Texture_Cache.Byte_Count;
 
       function Size_W (I : Natural) return Adi.Core.Pixel_Type is
         (Adi.Core.Pixel_Type (40 + I * 3));
       function Size_H (I : Natural) return Adi.Core.Pixel_Type is
         (Adi.Core.Pixel_Type (30 + I * 2));
+
+      function Leased (W_Px, H_Px : Adi.Core.Pixel_Type) return Boolean is
+         L : constant Adi.Texture_Cache.Texture_Ref :=
+           Adi.Image.Acquire_Texture (Img.all, Ctx, W_Px, H_Px);
+      begin
+         return L.Texture /= null;
+      end Leased;
    begin
-      Put_Line ("Test: the sized-texture cache stays bounded");
+      Put_Line ("Test: sized rasters are distinct cache entries");
 
       Ada.Environment_Variables.Set ("SDL_VIDEODRIVER", "dummy");
       Ok := Adi.SDL.SDL_Init (Adi.SDL.SDL_INIT_VIDEO);
@@ -872,71 +885,155 @@ procedure Svg_Test is
       W := Adi.Window.Create_Window_Handle ("SVG Cache Probe", (200.0, 200.0));
       Ren := Adi.Window.Get_Renderer (Adi.Window.Resolve_Window_Handle (W).all);
       Assert (Ren /= null, "the probe window has a renderer");
+      Adi.Render.Create (Ctx, Ren);
 
       Img := Adi.Image.Load_From_File ("tests/assets/size_viewbox.svg");
       Assert (Img /= null, "the fixture SVG loads");
 
       if Img /= null and then Ren /= null then
-         --  Fill the cache exactly, checking each raster was really
-         --  produced: a run of failed creations would satisfy any
-         --  bound-only assertion.
+         --  Each size is its own entry, and each really rasterised: a run
+         --  of failed creations would satisfy a count-only assertion.
          declare
             All_Made : Boolean := True;
+            Sizes    : constant := 8;
+            Expected : Adi.Texture_Cache.Byte_Count := 0;
          begin
-            for I in 1 .. Cap loop
-               Tex := Adi.Image.Get_Texture_For_Size
-                 (Img.all, Ren, Size_W (I), Size_H (I));
-               All_Made := All_Made and then Tex /= null;
+            for I in 1 .. Sizes loop
+               All_Made := All_Made and then Leased (Size_W (I), Size_H (I));
+               Expected := Expected
+                 + Adi.Texture_Cache.Byte_Count (Integer (Size_W (I)))
+                   * Adi.Texture_Cache.Byte_Count (Integer (Size_H (I))) * 4;
             end loop;
 
-            Assert (All_Made, "every raster up to the cap is created");
-            Assert
-              (Adi.Image.Cached_Texture_Count (Img.all) = Cap,
-               "the cache holds exactly the cap");
+            Assert (All_Made, "every requested size rasterises");
+            Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = Sizes,
+                    "and each size occupies its own entry, since the size"
+                    & " is part of what identifies the texture");
+            Assert (Adi.Render.Get_Texture_Stats (Ctx).Bytes_Used = Expected,
+                    "charged the pixels they actually occupy, four bytes"
+                    & " each, not a token figure per entry");
          end;
 
-         --  Use the oldest entry again, then add one more. Under LRU the
-         --  refreshed entry survives and the *second* oldest goes; under
-         --  FIFO the refreshed one would have gone instead.
-         Tex := Adi.Image.Get_Texture_For_Size
-           (Img.all, Ren, Size_W (1), Size_H (1));
-         Assert (Tex /= null, "the oldest entry is still usable");
+         --  Asking again for a size already held finds it rather than
+         --  rasterising a second copy. A count cannot show that: building
+         --  over the same key replaces its entry and leaves the count
+         --  alone. Holding the first lease can -- it pins the entry, so a
+         --  rebuild would have to be a second, live texture at a
+         --  different address.
+         declare
+            First : constant Adi.Texture_Cache.Texture_Ref :=
+              Adi.Image.Acquire_Texture (Img.all, Ctx, Size_W (1), Size_H (1));
+         begin
+            Assert (First.Texture /= null, "a size already rasterised leases");
 
-         Tex := Adi.Image.Get_Texture_For_Size
-           (Img.all, Ren, Size_W (Cap + 1), Size_H (Cap + 1));
-         Assert (Tex /= null, "the raster past the cap is created");
+            declare
+               Again : constant Adi.Texture_Cache.Texture_Ref :=
+                 Adi.Image.Acquire_Texture
+                   (Img.all, Ctx, Size_W (1), Size_H (1));
+            begin
+               Assert (Again.Texture = First.Texture,
+                       "the same image, size and mode should lease the same"
+                       & " texture rather than build another");
+            end;
+         end;
 
-         Put_Line
-           ("    cached" & Adi.Image.Cached_Texture_Count (Img.all)'Image
-            & "  refreshed-oldest kept="
-            & Boolean'Image
-                (Adi.Image.Has_Sized_Texture
-                   (Img.all, Ren, Size_W (1), Size_H (1)))
-            & "  next-oldest kept="
-            & Boolean'Image
-                (Adi.Image.Has_Sized_Texture
-                   (Img.all, Ren, Size_W (2), Size_H (2))));
+         --  Two documents at one size are two textures: the image's own
+         --  identity is part of the key, so one cannot be served the
+         --  other's raster.
+         declare
+            Other : Adi.Image.Image_Access :=
+              Adi.Image.Load_From_File ("tests/assets/size_viewbox.svg");
+         begin
+            Assert (Other /= null, "a second copy of the fixture loads");
+            if Other /= null then
+               declare
+                  Mine : constant Adi.Texture_Cache.Texture_Ref :=
+                    Adi.Image.Acquire_Texture
+                      (Img.all, Ctx, Size_W (3), Size_H (3));
+                  Theirs : constant Adi.Texture_Cache.Texture_Ref :=
+                    Adi.Image.Acquire_Texture
+                      (Other.all, Ctx, Size_W (3), Size_H (3));
+               begin
+                  Assert (Mine.Texture /= null and then Theirs.Texture /= null,
+                          "both documents rasterise at that size");
+                  Assert (Mine.Texture /= Theirs.Texture,
+                          "and get separate textures: two images with the"
+                          & " same content are still two sources");
+               end;
+               Release_Image (Other);
+            end if;
+         end;
 
-         Assert
-           (Adi.Image.Cached_Texture_Count (Img.all) = Cap,
-            "the cache is still exactly at the cap");
-         Assert
-           (Adi.Image.Has_Sized_Texture (Img.all, Ren, Size_W (1), Size_H (1)),
-            "the entry used again survives");
-         Assert
-           (not Adi.Image.Has_Sized_Texture
-                  (Img.all, Ren, Size_W (2), Size_H (2)),
-            "the least recently used entry is the one dropped");
-         Assert
-           (Adi.Image.Has_Sized_Texture
-              (Img.all, Ren, Size_W (Cap + 1), Size_H (Cap + 1)),
-            "the new size is cached");
+         --  Scale mode is texture state, so it identifies the texture too:
+         --  a lease taken under one mode must not be handed out under
+         --  another.
+         declare
+            Linear : constant Adi.Texture_Cache.Texture_Ref :=
+              Adi.Image.Acquire_Texture (Img.all, Ctx, Size_W (1), Size_H (1));
+         begin
+            Assert (Linear.Texture /= null, "a lease under the default mode");
+
+            Adi.Image.Set_Scale_Mode (Img.all, Adi.Image.Scale_Nearest);
+
+            declare
+               Nearest : constant Adi.Texture_Cache.Texture_Ref :=
+                 Adi.Image.Acquire_Texture
+                   (Img.all, Ctx, Size_W (1), Size_H (1));
+            begin
+               Assert (Nearest.Texture /= null,
+                       "and one under a different mode");
+               Assert (Nearest.Texture /= Linear.Texture,
+                       "which must be a different texture: scale mode is"
+                       & " texture state, so one cannot serve both");
+            end;
+         end;
       end if;
 
-      Release_Image (Img);
+      --  A lease outlives the image it came from. The texture belongs to
+      --  the renderer's cache, not to the image, so freeing the image
+      --  neither destroys it nor invalidates what is holding it.
+      if Img /= null then
+         declare
+            Held : constant Adi.Texture_Cache.Texture_Ref :=
+              Adi.Image.Acquire_Texture (Img.all, Ctx, Size_W (2), Size_H (2));
+            Before : constant SDL_Texture_Ptr := Held.Texture;
+         begin
+            Assert (Before /= null, "a lease on a rasterised size");
+
+            Release_Image (Img);
+
+            Assert (Held.Texture = Before,
+                    "a lease should still name its texture after the image"
+                    & " it was taken from has been freed");
+            Assert (Held.Width > 0 and then Held.Height > 0,
+                    "and stay readable");
+         end;
+      end if;
+
+      Assert (Img = null, "freeing an image clears the handle to it");
+
+      --  A lease asked of a context that is gone reports no texture. The
+      --  image reaches the renderer through the context, so this is the
+      --  path that would raise if either end stopped guarding. It needs a
+      --  live image, so this loads one rather than reusing the freed one.
+      Img := Adi.Image.Load_From_File ("tests/assets/size_viewbox.svg");
+      Adi.Render.Destroy (Ctx);
+
+      if Img /= null then
+         declare
+            After : constant Adi.Texture_Cache.Texture_Ref :=
+              Adi.Image.Acquire_Texture (Img.all, Ctx, 48.0, 36.0);
+         begin
+            Assert (After.Texture = null,
+                    "a lease asked of a destroyed context should name"
+                    & " nothing rather than raise");
+         end;
+         Release_Image (Img);
+      end if;
+
       Adi.Window.Destroy (W);
       New_Line;
-   end Test_Sized_Texture_Cache_Is_Bounded;
+   end Test_Sized_Rasters_Are_Distinct_Entries;
 
 begin
    Put_Line ("SVG renderer test backend=" & Adi.SVG.Backend_Name);
@@ -956,7 +1053,7 @@ begin
    Test_Transforms_And_Units;
    Test_Root_ViewBox_Preserve_Aspect;
    Test_Complex_SVG_Rendering;
-   Test_Sized_Texture_Cache_Is_Bounded;
+   Test_Sized_Rasters_Are_Distinct_Entries;
 
    Test_Support.Finish;
 end Svg_Test;

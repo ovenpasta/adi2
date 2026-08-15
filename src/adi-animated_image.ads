@@ -16,7 +16,7 @@ package Adi.Animated_Image is
 
    --  Load all frames from an animated image (e.g. GIF/WebP) using SDL_image.
    --  Frames are loaded as SDL_Surface (CPU memory); GPU textures are created
-   --  lazily on first render via Adi.Image.Get_Texture(Renderer).
+   --  lazily on first render via Adi.Image.Acquire_Texture.
    --  Returns null on failure.
    function Load_From_File (Path : String) return Animated_Image_Access;
 

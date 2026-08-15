@@ -278,6 +278,7 @@ package body Adi.Texture_Cache is
               Slot   => No_Slot);
    end Null_Borrow;
 
+
    function Borrow (C : in out Cache; H : Texture_Handle) return Texture_Ref
    is
       D : constant Cache_Data_Access := C.Owner.Data;

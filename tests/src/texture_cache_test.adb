@@ -249,10 +249,40 @@ begin
       Clear (C);
    end;
 
+   --  Recency alone, with nothing else to separate the candidates. Equal
+   --  charge, equal cost and one use each leave the standings identical,
+   --  so the idle tiebreak is the only thing that can pick a victim.
+   --
+   --  Neither entry is touched: borrowing counts a hit, which raises a
+   --  standing and settles the choice before recency is consulted. The
+   --  keys are stored in reverse, so the older entry is the one the key
+   --  map visits second -- without the tiebreak the first visited is
+   --  taken, which is the newer entry, and the assertions fail.
+   declare
+      C : Cache;
+   begin
+      Set_Budget (C, Charge (64) * 2);
+
+      Put (C, Shadow_Key (2), 64, Micros => 100);   --  older, sorts later
+      Advance_Frame (C);
+      Put (C, Shadow_Key (1), 64, Micros => 100);   --  newer, sorts first
+      Advance_Frame (C);
+
+      Put (C, Shadow_Key (3), 64, Micros => 100);   --  forces one out
+
+      Assert (Held (C, Shadow_Key (1)),
+              "Between entries of equal standing, the more recently used"
+              & " should stay");
+      Assert (not Held (C, Shadow_Key (2)),
+              "and the idlest should be the one dropped, whatever order"
+              & " the keys happen to sort in");
+      Clear (C);
+   end;
+
    --  The frame serial is modular and only breaks ties, but a wrap must
-   --  not turn a just-used entry into the idlest one. Sit near the end of
-   --  the serial, touch the entry, then cross the wrap before forcing an
-   --  eviction, so recency is read across the discontinuity.
+   --  not turn a recent entry into the idlest one. Sit near the end of the
+   --  serial, store the two a frame apart, then cross the wrap before
+   --  forcing an eviction, so recency is read across the discontinuity.
    declare
       C : Cache;
    begin
@@ -262,18 +292,22 @@ begin
       Advance_Frame (C, Frames => Positive'Last);
       Advance_Frame (C, Frames => Positive'Last);
 
-      Put (C, Shadow_Key (1), 64, Micros => 100);
-      Advance_Frame (C);                    --  so the two differ in age
-      Put (C, Shadow_Key (2), 64, Micros => 100);
-      Touch (C, Shadow_Key (2));   --  touched just before the wrap
+      --  Reversed, as above: the older entry sorts later, so map order
+      --  alone would keep the wrong one. Neither is touched, since a hit
+      --  would settle the choice on standing before recency is read.
+      Put (C, Shadow_Key (2), 64, Micros => 100);   --  older, sorts later
+      Advance_Frame (C);
+      Put (C, Shadow_Key (1), 64, Micros => 100);   --  newer, sorts first
 
-      Advance_Frame (C, Frames => 8);       --  crosses it
+      Advance_Frame (C, Frames => 8);       --  crosses the wrap
 
       Put (C, Shadow_Key (3), 64, Micros => 100);
 
-      Assert (Held (C, Shadow_Key (2)),
+      Assert (Held (C, Shadow_Key (1)),
               "Crossing the serial's wrap should not make the most recently"
               & " used entry look like the idlest");
+      Assert (not Held (C, Shadow_Key (2)),
+              "and the genuinely idler entry should still be the victim");
       Clear (C);
    end;
 

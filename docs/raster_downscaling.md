@@ -33,8 +33,8 @@ to box-filter / mipmap level generation). Cache the final result per size.
 7. Restore the original render target.
 8. Set `SDL_BLENDMODE_BLEND` on the final texture for compositing and restore it
    on the source texture.
-9. Cache the final texture in `Img.Cache` (same `Cached_Texture` record and
-   vector used by SVG size caching).
+9. Store the final texture in the render context's `Adi.Texture_Cache` under
+   the image's raster key, and hand the caller a lease on it.
 
 ### Key Design Points
 
@@ -43,10 +43,10 @@ to box-filter / mipmap level generation). Cache the final result per size.
 - **`SDL_BLENDMODE_BLEND` restored after**: The rendering code in
   `Render_Image_Item` expects normal alpha compositing.
 - **Half-size via `(W + 1) / 2`**: Rounds up, preventing zero-size textures.
-- **Graceful fallback**: If any `SDL_CreateTexture` fails, returns
-  `Img.Texture` (original, unscaled).
-- **Cache cleanup**: The existing `Destroy` procedure already iterates
-  `Img.Cache` and calls `SDL_DestroyTexture` on each entry.
+- **Graceful fallback**: If any `SDL_CreateTexture` fails, fall back to the
+  unscaled upload rather than caching a partial result.
+- **Cache cleanup**: Nothing to add — the render context's cache owns every
+  texture it is handed and destroys them on eviction and at teardown.
 
 ### Size Quantization
 
@@ -65,7 +65,7 @@ time, which is negligible at these small remainders.
 
 | File | Role |
 |------|------|
-| `src/adi-image.adb` | `Get_Texture_For_Size` — raster branch implementation |
+| `src/adi-image.adb` | `Acquire_Texture` / `Build_Raster` — raster branch implementation |
 | `src/adi-image.ads` | Public API (no signature changes needed) |
 | `src/adi-sdl-render.ads` | All required SDL bindings already present |
 | `src/adi-widget.adb` | Call site (`Render_Image_Item` line ~3186) — no changes needed |

@@ -6,10 +6,10 @@ pragma Ada_2022;
 with System;
 with System.Storage_Elements;
 with Adi.Core;       use Adi.Core;
-with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.SDL.Surface; use Adi.SDL.Surface;
 with Adi.SVG;
-with Ada.Containers.Vectors;
+with Adi.Render;
+with Adi.Texture_Cache;
 
 package Adi.Image is
 
@@ -97,7 +97,7 @@ package Adi.Image is
        Height : out Pixel_Type);
 
    -- Get the underlying SDL surface (CPU memory).
-   -- Returns null for SVG images or texture-only images.
+   -- Returns null for SVG images.
    function Get_Surface (Img : Image) return SDL_Surface_Ptr;
 
    -- Mark the image as tintable (white-on-transparent, recolored by CSS
@@ -107,68 +107,56 @@ package Adi.Image is
    -- Get the texture scaling mode for this image.
    function Get_Scale_Mode (Img : Image) return Image_Scale_Mode;
 
-   -- Set the texture scaling mode.  Affects textures created after this
-   -- call; existing cached textures are updated in-place.
+   -- Set the texture scaling mode. The mode identifies a texture rather
+   -- than being applied to one, so a lease taken after this finds or
+   -- builds a texture made for it; textures built for the old mode stay
+   -- cached under their own key until the budget reclaims them.
    procedure Set_Scale_Mode
      (Img  : in out Image;
       Mode : Image_Scale_Mode);
 
-   -- Get the underlying SDL texture (for rendering).
-   -- For surface-based images, returns the first cached texture or null.
-   -- Prefer Get_Texture with Renderer parameter for lazy creation.
-   function Get_Texture (Img : Image) return SDL_Texture_Ptr;
-
-   -- Get or lazily create a texture for the given renderer.
-   -- For raster images with a surface, creates the texture on first call
-   -- per renderer and caches it.  For direct-texture images, returns the
-   -- stored texture.
-   function Get_Texture
-     (Img      : in out Image'Class;
-      Renderer : SDL_Renderer_Ptr) return SDL_Texture_Ptr;
-
-   -- Get a texture rendered for a specific size.
-   -- For raster images this returns the base texture for the renderer.
-   -- For SVG images this lazily rasterizes and caches per (renderer, size).
-   -- At most Max_Sized_Textures rasters are kept per renderer; the least
-   -- recently used is dropped to make room. A widget that tracks a
-   -- window resize asks for a different size every frame, so the cache
-   -- has to forget.
-   function Get_Texture_For_Size
-     (Img      : in out Image'Class;
-      Renderer : SDL_Renderer_Ptr;
-      Width    : Pixel_Type;
-      Height   : Pixel_Type) return SDL_Texture_Ptr;
-
-   Max_Sized_Textures : constant Positive := 8;
-
-   -- Number of cached textures, for tests and diagnostics.
-   function Cached_Texture_Count (Img : Image'Class) return Natural;
-
-   -- Whether a raster for this exact renderer and size is cached.
-   function Has_Sized_Texture
-     (Img      : Image'Class;
-      Renderer : SDL_Renderer_Ptr;
-      Width    : Pixel_Type;
-      Height   : Pixel_Type) return Boolean;
+   -- Take out a lease on a texture for this image at the requested size,
+   -- rasterizing or uploading one if none is held yet.
+   --
+   -- The texture is reachable only through the returned reference and only
+   -- for as long as it lives. Read it inside the draw and let it go: an
+   -- image's textures are evictable, and a pointer kept past the lease
+   -- would outlive what it names. Hold one lease per draw, not per frame.
+   --
+   -- A null texture in the reference means none could be produced -- an
+   -- unrasterizable SVG, a null renderer, an upload that failed. Callers
+   -- check the reference rather than the return of a getter.
+   --
+   -- A lease pins: the entry it names cannot be evicted while it lives,
+   -- and an eviction decided during the draw takes effect once it ends.
+   --
+   -- It outlives the image with its texture intact, since the texture
+   -- belongs to the renderer's cache rather than to the image. It may
+   -- outlive the context too, but not intact: a context goes because its
+   -- renderer is going, so the texture goes with it and the lease is left
+   -- readable with a null texture. Keeping a lease no longer than the
+   -- draw it belongs to avoids the question.
+   --
+   -- Raster images ignore the size and yield their uploaded surface; only
+   -- SVG rasterizes per size. Residency is the renderer's byte budget, not
+   -- a per-image count, so a widget tracking a window resize competes for
+   -- room against everything else being drawn rather than against seven
+   -- other rasters of itself.
+   function Acquire_Texture
+     (Img    : in out Image'Class;
+      Ctx    : in out Adi.Render.Render_Context;
+      Width  : Pixel_Type;
+      Height : Pixel_Type) return Adi.Texture_Cache.Texture_Ref;
 
    ---------------------------------------------------------------------------
    -- Resource Management
    ---------------------------------------------------------------------------
 
-   -- Destroy the image and free its surface, textures, and SVG data
+   -- Free the image's surface and SVG data. Textures it has been leased
+   -- are not touched: they belong to the cache of whichever context built
+   -- them, and stay resident until budget pressure or that context's
+   -- destruction reclaims them.
    procedure Destroy (Img : in out Image);
-
-   -- Remove and destroy all cached textures for a specific renderer.
-   -- Call this before destroying a renderer to prevent stale texture handles.
-   procedure Release_Textures_For_Renderer
-     (Img      : in out Image'Class;
-      Renderer : SDL_Renderer_Ptr);
-
-   -- Evict all cached GPU textures for the given renderer from every
-   -- live image (registered via constructors).  Call before destroying
-   -- a renderer (e.g. in Window finalization) to prevent stale handles.
-   procedure Release_All_Textures_For_Renderer
-     (Renderer : SDL_Renderer_Ptr);
 
    -- Destroy image internals and deallocate the Image_Access object.
    -- Sets Img to null.  Safe to call with null.
@@ -181,25 +169,16 @@ private
 
    type Image_Kind is (Raster_Image, SVG_Image);
 
-   type Cached_Texture is record
-      Renderer  : SDL_Renderer_Ptr := null;
-      Width_Px  : Positive;
-      Height_Px : Positive;
-      Texture   : SDL_Texture_Ptr := null;
-      Last_Used : Natural := 0;
-   end record;
-
-   package Cached_Texture_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Cached_Texture);
-
    type Image is tagged record
       Kind     : Image_Kind := Raster_Image;
       Surface  : SDL_Surface_Ptr := null;
       Width    : Pixel_Type := 0.0;
       Height   : Pixel_Type := 0.0;
       SVG      : Adi.SVG.Document_Access := null;
-      Cache    : Cached_Texture_Vectors.Vector;
+      --  Identifies this image's textures in whatever cache holds them,
+      --  so two images cannot collide and one image's entries are found
+      --  again across renderers.
+      Source   : Adi.Texture_Cache.Source_Id := 0;
       Tintable : Boolean := False;
       Scaling  : Image_Scale_Mode := Scale_Linear;
    end record;

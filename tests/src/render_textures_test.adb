@@ -8,6 +8,7 @@ with Adi.SDL.PixelFormat; use Adi.SDL.PixelFormat;
 with Adi.Clock;
 with Adi.Core;            use Adi.Core;
 with Adi.CSS_Styles;      use Adi.CSS_Styles;
+with Adi.Image;
 with Adi.Render;
 with Adi.Shadow;
 with Adi.Texture_Cache;
@@ -32,6 +33,7 @@ procedure Render_Textures_Test is
    use type Adi.Texture_Cache.Byte_Count;
    use type Adi.Texture_Cache.Frame_Count;
    use type Adi.Texture_Cache.Texture_Handle;
+   use type Adi.Image.Image_Access;
 
    MB : constant Adi.Texture_Cache.Byte_Count := 1024 * 1024;
 
@@ -142,6 +144,15 @@ procedure Render_Textures_Test is
          Assert (Late.Width = 0 and then Late.Height = 0,
                  "and that borrow should describe nothing");
       end;
+
+      --  Everything else here tolerates a destroyed context, and the
+      --  renderer has to as well: Adi.Image reaches it through this on the
+      --  way to a lease, and promises a null result rather than an
+      --  exception.
+      Assert (Adi.Render.Get_Renderer (Ctx) = null,
+              "A destroyed context should report no renderer");
+      Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = 0,
+              "and hold nothing");
    end Test_Destroy_Releases_Textures;
 
    ---------------------------------------------------------------------------
@@ -240,6 +251,76 @@ procedure Render_Textures_Test is
 
       Adi.Window.Destroy (W);
    end Test_Only_Drawn_Frames_Age_The_Cache;
+
+   ---------------------------------------------------------------------------
+   --  Raster images through the lease path
+   ---------------------------------------------------------------------------
+
+   --  Scale mode is texture state, so it identifies a raster texture just
+   --  as it does an SVG one. Holding the first lease is what makes this
+   --  discriminate: the entry stays pinned, so a texture built for the
+   --  second mode has to be a distinct live one rather than an address
+   --  that happens to be reused.
+   procedure Test_Raster_Scale_Mode_Is_Keyed is
+      Ctx  : Adi.Render.Render_Context;
+      Surf : constant SDL_Surface_Ptr :=
+        SDL_CreateSurface (8, 8, SDL_PIXELFORMAT_RGBA32);
+      Img  : Adi.Image.Image_Access;
+   begin
+      Section ("a raster's scale mode identifies its texture");
+
+      Adi.Render.Create (Ctx, Renderer);
+      Img := Adi.Image.Create_From_Surface (Surf);
+      Assert (Img /= null, "a surface makes a raster image");
+
+      if Img /= null then
+         declare
+            Linear : constant Adi.Texture_Cache.Texture_Ref :=
+              Adi.Image.Acquire_Texture (Img.all, Ctx, 8.0, 8.0);
+         begin
+            Assert (Linear.Texture /= null,
+                    "a raster leases under the default mode");
+
+            Adi.Image.Set_Scale_Mode (Img.all, Adi.Image.Scale_Nearest);
+
+            declare
+               Nearest : constant Adi.Texture_Cache.Texture_Ref :=
+                 Adi.Image.Acquire_Texture (Img.all, Ctx, 8.0, 8.0);
+            begin
+               Assert (Nearest.Texture /= null,
+                       "and under another mode");
+               Assert (Nearest.Texture /= Linear.Texture,
+                       "which must be a separate texture: a raster's scale"
+                       & " mode is part of what identifies it, as an SVG's"
+                       & " is");
+
+               --  A raster does not vary with the requested size, so a
+               --  different one leases the entry already held. The lease
+               --  above is still open, so a rebuild would have to be a
+               --  distinct live texture.
+               declare
+                  Bigger : constant Adi.Texture_Cache.Texture_Ref :=
+                    Adi.Image.Acquire_Texture (Img.all, Ctx, 64.0, 40.0);
+               begin
+                  Assert (Bigger.Texture = Nearest.Texture,
+                          "another requested size should lease the raster"
+                          & " already held, not rasterise one");
+               end;
+            end;
+         end;
+
+         Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = 2,
+                 "so two modes leave two entries, and the second size adds"
+                 & " no third");
+         Assert (Adi.Render.Get_Texture_Stats (Ctx).Bytes_Used
+                   = 2 * 8 * 8 * 4,
+                 "each charged the eight-by-eight surface it uploaded");
+
+         Adi.Image.Free (Img);
+      end if;
+
+      Adi.Render.Destroy (Ctx);
+   end Test_Raster_Scale_Mode_Is_Keyed;
 
    ---------------------------------------------------------------------------
    --  Box shadows through the widget render path
@@ -450,6 +531,7 @@ begin
    Test_Destroy_Releases_Textures;
    Test_Advance_Frame_Threads_Through;
 
+   Test_Raster_Scale_Mode_Is_Keyed;
    Test_Shadow_Is_Cached_And_Charged;
    Test_Distinct_Shapes_Are_Distinct_Entries;
    Test_Budget_For_One_Shadow_Evicts;

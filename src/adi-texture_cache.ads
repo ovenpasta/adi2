@@ -58,9 +58,10 @@ package Adi.Texture_Cache is
    --  give the remaining fields whatever meaning they need:
    --
    --    Shadow  Extent_A = blur, Extent_B = corner radius
-   --    Raster  Source and Generation identify the image
-   --    SVG     as Raster, plus the size it was rasterised at, and
-   --            Variant for the scale mode it was built for
+   --    Raster  Source identifies the image, Variant the scale mode it
+   --            was built for -- scale mode is texture state, so one
+   --            texture cannot serve two modes
+   --    SVG     as Raster, plus the size it was rasterised at
    type Texture_Key is record
       Kind       : Texture_Kind := Shadow_Texture;
       Source     : Source_Id := 0;
@@ -102,8 +103,9 @@ package Adi.Texture_Cache is
    --  been reused.
    function Is_Valid (C : Cache; H : Texture_Handle) return Boolean;
 
-   --  What a borrow exposes. The region is the whole texture today; an
-   --  atlas page would name a sub-rectangle here without callers changing.
+   --  What a borrow exposes. Texture_Region can represent a sub-rectangle.
+   --  Current consumers require whole-texture regions; an atlas migration
+   --  must make each drawing path honour X, Y, Width and Height.
    type Texture_Region is record
       Texture : Adi.SDL.Render.SDL_Texture_Ptr := null;
       X, Y    : Natural := 0;

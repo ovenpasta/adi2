@@ -5,8 +5,10 @@ pragma Ada_2022;
 
 with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings;
+with Adi.Clock;
 with Adi.Log;
 with Adi.SDL;       use Adi.SDL;
+with Adi.SDL.Render; use Adi.SDL.Render;
 with Adi.SDL.IO;    use Adi.SDL.IO;
 with Adi.SDL.Image; use Adi.SDL.Image;
 with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
@@ -34,73 +36,23 @@ package body Adi.Image is
      new Ada.Unchecked_Deallocation
        (Image'Class, Image_Access);
 
-   ---------------------------------------------------------------------------
-   --  Live image registry — tracks all allocated Image_Access values so
-   --  Release_All_Textures_For_Renderer can iterate every image globally.
-   ---------------------------------------------------------------------------
+   --  Identity handed to the texture cache. A counter rather than the
+   --  image's address: addresses are reused after a free, and an entry
+   --  from a dead image would then be found by a live one.
+   Next_Source : Adi.Texture_Cache.Source_Id := 0;
 
-   package Image_Ptr_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Image_Access);
-
-   Live_Images : Image_Ptr_Vectors.Vector;
-
-   procedure Touch
-     (C       : in out Cached_Texture_Vectors.Vector;
-      Newest  : Natural);
-
-   --  Last_Used is a rank in 1 .. Length, 1 = oldest. Every rank is
-   --  computed before any is written: writing as we go would change the
-   --  values still being compared against.
-   procedure Touch
-     (C      : in out Cached_Texture_Vectors.Vector;
-      Newest : Natural)
-   is
-      Ranks : array (C.First_Index .. C.Last_Index) of Natural :=
-        [others => 0];
+   function New_Source return Adi.Texture_Cache.Source_Id is
+      use type Adi.Texture_Cache.Source_Id;
    begin
-      for I in C.First_Index .. C.Last_Index loop
-         if I = Newest then
-            Ranks (I) := Natural (C.Length);
-         else
-            declare
-               Rank : Natural := 1;
-            begin
-               for J in C.First_Index .. C.Last_Index loop
-                  if J /= I and then J /= Newest
-                    and then (C (J).Last_Used < C (I).Last_Used
-                              or else (C (J).Last_Used = C (I).Last_Used
-                                       and then J < I))
-                  then
-                     Rank := Rank + 1;
-                  end if;
-               end loop;
-               Ranks (I) := Rank;
-            end;
-         end if;
-      end loop;
+      Next_Source := Next_Source + 1;
+      return Next_Source;
+   end New_Source;
 
-      for I in C.First_Index .. C.Last_Index loop
-         C.Reference (I).Last_Used := Ranks (I);
-      end loop;
-   end Touch;
-
-   procedure Register (Img : Image_Access) is
-   begin
-      if Img /= null then
-         Live_Images.Append (Img);
-      end if;
-   end Register;
-
-   procedure Unregister (Img : Image_Access) is
-   begin
-      for I in 1 .. Natural (Live_Images.Length) loop
-         if Live_Images (I) = Img then
-            Live_Images.Delete (I);
-            return;
-         end if;
-      end loop;
-   end Unregister;
+   --  Scale mode is texture state, so a texture built for one mode cannot
+   --  serve another: it participates in the key rather than being applied
+   --  to whatever the cache happens to hold.
+   function Mode_Variant (Mode : Image_Scale_Mode) return Natural is
+     (Image_Scale_Mode'Pos (Mode));
 
    function Is_SVG_Path (Path : String) return Boolean is
       use Ada.Characters.Handling;
@@ -129,11 +81,10 @@ package body Adi.Image is
          Width    => SW,
          Height   => SH,
          SVG      => Doc,
-         Cache    => <>,
+         Source   => New_Source,
          Tintable => False,
          Scaling  => Scale_Linear
       );
-      Register (Img);
       return Img;
    end Build_SVG_Image;
 
@@ -250,12 +201,11 @@ package body Adi.Image is
          Width    => Pixel_Type (Float (Surf.w)),
          Height   => Pixel_Type (Float (Surf.h)),
          SVG      => null,
-         Cache    => <>,
+         Source   => New_Source,
          Tintable => False,
          Scaling  => Scale_Linear
       );
 
-      Register (Img);
       return Img;
    end Load_From_File;
 
@@ -291,12 +241,11 @@ package body Adi.Image is
          Width    => Pixel_Type (Float (Surf.w)),
          Height   => Pixel_Type (Float (Surf.h)),
          SVG      => null,
-         Cache    => <>,
+         Source   => New_Source,
          Tintable => False,
          Scaling  => Scale_Linear
       );
 
-      Register (Img);
       return Img;
    end Load_From_Memory;
 
@@ -412,12 +361,11 @@ package body Adi.Image is
          Width    => Pixel_Type (Float (Surface.w)),
          Height   => Pixel_Type (Float (Surface.h)),
          SVG      => null,
-         Cache    => <>,
+         Source   => New_Source,
          Tintable => False,
          Scaling  => Scale_Linear
       );
 
-      Register (Img);
       return Img;
    end Create_From_Surface;
 
@@ -434,11 +382,10 @@ package body Adi.Image is
          Width    => 0.0,
          Height   => 0.0,
          SVG      => null,
-         Cache    => <>,
+         Source   => New_Source,
          Tintable => False,
          Scaling  => Scale_Linear
       );
-      Register (Img);
       return Img;
    end Create_Empty;
 
@@ -489,18 +436,10 @@ package body Adi.Image is
      (Img  : in out Image;
       Mode : Image_Scale_Mode)
    is
-      pragma Warnings (Off, "variable * is assigned but never read");
-      Success : Adi.SDL.C_bool;
-      pragma Warnings (On, "variable * is assigned but never read");
    begin
+      --  Nothing to update in place: the mode is part of a texture's key,
+      --  so a lease taken after this finds or builds one made for it.
       Img.Scaling := Mode;
-      --  Update existing cached textures
-      for Cache_Item of Img.Cache loop
-         if Cache_Item.Texture /= null then
-            Success := SDL_SetTextureScaleMode
-              (Cache_Item.Texture, To_SDL (Mode));
-         end if;
-      end loop;
    end Set_Scale_Mode;
 
    ---------------------------------------------------------------------------
@@ -518,108 +457,52 @@ package body Adi.Image is
    end Get_Size;
 
    ---------------------------------------------------------------------------
-   -- Get_Texture (parameterless — backward compat)
+   -- Acquire_Texture
    ---------------------------------------------------------------------------
 
-   function Get_Texture (Img : Image) return SDL_Texture_Ptr is
-   begin
-      --  Return first cached texture if any
-      if not Img.Cache.Is_Empty then
-         return Img.Cache.First_Element.Texture;
-      end if;
+   --  Uploads the image's surface. Raster textures do not vary with the
+   --  requested size, so only the scale mode distinguishes them.
+   function Raster_Key (Img : Image'Class) return Adi.Texture_Cache.Texture_Key
+   is ((Kind     => Adi.Texture_Cache.Raster_Texture,
+        Source   => Img.Source,
+        Variant  => Mode_Variant (Img.Scaling),
+        others   => <>));
 
-      return null;
-   end Get_Texture;
+   function SVG_Key
+     (Img : Image'Class; W, H : Positive) return Adi.Texture_Cache.Texture_Key
+   is ((Kind     => Adi.Texture_Cache.SVG_Texture,
+        Source   => Img.Source,
+        Extent_A => W,
+        Extent_B => H,
+        Variant  => Mode_Variant (Img.Scaling),
+        others   => <>));
 
-   ---------------------------------------------------------------------------
-   -- Get_Texture (with Renderer — lazy creation)
-   ---------------------------------------------------------------------------
-
-   function Get_Texture
-     (Img      : in out Image'Class;
-      Renderer : SDL_Renderer_Ptr) return SDL_Texture_Ptr
+   function Build_Raster
+     (Img : Image'Class; Renderer : SDL_Renderer_Ptr) return SDL_Texture_Ptr
    is
       Texture : SDL_Texture_Ptr;
       Success : Adi.SDL.C_bool;
    begin
-      if Renderer = null then
+      Texture := SDL_CreateTextureFromSurface (Renderer, Img.Surface);
+      if Texture = null then
          return null;
       end if;
+      Success := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
+      Success := SDL_SetTextureScaleMode (Texture, To_SDL (Img.Scaling));
+      pragma Unreferenced (Success);
+      return Texture;
+   end Build_Raster;
 
-      --  For raster images with a surface, create texture lazily per renderer
-      if Img.Kind = Raster_Image and then Img.Surface /= null then
-         --  Check cache for this renderer
-         for Cache_Item of Img.Cache loop
-            if Cache_Item.Renderer = Renderer then
-               return Cache_Item.Texture;
-            end if;
-         end loop;
-
-         --  Create texture from surface
-         Texture := SDL_CreateTextureFromSurface (Renderer, Img.Surface);
-         if Texture = null then
-            return null;
-         end if;
-
-         Success := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
-         Success := SDL_SetTextureScaleMode (Texture, To_SDL (Img.Scaling));
-         pragma Unreferenced (Success);
-
-         Img.Cache.Append
-           (Cached_Texture'
-              (Renderer  => Renderer,
-               Width_Px  => Positive (Integer'Max (1, Integer (Img.Surface.w))),
-               Height_Px => Positive (Integer'Max (1, Integer (Img.Surface.h))),
-               Texture   => Texture,
-               Last_Used => 0));
-         Touch (Img.Cache, Img.Cache.Last_Index);
-         return Texture;
-      end if;
-
-      --  For SVG without specific size, return null (use Get_Texture_For_Size)
-      return null;
-   end Get_Texture;
-
-   ---------------------------------------------------------------------------
-   -- Get_Texture_For_Size
-   ---------------------------------------------------------------------------
-
-   function Get_Texture_For_Size
-     (Img      : in out Image'Class;
+   function Build_SVG
+     (Img      : Image'Class;
       Renderer : SDL_Renderer_Ptr;
-      Width    : Pixel_Type;
-      Height   : Pixel_Type) return SDL_Texture_Ptr
+      W, H     : Positive) return SDL_Texture_Ptr
    is
-      Target_W : constant Positive := Positive (Integer'Max (1, Integer (Float'Ceiling (Float (Width)))));
-      Target_H : constant Positive := Positive (Integer'Max (1, Integer (Float'Ceiling (Float (Height)))));
-      Pixels   : Adi.SVG.Pixel_Buffer_Access := null;
-      Texture  : SDL_Texture_Ptr;
-      Success  : Adi.SDL.C_bool;
+      Pixels  : Adi.SVG.Pixel_Buffer_Access := null;
+      Texture : SDL_Texture_Ptr;
+      Success : Adi.SDL.C_bool;
    begin
-      if Img.Kind = Raster_Image then
-         return Get_Texture (Img, Renderer);
-      end if;
-
-      if Img.SVG = null or else not Adi.SVG.Is_Valid (Img.SVG.all) then
-         return null;
-      end if;
-
-      --  Check cache by (renderer, width, height)
-      for I in Img.Cache.First_Index .. Img.Cache.Last_Index loop
-         if Img.Cache (I).Renderer = Renderer
-           and then Img.Cache (I).Width_Px = Target_W
-           and then Img.Cache (I).Height_Px = Target_H
-         then
-            Touch (Img.Cache, I);
-            return Img.Cache (I).Texture;
-         end if;
-      end loop;
-
-      if Renderer = null then
-         return null;
-      end if;
-
-      Pixels := Adi.SVG.Render_ARGB32 (Img.SVG.all, Target_W, Target_H);
+      Pixels := Adi.SVG.Render_ARGB32 (Img.SVG.all, W, H);
       if Pixels = null then
          return null;
       end if;
@@ -628,8 +511,8 @@ package body Adi.Image is
         (Renderer    => Renderer,
          Format      => SDL_PIXELFORMAT_ARGB8888,
          Access_Mode => SDL_TEXTUREACCESS_STATIC,
-         W           => int (Target_W),
-         H           => int (Target_H));
+         W           => int (W),
+         H           => int (H));
       if Texture = null then
          Free_Pixels (Pixels);
          return null;
@@ -639,7 +522,7 @@ package body Adi.Image is
         (Texture => Texture,
          Rect    => null,
          Pixels  => Pixels.all'Address,
-         Pitch   => int (Target_W * 4));
+         Pitch   => int (W * 4));
       Free_Pixels (Pixels);
 
       if not Success then
@@ -647,73 +530,95 @@ package body Adi.Image is
          return null;
       end if;
 
+      --  Scale mode only. The raster path sets a blend mode; this one
+      --  never has, and changing that here would alter how transparent
+      --  SVGs composite under a migration that is meant to move where
+      --  textures live and nothing else.
       Success := SDL_SetTextureScaleMode (Texture, To_SDL (Img.Scaling));
-      pragma Unreferenced (Success);
-
-      --  Make room only now that there is a replacement to put in it, so
-      --  a request that fails to rasterize or upload costs nothing.
-      --  Candidates are limited to this renderer's entries: it is the one
-      --  being drawn with, so its textures are known live.
-      declare
-         Count  : Natural := 0;
-         Oldest : Natural := 0;
-         Oldest_Rank : Natural := Natural'Last;
-      begin
-         for I in Img.Cache.First_Index .. Img.Cache.Last_Index loop
-            if Img.Cache (I).Renderer = Renderer then
-               Count := Count + 1;
-               if Img.Cache (I).Last_Used < Oldest_Rank then
-                  Oldest_Rank := Img.Cache (I).Last_Used;
-                  Oldest := I;
-               end if;
-            end if;
-         end loop;
-
-         if Count >= Max_Sized_Textures and then Oldest /= 0 then
-            if Img.Cache (Oldest).Texture /= null then
-               SDL_DestroyTexture (Img.Cache (Oldest).Texture);
-            end if;
-            Img.Cache.Delete (Oldest);
-         end if;
-      end;
-
-      Img.Cache.Append
-        (New_Item => Cached_Texture'
-           (Renderer  => Renderer,
-            Width_Px  => Target_W,
-            Height_Px => Target_H,
-            Texture   => Texture,
-            Last_Used => 0));
-      Touch (Img.Cache, Img.Cache.Last_Index);
       return Texture;
-   end Get_Texture_For_Size;
+   end Build_SVG;
 
-   function Cached_Texture_Count (Img : Image'Class) return Natural is
-   begin
-      return Natural (Img.Cache.Length);
-   end Cached_Texture_Count;
-
-   function Has_Sized_Texture
-     (Img      : Image'Class;
-      Renderer : SDL_Renderer_Ptr;
-      Width    : Pixel_Type;
-      Height   : Pixel_Type) return Boolean
+   function Acquire_Texture
+     (Img    : in out Image'Class;
+      Ctx    : in out Adi.Render.Render_Context;
+      Width  : Pixel_Type;
+      Height : Pixel_Type) return Adi.Texture_Cache.Texture_Ref
    is
+      use type Adi.Texture_Cache.Byte_Count;
+      use type Adi.Clock.Time;
+
+      Renderer : constant SDL_Renderer_Ptr := Adi.Render.Get_Renderer (Ctx);
+      Is_SVG   : constant Boolean :=
+        Img.Kind = SVG_Image
+        and then Img.SVG /= null
+        and then Adi.SVG.Is_Valid (Img.SVG.all);
+
       Target_W : constant Positive :=
         Positive (Integer'Max (1, Integer (Float'Ceiling (Float (Width)))));
       Target_H : constant Positive :=
         Positive (Integer'Max (1, Integer (Float'Ceiling (Float (Height)))));
+
+      Key : constant Adi.Texture_Cache.Texture_Key :=
+        (if Is_SVG then SVG_Key (Img, Target_W, Target_H)
+         else Raster_Key (Img));
+
+      Handle : Adi.Texture_Cache.Texture_Handle;
    begin
-      for I in Img.Cache.First_Index .. Img.Cache.Last_Index loop
-         if Img.Cache (I).Renderer = Renderer
-           and then Img.Cache (I).Width_Px = Target_W
-           and then Img.Cache (I).Height_Px = Target_H
-         then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Has_Sized_Texture;
+      if Renderer = null then
+         return Adi.Texture_Cache.Null_Borrow;
+      end if;
+
+      if not Is_SVG
+        and then (Img.Kind /= Raster_Image or else Img.Surface = null)
+      then
+         return Adi.Texture_Cache.Null_Borrow;
+      end if;
+
+      Handle := Adi.Render.Find_Texture (Ctx, Key);
+
+      if not Adi.Render.Is_Valid_Texture (Ctx, Handle) then
+         declare
+            --  The whole path is measured, because the whole path is what
+            --  an eviction makes the caller repeat: rasterising an SVG at
+            --  this size, or uploading the surface, then configuring the
+            --  result.
+            Started : constant Adi.Clock.Time := Adi.Clock.Now;
+            Built   : constant SDL_Texture_Ptr :=
+              (if Is_SVG then Build_SVG (Img, Renderer, Target_W, Target_H)
+               else Build_Raster (Img, Renderer));
+            Took    : constant Adi.Clock.Time_Span := Adi.Clock.Now - Started;
+
+            W : constant Positive :=
+              (if Is_SVG then Target_W
+               else Positive (Integer'Max (1, Integer (Img.Surface.w))));
+            H : constant Positive :=
+              (if Is_SVG then Target_H
+               else Positive (Integer'Max (1, Integer (Img.Surface.h))));
+         begin
+            if Built = null then
+               return Adi.Texture_Cache.Null_Borrow;
+            end if;
+
+            Handle := Adi.Render.Store_Texture
+              (Ctx, Key, Built,
+               Width      => W,
+               Height     => H,
+               Bytes      => Adi.Texture_Cache.Texture_Charge
+                               (Adi.Texture_Cache.Byte_Count (W)
+                                * Adi.Texture_Cache.Byte_Count (H) * 4),
+               Build_Time => Took);
+
+            --  Refused, so the cache took no ownership. There is nothing
+            --  to lease and nobody else to free it.
+            if not Adi.Render.Is_Valid_Texture (Ctx, Handle) then
+               SDL_DestroyTexture (Built);
+               return Adi.Texture_Cache.Null_Borrow;
+            end if;
+         end;
+      end if;
+
+      return Adi.Render.Borrow_Texture (Ctx, Handle);
+   end Acquire_Texture;
 
    ---------------------------------------------------------------------------
    -- Destroy
@@ -726,14 +631,6 @@ package body Adi.Image is
          Img.Surface := null;
       end if;
 
-
-      for Cache_Item of Img.Cache loop
-         if Cache_Item.Texture /= null then
-            SDL_DestroyTexture (Cache_Item.Texture);
-         end if;
-      end loop;
-      Img.Cache.Clear;
-
       if Img.SVG /= null then
          Adi.SVG.Destroy (Img.SVG.all);
          Free_SVG_Document (Img.SVG);
@@ -742,51 +639,6 @@ package body Adi.Image is
       Img.Width   := 0.0;
       Img.Height  := 0.0;
    end Destroy;
-
-   ---------------------------------------------------------------------------
-   -- Release_Textures_For_Renderer
-   ---------------------------------------------------------------------------
-
-   procedure Release_Textures_For_Renderer
-     (Img      : in out Image'Class;
-      Renderer : SDL_Renderer_Ptr)
-   is
-      I : Natural := 1;
-   begin
-      if Renderer = null then
-         return;
-      end if;
-
-      while I <= Natural (Img.Cache.Length) loop
-         if Img.Cache (I).Renderer = Renderer then
-            if Img.Cache (I).Texture /= null then
-               SDL_DestroyTexture (Img.Cache (I).Texture);
-            end if;
-            Img.Cache.Delete (I);
-         else
-            I := I + 1;
-         end if;
-      end loop;
-   end Release_Textures_For_Renderer;
-
-   ---------------------------------------------------------------------------
-   -- Release_All_Textures_For_Renderer
-   ---------------------------------------------------------------------------
-
-   procedure Release_All_Textures_For_Renderer
-     (Renderer : SDL_Renderer_Ptr)
-   is
-   begin
-      if Renderer = null then
-         return;
-      end if;
-
-      for Img of Live_Images loop
-         if Img /= null then
-            Release_Textures_For_Renderer (Img.all, Renderer);
-         end if;
-      end loop;
-   end Release_All_Textures_For_Renderer;
 
    ---------------------------------------------------------------------------
    -- Free
@@ -798,7 +650,6 @@ package body Adi.Image is
          return;
       end if;
 
-      Unregister (Img);
       Destroy (Img.all);
       Free_Image (Img);
    end Free;

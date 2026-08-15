@@ -892,7 +892,7 @@ package body Adi.Assets is
                              (SDL_Surface_Ptr
                                 (SDL_DuplicateSurface (Surf)));
                         else
-                           --  SVG or texture-only: fall back to shared ref
+                           --  SVG: fall back to shared ref
                            Img := Base_Img;
                         end if;
                         Has_Content := True;

@@ -134,12 +134,14 @@ package body Adi.Render is
    -- Get_Renderer --
    ------------------
 
+   --  Null once the context is destroyed, so a caller that asks after
+   --  teardown gets an answer it can test rather than an exception. The
+   --  cache operations tolerate a destroyed context for the same reason,
+   --  and Adi.Image reaches the renderer through here on its way to a
+   --  lease. Get_Text_Engine does not, and would still raise.
    function Get_Renderer
      (Ctx : Render_Context) return SDL_Renderer_Ptr
-   is
-   begin
-      return Ctx.Data.Renderer;
-   end Get_Renderer;
+   is (if Ctx.Data = null then null else Ctx.Data.Renderer);
 
    ---------------------
    -- Get_Text_Engine --

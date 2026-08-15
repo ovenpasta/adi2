@@ -76,11 +76,6 @@ package Adi.Image is
    function Create_From_Surface
       (Surface : SDL_Surface_Ptr) return Image_Access;
 
-   -- Create an image from an existing SDL texture
-   -- The Image takes ownership of the texture
-   function Create_From_Texture
-      (Texture : SDL_Texture_Ptr) return Image_Access;
-
    -- Create an empty/null image
    function Create_Empty return Image_Access;
 
@@ -201,7 +196,6 @@ private
    type Image is tagged record
       Kind     : Image_Kind := Raster_Image;
       Surface  : SDL_Surface_Ptr := null;
-      Texture  : SDL_Texture_Ptr := null;
       Width    : Pixel_Type := 0.0;
       Height   : Pixel_Type := 0.0;
       SVG      : Adi.SVG.Document_Access := null;

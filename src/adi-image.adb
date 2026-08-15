@@ -126,7 +126,6 @@ package body Adi.Image is
       Img := new Image'(
          Kind     => SVG_Image,
          Surface  => null,
-         Texture  => null,
          Width    => SW,
          Height   => SH,
          SVG      => Doc,
@@ -248,7 +247,6 @@ package body Adi.Image is
       Img := new Image'(
          Kind     => Raster_Image,
          Surface  => Surf,
-         Texture  => null,
          Width    => Pixel_Type (Float (Surf.w)),
          Height   => Pixel_Type (Float (Surf.h)),
          SVG      => null,
@@ -290,7 +288,6 @@ package body Adi.Image is
       Img := new Image'(
          Kind     => Raster_Image,
          Surface  => Surf,
-         Texture  => null,
          Width    => Pixel_Type (Float (Surf.w)),
          Height   => Pixel_Type (Float (Surf.h)),
          SVG      => null,
@@ -412,7 +409,6 @@ package body Adi.Image is
       Img := new Image'(
          Kind     => Raster_Image,
          Surface  => Surface,
-         Texture  => null,
          Width    => Pixel_Type (Float (Surface.w)),
          Height   => Pixel_Type (Float (Surface.h)),
          SVG      => null,
@@ -426,45 +422,6 @@ package body Adi.Image is
    end Create_From_Surface;
 
    ---------------------------------------------------------------------------
-   -- Create_From_Texture
-   ---------------------------------------------------------------------------
-
-   function Create_From_Texture
-      (Texture : SDL_Texture_Ptr) return Image_Access
-   is
-      Img     : Image_Access;
-      W, H    : aliased Float;
-      Success : Adi.SDL.C_bool;
-   begin
-      if Texture = null then
-         return null;
-      end if;
-
-      -- Get texture dimensions
-      Success := SDL_GetTextureSize (Texture, W'Access, H'Access);
-      if not Success then
-         W := 0.0;
-         H := 0.0;
-      end if;
-
-      -- Create the image object
-      Img := new Image'(
-         Kind     => Raster_Image,
-         Surface  => null,
-         Texture  => Texture,
-         Width    => Pixel_Type (W),
-         Height   => Pixel_Type (H),
-         SVG      => null,
-         Cache    => <>,
-         Tintable => False,
-         Scaling  => Scale_Linear
-      );
-
-      Register (Img);
-      return Img;
-   end Create_From_Texture;
-
-   ---------------------------------------------------------------------------
    -- Create_Empty
    ---------------------------------------------------------------------------
 
@@ -474,7 +431,6 @@ package body Adi.Image is
       Img := new Image'(
          Kind     => Raster_Image,
          Surface  => null,
-         Texture  => null,
          Width    => 0.0,
          Height   => 0.0,
          SVG      => null,
@@ -495,7 +451,7 @@ package body Adi.Image is
       if Img.Kind = SVG_Image then
          return Img.SVG /= null and then Adi.SVG.Is_Valid (Img.SVG.all);
       end if;
-      return Img.Surface /= null or else Img.Texture /= null;
+      return Img.Surface /= null or else Img.SVG /= null;
    end Is_Valid;
 
    function Is_Tintable (Img : Image) return Boolean is
@@ -545,9 +501,6 @@ package body Adi.Image is
               (Cache_Item.Texture, To_SDL (Mode));
          end if;
       end loop;
-      if Img.Texture /= null then
-         Success := SDL_SetTextureScaleMode (Img.Texture, To_SDL (Mode));
-      end if;
    end Set_Scale_Mode;
 
    ---------------------------------------------------------------------------
@@ -570,11 +523,6 @@ package body Adi.Image is
 
    function Get_Texture (Img : Image) return SDL_Texture_Ptr is
    begin
-      --  Direct texture (Create_From_Texture path)
-      if Img.Texture /= null then
-         return Img.Texture;
-      end if;
-
       --  Return first cached texture if any
       if not Img.Cache.Is_Empty then
          return Img.Cache.First_Element.Texture;
@@ -594,11 +542,6 @@ package body Adi.Image is
       Texture : SDL_Texture_Ptr;
       Success : Adi.SDL.C_bool;
    begin
-      --  Direct texture (Create_From_Texture path)
-      if Img.Texture /= null then
-         return Img.Texture;
-      end if;
-
       if Renderer = null then
          return null;
       end if;
@@ -783,10 +726,6 @@ package body Adi.Image is
          Img.Surface := null;
       end if;
 
-      if Img.Texture /= null then
-         SDL_DestroyTexture (Img.Texture);
-         Img.Texture := null;
-      end if;
 
       for Cache_Item of Img.Cache loop
          if Cache_Item.Texture /= null then

@@ -101,6 +101,15 @@ private
       Height : out Pixel_Type) is abstract;
    function Get_Current_Image
      (B : Animation_Backend) return Image_Access is abstract;
+
+   --  Tell the backend the physical pixel extent it will be drawn at.
+   --  Called every time the widget builds its items, so it must be cheap
+   --  and idempotent for an unchanged extent. A backend whose frames do
+   --  not depend on size ignores it, which is why this is not abstract.
+   procedure Prepare
+     (B            : in out Animation_Backend;
+      Pixel_Width  : Positive;
+      Pixel_Height : Positive) is null;
    function Advance
      (B  : in out Animation_Backend;
       DT : Duration) return Boolean is abstract;

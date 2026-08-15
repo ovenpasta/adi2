@@ -48,7 +48,9 @@ project Tests is
       "shadow_slice_test",
       "panel_aa_test",
       "texture_cache_test",
-      "render_textures_test");
+      "render_textures_test",
+      "rlottie_prepare_test",
+      "rlottie_widget_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    Platform_Name := external ("ADI_PLATFORM", "linux");
 

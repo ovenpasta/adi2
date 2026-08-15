@@ -387,6 +387,21 @@ package body Adi.Widget.Animated_Widget is
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
       W.Items.Reference (Image_Idx).Geometry := Content;
 
+      --  The first point at which the extent the animation is drawn at is
+      --  known. A backend whose frames depend on it rasterises here, so
+      --  the frame set is sized by what is shown rather than by what the
+      --  source file happens to declare.
+      if W.Backend /= null
+        and then Content.Width > 0.0
+        and then Content.Height > 0.0
+      then
+         Prepare
+           (W.Backend.all,
+            Positive (Pixel_Type'Max (1.0, Pixel_Type'Ceiling (Content.Width))),
+            Positive (Pixel_Type'Max (1.0,
+              Pixel_Type'Ceiling (Content.Height))));
+      end if;
+
       if Has_Backend (W) then
          Current := Get_Current_Image (W.Backend.all);
       end if;

@@ -15,6 +15,10 @@ package body Adi.Widget.Animated_Widget.RLottie is
       Height : out Pixel_Type);
    overriding function Get_Current_Image
      (B : RLottie_Backend) return Image_Access;
+   overriding procedure Prepare
+     (B            : in out RLottie_Backend;
+      Pixel_Width  : Positive;
+      Pixel_Height : Positive);
    overriding function Advance
      (B  : in out RLottie_Backend;
       DT : Duration) return Boolean;
@@ -130,6 +134,16 @@ package body Adi.Widget.Animated_Widget.RLottie is
       end if;
       Adi.RLottie.Get_Size (B.Animation.all, Width, Height);
    end Get_Size;
+
+   overriding procedure Prepare
+     (B            : in out RLottie_Backend;
+      Pixel_Width  : Positive;
+      Pixel_Height : Positive) is
+   begin
+      if B.Animation /= null and then Is_Valid (B.Animation.all) then
+         Adi.RLottie.Prepare (B.Animation.all, Pixel_Width, Pixel_Height);
+      end if;
+   end Prepare;
 
    overriding function Get_Current_Image
      (B : RLottie_Backend) return Image_Access

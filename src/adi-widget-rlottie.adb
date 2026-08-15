@@ -321,7 +321,31 @@ package body Adi.Widget.RLottie is
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
       W.Items.Reference (Image_Idx).Geometry := Content;
 
-      if W.Animation /= null and then Is_Valid (W.Animation.all) then
+      --  The first point at which the animation's real extent is known.
+      --  Rasterising at the file's own viewport instead would size the
+      --  frame set by how the artwork was authored rather than by how it
+      --  is shown, which for an icon-sized emoji is the whole difference
+      --  between kilobytes and hundreds of megabytes.
+      if W.Animation /= null
+        and then Is_Valid (W.Animation.all)
+        and then Content.Width > 0.0
+        and then Content.Height > 0.0
+      then
+         declare
+            PW : constant Positive :=
+              Positive (Pixel_Type'Max (1.0, Pixel_Type'Ceiling
+                          (Content.Width)));
+            PH : constant Positive :=
+              Positive (Pixel_Type'Max (1.0, Pixel_Type'Ceiling
+                          (Content.Height)));
+         begin
+            --  Idempotent, so this costs a comparison on every frame but
+            --  the ones where the extent actually changed.
+            Prepare (W.Animation.all, PW, PH);
+         end;
+      end if;
+
+      if W.Animation /= null and then Is_Prepared (W.Animation.all) then
          Current := Get_Current_Image (W.Animation.all);
       end if;
 

@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Adi.Core;         use Adi.Core;
+with Adi.Clock;
 with Adi.Image;        use Adi.Image;
 with Adi.SDL.Surface;  use Adi.SDL.Surface;
 with Interfaces;
@@ -14,15 +15,72 @@ package Adi.RLottie is
    type RLottie_Animation is tagged private;
    type RLottie_Animation_Access is access all RLottie_Animation'Class;
 
+   --  Loading parses the animation and reads its metadata. Nothing is
+   --  rasterised: a Lottie file states a viewport, not the size it will
+   --  be drawn at, and rasterising at the former costs the memory of a
+   --  frame set that is then scaled away. A thousand-pixel emoji shown
+   --  as an icon is the case this exists to avoid.
    function Load_From_File
      (Path : String) return RLottie_Animation_Access;
 
+   --  The model is loaded. Says nothing about whether frames exist yet.
    function Is_Valid (Anim : RLottie_Animation) return Boolean;
 
+   --  The extent the file declares, for measuring a widget before
+   --  anything has been rasterised.
    procedure Get_Size
      (Anim   : RLottie_Animation;
       Width  : out Pixel_Type;
       Height : out Pixel_Type);
+
+   ---------------------------------------------------------------------------
+   --  Preparation
+   ---------------------------------------------------------------------------
+
+   --  Rasterise the frame set at exactly this pixel extent -- physical
+   --  pixels, not logical units, since pixels are what a frame is made
+   --  of. Idempotent: asking again for the extent already prepared does
+   --  nothing at all.
+   --
+   --  Asking for a different extent begins a new generation. The frames
+   --  already prepared stay drawable until the replacement is ready, so
+   --  preparation never blanks a running animation, and a generation
+   --  superseded before it finishes is discarded rather than installed.
+   --
+   --  Deciding when to call this is the caller's: rasterising on every
+   --  extent a resize passes through would rebuild the set continuously.
+   procedure Prepare
+     (Anim         : in out RLottie_Animation;
+      Pixel_Width  : Positive;
+      Pixel_Height : Positive);
+
+   --  Frames exist and can be drawn.
+   function Is_Prepared (Anim : RLottie_Animation) return Boolean;
+
+   --  What is prepared now, zero on both counts before the first
+   --  generation is installed.
+   procedure Prepared_Extent
+     (Anim   : RLottie_Animation;
+      Width  : out Natural;
+      Height : out Natural);
+
+   --  What preparing at an extent would cost, so a caller can decide
+   --  before committing to it.
+   --
+   --  The surface figure is what this package will hold: one ARGB frame
+   --  per frame of the animation. The texture figure is what uploading
+   --  all of them would add, and is an estimate rather than a claim
+   --  about residency -- textures live in the renderer's cache, which
+   --  decides for itself what to keep.
+   function Estimated_Surface_Bytes
+     (Anim         : RLottie_Animation;
+      Pixel_Width  : Positive;
+      Pixel_Height : Positive) return Long_Long_Integer;
+
+   function Estimated_Max_Texture_Bytes
+     (Anim         : RLottie_Animation;
+      Pixel_Width  : Positive;
+      Pixel_Height : Positive) return Long_Long_Integer;
 
    function Get_Frame_Count (Anim : RLottie_Animation) return Natural;
    function Get_Frame_Rate (Anim : RLottie_Animation) return Float;
@@ -63,6 +121,20 @@ private
    type Image_Array is array (Positive range <>) of Image_Access;
    type Image_Array_Access is access Image_Array;
 
+   --  One rasterisation of the animation at one extent. A set is built
+   --  privately by a worker and published whole; once published it is
+   --  never modified, so drawing from it needs no interlock with a build
+   --  going on beside it.
+   type Frame_Set is record
+      Surfaces    : Surface_Array_Access := null;
+      Images      : Image_Array_Access := null;
+      Width       : Natural := 0;
+      Height      : Natural := 0;
+      Frame_Count : Natural := 0;
+      Generation  : Natural := 0;
+   end record;
+   type Frame_Set_Access is access Frame_Set;
+
    protected type Preload_State is
       procedure Set_Ready_Count (Value : Natural);
       function Ready_Count return Natural;
@@ -70,6 +142,12 @@ private
       function Done return Boolean;
       procedure Signal_Stop;
       function Stop_Requested return Boolean;
+
+      --  Blocks until the worker has finished touching the animation and
+      --  its set. Teardown has to establish that before freeing either,
+      --  and waiting on an event is how, rather than sleeping in a loop
+      --  and hoping the interval was long enough.
+      entry Wait_Done;
    private
       Ready      : Natural := 0;
       Completed  : Boolean := False;
@@ -79,17 +157,36 @@ private
 
    type Address_Access is access all System.Address;
 
+   --  The worker allocates the surfaces as well as rendering into them.
+   --  Allocating a frame set is itself expensive -- tens of megabytes for
+   --  a large extent -- and doing it on the UI path would stall the frame
+   --  that asked for a resize.
    task type Preload_Task
      (Animation   : not null Address_Access;
-      Surfaces    : not null Surface_Array_Access;
-      Width       : Positive;
-      Height      : Positive;
-      Frame_Count : Positive;
+      Set         : not null Frame_Set_Access;
       State       : not null Preload_State_Access);
    type Preload_Task_Access is access Preload_Task;
 
+   --  Advances the preparation state machine: reaps a finished build,
+   --  publishes it if still wanted, and starts one when the requested
+   --  extent has settled. Called from the frame loop, and from the tests
+   --  that drive it without one.
+   procedure Service_Pending (Anim : in out RLottie_Animation);
+
    type RLottie_Animation is tagged record
       Handle            : aliased System.Address := System.Null_Address;
+      --  The generation last handed to a worker. A set arriving with an
+      --  older number is one nobody wants any more, and is destroyed
+      --  rather than published.
+      Generation        : Natural := 0;
+
+      --  The extent most recently asked for, and when it was last asked
+      --  for. A resize passes through every intermediate extent, so a
+      --  build starts only once the asking has stopped.
+      Pending_W         : Natural := 0;
+      Pending_H         : Natural := 0;
+      Pending_Since     : Adi.Clock.Time := Adi.Clock.Zero;
+      Pending_Live      : Boolean := False;
       Width             : Pixel_Type := 0.0;
       Height            : Pixel_Type := 0.0;
       Buffer_Width      : Natural := 0;
@@ -103,10 +200,27 @@ private
       Looping           : Boolean := True;
       Playback_Speed    : Float := 1.0;
       Min_Ready_Frames  : Natural := 8;
-      Frame_Images      : Image_Array_Access := null;
-      Frame_Surfaces    : Surface_Array_Access := null;
-      State             : Preload_State_Access := null;
+      --  What is drawable now. Immutable once installed.
+      Active            : Frame_Set_Access := null;
+
+      --  What a worker is building, with the state it reports through and
+      --  the task itself. Never drawn from, and there is never more than
+      --  one: a superseded build is told to stop and kept until it ends,
+      --  rather than abandoned beside a replacement. A resize therefore
+      --  coalesces to its final extent instead of leaving a worker behind
+      --  for every size it passed through.
+      Building          : Frame_Set_Access := null;
+      Build_State       : Preload_State_Access := null;
       Worker            : Preload_Task_Access := null;
+
+      --  Set when the build in flight is for an extent nobody wants any
+      --  more. It is reaped rather than published.
+      Build_Superseded  : Boolean := False;
+
+      --  How many builds have been started. Nothing in the library reads
+      --  it; it is what lets a test tell one build from three, which no
+      --  amount of looking at the frames can.
+      Build_Count       : Natural := 0;
    end record;
 
 end Adi.RLottie;

@@ -111,6 +111,11 @@ package body Adi.RLottie is
          Completed := True;
       end Mark_Done;
 
+      entry Wait_Done when Completed is
+      begin
+         null;
+      end Wait_Done;
+
       function Done return Boolean is
       begin
          return Completed;
@@ -131,19 +136,42 @@ package body Adi.RLottie is
       Surf : SDL_Surface_Ptr;
       Buf  : U32_Ptr;
    begin
-      for I in 1 .. Frame_Count loop
+      --  Allocation belongs here rather than on the UI path: a frame set
+      --  at a large extent is tens of megabytes, and the frame that asked
+      --  for the resize should not wait for it.
+      Set.Surfaces := new Surface_Array (1 .. Set.Frame_Count);
+      for I in Set.Surfaces'Range loop
+         Set.Surfaces (I) := null;
+      end loop;
+
+      Set.Images := new Image_Array (1 .. Set.Frame_Count);
+      for I in Set.Images'Range loop
+         Set.Images (I) := null;
+      end loop;
+
+      for I in 1 .. Set.Frame_Count loop
          exit when State.Stop_Requested;
 
-         Surf := Surfaces (I);
-         if Surf /= null and then Surf.pixels /= System.Null_Address then
+         Surf :=
+           SDL_Surface_Ptr
+             (SDL_CreateSurface
+                (width  => Interfaces.C.int (Set.Width),
+                 height => Interfaces.C.int (Set.Height),
+                 format => SDL_PIXELFORMAT_ARGB8888));
+         if Surf = null then
+            exit;
+         end if;
+         Set.Surfaces (I) := Surf;
+
+         if Surf.pixels /= System.Null_Address then
             Buf := To_U32_Ptr (Surf.pixels);
             if Buf /= null then
                Animation_Render
                  (Animation      => To_Ptr (Animation.all),
                   Frame_Num      => Interfaces.C.size_t (I - 1),
                   Buffer         => Buf,
-                  Width          => Interfaces.C.size_t (Width),
-                  Height         => Interfaces.C.size_t (Height),
+                  Width          => Interfaces.C.size_t (Set.Width),
+                  Height         => Interfaces.C.size_t (Set.Height),
                   Bytes_Per_Line => Interfaces.C.size_t (Surf.pitch));
             end if;
          end if;
@@ -152,6 +180,11 @@ package body Adi.RLottie is
       end loop;
 
       State.Mark_Done;
+   exception
+      --  Whatever went wrong, teardown is waiting on this. A worker that
+      --  died without saying so would block Destroy for ever.
+      when others =>
+         State.Mark_Done;
    end Preload_Task;
 
    procedure Free_RLottie is new Ada.Unchecked_Deallocation
@@ -169,6 +202,10 @@ package body Adi.RLottie is
    procedure Free_State is new Ada.Unchecked_Deallocation
      (Object => Preload_State,
       Name   => Preload_State_Access);
+
+   procedure Free_Set is new Ada.Unchecked_Deallocation
+     (Object => Frame_Set,
+      Name   => Frame_Set_Access);
 
    procedure Free_Worker is new Ada.Unchecked_Deallocation
      (Object => Preload_Task,
@@ -226,30 +263,30 @@ package body Adi.RLottie is
    is
       Img : Image_Access;
    begin
-      if Anim.Frame_Images = null
-        or else Frame > Anim.Frame_Images'Last
+      if Anim.Active = null
+        or else Frame > Anim.Active.Images'Last
       then
          return False;
       end if;
 
-      if Anim.Frame_Images (Frame) /= null then
+      if Anim.Active.Images (Frame) /= null then
          return True;
       end if;
 
-      if Anim.Frame_Surfaces = null
-        or else Frame > Anim.Frame_Surfaces'Last
-        or else Anim.Frame_Surfaces (Frame) = null
+      if Anim.Active.Surfaces = null
+        or else Frame > Anim.Active.Surfaces'Last
+        or else Anim.Active.Surfaces (Frame) = null
       then
          return False;
       end if;
 
-      Img := Create_From_Surface (Anim.Frame_Surfaces (Frame));
+      Img := Create_From_Surface (Anim.Active.Surfaces (Frame));
       if Img = null then
          return False;
       end if;
 
-      Anim.Frame_Images (Frame) := Img;
-      Anim.Frame_Surfaces (Frame) := null;
+      Anim.Active.Images (Frame) := Img;
+      Anim.Active.Surfaces (Frame) := null;
       return True;
    end Ensure_Frame_Image;
 
@@ -268,7 +305,6 @@ package body Adi.RLottie is
       Width_N  : Natural;
       Height_N : Natural;
       Result   : RLottie_Animation_Access := null;
-      Surf     : SDL_Surface_Ptr;
    begin
       Ensure_Initialized;
 
@@ -310,45 +346,240 @@ package body Adi.RLottie is
       Result.Frame_Rate := Float (FPS);
       Result.Duration_S := Float (Dur);
 
-      Result.Frame_Surfaces := new Surface_Array (1 .. Natural (Count));
-      for I in Result.Frame_Surfaces'Range loop
-         Surf :=
-           SDL_Surface_Ptr
-             (SDL_CreateSurface
-                (width  => Interfaces.C.int (Width_N),
-                 height => Interfaces.C.int (Height_N),
-                 format => SDL_PIXELFORMAT_ARGB8888));
-         if Surf = null then
-            Adi.Log.Error ("Failed to allocate rlottie surface frame "
-                           & Natural'Image (I));
-            Destroy (Result.all);
-            Free_RLottie (Result);
-            return null;
-         end if;
-         Result.Frame_Surfaces (I) := Surf;
-      end loop;
-
-      Result.Frame_Images := new Image_Array (1 .. Natural (Count));
-      for I in Result.Frame_Images'Range loop
-         Result.Frame_Images (I) := null;
-      end loop;
-
-      Result.State := new Preload_State;
-      Result.Worker := new Preload_Task
-        (Animation   => Result.Handle'Unchecked_Access,
-         Surfaces    => Result.Frame_Surfaces,
-         Width       => Positive (Width_N),
-         Height      => Positive (Height_N),
-         Frame_Count => Positive (Natural (Count)),
-         State       => Result.State);
-
+      --  Nothing is rasterised here. The file's viewport is what the
+      --  animation was authored at, not what it will be drawn at, and
+      --  the caller knows the latter.
       return Result;
    end Load_From_File;
 
+   ---------------------------------------------------------------------------
+   -- Prepare
+   ---------------------------------------------------------------------------
+
+   --  Only ever called on a set no worker still holds.
+   procedure Destroy_Set (Set : in out Frame_Set_Access) is
+   begin
+      if Set = null then
+         return;
+      end if;
+
+      if Set.Images /= null then
+         for I in Set.Images'Range loop
+            if Set.Images (I) /= null then
+               Adi.Image.Free (Set.Images (I));
+            end if;
+         end loop;
+         Free_Images (Set.Images);
+      end if;
+
+      if Set.Surfaces /= null then
+         for I in Set.Surfaces'Range loop
+            if Set.Surfaces (I) /= null then
+               SDL_DestroySurface (Set.Surfaces (I));
+               Set.Surfaces (I) := null;
+            end if;
+         end loop;
+         Free_Surfaces (Set.Surfaces);
+      end if;
+
+      Free_Set (Set);
+      Set := null;
+   end Destroy_Set;
+
+   --  Take back a finished build: publish it if it is still wanted, drop
+   --  it if it is not. Does nothing while the worker is still running, so
+   --  the frame loop can call it every frame.
+   procedure Reap_Build (Anim : in out RLottie_Animation) is
+      Old : Frame_Set_Access;
+   begin
+      if Anim.Worker = null then
+         return;
+      end if;
+
+      --  Terminated, not merely done: the task object cannot be reclaimed
+      --  before the task has ended, and Done is raised inside the body.
+      if not Anim.Worker.all'Terminated then
+         return;
+      end if;
+
+      Free_Worker (Anim.Worker);
+      Anim.Worker := null;
+      if Anim.Build_State /= null then
+         Free_State (Anim.Build_State);
+      end if;
+
+      if Anim.Build_Superseded
+        or else Anim.Building = null
+        or else Anim.Building.Generation /= Anim.Generation
+      then
+         Destroy_Set (Anim.Building);
+      else
+         --  The set that was drawable goes only once its replacement is
+         --  in place, so nothing is ever left with no frames to draw.
+         Old := Anim.Active;
+         Anim.Active := Anim.Building;
+         Anim.Building := null;
+         Anim.Current_Frame := 0;
+         Anim.Elapsed_S := 0.0;
+         Destroy_Set (Old);
+      end if;
+
+      Anim.Build_Superseded := False;
+   end Reap_Build;
+
+   --  Begin a build at the pending extent. Never called while one is in
+   --  flight, so exactly one worker exists at a time.
+   procedure Start_Build (Anim : in out RLottie_Animation) is
+   begin
+      Anim.Generation := Anim.Generation + 1;
+      Anim.Build_Count := Anim.Build_Count + 1;
+      Anim.Build_Superseded := False;
+      Anim.Building := new Frame_Set'
+        (Surfaces    => null,
+         Images      => null,
+         Width       => Anim.Pending_W,
+         Height      => Anim.Pending_H,
+         Frame_Count => Anim.Frame_Count,
+         Generation  => Anim.Generation);
+      Anim.Build_State := new Preload_State;
+      Anim.Worker := new Preload_Task
+        (Animation => Anim.Handle'Unchecked_Access,
+         Set       => Anim.Building,
+         State     => Anim.Build_State);
+   end Start_Build;
+
+   --  How long an extent must stand still before it is worth rasterising
+   --  at. A resize passes through every intermediate size; building at
+   --  each would rebuild the set continuously and finish none of them.
+   Settle_Time : constant Duration := 0.150;
+
+   --  Run the pending extent forward. Called from the frame loop rather
+   --  than from Prepare, because what decides a build is time passing
+   --  without another request.
+   procedure Service_Pending (Anim : in out RLottie_Animation) is
+      use type Adi.Clock.Time;
+   begin
+      Reap_Build (Anim);
+
+      if not Anim.Pending_Live then
+         return;
+      end if;
+
+      --  Already drawable at the wanted extent.
+      if Anim.Worker = null
+        and then Anim.Active /= null
+        and then Anim.Active.Width = Anim.Pending_W
+        and then Anim.Active.Height = Anim.Pending_H
+      then
+         Anim.Pending_Live := False;
+         return;
+      end if;
+
+      if Anim.Worker /= null then
+         --  A build is in flight. If it is heading somewhere nobody wants
+         --  any more, tell it to stop; the replacement starts when it has
+         --  ended, so a rapid resize coalesces to its final extent rather
+         --  than leaving a worker behind for every size it passed.
+         if not Anim.Build_Superseded
+           and then Anim.Building /= null
+           and then (Anim.Building.Width /= Anim.Pending_W
+                     or else Anim.Building.Height /= Anim.Pending_H)
+         then
+            Anim.Build_Superseded := True;
+            if Anim.Build_State /= null then
+               Anim.Build_State.Signal_Stop;
+            end if;
+         end if;
+         return;
+      end if;
+
+      --  The first set is wanted immediately: there is nothing to draw
+      --  until it exists, so waiting for the extent to settle would leave
+      --  the animation blank for no benefit.
+      if Anim.Active = null
+        or else Adi.Clock.To_Duration (Adi.Clock.Now - Anim.Pending_Since)
+                  >= Settle_Time
+      then
+         Start_Build (Anim);
+         Anim.Pending_Live := False;
+      end if;
+   end Service_Pending;
+
+   procedure Prepare
+     (Anim         : in out RLottie_Animation;
+      Pixel_Width  : Positive;
+      Pixel_Height : Positive) is
+   begin
+      if Anim.Handle = System.Null_Address or else Anim.Frame_Count = 0 then
+         return;
+      end if;
+
+      --  Already drawable at this extent, with no build heading elsewhere.
+      if Anim.Active /= null
+        and then Anim.Active.Width = Pixel_Width
+        and then Anim.Active.Height = Pixel_Height
+        and then Anim.Worker = null
+      then
+         Anim.Pending_Live := False;
+         return;
+      end if;
+
+      --  Asking again for the same extent leaves the clock alone, so a
+      --  steady request settles rather than restarting on every frame.
+      if not Anim.Pending_Live
+        or else Anim.Pending_W /= Pixel_Width
+        or else Anim.Pending_H /= Pixel_Height
+      then
+         Anim.Pending_W := Pixel_Width;
+         Anim.Pending_H := Pixel_Height;
+         Anim.Pending_Since := Adi.Clock.Now;
+         Anim.Pending_Live := True;
+      end if;
+
+      Service_Pending (Anim);
+   end Prepare;
+
+   --  A set that can be drawn from, not one that is being built: an
+   --  empty allocation is not something to show.
+   function Is_Prepared (Anim : RLottie_Animation) return Boolean is
+     (Anim.Active /= null);
+
+   procedure Prepared_Extent
+     (Anim   : RLottie_Animation;
+      Width  : out Natural;
+      Height : out Natural) is
+   begin
+      if Anim.Active = null then
+         Width := 0;
+         Height := 0;
+      else
+         Width := Anim.Active.Width;
+         Height := Anim.Active.Height;
+      end if;
+   end Prepared_Extent;
+
+   function Estimated_Surface_Bytes
+     (Anim         : RLottie_Animation;
+      Pixel_Width  : Positive;
+      Pixel_Height : Positive) return Long_Long_Integer
+   is (Long_Long_Integer (Anim.Frame_Count)
+       * Long_Long_Integer (Pixel_Width)
+       * Long_Long_Integer (Pixel_Height)
+       * 4);
+
+   function Estimated_Max_Texture_Bytes
+     (Anim         : RLottie_Animation;
+      Pixel_Width  : Positive;
+      Pixel_Height : Positive) return Long_Long_Integer
+   is (Estimated_Surface_Bytes (Anim, Pixel_Width, Pixel_Height));
+
+   --  The model is loaded and has frames to draw. Whether any have been
+   --  rasterised is Is_Prepared's question: measurement needs the former
+   --  and drawing needs the latter.
    function Is_Valid (Anim : RLottie_Animation) return Boolean is
    begin
       return Anim.Handle /= System.Null_Address
-        and then Anim.Frame_Images /= null;
+        and then Anim.Frame_Count > 0;
    end Is_Valid;
 
    procedure Get_Size
@@ -378,18 +609,19 @@ package body Adi.RLottie is
 
    function Get_Preloaded_Frame_Count (Anim : RLottie_Animation) return Natural is
    begin
-      if Anim.State = null then
-         return 0;
+      --  Progress of the build in flight; a published set is complete by
+      --  definition and reports its own frame count.
+      if Anim.Build_State /= null then
+         return Anim.Build_State.Ready_Count;
+      elsif Anim.Active /= null then
+         return Anim.Active.Frame_Count;
       end if;
-      return Anim.State.Ready_Count;
+      return 0;
    end Get_Preloaded_Frame_Count;
 
    function Is_Preload_Complete (Anim : RLottie_Animation) return Boolean is
    begin
-      if Anim.State = null then
-         return False;
-      end if;
-      return Anim.State.Done;
+      return Anim.Active /= null and then Anim.Worker = null;
    end Is_Preload_Complete;
 
    procedure Set_Preload_Threshold
@@ -407,13 +639,13 @@ package body Adi.RLottie is
 
    function Get_Current_Image (Anim : RLottie_Animation) return Image_Access is
    begin
-      if Anim.Frame_Images = null
+      if Anim.Active = null
         or else Anim.Current_Frame = 0
-        or else Anim.Current_Frame > Anim.Frame_Images'Last
+        or else Anim.Current_Frame > Anim.Active.Images'Last
       then
          return null;
       end if;
-      return Anim.Frame_Images (Anim.Current_Frame);
+      return Anim.Active.Images (Anim.Current_Frame);
    end Get_Current_Image;
 
    procedure Start (Anim : in out RLottie_Animation) is
@@ -463,12 +695,9 @@ package body Adi.RLottie is
       Anim.Elapsed_S := 0.0;
       Anim.Current_Frame := 0;
 
-      if Anim.State /= null then
-         Ready := Anim.State.Ready_Count;
-         Done := Anim.State.Done;
-      end if;
-
-      if Ready >= 1 or else Done then
+      --  A published set is complete, so the first frame is there if
+      --  anything is.
+      if Anim.Active /= null then
          if Ensure_Frame_Image (Anim, 1) then
             Anim.Current_Frame := 1;
          end if;
@@ -487,14 +716,17 @@ package body Adi.RLottie is
          return False;
       end if;
 
-      if Anim.State /= null then
-         Ready := Anim.State.Ready_Count;
-         Done := Anim.State.Done;
-      end if;
+      --  The frame loop is where a settled extent turns into a build and
+      --  a finished build turns into what is drawn.
+      Service_Pending (Anim);
 
-      if not Done and then Ready < Anim.Min_Ready_Frames then
+      if Anim.Active = null then
          return False;
       end if;
+
+      --  Whatever is published is whole.
+      Ready := Anim.Active.Frame_Count;
+      Done := True;
 
       Target := Resolve_Target_Frame (Anim, DT);
       if Target = 0 or else Target = Anim.Current_Frame then
@@ -519,76 +751,44 @@ package body Adi.RLottie is
 
    procedure Destroy (Anim : in out RLottie_Animation) is
    begin
-      --  Stop worker first — it touches Frame_Surfaces
-      if Anim.State /= null then
-         Anim.State.Signal_Stop;
-      end if;
-
+      --  A worker renders from the model and writes into its set, so both
+      --  have to outlive it. Establishing that is what this waits for --
+      --  at most the render already in progress, and event-driven rather
+      --  than a sleep chosen in the hope it is long enough.
       if Anim.Worker /= null then
-         delay 0.01;
-         declare
-            W : Preload_Task_Access := Anim.Worker;
-         begin
-            Free_Worker (W);
-            Anim.Worker := null;
-         end;
+         if Anim.Build_State /= null then
+            Anim.Build_State.Signal_Stop;
+            Anim.Build_State.Wait_Done;
+         end if;
+
+         --  Done is raised inside the task body, so termination follows
+         --  it rather than coinciding with it. Reclaiming the task object
+         --  needs the latter, which by here is immediate.
+         while not Anim.Worker.all'Terminated loop
+            delay 0.0;
+         end loop;
+
+         Free_Worker (Anim.Worker);
+         Anim.Worker := null;
       end if;
 
+      if Anim.Build_State /= null then
+         Free_State (Anim.Build_State);
+      end if;
+
+      Destroy_Set (Anim.Building);
+      Destroy_Set (Anim.Active);
+
+      --  Only now: nothing is rendering from it any more.
       if Anim.Handle /= System.Null_Address then
          Animation_Destroy (To_Ptr (Anim.Handle));
          Anim.Handle := System.Null_Address;
       end if;
 
-      --  Free Images (which own their surfaces via Create_From_Surface)
-      if Anim.Frame_Images /= null then
-         for I in Anim.Frame_Images'Range loop
-            if Anim.Frame_Images (I) /= null then
-               Adi.Image.Free (Anim.Frame_Images (I));
-            end if;
-         end loop;
-         declare
-            Arr : Image_Array_Access := Anim.Frame_Images;
-         begin
-            Free_Images (Arr);
-            Anim.Frame_Images := null;
-         end;
-      end if;
-
-      --  Free remaining surfaces (for frames not yet converted to Images)
-      if Anim.Frame_Surfaces /= null then
-         for I in Anim.Frame_Surfaces'Range loop
-            if Anim.Frame_Surfaces (I) /= null then
-               SDL_DestroySurface (Anim.Frame_Surfaces (I));
-               Anim.Frame_Surfaces (I) := null;
-            end if;
-         end loop;
-         declare
-            S : Surface_Array_Access := Anim.Frame_Surfaces;
-         begin
-            Free_Surfaces (S);
-            Anim.Frame_Surfaces := null;
-         end;
-      end if;
-
-      if Anim.State /= null then
-         declare
-            S : Preload_State_Access := Anim.State;
-         begin
-            Free_State (S);
-            Anim.State := null;
-         end;
-      end if;
-
-      Anim.Width := 0.0;
-      Anim.Height := 0.0;
-      Anim.Buffer_Width := 0;
-      Anim.Buffer_Height := 0;
       Anim.Frame_Count := 0;
-      Anim.Frame_Rate := 0.0;
-      Anim.Duration_S := 0.0;
       Anim.Current_Frame := 0;
-      Anim.Elapsed_S := 0.0;
-      Anim.Playing := False;
+      Anim.Pending_Live := False;
+      Anim.Build_Superseded := False;
    end Destroy;
 
 end Adi.RLottie;

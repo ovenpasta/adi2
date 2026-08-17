@@ -67,24 +67,35 @@ likewise hand-drawn.
 Dublin Core metadata names the author and dedicates the work to the
 public domain (`cc:license` → `http://web.resource.org/cc/PublicDomain`).
 
-## cat.svg
+## tiger.svg
 
-Hand-authored for this repository.
+"Tiger Face" by microugly, published through
+[openclipart.org](https://openclipart.org/). The file's own embedded RDF
+declares it public domain (`cc:license` →
+`http://creativecommons.org/licenses/publicdomain/`), permitting
+reproduction, distribution and derivative works.
+
+Source: <https://openclipart.org/detail/176055/Clipart-by-microugly>.
+Stored unmodified, SHA-256
+`c3ab03f21f3100462e7c8a278a1aca7e41fbeb4a2a40e647c4f68252e222a62f`.
+`tests/assets/tiger.svg` is the same file.
+
+## animhorse.gif
+
+By [Janke](https://commons.wikimedia.org/wiki/User:Janke), 2005, own
+work, under
+[CC BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5).
+Source: <https://commons.wikimedia.org/wiki/File:Animhorse.gif>.
+Stored unmodified, SHA-1
+`cc0bc41062626a4a2002a488c6724f969bfa9dd4`.
+
+Share-alike binds adaptations of the image, not the program displaying
+it.
+
+## cat.svg, happycat.png, bg.jpg, html_view_example.html, html/
+
+Original to this repository, under its Apache-2.0 licence.
 
 ## OpenSans-Regular.ttf
 
 A symlink into `vendor/open-sans/`, under the SIL Open Font License 1.1.
-
-## Not yet reviewed
-
-These came from elsewhere but carry no usable metadata, and the commits
-that added them record no source. Provenance is not established, and
-nothing here should be read as a claim that they are original to this
-repository or that their terms permit redistribution.
-
-| File | What the file itself records |
-|------|------------------------------|
-| `tiger.svg` | Nothing. Resembles the widely-redistributed "Ghostscript tiger", but resemblance is not evidence and no licence is inferred from it. |
-| `animhorse.gif` | A GIF comment naming the authoring tool only: "GifBuilder 0.5 by Yves Piguet". Eight frames. |
-| `happycat.png` | No text chunks. |
-| `bg.jpg` | No EXIF, no comment, no XMP. |

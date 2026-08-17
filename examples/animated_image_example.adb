@@ -38,7 +38,7 @@ begin
         Adi.Widget.Label.Create_Handle ("Animated Image (SDL_image)");
       Subtitle : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle
-          ("Animhorse.gif from Wikimedia Commons with live playback controls");
+          ("Animhorse.gif by Janke, CC BY-SA 2.5, with playback controls");
       Viewer_Frame : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Viewer : constant Adi.Widget.Animated_Widget.Animated_Widget_Handle :=

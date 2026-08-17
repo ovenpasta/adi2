@@ -25,14 +25,14 @@ procedure RLottie_Example is
 
    function Resolve_Lottie_Path return String is
    begin
-      if Ada.Directories.Exists ("examples/assets/lottie_sample.json") then
-         return "examples/assets/lottie_sample.json";
-      elsif Ada.Directories.Exists ("assets/lottie_sample.json") then
-         return "assets/lottie_sample.json";
-      elsif Ada.Directories.Exists ("../examples/assets/lottie_sample.json") then
-         return "../examples/assets/lottie_sample.json";
+      if Ada.Directories.Exists ("examples/assets/noto_party_popper.json") then
+         return "examples/assets/noto_party_popper.json";
+      elsif Ada.Directories.Exists ("assets/noto_party_popper.json") then
+         return "assets/noto_party_popper.json";
+      elsif Ada.Directories.Exists ("../examples/assets/noto_party_popper.json") then
+         return "../examples/assets/noto_party_popper.json";
       else
-         return "examples/assets/lottie_sample.json";
+         return "examples/assets/noto_party_popper.json";
       end if;
    end Resolve_Lottie_Path;
 
@@ -64,7 +64,7 @@ begin
         Adi.Widget.Box.Create_Handle;
       Status : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle
-          ("Loading assets/lottie_sample.json...");
+          ("Loading assets/noto_party_popper.json...");
 
       Btn_Play : constant Adi.Widget.Button.Button_Handle :=
         Adi.Widget.Button.Create_Handle ("PLAY >");
@@ -169,7 +169,7 @@ begin
       Anim := Adi.RLottie.Load_From_File (Path => Resolve_Lottie_Path);
       if Anim = null then
          Adi.Widget.Label.Set_Text
-           (Status, "FAILED TO LOAD examples/assets/lottie_sample.json");
+           (Status, "FAILED TO LOAD examples/assets/noto_party_popper.json");
       else
          Adi.Widget.Animated_Widget.RLottie.Set_Animation
            (Viewer, Anim);

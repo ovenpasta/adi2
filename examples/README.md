@@ -46,8 +46,10 @@ Demonstrates `Adi.Widget.Html_View` with HTML loaded from assets, styles provide
 - `examples/assets/bg.jpg` (widget demo background)
 - `examples/assets/animhorse.gif` (animated image demo)
 - `examples/assets/happycat.png` (label example icon)
-- `examples/assets/lottie_sample.json` (rlottie demo animation)
+- `examples/assets/noto_party_popper.json` (rlottie demo animation)
 - `examples/assets/html_view_example.html` (HTML view demo content)
+
+Third-party terms, where known, are recorded in [`assets/NOTICE.md`](assets/NOTICE.md).
 
 ### Shared Widget Defaults
 `css/widget_defaults.css` defines reusable baseline styles for common widgets (`.button`, `.text-input`, `.list-box`, `.list-row`) and is generated as `generated/widget_defaults_styles.ads` for reuse across examples.

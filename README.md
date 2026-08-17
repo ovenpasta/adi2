@@ -202,6 +202,8 @@ Apache-2.0. See [`LICENSE`](LICENSE).
 
 Vendored third-party code under [`vendor/`](vendor/) retains its original licenses (MIT, Apache-2.0, OFL, and similar permissive terms).
 
+Example assets under [`examples/assets/`](examples/assets/) are demonstration content rather than part of the library; those with known third-party terms are attributed in [`examples/assets/NOTICE.md`](examples/assets/NOTICE.md).
+
 ---
 
 ## Contact

@@ -280,7 +280,11 @@ package body Adi.RLottie is
          return False;
       end if;
 
-      Img := Create_From_Surface (Anim.Active.Surfaces (Frame));
+      --  Every frame joins the animation's group, so the whole set stops
+      --  being resident the moment the animation does rather than one
+      --  frame at a time under budget pressure.
+      Img := Create_From_Surface
+        (Anim.Active.Surfaces (Frame), Group => Anim.Group'Unchecked_Access);
       if Img = null then
          return False;
       end if;
@@ -775,6 +779,12 @@ package body Adi.RLottie is
       if Anim.Build_State /= null then
          Free_State (Anim.Build_State);
       end if;
+
+      --  The worker has stopped, so nothing is still producing frames.
+      --  Releasing here rather than earlier means every texture made from
+      --  them goes at once, in whichever renderers hold them. This runs
+      --  on the render thread, which is where the caches live.
+      Adi.Texture_Cache.Release (Anim.Group);
 
       Destroy_Set (Anim.Building);
       Destroy_Set (Anim.Active);

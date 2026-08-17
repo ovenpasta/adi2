@@ -179,6 +179,12 @@ package Adi.Texture_Cache is
    --  and drawn on that thread, so its lifetime is decided there too. A
    --  producer working elsewhere hands its result over on the render
    --  thread, as Adi.RLottie does with its rasterised frames.
+   --  For whoever keeps a group rather than merely passing one: an image
+   --  holds it for the lifetime of its textures, which an anonymous
+   --  access parameter cannot outlive. Storing takes an anonymous one,
+   --  since the cache reads the group and does not retain it.
+   type Texture_Group_Access is access all Texture_Group'Class;
+
    procedure Release (G : in out Texture_Group);
    function Is_Open (G : Texture_Group) return Boolean;
 

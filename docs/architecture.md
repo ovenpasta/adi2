@@ -81,7 +81,8 @@
 - `Image_Scale_Mode`: `Scale_Linear` (default bilinear), `Scale_Nearest` (sharp nearest-neighbor), `Scale_Pixelart` (nearest with integer snap, SDL 3.3+)
 - `Set_Scale_Mode(Img, Mode)` / `Get_Scale_Mode(Img)`: per-image texture scaling; the mode is part of a texture's key, so a later lease finds or builds one made for it
 - `Set_Tintable(Img)` / `Is_Tintable(Img)`: mark/query tintable flag (white-on-transparent, recolored by CSS `color`)
-- Freeing an image leaves its entries resident until budget pressure or context destruction reclaims them. They keep the standing they earned; what changes is that nothing hits them again, so the rising floor overtakes them
+- Freeing an **ungrouped** image leaves its entries resident until budget pressure or context destruction reclaims them. They keep the standing they earned; what changes is that nothing hits them again, so the rising floor overtakes them
+- A **grouped** image's textures go when their owner releases the group, in every renderer that holds them, counted as `released` rather than as pressure. `Create_From_Surface` takes the group; the image holds it without owning it, so the group must outlive every image naming it
 - `Free(Img)`: destroys internals and deallocates the `Image_Access` object; safe to call with null
 - Each constructor assigns a `Source_Id` from a counter rather than reusing the image's address, which a later allocation could repeat and so find a dead image's cache entries
 
@@ -120,7 +121,12 @@
 - `Load_From_File(Path)`: loads all frames as surfaces (via `SDL_DuplicateSurface` + `Create_From_Surface`) — no renderer required at load time; GPU textures created lazily per frame on first render
 - Loadable through `Adi.Assets.Get_Animated_Image` for URI-based cached access
 
-**Adi.RLottie** (`adi-rlottie.ads`): Lottie JSON via rlottie C API, CPU-rendered frame cache with background preload task. No renderer required at load time; surfaces are wrapped in `Image_Access` on first display and GPU textures created lazily per frame.
+**Adi.RLottie** (`adi-rlottie.ads`): Lottie JSON via the rlottie C API.
+- Loading parses the model only. `Prepare (W, H)` rasterises the frame set at the size it will be drawn, on a worker that allocates as well as renders; a requested extent must stand still for 150 ms before a rebuild starts, and at most one build runs at a time
+- Every frame image joins the animation's `Texture_Group`, so the whole set is retired together when the animation is destroyed rather than one frame at a time under pressure
+- Residency is per renderer but the group spans them: one animation drawn in two windows has frames in two caches, and releasing reaches both
+- `RLottie_Animation` is `tagged limited private` — it owns a model handle, a worker task, frame sets and the group
+- Destroying it requires every referring widget to be detached first, and runs on the render thread
 
 **Adi.Log** (`adi-log.ads`): Central runtime logging.
 - Safe logging entry points: `Write`, `Debug`, `Info`, `Warning`, `Error`

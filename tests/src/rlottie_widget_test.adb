@@ -7,6 +7,7 @@ with Adi.Core;                           use Adi.Core;
 with Adi.RLottie;                        use Adi.RLottie;
 with Adi.RLottie.Testing;                use Adi.RLottie.Testing;
 with Adi.SDL;
+with Adi.Texture_Cache;
 with Adi.Widget;                         use Adi.Widget;
 with Adi.Widget.Animated_Widget;
 with Adi.Widget.Animated_Widget.RLottie;
@@ -270,6 +271,111 @@ procedure RLottie_Widget_Test is
       Destroy (Anim.all);
    end Test_Scale_Change_Reprepares;
 
+   ---------------------------------------------------------------------------
+
+   --  One animation drawn by two widgets in two windows. Its textures
+   --  belong to the animation, so no widget's death takes them and the
+   --  animation's death takes all of them, in both renderers.
+   --
+   --  The animation is destroyed last on purpose: a widget still holding
+   --  a raw Image_Access to a freed animation's frames is outside what
+   --  the current lifetime contract supports, and testing it would be
+   --  testing something the library does not promise.
+   procedure Test_Shared_Animation_Group is
+      use type Adi.Texture_Cache.Event_Count;
+
+      WA, WB : Adi.Window.Window_Handle;
+      BA, BB : Adi.Widget.RLottie.RLottie_Handle;
+      Anim   : RLottie_Animation_Access;
+
+      function Rasters (W : Adi.Window.Window_Handle) return Natural is
+        (Adi.Window.Get_Texture_Stats (W).By_Kind
+           (Adi.Texture_Cache.Raster_Texture).Count);
+
+      function Released (W : Adi.Window.Window_Handle)
+                         return Adi.Texture_Cache.Event_Count is
+        (Adi.Window.Get_Texture_Stats (W).By_Kind
+           (Adi.Texture_Cache.Raster_Texture).Released);
+   begin
+      Section ("one animation, two widgets, two renderers");
+
+      Anim := Load_From_File (Fixture);
+      Assert (Anim /= null, "the fixture loads");
+      if Anim = null then
+         return;
+      end if;
+
+      WA := Adi.Window.Create_Window_Handle ("Shared A", (160.0, 120.0));
+      WB := Adi.Window.Create_Window_Handle ("Shared B", (160.0, 120.0));
+      BA := Adi.Widget.RLottie.Create_Handle (Anim);
+      BB := Adi.Widget.RLottie.Create_Handle (Anim);
+      Adi.Window.Set_Root (WA, Adi.Widget.RLottie.To_Widget_Handle (BA));
+      Adi.Window.Set_Root (WB, Adi.Widget.RLottie.To_Widget_Handle (BB));
+
+      --  Prepared through window A, then one tick to select a frame and
+      --  a draw in each window. The tick is on one window only: both
+      --  widgets drive the same mutable playhead, so ticking each would
+      --  advance the animation twice per logical frame -- a real problem,
+      --  but a different one, and not something this test should quietly
+      --  depend on.
+      Pump (WA, Anim);
+
+      declare
+         RA : constant Adi.Window.Window_Ref := Adi.Window.Borrow (WA);
+      begin
+         Adi.Window.Tick (RA.Ptr.all, 0.020);
+      end;
+      Adi.Window.Render (WA);
+      Adi.Window.Render (WB);
+
+      Assert (Rasters (WA) = 1 and then Rasters (WB) = 1,
+              "one drawn frame is one texture in each renderer: a texture"
+              & " belongs to the renderer that made it, so two windows"
+              & " make two of them");
+
+      declare
+         Was_A : constant Natural := Rasters (WA);
+         Was_B : constant Natural := Rasters (WB);
+         Rel_A : constant Adi.Texture_Cache.Event_Count := Released (WA);
+         Rel_B : constant Adi.Texture_Cache.Event_Count := Released (WB);
+      begin
+         --  A widget going is not the animation going.
+         declare
+            HA : Widget_Handle := Adi.Widget.RLottie.To_Widget_Handle (BA);
+         begin
+            Adi.Widget.Destroy (HA);
+         end;
+         Adi.Widget.Pump_Widget_Store;
+         Assert (Rasters (WA) = Was_A and then Rasters (WB) = Was_B,
+                 "Destroying one widget releases nothing: the frames"
+                 & " belong to the animation, which the other widget is"
+                 & " still drawing");
+
+         declare
+            HB : Widget_Handle := Adi.Widget.RLottie.To_Widget_Handle (BB);
+         begin
+            Adi.Widget.Destroy (HB);
+         end;
+         Adi.Widget.Pump_Widget_Store;
+         Assert (Rasters (WA) = Was_A and then Rasters (WB) = Was_B,
+                 "and destroying the second changes nothing either");
+
+         --  The animation going is.
+         Destroy (Anim.all);
+
+         Assert (Rasters (WA) = 0 and then Rasters (WB) = 0,
+                 "Destroying the animation takes its frames from every"
+                 & " renderer that held them, not merely the last");
+         Assert (Released (WA) = Rel_A + 1
+                   and then Released (WB) = Rel_B + 1,
+                 "exactly the one texture each held, counted as released"
+                 & " with its group rather than as anything else");
+      end;
+
+      Adi.Window.Destroy (WA);
+      Adi.Window.Destroy (WB);
+   end Test_Shared_Animation_Group;
+
 begin
    Ada.Environment_Variables.Set ("SDL_VIDEODRIVER", "dummy");
    Start_Suite ("RLottie widget test");
@@ -283,6 +389,7 @@ begin
    Test_RLottie_Widget_Prepares;
    Test_Animated_Widget_Prepares;
    Test_Scale_Change_Reprepares;
+   Test_Shared_Animation_Group;
 
    Finish;
 end RLottie_Widget_Test;

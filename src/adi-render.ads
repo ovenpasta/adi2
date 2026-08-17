@@ -67,7 +67,9 @@ package Adi.Render is
       Width      : Natural;
       Height     : Natural;
       Bytes      : Adi.Texture_Cache.Texture_Charge;
-      Build_Time : Adi.Clock.Time_Span)
+      Build_Time : Adi.Clock.Time_Span;
+      --  The lifetime this texture shares with others, if any.
+      Group      : access Adi.Texture_Cache.Texture_Group'Class := null)
       return Adi.Texture_Cache.Texture_Handle;
 
    --  Safe to hold across the context's destruction: the borrow keeps the

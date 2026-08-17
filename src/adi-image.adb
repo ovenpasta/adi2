@@ -82,6 +82,7 @@ package body Adi.Image is
          Height   => SH,
          SVG      => Doc,
          Source   => New_Source,
+         Group    => null,
          Tintable => False,
          Scaling  => Scale_Linear
       );
@@ -202,6 +203,7 @@ package body Adi.Image is
          Height   => Pixel_Type (Float (Surf.h)),
          SVG      => null,
          Source   => New_Source,
+         Group    => null,
          Tintable => False,
          Scaling  => Scale_Linear
       );
@@ -242,6 +244,7 @@ package body Adi.Image is
          Height   => Pixel_Type (Float (Surf.h)),
          SVG      => null,
          Source   => New_Source,
+         Group    => null,
          Tintable => False,
          Scaling  => Scale_Linear
       );
@@ -347,7 +350,9 @@ package body Adi.Image is
    ---------------------------------------------------------------------------
 
    function Create_From_Surface
-      (Surface : SDL_Surface_Ptr) return Image_Access
+      (Surface : SDL_Surface_Ptr;
+       Group   : Adi.Texture_Cache.Texture_Group_Access := null)
+       return Image_Access
    is
       Img : Image_Access;
    begin
@@ -362,6 +367,7 @@ package body Adi.Image is
          Height   => Pixel_Type (Float (Surface.h)),
          SVG      => null,
          Source   => New_Source,
+         Group    => Group,
          Tintable => False,
          Scaling  => Scale_Linear
       );
@@ -383,6 +389,7 @@ package body Adi.Image is
          Height   => 0.0,
          SVG      => null,
          Source   => New_Source,
+         Group    => null,
          Tintable => False,
          Scaling  => Scale_Linear
       );
@@ -606,7 +613,8 @@ package body Adi.Image is
                Bytes      => Adi.Texture_Cache.Texture_Charge
                                (Adi.Texture_Cache.Byte_Count (W)
                                 * Adi.Texture_Cache.Byte_Count (H) * 4),
-               Build_Time => Took);
+               Build_Time => Took,
+               Group      => Img.Group);
 
             --  Refused, so the cache took no ownership. There is nothing
             --  to lease and nobody else to free it.

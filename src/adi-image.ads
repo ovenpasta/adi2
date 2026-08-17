@@ -73,8 +73,15 @@ package Adi.Image is
 
    -- Create an image from an existing SDL surface (CPU memory).
    -- The Image takes ownership of the surface; texture created lazily.
+   --
+   -- Group names a lifetime this image's textures share with others --
+   -- an animation's frames, which stop being wanted together. The image
+   -- does not own it: the group belongs to whatever produced the frames,
+   -- and must outlive every image that names it.
    function Create_From_Surface
-      (Surface : SDL_Surface_Ptr) return Image_Access;
+      (Surface : SDL_Surface_Ptr;
+       Group   : Adi.Texture_Cache.Texture_Group_Access := null)
+       return Image_Access;
 
    -- Create an empty/null image
    function Create_Empty return Image_Access;
@@ -179,6 +186,9 @@ private
       --  so two images cannot collide and one image's entries are found
       --  again across renderers.
       Source   : Adi.Texture_Cache.Source_Id := 0;
+      --  Not owned: whatever produced this image owns the group, and
+      --  outlives it.
+      Group    : Adi.Texture_Cache.Texture_Group_Access := null;
       Tintable : Boolean := False;
       Scaling  : Image_Scale_Mode := Scale_Linear;
    end record;

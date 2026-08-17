@@ -6,13 +6,18 @@ pragma Ada_2022;
 with Adi.Core;         use Adi.Core;
 with Adi.Clock;
 with Adi.Image;        use Adi.Image;
+with Adi.Texture_Cache;
 with Adi.SDL.Surface;  use Adi.SDL.Surface;
 with Interfaces;
 with System;
 
 package Adi.RLottie is
 
-   type RLottie_Animation is tagged private;
+   --  Limited: an animation owns a model handle, a worker task, frame
+   --  sets and the group its textures belong to. None of that is
+   --  meaningfully copyable, and saying so lets the compiler point at any
+   --  attempt rather than leaving two owners of one worker.
+   type RLottie_Animation is tagged limited private;
    type RLottie_Animation_Access is access all RLottie_Animation'Class;
 
    --  Loading parses the animation and reads its metadata. Nothing is
@@ -111,6 +116,14 @@ package Adi.RLottie is
      (Anim : in out RLottie_Animation;
       DT   : Duration) return Boolean;
 
+   --  Detach or destroy every widget and backend referring to this
+   --  animation first. What they hold is a plain Image_Access into its
+   --  frame set, which this frees; there is no invalidation to catch a
+   --  widget that still draws afterwards.
+   --
+   --  Call it on the render thread. It releases the animation's texture
+   --  group, which reaches into the cache of every renderer that drew the
+   --  frames, and those caches belong to that thread.
    procedure Destroy (Anim : in out RLottie_Animation);
 
 private
@@ -173,8 +186,12 @@ private
    --  that drive it without one.
    procedure Service_Pending (Anim : in out RLottie_Animation);
 
-   type RLottie_Animation is tagged record
+   type RLottie_Animation is tagged limited record
       Handle            : aliased System.Address := System.Null_Address;
+      --  Every texture made from this animation's frames belongs to it,
+      --  so all of them go when it does rather than lingering as a
+      --  hundred unrelated images nothing will ask for again.
+      Group             : aliased Adi.Texture_Cache.Texture_Group;
       --  The generation last handed to a worker. A set arriving with an
       --  older number is one nobody wants any more, and is destroyed
       --  rather than published.

@@ -57,12 +57,13 @@ package body Adi.Render is
       Width      : Natural;
       Height     : Natural;
       Bytes      : Adi.Texture_Cache.Texture_Charge;
-      Build_Time : Adi.Clock.Time_Span)
+      Build_Time : Adi.Clock.Time_Span;
+      Group      : access Adi.Texture_Cache.Texture_Group'Class := null)
       return Adi.Texture_Cache.Texture_Handle
    is (if Ctx.Data = null then Adi.Texture_Cache.Null_Texture
        else Adi.Texture_Cache.Store
               (Ctx.Data.Textures, Key, Texture, Width, Height, Bytes,
-               Build_Time));
+               Build_Time, Group));
 
    function Borrow_Texture
      (Ctx : in out Render_Context;

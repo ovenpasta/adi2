@@ -34,51 +34,53 @@ procedure RLottie_Widget_Test is
    --  fail the suite rather than hang it.
    Deadline : constant := 400;   --  × 5 ms
 
-   procedure Settle (Anim : in out RLottie_Animation'Class) is
+   --  One frame of the application loop: a tick then a render, in that
+   --  order, which is what App.Run does. Rendering alone never asks the
+   --  animation for a frame, so a helper that only rendered would wait
+   --  for something nothing was going to do.
+   procedure Step_Frame
+     (W : Adi.Window.Window_Handle; DT : Duration := 0.005) is
+      R : constant Adi.Window.Window_Ref := Adi.Window.Borrow (W);
    begin
-      for I in 1 .. Deadline loop
-         Service (Anim);
-         exit when not Build_In_Flight (Anim);
-         delay 0.005;
-      end loop;
-   end Settle;
+      Adi.Window.Tick (R.Ptr.all, DT);
+      Adi.Window.Render (W);
+   end Step_Frame;
 
-   --  Waits for the Nth build to be installed. The plain Pump below
-   --  cannot serve here: during the debounce the old generation is still
-   --  prepared and no worker has started yet, so "prepared and idle" is
-   --  true of a state that has not begun the work being waited for.
-   procedure Pump_Until_Build
-     (W     : Adi.Window.Window_Handle;
-      Anim  : in out RLottie_Animation'Class;
-      Count : Positive)
-   is
-   begin
-      for I in 1 .. Deadline loop
-         Adi.Window.Render (W);
-         Service (Anim);
-         exit when Build_Count (Anim) >= Count
-                   and then not Build_In_Flight (Anim);
-         delay 0.005;
-      end loop;
-   end Pump_Until_Build;
-
-   --  Renders until the widget has had a chance to build its items and
-   --  the animation has finished preparing.
+   --  Steps until the widget has told the animation what extent it
+   --  occupies and a frame at that extent exists.
    procedure Pump
      (W    : Adi.Window.Window_Handle;
       Anim : access RLottie_Animation'Class)
    is
    begin
       for I in 1 .. Deadline loop
-         Adi.Window.Render (W);
+         Step_Frame (W);
          if Anim /= null then
             Service (Anim.all);
-            exit when Is_Prepared (Anim.all)
-                      and then not Build_In_Flight (Anim.all);
+            exit when Is_Prepared (Anim.all);
          end if;
          delay 0.005;
       end loop;
    end Pump;
+
+   --  Steps until frames are being rasterised at the given height. A
+   --  resize has to stand still before it is taken up, so this crosses
+   --  that interval rather than assuming one render does.
+   procedure Pump_Until_Height
+     (W      : Adi.Window.Window_Handle;
+      Anim   : in out RLottie_Animation'Class;
+      Height : Natural)
+   is
+      PW, PH : Natural;
+   begin
+      for I in 1 .. Deadline loop
+         Step_Frame (W);
+         Service (Anim);
+         Prepared_Extent (Anim, PW, PH);
+         exit when PH = Height;
+         delay 0.005;
+      end loop;
+   end Pump_Until_Height;
 
    ---------------------------------------------------------------------------
 
@@ -105,10 +107,11 @@ procedure RLottie_Widget_Test is
 
       Pump (W, Anim);
 
-      Assert (Build_Count (Anim.all) = 1,
-              "Rendering should prepare the animation exactly once:"
-              & " never is a blank widget, twice is a wasted frame set");
-      Assert (Is_Prepared (Anim.all), "and leave it drawable");
+      Assert (Rasterisations (Anim.all) = 1,
+              "Rendering rasterises exactly the frame on screen: never is"
+              & " a blank widget, and the rest of the animation is not"
+              & " wanted until playback reaches it");
+      Assert (Is_Prepared (Anim.all), "and leaves it drawable");
 
       declare
          PW, PH : Natural;
@@ -153,10 +156,10 @@ procedure RLottie_Widget_Test is
 
       Pump (W, Anim);
 
-      Assert (Build_Count (Anim.all) = 1,
-              "The backend path should prepare exactly once too: it is a"
+      Assert (Rasterisations (Anim.all) = 1,
+              "The backend path rasterises exactly one frame too: it is a"
               & " separate call site and fails separately");
-      Assert (Is_Prepared (Anim.all), "and leave it drawable");
+      Assert (Is_Prepared (Anim.all), "and leaves it drawable");
 
       declare
          PW, PH : Natural;
@@ -187,7 +190,7 @@ procedure RLottie_Widget_Test is
       procedure Body_Of_Test is
       begin
          Pump (W, Anim);
-         Assert (Build_Count (Anim.all) = 1, "one build at the first scale");
+         Assert (Rasterisations (Anim.all) = 1, "one frame at the first scale");
          Prepared_Extent (Anim.all, Was_W, Was_H);
          Assert (Was_W = 200 and then Was_H = 30,
                  "thirty dip is thirty pixels at unit scale, stretched"
@@ -198,8 +201,8 @@ procedure RLottie_Widget_Test is
          Adi.Window.Render (W);
 
          Assert (Is_Prepared (Anim.all),
-                 "The old generation stays drawable across a scale"
-                 & " change, rather than blanking while it re-rasterises");
+                 "The old extent stays drawable across a scale change,"
+                 & " rather than blanking while it re-rasterises");
          declare
             PW, PH : Natural;
          begin
@@ -209,11 +212,10 @@ procedure RLottie_Widget_Test is
                     & " replacement is pending");
          end;
 
-         Pump_Until_Build (W, Anim.all, 2);
+         Pump_Until_Height (W, Anim.all, 60);
 
-         Assert (Build_Count (Anim.all) = 2,
-                 "exactly one replacement build follows the scale change");
-         Assert (not Build_In_Flight (Anim.all), "and it has finished");
+         Assert (Retired_Set_Count (Anim.all) = 1,
+                 "exactly one extent is replaced by the scale change");
 
          declare
             PW, PH : Natural;
@@ -491,6 +493,222 @@ procedure RLottie_Widget_Test is
 
    ---------------------------------------------------------------------------
 
+   --  Two viewers of one animation showing the same frame at the same
+   --  extent. The frame is the animation's, not the viewer's, so it is
+   --  rasterised once however many windows are drawing it.
+   procedure Test_Two_Viewers_Rasterise_Once is
+      WA, WB : Adi.Window.Window_Handle;
+      RA, RB : Widget_Handle;
+      Anim   : RLottie_Animation_Access;
+      Before : Natural;
+   begin
+      Section ("two viewers of one frame rasterise it once");
+
+      Anim := Load_From_File (Fixture);
+      Assert (Anim /= null, "the fixture loads");
+      if Anim = null then
+         return;
+      end if;
+
+      Make_Viewer (Direct, "Once A", Anim, WA, RA);
+      Make_Viewer (Direct, "Once B", Anim, WB, RB);
+
+      Pump (WA, Anim);
+      Adi.Window.Render (WB);
+      Before := Rasterisations (Anim.all);
+      Assert (Before = 1, "one frame so far");
+
+      --  The widgets sample the clock rather than the delta handed to
+      --  them, so the frame moves only when time actually passes.
+      delay 0.120;
+      Tick_All (Window_Array'(WA, WB), 0.120);
+      Adi.Window.Render (WA);
+      Adi.Window.Render (WB);
+
+      Assert (Rasterisations (Anim.all) = Before + 1,
+              "The frame they moved to is rasterised once, not once per"
+              & " window: what they share is the animation");
+
+      Adi.Window.Destroy (WA);
+      Adi.Window.Destroy (WB);
+      Destroy (Anim.all);
+   end Test_Two_Viewers_Rasterise_Once;
+
+   ---------------------------------------------------------------------------
+
+   --  A texture evicted under budget pressure is rebuilt by uploading the
+   --  surface the frame kept, not by rasterising the frame again. That is
+   --  the whole reason the surface is retained.
+   procedure Test_Eviction_Uploads_Rather_Than_Rasterises is
+      use type Adi.Texture_Cache.Byte_Count;
+      use type Adi.Texture_Cache.Event_Count;
+      W      : Adi.Window.Window_Handle;
+      Root   : Widget_Handle;
+      Anim   : RLottie_Animation_Access;
+      Before : Natural;
+      Full_Count, Evicted_Count : Natural;
+      Was_Stores : Adi.Texture_Cache.Event_Count;
+   begin
+      Section ("eviction costs an upload, not a rasterisation");
+
+      Anim := Load_From_File (Fixture);
+      Assert (Anim /= null, "the fixture loads");
+      if Anim = null then
+         return;
+      end if;
+
+      Make_Viewer (Direct, "Evict", Anim, W, Root);
+      Pump (W, Anim);
+
+      --  Walk the whole animation so every frame is rasterised and every
+      --  texture made, then take the textures away.
+      for I in 1 .. 12 loop
+         delay 0.050;
+         Step_Frame (W, 0.050);
+      end loop;
+      Before := Rasterisations (Anim.all);
+      Assert (Before > 1, "more than one frame has been rasterised");
+
+      --  A budget of nothing evicts everything not being drawn.
+      Full_Count := Adi.Window.Get_Texture_Stats (W).By_Kind
+                      (Adi.Texture_Cache.Raster_Texture).Count;
+      Was_Stores := Adi.Window.Get_Texture_Stats (W).By_Kind
+                      (Adi.Texture_Cache.Raster_Texture).Stores;
+
+      Adi.Window.Set_Texture_Budget (W, 0);
+      delay 0.050;
+      Step_Frame (W, 0.050);
+      Evicted_Count := Adi.Window.Get_Texture_Stats (W).By_Kind
+                         (Adi.Texture_Cache.Raster_Texture).Count;
+      Assert (Evicted_Count < Full_Count,
+              "and the renderer has given most of them up");
+
+      Adi.Window.Set_Texture_Budget
+        (W, Adi.Texture_Cache.Byte_Count (64 * 1024 * 1024));
+      for I in 1 .. 12 loop
+         delay 0.050;
+         Step_Frame (W, 0.050);
+      end loop;
+
+      Assert (Rasterisations (Anim.all) = Before,
+              "Drawing them all again rasterises nothing: a frame that"
+              & " lost its texture still has the pixels it was made from");
+      Assert (Adi.Window.Get_Texture_Stats (W).By_Kind
+                (Adi.Texture_Cache.Raster_Texture).Count = Full_Count,
+              "and every texture that was evicted is back");
+      Assert (Adi.Window.Get_Texture_Stats (W).By_Kind
+                (Adi.Texture_Cache.Raster_Texture).Stores > Was_Stores,
+              "having been uploaded again, which is what the retained"
+              & " pixels are for");
+
+      Adi.Window.Destroy (W);
+      Destroy (Anim.all);
+   end Test_Eviction_Uploads_Rather_Than_Rasterises;
+
+   ---------------------------------------------------------------------------
+
+   --  Replacing an extent has to take that extent's textures out of every
+   --  renderer that made one, and must not leave another window drawing
+   --  through an Image_Access to what it replaced.
+   procedure Test_Resize_Releases_And_Does_Not_Dangle is
+      use type Adi.Texture_Cache.Event_Count;
+
+      WA, WB : Adi.Window.Window_Handle;
+      RA, RB : Widget_Handle;
+      Anim   : RLottie_Animation_Access;
+
+      function Released (W : Adi.Window.Window_Handle)
+                         return Adi.Texture_Cache.Event_Count is
+        (Adi.Window.Get_Texture_Stats (W).By_Kind
+           (Adi.Texture_Cache.Raster_Texture).Released);
+
+      Rel_A, Rel_B : Adi.Texture_Cache.Event_Count;
+   begin
+      Section ("a resize releases the old extent everywhere it was drawn");
+
+      Anim := Load_From_File (Fixture);
+      Assert (Anim /= null, "the fixture loads");
+      if Anim = null then
+         return;
+      end if;
+
+      --  Sized in dip inside a box, so a scale change actually changes
+      --  the pixel extent. A root widget stretched to a window of fixed
+      --  pixels occupies the same pixels at any scale.
+      declare
+         procedure Build (W    : out Adi.Window.Window_Handle;
+                          Root : out Widget_Handle;
+                          Name : String)
+         is
+            Box   : Adi.Widget.RLottie.RLottie_Handle;
+            Outer : Adi.Widget.Box.Box_Handle;
+            Rules : Style_Rules;
+         begin
+            W := Adi.Window.Create_Window_Handle (Name, (200.0, 200.0));
+            Box := Adi.Widget.RLottie.Create_Handle (Anim);
+            Rules.Width := Set (Size (Dip (40.0)));
+            Rules.Height := Set (Size (Dip (30.0)));
+            Set_Part_Style (Adi.Widget.RLottie.To_Widget_Handle (Box),
+                            Main_Part, From (Rules).Build);
+            Outer := Adi.Widget.Box.Create_Handle;
+            Adi.Widget.Box.Add_Child
+              (Outer, Adi.Widget.RLottie.To_Widget_Handle (Box));
+            Root := Adi.Widget.Box.To_Widget_Handle (Outer);
+            Adi.Window.Set_Root (W, Root);
+         end Build;
+      begin
+         Build (WA, RA, "Rel A");
+         Build (WB, RB, "Rel B");
+      end;
+
+      Pump (WA, Anim);
+      Step_Frame (WB);
+      Assert (Adi.Window.Get_Texture_Stats (WA).By_Kind
+                (Adi.Texture_Cache.Raster_Texture).Count > 0
+              and then Adi.Window.Get_Texture_Stats (WB).By_Kind
+                (Adi.Texture_Cache.Raster_Texture).Count > 0,
+              "each renderer made a texture of the frame it drew");
+
+      Rel_A := Released (WA);
+      Rel_B := Released (WB);
+
+      Adi.Window.Set_UI_Scale (WA, 2.0);
+      Pump_Until_Height (WA, Anim.all, 60);
+
+      Assert (Retired_Set_Count (Anim.all) = 1,
+              "exactly one extent has been replaced");
+      Assert (Released (WA) > Rel_A and then Released (WB) > Rel_B,
+              "and its textures are released in both renderers, not left"
+              & " in the one that did not drive the resize");
+
+      --  B still holds an Image_Access to a frame of the replaced extent.
+      Assert (Retired_Frame_Is_Shell (Anim.all, 1),
+              "The frame it points at is still a record, emptied of its"
+              & " pixels rather than freed: freeing it would leave B's"
+              & " render item pointing at nothing");
+
+      --  Forced rather than dirtied: marking the widget dirty would
+      --  rebuild its items and replace the very pointer under test, and
+      --  a clean window renders nothing at all.
+      declare
+         R : constant Adi.Window.Window_Ref := Adi.Window.Borrow (WB);
+      begin
+         Adi.Window.Request_Redraw (R.Ptr.all);
+      end;
+      Adi.Window.Render (WB);
+
+      Assert (Retired_Frame_Is_Shell (Anim.all, 1),
+              "and drawing through it leaves it as it was, having reached"
+              & " an empty image rather than freed storage");
+
+      Adi.Window.Set_UI_Scale (WA, 1.0);
+      Adi.Window.Destroy (WA);
+      Adi.Window.Destroy (WB);
+      Destroy (Anim.all);
+   end Test_Resize_Releases_And_Does_Not_Dangle;
+
+   ---------------------------------------------------------------------------
+
    --  One animation drawn by two widgets in two windows. Its textures
    --  belong to the animation, so no widget's death takes them and the
    --  animation's death takes all of them, in both renderers.
@@ -608,6 +826,9 @@ begin
    Test_RLottie_Widget_Prepares;
    Test_Animated_Widget_Prepares;
    Test_Scale_Change_Reprepares;
+   Test_Two_Viewers_Rasterise_Once;
+   Test_Eviction_Uploads_Rather_Than_Rasterises;
+   Test_Resize_Releases_And_Does_Not_Dangle;
    Test_Shared_Animation_Group;
 
    for Kind in Viewer_Kind loop

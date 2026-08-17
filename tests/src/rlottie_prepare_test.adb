@@ -2,45 +2,42 @@ pragma Ada_2022;
 
 with Ada.Text_IO;         use Ada.Text_IO;
 with Adi.Clock;
+with Adi.Image;       use Adi.Image;
 with Adi.RLottie;         use Adi.RLottie;
 with Adi.RLottie.Testing; use Adi.RLottie.Testing;
 with Test_Support;        use Test_Support;
 
---  Preparation is a state machine over time: an extent is asked for, it
---  settles, one build runs, and its result replaces what was drawable.
---  What can go wrong is invisible in the frames themselves -- a resize
---  that rebuilt at every intermediate size draws exactly what a single
---  settled build draws -- so these look at the machine rather than the
---  picture.
+--  Frames are rasterised when playback reaches them and kept afterwards.
+--  What that costs is invisible in the picture -- a frame drawn from a
+--  retained image looks exactly like one rasterised again for the
+--  occasion -- so these count rasterisations rather than looking at
+--  frames. Timing belongs in a benchmark, not here.
 
 procedure RLottie_Prepare_Test is
 
-   --  Four frames at eight pixels square: enough to have a frame set,
-   --  small enough that a build finishes while a test waits.
+   --  Four frames at eight pixels square, ten a second.
    Fixture : constant String := "tests/assets/tiny_anim.json";
+   Frames  : constant := 4;
 
-   --  Small, because a hundred frames of anything larger is the defect
-   --  this whole exercise is about.
    Tiny_W  : constant := 16;
    Tiny_H  : constant := 12;
 
-   --  Longer than the settle time, so a wait genuinely crosses it.
+   --  Longer than the settle interval, so a wait genuinely crosses it.
    Settled : constant Duration := 0.25;
 
-   procedure Finish_Build (Anim : in out RLottie_Animation'Class) is
+   --  Let a requested extent settle and be taken up, without drawing.
+   procedure Settle_Extent (Anim : in out RLottie_Animation'Class) is
    begin
-      --  Poll the machine rather than sleeping a guessed interval.
-      for I in 1 .. 2_000 loop
-         Service (Anim);
-         exit when not Build_In_Flight (Anim);
-         delay 0.005;
-      end loop;
-   end Finish_Build;
+      delay Settled;
+      Service (Anim);
+   end Settle_Extent;
+
+   ---------------------------------------------------------------------------
 
    procedure Test_Initial_Preparation is
-      Anim : RLottie_Animation_Access := Load_From_File (Fixture);
+      Anim : constant RLottie_Animation_Access := Load_From_File (Fixture);
    begin
-      Section ("loading prepares nothing, and the first extent prepares");
+      Section ("loading and preparing rasterise nothing");
 
       Assert (Anim /= null, "the fixture loads");
       if Anim = null then
@@ -48,245 +45,375 @@ procedure RLottie_Prepare_Test is
       end if;
 
       Assert (Is_Valid (Anim.all), "a loaded animation is valid");
-      Assert (not Is_Prepared (Anim.all),
-              "but nothing is rasterised until an extent is given: the"
-              & " file states a viewport, not a size to draw at");
-      Assert (Build_Count (Anim.all) = 0, "and no build has started");
+      Assert (Rasterisations (Anim.all) = 0, "loading rasterises nothing");
 
       Prepare (Anim.all, Tiny_W, Tiny_H);
 
-      Assert (Build_Count (Anim.all) = 1,
-              "The first extent starts a build at once, since there is"
-              & " nothing to draw until it exists");
+      Assert (Rasterisations (Anim.all) = 0,
+              "Preparing an extent rasterises nothing either: the extent"
+              & " says what a frame would be drawn at, not that any frame"
+              & " is wanted yet");
+      Assert (not Is_Prepared (Anim.all),
+              "and nothing is drawable, an accepted extent being a size"
+              & " rather than a picture");
 
-      Finish_Build (Anim.all);
-
-      Assert (Is_Prepared (Anim.all), "which becomes drawable");
       declare
          W, H : Natural;
       begin
          Prepared_Extent (Anim.all, W, H);
          Assert (W = Tiny_W and then H = Tiny_H,
-                 "at exactly the extent asked for, not the file's own");
+                 "though the extent is reported from the moment it is"
+                 & " accepted");
       end;
 
       Destroy (Anim.all);
    end Test_Initial_Preparation;
 
-   procedure Test_Resize_Does_Not_Rebuild_Continuously is
-      Anim : RLottie_Animation_Access := Load_From_File (Fixture);
+   ---------------------------------------------------------------------------
+
+   procedure Test_First_Request_Rasterises_Once is
+      Anim  : RLottie_Animation_Access := Load_From_File (Fixture);
+      Moved : Boolean;
+      pragma Unreferenced (Moved);
    begin
-      Section ("a resize coalesces to where it stops");
+      Section ("a frame is rasterised the first time it is reached");
       if Anim = null then
          Assert (False, "the fixture loads");
          return;
       end if;
 
       Prepare (Anim.all, Tiny_W, Tiny_H);
-      Finish_Build (Anim.all);
-      Assert (Build_Count (Anim.all) = 1, "one build so far");
+      Moved := Advance_At (Anim.all, Adi.Clock.Now);
 
-      --  A drag: every intermediate extent, none of them held.
-      for I in 1 .. 30 loop
-         Prepare (Anim.all, Tiny_W + I, Tiny_H + I);
-         Service (Anim.all);
-      end loop;
-
-      Assert (Build_Count (Anim.all) = 1,
-              "Passing through thirty extents should build at none of"
-              & " them: a build at each would finish none of them");
-      Assert (Is_Prepared (Anim.all),
-              "and what was drawable stays drawable throughout");
-
-      --  Now it stops.
-      delay Settled;
-      Prepare (Anim.all, Tiny_W + 30, Tiny_H + 30);
-      Service (Anim.all);
-
-      Assert (Build_Count (Anim.all) = 2,
-              "Once it settles, exactly one build starts");
-      Finish_Build (Anim.all);
-
-      declare
-         W, H : Natural;
-      begin
-         Prepared_Extent (Anim.all, W, H);
-         Assert (W = Tiny_W + 30 and then H = Tiny_H + 30,
-                 "and it is the extent the resize ended at");
-      end;
+      Assert (Rasterisations (Anim.all) = 1,
+              "The first sample rasterises exactly one frame");
+      Assert (Frame_Is_Retained (Anim.all, 1), "and keeps it");
+      Assert (Is_Prepared (Anim.all), "and the animation is drawable");
+      Assert (Get_Current_Image (Anim.all) /= null, "with an image to draw");
 
       Destroy (Anim.all);
-   end Test_Resize_Does_Not_Rebuild_Continuously;
-
-   procedure Test_One_Worker_Under_Rapid_Supersedes is
-      Anim : RLottie_Animation_Access := Load_From_File (Fixture);
-      Seen_Two : Boolean := False;
-   begin
-      Section ("rapid supersedes never leave a second worker");
-      if Anim = null then
-         Assert (False, "the fixture loads");
-         return;
-      end if;
-
-      Prepare (Anim.all, Tiny_W, Tiny_H);
-
-      --  Supersede repeatedly while the first build is still running.
-      for I in 1 .. 40 loop
-         Prepare (Anim.all, Tiny_W + I, Tiny_H + I);
-         Service (Anim.all);
-         --  Build_Count rising by more than one per settled extent would
-         --  mean a worker was started beside one already running.
-         if Build_Count (Anim.all) > 2 then
-            Seen_Two := True;
-         end if;
-      end loop;
-
-      Assert (not Seen_Two,
-              "A supersede should stop the build in flight and wait for"
-              & " it, not start a second beside it");
-
-      Finish_Build (Anim.all);
-      Destroy (Anim.all);
-   end Test_One_Worker_Under_Rapid_Supersedes;
-
-   procedure Test_Superseded_Build_Is_Not_Published is
-      Anim : RLottie_Animation_Access := Load_From_File (Fixture);
-   begin
-      Section ("a superseded build is dropped, not installed");
-      if Anim = null then
-         Assert (False, "the fixture loads");
-         return;
-      end if;
-
-      Prepare (Anim.all, Tiny_W, Tiny_H);
-      Finish_Build (Anim.all);
-
-      --  Start a second build and abandon it before it lands. The extent
-      --  has to be asked for, then stand still, then be serviced: the
-      --  clock starts when the asking changes.
-      Prepare (Anim.all, 40, 30);
-      delay Settled;
-      Service (Anim.all);
-      Assert (Build_In_Flight (Anim.all), "a second build is running");
-
-      Prepare (Anim.all, 64, 48);
-      Service (Anim.all);
-      Assert (Build_Superseded (Anim.all),
-              "and asking for another extent abandons it");
-
-      Finish_Build (Anim.all);
-
-      declare
-         W, H : Natural;
-      begin
-         Prepared_Extent (Anim.all, W, H);
-         Assert (W /= 40,
-                 "The abandoned generation must not be installed");
-         Assert (W = Tiny_W or else W = 64,
-                 "what is drawable is either the old set or the one that"
-                 & " superseded it");
-      end;
-
-      Destroy (Anim.all);
-   end Test_Superseded_Build_Is_Not_Published;
-
-   procedure Test_Old_Frames_Drawable_While_Building is
-      Anim : RLottie_Animation_Access := Load_From_File (Fixture);
-   begin
-      Section ("preparation never blanks a running animation");
-      if Anim = null then
-         Assert (False, "the fixture loads");
-         return;
-      end if;
-
-      Prepare (Anim.all, Tiny_W, Tiny_H);
-      Finish_Build (Anim.all);
-      Assert (Is_Prepared (Anim.all), "drawable at the first extent");
-
-      Prepare (Anim.all, 80, 60);
-      delay Settled;
-      Service (Anim.all);
-
-      Assert (Build_In_Flight (Anim.all), "a replacement is building");
-      Assert (Is_Prepared (Anim.all),
-              "and the animation is still drawable while it does: the old"
-              & " set goes only once the new one is in place");
-
-      declare
-         W, H : Natural;
-      begin
-         Prepared_Extent (Anim.all, W, H);
-         Assert (W = Tiny_W,
-                 "and it is still the old extent that is drawable");
-      end;
-
-      Finish_Build (Anim.all);
-      Destroy (Anim.all);
-   end Test_Old_Frames_Drawable_While_Building;
-
-   procedure Test_Small_Permanent_Resize_Becomes_Exact is
-      Anim : RLottie_Animation_Access := Load_From_File (Fixture);
-   begin
-      Section ("a small permanent change is eventually rasterised exactly");
-      if Anim = null then
-         Assert (False, "the fixture loads");
-         return;
-      end if;
-
-      Prepare (Anim.all, 40, 30);
-      Finish_Build (Anim.all);
-
-      --  One pixel wider, and it stays that way. A policy that ignored
-      --  changes below some ratio would draw a scaled set for ever.
-      Prepare (Anim.all, 41, 30);
-      delay Settled;
-      Prepare (Anim.all, 41, 30);
-      Finish_Build (Anim.all);
-
-      declare
-         W, H : Natural;
-      begin
-         Prepared_Extent (Anim.all, W, H);
-         Assert (W = 41 and then H = 30,
-                 "Even a one-pixel change that persists should end up"
-                 & " rasterised exactly, not scaled indefinitely");
-      end;
-
-      Destroy (Anim.all);
-   end Test_Small_Permanent_Resize_Becomes_Exact;
-
-   procedure Test_Destroy_During_Build is
-      Anim : RLottie_Animation_Access := Load_From_File (Fixture);
-   begin
-      Section ("destroying during a build waits and terminates");
-      if Anim = null then
-         Assert (False, "the fixture loads");
-         return;
-      end if;
-
-      --  Large enough that the build is certainly still running.
-      Prepare (Anim.all, 400, 300);
-      Service (Anim.all);
-      Assert (Build_In_Flight (Anim.all), "a build is running");
-
-      --  The worker renders from the model and writes into its set, so
-      --  this has to establish that it has stopped before freeing either.
-      --  Reaching the next line at all is the assertion.
-      Destroy (Anim.all);
-
-      Assert (not Is_Prepared (Anim.all),
-              "Destroying during a build should complete, having waited"
-              & " for the worker rather than freeing under it");
-   end Test_Destroy_During_Build;
+   end Test_First_Request_Rasterises_Once;
 
    ---------------------------------------------------------------------------
 
-   --  Sampled advancement, driven by instants the test supplies rather
-   --  than by the clock, so what is asserted is the arithmetic and not
-   --  how fast the machine ran.
-   --
-   --  The fixture is four frames at ten a second, so a frame is a tenth
-   --  of a second.
+   procedure Test_Second_Loop_Is_Free is
+      use type Adi.Clock.Time;
+      Anim  : RLottie_Animation_Access := Load_From_File (Fixture);
+      Base  : constant Adi.Clock.Time := Adi.Clock.Now;
+      Moved : Boolean;
+      pragma Unreferenced (Moved);
+      function At_Ms (Ms : Integer) return Adi.Clock.Time is
+        (Base + Adi.Clock.Microseconds (Ms * 1_000));
+      First_Loop : Natural;
+   begin
+      Section ("a second loop rasterises nothing");
+      if Anim = null then
+         Assert (False, "the fixture loads");
+         return;
+      end if;
+
+      Set_Looping (Anim.all, True);
+      Prepare (Anim.all, Tiny_W, Tiny_H);
+
+      --  One whole loop: every frame reached once.
+      for I in 0 .. Frames - 1 loop
+         Moved := Advance_At (Anim.all, At_Ms (I * 100));
+      end loop;
+      First_Loop := Rasterisations (Anim.all);
+      Assert (First_Loop = Frames,
+              "The first loop rasterises each frame once");
+
+      --  And round again.
+      for I in Frames .. 2 * Frames - 1 loop
+         Moved := Advance_At (Anim.all, At_Ms (I * 100));
+      end loop;
+
+      Assert (Rasterisations (Anim.all) = First_Loop,
+              "The second adds none: what a loop returns to is what it"
+              & " already has, which is the whole point of keeping it");
+
+      Destroy (Anim.all);
+   end Test_Second_Loop_Is_Free;
+
+   ---------------------------------------------------------------------------
+
+   procedure Test_Skipped_Frames_Stay_Null is
+      use type Adi.Clock.Time;
+      Anim  : RLottie_Animation_Access := Load_From_File (Fixture);
+      Base  : constant Adi.Clock.Time := Adi.Clock.Now;
+      Moved : Boolean;
+      pragma Unreferenced (Moved);
+      function At_Ms (Ms : Integer) return Adi.Clock.Time is
+        (Base + Adi.Clock.Microseconds (Ms * 1_000));
+   begin
+      Section ("a frame never reached is never rasterised");
+      if Anim = null then
+         Assert (False, "the fixture loads");
+         return;
+      end if;
+
+      Prepare (Anim.all, Tiny_W, Tiny_H);
+      Moved := Advance_At (Anim.all, At_Ms (0));     --  frame 1
+      Moved := Advance_At (Anim.all, At_Ms (200));   --  frame 3, skipping 2
+
+      Assert (Get_Current_Frame_Index (Anim.all) = 3, "the playhead skips");
+      Assert (Rasterisations (Anim.all) = 2,
+              "Two frames were reached, so two were rasterised");
+      Assert (Frame_Is_Retained (Anim.all, 1)
+              and then Frame_Is_Retained (Anim.all, 3),
+              "and those two are kept");
+      Assert (not Frame_Is_Retained (Anim.all, 2)
+              and then not Frame_Is_Retained (Anim.all, 4),
+              "while the ones passed over cost nothing at all");
+
+      Destroy (Anim.all);
+   end Test_Skipped_Frames_Stay_Null;
+
+   ---------------------------------------------------------------------------
+
+   procedure Test_Reset_Costs is
+      Anim  : RLottie_Animation_Access := Load_From_File (Fixture);
+      Moved : Boolean;
+      pragma Unreferenced (Moved);
+      Before : Natural;
+   begin
+      Section ("resetting costs a frame only when it has none");
+      if Anim = null then
+         Assert (False, "the fixture loads");
+         return;
+      end if;
+
+      Prepare (Anim.all, Tiny_W, Tiny_H);
+      Assert (not Frame_Is_Retained (Anim.all, 1), "frame one is absent");
+
+      Reset (Anim.all);
+      Assert (Rasterisations (Anim.all) = 1,
+              "Resetting to a frame nothing has rasterised rasterises it");
+      Assert (Get_Current_Image (Anim.all) /= null, "and shows it");
+
+      Before := Rasterisations (Anim.all);
+      Reset (Anim.all);
+      Assert (Rasterisations (Anim.all) = Before,
+              "Resetting again costs nothing: the frame is already kept");
+
+      Destroy (Anim.all);
+   end Test_Reset_Costs;
+
+   ---------------------------------------------------------------------------
+
+   --  Paused throughout, so a tick cannot legitimately rasterise the
+   --  replacement's current frame and then the next playback frame.
+   procedure Test_Resize_Rasterises_Only_Current is
+      Anim  : RLottie_Animation_Access := Load_From_File (Fixture);
+      Moved : Boolean;
+      pragma Unreferenced (Moved);
+      Before : Natural;
+   begin
+      Section ("a settled resize rasterises exactly the current frame");
+      if Anim = null then
+         Assert (False, "the fixture loads");
+         return;
+      end if;
+
+      Prepare (Anim.all, Tiny_W, Tiny_H);
+      Moved := Advance_At (Anim.all, Adi.Clock.Now);
+      Stop (Anim.all);
+      Before := Rasterisations (Anim.all);
+      Assert (Retired_Set_Count (Anim.all) = 0, "nothing retired yet");
+
+      Prepare (Anim.all, 80, 60);
+      Settle_Extent (Anim.all);
+
+      Assert (Rasterisations (Anim.all) = Before + 1,
+              "One frame at the new extent, the one on screen. The rest"
+              & " are rasterised if and when playback reaches them");
+      Assert (Retired_Set_Count (Anim.all) = 1,
+              "and the extent it replaced is retired, exactly once");
+      Assert (Get_Current_Image (Anim.all) /= null,
+              "with something to draw throughout: a paused animation"
+              & " would never ask for a frame to fill a blank set");
+
+      declare
+         W, H : Natural;
+      begin
+         Prepared_Extent (Anim.all, W, H);
+         Assert (W = 80 and then H = 60, "at the extent asked for");
+      end;
+
+      Destroy (Anim.all);
+   end Test_Resize_Rasterises_Only_Current;
+
+   ---------------------------------------------------------------------------
+
+   procedure Test_Resize_Preserves_Timeline is
+      use type Adi.Clock.Time;
+      Anim  : RLottie_Animation_Access := Load_From_File (Fixture);
+      Base  : constant Adi.Clock.Time := Adi.Clock.Now;
+      Moved : Boolean;
+      pragma Unreferenced (Moved);
+      function At_Ms (Ms : Integer) return Adi.Clock.Time is
+        (Base + Adi.Clock.Microseconds (Ms * 1_000));
+      Was_Frame   : Natural;
+      Was_Elapsed : Duration;
+   begin
+      Section ("a resize does not rewind playback");
+      if Anim = null then
+         Assert (False, "the fixture loads");
+         return;
+      end if;
+
+      Prepare (Anim.all, Tiny_W, Tiny_H);
+      Moved := Advance_At (Anim.all, At_Ms (0));
+      Moved := Advance_At (Anim.all, At_Ms (200));
+      Stop (Anim.all);
+
+      Was_Frame := Get_Current_Frame_Index (Anim.all);
+      Was_Elapsed := Elapsed (Anim.all);
+      Assert (Was_Frame = 3, "the playhead stands part way through");
+
+      Prepare (Anim.all, 80, 60);
+      Settle_Extent (Anim.all);
+
+      Assert (Get_Current_Frame_Index (Anim.all) = Was_Frame,
+              "Resizing changes how the animation is presented, not where"
+              & " it has got to, so the frame index stands");
+      Assert (Elapsed (Anim.all) = Was_Elapsed,
+              "and so does the elapsed time behind it");
+
+      --  Resuming re-anchors, so the sample after it establishes where
+      --  the clock now stands and the one after that charges for it.
+      Start (Anim.all);
+      Moved := Advance_At (Anim.all, At_Ms (300));
+      Moved := Advance_At (Anim.all, At_Ms (400));
+      Assert (Get_Current_Frame_Index (Anim.all) = 4,
+              "and playback carries on from where it stood rather than"
+              & " restarting at the beginning");
+
+      Destroy (Anim.all);
+   end Test_Resize_Preserves_Timeline;
+
+   ---------------------------------------------------------------------------
+
+   procedure Test_Failed_Replacement is
+      Anim  : RLottie_Animation_Access := Load_From_File (Fixture);
+      Moved : Boolean;
+      pragma Unreferenced (Moved);
+      Was_Frame   : Natural;
+      Was_Elapsed : Duration;
+      Was_Image   : Image_Access;
+      Was_Count   : Natural;
+   begin
+      Section ("a replacement that fails keeps what was drawable");
+      if Anim = null then
+         Assert (False, "the fixture loads");
+         return;
+      end if;
+
+      Prepare (Anim.all, Tiny_W, Tiny_H);
+      Moved := Advance_At (Anim.all, Adi.Clock.Now);
+      Stop (Anim.all);
+
+      Was_Frame := Get_Current_Frame_Index (Anim.all);
+      Was_Elapsed := Elapsed (Anim.all);
+      Was_Image := Get_Current_Image (Anim.all);
+      Was_Count := Rasterisations (Anim.all);
+
+      Fail_Next_Rasterisation (Anim.all);
+      Prepare (Anim.all, 80, 60);
+      Settle_Extent (Anim.all);
+
+      declare
+         W, H : Natural;
+      begin
+         Prepared_Extent (Anim.all, W, H);
+         Assert (W = Tiny_W and then H = Tiny_H,
+                 "The old extent is still the one in use: a replacement"
+                 & " is published only once it has a frame to show");
+      end;
+      Assert (Get_Current_Image (Anim.all) = Was_Image,
+              "the same image is still drawable");
+      Assert (Get_Current_Frame_Index (Anim.all) = Was_Frame
+              and then Elapsed (Anim.all) = Was_Elapsed,
+              "and the timeline is untouched");
+      Assert (Retired_Set_Count (Anim.all) = 0,
+              "nothing was retired, nothing having been replaced");
+
+      --  Backed off rather than abandoned.
+      Service (Anim.all);
+      Assert (Rasterisations (Anim.all) = Was_Count,
+              "Retrying at once would hammer whatever just failed, so an"
+              & " immediate service does not");
+
+      Settle_Extent (Anim.all);
+      Assert (Rasterisations (Anim.all) = Was_Count + 1,
+              "but the request is not dropped: after the interval it is"
+              & " taken up, for the cost of the one frame on screen");
+      Assert (Retired_Set_Count (Anim.all) = 1, "retiring exactly one set");
+      declare
+         W, H : Natural;
+      begin
+         Prepared_Extent (Anim.all, W, H);
+         Assert (W = 80 and then H = 60, "at the extent asked for");
+      end;
+
+      Destroy (Anim.all);
+   end Test_Failed_Replacement;
+
+   ---------------------------------------------------------------------------
+
+   --  Nothing here calls Service: the sampled entry point is the only
+   --  thing turning the machine, which is what preparation has to work
+   --  through when the playhead is not moving.
+   procedure Test_Paused_Preparation_Completes is
+      use type Adi.Clock.Time;
+      Anim  : RLottie_Animation_Access := Load_From_File (Fixture);
+      Base  : constant Adi.Clock.Time := Adi.Clock.Now;
+      Moved : Boolean;
+      pragma Unreferenced (Moved);
+      function At_Ms (Ms : Integer) return Adi.Clock.Time is
+        (Base + Adi.Clock.Microseconds (Ms * 1_000));
+   begin
+      Section ("a paused animation still takes up a new extent");
+      if Anim = null then
+         Assert (False, "the fixture loads");
+         return;
+      end if;
+
+      Prepare (Anim.all, Tiny_W, Tiny_H);
+      Moved := Advance_At (Anim.all, At_Ms (0));
+      Stop (Anim.all);
+      Assert (not Is_Playing (Anim.all), "playback is stopped");
+
+      Prepare (Anim.all, 80, 60);
+      for I in 1 .. 400 loop
+         Moved := Advance_At (Anim.all, At_Ms (100 + I * 10));
+         declare
+            W, H : Natural;
+         begin
+            Prepared_Extent (Anim.all, W, H);
+            exit when W = 80;
+         end;
+         delay 0.005;
+      end loop;
+
+      declare
+         W, H : Natural;
+      begin
+         Prepared_Extent (Anim.all, W, H);
+         Assert (W = 80 and then H = 60,
+                 "Ticking alone takes it up: preparation that only turned"
+                 & " while the playhead did would stall on a pause");
+      end;
+      Assert (not Is_Playing (Anim.all),
+              "and taking it up did not restart playback");
+      Assert (Get_Current_Image (Anim.all) /= null,
+              "and left a frame to draw");
+
+      Destroy (Anim.all);
+   end Test_Paused_Preparation_Completes;
+
+   ---------------------------------------------------------------------------
+
    procedure Test_Sampled_Advance is
       use type Adi.Clock.Time;
 
@@ -306,7 +433,6 @@ procedure RLottie_Prepare_Test is
       end if;
 
       Prepare (Anim.all, Tiny_W, Tiny_H);
-      Finish_Build (Anim.all);
 
       --  The first sample has no elapsed time to charge, but it does
       --  settle which frame is visible: anchoring must not mean showing
@@ -436,12 +562,14 @@ begin
    Start_Suite ("RLottie prepare test");
 
    Test_Initial_Preparation;
-   Test_Resize_Does_Not_Rebuild_Continuously;
-   Test_One_Worker_Under_Rapid_Supersedes;
-   Test_Superseded_Build_Is_Not_Published;
-   Test_Old_Frames_Drawable_While_Building;
-   Test_Small_Permanent_Resize_Becomes_Exact;
-   Test_Destroy_During_Build;
+   Test_First_Request_Rasterises_Once;
+   Test_Second_Loop_Is_Free;
+   Test_Skipped_Frames_Stay_Null;
+   Test_Reset_Costs;
+   Test_Resize_Rasterises_Only_Current;
+   Test_Resize_Preserves_Timeline;
+   Test_Failed_Replacement;
+   Test_Paused_Preparation_Completes;
    Test_Sampled_Advance;
 
    Finish;

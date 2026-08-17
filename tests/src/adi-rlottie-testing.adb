@@ -3,19 +3,38 @@
 
 pragma Ada_2022;
 
+with Adi.SDL.Surface;
+
 package body Adi.RLottie.Testing is
 
-   function Build_Count (Anim : RLottie_Animation'Class) return Natural
-   is (Anim.Build_Count);
+   use type Adi.SDL.Surface.SDL_Surface_Ptr;
 
-   function Build_In_Flight (Anim : RLottie_Animation'Class) return Boolean
-   is (Anim.Worker /= null);
+   function Rasterisations (Anim : RLottie_Animation'Class) return Natural
+   is (Anim.Rasterisations);
 
-   function Generation (Anim : RLottie_Animation'Class) return Natural
-   is (Anim.Generation);
+   function Retired_Set_Count (Anim : RLottie_Animation'Class) return Natural
+   is (Anim.Retired_Count);
 
-   function Build_Superseded (Anim : RLottie_Animation'Class) return Boolean
-   is (Anim.Build_Superseded);
+   function Frame_Is_Retained
+     (Anim : RLottie_Animation'Class; Frame : Positive) return Boolean
+   is (Anim.Active /= null
+       and then Anim.Active.Images /= null
+       and then Frame <= Anim.Active.Images'Last
+       and then Anim.Active.Images (Frame) /= null);
+
+   function Retired_Frame_Is_Shell
+     (Anim : RLottie_Animation'Class; Frame : Positive) return Boolean
+   is (Anim.Retired /= null
+       and then Anim.Retired.Images /= null
+       and then Frame <= Anim.Retired.Images'Last
+       and then Anim.Retired.Images (Frame) /= null
+       and then Adi.Image.Get_Surface (Anim.Retired.Images (Frame).all)
+                  = null);
+
+   procedure Fail_Next_Rasterisation (Anim : in out RLottie_Animation'Class) is
+   begin
+      Anim.Fail_Next_Raster := True;
+   end Fail_Next_Rasterisation;
 
    function Elapsed (Anim : RLottie_Animation'Class) return Duration
    is (Duration (Anim.Elapsed_S));

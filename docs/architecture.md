@@ -122,10 +122,10 @@
 - Loadable through `Adi.Assets.Get_Animated_Image` for URI-based cached access
 
 **Adi.RLottie** (`adi-rlottie.ads`): Lottie JSON via the rlottie C API.
-- Loading parses the model only. `Prepare (W, H)` rasterises the frame set at the size it will be drawn, on a worker that allocates as well as renders; a requested extent must stand still for 150 ms before a rebuild starts, and at most one build runs at a time
-- Every frame image joins the animation's `Texture_Group`, so the whole set is retired together when the animation is destroyed rather than one frame at a time under pressure
+- Loading parses the model only. `Prepare (W, H)` records the size frames will be drawn at; each frame is rasterised when playback first reaches it and kept afterwards, so a loop pays for each frame once. A different extent replaces the frames once the request has stood still for 150 ms
+- Every frame image joins its extent's `Texture_Group`, so replacing an extent takes that extent's textures out of every renderer rather than leaving them to be evicted under pressure
 - Residency is per renderer but the group spans them: one animation drawn in two windows has frames in two caches, and releasing reaches both
-- `RLottie_Animation` is `tagged limited private` — it owns a model handle, a worker task, frame sets and the group
+- `RLottie_Animation` is `tagged limited private` — it owns a model handle and the frame sets, each with its own texture group
 - Destroying it requires every referring widget to be detached first, and runs on the render thread
 
 **Adi.Log** (`adi-log.ads`): Central runtime logging.

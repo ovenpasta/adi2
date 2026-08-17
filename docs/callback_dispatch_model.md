@@ -44,9 +44,8 @@ procedure Drain;                           -- main task only, FIFO
 ```
 
 `App.Run` calls `Adi.Dispatch.Drain` once per frame, after the SDL
-pump and before `Tick`/`Render` (`src/adi-app.adb:268`). Already used
-by `Adi.RLottie`'s background preload task to hand decoded surfaces
-back to the main task.
+pump and before `Tick`/`Render` (`src/adi-app.adb:268`). It exists for
+application tasks; no in-tree package posts to it.
 
 ### 1.3 `Adi.Handle_Store` — generation-checked id primitive
 `src/adi-handle_store.ads`. Record `(Index, Gen)`, `Null` sentinel,
@@ -69,8 +68,7 @@ Render
 sleep until next frame
 ```
 
-The only in-tree task today is `Adi.RLottie`'s preload task; it never
-touches widgets, it only posts work back via `Adi.Dispatch.Post`.
+No in-tree package creates a task today.
 
 ---
 

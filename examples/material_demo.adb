@@ -150,7 +150,7 @@ procedure Material_Demo is
       end if;
    end On_Close_Request;
 
-   --  Material Symbols "dashboard" icon (24×24 viewBox)
+   --  Material Icons "dashboard" icon (24×24 viewBox)
    Dashboard_Path : constant String :=
      "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z";
 
@@ -227,24 +227,29 @@ begin
    Set_Message (Welcome_Dialog, Var_Welcome_Message);
    Connect_Result (Welcome_Dialog, On_Welcome_Result'Unrestricted_Access);
 
-   --  Set welcome icon (Material Symbols "waving_hand" 24×24)
+   --  Material Symbols "waving_hand", filled. Symbols are drawn in a
+   --  960-unit box with the origin at the top of a negative Y range, so
+   --  the path carries its own viewBox rather than going through
+   --  Load_SVG_Path, which assumes 0 0 W H.
    declare
       Welcome_Icon : constant Adi.Image.Image_Access :=
-        Adi.Image.Load_SVG_Path
-          (Path_Data =>
-             "M7.03 4.95L3.49 8.49c-3.32 3.32-3.32 8.7 0 12.02s8.7 3.32 "
-             & "12.02 0l6.01-6.01a2.517 2.517 0 00-.39-3.86l.71-.71c.39-.39.39-1.02 "
-             & "0-1.41a.9959.9959 0 00-1.41 0l-2.12 2.12a1.492 1.492 0 00-1.78.21 "
-             & "1.492 1.492 0 00-.21 1.78l-2.12 2.12c-.39.39-1.02.39-1.41 "
-             & "0s-.39-1.02 0-1.41l4.24-4.24c.39-.39.39-1.02 0-1.41s-1.02-.39-1.41 "
-             & "0L11.38 12a1.492 1.492 0 00-1.78.21c-.58.58-.58 1.52 0 "
-             & "2.12l-1.41 1.41c-.39.39-1.02.39-1.41 0s-.39-1.02 0-1.41l4.24-4.24 "
-             & "1.41-1.41c.39-.39.39-1.02 0-1.41s-1.02-.39-1.41 0l-1.41 1.41a1.492 "
-             & "1.492 0 00-1.78.21c-.58.58-.58 1.52 0 2.12L5.62 12.7c-.39.39-1.02.39-1.41 "
-             & "0s-.39-1.02 0-1.41l3.54-3.54c.39-.39.39-1.02 0-1.41a.9846.9846 0 00-1.38.02 "
-             & "1.49 1.49 0 00-.34-.41z",
-           Size      => (24.0, 24.0),
-           Fill      => (R => 208, G => 188, B => 255, A => 255));
+        Adi.Image.Load_SVG_From_String
+          ("<svg xmlns=""http://www.w3.org/2000/svg"" width=""24"""
+           & " height=""24"" viewBox=""0 -960 960 960"">"
+           & "<path fill=""rgb(208,188,255)"" d="""
+           & "M39-680q0-100 70.5-170.5T280-921v81q-66 0-113 47"
+           & "t-47 113H39Zm173 469q-91-91-91-219t91-219l70-71 12 12"
+           & "q29 29 29 70.5T294-567l-14 14q-12 12-12 28.5t12 28.5"
+           & "l36 36q26 26 26 63t-26 63l43 43q44-44 44-105.5T358-503"
+           & "l-22-22q26-26 37-58.5t9-66.5l179-179q12-12 28.5-12"
+           & "t28.5 12q12 12 12 28.5T618-772L431-585l42 42 241-240"
+           & "q12-12 28-12t28 12q12 12 12 28t-12 28L530-486"
+           & "l42 42 212-212q12-12 28.5-12t28.5 12q12 12 12 28.5"
+           & "T841-599L629-387l42 42 162-162q12-12 28.5-12t28.5 12"
+           & "q12 12 12 28.5T890-450L650-211q-91 91-219 91t-219-91Z"
+           & "M680-39v-81q66 0 113-47t47-113h81q0 100-70.5 170.5"
+           & "T680-39Z"
+           & """/></svg>");
    begin
       if Welcome_Icon /= null then
          Set_Icon (Welcome_Dialog, Welcome_Icon);

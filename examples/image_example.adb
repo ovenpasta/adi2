@@ -14,7 +14,7 @@ procedure Image_Example is
    package UI is new Image_Example_UI.Instance;
    W : Window_Handle;
 
-   --  Material Symbols "star" 24x24 path
+   --  Material Icons "star" 24x24 path
    Star_Path : constant String :=
      "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 "
      & "9.19 8.63 2 9.24l5.46 4.73L5.82 21z";
@@ -34,10 +34,10 @@ procedure Image_Example is
      & "5.16-1.26 9-6.45 9-12V5l-9-4z";
 
    Bell_Path : constant String :=
-     "M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5"
-     & "c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5"
-     & "s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1"
-     & "h16v-1l-2-2z";
+     "M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5"
+     & "c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5"
+     & "s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16"
+     & "v-1l-2-2z";
 begin
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);

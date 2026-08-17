@@ -30,13 +30,61 @@ these files, and keep the attribution if you adapt them. Record any
 change here — the "unmodified" claim above is what a downstream user
 relies on.
 
+## Google Material Icons and Material Symbols
+
+Copyright Google LLC, licensed under Apache-2.0. Source:
+<https://github.com/google/material-design-icons>, which keeps the two
+sets apart: `src/` is the classic Material Icons, `symbols/` is Material
+Symbols. Only `waving_hand` below comes from the latter.
+
+`icons.svg` carries six symbols whose path data is verbatim upstream.
+The examples below embed further path data inline, so that they
+demonstrate building an image from a path string rather than from a file;
+each is likewise verbatim.
+
+| Where | Icon | Upstream |
+|-------|------|----------|
+| `icons.svg` | `home` `star` `heart` `settings` `search` `bell` | `src/*/{home,star,favorite,settings,search,notifications}/materialicons/24px.svg` |
+| `combo_box_example.adb` | home, star, settings, search | as above |
+| `image_example.adb` | star, favorite, flash_on, shield, notifications | `src/*/…/materialicons/24px.svg` |
+| `dialog_example.adb` | info, warning | `src/action/info`, `src/alert/warning` |
+| `material_demo.adb` | dashboard, waving_hand | `src/action/dashboard`; `symbols/web/waving_hand/materialsymbolsoutlined/waving_hand_fill1_24px.svg` |
+
+None of this path data has been altered. `waving_hand` comes from
+Material Symbols, which draws in a 960-unit box over a negative Y range,
+so it is embedded with its own `viewBox` rather than rescaled — rescaling
+would be a modification and would have to be recorded here.
+
+The chevrons in `Adi.Widget.Combo_Box` and the list markers in
+`Adi.Widget.Html_View` are hand-drawn geometric primitives, not derived
+from any icon set. The document outline in `label_example.adb` is
+likewise hand-drawn.
+
+## camera.svg
+
+"digital-camera" by AJ Ashton, published through
+[openclipart.org](https://openclipart.org/). The file's own embedded
+Dublin Core metadata names the author and dedicates the work to the
+public domain (`cc:license` → `http://web.resource.org/cc/PublicDomain`).
+
+## cat.svg
+
+Hand-authored for this repository.
+
 ## OpenSans-Regular.ttf
 
 A symlink into `vendor/open-sans/`, under the SIL Open Font License 1.1.
 
 ## Not yet reviewed
 
-The other files in this directory predate this notice and their
-provenance has not been established. Nothing here should be read as a
-claim that they are original to this repository or that their terms
-permit redistribution.
+These came from elsewhere but carry no usable metadata, and the commits
+that added them record no source. Provenance is not established, and
+nothing here should be read as a claim that they are original to this
+repository or that their terms permit redistribution.
+
+| File | What the file itself records |
+|------|------------------------------|
+| `tiger.svg` | Nothing. Resembles the widely-redistributed "Ghostscript tiger", but resemblance is not evidence and no licence is inferred from it. |
+| `animhorse.gif` | A GIF comment naming the authoring tool only: "GifBuilder 0.5 by Yves Piguet". Eight frames. |
+| `happycat.png` | No text chunks. |
+| `bg.jpg` | No EXIF, no comment, no XMP. |

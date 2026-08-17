@@ -199,7 +199,7 @@ begin
       Set_OK_Button (Alert_Dialog);
       Connect_Result (Alert_Dialog, On_Alert_Result'Unrestricted_Access);
 
-      --  Set info icon on alert dialog (Material Symbols "info" 24×24)
+      --  Set info icon on alert dialog (Material Icons "info" 24×24)
       declare
          Info_Icon : constant Adi.Image.Image_Access :=
            Adi.Image.Load_SVG_Path
@@ -225,7 +225,7 @@ begin
       Set_Yes_No_Cancel (Confirm_Dialog);
       Connect_Result (Confirm_Dialog, On_Confirm_Result'Unrestricted_Access);
 
-      --  Set warning icon on confirm dialog (Material Symbols "warning" 24×24)
+      --  Set warning icon on confirm dialog (Material Icons "warning" 24×24)
       declare
          Warn_Icon : constant Adi.Image.Image_Access :=
            Adi.Image.Load_SVG_Path

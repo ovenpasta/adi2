@@ -25,6 +25,15 @@ with Adi.SDL.Render;
 --  caller rather than guessed: a fixed guess would not scale with size,
 --  and dividing it by size would charge an entry for being large twice.
 --
+--  How often an entry is used counts as well as what it cost, and that
+--  is what earns the policy its keep. An animation draws its frames in a
+--  cycle; when the cycle is longer than the cache, ranking by recency
+--  alone evicts precisely the frame wanted next, and every frame is
+--  rebuilt every loop. Weighting by use retains a stable subset instead.
+--  Measured against plain recency on mixed shadow, raster and vector
+--  workloads, no regression was observed. That is the extent of the
+--  claim: those workloads, that harness, which is not kept.
+--
 --  Entries lose ground as the cache works rather than as the clock runs.
 --  Each eviction raises a floor that later arrivals are measured from, so
 --  a once-popular entry falls behind whatever has been used since, without

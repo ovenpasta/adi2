@@ -841,6 +841,18 @@ procedure Svg_Test is
          Need_AA_Edges => True,
          Need_Colorful => 500);
 
+      --  XML permits whitespace before the '>' of an end tag
+      --  (ETag ::= '</' Name S? '>'), and drawing tools emit it. The
+      --  parser measured the element name after skipping that
+      --  whitespace, so "</g >" named no known element and the whole
+      --  document was rejected -- one stray newline losing every glyph
+      --  in the file, not just the element carrying it.
+      Probe
+        (Path => "tests/assets/end_tag_space.svg",
+         Label => "end-tag whitespace",
+         Need_Pixels => 1_000,
+         Need_AA_Edges => True);
+
       New_Line;
    end Test_Complex_SVG_Rendering;
 

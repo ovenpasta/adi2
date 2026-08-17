@@ -23,6 +23,11 @@ package Adi.RLottie.Testing is
    --  rather than published.
    function Build_Superseded (Anim : RLottie_Animation'Class) return Boolean;
 
+   --  How far the playhead has travelled. The frame index cannot stand in
+   --  for it: frames are coarse, and a timeline running at twice its speed
+   --  reads as the right frame for half of every step.
+   function Elapsed (Anim : RLottie_Animation'Class) return Duration;
+
    --  Drive the state machine without drawing a frame, so a test can let
    --  a build finish or an extent settle.
    procedure Service (Anim : in out RLottie_Animation'Class);

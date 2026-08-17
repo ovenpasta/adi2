@@ -20,8 +20,9 @@ package body Adi.Widget.Animated_Widget.RLottie is
       Pixel_Width  : Positive;
       Pixel_Height : Positive);
    overriding function Advance
-     (B  : in out RLottie_Backend;
-      DT : Duration) return Boolean;
+     (B      : in out RLottie_Backend;
+      DT     : Duration;
+      Sample : Adi.Clock.Time) return Boolean;
    overriding procedure Start (B : in out RLottie_Backend);
    overriding procedure Stop (B : in out RLottie_Backend);
    overriding procedure Reset (B : in out RLottie_Backend);
@@ -156,14 +157,19 @@ package body Adi.Widget.Animated_Widget.RLottie is
    end Get_Current_Image;
 
    overriding function Advance
-     (B  : in out RLottie_Backend;
-      DT : Duration) return Boolean
+     (B      : in out RLottie_Backend;
+      DT     : Duration;
+      Sample : Adi.Clock.Time) return Boolean
    is
+      pragma Unreferenced (DT);
    begin
       if B.Animation = null then
          return False;
       end if;
-      return Adi.RLottie.Advance (B.Animation.all, DT);
+
+      --  One animation can back several widgets. Stepping by DT would run
+      --  its playhead at a multiple of its speed, one step per viewer.
+      return Adi.RLottie.Advance_At (B.Animation.all, Sample);
    end Advance;
 
    overriding procedure Start (B : in out RLottie_Backend) is

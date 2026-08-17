@@ -3,6 +3,7 @@ pragma Ada_2022;
 with Ada.Environment_Variables;
 with Ada.Exceptions;
 with Ada.Text_IO;                        use Ada.Text_IO;
+with Adi.Clock;
 with Adi.Core;                           use Adi.Core;
 with Adi.RLottie;                        use Adi.RLottie;
 with Adi.RLottie.Testing;                use Adi.RLottie.Testing;
@@ -273,6 +274,223 @@ procedure RLottie_Widget_Test is
 
    ---------------------------------------------------------------------------
 
+   --  The two ways a widget can draw an rlottie animation. They reach the
+   --  animation through different code, so each is asserted on its own:
+   --  one test covering both would pass with either broken.
+   type Viewer_Kind is (Direct, Through_Backend);
+
+   function Label (Kind : Viewer_Kind) return String is
+     (case Kind is
+         when Direct          => "Adi.Widget.RLottie",
+         when Through_Backend => "Adi.Widget.Animated_Widget");
+
+   procedure Make_Viewer
+     (Kind  : Viewer_Kind;
+      Title : String;
+      Anim  : RLottie_Animation_Access;
+      W     : out Adi.Window.Window_Handle;
+      Root  : out Widget_Handle)
+   is
+   begin
+      W := Adi.Window.Create_Window_Handle (Title, (160.0, 120.0));
+      case Kind is
+         when Direct =>
+            Root := Adi.Widget.RLottie.To_Widget_Handle
+                      (Adi.Widget.RLottie.Create_Handle (Anim));
+         when Through_Backend =>
+            declare
+               B : constant Adi.Widget.Animated_Widget
+                     .Animated_Widget_Handle :=
+                 Adi.Widget.Animated_Widget.Create_Handle;
+            begin
+               Adi.Widget.Animated_Widget.RLottie.Set_Animation (B, Anim);
+               Root := Adi.Widget.Animated_Widget.To_Widget_Handle (B);
+            end;
+      end case;
+      Adi.Window.Set_Root (W, Root);
+   end Make_Viewer;
+
+   type Window_Array is
+     array (Positive range <>) of Adi.Window.Window_Handle;
+
+   procedure Tick_All (Wins : Window_Array; DT : Duration) is
+   begin
+      for H of Wins loop
+         declare
+            R : constant Adi.Window.Window_Ref := Adi.Window.Borrow (H);
+         begin
+            Adi.Window.Tick (R.Ptr.all, DT);
+         end;
+      end loop;
+   end Tick_All;
+
+   ---------------------------------------------------------------------------
+
+   --  How the measured runs are driven: one anchoring tick, then Steps
+   --  more with a real pause before each.
+   Steps : constant := 15;
+   Step  : constant Duration := 0.010;
+
+   --  What a stepped implementation would have charged the animation for
+   --  such a run: every viewer's tick adds its own Step, at each of the
+   --  Steps + 1 ticks. A sampled one charges the real span instead, which
+   --  is what makes the two distinguishable -- but only when the host
+   --  keeps up, and only for more than one viewer.
+   function Stepped_Span (Viewers : Positive) return Duration is
+     (Step * (Viewers * (Steps + 1)));
+
+   --  Runs one animation under a given number of viewers for a fixed span
+   --  of real time, and reports how far its playhead travelled against how
+   --  much time actually passed.
+   procedure Run_Viewers
+     (Kind    : Viewer_Kind;
+      Viewers : Positive;
+      Played  : out Duration;
+      Wall    : out Duration)
+   is
+      use type Adi.Clock.Time;
+
+      Wins  : Window_Array (1 .. Viewers);
+      Root  : Widget_Handle;
+      Anim  : RLottie_Animation_Access;
+      T0    : Adi.Clock.Time;
+   begin
+      Played := 0.0;
+      Wall := 0.0;
+
+      Anim := Load_From_File (Fixture);
+      Assert (Anim /= null, "the fixture loads");
+      if Anim = null then
+         return;
+      end if;
+
+      --  Clamped rather than wrapped. A playhead that has lapped the
+      --  timeline reads exactly like one that has not, which would hide
+      --  the difference being measured; the span below stays well inside
+      --  the fixture's 400 ms so neither happens.
+      Set_Looping (Anim.all, False);
+
+      for I in Wins'Range loop
+         Make_Viewer (Kind, "Viewer" & I'Image, Anim, Wins (I), Root);
+      end loop;
+
+      Pump (Wins (1), Anim);
+      for H of Wins loop
+         Adi.Window.Render (H);
+      end loop;
+
+      --  The animation has one anchor, not one per viewer. This tick sets
+      --  it; the measured span starts after.
+      Tick_All (Wins, Step);
+      T0 := Adi.Clock.Now;
+
+      for S in 1 .. Steps loop
+         delay Step;
+         Tick_All (Wins, Step);
+      end loop;
+
+      Wall := Adi.Clock.To_Duration (Adi.Clock.Now - T0);
+      Played := Elapsed (Anim.all);
+
+      for H of Wins loop
+         Adi.Window.Destroy (H);
+      end loop;
+      Destroy (Anim.all);
+   end Run_Viewers;
+
+   --  Time passes at one second per second however many widgets are
+   --  watching. A widget that stepped the timeline by its own frame delta
+   --  would run a shared animation at a multiple of its speed, one
+   --  multiple per viewer, and no single-viewer test would notice.
+   procedure Test_Shared_Playhead (Kind : Viewer_Kind) is
+      Tolerance : constant Duration := 0.050;
+      Attempts  : constant := 5;
+      Stepped   : constant Duration := Stepped_Span (2);
+
+      One_P, One_W, Two_P, Two_W : Duration;
+      Usable : Boolean := False;
+   begin
+      Section (Label (Kind) & ": viewers share one playhead");
+
+      --  A baseline, not a discriminator: with one viewer a stepped
+      --  implementation and a sampled one agree, and both are right.
+      Run_Viewers (Kind, 1, One_P, One_W);
+      Assert (abs (One_P - One_W) <= Tolerance,
+              "One viewer's playhead tracks the clock: played"
+              & One_P'Image & "s over" & One_W'Image & "s");
+
+      --  A host slow enough that the real span drifts out to what a
+      --  stepped run would have charged makes the two indistinguishable,
+      --  and a passing measurement would mean nothing. Take another
+      --  sample rather than judge on that one.
+      for Try in 1 .. Attempts loop
+         Run_Viewers (Kind, 2, Two_P, Two_W);
+         Usable := abs (Stepped - Two_W) > Tolerance;
+         exit when Usable;
+      end loop;
+
+      Assert (Usable,
+              "the measurement must be able to tell a stepped playhead"
+              & " from a sampled one: a stepped run would have played"
+              & Stepped'Image & "s and the real span reached" & Two_W'Image
+              & "s, which are not far enough apart to judge");
+      if not Usable then
+         return;
+      end if;
+
+      Assert (abs (Two_P - Two_W) <= Tolerance,
+              "and a second viewer of the same animation must not move it"
+              & " again: played" & Two_P'Image & "s over" & Two_W'Image
+              & "s");
+   end Test_Shared_Playhead;
+
+   ---------------------------------------------------------------------------
+
+   --  Only one viewer gets True from the step that moved the timeline, so
+   --  a widget that took that return as its cue to redraw would leave
+   --  every other viewer showing the frame it drew last.
+   procedure Test_Both_Viewers_Dirty (Kind : Viewer_Kind) is
+      WA, WB : Adi.Window.Window_Handle;
+      RA, RB : Widget_Handle;
+      Anim   : RLottie_Animation_Access;
+   begin
+      Section (Label (Kind) & ": a shared frame change dirties every viewer");
+
+      Anim := Load_From_File (Fixture);
+      Assert (Anim /= null, "the fixture loads");
+      if Anim = null then
+         return;
+      end if;
+      Set_Looping (Anim.all, False);
+
+      Make_Viewer (Kind, "Dirty A", Anim, WA, RA);
+      Make_Viewer (Kind, "Dirty B", Anim, WB, RB);
+
+      Pump (WA, Anim);
+      Adi.Window.Render (WA);
+      Adi.Window.Render (WB);
+
+      Assert (not Is_Dirty (RA) and then not Is_Dirty (RB),
+              "Both viewers start clean, having just drawn: otherwise the"
+              & " assertion below would hold with no frame change at all");
+
+      --  Past a frame boundary: the fixture runs at 10 fps.
+      delay 0.150;
+      Tick_All (Window_Array'(WA, WB), 0.150);
+
+      Assert (Is_Dirty (RA),
+              "the viewer whose tick moved the timeline redraws");
+      Assert (Is_Dirty (RB),
+              "and so does the one whose tick moved nothing, because the"
+              & " frame it drew is no longer the current one");
+
+      Adi.Window.Destroy (WA);
+      Adi.Window.Destroy (WB);
+      Destroy (Anim.all);
+   end Test_Both_Viewers_Dirty;
+
+   ---------------------------------------------------------------------------
+
    --  One animation drawn by two widgets in two windows. Its textures
    --  belong to the animation, so no widget's death takes them and the
    --  animation's death takes all of them, in both renderers.
@@ -312,18 +530,19 @@ procedure RLottie_Widget_Test is
       Adi.Window.Set_Root (WA, Adi.Widget.RLottie.To_Widget_Handle (BA));
       Adi.Window.Set_Root (WB, Adi.Widget.RLottie.To_Widget_Handle (BB));
 
-      --  Prepared through window A, then one tick to select a frame and
-      --  a draw in each window. The tick is on one window only: both
-      --  widgets drive the same mutable playhead, so ticking each would
-      --  advance the animation twice per logical frame -- a real problem,
-      --  but a different one, and not something this test should quietly
-      --  depend on.
+      --  Prepared through window A, then a tick in each window and a
+      --  draw. The animation has one anchor, which the first of those
+      --  ticks sets while settling the first frame; nothing here selects a
+      --  frame by hand, so the initial-frame path is exercised rather than
+      --  stepped over.
       Pump (WA, Anim);
 
       declare
          RA : constant Adi.Window.Window_Ref := Adi.Window.Borrow (WA);
+         RB : constant Adi.Window.Window_Ref := Adi.Window.Borrow (WB);
       begin
          Adi.Window.Tick (RA.Ptr.all, 0.020);
+         Adi.Window.Tick (RB.Ptr.all, 0.020);
       end;
       Adi.Window.Render (WA);
       Adi.Window.Render (WB);
@@ -390,6 +609,11 @@ begin
    Test_Animated_Widget_Prepares;
    Test_Scale_Change_Reprepares;
    Test_Shared_Animation_Group;
+
+   for Kind in Viewer_Kind loop
+      Test_Shared_Playhead (Kind);
+      Test_Both_Viewers_Dirty (Kind);
+   end loop;
 
    Finish;
 end RLottie_Widget_Test;

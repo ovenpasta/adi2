@@ -3,6 +3,7 @@
 
 pragma Ada_2022;
 
+with Adi.Clock;
 with Adi.Layout_Util; use Adi.Layout_Util;
 
 package body Adi.Widget.RLottie is
@@ -345,11 +346,15 @@ package body Adi.Widget.RLottie is
          end;
       end if;
 
-      if W.Animation /= null and then Is_Prepared (W.Animation.all) then
+      if W.Animation /= null then
          Current := Get_Current_Image (W.Animation.all);
       end if;
 
       W.Items.Reference (Image_Idx).Image_Source := Current;
+
+      --  Recorded here and nowhere else: what the widget has shown is
+      --  what reached the render item, not what a tick happened to see.
+      W.Shown_Image := Current;
    end Build_Items;
 
    overriding procedure Layout (W : in out RLottie_Widget) is
@@ -359,13 +364,24 @@ package body Adi.Widget.RLottie is
    end Layout;
 
    overriding procedure On_Tick (W : in out RLottie_Widget; DT : Duration) is
-      Changed : Boolean := False;
+      Changed : Boolean;
    begin
       Tick_Scroll_Animations (W, DT);
 
       if W.Animation /= null then
-         Changed := Advance (W.Animation.all, DT);
-         if Changed then
+         --  Sampled rather than stepped: several widgets may show one
+         --  animation, and each stepping it would run the playhead at a
+         --  multiple of its speed.
+         Changed := Advance_At (W.Animation.all, Adi.Clock.Now);
+
+         --  Two questions, and neither answers the other. The step
+         --  reports that the animation changed, which it can do without
+         --  handing out a different image; and at most one viewer of a
+         --  shared animation is the one that made the step, while every
+         --  viewer of it has the new frame to draw.
+         if Changed
+           or else Get_Current_Image (W.Animation.all) /= W.Shown_Image
+         then
             Mark_Dirty (W);
          end if;
       end if;

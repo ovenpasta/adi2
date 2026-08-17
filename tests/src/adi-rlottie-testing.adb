@@ -17,6 +17,9 @@ package body Adi.RLottie.Testing is
    function Build_Superseded (Anim : RLottie_Animation'Class) return Boolean
    is (Anim.Build_Superseded);
 
+   function Elapsed (Anim : RLottie_Animation'Class) return Duration
+   is (Duration (Anim.Elapsed_S));
+
    procedure Service (Anim : in out RLottie_Animation'Class) is
    begin
       Service_Pending (Anim);

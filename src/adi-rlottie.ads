@@ -110,11 +110,36 @@ package Adi.RLottie is
    function Get_Playback_Speed (Anim : RLottie_Animation) return Float;
    procedure Reset (Anim : in out RLottie_Animation);
 
-   --  Advance timeline and consume preloaded surfaces.
+   --  Advance by an elapsed span. Deterministic, and the way to drive an
+   --  animation from a fixed step rather than from the clock.
+   --
    --  Returns True when a new frame becomes visible.
    function Advance
      (Anim : in out RLottie_Animation;
       DT   : Duration) return Boolean;
+
+   --  Advance to a point in time rather than by a duration. Several
+   --  viewers may draw one animation -- two widgets, two windows -- and
+   --  each of them ticking would otherwise advance the single playhead
+   --  once per viewer, running the animation at a multiple of its speed.
+   --  Sampling an instant instead means every viewer contributes only the
+   --  time that actually passed.
+   --
+   --  Returns True when a new frame becomes visible, which is true for at
+   --  most one viewer per step. A viewer therefore cannot use this to
+   --  decide whether to redraw: it has to compare the frame it last drew
+   --  against the current one, since the viewer that advanced the
+   --  animation is rarely the only one showing it.
+   --
+   --  The first call anchors without adding elapsed time, as do Reset and
+   --  any return from paused: an animation must not leap forward by the
+   --  time it spent stopped. Anchoring can still make a frame visible --
+   --  a freshly prepared animation shows its first at time zero rather
+   --  than staying blank until a second sample arrives -- so it returns
+   --  True in that case and False when a frame was already showing.
+   function Advance_At
+     (Anim   : in out RLottie_Animation;
+      Sample : Adi.Clock.Time) return Boolean;
 
    --  Detach or destroy every widget and backend referring to this
    --  animation first. What they hold is a plain Image_Access into its
@@ -214,6 +239,12 @@ private
       Current_Frame     : Natural := 0;
       Elapsed_S         : Float := 0.0;
       Playing           : Boolean := True;
+      --  Where the sampled clock last stood, and whether it stands
+      --  anywhere yet. Cleared whenever the timeline moves by any means
+      --  other than sampling, so the next sample anchors instead of
+      --  charging the animation for the gap.
+      Last_Sample       : Adi.Clock.Time := Adi.Clock.Zero;
+      Anchored          : Boolean := False;
       Looping           : Boolean := True;
       Playback_Speed    : Float := 1.0;
       Min_Ready_Frames  : Natural := 8;

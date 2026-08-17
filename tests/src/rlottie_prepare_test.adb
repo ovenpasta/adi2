@@ -1,6 +1,7 @@
 pragma Ada_2022;
 
 with Ada.Text_IO;         use Ada.Text_IO;
+with Adi.Clock;
 with Adi.RLottie;         use Adi.RLottie;
 with Adi.RLottie.Testing; use Adi.RLottie.Testing;
 with Test_Support;        use Test_Support;
@@ -278,6 +279,159 @@ procedure RLottie_Prepare_Test is
               & " for the worker rather than freeing under it");
    end Test_Destroy_During_Build;
 
+   ---------------------------------------------------------------------------
+
+   --  Sampled advancement, driven by instants the test supplies rather
+   --  than by the clock, so what is asserted is the arithmetic and not
+   --  how fast the machine ran.
+   --
+   --  The fixture is four frames at ten a second, so a frame is a tenth
+   --  of a second.
+   procedure Test_Sampled_Advance is
+      use type Adi.Clock.Time;
+
+      Anim : RLottie_Animation_Access := Load_From_File (Fixture);
+      Base : constant Adi.Clock.Time := Adi.Clock.Now;
+
+      function At_Ms (Ms : Integer) return Adi.Clock.Time is
+        (Base + Adi.Clock.Microseconds (Ms * 1_000));
+
+      Moved : Boolean;
+   begin
+      Section ("advancing to an instant rather than by a step");
+
+      if Anim = null then
+         Assert (False, "the fixture loads");
+         return;
+      end if;
+
+      Prepare (Anim.all, Tiny_W, Tiny_H);
+      Finish_Build (Anim.all);
+
+      --  The first sample has no elapsed time to charge, but it does
+      --  settle which frame is visible: anchoring must not mean showing
+      --  nothing until a second sample happens along.
+      Moved := Advance_At (Anim.all, At_Ms (0));
+      Assert (Moved,
+              "The first sample reports a frame becoming visible");
+      Assert (Get_Current_Frame_Index (Anim.all) = 1,
+              "which is the first, at zero elapsed");
+
+      Moved := Advance_At (Anim.all, At_Ms (0));
+      Assert (not Moved and then Get_Current_Frame_Index (Anim.all) = 1,
+              "and repeating that instant reports nothing further");
+
+      --  Two viewers of one animation, sampling the same instant. The
+      --  second must contribute nothing, which is the whole point.
+      Moved := Advance_At (Anim.all, At_Ms (100));
+      declare
+         After_First : constant Natural :=
+           Get_Current_Frame_Index (Anim.all);
+         Second : constant Boolean := Advance_At (Anim.all, At_Ms (100));
+      begin
+         Assert (Moved and then After_First = 2,
+                 "A tenth of a second is one frame, so the first viewer"
+                 & " advances the animation by exactly one");
+         Assert (not Second,
+                 "and the second viewer sampling the same instant adds"
+                 & " nothing: elapsed time belongs to the clock, not to"
+                 & " the number of things watching");
+         Assert (Get_Current_Frame_Index (Anim.all) = After_First,
+                 "so the frame is where the first viewer left it");
+      end;
+
+      --  A sample that has gone backwards is ignored, and must not move
+      --  the anchor: doing so would make the next honest sample pay for
+      --  the gap twice.
+      Set_Looping (Anim.all, False);
+      declare
+         Before : constant Natural := Get_Current_Frame_Index (Anim.all);
+      begin
+         --  Far enough back that charging for it would run past the end.
+         Moved := Advance_At (Anim.all, At_Ms (-5_000));
+         Assert (not Moved, "A sample older than the last does nothing");
+         Assert (Get_Current_Frame_Index (Anim.all) = Before,
+                 "and leaves the frame alone");
+
+         Moved := Advance_At (Anim.all, At_Ms (200));
+         Assert (Get_Current_Frame_Index (Anim.all) = Before + 1,
+                 "while the next honest sample advances by exactly the"
+                 & " tenth of a second that passed -- an anchor moved to"
+                 & " the rewind would charge five seconds and land at the"
+                 & " end");
+      end;
+      Set_Looping (Anim.all, True);
+
+      --  Stepping by hand and then sampling again must not charge for
+      --  both the step and everything since the old anchor.
+      declare
+         Ignored : Boolean := Advance (Anim.all, 0.100);
+         After_Manual : constant Natural :=
+           Get_Current_Frame_Index (Anim.all);
+      begin
+         Moved := Advance_At (Anim.all, At_Ms (5_000));
+         Assert (not Moved,
+                 "The first sample after a manual step anchors: the manual"
+                 & " step already moved the timeline, and the seconds"
+                 & " since the old anchor were never owed");
+         Assert (Get_Current_Frame_Index (Anim.all) = After_Manual,
+                 "so the frame is where the manual step left it");
+      end;
+
+      --  Paused: the anchor keeps moving so that resuming does not
+      --  deliver the pause in one go.
+      Stop (Anim.all);
+      declare
+         Paused_At : constant Natural := Get_Current_Frame_Index (Anim.all);
+      begin
+         Moved := Advance_At (Anim.all, At_Ms (5_100));
+         Assert (not Moved, "A paused animation does not advance");
+         Moved := Advance_At (Anim.all, At_Ms (9_000));
+         Assert (Get_Current_Frame_Index (Anim.all) = Paused_At,
+                 "however long it is left paused");
+
+         Start (Anim.all);
+         Moved := Advance_At (Anim.all, At_Ms (9_500));
+         Assert (Get_Current_Frame_Index (Anim.all) = Paused_At,
+                 "and resuming re-anchors, so the seconds spent paused are"
+                 & " not delivered at once");
+      end;
+
+      --  Speed scales elapsed time, so half a frame's worth of clock at
+      --  double speed is a whole frame. It does not re-anchor: the time
+      --  that passed still passed, and only what it buys has changed.
+      Reset (Anim.all);
+      Moved := Advance_At (Anim.all, At_Ms (30_000));   --  anchors
+
+      --  Set after the anchor is established, so this also shows that
+      --  changing speed keeps it: clearing it here would make the next
+      --  sample anchor instead of advancing, and nothing would move.
+      Set_Playback_Speed (Anim.all, 2.0);
+      declare
+         From : constant Natural := Get_Current_Frame_Index (Anim.all);
+      begin
+         Moved := Advance_At (Anim.all, At_Ms (30_050));
+         Assert (Moved and then Get_Current_Frame_Index (Anim.all) = From + 1,
+                 "Fifty milliseconds at double speed is one frame of a ten"
+                 & " a second animation");
+      end;
+      Set_Playback_Speed (Anim.all, 1.0);
+
+      --  Reset puts the timeline back and re-anchors with it.
+      Reset (Anim.all);
+      declare
+         From_Reset : constant Natural :=
+           Get_Current_Frame_Index (Anim.all);
+      begin
+         Moved := Advance_At (Anim.all, At_Ms (20_000));
+         Assert (Get_Current_Frame_Index (Anim.all) = From_Reset,
+                 "The first sample after a reset anchors rather than"
+                 & " replaying everything since the last one");
+      end;
+
+      Destroy (Anim.all);
+   end Test_Sampled_Advance;
+
 begin
    Start_Suite ("RLottie prepare test");
 
@@ -288,6 +442,7 @@ begin
    Test_Old_Frames_Drawable_While_Building;
    Test_Small_Permanent_Resize_Becomes_Exact;
    Test_Destroy_During_Build;
+   Test_Sampled_Advance;
 
    Finish;
 end RLottie_Prepare_Test;

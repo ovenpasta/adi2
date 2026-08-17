@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Adi.Animated_Image;  use Adi.Animated_Image;
+with Adi.Clock;
 
 package Adi.Widget.Animated_Widget is
 
@@ -110,9 +111,14 @@ private
      (B            : in out Animation_Backend;
       Pixel_Width  : Positive;
       Pixel_Height : Positive) is null;
+   --  Two descriptions of the same instant. A backend that owns its
+   --  playhead outright steps by DT; one whose animation may be shared
+   --  between widgets samples Sample instead, so that two viewers ticking
+   --  the same frame do not step the timeline twice.
    function Advance
-     (B  : in out Animation_Backend;
-      DT : Duration) return Boolean is abstract;
+     (B      : in out Animation_Backend;
+      DT     : Duration;
+      Sample : Adi.Clock.Time) return Boolean is abstract;
    procedure Start (B : in out Animation_Backend) is abstract;
    procedure Stop (B : in out Animation_Backend) is abstract;
    procedure Reset (B : in out Animation_Backend) is abstract;
@@ -135,6 +141,11 @@ private
       Backend         : Animation_Backend_Access := null;
       Max_Width       : Pixel_Type := 0.0;
       Max_Height      : Pixel_Type := 0.0;
+      --  The image this widget last put in its render item. A shared
+      --  animation is stepped by whichever viewer ticks first, so the
+      --  return of that step tells a viewer nothing about whether it has
+      --  something new to show; comparing against what it drew does.
+      Shown_Image     : Image_Access := null;
    end record;
 
    type Animated_Widget_Handle is record

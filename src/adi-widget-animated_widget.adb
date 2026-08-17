@@ -19,8 +19,9 @@ package body Adi.Widget.Animated_Widget is
    overriding function Get_Current_Image
      (B : Image_Backend) return Image_Access;
    overriding function Advance
-     (B  : in out Image_Backend;
-      DT : Duration) return Boolean;
+     (B      : in out Image_Backend;
+      DT     : Duration;
+      Sample : Adi.Clock.Time) return Boolean;
    overriding procedure Start (B : in out Image_Backend);
    overriding procedure Stop (B : in out Image_Backend);
    overriding procedure Reset (B : in out Image_Backend);
@@ -407,6 +408,10 @@ package body Adi.Widget.Animated_Widget is
       end if;
 
       W.Items.Reference (Image_Idx).Image_Source := Current;
+
+      --  Recorded here and nowhere else: what the widget has shown is
+      --  what reached the render item, not what a tick happened to see.
+      W.Shown_Image := Current;
    end Build_Items;
 
    overriding procedure Layout (W : in out Animated_Widget) is
@@ -416,16 +421,23 @@ package body Adi.Widget.Animated_Widget is
    end Layout;
 
    overriding procedure On_Tick (W : in out Animated_Widget; DT : Duration) is
-      Changed : Boolean := False;
+      Changed : Boolean;
    begin
       Tick_Scroll_Animations (W, DT);
 
       if Has_Backend (W) then
-         Changed := Advance (W.Backend.all, DT);
-      end if;
+         Changed := Advance (W.Backend.all, DT, Adi.Clock.Now);
 
-      if Changed then
-         Mark_Dirty (W);
+         --  Two questions, and neither answers the other. The step
+         --  reports that the backend changed, which it can do without
+         --  handing out a different image; and at most one viewer of a
+         --  shared animation is the one that made the step, while every
+         --  viewer of it has the new frame to draw.
+         if Changed
+           or else Get_Current_Image (W.Backend.all) /= W.Shown_Image
+         then
+            Mark_Dirty (W);
+         end if;
       end if;
    end On_Tick;
 
@@ -454,9 +466,11 @@ package body Adi.Widget.Animated_Widget is
    end Get_Current_Image;
 
    overriding function Advance
-     (B  : in out Image_Backend;
-      DT : Duration) return Boolean
+     (B      : in out Image_Backend;
+      DT     : Duration;
+      Sample : Adi.Clock.Time) return Boolean
    is
+      pragma Unreferenced (Sample);
    begin
       if B.Animation = null then
          return False;

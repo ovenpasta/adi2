@@ -92,6 +92,11 @@ private
       Desired_Playback_Speed : Float := 1.0;
       Max_Width              : Pixel_Type := 0.0;
       Max_Height             : Pixel_Type := 0.0;
+      --  The image this widget last put in its render item. A shared
+      --  animation is stepped by whichever viewer ticks first, so a viewer
+      --  cannot learn from that call whether it has anything new to show;
+      --  comparing against what it drew is what tells it.
+      Shown_Image            : Image_Access := null;
    end record;
 
    type RLottie_Handle is record

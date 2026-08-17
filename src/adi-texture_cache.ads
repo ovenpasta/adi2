@@ -3,6 +3,7 @@
 
 pragma Ada_2022;
 
+with Ada.Containers.Vectors;
 with Ada.Finalization;
 with Adi.Clock;
 with Adi.SDL.Render;
@@ -149,6 +150,39 @@ package Adi.Texture_Cache is
    function Null_Borrow return Texture_Ref;
 
    ---------------------------------------------------------------------------
+   --  Groups
+   ---------------------------------------------------------------------------
+
+   --  Textures that live and die together. An animation's frames are a
+   --  hundred unrelated images as far as this cache can tell: nothing in
+   --  a key says they came from one source or that they stop being wanted
+   --  at the same moment. A group says it.
+   --
+   --  The token belongs to whatever the textures belong to -- an
+   --  animation, not a widget drawing one. Two widgets sharing an
+   --  animation share its residency, and destroying either leaves the
+   --  other's frames alone.
+   --
+   --  A group spans caches. One animation drawn in two windows has
+   --  frames in two renderers' caches, and releasing it must reach both;
+   --  a group therefore remembers the caches it has stored into rather
+   --  than being owned by one. A cache whose renderer has already gone
+   --  reports as much, and releasing there does nothing.
+   type Texture_Group is tagged limited private;
+
+   --  A group starts open. Storing into it after release is refused
+   --  rather than silently reopening it: the release said those textures
+   --  are finished with, and a late arrival would outlive the decision.
+   --
+   --  Groups and caches alike belong to the thread that renders. Nothing
+   --  here is synchronised, and none of it needs to be: a texture is made
+   --  and drawn on that thread, so its lifetime is decided there too. A
+   --  producer working elsewhere hands its result over on the render
+   --  thread, as Adi.RLottie does with its rasterised frames.
+   procedure Release (G : in out Texture_Group);
+   function Is_Open (G : Texture_Group) return Boolean;
+
+   ---------------------------------------------------------------------------
    --  Residency
    ---------------------------------------------------------------------------
 
@@ -189,10 +223,13 @@ package Adi.Texture_Cache is
    --  can borrow and draw at once.
    --
    --  Null_Texture means the cache did not take it and the caller still
-   --  owns the texture. That happens only when the charge cannot be
-   --  accounted for -- residency plus this entry would exceed what
-   --  Byte_Count can represent, and nothing idle remains to drop. Entries
-   --  in use, borrowed or drawn this frame, cannot be taken for it.
+   --  owns the texture. Two things cause it. The charge may not be
+   --  accountable -- residency plus this entry would exceed what
+   --  Byte_Count can represent, and nothing idle remains to drop, entries
+   --  in use being unavailable for it. Or the group given may already
+   --  have been released, in which case the texture is refused rather
+   --  than admitted to outlive its siblings.
+   --
    --  Storing never evicts to fit the budget: what arrives is about to be
    --  drawn, and the budget governs what is idle.
    --
@@ -207,7 +244,9 @@ package Adi.Texture_Cache is
       Width      : Natural;
       Height     : Natural;
       Bytes      : Texture_Charge;
-      Build_Time : Adi.Clock.Time_Span) return Texture_Handle;
+      Build_Time : Adi.Clock.Time_Span;
+      Group      : access Texture_Group'Class := null)
+      return Texture_Handle;
 
    --  Drop everything. Entries under borrow are unfindable at once and
    --  destroyed when their last borrow ends.
@@ -287,9 +326,15 @@ package Adi.Texture_Cache is
       --  its renderer. Neither says anything about the budget.
       Cleared      : Event_Count := 0;
       Discarded    : Event_Count := 0;
-      --  Stores the cache would not take. Needs pinned entries holding
-      --  down most of a terabyte, so a non-zero figure here is a defect
-      --  rather than a budget signal.
+      --  Dropped because the group they belonged to was released. Also
+      --  not a budget signal: the program said these were finished with.
+      Released     : Event_Count := 0;
+      --  Stores the cache would not take: a charge that could not be
+      --  accounted for, or a group already released. The former needs
+      --  entries in use holding down most of a terabyte and would be a
+      --  defect; the latter is ordinary lifecycle. They share a counter,
+      --  so a figure here says which only in context -- worth separating
+      --  if it ever needs reading without one.
       Refused      : Event_Count := 0;
       --  What building this kind has cost over the cache's life, so a
       --  budget can be weighed against the work it saves.
@@ -308,6 +353,13 @@ package Adi.Texture_Cache is
    function Idle_Bytes_Used (C : Cache) return Byte_Count;
 
 private
+
+   --  Groups are told apart by a counter. It is modular, so values do
+   --  repeat in principle; at 2**64 they do not in practice, which is
+   --  what keeps a stale token from naming a live group. Zero is skipped,
+   --  being the value that means no group at all.
+   type Group_Id is mod 2 ** 64;
+   No_Group : constant Group_Id := 0;
 
    subtype Frame_Serial is Frame_Count;
    type Slot_Generation is mod 2 ** 64;
@@ -361,6 +413,20 @@ private
    type Cache is limited record
       Owner : Cache_Owner;
    end record;
+
+   package Owner_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Cache_Data_Access);
+
+   type Texture_Group is new Ada.Finalization.Limited_Controlled with record
+      Id     : Group_Id := No_Group;
+      Open   : Boolean := True;
+      --  The caches this group has stored into. Each is held by a
+      --  reference so the block survives long enough to be visited, even
+      --  if its renderer went first.
+      Owners : Owner_Vectors.Vector;
+   end record;
+
+   overriding procedure Finalize (G : in out Texture_Group);
 
    Null_Region : aliased constant Texture_Region := (others => <>);
 

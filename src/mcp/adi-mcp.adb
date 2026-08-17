@@ -62,6 +62,9 @@ package body Adi.MCP is
          W.Key_Value ("replaced", Long_Integer (S.Replaced));
          W.Key_Value ("cleared", Long_Integer (S.Cleared));
          W.Key_Value ("discarded", Long_Integer (S.Discarded));
+         --  Dropped because their group was released. Like cleared and
+         --  discarded, this is the program's own doing, not the budget's.
+         W.Key_Value ("released", Long_Integer (S.Released));
          W.Key_Value ("refused", Long_Integer (S.Refused));
          W.Key_Value ("build_us",
            Long_Integer (Adi.Clock.To_Duration (S.Build_Time)

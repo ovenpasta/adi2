@@ -62,7 +62,7 @@ Optional:
 | `screenshot()` | Capture PNG screenshot, returns file path |
 | `widget_tree()` | Full widget hierarchy as JSON (type, id, path, text, bounds, states, flags, children, overlays) |
 | `widget_info(id, path)` | Detailed info for one widget (by ID or path) |
-| `perf_stats()` | Frame timing counters and FPS, plus a `texture_cache` object: budget, total/idle/peak bytes, and per-producer (`shadow`, `raster`, `svg`) active/idle/retired residency, hits, misses, stores, `pressure_evictions`, `headroom_evictions` and `build_us`. The budget bounds idle residency, so read `idle_bytes` against it |
+| `perf_stats()` | Frame timing counters and FPS, plus a `texture_cache` object: budget, total/idle/peak bytes, and per-producer (`shadow`, `raster`, `svg`) active/idle/retired residency, hits, misses, stores, `pressure_evictions`, `headroom_evictions`, `released` (dropped with their group) and `build_us`. The budget bounds idle residency, so read `idle_bytes` against it |
 
 ### Search
 

@@ -620,6 +620,7 @@ procedure MCP_Test is
          Expect_Per_Kind ("replaced");
          Expect_Per_Kind ("cleared");
          Expect_Per_Kind ("discarded");
+         Expect_Per_Kind ("released");
          Expect_Per_Kind ("refused");
          Expect_Per_Kind ("build_us");
 

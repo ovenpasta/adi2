@@ -41,6 +41,7 @@ package body Adi.Texture_Cache is
       --  last borrow ends, and still charged until then.
       Retiring  : Boolean := False;
       Key       : Texture_Key;
+      Group     : Group_Id := No_Group;
       Bytes     : Byte_Count := 0;
       Micros    : Priority := 1;
       Hits      : Natural := 1;
@@ -70,8 +71,11 @@ package body Adi.Texture_Cache is
       Limit   : Byte_Count := 0;
       Frame   : Frame_Serial := 0;
       Serial  : Cache_Serial := 0;
-      --  Live borrows, and whether the cache itself has gone. The block is
-      --  freed by whichever of the two finishes last.
+      --  Holders of this block, and whether the cache itself has gone. A
+      --  holder is a live borrow or a group that has stored here; the
+      --  block is freed by whichever finishes last. A group thus keeps a
+      --  dead renderer's block alive until released -- more than it
+      --  needs, but not yet worth a second structure to avoid.
       Refs        : Natural := 0;
       Owner_Gone  : Boolean := False;
       --  The floor: the standing of whatever was evicted last. An entry
@@ -87,8 +91,24 @@ package body Adi.Texture_Cache is
 
    Next_Serial : Cache_Serial := 0;
 
-   --  Free the block and every slot it allocated. Called by whichever of
-   --  the cache and its last borrow finishes second.
+   --  Practically non-repeating: modular, so values do recur in
+   --  principle, but not at 2**64 in any run that finishes.
+   Next_Group : Group_Id := No_Group;
+
+   function New_Group_Id return Group_Id is
+   begin
+      Next_Group := Next_Group + 1;
+      if Next_Group = No_Group then
+         Next_Group := 1;
+      end if;
+      return Next_Group;
+   end New_Group_Id;
+
+   function Is_Open (G : Texture_Group) return Boolean is (G.Open);
+
+   --  Free the block and every slot it allocated. Called by whichever
+   --  holder finishes last -- the cache itself, a borrow, or a group that
+   --  had stored here.
    procedure Discard (D : in out Cache_Data_Access) is
    begin
       for I in D.Slots.First_Index .. D.Slots.Last_Index loop
@@ -157,7 +177,7 @@ package body Adi.Texture_Cache is
    --  Why an entry stopped being findable. Only Pressure reflects on the
    --  budget; the rest are the program's own doing.
    type Retire_Cause is
-     (Pressure, Headroom, Replaced, Cleared, Discarded);
+     (Pressure, Headroom, Replaced, Cleared, Discarded, Group_Released);
 
    --  Recomputed rather than tracked incrementally: an entry retired while
    --  borrowed still holds its bytes, so a decrement at retirement would
@@ -178,7 +198,7 @@ package body Adi.Texture_Cache is
 
    --  Release the SDL texture and return the slot to the free list. Only
    --  called once nothing is borrowing it.
-   procedure Release (D : Cache_Data_Access; Index : Slot_Index) is
+   procedure Release_Slot (D : Cache_Data_Access; Index : Slot_Index) is
       S : constant Slot_Access := D.Slots (Index);
    begin
       SDL_DestroyTexture (S.Region.Texture);
@@ -188,7 +208,7 @@ package body Adi.Texture_Cache is
                 Occupied => False,
                 others   => <>);
       D.Free.Append (Index);
-   end Release;
+   end Release_Slot;
 
    --  Stop an entry being found, and free it if nothing holds it. Its
    --  bytes stay charged while a borrow does, because they cannot be
@@ -215,10 +235,13 @@ package body Adi.Texture_Cache is
          when Discarded =>
             D.Stats (S.Key.Kind).Discarded :=
               D.Stats (S.Key.Kind).Discarded + 1;
+         when Group_Released =>
+            D.Stats (S.Key.Kind).Released :=
+              D.Stats (S.Key.Kind).Released + 1;
       end case;
 
       if S.Pins = 0 then
-         Release (D, Index);
+         Release_Slot (D, Index);
       else
          S.Retiring := True;
       end if;
@@ -412,7 +435,7 @@ package body Adi.Texture_Cache is
          --  The eviction that happened while this borrow was open is only
          --  now able to complete.
          if S.Pins = 0 and then S.Retiring then
-            Release (D, R.Slot);
+            Release_Slot (D, R.Slot);
          end if;
 
          R.Data := null;
@@ -447,6 +470,66 @@ package body Adi.Texture_Cache is
          Trim_Idle (D, Bytes);
       end;
    end Set_Budget;
+
+   procedure Release (G : in out Texture_Group) is
+      Doomed : Index_Vectors.Vector;
+   begin
+      --  Closed first, so no later store can join. Being closed is not
+      --  the same as being finished: what remains to do is whatever
+      --  caches are still registered, which is what makes a partial
+      --  release retryable rather than lost.
+      G.Open := False;
+
+      while not G.Owners.Is_Empty loop
+         declare
+            D : Cache_Data_Access := G.Owners.Last_Element;
+         begin
+            if not D.Owner_Gone and then G.Id /= No_Group then
+               --  Collected before retiring: retiring mutates the key map
+               --  that would otherwise be under iteration.
+               Doomed.Clear;
+               for Pos in D.By_Key.Iterate loop
+                  declare
+                     Index : constant Slot_Index := Key_Maps.Element (Pos);
+                  begin
+                     if D.Slots (Index).Group = G.Id then
+                        Doomed.Append (Index);
+                     end if;
+                  end;
+               end loop;
+
+               for I of Doomed loop
+                  Retire (D, I, Group_Released);
+               end loop;
+            end if;
+
+            --  Dropped only now that its members are gone. Anything that
+            --  raised above leaves this cache registered, so a later
+            --  release -- or finalization -- picks it up again instead of
+            --  leaving its textures findable under a released group.
+            G.Owners.Delete_Last;
+
+            --  A registered group holds a reference by construction, so
+            --  zero here is not a state to tolerate: it would mean the
+            --  block could already have been freed, and everything above
+            --  read it.
+            pragma Assert (D.Refs > 0);
+            D.Refs := D.Refs - 1;
+            if D.Refs = 0 and then D.Owner_Gone then
+               Discard (D);
+            end if;
+         end;
+      end loop;
+   end Release;
+
+   overriding procedure Finalize (G : in out Texture_Group) is
+   begin
+      --  Closed but not empty is a release that did not finish; it is
+      --  retried here rather than abandoned.
+      if G.Open or else not G.Owners.Is_Empty then
+         Release (G);
+      end if;
+   end Finalize;
 
    function Budget (C : Cache) return Byte_Count is
      (if C.Owner.Data = null then 0 else C.Owner.Data.Limit);
@@ -517,7 +600,9 @@ package body Adi.Texture_Cache is
       Width      : Natural;
       Height     : Natural;
       Bytes      : Texture_Charge;
-      Build_Time : Adi.Clock.Time_Span) return Texture_Handle
+      Build_Time : Adi.Clock.Time_Span;
+      Group      : access Texture_Group'Class := null)
+      return Texture_Handle
    is
       Raw    : constant Duration := Adi.Clock.To_Duration (Build_Time);
       Micros : constant Priority :=
@@ -531,6 +616,15 @@ package body Adi.Texture_Cache is
       D := C.Owner.Data;
 
       if Texture = null then
+         return Null_Texture;
+      end if;
+
+      --  A released group is finished with, so a texture arriving for it
+      --  is refused outright: joining no group would leave it resident
+      --  past the decision that released its siblings, and displacing an
+      --  entry on the way would be worse still. The caller keeps it.
+      if Group /= null and then not Group.Is_Open then
+         D.Stats (Key.Kind).Refused := D.Stats (Key.Kind).Refused + 1;
          return Null_Texture;
       end if;
 
@@ -558,6 +652,28 @@ package body Adi.Texture_Cache is
          return Null_Texture;
       end if;
 
+      --  Registered only now, with every refusal behind us: a group that
+      --  registered and then failed to store would hold a cache it owns
+      --  nothing in.
+      if Group /= null then
+         if Group.Id = No_Group then
+            Group.Id := New_Group_Id;
+         end if;
+         declare
+            Known : Boolean := False;
+         begin
+            for O of Group.Owners loop
+               if O = D then
+                  Known := True;
+               end if;
+            end loop;
+            if not Known then
+               Group.Owners.Append (D);
+               D.Refs := D.Refs + 1;
+            end if;
+         end;
+      end if;
+
       if D.Free.Is_Empty then
          D.Slots.Append (new Slot);
          Index := D.Slots.Last_Index;
@@ -573,6 +689,8 @@ package body Adi.Texture_Cache is
       Fresh.Retiring := False;
       Fresh.Pins := 0;
       Fresh.Key := Key;
+      Fresh.Group := (if Group /= null and then Group.Open
+                      then Group.Id else No_Group);
       Fresh.Bytes := Bytes;
       Fresh.Micros := Micros;
       Fresh.Hits := 1;

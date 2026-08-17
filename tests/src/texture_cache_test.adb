@@ -1169,6 +1169,304 @@ begin
       Clear (C);
    end;
 
+   ---------------------------------------------------------------------------
+   --  Groups
+   ---------------------------------------------------------------------------
+
+   --  Releasing a group takes its members and nothing else. An animation
+   --  finishing must not disturb the shadows and images beside it.
+   declare
+      C : Cache;
+      G : aliased Texture_Group;
+      Member_1 : constant Texture_Key :=
+        (Kind => Raster_Texture, Source => 10, others => <>);
+      Member_2 : constant Texture_Key :=
+        (Kind => Raster_Texture, Source => 11, others => <>);
+      Stranger : constant Texture_Key :=
+        (Kind => Shadow_Texture, Extent_A => 5, others => <>);
+      H1, H2 : Texture_Handle;
+   begin
+      Set_Budget (C, Byte_Count (400) * KB);
+
+      H1 := Store (C, Member_1, New_Texture, Width => 32, Height => 32,
+                   Bytes => Charge (32),
+                   Build_Time => Adi.Clock.Microseconds (100),
+                   Group => G'Access);
+      H2 := Store (C, Member_2, New_Texture, Width => 32, Height => 32,
+                   Bytes => Charge (32),
+                   Build_Time => Adi.Clock.Microseconds (100),
+                   Group => G'Access);
+      Put (C, Stranger, 64, Micros => 100);
+
+      Assert (Count (C) = 3, "three entries, two of them grouped");
+
+      Release (G);
+
+      Assert (not Is_Valid (C, H1) and then not Is_Valid (C, H2),
+              "Every member of a released group stops being findable at"
+              & " once, without waiting for pressure");
+      Assert (not Held (C, Member_1) and then not Held (C, Member_2),
+              "and their keys stop resolving");
+      Assert (Held (C, Stranger),
+              "while a texture that was never in the group is untouched:"
+              & " releasing one thing must not disturb another");
+      Assert (Count (C) = 1, "leaving only the stranger");
+      Assert (Bytes_Used (C) = Charge (64),
+              "and charging only what remains");
+
+      --  Accounted as lifecycle, not as the budget biting.
+      Assert (Statistics (C) (Raster_Texture).Released = 2,
+              "The two are counted as released with their group");
+      Assert (Statistics (C) (Raster_Texture).Pressure = 0,
+              "and not as pressure: the program said they were finished"
+              & " with, which says nothing about the budget");
+      Assert (Statistics (C) (Raster_Texture).Replaced = 0
+                and then Statistics (C) (Raster_Texture).Cleared = 0
+                and then Statistics (C) (Raster_Texture).Discarded = 0
+                and then Statistics (C) (Raster_Texture).Headroom = 0,
+              "nor as any of the other ways an entry can leave");
+      Clear (C);
+   end;
+
+   --  A group spans caches. One animation drawn in two windows has frames
+   --  in two renderers' caches, and releasing it has to reach both.
+   declare
+      A, B : Cache;
+      G : aliased Texture_Group;
+      K : constant Texture_Key :=
+        (Kind => SVG_Texture, Source => 20, others => <>);
+      HA, HB : Texture_Handle;
+   begin
+      Set_Budget (A, Byte_Count (400) * KB);
+      Set_Budget (B, Byte_Count (400) * KB);
+
+      HA := Store (A, K, New_Texture, Width => 16, Height => 16,
+                   Bytes => Charge (16),
+                   Build_Time => Adi.Clock.Microseconds (100),
+                   Group => G'Access);
+      HB := Store (B, K, New_Texture, Width => 16, Height => 16,
+                   Bytes => Charge (16),
+                   Build_Time => Adi.Clock.Microseconds (100),
+                   Group => G'Access);
+
+      Assert (Is_Valid (A, HA) and then Is_Valid (B, HB),
+              "the same group stores into two caches");
+
+      Release (G);
+
+      Assert (not Is_Valid (A, HA) and then not Is_Valid (B, HB),
+              "Releasing reaches every cache the group stored into, not"
+              & " merely the last or the first");
+      Assert (Count (A) = 0 and then Count (B) = 0,
+              "leaving neither holding anything");
+   end;
+
+   --  Released while borrowed: unfindable at once, destroyed when the
+   --  borrow ends, readable throughout.
+   declare
+      C : Cache;
+      G : aliased Texture_Group;
+      K : constant Texture_Key :=
+        (Kind => Raster_Texture, Source => 30, others => <>);
+      H : Texture_Handle;
+   begin
+      Set_Budget (C, Byte_Count (400) * KB);
+      H := Store (C, K, New_Texture, Width => 32, Height => 32,
+                  Bytes => Charge (32),
+                  Build_Time => Adi.Clock.Microseconds (100),
+                  Group => G'Access);
+
+      declare
+         Ref : constant Texture_Ref := Borrow (C, H);
+      begin
+         Release (G);
+
+         Assert (not Held (C, K),
+                 "A released member stops being findable even while a"
+                 & " draw holds it");
+         Assert (Ref.Texture /= null,
+                 "but the draw keeps what it is drawing with");
+         Assert (Bytes_Used (C) = Charge (32),
+                 "and its bytes stay charged, being unreclaimable yet");
+
+         declare
+            S : constant Kind_Stats_Array := Statistics (C);
+         begin
+            Assert (S (Raster_Texture).Retired_Bytes = Charge (32),
+                    "counted as retired rather than active or idle");
+            Assert (S (Raster_Texture).Active_Bytes = 0
+                      and then S (Raster_Texture).Idle_Bytes = 0,
+                    "with the partition still exact");
+         end;
+      end;
+
+      Assert (Bytes_Used (C) = 0,
+              "Ending the last borrow completes the deferred destruction");
+      Clear (C);
+   end;
+
+   --  Releasing twice is not an error, and the second does nothing.
+   declare
+      C : Cache;
+      G : aliased Texture_Group;
+      K : constant Texture_Key :=
+        (Kind => Raster_Texture, Source => 40, others => <>);
+      H : Texture_Handle;
+   begin
+      Set_Budget (C, Byte_Count (400) * KB);
+      H := Store (C, K, New_Texture, Width => 16, Height => 16,
+                  Bytes => Charge (16),
+                  Build_Time => Adi.Clock.Microseconds (100),
+                  Group => G'Access);
+      pragma Assert (Is_Valid (C, H));
+
+      Release (G);
+      Release (G);
+
+      Assert (Statistics (C) (Raster_Texture).Released = 1,
+              "Releasing an already released group counts nothing further:"
+              & " there is nothing left in it to release");
+      Assert (not Is_Open (G), "and it stays closed");
+      Clear (C);
+   end;
+
+   --  A closed group refuses stores rather than admitting a texture that
+   --  would outlive the decision that released its siblings -- and
+   --  refuses before displacing anything, which only a store under an
+   --  occupied key can show.
+   declare
+      C : Cache;
+      G : aliased Texture_Group;
+      Occupied : constant Texture_Key :=
+        (Kind => Raster_Texture, Source => 50, others => <>);
+      Sitting : Texture_Handle;
+      Tex     : SDL_Texture_Ptr;
+      H       : Texture_Handle;
+   begin
+      Set_Budget (C, Byte_Count (400) * KB);
+
+      Sitting := Store (C, Occupied, New_Texture, Width => 32, Height => 32,
+                        Bytes => Charge (32),
+                        Build_Time => Adi.Clock.Microseconds (100));
+      Assert (Is_Valid (C, Sitting), "an entry is sitting under the key");
+
+      Release (G);
+
+      --  Same key, so accepting this would retire what is there. The
+      --  refusal has to come first.
+      Tex := New_Texture;
+      H := Store (C, Occupied, Tex, Width => 32, Height => 32,
+                  Bytes => Charge (32),
+                  Build_Time => Adi.Clock.Microseconds (100),
+                  Group => G'Access);
+
+      Assert (not Is_Valid (C, H),
+              "A store into a released group is refused");
+      Assert (Is_Valid (C, Sitting),
+              "and refused before displacing: the entry already under that"
+              & " key is still the one there");
+      Assert (Held (C, Occupied) and then Count (C) = 1,
+              "so the cache is exactly as it was");
+
+      --  Refused means the caller still owns what it offered.
+      SDL_DestroyTexture (Tex);
+      Clear (C);
+   end;
+
+   --  Two groups are two lifetimes. Releasing one must leave the other
+   --  alone, which only members of a second group can show -- an
+   --  ungrouped bystander would survive a release that ignored group
+   --  identity altogether.
+   declare
+      C : Cache;
+      G1, G2 : aliased Texture_Group;
+      In_1 : constant Texture_Key :=
+        (Kind => Raster_Texture, Source => 60, others => <>);
+      In_2 : constant Texture_Key :=
+        (Kind => Raster_Texture, Source => 61, others => <>);
+      H1, H2 : Texture_Handle;
+   begin
+      Set_Budget (C, Byte_Count (400) * KB);
+      H1 := Store (C, In_1, New_Texture, Width => 32, Height => 32,
+                   Bytes => Charge (32),
+                   Build_Time => Adi.Clock.Microseconds (100),
+                   Group => G1'Access);
+      H2 := Store (C, In_2, New_Texture, Width => 32, Height => 32,
+                   Bytes => Charge (32),
+                   Build_Time => Adi.Clock.Microseconds (100),
+                   Group => G2'Access);
+
+      Release (G1);
+
+      Assert (not Is_Valid (C, H1), "the released group's member goes");
+      Assert (Is_Valid (C, H2),
+              "and the other group's member stays: releasing is by group,"
+              & " not by being grouped at all");
+      Assert (Is_Open (G2), "the untouched group is still open");
+
+      Release (G2);
+      Assert (not Is_Valid (C, H2), "and releasing it takes its member");
+      Clear (C);
+   end;
+
+   --  A group need not be released explicitly. Leaving its scope is the
+   --  same instruction, which is what makes an animation's frames go when
+   --  the animation does.
+   declare
+      C : Cache;
+      K : constant Texture_Key :=
+        (Kind => SVG_Texture, Source => 70, others => <>);
+      H : Texture_Handle;
+   begin
+      Set_Budget (C, Byte_Count (400) * KB);
+
+      declare
+         G : aliased Texture_Group;
+      begin
+         H := Store (C, K, New_Texture, Width => 32, Height => 32,
+                     Bytes => Charge (32),
+                     Build_Time => Adi.Clock.Microseconds (100),
+                     Group => G'Access);
+         Assert (Is_Valid (C, H), "resident while the group lives");
+      end;
+
+      Assert (not Is_Valid (C, H),
+              "Leaving a group's scope releases it, so its members go"
+              & " without anybody having said so");
+      Assert (Count (C) = 0, "and the cache is empty");
+      Clear (C);
+   end;
+
+   --  Releasing a group whose renderer has already gone. The group holds
+   --  the cache's bookkeeping alive to be able to reach it, and finds it
+   --  reporting that there is nothing left to do.
+   declare
+      G : aliased Texture_Group;
+      CP : Cache_Access := new Cache;
+      K : constant Texture_Key :=
+        (Kind => Raster_Texture, Source => 80, others => <>);
+      H : Texture_Handle;
+   begin
+      Set_Budget (CP.all, Byte_Count (400) * KB);
+      H := Store (CP.all, K, New_Texture, Width => 32, Height => 32,
+                  Bytes => Charge (32),
+                  Build_Time => Adi.Clock.Microseconds (100),
+                  Group => G'Access);
+      pragma Assert (Is_Valid (CP.all, H));
+
+      --  The renderer goes first, taking its textures with it.
+      Free_Cache (CP);
+
+      --  Reaching the next line at all is the assertion: the group still
+      --  points at that cache and must find it safely gone rather than
+      --  walking freed slots.
+      Release (G);
+
+      Assert (not Is_Open (G),
+              "Releasing a group after its cache has gone should be a safe"
+              & " no-op there, not a walk through freed bookkeeping");
+   end;
+
    --  Clear releases everything.
    declare
       C : Cache;

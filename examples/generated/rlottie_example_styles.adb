@@ -43,58 +43,72 @@ package body RLottie_Example_Styles is
    procedure Register_Selectors_6
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("viewer-shell", Viewer_Shell_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("grid", Grid_Class_Part_Styles));
    end Register_Selectors_6;
    pragma No_Inline (Register_Selectors_6);
 
    procedure Register_Selectors_7
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("viewer", Viewer_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("cell", Cell_Class_Part_Styles));
    end Register_Selectors_7;
    pragma No_Inline (Register_Selectors_7);
 
    procedure Register_Selectors_8
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("transport", Transport_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("emoji", Emoji_Class_Part_Styles));
    end Register_Selectors_8;
    pragma No_Inline (Register_Selectors_8);
 
    procedure Register_Selectors_9
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("play-button", Play_Button_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("caption", Caption_Class_Part_Styles));
    end Register_Selectors_9;
    pragma No_Inline (Register_Selectors_9);
 
    procedure Register_Selectors_10
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("stop-button", Stop_Button_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("transport", Transport_Class_Part_Styles));
    end Register_Selectors_10;
    pragma No_Inline (Register_Selectors_10);
 
    procedure Register_Selectors_11
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("rew-button", Rew_Button_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("play-button", Play_Button_Class_Part_Styles));
    end Register_Selectors_11;
    pragma No_Inline (Register_Selectors_11);
 
    procedure Register_Selectors_12
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("loop-button", Loop_Button_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("pause-button", Pause_Button_Class_Part_Styles));
    end Register_Selectors_12;
    pragma No_Inline (Register_Selectors_12);
 
    procedure Register_Selectors_13
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("status", Status_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("reset-button", Reset_Button_Class_Part_Styles));
    end Register_Selectors_13;
    pragma No_Inline (Register_Selectors_13);
+
+   procedure Register_Selectors_14
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("speed-button", Speed_Button_Class_Part_Styles));
+   end Register_Selectors_14;
+   pragma No_Inline (Register_Selectors_14);
+
+   procedure Register_Selectors_15
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("status", Status_Class_Part_Styles));
+   end Register_Selectors_15;
+   pragma No_Inline (Register_Selectors_15);
 
    procedure Register_Selectors
      (S : in out Adi.CSS_Source.Style_Source) is
@@ -112,6 +126,8 @@ package body RLottie_Example_Styles is
       Register_Selectors_11 (S);
       Register_Selectors_12 (S);
       Register_Selectors_13 (S);
+      Register_Selectors_14 (S);
+      Register_Selectors_15 (S);
    end Register_Selectors;
 
 end RLottie_Example_Styles;

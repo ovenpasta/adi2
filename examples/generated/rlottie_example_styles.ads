@@ -89,29 +89,29 @@ package RLottie_Example_Styles is
       Border_Radius => Set (Radius (Px (8.0))),
       others => <>);
 
-   --  Base style for class 'viewer-shell'
-   function Viewer_Shell_Class_Base_Style return Style_Rules is
+   --  Base style for class 'grid'
+   function Grid_Class_Base_Style return Style_Rules is
      (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Flex_Grow => Set (1.0),
-      Min_Height => Set (Size (Px (330.0))),
+      Display => Set (Grid),
+      Grid_Columns => Set (Grid_Columns_Value (4)),
+      Grid_Column_Tracks => (Count => 4, Tracks => [1 => (Track_Px, 90.0), 2 => (Track_Px, 90.0), 3 => (Track_Px, 90.0), 4 => (Track_Px, 90.0), others => <>]),
+      Gap => Set (Gap (Px (10.0))),
+      Align_Self => Set (Center),
       Background_Color => Set_Bg (RGB (20, 24, 36)),
-      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
+      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (102, 111, 144))),
       Border_Radius => Set (Radius (Px (6.0))),
       others => <>);
 
-   --  Base style for class 'viewer'
-   function Viewer_Class_Base_Style return Style_Rules is
+   --  Base style for class 'cell'
+   function Cell_Class_Base_Style return Style_Rules is
      (
       Display => Set (Flex),
-      Flex_Grow => Set (1.0),
+      Flex_Direction => Set (Column),
       Align_Items => Set (Center),
-      Justify_Content => Set (Center),
-      Min_Height => Set (Size (Px (280.0))),
+      Gap => Set (Gap (Px (6.0))),
       Background_Color => Set_Bg (RGB (8, 10, 18)),
       Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
@@ -120,11 +120,25 @@ package RLottie_Example_Styles is
       Border_Radius => Set (Radius (Px (4.0))),
       others => <>);
 
-   --  Base style for class 'viewer'::icon
-   function Viewer_Class_Icon_Base_Style return Style_Rules is
+   --  Base style for class 'emoji'
+   function Emoji_Class_Base_Style return Style_Rules is
      (
-      Object_Fit => Set (Fit_Contain),
-      Object_Position => Set (Object_Position (Pos_Center, Pos_Center)),
+      Width => Set (Size (Px (72.0))),
+      Height => Set (Size (Px (72.0))),
+      Flex_Grow => Set (0.0),
+      Flex_Shrink => Set (0.0),
+      Align_Self => Set (Center),
+      Padding => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (0.0))),
+      others => <>);
+
+   --  Base style for class 'caption'::label
+   function Caption_Class_Label_Base_Style return Style_Rules is
+     (
+      Color => Set (RGB (186, 195, 220)),
+      Font_Size => Set_Font (Px (11.0)),
+      Font_Weight => Set (Weight_Bold),
+      Text_Wrap_Mode => Set (TWM_Nowrap),
+      Text_Align => Set (Text_Center),
       others => <>);
 
    --  Base style for class 'transport'
@@ -146,7 +160,7 @@ package RLottie_Example_Styles is
    --  Base style for class 'play-button'
    function Play_Button_Class_Base_Style return Style_Rules is
      (
-      Width => Set (Size (Px (128.0))),
+      Width => Set (Size (Px (112.0))),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Background_Color => Set_Bg (RGB (106, 186, 92)),
@@ -179,10 +193,10 @@ package RLottie_Example_Styles is
       Text_Align => Set (Text_Center),
       others => <>);
 
-   --  Base style for class 'stop-button'
-   function Stop_Button_Class_Base_Style return Style_Rules is
+   --  Base style for class 'pause-button'
+   function Pause_Button_Class_Base_Style return Style_Rules is
      (
-      Width => Set (Size (Px (128.0))),
+      Width => Set (Size (Px (112.0))),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Background_Color => Set_Bg (RGB (201, 102, 92)),
@@ -193,20 +207,20 @@ package RLottie_Example_Styles is
       Border_Radius => Set (Radius (Px (4.0))),
       others => <>);
 
-   --  Style for class 'stop-button' when widget State_Hovered
-   function Stop_Button_Class_Widget_Hovered_Style return Style_Rules is
+   --  Style for class 'pause-button' when widget State_Hovered
+   function Pause_Button_Class_Widget_Hovered_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (216, 116, 106)),
       others => <>);
 
-   --  Style for class 'stop-button' when widget State_Pressed
-   function Stop_Button_Class_Widget_Pressed_Style return Style_Rules is
+   --  Style for class 'pause-button' when widget State_Pressed
+   function Pause_Button_Class_Widget_Pressed_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (184, 88, 78)),
       others => <>);
 
-   --  Base style for class 'stop-button'::label
-   function Stop_Button_Class_Label_Base_Style return Style_Rules is
+   --  Base style for class 'pause-button'::label
+   function Pause_Button_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (248, 250, 255)),
       Font_Size => Set_Font (Px (13.0)),
@@ -215,10 +229,10 @@ package RLottie_Example_Styles is
       Text_Align => Set (Text_Center),
       others => <>);
 
-   --  Base style for class 'rew-button'
-   function Rew_Button_Class_Base_Style return Style_Rules is
+   --  Base style for class 'reset-button'
+   function Reset_Button_Class_Base_Style return Style_Rules is
      (
-      Width => Set (Size (Px (128.0))),
+      Width => Set (Size (Px (112.0))),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Background_Color => Set_Bg (RGB (106, 134, 199)),
@@ -229,20 +243,20 @@ package RLottie_Example_Styles is
       Border_Radius => Set (Radius (Px (4.0))),
       others => <>);
 
-   --  Style for class 'rew-button' when widget State_Hovered
-   function Rew_Button_Class_Widget_Hovered_Style return Style_Rules is
+   --  Style for class 'reset-button' when widget State_Hovered
+   function Reset_Button_Class_Widget_Hovered_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (122, 150, 215)),
       others => <>);
 
-   --  Style for class 'rew-button' when widget State_Pressed
-   function Rew_Button_Class_Widget_Pressed_Style return Style_Rules is
+   --  Style for class 'reset-button' when widget State_Pressed
+   function Reset_Button_Class_Widget_Pressed_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (91, 118, 179)),
       others => <>);
 
-   --  Base style for class 'rew-button'::label
-   function Rew_Button_Class_Label_Base_Style return Style_Rules is
+   --  Base style for class 'reset-button'::label
+   function Reset_Button_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (248, 250, 255)),
       Font_Size => Set_Font (Px (13.0)),
@@ -251,10 +265,10 @@ package RLottie_Example_Styles is
       Text_Align => Set (Text_Center),
       others => <>);
 
-   --  Base style for class 'loop-button'
-   function Loop_Button_Class_Base_Style return Style_Rules is
+   --  Base style for class 'speed-button'
+   function Speed_Button_Class_Base_Style return Style_Rules is
      (
-      Width => Set (Size (Px (128.0))),
+      Width => Set (Size (Px (112.0))),
       Cursor => Set (Cursor_Pointer),
       Transition => Set ((Duration => 0.12, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Background_Color => Set_Bg (RGB (130, 108, 194)),
@@ -265,39 +279,20 @@ package RLottie_Example_Styles is
       Border_Radius => Set (Radius (Px (4.0))),
       others => <>);
 
-   --  Style for class 'loop-button' when widget State_Hovered
-   function Loop_Button_Class_Widget_Hovered_Style return Style_Rules is
+   --  Style for class 'speed-button' when widget State_Hovered
+   function Speed_Button_Class_Widget_Hovered_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (148, 126, 212)),
       others => <>);
 
-   --  Style for class 'loop-button' when widget State_Pressed
-   function Loop_Button_Class_Widget_Pressed_Style return Style_Rules is
+   --  Style for class 'speed-button' when widget State_Pressed
+   function Speed_Button_Class_Widget_Pressed_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (113, 92, 176)),
       others => <>);
 
-   --  Style for class 'loop-button' when widget State_Selected
-   function Loop_Button_Class_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (90, 177, 122)),
-      Border_Color => Set (Border_Color (RGB (176, 245, 202))),
-      others => <>);
-
-   --  Style for class 'loop-button' when widget State_Selected, widget State_Hovered
-   function Loop_Button_Class_Widget_Selected_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (104, 191, 136)),
-      others => <>);
-
-   --  Style for class 'loop-button' when widget State_Selected, widget State_Pressed
-   function Loop_Button_Class_Widget_Selected_Widget_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (76, 160, 108)),
-      others => <>);
-
-   --  Base style for class 'loop-button'::label
-   function Loop_Button_Class_Label_Base_Style return Style_Rules is
+   --  Base style for class 'speed-button'::label
+   function Speed_Button_Class_Label_Base_Style return Style_Rules is
      (
       Color => Set (RGB (248, 250, 255)),
       Font_Size => Set_Font (Px (13.0)),
@@ -397,33 +392,51 @@ package RLottie_Example_Styles is
       others => <>
    ]);
 
-   --  Complete widget style for class 'viewer-shell'
-   function Viewer_Shell_Class_Widget return Widget_Style is
-     (From (Viewer_Shell_Class_Base_Style)
+   --  Complete widget style for class 'grid'
+   function Grid_Class_Widget return Widget_Style is
+     (From (Grid_Class_Base_Style)
      .Build);
 
-   --  Part styles bundle for class 'viewer-shell'
-   function Viewer_Shell_Class_Part_Styles return Part_Style_Array is
+   --  Part styles bundle for class 'grid'
+   function Grid_Class_Part_Styles return Part_Style_Array is
      ([
-      Main_Part => (Style => Viewer_Shell_Class_Widget, Enabled => True),
+      Main_Part => (Style => Grid_Class_Widget, Enabled => True),
       others => <>
    ]);
 
-   --  Complete widget style for class 'viewer'
-   function Viewer_Class_Widget return Widget_Style is
-     (From (Viewer_Class_Base_Style)
+   --  Complete widget style for class 'cell'
+   function Cell_Class_Widget return Widget_Style is
+     (From (Cell_Class_Base_Style)
      .Build);
 
-   --  Complete widget style for class 'viewer'::icon
-   function Viewer_Class_Icon_Widget return Widget_Style is
-     (From (Viewer_Class_Icon_Base_Style)
-     .Build);
-
-   --  Part styles bundle for class 'viewer'
-   function Viewer_Class_Part_Styles return Part_Style_Array is
+   --  Part styles bundle for class 'cell'
+   function Cell_Class_Part_Styles return Part_Style_Array is
      ([
-      Main_Part => (Style => Viewer_Class_Widget, Enabled => True),
-      Icon_Part => (Style => Viewer_Class_Icon_Widget, Enabled => True),
+      Main_Part => (Style => Cell_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'emoji'
+   function Emoji_Class_Widget return Widget_Style is
+     (From (Emoji_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'emoji'
+   function Emoji_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Emoji_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'caption'::label
+   function Caption_Class_Label_Widget return Widget_Style is
+     (From (Caption_Class_Label_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'caption'
+   function Caption_Class_Part_Styles return Part_Style_Array is
+     ([
+      Label_Part => (Style => Caption_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
 
@@ -459,66 +472,63 @@ package RLottie_Example_Styles is
       others => <>
    ]);
 
-   --  Complete widget style for class 'stop-button'
-   function Stop_Button_Class_Widget return Widget_Style is
-     (From (Stop_Button_Class_Base_Style)
-     .On (When_State (State_Hovered), Stop_Button_Class_Widget_Hovered_Style)
-     .On (When_State (State_Pressed), Stop_Button_Class_Widget_Pressed_Style)
+   --  Complete widget style for class 'pause-button'
+   function Pause_Button_Class_Widget return Widget_Style is
+     (From (Pause_Button_Class_Base_Style)
+     .On (When_State (State_Hovered), Pause_Button_Class_Widget_Hovered_Style)
+     .On (When_State (State_Pressed), Pause_Button_Class_Widget_Pressed_Style)
      .Build);
 
-   --  Complete widget style for class 'stop-button'::label
-   function Stop_Button_Class_Label_Widget return Widget_Style is
-     (From (Stop_Button_Class_Label_Base_Style)
+   --  Complete widget style for class 'pause-button'::label
+   function Pause_Button_Class_Label_Widget return Widget_Style is
+     (From (Pause_Button_Class_Label_Base_Style)
      .Build);
 
-   --  Part styles bundle for class 'stop-button'
-   function Stop_Button_Class_Part_Styles return Part_Style_Array is
+   --  Part styles bundle for class 'pause-button'
+   function Pause_Button_Class_Part_Styles return Part_Style_Array is
      ([
-      Main_Part => (Style => Stop_Button_Class_Widget, Enabled => True),
-      Label_Part => (Style => Stop_Button_Class_Label_Widget, Enabled => True),
+      Main_Part => (Style => Pause_Button_Class_Widget, Enabled => True),
+      Label_Part => (Style => Pause_Button_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
 
-   --  Complete widget style for class 'rew-button'
-   function Rew_Button_Class_Widget return Widget_Style is
-     (From (Rew_Button_Class_Base_Style)
-     .On (When_State (State_Hovered), Rew_Button_Class_Widget_Hovered_Style)
-     .On (When_State (State_Pressed), Rew_Button_Class_Widget_Pressed_Style)
+   --  Complete widget style for class 'reset-button'
+   function Reset_Button_Class_Widget return Widget_Style is
+     (From (Reset_Button_Class_Base_Style)
+     .On (When_State (State_Hovered), Reset_Button_Class_Widget_Hovered_Style)
+     .On (When_State (State_Pressed), Reset_Button_Class_Widget_Pressed_Style)
      .Build);
 
-   --  Complete widget style for class 'rew-button'::label
-   function Rew_Button_Class_Label_Widget return Widget_Style is
-     (From (Rew_Button_Class_Label_Base_Style)
+   --  Complete widget style for class 'reset-button'::label
+   function Reset_Button_Class_Label_Widget return Widget_Style is
+     (From (Reset_Button_Class_Label_Base_Style)
      .Build);
 
-   --  Part styles bundle for class 'rew-button'
-   function Rew_Button_Class_Part_Styles return Part_Style_Array is
+   --  Part styles bundle for class 'reset-button'
+   function Reset_Button_Class_Part_Styles return Part_Style_Array is
      ([
-      Main_Part => (Style => Rew_Button_Class_Widget, Enabled => True),
-      Label_Part => (Style => Rew_Button_Class_Label_Widget, Enabled => True),
+      Main_Part => (Style => Reset_Button_Class_Widget, Enabled => True),
+      Label_Part => (Style => Reset_Button_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
 
-   --  Complete widget style for class 'loop-button'
-   function Loop_Button_Class_Widget return Widget_Style is
-     (From (Loop_Button_Class_Base_Style)
-     .On (When_State (State_Hovered), Loop_Button_Class_Widget_Hovered_Style)
-     .On (When_State (State_Pressed), Loop_Button_Class_Widget_Pressed_Style)
-     .On (When_State (State_Selected), Loop_Button_Class_Widget_Selected_Style)
-     .On (When_State (State_Selected) and When_State (State_Hovered), Loop_Button_Class_Widget_Selected_Widget_Hovered_Style)
-     .On (When_State (State_Selected) and When_State (State_Pressed), Loop_Button_Class_Widget_Selected_Widget_Pressed_Style)
+   --  Complete widget style for class 'speed-button'
+   function Speed_Button_Class_Widget return Widget_Style is
+     (From (Speed_Button_Class_Base_Style)
+     .On (When_State (State_Hovered), Speed_Button_Class_Widget_Hovered_Style)
+     .On (When_State (State_Pressed), Speed_Button_Class_Widget_Pressed_Style)
      .Build);
 
-   --  Complete widget style for class 'loop-button'::label
-   function Loop_Button_Class_Label_Widget return Widget_Style is
-     (From (Loop_Button_Class_Label_Base_Style)
+   --  Complete widget style for class 'speed-button'::label
+   function Speed_Button_Class_Label_Widget return Widget_Style is
+     (From (Speed_Button_Class_Label_Base_Style)
      .Build);
 
-   --  Part styles bundle for class 'loop-button'
-   function Loop_Button_Class_Part_Styles return Part_Style_Array is
+   --  Part styles bundle for class 'speed-button'
+   function Speed_Button_Class_Part_Styles return Part_Style_Array is
      ([
-      Main_Part => (Style => Loop_Button_Class_Widget, Enabled => True),
-      Label_Part => (Style => Loop_Button_Class_Label_Widget, Enabled => True),
+      Main_Part => (Style => Speed_Button_Class_Widget, Enabled => True),
+      Label_Part => (Style => Speed_Button_Class_Label_Widget, Enabled => True),
       others => <>
    ]);
 

@@ -42,12 +42,15 @@
   border-radius: 8px;
 }
 
-.viewer-shell {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  min-height: 330px;
-  padding: 10px;
+/* Sized by its tracks and centred as a whole. Centring the tracks inside
+   a stretched grid box does not work here, so the box is shrunk to its
+   content instead and that is what gets centred. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 90px);
+  gap: 10px;
+  padding: 12px;
+  align-self: center;
   background-color: rgb(20, 24, 36);
   border-width: 1px;
   border-style: solid;
@@ -55,12 +58,11 @@
   border-radius: 6px;
 }
 
-.viewer {
+.cell {
   display: flex;
-  flex-grow: 1;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: 280px;
+  gap: 6px;
   padding: 8px;
   background-color: rgb(8, 10, 18);
   border-width: 1px;
@@ -69,9 +71,24 @@
   border-radius: 4px;
 }
 
-.viewer::icon {
-  object-fit: contain;
-  object-position: center center;
+/* The extent a frame is rasterised at is the extent this widget occupies,
+   so it is pinned rather than left to the layout. A stretched box would
+   raster every frame at the stretched size for no visible gain. */
+.emoji {
+  width: 72px;
+  height: 72px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  align-self: center;
+  padding: 0;
+}
+
+.caption::label {
+  color: rgb(186, 195, 220);
+  font-size: 11px;
+  font-weight: 700;
+  text-wrap-mode: nowrap;
+  text-align: center;
 }
 
 .transport {
@@ -89,10 +106,10 @@
 }
 
 .play-button::main,
-.stop-button::main,
-.rew-button::main,
-.loop-button::main {
-  width: 128px;
+.pause-button::main,
+.reset-button::main,
+.speed-button::main {
+  width: 112px;
   padding: 8px 12px;
   border-width: 1px;
   border-style: solid;
@@ -114,62 +131,49 @@
   background-color: rgb(92, 166, 78);
 }
 
-.stop-button::main {
+.pause-button::main {
   background-color: rgb(201, 102, 92);
   border-color: rgb(255, 189, 177);
 }
 
-.stop-button::main:hover {
+.pause-button::main:hover {
   background-color: rgb(216, 116, 106);
 }
 
-.stop-button::main:pressed {
+.pause-button::main:pressed {
   background-color: rgb(184, 88, 78);
 }
 
-.rew-button::main {
+.reset-button::main {
   background-color: rgb(106, 134, 199);
   border-color: rgb(180, 203, 255);
 }
 
-.rew-button::main:hover {
+.reset-button::main:hover {
   background-color: rgb(122, 150, 215);
 }
 
-.rew-button::main:pressed {
+.reset-button::main:pressed {
   background-color: rgb(91, 118, 179);
 }
 
-.loop-button::main {
+.speed-button::main {
   background-color: rgb(130, 108, 194);
   border-color: rgb(210, 189, 255);
 }
 
-.loop-button::main:hover {
+.speed-button::main:hover {
   background-color: rgb(148, 126, 212);
 }
 
-.loop-button::main:pressed {
+.speed-button::main:pressed {
   background-color: rgb(113, 92, 176);
 }
 
-.loop-button::main:selected {
-  background-color: rgb(90, 177, 122);
-  border-color: rgb(176, 245, 202);
-}
-
-.loop-button::main:selected:hover {
-  background-color: rgb(104, 191, 136);
-}
-
-.loop-button::main:selected:pressed {
-  background-color: rgb(76, 160, 108);
-}
-
 .play-button::label,
-.stop-button::label,
-.rew-button::label,
-.loop-button::label {
+.pause-button::label,
+.reset-button::label,
+.speed-button::label {
   color: rgb(248, 250, 255);
   font-size: 13px;
   font-weight: 800;

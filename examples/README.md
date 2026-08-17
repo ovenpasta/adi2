@@ -39,6 +39,9 @@ Demonstrates CSS grid layout (`display: grid`) with template rows/columns, gaps,
 ### animated_image_example
 Demonstrates `Adi.Widget.Animated_Image` playback controls (`Start`, `Stop`, `Reset`, looping) using `examples/assets/animhorse.gif`.
 
+### rlottie_example
+Demonstrates `Adi.RLottie` with eight Animated Noto Emoji in a grid, each its own `RLottie_Animation`, drawn at a fixed 72x72. Frames are rasterised at the size they are displayed at, so pinning the extent is what keeps eight concurrent animations to roughly 16 MiB of textures rather than 55 MiB for one stretched across a panel.
+
 ### html_view_example
 Demonstrates `Adi.Widget.Html_View` with HTML loaded from assets, styles provided by embedded `<style>` and linked stylesheet resources, hyperlink callbacks, and custom image asset loading.
 
@@ -46,7 +49,7 @@ Demonstrates `Adi.Widget.Html_View` with HTML loaded from assets, styles provide
 - `examples/assets/bg.jpg` (widget demo background)
 - `examples/assets/animhorse.gif` (animated image demo)
 - `examples/assets/happycat.png` (label example icon)
-- `examples/assets/noto_party_popper.json` (rlottie demo animation)
+- `examples/assets/noto_*.json` (eight Animated Noto Emoji, rlottie demo)
 - `examples/assets/html_view_example.html` (HTML view demo content)
 
 Third-party terms, where known, are recorded in [`assets/NOTICE.md`](assets/NOTICE.md).

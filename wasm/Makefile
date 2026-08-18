@@ -54,6 +54,7 @@ SDL3_TTF_PREFIX ?= $(SDL3_ROOT)/sdl3-ttf-prefix
 SDL3_IMAGE_PREFIX ?= $(SDL3_ROOT)/sdl3-image-prefix
 
 EMCC ?= /usr/lib/emscripten/emcc
+EMXX ?= /usr/lib/emscripten/em++
 EM_CACHE ?= /tmp/emscripten-cache
 GPRBUILD ?= gprbuild
 
@@ -108,11 +109,37 @@ PLUTO_CFLAGS = -O2 -std=c99 -fwasm-exceptions \
   -DPLUTOSVG_BUILD -DPLUTOSVG_BUILD_STATIC \
   -I$(PLUTO_DIR)/source -I$(PLUTO_DIR)/plutovg/source -I$(PLUTO_DIR)/plutovg/include
 
-VPATH = $(PLUTO_DIR)/source:$(PLUTO_DIR)/plutovg/source
+#  ---- rlottie (C++, compiled once for all examples) ----
+#  LOTTIE_NO_THREADS keeps config.h from defining LOTTIE_THREAD_SUPPORT,
+#  and LOTTIE_LOGGING_SUPPORT is never defined; those two guard every
+#  std::thread use in the library. The Ada side has no tasking of its
+#  own, so the result has no thread or pthread imports at all.
+RL_DIR = ../vendor/rlottie
+RL_SRCS = $(filter-out %vdrawhelper_neon.cpp,$(wildcard $(RL_DIR)/src/lottie/*.cpp) \
+  $(wildcard $(RL_DIR)/src/lottie/zip/*.cpp) \
+  $(wildcard $(RL_DIR)/src/vector/*.cpp) $(wildcard $(RL_DIR)/src/vector/freetype/*.cpp) \
+  $(wildcard $(RL_DIR)/src/vector/stb/*.cpp) $(wildcard $(RL_DIR)/src/binding/c/*.cpp))
+RL_OBJS = $(patsubst %.cpp,obj/rlottie/%.o,$(notdir $(RL_SRCS)))
+
+RL_CXXFLAGS = -O2 -std=c++14 -fwasm-exceptions -fno-rtti \
+  -fvisibility=hidden -Wno-unused-parameter \
+  -DRLOTTIE_BUILD -DLOTTIE_NO_THREADS \
+  -I$(RL_DIR)/inc -I$(RL_DIR)/src -I$(RL_DIR)/src/lottie \
+  -I$(RL_DIR)/src/lottie/zip -I$(RL_DIR)/src/vector \
+  -I$(RL_DIR)/src/vector/freetype -I$(RL_DIR)/src/vector/stb \
+  -I$(RL_DIR)/src/binding/c
+
+VPATH = $(PLUTO_DIR)/source:$(PLUTO_DIR)/plutovg/source:\
+$(RL_DIR)/src/lottie:$(RL_DIR)/src/lottie/zip:$(RL_DIR)/src/vector:\
+$(RL_DIR)/src/vector/freetype:$(RL_DIR)/src/vector/stb:$(RL_DIR)/src/binding/c
 
 obj/plutosvg/%.o: %.c
 	@mkdir -p obj/plutosvg
 	EM_CACHE=$(EM_CACHE) $(EMCC) $(PLUTO_CFLAGS) -c $< -o $@
+
+obj/rlottie/%.o: %.cpp
+	@mkdir -p obj/rlottie
+	EM_CACHE=$(EM_CACHE) $(EMXX) $(RL_CXXFLAGS) -c $< -o $@
 
 #  ---- Ada compile + bind ----
 #  .PHONY so gprbuild's own dependency tracking decides what to rebuild.
@@ -134,7 +161,7 @@ MAINS_RE := b__.*|$(shell echo $(EXAMPLE_MAINS) | tr ' ' '|')
 #  default emscripten developer shell.
 SHELL_FILE = site/shell.html
 
-out/$(EXAMPLE).html: ada-objs $(PLUTO_OBJS) $(ADA_JS_LIBRARY) $(SHELL_FILE)
+out/$(EXAMPLE).html: ada-objs $(PLUTO_OBJS) $(RL_OBJS) $(ADA_JS_LIBRARY) $(SHELL_FILE)
 	@mkdir -p out
 	objs="$$(ls obj/$(LOOP)/*.o | grep -v -E '/($(MAINS_RE))\.o$$')"; \
 	EM_CACHE=$(EM_CACHE) $(EMCC) $(EMCC_FLAGS) \
@@ -143,6 +170,7 @@ out/$(EXAMPLE).html: ada-objs $(PLUTO_OBJS) $(ADA_JS_LIBRARY) $(SHELL_FILE)
 	  $$objs \
 	  obj/$(LOOP)/$(EXAMPLE).o obj/$(LOOP)/b__$(EXAMPLE).o \
 	  $(PLUTO_OBJS) \
+	  $(RL_OBJS) \
 	  $(ADA_RUNTIME_LIB) \
 	  $(SDL3_TTF_PREFIX)/lib/libSDL3_ttf.a \
 	  $(SDL3_IMAGE_PREFIX)/lib/libSDL3_image.a \
@@ -153,20 +181,21 @@ out/$(EXAMPLE).html: ada-objs $(PLUTO_OBJS) $(ADA_JS_LIBRARY) $(SHELL_FILE)
 all: out/$(EXAMPLE).html
 
 #  ---- Showcase: every example expected to work in the browser ----
-#  Excluded: rlottie_example (tasks/C++), runtime_css_example (its whole
-#  point is filesystem live-reload), text_editor_example (native file
-#  dialogs), hello_raw_example (renders identically to hello_example).
+#  Excluded: runtime_css_example (its whole point is filesystem
+#  live-reload), text_editor_example (native file dialogs),
+#  hello_raw_example (renders identically to hello_example).
 #  Sequential builds — NEVER run gprbuild concurrently.
 SHOWCASE_EXAMPLES = \
   hello_example label_example button_example \
   slider_example value_input_example text_input_example combo_box_example \
   list_box_example stack_example grid_example \
   gradient_example image_example animated_image_example assets_example \
+  rlottie_example \
   font_example transition_example material_demo \
   dialog_example html_view_example overflow_example demo_flex \
   svg_example
 
-showcase: $(PLUTO_OBJS)
+showcase: $(PLUTO_OBJS) $(RL_OBJS)
 	@fail=""; \
 	for e in $(SHOWCASE_EXAMPLES); do \
 	  echo "=== $$e"; \

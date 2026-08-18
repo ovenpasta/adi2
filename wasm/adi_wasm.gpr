@@ -34,6 +34,7 @@ project Adi_Wasm is
       "../src/svg",
       "../src/svg/plutosvg",
       "../src/mcp_stub",         --  MCP is always the no-op stub on WASM
+      "../vendor/rlottie/inc",   --  rlottie C API, linked from the Makefile
       "../config/posix",
       "../config/development",
       "../vendor/json-ada/src",
@@ -47,17 +48,12 @@ project Adi_Wasm is
    for Create_Missing_Dirs use "True";
    for Main use (Example & ".adb");
 
-   --  Native bodies replaced by wasm/src (see Naming below), and the
-   --  rlottie stack (tasks + protected objects + C++ vendor lib).
+   --  Native bodies replaced by wasm/src (see Naming below). Nothing
+   --  else is excluded: rlottie has no tasking of its own, and its C++
+   --  is built by wasm/Makefile without threads.
    Common_Excluded :=
      ("adi-clock.adb",
-      "adi-dispatch.adb",
-      "adi-rlottie.ads",
-      "adi-rlottie.adb",
-      "adi-widget-rlottie.ads",
-      "adi-widget-rlottie.adb",
-      "adi-widget-animated_widget-rlottie.ads",
-      "adi-widget-animated_widget-rlottie.adb");
+      "adi-dispatch.adb");
 
    case Main_Loop is
       when "blocking" =>

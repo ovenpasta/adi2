@@ -14,8 +14,8 @@ Companion to `FINDINGS.md`. File paths are under `/src/ada/adi2/`.
 > ships `g-os_lib.ads` as of adawebpack `fae4f04`), and the `'Reduce`
 > frontend quirk too (`Specificity` moved to the body as a loop). What
 > remains is the SDL main-callback refactor, the `Adi.Dispatch`
-> protected object, rlottie, the tiny `adi-clock__wasm.adb` body, and
-> the build plumbing.
+> protected object, the tiny `adi-clock__wasm.adb` body, and the build
+> plumbing.
 
 ## Summary of Blockers
 
@@ -23,8 +23,8 @@ Sorted roughly by disruption:
 
 | # | Area                         | Severity   | Where                                                      |
 |---|------------------------------|------------|------------------------------------------------------------|
-| 1 | Protected objects            | Hard block | `src/adi-dispatch.adb`, `src/adi-rlottie.ads`              |
-| 2 | Tasks                        | Hard block | `src/adi-rlottie.ads` (Preload_Task)                       |
+| 1 | Protected objects            | Resolved   | `src/adi-dispatch.adb` has a wasm body; rlottie has none   |
+| 2 | Tasks                        | Resolved   | rlottie rasterises lazily on the calling thread            |
 | 3 | Blocking frame loop          | Hard block | `src/adi-app.adb` (`Run`)                                  |
 | 4 | Exception handlers           | Resolved   | native wasm EH (`rts-wasm-emcc-eh` + `-fwasm-exceptions`)  |
 | 5 | Nested subprograms           | Resolved   | explicit AREC param, no trampolines (gnat-llvm `7ca44392`) |
@@ -34,7 +34,7 @@ Sorted roughly by disruption:
 | 8 | `Ada.Directories`            | Resolved   | shipped in emcc runtimes (`b148b37`); live-reload still off|
 | 9 | `Ada.Streams.Stream_IO`      | Resolved   | shipped in emcc runtimes (`b148b37`)                       |
 |10 | `Ada.Environment_Variables`  | Resolved   | read path shipped (`980a730`)                              |
-|11 | rlottie C++ vendor lib       | Medium     | `vendor/rlottie/` (threads, internal fibers)               |
+|11 | rlottie C++ vendor lib       | Resolved   | built by `em++`, threads off via `LOTTIE_NO_THREADS`       |
 |12 | plutosvg C vendor lib        | Small      | `vendor/plutosvg/` (plain C, `emcmake` build)              |
 |13 | Build system                 | Small      | new `wasm/adi.gpr`, Makefile, asset pipeline               |
 |14 | `Ada.Real_Time` missing      | Fixed      | `Adi.Clock` seam landed; wasm body (`adi-clock__wasm.adb`) pending |
@@ -59,25 +59,33 @@ Risk: any current off-thread caller breaks. Grep confirms
 thread (CSS live-reload, widget store pumping). No background tasks post
 to it in the portable code.
 
-## 2. RLottie (drop or stub for WASM)
+## 2. RLottie
 
-`src/adi-rlottie.ads` declares a `task type Preload_Task` + two protected
-types. Combined with the C++ vendor library that uses pthreads
-internally, this is the single largest porting cost.
+The Ada side is no longer a blocker. `Adi.RLottie` declares no task and
+no protected type: a frame is rasterised on the thread that asks for it,
+the first time playback reaches it, and kept afterwards. Both the spec
+and the body compile under `pragma Restrictions (No_Tasking)`, and no
+wasm-specific body is needed or wanted.
 
-Recommended path:
+The C++ vendor library builds too:
 
-- Introduce `Adi.RLottie` as a **feature-flagged** package. Under WASM,
-  compile an alternative body (`adi-rlottie__wasm.adb`) that either:
-  - Stubs `Play` / `Stop` / `Preload` to no-ops and logs once, OR
-  - Performs synchronous, single-frame decoding inline (no thread, no
-    preload queue). Acceptable for small Lottie files.
-- Gate the `vendor/rlottie` build out of `wasm/adi.gpr`.
-- Any example that depends on rlottie is excluded from the WASM example
-  set until a portable animation backend is added.
+- `wasm/Makefile` compiles `vendor/rlottie` with `em++` into
+  `obj/rlottie/`, alongside the plutosvg rule. `-DLOTTIE_NO_THREADS`
+  keeps `src/config.h` from defining `LOTTIE_THREAD_SUPPORT`, and
+  `LOTTIE_LOGGING_SUPPORT` is never defined; those two guard every
+  `std::thread` use. `-U` cannot serve, the header defining the macro
+  during inclusion.
+- `Common_Excluded` in `wasm/adi_wasm.gpr` is down to `adi-clock.adb`
+  and `adi-dispatch.adb`.
+- `rlottie_example` is in the showcase and the navigator.
 
-Longer-term: replace rlottie with a portable player or with animated
-GIF/WebP rendered via SDL3_image.
+The resulting wasm imports nothing thread-related: the 18 imports whose
+names contain "thread" are SDL3's `emscripten_set_*_callback_on_thread`
+HTML5 event API, and the set is identical to `label_example`'s.
+
+Measured on the eight-emoji example: rasterising one frame for each of
+eight animations costs 1.2 ms at 72 px and 2.3 ms at 128 px on the
+Chromium main thread, against a 16.7 ms budget.
 
 ## 3. Main loop (delay until -> SDL main callbacks)
 
@@ -232,20 +240,25 @@ compile and behave sensibly (unset variables in the browser).
 ## 11. rlottie
 
 `vendor/rlottie/rlottie.gpr` compiles C++14 with `-fno-exceptions
--fno-rtti`. Internally rlottie uses threads (std::thread / TBB-lite) for
-frame decoding.
+-fno-rtti`. Internally rlottie uses `std::thread` for frame decoding,
+behind `LOTTIE_THREAD_SUPPORT`; `vdebug.cpp` uses threads behind
+`LOTTIE_LOGGING_SUPPORT`.
 
-Options:
+The Ada side no longer needs anything from this (Section 2). What is
+left is building the library:
 
-- **Drop from the WASM build** (easiest). Feature-flag the rlottie widget
-  out of `wasm/adi.gpr`.
-- **Port rlottie with `emcc`**. rlottie has an upstream
-  `-DLOTTIE_THREAD=OFF` option; with that it compiles single-threaded.
-  Build with `emcmake cmake -DLOTTIE_THREAD=OFF -DSTATIC=ON` and link
-  the resulting `librlottie.a`. Known to work in other WASM projects but
-  untested here.
+- The vendored sources are compiled by `em++` with **both** macros
+  absent. `-U` does not do it: `src/config.h` defines
+  `LOTTIE_THREAD_SUPPORT` during inclusion, so that file now guards it
+  with `#ifndef LOTTIE_NO_THREADS`, which the wasm build defines.
+- Verified on this machine: with both absent the wasm has no thread or
+  pthread imports, and the eight-emoji example costs 1.2 ms per tick at
+  72 px on the Chromium main thread.
+- `wasm/Makefile` builds it into `obj/rlottie/`, modelled on the
+  plutosvg rule. Note `src/lottie/zip/zip.cpp` is a source too; missing
+  it leaves undefined `zip_*` at link.
 
-Start with option 1; revisit once the basic port runs.
+`wasm/adi_wasm.gpr` no longer excludes any rlottie file.
 
 ## 12. plutosvg
 
@@ -258,8 +271,9 @@ Create under `wasm/`:
 
 - `wasm/adi.gpr` -- project file with `for Target use "llvm";` and
   `Switches ("Ada") use ("--target=wasm32", "-O1", "-gnatp");`
-  Excludes `adi-rlottie*.adb` via `for Excluded_Source_Files`; selects
-  `adi-app__wasm.adb` via `Naming` package.
+  Excludes the native `adi-clock.adb` and `adi-dispatch.adb` via
+  `for Excluded_Source_Files`; selects `adi-app__wasm.adb` via the
+  `Naming` package.
 - `wasm/examples/<name>/<name>.gpr` per example.
 - `wasm/Makefile` -- templated on `adawebpack_src/examples/sdl3/common.mk`:
   - `gprbuild --target=llvm --RTS=$(ADA_RTS) -c -b -P adi.gpr`
@@ -351,7 +365,7 @@ All 61 library bodies (`src/*.adb`, `src/svg/*.adb`,
 |-------------------------------|------------------------------------------------------------------------|------------|
 | `Ada.Real_Time` not in RTS    | `adi-app.adb`, `adi-window.adb`, `adi-widget.adb` (+ `adi-widget-box.adb` transitively, via inlining against `Adi.Widget`'s body) — **since fixed** via `Adi.Clock` | Section 14 |
 | Protected object              | `adi-dispatch.adb`                                                     | Section 1  |
-| Task + protected (rlottie)    | `adi-rlottie.adb`, `adi-widget-rlottie.adb`, `adi-widget-animated_widget-rlottie.adb` | Section 2  |
+| Task + protected (rlottie)    | `adi-rlottie.adb`, `adi-widget-rlottie.adb`, `adi-widget-animated_widget-rlottie.adb` — **since fixed**: rlottie rasterises lazily, with no task or protected type | Section 2  |
 | `g-os_lib.ads` not in RTS     | `adi-settings-json_backend.adb` — **since fixed** via `System.OS_Lib`  | Section 15 |
 
 Everything else — the full CSS engine, all remaining widgets, HTML view,
@@ -360,7 +374,8 @@ compiles for wasm32 without any source change.
 
 After the 2026-07-19 fixes (re-verified): only `adi-dispatch.adb`, the
 three rlottie bodies, and the native `adi-clock.adb` (replaced by the
-port's `__wasm` body) fail to compile for wasm32; `adi-app.adb`,
+port's `__wasm` body) failed to compile for wasm32. The rlottie bodies
+have since been made taskless and compile; `adi-app.adb`,
 `adi-window.adb`, `adi-widget.adb`, `adi-widget-box.adb`, and
 `adi-settings-json_backend.adb` are clean.
 
@@ -377,23 +392,22 @@ runtime/compiler resolved them. What is actually left:
 3. ~~Clock / `g-os_lib`~~ — done (Sections 14–15). Only the
    `adi-clock__wasm.adb` body remains, alongside step 4.
 4. **`Adi.App` main-callback variant** (Section 3): `adi-app__wasm.adb`
-   exporting `SDL_AppInit/Iterate/Event/Quit`; rlottie widget gated out
-   (Section 2). Same commit: `adi-clock__wasm.adb` (`Now` on
+   exporting `SDL_AppInit/Iterate/Event/Quit`. Same commit:
+   `adi-clock__wasm.adb` (`Now` on
    `SDL_GetTicksNS`, `Sleep_Until` no-op). Note: the wasm32 compile of
    `adi-app.adb` warns about unchecked-conversion size mismatches on
    the SDL event casts (32-bit pointers) — review those conversions
    against the wasm32 SDL ABI during this step.
 5. **Build plumbing** (Section 13): `wasm/adi.gpr` (Naming selects the
-   WASM bodies, `Excluded_Source_Files` drops rlottie; `src/mcp_stub`
-   selected), `wasm/Makefile` with `--RTS=rts-wasm-emcc-eh` and
+   WASM bodies, `src/mcp_stub` selected), `wasm/Makefile` with `--RTS=rts-wasm-emcc-eh` and
    `emcc -fwasm-exceptions`; `emcmake` builds of SDL3 / SDL3_ttf /
    SDL3_image / plutosvg.
 6. **Assets + CSS end-to-end**: bundle mode + Static_Mode CSS wired for
    one example.
 7. **Port a real example** (e.g. `examples/label_example.adb` or
    `examples/hello_example.adb`) as the first browser deliverable.
-8. **Later**: rlottie single-threaded port (`-DLOTTIE_THREAD=OFF`),
-   IDBFS-backed settings persistence, more examples.
+8. ~~rlottie~~ — done (Sections 2 and 11). **Later**: IDBFS-backed
+   settings persistence, more examples.
 
 ## Build Strategy (decided 2026-07-19, implemented in this directory)
 
@@ -405,7 +419,7 @@ changing event handling, update BOTH bodies.
 ```
 wasm/
   adi_wasm.gpr         separate project: Target "llvm", wasm32 switches,
-                       Naming selects the __wasm bodies, rlottie excluded,
+                       Naming selects the __wasm bodies,
                        mcp_stub + config/posix + config/development
   src/adi-clock__wasm.adb     Now = SDL_GetTicksNS, Sleep_Until = no-op
   src/adi-dispatch__wasm.adb  plain vector queue (single-threaded)
@@ -428,7 +442,7 @@ wasm/
                        app render — don't give it a visible
                        background/border), no emscripten branding. Keep
                        the dropdown list in sync with SHOWCASE_EXAMPLES.
-                       Excluded: hello_raw, rlottie, runtime_css,
+                       Excluded: hello_raw, runtime_css,
                        text_editor (22 examples shown).
                        Browser caching:
                        python http.server + Chrome heuristics can serve
@@ -620,7 +634,8 @@ Once the library steps above land, the expected split is:
   excludes other mains/binders (wasm-ld gc's unused generated
   packages). Global embeds: `examples/assets` (also the `app://` root),
   `examples/css`, NotoSans, OpenSans-Regular. Sequential gprbuild only.
-- **Out — `rlottie_example`**: rlottie is gated off the WASM build.
+- **In — `rlottie_example`**: eight Animated Noto Emoji, rasterised on
+  the calling thread.
 - **Out — `runtime_css_example`**: its purpose is Dynamic_Mode
   live-reload, which has no browser equivalent.
 - **Deferred — `text_editor_example`**: uses native open/save file
@@ -629,8 +644,8 @@ Once the library steps above land, the expected split is:
 
 ## Out of Scope (for the first port)
 
-- Tasking-based features (rlottie background decode, any future async
-  IO) — tasks/protected objects remain unsupported on wasm32.
+- Any future async IO — tasks and protected objects remain unsupported
+  on wasm32. Nothing in the library uses either today.
 - File dialogs / native clipboard (browser permissions API is separate
   and requires JS glue; SDL3's Emscripten backend covers only parts).
 - MCP runtime introspection (filesystem IPC with an external process —
@@ -644,7 +659,7 @@ Once the library steps above land, the expected split is:
 
 - `src/adi-app.adb`                       -- frame loop to restructure
 - `src/adi-dispatch.ads/adb`              -- protected queue to replace
-- `src/adi-rlottie.ads/adb`               -- task / protected / C++ to gate out
+- `src/adi-rlottie.ads/adb`               -- taskless, lazy frames
 - `src/adi-widget_styles.ads`             -- `Specificity` 'Reduce rewrite
 - `src/adi-sdl*.ads`                      -- existing SDL3 Ada bindings; compare
                                              against adawebpack's and merge

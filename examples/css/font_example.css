@@ -158,7 +158,6 @@
   border-style: solid;
   border-color: rgb(100, 116, 139);
   border-radius: 8px;
-  min-height: 56px;
 }
 
 .wrap_sample::label {

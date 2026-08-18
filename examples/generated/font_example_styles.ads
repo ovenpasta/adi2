@@ -254,7 +254,6 @@ package Font_Example_Styles is
    function Wrap_Sample_Class_Base_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (30, 41, 59)),
-      Min_Height => Set (Size (Px (56.0))),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),

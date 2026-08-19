@@ -148,7 +148,7 @@ begin
       --  loaded pixel data.
       Adi.Widget.Label.Set_Icon
         (Adi.Widget.Label.Try_As_Label (Lbl_Iconed),
-         Adi.Image.Create_Empty);
+         Test_Support.Keep (Adi.Image.Create_Empty));
 
       Add_Child (Parent, Lbl_Plain);
       Add_Child (Parent, Lbl_Iconed);
@@ -326,7 +326,8 @@ begin
       Set_Part_Style (Bar, Main_Part, From (Bar_Rules).Build);
       Set_Part_Styles (Lbl, Wrap_Label_With_Icon_Parts);
       Adi.Widget.Label.Set_Icon
-        (Adi.Widget.Label.Try_As_Label (Lbl), Adi.Image.Create_Empty);
+        (Adi.Widget.Label.Try_As_Label (Lbl),
+         Test_Support.Keep (Adi.Image.Create_Empty));
       Add_Child (Bar, Lbl);
 
       Set_Geometry (Bar, (0.0, 0.0, 100.0, 80.0));
@@ -370,13 +371,13 @@ begin
         Adi.Widget.Image.Create_Handle;
       PicW : constant Widget_Handle :=
         Adi.Widget.Image.To_Widget_Handle (Pic);
-      Tall : Adi.Image.Image_Access :=
+      Tall : Adi.Image.Image_Owner :=
         Adi.Image.Load_SVG_Path
           (Path_Data => "M0 0h20v600h-20z",
            Size      => (Width => 200.0, Height => 600.0),
            Fill      => (R => 255, G => 255, B => 255, A => 255));
       Loaded : constant Boolean :=
-        Adi.Image."/=" (Tall, null) and then Adi.Image.Is_Valid (Tall.all);
+        Adi.Image.Is_Owned (Tall);
       Unconstrained, At_Width : Pixel_Type;
    begin
       --  Without a real bitmap behind it there is nothing for the base
@@ -385,7 +386,7 @@ begin
       Check ("the fixture image loaded", Loaded);
 
       if Loaded then
-         Adi.Widget.Image.Set_Image (Pic, Tall);
+         Adi.Widget.Image.Set_Image (Pic, Adi.Image.To_Handle (Tall));
 
          --  The item that carries the bitmap only exists once the widget
          --  has been built, which is what a rendered frame does.
@@ -411,10 +412,10 @@ begin
                 & "bitmap's pixel height",
                 At_Width = Unconstrained);
 
-         --  Drop the item's reference to the bitmap before releasing it.
-         Adi.Widget.Image.Set_Image (Pic, null);
-         Rebuild_All_Items (PicW);
-         Adi.Image.Free (Tall);
+         --  Released with the widget still holding a view of it: the
+         --  view goes stale rather than dangling, so nothing has to be
+         --  detached first.
+         Adi.Image.Release (Tall);
       end if;
    end;
 
@@ -437,13 +438,13 @@ begin
       Cap  : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("caption");
 
-      Tall : Adi.Image.Image_Access :=
+      Tall : Adi.Image.Image_Owner :=
         Adi.Image.Load_SVG_Path
           (Path_Data => "M0 0h20v600h-20z",
            Size      => (Width => 200.0, Height => 600.0),
            Fill      => (R => 255, G => 255, B => 255, A => 255));
       Loaded : constant Boolean :=
-        Adi.Image."/=" (Tall, null) and then Adi.Image.Is_Valid (Tall.all);
+        Adi.Image.Is_Owned (Tall);
 
       Grid_H : constant Pixel_Type := 150.0;
       Grid_Rules : constant Style_Rules :=
@@ -471,7 +472,7 @@ begin
       Check ("the fixture image loaded", Loaded);
 
       if Loaded then
-         Adi.Widget.Image.Set_Image (Pic, Tall);
+         Adi.Widget.Image.Set_Image (Pic, Adi.Image.To_Handle (Tall));
 
          Set_Part_Style (+Grid, Main_Part, From (Grid_Rules).Build);
          Set_Part_Style (+Card, Main_Part, From (Card_Rules).Build);
@@ -525,9 +526,9 @@ begin
          end;
 
          --  Drop the item's reference to the bitmap before releasing it.
-         Adi.Widget.Image.Set_Image (Pic, null);
+         Adi.Widget.Image.Set_Image (Pic, Adi.Image.Null_Image_Handle);
          Rebuild_All_Items (+Grid);
-         Adi.Image.Free (Tall);
+         Adi.Image.Release (Tall);
       end if;
    end;
 

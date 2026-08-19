@@ -154,6 +154,12 @@ procedure Material_Demo is
    Dashboard_Path : constant String :=
      "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z";
 
+   --  Owners: the title and the dialog draw their icons through handles,
+   --  which keep nothing, so these live as long as the run does. Loading
+   --  needs SDL up, so it happens below rather than here.
+   Title_Icon   : Adi.Image.Image_Owner;
+   Welcome_Icon : Adi.Image.Image_Owner;
+
 begin
    --  Register translations and parse --lang argument
    I18N_Example_Translations.Register_All;
@@ -206,17 +212,14 @@ begin
    Adi.MCP.Initialize (W);
 
    --  Set title icon
-   declare
-      Icon : constant Adi.Image.Image_Access :=
-        Adi.Image.Load_SVG_Path
-          (Path_Data => Dashboard_Path,
-           Size      => (24.0, 24.0),
-           Fill      => (R => 208, G => 188, B => 255, A => 255));
-   begin
-      if Icon /= null then
-         Adi.Widget.Label.Set_Icon (UI.App_Title, Icon);
-      end if;
-   end;
+   Title_Icon := Adi.Image.Load_SVG_Path
+     (Path_Data => Dashboard_Path,
+      Size      => (24.0, 24.0),
+      Fill      => (R => 208, G => 188, B => 255, A => 255));
+   if Adi.Image.Is_Owned (Title_Icon) then
+      Adi.Widget.Label.Set_Icon
+        (UI.App_Title, Adi.Image.To_Handle (Title_Icon));
+   end if;
 
    Adi.Widget.Label.Set_Text (UI.App_Title, Var_App_Title);
 
@@ -231,9 +234,7 @@ begin
    --  960-unit box with the origin at the top of a negative Y range, so
    --  the path carries its own viewBox rather than going through
    --  Load_SVG_Path, which assumes 0 0 W H.
-   declare
-      Welcome_Icon : constant Adi.Image.Image_Access :=
-        Adi.Image.Load_SVG_From_String
+   Welcome_Icon := Adi.Image.Load_SVG_From_String
           ("<svg xmlns=""http://www.w3.org/2000/svg"" width=""24"""
            & " height=""24"" viewBox=""0 -960 960 960"">"
            & "<path fill=""rgb(208,188,255)"" d="""
@@ -250,11 +251,9 @@ begin
            & "M680-39v-81q66 0 113-47t47-113h81q0 100-70.5 170.5"
            & "T680-39Z"
            & """/></svg>");
-   begin
-      if Welcome_Icon /= null then
-         Set_Icon (Welcome_Dialog, Welcome_Icon);
-      end if;
-   end;
+   if Adi.Image.Is_Owned (Welcome_Icon) then
+      Set_Icon (Welcome_Dialog, Adi.Image.To_Handle (Welcome_Icon));
+   end if;
 
    --  Create quit confirmation dialog
    Quit_Dialog := Quit_UI.Build;

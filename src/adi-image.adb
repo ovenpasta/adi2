@@ -32,10 +32,6 @@ package body Adi.Image is
      new Ada.Unchecked_Deallocation
        (Adi.SVG.Pixel_Buffer, Adi.SVG.Pixel_Buffer_Access);
 
-   procedure Free_Image is
-     new Ada.Unchecked_Deallocation
-       (Image'Class, Image_Access);
-
    --  Identity handed to the texture cache. A counter rather than the
    --  image's address: addresses are reused after a free, and an entry
    --  from a dead image would then be found by a live one.
@@ -47,6 +43,22 @@ package body Adi.Image is
       Next_Source := Next_Source + 1;
       return Next_Source;
    end New_Source;
+
+   --  The image behind a handle, or null when the handle names nothing.
+   function Resolve (H : Image_Handle) return Image_Access
+   is (Image_Stores.Resolve (H.Ref));
+
+   --  Hand a freshly built image to the store, which takes it and hands
+   --  back the first owner. A null image is no image: the caller gets an
+   --  owner of nothing rather than an exception.
+   function Publish (Img : Image_Access) return Image_Owner is
+   begin
+      if Img = null then
+         return (Ref => <>);
+      end if;
+
+      return (Ref => Image_Stores.Register (Img));
+   end Publish;
 
    --  Scale mode is texture state, so a texture built for one mode cannot
    --  serve another: it participates in the key rather than being applied
@@ -69,23 +81,43 @@ package body Adi.Image is
    is
       Img     : Image_Access;
       SW, SH  : Pixel_Type := 0.0;
+      Owned   : Adi.SVG.Document_Access := Doc;
    begin
-      if Doc = null or else not Adi.SVG.Is_Valid (Doc.all) then
+      --  The document is this subprogram's from here, on every path out:
+      --  callers hand it over and do not look at it again.
+      if Doc = null then
+         return null;
+      end if;
+
+      if not Adi.SVG.Is_Valid (Doc.all) then
+         Adi.SVG.Destroy (Owned.all);
+         Free_SVG_Document (Owned);
          return null;
       end if;
 
       Adi.SVG.Get_Size (Doc.all, SW, SH);
-      Img := new Image'(
-         Kind     => SVG_Image,
-         Surface  => null,
-         Width    => SW,
-         Height   => SH,
-         SVG      => Doc,
-         Source   => New_Source,
-         Group    => null,
-         Tintable => False,
-         Scaling  => Scale_Linear
-      );
+
+      --  The document is this subprogram's until the record holds it.
+      --  Nothing else knows about it yet, so a failure here is the only
+      --  chance to end it.
+      begin
+         Img := new Image'(
+            Kind     => SVG_Image,
+            Surface  => null,
+            Width    => SW,
+            Height   => SH,
+            SVG      => Doc,
+            Source   => New_Source,
+            Group    => null,
+            Tintable => False,
+            Scaling  => Scale_Linear
+         );
+      exception
+         when others =>
+            Adi.SVG.Destroy (Owned.all);
+            Free_SVG_Document (Owned);
+            raise;
+      end;
       return Img;
    end Build_SVG_Image;
 
@@ -168,7 +200,7 @@ package body Adi.Image is
    -- Load_From_File
    ---------------------------------------------------------------------------
 
-   function Load_From_File (Path : String) return Image_Access
+   function New_From_File (Path : String) return Image_Access
    is
       use Interfaces.C.Strings;
 
@@ -179,12 +211,18 @@ package body Adi.Image is
    begin
       if Is_SVG_Path (Path) then
          Doc := Adi.SVG.Load_From_File (Path);
-         if Doc = null or else not Adi.SVG.Is_Valid (Doc.all) then
+         if Doc = null then
             Adi.Log.Error ("Failed to load SVG image: " & Path);
             return null;
          end if;
 
-         return Build_SVG_Image (Doc);
+         --  Build_SVG_Image takes the document, including the case where
+         --  it turns out to hold nothing.
+         return Result : constant Image_Access := Build_SVG_Image (Doc) do
+            if Result = null then
+               Adi.Log.Error ("Failed to load SVG image: " & Path);
+            end if;
+         end return;
       end if;
 
       C_Path := New_String (Path);
@@ -196,22 +234,29 @@ package body Adi.Image is
          return null;
       end if;
 
-      Img := new Image'(
-         Kind     => Raster_Image,
-         Surface  => Surf,
-         Width    => Pixel_Type (Float (Surf.w)),
-         Height   => Pixel_Type (Float (Surf.h)),
-         SVG      => null,
-         Source   => New_Source,
-         Group    => null,
-         Tintable => False,
-         Scaling  => Scale_Linear
-      );
+      --  The surface is this subprogram's until the record holds it.
+      begin
+         Img := new Image'(
+            Kind     => Raster_Image,
+            Surface  => Surf,
+            Width    => Pixel_Type (Float (Surf.w)),
+            Height   => Pixel_Type (Float (Surf.h)),
+            SVG      => null,
+            Source   => New_Source,
+            Group    => null,
+            Tintable => False,
+            Scaling  => Scale_Linear
+         );
+      exception
+         when others =>
+            SDL_DestroySurface (Surf);
+            raise;
+      end;
 
       return Img;
-   end Load_From_File;
+   end New_From_File;
 
-   function Load_From_Memory
+   function New_From_Memory
      (Data   : System.Address;
       Length : System.Storage_Elements.Storage_Count) return Image_Access
    is
@@ -237,22 +282,29 @@ package body Adi.Image is
          return null;
       end if;
 
-      Img := new Image'(
-         Kind     => Raster_Image,
-         Surface  => Surf,
-         Width    => Pixel_Type (Float (Surf.w)),
-         Height   => Pixel_Type (Float (Surf.h)),
-         SVG      => null,
-         Source   => New_Source,
-         Group    => null,
-         Tintable => False,
-         Scaling  => Scale_Linear
-      );
+      --  The surface is this subprogram's until the record holds it.
+      begin
+         Img := new Image'(
+            Kind     => Raster_Image,
+            Surface  => Surf,
+            Width    => Pixel_Type (Float (Surf.w)),
+            Height   => Pixel_Type (Float (Surf.h)),
+            SVG      => null,
+            Source   => New_Source,
+            Group    => null,
+            Tintable => False,
+            Scaling  => Scale_Linear
+         );
+      exception
+         when others =>
+            SDL_DestroySurface (Surf);
+            raise;
+      end;
 
       return Img;
-   end Load_From_Memory;
+   end New_From_Memory;
 
-   function Load_SVG_From_String
+   function New_SVG_From_String
       (Source   : String;
        Tintable : Boolean := False) return Image_Access
    is
@@ -260,19 +312,22 @@ package body Adi.Image is
       Result : Image_Access;
    begin
       Doc := Adi.SVG.Load_From_String (Source);
-      if Doc = null or else not Adi.SVG.Is_Valid (Doc.all) then
+      if Doc = null then
          Adi.Log.Error ("Failed to load SVG image from source string");
          return null;
       end if;
 
       Result := Build_SVG_Image (Doc);
+      if Result = null then
+         Adi.Log.Error ("Failed to load SVG image from source string");
+      end if;
       if Result /= null and then Tintable then
          Result.Tintable := True;
       end if;
       return Result;
-   end Load_SVG_From_String;
+   end New_SVG_From_String;
 
-   function Load_SVG_Path
+   function New_SVG_Path
       (Path_Data : String;
        Size      : Size_2D;
        Fill      : Color_8 := (R => 0, G => 0, B => 0, A => 255);
@@ -340,46 +395,37 @@ package body Adi.Image is
            & "<g " & To_String (G_Attrs) & "><path d=""" & Safe_Path & """/></g>"
            & "</svg>");
 
-      return Load_SVG_From_String
+      return New_SVG_From_String
         (Source   => To_String (Source),
          Tintable => Tintable);
-   end Load_SVG_Path;
+   end New_SVG_Path;
 
    ---------------------------------------------------------------------------
    -- Create_From_Surface
    ---------------------------------------------------------------------------
 
-   function Create_From_Surface
-      (Surface : SDL_Surface_Ptr;
-       Group   : Adi.Texture_Cache.Texture_Group_Access := null)
+   --  Without the surface: it is attached once the store holds the
+   --  record, so that every path that fails before then leaves the
+   --  surface with the caller and no path can free it twice.
+   function New_Surfaceless
+      (Group : Adi.Texture_Cache.Texture_Group_Access := null)
        return Image_Access
-   is
-      Img : Image_Access;
-   begin
-      if Surface = null then
-         return null;
-      end if;
-
-      Img := new Image'(
+   is (new Image'(
          Kind     => Raster_Image,
-         Surface  => Surface,
-         Width    => Pixel_Type (Float (Surface.w)),
-         Height   => Pixel_Type (Float (Surface.h)),
+         Surface  => null,
+         Width    => 0.0,
+         Height   => 0.0,
          SVG      => null,
          Source   => New_Source,
          Group    => Group,
          Tintable => False,
-         Scaling  => Scale_Linear
-      );
-
-      return Img;
-   end Create_From_Surface;
+         Scaling  => Scale_Linear));
 
    ---------------------------------------------------------------------------
    -- Create_Empty
    ---------------------------------------------------------------------------
 
-   function Create_Empty return Image_Access is
+   function New_Empty return Image_Access is
       Img : Image_Access;
    begin
       Img := new Image'(
@@ -394,13 +440,13 @@ package body Adi.Image is
          Scaling  => Scale_Linear
       );
       return Img;
-   end Create_Empty;
+   end New_Empty;
 
    ---------------------------------------------------------------------------
    -- Is_Valid
    ---------------------------------------------------------------------------
 
-   function Is_Valid (Img : Image) return Boolean is
+   function Is_Valid (Img : Image'Class) return Boolean is
    begin
       if Img.Kind = SVG_Image then
          return Img.SVG /= null and then Adi.SVG.Is_Valid (Img.SVG.all);
@@ -408,17 +454,17 @@ package body Adi.Image is
       return Img.Surface /= null or else Img.SVG /= null;
    end Is_Valid;
 
-   function Is_Tintable (Img : Image) return Boolean is
+   function Is_Tintable (Img : Image'Class) return Boolean is
    begin
       return Img.Tintable;
    end Is_Tintable;
 
-   function Get_Surface (Img : Image) return SDL_Surface_Ptr is
+   function Get_Surface (Img : Image'Class) return SDL_Surface_Ptr is
    begin
       return Img.Surface;
    end Get_Surface;
 
-   procedure Set_Tintable (Img : in out Image; Value : Boolean := True) is
+   procedure Set_Tintable (Img : in out Image'Class; Value : Boolean := True) is
    begin
       Img.Tintable := Value;
    end Set_Tintable;
@@ -434,13 +480,13 @@ package body Adi.Image is
       end case;
    end To_SDL;
 
-   function Get_Scale_Mode (Img : Image) return Image_Scale_Mode is
+   function Get_Scale_Mode (Img : Image'Class) return Image_Scale_Mode is
    begin
       return Img.Scaling;
    end Get_Scale_Mode;
 
    procedure Set_Scale_Mode
-     (Img  : in out Image;
+     (Img  : in out Image'Class;
       Mode : Image_Scale_Mode)
    is
    begin
@@ -454,7 +500,7 @@ package body Adi.Image is
    ---------------------------------------------------------------------------
 
    procedure Get_Size
-      (Img    : Image;
+      (Img    : Image'Class;
        Width  : out Pixel_Type;
        Height : out Pixel_Type)
    is
@@ -629,10 +675,156 @@ package body Adi.Image is
    end Acquire_Texture;
 
    ---------------------------------------------------------------------------
-   -- Destroy
+   -- Handle operations
+   --
+   -- Each answers a handle that names nothing with the default an image
+   -- holding nothing would give, so a viewer outliving an owner reads a
+   -- blank rather than raising.
    ---------------------------------------------------------------------------
 
-   procedure Destroy (Img : in out Image) is
+   function Load_From_File (Path : String) return Image_Owner
+   is (Publish (New_From_File (Path)));
+
+   function Load_From_Memory
+     (Data   : System.Address;
+      Length : System.Storage_Elements.Storage_Count) return Image_Owner
+   is (Publish (New_From_Memory (Data, Length)));
+
+   function Load_SVG_From_String
+     (Source   : String;
+      Tintable : Boolean := False) return Image_Owner
+   is (Publish (New_SVG_From_String (Source, Tintable)));
+
+   function Load_SVG_Path
+     (Path_Data : String;
+      Size      : Size_2D;
+      Fill      : Color_8 := (R => 0, G => 0, B => 0, A => 255);
+      Stroke_Width : Pixel_Type := 0.0;
+      Stroke    : Color_8 := (R => 0, G => 0, B => 0, A => 255);
+      Tintable  : Boolean := False) return Image_Owner
+   is (Publish (New_SVG_Path (Path_Data, Size, Fill, Stroke_Width,
+                              Stroke, Tintable)));
+
+   function Create_From_Surface
+     (Surface : SDL_Surface_Ptr;
+      Group   : Adi.Texture_Cache.Texture_Group_Access := null)
+      return Image_Owner
+   is
+      Owner : Image_Owner;
+      Img   : Image_Access;
+   begin
+      if Surface = null then
+         return Null_Image_Owner;
+      end if;
+
+      --  Registered empty first. Anything that goes wrong up to here
+      --  reclaims an image holding no surface, so the caller still has
+      --  theirs and is the only one who can free it.
+      Owner := Publish (New_Surfaceless (Group));
+      Img := Resolve (To_Handle (Owner));
+      if Img = null then
+         return Null_Image_Owner;
+      end if;
+
+      Img.Surface := Surface;
+      Img.Width := Pixel_Type (Float (Surface.w));
+      Img.Height := Pixel_Type (Float (Surface.h));
+      return Owner;
+   end Create_From_Surface;
+
+   function Create_Empty return Image_Owner
+   is (Publish (New_Empty));
+
+   function Is_Valid (H : Image_Handle) return Boolean is
+      Img : constant Image_Access := Resolve (H);
+   begin
+      return Img /= null and then Is_Valid (Img.all);
+   end Is_Valid;
+
+   function Is_Tintable (H : Image_Handle) return Boolean is
+      Img : constant Image_Access := Resolve (H);
+   begin
+      return Img /= null and then Is_Tintable (Img.all);
+   end Is_Tintable;
+
+   procedure Get_Size
+     (H      : Image_Handle;
+      Width  : out Pixel_Type;
+      Height : out Pixel_Type)
+   is
+      Img : constant Image_Access := Resolve (H);
+   begin
+      if Img = null then
+         Width  := 0.0;
+         Height := 0.0;
+         return;
+      end if;
+
+      Get_Size (Img.all, Width, Height);
+   end Get_Size;
+
+   function Get_Surface (H : Image_Handle) return SDL_Surface_Ptr is
+      Img : constant Image_Access := Resolve (H);
+   begin
+      return (if Img = null then null else Get_Surface (Img.all));
+   end Get_Surface;
+
+   procedure Set_Tintable (H : Image_Handle; Value : Boolean := True) is
+      Img : constant Image_Access := Resolve (H);
+   begin
+      if Img /= null then
+         Set_Tintable (Img.all, Value);
+      end if;
+   end Set_Tintable;
+
+   function Get_Scale_Mode (H : Image_Handle) return Image_Scale_Mode is
+      Img : constant Image_Access := Resolve (H);
+   begin
+      return (if Img = null then Scale_Linear else Get_Scale_Mode (Img.all));
+   end Get_Scale_Mode;
+
+   procedure Set_Scale_Mode
+     (H    : Image_Handle;
+      Mode : Image_Scale_Mode)
+   is
+      Img : constant Image_Access := Resolve (H);
+   begin
+      if Img /= null then
+         Set_Scale_Mode (Img.all, Mode);
+      end if;
+   end Set_Scale_Mode;
+
+   function Acquire_Texture
+     (H      : Image_Handle;
+      Ctx    : in out Adi.Render.Render_Context;
+      Width  : Pixel_Type;
+      Height : Pixel_Type) return Adi.Texture_Cache.Texture_Ref
+   is
+      Img : constant Image_Access := Resolve (H);
+   begin
+      if Img = null then
+         return Adi.Texture_Cache.Null_Borrow;
+      end if;
+
+      return Acquire_Texture (Img.all, Ctx, Width, Height);
+   end Acquire_Texture;
+
+   function To_Handle (O : Image_Owner) return Image_Handle
+   is (Ref => Image_Stores.View (O.Ref));
+
+   function Is_Owned (O : Image_Owner) return Boolean
+   is (Image_Stores.Is_Owned (O.Ref));
+
+   procedure Release (O : in out Image_Owner) is
+   begin
+      Image_Stores.Release (O.Ref);
+   end Release;
+
+   ---------------------------------------------------------------------------
+   -- Reclaim_Image
+   ---------------------------------------------------------------------------
+
+   procedure Reclaim_Image (Img : in out Image'Class) is
    begin
       if Img.Surface /= null then
          SDL_DestroySurface (Img.Surface);
@@ -646,20 +838,6 @@ package body Adi.Image is
 
       Img.Width   := 0.0;
       Img.Height  := 0.0;
-   end Destroy;
-
-   ---------------------------------------------------------------------------
-   -- Free
-   ---------------------------------------------------------------------------
-
-   procedure Free (Img : in out Image_Access) is
-   begin
-      if Img = null then
-         return;
-      end if;
-
-      Destroy (Img.all);
-      Free_Image (Img);
-   end Free;
+   end Reclaim_Image;
 
 end Adi.Image;

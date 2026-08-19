@@ -80,7 +80,7 @@ procedure RLottie_Prepare_Test is
       Assert (Get_Frame_Rate (Copy) = 0.0, "no frame rate");
       Assert (Get_Duration (Copy) = 0.0, "no duration");
       Assert (Get_Current_Frame_Index (Copy) = 0, "no current frame");
-      Assert (Get_Current_Image (Copy) = null, "nothing to draw");
+      Assert (Get_Current_Image (Copy) = Adi.Image.Null_Image_Handle, "nothing to draw");
       Assert (Get_Playback_Speed (Copy) = 1.0, "and a speed of one");
       Assert (not Is_Prepared (Copy) and then not Is_Playing (Copy)
               and then not Is_Looping (Copy), "and answers no to each ask");
@@ -205,7 +205,7 @@ procedure RLottie_Prepare_Test is
               "The first sample rasterises exactly one frame");
       Assert (Frame_Is_Retained (Anim, 1), "and keeps it");
       Assert (Is_Prepared (Anim), "and the animation is drawable");
-      Assert (Get_Current_Image (Anim) /= null, "with an image to draw");
+      Assert (Get_Current_Image (Anim) /= Adi.Image.Null_Image_Handle, "with an image to draw");
 
       Destroy (Anim);
    end Test_First_Request_Rasterises_Once;
@@ -305,7 +305,7 @@ procedure RLottie_Prepare_Test is
       Reset (Anim);
       Assert (Rasterisations (Anim) = 1,
               "Resetting to a frame nothing has rasterised rasterises it");
-      Assert (Get_Current_Image (Anim) /= null, "and shows it");
+      Assert (Get_Current_Image (Anim) /= Adi.Image.Null_Image_Handle, "and shows it");
 
       Before := Rasterisations (Anim);
       Reset (Anim);
@@ -345,7 +345,7 @@ procedure RLottie_Prepare_Test is
               & " are rasterised if and when playback reaches them");
       Assert (Retired_Set_Count (Anim) = 1,
               "and the extent it replaced is retired, exactly once");
-      Assert (Get_Current_Image (Anim) /= null,
+      Assert (Get_Current_Image (Anim) /= Adi.Image.Null_Image_Handle,
               "with something to draw throughout: a paused animation"
               & " would never ask for a frame to fill a blank set");
 
@@ -416,7 +416,7 @@ procedure RLottie_Prepare_Test is
       pragma Unreferenced (Moved);
       Was_Frame   : Natural;
       Was_Elapsed : Duration;
-      Was_Image   : Image_Access;
+      Was_Image   : Image_Handle;
       Was_Count   : Natural;
    begin
       Section ("a replacement that fails keeps what was drawable");
@@ -522,7 +522,7 @@ procedure RLottie_Prepare_Test is
       end;
       Assert (not Is_Playing (Anim),
               "and taking it up did not restart playback");
-      Assert (Get_Current_Image (Anim) /= null,
+      Assert (Get_Current_Image (Anim) /= Adi.Image.Null_Image_Handle,
               "and left a frame to draw");
 
       Destroy (Anim);

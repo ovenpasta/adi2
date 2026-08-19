@@ -163,9 +163,6 @@ begin
       A.Run;
       Adi.MCP.Finalize;
 
-      --  After Run, so the widgets drawing it are already gone: a
-      --  render item holds a plain Image_Access into a frame, and
-      --  nothing invalidates that.
       Destroy (Animation);
    end;
 end Animated_Image_Example;

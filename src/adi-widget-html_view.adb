@@ -27,18 +27,20 @@ package body Adi.Widget.Html_View is
    Marker_Clear : constant Color_8 := (R => 0, G => 0, B => 0, A => 0);
    Marker_SVG_Size : constant Size_2D := (16.0, 16.0);
 
-   Disc_Marker_Img   : Image_Access := null;
-   Circle_Marker_Img : Image_Access := null;
-   Square_Marker_Img : Image_Access := null;
+   --  Built once and kept for the life of the program: every view draws
+   --  the same three list markers, and nothing else can end them.
+   Disc_Marker   : Image_Owner := Adi.Image.Null_Image_Owner;
+   Circle_Marker : Image_Owner := Adi.Image.Null_Image_Owner;
+   Square_Marker : Image_Owner := Adi.Image.Null_Image_Owner;
 
    procedure Ensure_Marker_Images is
    begin
-      if Disc_Marker_Img /= null then
+      if Adi.Image.Is_Owned (Disc_Marker) then
          return;
       end if;
 
       --  Filled circle (disc)
-      Disc_Marker_Img := Load_SVG_Path
+      Disc_Marker := Load_SVG_Path
         (Path_Data    => "M8 2 A6 6 0 1 0 8 14 A6 6 0 1 0 8 2 Z",
          Size         => Marker_SVG_Size,
          Fill         => Marker_White,
@@ -47,7 +49,7 @@ package body Adi.Widget.Html_View is
          Tintable     => True);
 
       --  Hollow circle
-      Circle_Marker_Img := Load_SVG_Path
+      Circle_Marker := Load_SVG_Path
         (Path_Data    => "M8 2 A6 6 0 1 0 8 14 A6 6 0 1 0 8 2 Z",
          Size         => Marker_SVG_Size,
          Fill         => Marker_Clear,
@@ -56,7 +58,7 @@ package body Adi.Widget.Html_View is
          Tintable     => True);
 
       --  Filled square
-      Square_Marker_Img := Load_SVG_Path
+      Square_Marker := Load_SVG_Path
         (Path_Data    => "M3 3 H13 V13 H3 Z",
          Size         => Marker_SVG_Size,
          Fill         => Marker_White,
@@ -1177,38 +1179,78 @@ package body Adi.Widget.Html_View is
       Load_Combined_CSS (Self, To_String (CSS_Buffer));
    end Parse_HTML;
 
-   function Lookup_Image
-     (Self : in out Html_View;
-      Src  : String) return Adi.Image.Image_Access
+   --  Where this source is cached, or zero. Separate from what is
+   --  cached there, because a stale borrowed entry has to be replaced
+   --  rather than merely missed.
+   function Cache_Index
+     (Self : Html_View;
+      Src  : String) return Natural
    is
    begin
       for I in 1 .. Natural (Self.Image_Cache.Length) loop
-         declare
-            Cache_Entry : constant Cached_Image := Self.Image_Cache.Element (Positive (I));
-         begin
-            if To_String (Cache_Entry.Src) = Src then
-               return Cache_Entry.Img;
-            end if;
-         end;
+         if To_String (Self.Image_Cache.Element (Positive (I)).Src) = Src then
+            return I;
+         end if;
       end loop;
+      return 0;
+   end Cache_Index;
 
-      return null;
+   function Lookup_Image
+     (Self : in out Html_View;
+      Src  : String) return Adi.Image.Image_Handle
+   is
+      At_Index : constant Natural := Cache_Index (Self, Src);
+   begin
+      if At_Index = 0 then
+         return Adi.Image.Null_Image_Handle;
+      end if;
+      return Self.Image_Cache.Element (Positive (At_Index)).Img;
    end Lookup_Image;
+
+   --  A vector finalises the elements it drops when it likes, so the
+   --  images this view built are released here rather than by Clear.
+   procedure Drop_Image_Cache (Self : in out Html_View);
+
+   procedure Drop_Image_Cache (Self : in out Html_View) is
+      procedure Give_Up (C : in out Cached_Image);
+
+      procedure Give_Up (C : in out Cached_Image) is
+      begin
+         Adi.Image.Release (C.Own);
+         C.Img := Adi.Image.Null_Image_Handle;
+      end Give_Up;
+   begin
+      for I in 1 .. Natural (Self.Image_Cache.Length) loop
+         Self.Image_Cache.Update_Element (I, Give_Up'Access);
+      end loop;
+      Self.Image_Cache.Clear;
+   end Drop_Image_Cache;
 
    function Resolve_Image
      (Self : in out Html_View;
-      Src  : String) return Adi.Image.Image_Access
+      Src  : String) return Adi.Image.Image_Handle
    is
-      Img : Adi.Image.Image_Access := null;
+      Img : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle;
    begin
       if Src'Length = 0 then
-         return null;
+         return Adi.Image.Null_Image_Handle;
       end if;
 
-      Img := Lookup_Image (Self, Src);
-      if Img /= null then
-         return Img;
-      end if;
+      declare
+         At_Index : constant Natural := Cache_Index (Self, Src);
+      begin
+         if At_Index /= 0 then
+            Img := Self.Image_Cache.Element (Positive (At_Index)).Img;
+
+            --  A borrowed image whose owner has let go. Asking again is
+            --  the only way this view can recover: it cannot reload what
+            --  it never owned.
+            if Adi.Image.Is_Valid (Img) then
+               return Img;
+            end if;
+            Self.Image_Cache.Delete (Positive (At_Index));
+         end if;
+      end;
 
       if Self.On_Load_Asset /= null then
          declare
@@ -1219,31 +1261,44 @@ package body Adi.Widget.Html_View is
          end;
       end if;
 
+      --  Borrowed: whoever answered the callback owns it.
       Self.Image_Cache.Append
-        (New_Item => Cached_Image'(Src => To_Unbounded_String (Src), Img => Img));
+        (New_Item =>
+           Cached_Image'(Src => To_Unbounded_String (Src),
+                         Img => Img,
+                         Own => Adi.Image.Null_Image_Owner));
       return Img;
    end Resolve_Image;
 
    function Resolve_Inline_SVG
      (Self   : in out Html_View;
-      Source : String) return Adi.Image.Image_Access
+      Source : String) return Adi.Image.Image_Handle
    is
       Cache_Key : constant String := "__adi_inline_svg__:" & Source;
-      Img       : Adi.Image.Image_Access := null;
+      Img       : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle;
    begin
       if Source'Length = 0 then
-         return null;
+         return Adi.Image.Null_Image_Handle;
       end if;
 
       Img := Lookup_Image (Self, Cache_Key);
-      if Img /= null then
+      if Img /= Adi.Image.Null_Image_Handle then
          return Img;
       end if;
 
-      Img := Adi.Image.Load_SVG_From_String (Source => Source);
-
-      Self.Image_Cache.Append
-        (New_Item => Cached_Image'(Src => To_Unbounded_String (Cache_Key), Img => Img));
+      --  Built here, so this view owns it and must end it when the
+      --  cache goes.
+      declare
+         Own : constant Adi.Image.Image_Owner :=
+           Adi.Image.Load_SVG_From_String (Source => Source);
+      begin
+         Img := Adi.Image.To_Handle (Own);
+         Self.Image_Cache.Append
+           (New_Item =>
+              Cached_Image'(Src => To_Unbounded_String (Cache_Key),
+                            Img => Img,
+                            Own => Own));
+      end;
       return Img;
    end Resolve_Inline_SVG;
 
@@ -1584,7 +1639,7 @@ package body Adi.Widget.Html_View is
             when Text_Marker =>
                Text : Unbounded_String := Null_Unbounded_String;
             when Image_Marker =>
-               Img : Adi.Image.Image_Access := null;
+               Img : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle;
          end case;
       end record;
 
@@ -1617,7 +1672,7 @@ package body Adi.Widget.Html_View is
          Style : Resolved_Style);
 
       procedure Add_Image_Run
-        (Img        : Adi.Image.Image_Access;
+        (Img        : Adi.Image.Image_Handle;
          Width      : Pixel_Type;
          Height     : Pixel_Type;
          Href       : String;
@@ -1709,15 +1764,18 @@ package body Adi.Widget.Html_View is
       end Find_List_Context;
 
       function Marker_Image_For
-        (Kind : List_Style_Type_Kind) return Image_Access
+        (Kind : List_Style_Type_Kind) return Image_Handle
       is
       begin
          Ensure_Marker_Images;
          case Kind is
-            when List_Style_Disc   => return Disc_Marker_Img;
-            when List_Style_Circle => return Circle_Marker_Img;
-            when List_Style_Square => return Square_Marker_Img;
-            when others            => return null;
+            when List_Style_Disc   =>
+               return Adi.Image.To_Handle (Disc_Marker);
+            when List_Style_Circle =>
+               return Adi.Image.To_Handle (Circle_Marker);
+            when List_Style_Square =>
+               return Adi.Image.To_Handle (Square_Marker);
+            when others            => return Adi.Image.Null_Image_Handle;
          end case;
       end Marker_Image_For;
 
@@ -1752,7 +1810,7 @@ package body Adi.Widget.Html_View is
          if Style.List_Style_Image.Kind = List_Image_URL then
             declare
                URI : constant String := To_String (Style.List_Style_Image.URI);
-               Img : constant Adi.Image.Image_Access := Resolve_Image (Self, URI);
+               Img : constant Adi.Image.Image_Handle := Resolve_Image (Self, URI);
                W   : Pixel_Type := 0.0;
                H   : Pixel_Type := 0.0;
                Target_H : constant Pixel_Type := Pixel_Type'Max
@@ -1764,8 +1822,8 @@ package body Adi.Widget.Html_View is
                      Content.Width,
                      Content.Height) * 0.72);
             begin
-               if Img /= null and then Adi.Image.Is_Valid (Img.all) then
-                  Adi.Image.Get_Size (Img.all, W, H);
+               if Adi.Image.Is_Valid (Img) then
+                  Adi.Image.Get_Size (Img, W, H);
                   if H > 0.0 then
                      Marker_Height := Target_H;
                      Marker_Width := Pixel_Type'Max (1.0, Target_H * (W / H));
@@ -1781,7 +1839,7 @@ package body Adi.Widget.Html_View is
          case Style.List_Style_Type.Kind is
             when List_Style_Disc | List_Style_Circle | List_Style_Square =>
                declare
-                  Img : constant Image_Access :=
+                  Img : constant Image_Handle :=
                     Marker_Image_For (Style.List_Style_Type.Kind);
                   Target_H : constant Pixel_Type := Pixel_Type'Max
                     (4.0,
@@ -1792,7 +1850,7 @@ package body Adi.Widget.Html_View is
                         Content.Width,
                         Content.Height) * 0.55);
                begin
-                  if Img /= null then
+                  if Img /= Adi.Image.Null_Image_Handle then
                      Marker_Height := Target_H;
                      Marker_Width := Target_H;
                      Marker := (Kind => Image_Marker,
@@ -2135,7 +2193,7 @@ package body Adi.Widget.Html_View is
       end Add_Text_Run;
 
       procedure Add_Image_Run
-        (Img        : Adi.Image.Image_Access;
+        (Img        : Adi.Image.Image_Handle;
          Width      : Pixel_Type;
          Height     : Pixel_Type;
          Href       : String;
@@ -2191,7 +2249,7 @@ package body Adi.Widget.Html_View is
          begin
             It.Has_Style_Override := True;
             It.Style_Override := Style;
-            if Img /= null and then Adi.Image.Is_Tintable (Img.all) then
+            if Img /= Adi.Image.Null_Image_Handle and then Adi.Image.Is_Tintable (Img) then
                It.Style_Override.Object_Fit := Fit_Scale_Down;
                It.Style_Override.Object_Position :=
                  Object_Position (Pos_Center, Pos_Top);
@@ -2577,12 +2635,12 @@ package body Adi.Widget.Html_View is
                      declare
                         Src : constant String := To_String (N.Attrs.Src_Attr);
                         Alt : constant String := To_String (N.Attrs.Alt_Attr);
-                        Img : constant Adi.Image.Image_Access := Resolve_Image (Self, Src);
+                        Img : constant Adi.Image.Image_Handle := Resolve_Image (Self, Src);
                         W   : Pixel_Type := 0.0;
                         H   : Pixel_Type := 0.0;
                        begin
-                        if Img /= null and then Adi.Image.Is_Valid (Img.all) then
-                           Adi.Image.Get_Size (Img.all, W, H);
+                        if Adi.Image.Is_Valid (Img) then
+                           Adi.Image.Get_Size (Img, W, H);
                            W := W * Pixel_Type'Max (0.01, Self.Content_Scale);
                            H := H * Pixel_Type'Max (0.01, Self.Content_Scale);
                         end if;
@@ -2601,12 +2659,12 @@ package body Adi.Widget.Html_View is
                   elsif Tag = "svg" then
                      declare
                         Src : constant String := To_String (N.Attrs.Svg_Source_Attr);
-                        Img : constant Adi.Image.Image_Access := Resolve_Inline_SVG (Self, Src);
+                        Img : constant Adi.Image.Image_Handle := Resolve_Inline_SVG (Self, Src);
                         W   : Pixel_Type := 0.0;
                         H   : Pixel_Type := 0.0;
                      begin
-                        if Img /= null and then Adi.Image.Is_Valid (Img.all) then
-                           Adi.Image.Get_Size (Img.all, W, H);
+                        if Adi.Image.Is_Valid (Img) then
+                           Adi.Image.Get_Size (Img, W, H);
                            W := W * Pixel_Type'Max (0.01, Self.Content_Scale);
                            H := H * Pixel_Type'Max (0.01, Self.Content_Scale);
                         end if;
@@ -3316,7 +3374,7 @@ package body Adi.Widget.Html_View is
    is
    begin
       Self.Source := To_Unbounded_String (Source);
-      Self.Image_Cache.Clear;
+      Drop_Image_Cache (Self);
       Self.Inline_Style_Cache.Clear;
       Set_Scroll_Offset_Y (Self, 0.0);
       Parse_HTML (Self, Source);
@@ -3337,7 +3395,7 @@ package body Adi.Widget.Html_View is
       Self.Source := Null_Unbounded_String;
       Self.Nodes.Clear;
       Self.Links.Clear;
-      Self.Image_Cache.Clear;
+      Drop_Image_Cache (Self);
       Self.Inline_Style_Cache.Clear;
       Load_Combined_CSS (Self, "");
 
@@ -3399,7 +3457,7 @@ package body Adi.Widget.Html_View is
    is
    begin
       Self.On_Load_Asset := Callback;
-      Self.Image_Cache.Clear;
+      Drop_Image_Cache (Self);
       Self.Doc_Generation := Self.Doc_Generation + 1;
       Mark_Dirty (Self);
    end Set_On_Load_Asset;

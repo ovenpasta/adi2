@@ -5,6 +5,8 @@ with Ada.Exceptions;
 with Ada.Text_IO;                        use Ada.Text_IO;
 with Adi.Clock;
 with Adi.Core;                           use Adi.Core;
+with Adi.Image;
+with Adi.Image.Testing;
 with Adi.RLottie;                        use Adi.RLottie;
 with Adi.RLottie.Testing;                use Adi.RLottie.Testing;
 with Adi.SDL;
@@ -609,7 +611,7 @@ procedure RLottie_Widget_Test is
 
    --  Replacing an extent has to take that extent's textures out of every
    --  renderer that made one, and must not leave another window drawing
-   --  through an Image_Access to what it replaced.
+   --  through a handle to what it replaced.
    procedure Test_Resize_Releases_And_Does_Not_Dangle is
       use type Adi.Texture_Cache.Event_Count;
 
@@ -623,6 +625,10 @@ procedure RLottie_Widget_Test is
            (Adi.Texture_Cache.Raster_Texture).Released);
 
       Rel_A, Rel_B : Adi.Texture_Cache.Event_Count;
+
+      --  What B drew, captured while the extent it belongs to is still
+      --  the live one.
+      Drawn_By_B : Adi.Image.Image_Handle;
    begin
       Section ("a resize releases the old extent everywhere it was drawn");
 
@@ -671,6 +677,9 @@ procedure RLottie_Widget_Test is
 
       Rel_A := Released (WA);
       Rel_B := Released (WB);
+      Drawn_By_B := Get_Current_Image (Anim);
+      Assert (Adi.Image.Testing.Handle_Is_Registered (Drawn_By_B),
+              "the frame B drew is a live image before the resize");
 
       Adi.Window.Set_UI_Scale (WA, 2.0);
       Pump_Until_Height (WA, Anim, 60);
@@ -681,11 +690,11 @@ procedure RLottie_Widget_Test is
               "and its textures are released in both renderers, not left"
               & " in the one that did not drive the resize");
 
-      --  B still holds an Image_Access to a frame of the replaced extent.
-      Assert (Retired_Frame_Is_Shell (Anim, 1),
-              "The frame it points at is still a record, emptied of its"
-              & " pixels rather than freed: freeing it would leave B's"
-              & " render item pointing at nothing");
+      --  B's render item still names the frame of the replaced extent.
+      Assert (not Adi.Image.Testing.Handle_Is_Registered (Drawn_By_B),
+              "Replacing the extent destroys the frames it was made of,"
+              & " so what B's render item names is a stale handle rather"
+              & " than a pointer into freed storage");
 
       --  Forced rather than dirtied: marking the widget dirty would
       --  rebuild its items and replace the very pointer under test, and
@@ -697,9 +706,10 @@ procedure RLottie_Widget_Test is
       end;
       Adi.Window.Render (WB);
 
-      Assert (Retired_Frame_Is_Shell (Anim, 1),
-              "and drawing through it leaves it as it was, having reached"
-              & " an empty image rather than freed storage");
+      Assert (not Adi.Image.Testing.Handle_Is_Registered (Drawn_By_B)
+              and then not Adi.Image.Is_Valid (Drawn_By_B),
+              "and drawing through it draws nothing: a stale handle"
+              & " resolves to no image rather than to freed storage");
 
       Adi.Window.Set_UI_Scale (WA, 1.0);
       Adi.Window.Destroy (WA);
@@ -713,10 +723,6 @@ procedure RLottie_Widget_Test is
    --  belong to the animation, so no widget's death takes them and the
    --  animation's death takes all of them, in both renderers.
    --
-   --  The animation is destroyed last on purpose: a widget still holding
-   --  a raw Image_Access to a freed animation's frames is outside what
-   --  the current lifetime contract supports, and testing it would be
-   --  testing something the library does not promise.
    procedure Test_Shared_Animation_Group is
       use type Adi.Texture_Cache.Event_Count;
 

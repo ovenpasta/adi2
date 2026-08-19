@@ -105,7 +105,7 @@ package body Adi.Widget.Box is
    begin
       if Item_Count (W) = 0 then
          Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));       --  Panel_Idx
-         Add_Item (W, Make_Image (Main_Part, W.Geometry, null, 1,
+         Add_Item (W, Make_Image (Main_Part, W.Geometry, Adi.Image.Null_Image_Handle, 1,
                                   Is_Background => True)); --  Bg_Image_Idx
       end if;
 
@@ -126,7 +126,7 @@ package body Adi.Widget.Box is
                  (Ada.Strings.Unbounded.To_String
                     (Style.Background_Image.URI));
             when No_Image | Linear_Gradient_Image =>
-               Bg_It.Image_Source := null;
+               Bg_It.Image_Source := Adi.Image.Null_Image_Handle;
          end case;
          --  Inset by resolved per-edge border widths so the image does not
          --  cover side-specific borders.

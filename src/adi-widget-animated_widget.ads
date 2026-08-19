@@ -94,7 +94,7 @@ private
       Width  : out Pixel_Type;
       Height : out Pixel_Type) is abstract;
    function Get_Current_Image
-     (B : Animation_Backend) return Image_Access is abstract;
+     (B : Animation_Backend) return Image_Handle is abstract;
 
    --  Tell the backend the physical pixel extent it will be drawn at.
    --  Called every time the widget builds its items, so it must be cheap
@@ -138,7 +138,7 @@ private
       --  animation is stepped by whichever viewer ticks first, so the
       --  return of that step tells a viewer nothing about whether it has
       --  something new to show; comparing against what it drew does.
-      Shown_Image     : Image_Access := null;
+      Shown_Image     : Image_Handle := Adi.Image.Null_Image_Handle;
    end record;
 
    type Animated_Widget_Handle is record

@@ -3140,7 +3140,7 @@ package body Adi.Widget is
 
    function Make_Image (Part : Part_Kind;
                         Geometry : Rectangle;
-                        Source : Image_Access;
+                        Source : Image_Handle;
                         Z_Order : Natural := 0;
                         Is_Background : Boolean := False) return Item is
    begin
@@ -5741,12 +5741,12 @@ package body Adi.Widget is
    procedure Render_Image_Item (
       Ctx        : in out Render_Context;
       Geom       : Rectangle;
-      Source     : Image_Access;
+      Source     : Image_Handle;
       Style      : Resolved_Style)
    is
       Renderer   : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
       Color_Tint : constant Boolean :=
-        Source /= null and then Adi.Image.Is_Tintable (Source.all);
+        Adi.Image.Is_Tintable (Source);
       Texture          : SDL_Texture_Ptr;
       Img_W, Img_H     : Pixel_Type;
       Req_W, Req_H     : Pixel_Type;
@@ -5778,11 +5778,11 @@ package body Adi.Widget is
          return;
       end if;
 
-      if Source = null or else not Is_Valid (Source.all) then
+      if not Is_Valid (Source) then
          return;
       end if;
 
-      Get_Size (Source.all, Img_W, Img_H);
+      Get_Size (Source, Img_W, Img_H);
       if not Is_Visible_Px (Img_W) or else not Is_Visible_Px (Img_H) then
          return;
       end if;
@@ -5937,7 +5937,7 @@ package body Adi.Widget is
       --  pointer taken now and used later would outlive what it names.
       declare
          Lease : constant Adi.Texture_Cache.Texture_Ref :=
-           Adi.Image.Acquire_Texture (Source.all, Ctx, Req_W, Req_H);
+           Adi.Image.Acquire_Texture (Source, Ctx, Req_W, Req_H);
       begin
          Texture := Lease.Texture;
          if Texture = null then
@@ -6524,8 +6524,7 @@ package body Adi.Widget is
                   when Image_Item =>
                      --  Get image dimensions (skip background images)
                      if not Current.Is_Background
-                        and then Current.Image_Source /= null
-                        and then Is_Valid(Current.Image_Source.all)
+                        and then Is_Valid (Current.Image_Source)
                      then
                         declare
                            Img_W, Img_H : Pixel_Type;
@@ -6533,7 +6532,7 @@ package body Adi.Widget is
                            Width_Fixed  : constant Boolean := Style.Width.Kind = Fixed;
                            Height_Fixed : constant Boolean := Style.Height.Kind = Fixed;
                         begin
-                           Get_Size(Current.Image_Source.all, Img_W, Img_H);
+                           Get_Size (Current.Image_Source, Img_W, Img_H);
 
                            if Width_Fixed or Height_Fixed then
                               declare

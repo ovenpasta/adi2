@@ -37,7 +37,7 @@ procedure Html_View_Snapshot_Test is
    package HV renames Adi.Widget.Html_View;
    use type Adi.Widget.Box.Box_Handle;
    use type Adi.Widget.Html_View.Testing.Layout_Pass_Counter;
-   use type Adi.Image.Image_Access;
+   use type Adi.Image.Image_Handle;
    use type HV.Html_View_Handle;
 
    --  Small, but every append and back-patch path takes part: the
@@ -100,18 +100,18 @@ procedure Html_View_Snapshot_Test is
            else "")
         & (if It.Kind = Image_Item
            then " bg=" & Boolean'Image (It.Is_Background)
-                & " src=" & (if It.Image_Source = null then "none" else "set")
+                & " src=" & (if It.Image_Source = Adi.Image.Null_Image_Handle then "none" else "set")
            else "");
    end Item_Line;
 
    Clicked : Unbounded_String := Null_Unbounded_String;
 
    function Probe_Loader (Self : HV.Html_View_Handle; URI : String)
-     return Adi.Image.Image_Access
+     return Adi.Image.Image_Handle
    is
       pragma Unreferenced (Self, URI);
    begin
-      return null;
+      return Adi.Image.Null_Image_Handle;
    end Probe_Loader;
 
    procedure On_Link_Click (Self : HV.Html_View_Handle; Href : String) is

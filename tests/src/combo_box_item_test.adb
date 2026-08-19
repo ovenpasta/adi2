@@ -21,15 +21,15 @@ procedure Combo_Box_Item_Test is
    end Assert_Close;
 
    function Make_Test_Image
-     (W, H : Pixel_Type) return Image_Access
+     (W, H : Pixel_Type) return Adi.Image.Image_Handle
    is
    begin
-      return Load_SVG_Path
+      return Test_Support.Keep (Load_SVG_Path
         (Path_Data => "M0 0 L" & Integer (W)'Image & " 0 L"
                       & Integer (W)'Image & " " & Integer (H)'Image
                       & " L0 " & Integer (H)'Image & " Z",
          Size      => (Width => W, Height => H),
-         Fill      => (R => 128, G => 128, B => 128, A => 255));
+         Fill      => (R => 128, G => 128, B => 128, A => 255)));
    end Make_Test_Image;
 
    --  A concrete subclass of Item_Data for testing
@@ -44,16 +44,17 @@ procedure Combo_Box_Item_Test is
       Add_Item (H, "Hello");
       Test_Support.Assert (Option_Count (H) = 1, "option count = 1");
       Test_Support.Assert (Get_Item_Data (H, 1) = null, "Get_Item_Data = null for text-only");
-      Test_Support.Assert (Get_Item_Icon (H, 1) = null, "Get_Item_Icon = null for text-only");
+      Test_Support.Assert (Get_Item_Icon (H, 1) = Adi.Image.Null_Image_Handle, "Get_Item_Icon = null for text-only");
       Test_Support.Assert (Get_Selected_Text (H) = "Hello", "Get_Selected_Text = Hello");
       Test_Support.Assert (Get_Selected_Data (H) = null, "Get_Selected_Data = null");
    end Test_Text_Only_Item;
 
    procedure Test_Icon_Item is
       H    : constant Combo_Box_Handle := Create_Handle;
-      Icon : constant Image_Access :=
-        Load_SVG_Path ("M4 6 L12 14 L20 6", (24.0, 24.0),
-                       (R => 255, G => 255, B => 255, A => 255));
+      Icon : constant Adi.Image.Image_Handle :=
+        Test_Support.Keep
+          (Load_SVG_Path ("M4 6 L12 14 L20 6", (24.0, 24.0),
+                          (R => 255, G => 255, B => 255, A => 255)));
    begin
       Put_Line ("Test: Add_Item with icon");
       Add_Item (H, "With Icon", Icon);
@@ -69,7 +70,7 @@ procedure Combo_Box_Item_Test is
       Put_Line ("Test: Add_Item with data");
       Add_Item (H, "With Data", Data => D'Unchecked_Access);
       Test_Support.Assert (Option_Count (H) = 1, "option count = 1");
-      Test_Support.Assert (Get_Item_Icon (H, 1) = null, "Get_Item_Icon = null when no icon");
+      Test_Support.Assert (Get_Item_Icon (H, 1) = Adi.Image.Null_Image_Handle, "Get_Item_Icon = null when no icon");
       declare
          Got : constant Item_Data_Access := Get_Item_Data (H, 1);
       begin
@@ -101,7 +102,7 @@ procedure Combo_Box_Item_Test is
       Put_Line ("Test: out-of-range accessors return null");
       Add_Item (H, "Only");
       Test_Support.Assert (Get_Item_Data (H, 2) = null, "Get_Item_Data out of range = null");
-      Test_Support.Assert (Get_Item_Icon (H, 2) = null, "Get_Item_Icon out of range = null");
+      Test_Support.Assert (Get_Item_Icon (H, 2) = Adi.Image.Null_Image_Handle, "Get_Item_Icon out of range = null");
    end Test_Out_Of_Range;
 
    procedure Test_Clear_Items is
@@ -119,9 +120,10 @@ procedure Combo_Box_Item_Test is
    procedure Test_Handle_Widget_Agreement is
       H  : constant Combo_Box_Handle := Create_Handle;
       D  : aliased My_Data := (Id => 99);
-      Icon : constant Image_Access :=
-        Load_SVG_Path ("M4 14 L12 6 L20 14", (24.0, 24.0),
-                       (R => 255, G => 255, B => 255, A => 255));
+      Icon : constant Adi.Image.Image_Handle :=
+        Test_Support.Keep
+          (Load_SVG_Path ("M4 14 L12 6 L20 14", (24.0, 24.0),
+                          (R => 255, G => 255, B => 255, A => 255)));
    begin
       Put_Line ("Test: handle overloads agree with widget overloads");
       Add_Item (H, "Test", Icon, D'Unchecked_Access);
@@ -135,7 +137,7 @@ procedure Combo_Box_Item_Test is
 
    procedure Test_Selected_Icon_Measure_Uses_CSS_Size is
       H : constant Combo_Box_Handle := Create_Handle;
-      Icon : constant Image_Access := Make_Test_Image (512.0, 512.0);
+      Icon : constant Adi.Image.Image_Handle := Make_Test_Image (512.0, 512.0);
       Icon_Rules : constant Style_Rules := (
          Width  => Set (Size (Px (18.0))),
          Height => Set (Size (Px (18.0))),
@@ -164,7 +166,7 @@ procedure Combo_Box_Item_Test is
 
    procedure Test_Indicator_Uses_CSS_Size is
       H : constant Combo_Box_Handle := Create_Handle;
-      Arrow : constant Image_Access := Make_Test_Image (24.0, 12.0);
+      Arrow : constant Adi.Image.Image_Handle := Make_Test_Image (24.0, 12.0);
       Main_Rules : constant Style_Rules := (
          Align_Items => Set (Center),
          others      => <>

@@ -48,13 +48,13 @@ package Adi.SVG_Sprites is
 
    --  Create an Image from the symbol with the given id.
    --  The image is a fresh SVG document built from the symbol's viewBox and
-   --  content.  Returns null if the id is not found.
+   --  content.  The owner holds nothing if the id is not found.
    --  When Tintable is True, the SVG is rendered white-on-transparent and
    --  the image is marked as tintable so CSS color applies as a tint.
    function Get_Image
      (Sheet    : Sprite_Sheet;
       Id       : String;
-      Tintable : Boolean := False) return Image_Access;
+      Tintable : Boolean := False) return Image_Owner;
 
    ---------------------------------------------------------------------------
    --  Resource management

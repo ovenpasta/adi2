@@ -38,6 +38,16 @@ procedure Image_Example is
      & "c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5"
      & "s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16"
      & "v-1l-2-2z";
+
+   Icon_Size : constant Adi.Core.Size_2D := (24.0, 24.0);
+   White     : constant Adi.Core.Color_8 := (255, 255, 255, 255);
+
+   --  The widgets below draw through handles, which keep nothing. These
+   --  owners are what hold the images, so they are declared out here and
+   --  live as long as the application does. Loading needs SDL up, so the
+   --  loads themselves happen after A.Init rather than here.
+   Svg_Path_Img, Svg_Img, Png_Img, Jpg_Img, Cat : Adi.Image.Image_Owner;
+   Heart, Bolt, Shield, Bell_Img                : Adi.Image.Image_Owner;
 begin
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
@@ -45,93 +55,67 @@ begin
    W := UI.Build;
 
    --  Load SVG path image
-   declare
-      Svg_Path_Img : constant Adi.Image.Image_Access :=
-        Adi.Image.Load_SVG_Path
+   Svg_Path_Img := Adi.Image.Load_SVG_Path
           (Path_Data => Star_Path,
            Size      => (Width => 128.0, Height => 128.0),
            Fill      => (R => 255, G => 200, B => 0, A => 255));
-   begin
-      if Svg_Path_Img /= null then
-         Set_Image (UI.Img_Svg_Path, Svg_Path_Img);
-      end if;
-   end;
+   if Adi.Image.Is_Owned (Svg_Path_Img) then
+      Set_Image (UI.Img_Svg_Path, Adi.Image.To_Handle (Svg_Path_Img));
+   end if;
 
    --  Load SVG file
-   declare
-      Svg_Img : constant Adi.Image.Image_Access :=
-        Adi.Image.Load_From_File ("examples/assets/tiger.svg");
-   begin
-      if Svg_Img /= null then
-         Set_Image (UI.Img_Svg, Svg_Img);
-      end if;
-   end;
+   Svg_Img := Adi.Image.Load_From_File ("examples/assets/tiger.svg");
+   if Adi.Image.Is_Owned (Svg_Img) then
+      Set_Image (UI.Img_Svg, Adi.Image.To_Handle (Svg_Img));
+   end if;
 
    --  Load PNG file
-   declare
-      Png_Img : constant Adi.Image.Image_Access :=
-        Adi.Image.Load_From_File ("examples/assets/happycat.png");
-   begin
-      if Png_Img /= null then
-         Set_Image (UI.Img_Png, Png_Img);
-      end if;
-   end;
+   Png_Img := Adi.Image.Load_From_File ("examples/assets/happycat.png");
+   if Adi.Image.Is_Owned (Png_Img) then
+      Set_Image (UI.Img_Png, Adi.Image.To_Handle (Png_Img));
+   end if;
 
    --  Load JPG file
-   declare
-      Jpg_Img : constant Adi.Image.Image_Access :=
-        Adi.Image.Load_From_File ("examples/assets/bg.jpg");
-   begin
-      if Jpg_Img /= null then
-         Set_Image (UI.Img_Jpg, Jpg_Img);
-      end if;
-   end;
+   Jpg_Img := Adi.Image.Load_From_File ("examples/assets/bg.jpg");
+   if Adi.Image.Is_Owned (Jpg_Img) then
+      Set_Image (UI.Img_Jpg, Adi.Image.To_Handle (Jpg_Img));
+   end if;
 
    --  Load happycat.png for all object-fit mode demos
-   declare
-      Cat : constant Adi.Image.Image_Access :=
-        Adi.Image.Load_From_File ("examples/assets/happycat.png");
-   begin
-      if Cat /= null then
-         Set_Image (UI.Fit_Fill, Cat);
-         Set_Image (UI.Fit_Contain, Cat);
-         Set_Image (UI.Fit_Cover, Cat);
-         Set_Image (UI.Fit_None, Cat);
-         Set_Image (UI.Fit_Scale_Down, Cat);
-      end if;
-   end;
+   Cat := Adi.Image.Load_From_File ("examples/assets/happycat.png");
+   if Adi.Image.Is_Owned (Cat) then
+      Set_Image (UI.Fit_Fill, Adi.Image.To_Handle (Cat));
+      Set_Image (UI.Fit_Contain, Adi.Image.To_Handle (Cat));
+      Set_Image (UI.Fit_Cover, Adi.Image.To_Handle (Cat));
+      Set_Image (UI.Fit_None, Adi.Image.To_Handle (Cat));
+      Set_Image (UI.Fit_Scale_Down, Adi.Image.To_Handle (Cat));
+   end if;
 
    --  Load tintable SVG path icons (white on transparent, tinted by CSS color)
-   declare
-      Icon_Size : constant Adi.Core.Size_2D := (24.0, 24.0);
-      White     : constant Adi.Core.Color_8 := (255, 255, 255, 255);
-
-      Heart : constant Image_Access := Load_SVG_Path
+   Heart := Load_SVG_Path
         (Heart_Path, Icon_Size,
          Fill => White, Tintable => True);
-      Bolt : constant Image_Access := Load_SVG_Path
+   Bolt := Load_SVG_Path
         (Bolt_Path, Icon_Size,
          Fill => White, Tintable => True);
-      Shield : constant Image_Access := Load_SVG_Path
+   Shield := Load_SVG_Path
         (Shield_Path, Icon_Size,
          Fill => White, Tintable => True);
-      Bell_Img : constant Image_Access := Load_SVG_Path
+   Bell_Img := Load_SVG_Path
         (Bell_Path, Icon_Size,
          Fill => White, Tintable => True);
-   begin
-      if Heart /= null then
-         Set_Image (UI.Tint_Default, Heart);
-      end if;
-      if Bolt /= null then
-         Set_Image (UI.Tint_Warm, Bolt);
-      end if;
-      if Shield /= null then
-         Set_Image (UI.Tint_Success, Shield);
-      end if;
-      if Bell_Img /= null then
-         Set_Image (UI.Tint_Danger, Bell_Img);
-      end if;
-   end;
+   if Adi.Image.Is_Owned (Heart) then
+      Set_Image (UI.Tint_Default, Adi.Image.To_Handle (Heart));
+   end if;
+   if Adi.Image.Is_Owned (Bolt) then
+      Set_Image (UI.Tint_Warm, Adi.Image.To_Handle (Bolt));
+   end if;
+   if Adi.Image.Is_Owned (Shield) then
+      Set_Image (UI.Tint_Success, Adi.Image.To_Handle (Shield));
+   end if;
+   if Adi.Image.Is_Owned (Bell_Img) then
+      Set_Image (UI.Tint_Danger, Adi.Image.To_Handle (Bell_Img));
+   end if;
 
    Adi.MCP.Initialize (W);
 

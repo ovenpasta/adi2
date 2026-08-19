@@ -65,8 +65,8 @@ package body Adi.Widget.Combo_Box is
    Arrow_White : constant Color_8 := (R => 255, G => 255, B => 255, A => 255);
    Arrow_Clear : constant Color_8 := (R => 0, G => 0, B => 0, A => 0);
 
-   Default_Arrow_Down : Image_Access := null;
-   Default_Arrow_Up   : Image_Access := null;
+   Default_Arrow_Down : Image_Handle := Adi.Image.Null_Image_Handle;
+   Default_Arrow_Up   : Image_Handle := Adi.Image.Null_Image_Handle;
 
    function Find_Owner
      (Dismiss : Dismiss_Layer_Widget_Access) return Combo_Box_Widget_Access
@@ -357,7 +357,7 @@ package body Adi.Widget.Combo_Box is
 
    procedure Add_Item (W    : in out Combo_Box_Widget;
                        Text : String;
-                       Icon : Adi.Image.Image_Access := null;
+                       Icon : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle;
                        Data : Item_Data_Access       := null)
    is
       Row_H : constant Adi.Widget.Label.Label_Handle :=
@@ -370,7 +370,7 @@ package body Adi.Widget.Combo_Box is
            (Row_H, Default_Option_Row_Styles.Element);
       end if;
 
-      if Icon /= null then
+      if Icon /= Adi.Image.Null_Image_Handle then
          Adi.Widget.Label.Set_Icon (Row_H, Icon);
       end if;
 
@@ -464,10 +464,10 @@ package body Adi.Widget.Combo_Box is
    end Get_Item_Data;
 
    function Get_Item_Icon (W     : Combo_Box_Widget;
-                           Index : Positive) return Adi.Image.Image_Access is
+                           Index : Positive) return Adi.Image.Image_Handle is
    begin
       if Index > Natural (W.Options.Length) then
-         return null;
+         return Adi.Image.Null_Image_Handle;
       end if;
       return W.Options.Element (Index).Icon;
    end Get_Item_Icon;
@@ -545,54 +545,60 @@ package body Adi.Widget.Combo_Box is
 
    procedure Set_Arrow_Image
      (W    : in out Combo_Box_Widget;
-      Down : Image_Access;
-      Up   : Image_Access := null)
+      Down : Image_Handle;
+      Up   : Image_Handle := Adi.Image.Null_Image_Handle)
    is
    begin
+      --  Whatever this widget drew for itself is not wanted now.
+      Adi.Image.Release (W.Own_Arrow_Down);
+      Adi.Image.Release (W.Own_Arrow_Up);
       W.Arrow_Down_Img := Down;
-      W.Arrow_Up_Img := (if Up /= null then Up else Down);
+      W.Arrow_Up_Img := (if Up /= Adi.Image.Null_Image_Handle then Up else Down);
       Mark_Dirty (W);
    end Set_Arrow_Image;
 
    procedure Set_Default_Arrow_Image
-     (Down : Image_Access;
-      Up   : Image_Access := null)
+     (Down : Image_Handle;
+      Up   : Image_Handle := Adi.Image.Null_Image_Handle)
    is
    begin
       Default_Arrow_Down := Down;
-      Default_Arrow_Up := (if Up /= null then Up else Down);
+      Default_Arrow_Up := (if Up /= Adi.Image.Null_Image_Handle then Up else Down);
    end Set_Default_Arrow_Image;
 
    procedure Ensure_Arrow_Images (W : in out Combo_Box_Widget) is
    begin
-      if W.Arrow_Down_Img /= null then
+      if W.Arrow_Down_Img /= Adi.Image.Null_Image_Handle then
          return;
       end if;
 
       --  Use package-level defaults if set
-      if Default_Arrow_Down /= null then
+      if Default_Arrow_Down /= Adi.Image.Null_Image_Handle then
          W.Arrow_Down_Img := Default_Arrow_Down;
          W.Arrow_Up_Img :=
-           (if Default_Arrow_Up /= null then Default_Arrow_Up
+           (if Default_Arrow_Up /= Adi.Image.Null_Image_Handle then Default_Arrow_Up
             else Default_Arrow_Down);
          return;
       end if;
 
-      --  Create built-in SVG chevrons
-      W.Arrow_Down_Img := Load_SVG_Path
+      --  Built here for want of any supplied, so this widget owns them
+      --  and releases them when it goes.
+      W.Own_Arrow_Down := Load_SVG_Path
         (Path_Data    => Arrow_Down_Path,
          Size         => Arrow_SVG_Size,
          Fill         => Arrow_Clear,
          Stroke_Width => 2.5,
          Stroke       => Arrow_White,
          Tintable     => True);
-      W.Arrow_Up_Img := Load_SVG_Path
+      W.Own_Arrow_Up := Load_SVG_Path
         (Path_Data    => Arrow_Up_Path,
          Size         => Arrow_SVG_Size,
          Fill         => Arrow_Clear,
          Stroke_Width => 2.5,
          Stroke       => Arrow_White,
          Tintable     => True);
+      W.Arrow_Down_Img := Adi.Image.To_Handle (W.Own_Arrow_Down);
+      W.Arrow_Up_Img := Adi.Image.To_Handle (W.Own_Arrow_Up);
    end Ensure_Arrow_Images;
 
    procedure Ensure_Host_Window (W : in out Combo_Box_Widget) is
@@ -757,7 +763,7 @@ package body Adi.Widget.Combo_Box is
          Adi.Widget.Add_Item
            (W, Make_Image (Indicator_Part, W.Geometry, W.Arrow_Down_Img, 2));
          Adi.Widget.Add_Item
-           (W, Make_Image (Icon_Part, W.Geometry, null, 3));
+           (W, Make_Image (Icon_Part, W.Geometry, Adi.Image.Null_Image_Handle, 3));
       end if;
 
       --  Update panel geometry
@@ -800,7 +806,7 @@ package body Adi.Widget.Combo_Box is
             end if;
          end loop;
          if not Found then
-            Ind_It.Image_Source := null;
+            Ind_It.Image_Source := Adi.Image.Null_Image_Handle;
          end if;
       end;
 
@@ -819,7 +825,7 @@ package body Adi.Widget.Combo_Box is
             end if;
          end loop;
          if not Found then
-            Icon_It.Image_Source := null;
+            Icon_It.Image_Source := Adi.Image.Null_Image_Handle;
          end if;
       end;
    end Build_Items;
@@ -870,9 +876,9 @@ package body Adi.Widget.Combo_Box is
       Label_Text : constant String := Get_Selected_Text (W);
       Label_Visible : constant Boolean := Label_Style.Display /= Display_None;
       Indicator_Visible : constant Boolean := Ind_Style.Display /= Display_None;
-      Sel_Icon    : constant Adi.Image.Image_Access := Get_Selected_Item (W).Icon;
+      Sel_Icon    : constant Adi.Image.Image_Handle := Get_Selected_Item (W).Icon;
       Icon_Visible : constant Boolean :=
-        Icon_Style.Display /= Display_None and then Sel_Icon /= null;
+        Icon_Style.Display /= Display_None and then Sel_Icon /= Adi.Image.Null_Image_Handle;
 
       Label_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
@@ -896,14 +902,14 @@ package body Adi.Widget.Combo_Box is
 
       if Indicator_Visible then
          declare
-            Img : constant Image_Access :=
+            Img : constant Image_Handle :=
               (if W.Open then W.Arrow_Up_Img else W.Arrow_Down_Img);
             Width_Fixed  : constant Boolean := Ind_Style.Width.Kind = Fixed;
             Height_Fixed : constant Boolean := Ind_Style.Height.Kind = Fixed;
             Intrinsic    : Size_2D;
          begin
-            if Img /= null and then Is_Valid (Img.all) then
-               Get_Size (Img.all, Intrinsic.Width, Intrinsic.Height);
+            if Is_Valid (Img) then
+               Get_Size (Img, Intrinsic.Width, Intrinsic.Height);
             else
                Intrinsic := Default_Indicator_Size;
             end if;
@@ -948,8 +954,8 @@ package body Adi.Widget.Combo_Box is
             Width_Fixed  : constant Boolean := Icon_Style.Width.Kind = Fixed;
             Height_Fixed : constant Boolean := Icon_Style.Height.Kind = Fixed;
          begin
-            if Is_Valid (Sel_Icon.all) then
-               Get_Size (Sel_Icon.all, Intrinsic.Width, Intrinsic.Height);
+            if Is_Valid (Sel_Icon) then
+               Get_Size (Sel_Icon, Intrinsic.Width, Intrinsic.Height);
             else
                Intrinsic := Default_Icon_Size;
             end if;
@@ -1121,6 +1127,9 @@ package body Adi.Widget.Combo_Box is
             exit;
          end if;
       end loop;
+
+      Adi.Image.Release (W.Own_Arrow_Down);
+      Adi.Image.Release (W.Own_Arrow_Up);
    end On_Destroy;
 
    ---------------------------------------------------------------------------
@@ -1129,7 +1138,7 @@ package body Adi.Widget.Combo_Box is
 
    procedure Add_Item (H    : Combo_Box_Handle;
                        Text : String;
-                       Icon : Adi.Image.Image_Access := null;
+                       Icon : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle;
                        Data : Item_Data_Access       := null)
    is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
@@ -1202,13 +1211,13 @@ package body Adi.Widget.Combo_Box is
    end Get_Item_Data;
 
    function Get_Item_Icon (H     : Combo_Box_Handle;
-                           Index : Positive) return Adi.Image.Image_Access is
+                           Index : Positive) return Adi.Image.Image_Handle is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
          return Get_Item_Icon (Combo_Box_Widget (Ptr.all), Index);
       end if;
-      return null;
+      return Adi.Image.Null_Image_Handle;
    end Get_Item_Icon;
 
    procedure Connect_Selection_Changed
@@ -1266,8 +1275,8 @@ package body Adi.Widget.Combo_Box is
 
    procedure Set_Arrow_Image
      (H    : Combo_Box_Handle;
-      Down : Adi.Image.Image_Access;
-      Up   : Adi.Image.Image_Access := null)
+      Down : Adi.Image.Image_Handle;
+      Up   : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle)
    is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin

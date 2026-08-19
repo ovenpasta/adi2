@@ -694,14 +694,14 @@ procedure Widget_Handle_Test is
 
       --  Get_Image should be null initially
       declare
-         use type Adi.Image.Image_Access;
+         use type Adi.Image.Image_Handle;
       begin
-         Test_Support.Assert (Get_Image (H) = null, "Image initially null");
+         Test_Support.Assert (Get_Image (H) = Adi.Image.Null_Image_Handle, "Image initially null");
       end;
 
       --  Null handle
       Test_Support.Assert (not Is_Valid (Null_Image_Handle),
-              "Null_Image_Handle should be invalid");
+              "null should be invalid");
    end Test_Image_Handle;
 
    ---------------------------------------------------------------------------

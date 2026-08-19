@@ -38,13 +38,13 @@ package Adi.Widget.Label is
    --  Content management (widget methods)
    procedure Set_Text (W : in out Label_Widget; Text : String);
    function Get_Text (W : Label_Widget) return String;
-   procedure Set_Icon (W : in out Label_Widget; Icon : Image_Access);
-   function Get_Icon (W : Label_Widget) return Image_Access;
+   procedure Set_Icon (W : in out Label_Widget; Icon : Image_Handle);
+   function Get_Icon (W : Label_Widget) return Image_Handle;
 
    --  Content management (typed handle methods)
    procedure Set_Text (H : Label_Handle; Text : String);
    function  Get_Text (H : Label_Handle) return String;
-   procedure Set_Icon (H : Label_Handle; Icon : Image_Access);
+   procedure Set_Icon (H : Label_Handle; Icon : Image_Handle);
    function "+" (H : Label_Handle) return Widget_Handle;
    procedure Set_Part_Styles (H : Label_Handle; Styles : Part_Style_Array);
 
@@ -69,7 +69,7 @@ private
 
    type Label_Widget is new Widget with record
       Text : Unbounded_String := Null_Unbounded_String;
-      Icon : Image_Access := null;
+      Icon : Image_Handle := Null_Image_Handle;
 
       --  Layout items (positioned by flex layout, then rendered as Items)
       Layout_Items : Layout_Item_List.Vector;

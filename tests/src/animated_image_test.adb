@@ -7,6 +7,7 @@ with Adi.Assets;
 with Adi.Clock;
 with Adi.Core;                   use Adi.Core;
 with Adi.Image;                  use Adi.Image;
+with Adi.Image.Testing;
 with Adi.SDL;
 with Adi.Texture_Cache;
 with Adi.Widget;                 use Adi.Widget;
@@ -65,7 +66,7 @@ procedure Animated_Image_Test is
       --  parameters, which cannot signal by its return.
       Assert (Get_Frame_Count (Copy) = 0, "a stale handle reports no frames");
       Assert (Get_Current_Frame_Index (Copy) = 0, "no current frame");
-      Assert (Get_Current_Image (Copy) = null, "nothing to draw");
+      Assert (Get_Current_Image (Copy) = Adi.Image.Null_Image_Handle, "nothing to draw");
       Assert (not Is_Playing (Copy) and then not Is_Looping (Copy),
               "and answers no to each ask");
       Assert (not Advance (Copy, 0.1)
@@ -198,7 +199,7 @@ procedure Animated_Image_Test is
               and then not Handle_Is_Registered (B),
               "Clearing retires the slot, so every handle the cache gave"
               & " out is stale rather than dangling");
-      Assert (Get_Current_Image (A) = null,
+      Assert (Get_Current_Image (A) = Adi.Image.Null_Image_Handle,
               "and asking one for a frame is answered, not dereferenced");
 
       Adi.Assets.Remove_Path ("examples/assets");
@@ -393,6 +394,7 @@ procedure Animated_Image_Test is
 
       Was_A, Was_B : Natural;
       Rel_A, Rel_B : Adi.Texture_Cache.Event_Count;
+      Drawn        : Adi.Image.Image_Handle;
    begin
       Section ("destroying an animation frees its frames in every renderer");
       if not Is_Valid (Anim) then
@@ -416,24 +418,33 @@ procedure Animated_Image_Test is
       Rel_A := Released (WA);
       Rel_B := Released (WB);
 
-      --  Detached first, as the contract requires: what a render item
-      --  holds is a plain Image_Access into a frame, and destroying the
-      --  animation frees it. The windows stay, so their caches can be
-      --  read afterwards.
-      declare
-         HA : Widget_Handle := RA;
-         HB : Widget_Handle := RB;
-      begin
-         Adi.Widget.Destroy (HA);
-         Adi.Widget.Destroy (HB);
-      end;
-      Adi.Widget.Pump_Widget_Store;
-
-      Assert (Rasters (WA) = Was_A and then Rasters (WB) = Was_B,
-              "Destroying the widgets releases nothing: the frames belong"
-              & " to the animation, which is still alive");
+      --  Both widgets stay attached and keep the handles they drew
+      --  through. Nothing detaches: the animation owns its frames, so
+      --  destroying it is allowed to happen under viewers.
+      Drawn := Get_Current_Image (Anim);
+      Assert (Adi.Image.Testing.Handle_Is_Registered (Drawn),
+              "the frame both widgets drew is a live image");
 
       Destroy (Anim);
+
+      Assert (not Adi.Image.Testing.Handle_Is_Registered (Drawn),
+              "Destroying the animation ends its frames, so what the"
+              & " render items still name is a stale handle rather than"
+              & " a pointer into freed storage");
+      Assert (not Adi.Image.Is_Valid (Drawn),
+              "and it has nothing to draw");
+
+      --  Forced rather than dirtied: marking the widgets dirty would
+      --  rebuild their items and replace the very handles under test.
+      declare
+         RefA : constant Adi.Window.Window_Ref := Adi.Window.Borrow (WA);
+         RefB : constant Adi.Window.Window_Ref := Adi.Window.Borrow (WB);
+      begin
+         Adi.Window.Request_Redraw (RefA.Ptr.all);
+         Adi.Window.Request_Redraw (RefB.Ptr.all);
+      end;
+      Adi.Window.Render (WA);
+      Adi.Window.Render (WB);
 
       Assert (Rasters (WA) = 0 and then Rasters (WB) = 0,
               "Destroying takes its frames from every renderer that held"

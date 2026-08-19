@@ -57,10 +57,10 @@ package Adi.Animated_Image is
    function Get_Current_Frame_Index
      (H : Animation_Handle) return Natural;
 
-   --  The frame to draw now, or null when there is none. Borrowed, not
-   --  given: the animation owns it and Destroy frees it, and nothing
-   --  invalidates a copy kept past that.
-   function Get_Current_Image (H : Animation_Handle) return Image_Access;
+   --  A view of the frame to draw now, naming nothing when there is
+   --  none. The animation owns its frames, so a copy kept past Destroy
+   --  goes stale with them and draws nothing.
+   function Get_Current_Image (H : Animation_Handle) return Image_Handle;
 
    --  Playback controls.
    procedure Start (H : Animation_Handle);
@@ -94,9 +94,9 @@ package Adi.Animated_Image is
    --  goes stale together. Sets H to null; a null or stale handle is no
    --  work at all.
    --
-   --  This does not reach the widgets. A render item holds a plain
-   --  Image_Access into a frame, which this frees, so detach or destroy
-   --  every widget drawing this animation first.
+   --  The frames go with it, so a render item still naming one is left
+   --  with a stale handle and draws nothing. Widgets need not be
+   --  detached first.
    --
    --  Call it on the render thread: it releases the texture group these
    --  frames belong to, which reaches into every renderer that drew
@@ -108,7 +108,7 @@ private
    type Animated_Image;
 
    type Frame_Info is record
-      Image    : Image_Access := null;
+      Image    : Image_Owner := Null_Image_Owner;
       Delay_MS : Natural := 100;
    end record;
 
@@ -145,7 +145,7 @@ private
       Height : out Pixel_Type);
    function Get_Frame_Count (Anim : Animated_Image) return Natural;
    function Get_Current_Frame_Index (Anim : Animated_Image) return Natural;
-   function Get_Current_Image (Anim : Animated_Image) return Image_Access;
+   function Get_Current_Image (Anim : Animated_Image) return Image_Handle;
    procedure Start (Anim : in out Animated_Image);
    procedure Stop (Anim : in out Animated_Image);
    function Is_Playing (Anim : Animated_Image) return Boolean;

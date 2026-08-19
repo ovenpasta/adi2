@@ -69,16 +69,25 @@ Package: `Adi.Widget.Html_View`
     type Asset_Load_Callback is access function
       (Self : access Html_View;
        URI  : String)
-       return Adi.Image.Image_Access;
+       return Adi.Image.Image_Handle;
 
     procedure Set_On_Load_Asset
       (Self     : in out Html_View;
        Callback : Asset_Load_Callback);
     ```
+  - Ownership: the callback returns an `Image_Handle`, which keeps
+    nothing. The callback must hold an `Image_Owner` for as long as the
+    view draws the image — typically the asset cache's, or one of its
+    own. Loading into a local owner and returning its handle yields a
+    handle that is already stale.
   - Resolution path for `img src`:
     1. If `On_Load_Asset` is set, call it first with the raw `src` value.
-    2. If callback returns non-null, use returned image.
-    3. If callback is null or returns null, image is treated as unavailable (render `alt` fallback if present).
+    2. If the callback returns a valid handle, use it.
+    3. If the callback is null or the handle names nothing, the image is treated as unavailable (render `alt` fallback if present).
+  - The view caches what the callback gave it, keyed by `src`. An entry
+    whose image has since been released is dropped and the callback
+    asked again, so an owner may be let go and the image reloaded on the
+    next request.
   - Callback may implement custom URI schemes (e.g. `app://`, in-memory bundles, virtual FS).
   - Widget does not take ownership of callback internals; image lifetime follows normal `Adi.Image` ownership conventions.
 

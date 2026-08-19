@@ -60,7 +60,7 @@ procedure Perform_Item_Flex_Layout
 type My_Widget is new Widget with record
    --  Content data (what to display)
    Text : Unbounded_String;
-   Icon : Image_Access;
+   Icon : Adi.Image.Image_Handle;
 
    --  Layout items (positioned by flex, then rendered)
    Layout_Items : Layout_Item_List.Vector;

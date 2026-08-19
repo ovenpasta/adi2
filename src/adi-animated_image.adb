@@ -155,7 +155,7 @@ package body Adi.Animated_Image is
               Read_Surface_At (Raw_Anim.frames, I);
             Dup         : SDL_Surface_Ptr;
             Frame_Delay : Natural := 100;
-            Img         : Image_Access;
+            Img         : Image_Owner;
          begin
             if Surface = null then
                goto Next_Frame;
@@ -181,7 +181,7 @@ package body Adi.Animated_Image is
                Img := Create_From_Surface
                  (Dup, Group => Result.Group'Unchecked_Access);
 
-               if Img = null then
+               if not Adi.Image.Is_Owned (Img) then
                   SDL_DestroySurface (Dup);
                   Dup := null;
                   goto Next_Frame;
@@ -194,11 +194,11 @@ package body Adi.Animated_Image is
                  (Frame_Info'(Image => Img, Delay_MS => Frame_Delay));
 
                --  And the vector owns the image.
-               Img := null;
+               Adi.Image.Release (Img);
             exception
                when others =>
-                  if Img /= null then
-                     Adi.Image.Free (Img);
+                  if Adi.Image.Is_Owned (Img) then
+                     Adi.Image.Release (Img);
                   elsif Dup /= null then
                      SDL_DestroySurface (Dup);
                   end if;
@@ -220,7 +220,7 @@ package body Adi.Animated_Image is
       end if;
 
       if Result.Width <= 0.0 or else Result.Height <= 0.0 then
-         Get_Size (Result.Frames.First_Element.Image.all,
+         Get_Size (Adi.Image.To_Handle (Result.Frames.First_Element.Image),
                    Result.Width, Result.Height);
       end if;
 
@@ -335,19 +335,20 @@ package body Adi.Animated_Image is
       return Anim.Current_Frame;
    end Get_Current_Frame_Index;
 
-   function Get_Current_Image (Anim : Animated_Image) return Image_Access is
+   function Get_Current_Image (Anim : Animated_Image) return Image_Handle is
    begin
       if Anim.Frames.Is_Empty then
-         return null;
+         return Null_Image_Handle;
       end if;
 
       if Anim.Current_Frame = 0
         or else Anim.Current_Frame > Natural (Anim.Frames.Length)
       then
-         return null;
+         return Null_Image_Handle;
       end if;
 
-      return Anim.Frames.Element (Positive (Anim.Current_Frame)).Image;
+      return Adi.Image.To_Handle
+        (Anim.Frames.Element (Positive (Anim.Current_Frame)).Image);
    end Get_Current_Image;
 
    procedure Start (Anim : in out Animated_Image) is
@@ -445,17 +446,11 @@ package body Adi.Animated_Image is
       Adi.Texture_Cache.Release (Anim.Group);
 
       if not Anim.Frames.Is_Empty then
+         --  Released one by one, before the vector is emptied: when a
+         --  vector finalises the elements it drops is unspecified, and
+         --  these have to go with the group they were made for.
          for F of Anim.Frames loop
-            if F.Image /= null then
-               declare
-                  Img : Image_Access := F.Image;
-               begin
-                  --  Cleared before the free, so a teardown interrupted
-                  --  part way can be run again without freeing twice.
-                  F.Image := null;
-                  Adi.Image.Free (Img);
-               end;
-            end if;
+            Adi.Image.Release (F.Image);
          end loop;
          Anim.Frames.Clear;
       end if;
@@ -515,11 +510,12 @@ package body Adi.Animated_Image is
    end Get_Current_Frame_Index;
 
    function Get_Current_Image
-     (H : Animation_Handle) return Image_Access
+     (H : Animation_Handle) return Image_Handle
    is
       A : constant Animated_Image_Access := Resolve (H);
    begin
-      return (if A = null then null else Get_Current_Image (A.all));
+      return (if A = null then Null_Image_Handle
+              else Get_Current_Image (A.all));
    end Get_Current_Image;
 
    procedure Start (H : Animation_Handle) is

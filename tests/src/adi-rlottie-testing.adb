@@ -28,19 +28,7 @@ package body Adi.RLottie.Testing is
        and then A (H).Active /= null
        and then A (H).Active.Images /= null
        and then Frame <= A (H).Active.Images'Last
-       and then A (H).Active.Images (Frame) /= null);
-
-   --  A frame of the newest replaced set is still a record, emptied of
-   --  its pixels rather than freed.
-   function Retired_Frame_Is_Shell
-     (H : Animation_Handle; Frame : Positive) return Boolean
-   is (A (H) /= null
-       and then A (H).Retired /= null
-       and then A (H).Retired.Images /= null
-       and then Frame <= A (H).Retired.Images'Last
-       and then A (H).Retired.Images (Frame) /= null
-       and then Adi.Image.Get_Surface (A (H).Retired.Images (Frame).all)
-                  = null);
+       and then Adi.Image.Is_Owned (A (H).Active.Images (Frame)));
 
    procedure Fail_Next_Rasterisation (H : Animation_Handle) is
       P : constant RLottie_Animation_Access := A (H);

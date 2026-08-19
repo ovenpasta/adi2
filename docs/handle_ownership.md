@@ -71,15 +71,46 @@ goes stale together and a reused slot does not revive them. Operations
 resolve a handle for one call and answer a stale or null one with a
 default rather than reaching through it.
 
-`Adi.Assets` caches animated images as handles, so clearing or
-invalidating an entry retires the slot and every handle it gave out goes
-stale. Still images are not handle-backed and are a separate matter.
+`Adi.Assets` caches images and animated images as handles, so clearing
+or invalidating an entry retires the slot and every handle it gave out
+goes stale.
 
-Two limits are worth stating. Nothing pins a slot, so every operation
-must run on the render thread. And a handle does not reach what widgets
-already drew: a render item holds a plain `Image_Access` into a frame
-set, which destruction frees, so viewers are detached before an
-animation is destroyed.
+## Owned Handles
+
+`Adi.Owned_Handle_Store` layers two types over `Adi.Handle_Store`. An
+`Owner` keeps an object and is the only thing that can end it; a
+`Handle` names it without keeping it. Owners are counted between
+themselves, so they can live in ordinary containers; a handle never
+counts, so the last owner going stales every view at once rather than
+keeping the object alive for whoever still points at it.
+
+Releasing is explicit. When a container finalises a value it drops is
+unspecified, and GNAT's map and vector do not agree, so an owner held in
+one is released before it is removed.
+
+## Image Ownership
+
+`Adi.Image` instantiates it. The raw image and the pointer to it are
+private, so every holder — render items, widget icons, CSS background
+images, cached HTML images, animation frames — names an image by
+`Image_Handle`, and nothing outside the package holds a pointer to one.
+
+Constructors return an `Image_Owner`; `To_Handle` gives the view that
+everything else stores. `Release` on the last owner frees the image and
+retires its slot, and every handle to it goes stale in that moment — so
+an owner may end an image while widgets still hold handles: each answers
+with the default an image holding nothing would give, and a render item
+naming one draws nothing.
+
+Who owns what: the asset cache owns what it hands out, an animation owns
+its frames, an HTML view owns the images it builds from inline `<svg>`
+and borrows the ones a callback hands it, a combo box owns the chevrons
+it draws for want of any supplied. An application owns what it loads,
+and must outlive the widgets drawing it.
+
+One limit is worth stating: nothing pins a slot, so every operation must
+run on the render thread — including the release an owner performs on
+its way out of scope.
 
 ## Context Menu Ownership
 

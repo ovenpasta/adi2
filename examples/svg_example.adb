@@ -19,7 +19,6 @@ procedure Svg_Example is
 
    use type Adi.Widget.Box.Box_Handle;
    use type Adi.Widget.Label.Label_Handle;
-   use type Adi.Image.Image_Access;
 
    Tiger_Path : constant String := "examples/assets/tiger.svg";
 
@@ -59,7 +58,7 @@ begin
       Status : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("");
 
-      Tiger : constant Adi.Image.Image_Access :=
+      Tiger : constant Adi.Image.Image_Owner :=
         Adi.Image.Load_From_File (Tiger_Path);
    begin
       Adi.Widget.Box.Set_Part_Styles (Root, Root_Class_Part_Styles);
@@ -75,8 +74,8 @@ begin
       Adi.Widget.Label.Set_Part_Styles (Caption, Caption_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles (Status, Status_Class_Part_Styles);
 
-      if Tiger /= null then
-         Adi.Widget.Image.Set_Image (Artwork, Tiger);
+      if Adi.Image.Is_Owned (Tiger) then
+         Adi.Widget.Image.Set_Image (Artwork, Adi.Image.To_Handle (Tiger));
          Adi.Widget.Label.Set_Text
            (Status, "Loaded " & Tiger_Path
             & "  --  backend: " & Adi.SVG.Backend_Name);

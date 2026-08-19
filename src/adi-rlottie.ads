@@ -109,11 +109,11 @@ package Adi.RLottie is
 
    function Get_Current_Frame_Index (H : Animation_Handle) return Natural;
 
-   --  The frame to draw now, or null when there is none. Borrowed, not
-   --  given: the animation owns it, replacing an extent empties it, and
-   --  Destroy frees it. Nothing here invalidates a copy kept past either,
-   --  so do not retain one across a resize or a destroy.
-   function Get_Current_Image (H : Animation_Handle) return Image_Access;
+   --  A view of the frame to draw now, naming nothing when there is
+   --  none. The animation owns its frames: replacing an extent ends the
+   --  frames of the old one, and Destroy ends them all. A copy kept
+   --  across either goes stale with them and draws nothing.
+   function Get_Current_Image (H : Animation_Handle) return Image_Handle;
 
    procedure Start (H : Animation_Handle);
    procedure Stop (H : Animation_Handle);
@@ -159,10 +159,9 @@ package Adi.RLottie is
    --  goes stale together, and a slot reused later does not revive them.
    --  Sets H to null; a null or stale handle is no work at all.
    --
-   --  This does not reach the widgets. What a render item holds is a
-   --  plain Image_Access into a frame set, which this frees, and no
-   --  handle stands between the two -- so detach or destroy every widget
-   --  and backend drawing this animation first.
+   --  The frames go with it, so a render item still naming one is left
+   --  with a stale handle and draws nothing. Widgets and backends need
+   --  not be detached first.
    --
    --  Call it on the render thread. It releases the texture group of
    --  every extent the animation has held, which reaches into the cache
@@ -178,7 +177,9 @@ private
    --  owned, which is the only way to reach the cleanup path.
    Fail_After_Model : Boolean := False;
 
-   type Image_Array is array (Positive range <>) of Image_Access;
+   --  Owners: the frames belong to the extent they were rasterised for,
+   --  and go when it is replaced. Viewers get handles.
+   type Image_Array is array (Positive range <>) of Image_Owner;
    type Image_Array_Access is access Image_Array;
 
    type Frame_Set;
@@ -198,10 +199,8 @@ private
       --  leaving them to be evicted under pressure later.
       Group        : aliased Adi.Texture_Cache.Texture_Group;
 
-      --  Retired sets are chained rather than freed. A widget in another
-      --  window holds a plain Image_Access into whatever it last drew,
-      --  and a resize completed by one viewer must not turn that into a
-      --  dangling pointer before the other has rebuilt.
+      --  Retired sets are chained so that the counting a resize is
+      --  measured by has something to count.
       Next_Retired : Frame_Set_Access := null;
    end record;
 
@@ -286,7 +285,7 @@ private
    function Get_Frame_Rate (Anim : RLottie_Animation) return Float;
    function Get_Duration (Anim : RLottie_Animation) return Duration;
    function Get_Current_Frame_Index (Anim : RLottie_Animation) return Natural;
-   function Get_Current_Image (Anim : RLottie_Animation) return Image_Access;
+   function Get_Current_Image (Anim : RLottie_Animation) return Image_Handle;
    procedure Start (Anim : in out RLottie_Animation);
    procedure Stop (Anim : in out RLottie_Animation);
    function Is_Playing (Anim : RLottie_Animation) return Boolean;

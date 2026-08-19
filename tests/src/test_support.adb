@@ -1,9 +1,20 @@
 pragma Ada_2022;
 
+with Ada.Containers.Vectors;
+with Adi.Image; use type Adi.Image.Image_Owner;
+
 with Ada.Command_Line;
 with Ada.Text_IO;
 
 package body Test_Support is
+
+   --  Owners live here until the program ends. Nothing releases them:
+   --  the images are wanted for as long as the test runs.
+   package Owner_Vectors is new Ada.Containers.Vectors
+     (Positive, Adi.Image.Image_Owner);
+
+   Kept : Owner_Vectors.Vector;
+
 
    Passed : Natural := 0;
    Failed : Natural := 0;
@@ -61,5 +72,11 @@ package body Test_Support is
    --------------
 
    function Failures return Natural is (Failed);
+
+   function Keep (O : Adi.Image.Image_Owner) return Adi.Image.Image_Handle is
+   begin
+      Kept.Append (O);
+      return Adi.Image.To_Handle (O);
+   end Keep;
 
 end Test_Support;

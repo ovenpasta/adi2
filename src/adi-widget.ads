@@ -183,7 +183,7 @@ package Adi.Widget is
       Text_Offset_Y  : Pixel_Type := 0.0;
 
       --  Image_Item fields (unused by other kinds)
-      Image_Source   : Image_Access := null;
+      Image_Source   : Image_Handle := Null_Image_Handle;
       Is_Background  : Boolean := False;
 
       --  Text rendering cache (only used by Text_Item)
@@ -607,7 +607,7 @@ package Adi.Widget is
 
    function Make_Image (Part : Part_Kind;
                         Geometry : Rectangle;
-                        Source : Image_Access;
+                        Source : Image_Handle;
                         Z_Order : Natural := 0;
                         Is_Background : Boolean := False) return Item;
 

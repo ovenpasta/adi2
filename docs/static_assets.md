@@ -158,7 +158,7 @@ end My_App;
 
 | Declaration | Description |
 |------------|-------------|
-| `function Load_From_Memory (Data, Length) return Image_Access` | Load raster image from memory |
+| `function Load_From_Memory (Data, Length) return Image_Owner` | Load raster image from memory |
 
 ### `Adi.Animated_Image`
 

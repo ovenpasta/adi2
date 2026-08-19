@@ -39,7 +39,7 @@ package Adi.Widget.Combo_Box is
 
    procedure Add_Item (W    : in out Combo_Box_Widget;
                        Text : String;
-                       Icon : Adi.Image.Image_Access := null;
+                       Icon : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle;
                        Data : Item_Data_Access       := null);
    procedure Clear_Items (W : in out Combo_Box_Widget);
    function Option_Count (W : Combo_Box_Widget) return Natural;
@@ -52,7 +52,7 @@ package Adi.Widget.Combo_Box is
    function Get_Item_Data (W     : Combo_Box_Widget;
                            Index : Positive) return Item_Data_Access;
    function Get_Item_Icon (W     : Combo_Box_Widget;
-                           Index : Positive) return Adi.Image.Image_Access;
+                           Index : Positive) return Adi.Image.Image_Handle;
 
    type Selection_Changed_Callback is access procedure
      (W : Widget_Handle; Index : Natural; Text : String);
@@ -83,12 +83,12 @@ package Adi.Widget.Combo_Box is
 
    procedure Set_Arrow_Image
      (W    : in out Combo_Box_Widget;
-      Down : Adi.Image.Image_Access;
-      Up   : Adi.Image.Image_Access := null);
+      Down : Adi.Image.Image_Handle;
+      Up   : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle);
 
    procedure Set_Default_Arrow_Image
-     (Down : Adi.Image.Image_Access;
-      Up   : Adi.Image.Image_Access := null);
+     (Down : Adi.Image.Image_Handle;
+      Up   : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle);
 
    procedure Open_Dropdown (W : in out Combo_Box_Widget);
    procedure Close_Dropdown (W : in out Combo_Box_Widget);
@@ -98,7 +98,7 @@ package Adi.Widget.Combo_Box is
    --  Handle methods
    procedure Add_Item (H    : Combo_Box_Handle;
                        Text : String;
-                       Icon : Adi.Image.Image_Access := null;
+                       Icon : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle;
                        Data : Item_Data_Access       := null);
    procedure Clear_Items (H : Combo_Box_Handle);
    function Option_Count (H : Combo_Box_Handle) return Natural;
@@ -109,7 +109,7 @@ package Adi.Widget.Combo_Box is
    function Get_Item_Data (H     : Combo_Box_Handle;
                            Index : Positive) return Item_Data_Access;
    function Get_Item_Icon (H     : Combo_Box_Handle;
-                           Index : Positive) return Adi.Image.Image_Access;
+                           Index : Positive) return Adi.Image.Image_Handle;
    procedure Connect_Selection_Changed
      (H : Combo_Box_Handle; CB : Selection_Changed_Callback);
    function Connect_Selection_Changed
@@ -124,8 +124,8 @@ package Adi.Widget.Combo_Box is
      (H : Combo_Box_Handle; Styles : Part_Style_Array);
    procedure Set_Arrow_Image
      (H    : Combo_Box_Handle;
-      Down : Adi.Image.Image_Access;
-      Up   : Adi.Image.Image_Access := null);
+      Down : Adi.Image.Image_Handle;
+      Up   : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle);
    procedure Open_Dropdown (H : Combo_Box_Handle);
    procedure Close_Dropdown (H : Combo_Box_Handle);
    procedure Toggle_Dropdown (H : Combo_Box_Handle);
@@ -158,7 +158,7 @@ private
    type Combo_Item is record
       Text : Ada.Strings.Unbounded.Unbounded_String :=
                Ada.Strings.Unbounded.Null_Unbounded_String;
-      Icon : Adi.Image.Image_Access := null;
+      Icon : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle;
       Data : Item_Data_Access       := null;
    end record;
 
@@ -183,8 +183,13 @@ private
       Open        : Boolean := False;
       Changed : Selection_Changed_Signals.Signal;
       Layout_Items : Layout_Item_List.Vector;
-      Arrow_Down_Img : Adi.Image.Image_Access := null;
-      Arrow_Up_Img   : Adi.Image.Image_Access := null;
+      Arrow_Down_Img : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle;
+      Arrow_Up_Img   : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle;
+      --  Hold images only when this widget drew its own chevrons for
+      --  want of any supplied to it. Arrows given by the application, or
+      --  set as the package default, belong to whoever set them.
+      Own_Arrow_Down : Adi.Image.Image_Owner := Adi.Image.Null_Image_Owner;
+      Own_Arrow_Up   : Adi.Image.Image_Owner := Adi.Image.Null_Image_Owner;
    end record;
 
    type Combo_Box_Handle is record

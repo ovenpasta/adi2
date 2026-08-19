@@ -16,7 +16,7 @@ with Test_Support;
 
 procedure Svg_Test is
    use type Adi.Core.Pixel_Type;
-   use type Adi.Image.Image_Access;
+   use type Adi.Image.Image_Handle;
    use type Adi.SVG.Document_Access;
    use type Adi.SVG.Pixel_Buffer_Access;
 
@@ -141,8 +141,8 @@ procedure Svg_Test is
       end if;
    end Release;
 
-   procedure Release_Image (Img : in out Adi.Image.Image_Access)
-     renames Adi.Image.Free;
+   procedure Release_Image (Img : in out Adi.Image.Image_Owner)
+     renames Adi.Image.Release;
 
    procedure Test_Document_Size_And_Validity is
       Doc : Adi.SVG.Document_Access := null;
@@ -182,7 +182,7 @@ procedure Svg_Test is
    end Test_Document_Size_And_Validity;
 
    procedure Test_Image_Integration is
-      Img : Adi.Image.Image_Access := null;
+      Img : Adi.Image.Image_Owner;
       W   : Adi.Core.Pixel_Type := 0.0;
       H   : Adi.Core.Pixel_Type := 0.0;
    begin
@@ -191,10 +191,10 @@ procedure Svg_Test is
       Img := Adi.Image.Load_From_File
         (Path => "tests/assets/size_viewbox.svg");
 
-      Assert (Img /= null, "Adi.Image returns image handle for SVG with null renderer");
-      if Img /= null then
-         Assert (Adi.Image.Is_Valid (Img.all), "Adi.Image marks SVG image as valid");
-         Adi.Image.Get_Size (Img.all, W, H);
+      Assert (Adi.Image.Is_Owned (Img), "Adi.Image returns image handle for SVG with null renderer");
+      if Adi.Image.Is_Owned (Img) then
+         Assert (Adi.Image.Is_Valid (Adi.Image.To_Handle (Img)), "Adi.Image marks SVG image as valid");
+         Adi.Image.Get_Size (Adi.Image.To_Handle (Img), W, H);
          Assert (Nearly_Equal (W, 320.0, 0.2), "Adi.Image exposes SVG width");
          Assert (Nearly_Equal (H, 160.0, 0.2), "Adi.Image exposes SVG height");
       end if;
@@ -207,7 +207,7 @@ procedure Svg_Test is
    procedure Test_Load_From_String_And_Path is
       Doc : Adi.SVG.Document_Access := null;
       Px  : Adi.SVG.Pixel_Buffer_Access := null;
-      Img : Adi.Image.Image_Access := null;
+      Img : Adi.Image.Image_Owner;
       W   : Adi.Core.Pixel_Type := 0.0;
       H   : Adi.Core.Pixel_Type := 0.0;
    begin
@@ -231,10 +231,10 @@ procedure Svg_Test is
         (Path_Data => "M4 4 L20 4 L20 20 L4 20 Z",
          Size      => (Width => 24.0, Height => 24.0),
          Fill      => (R => 255, G => 99, B => 71, A => 255));
-      Assert (Img /= null, "Load_SVG_Path returns image");
-      if Img /= null then
-         Assert (Adi.Image.Is_Valid (Img.all), "Load_SVG_Path image is valid");
-         Adi.Image.Get_Size (Img.all, W, H);
+      Assert (Adi.Image.Is_Owned (Img), "Load_SVG_Path returns image");
+      if Adi.Image.Is_Owned (Img) then
+         Assert (Adi.Image.Is_Valid (Adi.Image.To_Handle (Img)), "Load_SVG_Path image is valid");
+         Adi.Image.Get_Size (Adi.Image.To_Handle (Img), W, H);
          Assert (Nearly_Equal (W, 24.0, 0.2), "Load_SVG_Path image width matches requested size");
          Assert (Nearly_Equal (H, 24.0, 0.2), "Load_SVG_Path image height matches requested size");
       end if;
@@ -867,7 +867,7 @@ procedure Svg_Test is
    procedure Test_Sized_Rasters_Are_Distinct_Entries is
       Ok  : Adi.SDL.C_bool;
       W   : Adi.Window.Window_Handle;
-      Img : Adi.Image.Image_Access := null;
+      Img : Adi.Image.Image_Owner;
       Ren : SDL_Renderer_Ptr;
       Ctx : Adi.Render.Render_Context;
 
@@ -880,7 +880,7 @@ procedure Svg_Test is
 
       function Leased (W_Px, H_Px : Adi.Core.Pixel_Type) return Boolean is
          L : constant Adi.Texture_Cache.Texture_Ref :=
-           Adi.Image.Acquire_Texture (Img.all, Ctx, W_Px, H_Px);
+           Adi.Image.Acquire_Texture (Adi.Image.To_Handle (Img), Ctx, W_Px, H_Px);
       begin
          return L.Texture /= null;
       end Leased;
@@ -900,9 +900,9 @@ procedure Svg_Test is
       Adi.Render.Create (Ctx, Ren);
 
       Img := Adi.Image.Load_From_File ("tests/assets/size_viewbox.svg");
-      Assert (Img /= null, "the fixture SVG loads");
+      Assert (Adi.Image.Is_Owned (Img), "the fixture SVG loads");
 
-      if Img /= null and then Ren /= null then
+      if Adi.Image.Is_Owned (Img) and then Ren /= null then
          --  Each size is its own entry, and each really rasterised: a run
          --  of failed creations would satisfy a count-only assertion.
          declare
@@ -934,14 +934,14 @@ procedure Svg_Test is
          --  different address.
          declare
             First : constant Adi.Texture_Cache.Texture_Ref :=
-              Adi.Image.Acquire_Texture (Img.all, Ctx, Size_W (1), Size_H (1));
+              Adi.Image.Acquire_Texture (Adi.Image.To_Handle (Img), Ctx, Size_W (1), Size_H (1));
          begin
             Assert (First.Texture /= null, "a size already rasterised leases");
 
             declare
                Again : constant Adi.Texture_Cache.Texture_Ref :=
                  Adi.Image.Acquire_Texture
-                   (Img.all, Ctx, Size_W (1), Size_H (1));
+                   (Adi.Image.To_Handle (Img), Ctx, Size_W (1), Size_H (1));
             begin
                Assert (Again.Texture = First.Texture,
                        "the same image, size and mode should lease the same"
@@ -953,18 +953,20 @@ procedure Svg_Test is
          --  identity is part of the key, so one cannot be served the
          --  other's raster.
          declare
-            Other : Adi.Image.Image_Access :=
+            Other : Adi.Image.Image_Owner :=
               Adi.Image.Load_From_File ("tests/assets/size_viewbox.svg");
          begin
-            Assert (Other /= null, "a second copy of the fixture loads");
-            if Other /= null then
+            Assert (Adi.Image.Is_Owned (Other), "a second copy of the fixture loads");
+            if Adi.Image.Is_Owned (Other) then
                declare
                   Mine : constant Adi.Texture_Cache.Texture_Ref :=
                     Adi.Image.Acquire_Texture
-                      (Img.all, Ctx, Size_W (3), Size_H (3));
+                      (Adi.Image.To_Handle (Img), Ctx,
+                       Size_W (3), Size_H (3));
                   Theirs : constant Adi.Texture_Cache.Texture_Ref :=
                     Adi.Image.Acquire_Texture
-                      (Other.all, Ctx, Size_W (3), Size_H (3));
+                      (Adi.Image.To_Handle (Other), Ctx,
+                       Size_W (3), Size_H (3));
                begin
                   Assert (Mine.Texture /= null and then Theirs.Texture /= null,
                           "both documents rasterise at that size");
@@ -981,16 +983,16 @@ procedure Svg_Test is
          --  another.
          declare
             Linear : constant Adi.Texture_Cache.Texture_Ref :=
-              Adi.Image.Acquire_Texture (Img.all, Ctx, Size_W (1), Size_H (1));
+              Adi.Image.Acquire_Texture (Adi.Image.To_Handle (Img), Ctx, Size_W (1), Size_H (1));
          begin
             Assert (Linear.Texture /= null, "a lease under the default mode");
 
-            Adi.Image.Set_Scale_Mode (Img.all, Adi.Image.Scale_Nearest);
+            Adi.Image.Set_Scale_Mode (Adi.Image.To_Handle (Img), Adi.Image.Scale_Nearest);
 
             declare
                Nearest : constant Adi.Texture_Cache.Texture_Ref :=
                  Adi.Image.Acquire_Texture
-                   (Img.all, Ctx, Size_W (1), Size_H (1));
+                   (Adi.Image.To_Handle (Img), Ctx, Size_W (1), Size_H (1));
             begin
                Assert (Nearest.Texture /= null,
                        "and one under a different mode");
@@ -1004,10 +1006,10 @@ procedure Svg_Test is
       --  A lease outlives the image it came from. The texture belongs to
       --  the renderer's cache, not to the image, so freeing the image
       --  neither destroys it nor invalidates what is holding it.
-      if Img /= null then
+      if Adi.Image.Is_Owned (Img) then
          declare
             Held : constant Adi.Texture_Cache.Texture_Ref :=
-              Adi.Image.Acquire_Texture (Img.all, Ctx, Size_W (2), Size_H (2));
+              Adi.Image.Acquire_Texture (Adi.Image.To_Handle (Img), Ctx, Size_W (2), Size_H (2));
             Before : constant SDL_Texture_Ptr := Held.Texture;
          begin
             Assert (Before /= null, "a lease on a rasterised size");
@@ -1022,7 +1024,8 @@ procedure Svg_Test is
          end;
       end if;
 
-      Assert (Img = null, "freeing an image clears the handle to it");
+      Assert (not Adi.Image.Is_Owned (Img),
+              "releasing spends the owner");
 
       --  A lease asked of a context that is gone reports no texture. The
       --  image reaches the renderer through the context, so this is the
@@ -1031,10 +1034,10 @@ procedure Svg_Test is
       Img := Adi.Image.Load_From_File ("tests/assets/size_viewbox.svg");
       Adi.Render.Destroy (Ctx);
 
-      if Img /= null then
+      if Adi.Image.Is_Owned (Img) then
          declare
             After : constant Adi.Texture_Cache.Texture_Ref :=
-              Adi.Image.Acquire_Texture (Img.all, Ctx, 48.0, 36.0);
+              Adi.Image.Acquire_Texture (Adi.Image.To_Handle (Img), Ctx, 48.0, 36.0);
          begin
             Assert (After.Texture = null,
                     "a lease asked of a destroyed context should name"

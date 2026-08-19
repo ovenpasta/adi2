@@ -19,13 +19,6 @@ package Adi.RLottie.Testing is
    function Frame_Is_Retained
      (H : Animation_Handle; Frame : Positive) return Boolean;
 
-   --  Whether the newest retired set still holds a record for this
-   --  frame, emptied of its pixels. A widget in a window that has not
-   --  ticked since a replacement still points at one of these, so it has
-   --  to be an empty image rather than freed storage.
-   function Retired_Frame_Is_Shell
-     (H : Animation_Handle; Frame : Positive) return Boolean;
-
    --  Make the next rasterisation fail, once, for this animation.
    --  Allocation failure cannot be provoked honestly by exhausting
    --  memory, and the path it takes has to be exercised.

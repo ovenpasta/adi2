@@ -53,6 +53,7 @@ project Tests is
       "render_textures_test",
       "rlottie_prepare_test",
       "rlottie_widget_test",
+      "image_handle_test",
       "owned_handle_store_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    Platform_Name := external ("ADI_PLATFORM", "linux");

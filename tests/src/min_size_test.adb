@@ -2922,14 +2922,14 @@ begin
           others     => <>];
 
       --  The label borrows the icon, so this test owns it.
-      Icon : Adi.Image.Image_Access :=
+      Icon : Adi.Image.Image_Owner :=
          Adi.Image.Load_SVG_From_String
            ("<svg width='20' height='10' viewBox='0 0 20 10'>"
             & "<rect width='20' height='10' fill='red'/></svg>");
    begin
       Set_Part_Styles (L, Parts);
       Adi.Widget.Label.Set_Icon
-        (Adi.Widget.Label.Try_As_Label (L), Icon);
+        (Adi.Widget.Label.Try_As_Label (L), Adi.Image.To_Handle (Icon));
       Set_Geometry (L, (X => 0.0, Y => 0.0, Width => 160.0, Height => 200.0));
       Layout (L);
 
@@ -2947,10 +2947,9 @@ begin
             >= Get_Preferred_Size (L).Height - 0.001,
           "content minimum wraps in the same column as preferred sizing");
 
-      --  Detach before freeing: the label outlives this block.
-      Adi.Widget.Label.Set_Icon
-        (Adi.Widget.Label.Try_As_Label (L), null);
-      Adi.Image.Free (Icon);
+      --  Released with the label still holding a handle to it: the
+      --  handle goes stale, which is the whole point of it being one.
+      Adi.Image.Release (Icon);
    end;
 
    Ada.Text_IO.New_Line;

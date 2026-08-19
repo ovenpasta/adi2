@@ -292,7 +292,8 @@ package Adi.CSS_Styles is
       case Kind is
          when No_Image => null;
          when Picture_Image =>
-            Image : Adi.Image.Image_Access := null;
+            Image : Adi.Image.Image_Handle :=
+                      Adi.Image.Null_Image_Handle;
          when Url_Image =>
             URI : Ada.Strings.Unbounded.Unbounded_String;
          when Linear_Gradient_Image =>
@@ -303,7 +304,7 @@ package Adi.CSS_Styles is
    function No_Background_Image return Background_Image_Value is
       ((Kind => No_Image));
 
-   function Background_Image (Img : Adi.Image.Image_Access) return Background_Image_Value is
+   function Background_Image (Img : Adi.Image.Image_Handle) return Background_Image_Value is
       ((Kind => Picture_Image, Image => Img));
 
    function Background_Image_URL (URI : String) return Background_Image_Value is

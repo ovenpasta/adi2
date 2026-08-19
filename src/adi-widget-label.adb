@@ -88,7 +88,7 @@ package body Adi.Widget.Label is
    -- Set_Icon --
    --------------
 
-   procedure Set_Icon (W : in out Label_Widget; Icon : Image_Access) is
+   procedure Set_Icon (W : in out Label_Widget; Icon : Image_Handle) is
    begin
       W.Icon := Icon;
       Mark_Dirty (W);
@@ -98,7 +98,7 @@ package body Adi.Widget.Label is
    -- Get_Icon --
    --------------
 
-   function Get_Icon (W : Label_Widget) return Image_Access is
+   function Get_Icon (W : Label_Widget) return Image_Handle is
    begin
       return W.Icon;
    end Get_Icon;
@@ -124,7 +124,7 @@ package body Adi.Widget.Label is
       return "";
    end Get_Text;
 
-   procedure Set_Icon (H : Label_Handle; Icon : Image_Access) is
+   procedure Set_Icon (H : Label_Handle; Icon : Image_Handle) is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
@@ -156,12 +156,12 @@ package body Adi.Widget.Label is
         Get_Resolved_Part_Style (W, Icon_Part);
       Result     : Size_2D := (0.0, 0.0);
    begin
-      if W.Icon = null or else Icon_Style.Display = Display_None then
+      if W.Icon = Adi.Image.Null_Image_Handle or else Icon_Style.Display = Display_None then
          return Result;
       end if;
 
-      if Is_Valid (W.Icon.all) then
-         Get_Size (W.Icon.all, Result.Width, Result.Height);
+      if Is_Valid (W.Icon) then
+         Get_Size (W.Icon, Result.Width, Result.Height);
       else
          Result := Default_Icon_Size;
       end if;
@@ -205,7 +205,7 @@ package body Adi.Widget.Label is
       Icon_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Icon_Part);
 
       Has_Icon : constant Boolean :=
-        W.Icon /= null and then Icon_Style.Display /= Display_None;
+        W.Icon /= Adi.Image.Null_Image_Handle and then Icon_Style.Display /= Display_None;
       Has_Text : constant Boolean :=
         Length (W.Text) > 0 and then Label_Style.Display /= Display_None;
 
@@ -350,7 +350,7 @@ package body Adi.Widget.Label is
       --  nothing, so hidden text must not hold the label open and an
       --  icon-only label must not report zero.
       Has_Icon : constant Boolean :=
-        W.Icon /= null and then Icon_Style.Display /= Display_None;
+        W.Icon /= Adi.Image.Null_Image_Handle and then Icon_Style.Display /= Display_None;
       Has_Text : constant Boolean :=
         Length (W.Text) > 0 and then Label_Style.Display /= Display_None;
 
@@ -482,7 +482,7 @@ package body Adi.Widget.Label is
         Get_Resolved_Part_Style (W, Label_Part);
 
       Has_Icon : constant Boolean :=
-        W.Icon /= null and then Icon_Style.Display /= Display_None;
+        W.Icon /= Adi.Image.Null_Image_Handle and then Icon_Style.Display /= Display_None;
       Has_Text : constant Boolean :=
         Length (W.Text) > 0 and then Label_Style.Display /= Display_None;
    begin
@@ -719,7 +719,7 @@ package body Adi.Widget.Label is
          --  First build: create items at fixed indices
          Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));       --  Panel_Idx
          Add_Item (W, Make_Text (Label_Part, W.Geometry, "", 1));   --  Text_Idx
-         Add_Item (W, Make_Image (Icon_Part, W.Geometry, null, 1)); --  Icon_Idx
+         Add_Item (W, Make_Image (Icon_Part, W.Geometry, Adi.Image.Null_Image_Handle, 1)); --  Icon_Idx
       end if;
 
       --  Update panel geometry
@@ -818,7 +818,7 @@ package body Adi.Widget.Label is
             end if;
          end loop;
          if not Found then
-            Icon_It.Image_Source := null;
+            Icon_It.Image_Source := Adi.Image.Null_Image_Handle;
          end if;
       end;
    end Build_Items;

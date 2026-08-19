@@ -10,6 +10,7 @@ with Adi.Core;       use Adi.Core;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Font;       use Adi.Font;
 with Adi.Image;      use Adi.Image;
+with Adi.Image.Testing;
 with Adi.Log;
 with Adi.SDL.TTF;    use Adi.SDL.TTF;
 with Test_Support;
@@ -152,15 +153,15 @@ begin
 
    --  Get_Image test (raster PNG)
    declare
-      Img : constant Adi.Image.Image_Access :=
+      Img : constant Adi.Image.Image_Handle :=
         Adi.Assets.Get_Image ("test.png");
    begin
-      Test_Support.Assert (Img /= null, "Get_Image returns non-null for bundled PNG");
-      if Img /= null then
+      Test_Support.Assert (Img /= Adi.Image.Null_Image_Handle, "Get_Image returns non-null for bundled PNG");
+      if Img /= Adi.Image.Null_Image_Handle then
          declare
             W, H : Adi.Core.Pixel_Type;
          begin
-            Adi.Image.Get_Size (Img.all, W, H);
+            Adi.Image.Get_Size (Img, W, H);
             Test_Support.Assert (W = 1.0, "bundled PNG width = 1");
             Test_Support.Assert (H = 1.0, "bundled PNG height = 1");
          end;
@@ -169,46 +170,46 @@ begin
 
    --  Get_Image unknown key
    declare
-      Img : constant Adi.Image.Image_Access :=
+      Img : constant Adi.Image.Image_Handle :=
         Adi.Assets.Get_Image ("nosuch.png");
    begin
-      Test_Support.Assert (Img = null,
+      Test_Support.Assert (Img = Adi.Image.Null_Image_Handle,
               "Get_Image returns null for unknown bundle key (no fallback)");
    end;
 
    --  SVG sprite test: icons.svg?id=home
    declare
-      Img : constant Adi.Image.Image_Access :=
+      Img : constant Adi.Image.Image_Handle :=
         Adi.Assets.Get_Image ("icons.svg?id=home");
    begin
-      Test_Support.Assert (Img /= null,
+      Test_Support.Assert (Img /= Adi.Image.Null_Image_Handle,
               "Get_Image SVG sprite from bundle works");
    end;
 
    --  SVG sprite test: icons.svg?id=star
    declare
-      Img : constant Adi.Image.Image_Access :=
+      Img : constant Adi.Image.Image_Handle :=
         Adi.Assets.Get_Image ("icons.svg?id=star");
    begin
-      Test_Support.Assert (Img /= null,
+      Test_Support.Assert (Img /= Adi.Image.Null_Image_Handle,
               "Get_Image SVG sprite 'star' from bundle works");
    end;
 
    --  SVG sprite unknown symbol
    declare
-      Img : constant Adi.Image.Image_Access :=
+      Img : constant Adi.Image.Image_Handle :=
         Adi.Assets.Get_Image ("icons.svg?id=nonexistent");
    begin
-      Test_Support.Assert (Img = null,
+      Test_Support.Assert (Img = Adi.Image.Null_Image_Handle,
               "Get_Image SVG sprite with unknown id returns null");
    end;
 
    --  Scheme URI sprite test: app://icons.svg?id=home
    declare
-      Img : constant Adi.Image.Image_Access :=
+      Img : constant Adi.Image.Image_Handle :=
         Adi.Assets.Get_Image ("app://icons.svg?id=home");
    begin
-      Test_Support.Assert (Img /= null,
+      Test_Support.Assert (Img /= Adi.Image.Null_Image_Handle,
               "Get_Image scheme URI sprite from bundle works");
    end;
 
@@ -224,6 +225,89 @@ begin
       end;
       Test_Support.Assert (Raised,
               "Set_Mode after asset load raises Program_Error");
+   end;
+
+   ---------------------------------------------------------------------------
+   --  A render query is its own image, not another name for the base
+   ---------------------------------------------------------------------------
+
+   declare
+      --  An SVG base: it has no surface to duplicate, which is the case
+      --  that used to hand the derived key the base image itself.
+      Base    : constant Adi.Image.Image_Handle :=
+        Adi.Assets.Get_Image ("icons.svg");
+      Derived : constant Adi.Image.Image_Handle :=
+        Adi.Assets.Get_Image ("icons.svg?render=nearest");
+   begin
+      Test_Support.Assert (Adi.Image.Is_Valid (Base)
+                           and then Adi.Image.Is_Valid (Derived),
+              "both keys load");
+      Test_Support.Assert (Derived /= Base,
+              "A query is a separate image, not the base under another"
+              & " name: one image for two keys would make either key's"
+              & " invalidation end both");
+      Test_Support.Assert
+        (Adi.Image.Get_Scale_Mode (Derived) = Adi.Image.Scale_Nearest,
+         "the derived image carries the mode that was asked for");
+      Test_Support.Assert
+        (Adi.Image.Get_Scale_Mode (Base) = Adi.Image.Scale_Linear,
+         "and setting it did not reach the base");
+
+      Adi.Assets.Invalidate ("icons.svg?render=nearest");
+      Test_Support.Assert (not Adi.Image.Is_Valid (Derived),
+              "invalidating the derived key ends the derived image");
+      Test_Support.Assert
+        (Adi.Image.Testing.Handle_Is_Registered (Base)
+         and then Adi.Image.Is_Valid (Base),
+         "and leaves the base registered and drawable");
+   end;
+
+   declare
+      --  An SVG base: it has no surface to duplicate, which is the case
+      --  that used to hand the derived key the base image itself.
+      Base    : constant Adi.Image.Image_Handle :=
+        Adi.Assets.Get_Image ("icons.svg");
+      Derived : constant Adi.Image.Image_Handle :=
+        Adi.Assets.Get_Image ("icons.svg?render=nearest");
+   begin
+      Adi.Assets.Invalidate ("icons.svg");
+      Test_Support.Assert (not Adi.Image.Is_Valid (Base),
+              "invalidating the base ends it");
+      Test_Support.Assert (not Adi.Image.Is_Valid (Derived),
+              "and the entries derived from it go too: they were made"
+              & " from it, and a query answered from a dropped source"
+              & " would outlive what it was derived from");
+   end;
+
+   ---------------------------------------------------------------------------
+   --  Invalidating the cache stales what it handed out
+   ---------------------------------------------------------------------------
+
+   declare
+      First  : constant Adi.Image.Image_Handle :=
+        Adi.Assets.Get_Image ("test.png");
+      Copy   : constant Adi.Image.Image_Handle := First;
+      Second : Adi.Image.Image_Handle;
+   begin
+      Test_Support.Assert (Adi.Image.Testing.Handle_Is_Registered (First),
+              "the cache hands out a live image");
+
+      Adi.Assets.Invalidate ("test.png");
+
+      Test_Support.Assert
+        (not Adi.Image.Testing.Handle_Is_Registered (Copy),
+         "Invalidating stales every copy the cache handed out, not just"
+         & " the entry: the cache owns the image, and dropping it is what"
+         & " ends it");
+      Test_Support.Assert (not Adi.Image.Is_Valid (Copy),
+              "so a widget still holding one draws nothing");
+
+      Second := Adi.Assets.Get_Image ("test.png");
+      Test_Support.Assert (Adi.Image.Is_Valid (Second),
+              "and asking again loads it afresh");
+      Test_Support.Assert (Second /= Copy,
+              "as a different generation, so the stale handle cannot"
+              & " come back to life through a reused slot");
    end;
 
    --  Clear_Cache test

@@ -163,7 +163,7 @@ package body Adi.RLottie is
    is
       Surf : SDL_Surface_Ptr;
       Buf  : U32_Ptr;
-      Img  : Image_Access;
+      Img  : Image_Owner;
    begin
       if Set = null
         or else Set.Images = null
@@ -172,7 +172,7 @@ package body Adi.RLottie is
          return False;
       end if;
 
-      if Set.Images (Frame) /= null then
+      if Adi.Image.Is_Owned (Set.Images (Frame)) then
          return True;
       end if;
 
@@ -215,8 +215,17 @@ package body Adi.RLottie is
       --  Every frame of this extent joins that extent's group, so
       --  replacing the extent takes its textures out of every renderer
       --  rather than leaving them for eviction.
-      Img := Create_From_Surface (Surf, Group => Set.Group'Unchecked_Access);
-      if Img = null then
+      --  The surface is this subprogram's until the image adopts it,
+      --  which it does only once it owns one.
+      begin
+         Img := Create_From_Surface (Surf, Group => Set.Group'Unchecked_Access);
+      exception
+         when others =>
+            SDL_DestroySurface (Surf);
+            raise;
+      end;
+
+      if not Adi.Image.Is_Owned (Img) then
          SDL_DestroySurface (Surf);
          return False;
       end if;
@@ -334,9 +343,7 @@ package body Adi.RLottie is
 
       if Set.Images /= null then
          for I in Set.Images'Range loop
-            if Set.Images (I) /= null then
-               Adi.Image.Free (Set.Images (I));
-            end if;
+            Adi.Image.Release (Set.Images (I));
          end loop;
          Free_Images (Set.Images);
       end if;
@@ -346,11 +353,10 @@ package body Adi.RLottie is
    end Destroy_Set;
 
    --  Retire a set that was drawn from. Its textures go from every
-   --  renderer and its pixels go, but the Image records stay: a widget in
-   --  a window that has not ticked since the replacement still holds a
-   --  plain Image_Access to one of them, and drawing through it must find
-   --  an empty image rather than freed storage. The shells are freed in
-   --  Destroy, where widgets are already required to have detached.
+   --  renderer and its images go with them. A widget in a window that has
+   --  not ticked since the replacement still holds handles to those
+   --  images; they are stale now, and drawing through one finds nothing
+   --  rather than freed storage.
    procedure Retire_Set
      (Anim : in out RLottie_Animation;
       Set  : in out Frame_Set_Access) is
@@ -363,9 +369,7 @@ package body Adi.RLottie is
 
       if Set.Images /= null then
          for I in Set.Images'Range loop
-            if Set.Images (I) /= null then
-               Adi.Image.Destroy (Set.Images (I).all);
-            end if;
+            Adi.Image.Release (Set.Images (I));
          end loop;
       end if;
 
@@ -393,7 +397,8 @@ package body Adi.RLottie is
       end if;
 
       Fresh := new Frame_Set'
-        (Images       => new Image_Array'(1 .. Anim.Frame_Count => null),
+        (Images       => new Image_Array'(1 .. Anim.Frame_Count =>
+                                            Null_Image_Owner),
          Width        => Anim.Pending_W,
          Height       => Anim.Pending_H,
          Frame_Count  => Anim.Frame_Count,
@@ -500,7 +505,8 @@ package body Adi.RLottie is
    function Is_Prepared (Anim : RLottie_Animation) return Boolean is
      (Anim.Active /= null
       and then Anim.Current_Frame in 1 .. Anim.Active.Images'Last
-      and then Anim.Active.Images (Anim.Current_Frame) /= null);
+      and then Adi.Image.Is_Owned
+                 (Anim.Active.Images (Anim.Current_Frame)));
 
    procedure Prepared_Extent
      (Anim   : RLottie_Animation;
@@ -570,15 +576,15 @@ package body Adi.RLottie is
       return Anim.Current_Frame;
    end Get_Current_Frame_Index;
 
-   function Get_Current_Image (Anim : RLottie_Animation) return Image_Access is
+   function Get_Current_Image (Anim : RLottie_Animation) return Image_Handle is
    begin
       if Anim.Active = null
         or else Anim.Current_Frame = 0
         or else Anim.Current_Frame > Anim.Active.Images'Last
       then
-         return null;
+         return Null_Image_Handle;
       end if;
-      return Anim.Active.Images (Anim.Current_Frame);
+      return Adi.Image.To_Handle (Anim.Active.Images (Anim.Current_Frame));
    end Get_Current_Image;
 
    procedure Start (Anim : in out RLottie_Animation) is
@@ -738,8 +744,9 @@ package body Adi.RLottie is
       --  where the caches live.
       Destroy_Set (Anim.Active);
 
-      --  The shells kept across replacements. Widgets are required to
-      --  have detached by here, so the records can finally go.
+      --  The sets kept across replacements. Their frames are already
+      --  released; what is left is the bookkeeping a resize is counted
+      --  by.
       while Anim.Retired /= null loop
          Next := Anim.Retired.Next_Retired;
          Anim.Retired.Next_Retired := null;
@@ -876,10 +883,11 @@ package body Adi.RLottie is
       return (if A = null then 0 else Get_Current_Frame_Index (A.all));
    end Get_Current_Frame_Index;
 
-   function Get_Current_Image (H : Animation_Handle) return Image_Access is
+   function Get_Current_Image (H : Animation_Handle) return Image_Handle is
       A : constant RLottie_Animation_Access := Resolve (H);
    begin
-      return (if A = null then null else Get_Current_Image (A.all));
+      return (if A = null then Null_Image_Handle
+              else Get_Current_Image (A.all));
    end Get_Current_Image;
 
    procedure Start (H : Animation_Handle) is

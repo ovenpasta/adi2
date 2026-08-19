@@ -11,7 +11,7 @@ package body Adi.Widget.Image is
    -- Create --
    ------------
 
-   function Create (Img : Image_Access := null) return Image_Widget_Access is
+   function Create (Img : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle) return Image_Widget_Access is
       Result : constant Image_Widget_Access := new Image_Widget;
    begin
       Result.Flags := [Visible => True, others => False];
@@ -24,7 +24,7 @@ package body Adi.Widget.Image is
    -- Create_Handle --
    -------------------
 
-   function Create_Handle (Img : Image_Access := null) return Image_Handle is
+   function Create_Handle (Img : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle) return Image_Handle is
    begin
       return (Id => Get_Handle (Create (Img).all).Id);
    end Create_Handle;
@@ -66,7 +66,7 @@ package body Adi.Widget.Image is
    -- Handle methods --
    --------------------
 
-   procedure Set_Image (H : Image_Handle; Img : Image_Access) is
+   procedure Set_Image (H : Image_Handle; Img : Adi.Image.Image_Handle) is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
@@ -74,20 +74,20 @@ package body Adi.Widget.Image is
       end if;
    end Set_Image;
 
-   function Get_Image (H : Image_Handle) return Image_Access is
+   function Get_Image (H : Image_Handle) return Adi.Image.Image_Handle is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
          return Get_Image (Image_Widget (Ptr.all));
       end if;
-      return null;
+      return Adi.Image.Null_Image_Handle;
    end Get_Image;
 
    ---------------
    -- Set_Image --
    ---------------
 
-   procedure Set_Image (W : in out Image_Widget; Img : Image_Access) is
+   procedure Set_Image (W : in out Image_Widget; Img : Adi.Image.Image_Handle) is
    begin
       W.Img := Img;
       Mark_Dirty (W);
@@ -97,7 +97,7 @@ package body Adi.Widget.Image is
    -- Get_Image --
    ---------------
 
-   function Get_Image (W : Image_Widget) return Image_Access is
+   function Get_Image (W : Image_Widget) return Adi.Image.Image_Handle is
    begin
       return W.Img;
    end Get_Image;
@@ -121,8 +121,8 @@ package body Adi.Widget.Image is
       --  determined by the layout, not the intrinsic pixel dimensions.
       if Width_Fixed or Height_Fixed then
          --  Get intrinsic image size for aspect ratio calculations
-         if W.Img /= null and then Is_Valid (W.Img.all) then
-            Get_Size (W.Img.all, Img_Size.Width, Img_Size.Height);
+         if Adi.Image.Is_Valid (W.Img) then
+            Adi.Image.Get_Size (W.Img, Img_Size.Width, Img_Size.Height);
          end if;
 
          declare

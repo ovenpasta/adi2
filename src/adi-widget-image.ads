@@ -25,9 +25,9 @@ package Adi.Widget.Image is
    Null_Image_Handle : constant Image_Handle;
 
    --  Construction
-   function Create (Img : Image_Access := null) return Image_Widget_Access
+   function Create (Img : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle) return Image_Widget_Access
      with Obsolescent => "Use Create_Handle";
-   function Create_Handle (Img : Image_Access := null) return Image_Handle;
+   function Create_Handle (Img : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle) return Image_Handle;
 
    --  Handle bridge
    function To_Widget_Handle (H : Image_Handle) return Widget_Handle;
@@ -37,12 +37,12 @@ package Adi.Widget.Image is
    procedure Set_Part_Styles (H : Image_Handle; Styles : Part_Style_Array);
 
    --  Image management
-   procedure Set_Image (W : in out Image_Widget; Img : Image_Access);
-   function Get_Image (W : Image_Widget) return Image_Access;
+   procedure Set_Image (W : in out Image_Widget; Img : Adi.Image.Image_Handle);
+   function Get_Image (W : Image_Widget) return Adi.Image.Image_Handle;
 
    --  Handle methods
-   procedure Set_Image (H : Image_Handle; Img : Image_Access);
-   function Get_Image (H : Image_Handle) return Image_Access;
+   procedure Set_Image (H : Image_Handle; Img : Adi.Image.Image_Handle);
+   function Get_Image (H : Image_Handle) return Adi.Image.Image_Handle;
 
    --  Override abstract methods
    overriding procedure Build_Items (W : in out Image_Widget);
@@ -58,7 +58,7 @@ private
    Img_Idx   : constant Positive := 2;
 
    type Image_Widget is new Widget with record
-      Img : Image_Access := null;
+      Img : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle;
    end record;
 
    type Image_Handle is record

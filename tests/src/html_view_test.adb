@@ -23,7 +23,7 @@ procedure Html_View_Test is
    use type Adi.CSS_Styles.Text_Decoration_Value;
    use type Adi.Core.Pixel_Type;
    use type Adi.Widget.Part_Kind;
-   use type Adi.Image.Image_Access;
+   use type Adi.Image.Image_Handle;
    use type Adi.Widget.Html_View.Html_View_Handle;
 
    UTF8_Disc : constant String :=
@@ -236,11 +236,11 @@ procedure Html_View_Test is
 
       function On_Load_Asset
         (Self : Adi.Widget.Html_View.Html_View_Handle;
-         URI  : String) return Adi.Image.Image_Access
+         URI  : String) return Adi.Image.Image_Handle
       is
          pragma Unreferenced (Self, URI);
       begin
-         return null;
+         return Adi.Image.Null_Image_Handle;
       end On_Load_Asset;
    begin
       Put_Line ("Test: Callback registration and mouse safety");
@@ -289,14 +289,14 @@ procedure Html_View_Test is
 
       function On_Load_Asset
         (Self : Adi.Widget.Html_View.Html_View_Handle;
-         URI  : String) return Adi.Image.Image_Access
+         URI  : String) return Adi.Image.Image_Handle
       is
          pragma Unreferenced (Self);
       begin
          if URI = "app://tests/image.png" then
             Asset_Hits := Asset_Hits + 1;
          end if;
-         return null;
+         return Adi.Image.Null_Image_Handle;
       end On_Load_Asset;
    begin
       Put_Line ("Test: Embedded style and linked stylesheet");
@@ -321,6 +321,78 @@ procedure Html_View_Test is
 
       New_Line;
    end Test_Embedded_And_Linked_CSS;
+
+   --  A callback that owns what it hands out, and lets it go. The view
+   --  keeps only a view, so releasing has to reach it.
+   Reload_Owner : Adi.Image.Image_Owner;
+   Reload_Hits  : Natural := 0;
+
+   function Reload_Asset
+     (Self : Adi.Widget.Html_View.Html_View_Handle;
+      URI  : String) return Adi.Image.Image_Handle
+   is
+      pragma Unreferenced (Self);
+      Q : constant Character := '"';
+   begin
+      if URI /= "app://tests/reload.svg" then
+         return Adi.Image.Null_Image_Handle;
+      end if;
+
+      Reload_Hits := Reload_Hits + 1;
+      Reload_Owner := Adi.Image.Load_SVG_From_String
+        ("<svg xmlns=" & Q & "http://www.w3.org/2000/svg" & Q
+         & " width=" & Q & "8" & Q & " height=" & Q & "8" & Q & ">"
+         & "<rect width=" & Q & "8" & Q & " height=" & Q & "8" & Q
+         & "/></svg>");
+      return Adi.Image.To_Handle (Reload_Owner);
+   end Reload_Asset;
+
+   procedure Test_Released_Asset_Is_Asked_For_Again is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      First_Seen : Adi.Image.Image_Handle;
+   begin
+      Put_Line ("Test: a released callback image is asked for again");
+
+      Adi.Widget.Html_View.Set_On_Load_Asset
+        (W, Reload_Asset'Unrestricted_Access);
+      Adi.Widget.Html_View.Set_HTML
+        (W, "<p><img src='app://tests/reload.svg' alt='r'></p>");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 200.0, Height => 100.0));
+
+      Adi.Widget.Build_Items (+W);
+      Assert (Reload_Hits = 1, "the callback answers once");
+      First_Seen := Adi.Image.To_Handle (Reload_Owner);
+      Assert (Adi.Image.Is_Valid (First_Seen), "with a live image");
+
+      --  Built again while it is still owned. Re-laid out first, so
+      --  that this really re-resolves rather than reusing a clean
+      --  layout and telling us nothing.
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 220.0, Height => 100.0));
+      Adi.Widget.Build_Items (+W);
+      Assert (Reload_Hits = 1, "and is not asked again while it holds");
+
+      Adi.Image.Release (Reload_Owner);
+      Assert (not Adi.Image.Is_Valid (First_Seen),
+              "releasing the owner stales the view the cache holds");
+
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 240.0, Height => 100.0));
+      Adi.Widget.Build_Items (+W);
+      Assert (Reload_Hits = 2,
+              "The view asks again rather than keeping the stale entry:"
+              & " it never owned the image, so asking is the only way it"
+              & " can get one back");
+      Assert (Adi.Image.Is_Valid (Adi.Image.To_Handle (Reload_Owner)),
+              "and what it gets is a live image again");
+      Assert (Adi.Image.To_Handle (Reload_Owner) /= First_Seen,
+              "of a later generation than the one that went");
+
+      Adi.Image.Release (Reload_Owner);
+      New_Line;
+   end Test_Released_Asset_Is_Asked_For_Again;
 
    procedure Test_Heading_Line_Height_Is_Local is
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
@@ -513,7 +585,7 @@ procedure Html_View_Test is
          declare
             It : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (Image_Idx));
          begin
-            Assert (It.Image_Source /= null, "inline svg image item has image source");
+            Assert (It.Image_Source /= Adi.Image.Null_Image_Handle, "inline svg image item has image source");
             Assert (It.Geometry.Width > 0.0 and then It.Geometry.Height > 0.0,
                     "inline svg image item resolves non-zero geometry");
          end;
@@ -1057,7 +1129,7 @@ procedure Html_View_Test is
 
       function On_Load_Asset
         (Self : Adi.Widget.Html_View.Html_View_Handle;
-         URI  : String) return Adi.Image.Image_Access
+         URI  : String) return Adi.Image.Image_Handle
       is
          pragma Unreferenced (Self);
       begin
@@ -1065,7 +1137,7 @@ procedure Html_View_Test is
             Marker_Asset_Hits := Marker_Asset_Hits + 1;
          end if;
 
-         return null;
+         return Adi.Image.Null_Image_Handle;
       end On_Load_Asset;
    begin
       Put_Line ("Test: list-style shorthand and image markers");
@@ -1312,11 +1384,11 @@ procedure Html_View_Test is
 
       function On_Load_Asset
         (Self : Adi.Widget.Html_View.Html_View_Handle;
-         URI  : String) return Adi.Image.Image_Access
+         URI  : String) return Adi.Image.Image_Handle
       is
          pragma Unreferenced (Self, URI);
       begin
-         return null;
+         return Adi.Image.Null_Image_Handle;
       end On_Load_Asset;
 
       procedure Parse_Build_And_Probe (Path : String) is
@@ -1972,6 +2044,7 @@ begin
    Test_Set_Get_Clear;
    Test_Callback_Registration_And_Mouse_Safety;
    Test_Embedded_And_Linked_CSS;
+   Test_Released_Asset_Is_Asked_For_Again;
    Test_Heading_Line_Height_Is_Local;
    Test_Cascade_Precedence;
    Test_SVG_Named_Colors;

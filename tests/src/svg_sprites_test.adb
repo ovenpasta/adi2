@@ -43,7 +43,8 @@ procedure SVG_Sprites_Test is
       use Adi.SVG_Sprites;
       use Adi.Image;
       Sheet : Sprite_Sheet_Access;
-      Img   : Image_Access;
+      Own   : Image_Owner;
+      Img   : Image_Handle;
       W, H  : Adi.Core.Pixel_Type;
    begin
       Put_Line ("Test: Get_Image");
@@ -51,23 +52,27 @@ procedure SVG_Sprites_Test is
       Sheet := Load_From_String (Sample_SVG);
       Assert (Sheet /= null, "sheet loaded");
 
-      Img := Sheet.Get_Image ("icon-a");
-      Assert (Img /= null, "icon-a image is not null");
-      Assert (Img.Is_Valid, "icon-a image is valid");
-      Img.Get_Size (W, H);
+      Own := Sheet.Get_Image ("icon-a");
+      Img := Adi.Image.To_Handle (Own);
+      Assert (Img /= Adi.Image.Null_Image_Handle, "icon-a image is not null");
+      Assert (Adi.Image.Is_Valid (Img), "icon-a image is valid");
+      Adi.Image.Get_Size (Img, W, H);
       Assert (W = 320.0, "icon-a width = 320, got" & W'Image);
       Assert (H = 512.0, "icon-a height = 512, got" & H'Image);
 
-      Img := Sheet.Get_Image ("icon-b");
-      Assert (Img /= null, "icon-b image is not null");
-      Img.Get_Size (W, H);
+      Own := Sheet.Get_Image ("icon-b");
+      Img := Adi.Image.To_Handle (Own);
+      Assert (Img /= Adi.Image.Null_Image_Handle, "icon-b image is not null");
+      Adi.Image.Get_Size (Img, W, H);
       Assert (W = 256.0, "icon-b width = 256, got" & W'Image);
 
-      Img := Sheet.Get_Image ("icon-c");
-      Assert (Img /= null, "icon-c image is not null (multi-path symbol)");
+      Own := Sheet.Get_Image ("icon-c");
+      Img := Adi.Image.To_Handle (Own);
+      Assert (Img /= Adi.Image.Null_Image_Handle, "icon-c image is not null (multi-path symbol)");
 
-      Img := Sheet.Get_Image ("nonexistent");
-      Assert (Img = null, "nonexistent returns null");
+      Own := Sheet.Get_Image ("nonexistent");
+      Img := Adi.Image.To_Handle (Own);
+      Assert (Img = Adi.Image.Null_Image_Handle, "nonexistent returns null");
 
       Sheet.Destroy;
    end Test_Get_Image;

@@ -9,11 +9,13 @@ with Adi.Clock;
 with Adi.Core;            use Adi.Core;
 with Adi.CSS_Styles;      use Adi.CSS_Styles;
 with Adi.Image;
+with Adi.Image.Testing;
 with Adi.Render;
 with Adi.Shadow;
 with Adi.Texture_Cache;
 with Adi.Widget;          use Adi.Widget;
 with Adi.Widget.Box;
+with Adi.Widget.Image;
 with Adi.Widget_Styles;   use Adi.Widget_Styles;
 with Adi.Window;
 with Test_Support;        use Test_Support;
@@ -33,9 +35,17 @@ procedure Render_Textures_Test is
    use type Adi.Texture_Cache.Byte_Count;
    use type Adi.Texture_Cache.Frame_Count;
    use type Adi.Texture_Cache.Texture_Handle;
-   use type Adi.Image.Image_Access;
+   use type Adi.Image.Image_Handle;
+
+   Q : constant Character := '"';
 
    MB : constant Adi.Texture_Cache.Byte_Count := 1024 * 1024;
+
+   Fixture_SVG : constant String :=
+     "<svg xmlns=" & Q & "http://www.w3.org/2000/svg" & Q
+     & " width=" & Q & "16" & Q & " height=" & Q & "16" & Q & ">"
+     & "<rect width=" & Q & "16" & Q & " height=" & Q & "16" & Q & "/>"
+     & "</svg>";
 
    Canvas   : SDL_Surface_Ptr;
    Renderer : SDL_Renderer_Ptr;
@@ -265,27 +275,30 @@ procedure Render_Textures_Test is
       Ctx  : Adi.Render.Render_Context;
       Surf : constant SDL_Surface_Ptr :=
         SDL_CreateSurface (8, 8, SDL_PIXELFORMAT_RGBA32);
-      Img  : Adi.Image.Image_Access;
+      Own  : Adi.Image.Image_Owner;
+      Img  : Adi.Image.Image_Handle;
    begin
       Section ("a raster's scale mode identifies its texture");
 
       Adi.Render.Create (Ctx, Renderer);
-      Img := Adi.Image.Create_From_Surface (Surf);
-      Assert (Img /= null, "a surface makes a raster image");
+      Own := Adi.Image.Create_From_Surface (Surf);
+      Img := Adi.Image.To_Handle (Own);
+      Assert (Adi.Image.Is_Owned (Own),
+              "a surface makes a raster image");
 
-      if Img /= null then
+      if Adi.Image.Is_Valid (Img) then
          declare
             Linear : constant Adi.Texture_Cache.Texture_Ref :=
-              Adi.Image.Acquire_Texture (Img.all, Ctx, 8.0, 8.0);
+              Adi.Image.Acquire_Texture (Img, Ctx, 8.0, 8.0);
          begin
             Assert (Linear.Texture /= null,
                     "a raster leases under the default mode");
 
-            Adi.Image.Set_Scale_Mode (Img.all, Adi.Image.Scale_Nearest);
+            Adi.Image.Set_Scale_Mode (Img, Adi.Image.Scale_Nearest);
 
             declare
                Nearest : constant Adi.Texture_Cache.Texture_Ref :=
-                 Adi.Image.Acquire_Texture (Img.all, Ctx, 8.0, 8.0);
+                 Adi.Image.Acquire_Texture (Img, Ctx, 8.0, 8.0);
             begin
                Assert (Nearest.Texture /= null,
                        "and under another mode");
@@ -300,7 +313,7 @@ procedure Render_Textures_Test is
                --  distinct live texture.
                declare
                   Bigger : constant Adi.Texture_Cache.Texture_Ref :=
-                    Adi.Image.Acquire_Texture (Img.all, Ctx, 64.0, 40.0);
+                    Adi.Image.Acquire_Texture (Img, Ctx, 64.0, 40.0);
                begin
                   Assert (Bigger.Texture = Nearest.Texture,
                           "another requested size should lease the raster"
@@ -316,7 +329,7 @@ procedure Render_Textures_Test is
                    = 2 * 8 * 8 * 4,
                  "each charged the eight-by-eight surface it uploaded");
 
-         Adi.Image.Free (Img);
+         Adi.Image.Release (Own);
       end if;
 
       Adi.Render.Destroy (Ctx);
@@ -386,6 +399,63 @@ procedure Render_Textures_Test is
       return Adi.Texture_Cache.Byte_Count (Geom.Tex_Size)
              * Adi.Texture_Cache.Byte_Count (Geom.Tex_Size) * 4;
    end Shadow_Charge;
+
+   --  What a render item names is only checked when it is drawn, so the
+   --  window between building items and drawing them is where an owner
+   --  freeing an image would once have left a pointer into nothing.
+   procedure Test_Image_Destroyed_Between_Build_And_Draw is
+      Ctx : Adi.Render.Render_Context;
+      Pic : Adi.Widget.Image.Image_Handle;
+      H   : Widget_Handle;
+      Own : Adi.Image.Image_Owner :=
+        Adi.Image.Load_SVG_From_String (Fixture_SVG);
+      Img : constant Adi.Image.Image_Handle := Adi.Image.To_Handle (Own);
+   begin
+      Section ("an image destroyed after its items are built draws nothing");
+
+      Adi.Render.Create (Ctx, Renderer);
+      Assert (Adi.Image.Is_Valid (Img), "the fixture loads");
+
+      Pic := Adi.Widget.Image.Create_Handle (Img);
+      H := Adi.Widget.Image.To_Widget_Handle (Pic);
+      Adi.Widget.Set_Geometry (H, (0.0, 0.0, 16.0, 16.0));
+      Layout_Tree (H);
+      Adi.Widget.Update (H);
+
+      --  Drawn once while the image is live, so that the count the stale
+      --  case asserts on is one this path is known to reach.
+      Adi.Widget.Render_Tree (H, Ctx);
+      Assert (Adi.Render.Get_Texture_Stats (Ctx).Count = 1,
+              "a live image uploads a texture when its item is drawn");
+
+      --  The item still names the image. The owner lets go here, which
+      --  is what a cache invalidation amounts to.
+      Adi.Image.Release (Own);
+      Assert (not Adi.Image.Is_Owned (Own), "the owner is spent");
+      Assert (not Adi.Image.Is_Valid (Img),
+              "and the view the item holds went stale with it");
+
+      --  A context of its own, so what the stale draw uploads is counted
+      --  rather than confused with what the live draw left behind.
+      declare
+         Fresh : Adi.Render.Render_Context;
+      begin
+         Adi.Render.Create (Fresh, Renderer);
+
+         --  Reaching freed storage would show up here rather than as a
+         --  failed assertion.
+         Adi.Widget.Render_Tree (H, Fresh);
+
+         Assert (Adi.Render.Get_Texture_Stats (Fresh).Count = 0,
+                 "Drawing through the stale handle uploads nothing: it"
+                 & " resolves to no image, so there is nothing to make a"
+                 & " texture of");
+         Adi.Render.Destroy (Fresh);
+      end;
+
+      Adi.Widget.Destroy (H);
+      Adi.Render.Destroy (Ctx);
+   end Test_Image_Destroyed_Between_Build_And_Draw;
 
    procedure Test_Shadow_Is_Cached_And_Charged is
       Ctx : Adi.Render.Render_Context;
@@ -537,6 +607,7 @@ begin
    Test_Advance_Frame_Threads_Through;
 
    Test_Raster_Scale_Mode_Is_Keyed;
+   Test_Image_Destroyed_Between_Build_And_Draw;
    Test_Shadow_Is_Cached_And_Charged;
    Test_Distinct_Shapes_Are_Distinct_Entries;
    Test_Budget_Retains_Idle_Shadows;

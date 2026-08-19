@@ -333,7 +333,7 @@ package body Adi.Widget.Dialog is
    --  Icon
    ---------------------------------------------------------------------------
 
-   procedure Set_Icon (W : in out Dialog_Widget; Icon : Image_Access) is
+   procedure Set_Icon (W : in out Dialog_Widget; Icon : Image_Handle) is
    begin
       if W.Custom_Content /= Null_Handle then
          return;  --  Message label not in tree when custom content is set
@@ -969,7 +969,7 @@ package body Adi.Widget.Dialog is
       end if;
    end Set_Content;
 
-   procedure Set_Icon (H : Dialog_Handle; Icon : Image_Access) is
+   procedure Set_Icon (H : Dialog_Handle; Icon : Image_Handle) is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then

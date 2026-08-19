@@ -150,6 +150,23 @@ begin
         Adi.Widget.Button.Create_Handle ("Show Custom");
       Delete_Btn  : constant Button_Handle :=
         Adi.Widget.Button.Create_Handle ("Show Delete (XML)");
+
+      --  Owners: a dialog draws its icon through a handle, which keeps
+      --  nothing, so these outlive the run below.
+      Info_Icon : constant Adi.Image.Image_Owner :=
+        Adi.Image.Load_SVG_Path
+          (Path_Data =>
+             "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 "
+             & "10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z",
+           Size      => (24.0, 24.0),
+           Fill      => (R => 37, G => 99, B => 235, A => 255));
+
+      Warn_Icon : constant Adi.Image.Image_Owner :=
+        Adi.Image.Load_SVG_Path
+          (Path_Data =>
+             "M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z",
+           Size      => (24.0, 24.0),
+           Fill      => (R => 234, G => 179, B => 8, A => 255));
    begin
       Status_Label := Adi.Widget.Label.Create_Handle ("(no dialog opened yet)");
 
@@ -200,19 +217,9 @@ begin
       Connect_Result (Alert_Dialog, On_Alert_Result'Unrestricted_Access);
 
       --  Set info icon on alert dialog (Material Icons "info" 24×24)
-      declare
-         Info_Icon : constant Adi.Image.Image_Access :=
-           Adi.Image.Load_SVG_Path
-             (Path_Data =>
-                "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 "
-                & "10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z",
-              Size      => (24.0, 24.0),
-              Fill      => (R => 37, G => 99, B => 235, A => 255));
-      begin
-         if Info_Icon /= null then
-            Set_Icon (Alert_Dialog, Info_Icon);
-         end if;
-      end;
+      if Adi.Image.Is_Owned (Info_Icon) then
+         Set_Icon (Alert_Dialog, Adi.Image.To_Handle (Info_Icon));
+      end if;
 
       --  Create confirm dialog
       Confirm_Dialog := Adi.Widget.Dialog.Create_Handle;
@@ -226,18 +233,9 @@ begin
       Connect_Result (Confirm_Dialog, On_Confirm_Result'Unrestricted_Access);
 
       --  Set warning icon on confirm dialog (Material Icons "warning" 24×24)
-      declare
-         Warn_Icon : constant Adi.Image.Image_Access :=
-           Adi.Image.Load_SVG_Path
-             (Path_Data =>
-                "M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z",
-              Size      => (24.0, 24.0),
-              Fill      => (R => 234, G => 179, B => 8, A => 255));
-      begin
-         if Warn_Icon /= null then
-            Set_Icon (Confirm_Dialog, Warn_Icon);
-         end if;
-      end;
+      if Adi.Image.Is_Owned (Warn_Icon) then
+         Set_Icon (Confirm_Dialog, Adi.Image.To_Handle (Warn_Icon));
+      end if;
 
       --  Create custom content dialog
       Custom_Dialog := Adi.Widget.Dialog.Create_Handle;

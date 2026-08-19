@@ -83,7 +83,8 @@
 - `Set_Tintable(Img)` / `Is_Tintable(Img)`: mark/query tintable flag (white-on-transparent, recolored by CSS `color`)
 - Freeing an **ungrouped** image leaves its entries resident until budget pressure or context destruction reclaims them. They keep the standing they earned; what changes is that nothing hits them again, so the rising floor overtakes them
 - A **grouped** image's textures go when their owner releases the group, in every renderer that holds them, counted as `released` rather than as pressure. `Create_From_Surface` takes the group; the image holds it without owning it, so the group must outlive every image naming it
-- `Free(Img)`: destroys internals and deallocates the `Image_Access` object; safe to call with null
+- Constructors return an `Image_Owner`; `To_Handle(O)` gives the weak `Image_Handle` everything else holds
+- `Release(O)`: the last owner frees the image and retires its slot, so every handle to it goes stale at once. An owner also releases on leaving scope; one held in a container is released before it is removed
 - Each constructor assigns a `Source_Id` from a counter rather than reusing the image's address, which a later allocation could repeat and so find a dead image's cache entries
 
 **Adi.Assets** (`adi-assets.ads`): Global cached asset loader with scheme-based URI routing.
@@ -99,8 +100,8 @@
   - Sprite sheets are cached separately by resolved filesystem path and shared across symbols
   - Plain paths without `?` follow the normal `Adi.Image.Load_From_File` path unchanged
 - `Get_Animated_Image(Path)`: resolve and load animated image via `Adi.Animated_Image.Load_From_File` (surface-based, no renderer needed), cached by path; returns `Animation_Handle`
-- `Clear_Cache` / `Clear_String_Cache` / `Clear_Image_Cache` / `Clear_Animated_Image_Cache`: drop cached entries and destroy what they held. Animation handles previously returned go stale, so a caller asking through one is told; previously returned `Image_Access` values become invalid outright. Detach widgets drawing a cached animation first — a render item holds a plain `Image_Access` into a frame, which nothing invalidates. Image cache clear also destroys sprite sheet cache
-- `Invalidate(Path)`: remove one entry from all caches, freeing what they held, with the same detach requirement as clearing. Also removes all derived `path?...` cache entries and the corresponding sprite sheet cache entry
+- `Clear_Cache` / `Clear_String_Cache` / `Clear_Image_Cache` / `Clear_Animated_Image_Cache`: drop cached entries and destroy what they held. Every handle previously returned goes stale, images and animations alike, so a widget still holding one draws nothing until it reacquires. Image cache clear also destroys sprite sheet cache
+- `Invalidate(Path)`: remove one entry from all caches, releasing the owners they held. Handles returned for that path go stale. Also removes all derived `path?...` cache entries and the corresponding sprite sheet cache entry
 - URI parsing: `"app://icons/star.svg"` splits into scheme `"app"` + relative `"icons/star.svg"`; plain paths search default directories. Query `?` splitting happens before scheme parsing, so `app://icons.svg?id=home` works correctly
 - Path sanitization: rejects `..` traversal, normalizes backslashes, strips leading slashes
 - Directories searched in insertion order; first match wins
@@ -114,7 +115,7 @@
 **Adi.SVG_Sprites** (`adi-svg_sprites.ads`): SVG sprite sheet loader for icon fonts (e.g. FontAwesome).
 - Parses `<symbol>` elements from SVG sprite files, keyed by `id`
 - `Load` / `Load_From_String` parse and store all symbols
-- `Get_Image` extracts a symbol as a standalone SVG `Image_Access`
+- `Get_Image` extracts a symbol as a standalone SVG `Image_Owner`
 - `Has_Symbol` / `Symbol_Count` for querying available icons
 
 **Adi.Animated_Image** (`adi-animated_image.ads`): Multi-frame animation via `IMG_LoadAnimation`, per-frame delay, playback controls.
@@ -129,7 +130,7 @@
 - Every frame image joins its extent's `Texture_Group`, so replacing an extent takes that extent's textures out of every renderer rather than leaving them to be evicted under pressure
 - Residency is per renderer but the group spans them: one animation drawn in two windows has frames in two caches, and releasing reaches both
 - Callers hold a generational `Animation_Handle` from an `Adi.Handle_Store`; `Destroy` retires the slot, so every copy goes stale together. The raw `RLottie_Animation` is private to the package and its children
-- Destroying it requires every referring widget to be detached first, and runs on the render thread
+- Destroying it releases its frames, so a widget still naming one holds a stale handle and draws nothing. Runs on the render thread
 
 **Adi.Log** (`adi-log.ads`): Central runtime logging.
 - Safe logging entry points: `Write`, `Debug`, `Info`, `Warning`, `Error`
@@ -263,7 +264,7 @@
 - **Preferred height policy**: With auto height, preferred height is bounded by min-height + chrome floor (not total row content height), since list-box scrolling is internal.
 
 **Combo_Box**: Dropdown using Main/Text/Indicator/Icon parts + List_Box overlay popup.
-- Items are stored as `Combo_Item` records `(Text, Icon, Data)`. `Icon` is an `Image_Access`
+- Items are stored as `Combo_Item` records `(Text, Icon, Data)`. `Icon` is an `Adi.Image.Image_Handle`
   shown in the selected-item display (`Icon_Part`) and in each popup row (via `Label.Set_Icon`).
   `Data` is an `Item_Data_Access` — a borrowed reference to any user-defined tagged type derived
   from `Item_Data`; the combo box never frees it.

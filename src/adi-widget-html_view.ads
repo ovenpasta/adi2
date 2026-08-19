@@ -25,9 +25,17 @@ package Adi.Widget.Html_View is
 
    package Link_Click_Signals is new Adi.Signal (Link_Click_Callback, null);
 
+   --  Answer with a view of an image the callback keeps an owner for.
+   --  The view returns a handle, which keeps nothing: loading into a
+   --  local owner and returning its handle yields one that is already
+   --  stale by the time the view draws.
+   --
+   --  The view caches what it is given, and asks again for an entry
+   --  whose image has since been released -- so an owner may be let go
+   --  and the image reloaded on the next request.
    type Asset_Load_Callback is access function
      (Self : Html_View_Handle;
-      URI  : String) return Adi.Image.Image_Access;
+      URI  : String) return Adi.Image.Image_Handle;
 
    type Resource_Load_Callback is access function
      (Self : Html_View_Handle;
@@ -167,9 +175,15 @@ private
      (Index_Type   => Positive,
       Element_Type => Link_Fragment);
 
+   --  Two kinds of image reach this cache. One the view built itself,
+   --  from an inline <svg>, and must end; one it was handed by the asset
+   --  callback or the asset cache, which belongs to whoever handed it
+   --  over. Own holds an image only in the first case, and is what tells
+   --  them apart when the cache is dropped.
    type Cached_Image is record
       Src : Unbounded_String := Null_Unbounded_String;
-      Img : Adi.Image.Image_Access := null;
+      Img : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle;
+      Own : Adi.Image.Image_Owner := Adi.Image.Null_Image_Owner;
    end record;
 
    package Cached_Image_Vectors is new Ada.Containers.Vectors

@@ -96,10 +96,14 @@ package Adi.Assets is
    --  Caches by Path; subsequent calls return the cached string.
    --  Returns "" and logs a warning if the file is not found.
 
-   function Get_Image (Path : String) return Image_Access;
+   function Get_Image (Path : String) return Image_Handle;
    --  Resolve Path (plain or scheme URI) and load the image.
-   --  Caches by Path; subsequent calls return the same Image_Access.
-   --  Returns null and logs a warning if the file is not found.
+   --  Caches by Path; subsequent calls return the same handle.
+   --  Returns Null_Image_Handle and logs a warning if the file is not
+   --  found.
+   --
+   --  The cache owns what it hands out. Do not destroy it: dropping it is
+   --  the cache's to do, through the clearing operations below.
    --
    --  Sprite syntax via query parameters:
    --    "icons.svg?id=home"            — SVG sprite: extract <symbol id>
@@ -135,37 +139,23 @@ package Adi.Assets is
    --  Get_Animated_Image, and Font.Load_Asset.
 
    procedure Clear_Cache;
-   --  Drop all cached strings, images, and animated images.
-   --
-   --  Detach or destroy every widget drawing a cached animation first.
-   --  Handles to them go stale, which a caller is told about, but a
-   --  render item holds a plain Image_Access into a frame, and nothing
-   --  invalidates that. Previously returned Image_Access values become
-   --  invalid outright and must be reacquired.
+   --  Drop all cached strings, images, and animated images. Every handle
+   --  handed out for them goes stale; a widget still holding one draws
+   --  nothing until the asset is reacquired.
 
    procedure Clear_String_Cache;
    --  Drop cached strings only.
 
    procedure Clear_Image_Cache;
-   --  Drop cached images only.
-   --  Frees image resources and deallocates Image objects.  Previously
-   --  returned Image_Access values become invalid — callers must reacquire
-   --  via Get_Image.
+   --  Drop cached images only. Handles previously returned by Get_Image
+   --  go stale and must be reacquired.
 
    procedure Clear_Animated_Image_Cache;
-   --  Drop cached animated images only.
-   --
-   --  Detach or destroy every widget drawing one first. Their handles go
-   --  stale, so a caller asking through one is told; but a widget that
-   --  has already drawn holds a plain Image_Access into a frame, which
-   --  this frees and nothing invalidates.
+   --  Drop cached animated images only. Handles to them, and to the
+   --  frames a widget has drawn, go stale together.
 
    procedure Invalidate (Path : String);
-   --  Remove one entry (matching Path key) from all caches.
-   --
-   --  Detach or destroy every widget drawing this path's animation
-   --  first, for the reason given above: the handle goes stale, the
-   --  Image_Access a render item already holds does not. Image_Access
-   --  values previously returned for this path become invalid.
+   --  Remove one entry (matching Path key) from all caches. Handles
+   --  returned for this path go stale.
 
 end Adi.Assets;

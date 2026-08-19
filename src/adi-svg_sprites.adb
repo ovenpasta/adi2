@@ -332,7 +332,7 @@ package body Adi.SVG_Sprites is
    function Get_Image
      (Sheet    : Sprite_Sheet;
       Id       : String;
-      Tintable : Boolean := False) return Image_Access
+      Tintable : Boolean := False) return Image_Owner
    is
       E  : constant Symbol_Entry_Access := Lookup (Sheet, Id);
       VB : Unbounded_String;
@@ -343,7 +343,7 @@ package body Adi.SVG_Sprites is
         (if Tintable then " fill=""#ffffff""" else "");
    begin
       if E = null then
-         return null;
+         return Null_Image_Owner;
       end if;
 
       VB := E.View_Box;

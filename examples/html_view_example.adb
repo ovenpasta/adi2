@@ -128,7 +128,7 @@ begin
 
       function On_Load_Asset
         (Self : Adi.Widget.Html_View.Html_View_Handle;
-         URI  : String) return Adi.Image.Image_Access
+         URI  : String) return Adi.Image.Image_Handle
       is
          pragma Unreferenced (Self);
       begin

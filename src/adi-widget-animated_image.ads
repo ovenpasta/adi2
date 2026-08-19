@@ -79,7 +79,7 @@ private
       --  animation is stepped by whichever viewer ticks first, so the
       --  return of that step tells a viewer nothing about whether it has
       --  something new to show; comparing against what it drew does.
-      Shown_Image : Image_Access := null;
+      Shown_Image : Image_Handle := Adi.Image.Null_Image_Handle;
    end record;
 
    type Animated_Image_Handle is record

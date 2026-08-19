@@ -89,7 +89,7 @@ private
       --  animation is stepped by whichever viewer ticks first, so a viewer
       --  cannot learn from that call whether it has anything new to show;
       --  comparing against what it drew is what tells it.
-      Shown_Image            : Image_Access := null;
+      Shown_Image            : Image_Handle := Adi.Image.Null_Image_Handle;
    end record;
 
    type RLottie_Handle is record

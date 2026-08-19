@@ -44,7 +44,7 @@ package Adi.Widget.Dialog is
       Content : access Widget'Class);
 
    --  Icon (sets icon on the message label)
-   procedure Set_Icon (W : in out Dialog_Widget; Icon : Image_Access);
+   procedure Set_Icon (W : in out Dialog_Widget; Icon : Image_Handle);
 
    --  Button management (returns 1-based index)
    function  Add_Button    (W : in out Dialog_Widget; Text : String) return Positive;
@@ -126,7 +126,7 @@ package Adi.Widget.Dialog is
    procedure Set_Title   (H : Dialog_Handle; Text : String);
    procedure Set_Message (H : Dialog_Handle; Text : String);
    procedure Set_Content (H : Dialog_Handle; Content : Widget_Handle);
-   procedure Set_Icon    (H : Dialog_Handle; Icon : Image_Access);
+   procedure Set_Icon    (H : Dialog_Handle; Icon : Image_Handle);
    function  Add_Button  (H : Dialog_Handle; Text : String) return Positive;
    procedure Add_Button  (H : Dialog_Handle; Text : String);
    procedure Clear_Buttons (H : Dialog_Handle);

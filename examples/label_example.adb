@@ -13,7 +13,6 @@ with Label_Example_Styles; use Label_Example_Styles;
 procedure Label_Example is
    A : Adi.App.App;
 
-   use type Adi.Image.Image_Access;
    use type Adi.Widget.Box.Box_Handle;
    use type Adi.Widget.Label.Label_Handle;
 
@@ -49,7 +48,7 @@ begin
          Adi.Widget.Label.Create_Handle ("Settings");
 
       --  Load an icon
-      Icon : Adi.Image.Image_Access;
+      Icon : Adi.Image.Image_Owner;
       Save_Path : constant String :=
         "M5 3 H19 V21 H5 Z "
         & "M8 3 V9 H16 V3 "
@@ -66,10 +65,10 @@ begin
            Stroke       => (R => 26, G => 54, B => 79, A => 255));
 
       --  If icon loaded, set it on labels 2, 3, and 4
-      if Icon /= null then
-         Adi.Widget.Label.Set_Icon (Label2, Icon);
-         Adi.Widget.Label.Set_Icon (Label3, Icon);
-         Adi.Widget.Label.Set_Icon (Label4, Icon);
+      if Adi.Image.Is_Owned (Icon) then
+         Adi.Widget.Label.Set_Icon (Label2, Adi.Image.To_Handle (Icon));
+         Adi.Widget.Label.Set_Icon (Label3, Adi.Image.To_Handle (Icon));
+         Adi.Widget.Label.Set_Icon (Label4, Adi.Image.To_Handle (Icon));
       end if;
 
       --  Set geometries

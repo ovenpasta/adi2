@@ -41,7 +41,7 @@ package body Adi.Assets is
 
    package Image_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (Key_Type     => String,
-      Element_Type => Image_Access);
+      Element_Type => Image_Owner);
 
    package Anim_Image_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (Key_Type     => String,
@@ -539,11 +539,11 @@ package body Adi.Assets is
 
    function Load_SVG_Sprite
      (Base_Path : String;
-      Id        : String) return Image_Access
+      Id        : String) return Image_Owner
    is
       use Sprite_Maps;
       Sheet : Adi.SVG_Sprites.Sprite_Sheet_Access;
-      Img   : Image_Access;
+      Img   : Image_Owner;
    begin
       if Current_Mode = Bundle_Mode then
          --  In Bundle_Mode, use Base_Path directly as sprite cache key
@@ -560,7 +560,7 @@ package body Adi.Assets is
                      Adi.Log.Warning
                        ("Assets: SVG sprite bundle not found: " & Base_Path);
                      Sprites.Insert (Base_Path, null);
-                     return null;
+                     return Null_Image_Owner;
                   end if;
                   Sheet := Adi.SVG_Sprites.Load_From_String
                     (Memory_To_String (BD));
@@ -569,7 +569,7 @@ package body Adi.Assets is
                        ("Assets: failed to parse SVG sprite from bundle: "
                         & Base_Path);
                      Sprites.Insert (Base_Path, null);
-                     return null;
+                     return Null_Image_Owner;
                   end if;
                   Sprites.Insert (Base_Path, Sheet);
                end;
@@ -583,7 +583,7 @@ package body Adi.Assets is
             if FP = "" then
                Adi.Log.Warning
                  ("Assets: SVG sprite file not found: " & Base_Path);
-               return null;
+               return Null_Image_Owner;
             end if;
 
             Pos := Sprites.Find (FP);
@@ -595,7 +595,7 @@ package body Adi.Assets is
                   Adi.Log.Warning
                     ("Assets: failed to load SVG sprite sheet: " & FP);
                   Sprites.Insert (FP, null);
-                  return null;
+                  return Null_Image_Owner;
                end if;
                Sprites.Insert (FP, Sheet);
             end if;
@@ -603,11 +603,11 @@ package body Adi.Assets is
       end if;
 
       if Sheet = null then
-         return null;
+         return Null_Image_Owner;
       end if;
 
       Img := Sheet.Get_Image (Id, Tintable => True);
-      if Img = null then
+      if not Adi.Image.Is_Owned (Img) then
          Adi.Log.Warning
            ("Assets: SVG sprite symbol not found: " & Id
             & " in " & Base_Path);
@@ -622,32 +622,40 @@ package body Adi.Assets is
    function Load_Raster_Crop
      (Base_Path : String;
       X, Y      : Natural;
-      W, H      : Positive) return Image_Access
+      W, H      : Positive) return Image_Owner
    is
-      Source : Image_Access;
+      Source : Image_Handle;
       Surf   : SDL_Surface_Ptr;
       Crop   : SDL_Surface_Ptr;
    begin
       --  Load the source image (may already be cached under the base path)
       Source := Get_Image (Base_Path);
-      if Source = null then
-         return null;
+      if not Adi.Image.Is_Valid (Source) then
+         return Null_Image_Owner;
       end if;
 
-      Surf := Adi.Image.Get_Surface (Source.all);
+      Surf := Adi.Image.Get_Surface (Source);
       if Surf = null then
          Adi.Log.Warning
            ("Assets: cannot crop non-raster image: " & Base_Path);
-         return null;
+         return Null_Image_Owner;
       end if;
 
       Crop := Crop_Surface (Surf, X, Y, W, H);
       if Crop = null then
          Adi.Log.Warning ("Assets: surface crop failed: " & Base_Path);
-         return null;
+         return Null_Image_Owner;
       end if;
 
-      return Adi.Image.Create_From_Surface (Crop);
+      --  The crop is this subprogram's until the image adopts it, and
+      --  it does that only once it owns one.
+      begin
+         return Adi.Image.Create_From_Surface (Crop);
+      exception
+         when others =>
+            SDL_DestroySurface (Crop);
+            raise;
+      end;
    end Load_Raster_Crop;
 
    ---------------------------------------------------------------------------
@@ -675,6 +683,27 @@ package body Adi.Assets is
    --  with Base & "?" (derived sprite/crop keys).
    ---------------------------------------------------------------------------
 
+   --  A container finalises what it drops when it likes, so an entry is
+   --  released through the map before it is removed rather than by
+   --  removing it.
+   procedure Release_Entry (M : in out Image_Maps.Map; Key : String);
+
+   procedure Release_Entry (M : in out Image_Maps.Map; Key : String) is
+      procedure Give_Up (K : String; O : in out Image_Owner);
+
+      procedure Give_Up (K : String; O : in out Image_Owner) is
+         pragma Unreferenced (K);
+      begin
+         Adi.Image.Release (O);
+      end Give_Up;
+
+      Pos : constant Image_Maps.Cursor := M.Find (Key);
+   begin
+      if Image_Maps.Has_Element (Pos) then
+         M.Update_Element (Pos, Give_Up'Access);
+      end if;
+   end Release_Entry;
+
    procedure Invalidate_Derived (Base : String) is
       package UB_Vectors is new Ada.Containers.Vectors
         (Index_Type   => Positive,
@@ -695,10 +724,9 @@ package body Adi.Assets is
       end loop;
       for K of Keys loop
          declare
-            S   : constant String := To_String (K);
-            Img : Image_Access := Images.Element (S);
+            S : constant String := To_String (K);
          begin
-            Adi.Image.Free (Img);
+            Release_Entry (Images, S);
             Images.Delete (S);
          end;
       end loop;
@@ -800,14 +828,53 @@ package body Adi.Assets is
    --  Get_Image
    ---------------------------------------------------------------------------
 
-   function Get_Image (Path : String) return Image_Access is
+   --  Load without consulting or filling the cache. Callers that mean
+   --  to cache the result insert the owner themselves.
+   function Load_Fresh (Path : String) return Image_Owner is
+   begin
+      if Current_Mode = Bundle_Mode then
+         declare
+            BD : constant Asset_Data := Bundle_Lookup (Path);
+         begin
+            if BD.Addr = System.Null_Address then
+               Adi.Log.Warning
+                 ("Assets: bundle entry not found or failed: " & Path);
+               return Null_Image_Owner;
+            end if;
+
+            if Ends_With_SVG (Path) then
+               return Adi.Image.Load_SVG_From_String (Memory_To_String (BD));
+            end if;
+            return Adi.Image.Load_From_Memory (BD.Addr, BD.Length);
+         end;
+      end if;
+
+      declare
+         FP : constant String := Resolve (Path);
+      begin
+         if FP = "" then
+            Adi.Log.Warning ("Assets: file not found: " & Path);
+            return Null_Image_Owner;
+         end if;
+
+         return Loaded : constant Image_Owner :=
+           Adi.Image.Load_From_File (FP)
+         do
+            if not Adi.Image.Is_Owned (Loaded) then
+               Adi.Log.Warning ("Assets: failed to load image: " & FP);
+            end if;
+         end return;
+      end;
+   end Load_Fresh;
+
+   function Get_Image (Path : String) return Image_Handle is
       use Image_Maps;
       Pos : constant Cursor := Images.Find (Path);
    begin
       Any_Asset_Loaded := True;
 
       if Pos /= No_Element then
-         return Element (Pos);
+         return Adi.Image.To_Handle (Element (Pos));
       end if;
 
       --  Check for query parameters (sprite/crop syntax)
@@ -821,15 +888,15 @@ package body Adi.Assets is
             --  Has query string — sprite or crop mode
             if Base_Last < Path'First then
                Adi.Log.Warning ("Assets: missing base path: " & Path);
-               Images.Insert (Path, null);
-               return null;
+               Images.Insert (Path, Null_Image_Owner);
+               return Null_Image_Handle;
             end if;
             declare
                Base  : constant String :=
                  Path (Path'First .. Base_Last);
                Query : constant String :=
                  Path (Query_Start .. Path'Last);
-               Img          : Image_Access := null;
+               Img          : Image_Owner;
                Has_Content  : Boolean := False;
             begin
                if Has_Param (Query, "id") then
@@ -875,39 +942,57 @@ package body Adi.Assets is
                      --  setting its scale mode doesn't mutate the cached
                      --  original (which other queries may share).
                      declare
-                        Base_Img : constant Image_Access := Get_Image (Base);
+                        Base_Img : constant Image_Handle := Get_Image (Base);
                         Surf     : SDL_Surface_Ptr;
+                        Copy     : SDL_Surface_Ptr;
                      begin
-                        if Base_Img = null then
-                           Images.Insert (Path, null);
-                           return null;
+                        if not Adi.Image.Is_Valid (Base_Img) then
+                           Images.Insert (Path, Img);
+                           return Null_Image_Handle;
                         end if;
-                        Surf := Adi.Image.Get_Surface (Base_Img.all);
+                        Surf := Adi.Image.Get_Surface (Base_Img);
                         if Surf /= null then
-                           Img := Adi.Image.Create_From_Surface
-                             (SDL_Surface_Ptr
-                                (SDL_DuplicateSurface (Surf)));
+                           --  Named, so that a failure has something to
+                           --  destroy: the duplicate is this branch's
+                           --  until the image adopts it.
+                           Copy := SDL_Surface_Ptr
+                             (SDL_DuplicateSurface (Surf));
+                           begin
+                              Img := Adi.Image.Create_From_Surface (Copy);
+                           exception
+                              when others =>
+                                 SDL_DestroySurface (Copy);
+                                 raise;
+                           end;
                         else
-                           --  SVG: fall back to shared ref
-                           Img := Base_Img;
+                           --  SVG, which has no surface to duplicate, so
+                           --  it is loaded again. Naming the base image
+                           --  under this key too would give the two keys
+                           --  one image: setting the scale mode here
+                           --  would change the base, and invalidating
+                           --  either key would end both.
+                           Img := Load_Fresh (Base);
                         end if;
                         Has_Content := True;
                      end;
                   end if;
-                  if Img /= null then
+                  if Adi.Image.Is_Owned (Img) then
                      declare
                         R : constant String :=
                           Get_Param (Query, "render");
                      begin
                         if R = "pixelated" or R = "pixelart" then
                            Adi.Image.Set_Scale_Mode
-                             (Img.all, Adi.Image.Scale_Pixelart);
+                             (Adi.Image.To_Handle (Img),
+                              Adi.Image.Scale_Pixelart);
                         elsif R = "nearest" then
                            Adi.Image.Set_Scale_Mode
-                             (Img.all, Adi.Image.Scale_Nearest);
+                             (Adi.Image.To_Handle (Img),
+                              Adi.Image.Scale_Nearest);
                         elsif R = "linear" or R = "smooth" then
                            Adi.Image.Set_Scale_Mode
-                             (Img.all, Adi.Image.Scale_Linear);
+                             (Adi.Image.To_Handle (Img),
+                              Adi.Image.Scale_Linear);
                         else
                            Adi.Log.Warning
                              ("Assets: unknown render mode: " & R);
@@ -920,49 +1005,17 @@ package body Adi.Assets is
                end if;
 
                Images.Insert (Path, Img);
-               return Img;
+               return Adi.Image.To_Handle (Img);
             end;
          end if;
       end;
 
       --  Normal path — no query string
-      if Current_Mode = Bundle_Mode then
-         declare
-            BD  : constant Asset_Data := Bundle_Lookup (Path);
-            Img : Image_Access := null;
-         begin
-            if BD.Addr /= System.Null_Address then
-               if Ends_With_SVG (Path) then
-                  Img := Adi.Image.Load_SVG_From_String
-                    (Memory_To_String (BD));
-               else
-                  Img := Adi.Image.Load_From_Memory (BD.Addr, BD.Length);
-               end if;
-            end if;
-            if Img = null then
-               Adi.Log.Warning
-                 ("Assets: bundle entry not found or failed: " & Path);
-            end if;
-            Images.Insert (Path, Img);
-            return Img;
-         end;
-      end if;
-
       declare
-         FP  : constant String := Resolve (Path);
-         Img : Image_Access := null;
+         Img : constant Image_Owner := Load_Fresh (Path);
       begin
-         if FP = "" then
-            Adi.Log.Warning ("Assets: file not found: " & Path);
-         else
-            Img := Adi.Image.Load_From_File (FP);
-            if Img = null then
-               Adi.Log.Warning ("Assets: failed to load image: " & FP);
-            end if;
-         end if;
-
          Images.Insert (Path, Img);
-         return Img;
+         return Adi.Image.To_Handle (Img);
       end;
    end Get_Image;
 
@@ -1023,13 +1076,19 @@ package body Adi.Assets is
    ---------------------------------------------------------------------------
 
    procedure Free_All_Images is
+      procedure Give_Up (K : String; O : in out Image_Owner);
+
+      procedure Give_Up (K : String; O : in out Image_Owner) is
+         pragma Unreferenced (K);
+      begin
+         Adi.Image.Release (O);
+      end Give_Up;
    begin
+      --  Released one by one before the map is emptied: clearing a
+      --  container finalises what it held whenever it likes, and the
+      --  images have to go now.
       for Pos in Images.Iterate loop
-         declare
-            Img : Image_Access := Image_Maps.Element (Pos);
-         begin
-            Adi.Image.Free (Img);
-         end;
+         Images.Update_Element (Pos, Give_Up'Access);
       end loop;
       Images.Clear;
    end Free_All_Images;
@@ -1078,11 +1137,7 @@ package body Adi.Assets is
          Strings.Delete (Path);
       end if;
       if Images.Contains (Path) then
-         declare
-            Img : Image_Access := Images.Element (Path);
-         begin
-            Adi.Image.Free (Img);
-         end;
+         Release_Entry (Images, Path);
          Images.Delete (Path);
       end if;
       if Anim_Images.Contains (Path) then

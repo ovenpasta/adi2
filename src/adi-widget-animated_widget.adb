@@ -17,7 +17,7 @@ package body Adi.Widget.Animated_Widget is
       Width  : out Pixel_Type;
       Height : out Pixel_Type);
    overriding function Get_Current_Image
-     (B : Image_Backend) return Image_Access;
+     (B : Image_Backend) return Image_Handle;
    overriding function Advance
      (B      : in out Image_Backend;
       DT     : Duration;
@@ -352,11 +352,11 @@ package body Adi.Widget.Animated_Widget is
    overriding procedure Build_Items (W : in out Animated_Widget) is
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Content    : constant Rectangle := Content_Box (W.Geometry, Main_Style);
-      Current    : Image_Access := null;
+      Current    : Image_Handle := Adi.Image.Null_Image_Handle;
    begin
       if Item_Count (W) = 0 then
          Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));
-         Add_Item (W, Make_Image (Icon_Part, Content, null, 1));
+         Add_Item (W, Make_Image (Icon_Part, Content, Adi.Image.Null_Image_Handle, 1));
       end if;
 
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
@@ -430,11 +430,11 @@ package body Adi.Widget.Animated_Widget is
    end Get_Size;
 
    overriding function Get_Current_Image
-     (B : Image_Backend) return Image_Access
+     (B : Image_Backend) return Image_Handle
    is
    begin
       if not Is_Valid (B.Animation) then
-         return null;
+         return Adi.Image.Null_Image_Handle;
       end if;
       return Adi.Animated_Image.Get_Current_Image (B.Animation);
    end Get_Current_Image;

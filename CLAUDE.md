@@ -51,6 +51,9 @@ alr exec -- gprbuild -j0 -P tests/tests.gpr -XTEST_KIND=css_parser_test
 # Build examples (regenerates their generated sources first)
 tools/build_examples.sh stack_example
 
+# Examples link libAdi.a statically: rebuild one after any src/ change,
+# or it still runs the library it was built against.
+
 # Build a specific example directly (generated sources must be current)
 alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 
@@ -118,7 +121,8 @@ python3 tools/binary_to_ada.py \
   --output-dir examples/generated/ \
   --package-name Assets_Example_Bundle \
   --base-dir examples/assets/ \
-  examples/assets/icons.svg examples/assets/happycat.png
+  examples/assets/icons.svg examples/assets/happycat.png \
+  examples/assets/OpenSans-Regular.ttf
 ```
 
 Incremental build for examples: `tools/generate_example_bundles.sh`. Full reference in `docs/static_assets.md`.

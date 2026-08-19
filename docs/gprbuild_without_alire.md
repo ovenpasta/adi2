@@ -1,6 +1,6 @@
 # Building Without Alire
 
-This flow is file-based and fish-friendly: run `configure` once, then build from generated projects.
+`configure` writes the project files once; building from them afterwards needs no Alire environment.
 
 ## 1) Configure build dir
 

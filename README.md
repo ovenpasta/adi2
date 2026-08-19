@@ -12,15 +12,13 @@ Adi2 gives you a real widget toolkit with the niceties developers expect from a 
 
 - **Style your UI like the web.** Selectors, pseudo-classes, parts, transitions, gradients, box shadows — all in a familiar `.css` syntax. Edit the file, save, see the change. No recompile during development. Prefer pure Ada? CSS rules are just plain Ada aggregates of `Style_Rules` — write them by hand with no extra ceremony (see the snippet below).
 - **Describe UIs declaratively — or don't.** Write `<button>`, `<grid>`, `<text-editor>` in XML and let the toolchain emit clean Ada packages, *or* construct the same widget tree directly in Ada with handle-based builders. Both paths target the exact same API; the XML generator is a convenience, not a requirement.
-- **Render rich content.** A built-in lightweight HTML view widget renders documentation-style markup with cascading styles. SVG works through both raster and vector backends; Lottie animations via bundled rlottie.
+- **Render rich content.** A built-in lightweight HTML view widget renders documentation-style markup with cascading styles. Raster images through SDL3_image, SVG through the bundled plutosvg, Lottie animations through bundled rlottie.
 - **Ship a single binary.** Bundle every CSS file, font, image, translation, and SVG sprite into your executable. No filesystem dependencies at runtime.
 - **Speak the user's language.** Gettext-compatible i18n with plural forms, automatic locale detection, and `.po` → Ada compilation.
-- **Animate without boilerplate.** CSS transitions on color, padding, shadows, opacity, font-size — the framework handles interpolation and timing.
-- **HiDPI-ready units.** `dp`/`dip` for layout, `rem` for typography — see [`docs/css_styling.md`](docs/css_styling.md).
+- **Animate without boilerplate.** CSS transitions on `color`, `background-color`, `border-color`, `border-width`, `border-radius`, `padding`, `margin`, `opacity`, `box-shadow` and `font-size` — the framework handles interpolation and timing.
+- **HiDPI-ready units.** `dp`/`dip` for layout, `rem` for typography, `pix` when you mean one renderer pixel exactly, and `px` — which follows the display scale or not, depending on `Set_Px_Maps_To_Dip`. See [`docs/css_styling.md`](docs/css_styling.md).
 - **Built for tooling and automation.** A development-only MCP bridge lets editors and AI assistants screenshot the running app, walk the widget tree, *and* drive it — clicking buttons, typing into inputs, moving focus, reading performance counters. Great for end-to-end tests written by your AI of choice.
 - **Runs in the browser.** The examples compile to WebAssembly with GNAT-LLVM and Emscripten — [try them live](https://pizzahack.eu/adi2/demo/), or see [`wasm/`](wasm/) for the build.
-
-Backed by SDL3 for windowing/rendering and SDL3_ttf for text. Written in Ada with GNAT extensions.
 
 ---
 

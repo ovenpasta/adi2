@@ -177,6 +177,40 @@ Flow:
 
 The Python client enforces single-flight per PID (one in-flight command per app).
 
+The same protocol from a shell, without the Python bridge. The app's own
+PID names its directory, so this touches no session but the one it
+starts:
+
+```bash
+./examples/bin/html_view_example >/tmp/app.log 2>&1 &
+APP=$!
+trap 'kill "$APP" 2>/dev/null' EXIT     # the app goes, however this ends
+D=/tmp/adi_mcp/$APP
+
+# Wait for either the sentinel or the app's death, not for the sentinel
+# alone: an app that fails to start never writes one.
+await() {
+  for _ in $(seq 40); do
+    [ -f "$1" ] && return 0
+    kill -0 "$APP" 2>/dev/null || { echo "app exited, see /tmp/app.log" >&2; return 1; }
+    sleep 0.5
+  done
+  echo "timed out waiting for $1" >&2
+  return 1
+}
+
+await "$D/ready" || exit 1
+
+REQ="shell_$$"
+printf '{"command":"screenshot"}' > "$D/cmd_$REQ.json.tmp"
+mv "$D/cmd_$REQ.json.tmp" "$D/cmd_$REQ.json"
+await "$D/resp_$REQ.json" || exit 1
+cat "$D/resp_$REQ.json"
+```
+
+`req_id` is any string unique within the app. Other commands take their
+arguments as further fields of the same object.
+
 ## Troubleshooting
 
 - `No running Adi application found`:
@@ -184,7 +218,12 @@ The Python client enforces single-flight per PID (one in-flight command per app)
 - `Multiple running Adi applications found (PIDs: ...)`:
   Auto-discovery does not guess between live applications, because the
   most recently active one is not necessarily the one you mean. Re-run
-  targeting a specific process with `--pid <PID>`.
+  targeting a specific process with `--pid <PID>`, or leave one running:
+  `pgrep -af examples/bin/` lists them. Discovery already removes the
+  session directory of any PID that is no longer alive, so a killed app
+  stops counting on its own. Clearing one by hand means
+  `rm -rf /tmp/adi_mcp/<PID>` for that PID — never the parent, which is
+  shared between applications and users.
 - Timeouts:
   Check that the app is still alive and rendering frames.
 - Mismatched directories:

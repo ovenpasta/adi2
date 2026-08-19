@@ -585,7 +585,7 @@ package body Adi.RLottie is
    begin
       if Anim.Frame_Count > 0 then
          --  Resuming re-anchors, so the pause is not charged as elapsed.
-         Anim.Anchored := False;
+         Adi.Playback_Clock.Reanchor (Anim.Clock);
          Anim.Playing := True;
       end if;
    end Start;
@@ -627,7 +627,7 @@ package body Adi.RLottie is
    begin
       Anim.Elapsed_S := 0.0;
       Anim.Current_Frame := 0;
-      Anim.Anchored := False;
+      Adi.Playback_Clock.Reanchor (Anim.Clock);
 
       if Anim.Active /= null then
          if Ensure_Frame_Image (Anim, 1) then
@@ -685,7 +685,7 @@ package body Adi.RLottie is
       --  Stepping by hand moves the timeline without the sampled clock
       --  knowing, so the next sample must anchor rather than charge for
       --  the step it has just been given and the time since.
-      Anim.Anchored := False;
+      Adi.Playback_Clock.Reanchor (Anim.Clock);
       return Advance_By (Anim, DT);
    end Advance;
 
@@ -693,52 +693,41 @@ package body Adi.RLottie is
      (Anim   : in out RLottie_Animation;
       Sample : Adi.Clock.Time) return Boolean
    is
-      use type Adi.Clock.Time;
-      Step : Duration;
+      Tick : Adi.Playback_Clock.Sample_Result;
    begin
       if not Is_Valid (Anim) then
          return False;
       end if;
 
       --  Preparation is not playback: a settled extent has to be taken up
-      --  whether or not the playhead is moving, so this runs before the
-      --  anchor, stale-sample and paused returns below.
+      --  whether or not the playhead is moving, so this runs before every
+      --  return below it.
       Service_Pending (Anim);
 
-      --  Nothing to charge the animation for: the first sample, or the
-      --  first after the timeline moved some other way.
-      if not Anim.Anchored then
-         Anim.Last_Sample := Sample;
-         Anim.Anchored := True;
+      Tick := Adi.Playback_Clock.Sample (Anim.Clock, Sample);
 
-         --  Anchoring is not the same as showing nothing. Stepping by
-         --  zero moves the timeline nowhere but still settles which frame
-         --  is visible, so a freshly prepared animation shows its first
-         --  rather than staying blank until a second sample arrives. When
-         --  one is already visible it reports no movement, which is what
-         --  keeps a re-anchor after Start or Reset from looking like one.
-         return Advance_By (Anim, 0.0);
-      end if;
+      case Tick.Kind is
+         when Adi.Playback_Clock.Ignored =>
+            return False;
 
-      Step := Adi.Clock.To_Duration (Sample - Anim.Last_Sample);
+         when Adi.Playback_Clock.Anchored =>
+            --  Anchoring is not the same as showing nothing. Stepping by
+            --  zero moves the timeline nowhere but still settles which
+            --  frame is visible, so a freshly prepared animation shows
+            --  its first rather than staying blank until a second sample
+            --  arrives. When one is already visible it reports no
+            --  movement, which is what keeps a re-anchor after Start or
+            --  Reset from looking like one.
+            return Advance_By (Anim, 0.0);
 
-      --  A repeat of the same instant advances nothing, which is what
-      --  makes several viewers per step harmless. One that has gone
-      --  backwards is ignored outright: moving the anchor to it would
-      --  make the next honest sample pay for the gap twice.
-      if Step <= 0.0 then
-         return False;
-      end if;
-
-      Anim.Last_Sample := Sample;
-
-      --  Paused time is not owed; the anchor has already moved above, so
-      --  resuming does not deliver the whole pause at once.
-      if not Anim.Playing then
-         return False;
-      end if;
-
-      return Advance_By (Anim, Step);
+         when Adi.Playback_Clock.Elapsed =>
+            --  Sampled before this, so a pause is consumed as it passes
+            --  rather than delivered in one leap on resume.
+            if not Anim.Playing then
+               return False;
+            end if;
+            return Advance_By (Anim, Tick.Span);
+      end case;
    end Advance_At;
 
    procedure Destroy (Anim : in out RLottie_Animation) is

@@ -6,6 +6,7 @@ pragma Ada_2022;
 with Adi.Core;         use Adi.Core;
 with Adi.Clock;
 with Adi.Image;        use Adi.Image;
+with Adi.Playback_Clock;
 with Adi.Handle_Store;
 with Adi.Texture_Cache;
 with Interfaces;
@@ -231,12 +232,10 @@ private
       Elapsed_S         : Float := 0.0;
       Playing           : Boolean := True;
 
-      --  Where the sampled clock last stood, and whether it stands
-      --  anywhere yet. Cleared whenever the timeline moves by any means
-      --  other than sampling, so the next sample anchors instead of
-      --  charging the animation for the gap.
-      Last_Sample       : Adi.Clock.Time := Adi.Clock.Zero;
-      Anchored          : Boolean := False;
+      --  Where the sampled clock stands. Re-anchored whenever the
+      --  timeline moves by any means other than sampling, so the next
+      --  sample anchors instead of charging for the gap.
+      Clock             : Adi.Playback_Clock.Clock_State;
       Looping           : Boolean := True;
       Playback_Speed    : Float := 1.0;
 

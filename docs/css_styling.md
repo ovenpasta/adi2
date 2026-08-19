@@ -1002,7 +1002,9 @@ Adi.Font.Enable_System_Font_Search;
 --  on first use, without requiring an explicit Adi.Font.Find call.
 ```
 
-Names are matched case-insensitively. Comma-separated lists are tried left-to-right; the first name that matches wins. Unrecognized names (including generic families like `sans-serif`) are skipped without triggering a scan. If no name matches, the default font is used.
+Names are matched case-insensitively. Comma-separated lists are tried left-to-right; the first name that matches wins. If no name matches, the default font is used. In registry-only mode an unregistered name is skipped without a scan; after `Enable_System_Font_Search` it is searched for once, and the miss is cached so later lookups of the same name are cheap.
+
+The generic families `sans-serif`, `serif` and `monospace` resolve in either mode, since they are names CSS defines rather than names of installed families. Each is tried against a per-platform candidate list — on Linux, DejaVu, Noto and Liberation — and answered by the first one present. Registering a face under the generic's own name overrides that. Resolution happens on first use and is then kept, so a generic the program never asks for is never scanned for.
 
 ---
 

@@ -9,7 +9,7 @@ h6 { font-size: 0.67em; font-weight: 600; margin: 2.33em 0px; }
 
 p { margin: 1em 0px; }
 blockquote { margin: 1em 40px; }
-pre { font-size: 0.875em; }
+pre { font-family: monospace; font-size: 0.875em; }
 hr { height: 1px; margin: 0.5em 0px; opacity: 0.25; }
 
 ul, ol { margin: 1em 0px; padding: 0px 0px 0px 40px; }
@@ -18,7 +18,7 @@ dd { margin: 0px 0px 0px 40px; }
 strong, b { font-weight: 700; }
 em, i { font-style: italic; }
 small { font-size: 0.875em; }
-code, kbd, samp { font-size: 0.875em; }
+code, kbd, samp { font-family: monospace; font-size: 0.875em; }
 a { text-decoration: underline; }
 s, del { text-decoration: line-through; }
 u, ins { text-decoration: underline; }

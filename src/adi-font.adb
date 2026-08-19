@@ -245,6 +245,108 @@ package body Adi.Font is
       2 => (File_Prefix => new String'("arial"),
             Family_Name => new String'("arial"))];
 
+   ---------------------------------------------------------------------------
+   --  CSS generic families.
+   --
+   --  Aliases the language defines rather than names of anything on disk,
+   --  so they resolve whichever mode the CSS resolver is in: an app that
+   --  has not opened system font lookup to arbitrary names still gets
+   --  "monospace" to mean a monospace face. First candidate present wins.
+   ---------------------------------------------------------------------------
+
+   type Generic_Family is (Generic_Sans, Generic_Serif, Generic_Mono);
+
+   type Fallback_Font_List is
+     array (Positive range <>) of Fallback_Font_Entry;
+   type Fallback_List_Ref is access constant Fallback_Font_List;
+
+   Linux_Sans : aliased constant Fallback_Font_List :=
+     [(new String'("DejaVuSans"),      new String'("dejavu sans")),
+      (new String'("NotoSans"),        new String'("noto sans")),
+      (new String'("LiberationSans"),  new String'("liberation sans"))];
+
+   Linux_Serif : aliased constant Fallback_Font_List :=
+     [(new String'("DejaVuSerif"),     new String'("dejavu serif")),
+      (new String'("NotoSerif"),       new String'("noto serif")),
+      (new String'("LiberationSerif"), new String'("liberation serif"))];
+
+   Linux_Mono : aliased constant Fallback_Font_List :=
+     [(new String'("DejaVuSansMono"),  new String'("dejavu sans mono")),
+      (new String'("NotoSansMono"),    new String'("noto sans mono")),
+      (new String'("LiberationMono"),  new String'("liberation mono"))];
+
+   macOS_Sans : aliased constant Fallback_Font_List :=
+     [(new String'("HelveticaNeue"),   new String'("helvetica neue")),
+      (new String'("Helvetica"),       new String'("helvetica")),
+      (new String'("Arial"),           new String'("arial"))];
+
+   macOS_Serif : aliased constant Fallback_Font_List :=
+     [(new String'("Times"),           new String'("times new roman")),
+      (new String'("Georgia"),         new String'("georgia"))];
+
+   macOS_Mono : aliased constant Fallback_Font_List :=
+     [(new String'("Menlo"),           new String'("menlo")),
+      (new String'("Monaco"),          new String'("monaco")),
+      (new String'("Courier"),         new String'("courier new"))];
+
+   Windows_Sans : aliased constant Fallback_Font_List :=
+     [(new String'("segoeui"),         new String'("segoe ui")),
+      (new String'("arial"),           new String'("arial"))];
+
+   Windows_Serif : aliased constant Fallback_Font_List :=
+     [(new String'("times"),           new String'("times new roman")),
+      (new String'("georgia"),         new String'("georgia"))];
+
+   Windows_Mono : aliased constant Fallback_Font_List :=
+     [(new String'("consola"),         new String'("consolas")),
+      (new String'("cour"),            new String'("courier new"))];
+
+   function Generic_Candidates (G : Generic_Family) return Fallback_List_Ref
+   is
+   begin
+      case Adi.Build_Target.Platform is
+         when Adi.Build_Target.Linux =>
+            case G is
+               when Generic_Sans  => return Linux_Sans'Access;
+               when Generic_Serif => return Linux_Serif'Access;
+               when Generic_Mono  => return Linux_Mono'Access;
+            end case;
+         when Adi.Build_Target.macOS =>
+            case G is
+               when Generic_Sans  => return macOS_Sans'Access;
+               when Generic_Serif => return macOS_Serif'Access;
+               when Generic_Mono  => return macOS_Mono'Access;
+            end case;
+         when Adi.Build_Target.Windows =>
+            case G is
+               when Generic_Sans  => return Windows_Sans'Access;
+               when Generic_Serif => return Windows_Serif'Access;
+               when Generic_Mono  => return Windows_Mono'Access;
+            end case;
+      end case;
+   end Generic_Candidates;
+
+   --  Resolved once and kept. Nothing here runs at elaboration: a program
+   --  that never asks for a generic never scans for one.
+   Generic_Cache : array (Generic_Family) of Font_Handle :=
+     [others => Null_Font];
+
+   function Generic_Of (Key : String; G : out Generic_Family) return Boolean
+   is
+   begin
+      if Key = "sans-serif" then
+         G := Generic_Sans;
+      elsif Key = "serif" then
+         G := Generic_Serif;
+      elsif Key = "monospace" then
+         G := Generic_Mono;
+      else
+         G := Generic_Sans;
+         return False;
+      end if;
+      return True;
+   end Generic_Of;
+
    function Is_Valid_Handle (Handle : Font_Handle) return Boolean is
    begin
       return Handle /= Null_Font
@@ -1226,8 +1328,15 @@ package body Adi.Font is
       return Null_Font;
    end Lookup;
 
-   function Find (Name : String) return Font_Handle is
-      Key : constant String := Ada.Characters.Handling.To_Lower (Name);
+   --  Prefix is the filename stem to look for, which is not always
+   --  derivable from the family name: Consolas ships as consola.ttf and
+   --  Courier New as cour.ttf.
+   function Find_With_Prefix
+     (Family : String; Prefix : String) return Font_Handle
+   is
+      Key : constant String := Ada.Characters.Handling.To_Lower (Family);
+      Miss_Key : constant String :=
+        Key & '|' & Ada.Characters.Handling.To_Lower (Prefix);
       H   : Font_Handle;
    begin
       --  Check if already loaded/registered
@@ -1236,21 +1345,91 @@ package body Adi.Font is
          return H;
       end if;
 
-      --  Check negative cache to avoid repeated expensive scans
-      if Name_Miss_Cache.Contains (Key) then
+      --  Check negative cache to avoid repeated expensive scans. Keyed by
+      --  the stem as well as the family: the same family is looked for
+      --  under a derived stem by Find and under a curated one by the
+      --  generic tables, and a miss on the first must not answer for the
+      --  second. Consolas is the case -- derived "Consolas" finds
+      --  nothing, curated "consola" finds consola.ttf.
+      if Name_Miss_Cache.Contains (Miss_Key) then
          return Null_Font;
       end if;
 
       --  Search system font directories
-      H := Search_System_Font (Key, Derive_File_Prefix (Name));
+      H := Search_System_Font (Key, Prefix);
       if H /= Null_Font then
-         Log ("find: resolved """ & Name & """ from system fonts");
+         Log ("find: resolved """ & Family & """ from system fonts");
       else
-         Log ("find: """ & Name & """ not found in system fonts");
-         Name_Miss_Cache.Include (Key);
+         Log ("find: """ & Family & """ not found in system fonts");
+         Name_Miss_Cache.Include (Miss_Key);
       end if;
       return H;
-   end Find;
+   end Find_With_Prefix;
+
+   function Find (Name : String) return Font_Handle
+   is (Find_With_Prefix (Name, Derive_File_Prefix (Name)));
+
+   --  A generic is resolved by asking for each candidate family in turn,
+   --  with the filename stem the table gives rather than one derived from
+   --  the family name. Going through Find_With_Prefix means a family
+   --  already registered or embedded answers without touching the
+   --  filesystem, and one that is not installed is remembered as a miss
+   --  and not scanned for again.
+   function Resolve_Generic (G : Generic_Family) return Font_Handle is
+      Cached : constant Font_Handle := Generic_Cache (G);
+      H      : Font_Handle := Null_Font;
+   begin
+      if Cached /= Null_Font and then Is_Valid_Handle (Cached) then
+         return Cached;
+      end if;
+
+      for FE of Generic_Candidates (G).all loop
+         H := Find_With_Prefix (FE.Family_Name.all, FE.File_Prefix.all);
+         exit when H /= Null_Font;
+      end loop;
+
+      --  Only a hit is kept. A miss costs nothing to retry, since every
+      --  candidate it asked about is in the miss cache by now, and an app
+      --  may register a face for the generic later.
+      if H /= Null_Font then
+         Generic_Cache (G) := H;
+         Log ("generic " & Generic_Family'Image (G)
+              & " resolved to handle=" & Font_Handle'Image (H));
+      end if;
+      return H;
+   end Resolve_Generic;
+
+   --  What CSS font-family names resolve through. Anything registered
+   --  wins, including a name registered for a generic. Then the generics
+   --  themselves -- and one that finds nothing stops there, since no
+   --  family is called "monospace" and searching for one would only cost
+   --  a walk of the font directories. Anything else is an ordinary
+   --  family name, searched for or not according to the mode.
+   function Resolve_Family
+     (Name : String; Search_System : Boolean) return Font_Handle
+   is
+      H : constant Font_Handle := Lookup (Name);
+      G : Generic_Family;
+   begin
+      if H /= Null_Font then
+         return H;
+      end if;
+
+      if Generic_Of (Ada.Characters.Handling.To_Lower (Name), G) then
+         return Resolve_Generic (G);
+      end if;
+
+      if Search_System then
+         return Find (Name);
+      end if;
+      return Null_Font;
+   end Resolve_Family;
+
+   function Resolve_Registered (Name : String) return Font_Handle
+   is (Resolve_Family (Name, Search_System => False));
+
+   function Resolve_With_System (Name : String) return Font_Handle
+   is (Resolve_Family (Name, Search_System => True));
 
    function Load_Asset (Asset_Path : String) return Font_Handle is
    begin
@@ -1637,9 +1816,9 @@ package body Adi.Font is
    procedure Enable_System_Font_Search is
    begin
       Env_Generation := Env_Generation + 1;
-      Adi.CSS_Styles.Set_Font_Name_Resolver (Find'Access);
+      Adi.CSS_Styles.Set_Font_Name_Resolver (Resolve_With_System'Access);
    end Enable_System_Font_Search;
 
 begin
-   Adi.CSS_Styles.Set_Font_Name_Resolver (Lookup'Access);
+   Adi.CSS_Styles.Set_Font_Name_Resolver (Resolve_Registered'Access);
 end Adi.Font;

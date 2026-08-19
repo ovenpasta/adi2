@@ -148,6 +148,15 @@ package Adi.Font is
    --  Find, or Register_Name.  Calling Enable_System_Font_Search switches
    --  the resolver to use Find, so unregistered names trigger a system font
    --  search on first use.
+   --
+   --  The generic families -- sans-serif, serif and monospace -- resolve in
+   --  either mode. They are names CSS defines rather than names of anything
+   --  installed, so an application that has not opened lookup to arbitrary
+   --  families still gets a monospace face from "monospace". Each is tried
+   --  against a per-platform list of candidates and answered by the first
+   --  one present; a name registered for the generic itself wins over that.
+   --  Resolution happens on first use and is kept, so nothing is scanned
+   --  for a generic the program never asks about.
    ---------------------------------------------------------------------------
 
    procedure Enable_System_Font_Search;

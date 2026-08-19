@@ -38,6 +38,111 @@ begin
       return;
    end if;
 
+   ---------------------------------------------------------------------
+   --  CSS generic families
+   ---------------------------------------------------------------------
+
+   Test_Support.Section ("generic families resolve without being installed");
+   declare
+      use type Font_Handle;
+
+      function Via_CSS (Family : String) return Font_Handle is
+         Rules : Style_Rules;
+      begin
+         Rules.Font_Family := Set_Font_Family (Family);
+         return Resolve (Rules).Font_Family;
+      end Via_CSS;
+
+      --  Named rather than searched for, and deliberately one the
+      --  platform list also names: it is installed, so failing to
+      --  resolve it says something about the mode rather than about
+      --  the machine.
+      Installed_Family : constant String :=
+        (case Adi.Build_Target.Platform is
+            when Adi.Build_Target.Linux   => "DejaVu Sans Mono",
+            when Adi.Build_Target.macOS   => "Menlo",
+            when Adi.Build_Target.Windows => "Consolas");
+
+      --  Asked first, and it matters: resolving a generic loads its
+      --  candidate and registers it under its family name, after which
+      --  this would resolve for the wrong reason.
+      Installed_By_Name : constant Font_Handle := Via_CSS (Installed_Family);
+
+      Mono  : constant Font_Handle := Via_CSS ("monospace");
+      Sans  : constant Font_Handle := Via_CSS ("sans-serif");
+      Serif : constant Font_Handle := Via_CSS ("serif");
+   begin
+      --  Runs before Enable_System_Font_Search, and this is what says so:
+      --  an ordinary family that is installed does not resolve yet, so a
+      --  generic that does cannot be resolving as an ordinary name.
+      Test_Support.Assert
+        (Installed_By_Name = Null_Font,
+         "an installed family does not resolve in registry-only mode");
+      Test_Support.Assert
+        (Mono /= Null_Font,
+         "monospace resolves to a face with arbitrary family lookup"
+         & " still closed");
+      Test_Support.Assert
+        (Sans /= Null_Font and then Serif /= Null_Font,
+         "and so do sans-serif and serif");
+      Test_Support.Assert
+        (Mono /= Sans,
+         "monospace is not merely the default face under another name");
+
+      --  Asking again must not scan again. Nothing observable counts
+      --  scans, so this stands on the second answer being the first.
+      Test_Support.Assert
+        (Via_CSS ("monospace") = Mono,
+         "asking again gives the same face rather than a second one"
+         & " loaded from the same file");
+
+      Test_Support.Assert
+        (Via_CSS ("MonoSpace") = Mono,
+         "and the name is matched case-insensitively");
+   end;
+
+   Test_Support.Section ("a registered face wins over the platform list");
+   declare
+      use type Font_Handle;
+
+      function Via_CSS (Family : String) return Font_Handle is
+         Rules : Style_Rules;
+      begin
+         Rules.Font_Family := Set_Font_Family (Family);
+         return Resolve (Rules).Font_Family;
+      end Via_CSS;
+
+      Before : constant Font_Handle := Via_CSS ("monospace");
+      Chosen : constant Font_Handle :=
+        Adi.Font.Load ("vendor/open-sans/static/OpenSans-Regular.ttf",
+                       "the chosen mono");
+   begin
+      if Chosen = Null_Font then
+         Test_Support.Assert (False, "the fixture font loads");
+      else
+         Adi.Font.Register_Name ("monospace", Chosen);
+         Test_Support.Assert
+           (Via_CSS ("monospace") = Chosen
+              and then Via_CSS ("monospace") /= Before,
+            "An application that registers a face for the generic gets"
+            & " that face: the platform list is what answers when nobody"
+            & " has said otherwise");
+      end if;
+   end;
+
+   Test_Support.Section ("an unknown family still falls through a list");
+   declare
+      use type Font_Handle;
+      Rules : Style_Rules;
+   begin
+      Rules.Font_Family := Set_Font_Family ("No Such Face, monospace");
+      Test_Support.Assert
+        (Resolve (Rules).Font_Family /= Null_Font,
+         "a comma list skips what it cannot find and lands on the"
+         & " generic behind it");
+   end;
+
+
    Adi.Font.Enable_System_Font_Search;
 
    case Adi.Build_Target.Platform is

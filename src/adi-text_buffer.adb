@@ -593,18 +593,18 @@ package body Adi.Text_Buffer is
    end Delete_Forward;
 
    function Copy_Selection_To_Clipboard (B : Text_Buffer) return Boolean is
-      Txt    : constant String := Get_Selected_Text (B);
-      C_Txt  : chars_ptr;
-      Ignore : Adi.SDL.C_bool;
+      Txt   : constant String := Get_Selected_Text (B);
+      C_Txt : chars_ptr;
+      Ok    : Adi.SDL.C_bool;
    begin
       if Txt'Length = 0 then
          return False;
       end if;
 
       C_Txt := New_String (Txt);
-      Ignore := Adi.SDL.SDL_SetClipboardText (C_Txt);
+      Ok := Adi.SDL.SDL_SetClipboardText (C_Txt);
       Free (C_Txt);
-      return True;
+      return Boolean (Ok);
    end Copy_Selection_To_Clipboard;
 
    function Cut_Selection_To_Clipboard (B : in out Text_Buffer) return Boolean is

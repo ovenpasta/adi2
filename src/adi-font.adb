@@ -1450,17 +1450,23 @@ package body Adi.Font is
       F      : constant TTF_Font_Access := Get_TTF_Font (Attrs);
       C_Text : chars_ptr;
       W, H   : aliased int;
-      Ignore : Adi.SDL.C_bool;
+      Ok     : Adi.SDL.C_bool;
    begin
       if F = null or else Content'Length = 0 then
          return (0.0, 0.0);
       end if;
 
       C_Text := New_String (Content);
-      Ignore := TTF_GetStringSize (F, C_Text,
-                                   size_t (Content'Length),
-                                   W'Access, H'Access);
+      Ok := TTF_GetStringSize (F, C_Text,
+                               size_t (Content'Length),
+                               W'Access, H'Access);
       Free (C_Text);
+
+      --  A failed call leaves W and H untouched, so returning them would
+      --  hand layout whatever the stack held.
+      if not Boolean (Ok) then
+         return (0.0, 0.0);
+      end if;
 
       return (Pixel_Type (W), Pixel_Type (H));
    end Measure_Text;
@@ -1509,18 +1515,22 @@ package body Adi.Font is
       F      : constant TTF_Font_Access := Get_TTF_Font (Attrs);
       C_Text : chars_ptr;
       W, H   : aliased int;
-      Ignore : Adi.SDL.C_bool;
+      Ok     : Adi.SDL.C_bool;
    begin
       if F = null or else Content'Length = 0 then
          return (0.0, 0.0);
       end if;
 
       C_Text := New_String (Content);
-      Ignore := TTF_GetStringSizeWrapped (F, C_Text,
-                                          size_t (Content'Length),
-                                          int (Wrap_Width),
-                                          W'Access, H'Access);
+      Ok := TTF_GetStringSizeWrapped (F, C_Text,
+                                      size_t (Content'Length),
+                                      int (Wrap_Width),
+                                      W'Access, H'Access);
       Free (C_Text);
+
+      if not Boolean (Ok) then
+         return (0.0, 0.0);
+      end if;
 
       return (Pixel_Type (W), Pixel_Type (H));
    end Measure_Text_Wrapped;

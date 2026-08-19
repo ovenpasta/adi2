@@ -247,7 +247,9 @@ function Get_Clipboard_Text return String;
 ### Set_Clipboard_Text
 
 ```ada
-procedure Set_Clipboard_Text (Text : String);
+function Set_Clipboard_Text (Text : String) return Boolean;
+-- True when the text reached the clipboard. It does not on a platform
+-- without one, nor before the video subsystem is up.
 ```
 
 ### Has_Clipboard_Text

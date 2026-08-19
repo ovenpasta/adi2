@@ -1,7 +1,10 @@
 pragma Ada_2022;
 
+with Ada.Environment_Variables;
 with Ada.Text_IO; use Ada.Text_IO;
 with Adi.Core; use Adi.Core;
+with Adi.OS;
+with Adi.SDL;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Text_Input; use Adi.Widget.Text_Input;
 with Adi.SDL.Events; use Adi.SDL.Events;
@@ -112,13 +115,38 @@ procedure Text_Input_Test is
               "buffer unchanged after Ctrl+X in password mode");
    end Test_Cut_Suppressed_In_Password_Mode;
 
+   --  Runs before SDL is up, where the clipboard write is refused.
+   procedure Test_Cut_Keeps_Text_When_Clipboard_Refuses is
+      W : constant Text_Input_Handle := Create_Handle ("hello");
+   begin
+      Put_Line ("Test: Ctrl+X keeps the text when the clipboard refuses");
+      Test_Support.Assert (not Adi.OS.Set_Clipboard_Text ("probe"),
+              "the clipboard declines before the video subsystem is up,"
+              & " and says so");
+
+      On_Key_Down (+W, SDL_SCANCODE_A, SDL_KMOD_CTRL, False);
+      On_Key_Down (+W, SDL_SCANCODE_X, SDL_KMOD_CTRL, False);
+      Test_Support.Assert (Get_Text (W) = "hello",
+              "Cut may delete only what it managed to copy: deleting"
+              & " anyway loses the text with nothing to paste back");
+   end Test_Cut_Keeps_Text_When_Clipboard_Refuses;
+
+   procedure Start_SDL is
+      Ok : Adi.SDL.C_bool;
+   begin
+      Ada.Environment_Variables.Set ("SDL_VIDEODRIVER", "dummy");
+      Ok := Adi.SDL.SDL_Init (Adi.SDL.SDL_INIT_VIDEO);
+      Test_Support.Assert (Boolean (Ok),
+              "SDL_Init should succeed with dummy driver");
+   end Start_SDL;
+
    procedure Test_Cut_Works_When_Not_Password is
       W : constant Text_Input_Handle := Create_Handle ("hello");
    begin
       Put_Line ("Test: Ctrl+X still cuts when password mode is off");
-      --  Sanity check: without password mode, Ctrl+A then Ctrl+X
-      --  empties the buffer (clipboard write may be a no-op without
-      --  SDL init, but the buffer-side delete still runs).
+      Test_Support.Assert (Adi.OS.Set_Clipboard_Text ("probe"),
+              "the clipboard accepts text once the video subsystem is up");
+
       On_Key_Down (+W, SDL_SCANCODE_A, SDL_KMOD_CTRL, False);
       On_Key_Down (+W, SDL_SCANCODE_X, SDL_KMOD_CTRL, False);
       Test_Support.Assert (Get_Text (W) = "",
@@ -137,6 +165,11 @@ begin
    Test_Set_Password_Character_Multi_Codepoint_Rejected;
    Test_Double_Click_Selects_All_In_Password_Mode;
    Test_Cut_Suppressed_In_Password_Mode;
+   Test_Cut_Keeps_Text_When_Clipboard_Refuses;
+
+   --  Order matters: the case above needs a clipboard that refuses, this
+   --  one needs a clipboard that works.
+   Start_SDL;
    Test_Cut_Works_When_Not_Password;
 
    New_Line;

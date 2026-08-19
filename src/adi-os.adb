@@ -521,12 +521,13 @@ package body Adi.OS is
       return Result;
    end Get_Clipboard_Text;
 
-   procedure Set_Clipboard_Text (Text : String) is
-      C_Text  : chars_ptr := New_String (Text);
-      Ignore  : Adi.SDL.C_bool;
+   function Set_Clipboard_Text (Text : String) return Boolean is
+      C_Text : chars_ptr := New_String (Text);
+      Ok     : Adi.SDL.C_bool;
    begin
-      Ignore := Adi.SDL.SDL_SetClipboardText (C_Text);
+      Ok := Adi.SDL.SDL_SetClipboardText (C_Text);
       Free (C_Text);
+      return Boolean (Ok);
    end Set_Clipboard_Text;
 
    function Has_Clipboard_Text return Boolean is

@@ -57,7 +57,7 @@ begin
       Btn_Loop  : constant Adi.Widget.Button.Button_Handle :=
         Adi.Widget.Button.Create_Handle ("Loop: ON");
 
-      Animation : Animated_Image_Access := null;
+      Animation : Animation_Handle := Null_Animation_Handle;
 
       procedure On_Start (W : Widget_Handle) is
          pragma Unreferenced (W);
@@ -146,7 +146,7 @@ begin
 
       Animation :=
         Adi.Animated_Image.Load_From_File ("examples/assets/animhorse.gif");
-      if Animation = null then
+      if not Is_Valid (Animation) then
          Adi.Widget.Label.Set_Text (Status, "Failed to load animhorse.gif");
       else
          Adi.Widget.Animated_Widget.Set_Animation (Viewer, Animation);
@@ -154,7 +154,7 @@ begin
          Adi.Widget.Label.Set_Text
            (Status,
             "Loaded Animhorse.gif (" &
-            Get_Frame_Count (Animation.all)'Image & " frames)");
+            Get_Frame_Count (Animation)'Image & " frames)");
       end if;
 
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));
@@ -162,5 +162,10 @@ begin
       A.Add_Window (W);
       A.Run;
       Adi.MCP.Finalize;
+
+      --  After Run, so the widgets drawing it are already gone: a
+      --  render item holds a plain Image_Access into a frame, and
+      --  nothing invalidates that.
+      Destroy (Animation);
    end;
 end Animated_Image_Example;

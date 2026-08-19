@@ -22,6 +22,7 @@ project Tests is
       "slider_test",
       "value_input_test",
       "svg_sprites_test",
+      "animated_image_test",
       "min_size_test",
       "playback_clock_test",
       "layout_perf_test",

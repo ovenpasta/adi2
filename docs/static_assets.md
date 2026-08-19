@@ -164,7 +164,7 @@ end My_App;
 
 | Declaration | Description |
 |------------|-------------|
-| `function Load_From_Memory (Data, Length) return Animated_Image_Access` | Load animated image from memory |
+| `function Load_From_Memory (Data, Length) return Adi.Animated_Image.Animation_Handle` | Load animated image from memory |
 
 ### `Adi.Font`
 

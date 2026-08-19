@@ -3,6 +3,7 @@
 
 pragma Ada_2022;
 
+with Adi.Clock;
 with Adi.Animated_Image;  use Adi.Animated_Image;
 
 package Adi.Widget.Animated_Image is
@@ -18,11 +19,11 @@ package Adi.Widget.Animated_Image is
    function Create return Animated_Image_Widget_Access
      with Obsolescent => "Use Create_Handle";
    function Create
-     (Animation : Animated_Image_Access) return Animated_Image_Widget_Access
+     (Animation : Animation_Handle) return Animated_Image_Widget_Access
      with Obsolescent => "Use Create_Handle";
    function Create_Handle return Animated_Image_Handle;
    function Create_Handle
-     (Animation : Animated_Image_Access) return Animated_Image_Handle;
+     (Animation : Animation_Handle) return Animated_Image_Handle;
 
    --  Handle bridge
    function To_Widget_Handle (H : Animated_Image_Handle) return Widget_Handle;
@@ -33,17 +34,11 @@ package Adi.Widget.Animated_Image is
    procedure Set_Part_Styles
      (H : Animated_Image_Handle; Styles : Part_Style_Array);
 
-   --  Convenience loader for this widget.
-   --  Returns True on success.
-   function Load_From_File
-     (W    : in out Animated_Image_Widget;
-      Path : String) return Boolean;
-
    procedure Set_Animation
      (W         : in out Animated_Image_Widget;
-      Animation : Animated_Image_Access);
+      Animation : Animation_Handle);
    function Get_Animation
-     (W : Animated_Image_Widget) return Animated_Image_Access;
+     (W : Animated_Image_Widget) return Animation_Handle;
 
    procedure Start (W : in out Animated_Image_Widget);
    procedure Stop (W : in out Animated_Image_Widget);
@@ -56,12 +51,10 @@ package Adi.Widget.Animated_Image is
    function Is_Playing (W : Animated_Image_Widget) return Boolean;
 
    --  Handle methods
-   function Load_From_File
-     (H : Animated_Image_Handle; Path : String) return Boolean;
    procedure Set_Animation
-     (H : Animated_Image_Handle; Animation : Animated_Image_Access);
+     (H : Animated_Image_Handle; Animation : Animation_Handle);
    function Get_Animation
-     (H : Animated_Image_Handle) return Animated_Image_Access;
+     (H : Animated_Image_Handle) return Animation_Handle;
    procedure Start (H : Animated_Image_Handle);
    procedure Stop (H : Animated_Image_Handle);
    procedure Reset (H : Animated_Image_Handle);
@@ -81,7 +74,12 @@ private
    Image_Idx : constant Positive := 2;
 
    type Animated_Image_Widget is new Widget with record
-      Animation : Animated_Image_Access := null;
+      Animation : Animation_Handle := Null_Animation_Handle;
+      --  The image this widget last put in its render item. A shared
+      --  animation is stepped by whichever viewer ticks first, so the
+      --  return of that step tells a viewer nothing about whether it has
+      --  something new to show; comparing against what it drew does.
+      Shown_Image : Image_Access := null;
    end record;
 
    type Animated_Image_Handle is record

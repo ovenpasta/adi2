@@ -16,7 +16,7 @@ package body Adi.Widget.Animated_Image is
    end Create;
 
    function Create
-     (Animation : Animated_Image_Access) return Animated_Image_Widget_Access
+     (Animation : Animation_Handle) return Animated_Image_Widget_Access
    is
       Result : constant Animated_Image_Widget_Access := Create;
    begin
@@ -34,7 +34,7 @@ package body Adi.Widget.Animated_Image is
    end Create_Handle;
 
    function Create_Handle
-     (Animation : Animated_Image_Access) return Animated_Image_Handle is
+     (Animation : Animation_Handle) return Animated_Image_Handle is
    begin
       return (Id => Get_Handle (Create (Animation).all).Id);
    end Create_Handle;
@@ -79,19 +79,8 @@ package body Adi.Widget.Animated_Image is
    -- Handle methods --
    --------------------
 
-   function Load_From_File
-     (H : Animated_Image_Handle; Path : String) return Boolean
-   is
-      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
-   begin
-      if Ptr /= null then
-         return Load_From_File (Animated_Image_Widget (Ptr.all), Path);
-      end if;
-      return False;
-   end Load_From_File;
-
    procedure Set_Animation
-     (H : Animated_Image_Handle; Animation : Animated_Image_Access)
+     (H : Animated_Image_Handle; Animation : Animation_Handle)
    is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
@@ -101,14 +90,14 @@ package body Adi.Widget.Animated_Image is
    end Set_Animation;
 
    function Get_Animation
-     (H : Animated_Image_Handle) return Animated_Image_Access
+     (H : Animated_Image_Handle) return Animation_Handle
    is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
          return Get_Animation (Animated_Image_Widget (Ptr.all));
       end if;
-      return null;
+      return Null_Animation_Handle;
    end Get_Animation;
 
    procedure Start (H : Animated_Image_Handle) is
@@ -163,25 +152,9 @@ package body Adi.Widget.Animated_Image is
       return False;
    end Is_Playing;
 
-   function Load_From_File
-     (W    : in out Animated_Image_Widget;
-      Path : String) return Boolean
-   is
-      Loaded : constant Animated_Image_Access :=
-        Adi.Animated_Image.Load_From_File (Path);
-   begin
-      if Loaded = null then
-         return False;
-      end if;
-
-      W.Animation := Loaded;
-      Mark_Dirty (W);
-      return True;
-   end Load_From_File;
-
    procedure Set_Animation
      (W         : in out Animated_Image_Widget;
-      Animation : Animated_Image_Access)
+      Animation : Animation_Handle)
    is
    begin
       W.Animation := Animation;
@@ -189,7 +162,7 @@ package body Adi.Widget.Animated_Image is
    end Set_Animation;
 
    function Get_Animation
-     (W : Animated_Image_Widget) return Animated_Image_Access
+     (W : Animated_Image_Widget) return Animation_Handle
    is
    begin
       return W.Animation;
@@ -197,31 +170,31 @@ package body Adi.Widget.Animated_Image is
 
    procedure Start (W : in out Animated_Image_Widget) is
    begin
-      if W.Animation = null then
+      if not Is_Valid (W.Animation) then
          return;
       end if;
 
-      Start (W.Animation.all);
+      Start (W.Animation);
       Mark_Dirty (W);
    end Start;
 
    procedure Stop (W : in out Animated_Image_Widget) is
    begin
-      if W.Animation = null then
+      if not Is_Valid (W.Animation) then
          return;
       end if;
 
-      Stop (W.Animation.all);
+      Stop (W.Animation);
       Mark_Dirty (W);
    end Stop;
 
    procedure Reset (W : in out Animated_Image_Widget) is
    begin
-      if W.Animation = null then
+      if not Is_Valid (W.Animation) then
          return;
       end if;
 
-      Reset (W.Animation.all);
+      Reset (W.Animation);
       Mark_Dirty (W);
    end Reset;
 
@@ -230,37 +203,37 @@ package body Adi.Widget.Animated_Image is
       Value : Boolean := True)
    is
    begin
-      if W.Animation = null then
+      if not Is_Valid (W.Animation) then
          return;
       end if;
 
-      Set_Looping (W.Animation.all, Value);
+      Set_Looping (W.Animation, Value);
    end Set_Looping;
 
    function Is_Looping (W : Animated_Image_Widget) return Boolean is
    begin
-      if W.Animation = null then
+      if not Is_Valid (W.Animation) then
          return False;
       end if;
 
-      return Is_Looping (W.Animation.all);
+      return Is_Looping (W.Animation);
    end Is_Looping;
 
    function Is_Playing (W : Animated_Image_Widget) return Boolean is
    begin
-      if W.Animation = null then
+      if not Is_Valid (W.Animation) then
          return False;
       end if;
 
-      return Is_Playing (W.Animation.all);
+      return Is_Playing (W.Animation);
    end Is_Playing;
 
    overriding function Measure_Content (W : Animated_Image_Widget) return Size_2D is
       Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Result     : Size_2D := (0.0, 0.0);
    begin
-      if W.Animation /= null and then Is_Valid (W.Animation.all) then
-         Get_Size (W.Animation.all, Result.Width, Result.Height);
+      if Is_Valid (W.Animation) then
+         Get_Size (W.Animation, Result.Width, Result.Height);
       end if;
 
       return Outer_Size (Result, Main_Style);
@@ -279,11 +252,15 @@ package body Adi.Widget.Animated_Image is
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
       W.Items.Reference (Image_Idx).Geometry := Content;
 
-      if W.Animation /= null and then Is_Valid (W.Animation.all) then
-         Current := Get_Current_Image (W.Animation.all);
+      if Is_Valid (W.Animation) then
+         Current := Get_Current_Image (W.Animation);
       end if;
 
       W.Items.Reference (Image_Idx).Image_Source := Current;
+
+      --  Recorded here and nowhere else: what the widget has shown is
+      --  what reached the render item, not what a tick happened to see.
+      W.Shown_Image := Current;
    end Build_Items;
 
    overriding procedure Layout (W : in out Animated_Image_Widget) is
@@ -293,13 +270,23 @@ package body Adi.Widget.Animated_Image is
    end Layout;
 
    overriding procedure On_Tick (W : in out Animated_Image_Widget; DT : Duration) is
-      Frame_Changed : Boolean := False;
+      Changed : Boolean;
    begin
       Tick_Scroll_Animations (W, DT);
 
-      if W.Animation /= null then
-         Frame_Changed := Advance (W.Animation.all, DT);
-         if Frame_Changed then
+      if Is_Valid (W.Animation) then
+         --  Sampled rather than stepped: several widgets may show one
+         --  animation, and each stepping it would run the playhead at a
+         --  multiple of its speed.
+         Changed := Advance_At (W.Animation, Adi.Clock.Now);
+
+         --  Two questions, and neither answers the other. The step
+         --  reports that the animation changed; and at most one viewer
+         --  of a shared animation is the one that made it, while every
+         --  viewer of it has the new frame to draw.
+         if Changed
+           or else Get_Current_Image (W.Animation) /= W.Shown_Image
+         then
             Mark_Dirty (W);
          end if;
       end if;

@@ -6,7 +6,7 @@ pragma Ada_2022;
 package body Adi.Widget.Animated_Widget.RLottie is
 
    type RLottie_Backend is new Animation_Backend with record
-      Animation : Animation_Handle := Null_Animation_Handle;
+      Animation : Adi.RLottie.Animation_Handle := Adi.RLottie.Null_Animation_Handle;
    end record;
 
    overriding procedure Get_Size
@@ -36,7 +36,7 @@ package body Adi.Widget.Animated_Widget.RLottie is
    overriding function Is_Playing (B : RLottie_Backend) return Boolean;
 
    function Create
-     (Animation : Animation_Handle) return Animated_Widget_Access
+     (Animation : Adi.RLottie.Animation_Handle) return Animated_Widget_Access
    is
       Result : constant Animated_Widget_Access := new Animated_Widget;
    begin
@@ -48,19 +48,20 @@ package body Adi.Widget.Animated_Widget.RLottie is
 
    procedure Set_Animation
      (W         : in out Animated_Widget'Class;
-      Animation : Animation_Handle)
+      Animation : Adi.RLottie.Animation_Handle)
    is
       B : Animation_Backend_Access := null;
    begin
       if Is_Valid (Animation) then
          B := new RLottie_Backend'(Animation => Animation);
       end if;
-      Set_Backend (W, B, null);
+      --  No image animation: this widget is backed by a Lottie.
+      Set_Backend (W, B, Adi.Animated_Image.Null_Animation_Handle);
    end Set_Animation;
 
    procedure Set_Animation
      (H         : Animated_Widget_Handle;
-      Animation : Animation_Handle)
+      Animation : Adi.RLottie.Animation_Handle)
    is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
@@ -70,29 +71,29 @@ package body Adi.Widget.Animated_Widget.RLottie is
    end Set_Animation;
 
    function Get_Animation
-     (W : Animated_Widget) return Animation_Handle
+     (W : Animated_Widget) return Adi.RLottie.Animation_Handle
    is
    begin
       if W.Backend = null then
-         return Null_Animation_Handle;
+         return Adi.RLottie.Null_Animation_Handle;
       end if;
 
       if W.Backend.all in RLottie_Backend'Class then
          return RLottie_Backend (W.Backend.all).Animation;
       end if;
 
-      return Null_Animation_Handle;
+      return Adi.RLottie.Null_Animation_Handle;
    end Get_Animation;
 
    function Get_Animation
-     (H : Animated_Widget_Handle) return Animation_Handle
+     (H : Animated_Widget_Handle) return Adi.RLottie.Animation_Handle
    is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null and then Ptr.all in Animated_Widget'Class then
          return Get_Animation (Animated_Widget (Ptr.all));
       end if;
-      return Null_Animation_Handle;
+      return Adi.RLottie.Null_Animation_Handle;
    end Get_Animation;
 
    overriding procedure Get_Size

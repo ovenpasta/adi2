@@ -3,23 +3,24 @@
 
 pragma Ada_2022;
 
+with Adi.Animated_Image;
 with Adi.RLottie; use Adi.RLottie;
 
 package Adi.Widget.Animated_Widget.RLottie is
 
    function Create
-     (Animation : Animation_Handle) return Animated_Widget_Access;
+     (Animation : Adi.RLottie.Animation_Handle) return Animated_Widget_Access;
 
    procedure Set_Animation
      (W         : in out Animated_Widget'Class;
-      Animation : Animation_Handle);
+      Animation : Adi.RLottie.Animation_Handle);
    procedure Set_Animation
      (H         : Animated_Widget_Handle;
-      Animation : Animation_Handle);
+      Animation : Adi.RLottie.Animation_Handle);
 
    function Get_Animation
-     (W : Animated_Widget) return Animation_Handle;
+     (W : Animated_Widget) return Adi.RLottie.Animation_Handle;
    function Get_Animation
-     (H : Animated_Widget_Handle) return Animation_Handle;
+     (H : Animated_Widget_Handle) return Adi.RLottie.Animation_Handle;
 
 end Adi.Widget.Animated_Widget.RLottie;

@@ -9,7 +9,7 @@ with Adi.Layout_Util; use Adi.Layout_Util;
 package body Adi.Widget.Animated_Widget is
 
    type Image_Backend is new Animation_Backend with record
-      Animation : Animated_Image_Access := null;
+      Animation : Animation_Handle := Null_Animation_Handle;
    end record;
 
    overriding procedure Get_Size
@@ -53,7 +53,7 @@ package body Adi.Widget.Animated_Widget is
             Free_Backend (Old);
          end;
       end if;
-      W.Image_Animation := null;
+      W.Image_Animation := Null_Animation_Handle;
    end Clear_Backend;
 
    function Create return Animated_Widget_Access is
@@ -65,7 +65,7 @@ package body Adi.Widget.Animated_Widget is
    end Create;
 
    function Create
-     (Animation : Animated_Image_Access) return Animated_Widget_Access
+     (Animation : Animation_Handle) return Animated_Widget_Access
    is
       Result : constant Animated_Widget_Access := Create;
    begin
@@ -83,7 +83,7 @@ package body Adi.Widget.Animated_Widget is
    end Create_Handle;
 
    function Create_Handle
-     (Animation : Animated_Image_Access) return Animated_Widget_Handle is
+     (Animation : Animation_Handle) return Animated_Widget_Handle is
    begin
       return (Id => Get_Handle (Create (Animation).all).Id);
    end Create_Handle;
@@ -129,19 +129,8 @@ package body Adi.Widget.Animated_Widget is
    -- Handle methods --
    --------------------
 
-   function Load_Image_From_File
-     (H : Animated_Widget_Handle; Path : String) return Boolean
-   is
-      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
-   begin
-      if Ptr /= null then
-         return Load_Image_From_File (Animated_Widget (Ptr.all), Path);
-      end if;
-      return False;
-   end Load_Image_From_File;
-
    procedure Set_Animation
-     (H : Animated_Widget_Handle; Animation : Animated_Image_Access)
+     (H : Animated_Widget_Handle; Animation : Animation_Handle)
    is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
@@ -151,14 +140,14 @@ package body Adi.Widget.Animated_Widget is
    end Set_Animation;
 
    function Get_Image_Animation
-     (H : Animated_Widget_Handle) return Animated_Image_Access
+     (H : Animated_Widget_Handle) return Animation_Handle
    is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
          return Get_Image_Animation (Animated_Widget (Ptr.all));
       end if;
-      return null;
+      return Null_Animation_Handle;
    end Get_Image_Animation;
 
    procedure Start (H : Animated_Widget_Handle) is
@@ -238,7 +227,7 @@ package body Adi.Widget.Animated_Widget is
    procedure Set_Backend
      (W        : in out Animated_Widget'Class;
       Backend  : Animation_Backend_Access;
-      As_Image : Animated_Image_Access := null)
+      As_Image : Animation_Handle := Null_Animation_Handle)
    is
    begin
       Clear_Backend (W);
@@ -247,35 +236,20 @@ package body Adi.Widget.Animated_Widget is
       Mark_Dirty (W);
    end Set_Backend;
 
-   function Load_Image_From_File
-     (W    : in out Animated_Widget;
-      Path : String) return Boolean
-   is
-      Loaded : constant Animated_Image_Access :=
-        Adi.Animated_Image.Load_From_File (Path);
-   begin
-      if Loaded = null then
-         return False;
-      end if;
-
-      Set_Animation (W, Loaded);
-      return True;
-   end Load_Image_From_File;
-
    procedure Set_Animation
      (W         : in out Animated_Widget;
-      Animation : Animated_Image_Access)
+      Animation : Animation_Handle)
    is
       B : Animation_Backend_Access := null;
    begin
-      if Animation /= null then
+      if Is_Valid (Animation) then
          B := new Image_Backend'(Animation => Animation);
       end if;
       Set_Backend (W, B, Animation);
    end Set_Animation;
 
    function Get_Image_Animation
-     (W : Animated_Widget) return Animated_Image_Access
+     (W : Animated_Widget) return Animation_Handle
    is
    begin
       return W.Image_Animation;
@@ -447,22 +421,22 @@ package body Adi.Widget.Animated_Widget is
       Height : out Pixel_Type)
    is
    begin
-      if B.Animation = null or else not Is_Valid (B.Animation.all) then
+      if not Is_Valid (B.Animation) then
          Width := 0.0;
          Height := 0.0;
          return;
       end if;
-      Adi.Animated_Image.Get_Size (B.Animation.all, Width, Height);
+      Adi.Animated_Image.Get_Size (B.Animation, Width, Height);
    end Get_Size;
 
    overriding function Get_Current_Image
      (B : Image_Backend) return Image_Access
    is
    begin
-      if B.Animation = null or else not Is_Valid (B.Animation.all) then
+      if not Is_Valid (B.Animation) then
          return null;
       end if;
-      return Adi.Animated_Image.Get_Current_Image (B.Animation.all);
+      return Adi.Animated_Image.Get_Current_Image (B.Animation);
    end Get_Current_Image;
 
    overriding function Advance
@@ -470,32 +444,36 @@ package body Adi.Widget.Animated_Widget is
       DT     : Duration;
       Sample : Adi.Clock.Time) return Boolean
    is
-      pragma Unreferenced (Sample);
+      pragma Unreferenced (DT);
    begin
-      if B.Animation = null then
+      if not Is_Valid (B.Animation) then
          return False;
       end if;
-      return Adi.Animated_Image.Advance (B.Animation.all, DT);
+
+      --  One animation can back several widgets. Stepping by DT would
+      --  run its playhead at a multiple of its speed, one step per
+      --  viewer.
+      return Adi.Animated_Image.Advance_At (B.Animation, Sample);
    end Advance;
 
    overriding procedure Start (B : in out Image_Backend) is
    begin
-      if B.Animation /= null then
-         Adi.Animated_Image.Start (B.Animation.all);
+      if Is_Valid (B.Animation) then
+         Adi.Animated_Image.Start (B.Animation);
       end if;
    end Start;
 
    overriding procedure Stop (B : in out Image_Backend) is
    begin
-      if B.Animation /= null then
-         Adi.Animated_Image.Stop (B.Animation.all);
+      if Is_Valid (B.Animation) then
+         Adi.Animated_Image.Stop (B.Animation);
       end if;
    end Stop;
 
    overriding procedure Reset (B : in out Image_Backend) is
    begin
-      if B.Animation /= null then
-         Adi.Animated_Image.Reset (B.Animation.all);
+      if Is_Valid (B.Animation) then
+         Adi.Animated_Image.Reset (B.Animation);
       end if;
    end Reset;
 
@@ -504,8 +482,8 @@ package body Adi.Widget.Animated_Widget is
       Value : Boolean)
    is
    begin
-      if B.Animation /= null then
-         Adi.Animated_Image.Set_Looping (B.Animation.all, Value);
+      if Is_Valid (B.Animation) then
+         Adi.Animated_Image.Set_Looping (B.Animation, Value);
       end if;
    end Set_Looping;
 
@@ -520,18 +498,18 @@ package body Adi.Widget.Animated_Widget is
 
    overriding function Is_Looping (B : Image_Backend) return Boolean is
    begin
-      if B.Animation = null then
+      if not Is_Valid (B.Animation) then
          return False;
       end if;
-      return Adi.Animated_Image.Is_Looping (B.Animation.all);
+      return Adi.Animated_Image.Is_Looping (B.Animation);
    end Is_Looping;
 
    overriding function Is_Playing (B : Image_Backend) return Boolean is
    begin
-      if B.Animation = null then
+      if not Is_Valid (B.Animation) then
          return False;
       end if;
-      return Adi.Animated_Image.Is_Playing (B.Animation.all);
+      return Adi.Animated_Image.Is_Playing (B.Animation);
    end Is_Playing;
 
 end Adi.Widget.Animated_Widget;

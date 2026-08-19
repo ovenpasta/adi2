@@ -64,12 +64,16 @@ Core APIs:
 
 ## Animation Ownership
 
-`Adi.RLottie` instantiates `Adi.Handle_Store` and hands out
-`Animation_Handle`. `Load_From_File` registers; `Destroy` tears the
+`Adi.RLottie` and `Adi.Animated_Image` each instantiate
+`Adi.Handle_Store` and hand out an `Animation_Handle` of their own. `Load_From_File` registers; `Destroy` tears the
 animation down, retires the slot and nulls the handle, so every copy
 goes stale together and a reused slot does not revive them. Operations
 resolve a handle for one call and answer a stale or null one with a
 default rather than reaching through it.
+
+`Adi.Assets` caches animated images as handles, so clearing or
+invalidating an entry retires the slot and every handle it gave out goes
+stale. Still images are not handle-backed and are a separate matter.
 
 Two limits are worth stating. Nothing pins a slot, so every operation
 must run on the render thread. And a handle does not reach what widgets

@@ -19,11 +19,11 @@ package Adi.Widget.Animated_Widget is
    function Create return Animated_Widget_Access
      with Obsolescent => "Use Create_Handle";
    function Create
-     (Animation : Animated_Image_Access) return Animated_Widget_Access
+     (Animation : Animation_Handle) return Animated_Widget_Access
      with Obsolescent => "Use Create_Handle";
    function Create_Handle return Animated_Widget_Handle;
    function Create_Handle
-     (Animation : Animated_Image_Access) return Animated_Widget_Handle;
+     (Animation : Animation_Handle) return Animated_Widget_Handle;
 
    --  Handle bridge
    function To_Widget_Handle
@@ -35,16 +35,11 @@ package Adi.Widget.Animated_Widget is
    procedure Set_Part_Styles
      (H : Animated_Widget_Handle; Styles : Part_Style_Array);
 
-   --  Widget methods
-   function Load_Image_From_File
-     (W    : in out Animated_Widget;
-      Path : String) return Boolean;
-
    procedure Set_Animation
      (W         : in out Animated_Widget;
-      Animation : Animated_Image_Access);
+      Animation : Animation_Handle);
    function Get_Image_Animation
-     (W : Animated_Widget) return Animated_Image_Access;
+     (W : Animated_Widget) return Animation_Handle;
 
    procedure Start (W : in out Animated_Widget);
    procedure Stop (W : in out Animated_Widget);
@@ -63,12 +58,10 @@ package Adi.Widget.Animated_Widget is
       Max_Height : Pixel_Type);
 
    --  Handle methods
-   function Load_Image_From_File
-     (H : Animated_Widget_Handle; Path : String) return Boolean;
    procedure Set_Animation
-     (H : Animated_Widget_Handle; Animation : Animated_Image_Access);
+     (H : Animated_Widget_Handle; Animation : Animation_Handle);
    function Get_Image_Animation
-     (H : Animated_Widget_Handle) return Animated_Image_Access;
+     (H : Animated_Widget_Handle) return Animation_Handle;
    procedure Start (H : Animated_Widget_Handle);
    procedure Stop (H : Animated_Widget_Handle);
    procedure Reset (H : Animated_Widget_Handle);
@@ -134,10 +127,10 @@ private
    procedure Set_Backend
      (W        : in out Animated_Widget'Class;
       Backend  : Animation_Backend_Access;
-      As_Image : Animated_Image_Access := null);
+      As_Image : Animation_Handle := Null_Animation_Handle);
 
    type Animated_Widget is new Widget with record
-      Image_Animation : Animated_Image_Access := null;
+      Image_Animation : Animation_Handle := Null_Animation_Handle;
       Backend         : Animation_Backend_Access := null;
       Max_Width       : Pixel_Type := 0.0;
       Max_Height      : Pixel_Type := 0.0;

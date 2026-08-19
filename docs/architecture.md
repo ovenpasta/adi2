@@ -98,9 +98,9 @@
   - `?render=pixelated|nearest|linear` — Sets `Image_Scale_Mode` on the result. Combinable with sprite/crop params
   - Sprite sheets are cached separately by resolved filesystem path and shared across symbols
   - Plain paths without `?` follow the normal `Adi.Image.Load_From_File` path unchanged
-- `Get_Animated_Image(Path)`: resolve and load animated image via `Adi.Animated_Image.Load_From_File` (surface-based, no renderer needed), cached by path; returns `Animated_Image_Access`
-- `Clear_Cache` / `Clear_String_Cache` / `Clear_Image_Cache` / `Clear_Animated_Image_Cache`: drop cached entries, destroy and deallocate objects; previously returned access values become invalid. Image cache clear also destroys sprite sheet cache
-- `Invalidate(Path)`: remove one entry from all caches, freeing associated objects. Also removes all derived `path?...` cache entries and the corresponding sprite sheet cache entry
+- `Get_Animated_Image(Path)`: resolve and load animated image via `Adi.Animated_Image.Load_From_File` (surface-based, no renderer needed), cached by path; returns `Animation_Handle`
+- `Clear_Cache` / `Clear_String_Cache` / `Clear_Image_Cache` / `Clear_Animated_Image_Cache`: drop cached entries and destroy what they held. Animation handles previously returned go stale, so a caller asking through one is told; previously returned `Image_Access` values become invalid outright. Detach widgets drawing a cached animation first — a render item holds a plain `Image_Access` into a frame, which nothing invalidates. Image cache clear also destroys sprite sheet cache
+- `Invalidate(Path)`: remove one entry from all caches, freeing what they held, with the same detach requirement as clearing. Also removes all derived `path?...` cache entries and the corresponding sprite sheet cache entry
 - URI parsing: `"app://icons/star.svg"` splits into scheme `"app"` + relative `"icons/star.svg"`; plain paths search default directories. Query `?` splitting happens before scheme parsing, so `app://icons.svg?id=home` works correctly
 - Path sanitization: rejects `..` traversal, normalizes backslashes, strips leading slashes
 - Directories searched in insertion order; first match wins
@@ -119,6 +119,9 @@
 
 **Adi.Animated_Image** (`adi-animated_image.ads`): Multi-frame animation via `IMG_LoadAnimation`, per-frame delay, playback controls.
 - `Load_From_File(Path)`: loads all frames as surfaces (via `SDL_DuplicateSurface` + `Create_From_Surface`) — no renderer required at load time; GPU textures created lazily per frame on first render
+- Callers hold a generational `Animation_Handle` from an `Adi.Handle_Store`; `Destroy` retires the slot, so every copy goes stale together. The raw type is private to the package and its children
+- Every frame image joins the animation's `Texture_Group`, so destruction takes its textures out of each renderer that drew them rather than leaving them for eviction
+- Playback samples an `Adi.Playback_Clock`, so several widgets drawing one animation advance the single playhead once per tick rather than once per viewer
 - Loadable through `Adi.Assets.Get_Animated_Image` for URI-based cached access
 
 **Adi.RLottie** (`adi-rlottie.ads`): Lottie JSON via the rlottie C API.

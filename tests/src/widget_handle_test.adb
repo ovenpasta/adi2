@@ -736,9 +736,11 @@ procedure Widget_Handle_Test is
 
       --  Get_Animation should be null initially
       declare
-         use type Adi.Animated_Image.Animated_Image_Access;
+         use type Adi.Animated_Image.Animation_Handle;
       begin
-         Test_Support.Assert (Get_Animation (H) = null, "AI animation initially null");
+         Test_Support.Assert
+           (Get_Animation (H) = Adi.Animated_Image.Null_Animation_Handle,
+            "AI animation initially null");
       end;
 
       --  Null handle

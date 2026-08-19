@@ -45,16 +45,12 @@ package body Adi.Assets is
 
    package Anim_Image_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (Key_Type     => String,
-      Element_Type => Animated_Image_Access);
+      Element_Type => Animation_Handle);
 
    package Sprite_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (Key_Type     => String,
       Element_Type => Adi.SVG_Sprites.Sprite_Sheet_Access,
       "="          => Adi.SVG_Sprites."=");
-
-   procedure Free_Animated is new Ada.Unchecked_Deallocation
-     (Object => Adi.Animated_Image.Animated_Image'Class,
-      Name   => Animated_Image_Access);
 
    procedure Free_Sprite is new Ada.Unchecked_Deallocation
      (Object => Adi.SVG_Sprites.Sprite_Sheet'Class,
@@ -974,7 +970,8 @@ package body Adi.Assets is
    --  Get_Animated_Image
    ---------------------------------------------------------------------------
 
-   function Get_Animated_Image (Path : String) return Animated_Image_Access is
+   function Get_Animated_Image
+     (Path : String) return Animation_Handle is
       use Anim_Image_Maps;
       Pos : constant Cursor := Anim_Images.Find (Path);
    begin
@@ -987,13 +984,13 @@ package body Adi.Assets is
       if Current_Mode = Bundle_Mode then
          declare
             BD   : constant Asset_Data := Bundle_Lookup (Path);
-            Anim : Animated_Image_Access := null;
+            Anim : Animation_Handle := Null_Animation_Handle;
          begin
             if BD.Addr /= System.Null_Address then
                Anim := Adi.Animated_Image.Load_From_Memory
                  (BD.Addr, BD.Length);
             end if;
-            if Anim = null then
+            if not Is_Valid (Anim) then
                Adi.Log.Warning
                  ("Assets: bundle entry not found or failed: " & Path);
             end if;
@@ -1004,13 +1001,13 @@ package body Adi.Assets is
 
       declare
          FP   : constant String := Resolve (Path);
-         Anim : Animated_Image_Access := null;
+         Anim : Animation_Handle := Null_Animation_Handle;
       begin
          if FP = "" then
             Adi.Log.Warning ("Assets: file not found: " & Path);
          else
             Anim := Adi.Animated_Image.Load_From_File (FP);
-            if Anim = null then
+            if not Is_Valid (Anim) then
                Adi.Log.Warning
                  ("Assets: failed to load animated image: " & FP);
             end if;
@@ -1041,12 +1038,11 @@ package body Adi.Assets is
    begin
       for Pos in Anim_Images.Iterate loop
          declare
-            Anim : Animated_Image_Access := Anim_Image_Maps.Element (Pos);
+            Anim : Animation_Handle := Anim_Image_Maps.Element (Pos);
          begin
-            if Anim /= null then
-               Adi.Animated_Image.Destroy (Anim.all);
-               Free_Animated (Anim);
-            end if;
+            --  Destroy reclaims the record and retires the slot, so
+            --  every handle handed out for this path goes stale.
+            Adi.Animated_Image.Destroy (Anim);
          end;
       end loop;
       Anim_Images.Clear;
@@ -1091,12 +1087,11 @@ package body Adi.Assets is
       end if;
       if Anim_Images.Contains (Path) then
          declare
-            Anim : Animated_Image_Access := Anim_Images.Element (Path);
+            Anim : Animation_Handle := Anim_Images.Element (Path);
          begin
-            if Anim /= null then
-               Adi.Animated_Image.Destroy (Anim.all);
-               Free_Animated (Anim);
-            end if;
+            --  Destroy reclaims the record and retires the slot, so
+            --  every handle handed out for this path goes stale.
+            Adi.Animated_Image.Destroy (Anim);
          end;
          Anim_Images.Delete (Path);
       end if;

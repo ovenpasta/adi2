@@ -115,10 +115,15 @@ package Adi.Assets is
    --  Query values must be plain identifiers/integers (no URL-encoding).
    --  Crop coordinates are clamped to source image bounds.
 
-   function Get_Animated_Image (Path : String) return Animated_Image_Access;
+   function Get_Animated_Image
+     (Path : String) return Animation_Handle;
    --  Resolve Path and load via Adi.Animated_Image.Load_From_File.
-   --  Caches by Path; subsequent calls return the same access value.
-   --  Returns null and logs a warning if the file is not found.
+   --  Caches by Path; subsequent calls return a handle to the same
+   --  animation. A file that is not found yields a null handle and logs
+   --  a warning.
+   --
+   --  The cache owns what it hands out. Do not destroy it: dropping it
+   --  is the cache's to do, through the clearing operations below.
 
    ---------------------------------------------------------------------------
    --  Cache Management
@@ -131,8 +136,12 @@ package Adi.Assets is
 
    procedure Clear_Cache;
    --  Drop all cached strings, images, and animated images.
-   --  Frees resources and deallocates objects.  Previously returned
-   --  access values become invalid — callers must reacquire.
+   --
+   --  Detach or destroy every widget drawing a cached animation first.
+   --  Handles to them go stale, which a caller is told about, but a
+   --  render item holds a plain Image_Access into a frame, and nothing
+   --  invalidates that. Previously returned Image_Access values become
+   --  invalid outright and must be reacquired.
 
    procedure Clear_String_Cache;
    --  Drop cached strings only.
@@ -145,11 +154,18 @@ package Adi.Assets is
 
    procedure Clear_Animated_Image_Cache;
    --  Drop cached animated images only.
-   --  Callers holding previous Animated_Image_Access values must reacquire.
+   --
+   --  Detach or destroy every widget drawing one first. Their handles go
+   --  stale, so a caller asking through one is told; but a widget that
+   --  has already drawn holds a plain Image_Access into a frame, which
+   --  this frees and nothing invalidates.
 
    procedure Invalidate (Path : String);
    --  Remove one entry (matching Path key) from all caches.
-   --  Frees resources and deallocates objects if present.
-   --  Previously returned access values for this path become invalid.
+   --
+   --  Detach or destroy every widget drawing this path's animation
+   --  first, for the reason given above: the handle goes stale, the
+   --  Image_Access a render item already holds does not. Image_Access
+   --  values previously returned for this path become invalid.
 
 end Adi.Assets;

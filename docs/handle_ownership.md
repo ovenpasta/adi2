@@ -62,6 +62,21 @@ Core APIs:
 
 `Destroy_Subtree` is bottom-up and calls dispatching `On_Destroy` before final request-destroy, allowing widgets to clean external bindings.
 
+## Animation Ownership
+
+`Adi.RLottie` instantiates `Adi.Handle_Store` and hands out
+`Animation_Handle`. `Load_From_File` registers; `Destroy` tears the
+animation down, retires the slot and nulls the handle, so every copy
+goes stale together and a reused slot does not revive them. Operations
+resolve a handle for one call and answer a stale or null one with a
+default rather than reaching through it.
+
+Two limits are worth stating. Nothing pins a slot, so every operation
+must run on the render thread. And a handle does not reach what widgets
+already drew: a render item holds a plain `Image_Access` into a frame
+set, which destruction frees, so viewers are detached before an
+animation is destroyed.
+
 ## Context Menu Ownership
 
 `Adi.Widget.Context_Menu` has its own `Menu_Stores`:

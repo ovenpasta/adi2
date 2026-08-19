@@ -782,9 +782,10 @@ procedure Widget_Handle_Test is
 
       --  Get_Animation should be null initially
       declare
-         use type Adi.RLottie.RLottie_Animation_Access;
+         use type Adi.RLottie.Animation_Handle;
       begin
-         Test_Support.Assert (Get_Animation (H) = null, "RL animation initially null");
+         Test_Support.Assert (Get_Animation (H) = Adi.RLottie.Null_Animation_Handle,
+            "RL animation initially null");
       end;
 
       --  Null handle

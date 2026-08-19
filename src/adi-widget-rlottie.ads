@@ -18,11 +18,11 @@ package Adi.Widget.RLottie is
    function Create return RLottie_Widget_Access
      with Obsolescent => "Use Create_Handle";
    function Create
-     (Animation : RLottie_Animation_Access) return RLottie_Widget_Access
+     (Animation : Animation_Handle) return RLottie_Widget_Access
      with Obsolescent => "Use Create_Handle";
    function Create_Handle return RLottie_Handle;
    function Create_Handle
-     (Animation : RLottie_Animation_Access) return RLottie_Handle;
+     (Animation : Animation_Handle) return RLottie_Handle;
 
    --  Handle bridge
    function To_Widget_Handle (H : RLottie_Handle) return Widget_Handle;
@@ -31,16 +31,11 @@ package Adi.Widget.RLottie is
    function "+" (H : RLottie_Handle) return Widget_Handle;
    procedure Set_Part_Styles (H : RLottie_Handle; Styles : Part_Style_Array);
 
-   --  Widget methods
-   function Load_From_File
-     (W    : in out RLottie_Widget;
-      Path : String) return Boolean;
-
    procedure Set_Animation
      (W         : in out RLottie_Widget;
-      Animation : RLottie_Animation_Access);
+      Animation : Animation_Handle);
    function Get_Animation
-     (W : RLottie_Widget) return RLottie_Animation_Access;
+     (W : RLottie_Widget) return Animation_Handle;
 
    procedure Start (W : in out RLottie_Widget);
    procedure Stop (W : in out RLottie_Widget);
@@ -58,11 +53,9 @@ package Adi.Widget.RLottie is
       Max_Height : Pixel_Type);
 
    --  Handle methods
-   function Load_From_File
-     (H : RLottie_Handle; Path : String) return Boolean;
    procedure Set_Animation
-     (H : RLottie_Handle; Animation : RLottie_Animation_Access);
-   function Get_Animation (H : RLottie_Handle) return RLottie_Animation_Access;
+     (H : RLottie_Handle; Animation : Animation_Handle);
+   function Get_Animation (H : RLottie_Handle) return Animation_Handle;
    procedure Start (H : RLottie_Handle);
    procedure Stop (H : RLottie_Handle);
    procedure Reset (H : RLottie_Handle);
@@ -87,7 +80,7 @@ private
    Image_Idx : constant Positive := 2;
 
    type RLottie_Widget is new Widget with record
-      Animation              : RLottie_Animation_Access := null;
+      Animation              : Animation_Handle := Null_Animation_Handle;
       Desired_Looping        : Boolean := True;
       Desired_Playback_Speed : Float := 1.0;
       Max_Width              : Pixel_Type := 0.0;

@@ -117,8 +117,8 @@ begin
           [for E in Emoji_Kind =>
              Adi.Widget.Label.Create_Handle (Caption (E))];
 
-      Anims : array (Emoji_Kind) of RLottie_Animation_Access :=
-        [others => null];
+      Anims : array (Emoji_Kind) of Animation_Handle :=
+        [others => Null_Animation_Handle];
 
       Speeds : constant array (Positive range 1 .. 3) of Float :=
         [0.5, 1.0, 2.0];
@@ -230,12 +230,12 @@ begin
 
          Anims (E) := Adi.RLottie.Load_From_File
                         (Path => Resolve_Asset (Asset (E)));
-         if Anims (E) /= null then
+         if Is_Valid (Anims (E)) then
             Adi.Widget.Animated_Widget.RLottie.Set_Animation
               (Viewers (E), Anims (E));
             Adi.Widget.Animated_Widget.Set_Looping (Viewers (E), True);
             Loaded := Loaded + 1;
-            Frames := Frames + Get_Frame_Count (Anims (E).all);
+            Frames := Frames + Get_Frame_Count (Anims (E));
          else
             Adi.Widget.Label.Set_Text (Captions (E), "MISSING");
          end if;
@@ -266,8 +266,8 @@ begin
       Adi.MCP.Finalize;
 
       for E in Emoji_Kind loop
-         if Anims (E) /= null then
-            Destroy (Anims (E).all);
+         if Is_Valid (Anims (E)) then
+            Destroy (Anims (E));
          end if;
       end loop;
    end;

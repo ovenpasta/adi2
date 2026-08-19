@@ -637,7 +637,8 @@ begin
 end Apply_On_Main;
 ```
 
-This is what `Adi.RLottie` does for background SVG decoding.
+No in-tree package does this today; it is the shape an application
+would use.
 
 ### A.2 GUI → user task communication
 **Not supported as a primitive.** Callbacks run inline on the GUI

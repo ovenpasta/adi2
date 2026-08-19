@@ -9,39 +9,64 @@ package body Adi.RLottie.Testing is
 
    use type Adi.SDL.Surface.SDL_Surface_Ptr;
 
-   function Rasterisations (Anim : RLottie_Animation'Class) return Natural
-   is (Anim.Rasterisations);
+   function A (H : Animation_Handle) return RLottie_Animation_Access
+   is (if Animation_Stores.Is_Valid (H.Id)
+       then Animation_Stores.Get (H.Id)
+       else null);
 
-   function Retired_Set_Count (Anim : RLottie_Animation'Class) return Natural
-   is (Anim.Retired_Count);
+   function Rasterisations (H : Animation_Handle) return Natural
+   is (if A (H) = null then 0 else A (H).Rasterisations);
 
+   function Retired_Set_Count (H : Animation_Handle) return Natural
+   is (if A (H) = null then 0 else A (H).Retired_Count);
+
+   --  A frame of the drawable set exists: playback reached it and it was
+   --  kept.
    function Frame_Is_Retained
-     (Anim : RLottie_Animation'Class; Frame : Positive) return Boolean
-   is (Anim.Active /= null
-       and then Anim.Active.Images /= null
-       and then Frame <= Anim.Active.Images'Last
-       and then Anim.Active.Images (Frame) /= null);
+     (H : Animation_Handle; Frame : Positive) return Boolean
+   is (A (H) /= null
+       and then A (H).Active /= null
+       and then A (H).Active.Images /= null
+       and then Frame <= A (H).Active.Images'Last
+       and then A (H).Active.Images (Frame) /= null);
 
+   --  A frame of the newest replaced set is still a record, emptied of
+   --  its pixels rather than freed.
    function Retired_Frame_Is_Shell
-     (Anim : RLottie_Animation'Class; Frame : Positive) return Boolean
-   is (Anim.Retired /= null
-       and then Anim.Retired.Images /= null
-       and then Frame <= Anim.Retired.Images'Last
-       and then Anim.Retired.Images (Frame) /= null
-       and then Adi.Image.Get_Surface (Anim.Retired.Images (Frame).all)
+     (H : Animation_Handle; Frame : Positive) return Boolean
+   is (A (H) /= null
+       and then A (H).Retired /= null
+       and then A (H).Retired.Images /= null
+       and then Frame <= A (H).Retired.Images'Last
+       and then A (H).Retired.Images (Frame) /= null
+       and then Adi.Image.Get_Surface (A (H).Retired.Images (Frame).all)
                   = null);
 
-   procedure Fail_Next_Rasterisation (Anim : in out RLottie_Animation'Class) is
+   procedure Fail_Next_Rasterisation (H : Animation_Handle) is
+      P : constant RLottie_Animation_Access := A (H);
    begin
-      Anim.Fail_Next_Raster := True;
+      if P /= null then
+         P.Fail_Next_Raster := True;
+      end if;
    end Fail_Next_Rasterisation;
 
-   function Elapsed (Anim : RLottie_Animation'Class) return Duration
-   is (Duration (Anim.Elapsed_S));
+   function Elapsed (H : Animation_Handle) return Duration
+   is (if A (H) = null then 0.0 else Duration (A (H).Elapsed_S));
 
-   procedure Service (Anim : in out RLottie_Animation'Class) is
+   procedure Fail_Next_Load is
    begin
-      Service_Pending (Anim);
+      Fail_After_Model := True;
+   end Fail_Next_Load;
+
+   function Handle_Is_Registered (H : Animation_Handle) return Boolean
+   is (Animation_Stores.Is_Valid (H.Id));
+
+   procedure Service (H : Animation_Handle) is
+      P : constant RLottie_Animation_Access := A (H);
+   begin
+      if P /= null then
+         Service_Pending (P.all);
+      end if;
    end Service;
 
 end Adi.RLottie.Testing;

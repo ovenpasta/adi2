@@ -17,7 +17,7 @@ package body Adi.Widget.RLottie is
    end Create;
 
    function Create
-     (Animation : RLottie_Animation_Access) return RLottie_Widget_Access
+     (Animation : Animation_Handle) return RLottie_Widget_Access
    is
       Result : constant RLottie_Widget_Access := Create;
    begin
@@ -35,7 +35,7 @@ package body Adi.Widget.RLottie is
    end Create_Handle;
 
    function Create_Handle
-     (Animation : RLottie_Animation_Access) return RLottie_Handle is
+     (Animation : Animation_Handle) return RLottie_Handle is
    begin
       return (Id => Get_Handle (Create (Animation).all).Id);
    end Create_Handle;
@@ -77,19 +77,8 @@ package body Adi.Widget.RLottie is
    -- Handle methods --
    --------------------
 
-   function Load_From_File
-     (H : RLottie_Handle; Path : String) return Boolean
-   is
-      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
-   begin
-      if Ptr /= null then
-         return Load_From_File (RLottie_Widget (Ptr.all), Path);
-      end if;
-      return False;
-   end Load_From_File;
-
    procedure Set_Animation
-     (H : RLottie_Handle; Animation : RLottie_Animation_Access)
+     (H : RLottie_Handle; Animation : Animation_Handle)
    is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
@@ -99,14 +88,14 @@ package body Adi.Widget.RLottie is
    end Set_Animation;
 
    function Get_Animation
-     (H : RLottie_Handle) return RLottie_Animation_Access
+     (H : RLottie_Handle) return Animation_Handle
    is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
          return Get_Animation (RLottie_Widget (Ptr.all));
       end if;
-      return null;
+      return Null_Animation_Handle;
    end Get_Animation;
 
    procedure Start (H : RLottie_Handle) is
@@ -181,36 +170,21 @@ package body Adi.Widget.RLottie is
       end if;
    end Set_Max_Size;
 
-   function Load_From_File
-     (W    : in out RLottie_Widget;
-      Path : String) return Boolean
-   is
-      Loaded : constant RLottie_Animation_Access :=
-        Adi.RLottie.Load_From_File (Path);
-   begin
-      if Loaded = null then
-         return False;
-      end if;
-
-      Set_Animation (W, Loaded);
-      return True;
-   end Load_From_File;
-
    procedure Set_Animation
      (W         : in out RLottie_Widget;
-      Animation : RLottie_Animation_Access)
+      Animation : Animation_Handle)
    is
    begin
       W.Animation := Animation;
-      if W.Animation /= null then
-         Set_Looping (W.Animation.all, W.Desired_Looping);
-         Set_Playback_Speed (W.Animation.all, W.Desired_Playback_Speed);
+      if Is_Valid (W.Animation) then
+         Set_Looping (W.Animation, W.Desired_Looping);
+         Set_Playback_Speed (W.Animation, W.Desired_Playback_Speed);
       end if;
       Mark_Dirty (W);
    end Set_Animation;
 
    function Get_Animation
-     (W : RLottie_Widget) return RLottie_Animation_Access
+     (W : RLottie_Widget) return Animation_Handle
    is
    begin
       return W.Animation;
@@ -218,24 +192,24 @@ package body Adi.Widget.RLottie is
 
    procedure Start (W : in out RLottie_Widget) is
    begin
-      if W.Animation /= null then
-         Start (W.Animation.all);
+      if Is_Valid (W.Animation) then
+         Start (W.Animation);
          Mark_Dirty (W);
       end if;
    end Start;
 
    procedure Stop (W : in out RLottie_Widget) is
    begin
-      if W.Animation /= null then
-         Stop (W.Animation.all);
+      if Is_Valid (W.Animation) then
+         Stop (W.Animation);
          Mark_Dirty (W);
       end if;
    end Stop;
 
    procedure Reset (W : in out RLottie_Widget) is
    begin
-      if W.Animation /= null then
-         Reset (W.Animation.all);
+      if Is_Valid (W.Animation) then
+         Reset (W.Animation);
          Mark_Dirty (W);
       end if;
    end Reset;
@@ -243,8 +217,8 @@ package body Adi.Widget.RLottie is
    procedure Set_Looping (W : in out RLottie_Widget; Value : Boolean := True) is
    begin
       W.Desired_Looping := Value;
-      if W.Animation /= null then
-         Set_Looping (W.Animation.all, Value);
+      if Is_Valid (W.Animation) then
+         Set_Looping (W.Animation, Value);
       end if;
    end Set_Looping;
 
@@ -254,25 +228,25 @@ package body Adi.Widget.RLottie is
    is
    begin
       W.Desired_Playback_Speed := Float'Max (0.01, Multiplier);
-      if W.Animation /= null then
-         Set_Playback_Speed (W.Animation.all, W.Desired_Playback_Speed);
+      if Is_Valid (W.Animation) then
+         Set_Playback_Speed (W.Animation, W.Desired_Playback_Speed);
       end if;
    end Set_Playback_Speed;
 
    function Is_Playing (W : RLottie_Widget) return Boolean is
    begin
-      if W.Animation = null then
+      if not Is_Valid (W.Animation) then
          return False;
       end if;
-      return Is_Playing (W.Animation.all);
+      return Is_Playing (W.Animation);
    end Is_Playing;
 
    function Is_Looping (W : RLottie_Widget) return Boolean is
    begin
-      if W.Animation = null then
+      if not Is_Valid (W.Animation) then
          return W.Desired_Looping;
       end if;
-      return Is_Looping (W.Animation.all);
+      return Is_Looping (W.Animation);
    end Is_Looping;
 
    procedure Set_Max_Size
@@ -291,8 +265,8 @@ package body Adi.Widget.RLottie is
       Result     : Size_2D := (0.0, 0.0);
       Scale      : Pixel_Type := 1.0;
    begin
-      if W.Animation /= null and then Is_Valid (W.Animation.all) then
-         Get_Size (W.Animation.all, Result.Width, Result.Height);
+      if Is_Valid (W.Animation) then
+         Get_Size (W.Animation, Result.Width, Result.Height);
       end if;
 
       if Result.Width > 0.0 and then Result.Height > 0.0 then
@@ -327,8 +301,7 @@ package body Adi.Widget.RLottie is
       --  frame set by how the artwork was authored rather than by how it
       --  is shown, which for an icon-sized emoji is the whole difference
       --  between kilobytes and hundreds of megabytes.
-      if W.Animation /= null
-        and then Is_Valid (W.Animation.all)
+      if Is_Valid (W.Animation)
         and then Content.Width > 0.0
         and then Content.Height > 0.0
       then
@@ -342,12 +315,12 @@ package body Adi.Widget.RLottie is
          begin
             --  Idempotent, so this costs a comparison on every frame but
             --  the ones where the extent actually changed.
-            Prepare (W.Animation.all, PW, PH);
+            Prepare (W.Animation, PW, PH);
          end;
       end if;
 
-      if W.Animation /= null then
-         Current := Get_Current_Image (W.Animation.all);
+      if Is_Valid (W.Animation) then
+         Current := Get_Current_Image (W.Animation);
       end if;
 
       W.Items.Reference (Image_Idx).Image_Source := Current;
@@ -368,11 +341,11 @@ package body Adi.Widget.RLottie is
    begin
       Tick_Scroll_Animations (W, DT);
 
-      if W.Animation /= null then
+      if Is_Valid (W.Animation) then
          --  Sampled rather than stepped: several widgets may show one
          --  animation, and each stepping it would run the playhead at a
          --  multiple of its speed.
-         Changed := Advance_At (W.Animation.all, Adi.Clock.Now);
+         Changed := Advance_At (W.Animation, Adi.Clock.Now);
 
          --  Two questions, and neither answers the other. The step
          --  reports that the animation changed, which it can do without
@@ -380,7 +353,7 @@ package body Adi.Widget.RLottie is
          --  shared animation is the one that made the step, while every
          --  viewer of it has the new frame to draw.
          if Changed
-           or else Get_Current_Image (W.Animation.all) /= W.Shown_Image
+           or else Get_Current_Image (W.Animation) /= W.Shown_Image
          then
             Mark_Dirty (W);
          end if;

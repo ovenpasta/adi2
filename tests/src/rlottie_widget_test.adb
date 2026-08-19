@@ -50,14 +50,14 @@ procedure RLottie_Widget_Test is
    --  occupies and a frame at that extent exists.
    procedure Pump
      (W    : Adi.Window.Window_Handle;
-      Anim : access RLottie_Animation'Class)
+      Anim : Animation_Handle)
    is
    begin
       for I in 1 .. Deadline loop
          Step_Frame (W);
-         if Anim /= null then
-            Service (Anim.all);
-            exit when Is_Prepared (Anim.all);
+         if Is_Valid (Anim) then
+            Service (Anim);
+            exit when Is_Prepared (Anim);
          end if;
          delay 0.005;
       end loop;
@@ -68,7 +68,7 @@ procedure RLottie_Widget_Test is
    --  that interval rather than assuming one render does.
    procedure Pump_Until_Height
      (W      : Adi.Window.Window_Handle;
-      Anim   : in out RLottie_Animation'Class;
+      Anim   : Animation_Handle;
       Height : Natural)
    is
       PW, PH : Natural;
@@ -90,13 +90,13 @@ procedure RLottie_Widget_Test is
    procedure Test_RLottie_Widget_Prepares is
       W    : Adi.Window.Window_Handle;
       Box  : Adi.Widget.RLottie.RLottie_Handle;
-      Anim : RLottie_Animation_Access;
+      Anim : Animation_Handle := Null_Animation_Handle;
    begin
       Section ("Adi.Widget.RLottie asks at its own extent");
 
       Anim := Load_From_File (Fixture);
-      Assert (Anim /= null, "the fixture loads");
-      if Anim = null then
+      Assert (Is_Valid (Anim), "the fixture loads");
+      if not Is_Valid (Anim) then
          return;
       end if;
 
@@ -107,16 +107,16 @@ procedure RLottie_Widget_Test is
 
       Pump (W, Anim);
 
-      Assert (Rasterisations (Anim.all) = 1,
+      Assert (Rasterisations (Anim) = 1,
               "Rendering rasterises exactly the frame on screen: never is"
               & " a blank widget, and the rest of the animation is not"
               & " wanted until playback reaches it");
-      Assert (Is_Prepared (Anim.all), "and leaves it drawable");
+      Assert (Is_Prepared (Anim), "and leaves it drawable");
 
       declare
          PW, PH : Natural;
       begin
-         Prepared_Extent (Anim.all, PW, PH);
+         Prepared_Extent (Anim, PW, PH);
          Assert (PW > 0 and then PH > 0,
                  "at a real extent");
          --  The widget is the root of a 200 by 200 window and stretches
@@ -129,7 +129,7 @@ procedure RLottie_Widget_Test is
       end;
 
       Adi.Window.Destroy (W);
-      Destroy (Anim.all);
+      Destroy (Anim);
    end Test_RLottie_Widget_Prepares;
 
    ---------------------------------------------------------------------------
@@ -137,13 +137,13 @@ procedure RLottie_Widget_Test is
    procedure Test_Animated_Widget_Prepares is
       W    : Adi.Window.Window_Handle;
       Box  : Adi.Widget.Animated_Widget.Animated_Widget_Handle;
-      Anim : RLottie_Animation_Access;
+      Anim : Animation_Handle := Null_Animation_Handle;
    begin
       Section ("Adi.Widget.Animated_Widget asks through its backend");
 
       Anim := Load_From_File (Fixture);
-      Assert (Anim /= null, "the fixture loads");
-      if Anim = null then
+      Assert (Is_Valid (Anim), "the fixture loads");
+      if not Is_Valid (Anim) then
          return;
       end if;
 
@@ -156,22 +156,22 @@ procedure RLottie_Widget_Test is
 
       Pump (W, Anim);
 
-      Assert (Rasterisations (Anim.all) = 1,
+      Assert (Rasterisations (Anim) = 1,
               "The backend path rasterises exactly one frame too: it is a"
               & " separate call site and fails separately");
-      Assert (Is_Prepared (Anim.all), "and leaves it drawable");
+      Assert (Is_Prepared (Anim), "and leaves it drawable");
 
       declare
          PW, PH : Natural;
       begin
-         Prepared_Extent (Anim.all, PW, PH);
+         Prepared_Extent (Anim, PW, PH);
          Assert (PW > 0 and then PH > 0, "at a real extent");
          Assert (PW = 200 and then PH = 200,
                  "at exactly the extent the widget occupies");
       end;
 
       Adi.Window.Destroy (W);
-      Destroy (Anim.all);
+      Destroy (Anim);
    end Test_Animated_Widget_Prepares;
 
    ---------------------------------------------------------------------------
@@ -183,15 +183,15 @@ procedure RLottie_Widget_Test is
       W     : Adi.Window.Window_Handle;
       Box   : Adi.Widget.RLottie.RLottie_Handle;
       Root  : Adi.Widget.Box.Box_Handle;
-      Anim  : RLottie_Animation_Access;
+      Anim  : Animation_Handle;
       Was_W : Natural := 0;
       Was_H : Natural := 0;
 
       procedure Body_Of_Test is
       begin
          Pump (W, Anim);
-         Assert (Rasterisations (Anim.all) = 1, "one frame at the first scale");
-         Prepared_Extent (Anim.all, Was_W, Was_H);
+         Assert (Rasterisations (Anim) = 1, "one frame at the first scale");
+         Prepared_Extent (Anim, Was_W, Was_H);
          Assert (Was_W = 200 and then Was_H = 30,
                  "thirty dip is thirty pixels at unit scale, stretched"
                  & " across the block");
@@ -200,27 +200,27 @@ procedure RLottie_Widget_Test is
          Adi.Window.Set_UI_Scale (W, 2.0);
          Adi.Window.Render (W);
 
-         Assert (Is_Prepared (Anim.all),
+         Assert (Is_Prepared (Anim),
                  "The old extent stays drawable across a scale change,"
                  & " rather than blanking while it re-rasterises");
          declare
             PW, PH : Natural;
          begin
-            Prepared_Extent (Anim.all, PW, PH);
+            Prepared_Extent (Anim, PW, PH);
             Assert (PW = Was_W and then PH = Was_H,
                     "and it is still the old one being drawn while the"
                     & " replacement is pending");
          end;
 
-         Pump_Until_Height (W, Anim.all, 60);
+         Pump_Until_Height (W, Anim, 60);
 
-         Assert (Retired_Set_Count (Anim.all) = 1,
+         Assert (Retired_Set_Count (Anim) = 1,
                  "exactly one extent is replaced by the scale change");
 
          declare
             PW, PH : Natural;
          begin
-            Prepared_Extent (Anim.all, PW, PH);
+            Prepared_Extent (Anim, PW, PH);
             Assert (PH = 60,
                     "thirty dip is sixty pixels at double scale, so the"
                     & " frames are rasterised at the size actually drawn");
@@ -234,8 +234,8 @@ procedure RLottie_Widget_Test is
       Section ("a scale change re-prepares at the new physical size");
 
       Anim := Load_From_File (Fixture);
-      Assert (Anim /= null, "the fixture loads");
-      if Anim = null then
+      Assert (Is_Valid (Anim), "the fixture loads");
+      if not Is_Valid (Anim) then
          return;
       end if;
 
@@ -271,7 +271,7 @@ procedure RLottie_Widget_Test is
       --  Restored whether the body succeeded, failed or raised.
       Adi.Window.Set_UI_Scale (W, 1.0);
       Adi.Window.Destroy (W);
-      Destroy (Anim.all);
+      Destroy (Anim);
    end Test_Scale_Change_Reprepares;
 
    ---------------------------------------------------------------------------
@@ -289,7 +289,7 @@ procedure RLottie_Widget_Test is
    procedure Make_Viewer
      (Kind  : Viewer_Kind;
       Title : String;
-      Anim  : RLottie_Animation_Access;
+      Anim  : Animation_Handle;
       W     : out Adi.Window.Window_Handle;
       Root  : out Widget_Handle)
    is
@@ -354,15 +354,15 @@ procedure RLottie_Widget_Test is
 
       Wins  : Window_Array (1 .. Viewers);
       Root  : Widget_Handle;
-      Anim  : RLottie_Animation_Access;
+      Anim  : Animation_Handle;
       T0    : Adi.Clock.Time;
    begin
       Played := 0.0;
       Wall := 0.0;
 
       Anim := Load_From_File (Fixture);
-      Assert (Anim /= null, "the fixture loads");
-      if Anim = null then
+      Assert (Is_Valid (Anim), "the fixture loads");
+      if not Is_Valid (Anim) then
          return;
       end if;
 
@@ -370,7 +370,7 @@ procedure RLottie_Widget_Test is
       --  timeline reads exactly like one that has not, which would hide
       --  the difference being measured; the span below stays well inside
       --  the fixture's 400 ms so neither happens.
-      Set_Looping (Anim.all, False);
+      Set_Looping (Anim, False);
 
       for I in Wins'Range loop
          Make_Viewer (Kind, "Viewer" & I'Image, Anim, Wins (I), Root);
@@ -392,12 +392,12 @@ procedure RLottie_Widget_Test is
       end loop;
 
       Wall := Adi.Clock.To_Duration (Adi.Clock.Now - T0);
-      Played := Elapsed (Anim.all);
+      Played := Elapsed (Anim);
 
       for H of Wins loop
          Adi.Window.Destroy (H);
       end loop;
-      Destroy (Anim.all);
+      Destroy (Anim);
    end Run_Viewers;
 
    --  Time passes at one second per second however many widgets are
@@ -454,16 +454,16 @@ procedure RLottie_Widget_Test is
    procedure Test_Both_Viewers_Dirty (Kind : Viewer_Kind) is
       WA, WB : Adi.Window.Window_Handle;
       RA, RB : Widget_Handle;
-      Anim   : RLottie_Animation_Access;
+      Anim   : Animation_Handle;
    begin
       Section (Label (Kind) & ": a shared frame change dirties every viewer");
 
       Anim := Load_From_File (Fixture);
-      Assert (Anim /= null, "the fixture loads");
-      if Anim = null then
+      Assert (Is_Valid (Anim), "the fixture loads");
+      if not Is_Valid (Anim) then
          return;
       end if;
-      Set_Looping (Anim.all, False);
+      Set_Looping (Anim, False);
 
       Make_Viewer (Kind, "Dirty A", Anim, WA, RA);
       Make_Viewer (Kind, "Dirty B", Anim, WB, RB);
@@ -488,7 +488,7 @@ procedure RLottie_Widget_Test is
 
       Adi.Window.Destroy (WA);
       Adi.Window.Destroy (WB);
-      Destroy (Anim.all);
+      Destroy (Anim);
    end Test_Both_Viewers_Dirty;
 
    ---------------------------------------------------------------------------
@@ -499,14 +499,14 @@ procedure RLottie_Widget_Test is
    procedure Test_Two_Viewers_Rasterise_Once is
       WA, WB : Adi.Window.Window_Handle;
       RA, RB : Widget_Handle;
-      Anim   : RLottie_Animation_Access;
+      Anim   : Animation_Handle;
       Before : Natural;
    begin
       Section ("two viewers of one frame rasterise it once");
 
       Anim := Load_From_File (Fixture);
-      Assert (Anim /= null, "the fixture loads");
-      if Anim = null then
+      Assert (Is_Valid (Anim), "the fixture loads");
+      if not Is_Valid (Anim) then
          return;
       end if;
 
@@ -515,7 +515,7 @@ procedure RLottie_Widget_Test is
 
       Pump (WA, Anim);
       Adi.Window.Render (WB);
-      Before := Rasterisations (Anim.all);
+      Before := Rasterisations (Anim);
       Assert (Before = 1, "one frame so far");
 
       --  The widgets sample the clock rather than the delta handed to
@@ -525,13 +525,13 @@ procedure RLottie_Widget_Test is
       Adi.Window.Render (WA);
       Adi.Window.Render (WB);
 
-      Assert (Rasterisations (Anim.all) = Before + 1,
+      Assert (Rasterisations (Anim) = Before + 1,
               "The frame they moved to is rasterised once, not once per"
               & " window: what they share is the animation");
 
       Adi.Window.Destroy (WA);
       Adi.Window.Destroy (WB);
-      Destroy (Anim.all);
+      Destroy (Anim);
    end Test_Two_Viewers_Rasterise_Once;
 
    ---------------------------------------------------------------------------
@@ -544,7 +544,7 @@ procedure RLottie_Widget_Test is
       use type Adi.Texture_Cache.Event_Count;
       W      : Adi.Window.Window_Handle;
       Root   : Widget_Handle;
-      Anim   : RLottie_Animation_Access;
+      Anim   : Animation_Handle;
       Before : Natural;
       Full_Count, Evicted_Count : Natural;
       Was_Stores : Adi.Texture_Cache.Event_Count;
@@ -552,8 +552,8 @@ procedure RLottie_Widget_Test is
       Section ("eviction costs an upload, not a rasterisation");
 
       Anim := Load_From_File (Fixture);
-      Assert (Anim /= null, "the fixture loads");
-      if Anim = null then
+      Assert (Is_Valid (Anim), "the fixture loads");
+      if not Is_Valid (Anim) then
          return;
       end if;
 
@@ -566,7 +566,7 @@ procedure RLottie_Widget_Test is
          delay 0.050;
          Step_Frame (W, 0.050);
       end loop;
-      Before := Rasterisations (Anim.all);
+      Before := Rasterisations (Anim);
       Assert (Before > 1, "more than one frame has been rasterised");
 
       --  A budget of nothing evicts everything not being drawn.
@@ -590,7 +590,7 @@ procedure RLottie_Widget_Test is
          Step_Frame (W, 0.050);
       end loop;
 
-      Assert (Rasterisations (Anim.all) = Before,
+      Assert (Rasterisations (Anim) = Before,
               "Drawing them all again rasterises nothing: a frame that"
               & " lost its texture still has the pixels it was made from");
       Assert (Adi.Window.Get_Texture_Stats (W).By_Kind
@@ -602,7 +602,7 @@ procedure RLottie_Widget_Test is
               & " pixels are for");
 
       Adi.Window.Destroy (W);
-      Destroy (Anim.all);
+      Destroy (Anim);
    end Test_Eviction_Uploads_Rather_Than_Rasterises;
 
    ---------------------------------------------------------------------------
@@ -615,7 +615,7 @@ procedure RLottie_Widget_Test is
 
       WA, WB : Adi.Window.Window_Handle;
       RA, RB : Widget_Handle;
-      Anim   : RLottie_Animation_Access;
+      Anim   : Animation_Handle;
 
       function Released (W : Adi.Window.Window_Handle)
                          return Adi.Texture_Cache.Event_Count is
@@ -627,8 +627,8 @@ procedure RLottie_Widget_Test is
       Section ("a resize releases the old extent everywhere it was drawn");
 
       Anim := Load_From_File (Fixture);
-      Assert (Anim /= null, "the fixture loads");
-      if Anim = null then
+      Assert (Is_Valid (Anim), "the fixture loads");
+      if not Is_Valid (Anim) then
          return;
       end if;
 
@@ -673,16 +673,16 @@ procedure RLottie_Widget_Test is
       Rel_B := Released (WB);
 
       Adi.Window.Set_UI_Scale (WA, 2.0);
-      Pump_Until_Height (WA, Anim.all, 60);
+      Pump_Until_Height (WA, Anim, 60);
 
-      Assert (Retired_Set_Count (Anim.all) = 1,
+      Assert (Retired_Set_Count (Anim) = 1,
               "exactly one extent has been replaced");
       Assert (Released (WA) > Rel_A and then Released (WB) > Rel_B,
               "and its textures are released in both renderers, not left"
               & " in the one that did not drive the resize");
 
       --  B still holds an Image_Access to a frame of the replaced extent.
-      Assert (Retired_Frame_Is_Shell (Anim.all, 1),
+      Assert (Retired_Frame_Is_Shell (Anim, 1),
               "The frame it points at is still a record, emptied of its"
               & " pixels rather than freed: freeing it would leave B's"
               & " render item pointing at nothing");
@@ -697,14 +697,14 @@ procedure RLottie_Widget_Test is
       end;
       Adi.Window.Render (WB);
 
-      Assert (Retired_Frame_Is_Shell (Anim.all, 1),
+      Assert (Retired_Frame_Is_Shell (Anim, 1),
               "and drawing through it leaves it as it was, having reached"
               & " an empty image rather than freed storage");
 
       Adi.Window.Set_UI_Scale (WA, 1.0);
       Adi.Window.Destroy (WA);
       Adi.Window.Destroy (WB);
-      Destroy (Anim.all);
+      Destroy (Anim);
    end Test_Resize_Releases_And_Does_Not_Dangle;
 
    ---------------------------------------------------------------------------
@@ -720,9 +720,10 @@ procedure RLottie_Widget_Test is
    procedure Test_Shared_Animation_Group is
       use type Adi.Texture_Cache.Event_Count;
 
-      WA, WB : Adi.Window.Window_Handle;
-      BA, BB : Adi.Widget.RLottie.RLottie_Handle;
-      Anim   : RLottie_Animation_Access;
+      WA, WB  : Adi.Window.Window_Handle;
+      BA, BB  : Adi.Widget.RLottie.RLottie_Handle;
+      Anim    : Animation_Handle;
+      Copy_A, Copy_B : Animation_Handle;
 
       function Rasters (W : Adi.Window.Window_Handle) return Natural is
         (Adi.Window.Get_Texture_Stats (W).By_Kind
@@ -736,8 +737,8 @@ procedure RLottie_Widget_Test is
       Section ("one animation, two widgets, two renderers");
 
       Anim := Load_From_File (Fixture);
-      Assert (Anim /= null, "the fixture loads");
-      if Anim = null then
+      Assert (Is_Valid (Anim), "the fixture loads");
+      if not Is_Valid (Anim) then
          return;
       end if;
 
@@ -770,6 +771,12 @@ procedure RLottie_Widget_Test is
               & " belongs to the renderer that made it, so two windows"
               & " make two of them");
 
+      --  What each widget holds, taken while both are alive.
+      Copy_A := Adi.Widget.RLottie.Get_Animation (BA);
+      Copy_B := Adi.Widget.RLottie.Get_Animation (BB);
+      Assert (Is_Valid (Copy_A) and then Is_Valid (Copy_B),
+              "both widgets name the same live animation");
+
       declare
          Was_A : constant Natural := Rasters (WA);
          Was_B : constant Natural := Rasters (WB);
@@ -798,7 +805,7 @@ procedure RLottie_Widget_Test is
                  "and destroying the second changes nothing either");
 
          --  The animation going is.
-         Destroy (Anim.all);
+         Destroy (Anim);
 
          Assert (Rasters (WA) = 0 and then Rasters (WB) = 0,
                  "Destroying the animation takes its frames from every"
@@ -807,6 +814,14 @@ procedure RLottie_Widget_Test is
                    and then Released (WB) = Rel_B + 1,
                  "exactly the one texture each held, counted as released"
                  & " with its group rather than as anything else");
+
+         --  Two widgets shared one animation, so two handles named it.
+         --  One destroy stales both, which a raw pointer could not do.
+         Assert (Anim = Null_Animation_Handle,
+                 "the destroyed handle is null");
+         Assert (not Is_Valid (Copy_A) and then not Is_Valid (Copy_B),
+                 "and every handle that named it is stale, rather than a"
+                 & " pointer into freed storage");
       end;
 
       Adi.Window.Destroy (WA);

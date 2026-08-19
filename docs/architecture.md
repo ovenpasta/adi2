@@ -125,7 +125,7 @@
 - Loading parses the model only. `Prepare (W, H)` records the size frames will be drawn at; each frame is rasterised when playback first reaches it and kept afterwards, so a loop pays for each frame once. A different extent replaces the frames once the request has stood still for 150 ms
 - Every frame image joins its extent's `Texture_Group`, so replacing an extent takes that extent's textures out of every renderer rather than leaving them to be evicted under pressure
 - Residency is per renderer but the group spans them: one animation drawn in two windows has frames in two caches, and releasing reaches both
-- `RLottie_Animation` is `tagged limited private` — it owns a model handle and the frame sets, each with its own texture group
+- Callers hold a generational `Animation_Handle` from an `Adi.Handle_Store`; `Destroy` retires the slot, so every copy goes stale together. The raw `RLottie_Animation` is private to the package and its children
 - Destroying it requires every referring widget to be detached first, and runs on the render thread
 
 **Adi.Log** (`adi-log.ads`): Central runtime logging.

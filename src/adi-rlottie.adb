@@ -231,9 +231,7 @@ package body Adi.RLottie is
       Frame : Positive) return Boolean
    is (Rasterise_Into (Anim, Anim.Active, Frame));
 
-   function Load_From_File
-     (Path : String) return RLottie_Animation_Access
-   is
+   function Load_From_File (Path : String) return Animation_Handle is
       use Interfaces.C.Strings;
 
       C_Path   : chars_ptr;
@@ -244,6 +242,17 @@ package body Adi.RLottie is
       FPS      : Interfaces.C.double;
       Dur      : Interfaces.C.double;
       Result   : RLottie_Animation_Access := null;
+
+      --  Nulls as it frees. A branch that destroyed the model and then
+      --  raised while building its log message would otherwise reach the
+      --  handler with a pointer already freed.
+      procedure Discard_Model is
+      begin
+         if Handle /= null then
+            Animation_Destroy (Handle);
+            Handle := null;
+         end if;
+      end Discard_Model;
    begin
       Ensure_Initialized;
 
@@ -253,14 +262,14 @@ package body Adi.RLottie is
 
       if Handle = null then
          Adi.Log.Error ("Failed to load rlottie animation: " & Path);
-         return null;
+         return Null_Animation_Handle;
       end if;
 
       Animation_Get_Size (Handle, W'Access, H'Access);
       if W = 0 or else H = 0 then
-         Animation_Destroy (Handle);
+         Discard_Model;
          Adi.Log.Error ("rlottie animation reports invalid size: " & Path);
-         return null;
+         return Null_Animation_Handle;
       end if;
 
       Count := Animation_Get_Total_Frame (Handle);
@@ -268,9 +277,14 @@ package body Adi.RLottie is
       Dur := Animation_Get_Duration (Handle);
 
       if Count = 0 then
-         Animation_Destroy (Handle);
+         Discard_Model;
          Adi.Log.Error ("rlottie animation has zero frames: " & Path);
-         return null;
+         return Null_Animation_Handle;
+      end if;
+
+      if Fail_After_Model then
+         Fail_After_Model := False;
+         raise Storage_Error with "injected";
       end if;
 
       Result := new RLottie_Animation;
@@ -284,7 +298,24 @@ package body Adi.RLottie is
       --  Nothing is rasterised here. The file's viewport is what the
       --  animation was authored at, not what it will be drawn at, and
       --  the caller knows the latter.
-      return Result;
+      return (Id => Animation_Stores.Register (Result));
+
+   exception
+      --  The model is the C library's, and nothing else will reclaim it.
+      --  Whatever failed between creating it and handing it to a store
+      --  slot -- an allocation, a conversion, the registration itself --
+      --  it goes, along with the half-filled record if one exists.
+      --
+      --  Then it propagates. A file that will not parse is answered with
+      --  a null handle above; anything reaching here is exhaustion or a
+      --  defect, and swallowing those would report them as a bad file.
+      when others =>
+         if Result /= null then
+            Result.Handle := System.Null_Address;
+            Free_RLottie (Result);
+         end if;
+         Discard_Model;
+         raise;
    end Load_From_File;
 
    ---------------------------------------------------------------------------
@@ -737,6 +768,217 @@ package body Adi.RLottie is
       Anim.Frame_Count := 0;
       Anim.Current_Frame := 0;
       Anim.Pending_Live := False;
+   end Destroy;
+
+   ---------------------------------------------------------------------------
+   --  Handles
+   ---------------------------------------------------------------------------
+
+   --  Resolved for the duration of one synchronous call and no longer.
+   --  Nothing here holds a borrow across a destroy, so the store never
+   --  has a pinned slot to defer.
+   --  Checked rather than fetched: the store is strict by default and
+   --  raises on a stale id, while a stale handle here is an ordinary
+   --  thing to be told about -- the animation it named has been
+   --  destroyed, and the operation has nothing to do.
+   function Resolve (H : Animation_Handle) return RLottie_Animation_Access
+   is (if Animation_Stores.Is_Valid (H.Id)
+       then Animation_Stores.Get (H.Id)
+       else null);
+
+   function Is_Valid (H : Animation_Handle) return Boolean is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      return A /= null and then Is_Valid (A.all);
+   end Is_Valid;
+
+   procedure Get_Size
+     (H      : Animation_Handle;
+      Width  : out Pixel_Type;
+      Height : out Pixel_Type)
+   is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      if A = null then
+         Width := 0.0;
+         Height := 0.0;
+         return;
+      end if;
+      Get_Size (A.all, Width, Height);
+   end Get_Size;
+
+   procedure Prepare
+     (H            : Animation_Handle;
+      Pixel_Width  : Positive;
+      Pixel_Height : Positive)
+   is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      if A /= null then
+         Prepare (A.all, Pixel_Width, Pixel_Height);
+      end if;
+   end Prepare;
+
+   function Is_Prepared (H : Animation_Handle) return Boolean is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      return A /= null and then Is_Prepared (A.all);
+   end Is_Prepared;
+
+   procedure Prepared_Extent
+     (H      : Animation_Handle;
+      Width  : out Natural;
+      Height : out Natural)
+   is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      if A = null then
+         Width := 0;
+         Height := 0;
+         return;
+      end if;
+      Prepared_Extent (A.all, Width, Height);
+   end Prepared_Extent;
+
+   function Estimated_Surface_Bytes
+     (H            : Animation_Handle;
+      Pixel_Width  : Positive;
+      Pixel_Height : Positive) return Long_Long_Integer
+   is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      return (if A = null then 0
+              else Estimated_Surface_Bytes (A.all, Pixel_Width, Pixel_Height));
+   end Estimated_Surface_Bytes;
+
+   function Estimated_Max_Texture_Bytes
+     (H            : Animation_Handle;
+      Pixel_Width  : Positive;
+      Pixel_Height : Positive) return Long_Long_Integer
+   is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      return (if A = null then 0
+              else Estimated_Max_Texture_Bytes
+                     (A.all, Pixel_Width, Pixel_Height));
+   end Estimated_Max_Texture_Bytes;
+
+   function Get_Frame_Count (H : Animation_Handle) return Natural is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      return (if A = null then 0 else Get_Frame_Count (A.all));
+   end Get_Frame_Count;
+
+   function Get_Frame_Rate (H : Animation_Handle) return Float is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      return (if A = null then 0.0 else Get_Frame_Rate (A.all));
+   end Get_Frame_Rate;
+
+   function Get_Duration (H : Animation_Handle) return Duration is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      return (if A = null then 0.0 else Get_Duration (A.all));
+   end Get_Duration;
+
+   function Get_Current_Frame_Index (H : Animation_Handle) return Natural is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      return (if A = null then 0 else Get_Current_Frame_Index (A.all));
+   end Get_Current_Frame_Index;
+
+   function Get_Current_Image (H : Animation_Handle) return Image_Access is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      return (if A = null then null else Get_Current_Image (A.all));
+   end Get_Current_Image;
+
+   procedure Start (H : Animation_Handle) is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      if A /= null then
+         Start (A.all);
+      end if;
+   end Start;
+
+   procedure Stop (H : Animation_Handle) is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      if A /= null then
+         Stop (A.all);
+      end if;
+   end Stop;
+
+   function Is_Playing (H : Animation_Handle) return Boolean is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      return A /= null and then Is_Playing (A.all);
+   end Is_Playing;
+
+   procedure Set_Looping (H : Animation_Handle; Value : Boolean := True) is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      if A /= null then
+         Set_Looping (A.all, Value);
+      end if;
+   end Set_Looping;
+
+   function Is_Looping (H : Animation_Handle) return Boolean is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      return A /= null and then Is_Looping (A.all);
+   end Is_Looping;
+
+   procedure Set_Playback_Speed
+     (H          : Animation_Handle;
+      Multiplier : Float := 1.0)
+   is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      if A /= null then
+         Set_Playback_Speed (A.all, Multiplier);
+      end if;
+   end Set_Playback_Speed;
+
+   function Get_Playback_Speed (H : Animation_Handle) return Float is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      return (if A = null then 1.0 else Get_Playback_Speed (A.all));
+   end Get_Playback_Speed;
+
+   procedure Reset (H : Animation_Handle) is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      if A /= null then
+         Reset (A.all);
+      end if;
+   end Reset;
+
+   function Advance (H : Animation_Handle; DT : Duration) return Boolean is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      return A /= null and then Advance (A.all, DT);
+   end Advance;
+
+   function Advance_At
+     (H      : Animation_Handle;
+      Sample : Adi.Clock.Time) return Boolean
+   is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      return A /= null and then Advance_At (A.all, Sample);
+   end Advance_At;
+
+   procedure Destroy (H : in out Animation_Handle) is
+      A : constant RLottie_Animation_Access := Resolve (H);
+   begin
+      if A /= null then
+         --  Torn down before the slot goes: the store has no hook that
+         --  would do it, and nothing holds a pin to defer the free.
+         Destroy (A.all);
+         Animation_Stores.Request_Destroy (H.Id);
+      end if;
+      H := Null_Animation_Handle;
    end Destroy;
 
 end Adi.RLottie;

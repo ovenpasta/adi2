@@ -76,9 +76,10 @@ declares it public domain (`cc:license` →
 reproduction, distribution and derivative works.
 
 Source: <https://openclipart.org/detail/176055/Clipart-by-microugly>.
-Stored unmodified, SHA-256
-`c3ab03f21f3100462e7c8a278a1aca7e41fbeb4a2a40e647c4f68252e222a62f`.
-`tests/assets/tiger.svg` is the same file.
+Modified: the two ear groups were drawn as shapes clipped to an ear
+outline, and the clip is now baked into their geometry. The SVG backend
+does not implement `clip-path`. `tests/assets/tiger.svg` is the same
+file.
 
 ## animhorse.gif
 

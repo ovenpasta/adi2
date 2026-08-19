@@ -111,6 +111,7 @@
 - Rendering backend lives in `src/svg/plutosvg` and uses the vendored plutosvg / plutovg C libraries under `vendor/plutosvg/`
 - Public API surface: `Load_From_File`, `Load_From_String`, `Get_Size`, `Render_ARGB32`, `Destroy`, `Backend_Name`
 - The SVG path parser (`src/svg/adi-svg-parser.ads`) is shared and also drives `Adi.SVG_Sprites`
+- **`clip-path` is not supported.** plutosvg parses `clipPath` and `clip-path` and then ignores them (`TAG_CLIP_PATH, // TODO` in `vendor/plutosvg/source/plutosvg.c`), upstream included, so clipped content draws unclipped. An asset that relies on it must have the clip baked into its geometry; `examples/assets/tiger.svg` had its two clipped ear groups flattened for this reason. Implementing clipping in the vendored backend is open work
 
 **Adi.SVG_Sprites** (`adi-svg_sprites.ads`): SVG sprite sheet loader for icon fonts (e.g. FontAwesome).
 - Parses `<symbol>` elements from SVG sprite files, keyed by `id`

@@ -22,6 +22,18 @@ Examples are built to `examples/bin/`:
 ./bin/label_example
 ```
 
+## XML or Ada
+
+Some examples declare their tree in `xml/`, others build it in Ada. This
+is intentional.
+
+XML for static layout. Ada for what XML cannot express: callbacks,
+generic instantiation, content built at runtime, and resources whose
+owner must outlive the widgets drawing them.
+
+Both reach the same API. A new example goes wherever its subject is
+clearer.
+
 ## Available Examples
 
 ### label_example

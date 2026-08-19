@@ -7,12 +7,14 @@
 
 ## Naming Patterns
 - Types: `Widget`, `Rectangle`, `Color_Value`
-- Access types: `Widget_Access`, `Window_Access`
-- Functions returning accessors: `Create`, `Get_*`
+- Handle types: `Widget_Handle`, `Label_Handle`, `Image_Handle` — what callers hold
+- Access types: `Widget_Access` — internal, private where the design allows
+- Constructors: `Create_Handle`. The `Create` functions returning access are `Obsolescent`
+- Functions for queries: `Get_*`, `Is_*`
 - Procedures for mutation: `Set_*`, `Add_*`, `Remove_*`
 
 ## Package Hierarchy
-All packages rooted under `Adi`. Core types in `Adi.Core`, styles in `Adi.Style`/`Adi.CSS_Styles`/`Adi.Widget_Styles`, widgets in `Adi.Widget.*`, SDL bindings in `Adi.SDL.*`.
+All packages rooted under `Adi`. Core types in `Adi.Core`, styles in `Adi.CSS_Styles`/`Adi.Widget_Styles`, widgets in `Adi.Widget.*`, SDL bindings in `Adi.SDL.*`.
 
 ## Logging
 - Use `Adi.Log` for runtime diagnostics (`Debug`, `Info`, `Warning`, `Error`).
@@ -21,13 +23,17 @@ All packages rooted under `Adi`. Core types in `Adi.Core`, styles in `Adi.Style`
 
 ## Widget API Conventions
 
-### Hierarchy calls use `access Widget'Class`
-`Add_Child`, `Remove_Child`, `Set_Root`, `Add_Overlay`, `Remove_Overlay`, `Add_Page` accept anonymous access — no `Widget_Access(...)` casts at call sites.
+### Hierarchy calls take handles
+`Add_Child`, `Remove_Child`, `Set_Root`, `Add_Overlay`, `Remove_Overlay` and
+`Add_Page` take `Widget_Handle`. `"+"` widens a typed handle to it, so no
+cast appears at a call site:
 
-### Dot notation
 ```ada
-Root.Add_Child (Label1);  -- not Add_Child (Root.all, Widget_Access (Label1))
+Adi.Widget.Box.Add_Child (Root, +Label1);
 ```
+
+The `access Widget'Class` overloads remain for use inside the widget
+bodies; new call sites use the handle form.
 
 ### Internal storage conversion
 When converting anonymous access params to stored `Widget_Access`, use `C.all'Unchecked_Access` (not `Widget_Access(C)`) to avoid runtime accessibility `PROGRAM_ERROR`.
@@ -41,10 +47,13 @@ e.g. `Click_Callback`, `Toggle_Callback` — Ada accessibility rules (RM 3.10.2)
 src/adi-*.ads/adb         - Library modules (Ada package naming)
 src/adi-widget-*.ads/adb  - Widget implementations
 src/adi-sdl-*.ads/adb     - SDL3 bindings
+src/svg/                  - SVG API and its backend
+src/mcp/, src/mcp_stub/   - MCP bridge; the stub replaces it outside development
 tests/src/                - Test programs
 examples/                 - Example programs
 examples/css/             - CSS source files
-examples/generated/       - Auto-generated Ada style packages
+examples/xml/             - Declarative UI definitions
+examples/generated/       - Ada generated from css/ and xml/
 tools/                    - Build/generation scripts
-config/                   - Build config (posix/ and windows/ variants)
+config/                   - Build config (posix/, windows/, darwin/ and build profiles)
 ```

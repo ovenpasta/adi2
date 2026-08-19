@@ -33,13 +33,13 @@ Adi2 gives you a real widget toolkit with the niceties developers expect from a 
 ![html_view_example](examples/screenshots/html_view_example.png)
 *`html_view_example`*
 
-![dialog_example](examples/screenshots/dialog_example.png)
-*`dialog_example`*
+![rlottie_example](examples/screenshots/rlottie_example.png)
+*`rlottie_example`*
 
 ![assets_example](examples/screenshots/assets_example.png)
 *`assets_example`*
 
-Full gallery of every example: [`docs/gallery.md`](docs/gallery.md).
+Full gallery of every example: [`docs/gallery.md`](docs/gallery.md). Or run them yourself, in the browser: [**live demos**](https://pizzahack.eu/adi2/demo/).
 
 ---
 
@@ -162,6 +162,14 @@ Rendering goes through the SDL renderer abstraction, so you get hardware-acceler
 
 ---
 
+## Talk
+
+*A Native, Portable GUI Framework for Ada* — 3rd Ada Developers Workshop, [AEiC 2026](https://www.ada-europe.org/conference2026/workshop_adadev.html), 13 June 2026. Building an Adi2 application, and driving the running UI from an LLM through the MCP bridge.
+
+[Part 1](https://www.youtube.com/watch?v=d-RISfK9Sy8) · [Part 2](https://www.youtube.com/watch?v=H8SMfI7dJfc)
+
+---
+
 ## Go deeper
 
 | Topic | Doc |
@@ -194,6 +202,16 @@ Unless you explicitly state otherwise, contributions you submit are understood t
 
 ---
 
+## Sponsoring
+
+Adi2 is independently developed and maintained. Sponsorship funds ongoing maintenance, cross-platform testing, documentation, and work on the public roadmap.
+
+Organisations interested in supporting the project, or in funding a specific feature, port, or integration: **adi@aldustechnology.com**.
+
+Sponsorship supports the project as a whole. Guaranteed response times or delivery commitments require a separate commercial agreement.
+
+---
+
 ## License
 
 Apache-2.0. See [`LICENSE`](LICENSE).
@@ -206,4 +224,4 @@ Example assets under [`examples/assets/`](examples/assets/) are demonstration co
 
 ## Contact
 
-Adi2 is written by **Aldo Nicolas Bruno**. Bug reports, questions, and commercial support enquiries: **adi@aldustechnology.com**.
+Adi2 is written by **Aldo Nicolas Bruno**. Report bugs and propose features through the issue tracker. For private enquiries, sponsored development, or commercial support: **adi@aldustechnology.com**.

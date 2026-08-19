@@ -17,8 +17,6 @@ package body Adi.RLottie.Testing is
    function Rasterisations (H : Animation_Handle) return Natural
    is (if A (H) = null then 0 else A (H).Rasterisations);
 
-   function Retired_Set_Count (H : Animation_Handle) return Natural
-   is (if A (H) = null then 0 else A (H).Retired_Count);
 
    --  A frame of the drawable set exists: playback reached it and it was
    --  kept.

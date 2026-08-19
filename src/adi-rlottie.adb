@@ -352,33 +352,6 @@ package body Adi.RLottie is
       Set := null;
    end Destroy_Set;
 
-   --  Retire a set that was drawn from. Its textures go from every
-   --  renderer and its images go with them. A widget in a window that has
-   --  not ticked since the replacement still holds handles to those
-   --  images; they are stale now, and drawing through one finds nothing
-   --  rather than freed storage.
-   procedure Retire_Set
-     (Anim : in out RLottie_Animation;
-      Set  : in out Frame_Set_Access) is
-   begin
-      if Set = null then
-         return;
-      end if;
-
-      Adi.Texture_Cache.Release (Set.Group);
-
-      if Set.Images /= null then
-         for I in Set.Images'Range loop
-            Adi.Image.Release (Set.Images (I));
-         end loop;
-      end if;
-
-      Set.Next_Retired := Anim.Retired;
-      Anim.Retired := Set;
-      Anim.Retired_Count := Anim.Retired_Count + 1;
-      Set := null;
-   end Retire_Set;
-
    --  Put a set for the settled extent in place. Whether the current
    --  frame is rasterised first is the whole difference between the two
    --  cases: the first set has nothing to preserve and nothing has asked
@@ -402,8 +375,7 @@ package body Adi.RLottie is
          Width        => Anim.Pending_W,
          Height       => Anim.Pending_H,
          Frame_Count  => Anim.Frame_Count,
-         Group        => <>,
-         Next_Retired => null);
+         Group        => <>);
 
       --  Nothing has drawn from it yet, so failing here costs nothing:
       --  the old set stays in place and stays drawable.
@@ -421,7 +393,11 @@ package body Adi.RLottie is
          Anim.Current_Frame := First;
       end if;
 
-      Retire_Set (Anim, Old);
+      --  Published first, then the extent it replaced goes outright. A
+      --  widget in a window that has not ticked since holds handles to
+      --  the old frames; they are stale now, and drawing through one
+      --  finds nothing rather than freed storage.
+      Destroy_Set (Old);
       return True;
    end Install_Extent;
 
@@ -737,23 +713,11 @@ package body Adi.RLottie is
    end Advance_At;
 
    procedure Destroy (Anim : in out RLottie_Animation) is
-      Next : Frame_Set_Access;
    begin
       --  Every texture made from any extent goes at once, in whichever
       --  renderers hold them. This runs on the render thread, which is
       --  where the caches live.
       Destroy_Set (Anim.Active);
-
-      --  The sets kept across replacements. Their frames are already
-      --  released; what is left is the bookkeeping a resize is counted
-      --  by.
-      while Anim.Retired /= null loop
-         Next := Anim.Retired.Next_Retired;
-         Anim.Retired.Next_Retired := null;
-         Destroy_Set (Anim.Retired);
-         Anim.Retired := Next;
-      end loop;
-      Anim.Retired_Count := 0;
 
       --  Only now: nothing is rendering from it any more.
       if Anim.Handle /= System.Null_Address then

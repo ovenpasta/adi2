@@ -188,6 +188,7 @@ procedure RLottie_Widget_Test is
       Anim  : Animation_Handle;
       Was_W : Natural := 0;
       Was_H : Natural := 0;
+      Was_Frame : Adi.Image.Image_Handle;
 
       procedure Body_Of_Test is
       begin
@@ -197,6 +198,10 @@ procedure RLottie_Widget_Test is
          Assert (Was_W = 200 and then Was_H = 30,
                  "thirty dip is thirty pixels at unit scale, stretched"
                  & " across the block");
+
+         Was_Frame := Get_Current_Image (Anim);
+         Assert (Adi.Image.Testing.Handle_Is_Registered (Was_Frame),
+                 "the frame of the first extent is a live image");
 
          --  Same logical geometry, twice the pixels behind it.
          Adi.Window.Set_UI_Scale (W, 2.0);
@@ -216,8 +221,9 @@ procedure RLottie_Widget_Test is
 
          Pump_Until_Height (W, Anim, 60);
 
-         Assert (Retired_Set_Count (Anim) = 1,
-                 "exactly one extent is replaced by the scale change");
+         Assert (not Adi.Image.Testing.Handle_Is_Registered (Was_Frame),
+                 "the extent the scale change replaced is ended, so the"
+                 & " frame it was drawing is a stale handle now");
 
          declare
             PW, PH : Natural;
@@ -684,8 +690,6 @@ procedure RLottie_Widget_Test is
       Adi.Window.Set_UI_Scale (WA, 2.0);
       Pump_Until_Height (WA, Anim, 60);
 
-      Assert (Retired_Set_Count (Anim) = 1,
-              "exactly one extent has been replaced");
       Assert (Released (WA) > Rel_A and then Released (WB) > Rel_B,
               "and its textures are released in both renderers, not left"
               & " in the one that did not drive the resize");

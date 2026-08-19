@@ -4,6 +4,7 @@ with Ada.Text_IO;         use Ada.Text_IO;
 with Adi.Clock;
 with Adi.Core;        use Adi.Core;
 with Adi.Image;       use Adi.Image;
+with Adi.Image.Testing;
 with Adi.RLottie;         use Adi.RLottie;
 with Adi.RLottie.Testing; use Adi.RLottie.Testing;
 with Test_Support;        use Test_Support;
@@ -324,6 +325,7 @@ procedure RLottie_Prepare_Test is
       Moved : Boolean;
       pragma Unreferenced (Moved);
       Before : Natural;
+      Drawn  : Adi.Image.Image_Handle;
    begin
       Section ("a settled resize rasterises exactly the current frame");
       if not Is_Valid (Anim) then
@@ -335,7 +337,9 @@ procedure RLottie_Prepare_Test is
       Moved := Advance_At (Anim, Adi.Clock.Now);
       Stop (Anim);
       Before := Rasterisations (Anim);
-      Assert (Retired_Set_Count (Anim) = 0, "nothing retired yet");
+      Drawn := Get_Current_Image (Anim);
+      Assert (Adi.Image.Testing.Handle_Is_Registered (Drawn),
+              "the frame of the extent in use is a live image");
 
       Prepare (Anim, 80, 60);
       Settle_Extent (Anim);
@@ -343,8 +347,9 @@ procedure RLottie_Prepare_Test is
       Assert (Rasterisations (Anim) = Before + 1,
               "One frame at the new extent, the one on screen. The rest"
               & " are rasterised if and when playback reaches them");
-      Assert (Retired_Set_Count (Anim) = 1,
-              "and the extent it replaced is retired, exactly once");
+      Assert (not Adi.Image.Testing.Handle_Is_Registered (Drawn),
+              "and the extent it replaced is ended outright, so a widget"
+              & " still naming one of its frames holds a stale handle");
       Assert (Get_Current_Image (Anim) /= Adi.Image.Null_Image_Handle,
               "with something to draw throughout: a paused animation"
               & " would never ask for a frame to fill a blank set");
@@ -451,8 +456,8 @@ procedure RLottie_Prepare_Test is
       Assert (Get_Current_Frame_Index (Anim) = Was_Frame
               and then Elapsed (Anim) = Was_Elapsed,
               "and the timeline is untouched");
-      Assert (Retired_Set_Count (Anim) = 0,
-              "nothing was retired, nothing having been replaced");
+      Assert (Adi.Image.Testing.Handle_Is_Registered (Was_Image),
+              "nothing was ended, nothing having been replaced");
 
       --  Backed off rather than abandoned.
       Service (Anim);
@@ -464,7 +469,8 @@ procedure RLottie_Prepare_Test is
       Assert (Rasterisations (Anim) = Was_Count + 1,
               "but the request is not dropped: after the interval it is"
               & " taken up, for the cost of the one frame on screen");
-      Assert (Retired_Set_Count (Anim) = 1, "retiring exactly one set");
+      Assert (not Adi.Image.Testing.Handle_Is_Registered (Was_Image),
+              "ending the extent it replaced");
       declare
          W, H : Natural;
       begin

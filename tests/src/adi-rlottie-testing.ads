@@ -11,9 +11,6 @@ package Adi.RLottie.Testing is
    --  rasterised again for the occasion.
    function Rasterisations (H : Animation_Handle) return Natural;
 
-   --  How many extents have been replaced and kept as image shells.
-   function Retired_Set_Count (H : Animation_Handle) return Natural;
-
    --  Whether a frame of the drawable set exists yet. A set holds no
    --  frames until playback reaches them.
    function Frame_Is_Retained

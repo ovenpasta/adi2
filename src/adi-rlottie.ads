@@ -164,9 +164,8 @@ package Adi.RLottie is
    --  not be detached first.
    --
    --  Call it on the render thread. It releases the texture group of
-   --  every extent the animation has held, which reaches into the cache
-   --  of each renderer that drew those frames, and those caches belong
-   --  to that thread.
+   --  the extent in use, which reaches into the cache of each renderer
+   --  that drew those frames, and those caches belong to that thread.
    procedure Destroy (H : in out Animation_Handle);
 
 private
@@ -199,9 +198,6 @@ private
       --  leaving them to be evicted under pressure later.
       Group        : aliased Adi.Texture_Cache.Texture_Group;
 
-      --  Retired sets are chained so that the counting a resize is
-      --  measured by has something to count.
-      Next_Retired : Frame_Set_Access := null;
    end record;
 
    --  Settles the requested extent, and replaces the drawable set once it
@@ -240,12 +236,6 @@ private
 
       --  What is drawable now.
       Active            : Frame_Set_Access := null;
-
-      --  Replaced sets, kept as image shells with their pixels and
-      --  textures already gone, until Destroy. Bounded by the number of
-      --  settled extent changes, not by time.
-      Retired           : Frame_Set_Access := null;
-      Retired_Count     : Natural := 0;
 
       --  How many frames have been rasterised. Nothing in the library
       --  reads it; it is what lets a test tell one rasterisation from

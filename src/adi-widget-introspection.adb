@@ -345,6 +345,7 @@ package body Adi.Widget.Introspection is
       end if;
       declare
          R : constant Widget_Ref := Borrow (Root);
+         pragma Unreferenced (R);   --  pins the tree for the walk
       begin
          return To_Handle (Find_By_Id (Widget_Stores.Get (Root.Id), Id));
       end;
@@ -360,6 +361,7 @@ package body Adi.Widget.Introspection is
       end if;
       declare
          R : constant Widget_Ref := Borrow (Root);
+         pragma Unreferenced (R);   --  pins the tree for the walk
       begin
          return To_Handle (Find_By_Path (Widget_Stores.Get (Root.Id), Path));
       end;

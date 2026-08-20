@@ -63,6 +63,12 @@ package body Adi.Widget is
       return Widget_Stores.Is_Valid (H.Id);
    end Is_Valid;
 
+   function Hash (H : Widget_Handle) return Ada.Containers.Hash_Type is
+   begin
+      return Ada.Containers.Hash_Type (H.Id.Index)
+        xor Ada.Containers.Hash_Type (H.Id.Gen) * 2_654_435_761;
+   end Hash;
+
    function Get_Handle (W : Widget'Class) return Widget_Handle is
    begin
       if W.Store_Index = 0 and then Widget_Stores.Is_Strict then

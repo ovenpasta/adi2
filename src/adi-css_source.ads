@@ -157,6 +157,18 @@ package Adi.CSS_Source is
 
 private
 
+   --  Binding entries Reapply_Bindings has looked at, and of those, the
+   --  ones it re-styled. Visits are what a test must watch: a fix that
+   --  still walks the whole vector to find the two entries that changed
+   --  would leave the cost quadratic while applying almost nothing.
+   --  Read through Adi.CSS_Source.Testing.
+   --
+   --  Modular, so instrumentation that runs for the life of the process
+   --  wraps rather than raising.
+   type Binding_Counter is mod 2 ** 32;
+   Visited_Bindings   : Binding_Counter := 0;
+   Reapplied_Bindings : Binding_Counter := 0;
+
    type Static_Style_Entry is record
       Kind   : Adi.CSS_Parser.Selector_Kind := Adi.CSS_Parser.Class_Selector;
       Name   : Ada.Strings.Unbounded.Unbounded_String;

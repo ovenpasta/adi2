@@ -3,6 +3,8 @@
 
 pragma Ada_2022;
 
+with Ada.Containers.Hashed_Maps;
+
 with Ada.Calendar;
 with Ada.Characters.Handling;
 with Ada.Numerics;
@@ -48,6 +50,12 @@ package body Adi.CSS_Parser is
       Target     : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
    end record;
 
+   package Binding_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Adi.Widget.Widget_Handle,
+      Element_Type    => Binding,
+      Hash            => Adi.Widget.Hash,
+      Equivalent_Keys => Adi.Widget."=");
+
    package Binding_Vectors is new Ada.Containers.Indefinite_Vectors
      (Index_Type => Positive,
       Element_Type => Binding);
@@ -65,6 +73,10 @@ package body Adi.CSS_Parser is
       Selectors     : Selector_Style_Vectors.Vector;
       Bindings      : Binding_Vectors.Vector;
       Root_Target   : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
+      --  The binding in force for each target, so handing the root role
+      --  over restyles the widget losing it and the one taking it
+      --  without searching.
+      Effective        : Binding_Maps.Map;
       Metadata      : Stylesheet_Metadata := (others => <>);
       Variables     : Variable_Vectors.Vector;
       Source_Path   : Unbounded_String;
@@ -3562,6 +3574,71 @@ package body Adi.CSS_Parser is
       Success := True;
    end Build_Styles;
 
+   --  Apply one binding to its widget. Root_Merged_Styles folds in the
+   --  :root styles when the target is the current root, so this is also
+   --  how a widget sheds them once it is root no longer.
+   procedure Apply_Binding (Impl : in out Stylesheet_Impl; B : Binding) is
+   begin
+      if not Adi.Widget.Is_Valid (B.Target) then
+         return;
+      end if;
+
+      declare
+         Idx : constant Natural :=
+           Find_Selector_Index (Impl, B.Kind, To_String (B.Name));
+         R   : constant Adi.Widget.Widget_Ref :=
+           Adi.Widget.Borrow (B.Target);
+      begin
+         if Idx = 0 then
+            Set_Part_Styles
+              (R.Ptr.all,
+               Root_Merged_Styles (Impl, B.Target, Empty_Part_Styles));
+         else
+            declare
+               Sel : Selector_Style renames
+                 Impl.Selectors.Reference (Positive (Idx)).Element.all;
+            begin
+               Set_Part_Styles
+                 (R.Ptr.all,
+                  Root_Merged_Styles (Impl, B.Target, Sel.Styles));
+            end;
+         end if;
+      end;
+   end Apply_Binding;
+
+   --  Restyle one widget from what it is currently bound under.
+   --  Root_Merged_Styles answers whether it is the root, so this both
+   --  grants and withdraws the :root styles.
+   procedure Restyle (Impl : in out Stylesheet_Impl;
+                      H    : Adi.Widget.Widget_Handle)
+   is
+      use Binding_Maps;
+      C : constant Cursor := Impl.Effective.Find (H);
+   begin
+      if not Adi.Widget.Is_Valid (H) then
+         return;
+      end if;
+
+      if Has_Element (C) then
+         Apply_Binding (Impl, Element (C));
+         return;
+      end if;
+
+      --  Nothing bound: the widget has only what this stylesheet put on
+      --  it, which is the :root styles and only while it is the root.
+      --  Handing the role away takes them back rather than leaving the
+      --  widget styled as a root it no longer is.
+      declare
+         R : constant Adi.Widget.Widget_Ref := Adi.Widget.Borrow (H);
+      begin
+         if Impl.Root_Target = H then
+            Apply_Metadata_To_Widget (Impl.Metadata, R.Ptr.all);
+         else
+            Set_Part_Styles (R.Ptr.all, Empty_Part_Styles);
+         end if;
+      end;
+   end Restyle;
+
    procedure Reapply_Bindings (Impl : in out Stylesheet_Impl) is
    begin
       if Adi.Widget.Is_Valid (Impl.Root_Target) then
@@ -3800,8 +3877,23 @@ package body Adi.CSS_Parser is
          return;
       end if;
 
-      Sheet.Impl.Root_Target := Adi.Widget.Get_Handle (W.all);
-      Reapply_Bindings (Sheet.Impl.all);
+      declare
+         Prev     : constant Adi.Widget.Widget_Handle :=
+           Sheet.Impl.Root_Target;
+         Next     : constant Adi.Widget.Widget_Handle :=
+           Adi.Widget.Get_Handle (W.all);
+      begin
+         Sheet.Impl.Root_Target := Next;
+
+         --  Only the root target has :root merged into its styles, so
+         --  handing the role over changes the widget losing it and the
+         --  one taking it, and no other binding. Each is restyled from
+         --  its own binding, so neither loses its selectors.
+         if Prev /= Next then
+            Restyle (Sheet.Impl.all, Prev);
+         end if;
+         Restyle (Sheet.Impl.all, Next);
+      end;
    end Bind_Root_Metadata;
 
    procedure Bind_Root_Metadata
@@ -3881,6 +3973,8 @@ package body Adi.CSS_Parser is
               (I, (Kind   => Kind,
                    Name   => To_Unbounded_String (Key),
                    Target => Adi.Widget.Get_Handle (W.all)));
+            Sheet.Impl.Effective.Include
+              (Adi.Widget.Get_Handle (W.all), Sheet.Impl.Bindings (I));
             Apply (Sheet, Kind, Key, W.all);
             return;
          end if;
@@ -3891,11 +3985,9 @@ package body Adi.CSS_Parser is
            (Kind   => Kind,
             Name   => To_Unbounded_String (Key),
             Target => Adi.Widget.Get_Handle (W.all)));
-      if Sheet.Impl.Root_Target = Adi.Widget.Get_Handle (W.all) then
-         Reapply_Bindings (Sheet.Impl.all);
-      else
-         Apply (Sheet, Kind, Key, W.all);
-      end if;
+      Sheet.Impl.Effective.Include
+        (Adi.Widget.Get_Handle (W.all), Sheet.Impl.Bindings.Last_Element);
+      Apply (Sheet, Kind, Key, W.all);
    end Bind;
 
    procedure Bind_Class (Sheet      : in out Stylesheet;

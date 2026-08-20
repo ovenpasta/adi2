@@ -17,6 +17,7 @@ with Adi.SDL.Events;
 with Adi.Signal;
 with Adi.Render;            use Adi.Render;
 with Adi.Image;             use Adi.Image;
+with Ada.Containers;
 with Ada.Finalization;
 with Adi.Handle_Store;
 with Adi.Layout_Util;
@@ -39,6 +40,10 @@ package Adi.Widget is
    Null_Handle : constant Widget_Handle;
 
    function Is_Valid    (H : Widget_Handle) return Boolean;
+
+   --  A key for keying maps on handles. Does not resolve the handle, so
+   --  it stays usable once the widget is gone.
+   function Hash (H : Widget_Handle) return Ada.Containers.Hash_Type;
    procedure Destroy    (H : in out Widget_Handle);
    function Get_Handle  (W : Widget'Class) return Widget_Handle;
 

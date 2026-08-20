@@ -3,6 +3,8 @@
 
 pragma Ada_2022;
 
+with Ada.Containers.Hashed_Maps;
+
 with Ada.Calendar;
 with Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Vectors;
@@ -63,6 +65,12 @@ package body Adi.CSS_Source is
      (Index_Type => Positive,
       Element_Type => Dynamic_Entry);
 
+   package Binding_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Adi.Widget.Widget_Handle,
+      Element_Type    => Bound_Target,
+      Hash            => Adi.Widget.Hash,
+      Equivalent_Keys => Adi.Widget."=");
+
    type Style_Source_Impl is record
       Mode             : Source_Mode := Dynamic_Mode;
       Auto_Reload      : Boolean := True;
@@ -70,6 +78,11 @@ package body Adi.CSS_Source is
       Dynamic_Loaded   : Boolean := False;
       Sheet            : Adi.CSS_Parser.Stylesheet;
       Root_Target      : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
+      --  The binding in force for each target, so handing the root role
+      --  over can restyle the widget losing it and the one taking it
+      --  without searching. Bindings keeps the history a reload replays;
+      --  this keeps what is currently true of each widget.
+      Effective        : Binding_Maps.Map;
       Last_Error       : Unbounded_String;
       Static_Metadata  : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);
       Static_Styles    : Entry_Vectors.Vector;
@@ -298,6 +311,76 @@ package body Adi.CSS_Source is
             Multi_Class_Styles (Source, Names)));
    end Apply_Multi_Classes;
 
+   --  Apply one binding to its widget. Root_Merged_Styles folds in the
+   --  :root styles when the target is the current root, so this is also
+   --  how a widget sheds them once it is root no longer.
+   procedure Apply_Binding (Source : in out Style_Source; B : Bound_Target) is
+   begin
+      if not Adi.Widget.Is_Valid (B.Target) then
+         return;
+      end if;
+
+      declare
+         R : constant Adi.Widget.Widget_Ref := Adi.Widget.Borrow (B.Target);
+      begin
+         case B.Kind is
+            when Single_Binding =>
+               Apply_To_Widget
+                 (Source, B.Selector_Kind, To_String (B.Name), R.Ptr.all);
+            when Multi_Class_Binding =>
+               Apply_Multi_Classes (Source, To_String (B.Name), R.Ptr.all);
+            when Selector_Set_Binding =>
+               Apply_Selector_Set_To_Widget
+                 (Source, R.Ptr.all,
+                  To_String (B.Tag_Name),
+                  To_String (B.Class_Name),
+                  To_String (B.Id_Name));
+         end case;
+      end;
+   end Apply_Binding;
+
+   --  Record what is now in force for this widget.
+   procedure Note_Binding
+     (Source : in out Style_Source; B : Bound_Target) is
+   begin
+      Source.Impl.Effective.Include (B.Target, B);
+   end Note_Binding;
+
+   --  Restyle one widget from what it is currently bound under. Whether
+   --  it is the root is answered by Root_Merged_Styles, so this both
+   --  grants and withdraws the :root styles. A widget with no binding
+   --  gets the :root styles alone, and only while it is the root: it has
+   --  nothing else to restore.
+   procedure Restyle (Source : in out Style_Source;
+                      H      : Adi.Widget.Widget_Handle)
+   is
+      use Binding_Maps;
+      C : constant Cursor := Source.Impl.Effective.Find (H);
+   begin
+      if not Adi.Widget.Is_Valid (H) then
+         return;
+      end if;
+
+      if Has_Element (C) then
+         Apply_Binding (Source, Element (C));
+         return;
+      end if;
+
+      --  Nothing bound: the widget has only what this stylesheet put on
+      --  it, which is the :root styles and only while it is the root.
+      --  Handing the role away takes them back rather than leaving the
+      --  widget styled as a root it no longer is.
+      declare
+         R : constant Adi.Widget.Widget_Ref := Adi.Widget.Borrow (H);
+      begin
+         if Source.Impl.Root_Target = H then
+            Apply_Root_Metadata_Impl (Source, R.Ptr.all);
+         else
+            Set_Part_Styles (R.Ptr.all, Empty_Part_Styles);
+         end if;
+      end;
+   end Restyle;
+
    procedure Reapply_Bindings (Source : in out Style_Source) is
    begin
       if Source.Impl = null then
@@ -317,11 +400,13 @@ package body Adi.CSS_Source is
          declare
             B : constant Bound_Target := Source.Impl.Bindings (I);
          begin
+            Visited_Bindings := Visited_Bindings + 1;
             if Adi.Widget.Is_Valid (B.Target) then
                declare
                   R : constant Adi.Widget.Widget_Ref :=
                     Adi.Widget.Borrow (B.Target);
                begin
+                  Reapplied_Bindings := Reapplied_Bindings + 1;
                   case B.Kind is
                      when Single_Binding =>
                         Apply_To_Widget (
@@ -720,11 +805,8 @@ package body Adi.CSS_Source is
         Id_Name       => Null_Unbounded_String,
         Target        => Adi.Widget.Get_Handle (W.all)));
 
-      if Source.Impl.Root_Target = Adi.Widget.Get_Handle (W.all) then
-         Reapply_Bindings (Source);
-      else
-         Apply_To_Widget (Source, Kind, Name, W.all);
-      end if;
+      Note_Binding (Source, Source.Impl.Bindings.Last_Element);
+      Apply_To_Widget (Source, Kind, Name, W.all);
    end Bind;
 
    function Has_Space (S : String) return Boolean is
@@ -756,11 +838,8 @@ package body Adi.CSS_Source is
            Id_Name       => Null_Unbounded_String,
            Target        => Adi.Widget.Get_Handle (W.all)));
 
-         if Source.Impl.Root_Target = Adi.Widget.Get_Handle (W.all) then
-            Reapply_Bindings (Source);
-         else
-            Apply_Multi_Classes (Source, Name, W.all);
-         end if;
+         Note_Binding (Source, Source.Impl.Bindings.Last_Element);
+         Apply_Multi_Classes (Source, Name, W.all);
       else
          Bind (Source, Adi.CSS_Parser.Class_Selector, Name, W);
       end if;
@@ -789,8 +868,24 @@ package body Adi.CSS_Source is
          return;
       end if;
 
-      Source.Impl.Root_Target := Adi.Widget.Get_Handle (W.all);
-      Reapply_Bindings (Source);
+      declare
+         Prev     : constant Adi.Widget.Widget_Handle :=
+           Source.Impl.Root_Target;
+         Next     : constant Adi.Widget.Widget_Handle :=
+           Adi.Widget.Get_Handle (W.all);
+      begin
+         Source.Impl.Root_Target := Next;
+
+         --  Only the widget that is the root target has :root merged
+         --  into its styles, so handing the role over changes the styles
+         --  of the widget losing it and the one taking it, and of no
+         --  other binding. Each is restyled from its own binding, so
+         --  neither loses the selectors it was bound under.
+         if Prev /= Next then
+            Restyle (Source, Prev);
+         end if;
+         Restyle (Source, Next);
+      end;
    end Bind_Root_Metadata;
 
    procedure Bind_Class (Source : in out Style_Source;
@@ -873,11 +968,9 @@ package body Adi.CSS_Source is
         Id_Name       => To_Unbounded_String (Normalize_Name (Id_Name)),
         Target        => Adi.Widget.Get_Handle (W.all)));
 
-      if Source.Impl.Root_Target = Adi.Widget.Get_Handle (W.all) then
-         Reapply_Bindings (Source);
-      else
-         Apply_Selector_Set_To_Widget (Source, W.all, Tag_Name, Class_Name, Id_Name);
-      end if;
+      Note_Binding (Source, Source.Impl.Bindings.Last_Element);
+      Apply_Selector_Set_To_Widget
+        (Source, W.all, Tag_Name, Class_Name, Id_Name);
    end Bind_Selector_Set;
 
    procedure Bind_Selector_Set (Source     : in out Style_Source;

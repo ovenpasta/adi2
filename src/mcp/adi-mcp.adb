@@ -242,18 +242,6 @@ package body Adi.MCP is
    --  Widget Resolution (by ID or path, scanning root + overlays)
    ---------------------------------------------------------------------------
 
-   function To_Handle (W : Widget_Access) return Widget_Handle is
-   begin
-      if W = null then
-         return Null_Handle;
-      end if;
-      return Get_Handle (W.all);
-   end To_Handle;
-
-   function To_Access (H : Widget_Handle) return Widget_Access is
-   begin
-      return Resolve_Handle (H);
-   end To_Access;
 
    function Resolve_Widget
      (JSON   : String;
@@ -271,12 +259,12 @@ package body Adi.MCP is
          --  Search by ID: root first, then overlays
          if Is_Valid (Root_H) then
             declare
-               Root     : constant Widget_Access := To_Access (Root_H);
-               W        : constant Widget_Access := Find_By_Id (Root, Id);
+               Root     : constant Widget_Handle := Root_H;
+               W        : constant Widget_Handle := Find_By_Id (Root, Id);
             begin
-               if W /= null then
+               if Is_Valid (W) then
                   Result_Path := To_Unbounded_String (Find_Path (Root, W));
-                  return To_Handle (W);
+                  return W;
                end if;
             end;
          end if;
@@ -284,15 +272,15 @@ package body Adi.MCP is
             declare
                OV_H   : constant Widget_Handle :=
                  Adi.Window.Get_Overlay_Handle (Win, I);
-               OV     : constant Widget_Access := To_Access (OV_H);
-               W      : constant Widget_Access := Find_By_Id (OV, Id);
+               OV     : constant Widget_Handle := OV_H;
+               W      : constant Widget_Handle := Find_By_Id (OV, Id);
             begin
-               if W /= null then
+               if Is_Valid (W) then
                   Result_Path := To_Unbounded_String
                     ("overlay" & Ada.Strings.Fixed.Trim
                        (Positive'Image (I), Ada.Strings.Left) &
                      ":" & Find_Path (OV, W));
-                  return To_Handle (W);
+                  return W;
                end if;
             end;
          end loop;
@@ -325,13 +313,12 @@ package body Adi.MCP is
                      declare
                         OV_H   : constant Widget_Handle :=
                           Adi.Window.Get_Overlay_Handle (Win, OV_Idx);
-                        OV     : constant Widget_Access := To_Access (OV_H);
-                        W      : constant Widget_Access :=
-                          Find_By_Path (OV, Sub_Path);
+                        W      : constant Widget_Handle :=
+                          Find_By_Path (OV_H, Sub_Path);
                      begin
-                        if W /= null then
+                        if Is_Valid (W) then
                            Result_Path := To_Unbounded_String (Path_Str);
-                           return To_Handle (W);
+                           return W;
                         end if;
                      end;
                   end if;
@@ -345,12 +332,11 @@ package body Adi.MCP is
          --  Plain root path
          if Is_Valid (Root_H) then
             declare
-               Root     : constant Widget_Access := To_Access (Root_H);
-               W : constant Widget_Access := Find_By_Path (Root, Path_Str);
+               W : constant Widget_Handle := Find_By_Path (Root_H, Path_Str);
             begin
-               if W /= null then
+               if Is_Valid (W) then
                   Result_Path := To_Unbounded_String (Path_Str);
-                  return To_Handle (W);
+                  return W;
                end if;
             end;
          end if;
@@ -360,15 +346,15 @@ package body Adi.MCP is
             declare
                OV_H   : constant Widget_Handle :=
                  Adi.Window.Get_Overlay_Handle (Win, I);
-               OV     : constant Widget_Access := To_Access (OV_H);
-               W      : constant Widget_Access := Find_By_Path (OV, Path_Str);
+               OV     : constant Widget_Handle := OV_H;
+               W      : constant Widget_Handle := Find_By_Path (OV, Path_Str);
             begin
-               if W /= null then
+               if Is_Valid (W) then
                   Result_Path := To_Unbounded_String
                     ("overlay" & Ada.Strings.Fixed.Trim
                        (Positive'Image (I), Ada.Strings.Left) &
                      ":" & Path_Str);
-                  return To_Handle (W);
+                  return W;
                end if;
             end;
          end loop;
@@ -392,8 +378,7 @@ package body Adi.MCP is
       Path   : String;
       W      : in out Adi.JSON.JSON_Writer)
    is
-      Target_Ptr : constant Widget_Access := To_Access (Target);
-      Info       : constant Widget_Info := Get_Info (Target_Ptr, Path);
+      Info : constant Widget_Info := Get_Info (Target, Path);
       Txt        : constant String := To_String (Info.Text);
    begin
       W.Start_Object;
@@ -464,8 +449,7 @@ package body Adi.MCP is
       Path   : String;
       W      : in out Adi.JSON.JSON_Writer)
    is
-      Target_Ptr : constant Widget_Access := To_Access (Target);
-      Info       : constant Widget_Info := Get_Info (Target_Ptr, Path);
+      Info : constant Widget_Info := Get_Info (Target, Path);
    begin
       W.Start_Object;
       W.Key_Value ("type", To_String (Info.Tag_Name));
@@ -979,9 +963,7 @@ package body Adi.MCP is
             W.Key_Value ("req_id", Req_Id);
             if Is_Valid (Focused) and then Is_Valid (Root) then
                declare
-                  Root_Ptr    : constant Widget_Access := To_Access (Root);
-                  Focused_Ptr : constant Widget_Access := To_Access (Focused);
-                  Path        : constant String := Find_Path (Root_Ptr, Focused_Ptr);
+                  Path : constant String := Find_Path (Root, Focused);
                begin
                   W.Key ("widget");
                   Serialize_Widget_Info (Focused, Path, W);
@@ -1058,7 +1040,7 @@ package body Adi.MCP is
             end if;
 
             if Is_Valid (Root) then
-               Results := Find_By_Text (To_Access (Root), Query, Exact);
+               Results := Find_By_Text (Root, Query, Exact);
             end if;
 
             --  Search overlays too
@@ -1067,7 +1049,7 @@ package body Adi.MCP is
                   OV      : constant Widget_Handle :=
                     Adi.Window.Get_Overlay_Handle (Win, I);
                   OV_Hits : constant Match_Vectors.Vector :=
-                    Find_By_Text (To_Access (OV), Query, Exact);
+                    Find_By_Text (OV, Query, Exact);
                begin
                   for M of OV_Hits loop
                      Results.Append (M);
@@ -1099,7 +1081,7 @@ package body Adi.MCP is
             end if;
 
             if Is_Valid (Root) then
-               Results := Find_By_Type (To_Access (Root), Type_Name);
+               Results := Find_By_Type (Root, Type_Name);
             end if;
 
             for I in 1 .. Adi.Window.Overlay_Count (Win) loop
@@ -1107,7 +1089,7 @@ package body Adi.MCP is
                   OV      : constant Widget_Handle :=
                     Adi.Window.Get_Overlay_Handle (Win, I);
                   OV_Hits : constant Match_Vectors.Vector :=
-                    Find_By_Type (To_Access (OV), Type_Name);
+                    Find_By_Type (OV, Type_Name);
                begin
                   for M of OV_Hits loop
                      Results.Append (M);
@@ -1276,17 +1258,17 @@ package body Adi.MCP is
             end if;
 
             declare
-               Target_Ptr : constant Widget_Access := To_Access (Target);
+               R : constant Widget_Ref := Borrow (Target);
             begin
-               if Target_Ptr.all in Label.Label_Widget'Class then
+               if R.Ptr.all in Label.Label_Widget'Class then
                   Label.Set_Text
-                    (Label.Label_Widget'Class (Target_Ptr.all), Text);
-               elsif Target_Ptr.all in Text_Input.Text_Input_Widget'Class then
+                    (Label.Label_Widget'Class (R.Ptr.all), Text);
+               elsif R.Ptr.all in Text_Input.Text_Input_Widget'Class then
                   Text_Input.Set_Text
-                    (Text_Input.Text_Input_Widget'Class (Target_Ptr.all), Text);
-               elsif Target_Ptr.all in Text_Editor.Text_Editor_Widget'Class then
+                    (Text_Input.Text_Input_Widget'Class (R.Ptr.all), Text);
+               elsif R.Ptr.all in Text_Editor.Text_Editor_Widget'Class then
                   Text_Editor.Set_Text
-                    (Text_Editor.Text_Editor_Widget'Class (Target_Ptr.all), Text);
+                    (Text_Editor.Text_Editor_Widget'Class (R.Ptr.all), Text);
                else
                   return Error_Response
                     (Req_Id, "widget does not support set_text");

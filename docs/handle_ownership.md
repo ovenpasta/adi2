@@ -56,7 +56,6 @@ Core APIs:
 
 - `Get_Handle (W : Widget'Class) return Widget_Handle`
 - `Destroy (H : in out Widget_Handle)`
-- `Resolve_Handle (H)` (compatibility bridge)
 - `Borrow (H) return Widget_Ref` (scoped pin/unpin)
 - `Pump_Widget_Store`
 
@@ -180,8 +179,8 @@ Widget exports in generated specs are typed handles (not raw access types).
 
 - Prefer `Create_Handle` + typed-handle methods in application code.
 - Use `+Typed_Handle` when a `Widget_Handle` is needed.
-- Use `Borrow` for scoped internal access when dispatching on class-wide widget API is needed.
-- Keep `Resolve_Handle` usage minimal and internal.
+- Use `Borrow` for scoped access when dispatching on the class-wide widget API is needed.
+- Define a widget type of your own at library level and register it with `Adi.Widget.Extension`.
 
 ## Backward Compatibility and Future Direction
 
@@ -202,8 +201,10 @@ The following access-based APIs have been removed (previously marked `Obsolescen
 
 ### Current state
 
-- `Widget_Access` and `Window_Access` remain public for internal use and `Resolve_Handle`/`Find_Host_Window`.
-- All public construction, destruction, and configuration APIs are handle-only.
+- `Widget_Access`, `Resolve_Handle` and `Register_Widget` are private to `Adi.Widget`; the library's own child packages use them, and a widget type defined outside the library goes through `Adi.Widget.Extension`.
+- Construction, destruction and configuration are handle-only across the widget packages.
+- `Scroll_Observer` (`adi-widget.ads`) is the one callback still handed a raw widget pointer; see below.
+- `Window_Access` and `Resolve_Window_Handle` are still public.
 
 ### Dialog handle-first internals
 
@@ -217,9 +218,20 @@ The following access-based APIs have been removed (previously marked `Obsolescen
 
 Full handle API: `Create_Handle`, `Dialog_Handle`, `+`, `Is_Valid`, `To_Widget_Handle`, `Try_As_Dialog`, plus handle methods for all widget operations (`Set_Title`, `Set_Message`, `Add_Button`, `Show`, `Hide`, `Connect_Result`, style setters, etc.).
 
+### Scroll_Observer
+
+`Scroll_Observer` (`adi-widget.ads`) is handed an anonymous pointer to the
+widget that scrolled, borrowed for the duration of the call. It is the one
+callback that does not carry a handle, because it also fires for stack
+widgets that are not registered in the store and therefore have no handle
+to carry. An observer must not retain the pointer.
+
 ### Remaining tightening
 
-1. Migrate internal framework code from `Resolve_Handle` to `Borrow` where practical.
-2. Move `Widget_Access` toward private visibility once downstream usage is migrated.
-
-Target outcome: user-facing ownership through handles plus scoped borrow, with raw access types mostly internal escape hatches.
+1. `Window_Access` and `Resolve_Window_Handle` are still public. Removing them
+   needs handle overloads for the operations `Adi.App`'s frame loop calls
+   through a raw window pointer, and the same conversion in the WASM twin of
+   that loop.
+2. Option groups (`Adi.Widget.Button.Options`) store `G'Unchecked_Access` in
+   each button, so a group that goes out of scope before its buttons leaves a
+   dangling pointer.

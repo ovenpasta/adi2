@@ -558,16 +558,14 @@ a grammar fragment of your own and pass it with `--grammar`. The fragment
 is merged with the built-in grammar rather than replacing it, so your tags
 sit alongside `<box>` and `<button>`.
 
-A minimal entry names the package, the types, and how to construct one:
+A minimal entry names the package, the handle type, and how to construct one:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <widgets>
   <widget tag="card">
     <package>My_Widgets.Card</package>
-    <access-type>Card_Widget_Access</access-type>
     <handle-type>Card_Handle</handle-type>
-    <create>{package}.Create</create>
     <create-handle>{package}.Create_Handle</create-handle>
   </widget>
 </widgets>
@@ -592,9 +590,7 @@ construction:
 ```xml
   <widget tag="gauge">
     <package>My_Widgets.Gauge</package>
-    <access-type>Gauge_Widget_Access</access-type>
     <handle-type>Gauge_Handle</handle-type>
-    <create>{package}.Create ({caption})</create>
     <create-handle>{package}.Create_Handle ({caption})</create-handle>
     <attribute name="caption" type="string" create-param="true"/>
     <attribute name="value" type="string" setter="Set_Value"/>
@@ -612,21 +608,22 @@ children, binding CSS classes, setting the window root — goes through that
 conversion, so classes and styling need nothing extra from your package.
 
 Providing those is the actual work, and it is the same work whether or not
-you ever write XML. `Adi.Widget.Adopt_Widget` registers a freshly allocated
-widget and returns its `Widget_Handle`, which is what a typed
-`Create_Handle` wraps:
+you ever write XML. `Adi.Widget.Extension` allocates and registers the
+widget, and hands back a handle a typed `Create_Handle` wraps:
 
 ```ada
+   package Cards is new Adi.Widget.Extension (Card_Widget);
+
    function Create_Handle return Card_Handle is
-      Ptr : constant Widget_Access := new Card_Widget;
-   begin
-      return (Id => Adopt_Widget (Ptr));
-   end Create_Handle;
+     (Ref => Cards.New_Widget);
 ```
 
+`Card_Widget` has to be declared at library level, because the widget
+store holds it until `Destroy` and dispatches through its tag meanwhile.
 Deriving from `Adi.Widget.Box` and re-exporting a handle of your own is the
 usual route; the widget packages under `src/adi-widget-*.ads` are the
-working examples of the pattern.
+working examples of the pattern, and `docs/handle_ownership.md` covers the
+extension generic.
 
 ## Generated Code Structure
 

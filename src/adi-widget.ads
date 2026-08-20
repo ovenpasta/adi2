@@ -29,7 +29,6 @@ package Adi.Widget is
    ---------------------------------------------------------------------------
 
    type Widget is abstract tagged limited private;
-   type Widget_Access is access all Widget'Class;
 
    ---------------------------------------------------------------------------
    --  Handle Store (generational IDs, deferred destroy, borrow pinning)
@@ -43,30 +42,8 @@ package Adi.Widget is
    procedure Destroy    (H : in out Widget_Handle);
    function Get_Handle  (W : Widget'Class) return Widget_Handle;
 
-   --  Resolve a handle to a raw pointer (null if stale).
-   --  Prefer Borrow for scoped pinning; use this only when a raw pointer
-   --  is required (e.g. internal library code in Adi.Window / Adi.MCP).
-   function Resolve_Handle (H : Widget_Handle) return Widget_Access;
-
    --  Drain deferred widget destroys (call once per frame from App.Run)
    procedure Pump_Widget_Store;
-
-   --  Register a freshly allocated custom widget and return its handle.
-   --  Use this when defining widget types outside the Adi library:
-   --
-   --    type My_Widget is new Widget with record ... end record;
-   --    Ptr : constant Widget_Access := new My_Widget;
-   --    H   : constant Widget_Handle := Adopt_Widget (Ptr);
-   --
-   --  The widget must not already be registered.  Visible flag is set.
-   function Adopt_Widget (W : not null Widget_Access) return Widget_Handle;
-
-   --  Hook for Window to register its cleanup procedure.  Avoids an
-   --  elaboration cycle (Widget spec → Window spec → Widget spec).
-   --  Set by Adi.Window body at elaboration time.
-   type Destroy_Detach_Proc is access procedure
-     (W : not null Widget_Access);
-   Destroy_Detach_Hook : Destroy_Detach_Proc := null;
 
    --  Fired after a widget's scroll offset changes, carrying the widget
    --  that scrolled. Overlays anchored to a widget's geometry — combo
@@ -80,13 +57,16 @@ package Adi.Widget is
    --
    --  Fires for every widget. The scrolled widget is passed as a
    --  pointer, not a handle, because parent links are pointers too: the
-   --  access-based Add_Child/Set_Parent allow unregistered widgets in
-   --  the tree, and those have no handle to report or walk through.
+   --  library's own Add_Child/Set_Parent on Widget'Class allow
+   --  unregistered widgets in the tree, and those have no handle to
+   --  report or walk through.
    --
-   --  Scrolled is borrowed for the length of the call only. Widgets need
-   --  not be heap-allocated, so an observer that stores the pointer can
-   --  end up with a dangling one; take a Widget_Handle if the widget is
-   --  registered and something has to outlive the callback.
+   --  This is the one callback in the public API that carries a widget
+   --  as a pointer. Scrolled is borrowed for the length of the call
+   --  only: widgets need not be heap-allocated, so an observer that
+   --  stores the pointer can end up with a dangling one. Take a
+   --  Widget_Handle instead if the widget is registered and something
+   --  has to outlive the callback.
    type Scroll_Observer is access procedure
      (Scrolled : not null access Widget'Class);
    package Scroll_Signals is new Adi.Signal (Scroll_Observer, null);
@@ -827,12 +807,21 @@ package Adi.Widget is
 
    procedure Layout_Child (Child : in out Widget'Class);
 
-   --  Register a freshly allocated widget in the global store.
-   --  Called from each widget's Create function.  Must also be called
-   --  when allocating a custom widget subclass with new.
-   procedure Register_Widget (Obj : not null Widget_Access);
-
 private
+
+   --  Widgets are reached through Widget_Handle.  The pointer type, the
+   --  resolver and the registrar are here so the library's own child
+   --  packages can build widgets; defining one outside the library goes
+   --  through Adi.Widget.Extension.
+   type Widget_Access is access all Widget'Class;
+
+   --  Null for a null handle, and for a stale one when the store is not
+   --  strict.  Prefer Borrow, which pins.
+   function Resolve_Handle (H : Widget_Handle) return Widget_Access;
+
+   --  Register a freshly allocated widget in the global store.
+   --  Called from each widget's Create function.
+   procedure Register_Widget (Obj : not null Widget_Access);
 
    ---------------------------------------------------------------------------
    --  Private Package Instantiations
@@ -971,6 +960,15 @@ private
    end record;
 
    Null_Handle : constant Widget_Handle := (Id => Widget_Stores.Null_Id);
+
+   --  How the window layer is told a widget is going away.  Installed
+   --  through Adi.Widget.Window_Bridge, which is the only unit that may
+   --  set it, and read by Destroy.  Here rather than in the visible part
+   --  because it is not public API, and not in the body because a child
+   --  has to reach it -- Adi.Widget is Elaborate_Body, so its body
+   --  cannot with its own child.
+   type Destroy_Notice_Proc is access procedure (H : Widget_Handle);
+   Destroy_Notice_Slot : Destroy_Notice_Proc := null;
 
    type Widget_Ref (Ptr : access Widget'Class) is
      limited new Ada.Finalization.Limited_Controlled with record

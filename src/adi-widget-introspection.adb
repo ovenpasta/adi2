@@ -283,4 +283,137 @@ package body Adi.Widget.Introspection is
       return Results;
    end Find_By_Type;
 
+
+   ---------------------------------------------------------------------------
+   --  Handle-facing API
+   --
+   --  The recursive walks above work in raw pointers because they step
+   --  through a tree the store already owns.  Everything a caller
+   --  outside this package sees is a handle.
+   ---------------------------------------------------------------------------
+
+   --  Each entry point pins its subject for the length of the call.  The
+   --  walks underneath step through raw pointers, which is safe while the
+   --  root is pinned: nothing here destroys widgets.
+
+   function To_Handle (P : Widget_Access) return Widget_Handle
+   is (if P = null then Null_Handle else Get_Handle (P.all));
+
+   function Get_Text (H : Widget_Handle) return String is
+   begin
+      if not Is_Valid (H) then
+         return "";
+      end if;
+      declare
+         R : constant Widget_Ref := Borrow (H);
+      begin
+         return Get_Text (R.Ptr);
+      end;
+   end Get_Text;
+
+   function Get_Info
+     (H    : Widget_Handle;
+      Path : String) return Widget_Info
+   is
+   begin
+      if not Is_Valid (H) then
+         return
+           (Id          => 0,
+            Tag_Name    => Null_Unbounded_String,
+            Path        => To_Unbounded_String (Path),
+            Text        => Null_Unbounded_String,
+            Geometry    => (others => 0.0),
+            States      => [others => False],
+            Flags       => [others => False],
+            Child_Count => 0,
+            Items_Count => 0);
+      end if;
+      declare
+         R : constant Widget_Ref := Borrow (H);
+      begin
+         return Get_Info (R.Ptr, Path);
+      end;
+   end Get_Info;
+
+   function Find_By_Id
+     (Root : Widget_Handle;
+      Id   : Natural) return Widget_Handle
+   is
+   begin
+      if not Is_Valid (Root) then
+         return Null_Handle;
+      end if;
+      declare
+         R : constant Widget_Ref := Borrow (Root);
+      begin
+         return To_Handle (Find_By_Id (Widget_Stores.Get (Root.Id), Id));
+      end;
+   end Find_By_Id;
+
+   function Find_By_Path
+     (Root : Widget_Handle;
+      Path : String) return Widget_Handle
+   is
+   begin
+      if not Is_Valid (Root) then
+         return Null_Handle;
+      end if;
+      declare
+         R : constant Widget_Ref := Borrow (Root);
+      begin
+         return To_Handle (Find_By_Path (Widget_Stores.Get (Root.Id), Path));
+      end;
+   end Find_By_Path;
+
+   function Find_Path
+     (Root   : Widget_Handle;
+      Target : Widget_Handle) return String
+   is
+   begin
+      if not Is_Valid (Root) or else not Is_Valid (Target) then
+         return "";
+      end if;
+      declare
+         RR : constant Widget_Ref := Borrow (Root);
+         TR : constant Widget_Ref := Borrow (Target);
+         pragma Unreferenced (RR, TR);
+      begin
+         return Find_Path (Widget_Stores.Get (Root.Id),
+                           Widget_Stores.Get (Target.Id));
+      end;
+   end Find_Path;
+
+   function Find_By_Text
+     (Root  : Widget_Handle;
+      Query : String;
+      Exact : Boolean := False) return Match_Vectors.Vector
+   is
+   begin
+      if not Is_Valid (Root) then
+         return Match_Vectors.Empty_Vector;
+      end if;
+      declare
+         R : constant Widget_Ref := Borrow (Root);
+         pragma Unreferenced (R);
+      begin
+         return Find_By_Text (Widget_Stores.Get (Root.Id), Query, Exact);
+      end;
+   end Find_By_Text;
+
+   function Find_By_Type
+     (Root      : Widget_Handle;
+      Type_Name : String) return Match_Vectors.Vector
+   is
+   begin
+      if not Is_Valid (Root) then
+         return Match_Vectors.Empty_Vector;
+      end if;
+      declare
+         R : constant Widget_Ref := Borrow (Root);
+         pragma Unreferenced (R);
+      begin
+         return Find_By_Type (Widget_Stores.Get (Root.Id), Type_Name);
+      end;
+   end Find_By_Type;
+
 end Adi.Widget.Introspection;

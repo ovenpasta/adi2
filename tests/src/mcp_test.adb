@@ -178,7 +178,7 @@ procedure MCP_Test is
          declare
             Tag_Str : constant String :=
               Ada.Characters.Handling.To_Lower
-                (Ada.Tags.External_Tag (Resolve_Handle (Root).all'Tag));
+                (Ada.Tags.External_Tag (Borrow (Root).Ptr.all'Tag));
          begin
             Assert (Ada.Strings.Fixed.Index (Tag_Str, "box") > 0,
                     "external tag contains 'box': " & Tag_Str);
@@ -279,7 +279,7 @@ procedure MCP_Test is
       declare
          L : constant Widget_Handle := New_Label ("Hello World");
       begin
-         Assert (Get_Text (Resolve_Handle (L)) = "Hello World",
+         Assert (Get_Text (L) = "Hello World",
                  "Get_Text for label");
       end;
 
@@ -287,7 +287,7 @@ procedure MCP_Test is
       declare
          B : constant Widget_Handle := New_Box;
       begin
-         Assert (Get_Text (Resolve_Handle (B)) = "",
+         Assert (Get_Text (B) = "",
                  "Get_Text for box (empty)");
       end;
 
@@ -296,7 +296,7 @@ procedure MCP_Test is
          B : constant Widget_Handle := New_Box;
       begin
          Set_Label (B, "My Label");
-         Assert (Get_Text (Resolve_Handle (B)) = "My Label",
+         Assert (Get_Text (B) = "My Label",
                  "Get_Text for box with floating label");
       end;
    end Test_Introspection_Get_Text;
@@ -314,9 +314,9 @@ procedure MCP_Test is
          Child1 : constant Widget_Handle := New_Box;
          Child2 : constant Widget_Handle := New_Label;
          Nested : constant Widget_Handle := New_Box;
-         Root_Acc   : constant Widget_Access := Resolve_Handle (Root);
-         Child2_Acc : constant Widget_Access := Resolve_Handle (Child2);
-         Nested_Acc : constant Widget_Access := Resolve_Handle (Nested);
+         Root_Acc   : constant Widget_Handle := Root;
+         Child2_Acc : constant Widget_Handle := Child2;
+         Nested_Acc : constant Widget_Handle := Nested;
       begin
          Add_Child (Root, Child1);
          Add_Child (Root, Child2);
@@ -325,46 +325,46 @@ procedure MCP_Test is
          --  Find_By_Id
          declare
             Target_Id : constant Natural := Get_Id (Child2);
-            Found     : constant Widget_Access :=
+            Found     : constant Widget_Handle :=
               Find_By_Id (Root_Acc, Target_Id);
          begin
-            Assert (Found /= null, "Find_By_Id: found widget");
+            Assert (Is_Valid (Found), "Find_By_Id: found widget");
             Assert (Found = Child2_Acc, "Find_By_Id: correct widget");
          end;
 
          --  Find_By_Id for nested
          declare
             Target_Id : constant Natural := Get_Id (Nested);
-            Found     : constant Widget_Access :=
+            Found     : constant Widget_Handle :=
               Find_By_Id (Root_Acc, Target_Id);
          begin
-            Assert (Found /= null, "Find_By_Id: found nested widget");
+            Assert (Is_Valid (Found), "Find_By_Id: found nested widget");
             Assert (Found = Nested_Acc, "Find_By_Id: correct nested widget");
          end;
 
          --  Find_By_Id for non-existent
          declare
-            Found : constant Widget_Access :=
+            Found : constant Widget_Handle :=
               Find_By_Id (Root_Acc, 999999);
          begin
-            Assert (Found = null, "Find_By_Id: null for non-existent ID");
+            Assert (not Is_Valid (Found), "Find_By_Id: null for non-existent ID");
          end;
 
          --  Find_By_Path
          declare
-            Found : constant Widget_Access :=
+            Found : constant Widget_Handle :=
               Find_By_Path (Root_Acc, "2");
          begin
-            Assert (Found /= null, "Find_By_Path '2': found widget");
+            Assert (Is_Valid (Found), "Find_By_Path '2': found widget");
             Assert (Found = Child2_Acc, "Find_By_Path '2': correct widget");
          end;
 
          --  Find_By_Path nested
          declare
-            Found : constant Widget_Access :=
+            Found : constant Widget_Handle :=
               Find_By_Path (Root_Acc, "1.1");
          begin
-            Assert (Found /= null, "Find_By_Path '1.1': found widget");
+            Assert (Is_Valid (Found), "Find_By_Path '1.1': found widget");
             Assert (Found = Nested_Acc,
                     "Find_By_Path '1.1': correct nested widget");
          end;
@@ -380,11 +380,11 @@ procedure MCP_Test is
          --  Round-trip: Find_By_Id -> Find_Path
          declare
             Target_Id : constant Natural := Get_Id (Nested);
-            Found     : constant Widget_Access :=
+            Found     : constant Widget_Handle :=
               Find_By_Id (Root_Acc, Target_Id);
             Path      : constant String :=
               Find_Path (Root_Acc, Found);
-            Found2    : constant Widget_Access :=
+            Found2    : constant Widget_Handle :=
               Find_By_Path (Root_Acc, Path);
          begin
             Assert (Found2 = Found,
@@ -410,7 +410,7 @@ procedure MCP_Test is
          Label1   : constant Widget_Handle := New_Label ("Save File");
          Label2   : constant Widget_Handle := New_Label ("Save As...");
          Label3   : constant Widget_Handle := New_Label ("Open File");
-         Root_Acc : constant Widget_Access := Resolve_Handle (Root);
+         Root_Acc : constant Widget_Handle := Root;
       begin
          Add_Child (Root, Label1);
          Add_Child (Root, Label2);
@@ -470,7 +470,7 @@ procedure MCP_Test is
          Root     : constant Widget_Handle := New_Box;
          Child1   : constant Widget_Handle := New_Box;
          Label1   : constant Widget_Handle := New_Label;
-         Root_Acc : constant Widget_Access := Resolve_Handle (Root);
+         Root_Acc : constant Widget_Handle := Root;
       begin
          Add_Child (Root, Child1);
          Add_Child (Root, Label1);
@@ -512,7 +512,7 @@ procedure MCP_Test is
       begin
          declare
             Info : constant Widget_Info :=
-              Get_Info (Resolve_Handle (L), "1");
+              Get_Info (L, "1");
          begin
             Assert (Info.Id = Get_Id (L),
                     "Get_Info: correct ID");

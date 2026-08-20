@@ -145,7 +145,7 @@ Incremental build for examples: `tools/generate_example_bundles.sh`. Full refere
 - `C_bool` ambiguity: both `Adi.SDL` and `Interfaces.C` define it. Qualify as `Adi.SDL.C_bool`.
 - `Indefinite_Vectors` vs `Vectors`: only needed for discriminated types without defaults. Item is flattened, so use regular Vectors.
 - SDL3_ttf font sharing: each `TTF_Font` is at a specific size. Changing size invalidates all `TTF_Text` objects. Use separate instances per size.
-- Generic access types: local generic instantiation creates local access types. Convert via intermediate `access Widget'Class` variable with `'Unchecked_Access`, then cast to `Widget_Access`.
+- Widget types defined outside the library must be declared at library level and registered through `Adi.Widget.Extension`: the store holds a widget until `Destroy` and dispatches through its tag, and `New_Widget` allocates through a library-level access type, so a type declared inside a subprogram fails the accessibility check.
 - `others` not allowed in delta aggregates: use `[for I in T => I = X]` pattern.
 
 ## CSS Quick Reference

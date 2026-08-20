@@ -93,10 +93,10 @@ package Adi.Window is
     procedure Set_Root (H : Window_Handle; Root : Widget_Handle);
     function Get_Root_Handle (W : Window) return Widget_Handle;
     function Get_Root_Handle (H : Window_Handle) return Widget_Handle;
-    --  Resolve the host window that currently contains a widget in its
-    --  root tree or overlay tree. Returns null if none.
+    --  The window that currently contains a widget in its root tree or
+    --  overlay tree. Null_Window_Handle when no live window does.
     function Find_Host_Window
-      (Node : Widget_Handle) return Window_Access;
+      (Node : Widget_Handle) return Window_Handle;
 
     --  Optional policy: derive window minimum size from root layout preferred size.
     procedure Set_Enforce_Layout_Min_Size
@@ -188,6 +188,7 @@ package Adi.Window is
     procedure Add_Overlay    (H : Window_Handle; Overlay : Widget_Handle);
     procedure Remove_Overlay (H : Window_Handle; Overlay : Widget_Handle);
     procedure Clear_Overlays (H : Window_Handle);
+    function  Overlay_Count  (H : Window_Handle) return Natural;
     function  Get_Size       (H : Window_Handle) return Size_2D;
 
     --  Render / resize / input via handle

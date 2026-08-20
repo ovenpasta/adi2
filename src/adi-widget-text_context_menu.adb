@@ -117,7 +117,7 @@ package body Adi.Widget.Text_Context_Menu is
       X, Y : Pixel_Type)
    is
       Idx  : constant Natural := Find_Request_Binding (W);
-      Host : Adi.Window.Window_Access;
+      Host : Adi.Window.Window_Handle;
    begin
       if Idx = 0 then
          return;
@@ -125,10 +125,9 @@ package body Adi.Widget.Text_Context_Menu is
 
       if Adi.Widget.Context_Menu.Is_Valid (Request_Bindings.Element (Idx).Menu) then
          Host := Adi.Window.Find_Host_Window (W);
-         if Host /= null then
+         if Adi.Window.Is_Valid (Host) then
             Adi.Widget.Context_Menu.Attach_Window
-              (Request_Bindings.Element (Idx).Menu,
-               Adi.Window.Get_Handle (Host.all));
+              (Request_Bindings.Element (Idx).Menu, Host);
          end if;
 
          declare

@@ -35,7 +35,7 @@ package body Adi.CSS_Source is
       Tag_Name     : Unbounded_String;
       Class_Name   : Unbounded_String;
       Id_Name      : Unbounded_String;
-      Target       : Widget_Access := null;
+      Target       : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
    end record;
 
    package Entry_Vectors is new Ada.Containers.Indefinite_Vectors
@@ -69,7 +69,7 @@ package body Adi.CSS_Source is
       Entries          : Dynamic_Entry_Vectors.Vector;
       Dynamic_Loaded   : Boolean := False;
       Sheet            : Adi.CSS_Parser.Stylesheet;
-      Root_Target      : Widget_Access := null;
+      Root_Target      : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
       Last_Error       : Unbounded_String;
       Static_Metadata  : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);
       Static_Styles    : Entry_Vectors.Vector;
@@ -231,14 +231,14 @@ package body Adi.CSS_Source is
 
    function Root_Merged_Styles
      (Source : Style_Source;
-      Target : Widget_Access;
+      Target : Adi.Widget.Widget_Handle;
       Styles : Part_Style_Array) return Part_Style_Array
    is
       Metadata : constant Adi.CSS_Parser.Stylesheet_Metadata :=
         Active_Metadata (Source);
    begin
       if Source.Impl /= null
-        and then Target /= null
+        and then Adi.Widget.Is_Valid (Target)
         and then Source.Impl.Root_Target = Target
         and then Metadata.Has_Root_Style
       then
@@ -257,7 +257,7 @@ package body Adi.CSS_Source is
         (W,
          Root_Merged_Styles
            (Source,
-            W'Unchecked_Access,
+            Adi.Widget.Get_Handle (W),
             Selector_Styles (Source, Kind, Name)));
    end Apply_To_Widget;
 
@@ -271,7 +271,7 @@ package body Adi.CSS_Source is
         (W,
          Root_Merged_Styles
            (Source,
-            W'Unchecked_Access,
+            Adi.Widget.Get_Handle (W),
             Combined_Styles (Source, Tag_Name, Class_Name, Id_Name)));
    end Apply_Selector_Set_To_Widget;
 
@@ -294,7 +294,7 @@ package body Adi.CSS_Source is
         (W,
          Root_Merged_Styles
            (Source,
-            W'Unchecked_Access,
+            Adi.Widget.Get_Handle (W),
             Multi_Class_Styles (Source, Names)));
    end Apply_Multi_Classes;
 
@@ -304,35 +304,45 @@ package body Adi.CSS_Source is
          return;
       end if;
 
-      if Source.Impl.Root_Target /= null then
-         Apply_Root_Metadata_Impl (Source, Source.Impl.Root_Target.all);
+      if Adi.Widget.Is_Valid (Source.Impl.Root_Target) then
+         declare
+            R : constant Adi.Widget.Widget_Ref :=
+              Adi.Widget.Borrow (Source.Impl.Root_Target);
+         begin
+            Apply_Root_Metadata_Impl (Source, R.Ptr.all);
+         end;
       end if;
 
       for I in 1 .. Natural (Source.Impl.Bindings.Length) loop
          declare
             B : constant Bound_Target := Source.Impl.Bindings (I);
          begin
-            if B.Target /= null then
-               case B.Kind is
-                  when Single_Binding =>
-                     Apply_To_Widget (
-                       Source,
-                       B.Selector_Kind,
-                       To_String (B.Name),
-                       B.Target.all);
-                  when Multi_Class_Binding =>
-                     Apply_Multi_Classes (
-                       Source,
-                       To_String (B.Name),
-                       B.Target.all);
-                  when Selector_Set_Binding =>
-                     Apply_Selector_Set_To_Widget (
-                       Source,
-                       B.Target.all,
-                       To_String (B.Tag_Name),
-                       To_String (B.Class_Name),
-                       To_String (B.Id_Name));
-               end case;
+            if Adi.Widget.Is_Valid (B.Target) then
+               declare
+                  R : constant Adi.Widget.Widget_Ref :=
+                    Adi.Widget.Borrow (B.Target);
+               begin
+                  case B.Kind is
+                     when Single_Binding =>
+                        Apply_To_Widget (
+                          Source,
+                          B.Selector_Kind,
+                          To_String (B.Name),
+                          R.Ptr.all);
+                     when Multi_Class_Binding =>
+                        Apply_Multi_Classes (
+                          Source,
+                          To_String (B.Name),
+                          R.Ptr.all);
+                     when Selector_Set_Binding =>
+                        Apply_Selector_Set_To_Widget (
+                          Source,
+                          R.Ptr.all,
+                          To_String (B.Tag_Name),
+                          To_String (B.Class_Name),
+                          To_String (B.Id_Name));
+                  end case;
+               end;
             end if;
          end;
       end loop;
@@ -708,9 +718,9 @@ package body Adi.CSS_Source is
         Tag_Name      => Null_Unbounded_String,
         Class_Name    => Null_Unbounded_String,
         Id_Name       => Null_Unbounded_String,
-        Target        => W.all'Unchecked_Access));
+        Target        => Adi.Widget.Get_Handle (W.all)));
 
-      if Source.Impl.Root_Target = W.all'Unchecked_Access then
+      if Source.Impl.Root_Target = Adi.Widget.Get_Handle (W.all) then
          Reapply_Bindings (Source);
       else
          Apply_To_Widget (Source, Kind, Name, W.all);
@@ -744,9 +754,9 @@ package body Adi.CSS_Source is
            Tag_Name      => Null_Unbounded_String,
            Class_Name    => Null_Unbounded_String,
            Id_Name       => Null_Unbounded_String,
-           Target        => W.all'Unchecked_Access));
+           Target        => Adi.Widget.Get_Handle (W.all)));
 
-         if Source.Impl.Root_Target = W.all'Unchecked_Access then
+         if Source.Impl.Root_Target = Adi.Widget.Get_Handle (W.all) then
             Reapply_Bindings (Source);
          else
             Apply_Multi_Classes (Source, Name, W.all);
@@ -779,7 +789,7 @@ package body Adi.CSS_Source is
          return;
       end if;
 
-      Source.Impl.Root_Target := W.all'Unchecked_Access;
+      Source.Impl.Root_Target := Adi.Widget.Get_Handle (W.all);
       Reapply_Bindings (Source);
    end Bind_Root_Metadata;
 
@@ -861,9 +871,9 @@ package body Adi.CSS_Source is
         Tag_Name      => To_Unbounded_String (Normalize_Name (Tag_Name)),
         Class_Name    => To_Unbounded_String (Normalize_Name (Class_Name)),
         Id_Name       => To_Unbounded_String (Normalize_Name (Id_Name)),
-        Target        => W.all'Unchecked_Access));
+        Target        => Adi.Widget.Get_Handle (W.all)));
 
-      if Source.Impl.Root_Target = W.all'Unchecked_Access then
+      if Source.Impl.Root_Target = Adi.Widget.Get_Handle (W.all) then
          Reapply_Bindings (Source);
       else
          Apply_Selector_Set_To_Widget (Source, W.all, Tag_Name, Class_Name, Id_Name);

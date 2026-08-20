@@ -31,38 +31,43 @@ package Adi.Widget.Introspection is
    package Match_Vectors is new Ada.Containers.Vectors
      (Positive, Widget_Match);
 
-   --  Query: get info for a single widget
+   --  A stale or null handle reads as an empty widget: Get_Info and
+   --  Get_Text answer with empty fields, the lookups answer
+   --  Null_Handle, and the searches answer an empty vector.
+
+   --  Query: info for a single widget
    function Get_Info
-     (W    : not null access Widget'Class;
+     (H    : Widget_Handle;
       Path : String) return Widget_Info;
 
-   --  Query: extract text content (dispatches by tag)
-   function Get_Text (W : not null access Widget'Class) return String;
+   --  Query: text content (dispatches by tag)
+   function Get_Text (H : Widget_Handle) return String;
 
-   --  Lookup: find widget by unique ID (recursive tree walk)
+   --  Lookup: by unique ID (recursive tree walk)
    function Find_By_Id
-     (Root : not null Widget_Access;
-      Id   : Natural) return Widget_Access;
+     (Root : Widget_Handle;
+      Id   : Natural) return Widget_Handle;
 
-   --  Lookup: find widget by tree path ("1.2.3")
+   --  Lookup: by tree path ("1.2.3")
    function Find_By_Path
-     (Root : not null Widget_Access;
-      Path : String) return Widget_Access;
+     (Root : Widget_Handle;
+      Path : String) return Widget_Handle;
 
-   --  Lookup: find path string for a known widget (reverse lookup)
+   --  Lookup: the path string for a known widget (reverse lookup).
+   --  Empty when Target is not in Root's subtree.
    function Find_Path
-     (Root   : not null Widget_Access;
-      Target : not null Widget_Access) return String;
+     (Root   : Widget_Handle;
+      Target : Widget_Handle) return String;
 
-   --  Search: find widgets by text (case-insensitive substring or exact)
+   --  Search: by text (case-insensitive substring or exact)
    function Find_By_Text
-     (Root  : not null Widget_Access;
+     (Root  : Widget_Handle;
       Query : String;
       Exact : Boolean := False) return Match_Vectors.Vector;
 
-   --  Search: find widgets by type name (case-insensitive substring)
+   --  Search: by type name (case-insensitive substring)
    function Find_By_Type
-     (Root      : not null Widget_Access;
+     (Root      : Widget_Handle;
       Type_Name : String) return Match_Vectors.Vector;
 
 end Adi.Widget.Introspection;

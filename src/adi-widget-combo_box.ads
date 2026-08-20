@@ -152,7 +152,7 @@ private
    --  resolution when opening the dropdown.
    procedure Attach_Window
      (W    : in out Combo_Box_Widget;
-      Host : Adi.Window.Window_Access);
+      Host : Adi.Window.Window_Handle);
 
    type Combo_Item is record
       Text : Ada.Strings.Unbounded.Unbounded_String :=
@@ -173,7 +173,8 @@ private
    Icon_Idx      : constant Positive := 4;
 
    type Combo_Box_Widget is new Widget with record
-      Host_Window : Adi.Window.Window_Access := null;
+      Host_Window : Adi.Window.Window_Handle :=
+        Adi.Window.Null_Window_Handle;
       Popup       : Popup_Lists.List_Box_Handle := Popup_Lists.Null_List_Box_Handle;
       Options     : Combo_Item_Vectors.Vector;
       Option_Row_Styles     : Part_Style_Array := Empty_Part_Styles;

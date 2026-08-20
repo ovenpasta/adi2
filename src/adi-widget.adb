@@ -108,10 +108,11 @@ package body Adi.Widget is
          return;
       end if;
 
-      --  Let the window layer clean up refs/root/overlays BEFORE detaching
-      --  from parent (Find_Host_Window uses subtree membership).
-      if Destroy_Detach_Hook /= null then
-         Destroy_Detach_Hook (Obj);
+      --  Tell the window layer before detaching from the parent: it
+      --  finds the host by subtree membership, so the widget has to
+      --  still be in the tree.  H still resolves here.
+      if Destroy_Notice_Slot /= null then
+         Destroy_Notice_Slot (H);
       end if;
 
       --  Detach from parent
@@ -267,13 +268,6 @@ package body Adi.Widget is
       if Ptr /= null then return Op (Ptr.all); end if;
       return Default;
    end Wrap_Prim_Func;
-
-   function Adopt_Widget (W : not null Widget_Access) return Widget_Handle is
-   begin
-      Set_Flag (W.all, Visible, True);
-      Register_Widget (W);
-      return Get_Handle (W.all);
-   end Adopt_Widget;
 
    --  Per-frame perf counters for debug stats overlay.
    --  Reset by the Window before each frame, read after rendering.

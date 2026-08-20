@@ -349,7 +349,7 @@ package body Adi.Widget.Combo_Box is
 
    procedure Attach_Window
      (W    : in out Combo_Box_Widget;
-      Host : Adi.Window.Window_Access)
+      Host : Adi.Window.Window_Handle)
    is
    begin
       W.Host_Window := Host;
@@ -614,14 +614,14 @@ package body Adi.Widget.Combo_Box is
       Y_Pos    : Pixel_Type;
    begin
       Ensure_Host_Window (W);
-      if W.Host_Window = null or else not Popup_Lists.Is_Valid (W.Popup) then
+      if not Adi.Window.Is_Valid (W.Host_Window) or else not Popup_Lists.Is_Valid (W.Popup) then
          return;
       end if;
 
       --  The popup is a window overlay, so anchor it where the combo
       --  actually appears rather than where its unscrolled geometry says.
       Anchor := Adi.Window.Geometry_In_Window (Get_Handle (W));
-      Win_Size := Adi.Window.Get_Size (W.Host_Window.all);
+      Win_Size := Adi.Window.Get_Size (W.Host_Window);
       Popup_H := Resolve_Popup_Height (W, Win_Size);
 
       X_Pos := Anchor.X;
@@ -657,7 +657,7 @@ package body Adi.Widget.Combo_Box is
       Dismiss  : Dismiss_Layer_Widget_Access := null;
    begin
       Ensure_Host_Window (W);
-      if W.Host_Window = null then
+      if not Adi.Window.Is_Valid (W.Host_Window) then
          return;
       end if;
 
@@ -672,7 +672,7 @@ package body Adi.Widget.Combo_Box is
          return;
       end if;
 
-      Win_Size := Adi.Window.Get_Size (W.Host_Window.all);
+      Win_Size := Adi.Window.Get_Size (W.Host_Window);
       Set_Geometry
         (Dismiss.all,
          (X => 0.0, Y => 0.0, Width => Win_Size.Width, Height => Win_Size.Height));
@@ -682,7 +682,7 @@ package body Adi.Widget.Combo_Box is
       Dismiss : Dismiss_Layer_Widget_Access := null;
    begin
       Ensure_Host_Window (W);
-      if W.Open or else W.Host_Window = null
+      if W.Open or else not Adi.Window.Is_Valid (W.Host_Window)
         or else not Popup_Lists.Is_Valid (W.Popup)
       then
          return;
@@ -704,9 +704,9 @@ package body Adi.Widget.Combo_Box is
       end if;
 
       if Dismiss /= null then
-         Adi.Window.Add_Overlay (W.Host_Window.all, Get_Handle (Dismiss.all));
+         Adi.Window.Add_Overlay (W.Host_Window, Get_Handle (Dismiss.all));
       end if;
-      Adi.Window.Add_Overlay (W.Host_Window.all, +W.Popup);
+      Adi.Window.Add_Overlay (W.Host_Window, +W.Popup);
       W.Open := True;
       if Dismiss /= null then
          Mark_Dirty (Dismiss.all);
@@ -718,7 +718,7 @@ package body Adi.Widget.Combo_Box is
    procedure Close_Dropdown (W : in out Combo_Box_Widget) is
       Dismiss : Dismiss_Layer_Widget_Access := null;
    begin
-      if not W.Open or else W.Host_Window = null
+      if not W.Open or else not Adi.Window.Is_Valid (W.Host_Window)
         or else not Popup_Lists.Is_Valid (W.Popup)
       then
          return;
@@ -731,9 +731,9 @@ package body Adi.Widget.Combo_Box is
          end if;
       end loop;
 
-      Adi.Window.Remove_Overlay (W.Host_Window.all, +W.Popup);
+      Adi.Window.Remove_Overlay (W.Host_Window, +W.Popup);
       if Dismiss /= null then
-         Adi.Window.Remove_Overlay (W.Host_Window.all, Get_Handle (Dismiss.all));
+         Adi.Window.Remove_Overlay (W.Host_Window, Get_Handle (Dismiss.all));
       end if;
       W.Open := False;
       Mark_Dirty (W);
@@ -1044,7 +1044,7 @@ package body Adi.Widget.Combo_Box is
          Container_Style => Main_Style,
          Items           => W.Layout_Items);
 
-      if W.Open and then W.Host_Window /= null
+      if W.Open and then Adi.Window.Is_Valid (W.Host_Window)
         and then Popup_Lists.Is_Valid (W.Popup)
       then
          Position_Dismiss_Layer (W);
@@ -1103,7 +1103,7 @@ package body Adi.Widget.Combo_Box is
    overriding procedure On_Destroy (W : in out Combo_Box_Widget) is
    begin
       --  Close dropdown if open (removes overlays from window)
-      if W.Open and then W.Host_Window /= null then
+      if W.Open and then Adi.Window.Is_Valid (W.Host_Window) then
          Close_Dropdown (W);
       end if;
 

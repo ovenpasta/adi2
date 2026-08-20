@@ -5,10 +5,12 @@ with Ada.Text_IO;  use Ada.Text_IO;
 with Adi.SDL;      use Adi.SDL;
 with Adi.SDL.TTF;
 with Adi.Window;   use Adi.Window;
+with Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Test_Support;
 
 procedure Window_Handle_Test is
+   use type Adi.Widget.Widget_Handle;
    SDL_Ready  : Boolean := False;
 
    procedure Ensure_SDL_Initialized (Ready : out Boolean) is
@@ -138,6 +140,98 @@ procedure Window_Handle_Test is
       Test_Support.Assert (not Is_Valid (H), "double destroy leaves handle invalid");
    end Test_Destroy_Idempotent;
 
+   --  The window is told a widget is going away while that widget is
+   --  still in its tree, because that membership is how the window is
+   --  found.  Notifying after detachment would leave the window holding
+   --  a handle to a destroyed widget.
+   procedure Test_Destroy_Clears_Window_Refs is
+      Ready : Boolean;
+      W     : Window_Handle;
+      Root  : Box_Handle;
+      Child : Box_Handle;
+      Child_H : Adi.Widget.Widget_Handle;
+   begin
+      Put_Line ("Test: destroying a focused descendant clears the window");
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      W     := Create_Window_Handle ("Destroy Refs", (320.0, 240.0));
+      Root  := Create_Handle;
+      Child := Create_Handle;
+      Adi.Widget.Add_Child (+Root, +Child);
+      Set_Root (W, +Root);
+
+      Child_H := +Child;
+      Adi.Widget.Set_Flag (Child_H, Adi.Widget.Focusable, True);
+      Set_Focus (W, Child_H);
+      Test_Support.Assert (Get_Focus_Handle (W) = Child_H,
+                           "the child holds focus before the destroy");
+
+      Adi.Widget.Destroy (Child_H);
+      Adi.Widget.Pump_Widget_Store;
+
+      --  Not merely "no longer the child": the window must hold
+      --  Null_Handle, never a stale handle that happens to compare
+      --  unequal.
+      Test_Support.Assert
+        (Get_Focus_Handle (W) = Adi.Widget.Null_Handle,
+         "focus is Null_Handle, not the destroyed child's stale handle");
+
+      --  Destroying the root clears the window's root the same way.
+      declare
+         Root_H : Adi.Widget.Widget_Handle := +Root;
+      begin
+         Adi.Widget.Destroy (Root_H);
+         Adi.Widget.Pump_Widget_Store;
+         Test_Support.Assert
+           (Get_Root_Handle (W) = Adi.Widget.Null_Handle,
+            "root is Null_Handle after the root widget is destroyed");
+      end;
+
+      Destroy (W);
+   end Test_Destroy_Clears_Window_Refs;
+
+   --  An overlay is reachable from the window without being in the root
+   --  tree, so it is a separate path through Find_Host_Window.
+   procedure Test_Destroy_Removes_Overlay is
+      Ready   : Boolean;
+      W       : Window_Handle;
+      Root    : Box_Handle;
+      Overlay : Box_Handle;
+      Over_H  : Adi.Widget.Widget_Handle;
+   begin
+      Put_Line ("Test: destroying an overlay removes it from the window");
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      W       := Create_Window_Handle ("Destroy Overlay", (320.0, 240.0));
+      Root    := Create_Handle;
+      Overlay := Create_Handle;
+      Set_Root (W, +Root);
+      Add_Overlay (W, +Overlay);
+      Test_Support.Assert (Overlay_Count (W) = 1, "overlay added");
+
+      Over_H := +Overlay;
+      Adi.Widget.Destroy (Over_H);
+      Adi.Widget.Pump_Widget_Store;
+
+      Test_Support.Assert (Overlay_Count (W) = 0,
+                           "the destroyed overlay is off the window");
+
+      Destroy (W);
+
+      --  Answering about a window rather than acting on one: a handle
+      --  that no longer resolves counts zero instead of raising.
+      Test_Support.Assert (Overlay_Count (W) = 0,
+                           "Overlay_Count of a destroyed window is 0");
+      Test_Support.Assert (Overlay_Count (Null_Window_Handle) = 0,
+                           "Overlay_Count of Null_Window_Handle is 0");
+   end Test_Destroy_Removes_Overlay;
+
 begin
    Test_Support.Start_Suite ("Window Handle Test");
 
@@ -146,6 +240,8 @@ begin
    Test_Handle_Overloads;
    Test_Destroy_By_Handle;
    Test_Destroy_Idempotent;
+   Test_Destroy_Clears_Window_Refs;
+   Test_Destroy_Removes_Overlay;
 
    Test_Support.Finish;
 end Window_Handle_Test;

@@ -11,6 +11,7 @@ with Adi.Log;
 with Adi.SDL; use Adi.SDL;
 with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
+with Adi.Widget.Window_Bridge;
 with Adi.Widget_Styles;
 
 package body Adi.Window is
@@ -685,11 +686,11 @@ package body Adi.Window is
    end Unregister_Live_Window;
 
    function Find_Host_Window
-     (Node : Widget_Handle) return Window_Access
+     (Node : Widget_Handle) return Window_Handle
    is
    begin
       if not Is_Valid (Node) then
-         return null;
+         return Null_Window_Handle;
       end if;
 
       for I in reverse 1 .. Natural (Live_Windows.Length) loop
@@ -699,12 +700,12 @@ package body Adi.Window is
             if Candidate /= null
               and then Window_Contains_Widget (Candidate.all, Node)
             then
-               return Candidate;
+               return Get_Handle (Candidate.all);
             end if;
          end;
       end loop;
 
-      return null;
+      return Null_Window_Handle;
    end Find_Host_Window;
 
    function Active_Key_Root (W : Window) return Widget_Handle is
@@ -1665,6 +1666,18 @@ package body Adi.Window is
       end if;
       W.Needs_Layout := True;
    end Clear_Overlays;
+
+   function Overlay_Count (H : Window_Handle) return Natural is
+   begin
+      if not Is_Valid (H) then
+         return 0;
+      end if;
+      declare
+         R : constant Window_Ref := Borrow (H);
+      begin
+         return Overlay_Count (R.Ptr.all);
+      end;
+   end Overlay_Count;
 
    function Overlay_Count (W : Window) return Natural is
    begin
@@ -2995,21 +3008,27 @@ function Get_Size (W : in out Window) return Size_2D is
    --  Destroy detach hook (registered into Adi.Widget at elaboration)
    ---------------------------------------------------------------------------
 
-   procedure On_Widget_Destroy (W : not null Widget_Access) is
-      WH   : constant Widget_Handle := Get_Handle (W.all);
-      Host : constant Window_Access := Find_Host_Window (WH);
+   procedure On_Widget_Destroy (H : Widget_Handle) is
+      Host : constant Window_Handle := Find_Host_Window (H);
    begin
-      if Host = null then
+      if not Is_Valid (Host) then
          return;
       end if;
 
-      Clear_Widget_Refs_In_Subtree (Host.all, WH);
+      --  Borrowed for this call only: the widget is detached and its
+      --  subtree destroyed after this returns, and nothing here may
+      --  outlive that.
+      declare
+         R : constant Window_Ref := Borrow (Host);
+      begin
+         Clear_Widget_Refs_In_Subtree (R.Ptr.all, H);
 
-      if Host.Root = WH then
-         Set_Root (Host.all, Null_Handle);
-      end if;
+         if R.Ptr.Root = H then
+            Set_Root (R.Ptr.all, Null_Handle);
+         end if;
 
-      Remove_Overlay (Host.all, WH);
+         Remove_Overlay (R.Ptr.all, H);
+      end;
    end On_Widget_Destroy;
 
    function Create_Window_Handle
@@ -3119,7 +3138,8 @@ function Get_Size (W : in out Window) return Size_2D is
    end Create_Window_Handle;
 
 begin
-   Adi.Widget.Destroy_Detach_Hook := On_Widget_Destroy'Access;
+   Adi.Widget.Window_Bridge.Install_Destroy_Notice
+     (On_Widget_Destroy'Access);
 
 
 

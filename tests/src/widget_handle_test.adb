@@ -166,24 +166,24 @@ procedure Widget_Handle_Test is
    end Test_Get_Handle_Roundtrip;
 
    ---------------------------------------------------------------------------
-   --  Test: Resolve_Handle returns non-null for valid handle
+   --  Test: two borrows of one handle reach one widget
    ---------------------------------------------------------------------------
 
-   procedure Test_Resolve_Handle is
+   procedure Test_Borrow_Identity is
       Btn : constant Button.Button_Handle := Button.Create_Handle ("RH");
       H   : constant Widget_Handle := +Btn;
-      Ptr : Widget_Access;
    begin
-      Put_Line ("-- Resolve_Handle tests --");
-      Ptr := Resolve_Handle (H);
-      Test_Support.Assert (Ptr /= null, "Resolve_Handle returns non-null for valid handle");
-      Test_Support.Assert (Ptr = Resolve_Handle (+Btn),
-              "Resolve_Handle returns same pointer");
+      Put_Line ("-- Borrow identity tests --");
 
-      --  Resolve null handle should return null
-      Test_Support.Assert (Resolve_Handle (Null_Handle) = null,
-              "Resolve_Handle(Null_Handle) returns null");
-   end Test_Resolve_Handle;
+      declare
+         A : constant Widget_Ref := Borrow (H);
+         B : constant Widget_Ref := Borrow (+Btn);
+      begin
+         Test_Support.Assert (A.Ptr /= null, "Borrow of a valid handle");
+         Test_Support.Assert (A.Ptr = B.Ptr,
+                 "the typed handle and the widened one reach one widget");
+      end;
+   end Test_Borrow_Identity;
 
    ---------------------------------------------------------------------------
    --  Test: Create_Handle returns valid handle
@@ -196,9 +196,12 @@ procedure Widget_Handle_Test is
       Put_Line ("-- Create_Handle function tests --");
       Test_Support.Assert (Is_Valid (H), "Create_Handle returns valid handle");
 
-      --  Resolve should give non-null
-      Test_Support.Assert (Resolve_Handle (H) /= null,
-              "Create_Handle handle resolves to non-null");
+      declare
+         R : constant Widget_Ref := Borrow (H);
+      begin
+         Test_Support.Assert (R.Ptr /= null,
+                 "Create_Handle handle borrows to non-null");
+      end;
    end Test_Create_Handle_Fn;
 
    ---------------------------------------------------------------------------
@@ -321,12 +324,8 @@ procedure Widget_Handle_Test is
 
       --  Add_Child via typed handle
       Box.Add_Child (H, Ch);
-      declare
-         Ptr : constant Widget_Access := Resolve_Handle (WH);
-      begin
-         Test_Support.Assert (Ptr /= null and then Child_Count (WH) = 1,
-                 "Add_Child via Box_Handle should add child");
-      end;
+      Test_Support.Assert (Is_Valid (WH) and then Child_Count (WH) = 1,
+              "Add_Child via Box_Handle should add child");
 
       --  Try_As_Box roundtrip
       declare
@@ -1395,7 +1394,7 @@ begin
    Test_Destroy_Recursive;
    Test_Pump;
    Test_Get_Handle_Roundtrip;
-   Test_Resolve_Handle;
+   Test_Borrow_Identity;
    Test_Create_Handle_Fn;
    Test_Add_Child_Handle;
    Test_Add_Child_Null_Handle;

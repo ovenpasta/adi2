@@ -221,8 +221,8 @@
 **Adi.Widget** (`adi-widget.ads`): Base abstraction.
 - Ownership is store-backed with generational `Widget_Handle`; typed handles wrap the same store IDs.
 - Scoped borrow API: `Borrow (Widget_Handle) return Widget_Ref` (`Implicit_Dereference`) pins while in scope.
-- `Resolve_Handle` remains as compatibility bridge; new code should prefer typed handles and/or `Borrow`.
-- Migration direction is handle-first public APIs, with `Widget_Access` planned to move toward private/internal usage once compatibility bridges are no longer needed.
+- `Widget_Access` and `Resolve_Handle` are private to `Adi.Widget`. Outside code holds handles and reaches a widget through `Borrow`; a widget type defined outside the library is registered through `Adi.Widget.Extension`.
+- `Adi.Widget.Window_Bridge` carries the destroy notification to `Adi.Window`, which `Adi.Widget` cannot name directly.
 - Part system: `Main_Part`, `Indicator_Part`, `Label_Part`, `Text_Part`, `Icon_Part`, `Cursor_Part`, `Selected_Part`, `Scroll_Part`, `Knob_Part`
 - Item system: `Panel_Item`, `Text_Item`, `Image_Item`
 - Flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`. A separate private dispatching primitive, `Clips_Own_Content`, marks widgets that scroll their own content without being scroll containers — text inputs, and value inputs by inheritance. It clips only the parts the widget scrolls (`Text_Part`, `Cursor_Part`, `Selected_Part`) on both axes, so a floating `Label_Part` sitting above the border still draws. It is the equivalent of a browser's user-agent `overflow: hidden` on an input, and being private a stylesheet cannot switch it off.

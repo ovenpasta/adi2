@@ -2266,9 +2266,9 @@ begin
 
       declare
          Shrunk : constant Flex_Row_Items :=
-            Flex_Row_Child_Widths (Resolve_Handle (Narrow_Row).all, 300.0);
+            Flex_Row_Child_Widths (Borrow (Narrow_Row).Ptr.all, 300.0);
          Grown  : constant Flex_Row_Items :=
-            Flex_Row_Child_Widths (Resolve_Handle (Grow_Row).all, 300.0);
+            Flex_Row_Child_Widths (Borrow (Grow_Row).Ptr.all, 300.0);
       begin
          Ada.Text_IO.Put_Line
             ("  two 200px in 300px ->" & Pixel_Type'Image (Shrunk (1).Width)
@@ -2344,13 +2344,13 @@ begin
       declare
          Auto_Base : constant Pixel_Type :=
             Resolved_Flex_Base
-              (Child          => Resolve_Handle (Auto_Kid).all,
+              (Child          => Borrow (Auto_Kid).Ptr.all,
                Direction      => Adi.CSS_Styles.Column,
                Assigned_Width => 100.0,
                Container_Main => 0.0);
          Content_Base : constant Pixel_Type :=
             Resolved_Flex_Base
-              (Child          => Resolve_Handle (Content_Kid).all,
+              (Child          => Borrow (Content_Kid).Ptr.all,
                Direction      => Adi.CSS_Styles.Column,
                Assigned_Width => 100.0,
                Container_Main => 0.0);

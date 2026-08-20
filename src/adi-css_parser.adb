@@ -45,7 +45,7 @@ package body Adi.CSS_Parser is
    type Binding is record
       Kind       : Selector_Kind := Class_Selector;
       Name       : Unbounded_String;
-      Target     : Widget_Access := null;
+      Target     : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
    end record;
 
    package Binding_Vectors is new Ada.Containers.Indefinite_Vectors
@@ -64,7 +64,7 @@ package body Adi.CSS_Parser is
    type Stylesheet_Impl is record
       Selectors     : Selector_Style_Vectors.Vector;
       Bindings      : Binding_Vectors.Vector;
-      Root_Target   : Widget_Access := null;
+      Root_Target   : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
       Metadata      : Stylesheet_Metadata := (others => <>);
       Variables     : Variable_Vectors.Vector;
       Source_Path   : Unbounded_String;
@@ -165,11 +165,11 @@ package body Adi.CSS_Parser is
 
    function Root_Merged_Styles
      (Impl   : Stylesheet_Impl;
-      Target : Widget_Access;
+      Target : Adi.Widget.Widget_Handle;
       Styles : Part_Style_Array) return Part_Style_Array
    is
    begin
-      if Target /= null
+      if Adi.Widget.Is_Valid (Target)
         and then Impl.Root_Target = Target
         and then Impl.Metadata.Has_Root_Style
       then
@@ -3564,18 +3564,25 @@ package body Adi.CSS_Parser is
 
    procedure Reapply_Bindings (Impl : in out Stylesheet_Impl) is
    begin
-      if Impl.Root_Target /= null then
-         Apply_Metadata_To_Widget (Impl.Metadata, Impl.Root_Target.all);
+      if Adi.Widget.Is_Valid (Impl.Root_Target) then
+         declare
+            R : constant Adi.Widget.Widget_Ref :=
+              Adi.Widget.Borrow (Impl.Root_Target);
+         begin
+            Apply_Metadata_To_Widget (Impl.Metadata, R.Ptr.all);
+         end;
       end if;
 
       for B of Impl.Bindings loop
-         if B.Target /= null then
+         if Adi.Widget.Is_Valid (B.Target) then
             declare
                Idx : constant Natural := Find_Selector_Index (Impl, B.Kind, To_String (B.Name));
+               R   : constant Adi.Widget.Widget_Ref :=
+                 Adi.Widget.Borrow (B.Target);
             begin
                if Idx = 0 then
                   Set_Part_Styles
-                    (B.Target.all,
+                    (R.Ptr.all,
                      Root_Merged_Styles (Impl, B.Target, Empty_Part_Styles));
                else
                   declare
@@ -3583,7 +3590,7 @@ package body Adi.CSS_Parser is
                        Impl.Selectors.Reference (Positive (Idx)).Element.all;
                   begin
                      Set_Part_Styles
-                       (B.Target.all,
+                       (R.Ptr.all,
                         Root_Merged_Styles (Impl, B.Target, Sel.Styles));
                   end;
                end if;
@@ -3793,17 +3800,20 @@ package body Adi.CSS_Parser is
          return;
       end if;
 
-      Sheet.Impl.Root_Target := W.all'Unchecked_Access;
+      Sheet.Impl.Root_Target := Adi.Widget.Get_Handle (W.all);
       Reapply_Bindings (Sheet.Impl.all);
    end Bind_Root_Metadata;
 
    procedure Bind_Root_Metadata
      (Sheet : in out Stylesheet;
       W     : Widget_Handle) is
-      Ptr : constant Widget_Access := Resolve_Handle (W);
    begin
-      if Ptr /= null then
-         Bind_Root_Metadata (Sheet, Ptr);
+      if Adi.Widget.Is_Valid (W) then
+         declare
+            R : constant Adi.Widget.Widget_Ref := Adi.Widget.Borrow (W);
+         begin
+            Bind_Root_Metadata (Sheet, R.Ptr);
+         end;
       end if;
    end Bind_Root_Metadata;
 
@@ -3820,7 +3830,7 @@ package body Adi.CSS_Parser is
       if Idx = 0 then
          Set_Part_Styles
            (W,
-            Root_Merged_Styles (Sheet.Impl.all, W'Unchecked_Access, Empty_Part_Styles));
+            Root_Merged_Styles (Sheet.Impl.all, Adi.Widget.Get_Handle (W), Empty_Part_Styles));
       else
          declare
             Sel : Selector_Style renames
@@ -3828,7 +3838,7 @@ package body Adi.CSS_Parser is
          begin
             Set_Part_Styles
               (W,
-               Root_Merged_Styles (Sheet.Impl.all, W'Unchecked_Access, Sel.Styles));
+               Root_Merged_Styles (Sheet.Impl.all, Adi.Widget.Get_Handle (W), Sel.Styles));
          end;
       end if;
    end Apply;
@@ -3866,11 +3876,11 @@ package body Adi.CSS_Parser is
       end if;
 
       for I in 1 .. Natural (Sheet.Impl.Bindings.Length) loop
-         if Sheet.Impl.Bindings (I).Target = W.all'Unchecked_Access then
+         if Sheet.Impl.Bindings (I).Target = Adi.Widget.Get_Handle (W.all) then
             Sheet.Impl.Bindings.Replace_Element
               (I, (Kind   => Kind,
                    Name   => To_Unbounded_String (Key),
-                   Target => W.all'Unchecked_Access));
+                   Target => Adi.Widget.Get_Handle (W.all)));
             Apply (Sheet, Kind, Key, W.all);
             return;
          end if;
@@ -3880,8 +3890,8 @@ package body Adi.CSS_Parser is
         (New_Item => Binding'
            (Kind   => Kind,
             Name   => To_Unbounded_String (Key),
-            Target => W.all'Unchecked_Access));
-      if Sheet.Impl.Root_Target = W.all'Unchecked_Access then
+            Target => Adi.Widget.Get_Handle (W.all)));
+      if Sheet.Impl.Root_Target = Adi.Widget.Get_Handle (W.all) then
          Reapply_Bindings (Sheet.Impl.all);
       else
          Apply (Sheet, Kind, Key, W.all);
@@ -3913,10 +3923,13 @@ package body Adi.CSS_Parser is
                    Kind  : Selector_Kind;
                    Name  : String;
                    W     : Widget_Handle) is
-      Ptr : constant Widget_Access := Resolve_Handle (W);
    begin
-      if Ptr /= null then
-         Bind (Sheet, Kind, Name, Ptr);
+      if Adi.Widget.Is_Valid (W) then
+         declare
+            R : constant Adi.Widget.Widget_Ref := Adi.Widget.Borrow (W);
+         begin
+            Bind (Sheet, Kind, Name, R.Ptr);
+         end;
       end if;
    end Bind;
 

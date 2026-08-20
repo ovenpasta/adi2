@@ -2,24 +2,14 @@ pragma Ada_2022;
 
 package body Test_Mouse_Probe is
 
-   --  A view of the widget behind H as a probe, or null when H is stale
-   --  or designates some other widget type.
-   function Probe_Of (H : Widget_Handle) return Widget_Access is
-      A : constant Widget_Access := Resolve_Handle (H);
-   begin
-      if A = null or else A.all not in Probe_Widget'Class then
-         return null;
-      end if;
-      return A;
-   end Probe_Of;
-
    -------------------
    -- Create_Handle --
    -------------------
 
+   use Probes;
+
    function Create_Handle return Widget_Handle is
-      Ptr : constant Widget_Access := new Probe_Widget;
-      H   : constant Widget_Handle := Adopt_Widget (Ptr);
+      H : constant Widget_Handle := +Probes.New_Widget;
    begin
       Set_Flag (H, Clickable, True);
       return H;
@@ -64,58 +54,80 @@ package body Test_Mouse_Probe is
    -- Queries --
    -------------
 
+   --  Each query resolves the handle first and answers with its
+   --  documented default when H is stale or is not a probe; otherwise it
+   --  reads through a borrow that ends with the call.
+
    function Down_Count (H : Widget_Handle) return Natural is
-      A : constant Widget_Access := Probe_Of (H);
+      P : constant Probes.Handle := Probes.Try_As (H);
    begin
-      return (if A = null then 0 else Probe_Widget (A.all).Downs);
+      if not Probes.Is_Valid (P) then
+         return 0;
+      end if;
+      return Probes.Borrow (P).Downs;
    end Down_Count;
 
    function Move_Count (H : Widget_Handle) return Natural is
-      A : constant Widget_Access := Probe_Of (H);
+      P : constant Probes.Handle := Probes.Try_As (H);
    begin
-      return (if A = null then 0 else Probe_Widget (A.all).Moves);
+      if not Probes.Is_Valid (P) then
+         return 0;
+      end if;
+      return Probes.Borrow (P).Moves;
    end Move_Count;
 
    function Up_Count (H : Widget_Handle) return Natural is
-      A : constant Widget_Access := Probe_Of (H);
+      P : constant Probes.Handle := Probes.Try_As (H);
    begin
-      return (if A = null then 0 else Probe_Widget (A.all).Ups);
+      if not Probes.Is_Valid (P) then
+         return 0;
+      end if;
+      return Probes.Borrow (P).Ups;
    end Up_Count;
 
    function Last_Down (H : Widget_Handle) return Point is
-      A : constant Widget_Access := Probe_Of (H);
+      P : constant Probes.Handle := Probes.Try_As (H);
    begin
-      return (if A = null then (0.0, 0.0) else Probe_Widget (A.all).Down_At);
+      if not Probes.Is_Valid (P) then
+         return (0.0, 0.0);
+      end if;
+      return Probes.Borrow (P).Down_At;
    end Last_Down;
 
    function Last_Move (H : Widget_Handle) return Point is
-      A : constant Widget_Access := Probe_Of (H);
+      P : constant Probes.Handle := Probes.Try_As (H);
    begin
-      return (if A = null then (0.0, 0.0) else Probe_Widget (A.all).Move_At);
+      if not Probes.Is_Valid (P) then
+         return (0.0, 0.0);
+      end if;
+      return Probes.Borrow (P).Move_At;
    end Last_Move;
 
    function Last_Up (H : Widget_Handle) return Point is
-      A : constant Widget_Access := Probe_Of (H);
+      P : constant Probes.Handle := Probes.Try_As (H);
    begin
-      return (if A = null then (0.0, 0.0) else Probe_Widget (A.all).Up_At);
+      if not Probes.Is_Valid (P) then
+         return (0.0, 0.0);
+      end if;
+      return Probes.Borrow (P).Up_At;
    end Last_Up;
 
    procedure Reset (H : Widget_Handle) is
-      A : constant Widget_Access := Probe_Of (H);
+      P : constant Probes.Handle := Probes.Try_As (H);
    begin
-      if A = null then
+      if not Probes.Is_Valid (P) then
          return;
       end if;
 
       declare
-         P : Probe_Widget renames Probe_Widget (A.all);
+         R : constant Probes.Ref := Probes.Borrow (P);
       begin
-         P.Downs := 0;
-         P.Moves := 0;
-         P.Ups := 0;
-         P.Down_At := (0.0, 0.0);
-         P.Move_At := (0.0, 0.0);
-         P.Up_At := (0.0, 0.0);
+         R.Downs := 0;
+         R.Moves := 0;
+         R.Ups := 0;
+         R.Down_At := (0.0, 0.0);
+         R.Move_At := (0.0, 0.0);
+         R.Up_At := (0.0, 0.0);
       end;
    end Reset;
 

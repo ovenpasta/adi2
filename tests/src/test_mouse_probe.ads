@@ -2,13 +2,17 @@ pragma Ada_2022;
 
 with Adi.Core;   use Adi.Core;
 with Adi.Widget; use Adi.Widget;
+with Adi.Widget.Extension;
 
 --  A widget that records the coordinates the window hands to its mouse
 --  primitives, so a test can check the coordinate space they arrive in.
 --
---  Library level rather than nested in the test procedure: Adopt_Widget
---  takes a Widget_Access, and an access type declared inside a procedure
---  cannot be converted to one declared at library level.
+--  Library level rather than nested in the test procedure: the widget
+--  store owns what it registers and dispatches through its tag, so a
+--  widget type declared inside a subprogram cannot be stored.
+--
+--  The extension handle stays private.  What this package tests is how a
+--  window routes mouse events, and a window deals in Widget_Handle.
 package Test_Mouse_Probe is
 
    type Probe_Widget is new Widget with private;
@@ -59,5 +63,7 @@ private
      (W      : in out Probe_Widget;
       X, Y   : Pixel_Type;
       Button : Mouse_Button);
+
+   package Probes is new Adi.Widget.Extension (Probe_Widget);
 
 end Test_Mouse_Probe;

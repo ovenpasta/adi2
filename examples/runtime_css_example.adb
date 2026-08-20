@@ -13,58 +13,15 @@ with Adi.Widget.Box;
 with Adi.Widget.Label;
 with Adi.Window;
 with Runtime_Css_Example_Styles;
+with Runtime_Css_Live_Root;
 
 procedure Runtime_Css_Example is
 
-   type Style_Source_Access is access all Adi.CSS_Source.Style_Source;
    use type Adi.CSS_Source.Source_Mode;
    use type Adi.Widget.Box.Box_Handle;
    use type Adi.Widget.Button.Button_Handle;
    use type Adi.Widget.Label.Label_Handle;
-
-   type Live_Root_Widget is new Adi.Widget.Box.Box_Widget with record
-      Source       : Style_Source_Access := null;
-      Status_Label : Adi.Widget.Label.Label_Handle;
-      Reload_Count : Natural := 0;
-      Last_OK      : Boolean := True;
-   end record;
-
-   type Live_Root_Access is access all Live_Root_Widget'Class;
-
-   overriding procedure On_Tick (W : in out Live_Root_Widget; DT : Duration);
-
-   overriding procedure On_Tick (W : in out Live_Root_Widget; DT : Duration) is
-      pragma Unreferenced (DT);
-      Reloaded : Boolean := False;
-      Success  : Boolean := False;
-   begin
-      if W.Source = null then
-         return;
-      end if;
-
-      Adi.CSS_Source.Tick (W.Source.all, Reloaded, Success);
-
-      if not Adi.Widget.Label.Is_Valid (W.Status_Label) then
-         return;
-      end if;
-
-      if not Success then
-         if W.Last_OK then
-            Adi.Widget.Label.Set_Text (W.Status_Label,
-              "CSS reload error: " & Adi.CSS_Source.Get_Last_Error (W.Source.all));
-         end if;
-         W.Last_OK := False;
-         return;
-      end if;
-
-      if Reloaded and then Adi.CSS_Source.Get_Mode (W.Source.all) = Adi.CSS_Source.Dynamic_Mode then
-         W.Reload_Count := W.Reload_Count + 1;
-         Adi.Widget.Label.Set_Text (W.Status_Label,
-           "Live reload OK (" & W.Reload_Count'Image & ") - edit css/runtime_css_example.css");
-      end if;
-
-      W.Last_OK := True;
-   end On_Tick;
+   use type Runtime_Css_Live_Root.Handle;
 
    function Resolve_CSS_Path return String is
    begin
@@ -89,18 +46,14 @@ begin
       W : constant Adi.Window.Window_Handle :=
         Adi.Window.Create_Window_Handle ("Runtime CSS Example", Adi.Window.Extent (Px (672.0), Px (439.0)));
 
-      Source : aliased Adi.CSS_Source.Style_Source;
+      Source : Adi.CSS_Source.Style_Source
+        renames Runtime_Css_Live_Root.Source;
       CSS_Path : constant String := Resolve_CSS_Path;
       Loaded : Boolean := False;
       Mode_OK : Boolean := False;
 
-      Root : constant Live_Root_Access :=
-        new Live_Root_Widget'
-          (Adi.Widget.Box.Box_Widget with
-             Source       => Source'Unchecked_Access,
-             Status_Label => Adi.Widget.Label.Null_Label_Handle,
-             Reload_Count => 0,
-             Last_OK      => True);
+      Root : constant Runtime_Css_Live_Root.Handle :=
+        Runtime_Css_Live_Root.Create_Handle;
       Root_H : Adi.Widget.Widget_Handle;
 
       Header : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
@@ -223,20 +176,14 @@ begin
          end if;
       end Toggle_Mode;
    begin
-      declare
-         P : constant access Adi.Widget.Widget'Class :=
-           Root.all'Unchecked_Access;
-      begin
-         Adi.Widget.Register_Widget (Adi.Widget.Widget_Access (P));
-      end;
-      Root_H := Adi.Widget.Get_Handle (Root.all);
+      Root_H := +Root;
 
       Adi.Widget.Set_Geometry (Root_H, (0.0, 0.0, 980.0, 640.0));
       Adi.Widget.Set_Geometry (+Header, (32.0, 24.0, 916.0, 120.0));
       Adi.Widget.Set_Geometry (+Content, (32.0, 164.0, 916.0, 404.0));
       Adi.Widget.Set_Geometry (+Status, (32.0, 584.0, 916.0, 32.0));
 
-      Root.Status_Label := Status;
+      Runtime_Css_Live_Root.Set_Status_Label (Root, Status);
 
       Adi.Widget.Add_Child (Root_H, +Header);
       Adi.Widget.Add_Child (Root_H, +Content);

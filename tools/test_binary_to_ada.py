@@ -98,7 +98,7 @@ class TestGenerate(unittest.TestCase):
             # Filter: only values 0-255 that appear in the array literal
             # Find the array content between := and ;
             array_match = re.search(
-                r'Storage_Array \(0 \.\. 255\) :=\s*\(([\s\S]*?)\);', body)
+                r'Storage_Array \(0 \.\. 255\) :=\s*\[([\s\S]*?)\];', body)
             self.assertIsNotNone(array_match)
             array_content = array_match.group(1)
             vals = [int(v.strip()) for v in array_content.split(',')]

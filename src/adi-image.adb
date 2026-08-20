@@ -534,16 +534,22 @@ package body Adi.Image is
      (Img : Image'Class; Renderer : SDL_Renderer_Ptr) return SDL_Texture_Ptr
    is
       Texture : SDL_Texture_Ptr;
-      Success : Adi.SDL.C_bool;
    begin
       Texture := SDL_CreateTextureFromSurface (Renderer, Img.Surface);
       if Texture = null then
          return null;
       end if;
-      Success := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
-      Success := SDL_SetTextureScaleMode (Texture, To_SDL (Img.Scaling));
-      pragma Unreferenced (Success);
-      return Texture;
+      declare
+         --  Advisory: a texture that refuses a blend or scale mode still
+         --  draws, just without them.
+         Blend_Ok : constant Adi.SDL.C_bool :=
+           SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
+         Scale_Ok : constant Adi.SDL.C_bool :=
+           SDL_SetTextureScaleMode (Texture, To_SDL (Img.Scaling));
+         pragma Unreferenced (Blend_Ok, Scale_Ok);
+      begin
+         return Texture;
+      end;
    end Build_Raster;
 
    function Build_SVG

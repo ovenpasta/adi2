@@ -96,11 +96,11 @@ def generate(files: list[str], output_dir: str, package_name: str,
         hex_lines = bytes_to_decimal_lines(data)
         for i, line in enumerate(hex_lines):
             if i == 0 and len(hex_lines) == 1:
-                body_lines.append(f'     ({line.strip()});')
+                body_lines.append(f'     [{line.strip()}];')
             elif i == 0:
-                body_lines.append(f'     ({line.strip()},')
+                body_lines.append(f'     [{line.strip()},')
             elif i == len(hex_lines) - 1:
-                body_lines.append(f'{line});')
+                body_lines.append(f'{line}];')
             else:
                 body_lines.append(f'{line},')
         body_lines.append('')

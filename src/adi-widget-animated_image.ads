@@ -3,7 +3,6 @@
 
 pragma Ada_2022;
 
-with Adi.Clock;
 with Adi.Animated_Image;  use Adi.Animated_Image;
 
 package Adi.Widget.Animated_Image is

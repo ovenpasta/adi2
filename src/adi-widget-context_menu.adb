@@ -18,11 +18,6 @@ package body Adi.Widget.Context_Menu is
       return Menu_Stores.Is_Valid (H.Id);
    end Is_Valid;
 
-   function Resolve_Menu_Handle (H : Menu_Handle) return Context_Menu_Access is
-   begin
-      return Menu_Stores.Get (H.Id);
-   end Resolve_Menu_Handle;
-
    function Get_Handle (M : Context_Menu) return Menu_Handle is
    begin
       return (Id => (Index => Menu_Stores.Slot_Index (M.Store_Index),
@@ -59,7 +54,6 @@ package body Adi.Widget.Context_Menu is
       Button : Mouse_Button;
       Clicks : Natural := 1);
 
-   use type Adi.Window.Window_Handle;
    use type Popup_Lists.List_Box_Handle;
 
    type Menu_Binding is record

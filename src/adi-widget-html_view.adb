@@ -10,8 +10,6 @@ with Ada.Strings;
 with Ada.Strings.Fixed;
 with Adi.CSS_Styles;        use Adi.CSS_Styles;
 with Adi.Log;
-with Adi.Font;
-with Adi.Image;             use Adi.Image;
 with Adi.Layout_Util;       use Adi.Layout_Util;
 with Adi.SDL.TTF;           use Adi.SDL.TTF;
 
@@ -19,8 +17,6 @@ package body Adi.Widget.Html_View is
 
    package Fix renames Ada.Strings.Fixed;
    package Char renames Ada.Characters.Handling;
-
-   Panel_Idx : constant Positive := 1;
 
    --  Cached SVG marker images (created lazily on first use)
    Marker_White : constant Color_8 := (R => 255, G => 255, B => 255, A => 255);
@@ -3162,7 +3158,6 @@ package body Adi.Widget.Html_View is
    --  the copies in Self.Items, not to a layout that outlives them.
    function Unrendered (L : Document_Layout) return Boolean is
       use type Adi.SDL.TTF.TextEngine.TTF_Text_Access;
-      use type Adi.SDL.TTF.TTF_Font_Access;
    begin
       return (for all It of L.Items =>
                 It.Cached_TTF_Text = null and then It.Cached_Font = null);

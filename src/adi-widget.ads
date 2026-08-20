@@ -20,7 +20,6 @@ with Adi.Image;             use Adi.Image;
 with Ada.Containers;
 with Ada.Finalization;
 with Adi.Handle_Store;
-with Adi.Layout_Util;
 
 package Adi.Widget is
    pragma Elaborate_Body;

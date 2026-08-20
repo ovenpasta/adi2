@@ -1075,10 +1075,6 @@ def generate_body(app: XmlApp, package_name: str,
     has_root_metadata = bool(
         link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties)
     )
-    needs_layout_util = bool(
-        (root is not None or has_dialog) and not live_css and has_root_metadata
-    )
-
     # Body needs Adi.Widget (for Set_Part_Styles, Add_Child, Widget_Access)
     # + any widget packages not already in the spec.
     # Always include Adi.Widget even if in spec — need `use` clause.
@@ -1103,8 +1099,6 @@ def generate_body(app: XmlApp, package_name: str,
         body_withs.append("Adi.CSS_Source")
     if has_root_metadata:
         body_withs.append("Adi.CSS_Parser")
-    if needs_layout_util:
-        body_withs.append("Adi.Layout_Util")
     if has_window and live_css:
         body_withs.append("Adi.Window")
     if has_window:
@@ -1114,7 +1108,6 @@ def generate_body(app: XmlApp, package_name: str,
         body_withs.append("Adi.Widget.Dialog")
         body_withs.append("Adi.Widget.Box")
         body_withs.append("Adi.Widget.Label")
-        body_withs.append("Adi.Widget.Button")
         if live_css or app.component_packages:
             body_withs.append("Adi.Window")
     if inline_groups or (inline_stylesheet and inline_stylesheet.root_properties):
@@ -1156,9 +1149,9 @@ def generate_body(app: XmlApp, package_name: str,
             generic_uses.append(w.generic_name)
 
     plain_with_only = {
+        "Adi.Assets",
         "Adi.CSS_Parser",
         "Adi.I18N",
-        "Adi.Layout_Util",
         "Adi.Widget.Dialog",
         "Adi.Window",
     }

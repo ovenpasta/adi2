@@ -667,7 +667,7 @@ package body Adi.Widget.Box is
                      Width => Assigned_Width, Height => 0.0), Style).Width));
 
       Row_Items : constant Flex_Row_Items :=
-        (if Inner_Width = Unknown_Assigned_Width then (1 .. 0 => <>)
+        (if Inner_Width = Unknown_Assigned_Width then [1 .. 0 => <>]
          else Flex_Row_Child_Widths (W, Inner_Width));
       Row_Index : Natural := 0;
 

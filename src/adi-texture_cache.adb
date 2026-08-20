@@ -4,7 +4,6 @@
 pragma Ada_2022;
 
 with Ada.Containers.Ordered_Maps;
-with Ada.Containers.Vectors;
 with Ada.Unchecked_Deallocation;
 with Adi.SDL.Render; use Adi.SDL.Render;
 

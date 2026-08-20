@@ -565,8 +565,14 @@ package Adi.SDL.Events is
       Data2      : System.Address;
    end record with Convention => C;
 
+   --  A union in C. Adi reads the tag and reinterprets the rest as the
+   --  specific event, so the remaining storage is named rather than left
+   --  implicit -- the record has to be the full union's size either way.
+   type Event_Storage is array (1 .. 124) of Uint8;
+
    type SDL_Event is record
       Event_Type : SDL_EventType;
+      Storage    : Event_Storage := [others => 0];
    end record with Convention => C, Size => 128 * 8;
 
    function SDL_GetModState return SDL_Keymod

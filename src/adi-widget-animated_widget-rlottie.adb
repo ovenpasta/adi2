@@ -3,6 +3,8 @@
 
 pragma Ada_2022;
 
+with Adi.Animated_Image;
+
 package body Adi.Widget.Animated_Widget.RLottie is
 
    type RLottie_Backend is new Animation_Backend with record

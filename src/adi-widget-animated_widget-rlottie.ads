@@ -3,7 +3,6 @@
 
 pragma Ada_2022;
 
-with Adi.Animated_Image;
 with Adi.RLottie; use Adi.RLottie;
 
 package Adi.Widget.Animated_Widget.RLottie is

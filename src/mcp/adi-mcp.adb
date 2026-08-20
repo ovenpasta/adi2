@@ -14,8 +14,6 @@ with Adi.App;
 with Adi.Clock;
 with Adi.Core;                   use Adi.Core;
 with Adi.CSS_Styles;             use Adi.CSS_Styles;
-with Adi.JSON;
-with Adi.Render;
 with Adi.Screenshot;
 with Adi.SDL.Events;             use Adi.SDL.Events;
 with Adi.Texture_Cache;

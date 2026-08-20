@@ -8,7 +8,6 @@ with Ada.Numerics.Elementary_Functions; use Ada.Numerics.Elementary_Functions;
 with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Hashed_Maps;
 with Ada.Unchecked_Conversion;
-with Ada.Unchecked_Deallocation;
 with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.Log;
 with Adi.Clock;
@@ -7056,7 +7055,7 @@ package body Adi.Widget is
         or else not Is_Row_Direction (Style.Flex_Direction)
         or else Content_Width <= 0.0
       then
-         return (1 .. 0 => <>);
+         return [1 .. 0 => <>];
       end if;
 
       for Child of W.Children loop
@@ -7066,7 +7065,7 @@ package body Adi.Widget is
       end loop;
 
       if N = 0 then
-         return (1 .. 0 => <>);
+         return [1 .. 0 => <>];
       end if;
 
       declare
@@ -7437,7 +7436,6 @@ package body Adi.Widget is
 
                      declare
                         Info : Flex_Child_Info;
-                        Flex_Basis_Px : Pixel_Type := 0.0;
                      begin
                         Info := Make_Flex_Child_Info
                           (Child          => Child.all,

@@ -3,7 +3,7 @@
 
 pragma Ada_2022;
 
-with Adi.Assets; use Adi.Assets;
+with Adi.Assets;
 with Adi.CSS_Parser;
 with Adi.CSS_Source; use Adi.CSS_Source;
 with Adi.CSS_Styles; use Adi.CSS_Styles;

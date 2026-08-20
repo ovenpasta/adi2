@@ -486,7 +486,7 @@ package body Adi.App is
 
     procedure Request_Quit is
        use Adi.SDL.Events;
-       Event  : aliased SDL_Event := (Event_Type => SDL_EVENT_QUIT);
+       Event  : aliased SDL_Event := (Event_Type => SDL_EVENT_QUIT, others => <>);
     begin
        if not Boolean (SDL_PushEvent (Event'Access)) then
           Adi.Log.Error ("Request_Quit: SDL_PushEvent failed");

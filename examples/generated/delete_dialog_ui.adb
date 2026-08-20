@@ -5,10 +5,8 @@ pragma Ada_2022;
 
 with Adi.CSS_Parser;
 with Adi.CSS_Source; use Adi.CSS_Source;
-with Adi.Layout_Util;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
-with Adi.Widget.Button; use Adi.Widget.Button;
 with Adi.Widget.Label; use Adi.Widget.Label;
 with Dialog_Example_Styles;
 

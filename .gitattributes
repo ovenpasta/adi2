@@ -1,0 +1,4 @@
+*                          text=auto eol=lf
+
+#  Vendored third-party files stay byte-for-byte as upstream ships them.
+vendor/open-sans/OFL.txt   -text

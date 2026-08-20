@@ -19,15 +19,12 @@ package Adi.Widget.Label is
    ---------------------------------------------------------------------------
 
    type Label_Widget is new Widget with private;
-   type Label_Widget_Access is access all Label_Widget'Class;
 
    --  Typed handle
    type Label_Handle is private;
    Null_Label_Handle : constant Label_Handle;
 
    --  Construction
-   function Create (Text : String := "") return Label_Widget_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle (Text : String := "") return Label_Handle;
 
    --  Handle bridge
@@ -79,5 +76,7 @@ private
       Id : Widget_Stores.Object_Id := Widget_Stores.Null_Id;
    end record;
    Null_Label_Handle : constant Label_Handle := (Id => Widget_Stores.Null_Id);
+
+   type Label_Widget_Access is access all Label_Widget'Class;
 
 end Adi.Widget.Label;

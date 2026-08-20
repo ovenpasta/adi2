@@ -18,15 +18,12 @@ package Adi.Widget.Image is
    ---------------------------------------------------------------------------
 
    type Image_Widget is new Widget with private;
-   type Image_Widget_Access is access all Image_Widget'Class;
 
    --  Typed handle
    type Image_Handle is private;
    Null_Image_Handle : constant Image_Handle;
 
    --  Construction
-   function Create (Img : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle) return Image_Widget_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle (Img : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle) return Image_Handle;
 
    --  Handle bridge
@@ -66,5 +63,7 @@ private
    end record;
    Null_Image_Handle : constant Image_Handle :=
      (Id => Widget_Stores.Null_Id);
+
+   type Image_Widget_Access is access all Image_Widget'Class;
 
 end Adi.Widget.Image;

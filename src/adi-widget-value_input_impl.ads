@@ -31,16 +31,10 @@ package Adi.Widget.Value_Input_Impl is
    ---------------------------------------------------------------------------
 
    type Value_Input_Widget is new Text_Input_Widget with private;
-   type Value_Input_Widget_Access is access all Value_Input_Widget;
 
    --  Typed handle
    type Value_Input_Handle is private;
    Null_Value_Input_Handle : constant Value_Input_Handle;
-
-   function Create
-     (Min   : Value_Type;
-      Max   : Value_Type;
-      Value : Value_Type) return Value_Input_Widget_Access;
    function Create_Handle
      (Min   : Value_Type;
       Max   : Value_Type;
@@ -124,5 +118,7 @@ private
    end record;
    Null_Value_Input_Handle : constant Value_Input_Handle :=
      (Id => Widget_Stores.Null_Id);
+
+   type Value_Input_Widget_Access is access all Value_Input_Widget;
 
 end Adi.Widget.Value_Input_Impl;

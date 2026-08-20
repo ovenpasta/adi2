@@ -16,7 +16,6 @@ package Adi.Widget.List_Box is
      (No_Selection, Single_Selection, Multi_Selection, Range_Selection);
 
    type List_Box_Widget is new Widget with private;
-   type List_Box_Widget_Access is access all List_Box_Widget'Class;
 
    --  Typed handle
    type List_Box_Handle is private;
@@ -194,5 +193,7 @@ private
    end record;
    Null_List_Box_Handle : constant List_Box_Handle :=
      (Id => Widget_Stores.Null_Id);
+
+   type List_Box_Widget_Access is access all List_Box_Widget'Class;
 
 end Adi.Widget.List_Box;

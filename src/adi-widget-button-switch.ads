@@ -13,15 +13,12 @@ package Adi.Widget.Button.Switch is
    ---------------------------------------------------------------------------
 
    type Switch_Widget is new Adi.Widget.Button.Button_Widget with private;
-   type Switch_Widget_Access is access all Switch_Widget'Class;
 
    --  Typed handle
    type Switch_Handle is private;
    Null_Switch_Handle : constant Switch_Handle;
 
    --  Construction
-   function Create (Checked : Boolean := False) return Switch_Widget_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle (Checked : Boolean := False) return Switch_Handle;
 
    --  Handle bridge
@@ -68,5 +65,7 @@ private
    end record;
    Null_Switch_Handle : constant Switch_Handle :=
      (Id => Widget_Stores.Null_Id);
+
+   type Switch_Widget_Access is access all Switch_Widget'Class;
 
 end Adi.Widget.Button.Switch;

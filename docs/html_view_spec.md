@@ -43,7 +43,7 @@ Attributes other than the above may be parsed and ignored.
 Package: `Adi.Widget.Html_View`
 
 - **Creation**
-  - `function Create return Html_View_Access;`
+  - `function Create_Handle return Html_View_Handle;`
   - No window attachment call is required; `Html_View` is window-agnostic.
 
 - **Content**

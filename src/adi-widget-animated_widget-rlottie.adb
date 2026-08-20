@@ -35,16 +35,16 @@ package body Adi.Widget.Animated_Widget.RLottie is
    overriding function Is_Looping (B : RLottie_Backend) return Boolean;
    overriding function Is_Playing (B : RLottie_Backend) return Boolean;
 
-   function Create
-     (Animation : Adi.RLottie.Animation_Handle) return Animated_Widget_Access
+   function Create_Handle
+     (Animation : Adi.RLottie.Animation_Handle) return Animated_Widget_Handle
    is
       Result : constant Animated_Widget_Access := new Animated_Widget;
    begin
       Result.Flags := [Visible => True, others => False];
       Register_Widget (Widget_Access (Result));
       Set_Animation (Result.all, Animation);
-      return Result;
-   end Create;
+      return Try_As_Animated_Widget (Get_Handle (Result.all));
+   end Create_Handle;
 
    procedure Set_Animation
      (W         : in out Animated_Widget'Class;

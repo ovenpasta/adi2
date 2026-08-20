@@ -245,9 +245,7 @@ def load_widget_grammar(path):
         tag = widget_elem.get("tag")
         info = {
             "package": "",
-            "access_type": "",
             "handle_type": "",
-            "create": "",
             "create_handle": "",
             "generic": widget_elem.get("generic", "").lower() == "true",
             "children_mode": widget_elem.get("children-mode", "children"),
@@ -256,12 +254,8 @@ def load_widget_grammar(path):
         for child in widget_elem:
             if child.tag == "package":
                 info["package"] = child.text.strip()
-            elif child.tag == "access-type":
-                info["access_type"] = child.text.strip()
             elif child.tag == "handle-type":
                 info["handle_type"] = child.text.strip()
-            elif child.tag == "create":
-                info["create"] = child.text.strip()
             elif child.tag == "create-handle":
                 info["create_handle"] = child.text.strip()
             elif child.tag == "attribute":
@@ -300,13 +294,6 @@ WIDGET_PACKAGES = {
     if not info["generic"]
 }
 
-WIDGET_ACCESS_TYPES = {
-    tag: f'{info["package"]}.{info["access_type"]}'
-    for tag, info in GRAMMAR.items()
-    if not info["generic"]
-}
-
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
@@ -339,14 +326,12 @@ def class_style_expr(classes: list[str]) -> str:
     return expr
 
 
-def widget_ada_type(widget: XmlWidget, generics_map: dict[str, XmlGeneric],
-                    use_handle: bool = False) -> str:
-    """Return the Ada type for a widget (access type or handle type)."""
+def widget_ada_type(widget: XmlWidget, generics_map: dict[str, XmlGeneric]) -> str:
+    """Return the Ada handle type for a widget."""
     tag_info = GRAMMAR[widget.tag]
-    key = "handle_type" if use_handle else "access_type"
     if tag_info["generic"]:
-        return f"{widget.generic_name}.{tag_info[key]}"
-    return f'{tag_info["package"]}.{tag_info[key]}'
+        return f'{widget.generic_name}.{tag_info["handle_type"]}'
+    return f'{tag_info["package"]}.{tag_info["handle_type"]}'
 
 
 def _i18n_wrap(value: str, context: str) -> str:
@@ -360,12 +345,11 @@ def _i18n_wrap(value: str, context: str) -> str:
 
 def widget_create_expr(
     widget: XmlWidget, generics_map: dict[str, XmlGeneric],
-    i18n: bool = False, i18n_context: str = "",
-    use_handle: bool = False
+    i18n: bool = False, i18n_context: str = ""
 ) -> str:
-    """Return the Ada Create expression for a widget."""
+    """Return the Ada Create_Handle expression for a widget."""
     tag_info = GRAMMAR[widget.tag]
-    template = tag_info["create_handle"] if use_handle else tag_info["create"]
+    template = tag_info["create_handle"]
 
     # Determine if i18n wrapping applies to this widget
     use_i18n = i18n and not widget.i18n_disabled
@@ -870,7 +854,7 @@ def generate_spec(app: XmlApp, package_name: str,
 
     # Exported widget variables (inside Instance)
     for w in exported:
-        ada_type = widget_ada_type(w, generics_map, use_handle=True)
+        ada_type = widget_ada_type(w, generics_map)
         lines.append(f"      {w.wid} : {ada_type};")
     if exported:
         lines.append("")
@@ -1477,10 +1461,9 @@ def generate_body(app: XmlApp, package_name: str,
 
     # Local declarations for internal widgets
     for w in internal:
-        ada_type = widget_ada_type(w, generics_map, use_handle=True)
+        ada_type = widget_ada_type(w, generics_map)
         create = widget_create_expr(w, generics_map,
-                                     i18n=i18n, i18n_context=app.i18n_context,
-                                     use_handle=True)
+                                     i18n=i18n, i18n_context=app.i18n_context)
         lines.append(f"      {w.wid} : constant {ada_type} := {create};")
 
     lines.append("   begin")
@@ -1490,8 +1473,7 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append("      --  Create widgets")
         for w in exported:
             create = widget_create_expr(w, generics_map,
-                                         i18n=i18n, i18n_context=app.i18n_context,
-                                         use_handle=True)
+                                         i18n=i18n, i18n_context=app.i18n_context)
             lines.append(f"      {w.wid} := {create};")
         lines.append("")
 
@@ -2099,7 +2081,7 @@ def generate_body(app: XmlApp, package_name: str,
 
 
 def main():
-    global GRAMMAR, WIDGET_TAGS, WIDGET_PACKAGES, WIDGET_ACCESS_TYPES
+    global GRAMMAR, WIDGET_TAGS, WIDGET_PACKAGES
 
     parser = argparse.ArgumentParser(
         description="Convert XML widget descriptions to Ada packages"
@@ -2138,11 +2120,6 @@ def main():
         WIDGET_TAGS = set(GRAMMAR.keys())
         WIDGET_PACKAGES = {
             tag: info["package"]
-            for tag, info in GRAMMAR.items()
-            if not info["generic"]
-        }
-        WIDGET_ACCESS_TYPES = {
-            tag: f'{info["package"]}.{info["access_type"]}'
             for tag, info in GRAMMAR.items()
             if not info["generic"]
         }

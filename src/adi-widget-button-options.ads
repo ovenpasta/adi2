@@ -18,7 +18,6 @@ package Adi.Widget.Button.Options is
    ---------------------------------------------------------------------------
 
    type Option_Group is limited new Group_Handler with private;
-   type Option_Group_Access is access all Option_Group;
 
    type Option_Changed_Callback is access procedure (Value : Option_Type);
 
@@ -27,9 +26,6 @@ package Adi.Widget.Button.Options is
 
    --  Associate a button with an option value.
    --  The button is made toggleable and linked to this group.
-   procedure Set_Button (G : in out Option_Group;
-                         O : Option_Type;
-                         B : Button_Widget_Access);
    procedure Set_Button (G : in out Option_Group;
                          O : Option_Type;
                          B : Button_Handle);

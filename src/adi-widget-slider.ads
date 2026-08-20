@@ -17,8 +17,8 @@ package Adi.Widget.Slider is
    --
    --  Usage:
    --    package My_Slider is new Adi.Widget.Slider (Float);
-   --    S : My_Slider.Slider_Widget_Access :=
-   --      My_Slider.Create (Min => 0.0, Max => 100.0, Value => 50.0);
+   --    S : My_Slider.Slider_Handle :=
+   --      My_Slider.Create_Handle (Min => 0.0, Max => 100.0, Value => 50.0);
    ---------------------------------------------------------------------------
 
    function Conv_To_Float (V : Value_Type) return Float is (Float (V));
@@ -35,17 +35,10 @@ package Adi.Widget.Slider is
    Vertical   : Orientation renames Impl.Vertical;
 
    subtype Slider_Widget is Impl.Slider_Widget;
-   subtype Slider_Widget_Access is Impl.Slider_Widget_Access;
    subtype Value_Changed_Callback is Impl.Value_Changed_Callback;
    subtype Slider_Handle is Impl.Slider_Handle;
    Null_Slider_Handle : Impl.Slider_Handle renames Impl.Null_Slider_Handle;
 
-   function Create
-     (Min   : Value_Type;
-      Max   : Value_Type;
-      Value : Value_Type := 0.0) return Slider_Widget_Access
-     renames Impl.Create
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle
      (Min   : Value_Type;
       Max   : Value_Type;

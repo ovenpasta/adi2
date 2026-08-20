@@ -8,18 +8,12 @@ with Adi.RLottie;      use Adi.RLottie;
 package Adi.Widget.RLottie is
 
    type RLottie_Widget is new Widget with private;
-   type RLottie_Widget_Access is access all RLottie_Widget'Class;
 
    --  Typed handle
    type RLottie_Handle is private;
    Null_RLottie_Handle : constant RLottie_Handle;
 
    --  Construction
-   function Create return RLottie_Widget_Access
-     with Obsolescent => "Use Create_Handle";
-   function Create
-     (Animation : Animation_Handle) return RLottie_Widget_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle return RLottie_Handle;
    function Create_Handle
      (Animation : Animation_Handle) return RLottie_Handle;
@@ -97,5 +91,7 @@ private
    end record;
    Null_RLottie_Handle : constant RLottie_Handle :=
      (Id => Widget_Stores.Null_Id);
+
+   type RLottie_Widget_Access is access all RLottie_Widget'Class;
 
 end Adi.Widget.RLottie;

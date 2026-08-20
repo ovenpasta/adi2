@@ -14,17 +14,12 @@ package Adi.Widget.Box is
    ---------------------------------------------------------------------------
 
    type Box_Widget is new Widget with private;
-   type Box_Widget_Access is access all Box_Widget'Class;
 
    --  Typed handle
    type Box_Handle is private;
    Null_Box_Handle : constant Box_Handle;
 
    --  Construction
-   function Create return Box_Widget_Access
-     with Obsolescent => "Use Create_Handle";
-   function Create (X, Y, W, H : Pixel_Type) return Box_Widget_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle return Box_Handle;
    function Create_Handle (X, Y, W, H : Pixel_Type) return Box_Handle;
 
@@ -61,5 +56,7 @@ private
       Id : Widget_Stores.Object_Id := Widget_Stores.Null_Id;
    end record;
    Null_Box_Handle : constant Box_Handle := (Id => Widget_Stores.Null_Id);
+
+   type Box_Widget_Access is access all Box_Widget'Class;
 
 end Adi.Widget.Box;

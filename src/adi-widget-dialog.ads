@@ -16,7 +16,6 @@ with Adi.Window;
 package Adi.Widget.Dialog is
 
    type Dialog_Widget is new Widget with private;
-   type Dialog_Widget_Access is access all Dialog_Widget'Class;
 
    --  Typed handle
    type Dialog_Handle is private;
@@ -245,5 +244,7 @@ private
    end record;
    Null_Dialog_Handle : constant Dialog_Handle :=
      (Id => Widget_Stores.Null_Id);
+
+   type Dialog_Widget_Access is access all Dialog_Widget'Class;
 
 end Adi.Widget.Dialog;

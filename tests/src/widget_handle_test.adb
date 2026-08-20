@@ -28,6 +28,10 @@ with Adi.Widget.List_Box;
 
 procedure Widget_Handle_Test is
 
+   use type Adi.Widget.Box.Box_Handle;
+   use type Adi.Widget.Label.Label_Handle;
+   use type Adi.Widget.Button.Button_Handle;
+
    package Float_Slider is new Adi.Widget.Slider (Float);
    package Float_Input is new Adi.Widget.Value_Input (Float);
    package Int_Input is new Adi.Widget.Integer_Value_Input (Integer);
@@ -42,16 +46,16 @@ procedure Widget_Handle_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Create_Handle is
-      Btn : constant Button.Button_Widget_Access := Button.Create ("OK");
-      H   : constant Widget_Handle := Get_Handle (Btn.all);
+      Btn : constant Button.Button_Handle := Button.Create_Handle ("OK");
+      H   : constant Widget_Handle := +Btn;
    begin
       Put_Line ("-- Create handle tests --");
       Test_Support.Assert (Is_Valid (H), "handle from Create should be valid");
 
       --  Create another widget, handles should be distinct
       declare
-         Lbl : constant Label.Label_Widget_Access := Label.Create ("Hi");
-         H2  : constant Widget_Handle := Get_Handle (Lbl.all);
+         Lbl : constant Label.Label_Handle := Label.Create_Handle ("Hi");
+         H2  : constant Widget_Handle := +Lbl;
       begin
          Test_Support.Assert (Is_Valid (H2), "label handle should be valid");
       end;
@@ -72,8 +76,8 @@ procedure Widget_Handle_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Destroy_Stale is
-      Btn : constant Button.Button_Widget_Access := Button.Create ("X");
-      H   : Widget_Handle := Get_Handle (Btn.all);
+      Btn : constant Button.Button_Handle := Button.Create_Handle ("X");
+      H   : Widget_Handle := +Btn;
    begin
       Put_Line ("-- Destroy/stale tests --");
       Test_Support.Assert (Is_Valid (H), "before destroy: valid");
@@ -86,18 +90,18 @@ procedure Widget_Handle_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Destroy_Detaches is
-      Root : constant Box.Box_Widget_Access := Box.Create;
-      Btn  : constant Button.Button_Widget_Access := Button.Create ("Go");
-      H    : Widget_Handle := Get_Handle (Btn.all);
+      Root : constant Box.Box_Handle := Box.Create_Handle;
+      Btn  : constant Button.Button_Handle := Button.Create_Handle ("Go");
+      H    : Widget_Handle := +Btn;
    begin
       Put_Line ("-- Destroy detaches from parent --");
-      Add_Child (Get_Handle (Root.all), H);
-      Test_Support.Assert (Child_Count (Get_Handle (Root.all)) = 1, "child added");
+      Add_Child (+Root, H);
+      Test_Support.Assert (Child_Count (+Root) = 1, "child added");
 
       Destroy (H);
-      Test_Support.Assert (Child_Count (Get_Handle (Root.all)) = 0,
+      Test_Support.Assert (Child_Count (+Root) = 0,
               "child removed after destroy, got" &
-              Child_Count (Get_Handle (Root.all))'Image);
+              Child_Count (+Root)'Image);
       Test_Support.Assert (not Is_Valid (H), "destroyed handle is stale");
    end Test_Destroy_Detaches;
 
@@ -106,13 +110,13 @@ procedure Widget_Handle_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Destroy_Recursive is
-      Root : constant Box.Box_Widget_Access := Box.Create;
-      C1   : constant Label.Label_Widget_Access := Label.Create ("A");
-      C2   : constant Label.Label_Widget_Access := Label.Create ("B");
+      Root : constant Box.Box_Handle := Box.Create_Handle;
+      C1   : constant Label.Label_Handle := Label.Create_Handle ("A");
+      C2   : constant Label.Label_Handle := Label.Create_Handle ("B");
 
-      H_Root : Widget_Handle := Get_Handle (Root.all);
-      H_C1   : constant Widget_Handle := Get_Handle (C1.all);
-      H_C2   : constant Widget_Handle := Get_Handle (C2.all);
+      H_Root : Widget_Handle := +Root;
+      H_C1   : constant Widget_Handle := +C1;
+      H_C2   : constant Widget_Handle := +C2;
    begin
       Put_Line ("-- Destroy recursive tests --");
       Add_Child (H_Root, H_C1);
@@ -132,8 +136,8 @@ procedure Widget_Handle_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Pump is
-      Btn : constant Button.Button_Widget_Access := Button.Create ("P");
-      H   : Widget_Handle := Get_Handle (Btn.all);
+      Btn : constant Button.Button_Handle := Button.Create_Handle ("P");
+      H   : Widget_Handle := +Btn;
    begin
       Put_Line ("-- Pump tests --");
       Test_Support.Assert (Is_Valid (H), "before destroy: valid");
@@ -147,15 +151,15 @@ procedure Widget_Handle_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Get_Handle_Roundtrip is
-      Lbl : constant Label.Label_Widget_Access := Label.Create ("RT");
-      H   : constant Widget_Handle := Get_Handle (Lbl.all);
+      Lbl : constant Label.Label_Handle := Label.Create_Handle ("RT");
+      H   : constant Widget_Handle := +Lbl;
    begin
       Put_Line ("-- Get_Handle roundtrip tests --");
       Test_Support.Assert (Is_Valid (H), "handle valid");
 
       --  Get handle again from the same widget should match
       declare
-         H2 : constant Widget_Handle := Get_Handle (Lbl.all);
+         H2 : constant Widget_Handle := +Lbl;
       begin
          Test_Support.Assert (Is_Valid (H2), "second Get_Handle also valid");
       end;
@@ -166,14 +170,14 @@ procedure Widget_Handle_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Resolve_Handle is
-      Btn : constant Button.Button_Widget_Access := Button.Create ("RH");
-      H   : constant Widget_Handle := Get_Handle (Btn.all);
+      Btn : constant Button.Button_Handle := Button.Create_Handle ("RH");
+      H   : constant Widget_Handle := +Btn;
       Ptr : Widget_Access;
    begin
       Put_Line ("-- Resolve_Handle tests --");
       Ptr := Resolve_Handle (H);
       Test_Support.Assert (Ptr /= null, "Resolve_Handle returns non-null for valid handle");
-      Test_Support.Assert (Ptr = Widget_Access (Btn),
+      Test_Support.Assert (Ptr = Resolve_Handle (+Btn),
               "Resolve_Handle returns same pointer");
 
       --  Resolve null handle should return null
@@ -202,15 +206,15 @@ procedure Widget_Handle_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Add_Child_Handle is
-      Root : constant Box.Box_Widget_Access := Box.Create;
+      Root : constant Box.Box_Handle := Box.Create_Handle;
       H    : constant Widget_Handle := Label.To_Widget_Handle
                                           (Label.Create_Handle ("ACH"));
    begin
       Put_Line ("-- Add_Child(handle) tests --");
-      Add_Child (Get_Handle (Root.all), H);
-      Test_Support.Assert (Child_Count (Get_Handle (Root.all)) = 1,
+      Add_Child (+Root, H);
+      Test_Support.Assert (Child_Count (+Root) = 1,
               "Add_Child with handle adds child, got" &
-              Child_Count (Get_Handle (Root.all))'Image);
+              Child_Count (+Root)'Image);
    end Test_Add_Child_Handle;
 
    ---------------------------------------------------------------------------
@@ -218,13 +222,13 @@ procedure Widget_Handle_Test is
    ---------------------------------------------------------------------------
 
    procedure Test_Add_Child_Null_Handle is
-      Root : constant Box.Box_Widget_Access := Box.Create;
+      Root : constant Box.Box_Handle := Box.Create_Handle;
    begin
       Put_Line ("-- Add_Child(Null_Handle) tests --");
-      Add_Child (Get_Handle (Root.all), Null_Handle);
-      Test_Support.Assert (Child_Count (Get_Handle (Root.all)) = 0,
+      Add_Child (+Root, Null_Handle);
+      Test_Support.Assert (Child_Count (+Root) = 0,
               "Add_Child with Null_Handle is no-op, got" &
-              Child_Count (Get_Handle (Root.all))'Image);
+              Child_Count (+Root)'Image);
    end Test_Add_Child_Null_Handle;
 
    ---------------------------------------------------------------------------

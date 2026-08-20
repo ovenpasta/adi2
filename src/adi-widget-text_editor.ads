@@ -13,15 +13,12 @@ with Adi.Window;
 package Adi.Widget.Text_Editor is
 
    type Text_Editor_Widget is new Widget with private;
-   type Text_Editor_Widget_Access is access all Text_Editor_Widget'Class;
 
    --  Typed handle
    type Text_Editor_Handle is private;
    Null_Text_Editor_Handle : constant Text_Editor_Handle;
 
    --  Construction
-   function Create (Text : String := "") return Text_Editor_Widget_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle (Text : String := "") return Text_Editor_Handle;
 
    --  Handle bridge
@@ -154,5 +151,7 @@ private
    end record;
    Null_Text_Editor_Handle : constant Text_Editor_Handle :=
      (Id => Widget_Stores.Null_Id);
+
+   type Text_Editor_Widget_Access is access all Text_Editor_Widget'Class;
 
 end Adi.Widget.Text_Editor;

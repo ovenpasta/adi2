@@ -11,38 +11,37 @@ package body Adi.Widget.Button.Options is
 
    procedure Set_Button (G : in out Option_Group;
                          O : Option_Type;
-                         B : Button_Widget_Access) is
-   begin
-      G.Buttons (O) := B;
-
-      --  Configure the button for group use
-      Set_Toggleable (B.all, True);
-      declare
-         G_Acc : constant Group_Handler_Access := G'Unchecked_Access;
-      begin
-         Set_Group (B.all, G_Acc);
-      end;
-
-      --  Set initial toggle state
-      if G.Initialized then
-         Set_Toggled (B.all, O = G.Selected);
-      else
-         --  First button added initializes the group
-         G.Selected := O;
-         G.Initialized := True;
-         Set_Toggled (B.all, True);
-      end if;
-   end Set_Button;
-
-   procedure Set_Button (G : in out Option_Group;
-                         O : Option_Type;
-                         B : Button_Handle) is
+                         B : Button_Handle)
+   is
       Ptr : constant Widget_Access := Widget_Stores.Get (B.Id);
    begin
       if Ptr = null then
          raise Constraint_Error with "Set_Button: stale or null handle";
       end if;
-      Set_Button (G, O, Button_Widget_Access (Ptr));
+
+      declare
+         Btn : constant Button_Widget_Access := Button_Widget_Access (Ptr);
+      begin
+         G.Buttons (O) := Btn;
+
+         --  Configure the button for group use
+         Set_Toggleable (Btn.all, True);
+         declare
+            G_Acc : constant Group_Handler_Access := G'Unchecked_Access;
+         begin
+            Set_Group (Btn.all, G_Acc);
+         end;
+
+         --  Set initial toggle state
+         if G.Initialized then
+            Set_Toggled (Btn.all, O = G.Selected);
+         else
+            --  First button added initializes the group
+            G.Selected := O;
+            G.Initialized := True;
+            Set_Toggled (Btn.all, True);
+         end if;
+      end;
    end Set_Button;
 
    ------------------

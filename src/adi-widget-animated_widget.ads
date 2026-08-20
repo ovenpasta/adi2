@@ -9,18 +9,12 @@ with Adi.Clock;
 package Adi.Widget.Animated_Widget is
 
    type Animated_Widget is new Widget with private;
-   type Animated_Widget_Access is access all Animated_Widget'Class;
 
    --  Typed handle
    type Animated_Widget_Handle is private;
    Null_Animated_Widget_Handle : constant Animated_Widget_Handle;
 
    --  Construction
-   function Create return Animated_Widget_Access
-     with Obsolescent => "Use Create_Handle";
-   function Create
-     (Animation : Animation_Handle) return Animated_Widget_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle return Animated_Widget_Handle;
    function Create_Handle
      (Animation : Animation_Handle) return Animated_Widget_Handle;
@@ -146,5 +140,7 @@ private
    end record;
    Null_Animated_Widget_Handle : constant Animated_Widget_Handle :=
      (Id => Widget_Stores.Null_Id);
+
+   type Animated_Widget_Access is access all Animated_Widget'Class;
 
 end Adi.Widget.Animated_Widget;

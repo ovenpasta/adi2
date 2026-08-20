@@ -7,7 +7,6 @@ with Adi.Text_Buffer; use Adi.Text_Buffer;
 
 package body Adi.Widget.Text_Context_Menu is
 
-   use type Adi.Widget.Context_Menu.Context_Menu_Access;
    use type Adi.Widget.Context_Menu.Menu_Handle;
    use type Adi.Window.Window_Access;
    use type Context_Menu_Signals.Connection_Id;
@@ -169,114 +168,51 @@ package body Adi.Widget.Text_Context_Menu is
       end if;
    end On_Context_Request;
 
-   function Create_Default
-     (Buffer       : Adi.Text_Buffer.Text_Buffer_Access;
-      Host         : Adi.Window.Window_Access;
-      Single_Line  : Boolean := False;
-      On_Applied   : Command_Applied_Callback := null;
-      Is_Read_Only : Read_Only_Query := null;
-      Is_Password  : Password_Query  := null)
-      return Adi.Widget.Context_Menu.Context_Menu_Access
-   is
-      Menu : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
-        Adi.Widget.Context_Menu.Create;
-      Menu_H : constant Adi.Widget.Context_Menu.Menu_Handle :=
-        Adi.Widget.Context_Menu.Get_Handle (Menu.all);
-   begin
-      if Host /= null then
-         Adi.Widget.Context_Menu.Attach_Window
-           (Menu.all, Adi.Window.Get_Handle (Host.all));
-      end if;
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Undo");
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Redo");
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Cut");
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Copy");
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Paste");
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Select All");
-      Adi.Widget.Context_Menu.Connect_Item_Selected
-        (Menu.all, On_Menu_Command'Access);
-
-      declare
-         I : constant Natural := Find_Command_Binding (Menu_H);
-      begin
-         if I = 0 then
-            Command_Bindings.Append
-              (New_Item =>
-                 Command_Binding'
-                   (Menu         => Menu_H,
-                    Buffer       => Buffer,
-                    Single_Line  => Single_Line,
-                    On_Applied   => On_Applied,
-                    Is_Read_Only => Is_Read_Only,
-                    Is_Password  => Is_Password));
-         else
-            Command_Bindings.Replace_Element
-              (I,
-               (Menu         => Menu_H,
-                Buffer       => Buffer,
-                Single_Line  => Single_Line,
-                On_Applied   => On_Applied,
-                Is_Read_Only => Is_Read_Only,
-                Is_Password  => Is_Password));
-         end if;
-      end;
-
-      return Menu;
-   end Create_Default;
-
-   function Create_Default
+   function Create_Default_Handle
      (Buffer       : Adi.Text_Buffer.Text_Buffer_Access;
       Host         : Adi.Window.Window_Handle;
       Single_Line  : Boolean := False;
       On_Applied   : Command_Applied_Callback := null;
       Is_Read_Only : Read_Only_Query := null;
       Is_Password  : Password_Query  := null)
-      return Adi.Widget.Context_Menu.Context_Menu_Access
+      return Adi.Widget.Context_Menu.Menu_Handle
    is
-      Menu : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
-        Adi.Widget.Context_Menu.Create;
       Menu_H : constant Adi.Widget.Context_Menu.Menu_Handle :=
-        Adi.Widget.Context_Menu.Get_Handle (Menu.all);
+        Adi.Widget.Context_Menu.Create_Handle;
    begin
       if Adi.Window.Is_Valid (Host) then
          Adi.Widget.Context_Menu.Attach_Window (Menu_H, Host);
       end if;
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Undo");
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Redo");
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Cut");
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Copy");
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Paste");
-      Adi.Widget.Context_Menu.Add_Item (Menu.all, "Select All");
+
+      Adi.Widget.Context_Menu.Add_Item (Menu_H, "Undo");
+      Adi.Widget.Context_Menu.Add_Item (Menu_H, "Redo");
+      Adi.Widget.Context_Menu.Add_Item (Menu_H, "Cut");
+      Adi.Widget.Context_Menu.Add_Item (Menu_H, "Copy");
+      Adi.Widget.Context_Menu.Add_Item (Menu_H, "Paste");
+      Adi.Widget.Context_Menu.Add_Item (Menu_H, "Select All");
+
       Adi.Widget.Context_Menu.Connect_Item_Selected
         (Menu_H, On_Menu_Command'Access);
 
       declare
          I : constant Natural := Find_Command_Binding (Menu_H);
+         B : constant Command_Binding :=
+           (Menu         => Menu_H,
+            Buffer       => Buffer,
+            Single_Line  => Single_Line,
+            On_Applied   => On_Applied,
+            Is_Read_Only => Is_Read_Only,
+            Is_Password  => Is_Password);
       begin
          if I = 0 then
-            Command_Bindings.Append
-              (New_Item =>
-                 Command_Binding'
-                   (Menu         => Menu_H,
-                    Buffer       => Buffer,
-                    Single_Line  => Single_Line,
-                    On_Applied   => On_Applied,
-                    Is_Read_Only => Is_Read_Only,
-                    Is_Password  => Is_Password));
+            Command_Bindings.Append (B);
          else
-            Command_Bindings.Replace_Element
-              (I,
-               (Menu         => Menu_H,
-                Buffer       => Buffer,
-                Single_Line  => Single_Line,
-                On_Applied   => On_Applied,
-                Is_Read_Only => Is_Read_Only,
-                Is_Password  => Is_Password));
+            Command_Bindings.Replace_Element (I, B);
          end if;
       end;
 
-      return Menu;
-   end Create_Default;
+      return Menu_H;
+   end Create_Default_Handle;
 
    function Create_Default_Handle
      (Buffer       : Adi.Text_Buffer.Text_Buffer_Access;
@@ -287,79 +223,16 @@ package body Adi.Widget.Text_Context_Menu is
       Is_Password  : Password_Query  := null)
       return Adi.Widget.Context_Menu.Menu_Handle
    is
-      M : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
-        Create_Default
-          (Buffer       => Buffer,
-           Host         => Host,
-           Single_Line  => Single_Line,
-           On_Applied   => On_Applied,
-           Is_Read_Only => Is_Read_Only,
-           Is_Password  => Is_Password);
-   begin
-      if M = null then
-         return Adi.Widget.Context_Menu.Null_Menu_Handle;
-      end if;
-      return Adi.Widget.Context_Menu.Get_Handle (M.all);
-   end Create_Default_Handle;
+     (Create_Default_Handle
+        (Buffer       => Buffer,
+         Host         => (if Host = null
+                          then Adi.Window.Null_Window_Handle
+                          else Adi.Window.Get_Handle (Host.all)),
+         Single_Line  => Single_Line,
+         On_Applied   => On_Applied,
+         Is_Read_Only => Is_Read_Only,
+         Is_Password  => Is_Password));
 
-   function Create_Default_Handle
-     (Buffer       : Adi.Text_Buffer.Text_Buffer_Access;
-      Host         : Adi.Window.Window_Handle;
-      Single_Line  : Boolean := False;
-      On_Applied   : Command_Applied_Callback := null;
-      Is_Read_Only : Read_Only_Query := null;
-      Is_Password  : Password_Query  := null)
-      return Adi.Widget.Context_Menu.Menu_Handle
-   is
-      M : constant Adi.Widget.Context_Menu.Context_Menu_Access :=
-        Create_Default
-          (Buffer       => Buffer,
-           Host         => Host,
-           Single_Line  => Single_Line,
-           On_Applied   => On_Applied,
-           Is_Read_Only => Is_Read_Only,
-           Is_Password  => Is_Password);
-   begin
-      if M = null then
-         return Adi.Widget.Context_Menu.Null_Menu_Handle;
-      end if;
-      return Adi.Widget.Context_Menu.Get_Handle (M.all);
-   end Create_Default_Handle;
-
-   procedure Bind_Widget_Request
-     (Target : in out Adi.Widget.Widget'Class;
-      Menu   : Adi.Widget.Context_Menu.Context_Menu_Access)
-   is
-      Menu_H   : Adi.Widget.Context_Menu.Menu_Handle :=
-        Adi.Widget.Context_Menu.Null_Menu_Handle;
-      T_Handle : constant Adi.Widget.Widget_Handle := Get_Handle (Target);
-      I        : constant Natural := Find_Request_Binding (T_Handle);
-      Conn     : Context_Menu_Signals.Connection_Id;
-   begin
-      if Menu = null then
-         return;
-      end if;
-
-      Menu_H := Adi.Widget.Context_Menu.Get_Handle (Menu.all);
-
-      if I /= 0 then
-         --  Disconnect previous subscription before reconnecting.
-         Disconnect_Context_Menu
-           (Target, Request_Bindings.Element (I).Conn_Id);
-      end if;
-      Conn := Connect_Context_Menu (Target, On_Context_Request'Access);
-      if I = 0 then
-         Request_Bindings.Append
-           (New_Item => Request_Binding'(Target  => T_Handle,
-                                         Menu    => Menu_H,
-                                         Conn_Id => Conn));
-      else
-         Request_Bindings.Replace_Element
-           (I, (Target  => T_Handle,
-                Menu    => Menu_H,
-                Conn_Id => Conn));
-      end if;
-   end Bind_Widget_Request;
 
    procedure Bind_Widget_Request
      (Target : Adi.Widget.Widget_Handle;
@@ -402,15 +275,6 @@ package body Adi.Widget.Text_Context_Menu is
             null;
       end;
    end Bind_Widget_Request;
-
-   procedure Unbind_Menu
-     (Menu : Adi.Widget.Context_Menu.Context_Menu_Access)
-   is
-   begin
-      if Menu /= null then
-         Unbind_Menu (Adi.Widget.Context_Menu.Get_Handle (Menu.all));
-      end if;
-   end Unbind_Menu;
 
    procedure Unbind_Menu
      (Menu : Adi.Widget.Context_Menu.Menu_Handle)

@@ -17,8 +17,8 @@ package Adi.Widget.Integer_Value_Input is
    --
    --  Usage:
    --    package My_Input is new Adi.Widget.Integer_Value_Input (Natural);
-   --    V : My_Input.Value_Input_Widget_Access :=
-   --      My_Input.Create (Min => 0, Max => 255, Value => 128);
+   --    V : My_Input.Value_Input_Handle :=
+   --      My_Input.Create_Handle (Min => 0, Max => 255, Value => 128);
    ---------------------------------------------------------------------------
 
    function Conv_To_Float (V : Value_Type) return Float is (Float (V));
@@ -37,18 +37,11 @@ package Adi.Widget.Integer_Value_Input is
       Allow_Decimal => False);
 
    subtype Value_Input_Widget is Impl.Value_Input_Widget;
-   subtype Value_Input_Widget_Access is Impl.Value_Input_Widget_Access;
    subtype Value_Changed_Callback is Impl.Value_Changed_Callback;
    subtype Value_Input_Handle is Impl.Value_Input_Handle;
    Null_Value_Input_Handle : Impl.Value_Input_Handle
      renames Impl.Null_Value_Input_Handle;
 
-   function Create
-     (Min   : Value_Type;
-      Max   : Value_Type;
-      Value : Value_Type := 0) return Value_Input_Widget_Access
-     renames Impl.Create
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle
      (Min   : Value_Type;
       Max   : Value_Type;

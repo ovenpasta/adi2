@@ -8,8 +8,9 @@ with Adi.RLottie; use Adi.RLottie;
 
 package Adi.Widget.Animated_Widget.RLottie is
 
-   function Create
-     (Animation : Adi.RLottie.Animation_Handle) return Animated_Widget_Access;
+   --  Construction
+   function Create_Handle
+     (Animation : Adi.RLottie.Animation_Handle) return Animated_Widget_Handle;
 
    procedure Set_Animation
      (W         : in out Animated_Widget'Class;

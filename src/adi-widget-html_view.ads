@@ -13,7 +13,6 @@ with Adi.Signal;
 package Adi.Widget.Html_View is
 
    type Html_View is new Widget with private;
-   type Html_View_Access is access all Html_View'Class;
 
    --  Typed handle
    type Html_View_Handle is private;
@@ -42,8 +41,6 @@ package Adi.Widget.Html_View is
       URI  : String) return String;
 
    --  Construction
-   function Create return Html_View_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle return Html_View_Handle;
 
    --  Handle bridge
@@ -288,5 +285,7 @@ private
    end record;
    Null_Html_View_Handle : constant Html_View_Handle :=
      (Id => Widget_Stores.Null_Id);
+
+   type Html_View_Access is access all Html_View'Class;
 
 end Adi.Widget.Html_View;

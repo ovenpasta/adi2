@@ -24,7 +24,6 @@ package Adi.Widget.Stack is
    ---------------------------------------------------------------------------
 
    type Stack_Widget is new Widget with private;
-   type Stack_Widget_Access is access all Stack_Widget'Class;
 
    --  Typed handle
    type Stack_Handle is private;
@@ -105,5 +104,7 @@ private
    end record;
    Null_Stack_Handle : constant Stack_Handle :=
      (Id => Widget_Stores.Null_Id);
+
+   type Stack_Widget_Access is access all Stack_Widget'Class;
 
 end Adi.Widget.Stack;

@@ -33,24 +33,6 @@ package Adi.Widget.Text_Context_Menu is
    type Password_Query is access function
      (Menu : Adi.Widget.Context_Menu.Menu_Handle) return Boolean;
 
-   function Create_Default
-     (Buffer       : Adi.Text_Buffer.Text_Buffer_Access;
-      Host         : Adi.Window.Window_Access;
-      Single_Line  : Boolean := False;
-      On_Applied   : Command_Applied_Callback := null;
-      Is_Read_Only : Read_Only_Query := null;
-      Is_Password  : Password_Query  := null)
-      return Adi.Widget.Context_Menu.Context_Menu_Access
-     with Obsolescent => "Use Create_Default_Handle";
-   function Create_Default
-     (Buffer       : Adi.Text_Buffer.Text_Buffer_Access;
-      Host         : Adi.Window.Window_Handle;
-      Single_Line  : Boolean := False;
-      On_Applied   : Command_Applied_Callback := null;
-      Is_Read_Only : Read_Only_Query := null;
-      Is_Password  : Password_Query  := null)
-      return Adi.Widget.Context_Menu.Context_Menu_Access
-     with Obsolescent => "Use Create_Default_Handle";
    function Create_Default_Handle
      (Buffer       : Adi.Text_Buffer.Text_Buffer_Access;
       Host         : Adi.Window.Window_Access;
@@ -70,17 +52,10 @@ package Adi.Widget.Text_Context_Menu is
       return Adi.Widget.Context_Menu.Menu_Handle;
 
    procedure Bind_Widget_Request
-     (Target : in out Adi.Widget.Widget'Class;
-      Menu   : Adi.Widget.Context_Menu.Context_Menu_Access)
-     with Obsolescent => "Use Bind_Widget_Request with handles";
-   procedure Bind_Widget_Request
      (Target : Adi.Widget.Widget_Handle;
       Menu   : Adi.Widget.Context_Menu.Menu_Handle);
 
    --  Remove binding entries for a given menu (call before destroying it).
-   procedure Unbind_Menu
-     (Menu : Adi.Widget.Context_Menu.Context_Menu_Access)
-     with Obsolescent => "Use Unbind_Menu with Menu_Handle";
    procedure Unbind_Menu
      (Menu : Adi.Widget.Context_Menu.Menu_Handle);
 

@@ -17,15 +17,12 @@ package Adi.Widget.Button is
    ---------------------------------------------------------------------------
 
    type Button_Widget is new Label_Widget with private;
-   type Button_Widget_Access is access all Button_Widget'Class;
 
    --  Typed handle
    type Button_Handle is private;
    Null_Button_Handle : constant Button_Handle;
 
    --  Construction
-   function Create (Text : String := "") return Button_Widget_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle (Text : String := "") return Button_Handle;
 
    --  Handle bridge
@@ -133,5 +130,7 @@ private
       Id : Widget_Stores.Object_Id := Widget_Stores.Null_Id;
    end record;
    Null_Button_Handle : constant Button_Handle := (Id => Widget_Stores.Null_Id);
+
+   type Button_Widget_Access is access all Button_Widget'Class;
 
 end Adi.Widget.Button;

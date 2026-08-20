@@ -15,7 +15,6 @@ with Adi.Window;
 package Adi.Widget.Combo_Box is
 
    type Combo_Box_Widget is new Widget with private;
-   type Combo_Box_Widget_Access is access all Combo_Box_Widget'Class;
 
    --  Typed handle
    type Combo_Box_Handle is private;
@@ -197,5 +196,7 @@ private
    end record;
    Null_Combo_Box_Handle : constant Combo_Box_Handle :=
      (Id => Widget_Stores.Null_Id);
+
+   type Combo_Box_Widget_Access is access all Combo_Box_Widget'Class;
 
 end Adi.Widget.Combo_Box;

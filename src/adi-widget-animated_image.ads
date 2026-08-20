@@ -9,18 +9,12 @@ with Adi.Animated_Image;  use Adi.Animated_Image;
 package Adi.Widget.Animated_Image is
 
    type Animated_Image_Widget is new Widget with private;
-   type Animated_Image_Widget_Access is access all Animated_Image_Widget'Class;
 
    --  Typed handle
    type Animated_Image_Handle is private;
    Null_Animated_Image_Handle : constant Animated_Image_Handle;
 
    --  Construction
-   function Create return Animated_Image_Widget_Access
-     with Obsolescent => "Use Create_Handle";
-   function Create
-     (Animation : Animation_Handle) return Animated_Image_Widget_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle return Animated_Image_Handle;
    function Create_Handle
      (Animation : Animation_Handle) return Animated_Image_Handle;
@@ -87,5 +81,7 @@ private
    end record;
    Null_Animated_Image_Handle : constant Animated_Image_Handle :=
      (Id => Widget_Stores.Null_Id);
+
+   type Animated_Image_Widget_Access is access all Animated_Image_Widget'Class;
 
 end Adi.Widget.Animated_Image;

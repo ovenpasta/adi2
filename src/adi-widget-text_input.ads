@@ -14,16 +14,12 @@ with Adi.Window;
 package Adi.Widget.Text_Input is
 
    type Text_Input_Widget is new Widget with private;
-   type Text_Input_Widget_Access is access all Text_Input_Widget'Class;
 
    --  Typed handle
    type Text_Input_Handle is private;
    Null_Text_Input_Handle : constant Text_Input_Handle;
 
    --  Construction
-   function Create (Text : String := "";
-                    Label : String := "") return Text_Input_Widget_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle (Text : String := "";
                            Label : String := "") return Text_Input_Handle;
 
@@ -185,5 +181,7 @@ private
    end record;
    Null_Text_Input_Handle : constant Text_Input_Handle :=
      (Id => Widget_Stores.Null_Id);
+
+   type Text_Input_Widget_Access is access all Text_Input_Widget'Class;
 
 end Adi.Widget.Text_Input;

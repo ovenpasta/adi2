@@ -31,16 +31,10 @@ package Adi.Widget.Slider_Impl is
    type Orientation is (Horizontal, Vertical);
 
    type Slider_Widget is new Widget with private;
-   type Slider_Widget_Access is access all Slider_Widget;
 
    --  Typed handle
    type Slider_Handle is private;
    Null_Slider_Handle : constant Slider_Handle;
-
-   function Create
-     (Min   : Value_Type;
-      Max   : Value_Type;
-      Value : Value_Type) return Slider_Widget_Access;
    function Create_Handle
      (Min   : Value_Type;
       Max   : Value_Type;
@@ -138,5 +132,7 @@ private
       Id : Widget_Stores.Object_Id := Widget_Stores.Null_Id;
    end record;
    Null_Slider_Handle : constant Slider_Handle := (Id => Widget_Stores.Null_Id);
+
+   type Slider_Widget_Access is access all Slider_Widget;
 
 end Adi.Widget.Slider_Impl;

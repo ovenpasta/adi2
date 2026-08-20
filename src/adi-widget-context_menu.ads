@@ -15,7 +15,6 @@ with Adi.Window;
 package Adi.Widget.Context_Menu is
 
    type Context_Menu is abstract tagged limited private;
-   type Context_Menu_Access is access all Context_Menu'Class;
 
    ---------------------------------------------------------------------------
    --  Handle Store (generational IDs, deferred destroy, borrow pinning)
@@ -41,11 +40,7 @@ package Adi.Widget.Context_Menu is
    package Item_Selected_Signals is new Adi.Signal
      (Item_Selected_Callback, null);
 
-   function Create return Context_Menu_Access
-     with Obsolescent => "Use Create_Handle";
    function Create_Handle return Menu_Handle;
-   function Resolve_Menu_Handle (H : Menu_Handle) return Context_Menu_Access
-     with Obsolescent => "Bridge only; prefer Menu_Handle APIs";
 
    procedure Attach_Window
      (Menu : in out Context_Menu;
@@ -166,6 +161,8 @@ private
    ---------------------------------------------------------------------------
    --  Menu Handle Store instantiation (after Context_Menu full definition)
    ---------------------------------------------------------------------------
+
+   type Context_Menu_Access is access all Context_Menu'Class;
 
    package Menu_Stores is new Adi.Handle_Store
      (Context_Menu, Context_Menu_Access);

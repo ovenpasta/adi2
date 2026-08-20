@@ -272,6 +272,40 @@ begin
    --  Order, load status, and mutation the guard must not hide
    ---------------------------------------------------------------------
 
+   Section ("A component with three sheets installs them as one step");
+
+   declare
+      Src   : Adi.CSS_Source.Style_Source;
+      Ok    : Boolean := False;
+      Base  : Adi.CSS_Source.Testing.Count;
+      Kept  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+   begin
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +Kept, Class_Name => "c");
+
+      --  What a generated Build does for a component with three linked
+      --  sheets. Publishing after each add would restyle every widget
+      --  bound so far, three times per build.
+      for I in 1 .. 20 loop
+         Adi.CSS_Source.Begin_Update (Src);
+         Adi.CSS_Source.Clear_Dynamic_Entries (Src);
+         Adi.CSS_Source.Add_Dynamic_String (Src, ".a { opacity: 0.1; }", Ok);
+         Adi.CSS_Source.Add_Dynamic_String (Src, ".b { opacity: 0.2; }", Ok);
+         Adi.CSS_Source.Add_Dynamic_String (Src, ".c { opacity: 0.3; }", Ok);
+         Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+         Adi.CSS_Source.End_Update (Src);
+
+         if I = 1 then
+            --  The first build is a real change and must publish once.
+            Base := Adi.CSS_Source.Testing.Visit_Count;
+         end if;
+      end loop;
+
+      Assert (Adi.CSS_Source.Testing.Visit_Count = Base,
+              "the builds after the first restyle nothing");
+   end;
+
    Section ("A sheet listed twice still wins the second time");
 
    declare
@@ -302,6 +336,13 @@ begin
       Src : Adi.CSS_Source.Style_Source;
       Ok  : Boolean := True;
    begin
+      --  Start from a source that has loaded something and is in
+      --  dynamic mode: a fresh source has nothing loaded either way, so
+      --  it cannot tell whether a failure cleared the flag.
+      Adi.CSS_Source.Add_Dynamic_String (Src, ".c { opacity: 0.25; }", Ok);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Assert (Ok, "the first sheet loads and dynamic mode is entered");
+
       Adi.CSS_Source.Add_Dynamic_File (Src, "no/such/file.css", Ok);
       Assert (not Ok, "a missing file fails");
 
@@ -310,6 +351,8 @@ begin
       Adi.CSS_Source.Add_Dynamic_File (Src, "no/such/file.css", Ok);
       Assert (not Ok, "and fails again when asked again");
 
+      --  Nothing is loaded now, so this has to try again and fail --
+      --  not accept the sheet that was loaded before.
       Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
       Assert (not Ok, "and selecting dynamic mode fails too");
    end;

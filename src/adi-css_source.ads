@@ -33,6 +33,18 @@ package Adi.CSS_Source is
      (Source   : in out Style_Source;
       Metadata : Adi.CSS_Parser.Stylesheet_Metadata);
 
+   --  Install a configuration as one step. Between Begin_Update and the
+   --  matching End_Update the bound widgets are left alone, and End_Update
+   --  restyles them once if the configuration ended up different from the
+   --  one they were last styled from. Without it, installing three
+   --  stylesheets publishes three configurations, and every widget bound
+   --  to the source is restyled for each -- which is what a component
+   --  built once per row of a list would pay, per row.
+   --
+   --  Calls nest; only the outermost End_Update publishes.
+   procedure Begin_Update (Source : in out Style_Source);
+   procedure End_Update (Source : in out Style_Source);
+
    procedure Clear_Static_Entries (Source : in out Style_Source);
    procedure Add_Static_Entry (Source : in out Style_Source;
                                Entry_Value : Static_Style_Entry);

@@ -97,6 +97,10 @@ package body Adi.CSS_Source is
         (others => <>);
       Applied_Statics  : Entry_Vectors.Vector;
       Applied_Text     : Unbounded_String;
+
+      --  Depth of Begin_Update/End_Update nesting. Above zero, the
+      --  configuration is still being assembled and nothing is published.
+      Update_Depth     : Natural := 0;
       Last_Error       : Unbounded_String;
       Static_Metadata  : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);
       Static_Styles    : Entry_Vectors.Vector;
@@ -426,7 +430,10 @@ package body Adi.CSS_Source is
    --  does on every call, and must cost nothing.
    procedure Reapply_If_Changed (Source : in out Style_Source) is
    begin
-      if Source.Impl = null or else Same_As_Applied (Source) then
+      if Source.Impl = null
+        or else Source.Impl.Update_Depth > 0
+        or else Same_As_Applied (Source)
+      then
          return;
       end if;
       Reapply_Bindings (Source);
@@ -636,6 +643,25 @@ package body Adi.CSS_Source is
          Reapply_If_Changed (Source);
       end if;
    end Set_Static_Metadata;
+
+   procedure Begin_Update (Source : in out Style_Source) is
+   begin
+      Ensure_Impl (Source);
+      Source.Impl.Update_Depth := Source.Impl.Update_Depth + 1;
+   end Begin_Update;
+
+   procedure End_Update (Source : in out Style_Source) is
+   begin
+      Ensure_Impl (Source);
+      if Source.Impl.Update_Depth = 0 then
+         return;
+      end if;
+
+      Source.Impl.Update_Depth := Source.Impl.Update_Depth - 1;
+      if Source.Impl.Update_Depth = 0 then
+         Reapply_If_Changed (Source);
+      end if;
+   end End_Update;
 
    procedure Clear_Static_Entries (Source : in out Style_Source) is
    begin

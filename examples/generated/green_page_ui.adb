@@ -78,6 +78,7 @@ package body Green_Page_UI is
       Label_2 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("This is the second page with a natural green background.");
    begin
       --  Register precompiled styles as static fallback
+      Adi.CSS_Source.Begin_Update (Source);
       Adi.CSS_Source.Clear_Static_Entries (Source);
       Stack_Example_Green_Styles.Register_Selectors (Source);
       Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
@@ -100,6 +101,7 @@ package body Green_Page_UI is
               (Source, Adi.CSS_Source.Static_Mode, Mode_OK);
          end if;
       end;
+      Adi.CSS_Source.End_Update (Source);
 
       --  Bind every widget under the selectors naming it
       Adi.CSS_Source.Bind_Root_Metadata (Source, +Box_1);

@@ -33,6 +33,8 @@ generate_if_needed "$XML_DIR/red_page.xml" "Red_Page_UI"
 generate_if_needed "$XML_DIR/green_page.xml" "Green_Page_UI"
 generate_if_needed "$XML_DIR/stack_example.xml" "Stack_Example_UI"
 generate_if_needed "$XML_DIR/material_demo.xml" "Material_Demo_UI" --i18n
+generate_if_needed "$XML_DIR/material_welcome_dialog.xml" "Material_Welcome_Dialog_UI"
+generate_if_needed "$XML_DIR/material_quit_dialog.xml" "Material_Quit_Dialog_UI"
 generate_if_needed "$XML_DIR/image_example.xml" "Image_Example_UI"
 generate_if_needed "$XML_DIR/delete_dialog.xml" "Delete_Dialog_UI"
 generate_if_needed "$XML_DIR/assets_example.xml" "Assets_Example_UI"

@@ -357,6 +357,7 @@ package body Demo_Flex_UI is
       Root := Adi.Widget.Box.Create_Handle;
 
       --  Register precompiled styles as static fallback
+      Adi.CSS_Source.Begin_Update (Source);
       Adi.CSS_Source.Clear_Static_Entries (Source);
       Demo_Flex_Styles.Register_Selectors (Source);
       Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
@@ -379,6 +380,7 @@ package body Demo_Flex_UI is
               (Source, Adi.CSS_Source.Static_Mode, Mode_OK);
          end if;
       end;
+      Adi.CSS_Source.End_Update (Source);
 
       Adi.CSS_Source.Attach_Window (Source, W);
       --  Bind every widget under the selectors naming it

@@ -1108,6 +1108,13 @@ def generate_body(app: XmlApp, package_name: str,
         body_withs.append("Adi.Widget.Dialog")
         body_withs.append("Adi.Widget.Box")
         body_withs.append("Adi.Widget.Label")
+        #  Binding a dialog button widens a Button_Handle, which needs
+        #  the package's "+" in scope. A dialog that styles no button
+        #  never names one.
+        if app.dialog is not None and (
+            app.dialog.button_classes or app.dialog.primary_button_classes
+        ):
+            body_withs.append("Adi.Widget.Button")
         if live_css or app.component_packages:
             body_withs.append("Adi.Window")
     if inline_groups or (inline_stylesheet and inline_stylesheet.root_properties):
@@ -1611,6 +1618,9 @@ def generate_body(app: XmlApp, package_name: str,
                     "      --  Register precompiled styles as static fallback"
                 )
                 lines.append(
+                    "      Adi.CSS_Source.Begin_Update (Source);"
+                )
+                lines.append(
                     "      Adi.CSS_Source.Clear_Static_Entries (Source);"
                 )
                 for source in selector_sources:
@@ -1678,6 +1688,7 @@ def generate_body(app: XmlApp, package_name: str,
             )
             lines.append("         end if;")
             lines.append("      end;")
+            lines.append("      Adi.CSS_Source.End_Update (Source);")
             lines.append("")
             if has_window:
                 lines.append(
@@ -1755,6 +1766,7 @@ def generate_body(app: XmlApp, package_name: str,
     elif (root is not None or has_dialog) and (live_css or link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties)):
         if live_css:
             lines.append("      --  Register root metadata / load dynamic CSS")
+            lines.append("      Adi.CSS_Source.Begin_Update (Source);")
             lines.append("      Adi.CSS_Source.Clear_Static_Entries (Source);")
             if link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties):
                 lines.append(
@@ -1765,6 +1777,9 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append("      begin")
             has_link = bool(any(link.href for link in app.css_links))
             has_style = bool(app.css_styles)
+            lines.append(
+                "         Adi.CSS_Source.Clear_Dynamic_Entries (Source);"
+            )
             for link in app.css_links:
                 if link.href:
                     lines.append(
@@ -1801,6 +1816,7 @@ def generate_body(app: XmlApp, package_name: str,
             )
             lines.append("         end if;")
             lines.append("      end;")
+            lines.append("      Adi.CSS_Source.End_Update (Source);")
             if has_window:
                 lines.append(
                     "      Adi.CSS_Source.Attach_Window (Source, W);"

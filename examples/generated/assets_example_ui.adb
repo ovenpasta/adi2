@@ -158,6 +158,7 @@ package body Assets_Example_UI is
       Adi.Widget.Label.Set_Icon (Label_21, Adi.Assets.Get_Image ("icons.svg?id=bell"));
 
       --  Register precompiled styles as static fallback
+      Adi.CSS_Source.Begin_Update (Source);
       Adi.CSS_Source.Clear_Static_Entries (Source);
       Assets_Example_Styles.Register_Selectors (Source);
       Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
@@ -180,6 +181,7 @@ package body Assets_Example_UI is
               (Source, Adi.CSS_Source.Static_Mode, Mode_OK);
          end if;
       end;
+      Adi.CSS_Source.End_Update (Source);
 
       Adi.CSS_Source.Attach_Window (Source, W);
       --  Bind every widget under the selectors naming it

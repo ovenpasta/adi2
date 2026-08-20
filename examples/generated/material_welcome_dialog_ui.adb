@@ -9,7 +9,7 @@ with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Button; use Adi.Widget.Button;
 with Adi.Widget.Label; use Adi.Widget.Label;
-with Material_Demo_Styles;
+with Material_Demo_Styles; use Material_Demo_Styles;
 
 package body Material_Welcome_Dialog_UI is
 
@@ -95,12 +95,17 @@ package body Material_Welcome_Dialog_UI is
       D : constant Adi.Widget.Dialog.Dialog_Handle :=
         Adi.Widget.Dialog.Create_Handle;
    begin
-      --  Register root metadata / load dynamic CSS
+      --  Register precompiled styles as static fallback
+      Adi.CSS_Source.Begin_Update (Source);
       Adi.CSS_Source.Clear_Static_Entries (Source);
+      Material_Demo_Styles.Register_Selectors (Source);
       Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
+
+      --  Load dynamic CSS and choose mode
       declare
          Loaded, Mode_OK : Boolean;
       begin
+         Adi.CSS_Source.Clear_Dynamic_Entries (Source);
          Adi.CSS_Source.Add_Dynamic_File
            (Source, "examples/css/material_demo.css", Loaded);
          if Loaded then
@@ -114,9 +119,13 @@ package body Material_Welcome_Dialog_UI is
               (Source, Adi.CSS_Source.Static_Mode, Mode_OK);
          end if;
       end;
+      Adi.CSS_Source.End_Update (Source);
+
+      --  Bind every widget under the selectors naming it
 
       --  Configure dialog
       Adi.Widget.Dialog.Set_OK_Button (D);
+      Adi.Widget.Dialog.Set_Button_Style (D, Dialog_Btn_Class_Part_Styles);
       --  Bind dialog live CSS
       Adi.CSS_Source.Bind_Root_Metadata (Source, +Adi.Widget.Dialog.Get_Content_Panel_Handle (D));
       Adi.CSS_Source.Bind_Class (Source, "dialog-backdrop", Adi.Widget.Dialog.To_Widget_Handle (D));

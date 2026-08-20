@@ -96,6 +96,7 @@ package body Hello_Example_UI is
       end if;
 
       --  Register precompiled styles as static fallback
+      Adi.CSS_Source.Begin_Update (Source);
       Adi.CSS_Source.Clear_Static_Entries (Source);
       Hello_Example_Styles.Register_Selectors (Source);
       Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
@@ -118,6 +119,7 @@ package body Hello_Example_UI is
               (Source, Adi.CSS_Source.Static_Mode, Mode_OK);
          end if;
       end;
+      Adi.CSS_Source.End_Update (Source);
 
       Adi.CSS_Source.Attach_Window (Source, W);
       --  Bind every widget under the selectors naming it

@@ -3,6 +3,7 @@
 
 pragma Ada_2022;
 
+with Ada.Finalization;
 with Adi.Signal;
 
 generic
@@ -17,15 +18,21 @@ package Adi.Widget.Button.Options is
    --  Clicking the already-selected button is a no-op.
    ---------------------------------------------------------------------------
 
-   type Option_Group is limited new Group_Handler with private;
+   --  Opaque: what a group is to its buttons is Adi.Widget.Button's own
+   --  business.  A group hands every button it owns a pointer back to
+   --  itself, so it is controlled, and finalization unlinks the buttons
+   --  it still holds.
+   type Option_Group is limited private;
 
    type Option_Changed_Callback is access procedure (Value : Option_Type);
 
    package Option_Changed_Signals is new Adi.Signal
      (Option_Changed_Callback, null);
 
-   --  Associate a button with an option value.
-   --  The button is made toggleable and linked to this group.
+   --  Associate a button with an option value.  The button is made
+   --  toggleable and linked to this group.  Any button that held this
+   --  option is unlinked, and a button moving in from another group is
+   --  dropped from that one.
    procedure Set_Button (G : in out Option_Group;
                          O : Option_Type;
                          B : Button_Handle);
@@ -43,20 +50,37 @@ package Adi.Widget.Button.Options is
    procedure Disconnect_Changed
      (G : in out Option_Group; Id : Option_Changed_Signals.Connection_Id);
 
-   --  Group_Handler dispatch (called by Button.On_Click)
-   overriding procedure On_Button_Clicked
-     (G : in out Option_Group;
-      W : Widget_Handle);
-
 private
 
-   type Button_Array is array (Option_Type) of Button_Widget_Access;
+   type Button_Array is array (Option_Type) of Button_Handle;
 
-   type Option_Group is limited new Group_Handler with record
-      Buttons     : Button_Array := [others => null];
+   --  The tagged half: what a button dispatches to.  A wrapper rather
+   --  than Option_Group itself, because a partial view has to name the
+   --  interfaces its full view implements, and naming Group_Handler
+   --  there would put the whole protocol back in the public API.
+   type Group_Impl is
+     limited new Ada.Finalization.Limited_Controlled
+       and Group_Handler with record
+      Buttons     : Button_Array := [others => Null_Button_Handle];
       Selected    : Option_Type := Option_Type'First;
-      Changed : Option_Changed_Signals.Signal;
+      Changed     : Option_Changed_Signals.Signal;
       Initialized : Boolean := False;
+   end record;
+
+   overriding procedure Finalize (G : in out Group_Impl);
+
+   --  Reached by dispatch from Button.On_Click, not by callers.
+   overriding procedure On_Button_Clicked
+     (G : in out Group_Impl;
+      W : Widget_Handle);
+
+   overriding procedure Forget_Button
+     (G : in out Group_Impl;
+      W : Widget_Handle);
+
+   --  Controlled by composition: Impl finalizes with its enclosing group.
+   type Option_Group is limited record
+      Impl : Group_Impl;
    end record;
 
 end Adi.Widget.Button.Options;

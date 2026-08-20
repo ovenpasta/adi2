@@ -308,11 +308,11 @@ package body Stack_Example_UI is
       Adi.Widget.Add_Child (+Root, +Pages);
 
       --  Wire option groups
-      Tab_Options_Group.Set_Button (Red, Btn_Red);
-      Tab_Options_Group.Set_Button (Green, Btn_Green);
-      Tab_Options_Group.Set_Button (Blue, Btn_Blue);
-      Tab_Options_Group.Disconnect_Changed (Tab_Options_Group_Conn);
-      Tab_Options_Group_Conn := Tab_Options_Group.Connect_Changed (On_Tab_Option_Wrapper'Unrestricted_Access);
+      Tab_Options.Set_Button (Tab_Options_Group, Red, Btn_Red);
+      Tab_Options.Set_Button (Tab_Options_Group, Green, Btn_Green);
+      Tab_Options.Set_Button (Tab_Options_Group, Blue, Btn_Blue);
+      Tab_Options.Disconnect_Changed (Tab_Options_Group, Tab_Options_Group_Conn);
+      Tab_Options_Group_Conn := Tab_Options.Connect_Changed (Tab_Options_Group, On_Tab_Option_Wrapper'Unrestricted_Access);
 
       --  Auto-wire CSS live reload
       Adi.Window.Connect_Tick (W, Tick_Styles_CB'Unrestricted_Access);

@@ -64,25 +64,6 @@ package Adi.Widget.Button is
    function  Is_Toggled     (W : Button_Widget) return Boolean;
    procedure Set_Toggled    (W : in out Button_Widget; Value : Boolean);
 
-   ---------------------------------------------------------------------------
-   --  Group Handler Interface
-   --
-   --  Used by Option_Group to coordinate radio-button behavior.
-   --  When a button has a Group link, toggle handling is delegated to the
-   --  group instead of being done locally.
-   ---------------------------------------------------------------------------
-
-   type Group_Handler is limited interface;
-   type Group_Handler_Access is access all Group_Handler'Class;
-
-   procedure On_Button_Clicked
-     (H : in out Group_Handler;
-      W : Widget_Handle) is abstract;
-
-   --  Link/unlink a button to a group
-   procedure Set_Group (W : in out Button_Widget;
-                        G : Group_Handler_Access);
-
    --  Typed handle methods
    procedure Connect_Clicked (H : Button_Handle; CB : Click_Callback);
    function  Connect_Clicked (H : Button_Handle; CB : Click_Callback)
@@ -118,6 +99,40 @@ package Adi.Widget.Button is
       Repeat   : Boolean);
 
 private
+
+   ---------------------------------------------------------------------------
+   --  Group Handler Interface
+   --
+   --  How a group of buttons coordinates radio behaviour: a button with a
+   --  group link delegates toggle handling to it instead of toggling
+   --  itself.  Private, because a group hands every button a pointer back
+   --  to itself and nothing here can enforce that the group outlives
+   --  them.  Adi.Widget.Button.Options is the supported group, and its
+   --  finalization unlinks the buttons it still owns.
+   ---------------------------------------------------------------------------
+
+   type Group_Handler is limited interface;
+   type Group_Handler_Access is access all Group_Handler'Class;
+
+   procedure On_Button_Clicked
+     (H : in out Group_Handler;
+      W : Widget_Handle) is abstract;
+
+   --  Called on the group a button is leaving, so it can drop its own
+   --  record of the membership.  It must not touch the button's group
+   --  link: by the time this runs, the new group owns it.
+   procedure Forget_Button
+     (H : in out Group_Handler;
+      W : Widget_Handle) is null;
+
+   --  Link/unlink a button to a group
+   procedure Set_Group (W : in out Button_Widget;
+                        G : Group_Handler_Access);
+
+   --  The group this button belongs to, or null.  A group compares this
+   --  against itself before acting on a button, so that a button rebound
+   --  elsewhere is left alone.
+   function Group_Of (W : Button_Widget) return Group_Handler_Access;
 
    type Button_Widget is new Label_Widget with record
       Toggleable : Boolean := False;

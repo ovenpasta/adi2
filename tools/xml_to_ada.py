@@ -1904,17 +1904,19 @@ def generate_body(app: XmlApp, package_name: str,
         group_var = f"{og.generic_name}_Group"
         for opt in og.options:
             og_lines.append(
-                f"      {group_var}.Set_Button ({opt.value}, {opt.button_id});"
+                f"      {og.generic_name}.Set_Button ({group_var},"
+                f" {opt.value}, {opt.button_id});"
             )
         if og.on_changed:
             wrapper = f"{og.on_changed}_Option_Wrapper"
             conn_var = f"{og.generic_name}_Group_Conn"
             og_lines.append(
-                f"      {group_var}.Disconnect_Changed ({conn_var});"
+                f"      {og.generic_name}.Disconnect_Changed"
+                f" ({group_var}, {conn_var});"
             )
             og_lines.append(
-                f"      {conn_var} := {group_var}.Connect_Changed"
-                f" ({wrapper}'Unrestricted_Access);"
+                f"      {conn_var} := {og.generic_name}.Connect_Changed"
+                f" ({group_var}, {wrapper}'Unrestricted_Access);"
             )
     if og_lines:
         lines.append("      --  Wire option groups")

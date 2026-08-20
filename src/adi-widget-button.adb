@@ -154,6 +154,11 @@ package body Adi.Widget.Button is
       W.Group := G;
    end Set_Group;
 
+   function Group_Of (W : Button_Widget) return Group_Handler_Access is
+   begin
+      return W.Group;
+   end Group_Of;
+
    ---------------------------------------------------------------------------
    --  Typed handle method overloads
    ---------------------------------------------------------------------------

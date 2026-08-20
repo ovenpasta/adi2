@@ -687,12 +687,12 @@ package body Material_Demo_UI is
       Adi.Widget.Add_Child (+Root, +Lock_Bar);
 
       --  Wire option groups
-      Nav_Options_Group.Set_Button (Home, Btn_Home);
-      Nav_Options_Group.Set_Button (Forms, Btn_Forms);
-      Nav_Options_Group.Set_Button (Settings, Btn_Settings);
-      Nav_Options_Group.Set_Button (Controls, Btn_Controls);
-      Nav_Options_Group.Disconnect_Changed (Nav_Options_Group_Conn);
-      Nav_Options_Group_Conn := Nav_Options_Group.Connect_Changed (On_Page_Option_Wrapper'Unrestricted_Access);
+      Nav_Options.Set_Button (Nav_Options_Group, Home, Btn_Home);
+      Nav_Options.Set_Button (Nav_Options_Group, Forms, Btn_Forms);
+      Nav_Options.Set_Button (Nav_Options_Group, Settings, Btn_Settings);
+      Nav_Options.Set_Button (Nav_Options_Group, Controls, Btn_Controls);
+      Nav_Options.Disconnect_Changed (Nav_Options_Group, Nav_Options_Group_Conn);
+      Nav_Options_Group_Conn := Nav_Options.Connect_Changed (Nav_Options_Group, On_Page_Option_Wrapper'Unrestricted_Access);
 
       --  Auto-wire CSS live reload
       Adi.Window.Connect_Tick (W, Tick_Styles_CB'Unrestricted_Access);

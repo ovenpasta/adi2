@@ -116,7 +116,8 @@ procedure Material_Demo is
       pragma Unreferenced (W, Button_Index, Button_Text);
    begin
       --  Navigate to the Forms page after dismissing (syncs nav buttons too)
-      UI.Nav_Options_Group.Set_Selected (Forms);
+      Material_Demo_UI.Nav_Options.Set_Selected
+        (UI.Nav_Options_Group, Forms);
    end On_Welcome_Result;
 
    Yes_Button_Index : Positive := Positive'Last;

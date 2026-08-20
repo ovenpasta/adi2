@@ -233,8 +233,31 @@ callback that does not carry a handle, because it also fires for stack
 widgets that are not registered in the store and therefore have no handle
 to carry. An observer must not retain the pointer.
 
-### Remaining tightening
+### Option groups
 
-1. Option groups (`Adi.Widget.Button.Options`) store `G'Unchecked_Access` in
-   each button, so a group that goes out of scope before its buttons leaves a
-   dangling pointer.
+`Adi.Widget.Button.Options` gives every button it owns a
+`Group_Handler_Access` back to the group, which `Button.On_Click`
+dispatches through. `Option_Group` is limited controlled so that
+finalization unlinks the buttons it still owns, and it holds membership
+as `Button_Handle`, so a button destroyed first drops out rather than
+being followed.
+
+Unlinking is conditional: a group clears a button's link only while that
+link still points at itself. `Set_Button` publishes the new membership
+and link before calling `Forget_Button` on the group the button is
+leaving, so for that window — and permanently if `Forget_Button`
+propagates an exception — the old group still records a button that has
+moved on. An unconditional unlink would then sever the newer binding
+when that group finalizes.
+
+`Group_Handler.Forget_Button` is a null-default primitive called on the
+group a button is leaving. A group that keeps its own record of
+membership should override it; one that does not simply keeps a stale
+entry, which every operation skips because the link no longer names it.
+
+`Group_Handler`, `Set_Group` and `Group_Of` are private to
+`Adi.Widget.Button`, so an application cannot hand a button a pointer to
+a group whose lifetime nothing controls. `Option_Group` is `limited
+private` and wraps the tagged half rather than being it: a partial view
+has to name the interfaces its full view implements, so deriving
+directly would have put the protocol back in the public API.

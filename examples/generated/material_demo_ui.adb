@@ -217,6 +217,7 @@ package body Material_Demo_UI is
       declare
          Loaded, Mode_OK : Boolean;
       begin
+         Adi.CSS_Source.Clear_Dynamic_Entries (Source);
          Adi.CSS_Source.Add_Dynamic_File
            (Source, "examples/css/material_demo.css", Loaded);
          if Loaded then

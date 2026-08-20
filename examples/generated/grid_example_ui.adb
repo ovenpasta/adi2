@@ -223,6 +223,7 @@ package body Grid_Example_UI is
       declare
          Loaded, Mode_OK : Boolean;
       begin
+         Adi.CSS_Source.Clear_Dynamic_Entries (Source);
          Adi.CSS_Source.Add_Dynamic_File
            (Source, "examples/css/grid_example.css", Loaded);
          if Loaded then

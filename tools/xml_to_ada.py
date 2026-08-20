@@ -1624,6 +1624,13 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append("      declare")
             lines.append("         Loaded, Mode_OK : Boolean;")
             lines.append("      begin")
+            #  Build may run more than once against one Source -- a list
+            #  that builds a row at a time does. The sheets below are
+            #  added in cascade order, so they have to replace what a
+            #  previous Build added rather than pile up behind it.
+            lines.append(
+                "         Adi.CSS_Source.Clear_Dynamic_Entries (Source);"
+            )
 
             has_link = bool(any(link.href for link in app.css_links))
             has_style = bool(app.css_styles)

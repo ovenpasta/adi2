@@ -254,10 +254,11 @@ begin
 
       Base := Adi.CSS_Source.Testing.Visit_Count;
 
-      --  A Build that runs its install block again adds the same sheet,
-      --  the same metadata and the same mode. None of it changed, so
-      --  none of it may re-parse or restyle.
+      --  A Build that runs its install block again replaces the sheets
+      --  and re-selects the mode. The configuration ends up identical,
+      --  so nothing may be re-parsed or restyled.
       for I in 1 .. 20 loop
+         Adi.CSS_Source.Clear_Dynamic_Entries (Src);
          Adi.CSS_Source.Add_Dynamic_String
            (Src, ".cell { opacity: 0.5; }", Ok);
          Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
@@ -265,6 +266,114 @@ begin
 
       Assert (Adi.CSS_Source.Testing.Visit_Count = Base,
               "re-installing an unchanged stylesheet restyles nothing");
+   end;
+
+   ---------------------------------------------------------------------
+   --  Order, load status, and mutation the guard must not hide
+   ---------------------------------------------------------------------
+
+   Section ("A sheet listed twice still wins the second time");
+
+   declare
+      Src : Adi.CSS_Source.Style_Source;
+      W   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Ok  : Boolean := False;
+
+      function Opacity_Of return Float is
+        (Float (Get_Resolved_Part_Style (+W, Main_Part).Opacity));
+   begin
+      --  A, B, A: the later A wins, as the cascade says. Skipping the
+      --  repeat because the source already carries it would leave B.
+      Adi.CSS_Source.Add_Dynamic_String (Src, ".c { opacity: 0.25; }", Ok);
+      Adi.CSS_Source.Add_Dynamic_String (Src, ".c { opacity: 0.75; }", Ok);
+      Adi.CSS_Source.Add_Dynamic_String (Src, ".c { opacity: 0.25; }", Ok);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Assert (Ok, "the sheets load");
+
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +W, Class_Name => "c");
+      Assert (Opacity_Of = 0.25, "the last copy of the sheet wins");
+   end;
+
+   Section ("A sheet that failed to load does not report success later");
+
+   declare
+      Src : Adi.CSS_Source.Style_Source;
+      Ok  : Boolean := True;
+   begin
+      Adi.CSS_Source.Add_Dynamic_File (Src, "no/such/file.css", Ok);
+      Assert (not Ok, "a missing file fails");
+
+      --  The identical call must not pass merely because the entry is
+      --  already on the list.
+      Adi.CSS_Source.Add_Dynamic_File (Src, "no/such/file.css", Ok);
+      Assert (not Ok, "and fails again when asked again");
+
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Assert (not Ok, "and selecting dynamic mode fails too");
+   end;
+
+   Section ("Replacing the static entries restyles what is bound");
+
+   declare
+      Src : Adi.CSS_Source.Style_Source;
+      W   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Ok  : Boolean := False;
+
+      Metadata : constant Adi.CSS_Parser.Stylesheet_Metadata :=
+        (Has_Root_Style => False, others => <>);
+
+      function Opacity_Of return Float is
+        (Float (Get_Resolved_Part_Style (+W, Main_Part).Opacity));
+   begin
+      Adi.CSS_Source.Add_Static_Entry
+        (Src,
+         Adi.CSS_Source.Class_Entry
+           ("c", Main_Styles ((Opacity => Set (0.25), others => <>))));
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Static_Mode, Ok);
+      Adi.CSS_Source.Set_Static_Metadata (Src, Metadata);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +W, Class_Name => "c");
+      Assert (Opacity_Of = 0.25, "the widget takes the first styles");
+
+      --  The same metadata and the same mode, but different styles: a
+      --  guard that only compared those two would leave the widget as
+      --  it was.
+      Adi.CSS_Source.Clear_Static_Entries (Src);
+      Adi.CSS_Source.Add_Static_Entry
+        (Src,
+         Adi.CSS_Source.Class_Entry
+           ("c", Main_Styles ((Opacity => Set (0.75), others => <>))));
+      Adi.CSS_Source.Set_Static_Metadata (Src, Metadata);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Static_Mode, Ok);
+
+      Assert (Opacity_Of = 0.75,
+              "replacing the entries restyles the bound widget");
+   end;
+
+   Section ("Clearing the dynamic sheets restyles what is bound");
+
+   declare
+      Src : Adi.CSS_Source.Style_Source;
+      W   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Ok  : Boolean := False;
+
+      function Opacity_Of return Float is
+        (Float (Get_Resolved_Part_Style (+W, Main_Part).Opacity));
+   begin
+      Adi.CSS_Source.Add_Dynamic_String (Src, ".c { opacity: 0.25; }", Ok);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +W, Class_Name => "c");
+      Assert (Opacity_Of = 0.25, "the widget takes the sheet's styles");
+
+      Adi.CSS_Source.Clear_Dynamic_Entries (Src);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Assert (Opacity_Of /= 0.25,
+              "and gives them up when the sheet is cleared");
    end;
 
    ---------------------------------------------------------------------

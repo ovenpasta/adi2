@@ -83,6 +83,20 @@ package body Adi.CSS_Source is
       --  without searching. Bindings keeps the history a reload replays;
       --  this keeps what is currently true of each widget.
       Effective        : Binding_Maps.Map;
+
+      --  The text the dynamic sheet was last built from, and the whole
+      --  configuration as it stood when the bound widgets were last
+      --  restyled. Comparing against these is what tells a source that
+      --  has been reconfigured from one that has been handed the same
+      --  configuration again -- which is what a generated Build does on
+      --  every call, once per row of a list.
+      Dynamic_Text     : Unbounded_String;
+      Applied_Valid    : Boolean := False;
+      Applied_Mode     : Source_Mode := Dynamic_Mode;
+      Applied_Metadata : Adi.CSS_Parser.Stylesheet_Metadata :=
+        (others => <>);
+      Applied_Statics  : Entry_Vectors.Vector;
+      Applied_Text     : Unbounded_String;
       Last_Error       : Unbounded_String;
       Static_Metadata  : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);
       Static_Styles    : Entry_Vectors.Vector;
@@ -381,6 +395,44 @@ package body Adi.CSS_Source is
       end;
    end Restyle;
 
+   --  What the bound widgets were last styled from. Static mode reads
+   --  the registered entries and the metadata; dynamic mode reads the
+   --  sheet, and the text it was built from stands for it.
+   function Same_As_Applied (Source : Style_Source) return Boolean is
+      use type Adi.CSS_Parser.Stylesheet_Metadata;
+      use type Entry_Vectors.Vector;
+   begin
+      return Source.Impl.Applied_Valid
+        and then Source.Impl.Applied_Mode = Source.Impl.Mode
+        and then Source.Impl.Applied_Metadata = Source.Impl.Static_Metadata
+        and then Source.Impl.Applied_Statics = Source.Impl.Static_Styles
+        and then Source.Impl.Applied_Text = Source.Impl.Dynamic_Text;
+   end Same_As_Applied;
+
+   procedure Note_Applied (Source : in out Style_Source) is
+   begin
+      Source.Impl.Applied_Valid    := True;
+      Source.Impl.Applied_Mode     := Source.Impl.Mode;
+      Source.Impl.Applied_Metadata := Source.Impl.Static_Metadata;
+      Source.Impl.Applied_Statics  := Source.Impl.Static_Styles;
+      Source.Impl.Applied_Text     := Source.Impl.Dynamic_Text;
+   end Note_Applied;
+
+   procedure Reapply_Bindings (Source : in out Style_Source);
+
+   --  Restyle every bound widget, but only when the configuration they
+   --  were last styled from is not the one in force now. Handing a
+   --  source the configuration it already has is what a generated Build
+   --  does on every call, and must cost nothing.
+   procedure Reapply_If_Changed (Source : in out Style_Source) is
+   begin
+      if Source.Impl = null or else Same_As_Applied (Source) then
+         return;
+      end if;
+      Reapply_Bindings (Source);
+      Note_Applied (Source);
+   end Reapply_If_Changed;
+
    procedure Reapply_Bindings (Source : in out Style_Source) is
    begin
       if Source.Impl = null then
@@ -499,6 +551,7 @@ package body Adi.CSS_Source is
                      else
                         Source.Impl.Last_Error :=
                           To_Unbounded_String ("File not found: " & Path);
+                        Source.Impl.Dynamic_Loaded := False;
                         Success := False;
                         return;
                      end if;
@@ -518,6 +571,9 @@ package body Adi.CSS_Source is
            To_String (Combined),
            Load_OK);
          Source.Impl.Dynamic_Loaded := Load_OK;
+         if Load_OK then
+            Source.Impl.Dynamic_Text := Combined;
+         end if;
          if Load_OK then
             Source.Impl.Last_Error := Null_Unbounded_String;
          else
@@ -565,28 +621,19 @@ package body Adi.CSS_Source is
       end loop;
 
       if Source.Impl.Mode = Static_Mode then
-         Reapply_Bindings (Source);
+         Reapply_If_Changed (Source);
       end if;
    end Set_Static_Entries;
 
    procedure Set_Static_Metadata
      (Source   : in out Style_Source;
-      Metadata : Adi.CSS_Parser.Stylesheet_Metadata)
-   is
-      use type Adi.CSS_Parser.Stylesheet_Metadata;
+      Metadata : Adi.CSS_Parser.Stylesheet_Metadata) is
    begin
       Ensure_Impl (Source);
 
-      --  Installing the same metadata again changes nothing, and a
-      --  source configured once per built subtree would otherwise
-      --  restyle every widget bound to it so far, on every build.
-      if Source.Impl.Static_Metadata = Metadata then
-         return;
-      end if;
-
       Source.Impl.Static_Metadata := Metadata;
       if Source.Impl.Mode = Static_Mode then
-         Reapply_Bindings (Source);
+         Reapply_If_Changed (Source);
       end if;
    end Set_Static_Metadata;
 
@@ -603,44 +650,11 @@ package body Adi.CSS_Source is
       Source.Impl.Static_Styles.Append (Entry_Value);
    end Add_Static_Entry;
 
-   --  True when this source already carries the entry described.
-   function Already_Has (Source : Style_Source;
-                         E      : Dynamic_Entry) return Boolean is
-   begin
-      for Existing of Source.Impl.Entries loop
-         if Existing.Kind = E.Kind then
-            case E.Kind is
-               when File_Entry =>
-                  if Existing.Path = E.Path then
-                     return True;
-                  end if;
-               when String_Entry =>
-                  if Existing.Content = E.Content then
-                     return True;
-                  end if;
-            end case;
-         end if;
-      end loop;
-      return False;
-   end Already_Has;
-
    procedure Add_Dynamic_File (Source  : in out Style_Source;
                                Path    : String;
                                Success : out Boolean) is
    begin
       Ensure_Impl (Source);
-
-      --  Already loaded: re-reading it is what Reload_Dynamic and Tick
-      --  are for. Adding it again is configuration repeated, and must
-      --  not re-parse the file or restyle everything bound so far.
-      if Already_Has (Source,
-                      (Kind          => File_Entry,
-                       Path          => To_Unbounded_String (Path),
-                       Last_Modified => Ada.Calendar.Clock))
-      then
-         Success := True;
-         return;
-      end if;
 
       Source.Impl.Entries.Append (
         Dynamic_Entry'(Kind          => File_Entry,
@@ -649,7 +663,7 @@ package body Adi.CSS_Source is
 
       Reload_All_Dynamic (Source, Success);
       if Success and then Source.Impl.Mode = Dynamic_Mode then
-         Reapply_Bindings (Source);
+         Reapply_If_Changed (Source);
       end if;
    end Add_Dynamic_File;
 
@@ -659,21 +673,13 @@ package body Adi.CSS_Source is
    begin
       Ensure_Impl (Source);
 
-      if Already_Has (Source,
-                      (Kind    => String_Entry,
-                       Content => To_Unbounded_String (CSS_Content)))
-      then
-         Success := True;
-         return;
-      end if;
-
       Source.Impl.Entries.Append (
         Dynamic_Entry'(Kind    => String_Entry,
                        Content => To_Unbounded_String (CSS_Content)));
 
       Reload_All_Dynamic (Source, Success);
       if Success and then Source.Impl.Mode = Dynamic_Mode then
-         Reapply_Bindings (Source);
+         Reapply_If_Changed (Source);
       end if;
    end Add_Dynamic_String;
 
@@ -682,6 +688,10 @@ package body Adi.CSS_Source is
       Ensure_Impl (Source);
       Source.Impl.Entries.Clear;
       Source.Impl.Dynamic_Loaded := False;
+      --  Nothing is loaded now, and saying so is what makes the next
+      --  Set_Mode notice that the widgets are styled from a sheet this
+      --  source no longer has.
+      Source.Impl.Dynamic_Text := Null_Unbounded_String;
    end Clear_Dynamic_Entries;
 
    procedure Reload_Dynamic (Source  : in out Style_Source;
@@ -690,7 +700,7 @@ package body Adi.CSS_Source is
       Ensure_Impl (Source);
       Reload_All_Dynamic (Source, Success);
       if Success then
-         Reapply_Bindings (Source);
+         Reapply_If_Changed (Source);
       end if;
    end Reload_Dynamic;
 
@@ -713,7 +723,6 @@ package body Adi.CSS_Source is
                        Mode    : Source_Mode;
                        Success : out Boolean)
    is
-      Loaded_Now : Boolean := False;
    begin
       Ensure_Impl (Source);
       Success := True;
@@ -726,17 +735,10 @@ package body Adi.CSS_Source is
          if not Success then
             return;
          end if;
-         Loaded_Now := True;
-      end if;
-
-      --  Selecting the mode a source is already in changes nothing --
-      --  unless entering it had to load the stylesheets just now.
-      if Source.Impl.Mode = Mode and then not Loaded_Now then
-         return;
       end if;
 
       Source.Impl.Mode := Mode;
-      Reapply_Bindings (Source);
+      Reapply_If_Changed (Source);
    end Set_Mode;
 
    function Get_Mode (Source : Style_Source) return Source_Mode is
@@ -799,7 +801,7 @@ package body Adi.CSS_Source is
             return;
          end if;
          Reloaded := True;
-         Reapply_Bindings (Source);
+         Reapply_If_Changed (Source);
       end if;
    end Tick;
 

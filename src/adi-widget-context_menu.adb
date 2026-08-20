@@ -59,7 +59,7 @@ package body Adi.Widget.Context_Menu is
       Button : Mouse_Button;
       Clicks : Natural := 1);
 
-   use type Adi.Window.Window_Access;
+   use type Adi.Window.Window_Handle;
    use type Popup_Lists.List_Box_Handle;
 
    type Menu_Binding is record
@@ -264,7 +264,7 @@ package body Adi.Widget.Context_Menu is
       Dismiss : Dismiss_Layer_Widget_Access := null;
       Win_Size : Size_2D;
    begin
-      if Menu.Host_Window = null then
+      if not Adi.Window.Is_Valid (Menu.Host_Window) then
          return;
       end if;
 
@@ -279,7 +279,7 @@ package body Adi.Widget.Context_Menu is
          return;
       end if;
 
-      Win_Size := Adi.Window.Get_Size (Menu.Host_Window.all);
+      Win_Size := Adi.Window.Get_Size (Menu.Host_Window);
       Set_Geometry
         (Dismiss.all,
          (X => 0.0, Y => 0.0, Width => Win_Size.Width, Height => Win_Size.Height));
@@ -296,11 +296,13 @@ package body Adi.Widget.Context_Menu is
       Wd, Ht  : Pixel_Type;
       X_Pos, Y_Pos : Pixel_Type;
    begin
-      if Menu.Host_Window = null or else not Popup_Lists.Is_Valid (Menu.Popup) then
+      if not Adi.Window.Is_Valid (Menu.Host_Window)
+        or else not Popup_Lists.Is_Valid (Menu.Popup)
+      then
          return;
       end if;
 
-      Win_Size := Adi.Window.Get_Size (Menu.Host_Window.all);
+      Win_Size := Adi.Window.Get_Size (Menu.Host_Window);
       declare
          R : constant Widget_Ref := Borrow (+Menu.Popup);
       begin
@@ -412,41 +414,10 @@ package body Adi.Widget.Context_Menu is
 
    procedure Attach_Window
      (Menu : in out Context_Menu;
-      Host : Adi.Window.Window_Access)
-   is
-   begin
-      Menu.Host_Window := Host;
-   end Attach_Window;
-
-   procedure Attach_Window
-     (Menu : in out Context_Menu;
       Host : Adi.Window.Window_Handle)
    is
    begin
-      if not Adi.Window.Is_Valid (Host) then
-         Attach_Window (Menu, null);
-         return;
-      end if;
-
-      declare
-         R : constant Adi.Window.Window_Ref := Adi.Window.Borrow (Host);
-      begin
-         Attach_Window (Menu, Adi.Window.Window (R.Ptr.all)'Unchecked_Access);
-      end;
-   exception
-      when Constraint_Error =>
-         Attach_Window (Menu, null);
-   end Attach_Window;
-
-   procedure Attach_Window
-     (Menu : Menu_Handle;
-      Host : Adi.Window.Window_Access)
-   is
-      Ptr : constant Context_Menu_Access := Menu_Stores.Get (Menu.Id);
-   begin
-      if Ptr /= null then
-         Attach_Window (Ptr.all, Host);
-      end if;
+      Menu.Host_Window := Host;
    end Attach_Window;
 
    procedure Attach_Window
@@ -698,7 +669,7 @@ package body Adi.Widget.Context_Menu is
       Dismiss : Dismiss_Layer_Widget_Access := null;
    begin
       if Menu.Open
-        or else Menu.Host_Window = null
+        or else not Adi.Window.Is_Valid (Menu.Host_Window)
         or else not Popup_Lists.Is_Valid (Menu.Popup)
       then
          return;
@@ -718,8 +689,8 @@ package body Adi.Widget.Context_Menu is
       Position_Dismiss_Layer (Menu);
       Position_Popup (Menu, X, Y, Min_Width);
 
-      Adi.Window.Add_Overlay (Menu.Host_Window.all, Get_Handle (Dismiss.all));
-      Adi.Window.Add_Overlay (Menu.Host_Window.all, +Menu.Popup);
+      Adi.Window.Add_Overlay (Menu.Host_Window, Get_Handle (Dismiss.all));
+      Adi.Window.Add_Overlay (Menu.Host_Window, +Menu.Popup);
       Menu.Open := True;
       Mark_Dirty (Dismiss.all);
       Mark_Dirty (+Menu.Popup);
@@ -740,7 +711,7 @@ package body Adi.Widget.Context_Menu is
    procedure Hide (Menu : in out Context_Menu) is
       Dismiss : Dismiss_Layer_Widget_Access := null;
    begin
-      if not Menu.Open or else Menu.Host_Window = null or else not Popup_Lists.Is_Valid (Menu.Popup) then
+      if not Menu.Open or else not Adi.Window.Is_Valid (Menu.Host_Window) or else not Popup_Lists.Is_Valid (Menu.Popup) then
          return;
       end if;
 
@@ -751,9 +722,9 @@ package body Adi.Widget.Context_Menu is
          end if;
       end loop;
 
-      Adi.Window.Remove_Overlay (Menu.Host_Window.all, +Menu.Popup);
+      Adi.Window.Remove_Overlay (Menu.Host_Window, +Menu.Popup);
       if Dismiss /= null then
-         Adi.Window.Remove_Overlay (Menu.Host_Window.all, Get_Handle (Dismiss.all));
+         Adi.Window.Remove_Overlay (Menu.Host_Window, Get_Handle (Dismiss.all));
       end if;
       Menu.Open := False;
    end Hide;

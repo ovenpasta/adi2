@@ -41,7 +41,8 @@ Opens a native "Open File" dialog.
 ```ada
 procedure Show_Open_File_Dialog
   (Callback         : Dialog_Callback;
-   Window           : Adi.Window.Window_Access := null;
+   Window           : Adi.Window.Window_Handle :=
+                         Adi.Window.Null_Window_Handle;
    Filters          : File_Filter_Array := No_Filters;
    Default_Location : String := "";
    Allow_Many       : Boolean := False);
@@ -73,7 +74,8 @@ Opens a native "Save File" dialog.
 ```ada
 procedure Show_Save_File_Dialog
   (Callback         : Dialog_Callback;
-   Window           : Adi.Window.Window_Access := null;
+   Window           : Adi.Window.Window_Handle :=
+                         Adi.Window.Null_Window_Handle;
    Filters          : File_Filter_Array := No_Filters;
    Default_Location : String := "");
 
@@ -91,7 +93,8 @@ Opens a native "Choose Folder" dialog.
 ```ada
 procedure Show_Open_Folder_Dialog
   (Callback         : Dialog_Callback;
-   Window           : Adi.Window.Window_Access := null;
+   Window           : Adi.Window.Window_Handle :=
+                         Adi.Window.Null_Window_Handle;
    Default_Location : String := "";
    Allow_Many       : Boolean := False);
 

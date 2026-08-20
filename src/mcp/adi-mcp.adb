@@ -1561,7 +1561,7 @@ package body Adi.MCP is
    end Cleanup_Stale_Dirs;
 
    procedure Initialize
-     (Win      : not null access Adi.Window.Window'Class;
+     (Win      : Adi.Window.Window_Handle;
       Base_Dir : String := "/tmp/adi_mcp")
    is
       use GNAT.OS_Lib;
@@ -1571,7 +1571,9 @@ package body Adi.MCP is
       Parent  : constant String := Ada.Directories.Full_Name (Base_Dir);
       Dir     : constant String := Parent & "/" & Pid_Str;
    begin
-      if Active then return; end if;
+      if Active or else not Adi.Window.Is_Valid (Win) then
+         return;
+      end if;
 
       if not Ada.Directories.Exists (Parent) then
          Ada.Directories.Create_Directory (Parent);
@@ -1584,7 +1586,7 @@ package body Adi.MCP is
       end if;
 
       MCP_Dir := To_Unbounded_String (Dir);
-      MCP_Window := Adi.Window.Get_Handle (Win.all);
+      MCP_Window := Win;
       Active := True;
 
       Write_File (Dir & "/ready", Pid_Str);
@@ -1593,20 +1595,6 @@ package body Adi.MCP is
         (MCP_Window, Frame_Handler'Access);
       Post_Render_Conn := Adi.Window.Connect_Post_Render
         (MCP_Window, Post_Render_Handler'Access);
-   end Initialize;
-
-   procedure Initialize
-     (Win      : Adi.Window.Window_Handle;
-      Base_Dir : String := "/tmp/adi_mcp")
-   is
-      use type Adi.Window.Window_Access;
-      Ptr : constant Adi.Window.Window_Access :=
-        Adi.Window.Resolve_Window_Handle (Win);
-   begin
-      if Ptr = null then
-         return;
-      end if;
-      Initialize (Ptr, Base_Dir);
    end Initialize;
 
    procedure Finalize is

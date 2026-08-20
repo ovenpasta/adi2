@@ -187,10 +187,9 @@
 
 **Adi.Window** (`adi-window.ads`): Window management.
 - Wraps SDL window/renderer, owns `Render_Context`
-- Handle-first API:
-  - `Create_Window_Handle`, `Window_Handle`, `Destroy`, `Is_Valid`, `Resolve_Window_Handle`
-  - Backward-compatible `Create_Window`/`Window_Access` remains available
-- `Set_Root`, `Add_Overlay`, `Remove_Overlay` accept both handles and anonymous access
+- Handle-only API: `Create_Window_Handle`, `Window_Handle`, `Destroy`, `Is_Valid`, `Borrow`. `Window_Access` is private to the package.
+- A handle that no longer resolves is not an error: procedures do nothing and functions answer the value that means "no window". `Borrow` is the exception and raises, since it exists to produce a usable pointer.
+- Windows and their handles belong to the event-loop thread; a worker task goes through `Adi.Dispatch.Post`.
 - Overlay hit testing prioritized above root; overlays render after root
 - Programmatic focus API: `Set_Focus(Window, Target)` sets focus to a widget in the window root/overlay trees (or clears focus with `null`), and ignores out-of-window targets
 - Resize behavior: `Handle_Resize` marks both root and overlay trees dirty on size changes so overlay-driven widgets (for example dialogs) recompute geometry immediately on the next render pass, without waiting for hover/state events

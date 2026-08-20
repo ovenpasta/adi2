@@ -171,9 +171,9 @@ Existing widget signals:
 | Context_Menu | `Item_Selected` | `(Menu : Menu_Handle; Index : Positive; Text : String)` |
 | Stack | `Page_Changed` | `(Id : Page_Id)` |
 | Window | `Tick` | `(DT : Duration)` |
-| Window | `Post_Render` | `(Win : not null access Window'Class; Renderer : SDL_Renderer_Ptr)` |
-| Window | `Frame` | `(Win : not null access Window'Class)` |
-| Window | `Close_Request` | `(Win : not null access Window'Class; Allow : in out Boolean)` |
+| Window | `Post_Render` | `(Win : Window_Handle; Renderer : SDL_Renderer_Ptr)` |
+| Window | `Frame` | `(Win : Window_Handle)` |
+| Window | `Close_Request` | `(Win : Window_Handle; Allow : in out Boolean)` |
 
 ### Usage Example
 

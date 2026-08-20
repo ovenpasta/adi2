@@ -8,7 +8,6 @@ with Adi.Text_Buffer; use Adi.Text_Buffer;
 package body Adi.Widget.Text_Context_Menu is
 
    use type Adi.Widget.Context_Menu.Menu_Handle;
-   use type Adi.Window.Window_Access;
    use type Context_Menu_Signals.Connection_Id;
 
    Command_Bindings : Command_Binding_Vectors.Vector;
@@ -212,25 +211,6 @@ package body Adi.Widget.Text_Context_Menu is
 
       return Menu_H;
    end Create_Default_Handle;
-
-   function Create_Default_Handle
-     (Buffer       : Adi.Text_Buffer.Text_Buffer_Access;
-      Host         : Adi.Window.Window_Access;
-      Single_Line  : Boolean := False;
-      On_Applied   : Command_Applied_Callback := null;
-      Is_Read_Only : Read_Only_Query := null;
-      Is_Password  : Password_Query  := null)
-      return Adi.Widget.Context_Menu.Menu_Handle
-   is
-     (Create_Default_Handle
-        (Buffer       => Buffer,
-         Host         => (if Host = null
-                          then Adi.Window.Null_Window_Handle
-                          else Adi.Window.Get_Handle (Host.all)),
-         Single_Line  => Single_Line,
-         On_Applied   => On_Applied,
-         Is_Read_Only => Is_Read_Only,
-         Is_Password  => Is_Password));
 
 
    procedure Bind_Widget_Request

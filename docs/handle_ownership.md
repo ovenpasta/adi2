@@ -40,7 +40,7 @@ Widget resolution paths flow through `Get` — wrapper generics (`Wrap_CW_Proc/F
 
 `Adi.Window`'s public handle operations deliberately do not. Each one checks `Is_Valid` before `Get`, so a stale window handle degrades to the value that means "no window" — null, zero, `False`, `No_Connection`, or nothing at all for a procedure — rather than raising. `Handle_Close_Request` answers `True`, since a window that is gone cannot veto a close. `Borrow` is the exception and raises `Constraint_Error`, because its whole purpose is to produce a usable pointer.
 
-For release builds where stale handles should degrade gracefully, call `Set_Strict(False)` on the relevant store.
+`Set_Strict` applies to an `Adi.Handle_Store` instance you instantiate yourself. Adi's own widget and window stores are private to their packages and stay strict; a stale widget handle raises, and a stale window handle degrades as described above.
 
 ## Widget Ownership
 
@@ -126,9 +126,9 @@ its way out of scope.
 
 - `Window_Handle`, `Null_Window_Handle`
 - `Create_Window_Handle`
-- `Get_Handle`, `Is_Valid`, `Resolve_Window_Handle`
+- `Get_Handle`, `Is_Valid`
+- `Borrow (H) return Window_Ref` (scoped pin)
 - `Destroy (H : in out Window_Handle)`
-- `Destroy (W : in out Window_Access)` (compat)
 - `Pump_Window_Store`
 
 Window destruction path:
@@ -146,8 +146,11 @@ deallocating the active window object mid-dispatch.
 
 `Adi.App` now stores `Main_Window : Window_Handle`.
 
-- `Add_Window` accepts both `Window_Access` and `Window_Handle`.
-- Run loop resolves handle on use.
+- `Add_Window` takes a `Window_Handle`.
+- The run loop drives the window through handle operations. A callback
+  running under a dispatch guard queues its destroy; `Pump_Window_Store`
+  at the top of the next frame carries it out, and the loop ends on the
+  check after it.
 - Per-frame drain order:
   1. `Adi.Dispatch.Drain`
   2. `Pump_Widget_Store`
@@ -192,6 +195,8 @@ The following access-based APIs have been removed (previously marked `Obsolescen
 
 - `Adi.Window.Create_Window (...) return Window_Access` — use `Create_Window_Handle`
 - `Adi.Window.Destroy (W : in out Window_Access)` — use `Destroy (H : in out Window_Handle)`
+- `Adi.Window.Resolve_Window_Handle (...) return Window_Access` — use `Borrow`
+- `Adi.MCP.Initialize (Win : access Window'Class, ...)` — use `Initialize (Win : Window_Handle, ...)`
 - `Adi.Window.Set_Root (..., Root : access Widget'Class)` — use `Set_Root (..., Root : Widget_Handle)`
 - `Adi.Window.Add_Overlay (..., Overlay : access Widget'Class)` — use `Add_Overlay (..., Overlay : Widget_Handle)`
 - `Adi.Window.Remove_Overlay (..., Overlay : access Widget'Class)` — use `Remove_Overlay (..., Overlay : Widget_Handle)`
@@ -204,9 +209,9 @@ The following access-based APIs have been removed (previously marked `Obsolescen
 ### Current state
 
 - `Widget_Access`, `Resolve_Handle` and `Register_Widget` are private to `Adi.Widget`; the library's own child packages use them, and a widget type defined outside the library goes through `Adi.Widget.Extension`.
-- Construction, destruction and configuration are handle-only across the widget packages.
+- `Window_Access` is private to `Adi.Window`, and `Resolve_Window_Handle` is gone. `Borrow` is the only way to a window pointer, and it pins.
+- Construction, destruction and configuration are handle-only across the widget and window packages.
 - `Scroll_Observer` (`adi-widget.ads`) is the one callback still handed a raw widget pointer; see below.
-- `Window_Access` and `Resolve_Window_Handle` are still public.
 
 ### Dialog handle-first internals
 
@@ -230,10 +235,6 @@ to carry. An observer must not retain the pointer.
 
 ### Remaining tightening
 
-1. `Window_Access` and `Resolve_Window_Handle` are still public. Removing them
-   needs handle overloads for the operations `Adi.App`'s frame loop calls
-   through a raw window pointer, and the same conversion in the WASM twin of
-   that loop.
-2. Option groups (`Adi.Widget.Button.Options`) store `G'Unchecked_Access` in
+1. Option groups (`Adi.Widget.Button.Options`) store `G'Unchecked_Access` in
    each button, so a group that goes out of scope before its buttons leaves a
    dangling pointer.

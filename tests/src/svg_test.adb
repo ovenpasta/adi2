@@ -895,7 +895,7 @@ procedure Svg_Test is
       end if;
 
       W := Adi.Window.Create_Window_Handle ("SVG Cache Probe", (200.0, 200.0));
-      Ren := Adi.Window.Get_Renderer (Adi.Window.Resolve_Window_Handle (W).all);
+      Ren := Adi.Window.Get_Renderer (W);
       Assert (Ren /= null, "the probe window has a renderer");
       Adi.Render.Create (Ctx, Ren);
 

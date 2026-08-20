@@ -35,15 +35,6 @@ package Adi.Widget.Text_Context_Menu is
 
    function Create_Default_Handle
      (Buffer       : Adi.Text_Buffer.Text_Buffer_Access;
-      Host         : Adi.Window.Window_Access;
-      Single_Line  : Boolean := False;
-      On_Applied   : Command_Applied_Callback := null;
-      Is_Read_Only : Read_Only_Query := null;
-      Is_Password  : Password_Query  := null)
-      return Adi.Widget.Context_Menu.Menu_Handle
-     with Obsolescent => "Use Create_Default_Handle with Window_Handle";
-   function Create_Default_Handle
-     (Buffer       : Adi.Text_Buffer.Text_Buffer_Access;
       Host         : Adi.Window.Window_Handle;
       Single_Line  : Boolean := False;
       On_Applied   : Command_Applied_Callback := null;

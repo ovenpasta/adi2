@@ -100,8 +100,6 @@ procedure Window_Handle_Test is
       Put_Line ("Test: Null_Window_Handle is invalid");
       Test_Support.Assert (not Is_Valid (Null_Window_Handle),
               "Null_Window_Handle should be invalid");
-      Test_Support.Assert (Resolve_Window_Handle (Null_Window_Handle) = null,
-              "Null_Window_Handle resolves to null");
    end Test_Null_Handle;
 
    procedure Test_Create_Window_Handle is
@@ -115,9 +113,8 @@ procedure Window_Handle_Test is
       end if;
 
       H := Create_Window_Handle ("Window Handle Test", (320.0, 240.0));
-      Test_Support.Assert (Is_Valid (H), "Create_Window_Handle returns valid handle");
-      Test_Support.Assert (Resolve_Window_Handle (H) /= null,
-              "Resolve_Window_Handle(valid) is non-null");
+      Test_Support.Assert (Is_Valid (H),
+              "Create_Window_Handle returns valid handle");
 
       Destroy (H);
       Test_Support.Assert (not Is_Valid (H), "Destroy(handle) invalidates handle");
@@ -165,8 +162,6 @@ procedure Window_Handle_Test is
 
       Destroy (H);
       Test_Support.Assert (not Is_Valid (H), "handle invalid after destroy");
-      Test_Support.Assert (Resolve_Window_Handle (H) = null,
-              "resolve after destroy returns null");
    end Test_Destroy_By_Handle;
 
    procedure Test_Destroy_Idempotent is

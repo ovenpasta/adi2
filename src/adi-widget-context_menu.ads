@@ -44,15 +44,7 @@ package Adi.Widget.Context_Menu is
 
    procedure Attach_Window
      (Menu : in out Context_Menu;
-      Host : Adi.Window.Window_Access)
-     with Obsolescent => "Use Attach_Window with Window_Handle";
-   procedure Attach_Window
-     (Menu : in out Context_Menu;
       Host : Adi.Window.Window_Handle);
-   procedure Attach_Window
-     (Menu : Menu_Handle;
-      Host : Adi.Window.Window_Access)
-     with Obsolescent => "Use Attach_Window (Menu : Menu_Handle; Host : Window_Handle)";
    procedure Attach_Window
      (Menu : Menu_Handle;
       Host : Adi.Window.Window_Handle);
@@ -145,7 +137,8 @@ private
      (Adi.Widget.Label.Label_Widget);
 
    type Context_Menu is tagged limited record
-      Host_Window : Adi.Window.Window_Access := null;
+      Host_Window : Adi.Window.Window_Handle :=
+        Adi.Window.Null_Window_Handle;
       Popup       : Popup_Lists.List_Box_Handle := Popup_Lists.Null_List_Box_Handle;
       Items       : String_Vectors.Vector;
       Disabled    : Bool_Vectors.Vector;

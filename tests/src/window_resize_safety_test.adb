@@ -890,8 +890,8 @@ procedure Window_Resize_Safety_Test is
       Adi.Window.Render (W);
 
       --  The button is focusable and sits under the whole probe area.
-      Adi.Window.Resolve_Window_Handle (W).On_Mouse_Down
-        (100.0, 100.0, Left_Button);
+      Adi.Window.On_Mouse_Down
+        (W, 100.0, 100.0, Left_Button);
       Assert (Adi.Window.Get_Focus_Handle (W) = +Btn,
               "the button takes focus when nothing covers it");
 
@@ -905,8 +905,8 @@ procedure Window_Resize_Safety_Test is
       --  Clear focus, then click the same point: the dialog covers it and
       --  has nothing focusable there.
       Adi.Window.Set_Focus (W, Null_Handle);
-      Adi.Window.Resolve_Window_Handle (W).On_Mouse_Down
-        (100.0, 100.0, Left_Button);
+      Adi.Window.On_Mouse_Down
+        (W, 100.0, 100.0, Left_Button);
       Focused_After := Adi.Window.Get_Focus_Handle (W);
 
       Assert (Focused_After /= +Btn,
@@ -1014,11 +1014,11 @@ procedure Window_Resize_Safety_Test is
          --  And a real click on it reaches the button, rather than
          --  falling through to whatever is behind the dialog.
          Dialog_Result_Index := Natural'Last;
-         Adi.Window.Resolve_Window_Handle (W).On_Mouse_Down
-           (Btn_G.X + Btn_G.Width / 2.0, Btn_G.Y + Btn_G.Height / 2.0,
+         Adi.Window.On_Mouse_Down
+           (W, Btn_G.X + Btn_G.Width / 2.0, Btn_G.Y + Btn_G.Height / 2.0,
             Left_Button);
-         Adi.Window.Resolve_Window_Handle (W).On_Mouse_Up
-           (Btn_G.X + Btn_G.Width / 2.0, Btn_G.Y + Btn_G.Height / 2.0,
+         Adi.Window.On_Mouse_Up
+           (W, Btn_G.X + Btn_G.Width / 2.0, Btn_G.Y + Btn_G.Height / 2.0,
             Left_Button);
 
          Assert (Dialog_Result_Index = 1,
@@ -1233,7 +1233,6 @@ procedure Window_Resize_Safety_Test is
 
       Probe_Y     : constant Pixel_Type := 40.0;
       Scroll_By   : constant Pixel_Type := 80.0;
-      Win         : Adi.Window.Window_Access;
    begin
       Put_Line ("Test: hit testing follows scrolled content");
 
@@ -1255,11 +1254,10 @@ procedure Window_Resize_Safety_Test is
       Adi.Window.Set_Root (W, +Root);
       Adi.Window.Render (W);
 
-      Win := Adi.Window.Resolve_Window_Handle (W);
 
       --  Hover drives the same hit test a click does. Unscrolled, the
       --  probe sits inside the first child.
-      Win.On_Mouse_Move (20.0, Probe_Y);
+      Adi.Window.On_Mouse_Move (W, 20.0, Probe_Y);
       Assert (Has_State (+Top, State_Hovered),
               "unscrolled: probe hits the first child");
 
@@ -1268,7 +1266,7 @@ procedure Window_Resize_Safety_Test is
       Set_Scroll_Offset_Y (+Viewport, Scroll_By);
       Adi.Window.Render (W);
 
-      Win.On_Mouse_Move (20.0, Probe_Y);
+      Adi.Window.On_Mouse_Move (W, 20.0, Probe_Y);
       Assert (Has_State (+Bottom, State_Hovered),
               "scrolled: probe hits the child now under the cursor");
       Assert (not Has_State (+Top, State_Hovered),
@@ -1321,7 +1319,6 @@ procedure Window_Resize_Safety_Test is
 
       Probe_Y   : constant Pixel_Type := 40.0;
       Scroll_By : constant Pixel_Type := 80.0;
-      Win       : Adi.Window.Window_Access;
    begin
       Put_Line ("Test: hit testing follows a scrolled stack");
 
@@ -1344,16 +1341,15 @@ procedure Window_Resize_Safety_Test is
       W := Adi.Window.Create_Window_Handle ("Stack Scroll Hit", (300.0, 200.0));
       Adi.Window.Set_Root (W, +Root);
       Adi.Window.Render (W);
-      Win := Adi.Window.Resolve_Window_Handle (W);
 
-      Win.On_Mouse_Move (20.0, Probe_Y);
+      Adi.Window.On_Mouse_Move (W, 20.0, Probe_Y);
       Assert (Has_State (+Top, State_Hovered),
               "stack unscrolled: probe hits the first child");
 
       Set_Scroll_Offset_Y (+Page, Scroll_By);
       Adi.Window.Render (W);
 
-      Win.On_Mouse_Move (20.0, Probe_Y);
+      Adi.Window.On_Mouse_Move (W, 20.0, Probe_Y);
       Assert (Has_State (+Bottom, State_Hovered),
               "stack scrolled: probe hits the child now under the cursor");
 
@@ -1417,7 +1413,6 @@ procedure Window_Resize_Safety_Test is
       --  viewport stops responding.
       Probe_Y   : constant Pixel_Type := 70.0;
       Scroll_By : constant Pixel_Type := 80.0;
-      Win       : Adi.Window.Window_Access;
    begin
       Put_Line ("Test: clicking a scrolled button fires its callback");
 
@@ -1443,13 +1438,12 @@ procedure Window_Resize_Safety_Test is
       W := Adi.Window.Create_Window_Handle ("Scrolled Click", (300.0, 200.0));
       Adi.Window.Set_Root (W, +Root);
       Adi.Window.Render (W);
-      Win := Adi.Window.Resolve_Window_Handle (W);
 
       --  Unscrolled, the button's top strip is visible at the bottom of
       --  the 100px viewport; clicking there works.
       Scrolled_Click_Count := 0;
-      Win.On_Mouse_Down (20.0, 90.0, Adi.Core.Left_Button, 1);
-      Win.On_Mouse_Up (20.0, 90.0, Adi.Core.Left_Button);
+      Adi.Window.On_Mouse_Down (W, 20.0, 90.0, Adi.Core.Left_Button, 1);
+      Adi.Window.On_Mouse_Up (W, 20.0, 90.0, Adi.Core.Left_Button);
       Assert (Scrolled_Click_Count = 1,
               "unscrolled: clicking the button fires its callback");
 
@@ -1458,8 +1452,8 @@ procedure Window_Resize_Safety_Test is
       Adi.Window.Render (W);
 
       Scrolled_Click_Count := 0;
-      Win.On_Mouse_Down (20.0, Probe_Y, Adi.Core.Left_Button, 1);
-      Win.On_Mouse_Up (20.0, Probe_Y, Adi.Core.Left_Button);
+      Adi.Window.On_Mouse_Down (W, 20.0, Probe_Y, Adi.Core.Left_Button, 1);
+      Adi.Window.On_Mouse_Up (W, 20.0, Probe_Y, Adi.Core.Left_Button);
       Assert (Scrolled_Click_Count = 1,
               "scrolled: clicking the button still fires its callback");
 
@@ -1657,15 +1651,13 @@ procedure Window_Resize_Safety_Test is
 
    --  Y of the topmost overlay, which is the open dropdown.
    function Popup_Overlay_Y (W : Adi.Window.Window_Handle) return Pixel_Type is
-      Win : constant Adi.Window.Window_Access :=
-        Adi.Window.Resolve_Window_Handle (W);
-      N   : constant Natural := Adi.Window.Overlay_Count (Win.all);
+      N : constant Natural := Adi.Window.Overlay_Count (W);
    begin
       if N = 0 then
          return -1.0;
       end if;
       return Get_Geometry
-        (Adi.Window.Get_Overlay_Handle (Win.all, N)).Y;
+        (Adi.Window.Get_Overlay_Handle (W, N)).Y;
    end Popup_Overlay_Y;
 
    --  The helper's arithmetic is not enough on its own: the dropdown has
@@ -1762,7 +1754,6 @@ procedure Window_Resize_Safety_Test is
    procedure Test_Mouse_Coordinates_Cross_Scrolled_Ancestors is
       Ready : Boolean := False;
       W     : Adi.Window.Window_Handle;
-      Win   : Adi.Window.Window_Access;
       Root  : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Outer : constant Adi.Widget.Box.Box_Handle :=
@@ -1833,7 +1824,6 @@ procedure Window_Resize_Safety_Test is
       Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
       Adi.Window.Set_Root (W, +Root);
       Adi.Window.Render (W);
-      Win := Adi.Window.Resolve_Window_Handle (W);
 
       --  Scroll both containers as far as they will go, then read back
       --  what they accepted: the clamp depends on measured content.
@@ -1864,9 +1854,9 @@ procedure Window_Resize_Safety_Test is
                 & " window y=" & Pixel_Type'Image (Win_Y));
 
       Test_Mouse_Probe.Reset (Probe);
-      Win.On_Mouse_Down (Win_X, Win_Y, Adi.Core.Left_Button, 1);
-      Win.On_Mouse_Move (Win_X, Win_Y + 5.0);
-      Win.On_Mouse_Up (Win_X, Win_Y, Adi.Core.Left_Button);
+      Adi.Window.On_Mouse_Down (W, Win_X, Win_Y, Adi.Core.Left_Button, 1);
+      Adi.Window.On_Mouse_Move (W, Win_X, Win_Y + 5.0);
+      Adi.Window.On_Mouse_Up (W, Win_X, Win_Y, Adi.Core.Left_Button);
 
       Assert (Test_Mouse_Probe.Down_Count (Probe) = 1
               and then Test_Mouse_Probe.Move_Count (Probe) = 1

@@ -14,10 +14,6 @@ package Adi.MCP is
    --  Registers callbacks that poll for commands each frame.
    --  Base_Dir defaults to "/tmp/adi_mcp" (well-known absolute location).
    procedure Initialize
-     (Win      : not null access Adi.Window.Window'Class;
-      Base_Dir : String := "/tmp/adi_mcp")
-     with Obsolescent => "Use Initialize (Win : Window_Handle)";
-   procedure Initialize
      (Win      : Adi.Window.Window_Handle;
       Base_Dir : String := "/tmp/adi_mcp");
 

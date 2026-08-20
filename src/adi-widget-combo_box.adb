@@ -31,7 +31,6 @@ package body Adi.Widget.Combo_Box is
       Clicks : Natural := 1);
 
    use type Popup_Lists.List_Box_Handle;
-   use type Adi.Window.Window_Access;
 
    type Popup_Binding is record
       Popup_H    : Popup_Lists.List_Box_Handle := Popup_Lists.Null_List_Box_Handle;

@@ -21,7 +21,6 @@ package body Adi.Widget.Text_Editor is
    Drag_Threshold_Px : constant Pixel_Type := 4.0;
 
    use type Adi.Widget.Context_Menu.Menu_Handle;
-   use type Adi.Window.Window_Access;
 
    type Menu_Binding is record
       Menu  : Adi.Widget.Context_Menu.Menu_Handle :=
@@ -560,13 +559,12 @@ package body Adi.Widget.Text_Editor is
 
    procedure Attach_Window
      (W    : in out Text_Editor_Widget;
-      Host : Adi.Window.Window_Access)
+      Host : Adi.Window.Window_Handle)
    is
    begin
       Ensure_Context_Menu (W);
-      if Host /= null then
-         Adi.Widget.Context_Menu.Attach_Window
-           (W.Context_Menu, Adi.Window.Get_Handle (Host.all));
+      if Adi.Window.Is_Valid (Host) then
+         Adi.Widget.Context_Menu.Attach_Window (W.Context_Menu, Host);
       end if;
       Apply_Context_Menu_Styles (W);
    end Attach_Window;

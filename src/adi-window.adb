@@ -154,11 +154,6 @@ package body Adi.Window is
       return Window_Access (Window_Stores.Get (H.Id));
    end Live;
 
-   function Resolve_Window_Handle (H : Window_Handle) return Window_Access is
-   begin
-      return Live (H);
-   end Resolve_Window_Handle;
-
    function Borrow (H : Window_Handle) return Window_Ref is
       P : constant Window_Class_Access :=
         (if Window_Stores.Is_Valid (H.Id) then Window_Stores.Get (H.Id)

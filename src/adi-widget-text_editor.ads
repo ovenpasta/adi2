@@ -116,7 +116,7 @@ private
    --  resolution when the context menu is invoked.
    procedure Attach_Window
      (W    : in out Text_Editor_Widget;
-      Host : Adi.Window.Window_Access);
+      Host : Adi.Window.Window_Handle);
 
    Panel_Idx  : constant Positive := 1;
 

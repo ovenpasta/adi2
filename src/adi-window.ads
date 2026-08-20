@@ -26,7 +26,6 @@ package Adi.Window is
     --  drains on the event-loop thread, where the same rule applies to
     --  the callback it runs.
     type Window is new Ada.Finalization.Limited_Controlled with private;
-    type Window_Access is access all Window;
     type Window_Handle is private;
     Null_Window_Handle : constant Window_Handle;
 
@@ -83,7 +82,6 @@ package Adi.Window is
        Px_Maps_To_Dip : Boolean) return Resolved_Extent;
     function Get_Handle (W : Window) return Window_Handle;
     function Is_Valid (H : Window_Handle) return Boolean;
-    function Resolve_Window_Handle (H : Window_Handle) return Window_Access;
     type Window_Ref (Ptr : access Window'Class) is
       limited new Ada.Finalization.Limited_Controlled with private
       with Implicit_Dereference => Ptr;
@@ -557,6 +555,8 @@ private
 
     Null_Window_Handle : constant Window_Handle :=
       (Id => Window_Stores.Null_Id);
+
+    type Window_Access is access all Window;
 
     type Window_Ref (Ptr : access Window'Class) is
       limited new Ada.Finalization.Limited_Controlled with record

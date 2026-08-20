@@ -55,7 +55,8 @@ project Tests is
       "rlottie_widget_test",
       "image_handle_test",
       "owned_handle_store_test",
-      "widget_extension_test");
+      "widget_extension_test",
+      "app_loop_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    Platform_Name := external ("ADI_PLATFORM", "linux");
 

@@ -571,9 +571,19 @@ package body Adi.CSS_Source is
 
    procedure Set_Static_Metadata
      (Source   : in out Style_Source;
-      Metadata : Adi.CSS_Parser.Stylesheet_Metadata) is
+      Metadata : Adi.CSS_Parser.Stylesheet_Metadata)
+   is
+      use type Adi.CSS_Parser.Stylesheet_Metadata;
    begin
       Ensure_Impl (Source);
+
+      --  Installing the same metadata again changes nothing, and a
+      --  source configured once per built subtree would otherwise
+      --  restyle every widget bound to it so far, on every build.
+      if Source.Impl.Static_Metadata = Metadata then
+         return;
+      end if;
+
       Source.Impl.Static_Metadata := Metadata;
       if Source.Impl.Mode = Static_Mode then
          Reapply_Bindings (Source);
@@ -593,11 +603,45 @@ package body Adi.CSS_Source is
       Source.Impl.Static_Styles.Append (Entry_Value);
    end Add_Static_Entry;
 
+   --  True when this source already carries the entry described.
+   function Already_Has (Source : Style_Source;
+                         E      : Dynamic_Entry) return Boolean is
+   begin
+      for Existing of Source.Impl.Entries loop
+         if Existing.Kind = E.Kind then
+            case E.Kind is
+               when File_Entry =>
+                  if Existing.Path = E.Path then
+                     return True;
+                  end if;
+               when String_Entry =>
+                  if Existing.Content = E.Content then
+                     return True;
+                  end if;
+            end case;
+         end if;
+      end loop;
+      return False;
+   end Already_Has;
+
    procedure Add_Dynamic_File (Source  : in out Style_Source;
                                Path    : String;
                                Success : out Boolean) is
    begin
       Ensure_Impl (Source);
+
+      --  Already loaded: re-reading it is what Reload_Dynamic and Tick
+      --  are for. Adding it again is configuration repeated, and must
+      --  not re-parse the file or restyle everything bound so far.
+      if Already_Has (Source,
+                      (Kind          => File_Entry,
+                       Path          => To_Unbounded_String (Path),
+                       Last_Modified => Ada.Calendar.Clock))
+      then
+         Success := True;
+         return;
+      end if;
+
       Source.Impl.Entries.Append (
         Dynamic_Entry'(Kind          => File_Entry,
                        Path          => To_Unbounded_String (Path),
@@ -614,6 +658,15 @@ package body Adi.CSS_Source is
                                  Success     : out Boolean) is
    begin
       Ensure_Impl (Source);
+
+      if Already_Has (Source,
+                      (Kind    => String_Entry,
+                       Content => To_Unbounded_String (CSS_Content)))
+      then
+         Success := True;
+         return;
+      end if;
+
       Source.Impl.Entries.Append (
         Dynamic_Entry'(Kind    => String_Entry,
                        Content => To_Unbounded_String (CSS_Content)));
@@ -658,7 +711,9 @@ package body Adi.CSS_Source is
 
    procedure Set_Mode (Source  : in out Style_Source;
                        Mode    : Source_Mode;
-                       Success : out Boolean) is
+                       Success : out Boolean)
+   is
+      Loaded_Now : Boolean := False;
    begin
       Ensure_Impl (Source);
       Success := True;
@@ -671,6 +726,13 @@ package body Adi.CSS_Source is
          if not Success then
             return;
          end if;
+         Loaded_Now := True;
+      end if;
+
+      --  Selecting the mode a source is already in changes nothing --
+      --  unless entering it had to load the stylesheets just now.
+      if Source.Impl.Mode = Mode and then not Loaded_Now then
+         return;
       end if;
 
       Source.Impl.Mode := Mode;

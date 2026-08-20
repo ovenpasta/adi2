@@ -10,6 +10,7 @@ with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.CSS_Parser;
 with Adi.CSS_Source;
 with Adi.CSS_Source.Testing;
+use type Adi.CSS_Source.Testing.Count;
 
 --  A generated Build binds a root and then every widget under it, and an
 --  application may call Build many times on one shared Style_Source --
@@ -31,13 +32,31 @@ procedure CSS_Binding_Growth_Test is
 
    Source : Adi.CSS_Source.Style_Source;
 
-   --  What the generator emits: bind the root's metadata, then bind each
-   --  widget in the tree under the selectors naming it. The root is one
-   --  of those widgets.
+   Sheet_Metadata : constant Adi.CSS_Parser.Stylesheet_Metadata :=
+     (Has_Root_Style => True,
+      Root_Styles    =>
+        Main_Styles ((Background_Color => Set_Bg (RGB (1, 2, 3)),
+                      others           => <>)),
+      others         => <>);
+
+   --  What the generator emits, whole: install the stylesheet, choose a
+   --  mode, then bind the root and every widget under it. All of it runs
+   --  again on the next Build, against the same Source.
    procedure Build is
-      Root : constant Adi.Widget.Box.Box_Handle :=
+      Root    : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
+      Mode_Ok : Boolean := False;
    begin
+      Adi.CSS_Source.Clear_Static_Entries (Source);
+      Adi.CSS_Source.Add_Static_Entry
+        (Source,
+         Adi.CSS_Source.Class_Entry
+           ("cell",
+            Main_Styles ((Opacity => Set (0.5), others => <>))));
+      Adi.CSS_Source.Set_Static_Metadata (Source, Sheet_Metadata);
+      Adi.CSS_Source.Set_Mode
+        (Source, Adi.CSS_Source.Static_Mode, Mode_Ok);
+
       Adi.CSS_Source.Bind_Root_Metadata (Source, +Root);
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
@@ -211,6 +230,41 @@ begin
       Adi.CSS_Source.Bind_Root_Metadata (Styled, +First);
       Assert (not Has_Row_Border (Second),
               "and handing the role away does not bring .row back");
+   end;
+
+   ---------------------------------------------------------------------
+   --  Re-adding a stylesheet a source already carries
+   ---------------------------------------------------------------------
+
+   Section ("Installing the same stylesheet again is not a reload");
+
+   declare
+      Src  : Adi.CSS_Source.Style_Source;
+      W    : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Ok   : Boolean := False;
+      Base : Adi.CSS_Source.Testing.Count;
+   begin
+      Adi.CSS_Source.Add_Dynamic_String
+        (Src, ".cell { opacity: 0.5; }", Ok);
+      Assert (Ok, "the stylesheet loads");
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +W, Class_Name => "cell");
+
+      Base := Adi.CSS_Source.Testing.Visit_Count;
+
+      --  A Build that runs its install block again adds the same sheet,
+      --  the same metadata and the same mode. None of it changed, so
+      --  none of it may re-parse or restyle.
+      for I in 1 .. 20 loop
+         Adi.CSS_Source.Add_Dynamic_String
+           (Src, ".cell { opacity: 0.5; }", Ok);
+         Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      end loop;
+
+      Assert (Adi.CSS_Source.Testing.Visit_Count = Base,
+              "re-installing an unchanged stylesheet restyles nothing");
    end;
 
    ---------------------------------------------------------------------

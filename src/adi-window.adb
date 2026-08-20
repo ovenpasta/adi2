@@ -141,13 +141,28 @@ package body Adi.Window is
       return Window_Stores.Is_Valid (H.Id);
    end Is_Valid;
 
+   --  Null for a null handle and for a stale one.  Going through
+   --  Window_Stores.Get directly would raise Program_Error on a stale
+   --  id, since the store is strict -- which turns every "if Ptr = null"
+   --  guard below into a check that never runs.  Asking about a window
+   --  that is gone is a question, not an error.
+   function Live (H : Window_Handle) return Window_Access is
+   begin
+      if not Window_Stores.Is_Valid (H.Id) then
+         return null;
+      end if;
+      return Window_Access (Window_Stores.Get (H.Id));
+   end Live;
+
    function Resolve_Window_Handle (H : Window_Handle) return Window_Access is
    begin
-      return Window_Access (Window_Stores.Get (H.Id));
+      return Live (H);
    end Resolve_Window_Handle;
 
    function Borrow (H : Window_Handle) return Window_Ref is
-      P : constant Window_Class_Access := Window_Stores.Get (H.Id);
+      P : constant Window_Class_Access :=
+        (if Window_Stores.Is_Valid (H.Id) then Window_Stores.Get (H.Id)
+         else null);
    begin
       if P = null then
          raise Constraint_Error with "Window.Borrow: stale or null handle";
@@ -1220,10 +1235,10 @@ package body Adi.Window is
 
           --  Post-render callback (MCP introspection, etc.)
           declare
-             Win_Acc : constant not null access Window'Class := W'Unchecked_Access;
-             Ren     : constant Adi.SDL.Render.SDL_Renderer_Ptr := W.Internal.ren;
+             Win_H : constant Window_Handle := Get_Handle (W);
+             Ren   : constant Adi.SDL.Render.SDL_Renderer_Ptr := W.Internal.ren;
              procedure Call (CB : Post_Render_Proc) is
-             begin CB (Win_Acc, Ren); end Call;
+             begin CB (Win_H, Ren); end Call;
              procedure Emit is new Post_Render_Signals.For_Each (Call);
           begin
              Emit (W.Post_Render);
@@ -1238,8 +1253,8 @@ package body Adi.Window is
 
        --  Per-frame callback (runs unconditionally, even when idle)
        declare
-          Win_Acc : constant not null access Window'Class := W'Unchecked_Access;
-          procedure Call (CB : Frame_Proc) is begin CB (Win_Acc); end Call;
+          Win_H : constant Window_Handle := Get_Handle (W);
+          procedure Call (CB : Frame_Proc) is begin CB (Win_H); end Call;
           procedure Emit is new Frame_Signals.For_Each (Call);
        begin
           Emit (W.Frame);
@@ -1258,8 +1273,7 @@ package body Adi.Window is
    end Set_Root;
 
    procedure Set_Root (H : Window_Handle; Root : Widget_Handle) is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          Set_Root (Ptr.all, Root);
@@ -1273,8 +1287,7 @@ package body Adi.Window is
    end Get_Root_Handle;
 
    function Get_Root_Handle (H : Window_Handle) return Widget_Handle is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr = null then
          return Null_Handle;
@@ -1302,8 +1315,7 @@ package body Adi.Window is
      (H       : Window_Handle;
       Enabled : Boolean := True)
    is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          Set_Enforce_Layout_Min_Size (Ptr.all, Enabled);
@@ -1316,8 +1328,7 @@ package body Adi.Window is
    end Get_Enforce_Layout_Min_Size;
 
    function Get_Enforce_Layout_Min_Size (H : Window_Handle) return Boolean is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          return Get_Enforce_Layout_Min_Size (Ptr.all);
@@ -1335,8 +1346,7 @@ package body Adi.Window is
    end Set_UI_Scale;
 
    procedure Set_UI_Scale (H : Window_Handle; Scale : Pixel_Type) is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          Set_UI_Scale (Ptr.all, Scale);
@@ -1365,8 +1375,7 @@ package body Adi.Window is
    end Set_Text_Scale;
 
    procedure Set_Text_Scale (H : Window_Handle; Scale : Pixel_Type) is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          Set_Text_Scale (Ptr.all, Scale);
@@ -1400,8 +1409,7 @@ package body Adi.Window is
      (H    : Window_Handle;
       Size : CSS_Styles.Length_Value)
    is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          Set_Root_Font_Size (Ptr.all, Size);
@@ -1416,8 +1424,7 @@ package body Adi.Window is
    function Get_Root_Font_Size (H : Window_Handle)
      return CSS_Styles.Length_Value
    is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          return Ptr.Root_Font_Size;
@@ -1432,7 +1439,7 @@ package body Adi.Window is
    end Maximize;
 
    procedure Maximize (H : Window_Handle) is
-      Ptr : constant Window_Access := Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then Maximize (Ptr.all); end if;
    end Maximize;
@@ -1444,7 +1451,7 @@ package body Adi.Window is
    end Minimize;
 
    procedure Minimize (H : Window_Handle) is
-      Ptr : constant Window_Access := Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then Minimize (Ptr.all); end if;
    end Minimize;
@@ -1456,7 +1463,7 @@ package body Adi.Window is
    end Restore;
 
    procedure Restore (H : Window_Handle) is
-      Ptr : constant Window_Access := Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then Restore (Ptr.all); end if;
    end Restore;
@@ -1469,7 +1476,7 @@ package body Adi.Window is
    end Set_Fullscreen;
 
    procedure Set_Fullscreen (H : Window_Handle; Enabled : Boolean) is
-      Ptr : constant Window_Access := Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then Set_Fullscreen (Ptr.all, Enabled); end if;
    end Set_Fullscreen;
@@ -1481,7 +1488,7 @@ package body Adi.Window is
    end Is_Maximized;
 
    function Is_Maximized (H : Window_Handle) return Boolean is
-      Ptr : constant Window_Access := Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       return Ptr /= null and then Is_Maximized (Ptr.all);
    end Is_Maximized;
@@ -1493,7 +1500,7 @@ package body Adi.Window is
    end Is_Minimized;
 
    function Is_Minimized (H : Window_Handle) return Boolean is
-      Ptr : constant Window_Access := Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       return Ptr /= null and then Is_Minimized (Ptr.all);
    end Is_Minimized;
@@ -1505,7 +1512,7 @@ package body Adi.Window is
    end Is_Fullscreen;
 
    function Is_Fullscreen (H : Window_Handle) return Boolean is
-      Ptr : constant Window_Access := Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       return Ptr /= null and then Is_Fullscreen (Ptr.all);
    end Is_Fullscreen;
@@ -1519,8 +1526,7 @@ package body Adi.Window is
      (H : Window_Handle;
       CB : Tick_Callback)
    is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          Connect_Tick (Ptr.all, CB);
@@ -1548,8 +1554,7 @@ package body Adi.Window is
      (H  : Window_Handle;
       CB : Key_Down_Callback)
    is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          Connect_Key_Down (Ptr.all, CB);
@@ -1694,8 +1699,7 @@ package body Adi.Window is
    function Get_Overlay_Handle (H : Window_Handle; Index : Positive)
       return Widget_Handle
    is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr = null or else Index > Overlay_Count (Ptr.all) then
          return Null_Handle;
@@ -1709,8 +1713,7 @@ package body Adi.Window is
    end Get_Focus_Handle;
 
    function Get_Focus_Handle (H : Window_Handle) return Widget_Handle is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr = null then
          return Null_Handle;
@@ -1719,8 +1722,7 @@ package body Adi.Window is
    end Get_Focus_Handle;
 
    procedure Add_Overlay (H : Window_Handle; Overlay : Widget_Handle) is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          Add_Overlay (Ptr.all, Overlay);
@@ -1728,8 +1730,7 @@ package body Adi.Window is
    end Add_Overlay;
 
    procedure Remove_Overlay (H : Window_Handle; Overlay : Widget_Handle) is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          Remove_Overlay (Ptr.all, Overlay);
@@ -1737,8 +1738,7 @@ package body Adi.Window is
    end Remove_Overlay;
 
    function Get_Size (H : Window_Handle) return Size_2D is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          return Get_Size (Ptr.all);
@@ -1747,8 +1747,7 @@ package body Adi.Window is
    end Get_Size;
 
    procedure Clear_Overlays (H : Window_Handle) is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          Clear_Overlays (Ptr.all);
@@ -1756,8 +1755,7 @@ package body Adi.Window is
    end Clear_Overlays;
 
    procedure Render (H : Window_Handle) is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          Render (Ptr.all);
@@ -1765,8 +1763,7 @@ package body Adi.Window is
    end Render;
 
    procedure Handle_Resize (H : Window_Handle; New_Size : Size_2D) is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          Handle_Resize (Ptr.all, New_Size);
@@ -1774,8 +1771,7 @@ package body Adi.Window is
    end Handle_Resize;
 
    function Get_SDL_Window (H : Window_Handle) return SDL_Window_Ptr is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          return Get_SDL_Window (Ptr.all);
@@ -1788,8 +1784,7 @@ package body Adi.Window is
        X, Y             : Pixel_Type;
        Delta_X, Delta_Y : Pixel_Type)
    is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          On_Mouse_Wheel (Ptr.all, X, Y, Delta_X, Delta_Y);
@@ -1803,8 +1798,7 @@ package body Adi.Window is
        Key_Mod  : Adi.SDL.Events.SDL_Keymod;
        Repeat   : Boolean)
    is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          On_Key_Down (Ptr.all, Scancode, Keycode, Key_Mod, Repeat);
@@ -1817,8 +1811,7 @@ package body Adi.Window is
        Key_Mod  : Adi.SDL.Events.SDL_Keymod;
        Repeat   : Boolean)
    is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          On_Key_Up (Ptr.all, Scancode, Key_Mod, Repeat);
@@ -2127,8 +2120,7 @@ package body Adi.Window is
    end Set_Focus;
 
    procedure Set_Focus (H : Window_Handle; Target : Widget_Handle) is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr /= null then
          Set_Focus (Ptr.all, Target);
@@ -2762,8 +2754,7 @@ function Get_Size (W : in out Window) return Size_2D is
    end Destroy_Widget_Tree;
 
    procedure Destroy (H : in out Window_Handle) is
-      Ptr : constant Window_Access :=
-        Window_Access (Window_Stores.Get (H.Id));
+      Ptr : constant Window_Access := Live (H);
    begin
       if Ptr = null then
          H.Id := Window_Stores.Null_Id;
@@ -2870,8 +2861,7 @@ function Get_Size (W : in out Window) return Size_2D is
     end Set_Debug_Stats;
 
     procedure Set_Debug_Stats (H : Window_Handle; Enabled : Boolean) is
-       Ptr : constant Window_Access :=
-         Window_Access (Window_Stores.Get (H.Id));
+       Ptr : constant Window_Access := Live (H);
     begin
        if Ptr /= null then
           Set_Debug_Stats (Ptr.all, Enabled);
@@ -2887,8 +2877,7 @@ function Get_Size (W : in out Window) return Size_2D is
     procedure Set_Texture_Budget
       (H : Window_Handle; Bytes : Adi.Texture_Cache.Byte_Count)
     is
-       Ptr : constant Window_Access :=
-         Window_Access (Window_Stores.Get (H.Id));
+       Ptr : constant Window_Access := Live (H);
     begin
        if Ptr /= null then
           Set_Texture_Budget (Ptr.all, Bytes);
@@ -2899,8 +2888,7 @@ function Get_Size (W : in out Window) return Size_2D is
     is (Adi.Render.Get_Texture_Stats (W.Ctx));
 
     function Get_Texture_Stats (H : Window_Handle) return Texture_Stats is
-       Ptr : constant Window_Access :=
-         Window_Access (Window_Stores.Get (H.Id));
+       Ptr : constant Window_Access := Live (H);
     begin
        if Ptr = null then
           return (others => <>);
@@ -2956,8 +2944,7 @@ function Get_Size (W : in out Window) return Size_2D is
       (H  : Window_Handle;
        CB : Close_Request_Callback)
     is
-       Ptr : constant Window_Access :=
-         Window_Access (Window_Stores.Get (H.Id));
+       Ptr : constant Window_Access := Live (H);
     begin
        if Ptr /= null then
           Connect_Close_Request (Ptr.all, CB);
@@ -3136,6 +3123,205 @@ function Get_Size (W : in out Window) return Size_2D is
       end;
       return H;
    end Create_Window_Handle;
+
+
+   ---------------------------------------------------------------------------
+   --  Handle overloads for the operations the frame loop drives
+   ---------------------------------------------------------------------------
+
+   function Get_Renderer (H : Window_Handle) return SDL_Renderer_Ptr is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      return (if Ptr = null then null else Get_Renderer (Ptr.all));
+   end Get_Renderer;
+
+   procedure Request_Redraw (H : Window_Handle) is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         Request_Redraw (Ptr.all);
+      end if;
+   end Request_Redraw;
+
+   --  True for a window that is gone: there is nothing left to veto the
+   --  close, and the caller is asking whether it may proceed.
+   function Handle_Close_Request (H : Window_Handle) return Boolean is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      return (if Ptr = null then True else Handle_Close_Request (Ptr.all));
+   end Handle_Close_Request;
+
+   function Actual_Size (H : Window_Handle) return Size_2D is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      return (if Ptr = null then (0.0, 0.0) else Actual_Size (Ptr.all));
+   end Actual_Size;
+
+   procedure Tick (H : Window_Handle; DT : Duration) is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         Tick (Ptr.all, DT);
+      end if;
+   end Tick;
+
+   procedure On_Text_Input (H : Window_Handle; Text : String) is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         On_Text_Input (Ptr.all, Text);
+      end if;
+   end On_Text_Input;
+
+   procedure On_Mouse_Move (H : Window_Handle; X, Y : Pixel_Type) is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         On_Mouse_Move (Ptr.all, X, Y);
+      end if;
+   end On_Mouse_Move;
+
+   procedure On_Mouse_Down
+     (H      : Window_Handle;
+      X, Y   : Pixel_Type;
+      Button : Mouse_Button;
+      Clicks : Natural := 1)
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         On_Mouse_Down (Ptr.all, X, Y, Button, Clicks);
+      end if;
+   end On_Mouse_Down;
+
+   procedure On_Mouse_Up
+     (H      : Window_Handle;
+      X, Y   : Pixel_Type;
+      Button : Mouse_Button)
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         On_Mouse_Up (Ptr.all, X, Y, Button);
+      end if;
+   end On_Mouse_Up;
+
+   ---------------------------------------------------------------------------
+   --  Subscription management by handle
+   ---------------------------------------------------------------------------
+
+   function Connect_Tick (H : Window_Handle; CB : Tick_Callback)
+      return Tick_Signals.Connection_Id
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      return (if Ptr = null then Tick_Signals.No_Connection
+              else Connect_Tick (Ptr.all, CB));
+   end Connect_Tick;
+
+   procedure Disconnect_Tick
+     (H : Window_Handle; Id : Tick_Signals.Connection_Id)
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         Disconnect_Tick (Ptr.all, Id);
+      end if;
+   end Disconnect_Tick;
+
+   function Connect_Key_Down (H : Window_Handle; CB : Key_Down_Callback)
+      return Key_Down_Signals.Connection_Id
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      return (if Ptr = null then Key_Down_Signals.No_Connection
+              else Connect_Key_Down (Ptr.all, CB));
+   end Connect_Key_Down;
+
+   procedure Disconnect_Key_Down
+     (H : Window_Handle; Id : Key_Down_Signals.Connection_Id)
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         Disconnect_Key_Down (Ptr.all, Id);
+      end if;
+   end Disconnect_Key_Down;
+
+   procedure Connect_Post_Render (H : Window_Handle; CB : Post_Render_Proc) is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         Connect_Post_Render (Ptr.all, CB);
+      end if;
+   end Connect_Post_Render;
+
+   function Connect_Post_Render (H : Window_Handle; CB : Post_Render_Proc)
+      return Post_Render_Signals.Connection_Id
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      return (if Ptr = null then Post_Render_Signals.No_Connection
+              else Connect_Post_Render (Ptr.all, CB));
+   end Connect_Post_Render;
+
+   procedure Disconnect_Post_Render
+     (H : Window_Handle; Id : Post_Render_Signals.Connection_Id)
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         Disconnect_Post_Render (Ptr.all, Id);
+      end if;
+   end Disconnect_Post_Render;
+
+   procedure Connect_Frame (H : Window_Handle; CB : Frame_Proc) is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         Connect_Frame (Ptr.all, CB);
+      end if;
+   end Connect_Frame;
+
+   function Connect_Frame (H : Window_Handle; CB : Frame_Proc)
+      return Frame_Signals.Connection_Id
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      return (if Ptr = null then Frame_Signals.No_Connection
+              else Connect_Frame (Ptr.all, CB));
+   end Connect_Frame;
+
+   procedure Disconnect_Frame
+     (H : Window_Handle; Id : Frame_Signals.Connection_Id)
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         Disconnect_Frame (Ptr.all, Id);
+      end if;
+   end Disconnect_Frame;
+
+   function Connect_Close_Request
+     (H : Window_Handle; CB : Close_Request_Callback)
+      return Close_Request_Signals.Connection_Id
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      return (if Ptr = null then Close_Request_Signals.No_Connection
+              else Connect_Close_Request (Ptr.all, CB));
+   end Connect_Close_Request;
+
+   procedure Disconnect_Close_Request
+     (H : Window_Handle; Id : Close_Request_Signals.Connection_Id)
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         Disconnect_Close_Request (Ptr.all, Id);
+      end if;
+   end Disconnect_Close_Request;
+
 
 begin
    Adi.Widget.Window_Bridge.Install_Destroy_Notice

@@ -64,7 +64,7 @@ procedure Text_Overflow_Test is
    Captured : SDL_Surface_Ptr := null;
 
    procedure Capture_Frame
-     (Win      : not null access Adi.Window.Window'Class;
+     (Win      : Adi.Window.Window_Handle;
       Renderer : SDL_Renderer_Ptr)
    is
       pragma Unreferenced (Win);
@@ -161,8 +161,7 @@ procedure Text_Overflow_Test is
 
       Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));
-      Adi.Window.Connect_Post_Render
-        (Adi.Window.Resolve_Window_Handle (W).all, Capture_Frame'Unrestricted_Access);
+      Adi.Window.Connect_Post_Render (W, Capture_Frame'Unrestricted_Access);
       Adi.Window.Render (W);
       return W;
    end Build_Scene;
@@ -281,8 +280,7 @@ procedure Text_Overflow_Test is
       Add_Child (+Root, +Clip);
       Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));
-      Adi.Window.Connect_Post_Render
-        (Adi.Window.Resolve_Window_Handle (W).all, Capture_Frame'Unrestricted_Access);
+      Adi.Window.Connect_Post_Render (W, Capture_Frame'Unrestricted_Access);
       Adi.Window.Render (W);
 
       Below := Ink_Count (0, 45, 250, Win_H - 1);
@@ -360,7 +358,7 @@ procedure Text_Overflow_Test is
       Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));
       Adi.Window.Connect_Post_Render
-        (Adi.Window.Resolve_Window_Handle (W).all,
+        (W,
          Capture_Frame'Unrestricted_Access);
       Adi.Window.Render (W);
 
@@ -460,7 +458,7 @@ procedure Text_Overflow_Test is
       Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));
       Adi.Window.Connect_Post_Render
-        (Adi.Window.Resolve_Window_Handle (W).all,
+        (W,
          Capture_Frame'Unrestricted_Access);
       Adi.Window.Render (W);
 
@@ -572,7 +570,7 @@ procedure Text_Overflow_Test is
       Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));
       Adi.Window.Connect_Post_Render
-        (Adi.Window.Resolve_Window_Handle (W).all,
+        (W,
          Capture_Frame'Unrestricted_Access);
       Adi.Window.Render (W);
 
@@ -719,7 +717,7 @@ procedure Text_Overflow_Test is
       Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));
       Adi.Window.Connect_Post_Render
-        (Adi.Window.Resolve_Window_Handle (W).all,
+        (W,
          Capture_Frame'Unrestricted_Access);
       Adi.Window.Render (W);
 
@@ -822,7 +820,7 @@ procedure Text_Overflow_Test is
       Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));
       Adi.Window.Connect_Post_Render
-        (Adi.Window.Resolve_Window_Handle (W).all,
+        (W,
          Capture_Frame'Unrestricted_Access);
       Adi.Window.Render (W);
 

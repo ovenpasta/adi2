@@ -17,6 +17,14 @@ with Adi.Handle_Store;
 with Adi.Texture_Cache;
 
 package Adi.Window is
+    --  Windows and their handles belong to the thread that runs the
+    --  event loop. The handle store is not synchronized, and the
+    --  operations below validate a handle and then work through an
+    --  unpinned pointer, which only holds while nothing else can destroy
+    --  a window in between. A worker task hands work back with
+    --  Adi.Dispatch.Post rather than calling these directly; the queue
+    --  drains on the event-loop thread, where the same rule applies to
+    --  the callback it runs.
     type Window is new Ada.Finalization.Limited_Controlled with private;
     type Window_Access is access all Window;
     type Window_Handle is private;
@@ -249,6 +257,31 @@ package Adi.Window is
         Repeat   : Boolean);
     procedure On_Text_Input (W : in out Window; Text : String);
 
+    ---------------------------------------------------------------------
+    --  The same operations by handle.  A handle that no longer resolves
+    --  is not an error here: a procedure does nothing, and a function
+    --  answers the value that means "no window" -- null, zero, False.
+    --  Handle_Close_Request answers True, because a window that is gone
+    --  cannot veto closing.
+    ---------------------------------------------------------------------
+
+    function  Get_Renderer         (H : Window_Handle) return SDL_Renderer_Ptr;
+    procedure Request_Redraw       (H : Window_Handle);
+    function  Handle_Close_Request (H : Window_Handle) return Boolean;
+    function  Actual_Size          (H : Window_Handle) return Size_2D;
+    procedure Tick                 (H : Window_Handle; DT : Duration);
+    procedure On_Text_Input        (H : Window_Handle; Text : String);
+    procedure On_Mouse_Move        (H : Window_Handle; X, Y : Pixel_Type);
+    procedure On_Mouse_Down
+       (H      : Window_Handle;
+        X, Y   : Pixel_Type;
+        Button : Mouse_Button;
+        Clicks : Natural := 1);
+    procedure On_Mouse_Up
+       (H      : Window_Handle;
+        X, Y   : Pixel_Type;
+        Button : Mouse_Button);
+
     --  Per-frame callback, invoked before animations
     type Tick_Callback is access procedure (DT : Duration);
 
@@ -263,6 +296,11 @@ package Adi.Window is
        return Tick_Signals.Connection_Id;
     procedure Disconnect_Tick
       (W : in out Window; Id : Tick_Signals.Connection_Id);
+    function Connect_Tick
+      (H : Window_Handle; CB : Tick_Callback)
+       return Tick_Signals.Connection_Id;
+    procedure Disconnect_Tick
+      (H : Window_Handle; Id : Tick_Signals.Connection_Id);
 
     --  Window-level key-down hook.  Fires for every key-down event the
     --  window receives, regardless of which (if any) widget currently
@@ -297,6 +335,11 @@ package Adi.Window is
        return Key_Down_Signals.Connection_Id;
     procedure Disconnect_Key_Down
       (W : in out Window; Id : Key_Down_Signals.Connection_Id);
+    function Connect_Key_Down
+      (H : Window_Handle; CB : Key_Down_Callback)
+       return Key_Down_Signals.Connection_Id;
+    procedure Disconnect_Key_Down
+      (H : Window_Handle; Id : Key_Down_Signals.Connection_Id);
 
     --  Advance animations by DT seconds on all widgets in this window
     procedure Tick (W : in out Window; DT : Duration);
@@ -351,7 +394,7 @@ package Adi.Window is
     --  Post-render callback, invoked after all widget rendering (including
     --  debug stats overlay) but before SDL_RenderPresent.
     type Post_Render_Proc is access procedure
-      (Win      : not null access Window'Class;
+      (Win      : Window_Handle;
        Renderer : SDL_Renderer_Ptr);
 
     package Post_Render_Signals is new Adi.Signal (Post_Render_Proc, null);
@@ -363,11 +406,17 @@ package Adi.Window is
        return Post_Render_Signals.Connection_Id;
     procedure Disconnect_Post_Render
       (W : in out Window; Id : Post_Render_Signals.Connection_Id);
+    procedure Connect_Post_Render
+      (H : Window_Handle; CB : Post_Render_Proc);
+    function Connect_Post_Render
+      (H : Window_Handle; CB : Post_Render_Proc)
+       return Post_Render_Signals.Connection_Id;
+    procedure Disconnect_Post_Render
+      (H : Window_Handle; Id : Post_Render_Signals.Connection_Id);
 
     --  Per-frame callback, invoked unconditionally every frame regardless of
     --  dirty state.  Use for polling/IPC that must run even when idle.
-    type Frame_Proc is access procedure
-      (Win : not null access Window'Class);
+    type Frame_Proc is access procedure (Win : Window_Handle);
 
     package Frame_Signals is new Adi.Signal (Frame_Proc, null);
 
@@ -378,6 +427,13 @@ package Adi.Window is
        return Frame_Signals.Connection_Id;
     procedure Disconnect_Frame
       (W : in out Window; Id : Frame_Signals.Connection_Id);
+    procedure Connect_Frame
+      (H : Window_Handle; CB : Frame_Proc);
+    function Connect_Frame
+      (H : Window_Handle; CB : Frame_Proc)
+       return Frame_Signals.Connection_Id;
+    procedure Disconnect_Frame
+      (H : Window_Handle; Id : Frame_Signals.Connection_Id);
 
     --  Close-request callback. Fired when the user requests window close
     --  (title-bar X) or application quit (Cmd+Q / Alt+F4).
@@ -398,6 +454,11 @@ package Adi.Window is
        return Close_Request_Signals.Connection_Id;
     procedure Disconnect_Close_Request
       (W : in out Window; Id : Close_Request_Signals.Connection_Id);
+    function Connect_Close_Request
+      (H : Window_Handle; CB : Close_Request_Callback)
+       return Close_Request_Signals.Connection_Id;
+    procedure Disconnect_Close_Request
+      (H : Window_Handle; Id : Close_Request_Signals.Connection_Id);
 
     --  Emit Close_Request signal. Returns True if close is allowed
     --  (no subscriber vetoed). Called by App.Run; not normally called

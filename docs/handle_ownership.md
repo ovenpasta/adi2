@@ -36,7 +36,9 @@ This catches common bugs at the point of misuse:
 - Calling `Get_Handle` on a widget that was never registered in the store (`Store_Index = 0`).
 - Passing a handle returned by an unregistered widget to `Add_Child` or other operations.
 
-Since all handle resolution paths flow through `Get` — including `Resolve_Handle`, wrapper generics (`Wrap_CW_Proc/Func`), manual `Widget_Stores.Get(H.Id)` patterns, and `Borrow` — strict mode provides centralized coverage. Exception-catching patterns (e.g. `Add_Child` catching `Constraint_Error` from `Borrow`) do not suppress the `Program_Error` raised by strict mode.
+Widget resolution paths flow through `Get` — wrapper generics (`Wrap_CW_Proc/Func`), manual `Widget_Stores.Get(H.Id)` patterns, and `Borrow` — so strict mode provides centralized coverage there. Exception-catching patterns (e.g. `Add_Child` catching `Constraint_Error` from `Borrow`) do not suppress the `Program_Error` raised by strict mode.
+
+`Adi.Window`'s public handle operations deliberately do not. Each one checks `Is_Valid` before `Get`, so a stale window handle degrades to the value that means "no window" — null, zero, `False`, `No_Connection`, or nothing at all for a procedure — rather than raising. `Handle_Close_Request` answers `True`, since a window that is gone cannot veto a close. `Borrow` is the exception and raises `Constraint_Error`, because its whole purpose is to produce a usable pointer.
 
 For release builds where stale handles should degrade gracefully, call `Set_Strict(False)` on the relevant store.
 

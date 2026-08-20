@@ -1376,7 +1376,7 @@ package body Adi.MCP is
    ---------------------------------------------------------------------------
 
    procedure Post_Render_Handler
-     (Win      : not null access Adi.Window.Window'Class;
+     (Win      : Adi.Window.Window_Handle;
       Renderer : SDL_Renderer_Ptr)
    is
       pragma Unreferenced (Win);
@@ -1419,7 +1419,7 @@ package body Adi.MCP is
    end Post_Render_Handler;
 
    procedure Frame_Handler
-     (Win : not null access Adi.Window.Window'Class)
+     (Win : Adi.Window.Window_Handle)
    is
       use Ada.Directories;
       Dir  : constant String := To_String (MCP_Dir);
@@ -1481,7 +1481,7 @@ package body Adi.MCP is
             if Cmd = "screenshot" then
                Pending_Screenshot := True;
                Pending_Screenshot_Id := To_Unbounded_String (Req_Id);
-               Adi.Window.Request_Redraw (Win.all);
+               Adi.Window.Request_Redraw (Win);
             else
                declare
                   Response  : constant String :=
@@ -1590,9 +1590,9 @@ package body Adi.MCP is
       Write_File (Dir & "/ready", Pid_Str);
 
       Frame_Conn := Adi.Window.Connect_Frame
-        (Win.all, Frame_Handler'Access);
+        (MCP_Window, Frame_Handler'Access);
       Post_Render_Conn := Adi.Window.Connect_Post_Render
-        (Win.all, Post_Render_Handler'Access);
+        (MCP_Window, Post_Render_Handler'Access);
    end Initialize;
 
    procedure Initialize

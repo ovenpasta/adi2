@@ -945,7 +945,11 @@ package body Adi.Widget.List_Box is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
-         Clear_Rows (List_Box_Widget (Ptr.all));
+         declare
+            Pin : constant Widget_Ref := Borrow (To_Widget_Handle (H));
+         begin
+            Clear_Rows (List_Box_Widget (Pin.Ptr.all));
+         end;
       end if;
    end Clear_Rows;
 
@@ -973,7 +977,11 @@ package body Adi.Widget.List_Box is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
-         Set_Scroll_Offset (List_Box_Widget (Ptr.all), Offset);
+         declare
+            Pin : constant Widget_Ref := Borrow (To_Widget_Handle (H));
+         begin
+            Set_Scroll_Offset (List_Box_Widget (Pin.Ptr.all), Offset);
+         end;
       end if;
    end Set_Scroll_Offset;
 
@@ -999,7 +1007,11 @@ package body Adi.Widget.List_Box is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
-         Scroll_By (List_Box_Widget (Ptr.all), Delta_Y);
+         declare
+            Pin : constant Widget_Ref := Borrow (To_Widget_Handle (H));
+         begin
+            Scroll_By (List_Box_Widget (Pin.Ptr.all), Delta_Y);
+         end;
       end if;
    end Scroll_By;
 
@@ -1007,7 +1019,11 @@ package body Adi.Widget.List_Box is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
-         Ensure_Row_Visible (List_Box_Widget (Ptr.all), Index);
+         declare
+            Pin : constant Widget_Ref := Borrow (To_Widget_Handle (H));
+         begin
+            Ensure_Row_Visible (List_Box_Widget (Pin.Ptr.all), Index);
+         end;
       end if;
    end Ensure_Row_Visible;
 
@@ -1032,7 +1048,11 @@ package body Adi.Widget.List_Box is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
-         Clear_Selection (List_Box_Widget (Ptr.all));
+         declare
+            Pin : constant Widget_Ref := Borrow (To_Widget_Handle (H));
+         begin
+            Clear_Selection (List_Box_Widget (Pin.Ptr.all));
+         end;
       end if;
    end Clear_Selection;
 
@@ -1040,7 +1060,11 @@ package body Adi.Widget.List_Box is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
-         Select_Row (List_Box_Widget (Ptr.all), Index);
+         declare
+            Pin : constant Widget_Ref := Borrow (To_Widget_Handle (H));
+         begin
+            Select_Row (List_Box_Widget (Pin.Ptr.all), Index);
+         end;
       end if;
    end Select_Row;
 
@@ -1048,7 +1072,11 @@ package body Adi.Widget.List_Box is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
-         Toggle_Row_Selected (List_Box_Widget (Ptr.all), Index);
+         declare
+            Pin : constant Widget_Ref := Borrow (To_Widget_Handle (H));
+         begin
+            Toggle_Row_Selected (List_Box_Widget (Pin.Ptr.all), Index);
+         end;
       end if;
    end Toggle_Row_Selected;
 

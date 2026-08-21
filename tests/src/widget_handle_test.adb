@@ -25,6 +25,8 @@ with Adi.Widget.Combo_Box;
 with Adi.Widget.Dialog;
 with Adi.Widget.Stack;
 with Adi.Widget.List_Box;
+with Adi.SDL.Events;
+with Test_Extension_Widgets;
 
 procedure Widget_Handle_Test is
 
@@ -84,6 +86,85 @@ procedure Widget_Handle_Test is
       Destroy (H);
       Test_Support.Assert (not Is_Valid (H), "after destroy: stale");
    end Test_Destroy_Stale;
+
+   ---------------------------------------------------------------------------
+   --  Test: a stale handle degrades rather than raising
+   ---------------------------------------------------------------------------
+
+   procedure Test_Stale_Handle_Degrades is
+      Lbl    : constant Label.Label_Handle := Label.Create_Handle ("before");
+      Kept   : constant Widget_Handle := +Lbl;
+      H      : Widget_Handle := Kept;
+      Raised : Boolean := False;
+   begin
+      Put_Line ("-- Stale handle degradation tests --");
+      Test_Support.Assert (Label.Get_Text (Lbl) = "before",
+                           "the label starts out readable");
+
+      Destroy (H);
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Kept), "the copy went stale too");
+
+      --  Procedures no-op.
+      Label.Set_Text (Lbl, "after");
+      Set_Visible (Kept, True);
+
+      --  Functions answer the value that means "no object".
+      Test_Support.Assert (Label.Get_Text (Lbl) = "",
+                           "Get_Text of a destroyed label is empty");
+      Test_Support.Assert (not Is_Visible (Kept),
+                           "Is_Visible of a destroyed widget is False");
+      Test_Support.Assert (Get_Id (Kept) = 0,
+                           "Get_Id of a destroyed widget is 0");
+      Test_Support.Assert (Get_Parent_Handle (Kept) = Null_Handle,
+                           "Get_Parent_Handle of a destroyed widget is null");
+      Test_Support.Assert (Child_Count (Kept) = 0,
+                           "Child_Count of a destroyed widget is 0");
+      Test_Support.Assert (not Label.Is_Valid (Lbl),
+                           "the typed handle reports itself invalid");
+
+      --  Borrow is the exception: its purpose is a usable pointer.
+      begin
+         declare
+            R : constant Widget_Ref := Borrow (Kept);
+            pragma Unreferenced (R);
+         begin
+            null;
+         end;
+      exception
+         when Constraint_Error => Raised := True;
+      end;
+      Test_Support.Assert
+        (Raised, "Borrow of a stale handle raises Constraint_Error");
+   end Test_Stale_Handle_Degrades;
+
+   ---------------------------------------------------------------------------
+   --  Test: Destroy under a borrow invalidates at once
+   ---------------------------------------------------------------------------
+
+   procedure Test_Destroy_Under_Borrow is
+      Lbl  : constant Label.Label_Handle := Label.Create_Handle ("pinned");
+      Kept : constant Widget_Handle := +Lbl;
+      H    : Widget_Handle := Kept;
+   begin
+      Put_Line ("-- Destroy under borrow tests --");
+      declare
+         R : constant Widget_Ref := Borrow (Kept);
+      begin
+         Test_Support.Assert (Is_Valid (Kept), "valid inside the borrow");
+         Destroy (H);
+         Test_Support.Assert
+           (not Is_Valid (Kept),
+            "Destroy under a borrow flips Is_Valid at once");
+         Test_Support.Assert (R.Ptr /= null,
+                              "the borrowed pointer is still there");
+         Test_Support.Assert (Label.Get_Text (Lbl) = "",
+                              "but the handle no longer reaches it");
+      end;
+      --  The pin is gone; the slot is retired.
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Kept), "still stale afterwards");
+   end Test_Destroy_Under_Borrow;
 
    ---------------------------------------------------------------------------
    --  Test: Destroy with parent detaches child
@@ -1333,6 +1414,577 @@ procedure Widget_Handle_Test is
    end Test_Text_Editor_Context_Menu_Binding;
 
    ---------------------------------------------------------------------------
+   --  Test: a callback may destroy the widget whose dispatch is running
+   --
+   --  Two tests, saying different things.  The first states the contract
+   --  an application sees: the destroy is accepted, the handle answers
+   --  invalid from that moment, further handle operations degrade
+   --  instead of raising, and the dispatch returns normally.  It holds
+   --  whether or not the dispatch pinned the widget, so it is not
+   --  evidence for the pin.  The second is: it reaches a second
+   --  subscriber through a list that lives inside the widget, which is
+   --  only possible while the widget is still there.
+   ---------------------------------------------------------------------------
+
+   Doomed_Button   : Widget_Handle := Null_Handle;
+   Valid_In_Click  : Boolean := True;
+   First_Click_Ran : Boolean := False;
+   Late_Click_Ran  : Boolean := False;
+
+   procedure Destroy_Own_Button (W : Widget_Handle) is
+      Target : Widget_Handle := W;
+   begin
+      First_Click_Ran := True;
+      Destroy (Target);
+      --  The widget's teardown has run: the handle answers, it does not
+      --  reach.  Set_Visible has to be a no-op rather than a raise.
+      Valid_In_Click := Is_Valid (Doomed_Button);
+      Set_Visible (Doomed_Button, True);
+   end Destroy_Own_Button;
+
+   procedure Late_Click (W : Widget_Handle) is
+      pragma Unreferenced (W);
+   begin
+      Late_Click_Ran := True;
+   end Late_Click;
+
+   --  The contract, not the pin.
+   procedure Test_Click_Destroy_Contract is
+      Btn : constant Button.Button_Handle := Button.Create_Handle ("boom");
+   begin
+      Put_Line ("-- click callback destroys its own button --");
+      Doomed_Button   := +Btn;
+      Valid_In_Click  := True;
+      First_Click_Ran := False;
+
+      Button.Connect_Clicked (Btn, Destroy_Own_Button'Unrestricted_Access);
+      On_Click (+Btn);
+
+      Test_Support.Assert (First_Click_Ran, "the click callback ran");
+      Test_Support.Assert (not Valid_In_Click,
+              "destroying a button from its own callback invalidates the"
+              & " handle at once");
+
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Doomed_Button),
+              "the button is gone once the dispatch has unwound");
+   end Test_Click_Destroy_Contract;
+
+   --  The pin.
+   procedure Test_Click_Destroy_With_Queued_Subscriber is
+      Btn : constant Button.Button_Handle := Button.Create_Handle ("boom2");
+   begin
+      Put_Line ("-- destroying callback leaves a queued subscriber --");
+      Doomed_Button   := +Btn;
+      Valid_In_Click  := True;
+      First_Click_Ran := False;
+      Late_Click_Ran  := False;
+
+      Button.Connect_Clicked (Btn, Destroy_Own_Button'Unrestricted_Access);
+      Button.Connect_Clicked (Btn, Late_Click'Unrestricted_Access);
+      On_Click (+Btn);
+
+      Test_Support.Assert (First_Click_Ran, "the destroying callback ran");
+      Test_Support.Assert (not Valid_In_Click,
+              "the handle is invalid from the destroy onwards");
+      --  The signal's subscriber list lives in the button.  Reaching the
+      --  second subscriber at all is the pin doing its work: without it
+      --  the object behind that list would already be freed.
+      Test_Support.Assert (Late_Click_Ran,
+              "a subscriber queued behind the destroying one still runs");
+
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Doomed_Button),
+              "the button is gone once the dispatch has unwound");
+   end Test_Click_Destroy_With_Queued_Subscriber;
+
+   ---------------------------------------------------------------------------
+   --  Test: a dialog result callback may destroy the dialog
+   ---------------------------------------------------------------------------
+
+   Doomed_Dialog     : Widget_Handle := Null_Handle;
+   Valid_In_Result   : Boolean := True;
+   First_Result_Ran  : Boolean := False;
+   Late_Result_Ran   : Boolean := False;
+
+   procedure Destroy_Own_Dialog
+     (W : Widget_Handle; Button_Index : Natural; Button_Text : String)
+   is
+      pragma Unreferenced (Button_Index, Button_Text);
+      Target : Widget_Handle := W;
+   begin
+      First_Result_Ran := True;
+      Destroy (Target);
+      Valid_In_Result := Is_Valid (Doomed_Dialog);
+   end Destroy_Own_Dialog;
+
+   procedure Late_Result
+     (W : Widget_Handle; Button_Index : Natural; Button_Text : String)
+   is
+      pragma Unreferenced (W, Button_Index, Button_Text);
+   begin
+      Late_Result_Ran := True;
+   end Late_Result;
+
+   procedure Test_Dialog_Result_Destroys_Dialog is
+      use Adi.Widget.Dialog;
+      D : constant Dialog_Handle := Create_Handle;
+   begin
+      Put_Line ("-- dialog result callback destroys its dialog --");
+      Doomed_Dialog    := +D;
+      Valid_In_Result  := True;
+      First_Result_Ran := False;
+      Late_Result_Ran  := False;
+
+      Add_Button (D, "OK");
+      Connect_Result (D, Destroy_Own_Dialog'Unrestricted_Access);
+      Connect_Result (D, Late_Result'Unrestricted_Access);
+
+      On_Click (+Get_Button_Handle (D, 1));
+
+      Test_Support.Assert (First_Result_Ran, "the result callback ran");
+      Test_Support.Assert (not Valid_In_Result,
+              "the handle is invalid from the destroy onwards");
+      --  The Result signal lives inside the dialog; reaching the second
+      --  subscriber is the pin holding the object across the emit.
+      Test_Support.Assert (Late_Result_Ran,
+              "a result subscriber queued behind the destroying one runs");
+
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Doomed_Dialog),
+              "the dialog is gone once the dispatch has unwound");
+   end Test_Dialog_Result_Destroys_Dialog;
+
+   ---------------------------------------------------------------------------
+   --  Test: destroy under the hand-written event overloads
+   --
+   --  Every one of these drives a signal whose subscriber array lives
+   --  inside the widget.  A second subscriber queued behind the
+   --  destroying one is reached only while that array is still there, so
+   --  it is the observable that tells a pinned dispatch from an unpinned
+   --  one.
+   ---------------------------------------------------------------------------
+
+   First_Change_Ran : Boolean := False;
+   Late_Change_Ran  : Boolean := False;
+
+   procedure Destroy_Own_Input (W : Widget_Handle; Text : String) is
+      pragma Unreferenced (Text);
+      Target : Widget_Handle := W;
+   begin
+      First_Change_Ran := True;
+      Destroy (Target);
+   end Destroy_Own_Input;
+
+   procedure Late_Change (W : Widget_Handle; Text : String) is
+      pragma Unreferenced (W, Text);
+   begin
+      Late_Change_Ran := True;
+   end Late_Change;
+
+   --  On_Key_Down (Widget_Handle, ...): backspace fires Changed.
+   procedure Test_Key_Down_Destroys_Own_Input is
+      use Adi.SDL.Events;
+      package TI renames Adi.Widget.Text_Input;
+      Inp  : constant TI.Text_Input_Handle := TI.Create_Handle ("ab");
+      Kept : constant Widget_Handle := TI.To_Widget_Handle (Inp);
+   begin
+      Put_Line ("-- key-down callback destroys its own text input --");
+      First_Change_Ran := False;
+      Late_Change_Ran  := False;
+
+      TI.Connect_Changed (Inp, Destroy_Own_Input'Unrestricted_Access);
+      TI.Connect_Changed (Inp, Late_Change'Unrestricted_Access);
+
+      On_Key_Down (Kept, SDL_SCANCODE_BACKSPACE, 0, False);
+
+      Test_Support.Assert (First_Change_Ran, "the destroying callback ran");
+      Test_Support.Assert (Late_Change_Ran,
+              "a Changed subscriber queued behind the destroying one"
+              & " still runs");
+
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Kept),
+              "the text input is gone once the dispatch has unwound");
+   end Test_Key_Down_Destroys_Own_Input;
+
+   --  On_Text_Input (Widget_Handle, ...): inserting text fires Changed.
+   procedure Test_Text_Input_Destroys_Own_Input is
+      package TI renames Adi.Widget.Text_Input;
+      Inp  : constant TI.Text_Input_Handle := TI.Create_Handle ("");
+      Kept : constant Widget_Handle := TI.To_Widget_Handle (Inp);
+   begin
+      Put_Line ("-- text-input callback destroys its own text input --");
+      First_Change_Ran := False;
+      Late_Change_Ran  := False;
+
+      TI.Connect_Changed (Inp, Destroy_Own_Input'Unrestricted_Access);
+      TI.Connect_Changed (Inp, Late_Change'Unrestricted_Access);
+
+      On_Text_Input (Kept, "x");
+
+      Test_Support.Assert (First_Change_Ran, "the destroying callback ran");
+      Test_Support.Assert (Late_Change_Ran,
+              "a Changed subscriber queued behind the destroying one"
+              & " still runs");
+
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Kept),
+              "the text input is gone once the dispatch has unwound");
+   end Test_Text_Input_Destroys_Own_Input;
+
+   First_Slide_Ran : Boolean := False;
+   Late_Slide_Ran  : Boolean := False;
+
+   procedure Destroy_Own_Slider (W : Widget_Handle; Value : Float) is
+      pragma Unreferenced (Value);
+      Target : Widget_Handle := W;
+   begin
+      First_Slide_Ran := True;
+      Destroy (Target);
+   end Destroy_Own_Slider;
+
+   procedure Late_Slide (W : Widget_Handle; Value : Float) is
+      pragma Unreferenced (W, Value);
+   begin
+      Late_Slide_Ran := True;
+   end Late_Slide;
+
+   --  On_Mouse_Down (Widget_Handle, ...): a click on the track moves the
+   --  slider and fires Changed.
+   procedure Test_Mouse_Down_Destroys_Own_Slider is
+      S : constant Float_Slider.Slider_Handle :=
+        Float_Slider.Create_Handle (Min => 0.0, Max => 100.0, Value => 0.0);
+      Kept : constant Widget_Handle := Float_Slider.To_Widget_Handle (S);
+   begin
+      Put_Line ("-- mouse-down callback destroys its own slider --");
+      First_Slide_Ran := False;
+      Late_Slide_Ran  := False;
+
+      Set_Geometry
+        (Kept, (X => 0.0, Y => 0.0, Width => 200.0, Height => 24.0));
+      Build_Items (Kept);
+
+      Float_Slider.Connect_Changed (S, Destroy_Own_Slider'Unrestricted_Access);
+      Float_Slider.Connect_Changed (S, Late_Slide'Unrestricted_Access);
+
+      On_Mouse_Down (Kept, 150.0, 12.0, Adi.Core.Left_Button);
+
+      Test_Support.Assert (First_Slide_Ran, "the destroying callback ran");
+      Test_Support.Assert (Late_Slide_Ran,
+              "a Changed subscriber queued behind the destroying one"
+              & " still runs");
+
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Kept),
+              "the slider is gone once the dispatch has unwound");
+   end Test_Mouse_Down_Destroys_Own_Slider;
+
+   --  On_Mouse_Move (Widget_Handle, ...): a drag moves the slider and
+   --  fires Changed.  The mouse-down that starts the drag lands on the
+   --  knob, so it records a drag offset and fires nothing itself.
+   procedure Test_Mouse_Move_Destroys_Own_Slider is
+      S : constant Float_Slider.Slider_Handle :=
+        Float_Slider.Create_Handle (Min => 0.0, Max => 100.0, Value => 0.0);
+      Kept : constant Widget_Handle := Float_Slider.To_Widget_Handle (S);
+   begin
+      Put_Line ("-- mouse-move callback destroys its own slider --");
+      First_Slide_Ran := False;
+      Late_Slide_Ran  := False;
+
+      Set_Geometry
+        (Kept, (X => 0.0, Y => 0.0, Width => 200.0, Height => 24.0));
+      Build_Items (Kept);
+      On_Mouse_Down (Kept, 5.0, 12.0, Adi.Core.Left_Button);
+
+      Float_Slider.Connect_Changed (S, Destroy_Own_Slider'Unrestricted_Access);
+      Float_Slider.Connect_Changed (S, Late_Slide'Unrestricted_Access);
+
+      On_Mouse_Move (Kept, 150.0, 12.0);
+
+      Test_Support.Assert (First_Slide_Ran, "the destroying callback ran");
+      Test_Support.Assert (Late_Slide_Ran,
+              "a Changed subscriber queued behind the destroying one"
+              & " still runs");
+
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Kept),
+              "the slider is gone once the dispatch has unwound");
+   end Test_Mouse_Move_Destroys_Own_Slider;
+
+   --  On_Mouse_Wheel (Widget_Handle, ...): a wheel step fires Changed.
+   procedure Test_Mouse_Wheel_Destroys_Own_Slider is
+      S : constant Float_Slider.Slider_Handle :=
+        Float_Slider.Create_Handle (Min => 0.0, Max => 100.0, Value => 50.0);
+      Kept : constant Widget_Handle := Float_Slider.To_Widget_Handle (S);
+   begin
+      Put_Line ("-- mouse-wheel callback destroys its own slider --");
+      First_Slide_Ran := False;
+      Late_Slide_Ran  := False;
+
+      Float_Slider.Connect_Changed (S, Destroy_Own_Slider'Unrestricted_Access);
+      Float_Slider.Connect_Changed (S, Late_Slide'Unrestricted_Access);
+
+      On_Mouse_Wheel (Kept, 0.0, 1.0);
+
+      Test_Support.Assert (First_Slide_Ran, "the destroying callback ran");
+      Test_Support.Assert (Late_Slide_Ran,
+              "a Changed subscriber queued behind the destroying one"
+              & " still runs");
+
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Kept),
+              "the slider is gone once the dispatch has unwound");
+   end Test_Mouse_Wheel_Destroys_Own_Slider;
+
+   --  On_Key_Up (Widget_Handle, ...): releasing Space on a pressed
+   --  button clicks it.
+   procedure Test_Key_Up_Destroys_Own_Button is
+      use Adi.SDL.Events;
+      Btn : constant Button.Button_Handle := Button.Create_Handle ("boom3");
+   begin
+      Put_Line ("-- key-up callback destroys its own button --");
+      Doomed_Button   := +Btn;
+      Valid_In_Click  := True;
+      First_Click_Ran := False;
+      Late_Click_Ran  := False;
+
+      Set_Pressed (+Btn, True);
+      Button.Connect_Clicked (Btn, Destroy_Own_Button'Unrestricted_Access);
+      Button.Connect_Clicked (Btn, Late_Click'Unrestricted_Access);
+
+      On_Key_Up (+Btn, SDL_SCANCODE_SPACE, 0, False);
+
+      Test_Support.Assert (First_Click_Ran, "the destroying callback ran");
+      Test_Support.Assert (Late_Click_Ran,
+              "a Clicked subscriber queued behind the destroying one"
+              & " still runs");
+
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Doomed_Button),
+              "the button is gone once the dispatch has unwound");
+   end Test_Key_Up_Destroys_Own_Button;
+
+   ---------------------------------------------------------------------------
+   --  Test: destroy from a typed-handle setter that emits
+   --
+   --  Set_Active and Select_Row are not event dispatch — they are
+   --  ordinary setters — but each ends in an emit, so each has to hold
+   --  the widget for the length of its call.
+   ---------------------------------------------------------------------------
+
+   Doomed_Stack   : Widget_Handle := Null_Handle;
+   First_Page_Ran : Boolean := False;
+   Late_Page_Ran  : Boolean := False;
+
+   procedure Destroy_Own_Stack (Id : Test_Page) is
+      pragma Unreferenced (Id);
+      Target : Widget_Handle := Doomed_Stack;
+   begin
+      First_Page_Ran := True;
+      Destroy (Target);
+   end Destroy_Own_Stack;
+
+   procedure Late_Page (Id : Test_Page) is
+      pragma Unreferenced (Id);
+   begin
+      Late_Page_Ran := True;
+   end Late_Page;
+
+   procedure Test_Set_Active_Destroys_Own_Stack is
+      use Test_Stack;
+      S : constant Stack_Handle := Create_Handle;
+   begin
+      Put_Line ("-- Set_Active callback destroys its own stack --");
+      Add_Page (S, Page_A, +Adi.Widget.Box.Create_Handle);
+      Add_Page (S, Page_B, +Adi.Widget.Box.Create_Handle);
+      Set_Active (S, Page_A);
+
+      Doomed_Stack   := To_Widget_Handle (S);
+      First_Page_Ran := False;
+      Late_Page_Ran  := False;
+      Connect_Changed (S, Destroy_Own_Stack'Unrestricted_Access);
+      Connect_Changed (S, Late_Page'Unrestricted_Access);
+
+      Set_Active (S, Page_B);
+
+      Test_Support.Assert (First_Page_Ran, "the destroying callback ran");
+      Test_Support.Assert (Late_Page_Ran,
+              "a Page_Changed subscriber queued behind the destroying one"
+              & " still runs");
+
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Doomed_Stack),
+              "the stack is gone once Set_Active has unwound");
+   end Test_Set_Active_Destroys_Own_Stack;
+
+   First_Select_Ran : Boolean := False;
+   Late_Select_Ran  : Boolean := False;
+
+   procedure Destroy_Own_List (W : Widget_Handle) is
+      Target : Widget_Handle := W;
+   begin
+      First_Select_Ran := True;
+      Destroy (Target);
+   end Destroy_Own_List;
+
+   procedure Late_Select (W : Widget_Handle) is
+      pragma Unreferenced (W);
+   begin
+      Late_Select_Ran := True;
+   end Late_Select;
+
+   procedure Test_Select_Row_Destroys_Own_List is
+      use Test_List_Box;
+      H    : constant List_Box_Handle := Create_Handle;
+      Kept : constant Widget_Handle := To_Widget_Handle (H);
+   begin
+      Put_Line ("-- Select_Row callback destroys its own list box --");
+      Append_Row (H, +Label.Create_Handle ("Row1"));
+      Append_Row (H, +Label.Create_Handle ("Row2"));
+      Set_Selection_Mode (H, Single_Selection);
+
+      First_Select_Ran := False;
+      Late_Select_Ran  := False;
+      Connect_Selection_Changed (H, Destroy_Own_List'Unrestricted_Access);
+      Connect_Selection_Changed (H, Late_Select'Unrestricted_Access);
+
+      Select_Row (H, 2);
+
+      Test_Support.Assert (First_Select_Ran, "the destroying callback ran");
+      Test_Support.Assert (Late_Select_Ran,
+              "a Selection_Changed subscriber queued behind the destroying"
+              & " one still runs");
+
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Kept),
+              "the list box is gone once Select_Row has unwound");
+   end Test_Select_Row_Destroys_Own_List;
+
+   ---------------------------------------------------------------------------
+   --  Test: destroy under the wrapper generics
+   --
+   --  Update and Get_Min_Size reach no application callback inside the
+   --  library, so the path a callback gets onto them by is an
+   --  application widget overriding Build_Items or Get_Min_Size.
+   --  Test_Extension_Widgets.Reentrant is such a widget.
+   ---------------------------------------------------------------------------
+
+   Reentrant_Destroy_Ran : Boolean := False;
+   Reentrant_Late_Ran    : Boolean := False;
+
+   procedure Destroy_Own_Reentrant (W : Widget_Handle) is
+      Target : Widget_Handle := W;
+   begin
+      Reentrant_Destroy_Ran := True;
+      Destroy (Target);
+   end Destroy_Own_Reentrant;
+
+   procedure Late_Reentrant_Click (W : Widget_Handle) is
+      pragma Unreferenced (W);
+   begin
+      Reentrant_Late_Ran := True;
+   end Late_Reentrant_Click;
+
+   procedure Arm_Reentrant (Kept : Widget_Handle) is
+      B : constant Adi.Widget.Button.Button_Handle :=
+        Adi.Widget.Button.Try_As_Button (Kept);
+   begin
+      Reentrant_Destroy_Ran := False;
+      Reentrant_Late_Ran    := False;
+      Adi.Widget.Button.Connect_Clicked
+        (B, Destroy_Own_Reentrant'Unrestricted_Access);
+      Adi.Widget.Button.Connect_Clicked
+        (B, Late_Reentrant_Click'Unrestricted_Access);
+   end Arm_Reentrant;
+
+   --  Update (Widget_Handle) is a Wrap_CW_Proc instantiation.
+   procedure Test_Update_Destroys_Own_Widget is
+      use Test_Extension_Widgets;
+      H    : constant Reentrants.Handle := Reentrants.New_Widget;
+      Kept : constant Widget_Handle := Reentrants.To_Widget_Handle (H);
+   begin
+      Put_Line ("-- Build_Items callback destroys its widget under Update --");
+      Arm_Reentrant (Kept);
+      Click_On_Next_Build (H);
+
+      Mark_Dirty (Kept);
+      Update (Kept);
+
+      Test_Support.Assert (Reentrant_Destroy_Ran,
+              "the destroying callback ran");
+      Test_Support.Assert (Reentrant_Late_Ran,
+              "a click subscriber queued behind the destroying one still"
+              & " runs under Update");
+
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Kept),
+              "the widget is gone once Update has unwound");
+   end Test_Update_Destroys_Own_Widget;
+
+   --  Get_Min_Size (Widget_Handle) is a Wrap_Prim_Func instantiation.
+   procedure Test_Min_Size_Destroys_Own_Widget is
+      use Test_Extension_Widgets;
+      H    : constant Reentrants.Handle := Reentrants.New_Widget;
+      Kept : constant Widget_Handle := Reentrants.To_Widget_Handle (H);
+   begin
+      Put_Line ("-- Get_Min_Size callback destroys its own widget --");
+      Arm_Reentrant (Kept);
+      Click_On_Next_Min_Size (H);
+
+      declare
+         use type Adi.Core.Pixel_Type;
+         Min : constant Adi.Core.Size_2D := Get_Min_Size (Kept);
+      begin
+         Test_Support.Assert (Min.Width >= 0.0,
+                 "Get_Min_Size still answers after the callback destroyed"
+                 & " the widget");
+      end;
+
+      Test_Support.Assert (Reentrant_Destroy_Ran,
+              "the destroying callback ran");
+      Test_Support.Assert (Reentrant_Late_Ran,
+              "a click subscriber queued behind the destroying one still"
+              & " runs under Get_Min_Size");
+
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Kept),
+              "the widget is gone once Get_Min_Size has unwound");
+   end Test_Min_Size_Destroys_Own_Widget;
+
+   --  Get_Preferred_Size (Widget_Handle) is a Wrap_CW_Func instantiation;
+   --  for a widget with auto width and height it dispatches to
+   --  Measure_Content on the way.
+   procedure Test_Preferred_Size_Destroys_Own_Widget is
+      use Test_Extension_Widgets;
+      use type Adi.Core.Pixel_Type;
+      H    : constant Reentrants.Handle := Reentrants.New_Widget;
+      Kept : constant Widget_Handle := Reentrants.To_Widget_Handle (H);
+   begin
+      Put_Line ("-- Get_Preferred_Size callback destroys its own widget --");
+      Arm_Reentrant (Kept);
+      Click_On_Next_Measure (H);
+
+      declare
+         Pref : constant Adi.Core.Size_2D := Get_Preferred_Size (Kept);
+      begin
+         Test_Support.Assert (Pref.Width >= 0.0,
+                 "Get_Preferred_Size still answers after the callback"
+                 & " destroyed the widget");
+      end;
+
+      Test_Support.Assert (Reentrant_Destroy_Ran,
+              "the destroying callback ran");
+      Test_Support.Assert (Reentrant_Late_Ran,
+              "a click subscriber queued behind the destroying one still"
+              & " runs under Get_Preferred_Size");
+
+      Pump_Widget_Store;
+      Test_Support.Assert (not Is_Valid (Kept),
+              "the widget is gone once Get_Preferred_Size has unwound");
+   end Test_Preferred_Size_Destroys_Own_Widget;
+
+   ---------------------------------------------------------------------------
    --  Test: Bubble_Context_Menu walks parent chain without crash
    --  Regression: Widget_Access(Get_Parent(...)) raised PROGRAM_ERROR
    --  due to accessibility check on the local access value.
@@ -1390,6 +2042,8 @@ begin
    Test_Create_Handle;
    Test_Null_Handle;
    Test_Destroy_Stale;
+   Test_Stale_Handle_Degrades;
+   Test_Destroy_Under_Borrow;
    Test_Destroy_Detaches;
    Test_Destroy_Recursive;
    Test_Pump;
@@ -1433,6 +2087,20 @@ begin
    Test_Text_Input_Context_Menu_Binding;
    Test_Text_Editor_Context_Menu_Binding;
    Test_Bubble_Context_Menu_Parent_Walk;
+   Test_Click_Destroy_Contract;
+   Test_Click_Destroy_With_Queued_Subscriber;
+   Test_Dialog_Result_Destroys_Dialog;
+   Test_Key_Down_Destroys_Own_Input;
+   Test_Text_Input_Destroys_Own_Input;
+   Test_Mouse_Down_Destroys_Own_Slider;
+   Test_Mouse_Move_Destroys_Own_Slider;
+   Test_Mouse_Wheel_Destroys_Own_Slider;
+   Test_Key_Up_Destroys_Own_Button;
+   Test_Set_Active_Destroys_Own_Stack;
+   Test_Select_Row_Destroys_Own_List;
+   Test_Update_Destroys_Own_Widget;
+   Test_Min_Size_Destroys_Own_Widget;
+   Test_Preferred_Size_Destroys_Own_Widget;
 
    New_Line;
    Test_Support.Finish;

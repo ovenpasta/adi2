@@ -230,6 +230,10 @@ package body Adi.Widget is
    --  These eliminate the boilerplate Resolve_Handle + null-check + delegate
    --  pattern.  Each instantiation + rename serves as the body completion for
    --  the corresponding Widget_Handle overload declared in the spec.
+   --
+   --  Each wrapper borrows the widget for the length of the call, so an Op
+   --  that reaches a callback destroying that very widget only retires the
+   --  slot once the call has unwound.
    ---------------------------------------------------------------------------
 
    --  Class-wide procedure, 0 extra args
@@ -239,7 +243,13 @@ package body Adi.Widget is
    procedure Wrap_CW_Proc (H : Widget_Handle) is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
-      if Ptr /= null then Op (Ptr.all); end if;
+      if Ptr /= null then
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            Op (Pin.Ptr.all);
+         end;
+      end if;
    end Wrap_CW_Proc;
 
    --  Dispatching procedure, 0 extra args
@@ -249,7 +259,13 @@ package body Adi.Widget is
    procedure Wrap_Prim_Proc (H : Widget_Handle) is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
-      if Ptr /= null then Op (Ptr.all); end if;
+      if Ptr /= null then
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            Op (Pin.Ptr.all);
+         end;
+      end if;
    end Wrap_Prim_Proc;
 
    --  Class-wide function, 0 extra args
@@ -261,7 +277,13 @@ package body Adi.Widget is
    function Wrap_CW_Func (H : Widget_Handle) return R is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
-      if Ptr /= null then return Op (Ptr.all); end if;
+      if Ptr /= null then
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            return Op (Pin.Ptr.all);
+         end;
+      end if;
       return Default;
    end Wrap_CW_Func;
 
@@ -274,7 +296,13 @@ package body Adi.Widget is
    function Wrap_Prim_Func (H : Widget_Handle) return R is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
-      if Ptr /= null then return Op (Ptr.all); end if;
+      if Ptr /= null then
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            return Op (Pin.Ptr.all);
+         end;
+      end if;
       return Default;
    end Wrap_Prim_Func;
 
@@ -2365,10 +2393,18 @@ package body Adi.Widget is
    function Get_Scroll_Max_Offset_Y (H : Widget_Handle) return Pixel_Type
      renames Get_Scroll_Max_Offset_Y_W;
 
+   --  Reaches the Scroll_Changed observers, so it borrows: an observer
+   --  may destroy the widget that scrolled.
    procedure Set_Scroll_Offset_Y (H : Widget_Handle; Offset : Pixel_Type) is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
-      if Ptr /= null then Set_Scroll_Offset_Y (Ptr.all, Offset); end if;
+      if Ptr /= null then
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            Set_Scroll_Offset_Y (Pin.Ptr.all, Offset);
+         end;
+      end if;
    end Set_Scroll_Offset_Y;
 
    function Resolve_Scrollbar_Metrics (W : Widget'Class) return Scrollbar_Metrics is
@@ -2745,6 +2781,11 @@ package body Adi.Widget is
    function Get_Scroll_Offset_Y (H : Widget_Handle) return Pixel_Type
      renames Get_Scroll_Offset_Y_W;
 
+   --  Event dispatch reaches application callbacks, and a callback may
+   --  destroy the widget it was handed.  Each of these entry points
+   --  borrows for the length of the call so the widget cannot be
+   --  reclaimed underneath the dispatch that is still running on it.
+
    function Handle_Scroll_Mouse_Down
      (H      : Widget_Handle;
       X, Y   : Pixel_Type;
@@ -2753,7 +2794,11 @@ package body Adi.Widget is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
       if Ptr /= null then
-         return Handle_Scroll_Mouse_Down (Ptr.all, X, Y, Button);
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            return Handle_Scroll_Mouse_Down (Pin.Ptr.all, X, Y, Button);
+         end;
       end if;
       return False;
    end Handle_Scroll_Mouse_Down;
@@ -2765,7 +2810,11 @@ package body Adi.Widget is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
       if Ptr /= null then
-         Handle_Scroll_Mouse_Move (Ptr.all, X, Y);
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            Handle_Scroll_Mouse_Move (Pin.Ptr.all, X, Y);
+         end;
       end if;
    end Handle_Scroll_Mouse_Move;
 
@@ -2776,7 +2825,11 @@ package body Adi.Widget is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
       if Ptr /= null then
-         Handle_Scroll_Mouse_Up (Ptr.all, Button);
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            Handle_Scroll_Mouse_Up (Pin.Ptr.all, Button);
+         end;
       end if;
    end Handle_Scroll_Mouse_Up;
 
@@ -2792,7 +2845,11 @@ package body Adi.Widget is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
       if Ptr /= null then
-         On_Mouse_Down (Ptr.all, X, Y, Button, Clicks);
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            On_Mouse_Down (Pin.Ptr.all, X, Y, Button, Clicks);
+         end;
       end if;
    end On_Mouse_Down;
 
@@ -2803,7 +2860,11 @@ package body Adi.Widget is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
       if Ptr /= null then
-         On_Mouse_Move (Ptr.all, X, Y);
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            On_Mouse_Move (Pin.Ptr.all, X, Y);
+         end;
       end if;
    end On_Mouse_Move;
 
@@ -2815,7 +2876,11 @@ package body Adi.Widget is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
       if Ptr /= null then
-         On_Mouse_Up (Ptr.all, X, Y, Button);
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            On_Mouse_Up (Pin.Ptr.all, X, Y, Button);
+         end;
       end if;
    end On_Mouse_Up;
 
@@ -2826,7 +2891,11 @@ package body Adi.Widget is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
       if Ptr /= null then
-         On_Mouse_Wheel (Ptr.all, Delta_X, Delta_Y);
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            On_Mouse_Wheel (Pin.Ptr.all, Delta_X, Delta_Y);
+         end;
       end if;
    end On_Mouse_Wheel;
 
@@ -2839,7 +2908,11 @@ package body Adi.Widget is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
       if Ptr /= null then
-         On_Key_Down (Ptr.all, Scancode, Key_Mod, Repeat);
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            On_Key_Down (Pin.Ptr.all, Scancode, Key_Mod, Repeat);
+         end;
       end if;
    end On_Key_Down;
 
@@ -2852,7 +2925,11 @@ package body Adi.Widget is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
       if Ptr /= null then
-         On_Key_Up (Ptr.all, Scancode, Key_Mod, Repeat);
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            On_Key_Up (Pin.Ptr.all, Scancode, Key_Mod, Repeat);
+         end;
       end if;
    end On_Key_Up;
 
@@ -2860,7 +2937,11 @@ package body Adi.Widget is
       Ptr : constant Widget_Access := Resolve_Handle (H);
    begin
       if Ptr /= null then
-         On_Text_Input (Ptr.all, Text);
+         declare
+            Pin : constant Widget_Ref := Borrow (H);
+         begin
+            On_Text_Input (Pin.Ptr.all, Text);
+         end;
       end if;
    end On_Text_Input;
 

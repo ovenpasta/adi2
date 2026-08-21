@@ -107,12 +107,15 @@ package body Adi.Widget.Dialog is
    begin
       if Scancode = SDL_SCANCODE_ESCAPE then
          declare
+            --  The dispatch that got here pins this button, not the
+            --  dialog.  The handle overload borrows the owner for the
+            --  length of the forward, so a result callback that
+            --  destroys the dialog does not free it underneath the emit.
             Owner_H : constant Widget_Handle :=
               Find_Owner_Handle (Get_Handle (W));
-            Owner   : constant Widget_Access := Resolve_Handle (Owner_H);
          begin
-            if Owner /= null then
-               On_Key_Down (Owner.all, Scancode, Key_Mod, Repeat);
+            if Adi.Widget.Is_Valid (Owner_H) then
+               On_Key_Down (Owner_H, Scancode, Key_Mod, Repeat);
                return;
             end if;
          end;
@@ -172,16 +175,19 @@ package body Adi.Widget.Dialog is
          return;
       end if;
 
-      declare
-         Owner : constant Widget_Access := Resolve_Handle (Owner_H);
-      begin
-         if Owner = null then
-            return;
-         end if;
+      if Resolve_Handle (Owner_H) = null then
+         return;
+      end if;
 
-         Index := Find_Button_Index (Dialog_Widget (Owner.all), W);
+      declare
+         --  The Result signal lives inside the dialog and a result
+         --  callback may destroy it, so hold the slot across the emit.
+         Pin   : constant Widget_Ref := Borrow (Owner_H);
+         Owner : Dialog_Widget renames Dialog_Widget (Pin.Ptr.all);
+      begin
+         Index := Find_Button_Index (Owner, W);
          if Index > 0 then
-            Text := Dialog_Widget (Owner.all).Buttons.Element (Index).Text;
+            Text := Owner.Buttons.Element (Index).Text;
          end if;
 
          declare
@@ -191,10 +197,14 @@ package body Adi.Widget.Dialog is
             begin CB (Owner_H, Idx, Txt); end Call;
             procedure Emit is new Result_Signals.For_Each (Call);
          begin
-            Emit (Dialog_Widget (Owner.all).Result);
+            Emit (Owner.Result);
          end;
-         if Dialog_Widget (Owner.all).Auto_Close_Flag then
-            Hide (Dialog_Widget (Owner.all));
+
+         --  The pin keeps the dialog readable: a callback that destroyed
+         --  it has already had its teardown run, and hiding a torn-down
+         --  dialog writes state nothing reads.
+         if Owner.Auto_Close_Flag then
+            Hide (Owner);
          end if;
       end;
    end On_Button_Clicked;
@@ -213,6 +223,10 @@ package body Adi.Widget.Dialog is
          return;  --  Already dismissed (guard against double-dispatch)
       end if;
       Emit (W.Result);
+
+      --  A result callback may have destroyed the dialog; the dispatch
+      --  that got here holds it readable, and Hide on a torn-down dialog
+      --  is a no-op at every step.
       Hide (W);
    end Fire_Dismiss;
 

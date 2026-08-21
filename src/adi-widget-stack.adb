@@ -400,11 +400,17 @@ package body Adi.Widget.Stack is
       end if;
    end Add_Page;
 
+   --  Set_Active emits Page_Changed, so it borrows: a subscriber may
+   --  destroy the stack.
    procedure Set_Active (H : Stack_Handle; Id : Page_Id) is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
-         Set_Active (Stack_Widget (Ptr.all), Id);
+         declare
+            Pin : constant Widget_Ref := Borrow (To_Widget_Handle (H));
+         begin
+            Set_Active (Stack_Widget (Pin.Ptr.all), Id);
+         end;
       end if;
    end Set_Active;
 

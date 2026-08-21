@@ -3,6 +3,7 @@ pragma Ada_2022;
 with Ada.Environment_Variables;
 with Ada.Text_IO;          use Ada.Text_IO;
 with Adi.SDL;              use Adi.SDL;
+with Adi.SDL.Events;
 with Adi.SDL.TTF;
 with Adi.Widget;           use Adi.Widget;
 with Adi.Widget.Button;
@@ -174,11 +175,95 @@ procedure Dialog_Test is
               "dialog hidden after re-enabling auto-close");
    end Test_Auto_Close_Re_Enable;
 
+   ---------------------------------------------------------------------------
+   --  Test 4: Escape on a dialog button, with a result callback that
+   --  destroys the dialog
+   --
+   --  The window's dispatch pins the button it delivered the key to, not
+   --  the dialog the button forwards Escape to.  The Result subscriber
+   --  array lives inside the dialog, so a second subscriber queued
+   --  behind the destroying one is reachable only while the dialog is
+   --  still there.
+   ---------------------------------------------------------------------------
+
+   Doomed_Dialog  : Widget_Handle := Adi.Widget.Null_Handle;
+   First_Esc_Ran  : Boolean := False;
+   Late_Esc_Ran   : Boolean := False;
+
+   procedure Destroy_On_Dismiss
+     (W            : Widget_Handle;
+      Button_Index : Natural;
+      Button_Text  : String)
+   is
+      pragma Unreferenced (Button_Index, Button_Text);
+      Target : Widget_Handle := W;
+   begin
+      First_Esc_Ran := True;
+      Adi.Widget.Destroy (Target);
+   end Destroy_On_Dismiss;
+
+   procedure Late_Dismiss
+     (W            : Widget_Handle;
+      Button_Index : Natural;
+      Button_Text  : String)
+   is
+      pragma Unreferenced (W, Button_Index, Button_Text);
+   begin
+      Late_Esc_Ran := True;
+   end Late_Dismiss;
+
+   procedure Test_Escape_On_Button_Destroys_Dialog is
+      Win : Window_Handle;
+      D   : Dialog_Handle;
+      Btn : Widget_Handle;
+      Ready : Boolean := False;
+   begin
+      Section ("Escape forwarded from a dialog button destroys the dialog");
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         Put_Line ("  [SKIP] SDL not available");
+         return;
+      end if;
+
+      Win := Create_Window_Handle ("Dialog Test 4", (320.0, 240.0));
+      D   := Create_Handle;
+      Attach_Window (D, Win);
+      Set_Dismiss_On_Escape (D, True);
+      Add_Button (D, "Cancel");
+      Connect_Result (D, Destroy_On_Dismiss'Unrestricted_Access);
+      Connect_Result (D, Late_Dismiss'Unrestricted_Access);
+
+      Show (D);
+      Assert (Is_Shown (D), "dialog is shown after Show");
+
+      Doomed_Dialog := To_Widget_Handle (D);
+      First_Esc_Ran := False;
+      Late_Esc_Ran  := False;
+
+      Btn := Adi.Widget.Button."+" (Get_Button_Handle (D, 1));
+      Adi.Widget.On_Key_Down
+        (Btn, Adi.SDL.Events.SDL_SCANCODE_ESCAPE, 0, False);
+
+      Assert (First_Esc_Ran, "the destroying result callback ran");
+      Assert (Late_Esc_Ran,
+              "a Result subscriber queued behind the destroying one"
+              & " still runs");
+
+      Put_Line ("  PROBE overlays before pump"
+                & Natural'Image (Overlay_Count (Win)));
+      Adi.Widget.Pump_Widget_Store;
+      Put_Line ("  PROBE overlays after pump"
+                & Natural'Image (Overlay_Count (Win)));
+      Assert (not Adi.Widget.Is_Valid (Doomed_Dialog),
+              "the dialog is gone once the dispatch has unwound");
+   end Test_Escape_On_Button_Destroys_Dialog;
+
 begin
    Start_Suite ("Dialog Auto-Close Tests");
    Test_Auto_Close_Default;
    Test_Auto_Close_False;
    Test_Auto_Close_Re_Enable;
+   Test_Escape_On_Button_Destroys_Dialog;
 
    Finish;
 end Dialog_Test;

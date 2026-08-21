@@ -342,11 +342,18 @@ package body Adi.Widget.Text_Editor is
          return;
       end if;
 
-      if Changed_Text then
-         Fire_Changed (Owner.all);
-      else
-         Mark_Dirty (Owner.all);
-      end if;
+      --  The dispatch that gets here runs on the menu popup, so nothing
+      --  is holding the editor.  Fire_Changed reaches an application
+      --  callback that may destroy it, so pin it for the emit.
+      declare
+         Pin : constant Widget_Ref := Borrow (Get_Handle (Owner.all));
+      begin
+         if Changed_Text then
+            Fire_Changed (Text_Editor_Widget'Class (Pin.Ptr.all));
+         else
+            Mark_Dirty (Pin.Ptr.all);
+         end if;
+      end;
    end On_Menu_Command_Applied;
 
    procedure Apply_Context_Menu_Styles (W : in out Text_Editor_Widget) is

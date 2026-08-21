@@ -889,6 +889,98 @@ procedure Html_View_Test is
       New_Line;
    end Test_Clipping_Aware_Link_Hit_Test;
 
+   ---------------------------------------------------------------------------
+   --  A link-click callback may destroy the view it is running under.
+   --
+   --  On_Mouse_Up (Widget_Handle, ...) borrows for the length of the
+   --  call, so the Link_Click subscriber array — which lives inside the
+   --  view — is still there when the emit moves on to the next
+   --  subscriber.
+   ---------------------------------------------------------------------------
+
+   Doomed_View     : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
+   First_Link_Ran  : Boolean := False;
+   Late_Link_Ran   : Boolean := False;
+
+   procedure Destroy_Own_View
+     (Self : Adi.Widget.Html_View.Html_View_Handle; Href : String)
+   is
+      pragma Unreferenced (Href);
+      Target : Adi.Widget.Widget_Handle :=
+        Adi.Widget.Html_View.To_Widget_Handle (Self);
+   begin
+      First_Link_Ran := True;
+      Adi.Widget.Destroy (Target);
+   end Destroy_Own_View;
+
+   procedure Late_Link
+     (Self : Adi.Widget.Html_View.Html_View_Handle; Href : String)
+   is
+      pragma Unreferenced (Self, Href);
+   begin
+      Late_Link_Ran := True;
+   end Late_Link;
+
+   procedure Test_Link_Click_Destroys_Own_View is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+   begin
+      Put_Line ("Test: link-click callback destroys its own view");
+
+      First_Link_Ran := False;
+      Late_Link_Ran  := False;
+      Doomed_View    := Adi.Widget.Html_View.To_Widget_Handle (W);
+
+      Adi.Widget.Html_View.Connect_Link_Click
+        (W, Destroy_Own_View'Unrestricted_Access);
+      Adi.Widget.Html_View.Connect_Link_Click
+        (W, Late_Link'Unrestricted_Access);
+      Adi.Widget.Html_View.Set_HTML
+        (W,
+         "<p><a href='app://gone'>a link long enough to click</a></p>");
+
+      --  Same padding and text size as the hit-testing test above, so
+      --  the click coordinate below means what it says.
+      declare
+         use Adi.CSS_Styles;
+         use Adi.Widget_Styles;
+         Main_Rules : constant Style_Rules :=
+           (Padding => Set (CSS_Box (Px (14.0))), others => <>);
+         Text_Rules : constant Style_Rules :=
+           (Font_Size => Set_Font (Px (15.0)), others => <>);
+      begin
+         Adi.Widget.Set_Part_Styles
+           (+W,
+            [Adi.Widget.Main_Part =>
+               (Style => From (Main_Rules).Build, Enabled => True),
+             Adi.Widget.Text_Part =>
+               (Style => From (Text_Rules).Build, Enabled => True),
+             Adi.Widget.Indicator_Part =>
+               (Style => From (Text_Rules).Build, Enabled => True),
+             others => <>]);
+      end;
+
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 360.0, Height => 52.0));
+      Adi.Widget.Build_Items (+W);
+
+      Adi.Widget.On_Mouse_Down
+        (+W, X => 26.0, Y => 26.0, Button => Adi.Core.Left_Button, Clicks => 1);
+      Adi.Widget.On_Mouse_Up
+        (+W, X => 26.0, Y => 26.0, Button => Adi.Core.Left_Button);
+
+      Assert (First_Link_Ran, "the destroying link callback ran");
+      Assert (Late_Link_Ran,
+              "a Link_Click subscriber queued behind the destroying one"
+              & " still runs");
+
+      Adi.Widget.Pump_Widget_Store;
+      Assert (not Adi.Widget.Is_Valid (Doomed_View),
+              "the view is gone once the dispatch has unwound");
+
+      New_Line;
+   end Test_Link_Click_Destroys_Own_View;
+
    procedure Test_Link_Does_Not_Consume_Leading_Space is
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
         Adi.Widget.Html_View.Create_Handle;
@@ -2054,6 +2146,7 @@ begin
    Test_Fresh_View_Is_Neutral;
    Test_Clear_Keeps_Applied_Styles;
    Test_Clipping_Aware_Link_Hit_Test;
+   Test_Link_Click_Destroys_Own_View;
    Test_Link_Does_Not_Consume_Leading_Space;
    Test_Scroll_Content_Height_Stability;
    Test_Center_Alignment;

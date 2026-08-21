@@ -62,6 +62,35 @@ Core APIs:
 
 `Destroy_Subtree` is bottom-up and calls dispatching `On_Destroy` before final request-destroy, allowing widgets to clean external bindings.
 
+An operation reached through a handle borrows for the length of its call
+when that call can reach an application callback. That is: the four
+wrapper generics the `Widget_Handle` overloads are built from
+(`Wrap_CW_Proc`, `Wrap_Prim_Proc`, `Wrap_CW_Func`, `Wrap_Prim_Func`); the
+ten hand-written event overloads (`Handle_Scroll_Mouse_Down/Move/Up`,
+`On_Mouse_Down/Move/Up/Wheel`, `On_Key_Down/Up`, `On_Text_Input`); the
+typed-handle setters that end in an emit — `Set_Scroll_Offset_Y`,
+`Stack.Set_Active`, `Combo_Box.Set_Selected_Index`,
+`List_Box.Select_Row`, `Toggle_Row_Selected`, `Clear_Selection`,
+`Clear_Rows`, `Set_Scroll_Offset`, `Scroll_By`, `Ensure_Row_Visible`; and
+the places where one widget reaches into another to emit on it — a
+dialog button forwarding Escape to its dialog, and a text input or text
+editor firing `Changed` for a context-menu command, where the dispatch
+that got there is holding the button or the menu popup and not the
+target.
+
+So a callback may destroy the widget whose call it is running under: the
+slot is retired when the call unwinds, not underneath it. The pin keeps
+the widget readable, not usable — its teardown has already run, and its
+handle answers `Is_Valid` False from that moment.
+
+Every other typed-handle setter — `Set_Label`, `Text_Input.Set_Text`,
+`Slider.Set_Value`, `Value_Input.Set_Value`, `Switch.Set_Checked`,
+`Button.Set_Toggled` and the rest — resolves raw and does not pin. What
+makes that safe is a property of what they do, not of the handle: each
+writes the widget's own state and marks it dirty, and none of them
+emits, so none can reach code that destroys the widget while the call is
+still running. A setter that grows an emit has to grow a borrow with it.
+
 ## Animation Ownership
 
 `Adi.RLottie` and `Adi.Animated_Image` each instantiate

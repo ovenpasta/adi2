@@ -1164,11 +1164,17 @@ package body Adi.Widget.Combo_Box is
       return 0;
    end Option_Count;
 
+   --  Set_Selected_Index emits Changed, so it borrows: a subscriber may
+   --  destroy the combo box.
    procedure Set_Selected_Index (H : Combo_Box_Handle; Index : Natural) is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
-         Set_Selected_Index (Combo_Box_Widget (Ptr.all), Index);
+         declare
+            Pin : constant Widget_Ref := Borrow (To_Widget_Handle (H));
+         begin
+            Set_Selected_Index (Combo_Box_Widget (Pin.Ptr.all), Index);
+         end;
       end if;
    end Set_Selected_Index;
 

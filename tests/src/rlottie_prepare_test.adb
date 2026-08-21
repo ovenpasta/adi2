@@ -680,6 +680,97 @@ procedure RLottie_Prepare_Test is
       Destroy (Anim);
    end Test_Sampled_Advance;
 
+   --  Steps far outside what a frame clock produces. Reducing them one
+   --  duration at a time takes unbounded iterations, and once the ratio
+   --  passes 2**24 the subtraction stops moving a Float at all.
+   procedure Test_Extreme_Steps is
+      Anim  : Animation_Handle := Load_From_File (Fixture);
+      Span  : Duration;
+      Moved : Boolean;
+      pragma Unreferenced (Moved);
+   begin
+      Section ("steps far outside a frame clock's range");
+
+      if not Is_Valid (Anim) then
+         Assert (False, "the fixture loads");
+         return;
+      end if;
+
+      Span := Get_Duration (Anim);
+      Prepare (Anim, Tiny_W, Tiny_H);
+      Start (Anim);
+      Set_Looping (Anim, True);
+
+      Moved := Advance (Anim, 1.0e9);
+      Assert (Elapsed (Anim) >= 0.0 and then Elapsed (Anim) < Span,
+              "A billion seconds leaves the playhead inside one cycle,"
+              & " got" & Duration'Image (Elapsed (Anim)));
+      Assert (Get_Current_Frame_Index (Anim) in 1 .. Get_Frame_Count (Anim),
+              "and on a frame that exists");
+
+      --  Playback speed is a public setter, so it must not be able to
+      --  put the playhead where stepping cannot bring it back.
+      Set_Playback_Speed (Anim, Float'Last);
+      Assert (Get_Playback_Speed (Anim) <= Max_Playback_Speed,
+              "An unbounded speed is clamped to Max_Playback_Speed, got"
+              & Float'Image (Get_Playback_Speed (Anim)));
+      Moved := Advance (Anim, 1.0);
+      Assert (Elapsed (Anim) >= 0.0 and then Elapsed (Anim) < Span,
+              "and a second at that speed still lands inside one cycle");
+
+      Set_Playback_Speed (Anim, 0.0);
+      Assert (Get_Playback_Speed (Anim) > 0.0,
+              "a speed of zero is clamped up rather than stopping time");
+      Set_Playback_Speed (Anim, 1.0);
+
+      --  A step backwards used to convert a negative frame index before
+      --  the clamp written for it could run.
+      Reset (Anim);
+      Moved := Advance (Anim, -1.0);
+      Assert (Get_Current_Frame_Index (Anim) = 1,
+              "A backwards step parks on the first frame");
+      Assert (Elapsed (Anim) >= 0.0,
+              "and leaves the playhead at or after the start, got"
+              & Duration'Image (Elapsed (Anim)));
+
+      Destroy (Anim);
+   end Test_Extreme_Steps;
+
+   --  A cycle shorter than a frame clock's own resolution: an ordinary
+   --  step covers millions of them.
+   procedure Test_Degenerate_Duration is
+      Brief : constant String := "tests/assets/brief_anim.json";
+      Anim  : Animation_Handle := Load_From_File (Brief);
+      Span  : Duration;
+      Moved : Boolean;
+      pragma Unreferenced (Moved);
+   begin
+      Section ("a cycle shorter than one step");
+
+      if not Is_Valid (Anim) then
+         Assert (False, "the brief fixture loads");
+         return;
+      end if;
+
+      Span := Get_Duration (Anim);
+      Assert (Span < 0.001,
+              "the fixture cycles in under a millisecond, got"
+              & Duration'Image (Span));
+
+      Prepare (Anim, Tiny_W, Tiny_H);
+      Start (Anim);
+      Set_Looping (Anim, True);
+
+      Moved := Advance (Anim, 1_000.0);
+      Assert (Elapsed (Anim) >= 0.0 and then Elapsed (Anim) < Span,
+              "A step of a thousand seconds still reduces to one cycle,"
+              & " got" & Duration'Image (Elapsed (Anim)));
+      Assert (Get_Current_Frame_Index (Anim) in 1 .. Get_Frame_Count (Anim),
+              "and lands on a frame that exists");
+
+      Destroy (Anim);
+   end Test_Degenerate_Duration;
+
 begin
    Start_Suite ("RLottie prepare test");
 
@@ -695,6 +786,8 @@ begin
    Test_Failed_Replacement;
    Test_Paused_Preparation_Completes;
    Test_Sampled_Advance;
+   Test_Extreme_Steps;
+   Test_Degenerate_Duration;
 
    Finish;
 end RLottie_Prepare_Test;

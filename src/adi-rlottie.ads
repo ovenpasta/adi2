@@ -120,6 +120,12 @@ package Adi.RLottie is
    function Is_Playing (H : Animation_Handle) return Boolean;
    procedure Set_Looping (H : Animation_Handle; Value : Boolean := True);
    function Is_Looping (H : Animation_Handle) return Boolean;
+   --  How fast the timeline runs relative to the authored rate.
+   --  Multiplier is clamped into this range, so a speed that would put
+   --  the playhead beyond what a Float can place is not reachable.
+   Min_Playback_Speed : constant Float := 0.01;
+   Max_Playback_Speed : constant Float := 100.0;
+
    procedure Set_Playback_Speed
      (H          : Animation_Handle;
       Multiplier : Float := 1.0);

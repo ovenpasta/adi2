@@ -528,6 +528,44 @@ procedure Animated_Image_Test is
       Destroy (Anim);
    end Test_Reanchor_Call_Sites;
 
+   --  A step far outside what a frame clock produces. Walking it one
+   --  frame delay at a time takes unbounded iterations, and once the
+   --  ratio passes 2**24 the subtraction stops moving a Float at all.
+   procedure Test_Extreme_Step is
+      Anim  : Animation_Handle := Load_From_File (Fixture);
+      Moved : Boolean;
+      pragma Unreferenced (Moved);
+   begin
+      Section ("a step far outside a frame clock's range");
+      if not Is_Valid (Anim) then
+         Assert (False, "the fixture loads");
+         return;
+      end if;
+
+      Set_Looping (Anim, True);
+      Start (Anim);
+
+      Moved := Advance (Anim, 1.0e9);
+      Assert (Elapsed_MS (Anim) >= 0.0
+                and then Elapsed_MS (Anim) < 10_000.0,
+              "A billion seconds leaves the playhead inside one cycle --"
+              & " eight frames of a GIF run in well under ten seconds --"
+              & " got" & Float'Image (Elapsed_MS (Anim)));
+      Assert (Get_Current_Frame_Index (Anim)
+                in 1 .. Get_Frame_Count (Anim),
+              "and on a frame that exists");
+
+      --  A step backwards leaves the playhead where the next honest
+      --  step can still charge from it.
+      Reset (Anim);
+      Moved := Advance (Anim, -1.0);
+      Assert (Elapsed_MS (Anim) >= 0.0,
+              "A backwards step does not park the playhead before the"
+              & " start, got" & Float'Image (Elapsed_MS (Anim)));
+
+      Destroy (Anim);
+   end Test_Extreme_Step;
+
 begin
    Ada.Environment_Variables.Set ("SDL_VIDEODRIVER", "dummy");
    Start_Suite ("Animated image test");
@@ -545,6 +583,7 @@ begin
    Test_Group_Release_Across_Contexts;
    Test_Invalidate_Stales;
    Test_Reanchor_Call_Sites;
+   Test_Extreme_Step;
 
    for K in Viewer_Kind loop
       Test_Shared_Playhead (K);

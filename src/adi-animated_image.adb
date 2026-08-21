@@ -412,6 +412,41 @@ package body Adi.Animated_Image is
 
       Anim.Elapsed_MS := Anim.Elapsed_MS + Float (DT) * 1_000.0;
 
+      --  A step large enough to overflow leaves the playhead with no
+      --  position on any timeline, and one that goes backwards past the
+      --  start has none either.  Both restart the cycle.
+      if not Anim.Elapsed_MS'Valid or else Anim.Elapsed_MS < 0.0 then
+         Anim.Elapsed_MS := 0.0;
+      end if;
+
+      --  Whole cycles are dropped by division rather than walked frame
+      --  by frame: the walk takes as many iterations as there are frames
+      --  in the step, and past 2**24 frame delays it stops moving a
+      --  Float at all.  Dropping them lands on the frame the walk would
+      --  have reached, so the report of a new frame is kept.
+      if Anim.Looping then
+         declare
+            Cycle : Float := 0.0;
+         begin
+            for I in 1 .. Last loop
+               Cycle := Cycle + Float (Anim.Frames.Element (I).Delay_MS);
+            end loop;
+
+            if Cycle > 0.0 and then Anim.Elapsed_MS >= Cycle then
+               Anim.Elapsed_MS :=
+                 Anim.Elapsed_MS
+                   - Cycle * Float'Floor (Anim.Elapsed_MS / Cycle);
+
+               --  Rounding in that division can land just outside the
+               --  window it is meant to produce.
+               if Anim.Elapsed_MS not in 0.0 .. Cycle then
+                  Anim.Elapsed_MS := 0.0;
+               end if;
+               Changed := True;
+            end if;
+         end;
+      end if;
+
       loop
          Frame_Delay :=
            Anim.Frames.Element (Positive (Anim.Current_Frame)).Delay_MS;

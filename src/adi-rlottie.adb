@@ -134,21 +134,45 @@ package body Adi.RLottie is
          return Anim.Current_Frame;
       end if;
 
-      if Anim.Looping then
-         while Anim.Elapsed_S >= Anim.Duration_S loop
-            Anim.Elapsed_S := Anim.Elapsed_S - Anim.Duration_S;
-         end loop;
+      --  A step large enough to overflow leaves the playhead with no
+      --  position on any timeline, so it starts the cycle over.
+      if not Anim.Elapsed_S'Valid then
+         Anim.Elapsed_S := 0.0;
+      end if;
+
+      if Anim.Elapsed_S < 0.0 then
+         --  A step backwards past the start parks there.
+         Anim.Elapsed_S := 0.0;
+      elsif Anim.Looping then
+         --  Reduced by division rather than a cycle at a time: the
+         --  subtraction takes as many iterations as there are cycles in
+         --  the step, and past 2**24 of them it stops moving a Float.
+         if Anim.Elapsed_S >= Anim.Duration_S then
+            Anim.Elapsed_S :=
+              Anim.Elapsed_S
+                - Anim.Duration_S
+                  * Float'Floor (Anim.Elapsed_S / Anim.Duration_S);
+
+            --  Rounding in that division can land just outside the
+            --  window it is meant to produce.
+            if Anim.Elapsed_S not in 0.0 .. Anim.Duration_S then
+               Anim.Elapsed_S := 0.0;
+            end if;
+         end if;
       elsif Anim.Elapsed_S >= Anim.Duration_S then
          Anim.Elapsed_S := Anim.Duration_S;
          Anim.Playing := False;
       end if;
 
+      --  Clamped before the conversion, not after: converting first is
+      --  what raises on a playhead outside the frame range.
       T := Anim.Elapsed_S * Anim.Frame_Rate;
-      F := 1 + Natural (Integer (Float'Floor (T)));
-      if F < 1 then
+      if T < 1.0 then
          F := 1;
-      elsif F > Anim.Frame_Count then
+      elsif T >= Float (Anim.Frame_Count) then
          F := Anim.Frame_Count;
+      else
+         F := 1 + Integer (Float'Floor (T));
       end if;
       return F;
    end Resolve_Target_Frame;
@@ -597,7 +621,15 @@ package body Adi.RLottie is
       Multiplier : Float := 1.0)
    is
    begin
-      Anim.Playback_Speed := Float'Max (0.01, Multiplier);
+      --  Membership first so that a value which is not a number, and
+      --  compares False against everything, still lands somewhere.
+      if Multiplier in Min_Playback_Speed .. Max_Playback_Speed then
+         Anim.Playback_Speed := Multiplier;
+      elsif Multiplier > Max_Playback_Speed then
+         Anim.Playback_Speed := Max_Playback_Speed;
+      else
+         Anim.Playback_Speed := Min_Playback_Speed;
+      end if;
    end Set_Playback_Speed;
 
    function Get_Playback_Speed (Anim : RLottie_Animation) return Float is

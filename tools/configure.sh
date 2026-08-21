@@ -301,7 +301,8 @@ project Examples_Build is
       "assets_example",
       "gradient_example",
       "hello_example",
-      "hello_raw_example");
+      "hello_raw_example",
+      "svg_example");
    Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");
 
    for Source_Dirs use ("${SOURCE_DIR}/examples", "${SOURCE_DIR}/examples/generated");
@@ -401,6 +402,7 @@ EXAMPLE_KINDS=(
   gradient_example
   hello_example
   hello_raw_example
+  svg_example
 )
 
 for kind in "\${EXAMPLE_KINDS[@]}"; do

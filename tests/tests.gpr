@@ -59,6 +59,7 @@ project Tests is
       "app_loop_test",
       "option_group_test",
       "hover_teardown_test",
+      "scroll_drag_teardown_test",
       "css_binding_growth_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    Platform_Name := external ("ADI_PLATFORM", "linux");

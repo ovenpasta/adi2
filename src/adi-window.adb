@@ -2186,6 +2186,13 @@ package body Adi.Window is
    --  widget itself, so there is no chain to walk.
    procedure Release_Pressed_Widget (W : in out Window) is
    begin
+      --  A scrollbar drag is held by the widget as well as by the
+      --  window, and the release that would have ended it is never
+      --  going to arrive.
+      if W.Scroll_Claimed then
+         Handle_Scroll_Mouse_Up (W.Pressed_Widget, Left_Button);
+      end if;
+
       Set_Part_State (W.Pressed_Widget, W.Pressed_Part,
                       Adi.Widget_Styles.State_Pressed, False);
       Set_Pressed (W.Pressed_Widget, False);

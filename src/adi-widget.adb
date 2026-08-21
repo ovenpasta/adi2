@@ -2998,10 +2998,15 @@ package body Adi.Widget is
          W.Scroll_Drag_Offset :=
            Clamp (Offset_Y, 0.0, Pixel_Type'Max (0.0, W.Scroll_Knob_Geom.Height));
          W.Scroll_Velocity_Y := 0.0;
-      elsif Y < W.Scroll_Knob_Geom.Y then
-         Scroll_By_Y (W, -Content.Height * 0.9);
       else
-         Scroll_By_Y (W, Content.Height * 0.9);
+         --  Paging by the track is not a grab: whatever the knob was
+         --  doing before this press, it is not being dragged now.
+         W.Scroll_Dragging := False;
+         if Y < W.Scroll_Knob_Geom.Y then
+            Scroll_By_Y (W, -Content.Height * 0.9);
+         else
+            Scroll_By_Y (W, Content.Height * 0.9);
+         end if;
       end if;
 
       Mark_Render_Dirty (W);

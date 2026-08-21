@@ -20,28 +20,29 @@ procedure Handle_Store_Test is
    package Stores is new Adi.Handle_Store (Test_Object, Test_Access);
    use Stores;
 
-   --  In strict mode (the default), Get raises Program_Error for stale
-   --  non-null Ids.  True when Get (Id) raised as expected.
-   function Get_Raises_Stale (Id : Object_Id) return Boolean is
-      Obj : Test_Access;
+   --  Get answers null for a stale Id rather than raising.  True when the
+   --  call returned at all and returned null.
+   function Get_Degrades (Id : Object_Id) return Boolean is
    begin
-      Obj := Get (Id);
-      pragma Unreferenced (Obj);
-      return False;
+      return Get (Id) = null;
    exception
-      when Program_Error =>
-         return True;
-   end Get_Raises_Stale;
+      when others =>
+         return False;
+   end Get_Degrades;
 
-   --  Get (Id) with strict mode temporarily disabled.
-   function Lenient_Get (Id : Object_Id) return Test_Access is
-      Prev : constant Boolean := Is_Strict;
+   --  Registering right after a free reuses the slot that was freed:
+   --  Really_Free pushes the index onto the head of the free list.
+   --  True when the slot at Idx was recycled with a bumped generation.
+   function Slot_Was_Recycled (Idx : Slot_Index; Gen : Generation)
+     return Boolean
+   is
+      Id : constant Object_Id := Register (new Concrete_Object'(Value => 0));
    begin
-      Set_Strict (False);
-      return Obj : constant Test_Access := Get (Id) do
-         Set_Strict (Prev);
+      return R : constant Boolean := Id.Index = Idx and then Id.Gen = Gen + 1
+      do
+         Request_Destroy (Id);
       end return;
-   end Lenient_Get;
+   end Slot_Was_Recycled;
 
    ---------------------------------------------------------------------------
    --  Test: Null_Id is invalid
@@ -80,9 +81,7 @@ procedure Handle_Store_Test is
       Assert (Is_Valid (Id), "before destroy: valid");
       Request_Destroy (Id);
       Assert (not Is_Valid (Id), "after destroy: stale");
-      Assert (Get_Raises_Stale (Id),
-              "strict Get after destroy: raises Program_Error");
-      Assert (Lenient_Get (Id) = null, "lenient Get after destroy: null");
+      Assert (Get_Degrades (Id), "Get after destroy: null, no exception");
    end Test_Destroy_Stale;
 
    ---------------------------------------------------------------------------
@@ -92,19 +91,42 @@ procedure Handle_Store_Test is
    procedure Test_Deferred_Destroy is
       Obj : constant Test_Access := new Concrete_Object'(Value => 20);
       Id  : constant Object_Id := Register (Obj);
+      Idx : constant Slot_Index := Id.Index;
+      Gen : constant Generation := Id.Gen;
    begin
       Put_Line ("-- Deferred destroy tests --");
       Pin (Id);
       Request_Destroy (Id);
-      Assert (Is_Valid (Id), "pinned: still valid after Request_Destroy");
-      Assert (Get (Id) /= null, "pinned: Get still works");
+      Assert (not Is_Valid (Id),
+              "pinned: invalid from the moment destroy is requested");
+      Assert (Get (Id) = null, "pinned + pending: Get answers null");
 
       Unpin (Id);
-      Assert (not Is_Valid (Id), "after unpin: stale (deferred free)");
-      Assert (Get_Raises_Stale (Id),
-              "after unpin: strict Get raises Program_Error");
-      Assert (Lenient_Get (Id) = null, "after unpin: lenient Get null");
+      Assert (not Is_Valid (Id), "after unpin: still invalid");
+      Assert (Slot_Was_Recycled (Idx, Gen),
+              "unpin of a pending slot frees it");
    end Test_Deferred_Destroy;
+
+   ---------------------------------------------------------------------------
+   --  Test: Unpin frees a slot whose destroy is already pending
+   ---------------------------------------------------------------------------
+
+   procedure Test_Unpin_Frees_Pending is
+      Obj : constant Test_Access := new Concrete_Object'(Value => 21);
+      Id  : constant Object_Id := Register (Obj);
+      Idx : constant Slot_Index := Id.Index;
+      Gen : constant Generation := Id.Gen;
+   begin
+      Put_Line ("-- Unpin of a pending slot --");
+      Pin (Id);
+      Request_Destroy (Id);
+      Assert (not Is_Valid (Id), "pending: invalid");
+
+      --  Unpin drops the pin and frees, on an Id that Is_Valid rejects.
+      Unpin (Id);
+      Assert (Slot_Was_Recycled (Idx, Gen),
+              "the pin is released and the slot recycled");
+   end Test_Unpin_Frees_Pending;
 
    ---------------------------------------------------------------------------
    --  Test: Multiple pins
@@ -113,18 +135,21 @@ procedure Handle_Store_Test is
    procedure Test_Multiple_Pins is
       Obj : constant Test_Access := new Concrete_Object'(Value => 30);
       Id  : constant Object_Id := Register (Obj);
+      Idx : constant Slot_Index := Id.Index;
+      Gen : constant Generation := Id.Gen;
    begin
       Put_Line ("-- Multiple pin tests --");
       Pin (Id);
       Pin (Id);
       Request_Destroy (Id);
-      Assert (Is_Valid (Id), "2 pins: still valid");
+      Assert (not Is_Valid (Id), "2 pins: invalid once destroy is requested");
 
       Unpin (Id);
-      Assert (Is_Valid (Id), "1 pin remaining: still valid");
+      Assert (not Slot_Was_Recycled (Idx, Gen),
+              "1 pin remaining: not freed");
 
       Unpin (Id);
-      Assert (not Is_Valid (Id), "0 pins: freed");
+      Assert (Slot_Was_Recycled (Idx, Gen), "0 pins: freed");
    end Test_Multiple_Pins;
 
    ---------------------------------------------------------------------------
@@ -134,20 +159,19 @@ procedure Handle_Store_Test is
    procedure Test_Pump is
       Obj : constant Test_Access := new Concrete_Object'(Value => 40);
       Id  : constant Object_Id := Register (Obj);
+      Idx : constant Slot_Index := Id.Index;
+      Gen : constant Generation := Id.Gen;
    begin
       Put_Line ("-- Pump tests --");
       Pin (Id);
       Request_Destroy (Id);
-      Assert (Is_Valid (Id), "pinned: alive");
 
-      --  Pump should not free while pinned
       Pump;
-      Assert (Is_Valid (Id), "Pump with pin: still alive");
+      Assert (not Slot_Was_Recycled (Idx, Gen),
+              "Pump with a pin outstanding: not freed");
 
       Unpin (Id);
-      --  Unpin triggers immediate free when pending, but test Pump path too
-      --  (the unpin already freed it since pins hit 0 with pending)
-      Assert (not Is_Valid (Id), "after unpin: freed");
+      Assert (Slot_Was_Recycled (Idx, Gen), "after unpin: freed");
    end Test_Pump;
 
    ---------------------------------------------------------------------------
@@ -171,6 +195,8 @@ procedure Handle_Store_Test is
    procedure Test_Borrow is
       Obj : constant Test_Access := new Concrete_Object'(Value => 99);
       Id  : constant Object_Id := Register (Obj);
+      Idx : constant Slot_Index := Id.Index;
+      Gen : constant Generation := Id.Gen;
    begin
       Put_Line ("-- Borrow tests --");
       declare
@@ -179,12 +205,13 @@ procedure Handle_Store_Test is
          Assert (R.Ptr /= null, "Borrow: Ptr non-null");
          Assert (R.Ptr.Value = 99, "Borrow: correct value via Ptr");
 
-         --  Try destroy while borrowed — should defer
+         --  Destroying under a borrow defers the free but not the answer.
          Request_Destroy (Id);
-         Assert (Is_Valid (Id), "destroy while borrowed: still valid");
+         Assert (not Is_Valid (Id), "destroy while borrowed: invalid");
+         Assert (R.Ptr.Value = 99, "the borrowed pointer stays readable");
       end;
       --  R finalized here => unpin => deferred free triggers
-      Assert (not Is_Valid (Id), "after borrow scope: freed");
+      Assert (Slot_Was_Recycled (Idx, Gen), "after borrow scope: freed");
    end Test_Borrow;
 
    ---------------------------------------------------------------------------
@@ -198,22 +225,8 @@ procedure Handle_Store_Test is
       Put_Line ("-- Borrow stale tests --");
       Request_Destroy (Id);
 
-      --  Strict mode (default): the Get inside Borrow raises Program_Error
-      --  for a stale Id before Borrow's own Constraint_Error check.
-      begin
-         declare
-            R : Object_Ref := Borrow (Id);
-            pragma Unreferenced (R);
-         begin
-            Assert (False, "should have raised Program_Error");
-         end;
-      exception
-         when Program_Error =>
-            Assert (True, "strict: stale Borrow raises Program_Error");
-      end;
-
-      --  Non-strict: Get returns null, Borrow raises Constraint_Error.
-      Set_Strict (False);
+      --  Borrow is the one operation that raises: its purpose is to
+      --  produce a usable pointer, and there is none.
       begin
          declare
             R : Object_Ref := Borrow (Id);
@@ -223,9 +236,8 @@ procedure Handle_Store_Test is
          end;
       exception
          when Constraint_Error =>
-            Assert (True, "non-strict: stale Borrow raises Constraint_Error");
+            Assert (True, "stale Borrow raises Constraint_Error");
       end;
-      Set_Strict (True);
 
       --  Also test Null_Id
       begin
@@ -242,28 +254,31 @@ procedure Handle_Store_Test is
    end Test_Borrow_Stale;
 
    ---------------------------------------------------------------------------
-   --  Test: Strict-mode policy (Set_Strict / Is_Strict)
+   --  Test: every read degrades on an Id the store does not recognise
    ---------------------------------------------------------------------------
 
-   procedure Test_Strict_Mode is
-      Obj : constant Test_Access := new Concrete_Object'(Value => 7);
-      Id  : constant Object_Id := Register (Obj);
+   procedure Test_Unrecognised_Ids is
+      Obj    : constant Test_Access := new Concrete_Object'(Value => 7);
+      Id     : constant Object_Id := Register (Obj);
+      Beyond : constant Object_Id := (Index => 1_000_000, Gen => 1);
+      Wrong  : constant Object_Id := (Index => Id.Index, Gen => Id.Gen + 9);
    begin
-      Put_Line ("-- Strict mode tests --");
-      Assert (Is_Strict, "strict mode is the default");
+      Put_Line ("-- Unrecognised Id tests --");
+      Assert (not Is_Valid (Beyond), "out-of-range index: invalid");
+      Assert (Get_Degrades (Beyond), "out-of-range index: Get null");
+      Assert (not Is_Valid (Wrong), "wrong generation: invalid");
+      Assert (Get_Degrades (Wrong), "wrong generation: Get null");
+      Assert (Get (Null_Id) = null, "Null_Id: Get null");
 
       Request_Destroy (Id);
+      Assert (Get_Degrades (Id), "retired Id: Get null");
 
-      Set_Strict (False);
-      Assert (not Is_Strict, "Set_Strict(False) reflected by Is_Strict");
-      Assert (Get (Id) = null, "non-strict: stale Get returns null");
-      Assert (Get (Null_Id) = null, "non-strict: Null_Id Get returns null");
-
-      Set_Strict (True);
-      Assert (Is_Strict, "Set_Strict(True) reflected by Is_Strict");
-      Assert (Get_Raises_Stale (Id), "strict again: stale Get raises");
-      Assert (Get (Null_Id) = null, "strict: Null_Id Get still null");
-   end Test_Strict_Mode;
+      --  Request_Destroy on an Id the store no longer recognises is a
+      --  no-op, not a second free.
+      Request_Destroy (Id);
+      Request_Destroy (Beyond);
+      Assert (True, "repeat Request_Destroy is inert");
+   end Test_Unrecognised_Ids;
 
    ---------------------------------------------------------------------------
    --  Test: Slot reuse with generation bump
@@ -366,12 +381,13 @@ begin
    Test_Register_Get;
    Test_Destroy_Stale;
    Test_Deferred_Destroy;
+   Test_Unpin_Frees_Pending;
    Test_Multiple_Pins;
    Test_Pump;
    Test_Pump_No_Pins;
    Test_Borrow;
    Test_Borrow_Stale;
-   Test_Strict_Mode;
+   Test_Unrecognised_Ids;
    Test_Generation_Reuse;
    Test_For_Each_Alive;
    Test_Growth;

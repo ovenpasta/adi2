@@ -737,14 +737,10 @@ package body Adi.RLottie is
    --  Resolved for the duration of one synchronous call and no longer.
    --  Nothing here holds a borrow across a destroy, so the store never
    --  has a pinned slot to defer.
-   --  Checked rather than fetched: the store is strict by default and
-   --  raises on a stale id, while a stale handle here is an ordinary
-   --  thing to be told about -- the animation it named has been
+   --  Null for a stale handle: the animation it named has been
    --  destroyed, and the operation has nothing to do.
    function Resolve (H : Animation_Handle) return RLottie_Animation_Access
-   is (if Animation_Stores.Is_Valid (H.Id)
-       then Animation_Stores.Get (H.Id)
-       else null);
+   is (Animation_Stores.Get (H.Id));
 
    function Is_Valid (H : Animation_Handle) return Boolean is
       A : constant RLottie_Animation_Access := Resolve (H);

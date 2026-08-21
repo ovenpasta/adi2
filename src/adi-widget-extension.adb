@@ -64,21 +64,12 @@ package body Adi.Widget.Extension is
    ------------
 
    function Try_As (H : Widget_Handle) return Handle is
+      P : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
-      --  Ask before fetching: the store is strict, so Get would turn a
-      --  stale id into Program_Error rather than the null this returns.
-      if not Widget_Stores.Is_Valid (H.Id) then
-         return Null_Handle;
+      if P /= null and then P.all in Custom_Widget'Class then
+         return (Id => H.Id);
       end if;
-
-      declare
-         P : constant Widget_Access := Widget_Stores.Get (H.Id);
-      begin
-         if P /= null and then P.all in Custom_Widget'Class then
-            return (Id => H.Id);
-         end if;
-         return Null_Handle;
-      end;
+      return Null_Handle;
    end Try_As;
 
    ------------

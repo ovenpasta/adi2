@@ -392,8 +392,7 @@ procedure Window_Handle_Test is
       end;
 
       --  Borrow is the exception: it exists to produce a usable pointer,
-      --  and says Constraint_Error rather than leaking the store's
-      --  strict-mode Program_Error.
+      --  and there is none.
       declare
          Got : Boolean := False;
       begin

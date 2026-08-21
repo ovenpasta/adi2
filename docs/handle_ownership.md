@@ -16,7 +16,6 @@ This document describes Adi's handle-first ownership system for widgets, context
 - `Object_Id = (Index, Gen)` where slot `0` is reserved as null.
 - `Register`, `Get`, `Is_Valid`, `Request_Destroy`, `Pump`.
 - `Pin`/`Unpin` and `Borrow` (`Implicit_Dereference`) for scoped safe access.
-- `Set_Strict`/`Is_Strict` — strict-mode validation policy.
 
 Destruction model:
 
@@ -24,23 +23,23 @@ Destruction model:
 - If pinned, destruction is deferred until last `Unpin`.
 - `Pump` drains deferred entries each frame.
 
-### Strict Mode
+### A stale handle degrades
 
-Each store instantiation has an independent `Strict` flag (default **True**).
+Staleness is a state the library manufactures in normal operation: a window holds `Hovered`/`Pressed`/`Focused` widget handles across frames, an option group holds `Button_Handle`s, `Adi.Dispatch.Post` runs a frame after the state it captured. So a handle that names something already destroyed is a question with an answer, not a programming error.
 
-When strict mode is enabled, `Get` raises `Program_Error` for non-null IDs that fail validation (stale generation, out-of-range index). `Null_Id` always returns null silently regardless of this setting, since null handles represent intentional "nothing" values.
+`Get` returns null for `Null_Id` and for any id that fails validation — stale generation, out-of-range index, destruction requested. Every operation reached through a handle is written around that null: a procedure does nothing, a function answers the value that means "no object" (`False`, `0`, `""`, `Null_Handle`, `No_Connection`). `Handle_Close_Request` answers `True`, since a window that is gone cannot veto a close.
 
-This catches common bugs at the point of misuse:
+`Borrow` is the single exception and raises `Constraint_Error`, because its whole purpose is to produce a usable pointer and there is none.
 
-- Using a handle after its object has been destroyed (stale generation).
-- Calling `Get_Handle` on a widget that was never registered in the store (`Store_Index = 0`).
-- Passing a handle returned by an unregistered widget to `Add_Child` or other operations.
+### `Is_Valid` and the pin
 
-Widget resolution paths flow through `Get` — wrapper generics (`Wrap_CW_Proc/Func`), manual `Widget_Stores.Get(H.Id)` patterns, and `Borrow` — so strict mode provides centralized coverage there. Exception-catching patterns (e.g. `Add_Child` catching `Constraint_Error` from `Borrow`) do not suppress the `Program_Error` raised by strict mode.
+`Is_Valid` answers False from `Request_Destroy` onwards, including while the slot is still pinned. A pin defers the free, not the answer: by the time destruction is requested a widget has had `On_Destroy` dispatched and its children cleared, so the object is readable through a `Ref` taken earlier but is no longer something to drive.
 
-`Adi.Window`'s public handle operations deliberately do not. Each one checks `Is_Valid` before `Get`, so a stale window handle degrades to the value that means "no window" — null, zero, `False`, `No_Connection`, or nothing at all for a procedure — rather than raising. `Handle_Close_Request` answers `True`, since a window that is gone cannot veto a close. `Borrow` is the exception and raises `Constraint_Error`, because its whole purpose is to produce a usable pointer.
+Internally the store separates the two questions. A raw slot-identity predicate — alive, generation matches, `Pending` ignored — backs `Unpin` and the free path, so the pin holding a requested destroy back can still be released. `Is_Valid` is that predicate plus `not Pending`, and is what every public path uses.
 
-`Set_Strict` applies to an `Adi.Handle_Store` instance you instantiate yourself. Adi's own widget and window stores are private to their packages and stay strict; a stale widget handle raises, and a stale window handle degrades as described above.
+### What still raises
+
+`Get_Handle` raises `Program_Error` for a widget or window whose `Store_Index` is 0. That names something never registered — a construction bug with no handle to hand back — which is categorically different from a handle naming something legitimately destroyed.
 
 ## Widget Ownership
 

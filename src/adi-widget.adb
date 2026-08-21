@@ -70,7 +70,11 @@ package body Adi.Widget is
 
    function Get_Handle (W : Widget'Class) return Widget_Handle is
    begin
-      if W.Store_Index = 0 and then Widget_Stores.Is_Strict then
+      --  A stale handle names something that was legitimately destroyed
+      --  and degrades; Store_Index = 0 names a widget that was never
+      --  registered, which is a construction bug with no valid handle
+      --  to hand back.
+      if W.Store_Index = 0 then
          raise Program_Error with
            "Get_Handle: widget not registered in store";
       end if;

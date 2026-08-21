@@ -466,13 +466,10 @@ package body Adi.Animated_Image is
    --  Handles
    ---------------------------------------------------------------------------
 
-   --  Checked rather than fetched: the store is strict by default and
-   --  raises on a stale id, while a stale handle here is an ordinary
-   --  thing to be told about.
+   --  Null for a stale handle: the animation it named has been
+   --  destroyed, and the operation has nothing to do.
    function Resolve (H : Animation_Handle) return Animated_Image_Access
-   is (if Animation_Stores.Is_Valid (H.Id)
-       then Animation_Stores.Get (H.Id)
-       else null);
+   is (Animation_Stores.Get (H.Id));
 
    function Is_Valid (H : Animation_Handle) return Boolean is
       A : constant Animated_Image_Access := Resolve (H);

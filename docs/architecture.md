@@ -159,7 +159,8 @@
 - `Object_Id` (`Index`, `Gen`) with slot `0` reserved as null
 - `Register`, `Get`, `Is_Valid`, `Request_Destroy`, `Pump`
 - `Pin`/`Unpin` plus `Borrow` (`Implicit_Dereference`) for scoped safe access
-- `Set_Strict`/`Is_Strict`: strict-mode policy (default True). When enabled, `Get` raises `Program_Error` for non-null stale handles instead of returning null. `Null_Id` always returns null silently.
+- `Get` returns null for a null, stale or out-of-range id, so a handle naming something destroyed degrades rather than raising; `Borrow` is the one operation that raises `Constraint_Error`
+- `Is_Valid` is False from `Request_Destroy` onwards, pinned or not: a pin defers the free, not the answer
 - Used by widgets, context menus, and windows (separate store instantiations)
 
 **Adi.Font** (`adi-font.ads`): Font loading and caching.

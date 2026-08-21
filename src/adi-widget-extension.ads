@@ -74,11 +74,10 @@ package Adi.Widget.Extension is
      limited new Ada.Finalization.Limited_Controlled with private
      with Implicit_Dereference => Ptr;
 
-   --  Raises Constraint_Error when H is Null_Handle, when it is stale
-   --  and the store is not in strict mode, and when it designates a
-   --  widget that is not a Custom_Widget.  In strict mode a stale handle
-   --  raises Program_Error from the store, matching Adi.Widget.Borrow.
-   --  The pin count is unchanged on every one of those paths.
+   --  Raises Constraint_Error when H is Null_Handle, when it is stale,
+   --  and when it designates a widget that is not a Custom_Widget,
+   --  matching Adi.Widget.Borrow.  The pin count is unchanged on every
+   --  one of those paths.
    function Borrow (H : Handle) return Ref;
 
 private

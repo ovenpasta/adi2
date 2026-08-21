@@ -103,8 +103,9 @@ procedure Widget_Extension_Test is
    end Test_Borrow_Mutates;
 
    --  The property the store provides: a Destroy issued while a borrow is
-   --  alive is recorded, not performed, and the widget stays usable until
-   --  the last Ref finalizes.
+   --  alive is recorded, not performed.  The handle stops answering at
+   --  once; the storage stays readable through the Ref until the last one
+   --  finalizes.
    procedure Test_Destroy_Deferred_While_Borrowed is
       H : constant Probes.Handle := Probes.New_Widget;
       W : Widget_Handle := +H;      --  a copy of the base handle
@@ -117,16 +118,16 @@ procedure Widget_Extension_Test is
          R.Marker := 7;
 
          Destroy (W);
-         Assert (Probes.Is_Valid (H),
-                 "the widget outlives a Destroy taken while borrowed");
+         Assert (not Probes.Is_Valid (H),
+                 "the handle goes invalid the moment Destroy is taken");
          Assert (R.Marker = 7,
-                 "and its storage is still readable through the Ref");
+                 "but its storage is still readable through the Ref");
 
          R.Marker := 8;
          Assert (R.Marker = 8, "and still writable");
 
          Pump_Widget_Store;
-         Assert (Probes.Is_Valid (H),
+         Assert (R.Marker = 8,
                  "Pump does not collect a pinned widget");
       end;
 
@@ -150,9 +151,9 @@ procedure Widget_Extension_Test is
             Destroy (W);
          end;
 
-         Assert (Probes.Is_Valid (H),
-                 "the outer borrow still holds the widget");
-         Assert (Outer.Marker = 3, "both refs see the same widget");
+         Assert (Outer.Marker = 3,
+                 "the outer borrow still holds the widget, and both refs"
+                 & " see the same one");
       end;
 
       Assert (not Probes.Is_Valid (H),
@@ -186,8 +187,8 @@ procedure Widget_Extension_Test is
       Assert (not Probes.Is_Valid (H),
               "a rejected borrow leaves the pin count alone");
 
-      --  The store is strict, so a stale non-null id is an error rather
-      --  than a silent null, matching Adi.Widget.Borrow.
+      --  Borrow is the one operation that raises on a stale handle,
+      --  matching Adi.Widget.Borrow.
       Raised := False;
       begin
          declare
@@ -197,9 +198,9 @@ procedure Widget_Extension_Test is
             null;
          end;
       exception
-         when Program_Error => Raised := True;
+         when Constraint_Error => Raised := True;
       end;
-      Assert (Raised, "Borrow of a stale handle raises Program_Error");
+      Assert (Raised, "Borrow of a stale handle raises Constraint_Error");
    end Test_Borrow_Rejects;
 
    procedure Test_Private_Component is

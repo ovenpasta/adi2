@@ -29,10 +29,9 @@ package body Adi.Handle_Store is
 
    Initial_Capacity : constant := 64;
 
-   Slots       : Slot_Array_Access := null;
-   Count       : Slot_Index := 0;   --  number of live + pending slots
-   Free_Head   : Slot_Index := 0;   --  head of free list (0 = empty)
-   Strict_Mode : Boolean := True;
+   Slots     : Slot_Array_Access := null;
+   Count     : Slot_Index := 0;   --  number of live + pending slots
+   Free_Head : Slot_Index := 0;   --  head of free list (0 = empty)
 
    ---------------------------------------------------------------------------
    --  Deallocation
@@ -43,6 +42,12 @@ package body Adi.Handle_Store is
 
    procedure Really_Free (Id : Object_Id);
    --  Non-recursive.  Frees a single slot.
+
+   function Holds_Slot (Id : Object_Id) return Boolean;
+   --  Whether Id still names the slot it was issued for.  Says nothing
+   --  about whether the object behind it is usable: a slot whose
+   --  destruction has been requested still answers True here, which is
+   --  what lets Unpin release the pin holding that free back.
 
    ---------------------------------------------------------------------------
    --  Internal helpers
@@ -89,10 +94,10 @@ package body Adi.Handle_Store is
    end Ensure_Capacity;
 
    ---------------------------------------------------------------------------
-   --  Is_Valid
+   --  Holds_Slot / Is_Valid
    ---------------------------------------------------------------------------
 
-   function Is_Valid (Id : Object_Id) return Boolean is
+   function Holds_Slot (Id : Object_Id) return Boolean is
    begin
       if Id.Index = 0 or else Slots = null then
          return False;
@@ -105,6 +110,11 @@ package body Adi.Handle_Store is
       begin
          return S.Alive and then S.Gen = Id.Gen;
       end;
+   end Holds_Slot;
+
+   function Is_Valid (Id : Object_Id) return Boolean is
+   begin
+      return Holds_Slot (Id) and then not Slots (Id.Index).Pending;
    end Is_Valid;
 
    ---------------------------------------------------------------------------
@@ -136,15 +146,7 @@ package body Adi.Handle_Store is
 
    function Get (Id : Object_Id) return Object_Access is
    begin
-      if Id = Null_Id then
-         return null;
-      end if;
       if not Is_Valid (Id) then
-         if Strict_Mode then
-            raise Program_Error with
-              "Handle_Store: stale handle (idx="
-              & Slot_Index'Image (Id.Index) & ")";
-         end if;
          return null;
       end if;
       return Slots (Id.Index).Obj;
@@ -202,9 +204,12 @@ package body Adi.Handle_Store is
       end if;
    end Pin;
 
+   --  Holds_Slot, not Is_Valid: the pin being released is normally the one
+   --  keeping a requested destroy from happening, and Is_Valid rejects the
+   --  Id from that moment on.
    procedure Unpin (Id : Object_Id) is
    begin
-      if not Is_Valid (Id) then
+      if not Holds_Slot (Id) then
          return;
       end if;
 
@@ -287,19 +292,5 @@ package body Adi.Handle_Store is
          end;
       end loop;
    end For_Each_Alive;
-
-   ---------------------------------------------------------------------------
-   --  Strict mode
-   ---------------------------------------------------------------------------
-
-   procedure Set_Strict (Value : Boolean) is
-   begin
-      Strict_Mode := Value;
-   end Set_Strict;
-
-   function Is_Strict return Boolean is
-   begin
-      return Strict_Mode;
-   end Is_Strict;
 
 end Adi.Handle_Store;

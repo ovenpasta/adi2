@@ -819,8 +819,8 @@ private
    --  through Adi.Widget.Extension.
    type Widget_Access is access all Widget'Class;
 
-   --  Null for a null handle, and for a stale one when the store is not
-   --  strict.  Prefer Borrow, which pins.
+   --  Null for a null handle and for a stale one.  Prefer Borrow, which
+   --  pins.
    function Resolve_Handle (H : Widget_Handle) return Widget_Access;
 
    --  Register a freshly allocated widget in the global store.

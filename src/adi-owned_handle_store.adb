@@ -20,10 +20,9 @@ package body Adi.Owned_Handle_Store is
    function Is_Valid (H : Handle) return Boolean
    is (Stores.Is_Valid (H.Id));
 
-   --  The store is strict: asking it for a retired id raises rather than
-   --  answering, so validity is established before the ask.
+   --  Null once the last owner has retired the slot.
    function Resolve (H : Handle) return Object_Access
-   is (if Stores.Is_Valid (H.Id) then Stores.Get (H.Id) else null);
+   is (Stores.Get (H.Id));
 
    ---------------------------------------------------------------------------
    --  Strong reference

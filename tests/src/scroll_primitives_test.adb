@@ -127,10 +127,10 @@ procedure Scroll_Primitives_Test is
    --  Scroll_Changed identifies the widget that scrolled. Nothing puts a
    --  widget in the handle store on its own — these test subclasses are
    --  never registered, yet they scroll through the public API — so the
-   --  event carries a pointer. Reporting a handle instead raised in
-   --  strict mode, and suppressing the event for such widgets left
-   --  anything anchored to them, a combo dropdown in particular,
-   --  stranded where it was.
+   --  event carries a pointer. Reporting a handle instead means calling
+   --  Get_Handle, which raises on an unregistered widget, and suppressing
+   --  the event for such widgets left anything anchored to them, a combo
+   --  dropdown in particular, stranded where it was.
    Observed : access Adi.Widget.Widget'Class := null;
    Observed_Count : Natural := 0;
 

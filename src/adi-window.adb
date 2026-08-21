@@ -128,8 +128,15 @@ package body Adi.Window is
       end if;
    end Finalize;
 
+   --  Matches Adi.Widget.Get_Handle: a window that was never registered
+   --  has no handle to give, and answering Null_Window_Handle would turn
+   --  the construction bug into a silent no-op at every use.
    function Get_Handle (W : Window) return Window_Handle is
    begin
+      if W.Store_Index = 0 then
+         raise Program_Error with
+           "Get_Handle: window not registered in store";
+      end if;
       return
         (Id =>
            (Index => Window_Stores.Slot_Index (W.Store_Index),
@@ -141,23 +148,16 @@ package body Adi.Window is
       return Window_Stores.Is_Valid (H.Id);
    end Is_Valid;
 
-   --  Null for a null handle and for a stale one.  Going through
-   --  Window_Stores.Get directly would raise Program_Error on a stale
-   --  id, since the store is strict -- which turns every "if Ptr = null"
-   --  guard below into a check that never runs.  Asking about a window
-   --  that is gone is a question, not an error.
+   --  Null for a null handle and for a stale one.  Asking about a window
+   --  that is gone is a question, not an error, and every "if Ptr = null"
+   --  guard below is the answer.
    function Live (H : Window_Handle) return Window_Access is
    begin
-      if not Window_Stores.Is_Valid (H.Id) then
-         return null;
-      end if;
       return Window_Access (Window_Stores.Get (H.Id));
    end Live;
 
    function Borrow (H : Window_Handle) return Window_Ref is
-      P : constant Window_Class_Access :=
-        (if Window_Stores.Is_Valid (H.Id) then Window_Stores.Get (H.Id)
-         else null);
+      P : constant Window_Class_Access := Window_Stores.Get (H.Id);
    begin
       if P = null then
          raise Constraint_Error with "Window.Borrow: stale or null handle";

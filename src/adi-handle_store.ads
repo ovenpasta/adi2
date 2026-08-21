@@ -28,7 +28,9 @@ package Adi.Handle_Store is
    --  Store operations (operate on the package-level global store)
    ---------------------------------------------------------------------------
 
-   --  True when Id refers to a live, non-null slot whose generation matches.
+   --  True when Id refers to a non-null slot whose generation matches and
+   --  whose destruction has not been requested.  A pin defers the free,
+   --  not the answer: from Request_Destroy onwards this is False.
    function Is_Valid (Id : Object_Id) return Boolean;
 
    --  Register a freshly allocated object.  Returns a new Id.
@@ -38,19 +40,15 @@ package Adi.Handle_Store is
    function Get (Id : Object_Id) return Object_Access;
 
    --  Mark for destruction.  If the slot is currently pinned the actual free
-   --  is deferred until the last Unpin.
+   --  is deferred until the last Unpin.  A second request is a no-op.
    procedure Request_Destroy (Id : Object_Id);
 
    --  Drain deferred destroys — call once per frame.
    procedure Pump;
 
-   --  Strict-mode policy: when True (default), Get raises Program_Error
-   --  for non-null Ids that fail validation (stale, out-of-range).
-   --  Null_Id always returns null silently regardless of this setting.
-   procedure Set_Strict (Value : Boolean);
-   function  Is_Strict return Boolean;
-
-   --  Reference-count style pinning (used by Object_Ref).
+   --  Reference-count style pinning (used by Object_Ref).  Pin is refused
+   --  once destruction has been requested; Unpin still releases a pin
+   --  taken before that and frees the slot when the last one goes.
    procedure Pin   (Id : Object_Id);
    procedure Unpin (Id : Object_Id);
 

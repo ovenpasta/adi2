@@ -1613,27 +1613,40 @@ def generate_body(app: XmlApp, package_name: str,
             # lets a styles-only <link> work and what makes two sheets that
             # both define `button` merge in file order instead of colliding
             # on one use-visible name.
-            if selector_sources or has_root_metadata:
-                lines.append(
-                    "      --  Register precompiled styles as static fallback"
-                )
-                lines.append(
-                    "      Adi.CSS_Source.Begin_Update (Source);"
-                )
-                lines.append(
-                    "      Adi.CSS_Source.Clear_Static_Entries (Source);"
-                )
-                for source in selector_sources:
-                    lines.append(f"      {source} (Source);")
-                if has_root_metadata:
-                    lines.append(
-                        "      Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);"
-                    )
-                lines.append("")
-            lines.append("      --  Load dynamic CSS and choose mode")
+            # One scope over the whole install: the static fallback and
+            # the dynamic sheets are one configuration, and the scope
+            # publishes it on the way out however the block ends. A
+            # hand-written Begin/End pair around this would be skipped by
+            # anything that raises in the middle, leaving the source
+            # unable to restyle for the rest of the run.
+            lines.append(
+                "      --  Install the stylesheets as one batch:"
+                " precompiled"
+            )
+            lines.append(
+                "      --  styles as static fallback, then dynamic CSS"
+                " and the mode"
+            )
             lines.append("      declare")
+            lines.append(
+                "         Update : Adi.CSS_Source.Update_Scope"
+                " (Source'Access);"
+            )
+            lines.append("         pragma Unreferenced (Update);")
             lines.append("         Loaded, Mode_OK : Boolean;")
             lines.append("      begin")
+            if selector_sources or has_root_metadata:
+                lines.append(
+                    "         Adi.CSS_Source.Clear_Static_Entries (Source);"
+                )
+                for source in selector_sources:
+                    lines.append(f"         {source} (Source);")
+                if has_root_metadata:
+                    lines.append(
+                        "         Adi.CSS_Source.Set_Static_Metadata"
+                        " (Source, Static_Root_Metadata);"
+                    )
+                lines.append("")
             #  Build may run more than once against one Source -- a list
             #  that builds a row at a time does. The sheets below are
             #  added in cascade order, so they have to replace what a
@@ -1688,7 +1701,6 @@ def generate_body(app: XmlApp, package_name: str,
             )
             lines.append("         end if;")
             lines.append("      end;")
-            lines.append("      Adi.CSS_Source.End_Update (Source);")
             lines.append("")
             if has_window:
                 lines.append(
@@ -1765,16 +1777,26 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append("")
     elif (root is not None or has_dialog) and (live_css or link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties)):
         if live_css:
-            lines.append("      --  Register root metadata / load dynamic CSS")
-            lines.append("      Adi.CSS_Source.Begin_Update (Source);")
-            lines.append("      Adi.CSS_Source.Clear_Static_Entries (Source);")
-            if link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties):
-                lines.append(
-                    "      Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);"
-                )
+            lines.append(
+                "      --  Register root metadata and load dynamic CSS as"
+                " one batch"
+            )
             lines.append("      declare")
+            lines.append(
+                "         Update : Adi.CSS_Source.Update_Scope"
+                " (Source'Access);"
+            )
+            lines.append("         pragma Unreferenced (Update);")
             lines.append("         Loaded, Mode_OK : Boolean;")
             lines.append("      begin")
+            lines.append(
+                "         Adi.CSS_Source.Clear_Static_Entries (Source);"
+            )
+            if link_pkgs or (inline_stylesheet and inline_stylesheet.root_properties):
+                lines.append(
+                    "         Adi.CSS_Source.Set_Static_Metadata"
+                    " (Source, Static_Root_Metadata);"
+                )
             has_link = bool(any(link.href for link in app.css_links))
             has_style = bool(app.css_styles)
             lines.append(
@@ -1816,7 +1838,6 @@ def generate_body(app: XmlApp, package_name: str,
             )
             lines.append("         end if;")
             lines.append("      end;")
-            lines.append("      Adi.CSS_Source.End_Update (Source);")
             if has_window:
                 lines.append(
                     "      Adi.CSS_Source.Attach_Window (Source, W);"

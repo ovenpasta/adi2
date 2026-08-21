@@ -164,17 +164,18 @@ package body Red_Page_UI is
       Label_1 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Red Page");
       Label_2 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("This is the first page with a warm red background.");
    begin
-      --  Register precompiled styles as static fallback
-      Adi.CSS_Source.Begin_Update (Source);
-      Adi.CSS_Source.Clear_Static_Entries (Source);
-      Stack_Example_Styles.Register_Selectors (Source);
-      Register_Inline_Selectors (Source);
-      Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
-
-      --  Load dynamic CSS and choose mode
+      --  Install the stylesheets as one batch: precompiled
+      --  styles as static fallback, then dynamic CSS and the mode
       declare
+         Update : Adi.CSS_Source.Update_Scope (Source'Access);
+         pragma Unreferenced (Update);
          Loaded, Mode_OK : Boolean;
       begin
+         Adi.CSS_Source.Clear_Static_Entries (Source);
+         Stack_Example_Styles.Register_Selectors (Source);
+         Register_Inline_Selectors (Source);
+         Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
+
          Adi.CSS_Source.Clear_Dynamic_Entries (Source);
          Adi.CSS_Source.Add_Dynamic_File
            (Source, "examples/css/stack_example.css", Loaded);
@@ -191,7 +192,6 @@ package body Red_Page_UI is
               (Source, Adi.CSS_Source.Static_Mode, Mode_OK);
          end if;
       end;
-      Adi.CSS_Source.End_Update (Source);
 
       --  Bind every widget under the selectors naming it
       Adi.CSS_Source.Bind_Root_Metadata (Source, +Box_1);

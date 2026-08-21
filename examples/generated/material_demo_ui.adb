@@ -208,16 +208,17 @@ package body Material_Demo_UI is
          Adi.Widget.Button.Switch.Connect_Toggled (Lock_Switch, On_Lock_UI);
       end if;
 
-      --  Register precompiled styles as static fallback
-      Adi.CSS_Source.Begin_Update (Source);
-      Adi.CSS_Source.Clear_Static_Entries (Source);
-      Material_Demo_Styles.Register_Selectors (Source);
-      Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
-
-      --  Load dynamic CSS and choose mode
+      --  Install the stylesheets as one batch: precompiled
+      --  styles as static fallback, then dynamic CSS and the mode
       declare
+         Update : Adi.CSS_Source.Update_Scope (Source'Access);
+         pragma Unreferenced (Update);
          Loaded, Mode_OK : Boolean;
       begin
+         Adi.CSS_Source.Clear_Static_Entries (Source);
+         Material_Demo_Styles.Register_Selectors (Source);
+         Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
+
          Adi.CSS_Source.Clear_Dynamic_Entries (Source);
          Adi.CSS_Source.Add_Dynamic_File
            (Source, "examples/css/material_demo.css", Loaded);
@@ -232,7 +233,6 @@ package body Material_Demo_UI is
               (Source, Adi.CSS_Source.Static_Mode, Mode_OK);
          end if;
       end;
-      Adi.CSS_Source.End_Update (Source);
 
       Adi.CSS_Source.Attach_Window (Source, W);
       --  Bind every widget under the selectors naming it

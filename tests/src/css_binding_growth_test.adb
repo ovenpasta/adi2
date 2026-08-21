@@ -119,6 +119,37 @@ begin
    end;
 
    ---------------------------------------------------------------------
+   --  The counters the budgets are read from
+   ---------------------------------------------------------------------
+
+   Section ("The counters move when something really changes");
+
+   declare
+      Src : Adi.CSS_Source.Style_Source;
+      W   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Ok  : Boolean := False;
+   begin
+      Adi.CSS_Source.Add_Dynamic_String (Src, ".c { opacity: 0.25; }", Ok);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +W, Class_Name => "c");
+
+      Adi.CSS_Source.Testing.Reset_Counts;
+      Adi.CSS_Source.Clear_Dynamic_Entries (Src);
+      Adi.CSS_Source.Add_Dynamic_String (Src, ".c { opacity: 0.75; }", Ok);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+
+      --  Every budget above is an upper bound, and zero meets all of
+      --  them: without this the instrumentation could be deleted and
+      --  the whole suite would still pass.
+      Assert (Adi.CSS_Source.Testing.Visit_Count > 0,
+              "a real change is counted as a walk");
+      Assert (Adi.CSS_Source.Testing.Reapply_Count > 0,
+              "and as a re-style");
+   end;
+
+   ---------------------------------------------------------------------
    --  What the cheap path has to preserve
    ---------------------------------------------------------------------
 
@@ -355,6 +386,51 @@ begin
       --  not accept the sheet that was loaded before.
       Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
       Assert (not Ok, "and selecting dynamic mode fails too");
+   end;
+
+   Section ("A batch cut short by an exception still publishes");
+
+   declare
+      Src : aliased Adi.CSS_Source.Style_Source;
+      W   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Ok  : Boolean := False;
+
+      function Opacity_Of return Float is
+        (Float (Get_Resolved_Part_Style (+W, Main_Part).Opacity));
+   begin
+      Adi.CSS_Source.Add_Dynamic_String (Src, ".c { opacity: 0.25; }", Ok);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +W, Class_Name => "c");
+      Assert (Opacity_Of = 0.25, "the widget takes the sheet's styles");
+
+      begin
+         declare
+            Batch : Adi.CSS_Source.Update_Scope (Src'Access);
+            pragma Unreferenced (Batch);
+         begin
+            Adi.CSS_Source.Clear_Dynamic_Entries (Src);
+            Adi.CSS_Source.Add_Dynamic_String
+              (Src, ".c { opacity: 0.75; }", Ok);
+            Adi.CSS_Source.Set_Mode
+              (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+            raise Program_Error with "cut short";
+         end;
+      exception
+         when Program_Error =>
+            null;
+      end;
+
+      Assert (Opacity_Of = 0.75,
+              "the batch publishes on the way out, however it ends");
+
+      --  And the source is not left mid-batch: the next change reaches
+      --  the widget too.
+      Adi.CSS_Source.Clear_Dynamic_Entries (Src);
+      Adi.CSS_Source.Add_Dynamic_String (Src, ".c { opacity: 0.5; }", Ok);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Assert (Opacity_Of = 0.5, "and the source keeps restyling after it");
    end;
 
    Section ("Replacing the static entries restyles what is bound");

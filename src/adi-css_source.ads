@@ -3,6 +3,7 @@
 
 pragma Ada_2022;
 
+with Ada.Finalization;
 with Adi.CSS_Parser;
 with Adi.Widget;
 with Adi.Window;
@@ -44,6 +45,14 @@ package Adi.CSS_Source is
    --  Calls nest; only the outermost End_Update publishes.
    procedure Begin_Update (Source : in out Style_Source);
    procedure End_Update (Source : in out Style_Source);
+
+   --  The scoped form, and the one to prefer. It opens the batch on
+   --  declaration and publishes on the way out by every path, including
+   --  an exception: a pair written by hand around a step that raises
+   --  never reaches its End_Update, and a source left mid-batch stops
+   --  restyling for the rest of the run without saying so.
+   type Update_Scope (Source : not null access Style_Source) is
+     limited new Ada.Finalization.Limited_Controlled with private;
 
    procedure Clear_Static_Entries (Source : in out Style_Source);
    procedure Add_Static_Entry (Source : in out Style_Source;
@@ -193,5 +202,10 @@ private
    type Style_Source is tagged record
       Impl : Style_Source_Impl_Access := null;
    end record;
+
+   type Update_Scope (Source : not null access Style_Source) is
+     limited new Ada.Finalization.Limited_Controlled with null record;
+   overriding procedure Initialize (Scope : in out Update_Scope);
+   overriding procedure Finalize (Scope : in out Update_Scope);
 
 end Adi.CSS_Source;

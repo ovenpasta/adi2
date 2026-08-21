@@ -135,16 +135,17 @@ package body Transition_Example_UI is
       Button_13 : constant Adi.Widget.Button.Button_Handle := Adi.Widget.Button.Create_Handle ("Slow (800ms)");
       Label_16 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("800ms ease-in-out");
    begin
-      --  Register precompiled styles as static fallback
-      Adi.CSS_Source.Begin_Update (Source);
-      Adi.CSS_Source.Clear_Static_Entries (Source);
-      Transition_Example_Styles.Register_Selectors (Source);
-      Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
-
-      --  Load dynamic CSS and choose mode
+      --  Install the stylesheets as one batch: precompiled
+      --  styles as static fallback, then dynamic CSS and the mode
       declare
+         Update : Adi.CSS_Source.Update_Scope (Source'Access);
+         pragma Unreferenced (Update);
          Loaded, Mode_OK : Boolean;
       begin
+         Adi.CSS_Source.Clear_Static_Entries (Source);
+         Transition_Example_Styles.Register_Selectors (Source);
+         Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
+
          Adi.CSS_Source.Clear_Dynamic_Entries (Source);
          Adi.CSS_Source.Add_Dynamic_File
            (Source, "examples/css/transition_example.css", Loaded);
@@ -159,7 +160,6 @@ package body Transition_Example_UI is
               (Source, Adi.CSS_Source.Static_Mode, Mode_OK);
          end if;
       end;
-      Adi.CSS_Source.End_Update (Source);
 
       Adi.CSS_Source.Attach_Window (Source, W);
       --  Bind every widget under the selectors naming it

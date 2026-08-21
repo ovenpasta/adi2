@@ -382,8 +382,8 @@ class TestDialogCodeGeneration(unittest.TestCase):
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
         self.assertIn(
-            "      Adi.CSS_Source.Clear_Static_Entries (Source);\n"
-            "      Dialog_Styles.Register_Selectors (Source);",
+            "         Adi.CSS_Source.Clear_Static_Entries (Source);\n"
+            "         Dialog_Styles.Register_Selectors (Source);",
             body,
         )
         #  The dialog's own parts are not widgets in the tree, so they still
@@ -741,6 +741,54 @@ class TestInlineCSSCompanionPath(unittest.TestCase):
                         body,
                         f"{label} mode uses Source without declaring it",
                     )
+
+
+class TestCSSUpdateBatch(unittest.TestCase):
+    """The install block is one batch, opened and published together."""
+
+    CASES = {
+        "style block with no rules and no :root": """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>/* nothing here */</style>
+  <box id="Root"/>
+</adi>""",
+        "linked sheet with a manifest": """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="test.css" package="Test_Styles"/>
+  <box id="Root" class="root"/>
+</adi>""",
+        "dialog with a linked sheet": """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="test.css" package="Test_Styles"/>
+  <dialog title="Confirm" buttons="ok"/>
+</adi>""",
+    }
+
+    def test_update_calls_are_balanced(self):
+        for label, xml in self.CASES.items():
+            app = parse_xml(xml)
+            body = xml_to_ada.generate_body(
+                app, "My_UI", inline_css_path="gen/my_ui_inline.css"
+            )
+            with self.subTest(label):
+                self.assertEqual(
+                    body.count("Begin_Update"),
+                    body.count("End_Update"),
+                    f"{label}: unbalanced update calls",
+                )
+
+    def test_the_install_block_is_scoped(self):
+        for label, xml in self.CASES.items():
+            app = parse_xml(xml)
+            body = xml_to_ada.generate_body(
+                app, "My_UI", inline_css_path="gen/my_ui_inline.css"
+            )
+            with self.subTest(label):
+                self.assertIn(
+                    "Adi.CSS_Source.Update_Scope (Source'Access)",
+                    body,
+                    f"{label}: the install block is not covered by a scope",
+                )
 
 
 class TestI18N(unittest.TestCase):

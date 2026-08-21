@@ -653,6 +653,12 @@ package body Adi.CSS_Source is
    procedure End_Update (Source : in out Style_Source) is
    begin
       Ensure_Impl (Source);
+
+      --  An End_Update with no batch open is ignored rather than raised
+      --  on: the pair is public, callers pair it across their own
+      --  control flow, and turning a spare call into an exception at the
+      --  point of styling would take an application down for a mistake
+      --  that costs nothing. Use Update_Scope to be sure of the pairing.
       if Source.Impl.Update_Depth = 0 then
          return;
       end if;
@@ -662,6 +668,16 @@ package body Adi.CSS_Source is
          Reapply_If_Changed (Source);
       end if;
    end End_Update;
+
+   overriding procedure Initialize (Scope : in out Update_Scope) is
+   begin
+      Begin_Update (Scope.Source.all);
+   end Initialize;
+
+   overriding procedure Finalize (Scope : in out Update_Scope) is
+   begin
+      End_Update (Scope.Source.all);
+   end Finalize;
 
    procedure Clear_Static_Entries (Source : in out Style_Source) is
    begin

@@ -858,6 +858,24 @@ Adi.CSS_Source.Tick (Source, Reloaded, Success);
 
 `Tick` checks file modification times and reloads + reapplies to all bound widgets when files change.
 
+#### Installing a Configuration As One Step
+
+`Update_Scope` holds the bound widgets still while a configuration is assembled and publishes it once, when the scope ends:
+
+```ada
+declare
+   Update : Adi.CSS_Source.Update_Scope (Source'Access);
+begin
+   Adi.CSS_Source.Clear_Static_Entries (Source);
+   My_Styles.Register_Selectors (Source);
+   Adi.CSS_Source.Clear_Dynamic_Entries (Source);
+   Adi.CSS_Source.Add_Dynamic_File (Source, "app.css", Loaded);
+   Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, Mode_OK);
+end;
+```
+
+Without it, each step publishes its own configuration and every bound widget is restyled for each. `Begin_Update`/`End_Update` are the same thing written by hand; prefer the scope, which publishes on every exit path including an exception. Generated `Build` procedures use the scope.
+
 #### Error Handling
 
 ```ada

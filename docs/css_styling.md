@@ -858,6 +858,8 @@ Adi.CSS_Source.Tick (Source, Reloaded, Success);
 
 `Tick` checks file modification times and reloads + reapplies to all bound widgets when files change.
 
+A sheet that fails to parse leaves the bound widgets styled from the last good one and reports through `Success`. `Tick` keeps watching the file, so saving a correction reloads and restyles from it.
+
 #### Installing a Configuration As One Step
 
 `Update_Scope` holds the bound widgets still while a configuration is assembled and publishes it once, when the scope ends:

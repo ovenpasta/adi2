@@ -97,6 +97,11 @@ package body Adi.CSS_Source is
         (others => <>);
       Applied_Statics  : Entry_Vectors.Vector;
       Applied_Text     : Unbounded_String;
+      --  Whether a sheet was loaded at all when that styling was done.
+      --  The text alone cannot say: a load that fails leaves the text of
+      --  the last good one in place, so a source that styled from
+      --  nothing and one that styled from that sheet read alike.
+      Applied_Loaded   : Boolean := False;
 
       --  Depth of Begin_Update/End_Update nesting. Above zero, the
       --  configuration is still being assembled and nothing is published.
@@ -410,7 +415,8 @@ package body Adi.CSS_Source is
         and then Source.Impl.Applied_Mode = Source.Impl.Mode
         and then Source.Impl.Applied_Metadata = Source.Impl.Static_Metadata
         and then Source.Impl.Applied_Statics = Source.Impl.Static_Styles
-        and then Source.Impl.Applied_Text = Source.Impl.Dynamic_Text;
+        and then Source.Impl.Applied_Text = Source.Impl.Dynamic_Text
+        and then Source.Impl.Applied_Loaded = Source.Impl.Dynamic_Loaded;
    end Same_As_Applied;
 
    procedure Note_Applied (Source : in out Style_Source) is
@@ -420,6 +426,7 @@ package body Adi.CSS_Source is
       Source.Impl.Applied_Metadata := Source.Impl.Static_Metadata;
       Source.Impl.Applied_Statics  := Source.Impl.Static_Styles;
       Source.Impl.Applied_Text     := Source.Impl.Dynamic_Text;
+      Source.Impl.Applied_Loaded   := Source.Impl.Dynamic_Loaded;
    end Note_Applied;
 
    procedure Reapply_Bindings (Source : in out Style_Source);
@@ -562,6 +569,19 @@ package body Adi.CSS_Source is
                         Success := False;
                         return;
                      end if;
+                  exception
+                     --  A path that exists and cannot be read: a
+                     --  directory, a file this process may not open, one
+                     --  too large to hold. Reported like any other load
+                     --  failure, because a caller reading Success cannot
+                     --  be expected to handle an exception from the
+                     --  middle of the batch it is installing.
+                     when others =>
+                        Source.Impl.Last_Error :=
+                          To_Unbounded_String ("Cannot read file: " & Path);
+                        Source.Impl.Dynamic_Loaded := False;
+                        Success := False;
+                        return;
                   end;
                when String_Entry =>
                   Append (Combined, E.Content);
@@ -580,8 +600,6 @@ package body Adi.CSS_Source is
          Source.Impl.Dynamic_Loaded := Load_OK;
          if Load_OK then
             Source.Impl.Dynamic_Text := Combined;
-         end if;
-         if Load_OK then
             Source.Impl.Last_Error := Null_Unbounded_String;
          else
             Source.Impl.Last_Error := To_Unbounded_String (
@@ -803,9 +821,13 @@ package body Adi.CSS_Source is
          return;
       end if;
 
+      --  Not gated on anything having loaded: a sheet that failed to
+      --  parse is the case live reload exists for, and latching on it
+      --  would stop watching the file the developer is about to fix.
+      --  What makes ticking pointless is having no sheets to watch.
       if Source.Impl.Mode /= Dynamic_Mode
         or else not Source.Impl.Auto_Reload
-        or else not Source.Impl.Dynamic_Loaded
+        or else Source.Impl.Entries.Is_Empty
       then
          return;
       end if;

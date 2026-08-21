@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Ada.Directories;
 with Ada.Text_IO;  use Ada.Text_IO;
 with Test_Support; use Test_Support;
 with Adi.Widget;   use Adi.Widget;
@@ -388,6 +389,49 @@ begin
       Assert (not Ok, "and selecting dynamic mode fails too");
    end;
 
+   Section ("An unreadable stylesheet path fails rather than raising");
+
+   declare
+      Src    : Adi.CSS_Source.Style_Source;
+      W      : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Ok     : Boolean := False;
+      Raised : Boolean := False;
+
+      function Opacity_Of return Float is
+        (Float (Get_Resolved_Part_Style (+W, Main_Part).Opacity));
+   begin
+      Adi.CSS_Source.Add_Dynamic_String (Src, ".c { opacity: 0.25; }", Ok);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +W, Class_Name => "c");
+      Assert (Opacity_Of = 0.25, "the widget takes the sheet's styles");
+
+      --  What a generated Build does, around a path that exists and
+      --  cannot be read: a directory.
+      begin
+         Adi.CSS_Source.Begin_Update (Src);
+         Adi.CSS_Source.Clear_Dynamic_Entries (Src);
+         Adi.CSS_Source.Add_Dynamic_File (Src, "tests", Ok);
+         Adi.CSS_Source.End_Update (Src);
+      exception
+         when others =>
+            Raised := True;
+      end;
+
+      Assert (not Raised,
+              "a path that cannot be read is a load failure, not an"
+              & " exception out of the middle of a batch");
+      Assert (not Ok, "and is reported through Success");
+
+      --  A batch left open would gate this for the rest of the run.
+      Adi.CSS_Source.Clear_Dynamic_Entries (Src);
+      Adi.CSS_Source.Add_Dynamic_String (Src, ".c { opacity: 0.75; }", Ok);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Assert (Opacity_Of = 0.75,
+              "and the source still restyles what is bound to it");
+   end;
+
    Section ("A batch cut short by an exception still publishes");
 
    declare
@@ -431,6 +475,100 @@ begin
       Adi.CSS_Source.Add_Dynamic_String (Src, ".c { opacity: 0.5; }", Ok);
       Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
       Assert (Opacity_Of = 0.5, "and the source keeps restyling after it");
+   end;
+
+   Section ("Live reload survives a stylesheet that does not parse");
+
+   declare
+      Dir  : constant String := "tests/obj";
+      Path : constant String := Dir & "/css_reload_probe.css";
+
+      Src : Adi.CSS_Source.Style_Source;
+      W   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Ok       : Boolean := False;
+      Reloaded : Boolean := False;
+      Success  : Boolean := False;
+
+      procedure Write (Text : String) is
+         F : Ada.Text_IO.File_Type;
+      begin
+         Ada.Text_IO.Create (F, Ada.Text_IO.Out_File, Path);
+         Ada.Text_IO.Put_Line (F, Text);
+         Ada.Text_IO.Close (F);
+      end Write;
+
+      function Opacity_Of return Float is
+        (Float (Get_Resolved_Part_Style (+W, Main_Part).Opacity));
+   begin
+      Ada.Directories.Create_Path (Dir);
+      Write (".c { opacity: 0.25; }");
+
+      Adi.CSS_Source.Add_Dynamic_File (Src, Path, Ok);
+      Assert (Ok, "the stylesheet loads");
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Adi.CSS_Source.Set_Auto_Reload (Src, True);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +W, Class_Name => "c");
+      Assert (Opacity_Of = 0.25, "and styles the bound widget");
+
+      --  Modification times decide whether there is anything to reload,
+      --  and the filesystem records them to the second.
+      delay 1.1;
+      Write (".c { opacity: 0.75; ");
+      Adi.CSS_Source.Tick (Src, Reloaded, Success);
+      Assert (not Success, "a sheet that does not parse is reported");
+
+      delay 1.1;
+      Write (".c { opacity: 0.5; }");
+      Adi.CSS_Source.Tick (Src, Reloaded, Success);
+      Assert (Reloaded,
+              "Tick still watches the file after a parse error: one bad"
+              & " save must not end live reload for the run");
+      Assert (Success, "the corrected sheet loads");
+      Assert (Opacity_Of = 0.5, "and the bound widget is restyled from it");
+
+      Ada.Directories.Delete_File (Path);
+   end;
+
+   Section ("A sheet coming back identical is not read as no change");
+
+   declare
+      Text : constant String := ".c { opacity: 0.25; }";
+
+      Src : Adi.CSS_Source.Style_Source;
+      W   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Ok  : Boolean := False;
+
+      function Opacity_Of return Float is
+        (Float (Get_Resolved_Part_Style (+W, Main_Part).Opacity));
+   begin
+      Adi.CSS_Source.Add_Dynamic_String (Src, Text, Ok);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +W, Class_Name => "c");
+      Assert (Opacity_Of = 0.25, "the widget takes the sheet's styles");
+
+      --  A load that fails leaves the text the widgets were styled from
+      --  in place, so nothing about the sheet distinguishes before from
+      --  after except that there is now nothing loaded.
+      Adi.CSS_Source.Add_Dynamic_File (Src, "no/such/file.css", Ok);
+      Assert (not Ok, "the missing file fails to load");
+
+      Adi.CSS_Source.Begin_Update (Src);
+      Adi.CSS_Source.End_Update (Src);
+      Assert (Opacity_Of /= 0.25,
+              "a source with nothing loaded has no styles to give");
+
+      --  The same stylesheet again, byte for byte -- an undone edit.
+      Adi.CSS_Source.Clear_Dynamic_Entries (Src);
+      Adi.CSS_Source.Add_Dynamic_String (Src, Text, Ok);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Assert (Ok, "and loads again");
+      Assert (Opacity_Of = 0.25,
+              "the same text loading again is a change when the last"
+              & " styling was done with nothing loaded");
    end;
 
    Section ("Replacing the static entries restyles what is bound");

@@ -93,6 +93,10 @@ package body Adi.Window is
    procedure Register_Live_Window (W : Window_Access);
    procedure Unregister_Live_Window
      (Win_Handle : Adi.SDL.Video.SDL_Window_Ptr);
+   procedure Release_Hover_In_Subtree
+     (W    : in out Window;
+      Root : Widget_Handle);
+   procedure Release_Pressed_Widget (W : in out Window);
 
    type Internal is record
       win : Adi.SDL.Video.SDL_Window_Ptr;
@@ -1613,13 +1617,13 @@ package body Adi.Window is
       if Is_Valid (W.Hovered_Widget)
         and then Is_In_Subtree (Overlay, W.Hovered_Widget)
       then
-         W.Hovered_Widget := Null_Handle;
+         Release_Hover_In_Subtree (W, Overlay);
       end if;
 
       if Is_Valid (W.Pressed_Widget)
         and then Is_In_Subtree (Overlay, W.Pressed_Widget)
       then
-         W.Pressed_Widget := Null_Handle;
+         Release_Pressed_Widget (W);
       end if;
 
       W.Overlays.Delete (Existing);
@@ -1649,13 +1653,13 @@ package body Adi.Window is
             if Is_Valid (W.Hovered_Widget)
               and then Is_In_Subtree (OH, W.Hovered_Widget)
             then
-               W.Hovered_Widget := Null_Handle;
+               Release_Hover_In_Subtree (W, OH);
             end if;
 
             if Is_Valid (W.Pressed_Widget)
               and then Is_In_Subtree (OH, W.Pressed_Widget)
             then
-               W.Pressed_Widget := Null_Handle;
+               Release_Pressed_Widget (W);
             end if;
          end;
       end loop;
@@ -1831,13 +1835,13 @@ package body Adi.Window is
       if Is_Valid (W.Hovered_Widget)
         and then Is_In_Subtree (Target, W.Hovered_Widget)
       then
-         W.Hovered_Widget := Null_Handle;
+         Release_Hover_In_Subtree (W, Target);
       end if;
 
       if Is_Valid (W.Pressed_Widget)
         and then Is_In_Subtree (Target, W.Pressed_Widget)
       then
-         W.Pressed_Widget := Null_Handle;
+         Release_Pressed_Widget (W);
       end if;
    end Clear_Widget_Refs_In_Subtree;
 
@@ -2062,6 +2066,135 @@ package body Adi.Window is
       return Null_Handle;
    end Find_Scroll_Widget_At;
 
+   ---------------------------------------------------------------------------
+   --  Hover bookkeeping.
+   --
+   --  The widgets carrying State_Hovered are exactly the ancestor chain
+   --  of W.Hovered_Widget, and the part-level hover lives on that widget
+   --  alone.  Every path that changes what is hovered goes through these
+   --  so the two never disagree.
+   ---------------------------------------------------------------------------
+
+   Max_Ancestor_Depth : constant := 64;
+   type Widget_Chain is array (Positive range <>) of Widget_Handle;
+
+   procedure Build_Hover_Chain
+     (Start : Widget_Handle;
+      Chain : out Widget_Chain;
+      Count : out Natural)
+   is
+      Node : Widget_Handle := Start;
+   begin
+      Count := 0;
+      while Is_Valid (Node) and then Count < Chain'Length loop
+         Count := Count + 1;
+         Chain (Count) := Node;
+         Node := Get_Parent_Handle (Node);
+      end loop;
+   end Build_Hover_Chain;
+
+   function In_Chain
+     (Node  : Widget_Handle;
+      Chain : Widget_Chain;
+      Count : Natural) return Boolean is
+   begin
+      for I in 1 .. Count loop
+         if Chain (I) = Node then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end In_Chain;
+
+   procedure Update_Hover_Ancestors
+     (Old_Node : Widget_Handle;
+      New_Node : Widget_Handle)
+   is
+      Old_Chain : Widget_Chain (1 .. Max_Ancestor_Depth);
+      New_Chain : Widget_Chain (1 .. Max_Ancestor_Depth);
+      Old_Count : Natural := 0;
+      New_Count : Natural := 0;
+   begin
+      Build_Hover_Chain (Old_Node, Old_Chain, Old_Count);
+      Build_Hover_Chain (New_Node, New_Chain, New_Count);
+
+      --  Clear hover only for nodes that are not common ancestors anymore.
+      for I in 1 .. Old_Count loop
+         if not In_Chain (Old_Chain (I), New_Chain, New_Count) then
+            Set_Hovered (Old_Chain (I), False);
+         end if;
+      end loop;
+
+      --  Set hover for newly entered nodes.
+      for I in 1 .. New_Count loop
+         if not In_Chain (New_Chain (I), Old_Chain, Old_Count) then
+            Set_Hovered (New_Chain (I), True);
+         end if;
+      end loop;
+   end Update_Hover_Ancestors;
+
+   procedure Clear_Hover_For_Part
+     (Target : Widget_Handle;
+      P      : Part_Kind) is
+   begin
+      Set_Part_State (Target, P, Adi.Widget_Styles.State_Hovered, False);
+      --  Knob sits on top of scroll track; clear both when leaving knob.
+      if P = Knob_Part then
+         Set_Part_State (Target, Scroll_Part,
+                         Adi.Widget_Styles.State_Hovered, False);
+      end if;
+   end Clear_Hover_For_Part;
+
+   procedure Set_Hover_For_Part
+     (Target : Widget_Handle;
+      P      : Part_Kind) is
+   begin
+      Set_Part_State (Target, P, Adi.Widget_Styles.State_Hovered, True);
+      --  Hovering knob should also visually highlight the track beneath it.
+      if P = Knob_Part then
+         Set_Part_State (Target, Scroll_Part,
+                         Adi.Widget_Styles.State_Hovered, True);
+      end if;
+   end Set_Hover_For_Part;
+
+   --  Hover is withdrawn from the subtree rooted at Root.  The pointer
+   --  has not moved, so the first ancestor outside that subtree is still
+   --  under it: it keeps its hover and takes over as the hovered widget.
+   --  For a standalone root -- an overlay -- there is no such ancestor
+   --  and the chain clears entirely.
+   procedure Release_Hover_In_Subtree
+     (W    : in out Window;
+      Root : Widget_Handle)
+   is
+      Anchor : constant Widget_Handle := Get_Parent_Handle (Root);
+   begin
+      Update_Hover_Ancestors (W.Hovered_Widget, Anchor);
+      Clear_Hover_For_Part (W.Hovered_Widget, W.Hovered_Part);
+
+      W.Hovered_Widget := Anchor;
+      if Is_Valid (Anchor) then
+         W.Hovered_Part :=
+           Get_Part_At (Anchor, W.Mouse_X,
+                        Mapped_Y (Anchor, W.Mouse_X, W.Mouse_Y));
+         Set_Hover_For_Part (Anchor, W.Hovered_Part);
+      else
+         W.Hovered_Part := Main_Part;
+      end if;
+   end Release_Hover_In_Subtree;
+
+   --  Pressed state, unlike hover, is only ever held by the pressed
+   --  widget itself, so there is no chain to walk.
+   procedure Release_Pressed_Widget (W : in out Window) is
+   begin
+      Set_Part_State (W.Pressed_Widget, W.Pressed_Part,
+                      Adi.Widget_Styles.State_Pressed, False);
+      Set_Pressed (W.Pressed_Widget, False);
+
+      W.Pressed_Widget := Null_Handle;
+      W.Pressed_Part   := Main_Part;
+      W.Scroll_Claimed := False;
+   end Release_Pressed_Widget;
+
    ------------------------
    -- Set_Focused_Widget --
    ------------------------
@@ -2128,83 +2261,6 @@ package body Adi.Window is
 procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
       New_Hovered : Widget_Handle;
       New_Part    : Part_Kind;
-      Max_Ancestor_Depth : constant := 64;
-      type Widget_Chain is array (Positive range <>) of Widget_Handle;
-
-      procedure Build_Hover_Chain
-        (Start : Widget_Handle;
-         Chain : out Widget_Chain;
-         Count : out Natural) is
-         Node : Widget_Handle := Start;
-      begin
-         Count := 0;
-         while Is_Valid (Node) and then Count < Chain'Length loop
-            Count := Count + 1;
-            Chain (Count) := Node;
-            Node := Get_Parent_Handle (Node);
-         end loop;
-      end Build_Hover_Chain;
-
-      function In_Chain
-        (Node  : Widget_Handle;
-         Chain : Widget_Chain;
-         Count : Natural) return Boolean is
-      begin
-         for I in 1 .. Count loop
-            if Chain (I) = Node then
-               return True;
-            end if;
-         end loop;
-         return False;
-      end In_Chain;
-
-      procedure Update_Hover_Ancestors
-        (Old_Node : Widget_Handle;
-         New_Node : Widget_Handle) is
-         Old_Chain : Widget_Chain (1 .. Max_Ancestor_Depth);
-         New_Chain : Widget_Chain (1 .. Max_Ancestor_Depth);
-         Old_Count : Natural := 0;
-         New_Count : Natural := 0;
-      begin
-         Build_Hover_Chain (Old_Node, Old_Chain, Old_Count);
-         Build_Hover_Chain (New_Node, New_Chain, New_Count);
-
-         --  Clear hover only for nodes that are not common ancestors anymore.
-         for I in 1 .. Old_Count loop
-            if not In_Chain (Old_Chain (I), New_Chain, New_Count) then
-               Set_Hovered (Old_Chain (I), False);
-            end if;
-         end loop;
-
-         --  Set hover for newly entered nodes.
-         for I in 1 .. New_Count loop
-            if not In_Chain (New_Chain (I), Old_Chain, Old_Count) then
-               Set_Hovered (New_Chain (I), True);
-            end if;
-         end loop;
-      end Update_Hover_Ancestors;
-
-      procedure Clear_Hover_For_Part
-        (Target : Widget_Handle;
-         P      : Part_Kind) is
-      begin
-         Set_Part_State (Target, P, Adi.Widget_Styles.State_Hovered, False);
-         --  Knob sits on top of scroll track; clear both when leaving knob.
-         if P = Knob_Part then
-            Set_Part_State (Target, Scroll_Part, Adi.Widget_Styles.State_Hovered, False);
-         end if;
-      end Clear_Hover_For_Part;
-
-      procedure Set_Hover_For_Part
-        (Target : Widget_Handle;
-         P      : Part_Kind) is
-      begin
-         Set_Part_State (Target, P, Adi.Widget_Styles.State_Hovered, True);
-         --  Hovering knob should also visually highlight the track beneath it.
-         if P = Knob_Part then
-            Set_Part_State (Target, Scroll_Part, Adi.Widget_Styles.State_Hovered, True);
-         end if;
-      end Set_Hover_For_Part;
    begin
       W.Mouse_X := X;
       W.Mouse_Y := Y;
@@ -2319,6 +2375,11 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
          end if;
       end if;
 
+      --  A press whose release never arrived -- the pointer left the
+      --  window, or another button went down meanwhile -- must not leave
+      --  its target stuck.
+      Release_Pressed_Widget (W);
+
       if Is_Valid (Click_Target) then
          declare
             --  Translate into the target's own space before anything
@@ -2342,9 +2403,6 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
                Adi.Widget.On_Mouse_Down (Click_Target, X, CY, Button, Clicks);
             end if;
          end;
-      else
-         W.Pressed_Widget := Null_Handle;
-         W.Pressed_Part := Main_Part;
       end if;
 
       Set_Focused_Widget (W, Focus_Target);
@@ -2379,7 +2437,8 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
       pragma Unreferenced (Guard);
       --  Save pressed widget/part before dispatching, because On_Mouse_Up
       --  or On_Click callbacks (e.g. dialog dismiss) may clear them.
-      PW   : Widget_Handle := W.Pressed_Widget;
+      Pressed_At_Entry : constant Widget_Handle := W.Pressed_Widget;
+      PW   : Widget_Handle := Pressed_At_Entry;
       Part : constant Part_Kind := W.Pressed_Part;
    begin
       W.Mouse_Down := False;
@@ -2409,15 +2468,13 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
             Adi.Widget.On_Click (PW);
          end if;
 
-         --  Re-read again: On_Click may have cleared it too.
-         if not Is_Valid (W.Pressed_Widget) then
-            PW := Null_Handle;
-         end if;
-
-         if Is_Valid (PW) then
-            Set_Part_State (PW, Part,
+         --  Releasing the state follows the widget, not the window's
+         --  reference to it: a callback may have dropped that reference
+         --  while the widget itself lives on.
+         if Is_Valid (Pressed_At_Entry) then
+            Set_Part_State (Pressed_At_Entry, Part,
                             Adi.Widget_Styles.State_Pressed, False);
-            Set_Pressed (PW, False);
+            Set_Pressed (Pressed_At_Entry, False);
          end if;
 
          W.Pressed_Widget := Null_Handle;

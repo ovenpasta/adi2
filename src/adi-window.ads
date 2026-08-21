@@ -162,8 +162,9 @@ package Adi.Window is
     function  Is_Fullscreen  (H : Window_Handle) return Boolean;
 
     --  Overlay widgets render above the root tree and are hit-tested first.
-    --  If focus currently points into an overlay being removed/cleared,
-    --  focus is cleared to avoid stale detached targets.
+    --  Focus, hover and pressed state pointing into an overlay being
+    --  removed/cleared are released, so an overlay shown again comes back
+    --  in the state it would have if it had just been built.
     procedure Add_Overlay (W : in out Window; Overlay : Widget_Handle);
     procedure Remove_Overlay (W : in out Window; Overlay : Widget_Handle);
     procedure Clear_Overlays (W : in out Window);
@@ -218,7 +219,10 @@ package Adi.Window is
         Repeat   : Boolean);
 
     --  Clear Focused/Hovered/Pressed refs if they point at Target or any
-    --  widget in Target's subtree.  Called from Destroy before detaching.
+    --  widget in Target's subtree, releasing the state those widgets hold
+    --  along with the reference.  Hover above the subtree is left alone:
+    --  the pointer has not moved, so Target's parent takes over as the
+    --  hovered widget.  Called from Destroy before detaching.
     procedure Clear_Widget_Refs_In_Subtree
       (W      : in out Window;
        Target : Widget_Handle);

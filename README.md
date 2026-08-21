@@ -114,8 +114,11 @@ tools/build_examples.sh hello_example hello_raw_example
 ## Quick start
 
 ```bash
-# Build the library + all tests
+# Build the library
 alr build -- -j0
+
+# Build and run the test suite
+tools/run_tests.sh
 
 # Build all example programs
 tools/build_examples.sh
@@ -216,7 +219,7 @@ Sponsorship supports the project as a whole. Guaranteed response times or delive
 
 Apache-2.0. See [`LICENSE`](LICENSE).
 
-Vendored third-party code under [`vendor/`](vendor/) retains its original licenses (MIT, Apache-2.0, OFL, and similar permissive terms).
+Vendored third-party code under [`vendor/`](vendor/) retains its original licenses, listed in each tree's own license files. Most are permissive — MIT, Apache-2.0, BSD-style, OFL. `vendor/rlottie/src/vector/vinterpolator.cpp` is MPL-2.0, a file-level copyleft rather than a permissive licence; its text ships as [`vendor/rlottie/licenses/COPYING.MPL`](vendor/rlottie/licenses/COPYING.MPL).
 
 Example assets under [`examples/assets/`](examples/assets/) are demonstration content rather than part of the library; those with known third-party terms are attributed in [`examples/assets/NOTICE.md`](examples/assets/NOTICE.md).
 

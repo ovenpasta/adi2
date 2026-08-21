@@ -4,10 +4,9 @@
 
 **Adi.Core** (`adi-core.ads`): Foundational types — geometric primitives (`Point`, `Size_2D`, `Rectangle`, `Pixel_Type`), color types (`Color` 0.0-1.0, `Color_8` 0-255), input enums (`Mouse_Button`).
 
-**Adi.Style** (`adi-style.ads`): CSS-like style system — dimension values (px, dip, %, fr), box model, flexbox, grid layout, typography, color constants, widget states, style rule management.
-
 **Adi.CSS_Styles** (`adi-css_styles.ads`): CSS value types and style resolution.
 - Length units: `Px`, `Pix`, `Dip`, `Em`, `Root_Em`, `Pct`, `Vw`, `Vh` — `Pix` is one renderer pixel regardless of scale or the `px` → dip mapping
+- Property value types for the box model, flexbox, grid tracks and typography; `Color_Value` is `Named`, `RGB` or `RGBA`, and `Named_Color` carries `transparent`, `inherit` and `currentColor` alongside the colour names
 - `Style_Rules`: optional/unset values for CSS cascade/override semantics
 - `Resolved_Style`: fully concrete with defaults (safe to read directly)
 - `Transition_Spec` with duration, easing, and `Property_Set` filter
@@ -32,6 +31,8 @@
 - Public `Merge_Part_Styles` for combining `Part_Style_Array` values outside the binding system
 - Composite specificity: tag < class < id
 - `Attach_Window(Source, Window_Handle)`: associates a window with the source so CSS metadata is applied to it automatically on every load/reload. Currently propagates `:root { font-size }` → `Window.Set_Root_Font_Size`. Properties absent from the CSS leave the window unchanged (no reset to defaults).
+- `Begin_Update`/`End_Update` assemble a configuration without publishing it, so bound widgets are restyled once rather than once per step. `Update_Scope` is the scoped form, publishing on every exit path including an exception; generated `Build` procedures use it
+- `Tick` reloads dynamic files whose modification time changed. A sheet that fails to parse leaves the bound widgets styled from the last good one, reports through `Success`, and stays watched, so saving a correction reloads from it
 
 **Adi.Widget_Styles** (`adi-widget_styles.ads`): Widget state-based styling.
 - States: Normal, Hovered, Pressed, Focused, Disabled, Selected
@@ -45,7 +46,7 @@
 - Predefined templates: Button, Checkbox, Scrollbar, Input, List, Slider
 - No built-in visual theme — apps provide explicit styles
 
-**Adi.Event** (`adi-event.ads`): Discriminant-based event record with mouse/keyboard data.
+**Input events**: `Adi.App.Run` polls SDL and calls `Adi.Window.On_Mouse_Down`/`On_Mouse_Move`/`On_Mouse_Up`/`On_Mouse_Wheel`, `On_Key_Down`/`On_Key_Up` and `On_Text_Input`. The window hit-tests and routes to the matching dispatching primitives on `Adi.Widget`, which take coordinates, button, scancode and modifiers as plain parameters rather than an event record. Raw SDL event records live in `Adi.SDL.Events`.
 
 **Adi.Render** (`adi-render.ads`): Per-renderer context and caches.
 - `Render_Context`: bundles `SDL_Renderer_Ptr` with the texture cache and TTF text engine
@@ -132,6 +133,7 @@
 - Residency is per renderer but the group spans them: one animation drawn in two windows has frames in two caches, and releasing reaches both
 - Callers hold a generational `Animation_Handle` from an `Adi.Handle_Store`; `Destroy` retires the slot, so every copy goes stale together. The raw `RLottie_Animation` is private to the package and its children
 - Destroying it releases its frames, so a widget still naming one holds a stale handle and draws nothing. Runs on the render thread
+- `Set_Playback_Speed` clamps its multiplier into `Min_Playback_Speed .. Max_Playback_Speed` (0.01 .. 100.0), which keeps the playhead where a `Float` can place it
 
 **Adi.Log** (`adi-log.ads`): Central runtime logging.
 - Safe logging entry points: `Write`, `Debug`, `Info`, `Warning`, `Error`
@@ -161,7 +163,12 @@
 - `Pin`/`Unpin` plus `Borrow` (`Implicit_Dereference`) for scoped safe access
 - `Get` returns null for a null, stale or out-of-range id, so a handle naming something destroyed degrades rather than raising; `Borrow` is the one operation that raises `Constraint_Error`
 - `Is_Valid` is False from `Request_Destroy` onwards, pinned or not: a pin defers the free, not the answer
-- Used by widgets, context menus, and windows (separate store instantiations)
+- Separate instantiations back widgets, context menus, windows, Lottie animations and animated images
+
+**Adi.Owned_Handle_Store** (`adi-owned_handle_store.ads`): the same store with ownership and viewing as two types.
+- An `Owner` keeps the object alive and is the only thing that can end it; a `Handle` names it without keeping it
+- Owners are counted so they can live in ordinary containers; handles never contribute, so a cache dropping its entry stales every viewer at once
+- `Adi.Image` is built on it
 
 **Adi.Font** (`adi-font.ads`): Font loading and caching.
 - `Font_Handle` = font family (file path)
@@ -211,10 +218,10 @@
 - Debug: `ADI_DEBUG_LOOP=1` for tick/render diagnostics
 
 **Adi.App** (`adi-app.ads`): Application entry point, main loop, frame timing (`Adi.Clock`), `Set_Target_FPS`.
+- `Add_Window (A, W : Window_Handle)`; the main window is held as a `Window_Handle`
+- Each frame drains `Adi.Dispatch`, then pumps the widget, context-menu and window stores
 
 **Adi.Clock** (`adi-clock.ads`): Monotonic program clock (`Time`, `Time_Span`, `Now`, `Sleep_Until`) — the single seam between library timing and the platform. Native body wraps `Ada.Real_Time`; WASM builds substitute an SDL-ticks body (`wasm/PORT_REPORT.md`).
-- Main window ownership is now `Window_Handle` (with access overload bridge in `Add_Window`).
-- Per-frame store drain includes widget/menu/window stores.
 
 ## Widgets
 
@@ -223,6 +230,7 @@
 - Scoped borrow API: `Borrow (Widget_Handle) return Widget_Ref` (`Implicit_Dereference`) pins while in scope.
 - `Widget_Access` and `Resolve_Handle` are private to `Adi.Widget`. Outside code holds handles and reaches a widget through `Borrow`; a widget type defined outside the library is registered through `Adi.Widget.Extension`.
 - `Adi.Widget.Window_Bridge` carries the destroy notification to `Adi.Window`, which `Adi.Widget` cannot name directly.
+- An operation reached through a handle borrows for the length of its own call when that call can reach an application callback, so a callback is free to destroy the widget whose call it is running under: the slot is retired when the call unwinds. `docs/handle_ownership.md` lists which operations pin and why the rest do not need to.
 - Part system: `Main_Part`, `Indicator_Part`, `Label_Part`, `Text_Part`, `Icon_Part`, `Cursor_Part`, `Selected_Part`, `Scroll_Part`, `Knob_Part`
 - Item system: `Panel_Item`, `Text_Item`, `Image_Item`
 - Flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`. A separate private dispatching primitive, `Clips_Own_Content`, marks widgets that scroll their own content without being scroll containers — text inputs, and value inputs by inheritance. It clips only the parts the widget scrolls (`Text_Part`, `Cursor_Part`, `Selected_Part`) on both axes, so a floating `Label_Part` sitting above the border still draws. It is the equivalent of a browser's user-agent `overflow: hidden` on an input, and being private a stylesheet cannot switch it off.
@@ -287,7 +295,7 @@
 - Result callback signature: `(W : Widget_Handle; Button_Index : Natural; Button_Text : String)`.
 - Default/primary button API:
   - `Set_Default_Button(Index)` marks the default action (`0` clears; out-of-range nonzero indices are stored and take effect once a button exists at that index)
-  - `Get_Button_Handle(Index)` returns a `Button_Handle` for per-button customization. `Get_Button(Index)` is obsolescent.
+  - `Get_Button_Handle(Index)` returns a `Button_Handle` for per-button customization; `Get_Button_Row_Handle` returns the `Box_Handle` holding them
   - Presets auto-mark natural defaults (`OK`/`Yes`)
 - Focus behavior:
   - `Show` auto-focuses the default button when a valid default index exists
@@ -425,6 +433,6 @@ A **multi-child row** is answered by running the distribution itself: `Flex_Row_
 ## SDL Bindings
 
 Hand-crafted Ada bindings in `adi-sdl*.ads`:
-- `Adi.SDL` (core, clipboard), `.Video`, `.Render`, `.Events`, `.Mouse`, `.TTF`, `.TTF.TextEngine`, `.Image`, `.Surface`, `.PixelFormat`
+- `Adi.SDL` (core, clipboard), `.Video`, `.Render`, `.Events`, `.Mouse`, `.TTF`, `.TTF.TextEngine`, `.Image`, `.Surface`, `.PixelFormat`, `.IO`, `.Dialog`, `.Filesystem`, `.Locale`, `.Misc`
 - Native Ada types, incomplete types for opaque C structs, proper enumerations
-- Not SDLAda (which is commented out in `adi.gpr`)
+- `adi.gpr` exports `-lSDL3 -lSDL3_ttf -lSDL3_image` as `Linker_Options`, so any project withing it links them without repeating the switches

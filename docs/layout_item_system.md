@@ -2,7 +2,7 @@
 
 ## Overview
 
-The new **Layout_Item** system allows widgets to use flexbox layout for their internal visual elements (items), not just child widgets. This enables complex internal layouts without creating extra widget instances.
+The **Layout_Item** system lets widgets use flexbox layout for their internal visual elements (items), not just child widgets. This enables complex internal layouts without creating extra widget instances.
 
 ## Architecture
 

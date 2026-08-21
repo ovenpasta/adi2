@@ -103,19 +103,6 @@ project My_App is
 end My_App;
 ```
 
-## SVG performance comparison
-
-Use the helper script to compare both backends in `development` and `release` profiles:
-
-```bash
-./tools/compare_svg_perf.sh linux
-```
-
-The report prints both:
-
-- `cold_ms`: first render for a size (no warm cache)
-- `avg_ms`: repeated renders for the same size (hot path)
-
 ## External Dependencies
 - **SDL3**, **SDL3_ttf**, **SDL3_image** — all required
 

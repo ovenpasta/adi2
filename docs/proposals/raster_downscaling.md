@@ -33,8 +33,12 @@ to box-filter / mipmap level generation). Cache the final result per size.
 7. Restore the original render target.
 8. Set `SDL_BLENDMODE_BLEND` on the final texture for compositing and restore it
    on the source texture.
-9. Store the final texture in the render context's `Adi.Texture_Cache` under
-   the image's raster key, and hand the caller a lease on it.
+9. Store the final texture in the render context's `Adi.Texture_Cache` under a
+   key carrying the target extent, and hand the caller a lease on it.
+   `Raster_Key` cannot serve: a plain upload does not vary with the requested
+   size, so the key carries no extent and every size would collide on one
+   entry. `SVG_Key`, which puts `W` and `H` in `Extent_A`/`Extent_B`, is the
+   shape to follow.
 
 ### Key Design Points
 
@@ -68,7 +72,7 @@ time, which is negligible at these small remainders.
 | `src/adi-image.adb` | `Acquire_Texture` / `Build_Raster` — raster branch implementation |
 | `src/adi-image.ads` | Public API (no signature changes needed) |
 | `src/adi-sdl-render.ads` | All required SDL bindings already present |
-| `src/adi-widget.adb` | Call site (`Render_Image_Item` line ~3186) — no changes needed |
+| `src/adi-widget.adb` | Call site (`Render_Image_Item`) — no changes needed |
 
 ### Required SDL Bindings (all already bound)
 
@@ -84,15 +88,14 @@ time, which is negligible at these small remainders.
 ### Cache growth with shared images
 
 When a single `Image` is shared across multiple widgets (e.g. one photo shown at
-4 different sizes), each size creates a separate cached texture. The cache is
-unbounded (matching SVG behavior). For typical use this is fine, but a very large
-number of distinct sizes from the same image could consume significant GPU memory.
+4 different sizes), each size needs its own cached texture. `Adi.Texture_Cache`
+holds them under a byte budget on idle residency and evicts by rebuilding time
+per byte held, and a `Borrow` pins an entry against eviction mid-draw, so a
+large number of distinct sizes costs eviction churn rather than unbounded GPU
+memory.
 
-Possible improvements:
-- LRU eviction with a configurable max cache size
-- Reference counting per cached entry
-- Tolerance-based cache matching (accept a cached texture within N% of the
-  target size rather than requiring an exact match)
+Possible improvement: tolerance-based cache matching — accept a cached texture
+within N% of the target size rather than requiring an exact match.
 
 ### Render target switching mid-frame
 

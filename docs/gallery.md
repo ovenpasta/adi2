@@ -1,6 +1,6 @@
 # Example gallery
 
-Each example program in [`examples/`](../examples/), captured as a screenshot. Build any of them with `tools/build_examples.sh <name>` and run from `examples/bin/<name>`.
+The example programs in [`examples/`](../examples/), captured as screenshots. Build any of them with `tools/build_examples.sh <name>` and run from `examples/bin/<name>`. `hello_raw_example` is not shown: it draws the same window as `hello_example`, built without the generators.
 
 ![animated_image_example](../examples/screenshots/animated_image_example.png)
 *`animated_image_example`*

@@ -69,9 +69,11 @@ Example:
 
 Text and typography properties set on `Main_Part` (i.e., without a `::part` selector) automatically **inherit** to sub-parts (`::label`, `::icon`, etc.) when those sub-parts don't explicitly set the property. This matches CSS cascade semantics where text properties flow from parent to child.
 
-**Inheritable properties:** `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `text-align`, `vertical-align`, `text-decoration`, `text-overflow`, `text-wrap-mode`, `line-height`, `white-space`, `cursor`, `list-style-type`, `list-style-image`, `list-style-position`, `visibility`.
+**Inheritable properties:** `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `text-align`, `vertical-align`, `text-decoration`, `text-overflow`, `text-wrap-mode`, `line-height`, `white-space`, `cursor`, `list-style-type`, `list-style-image`, `list-style-position`.
 
-**Non-inheritable properties** (box-model, layout, visual): `background-color`, `background-image`, `border-*`, `outline-*`, `padding`, `margin`, sizing, `display`, `position`, `overflow`, `opacity`, `box-shadow`, `flex-*`, `grid-*`, `transition`, etc.
+**Non-inheritable properties** (box-model, layout, visual): `background-color`, `background-image`, `border-*`, `outline-*`, `padding`, `margin`, sizing, `display`, `position`, `overflow`, `visibility`, `opacity`, `box-shadow`, `flex-*`, `grid-*`, `transition`, etc.
+
+`visibility` descends the *widget* tree rather than this part cascade: each widget resolves it against its parent's effective value, so a descendant's `visibility: visible` overrides a hidden ancestor.
 
 Example:
 

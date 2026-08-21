@@ -162,12 +162,12 @@ Existing widget signals:
 | Value_Input | `Changed` | `(W : Widget_Handle; Value : Value_Type)` |
 | Text_Input | `Changed` | `(W : Widget_Handle; Text : String)` |
 | Text_Editor | `Changed` | `(W : Widget_Handle; Text : String)` |
-| List_Box | `Item_Clicked` | `(W : Widget_Handle; Index : Positive)` |
+| List_Box | `Item_Clicked` | `(W : Widget_Handle; Index : Positive; Clicks : Natural)` |
 | List_Box | `Item_Activated` | `(W : Widget_Handle; Index : Positive)` |
 | List_Box | `Selection_Changed` | `(W : Widget_Handle)` |
 | Combo_Box | `Selection_Changed` | `(W : Widget_Handle; Index : Natural; Text : String)` |
 | Dialog | `Result` | `(W : Widget_Handle; Index : Natural; Text : String)` |
-| Html_View | `Link_Click` | `(Self : access Html_View; Href : String)` |
+| Html_View | `Link_Click` | `(Self : Html_View_Handle; Href : String)` |
 | Context_Menu | `Item_Selected` | `(Menu : Menu_Handle; Index : Positive; Text : String)` |
 | Stack | `Page_Changed` | `(Id : Page_Id)` |
 | Window | `Tick` | `(DT : Duration)` |

@@ -16,9 +16,11 @@ Issues and pull requests are welcome.
   approach can be discussed before you invest time in it.
 - Match the existing code style — see
   [`docs/coding_conventions.md`](docs/coding_conventions.md).
-- Keep the test suite green (`alr build -- -j0` builds the library and
-  tests; binaries land in `tests/bin/`). Add tests for new behaviour —
-  see [`docs/adding_test.md`](docs/adding_test.md).
+- Keep the test suite green. `tools/run_tests.sh` builds and runs it —
+  the Ada tests, whose binaries land in `tests/bin/`, and the Python
+  generator tests. `alr build -- -j0` builds the library alone. Add
+  tests for new behaviour — see
+  [`docs/adding_test.md`](docs/adding_test.md).
 - Never weaken or delete a test to make an implementation pass; raise
   the mismatch in the issue or PR instead.
 - Keep commits focused, with a short subject line and a body explaining

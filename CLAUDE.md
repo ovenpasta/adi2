@@ -57,7 +57,8 @@ tools/build_examples.sh stack_example
 # Build a specific example directly (generated sources must be current)
 alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 
-# Run Ada tests (built to tests/bin/)
+# Run Ada tests (built to tests/bin/); one binary per Test_Kind in tests/tests.gpr,
+# of which these are a sample
 ./tests/bin/styles
 ./tests/bin/layout_test
 ./tests/bin/css_parser_test
@@ -112,7 +113,7 @@ python3 tools/xml_to_ada.py input.xml --output-dir out/ --package-name My_UI
 
 Incremental build for examples: `tools/generate_example_ui.sh`. Full reference in `docs/xml_ui_system.md`.
 
-Widget grammar is defined in `tools/widgets.xml` (13 widget types). Extensible via `--grammar`.
+Widget grammar is defined in `tools/widgets.xml` (18 widget types). Extensible via `--grammar`.
 
 ### Binary → Ada (`tools/binary_to_ada.py`)
 
@@ -185,6 +186,10 @@ Existing hand-crafted binding modules:
 | `Adi.SDL.PixelFormat` | `adi-sdl-pixelformat.ads` | Pixel format constants |
 | `Adi.SDL.IO` | `adi-sdl-io.ads` | IO streams (memory) |
 | `Adi.SDL.Image` | `adi-sdl-image.ads` | Image file loading |
+| `Adi.SDL.Dialog` | `adi-sdl-dialog.ads` | Native file/folder dialogs |
+| `Adi.SDL.Filesystem` | `adi-sdl-filesystem.ads` | Base/pref/user paths, directory operations |
+| `Adi.SDL.Locale` | `adi-sdl-locale.ads` | Preferred locales |
+| `Adi.SDL.Misc` | `adi-sdl-misc.ads` | `SDL_OpenURL` |
 
 ## Code Navigation (ALS)
 
@@ -217,7 +222,7 @@ A Git MCP server is available (`git`). **Use MCP git tools for git commands when
 | `git_checkout(repo_path, branch_name)` | `git checkout` |
 | `git_branch(repo_path, branch_type)` | `git branch` |
 
-`repo_path` is always `/src/ada/adi2`. Use shell git only for operations not covered by MCP (push, rebase, stash, etc.).
+`repo_path` is the absolute path to the repository root. Use shell git only for operations not covered by MCP (push, rebase, stash, etc.).
 
 ## Filesystem (MCP)
 
@@ -236,7 +241,7 @@ Use MCP filesystem for operations that built-in tools cannot do:
 | `move_file(source, destination)` | `mv` |
 | `get_file_info(path)` | `stat` |
 
-Paths must be absolute (e.g., `/src/ada/adi2/src/adi-widget.ads`).
+Paths must be absolute, rooted at the repository (e.g. `<repo>/src/adi-widget.ads`).
 
 ## Adi Runtime Introspection (MCP)
 
@@ -246,8 +251,19 @@ An Adi MCP server is available (`adi`) for inspecting a **running** Adi applicat
 |------|-------------|
 | `screenshot()` | Capture PNG screenshot, returns file path |
 | `widget_tree()` | Full widget hierarchy as JSON (type, path, bounds, states, flags, children) |
-| `widget_info(path)` | Detailed info for one widget by dot-path (e.g. `"1.2.3"`) |
-| `perf_stats()` | Frame timing, FPS, layout counts |
+| `widget_info(id, path)` | Detailed info for one widget by id or dot-path (e.g. `"1.2.3"`) |
+| `perf_stats()` | Frame timing, FPS, layout counts, texture residency |
+| `set_texture_budget(bytes)` | Set the window's idle texture budget |
+| `find_by_text(query, exact)` | Find widgets by text content, case-insensitive |
+| `find_by_type(type_name)` | Find widgets by type name, case-insensitive substring |
+| `click_widget(id, path)` | Mouse down+up at the widget's centre |
+| `scroll(dy, dx, id, path, x, y)` | Simulate mouse wheel notches |
+| `send_keys(keys)` | Send keystrokes to the focused widget |
+| `set_text(id, text)` | Set widget text directly, without simulating input |
+| `get_focus()` | The currently focused widget |
+| `set_focus(id)` | Move keyboard focus to a widget |
+| `css_values(id, path, part)` | Resolved CSS values for a widget part |
+| `quit_app()` | Ask the application to exit |
 
 Communication uses file-based IPC via `/tmp/adi_mcp/<PID>/`. Each request carries a unique `req_id` for correlation. See `docs/mcp.md` for setup and usage.
 

@@ -9,7 +9,7 @@
 - Types: `Widget`, `Rectangle`, `Color_Value`
 - Handle types: `Widget_Handle`, `Label_Handle`, `Image_Handle` — what callers hold
 - Access types: `Widget_Access` — internal, private where the design allows
-- Constructors: `Create_Handle`. The `Create` functions returning access are `Obsolescent`
+- Constructors: `Create_Handle`, returning the widget's typed handle. No constructor returns an access type; `Adi.Image`'s return an `Image_Owner`
 - Functions for queries: `Get_*`, `Is_*`
 - Procedures for mutation: `Set_*`, `Add_*`, `Remove_*`
 

@@ -1,7 +1,7 @@
 # Porting adi2 to WebAssembly
 
 Concrete plan to build adi2 with GNAT-LLVM + AdaWebPack + Emscripten + SDL3.
-Companion to `FINDINGS.md`. File paths are under `/src/ada/adi2/`.
+Companion to `FINDINGS.md`. File paths are relative to the repository root.
 
 > **2026-07-19 status**: re-verified against the EH-enabled toolchain
 > (`rts-wasm-emcc-eh`, native wasm exception handling). Every library body

@@ -186,6 +186,113 @@ procedure Css_Parser_Test is
    --  ===== Custom Properties (@property, :root, var()) =====
    --  Placed in a nested procedure so its large Part_Style_Array/Resolved_Style
    --  locals live in a separate frame instead of the main procedure frame.
+   --  A value outside a property's range is a value the sheet does not
+   --  get to impose. CSS drops the declaration where the range is the
+   --  property's own grammar, and clamps where the property is defined
+   --  over a wider domain; neither reaches the caller as an error.
+   procedure Test_Out_Of_Range_Values is
+   begin
+      --  Negative flex factors are invalid, so the declarations go and
+      --  the initial values stand.
+      declare
+         Bad_Sheet : Adi.CSS_Parser.Stylesheet;
+         Bad_OK    : Boolean;
+         Bad_CSS   : constant String :=
+           ".negflex { flex-grow: -1; flex-shrink: -2; color: red; }"
+           & ".bystander { color: blue; }";
+      begin
+         Adi.CSS_Parser.Load_String (Bad_Sheet, Bad_CSS, Bad_OK);
+         Test_Support.Assert (Bad_OK, "a negative flex factor should parse");
+         declare
+            S : constant Part_Style_Array :=
+              Adi.CSS_Parser.Styles_For_Class (Bad_Sheet, "negflex");
+            R : constant Resolved_Style :=
+              Compute_Resolved (S (Main_Part).Style, No_States, No_States);
+            B : constant Part_Style_Array :=
+              Adi.CSS_Parser.Styles_For_Class (Bad_Sheet, "bystander");
+            BR : constant Resolved_Style :=
+              Compute_Resolved (B (Main_Part).Style, No_States, No_States);
+         begin
+            Test_Support.Assert
+              (R.Flex_Grow = Default_Flex_Grow,
+               "flex-grow: -1 should be dropped, leaving the initial value");
+            Test_Support.Assert
+              (R.Flex_Shrink = Default_Flex_Shrink,
+               "flex-shrink: -2 should be dropped, leaving the initial value");
+            Test_Support.Assert
+              (R.Color = (Kind => Named, Name => Red),
+               "the declaration beside it should survive");
+            Test_Support.Assert
+              (BR.Color = (Kind => Named, Name => Blue),
+               "and so should every other rule in the sheet");
+         end;
+      end;
+
+      --  Opacity is defined over every number and clamped to the range.
+      declare
+         Bad_Sheet : Adi.CSS_Parser.Stylesheet;
+         Bad_OK    : Boolean;
+         Bad_CSS   : constant String :=
+           ".over { opacity: 2; } .under { opacity: -0.5; }";
+
+         function Opacity_Of (Class : String) return Float is
+            S : constant Part_Style_Array :=
+              Adi.CSS_Parser.Styles_For_Class (Bad_Sheet, Class);
+            R : constant Resolved_Style :=
+              Compute_Resolved (S (Main_Part).Style, No_States, No_States);
+         begin
+            return Float (R.Opacity);
+         end Opacity_Of;
+      begin
+         Adi.CSS_Parser.Load_String (Bad_Sheet, Bad_CSS, Bad_OK);
+         Test_Support.Assert (Bad_OK, "an out-of-range opacity should parse");
+         Test_Support.Assert
+           (Nearly_Equal (Opacity_Of ("over"), 1.0),
+            "opacity: 2 should clamp to 1");
+         Test_Support.Assert
+           (Nearly_Equal (Opacity_Of ("under"), 0.0),
+            "opacity: -0.5 should clamp to 0");
+      end;
+   end Test_Out_Of_Range_Values;
+
+   --  No one declaration may cost the sheet. Parse_Rules guards the whole
+   --  parse in a single handler, so a value that overflows the type behind
+   --  its property takes every other rule in the file down with it -- and
+   --  the author is told only that the stylesheet failed to load.
+   procedure Test_No_Declaration_Rejects_The_Sheet is
+      type Case_Access is access constant String;
+      Cases : constant array (Positive range <>) of Case_Access :=
+        [new String'(".x { flex-grow: -1; }"),
+         new String'(".x { flex-shrink: -1; }"),
+         new String'(".x { opacity: 2; }"),
+         new String'(".x { opacity: -1; }"),
+         new String'(".x { color: rgb(300, 0, 0); }"),
+         new String'(".x { color: rgb(-5, 0, 0); }"),
+         new String'(".x { color: rgba(0, 0, 0, 3); }"),
+         new String'(".x { z-index: 99999999999; }"),
+         new String'(".x { font-weight: 5000; }"),
+         new String'(".x { font-weight: -100; }"),
+         new String'(".x { order: -2; }"),
+         new String'(".x { width: -50px; }"),
+         new String'(".x { line-height: -2; }"),
+         new String'(".x { font-size: -10px; }"),
+         new String'(".x { border-width: -3px; }"),
+         new String'(".x { flex-basis: -20px; }"),
+         new String'(".x { grid-template-columns: repeat(-1, 1fr); }"),
+         new String'(".x { transition-duration: -1s; }")];
+   begin
+      for C of Cases loop
+         declare
+            Sheet_N : Adi.CSS_Parser.Stylesheet;
+            OK_N    : Boolean;
+         begin
+            Adi.CSS_Parser.Load_String (Sheet_N, C.all, OK_N);
+            Test_Support.Assert
+              (OK_N, "should not reject the sheet: " & C.all);
+         end;
+      end loop;
+   end Test_No_Declaration_Rejects_The_Sheet;
+
    procedure Test_Var_Resolution is
    begin
       --  @property default with var() reference
@@ -1928,6 +2035,8 @@ begin
 
    Test_Text_Part;
 
+   Test_Out_Of_Range_Values;
+   Test_No_Declaration_Rejects_The_Sheet;
    Test_Var_Resolution;
 
    Test_Font_Family;

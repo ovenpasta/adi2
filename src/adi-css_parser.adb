@@ -2542,8 +2542,17 @@ package body Adi.CSS_Parser is
          if Parse_Overflow_Value (LV, Overflow_Val) then
             Rules.Overflow_Y := Set_Overflow_Y (Overflow_Val);
          end if;
+      --  Opacity's grammar is <number> with no range in it, so CSS Color
+      --  4 is free to say an out-of-range value "is not invalid" and is
+      --  clamped instead. It clamps at computed-value time and keeps the
+      --  number as specified; Opacity_Value cannot hold one, so this
+      --  clamps on the way in. Same computed result, and it only shows
+      --  where the specified value is read back rather than used.
       elsif P = "opacity" then
-         if Parse_Number (V, F) then Rules.Opacity := Set (Opacity_Value (F)); end if;
+         if Parse_Number (V, F) then
+            Rules.Opacity :=
+              Set (Opacity_Value (Float'Max (0.0, Float'Min (1.0, F))));
+         end if;
       elsif P = "cursor" then
          if LV = "auto" then Rules.Cursor := Set (Cursor_Auto);
          elsif LV = "default" then Rules.Cursor := Set (Cursor_Default);
@@ -2637,10 +2646,18 @@ package body Adi.CSS_Parser is
                end if;
             end;
          end if;
+      --  The flex factors carry their range in the grammar itself,
+      --  <number [0,inf]>, and CSS Values 4 makes a value outside a
+      --  bracketed range invalid rather than clamped. So a negative one
+      --  is dropped, where an out-of-range opacity above is not.
       elsif P = "flex-grow" then
-         if Parse_Number (V, F) then Rules.Flex_Grow := Set (Flex_Grow_Value (F)); end if;
+         if Parse_Number (V, F) and then F >= 0.0 then
+            Rules.Flex_Grow := Set (Flex_Grow_Value (F));
+         end if;
       elsif P = "flex-shrink" then
-         if Parse_Number (V, F) then Rules.Flex_Shrink := Set (Flex_Shrink_Value (F)); end if;
+         if Parse_Number (V, F) and then F >= 0.0 then
+            Rules.Flex_Shrink := Set (Flex_Shrink_Value (F));
+         end if;
       elsif P = "flex-basis" then
          if LV = "auto" then Rules.Flex_Basis := Set (Auto_Basis);
          elsif LV = "content" then Rules.Flex_Basis := Set (Content_Basis);
@@ -2794,6 +2811,23 @@ package body Adi.CSS_Parser is
             end if;
          end;
       end if;
+
+   --  A declaration carrying a value its property cannot hold is one
+   --  declaration to drop, not a sheet to refuse. Parse_Rules guards the
+   --  whole parse in one handler, so without this a single such value
+   --  costs every rule in the file and the caller is told only that the
+   --  sheet failed. The ranges that are known are checked above, where
+   --  the value can be dropped knowingly and the rest of the declaration
+   --  still applied; this stands behind them for the next property added
+   --  without one.
+   --
+   --  Constraint_Error alone, because that is what a value outside its
+   --  type raises. Anything else -- storage exhausted, a bug in a parse
+   --  helper -- is not a property of the stylesheet and is left to
+   --  travel.
+   exception
+      when Constraint_Error =>
+         null;
    end Apply_Property;
 
    ---------------------------------------------------------------------------

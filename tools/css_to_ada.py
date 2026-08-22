@@ -2914,8 +2914,10 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
 
         # Opacity
         elif prop == "opacity":
+            # Defined over every number and clamped to the range, which is
+            # also all Opacity_Value can hold.
             try:
-                val = float(value)
+                val = min(1.0, max(0.0, float(value)))
                 ada_field = f"Opacity => Set ({format_float(val)})"
             except ValueError:
                 pass
@@ -3046,9 +3048,12 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         
         # Flex grow
         elif prop == "flex-grow":
+            # A negative factor is invalid CSS, and Flex_Grow_Value starts
+            # at zero, so emitting one yields Ada that will not compile.
             try:
                 val = float(value)
-                ada_field = f"Flex_Grow => Set ({format_float(val)})"
+                if val >= 0.0:
+                    ada_field = f"Flex_Grow => Set ({format_float(val)})"
             except ValueError:
                 pass
         
@@ -3056,7 +3061,8 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         elif prop == "flex-shrink":
             try:
                 val = float(value)
-                ada_field = f"Flex_Shrink => Set ({format_float(val)})"
+                if val >= 0.0:
+                    ada_field = f"Flex_Shrink => Set ({format_float(val)})"
             except ValueError:
                 pass
         

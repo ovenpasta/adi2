@@ -891,6 +891,19 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
         ada = self._gen({"flex-grow": "2"})
         self.assertIn("Flex_Grow => Set (2.0)", ada)
 
+    def test_negative_flex_factors_are_dropped(self):
+        # Invalid per CSS, and Flex_Grow_Value/Flex_Shrink_Value start at
+        # zero, so emitting one produces Ada the compiler rejects.
+        ada = self._gen({"flex-grow": "-1", "flex-shrink": "-2"})
+        self.assertNotIn("Flex_Grow", ada)
+        self.assertNotIn("Flex_Shrink", ada)
+
+    def test_out_of_range_opacity_is_clamped(self):
+        # Opacity is defined over every number and clamped to 0 .. 1,
+        # which is also the range Opacity_Value can hold.
+        self.assertIn("Opacity => Set (1.0)", self._gen({"opacity": "2"}))
+        self.assertIn("Opacity => Set (0.0)", self._gen({"opacity": "-0.5"}))
+
     def test_flex_shrink(self):
         ada = self._gen({"flex-shrink": "0"})
         self.assertIn("Flex_Shrink => Set (0.0)", ada)

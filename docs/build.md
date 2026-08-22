@@ -75,10 +75,13 @@ See the `Example_Kind` enumeration in `examples/examples.gpr`.
 ./examples/bin/<example_name> # e.g. ./examples/bin/label_example
 
 # Whole test suite: builds every Ada test (sequentially), runs them
-# plus the Python generator tests, exits nonzero on any failure; uses
-# SDL's dummy video driver when headless. Also wired as the alr test
-# action.
-tools/run_tests.sh
+# plus the Python generator tests and the example widget-tree goldens,
+# exits nonzero on any failure; uses SDL's dummy video driver when
+# headless. Also wired as the alr test action.
+alr exec -- tools/run_tests.sh
+
+# The same without the goldens, which build and run every example.
+ADI_SKIP_TREE_GOLDENS=1 alr exec -- tools/run_tests.sh
 ```
 
 ## Using Adi from another project

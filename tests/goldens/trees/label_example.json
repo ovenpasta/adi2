@@ -1,0 +1,99 @@
+{
+ "tree": {
+  "child_count": 1,
+  "children": [
+   {
+    "child_count": 4,
+    "children": [
+     {
+      "child_count": 0,
+      "clickable": false,
+      "focusable": false,
+      "h": 41.0,
+      "id": 3,
+      "items_count": 3,
+      "path": "1.1",
+      "states": [],
+      "text": "Hello World!",
+      "type": "adi.widget.label.label_widget",
+      "visible": true,
+      "w": 371.0,
+      "x": 20.0,
+      "y": 20.0
+     },
+     {
+      "child_count": 0,
+      "clickable": false,
+      "focusable": false,
+      "h": 52.0,
+      "id": 4,
+      "items_count": 3,
+      "path": "1.2",
+      "states": [],
+      "type": "adi.widget.label.label_widget",
+      "visible": true,
+      "w": 371.0,
+      "x": 20.0,
+      "y": 81.0
+     },
+     {
+      "child_count": 0,
+      "clickable": false,
+      "focusable": false,
+      "h": 44.0,
+      "id": 5,
+      "items_count": 3,
+      "path": "1.3",
+      "states": [],
+      "text": "Save Document",
+      "type": "adi.widget.label.label_widget",
+      "visible": true,
+      "w": 371.0,
+      "x": 20.0,
+      "y": 153.0
+     },
+     {
+      "child_count": 0,
+      "clickable": false,
+      "focusable": false,
+      "h": 103.0,
+      "id": 6,
+      "items_count": 3,
+      "path": "1.4",
+      "states": [],
+      "text": "Settings",
+      "type": "adi.widget.label.label_widget",
+      "visible": true,
+      "w": 371.0,
+      "x": 20.0,
+      "y": 217.0
+     }
+    ],
+    "clickable": false,
+    "focusable": false,
+    "h": 340.0,
+    "id": 2,
+    "items_count": 2,
+    "path": "1",
+    "states": [],
+    "type": "adi.widget.box.box_widget",
+    "visible": true,
+    "w": 411.0,
+    "x": 0.0,
+    "y": 0.0
+   }
+  ],
+  "clickable": false,
+  "focusable": false,
+  "h": 343.0,
+  "id": 1,
+  "items_count": 2,
+  "path": "",
+  "states": [],
+  "type": "adi.widget.box.box_widget",
+  "visible": true,
+  "w": 411.0,
+  "x": 0.0,
+  "y": 0.0
+ }
+}

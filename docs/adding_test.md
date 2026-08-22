@@ -59,7 +59,7 @@ That is the only registration needed: `tools/configure.sh` and `tools/run_tests.
 
 ```bash
 # Build and run every test
-tools/run_tests.sh
+alr exec -- tools/run_tests.sh
 
 # Or build and run just this one
 alr exec -- gprbuild -j0 -P tests/tests.gpr -XTEST_KIND=my_feature_test
@@ -82,3 +82,38 @@ alr exec -- gprbuild -j0 -P tests/tests.gpr -XTEST_KIND=my_feature_test
 | Source | `tests/src/<name>.adb` | Test procedure using `Test_Support` |
 | GPR | `tests/tests.gpr` | Name in `Test_Kind` |
 | Docs (optional) | `CLAUDE.md` | Run line in the test list |
+
+## The example widget-tree goldens
+
+A unit test pins what someone thought to write down. The goldens in
+`tests/goldens/trees/` pin everything else: for each of the examples,
+the whole widget tree it lays out — every type, position, size, text,
+state and parent — as the running application reports it over MCP.
+
+```bash
+tools/widget_trees.py                 # check every example
+tools/widget_trees.py demo_flex       # just these
+tools/widget_trees.py --update        # accept what the apps report now
+```
+
+They run under SDL's dummy video driver, so no display is needed; the
+dummy and the real driver report the same tree, because geometry comes
+from layout and font metrics rather than the windowing backend. The tool
+rebuilds the examples first, since an example links `libAdi.a`
+statically and a stale binary would report on the library it was built
+against rather than the one you changed.
+
+A diff names the widget and the field:
+
+```
+DIFF  button_example
+  w            1.1.1  102.0 -> 96.0
+  text         1.1.2  Delete -> Remove
+  gone         1.1.3  adi.widget.button.button_widget
+```
+
+Read every line before running `--update`. A golden is a record of what
+the library does, so a change to one is a claim that the new geometry is
+the correct geometry — and the diff is the only place that claim gets
+examined. Changes to layout, styling or an example's own XML or CSS will
+legitimately move these numbers; anything else moving is the finding.

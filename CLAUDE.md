@@ -45,8 +45,10 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 # Build the library only (tests and examples are NOT built here)
 alr build -- -j0
 
-# Build + run the whole test suite (Ada + Python); also the alr test action
-tools/run_tests.sh
+# Build + run the whole suite: Ada tests, Python tests, example widget-tree
+# goldens. Also the alr test action. ADI_SKIP_TREE_GOLDENS=1 drops the
+# goldens, which build and run every example and so cost about a minute.
+alr exec -- tools/run_tests.sh
 
 # Build a specific test
 alr exec -- gprbuild -j0 -P tests/tests.gpr -XTEST_KIND=css_parser_test
@@ -84,6 +86,11 @@ alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/clock_test
 ./tests/bin/texture_cache_test
 ./tests/bin/render_textures_test
+
+# Check every example's widget tree against tests/goldens/trees/
+# (rebuilds the examples; --update accepts what the apps report now)
+alr exec -- tools/widget_trees.py
+alr exec -- tools/widget_trees.py demo_flex
 
 # Run Python tests (no build step needed)
 python3 tools/test_css_to_ada.py

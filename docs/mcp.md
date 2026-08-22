@@ -43,7 +43,7 @@ Adi.MCP.Finalize;
 
 ## MCP Server Configuration
 
-`/.mcp.json` and `/.codex/config.toml` should run:
+The repository ships no MCP client configuration; wiring the server into a client is a per-developer choice. A client that wants it should run:
 
 ```bash
 uv run ./tools/adi_mcp_server.py --dir /tmp/adi_mcp
@@ -53,6 +53,10 @@ Optional:
 
 - `--pid <pid>` to target a specific running app.
 - `--dir <path>` if you intentionally override the IPC base directory.
+
+`tools/als_mcp_server.py` serves the Ada Language Server the same way, taking the project root from `ALS_PROJECT_ROOT` or the repository the script sits in.
+
+Both scripts declare `mcp>=1.0,<2`: `mcp.server.fastmcp` exists only on the 1.x line.
 
 ## Command Line
 

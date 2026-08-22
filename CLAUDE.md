@@ -194,61 +194,17 @@ Existing hand-crafted binding modules:
 | `Adi.SDL.Locale` | `adi-sdl-locale.ads` | Preferred locales |
 | `Adi.SDL.Misc` | `adi-sdl-misc.ads` | `SDL_OpenURL` |
 
-## Code Navigation (ALS)
+## Adi Runtime Introspection
 
-An Ada Language Server is available via MCP (`ada-ls`). **Prefer it over grep for semantic queries** — finding definitions, references, and type info.
+`tools/adi_mcp_server.py --cli` inspects a **running** Adi application. It needs the app to call `Adi.MCP.Initialize`, a `development` build profile, and a non-Windows target: release and validation profiles get a no-op stub, and `adi.gpr` forces the stub on Windows regardless of profile because the real implementation imports POSIX `kill`.
 
-| Tool | Use instead of |
-|------|---------------|
-| `goto_definition(file, line, column)` | Grepping for `procedure Foo` / `type Bar` |
-| `find_references(file, line, column)` | Grepping for a symbol name |
-| `document_symbols(file)` | Reading a whole file to find declarations |
-| `hover(file, line, column)` | Guessing a symbol's type or signature |
+```bash
+python3 tools/adi_mcp_server.py --cli --pid <PID> perf_stats
+python3 tools/adi_mcp_server.py --cli --pid <PID> find_by_text "Save" --exact
+python3 tools/adi_mcp_server.py --cli --pid <PID> send_keys "{Tab}{Return}"
+```
 
-Coordinates are **1-based**. Still use grep/glob for pattern matching (string literals, CSS class names, comments).
-
-## Git (MCP)
-
-A Git MCP server is available (`git`). **Use MCP git tools for git commands whenever an MCP equivalent exists** — status, diff, log, add, commit, branch, checkout, show.
-
-| Tool | Use instead of |
-|------|---------------|
-| `git_status(repo_path)` | `git status` |
-| `git_diff_unstaged(repo_path)` | `git diff` |
-| `git_diff_staged(repo_path)` | `git diff --cached` |
-| `git_diff(repo_path, target)` | `git diff <target>` |
-| `git_log(repo_path)` | `git log` |
-| `git_add(repo_path, files)` | `git add` |
-| `git_commit(repo_path, message)` | `git commit` |
-| `git_show(repo_path, revision)` | `git show` |
-| `git_create_branch(repo_path, branch_name)` | `git checkout -b` |
-| `git_checkout(repo_path, branch_name)` | `git checkout` |
-| `git_branch(repo_path, branch_type)` | `git branch` |
-
-`repo_path` is the absolute path to the repository root. Use shell git only for operations not covered by MCP (push, rebase, stash, etc.).
-
-## Filesystem (MCP)
-
-A Filesystem MCP server is available (`filesystem`). Priority order: **built-in tools first** (Read, Write, Edit, Glob, Grep), then **MCP filesystem** for operations not covered by built-ins, then **shell commands** as last resort.
-
-Use MCP filesystem for operations that built-in tools cannot do:
-
-| Tool | Use instead of |
-|------|---------------|
-| `read_multiple_files(paths)` | Multiple sequential Read calls |
-| `read_media_file(path)` | Reading binary/image files via shell |
-| `list_directory(path)` | `ls` |
-| `list_directory_with_sizes(path)` | `ls -l` |
-| `directory_tree(path)` | `find`, `tree` |
-| `create_directory(path)` | `mkdir -p` |
-| `move_file(source, destination)` | `mv` |
-| `get_file_info(path)` | `stat` |
-
-Paths must be absolute, rooted at the repository (e.g. `<repo>/src/adi-widget.ads`).
-
-## Adi Runtime Introspection (MCP)
-
-An Adi MCP server is available (`adi`) for inspecting a **running** Adi application. Requires the app to call `Adi.MCP.Initialize`, a `development` build profile, and a non-Windows target: release and validation profiles get a no-op stub, and `adi.gpr` forces the stub on Windows regardless of profile because the real implementation imports POSIX `kill`.
+Each tool below is a subcommand of the same name. `--cli --help` lists them; `--cli <tool> --help` documents one. Required parameters are positional, optional ones are flags, and `--pid`/`--dir` precede the tool name.
 
 | Tool | Description |
 |------|-------------|
@@ -270,15 +226,9 @@ An Adi MCP server is available (`adi`) for inspecting a **running** Adi applicat
 
 Communication uses file-based IPC via `/tmp/adi_mcp/<PID>/`. Each request carries a unique `req_id` for correlation. See `docs/mcp.md` for setup and usage.
 
-Every tool above is also a subcommand of `--cli`, which runs one query and prints the result instead of serving MCP:
-
-```bash
-python3 tools/adi_mcp_server.py --cli --pid <PID> perf_stats
-python3 tools/adi_mcp_server.py --cli --pid <PID> find_by_text "Save" --exact
-python3 tools/adi_mcp_server.py --cli --pid <PID> send_keys "{Tab}{Return}"
-```
-
 Pass `--pid` whenever more than one Adi application is running — auto-discovery lists the candidates and refuses rather than guessing. `/tmp/adi_mcp/` is shared between applications, so never remove anything under it but the directory of a PID you started.
+
+The script also serves these tools over MCP stdio when run without `--cli`; that path needs the `mcp` package, which the command line does not.
 
 ## Project Structure
 

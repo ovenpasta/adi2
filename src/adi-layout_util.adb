@@ -867,6 +867,12 @@ package body Adi.Layout_Util is
       declare
          Frozen : array (Children'Range) of Boolean := [others => False];
 
+         --  Each item's flex base size, kept aside because every target
+         --  is reckoned from it. Computed_Main drifts as the passes go,
+         --  and a share taken from the drift is a share of a share.
+         Base : constant array (Children'Range) of Pixel_Type :=
+           [for I in Children'Range => Flex_Base_Size (Children (I))];
+
          function Any_Unfrozen return Boolean is
            (for some F of Frozen => not F);
 
@@ -930,38 +936,48 @@ package body Adi.Layout_Util is
             exit when not Any_Unfrozen;
 
             declare
-               --  Space the unfrozen items have to absorb between them,
-               --  counting what the frozen ones have already taken.
+               --  What the line has still to place: the frozen items at
+               --  the size they were settled at, the rest at their bases.
+               --  Reading the unfrozen ones back at their current size
+               --  would count the share the pass before handed them.
+               --  CSS Flexbox 9.7 step 4b.
                Used    : Pixel_Type := 0.0;
                Weights : Float := 0.0;
                Remain  : Pixel_Type;
-               Growing : Boolean;
-               Violated : Boolean := False;
 
                --  The factors themselves, which is what decides whether
                --  the line is fully spoken for. Distinct from Weights,
-               --  which scales a shrink factor by the item's size.
+               --  which scales a shrink factor by the item's base.
                Factors : Float := 0.0;
+
+               --  What the limits took back across the whole line. Which
+               --  way it leans decides who is settled here and who flexes
+               --  on, so it is totalled before anyone is frozen.
+               --  CSS Flexbox 9.7 step 4d.
+               Violation : Pixel_Type := 0.0;
+               Hit_Floor : array (Children'Range) of Boolean :=
+                 [others => False];
+               Hit_Cap   : array (Children'Range) of Boolean :=
+                 [others => False];
             begin
                for I in Children'Range loop
-                  Used := Used + Children (I).Computed_Main;
+                  Used := Used + (if Frozen (I)
+                                  then Children (I).Computed_Main
+                                  else Base (I));
                end loop;
                Remain := Available_Space - Used;
-
-               exit when abs (Remain) < 0.01;
-               Growing := Remain > 0.0;
 
                for I in Children'Range loop
                   if not Frozen (I) then
                      declare
                         Child : Flex_Child_Info renames Children (I);
                      begin
-                        if Growing then
+                        if Use_Grow then
                            Weights := Weights + Child.Flex_Grow;
                            Factors := Factors + Child.Flex_Grow;
                         else
                            Weights := Weights + Child.Flex_Shrink
-                                                * Float (Child.Computed_Main);
+                                                * Float (Base (I));
                            Factors := Factors + Child.Flex_Shrink;
                         end if;
                      end;
@@ -992,49 +1008,69 @@ package body Adi.Layout_Util is
                   end;
                end if;
 
+               --  Step 4c. Each target is the item's own base plus its
+               --  fraction of what is left, so freezing a sibling never
+               --  claws back what an earlier pass had already handed out.
                for I in Children'Range loop
                   if not Frozen (I) then
                      declare
                         Child : Flex_Child_Info renames Children (I);
-                        Share : Float;
-                        Want  : Pixel_Type;
+                        Share : constant Float :=
+                          (if Use_Grow
+                           then Child.Flex_Grow / Weights
+                           else Child.Flex_Shrink * Float (Base (I))
+                                / Weights);
                      begin
-                        if Growing then
-                           Share := Child.Flex_Grow / Weights;
-                        else
-                           Share := Child.Flex_Shrink
-                                    * Float (Child.Computed_Main) / Weights;
-                        end if;
+                        Child.Computed_Main :=
+                          Base (I) + Pixel_Type (Float (Remain) * Share);
+                     end;
+                  end if;
+               end loop;
 
-                        if Share > 0.0 then
-                           Want := Child.Computed_Main
-                                   + Pixel_Type (Float (Remain) * Share);
+               --  Step 4d. Hold each target to its own limits, and keep
+               --  the running total of what that moved.
+               for I in Children'Range loop
+                  if not Frozen (I) then
+                     declare
+                        Child  : Flex_Child_Info renames Children (I);
+                        Target : constant Pixel_Type := Child.Computed_Main;
+                        Held   : constant Pixel_Type :=
+                          Clamp_Main (Child, Target);
+                     begin
+                        Child.Computed_Main := Held;
+                        Violation := Violation + (Held - Target);
 
-                           --  A limit reached is a violation: take the
-                           --  limit and stop distributing to this item.
-                           if Want < Child.Min_Main then
-                              Child.Computed_Main := Child.Min_Main;
-                              Frozen (I) := True;
-                              Violated := True;
-                           elsif Want > Child.Max_Main then
-                              Child.Computed_Main := Child.Max_Main;
-                              Frozen (I) := True;
-                              Violated := True;
-                           else
-                              Child.Computed_Main := Want;
-                           end if;
-                        else
-                           --  No flexibility on this axis: it keeps its
-                           --  basis and takes no part in later passes.
-                           Frozen (I) := True;
+                        if Held > Target then
+                           Hit_Floor (I) := True;
+                        elsif Held < Target then
+                           Hit_Cap (I) := True;
                         end if;
                      end;
                   end if;
                end loop;
 
-               --  Nothing hit a limit, so the distribution landed
-               --  exactly and there is nothing left to reshare.
-               exit when not Violated;
+               --  Step 4e. Where the floors took back more than the caps
+               --  gave up, only the floors are settled and the capped
+               --  items flex on -- with less to go round they may come to
+               --  rest below their own cap, which is where they belong. A
+               --  cap is a ceiling, not a size to hold while a sibling
+               --  makes up the difference. Where nothing moved, the line
+               --  has landed and every item is settled at once.
+               if abs Violation < 0.01 then
+                  Frozen := [others => True];
+               elsif Violation > 0.0 then
+                  for I in Children'Range loop
+                     if Hit_Floor (I) then
+                        Frozen (I) := True;
+                     end if;
+                  end loop;
+               else
+                  for I in Children'Range loop
+                     if Hit_Cap (I) then
+                        Frozen (I) := True;
+                     end if;
+                  end loop;
+               end if;
             end;
          end loop;
       end;

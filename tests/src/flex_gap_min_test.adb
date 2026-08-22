@@ -701,6 +701,118 @@ procedure Flex_Gap_Min_Test is
    end Test_A_Half_Shrink_Gives_Up_Half_The_Overflow;
 
    ---------------------------------------------------------------------------
+   --  Three items, sized together, so the second pass has more than one
+   --  item to share between and the proportions are visible.
+   ---------------------------------------------------------------------------
+
+   procedure Lay_Out_Three
+     (Outer_W : Pixel_Type;
+      A, B, C : Style_Rules;
+      A_W, B_W, C_W : out Pixel_Type)
+   is
+      Outer : constant Widget_Handle := New_Box;
+      X     : constant Widget_Handle := New_Box;
+      Y     : constant Widget_Handle := New_Box;
+      Z     : constant Widget_Handle := New_Box;
+   begin
+      Set_Part_Style (Outer, Main_Part, From (Row_Rules).Build);
+      Set_Part_Style (X, Main_Part, From (A).Build);
+      Set_Part_Style (Y, Main_Part, From (B).Build);
+      Set_Part_Style (Z, Main_Part, From (C).Build);
+      Add_Child (Outer, X);
+      Add_Child (Outer, Y);
+      Add_Child (Outer, Z);
+
+      Set_Geometry (Outer, (0.0, 0.0, Outer_W, 100.0));
+      Layout (Outer);
+
+      A_W := Get_Geometry (X).Width;
+      B_W := Get_Geometry (Y).Width;
+      C_W := Get_Geometry (Z).Width;
+   end Lay_Out_Three;
+
+   ---------------------------------------------------------------------------
+   --  Freezing an item at its floor does not turn the line around. What
+   --  is left over the floor is still space to grow into, shared from the
+   --  bases in the grow factors' proportion -- not taken back off the
+   --  sizes the first pass had already handed out.
+   --  CSS Flexbox 9.7 step 4c: the target is the flex base size plus a
+   --  fraction, and the factor in use is settled once, in step 1.
+   ---------------------------------------------------------------------------
+
+   procedure Test_A_Second_Pass_Still_Grows_From_The_Bases is
+      Outer_W : constant Pixel_Type := 120.0;
+      A_W, B_W, C_W : Pixel_Type;
+   begin
+      Section ("a second pass grows from the bases, it does not claw back");
+
+      Lay_Out_Three
+        (Outer_W,
+         --  Floored well above the share it is due, so it violates and
+         --  freezes, forcing the pass that follows.
+         (Flex_Basis  => Set (Basis (Px (0.0))),
+          Flex_Grow   => Set (1.0),
+          Flex_Shrink => Set (1.0),
+          Min_Width   => Set (Size (Px (60.0))),
+          others      => <>),
+         (Flex_Basis  => Set (Basis (Px (40.0))),
+          Flex_Grow   => Set (1.0),
+          Flex_Shrink => Set (1.0),
+          Min_Width   => Set (Size (Px (0.0))),
+          others      => <>),
+         (Flex_Basis  => Set (Basis (Px (0.0))),
+          Flex_Grow   => Set (3.0),
+          Flex_Shrink => Set (1.0),
+          Min_Width   => Set (Size (Px (0.0))),
+          others      => <>),
+         A_W, B_W, C_W);
+
+      Assert_Close (A_W, 60.0, "the floored item stands at its floor");
+      Assert_Close (B_W, 45.0, "its basis of 40 keeps a quarter of the 20 left");
+      Assert_Close (C_W, 15.0, "and the item at three times the factor takes the rest");
+      Assert_Close (A_W + B_W + C_W, Outer_W, "the three fill the row");
+      Assert (B_W >= 40.0, "and nothing is grown to less than its own basis");
+   end Test_A_Second_Pass_Still_Grows_From_The_Bases;
+
+   ---------------------------------------------------------------------------
+   --  A maximum is a ceiling, not a target. Where one item's floor takes
+   --  more of the line than the share it was due, the line has less to go
+   --  round, and a capped item settles below its cap rather than holding
+   --  it while a sibling gives up the difference.
+   --  CSS Flexbox 9.7 steps 4d and 4e: the violations are summed over the
+   --  line, and a positive total freezes only the items that hit a floor.
+   ---------------------------------------------------------------------------
+
+   procedure Test_A_Cap_Yields_When_A_Floor_Takes_More is
+      Outer_W : constant Pixel_Type := 100.0;
+      A_W, B_W, C_W : Pixel_Type;
+   begin
+      Section ("a cap yields when a floor elsewhere takes more");
+
+      Lay_Out_Three
+        (Outer_W,
+         (Flex_Basis => Set (Basis (Px (0.0))),
+          Flex_Grow  => Set (1.0),
+          Min_Width  => Set (Size (Px (60.0))),
+          others     => <>),
+         (Flex_Basis => Set (Basis (Px (0.0))),
+          Flex_Grow  => Set (1.0),
+          Min_Width  => Set (Size (Px (0.0))),
+          Max_Width  => Set (Size (Px (25.0))),
+          others     => <>),
+         (Flex_Basis => Set (Basis (Px (0.0))),
+          Flex_Grow  => Set (1.0),
+          Min_Width  => Set (Size (Px (0.0))),
+          others     => <>),
+         A_W, B_W, C_W);
+
+      Assert_Close (A_W, 60.0, "the floored item stands at its floor");
+      Assert_Close (B_W, 20.0, "the capped item settles under its cap");
+      Assert_Close (C_W, 20.0, "its unbounded sibling takes the same");
+      Assert_Close (B_W, C_W, "the two that still flex end up equal");
+   end Test_A_Cap_Yields_When_A_Floor_Takes_More;
+
+   ---------------------------------------------------------------------------
    --  The shape a toolbar takes: a run of rigid controls holding their
    --  own widths and one field growing into what they leave.
    ---------------------------------------------------------------------------
@@ -777,6 +889,8 @@ begin
    Test_A_Late_Floor_Does_Not_Overflow_The_Row;
    Test_Factors_Under_One_Leave_Space_Unfilled;
    Test_A_Half_Shrink_Gives_Up_Half_The_Overflow;
+   Test_A_Second_Pass_Still_Grows_From_The_Bases;
+   Test_A_Cap_Yields_When_A_Floor_Takes_More;
    Test_A_Toolbar_Row_Fits_Its_Container;
 
    Finish;

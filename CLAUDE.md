@@ -267,6 +267,16 @@ An Adi MCP server is available (`adi`) for inspecting a **running** Adi applicat
 
 Communication uses file-based IPC via `/tmp/adi_mcp/<PID>/`. Each request carries a unique `req_id` for correlation. See `docs/mcp.md` for setup and usage.
 
+Every tool above is also a subcommand of `--cli`, which runs one query and prints the result instead of serving MCP:
+
+```bash
+python3 tools/adi_mcp_server.py --cli --pid <PID> perf_stats
+python3 tools/adi_mcp_server.py --cli --pid <PID> find_by_text "Save" --exact
+python3 tools/adi_mcp_server.py --cli --pid <PID> send_keys "{Tab}{Return}"
+```
+
+Pass `--pid` whenever more than one Adi application is running — auto-discovery lists the candidates and refuses rather than guessing. `/tmp/adi_mcp/` is shared between applications, so never remove anything under it but the directory of a PID you started.
+
 ## Project Structure
 
 ```

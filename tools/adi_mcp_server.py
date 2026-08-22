@@ -12,14 +12,23 @@ Usage (via Claude Code MCP config):
     uv run tools/adi_mcp_server.py [--pid PID]
 """
 
+import inspect
 import json
 import os
+import sys
 import threading
 import time
 import uuid
 from pathlib import Path
+from typing import Callable
 
-from mcp.server.fastmcp import FastMCP
+try:
+    from mcp.server.fastmcp import FastMCP
+except ImportError:
+    #  Serving MCP needs the package; reaching the same tools from a
+    #  command line needs only the IPC helpers below, so absence is not
+    #  fatal until someone actually asks for a server.
+    FastMCP = None
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -29,7 +38,28 @@ POLL_INTERVAL = 0.1   # seconds between response checks
 TIMEOUT = 5.0         # seconds before giving up
 MCP_DIR_PARENT = Path("/tmp/adi_mcp")
 
-mcp = FastMCP("adi")
+class _Unserved:
+    """Registers tools when FastMCP is absent, and refuses to serve them."""
+
+    def tool(self):
+        return lambda fn: fn
+
+    def run(self, *args, **kwargs):
+        raise SystemExit(
+            "serving MCP needs the 'mcp' package: install it, or query a "
+            "running application with --cli")
+
+
+mcp = FastMCP("adi") if FastMCP is not None else _Unserved()
+
+#  Both surfaces read from one registry, so a tool is named once and is
+#  reachable over MCP and from the command line alike.
+CLI_TOOLS: dict[str, Callable[..., str]] = {}
+
+
+def tool(fn: Callable[..., str]) -> Callable[..., str]:
+    CLI_TOOLS[fn.__name__] = fn
+    return mcp.tool()(fn)
 
 # Per-PID locks to enforce single-flight requests
 _pid_locks: dict[int, threading.Lock] = {}
@@ -178,7 +208,7 @@ _target_pid: int | None = None
 # MCP Tools — Inspection
 # ---------------------------------------------------------------------------
 
-@mcp.tool()
+@tool
 def screenshot() -> str:
     """Capture a screenshot of the running Adi application.
 
@@ -190,7 +220,7 @@ def screenshot() -> str:
     return result["path"]
 
 
-@mcp.tool()
+@tool
 def widget_tree() -> str:
     """Get the full widget tree of the running Adi application.
 
@@ -203,7 +233,7 @@ def widget_tree() -> str:
     return json.dumps(result.get("tree"), indent=2)
 
 
-@mcp.tool()
+@tool
 def widget_info(id: int = 0, path: str = "") -> str:
     """Get detailed info for a specific widget by its tree path.
 
@@ -222,7 +252,7 @@ def widget_info(id: int = 0, path: str = "") -> str:
     return json.dumps(result.get("widget"), indent=2)
 
 
-@mcp.tool()
+@tool
 def perf_stats() -> str:
     """Get performance stats from the running Adi application.
 
@@ -244,7 +274,7 @@ def perf_stats() -> str:
     return json.dumps(stats, indent=2)
 
 
-@mcp.tool()
+@tool
 def set_texture_budget(bytes: int) -> str:
     """Set the window's idle texture budget, in bytes. Development only.
 
@@ -264,7 +294,7 @@ def set_texture_budget(bytes: int) -> str:
 # MCP Tools — Search
 # ---------------------------------------------------------------------------
 
-@mcp.tool()
+@tool
 def find_by_text(query: str, exact: bool = False) -> str:
     """Find widgets by their text content (case-insensitive).
 
@@ -286,7 +316,7 @@ def find_by_text(query: str, exact: bool = False) -> str:
     )
 
 
-@mcp.tool()
+@tool
 def find_by_type(type_name: str) -> str:
     """Find widgets by type name (case-insensitive substring match).
 
@@ -310,7 +340,7 @@ def find_by_type(type_name: str) -> str:
 # MCP Tools — Interaction
 # ---------------------------------------------------------------------------
 
-@mcp.tool()
+@tool
 def click_widget(id: int = 0, path: str = "") -> str:
     """Click a widget by simulating mouse down+up at its center.
 
@@ -330,7 +360,7 @@ def click_widget(id: int = 0, path: str = "") -> str:
     )
 
 
-@mcp.tool()
+@tool
 def scroll(dy: int = 0, dx: int = 0, id: int = 0, path: str = "",
            x: int = -1, y: int = -1) -> str:
     """Scroll by simulating mouse wheel notches.
@@ -366,7 +396,7 @@ def scroll(dy: int = 0, dx: int = 0, id: int = 0, path: str = "",
     )
 
 
-@mcp.tool()
+@tool
 def quit_app() -> str:
     """Ask the application to exit.
 
@@ -381,7 +411,7 @@ def quit_app() -> str:
     return "requested"
 
 
-@mcp.tool()
+@tool
 def send_keys(keys: str) -> str:
     """Send keystrokes to the focused widget.
 
@@ -397,7 +427,7 @@ def send_keys(keys: str) -> str:
     return "ok"
 
 
-@mcp.tool()
+@tool
 def set_text(id: int, text: str) -> str:
     """Set widget text directly (model mutation, not input simulation).
 
@@ -416,7 +446,7 @@ def set_text(id: int, text: str) -> str:
     return json.dumps({"id": result.get("id")}, indent=2)
 
 
-@mcp.tool()
+@tool
 def get_focus() -> str:
     """Get the currently focused widget.
 
@@ -428,7 +458,7 @@ def get_focus() -> str:
     return json.dumps(result.get("widget"), indent=2)
 
 
-@mcp.tool()
+@tool
 def set_focus(id: int) -> str:
     """Set keyboard focus to a widget.
 
@@ -443,7 +473,7 @@ def set_focus(id: int) -> str:
     return json.dumps({"id": result.get("id")}, indent=2)
 
 
-@mcp.tool()
+@tool
 def css_values(id: int = 0, path: str = "", part: str = "main") -> str:
     """Get resolved CSS values for a widget part.
 
@@ -465,6 +495,121 @@ def css_values(id: int = 0, path: str = "", part: str = "main") -> str:
 
 
 # ---------------------------------------------------------------------------
+# Command line
+# ---------------------------------------------------------------------------
+
+KEY_SYNTAX = (
+    "Special keys use brace syntax: {Return} {Escape} {Backspace} {Tab} "
+    "{Space} {Delete} {Home} {End} {PageUp} {PageDown} {Left} {Right} "
+    "{Up} {Down}. A bare name such as Tab is typed as literal text."
+)
+
+
+#  A tool's parameters become its arguments, so only the shapes named
+#  here can be spelled on a command line. Anything else is a mistake in
+#  the tool rather than in the caller's line, and says so at build time.
+ARGUMENT_TYPES = {int: int, str: str, float: float}
+
+
+def _add_tool_arguments(sub_parser, fn) -> None:
+    """Give a subparser one argument per parameter of the tool it runs."""
+    import argparse
+
+    for name, param in inspect.signature(fn).parameters.items():
+        kind = (param.annotation
+                if param.annotation is not inspect.Parameter.empty else str)
+        required = param.default is inspect.Parameter.empty
+
+        if kind is bool:
+            if required:
+                raise TypeError(
+                    f"{fn.__name__}: a bool parameter needs a default, "
+                    f"since {name} would otherwise take a string")
+            #  A flag that only ever turns something on cannot turn off a
+            #  default that is already True.
+            action = ("store_true" if param.default is False
+                      else argparse.BooleanOptionalAction)
+            sub_parser.add_argument(f"--{name}", action=action,
+                                    default=param.default)
+            continue
+
+        if kind not in ARGUMENT_TYPES:
+            raise TypeError(
+                f"{fn.__name__}: parameter {name} is annotated {kind!r}, "
+                f"which has no command line spelling")
+
+        if required:
+            sub_parser.add_argument(name, type=ARGUMENT_TYPES[kind])
+        else:
+            sub_parser.add_argument(f"--{name}", type=ARGUMENT_TYPES[kind],
+                                    default=param.default,
+                                    metavar=name.upper())
+
+
+def _build_cli_parser():
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="adi_mcp_server.py --cli",
+        description="Run one introspection tool against a running Adi "
+                    "application and print the result.",
+        epilog=KEY_SYNTAX)
+    #  A tool is free to have its own pid or dir parameter: the subparser
+    #  shares one namespace with this one, so these are kept out of its way.
+    parser.add_argument("--pid", type=int, default=None, dest="_target",
+                        help="Target Adi application PID. Required when more "
+                             "than one application is running.")
+    parser.add_argument("--dir", type=str, default=None, dest="_base_dir",
+                        help="MCP IPC base directory (default: /tmp/adi_mcp)")
+    sub = parser.add_subparsers(dest="_tool", required=True, metavar="TOOL")
+
+    for name, fn in sorted(CLI_TOOLS.items()):
+        summary = (fn.__doc__ or "").strip().splitlines()
+        sub_parser = sub.add_parser(
+            name,
+            help=summary[0] if summary else None,
+            description=fn.__doc__,
+            epilog=KEY_SYNTAX if name == "send_keys" else None,
+            formatter_class=argparse.RawDescriptionHelpFormatter)
+        _add_tool_arguments(sub_parser, fn)
+
+    return parser
+
+
+def _strip_cli_flag(argv: list[str]) -> list[str]:
+    """Drop the --cli that selected this mode, leaving the tool's own line.
+
+    Only the first is dropped: a later one is a value the tool asked for,
+    and removing it would silently change what the caller typed.
+    """
+    rest = list(argv)
+    del rest[rest.index("--cli")]
+    return rest
+
+
+def _run_cli(argv: list[str]) -> int:
+    global MCP_DIR_PARENT, _target_pid
+
+    args = _build_cli_parser().parse_args(argv)
+    _target_pid = args._target
+    if args._base_dir is not None:
+        MCP_DIR_PARENT = Path(args._base_dir)
+
+    fn = CLI_TOOLS[args._tool]
+    kwargs = {name: getattr(args, name)
+              for name in inspect.signature(fn).parameters}
+    try:
+        #  Only the application's own failures are answers to the query;
+        #  anything else is a defect here and should surface as one.
+        result = fn(**kwargs)
+    except (RuntimeError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(result)
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -473,11 +618,19 @@ def _main() -> None:
 
     import argparse
 
+    #  --cli takes the rest of the line as a tool invocation, which
+    #  subparsers own; the server's own options are parsed only without it.
+    if "--cli" in sys.argv[1:]:
+        sys.exit(_run_cli(_strip_cli_flag(sys.argv[1:])))
+
     parser = argparse.ArgumentParser(description="Adi MCP Server")
     parser.add_argument("--pid", type=int, default=None,
                         help="Target Adi application PID")
     parser.add_argument("--dir", type=str, default=None,
                         help="MCP IPC base directory (default: /tmp/adi_mcp)")
+    parser.add_argument("--cli", action="store_true",
+                        help="Run a single tool from the command line "
+                             "instead of serving MCP over stdio")
     args = parser.parse_args()
     _target_pid = args.pid
     if args.dir is not None:

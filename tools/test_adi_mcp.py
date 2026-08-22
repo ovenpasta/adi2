@@ -21,17 +21,30 @@ class _PassThroughMCP:
 
     A MagicMock decorator would replace every tool with a mock, which
     puts the tools themselves out of reach of these tests.
+
+    What it is handed is recorded, so a tool that reaches MCP without
+    also reaching the command line can be told apart from one that
+    reaches both.
     """
 
+    def __init__(self):
+        self.registered = []
+
     def tool(self, *args, **kwargs):
-        return lambda func: func
+        def record(func):
+            self.registered.append(func.__name__)
+            return func
+        return record
 
     def run(self, *args, **kwargs):
         pass
 
 
+_passthrough = _PassThroughMCP()
+
+
 _fastmcp = MagicMock()
-_fastmcp.FastMCP = lambda *a, **k: _PassThroughMCP()
+_fastmcp.FastMCP = lambda *a, **k: _passthrough
 
 sys.modules['mcp'] = MagicMock()
 sys.modules['mcp.server'] = MagicMock()
@@ -369,6 +382,131 @@ class TestScroll(unittest.TestCase):
         """An error reply surfaces rather than being returned as data."""
         with self.assertRaises(RuntimeError):
             self._call(ok=False, dy=-1, path="99.99")
+
+
+class TestCLI(unittest.TestCase):
+    """Tests for the command line surface over the same tools."""
+
+    def setUp(self):
+        #  _run_cli sets these for the process it is about to end. In a
+        #  test it would outlive the case and aim the next one somewhere
+        #  it never asked for.
+        base, pid = adi_mcp_server.MCP_DIR_PARENT, adi_mcp_server._target_pid
+
+        def restore():
+            adi_mcp_server.MCP_DIR_PARENT = base
+            adi_mcp_server._target_pid = pid
+
+        self.addCleanup(restore)
+
+    def test_registry_matches_the_tools(self):
+        """Every tool is reachable by name, so the two surfaces agree."""
+        for name in ("screenshot", "widget_tree", "perf_stats", "send_keys",
+                     "scroll", "css_values", "quit_app"):
+            self.assertIn(name, adi_mcp_server.CLI_TOOLS)
+            self.assertIs(adi_mcp_server.CLI_TOOLS[name],
+                          getattr(adi_mcp_server, name))
+
+    def test_no_tool_reaches_only_one_surface(self):
+        """A tool declared past the registry would serve but not run here.
+
+        Asserting the parser against the registry it is built from cannot
+        fail. What can is a tool written @mcp.tool() rather than @tool:
+        FastMCP takes it and the command line never hears of it.
+        """
+        self.assertEqual(sorted(_passthrough.registered),
+                         sorted(adi_mcp_server.CLI_TOOLS))
+
+    def test_arguments_follow_the_signature(self):
+        """Required parameters are positional and defaulted ones are flags."""
+        parser = adi_mcp_server._build_cli_parser()
+
+        args = parser.parse_args(["set_text", "7", "hello"])
+        self.assertEqual((args.id, args.text), (7, "hello"))
+
+        args = parser.parse_args(["find_by_text", "ok"])
+        self.assertEqual((args.query, args.exact), ("ok", False))
+        args = parser.parse_args(["find_by_text", "ok", "--exact"])
+        self.assertTrue(args.exact)
+
+    def test_tool_parameter_may_shadow_a_server_option(self):
+        """A tool is free to have a pid of its own without stealing --pid."""
+        parser = adi_mcp_server._build_cli_parser()
+        args = parser.parse_args(["--pid", "111", "widget_info", "--id", "222"])
+        self.assertEqual((args._target, args.id), (111, 222))
+
+    def test_only_the_selecting_flag_is_stripped(self):
+        """A later --cli is a value the tool asked for, not this mode."""
+        self.assertEqual(
+            adi_mcp_server._strip_cli_flag(["--cli", "send_keys", "--cli"]),
+            ["send_keys", "--cli"])
+        self.assertEqual(
+            adi_mcp_server._strip_cli_flag(
+                ["--cli", "send_keys", "--", "--cli"]),
+            ["send_keys", "--", "--cli"])
+        parser = adi_mcp_server._build_cli_parser()
+        args = parser.parse_args(
+            adi_mcp_server._strip_cli_flag(
+                ["--cli", "send_keys", "--", "--cli"]))
+        self.assertEqual(args.keys, "--cli")
+
+    def test_rejects_a_parameter_it_cannot_spell(self):
+        """An unspellable parameter is the tool's defect, and is named."""
+        def bad_tool(target: dict = None) -> str:
+            """A tool nobody can invoke."""
+
+        parser = adi_mcp_server._build_cli_parser()
+        with self.assertRaises(TypeError) as ctx:
+            adi_mcp_server._add_tool_arguments(parser, bad_tool)
+        self.assertIn("bad_tool", str(ctx.exception))
+
+    def test_round_trip_prints_the_reply(self):
+        """A tool invoked from the CLI reports what the application sent."""
+        import threading
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pid = os.getpid()          # a live PID, so the dir is not stale
+            parent = Path(tmpdir) / ".adi_mcp"
+            mcp_dir = parent / str(pid)
+            mcp_dir.mkdir(parents=True)
+            (mcp_dir / "ready").write_text(str(pid))
+
+            def responder():
+                deadline = time.time() + 3
+                while time.time() < deadline:
+                    for cmd_file in mcp_dir.glob("cmd_*.json"):
+                        req = json.loads(cmd_file.read_text())
+                        (mcp_dir / f"resp_{req['req_id']}.json").write_text(
+                            json.dumps({"status": "ok",
+                                        "req_id": req["req_id"],
+                                        "path": "/tmp/shot.png"}))
+                        cmd_file.unlink(missing_ok=True)
+                        return
+                    time.sleep(0.02)
+
+            thread = threading.Thread(target=responder, daemon=True)
+            thread.start()
+
+            import contextlib
+            import io
+
+            out = io.StringIO()
+            with patch.object(adi_mcp_server, 'POLL_INTERVAL', 0.02):
+                with contextlib.redirect_stdout(out):
+                    code = adi_mcp_server._run_cli(
+                        ["--dir", str(parent), "--pid", str(pid),
+                         "screenshot"])
+            thread.join(timeout=3)
+
+        self.assertEqual(code, 0)
+        self.assertEqual(out.getvalue().strip(), "/tmp/shot.png")
+
+    def test_failure_exits_non_zero(self):
+        """A shell caller can tell a failed query from an empty one."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            code = adi_mcp_server._run_cli(
+                ["--dir", str(Path(tmpdir) / "absent"), "perf_stats"])
+        self.assertEqual(code, 1)
 
 
 if __name__ == "__main__":

@@ -53,6 +53,23 @@ Optional:
 - `--pid <pid>` to target a specific running app.
 - `--dir <path>` if you intentionally override the IPC base directory.
 
+## Command Line
+
+`--cli` runs one tool and prints its result instead of serving MCP over stdio. Every tool below is available as a subcommand of the same name:
+
+```bash
+python3 tools/adi_mcp_server.py --cli perf_stats
+python3 tools/adi_mcp_server.py --cli screenshot
+python3 tools/adi_mcp_server.py --cli find_by_text "Save" --exact
+python3 tools/adi_mcp_server.py --cli send_keys "{Tab}{Return}"
+```
+
+`--cli --help` lists the tools; `--cli <tool> --help` documents one. Arguments follow each tool's signature: required parameters are positional, optional ones are flags.
+
+`--pid` and `--dir` work here too, and both belong before the tool name — everything after it is the tool's own line. `--pid` is required whenever more than one app is running: auto-discovery refuses to guess and lists the candidates. The exit status is non-zero when a query fails, and the error goes to stderr.
+
+Only serving MCP needs the `mcp` package; `--cli` reaches the application through the same file IPC and runs without it.
+
 ## Available MCP Tools
 
 ### Inspection

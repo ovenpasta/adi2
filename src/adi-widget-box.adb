@@ -249,6 +249,13 @@ package body Adi.Widget.Box is
       end if;
    end Child_Layout_Width;
 
+   --  The width one child of a block box is laid out at. Measurement,
+   --  minimum aggregation and placement all go through here, so a block
+   --  child is never measured at a width it will not be given.
+   function Block_Child_Width
+     (Inner_Width : Pixel_Type; Margin : Edge_Pixels) return Pixel_Type
+   is (Pixel_Type'Max (0.0, Inner_Width - Margin.Left - Margin.Right));
+
    --  How tall this box is at a given outer width.
    overriding function Measure_Content_At_Width
      (W : Box_Widget; Assigned_Width : Pixel_Type) return Size_2D
@@ -280,12 +287,58 @@ package body Adi.Widget.Box is
             (if Row_Index in Row_Items'Range
              then Row_Items (Row_Index).Width
              else Unknown_Assigned_Width)));
+
+      --  A block box stacks its children down the content box, each of
+      --  them spanning the line less its own margins. That width owes
+      --  nothing to the children, so every one of them can be measured
+      --  at the width the layout is going to hand it.
+      function Block_Stack_Height return Pixel_Type is
+         Total : Pixel_Type := 0.0;
+      begin
+         for Child of W.Children loop
+            if Child_Participates (Child) then
+               declare
+                  Child_Style : constant Resolved_Style :=
+                    Get_Resolved_Part_Style (Child.all, Main_Part);
+               begin
+                  if Child_Style.Position /= Absolute then
+                     declare
+                        Margin : constant Edge_Pixels :=
+                          Get_Margin_Px (Child_Style);
+                     begin
+                        Total := Total
+                          + Measure_At_Width
+                              (Child.all,
+                               Block_Child_Width (Content_W, Margin)).Height
+                          + Margin.Top + Margin.Bottom;
+                     end;
+                  end if;
+               end;
+            end if;
+         end loop;
+         return Total;
+      end Block_Stack_Height;
    begin
-      if Content_W <= 0.0
-        or else (Style.Display /= Flex and then Style.Display /= Inline_Flex)
-      then
+      if Content_W <= 0.0 then
          return Get_Preferred_Size (W);
       end if;
+
+      --  Everything Layout does not send to the flex or grid algorithms
+      --  it stacks as a block, so the same three-way split decides how
+      --  it is measured. A grid's height at a width falls out of track
+      --  sizing, which only Compute_Grid_Layout knows how to run, so it
+      --  keeps the unconstrained answer here.
+      case Style.Display is
+         when Flex | Inline_Flex =>
+            null;
+         when Grid | Inline_Grid =>
+            return Get_Preferred_Size (W);
+         when others =>
+            return (Width  => Assigned_Width,
+                    Height => Block_Stack_Height
+                                + Padding.Top + Padding.Bottom
+                                + Border.Top + Border.Bottom);
+      end case;
 
       Count := In_Flow_Count (W);
 
@@ -1008,10 +1061,16 @@ package body Adi.Widget.Box is
                      declare
                         Margin : constant Edge_Pixels :=
                           Get_Margin_Px (Child_Style);
+                        Child_W : constant Pixel_Type :=
+                          (if Inner_Width = Unknown_Width then Unknown_Width
+                           else Block_Child_Width (Inner_Width, Margin));
                         Min : constant Size_2D :=
-                          (if Content_Min
-                           then Effective_Child_Min (Child.all)
-                           else Get_Min_Size (Child.all));
+                          (if not Content_Min
+                             then Get_Min_Size (Child.all)
+                           elsif Child_W = Unknown_Width
+                             then Effective_Child_Min (Child.all)
+                           else Effective_Min_Size_At_Width
+                                  (Child.all, Child_W));
                      begin
                         Result.Width := Pixel_Type'Max
                           (Result.Width,
@@ -1336,19 +1395,35 @@ overriding procedure Layout (W : in out Box_Widget) is
                         declare
                            Margin : constant Edge_Pixels :=
                              Get_Margin_Px (Child_Style);
-                           Child_Pref : constant Size_2D :=
-                             Get_Preferred_Size (Child.all);
+                           Child_X : constant Pixel_Type :=
+                             Content_X + Margin.Left;
+                           Child_Y : constant Pixel_Type :=
+                             Current_Y + Margin.Top;
+                           Child_W : constant Pixel_Type :=
+                             Block_Child_Width (Content_W, Margin);
+                           --  A percentage height is left to whoever
+                           --  holds the containing block, which is this
+                           --  box. Its own height is settled by the time
+                           --  children are placed, so the content box is
+                           --  a usable basis however that height was
+                           --  arrived at, declared or taken from the
+                           --  content. Demanding a declared one, as CSS
+                           --  2.1 does, would collapse height: 100%
+                           --  inside every container the window sizes.
+                           --  Everything else is measured at the width
+                           --  it is about to be given, so wrapping text
+                           --  gets room for the lines it will really
+                           --  take rather than for the single line it
+                           --  would like unconstrained.
                            Child_H : constant Pixel_Type :=
-                             Child_Pref.Height;
-                           Child_X : Pixel_Type;
-                           Child_Y : Pixel_Type;
-                           Child_W : Pixel_Type;
+                             (if Child_Style.Height.Kind = Fixed
+                                and then Child_Style.Height.Size.Unit = Pct
+                              then Size_To_Px
+                                     (Child_Style.Height,
+                                      Pixel_Type'Max (0.0, Content_H))
+                              else Measure_At_Width
+                                     (Child.all, Child_W).Height);
                         begin
-                           Child_X := Content_X + Margin.Left;
-                           Child_Y := Current_Y + Margin.Top;
-                           Child_W := Pixel_Type'Max
-                             (0.0, Content_W - Margin.Left - Margin.Right);
-
                            Set_Geometry (Child.all, (
                               X      => Child_X,
                               Y      => Child_Y,

@@ -123,11 +123,119 @@ procedure Block_Layout_Test is
                     "a block child spans the padded content width");
    end Test_Sized_Children_Stack;
 
+   ---------------------------------------------------------------------------
+   --  A percentage height names a fraction of the container's content
+   --  box. The preferred size has no container to offer, so it measures
+   --  the axis as auto and the layout does the resolving -- which is
+   --  what keeps the fraction the same however often the layout runs.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Percentage_Height_Is_Stable_Across_Passes is
+      Box  : constant Widget_Handle :=
+        Adi.Widget.Box."+" (Adi.Widget.Box.Create_Handle);
+      Half : constant Widget_Handle :=
+        Adi.Widget.Label."+" (Adi.Widget.Label.Create_Handle (""));
+      Half_Rules : constant Style_Rules :=
+        (Height => Set (Size (Pct (50.0))), others => <>);
+   begin
+      Section ("percentage height is stable across layout passes");
+
+      Set_Part_Style (Half, Main_Part, From (Half_Rules).Build);
+      Add_Child (Box, Half);
+      Set_Geometry (Box, (0.0, 0.0, 200.0, 300.0));
+
+      --  A height the child already carries must not become the basis:
+      --  that is what would make each pass shrink the one before it.
+      Set_Geometry (Half, (0.0, 0.0, 200.0, 200.0));
+
+      Assert_Close (Get_Preferred_Size (Half).Height, 0.0,
+                    "the preferred size leaves a percentage unresolved");
+
+      for Pass in 1 .. 3 loop
+         Layout (Box);
+         Assert_Close (Get_Geometry (Half).Height, 150.0,
+                       "pass" & Pass'Image
+                       & " takes half of the container's content height");
+      end loop;
+   end Test_Percentage_Height_Is_Stable_Across_Passes;
+
+   procedure Test_Full_Percentage_Height_Fills_The_Container is
+      Pad_Px : constant Pixel_Type := 10.0;
+
+      Box  : constant Widget_Handle :=
+        Adi.Widget.Box."+" (Adi.Widget.Box.Create_Handle);
+      Full : constant Widget_Handle :=
+        Adi.Widget.Label."+" (Adi.Widget.Label.Create_Handle (""));
+      Box_Rules : constant Style_Rules :=
+        (Padding => Set (CSS_Box (Px (Float (Pad_Px)))), others => <>);
+      Full_Rules : constant Style_Rules :=
+        (Height => Set (Size (Pct (100.0))), others => <>);
+   begin
+      Section ("100% height fills a block container");
+
+      Set_Part_Style (Box, Main_Part, From (Box_Rules).Build);
+      Set_Part_Style (Full, Main_Part, From (Full_Rules).Build);
+      Add_Child (Box, Full);
+      Set_Geometry (Box, (0.0, 0.0, 200.0, 300.0));
+
+      for Pass in 1 .. 3 loop
+         Layout (Box);
+         Assert_Close (Get_Geometry (Full).Height, 300.0 - 2.0 * Pad_Px,
+                       "pass" & Pass'Image
+                       & " fills the padded content height");
+      end loop;
+   end Test_Full_Percentage_Height_Fills_The_Container;
+
+   ---------------------------------------------------------------------------
+   --  The basis is the container's content height whatever gave the
+   --  container that height, a declared one or its own content.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Percentage_Height_Under_Content_Sized_Parent is
+      Anchor_H : constant Pixel_Type := 40.0;
+
+      Outer : constant Widget_Handle :=
+        Adi.Widget.Box."+" (Adi.Widget.Box.Create_Handle);
+      Mid : constant Widget_Handle :=
+        Adi.Widget.Box."+" (Adi.Widget.Box.Create_Handle);
+      Anchor : constant Widget_Handle :=
+        Adi.Widget.Label."+" (Adi.Widget.Label.Create_Handle (""));
+      Full : constant Widget_Handle :=
+        Adi.Widget.Label."+" (Adi.Widget.Label.Create_Handle (""));
+      Anchor_Rules : constant Style_Rules :=
+        (Height => Set (Size (Px (Float (Anchor_H)))), others => <>);
+      Full_Rules : constant Style_Rules :=
+        (Height => Set (Size (Pct (100.0))), others => <>);
+   begin
+      Section ("100% height under a content-sized parent");
+
+      Set_Part_Style (Anchor, Main_Part, From (Anchor_Rules).Build);
+      Set_Part_Style (Full, Main_Part, From (Full_Rules).Build);
+      Add_Child (Mid, Anchor);
+      Add_Child (Mid, Full);
+      Add_Child (Outer, Mid);
+      Set_Geometry (Outer, (0.0, 0.0, 200.0, 300.0));
+
+      for Pass in 1 .. 3 loop
+         Layout (Outer);
+         Assert_Close (Get_Geometry (Mid).Height, Anchor_H,
+                       "pass" & Pass'Image
+                       & ": the middle container takes its content height,"
+                       & " which the percentage child does not inflate");
+         Assert_Close (Get_Geometry (Full).Height, Anchor_H,
+                       "pass" & Pass'Image
+                       & ": the percentage resolves against that height");
+      end loop;
+   end Test_Percentage_Height_Under_Content_Sized_Parent;
+
 begin
    Start_Suite ("Block Layout Test");
 
    Test_Zero_Height_Children_Take_No_Space;
    Test_Sized_Children_Stack;
+   Test_Percentage_Height_Is_Stable_Across_Passes;
+   Test_Full_Percentage_Height_Fills_The_Container;
+   Test_Percentage_Height_Under_Content_Sized_Parent;
 
    Finish;
 end Block_Layout_Test;

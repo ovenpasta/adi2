@@ -164,9 +164,21 @@ For `::main`, interactive pseudos remain widget-scoped regardless of position:
 | `margin` | 1–4 lengths (no `auto`) | `margin: 8px 0px;` |
 | `margin-top/right/bottom/left` | length | `margin-top: 4px;` |
 
-> **Block layout ignores a child's declared `width`.** A block container stacks its children down the content area, and each child spans the full content width whatever its own `width` says. A declared `height` is honoured; a child without one takes its intrinsic height, which for a child with no content is none — it does not expand to fill the container.
->
-> Percentage `height` resolves against the widget's own height rather than its containing block, so `height: 50%` on a block child resolves to `0`. Use `display: flex` wherever the layout depends on a declared width or on percentages: both resolve against the container there, and `flex-grow` divides what is left over.
+> **Block layout ignores a child's declared `width`.** A block container stacks its children down the content area, and each child spans the full content width whatever its own `width` says — which also makes a percentage `width` moot there. A declared `height` is honoured; a child without one takes its intrinsic height, which for a child with no content is none — it does not expand to fill the container. Use `display: flex` wherever the layout depends on a declared width, and `flex-grow` to divide what is left over.
+
+#### What a percentage size resolves against
+
+A percentage `width` or `height` needs a containing block, which only the layout has. `Get_Preferred_Size` and `Measure_At_Width` therefore report a percentage-sized axis as if it were `auto` and measure the content instead; the container resolves the percentage when it places the child.
+
+| Layout mode | Axis | Basis |
+|-------------|------|-------|
+| Block | `height` | the container's content height, whether the container's own height was declared or came from its content |
+| Block | `width` | not applicable — a block child spans the content width regardless |
+| Flex | cross size (`height` in a row, `width` in a column) | the line's cross size, taken from the container's content box |
+| Flex | main size (`width` in a row, `height` in a column) | the container's content box, but only through `flex-basis`. A percentage `width` in a row (or `height` in a column) does not become the flex base: the item starts from its content size, which `flex-grow`/`flex-shrink` then adjust. Write `flex-basis: 50%` for a percentage main size. |
+| Grid | `width`, `height` | the cell |
+
+`height: 100%` on a block child fills the container's content box, and `height: 50%` takes half of it, on every layout pass. Unlike CSS 2.1 §10.5, the basis does not have to be a *declared* height: a container sized by its own content, or by the window, is still a basis. The alternative — treating the percentage as `auto` unless the container declares a height — would leave `height: 100%` at `0` for the common case of a root panel that the window sizes, which is the case that most needs to work.
 
 ### Borders
 

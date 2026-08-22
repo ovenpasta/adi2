@@ -6749,40 +6749,45 @@ package body Adi.Widget is
              or else Overflow_Is_Scrollable (Style.Overflow_X);
          Scrollable_Y : constant Boolean :=
            Is_Scroll_Enabled (W);
+         --  A percentage resolves against a containing block this query
+         --  knows nothing about, so it is left to the layout pass that
+         --  does and the axis counts as auto here. Resolving it against
+         --  the widget's own geometry would reapply it every pass: a
+         --  height: 50% child already at 200 would come back as 100,
+         --  then 50.
+         Sized_W : constant Boolean :=
+           Style.Width.Kind = Fixed and then Style.Width.Size.Unit /= Pct;
+         Sized_H : constant Boolean :=
+           Style.Height.Kind = Fixed and then Style.Height.Size.Unit /= Pct;
+
          Pref_W, Pref_H : Pixel_Type := 0.0;
          Need_Content_W : Boolean := False;
          Need_Content_H : Boolean := False;
          Result : Size_2D;
       begin
          --  Check explicit width/height
-         case Style.Width.Kind is
-            when Fixed =>
-               Pref_W := Size_To_Px (Style.Width, W.Geometry.Width);
-            when others =>
-               if Scrollable_X then
-                  Pref_W := Outer_Size
-                    ((Get_Min_Size (W).Width, 0.0), Style).Width;
-               else
-                  Need_Content_W := True;
-               end if;
-         end case;
+         if Sized_W then
+            Pref_W := Size_To_Px (Style.Width, W.Geometry.Width);
+         elsif Scrollable_X then
+            Pref_W := Outer_Size
+              ((Get_Min_Size (W).Width, 0.0), Style).Width;
+         else
+            Need_Content_W := True;
+         end if;
 
-         case Style.Height.Kind is
-            when Fixed =>
-               Pref_H := Size_To_Px (Style.Height, W.Geometry.Height);
-            when others =>
-               --  Scrollable containers should not report full content
-               --  height as preferred size — use min-height instead so the
-               --  window can shrink and let the scroll mechanism activate.
-               --  Always include padding + border so the container chrome
-               --  is never clipped.
-               if Scrollable_Y then
-                  Pref_H := Outer_Size
-                    ((0.0, Get_Min_Size (W).Height), Style).Height;
-               else
-                  Need_Content_H := True;
-               end if;
-         end case;
+         if Sized_H then
+            Pref_H := Size_To_Px (Style.Height, W.Geometry.Height);
+         elsif Scrollable_Y then
+            --  Scrollable containers should not report full content
+            --  height as preferred size — use min-height instead so the
+            --  window can shrink and let the scroll mechanism activate.
+            --  Always include padding + border so the container chrome
+            --  is never clipped.
+            Pref_H := Outer_Size
+              ((0.0, Get_Min_Size (W).Height), Style).Height;
+         else
+            Need_Content_H := True;
+         end if;
 
          if Need_Content_W or Need_Content_H then
             declare

@@ -38,6 +38,37 @@ package body Adi.Shadow is
       Free (Plane.Data);
    end Finalize;
 
+   --  A line's running integral, entry I holding the sum of the line's
+   --  first I samples. A box window is then the difference of two entries,
+   --  whatever its width.
+   --
+   --  An entry carries a whole line where the window it is read back as
+   --  carries 2 * Blur + 1 samples, so the entries are held to wider
+   --  precision: the difference is then as accurate as summing the window
+   --  on its own, and the line length cannot erode the result.
+   type Running_Sum is array (Natural range <>) of Long_Float;
+   type Running_Sum_Access is access Running_Sum;
+   procedure Free is new Ada.Unchecked_Deallocation
+     (Running_Sum, Running_Sum_Access);
+
+   type Scratch_Line (Last : Natural) is
+     new Ada.Finalization.Limited_Controlled with record
+      Data : Running_Sum_Access;
+   end record;
+
+   overriding procedure Initialize (Line : in out Scratch_Line);
+   overriding procedure Finalize (Line : in out Scratch_Line);
+
+   overriding procedure Initialize (Line : in out Scratch_Line) is
+   begin
+      Line.Data := new Running_Sum'(0 .. Line.Last => 0.0);
+   end Initialize;
+
+   overriding procedure Finalize (Line : in out Scratch_Line) is
+   begin
+      Free (Line.Data);
+   end Finalize;
+
    function Geometry_For (Blur, Radius : Natural) return Geometry is
       --  Three box passes carry the blur 3 * Blur beyond the shape edge.
       Pad : constant Natural := 3 * Blur;
@@ -65,7 +96,7 @@ package body Adi.Shadow is
       Half     : constant Float := Float (G.Interior_Half);
       Centre   : constant Float := Float (Size) / 2.0;
       CR       : constant Float := Float'Min (Float (Radius), Half);
-      Span     : constant Float := Float (2 * Blur + 1);
+      Span     : constant Long_Float := Long_Float (2 * Blur + 1);
 
       Plane : Scratch_Plane (Last => Size * Size - 1);
 
@@ -96,42 +127,46 @@ package body Adi.Shadow is
       --  it, and it is not small.
       declare
          Buffer : Scratch_Plane (Last => Size * Size - 1);
+         --  One line's integral, rebuilt by each sweep. A line is the
+         --  square root of a plane that has already been allocated, so it
+         --  costs nothing beside the two planes.
+         Total  : Scratch_Line (Last => Size);
+
+         --  One box pass along the Size samples that begin at Base and lie
+         --  Step apart. The window over Blur either side of a sample is the
+         --  integral's two ends subtracted, and samples beyond the line are
+         --  simply absent from it, so they count as transparent while the
+         --  divisor stays the full span.
+         procedure Sweep (From, Into : Coverage_Access; Base, Step : Natural)
+         is
+            Sum : Long_Float := 0.0;
+            Lo  : Natural;
+            Hi  : Natural;
+         begin
+            Total.Data (0) := 0.0;
+            for I in 0 .. Size - 1 loop
+               Sum := Sum + Long_Float (From (Base + I * Step));
+               Total.Data (I + 1) := Sum;
+            end loop;
+
+            for I in 0 .. Size - 1 loop
+               Lo := Integer'Max (0, I - Blur);
+               Hi := Integer'Min (Size - 1, I + Blur);
+               Into (Base + I * Step) :=
+                 Float ((Total.Data (Hi + 1) - Total.Data (Lo)) / Span);
+            end loop;
+         end Sweep;
+
       begin
          for Pass in 1 .. 3 loop
             for Y in 0 .. Size - 1 loop
-               for X in 0 .. Size - 1 loop
-                  declare
-                     Sum : Float := 0.0;
-                     KX  : Integer;
-                  begin
-                     for K in -Blur .. Blur loop
-                        KX := X + K;
-                        if KX >= 0 and then KX < Size then
-                           Sum := Sum + Plane.Data (Y * Size + KX);
-                        end if;
-                     end loop;
-                     Buffer.Data (Y * Size + X) := Sum / Span;
-               end;
+               Sweep (Plane.Data, Buffer.Data, Base => Y * Size, Step => 1);
             end loop;
-         end loop;
 
-         for Y in 0 .. Size - 1 loop
             for X in 0 .. Size - 1 loop
-               declare
-                  Sum : Float := 0.0;
-                  KY  : Integer;
-               begin
-                  for K in -Blur .. Blur loop
-                     KY := Y + K;
-                     if KY >= 0 and then KY < Size then
-                        Sum := Sum + Buffer.Data (KY * Size + X);
-                     end if;
-                  end loop;
-                  Plane.Data (Y * Size + X) := Sum / Span;
-               end;
+               Sweep (Buffer.Data, Plane.Data, Base => X, Step => Size);
             end loop;
          end loop;
-      end loop;
       end;
 
       return Plane.Data.all;

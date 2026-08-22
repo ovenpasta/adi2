@@ -47,6 +47,7 @@ project Tests is
       "label_wrap_test",
       "clock_test",
       "shadow_test",
+      "shadow_blur_test",
       "shadow_slice_test",
       "panel_aa_test",
       "texture_cache_test",

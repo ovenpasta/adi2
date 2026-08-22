@@ -195,9 +195,9 @@ procedure RLottie_Widget_Test is
          Pump (W, Anim);
          Assert (Rasterisations (Anim) = 1, "one frame at the first scale");
          Prepared_Extent (Anim, Was_W, Was_H);
-         Assert (Was_W = 200 and then Was_H = 30,
-                 "thirty dip is thirty pixels at unit scale, stretched"
-                 & " across the block");
+         Assert (Was_W = 40 and then Was_H = 30,
+                 "forty by thirty dip is forty by thirty pixels at unit"
+                 & " scale");
 
          Was_Frame := Get_Current_Image (Anim);
          Assert (Adi.Image.Testing.Handle_Is_Registered (Was_Frame),
@@ -232,9 +232,9 @@ procedure RLottie_Widget_Test is
             Assert (PH = 60,
                     "thirty dip is sixty pixels at double scale, so the"
                     & " frames are rasterised at the size actually drawn");
-            Assert (PW = 200,
-                    "while the stretched axis is unchanged, being fixed"
-                    & " by the block rather than by a dip length");
+            Assert (PW = 80,
+                    "and forty dip is eighty, both axes following the"
+                    & " scale because both are dip lengths");
          end;
       end Body_Of_Test;
 

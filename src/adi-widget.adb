@@ -7047,27 +7047,9 @@ package body Adi.Widget is
                  Container.Flex_Direction));
       end;
 
-      --  A child that cannot shrink is laid out at its
-      --  flex base, so that base is its floor. Not the
-      --  preferred size: flex-basis: 0 is a definite
-      --  demand for nothing and must stay nothing.
-      --
-      --  The overflow that matters is the child's own:
-      --  an item that scrolls shows its content a piece
-      --  at a time and needs room for none of it. The
-      --  container's overflow says nothing about that,
-      --  and reading it there let a scroll viewport
-      --  squeeze children that could not shrink.
-      if Main_Axis_Overflow
-           (Child_Style, Container.Flex_Direction)
-           = Overflow_Visible
-        and then Float (Child_Style.Flex_Shrink) = 0.0
-      then
-         Info.Min_Main :=
-           Pixel_Type'Max (Info.Min_Main, Info.Flex_Basis);
-      end if;
-
-      --  Max constraints
+      --  Max constraints. Settled before the floor below, which reads
+      --  them: a used size never exceeds max-width, so a floor drawn
+      --  above one would be a size the item can never take.
       declare
          Max_W : Pixel_Type := Pixel_Type'Last;
          Max_H : Pixel_Type := Pixel_Type'Last;
@@ -7089,6 +7071,29 @@ package body Adi.Widget is
          Info.Max_Cross := Get_Cross_Size
            ((Max_W, Max_H), Container.Flex_Direction);
       end;
+
+      --  A child that cannot shrink is laid out at its
+      --  flex base, so that base is its floor, capped by
+      --  the maximum. Not the preferred size: flex-basis:
+      --  0 is a definite demand for nothing and must stay
+      --  nothing. What min-width demands is left alone --
+      --  a minimum wins over a maximum, CSS 2.1 10.4.
+      --
+      --  The overflow that matters is the child's own:
+      --  an item that scrolls shows its content a piece
+      --  at a time and needs room for none of it. The
+      --  container's overflow says nothing about that,
+      --  and reading it there let a scroll viewport
+      --  squeeze children that could not shrink.
+      if Main_Axis_Overflow
+           (Child_Style, Container.Flex_Direction)
+           = Overflow_Visible
+        and then Float (Child_Style.Flex_Shrink) = 0.0
+      then
+         Info.Min_Main := Pixel_Type'Max
+           (Info.Min_Main,
+            Pixel_Type'Min (Info.Flex_Basis, Info.Max_Main));
+      end if;
 
       --  Content sizes
       Info.Content_Main := Get_Main_Size
@@ -7301,7 +7306,30 @@ package body Adi.Widget is
               (Measure_Content_At_Width (Child, Assigned_Width), Direction);
          when Auto =>
             --  Defers to a declared main size, which is exactly what
-            --  Measure_At_Width and Get_Preferred_Size apply on top.
+            --  Measure_At_Width and Get_Preferred_Size apply on top --
+            --  except for a percentage, which both report as auto for
+            --  want of a containing block. This is that containing
+            --  block, so the fraction is taken here.
+            --
+            --  Container_Main is the container's own content box and
+            --  never the item's geometry, so no pass can narrow the
+            --  basis the pass before it produced. Zero means the
+            --  container is still being sized and has no size to take a
+            --  fraction of; CSS falls back to the content there.
+            declare
+               Main_Size : constant Size_Value :=
+                 (if Is_Row_Direction (Direction)
+                  then Style.Width
+                  else Style.Height);
+            begin
+               if Main_Size.Kind = Fixed
+                 and then Main_Size.Size.Unit = Pct
+                 and then Container_Main > 0.0
+               then
+                  return Size_To_Px (Main_Size, Container_Main);
+               end if;
+            end;
+
             if Assigned_Width = Unknown_Assigned_Width then
                return Get_Main_Size (Get_Preferred_Size (Child), Direction);
             end if;
@@ -7621,7 +7649,9 @@ package body Adi.Widget is
                                             Assigned (I).Width),
                                          Style.Flex_Direction),
                                       (if Float (Child_Style.Flex_Shrink) = 0.0
-                                       then Children_Info (I).Flex_Basis
+                                       then Pixel_Type'Min
+                                              (Children_Info (I).Flex_Basis,
+                                               Children_Info (I).Max_Main)
                                        else 0.0));
                               begin
                                  if abs (Floor

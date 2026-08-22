@@ -918,6 +918,75 @@ procedure Layout_Flex_Grid_Test is
                     "a 100% height fills the row");
    end Test_Percentage_Cross_Size_Resolves_Against_The_Line;
 
+   --  CSS Flexbox 7.2.3: flex-basis: auto means "use the main size
+   --  property", and a percentage there resolves against the containing
+   --  block's inner main size. The item cannot resolve it on its own --
+   --  it has no containing block to measure against -- so the container
+   --  does, from the size it is handing out.
+   procedure Test_Percentage_Main_Size_Resolves_Against_The_Container is
+      Row_W  : constant Pixel_Type := 300.0;
+      Col_H  : constant Pixel_Type := 200.0;
+
+      Rigid_Half : constant Style_Rules :=
+        (Width       => Set (Size (Pct (50.0))),
+         Height      => Set (Size (Px (20.0))),
+         Flex_Shrink => Set (0.0),
+         others      => <>);
+
+      Row : constant Widget_Handle := Make_Flex_Container (Row_W, 100.0);
+      Half : constant Widget_Handle := Make_Child (Rigid_Half);
+      Basis_Half : constant Widget_Handle :=
+        Make_Child ((Flex_Basis  => Set (Basis (Pct (50.0))),
+                     Height      => Set (Size (Px (20.0))),
+                     Flex_Shrink => Set (0.0),
+                     others      => <>));
+
+      Column : constant Widget_Handle := Make_Flex_Container (100.0, Col_H);
+      Col_Style : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         others         => <>);
+      Half_H : constant Widget_Handle :=
+        Make_Child ((Width       => Set (Size (Px (40.0))),
+                     Height      => Set (Size (Pct (50.0))),
+                     Flex_Shrink => Set (0.0),
+                     others      => <>));
+
+      --  Sizing a container is what makes its main size indefinite: the
+      --  answer is the input to the size the percentage would resolve
+      --  against. CSS falls back to content sizing there, and so must
+      --  the floor an inflexible item puts under the container.
+      Unsized : constant Widget_Handle := Make_Flex_Container (0.0, 0.0);
+      Content_Sized : constant Widget_Handle := Make_Child (Rigid_Half);
+      Chip : constant Widget_Handle :=
+        Make_Child ((Width  => Set (Size (Px (60.0))),
+                     Height => Set (Size (Px (22.0))),
+                     others => <>));
+   begin
+      Add_Child (Row, Half);
+      Add_Child (Row, Basis_Half);
+      Layout (Row);
+
+      Assert_Close (Get_Geometry (Half).Width, Row_W / 2.0,
+                    "a 50% width is half the row's content box");
+      Assert_Close (Get_Geometry (Basis_Half).Width, Row_W / 2.0,
+                    "which is what flex-basis: 50% already gave");
+
+      Set_Part_Style (Column, Main_Part, From (Col_Style).Build);
+      Add_Child (Column, Half_H);
+      Layout (Column);
+
+      Assert_Close (Get_Geometry (Half_H).Height, Col_H / 2.0,
+                    "a 50% height is half the column's content box");
+
+      Add_Child (Content_Sized, Chip);
+      Add_Child (Unsized, Content_Sized);
+
+      Assert_Close (Get_Content_Min_Size (Unsized).Width, 60.0,
+                    "against an indefinite main size the percentage yields"
+                    & " to the content, which still floors the container");
+   end Test_Percentage_Main_Size_Resolves_Against_The_Container;
+
    --  Assigned_Width is the width the caller already resolved and is
    --  about to render at, so the answer reports it back unchanged. A
    --  child whose own width is a percentage would otherwise have it
@@ -1012,6 +1081,7 @@ begin
    Test_Cross_Axis_Stretch_Respects_Declared_Size;
    Test_Row_Stretch_Respects_Declared_Height;
    Test_Percentage_Cross_Size_Resolves_Against_The_Line;
+   Test_Percentage_Main_Size_Resolves_Against_The_Container;
    Test_Measure_At_Width_Reports_The_Assigned_Width;
    Test_Preferred_Floor_Is_Per_Axis;
    Test_Definite_Zero_Basis;

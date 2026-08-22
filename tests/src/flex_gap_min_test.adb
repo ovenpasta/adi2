@@ -310,17 +310,36 @@ procedure Flex_Gap_Min_Test is
 
    ---------------------------------------------------------------------------
    --  An item that cannot flex never gets a share to violate, so nothing
-   --  in the distribution reads its floor. It still starts there.
+   --  in the distribution reads its limits. It starts at its base, its
+   --  minimum raises it and its maximum caps it -- and where the two
+   --  disagree the minimum wins, CSS 2.1 10.4.
    ---------------------------------------------------------------------------
 
    procedure Test_An_Inflexible_Item_Keeps_Its_Floor is
       Floor_W : constant Pixel_Type := 50.0;
+      Basis_W : constant Pixel_Type := 200.0;
+      Cap_W   : constant Pixel_Type := 100.0;
+      Above   : constant Pixel_Type := 250.0;
 
-      Rigid : constant Style_Rules :=
-        (Flex_Basis  => Set (Basis (Px (0.0))),
+      function Rigid_Width (Rules : Style_Rules) return Pixel_Type is
+         Outer : constant Widget_Handle := New_Box;
+         Only  : constant Widget_Handle := New_Box;
+      begin
+         Set_Part_Style (Outer, Main_Part, From (Row_Rules).Build);
+         Set_Part_Style (Only, Main_Part, From (Rules).Build);
+         Add_Child (Outer, Only);
+
+         Set_Geometry (Outer, (0.0, 0.0, 1000.0, 200.0));
+         Layout (Outer);
+
+         return Get_Geometry (Only).Width;
+      end Rigid_Width;
+
+      Capped : constant Style_Rules :=
+        (Flex_Basis  => Set (Basis (Px (Float (Basis_W)))),
          Flex_Grow   => Set (0.0),
          Flex_Shrink => Set (0.0),
-         Min_Width   => Set (Size (Px (Float (Floor_W)))),
+         Max_Width   => Set (Size (Px (Float (Cap_W)))),
          others      => <>);
 
       Outer : constant Widget_Handle := New_Box;
@@ -328,15 +347,44 @@ procedure Flex_Gap_Min_Test is
    begin
       Section ("an item that cannot flex keeps its floor");
 
+      Assert_Close
+        (Rigid_Width ((Flex_Basis  => Set (Basis (Px (0.0))),
+                       Flex_Grow   => Set (0.0),
+                       Flex_Shrink => Set (0.0),
+                       Min_Width   => Set (Size (Px (Float (Floor_W)))),
+                       others      => <>)),
+         Floor_W,
+         "the item takes its floor, not its zero basis");
+
+      Assert_Close
+        (Rigid_Width ((Flex_Basis  => Set (Basis (Px (Float (Basis_W)))),
+                       Flex_Grow   => Set (0.0),
+                       Flex_Shrink => Set (0.0),
+                       others      => <>)),
+         Basis_W,
+         "with nothing bounding it, the basis is the whole answer");
+
+      Assert_Close (Rigid_Width (Capped), Cap_W,
+                    "max-width caps that basis");
+
+      Assert_Close
+        (Rigid_Width ((Flex_Basis  => Set (Basis (Px (Float (Basis_W)))),
+                       Flex_Grow   => Set (0.0),
+                       Flex_Shrink => Set (0.0),
+                       Min_Width   => Set (Size (Px (Float (Above)))),
+                       Max_Width   => Set (Size (Px (Float (Cap_W)))),
+                       others      => <>)),
+         Above,
+         "a minimum above the maximum wins over it");
+
+      --  What the row reserves for the item follows the same cap: room
+      --  it can never occupy is not room it needs.
       Set_Part_Style (Outer, Main_Part, From (Row_Rules).Build);
-      Set_Part_Style (Only, Main_Part, From (Rigid).Build);
+      Set_Part_Style (Only, Main_Part, From (Capped).Build);
       Add_Child (Outer, Only);
 
-      Set_Geometry (Outer, (0.0, 0.0, 1000.0, 200.0));
-      Layout (Outer);
-
-      Assert_Close (Get_Geometry (Only).Width, Floor_W,
-                    "the item takes its floor, not its zero basis");
+      Assert_Close (Get_Content_Min_Size (Outer).Width, Cap_W,
+                    "and the row demands no more than the cap either");
    end Test_An_Inflexible_Item_Keeps_Its_Floor;
 
 begin

@@ -252,9 +252,37 @@ package body Adi.Widget.Box is
    --  The width one child of a block box is laid out at. Measurement,
    --  minimum aggregation and placement all go through here, so a block
    --  child is never measured at a width it will not be given.
+   --
+   --  A declared width resolves against the content box, percentages
+   --  included: Get_Preferred_Size reports a percentage axis as auto, so
+   --  the containing block is the only place that can turn it into a
+   --  number. Without one the child fills the line less its own margins,
+   --  and a narrower one is left where the content starts -- centring a
+   --  block is margin: auto, which Adi has no value for.
    function Block_Child_Width
-     (Inner_Width : Pixel_Type; Margin : Edge_Pixels) return Pixel_Type
-   is (Pixel_Type'Max (0.0, Inner_Width - Margin.Left - Margin.Right));
+     (Child_Style : Resolved_Style;
+      Inner_Width : Pixel_Type;
+      Margin      : Edge_Pixels) return Pixel_Type
+   is
+      Room : constant Pixel_Type :=
+        Pixel_Type'Max (0.0, Inner_Width - Margin.Left - Margin.Right);
+      Result : Pixel_Type :=
+        (if Child_Style.Width.Kind = Fixed
+         then Size_To_Px (Child_Style.Width, Inner_Width)
+         else Room);
+   begin
+      --  CSS 2.1 10.4: the maximum applies to the used width, then the
+      --  minimum over it, so a minimum above a maximum wins.
+      if Child_Style.Max_Width.Kind = Fixed then
+         Result := Pixel_Type'Min
+           (Result, Size_To_Px (Child_Style.Max_Width, Inner_Width));
+      end if;
+      if Child_Style.Min_Width.Kind = Fixed then
+         Result := Pixel_Type'Max
+           (Result, Size_To_Px (Child_Style.Min_Width, Inner_Width));
+      end if;
+      return Pixel_Type'Max (0.0, Result);
+   end Block_Child_Width;
 
    --  How tall this box is at a given outer width.
    overriding function Measure_Content_At_Width
@@ -309,7 +337,8 @@ package body Adi.Widget.Box is
                         Total := Total
                           + Measure_At_Width
                               (Child.all,
-                               Block_Child_Width (Content_W, Margin)).Height
+                               Block_Child_Width
+                                 (Child_Style, Content_W, Margin)).Height
                           + Margin.Top + Margin.Bottom;
                      end;
                   end if;
@@ -771,6 +800,20 @@ package body Adi.Widget.Box is
                              then Effective_Child_Min (Child.all)
                            else Effective_Min_Size_At_Width
                                   (Child.all, Child_W));
+                        --  What caps the base below: room the child can
+                        --  never occupy is not room the box has to keep.
+                        --  A percentage maximum would resolve against
+                        --  the box being measured, so only a definite
+                        --  one caps.
+                        Main_Limit : constant Size_Value :=
+                          (if Is_Row_Direction (Style.Flex_Direction)
+                           then Child_Style.Max_Width
+                           else Child_Style.Max_Height);
+                        Base_Cap : constant Pixel_Type :=
+                          (if Main_Limit.Kind = Fixed
+                             and then Main_Limit.Size.Unit /= Pct
+                           then Size_To_Px (Main_Limit)
+                           else Pixel_Type'Last);
                         --  A child that cannot shrink is laid out at its
                         --  flex base, so the box needs room for that base
                         --  even though the child would allow less. Zero is
@@ -778,14 +821,16 @@ package body Adi.Widget.Box is
                         Base_Floor : constant Pixel_Type :=
                           (if Content_Min
                              and then Float (Child_Style.Flex_Shrink) = 0.0
-                           then Resolved_Flex_Base
-                                  (Child          => Child.all,
-                                   Direction      => Style.Flex_Direction,
-                                   Assigned_Width =>
-                                     (if Child_W = Unknown_Width
-                                      then Unknown_Assigned_Width
-                                      else Child_W),
-                                   Container_Main => 0.0)
+                           then Pixel_Type'Min
+                                  (Base_Cap,
+                                   Resolved_Flex_Base
+                                     (Child          => Child.all,
+                                      Direction      => Style.Flex_Direction,
+                                      Assigned_Width =>
+                                        (if Child_W = Unknown_Width
+                                         then Unknown_Assigned_Width
+                                         else Child_W),
+                                      Container_Main => 0.0))
                            else 0.0);
                         Main_Margins : constant Pixel_Type :=
                           (if Is_Row_Direction (Style.Flex_Direction)
@@ -1063,7 +1108,8 @@ package body Adi.Widget.Box is
                           Get_Margin_Px (Child_Style);
                         Child_W : constant Pixel_Type :=
                           (if Inner_Width = Unknown_Width then Unknown_Width
-                           else Block_Child_Width (Inner_Width, Margin));
+                           else Block_Child_Width
+                                  (Child_Style, Inner_Width, Margin));
                         Min : constant Size_2D :=
                           (if not Content_Min
                              then Get_Min_Size (Child.all)
@@ -1400,7 +1446,8 @@ overriding procedure Layout (W : in out Box_Widget) is
                            Child_Y : constant Pixel_Type :=
                              Current_Y + Margin.Top;
                            Child_W : constant Pixel_Type :=
-                             Block_Child_Width (Content_W, Margin);
+                             Block_Child_Width
+                               (Child_Style, Content_W, Margin);
                            --  A percentage height is left to whoever
                            --  holds the containing block, which is this
                            --  box. Its own height is settled by the time

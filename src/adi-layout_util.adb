@@ -834,7 +834,7 @@ package body Adi.Layout_Util is
       --  still pays it a full share on top, so two items with the same
       --  basis and the same grow factor come out unequal whenever one
       --  of them has the larger minimum.
-      --  CSS Flexbox 9.7 step 4: the target main size is the flex base
+      --  CSS Flexbox 9.7 step 4c: the target main size is the flex base
       --  size plus a fraction of the free space.
       for I in Children'Range loop
          declare
@@ -869,7 +869,52 @@ package body Adi.Layout_Util is
 
          function Any_Unfrozen return Boolean is
            (for some F of Frozen => not F);
+
+         --  Which factor the line is about to use, decided once from the
+         --  sizes the items ask for -- not from the bases behind them.
+         --  An item capped well under its basis asks for the cap, and a
+         --  line measured from the basis reads an overflow that is not
+         --  there, then shrinks a sibling to answer it.
+         --  CSS Flexbox 9.7 step 1.
+         Sum_Asked : Pixel_Type := 0.0;
+         Use_Grow  : Boolean;
       begin
+         for I in Children'Range loop
+            Sum_Asked := Sum_Asked + Hypothetical_Main_Size (Children (I));
+         end loop;
+         Use_Grow := Sum_Asked < Available_Space;
+
+         --  An item with no factor on the axis in use never gets a share,
+         --  and neither does one whose own limits already overrule its
+         --  base. Both are settled here, before the free space is taken,
+         --  so that what they occupy counts as spent: a floor the free
+         --  space cannot see is a floor the growing items overrun, and a
+         --  cap it cannot see is room they never claim.
+         --  CSS Flexbox 9.7 step 2.
+
+         for I in Children'Range loop
+            declare
+               Child : Flex_Child_Info renames Children (I);
+               Base  : constant Pixel_Type := Child.Computed_Main;
+               Hypo  : constant Pixel_Type := Clamp_Main (Child, Base);
+
+               Unflexing : constant Boolean :=
+                 (if Use_Grow then Child.Flex_Grow <= 0.0
+                  else Child.Flex_Shrink <= 0.0);
+
+               --  Growing cannot start above the cap, shrinking cannot
+               --  start below the floor: either way the item is already
+               --  where it is going to end up.
+               Overruled : constant Boolean :=
+                 (if Use_Grow then Base > Hypo else Base < Hypo);
+            begin
+               if Unflexing or else Overruled then
+                  Child.Computed_Main := Hypo;
+                  Frozen (I) := True;
+               end if;
+            end;
+         end loop;
+
          for Pass in 1 .. Num_Children loop
             exit when not Any_Unfrozen;
 

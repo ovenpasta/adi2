@@ -49,13 +49,20 @@ size**, and reads `Min_Main`/`Max_Main` only to catch a violation once a
 share has been handed out. Starting an item at its clamped size instead
 gives it the difference *and* a full share on top, so two items with the
 same basis and the same `flex-grow` come out unequal as soon as one of
-them has the larger minimum — by exactly that minimum. The clamped size
-(`Hypothetical_Main_Size`) is for line breaking, which is what CSS
-Flexbox 9.7 uses it for.
+them has the larger minimum — by exactly that minimum.
 
-An item that never receives a share — nothing on the line can flex —
-never reaches the violation check, so the limits are applied to every
-item once the distribution ends.
+The clamped size (`Hypothetical_Main_Size`) is what the line is measured
+*by*, rather than what a flexing item starts *from*. Line breaking packs
+by it, and the distribution sums it to decide whether the line grows or
+shrinks (CSS Flexbox 9.7 step 1). An item that cannot flex on that axis,
+or whose own limits already overrule its base, is settled at it before
+any space is shared out (step 2), so a floor reserves the room it needs
+and a cap gives back the room it denies. Measured from the bare bases
+instead, whatever the clamp corrects afterwards is space the flexing
+items have already taken.
+
+An item that still never receives a share — nothing left on the line can
+flex — has its limits applied once the distribution ends.
 
 ## Which widgets override it
 

@@ -331,9 +331,11 @@ package Adi.Layout_Util is
       Count          : out Natural);
 
    --  The main size an item asks for before any growing or shrinking:
-   --  its flex base clamped to its own limits. Line formation and the
-   --  distribution both start from this, so an item cannot be put on a
-   --  line at one size and then sized differently on it.
+   --  its flex base clamped to its own limits. Line formation packs by
+   --  this, and the distribution measures the line against it to decide
+   --  whether to grow or shrink, so the two agree on how much room the
+   --  line was asked for. An item that can still flex then starts from
+   --  its bare base, which is where its share is reckoned from.
    function Hypothetical_Main_Size (Child : Flex_Child_Info) return Pixel_Type;
 
    --  Resolve main-axis sizes only: flex bases, free space, and the

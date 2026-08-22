@@ -188,6 +188,24 @@
           <box class="item bar elastic"/>
         </box>
       </box>
+
+      <!-- the same freezing where the row has room to spare -->
+      <box class="section">
+        <label text="freezing where there is room to spare" class="caption"/>
+        <label text="The red items cannot flex, so their widths are settled before any space is shared out. The green one grows into what the row has left over them, not into the whole row. A floor reserves the room it needs and a cap gives back the room it denies, so both rows end flush with their border."
+               class="note"/>
+        <label text="two 90px floors" class="case-label"/>
+        <box class="demo short w480">
+          <box class="item bar rigid"/>
+          <box class="item bar rigid"/>
+          <box class="item bar greedy"/>
+        </box>
+        <label text="a 220px basis capped at 90px" class="case-label"/>
+        <box class="demo short w480">
+          <box class="item bar capped"/>
+          <box class="item bar greedy"/>
+        </box>
+      </box>
       <!-- flex-wrap -->
       <box class="section">
         <label text="flex-wrap" class="caption"/>

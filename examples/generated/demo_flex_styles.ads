@@ -543,6 +543,33 @@ package Demo_Flex_Styles is
       Background_Color => Set_Bg (RGB (163, 190, 140)),
       others => <>);
 
+   --  Base style for class 'rigid'
+   function Rigid_Class_Base_Style return Style_Rules is
+     (
+      Flex_Grow => Set (0.0),
+      Flex_Shrink => Set (0.0),
+      Min_Width => Set (Size (Px (90.0))),
+      Background_Color => Set_Bg (RGB (191, 97, 106)),
+      others => <>);
+
+   --  Base style for class 'capped'
+   function Capped_Class_Base_Style return Style_Rules is
+     (
+      Flex_Basis => Set (Basis (Px (220.0))),
+      Flex_Grow => Set (0.0),
+      Flex_Shrink => Set (0.0),
+      Max_Width => Set (Size (Px (90.0))),
+      Background_Color => Set_Bg (RGB (191, 97, 106)),
+      others => <>);
+
+   --  Base style for class 'greedy'
+   function Greedy_Class_Base_Style return Style_Rules is
+     (
+      Flex_Grow => Set (1.0),
+      Min_Width => Set (Size (Px (0.0))),
+      Background_Color => Set_Bg (RGB (163, 190, 140)),
+      others => <>);
+
    --  Complete widget style for class 'root'
    function Root_Class_Widget return Widget_Style is
      (From (Root_Class_Base_Style)
@@ -1376,6 +1403,42 @@ package Demo_Flex_Styles is
    function Elastic_Class_Part_Styles return Part_Style_Array is
      ([
       Main_Part => (Style => Elastic_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'rigid'
+   function Rigid_Class_Widget return Widget_Style is
+     (From (Rigid_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'rigid'
+   function Rigid_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Rigid_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'capped'
+   function Capped_Class_Widget return Widget_Style is
+     (From (Capped_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'capped'
+   function Capped_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Capped_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'greedy'
+   function Greedy_Class_Widget return Widget_Style is
+     (From (Greedy_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'greedy'
+   function Greedy_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Greedy_Class_Widget, Enabled => True),
       others => <>
    ]);
 

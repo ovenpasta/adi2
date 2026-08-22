@@ -268,3 +268,26 @@
   flex-shrink: 1;
   background-color: rgb(163, 190, 140);
 }
+
+/* The same freezing where the row has room to spare instead. Neither
+   red item can flex, so both are settled before anything is shared. */
+.rigid {
+  flex-grow: 0;
+  flex-shrink: 0;
+  min-width: 90px;
+  background-color: rgb(191, 97, 106);
+}
+
+.capped {
+  flex-basis: 220px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  max-width: 90px;
+  background-color: rgb(191, 97, 106);
+}
+
+.greedy {
+  flex-grow: 1;
+  min-width: 0px;
+  background-color: rgb(163, 190, 140);
+}

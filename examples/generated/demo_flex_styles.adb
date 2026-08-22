@@ -481,6 +481,27 @@ package body Demo_Flex_Styles is
    end Register_Selectors_68;
    pragma No_Inline (Register_Selectors_68);
 
+   procedure Register_Selectors_69
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("rigid", Rigid_Class_Part_Styles));
+   end Register_Selectors_69;
+   pragma No_Inline (Register_Selectors_69);
+
+   procedure Register_Selectors_70
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("capped", Capped_Class_Part_Styles));
+   end Register_Selectors_70;
+   pragma No_Inline (Register_Selectors_70);
+
+   procedure Register_Selectors_71
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("greedy", Greedy_Class_Part_Styles));
+   end Register_Selectors_71;
+   pragma No_Inline (Register_Selectors_71);
+
    procedure Register_Selectors
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
@@ -552,6 +573,9 @@ package body Demo_Flex_Styles is
       Register_Selectors_66 (S);
       Register_Selectors_67 (S);
       Register_Selectors_68 (S);
+      Register_Selectors_69 (S);
+      Register_Selectors_70 (S);
+      Register_Selectors_71 (S);
    end Register_Selectors;
 
 end Demo_Flex_Styles;

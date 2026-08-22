@@ -164,6 +164,10 @@ For `::main`, interactive pseudos remain widget-scoped regardless of position:
 | `margin` | 1–4 lengths (no `auto`) | `margin: 8px 0px;` |
 | `margin-top/right/bottom/left` | length | `margin-top: 4px;` |
 
+> **Block layout does not apply a child's declared size.** A block container stacks its children down the content area: each child spans the full content width whatever its own `width` says, and takes its intrinsic height. A child with no intrinsic height occupies none — it does not expand to fill the container.
+>
+> Percentage `height` resolves against the widget's own height rather than its containing block, so `height: 50%` on a block child resolves to `0`. Use `display: flex` for any layout that depends on declared sizes: percentages resolve against the container there, and `flex-grow` divides what is left over.
+
 ### Borders
 
 | Property | Values | Example |

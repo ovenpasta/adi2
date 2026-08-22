@@ -1305,7 +1305,7 @@ overriding procedure Layout (W : in out Box_Widget) is
             end;
          end;
       else
-         --  Simple block layout: stack children or fill content area
+         --  Simple block layout: stack children down the content area
          declare
             --  Get padding values from style
             Pad : constant Edge_Pixels := Get_Padding_Px(Style);
@@ -1338,17 +1338,12 @@ overriding procedure Layout (W : in out Box_Widget) is
                              Get_Margin_Px (Child_Style);
                            Child_Pref : constant Size_2D :=
                              Get_Preferred_Size (Child.all);
-                           Child_H : Pixel_Type := Child_Pref.Height;
+                           Child_H : constant Pixel_Type :=
+                             Child_Pref.Height;
                            Child_X : Pixel_Type;
                            Child_Y : Pixel_Type;
                            Child_W : Pixel_Type;
                         begin
-                           if Child_H = 0.0 then
-                              Child_H := Pixel_Type'Max
-                                (0.0,
-                                 Content_H - Margin.Top - Margin.Bottom);
-                           end if;
-
                            Child_X := Content_X + Margin.Left;
                            Child_Y := Current_Y + Margin.Top;
                            Child_W := Pixel_Type'Max

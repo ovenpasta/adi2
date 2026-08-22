@@ -2,12 +2,15 @@ pragma Ada_2022;
 
 with Ada.Environment_Variables;
 with Ada.Text_IO;          use Ada.Text_IO;
+with Adi.Core;             use Adi.Core;
 with Adi.SDL;              use Adi.SDL;
 with Adi.SDL.Events;
 with Adi.SDL.TTF;
 with Adi.Widget;           use Adi.Widget;
+with Adi.Widget.Box;
 with Adi.Widget.Button;
 with Adi.Widget.Dialog;    use Adi.Widget.Dialog;
+with Adi.Widget.Label;
 with Adi.Window;           use Adi.Window;
 with Test_Support;         use Test_Support;
 
@@ -258,12 +261,69 @@ procedure Dialog_Test is
               "the dialog is gone once the dispatch has unwound");
    end Test_Escape_On_Button_Destroys_Dialog;
 
+   ---------------------------------------------------------------------------
+   --  Test 5: an unstyled dialog lays its content out within its bounds
+   --
+   --  The title and message labels stay attached with empty text, so the
+   --  panel's layout has to give them no room for the button row to
+   --  remain reachable.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Unstyled_Content_Fits_Bounds is
+      Win   : Window_Handle;
+      D     : Dialog_Handle;
+      Ready : Boolean := False;
+   begin
+      Section ("Unstyled dialog keeps its content inside its bounds");
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         Put_Line ("  [SKIP] SDL not available");
+         return;
+      end if;
+
+      Win := Create_Window_Handle ("Dialog Test 5", (320.0, 240.0));
+      D   := Create_Handle;
+      Attach_Window (D, Win);
+      Add_Button (D, "OK");
+
+      Show (D);
+      Adi.Widget.Rebuild_All_Items (+D);
+
+      declare
+         Dlg_G : constant Rectangle := Get_Geometry (+D);
+         Row_G : constant Rectangle :=
+           Get_Geometry (Adi.Widget.Box."+" (Get_Button_Row_Handle (D)));
+         Ttl_G : constant Rectangle :=
+           Get_Geometry (Adi.Widget.Label."+" (Get_Title_Handle (D)));
+         Msg_G : constant Rectangle :=
+           Get_Geometry (Adi.Widget.Label."+" (Get_Message_Handle (D)));
+      begin
+         Put_Line ("  PROBE dialog" & Dlg_G.Y'Image & Dlg_G.Height'Image
+                   & "  title" & Ttl_G.Y'Image & Ttl_G.Height'Image
+                   & "  message" & Msg_G.Y'Image & Msg_G.Height'Image
+                   & "  row" & Row_G.Y'Image & Row_G.Height'Image);
+
+         Assert (Ttl_G.Height = 0.0,
+                 "an untitled dialog's title label takes no height");
+         Assert (Msg_G.Height = 0.0,
+                 "a message-less dialog's message label takes no height");
+
+         Assert (Row_G.Y >= Dlg_G.Y,
+                 "the button row starts inside the dialog");
+         Assert (Row_G.Y + Row_G.Height <= Dlg_G.Y + Dlg_G.Height,
+                 "the button row ends inside the dialog");
+      end;
+
+      Hide (D);
+   end Test_Unstyled_Content_Fits_Bounds;
+
 begin
    Start_Suite ("Dialog Auto-Close Tests");
    Test_Auto_Close_Default;
    Test_Auto_Close_False;
    Test_Auto_Close_Re_Enable;
    Test_Escape_On_Button_Destroys_Dialog;
+   Test_Unstyled_Content_Fits_Bounds;
 
    Finish;
 end Dialog_Test;

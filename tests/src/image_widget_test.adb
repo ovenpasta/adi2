@@ -270,14 +270,21 @@ procedure Image_Widget_Test is
       Img_H  : constant Widget_Handle := +Create_Handle (Img);
       Box_H  : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
       Box_Rules : constant Style_Rules := (
-         Width  => Set (Size (Px (200.0))),
-         Height => Set (Size (Px (150.0))),
-         others => <>
+         Display => Set (Flex),
+         Width   => Set (Size (Px (200.0))),
+         Height  => Set (Size (Px (150.0))),
+         others  => <>
+      );
+      Img_Rules : constant Style_Rules := (
+         Flex_Grow => Set (1.0),
+         others    => <>
       );
    begin
       Put_Line ("Test: Image in flex box gets box dimensions, not intrinsic");
       Set_Part_Style (Box_H, Main_Part,
                       From (Box_Rules).Build);
+      Set_Part_Style (Img_H, Main_Part,
+                      From (Img_Rules).Build);
       Add_Child (Box_H, Img_H);
 
       --  Verify the image's preferred size doesn't demand 500x400
@@ -288,6 +295,24 @@ procedure Image_Widget_Test is
                        "Image preferred width should be 0 in flex context");
          Assert_Close (Pref.Height, 0.0,
                        "Image preferred height should be 0 in flex context");
+      end;
+
+      --  A growing item takes the row's main axis; Stretch gives it the
+      --  cross axis.  Either way it is the box that decides, not the
+      --  image's own 500x400.
+      Set_Geometry (Box_H, (X => 0.0, Y => 0.0,
+                            Width => 200.0, Height => 150.0));
+      Layout (Box_H);
+
+      declare
+         G : constant Rectangle := Get_Geometry (Img_H);
+      begin
+         Assert_Close (G.X, 0.0, "Image X should be the box origin");
+         Assert_Close (G.Y, 0.0, "Image Y should be the box origin");
+         Assert_Close (G.Width, 200.0,
+                       "Image should grow to the box width");
+         Assert_Close (G.Height, 150.0,
+                       "Image should stretch to the box height");
       end;
    end Test_Image_In_Flex_Box;
 

@@ -241,7 +241,8 @@ package body Adi.Widget.Dialog is
       Set_Flag (Result.all, Clickable, True);
       Register_Widget (Widget_Access (Result));
 
-      --  Content panel: flex column
+      --  Content panel: an unstyled box, stacking title, message and
+      --  buttons in block flow until the application styles it.
       Result.Content_Panel := Adi.Widget.Box.Create_Handle;
 
       --  Title label
@@ -252,7 +253,8 @@ package body Adi.Widget.Dialog is
       Result.Message_Label := Adi.Widget.Label.Create_Handle ("");
       Add_Child (+Result.Content_Panel, +Result.Message_Label);
 
-      --  Button row: flex row
+      --  Button row: an unstyled box; a row needs `display: flex` from
+      --  the application's stylesheet.
       Result.Button_Row := Adi.Widget.Box.Create_Handle;
       Add_Child (+Result.Content_Panel, +Result.Button_Row);
 

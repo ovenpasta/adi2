@@ -164,10 +164,34 @@ package Demo_Block_Styles is
       Width => Set (Size (Px (120.0))),
       others => <>);
 
-   --  Base style for class 'w20'
-   function W20_Class_Base_Style return Style_Rules is
+   --  Base style for class 'w45'
+   function W45_Class_Base_Style return Style_Rules is
      (
-      Width => Set (Size (Pct (20.0))),
+      Width => Set (Size (Pct (45.0))),
+      others => <>);
+
+   --  Base style for class 'wcap'
+   function Wcap_Class_Base_Style return Style_Rules is
+     (
+      Max_Width => Set (Size (Px (160.0))),
+      others => <>);
+
+   --  Base style for class 'w280'
+   function W280_Class_Base_Style return Style_Rules is
+     (
+      Width => Set (Size (Px (280.0))),
+      others => <>);
+
+   --  Base style for class 'indent'
+   function Indent_Class_Base_Style return Style_Rules is
+     (
+      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (6.0), Px (48.0))),
+      others => <>);
+
+   --  Base style for class 'inset'
+   function Inset_Class_Base_Style return Style_Rules is
+     (
+      Padding => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (48.0))),
       others => <>);
 
    --  Base style for class 'h20'
@@ -414,15 +438,63 @@ package Demo_Block_Styles is
       others => <>
    ]);
 
-   --  Complete widget style for class 'w20'
-   function W20_Class_Widget return Widget_Style is
-     (From (W20_Class_Base_Style)
+   --  Complete widget style for class 'w45'
+   function W45_Class_Widget return Widget_Style is
+     (From (W45_Class_Base_Style)
      .Build);
 
-   --  Part styles bundle for class 'w20'
-   function W20_Class_Part_Styles return Part_Style_Array is
+   --  Part styles bundle for class 'w45'
+   function W45_Class_Part_Styles return Part_Style_Array is
      ([
-      Main_Part => (Style => W20_Class_Widget, Enabled => True),
+      Main_Part => (Style => W45_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'wcap'
+   function Wcap_Class_Widget return Widget_Style is
+     (From (Wcap_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'wcap'
+   function Wcap_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Wcap_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'w280'
+   function W280_Class_Widget return Widget_Style is
+     (From (W280_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'w280'
+   function W280_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => W280_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'indent'
+   function Indent_Class_Widget return Widget_Style is
+     (From (Indent_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'indent'
+   function Indent_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Indent_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'inset'
+   function Inset_Class_Widget return Widget_Style is
+     (From (Inset_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'inset'
+   function Inset_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Inset_Class_Widget, Enabled => True),
       others => <>
    ]);
 

@@ -86,69 +86,74 @@ package body Demo_Block_UI is
       Label_1 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Block Layout Reference");
       Box_1 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Label_2 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("What a box does by default");
-      Label_3 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Block is what a box does when nothing asks otherwise: children stack down the content area in order, each spanning its full width. No rule on this box declares display.");
+      Label_3 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Block is what a box does when nothing asks otherwise: children stack down the content area in order, each spanning it for want of a width of its own. No rule on this box declares display.");
       Box_2 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_3 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_4 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_5 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_6 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_4 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("A child's width is not read");
-      Label_5 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Each of these declares a different width and all three come out the same. Block layout hands every child the container's content width, and a percentage of a width that is never consulted fares no better. Reach for display: flex wherever the layout turns on a declared width.");
+      Label_4 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("A declared width is honoured");
+      Label_5 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("A child is laid out at the width it declares, in pixels or as a fraction of the container's content area. Declaring none spans that area instead, and max-width caps whichever of the two applies. What is left over stays to the right: block centring is margin: auto, which Adi has no value for.");
+      Label_6 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("The last three are the two edges of the box. A margin sits outside the width, so it comes off an automatic one and only moves a declared one along. Padding sits inside it, so both of the bottom pair are the same box with the text starting further in.");
       Box_7 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_6 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("no width");
-      Label_7 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("width: 120px");
-      Label_8 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("width: 20%");
+      Label_7 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("no width");
+      Label_8 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("width: 120px");
+      Label_9 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("width: 45%");
+      Label_10 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("max-width: 160px");
+      Label_11 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("margin-left: 48px");
+      Label_12 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("same margin, width: 280px");
+      Label_13 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("same width, padding-left: 48px");
       Box_8 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_9 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("A declared height is honoured");
-      Label_10 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("The asymmetry worth remembering: the height a child declares is taken, where the width is not. A child that declares no height gets its content's.");
+      Label_14 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("A declared height is honoured");
+      Label_15 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("The height a child declares is taken the same way its width is. A child that declares none gets its content's height, which for a box with nothing in it is the next section.");
       Box_9 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_11 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("height: 20px");
-      Label_12 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("height: 34px");
-      Label_13 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("height: 48px");
+      Label_16 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("height: 20px");
+      Label_17 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("height: 34px");
+      Label_18 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("height: 48px");
       Box_10 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_14 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("A child with nothing in it takes no height");
-      Label_15 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("The right-hand box carries two extra children between its bars, each with height: auto and nothing inside. An empty child measures nothing and is never stretched to fill, so the two boxes are indistinguishable.");
+      Label_19 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("A child with nothing in it takes no height");
+      Label_20 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("The right-hand box carries two extra children between its bars, each with height: auto and nothing inside. An empty child measures nothing and is never stretched to fill, so the two boxes are indistinguishable.");
       Box_11 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_12 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_16 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("two bars");
+      Label_21 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("two bars");
       Box_13 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_14 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_15 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_16 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_17 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("two bars, two empty children");
+      Label_22 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("two bars, two empty children");
       Box_17 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_18 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_19 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_20 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_21 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_22 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_18 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("A percentage height");
-      Label_19 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("A percentage resolves against the container's content box, not against whatever height the child came in with, so it holds on every pass. These three take all of it, half of it and a quarter of it.");
+      Label_23 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("A percentage height");
+      Label_24 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("A percentage resolves against the container's content box, not against whatever height the child came in with, so it holds on every pass. These three take all of it, half of it and a quarter of it.");
       Box_23 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_24 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_20 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("height: 100%");
+      Label_25 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("height: 100%");
       Box_25 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_26 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_27 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_21 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("height: 50%");
+      Label_26 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("height: 50%");
       Box_28 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_29 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_30 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_22 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("height: 25%");
+      Label_27 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("height: 25%");
       Box_31 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_32 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_33 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_23 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Block and flex");
-      Label_24 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("The same three children, once under a box that declares nothing and once under display: flex. Block stacks them at the content width and never reads their own; flex reads it and lays them along the row. demo_flex is the reference for what flex does from there.");
+      Label_28 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Block and flex");
+      Label_29 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("The same three children, once under a box that declares nothing and once under display: flex. Both give each child the width it asks for; block stacks them down the content area while flex ranges them along a row and divides what is left over. demo_flex is the reference for what flex does from there.");
       Box_34 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_35 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_25 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("no display");
+      Label_30 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("no display");
       Box_36 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_37 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_38 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_39 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_40 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_26 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("display: flex");
+      Label_31 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("display: flex");
       Box_41 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_42 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_43 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
@@ -249,62 +254,52 @@ package body Demo_Block_UI is
          Class_Name => "note");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
+         W          => +Label_6,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
          W          => +Box_7,
          Tag_Name   => "box",
          Class_Name => "demo");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_6,
+         W          => +Label_7,
          Tag_Name   => "label",
          Class_Name => "bar");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_7,
+         W          => +Label_8,
          Tag_Name   => "label",
          Class_Name => "bar w120");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_8,
-         Tag_Name   => "label",
-         Class_Name => "bar w20");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_8,
-         Tag_Name   => "box",
-         Class_Name => "section");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
          W          => +Label_9,
          Tag_Name   => "label",
-         Class_Name => "caption");
+         Class_Name => "bar w45");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_10,
          Tag_Name   => "label",
-         Class_Name => "note");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_9,
-         Tag_Name   => "box",
-         Class_Name => "demo");
+         Class_Name => "bar wcap");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_11,
          Tag_Name   => "label",
-         Class_Name => "bar h20");
+         Class_Name => "bar indent");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_12,
          Tag_Name   => "label",
-         Class_Name => "bar h34");
+         Class_Name => "bar w280 indent");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_13,
          Tag_Name   => "label",
-         Class_Name => "bar h48");
+         Class_Name => "bar w280 inset");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_10,
+         W          => +Box_8,
          Tag_Name   => "box",
          Class_Name => "section");
       Adi.CSS_Source.Bind_Selector_Set
@@ -319,6 +314,41 @@ package body Demo_Block_UI is
          Class_Name => "note");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
+         W          => +Box_9,
+         Tag_Name   => "box",
+         Class_Name => "demo");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_16,
+         Tag_Name   => "label",
+         Class_Name => "bar h20");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_17,
+         Tag_Name   => "label",
+         Class_Name => "bar h34");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_18,
+         Tag_Name   => "label",
+         Class_Name => "bar h48");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_10,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_19,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_20,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
          W          => +Box_11,
          Tag_Name   => "box",
          Class_Name => "cases");
@@ -329,7 +359,7 @@ package body Demo_Block_UI is
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_16,
+         W          => +Label_21,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
@@ -354,7 +384,7 @@ package body Demo_Block_UI is
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_17,
+         W          => +Label_22,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
@@ -389,12 +419,12 @@ package body Demo_Block_UI is
          Class_Name => "section");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_18,
+         W          => +Label_23,
          Tag_Name   => "label",
          Class_Name => "caption");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_19,
+         W          => +Label_24,
          Tag_Name   => "label",
          Class_Name => "note");
       Adi.CSS_Source.Bind_Selector_Set
@@ -409,7 +439,7 @@ package body Demo_Block_UI is
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_20,
+         W          => +Label_25,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
@@ -429,7 +459,7 @@ package body Demo_Block_UI is
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_21,
+         W          => +Label_26,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
@@ -449,7 +479,7 @@ package body Demo_Block_UI is
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_22,
+         W          => +Label_27,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
@@ -469,12 +499,12 @@ package body Demo_Block_UI is
          Class_Name => "section");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_23,
+         W          => +Label_28,
          Tag_Name   => "label",
          Class_Name => "caption");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_24,
+         W          => +Label_29,
          Tag_Name   => "label",
          Class_Name => "note");
       Adi.CSS_Source.Bind_Selector_Set
@@ -489,7 +519,7 @@ package body Demo_Block_UI is
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_25,
+         W          => +Label_30,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
@@ -519,7 +549,7 @@ package body Demo_Block_UI is
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_26,
+         W          => +Label_31,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
@@ -550,62 +580,67 @@ package body Demo_Block_UI is
       Adi.Widget.Add_Child (+Box_1, +Label_2);
       Adi.Widget.Add_Child (+Box_1, +Label_3);
       Adi.Widget.Add_Child (+Box_1, +Box_2);
-      Adi.Widget.Add_Child (+Box_7, +Label_6);
       Adi.Widget.Add_Child (+Box_7, +Label_7);
       Adi.Widget.Add_Child (+Box_7, +Label_8);
+      Adi.Widget.Add_Child (+Box_7, +Label_9);
+      Adi.Widget.Add_Child (+Box_7, +Label_10);
+      Adi.Widget.Add_Child (+Box_7, +Label_11);
+      Adi.Widget.Add_Child (+Box_7, +Label_12);
+      Adi.Widget.Add_Child (+Box_7, +Label_13);
       Adi.Widget.Add_Child (+Box_6, +Label_4);
       Adi.Widget.Add_Child (+Box_6, +Label_5);
+      Adi.Widget.Add_Child (+Box_6, +Label_6);
       Adi.Widget.Add_Child (+Box_6, +Box_7);
-      Adi.Widget.Add_Child (+Box_9, +Label_11);
-      Adi.Widget.Add_Child (+Box_9, +Label_12);
-      Adi.Widget.Add_Child (+Box_9, +Label_13);
-      Adi.Widget.Add_Child (+Box_8, +Label_9);
-      Adi.Widget.Add_Child (+Box_8, +Label_10);
+      Adi.Widget.Add_Child (+Box_9, +Label_16);
+      Adi.Widget.Add_Child (+Box_9, +Label_17);
+      Adi.Widget.Add_Child (+Box_9, +Label_18);
+      Adi.Widget.Add_Child (+Box_8, +Label_14);
+      Adi.Widget.Add_Child (+Box_8, +Label_15);
       Adi.Widget.Add_Child (+Box_8, +Box_9);
       Adi.Widget.Add_Child (+Box_13, +Box_14);
       Adi.Widget.Add_Child (+Box_13, +Box_15);
-      Adi.Widget.Add_Child (+Box_12, +Label_16);
+      Adi.Widget.Add_Child (+Box_12, +Label_21);
       Adi.Widget.Add_Child (+Box_12, +Box_13);
       Adi.Widget.Add_Child (+Box_17, +Box_18);
       Adi.Widget.Add_Child (+Box_17, +Box_19);
       Adi.Widget.Add_Child (+Box_17, +Box_20);
       Adi.Widget.Add_Child (+Box_17, +Box_21);
-      Adi.Widget.Add_Child (+Box_16, +Label_17);
+      Adi.Widget.Add_Child (+Box_16, +Label_22);
       Adi.Widget.Add_Child (+Box_16, +Box_17);
       Adi.Widget.Add_Child (+Box_11, +Box_12);
       Adi.Widget.Add_Child (+Box_11, +Box_16);
-      Adi.Widget.Add_Child (+Box_10, +Label_14);
-      Adi.Widget.Add_Child (+Box_10, +Label_15);
+      Adi.Widget.Add_Child (+Box_10, +Label_19);
+      Adi.Widget.Add_Child (+Box_10, +Label_20);
       Adi.Widget.Add_Child (+Box_10, +Box_11);
       Adi.Widget.Add_Child (+Box_25, +Box_26);
-      Adi.Widget.Add_Child (+Box_24, +Label_20);
+      Adi.Widget.Add_Child (+Box_24, +Label_25);
       Adi.Widget.Add_Child (+Box_24, +Box_25);
       Adi.Widget.Add_Child (+Box_28, +Box_29);
-      Adi.Widget.Add_Child (+Box_27, +Label_21);
+      Adi.Widget.Add_Child (+Box_27, +Label_26);
       Adi.Widget.Add_Child (+Box_27, +Box_28);
       Adi.Widget.Add_Child (+Box_31, +Box_32);
-      Adi.Widget.Add_Child (+Box_30, +Label_22);
+      Adi.Widget.Add_Child (+Box_30, +Label_27);
       Adi.Widget.Add_Child (+Box_30, +Box_31);
       Adi.Widget.Add_Child (+Box_23, +Box_24);
       Adi.Widget.Add_Child (+Box_23, +Box_27);
       Adi.Widget.Add_Child (+Box_23, +Box_30);
-      Adi.Widget.Add_Child (+Box_22, +Label_18);
-      Adi.Widget.Add_Child (+Box_22, +Label_19);
+      Adi.Widget.Add_Child (+Box_22, +Label_23);
+      Adi.Widget.Add_Child (+Box_22, +Label_24);
       Adi.Widget.Add_Child (+Box_22, +Box_23);
       Adi.Widget.Add_Child (+Box_36, +Box_37);
       Adi.Widget.Add_Child (+Box_36, +Box_38);
       Adi.Widget.Add_Child (+Box_36, +Box_39);
-      Adi.Widget.Add_Child (+Box_35, +Label_25);
+      Adi.Widget.Add_Child (+Box_35, +Label_30);
       Adi.Widget.Add_Child (+Box_35, +Box_36);
       Adi.Widget.Add_Child (+Box_41, +Box_42);
       Adi.Widget.Add_Child (+Box_41, +Box_43);
       Adi.Widget.Add_Child (+Box_41, +Box_44);
-      Adi.Widget.Add_Child (+Box_40, +Label_26);
+      Adi.Widget.Add_Child (+Box_40, +Label_31);
       Adi.Widget.Add_Child (+Box_40, +Box_41);
       Adi.Widget.Add_Child (+Box_34, +Box_35);
       Adi.Widget.Add_Child (+Box_34, +Box_40);
-      Adi.Widget.Add_Child (+Box_33, +Label_23);
-      Adi.Widget.Add_Child (+Box_33, +Label_24);
+      Adi.Widget.Add_Child (+Box_33, +Label_28);
+      Adi.Widget.Add_Child (+Box_33, +Label_29);
       Adi.Widget.Add_Child (+Box_33, +Box_34);
       Adi.Widget.Add_Child (+Root, +Label_1);
       Adi.Widget.Add_Child (+Root, +Box_1);

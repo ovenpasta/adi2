@@ -285,7 +285,7 @@ package Demo_Flex_Styles is
       Width => Set (Size (Pct (50.0))),
       Flex_Grow => Set (0.0),
       Flex_Shrink => Set (0.0),
-      Background_Color => Set_Bg (RGB (191, 97, 106)),
+      Background_Color => Set_Bg (RGB (235, 203, 139)),
       others => <>);
 
    --  Base style for class 'pct-basis'

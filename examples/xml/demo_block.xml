@@ -9,7 +9,7 @@
       <!-- what a box does by default -->
       <box class="section">
         <label text="What a box does by default" class="caption"/>
-        <label text="Block is what a box does when nothing asks otherwise: children stack down the content area in order, each spanning its full width. No rule on this box declares display."
+        <label text="Block is what a box does when nothing asks otherwise: children stack down the content area in order, each spanning it for want of a width of its own. No rule on this box declares display."
                class="note"/>
         <box class="demo">
           <box class="bar"/>
@@ -18,22 +18,28 @@
         </box>
       </box>
 
-      <!-- a child's width is not read -->
+      <!-- a declared width is honoured -->
       <box class="section">
-        <label text="A child's width is not read" class="caption"/>
-        <label text="Each of these declares a different width and all three come out the same. Block layout hands every child the container's content width, and a percentage of a width that is never consulted fares no better. Reach for display: flex wherever the layout turns on a declared width."
+        <label text="A declared width is honoured" class="caption"/>
+        <label text="A child is laid out at the width it declares, in pixels or as a fraction of the container's content area. Declaring none spans that area instead, and max-width caps whichever of the two applies. What is left over stays to the right: block centring is margin: auto, which Adi has no value for."
+               class="note"/>
+        <label text="The last three are the two edges of the box. A margin sits outside the width, so it comes off an automatic one and only moves a declared one along. Padding sits inside it, so both of the bottom pair are the same box with the text starting further in."
                class="note"/>
         <box class="demo">
           <label text="no width" class="bar"/>
           <label text="width: 120px" class="bar w120"/>
-          <label text="width: 20%" class="bar w20"/>
+          <label text="width: 45%" class="bar w45"/>
+          <label text="max-width: 160px" class="bar wcap"/>
+          <label text="margin-left: 48px" class="bar indent"/>
+          <label text="same margin, width: 280px" class="bar w280 indent"/>
+          <label text="same width, padding-left: 48px" class="bar w280 inset"/>
         </box>
       </box>
 
       <!-- a declared height is honoured -->
       <box class="section">
         <label text="A declared height is honoured" class="caption"/>
-        <label text="The asymmetry worth remembering: the height a child declares is taken, where the width is not. A child that declares no height gets its content's."
+        <label text="The height a child declares is taken the same way its width is. A child that declares none gets its content's height, which for a box with nothing in it is the next section."
                class="note"/>
         <box class="demo">
           <label text="height: 20px" class="bar h20"/>
@@ -97,7 +103,7 @@
       <!-- block and flex -->
       <box class="section">
         <label text="Block and flex" class="caption"/>
-        <label text="The same three children, once under a box that declares nothing and once under display: flex. Block stacks them at the content width and never reads their own; flex reads it and lays them along the row. demo_flex is the reference for what flex does from there."
+        <label text="The same three children, once under a box that declares nothing and once under display: flex. Both give each child the width it asks for; block stacks them down the content area while flex ranges them along a row and divides what is left over. demo_flex is the reference for what flex does from there."
                class="note"/>
         <box class="cases">
           <box class="case">

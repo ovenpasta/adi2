@@ -76,8 +76,9 @@ Flex layout reference: `flex-direction`, `justify-content`, `align-items`,
 wrapping and gaps, each with a worked panel.
 
 ### demo_block
-Block layout reference: what a box does when no rule declares `display`, why a
-child's declared width is not read, and where a declared height is.
+Block layout reference: what a box does when no rule declares `display`, how a
+child's declared width and height are read, and what a percentage resolves
+against.
 
 ### stack_example
 `Adi.Widget.Stack` paging between XML-defined pages, each with its own

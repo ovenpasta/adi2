@@ -85,11 +85,11 @@
       <!-- a percentage on the main axis -->
       <box class="section">
         <label text="a percentage main size" class="caption"/>
-        <label text="Only flex-basis takes a percentage of the container along the main axis. A percentage width is reported as auto by the preferred size, so the item starts from its content and the row never sees the fraction."
+        <label text="Two spellings of the same thing: flex-basis: auto, the default, means use the main size property, so a percentage width resolves against the container exactly as flex-basis would. Both rows are the same declared width, and both take half of what its padding and border leave inside. Neither item can grow or shrink, so the fraction is where they stay."
                class="note"/>
         <label text="width: 50%" class="case-label"/>
         <box class="demo short w300">
-          <label text="content" class="item pct-width"/>
+          <label text="half" class="item pct-width"/>
         </box>
         <label text="flex-basis: 50%" class="case-label"/>
         <box class="demo short w300">

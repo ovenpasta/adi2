@@ -134,10 +134,10 @@ package body Demo_Flex_UI is
       Box_26 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_27 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Label_24 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("a percentage main size");
-      Label_25 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Only flex-basis takes a percentage of the container along the main axis. A percentage width is reported as auto by the preferred size, so the item starts from its content and the row never sees the fraction.");
+      Label_25 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Two spellings of the same thing: flex-basis: auto, the default, means use the main size property, so a percentage width resolves against the container exactly as flex-basis would. Both rows are the same declared width, and both take half of what its padding and border leave inside. Neither item can grow or shrink, so the fraction is where they stay.");
       Label_26 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("width: 50%");
       Box_28 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_27 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("content");
+      Label_27 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("half");
       Label_28 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-basis: 50%");
       Box_29 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Label_29 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("half");

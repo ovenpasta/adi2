@@ -121,10 +121,25 @@
   vertical-align: middle;
 }
 
-/* A child's width is not read */
+/* A declared width is honoured */
 
 .w120 { width: 120px; }
-.w20  { width: 20%; }
+.w45  { width: 45%; }
+.wcap { max-width: 160px; }
+.w280 { width: 280px; }
+
+/*  A margin is outside the width: it comes off the line an automatic
+    width would have spanned, and moves a declared one over without
+    narrowing it.
+
+    Spelled as the shorthand, and carrying .bar's bottom margin with it,
+    because a margin longhand stands for the whole box: one side written
+    here would leave the other three at zero and the bars would touch. */
+.indent { margin: 0px 0px 6px 48px; }
+
+/*  Padding is inside it. Last in the class list, so it is this 48px the
+    text starts after rather than the 8px .bar carries. */
+.inset { padding-left: 48px; }
 
 /* A declared height is honoured */
 

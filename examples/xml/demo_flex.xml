@@ -206,6 +206,27 @@
           <box class="item bar greedy"/>
         </box>
       </box>
+
+      <!-- factors that do not reach one between them -->
+      <box class="section">
+        <label text="a factor under one" class="caption"/>
+        <label text="A flex factor is a fraction of the free space, not only a ratio between the items. Where the factors on a line do not reach one between them they take that fraction and leave the rest of the row empty, which is why the same 0.5 fills half a row alone and all of it in company. The gap between the items is spent either way."
+               class="note"/>
+        <label text="one item at 0.5 — half the row" class="case-label"/>
+        <box class="demo short w480">
+          <box class="item bar frac-half"/>
+        </box>
+        <label text="two at 0.25 — a quarter each" class="case-label"/>
+        <box class="demo short w480">
+          <box class="item bar frac-quarter"/>
+          <box class="item bar frac-quarter"/>
+        </box>
+        <label text="two at 0.5 — summing to one, the row is filled" class="case-label"/>
+        <box class="demo short w480">
+          <box class="item bar frac-half"/>
+          <box class="item bar frac-half"/>
+        </box>
+      </box>
       <!-- flex-wrap -->
       <box class="section">
         <label text="flex-wrap" class="caption"/>

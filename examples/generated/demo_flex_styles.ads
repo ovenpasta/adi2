@@ -570,6 +570,24 @@ package Demo_Flex_Styles is
       Background_Color => Set_Bg (RGB (163, 190, 140)),
       others => <>);
 
+   --  Base style for class 'frac-half'
+   function Frac_Half_Class_Base_Style return Style_Rules is
+     (
+      Flex_Basis => Set (Basis (Px (0.0))),
+      Flex_Grow => Set (0.5),
+      Min_Width => Set (Size (Px (0.0))),
+      Background_Color => Set_Bg (RGB (180, 142, 173)),
+      others => <>);
+
+   --  Base style for class 'frac-quarter'
+   function Frac_Quarter_Class_Base_Style return Style_Rules is
+     (
+      Flex_Basis => Set (Basis (Px (0.0))),
+      Flex_Grow => Set (0.25),
+      Min_Width => Set (Size (Px (0.0))),
+      Background_Color => Set_Bg (RGB (180, 142, 173)),
+      others => <>);
+
    --  Complete widget style for class 'root'
    function Root_Class_Widget return Widget_Style is
      (From (Root_Class_Base_Style)
@@ -1439,6 +1457,30 @@ package Demo_Flex_Styles is
    function Greedy_Class_Part_Styles return Part_Style_Array is
      ([
       Main_Part => (Style => Greedy_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'frac-half'
+   function Frac_Half_Class_Widget return Widget_Style is
+     (From (Frac_Half_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'frac-half'
+   function Frac_Half_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Frac_Half_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'frac-quarter'
+   function Frac_Quarter_Class_Widget return Widget_Style is
+     (From (Frac_Quarter_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'frac-quarter'
+   function Frac_Quarter_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Frac_Quarter_Class_Widget, Enabled => True),
       others => <>
    ]);
 

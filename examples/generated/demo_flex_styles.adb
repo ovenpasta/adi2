@@ -502,6 +502,20 @@ package body Demo_Flex_Styles is
    end Register_Selectors_71;
    pragma No_Inline (Register_Selectors_71);
 
+   procedure Register_Selectors_72
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("frac-half", Frac_Half_Class_Part_Styles));
+   end Register_Selectors_72;
+   pragma No_Inline (Register_Selectors_72);
+
+   procedure Register_Selectors_73
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("frac-quarter", Frac_Quarter_Class_Part_Styles));
+   end Register_Selectors_73;
+   pragma No_Inline (Register_Selectors_73);
+
    procedure Register_Selectors
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
@@ -576,6 +590,8 @@ package body Demo_Flex_Styles is
       Register_Selectors_69 (S);
       Register_Selectors_70 (S);
       Register_Selectors_71 (S);
+      Register_Selectors_72 (S);
+      Register_Selectors_73 (S);
    end Register_Selectors;
 
 end Demo_Flex_Styles;

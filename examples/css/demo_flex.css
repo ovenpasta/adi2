@@ -291,3 +291,20 @@
   min-width: 0px;
   background-color: rgb(163, 190, 140);
 }
+
+/* A factor is a fraction of the free space, not only a ratio between
+   the items, so the same 0.5 fills half a row alone and a whole row in
+   company. */
+.frac-half {
+  flex-basis: 0px;
+  flex-grow: 0.5;
+  min-width: 0px;
+  background-color: rgb(180, 142, 173);
+}
+
+.frac-quarter {
+  flex-basis: 0px;
+  flex-grow: 0.25;
+  min-width: 0px;
+  background-color: rgb(180, 142, 173);
+}

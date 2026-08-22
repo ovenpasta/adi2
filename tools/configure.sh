@@ -283,6 +283,7 @@ project Examples_Build is
       "text_input_example",
       "text_editor_example",
       "demo_flex",
+      "demo_block",
       "stack_example",
       "list_box_example",
       "combo_box_example",
@@ -383,6 +384,7 @@ EXAMPLE_KINDS=(
   text_input_example
   text_editor_example
   demo_flex
+  demo_block
   stack_example
   list_box_example
   combo_box_example

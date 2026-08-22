@@ -14,10 +14,15 @@ The example programs in [`examples/`](../examples/), captured as screenshots. Bu
 ![combo_box_example](../examples/screenshots/combo_box_example.png)
 *`combo_box_example`*
 
+![demo_block](../examples/screenshots/demo_block.png)
+![demo_block](../examples/screenshots/demo_block_2.png)
+*`demo_block`*
+
 ![demo_flex](../examples/screenshots/demo_flex.png)
 ![demo_flex](../examples/screenshots/demo_flex_2.png)
 ![demo_flex](../examples/screenshots/demo_flex_3.png)
 ![demo_flex](../examples/screenshots/demo_flex_4.png)
+![demo_flex](../examples/screenshots/demo_flex_5.png)
 *`demo_flex`*
 
 ![dialog_example](../examples/screenshots/dialog_example.png)

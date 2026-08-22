@@ -15,6 +15,7 @@ ALL_EXAMPLES=(
   text_input_example
   text_editor_example
   demo_flex
+  demo_block
   stack_example
   list_box_example
   combo_box_example

@@ -28,6 +28,7 @@ generate_if_needed "$CSS_DIR/text_input_example.css" "$OUT_DIR/text_input_exampl
 generate_if_needed "$CSS_DIR/label_example.css" "$OUT_DIR/label_example_styles.ads" "Label_Example_Styles"
 generate_if_needed "$CSS_DIR/button_example.css" "$OUT_DIR/button_example_styles.ads" "Button_Example_Styles"
 generate_if_needed "$CSS_DIR/demo_flex.css" "$OUT_DIR/demo_flex_styles.ads" "Demo_Flex_Styles"
+generate_if_needed "$CSS_DIR/demo_block.css" "$OUT_DIR/demo_block_styles.ads" "Demo_Block_Styles"
 generate_if_needed "$CSS_DIR/transition_example.css" "$OUT_DIR/transition_example_styles.ads" "Transition_Example_Styles"
 generate_if_needed "$CSS_DIR/stack_example.css" "$OUT_DIR/stack_example_styles.ads" "Stack_Example_Styles"
 generate_if_needed "$CSS_DIR/stack_example_tabs.css" "$OUT_DIR/stack_example_tabs_styles.ads" "Stack_Example_Tabs_Styles"

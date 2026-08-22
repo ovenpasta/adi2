@@ -1,0 +1,171 @@
+/*  The bar sits over the content rather than beside it, so both track
+    and knob stay translucent and firm up only under the pointer. */
+
+.root::scroll {
+  width: 10px;
+  background-color: rgba(94, 129, 172, 0.06);
+  border-radius: 5px;
+  transition: background-color 160ms ease-out;
+}
+
+.root::scroll:hover {
+  background-color: rgba(94, 129, 172, 0.16);
+}
+
+.root::knob {
+  background-image: linear-gradient(to right,
+                                    rgba(129, 161, 193, 0.30),
+                                    rgba(94, 129, 172, 0.30));
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(236, 239, 244, 0.10);
+  border-radius: 5px;
+  transition: background-image 160ms ease-out, border-color 160ms ease-out;
+}
+
+.root::knob:hover {
+  background-image: linear-gradient(to right,
+                                    rgba(143, 176, 209, 0.85),
+                                    rgba(108, 143, 186, 0.85));
+  border-color: rgba(236, 239, 244, 0.28);
+}
+
+/*  Page chrome is flex throughout, so what a section demonstrates is
+    confined to the box it demonstrates it in. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+  overflow-y: auto;
+  background-color: rgb(24, 26, 33);
+}
+
+.title::label {
+  color: rgb(236, 239, 244);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  padding-right: 14px;
+}
+
+.caption::label {
+  color: rgb(163, 190, 140);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.note::label {
+  color: rgb(150, 158, 172);
+  font-size: 12px;
+}
+
+.cases {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/*  One case, under its own label. The basis is zero so the cases in a
+    row come out the same width whatever their labels say, which is what
+    lets two of them be compared by eye. */
+.case {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-basis: 0px;
+  flex-grow: 1;
+  min-width: 0px;
+}
+
+.case-label::label {
+  color: rgb(150, 158, 172);
+  font-size: 11px;
+}
+
+/*  The box every section demonstrates in. It declares no display: block
+    is what a box does when nothing asks otherwise. */
+.demo {
+  border-width: 2px;
+  border-color: rgb(94, 129, 172);
+  border-style: solid;
+  border-radius: 6px;
+  padding: 6px 6px 0px 6px;
+  background-color: rgb(35, 38, 48);
+}
+
+/*  Block layout reads no gap, so children carry their own separation in
+    a margin. The last child's margin stands in for the bottom padding
+    the container leaves off. */
+.bar {
+  height: 22px;
+  margin-bottom: 6px;
+  padding-left: 8px;
+  border-radius: 4px;
+  background-color: rgb(94, 129, 172);
+}
+
+.bar::label {
+  color: rgb(240, 243, 248);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+/* A child's width is not read */
+
+.w120 { width: 120px; }
+.w20  { width: 20%; }
+
+/* A declared height is honoured */
+
+.h20 { height: 20px; }
+.h34 { height: 34px; }
+.h48 { height: 48px; }
+
+/*  Nothing in it and no height of its own: it takes no room, and the red
+    never reaches the screen. */
+.ghost {
+  height: auto;
+  margin-bottom: 0px;
+  background-color: rgb(191, 97, 106);
+}
+
+/*  A container deep enough for a fraction of it to be worth reading, and
+    padded on all four sides because its child carries no margin. */
+.frame {
+  height: 120px;
+  padding: 6px;
+}
+
+.fill    { height: 100%; margin-bottom: 0px; background-color: rgb(163, 190, 140); }
+.half    { height: 50%;  margin-bottom: 0px; background-color: rgb(235, 203, 139); }
+.quarter { height: 25%;  margin-bottom: 0px; background-color: rgb(180, 142, 173); }
+
+/* Block and flex over the same children */
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+}
+
+.chip {
+  width: 60px;
+  height: 22px;
+  margin-bottom: 6px;
+  border-radius: 4px;
+}
+
+.chip-1 { background-color: rgb(163, 190, 140); }
+.chip-2 { background-color: rgb(235, 203, 139); }
+.chip-3 { background-color: rgb(180, 142, 173); }

@@ -273,6 +273,30 @@ package Demo_Flex_Styles is
       Background_Color => Set_Bg (RGB (180, 142, 173)),
       others => <>);
 
+   --  Base style for class 'w300'
+   function W300_Class_Base_Style return Style_Rules is
+     (
+      Width => Set (Size (Px (300.0))),
+      others => <>);
+
+   --  Base style for class 'pct-width'
+   function Pct_Width_Class_Base_Style return Style_Rules is
+     (
+      Width => Set (Size (Pct (50.0))),
+      Flex_Grow => Set (0.0),
+      Flex_Shrink => Set (0.0),
+      Background_Color => Set_Bg (RGB (191, 97, 106)),
+      others => <>);
+
+   --  Base style for class 'pct-basis'
+   function Pct_Basis_Class_Base_Style return Style_Rules is
+     (
+      Flex_Basis => Set (Basis (Pct (50.0))),
+      Flex_Grow => Set (0.0),
+      Flex_Shrink => Set (0.0),
+      Background_Color => Set_Bg (RGB (163, 190, 140)),
+      others => <>);
+
    --  Base style for class 'just-start'
    function Just_Start_Class_Base_Style return Style_Rules is
      (
@@ -848,6 +872,42 @@ package Demo_Flex_Styles is
    function Basis_200_Class_Part_Styles return Part_Style_Array is
      ([
       Main_Part => (Style => Basis_200_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'w300'
+   function W300_Class_Widget return Widget_Style is
+     (From (W300_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'w300'
+   function W300_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => W300_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'pct-width'
+   function Pct_Width_Class_Widget return Widget_Style is
+     (From (Pct_Width_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'pct-width'
+   function Pct_Width_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Pct_Width_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'pct-basis'
+   function Pct_Basis_Class_Widget return Widget_Style is
+     (From (Pct_Basis_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'pct-basis'
+   function Pct_Basis_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Pct_Basis_Class_Widget, Enabled => True),
       others => <>
    ]);
 

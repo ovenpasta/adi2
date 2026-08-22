@@ -161,6 +161,25 @@
 .basis-120 { flex-basis: 120px; flex-grow: 1; background-color: rgb(235, 203, 139); }
 .basis-200 { flex-basis: 200px; flex-grow: 1; background-color: rgb(180, 142, 173); }
 
+/*  A percentage main size: the two spellings side by side in a row of
+    the same width. */
+
+.w300 { width: 300px; }
+
+.pct-width {
+  width: 50%;
+  flex-grow: 0;
+  flex-shrink: 0;
+  background-color: rgb(191, 97, 106);
+}
+
+.pct-basis {
+  flex-basis: 50%;
+  flex-grow: 0;
+  flex-shrink: 0;
+  background-color: rgb(163, 190, 140);
+}
+
 /* justify-content */
 
 .just-start   { justify-content: flex-start; }

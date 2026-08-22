@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="examples/css/demo_block.css"/>
+
+  <window title="Block Layout Reference" width="617px" height="617px">
+    <box id="Root" class="root">
+      <label text="Block Layout Reference" class="title"/>
+
+      <!-- what a box does by default -->
+      <box class="section">
+        <label text="What a box does by default" class="caption"/>
+        <label text="Block is what a box does when nothing asks otherwise: children stack down the content area in order, each spanning its full width. No rule on this box declares display."
+               class="note"/>
+        <box class="demo">
+          <box class="bar"/>
+          <box class="bar"/>
+          <box class="bar"/>
+        </box>
+      </box>
+
+      <!-- a child's width is not read -->
+      <box class="section">
+        <label text="A child's width is not read" class="caption"/>
+        <label text="Each of these declares a different width and all three come out the same. Block layout hands every child the container's content width, and a percentage of a width that is never consulted fares no better. Reach for display: flex wherever the layout turns on a declared width."
+               class="note"/>
+        <box class="demo">
+          <label text="no width" class="bar"/>
+          <label text="width: 120px" class="bar w120"/>
+          <label text="width: 20%" class="bar w20"/>
+        </box>
+      </box>
+
+      <!-- a declared height is honoured -->
+      <box class="section">
+        <label text="A declared height is honoured" class="caption"/>
+        <label text="The asymmetry worth remembering: the height a child declares is taken, where the width is not. A child that declares no height gets its content's."
+               class="note"/>
+        <box class="demo">
+          <label text="height: 20px" class="bar h20"/>
+          <label text="height: 34px" class="bar h34"/>
+          <label text="height: 48px" class="bar h48"/>
+        </box>
+      </box>
+
+      <!-- a child with nothing in it takes no height -->
+      <box class="section">
+        <label text="A child with nothing in it takes no height" class="caption"/>
+        <label text="The right-hand box carries two extra children between its bars, each with height: auto and nothing inside. An empty child measures nothing and is never stretched to fill, so the two boxes are indistinguishable."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="two bars" class="case-label"/>
+            <box class="demo">
+              <box class="bar"/>
+              <box class="bar"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="two bars, two empty children" class="case-label"/>
+            <box class="demo">
+              <box class="bar"/>
+              <box class="ghost"/>
+              <box class="ghost"/>
+              <box class="bar"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- a percentage height -->
+      <box class="section">
+        <label text="A percentage height" class="caption"/>
+        <label text="A percentage resolves against the container's content box, not against whatever height the child came in with, so it holds on every pass. These three take all of it, half of it and a quarter of it."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="height: 100%" class="case-label"/>
+            <box class="demo frame">
+              <box class="bar fill"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="height: 50%" class="case-label"/>
+            <box class="demo frame">
+              <box class="bar half"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="height: 25%" class="case-label"/>
+            <box class="demo frame">
+              <box class="bar quarter"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- block and flex -->
+      <box class="section">
+        <label text="Block and flex" class="caption"/>
+        <label text="The same three children, once under a box that declares nothing and once under display: flex. Block stacks them at the content width and never reads their own; flex reads it and lays them along the row. demo_flex is the reference for what flex does from there."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="no display" class="case-label"/>
+            <box class="demo">
+              <box class="chip chip-1"/>
+              <box class="chip chip-2"/>
+              <box class="chip chip-3"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="display: flex" class="case-label"/>
+            <box class="demo flex-row">
+              <box class="chip chip-1"/>
+              <box class="chip chip-2"/>
+              <box class="chip chip-3"/>
+            </box>
+          </box>
+        </box>
+      </box>
+    </box>
+  </window>
+</adi>

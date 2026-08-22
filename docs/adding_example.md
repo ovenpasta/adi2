@@ -32,11 +32,15 @@ If using the XML UI system, create `examples/xml/<name>.xml`. The root element i
 </adi>
 ```
 
-Available widget tags are defined in `tools/widgets.xml`: `box`, `label`, `button`, `switch`, `stack`, `text-input`, `text-editor`, `combo-box`, `image`, `animated-image`, `animated-widget`, `rlottie`, `html-view`, `list-box`.
+Available widget tags are defined in `tools/widgets.xml`: `box`, `label`, `button`, `switch`, `stack`, `text-input`, `text-editor`, `combo-box`, `image`, `animated-image`, `animated-widget`, `rlottie`, `html-view`, `list-box`, `slider`, `integer-slider`, `value-input`, `integer-value-input`.
 
 Widgets with an `id` attribute become named handle fields accessible from Ada code (e.g., `UI.My_Image`).
 
-## 3. Register in code generation scripts
+## 3. Register in the code generation scripts
+
+An example that ships CSS must be listed in `tools/generate_example_styles.sh`,
+and one that ships XML in `tools/generate_example_ui.sh`. Without the entry the
+generated package is never written and the example does not compile.
 
 ### `tools/generate_example_styles.sh`
 
@@ -56,11 +60,15 @@ generate_if_needed "$XML_DIR/image_example.xml" "Image_Example_UI"
 
 ### `tools/generate_example_bundles.sh` (if bundling assets)
 
-Add a `generate_if_needed` call for the asset files:
+This script has no `generate_if_needed` helper: it carries one hand-written
+staleness check and one `binary_to_ada.py` invocation. Copy that block, giving
+the new bundle its own `OUT_FILE`, asset list and `--package-name`.
 
-```bash
-generate_if_needed "My_Example_Bundle" "$ASSETS_DIR/icon.svg" "$ASSETS_DIR/image.png"
-```
+### `tools/generate_example_translations.sh` (if translated)
+
+Nothing to add per example. The script picks up every `examples/i18n/*.po`
+and emits the single `I18N_Example_Translations` package; a new example reuses
+it by adding its strings to the existing `.po` files.
 
 ### Run the generators
 
@@ -99,7 +107,7 @@ begin
    A.Set_Target_FPS (60);
    W := UI.Build;
 
-   -- Post-build setup (load images, wire callbacks, etc.)
+   -- After UI.Build: load images, wire callbacks, etc.
 
    A.Add_Window (W);
    A.Run;
@@ -114,21 +122,43 @@ Add the example name to the `Example_Kind` type on line 4:
 type Example_Kind is (..., "image_example");
 ```
 
-## 6. Register in `tools/configure.sh`
+This is the list `-XEXAMPLE_KIND` is checked against, so an unlisted name
+cannot be built at all.
 
-Add the example name in two places:
+## 6. Register in `tools/build_examples.sh`
 
-1. The `Example_Kind` type in the generated `examples_build.gpr` template (around line 266)
-2. The `EXAMPLE_KINDS` array used by `build_all.sh` (around line 374)
+Add the example name to the `ALL_EXAMPLES` array:
 
-## 7. Register in `alire.toml`
+```bash
+ALL_EXAMPLES=(
+  ...
+  image_example
+)
+```
 
-Add a post-build action at the end of the `[[actions]]` list:
+The array is what a bare `tools/build_examples.sh` iterates over. Naming the
+example on the command line builds it either way; only the no-argument run
+needs the entry.
 
-```toml
-[[actions]]
-type = "post-build"
-command = ["gprbuild", "-P", "examples/examples.gpr", "-XEXAMPLE_KIND=image_example"]
+## 7. Register in `tools/configure.sh`
+
+`configure.sh` writes a standalone build tree that does not read
+`examples/examples.gpr`, so the name has to be added in both of its own lists.
+
+### `Example_Kind` in the generated `examples_build.gpr`
+
+The heredoc at `type Example_Kind is`:
+
+```
+      "image_example",
+```
+
+### `EXAMPLE_KINDS` in the generated `build_all.sh`
+
+The array at `EXAMPLE_KINDS=(`:
+
+```bash
+  image_example
 ```
 
 ## 8. Build and run
@@ -141,18 +171,22 @@ alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=image_example
 ./examples/bin/image_example
 ```
 
-Or build everything with `alr build`, which runs all post-build actions including the new example.
+Or build every example with `tools/build_examples.sh`.
 
 ## Checklist
+
+Six registration sites, plus the sources themselves. Miss any of the six and
+the example either fails to build or is silently skipped.
 
 | Step | File | What to add |
 |------|------|-------------|
 | CSS | `examples/css/<name>.css` | Stylesheet |
 | XML (opt) | `examples/xml/<name>.xml` | UI definition |
 | Ada main | `examples/<name>.adb` | Entry point |
-| GPR | `examples/examples.gpr` | Name in `Example_Kind` |
-| Configure | `tools/configure.sh` | Name in `Example_Kind` + `EXAMPLE_KINDS` |
-| Alire | `alire.toml` | Post-build `[[actions]]` entry |
-| CSS gen | `tools/generate_example_styles.sh` | `generate_if_needed` call |
-| XML gen | `tools/generate_example_ui.sh` | `generate_if_needed` call (if XML) |
-| Bundle gen | `tools/generate_example_bundles.sh` | `generate_if_needed` call (if bundling assets) |
+| Registration 1 | `examples/examples.gpr` | Name in `Example_Kind` |
+| Registration 2 | `tools/build_examples.sh` | Name in `ALL_EXAMPLES` |
+| Registration 3 | `tools/configure.sh` | Name in the generated `Example_Kind` |
+| Registration 4 | `tools/configure.sh` | Name in `EXAMPLE_KINDS` |
+| Registration 5 | `tools/generate_example_styles.sh` | `generate_if_needed` call |
+| Registration 6 | `tools/generate_example_ui.sh` | `generate_if_needed` call (if XML) |
+| Bundle gen | `tools/generate_example_bundles.sh` | A copy of the existing generate block (if bundling assets) |

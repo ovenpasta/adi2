@@ -10,11 +10,12 @@ Adi exposes a development-only MCP bridge:
 - Python side: `tools/adi_mcp_server.py` exposes MCP tools and handles file IPC.
 - IPC directory: `/tmp/adi_mcp/<PID>/`
 
-Release/validation builds use `src/mcp_stub/` (no-op implementation).
+Release and validation builds use `src/mcp_stub/` (no-op implementation), as do Windows builds of any profile.
 
 ## Prerequisites
 
 - Build profile must be `development`.
+- Target platform must not be Windows. The real implementation imports POSIX `kill`, so `adi.gpr` selects `src/mcp_stub/` for `ADI_PLATFORM=windows` whatever the profile.
 - The target app must call `Adi.MCP.Initialize`.
 - MCP server config must point at `tools/adi_mcp_server.py` and the same base directory (`/tmp/adi_mcp`).
 

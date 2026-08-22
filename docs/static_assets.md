@@ -99,13 +99,13 @@ to set the app-wide font.
 
 ## Build Integration
 
-### With Alire
+### Building the examples
 
-The `alire.toml` post-build action runs `tools/generate_example_bundles.sh`
-automatically. Generated files go to `examples/generated/` which is already
+`tools/build_examples.sh` runs `tools/generate_example_bundles.sh` before
+compiling. Generated files go to `examples/generated/` which is already
 in the `Source_Dirs`.
 
-### Without Alire (direct gprbuild)
+### Without the script (direct gprbuild)
 
 Run the generation scripts manually before building:
 

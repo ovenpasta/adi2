@@ -17,6 +17,9 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | CSS styling (selectors, properties, runtime API, code generation) | `docs/css_styling.md` |
 | XML UI system (declarative widgets, code generation, components) | `docs/xml_ui_system.md` |
 | Internal style-storage optimization (interning/prepared rules/global memo) | `docs/style_storage_optimization.md` |
+| Item-based flex layout inside a widget (`Layout_Item`) | `docs/layout_item_system.md` |
+| Layout minimums (demanded vs. content vs. preferred size) | `docs/layout_minimums.md` |
+| Hand-crafted SDL3 binding modules | `docs/sdl_bindings.md` |
 | Build system (Alire, gprbuild, configure) | `docs/build.md` |
 | gprbuild without Alire | `docs/gprbuild_without_alire.md` |
 | MCP runtime introspection | `docs/mcp.md` |
@@ -183,7 +186,7 @@ Existing hand-crafted binding modules:
 | `Adi.SDL.Events` | `adi-sdl-events.ads` | Event handling, scancodes |
 | `Adi.SDL.Mouse` | `adi-sdl-mouse.ads` | Mouse state, cursors |
 | `Adi.SDL.Surface` | `adi-sdl-surface.ads` | Pixel buffers |
-| `Adi.SDL.PixelFormat` | `adi-sdl-pixelformat.ads` | Pixel format constants |
+| `Adi.SDL.Pixelformat` | `adi-sdl-pixelformat.ads` | Pixel format constants |
 | `Adi.SDL.IO` | `adi-sdl-io.ads` | IO streams (memory) |
 | `Adi.SDL.Image` | `adi-sdl-image.ads` | Image file loading |
 | `Adi.SDL.Dialog` | `adi-sdl-dialog.ads` | Native file/folder dialogs |
@@ -245,12 +248,12 @@ Paths must be absolute, rooted at the repository (e.g. `<repo>/src/adi-widget.ad
 
 ## Adi Runtime Introspection (MCP)
 
-An Adi MCP server is available (`adi`) for inspecting a **running** Adi application. Requires the app to call `Adi.MCP.Initialize` (development builds only — release builds get a no-op stub).
+An Adi MCP server is available (`adi`) for inspecting a **running** Adi application. Requires the app to call `Adi.MCP.Initialize`, a `development` build profile, and a non-Windows target: release and validation profiles get a no-op stub, and `adi.gpr` forces the stub on Windows regardless of profile because the real implementation imports POSIX `kill`.
 
 | Tool | Description |
 |------|-------------|
 | `screenshot()` | Capture PNG screenshot, returns file path |
-| `widget_tree()` | Full widget hierarchy as JSON (type, path, bounds, states, flags, children) |
+| `widget_tree()` | Full widget hierarchy as JSON (type, id, path, text, bounds, states, flags, child_count, items_count, children, overlays) |
 | `widget_info(id, path)` | Detailed info for one widget by id or dot-path (e.g. `"1.2.3"`) |
 | `perf_stats()` | Frame timing, FPS, layout counts, texture residency |
 | `set_texture_budget(bytes)` | Set the window's idle texture budget |
@@ -291,6 +294,9 @@ examples/xml/         XML UI definitions
 examples/generated/   Auto-generated Ada from CSS and XML
 tools/                Code generators, MCP servers, and build scripts
 docs/                 Reference documentation
+config/               Per-profile and per-platform GPR/Ada configuration
+vendor/               Bundled third-party sources (json-ada, open-sans, plutosvg, rlottie, wasabee)
+wasm/                 WebAssembly port (project file, Makefile, site, reports)
 ```
 
 ## Testing

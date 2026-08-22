@@ -76,7 +76,7 @@ begin
    W.Layout_Items.Clear;
 
    --  Build layout items for each visual element
-   if W.Icon /= null then
+   if Adi.Image.Is_Valid (W.Icon) then
       declare
          Icon_Item : Layout_Item;
       begin
@@ -150,7 +150,7 @@ begin
    for L_Item of W.Layout_Items loop
       case L_Item.Part is
          when Icon_Part =>
-            if W.Icon /= null then
+            if Adi.Image.Is_Valid (W.Icon) then
                Add_Item (W, Make_Image (
                   Part     => Icon_Part,
                   Geometry => L_Item.Geometry,  -- Use calculated geometry
@@ -176,73 +176,107 @@ end Build_Items;
 
 ## Label Widget Example
 
+`Adi.Widget.Label` is the in-tree widget built this way: `Main_Part` is the flex
+container, `Icon_Part` and `Label_Part` are the two items it positions.
+
 ### Creating and Styling a Label
 
+A part style is a `Style_Rules` aggregate wrapped by the `Adi.Widget_Styles`
+builder and attached with `Set_Part_Style`. `examples/hello_raw_example.adb`
+has the same shape end to end.
+
 ```ada
---  Create label with text
-Label := Adi.Widget.Label.Create ("Save");
-Set_Geometry (Label.all, (100.0, 50.0, 200.0, 40.0));
+with Adi.Image;
+with Adi.Widget;        use Adi.Widget;
+with Adi.Widget.Label;
+with Adi.Widget_Styles; use Adi.Widget_Styles;
+with Adi.CSS_Styles;    use Adi.CSS_Styles;
 
---  Add icon
-My_Icon := W.Load_Image ("icons/save.png");
-Label.Set_Icon (My_Icon);
+use type Adi.Widget.Label.Label_Handle;   --  makes "+" visible
 
---  Main_Part controls layout of icon+text
-Set_Part_Style (Label.all, Main_Part,
-   Make_Style
-      .Display (Flex)
-      .Flex_Direction (Row)        -- [Icon] Text (horizontal)
-      .Align_Items (Center)        -- Vertically center both
-      .Justify_Content (Flex_Start)
-      .Gap (Px (8.0))              -- 8px between icon and text
-      .Padding (Px (10.0))
-      .Background_Color (RGB (240, 240, 240))
-      .Border_Radius (Px (4.0))
-      .Build);
+function Style return Style_Builder renames Adi.Widget_Styles.Create;
 
---  Icon_Part controls icon appearance
-Set_Part_Style (Label.all, Icon_Part,
-   Make_Style
-      .Width (Px (16.0))
-      .Height (Px (16.0))
-      .Object_Fit (Contain)
-      .Build);
+--  Main_Part lays out icon and text
+Main_Rules : constant Style_Rules :=
+  (Display          => Set (Flex),
+   Flex_Direction   => Set (Row),                          --  [Icon] Text
+   Align_Items      => Set (Align_Items_Value'(Center)),
+   Justify_Content  => Set (Justify_Content_Value'(Flex_Start)),
+   Gap              => Set (Gap (Px (8.0))),
+   Padding          => Set (CSS_Box (Px (10.0))),
+   Background_Color => Set_Bg (RGB (240, 240, 240)),
+   Border_Radius    => Set (Radius (Px (4.0))),
+   others           => <>);
 
---  Label_Part controls text appearance
-Set_Part_Style (Label.all, Label_Part,
-   Make_Style
-      .Color (RGB (0, 0, 0))
-      .Font_Size (Px (14.0))
-      .Build);
+--  Icon_Part sizes the icon item
+Icon_Rules : constant Style_Rules :=
+  (Width      => Set (Size (Px (16.0))),
+   Height     => Set (Size (Px (16.0))),
+   Object_Fit => Set (Fit_Contain),
+   others     => <>);
+
+--  Label_Part styles the text item
+Label_Rules : constant Style_Rules :=
+  (Color     => Set (RGB (0, 0, 0)),
+   Font_Size => Set_Font (Px (14.0)),
+   others    => <>);
+
+Lbl  : constant Adi.Widget.Label.Label_Handle :=
+         Adi.Widget.Label.Create_Handle ("Save");
+Icon : Adi.Image.Image_Owner;
 ```
+
+```ada
+Set_Geometry (Widget_Handle'(+Lbl), (100.0, 50.0, 200.0, 40.0));
+
+--  An image owner must outlive the widgets drawing it
+Icon := Adi.Image.Load_SVG_Path
+          (Path_Data => "M5 3 H19 V21 H5 Z",
+           Size      => (24.0, 24.0),
+           Fill      => (R => 242, G => 248, B => 255, A => 255));
+if Adi.Image.Is_Owned (Icon) then
+   Adi.Widget.Label.Set_Icon (Lbl, Adi.Image.To_Handle (Icon));
+end if;
+
+Set_Part_Style (Widget_Handle'(+Lbl), Main_Part,
+                Style.Base (Main_Rules).Build);
+Set_Part_Style (Widget_Handle'(+Lbl), Icon_Part,
+                Style.Base (Icon_Rules).Build);
+Set_Part_Style (Widget_Handle'(+Lbl), Label_Part,
+                Style.Base (Label_Rules).Build);
+```
+
+`Adi.Image.Load_From_File` takes a path instead, for a raster or an SVG file.
+`examples/label_example.adb` builds its icon the same way.
 
 ### Layout Variations
 
-**Vertical (Icon above text):**
+Only the `Main_Part` rules change; the item styles stay as they are.
+
+**Vertical (icon above text):**
 ```ada
-Set_Part_Style (Label.all, Main_Part,
-   Make_Style
-      .Display (Flex)
-      .Flex_Direction (Column)  -- Icon / Text
-      .Align_Items (Center)
-      .Build);
+(Display        => Set (Flex),
+ Flex_Direction => Set (Column),
+ Align_Items    => Set (Align_Items_Value'(Center)),
+ others         => <>)
 ```
 
-**Reverse (Text before icon):**
+**Reverse (text before icon):**
 ```ada
-Set_Part_Style (Label.all, Main_Part,
-   Make_Style
-      .Flex_Direction (Row_Reverse)  -- Text [Icon]
-      .Build);
+(Display        => Set (Flex),
+ Flex_Direction => Set (Row_Reverse),
+ others         => <>)
 ```
 
 **Spaced apart:**
 ```ada
-Set_Part_Style (Label.all, Main_Part,
-   Make_Style
-      .Justify_Content (Space_Between)  -- [Icon]    Text
-      .Build);
+(Display         => Set (Flex),
+ Justify_Content => Set (Justify_Content_Value'(Space_Between)),
+ others          => <>)
 ```
+
+The same three parts are reachable from CSS: a bare class selector targets
+`Main_Part`, `::icon` targets `Icon_Part` and `::label` targets `Label_Part`.
 
 ## Benefits
 

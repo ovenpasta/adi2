@@ -371,5 +371,5 @@ When adding a new CSS property, touch these files:
 
 - **Use `Split_Whitespace_Tokens` for shorthands**, not `.split()` / plain whitespace splitting. Values like `rgb(10, 20, 30)` contain spaces inside parentheses.
 - **`Set` function name collisions**: If the value type is shared (like `Length_Value`), use a prefixed name (`Set_Outline_Width`) instead of overloading `Set`, which would be ambiguous.
-- **Rebuild generated styles** after changing `css_to_ada.py`: run `tools/generate_example_styles.sh` or `alr build` (which triggers it via post-build).
+- **Rebuild generated styles** after changing `css_to_ada.py`: run `tools/generate_example_styles.sh`.
 - **Both parsers must agree**: The runtime parser and the Python generator must produce equivalent `Style_Rules` fields for the same CSS input. If one supports a property, the other must too.

@@ -56,6 +56,13 @@ Key features:
 - Text size calculation
 - Glyph queries and metrics
 
+### Adi.SDL.TTF.TextEngine (adi-sdl-ttf-textengine.ads)
+**Persistent `TTF_Text` objects**
+- Renderer-backed and surface-backed text engines
+- Text creation, font/colour/string/position/wrap-width updates
+- Per-line substring metrics
+- Draw command enumeration (`NOOP`, `FILL`, `COPY`) and draw operations
+
 ### Adi.SDL.Surface (adi-sdl-surface.ads)
 **Software-based image manipulation**
 - Surface types and pixel formats
@@ -92,6 +99,16 @@ Key features:
 ### Adi.SDL.Image (adi-sdl-image.ads)
 **Image file loading**
 - Image loading via SDL3_image
+
+### Adi.SDL.IO (adi-sdl-io.ads)
+**IO streams**
+- Opaque `SDL_IOStream`
+- Streams over constant memory, for decoding bundled assets without a file
+
+### Adi.SDL.Locale (adi-sdl-locale.ads)
+**Preferred locales**
+- `SDL_Locale` record (language, country)
+- Query of the user's preferred locale list, used by `Adi.I18N`
 
 ## Binding Pattern
 

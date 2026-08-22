@@ -878,6 +878,12 @@ package body Adi.Layout_Util is
          --  CSS Flexbox 9.7 step 1.
          Sum_Asked : Pixel_Type := 0.0;
          Use_Grow  : Boolean;
+
+         --  The space the line has to place once the items that cannot
+         --  flex are settled. Factors summing under one are a fraction
+         --  of this, so it is read once and does not follow the loop.
+         --  CSS Flexbox 9.7 step 3.
+         Initial_Free : Pixel_Type := 0.0;
       begin
          for I in Children'Range loop
             Sum_Asked := Sum_Asked + Hypothetical_Main_Size (Children (I));
@@ -915,6 +921,11 @@ package body Adi.Layout_Util is
             end;
          end loop;
 
+         for I in Children'Range loop
+            Initial_Free := Initial_Free + Children (I).Computed_Main;
+         end loop;
+         Initial_Free := Available_Space - Initial_Free;
+
          for Pass in 1 .. Num_Children loop
             exit when not Any_Unfrozen;
 
@@ -926,6 +937,11 @@ package body Adi.Layout_Util is
                Remain  : Pixel_Type;
                Growing : Boolean;
                Violated : Boolean := False;
+
+               --  The factors themselves, which is what decides whether
+               --  the line is fully spoken for. Distinct from Weights,
+               --  which scales a shrink factor by the item's size.
+               Factors : Float := 0.0;
             begin
                for I in Children'Range loop
                   Used := Used + Children (I).Computed_Main;
@@ -942,15 +958,39 @@ package body Adi.Layout_Util is
                      begin
                         if Growing then
                            Weights := Weights + Child.Flex_Grow;
+                           Factors := Factors + Child.Flex_Grow;
                         else
                            Weights := Weights + Child.Flex_Shrink
                                                 * Float (Child.Computed_Main);
+                           Factors := Factors + Child.Flex_Shrink;
                         end if;
                      end;
                   end if;
                end loop;
 
                exit when Weights <= 0.0;
+
+               --  Factors that do not reach one between them claim only
+               --  that fraction of the space the line started with, and
+               --  the remainder stays unplaced. Without this a lone item
+               --  at flex-grow: 0.5 takes a full share, since its share
+               --  of the only factor on the line is all of it.
+               --  CSS Flexbox 9.7 step 4b.
+               if Factors < 1.0 then
+                  declare
+                     Fraction : constant Pixel_Type :=
+                       Initial_Free * Pixel_Type (Factors);
+                  begin
+                     --  Only where it still points the way the line is
+                     --  going: a pass that has turned around would other-
+                     --  wise be handed space measured against the turn.
+                     if (Fraction >= 0.0) = (Remain >= 0.0)
+                       and then abs Fraction < abs Remain
+                     then
+                        Remain := Fraction;
+                     end if;
+                  end;
+               end if;
 
                for I in Children'Range loop
                   if not Frozen (I) then

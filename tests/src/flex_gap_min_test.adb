@@ -618,6 +618,89 @@ procedure Flex_Gap_Min_Test is
    end Test_A_Late_Floor_Does_Not_Overflow_The_Row;
 
    ---------------------------------------------------------------------------
+   --  Flex factors are a fraction of the free space, not merely a ratio
+   --  between the items. Where they sum to less than one they take that
+   --  fraction and leave the remainder of the line unfilled; only once
+   --  they reach one is the whole of it spoken for.
+   --  CSS Flexbox 9.7 step 4b.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Factors_Under_One_Leave_Space_Unfilled is
+      Outer_W : constant Pixel_Type := 200.0;
+
+      function Grown (Factor : Float; Kids : Positive) return Pixel_Type is
+         Rules : constant Style_Rules :=
+           (Flex_Basis => Set (Basis (Px (0.0))),
+            Flex_Grow  => Set (Flex_Grow_Value (Factor)),
+            Min_Width  => Set (Size (Px (0.0))),
+            others     => <>);
+         Outer : constant Widget_Handle := New_Box;
+         First : Widget_Handle;
+      begin
+         Set_Part_Style (Outer, Main_Part, From (Row_Rules).Build);
+         for K in 1 .. Kids loop
+            declare
+               Kid : constant Widget_Handle := New_Box;
+            begin
+               Set_Part_Style (Kid, Main_Part, From (Rules).Build);
+               Add_Child (Outer, Kid);
+               if K = 1 then
+                  First := Kid;
+               end if;
+            end;
+         end loop;
+
+         Set_Geometry (Outer, (0.0, 0.0, Outer_W, 200.0));
+         Layout (Outer);
+
+         return Get_Geometry (First).Width;
+      end Grown;
+   begin
+      Section ("factors under one leave the rest of the line unfilled");
+
+      Assert_Close (Grown (0.5, 1), Outer_W * 0.5,
+                    "a lone item at 0.5 takes half the free space");
+      Assert_Close (Grown (0.25, 2), Outer_W * 0.25,
+                    "two at 0.25 take a quarter each, half the row unused");
+      Assert_Close (Grown (0.5, 2), Outer_W * 0.5,
+                    "two at 0.5 sum to one and share the whole row");
+      Assert_Close (Grown (1.0, 1), Outer_W,
+                    "and a lone item at one still takes all of it");
+   end Test_Factors_Under_One_Leave_Space_Unfilled;
+
+   ---------------------------------------------------------------------------
+   --  The same fraction applies to shrinking: half a shrink factor gives
+   --  up half the overflow and the item stays over the line.
+   ---------------------------------------------------------------------------
+
+   procedure Test_A_Half_Shrink_Gives_Up_Half_The_Overflow is
+      Outer_W : constant Pixel_Type := 100.0;
+      Basis_W : constant Pixel_Type := 200.0;
+
+      Slow : constant Style_Rules :=
+        (Flex_Basis  => Set (Basis (Px (Float (Basis_W)))),
+         Flex_Grow   => Set (0.0),
+         Flex_Shrink => Set (0.5),
+         Min_Width   => Set (Size (Px (0.0))),
+         others      => <>);
+
+      Outer : constant Widget_Handle := New_Box;
+      Only  : constant Widget_Handle := New_Box;
+   begin
+      Section ("half a shrink factor gives up half the overflow");
+
+      Set_Part_Style (Outer, Main_Part, From (Row_Rules).Build);
+      Set_Part_Style (Only, Main_Part, From (Slow).Build);
+      Add_Child (Outer, Only);
+
+      Set_Geometry (Outer, (0.0, 0.0, Outer_W, 200.0));
+      Layout (Outer);
+
+      Assert_Close (Get_Geometry (Only).Width, 150.0,
+                    "it gives up half of the hundred it overflows by");
+   end Test_A_Half_Shrink_Gives_Up_Half_The_Overflow;
+
+   ---------------------------------------------------------------------------
    --  The shape a toolbar takes: a run of rigid controls holding their
    --  own widths and one field growing into what they leave.
    ---------------------------------------------------------------------------
@@ -692,6 +775,8 @@ begin
    Test_A_Cap_Decides_The_Factor_Not_The_Basis;
    Test_A_Capped_Basis_Is_Not_An_Overflow;
    Test_A_Late_Floor_Does_Not_Overflow_The_Row;
+   Test_Factors_Under_One_Leave_Space_Unfilled;
+   Test_A_Half_Shrink_Gives_Up_Half_The_Overflow;
    Test_A_Toolbar_Row_Fits_Its_Container;
 
    Finish;

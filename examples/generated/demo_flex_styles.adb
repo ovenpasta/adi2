@@ -516,6 +516,41 @@ package body Demo_Flex_Styles is
    end Register_Selectors_73;
    pragma No_Inline (Register_Selectors_73);
 
+   procedure Register_Selectors_74
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("floored-wide", Floored_Wide_Class_Part_Styles));
+   end Register_Selectors_74;
+   pragma No_Inline (Register_Selectors_74);
+
+   procedure Register_Selectors_75
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("based", Based_Class_Part_Styles));
+   end Register_Selectors_75;
+   pragma No_Inline (Register_Selectors_75);
+
+   procedure Register_Selectors_76
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("triple", Triple_Class_Part_Styles));
+   end Register_Selectors_76;
+   pragma No_Inline (Register_Selectors_76);
+
+   procedure Register_Selectors_77
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("ceiling", Ceiling_Class_Part_Styles));
+   end Register_Selectors_77;
+   pragma No_Inline (Register_Selectors_77);
+
+   procedure Register_Selectors_78
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("plain-grow", Plain_Grow_Class_Part_Styles));
+   end Register_Selectors_78;
+   pragma No_Inline (Register_Selectors_78);
+
    procedure Register_Selectors
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
@@ -592,6 +627,11 @@ package body Demo_Flex_Styles is
       Register_Selectors_71 (S);
       Register_Selectors_72 (S);
       Register_Selectors_73 (S);
+      Register_Selectors_74 (S);
+      Register_Selectors_75 (S);
+      Register_Selectors_76 (S);
+      Register_Selectors_77 (S);
+      Register_Selectors_78 (S);
    end Register_Selectors;
 
 end Demo_Flex_Styles;

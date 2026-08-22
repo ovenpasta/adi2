@@ -308,3 +308,45 @@
   min-width: 0px;
   background-color: rgb(180, 142, 173);
 }
+
+/* A floor well above the share it is due, so the line freezes it and
+   makes a second pass at what is left over it. */
+.floored-wide {
+  flex-basis: 0px;
+  flex-grow: 1;
+  min-width: 260px;
+  background-color: rgb(191, 97, 106);
+}
+
+/* Sharing that second pass: one with a basis to build on, one with
+   three times the factor and nothing to start from. */
+.based {
+  flex-basis: 160px;
+  flex-grow: 1;
+  min-width: 0px;
+  background-color: rgb(163, 190, 140);
+}
+
+.triple {
+  flex-basis: 0px;
+  flex-grow: 3;
+  min-width: 0px;
+  background-color: rgb(94, 129, 172);
+}
+
+/* A ceiling, not a target: with the floor above taking more than its
+   share, this settles below its cap rather than holding it. */
+.ceiling {
+  flex-basis: 0px;
+  flex-grow: 1;
+  min-width: 0px;
+  max-width: 112px;
+  background-color: rgb(180, 142, 173);
+}
+
+.plain-grow {
+  flex-basis: 0px;
+  flex-grow: 1;
+  min-width: 0px;
+  background-color: rgb(163, 190, 140);
+}

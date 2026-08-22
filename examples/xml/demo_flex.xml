@@ -227,6 +227,25 @@
           <box class="item bar frac-half"/>
         </box>
       </box>
+
+      <!-- what a second pass does with what is left -->
+      <box class="section">
+        <label text="after a floor freezes" class="caption"/>
+        <label text="The red item's floor takes more of the row than its factor was due, so it freezes and the rest is shared again. That share starts from each item's own basis, in the proportion of the factors: green begins at 160px and blue has three times the factor but nothing to begin with, so green stays the wider of the two. Below, the purple item's maximum is a ceiling rather than a target — with the floor above taking more than its share there is less to go round, and purple settles under its cap, level with the green beside it."
+               class="note"/>
+        <label text="a floor, a basis of 160px, and three times the factor" class="case-label"/>
+        <box class="demo short w480">
+          <box class="item bar floored-wide"/>
+          <box class="item bar based"/>
+          <box class="item bar triple"/>
+        </box>
+        <label text="a floor, a cap of 112px, and a plain share" class="case-label"/>
+        <box class="demo short w480">
+          <box class="item bar floored-wide"/>
+          <box class="item bar ceiling"/>
+          <box class="item bar plain-grow"/>
+        </box>
+      </box>
       <!-- flex-wrap -->
       <box class="section">
         <label text="flex-wrap" class="caption"/>

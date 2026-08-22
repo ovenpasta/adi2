@@ -588,6 +588,52 @@ package Demo_Flex_Styles is
       Background_Color => Set_Bg (RGB (180, 142, 173)),
       others => <>);
 
+   --  Base style for class 'floored-wide'
+   function Floored_Wide_Class_Base_Style return Style_Rules is
+     (
+      Flex_Basis => Set (Basis (Px (0.0))),
+      Flex_Grow => Set (1.0),
+      Min_Width => Set (Size (Px (260.0))),
+      Background_Color => Set_Bg (RGB (191, 97, 106)),
+      others => <>);
+
+   --  Base style for class 'based'
+   function Based_Class_Base_Style return Style_Rules is
+     (
+      Flex_Basis => Set (Basis (Px (160.0))),
+      Flex_Grow => Set (1.0),
+      Min_Width => Set (Size (Px (0.0))),
+      Background_Color => Set_Bg (RGB (163, 190, 140)),
+      others => <>);
+
+   --  Base style for class 'triple'
+   function Triple_Class_Base_Style return Style_Rules is
+     (
+      Flex_Basis => Set (Basis (Px (0.0))),
+      Flex_Grow => Set (3.0),
+      Min_Width => Set (Size (Px (0.0))),
+      Background_Color => Set_Bg (RGB (94, 129, 172)),
+      others => <>);
+
+   --  Base style for class 'ceiling'
+   function Ceiling_Class_Base_Style return Style_Rules is
+     (
+      Flex_Basis => Set (Basis (Px (0.0))),
+      Flex_Grow => Set (1.0),
+      Min_Width => Set (Size (Px (0.0))),
+      Max_Width => Set (Size (Px (112.0))),
+      Background_Color => Set_Bg (RGB (180, 142, 173)),
+      others => <>);
+
+   --  Base style for class 'plain-grow'
+   function Plain_Grow_Class_Base_Style return Style_Rules is
+     (
+      Flex_Basis => Set (Basis (Px (0.0))),
+      Flex_Grow => Set (1.0),
+      Min_Width => Set (Size (Px (0.0))),
+      Background_Color => Set_Bg (RGB (163, 190, 140)),
+      others => <>);
+
    --  Complete widget style for class 'root'
    function Root_Class_Widget return Widget_Style is
      (From (Root_Class_Base_Style)
@@ -1481,6 +1527,66 @@ package Demo_Flex_Styles is
    function Frac_Quarter_Class_Part_Styles return Part_Style_Array is
      ([
       Main_Part => (Style => Frac_Quarter_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'floored-wide'
+   function Floored_Wide_Class_Widget return Widget_Style is
+     (From (Floored_Wide_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'floored-wide'
+   function Floored_Wide_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Floored_Wide_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'based'
+   function Based_Class_Widget return Widget_Style is
+     (From (Based_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'based'
+   function Based_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Based_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'triple'
+   function Triple_Class_Widget return Widget_Style is
+     (From (Triple_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'triple'
+   function Triple_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Triple_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'ceiling'
+   function Ceiling_Class_Widget return Widget_Style is
+     (From (Ceiling_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'ceiling'
+   function Ceiling_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Ceiling_Class_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'plain-grow'
+   function Plain_Grow_Class_Widget return Widget_Style is
+     (From (Plain_Grow_Class_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'plain-grow'
+   function Plain_Grow_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Plain_Grow_Class_Widget, Enabled => True),
       others => <>
    ]);
 

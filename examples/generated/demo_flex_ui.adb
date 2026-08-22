@@ -245,148 +245,161 @@ package body Demo_Flex_UI is
       Box_106 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_107 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_108 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_55 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-wrap");
-      Label_56 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Four 40px tiles in a 170px row, aligned to the start of their line. nowrap keeps one line and lets it run past the border; wrap breaks where the next tile stops fitting; wrap-reverse builds the lines from the bottom up and takes the start of each line with it, so the short tile drops instead of rising.");
+      Label_55 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("after a floor freezes");
+      Label_56 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("The red item's floor takes more of the row than its factor was due, so it freezes and the rest is shared again. That share starts from each item's own basis, in the proportion of the factors: green begins at 160px and blue has three times the factor but nothing to begin with, so green stays the wider of the two. Below, the purple item's maximum is a ceiling rather than a target — with the floor above taking more than its share there is less to go round, and purple settles under its cap, level with the green beside it.");
+      Label_57 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("a floor, a basis of 160px, and three times the factor");
       Box_109 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_110 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_57 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("nowrap");
       Box_111 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_58 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_59 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_60 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_61 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
       Box_112 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_62 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("wrap");
+      Label_58 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("a floor, a cap of 112px, and a plain share");
       Box_113 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_63 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_64 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_65 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_66 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
       Box_114 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_67 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("wrap-reverse");
       Box_115 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_68 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_69 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_70 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_71 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
       Box_116 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_72 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("align-content");
-      Label_73 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Where the lines sit once they are formed. Each row wraps into two lines and has cross-axis space left over; stretch is the only value that grows the lines themselves to take it up.");
       Box_117 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_59 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-wrap");
+      Label_60 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Four 40px tiles in a 170px row, aligned to the start of their line. nowrap keeps one line and lets it run past the border; wrap breaks where the next tile stops fitting; wrap-reverse builds the lines from the bottom up and takes the start of each line with it, so the short tile drops instead of rising.");
       Box_118 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_74 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-start");
       Box_119 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_75 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_76 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_77 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_78 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Label_61 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("nowrap");
       Box_120 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_79 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("center");
+      Label_62 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_63 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_64 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_65 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
       Box_121 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_80 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_81 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_82 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_83 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Label_66 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("wrap");
       Box_122 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_84 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-end");
+      Label_67 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_68 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_69 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_70 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
       Box_123 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_85 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_86 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_87 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_88 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Label_71 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("wrap-reverse");
       Box_124 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_89 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("space-between");
+      Label_72 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_73 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_74 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_75 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
       Box_125 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_90 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_91 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_92 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_93 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Label_76 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("align-content");
+      Label_77 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Where the lines sit once they are formed. Each row wraps into two lines and has cross-axis space left over; stretch is the only value that grows the lines themselves to take it up.");
       Box_126 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_94 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("space-around");
       Box_127 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_95 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_96 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_97 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_98 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Label_78 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-start");
       Box_128 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_99 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("stretch");
+      Label_79 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_80 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_81 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_82 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
       Box_129 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_100 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_101 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_102 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_103 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Label_83 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("center");
       Box_130 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_104 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("align-self");
-      Label_105 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("One item stepping out of the row's align-items: flex-start. Item 2 takes its own value; the others stay where the container put them.");
+      Label_84 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_85 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_86 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_87 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
       Box_131 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_88 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-end");
       Box_132 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_106 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("center");
+      Label_89 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_90 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_91 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_92 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
       Box_133 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_107 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_108 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_109 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_93 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("space-between");
       Box_134 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_110 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-end");
+      Label_94 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_95 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_96 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_97 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
       Box_135 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_98 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("space-around");
+      Box_136 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_99 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_100 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_101 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_102 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Box_137 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_103 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("stretch");
+      Box_138 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_104 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_105 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_106 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_107 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Box_139 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_108 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("align-self");
+      Label_109 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("One item stepping out of the row's align-items: flex-start. Item 2 takes its own value; the others stay where the container put them.");
+      Box_140 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Box_141 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_110 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("center");
+      Box_142 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Label_111 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
       Label_112 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
       Label_113 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Box_136 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_114 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("stretch");
-      Box_137 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Box_143 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_114 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-end");
+      Box_144 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Label_115 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
       Label_116 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
       Label_117 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Box_138 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_118 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("row-gap and column-gap");
-      Label_119 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("The two axes are separate. In a wrapping row, column-gap sits between items on a line and row-gap sits between the lines; gap names both at once, rows first.");
-      Box_139 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Box_140 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_120 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("row-gap: 24px");
-      Box_141 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_121 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_122 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_123 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_124 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
-      Box_142 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_125 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("column-gap: 24px");
-      Box_143 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_126 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_127 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_128 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_129 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
-      Box_144 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_130 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("gap: 24px 6px");
       Box_145 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_131 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_132 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_133 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_134 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Label_118 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("stretch");
       Box_146 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_135 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("align-items across lines");
-      Label_136 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Each line is as deep as its own deepest item, and alignment happens inside that line rather than across the whole box. The first line is 46px deep and the second 34px, so the shallow item on each lands at a different offset under the same value.");
+      Label_119 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_120 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_121 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
       Box_147 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_122 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("row-gap and column-gap");
+      Label_123 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("The two axes are separate. In a wrapping row, column-gap sits between items on a line and row-gap sits between the lines; gap names both at once, rows first.");
       Box_148 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_137 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-start");
       Box_149 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_138 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_139 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_140 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_141 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Label_124 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("row-gap: 24px");
       Box_150 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_142 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("center");
+      Label_125 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_126 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_127 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_128 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
       Box_151 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_143 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_144 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_145 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_146 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Label_129 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("column-gap: 24px");
       Box_152 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_147 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-end");
+      Label_130 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_131 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_132 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_133 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
       Box_153 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
-      Label_148 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
-      Label_149 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
-      Label_150 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
-      Label_151 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Label_134 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("gap: 24px 6px");
+      Box_154 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_135 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_136 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_137 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_138 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Box_155 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_139 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("align-items across lines");
+      Label_140 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Each line is as deep as its own deepest item, and alignment happens inside that line rather than across the whole box. The first line is 46px deep and the second 34px, so the shallow item on each lands at a different offset under the same value.");
+      Box_156 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Box_157 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_141 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-start");
+      Box_158 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_142 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_143 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_144 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_145 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Box_159 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_146 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("center");
+      Box_160 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_147 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_148 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_149 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_150 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Box_161 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_151 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex-end");
+      Box_162 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_152 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_153 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_154 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_155 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
    begin
       --  Create widgets
       Root := Adi.Widget.Box.Create_Handle;
@@ -1248,69 +1261,104 @@ package body Demo_Flex_UI is
          Class_Name => "note");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_109,
-         Tag_Name   => "box",
-         Class_Name => "cases");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_110,
-         Tag_Name   => "box",
-         Class_Name => "case");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
          W          => +Label_57,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
+         W          => +Box_109,
+         Tag_Name   => "box",
+         Class_Name => "demo short w480");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_110,
+         Tag_Name   => "box",
+         Class_Name => "item bar floored-wide");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
          W          => +Box_111,
          Tag_Name   => "box",
-         Class_Name => "demo h120 w170 nowrap align-start-items");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Label_58,
-         Tag_Name   => "label",
-         Class_Name => "item tile");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Label_59,
-         Tag_Name   => "label",
-         Class_Name => "item tile tile-short");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Label_60,
-         Tag_Name   => "label",
-         Class_Name => "item tile");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Label_61,
-         Tag_Name   => "label",
-         Class_Name => "item tile");
+         Class_Name => "item bar based");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Box_112,
          Tag_Name   => "box",
-         Class_Name => "case");
+         Class_Name => "item bar triple");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_62,
+         W          => +Label_58,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Box_113,
          Tag_Name   => "box",
-         Class_Name => "demo h120 w170 wrap ac-start align-start-items");
+         Class_Name => "demo short w480");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_63,
+         W          => +Box_114,
+         Tag_Name   => "box",
+         Class_Name => "item bar floored-wide");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_115,
+         Tag_Name   => "box",
+         Class_Name => "item bar ceiling");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_116,
+         Tag_Name   => "box",
+         Class_Name => "item bar plain-grow");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_117,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_59,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_60,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_118,
+         Tag_Name   => "box",
+         Class_Name => "cases");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_119,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_61,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_120,
+         Tag_Name   => "box",
+         Class_Name => "demo h120 w170 nowrap align-start-items");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_62,
          Tag_Name   => "label",
          Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_64,
+         W          => +Label_63,
          Tag_Name   => "label",
          Class_Name => "item tile tile-short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_64,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_65,
@@ -1318,34 +1366,34 @@ package body Demo_Flex_UI is
          Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_66,
-         Tag_Name   => "label",
-         Class_Name => "item tile");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_114,
+         W          => +Box_121,
          Tag_Name   => "box",
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_67,
+         W          => +Label_66,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_115,
+         W          => +Box_122,
          Tag_Name   => "box",
-         Class_Name => "demo h120 w170 wrap-reverse ac-start align-start-items");
+         Class_Name => "demo h120 w170 wrap ac-start align-start-items");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_68,
+         W          => +Label_67,
          Tag_Name   => "label",
          Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_69,
+         W          => +Label_68,
          Tag_Name   => "label",
          Class_Name => "item tile tile-short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_69,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_70,
@@ -1353,44 +1401,34 @@ package body Demo_Flex_UI is
          Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_71,
-         Tag_Name   => "label",
-         Class_Name => "item tile");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_116,
-         Tag_Name   => "box",
-         Class_Name => "section");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Label_72,
-         Tag_Name   => "label",
-         Class_Name => "caption");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Label_73,
-         Tag_Name   => "label",
-         Class_Name => "note");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_117,
-         Tag_Name   => "box",
-         Class_Name => "cases");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_118,
+         W          => +Box_123,
          Tag_Name   => "box",
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_74,
+         W          => +Label_71,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_119,
+         W          => +Box_124,
          Tag_Name   => "box",
-         Class_Name => "demo h120 w170 wrap ac-start");
+         Class_Name => "demo h120 w170 wrap-reverse ac-start align-start-items");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_72,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_73,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_74,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_75,
@@ -1398,34 +1436,44 @@ package body Demo_Flex_UI is
          Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
+         W          => +Box_125,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
          W          => +Label_76,
          Tag_Name   => "label",
-         Class_Name => "item tile");
+         Class_Name => "caption");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_77,
          Tag_Name   => "label",
-         Class_Name => "item tile");
+         Class_Name => "note");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_78,
-         Tag_Name   => "label",
-         Class_Name => "item tile");
+         W          => +Box_126,
+         Tag_Name   => "box",
+         Class_Name => "cases");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_120,
+         W          => +Box_127,
          Tag_Name   => "box",
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_79,
+         W          => +Label_78,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_121,
+         W          => +Box_128,
          Tag_Name   => "box",
-         Class_Name => "demo h120 w170 wrap ac-center");
+         Class_Name => "demo h120 w170 wrap ac-start");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_79,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_80,
@@ -1443,24 +1491,24 @@ package body Demo_Flex_UI is
          Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_83,
-         Tag_Name   => "label",
-         Class_Name => "item tile");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_122,
+         W          => +Box_129,
          Tag_Name   => "box",
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_84,
+         W          => +Label_83,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_123,
+         W          => +Box_130,
          Tag_Name   => "box",
-         Class_Name => "demo h120 w170 wrap ac-end");
+         Class_Name => "demo h120 w170 wrap ac-center");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_84,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_85,
@@ -1478,24 +1526,24 @@ package body Demo_Flex_UI is
          Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_88,
-         Tag_Name   => "label",
-         Class_Name => "item tile");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_124,
+         W          => +Box_131,
          Tag_Name   => "box",
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_89,
+         W          => +Label_88,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_125,
+         W          => +Box_132,
          Tag_Name   => "box",
-         Class_Name => "demo h120 w170 wrap ac-between");
+         Class_Name => "demo h120 w170 wrap ac-end");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_89,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_90,
@@ -1513,24 +1561,24 @@ package body Demo_Flex_UI is
          Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_93,
-         Tag_Name   => "label",
-         Class_Name => "item tile");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_126,
+         W          => +Box_133,
          Tag_Name   => "box",
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_94,
+         W          => +Label_93,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_127,
+         W          => +Box_134,
          Tag_Name   => "box",
-         Class_Name => "demo h120 w170 wrap ac-around");
+         Class_Name => "demo h120 w170 wrap ac-between");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_94,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_95,
@@ -1548,24 +1596,24 @@ package body Demo_Flex_UI is
          Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_98,
-         Tag_Name   => "label",
-         Class_Name => "item tile");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_128,
+         W          => +Box_135,
          Tag_Name   => "box",
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_99,
+         W          => +Label_98,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_129,
+         W          => +Box_136,
          Tag_Name   => "box",
-         Class_Name => "demo h120 w170 wrap ac-stretch");
+         Class_Name => "demo h120 w170 wrap ac-around");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_99,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_100,
@@ -1583,62 +1631,62 @@ package body Demo_Flex_UI is
          Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_103,
-         Tag_Name   => "label",
-         Class_Name => "item tile");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_130,
-         Tag_Name   => "box",
-         Class_Name => "section");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Label_104,
-         Tag_Name   => "label",
-         Class_Name => "caption");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Label_105,
-         Tag_Name   => "label",
-         Class_Name => "note");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_131,
-         Tag_Name   => "box",
-         Class_Name => "cases");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_132,
+         W          => +Box_137,
          Tag_Name   => "box",
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_106,
+         W          => +Label_103,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_133,
+         W          => +Box_138,
          Tag_Name   => "box",
-         Class_Name => "demo tall align-start");
+         Class_Name => "demo h120 w170 wrap ac-stretch");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_104,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_105,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_106,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_107,
          Tag_Name   => "label",
-         Class_Name => "item h20");
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_139,
+         Tag_Name   => "box",
+         Class_Name => "section");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_108,
          Tag_Name   => "label",
-         Class_Name => "item h20 self-center");
+         Class_Name => "caption");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_109,
          Tag_Name   => "label",
-         Class_Name => "item h20");
+         Class_Name => "note");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_134,
+         W          => +Box_140,
+         Tag_Name   => "box",
+         Class_Name => "cases");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_141,
          Tag_Name   => "box",
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
@@ -1648,7 +1696,7 @@ package body Demo_Flex_UI is
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_135,
+         W          => +Box_142,
          Tag_Name   => "box",
          Class_Name => "demo tall align-start");
       Adi.CSS_Source.Bind_Selector_Set
@@ -1660,7 +1708,7 @@ package body Demo_Flex_UI is
         (Source     => Source,
          W          => +Label_112,
          Tag_Name   => "label",
-         Class_Name => "item h20 self-end");
+         Class_Name => "item h20 self-center");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_113,
@@ -1668,7 +1716,7 @@ package body Demo_Flex_UI is
          Class_Name => "item h20");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_136,
+         W          => +Box_143,
          Tag_Name   => "box",
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
@@ -1678,7 +1726,7 @@ package body Demo_Flex_UI is
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_137,
+         W          => +Box_144,
          Tag_Name   => "box",
          Class_Name => "demo tall align-start");
       Adi.CSS_Source.Bind_Selector_Set
@@ -1690,7 +1738,7 @@ package body Demo_Flex_UI is
         (Source     => Source,
          W          => +Label_116,
          Tag_Name   => "label",
-         Class_Name => "item self-stretch");
+         Class_Name => "item h20 self-end");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_117,
@@ -1698,74 +1746,74 @@ package body Demo_Flex_UI is
          Class_Name => "item h20");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_138,
+         W          => +Box_145,
          Tag_Name   => "box",
-         Class_Name => "section");
+         Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_118,
          Tag_Name   => "label",
-         Class_Name => "caption");
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_146,
+         Tag_Name   => "box",
+         Class_Name => "demo tall align-start");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_119,
          Tag_Name   => "label",
-         Class_Name => "note");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_139,
-         Tag_Name   => "box",
-         Class_Name => "cases");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_140,
-         Tag_Name   => "box",
-         Class_Name => "case");
+         Class_Name => "item h20");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_120,
          Tag_Name   => "label",
-         Class_Name => "case-label");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_141,
-         Tag_Name   => "box",
-         Class_Name => "demo h120 w170 wrap ac-start gap-row");
+         Class_Name => "item self-stretch");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_121,
          Tag_Name   => "label",
-         Class_Name => "item tile");
+         Class_Name => "item h20");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_147,
+         Tag_Name   => "box",
+         Class_Name => "section");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_122,
          Tag_Name   => "label",
-         Class_Name => "item tile");
+         Class_Name => "caption");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_123,
          Tag_Name   => "label",
-         Class_Name => "item tile");
+         Class_Name => "note");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_124,
-         Tag_Name   => "label",
-         Class_Name => "item tile");
+         W          => +Box_148,
+         Tag_Name   => "box",
+         Class_Name => "cases");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_142,
+         W          => +Box_149,
          Tag_Name   => "box",
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_125,
+         W          => +Label_124,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_143,
+         W          => +Box_150,
          Tag_Name   => "box",
-         Class_Name => "demo h120 w170 wrap ac-start gap-column");
+         Class_Name => "demo h120 w170 wrap ac-start gap-row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_125,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_126,
@@ -1783,24 +1831,24 @@ package body Demo_Flex_UI is
          Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_129,
-         Tag_Name   => "label",
-         Class_Name => "item tile");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_144,
+         W          => +Box_151,
          Tag_Name   => "box",
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_130,
+         W          => +Label_129,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_145,
+         W          => +Box_152,
          Tag_Name   => "box",
-         Class_Name => "demo h120 w170 wrap ac-start gap-both");
+         Class_Name => "demo h120 w170 wrap ac-start gap-column");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_130,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_131,
@@ -1818,132 +1866,162 @@ package body Demo_Flex_UI is
          Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_134,
-         Tag_Name   => "label",
-         Class_Name => "item tile");
+         W          => +Box_153,
+         Tag_Name   => "box",
+         Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_146,
+         W          => +Label_134,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_154,
          Tag_Name   => "box",
-         Class_Name => "section");
+         Class_Name => "demo h120 w170 wrap ac-start gap-both");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_135,
          Tag_Name   => "label",
-         Class_Name => "caption");
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_136,
          Tag_Name   => "label",
-         Class_Name => "note");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_147,
-         Tag_Name   => "box",
-         Class_Name => "cases");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_148,
-         Tag_Name   => "box",
-         Class_Name => "case");
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_137,
          Tag_Name   => "label",
-         Class_Name => "case-label");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_149,
-         Tag_Name   => "box",
-         Class_Name => "demo h150 w110 wrap ac-start align-start");
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_138,
          Tag_Name   => "label",
-         Class_Name => "item tile tile-deep");
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_155,
+         Tag_Name   => "box",
+         Class_Name => "section");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_139,
          Tag_Name   => "label",
-         Class_Name => "item tile tile-short");
+         Class_Name => "caption");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_140,
          Tag_Name   => "label",
-         Class_Name => "item tile");
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_156,
+         Tag_Name   => "box",
+         Class_Name => "cases");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_157,
+         Tag_Name   => "box",
+         Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_141,
          Tag_Name   => "label",
-         Class_Name => "item tile tile-short");
+         Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_150,
+         W          => +Box_158,
          Tag_Name   => "box",
-         Class_Name => "case");
+         Class_Name => "demo h150 w110 wrap ac-start align-start");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_142,
          Tag_Name   => "label",
-         Class_Name => "case-label");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Box_151,
-         Tag_Name   => "box",
-         Class_Name => "demo h150 w110 wrap ac-start align-center");
+         Class_Name => "item tile tile-deep");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_143,
          Tag_Name   => "label",
-         Class_Name => "item tile tile-deep");
+         Class_Name => "item tile tile-short");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_144,
          Tag_Name   => "label",
-         Class_Name => "item tile tile-short");
+         Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
          W          => +Label_145,
          Tag_Name   => "label",
-         Class_Name => "item tile");
-      Adi.CSS_Source.Bind_Selector_Set
-        (Source     => Source,
-         W          => +Label_146,
-         Tag_Name   => "label",
          Class_Name => "item tile tile-short");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_152,
+         W          => +Box_159,
          Tag_Name   => "box",
          Class_Name => "case");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_147,
+         W          => +Label_146,
          Tag_Name   => "label",
          Class_Name => "case-label");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Box_153,
+         W          => +Box_160,
          Tag_Name   => "box",
-         Class_Name => "demo h150 w110 wrap ac-start align-end");
+         Class_Name => "demo h150 w110 wrap ac-start align-center");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_148,
+         W          => +Label_147,
          Tag_Name   => "label",
          Class_Name => "item tile tile-deep");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_149,
+         W          => +Label_148,
          Tag_Name   => "label",
          Class_Name => "item tile tile-short");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
-         W          => +Label_150,
+         W          => +Label_149,
          Tag_Name   => "label",
          Class_Name => "item tile");
       Adi.CSS_Source.Bind_Selector_Set
         (Source     => Source,
+         W          => +Label_150,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_161,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
          W          => +Label_151,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_162,
+         Tag_Name   => "box",
+         Class_Name => "demo h150 w110 wrap ac-start align-end");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_152,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-deep");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_153,
+         Tag_Name   => "label",
+         Class_Name => "item tile tile-short");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_154,
+         Tag_Name   => "label",
+         Class_Name => "item tile");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_155,
          Tag_Name   => "label",
          Class_Name => "item tile tile-short");
 
@@ -2098,144 +2176,156 @@ package body Demo_Flex_UI is
       Adi.Widget.Add_Child (+Box_99, +Box_102);
       Adi.Widget.Add_Child (+Box_99, +Label_54);
       Adi.Widget.Add_Child (+Box_99, +Box_105);
-      Adi.Widget.Add_Child (+Box_111, +Label_58);
-      Adi.Widget.Add_Child (+Box_111, +Label_59);
-      Adi.Widget.Add_Child (+Box_111, +Label_60);
-      Adi.Widget.Add_Child (+Box_111, +Label_61);
-      Adi.Widget.Add_Child (+Box_110, +Label_57);
-      Adi.Widget.Add_Child (+Box_110, +Box_111);
-      Adi.Widget.Add_Child (+Box_113, +Label_63);
-      Adi.Widget.Add_Child (+Box_113, +Label_64);
-      Adi.Widget.Add_Child (+Box_113, +Label_65);
-      Adi.Widget.Add_Child (+Box_113, +Label_66);
-      Adi.Widget.Add_Child (+Box_112, +Label_62);
-      Adi.Widget.Add_Child (+Box_112, +Box_113);
-      Adi.Widget.Add_Child (+Box_115, +Label_68);
-      Adi.Widget.Add_Child (+Box_115, +Label_69);
-      Adi.Widget.Add_Child (+Box_115, +Label_70);
-      Adi.Widget.Add_Child (+Box_115, +Label_71);
-      Adi.Widget.Add_Child (+Box_114, +Label_67);
-      Adi.Widget.Add_Child (+Box_114, +Box_115);
       Adi.Widget.Add_Child (+Box_109, +Box_110);
+      Adi.Widget.Add_Child (+Box_109, +Box_111);
       Adi.Widget.Add_Child (+Box_109, +Box_112);
-      Adi.Widget.Add_Child (+Box_109, +Box_114);
+      Adi.Widget.Add_Child (+Box_113, +Box_114);
+      Adi.Widget.Add_Child (+Box_113, +Box_115);
+      Adi.Widget.Add_Child (+Box_113, +Box_116);
       Adi.Widget.Add_Child (+Box_108, +Label_55);
       Adi.Widget.Add_Child (+Box_108, +Label_56);
+      Adi.Widget.Add_Child (+Box_108, +Label_57);
       Adi.Widget.Add_Child (+Box_108, +Box_109);
-      Adi.Widget.Add_Child (+Box_119, +Label_75);
-      Adi.Widget.Add_Child (+Box_119, +Label_76);
-      Adi.Widget.Add_Child (+Box_119, +Label_77);
-      Adi.Widget.Add_Child (+Box_119, +Label_78);
-      Adi.Widget.Add_Child (+Box_118, +Label_74);
+      Adi.Widget.Add_Child (+Box_108, +Label_58);
+      Adi.Widget.Add_Child (+Box_108, +Box_113);
+      Adi.Widget.Add_Child (+Box_120, +Label_62);
+      Adi.Widget.Add_Child (+Box_120, +Label_63);
+      Adi.Widget.Add_Child (+Box_120, +Label_64);
+      Adi.Widget.Add_Child (+Box_120, +Label_65);
+      Adi.Widget.Add_Child (+Box_119, +Label_61);
+      Adi.Widget.Add_Child (+Box_119, +Box_120);
+      Adi.Widget.Add_Child (+Box_122, +Label_67);
+      Adi.Widget.Add_Child (+Box_122, +Label_68);
+      Adi.Widget.Add_Child (+Box_122, +Label_69);
+      Adi.Widget.Add_Child (+Box_122, +Label_70);
+      Adi.Widget.Add_Child (+Box_121, +Label_66);
+      Adi.Widget.Add_Child (+Box_121, +Box_122);
+      Adi.Widget.Add_Child (+Box_124, +Label_72);
+      Adi.Widget.Add_Child (+Box_124, +Label_73);
+      Adi.Widget.Add_Child (+Box_124, +Label_74);
+      Adi.Widget.Add_Child (+Box_124, +Label_75);
+      Adi.Widget.Add_Child (+Box_123, +Label_71);
+      Adi.Widget.Add_Child (+Box_123, +Box_124);
       Adi.Widget.Add_Child (+Box_118, +Box_119);
-      Adi.Widget.Add_Child (+Box_121, +Label_80);
-      Adi.Widget.Add_Child (+Box_121, +Label_81);
-      Adi.Widget.Add_Child (+Box_121, +Label_82);
-      Adi.Widget.Add_Child (+Box_121, +Label_83);
-      Adi.Widget.Add_Child (+Box_120, +Label_79);
-      Adi.Widget.Add_Child (+Box_120, +Box_121);
-      Adi.Widget.Add_Child (+Box_123, +Label_85);
-      Adi.Widget.Add_Child (+Box_123, +Label_86);
-      Adi.Widget.Add_Child (+Box_123, +Label_87);
-      Adi.Widget.Add_Child (+Box_123, +Label_88);
-      Adi.Widget.Add_Child (+Box_122, +Label_84);
-      Adi.Widget.Add_Child (+Box_122, +Box_123);
-      Adi.Widget.Add_Child (+Box_125, +Label_90);
-      Adi.Widget.Add_Child (+Box_125, +Label_91);
-      Adi.Widget.Add_Child (+Box_125, +Label_92);
-      Adi.Widget.Add_Child (+Box_125, +Label_93);
-      Adi.Widget.Add_Child (+Box_124, +Label_89);
-      Adi.Widget.Add_Child (+Box_124, +Box_125);
-      Adi.Widget.Add_Child (+Box_127, +Label_95);
-      Adi.Widget.Add_Child (+Box_127, +Label_96);
-      Adi.Widget.Add_Child (+Box_127, +Label_97);
-      Adi.Widget.Add_Child (+Box_127, +Label_98);
-      Adi.Widget.Add_Child (+Box_126, +Label_94);
-      Adi.Widget.Add_Child (+Box_126, +Box_127);
-      Adi.Widget.Add_Child (+Box_129, +Label_100);
-      Adi.Widget.Add_Child (+Box_129, +Label_101);
-      Adi.Widget.Add_Child (+Box_129, +Label_102);
-      Adi.Widget.Add_Child (+Box_129, +Label_103);
-      Adi.Widget.Add_Child (+Box_128, +Label_99);
-      Adi.Widget.Add_Child (+Box_128, +Box_129);
+      Adi.Widget.Add_Child (+Box_118, +Box_121);
+      Adi.Widget.Add_Child (+Box_118, +Box_123);
+      Adi.Widget.Add_Child (+Box_117, +Label_59);
+      Adi.Widget.Add_Child (+Box_117, +Label_60);
       Adi.Widget.Add_Child (+Box_117, +Box_118);
-      Adi.Widget.Add_Child (+Box_117, +Box_120);
-      Adi.Widget.Add_Child (+Box_117, +Box_122);
-      Adi.Widget.Add_Child (+Box_117, +Box_124);
-      Adi.Widget.Add_Child (+Box_117, +Box_126);
-      Adi.Widget.Add_Child (+Box_117, +Box_128);
-      Adi.Widget.Add_Child (+Box_116, +Label_72);
-      Adi.Widget.Add_Child (+Box_116, +Label_73);
-      Adi.Widget.Add_Child (+Box_116, +Box_117);
-      Adi.Widget.Add_Child (+Box_133, +Label_107);
-      Adi.Widget.Add_Child (+Box_133, +Label_108);
-      Adi.Widget.Add_Child (+Box_133, +Label_109);
-      Adi.Widget.Add_Child (+Box_132, +Label_106);
-      Adi.Widget.Add_Child (+Box_132, +Box_133);
-      Adi.Widget.Add_Child (+Box_135, +Label_111);
-      Adi.Widget.Add_Child (+Box_135, +Label_112);
-      Adi.Widget.Add_Child (+Box_135, +Label_113);
-      Adi.Widget.Add_Child (+Box_134, +Label_110);
-      Adi.Widget.Add_Child (+Box_134, +Box_135);
-      Adi.Widget.Add_Child (+Box_137, +Label_115);
-      Adi.Widget.Add_Child (+Box_137, +Label_116);
-      Adi.Widget.Add_Child (+Box_137, +Label_117);
-      Adi.Widget.Add_Child (+Box_136, +Label_114);
-      Adi.Widget.Add_Child (+Box_136, +Box_137);
+      Adi.Widget.Add_Child (+Box_128, +Label_79);
+      Adi.Widget.Add_Child (+Box_128, +Label_80);
+      Adi.Widget.Add_Child (+Box_128, +Label_81);
+      Adi.Widget.Add_Child (+Box_128, +Label_82);
+      Adi.Widget.Add_Child (+Box_127, +Label_78);
+      Adi.Widget.Add_Child (+Box_127, +Box_128);
+      Adi.Widget.Add_Child (+Box_130, +Label_84);
+      Adi.Widget.Add_Child (+Box_130, +Label_85);
+      Adi.Widget.Add_Child (+Box_130, +Label_86);
+      Adi.Widget.Add_Child (+Box_130, +Label_87);
+      Adi.Widget.Add_Child (+Box_129, +Label_83);
+      Adi.Widget.Add_Child (+Box_129, +Box_130);
+      Adi.Widget.Add_Child (+Box_132, +Label_89);
+      Adi.Widget.Add_Child (+Box_132, +Label_90);
+      Adi.Widget.Add_Child (+Box_132, +Label_91);
+      Adi.Widget.Add_Child (+Box_132, +Label_92);
+      Adi.Widget.Add_Child (+Box_131, +Label_88);
       Adi.Widget.Add_Child (+Box_131, +Box_132);
-      Adi.Widget.Add_Child (+Box_131, +Box_134);
-      Adi.Widget.Add_Child (+Box_131, +Box_136);
-      Adi.Widget.Add_Child (+Box_130, +Label_104);
-      Adi.Widget.Add_Child (+Box_130, +Label_105);
-      Adi.Widget.Add_Child (+Box_130, +Box_131);
-      Adi.Widget.Add_Child (+Box_141, +Label_121);
-      Adi.Widget.Add_Child (+Box_141, +Label_122);
-      Adi.Widget.Add_Child (+Box_141, +Label_123);
-      Adi.Widget.Add_Child (+Box_141, +Label_124);
-      Adi.Widget.Add_Child (+Box_140, +Label_120);
+      Adi.Widget.Add_Child (+Box_134, +Label_94);
+      Adi.Widget.Add_Child (+Box_134, +Label_95);
+      Adi.Widget.Add_Child (+Box_134, +Label_96);
+      Adi.Widget.Add_Child (+Box_134, +Label_97);
+      Adi.Widget.Add_Child (+Box_133, +Label_93);
+      Adi.Widget.Add_Child (+Box_133, +Box_134);
+      Adi.Widget.Add_Child (+Box_136, +Label_99);
+      Adi.Widget.Add_Child (+Box_136, +Label_100);
+      Adi.Widget.Add_Child (+Box_136, +Label_101);
+      Adi.Widget.Add_Child (+Box_136, +Label_102);
+      Adi.Widget.Add_Child (+Box_135, +Label_98);
+      Adi.Widget.Add_Child (+Box_135, +Box_136);
+      Adi.Widget.Add_Child (+Box_138, +Label_104);
+      Adi.Widget.Add_Child (+Box_138, +Label_105);
+      Adi.Widget.Add_Child (+Box_138, +Label_106);
+      Adi.Widget.Add_Child (+Box_138, +Label_107);
+      Adi.Widget.Add_Child (+Box_137, +Label_103);
+      Adi.Widget.Add_Child (+Box_137, +Box_138);
+      Adi.Widget.Add_Child (+Box_126, +Box_127);
+      Adi.Widget.Add_Child (+Box_126, +Box_129);
+      Adi.Widget.Add_Child (+Box_126, +Box_131);
+      Adi.Widget.Add_Child (+Box_126, +Box_133);
+      Adi.Widget.Add_Child (+Box_126, +Box_135);
+      Adi.Widget.Add_Child (+Box_126, +Box_137);
+      Adi.Widget.Add_Child (+Box_125, +Label_76);
+      Adi.Widget.Add_Child (+Box_125, +Label_77);
+      Adi.Widget.Add_Child (+Box_125, +Box_126);
+      Adi.Widget.Add_Child (+Box_142, +Label_111);
+      Adi.Widget.Add_Child (+Box_142, +Label_112);
+      Adi.Widget.Add_Child (+Box_142, +Label_113);
+      Adi.Widget.Add_Child (+Box_141, +Label_110);
+      Adi.Widget.Add_Child (+Box_141, +Box_142);
+      Adi.Widget.Add_Child (+Box_144, +Label_115);
+      Adi.Widget.Add_Child (+Box_144, +Label_116);
+      Adi.Widget.Add_Child (+Box_144, +Label_117);
+      Adi.Widget.Add_Child (+Box_143, +Label_114);
+      Adi.Widget.Add_Child (+Box_143, +Box_144);
+      Adi.Widget.Add_Child (+Box_146, +Label_119);
+      Adi.Widget.Add_Child (+Box_146, +Label_120);
+      Adi.Widget.Add_Child (+Box_146, +Label_121);
+      Adi.Widget.Add_Child (+Box_145, +Label_118);
+      Adi.Widget.Add_Child (+Box_145, +Box_146);
       Adi.Widget.Add_Child (+Box_140, +Box_141);
-      Adi.Widget.Add_Child (+Box_143, +Label_126);
-      Adi.Widget.Add_Child (+Box_143, +Label_127);
-      Adi.Widget.Add_Child (+Box_143, +Label_128);
-      Adi.Widget.Add_Child (+Box_143, +Label_129);
-      Adi.Widget.Add_Child (+Box_142, +Label_125);
-      Adi.Widget.Add_Child (+Box_142, +Box_143);
-      Adi.Widget.Add_Child (+Box_145, +Label_131);
-      Adi.Widget.Add_Child (+Box_145, +Label_132);
-      Adi.Widget.Add_Child (+Box_145, +Label_133);
-      Adi.Widget.Add_Child (+Box_145, +Label_134);
-      Adi.Widget.Add_Child (+Box_144, +Label_130);
-      Adi.Widget.Add_Child (+Box_144, +Box_145);
+      Adi.Widget.Add_Child (+Box_140, +Box_143);
+      Adi.Widget.Add_Child (+Box_140, +Box_145);
+      Adi.Widget.Add_Child (+Box_139, +Label_108);
+      Adi.Widget.Add_Child (+Box_139, +Label_109);
       Adi.Widget.Add_Child (+Box_139, +Box_140);
-      Adi.Widget.Add_Child (+Box_139, +Box_142);
-      Adi.Widget.Add_Child (+Box_139, +Box_144);
-      Adi.Widget.Add_Child (+Box_138, +Label_118);
-      Adi.Widget.Add_Child (+Box_138, +Label_119);
-      Adi.Widget.Add_Child (+Box_138, +Box_139);
-      Adi.Widget.Add_Child (+Box_149, +Label_138);
-      Adi.Widget.Add_Child (+Box_149, +Label_139);
-      Adi.Widget.Add_Child (+Box_149, +Label_140);
-      Adi.Widget.Add_Child (+Box_149, +Label_141);
-      Adi.Widget.Add_Child (+Box_148, +Label_137);
+      Adi.Widget.Add_Child (+Box_150, +Label_125);
+      Adi.Widget.Add_Child (+Box_150, +Label_126);
+      Adi.Widget.Add_Child (+Box_150, +Label_127);
+      Adi.Widget.Add_Child (+Box_150, +Label_128);
+      Adi.Widget.Add_Child (+Box_149, +Label_124);
+      Adi.Widget.Add_Child (+Box_149, +Box_150);
+      Adi.Widget.Add_Child (+Box_152, +Label_130);
+      Adi.Widget.Add_Child (+Box_152, +Label_131);
+      Adi.Widget.Add_Child (+Box_152, +Label_132);
+      Adi.Widget.Add_Child (+Box_152, +Label_133);
+      Adi.Widget.Add_Child (+Box_151, +Label_129);
+      Adi.Widget.Add_Child (+Box_151, +Box_152);
+      Adi.Widget.Add_Child (+Box_154, +Label_135);
+      Adi.Widget.Add_Child (+Box_154, +Label_136);
+      Adi.Widget.Add_Child (+Box_154, +Label_137);
+      Adi.Widget.Add_Child (+Box_154, +Label_138);
+      Adi.Widget.Add_Child (+Box_153, +Label_134);
+      Adi.Widget.Add_Child (+Box_153, +Box_154);
       Adi.Widget.Add_Child (+Box_148, +Box_149);
-      Adi.Widget.Add_Child (+Box_151, +Label_143);
-      Adi.Widget.Add_Child (+Box_151, +Label_144);
-      Adi.Widget.Add_Child (+Box_151, +Label_145);
-      Adi.Widget.Add_Child (+Box_151, +Label_146);
-      Adi.Widget.Add_Child (+Box_150, +Label_142);
-      Adi.Widget.Add_Child (+Box_150, +Box_151);
-      Adi.Widget.Add_Child (+Box_153, +Label_148);
-      Adi.Widget.Add_Child (+Box_153, +Label_149);
-      Adi.Widget.Add_Child (+Box_153, +Label_150);
-      Adi.Widget.Add_Child (+Box_153, +Label_151);
-      Adi.Widget.Add_Child (+Box_152, +Label_147);
-      Adi.Widget.Add_Child (+Box_152, +Box_153);
+      Adi.Widget.Add_Child (+Box_148, +Box_151);
+      Adi.Widget.Add_Child (+Box_148, +Box_153);
+      Adi.Widget.Add_Child (+Box_147, +Label_122);
+      Adi.Widget.Add_Child (+Box_147, +Label_123);
       Adi.Widget.Add_Child (+Box_147, +Box_148);
-      Adi.Widget.Add_Child (+Box_147, +Box_150);
-      Adi.Widget.Add_Child (+Box_147, +Box_152);
-      Adi.Widget.Add_Child (+Box_146, +Label_135);
-      Adi.Widget.Add_Child (+Box_146, +Label_136);
-      Adi.Widget.Add_Child (+Box_146, +Box_147);
+      Adi.Widget.Add_Child (+Box_158, +Label_142);
+      Adi.Widget.Add_Child (+Box_158, +Label_143);
+      Adi.Widget.Add_Child (+Box_158, +Label_144);
+      Adi.Widget.Add_Child (+Box_158, +Label_145);
+      Adi.Widget.Add_Child (+Box_157, +Label_141);
+      Adi.Widget.Add_Child (+Box_157, +Box_158);
+      Adi.Widget.Add_Child (+Box_160, +Label_147);
+      Adi.Widget.Add_Child (+Box_160, +Label_148);
+      Adi.Widget.Add_Child (+Box_160, +Label_149);
+      Adi.Widget.Add_Child (+Box_160, +Label_150);
+      Adi.Widget.Add_Child (+Box_159, +Label_146);
+      Adi.Widget.Add_Child (+Box_159, +Box_160);
+      Adi.Widget.Add_Child (+Box_162, +Label_152);
+      Adi.Widget.Add_Child (+Box_162, +Label_153);
+      Adi.Widget.Add_Child (+Box_162, +Label_154);
+      Adi.Widget.Add_Child (+Box_162, +Label_155);
+      Adi.Widget.Add_Child (+Box_161, +Label_151);
+      Adi.Widget.Add_Child (+Box_161, +Box_162);
+      Adi.Widget.Add_Child (+Box_156, +Box_157);
+      Adi.Widget.Add_Child (+Box_156, +Box_159);
+      Adi.Widget.Add_Child (+Box_156, +Box_161);
+      Adi.Widget.Add_Child (+Box_155, +Label_139);
+      Adi.Widget.Add_Child (+Box_155, +Label_140);
+      Adi.Widget.Add_Child (+Box_155, +Box_156);
       Adi.Widget.Add_Child (+Root, +Label_1);
       Adi.Widget.Add_Child (+Root, +Box_1);
       Adi.Widget.Add_Child (+Root, +Box_11);
@@ -2248,10 +2338,11 @@ package body Demo_Flex_UI is
       Adi.Widget.Add_Child (+Root, +Box_91);
       Adi.Widget.Add_Child (+Root, +Box_99);
       Adi.Widget.Add_Child (+Root, +Box_108);
-      Adi.Widget.Add_Child (+Root, +Box_116);
-      Adi.Widget.Add_Child (+Root, +Box_130);
-      Adi.Widget.Add_Child (+Root, +Box_138);
-      Adi.Widget.Add_Child (+Root, +Box_146);
+      Adi.Widget.Add_Child (+Root, +Box_117);
+      Adi.Widget.Add_Child (+Root, +Box_125);
+      Adi.Widget.Add_Child (+Root, +Box_139);
+      Adi.Widget.Add_Child (+Root, +Box_147);
+      Adi.Widget.Add_Child (+Root, +Box_155);
 
       --  Auto-wire CSS live reload
       Adi.Window.Connect_Tick (W, Tick_Styles_CB'Unrestricted_Access);

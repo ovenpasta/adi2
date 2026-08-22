@@ -42,6 +42,21 @@ Adi computes this in the parent's flex layout pass
 (`Adi.Widget`, when populating `Flex_Child_Info`), never inside the
 child.
 
+## A minimum bounds, it does not add
+
+`Distribute_Main_Sizes` grows and shrinks each item from its **flex base
+size**, and reads `Min_Main`/`Max_Main` only to catch a violation once a
+share has been handed out. Starting an item at its clamped size instead
+gives it the difference *and* a full share on top, so two items with the
+same basis and the same `flex-grow` come out unequal as soon as one of
+them has the larger minimum — by exactly that minimum. The clamped size
+(`Hypothetical_Main_Size`) is for line breaking, which is what CSS
+Flexbox 9.7 uses it for.
+
+An item that never receives a share — nothing on the line can flex —
+never reaches the violation check, so the limits are applied to every
+item once the distribution ends.
+
 ## Which widgets override it
 
 A widget overrides `Get_Content_Min_Size` when squeezing it below some

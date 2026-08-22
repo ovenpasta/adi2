@@ -63,7 +63,8 @@ project Tests is
       "scroll_drag_teardown_test",
       "css_binding_growth_test",
       "block_layout_test",
-      "block_wrap_test");
+      "block_wrap_test",
+      "flex_gap_min_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    Platform_Name := external ("ADI_PLATFORM", "linux");
 

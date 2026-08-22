@@ -787,19 +787,20 @@ package body Adi.Layout_Util is
       Lines (Lines'First + Count - 1) := (Line_First, Children'Last);
    end Form_Flex_Lines;
 
-   function Hypothetical_Main_Size (Child : Flex_Child_Info) return Pixel_Type
-   is
+   function Flex_Base_Size (Child : Flex_Child_Info) return Pixel_Type is
       --  A non-zero basis speaks for itself; the flag is only needed to
       --  tell a declared zero from an absent one, which is the one case
       --  a pixel value cannot express.
-      Basis : constant Pixel_Type :=
-        (if Child.Basis_Is_Definite or else Child.Flex_Basis /= 0.0
-         then Child.Flex_Basis
-         else Child.Content_Main);
-   begin
-      return Pixel_Type'Max
-        (Child.Min_Main, Pixel_Type'Min (Child.Max_Main, Basis));
-   end Hypothetical_Main_Size;
+      (if Child.Basis_Is_Definite or else Child.Flex_Basis /= 0.0
+       then Child.Flex_Basis
+       else Child.Content_Main);
+
+   function Clamp_Main
+     (Child : Flex_Child_Info; Main : Pixel_Type) return Pixel_Type is
+      (Pixel_Type'Max (Child.Min_Main, Pixel_Type'Min (Child.Max_Main, Main)));
+
+   function Hypothetical_Main_Size (Child : Flex_Child_Info) return Pixel_Type
+   is (Clamp_Main (Child, Flex_Base_Size (Child)));
 
    procedure Distribute_Main_Sizes
      (Container_Main : Pixel_Type;
@@ -826,10 +827,19 @@ package body Adi.Layout_Util is
          end if;
 
       --  Step 1: Calculate flex basis and totals
+      --
+      --  The base size, not the clamped one. A minimum bounds where an
+      --  item may end up; it is not part of where the item starts from.
+      --  Starting from the clamp hands the item the difference and then
+      --  still pays it a full share on top, so two items with the same
+      --  basis and the same grow factor come out unequal whenever one
+      --  of them has the larger minimum.
+      --  CSS Flexbox 9.7 step 4: the target main size is the flex base
+      --  size plus a fraction of the free space.
       for I in Children'Range loop
          declare
             Child : Flex_Child_Info renames Children(I);
-            Basis : constant Pixel_Type := Hypothetical_Main_Size (Child);
+            Basis : constant Pixel_Type := Flex_Base_Size (Child);
          begin
             Child.Computed_Main := Basis;
             Total_Main_Margins :=
@@ -943,6 +953,15 @@ package body Adi.Layout_Util is
             end;
          end loop;
       end;
+
+      --  A pass leaves early once nothing on the line can flex, or once
+      --  the space left is too small to place. Either way an item can
+      --  still be sitting on its bare base, so the limits it never had
+      --  a share to violate are applied here.
+      for I in Children'Range loop
+         Children (I).Computed_Main :=
+           Clamp_Main (Children (I), Children (I).Computed_Main);
+      end loop;
    end Distribute_Main_Sizes;
 
    procedure Compute_Flex_Layout(

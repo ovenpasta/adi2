@@ -1,6 +1,7 @@
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["mcp>=1.0"]
+# # Capped below 2.0: mcp.server.fastmcp exists only on the 1.x line.
+# dependencies = ["mcp>=1.0,<2"]
 # ///
 """MCP server wrapping the Ada Language Server (ALS).
 
@@ -29,7 +30,9 @@ ALS_BIN = os.environ.get(
     )
 
 
-PROJECT_ROOT = os.environ.get("ALS_PROJECT_ROOT", "/src/ada/adi2")
+PROJECT_ROOT = os.environ.get(
+    "ALS_PROJECT_ROOT", str(Path(__file__).resolve().parent.parent)
+    )
 GPR_FILE = os.environ.get("ALS_GPR_FILE", "adi.gpr")
 
 # ---------------------------------------------------------------------------

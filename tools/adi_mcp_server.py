@@ -1,6 +1,7 @@
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["mcp>=1.0"]
+# # Capped below 2.0: mcp.server.fastmcp exists only on the 1.x line.
+# dependencies = ["mcp>=1.0,<2"]
 # ///
 """MCP server for inspecting and interacting with a running Adi GUI application.
 

@@ -2683,8 +2683,8 @@ begin
          (Min_Width   => Set (Size (Px (0.0))),
           Flex_Basis  => Set (Basis (Px (Basis_Px))),
           Flex_Shrink => Set (0.0),
-          Margin      => Set (CSS_Box (Px (0.0), Px (Right_Px),
-                                       Px (0.0), Px (Left_Px))),
+          Margin      => Set_Margin (CSS_Box (Px (0.0), Px (Right_Px),
+                                              Px (0.0), Px (Left_Px))),
           others      => <>);
       Small_Style : constant Style_Rules :=
          (Min_Width => Set (Size (Px (20.0))), others => <>);

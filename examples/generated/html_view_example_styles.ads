@@ -279,7 +279,7 @@ package Html_View_Example_Styles is
       Width => Set (Size (Px (200.0))),
       Height => Set (Size (Px (16.0))),
       Background_Color => Set_Bg (RGB (212, 199, 183)),
-      Margin => [Top => Set (Px (18.0)), others => <>],
+      Margin => [Top => Set_Margin_Side (Px (18.0)), others => <>],
       Border_Radius => Set (Radius (Px (8.0))),
       others => <>);
 

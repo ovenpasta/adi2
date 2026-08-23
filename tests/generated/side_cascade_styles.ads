@@ -27,7 +27,7 @@ package Side_Cascade_Styles is
    function Box_Tag_Base_Style return Style_Rules is
      (
       Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
-      Margin => Set (CSS_Box (Px (6.0), Px (8.0), Px (6.0), Px (8.0))),
+      Margin => Set_Margin (CSS_Box (Px (6.0), Px (8.0), Px (6.0), Px (8.0))),
       Border_Width => Set (Border_Width (Px (2.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (17, 34, 51))),
@@ -38,7 +38,7 @@ package Side_Cascade_Styles is
    function Tweak_Class_Base_Style return Style_Rules is
      (
       Padding => [Top => Set (Px (4.0)), others => <>],
-      Margin => [Bottom => Set (Px (1.0)), others => <>],
+      Margin => [Bottom => Set_Margin_Side (Px (1.0)), others => <>],
       Border_Width => [Left => Set (Px (5.0)), others => <>],
       Border_Style => [Right => Set_Edge_Style (Dashed), others => <>],
       Border_Color => [Top => Set_Edge_Color (RGB (68, 85, 102)), others => <>],
@@ -49,7 +49,7 @@ package Side_Cascade_Styles is
    function Tweak_Class_Widget_Hovered_Style return Style_Rules is
      (
       Padding => [Bottom => Set (Px (15.0)), others => <>],
-      Margin => [Left => Set (Px (9.0)), others => <>],
+      Margin => [Left => Set_Margin_Side (Px (9.0)), others => <>],
       others => <>);
 
    --  Base style for id 'pin'

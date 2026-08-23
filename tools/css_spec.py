@@ -25,11 +25,12 @@ SUPPORTED_PROPERTIES: dict[str, PropertySpec] = {
     "padding-right": PropertySpec("padding-right", "length"),
     "padding-bottom": PropertySpec("padding-bottom", "length"),
     "padding-left": PropertySpec("padding-left", "length"),
-    "margin": PropertySpec("margin", "box-1-4-length"),
-    "margin-top": PropertySpec("margin-top", "length"),
-    "margin-right": PropertySpec("margin-right", "length"),
-    "margin-bottom": PropertySpec("margin-bottom", "length"),
-    "margin-left": PropertySpec("margin-left", "length"),
+    # Margin is the only box-model group where `auto` is valid.
+    "margin": PropertySpec("margin", "box-1-4-margin"),
+    "margin-top": PropertySpec("margin-top", "margin-side"),
+    "margin-right": PropertySpec("margin-right", "margin-side"),
+    "margin-bottom": PropertySpec("margin-bottom", "margin-side"),
+    "margin-left": PropertySpec("margin-left", "margin-side"),
     # Border
     "border": PropertySpec("border", "border-shorthand"),
     "border-top": PropertySpec("border-top", "border-shorthand"),

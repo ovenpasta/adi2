@@ -25,3 +25,4 @@ generate_if_needed() {
 }
 
 generate_if_needed "$CSS_DIR/side_cascade.css" "$OUT_DIR/side_cascade_styles.ads" "Side_Cascade_Styles"
+generate_if_needed "$CSS_DIR/auto_margin.css" "$OUT_DIR/auto_margin_styles.ads" "Auto_Margin_Styles"

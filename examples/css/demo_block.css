@@ -138,6 +138,12 @@
     text starts after rather than the 8px .bar carries. */
 .inset { padding-left: 48px; }
 
+/*  Longhands rather than the usual `margin: 0 auto`, which names all four
+    sides and would take .bar's bottom margin with it. */
+.centred    { width: 220px; margin-left: auto; margin-right: auto; }
+.pushed     { width: 220px; margin-left: auto; }
+.auto-width { margin-left: auto; margin-right: auto; }
+
 /* A declared height is honoured */
 
 .h20 { height: 20px; }

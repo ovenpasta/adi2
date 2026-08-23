@@ -161,15 +161,22 @@ For `::main`, interactive pseudos remain widget-scoped regardless of position:
 | `max-height` | length | `max-height: 240px;` |
 | `padding` | 1–4 lengths | `padding: 12px 24px;` |
 | `padding-top/right/bottom/left` | length | `padding-left: 16px;` |
-| `margin` | 1–4 lengths (no `auto`) | `margin: 8px 0px;` |
-| `margin-top/right/bottom/left` | length | `margin-top: 4px;` |
+| `margin` | 1–4 lengths or `auto` | `margin: 0 auto;` |
+| `margin-top/right/bottom/left` | length or `auto` | `margin-left: auto;` |
+
+`auto` is a margin value only. `padding: auto` and `border-width: auto` are
+invalid and both pipelines drop them.
 
 Writing these groups as Ada rules: the whole-group forms name every side,
 an aggregate names the sides it lists and leaves the rest to the cascade.
+Margin has its own setters, since it is the one group that takes `auto`.
 
 ```ada
 Padding      => Set (CSS_Box (Px (12.0))),
-Margin       => [Bottom => Set (Px (6.0)), others => <>],
+Margin       => Set_Margin (CSS_Box (Px (6.0))),
+Margin       => [Bottom => Set_Margin_Side (Px (6.0)), others => <>],
+Margin       => Set_Margin (Zero_Margin, Auto_Margin,   --  margin: 0 auto
+                            Zero_Margin, Auto_Margin),
 Border_Color => [Top => Set_Edge_Color (C (Red)), others => <>],
 Border_Style => [Top => Set_Edge_Style (Dashed), others => <>],
 ```
@@ -178,7 +185,9 @@ A `min-width` above a `max-width` wins, and likewise for the heights — CSS 2.1
 
 > **What block layout does with a child's size.** A block container stacks its children down the content area, one under the next. A child takes the `width` and `height` it declares; without a `width` it spans the content area less its own margins, and without a `height` it takes its intrinsic height — which for a child with no content is none, so it does not expand to fill the container. Percentages on either axis resolve against the container's content box.
 >
-> A child narrower than the content area stays where the content starts. Block centring in CSS is `margin: auto`, which Adi does not support, and neither `gap` nor `justify-content` reaches block layout. Use `display: flex` for anything the stack cannot express, and `flex-grow` to divide what is left over.
+> A child narrower than the content area stays where the content starts unless its side margins say otherwise. `margin: 0 auto` centres it, one auto side margin pushes it to the other edge — CSS 2.1 [§10.3.3](https://www.w3.org/TR/CSS21/visudet.html#blockwidth). Neither `gap` nor `justify-content` reaches block layout. Use `display: flex` for anything the stack cannot express, and `flex-grow` to divide what is left over.
+>
+> Auto margins are distributed in block layout only. A flex child's auto margin counts as zero: Flexbox §8.1 gives it a different meaning, and that is not implemented.
 
 #### What a percentage size resolves against
 
@@ -329,7 +338,7 @@ Building rules in Ada follows the same shape: `Gap (L)` and `Gap (Row, Column)` 
 | `align-self` | `auto`, `flex-start`, `flex-end`, `center`, `baseline`, `stretch` | `align-self: center;` |
 | `order` | integer | `order: -1;` |
 
-`margin: auto` is not supported. What it is normally reached for — pushing an item to the far edge, splitting a toolbar into two groups, centring a single item — is already expressible: `justify-content`, a `flex-grow: 1` spacer, or nesting the groups in their own flex box. Carrying `auto` through every margin side, the parser, the generator, measurement and the flex algorithm buys shorthand for those, and nothing they cannot already say.
+`margin: auto` parses on a flex child but does nothing there: the side counts as zero. Flexbox [§8.1](https://www.w3.org/TR/css-flexbox-1/#auto-margins) has an auto margin absorb all free space *before* `justify-content` runs and suppress it entirely, which the distribution pass does not implement. Reach for `justify-content`, a `flex-grow: 1` spacer, or a nested flex box instead. Block layout does distribute auto margins — see the box-model section.
 
 Two of those values are accepted but not yet acted on:
 

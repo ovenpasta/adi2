@@ -332,7 +332,7 @@ package Button_Example_Styles is
       Background_Color => Set_Bg (RGB (248, 250, 252)),
       Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (6.0), Px (1.0), RGBA (15, 23, 42, 0.22))),
       Transition => Set ((Duration => 0.26, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
-      Margin => Set (CSS_Box (Px (0.0), Px (2.0), Px (0.0), Px (2.0))),
+      Margin => Set_Margin (CSS_Box (Px (0.0), Px (2.0), Px (0.0), Px (2.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGBA (15, 23, 42, 0.12))),

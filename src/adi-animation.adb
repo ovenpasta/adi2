@@ -209,7 +209,14 @@ package body Adi.Animation is
          Result.Padding := Lerp_Box (From.Padding, To.Padding, T);
       end if;
       if P (Prop_Margin) then
-         Result.Margin := Lerp_Box (From.Margin, To.Margin, T);
+         --  Auto margins cannot be interpolated; if either side is auto the
+         --  result snaps to the From side (T < 0.5) or To side (T >= 0.5).
+         Result.Margin :=
+           [for E in Edge =>
+              (if From.Margin (E).Kind = Auto or else To.Margin (E).Kind = Auto
+               then (if T < 0.5 then From.Margin (E) else To.Margin (E))
+               else Margin (Lerp_Length (From.Margin (E).Length,
+                                         To.Margin (E).Length, T)))];
       end if;
 
       --  Visual

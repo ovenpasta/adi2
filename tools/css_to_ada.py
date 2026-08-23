@@ -17,7 +17,7 @@ import re
 import sys
 import argparse
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Union
 from enum import Enum
 
 from css_spec import (
@@ -972,7 +972,7 @@ def parse_selector(selector_str: str) -> Optional[ParsedSelector]:
 
 
 def parse_box_values(value: str) -> Optional[list[ParsedLength]]:
-    """Parse 1-4 length values for margin/padding"""
+    """Parse 1-4 length values for padding (no auto allowed)."""
     parts = value.split()
     lengths = []
 
@@ -986,6 +986,29 @@ def parse_box_values(value: str) -> Optional[list[ParsedLength]]:
         return None
 
     return lengths
+
+
+# A margin token is either a ParsedLength or the string "auto".
+MarginToken = Union[ParsedLength, str]
+
+
+def parse_margin_box_values(value: str) -> Optional[list[MarginToken]]:
+    """Parse 1-4 margin tokens; each token is a length or 'auto'."""
+    parts = value.split()
+    tokens: list[MarginToken] = []
+
+    for part in parts:
+        if part.strip().lower() == "auto":
+            tokens.append("auto")
+        else:
+            length = parse_length(part)
+            if length is None:
+                return None
+            tokens.append(length)
+
+    if not tokens:
+        return None
+    return tokens
 
 
 @dataclass
@@ -1702,6 +1725,11 @@ def validate_property_value(property_name: str, value: str) -> bool:
     if validator == "box-1-4-length":
         lengths = parse_box_values(value)
         return lengths is not None and 1 <= len(lengths) <= 4
+    if validator == "margin-side":
+        return low == "auto" or parse_length(value) is not None
+    if validator == "box-1-4-margin":
+        tokens = parse_margin_box_values(value)
+        return tokens is not None and 1 <= len(tokens) <= 4
     if validator == "border-style":
         return low in BORDER_STYLE_MAP
     if validator == "border-shorthand":
@@ -2294,6 +2322,33 @@ def generate_box_ada(lengths: list[ParsedLength]) -> str:
     return "CSS_Box (Zero_Length)"
 
 
+def _parse_margin_token(value: str) -> Optional[MarginToken]:
+    """Parse a single margin token: a length or 'auto'. Returns None on failure."""
+    if value.strip().lower() == "auto":
+        return "auto"
+    return parse_length(value)
+
+
+def _margin_tokens_to_four(tokens: list[MarginToken]) -> list[Optional[MarginToken]]:
+    """Expand 1-4 CSS margin tokens to [top, right, bottom, left]."""
+    if len(tokens) == 1:
+        return [tokens[0], tokens[0], tokens[0], tokens[0]]
+    if len(tokens) == 2:
+        return [tokens[0], tokens[1], tokens[0], tokens[1]]
+    if len(tokens) == 3:
+        return [tokens[0], tokens[1], tokens[2], tokens[1]]
+    if len(tokens) >= 4:
+        return [tokens[0], tokens[1], tokens[2], tokens[3]]
+    return [None, None, None, None]
+
+
+def _generate_margin_token_ada(tok: MarginToken) -> str:
+    """Ada expression for one margin side: Set_Margin_Side(...) or Set_Margin(Auto_Margin)."""
+    if tok == "auto":
+        return "Set_Margin (Auto_Margin)"
+    return f"Set_Margin_Side ({generate_length_ada(tok)})"
+
+
 def box_lengths_to_four(lengths: list[ParsedLength]) -> list[ParsedLength]:
     """Expand 1-4 CSS box shorthand lengths to [top, right, bottom, left]."""
     if len(lengths) == 1:
@@ -2643,27 +2698,27 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
             if length:
                 ensure_padding_sides()[3] = length
         
-        # Margin
+        # Margin — each token may be a length or "auto"
         elif prop == "margin":
-            lengths = parse_box_values(value)
-            if lengths:
-                margin_sides = box_lengths_to_four(lengths)
+            tokens = parse_margin_box_values(value)
+            if tokens:
+                margin_sides = _margin_tokens_to_four(tokens)
         elif prop == "margin-top":
-            length = parse_length(value)
-            if length:
-                ensure_margin_sides()[0] = length
+            tok = _parse_margin_token(value)
+            if tok is not None:
+                ensure_margin_sides()[0] = tok
         elif prop == "margin-right":
-            length = parse_length(value)
-            if length:
-                ensure_margin_sides()[1] = length
+            tok = _parse_margin_token(value)
+            if tok is not None:
+                ensure_margin_sides()[1] = tok
         elif prop == "margin-bottom":
-            length = parse_length(value)
-            if length:
-                ensure_margin_sides()[2] = length
+            tok = _parse_margin_token(value)
+            if tok is not None:
+                ensure_margin_sides()[2] = tok
         elif prop == "margin-left":
-            length = parse_length(value)
-            if length:
-                ensure_margin_sides()[3] = length
+            tok = _parse_margin_token(value)
+            if tok is not None:
+                ensure_margin_sides()[3] = tok
         
         # Border width
         elif prop == "border-width":
@@ -3228,9 +3283,30 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
     emit_group(
         "Padding", EDGE_NAMES, padding_sides,
         generate_box_from_four_ada, length_element)
-    emit_group(
-        "Margin", EDGE_NAMES, margin_sides,
-        generate_box_from_four_ada, length_element)
+
+    # Margin uses different set functions because auto is allowed.
+    if margin_sides is not None and not all(v is None for v in margin_sides):
+        if all(v is not None for v in margin_sides):
+            # All four sides declared — emit as full shorthand.
+            # If all are lengths (no auto), use Set_Margin (CSS_Box (...)).
+            # If any is auto, emit as per-side aggregate.
+            if all(isinstance(v, ParsedLength) for v in margin_sides):
+                box_expr = generate_box_from_four_ada(list(margin_sides))
+                fields.append(f"{indent}Margin => Set_Margin ({box_expr})")
+            else:
+                named = ", ".join(
+                    f"{name} => {_generate_margin_token_ada(v)}"
+                    for name, v in zip(EDGE_NAMES, margin_sides)
+                )
+                fields.append(f"{indent}Margin => [{named}]")
+        else:
+            # Partial sides — emit aggregate naming only the declared sides.
+            named = ", ".join(
+                f"{name} => {_generate_margin_token_ada(v)}"
+                for name, v in zip(EDGE_NAMES, margin_sides)
+                if v is not None
+            )
+            fields.append(f"{indent}Margin => [{named}, others => <>]")
     emit_group(
         "Border_Width", EDGE_NAMES, border_width_sides,
         lambda v: generate_border_width_ada(four_sides_to_box_lengths(v)),

@@ -281,9 +281,18 @@ package body Adi.Layout_Util is
       return Box_To_Pixels (Style.Padding);
    end Get_Padding_Px;
 
+   --  Auto margins contribute 0 to measurement; block layout distributes the
+   --  leftover after placement.
+   function Margin_Side_Px (M : Margin_Value) return Pixel_Type is
+     (if M.Kind = Fixed then Length_To_Px (M.Length) else 0.0);
+
    function Get_Margin_Px (Style : Resolved_Style) return Edge_Pixels is
+      M : constant Margin_Sides := Style.Margin;
    begin
-      return Box_To_Pixels (Style.Margin);
+      return (Top    => Margin_Side_Px (M (Top)),
+              Right  => Margin_Side_Px (M (Right)),
+              Bottom => Margin_Side_Px (M (Bottom)),
+              Left   => Margin_Side_Px (M (Left)));
    end Get_Margin_Px;
 
    function Get_Border_Width_Px (Style : Resolved_Style) return Edge_Pixels is

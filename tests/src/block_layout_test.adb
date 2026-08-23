@@ -150,8 +150,8 @@ procedure Block_Layout_Test is
       Shifted_Rules : constant Style_Rules :=
         (Width  => Set (Size (Px (Float (Kid_W)))),
          Height => Set (Size (Px (20.0))),
-         Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0),
-                                 Px (Float (Left_M)))),
+         Margin => Set_Margin (CSS_Box (Px (0.0), Px (0.0), Px (0.0),
+                                        Px (Float (Left_M)))),
          others => <>);
       Auto_Rules : constant Style_Rules :=
         (Height => Set (Size (Px (20.0))), others => <>);

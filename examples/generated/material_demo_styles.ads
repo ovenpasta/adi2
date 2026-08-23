@@ -607,7 +607,7 @@ package Material_Demo_Styles is
       Height => Set (Size (Dip (24.0))),
       Background_Color => Set_Bg (RGB (147, 143, 153)),
       Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Margin) + Props (Prop_Background_Color))),
-      Margin => Set (CSS_Box (Dip (2.0), Dip (2.0), Dip (2.0), Dip (2.0))),
+      Margin => Set_Margin (CSS_Box (Dip (2.0), Dip (2.0), Dip (2.0), Dip (2.0))),
       Border_Radius => Set (Radius (Dip (999.0))),
       others => <>);
 
@@ -615,7 +615,7 @@ package Material_Demo_Styles is
    function Setting_Switch_Class_Knob_Widget_Selected_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (56, 30, 114)),
-      Margin => Set (CSS_Box (Dip (2.0), Dip (2.0), Dip (2.0), Dip (22.0))),
+      Margin => Set_Margin (CSS_Box (Dip (2.0), Dip (2.0), Dip (2.0), Dip (22.0))),
       others => <>);
 
    --  Base style for class 'combo-dropdown'
@@ -639,7 +639,7 @@ package Material_Demo_Styles is
       Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
       Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Dip (10.0), Dip (14.0), Dip (10.0), Dip (14.0))),
-      Margin => Set (CSS_Box (Dip (2.0), Dip (0.0), Dip (2.0), Dip (0.0))),
+      Margin => Set_Margin (CSS_Box (Dip (2.0), Dip (0.0), Dip (2.0), Dip (0.0))),
       Border_Radius => Set (Radius (Dip (8.0))),
       others => <>);
 

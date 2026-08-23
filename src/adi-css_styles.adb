@@ -127,6 +127,24 @@ package body Adi.CSS_Styles is
    --  The narrowest of the equivalent shapes, so that two rule sets that
    --  say the same thing compare equal in the resolved-style caches.
 
+   function To_Margin (O : Opt_Margin_Sides) return Margin_Sides is
+   begin
+      return [for E in Edge => Opt_Margin.Resolve (O (E))];
+   end To_Margin;
+
+   function Set_Margin (V : CSS_Box_Value) return Opt_Margin_Sides is
+   begin
+      case V.Kind is
+         when Gap_Uniform =>
+            return [others => Opt_Margin.Val (Margin (V.All_Sides))];
+         when Axis =>
+            return [Top | Bottom => Opt_Margin.Val (Margin (V.Vertical)),
+                    Left | Right => Opt_Margin.Val (Margin (V.Horizontal))];
+         when Per_Side =>
+            return [for E in Edge => Opt_Margin.Val (Margin (V.Sides (E)))];
+      end case;
+   end Set_Margin;
+
    function To_Box (O : Opt_Edge_Lengths) return CSS_Box_Value is
       S : constant CSS_Box_Sides :=
         [for E in Edge => Opt_Length.Resolve (O (E))];
@@ -911,7 +929,7 @@ package body Adi.CSS_Styles is
 
          -- Spacing
          Padding          => To_Box (S.Padding),
-         Margin           => To_Box (S.Margin),
+         Margin           => To_Margin (S.Margin),
 
          -- Sizing
          Width            => Opt_Size.Resolve (S.Width),

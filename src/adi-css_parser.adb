@@ -1283,6 +1283,90 @@ package body Adi.CSS_Parser is
       return True;
    end Parse_Box;
 
+   --  Parse a margin shorthand value: 1-4 tokens, each a length or "auto".
+   --  Out_Sides is set to the four sides [Top, Right, Bottom, Left].
+   --  Returns False only if the value is entirely unparseable (e.g. empty or
+   --  a token that is neither a length nor "auto").
+   function Parse_Margin_Shorthand
+     (Input    :     String;
+      Out_Sides : out Opt_Margin_Sides) return Boolean
+   is
+      type Margin_Token_Kind is (Length_Token, Auto_Token);
+      type Margin_Token is record
+         Kind   : Margin_Token_Kind := Length_Token;
+         Length : Parsed_Length;
+      end record;
+
+      Tokens : array (1 .. 4) of Margin_Token;
+      Count  : Natural := 0;
+      I      : Positive := Input'First;
+
+      function Next_Token (T : out Margin_Token) return Boolean is
+         J : Natural;
+         V : Unbounded_String;
+         L : Parsed_Length;
+      begin
+         while I <= Input'Last and then Is_Whitespace (Input (I)) loop
+            I := I + 1;
+         end loop;
+         if I > Input'Last then
+            return False;
+         end if;
+         J := I;
+         while J <= Input'Last and then not Is_Whitespace (Input (J)) loop
+            J := J + 1;
+         end loop;
+         V := To_Unbounded_String (Lower (Input (I .. J - 1)));
+         I := J + 1;
+         if V = "auto" then
+            T := (Kind => Auto_Token, Length => <>);
+            return True;
+         elsif Parse_Length (To_String (V), L) then
+            T := (Kind => Length_Token, Length => L);
+            return True;
+         end if;
+         return False;
+      end Next_Token;
+
+      function To_MV (T : Margin_Token) return Margin_Value is
+        (if T.Kind = Auto_Token then Auto_Margin else Margin (To_Length (T.Length)));
+
+      Tok : Margin_Token;
+   begin
+      while Count < 4 loop
+         if not Next_Token (Tok) then
+            exit;
+         end if;
+         Count := Count + 1;
+         Tokens (Count) := Tok;
+      end loop;
+
+      if Count = 0 then
+         return False;
+      end if;
+
+      --  Expand shorthand the same way CSS does.
+      case Count is
+         when 1 =>
+            Out_Sides := [others => Opt_Margin.Val (To_MV (Tokens (1)))];
+         when 2 =>
+            Out_Sides := [Top | Bottom => Opt_Margin.Val (To_MV (Tokens (1))),
+                          Left | Right => Opt_Margin.Val (To_MV (Tokens (2)))];
+         when 3 =>
+            Out_Sides := [Top    => Opt_Margin.Val (To_MV (Tokens (1))),
+                          Right  => Opt_Margin.Val (To_MV (Tokens (2))),
+                          Bottom => Opt_Margin.Val (To_MV (Tokens (3))),
+                          Left   => Opt_Margin.Val (To_MV (Tokens (2)))];
+         when others =>
+            Out_Sides := [Top    => Opt_Margin.Val (To_MV (Tokens (1))),
+                          Right  => Opt_Margin.Val (To_MV (Tokens (2))),
+                          Bottom => Opt_Margin.Val (To_MV (Tokens (3))),
+                          Left   => Opt_Margin.Val (To_MV (Tokens (4)))];
+      end case;
+
+      return True;
+   end Parse_Margin_Shorthand;
+
    function Parse_Border_Width (Input : String; Out_Width : out Border_Width_Value) return Boolean is
       L : Length_Vectors.Vector;
    begin
@@ -1967,22 +2051,36 @@ package body Adi.CSS_Parser is
             Rules.Padding (Left) := Set (To_Length (LVal));
          end if;
       elsif P = "margin" then
-         if Parse_Box (V, Box) then Rules.Margin := Set (Box); end if;
+         declare
+            Sides : Opt_Margin_Sides;
+         begin
+            if Parse_Margin_Shorthand (V, Sides) then
+               Rules.Margin := Sides;
+            end if;
+         end;
       elsif P = "margin-top" then
-         if Parse_Length (V, LVal) then
-            Rules.Margin (Top) := Set (To_Length (LVal));
+         if Lower (V) = "auto" then
+            Rules.Margin (Top) := Opt_Margin.Val (Auto_Margin);
+         elsif Parse_Length (V, LVal) then
+            Rules.Margin (Top) := Opt_Margin.Val (Margin (To_Length (LVal)));
          end if;
       elsif P = "margin-right" then
-         if Parse_Length (V, LVal) then
-            Rules.Margin (Right) := Set (To_Length (LVal));
+         if Lower (V) = "auto" then
+            Rules.Margin (Right) := Opt_Margin.Val (Auto_Margin);
+         elsif Parse_Length (V, LVal) then
+            Rules.Margin (Right) := Opt_Margin.Val (Margin (To_Length (LVal)));
          end if;
       elsif P = "margin-bottom" then
-         if Parse_Length (V, LVal) then
-            Rules.Margin (Bottom) := Set (To_Length (LVal));
+         if Lower (V) = "auto" then
+            Rules.Margin (Bottom) := Opt_Margin.Val (Auto_Margin);
+         elsif Parse_Length (V, LVal) then
+            Rules.Margin (Bottom) := Opt_Margin.Val (Margin (To_Length (LVal)));
          end if;
       elsif P = "margin-left" then
-         if Parse_Length (V, LVal) then
-            Rules.Margin (Left) := Set (To_Length (LVal));
+         if Lower (V) = "auto" then
+            Rules.Margin (Left) := Opt_Margin.Val (Auto_Margin);
+         elsif Parse_Length (V, LVal) then
+            Rules.Margin (Left) := Opt_Margin.Val (Margin (To_Length (LVal)));
          end if;
       elsif P = "border-width" then
          if Parse_Border_Width (V, BW) then Rules.Border_Width := Set (BW); end if;

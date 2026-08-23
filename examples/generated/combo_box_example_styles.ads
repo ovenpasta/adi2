@@ -183,7 +183,7 @@ package Combo_Box_Example_Styles is
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.22)),
       Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
+      Margin => Set_Margin (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
       Border_Radius => Set (Radius (Px (6.0))),
       others => <>);
 
@@ -205,7 +205,7 @@ package Combo_Box_Example_Styles is
       Background_Color => Set_Bg (C (White)),
       Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
       Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
-      Margin => Set (CSS_Box (Px (2.0), Px (0.0), Px (2.0), Px (0.0))),
+      Margin => Set_Margin (CSS_Box (Px (2.0), Px (0.0), Px (2.0), Px (0.0))),
       Border_Width => Set (Border_Width (Px (0.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGB (222, 229, 238))),

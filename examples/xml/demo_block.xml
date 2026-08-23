@@ -21,7 +21,7 @@
       <!-- a declared width is honoured -->
       <box class="section">
         <label text="A declared width is honoured" class="caption"/>
-        <label text="A child is laid out at the width it declares, in pixels or as a fraction of the container's content area. Declaring none spans that area instead, and max-width caps whichever of the two applies. What is left over stays to the right: block centring is margin: auto, which Adi has no value for."
+        <label text="A child is laid out at the width it declares, in pixels or as a fraction of the container's content area. Declaring none spans that area instead, and max-width caps whichever of the two applies. What is left over stays to the right unless a margin says otherwise."
                class="note"/>
         <label text="The last three are the two edges of the box. A margin sits outside the width, so it comes off an automatic one and only moves a declared one along. Padding sits inside it, so both of the bottom pair are the same box with the text starting further in."
                class="note"/>
@@ -33,6 +33,18 @@
           <label text="margin-left: 48px" class="bar indent"/>
           <label text="same margin, width: 280px" class="bar w280 indent"/>
           <label text="same width, padding-left: 48px" class="bar w280 inset"/>
+        </box>
+      </box>
+
+      <!-- auto margins -->
+      <box class="section">
+        <label text="An auto margin takes what is left over" class="caption"/>
+        <label text="With a width to leave something over, one auto margin swallows all of it and pushes the child to the far edge, and two split it evenly, which is how a block centres. Without a width there is nothing left to take: the child spans the container and both margins come out zero."
+               class="note"/>
+        <box class="demo">
+          <label text="margin-left and -right: auto" class="bar centred"/>
+          <label text="margin-left: auto" class="bar pushed"/>
+          <label text="both auto, no width" class="bar auto-width"/>
         </box>
       </box>
 

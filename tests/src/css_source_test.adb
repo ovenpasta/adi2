@@ -267,8 +267,7 @@ begin
          Assert (Float (R.Opacity) = 0.25,
                  "Selector set should keep tag properties no class "
                  & "overrides");
-         Assert (R.Margin.Kind = Gap_Uniform
-                   and then R.Margin.All_Sides.Amount = 4.0,
+         Assert ((for all E in Edge => R.Margin (E).Length.Amount = 4.0),
                  "Selector set should still apply the id after a class "
                  & "list");
       end;

@@ -167,10 +167,6 @@ Full build instructions, including building without Alire, in [`docs/build.md`](
 
 ## Roadmap
 
-**CSS conformance.**
-
-- **`margin: auto`** — the centring idiom for block.
-
 **HTML view.**
 
 - **Tables** — `table`, `tr`, `td`/`th`, column widths, spanning.

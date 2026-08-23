@@ -656,26 +656,20 @@ package body Adi.MCP is
                          Serialize_Length (S.Padding.Sides (Left)));
       end case;
 
-      --  Margin (4 sides)
-      case S.Margin.Kind is
-         when Gap_Uniform =>
-            W.Key_Value ("margin",
-                         Serialize_Length (S.Margin.All_Sides));
-         when Axis =>
-            W.Key_Value ("margin_vertical",
-                         Serialize_Length (S.Margin.Vertical));
-            W.Key_Value ("margin_horizontal",
-                         Serialize_Length (S.Margin.Horizontal));
-         when Per_Side =>
-            W.Key_Value ("margin_top",
-                         Serialize_Length (S.Margin.Sides (Top)));
-            W.Key_Value ("margin_right",
-                         Serialize_Length (S.Margin.Sides (Right)));
-            W.Key_Value ("margin_bottom",
-                         Serialize_Length (S.Margin.Sides (Bottom)));
-            W.Key_Value ("margin_left",
-                         Serialize_Length (S.Margin.Sides (Left)));
-      end case;
+      --  Margin (4 sides, each may be a length or auto)
+      declare
+         function Serialize_Margin_Side (M : Margin_Value) return String is
+           (if M.Kind = Auto then "auto" else Serialize_Length (M.Length));
+      begin
+         W.Key_Value ("margin_top",
+                      Serialize_Margin_Side (S.Margin (Top)));
+         W.Key_Value ("margin_right",
+                      Serialize_Margin_Side (S.Margin (Right)));
+         W.Key_Value ("margin_bottom",
+                      Serialize_Margin_Side (S.Margin (Bottom)));
+         W.Key_Value ("margin_left",
+                      Serialize_Margin_Side (S.Margin (Left)));
+      end;
 
       --  Sizing
       W.Key_Value ("width", Serialize_Size (S.Width));

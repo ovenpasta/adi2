@@ -495,6 +495,34 @@ package Adi.CSS_Styles is
    Auto_Inset    : constant Inset_Value := (Kind => Auto);
    Default_Inset : constant Inset_Value := Auto_Inset;
 
+   -------------------------------------------------
+   -- Margin_Value (auto is only valid for margins)
+   -------------------------------------------------
+
+   --  `auto` is valid for margin but not for padding or border widths.  A
+   --  separate type prevents an auto from slipping into those properties.
+   type Margin_Kind is (Fixed, Auto);
+
+   type Margin_Value (Kind : Margin_Kind := Fixed) is record
+      case Kind is
+         when Fixed => Length : Length_Value := Zero_Length;
+         when Auto  => null;
+      end case;
+   end record;
+
+   function Margin (L : Length_Value) return Margin_Value is
+      ((Kind => Fixed, Length => L));
+
+   Zero_Margin    : constant Margin_Value := (Kind => Fixed, Length => Zero_Length);
+   Auto_Margin    : constant Margin_Value := (Kind => Auto);
+   Default_Margin : constant Margin_Value := Zero_Margin;
+
+   --  Resolved margin: one concrete value per side.  Auto is preserved so
+   --  block layout can distribute leftover space; measurement treats it as 0.
+   type Margin_Sides is array (Edge) of Margin_Value;
+
+   Zero_Margin_Sides : constant Margin_Sides := [others => Zero_Margin];
+
 -------------------------------------------------
 -- Font Properties
 -------------------------------------------------
@@ -1074,16 +1102,19 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    package Opt_Length     is new Optional_Values (Length_Value, Zero_Length);
    package Opt_Edge_Color is new Optional_Values (Color_Value, Default_Border_Color);
    package Opt_Edge_Style is new Optional_Values (Border_Style_Kind, None_Style);
+   package Opt_Margin     is new Optional_Values (Margin_Value, Default_Margin);
 
    type Opt_Edge_Lengths   is array (Edge)   of Opt_Length.Optional;
    type Opt_Edge_Colors    is array (Edge)   of Opt_Edge_Color.Optional;
    type Opt_Edge_Styles    is array (Edge)   of Opt_Edge_Style.Optional;
    type Opt_Corner_Lengths is array (Corner) of Opt_Length.Optional;
+   type Opt_Margin_Sides   is array (Edge)   of Opt_Margin.Optional;
 
    Unset_Edge_Lengths   : constant Opt_Edge_Lengths   := [others => Opt_Length.Unset];
    Unset_Edge_Colors    : constant Opt_Edge_Colors    := [others => Opt_Edge_Color.Unset];
    Unset_Edge_Styles    : constant Opt_Edge_Styles    := [others => Opt_Edge_Style.Unset];
    Unset_Corner_Lengths : constant Opt_Corner_Lengths := [others => Opt_Length.Unset];
+   Unset_Margin_Sides   : constant Opt_Margin_Sides   := [others => Opt_Margin.Unset];
 
    function Merge (Base, Override : Opt_Edge_Lengths) return Opt_Edge_Lengths is
      ([for E in Edge => Opt_Length.Merge (Base (E), Override (E))]);
@@ -1093,6 +1124,8 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
      ([for E in Edge => Opt_Edge_Style.Merge (Base (E), Override (E))]);
    function Merge (Base, Override : Opt_Corner_Lengths) return Opt_Corner_Lengths is
      ([for C in Corner => Opt_Length.Merge (Base (C), Override (C))]);
+   function Merge (Base, Override : Opt_Margin_Sides) return Opt_Margin_Sides is
+     ([for E in Edge => Opt_Margin.Merge (Base (E), Override (E))]);
 
    --  Concrete group values for rendering and layout.
    function To_Box           (O : Opt_Edge_Lengths)   return CSS_Box_Value;
@@ -1100,6 +1133,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function To_Border_Color  (O : Opt_Edge_Colors)    return Border_Color_Value;
    function To_Border_Style  (O : Opt_Edge_Styles)    return Border_Style_Value;
    function To_Border_Radius (O : Opt_Corner_Lengths) return Border_Radius_Value;
+   function To_Margin        (O : Opt_Margin_Sides)   return Margin_Sides;
 
    -------------------------------------------------
    -- Style Rules Record
@@ -1125,7 +1159,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
 
       -- Spacing
       Padding          : Opt_Edge_Lengths          := Unset_Edge_Lengths;
-      Margin           : Opt_Edge_Lengths          := Unset_Edge_Lengths;
+      Margin           : Opt_Margin_Sides          := Unset_Margin_Sides;
 
       -- Sizing
       Width            : Opt_Size.Optional         := Opt_Size.Unset;
@@ -1284,7 +1318,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
 
       -- Spacing
       Padding          : CSS_Box_Value := Default_CSS_Box;
-      Margin           : CSS_Box_Value := Default_CSS_Box;
+      Margin           : Margin_Sides  := Zero_Margin_Sides;
 
       -- Sizing
       Width            : Size_Value := Default_Size;
@@ -1403,9 +1437,26 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Set (V : Outline_Style_Kind) return Opt_Outline_Style.Optional renames Opt_Outline_Style.Val;
    function Set_Outline_Offset (V : Length_Value) return Opt_Outline_Offset.Optional renames Opt_Outline_Offset.Val;
 
-   -- CSS_Box
+   -- CSS_Box (padding only; use Set_Margin for margins)
    function Set (V : CSS_Box_Value) return Opt_Edge_Lengths;
    No_Box : constant Opt_Edge_Lengths := [others => Opt_Length.Cleared];
+
+   -- Margin — accepts auto per side.  Auto_Margin centres in block layout.
+   function Set_Margin (V : Margin_Value) return Opt_Margin.Optional
+     renames Opt_Margin.Val;
+   function Set_Margin_Side (V : Length_Value) return Opt_Margin.Optional is
+     (Opt_Margin.Val (Margin (V)));
+   --  Shorthand helpers that expand a CSS_Box_Value to margin sides.
+   function Set_Margin (V : CSS_Box_Value) return Opt_Margin_Sides;
+   --  The mixed shorthand: any side may be auto. A formal hides the Edge
+   --  literal of the same name, so the choices name it by package.
+   function Set_Margin (Top, Right, Bottom, Left : Margin_Value)
+     return Opt_Margin_Sides is
+       ([CSS_Styles.Top    => Opt_Margin.Val (Top),
+         CSS_Styles.Right  => Opt_Margin.Val (Right),
+         CSS_Styles.Bottom => Opt_Margin.Val (Bottom),
+         CSS_Styles.Left   => Opt_Margin.Val (Left)]);
+   No_Margin : constant Opt_Margin_Sides := [others => Opt_Margin.Cleared];
 
    -- Size
    function Set (V : Size_Value) return Opt_Size.Optional renames Opt_Size.Val;

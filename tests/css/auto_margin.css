@@ -1,0 +1,51 @@
+/*  Corpus for auto_margin_test.
+
+    tools/css_to_ada.py compiles this file into
+    tests/generated/auto_margin_styles.ads; the test parses the same file
+    at run time and requires both paths to resolve to the same style.
+    Every case here involves `auto` on at least one margin side, which is
+    the only place the two pipelines can disagree about margins. */
+
+box {
+  margin: 4px;
+}
+
+.centred {
+  margin: 0 auto;
+}
+
+.push-right {
+  margin-left: auto;
+}
+
+.push-left {
+  margin-right: auto;
+}
+
+.three {
+  margin: 5px auto 12px;
+}
+
+.vertical-auto {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+/*  A later rule naming one side must leave the other three alone, auto
+    included. */
+.tweak {
+  margin-right: 7px;
+}
+
+.tweak:hover {
+  margin-left: auto;
+}
+
+/*  Invalid: padding and border-width have no auto. Both declarations must
+    be dropped, leaving the longhand beside them as the only effect. */
+#bad {
+  padding: auto;
+  padding-top: 3px;
+  border-width: auto;
+  border-left-width: 6px;
+}

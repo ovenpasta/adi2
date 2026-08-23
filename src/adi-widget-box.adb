@@ -256,9 +256,10 @@ package body Adi.Widget.Box is
    --  A declared width resolves against the content box, percentages
    --  included: Get_Preferred_Size reports a percentage axis as auto, so
    --  the containing block is the only place that can turn it into a
-   --  number. Without one the child fills the line less its own margins,
-   --  and a narrower one is left where the content starts -- centring a
-   --  block is margin: auto, which Adi has no value for.
+   --  number. Without one the child fills the line less its own margins.
+   --
+   --  CSS 2.1 §10.3.3: auto margins count as zero for width computation
+   --  when width is auto; with a definite width they absorb the leftover.
    function Block_Child_Width
      (Child_Style : Resolved_Style;
       Inner_Width : Pixel_Type;
@@ -283,6 +284,44 @@ package body Adi.Widget.Box is
       end if;
       return Pixel_Type'Max (0.0, Result);
    end Block_Child_Width;
+
+   --  The used left margin of a block child, CSS 2.1 10.3.3. Inner_Width is
+   --  the parent's content box and Child_W the width already resolved for
+   --  the child, so the leftover is what the auto sides share out.
+   --
+   --  A definite margin on both sides needs no distribution: when the three
+   --  are over-constrained it is margin-right that absorbs the mismatch in
+   --  a left-to-right box, which placement gets for free by never reading
+   --  it. Get_Margin_Px has already reported an auto side as zero, so
+   --  Margin holds only the declared lengths.
+   function Block_Child_Left_Margin
+     (Child_Style : Resolved_Style;
+      Inner_Width : Pixel_Type;
+      Child_W     : Pixel_Type;
+      Margin      : Edge_Pixels) return Pixel_Type
+   is
+      M          : constant Margin_Sides := Child_Style.Margin;
+      Left_Auto  : constant Boolean := M (Left).Kind = Auto;
+      Right_Auto : constant Boolean := M (Right).Kind = Auto;
+   begin
+      if not Left_Auto and then not Right_Auto then
+         return Margin.Left;
+      end if;
+
+      declare
+         Leftover : constant Pixel_Type :=
+           Pixel_Type'Max
+             (0.0, Inner_Width - Child_W - Margin.Left - Margin.Right);
+      begin
+         if Left_Auto and then Right_Auto then
+            return Leftover / 2.0;
+         elsif Left_Auto then
+            return Leftover;
+         else
+            return Margin.Left;
+         end if;
+      end;
+   end Block_Child_Left_Margin;
 
    --  How tall this box is at a given outer width.
    overriding function Measure_Content_At_Width
@@ -1441,13 +1480,14 @@ overriding procedure Layout (W : in out Box_Widget) is
                         declare
                            Margin : constant Edge_Pixels :=
                              Get_Margin_Px (Child_Style);
-                           Child_X : constant Pixel_Type :=
-                             Content_X + Margin.Left;
-                           Child_Y : constant Pixel_Type :=
-                             Current_Y + Margin.Top;
                            Child_W : constant Pixel_Type :=
                              Block_Child_Width
                                (Child_Style, Content_W, Margin);
+                           Child_X : constant Pixel_Type :=
+                             Content_X + Block_Child_Left_Margin
+                               (Child_Style, Content_W, Child_W, Margin);
+                           Child_Y : constant Pixel_Type :=
+                             Current_Y + Margin.Top;
                            --  A percentage height is left to whoever
                            --  holds the containing block, which is this
                            --  box. Its own height is settled by the time

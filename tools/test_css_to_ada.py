@@ -23,6 +23,8 @@ from css_to_ada import (
     parse_color,
     parse_selector,
     parse_box_values,
+    parse_margin_box_values,
+    validate_property_value,
     parse_box_shadow,
     parse_transition,
     parse_css,
@@ -614,7 +616,7 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
 
     def test_margin(self):
         ada = self._gen({"margin": "5px"})
-        self.assertIn("Margin => Set (", ada)
+        self.assertIn("Margin => Set_Margin (", ada)
 
     def test_margin_longhand(self):
         ada = self._gen({"margin": "5px", "margin-top": "9px"})
@@ -1124,7 +1126,9 @@ class TestSideLonghandCascade(unittest.TestCase):
 
     def test_margin_one_side(self):
         ada = self._gen({"margin-bottom": "1px"})
-        self.assertIn("Margin => [Bottom => Set (Px (1.0)), others => <>]", ada)
+        self.assertIn(
+            "Margin => [Bottom => Set_Margin_Side (Px (1.0)), others => <>]", ada
+        )
 
     def test_border_width_one_side(self):
         ada = self._gen({"border-left-width": "5px"})
@@ -1178,6 +1182,117 @@ class TestSideLonghandCascade(unittest.TestCase):
             "Border_Style => Set (Border_Style (Dashed, Solid, Solid, Solid))", ada
         )
         self.assertIn("Border_Color => Set (Border_Color (RGB (1, 2, 3)))", ada)
+
+
+class TestAutoMargins(unittest.TestCase):
+    """`auto` is valid for margin and for nothing else in the box model.
+
+    The emitted Ada has to match what Adi.CSS_Parser builds at run time, or
+    a stylesheet lays out differently depending on which pipeline read it.
+    """
+
+    def _gen(self, props: dict[str, str]) -> str:
+        return "\n".join(generate_style_rules_ada(props))
+
+    def test_centring_shorthand(self):
+        ada = self._gen({"margin": "0 auto"})
+        self.assertIn(
+            "Margin => [Top => Set_Margin_Side (Px (0.0)), "
+            "Right => Set_Margin (Auto_Margin), "
+            "Bottom => Set_Margin_Side (Px (0.0)), "
+            "Left => Set_Margin (Auto_Margin)]",
+            ada,
+        )
+
+    def test_all_sides_auto(self):
+        ada = self._gen({"margin": "auto"})
+        self.assertEqual(ada.count("Set_Margin (Auto_Margin)"), 4)
+
+    def test_three_value_shorthand(self):
+        # top / horizontal / bottom -- the middle token names both sides.
+        ada = self._gen({"margin": "5px auto 12px"})
+        self.assertIn("Top => Set_Margin_Side (Px (5.0))", ada)
+        self.assertIn("Right => Set_Margin (Auto_Margin)", ada)
+        self.assertIn("Bottom => Set_Margin_Side (Px (12.0))", ada)
+        self.assertIn("Left => Set_Margin (Auto_Margin)", ada)
+
+    def test_auto_longhand_names_only_its_side(self):
+        ada = self._gen({"margin-left": "auto"})
+        self.assertIn(
+            "Margin => [Left => Set_Margin (Auto_Margin), others => <>]", ada
+        )
+
+    def test_auto_longhand_over_shorthand(self):
+        ada = self._gen({"margin": "6px", "margin-right": "auto"})
+        self.assertIn("Right => Set_Margin (Auto_Margin)", ada)
+        self.assertIn("Top => Set_Margin_Side (Px (6.0))", ada)
+
+    def test_length_longhand_over_auto_shorthand(self):
+        ada = self._gen({"margin": "auto", "margin-top": "9px"})
+        self.assertIn("Top => Set_Margin_Side (Px (9.0))", ada)
+        self.assertEqual(ada.count("Set_Margin (Auto_Margin)"), 3)
+
+    def test_all_length_shorthand_stays_compact(self):
+        # No auto anywhere: keep emitting the CSS_Box form.
+        ada = self._gen({"margin": "4px"})
+        self.assertIn(
+            "Margin => Set_Margin (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0)))",
+            ada,
+        )
+
+    def test_padding_auto_is_dropped(self):
+        self.assertNotIn("Padding", self._gen({"padding": "auto"}))
+
+    def test_padding_side_auto_is_dropped(self):
+        self.assertNotIn("Padding", self._gen({"padding-left": "auto"}))
+
+    def test_border_width_auto_is_dropped(self):
+        self.assertNotIn("Border_Width", self._gen({"border-width": "auto"}))
+
+    def test_invalid_auto_leaves_valid_siblings_alone(self):
+        ada = self._gen({"padding": "auto", "padding-top": "3px"})
+        self.assertIn("Padding => [Top => Set (Px (3.0)), others => <>]", ada)
+
+
+class TestAutoMarginValidation(unittest.TestCase):
+    """The spec validator gates which properties accept `auto`."""
+
+    def test_margin_accepts_auto(self):
+        for value in ("auto", "0 auto", "5px auto 12px", "auto auto auto auto"):
+            self.assertTrue(
+                validate_property_value("margin", value), f"margin: {value}"
+            )
+
+    def test_margin_longhands_accept_auto(self):
+        for prop in ("margin-top", "margin-right", "margin-bottom", "margin-left"):
+            self.assertTrue(validate_property_value(prop, "auto"), prop)
+
+    def test_padding_rejects_auto(self):
+        self.assertFalse(validate_property_value("padding", "auto"))
+        self.assertFalse(validate_property_value("padding", "0 auto"))
+        for prop in (
+            "padding-top",
+            "padding-right",
+            "padding-bottom",
+            "padding-left",
+        ):
+            self.assertFalse(validate_property_value(prop, "auto"), prop)
+
+    def test_border_width_rejects_auto(self):
+        self.assertFalse(validate_property_value("border-width", "auto"))
+        for prop in (
+            "border-top-width",
+            "border-right-width",
+            "border-bottom-width",
+            "border-left-width",
+        ):
+            self.assertFalse(validate_property_value(prop, "auto"), prop)
+
+    def test_margin_still_rejects_nonsense(self):
+        for value in ("banana", "5zz", "0 banana"):
+            self.assertFalse(
+                validate_property_value("margin", value), f"margin: {value}"
+            )
 
 
 class TestTransitionLists(unittest.TestCase):

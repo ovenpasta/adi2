@@ -141,7 +141,7 @@ package Widget_Defaults_Styles is
       Width => Set (Size (Px (10.0))),
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.22)),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
+      Margin => Set_Margin (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
       Border_Radius => Set (Radius (Px (6.0))),
       others => <>);
 

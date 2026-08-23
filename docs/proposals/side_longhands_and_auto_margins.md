@@ -1,8 +1,8 @@
 # Side Longhands and Auto Margins
 
 Two related gaps in the box-model properties, both found while closing the
-conformance gaps in block and flex layout. The first is implemented; the
-second is not, and had to wait for it, for the reason given at the end.
+conformance gaps in block and flex layout. The side longhands are done, and
+so is `margin: auto` for block layout. Flex and grid are still open.
 
 ## Side longhands cascade — done
 
@@ -34,28 +34,20 @@ out differently depending on which path loaded it.
 `tests/css/side_cascade.css` it was generated from, and requires the two
 to resolve identically. `docs/css_styling.md` states the rule.
 
-## `margin: auto`
+## `margin: auto` — done for block layout
 
-Not supported. `docs/css_styling.md` records `margin` as "1–4 lengths (no
-`auto`)".
+### The type
 
-### Why the type has to change
-
-`margin` is `CSS_Box_Sides`, an array of `Length_Value`, and
-`Length_Value` has no `auto`. It cannot gain one: it is shared with border
-widths, font sizes, gaps and every other length, all of which would have
-to learn to reject a value that is meaningless for them. `CSS_Box_Value`
-cannot carry it either, because `padding` shares that type and
-`padding: auto` is invalid CSS.
-
-The clean route is a distinct `Margin_Value`, modelled on the
-`Inset_Value` this codebase already has for `top`/`right`/`bottom`/`left`
-(`src/adi-css_styles.ads:483-489`):
+`Length_Value` could not gain an `auto`: it is shared with border widths,
+font sizes and gaps, none of which have a meaning for it. `CSS_Box_Value`
+could not carry it either, since `padding` shares that type and
+`padding: auto` is invalid CSS. So margin got its own element type,
+modelled on the `Inset_Value` already used for the insets:
 
 ```ada
-type Inset_Kind is (Fixed, Auto);
+type Margin_Kind is (Fixed, Auto);
 
-type Inset_Value (Kind : Inset_Kind := Auto) is record
+type Margin_Value (Kind : Margin_Kind := Fixed) is record
    case Kind is
       when Fixed => Length : Length_Value := Zero_Length;
       when Auto  => null;
@@ -63,39 +55,47 @@ type Inset_Value (Kind : Inset_Kind := Auto) is record
 end record;
 ```
 
-That precedent means the shape is already idiomatic here. The work is
-giving `Style_Rules.Margin` its own element type — `Opt_Length` no longer
-serves, since padding and the border widths share it — teaching both
-parsers, and updating the readers: mechanical, tedious, low risk.
+`Style_Rules.Margin` is `Opt_Margin_Sides`, an array of
+`Opt_Margin.Optional`, so the per-side cascade works exactly as it does
+for padding. `Resolved_Style.Margin` is `Margin_Sides` — four
+`Margin_Value`, auto preserved rather than flattened to zero, because
+layout has to tell "auto" from "0px" to distribute anything. That is the
+one place this differs from the other groups, which fold back into a
+single narrowest-shape value.
 
-### Then it stages
+`Get_Margin_Px` reports auto as zero, which is what every measurement
+path wants: an auto margin absorbs spare room and never demands any. Only
+block placement looks at the kinds.
 
-**1. Block horizontal centring** (CSS 2.1 §10.3.3). Small, and the common
-case: `margin: 0 auto`. With a declared `width`, two auto margins split
-the leftover evenly and one auto margin takes all of it; with `width:
-auto` the margins collapse to zero. This lands in `Block_Child_Width`
-(`src/adi-widget-box.adb`), which already computes the room and the used
-width, so the leftover is one subtraction away. Measurement must treat
-auto as zero — an auto margin absorbs spare room and never demands any.
-Vertical auto margins are zero in block flow by spec, so they are free.
+The default is `Fixed`/`Zero_Length`, not `Auto` — an unset margin is zero,
+and `Inset_Value` defaulting to `Auto` is about insets meaning "not set".
 
-**2. Flex** (Flexbox §8.1). The awkward one. Main-axis auto margins absorb
-**all** positive free space *before* `justify-content` runs and suppress
-it entirely; cross-axis auto margins do the same to `align-self`.
-`Flex_Child_Info` carries `Margin : Edge_Pixels` already resolved to
-numbers, so it needs per-side auto flags and a free-space pass ahead of
-justification. It interacts with the distribution loop, which is easy to
-get subtly wrong.
+### The distribution
 
-**3. Grid cells and absolute centring** (§10.3.7). Smaller than flex, same
+`Block_Child_Left_Margin` (`src/adi-widget-box.adb`) implements CSS 2.1
+§10.3.3 for block-level non-replaced boxes in normal flow: both margins
+auto splits the leftover evenly, one auto takes all of it, and neither
+auto returns the declared left margin so an over-constrained box lets its
+right margin absorb the error (left-to-right). `width: auto` needs no
+special case — `Block_Child_Width` has already filled the room, leaving
+nothing to distribute. Vertical autos are zero by §10.6.3, which falls out
+of `Get_Margin_Px` reporting them as zero.
+
+### Still open
+
+**Flex** (Flexbox §8.1). Main-axis auto margins absorb **all** positive
+free space *before* `justify-content` runs and suppress it entirely;
+cross-axis auto margins do the same to `align-self`. `Flex_Child_Info`
+carries `Margin : Edge_Pixels`, already numbers, and the main-axis totals
+are pre-summed globally, so this needs per-side auto flags and a
+free-space pass ahead of justification. A flex child's auto margin
+currently counts as zero.
+
+**Grid cells and absolute centring** (§10.3.7). Smaller than flex, same
 shape.
-
-Shipping the type change plus stage 1, and documenting that auto margins
-are ignored in flex and grid until stage 2, is a day rather than a week
-and removes a caveat that currently appears in three places.
 
 ## Order
 
-The longhand cascade went first, and the ground it cleared is what makes
-the rest cheap: margin is already four independent optionals, so
-`margin: auto` is a change of element type rather than a second split.
+The longhand cascade went first, and the ground it cleared is what made
+the rest cheap: margin was already four independent optionals, so
+`margin: auto` was a change of element type rather than a second split.

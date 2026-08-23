@@ -81,7 +81,7 @@ package Font_Example_Styles is
       Background_Color => Set_Bg (RGBA (148, 163, 184, 0.24)),
       Transition => Set ((Duration => 0.22, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
       Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (8.0))),
+      Margin => Set_Margin (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (8.0))),
       Border_Radius => Set (Radius (Px (6.0))),
       others => <>);
 

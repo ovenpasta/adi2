@@ -65,7 +65,8 @@ project Tests is
       "block_layout_test",
       "block_wrap_test",
       "flex_gap_min_test",
-      "side_longhand_test");
+      "side_longhand_test",
+      "auto_margin_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    Platform_Name := external ("ADI_PLATFORM", "linux");
 

@@ -67,6 +67,24 @@ procedure Side_Longhand_Test is
       Assert_Lengths (Sides_Of (Actual), T, R, B, L, Msg);
    end Assert_Box;
 
+   --  Every case here declares lengths, so an auto side is a failure
+   --  rather than a zero: reading it as one would let an expected 0.0
+   --  pass against a margin that had turned auto.
+   procedure Assert_Margin
+     (Actual : Margin_Sides; T, R, B, L : Float; Msg : String)
+   is
+   begin
+      for E in Edge loop
+         if Actual (E).Kind /= Fixed then
+            Assert (False, Msg);
+            Put_Line ("      " & E'Image & " resolved to auto");
+            return;
+         end if;
+      end loop;
+      Assert_Lengths
+        ([for E in Edge => Actual (E).Length], T, R, B, L, Msg);
+   end Assert_Margin;
+
    procedure Assert_Border_Width
      (Actual : Border_Width_Value; T, R, B, L : Float; Msg : String)
    is
@@ -150,8 +168,8 @@ procedure Side_Longhand_Test is
       Assert_Box (Resolved ("pad-e").Padding, 0.0, 12.0, 12.0, 12.0,
                   "a longhand declaring zero overrides an earlier side");
 
-      Assert_Box (Resolved ("mar-a").Margin, 6.0, 8.0, 1.0, 8.0,
-                  "margin-bottom keeps the axis shorthand's other sides");
+      Assert_Margin (Resolved ("mar-a").Margin, 6.0, 8.0, 1.0, 8.0,
+                     "margin-bottom keeps the axis shorthand's other sides");
 
       Assert_Border_Width (Resolved ("bw-a").Border_Width, 2.0, 2.0, 2.0, 5.0,
                            "border-left-width keeps the other three widths");
@@ -222,8 +240,8 @@ procedure Side_Longhand_Test is
       begin
          Assert_Box (R.Padding, 4.0, 12.0, 12.0, 12.0,
                      "a modifier class adjusts one padding side only");
-         Assert_Box (R.Margin, 6.0, 6.0, 6.0, 2.0,
-                     "a modifier class adjusts one margin side only");
+         Assert_Margin (R.Margin, 6.0, 6.0, 6.0, 2.0,
+                        "a modifier class adjusts one margin side only");
       end;
    end Test_Class_Modifier;
 
@@ -295,7 +313,7 @@ procedure Side_Longhand_Test is
       begin
          Assert (Sides_Of (G.Padding) = Sides_Of (P.Padding),
                  Label & ": padding agrees between the two pipelines");
-         Assert (Sides_Of (G.Margin) = Sides_Of (P.Margin),
+         Assert (G.Margin = P.Margin,
                  Label & ": margin agrees between the two pipelines");
          Assert (Edges_Of (G.Border_Width) = Edges_Of (P.Border_Width),
                  Label & ": border-width agrees between the two pipelines");
@@ -317,8 +335,8 @@ procedure Side_Longhand_Test is
       begin
          Assert_Box (R.Padding, 4.0, 3.0, 12.0, 12.0,
                      "tag, class and id each land on the side they name");
-         Assert_Box (R.Margin, 6.0, 8.0, 1.0, 8.0,
-                     "the class adjusts the bottom margin only");
+         Assert_Margin (R.Margin, 6.0, 8.0, 1.0, 8.0,
+                        "the class adjusts the bottom margin only");
          Assert_Border_Width (R.Border_Width, 7.0, 2.0, 2.0, 5.0,
                               "border widths come from three selectors");
          Assert_Radius (R.Border_Radius, 8.0, 8.0, 8.0, 2.0,
@@ -339,8 +357,8 @@ procedure Side_Longhand_Test is
       begin
          Assert_Box (R.Padding, 4.0, 3.0, 15.0, 12.0,
                      "the hover rule adds a side without dropping the rest");
-         Assert_Box (R.Margin, 6.0, 8.0, 1.0, 9.0,
-                     "the hover rule's margin side stacks on the base's");
+         Assert_Margin (R.Margin, 6.0, 8.0, 1.0, 9.0,
+                        "the hover rule's margin side stacks on the base's");
       end Expect_Hovered;
 
    begin

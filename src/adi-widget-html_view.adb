@@ -1681,6 +1681,13 @@ package body Adi.Widget.Html_View is
          Style           : Resolved_Style;
          Container_Width : Pixel_Type) return Edge_Pixels;
 
+      --  Auto margins resolve to zero here: html_view lays out its own
+      --  block flow and does not distribute leftover width.
+      function Resolve_Margin_Edges
+        (M               : Margin_Sides;
+         Style           : Resolved_Style;
+         Container_Width : Pixel_Type) return Edge_Pixels;
+
 
       function Local_Font_Size_Px (Style : Resolved_Style) return Pixel_Type is
       begin
@@ -2266,7 +2273,7 @@ package body Adi.Widget.Html_View is
 
       procedure Add_Horizontal_Rule (Style : Resolved_Style) is
          Margin_Edges : constant Edge_Pixels :=
-           Resolve_Box_Edges (Style.Margin, Style, Current_Line_Width);
+           Resolve_Margin_Edges (Style.Margin, Style, Current_Line_Width);
          Rule_H : Pixel_Type := 1.0;
          Rule_Geom : Rectangle;
       begin
@@ -2506,6 +2513,31 @@ package body Adi.Widget.Html_View is
          end case;
       end Resolve_Box_Edges;
 
+      function Resolve_Margin_Edges
+        (M               : Margin_Sides;
+         Style           : Resolved_Style;
+         Container_Width : Pixel_Type) return Edge_Pixels
+      is
+         Font_Px : constant Pixel_Type := Local_Font_Size_Px (Style);
+
+         function To_Px (Side : Margin_Value) return Pixel_Type is
+         begin
+            if Side.Kind = Auto then
+               return 0.0;
+            end if;
+            return Local_Length_To_Px
+              (Side.Length,
+               Container_Size => Container_Width,
+               Font_Size => Font_Px);
+         end To_Px;
+      begin
+         return
+           (Top    => To_Px (M (Top)),
+            Right  => To_Px (M (Right)),
+            Bottom => To_Px (M (Bottom)),
+            Left   => To_Px (M (Left)));
+      end Resolve_Margin_Edges;
+
       procedure Resolve_Image_Run_Size
         (Style : Resolved_Style;
          W     : in out Pixel_Type;
@@ -2716,7 +2748,7 @@ package body Adi.Widget.Html_View is
                               List_Context_Pushed := True;
                            end if;
 
-                           Margin_Edges := Resolve_Box_Edges (Style.Margin, Style, Local_Container_W);
+                           Margin_Edges := Resolve_Margin_Edges (Style.Margin, Style, Local_Container_W);
                            Padding_Edges := Resolve_Box_Edges (Style.Padding, Style, Local_Container_W);
 
                            --  Vertical margin collapsing. Defer the commit

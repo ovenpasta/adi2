@@ -1034,11 +1034,10 @@ procedure Css_Parser_Test is
               and then Main_Normal.Padding.Vertical.Amount = 4.0
               and then Main_Normal.Padding.Horizontal.Amount = 8.0,
               "Padding 2-value shorthand should parse");
-      Test_Support.Assert (Main_Normal.Margin.Kind = Per_Side
-              and then Main_Normal.Margin.Sides (Top).Amount = 1.0
-              and then Main_Normal.Margin.Sides (Right).Amount = 2.0
-              and then Main_Normal.Margin.Sides (Bottom).Amount = 3.0
-              and then Main_Normal.Margin.Sides (Left).Amount = 4.0,
+      Test_Support.Assert (Main_Normal.Margin (Top).Length.Amount = 1.0
+              and then Main_Normal.Margin (Right).Length.Amount = 2.0
+              and then Main_Normal.Margin (Bottom).Length.Amount = 3.0
+              and then Main_Normal.Margin (Left).Length.Amount = 4.0,
               "Margin 4-value shorthand should parse");
       Test_Support.Assert (Main_Normal.Border_Width.Kind = Gap_Uniform
               and then Main_Normal.Border_Width.All_Edges.Amount = 4.0,
@@ -1269,11 +1268,10 @@ procedure Css_Parser_Test is
               and then Sides_Main.Padding.Sides (Bottom).Amount = 3.0
               and then Sides_Main.Padding.Sides (Left).Amount = 11.0,
               "Padding side longhands should override shorthand per side");
-      Test_Support.Assert (Sides_Main.Margin.Kind = Per_Side
-              and then Sides_Main.Margin.Sides (Top).Amount = 9.0
-              and then Sides_Main.Margin.Sides (Right).Amount = 5.0
-              and then Sides_Main.Margin.Sides (Bottom).Amount = 5.0
-              and then Sides_Main.Margin.Sides (Left).Amount = 5.0,
+      Test_Support.Assert (Sides_Main.Margin (Top).Length.Amount = 9.0
+              and then Sides_Main.Margin (Right).Length.Amount = 5.0
+              and then Sides_Main.Margin (Bottom).Length.Amount = 5.0
+              and then Sides_Main.Margin (Left).Length.Amount = 5.0,
               "Margin side longhands should override shorthand per side");
    end Test_Seconds_Sides_UL;
 
@@ -1677,11 +1675,10 @@ procedure Css_Parser_Test is
       Test_Support.Assert (Pad1_Main.Padding.Kind = Gap_Uniform
               and then Pad1_Main.Padding.All_Sides.Amount = 5.0,
               "padding 1-value should parse as uniform");
-      Test_Support.Assert (Margin3_Main.Margin.Kind = Per_Side
-              and then Margin3_Main.Margin.Sides (Top).Amount = 1.0
-              and then Margin3_Main.Margin.Sides (Right).Amount = 2.0
-              and then Margin3_Main.Margin.Sides (Bottom).Amount = 3.0
-              and then Margin3_Main.Margin.Sides (Left).Amount = 2.0,
+      Test_Support.Assert (Margin3_Main.Margin (Top).Length.Amount = 1.0
+              and then Margin3_Main.Margin (Right).Length.Amount = 2.0
+              and then Margin3_Main.Margin (Bottom).Length.Amount = 3.0
+              and then Margin3_Main.Margin (Left).Length.Amount = 2.0,
               "margin 3-value shorthand should parse (left = right)");
       Test_Support.Assert (Dispvals_Main.Display = Inline_Flex,
               "display inline-flex should parse");

@@ -103,28 +103,76 @@ def flatten_document(doc: dict) -> dict:
 #  Told apart from a field that is present and null.
 ABSENT = object()
 
+#  Where a widget sits, rather than what it is. Inserting one renumbers
+#  every later path and id, so pairing on these reports the whole tail as
+#  changed and buries whatever actually moved.
+POSITIONAL = ("id", "path", "children", "overlays")
+
+
+def identities(doc: dict) -> dict:
+    """Widgets grouped by what they are: type, label and depth.
+
+    Pairing on this survives an insertion, which renumbering does not.
+    A container carries no text of its own, so it borrows the first text
+    beneath it — enough to tell two sibling sections apart. Widgets of
+    one identity keep document order, so they pair one to one.
+    """
+    out: dict = {}
+
+    def walk(node, depth, root):
+        below = [walk(c, depth + 1, root) for c in node.get("children") or []]
+        label = node.get("text") or next((b for b in below if b), None)
+        out.setdefault((root, node.get("type"), label, depth), []).append(node)
+        return label
+
+    if doc.get("tree"):
+        walk(doc["tree"], 0, "")
+    for i, overlay in enumerate(doc.get("overlays") or [], 1):
+        walk(overlay, 0, f"overlay{i}")
+    return out
+
+
+def describe(node: dict) -> str:
+    text = node.get("text")
+    return (f"{node.get('path') or '<root>'}  {node.get('type', '?')}"
+            + (f"  {text!r}" if text else ""))
+
 
 def differences(golden: dict, found: dict, limit: int = 25) -> list[str]:
     """What changed, as lines a person can act on."""
-    was, now = flatten_document(golden), flatten_document(found)
-    lines = []
+    was, now = identities(golden), identities(found)
+    lines: list[str] = []
+    #  A shared shift is the room an insertion or removal made; report it
+    #  once with its size rather than once per widget carried along.
+    shifted: dict = {}
 
-    for path in sorted(set(was) - set(now)):
-        lines.append(f"  gone     {path or '<root>'}  "
-                     f"{was[path].get('type', '?')}")
-    for path in sorted(set(now) - set(was)):
-        lines.append(f"  new      {path or '<root>'}  "
-                     f"{now[path].get('type', '?')}")
-
-    for path in sorted(set(was) & set(now)):
-        a, b = was[path], now[path]
-        for field in sorted(set(a) | set(b)):
-            old, new = a.get(field, ABSENT), b.get(field, ABSENT)
-            if old is not new and old != new:
+    for key in sorted(was.keys() | now.keys(), key=lambda k: (k[3], str(k[1:]))):
+        before, after = was.get(key, []), now.get(key, [])
+        for i in range(max(len(before), len(after))):
+            a = before[i] if i < len(before) else None
+            b = after[i] if i < len(after) else None
+            if a is None:
+                lines.append(f"  new      {describe(b)}")
+                continue
+            if b is None:
+                lines.append(f"  gone     {describe(a)}")
+                continue
+            changed = {f for f in a.keys() | b.keys()
+                       if f not in POSITIONAL
+                       and a.get(f, ABSENT) != b.get(f, ABSENT)}
+            if changed == {"y"}:
+                shifted[round(b["y"] - a["y"], PLACES)] = \
+                    shifted.get(round(b["y"] - a["y"], PLACES), 0) + 1
+                continue
+            for field in sorted(changed):
+                old, new = a.get(field, ABSENT), b.get(field, ABSENT)
                 lines.append(
-                    f"  {field:<12} {path or '<root>'}  "
+                    f"  {field:<12} {describe(b)}  "
                     f"{'<absent>' if old is ABSENT else old} -> "
                     f"{'<absent>' if new is ABSENT else new}")
+
+    for delta, count in sorted(shifted.items()):
+        lines.append(f"  shifted  {count} widget(s) moved {delta:+} in y")
 
     if len(lines) > limit:
         rest = len(lines) - limit

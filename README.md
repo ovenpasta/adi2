@@ -20,6 +20,32 @@ Adi2 gives you a real widget toolkit with the niceties developers expect from a 
 - **Built for tooling and automation.** A development-only MCP bridge lets editors and AI assistants screenshot the running app, walk the widget tree, *and* drive it — clicking buttons, typing into inputs, moving focus, reading performance counters. Great for end-to-end tests written by your AI of choice.
 - **Runs in the browser.** The examples compile to WebAssembly with GNAT-LLVM and Emscripten — [try them live](https://pizzahack.eu/adi2/demo/), or see [`wasm/`](wasm/) for the build.
 
+### What that costs to ship
+
+A release build links statically into a single executable under 10 MB —
+the widget toolkit, the CSS engine, SVG and Lottie rendering, all of it.
+Whatever assets you bundle add their own weight to that.
+
+It draws through SDL's renderer, which binds to whatever the host offers:
+Direct3D on Windows, Metal on macOS, Vulkan or OpenGL where they exist,
+software as the floor. Windows XP takes Direct3D 9 and a current Mac takes
+Metal, from the same source.
+
+|  | Adi2 | Qt | Flutter | Electron |
+|---|---|---|---|---|
+| Ship size | <10 MB, one file | ~15–30 MB static; otherwise a Qt runtime alongside | ~20 MB+, engine plus a data directory | ~100 MB+, bundling Chromium and Node |
+| Runtime | self-contained | Qt libraries and plugins | Flutter engine; GTK3 on Linux | Chromium and Node |
+| Graphics | SDL renderer, software fallback included | GPU or raster backends | Skia or Impeller, GPU expected | GPU stack and compositor |
+| Portability | Windows XP+, macOS, Linux, WebAssembly | Windows 10+, macOS, Linux, mobile, embedded | Windows 10+, macOS, Linux, mobile, web | Windows 10+, macOS, Linux |
+| Language | Ada | C++ | Dart | JavaScript |
+| Memory safety | checked, deterministic reclamation | manual | garbage-collected | garbage-collected |
+| Styling | CSS | QSS | Dart widget code | CSS |
+
+Sizes are for a minimal application; yours grows with your own code and
+assets. Each of the others buys its size with a large ecosystem and years
+of production use — the trade Adi2 offers is a single file you can hand to
+someone, on hardware the others have moved past.
+
 ---
 
 ## Screenshots
@@ -141,10 +167,36 @@ Full build instructions, including building without Alire, in [`docs/build.md`](
 
 ## Roadmap
 
-- **Better generated docs** — produce browsable API documentation with `gnatdoc`.
-- **Live reload for XML UIs** — CSS already hot-reloads during development; XML widget trees should too.
-- **SPARK / contracts** — add `Pre`/`Post`/`Type_Invariant` and SPARK-mode subsets to the core for stronger guarantees on widget lifecycle and style cascade.
-- **C API** — expose a stable C-callable interface so non-Ada languages (C, C++, Rust, Python via FFI, etc.) can drive Adi2.
+**CSS conformance.**
+
+- **`margin: auto`** — the centring idiom for block.
+
+**HTML view.**
+
+- **Tables** — `table`, `tr`, `td`/`th`, column widths, spanning.
+- **Flex and grid** — `display: flex` and `display: grid` inside the document.
+
+**Widgets and themes.**
+
+- **More widgets** — tree view, data grid, menu bar, progress and busy indicators, tooltips, split panes, date and colour pickers.
+- **Ready-made themes** — Material, Fluent, Adwaita and macOS, each in light and dark.
+
+**Text and reach.**
+
+- **Right-to-left and bidirectional text** — `direction` and bidi reordering.
+- **Accessibility** — semantic roles, names and states to screen readers over AT-SPI, UI Automation and NSAccessibility.
+
+**Authoring and tooling.**
+
+- **Visual designer** — RAD IDE like experience, edit both the UI XML and CSS.
+- **Scripting with HAC** — embed the HAC Ada compiler for reloadable application logic.
+- **Live reload for XML UIs** — XML widget trees hot-reload as CSS already does.
+- **Better generated docs** — browsable API documentation with `gnatdoc`.
+
+**Correctness and API.**
+
+- **Contracts** — `Pre`/`Post`/`Type_Invariant` and SPARK-mode subsets.
+- **C API** — a stable C-callable interface for non-Ada callers.
 
 Have an idea? Open an issue (see [`CONTRIBUTING.md`](CONTRIBUTING.md) for the policy).
 
@@ -152,9 +204,9 @@ Have an idea? Open an issue (see [`CONTRIBUTING.md`](CONTRIBUTING.md) for the po
 
 ## Supported platforms
 
-Anywhere GNAT and SDL3 build — Linux, Windows, macOS, BSDs. Actively tested on **GNU/Linux** and **Windows (MinGW)**.
+Tested on **GNU/Linux**, **Windows** (XP, 7, 8, 10, 11, via MinGW), **macOS**, and **WebAssembly** (Emscripten). Anywhere else GNAT and SDL3 build should follow — the BSDs among them.
 
-Rendering goes through the SDL renderer abstraction, so you get hardware-accelerated graphics with extremely broad portability — Adi2 has been observed running cleanly on **Windows XP** with no special effort.
+Rendering goes through the SDL renderer abstraction, so it takes hardware acceleration where the machine offers it and falls back to software where it does not. That is what puts the same binary on Windows XP and on a current desktop.
 
 ---
 

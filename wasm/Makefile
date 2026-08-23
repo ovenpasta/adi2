@@ -192,7 +192,7 @@ SHOWCASE_EXAMPLES = \
   gradient_example image_example animated_image_example assets_example \
   rlottie_example \
   font_example transition_example material_demo \
-  dialog_example html_view_example overflow_example demo_flex \
+  dialog_example html_view_example overflow_example demo_flex demo_block \
   svg_example
 
 showcase: $(PLUTO_OBJS) $(RL_OBJS)

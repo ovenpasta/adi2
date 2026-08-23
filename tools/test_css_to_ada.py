@@ -652,13 +652,13 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
                 "border-bottom-style": "dotted",
             }
         )
+        self.assertIn("Border_Width => [Top => Set (Px (2.0)), others => <>]", ada)
         self.assertIn(
-            "Border_Width => Set (Border_Width (Px (2.0), Px (0.0), Px (0.0), Px (0.0)))",
-            ada,
+            "Border_Style => [Bottom => Set_Edge_Style (Dotted), others => <>]", ada
         )
-        self.assertIn("Border_Style => Set (Border_Style (None_Style, None_Style, Dotted, None_Style))", ada)
-        self.assertIn("Border_Color => Set (", ada)
-        self.assertIn("C (Red)", ada)
+        self.assertIn(
+            "Border_Color => [Left => Set_Edge_Color (C (Red)), others => <>]", ada
+        )
 
     def test_border_side_shorthand_updates_only_one_side(self):
         ada = self._gen({"border": "1px solid #333", "border-top": "2px dashed red"})
@@ -1081,6 +1081,103 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
     def test_font_family_comma_list(self):
         ada = self._gen({"font-family": '"A", "B"'})
         self.assertIn('Font_Family => Set_Font_Family ("""A"", ""B""")', ada)
+
+
+class TestSideLonghandCascade(unittest.TestCase):
+    """A rule naming a subset of the sides must emit only those sides, so
+    the Ada cascade keeps whatever an earlier rule set for the rest."""
+
+    def _gen(self, props: dict[str, str]) -> str:
+        return "\n".join(generate_style_rules_ada(props))
+
+    def test_padding_one_side(self):
+        ada = self._gen({"padding-top": "4px"})
+        self.assertIn("Padding => [Top => Set (Px (4.0)), others => <>]", ada)
+
+    def test_padding_two_sides(self):
+        ada = self._gen({"padding-top": "4px", "padding-left": "2px"})
+        self.assertIn(
+            "Padding => [Top => Set (Px (4.0)), Left => Set (Px (2.0)), others => <>]",
+            ada,
+        )
+
+    def test_padding_shorthand_names_every_side(self):
+        ada = self._gen({"padding": "12px"})
+        self.assertIn(
+            "Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0)))",
+            ada,
+        )
+
+    def test_shorthand_then_longhand(self):
+        ada = self._gen({"padding": "12px", "padding-top": "4px"})
+        self.assertIn(
+            "Padding => Set (CSS_Box (Px (4.0), Px (12.0), Px (12.0), Px (12.0)))",
+            ada,
+        )
+
+    def test_longhand_then_shorthand(self):
+        ada = self._gen({"padding-left": "9px", "padding": "3px"})
+        self.assertIn(
+            "Padding => Set (CSS_Box (Px (3.0), Px (3.0), Px (3.0), Px (3.0)))",
+            ada,
+        )
+
+    def test_margin_one_side(self):
+        ada = self._gen({"margin-bottom": "1px"})
+        self.assertIn("Margin => [Bottom => Set (Px (1.0)), others => <>]", ada)
+
+    def test_border_width_one_side(self):
+        ada = self._gen({"border-left-width": "5px"})
+        self.assertIn("Border_Width => [Left => Set (Px (5.0)), others => <>]", ada)
+
+    def test_border_color_one_side(self):
+        ada = self._gen({"border-top-color": "rgb(68, 85, 102)"})
+        self.assertIn(
+            "Border_Color => [Top => Set_Edge_Color (RGB (68, 85, 102)), others => <>]",
+            ada,
+        )
+
+    def test_border_style_one_side(self):
+        ada = self._gen({"border-right-style": "dashed"})
+        self.assertIn(
+            "Border_Style => [Right => Set_Edge_Style (Dashed), others => <>]", ada
+        )
+
+    def test_border_radius_one_corner(self):
+        ada = self._gen({"border-bottom-left-radius": "2px"})
+        self.assertIn(
+            "Border_Radius => [Bottom_Left => Set (Px (2.0)), others => <>]", ada
+        )
+
+    def test_border_side_shorthand(self):
+        ada = self._gen({"border-top": "4px dashed rgb(10, 11, 12)"})
+        self.assertIn("Border_Width => [Top => Set (Px (4.0)), others => <>]", ada)
+        self.assertIn(
+            "Border_Style => [Top => Set_Edge_Style (Dashed), others => <>]", ada
+        )
+        self.assertIn(
+            "Border_Color => [Top => Set_Edge_Color (RGB (10, 11, 12)), others => <>]",
+            ada,
+        )
+
+    def test_border_shorthand_names_every_side(self):
+        ada = self._gen({"border": "1px solid rgb(1, 2, 3)"})
+        self.assertIn("Border_Width => Set (Border_Width (Px (1.0)))", ada)
+        self.assertIn("Border_Style => Set (Border_Style (Solid))", ada)
+        self.assertIn("Border_Color => Set (Border_Color (RGB (1, 2, 3)))", ada)
+
+    def test_border_shorthand_then_side_shorthand(self):
+        ada = self._gen(
+            {"border": "1px solid rgb(1, 2, 3)", "border-top": "4px dashed"}
+        )
+        self.assertIn(
+            "Border_Width => Set (Border_Width (Px (4.0), Px (1.0), Px (1.0), Px (1.0)))",
+            ada,
+        )
+        self.assertIn(
+            "Border_Style => Set (Border_Style (Dashed, Solid, Solid, Solid))", ada
+        )
+        self.assertIn("Border_Color => Set (Border_Color (RGB (1, 2, 3)))", ada)
 
 
 class TestTransitionLists(unittest.TestCase):

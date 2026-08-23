@@ -2330,6 +2330,20 @@ def four_sides_to_box_lengths(sides: list[ParsedLength]) -> list[ParsedLength]:
     return [top, right, bottom, left]
 
 
+EDGE_NAMES = ["Top", "Right", "Bottom", "Left"]
+CORNER_NAMES = ["Top_Left", "Top_Right", "Bottom_Right", "Bottom_Left"]
+
+
+def generate_partial_sides_ada(names, values, element) -> str:
+    """Ada aggregate naming only the sides this rule declared."""
+    named = ", ".join(
+        f"{name} => {element(value)}"
+        for name, value in zip(names, values)
+        if value is not None
+    )
+    return f"[{named}, others => <>]"
+
+
 def generate_border_style_from_four_ada(styles: list[str]) -> str:
     if styles[0] == styles[1] == styles[2] == styles[3]:
         return f"Border_Style ({styles[0]})"
@@ -2536,45 +2550,42 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         "bottom-left": 3,
     }
 
+    #  A side this rule never names stays None, and is left out of the
+    #  emitted value so the Ada cascade keeps what an earlier rule set.
     def ensure_padding_sides():
         nonlocal padding_sides
         if padding_sides is None:
-            z = ParsedLength(0.0, "Px")
-            padding_sides = [z, z, z, z]
+            padding_sides = [None, None, None, None]
         return padding_sides
 
     def ensure_margin_sides():
         nonlocal margin_sides
         if margin_sides is None:
-            z = ParsedLength(0.0, "Px")
-            margin_sides = [z, z, z, z]
+            margin_sides = [None, None, None, None]
         return margin_sides
 
     def ensure_border_width_sides():
         nonlocal border_width_sides
         if border_width_sides is None:
-            z = ParsedLength(0.0, "Px")
-            border_width_sides = [z, z, z, z]
+            border_width_sides = [None, None, None, None]
         return border_width_sides
 
     def ensure_border_style_sides():
         nonlocal border_style_sides
         if border_style_sides is None:
-            border_style_sides = ["None_Style", "None_Style", "None_Style", "None_Style"]
+            border_style_sides = [None, None, None, None]
         return border_style_sides
 
     def ensure_border_color_sides():
         nonlocal border_color_sides
         if border_color_sides is None:
-            c = ParsedColor(kind="named", name="Current_Color")
-            border_color_sides = [c, c, c, c]
+            border_color_sides = [None, None, None, None]
         return border_color_sides
 
     def ensure_border_radius_corners():
         nonlocal border_radius_corners
         if border_radius_corners is None:
-            z = ParsedLength(0.0, "Px")
-            border_radius_corners = [z, z, z, z]
+            border_radius_corners = [None, None, None, None]
         return border_radius_corners
     
     for prop, value in properties.items():
@@ -3200,24 +3211,42 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         if ada_field:
             fields.append(f"{indent}{ada_field}")
 
-    if padding_sides is not None:
-        fields.append(f"{indent}Padding => Set ({generate_box_from_four_ada(padding_sides)})")
-    if margin_sides is not None:
-        fields.append(f"{indent}Margin => Set ({generate_box_from_four_ada(margin_sides)})")
-    if border_width_sides is not None:
-        widths = four_sides_to_box_lengths(border_width_sides)
-        fields.append(f"{indent}Border_Width => Set ({generate_border_width_ada(widths)})")
-    if border_style_sides is not None:
-        fields.append(
-            f"{indent}Border_Style => Set ({generate_border_style_from_four_ada(border_style_sides)})"
-        )
-    if border_color_sides is not None:
-        fields.append(
-            f"{indent}Border_Color => Set ({generate_border_color_from_four_ada(border_color_sides)})"
-        )
-    if border_radius_corners is not None:
-        radii = four_sides_to_box_lengths(border_radius_corners)
-        fields.append(f"{indent}Border_Radius => Set ({generate_border_radius_ada(radii)})")
+    def emit_group(field, names, values, whole, element):
+        if values is None or all(v is None for v in values):
+            return
+        if all(v is not None for v in values):
+            fields.append(f"{indent}{field} => Set ({whole(values)})")
+        else:
+            fields.append(
+                f"{indent}{field} => "
+                + generate_partial_sides_ada(names, values, element)
+            )
+
+    def length_element(v: ParsedLength) -> str:
+        return f"Set ({generate_length_ada(v)})"
+
+    emit_group(
+        "Padding", EDGE_NAMES, padding_sides,
+        generate_box_from_four_ada, length_element)
+    emit_group(
+        "Margin", EDGE_NAMES, margin_sides,
+        generate_box_from_four_ada, length_element)
+    emit_group(
+        "Border_Width", EDGE_NAMES, border_width_sides,
+        lambda v: generate_border_width_ada(four_sides_to_box_lengths(v)),
+        length_element)
+    emit_group(
+        "Border_Style", EDGE_NAMES, border_style_sides,
+        generate_border_style_from_four_ada,
+        lambda v: f"Set_Edge_Style ({v})")
+    emit_group(
+        "Border_Color", EDGE_NAMES, border_color_sides,
+        generate_border_color_from_four_ada,
+        lambda v: f"Set_Edge_Color ({generate_color_ada(v)})")
+    emit_group(
+        "Border_Radius", CORNER_NAMES, border_radius_corners,
+        lambda v: generate_border_radius_ada(four_sides_to_box_lengths(v)),
+        length_element)
     if list_style_type is not None:
         fields.append(f"{indent}List_Style_Type => Set ({list_style_type})")
     if list_style_image is not None:

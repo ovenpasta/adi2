@@ -95,7 +95,36 @@ function Set_Outline_Offset (V : Length_Value) return Opt_Outline_Offset.Optiona
    renames Opt_Outline_Offset.Val;
 ```
 
-Note: `Set` works for `Outline_Style_Kind` because the type is unique. `Length_Value` and `Color_Value` are shared by many properties, so they need prefixed names (`Set_Outline_Width`, `Set_Outline_Color`) to avoid ambiguity.
+Note: `Set` works for `Outline_Style_Kind` because the type is unique. `Length_Value` and `Color_Value` are shared by many properties, so they need prefixed names (`Set_Outline_Width`, `Set_Outline_Color`) to avoid ambiguity. Plain `Set (Length_Value)` is already taken by the per-side element form below.
+
+### 1f. Box-valued properties with side longhands
+
+`outline` is one value, so one optional holds it. A property with
+`-top` / `-right` / `-bottom` / `-left` longhands is four properties in
+CSS, and each has to cascade on its own: a rule naming one side must
+leave the other three to earlier rules. Store those as an array of
+optionals rather than one optional over a four-sided value:
+
+```ada
+type Opt_Edge_Lengths is array (Edge) of Opt_Length.Optional;
+
+Padding : Opt_Edge_Lengths := Unset_Edge_Lengths;
+```
+
+`Merge` then runs per side, and `Resolve` folds the four back into the
+concrete group value `Resolved_Style` carries — narrowest shape first, so
+two rule sets that say the same thing compare equal in the style caches:
+
+```ada
+Padding => Merge (Base.Padding, Override.Padding),   --  2a
+Padding => To_Box (S.Padding),                       --  2b
+```
+
+`Opt_Edge_Lengths`, `Opt_Edge_Colors`, `Opt_Edge_Styles` and
+`Opt_Corner_Lengths` already exist, with `Merge`, `To_Box`,
+`To_Border_Width`, `To_Border_Color`, `To_Border_Style` and
+`To_Border_Radius` beside them; a new box-valued property should reuse
+them rather than add a fifth shape.
 
 ---
 
@@ -149,6 +178,16 @@ elsif P = "outline-style" then
 elsif P = "outline-offset" then
    if Parse_Length (V, LVal) then
       Rules.Outline_Offset := Set_Outline_Offset (To_Length (LVal));
+   end if;
+```
+
+A side longhand of a box-valued property assigns one array element and
+touches nothing else:
+
+```ada
+elsif P = "padding-top" then
+   if Parse_Length (V, LVal) then
+      Rules.Padding (Top) := Set (To_Length (LVal));
    end if;
 ```
 
@@ -279,6 +318,13 @@ Key points:
 - For shorthands that expand to multiple fields, append to `fields` directly and use `continue` to skip the single-field append.
 - Use `split_css_whitespace_tokens()` (not `.split()`) for shorthands that may contain `rgb(...)` values.
 - If a shorthand expands to longhands (like `overflow`), keep storage in the longhand fields only (`Overflow_X`/`Overflow_Y`) rather than adding a redundant shorthand field.
+- A box-valued property accumulates into a four-entry list where an
+  undeclared side stays `None`, and `emit_group` emits the whole-group
+  form only when the rule named every side; otherwise it emits an
+  aggregate over the sides it did name. The runtime parser must reach the
+  same result for the same CSS, or a stylesheet lays out differently
+  depending on which pipeline loaded it — `tests/src/side_longhand_test.adb`
+  drives both from `tests/css/side_cascade.css` and compares them.
 
 ---
 

@@ -235,7 +235,7 @@ project Tests_Build is
    type Test_Kind is (${TEST_KIND_GPR});
    Kind : Test_Kind := external ("TEST_KIND", "styles");
 
-   for Source_Dirs use ("${SOURCE_DIR}/tests/src");
+   for Source_Dirs use ("${SOURCE_DIR}/tests/src", "${SOURCE_DIR}/tests/generated");
    for Object_Dir use "${BUILD_DIR}/tests/obj/" & Kind;
    for Exec_Dir use "${BUILD_DIR}/tests/bin";
    for Main use (Kind & ".adb");
@@ -365,6 +365,9 @@ bash "\${SOURCE_DIR}/tools/generate_example_styles.sh"
 
 echo "[build_all] generate XML Ada packages"
 bash "\${SOURCE_DIR}/tools/generate_example_ui.sh"
+
+echo "[build_all] generate test CSS Ada packages"
+bash "\${SOURCE_DIR}/tools/generate_test_styles.sh"
 
 echo "[build_all] build library"
 gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}"

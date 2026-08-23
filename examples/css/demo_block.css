@@ -130,12 +130,9 @@
 
 /*  A margin is outside the width: it comes off the line an automatic
     width would have spanned, and moves a declared one over without
-    narrowing it.
-
-    Spelled as the shorthand, and carrying .bar's bottom margin with it,
-    because a margin longhand stands for the whole box: one side written
-    here would leave the other three at zero and the bars would touch. */
-.indent { margin: 0px 0px 6px 48px; }
+    narrowing it. One side, cascading over .bar's bottom margin, which
+    keeps the bars apart. */
+.indent { margin-left: 48px; }
 
 /*  Padding is inside it. Last in the class list, so it is this 48px the
     text starts after rather than the 8px .bar carries. */

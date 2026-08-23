@@ -787,7 +787,7 @@ procedure Html_View_Test is
       Assert
         (Adi.Widget.Get_Resolved_Part_Style
            (+W, Adi.Widget.Main_Part).Padding
-         = Set (CSS_Box (Px (7.0))).Value,
+         = CSS_Box (Px (7.0)),
          "the applied padding survives Clear");
       Assert (Adi.Widget.Html_View.Get_HTML (W) = "",
               "the document is gone");

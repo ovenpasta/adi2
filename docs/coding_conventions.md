@@ -50,6 +50,8 @@ src/adi-sdl-*.ads/adb     - SDL3 bindings
 src/svg/                  - SVG API and its backend
 src/mcp/, src/mcp_stub/   - MCP bridge; the stub replaces it outside development
 tests/src/                - Test programs
+tests/css/                - CSS a test compares against its own runtime parse
+tests/generated/          - Ada generated from tests/css/
 examples/                 - Example programs
 examples/css/             - CSS source files
 examples/xml/             - Declarative UI definitions

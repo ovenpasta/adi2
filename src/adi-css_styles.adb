@@ -67,6 +67,129 @@ package body Adi.CSS_Styles is
               Has_Column => Has_C);
    end Overlay;
 
+   -------------------------------------------------
+   -- Per-side rule values
+   -------------------------------------------------
+
+   function Set (V : CSS_Box_Value) return Opt_Edge_Lengths is
+   begin
+      case V.Kind is
+         when Gap_Uniform =>
+            return [others => Opt_Length.Val (V.All_Sides)];
+         when Axis =>
+            return [Top | Bottom => Opt_Length.Val (V.Vertical),
+                    Left | Right => Opt_Length.Val (V.Horizontal)];
+         when Per_Side =>
+            return [for E in Edge => Opt_Length.Val (V.Sides (E))];
+      end case;
+   end Set;
+
+   function Set (V : Border_Width_Value) return Opt_Edge_Lengths is
+   begin
+      case V.Kind is
+         when Gap_Uniform =>
+            return [others => Opt_Length.Val (V.All_Edges)];
+         when Per_Edge =>
+            return [for E in Edge => Opt_Length.Val (V.Edges (E))];
+      end case;
+   end Set;
+
+   function Set (V : Border_Color_Value) return Opt_Edge_Colors is
+   begin
+      case V.Kind is
+         when Gap_Uniform =>
+            return [others => Opt_Edge_Color.Val (V.All_Edges)];
+         when Per_Edge =>
+            return [for E in Edge => Opt_Edge_Color.Val (V.Edges (E))];
+      end case;
+   end Set;
+
+   function Set (V : Border_Style_Value) return Opt_Edge_Styles is
+   begin
+      case V.Kind is
+         when Gap_Uniform =>
+            return [others => Opt_Edge_Style.Val (V.All_Edges)];
+         when Per_Edge =>
+            return [for E in Edge => Opt_Edge_Style.Val (V.Edges (E))];
+      end case;
+   end Set;
+
+   function Set (V : Border_Radius_Value) return Opt_Corner_Lengths is
+   begin
+      case V.Kind is
+         when Gap_Uniform =>
+            return [others => Opt_Length.Val (V.All_Corners)];
+         when Per_Corner =>
+            return [for C in Corner => Opt_Length.Val (V.Corners (C))];
+      end case;
+   end Set;
+
+   --  The narrowest of the equivalent shapes, so that two rule sets that
+   --  say the same thing compare equal in the resolved-style caches.
+
+   function To_Box (O : Opt_Edge_Lengths) return CSS_Box_Value is
+      S : constant CSS_Box_Sides :=
+        [for E in Edge => Opt_Length.Resolve (O (E))];
+   begin
+      if S (Top) = S (Right) and then S (Right) = S (Bottom)
+        and then S (Bottom) = S (Left)
+      then
+         return CSS_Box (S (Top));
+      elsif S (Top) = S (Bottom) and then S (Left) = S (Right) then
+         return CSS_Box (S (Top), S (Right));
+      end if;
+      return CSS_Box (S (Top), S (Right), S (Bottom), S (Left));
+   end To_Box;
+
+   function To_Border_Width (O : Opt_Edge_Lengths) return Border_Width_Value is
+      S : constant Edge_Lengths :=
+        [for E in Edge => Opt_Length.Resolve (O (E))];
+   begin
+      if S (Top) = S (Right) and then S (Right) = S (Bottom)
+        and then S (Bottom) = S (Left)
+      then
+         return Border_Width (S (Top));
+      end if;
+      return Border_Width (S (Top), S (Right), S (Bottom), S (Left));
+   end To_Border_Width;
+
+   function To_Border_Color (O : Opt_Edge_Colors) return Border_Color_Value is
+      S : constant Edge_Colors :=
+        [for E in Edge => Opt_Edge_Color.Resolve (O (E))];
+   begin
+      if S (Top) = S (Right) and then S (Right) = S (Bottom)
+        and then S (Bottom) = S (Left)
+      then
+         return Border_Color (S (Top));
+      end if;
+      return Border_Color (S (Top), S (Right), S (Bottom), S (Left));
+   end To_Border_Color;
+
+   function To_Border_Style (O : Opt_Edge_Styles) return Border_Style_Value is
+      S : constant Edge_Styles :=
+        [for E in Edge => Opt_Edge_Style.Resolve (O (E))];
+   begin
+      if S (Top) = S (Right) and then S (Right) = S (Bottom)
+        and then S (Bottom) = S (Left)
+      then
+         return Border_Style (S (Top));
+      end if;
+      return Border_Style (S (Top), S (Right), S (Bottom), S (Left));
+   end To_Border_Style;
+
+   function To_Border_Radius (O : Opt_Corner_Lengths) return Border_Radius_Value is
+      S : constant Corner_Radii :=
+        [for C in Corner => Opt_Length.Resolve (O (C))];
+   begin
+      if S (Top_Left) = S (Top_Right) and then S (Top_Right) = S (Bottom_Right)
+        and then S (Bottom_Right) = S (Bottom_Left)
+      then
+         return Radius (S (Top_Left));
+      end if;
+      return Radius (S (Top_Left), S (Top_Right),
+                     S (Bottom_Right), S (Bottom_Left));
+   end To_Border_Radius;
+
    function Get_Border_Radius_Px (R : Border_Radius_Value) return Corner_Pixels is
    begin
       case R.Kind is
@@ -481,10 +604,10 @@ package body Adi.CSS_Styles is
          Background_Image => Opt_Bg_Image.Merge (Base.Background_Image, Override.Background_Image),
 
          -- Border
-         Border_Radius    => Opt_Radius.Merge (Base.Border_Radius, Override.Border_Radius),
-         Border_Width     => Opt_Border_Width.Merge (Base.Border_Width, Override.Border_Width),
-         Border_Color     => Opt_Border_Color.Merge (Base.Border_Color, Override.Border_Color),
-         Border_Style     => Opt_Border_Style.Merge (Base.Border_Style, Override.Border_Style),
+         Border_Radius    => Merge (Base.Border_Radius, Override.Border_Radius),
+         Border_Width     => Merge (Base.Border_Width, Override.Border_Width),
+         Border_Color     => Merge (Base.Border_Color, Override.Border_Color),
+         Border_Style     => Merge (Base.Border_Style, Override.Border_Style),
 
          -- Outline
          Outline_Width    => Opt_Outline_Width.Merge (Base.Outline_Width, Override.Outline_Width),
@@ -493,8 +616,8 @@ package body Adi.CSS_Styles is
          Outline_Offset   => Opt_Outline_Offset.Merge (Base.Outline_Offset, Override.Outline_Offset),
 
          -- Spacing
-         Padding          => Opt_Box.Merge (Base.Padding, Override.Padding),
-         Margin           => Opt_Box.Merge (Base.Margin, Override.Margin),
+         Padding          => Merge (Base.Padding, Override.Padding),
+         Margin           => Merge (Base.Margin, Override.Margin),
 
          -- Sizing
          Width            => Opt_Size.Merge (Base.Width, Override.Width),
@@ -775,10 +898,10 @@ package body Adi.CSS_Styles is
          Background_Image => Opt_Bg_Image.Resolve (S.Background_Image),
 
          -- Border
-         Border_Radius    => Opt_Radius.Resolve (S.Border_Radius),
-         Border_Width     => Opt_Border_Width.Resolve (S.Border_Width),
-         Border_Color     => Opt_Border_Color.Resolve (S.Border_Color),
-         Border_Style     => Opt_Border_Style.Resolve (S.Border_Style),
+         Border_Radius    => To_Border_Radius (S.Border_Radius),
+         Border_Width     => To_Border_Width (S.Border_Width),
+         Border_Color     => To_Border_Color (S.Border_Color),
+         Border_Style     => To_Border_Style (S.Border_Style),
 
          -- Outline
          Outline_Width    => Opt_Outline_Width.Resolve (S.Outline_Width),
@@ -787,8 +910,8 @@ package body Adi.CSS_Styles is
          Outline_Offset   => Opt_Outline_Offset.Resolve (S.Outline_Offset),
 
          -- Spacing
-         Padding          => Opt_Box.Resolve (S.Padding),
-         Margin           => Opt_Box.Resolve (S.Margin),
+         Padding          => To_Box (S.Padding),
+         Margin           => To_Box (S.Margin),
 
          -- Sizing
          Width            => Opt_Size.Resolve (S.Width),

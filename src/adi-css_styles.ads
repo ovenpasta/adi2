@@ -1004,11 +1004,6 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    package Opt_Text_Color    is new Optional_Values (Color_Value, Default_Color);
    package Opt_Bg_Color      is new Optional_Values (Color_Value, Default_Background);
    package Opt_Bg_Image      is new Optional_Values (Background_Image_Value, Default_Background_Image);
-   package Opt_Radius        is new Optional_Values (Border_Radius_Value, Default_Radius);
-   package Opt_Border_Width  is new Optional_Values (Border_Width_Value, Default_Border_Width);
-   package Opt_Border_Color  is new Optional_Values (Border_Color_Value, Default_Border_Color_Val);
-   package Opt_Border_Style  is new Optional_Values (Border_Style_Value, Default_Border_Style);
-   package Opt_Box           is new Optional_Values (CSS_Box_Value, Default_CSS_Box);
    package Opt_Size          is new Optional_Values (Size_Value, Default_Size);
    package Opt_Font_Size     is new Optional_Values (Length_Value, Default_Font_Size);
    package Opt_Display       is new Optional_Values (Display_Value, Default_Display);
@@ -1066,6 +1061,47 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    package Opt_Outline_Offset is new Optional_Values (Length_Value, Default_Outline_Offset);
 
    -------------------------------------------------
+   -- Per-side rule values
+   -------------------------------------------------
+
+   --  In CSS the four sides of a box-model group are four independent
+   --  properties, so each side carries its own optional and the cascade
+   --  merges them one by one: `padding-top` in a later rule leaves the
+   --  other three sides to whatever an earlier rule set. Only the rules
+   --  are split this way; Resolved_Style still holds one concrete value
+   --  per group.
+
+   package Opt_Length     is new Optional_Values (Length_Value, Zero_Length);
+   package Opt_Edge_Color is new Optional_Values (Color_Value, Default_Border_Color);
+   package Opt_Edge_Style is new Optional_Values (Border_Style_Kind, None_Style);
+
+   type Opt_Edge_Lengths   is array (Edge)   of Opt_Length.Optional;
+   type Opt_Edge_Colors    is array (Edge)   of Opt_Edge_Color.Optional;
+   type Opt_Edge_Styles    is array (Edge)   of Opt_Edge_Style.Optional;
+   type Opt_Corner_Lengths is array (Corner) of Opt_Length.Optional;
+
+   Unset_Edge_Lengths   : constant Opt_Edge_Lengths   := [others => Opt_Length.Unset];
+   Unset_Edge_Colors    : constant Opt_Edge_Colors    := [others => Opt_Edge_Color.Unset];
+   Unset_Edge_Styles    : constant Opt_Edge_Styles    := [others => Opt_Edge_Style.Unset];
+   Unset_Corner_Lengths : constant Opt_Corner_Lengths := [others => Opt_Length.Unset];
+
+   function Merge (Base, Override : Opt_Edge_Lengths) return Opt_Edge_Lengths is
+     ([for E in Edge => Opt_Length.Merge (Base (E), Override (E))]);
+   function Merge (Base, Override : Opt_Edge_Colors) return Opt_Edge_Colors is
+     ([for E in Edge => Opt_Edge_Color.Merge (Base (E), Override (E))]);
+   function Merge (Base, Override : Opt_Edge_Styles) return Opt_Edge_Styles is
+     ([for E in Edge => Opt_Edge_Style.Merge (Base (E), Override (E))]);
+   function Merge (Base, Override : Opt_Corner_Lengths) return Opt_Corner_Lengths is
+     ([for C in Corner => Opt_Length.Merge (Base (C), Override (C))]);
+
+   --  Concrete group values for rendering and layout.
+   function To_Box           (O : Opt_Edge_Lengths)   return CSS_Box_Value;
+   function To_Border_Width  (O : Opt_Edge_Lengths)   return Border_Width_Value;
+   function To_Border_Color  (O : Opt_Edge_Colors)    return Border_Color_Value;
+   function To_Border_Style  (O : Opt_Edge_Styles)    return Border_Style_Value;
+   function To_Border_Radius (O : Opt_Corner_Lengths) return Border_Radius_Value;
+
+   -------------------------------------------------
    -- Style Rules Record
    -------------------------------------------------
 
@@ -1076,10 +1112,10 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Background_Image : Opt_Bg_Image.Optional     := Opt_Bg_Image.Unset;
 
       -- Border
-      Border_Radius    : Opt_Radius.Optional       := Opt_Radius.Unset;
-      Border_Width     : Opt_Border_Width.Optional := Opt_Border_Width.Unset;
-      Border_Color     : Opt_Border_Color.Optional := Opt_Border_Color.Unset;
-      Border_Style     : Opt_Border_Style.Optional := Opt_Border_Style.Unset;
+      Border_Radius    : Opt_Corner_Lengths        := Unset_Corner_Lengths;
+      Border_Width     : Opt_Edge_Lengths          := Unset_Edge_Lengths;
+      Border_Color     : Opt_Edge_Colors           := Unset_Edge_Colors;
+      Border_Style     : Opt_Edge_Styles           := Unset_Edge_Styles;
 
       -- Outline
       Outline_Width    : Opt_Outline_Width.Optional  := Opt_Outline_Width.Unset;
@@ -1088,8 +1124,8 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Outline_Offset   : Opt_Outline_Offset.Optional := Opt_Outline_Offset.Unset;
 
       -- Spacing
-      Padding          : Opt_Box.Optional          := Opt_Box.Unset;
-      Margin           : Opt_Box.Optional          := Opt_Box.Unset;
+      Padding          : Opt_Edge_Lengths          := Unset_Edge_Lengths;
+      Margin           : Opt_Edge_Lengths          := Unset_Edge_Lengths;
 
       -- Sizing
       Width            : Opt_Size.Optional         := Opt_Size.Unset;
@@ -1342,15 +1378,24 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    No_Bg_Color   : constant Opt_Bg_Color.Optional   := Opt_Bg_Color.Cleared;
    No_Bg_Image   : constant Opt_Bg_Image.Optional   := Opt_Bg_Image.Cleared;
 
+   -- Per-side values.  A whole-group value names every side at once; the
+   -- element forms name one and leave the rest to the cascade.
+   function Set (V : Length_Value) return Opt_Length.Optional
+     renames Opt_Length.Val;
+   function Set_Edge_Color (V : Color_Value) return Opt_Edge_Color.Optional
+     renames Opt_Edge_Color.Val;
+   function Set_Edge_Style (V : Border_Style_Kind) return Opt_Edge_Style.Optional
+     renames Opt_Edge_Style.Val;
+
    -- Border
-   function Set (V : Border_Radius_Value) return Opt_Radius.Optional renames Opt_Radius.Val;
-   function Set (V : Border_Width_Value) return Opt_Border_Width.Optional renames Opt_Border_Width.Val;
-   function Set (V : Border_Color_Value) return Opt_Border_Color.Optional renames Opt_Border_Color.Val;
-   function Set (V : Border_Style_Value) return Opt_Border_Style.Optional renames Opt_Border_Style.Val;
-   No_Radius       : constant Opt_Radius.Optional       := Opt_Radius.Cleared;
-   No_Border_Width : constant Opt_Border_Width.Optional := Opt_Border_Width.Cleared;
-   No_Border_Color : constant Opt_Border_Color.Optional := Opt_Border_Color.Cleared;
-   No_Border_Style : constant Opt_Border_Style.Optional := Opt_Border_Style.Cleared;
+   function Set (V : Border_Radius_Value) return Opt_Corner_Lengths;
+   function Set (V : Border_Width_Value) return Opt_Edge_Lengths;
+   function Set (V : Border_Color_Value) return Opt_Edge_Colors;
+   function Set (V : Border_Style_Value) return Opt_Edge_Styles;
+   No_Radius       : constant Opt_Corner_Lengths := [others => Opt_Length.Cleared];
+   No_Border_Width : constant Opt_Edge_Lengths   := [others => Opt_Length.Cleared];
+   No_Border_Color : constant Opt_Edge_Colors    := [others => Opt_Edge_Color.Cleared];
+   No_Border_Style : constant Opt_Edge_Styles    := [others => Opt_Edge_Style.Cleared];
 
    -- Outline
    function Set_Outline_Width (V : Length_Value) return Opt_Outline_Width.Optional renames Opt_Outline_Width.Val;
@@ -1359,8 +1404,8 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Set_Outline_Offset (V : Length_Value) return Opt_Outline_Offset.Optional renames Opt_Outline_Offset.Val;
 
    -- CSS_Box
-   function Set (V : CSS_Box_Value) return Opt_Box.Optional renames Opt_Box.Val;
-   No_Box : constant Opt_Box.Optional := Opt_Box.Cleared;
+   function Set (V : CSS_Box_Value) return Opt_Edge_Lengths;
+   No_Box : constant Opt_Edge_Lengths := [others => Opt_Length.Cleared];
 
    -- Size
    function Set (V : Size_Value) return Opt_Size.Optional renames Opt_Size.Val;

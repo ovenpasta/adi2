@@ -82,7 +82,7 @@ package Demo_Block_Styles is
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (6.0))),
       Flex_Shrink => Set (0.0),
-      Padding => Set (CSS_Box (Px (0.0), Px (14.0), Px (0.0), Px (0.0))),
+      Padding => [Right => Set (Px (14.0)), others => <>],
       others => <>);
 
    --  Base style for class 'caption'::label
@@ -144,8 +144,8 @@ package Demo_Block_Styles is
      (
       Height => Set (Size (Px (22.0))),
       Background_Color => Set_Bg (RGB (94, 129, 172)),
-      Padding => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (8.0))),
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (6.0), Px (0.0))),
+      Padding => [Left => Set (Px (8.0)), others => <>],
+      Margin => [Bottom => Set (Px (6.0)), others => <>],
       Border_Radius => Set (Radius (Px (4.0))),
       others => <>);
 
@@ -185,13 +185,13 @@ package Demo_Block_Styles is
    --  Base style for class 'indent'
    function Indent_Class_Base_Style return Style_Rules is
      (
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (6.0), Px (48.0))),
+      Margin => [Left => Set (Px (48.0)), others => <>],
       others => <>);
 
    --  Base style for class 'inset'
    function Inset_Class_Base_Style return Style_Rules is
      (
-      Padding => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (48.0))),
+      Padding => [Left => Set (Px (48.0)), others => <>],
       others => <>);
 
    --  Base style for class 'h20'
@@ -217,7 +217,7 @@ package Demo_Block_Styles is
      (
       Height => Set (Auto_Size),
       Background_Color => Set_Bg (RGB (191, 97, 106)),
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (0.0))),
+      Margin => [Bottom => Set (Px (0.0)), others => <>],
       others => <>);
 
    --  Base style for class 'frame'
@@ -232,7 +232,7 @@ package Demo_Block_Styles is
      (
       Height => Set (Size (Pct (100.0))),
       Background_Color => Set_Bg (RGB (163, 190, 140)),
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (0.0))),
+      Margin => [Bottom => Set (Px (0.0)), others => <>],
       others => <>);
 
    --  Base style for class 'half'
@@ -240,7 +240,7 @@ package Demo_Block_Styles is
      (
       Height => Set (Size (Pct (50.0))),
       Background_Color => Set_Bg (RGB (235, 203, 139)),
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (0.0))),
+      Margin => [Bottom => Set (Px (0.0)), others => <>],
       others => <>);
 
    --  Base style for class 'quarter'
@@ -248,7 +248,7 @@ package Demo_Block_Styles is
      (
       Height => Set (Size (Pct (25.0))),
       Background_Color => Set_Bg (RGB (180, 142, 173)),
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (0.0))),
+      Margin => [Bottom => Set (Px (0.0)), others => <>],
       others => <>);
 
    --  Base style for class 'flex-row'
@@ -264,7 +264,7 @@ package Demo_Block_Styles is
      (
       Width => Set (Size (Px (60.0))),
       Height => Set (Size (Px (22.0))),
-      Margin => Set (CSS_Box (Px (0.0), Px (0.0), Px (6.0), Px (0.0))),
+      Margin => [Bottom => Set (Px (6.0)), others => <>],
       Border_Radius => Set (Radius (Px (4.0))),
       others => <>);
 

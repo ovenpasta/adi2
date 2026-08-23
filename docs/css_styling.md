@@ -164,6 +164,16 @@ For `::main`, interactive pseudos remain widget-scoped regardless of position:
 | `margin` | 1–4 lengths (no `auto`) | `margin: 8px 0px;` |
 | `margin-top/right/bottom/left` | length | `margin-top: 4px;` |
 
+Writing these groups as Ada rules: the whole-group forms name every side,
+an aggregate names the sides it lists and leaves the rest to the cascade.
+
+```ada
+Padding      => Set (CSS_Box (Px (12.0))),
+Margin       => [Bottom => Set (Px (6.0)), others => <>],
+Border_Color => [Top => Set_Edge_Color (C (Red)), others => <>],
+Border_Style => [Top => Set_Edge_Style (Dashed), others => <>],
+```
+
 A `min-width` above a `max-width` wins, and likewise for the heights — CSS 2.1 [§10.4](https://www.w3.org/TR/CSS21/visudet.html#min-max-widths). Both bound the size an element is *used* at, so neither can be escaped by a declared `width` or by a `flex-basis`.
 
 > **What block layout does with a child's size.** A block container stacks its children down the content area, one under the next. A child takes the `width` and `height` it declares; without a `width` it spans the content area less its own margins, and without a `height` it takes its intrinsic height — which for a child with no content is none, so it does not expand to fill the container. Percentages on either axis resolve against the container's content box.

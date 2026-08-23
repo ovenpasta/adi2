@@ -1,96 +1,38 @@
 # Side Longhands and Auto Margins
 
 Two related gaps in the box-model properties, both found while closing the
-conformance gaps in block and flex layout. Neither is implemented. The
-first should be done before the second, for the reason given at the end.
+conformance gaps in block and flex layout. The first is implemented; the
+second is not, and had to wait for it, for the reason given at the end.
 
-## Side longhands do not cascade
+## Side longhands cascade — done
 
-There is no `margin-left` property. There is one `margin`, holding all
-four sides:
+Each of `margin`, `padding`, `border-width`, `border-color`,
+`border-style` and the corner radii used to be one optional over a
+four-sided value, so a rule naming one side replaced all four and a base
+class plus a modifier that adjusts one edge — the everyday pattern — lost
+the other three.
 
-```ada
---  src/adi-css_styles.ads
-type CSS_Box_Sides is array (Edge) of Length_Value;
-```
+Fixed with **per-side optionals**. `Opt_Box` and the three per-group
+border optionals are gone; `Style_Rules` holds `Opt_Edge_Lengths`,
+`Opt_Edge_Colors`, `Opt_Edge_Styles` and `Opt_Corner_Lengths`, arrays of
+optionals indexed by `Edge` or `Corner`, and `Merge` runs element by
+element. `Resolve` folds each group back into the single concrete value
+`Resolved_Style` carries, in its narrowest shape, so `Get_Padding_Px`,
+`Get_Margin_Px`, `Get_Border_Width_Px` and their 17 call sites did not
+have to change — the reader churn this proposal expected never arrived.
 
-The longhands are a spelling that writes into it. Both pipelines do that
-correctly *within* a rule — `ensure_margin_sides()`
-(`tools/css_to_ada.py:2546`) and `Set_Box_Side` in `src/adi-css_parser.adb`
-— so `margin-left: 48px` on its own produces a complete four-side box with
-three zeros.
-
-The cascade then merges whole optional values
-(`src/adi-css_styles.ads:29`):
-
-```ada
-function Merge (Base, Override : Optional) return Optional is
-   (if Override.State = Undefined then Base else Override);
-```
-
-An `Opt_Box` that is `Set` replaces the base outright. So a rule setting
-one side discards the other three:
-
-```css
-.bar    { margin-bottom: 6px; }
-.indent { margin-left: 48px; }   /* margin-bottom is now 0 */
-```
-
-By the time the cascade runs there are no longhands left to merge — only a
-complete box that overwrites. In CSS the four sides are four independent
-properties and `.indent` would touch only the left one.
-
-### Affected
-
-Every group held as a single optional with side longhands writing into it:
-
-- `margin-top/right/bottom/left`
-- `padding-top/right/bottom/left` (shares `Opt_Box` with margin)
-- `border-top/right/bottom/left-width`
-- `border-top/right/bottom/left-color`
-- `border-top/right/bottom/left-style`
-- the corner radii
-
-### Why it matters
-
-This breaks composition, which is how stylesheets are written. A base
-class plus a modifier that adjusts one edge is an everyday pattern:
-
-```css
-.card        { padding: 12px; }
-.card--tight { padding-top: 4px; }   /* loses left, right, bottom */
-```
-
-It is worse than a property that is ignored. An ignored declaration does
-nothing and is eventually noticed; this one *honours* what was asked and
-destroys three neighbouring values while doing it. The result reads as the
-author's own mistake, so the stylesheet gets blamed before the library.
-
-### Shape of a fix
-
-Two routes:
-
-**Per-side optionals.** Replace `Opt_Box` with four independent optionals
-per group, merged individually. Closest to CSS, and the cascade then falls
-out. Costs a wider change: the resolved style grows, and every reader —
-`Get_Padding_Px`, `Get_Margin_Px` (17 call sites across
-`src/adi-layout_util.adb`, `src/adi-widget-box.adb`, `src/adi-widget.adb`,
-`src/adi-widget-dialog.adb`, `src/adi-widget-button-switch.adb`),
-`Get_Border_Width_Px` — reassembles a box from four values.
-
-**Track which sides a rule set.** Keep the box, add a per-side "was
-declared" mask, and merge side by side under that mask. Smaller change,
-keeps the readers untouched, but adds a parallel structure the cascade has
-to carry and that every future box-valued property must remember to
+The alternative considered and rejected was a per-side "was declared"
+mask over the existing box: cheaper, but a parallel structure the cascade
+has to carry and every future box-valued property has to remember to
 maintain.
 
-The first is the honest one. The second is cheaper and could be staged
-first if the reader churn is unwelcome.
-
-Both pipelines need the same change — `tools/css_to_ada.py` emits the
-merged box at build time, `src/adi-css_parser.adb` at runtime — and they
-must agree, or a stylesheet will lay out differently depending on which
-path loaded it.
+Both pipelines changed together — `tools/css_to_ada.py` merges at build
+time, `src/adi-css_parser.adb` at run time — or a stylesheet would lay
+out differently depending on which path loaded it.
+`tests/src/side_longhand_test.adb` installs
+`tests/generated/side_cascade_styles.ads` and parses the
+`tests/css/side_cascade.css` it was generated from, and requires the two
+to resolve identically. `docs/css_styling.md` states the rule.
 
 ## `margin: auto`
 
@@ -122,8 +64,9 @@ end record;
 ```
 
 That precedent means the shape is already idiomatic here. The work is
-splitting margin out of `Opt_Box`, teaching both parsers, and updating the
-readers — mechanical, tedious, low risk.
+giving `Style_Rules.Margin` its own element type — `Opt_Length` no longer
+serves, since padding and the border widths share it — teaching both
+parsers, and updating the readers: mechanical, tedious, low risk.
 
 ### Then it stages
 
@@ -153,6 +96,6 @@ and removes a caveat that currently appears in three places.
 
 ## Order
 
-Do the longhand cascade first. The `margin: auto` type change is most of
-that job's cost, and doing it against the current single-box
-representation means doing it again once the box is split per side.
+The longhand cascade went first, and the ground it cleared is what makes
+the rest cheap: margin is already four independent optionals, so
+`margin: auto` is a change of element type rather than a second split.

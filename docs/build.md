@@ -31,6 +31,14 @@ bash tools/generate_example_bundles.sh
 bash tools/generate_example_translations.sh
 ```
 
+`side_longhand_test` compares a generated stylesheet against its own
+runtime parse of the CSS it came from, so the tests have a generator too.
+`tools/run_tests.sh` and `build_all.sh` run it; when driving gprbuild
+directly, run it first:
+```bash
+bash tools/generate_test_styles.sh
+```
+
 ### Cross-compile
 ```bash
 tools/configure.sh --build-dir build-win32 \

@@ -47,6 +47,9 @@ run_one () {
   return 1
 }
 
+#  Stylesheets a test compares against its own runtime parse.
+tools/generate_test_styles.sh >/dev/null
+
 kinds=$(sed -n '/type Test_Kind is/,/);/p' tests/tests.gpr \
         | grep -oE '"[a-z_0-9]+"' | tr -d '"')
 

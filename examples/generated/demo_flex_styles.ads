@@ -82,7 +82,7 @@ package Demo_Flex_Styles is
       Flex_Direction => Set (Column),
       Gap => Set (Gap (Px (6.0))),
       Flex_Shrink => Set (0.0),
-      Padding => Set (CSS_Box (Px (0.0), Px (14.0), Px (0.0), Px (0.0))),
+      Padding => [Right => Set (Px (14.0)), others => <>],
       others => <>);
 
    --  Base style for class 'caption'::label

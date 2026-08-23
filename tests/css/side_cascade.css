@@ -1,0 +1,35 @@
+/*  Corpus for side_longhand_test.
+
+    tools/css_to_ada.py compiles this file into
+    tests/generated/side_cascade_styles.ads; the test parses the same
+    file at run time and requires both paths to resolve to the same
+    style. Every group is spread over more than one rule, which is the
+    only place the two can disagree about a side longhand. */
+
+box {
+  padding: 12px;
+  margin: 6px 8px;
+  border-width: 2px;
+  border-style: solid;
+  border-color: rgb(17, 34, 51);
+  border-radius: 8px;
+}
+
+.tweak {
+  padding-top: 4px;
+  margin-bottom: 1px;
+  border-left-width: 5px;
+  border-right-style: dashed;
+  border-top-color: rgb(68, 85, 102);
+  border-bottom-left-radius: 2px;
+}
+
+.tweak:hover {
+  padding-bottom: 15px;
+  margin-left: 9px;
+}
+
+#pin {
+  padding-right: 3px;
+  border-top: 7px dotted rgb(9, 9, 9);
+}

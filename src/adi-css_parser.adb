@@ -1349,94 +1349,6 @@ package body Adi.CSS_Parser is
       return True;
    end Parse_Border_Style_Value;
 
-   function Border_Width_To_Sides (V : Border_Width_Value) return Edge_Lengths is
-   begin
-      case V.Kind is
-         when Gap_Uniform =>
-            return [others => V.All_Edges];
-         when Per_Edge =>
-            return V.Edges;
-      end case;
-   end Border_Width_To_Sides;
-
-   function Set_Border_Width_Side
-     (Current : Border_Width_Value;
-      Side    : Edge;
-      Value   : Length_Value) return Border_Width_Value
-   is
-      Sides : Edge_Lengths := Border_Width_To_Sides (Current);
-   begin
-      Sides (Side) := Value;
-      return Border_Width (Sides (Top), Sides (Right), Sides (Bottom), Sides (Left));
-   end Set_Border_Width_Side;
-
-   function Border_Color_To_Sides (V : Border_Color_Value) return Edge_Colors is
-   begin
-      case V.Kind is
-         when Gap_Uniform =>
-            return [others => V.All_Edges];
-         when Per_Edge =>
-            return V.Edges;
-      end case;
-   end Border_Color_To_Sides;
-
-   function Set_Border_Color_Side
-     (Current : Border_Color_Value;
-      Side    : Edge;
-      Value   : Color_Value) return Border_Color_Value
-   is
-      Sides : Edge_Colors := Border_Color_To_Sides (Current);
-   begin
-      Sides (Side) := Value;
-      return Border_Color (Sides (Top), Sides (Right), Sides (Bottom), Sides (Left));
-   end Set_Border_Color_Side;
-
-   function Border_Style_To_Sides (V : Border_Style_Value) return Edge_Styles is
-   begin
-      case V.Kind is
-         when Gap_Uniform =>
-            return [others => V.All_Edges];
-         when Per_Edge =>
-            return V.Edges;
-      end case;
-   end Border_Style_To_Sides;
-
-   function Set_Border_Style_Side
-     (Current : Border_Style_Value;
-      Side    : Edge;
-      Value   : Border_Style_Kind) return Border_Style_Value
-   is
-      Sides : Edge_Styles := Border_Style_To_Sides (Current);
-   begin
-      Sides (Side) := Value;
-      return Border_Style (Sides (Top), Sides (Right), Sides (Bottom), Sides (Left));
-   end Set_Border_Style_Side;
-
-   function Border_Radius_To_Corners (V : Border_Radius_Value) return Corner_Radii is
-   begin
-      case V.Kind is
-         when Gap_Uniform =>
-            return [others => V.All_Corners];
-         when Per_Corner =>
-            return V.Corners;
-      end case;
-   end Border_Radius_To_Corners;
-
-   function Set_Border_Radius_Corner
-     (Current : Border_Radius_Value;
-      Side    : Corner;
-      Value   : Length_Value) return Border_Radius_Value
-   is
-      Corners : Corner_Radii := Border_Radius_To_Corners (Current);
-   begin
-      Corners (Side) := Value;
-      return Radius (
-        Corners (Top_Left),
-        Corners (Top_Right),
-        Corners (Bottom_Right),
-        Corners (Bottom_Left));
-   end Set_Border_Radius_Corner;
-
    procedure Parse_Border_Shorthand_Components
      (Input      : String;
       Has_Width  : out Boolean;
@@ -1488,31 +1400,6 @@ package body Adi.CSS_Parser is
       if Parse_Length (V, L) then Out_Size := Size (To_Length (L)); return True; end if;
       return False;
    end Parse_Size_Value;
-
-   function Box_To_Sides (B : CSS_Box_Value) return CSS_Box_Sides is
-   begin
-      case B.Kind is
-         when Gap_Uniform =>
-            return [others => B.All_Sides];
-         when Axis =>
-            return [
-              Top => B.Vertical,
-              Right => B.Horizontal,
-              Bottom => B.Vertical,
-              Left => B.Horizontal];
-         when Per_Side =>
-            return B.Sides;
-      end case;
-   end Box_To_Sides;
-
-   function Set_Box_Side (B : CSS_Box_Value;
-                          Side : Edge;
-                          Value : Length_Value) return CSS_Box_Value is
-      Sides : CSS_Box_Sides := Box_To_Sides (B);
-   begin
-      Sides (Side) := Value;
-      return CSS_Box (Sides (Top), Sides (Right), Sides (Bottom), Sides (Left));
-   end Set_Box_Side;
 
    function Parse_Box_Shadow (Input : String; Out_Shadow : out Box_Shadow_Value) return Boolean is
       V : constant String := Lower (Trimmed (Input));
@@ -2023,66 +1910,6 @@ package body Adi.CSS_Parser is
       Rules.Overflow_Y := Set_Overflow_Y (Value);
    end Set_Overflow_Shorthand;
 
-   procedure Set_Border_Width_Side_In_Rules
-     (Rules : in out Style_Rules;
-      Side  : Edge;
-      Value : Length_Value)
-   is
-   begin
-      Rules.Border_Width := Set
-        (Set_Border_Width_Side (
-           (if Opt_Border_Width.Is_Set (Rules.Border_Width)
-            then Opt_Border_Width.Resolve (Rules.Border_Width)
-            else Default_Border_Width),
-           Side,
-           Value));
-   end Set_Border_Width_Side_In_Rules;
-
-   procedure Set_Border_Color_Side_In_Rules
-     (Rules : in out Style_Rules;
-      Side  : Edge;
-      Value : Color_Value)
-   is
-   begin
-      Rules.Border_Color := Set
-        (Set_Border_Color_Side (
-           (if Opt_Border_Color.Is_Set (Rules.Border_Color)
-            then Opt_Border_Color.Resolve (Rules.Border_Color)
-            else Default_Border_Color_Val),
-           Side,
-           Value));
-   end Set_Border_Color_Side_In_Rules;
-
-   procedure Set_Border_Style_Side_In_Rules
-     (Rules : in out Style_Rules;
-      Side  : Edge;
-      Value : Border_Style_Kind)
-   is
-   begin
-      Rules.Border_Style := Set
-        (Set_Border_Style_Side (
-           (if Opt_Border_Style.Is_Set (Rules.Border_Style)
-            then Opt_Border_Style.Resolve (Rules.Border_Style)
-            else Default_Border_Style),
-           Side,
-           Value));
-   end Set_Border_Style_Side_In_Rules;
-
-   procedure Set_Border_Radius_Corner_In_Rules
-     (Rules  : in out Style_Rules;
-      Corner_At : Corner;
-      Value  : Length_Value)
-   is
-   begin
-      Rules.Border_Radius := Set
-        (Set_Border_Radius_Corner (
-           (if Opt_Radius.Is_Set (Rules.Border_Radius)
-            then Opt_Radius.Resolve (Rules.Border_Radius)
-            else Default_Radius),
-           Corner_At,
-           Value));
-   end Set_Border_Radius_Corner_In_Rules;
-
    procedure Apply_Property (Rules : in out Style_Rules;
                              Name  : String;
                              Value : String) is
@@ -2125,121 +1952,73 @@ package body Adi.CSS_Parser is
          if Parse_Box (V, Box) then Rules.Padding := Set (Box); end if;
       elsif P = "padding-top" then
          if Parse_Length (V, LVal) then
-            Rules.Padding := Set (
-              Set_Box_Side (
-                (if Opt_Box.Is_Set (Rules.Padding)
-                 then Opt_Box.Resolve (Rules.Padding)
-                 else Default_CSS_Box),
-                Top,
-                To_Length (LVal)));
+            Rules.Padding (Top) := Set (To_Length (LVal));
          end if;
       elsif P = "padding-right" then
          if Parse_Length (V, LVal) then
-            Rules.Padding := Set (
-              Set_Box_Side (
-                (if Opt_Box.Is_Set (Rules.Padding)
-                 then Opt_Box.Resolve (Rules.Padding)
-                 else Default_CSS_Box),
-                Right,
-                To_Length (LVal)));
+            Rules.Padding (Right) := Set (To_Length (LVal));
          end if;
       elsif P = "padding-bottom" then
          if Parse_Length (V, LVal) then
-            Rules.Padding := Set (
-              Set_Box_Side (
-                (if Opt_Box.Is_Set (Rules.Padding)
-                 then Opt_Box.Resolve (Rules.Padding)
-                 else Default_CSS_Box),
-                Bottom,
-                To_Length (LVal)));
+            Rules.Padding (Bottom) := Set (To_Length (LVal));
          end if;
       elsif P = "padding-left" then
          if Parse_Length (V, LVal) then
-            Rules.Padding := Set (
-              Set_Box_Side (
-                (if Opt_Box.Is_Set (Rules.Padding)
-                 then Opt_Box.Resolve (Rules.Padding)
-                 else Default_CSS_Box),
-                Left,
-                To_Length (LVal)));
+            Rules.Padding (Left) := Set (To_Length (LVal));
          end if;
       elsif P = "margin" then
          if Parse_Box (V, Box) then Rules.Margin := Set (Box); end if;
       elsif P = "margin-top" then
          if Parse_Length (V, LVal) then
-            Rules.Margin := Set (
-              Set_Box_Side (
-                (if Opt_Box.Is_Set (Rules.Margin)
-                 then Opt_Box.Resolve (Rules.Margin)
-                 else Default_CSS_Box),
-                Top,
-                To_Length (LVal)));
+            Rules.Margin (Top) := Set (To_Length (LVal));
          end if;
       elsif P = "margin-right" then
          if Parse_Length (V, LVal) then
-            Rules.Margin := Set (
-              Set_Box_Side (
-                (if Opt_Box.Is_Set (Rules.Margin)
-                 then Opt_Box.Resolve (Rules.Margin)
-                 else Default_CSS_Box),
-                Right,
-                To_Length (LVal)));
+            Rules.Margin (Right) := Set (To_Length (LVal));
          end if;
       elsif P = "margin-bottom" then
          if Parse_Length (V, LVal) then
-            Rules.Margin := Set (
-              Set_Box_Side (
-                (if Opt_Box.Is_Set (Rules.Margin)
-                 then Opt_Box.Resolve (Rules.Margin)
-                 else Default_CSS_Box),
-                Bottom,
-                To_Length (LVal)));
+            Rules.Margin (Bottom) := Set (To_Length (LVal));
          end if;
       elsif P = "margin-left" then
          if Parse_Length (V, LVal) then
-            Rules.Margin := Set (
-              Set_Box_Side (
-                (if Opt_Box.Is_Set (Rules.Margin)
-                 then Opt_Box.Resolve (Rules.Margin)
-                 else Default_CSS_Box),
-                Left,
-                To_Length (LVal)));
+            Rules.Margin (Left) := Set (To_Length (LVal));
          end if;
       elsif P = "border-width" then
          if Parse_Border_Width (V, BW) then Rules.Border_Width := Set (BW); end if;
       elsif P = "border-top-width" then
          if Parse_Length (V, LVal) then
-            Set_Border_Width_Side_In_Rules (Rules, Top, To_Length (LVal));
+            Rules.Border_Width (Top) := Set (To_Length (LVal));
          end if;
       elsif P = "border-right-width" then
          if Parse_Length (V, LVal) then
-            Set_Border_Width_Side_In_Rules (Rules, Right, To_Length (LVal));
+            Rules.Border_Width (Right) := Set (To_Length (LVal));
          end if;
       elsif P = "border-bottom-width" then
          if Parse_Length (V, LVal) then
-            Set_Border_Width_Side_In_Rules (Rules, Bottom, To_Length (LVal));
+            Rules.Border_Width (Bottom) := Set (To_Length (LVal));
          end if;
       elsif P = "border-left-width" then
          if Parse_Length (V, LVal) then
-            Set_Border_Width_Side_In_Rules (Rules, Left, To_Length (LVal));
+            Rules.Border_Width (Left) := Set (To_Length (LVal));
          end if;
       elsif P = "border-color" then
          if Parse_Color (V, CVal) then Rules.Border_Color := Set (Border_Color (CVal)); end if;
       elsif P = "border-top-color" then
          if Parse_Color (V, CVal) then
-            Set_Border_Color_Side_In_Rules (Rules, Top, CVal);
+            Rules.Border_Color (Top) := Set_Edge_Color (CVal);
          end if;
       elsif P = "border-right-color" then
          if Parse_Color (V, CVal) then
-            Set_Border_Color_Side_In_Rules (Rules, Right, CVal);
+            Rules.Border_Color (Right) := Set_Edge_Color (CVal);
          end if;
       elsif P = "border-bottom-color" then
          if Parse_Color (V, CVal) then
-            Set_Border_Color_Side_In_Rules (Rules, Bottom, CVal);
+            Rules.Border_Color (Bottom) := Set_Edge_Color (CVal);
          end if;
       elsif P = "border-left-color" then
          if Parse_Color (V, CVal) then
-            Set_Border_Color_Side_In_Rules (Rules, Left, CVal);
+            Rules.Border_Color (Left) := Set_Edge_Color (CVal);
          end if;
       elsif P = "border-style" then
          if Parse_Border_Style_Value (V, Border_Side) then
@@ -2247,19 +2026,19 @@ package body Adi.CSS_Parser is
          end if;
       elsif P = "border-top-style" then
          if Parse_Border_Style_Value (V, Border_Side) then
-            Set_Border_Style_Side_In_Rules (Rules, Top, Border_Side);
+            Rules.Border_Style (Top) := Set_Edge_Style (Border_Side);
          end if;
       elsif P = "border-right-style" then
          if Parse_Border_Style_Value (V, Border_Side) then
-            Set_Border_Style_Side_In_Rules (Rules, Right, Border_Side);
+            Rules.Border_Style (Right) := Set_Edge_Style (Border_Side);
          end if;
       elsif P = "border-bottom-style" then
          if Parse_Border_Style_Value (V, Border_Side) then
-            Set_Border_Style_Side_In_Rules (Rules, Bottom, Border_Side);
+            Rules.Border_Style (Bottom) := Set_Edge_Style (Border_Side);
          end if;
       elsif P = "border-left-style" then
          if Parse_Border_Style_Value (V, Border_Side) then
-            Set_Border_Style_Side_In_Rules (Rules, Left, Border_Side);
+            Rules.Border_Style (Left) := Set_Edge_Style (Border_Side);
          end if;
       elsif P = "border" then
          Parse_Border_Shorthand_Components (
@@ -2289,13 +2068,13 @@ package body Adi.CSS_Parser is
            Has_Border_Color,
            Border_Color_Val);
          if Has_Border_Width then
-            Set_Border_Width_Side_In_Rules (Rules, Top, To_Length (Border_Width_Val));
+            Rules.Border_Width (Top) := Set (To_Length (Border_Width_Val));
          end if;
          if Has_Border_Style then
-            Set_Border_Style_Side_In_Rules (Rules, Top, Border_Side);
+            Rules.Border_Style (Top) := Set_Edge_Style (Border_Side);
          end if;
          if Has_Border_Color then
-            Set_Border_Color_Side_In_Rules (Rules, Top, Border_Color_Val);
+            Rules.Border_Color (Top) := Set_Edge_Color (Border_Color_Val);
          end if;
       elsif P = "border-right" then
          Parse_Border_Shorthand_Components (
@@ -2307,13 +2086,13 @@ package body Adi.CSS_Parser is
            Has_Border_Color,
            Border_Color_Val);
          if Has_Border_Width then
-            Set_Border_Width_Side_In_Rules (Rules, Right, To_Length (Border_Width_Val));
+            Rules.Border_Width (Right) := Set (To_Length (Border_Width_Val));
          end if;
          if Has_Border_Style then
-            Set_Border_Style_Side_In_Rules (Rules, Right, Border_Side);
+            Rules.Border_Style (Right) := Set_Edge_Style (Border_Side);
          end if;
          if Has_Border_Color then
-            Set_Border_Color_Side_In_Rules (Rules, Right, Border_Color_Val);
+            Rules.Border_Color (Right) := Set_Edge_Color (Border_Color_Val);
          end if;
       elsif P = "border-bottom" then
          Parse_Border_Shorthand_Components (
@@ -2325,13 +2104,13 @@ package body Adi.CSS_Parser is
            Has_Border_Color,
            Border_Color_Val);
          if Has_Border_Width then
-            Set_Border_Width_Side_In_Rules (Rules, Bottom, To_Length (Border_Width_Val));
+            Rules.Border_Width (Bottom) := Set (To_Length (Border_Width_Val));
          end if;
          if Has_Border_Style then
-            Set_Border_Style_Side_In_Rules (Rules, Bottom, Border_Side);
+            Rules.Border_Style (Bottom) := Set_Edge_Style (Border_Side);
          end if;
          if Has_Border_Color then
-            Set_Border_Color_Side_In_Rules (Rules, Bottom, Border_Color_Val);
+            Rules.Border_Color (Bottom) := Set_Edge_Color (Border_Color_Val);
          end if;
       elsif P = "border-left" then
          Parse_Border_Shorthand_Components (
@@ -2343,31 +2122,31 @@ package body Adi.CSS_Parser is
            Has_Border_Color,
            Border_Color_Val);
          if Has_Border_Width then
-            Set_Border_Width_Side_In_Rules (Rules, Left, To_Length (Border_Width_Val));
+            Rules.Border_Width (Left) := Set (To_Length (Border_Width_Val));
          end if;
          if Has_Border_Style then
-            Set_Border_Style_Side_In_Rules (Rules, Left, Border_Side);
+            Rules.Border_Style (Left) := Set_Edge_Style (Border_Side);
          end if;
          if Has_Border_Color then
-            Set_Border_Color_Side_In_Rules (Rules, Left, Border_Color_Val);
+            Rules.Border_Color (Left) := Set_Edge_Color (Border_Color_Val);
          end if;
       elsif P = "border-radius" then
          if Parse_Border_Radius (V, BR) then Rules.Border_Radius := Set (BR); end if;
       elsif P = "border-top-left-radius" then
          if Parse_Length (V, LVal) then
-            Set_Border_Radius_Corner_In_Rules (Rules, Top_Left, To_Length (LVal));
+            Rules.Border_Radius (Top_Left) := Set (To_Length (LVal));
          end if;
       elsif P = "border-top-right-radius" then
          if Parse_Length (V, LVal) then
-            Set_Border_Radius_Corner_In_Rules (Rules, Top_Right, To_Length (LVal));
+            Rules.Border_Radius (Top_Right) := Set (To_Length (LVal));
          end if;
       elsif P = "border-bottom-right-radius" then
          if Parse_Length (V, LVal) then
-            Set_Border_Radius_Corner_In_Rules (Rules, Bottom_Right, To_Length (LVal));
+            Rules.Border_Radius (Bottom_Right) := Set (To_Length (LVal));
          end if;
       elsif P = "border-bottom-left-radius" then
          if Parse_Length (V, LVal) then
-            Set_Border_Radius_Corner_In_Rules (Rules, Bottom_Left, To_Length (LVal));
+            Rules.Border_Radius (Bottom_Left) := Set (To_Length (LVal));
          end if;
       elsif P = "width" then
          if Parse_Size_Value (V, SVal) then Rules.Width := Set (SVal); end if;

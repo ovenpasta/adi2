@@ -68,6 +68,7 @@ alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/layout_test
 ./tests/bin/css_parser_test
 ./tests/bin/css_source_test
+./tests/bin/side_longhand_test
 ./tests/bin/text_buffer_test
 ./tests/bin/text_layout_test
 ./tests/bin/html_view_test
@@ -245,6 +246,8 @@ src/mcp/              MCP introspection (development builds only)
 src/mcp_stub/         MCP no-op stubs (release/validation builds)
 bindings/             Auto-generated SDL3 bindings (reference only, do not use directly)
 tests/src/            Test programs (built to tests/bin/)
+tests/css/            CSS a test compares against its own runtime parse
+tests/generated/      Auto-generated Ada from tests/css/
 examples/             Example programs (built to examples/bin/)
 examples/css/         CSS source files
 examples/xml/         XML UI definitions

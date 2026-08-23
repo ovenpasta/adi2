@@ -229,7 +229,7 @@ package Animated_Image_Example_Styles is
      (
       Background_Color => Set_Bg (RGBA (15, 23, 42, 0.76)),
       Padding => Set (CSS_Box (Px (8.0), Px (12.0), Px (8.0), Px (12.0))),
-      Margin => Set (CSS_Box (Px (4.0), Px (0.0), Px (0.0), Px (0.0))),
+      Margin => [Top => Set (Px (4.0)), others => <>],
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
       Border_Color => Set (Border_Color (RGBA (71, 85, 105, 0.85))),

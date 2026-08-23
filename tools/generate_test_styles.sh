@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GENERATOR="$ROOT_DIR/tools/css_to_ada.py"
+CSS_DIR="$ROOT_DIR/tests/css"
+OUT_DIR="$ROOT_DIR/tests/generated"
+
+mkdir -p "$OUT_DIR"
+
+generate_if_needed() {
+  local css_file="$1"
+  local out_file="$2"
+  local package_name="$3"
+
+  local out_body="${out_file%.ads}.adb"
+
+  if [[ ! -f "$out_file" || ! -f "$out_body" \
+     || "$css_file" -nt "$out_file" || "$GENERATOR" -nt "$out_file" ]]; then
+    echo "[styles] generate: $(basename "$out_file")"
+    python3 "$GENERATOR" "$css_file" "$out_file" --package-name "$package_name"
+  else
+    echo "[styles] skip:     $(basename "$out_file")"
+  fi
+}
+
+generate_if_needed "$CSS_DIR/side_cascade.css" "$OUT_DIR/side_cascade_styles.ads" "Side_Cascade_Styles"

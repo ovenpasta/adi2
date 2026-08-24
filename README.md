@@ -167,6 +167,10 @@ Full build instructions, including building without Alire, in [`docs/build.md`](
 
 ## Roadmap
 
+**CSS.**
+
+- **Broader CSS surface** — more standard properties, selectors and values.
+
 **HTML view.**
 
 - **Tables** — `table`, `tr`, `td`/`th`, column widths, spanning.
@@ -182,6 +186,11 @@ Full build instructions, including building without Alire, in [`docs/build.md`](
 - **Right-to-left and bidirectional text** — `direction` and bidi reordering.
 - **Accessibility** — semantic roles, names and states to screen readers over AT-SPI, UI Automation and NSAccessibility.
 
+**Portability.**
+
+- **Pluggable backends** — an abstraction layer that lets Win32/Direct2D, Cocoa, GLFW, raylib or Skia take the place of SDL3 ([design notes](docs/proposals/HAL.md)).
+- **Embedded devices**
+
 **Authoring and tooling.**
 
 - **Visual designer** — RAD IDE like experience, edit both the UI XML and CSS.
@@ -191,6 +200,7 @@ Full build instructions, including building without Alire, in [`docs/build.md`](
 
 **Correctness and API.**
 
+- **Better callbacks** — a callback that fails leaves the app running, callbacks that fire once, and background work that talks to the UI safely ([design notes](docs/proposals/callback_dispatch_model.md)).
 - **Contracts** — `Pre`/`Post`/`Type_Invariant` and SPARK-mode subsets.
 - **C API** — a stable C-callable interface for non-Ada callers.
 

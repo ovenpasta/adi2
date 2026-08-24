@@ -9,7 +9,7 @@
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 26.0,
+      "h": 44.0,
       "id": 3,
       "items_count": 3,
       "path": "1.1",
@@ -17,15 +17,15 @@
       "text": "Dialog / Alert Widget",
       "type": "adi.widget.label.label_widget",
       "visible": true,
-      "w": 384.0,
-      "x": 48.0,
-      "y": 48.0
+      "w": 768.0,
+      "x": 96.0,
+      "y": 96.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 32.0,
+      "h": 52.0,
       "id": 4,
       "items_count": 3,
       "path": "1.2",
@@ -33,15 +33,15 @@
       "text": "Click a button to open a modal dialog. Click the backdrop or press Escape to dismiss.",
       "type": "adi.widget.label.label_widget",
       "visible": true,
-      "w": 384.0,
-      "x": 48.0,
-      "y": 90.0
+      "w": 768.0,
+      "x": 96.0,
+      "y": 172.0
      },
      {
       "child_count": 0,
       "clickable": true,
       "focusable": true,
-      "h": 40.0,
+      "h": 68.0,
       "id": 5,
       "items_count": 3,
       "path": "1.3",
@@ -49,15 +49,15 @@
       "text": "Show Alert",
       "type": "adi.widget.button.button_widget",
       "visible": true,
-      "w": 384.0,
-      "x": 48.0,
-      "y": 138.0
+      "w": 768.0,
+      "x": 96.0,
+      "y": 256.0
      },
      {
       "child_count": 0,
       "clickable": true,
       "focusable": true,
-      "h": 40.0,
+      "h": 68.0,
       "id": 6,
       "items_count": 3,
       "path": "1.4",
@@ -65,15 +65,15 @@
       "text": "Show Confirm",
       "type": "adi.widget.button.button_widget",
       "visible": true,
-      "w": 384.0,
-      "x": 48.0,
-      "y": 194.0
+      "w": 768.0,
+      "x": 96.0,
+      "y": 356.0
      },
      {
       "child_count": 0,
       "clickable": true,
       "focusable": true,
-      "h": 40.0,
+      "h": 68.0,
       "id": 7,
       "items_count": 3,
       "path": "1.5",
@@ -81,15 +81,15 @@
       "text": "Show Custom",
       "type": "adi.widget.button.button_widget",
       "visible": true,
-      "w": 384.0,
-      "x": 48.0,
-      "y": 250.0
+      "w": 768.0,
+      "x": 96.0,
+      "y": 456.0
      },
      {
       "child_count": 0,
       "clickable": true,
       "focusable": true,
-      "h": 40.0,
+      "h": 68.0,
       "id": 8,
       "items_count": 3,
       "path": "1.6",
@@ -97,15 +97,15 @@
       "text": "Show Delete (XML)",
       "type": "adi.widget.button.button_widget",
       "visible": true,
-      "w": 384.0,
-      "x": 48.0,
-      "y": 306.0
+      "w": 768.0,
+      "x": 96.0,
+      "y": 556.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 17.0,
+      "h": 28.0,
       "id": 9,
       "items_count": 3,
       "path": "1.7",
@@ -113,35 +113,35 @@
       "text": "(no dialog opened yet)",
       "type": "adi.widget.label.label_widget",
       "visible": true,
-      "w": 384.0,
-      "x": 48.0,
-      "y": 362.0
+      "w": 768.0,
+      "x": 96.0,
+      "y": 656.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 379.0,
+    "h": 684.0,
     "id": 2,
     "items_count": 2,
     "path": "1",
     "states": [],
     "type": "adi.widget.box.box_widget",
     "visible": true,
-    "w": 432.0,
-    "x": 24.0,
-    "y": 24.0
+    "w": 864.0,
+    "x": 48.0,
+    "y": 48.0
    }
   ],
   "clickable": false,
   "focusable": false,
-  "h": 427.0,
+  "h": 768.0,
   "id": 1,
   "items_count": 2,
   "path": "",
   "states": [],
   "type": "adi.widget.box.box_widget",
   "visible": true,
-  "w": 480.0,
+  "w": 960.0,
   "x": 0.0,
   "y": 0.0
  }

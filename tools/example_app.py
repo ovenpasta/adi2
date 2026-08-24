@@ -120,8 +120,11 @@ def running(name: str, timeout: float = 5.0, settle: float = 0.3,
         raise RuntimeError(f"{binary} not built")
 
     #  Set for the child only: pinning the scale process-wide would
-    #  change any app the caller happens to run afterwards.
-    env = os.environ | {"ADI_DISPLAY_SCALE_OVERRIDE": "1"} | (env_extra or {})
+    #  change any app the caller happens to run afterwards. Pin at 2
+    #  rather than 1 so widget tree goldens and gallery captures exercise
+    #  the DIP-scaled path and a hardcoded-pixel regression cannot slip
+    #  past a machine that happens to run at 1x.
+    env = os.environ | {"ADI_DISPLAY_SCALE_OVERRIDE": "2"} | (env_extra or {})
     app = subprocess.Popen(
         [str(binary)], cwd=ROOT, env=env,
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,

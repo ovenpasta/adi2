@@ -6,12 +6,12 @@ Every capture comes from the app's own renderer through the Adi MCP
 no window manager decoration. That makes a capture reproducible on any
 desktop, which a window-grabbing tool is not.
 
-Captures run with ADI_DISPLAY_SCALE_OVERRIDE=1 so the scale, geometry
+Captures run with ADI_DISPLAY_SCALE_OVERRIDE=2 so the scale, geometry
 and image dimensions do not depend on the monitor of whoever regenerated
-them. Pixel density is untouched, so a high-density device still yields
-the same framebuffer from fewer window coordinates. This is not
-byte-identical output: fonts and rendering backends still differ between
-machines.
+them, and every capture goes through the DIP-scaled render path -- a
+regression that only shows up above 1x still turns a picture. This is
+not byte-identical output: fonts and rendering backends still differ
+between machines.
 
 An example can only be captured if it calls Adi.MCP.Initialize; the rest
 are reported and skipped rather than silently omitted.

@@ -6,7 +6,7 @@
     "child_count": 0,
     "clickable": false,
     "focusable": false,
-    "h": 21.0,
+    "h": 36.0,
     "id": 3,
     "items_count": 3,
     "path": "1",
@@ -14,15 +14,15 @@
     "text": "Welcome to Adi",
     "type": "adi.widget.label.label_widget",
     "visible": true,
-    "w": 171.0,
-    "x": 24.0,
-    "y": 24.0
+    "w": 342.0,
+    "x": 48.0,
+    "y": 48.0
    },
    {
     "child_count": 0,
     "clickable": true,
     "focusable": true,
-    "h": 37.0,
+    "h": 68.0,
     "id": 2,
     "items_count": 3,
     "path": "2",
@@ -30,21 +30,21 @@
     "text": "Click me",
     "type": "adi.widget.button.button_widget",
     "visible": true,
-    "w": 171.0,
-    "x": 24.0,
-    "y": 61.0
+    "w": 342.0,
+    "x": 48.0,
+    "y": 116.0
    }
   ],
   "clickable": false,
   "focusable": false,
-  "h": 123.0,
+  "h": 246.0,
   "id": 1,
   "items_count": 2,
   "path": "",
   "states": [],
   "type": "adi.widget.box.box_widget",
   "visible": true,
-  "w": 219.0,
+  "w": 438.0,
   "x": 0.0,
   "y": 0.0
  }

@@ -6,7 +6,7 @@
     "child_count": 0,
     "clickable": false,
     "focusable": false,
-    "h": 24.0,
+    "h": 40.0,
     "id": 1,
     "items_count": 3,
     "path": "1",
@@ -14,9 +14,9 @@
     "text": "Linear Gradient Showcase",
     "type": "adi.widget.label.label_widget",
     "visible": true,
-    "w": 618.0,
-    "x": 20.0,
-    "y": 20.0
+    "w": 1236.0,
+    "x": 40.0,
+    "y": 40.0
    },
    {
     "child_count": 3,
@@ -25,7 +25,7 @@
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 3,
       "items_count": 4,
       "path": "2.1",
@@ -33,15 +33,15 @@
       "text": "to bottom",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 20.0,
-      "y": 56.0
+      "w": 396.0,
+      "x": 40.0,
+      "y": 104.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 4,
       "items_count": 4,
       "path": "2.2",
@@ -49,15 +49,15 @@
       "text": "to right",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 230.0,
-      "y": 56.0
+      "w": 396.0,
+      "x": 460.0,
+      "y": 104.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 5,
       "items_count": 4,
       "path": "2.3",
@@ -65,23 +65,23 @@
       "text": "default angle",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 440.0,
-      "y": 56.0
+      "w": 396.0,
+      "x": 880.0,
+      "y": 104.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 100.0,
+    "h": 200.0,
     "id": 2,
     "items_count": 2,
     "path": "2",
     "states": [],
     "type": "adi.widget.box.box_widget",
     "visible": true,
-    "w": 618.0,
-    "x": 20.0,
-    "y": 56.0
+    "w": 1236.0,
+    "x": 40.0,
+    "y": 104.0
    },
    {
     "child_count": 3,
@@ -90,7 +90,7 @@
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 7,
       "items_count": 4,
       "path": "3.1",
@@ -98,15 +98,15 @@
       "text": "to top",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 20.0,
-      "y": 168.0
+      "w": 396.0,
+      "x": 40.0,
+      "y": 328.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 8,
       "items_count": 4,
       "path": "3.2",
@@ -114,15 +114,15 @@
       "text": "to left",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 230.0,
-      "y": 168.0
+      "w": 396.0,
+      "x": 460.0,
+      "y": 328.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 9,
       "items_count": 4,
       "path": "3.3",
@@ -130,23 +130,23 @@
       "text": "to bottom right",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 440.0,
-      "y": 168.0
+      "w": 396.0,
+      "x": 880.0,
+      "y": 328.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 100.0,
+    "h": 200.0,
     "id": 6,
     "items_count": 2,
     "path": "3",
     "states": [],
     "type": "adi.widget.box.box_widget",
     "visible": true,
-    "w": 618.0,
-    "x": 20.0,
-    "y": 168.0
+    "w": 1236.0,
+    "x": 40.0,
+    "y": 328.0
    },
    {
     "child_count": 3,
@@ -155,7 +155,7 @@
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 11,
       "items_count": 4,
       "path": "4.1",
@@ -163,15 +163,15 @@
       "text": "to top right",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 20.0,
-      "y": 280.0
+      "w": 396.0,
+      "x": 40.0,
+      "y": 552.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 12,
       "items_count": 4,
       "path": "4.2",
@@ -179,15 +179,15 @@
       "text": "to bottom left",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 230.0,
-      "y": 280.0
+      "w": 396.0,
+      "x": 460.0,
+      "y": 552.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 13,
       "items_count": 4,
       "path": "4.3",
@@ -195,23 +195,23 @@
       "text": "to top left",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 440.0,
-      "y": 280.0
+      "w": 396.0,
+      "x": 880.0,
+      "y": 552.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 100.0,
+    "h": 200.0,
     "id": 10,
     "items_count": 2,
     "path": "4",
     "states": [],
     "type": "adi.widget.box.box_widget",
     "visible": true,
-    "w": 618.0,
-    "x": 20.0,
-    "y": 280.0
+    "w": 1236.0,
+    "x": 40.0,
+    "y": 552.0
    },
    {
     "child_count": 3,
@@ -220,7 +220,7 @@
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 15,
       "items_count": 4,
       "path": "5.1",
@@ -228,15 +228,15 @@
       "text": "45deg",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 20.0,
-      "y": 392.0
+      "w": 396.0,
+      "x": 40.0,
+      "y": 776.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 16,
       "items_count": 4,
       "path": "5.2",
@@ -244,15 +244,15 @@
       "text": "135deg",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 230.0,
-      "y": 392.0
+      "w": 396.0,
+      "x": 460.0,
+      "y": 776.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 17,
       "items_count": 4,
       "path": "5.3",
@@ -260,23 +260,23 @@
       "text": "0.25turn",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 440.0,
-      "y": 392.0
+      "w": 396.0,
+      "x": 880.0,
+      "y": 776.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 100.0,
+    "h": 200.0,
     "id": 14,
     "items_count": 2,
     "path": "5",
     "states": [],
     "type": "adi.widget.box.box_widget",
     "visible": true,
-    "w": 618.0,
-    "x": 20.0,
-    "y": 392.0
+    "w": 1236.0,
+    "x": 40.0,
+    "y": 776.0
    },
    {
     "child_count": 3,
@@ -285,7 +285,7 @@
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 19,
       "items_count": 4,
       "path": "6.1",
@@ -293,15 +293,15 @@
       "text": "1.5708rad",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 20.0,
-      "y": 504.0
+      "w": 396.0,
+      "x": 40.0,
+      "y": 1000.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 20,
       "items_count": 4,
       "path": "6.2",
@@ -309,15 +309,15 @@
       "text": "150grad",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 230.0,
-      "y": 504.0
+      "w": 396.0,
+      "x": 460.0,
+      "y": 1000.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 21,
       "items_count": 4,
       "path": "6.3",
@@ -325,23 +325,23 @@
       "text": "alpha over bg-color",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 440.0,
-      "y": 504.0
+      "w": 396.0,
+      "x": 880.0,
+      "y": 1000.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 100.0,
+    "h": 200.0,
     "id": 18,
     "items_count": 2,
     "path": "6",
     "states": [],
     "type": "adi.widget.box.box_widget",
     "visible": true,
-    "w": 618.0,
-    "x": 20.0,
-    "y": 504.0
+    "w": 1236.0,
+    "x": 40.0,
+    "y": 1000.0
    },
    {
     "child_count": 3,
@@ -350,7 +350,7 @@
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 23,
       "items_count": 4,
       "path": "7.1",
@@ -358,15 +358,15 @@
       "text": "3 stops, auto (flat)",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 20.0,
-      "y": 616.0
+      "w": 396.0,
+      "x": 40.0,
+      "y": 1224.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 24,
       "items_count": 4,
       "path": "7.2",
@@ -374,15 +374,15 @@
       "text": "0/30/100% stops",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 230.0,
-      "y": 616.0
+      "w": 396.0,
+      "x": 460.0,
+      "y": 1224.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 25,
       "items_count": 4,
       "path": "7.3",
@@ -390,23 +390,23 @@
       "text": "20/80% edge bands",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 198.0,
-      "x": 440.0,
-      "y": 616.0
+      "w": 396.0,
+      "x": 880.0,
+      "y": 1224.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 100.0,
+    "h": 200.0,
     "id": 22,
     "items_count": 2,
     "path": "7",
     "states": [],
     "type": "adi.widget.box.box_widget",
     "visible": true,
-    "w": 618.0,
-    "x": 20.0,
-    "y": 616.0
+    "w": 1236.0,
+    "x": 40.0,
+    "y": 1224.0
    },
    {
     "child_count": 3,
@@ -415,7 +415,7 @@
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 27,
       "items_count": 4,
       "path": "8.1",
@@ -423,15 +423,15 @@
       "text": "16 stops (flat)",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 195.333,
-      "x": 20.0,
-      "y": 728.0
+      "w": 390.667,
+      "x": 40.0,
+      "y": 1448.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 28,
       "items_count": 4,
       "path": "8.2",
@@ -439,15 +439,15 @@
       "text": "pill radius 50px",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 195.333,
-      "x": 227.333,
-      "y": 728.0
+      "w": 390.667,
+      "x": 454.667,
+      "y": 1448.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 100.0,
+      "h": 200.0,
       "id": 29,
       "items_count": 4,
       "path": "8.3",
@@ -455,35 +455,35 @@
       "text": "4px border",
       "type": "adi.widget.box.box_widget",
       "visible": true,
-      "w": 203.333,
-      "x": 434.667,
-      "y": 728.0
+      "w": 406.667,
+      "x": 869.333,
+      "y": 1448.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 100.0,
+    "h": 200.0,
     "id": 26,
     "items_count": 2,
     "path": "8",
     "states": [],
     "type": "adi.widget.box.box_widget",
     "visible": true,
-    "w": 618.0,
-    "x": 20.0,
-    "y": 728.0
+    "w": 1236.0,
+    "x": 40.0,
+    "y": 1448.0
    }
   ],
   "clickable": false,
   "focusable": false,
-  "h": 617.0,
+  "h": 1234.0,
   "id": 30,
   "items_count": 2,
   "path": "",
   "states": [],
   "type": "adi.widget.box.box_widget",
   "visible": true,
-  "w": 658.0,
+  "w": 1316.0,
   "x": 0.0,
   "y": 0.0
  }

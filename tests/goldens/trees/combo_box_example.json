@@ -9,7 +9,7 @@
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 26.0,
+      "h": 44.0,
       "id": 3,
       "items_count": 3,
       "path": "1.1",
@@ -17,15 +17,15 @@
       "text": "Combo Box (Overlay Popup)",
       "type": "adi.widget.label.label_widget",
       "visible": true,
-      "w": 470.0,
-      "x": 46.0,
-      "y": 46.0
+      "w": 940.0,
+      "x": 92.0,
+      "y": 92.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 16.0,
+      "h": 26.0,
       "id": 4,
       "items_count": 3,
       "path": "1.2",
@@ -33,15 +33,15 @@
       "text": "Click to open. Popup is rendered in window overlay layer.",
       "type": "adi.widget.label.label_widget",
       "visible": true,
-      "w": 470.0,
-      "x": 46.0,
-      "y": 84.0
+      "w": 940.0,
+      "x": 92.0,
+      "y": 160.0
      },
      {
       "child_count": 0,
       "clickable": true,
       "focusable": true,
-      "h": 40.0,
+      "h": 80.0,
       "id": 5,
       "items_count": 4,
       "path": "1.3",
@@ -49,15 +49,15 @@
       "text": "Crimson",
       "type": "adi.widget.combo_box.combo_box_widget",
       "visible": true,
-      "w": 470.0,
-      "x": 46.0,
-      "y": 112.0
+      "w": 940.0,
+      "x": 92.0,
+      "y": 210.0
      },
      {
       "child_count": 0,
       "clickable": true,
       "focusable": true,
-      "h": 40.0,
+      "h": 80.0,
       "id": 8,
       "items_count": 4,
       "path": "1.4",
@@ -65,15 +65,15 @@
       "text": "San Francisco",
       "type": "adi.widget.combo_box.combo_box_widget",
       "visible": true,
-      "w": 470.0,
-      "x": 46.0,
-      "y": 164.0
+      "w": 940.0,
+      "x": 92.0,
+      "y": 314.0
      },
      {
       "child_count": 0,
       "clickable": true,
       "focusable": true,
-      "h": 40.0,
+      "h": 80.0,
       "id": 11,
       "items_count": 4,
       "path": "1.5",
@@ -81,15 +81,15 @@
       "text": "Home",
       "type": "adi.widget.combo_box.combo_box_widget",
       "visible": true,
-      "w": 470.0,
-      "x": 46.0,
-      "y": 216.0
+      "w": 940.0,
+      "x": 92.0,
+      "y": 418.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 17.0,
+      "h": 28.0,
       "id": 14,
       "items_count": 3,
       "path": "1.6",
@@ -97,35 +97,35 @@
       "text": "Selected #2: San Francisco",
       "type": "adi.widget.label.label_widget",
       "visible": true,
-      "w": 470.0,
-      "x": 46.0,
-      "y": 268.0
+      "w": 940.0,
+      "x": 92.0,
+      "y": 522.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 283.0,
+    "h": 546.0,
     "id": 2,
     "items_count": 2,
     "path": "1",
     "states": [],
     "type": "adi.widget.box.box_widget",
     "visible": true,
-    "w": 514.0,
-    "x": 24.0,
-    "y": 24.0
+    "w": 1028.0,
+    "x": 48.0,
+    "y": 48.0
    }
   ],
   "clickable": false,
   "focusable": false,
-  "h": 357.0,
+  "h": 714.0,
   "id": 1,
   "items_count": 2,
   "path": "",
   "states": [],
   "type": "adi.widget.box.box_widget",
   "visible": true,
-  "w": 562.0,
+  "w": 1124.0,
   "x": 0.0,
   "y": 0.0
  }

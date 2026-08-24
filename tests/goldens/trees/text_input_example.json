@@ -9,7 +9,7 @@
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 26.0,
+      "h": 44.0,
       "id": 3,
       "items_count": 3,
       "path": "1.1",
@@ -17,15 +17,15 @@
       "text": "Text Input Widget Demo",
       "type": "adi.widget.label.label_widget",
       "visible": true,
-      "w": 425.0,
-      "x": 48.0,
-      "y": 48.0
+      "w": 850.0,
+      "x": 96.0,
+      "y": 96.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 16.0,
+      "h": 26.0,
       "id": 4,
       "items_count": 3,
       "path": "1.2",
@@ -33,15 +33,15 @@
       "text": "Click the field below and type. Use arrows/Home/End/Backspace/Delete.",
       "type": "adi.widget.label.label_widget",
       "visible": true,
-      "w": 425.0,
-      "x": 48.0,
-      "y": 86.0
+      "w": 850.0,
+      "x": 96.0,
+      "y": 164.0
      },
      {
       "child_count": 0,
       "clickable": true,
       "focusable": true,
-      "h": 42.0,
+      "h": 84.0,
       "id": 6,
       "items_count": 4,
       "path": "1.3",
@@ -49,15 +49,15 @@
       "text": "Hello Adi",
       "type": "adi.widget.text_input.text_input_widget",
       "visible": true,
-      "w": 425.0,
-      "x": 48.0,
-      "y": 114.0
+      "w": 850.0,
+      "x": 96.0,
+      "y": 214.0
      },
      {
       "child_count": 0,
       "clickable": true,
       "focusable": true,
-      "h": 42.0,
+      "h": 84.0,
       "id": 15,
       "items_count": 4,
       "path": "1.4",
@@ -65,15 +65,15 @@
       "text": "Second field",
       "type": "adi.widget.text_input.text_input_widget",
       "visible": true,
-      "w": 425.0,
-      "x": 48.0,
-      "y": 168.0
+      "w": 850.0,
+      "x": 96.0,
+      "y": 322.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 32.0,
+      "h": 52.0,
       "id": 5,
       "items_count": 3,
       "path": "1.5",
@@ -81,15 +81,15 @@
       "text": "Password field (masked). Cut/Copy are disabled; the echo below still shows the real text.",
       "type": "adi.widget.label.label_widget",
       "visible": true,
-      "w": 425.0,
-      "x": 48.0,
-      "y": 222.0
+      "w": 850.0,
+      "x": 96.0,
+      "y": 430.0
      },
      {
       "child_count": 0,
       "clickable": true,
       "focusable": true,
-      "h": 42.0,
+      "h": 84.0,
       "id": 24,
       "items_count": 4,
       "path": "1.6",
@@ -97,15 +97,15 @@
       "text": "hunter2",
       "type": "adi.widget.text_input.text_input_widget",
       "visible": true,
-      "w": 425.0,
-      "x": 48.0,
-      "y": 266.0
+      "w": 850.0,
+      "x": 96.0,
+      "y": 506.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 17.0,
+      "h": 28.0,
       "id": 33,
       "items_count": 3,
       "path": "1.7",
@@ -113,15 +113,15 @@
       "text": "You typed: Hello Adi",
       "type": "adi.widget.label.label_widget",
       "visible": true,
-      "w": 425.0,
-      "x": 48.0,
-      "y": 320.0
+      "w": 850.0,
+      "x": 96.0,
+      "y": 614.0
      },
      {
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 15.0,
+      "h": 24.0,
       "id": 34,
       "items_count": 3,
       "path": "1.8",
@@ -129,35 +129,35 @@
       "text": "Length: 9",
       "type": "adi.widget.label.label_widget",
       "visible": true,
-      "w": 425.0,
-      "x": 48.0,
-      "y": 349.0
+      "w": 850.0,
+      "x": 96.0,
+      "y": 666.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 364.0,
+    "h": 690.0,
     "id": 2,
     "items_count": 2,
     "path": "1",
     "states": [],
     "type": "adi.widget.box.box_widget",
     "visible": true,
-    "w": 473.0,
-    "x": 24.0,
-    "y": 24.0
+    "w": 946.0,
+    "x": 48.0,
+    "y": 48.0
    }
   ],
   "clickable": false,
   "focusable": false,
-  "h": 412.0,
+  "h": 768.0,
   "id": 1,
   "items_count": 2,
   "path": "",
   "states": [],
   "type": "adi.widget.box.box_widget",
   "visible": true,
-  "w": 521.0,
+  "w": 1042.0,
   "x": 0.0,
   "y": 0.0
  }

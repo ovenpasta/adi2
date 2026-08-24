@@ -9,7 +9,7 @@
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 32.0,
+      "h": 44.0,
       "id": 3,
       "items_count": 3,
       "path": "1.1",
@@ -28,7 +28,7 @@
         "child_count": 0,
         "clickable": false,
         "focusable": false,
-        "h": 28.0,
+        "h": 39.0,
         "id": 5,
         "items_count": 3,
         "path": "1.2.1",
@@ -38,7 +38,7 @@
         "visible": true,
         "w": 240.0,
         "x": 48.0,
-        "y": 112.0
+        "y": 118.5
        },
        {
         "child_count": 0,
@@ -54,13 +54,13 @@
         "visible": true,
         "w": 240.0,
         "x": 312.0,
-        "y": 96.0
+        "y": 108.0
        },
        {
         "child_count": 0,
         "clickable": false,
         "focusable": false,
-        "h": 28.0,
+        "h": 39.0,
         "id": 26,
         "items_count": 3,
         "path": "1.2.3",
@@ -68,9 +68,9 @@
         "text": "22.50",
         "type": "adi.widget.label.label_widget",
         "visible": true,
-        "w": 70.0,
+        "w": 71.0,
         "x": 576.0,
-        "y": 112.0
+        "y": 118.5
        }
       ],
       "clickable": false,
@@ -84,12 +84,12 @@
       "visible": true,
       "w": 726.0,
       "x": 48.0,
-      "y": 96.0
+      "y": 108.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 108.0,
+    "h": 120.0,
     "id": 2,
     "items_count": 2,
     "path": "1",
@@ -107,7 +107,7 @@
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 32.0,
+      "h": 44.0,
       "id": 8,
       "items_count": 3,
       "path": "2.1",
@@ -117,7 +117,7 @@
       "visible": true,
       "w": 726.0,
       "x": 48.0,
-      "y": 196.0
+      "y": 208.0
      },
      {
       "child_count": 3,
@@ -126,7 +126,7 @@
         "child_count": 0,
         "clickable": false,
         "focusable": false,
-        "h": 28.0,
+        "h": 39.0,
         "id": 10,
         "items_count": 3,
         "path": "2.2.1",
@@ -136,7 +136,7 @@
         "visible": true,
         "w": 240.0,
         "x": 48.0,
-        "y": 260.0
+        "y": 278.5
        },
        {
         "child_count": 0,
@@ -152,13 +152,13 @@
         "visible": true,
         "w": 200.0,
         "x": 312.0,
-        "y": 244.0
+        "y": 268.0
        },
        {
         "child_count": 0,
         "clickable": false,
         "focusable": false,
-        "h": 28.0,
+        "h": 39.0,
         "id": 27,
         "items_count": 3,
         "path": "2.2.3",
@@ -166,9 +166,9 @@
         "text": "8080",
         "type": "adi.widget.label.label_widget",
         "visible": true,
-        "w": 62.0,
+        "w": 64.0,
         "x": 536.0,
-        "y": 260.0
+        "y": 278.5
        }
       ],
       "clickable": false,
@@ -182,12 +182,12 @@
       "visible": true,
       "w": 726.0,
       "x": 48.0,
-      "y": 244.0
+      "y": 268.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 108.0,
+    "h": 120.0,
     "id": 7,
     "items_count": 2,
     "path": "2",
@@ -196,7 +196,7 @@
     "visible": true,
     "w": 726.0,
     "x": 48.0,
-    "y": 196.0
+    "y": 208.0
    },
    {
     "child_count": 2,
@@ -205,7 +205,7 @@
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 32.0,
+      "h": 44.0,
       "id": 13,
       "items_count": 3,
       "path": "3.1",
@@ -215,7 +215,7 @@
       "visible": true,
       "w": 726.0,
       "x": 48.0,
-      "y": 344.0
+      "y": 368.0
      },
      {
       "child_count": 3,
@@ -224,7 +224,7 @@
         "child_count": 0,
         "clickable": false,
         "focusable": false,
-        "h": 28.0,
+        "h": 39.0,
         "id": 15,
         "items_count": 3,
         "path": "3.2.1",
@@ -234,7 +234,7 @@
         "visible": true,
         "w": 240.0,
         "x": 48.0,
-        "y": 408.0
+        "y": 438.5
        },
        {
         "child_count": 0,
@@ -250,13 +250,13 @@
         "visible": true,
         "w": 360.0,
         "x": 312.0,
-        "y": 392.0
+        "y": 428.0
        },
        {
         "child_count": 0,
         "clickable": false,
         "focusable": false,
-        "h": 28.0,
+        "h": 39.0,
         "id": 28,
         "items_count": 3,
         "path": "3.2.3",
@@ -264,9 +264,9 @@
         "text": "0.00",
         "type": "adi.widget.label.label_widget",
         "visible": true,
-        "w": 54.0,
+        "w": 55.0,
         "x": 696.0,
-        "y": 408.0
+        "y": 438.5
        }
       ],
       "clickable": false,
@@ -280,12 +280,12 @@
       "visible": true,
       "w": 726.0,
       "x": 48.0,
-      "y": 392.0
+      "y": 428.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 108.0,
+    "h": 120.0,
     "id": 12,
     "items_count": 2,
     "path": "3",
@@ -294,7 +294,7 @@
     "visible": true,
     "w": 726.0,
     "x": 48.0,
-    "y": 344.0
+    "y": 368.0
    },
    {
     "child_count": 2,
@@ -303,7 +303,7 @@
       "child_count": 0,
       "clickable": false,
       "focusable": false,
-      "h": 32.0,
+      "h": 44.0,
       "id": 18,
       "items_count": 3,
       "path": "4.1",
@@ -313,7 +313,7 @@
       "visible": true,
       "w": 726.0,
       "x": 48.0,
-      "y": 492.0
+      "y": 528.0
      },
      {
       "child_count": 6,
@@ -322,7 +322,7 @@
         "child_count": 0,
         "clickable": false,
         "focusable": false,
-        "h": 28.0,
+        "h": 39.0,
         "id": 20,
         "items_count": 3,
         "path": "4.2.1",
@@ -332,7 +332,7 @@
         "visible": true,
         "w": 48.0,
         "x": 48.0,
-        "y": 556.0
+        "y": 598.5
        },
        {
         "child_count": 0,
@@ -348,13 +348,13 @@
         "visible": true,
         "w": 154.0,
         "x": 120.0,
-        "y": 540.0
+        "y": 588.0
        },
        {
         "child_count": 0,
         "clickable": false,
         "focusable": false,
-        "h": 28.0,
+        "h": 39.0,
         "id": 22,
         "items_count": 3,
         "path": "4.2.3",
@@ -364,7 +364,7 @@
         "visible": true,
         "w": 48.0,
         "x": 298.0,
-        "y": 556.0
+        "y": 598.5
        },
        {
         "child_count": 0,
@@ -380,13 +380,13 @@
         "visible": true,
         "w": 154.0,
         "x": 370.0,
-        "y": 540.0
+        "y": 588.0
        },
        {
         "child_count": 0,
         "clickable": false,
         "focusable": false,
-        "h": 28.0,
+        "h": 39.0,
         "id": 24,
         "items_count": 3,
         "path": "4.2.5",
@@ -396,7 +396,7 @@
         "visible": true,
         "w": 48.0,
         "x": 548.0,
-        "y": 556.0
+        "y": 598.5
        },
        {
         "child_count": 0,
@@ -412,7 +412,7 @@
         "visible": true,
         "w": 154.0,
         "x": 620.0,
-        "y": 540.0
+        "y": 588.0
        }
       ],
       "clickable": false,
@@ -426,12 +426,12 @@
       "visible": true,
       "w": 726.0,
       "x": 48.0,
-      "y": 540.0
+      "y": 588.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 108.0,
+    "h": 120.0,
     "id": 17,
     "items_count": 2,
     "path": "4",
@@ -440,12 +440,12 @@
     "visible": true,
     "w": 726.0,
     "x": 48.0,
-    "y": 492.0
+    "y": 528.0
    }
   ],
   "clickable": false,
   "focusable": false,
-  "h": 648.0,
+  "h": 696.0,
   "id": 1,
   "items_count": 2,
   "path": "",

@@ -60,10 +60,14 @@ procedure Font_Example is
    function Load_Font_With_Variants return Font_Handle is
       use Ada.Directories;
 
-      Base_Regular : constant String := "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
-      Base_Bold    : constant String := "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf";
-      Base_Italic  : constant String := "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf";
-      Base_BI      : constant String := "/usr/share/fonts/truetype/dejavu/DejaVuSans-BoldOblique.ttf";
+      --  The vendored family rather than an installed one: a system path
+      --  is a different file on each distribution, and the four faces are
+      --  what this example is about.
+      Vendor_Dir   : constant String := "vendor/open-sans/static/";
+      Base_Regular : constant String := Vendor_Dir & "OpenSans-Regular.ttf";
+      Base_Bold    : constant String := Vendor_Dir & "OpenSans-Bold.ttf";
+      Base_Italic  : constant String := Vendor_Dir & "OpenSans-Italic.ttf";
+      Base_BI      : constant String := Vendor_Dir & "OpenSans-BoldItalic.ttf";
       F            : Font_Handle := Null_Font;
    begin
       if not Exists (Base_Regular) then

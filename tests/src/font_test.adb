@@ -1,3 +1,4 @@
+with Ada.Environment_Variables;
 with Ada.Text_IO;          use Ada.Text_IO;
 with Adi.SDL;
 with Adi.SDL.TTF;      use Adi.SDL.TTF;
@@ -37,6 +38,53 @@ begin
       Test_Support.Finish;
       return;
    end if;
+
+   ---------------------------------------------------------------------
+   --  Pinned fallback
+   ---------------------------------------------------------------------
+
+   --  First, because the fallback is resolved once and cached: any check
+   --  below that reaches for it would settle the answer this one asks for.
+   Test_Support.Section ("ADI_FALLBACK_FONT overrides the platform search");
+   declare
+      Pinned : constant String :=
+        "vendor/open-sans/static/OpenSans-Regular.ttf";
+      Sample : constant String := "Hello World!";
+      Size   : constant Float := 16.0;
+      use type Adi.Core.Size_2D;
+      use type Adi.Core.Pixel_Type;
+   begin
+      Ada.Environment_Variables.Set ("ADI_FALLBACK_FONT", Pinned);
+      declare
+         --  Measured rather than compared by path: the metrics are what
+         --  a caller of the pin is buying, and a platform face that
+         --  happened to measure alike would be no problem.
+         Explicit : constant Font_Handle := Adi.Font.Load (Pinned);
+         Fell_Back : constant Adi.Core.Size_2D :=
+           Adi.Font.Measure_Text (Null_Font, Sample, Size);
+         Asked_For : constant Adi.Core.Size_2D :=
+           Adi.Font.Measure_Text (Explicit, Sample, Size);
+      begin
+         Put_Line ("  fallback " & Fell_Back.Width'Image
+                   & " x" & Fell_Back.Height'Image
+                   & "   pinned " & Asked_For.Width'Image
+                   & " x" & Asked_For.Height'Image);
+         --  Asserted before the comparison, because a path this test
+         --  failed to find would make both sides measure through the
+         --  platform fallback, agree, and read as a pass -- the exact
+         --  outcome the section exists to rule out.
+         Test_Support.Assert
+           (Explicit /= Null_Font,
+            "the pinned file loads, relative to the repository root");
+         Test_Support.Assert
+           (Asked_For.Width > 0.0 and then Asked_For.Height > 0.0,
+            "the pinned file measures text");
+         Test_Support.Assert
+           (Fell_Back = Asked_For,
+            "text with no font measures as the pinned file, rather than "
+            & "as whichever face the platform ships");
+      end;
+   end;
 
    ---------------------------------------------------------------------
    --  CSS generic families

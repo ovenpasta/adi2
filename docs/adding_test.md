@@ -103,6 +103,19 @@ rebuilds the examples first, since an example links `libAdi.a`
 statically and a stale binary would report on the library it was built
 against rather than the one you changed.
 
+Two knobs are pinned for the run, in `tools/example_app.py`, so a golden
+written on one machine holds on another:
+
+| Variable | Value | Why |
+|----------|-------|-----|
+| `ADI_DISPLAY_SCALE_OVERRIDE` | `2` | Runs every tree through the DIP-scaled path, where a hardcoded pixel shows up. |
+| `ADI_FALLBACK_FONT` | `vendor/open-sans/static/OpenSans-Regular.ttf` | The platform fallback differs per OS, and the metrics of the face chosen set the size of every text-bearing widget. |
+
+`ADI_FALLBACK_FONT` is read by `Adi.Font` in any application, once, at
+the point the fallback is first needed. It stands in for the per-platform
+search, so `Adi.Font.Set_Default_Font` and a widget carrying its own
+`font-family` both still win over it.
+
 A diff names the widget and the field:
 
 ```

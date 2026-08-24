@@ -632,9 +632,28 @@ package body Adi.Font is
    ---------------------------------------------------------------------------
 
    procedure Find_Fallback is
+      Pinned : constant String :=
+        Ada.Environment_Variables.Value ("ADI_FALLBACK_FONT", "");
    begin
       if Fallback_Found then
          return;
+      end if;
+
+      --  Reproducible text measurement across machines, which the system
+      --  scan cannot give: each platform ships its own faces, and glyph
+      --  advances and line height differ between them.
+      if Pinned'Length > 0 then
+         Default_Fallback_Handle := Load (Pinned);
+         if Default_Fallback_Handle /= Null_Font then
+            Fallback_Found := True;
+            return;
+         end if;
+         --  Fallback_Found stays False so the scan below still runs: a
+         --  system face beats none at all. Reported through Adi.Log
+         --  rather than the local Log, which is compiled out -- a pin
+         --  that failed quietly would present as an unexplained
+         --  difference between two machines.
+         Adi.Log.Error ("ADI_FALLBACK_FONT unreadable; ignored: " & Pinned);
       end if;
 
       case Adi.Build_Target.Platform is

@@ -9,6 +9,8 @@ Usage:
     python3 xml_to_ada.py input.xml --output-dir dir --package-name Name
 """
 
+from __future__ import annotations
+
 import re
 import xml.etree.ElementTree as ET
 import argparse

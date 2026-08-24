@@ -9,6 +9,7 @@ with Adi.SDL.Events;
 with Adi.SDL.Render;
 with Adi.SDL.Mouse;
 with Adi.Widget;
+with Adi.Build_Target;
 with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings;
 with Ada.Unchecked_Conversion;
@@ -84,6 +85,13 @@ package body Adi.App is
         Frame_Start : Time;
         Next_Frame : Time;
         DT         : Duration;
+
+        --  macOS convention: Control+left-click is the secondary click.
+        --  We latch the translation on DOWN so that releasing Ctrl before
+        --  UP still produces a matched right-button pair -- otherwise the
+        --  window's pressed-state tracking would be left with a stuck
+        --  Right_Button press.
+        Left_Ctrl_Translated : Boolean := False;
 
         --  A handle rather than a cached pointer or a borrow held across
         --  the frame.  Destroying a window from a callback that runs
@@ -196,13 +204,26 @@ package body Adi.App is
                             declare
                                 Button_Event : constant SDL_MouseButtonEvent :=
                                    To_Mouse_Button_Event (Event);
+                                Btn : Adi.Core.Mouse_Button :=
+                                   To_Mouse_Button (Button_Event.Button);
                             begin
+                                case Adi.Build_Target.Platform is
+                                    when Adi.Build_Target.macOS =>
+                                        if Btn = Adi.Core.Left_Button
+                                          and then (SDL_GetModState
+                                                    and SDL_KMOD_CTRL) /= 0
+                                        then
+                                            Btn := Adi.Core.Right_Button;
+                                            Left_Ctrl_Translated := True;
+                                        end if;
+                                    when others =>
+                                        null;
+                                end case;
                                 Adi.Window.On_Mouse_Down
                                   (Main,
                                    X => Adi.Core.Pixel_Type (Button_Event.X),
                                    Y => Adi.Core.Pixel_Type (Button_Event.Y),
-                                   Button =>
-                                     To_Mouse_Button (Button_Event.Button),
+                                   Button => Btn,
                                    Clicks =>
                                      Natural (Button_Event.Clicks));
                             end;
@@ -214,12 +235,20 @@ package body Adi.App is
                             declare
                                 Button_Event : constant SDL_MouseButtonEvent :=
                                    To_Mouse_Button_Event (Event);
+                                Btn : Adi.Core.Mouse_Button :=
+                                   To_Mouse_Button (Button_Event.Button);
                             begin
+                                if Btn = Adi.Core.Left_Button
+                                  and then Left_Ctrl_Translated
+                                then
+                                    Btn := Adi.Core.Right_Button;
+                                    Left_Ctrl_Translated := False;
+                                end if;
                                 Adi.Window.On_Mouse_Up
                                   (Main,
                                    X => Adi.Core.Pixel_Type (Button_Event.X),
                                     Y      => Adi.Core.Pixel_Type (Button_Event.Y),
-                                    Button => To_Mouse_Button (Button_Event.Button));
+                                    Button => Btn);
                             end;
                         end if;
 

@@ -1,5 +1,5 @@
 name = "adi2"
-description = "Widget-based GUI library with CSS styling and XML UI, on SDL3"
+description = "A modern GUI library for Ada: CSS styling, XML UI, SDL3"
 version = "0.9.0"
 
 authors = ["Aldo Nicolas Bruno"]

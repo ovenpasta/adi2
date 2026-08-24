@@ -1,5 +1,7 @@
 # Adi2
 
+[![CI](https://github.com/ovenpasta/adi2/actions/workflows/ci.yml/badge.svg)](https://github.com/ovenpasta/adi2/actions/workflows/ci.yml)
+
 **A modern GUI library for Ada.**
 
 Adi2 gives you a real widget toolkit with the niceties developers expect from a modern UI stack — CSS-like styling with live reload, declarative XML layouts, animations, SVG and Lottie graphics, internationalization, and asset bundling — implemented natively in Ada on top of SDL3.

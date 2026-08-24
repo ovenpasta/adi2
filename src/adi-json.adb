@@ -92,6 +92,17 @@ package body Adi.JSON is
       end if;
    end Maybe_Comma;
 
+   --  A value that follows a key rides on the comma and indent the key
+   --  already wrote; anywhere else it writes its own.
+   procedure Begin_Value (W : in out JSON_Writer) is
+      Keyed : constant Boolean := W.After_Key (W.Depth);
+   begin
+      Maybe_Comma (W);
+      if not Keyed then
+         Write_Indent (W);
+      end if;
+   end Begin_Value;
+
    procedure Write_Key (W : in out JSON_Writer; K : String) is
    begin
       Maybe_Comma (W);
@@ -109,12 +120,7 @@ package body Adi.JSON is
 
    procedure Start_Object (W : in out JSON_Writer) is
    begin
-      if not W.After_Key (W.Depth) then
-         Maybe_Comma (W);
-         Write_Indent (W);
-      else
-         W.After_Key (W.Depth) := False;
-      end if;
+      Begin_Value (W);
       Append (W.Buf, "{");
       W.Has_Element (W.Depth) := True;
       W.Depth := W.Depth + 1;
@@ -135,12 +141,7 @@ package body Adi.JSON is
 
    procedure Start_Array (W : in out JSON_Writer) is
    begin
-      if not W.After_Key (W.Depth) then
-         Maybe_Comma (W);
-         Write_Indent (W);
-      else
-         W.After_Key (W.Depth) := False;
-      end if;
+      Begin_Value (W);
       Append (W.Buf, "[");
       W.Has_Element (W.Depth) := True;
       W.Depth := W.Depth + 1;
@@ -223,12 +224,7 @@ package body Adi.JSON is
 
    procedure Write_Value (W : in out JSON_Writer; Value : String) is
    begin
-      if not W.After_Key (W.Depth) then
-         Maybe_Comma (W);
-         Write_Indent (W);
-      else
-         W.After_Key (W.Depth) := False;
-      end if;
+      Begin_Value (W);
       Append (W.Buf, """" & Escape_String (Value) & """");
       W.Has_Element (W.Depth) := True;
    end Write_Value;
@@ -237,12 +233,7 @@ package body Adi.JSON is
       Img : constant String := Ada.Strings.Fixed.Trim
         (Long_Integer'Image (Value), Ada.Strings.Left);
    begin
-      if not W.After_Key (W.Depth) then
-         Maybe_Comma (W);
-         Write_Indent (W);
-      else
-         W.After_Key (W.Depth) := False;
-      end if;
+      Begin_Value (W);
       Append (W.Buf, Img);
       W.Has_Element (W.Depth) := True;
    end Write_Value;
@@ -251,36 +242,21 @@ package body Adi.JSON is
       Img : constant String := Ada.Strings.Fixed.Trim
         (Long_Float'Image (Value), Ada.Strings.Left);
    begin
-      if not W.After_Key (W.Depth) then
-         Maybe_Comma (W);
-         Write_Indent (W);
-      else
-         W.After_Key (W.Depth) := False;
-      end if;
+      Begin_Value (W);
       Append (W.Buf, Img);
       W.Has_Element (W.Depth) := True;
    end Write_Value;
 
    procedure Write_Value (W : in out JSON_Writer; Value : Boolean) is
    begin
-      if not W.After_Key (W.Depth) then
-         Maybe_Comma (W);
-         Write_Indent (W);
-      else
-         W.After_Key (W.Depth) := False;
-      end if;
+      Begin_Value (W);
       Append (W.Buf, (if Value then "true" else "false"));
       W.Has_Element (W.Depth) := True;
    end Write_Value;
 
    procedure Write_Null (W : in out JSON_Writer) is
    begin
-      if not W.After_Key (W.Depth) then
-         Maybe_Comma (W);
-         Write_Indent (W);
-      else
-         W.After_Key (W.Depth) := False;
-      end if;
+      Begin_Value (W);
       Append (W.Buf, "null");
       W.Has_Element (W.Depth) := True;
    end Write_Null;

@@ -1298,9 +1298,15 @@ package body Adi.Widget.Html_View is
       return Img;
    end Resolve_Inline_SVG;
 
+   --  Pct/Vw/Vh already resolve against a container or viewport that
+   --  itself moves with content scale, so applying it again would double
+   --  count. Pix is the escape hatch for "already-resolved renderer
+   --  pixels" -- the font-size cascade below stores its result in Pix so
+   --  every subsequent read is a literal, not another opportunity to
+   --  scale.
    function Should_Apply_Content_Scale (L : Length_Value) return Boolean is
    begin
-      return L.Unit not in Pct | Vw | Vh;
+      return L.Unit not in Pct | Vw | Vh | Pix;
    end Should_Apply_Content_Scale;
 
    function Html_Root_Font_Size_Px
@@ -1702,6 +1708,40 @@ package body Adi.Widget.Html_View is
                Viewport_Width => Content.Width,
                Viewport_Height => Content.Height));
       end Local_Font_Size_Px;
+
+      --  Fold the child's font-size against the parent's already-resolved
+      --  size and store the result in place, so em/rem/% resolve against
+      --  the actual parent chain instead of the default 16px. Storing as
+      --  Pix marks the value as final: Local_Font_Size_Px reads it back
+      --  as a literal (Pix is excluded from content_scale re-application)
+      --  and passes it as the em basis when this node's own children go
+      --  through the same fold.
+      procedure Cascade_Font_Size
+        (Result       : in out Resolved_Style;
+         Parent_Style : Resolved_Style)
+      is
+         Parent_Px : constant Pixel_Type := Local_Font_Size_Px (Parent_Style);
+         Raw       : constant Pixel_Type :=
+           Length_To_Px
+             (Result.Font_Size,
+              Container_Size  => Content.Height,
+              Font_Size       => Parent_Px,
+              Root_Font_Size  => Root_Font_Px,
+              Viewport_Width  => Content.Width,
+              Viewport_Height => Content.Height);
+         --  Absolute units still need the zoom-slider scale; relative
+         --  units (em, rem, %) inherit it through Parent_Px, and vw/vh
+         --  resolve against a viewport that is not scaled here.
+         Own_Px : constant Pixel_Type :=
+           Pixel_Type'Max
+             (1.0,
+              (if Result.Font_Size.Unit in Px | Dip | Pix then
+                  Raw * Pixel_Type'Max (0.01, Self.Content_Scale)
+               else
+                  Raw));
+      begin
+         Result.Font_Size := Pix (Float (Own_Px));
+      end Cascade_Font_Size;
 
       function Local_Length_To_Px
         (L              : Length_Value;
@@ -2644,10 +2684,11 @@ package body Adi.Widget.Html_View is
                declare
                   Tag : constant String := To_String (N.Tag_Name);
                   Rules : constant Style_Rules := Element_Cascade_Rules (Self, Tag, N.Attrs);
-                  Style : constant Resolved_Style := Resolve_Element_Style (Rules, Parent_Style, True);
+                  Style : Resolved_Style := Resolve_Element_Style (Rules, Parent_Style, True);
                   Link_Href : constant String :=
                     (if Tag = "a" then To_String (N.Attrs.Href_Attr) else Active_Link);
                begin
+                  Cascade_Font_Size (Style, Parent_Style);
                   --  Keep separator space preceding a link outside the link run
                   --  so underline/click hit regions do not extend into that
                   --  left-side collapsed gap.
@@ -2983,6 +3024,7 @@ package body Adi.Widget.Html_View is
       end if;
 
       Document_Style := Resolve_Element_Style (Document_Rules, Text_Part_Style, True);
+      Cascade_Font_Size (Document_Style, Text_Part_Style);
 
       Line_Base_H := Pixel_Type'Max
         (1.0,

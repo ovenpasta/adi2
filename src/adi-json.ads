@@ -9,7 +9,9 @@ with JSON.Parsers;
 
 package Adi.JSON is
 
-   package Types   is new Standard.JSON.Types (Long_Integer, Long_Float);
+   type JSON_Integer is range -2 ** 63 .. 2 ** 63 - 1;
+
+   package Types   is new Standard.JSON.Types (JSON_Integer, Long_Float);
    package Parsers  is new Standard.JSON.Parsers (Types);
 
    ---------------------------------------------------------------------------
@@ -40,7 +42,7 @@ package Adi.JSON is
    --  Key-value pairs (inside objects)
    procedure Key_Value (W : in out JSON_Writer; Key : String; Value : String);
    procedure Key_Value
-     (W : in out JSON_Writer; Key : String; Value : Long_Integer);
+     (W : in out JSON_Writer; Key : String; Value : JSON_Integer);
    procedure Key_Value
      (W : in out JSON_Writer; Key : String; Value : Long_Float);
    procedure Key_Value
@@ -53,7 +55,7 @@ package Adi.JSON is
 
    --  Raw values (inside arrays or as root)
    procedure Write_Value (W : in out JSON_Writer; Value : String);
-   procedure Write_Value (W : in out JSON_Writer; Value : Long_Integer);
+   procedure Write_Value (W : in out JSON_Writer; Value : JSON_Integer);
    procedure Write_Value (W : in out JSON_Writer; Value : Long_Float);
    procedure Write_Value (W : in out JSON_Writer; Value : Boolean);
    procedure Write_Null  (W : in out JSON_Writer);

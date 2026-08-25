@@ -186,10 +186,10 @@ package body Adi.JSON is
    end Key_Value;
 
    procedure Key_Value
-     (W : in out JSON_Writer; Key : String; Value : Long_Integer)
+     (W : in out JSON_Writer; Key : String; Value : JSON_Integer)
    is
       Img : constant String := Ada.Strings.Fixed.Trim
-        (Long_Integer'Image (Value), Ada.Strings.Left);
+        (JSON_Integer'Image (Value), Ada.Strings.Left);
    begin
       Write_Key (W, Key);
       Append (W.Buf, Img);
@@ -229,9 +229,9 @@ package body Adi.JSON is
       W.Has_Element (W.Depth) := True;
    end Write_Value;
 
-   procedure Write_Value (W : in out JSON_Writer; Value : Long_Integer) is
+   procedure Write_Value (W : in out JSON_Writer; Value : JSON_Integer) is
       Img : constant String := Ada.Strings.Fixed.Trim
-        (Long_Integer'Image (Value), Ada.Strings.Left);
+        (JSON_Integer'Image (Value), Ada.Strings.Left);
    begin
       Begin_Value (W);
       Append (W.Buf, Img);

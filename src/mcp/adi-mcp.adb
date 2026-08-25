@@ -27,6 +27,8 @@ with Adi.Widget_Styles;          use Adi.Widget_Styles;
 
 package body Adi.MCP is
 
+   use type Adi.JSON.JSON_Integer;
+
    procedure Write_Texture_Cache
      (W     : in out Adi.JSON.JSON_Writer;
       Stats : Adi.Render.Texture_Stats)
@@ -38,45 +40,49 @@ package body Adi.MCP is
       begin
          W.Key (Name);
          W.Start_Object;
-         W.Key_Value ("bytes", Long_Integer (S.Bytes));
-         W.Key_Value ("peak_bytes", Long_Integer (S.Peak_Bytes));
-         W.Key_Value ("count", Long_Integer (S.Count));
-         W.Key_Value ("peak_count", Long_Integer (S.Peak_Count));
+         W.Key_Value ("bytes", Adi.JSON.JSON_Integer (S.Bytes));
+         W.Key_Value ("peak_bytes", Adi.JSON.JSON_Integer (S.Peak_Bytes));
+         W.Key_Value ("count", Adi.JSON.JSON_Integer (S.Count));
+         W.Key_Value ("peak_count", Adi.JSON.JSON_Integer (S.Peak_Count));
          --  How that residency divides now: the budget governs idle only,
          --  so idle_bytes is what to read against it.
-         W.Key_Value ("active_bytes", Long_Integer (S.Active_Bytes));
-         W.Key_Value ("active_count", Long_Integer (S.Active_Count));
-         W.Key_Value ("idle_bytes", Long_Integer (S.Idle_Bytes));
-         W.Key_Value ("idle_count", Long_Integer (S.Idle_Count));
-         W.Key_Value ("retired_bytes", Long_Integer (S.Retired_Bytes));
-         W.Key_Value ("retired_count", Long_Integer (S.Retired_Count));
-         W.Key_Value ("hits", Long_Integer (S.Hits));
-         W.Key_Value ("misses", Long_Integer (S.Misses));
-         W.Key_Value ("stores", Long_Integer (S.Stores));
+         W.Key_Value ("active_bytes", Adi.JSON.JSON_Integer (S.Active_Bytes));
+         W.Key_Value ("active_count", Adi.JSON.JSON_Integer (S.Active_Count));
+         W.Key_Value ("idle_bytes", Adi.JSON.JSON_Integer (S.Idle_Bytes));
+         W.Key_Value ("idle_count", Adi.JSON.JSON_Integer (S.Idle_Count));
+         W.Key_Value
+           ("retired_bytes", Adi.JSON.JSON_Integer (S.Retired_Bytes));
+         W.Key_Value
+           ("retired_count", Adi.JSON.JSON_Integer (S.Retired_Count));
+         W.Key_Value ("hits", Adi.JSON.JSON_Integer (S.Hits));
+         W.Key_Value ("misses", Adi.JSON.JSON_Integer (S.Misses));
+         W.Key_Value ("stores", Adi.JSON.JSON_Integer (S.Stores));
          --  Counts the kind evicted, not the kind whose arrival caused
          --  the pressure.
-         W.Key_Value ("pressure_evictions", Long_Integer (S.Pressure));
-         W.Key_Value ("headroom_evictions", Long_Integer (S.Headroom));
-         W.Key_Value ("replaced", Long_Integer (S.Replaced));
-         W.Key_Value ("cleared", Long_Integer (S.Cleared));
-         W.Key_Value ("discarded", Long_Integer (S.Discarded));
+         W.Key_Value
+           ("pressure_evictions", Adi.JSON.JSON_Integer (S.Pressure));
+         W.Key_Value
+           ("headroom_evictions", Adi.JSON.JSON_Integer (S.Headroom));
+         W.Key_Value ("replaced", Adi.JSON.JSON_Integer (S.Replaced));
+         W.Key_Value ("cleared", Adi.JSON.JSON_Integer (S.Cleared));
+         W.Key_Value ("discarded", Adi.JSON.JSON_Integer (S.Discarded));
          --  Dropped because their group was released. Like cleared and
          --  discarded, this is the program's own doing, not the budget's.
-         W.Key_Value ("released", Long_Integer (S.Released));
-         W.Key_Value ("refused", Long_Integer (S.Refused));
+         W.Key_Value ("released", Adi.JSON.JSON_Integer (S.Released));
+         W.Key_Value ("refused", Adi.JSON.JSON_Integer (S.Refused));
          W.Key_Value ("build_us",
-           Long_Integer (Adi.Clock.To_Duration (S.Build_Time)
+           Adi.JSON.JSON_Integer (Adi.Clock.To_Duration (S.Build_Time)
                          * 1_000_000.0));
          W.End_Object;
       end Emit_Kind;
    begin
       W.Start_Object;
-      W.Key_Value ("budget", Long_Integer (Stats.Budget));
-      W.Key_Value ("bytes", Long_Integer (Stats.Bytes_Used));
-      W.Key_Value ("peak_bytes", Long_Integer (Stats.Peak_Bytes));
-      W.Key_Value ("idle_bytes", Long_Integer (Stats.Idle_Bytes));
-      W.Key_Value ("count", Long_Integer (Stats.Count));
-      W.Key_Value ("frames", Long_Integer (Stats.Frames));
+      W.Key_Value ("budget", Adi.JSON.JSON_Integer (Stats.Budget));
+      W.Key_Value ("bytes", Adi.JSON.JSON_Integer (Stats.Bytes_Used));
+      W.Key_Value ("peak_bytes", Adi.JSON.JSON_Integer (Stats.Peak_Bytes));
+      W.Key_Value ("idle_bytes", Adi.JSON.JSON_Integer (Stats.Idle_Bytes));
+      W.Key_Value ("count", Adi.JSON.JSON_Integer (Stats.Count));
+      W.Key_Value ("frames", Adi.JSON.JSON_Integer (Stats.Frames));
       Emit_Kind ("shadow", Adi.Texture_Cache.Shadow_Texture);
       Emit_Kind ("raster", Adi.Texture_Cache.Raster_Texture);
       Emit_Kind ("svg", Adi.Texture_Cache.SVG_Texture);
@@ -175,14 +181,14 @@ package body Adi.MCP is
    function JSON_Get_Long
      (JSON_Text : String;
       Key       : String;
-      Default   : Long_Integer := 0) return Long_Integer
+      Default   : Adi.JSON.JSON_Integer := 0) return Adi.JSON.JSON_Integer
    is
       use Adi.JSON;
       P    : Parsers.Parser := Parsers.Create (JSON_Text);
       Root : constant Types.JSON_Value := P.Parse;
    begin
       if Root.Contains (Key) then
-         return Long_Integer'(Root.Get (Key).Value);
+         return Adi.JSON.JSON_Integer'(Root.Get (Key).Value);
       end if;
       return Default;
    exception
@@ -198,7 +204,7 @@ package body Adi.MCP is
       Root : constant Types.JSON_Value := P.Parse;
    begin
       if Root.Contains (Key) then
-         return Integer (Long_Integer'(Root.Get (Key).Value));
+         return Integer (Adi.JSON.JSON_Integer'(Root.Get (Key).Value));
       end if;
       return Default;
    exception
@@ -381,7 +387,7 @@ package body Adi.MCP is
    begin
       W.Start_Object;
       W.Key_Value ("type", To_String (Info.Tag_Name));
-      W.Key_Value ("id", Long_Integer (Info.Id));
+      W.Key_Value ("id", Adi.JSON.JSON_Integer (Info.Id));
       W.Key_Value ("path", Path);
       W.Key_Value ("x", Long_Float (Info.Geometry.X));
       W.Key_Value ("y", Long_Float (Info.Geometry.Y));
@@ -412,8 +418,8 @@ package body Adi.MCP is
       W.Key_Value ("clickable", Info.Flags (Clickable));
       W.Key_Value ("focusable", Info.Flags (Focusable));
 
-      W.Key_Value ("child_count", Long_Integer (Info.Child_Count));
-      W.Key_Value ("items_count", Long_Integer (Info.Items_Count));
+      W.Key_Value ("child_count", Adi.JSON.JSON_Integer (Info.Child_Count));
+      W.Key_Value ("items_count", Adi.JSON.JSON_Integer (Info.Items_Count));
 
       --  Children
       if Info.Child_Count > 0 then
@@ -451,15 +457,15 @@ package body Adi.MCP is
    begin
       W.Start_Object;
       W.Key_Value ("type", To_String (Info.Tag_Name));
-      W.Key_Value ("id", Long_Integer (Info.Id));
+      W.Key_Value ("id", Adi.JSON.JSON_Integer (Info.Id));
       W.Key_Value ("path", Path);
       W.Key_Value ("text", To_String (Info.Text));
       W.Key_Value ("x", Long_Float (Info.Geometry.X));
       W.Key_Value ("y", Long_Float (Info.Geometry.Y));
       W.Key_Value ("w", Long_Float (Info.Geometry.Width));
       W.Key_Value ("h", Long_Float (Info.Geometry.Height));
-      W.Key_Value ("child_count", Long_Integer (Info.Child_Count));
-      W.Key_Value ("items_count", Long_Integer (Info.Items_Count));
+      W.Key_Value ("child_count", Adi.JSON.JSON_Integer (Info.Child_Count));
+      W.Key_Value ("items_count", Adi.JSON.JSON_Integer (Info.Items_Count));
 
       --  States
       for St in Widget_State loop
@@ -490,7 +496,7 @@ package body Adi.MCP is
    is
    begin
       W.Start_Object;
-      W.Key_Value ("id", Long_Integer (M.Id));
+      W.Key_Value ("id", Adi.JSON.JSON_Integer (M.Id));
       W.Key_Value ("path", To_String (M.Path));
       W.Key_Value ("type", To_String (M.Tag_Name));
       W.Key_Value ("text", To_String (M.Text));
@@ -917,16 +923,17 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("frame_no", Long_Integer (Stats.Frame_No));
-            W.Key_Value ("render_us", Long_Integer (Stats.Render_Us));
-            W.Key_Value ("update_us", Long_Integer (Stats.Update_Us));
-            W.Key_Value ("layout_us", Long_Integer (Stats.Layout_Us));
-            W.Key_Value ("draw_us", Long_Integer (Stats.Draw_Us));
-            W.Key_Value ("present_us", Long_Integer (Stats.Present_Us));
+            W.Key_Value ("frame_no", Adi.JSON.JSON_Integer (Stats.Frame_No));
+            W.Key_Value ("render_us", Adi.JSON.JSON_Integer (Stats.Render_Us));
+            W.Key_Value ("update_us", Adi.JSON.JSON_Integer (Stats.Update_Us));
+            W.Key_Value ("layout_us", Adi.JSON.JSON_Integer (Stats.Layout_Us));
+            W.Key_Value ("draw_us", Adi.JSON.JSON_Integer (Stats.Draw_Us));
+            W.Key_Value
+              ("present_us", Adi.JSON.JSON_Integer (Stats.Present_Us));
             W.Key_Value ("last_dt_ms",
               Long_Float (Float (Stats.Last_DT) * 1000.0));
             W.Key_Value ("layout_count",
-              Long_Integer (Stats.Layout_Count));
+              Adi.JSON.JSON_Integer (Stats.Layout_Count));
             if Stats.Last_DT > 0.0 then
                W.Key_Value ("fps",
                  Long_Float (Float'Min
@@ -1052,7 +1059,7 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("count", Long_Integer (Results.Length));
+            W.Key_Value ("count", Adi.JSON.JSON_Integer (Results.Length));
             W.Key ("matches");
             Serialize_Matches (Results, W);
             W.End_Object;
@@ -1092,7 +1099,7 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("count", Long_Integer (Results.Length));
+            W.Key_Value ("count", Adi.JSON.JSON_Integer (Results.Length));
             W.Key ("matches");
             Serialize_Matches (Results, W);
             W.End_Object;
@@ -1136,7 +1143,7 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("id", Long_Integer (Get_Id (Target)));
+            W.Key_Value ("id", Adi.JSON.JSON_Integer (Get_Id (Target)));
             W.Key_Value ("path", To_String (Resolved_Path));
             W.End_Object;
             return W.To_String;
@@ -1211,10 +1218,10 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("x", Long_Integer (PX));
-            W.Key_Value ("y", Long_Integer (PY));
-            W.Key_Value ("dx", Long_Integer (Delta_X));
-            W.Key_Value ("dy", Long_Integer (Delta_Y));
+            W.Key_Value ("x", Adi.JSON.JSON_Integer (PX));
+            W.Key_Value ("y", Adi.JSON.JSON_Integer (PY));
+            W.Key_Value ("dx", Adi.JSON.JSON_Integer (Delta_X));
+            W.Key_Value ("dy", Adi.JSON.JSON_Integer (Delta_Y));
             W.End_Object;
             return W.To_String;
          end;
@@ -1270,7 +1277,7 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("id", Long_Integer (Get_Id (Target)));
+            W.Key_Value ("id", Adi.JSON.JSON_Integer (Get_Id (Target)));
             W.End_Object;
             return W.To_String;
          end;
@@ -1283,14 +1290,16 @@ package body Adi.MCP is
          --  lowering the budget over an existing idle set would evict
          --  what the run was meant to observe.
          declare
-            Bytes : constant Long_Integer :=
+            Bytes : constant Adi.JSON.JSON_Integer :=
               JSON_Get_Long (JSON, "bytes", Default => -1);
+            Limit : constant Adi.JSON.JSON_Integer :=
+              Adi.JSON.JSON_Integer (Adi.Texture_Cache.Byte_Count'Last);
             W     : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             if Bytes < 0 then
                return Error_Response (Req_Id, "bytes must be non-negative");
             end if;
-            if Bytes > Long_Integer (Adi.Texture_Cache.Byte_Count'Last) then
+            if Bytes > Limit then
                return Error_Response
                  (Req_Id, "bytes exceeds what the cache can account for");
             end if;
@@ -1301,8 +1310,8 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("budget",
-              Long_Integer (Adi.Window.Get_Texture_Stats (Win).Budget));
+            W.Key_Value ("budget", Adi.JSON.JSON_Integer
+              (Adi.Window.Get_Texture_Stats (Win).Budget));
             W.End_Object;
             return W.To_String;
          end;
@@ -1323,7 +1332,7 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("id", Long_Integer (Get_Id (Target)));
+            W.Key_Value ("id", Adi.JSON.JSON_Integer (Get_Id (Target)));
             W.End_Object;
             return W.To_String;
          end;
@@ -1348,7 +1357,7 @@ package body Adi.MCP is
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("id", Long_Integer (Get_Id (Target)));
+            W.Key_Value ("id", Adi.JSON.JSON_Integer (Get_Id (Target)));
             W.Key_Value ("part",
               Ada.Characters.Handling.To_Lower
                 (Part_Kind'Image (Part)));

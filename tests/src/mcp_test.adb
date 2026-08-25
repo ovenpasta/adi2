@@ -111,7 +111,7 @@ procedure MCP_Test is
            ("{""id"": 42, ""name"": ""test""}");
          Root : constant Types.JSON_Value := P.Parse;
       begin
-         Assert (Integer (Long_Integer'(Root.Get ("id").Value)) = 42,
+         Assert (Integer (JSON_Integer'(Root.Get ("id").Value)) = 42,
                  "parse integer value");
       end;
 

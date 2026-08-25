@@ -29,7 +29,8 @@ package body Adi.Settings.JSON_Backend is
             return To_Value (String'(JV.Value));
 
          when Integer_Kind =>
-            return To_Value (Long_Integer'(JV.Value));
+            return To_Value
+              (Long_Integer (Adi.JSON.JSON_Integer'(JV.Value)));
 
          when Float_Kind =>
             return To_Value (Long_Float'(JV.Value));
@@ -86,7 +87,7 @@ package body Adi.Settings.JSON_Backend is
             W.Write_Value (As_String (V));
 
          when Integer_Kind =>
-            W.Write_Value (As_Integer (V));
+            W.Write_Value (Adi.JSON.JSON_Integer (As_Integer (V)));
 
          when Float_Kind =>
             W.Write_Value (As_Float (V));

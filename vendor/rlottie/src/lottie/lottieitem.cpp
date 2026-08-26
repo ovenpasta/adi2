@@ -83,18 +83,48 @@ static bool trimProp(rlottie::Property prop)
     }
 }
 
+static constexpr int    kMaxLayerDepth = 32;      // precomp nesting-depth limit
+static constexpr size_t kMaxLayerNodes = 100000;  // global render-node budget
+
+// Global weighted-cost budget shared across a whole composition's shape /
+// repeater content tree. Each constructed content node (group, paint,
+// repeater copy) charges at least 1 unit, and point-heavy shapes (polystar,
+// custom path) charge their actual point count. This bounds the
+// copies x points-per-shape amplification a repeater can produce, and also
+// bounds nested repeaters (repeater whose content contains another
+// repeater), since every copy at every nesting level draws from the same
+// shared budget.
+//  Local: 15000 upstream. Noto emoji need up to 70843, and overflow drops
+//  content silently. See VENDORED_SOURCES.md.
+static constexpr size_t kMaxShapeContentBudget = 100000;
+
 static renderer::Layer *createLayerItem(model::Layer *layerData,
-                                        VArenaAlloc * allocator)
+                                        VArenaAlloc *allocator, int depth,
+                                        size_t &nodeBudget,
+                                        size_t &contentBudget)
 {
+    if (depth >= kMaxLayerDepth) {
+        vWarning << "Max precomp nesting depth (" << kMaxLayerDepth << ") exceeded";
+        return nullptr;
+    }
+    if (nodeBudget == 0) {
+        vWarning << "Max render node budget (" << kMaxLayerNodes << ") exceeded";
+        return nullptr;
+    }
+    --nodeBudget;
+
     switch (layerData->mLayerType) {
     case model::Layer::Type::Precomp: {
-        return allocator->make<renderer::CompLayer>(layerData, allocator);
+        return allocator->make<renderer::CompLayer>(layerData, allocator,
+                                                    depth + 1, nodeBudget,
+                                                    contentBudget);
     }
     case model::Layer::Type::Solid: {
         return allocator->make<renderer::SolidLayer>(layerData);
     }
     case model::Layer::Type::Shape: {
-        return allocator->make<renderer::ShapeLayer>(layerData, allocator);
+        return allocator->make<renderer::ShapeLayer>(layerData, allocator,
+                                                      contentBudget);
     }
     case model::Layer::Type::Null: {
         return allocator->make<renderer::NullLayer>(layerData);
@@ -112,7 +142,10 @@ renderer::Composition::Composition(std::shared_ptr<model::Composition> model)
     : mCurFrameNo(-1)
 {
     mModel = std::move(model);
-    mRootLayer = createLayerItem(mModel->mRootLayer, &mAllocator);
+    size_t nodeBudget = kMaxLayerNodes;
+    size_t contentBudget = kMaxShapeContentBudget;
+    mRootLayer = createLayerItem(mModel->mRootLayer, &mAllocator, 0, nodeBudget,
+                                 contentBudget);
     mRootLayer->setComplexContent(false);
     mViewSize = mModel->size();
 }
@@ -447,8 +480,16 @@ void renderer::Layer::update(int frameNumber, const VMatrix &parentMatrix,
 
 VMatrix renderer::Layer::matrix(int frameNo) const
 {
+    return matrix(frameNo, 0);
+}
+
+VMatrix renderer::Layer::matrix(int frameNo, int depth) const
+{
+    // Prevent infinite recursion from cyclic parent references
+    if (depth > 64) return VMatrix{};
+
     return mParentLayer
-               ? (mLayerData->matrix(frameNo) * mParentLayer->matrix(frameNo))
+               ? (mLayerData->matrix(frameNo) * mParentLayer->matrix(frameNo, depth + 1))
                : mLayerData->matrix(frameNo);
 }
 
@@ -469,7 +510,9 @@ void renderer::Layer::preprocess(const VRect &clip)
     preprocessStage(clip);
 }
 
-renderer::CompLayer::CompLayer(model::Layer *layerModel, VArenaAlloc *allocator)
+renderer::CompLayer::CompLayer(model::Layer *layerModel, VArenaAlloc *allocator,
+                               int depth, size_t &nodeBudget,
+                               size_t &contentBudget)
     : renderer::Layer(layerModel)
 {
     if (!mLayerData->mChildren.empty())
@@ -481,7 +524,8 @@ renderer::CompLayer::CompLayer(model::Layer *layerModel, VArenaAlloc *allocator)
          it != mLayerData->mChildren.rend(); ++it) {
         if ((*it)->type() != model::Object::Type::Layer) continue;
         auto model = static_cast<model::Layer *>(*it);
-        auto item = createLayerItem(model, allocator);
+        auto item = createLayerItem(model, allocator, depth, nodeBudget,
+                                    contentBudget);
         if (item) mLayers.push_back(item);
     }
 
@@ -533,6 +577,17 @@ void renderer::CompLayer::renderHelper(VPainter *    painter,
                                        const VRle &  matteRle,
                                        SurfaceCache &cache)
 {
+    if (cache.mRenderDepth >= kMaxLayerDepth) {
+        vWarning << "Max precomp render depth (" << kMaxLayerDepth << ") exceeded";
+        return;
+    }
+    ++cache.mRenderDepth;
+    // Decrement on every exit path (including the early returns below).
+    struct DepthGuard {
+        SurfaceCache &c;
+        ~DepthGuard() { --c.mRenderDepth; }
+    } depthGuard{cache};
+
     VRle mask;
     if (mLayerMask) {
         mask = mLayerMask->maskRle(painter->clipBoundingRect());
@@ -777,13 +832,44 @@ renderer::NullLayer::NullLayer(model::Layer *layerData)
 }
 void renderer::NullLayer::updateContent() {}
 
+// Weighted cost of a single content item against kMaxShapeContentBudget.
+// Point-heavy shapes (polystar/polygon, custom path) charge their actual
+// point count (worst case MAX_POLY_POINTS for animated polystars, since the
+// per-frame value isn't known yet); everything else is a cheap wrapper/paint
+// node and charges a flat 1.
+static size_t contentItemCost(model::Object *contentData)
+{
+    constexpr float kMaxPolyPoints = 1024.0f;
+    switch (contentData->type()) {
+    case model::Object::Type::Polystar: {
+        auto *data = static_cast<model::Polystar *>(contentData);
+        float pts = data->mPointCount.isStatic() ? data->mPointCount.value(0)
+                                                 : kMaxPolyPoints;
+        if (!std::isfinite(pts)) pts = kMaxPolyPoints;
+        pts = std::min(std::max(pts, 1.0f), kMaxPolyPoints);
+        return size_t(pts);
+    }
+    case model::Object::Type::Path: {
+        auto *data = static_cast<model::Path *>(contentData);
+        if (data->mShape.isStatic()) {
+            return std::max<size_t>(1, data->mShape.value().mPoints.size());
+        }
+        return size_t(kMaxPolyPoints);
+    }
+    default:
+        return 1;
+    }
+}
+
 static renderer::Object *createContentItem(model::Object *contentData,
-                                           VArenaAlloc *  allocator)
+                                           VArenaAlloc *  allocator,
+                                           size_t &       contentBudget)
 {
     switch (contentData->type()) {
     case model::Object::Type::Group: {
         return allocator->make<renderer::Group>(
-            static_cast<model::Group *>(contentData), allocator);
+            static_cast<model::Group *>(contentData), allocator,
+            contentBudget);
     }
     case model::Object::Type::Rect: {
         return allocator->make<renderer::Rect>(
@@ -819,7 +905,8 @@ static renderer::Object *createContentItem(model::Object *contentData,
     }
     case model::Object::Type::Repeater: {
         return allocator->make<renderer::Repeater>(
-            static_cast<model::Repeater *>(contentData), allocator);
+            static_cast<model::Repeater *>(contentData), allocator,
+            contentBudget);
     }
     case model::Object::Type::Trim: {
         return allocator->make<renderer::Trim>(
@@ -832,11 +919,13 @@ static renderer::Object *createContentItem(model::Object *contentData,
 }
 
 renderer::ShapeLayer::ShapeLayer(model::Layer *layerData,
-                                 VArenaAlloc * allocator)
+                                 VArenaAlloc * allocator,
+                                 size_t &      contentBudget)
     : renderer::Layer(layerData),
-      mRoot(allocator->make<renderer::Group>(nullptr, allocator))
+      mRoot(allocator->make<renderer::Group>(nullptr, allocator,
+                                             contentBudget))
 {
-    mRoot->addChildren(layerData, allocator);
+    mRoot->addChildren(layerData, allocator, contentBudget);
 
     std::vector<renderer::Shape *> list;
     mRoot->processPaintItems(list);
@@ -952,13 +1041,15 @@ bool renderer::Stroke::resolveKeyPath(LOTKeyPath &keyPath, uint32_t depth,
     return false;
 }
 
-renderer::Group::Group(model::Group *data, VArenaAlloc *allocator)
+renderer::Group::Group(model::Group *data, VArenaAlloc *allocator,
+                       size_t &contentBudget)
     : mModel(data)
 {
-    addChildren(data, allocator);
+    addChildren(data, allocator, contentBudget);
 }
 
-void renderer::Group::addChildren(model::Group *data, VArenaAlloc *allocator)
+void renderer::Group::addChildren(model::Group *data, VArenaAlloc *allocator,
+                                  size_t &contentBudget)
 {
     if (!data) return;
 
@@ -968,7 +1059,15 @@ void renderer::Group::addChildren(model::Group *data, VArenaAlloc *allocator)
     // as lottie model keeps it in front-to-back order.
     for (auto it = data->mChildren.crbegin(); it != data->mChildren.rend();
          ++it) {
-        auto content = createContentItem(*it, allocator);
+        size_t cost = contentItemCost(*it);
+        if (cost > contentBudget) {
+            vWarning << "Max shape content budget ("
+                     << kMaxShapeContentBudget << ") exceeded, dropping content item";
+            continue;
+        }
+        contentBudget -= cost;
+
+        auto content = createContentItem(*it, allocator, contentBudget);
         if (content) {
             mContents.push_back(content);
         }
@@ -1482,19 +1581,29 @@ void renderer::Trim::addPathItems(std::vector<renderer::Shape *> &list,
               back_inserter(mPathItems));
 }
 
-renderer::Repeater::Repeater(model::Repeater *data, VArenaAlloc *allocator)
+renderer::Repeater::Repeater(model::Repeater *data, VArenaAlloc *allocator,
+                             size_t &contentBudget)
     : mRepeaterData(data)
 {
     assert(mRepeaterData->content());
 
-    mCopies = mRepeaterData->maxCopies();
+    int maxCopies = mRepeaterData->maxCopies();
 
-    for (int i = 0; i < mCopies; i++) {
+
+    for (int i = 0; i < maxCopies; i++) {
+        if (contentBudget == 0) {
+            vWarning << "Max shape content budget (" << kMaxShapeContentBudget
+                     << ") exceeded, clamping repeater copies to " << i;
+            break;
+        }
+        --contentBudget;  // charge for this copy's own group wrapper
+
         auto content = allocator->make<renderer::Group>(
-            mRepeaterData->content(), allocator);
+            mRepeaterData->content(), allocator, contentBudget);
         // content->setParent(this);
         mContents.push_back(content);
     }
+    mCopies = int(mContents.size());
 }
 
 void renderer::Repeater::update(int frameNo, const VMatrix &parentMatrix,

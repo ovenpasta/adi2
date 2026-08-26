@@ -54,6 +54,9 @@
 // the parse.
 
 #include <array>
+#include <cstring>
+#include <queue>
+#include <unordered_set>
 
 #include "lottiemodel.h"
 #include "rapidjson/document.h"
@@ -380,6 +383,7 @@ protected:
     model::Layer *                                   curLayerRef{nullptr};
     std::vector<model::Layer *>                      mLayersToUpdate;
     std::string                                      mDirPath;
+    int                                              mGroupDepth{0};
     void                                             SkipOut(int depth);
 };
 
@@ -647,12 +651,48 @@ model::BlendMode LottieParserImpl::getBlendMode()
 
 void LottieParserImpl::resolveLayerRefs()
 {
+    // Build directed graph: assetId → direct precomp refIds.
+    // Then BFS from each asset to detect if it can reach itself (cycle).
+    std::unordered_set<std::string> cyclicAssets;
+    {
+        std::unordered_map<std::string, std::vector<std::string>> deps;
+        for (const auto &kv : compRef->mAssets) {
+            for (const auto &obj : kv.second->mLayers) {
+                if (obj->type() != model::Object::Type::Layer) continue;
+                auto layer = static_cast<model::Layer *>(obj);
+                if (layer->mLayerType == model::Layer::Type::Precomp &&
+                    layer->mExtra && !layer->mExtra->mPreCompRefId.empty()) {
+                    deps[kv.first].push_back(layer->mExtra->mPreCompRefId);
+                }
+            }
+        }
+        for (const auto &kv : deps) {
+            const std::string &           startId = kv.first;
+            std::unordered_set<std::string> visited;
+            std::queue<std::string>         q;
+            for (const auto &dep : kv.second) q.push(dep);
+            while (!q.empty()) {
+                std::string id = q.front(); q.pop();
+                if (id == startId) { cyclicAssets.insert(startId); break; }
+                if (!visited.insert(id).second) continue;
+                auto it = deps.find(id);
+                if (it != deps.end())
+                    for (const auto &dep : it->second) q.push(dep);
+            }
+        }
+    }
+
     for (const auto &layer : mLayersToUpdate) {
         auto search = compRef->mAssets.find(layer->extra()->mPreCompRefId);
         if (search != compRef->mAssets.end()) {
             if (layer->mLayerType == model::Layer::Type::Image) {
                 layer->extra()->mAsset = search->second;
             } else if (layer->mLayerType == model::Layer::Type::Precomp) {
+                if (cyclicAssets.count(search->first)) {
+                    vWarning << "Circular asset reference detected, ignoring: "
+                             << search->first;
+                    continue;
+                }
                 layer->mChildren = search->second->mLayers;
                 layer->setStatic(layer->isStatic() &&
                                  search->second->isStatic());
@@ -843,21 +883,21 @@ namespace
    bool Canonicalize(const char *path, char *resolved_path)
    {
 #ifdef _WIN32
-       std::wstring wpath = ToStdWString( path );
-       std::wstring wresolved_path;
-       wresolved_path.resize( PATH_MAX );
-       if ( PathCanonicalizeW( const_cast<wchar_t *>(wresolved_path.data()), wpath.c_str() ) )
-       {
-           std::string path = ToStdString(wresolved_path);
-           strncpy( resolved_path, path.c_str(), PATH_MAX - 1 );
-           resolved_path[PATH_MAX - 1] = '\0';
+       std::wstring wpath = ToStdWString(path);
+       std::replace(wpath.begin(), wpath.end(), L'/', L'\\');
+       if (wpath.empty() || wpath.size() >= MAX_PATH) return false;
 
-           return true;
-       }
+       wchar_t wresolved_path[MAX_PATH] = {};
+       if (!PathCanonicalizeW(wresolved_path, wpath.c_str())) return false;
 
-       return false;
+       std::string out = ToStdString(wresolved_path);
+       if (out.size() >= PATH_MAX) return false;
+       //  Local: strcpy_s needs the MSVC secure CRT, which the Windows XP
+       //  toolchain does not provide. The guard above proves the copy fits.
+       std::memcpy(resolved_path, out.c_str(), out.size() + 1);
+       return true;
 #else
-       return realpath(path, resolved_path);
+       return realpath(path, resolved_path) != nullptr;
 #endif
    }
 }
@@ -879,7 +919,11 @@ static bool isResourcePathSafe(const std::string& baseDir, const std::string& us
 
     // Resolve target path
     std::string fullPath = baseDir;
-    if (!baseDir.empty() && baseDir.back() != '/') fullPath += "/";
+    #ifdef _WIN32
+    if (!fullPath.empty() && fullPath.back() != '/' && fullPath.back() != '\\') fullPath += '\\';
+    #else
+    if (!fullPath.empty() && fullPath.back() != '/') fullPath += '/';
+    #endif
     fullPath += userPath;
 
     if (!Canonicalize(fullPath.c_str(), resolvedTarget)) {
@@ -893,8 +937,13 @@ static bool isResourcePathSafe(const std::string& baseDir, const std::string& us
     std::string target(resolvedTarget);
 
     // Ensure target starts with base
+    #ifdef _WIN32
+        const char sep = '\\';
+    #else
+        const char sep = '/';
+    #endif
     bool result = target.compare(0, base.length(), base) == 0 &&
-         (target.length() == base.length() || target[base.length()] == '/');
+         (target.length() == base.length() || target[base.length()] == sep);
 
     if (!result) {
 #ifdef DEBUG_PARSER
@@ -1337,14 +1386,25 @@ model::Object *LottieParserImpl::parseGroupObject()
 {
     auto group = allocator().make<model::Group>();
 
+    bool tooDeep = mGroupDepth >= kMaxModelTreeDepth;
+    if (tooDeep) {
+        vWarning << "Max shape-group nesting depth (" << kMaxModelTreeDepth << ") exceeded, discarding deeper content";
+    }
+
     while (const char *key = NextObjectKey()) {
         if (0 == strcmp(key, "nm")) {
             group->setName(GetString());
         } else if (0 == strcmp(key, "it")) {
+            if (tooDeep) {
+                Skip(key);
+                continue;
+            }
             EnterArray();
+            ++mGroupDepth;
             while (NextArrayValue()) {
                 parseObject(group);
             }
+            --mGroupDepth;
             if (!group->mChildren.empty()
                     && group->mChildren.back()->type()
                             == model::Object::Type::Transform) {

@@ -45,6 +45,9 @@ namespace rlottie {
 
 namespace internal {
 
+// Maximum nesting depth allowed for the shape-group / layer model tree.
+constexpr int kMaxModelTreeDepth = 32;
+
 using Marker = std::tuple<std::string, int, int>;
 
 using LayerInfo = Marker;
@@ -345,6 +348,7 @@ public:
             value().toPath(path);
         } else {
             const auto &vec = animation().frames_;
+            if (vec.empty()) return;
             if (vec.front().start_ >= frameNo)
                 return vec.front().value_.start_.toPath(path);
             if (vec.back().end_ <= frameNo)
@@ -989,7 +993,13 @@ public:
     Repeater() : Object(Object::Type::Repeater) {}
     Group *content() const { return mContent ? mContent : nullptr; }
     void   setContent(Group *content) { mContent = content; }
-    int    maxCopies() const { return int(mMaxCopies); }
+    static constexpr float kMaxRepeaterCopies = 10000.0f;
+    int    maxCopies() const
+    {
+        if (!std::isfinite(mMaxCopies) || mMaxCopies <= 0.0f) return 0;
+        if (mMaxCopies > kMaxRepeaterCopies) return int(kMaxRepeaterCopies);
+        return int(mMaxCopies);
+    }
     float  copies(int frameNo) const { return mCopies.value(frameNo); }
     float  offset(int frameNo) const { return mOffset.value(frameNo); }
     bool   processed() const { return mProcessed; }

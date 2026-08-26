@@ -21,6 +21,7 @@
  */
 #include "vpath.h"
 #include <cassert>
+#include <cmath>
 #include <iterator>
 #include <vector>
 #include "vbezier.h"
@@ -517,6 +518,9 @@ void VPath::VPathData::addPolystar(float points, float innerRadius,
                                    float outerRoundness, float startAngle,
                                    float cx, float cy, VPath::Direction dir)
 {
+    constexpr float    MAX_POLY_POINTS = 1024.0f;
+    if (!std::isfinite(points) || points < 1.0f) return;
+    if (points > MAX_POLY_POINTS) points = MAX_POLY_POINTS;
     const static float POLYSTAR_MAGIC_NUMBER = 0.47829f / 0.28f;
     float              currentAngle = (startAngle - 90.0f) * K_PI / 180.0f;
     float              x;
@@ -622,6 +626,9 @@ void VPath::VPathData::addPolygon(float points, float radius, float roundness,
                                   VPath::Direction dir)
 {
     // TODO: Need to support floating point number for number of points
+    constexpr float    MAX_POLY_POINTS = 1024.0f;
+    if (!std::isfinite(points) || points < 1.0f) return;
+    if (points > MAX_POLY_POINTS) points = MAX_POLY_POINTS;
     const static float POLYGON_MAGIC_NUMBER = 0.25;
     float              currentAngle = (startAngle - 90.0f) * K_PI / 180.0f;
     float              x;

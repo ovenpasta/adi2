@@ -29,6 +29,12 @@
 
 using namespace rlottie::internal;
 
+struct DepthGuard {
+    int &mDepth;
+    explicit DepthGuard(int &depth) : mDepth(depth) { ++mDepth; }
+    ~DepthGuard() { --mDepth; }
+};
+
 /*
  * We process the iterator objects in the children list
  * by iterating from back to front. when we find a repeater object
@@ -82,6 +88,11 @@ public:
         switch (obj->type()) {
         case model::Object::Type::Group:
         case model::Object::Type::Layer: {
+            if (mDepth >= kMaxModelTreeDepth) {
+                vWarning << "Max precomp nesting depth (" << kMaxModelTreeDepth << ") exceeded";
+                break;
+            }
+            DepthGuard guard(mDepth);
             visitChildren(static_cast<model::Group *>(obj));
             break;
         }
@@ -89,6 +100,9 @@ public:
             break;
         }
     }
+
+private:
+    int mDepth{0};
 };
 
 class LottieUpdateStatVisitor {
@@ -127,6 +141,8 @@ public:
     }
     void visit(model::Object *obj)
     {
+        if (mDepth >= kMaxModelTreeDepth) return;
+        DepthGuard guard(mDepth);
         switch (obj->type()) {
         case model::Object::Type::Layer: {
             visitLayer(static_cast<model::Layer *>(obj));
@@ -144,6 +160,9 @@ public:
             break;
         }
     }
+
+private:
+    int mDepth{0};
 };
 
 void model::Composition::processRepeaterObjects()
@@ -250,11 +269,14 @@ void model::Gradient::populate(VGradientStops &stops, int frameNo)
     auto                  size = gradData.mGradient.size();
     float *               ptr = gradData.mGradient.data();
     int                   colorPoints = mColorPoints;
-    size_t                colorPointsSize = colorPoints * 4;
     if (!ptr) return;
-    if (colorPoints < 0 || colorPointsSize > size) {  // for legacy bodymovin (ref: lottie-android)
+    if (colorPoints > 0 && (size_t)colorPoints > size / 4) {
         colorPoints = int(size / 4);
     }
+    if (colorPoints < 0) {  // for legacy bodymovin (ref: lottie-android)
+        colorPoints = int(size / 4);
+    }
+    size_t                colorPointsSize = (size_t)colorPoints * 4;
     auto   opacityArraySize = size - colorPointsSize;
     if (opacityArraySize % 2 != 0) {
         opacityArraySize = 0;

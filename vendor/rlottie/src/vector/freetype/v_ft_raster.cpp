@@ -187,17 +187,17 @@ typedef struct SW_FT_Outline_Funcs_ {
 #define ONE_PIXEL (1L << PIXEL_BITS)
 #define PIXEL_MASK (-1L << PIXEL_BITS)
 #define TRUNC(x) ((TCoord)((x) >> PIXEL_BITS))
-#define SUBPIXELS(x) ((TPos)(x) << PIXEL_BITS)
+#define SUBPIXELS(x) ((TPos)((unsigned long)(x) << PIXEL_BITS))
 #define FLOOR(x) ((x) & -ONE_PIXEL)
 #define CEILING(x) (((x) + ONE_PIXEL - 1) & -ONE_PIXEL)
 #define ROUND(x) (((x) + ONE_PIXEL / 2) & -ONE_PIXEL)
 
 #if PIXEL_BITS >= 6
-#define UPSCALE(x) ((x) << (PIXEL_BITS - 6))
+#define UPSCALE(x)   ((TPos)((unsigned long)(x) << (PIXEL_BITS - 6)))
 #define DOWNSCALE(x) ((x) >> (PIXEL_BITS - 6))
 #else
-#define UPSCALE(x) ((x) >> (6 - PIXEL_BITS))
-#define DOWNSCALE(x) ((x) << (6 - PIXEL_BITS))
+#define UPSCALE(x)   ((x) >> (6 - PIXEL_BITS))
+#define DOWNSCALE(x) ((TPos)((unsigned long)(x) << (6 - PIXEL_BITS)))
 #endif
 
 /* Compute `dividend / divisor' and return both its quotient and     */
@@ -806,6 +806,8 @@ gray_render_cubic(RAS_ARG_ const SW_FT_Vector* control1,
       continue;
 
     Split:
+      if ( arc - ras.bez_stack >= 31 * 3 )
+        return; // bez_stack size is 32*3+1
       gray_split_cubic( arc );
       arc += 3;
     }
@@ -881,8 +883,8 @@ static void gray_hline(RAS_ARG_ TCoord x, TCoord y, TPos area, TCoord acount)
     /* SW_FT_Span.x is a 16-bit short, so limit our coordinates appropriately */
     if (x >= 32767) x = 32767;
 
-    /* SW_FT_Span.y is an integer, so limit our coordinates appropriately */
-    if (y >= SW_FT_INT_MAX) y = SW_FT_INT_MAX;
+    /* SW_FT_Span.y is a 16-bit short, so limit our coordinates appropriately */
+    if (y >= 32767) y = 32767;
 
     if (coverage) {
         SW_FT_Span* span;
@@ -1016,7 +1018,7 @@ static int SW_FT_Outline_Decompose(const SW_FT_Outline*       outline,
                                    void*                      user)
 {
 #undef SCALED
-#define SCALED(x) (((x) << shift) - delta)
+#define SCALED(x) ((TPos)((unsigned long)(x) << shift) - delta)
 
     SW_FT_Vector v_last;
     SW_FT_Vector v_control;

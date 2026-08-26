@@ -3,7 +3,7 @@
 #  Pipeline: gprbuild (GNAT-LLVM, wasm32, EH runtime) compiles + binds the
 #  Ada closure of one example into obj/<example>/; plutosvg/plutovg C is
 #  compiled once with emcc into obj/plutosvg/; emcc links everything with
-#  the static SDL3 wasm libs into out/<example>.html/.js/.wasm.
+#  the static SDL3 wasm libs into build/<example>.html/.js/.wasm.
 #
 #    make EXAMPLE=label_example
 #    make serve            # http://localhost:8000/label_example.html
@@ -30,8 +30,10 @@ LOOP ?= blocking
 #  Your gnat-llvm checkout's llvm-interface directory. No default: it is
 #  a checkout path, not a system one, so a wrong guess fails deep in the
 #  link with a missing runtime rather than here.
-TOOLCHAIN_FREE_GOALS := serve serve-dist deploy clean
-ifneq ($(filter-out $(TOOLCHAIN_FREE_GOALS),$(or $(MAKECMDGOALS),$(.DEFAULT_GOAL))),)
+#  Named rather than excluded, so a mistyped goal reaches make and is
+#  reported as one instead of as a missing toolchain.
+TOOLCHAIN_GOALS := all showcase dist ada-objs
+ifneq ($(filter $(TOOLCHAIN_GOALS),$(or $(MAKECMDGOALS),$(.DEFAULT_GOAL))),)
 ifndef LLVM_INTERFACE_DIR
 $(error LLVM_INTERFACE_DIR is not set. Point it at the llvm-interface directory of your gnat-llvm checkout, e.g. make $(or $(MAKECMDGOALS),$(.DEFAULT_GOAL)) LLVM_INTERFACE_DIR=/path/to/gnat-llvm/llvm-interface)
 endif
@@ -58,19 +60,13 @@ EMXX ?= /usr/lib/emscripten/em++
 EM_CACHE ?= /tmp/emscripten-cache
 GPRBUILD ?= gprbuild
 
-#  A fallback UI font, embedded where Adi.Font's Linux fallback scan looks
-#  (Scan of /usr/share/fonts works over MEMFS). NotoSans matches the
-#  scanner's (file prefix, family name) table.
-FONT_FILE ?= /usr/share/fonts/noto/NotoSans-Regular.ttf
-FONT_MOUNT = /usr/share/fonts/NotoSans-Regular.ttf
-
 #  Runtime files the examples expect, mounted at the same repo-relative
 #  paths they use natively (Emscripten CWD is "/"): examples/assets
 #  (images, SVG, html; also the "app://" scheme root), examples/css
-#  (runtime-loaded stylesheets), plus OpenSans-Regular.ttf for
-#  font_example. ~2.4 MB per example — fine for a showcase.
+#  (runtime-loaded stylesheets), plus OpenSans-Regular.ttf, which
+#  font_example loads and pre-js/adi_env.js pins as the fallback face.
+#  ~2.4 MB per example — fine for a showcase.
 EMBED_FLAGS = \
-  --embed-file $(FONT_FILE)@$(FONT_MOUNT) \
   --embed-file ../examples/assets@/examples/assets \
   --embed-file ../examples/css@/examples/css \
   --embed-file ../vendor/open-sans/static/OpenSans-Regular.ttf@/OpenSans-Regular.ttf
@@ -90,12 +86,17 @@ EMCC_FLAGS ?= -O2 -fwasm-exceptions \
   -sALLOW_MEMORY_GROWTH=1 -sSTACK_SIZE=8388608
 
 ADA_JS_LIBRARY = pre-js/ada_runtime_support.js
+
+#  Wanted in both loop modes: it only sets an environment variable in
+#  preRun, so it does not disturb blocking mode's run()/main contract.
+ENV_PRE_JS = pre-js/adi_env.js
+
 ifeq ($(LOOP),blocking)
 EMCC_FLAGS += -sJSPI -sJSPI_EXPORTS=main
-PRE_JS_FLAGS =
+PRE_JS_FLAGS = --pre-js $(ENV_PRE_JS)
 else
 EMCC_FLAGS += -sINVOKE_RUN=0
-PRE_JS_FLAGS = --pre-js pre-js/sdl3_ada_pre.js
+PRE_JS_FLAGS = --pre-js $(ENV_PRE_JS) --pre-js pre-js/sdl3_ada_pre.js
 endif
 
 #  ---- plutosvg / plutovg (plain C, compiled once for all examples) ----
@@ -161,8 +162,8 @@ MAINS_RE := b__.*|$(shell echo $(EXAMPLE_MAINS) | tr ' ' '|')
 #  default emscripten developer shell.
 SHELL_FILE = site/shell.html
 
-out/$(EXAMPLE).html: ada-objs $(PLUTO_OBJS) $(RL_OBJS) $(ADA_JS_LIBRARY) $(SHELL_FILE)
-	@mkdir -p out
+build/$(EXAMPLE).html: ada-objs $(PLUTO_OBJS) $(RL_OBJS) $(ADA_JS_LIBRARY) $(ENV_PRE_JS) $(SHELL_FILE)
+	@mkdir -p build
 	objs="$$(ls obj/$(LOOP)/*.o | grep -v -E '/($(MAINS_RE))\.o$$')"; \
 	EM_CACHE=$(EM_CACHE) $(EMCC) $(EMCC_FLAGS) \
 	  --shell-file $(SHELL_FILE) \
@@ -178,7 +179,7 @@ out/$(EXAMPLE).html: ada-objs $(PLUTO_OBJS) $(RL_OBJS) $(ADA_JS_LIBRARY) $(SHELL
 	  $(EMBED_FLAGS) \
 	  -o $@
 
-all: out/$(EXAMPLE).html
+all: build/$(EXAMPLE).html
 
 #  ---- Showcase: every example expected to work in the browser ----
 #  Excluded: runtime_css_example (its whole point is filesystem
@@ -201,14 +202,14 @@ showcase: $(PLUTO_OBJS) $(RL_OBJS)
 	  echo "=== $$e"; \
 	  $(MAKE) --no-print-directory EXAMPLE=$$e LOOP=$(LOOP) || fail="$$fail $$e"; \
 	done; \
-	cp site/index.html out/index.html; \
+	cp site/index.html build/index.html; \
 	if [ -n "$$fail" ]; then echo "FAILED:$$fail"; exit 1; \
-	else echo "Showcase complete: out/index.html"; fi
+	else echo "Showcase complete: build/index.html"; fi
 
 serve:
-	cd out && python3 -m http.server 8000
+	cd build && python3 -m http.server 8000
 
-#  ---- Deploy: content-hashed names (cache busting), hac_web pattern ----
+#  ---- dist: content-hashed names (cache busting), hac_web pattern ----
 #  Inner example pages keep plain names so bookmarks and deep links stay
 #  stable. Their .js/.wasm are copied as name-<hash12>.ext with references
 #  rewritten inside-out: the wasm name inside the js first, then the js
@@ -216,29 +217,29 @@ serve:
 #  map, which the navigator appends to the iframe URL — otherwise a
 #  plain-named page could be served from cache against a fresh build.
 DIST ?= dist
-deploy:
+dist: showcase
 	rm -rf $(DIST)
 	mkdir -p $(DIST)
 	@set -e; \
 	map=""; \
 	for e in $(SHOWCASE_EXAMPLES); do \
-	  wh=$$(sha256sum out/$$e.wasm | cut -c1-12); \
-	  cp out/$$e.wasm $(DIST)/$$e-$$wh.wasm; \
-	  sed "s/$$e\.wasm/$$e-$$wh.wasm/g" out/$$e.js > $(DIST)/.js.tmp; \
+	  wh=$$(sha256sum build/$$e.wasm | cut -c1-12); \
+	  cp build/$$e.wasm $(DIST)/$$e-$$wh.wasm; \
+	  sed "s/$$e\.wasm/$$e-$$wh.wasm/g" build/$$e.js > $(DIST)/.js.tmp; \
 	  jh=$$(sha256sum $(DIST)/.js.tmp | cut -c1-12); \
 	  mv $(DIST)/.js.tmp $(DIST)/$$e-$$jh.js; \
-	  sed "s/$$e\.js/$$e-$$jh.js/g" out/$$e.html > $(DIST)/$$e.html; \
+	  sed "s/$$e\.js/$$e-$$jh.js/g" build/$$e.html > $(DIST)/$$e.html; \
 	  map="$$map\"$$e\":\"$$jh\","; \
 	done; \
-	sed "s|var BUILD = {};|var BUILD = {$${map%,}};|" out/index.html > $(DIST)/index.html; \
+	sed "s|var BUILD = {};|var BUILD = {$${map%,}};|" site/index.html > $(DIST)/index.html; \
 	grep -q '"material_demo":' $(DIST)/index.html; \
 	cp site/og.png $(DIST)/og.png; \
-	echo "Deployed to $(DIST)/ with hashed js/wasm names"
+	echo "Packaged into $(DIST)/ with hashed js/wasm names"
 
 serve-dist:
 	cd $(DIST) && python3 -m http.server 8000
 
 clean:
-	rm -rf obj out $(DIST)
+	rm -rf obj build $(DIST)
 
-.PHONY: all serve serve-dist deploy clean showcase
+.PHONY: all serve serve-dist dist clean showcase

@@ -31,15 +31,30 @@ Makefile variables, override as needed:
 
 ```sh
 cd wasm
-#  Exported once: every build goal needs it, only serve/deploy/clean do not.
+#  Exported once: every build goal needs it, only serve/serve-dist/clean do not.
 export LLVM_INTERFACE_DIR=/path/to/gnat-llvm/llvm-interface
 export GPRBUILD="alr exec -- gprbuild"   # under Alire
 
 make EXAMPLE=button_example
 make serve            # http://localhost:8000/button_example.html
 make showcase         # every browser-capable example + index page
-make deploy           # dist/ with content-hashed js/wasm names
+make dist             # publishable copy of the above
+make serve-dist       # http://localhost:8000/ against that copy
 ```
+
+Two output directories:
+
+- `build/` — what emcc links, under plain names. `make serve` serves it.
+  The iterate-and-refresh surface.
+- `dist/` — a copy of `build/` with the `.js` and `.wasm` renamed to carry
+  a content hash, so they can be served with a far-future `Cache-Control`
+  and a stale `.wasm` can never pair against a fresh `.js`. Example
+  *pages* keep plain names so deep links stay valid; only the assets they
+  load are hashed, and each page's hash goes into the index's `BUILD`
+  map. This is the directory you upload.
+
+`make dist` builds the showcase first, so it cannot publish a stale
+binary. Nothing here uploads anything.
 
 Two main-loop modes:
 

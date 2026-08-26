@@ -255,7 +255,7 @@ examples/generated/   Auto-generated Ada from CSS and XML
 tools/                Code generators, MCP servers, and build scripts
 docs/                 Reference documentation
 config/               Per-profile and per-platform GPR/Ada configuration
-vendor/               Bundled third-party sources (json-ada, open-sans, plutosvg, rlottie, wasabee)
+vendor/               Bundled third-party sources (json-ada, open-sans, plutosvg, rlottie)
 wasm/                 WebAssembly port (project file, Makefile, site, reports)
 ```
 

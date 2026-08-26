@@ -577,10 +577,9 @@ where they are.
 ### Integration
 * Migrate `Adi.RLottie`'s `Adi.Dispatch.Post` calls to
   `Adi.Operation.Post_Proc`. Existing example runs unchanged.
-* `examples/wasabee_browser_example`'s libcurl fetch (currently
-  synchronous, blocking in `Build_Items`) becomes a candidate for
-  moving onto a worker task using Phase C — separate follow-up
-  commit after the runtime lands.
+* A synchronous network fetch blocking in `Build_Items` becomes a
+  candidate for moving onto a worker task using Phase C — separate
+  follow-up commit after the runtime lands.
 
 ---
 

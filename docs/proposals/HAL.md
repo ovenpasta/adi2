@@ -66,8 +66,7 @@ hinting and atlas management all live inside SDL3_ttf today.
 `Adi.SDL.Surface` — `SDL_Surface`, `SDL_CreateSurface`,
 `SDL_ConvertSurface`, `SDL_DestroySurface`. Used by `Adi.Image`,
 `Adi.Screenshot`, the SVG raster path, and a few places that need
-CPU pixel buffers (the Wasabee target's `Put_RGB_Bitmap` glue, for
-example).
+CPU pixel buffers.
 
 ### 2.4 Image decoding (narrow)
 `Adi.SDL.Image` wraps SDL3_image: `IMG_Load_IO`,

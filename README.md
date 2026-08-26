@@ -286,7 +286,12 @@ Sponsorship supports the project as a whole. Guaranteed response times or delive
 
 Apache-2.0. See [`LICENSE`](LICENSE).
 
-Vendored third-party code under [`vendor/`](vendor/) retains its original licenses, listed in each tree's own license files. Most are permissive — MIT, Apache-2.0, BSD-style, OFL. `vendor/rlottie/src/vector/vinterpolator.cpp` is MPL-2.0, a file-level copyleft rather than a permissive licence; its text ships as [`vendor/rlottie/licenses/COPYING.MPL`](vendor/rlottie/licenses/COPYING.MPL).
+Every file in the repository carries a declared licence and copyright, checked in CI against the [REUSE](https://reuse.software/) specification. [`REUSE.toml`](REUSE.toml) holds the declarations and [`LICENSES/`](LICENSES/) the full text of every licence in use; `reuse spdx` will produce an SPDX bill of materials from them.
+
+Vendored third-party code under [`vendor/`](vendor/) is mostly permissive — MIT, Apache-2.0, BSD-style, OFL. Two obligations do not follow automatically from shipping that inventory, and apply to anyone distributing a binary built from this source:
+
+- **FreeType.** Both `vendor/rlottie/src/vector/freetype/` and plutovg's `plutovg-ft-*` files are under the FreeType Licence, and Adi2 links them statically. A binary distribution must state in its documentation that the software is based in part of the work of the FreeType Team. Redistributing the source instead requires retaining `FTL.TXT` unaltered, preserving the original copyright notices, and marking any changes.
+- **MPL-2.0.** `vendor/rlottie/src/vector/vinterpolator.cpp` is file-level copyleft. Distributing a build that contains it obliges telling recipients how to obtain that file's source form; modifications to it must be made available under the same licence.
 
 Example assets under [`examples/assets/`](examples/assets/) are demonstration content rather than part of the library; those with known third-party terms are attributed in [`examples/assets/NOTICE.md`](examples/assets/NOTICE.md).
 

@@ -7,6 +7,13 @@ on:
     branches: [ "master" ]
 
 jobs:
+  #  Catches a vendored drop arriving unlicensed.
+  reuse:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: fsfe/reuse-action@v5
+
   test:
     runs-on: ubuntu-26.04
 

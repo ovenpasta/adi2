@@ -29,5 +29,4 @@ Local patches:
 telling recipients how to obtain its source form, so any patch to it must
 stay reachable for as long as the build is distributed.
 
-Per-file licences are declared in `REUSE.toml` and generated into
-`adi2.spdx`.
+Per-file licences are declared in `REUSE.toml` at the repository root.

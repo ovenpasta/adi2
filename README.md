@@ -259,9 +259,16 @@ Rendering goes through the SDL renderer abstraction, so it takes hardware accele
 
 **Issues and pull requests welcome.**
 
-For anything beyond a small fix, please open an issue first so the approach can be discussed before you invest time in it. Match the existing code style ([`docs/coding_conventions.md`](docs/coding_conventions.md)), keep the tests green, and add tests for new behaviour.
+Before beginning a new feature, a change in behaviour, or a substantial
+refactoring, open an issue so that the proposed approach can be
+discussed. Follow the existing code style
+([`docs/coding_conventions.md`](docs/coding_conventions.md)), keep the
+tests green, and add tests for new behaviour.
 
-Unless you explicitly state otherwise, contributions you submit are understood to be under the Apache-2.0 license, as per its Section 5 — no CLA to sign. Full details in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Adi2 is licensed under **Apache-2.0**. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md#licensing-of-contributions) for the
+contributor licensing terms, including when acceptance of the
+[Contributor License Agreement](CLA.md) is required.
 
 ---
 

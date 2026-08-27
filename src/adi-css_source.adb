@@ -633,14 +633,14 @@ package body Adi.CSS_Source is
                declare
                   Path : constant String := To_String (E.Source_Entry.Text);
                begin
-                  if Ada.Directories.Exists (Path) then
-                     Source.Impl.Entries.Replace_Element (I,
-                       Tracked_Entry'
-                         (Source_Entry  => E.Source_Entry,
-                          Last_Modified =>
-                            Ada.Directories.Modification_Time (Path)));
-                  end if;
+                  Source.Impl.Entries.Replace_Element (I,
+                    Tracked_Entry'
+                      (Source_Entry  => E.Source_Entry,
+                       Last_Modified =>
+                         Ada.Directories.Modification_Time (Path)));
                exception
+                  --  Unstampable, so Tick keeps watching it -- which is
+                  --  right for a sheet that is missing rather than broken.
                   when others => null;
                end;
             end if;
@@ -925,22 +925,30 @@ package body Adi.CSS_Source is
          begin
             if E.Source_Entry.Kind = File_Entry then
                declare
+                  use type Ada.Calendar.Time;
                   Path : constant String := To_String (E.Source_Entry.Text);
                begin
-                  if Ada.Directories.Exists (Path) then
-                     declare
-                        use type Ada.Calendar.Time;
-                        Mod_Time : constant Ada.Calendar.Time :=
-                          Ada.Directories.Modification_Time (Path);
-                     begin
-                        if Mod_Time /= E.Last_Modified then
-                           if not Any_Changed then
-                              Changed := E.Source_Entry.Text;
-                           end if;
-                           Any_Changed := True;
+                  --  One call rather than Exists-then-stat: a missing or
+                  --  unreadable file raises here just as Exists reports
+                  --  it absent, and asking twice leaves a window where
+                  --  the answer changes between them. The inner block is
+                  --  needed because a handler does not cover its own
+                  --  declarative part.
+                  declare
+                     Mod_Time : constant Ada.Calendar.Time :=
+                       Ada.Directories.Modification_Time (Path);
+                  begin
+                     if Mod_Time /= E.Last_Modified then
+                        if not Any_Changed then
+                           Changed := E.Source_Entry.Text;
                         end if;
-                     end;
-                  end if;
+                        Any_Changed := True;
+                     end if;
+                  end;
+               exception
+                  --  Nothing to compare against, and a reload would fail
+                  --  on it anyway.
+                  when others => null;
                end;
             end if;
          end;

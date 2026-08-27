@@ -784,9 +784,16 @@ def generate_spec(app: XmlApp, package_name: str,
         not no_live_css
         and bool(any(link.href for link in app.css_links) or app.css_styles)
     )
+    #  One argument cannot stand in for several sheets without silently
+    #  dropping all but one, so a package with more than one <link> gets
+    #  Set_CSS_Sheets, which takes the set.
+    multi_link = len([l for l in app.css_links if l.href]) > 1
 
     # Compute with clauses — only packages referenced in the spec
     withs: set[str] = set()
+    if live_css and multi_link:
+        #  Set_CSS_Sheets names Dynamic_Source_Entry_Array in its profile.
+        withs.add("Adi.CSS_Source")
     if has_window:
         withs.add("Adi.Window")
     elif has_dialog:
@@ -926,7 +933,27 @@ def generate_spec(app: XmlApp, package_name: str,
         lines.append("")
 
     # Set_CSS_File — only when dynamic <link> elements are present
-    if live_css:
+    if live_css and multi_link:
+        lines.append(
+            "      --  This package declares more than one <link> sheet, so"
+        )
+        lines.append(
+            "      --  naming one of them would replace them all. Any"
+        )
+        lines.append(
+            "      --  <style> rules keep their place after these."
+        )
+        lines.append(
+            "      procedure Set_CSS_Sheets"
+        )
+        lines.append(
+            "        (Sheets  : Adi.CSS_Source.Dynamic_Source_Entry_Array;"
+        )
+        lines.append(
+            "         Success : out Boolean);"
+        )
+        lines.append("")
+    elif live_css:
         lines.append(
             "      procedure Set_CSS_File (Path : String;"
             " Success : out Boolean);"
@@ -940,24 +967,54 @@ def generate_spec(app: XmlApp, package_name: str,
     return "\n".join(lines) + "\n"
 
 
-def ada_string_literal(s: str) -> str:
-    """Escape a string for use as an Ada string literal.
+def dynamic_sources_call(app, indent: str, result: str) -> list[str]:
+    """Install every <link> sheet, then the <style> text, in one call.
 
-    Handles embedded newlines by splitting into concatenated lines
-    with ASCII.LF between them.
+    Build may run more than once against one Source -- a list that builds
+    a row at a time does -- so this replaces the configuration rather than
+    piling up behind it, and parses the sheets once between them.
     """
-    lines = s.split("\n")
-    parts = []
-    for i, line in enumerate(lines):
-        escaped = line.replace('"', '""')
-        parts.append(f'"{escaped}"')
-        if i < len(lines) - 1:
-            parts.append("ASCII.LF")
-    return " & ".join(parts)
+    sheets = [
+        f'Adi.CSS_Source.CSS_File ("{link.href}")'
+        for link in app.css_links if link.href
+    ]
+    if app.css_styles:
+        sheets.append("Adi.CSS_Source.CSS_Text (Inline_CSS)")
+    if not sheets:
+        return []
+
+    out = [f"{indent}Adi.CSS_Source.Set_Dynamic_Sources",
+           f"{indent}  (Source,"]
+    for i, s in enumerate(sheets):
+        opener = "[" if i == 0 else " "
+        closer = "]," if i == len(sheets) - 1 else ","
+        out.append(f"{indent}   {opener}{s}{closer}")
+    out.append(f"{indent}   {result});")
+    return out
+
+
+def inline_css_constant(css: str, indent: str = "   ") -> list[str]:
+    """Emit the <style> text as an Ada String constant, one CSS line each.
+
+    Non-ASCII stays as raw UTF-8 bytes, which is what the parser wants;
+    the body's Wide_Character_Encoding pragma is what stops -gnatW8
+    collapsing them.
+    """
+    segments = css.split("\n")
+    if segments and segments[-1] == "":
+        segments.pop()
+    if not segments:
+        return [f'{indent}Inline_CSS : constant String := "";']
+
+    out = [f"{indent}Inline_CSS : constant String :="]
+    for i, seg in enumerate(segments):
+        escaped = seg.replace('"', '""')
+        tail = ";" if i == len(segments) - 1 else " &"
+        out.append(f'{indent}  "{escaped}" & ASCII.LF{tail}')
+    return out
 
 
 def generate_body(app: XmlApp, package_name: str,
-                   inline_css_path: str = "",
                    i18n: bool = False,
                    no_live_css: bool = False) -> str:
     """Generate the .adb (body) file.
@@ -977,6 +1034,10 @@ def generate_body(app: XmlApp, package_name: str,
         not no_live_css
         and bool(any(link.href for link in app.css_links) or app.css_styles)
     )
+    #  One argument cannot stand in for several sheets without silently
+    #  dropping all but one, so a package with more than one <link> gets
+    #  Set_CSS_Sheets, which takes the set.
+    multi_link = len([l for l in app.css_links if l.href]) > 1
     dialog_default_button = get_dialog_default_button_index(app.dialog)
     dialog_button_count = get_dialog_button_count(app.dialog)
 
@@ -1147,6 +1208,11 @@ def generate_body(app: XmlApp, package_name: str,
         "--  Auto-generated from XML",
         "--  Do not edit manually",
         "",
+        #  <style> text and text= attributes are raw UTF-8 bytes, which is
+        #  what the parser and the renderer consume. A project-wide
+        #  -gnatW8 would collapse each non-ASCII character to one Latin-1
+        #  byte; this keeps them verbatim, and is a no-op without it.
+        "pragma Wide_Character_Encoding (Brackets);",
         "pragma Ada_2022;",
         "",
     ]
@@ -1191,7 +1257,15 @@ def generate_body(app: XmlApp, package_name: str,
     if uses_css_source:
         lines.append("   Source : aliased Adi.CSS_Source.Style_Source;")
     if live_css:
-        # (Inline CSS is extracted to a companion .css file for live-reload)
+        if app.css_styles:
+            lines.append("")
+            lines.append("   --  The <style> block as text. Dynamic_Mode")
+            lines.append("   --  styles from the parsed sheet and never")
+            lines.append("   --  from the static entries below, so the")
+            lines.append("   --  rules need a place in the cascade.")
+            lines.append("   --  --no-live-css builds omit this.")
+            lines.extend(
+                inline_css_constant("\n".join(app.css_styles) + "\n"))
         # Compiled inline style declarations (for static fallback)
         if inline_groups:
             lines.append("")
@@ -1400,16 +1474,38 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append("      end if;")
         lines.append("   end Attach_Window;")
 
-    # Set_CSS_File — clear + reload dynamic entries + enable live reload
+    # Set_CSS_File / Set_CSS_Sheets — install a configuration and enable
+    # live reload. The <style> sheet keeps its cascade position last.
     if live_css:
+        entries = ["         Adi.CSS_Source.CSS_File (Path)"]
+        if app.css_styles:
+            entries.append("         Adi.CSS_Source.CSS_Text (Inline_CSS)")
+
         lines.append("")
-        lines.append("   procedure Set_CSS_File (Path : String;"
-                     " Success : out Boolean) is")
+        if multi_link:
+            lines.append("   procedure Set_CSS_Sheets")
+            lines.append("     (Sheets  : Adi.CSS_Source"
+                         ".Dynamic_Source_Entry_Array;")
+            lines.append("      Success : out Boolean) is")
+        else:
+            lines.append("   procedure Set_CSS_File (Path : String;"
+                         " Success : out Boolean) is")
         lines.append("      Mode_OK : Boolean;")
         lines.append("   begin")
-        lines.append("      Adi.CSS_Source.Clear_Dynamic_Entries (Source);")
-        lines.append(
-            "      Adi.CSS_Source.Add_Dynamic_File (Source, Path, Success);")
+        lines.append("      Adi.CSS_Source.Set_Dynamic_Sources")
+        if multi_link:
+            tail = (" & [Adi.CSS_Source.CSS_Text (Inline_CSS)]"
+                    if app.css_styles else "")
+            lines.append(f"        (Source, Sheets{tail}, Success);")
+        elif len(entries) == 1:
+            lines.append(f"        (Source, [{entries[0].strip()}], Success);")
+        else:
+            lines.append("        (Source,")
+            for i, e in enumerate(entries):
+                opener = "[" if i == 0 else " "
+                closer = "]," if i == len(entries) - 1 else ","
+                lines.append(f"        {opener}{e.strip()}{closer}")
+            lines.append("         Success);")
         lines.append("      if Success then")
         lines.append(
             "         Adi.CSS_Source.Set_Mode")
@@ -1420,7 +1516,9 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append(
             "         Success := Mode_OK;")
         lines.append("      end if;")
-        lines.append("   end Set_CSS_File;")
+        lines.append(
+            "   end " + ("Set_CSS_Sheets" if multi_link else "Set_CSS_File")
+            + ";")
 
     lines.append("")
 
@@ -1649,35 +1747,10 @@ def generate_body(app: XmlApp, package_name: str,
                         " (Source, Static_Root_Metadata);"
                     )
                 lines.append("")
-            #  Build may run more than once against one Source -- a list
-            #  that builds a row at a time does. The sheets below are
-            #  added in cascade order, so they have to replace what a
-            #  previous Build added rather than pile up behind it.
-            lines.append(
-                "         Adi.CSS_Source.Clear_Dynamic_Entries (Source);"
-            )
-
             has_link = bool(any(link.href for link in app.css_links))
             has_style = bool(app.css_styles)
 
-            # Emit Add_Dynamic_File for each <link> that has an actual file path
-            for link in app.css_links:
-                if link.href:
-                    lines.append(
-                        "         Adi.CSS_Source.Add_Dynamic_File"
-                    )
-                    lines.append(
-                        f'           (Source, "{link.href}", Loaded);'
-                    )
-
-            # Emit Add_Dynamic_File for inline <style> companion CSS file
-            if has_style and inline_css_path:
-                lines.append(
-                    "         Adi.CSS_Source.Add_Dynamic_File"
-                )
-                lines.append(
-                    f'           (Source, "{inline_css_path}", Loaded);'
-                )
+            lines.extend(dynamic_sources_call(app, "         ", "Loaded"))
 
             if not has_link and not has_style:
                 lines.append("         Loaded := False;")
@@ -1801,24 +1874,7 @@ def generate_body(app: XmlApp, package_name: str,
                 )
             has_link = bool(any(link.href for link in app.css_links))
             has_style = bool(app.css_styles)
-            lines.append(
-                "         Adi.CSS_Source.Clear_Dynamic_Entries (Source);"
-            )
-            for link in app.css_links:
-                if link.href:
-                    lines.append(
-                        "         Adi.CSS_Source.Add_Dynamic_File"
-                    )
-                    lines.append(
-                        f'           (Source, "{link.href}", Loaded);'
-                    )
-            if has_style and inline_css_path:
-                lines.append(
-                    "         Adi.CSS_Source.Add_Dynamic_File"
-                )
-                lines.append(
-                    f'           (Source, "{inline_css_path}", Loaded);'
-                )
+            lines.extend(dynamic_sources_call(app, "         ", "Loaded"))
             if not has_link and not has_style:
                 lines.append("         Loaded := False;")
             lines.append("         if Loaded then")
@@ -2178,21 +2234,9 @@ def main():
     spec_path = os.path.join(args.output_dir, f"{file_base}.ads")
     body_path = os.path.join(args.output_dir, f"{file_base}.adb")
 
-    # Extract inline <style> to companion CSS file for live-reload
-    inline_css_path = ""
-    if app.css_styles:
-        combined_css = "\n".join(app.css_styles) + "\n"
-        css_file = os.path.normpath(
-            os.path.join(args.output_dir, f"{file_base}_inline.css"))
-        inline_css_path = css_file
-        with open(css_file, "w") as f:
-            f.write(combined_css)
-        print(f"Generated {css_file}")
-
     spec_code = generate_spec(app, args.package_name,
                               no_live_css=args.no_live_css)
     body_code = generate_body(app, args.package_name,
-                              inline_css_path=inline_css_path,
                               i18n=args.i18n,
                               no_live_css=args.no_live_css)
 

@@ -3,6 +3,7 @@
 
 pragma Ada_2022;
 
+with Adi.CSS_Source;
 with Adi.Widget.Box;
 with Adi.Widget.Button;
 with Adi.Widget.Button.Options;
@@ -38,7 +39,12 @@ package Stack_Example_UI is
       procedure Tick_Styles (Reloaded : out Boolean;
                              Success  : out Boolean);
 
-      procedure Set_CSS_File (Path : String; Success : out Boolean);
+      --  This package declares more than one <link> sheet, so
+      --  naming one of them would replace them all. Any
+      --  <style> rules keep their place after these.
+      procedure Set_CSS_Sheets
+        (Sheets  : Adi.CSS_Source.Dynamic_Source_Entry_Array;
+         Success : out Boolean);
 
    end Instance;
 

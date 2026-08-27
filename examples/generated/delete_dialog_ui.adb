@@ -1,6 +1,7 @@
 --  Auto-generated from XML
 --  Do not edit manually
 
+pragma Wide_Character_Encoding (Brackets);
 pragma Ada_2022;
 
 with Adi.CSS_Parser;

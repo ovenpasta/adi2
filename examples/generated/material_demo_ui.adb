@@ -1,6 +1,7 @@
 --  Auto-generated from XML
 --  Do not edit manually
 
+pragma Wide_Character_Encoding (Brackets);
 pragma Ada_2022;
 
 with Adi.CSS_Parser;
@@ -87,8 +88,8 @@ package body Material_Demo_UI is
    procedure Set_CSS_File (Path : String; Success : out Boolean) is
       Mode_OK : Boolean;
    begin
-      Adi.CSS_Source.Clear_Dynamic_Entries (Source);
-      Adi.CSS_Source.Add_Dynamic_File (Source, Path, Success);
+      Adi.CSS_Source.Set_Dynamic_Sources
+        (Source, [Adi.CSS_Source.CSS_File (Path)], Success);
       if Success then
          Adi.CSS_Source.Set_Mode
            (Source, Adi.CSS_Source.Dynamic_Mode, Mode_OK);
@@ -219,9 +220,10 @@ package body Material_Demo_UI is
          Material_Demo_Styles.Register_Selectors (Source);
          Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
-         Adi.CSS_Source.Clear_Dynamic_Entries (Source);
-         Adi.CSS_Source.Add_Dynamic_File
-           (Source, "examples/css/material_demo.css", Loaded);
+         Adi.CSS_Source.Set_Dynamic_Sources
+           (Source,
+            [Adi.CSS_Source.CSS_File ("examples/css/material_demo.css")],
+            Loaded);
          if Loaded then
             Adi.CSS_Source.Set_Mode
               (Source, Adi.CSS_Source.Dynamic_Mode, Mode_OK);

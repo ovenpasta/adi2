@@ -209,7 +209,8 @@ begin
          Adi.CSS_Source.Set_Static_Metadata
            (Source, Runtime_Css_Example_Styles.Root_Metadata);
       end if;
-      Adi.CSS_Source.Add_Dynamic_File (Source, CSS_Path, Loaded);
+      Adi.CSS_Source.Set_Dynamic_Sources
+        (Source, [Adi.CSS_Source.CSS_File (CSS_Path)], Loaded);
       if Loaded then
          Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, Mode_OK);
       else

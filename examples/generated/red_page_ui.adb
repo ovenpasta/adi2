@@ -1,6 +1,7 @@
 --  Auto-generated from XML
 --  Do not edit manually
 
+pragma Wide_Character_Encoding (Brackets);
 pragma Ada_2022;
 
 with Adi.CSS_Parser;
@@ -16,6 +17,36 @@ package body Red_Page_UI is
 
    package body Instance is
    Source : aliased Adi.CSS_Source.Style_Source;
+
+   --  The <style> block as text. Dynamic_Mode
+   --  styles from the parsed sheet and never
+   --  from the static entries below, so the
+   --  rules need a place in the cascade.
+   --  --no-live-css builds omit this.
+   Inline_CSS : constant String :=
+     ".page-title::main {" & ASCII.LF &
+     "  display: inline-flex;" & ASCII.LF &
+     "}" & ASCII.LF &
+     "" & ASCII.LF &
+     ".page-title::label {" & ASCII.LF &
+     "  color: white;" & ASCII.LF &
+     "  font-size: 24px;" & ASCII.LF &
+     "  font-weight: 700;" & ASCII.LF &
+     "}" & ASCII.LF &
+     "" & ASCII.LF &
+     ".page-desc::main {" & ASCII.LF &
+     "  display: inline-flex;" & ASCII.LF &
+     "}" & ASCII.LF &
+     "" & ASCII.LF &
+     ".page-desc::label {" & ASCII.LF &
+     "  color: rgba(255, 255, 255, 0.7);" & ASCII.LF &
+     "  font-size: 16px;" & ASCII.LF &
+     "  font-weight: 400;" & ASCII.LF &
+     "}" & ASCII.LF &
+     "" & ASCII.LF &
+     ".page-title {" & ASCII.LF &
+     "  flex-shrink: 0;" & ASCII.LF &
+     "}" & ASCII.LF;
 
    --  Base style for class 'page-title'
    Page_Title_Class_Base_Style : constant Style_Rules := (
@@ -148,8 +179,11 @@ package body Red_Page_UI is
    procedure Set_CSS_File (Path : String; Success : out Boolean) is
       Mode_OK : Boolean;
    begin
-      Adi.CSS_Source.Clear_Dynamic_Entries (Source);
-      Adi.CSS_Source.Add_Dynamic_File (Source, Path, Success);
+      Adi.CSS_Source.Set_Dynamic_Sources
+        (Source,
+        [Adi.CSS_Source.CSS_File (Path),
+         Adi.CSS_Source.CSS_Text (Inline_CSS)],
+         Success);
       if Success then
          Adi.CSS_Source.Set_Mode
            (Source, Adi.CSS_Source.Dynamic_Mode, Mode_OK);
@@ -176,11 +210,11 @@ package body Red_Page_UI is
          Register_Inline_Selectors (Source);
          Adi.CSS_Source.Set_Static_Metadata (Source, Static_Root_Metadata);
 
-         Adi.CSS_Source.Clear_Dynamic_Entries (Source);
-         Adi.CSS_Source.Add_Dynamic_File
-           (Source, "examples/css/stack_example.css", Loaded);
-         Adi.CSS_Source.Add_Dynamic_File
-           (Source, "examples/generated/red_page_ui_inline.css", Loaded);
+         Adi.CSS_Source.Set_Dynamic_Sources
+           (Source,
+            [Adi.CSS_Source.CSS_File ("examples/css/stack_example.css"),
+             Adi.CSS_Source.CSS_Text (Inline_CSS)],
+            Loaded);
          if Loaded then
             Adi.CSS_Source.Set_Mode
               (Source, Adi.CSS_Source.Dynamic_Mode, Mode_OK);

@@ -656,30 +656,117 @@ class TestImageAttribute(unittest.TestCase):
         )
 
 
-class TestInlineCSSCompanionPath(unittest.TestCase):
-    """Tests for inline <style> companion CSS file path generation."""
+class TestInlineCSSIsCompiledIn(unittest.TestCase):
+    """The <style> block travels inside the binary, not beside it.
 
-    def test_inline_css_path_uses_output_dir(self):
-        """Companion CSS path is derived from output_dir, not CWD."""
+    It is generated from the XML, so a copy on disk could only ever be a
+    stale one -- and a path baked in at generation time is absolute for
+    an out-of-tree crate and missing in an embedded filesystem.
+    """
+
+    def test_style_text_becomes_a_string_constant(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <adi>
   <style>.root::main { background-color: red; }</style>
   <box class="root"/>
 </adi>"""
-        app = parse_xml(xml)
-        body = xml_to_ada.generate_body(
-            app, "My_UI", inline_css_path="some/dir/my_ui_inline.css"
+        body = xml_to_ada.generate_body(parse_xml(xml), "My_UI")
+        self.assertIn("Inline_CSS : constant String :=", body)
+        self.assertIn('".root::main { background-color: red; }"', body)
+        self.assertIn("Adi.CSS_Source.CSS_Text (Inline_CSS)", body)
+
+    def test_no_css_file_path_is_baked_in(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>.root::main { background-color: red; }</style>
+  <box class="root"/>
+</adi>"""
+        body = xml_to_ada.generate_body(parse_xml(xml), "My_UI")
+        self.assertNotIn("_inline.css", body)
+        self.assertNotIn("Add_Dynamic_File", body)
+
+    def test_quotes_in_css_are_doubled(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>.a::main { font-family: "Foo Bar"; }</style>
+  <box class="a"/>
+</adi>"""
+        body = xml_to_ada.generate_body(parse_xml(xml), "My_UI")
+        self.assertIn('""Foo Bar""', body)
+
+    def test_blank_lines_inside_style_survive(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>.a::main { opacity: 0.5; }
+
+.b::main { opacity: 1; }</style>
+  <box class="a"/>
+</adi>"""
+        body = xml_to_ada.generate_body(parse_xml(xml), "My_UI")
+        self.assertIn('"" & ASCII.LF', body)
+
+    def test_the_constant_ends_with_one_terminator(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>.a::main { opacity: 0.5; }</style>
+  <box class="a"/>
+</adi>"""
+        body = xml_to_ada.generate_body(parse_xml(xml), "My_UI")
+        tail = body[body.index("Inline_CSS : constant String :="):]
+        const = []
+        for line in tail.split("\n"):
+            const.append(line)
+            if line.rstrip().endswith("ASCII.LF;"):
+                break
+        else:
+            self.fail("the constant is never terminated")
+        #  Everything between the declaration and the terminator has to
+        #  keep the concatenation open.
+        for line in const[1:-1]:
+            self.assertTrue(line.rstrip().endswith("&"), line)
+
+    def test_a_style_with_no_rules_at_all_still_installs(self):
+        #  Nothing to compile to Ada, but the text must still reach the
+        #  parser -- and Build must install something, or Loaded is never
+        #  assigned.
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>/* only a comment */</style>
+  <window title="T" width="100" height="100"><box id="Root"/></window>
+</adi>"""
+        body = xml_to_ada.generate_body(parse_xml(xml), "My_UI")
+        self.assertIn('"/* only a comment */" & ASCII.LF;', body)
+        self.assertIn("Adi.CSS_Source.CSS_Text (Inline_CSS)", body)
+        self.assertNotIn("Loaded := False;", body)
+
+    def test_root_only_style_still_reaches_the_parser(self):
+        #  No compilable groups, but :root metadata still has to load.
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>:root { font-size: 20dp; }</style>
+  <box id="Root"/>
+</adi>"""
+        body = xml_to_ada.generate_body(parse_xml(xml), "My_UI")
+        self.assertIn("Inline_CSS : constant String :=", body)
+        self.assertIn("Adi.CSS_Source.CSS_Text (Inline_CSS)", body)
+
+    def test_non_ascii_survives_gnatW8(self):
+        #  Raw UTF-8 bytes are what the parser wants; -gnatW8 would
+        #  collapse them to Latin-1 without the pragma.
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>.a::main { font-family: "Ubuntu Café"; }</style>
+  <box class="a"/>
+</adi>"""
+        body = xml_to_ada.generate_body(parse_xml(xml), "My_UI")
+        self.assertIn("Café", body)
+        self.assertTrue(
+            body.startswith("--  Auto-generated from XML"), body[:40])
+        self.assertIn("pragma Wide_Character_Encoding (Brackets);", body)
+        self.assertLess(
+            body.index("pragma Wide_Character_Encoding (Brackets);"),
+            body.index("pragma Ada_2022;"),
         )
-        self.assertIn(
-            "Add_Dynamic_File",
-            body,
-        )
-        self.assertIn(
-            '"some/dir/my_ui_inline.css"',
-            body,
-        )
-        self.assertNotIn("Add_Dynamic_String", body)
-        self.assertNotIn("Inline_CSS", body)
 
     def test_no_inline_css_path_when_no_styles(self):
         """No companion path emitted when there are no inline styles."""
@@ -712,8 +799,7 @@ class TestInlineCSSCompanionPath(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(
-            app, "My_UI", inline_css_path="some/dir/my_ui_inline.css"
-        )
+            app, "My_UI")
         self.assertIn("function Inline_Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is", body)
         self.assertIn("function Inline_Root_Font_Size return Length_Value is (Dip (20.0));", body)
         self.assertIn('Color => Set (C (Red))', body)
@@ -729,7 +815,7 @@ class TestInlineCSSCompanionPath(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         for label, kwargs in (
-            ("live", {"inline_css_path": "gen/my_ui_inline.css"}),
+            ("live", {}),
             ("static", {"no_live_css": True}),
         ):
             body = xml_to_ada.generate_body(app, "My_UI", **kwargs)
@@ -741,6 +827,147 @@ class TestInlineCSSCompanionPath(unittest.TestCase):
                         body,
                         f"{label} mode uses Source without declaring it",
                     )
+
+
+class TestSetCSSFileKeepsInlineSheet(unittest.TestCase):
+    """Repointing the linked sheet must not drop the <style> sheet."""
+
+    XML = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="test.css"/>
+  <style>.sized { width: 90%; }</style>
+  <box class="root sized"/>
+</adi>"""
+
+    def _set_css_file_body(self, xml=None, package="My_UI"):
+        body = xml_to_ada.generate_body(parse_xml(xml or self.XML), package)
+        start = body.index("procedure Set_CSS_File (Path : String")
+        return body[start:body.index("end Set_CSS_File;", start)]
+
+    def test_inline_sheet_cascades_after_the_linked_one(self):
+        proc = self._set_css_file_body()
+        self.assertIn("Adi.CSS_Source.CSS_File (Path)", proc)
+        self.assertIn("Adi.CSS_Source.CSS_Text (Inline_CSS)", proc)
+        self.assertLess(
+            proc.index("Adi.CSS_Source.CSS_File (Path)"),
+            proc.index("Adi.CSS_Source.CSS_Text (Inline_CSS)"),
+            "the inline sheet must cascade after the linked one",
+        )
+
+    def test_one_call_gives_one_verdict(self):
+        #  Installing the two sheets separately made Success ambiguous:
+        #  whose outcome was it? One install has one answer.
+        proc = self._set_css_file_body()
+        self.assertEqual(proc.count("Set_Dynamic_Sources"), 1)
+        self.assertNotIn("Inline_Loaded", proc)
+        self.assertNotIn("and Inline_Loaded", proc)
+        self.assertNotIn("Clear_Dynamic_Entries", proc)
+
+    def test_a_dialog_package_gets_the_same_treatment(self):
+        #  Dialogs take a different Build branch; the Set_CSS_File
+        #  emitter is shared, and this pins that it stays shared.
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="test.css"/>
+  <style>.sized { width: 90%; }</style>
+  <dialog id="Dlg" class="dlg" title="T"/>
+</adi>"""
+        proc = self._set_css_file_body(xml, "My_Dlg")
+        self.assertIn("Adi.CSS_Source.CSS_Text (Inline_CSS)", proc)
+        self.assertEqual(proc.count("Set_Dynamic_Sources"), 1)
+
+    def test_a_package_with_no_style_installs_only_its_link(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="test.css"/>
+  <box class="root"/>
+</adi>"""
+        proc = self._set_css_file_body(xml)
+        self.assertIn("(Source, [Adi.CSS_Source.CSS_File (Path)], Success);",
+                      proc)
+        self.assertNotIn("Inline_CSS", proc)
+
+    def test_build_installs_every_sheet_in_one_call(self):
+        for label, xml in (
+            ("window", self.XML),
+            ("dialog", """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="test.css"/>
+  <style>.sized { width: 90%; }</style>
+  <dialog id="Dlg" class="dlg" title="T"/>
+</adi>"""),
+        ):
+            with self.subTest(label):
+                body = xml_to_ada.generate_body(parse_xml(xml), "My_UI")
+                self.assertNotIn("Add_Dynamic_File", body)
+                self.assertNotIn("Clear_Dynamic_Entries", body)
+                #  From the linked sheet onward, within the same call.
+                install = body[
+                    body.index('Adi.CSS_Source.CSS_File ("test.css")'):]
+                self.assertIn(
+                    "Adi.CSS_Source.CSS_Text (Inline_CSS)",
+                    install[:install.index(";")],
+                )
+
+
+class TestMultiLinkGetsASetTakingProcedure(unittest.TestCase):
+    """One path argument cannot stand in for several <link> sheets.
+
+    Set_CSS_File would install the one it was given and silently drop
+    the rest, so a package with more than one gets a name that admits
+    what it takes.
+    """
+
+    TWO = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="a.css"/>
+  <link rel="stylesheet" href="b.css"/>
+  <box class="root"/>
+</adi>"""
+
+    ONE = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="a.css"/>
+  <box class="root"/>
+</adi>"""
+
+    STYLE_ONLY = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>.a::main { opacity: 0.5; }</style>
+  <box class="a"/>
+</adi>"""
+
+    def test_two_links_get_set_css_sheets(self):
+        for gen in (xml_to_ada.generate_spec, xml_to_ada.generate_body):
+            with self.subTest(gen.__name__):
+                out = gen(parse_xml(self.TWO), "My_UI")
+                self.assertIn("Set_CSS_Sheets", out)
+                self.assertNotIn("Set_CSS_File", out)
+
+    def test_one_link_keeps_set_css_file(self):
+        for gen in (xml_to_ada.generate_spec, xml_to_ada.generate_body):
+            with self.subTest(gen.__name__):
+                out = gen(parse_xml(self.ONE), "My_UI")
+                self.assertIn("Set_CSS_File", out)
+                self.assertNotIn("Set_CSS_Sheets", out)
+
+    def test_style_only_keeps_set_css_file(self):
+        out = xml_to_ada.generate_spec(parse_xml(self.STYLE_ONLY), "My_UI")
+        self.assertIn("Set_CSS_File", out)
+        self.assertNotIn("Set_CSS_Sheets", out)
+
+    def test_the_set_taking_spec_withs_what_its_profile_names(self):
+        two = xml_to_ada.generate_spec(parse_xml(self.TWO), "My_UI")
+        one = xml_to_ada.generate_spec(parse_xml(self.ONE), "My_UI")
+        self.assertIn("with Adi.CSS_Source;", two)
+        self.assertNotIn("with Adi.CSS_Source;", one)
+
+    def test_build_still_installs_both_links_in_order(self):
+        body = xml_to_ada.generate_body(parse_xml(self.TWO), "My_UI")
+        self.assertLess(
+            body.index('Adi.CSS_Source.CSS_File ("a.css")'),
+            body.index('Adi.CSS_Source.CSS_File ("b.css")'),
+        )
 
 
 class TestCSSUpdateBatch(unittest.TestCase):
@@ -768,8 +995,7 @@ class TestCSSUpdateBatch(unittest.TestCase):
         for label, xml in self.CASES.items():
             app = parse_xml(xml)
             body = xml_to_ada.generate_body(
-                app, "My_UI", inline_css_path="gen/my_ui_inline.css"
-            )
+                app, "My_UI")
             with self.subTest(label):
                 self.assertEqual(
                     body.count("Begin_Update"),
@@ -781,8 +1007,7 @@ class TestCSSUpdateBatch(unittest.TestCase):
         for label, xml in self.CASES.items():
             app = parse_xml(xml)
             body = xml_to_ada.generate_body(
-                app, "My_UI", inline_css_path="gen/my_ui_inline.css"
-            )
+                app, "My_UI")
             with self.subTest(label):
                 self.assertIn(
                     "Adi.CSS_Source.Update_Scope (Source'Access)",

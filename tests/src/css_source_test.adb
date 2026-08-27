@@ -7,6 +7,8 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
 with Adi.Core; use Adi.Core;
 with Adi.CSS_Source;
+with Adi.CSS_Source.Testing;
+use type Adi.CSS_Source.Testing.Count;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.SDL; use Adi.SDL;
 with Adi.SDL.TTF;
@@ -789,6 +791,44 @@ begin
               "naming the sheet it could not read");
       Assert (Opacity_Of = 0.25,
               "and the configuration that worked is still in force");
+   end;
+
+   Section ("A sheet that stays broken is not reparsed every tick");
+
+   declare
+      use Adi.CSS_Source;
+      Path     : constant String := "/tmp/adi_css_sources_spin.css";
+      Src      : Style_Source;
+      OK       : Boolean := False;
+      Reloaded : Boolean := False;
+   begin
+      Write_Text_File (Path, ".c { opacity: 0.25; }");
+      Set_Dynamic_Sources (Src, [CSS_File (Path)], OK);
+      Set_Mode (Src, Dynamic_Mode, OK);
+      Set_Auto_Reload (Src, True);
+
+      delay 1.1;
+      Write_Text_File (Path, "{{{");
+      Tick (Src, Reloaded, OK);
+      Assert (not OK, "the broken sheet fails to reload");
+
+      --  Tick runs every frame. A file that has not changed since it
+      --  failed must not be read and parsed again, or a developer with
+      --  a syntax error pays a full reparse per frame until they fix it.
+      Adi.CSS_Source.Testing.Reset_Counts;
+      for I in 1 .. 5 loop
+         Tick (Src, Reloaded, OK);
+      end loop;
+      Assert (Adi.CSS_Source.Testing.Parse_Count = 0,
+              "the unchanged broken file is not reparsed");
+      Assert (Adi.CSS_Source.Testing.File_Read_Count = 0,
+              "nor reread");
+
+      --  Fixing it must still be noticed.
+      delay 1.1;
+      Write_Text_File (Path, ".c { opacity: 0.9; }");
+      Tick (Src, Reloaded, OK);
+      Assert (OK and then Reloaded, "and the fix is picked up");
    end;
 
    Section ("An empty configuration clears and restyles");

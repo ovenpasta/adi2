@@ -14,6 +14,7 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with Adi.CSS_Styles; use Adi.CSS_Styles;
+with Adi.Log;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.Window;
@@ -618,10 +619,42 @@ package body Adi.CSS_Source is
       Success := True;
    end Install_Entries;
 
+   --  Record the modification times a failed reload saw. The entry list
+   --  is unchanged -- this is what the source has looked at, not what it
+   --  installed -- and without it Tick reads and parses the same broken
+   --  file on every frame until someone fixes it.
+   procedure Restamp (Source : in out Style_Source) is
+   begin
+      for I in 1 .. Natural (Source.Impl.Entries.Length) loop
+         declare
+            E : constant Tracked_Entry := Source.Impl.Entries (I);
+         begin
+            if E.Source_Entry.Kind = File_Entry then
+               declare
+                  Path : constant String := To_String (E.Source_Entry.Text);
+               begin
+                  if Ada.Directories.Exists (Path) then
+                     Source.Impl.Entries.Replace_Element (I,
+                       Tracked_Entry'
+                         (Source_Entry  => E.Source_Entry,
+                          Last_Modified =>
+                            Ada.Directories.Modification_Time (Path)));
+                  end if;
+               exception
+                  when others => null;
+               end;
+            end if;
+         end;
+      end loop;
+   end Restamp;
+
    procedure Reload_All_Dynamic (Source  : in out Style_Source;
                                  Success : out Boolean) is
    begin
       Install_Entries (Source, Source.Impl.Entries, Success);
+      if not Success then
+         Restamp (Source);
+      end if;
    end Reload_All_Dynamic;
 
    function Class_Entry (Name : String;
@@ -863,6 +896,9 @@ package body Adi.CSS_Source is
                    Reloaded : out Boolean;
                    Success  : out Boolean) is
       Any_Changed : Boolean := False;
+      --  The sheet that triggered the reload, so the log names it: a
+      --  developer watching several has no other way to tell which.
+      Changed     : Unbounded_String;
    begin
       Reloaded := False;
       Success := True;
@@ -898,6 +934,9 @@ package body Adi.CSS_Source is
                           Ada.Directories.Modification_Time (Path);
                      begin
                         if Mod_Time /= E.Last_Modified then
+                           if not Any_Changed then
+                              Changed := E.Source_Entry.Text;
+                           end if;
                            Any_Changed := True;
                         end if;
                      end;
@@ -908,14 +947,18 @@ package body Adi.CSS_Source is
       end loop;
 
       if Any_Changed then
-         --  Install_Entries has already said why, and more precisely than
-         --  the sheet can: a sheet that still holds the last good rules
-         --  reports no error at all.
          Reload_All_Dynamic (Source, Success);
          if not Success then
+            --  The widgets keep the last good sheet, so nothing on screen
+            --  says the edit was rejected. Restamp means this is one line
+            --  per save rather than one per frame.
+            Adi.Log.Error
+              ("CSS " & To_String (Changed) & ": "
+               & To_String (Source.Impl.Last_Error));
             return;
          end if;
          Reloaded := True;
+         Adi.Log.Info ("CSS reloaded " & To_String (Changed));
          Reapply_If_Changed (Source);
       end if;
    end Tick;

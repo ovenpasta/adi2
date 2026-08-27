@@ -48,22 +48,15 @@ package body Adi.CSS_Source is
      (Index_Type => Positive,
       Element_Type => Bound_Target);
 
-   --  Dynamic entry: either a file path or an inline CSS string
-   type Dynamic_Entry_Kind is (File_Entry, String_Entry);
-
-   type Dynamic_Entry (Kind : Dynamic_Entry_Kind := File_Entry) is record
-      case Kind is
-         when File_Entry =>
-            Path          : Unbounded_String;
-            Last_Modified : Ada.Calendar.Time;
-         when String_Entry =>
-            Content       : Unbounded_String;
-      end case;
+   --  Last_Modified is what Tick compares against.
+   type Tracked_Entry is record
+      Source_Entry  : Dynamic_Source_Entry;
+      Last_Modified : Ada.Calendar.Time := Ada.Calendar.Clock;
    end record;
 
    package Dynamic_Entry_Vectors is new Ada.Containers.Indefinite_Vectors
      (Index_Type => Positive,
-      Element_Type => Dynamic_Entry);
+      Element_Type => Tracked_Entry);
 
    package Binding_Maps is new Ada.Containers.Hashed_Maps
      (Key_Type        => Adi.Widget.Widget_Handle,
@@ -517,6 +510,7 @@ package body Adi.CSS_Source is
       use Ada.Directories;
       File_Size : constant Natural := Natural (Size (Path));
    begin
+      Dynamic_Reads := Dynamic_Reads + 1;
       if File_Size = 0 then
          return "";
       end if;
@@ -534,40 +528,39 @@ package body Adi.CSS_Source is
       end;
    end Read_File;
 
-   --  Concatenate all dynamic entries and reload the stylesheet
-   procedure Reload_All_Dynamic (Source  : in out Style_Source;
-                                 Success : out Boolean) is
-      Combined : Unbounded_String;
+   --  Stamps each file entry with the modification time this read saw.
+   --  Touches nothing else on Impl bar Last_Error, which is what lets a
+   --  failed install leave the configuration in force alone.
+   function Read_Entries
+     (Source : in out Style_Source;
+      Wanted : Dynamic_Entry_Vectors.Vector;
+      Loaded : out Dynamic_Entry_Vectors.Vector;
+      Text   : out Unbounded_String) return Boolean is
    begin
-      Success := True;
+      Loaded := Wanted;
+      Text := Null_Unbounded_String;
 
-      for I in 1 .. Natural (Source.Impl.Entries.Length) loop
+      for I in 1 .. Natural (Loaded.Length) loop
          declare
-            E : constant Dynamic_Entry := Source.Impl.Entries (I);
+            E : constant Tracked_Entry := Loaded (I);
          begin
-            case E.Kind is
+            case E.Source_Entry.Kind is
                when File_Entry =>
                   declare
-                     Path : constant String := To_String (E.Path);
+                     Path : constant String := To_String (E.Source_Entry.Text);
                   begin
                      if Ada.Directories.Exists (Path) then
-                        declare
-                           Mod_Time : constant Ada.Calendar.Time :=
-                             Ada.Directories.Modification_Time (Path);
-                        begin
-                           Source.Impl.Entries.Replace_Element (I,
-                             Dynamic_Entry'(Kind          => File_Entry,
-                                            Path          => E.Path,
-                                            Last_Modified => Mod_Time));
-                        end;
-                        Append (Combined, Read_File (Path));
-                        Append (Combined, ASCII.LF);
+                        Loaded.Replace_Element (I,
+                          Tracked_Entry'
+                            (Source_Entry  => E.Source_Entry,
+                             Last_Modified =>
+                               Ada.Directories.Modification_Time (Path)));
+                        Append (Text, Read_File (Path));
+                        Append (Text, ASCII.LF);
                      else
                         Source.Impl.Last_Error :=
                           To_Unbounded_String ("File not found: " & Path);
-                        Source.Impl.Dynamic_Loaded := False;
-                        Success := False;
-                        return;
+                        return False;
                      end if;
                   exception
                      --  A path that exists and cannot be read: a
@@ -575,38 +568,60 @@ package body Adi.CSS_Source is
                      --  too large to hold. Reported like any other load
                      --  failure, because a caller reading Success cannot
                      --  be expected to handle an exception from the
-                     --  middle of the batch it is installing.
+                     --  middle of the configuration it is installing.
                      when others =>
                         Source.Impl.Last_Error :=
                           To_Unbounded_String ("Cannot read file: " & Path);
-                        Source.Impl.Dynamic_Loaded := False;
-                        Success := False;
-                        return;
+                        return False;
                   end;
                when String_Entry =>
-                  Append (Combined, E.Content);
-                  Append (Combined, ASCII.LF);
+                  Append (Text, E.Source_Entry.Text);
+                  Append (Text, ASCII.LF);
             end case;
          end;
       end loop;
 
+      return True;
+   end Read_Entries;
+
+   --  Read, parse, and only then commit: every failure path returns with
+   --  Entries, Dynamic_Text, Dynamic_Loaded and the sheet as they were.
+   procedure Install_Entries (Source  : in out Style_Source;
+                              Wanted  : Dynamic_Entry_Vectors.Vector;
+                              Success : out Boolean) is
+      Fresh : Dynamic_Entry_Vectors.Vector;
+      Text  : Unbounded_String;
+   begin
+      if not Read_Entries (Source, Wanted, Fresh, Text) then
+         Success := False;
+         return;
+      end if;
+
       declare
          Load_OK : Boolean := False;
       begin
-         Adi.CSS_Parser.Load_String (
-           Source.Impl.Sheet,
-           To_String (Combined),
-           Load_OK);
-         Source.Impl.Dynamic_Loaded := Load_OK;
-         if Load_OK then
-            Source.Impl.Dynamic_Text := Combined;
-            Source.Impl.Last_Error := Null_Unbounded_String;
-         else
+         Dynamic_Parses := Dynamic_Parses + 1;
+         Adi.CSS_Parser.Load_String
+           (Source.Impl.Sheet, To_String (Text), Load_OK);
+         if not Load_OK then
             Source.Impl.Last_Error := To_Unbounded_String (
               Adi.CSS_Parser.Get_Last_Error (Source.Impl.Sheet));
             Success := False;
+            return;
          end if;
       end;
+
+      Source.Impl.Entries        := Fresh;
+      Source.Impl.Dynamic_Text   := Text;
+      Source.Impl.Dynamic_Loaded := True;
+      Source.Impl.Last_Error     := Null_Unbounded_String;
+      Success := True;
+   end Install_Entries;
+
+   procedure Reload_All_Dynamic (Source  : in out Style_Source;
+                                 Success : out Boolean) is
+   begin
+      Install_Entries (Source, Source.Impl.Entries, Success);
    end Reload_All_Dynamic;
 
    function Class_Entry (Name : String;
@@ -710,21 +725,33 @@ package body Adi.CSS_Source is
       Source.Impl.Static_Styles.Append (Entry_Value);
    end Add_Static_Entry;
 
+   function CSS_File (Path : String) return Dynamic_Source_Entry is
+     ((Kind => File_Entry, Text => To_Unbounded_String (Path)));
+
+   function CSS_Text (Content : String) return Dynamic_Source_Entry is
+     ((Kind => String_Entry, Text => To_Unbounded_String (Content)));
+
+   --  Install_Entries commits nothing on failure, so a sheet that cannot
+   --  be read is not appended either.
+   procedure Append_And_Install (Source  : in out Style_Source;
+                                 Item    : Dynamic_Source_Entry;
+                                 Success : out Boolean) is
+      Wanted : Dynamic_Entry_Vectors.Vector := Source.Impl.Entries;
+   begin
+      Wanted.Append (Tracked_Entry'(Source_Entry  => Item,
+                                    Last_Modified => Ada.Calendar.Clock));
+      Install_Entries (Source, Wanted, Success);
+      if Success and then Source.Impl.Mode = Dynamic_Mode then
+         Reapply_If_Changed (Source);
+      end if;
+   end Append_And_Install;
+
    procedure Add_Dynamic_File (Source  : in out Style_Source;
                                Path    : String;
                                Success : out Boolean) is
    begin
       Ensure_Impl (Source);
-
-      Source.Impl.Entries.Append (
-        Dynamic_Entry'(Kind          => File_Entry,
-                       Path          => To_Unbounded_String (Path),
-                       Last_Modified => Ada.Calendar.Clock));
-
-      Reload_All_Dynamic (Source, Success);
-      if Success and then Source.Impl.Mode = Dynamic_Mode then
-         Reapply_If_Changed (Source);
-      end if;
+      Append_And_Install (Source, CSS_File (Path), Success);
    end Add_Dynamic_File;
 
    procedure Add_Dynamic_String (Source      : in out Style_Source;
@@ -732,16 +759,39 @@ package body Adi.CSS_Source is
                                  Success     : out Boolean) is
    begin
       Ensure_Impl (Source);
+      Append_And_Install (Source, CSS_Text (CSS_Content), Success);
+   end Add_Dynamic_String;
 
-      Source.Impl.Entries.Append (
-        Dynamic_Entry'(Kind    => String_Entry,
-                       Content => To_Unbounded_String (CSS_Content)));
+   procedure Set_Dynamic_Sources
+     (Source  : in out Style_Source;
+      Entries : Dynamic_Source_Entry_Array;
+      Success : out Boolean)
+   is
+      Wanted : Dynamic_Entry_Vectors.Vector;
+   begin
+      Ensure_Impl (Source);
 
-      Reload_All_Dynamic (Source, Success);
+      if Entries'Length = 0 then
+         Clear_Dynamic_Entries (Source);
+         Success := True;
+         --  Publishing in Static_Mode would restyle for a change the
+         --  widgets cannot see.
+         if Source.Impl.Mode = Dynamic_Mode then
+            Reapply_If_Changed (Source);
+         end if;
+         return;
+      end if;
+
+      for E of Entries loop
+         Wanted.Append (Tracked_Entry'(Source_Entry  => E,
+                                       Last_Modified => Ada.Calendar.Clock));
+      end loop;
+
+      Install_Entries (Source, Wanted, Success);
       if Success and then Source.Impl.Mode = Dynamic_Mode then
          Reapply_If_Changed (Source);
       end if;
-   end Add_Dynamic_String;
+   end Set_Dynamic_Sources;
 
    procedure Clear_Dynamic_Entries (Source : in out Style_Source) is
    begin
@@ -835,11 +885,11 @@ package body Adi.CSS_Source is
       --  Check all file entries for modification time changes
       for I in 1 .. Natural (Source.Impl.Entries.Length) loop
          declare
-            E : constant Dynamic_Entry := Source.Impl.Entries (I);
+            E : constant Tracked_Entry := Source.Impl.Entries (I);
          begin
-            if E.Kind = File_Entry then
+            if E.Source_Entry.Kind = File_Entry then
                declare
-                  Path : constant String := To_String (E.Path);
+                  Path : constant String := To_String (E.Source_Entry.Text);
                begin
                   if Ada.Directories.Exists (Path) then
                      declare
@@ -858,10 +908,11 @@ package body Adi.CSS_Source is
       end loop;
 
       if Any_Changed then
+         --  Install_Entries has already said why, and more precisely than
+         --  the sheet can: a sheet that still holds the last good rules
+         --  reports no error at all.
          Reload_All_Dynamic (Source, Success);
          if not Success then
-            Source.Impl.Last_Error := To_Unbounded_String (
-              Adi.CSS_Parser.Get_Last_Error (Source.Impl.Sheet));
             return;
          end if;
          Reloaded := True;

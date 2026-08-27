@@ -3444,9 +3444,14 @@ package body Adi.CSS_Parser is
    procedure Build_Styles (Impl : in out Stylesheet_Impl;
                            Rules : Parsed_Rule_Vectors.Vector;
                            Success : out Boolean) is
+      --  Moved rather than copied: a sheet's worth of Part_Style_Array is
+      --  megabytes, and the point is only to be able to put it back.
+      Saved : Selector_Style_Vectors.Vector;
    begin
-      Impl.Selectors.Clear;
+      Selector_Style_Vectors.Move (Target => Saved, Source => Impl.Selectors);
+      Success := True;
 
+      Build_Loop :
       for R of Rules loop
          declare
             Idx : constant Positive := Ensure_Selector (Impl, R.Sel.Kind, To_String (R.Sel.Name));
@@ -3467,7 +3472,7 @@ package body Adi.CSS_Parser is
                      Impl.Last_Error := To_Unbounded_String
                        ("Too many state rules for selector '" & To_String (R.Sel.Name) & "'");
                      Success := False;
-                     return;
+                     exit Build_Loop;
                   end if;
 
                   Add_Rule (W, (Selector => R.Sel.Selector, Style => R.Style, Priority => 0));
@@ -3480,9 +3485,13 @@ package body Adi.CSS_Parser is
 
             C.Styles (R.Sel.Part) := (Style => W, Enabled => True);
          end;
-      end loop;
+      end loop Build_Loop;
 
-      Success := True;
+      if Success then
+         Saved.Clear;
+      else
+         Selector_Style_Vectors.Move (Target => Impl.Selectors, Source => Saved);
+      end if;
    end Build_Styles;
 
    --  Apply one binding to its widget. Root_Merged_Styles folds in the
@@ -3603,11 +3612,10 @@ package body Adi.CSS_Parser is
          return;
       end if;
 
-      Sheet.Impl.Metadata := Metadata;
-      Sheet.Impl.Variables := Vars;
-
       Build_Styles (Sheet.Impl.all, Rules, Success);
       if Success then
+         Sheet.Impl.Metadata := Metadata;
+         Sheet.Impl.Variables := Vars;
          Sheet.Impl.Last_Error := Null_Unbounded_String;
          Reapply_Bindings (Sheet.Impl.all);
       end if;

@@ -58,14 +58,52 @@ package Adi.CSS_Source is
    procedure Add_Static_Entry (Source : in out Style_Source;
                                Entry_Value : Static_Style_Entry);
 
+   --  One sheet: a file, read at install time and watched by Tick, or
+   --  CSS text the source carries. Text cannot go missing, so a
+   --  configuration made only of it always installs.
+   type Dynamic_Source_Entry is private;
+   type Dynamic_Source_Entry_Array is
+     array (Positive range <>) of Dynamic_Source_Entry;
+
+   Empty_Dynamic_Sources : constant Dynamic_Source_Entry_Array;
+
+   function CSS_File (Path : String) return Dynamic_Source_Entry;
+   function CSS_Text (Content : String) return Dynamic_Source_Entry;
+
+   --  Replace the dynamic configuration: read in order, concatenated,
+   --  parsed once.
+   --
+   --  Install or nothing -- on a file that is missing or cannot be read
+   --  (a directory, one this process may not open) or a parse error, the
+   --  source keeps the entries, sheet, mode and styling it had, Success
+   --  is False and Get_Last_Error says why.
+   --
+   --  An empty array clears, and succeeds: a source with no sheets has
+   --  nothing loaded rather than an empty sheet loaded. It also restyles
+   --  the bound widgets, which Clear_Dynamic_Entries does not.
+   procedure Set_Dynamic_Sources
+     (Source  : in out Style_Source;
+      Entries : Dynamic_Source_Entry_Array;
+      Success : out Boolean);
+
+   --  Append one sheet and reload all of them. Install or nothing, so a
+   --  sheet that cannot be read is not appended.
+   --
+   --  Success is the whole configuration's verdict, not this file's.
+   --  Installing N sheets this way costs N parses and N(N+1)/2 file
+   --  reads; Set_Dynamic_Sources costs one parse and N reads.
    procedure Add_Dynamic_File (Source  : in out Style_Source;
                                Path    : String;
                                Success : out Boolean);
 
+   --  As Add_Dynamic_File, with the CSS given directly. The text cannot
+   --  fail, but Success still covers every other entry.
    procedure Add_Dynamic_String (Source      : in out Style_Source;
                                  CSS_Content : String;
                                  Success     : out Boolean);
 
+   --  Drop every sheet, leaving the bound widgets styled until something
+   --  restyles them.
    procedure Clear_Dynamic_Entries (Source : in out Style_Source);
 
    procedure Reload_Dynamic (Source  : in out Style_Source;
@@ -190,11 +228,31 @@ private
    Visited_Bindings   : Binding_Counter := 0;
    Reapplied_Bindings : Binding_Counter := 0;
 
+   --  Concatenations handed to the parser, and files read to build them.
+   --  Installing N sheets one call at a time costs N parses and N(N+1)/2
+   --  reads; a test that only looked at the resulting styles could not
+   --  tell that from one parse and N reads.
+   Dynamic_Parses : Binding_Counter := 0;
+   Dynamic_Reads  : Binding_Counter := 0;
+
    type Static_Style_Entry is record
       Kind   : Adi.CSS_Parser.Selector_Kind := Adi.CSS_Parser.Class_Selector;
       Name   : Ada.Strings.Unbounded.Unbounded_String;
       Styles : Adi.Widget.Part_Style_Array := Adi.Widget.Empty_Part_Styles;
    end record;
+
+   type Dynamic_Entry_Kind is (File_Entry, String_Entry);
+
+   --  Text is the path for a file entry and the CSS for a text one.
+   --  Flattened rather than discriminated: a variant would make the
+   --  array component indefinite.
+   type Dynamic_Source_Entry is record
+      Kind : Dynamic_Entry_Kind := File_Entry;
+      Text : Ada.Strings.Unbounded.Unbounded_String;
+   end record;
+
+   Empty_Dynamic_Sources : constant Dynamic_Source_Entry_Array :=
+     [1 .. 0 => (Kind => File_Entry, Text => <>)];
 
    type Style_Source_Impl;
    type Style_Source_Impl_Access is access all Style_Source_Impl;

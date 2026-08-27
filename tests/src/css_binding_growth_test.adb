@@ -28,6 +28,14 @@ procedure CSS_Binding_Growth_Test is
      ([Main_Part => (Style => From (Rules).Build, Enabled => True),
        others    => <>]);
 
+   procedure Write_Text_File (Path : String; Content : String) is
+      F : Ada.Text_IO.File_Type;
+   begin
+      Ada.Text_IO.Create (F, Ada.Text_IO.Out_File, Path);
+      Ada.Text_IO.Put (F, Content);
+      Ada.Text_IO.Close (F);
+   end Write_Text_File;
+
    Widgets_Per_Build : constant := 24;
    Builds            : constant := 60;
 
@@ -383,10 +391,13 @@ begin
       Adi.CSS_Source.Add_Dynamic_File (Src, "no/such/file.css", Ok);
       Assert (not Ok, "and fails again when asked again");
 
-      --  Nothing is loaded now, so this has to try again and fail --
-      --  not accept the sheet that was loaded before.
+      --  The failed appends left the working sheet installed, so this
+      --  has the sheet it started with and not a broken configuration.
       Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
-      Assert (not Ok, "and selecting dynamic mode fails too");
+      Assert (Ok, "and dynamic mode still holds");
+
+      Adi.CSS_Source.Reload_Dynamic (Src, Ok);
+      Assert (Ok, "and the entry that failed was never appended");
    end;
 
    Section ("An unreadable stylesheet path fails rather than raising");
@@ -550,11 +561,10 @@ begin
         (Source => Src, W => +W, Class_Name => "c");
       Assert (Opacity_Of = 0.25, "the widget takes the sheet's styles");
 
-      --  A load that fails leaves the text the widgets were styled from
-      --  in place, so nothing about the sheet distinguishes before from
-      --  after except that there is now nothing loaded.
-      Adi.CSS_Source.Add_Dynamic_File (Src, "no/such/file.css", Ok);
-      Assert (not Ok, "the missing file fails to load");
+      --  Clearing leaves the text the widgets were styled from in place,
+      --  so nothing about the sheet distinguishes before from after
+      --  except that there is now nothing loaded.
+      Adi.CSS_Source.Clear_Dynamic_Entries (Src);
 
       Adi.CSS_Source.Begin_Update (Src);
       Adi.CSS_Source.End_Update (Src);
@@ -562,7 +572,6 @@ begin
               "a source with nothing loaded has no styles to give");
 
       --  The same stylesheet again, byte for byte -- an undone edit.
-      Adi.CSS_Source.Clear_Dynamic_Entries (Src);
       Adi.CSS_Source.Add_Dynamic_String (Src, Text, Ok);
       Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
       Assert (Ok, "and loads again");
@@ -712,6 +721,55 @@ begin
       Adi.CSS_Parser.Bind_Root_Metadata (Sheet, +Other);
       Assert (Opacity_Of (Root) = 0.75,
               "handing the root away keeps .beta, not .alpha");
+   end;
+
+   Section ("Installing a configuration costs one parse");
+
+   declare
+      use Adi.CSS_Source;
+      A   : constant String := "/tmp/adi_css_growth_a.css";
+      B   : constant String := "/tmp/adi_css_growth_b.css";
+      Src : Style_Source;
+      Ok  : Boolean := False;
+   begin
+      Write_Text_File (A, ".a { opacity: 0.25; }");
+      Write_Text_File (B, ".b { opacity: 0.5; }");
+
+      Adi.CSS_Source.Testing.Reset_Counts;
+      Set_Dynamic_Sources
+        (Src, [CSS_File (A), CSS_File (B), CSS_Text (".c { opacity: 1; }")],
+         Ok);
+      Assert (Ok, "the configuration installs");
+      Assert (Adi.CSS_Source.Testing.Parse_Count = 1,
+              "three sheets are parsed once, not once each");
+      Assert (Adi.CSS_Source.Testing.File_Read_Count = 2,
+              "and each file is read once");
+   end;
+
+   Section ("Adding sheets one at a time costs what the doc says");
+
+   declare
+      use Adi.CSS_Source;
+      A   : constant String := "/tmp/adi_css_growth_a.css";
+      B   : constant String := "/tmp/adi_css_growth_b.css";
+      C   : constant String := "/tmp/adi_css_growth_c.css";
+      Src : Style_Source;
+      Ok  : Boolean := False;
+   begin
+      Write_Text_File (C, ".c { opacity: 1; }");
+
+      Adi.CSS_Source.Testing.Reset_Counts;
+      Add_Dynamic_File (Src, A, Ok);
+      Add_Dynamic_File (Src, B, Ok);
+      Add_Dynamic_File (Src, C, Ok);
+      Assert (Ok, "the sheets install");
+
+      --  N parses and N(N+1)/2 reads, which is the cost Add_Dynamic_File
+      --  is documented to have and Set_Dynamic_Sources exists to avoid.
+      Assert (Adi.CSS_Source.Testing.Parse_Count = 3,
+              "each call reparses everything installed so far");
+      Assert (Adi.CSS_Source.Testing.File_Read_Count = 6,
+              "and rereads every file it already read");
    end;
 
    Test_Support.Finish;

@@ -1,6 +1,9 @@
 pragma Ada_2022;
 
+with Ada.Directories;
 with Ada.Environment_Variables;
+with Ada.Strings.Fixed;
+with Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
 with Adi.Core; use Adi.Core;
 with Adi.CSS_Source;
@@ -601,6 +604,282 @@ begin
       Width_V2 := Get_Preferred_Size (+Lbl).Width;
       Assert (Width_V2 > Width_V1,
               "Preferred width should increase after larger font-size reload");
+   end;
+
+   Section ("A configuration cascades in the order it was given");
+
+   declare
+      use Adi.CSS_Source;
+      Path : constant String := "/tmp/adi_css_sources_order.css";
+      Src  : Style_Source;
+      W    : constant Box_Handle := Create_Handle;
+      OK   : Boolean := False;
+
+      function Opacity_Of return Float is
+        (Float (Get_Resolved_Part_Style (+W, Main_Part).Opacity));
+   begin
+      Write_Text_File (Path, ".c { opacity: 0.25; }");
+
+      Set_Dynamic_Sources
+        (Src, [CSS_File (Path), CSS_Text (".c { opacity: 0.75; }")], OK);
+      Assert (OK, "the configuration installs");
+      Set_Mode (Src, Dynamic_Mode, OK);
+      Bind_Selector_Set (Source => Src, W => +W, Class_Name => "c");
+      Assert (Opacity_Of = 0.75, "the later entry wins");
+
+      Set_Dynamic_Sources
+        (Src, [CSS_Text (".c { opacity: 0.75; }"), CSS_File (Path)], OK);
+      Assert (OK, "and reversed it installs too");
+      Assert (Opacity_Of = 0.25, "the later entry wins again");
+   end;
+
+   Section ("A configuration that will not install changes nothing");
+
+   declare
+      use Adi.CSS_Source;
+      Good : constant String := "/tmp/adi_css_sources_good.css";
+      Src  : Style_Source;
+      W    : constant Box_Handle := Create_Handle;
+      OK   : Boolean := False;
+
+      function Opacity_Of (B : Box_Handle) return Float is
+        (Float (Get_Resolved_Part_Style (+B, Main_Part).Opacity));
+   begin
+      Write_Text_File (Good, ".c { opacity: 0.25; }");
+      Set_Dynamic_Sources (Src, [CSS_File (Good)], OK);
+      Set_Mode (Src, Dynamic_Mode, OK);
+      Bind_Selector_Set (Source => Src, W => +W, Class_Name => "c");
+      Assert (Opacity_Of (W) = 0.25, "the widget takes the sheet's styles");
+
+      Set_Dynamic_Sources
+        (Src, [CSS_File (Good), CSS_File ("no/such/file.css")], OK);
+      Assert (not OK, "a missing file fails");
+      Assert (Get_Mode (Src) = Dynamic_Mode, "the mode is left alone");
+      Assert (Opacity_Of (W) = 0.25, "and the widget keeps its styles");
+
+      --  A widget bound now is styled from whatever the source holds, so
+      --  this separates a sheet still loaded from pixels merely stale.
+      declare
+         Fresh : constant Box_Handle := Create_Handle;
+      begin
+         Bind_Selector_Set (Source => Src, W => +Fresh, Class_Name => "c");
+         Assert (Opacity_Of (Fresh) = 0.25,
+                 "and the sheet is still there for a new binding");
+      end;
+
+      --  The sheet surviving is half the contract; the entry list is the
+      --  other half, and only a reload can see it.
+      Reload_Dynamic (Src, OK);
+      Assert (OK, "and the missing file was never added to the list");
+
+      Set_Dynamic_Sources (Src, [CSS_File (Good), CSS_Text ("{{{")], OK);
+      Assert (not OK, "CSS that will not parse fails");
+      Assert (Opacity_Of (W) = 0.25, "and changes nothing either");
+
+      declare
+         Fresh : constant Box_Handle := Create_Handle;
+      begin
+         Bind_Selector_Set (Source => Src, W => +Fresh, Class_Name => "c");
+         Assert (Opacity_Of (Fresh) = 0.25,
+                 "the sheet surviving a bad parse is the loaded one");
+      end;
+
+      --  A directory exists and cannot be read.
+      Set_Dynamic_Sources (Src, [CSS_File ("tests")], OK);
+      Assert (not OK, "an unreadable path fails rather than raising");
+      Assert (Opacity_Of (W) = 0.25, "and changes nothing");
+   end;
+
+   Section ("A sheet the parser gives up on leaves the last one standing");
+
+   declare
+      use Adi.CSS_Source;
+      Src : Style_Source;
+      W   : constant Box_Handle := Create_Handle;
+      OK  : Boolean := False;
+
+      --  Past Max_Style_Rules (16) distinct state selectors on one
+      --  selector, which Build_Styles abandons part way through rather
+      --  than rejecting up front.
+      States : constant array (1 .. 20) of access constant String :=
+        [new String'(":hover"),          new String'(":focus"),
+         new String'(":disabled"),       new String'(":selected"),
+         new String'(":pressed"),        new String'(":hover:focus"),
+         new String'(":hover:disabled"), new String'(":hover:selected"),
+         new String'(":hover:pressed"),  new String'(":focus:disabled"),
+         new String'(":focus:selected"), new String'(":focus:pressed"),
+         new String'(":disabled:selected"),
+         new String'(":disabled:pressed"),
+         new String'(":selected:pressed"),
+         new String'(":hover:focus:disabled"),
+         new String'(":hover:focus:selected"),
+         new String'(":hover:focus:pressed"),
+         new String'(":hover:disabled:selected"),
+         new String'(":hover:disabled:pressed")];
+
+      function Too_Many_States return String is
+         use Ada.Strings.Unbounded;
+         Result : Ada.Strings.Unbounded.Unbounded_String;
+      begin
+         for S of States loop
+            Append (Result, ".c" & S.all & " { opacity: 0.1; }" & ASCII.LF);
+         end loop;
+         return To_String (Result);
+      end Too_Many_States;
+
+      function Opacity_Of (B : Box_Handle) return Float is
+        (Float (Get_Resolved_Part_Style (+B, Main_Part).Opacity));
+   begin
+      Set_Dynamic_Sources (Src, [CSS_Text (".c { opacity: 0.25; }")], OK);
+      Set_Mode (Src, Dynamic_Mode, OK);
+      Bind_Selector_Set (Source => Src, W => +W, Class_Name => "c");
+      Assert (Opacity_Of (W) = 0.25, "the widget takes the sheet's styles");
+
+      Set_Dynamic_Sources (Src, [CSS_Text (Too_Many_States)], OK);
+      if OK then
+         --  The limit was not reached, so this section proves nothing;
+         --  say so rather than pass quietly.
+         Assert (False,
+                 "expected the state-rule limit to reject the sheet");
+      else
+         Assert (Opacity_Of (W) = 0.25, "the widget keeps its styles");
+         declare
+            Fresh : constant Box_Handle := Create_Handle;
+         begin
+            Bind_Selector_Set (Source => Src, W => +Fresh, Class_Name => "c");
+            Assert (Opacity_Of (Fresh) = 0.25,
+                    "and the selectors of the good sheet are still there");
+         end;
+      end if;
+   end;
+
+   Section ("A reload that fails still says why");
+
+   declare
+      use Adi.CSS_Source;
+      A        : constant String := "/tmp/adi_css_sources_err_a.css";
+      B        : constant String := "/tmp/adi_css_sources_err_b.css";
+      Src      : Style_Source;
+      W        : constant Box_Handle := Create_Handle;
+      OK       : Boolean := False;
+      Reloaded : Boolean := False;
+
+      function Opacity_Of return Float is
+        (Float (Get_Resolved_Part_Style (+W, Main_Part).Opacity));
+   begin
+      Write_Text_File (A, ".c { opacity: 0.25; }");
+      Write_Text_File (B, ".d { opacity: 0.5; }");
+      Set_Dynamic_Sources (Src, [CSS_File (A), CSS_File (B)], OK);
+      Set_Mode (Src, Dynamic_Mode, OK);
+      Set_Auto_Reload (Src, True);
+      Bind_Selector_Set (Source => Src, W => +W, Class_Name => "c");
+      Assert (Opacity_Of = 0.25, "the widget takes the sheet's styles");
+
+      --  B goes away, so Tick does not see it change -- but touching A
+      --  triggers the reload that then cannot read B.
+      Ada.Directories.Delete_File (B);
+      delay 1.1;
+      Write_Text_File (A, ".c { opacity: 0.9; }");
+
+      Tick (Src, Reloaded, OK);
+      Assert (not OK, "the reload fails");
+      Assert (Get_Last_Error (Src) /= "",
+              "and does not report an empty reason");
+      Assert (Ada.Strings.Fixed.Index (Get_Last_Error (Src), B) > 0,
+              "naming the sheet it could not read");
+      Assert (Opacity_Of = 0.25,
+              "and the configuration that worked is still in force");
+   end;
+
+   Section ("An empty configuration clears and restyles");
+
+   declare
+      use Adi.CSS_Source;
+      Src : Style_Source;
+      W   : constant Box_Handle := Create_Handle;
+      OK  : Boolean := False;
+
+      function Opacity_Of return Float is
+        (Float (Get_Resolved_Part_Style (+W, Main_Part).Opacity));
+   begin
+      Set_Dynamic_Sources (Src, [CSS_Text (".c { opacity: 0.25; }")], OK);
+      Assert (OK, "text alone installs without touching the disk");
+      Set_Mode (Src, Dynamic_Mode, OK);
+      Assert (OK, "and dynamic mode holds");
+      Bind_Selector_Set (Source => Src, W => +W, Class_Name => "c");
+      Assert (Opacity_Of = 0.25, "the widget takes the styles");
+
+      Set_Dynamic_Sources (Src, Empty_Dynamic_Sources, OK);
+      Assert (OK, "the empty configuration installs");
+      Assert (Opacity_Of /= 0.25,
+              "and takes the styles back without a further call");
+   end;
+
+   Section ("Repointing a configuration keeps its text entries");
+
+   declare
+      use Adi.CSS_Source;
+      P1   : constant String := "/tmp/adi_css_sources_p1.css";
+      P2   : constant String := "/tmp/adi_css_sources_p2.css";
+      Text : constant String := ".t { opacity: 0.5; }";
+      Src  : Style_Source;
+      W    : constant Box_Handle := Create_Handle;
+      T    : constant Box_Handle := Create_Handle;
+      OK   : Boolean := False;
+
+      function Opacity_Of (B : Box_Handle) return Float is
+        (Float (Get_Resolved_Part_Style (+B, Main_Part).Opacity));
+   begin
+      Write_Text_File (P1, ".c { opacity: 0.25; }");
+      Write_Text_File (P2, ".c { opacity: 0.75; }");
+
+      Set_Dynamic_Sources (Src, [CSS_File (P1), CSS_Text (Text)], OK);
+      Set_Mode (Src, Dynamic_Mode, OK);
+      Bind_Selector_Set (Source => Src, W => +W, Class_Name => "c");
+      Bind_Selector_Set (Source => Src, W => +T, Class_Name => "t");
+      Assert (Opacity_Of (W) = 0.25 and then Opacity_Of (T) = 0.5,
+              "both entries are in force");
+
+      Set_Dynamic_Sources (Src, [CSS_File (P2), CSS_Text (Text)], OK);
+      Assert (OK, "repointing the file installs");
+      Assert (Opacity_Of (W) = 0.75, "the new file is in force");
+      Assert (Opacity_Of (T) = 0.5, "and the text entry survived it");
+
+      Set_Dynamic_Sources
+        (Src, [CSS_File ("no/such/file.css"), CSS_Text (Text)], OK);
+      Assert (not OK, "repointing at a missing file fails");
+      Assert (Opacity_Of (W) = 0.75 and then Opacity_Of (T) = 0.5,
+              "and leaves the whole configuration in force");
+   end;
+
+   Section ("Tick watches the file entries of a mixed configuration");
+
+   declare
+      use Adi.CSS_Source;
+      Path     : constant String := "/tmp/adi_css_sources_tick.css";
+      Text     : constant String := ".t { opacity: 0.5; }";
+      Src      : Style_Source;
+      W        : constant Box_Handle := Create_Handle;
+      T        : constant Box_Handle := Create_Handle;
+      OK       : Boolean := False;
+      Reloaded : Boolean := False;
+
+      function Opacity_Of (B : Box_Handle) return Float is
+        (Float (Get_Resolved_Part_Style (+B, Main_Part).Opacity));
+   begin
+      Write_Text_File (Path, ".c { opacity: 0.25; }");
+      Set_Dynamic_Sources (Src, [CSS_File (Path), CSS_Text (Text)], OK);
+      Set_Mode (Src, Dynamic_Mode, OK);
+      Set_Auto_Reload (Src, True);
+      Bind_Selector_Set (Source => Src, W => +W, Class_Name => "c");
+      Bind_Selector_Set (Source => Src, W => +T, Class_Name => "t");
+
+      delay 1.1;
+      Write_Text_File (Path, ".c { opacity: 0.9; }");
+      Tick (Src, Reloaded, OK);
+      Assert (OK and then Reloaded, "the file entry is still watched");
+      Assert (Opacity_Of (W) = 0.9, "and its new content is in force");
+      Assert (Opacity_Of (T) = 0.5, "the text entry survived the reload");
    end;
 
    Finish;

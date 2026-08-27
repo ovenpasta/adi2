@@ -14,6 +14,13 @@ package Adi.CSS_Source.Testing is
 
    function Visit_Count return Count;
    function Reapply_Count return Count;
+
+   --  Concatenations handed to the parser, and files read to build them.
+   --  A test that only looked at the resulting styles could not tell one
+   --  parse of N sheets from N parses of a growing set.
+   function Parse_Count return Count;
+   function File_Read_Count return Count;
+
    procedure Reset_Counts;
 
 end Adi.CSS_Source.Testing;

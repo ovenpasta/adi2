@@ -334,7 +334,8 @@ and, after the widgets exist but before `A.Run`:
       declare
          Loaded, OK : Boolean;
       begin
-         Adi.CSS_Source.Add_Dynamic_File (Styles, "css/main.css", Loaded);
+         Adi.CSS_Source.Set_Dynamic_Sources
+           (Styles, [Adi.CSS_Source.CSS_File ("css/main.css")], Loaded);
          if Loaded then
             Adi.CSS_Source.Set_Mode (Styles, Adi.CSS_Source.Dynamic_Mode, OK);
             Adi.CSS_Source.Set_Auto_Reload (Styles, True);
@@ -354,10 +355,17 @@ and, after the widgets exist but before `A.Run`:
 Run it, edit a colour in `css/main.css`, save, and the window restyles
 without a rebuild.
 
-`Add_Dynamic_File` reports whether the file was found, so a missing
-stylesheet leaves the compiled-in rules in place rather than an unstyled
-window — which is what makes the same binary work when shipped without the
-`.css` beside it. The `Bind_*` calls replace the `Set_Part_Styles` ones
+Sheets are installed as a set: `Set_Dynamic_Sources` reads all of them,
+parses the concatenation once, and reports one verdict. Install or
+nothing — if any sheet is missing, the source keeps what it had, which
+here is nothing, so the rules compiled into `Main_Styles` stay in force
+rather than an unstyled window. That is what makes the same binary work
+when shipped without the `.css` beside it.
+
+`Add_Dynamic_File` adds one sheet to a set and reloads all of them, so
+its `Success` is the whole set's verdict rather than that one file's.
+With a single sheet the two coincide, which is why it reads as though it
+reported on the file. The `Bind_*` calls replace the `Set_Part_Styles` ones
 above: binding keeps the association, so each reload restyles the widget
 again. `Bind_Selector_Set` merges the kinds it is given in CSS order, and
 `Bind_Class` is shorthand for the class-only case.

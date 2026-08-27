@@ -835,12 +835,39 @@ Adi.CSS_Source.Bind_Root_Metadata (Source, Root_Widget);
 
 #### Dynamic Loading
 
+A source carries an ordered set of sheets — files, watched by `Tick`, and
+CSS text it holds. Later sheets cascade over earlier ones.
+
+```ada
+Adi.CSS_Source.Set_Dynamic_Sources
+  (Source,
+   [Adi.CSS_Source.CSS_File ("path/to/style.css"),
+    Adi.CSS_Source.CSS_Text (Theme_Overrides)],
+   Success);
+```
+
+Install or nothing: a file that is missing or unreadable — a directory, or
+one this process may not open — or CSS that does not parse leaves the
+sheets, mode and styling that were in force alone, with `Success` False
+and `Get_Last_Error` saying why. `Empty_Dynamic_Sources` clears, and
+unlike `Clear_Dynamic_Entries` it restyles the bound widgets at once.
+
 ```ada
 Adi.CSS_Source.Add_Dynamic_File (Source, "path/to/style.css", Success);
 Adi.CSS_Source.Add_Dynamic_String (Source, CSS_String, Success);
 Adi.CSS_Source.Reload_Dynamic (Source, Success);
 Adi.CSS_Source.Clear_Dynamic_Entries (Source);
 ```
+
+`Add_Dynamic_*` append one sheet and reload the rest, so `Success` is the
+whole set's verdict rather than that one sheet's, and building a set of N
+this way costs N parses and N(N+1)/2 file reads against one parse and N
+reads for `Set_Dynamic_Sources`. Reach for them only when adding to a set
+you did not assemble.
+
+Text sheets cannot go missing, which is why the XML generator compiles a
+`<style>` block in as `CSS_Text` rather than writing a companion file
+next to the generated Ada.
 
 #### Mode Selection
 
@@ -913,13 +940,15 @@ declare
 begin
    Adi.CSS_Source.Clear_Static_Entries (Source);
    My_Styles.Register_Selectors (Source);
-   Adi.CSS_Source.Clear_Dynamic_Entries (Source);
-   Adi.CSS_Source.Add_Dynamic_File (Source, "app.css", Loaded);
+   Adi.CSS_Source.Set_Dynamic_Sources
+     (Source, [Adi.CSS_Source.CSS_File ("app.css")], Loaded);
    Adi.CSS_Source.Set_Mode (Source, Adi.CSS_Source.Dynamic_Mode, Mode_OK);
 end;
 ```
 
 Without it, each step publishes its own configuration and every bound widget is restyled for each. `Begin_Update`/`End_Update` are the same thing written by hand; prefer the scope, which publishes on every exit path including an exception. Generated `Build` procedures use the scope.
+
+`Set_Dynamic_Sources` already installs its sheets as one step, so the scope earns its keep here by covering the static entries and the mode change in the same batch.
 
 #### Error Handling
 

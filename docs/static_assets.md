@@ -4,6 +4,12 @@ Adi supports embedding assets (images, fonts, SVG sprites, CSS, text) directly
 into the executable as byte arrays, eliminating filesystem I/O dependencies
 at runtime.
 
+> **Stylesheets are the exception.** `Adi.CSS_Source` reads a `CSS_File`
+> entry through `Ada.Directories`/`Stream_IO`, not through `Adi.Assets`, so
+> bundling a `.css` does not make `CSS_File` find it. A stylesheet that has
+> to travel inside the binary goes in as `CSS_Text` — which is how the XML
+> generator handles `<style>` blocks.
+
 ## Resolution Modes
 
 The app chooses one resolution strategy at startup via `Adi.Assets.Set_Mode`:

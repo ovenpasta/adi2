@@ -881,6 +881,46 @@ package body Adi.Window is
       end;
    end Apply_Window_Min_Size_From_Layout;
 
+   --------------------------
+   -- Prefer_Render_Driver --
+   --------------------------
+   procedure Prefer_Render_Driver (Name : String) is
+      use Interfaces.C.Strings;
+      C_Hint  : chars_ptr := New_String (Adi.SDL.SDL_HINT_RENDER_DRIVER);
+      C_Value : chars_ptr := New_String (Name);
+      Unused  : Adi.SDL.C_bool;
+   begin
+      Unused := Adi.SDL.SDL_SetHint (C_Hint, C_Value);
+      Free (C_Hint);
+      Free (C_Value);
+   end Prefer_Render_Driver;
+
+   -------------------
+   -- Render_Driver --
+   -------------------
+   function Render_Driver (W : Window) return String is
+      use Interfaces.C.Strings;
+      Name : chars_ptr;
+   begin
+      if W.Internal.ren = null then
+         return "";
+      end if;
+      Name := Adi.SDL.Render.SDL_GetRendererName (W.Internal.ren);
+      if Name = Null_Ptr then
+         return "";
+      end if;
+      return Value (Name);
+   end Render_Driver;
+
+   function Render_Driver (H : Window_Handle) return String is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr = null then
+         return "";
+      end if;
+      return Render_Driver (Ptr.all);
+   end Render_Driver;
+
    -------------------
    -- Create_Window --
    -------------------

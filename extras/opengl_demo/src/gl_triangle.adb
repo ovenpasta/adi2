@@ -13,6 +13,7 @@ with System;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.MCP;
+with Adi.OS;
 with Adi.SDL;
 with Adi.SDL.Render;
 with Adi.Widget;
@@ -109,21 +110,19 @@ procedure GL_Triangle is
    Orbit    : Float := 0.0;
 
    --  Read at startup rather than bundled, so the file can be edited
-   --  between runs without rebuilding.
+   --  between runs without rebuilding. Base_Path is where the binary
+   --  is, and bin/ sits beside assets/, so the working directory the
+   --  user happened to run from does not come into it.
    function Read_Asset (Name : String) return String is
       use Ada.Streams.Stream_IO;
 
-      function Locate return String is
-        (if Ada.Directories.Exists ("demo/assets/" & Name)
-         then "demo/assets/" & Name
-         else "assets/" & Name);
-
-      Path : constant String := Locate;
+      Path : constant String := Adi.OS.Base_Path & "../assets/" & Name;
       F    : File_Type;
    begin
       if not Ada.Directories.Exists (Path) then
          return "<p>Missing " & Path & "</p>";
       end if;
+
       Open (F, In_File, Path);
       declare
          Size   : constant Natural :=

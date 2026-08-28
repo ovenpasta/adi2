@@ -11,6 +11,7 @@ with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.CSS_Parser;
 with Adi.CSS_Source;
 with Adi.CSS_Source.Testing;
+with Adi.OS;
 use type Adi.CSS_Source.Testing.Count;
 
 --  A generated Build binds a root and then every widget under it, and an
@@ -727,8 +728,8 @@ begin
 
    declare
       use Adi.CSS_Source;
-      A   : constant String := "/tmp/adi_css_growth_a.css";
-      B   : constant String := "/tmp/adi_css_growth_b.css";
+      A   : constant String := Adi.OS.Temp_Path ("adi_css_growth_a.css");
+      B   : constant String := Adi.OS.Temp_Path ("adi_css_growth_b.css");
       Src : Style_Source;
       Ok  : Boolean := False;
    begin
@@ -750,9 +751,9 @@ begin
 
    declare
       use Adi.CSS_Source;
-      A   : constant String := "/tmp/adi_css_growth_a.css";
-      B   : constant String := "/tmp/adi_css_growth_b.css";
-      C   : constant String := "/tmp/adi_css_growth_c.css";
+      A   : constant String := Adi.OS.Temp_Path ("adi_css_growth_a.css");
+      B   : constant String := Adi.OS.Temp_Path ("adi_css_growth_b.css");
+      C   : constant String := Adi.OS.Temp_Path ("adi_css_growth_c.css");
       Src : Style_Source;
       Ok  : Boolean := False;
    begin

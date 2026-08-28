@@ -24,6 +24,7 @@ with Adi.Widget_Styles;       use Adi.Widget_Styles;
 with Adi.Window;
 with Test_Mouse_Probe;
 with Test_Support;            use Test_Support;
+with Adi.OS;
 
 procedure Window_Resize_Safety_Test is
 
@@ -175,7 +176,7 @@ procedure Window_Resize_Safety_Test is
       Min_W_3 : aliased int := 0;
       Min_H_3 : aliased int := 0;
       Got_Min : Adi.SDL.C_bool;
-      Css_Path : constant String := "/tmp/adi_window_min_font_reload.css";
+      Css_Path : constant String := Adi.OS.Temp_Path ("adi_window_min_font_reload.css");
       Css_V1 : constant String := ".probe { font-size: 12px; }" & ASCII.LF;
       Css_V2 : constant String := ".probe { font-size: 30px; }" & ASCII.LF;
       Css_V3 : constant String := ".probe { font-size: 10px; }" & ASCII.LF;

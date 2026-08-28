@@ -13,6 +13,7 @@ with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Test_Support;
+with Adi.OS;
 
 procedure Css_Parser_Test is
 
@@ -1830,7 +1831,7 @@ procedure Css_Parser_Test is
       Reload_Sheet : Adi.CSS_Parser.Stylesheet;
       Reloaded     : Boolean := False;
       Reload_OK    : Boolean := False;
-      Css_Path     : constant String := "/tmp/adi_css_parser_test.css";
+      Css_Path     : constant String := Adi.OS.Temp_Path ("adi_css_parser_test.css");
       Box          : Box_Handle;
       V1           : constant String :=
         ".reloadable { background-color: rgb(10, 20, 30); }" & ASCII.LF;
@@ -1907,7 +1908,7 @@ procedure Css_Parser_Test is
                  "Invalid transition value should be ignored without affecting valid declarations");
       end;
 
-      Adi.CSS_Parser.Load_File (Bad_Sheet, "/tmp/this_file_should_not_exist_adi_css.css", Bad_OK);
+      Adi.CSS_Parser.Load_File (Bad_Sheet, Adi.OS.Temp_Path ("this_file_should_not_exist_adi_css.css"), Bad_OK);
       Test_Support.Assert (not Bad_OK, "Load_File should fail for missing CSS file");
       Test_Support.Assert (Adi.CSS_Parser.Get_Last_Error (Bad_Sheet) /= "",
               "Load_File missing-path failure should provide error text");

@@ -7,6 +7,7 @@ with Adi.Settings;              use Adi.Settings;
 with Adi.Settings.JSON_Backend; use Adi.Settings.JSON_Backend;
 
 with Test_Support;
+with Adi.OS;
 
 procedure Settings_Test is
 
@@ -14,7 +15,8 @@ procedure Settings_Test is
      renames Test_Support.Assert;
 
    --  Temporary directory for test files
-   Tmp_Dir : constant String := "/tmp/adi_settings_test/";
+   Tmp_Dir : constant String :=
+     Adi.OS.Temp_Path ("adi_settings_test") & Adi.OS.Path_Separator;
 
    procedure Ensure_Tmp_Dir is
    begin
@@ -496,7 +498,8 @@ procedure Settings_Test is
       declare
          B : aliased JSON_Settings_Backend;
          V : constant Setting_Value :=
-           B.Load ("/tmp/adi_settings_test_nonexistent/settings.json");
+           B.Load (Adi.OS.Temp_Path ("adi_settings_test_nonexistent")
+                   & Adi.OS.Path_Separator & "settings.json");
       begin
          Assert (Kind (V) = Null_Kind,
                  "Load non-existent file returns Null");

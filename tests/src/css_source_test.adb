@@ -17,6 +17,7 @@ with Adi.Widget.Box; use Adi.Widget.Box;
 with Adi.Widget.Label; use Adi.Widget.Label;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Test_Support; use Test_Support;
+with Adi.OS;
 
 procedure Css_Source_Test is
 
@@ -173,7 +174,7 @@ begin
       OK     : Boolean := False;
       Reloaded : Boolean := False;
       Tick_OK  : Boolean := False;
-      Css_Path : constant String := "/tmp/adi_css_source_test.css";
+      Css_Path : constant String := Adi.OS.Temp_Path ("adi_css_source_test.css");
       Css_V1   : constant String :=
         "button { background-color: rgb(40, 50, 60); opacity: 0.25; }" & ASCII.LF &
         ".primary { background-color: rgb(90, 100, 110); padding: 6px; }" & ASCII.LF &
@@ -429,7 +430,7 @@ begin
       OK       : Boolean := False;
       Reloaded : Boolean := False;
       Tick_OK  : Boolean := False;
-      Css_Path : constant String := "/tmp/adi_css_multiclass_test.css";
+      Css_Path : constant String := Adi.OS.Temp_Path ("adi_css_multiclass_test.css");
       Css_V1   : constant String :=
         ".base { background-color: rgb(10, 20, 30); padding: 4px; }" & ASCII.LF &
         ".accent { background-color: rgb(100, 110, 120); border-width: 2px; }" & ASCII.LF;
@@ -574,7 +575,7 @@ begin
       Tick_OK   : Boolean := False;
       Width_V1  : Pixel_Type := 0.0;
       Width_V2  : Pixel_Type := 0.0;
-      Css_Path  : constant String := "/tmp/adi_css_source_font_reload.css";
+      Css_Path  : constant String := Adi.OS.Temp_Path ("adi_css_source_font_reload.css");
       Css_V1    : constant String :=
         ".probe { font-size: 12px; }" & ASCII.LF;
       Css_V2    : constant String :=
@@ -612,7 +613,7 @@ begin
 
    declare
       use Adi.CSS_Source;
-      Path : constant String := "/tmp/adi_css_sources_order.css";
+      Path : constant String := Adi.OS.Temp_Path ("adi_css_sources_order.css");
       Src  : Style_Source;
       W    : constant Box_Handle := Create_Handle;
       OK   : Boolean := False;
@@ -639,7 +640,7 @@ begin
 
    declare
       use Adi.CSS_Source;
-      Good : constant String := "/tmp/adi_css_sources_good.css";
+      Good : constant String := Adi.OS.Temp_Path ("adi_css_sources_good.css");
       Src  : Style_Source;
       W    : constant Box_Handle := Create_Handle;
       OK   : Boolean := False;
@@ -759,8 +760,8 @@ begin
 
    declare
       use Adi.CSS_Source;
-      A        : constant String := "/tmp/adi_css_sources_err_a.css";
-      B        : constant String := "/tmp/adi_css_sources_err_b.css";
+      A        : constant String := Adi.OS.Temp_Path ("adi_css_sources_err_a.css");
+      B        : constant String := Adi.OS.Temp_Path ("adi_css_sources_err_b.css");
       Src      : Style_Source;
       W        : constant Box_Handle := Create_Handle;
       OK       : Boolean := False;
@@ -797,7 +798,7 @@ begin
 
    declare
       use Adi.CSS_Source;
-      Path     : constant String := "/tmp/adi_css_sources_spin.css";
+      Path     : constant String := Adi.OS.Temp_Path ("adi_css_sources_spin.css");
       Src      : Style_Source;
       OK       : Boolean := False;
       Reloaded : Boolean := False;
@@ -859,8 +860,8 @@ begin
 
    declare
       use Adi.CSS_Source;
-      P1   : constant String := "/tmp/adi_css_sources_p1.css";
-      P2   : constant String := "/tmp/adi_css_sources_p2.css";
+      P1   : constant String := Adi.OS.Temp_Path ("adi_css_sources_p1.css");
+      P2   : constant String := Adi.OS.Temp_Path ("adi_css_sources_p2.css");
       Text : constant String := ".t { opacity: 0.5; }";
       Src  : Style_Source;
       W    : constant Box_Handle := Create_Handle;
@@ -896,7 +897,7 @@ begin
 
    declare
       use Adi.CSS_Source;
-      Path     : constant String := "/tmp/adi_css_sources_tick.css";
+      Path     : constant String := Adi.OS.Temp_Path ("adi_css_sources_tick.css");
       Text     : constant String := ".t { opacity: 0.5; }";
       Src      : Style_Source;
       W        : constant Box_Handle := Create_Handle;

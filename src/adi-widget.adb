@@ -6441,6 +6441,14 @@ package body Adi.Widget is
         (Renderer, In_Render_Space (W.Scroll_Knob_Geom, Ctx), Knob_Style);
    end Render_Shared_Scrollbar;
 
+   procedure Render_Content (W    : in out Widget;
+                             Ctx  : in out Render_Context;
+                             Area : Rectangle) is
+      pragma Unreferenced (Area);
+   begin
+      Render_Items (W, Ctx);
+   end Render_Content;
+
    procedure Render_Tree_Impl
      (W                : in out Widget'Class;
       Ctx              : in out Render_Context;
@@ -6466,7 +6474,7 @@ package body Adi.Widget is
       if Widget_Is_Visible then
          --  Render this widget's own visuals first; overflow clipping applies to
          --  descendant content, not the widget's own background/border panel.
-         Render_Items (W, Ctx);
+         Render_Content (W, Ctx, In_Render_Space (Get_Geometry (W), Ctx));
       end if;
 
       if Widget_Is_Visible and then Debug_Layout_Overlay_Enabled and then Renderer /= null then

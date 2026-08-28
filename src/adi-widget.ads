@@ -326,6 +326,10 @@ package Adi.Widget is
    procedure Set_Geometry (H : Widget_Handle; G : Rectangle);
    function  Get_Geometry (H : Widget_Handle) return Rectangle;
 
+   --  The area the layout calculated, which does not account for
+   --  scrolling. Use it for Layout, Build_Items and input.
+   function  Get_Geometry (W : Widget'Class) return Rectangle;
+
    ---------------------------------------------------------------------------
    --  Shared Vertical Scrolling (overflow-y)
    ---------------------------------------------------------------------------
@@ -447,6 +451,15 @@ package Adi.Widget is
 
    --  Render all items of this widget using SDL renderer
    procedure Render_Items (W : in out Widget'Class; Ctx : in out Render_Context);
+
+   --  An override replaces the items entirely; call Render_Items first
+   --  to keep the CSS background and border under what it draws. Area is
+   --  where to draw, with scrolling applied. The clip is already set.
+   --  Leave the renderer as you found it -- widgets drawn afterwards
+   --  inherit a render target left set.
+   procedure Render_Content (W    : in out Widget;
+                             Ctx  : in out Render_Context;
+                             Area : Rectangle);
 
    --  Render this widget and all children recursively
    procedure Render_Tree (W : in out Widget'Class; Ctx : in out Render_Context);
@@ -1015,7 +1028,6 @@ private
                                       P : Part_Kind) return Resolved_Style;
 
    procedure Set_Geometry (W : in out Widget'Class; G : Rectangle);
-   function  Get_Geometry (W : Widget'Class) return Rectangle;
    function  Get_Content_Box (W : Widget'Class) return Rectangle;
 
    procedure Set_Flag (W : in out Widget'Class; F : Widget_Flag; Value : Boolean);

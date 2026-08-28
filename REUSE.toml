@@ -10,7 +10,7 @@ SPDX-PackageDownloadLocation = "https://github.com/ovenpasta/adi2"
 #  ---- Adi2's own sources ----
 
 [[annotations]]
-path = ["src/**", "tests/**", "examples/**", "tools/**", "docs/**", "wasm/**", "config/**", "*.md", "*.gpr", "*.toml", "LICENSE", ".github/**"]
+path = ["src/**", "tests/**", "examples/**", "extras/**", "tools/**", "docs/**", "wasm/**", "config/**", "*.md", "*.gpr", "*.toml", "LICENSE", ".github/**"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Aldo Nicolas Bruno"
 SPDX-License-Identifier = "Apache-2.0"

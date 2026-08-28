@@ -1,6 +1,8 @@
 # Adi2
 
-[![CI](https://github.com/ovenpasta/adi2/actions/workflows/ci.yml/badge.svg)](https://github.com/ovenpasta/adi2/actions/workflows/ci.yml)
+[![Linux](https://github.com/ovenpasta/adi2/actions/workflows/linux.yml/badge.svg)](https://github.com/ovenpasta/adi2/actions/workflows/linux.yml)
+[![Windows](https://github.com/ovenpasta/adi2/actions/workflows/windows.yml/badge.svg)](https://github.com/ovenpasta/adi2/actions/workflows/windows.yml)
+[![REUSE](https://github.com/ovenpasta/adi2/actions/workflows/reuse.yml/badge.svg)](https://github.com/ovenpasta/adi2/actions/workflows/reuse.yml)
 
 **A modern GUI library for Ada.**
 

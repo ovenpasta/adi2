@@ -1,0 +1,33 @@
+name: Windows
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  #  The library and the Ada tests. The widget-tree goldens are left out:
+  #  their runner looks for examples/bin/<name> and shells out to a .sh,
+  #  neither of which holds here.
+  test:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - uses: alire-project/setup-alire@v6
+
+      - name: Build the library
+        run: alr build -- -j0
+
+      - name: Run the suite
+        shell: bash
+        env:
+          PYTHON: python
+          ADI_SKIP_TREE_GOLDENS: 1
+        run: alr exec -- bash tools/run_tests.sh

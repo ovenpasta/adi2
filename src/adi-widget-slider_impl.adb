@@ -10,8 +10,9 @@ with Adi.SDL.Events;   use Adi.SDL.Events;
 package body Adi.Widget.Slider_Impl is
 
    Panel_Idx     : constant Positive := 1;
-   Indicator_Idx : constant Positive := 2;
-   Knob_Idx      : constant Positive := 3;
+   Track_Idx     : constant Positive := 2;
+   Indicator_Idx : constant Positive := 3;
+   Knob_Idx      : constant Positive := 4;
 
    ---------------------------------------------------------------------------
    --  Internal helpers
@@ -117,6 +118,8 @@ package body Adi.Widget.Slider_Impl is
    procedure Update_Slider_Items (W : in out Slider_Widget) is
       Main_Style : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Main_Part);
+      Track_Style : constant Resolved_Style :=
+        Get_Resolved_Part_Style (W, Scroll_Part);
       Knob_Style : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Knob_Part);
       Widget_Geom : constant Rectangle := Get_Geometry (W);
@@ -124,20 +127,36 @@ package body Adi.Widget.Slider_Impl is
         Content_Box (Widget_Geom, Main_Style);
       R           : constant Float := Ratio (W);
 
+      Panel_Item : Item;
       Track_Item : Item;
       Fill_Item  : Item;
       Knob_Item  : Item;
    begin
-      if Item_Count (W) < 3 then
+      if Item_Count (W) < Knob_Idx then
          return;
       end if;
 
-      Track_Item := Get_Item (W, Panel_Idx);
-      Track_Item.Geometry := Widget_Geom;
-      Update_Item (W, Panel_Idx, Track_Item);
+      Panel_Item := Get_Item (W, Panel_Idx);
+      Panel_Item.Geometry := Widget_Geom;
+      Update_Item (W, Panel_Idx, Panel_Item);
 
       if W.Dir = Horizontal then
          declare
+            --  The bar is as thick as ::scroll asks and sits centred
+            --  in the widget. Without a height it fills the box.
+            Band_H : constant Pixel_Type :=
+              (if Track_Style.Height.Kind = Fixed
+               then Pixel_Type'Min
+                      (Content.Height,
+                       Size_To_Px (Track_Style.Height,
+                                   Container_Size => Content.Height))
+               else Content.Height);
+            Band_Y : constant Pixel_Type :=
+              Content.Y + (Content.Height - Band_H) / 2.0;
+
+            --  The knob spans the widget, not the bar, so a bar thinner
+            --  than the knob leaves the knob round and the whole widget
+            --  height still takes the press.
             Knob_H : Pixel_Type := Content.Height;
             Knob_W : Pixel_Type :=
               (if Knob_Style.Width.Kind = Fixed
@@ -156,12 +175,20 @@ package body Adi.Widget.Slider_Impl is
             Knob_W := Pixel_Type'Max (0.0, Knob_W);
             Knob_H := Pixel_Type'Max (0.0, Knob_H);
 
+            Track_Item := Get_Item (W, Track_Idx);
+            Track_Item.Geometry := (
+              X      => Content.X,
+              Y      => Band_Y,
+              Width  => Content.Width,
+              Height => Band_H);
+            Update_Item (W, Track_Idx, Track_Item);
+
             Fill_Item := Get_Item (W, Indicator_Idx);
             Fill_Item.Geometry := (
               X      => Content.X,
-              Y      => Content.Y,
+              Y      => Band_Y,
               Width  => Pixel_Type'Max (0.0, Fill_W),
-              Height => Content.Height);
+              Height => Band_H);
             Update_Item (W, Indicator_Idx, Fill_Item);
 
             Knob_Item := Get_Item (W, Knob_Idx);
@@ -174,6 +201,16 @@ package body Adi.Widget.Slider_Impl is
          end;
       else
          declare
+            Band_W : constant Pixel_Type :=
+              (if Track_Style.Width.Kind = Fixed
+               then Pixel_Type'Min
+                      (Content.Width,
+                       Size_To_Px (Track_Style.Width,
+                                   Container_Size => Content.Width))
+               else Content.Width);
+            Band_X : constant Pixel_Type :=
+              Content.X + (Content.Width - Band_W) / 2.0;
+
             Knob_W : Pixel_Type := Content.Width;
             Knob_H : Pixel_Type :=
               (if Knob_Style.Height.Kind = Fixed
@@ -190,11 +227,19 @@ package body Adi.Widget.Slider_Impl is
             Knob_W := Pixel_Type'Max (0.0, Knob_W);
             Knob_H := Pixel_Type'Max (0.0, Knob_H);
 
+            Track_Item := Get_Item (W, Track_Idx);
+            Track_Item.Geometry := (
+              X      => Band_X,
+              Y      => Content.Y,
+              Width  => Band_W,
+              Height => Content.Height);
+            Update_Item (W, Track_Idx, Track_Item);
+
             Fill_Item := Get_Item (W, Indicator_Idx);
             Fill_Item.Geometry := (
-              X      => Content.X,
+              X      => Band_X,
               Y      => Content.Y,
-              Width  => Content.Width,
+              Width  => Band_W,
               Height => Pixel_Type'Max (0.0, Fill_H));
             Update_Item (W, Indicator_Idx, Fill_Item);
 
@@ -472,8 +517,9 @@ package body Adi.Widget.Slider_Impl is
             G : constant Rectangle := Get_Geometry (W);
          begin
             Add_Item (W, Make_Panel (Main_Part, G, 0));
-            Add_Item (W, Make_Panel (Indicator_Part, G, 1));
-            Add_Item (W, Make_Panel (Knob_Part, G, 2));
+            Add_Item (W, Make_Panel (Scroll_Part, G, 1));
+            Add_Item (W, Make_Panel (Indicator_Part, G, 2));
+            Add_Item (W, Make_Panel (Knob_Part, G, 3));
          end;
       end if;
 
@@ -500,7 +546,7 @@ package body Adi.Widget.Slider_Impl is
       W.Dragging := True;
 
       --  Check if click is on knob; if so, record offset for smooth drag.
-      if Item_Count (W) >= 3 then
+      if Item_Count (W) >= Knob_Idx then
          declare
             Knob_Geom : constant Rectangle := Get_Item (W, Knob_Idx).Geometry;
          begin

@@ -21,6 +21,7 @@ set -u
 cd "$(dirname "$0")/.."
 
 GPRBUILD="${GPRBUILD:-gprbuild}"
+PYTHON="${PYTHON:-python3}"
 TEST_TIMEOUT="${TEST_TIMEOUT:-120}"
 TREE_TIMEOUT="${TREE_TIMEOUT:-900}"
 export SDL_VIDEODRIVER="${SDL_VIDEODRIVER:-dummy}"
@@ -81,7 +82,7 @@ for t in $kinds; do
 done
 
 for p in test_css_to_ada test_xml_to_ada test_binary_to_ada test_po_to_ada test_adi_mcp; do
-  run_one "$p" "$TEST_TIMEOUT" python3 "tools/$p.py" || fail=1
+  run_one "$p" "$TEST_TIMEOUT" "$PYTHON" "tools/$p.py" || fail=1
 done
 
 #  Every example's widget tree against its golden. This one builds the
@@ -89,7 +90,7 @@ done
 #  around a minute when nothing changed, several when the library did.
 #  Set ADI_SKIP_TREE_GOLDENS=1 to leave it out.
 if [[ "${ADI_SKIP_TREE_GOLDENS:-0}" != 1 ]]; then
-  run_one "widget_trees" "$TREE_TIMEOUT" python3 tools/widget_trees.py || fail=1
+  run_one "widget_trees" "$TREE_TIMEOUT" "$PYTHON" tools/widget_trees.py || fail=1
 fi
 
 if [[ $fail -ne 0 ]]; then

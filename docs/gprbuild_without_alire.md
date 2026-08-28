@@ -71,4 +71,6 @@ gprbuild --config=path/to/target.cgpr -P build-win32/projects/tests_build.gpr -X
 Notes:
 - No writes to source `config/`; all generated files live under `--build-dir`.
 - Platform is explicit: `--target linux|darwin|windows` in `configure.sh` and `-XADI_PLATFORM=<linux|darwin|windows>` in manual `gprbuild`.
+- `build_all.sh` skips `mcp_test` unless the build is a development profile for
+  a non-Windows target, which is where `adi.gpr` compiles the real `Adi.MCP`.
 - Alire builds remain supported (`alr build`, `alr exec -- gprbuild ...`).

@@ -375,6 +375,18 @@ gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATF
 #  Expanded at configure time from tests/tests.gpr (single source of truth).
 TEST_KINDS=(${TEST_KINDS_LIST})
 
+if [[ "\${TARGET_PLATFORM}" == "windows" || "\${BUILD_PROFILE}" != "development" ]]; then
+  KEPT=()
+  for kind in "\${TEST_KINDS[@]}"; do
+    if [[ "\${kind}" == "mcp_test" ]]; then
+      echo "[build_all] skip test: mcp_test (this build uses the MCP stub)"
+    else
+      KEPT+=("\${kind}")
+    fi
+  done
+  TEST_KINDS=("\${KEPT[@]}")
+fi
+
 for kind in "\${TEST_KINDS[@]}"; do
   echo "[build_all] build test: \${kind}"
   gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}" -XTEST_KIND="\${kind}"

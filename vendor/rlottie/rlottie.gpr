@@ -86,4 +86,18 @@ project RLottie is
         & CXX_Switches & Platform_CXX_Switches;
    end Compiler;
 
+   Platform_Linker_Switches := ("-lstdc++");
+   case Platform_Name is
+      when "darwin" =>
+         Platform_Linker_Switches := ();
+      when "windows" =>
+         Platform_Linker_Switches := ("-lstdc++", "-lshlwapi");
+      when others =>
+         null;
+   end case;
+
+   package Linker is
+      for Linker_Options use Platform_Linker_Switches;
+   end Linker;
+
 end RLottie;

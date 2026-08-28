@@ -3,14 +3,17 @@
 
 pragma Ada_2022;
 
+with Ada.Calendar;
 with Ada.Characters.Handling;
 with Ada.Directories;
+with Ada.Environment_Variables;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with GNAT.OS_Lib;
 
 with Adi.App;
+with Adi.Build_Target;
 with Adi.Clock;
 with Adi.Core;                   use Adi.Core;
 with Adi.CSS_Styles;             use Adi.CSS_Styles;
@@ -96,6 +99,14 @@ package body Adi.MCP is
 
    Active     : Boolean := False;
    MCP_Dir    : Unbounded_String;
+
+   --  How often the running application rewrites its "ready" file, and
+   --  how far behind one may fall before its directory is reaped.
+   Heartbeat_Period : constant Duration := 5.0;
+   Stale_After      : constant Duration := 120.0;
+
+   Last_Heartbeat : Ada.Calendar.Time := Ada.Calendar.Clock;
+   MCP_Pid_Str    : Unbounded_String;
    MCP_Window : Adi.Window.Window_Handle := Adi.Window.Null_Window_Handle;
 
    --  Connection IDs for signal-based disconnect in Finalize
@@ -1431,7 +1442,15 @@ package body Adi.MCP is
       Dir  : constant String := To_String (MCP_Dir);
       Srch : Search_Type;
       Ent  : Directory_Entry_Type;
+
+      use type Ada.Calendar.Time;
+      Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
    begin
+      if Now - Last_Heartbeat >= Heartbeat_Period then
+         Last_Heartbeat := Now;
+         Write_File (Dir & "/ready", To_String (MCP_Pid_Str));
+      end if;
+
       Start_Search (Srch, Dir, "cmd_*.json",
                     [Ordinary_File => True, others => False]);
       if More_Entries (Srch) then
@@ -1510,12 +1529,22 @@ package body Adi.MCP is
    --  Public API
    ---------------------------------------------------------------------------
 
-   function Is_Process_Alive (Pid : Integer) return Boolean is
-      function C_Kill (P : Integer; Sig : Integer) return Integer
-        with Import, Convention => C, External_Name => "kill";
+   function Default_Base_Dir return String is
+      use Adi.Build_Target;
+      use Ada.Environment_Variables;
    begin
-      return C_Kill (Pid, 0) = 0;
-   end Is_Process_Alive;
+      case Platform is
+         when Windows =>
+            if Exists ("TEMP") then
+               return Value ("TEMP") & "\\adi_mcp";
+            elsif Exists ("TMP") then
+               return Value ("TMP") & "\\adi_mcp";
+            end if;
+            return "C:\\Windows\\Temp\\adi_mcp";
+         when others =>
+            return "/tmp/adi_mcp";
+      end case;
+   end Default_Base_Dir;
 
    procedure Remove_Directory_Recursive (Path : String) is
       use Ada.Directories;
@@ -1550,13 +1579,17 @@ package body Adi.MCP is
          begin
             if Name /= "." and then Name /= ".." then
                declare
-                  Dir_Pid : constant Integer := Integer'Value (Name);
+                  use type Ada.Calendar.Time;
+                  Ready : constant String := Full_Name (Ent) & "/ready";
                begin
-                  if not Is_Process_Alive (Dir_Pid) then
+                  if not Exists (Ready)
+                    or else Ada.Calendar.Clock - Modification_Time (Ready)
+                              > Stale_After
+                  then
                      Remove_Directory_Recursive (Full_Name (Ent));
                   end if;
                exception
-                  when Constraint_Error => null;
+                  when others => null;
                end;
             end if;
          end;
@@ -1568,7 +1601,7 @@ package body Adi.MCP is
 
    procedure Initialize
      (Win      : Adi.Window.Window_Handle;
-      Base_Dir : String := "/tmp/adi_mcp")
+      Base_Dir : String := Default_Base_Dir)
    is
       use GNAT.OS_Lib;
       Pid_Str : constant String := Ada.Strings.Fixed.Trim
@@ -1595,6 +1628,8 @@ package body Adi.MCP is
       MCP_Window := Win;
       Active := True;
 
+      MCP_Pid_Str := To_Unbounded_String (Pid_Str);
+      Last_Heartbeat := Ada.Calendar.Clock;
       Write_File (Dir & "/ready", Pid_Str);
 
       Frame_Conn := Adi.Window.Connect_Frame

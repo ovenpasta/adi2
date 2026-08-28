@@ -205,7 +205,7 @@ Existing hand-crafted binding modules:
 
 ## Adi Runtime Introspection
 
-`tools/adi_mcp_server.py --cli` inspects a **running** Adi application. It needs the app to call `Adi.MCP.Initialize`, a `development` build profile, and a non-Windows target: release and validation profiles get a no-op stub, and `adi.gpr` forces the stub on Windows regardless of profile because the real implementation imports POSIX `kill`.
+`tools/adi_mcp_server.py --cli` inspects a **running** Adi application. It needs the app to call `Adi.MCP.Initialize` and a `development` build profile; release and validation profiles get a no-op stub. Every platform is supported. The IPC directory is `/tmp/adi_mcp`, and `%TEMP%\adi_mcp` on Windows.
 
 ```bash
 python3 tools/adi_mcp_server.py --cli --pid <PID> perf_stats

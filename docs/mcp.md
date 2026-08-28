@@ -8,14 +8,13 @@ Adi exposes a development-only MCP bridge:
 
 - Ada side: `Adi.MCP` (`src/mcp/`) polls command files and writes JSON responses.
 - Python side: `tools/adi_mcp_server.py` exposes MCP tools and handles file IPC.
-- IPC directory: `/tmp/adi_mcp/<PID>/`
+- IPC directory: `/tmp/adi_mcp/<PID>/`, and `%TEMP%\adi_mcp\<PID>\` on Windows
 
-Release and validation builds use `src/mcp_stub/` (no-op implementation), as do Windows builds of any profile.
+Release and validation builds use `src/mcp_stub/` (no-op implementation).
 
 ## Prerequisites
 
 - Build profile must be `development`.
-- Target platform must not be Windows. The real implementation imports POSIX `kill`, so `adi.gpr` selects `src/mcp_stub/` for `ADI_PLATFORM=windows` whatever the profile.
 - The target app must call `Adi.MCP.Initialize`.
 - MCP server config must point at `tools/adi_mcp_server.py` and the same base directory (`/tmp/adi_mcp`).
 
@@ -242,9 +241,10 @@ arguments as further fields of the same object.
   Auto-discovery does not guess between live applications, because the
   most recently active one is not necessarily the one you mean. Re-run
   targeting a specific process with `--pid <PID>`, or leave one running:
-  `pgrep -af examples/bin/` lists them. Discovery already removes the
-  session directory of any PID that is no longer alive, so a killed app
-  stops counting on its own. Clearing one by hand means
+  `pgrep -af examples/bin/` lists them. Discovery removes the session
+  directory of an application that has stopped rewriting its `ready`
+  file, and on POSIX also one whose PID the OS reports as gone, so a
+  killed app stops counting on its own. Clearing one by hand means
   `rm -rf /tmp/adi_mcp/<PID>` for that PID — never the parent, which is
   shared between applications and users.
 - Timeouts:

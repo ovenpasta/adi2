@@ -17,6 +17,7 @@ import inspect
 import json
 import os
 import sys
+import tempfile
 import threading
 import time
 import uuid
@@ -37,7 +38,10 @@ except ImportError:
 
 POLL_INTERVAL = 0.1   # seconds between response checks
 TIMEOUT = 5.0         # seconds before giving up
-MCP_DIR_PARENT = Path("/tmp/adi_mcp")
+MCP_DIR_PARENT = Path(tempfile.gettempdir()) / "adi_mcp"
+#  The application rewrites "ready" every few seconds. One that has
+#  stopped being touched belongs to a process that is gone.
+STALE_AFTER = 120.0
 
 class _Unserved:
     """Registers tools when FastMCP is absent, and refuses to serve them."""
@@ -79,16 +83,27 @@ def _get_pid_lock(pid: int) -> threading.Lock:
 # IPC Helpers
 # ---------------------------------------------------------------------------
 
-def _is_pid_alive(pid: int) -> bool:
-    """Check whether a process with the given PID is running."""
+def _is_fresh(ready_path: Path) -> bool:
+    """Whether an app is still touching its "ready" file."""
+    try:
+        return time.time() - ready_path.stat().st_mtime <= STALE_AFTER
+    except OSError:
+        return False
+
+
+def _pid_is_gone(pid: int) -> bool:
+    """True only when the OS says the process is gone, False when it
+    cannot be asked. On Windows os.kill terminates the target whatever
+    signal it is given, so it is never asked there."""
+    if os.name != "posix":
+        return False
     try:
         os.kill(pid, 0)
-        return True
-    except ProcessLookupError:
         return False
-    except PermissionError:
-        # Process exists but we don't have permission to signal it
+    except ProcessLookupError:
         return True
+    except (PermissionError, OSError):
+        return False
 
 
 def _cleanup_stale_dir(d: Path) -> None:
@@ -129,7 +144,7 @@ def find_mcp_dir(pid: int | None = None) -> Path:
             dir_pid = int(ready_path.parent.name)
         except ValueError:
             continue
-        if _is_pid_alive(dir_pid):
+        if _is_fresh(ready_path) and not _pid_is_gone(dir_pid):
             live.append(ready_path)
         else:
             _cleanup_stale_dir(ready_path.parent)

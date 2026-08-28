@@ -10,9 +10,11 @@ package Adi.MCP is
    --  Stub: MCP support excluded from this build profile.
    --  All operations are no-ops.
 
+   function Default_Base_Dir return String;
+
    procedure Initialize
      (Win      : Adi.Window.Window_Handle;
-      Base_Dir : String := "/tmp/adi_mcp");
+      Base_Dir : String := Default_Base_Dir);
    procedure Finalize;
    function Is_Active return Boolean;
 

@@ -9,13 +9,17 @@ with Adi.Window;
 
 package Adi.MCP is
 
+   --  /tmp/adi_mcp, or %TEMP%\adi_mcp on Windows.
+   function Default_Base_Dir return String;
+
    --  Initialize the MCP command processor for a window.
-   --  Creates <Base_Dir>/<PID>/ with a "ready" sentinel file.
+   --  Creates <Base_Dir>/<PID>/ with a "ready" sentinel file, which is
+   --  rewritten as the application runs: a directory whose "ready" has
+   --  stopped being touched belongs to a process that is gone.
    --  Registers callbacks that poll for commands each frame.
-   --  Base_Dir defaults to "/tmp/adi_mcp" (well-known absolute location).
    procedure Initialize
      (Win      : Adi.Window.Window_Handle;
-      Base_Dir : String := "/tmp/adi_mcp");
+      Base_Dir : String := Default_Base_Dir);
 
    --  Shut down and clean up the MCP directory.
    procedure Finalize;

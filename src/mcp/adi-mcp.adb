@@ -63,6 +63,10 @@ package body Adi.MCP is
            ("pressure_evictions", Adi.JSON.JSON_Integer (S.Pressure));
          W.Key_Value
            ("headroom_evictions", Adi.JSON.JSON_Integer (S.Headroom));
+         --  Borrowed entries are charged nothing, so a figure here says
+         --  the count bounding them was reached, not that the budget was.
+         W.Key_Value
+           ("crowded_evictions", Adi.JSON.JSON_Integer (S.Crowded));
          W.Key_Value ("replaced", Adi.JSON.JSON_Integer (S.Replaced));
          W.Key_Value ("cleared", Adi.JSON.JSON_Integer (S.Cleared));
          W.Key_Value ("discarded", Adi.JSON.JSON_Integer (S.Discarded));
@@ -86,6 +90,7 @@ package body Adi.MCP is
       Emit_Kind ("shadow", Adi.Texture_Cache.Shadow_Texture);
       Emit_Kind ("raster", Adi.Texture_Cache.Raster_Texture);
       Emit_Kind ("svg", Adi.Texture_Cache.SVG_Texture);
+      Emit_Kind ("view", Adi.Texture_Cache.View_Texture);
       W.End_Object;
    end Write_Texture_Cache;
 

@@ -548,11 +548,12 @@ procedure MCP_Test is
       Stats.Count      := 2;
       Stats.Frames     := 17;
 
-      --  Distinct per kind, so a serializer emitting one kind three times
+      --  Distinct per kind, so a serializer emitting one kind four times
       --  would not agree with what it was given.
       Stats.By_Kind (Shadow_Texture).Bytes    := 111;
       Stats.By_Kind (Raster_Texture).Bytes    := 222;
       Stats.By_Kind (SVG_Texture).Bytes       := 333;
+      Stats.By_Kind (View_Texture).Bytes      := 444;
       Stats.By_Kind (Shadow_Texture).Pressure := 7;
       Stats.By_Kind (Shadow_Texture).Headroom := 9;
 
@@ -586,13 +587,13 @@ procedure MCP_Test is
                     "perf_stats texture_cache should carry " & Field);
          end Expect;
 
-         --  Per-kind fields appear once for each of the three producers.
+         --  Per-kind fields appear once for each of the four producers.
          --  Counting matters for names the outer object also uses: a
          --  missing per-kind figure would otherwise be masked by the
          --  total that shares its name.
          procedure Expect_Per_Kind (Field : String) is
          begin
-            Assert (Occurrences (Field) >= 3,
+            Assert (Occurrences (Field) >= 4,
                     "every producer should report " & Field);
          end Expect_Per_Kind;
       begin
@@ -606,6 +607,7 @@ procedure MCP_Test is
          Expect ("shadow");
          Expect ("raster");
          Expect ("svg");
+         Expect ("view");
          Expect_Per_Kind ("active_bytes");
          Expect_Per_Kind ("active_count");
          Expect_Per_Kind ("idle_count");
@@ -617,6 +619,7 @@ procedure MCP_Test is
          Expect_Per_Kind ("stores");
          Expect_Per_Kind ("pressure_evictions");
          Expect_Per_Kind ("headroom_evictions");
+         Expect_Per_Kind ("crowded_evictions");
          Expect_Per_Kind ("replaced");
          Expect_Per_Kind ("cleared");
          Expect_Per_Kind ("discarded");
@@ -626,8 +629,9 @@ procedure MCP_Test is
 
          Assert (Index (Doc, "111") > 0
                    and then Index (Doc, "222") > 0
-                   and then Index (Doc, "333") > 0,
-                 "and each kind's own figures, not one kind three times");
+                   and then Index (Doc, "333") > 0
+                   and then Index (Doc, "444") > 0,
+                 "and each kind's own figures, not one kind four times");
          Assert (Index (Doc, "7") > 0 and then Index (Doc, "9") > 0,
                  "with pressure and headroom both reported");
       end;

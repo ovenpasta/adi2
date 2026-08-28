@@ -260,12 +260,13 @@ def perf_stats() -> str:
     Returns frame number, FPS, and timing breakdowns (render, layout,
     draw, present) in microseconds, plus a texture_cache object holding
     the renderer's byte budget, current and peak residency, and a
-    breakdown per producer (shadow, raster, svg).
+    breakdown per producer (shadow, raster, svg, view).
 
     The budget bounds idle residency, not the scene: read idle_bytes
     against it, not bytes. Each producer reports how its residency
     divides now (active/idle/retired), plus hits, misses, stores,
-    pressure_evictions, headroom_evictions and cumulative build_us.
+    pressure_evictions, headroom_evictions, crowded_evictions and
+    cumulative build_us.
     """
     result = send_command({"command": "perf_stats"}, _target_pid)
     if result.get("status") != "ok":

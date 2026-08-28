@@ -25,6 +25,22 @@ TEST_TIMEOUT="${TEST_TIMEOUT:-120}"
 TREE_TIMEOUT="${TREE_TIMEOUT:-900}"
 export SDL_VIDEODRIVER="${SDL_VIDEODRIVER:-dummy}"
 
+#  adi.gpr withs config/adi2_config.gpr, which Alire writes on `alr build`
+#  but not on `alr exec`, and not at all in a checkout nobody has built.
+#  gprbuild is called directly below, so make sure the file is there.
+bash "$(dirname "$0")/ensure_build_config.sh" || exit 1
+
+#  Absent an explicit value, adi.gpr takes the profile from that same
+#  file, and Alire rewrites it per build: release when something depends
+#  on adi2, development when it is the crate being built. No such rewrite
+#  happens here, so the file still holds whatever the last alr command
+#  left. Name the profile instead of inheriting it, or a preceding
+#  dependency build leaves the suite compiling against the MCP stub and
+#  mcp_test fails for a reason nothing in this script would explain.
+#  external() reads the environment, so this reaches the example and
+#  golden builds below as well.
+export ADI_BUILD_PROFILE="${ADI_BUILD_PROFILE:-development}"
+
 #  Run one command under a time limit and report. $1 is the label, $2 the
 #  limit in seconds, the rest is the command. Exit 124 is timeout's own
 #  "expired"; 137 is the follow-up KILL for a process that ignored the

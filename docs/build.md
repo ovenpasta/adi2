@@ -126,9 +126,35 @@ end My_App;
 gprbuild -P adi.gpr -XADI_PLATFORM=linux -XADI_LIBRARY_TYPE=relocatable  # or static (default), static-pic
 ```
 
+## Build Profile Selection
+
+`adi.gpr` resolves the profile as `external ("ADI_BUILD_PROFILE",
+Adi2_Config.Build_Profile)` — an explicit `-X` or environment variable first,
+otherwise the value in `config/adi2_config.gpr`.
+
+That file is how Alire reports the profile it picked, and it picks per crate:
+`development` for the crate being worked on, `release` for one pulled in as a
+dependency. Alire passes no `-X` switches of its own, so reading the file is
+what makes `alr get adi2 && alr build` produce a release library. `alr build`
+here still gives you a development one.
+
+Alire rewrites the file per build, but only on `alr build`. `alr exec -- gprbuild`
+and a bare `gprbuild` do not, so they inherit whatever the last `alr build`
+left — which may be `release` if something depended on adi2. Anything that
+needs a definite profile should name it: `tools/run_tests.sh` exports
+`ADI_BUILD_PROFILE=development`, and `configure.sh` passes `-XADI_BUILD_PROFILE`
+on every command it generates.
+
+The test suite only builds in `development`. `tests/src/adi-mcp-testing.adb` is
+a child of `Adi.MCP` and reads `Write_Texture_Cache` from its private part,
+which exists in `src/mcp/` but not in the `src/mcp_stub/` that the other
+profiles select.
+
 ## Configure Script Details
 
-Writes only under `--build-dir`:
+Writes only under `--build-dir`, except `config/adi2_config.gpr` in the source
+tree, written only when absent (see
+[docs/gprbuild_without_alire.md](gprbuild_without_alire.md)):
 - `config/adi_linker_config.gpr` — linker switches from pkg-config (sdl3, sdl3-ttf, sdl3-image)
 - `projects/{adi_build.gpr, tests_build.gpr, examples_build.gpr}`
 - `build_all.sh` — full build script

@@ -87,6 +87,9 @@ mkdir -p "${BUILD_DIR}/vendor/rlottie/obj" "${BUILD_DIR}/vendor/rlottie/lib"
 mkdir -p "${BUILD_DIR}/tests/obj" "${BUILD_DIR}/tests/bin"
 mkdir -p "${BUILD_DIR}/examples/obj" "${BUILD_DIR}/examples/bin"
 
+#  adi.gpr withs config/adi2_config.gpr; supply it when Alire has not.
+bash "${SOURCE_DIR}/tools/ensure_build_config.sh" "${SOURCE_DIR}" || exit 1
+
 if [[ -n "${CGPR_FILE}" ]]; then
   if [[ ! -f "${CGPR_FILE}" ]]; then
     echo "--cgpr file not found: ${CGPR_FILE}" >&2

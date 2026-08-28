@@ -8,7 +8,10 @@ Adi exposes a development-only MCP bridge:
 
 - Ada side: `Adi.MCP` (`src/mcp/`) polls command files and writes JSON responses.
 - Python side: `tools/adi_mcp_server.py` exposes MCP tools and handles file IPC.
-- IPC directory: `/tmp/adi_mcp/<PID>/`, and `%TEMP%\adi_mcp\<PID>\` on Windows
+- IPC directory: `adi_mcp/<PID>/` inside the system temp directory —
+  `TMPDIR`, else `TEMP`, else `TMP`, else `/tmp` (`C:\Windows\Temp` on
+  Windows). Both sides resolve it the same way, so neither normally
+  needs telling where it is.
 
 Release and validation builds use `src/mcp_stub/` (no-op implementation).
 
@@ -16,7 +19,7 @@ Release and validation builds use `src/mcp_stub/` (no-op implementation).
 
 - Build profile must be `development`.
 - The target app must call `Adi.MCP.Initialize`.
-- MCP server config must point at `tools/adi_mcp_server.py` and the same base directory (`/tmp/adi_mcp`).
+- MCP server config must point at `tools/adi_mcp_server.py`.
 
 ## App Integration
 
@@ -31,7 +34,7 @@ Adi.MCP.Initialize (W);
 Optional explicit base directory:
 
 ```ada
-Adi.MCP.Initialize (W, Base_Dir => "/tmp/adi_mcp");
+Adi.MCP.Initialize (W, Base_Dir => "/run/user/1000/my_app_mcp");
 ```
 
 Recommended on shutdown:
@@ -45,7 +48,7 @@ Adi.MCP.Finalize;
 The repository ships no MCP client configuration; wiring the server into a client is a per-developer choice. A client that wants it should run:
 
 ```bash
-uv run ./tools/adi_mcp_server.py --dir /tmp/adi_mcp
+uv run ./tools/adi_mcp_server.py
 ```
 
 Optional:

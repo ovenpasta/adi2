@@ -3,27 +3,12 @@
 
 pragma Ada_2022;
 
-with Ada.Environment_Variables;
-with Adi.Build_Target;
+with Adi.OS;
 
 package body Adi.MCP is
 
    function Default_Base_Dir return String is
-      use Adi.Build_Target;
-      use Ada.Environment_Variables;
-   begin
-      case Platform is
-         when Windows =>
-            if Exists ("TEMP") then
-               return Value ("TEMP") & "\\adi_mcp";
-            elsif Exists ("TMP") then
-               return Value ("TMP") & "\\adi_mcp";
-            end if;
-            return "C:\\Windows\\Temp\\adi_mcp";
-         when others =>
-            return "/tmp/adi_mcp";
-      end case;
-   end Default_Base_Dir;
+     (Adi.OS.Temp_Path ("adi_mcp"));
 
    procedure Initialize
      (Win      : Adi.Window.Window_Handle;

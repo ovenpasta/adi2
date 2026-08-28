@@ -5,6 +5,7 @@ pragma Ada_2022;
 
 with Interfaces;
 with Ada.Strings.Unbounded;
+with Adi.Build_Target;
 with Adi.Window;
 with Adi.SDL.Filesystem;
 
@@ -87,6 +88,17 @@ package Adi.OS is
    --  Returns the current working directory.
    function Current_Directory return String;
 
+   --  The character that separates path components on this platform.
+   Path_Separator : constant Character;
+
+   --  The directory the system hands out for scratch files, without a
+   --  trailing separator. TMPDIR wins, then TEMP and TMP, then a
+   --  platform default.
+   function Temp_Directory return String;
+
+   --  Name placed inside Temp_Directory.
+   function Temp_Path (Name : String) return String;
+
    ---------------------------------------------------------------------------
    --  Filesystem Operations
    ---------------------------------------------------------------------------
@@ -128,6 +140,12 @@ package Adi.OS is
    function Has_Clipboard_Text return Boolean;
 
 private
+
+   Path_Separator : constant Character :=
+     (case Adi.Build_Target.Platform is
+         when Adi.Build_Target.Windows => '\',
+         when others                   => '/');
+
    --  Maps Ada User_Folder to SDL SDL_Folder
    function To_SDL_Folder
      (Folder : User_Folder) return Adi.SDL.Filesystem.SDL_Folder;

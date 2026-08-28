@@ -87,6 +87,7 @@ alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/clock_test
 ./tests/bin/texture_cache_test
 ./tests/bin/render_textures_test
+./tests/bin/os_paths_test
 
 # Check every example's widget tree against tests/goldens/trees/
 # (rebuilds the examples; --update accepts what the apps report now)
@@ -205,7 +206,7 @@ Existing hand-crafted binding modules:
 
 ## Adi Runtime Introspection
 
-`tools/adi_mcp_server.py --cli` inspects a **running** Adi application. It needs the app to call `Adi.MCP.Initialize` and a `development` build profile; release and validation profiles get a no-op stub. Every platform is supported. The IPC directory is `/tmp/adi_mcp`, and `%TEMP%\adi_mcp` on Windows.
+`tools/adi_mcp_server.py --cli` inspects a **running** Adi application. It needs the app to call `Adi.MCP.Initialize` and a `development` build profile; release and validation profiles get a no-op stub. Every platform is supported. The IPC directory is `adi_mcp` inside the system temp directory: `TMPDIR`, else `TEMP`, else `TMP`, else `/tmp` (`C:\Windows\Temp` on Windows). The app and the server resolve it the same way.
 
 ```bash
 python3 tools/adi_mcp_server.py --cli --pid <PID> perf_stats

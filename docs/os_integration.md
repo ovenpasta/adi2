@@ -176,6 +176,25 @@ Returns the current working directory.
 function Current_Directory return String;
 ```
 
+### Temp_Directory and Temp_Path
+
+`Temp_Directory` returns the directory the system hands out for scratch
+files, without a trailing separator: `TMPDIR` if set, else `TEMP`, else
+`TMP`, else `/tmp` (`C:\Windows\Temp` on Windows). `Temp_Path` places a
+name inside it, joined with `Path_Separator`.
+
+```ada
+Path_Separator : constant Character;  --  '\' on Windows, '/' elsewhere
+
+function Temp_Directory return String;
+function Temp_Path (Name : String) return String;
+```
+
+`Temp_Path ("session.log")` gives `/tmp/session.log` on Linux and
+`C:\Users\you\AppData\Local\Temp\session.log` on Windows. Neither
+function creates anything; a subdirectory below `Temp_Directory` is yours
+to create.
+
 ## Filesystem Operations
 
 All functions return `True` on success, `False` on failure.

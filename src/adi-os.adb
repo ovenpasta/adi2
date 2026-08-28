@@ -7,6 +7,7 @@ with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 with System;
 with System.Storage_Elements;
+with Ada.Environment_Variables;
 with Adi.Log;
 with Adi.SDL;
 with Adi.SDL.Dialog;
@@ -16,6 +17,30 @@ with Adi.SDL.Video;
 package body Adi.OS is
 
    use Adi.Window;
+
+   function Is_Separator (C : Character) return Boolean is
+     (C = '/' or else C = '\');
+
+   --  Windows spells %TEMP% both with and without a trailing backslash,
+   --  and either platform tolerates a repeated one. A root is all
+   --  separator and keeps it: "C:" without the slash names the current
+   --  directory on C:, not the drive.
+   function Trim_Separator (Path : String) return String is
+      Last : Natural := Path'Last;
+   begin
+      while Last > Path'First and then Is_Separator (Path (Last)) loop
+         Last := Last - 1;
+      end loop;
+
+      if Last < Path'Last
+        and then Last > Path'First
+        and then Path (Last) = ':'
+      then
+         return Path (Path'First .. Last + 1);
+      end if;
+
+      return Path (Path'First .. Last);
+   end Trim_Separator;
 
    ---------------------------------------------------------------------------
    --  Dialog Callback Trampoline
@@ -415,6 +440,44 @@ package body Adi.OS is
       end if;
       return Result;
    end Current_Directory;
+
+   function Temp_Directory return String is
+      use Ada.Environment_Variables;
+
+      --  A variable set to the empty string is no more usable than an
+      --  unset one.
+      function Named (Var : String) return String is
+        (if Exists (Var) then Value (Var) else "");
+
+      TMPDIR : constant String := Named ("TMPDIR");
+      TEMP   : constant String := Named ("TEMP");
+      TMP    : constant String := Named ("TMP");
+   begin
+      if TMPDIR /= "" then
+         return Trim_Separator (TMPDIR);
+      elsif TEMP /= "" then
+         return Trim_Separator (TEMP);
+      elsif TMP /= "" then
+         return Trim_Separator (TMP);
+      end if;
+
+      case Adi.Build_Target.Platform is
+         when Adi.Build_Target.Windows =>
+            return "C:\Windows\Temp";
+         when others =>
+            return "/tmp";
+      end case;
+   end Temp_Directory;
+
+   function Temp_Path (Name : String) return String is
+      Dir : constant String := Temp_Directory;
+   begin
+      --  A root directory carries its own separator already.
+      if Dir'Length > 0 and then Is_Separator (Dir (Dir'Last)) then
+         return Dir & Name;
+      end if;
+      return Dir & Path_Separator & Name;
+   end Temp_Path;
 
    ---------------------------------------------------------------------------
    --  Filesystem Operations

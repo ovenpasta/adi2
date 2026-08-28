@@ -6,14 +6,12 @@ pragma Ada_2022;
 with Ada.Calendar;
 with Ada.Characters.Handling;
 with Ada.Directories;
-with Ada.Environment_Variables;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with GNAT.OS_Lib;
 
 with Adi.App;
-with Adi.Build_Target;
 with Adi.Clock;
 with Adi.Core;                   use Adi.Core;
 with Adi.CSS_Styles;             use Adi.CSS_Styles;
@@ -29,6 +27,7 @@ with Adi.Widget.Text_Editor;
 with Adi.Widget_Styles;          use Adi.Widget_Styles;
 with Ada.Exceptions;
 with Adi.Log;
+with Adi.OS;
 
 package body Adi.MCP is
 
@@ -1544,21 +1543,7 @@ package body Adi.MCP is
    ---------------------------------------------------------------------------
 
    function Default_Base_Dir return String is
-      use Adi.Build_Target;
-      use Ada.Environment_Variables;
-   begin
-      case Platform is
-         when Windows =>
-            if Exists ("TEMP") then
-               return Value ("TEMP") & "\\adi_mcp";
-            elsif Exists ("TMP") then
-               return Value ("TMP") & "\\adi_mcp";
-            end if;
-            return "C:\\Windows\\Temp\\adi_mcp";
-         when others =>
-            return "/tmp/adi_mcp";
-      end case;
-   end Default_Base_Dir;
+     (Adi.OS.Temp_Path ("adi_mcp"));
 
    procedure Remove_Directory_Recursive (Path : String) is
       use Ada.Directories;

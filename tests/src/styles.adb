@@ -5,7 +5,7 @@ with Adi.Layout_Util;  use Adi.Layout_Util;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Test_Support;     use Test_Support;
 
-procedure Main is
+procedure Styles is
 
    function Colors_Equal (A, B : Color_Value) return Boolean is
    begin
@@ -630,4 +630,4 @@ begin
 
    Finish;
 
-end Main;
+end Styles;

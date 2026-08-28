@@ -67,6 +67,7 @@ package Adi_GL is
 
    GL_VERTEX_ARRAY_BINDING : constant GLenum := 16#85B5#;
    GL_ARRAY_BUFFER         : constant GLenum := 16#8892#;
+   GL_ARRAY_BUFFER_BINDING : constant GLenum := 16#8894#;
    GL_STREAM_DRAW          : constant GLenum := 16#88E0#;
    GL_FRAGMENT_SHADER      : constant GLenum := 16#8B30#;
    GL_VERTEX_SHADER        : constant GLenum := 16#8B31#;
@@ -241,6 +242,7 @@ package Adi_GL is
    glGetProgramiv       : Get_Object_Iv_Fn;
    glBindAttribLocation : Bind_Attrib_Fn;
    glUseProgram         : Object_Fn;
+   glDeleteProgram      : Object_Fn;
 
    glVertexAttribPointer      : Vertex_Attrib_Pointer_Fn;
    glEnableVertexAttribArray  : Object_Fn;
@@ -253,5 +255,9 @@ package Adi_GL is
 
    --  False until Load has resolved every entry point above.
    function Loaded return Boolean;
+
+   --  The first entry point Load could not resolve, for the message a
+   --  caller gives when Loaded is False. Empty once everything resolved.
+   function Missing_Entry_Point return String;
 
 end Adi_GL;

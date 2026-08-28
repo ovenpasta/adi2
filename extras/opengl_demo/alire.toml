@@ -11,7 +11,7 @@ executables = ["gl_triangle"]
 project-files = ["gl_triangle.gpr"]
 
 [[depends-on]]
-adi2 = "^0.9.0"
+adi2 = "~0.9.0"
 
 #  adi2 is not in the community index yet.
 [[pins]]

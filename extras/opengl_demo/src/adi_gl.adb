@@ -3,6 +3,7 @@
 
 pragma Ada_2022;
 
+with Ada.Strings.Unbounded;
 with Ada.Unchecked_Conversion;
 
 package body Adi_GL is
@@ -18,6 +19,7 @@ package body Adi_GL is
           External_Name => "SDL_GL_GetProcAddress";
 
    Any_Missing : Boolean := True;
+   First_Gap   : Ada.Strings.Unbounded.Unbounded_String;
 
    function Resolve (Name : String) return System.Address is
       use Interfaces.C.Strings;
@@ -26,6 +28,9 @@ package body Adi_GL is
    begin
       Free (C_Name);
       if Addr = System.Null_Address then
+         if not Any_Missing then
+            First_Gap := Ada.Strings.Unbounded.To_Unbounded_String (Name);
+         end if;
          Any_Missing := True;
       end if;
       return Addr;
@@ -47,6 +52,9 @@ package body Adi_GL is
 
    function Loaded return Boolean is (not Any_Missing);
 
+   function Missing_Entry_Point return String is
+     (Ada.Strings.Unbounded.To_String (First_Gap));
+
    ----------
    -- Load --
    ----------
@@ -67,6 +75,7 @@ package body Adi_GL is
       function Attrib_Ptr  is new Entry_Point (Vertex_Attrib_Pointer_Fn);
    begin
       Any_Missing := False;
+      First_Gap   := Ada.Strings.Unbounded.Null_Unbounded_String;
 
       glGenFramebuffers      := Gen_Names ("glGenFramebuffers");
       glDeleteFramebuffers   := Gen_Names ("glDeleteFramebuffers");
@@ -95,6 +104,7 @@ package body Adi_GL is
       glGetProgramiv       := Object_Iv ("glGetProgramiv");
       glBindAttribLocation := Bind_Attrib ("glBindAttribLocation");
       glUseProgram         := Object ("glUseProgram");
+      glDeleteProgram      := Object ("glDeleteProgram");
 
       glVertexAttribPointer      := Attrib_Ptr ("glVertexAttribPointer");
       glEnableVertexAttribArray  := Object ("glEnableVertexAttribArray");

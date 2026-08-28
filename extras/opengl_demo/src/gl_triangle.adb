@@ -103,12 +103,13 @@ procedure GL_Triangle is
    VBO  : aliased GLuint := 0;
    Prog : GLuint := 0;
 
-   Ready : Boolean := False;
-   Angle : Float := 0.0;
-   Orbit : Float := 0.0;
+   Ready    : Boolean := False;
+   Finished : Boolean := False;
+   Angle    : Float := 0.0;
+   Orbit    : Float := 0.0;
 
-   --  Read whole rather than bundled: the demo is meant to be edited
-   --  while it runs.
+   --  Read at startup rather than bundled, so the file can be edited
+   --  between runs without rebuilding.
    function Read_Asset (Name : String) return String is
       use Ada.Streams.Stream_IO;
 
@@ -132,6 +133,12 @@ procedure GL_Triangle is
          String'Read (Stream (F), Buffer);
          Close (F);
          return Buffer;
+      exception
+         when others =>
+            if Is_Open (F) then
+               Close (F);
+            end if;
+            return "<p>Could not read " & Path & "</p>";
       end;
    end Read_Asset;
 
@@ -157,6 +164,7 @@ procedure GL_Triangle is
          begin
             glGetShaderInfoLog
               (Id, GLsizei (Log'Length), Len'Access, Log (0)'Access);
+            glDeleteShader (Id);
             raise Program_Error with To_Ada (Log);
          end;
       end if;
@@ -182,6 +190,7 @@ procedure GL_Triangle is
       Saved_VAO      : aliased GLint := 0;
       Saved_Cull     : aliased GLint := GLint (GL_BACK);
       Saved_Winding  : aliased GLint := GLint (GL_CCW);
+      Saved_Buffer   : aliased GLint := 0;
       Unused         : Adi.SDL.C_bool;
 
       --  Scissor above all: SDL leaves it enabled with a rect in window
@@ -191,6 +200,10 @@ procedure GL_Triangle is
         [GL_SCISSOR_TEST, GL_DEPTH_TEST, GL_CULL_FACE, GL_BLEND];
       Was_On  : array (Toggles'Range) of GLboolean := [others => GL_FALSE];
    begin
+      if Finished then
+         return;
+      end if;
+
       --  Required before calling into GL alongside SDL_Renderer: drains
       --  the queued batch and drops SDL's cached state, so SDL rebuilds
       --  what it needs instead of trusting what it last set.
@@ -208,12 +221,15 @@ procedure GL_Triangle is
       glGetIntegerv (GL_VERTEX_ARRAY_BINDING, Saved_VAO'Access);
       glGetIntegerv (GL_CULL_FACE_MODE, Saved_Cull'Access);
       glGetIntegerv (GL_FRONT_FACE, Saved_Winding'Access);
+      glGetIntegerv (GL_ARRAY_BUFFER_BINDING, Saved_Buffer'Access);
 
       if not Ready then
          --  Resolves the post-1.1 entry points against the live context.
          Adi_GL.Load;
          if not Adi_GL.Loaded then
-            raise Program_Error with "OpenGL entry point unavailable";
+            raise Program_Error with
+              "OpenGL entry point unavailable: "
+              & Adi_GL.Missing_Entry_Point;
          end if;
 
          glGenTextures (1, Tex'Access);
@@ -265,12 +281,15 @@ procedure GL_Triangle is
             Free (A_Col);
 
             glGetProgramiv (Prog, GL_LINK_STATUS, Status'Access);
-            if Status = 0 then
-               raise Program_Error with "shader program did not link";
-            end if;
 
             glDeleteShader (VS);
             glDeleteShader (FS);
+
+            if Status = 0 then
+               glDeleteProgram (Prog);
+               Prog := 0;
+               raise Program_Error with "shader program did not link";
+            end if;
          end;
 
          glGenVertexArrays (1, VAO'Access);
@@ -435,7 +454,7 @@ procedure GL_Triangle is
 
          glDisableVertexAttribArray (0);
          glDisableVertexAttribArray (1);
-         glBindBuffer (GL_ARRAY_BUFFER, 0);
+         glBindBuffer (GL_ARRAY_BUFFER, GLuint (Saved_Buffer));
       end;
 
       for I in Toggles'Range loop
@@ -469,6 +488,39 @@ procedure GL_Triangle is
       Unused := Adi.SDL.Render.SDL_FlushRenderer
         (Adi.Window.Get_Renderer (Win));
    end Draw_GL;
+
+   --  The objects belong to the context SDL made, and Run destroys the
+   --  window -- and with it that context -- as it returns. A close
+   --  request is the last moment they can be released, so they go here
+   --  rather than after the loop.
+   procedure On_Close
+     (Win   : Adi.Window.Window_Handle;
+      Allow : in out Boolean)
+   is
+      pragma Unreferenced (Win);
+   begin
+      Allow := True;
+
+      if not Ready then
+         return;
+      end if;
+
+      --  Before the names go: the view holds one and blits it.
+      Adi.Widget.Texture_View.Clear_Texture (UI.View);
+
+      glDeleteBuffers (1, VBO'Access);
+      glDeleteVertexArrays (1, VAO'Access);
+      glDeleteFramebuffers (1, FBO'Access);
+      glDeleteTextures (1, Tex'Access);
+
+      if Prog /= 0 then
+         glDeleteProgram (Prog);
+         Prog := 0;
+      end if;
+
+      Ready    := False;
+      Finished := True;
+   end On_Close;
 
    --------------
    -- Controls --
@@ -566,6 +618,7 @@ begin
 
    Adi.Widget.Html_View.Set_HTML (UI.Explain, Read_Asset ("explain.html"));
    Adi.Window.Connect_Frame (W, Draw_GL'Unrestricted_Access);
+   Adi.Window.Connect_Close_Request (W, On_Close'Unrestricted_Access);
 
    Adi.MCP.Initialize (W);
    A.Add_Window (W);

@@ -15,6 +15,7 @@ package Adi.SDL is
     subtype Uint64 is Unsigned_64;
     subtype Sint16 is Signed_16;
     subtype Sint32 is Signed_32;
+    subtype Sint64 is Signed_64;
     subtype C_bool is Interfaces.C.C_bool;
 
     type SDL_Rect is record
@@ -70,6 +71,16 @@ package Adi.SDL is
         return C_bool  -- /usr/include/SDL3/SDL_init.h:236
     with
        Import => True, Convention => C, External_Name => "SDL_Init";
+
+    --  Configuration SDL reads at the moment it builds a subsystem, so a
+    --  hint set afterwards is ignored rather than rejected.
+    function SDL_SetHint
+       (Name  : Interfaces.C.Strings.chars_ptr;
+        Value : Interfaces.C.Strings.chars_ptr) return C_bool
+    with
+       Import => True, Convention => C, External_Name => "SDL_SetHint";
+
+    SDL_HINT_RENDER_DRIVER : constant String := "SDL_RENDER_DRIVER";
 
     ---------------------------------------------------------------------------
     --  SDL Error Handling

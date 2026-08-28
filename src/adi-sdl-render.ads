@@ -9,6 +9,7 @@ with Adi.SDL.Video;       use Adi.SDL.Video;
 with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
 with Adi.SDL.Surface;     use Adi.SDL.Surface;
 with Adi.SDL.Events;
+with Adi.SDL.Properties;
 
 package Adi.SDL.Render is
 
@@ -54,6 +55,12 @@ package Adi.SDL.Render is
    SDL_BLENDMODE_ADD   : constant SDL_BlendMode := 16#0000_0002#;
    SDL_BLENDMODE_MOD   : constant SDL_BlendMode := 16#0000_0004#;
    SDL_BLENDMODE_MUL   : constant SDL_BlendMode := 16#0000_0008#;
+
+   --  Colour already scaled by its own alpha. Compositors that hand over
+   --  a transparent surface usually produce this, and blending it as if
+   --  it were straight alpha darkens every antialiased edge.
+   SDL_BLENDMODE_BLEND_PREMULTIPLIED : constant SDL_BlendMode :=
+     16#0000_0010#;
 
    -- Scale modes
    type SDL_ScaleMode is (
@@ -209,6 +216,17 @@ package Adi.SDL.Render is
       with Import        => True,
            Convention    => C,
            External_Name => "SDL_CreateTexture";
+
+   --  Build a texture from a property group rather than from arguments.
+   --  The group can name a GL texture the caller already owns, which is
+   --  how a foreign renderer hands its output to Adi.
+   function SDL_CreateTextureWithProperties
+      (Renderer : SDL_Renderer_Ptr;
+       Props    : Adi.SDL.Properties.SDL_PropertiesID)
+       return SDL_Texture_Ptr
+      with Import        => True,
+           Convention    => C,
+           External_Name => "SDL_CreateTextureWithProperties";
 
    function SDL_CreateTextureFromSurface
       (Renderer : SDL_Renderer_Ptr;

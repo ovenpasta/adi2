@@ -20,6 +20,7 @@ Adi2 gives you a real widget toolkit with the niceties developers expect from a 
 - **Ship a single binary.** Bundle every CSS file, font, image, translation, and SVG sprite into your executable. No filesystem dependencies at runtime.
 - **Speak the user's language.** Gettext-compatible i18n with plural forms, automatic locale detection, and `.po` → Ada compilation.
 - **Animate without boilerplate.** CSS transitions on `color`, `background-color`, `border-color`, `border-width`, `border-radius`, `padding`, `margin`, `opacity`, `box-shadow` and `font-size` — the framework handles interpolation and timing.
+- **Keyboard and clipboard out of the box.** Tab and Shift+Tab traverse focusable widgets, overlays trap focus, arrow keys drive lists, combos and sliders. Text inputs and editors take Ctrl+C/V/X/A and open a context menu. An application hook sees every key first, so shortcuts beat focus.
 - **HiDPI-ready units.** `dp`/`dip` for layout, `rem` for typography, `pix` when you mean one renderer pixel exactly, and `px` — which follows the display scale or not, depending on `Set_Px_Maps_To_Dip`. See [`docs/css_styling.md`](docs/css_styling.md).
 - **Built for tooling and automation.** A development-only MCP bridge lets editors and AI assistants screenshot the running app, walk the widget tree, *and* drive it — clicking buttons, typing into inputs, moving focus, reading performance counters. Great for end-to-end tests written by your AI of choice.
 - **Runs in the browser.** The examples compile to WebAssembly with GNAT-LLVM and Emscripten — [try them live](https://pizzahack.eu/adi2/demo/), or see [`wasm/`](wasm/) for the build.
@@ -212,6 +213,11 @@ Direct3D, Vulkan, or plain CPU pixels — in
 
 - **More widgets** — tree view, data grid, menu bar, progress and busy indicators, tooltips, split panes, date and colour pickers.
 - **Ready-made themes** — Material, Fluent, Adwaita and macOS, each in light and dark.
+
+**Input and interaction.**
+
+- **Keyboard shortcuts** — accelerators bound to actions, scoped globally or to a subtree, shown in menus, with the platform's own modifier conventions.
+- **Drag and drop** — between widgets, and from the OS.
 
 **Text and reach.**
 

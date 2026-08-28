@@ -48,6 +48,8 @@ ADI2_TOOLS.set = "${CRATE_ROOT}/tools"
 ADI_PLATFORM = ["linux", "darwin", "windows"]
 ADI_BUILD_PROFILE = ["release", "validation", "development"]
 ADI_LIBRARY_TYPE = ["relocatable", "static", "static-pic"]
+ADI_FRAME_POINTER = ["yes", "no"]
+ADI_TRACEBACK = ["yes", "no"]
 
 [gpr-set-externals."case(os)"]
 linux = { ADI_PLATFORM = "linux" }

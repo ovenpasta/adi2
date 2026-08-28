@@ -52,6 +52,18 @@ project PlutoSVG is
          null;
    end case;
 
+
+   --  See adi.gpr: a stored traceback needs these on 32-bit Windows.
+   type Frame_Pointer_Kind is ("yes", "no");
+   Frame_Pointer : Frame_Pointer_Kind :=
+     external ("ADI_FRAME_POINTER", "yes");
+
+   Frame_Pointer_Switches := ();
+   case Frame_Pointer is
+      when "yes" => Frame_Pointer_Switches := ("-fno-omit-frame-pointer");
+      when "no"  => Frame_Pointer_Switches := ();
+   end case;
+
    package Compiler is
       case Platform_Name is
          when "darwin" =>
@@ -63,7 +75,7 @@ project PlutoSVG is
       end case;
       for Default_Switches ("C") use
         Profile_C_Compiler_Switches & User_C_Compiler_Switches
-        & C_Switches & Platform_C_Switches;
+        & C_Switches & Platform_C_Switches & Frame_Pointer_Switches;
    end Compiler;
 
 end PlutoSVG;

@@ -71,12 +71,36 @@ project Adi is
          Profile_Ada_Compiler_Switches := ("-Og", "-g", "-gnatwa", "-gnatw.X", "-gnatVa", "-gnatW8");
    end case;
    Ada_Switches := ("-gnat2022", "-gnatX0", "-gnatef");
+
+   --  A stored traceback is walked through frame pointers on 32-bit
+   --  Windows. Dropping these there means dropping ADI_TRACEBACK too:
+   --  a raise arrives as an access violation otherwise.
+   type Frame_Pointer_Kind is ("yes", "no");
+   Frame_Pointer : Frame_Pointer_Kind :=
+     external ("ADI_FRAME_POINTER", "yes");
+
+   Frame_Pointer_Switches := ();
+   case Frame_Pointer is
+      when "yes" => Frame_Pointer_Switches := ("-fno-omit-frame-pointer");
+      when "no"  => Frame_Pointer_Switches := ();
+   end case;
    package Compiler is
       for Default_Switches ("Ada") use
-        Profile_Ada_Compiler_Switches & User_Ada_Compiler_Switches & Ada_Switches;
+        Profile_Ada_Compiler_Switches & User_Ada_Compiler_Switches
+        & Ada_Switches & Frame_Pointer_Switches;
    end Compiler;
+   --  See ADI_FRAME_POINTER: the two go together on 32-bit Windows.
+   type Traceback_Kind is ("yes", "no");
+   Traceback : Traceback_Kind := external ("ADI_TRACEBACK", "yes");
+
+   Binder_Switches := ();
+   case Traceback is
+      when "yes" => Binder_Switches := ("-Es");
+      when "no"  => Binder_Switches := ();
+   end case;
+
    package Binder is
-      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
+      for Switches ("Ada") use Binder_Switches;
    end Binder;
 
    --  Native libraries the Adi library depends on, exported as

@@ -11,12 +11,34 @@ project Examples is
    for Main use (Kind & ".adb");
 
    Ada_Switches := ("-gnat2022", "-gnatX0", "-gnatef", "-g", "-gnatwa", "-gnata");
+   --  See adi.gpr: a stored traceback needs these on 32-bit Windows.
+   type Frame_Pointer_Kind is ("yes", "no");
+   Frame_Pointer : Frame_Pointer_Kind :=
+     external ("ADI_FRAME_POINTER", "yes");
+
+   Frame_Pointer_Switches := ();
+   case Frame_Pointer is
+      when "yes" => Frame_Pointer_Switches := ("-fno-omit-frame-pointer");
+      when "no"  => Frame_Pointer_Switches := ();
+   end case;
+
    package Compiler is
-      for Default_Switches ("Ada") use Ada_Switches;
+      for Default_Switches ("Ada") use
+        Ada_Switches & Frame_Pointer_Switches;
    end Compiler;
 
+   --  See adi.gpr: a 32-bit Windows build cannot store one.
+   type Traceback_Kind is ("yes", "no");
+   Traceback : Traceback_Kind := external ("ADI_TRACEBACK", "yes");
+
+   Binder_Switches := ();
+   case Traceback is
+      when "yes" => Binder_Switches := ("-E");
+      when "no"  => Binder_Switches := ();
+   end case;
+
    package Binder is
-      for Switches ("Ada") use ("-E");  -- Store exception traceback
+      for Switches ("Ada") use Binder_Switches;
    end Binder;
 
    --  SDL and platform linker switches come transitively from

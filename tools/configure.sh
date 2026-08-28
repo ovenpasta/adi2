@@ -175,6 +175,7 @@ else
   echo "[configure] pkg-config binary not found (${PKG_CONFIG_BIN}); using defaults"
 fi
 
+
 PLATFORM_LINKER_LIST='("-lm")'
 if [[ "${TARGET_PLATFORM}" == "darwin" ]]; then
   PLATFORM_LINKER_LIST="$(to_gpr_list \
@@ -257,13 +258,33 @@ project Tests_Build is
          Profile_Ada_Compiler_Switches := ("-Og", "-g", "-gnatwa", "-gnatw.X", "-gnatVa", "-gnatW8");
    end case;
    Ada_Switches := ("-gnat2022", "-gnatX0", "-gnatef");
+   type Frame_Pointer_Kind is ("yes", "no");
+   Frame_Pointer : Frame_Pointer_Kind :=
+     external ("ADI_FRAME_POINTER", "yes");
+
+   Frame_Pointer_Switches := ();
+   case Frame_Pointer is
+      when "yes" => Frame_Pointer_Switches := ("-fno-omit-frame-pointer");
+      when "no"  => Frame_Pointer_Switches := ();
+   end case;
+
+   type Traceback_Kind is ("yes", "no");
+   Traceback : Traceback_Kind := external ("ADI_TRACEBACK", "yes");
+
    package Compiler is
       for Default_Switches ("Ada") use
-        Profile_Ada_Compiler_Switches & User_Ada_Compiler_Switches & Ada_Switches;
+        Profile_Ada_Compiler_Switches & User_Ada_Compiler_Switches
+        & Ada_Switches & Frame_Pointer_Switches;
    end Compiler;
 
+   Binder_Switches := ();
+   case Traceback is
+      when "yes" => Binder_Switches := ("-E");
+      when "no"  => Binder_Switches := ();
+   end case;
+
    package Binder is
-      for Switches ("Ada") use ("-E");
+      for Switches ("Ada") use Binder_Switches;
    end Binder;
 
    package Linker is
@@ -331,13 +352,33 @@ project Examples_Build is
          Profile_Ada_Compiler_Switches := ("-Og", "-g", "-gnatwa", "-gnatw.X", "-gnatVa");
    end case;
    Ada_Switches := ("-gnat2022", "-gnatX0", "-gnatef");
+   type Frame_Pointer_Kind is ("yes", "no");
+   Frame_Pointer : Frame_Pointer_Kind :=
+     external ("ADI_FRAME_POINTER", "yes");
+
+   Frame_Pointer_Switches := ();
+   case Frame_Pointer is
+      when "yes" => Frame_Pointer_Switches := ("-fno-omit-frame-pointer");
+      when "no"  => Frame_Pointer_Switches := ();
+   end case;
+
+   type Traceback_Kind is ("yes", "no");
+   Traceback : Traceback_Kind := external ("ADI_TRACEBACK", "yes");
+
    package Compiler is
       for Default_Switches ("Ada") use
-        Profile_Ada_Compiler_Switches & User_Ada_Compiler_Switches & Ada_Switches;
+        Profile_Ada_Compiler_Switches & User_Ada_Compiler_Switches
+        & Ada_Switches & Frame_Pointer_Switches;
    end Compiler;
 
+   Binder_Switches := ();
+   case Traceback is
+      when "yes" => Binder_Switches := ("-E");
+      when "no"  => Binder_Switches := ();
+   end case;
+
    package Binder is
-      for Switches ("Ada") use ("-E");
+      for Switches ("Ada") use Binder_Switches;
    end Binder;
 
    package Linker is

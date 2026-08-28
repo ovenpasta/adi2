@@ -59,6 +59,8 @@ run_one () {
     echo "TIMEOUT $label: still running after ${limit}s"
   else
     echo "FAIL $label"
+    #  The failed checks first: a long suite pushes them off the tail.
+    echo "$out" | grep -F "[FAIL]"
     echo "$out" | tail -20
   fi
   return 1

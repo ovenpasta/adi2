@@ -12,14 +12,18 @@ import xml_to_ada
 
 def parse_xml(xml_str: str) -> xml_to_ada.XmlApp:
     """Parse an XML string and return the XmlApp."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
+    # Closed before it is reopened by name: Windows refuses both the
+    # second open and the unlink while a handle is outstanding.
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".xml", delete=False, encoding="utf-8"
+    ) as f:
         f.write(xml_str)
-        f.flush()
-        try:
-            parser = xml_to_ada.Parser()
-            return parser.parse(f.name)
-        finally:
-            os.unlink(f.name)
+        path = f.name
+    try:
+        parser = xml_to_ada.Parser()
+        return parser.parse(path)
+    finally:
+        os.unlink(path)
 
 
 class TestDialogParsing(unittest.TestCase):

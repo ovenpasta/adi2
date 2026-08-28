@@ -10,6 +10,7 @@ import contextlib
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -78,7 +79,7 @@ def build(*names: str) -> None:
 def wait_for_ready(pid: int, timeout: float) -> Path:
     """Wait for this pid's own IPC directory, never another instance's."""
     deadline = time.monotonic() + timeout
-    mcp_dir = Path("/tmp/adi_mcp") / str(pid)
+    mcp_dir = Path(tempfile.gettempdir()) / "adi_mcp" / str(pid)
     while time.monotonic() < deadline:
         if (mcp_dir / "ready").is_file():
             return mcp_dir

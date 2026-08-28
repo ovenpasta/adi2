@@ -24,6 +24,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | gprbuild without Alire | `docs/gprbuild_without_alire.md` |
 | MCP runtime introspection | `docs/mcp.md` |
 | HTML view widget | `docs/html_view_spec.md` |
+| Texture view widget (a surface the app drew: OpenGL, D3D, Vulkan, CPU pixels) | `docs/texture_view.md` |
 | Adding a new CSS property | `docs/adding_css_property.md` |
 | Adding a new example | `docs/adding_example.md` |
 | Adding a new test | `docs/adding_test.md` |

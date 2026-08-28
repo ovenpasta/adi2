@@ -169,6 +169,34 @@ Full build instructions, including building without Alire, in [`docs/build.md`](
 
 ---
 
+## Extras
+
+Companion crates under [`extras/`](extras/). Each is its own Alire crate
+with its own dependencies, so the library never acquires them.
+
+### `opengl_demo`
+
+![gl_triangle](extras/opengl_demo/screenshot.png)
+
+A tetrahedron drawn by OpenGL into a texture the application owns, shown
+through a `texture-view` widget and driven by ordinary Adi sliders and
+switches. Adi issues no GL call and never destroys the texture: it is
+handed the texture's name and blits it where the layout put the widget,
+under the same clipping and opacity as anything else.
+
+```bash
+cd extras/opengl_demo
+./gen.sh          # Ada from the crate's XML and CSS
+alr build
+./bin/gl_triangle
+```
+
+How the widget works, and the other ways to hand it a surface —
+Direct3D, Vulkan, or plain CPU pixels — in
+[`docs/texture_view.md`](docs/texture_view.md).
+
+---
+
 ## Roadmap
 
 **CSS.**
@@ -244,6 +272,7 @@ Rendering goes through the SDL renderer abstraction, so it takes hardware accele
 | CSS styling — selectors, properties, runtime API, codegen | [`docs/css_styling.md`](docs/css_styling.md) |
 | Declarative XML UIs and the widget grammar | [`docs/xml_ui_system.md`](docs/xml_ui_system.md) |
 | HTML view widget specification | [`docs/html_view_spec.md`](docs/html_view_spec.md) |
+| Texture view — showing a surface your app drew on the GPU | [`docs/texture_view.md`](docs/texture_view.md) |
 | Static asset bundling (single-binary deployments) | [`docs/static_assets.md`](docs/static_assets.md) |
 | Internationalization, plurals, `.po` compilation | [`docs/i18n.md`](docs/i18n.md) |
 | Settings store with JSON backend | [`docs/settings.md`](docs/settings.md) |

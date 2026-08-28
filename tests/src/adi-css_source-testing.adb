@@ -13,6 +13,9 @@ package body Adi.CSS_Source.Testing is
 
    function File_Read_Count return Count is (Count (Dynamic_Reads));
 
+   function Static_Entry_Bytes return Natural is
+     (Static_Style_Entry'Max_Size_In_Storage_Elements);
+
    procedure Reset_Counts is
    begin
       Visited_Bindings   := 0;

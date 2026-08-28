@@ -152,6 +152,19 @@ Outline_Style  => Opt_Outline_Style.Resolve (S.Outline_Style),
 Outline_Offset => Opt_Outline_Offset.Resolve (S.Outline_Offset),
 ```
 
+### 2c. Set_Properties
+
+In `Set_Properties`, add one line per field. It reports which properties
+a rule set names, and interning hashes styles on it:
+
+```ada
+Prop_Outline_Width  => Opt_Outline_Width.Is_Specified (S.Outline_Width),
+```
+
+A field left out only makes equal styles collide in the interning store,
+where equality settles them, so it costs deduplication and never
+correctness. See `docs/style_storage_optimization.md`.
+
 ---
 
 ## Step 3 — Runtime CSS Parser (`src/adi-css_parser.adb`)

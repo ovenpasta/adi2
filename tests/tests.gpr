@@ -27,6 +27,7 @@ project Tests is
       "playback_clock_test",
       "layout_perf_test",
       "style_storage_equivalence_test",
+      "style_interning_test",
       "window_resize_safety_test",
       "mcp_test",
       "bundle_test",

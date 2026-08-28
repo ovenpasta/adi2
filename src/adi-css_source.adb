@@ -65,6 +65,23 @@ package body Adi.CSS_Source is
       Hash            => Adi.Widget.Hash,
       Equivalent_Keys => Adi.Widget."=");
 
+   --  The :root block a source carries, interned so that keeping it and
+   --  comparing it cost handles rather than a Part_Style_Array.
+   type Root_Fingerprint is record
+      Has_Style     : Boolean := False;
+      Styles        : Adi.Widget.Interned_Part_Styles :=
+        Adi.Widget.Empty_Interned_Part_Styles;
+      Has_Font_Size : Boolean := False;
+      Font_Size     : Length_Value := Default_Font_Size;
+   end record;
+
+   function Fingerprint (M : Adi.CSS_Parser.Stylesheet_Metadata)
+     return Root_Fingerprint is
+     ((Has_Style     => M.Has_Root_Style,
+       Styles        => Adi.Widget.Intern (M.Root_Styles),
+       Has_Font_Size => M.Has_Root_Font_Size,
+       Font_Size     => M.Root_Font_Size));
+
    type Style_Source_Impl is record
       Mode             : Source_Mode := Dynamic_Mode;
       Auto_Reload      : Boolean := True;
@@ -87,8 +104,7 @@ package body Adi.CSS_Source is
       Dynamic_Text     : Unbounded_String;
       Applied_Valid    : Boolean := False;
       Applied_Mode     : Source_Mode := Dynamic_Mode;
-      Applied_Metadata : Adi.CSS_Parser.Stylesheet_Metadata :=
-        (others => <>);
+      Applied_Root     : Root_Fingerprint;
       Applied_Statics  : Entry_Vectors.Vector;
       Applied_Text     : Unbounded_String;
       --  Whether a sheet was loaded at all when that styling was done.
@@ -102,6 +118,7 @@ package body Adi.CSS_Source is
       Update_Depth     : Natural := 0;
       Last_Error       : Unbounded_String;
       Static_Metadata  : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);
+      Static_Root      : Root_Fingerprint;
       Static_Styles    : Entry_Vectors.Vector;
       Bindings         : Binding_Vectors.Vector;
       Attached_Window  : Adi.Window.Window_Handle := Adi.Window.Null_Window_Handle;
@@ -189,7 +206,7 @@ package body Adi.CSS_Source is
             then
                Result := Merge_Part_Styles (
                  Result,
-                 Source.Impl.Static_Styles (I).Styles);
+                 Adi.Widget.Expand (Source.Impl.Static_Styles (I).Styles));
             end if;
          end loop;
 
@@ -402,12 +419,11 @@ package body Adi.CSS_Source is
    --  the registered entries and the metadata; dynamic mode reads the
    --  sheet, and the text it was built from stands for it.
    function Same_As_Applied (Source : Style_Source) return Boolean is
-      use type Adi.CSS_Parser.Stylesheet_Metadata;
       use type Entry_Vectors.Vector;
    begin
       return Source.Impl.Applied_Valid
         and then Source.Impl.Applied_Mode = Source.Impl.Mode
-        and then Source.Impl.Applied_Metadata = Source.Impl.Static_Metadata
+        and then Source.Impl.Applied_Root = Source.Impl.Static_Root
         and then Source.Impl.Applied_Statics = Source.Impl.Static_Styles
         and then Source.Impl.Applied_Text = Source.Impl.Dynamic_Text
         and then Source.Impl.Applied_Loaded = Source.Impl.Dynamic_Loaded;
@@ -417,7 +433,7 @@ package body Adi.CSS_Source is
    begin
       Source.Impl.Applied_Valid    := True;
       Source.Impl.Applied_Mode     := Source.Impl.Mode;
-      Source.Impl.Applied_Metadata := Source.Impl.Static_Metadata;
+      Source.Impl.Applied_Root     := Source.Impl.Static_Root;
       Source.Impl.Applied_Statics  := Source.Impl.Static_Styles;
       Source.Impl.Applied_Text     := Source.Impl.Dynamic_Text;
       Source.Impl.Applied_Loaded   := Source.Impl.Dynamic_Loaded;
@@ -663,7 +679,7 @@ package body Adi.CSS_Source is
       return (
         Kind => Adi.CSS_Parser.Class_Selector,
         Name => To_Unbounded_String (Normalize_Name (Name)),
-        Styles => Styles);
+        Styles => Adi.Widget.Intern (Styles));
    end Class_Entry;
 
    function Id_Entry (Name : String;
@@ -672,7 +688,7 @@ package body Adi.CSS_Source is
       return (
         Kind => Adi.CSS_Parser.Id_Selector,
         Name => To_Unbounded_String (Normalize_Name (Name)),
-        Styles => Styles);
+        Styles => Adi.Widget.Intern (Styles));
    end Id_Entry;
 
    function Tag_Entry (Name : String;
@@ -681,7 +697,7 @@ package body Adi.CSS_Source is
       return (
         Kind => Adi.CSS_Parser.Tag_Selector,
         Name => To_Unbounded_String (Normalize_Name (Name)),
-        Styles => Styles);
+        Styles => Adi.Widget.Intern (Styles));
    end Tag_Entry;
 
    procedure Set_Static_Entries (Source  : in out Style_Source;
@@ -705,6 +721,7 @@ package body Adi.CSS_Source is
       Ensure_Impl (Source);
 
       Source.Impl.Static_Metadata := Metadata;
+      Source.Impl.Static_Root     := Fingerprint (Metadata);
       if Source.Impl.Mode = Static_Mode then
          Reapply_If_Changed (Source);
       end if;

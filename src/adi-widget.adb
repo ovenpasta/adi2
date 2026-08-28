@@ -375,6 +375,24 @@ package body Adi.Widget is
       Equivalent_Keys => "=");
 
    Style_Store : Style_Entry_Ptr_Vectors.Vector;
+
+   --  Handles grouped by style hash, so interning probes a handful of
+   --  candidates instead of the whole store. Keyed by hash rather than
+   --  by style: the map would otherwise hold a second copy of each.
+   package Handle_Vectors is new Ada.Containers.Vectors
+     (Positive, Style_Handle);
+
+   function Same_Hash (H : Ada.Containers.Hash_Type)
+     return Ada.Containers.Hash_Type is (H);
+
+   package Style_Index_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Ada.Containers.Hash_Type,
+      Element_Type    => Handle_Vectors.Vector,
+      Hash            => Same_Hash,
+      Equivalent_Keys => Ada.Containers."=",
+      "="             => Handle_Vectors."=");
+
+   Style_Index : Style_Index_Maps.Map;
    Max_Global_Resolved_Entries : constant Count_Type := 32_768;
    Global_Resolved_Cache : Resolved_Cache_Maps.Map;
 
@@ -450,14 +468,37 @@ package body Adi.Widget is
          return 0;
       end if;
 
-      for I in 1 .. Natural (Style_Store.Length) loop
-         if Style_Store.Element (I).Style = S then
-            return Style_Handle (I);
+      declare
+         Key      : constant Ada.Containers.Hash_Type :=
+           Adi.Widget_Styles.Hash (S);
+         Bucket   : constant Style_Index_Maps.Cursor := Style_Index.Find (Key);
+         Interned : Style_Handle;
+      begin
+         if Style_Index_Maps.Has_Element (Bucket) then
+            for H of Style_Index_Maps.Element (Bucket) loop
+               if Style_Store.Element (Positive (H)).Style = S then
+                  return H;
+               end if;
+            end loop;
          end if;
-      end loop;
 
-      Style_Store.Append (new Prepared_Style_Entry'(Prepare_Style (S)));
-      return Style_Handle (Style_Store.Length);
+         Style_Store.Append (new Prepared_Style_Entry'(Prepare_Style (S)));
+         Interned := Style_Handle (Style_Store.Length);
+         Interned_Style_Count := Natural (Style_Store.Length);
+
+         if Style_Index_Maps.Has_Element (Bucket) then
+            Style_Index.Reference (Bucket).Append (Interned);
+         else
+            declare
+               Fresh : Handle_Vectors.Vector;
+            begin
+               Fresh.Append (Interned);
+               Style_Index.Insert (Key, Fresh);
+            end;
+         end if;
+
+         return Interned;
+      end;
    end Intern_Style;
 
    function Compute_Style_Prepared
@@ -1278,6 +1319,26 @@ package body Adi.Widget is
       Bump_Style_Version (W);
       Mark_Dirty (W);
    end Set_Part_Style;
+
+   function Intern (Styles : Part_Style_Array) return Interned_Part_Styles is
+      Result : Interned_Part_Styles;
+   begin
+      for P in Part_Kind loop
+         Result.Handles (P) := Intern_Style (Styles (P).Style);
+         Result.Enabled (P) := Styles (P).Enabled;
+      end loop;
+      return Result;
+   end Intern;
+
+   function Expand (Styles : Interned_Part_Styles) return Part_Style_Array is
+      Result : Part_Style_Array;
+   begin
+      for P in Part_Kind loop
+         Result (P) := (Style   => Style_From_Handle (Styles.Handles (P)).all,
+                        Enabled => Styles.Enabled (P));
+      end loop;
+      return Result;
+   end Expand;
 
    procedure Set_Part_Styles (W : in out Widget'Class;
                               Styles : Part_Style_Array) is

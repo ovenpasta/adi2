@@ -3,6 +3,7 @@
 
 pragma Ada_2022;
 
+with Ada.Containers;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 
 package Adi.Widget_Styles is
@@ -121,6 +122,11 @@ package Adi.Widget_Styles is
    --  Add a rule to widget style
    procedure Add_Rule (WS : in out Widget_Style; Rule : State_Rule)
      with Pre => WS.Rule_Count < Max_Style_Rules;
+
+   --  Equal styles hash equal; unequal ones may collide. Keyed only on
+   --  discriminants and counts, never on a string, float or access
+   --  value, which do not survive being built twice.
+   function Hash (S : Widget_Style) return Ada.Containers.Hash_Type;
 
    --  Check if any rule references a given widget/part state
    function Uses_Widget_State

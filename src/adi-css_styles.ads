@@ -36,6 +36,9 @@ package Adi.CSS_Styles is
 
       function Is_Set (O : Optional) return Boolean is (O.State = Set);
       function Is_None (O : Optional) return Boolean is (O.State = None);
+      --  Named at all, as against never mentioned.
+      function Is_Specified (O : Optional) return Boolean is
+        (O.State /= Undefined);
       function Get_Default return Value_Type is (Default);
    end Optional_Values;
 
@@ -1276,6 +1279,9 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Prop_Transition);
 
    type CSS_Property_Set is array (CSS_Property) of Boolean;
+
+   --  Which properties a rule set names, whether it sets or clears them.
+   function Set_Properties (S : Style_Rules) return CSS_Property_Set;
 
    --  Properties that inherit from Main_Part to sub-parts (matching CSS spec).
    --  Text/typography and cursor inherit; box-model/layout properties do not.

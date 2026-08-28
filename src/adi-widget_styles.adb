@@ -5,6 +5,65 @@ pragma Ada_2022;
 
 package body Adi.Widget_Styles is
 
+   ----------
+   -- Hash --
+   ----------
+
+   function Hash (S : Widget_Style) return Ada.Containers.Hash_Type is
+      use type Ada.Containers.Hash_Type;
+
+      --  FNV-1a over a stream of small numbers.
+      H : Ada.Containers.Hash_Type := 16#811C_9DC5#;
+
+      procedure Mix (Value : Ada.Containers.Hash_Type) is
+      begin
+         H := (H xor (Value and 16#FF#)) * 16#0100_0193#;
+         H := (H xor ((Value / 256) and 16#FF#)) * 16#0100_0193#;
+      end Mix;
+
+      procedure Mix (Flag : Boolean) is
+      begin
+         Mix (if Flag then 1 else 0);
+      end Mix;
+
+      procedure Mix (States : Widget_States) is
+      begin
+         for St in Widget_State loop
+            Mix (States (St));
+         end loop;
+      end Mix;
+
+      procedure Mix (Selector : State_Selector) is
+      begin
+         Mix (Selector.Widget_Required);
+         Mix (Selector.Widget_Excluded);
+         Mix (Selector.Part_Required);
+         Mix (Selector.Part_Excluded);
+      end Mix;
+
+      procedure Mix (Named : CSS_Property_Set) is
+      begin
+         for P in CSS_Property loop
+            Mix (Named (P));
+         end loop;
+      end Mix;
+   begin
+      Mix (Set_Properties (S.Base));
+      Mix (Ada.Containers.Hash_Type (S.Rule_Count));
+      Mix (S.Widget_State_Mask);
+      Mix (S.Part_State_Mask);
+
+      --  Only the rules in use. Hashing the spare slots would be sound
+      --  too, just wasted work.
+      for I in 1 .. S.Rule_Count loop
+         Mix (S.Rules (I).Selector);
+         Mix (Set_Properties (S.Rules (I).Style));
+         Mix (Ada.Containers.Hash_Type (S.Rules (I).Priority));
+      end loop;
+
+      return H;
+   end Hash;
+
    -----------------
    -- Specificity --
    -----------------

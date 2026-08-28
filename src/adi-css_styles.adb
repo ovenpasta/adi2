@@ -715,6 +715,114 @@ package body Adi.CSS_Styles is
    end Merge;
 
    -------------------------------------------------
+   --  Set_Properties: one line per field, like Merge
+   -------------------------------------------------
+
+   function Set_Properties (S : Style_Rules) return CSS_Property_Set is
+      function Any_Edge (A : Opt_Edge_Lengths) return Boolean is
+        (for some E in Edge => Opt_Length.Is_Specified (A (E)));
+      function Any_Edge (A : Opt_Edge_Colors) return Boolean is
+        (for some E in Edge => Opt_Edge_Color.Is_Specified (A (E)));
+      function Any_Edge (A : Opt_Edge_Styles) return Boolean is
+        (for some E in Edge => Opt_Edge_Style.Is_Specified (A (E)));
+      function Any_Edge (A : Opt_Margin_Sides) return Boolean is
+        (for some E in Edge => Opt_Margin.Is_Specified (A (E)));
+      function Any_Corner (A : Opt_Corner_Lengths) return Boolean is
+        (for some C in Corner => Opt_Length.Is_Specified (A (C)));
+   begin
+      return
+        [--  Colors
+         Prop_Color            => Opt_Text_Color.Is_Specified (S.Color),
+         Prop_Background_Color => Opt_Bg_Color.Is_Specified (S.Background_Color),
+         Prop_Background_Image => Opt_Bg_Image.Is_Specified (S.Background_Image),
+
+         --  Border
+         Prop_Border_Radius    => Any_Corner (S.Border_Radius),
+         Prop_Border_Width     => Any_Edge (S.Border_Width),
+         Prop_Border_Color     => Any_Edge (S.Border_Color),
+         Prop_Border_Style     => Any_Edge (S.Border_Style),
+
+         --  Outline
+         Prop_Outline_Width    => Opt_Outline_Width.Is_Specified (S.Outline_Width),
+         Prop_Outline_Color    => Opt_Outline_Color.Is_Specified (S.Outline_Color),
+         Prop_Outline_Style    => Opt_Outline_Style.Is_Specified (S.Outline_Style),
+         Prop_Outline_Offset   => Opt_Outline_Offset.Is_Specified (S.Outline_Offset),
+
+         --  Spacing
+         Prop_Padding          => Any_Edge (S.Padding),
+         Prop_Margin           => Any_Edge (S.Margin),
+
+         --  Sizing
+         Prop_Width            => Opt_Size.Is_Specified (S.Width),
+         Prop_Height           => Opt_Size.Is_Specified (S.Height),
+         Prop_Min_Width        => Opt_Size.Is_Specified (S.Min_Width),
+         Prop_Max_Width        => Opt_Size.Is_Specified (S.Max_Width),
+         Prop_Min_Height       => Opt_Size.Is_Specified (S.Min_Height),
+         Prop_Max_Height       => Opt_Size.Is_Specified (S.Max_Height),
+
+         --  Typography
+         Prop_Font_Family      => Opt_Font.Is_Specified (S.Font_Family),
+         Prop_Font_Size        => Opt_Font_Size.Is_Specified (S.Font_Size),
+         Prop_Font_Weight      => Opt_Font_Weight.Is_Specified (S.Font_Weight),
+         Prop_Font_Style       => Opt_Font_Style.Is_Specified (S.Font_Style),
+         Prop_Text_Align       => Opt_Text_Align.Is_Specified (S.Text_Align),
+         Prop_Vertical_Align   => Opt_Vertical_Align.Is_Specified (S.Vertical_Align),
+         Prop_Text_Decoration  => Opt_Text_Decoration.Is_Specified (S.Text_Decoration),
+         Prop_List_Style_Type  => Opt_List_Style_Type.Is_Specified (S.List_Style_Type),
+         Prop_List_Style_Image => Opt_List_Style_Image.Is_Specified (S.List_Style_Image),
+         Prop_List_Style_Position =>
+           Opt_List_Style_Position.Is_Specified (S.List_Style_Position),
+         Prop_White_Space      => Opt_White_Space.Is_Specified (S.White_Space),
+         Prop_Text_Overflow    => Opt_Text_Overflow.Is_Specified (S.Text_Overflow),
+         Prop_Text_Wrap_Mode   => Opt_Text_Wrap_Mode.Is_Specified (S.Text_Wrap_Mode),
+         Prop_Line_Height      => Opt_Line_Height.Is_Specified (S.Line_Height),
+
+         --  Layout. Prop_Overflow is shorthand metadata with no field of
+         --  its own; the axes carry it.
+         Prop_Display          => Opt_Display.Is_Specified (S.Display),
+         Prop_Position         => Opt_Position.Is_Specified (S.Position),
+         Prop_Overflow         => False,
+         Prop_Overflow_X       => Opt_Overflow.Is_Specified (S.Overflow_X),
+         Prop_Overflow_Y       => Opt_Overflow.Is_Specified (S.Overflow_Y),
+         Prop_Visibility       => Opt_Visibility.Is_Specified (S.Visibility),
+
+         --  Visual
+         Prop_Opacity          => Opt_Opacity.Is_Specified (S.Opacity),
+         Prop_Cursor           => Opt_Cursor.Is_Specified (S.Cursor),
+         Prop_Box_Shadow       => Opt_Box_Shadow.Is_Specified (S.Box_Shadow),
+
+         --  Object/Image
+         Prop_Object_Fit       => Opt_Object_Fit.Is_Specified (S.Object_Fit),
+         Prop_Object_Position  => Opt_Object_Pos.Is_Specified (S.Object_Position),
+
+         --  Flexbox container. Grid_Column_Tracks has no property of its
+         --  own and travels with grid-template-columns.
+         Prop_Flex_Direction   => Opt_Flex_Dir.Is_Specified (S.Flex_Direction),
+         Prop_Flex_Wrap        => Opt_Flex_Wrap.Is_Specified (S.Flex_Wrap),
+         Prop_Justify_Content  => Opt_Justify.Is_Specified (S.Justify_Content),
+         Prop_Align_Items      => Opt_Align_Items.Is_Specified (S.Align_Items),
+         Prop_Align_Content    => Opt_Align_Content.Is_Specified (S.Align_Content),
+         Prop_Gap              => Opt_Gap.Is_Specified (S.Gap),
+         Prop_Grid_Columns     => Opt_Grid_Cols.Is_Specified (S.Grid_Columns)
+                                    or else S.Grid_Column_Tracks.Count > 0,
+         Prop_Grid_Rows        => Opt_Grid_Rows.Is_Specified (S.Grid_Rows),
+
+         --  Flexbox item
+         Prop_Align_Self       => Opt_Align_Self.Is_Specified (S.Align_Self),
+         Prop_Flex_Grow        => Opt_Flex_Grow.Is_Specified (S.Flex_Grow),
+         Prop_Flex_Shrink      => Opt_Flex_Shrink.Is_Specified (S.Flex_Shrink),
+         Prop_Flex_Basis       => Opt_Flex_Basis.Is_Specified (S.Flex_Basis),
+         Prop_Order            => Opt_Order.Is_Specified (S.Order),
+         Prop_Grid_Column      => Opt_Grid_Column.Is_Specified (S.Grid_Column),
+         Prop_Grid_Row         => Opt_Grid_Row.Is_Specified (S.Grid_Row),
+         Prop_Grid_Column_Span => Opt_Grid_Col_Span.Is_Specified (S.Grid_Column_Span),
+         Prop_Grid_Row_Span    => Opt_Grid_Row_Span.Is_Specified (S.Grid_Row_Span),
+
+         --  Animation
+         Prop_Transition       => Opt_Transition.Is_Specified (S.Transition)];
+   end Set_Properties;
+
+   -------------------------------------------------
    --  Inherit_From: cascade inheritable properties
    --  See Inheritable_Properties in adi-css_styles.ads
    -------------------------------------------------

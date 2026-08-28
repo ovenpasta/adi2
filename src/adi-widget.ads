@@ -236,6 +236,15 @@ package Adi.Widget is
 
    Empty_Part_Styles : constant Part_Style_Array := [others => <>];
 
+   --  A Part_Style_Array stored once and referred to by handle.
+   --  Interning is canonical, so equality on these is value equality.
+   type Interned_Part_Styles is private;
+
+   Empty_Interned_Part_Styles : constant Interned_Part_Styles;
+
+   function Intern (Styles : Part_Style_Array) return Interned_Part_Styles;
+   function Expand (Styles : Interned_Part_Styles) return Part_Style_Array;
+
    ---------------------------------------------------------------------------
    --  Unique Widget Identifier
    ---------------------------------------------------------------------------
@@ -855,6 +864,17 @@ private
    type Style_Handle is new Natural;
    type Part_Style_Handle_Array is array (Part_Kind) of Style_Handle;
    type Part_Enabled_Array is array (Part_Kind) of Boolean;
+
+   type Interned_Part_Styles is record
+      Handles : Part_Style_Handle_Array := [others => 0];
+      Enabled : Part_Enabled_Array      := [others => True];
+   end record;
+
+   Empty_Interned_Part_Styles : constant Interned_Part_Styles :=
+     (others => <>);
+
+   --  Instrumentation the tests need and applications do not.
+   Interned_Style_Count : Natural := 0;
 
    --  Animation state per part
    type Part_Transition_Array is array (Part_Kind) of Part_Transition;

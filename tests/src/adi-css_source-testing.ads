@@ -21,6 +21,11 @@ package Adi.CSS_Source.Testing is
    function Parse_Count return Count;
    function File_Read_Count return Count;
 
+   --  What one registered selector costs to hold. The entries are
+   --  copied per source and again into Applied_Statics, so this is the
+   --  figure an application pays several times over.
+   function Static_Entry_Bytes return Natural;
+
    procedure Reset_Counts;
 
 end Adi.CSS_Source.Testing;

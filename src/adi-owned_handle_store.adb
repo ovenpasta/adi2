@@ -4,6 +4,8 @@
 pragma Ada_2022;
 
 with Ada.Unchecked_Deallocation;
+with Ada.Exceptions;
+with Adi.Log;
 
 package body Adi.Owned_Handle_Store is
 
@@ -49,8 +51,9 @@ package body Adi.Owned_Handle_Store is
             begin
                Reclaim (Owned.all);
             exception
-               when others =>
-                  null;
+               when E : others =>
+                  Adi.Log.Debug ("reclaim on failed register: "
+                                 & Ada.Exceptions.Exception_Name (E));
             end;
             Free_Object (Owned);
          end if;

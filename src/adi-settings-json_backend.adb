@@ -11,6 +11,8 @@ with GNAT.OS_Lib;
 
 with Adi.JSON;
 with Adi.OS;
+with Ada.Exceptions;
+with Adi.Log;
 
 package body Adi.Settings.JSON_Backend is
 
@@ -178,7 +180,9 @@ package body Adi.Settings.JSON_Backend is
          begin
             Ada.Directories.Delete_File (Tmp);
          exception
-            when others => null;
+            when E : others =>
+               Adi.Log.Debug ("settings temp file: "
+                              & Ada.Exceptions.Exception_Name (E));
          end;
       end if;
    end Atomic_Write;

@@ -27,6 +27,8 @@ with Adi.Widget.Label;
 with Adi.Widget.Text_Input;
 with Adi.Widget.Text_Editor;
 with Adi.Widget_Styles;          use Adi.Widget_Styles;
+with Ada.Exceptions;
+with Adi.Log;
 
 package body Adi.MCP is
 
@@ -1432,7 +1434,9 @@ package body Adi.MCP is
             end;
       end;
    exception
-      when others => null;
+      when E : others =>
+         Adi.Log.Error ("MCP screenshot: "
+                        & Ada.Exceptions.Exception_Information (E));
    end Post_Render_Handler;
 
    procedure Frame_Handler
@@ -1442,6 +1446,9 @@ package body Adi.MCP is
       Dir  : constant String := To_String (MCP_Dir);
       Srch : Search_Type;
       Ent  : Directory_Entry_Type;
+
+      Entry_Path : Unbounded_String;
+      Entry_Name : Unbounded_String;
 
       use type Ada.Calendar.Time;
       Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
@@ -1455,11 +1462,16 @@ package body Adi.MCP is
                     [Ordinary_File => True, others => False]);
       if More_Entries (Srch) then
          Get_Next_Entry (Srch, Ent);
+
+         --  Read the entry out before ending the search rather than
+         --  after it.
+         Entry_Path := To_Unbounded_String (Full_Name (Ent));
+         Entry_Name := To_Unbounded_String (Simple_Name (Ent));
          End_Search (Srch);
 
          declare
-            Cmd_Path  : constant String := Full_Name (Ent);
-            Cmd_Name  : constant String := Simple_Name (Ent);
+            Cmd_Path  : constant String := To_String (Entry_Path);
+            Cmd_Name  : constant String := To_String (Entry_Name);
             JSON      : constant String := Read_File (Cmd_Path);
             Cmd       : constant String := JSON_Get_String (JSON, "command");
             Req_Id_J  : constant String := JSON_Get_String (JSON, "req_id");
@@ -1522,7 +1534,9 @@ package body Adi.MCP is
          End_Search (Srch);
       end if;
    exception
-      when others => null;
+      when E : others =>
+         Adi.Log.Error ("MCP command: "
+                        & Ada.Exceptions.Exception_Information (E));
    end Frame_Handler;
 
    ---------------------------------------------------------------------------
@@ -1561,7 +1575,9 @@ package body Adi.MCP is
       End_Search (Srch);
       Delete_Directory (Path);
    exception
-      when others => null;
+      when E : others =>
+         Adi.Log.Debug ("MCP remove " & Path & ": "
+                        & Ada.Exceptions.Exception_Name (E));
    end Remove_Directory_Recursive;
 
    procedure Cleanup_Stale_Dirs (Parent : String) is
@@ -1589,14 +1605,18 @@ package body Adi.MCP is
                      Remove_Directory_Recursive (Full_Name (Ent));
                   end if;
                exception
-                  when others => null;
+                  when E : others =>
+                     Adi.Log.Debug ("MCP stale check: "
+                                    & Ada.Exceptions.Exception_Name (E));
                end;
             end if;
          end;
       end loop;
       End_Search (Srch);
    exception
-      when others => null;
+      when E : others =>
+         Adi.Log.Debug ("MCP cleanup: "
+                        & Ada.Exceptions.Exception_Name (E));
    end Cleanup_Stale_Dirs;
 
    procedure Initialize
@@ -1668,12 +1688,16 @@ package body Adi.MCP is
             end loop;
             End_Search (Srch);
          exception
-            when others => null;
+            when E : others =>
+               Adi.Log.Debug ("MCP finalize files: "
+                              & Ada.Exceptions.Exception_Name (E));
          end;
          begin
             Delete_Directory (Dir);
          exception
-            when others => null;
+            when E : others =>
+               Adi.Log.Debug ("MCP finalize dir: "
+                              & Ada.Exceptions.Exception_Name (E));
          end;
       end if;
 

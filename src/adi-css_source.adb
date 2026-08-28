@@ -18,6 +18,7 @@ with Adi.Log;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.Window;
+with Ada.Exceptions;
 use type Adi.Window.Window_Handle;
 
 package body Adi.CSS_Source is
@@ -657,7 +658,9 @@ package body Adi.CSS_Source is
                exception
                   --  Unstampable, so Tick keeps watching it -- which is
                   --  right for a sheet that is missing rather than broken.
-                  when others => null;
+                  when E : others =>
+                     Adi.Log.Debug ("CSS stamp " & Path & ": "
+                                    & Ada.Exceptions.Exception_Name (E));
                end;
             end if;
          end;
@@ -965,7 +968,9 @@ package body Adi.CSS_Source is
                exception
                   --  Nothing to compare against, and a reload would fail
                   --  on it anyway.
-                  when others => null;
+                  when E : others =>
+                     Adi.Log.Debug ("CSS watch: "
+                                    & Ada.Exceptions.Exception_Name (E));
                end;
             end if;
          end;

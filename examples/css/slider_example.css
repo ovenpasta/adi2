@@ -123,6 +123,89 @@
     border-color: #89b4fa;
 }
 
+/* ── Bar and knob apart ──────────────────────
+   The widget's own box is the press target and the height the knob is
+   sized from; ::scroll is the bar drawn inside it. The Float Slider
+   above leaves ::scroll alone, so its bar is the whole box and the knob
+   rides inside it. These two give the bar a height of its own, and the
+   knob keeps the widget's. */
+
+.slider-gradient {
+    width: 300px;
+    height: 24px;
+    border-radius: 12px;
+}
+
+.slider-gradient::scroll {
+    height: 6px;
+    border-radius: 3px;
+    background-image: linear-gradient(to right, #1e1e2e, #f38ba8);
+}
+
+/* The bar carries the scale itself, so nothing covers it up to the knob. */
+.slider-gradient::indicator {
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.slider-gradient::knob {
+    width: 22px;
+    border-radius: 50%;
+    border: 2px solid #1e1e2e;
+    background-image: linear-gradient(to bottom, #ffffff, #9399b2);
+}
+
+.slider-gradient::knob:hover {
+    background-image: linear-gradient(to bottom, #ffffff, #f5e0dc);
+}
+
+.slider-gradient::knob:active {
+    background-image: linear-gradient(to bottom, #f5e0dc, #f38ba8);
+}
+
+.slider-square {
+    width: 300px;
+    height: 24px;
+    border-radius: 12px;
+}
+
+.slider-square::scroll {
+    height: 6px;
+    background-color: #313244;
+}
+
+.slider-square::indicator {
+    background-color: #a6e3a1;
+}
+
+.slider-square::knob {
+    width: 12px;
+    border-radius: 2px;
+    background-color: #cdd6f4;
+}
+
+.slider-square::knob:hover {
+    background-color: #f5e0dc;
+}
+
+.slider-square::knob:active {
+    background-color: #a6e3a1;
+}
+
+/* Hovering anywhere on the control lifts the control, not the knob.
+   The radius is on the base rule too, so only the shadow appears on
+   hover rather than the shape changing under the pointer. */
+.slider:hover {
+    box-shadow: 0px 0px 10px 2px rgba(137, 180, 250, 0.30);
+}
+
+.slider-gradient:hover {
+    box-shadow: 0px 0px 10px 2px rgba(243, 139, 168, 0.30);
+}
+
+.slider-square:hover {
+    box-shadow: 0px 0px 10px 2px rgba(166, 227, 161, 0.30);
+}
+
 /* ── Context Menu ───────────────────────────── */
 
 .context-menu {

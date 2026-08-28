@@ -107,6 +107,12 @@ package Slider_Example_Styles is
       Outline_Offset => Set_Outline_Offset (Px (2.0)),
       others => <>);
 
+   --  Style for class 'slider' when widget State_Hovered
+   function Slider_Class_Widget_Hovered_Style return Style_Rules is
+     (
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (2.0), RGBA (137, 180, 250, 0.3))),
+      others => <>);
+
    --  Base style for class 'slider'::indicator
    function Slider_Class_Indicator_Base_Style return Style_Rules is
      (
@@ -194,6 +200,104 @@ package Slider_Example_Styles is
    function Value_Input_Class_Text_Base_Style return Style_Rules is
      (
       Color => Set (RGB (205, 214, 244)),
+      others => <>);
+
+   --  Base style for class 'slider-gradient'
+   function Slider_Gradient_Class_Base_Style return Style_Rules is
+     (
+      Width => Set (Size (Px (300.0))),
+      Height => Set (Size (Px (24.0))),
+      Border_Radius => Set (Radius (Px (12.0))),
+      others => <>);
+
+   --  Style for class 'slider-gradient' when widget State_Hovered
+   function Slider_Gradient_Class_Widget_Hovered_Style return Style_Rules is
+     (
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (2.0), RGBA (243, 139, 168, 0.3))),
+      others => <>);
+
+   --  Base style for class 'slider-gradient'::indicator
+   function Slider_Gradient_Class_Indicator_Base_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
+      others => <>);
+
+   --  Base style for class 'slider-gradient'::knob
+   function Slider_Gradient_Class_Knob_Base_Style return Style_Rules is
+     (
+      Width => Set (Size (Px (22.0))),
+      Background_Image => Set_Bg_Image (Linear_Gradient (180.0, [Gradient_Stop_Auto (RGB (255, 255, 255)), Gradient_Stop_Auto (RGB (147, 153, 178)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
+      Border_Width => Set (Border_Width (Px (2.0))),
+      Border_Style => Set (Border_Style (Solid)),
+      Border_Color => Set (Border_Color (RGB (30, 30, 46))),
+      Border_Radius => Set (Radius (Pct (50.0))),
+      others => <>);
+
+   --  Style for class 'slider-gradient'::knob when part State_Hovered
+   function Slider_Gradient_Class_Knob_Part_Hovered_Style return Style_Rules is
+     (
+      Background_Image => Set_Bg_Image (Linear_Gradient (180.0, [Gradient_Stop_Auto (RGB (255, 255, 255)), Gradient_Stop_Auto (RGB (245, 224, 220)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
+      others => <>);
+
+   --  Style for class 'slider-gradient'::knob when part State_Pressed
+   function Slider_Gradient_Class_Knob_Part_Pressed_Style return Style_Rules is
+     (
+      Background_Image => Set_Bg_Image (Linear_Gradient (180.0, [Gradient_Stop_Auto (RGB (245, 224, 220)), Gradient_Stop_Auto (RGB (243, 139, 168)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
+      others => <>);
+
+   --  Base style for class 'slider-gradient'::scroll
+   function Slider_Gradient_Class_Scroll_Base_Style return Style_Rules is
+     (
+      Height => Set (Size (Px (6.0))),
+      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGB (30, 30, 46)), Gradient_Stop_Auto (RGB (243, 139, 168)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
+      Border_Radius => Set (Radius (Px (3.0))),
+      others => <>);
+
+   --  Base style for class 'slider-square'
+   function Slider_Square_Class_Base_Style return Style_Rules is
+     (
+      Width => Set (Size (Px (300.0))),
+      Height => Set (Size (Px (24.0))),
+      Border_Radius => Set (Radius (Px (12.0))),
+      others => <>);
+
+   --  Style for class 'slider-square' when widget State_Hovered
+   function Slider_Square_Class_Widget_Hovered_Style return Style_Rules is
+     (
+      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (2.0), RGBA (166, 227, 161, 0.3))),
+      others => <>);
+
+   --  Base style for class 'slider-square'::indicator
+   function Slider_Square_Class_Indicator_Base_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGB (166, 227, 161)),
+      others => <>);
+
+   --  Base style for class 'slider-square'::knob
+   function Slider_Square_Class_Knob_Base_Style return Style_Rules is
+     (
+      Width => Set (Size (Px (12.0))),
+      Background_Color => Set_Bg (RGB (205, 214, 244)),
+      Border_Radius => Set (Radius (Px (2.0))),
+      others => <>);
+
+   --  Style for class 'slider-square'::knob when part State_Hovered
+   function Slider_Square_Class_Knob_Part_Hovered_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGB (245, 224, 220)),
+      others => <>);
+
+   --  Style for class 'slider-square'::knob when part State_Pressed
+   function Slider_Square_Class_Knob_Part_Pressed_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGB (166, 227, 161)),
+      others => <>);
+
+   --  Base style for class 'slider-square'::scroll
+   function Slider_Square_Class_Scroll_Base_Style return Style_Rules is
+     (
+      Height => Set (Size (Px (6.0))),
+      Background_Color => Set_Bg (RGB (49, 50, 68)),
       others => <>);
 
    --  Base style for class 'context-menu'
@@ -325,6 +429,7 @@ package Slider_Example_Styles is
    function Slider_Class_Widget return Widget_Style is
      (From (Slider_Class_Base_Style)
      .On (When_State (State_Focused), Slider_Class_Widget_Focused_Style)
+     .On (When_State (State_Hovered), Slider_Class_Widget_Hovered_Style)
      .Build);
 
    --  Complete widget style for class 'slider'::indicator
@@ -400,6 +505,72 @@ package Slider_Example_Styles is
       Cursor_Part => (Style => Value_Input_Class_Cursor_Widget, Enabled => True),
       Selected_Part => (Style => Value_Input_Class_Selected_Widget, Enabled => True),
       Text_Part => (Style => Value_Input_Class_Text_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'slider-gradient'
+   function Slider_Gradient_Class_Widget return Widget_Style is
+     (From (Slider_Gradient_Class_Base_Style)
+     .On (When_State (State_Hovered), Slider_Gradient_Class_Widget_Hovered_Style)
+     .Build);
+
+   --  Complete widget style for class 'slider-gradient'::indicator
+   function Slider_Gradient_Class_Indicator_Widget return Widget_Style is
+     (From (Slider_Gradient_Class_Indicator_Base_Style)
+     .Build);
+
+   --  Complete widget style for class 'slider-gradient'::knob
+   function Slider_Gradient_Class_Knob_Widget return Widget_Style is
+     (From (Slider_Gradient_Class_Knob_Base_Style)
+     .On (When_Part_State (State_Hovered), Slider_Gradient_Class_Knob_Part_Hovered_Style)
+     .On (When_Part_State (State_Pressed), Slider_Gradient_Class_Knob_Part_Pressed_Style)
+     .Build);
+
+   --  Complete widget style for class 'slider-gradient'::scroll
+   function Slider_Gradient_Class_Scroll_Widget return Widget_Style is
+     (From (Slider_Gradient_Class_Scroll_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'slider-gradient'
+   function Slider_Gradient_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Slider_Gradient_Class_Widget, Enabled => True),
+      Indicator_Part => (Style => Slider_Gradient_Class_Indicator_Widget, Enabled => True),
+      Knob_Part => (Style => Slider_Gradient_Class_Knob_Widget, Enabled => True),
+      Scroll_Part => (Style => Slider_Gradient_Class_Scroll_Widget, Enabled => True),
+      others => <>
+   ]);
+
+   --  Complete widget style for class 'slider-square'
+   function Slider_Square_Class_Widget return Widget_Style is
+     (From (Slider_Square_Class_Base_Style)
+     .On (When_State (State_Hovered), Slider_Square_Class_Widget_Hovered_Style)
+     .Build);
+
+   --  Complete widget style for class 'slider-square'::indicator
+   function Slider_Square_Class_Indicator_Widget return Widget_Style is
+     (From (Slider_Square_Class_Indicator_Base_Style)
+     .Build);
+
+   --  Complete widget style for class 'slider-square'::knob
+   function Slider_Square_Class_Knob_Widget return Widget_Style is
+     (From (Slider_Square_Class_Knob_Base_Style)
+     .On (When_Part_State (State_Hovered), Slider_Square_Class_Knob_Part_Hovered_Style)
+     .On (When_Part_State (State_Pressed), Slider_Square_Class_Knob_Part_Pressed_Style)
+     .Build);
+
+   --  Complete widget style for class 'slider-square'::scroll
+   function Slider_Square_Class_Scroll_Widget return Widget_Style is
+     (From (Slider_Square_Class_Scroll_Base_Style)
+     .Build);
+
+   --  Part styles bundle for class 'slider-square'
+   function Slider_Square_Class_Part_Styles return Part_Style_Array is
+     ([
+      Main_Part => (Style => Slider_Square_Class_Widget, Enabled => True),
+      Indicator_Part => (Style => Slider_Square_Class_Indicator_Widget, Enabled => True),
+      Knob_Part => (Style => Slider_Square_Class_Knob_Widget, Enabled => True),
+      Scroll_Part => (Style => Slider_Square_Class_Scroll_Widget, Enabled => True),
       others => <>
    ]);
 

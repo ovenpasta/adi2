@@ -50,7 +50,9 @@ project Adi is
       Profile_Config_Dir,
       "vendor/json-ada/src",
       MCP_Source_Dir);
-   for Object_Dir use "obj/" & Build_Profile;
+   --  Qualified by platform so a cross build cannot inherit a native
+   --  build's objects through project extension.
+   for Object_Dir use "obj/" & Platform_Name & "-" & Build_Profile;
    for Create_Missing_Dirs use "True";
    for Library_Dir use "lib/" & Build_Profile;
 

@@ -11,7 +11,10 @@
   <callback name="On_Speed_Value" type="Float_Value.Value_Changed_Callback"/>
   <callback name="On_Scale"       type="Float_Slider.Value_Changed_Callback"/>
   <callback name="On_Scale_Value" type="Float_Value.Value_Changed_Callback"/>
+  <callback name="On_Hue"         type="Float_Slider.Value_Changed_Callback"/>
+  <callback name="On_Hue_Value"   type="Float_Value.Value_Changed_Callback"/>
   <callback name="On_Spin"        type="Adi.Widget.Button.Toggle_Callback"/>
+  <callback name="On_Orbit"       type="Adi.Widget.Button.Toggle_Callback"/>
 
   <window title="Adi2 + OpenGL" width="980dp" height="660dp">
     <box class="page">
@@ -28,11 +31,8 @@
         </box>
 
         <box class="side">
-          <box class="panel">
-            <label text="CONTROLS" class="panel-title"/>
-
-            <label text="Rotation speed" class="field"/>
-            <box class="pair">
+          <box class="panel" label="CONTROLS">
+            <box class="pair" label="Rotation speed">
               <slider id="Speed_Slider" generic="Float_Slider"
                       min="0.0" max="3.0" value="0.6"
                       class="ctl" on-changed="On_Speed"/>
@@ -41,24 +41,35 @@
                            class="num" on-value-changed="On_Speed_Value"/>
             </box>
 
-            <label text="Size" class="field"/>
-            <box class="pair">
+            <box class="pair" label="Size">
               <slider id="Scale_Slider" generic="Float_Slider"
-                      min="0.1" max="0.95" value="0.72"
+                      min="0.1" max="3.0" value="0.72"
                       class="ctl" on-changed="On_Scale"/>
               <value-input id="Scale_Value" generic="Float_Value"
-                           min="0.1" max="0.95" value="0.72"
+                           min="0.1" max="3.0" value="0.72"
                            class="num" on-value-changed="On_Scale_Value"/>
+            </box>
+
+            <box class="pair" label="Colour">
+              <slider id="Hue_Slider" generic="Float_Slider"
+                      min="0.0" max="360.0" value="200.0"
+                      class="ctl hue" on-changed="On_Hue"/>
+              <value-input id="Hue_Value" generic="Float_Value"
+                           min="0.0" max="360.0" value="200.0"
+                           class="num" on-value-changed="On_Hue_Value"/>
             </box>
 
             <box class="row">
               <switch id="Spin_Switch" class="toggle" checked="true"
                       on-toggled="On_Spin"/>
               <label text="Spin" class="field"/>
+              <switch id="Orbit_Switch" class="toggle spaced"
+                      on-toggled="On_Orbit"/>
+              <label text="Orbit" class="field"/>
             </box>
           </box>
 
-          <box class="notes">
+          <box class="notes" label="NOTES">
             <html-view id="Explain" class="doc"/>
           </box>
         </box>

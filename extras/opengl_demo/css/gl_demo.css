@@ -68,18 +68,37 @@
     background-color: #ffffff;
     border: 1px solid #d4dbe7;
     border-radius: 14px;
-    padding: 20px;
-    gap: 10px;
+    padding: 46px 20px 20px 20px;
+    gap: 18px;
     flex-shrink: 0;
 }
 
-/* A slider and its value input on one line. */
+/* A label set with label= is an overlay: it is drawn at ::label's own
+   offset from the widget's origin and takes no part in layout, so the
+   room for it comes from the widget's own padding or margin. */
+.panel::label,
+.notes::label {
+    top: 20px;
+    left: 21px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #91a0b6;
+}
+
+/* A slider and its value input on one line, under their own label. */
 .pair {
     display: flex;
     flex-direction: row;
     align-items: center;
+    margin-top: 22px;
     gap: 10px;
-    margin-bottom: 10px;
+}
+
+.pair::label {
+    top: -22px;
+    left: 1px;
+    font-size: 13px;
+    color: #3d4d66;
 }
 
 .num {
@@ -99,7 +118,7 @@
     background-color: #ffffff;
     border: 1px solid #d4dbe7;
     border-radius: 14px;
-    padding: 6px;
+    padding: 44px 6px 6px 6px;
     flex-grow: 1;
 }
 
@@ -137,13 +156,6 @@
     background-color: rgba(59, 130, 246, 0.90);
 }
 
-.panel-title {
-    font-size: 11px;
-    font-weight: bold;
-    color: #91a0b6;
-    margin-bottom: 6px;
-}
-
 .field {
     font-size: 13px;
     color: #3d4d66;
@@ -157,13 +169,15 @@
     margin-top: 10px;
 }
 
-/* A slider has no intrinsic height; the track and knob carry it. */
+/* The widget's own box is the press target and what the knob is sized
+   from; ::scroll is the bar drawn inside it. Keeping them apart is what
+   lets a 6px bar carry an 18px round knob. */
 .ctl {
-    height: 20px;
+    height: 18px;
     flex-grow: 1;
 }
 
-.ctl::main {
+.ctl::scroll {
     height: 6px;
     background-color: #e4e9f1;
     border-radius: 3px;
@@ -178,6 +192,29 @@
 
 .ctl::knob:hover {
     background-color: #2563eb;
+}
+
+/* The bar shows the circle the knob picks from, so the colour under it
+ * is the colour the near corner takes. Both ends are red because hue
+ * wraps: 0 and 360 are the same place. */
+.hue::scroll {
+    background-image: linear-gradient(to right,
+        #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+}
+
+/* White, so it reads against every hue it can sit on. */
+.hue::knob {
+    background-color: #ffffff;
+    border: 2px solid #3d4d66;
+}
+
+.hue::knob:hover {
+    background-color: #f4f7fb;
+}
+
+/* A second switch on the same row, held off the first pair's label. */
+.spaced {
+    margin-left: 20px;
 }
 
 /* Same for a switch: without these it lays out at zero height. */

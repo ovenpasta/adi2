@@ -24,8 +24,8 @@ with Adi_GL;
 
 with GL_Demo_UI;
 
---  A triangle drawn by OpenGL into a texture Adi never touches, shown as
---  a widget and driven by ordinary Adi controls.
+--  A tetrahedron drawn by OpenGL into a texture Adi never touches, shown
+--  as a widget and driven by ordinary Adi controls.
 --
 --  The layout is XML, the styling is CSS, and the GL work happens in a
 --  per-frame callback outside the widget tree. The controls only write
@@ -45,6 +45,54 @@ procedure GL_Triangle is
      renames Ada.Numerics.Elementary_Functions.Sin;
    function Cos (X : Float) return Float
      renames Ada.Numerics.Elementary_Functions.Cos;
+   function Sqrt (X : Float) return Float
+     renames Ada.Numerics.Elementary_Functions.Sqrt;
+
+   type Vec3 is record
+      X, Y, Z : Float;
+   end record;
+
+   --  A regular tetrahedron: four alternate corners of a cube, pulled
+   --  onto the unit sphere.
+   Third_Root : constant Float := 0.577_350_27;
+
+   Corners : constant array (0 .. 3) of Vec3 :=
+     [(Third_Root, Third_Root, Third_Root),
+      (Third_Root, -Third_Root, -Third_Root),
+      (-Third_Root, Third_Root, -Third_Root),
+      (-Third_Root, -Third_Root, Third_Root)];
+
+   type Face is array (0 .. 2) of Natural;
+
+   --  Wound counter-clockwise seen from outside, which is what back-face
+   --  culling reads.
+   Faces : constant array (0 .. 3) of Face :=
+     [[0, 1, 2], [0, 2, 3], [0, 3, 1], [1, 3, 2]];
+
+   --  Full value, so the corner colours match the spectrum on the slider
+   --  that picks them.
+   function From_Hue (Degrees : Float) return Vec3 is
+      Saturation : constant Float := 0.82;
+
+      Turns : constant Float := Degrees / 360.0;
+      Sixth : constant Float :=
+        (Turns - Float'Floor (Turns)) * 6.0;
+      Band  : constant Integer := Integer (Float'Floor (Sixth));
+      Along : constant Float := Sixth - Float (Band);
+
+      Low  : constant Float := 1.0 - Saturation;
+      Down : constant Float := 1.0 - Saturation * Along;
+      Up   : constant Float := 1.0 - Saturation * (1.0 - Along);
+   begin
+      case Band is
+         when 0      => return (1.0, Up, Low);
+         when 1      => return (Down, 1.0, Low);
+         when 2      => return (Low, 1.0, Up);
+         when 3      => return (Low, Down, 1.0);
+         when 4      => return (Up, Low, 1.0);
+         when others => return (1.0, Low, Down);
+      end case;
+   end From_Hue;
 
    Tex_W : constant := 1024;
    Tex_H : constant := 1024;
@@ -57,6 +105,7 @@ procedure GL_Triangle is
 
    Ready : Boolean := False;
    Angle : Float := 0.0;
+   Orbit : Float := 0.0;
 
    --  Read whole rather than bundled: the demo is meant to be edited
    --  while it runs.
@@ -117,20 +166,22 @@ procedure GL_Triangle is
    --  Written by the controls, read by the GL callback.
    Speed    : Float   := 0.6;
    Scale    : Float   := 0.72;
+   Hue      : Float   := 200.0;
    Spinning : Boolean := True;
+   Orbiting : Boolean := False;
 
    ------------------
    -- GL rendering --
    ------------------
    procedure Draw_GL (Win : Adi.Window.Window_Handle) is
-      Sc : constant GLfloat := GLfloat (Scale);
-
       Saved_Clear    : GLfloat_Array (0 .. 3) := [others => 0.0];
       Saved_Viewport : GLint_Array (0 .. 3)   := [others => 0];
       Saved_Program  : aliased GLint := 0;
       Saved_FBO      : aliased GLint := 0;
       Saved_Texture  : aliased GLint := 0;
       Saved_VAO      : aliased GLint := 0;
+      Saved_Cull     : aliased GLint := GLint (GL_BACK);
+      Saved_Winding  : aliased GLint := GLint (GL_CCW);
       Unused         : Adi.SDL.C_bool;
 
       --  Scissor above all: SDL leaves it enabled with a rect in window
@@ -155,6 +206,8 @@ procedure GL_Triangle is
       glGetIntegerv (GL_FRAMEBUFFER_BINDING, Saved_FBO'Access);
       glGetIntegerv (GL_TEXTURE_BINDING_2D, Saved_Texture'Access);
       glGetIntegerv (GL_VERTEX_ARRAY_BINDING, Saved_VAO'Access);
+      glGetIntegerv (GL_CULL_FACE_MODE, Saved_Cull'Access);
+      glGetIntegerv (GL_FRONT_FACE, Saved_Winding'Access);
 
       if not Ready then
          --  Resolves the post-1.1 entry points against the live context.
@@ -236,6 +289,10 @@ procedure GL_Triangle is
          Angle := Angle + Speed * 0.03;
       end if;
 
+      if Orbiting then
+         Orbit := Orbit + Speed * 0.012;
+      end if;
+
       glBindFramebuffer (GL_FRAMEBUFFER, FBO);
       glViewport (0, 0, Tex_W, Tex_H);
 
@@ -244,20 +301,123 @@ procedure GL_Triangle is
          glDisable (Toggles (I));
       end loop;
 
+      --  A tetrahedron is convex, so dropping the faces that turn away
+      --  leaves exactly the ones in front: no visible face can hide
+      --  another. That is what lets this draw solid into a framebuffer
+      --  carrying nothing but colour.
+      glFrontFace (GL_CCW);
+      glCullFace (GL_BACK);
+      glEnable (GL_CULL_FACE);
+
       glClearColor (0.99, 0.99, 1.0, 1.0);
       glClear (GL_COLOR_BUFFER_BIT);
 
       declare
-         S1 : constant GLfloat := GLfloat (Sin (Angle));
-         C1 : constant GLfloat := GLfloat (Cos (Angle));
-         --  x, y, r, g, b per vertex.
-         Verts : constant GLfloat_Array :=
-           [C1 * Sc,  S1 * Sc,  0.93, 0.29, 0.36,
-            -S1 * Sc, C1 * Sc,  0.20, 0.72, 0.47,
-            -C1 * Sc, -S1 * Sc, 0.23, 0.51, 0.96];
+         --  Spin about the upright axis, under a fixed tilt so the
+         --  solid is seen from a little above rather than edge on.
+         Tilt : constant Float := 0.42;
+         Spin_C : constant Float := Cos (Angle);
+         Spin_S : constant Float := Sin (Angle);
+         Tilt_C : constant Float := Cos (Tilt);
+         Tilt_S : constant Float := Sin (Tilt);
+
+         --  Far enough that the near corner grows by about a fifth.
+         Eye : constant Float := 3.2;
+
+         --  Unit length, so the dot product below is the cosine.
+         Light : constant Vec3 := (0.33, 0.53, 0.78);
+
+         --  Carried around the view as a whole, after the projection, so
+         --  it moves the solid without turning it or changing its size.
+         Drift_X : constant Float :=
+           (if Orbiting then 0.42 * Cos (Orbit) else 0.0);
+         Drift_Y : constant Float :=
+           (if Orbiting then 0.28 * Sin (Orbit) else 0.0);
+
+         function Turned (V : Vec3) return Vec3 is
+            X1 : constant Float := V.X * Spin_C - V.Z * Spin_S;
+            Z1 : constant Float := V.X * Spin_S + V.Z * Spin_C;
+         begin
+            return (X       => X1,
+                    Y       => V.Y * Tilt_C - Z1 * Tilt_S,
+                    Z       => V.Y * Tilt_S + Z1 * Tilt_C);
+         end Turned;
+
+         Placed : array (Corners'Range) of Vec3;
+
+         --  x, y, r, g, b per vertex, three vertices to a face. The
+         --  faces do not share vertices: each carries its own shade,
+         --  which is what makes the solid read as facets rather than a
+         --  smear.
+         Verts : GLfloat_Array (0 .. 5 * 3 * Faces'Length - 1) :=
+           [others => 0.0];
+         At_Vertex : Natural := Verts'First;
+
          Unit   : constant GLsizei := GLfloat'Size / System.Storage_Unit;
          Stride : constant GLsizei := 5 * Unit;
       begin
+         for I in Corners'Range loop
+            Placed (I) := Turned (Corners (I));
+         end loop;
+
+         for F of Faces loop
+            declare
+               A : constant Vec3 := Placed (F (0));
+               B : constant Vec3 := Placed (F (1));
+               C : constant Vec3 := Placed (F (2));
+
+               U : constant Vec3 :=
+                 (B.X - A.X, B.Y - A.Y, B.Z - A.Z);
+               V : constant Vec3 :=
+                 (C.X - A.X, C.Y - A.Y, C.Z - A.Z);
+
+               Normal : constant Vec3 :=
+                 (U.Y * V.Z - U.Z * V.Y,
+                  U.Z * V.X - U.X * V.Z,
+                  U.X * V.Y - U.Y * V.X);
+               Length : constant Float :=
+                 Sqrt (Normal.X * Normal.X
+                       + Normal.Y * Normal.Y
+                       + Normal.Z * Normal.Z);
+               Facing : constant Float :=
+                 (if Length = 0.0 then 0.0
+                  else (Normal.X * Light.X
+                        + Normal.Y * Light.Y
+                        + Normal.Z * Light.Z) / Length);
+
+               --  Never to black: an unlit face still shows its
+               --  corners' colours, only dimmer.
+               Shade : constant Float :=
+                 0.45 + 0.55 * Float'Max (0.0, Facing);
+            begin
+               for K in F'Range loop
+                  declare
+                     P : constant Vec3 := Placed (F (K));
+
+                     --  The near corner is drawn larger than the far
+                     --  one, which is the whole of the perspective
+                     --  here.
+                     Near : constant Float :=
+                       Scale * 0.82 * Eye / (Eye - P.Z);
+
+                     --  A quarter turn of hue per corner, all four
+                     --  carried round together by the control.
+                     Tint : constant Vec3 :=
+                       From_Hue (Hue + 90.0 * Float (F (K)));
+                  begin
+                     Verts (At_Vertex)     :=
+                       GLfloat (P.X * Near + Drift_X);
+                     Verts (At_Vertex + 1) :=
+                       GLfloat (P.Y * Near + Drift_Y);
+                     Verts (At_Vertex + 2) := GLfloat (Tint.X * Shade);
+                     Verts (At_Vertex + 3) := GLfloat (Tint.Y * Shade);
+                     Verts (At_Vertex + 4) := GLfloat (Tint.Z * Shade);
+                     At_Vertex := At_Vertex + 5;
+                  end;
+               end loop;
+            end;
+         end loop;
+
          glUseProgram (Prog);
          glBindVertexArray (VAO);
          glBindBuffer (GL_ARRAY_BUFFER, VBO);
@@ -271,7 +431,7 @@ procedure GL_Triangle is
          glVertexAttribPointer
            (1, 3, GL_FLOAT, GL_FALSE, Stride, GLoffset (2 * Unit));
 
-         glDrawArrays (GL_TRIANGLES, 0, 3);
+         glDrawArrays (GL_TRIANGLES, 0, 3 * Faces'Length);
 
          glDisableVertexAttribArray (0);
          glDisableVertexAttribArray (1);
@@ -299,6 +459,8 @@ procedure GL_Triangle is
          Saved_Viewport (2), Saved_Viewport (3));
       glClearColor
         (Saved_Clear (0), Saved_Clear (1), Saved_Clear (2), Saved_Clear (3));
+      glCullFace (GLenum (Saved_Cull));
+      glFrontFace (GLenum (Saved_Winding));
 
       --  Flush on the way out as well as in. The call drops SDL's cached
       --  state, and the state worth dropping is what this callback just
@@ -311,39 +473,73 @@ procedure GL_Triangle is
    --------------
    -- Controls --
    --------------
+
+   --  A value input prints the shortest text that reads back as the
+   --  number it holds, so a value straight off a dragged slider prints
+   --  every digit it has. Three decimals is finer than any of these
+   --  controls needs, and a value rounded to three prints as three.
+   function Rounded (V : Float) return Float is
+     (Float'Rounding (V * 1000.0) / 1000.0);
+
    procedure On_Speed (W : Adi.Widget.Widget_Handle; Value : Float) is
       pragma Unreferenced (W);
+      V : constant Float := Rounded (Value);
    begin
-      Speed := Value;
-      GL_Demo_UI.Float_Value.Set_Value (UI.Speed_Value, Value);
+      Speed := V;
+      GL_Demo_UI.Float_Value.Set_Value (UI.Speed_Value, V);
    end On_Speed;
 
    procedure On_Speed_Value (W : Adi.Widget.Widget_Handle; Value : Float) is
       pragma Unreferenced (W);
+      V : constant Float := Rounded (Value);
    begin
-      Speed := Value;
-      GL_Demo_UI.Float_Slider.Set_Value (UI.Speed_Slider, Value);
+      Speed := V;
+      GL_Demo_UI.Float_Slider.Set_Value (UI.Speed_Slider, V);
    end On_Speed_Value;
 
    procedure On_Scale (W : Adi.Widget.Widget_Handle; Value : Float) is
       pragma Unreferenced (W);
+      V : constant Float := Rounded (Value);
    begin
-      Scale := Value;
-      GL_Demo_UI.Float_Value.Set_Value (UI.Scale_Value, Value);
+      Scale := V;
+      GL_Demo_UI.Float_Value.Set_Value (UI.Scale_Value, V);
    end On_Scale;
 
    procedure On_Scale_Value (W : Adi.Widget.Widget_Handle; Value : Float) is
       pragma Unreferenced (W);
+      V : constant Float := Rounded (Value);
    begin
-      Scale := Value;
-      GL_Demo_UI.Float_Slider.Set_Value (UI.Scale_Slider, Value);
+      Scale := V;
+      GL_Demo_UI.Float_Slider.Set_Value (UI.Scale_Slider, V);
    end On_Scale_Value;
+
+   procedure On_Hue (W : Adi.Widget.Widget_Handle; Value : Float) is
+      pragma Unreferenced (W);
+      V : constant Float := Rounded (Value);
+   begin
+      Hue := V;
+      GL_Demo_UI.Float_Value.Set_Value (UI.Hue_Value, V);
+   end On_Hue;
+
+   procedure On_Hue_Value (W : Adi.Widget.Widget_Handle; Value : Float) is
+      pragma Unreferenced (W);
+      V : constant Float := Rounded (Value);
+   begin
+      Hue := V;
+      GL_Demo_UI.Float_Slider.Set_Value (UI.Hue_Slider, V);
+   end On_Hue_Value;
 
    procedure On_Spin (W : Adi.Widget.Widget_Handle; Active : Boolean) is
       pragma Unreferenced (W);
    begin
       Spinning := Active;
    end On_Spin;
+
+   procedure On_Orbit (W : Adi.Widget.Widget_Handle; Active : Boolean) is
+      pragma Unreferenced (W);
+   begin
+      Orbiting := Active;
+   end On_Orbit;
 
    A : Adi.App.App;
    W : Adi.Window.Window_Handle;
@@ -361,7 +557,10 @@ begin
    UI.On_Speed_Value := On_Speed_Value'Unrestricted_Access;
    UI.On_Scale       := On_Scale'Unrestricted_Access;
    UI.On_Scale_Value := On_Scale_Value'Unrestricted_Access;
+   UI.On_Hue         := On_Hue'Unrestricted_Access;
+   UI.On_Hue_Value   := On_Hue_Value'Unrestricted_Access;
    UI.On_Spin        := On_Spin'Unrestricted_Access;
+   UI.On_Orbit       := On_Orbit'Unrestricted_Access;
 
    W := UI.Build;
 

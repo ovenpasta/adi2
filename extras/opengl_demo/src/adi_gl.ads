@@ -44,7 +44,12 @@ package Adi_GL is
    GL_TRUE  : constant GLboolean := 1;
 
    GL_TRIANGLES         : constant GLenum := 16#0004#;
+   GL_BACK              : constant GLenum := 16#0405#;
+   GL_CW                : constant GLenum := 16#0900#;
+   GL_CCW               : constant GLenum := 16#0901#;
    GL_CULL_FACE         : constant GLenum := 16#0B44#;
+   GL_CULL_FACE_MODE    : constant GLenum := 16#0B45#;
+   GL_FRONT_FACE        : constant GLenum := 16#0B46#;
    GL_DEPTH_TEST        : constant GLenum := 16#0B71#;
    GL_VIEWPORT          : constant GLenum := 16#0BA2#;
    GL_BLEND             : constant GLenum := 16#0BE2#;
@@ -104,6 +109,12 @@ package Adi_GL is
 
    procedure glViewport (X, Y : GLint; Width, Height : GLsizei)
      with Import, Convention => C, External_Name => "glViewport";
+
+   procedure glCullFace (Mode : GLenum)
+     with Import, Convention => C, External_Name => "glCullFace";
+
+   procedure glFrontFace (Mode : GLenum)
+     with Import, Convention => C, External_Name => "glFrontFace";
 
    procedure glClearColor (Red, Green, Blue, Alpha : GLfloat)
      with Import, Convention => C, External_Name => "glClearColor";

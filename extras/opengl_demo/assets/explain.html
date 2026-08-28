@@ -18,9 +18,16 @@
 
 <h3>What is going on</h3>
 <p>
-  The triangle is drawn by <b>OpenGL</b> into a texture this application
-  owns. Adi issues no GL call and never destroys the texture: it is handed
-  the texture's name and blits it where the layout put the widget.
+  The tetrahedron is drawn by <b>OpenGL</b> into a texture this
+  application owns. Adi issues no GL call and never destroys the texture:
+  it is handed the texture's name and blits it where the layout put the
+  widget.
+</p>
+<p>
+  It draws solid without a depth buffer. A tetrahedron is convex, so no
+  face it turns towards you can hide another, and back-face culling alone
+  leaves exactly the visible ones. The corners carry the colours and each
+  face carries its own shade, so the facets read as facets.
 </p>
 
 <h3>Nothing here is about OpenGL</h3>
@@ -68,6 +75,15 @@
   Adi composites only what changed, and a texture's name does not change
   when its contents do. The producer says so itself, by calling
   <code>Invalidate</code> after each frame it finishes.
+</p>
+
+<h3>The colour control</h3>
+<p>
+  Its bar is a <code>linear-gradient</code> through the whole hue circle,
+  written in CSS on the slider's <code>::scroll</code> part. The four
+  corners sit a quarter turn apart on that circle and the control carries
+  all of them round together, so the solid is tinted without any of it
+  becoming one flat colour.
 </p>
 
 <h3>Keeping the corners</h3>

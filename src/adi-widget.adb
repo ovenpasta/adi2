@@ -464,7 +464,7 @@ package body Adi.Widget is
 
    function Intern_Style (S : Widget_Style) return Style_Handle is
    begin
-      if S = Empty_Widget_Style then
+      if Same_Style (S, Empty_Widget_Style) then
          return 0;
       end if;
 
@@ -476,7 +476,7 @@ package body Adi.Widget is
       begin
          if Style_Index_Maps.Has_Element (Bucket) then
             for H of Style_Index_Maps.Element (Bucket) loop
-               if Style_Store.Element (Positive (H)).Style = S then
+               if Same_Style (Style_Store.Element (Positive (H)).Style, S) then
                   return H;
                end if;
             end loop;

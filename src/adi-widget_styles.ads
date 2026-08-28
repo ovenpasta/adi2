@@ -128,6 +128,11 @@ package Adi.Widget_Styles is
    --  value, which do not survive being built twice.
    function Hash (S : Widget_Style) return Ada.Containers.Hash_Type;
 
+   --  Equality over the live rules only. Nothing writes a slot past
+   --  Rule_Count, so this answers as predefined "=" does without
+   --  walking fifteen unused rule sets.
+   function Same_Style (A, B : Widget_Style) return Boolean;
+
    --  Check if any rule references a given widget/part state
    function Uses_Widget_State
      (WS : Widget_Style; S : Widget_State) return Boolean is

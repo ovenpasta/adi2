@@ -185,6 +185,37 @@ gradients, and the angle and stop positions are floats, where equal
 values need not share their bits. Nothing writes through the pointer:
 the three `Render_Gradient_*` helpers take the value as `in`.
 
+### Parsed selectors
+
+A stylesheet held the same shape: `Adi.CSS_Parser.Selector_Style`
+embedded a `Part_Style_Array`, at 233,296 bytes per selector. Dynamic
+mode gives every source its own sheet, so 22 sources loading a
+221-selector file cost about 1.1 GB.
+
+`Selector_Style.Styles` is now `Interned_Part_Styles`, at 80 bytes.
+Rules for one selector arrive scattered through the file and are merged
+as they come, so `Build_Styles` accumulates into a working vector of
+`Part_Style_Array` and interns each selector once its rules are all in.
+Interning every intermediate instead would leave the store holding every
+partial rule set the build passed through, and the store does not evict.
+
+The working vector is indefinite. Its elements are a quarter of a
+megabyte each, and a definite vector copies them all on every growth.
+
+Measured on that workload, peak RSS fell from 1,136 MB to 66 MB and the
+loading from 0.97 s to 0.60 s.
+
+### Comparing styles
+
+`Widget_Style.Rules` is a fixed `State_Rule_Array (1 .. 16)` of which
+`Rule_Count` slots are live. Predefined equality compares all sixteen,
+so most of the work of a comparison is on unused rule sets. Nothing
+writes a slot past `Rule_Count` — `Add_Rule` increments and then writes
+the slot it claimed, and nothing decrements — so
+`Adi.Widget_Styles.Same_Style` compares the live prefix and answers as
+predefined equality does. Interning uses it for both the empty-style
+test and the bucket probe, which is a quarter of the loading above.
+
 ### Known gaps
 
 The store never evicts, and `Class_Entry` now interns when it is called
@@ -194,11 +225,20 @@ content into a registered selector — a distinct value per row of a list
 store already grew this way through `Set_Part_Styles`; registration is a
 new way to reach it.
 
+`Stylesheet_Metadata.Root_Styles` is still a `Part_Style_Array`, so a
+`Stylesheet_Impl` remains 233,440 bytes. It is public and generated
+stylesheets construct it, so shrinking it would mean regenerating every
+downstream application to save about 5 MB across 22 sources.
+
 
 ### Tests
 
 `tests/src/style_interning_test.adb` covers the entry size, the same
 table registered from many sources, equal styles carrying a string
 (which is what catches a byte-wise digest), the enabled/disabled
-round-trip, and that equal gradients built separately make equal styles. `Adi.Widget.Testing.Interned_Styles`
-reports the store size.
+round-trip, and that equal gradients built separately make equal styles.
+On the parser side it covers the size of a parsed selector, the same CSS
+parsed into many sheets, that rules scattered through a sheet still
+merge onto one entry, and that `Same_Style` agrees with predefined
+equality. `Adi.Widget.Testing.Interned_Styles` reports the store size,
+and `Adi.CSS_Parser.Testing.Selector_Entry_Bytes` the entry size.

@@ -84,6 +84,25 @@ package body Adi.Widget_Styles is
    -- Widget Style Operations
    -------------------------------------------------
 
+   function Same_Style (A, B : Widget_Style) return Boolean is
+   begin
+      if A.Rule_Count /= B.Rule_Count
+        or else A.Widget_State_Mask /= B.Widget_State_Mask
+        or else A.Part_State_Mask /= B.Part_State_Mask
+        or else A.Base /= B.Base
+      then
+         return False;
+      end if;
+
+      for I in 1 .. A.Rule_Count loop
+         if A.Rules (I) /= B.Rules (I) then
+            return False;
+         end if;
+      end loop;
+
+      return True;
+   end Same_Style;
+
    procedure Add_Rule (WS : in out Widget_Style; Rule : State_Rule) is
    begin
       WS.Rule_Count := WS.Rule_Count + 1;

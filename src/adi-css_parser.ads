@@ -121,6 +121,10 @@ package Adi.CSS_Parser is
 
 private
 
+   --  What one parsed selector costs to hold; a sheet keeps one per
+   --  selector it names. Read through Adi.CSS_Parser.Testing.
+   function Selector_Entry_Bytes return Natural;
+
    type Stylesheet_Impl;
    type Stylesheet_Impl_Access is access all Stylesheet_Impl;
 

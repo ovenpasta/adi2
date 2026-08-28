@@ -1,6 +1,8 @@
 pragma Ada_2022;
 
 with Test_Support;      use Test_Support;
+with Adi.CSS_Parser;
+with Adi.CSS_Parser.Testing;
 with Adi.CSS_Source;
 with Adi.CSS_Source.Testing;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
@@ -117,6 +119,140 @@ procedure Style_Interning_Test is
               "a part switched off stays switched off");
    end Test_Round_Trip;
 
+   --  Interning compares styles with Same_Style rather than predefined
+   --  equality. The two must agree on everything the library can build.
+   procedure Test_Same_Style_Agrees_With_Equality is
+      Base : constant Style_Rules :=
+        (Color => Set (C (White)), others => <>);
+
+      Styles : constant array (1 .. 7) of Widget_Style :=
+        [1 => Empty_Widget_Style,
+         2 => From (Base).Build,
+         3 => From ((Color => Set (C (Black)), others => <>)).Build,
+         4 => From (Base).On (When_State (State_Hovered),
+                              (Opacity => Set (0.5), others => <>)).Build,
+         5 => From (Base).On (When_State (State_Pressed),
+                              (Opacity => Set (0.5), others => <>)).Build,
+         6 => From (Base).On (When_State (State_Hovered),
+                              (Opacity => Set (0.25), others => <>)).Build,
+         7 => From (Base).On (When_State (State_Hovered),
+                              (Opacity => Set (0.5), others => <>))
+                         .On (When_Part_State (State_Focused),
+                              (Opacity => Set (1.0), others => <>)).Build];
+   begin
+      Section ("Same_Style against predefined equality");
+
+      for I in Styles'Range loop
+         for J in Styles'Range loop
+            Assert (Same_Style (Styles (I), Styles (J)) =
+                      (Styles (I) = Styles (J)),
+                    "styles" & I'Image & J'Image & " agree");
+         end loop;
+      end loop;
+
+      Assert (Same_Style (From (Base).Build, From (Base).Build),
+              "two styles built alike are the same style");
+   end Test_Same_Style_Agrees_With_Equality;
+
+   --  A stylesheet keeps one entry per selector it names, and every
+   --  source loading the same CSS parses it into a sheet of its own.
+   Sheet_CSS : constant String :=
+     ".panel { background-color: #11171f; padding: 8px; }" & ASCII.LF &
+     ".panel:hover { background-color: #222; }" & ASCII.LF &
+     ".title { color: white; font-size: 18px; }" & ASCII.LF &
+     ".title::label { color: #cccccc; }" & ASCII.LF &
+     "#root { display: flex; }" & ASCII.LF &
+     "button { padding: 4px; }" & ASCII.LF;
+
+   procedure Test_Parsed_Entry_Is_Small is
+   begin
+      Section ("size of a parsed selector");
+      Assert (Adi.CSS_Parser.Testing.Selector_Entry_Bytes <= 256,
+              "a parsed selector costs at most 256 bytes");
+   end Test_Parsed_Entry_Is_Small;
+
+   procedure Test_Same_CSS_In_Many_Sheets is
+      Sheets      : array (1 .. 8) of Adi.CSS_Parser.Stylesheet;
+      OK          : Boolean;
+      Before      : constant Natural := Interned_Styles;
+      After_First : Natural;
+   begin
+      Section ("the same CSS parsed into many sheets");
+
+      Adi.CSS_Parser.Load_String (Sheets (1), Sheet_CSS, OK);
+      Assert (OK, "the sheet parses");
+      After_First := Interned_Styles;
+
+      for I in 2 .. Sheets'Last loop
+         Adi.CSS_Parser.Load_String (Sheets (I), Sheet_CSS, OK);
+         Assert (OK, "every further sheet parses");
+      end loop;
+
+      Assert (After_First > Before,
+              "parsing a sheet stores the styles it names");
+      Assert (Interned_Styles = After_First,
+              "parsing the same CSS again stores nothing further");
+
+      for I in 2 .. Sheets'Last loop
+         Assert (Adi.CSS_Parser.Styles_For_Class (Sheets (I), "panel") =
+                   Adi.CSS_Parser.Styles_For_Class (Sheets (1), "panel"),
+                 "and every sheet reports the same styles");
+      end loop;
+   end Test_Same_CSS_In_Many_Sheets;
+
+   --  A sheet naming no selector at all: only :root, or nothing.
+   procedure Test_Sheet_Without_Selectors is
+      Sheet : Adi.CSS_Parser.Stylesheet;
+      OK    : Boolean;
+   begin
+      Section ("a sheet with no selectors");
+
+      Adi.CSS_Parser.Load_String (Sheet, "", OK);
+      Assert (OK, "empty CSS parses");
+
+      Adi.CSS_Parser.Load_String (Sheet, ":root { font-size: 15px; }", OK);
+      Assert (OK, "a sheet of nothing but :root parses");
+      Assert (Adi.CSS_Parser.Get_Metadata (Sheet).Has_Root_Font_Size,
+              "and its root metadata survives");
+      Assert (Adi.CSS_Parser.Styles_For_Class (Sheet, "absent") =
+                Empty_Part_Styles,
+              "a selector it does not name has no styles");
+   end Test_Sheet_Without_Selectors;
+
+   --  Rules for one selector arrive scattered through the sheet and are
+   --  merged as they come, so a build that interned each rule as it
+   --  landed would report only the last.
+   procedure Test_Rules_Merge_Before_Interning is
+      Sheet : Adi.CSS_Parser.Stylesheet;
+      OK    : Boolean;
+   begin
+      Section ("rules merged across the sheet");
+
+      Adi.CSS_Parser.Load_String
+        (Sheet,
+         ".a { color: white; }" & ASCII.LF &
+         ".b { color: black; }" & ASCII.LF &
+         ".a { font-size: 20px; }" & ASCII.LF &
+         ".a:hover { color: #010203; }" & ASCII.LF &
+         ".a::label { color: #040506; }" & ASCII.LF,
+         OK);
+      Assert (OK, "the sheet parses");
+
+      declare
+         A : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Sheet, "a");
+      begin
+         Assert (Opt_Text_Color.Is_Set (A (Main_Part).Style.Base.Color),
+                 "the first rule survives a later one");
+         Assert (Opt_Font_Size.Is_Set (A (Main_Part).Style.Base.Font_Size),
+                 "the later rule is folded into the same entry");
+         Assert (A (Main_Part).Style.Rule_Count = 1,
+                 "a state rule lands on the same entry");
+         Assert (Opt_Text_Color.Is_Set (A (Label_Part).Style.Base.Color),
+                 "and a part rule lands on the part");
+      end;
+   end Test_Rules_Merge_Before_Interning;
+
    --  A gradient is held by pointer, and a pointer is what equality on
    --  the enclosing style compares, so a style carrying one is equal to
    --  its own copy only if equal gradients are one pointer.
@@ -158,6 +294,11 @@ begin
    Test_Same_Table_From_Many_Sources;
    Test_Equal_Styles_Carrying_A_String;
    Test_Round_Trip;
+   Test_Same_Style_Agrees_With_Equality;
+   Test_Parsed_Entry_Is_Small;
+   Test_Same_CSS_In_Many_Sheets;
+   Test_Sheet_Without_Selectors;
+   Test_Rules_Merge_Before_Interning;
    Test_Gradients_Are_Shared;
 
    Finish;

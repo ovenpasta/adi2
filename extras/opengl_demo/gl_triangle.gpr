@@ -1,0 +1,31 @@
+with "adi.gpr";
+
+project GL_Triangle is
+
+   Platform_Name := external ("ADI_PLATFORM", "linux");
+
+   for Source_Dirs use ("src", "generated");
+   for Object_Dir use "obj";
+   for Exec_Dir use "bin";
+   for Main use ("gl_triangle.adb");
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-gnat2022", "-gnatX0", "-gnatwa", "-gnatW8", "-g", "-O2");
+   end Compiler;
+
+   --  Adi_GL imports OpenGL 1.0/1.1 directly, so the platform's GL
+   --  library has to be on the link line. Everything later is resolved
+   --  through SDL, which adi.gpr already links.
+   GL_Linker_Switches := ("-lGL");
+   case Platform_Name is
+      when "windows" => GL_Linker_Switches := ("-lopengl32");
+      when "darwin"  => GL_Linker_Switches := ("-framework", "OpenGL");
+      when others    => GL_Linker_Switches := ("-lGL");
+   end case;
+
+   package Linker is
+      for Default_Switches ("Ada") use GL_Linker_Switches;
+   end Linker;
+
+end GL_Triangle;

@@ -1,0 +1,7 @@
+/obj/
+/bin/
+/alire/
+/config/
+
+#  Regenerated from xml/ and css/ by gen.sh.
+/generated/

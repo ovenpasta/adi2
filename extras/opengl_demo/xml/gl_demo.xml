@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="css/gl_demo.css"/>
+
+  <generic name="Float_Slider" package="Adi.Widget.Slider" type-param="Float"/>
+  <generic name="Float_Value" package="Adi.Widget.Value_Input" type-param="Float"/>
+
+  <!-- Each slider and its value input show the same number and each is
+       editable, so moving one writes the other. -->
+  <callback name="On_Speed"       type="Float_Slider.Value_Changed_Callback"/>
+  <callback name="On_Speed_Value" type="Float_Value.Value_Changed_Callback"/>
+  <callback name="On_Scale"       type="Float_Slider.Value_Changed_Callback"/>
+  <callback name="On_Scale_Value" type="Float_Value.Value_Changed_Callback"/>
+  <callback name="On_Spin"        type="Adi.Widget.Button.Toggle_Callback"/>
+
+  <window title="Adi2 + OpenGL" width="980dp" height="660dp">
+    <box class="page">
+      <label text="Adi2 + OpenGL" class="title"/>
+      <label text="A GPU surface laid out, styled and driven like any other widget."
+             class="subtitle"/>
+
+      <box class="body">
+        <!-- The frame carries the rounding. The view sits inside its
+             padding, so the square texture never reaches a rounded
+             corner: the blit is a plain rectangle. -->
+        <box class="frame">
+          <texture-view id="View" class="gl"/>
+        </box>
+
+        <box class="side">
+          <box class="panel">
+            <label text="CONTROLS" class="panel-title"/>
+
+            <label text="Rotation speed" class="field"/>
+            <box class="pair">
+              <slider id="Speed_Slider" generic="Float_Slider"
+                      min="0.0" max="3.0" value="0.6"
+                      class="ctl" on-changed="On_Speed"/>
+              <value-input id="Speed_Value" generic="Float_Value"
+                           min="0.0" max="3.0" value="0.6"
+                           class="num" on-value-changed="On_Speed_Value"/>
+            </box>
+
+            <label text="Size" class="field"/>
+            <box class="pair">
+              <slider id="Scale_Slider" generic="Float_Slider"
+                      min="0.1" max="0.95" value="0.72"
+                      class="ctl" on-changed="On_Scale"/>
+              <value-input id="Scale_Value" generic="Float_Value"
+                           min="0.1" max="0.95" value="0.72"
+                           class="num" on-value-changed="On_Scale_Value"/>
+            </box>
+
+            <box class="row">
+              <switch id="Spin_Switch" class="toggle" checked="true"
+                      on-toggled="On_Spin"/>
+              <label text="Spin" class="field"/>
+            </box>
+          </box>
+
+          <box class="notes">
+            <html-view id="Explain" class="doc"/>
+          </box>
+        </box>
+      </box>
+    </box>
+  </window>
+</adi>

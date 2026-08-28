@@ -1,0 +1,96 @@
+<style>
+  body { color: #3d4d66; font-size: 13px; }
+  h3 {
+    color: #16233a;
+    font-size: 13px;
+    font-weight: bold;
+    margin-top: 14px;
+    margin-bottom: 4px;
+  }
+  p { margin-bottom: 10px; }
+  b { color: #16233a; font-weight: bold; }
+  code {
+    color: #1d4ed8;
+    background-color: #eef3fb;
+    font-family: monospace;
+  }
+</style>
+
+<h3>What is going on</h3>
+<p>
+  The triangle is drawn by <b>OpenGL</b> into a texture this application
+  owns. Adi issues no GL call and never destroys the texture: it is handed
+  the texture's name and blits it where the layout put the widget.
+</p>
+
+<h3>Nothing here is about OpenGL</h3>
+<p>
+  The widget is <code>Adi.Widget.Texture_View</code>, and it takes a
+  texture from any API SDL can build its renderer with: OpenGL, GLES2,
+  Vulkan, Direct3D 11 and 12, or the SDL GPU API. GL, GLES and Vulkan name
+  a texture with an integer; the rest hand over a pointer. Metal is the
+  one exception, because SDL adopts a CVPixelBuffer there rather than a
+  texture.
+</p>
+<p>
+  So ask for a renderer with <code>Prefer_Render_Driver</code> and read
+  back <code>Render_Driver</code> to learn what you actually got. A
+  texture from the wrong API is refused, and the only other symptom is an
+  empty widget.
+</p>
+
+<h3>Why it composes</h3>
+<p>
+  The view overrides one hook, <code>Render_Content</code>, and is
+  otherwise a widget like any other: sized by CSS, clipped by its parent,
+  drawn in tree order. The panel writes plain variables and the GL
+  callback reads them on its next pass, so neither side reaches into the
+  other.
+</p>
+
+<h3>Sharing a context with SDL</h3>
+<p>
+  This is the part that bites. SDL's renderer behaves as though it owns
+  the whole GL state, so call <code>SDL_FlushRenderer</code> on the way in
+  <i>and</i> on the way out: it drops the state SDL has cached, and the
+  state worth dropping is what you just changed.
+</p>
+<p>
+  Then save and restore everything you touch. <b>Scissor above all</b> —
+  SDL leaves <code>GL_SCISSOR_TEST</code> enabled with a rectangle in
+  window coordinates, which will happily clip your drawing into a texture
+  that has nothing to do with the window. Leaving it off instead is just
+  as bad: the widgets drawn afterwards stop being clipped.
+</p>
+
+<h3>Redrawing</h3>
+<p>
+  Adi composites only what changed, and a texture's name does not change
+  when its contents do. The producer says so itself, by calling
+  <code>Invalidate</code> after each frame it finishes.
+</p>
+
+<h3>Keeping the corners</h3>
+<p>
+  The rounded border belongs to the frame around the view, not to the view
+  itself. A texture is blitted as a plain rectangle, and Adi clips a
+  widget to a rectangle too, so a radius on the view would leave square
+  corners poking out of it.
+</p>
+
+<h3>Why the bindings are hand-written</h3>
+<p>
+  <code>Adi_GL</code> is a demo-sized binding, not a general one. The
+  thick Ada bindings model GL objects as owned Ada values with their own
+  idea of what is bound, which is exactly the assumption SDL breaks by
+  binding behind their back: none of them can read back
+  <code>GL_CURRENT_PROGRAM</code> or <code>GL_FRAMEBUFFER_BINDING</code>
+  to restore it.
+</p>
+<p>
+  The split inside it is worth copying. OpenGL 1.1 entry points are
+  imported directly, because Windows exports exactly those and no more.
+  Everything newer is resolved through
+  <code>SDL_GL_GetProcAddress</code>, which also guarantees it comes from
+  the context SDL made current.
+</p>

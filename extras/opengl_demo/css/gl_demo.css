@@ -1,0 +1,206 @@
+/* Adi + OpenGL demo. Light, flat, and deliberately ordinary: the point
+ * is that a GL surface takes part in a normal styled layout. */
+
+:root {
+    background-color: #eef1f6;
+}
+
+.page {
+    display: flex;
+    flex-direction: column;
+    background-color: #eef1f6;
+    padding: 24px;
+    gap: 4px;
+}
+
+.title {
+    font-size: 22px;
+    font-weight: bold;
+    color: #16233a;
+}
+
+.subtitle {
+    font-size: 13px;
+    color: #6b7a92;
+    margin-bottom: 14px;
+}
+
+.body {
+    display: flex;
+    min-height: 0;
+    flex-direction: row;
+    gap: 18px;
+    flex-grow: 1;
+}
+
+/* Rounding lives here, not on the view: Adi clips a widget to a
+ * rectangle, so a texture drawn to the view's own bounds would square
+ * off the corners. The padding keeps it clear of them. */
+.frame {
+    display: flex;
+    background-color: #ffffff;
+    border: 1px solid #d4dbe7;
+    border-radius: 14px;
+    padding: 12px;
+    flex-grow: 1;
+}
+
+/* No height: 100% anywhere. A percentage height resolves against the
+ * parent and becomes part of the minimum this subtree demands, which
+ * Adi hands to the window as a floor it will not shrink below. The
+ * cross axis is filled by the container's default stretch instead. */
+.gl {
+    flex-grow: 1;
+}
+
+.side {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    gap: 18px;
+    width: 300px;
+    flex-shrink: 0;
+}
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff;
+    border: 1px solid #d4dbe7;
+    border-radius: 14px;
+    padding: 20px;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* A slider and its value input on one line. */
+.pair {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.num {
+    width: 74px;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: #24354d;
+    background-color: #f4f7fb;
+    border: 1px solid #d4dbe7;
+    border-radius: 7px;
+    padding: 4px 7px;
+}
+
+.notes {
+    display: flex;
+    min-height: 0;
+    background-color: #ffffff;
+    border: 1px solid #d4dbe7;
+    border-radius: 14px;
+    padding: 6px;
+    flex-grow: 1;
+}
+
+.doc {
+    overflow-y: auto;
+    min-height: 0;
+    flex-grow: 1;
+}
+
+/*  The bar sits over the content rather than beside it, so both track
+    and knob stay translucent and firm up only under the pointer. */
+
+.doc::scroll {
+    width: 10px;
+    background-color: rgba(100, 116, 139, 0.06);
+    border-radius: 5px;
+    transition: background-color 160ms ease-out;
+}
+
+.doc::scroll:hover {
+    background-color: rgba(100, 116, 139, 0.16);
+}
+
+.doc::knob {
+    background-color: rgba(100, 116, 139, 0.30);
+    border-radius: 5px;
+    transition: background-color 160ms ease-out;
+}
+
+.doc::knob:hover {
+    background-color: rgba(100, 116, 139, 0.75);
+}
+
+.doc::knob:pressed {
+    background-color: rgba(59, 130, 246, 0.90);
+}
+
+.panel-title {
+    font-size: 11px;
+    font-weight: bold;
+    color: #91a0b6;
+    margin-bottom: 6px;
+}
+
+.field {
+    font-size: 13px;
+    color: #3d4d66;
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+/* A slider has no intrinsic height; the track and knob carry it. */
+.ctl {
+    height: 20px;
+    flex-grow: 1;
+}
+
+.ctl::main {
+    height: 6px;
+    background-color: #e4e9f1;
+    border-radius: 3px;
+}
+
+.ctl::knob {
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    background-color: #3b82f6;
+}
+
+.ctl::knob:hover {
+    background-color: #2563eb;
+}
+
+/* Same for a switch: without these it lays out at zero height. */
+.toggle {
+    width: 46px;
+    flex-shrink: 0;
+}
+
+.toggle::main {
+    width: 46px;
+    height: 26px;
+    border-radius: 13px;
+    background-color: #cbd5e3;
+}
+
+.toggle:selected::main {
+    background-color: #3b82f6;
+}
+
+.toggle::knob {
+    width: 20px;
+    height: 20px;
+    margin: 3px;
+    border-radius: 10px;
+    background-color: #ffffff;
+}

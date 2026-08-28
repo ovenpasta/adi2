@@ -176,7 +176,8 @@ package body Adi.Texture_Cache is
    --  Why an entry stopped being findable. Only Pressure reflects on the
    --  budget; the rest are the program's own doing.
    type Retire_Cause is
-     (Pressure, Headroom, Replaced, Cleared, Discarded, Group_Released);
+     (Pressure, Headroom, Crowded, Replaced, Cleared, Discarded,
+      Group_Released);
 
    --  Recomputed rather than tracked incrementally: an entry retired while
    --  borrowed still holds its bytes, so a decrement at retirement would
@@ -227,6 +228,8 @@ package body Adi.Texture_Cache is
             D.Stats (S.Key.Kind).Pressure := D.Stats (S.Key.Kind).Pressure + 1;
          when Headroom  =>
             D.Stats (S.Key.Kind).Headroom := D.Stats (S.Key.Kind).Headroom + 1;
+         when Crowded   =>
+            D.Stats (S.Key.Kind).Crowded := D.Stats (S.Key.Kind).Crowded + 1;
          when Replaced  =>
             D.Stats (S.Key.Kind).Replaced := D.Stats (S.Key.Kind).Replaced + 1;
          when Cleared   =>
@@ -351,6 +354,64 @@ package body Adi.Texture_Cache is
          exit when not Evicted;
       end loop;
    end Make_Headroom;
+
+   --  Findable entries charged nothing, which the byte total cannot
+   --  bound and Borrowed_Slots does.
+   function Borrowed_Count (D : Cache_Data_Access) return Natural is
+      Total : Natural := 0;
+   begin
+      for Pos in D.By_Key.Iterate loop
+         if D.Slots (Key_Maps.Element (Pos)).Bytes = 0 then
+            Total := Total + 1;
+         end if;
+      end loop;
+      return Total;
+   end Borrowed_Count;
+
+   --  Drop borrowed entries, lowest standing first, until Ceiling of them
+   --  remain.
+   --
+   --  Unlike the budget this reaches entries the scene is drawing: a
+   --  bound active entries could escape would not be a bound, and what it
+   --  costs to be wrong is a create rather than the upload an evicted
+   --  texture of our own would cost. The floor stays where it is for the
+   --  same reason the count exists -- the floor measures the pressure the
+   --  budget is under, and nothing here frees a byte of it.
+   procedure Trim_Borrowed (D : Cache_Data_Access; Ceiling : Natural) is
+      Resident : Natural := Borrowed_Count (D);
+      Now      : constant Frame_Serial := D.Frame;
+   begin
+      while Resident > Ceiling loop
+         declare
+            Victim : Slot_Index := No_Slot;
+            Lowest : Priority := Priority'Last;
+            Idlest : Frame_Serial := 0;
+         begin
+            for Pos in D.By_Key.Iterate loop
+               declare
+                  Index : constant Slot_Index := Key_Maps.Element (Pos);
+                  S     : constant Slot_Access := D.Slots (Index);
+                  Idle  : constant Frame_Serial := Now - S.Last_Used;
+               begin
+                  if S.Bytes = 0
+                    and then (Victim = No_Slot
+                              or else S.Standing < Lowest
+                              or else (S.Standing = Lowest
+                                       and then Idle > Idlest))
+                  then
+                     Victim := Index;
+                     Lowest := S.Standing;
+                     Idlest := Idle;
+                  end if;
+               end;
+            end loop;
+
+            exit when Victim = No_Slot;
+            Retire (D, Victim, Crowded);
+            Resident := Resident - 1;
+         end;
+      end loop;
+   end Trim_Borrowed;
 
    --------------
    -- Is_Valid --
@@ -649,6 +710,12 @@ package body Adi.Texture_Cache is
       if D.Bytes > Byte_Count'Last - Bytes then
          D.Stats (Key.Kind).Refused := D.Stats (Key.Kind).Refused + 1;
          return Null_Texture;
+      end if;
+
+      --  A borrowed entry adds nothing to the total that bounds the rest,
+      --  so it is bounded by how many of them are resident instead.
+      if Bytes = 0 then
+         Trim_Borrowed (D, Borrowed_Slots - 1);
       end if;
 
       --  Registered only now, with every refusal behind us: a group that

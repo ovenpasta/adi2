@@ -1367,11 +1367,24 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append("      return Result;")
         lines.append("   end Static_Root_Metadata;")
 
-    value_changed_use_types: set[str] = set()
+    #  Packages this body already brings in with a use clause. A callback
+    #  type declared in one of them needs nothing more; anything else has
+    #  no visible "/=" for the null test below.
+    used_pkgs = {bw for bw in set(body_withs) if bw not in plain_with_only}
+    if needs_link_pkg_use:
+        used_pkgs |= set(link_pkgs)
+    used_pkgs |= set(generic_uses)
+
+    callback_use_types: set[str] = set()
     for cb in app.callbacks:
         if cb.cb_type.endswith("Value_Changed_Callback"):
-            value_changed_use_types.add(cb.cb_type)
-    for cb_type in sorted(value_changed_use_types):
+            callback_use_types.add(cb.cb_type)
+        elif "." in cb.cb_type and cb.cb_type.rsplit(".", 1)[0] not in used_pkgs:
+            #  A widget whose callback type lives in an ancestor package
+            #  rather than its own: a switch is Adi.Widget.Button.Switch
+            #  but its Toggle_Callback is Adi.Widget.Button's.
+            callback_use_types.add(cb.cb_type)
+    for cb_type in sorted(callback_use_types):
         lines.append(f"   use type {cb_type};")
     if has_dialog and (live_css or app.component_packages):
         lines.append("   use type Adi.Window.Window_Handle;")

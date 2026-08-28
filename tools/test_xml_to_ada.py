@@ -1390,5 +1390,45 @@ class TestIdAndTagSelectors(unittest.TestCase):
         self.assertNotIn("Dynamic_Mode", body)
 
 
+class TestCallbackTypeVisibility(unittest.TestCase):
+    """A callback type declared in a package the body does not use."""
+
+    SWITCH_ONLY = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <callback name="On_Spin" type="Adi.Widget.Button.Toggle_Callback"/>
+  <window title="t" width="100dp" height="100dp">
+    <box>
+      <switch id="S" on-toggled="On_Spin"/>
+    </box>
+  </window>
+</adi>"""
+
+    WITH_BUTTON = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <callback name="On_Spin" type="Adi.Widget.Button.Toggle_Callback"/>
+  <window title="t" width="100dp" height="100dp">
+    <box>
+      <switch id="S" on-toggled="On_Spin"/>
+      <button text="x"/>
+    </box>
+  </window>
+</adi>"""
+
+    def test_ancestor_package_callback_gets_a_use_type(self):
+        #  A switch is Adi.Widget.Button.Switch, so using that package
+        #  leaves Adi.Widget.Button's Toggle_Callback without a visible
+        #  "/=" for the null guard the body emits.
+        body = xml_to_ada.generate_body(parse_xml(self.SWITCH_ONLY), "Test_UI")
+        self.assertNotIn("with Adi.Widget.Button; use Adi.Widget.Button;", body)
+        self.assertIn("use type Adi.Widget.Button.Toggle_Callback;", body)
+
+    def test_no_use_type_when_the_package_is_already_used(self):
+        #  A button anywhere in the tree brings the parent package in, and
+        #  a second clause for it would warn under -gnatwu.
+        body = xml_to_ada.generate_body(parse_xml(self.WITH_BUTTON), "Test_UI")
+        self.assertIn("with Adi.Widget.Button; use Adi.Widget.Button;", body)
+        self.assertNotIn("use type Adi.Widget.Button.Toggle_Callback;", body)
+
+
 if __name__ == "__main__":
     unittest.main()

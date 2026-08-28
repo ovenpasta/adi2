@@ -16,9 +16,12 @@ package body Adi.Widget_Styles is
       H : Ada.Containers.Hash_Type := 16#811C_9DC5#;
 
       procedure Mix (Value : Ada.Containers.Hash_Type) is
+         Rest : Ada.Containers.Hash_Type := Value;
       begin
-         H := (H xor (Value and 16#FF#)) * 16#0100_0193#;
-         H := (H xor ((Value / 256) and 16#FF#)) * 16#0100_0193#;
+         for Unused_Byte in 1 .. 4 loop
+            H := (H xor (Rest and 16#FF#)) * 16#0100_0193#;
+            Rest := Rest / 256;
+         end loop;
       end Mix;
 
       procedure Mix (Flag : Boolean) is

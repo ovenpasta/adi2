@@ -116,20 +116,24 @@ selectors by value. `Adi.CSS_Source.Static_Style_Entry` embedded a
 through `Root_Styles`.
 
 A `Part_Style_Array` is twelve `Part_Kind` slots, each a `Widget_Style`
-carrying a fixed `State_Rule_Array (1 .. 16)`:
+carrying a fixed `State_Rule_Array (1 .. 16)`.
+
+`'Max_Size_In_Storage_Elements` on x86-64 Linux, which is what a vector
+element or a heap allocation of one costs. A 32-bit build differs, and
+the sizes below are not what `'Size` reports for the same types:
 
 | | bytes |
 |---|---|
-| `Widget_Style` (`-gnatR3`) | 19,976 |
-| `Part_Style_Array` | 239,808 |
-| `Static_Style_Entry`, by value | 239,832 |
-| `Static_Style_Entry`, interned | 88 |
+| `Widget_Style` | 20,008 |
+| `Part_Style_Array` | 239,840 |
+| a registered or parsed selector, by value | 239,864 |
+| the same, interned | 120 |
 
 The cost is paid per selector, per source, and again per source in
 `Applied_Statics`. An application that creates one `Style_Source` per
 generated UI package registers the same generated table from each of
 them, so a 221-selector sheet across 22 sources cost about 1.2 GB once
-and 2.3 GB with `Applied_Statics` — over the address space of a 32-bit
+and 2.4 GB with `Applied_Statics` — over the address space of a 32-bit
 build, and about five seconds of `Same_As_Applied` on top.
 
 ### What changed
@@ -150,7 +154,7 @@ Measured on the workload above, RSS growth for registration fell from
 
 ### Interning has to be hashed
 
-`Intern_Style` scanned the whole store comparing 19,976-byte records.
+`Intern_Style` scanned the whole store comparing whole `Widget_Style`s.
 That was tolerable at one call per widget styling; interning at
 registration raises it by orders of magnitude. Handles are now grouped
 by `Adi.Widget_Styles.Hash`, and the map is keyed by hash rather than by
@@ -188,11 +192,12 @@ the three `Render_Gradient_*` helpers take the value as `in`.
 ### Parsed selectors
 
 A stylesheet held the same shape: `Adi.CSS_Parser.Selector_Style`
-embedded a `Part_Style_Array`, at 233,296 bytes per selector. Dynamic
-mode gives every source its own sheet, so 22 sources loading a
-221-selector file cost about 1.1 GB.
+embedded a `Part_Style_Array`, field for field the same record as
+`Static_Style_Entry` and so the same size. Dynamic mode gives every
+source its own sheet, so 22 sources loading a 221-selector file cost
+about 1.2 GB.
 
-`Selector_Style.Styles` is now `Interned_Part_Styles`, at 80 bytes.
+`Selector_Style.Styles` is now `Interned_Part_Styles`.
 Rules for one selector arrive scattered through the file and are merged
 as they come, so `Build_Styles` accumulates into a working vector of
 `Part_Style_Array` and interns each selector once its rules are all in.
@@ -226,9 +231,15 @@ store already grew this way through `Set_Part_Styles`; registration is a
 new way to reach it.
 
 `Stylesheet_Metadata.Root_Styles` is still a `Part_Style_Array`, so a
-`Stylesheet_Impl` remains 233,440 bytes. It is public and generated
-stylesheets construct it, so shrinking it would mean regenerating every
-downstream application to save about 5 MB across 22 sources.
+`Stylesheet_Metadata` is 239,864 bytes and every `Stylesheet_Impl`
+embeds one. It is public and generated stylesheets construct it, so
+shrinking it would mean regenerating every downstream application to
+save about 5 MB across 22 sources.
+
+`Set_Properties` is not injective over `Style_Rules`: two rule sets that
+name different properties can share a key when one of them names a
+property the enumeration folds elsewhere, such as `overflow`. That costs
+a bucket probe, never a wrong answer, because equality settles it.
 
 
 ### Tests

@@ -9,6 +9,9 @@ with Adi.Image;
 
 package Adi.CSS_Styles is
 
+   --  The body holds the gradient store Linear_Gradient shares from.
+   pragma Elaborate_Body;
+
    generic
       type Value_Type is private;
       Default : Value_Type;
@@ -1263,6 +1266,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       --  Layout
       --  Prop_Overflow is shorthand metadata only (expands to both axes).
       Prop_Display, Prop_Position, Prop_Overflow, Prop_Overflow_X, Prop_Overflow_Y, Prop_Visibility,
+      Prop_Top, Prop_Right, Prop_Bottom, Prop_Left,
       --  Visual
       Prop_Opacity, Prop_Cursor, Prop_Box_Shadow,
       --  Object/Image

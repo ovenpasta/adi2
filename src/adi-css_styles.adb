@@ -36,11 +36,30 @@ package body Adi.CSS_Styles is
 
    Gradient_Store : Gradient_Vectors.Vector;
 
+   --  The stop array is a fixed sixteen slots of which Stop_Count are
+   --  live, so two gradients that agree are the ones whose live stops
+   --  agree. Comparing the whole array would make sharing depend on how
+   --  each caller happened to pad it.
+   function Same_Gradient (A, B : Linear_Gradient_Value) return Boolean is
+   begin
+      if A.Stop_Count /= B.Stop_Count or else A.Angle /= B.Angle then
+         return False;
+      end if;
+
+      for I in 1 .. A.Stop_Count loop
+         if A.Stops (I) /= B.Stops (I) then
+            return False;
+         end if;
+      end loop;
+
+      return True;
+   end Same_Gradient;
+
    function Shared_Gradient (V : Linear_Gradient_Value)
      return Linear_Gradient_Ref is
    begin
       for G of Gradient_Store loop
-         if G.all = V then
+         if Same_Gradient (G.all, V) then
             return G;
          end if;
       end loop;
@@ -809,6 +828,10 @@ package body Adi.CSS_Styles is
          --  its own; the axes carry it.
          Prop_Display          => Opt_Display.Is_Specified (S.Display),
          Prop_Position         => Opt_Position.Is_Specified (S.Position),
+         Prop_Top              => Opt_Top.Is_Specified (S.Top),
+         Prop_Right            => Opt_Right.Is_Specified (S.Right),
+         Prop_Bottom           => Opt_Bottom.Is_Specified (S.Bottom),
+         Prop_Left             => Opt_Left.Is_Specified (S.Left),
          Prop_Overflow         => False,
          Prop_Overflow_X       => Opt_Overflow.Is_Specified (S.Overflow_X),
          Prop_Overflow_Y       => Opt_Overflow.Is_Specified (S.Overflow_Y),

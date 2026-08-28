@@ -7,6 +7,7 @@ with Adi.CSS_Source;
 with Adi.CSS_Source.Testing;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
 with Adi.Widget;        use Adi.Widget;
+with Adi.Widget.Box;  use Adi.Widget.Box;
 with Adi.Widget.Testing;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
@@ -69,6 +70,36 @@ procedure Style_Interning_Test is
               "registering a table stores the styles it names");
       Assert (Interned_Styles = After_First,
               "registering an equal table again stores nothing further");
+
+      --  Counting the store only says nothing new was added. A source
+      --  that resolved a selector to the wrong stored style would leave
+      --  the count flat and style every widget bound through it wrongly.
+      declare
+         First : constant Adi.Widget.Box.Box_Handle :=
+           Adi.Widget.Box.Create_Handle;
+         Last  : constant Adi.Widget.Box.Box_Handle :=
+           Adi.Widget.Box.Create_Handle;
+         OK    : Boolean;
+      begin
+         Adi.CSS_Source.Set_Mode
+           (Sources (Sources'First), Adi.CSS_Source.Static_Mode, OK);
+         Assert (OK, "a source takes its static table");
+         Adi.CSS_Source.Set_Mode
+           (Sources (Sources'Last), Adi.CSS_Source.Static_Mode, OK);
+         Assert (OK, "and so does the last of them");
+
+         Adi.CSS_Source.Bind_Class
+           (Sources (Sources'First), "panel", Widget_Handle'(+First));
+         Adi.CSS_Source.Bind_Class
+           (Sources (Sources'Last), "panel", Widget_Handle'(+Last));
+
+         Assert (Get_Part_Style (+First, Main_Part) =
+                   Get_Part_Style (+Last, Main_Part),
+                 "and every source resolves the selector alike");
+         Assert (Opt_Bg_Color.Is_Set
+                   (Get_Part_Style (+Last, Main_Part).Base.Background_Color),
+                 "to the style the table actually named");
+      end;
    end Test_Same_Table_From_Many_Sources;
 
    --  A style is a wall of discriminated records holding strings and an

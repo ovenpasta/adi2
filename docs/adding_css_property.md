@@ -161,9 +161,11 @@ a rule set names, and interning hashes styles on it:
 Prop_Outline_Width  => Opt_Outline_Width.Is_Specified (S.Outline_Width),
 ```
 
-A field left out only makes equal styles collide in the interning store,
-where equality settles them, so it costs deduplication and never
-correctness. See `docs/style_storage_optimization.md`.
+`Set_Properties` returns a complete named aggregate over `CSS_Property`
+with no `others`, so a new enumeration value with no line here does not
+compile. Adding the field to `Style_Rules` without adding the value to
+`CSS_Property` does compile, and costs only a bucket probe that equality
+then settles. See `docs/style_storage_optimization.md`.
 
 ---
 

@@ -45,6 +45,7 @@ Generated files:
 - `<build-dir>/projects/tests_build.gpr`
 - `<build-dir>/projects/examples_build.gpr`
 - `<build-dir>/build_all.sh` (full build command using configured paths/options)
+- `config/adi2_config.gpr` in the *source* tree, and only when absent — see below
 
 ## One-command full build (from build dir)
 
@@ -69,7 +70,13 @@ gprbuild --config=path/to/target.cgpr -P build-win32/projects/tests_build.gpr -X
 ```
 
 Notes:
-- No writes to source `config/`; all generated files live under `--build-dir`.
+- One file is written to the source tree: `config/adi2_config.gpr`. `adi.gpr`
+  withs it to learn which build profile was chosen, and a `with` on a relative
+  path resolves next to the project file, so it cannot live under `--build-dir`.
+  Alire writes it on every build; `configure.sh` writes a stub only when no file
+  is there, and never replaces one. It is gitignored, like the rest of the
+  Alire-generated files already in `config/`. Everything else configure.sh
+  generates lives under `--build-dir`.
 - Platform is explicit: `--target linux|darwin|windows` in `configure.sh` and `-XADI_PLATFORM=<linux|darwin|windows>` in manual `gprbuild`.
 - `build_all.sh` skips `mcp_test` unless the build is a development profile for
   a non-Windows target, which is where `adi.gpr` compiles the real `Adi.MCP`.

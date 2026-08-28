@@ -126,6 +126,12 @@
     <attribute name="looping" type="bool" setter="Set_Looping" setter-style="flag"/>
   </widget>
 
+  <widget tag="texture-view">
+    <package>Adi.Widget.Texture_View</package>
+    <handle-type>Texture_View_Handle</handle-type>
+    <create-handle>{package}.Create_Handle</create-handle>
+  </widget>
+
   <widget tag="html-view">
     <package>Adi.Widget.Html_View</package>
     <handle-type>Html_View_Handle</handle-type>

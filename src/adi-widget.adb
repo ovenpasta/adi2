@@ -4369,10 +4369,12 @@ package body Adi.Widget is
    end Render_Gradient_Rect;
 
    --  Render a gradient-filled rounded rectangle.
-   --  Mirrors Render_Rounded_Rect (per-corner radii variant) but with
-   --  per-vertex color sampling from the gradient.
-   --  No AA fringe in v1. Geometrically correct for 2 stops; 3+ stops may
-   --  show per-triangle interpolation artifacts on non-axis-aligned gradients.
+   --
+   --  Sliced into one band per pair of consecutive stops. Within a band
+   --  the colour is linear in the distance along the gradient, so
+   --  colouring the band's own corners and letting the rasteriser fill
+   --  between them is exact. A tessellation whose vertices do not land
+   --  on the stops cannot represent them at all.
    procedure Render_Gradient_Rounded_Rect
      (Renderer     : SDL_Renderer_Ptr;
       Rect         : SDL_FRect;
@@ -4396,15 +4398,18 @@ package body Adi.Widget is
          Positive'Max (Segments_For_Radius (Max_R),
                        (if Min_Segments > 0 then Min_Segments else 1));
 
-      N_Outline     : constant Natural := 4 * (Num_Seg + 1);
-      Total_Verts   : constant Natural := N_Outline + 1;
-      Total_Indices : constant Natural := N_Outline * 3;
+      N_Outline : constant Natural := 4 * (Num_Seg + 1);
 
-      Verts : SDL_Vertex_Array (0 .. Total_Verts - 1);
-      Idxs  : Int_Array (0 .. Total_Indices - 1);
+      --  Each half-plane clip adds at most one vertex.
+      Max_Poly : constant Natural := N_Outline + 2;
 
-      VI : Natural := 0;
-      II : Natural := 0;
+      type Point_Array is array (Natural range <>) of SDL_FPoint;
+
+      Outline : Point_Array (0 .. N_Outline - 1);
+      N_Pts   : Natural := 0;
+
+      Verts : SDL_Vertex_Array (0 .. Max_Poly - 1);
+      Idxs  : Int_Array (0 .. 3 * Max_Poly - 1);
 
       Zero_TC : constant SDL_FPoint := (x => 0.0, y => 0.0);
 
@@ -4413,34 +4418,120 @@ package body Adi.Widget is
       X1 : constant Float := Rect.x + Rect.w;
       Y1 : constant Float := Rect.y + Rect.h;
 
-      Center_Idx    : Natural;
-      First_Outline : Natural;
-      Step    : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
+      Step   : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
       Unused : Adi.SDL.C_bool;
 
       G_Stops : Resolved_Stop_Array;
       G_Count : Natural;
 
-      procedure Add_Vertex (X, Y : Float) is
-         T  : constant Float :=
-            Gradient_T_For_Point (X, Y, Rect, G.Angle);
-         FC : constant SDL_FColor :=
-            Sample_Gradient (G_Stops, G_Count, T);
-      begin
-         Verts (VI) :=
-           (position  => (x => X, y => Y),
-            color     => FC,
-            tex_coord => Zero_TC);
-         VI := VI + 1;
-      end Add_Vertex;
+      Angle_Rad : constant Float :=
+         (G.Angle - 90.0) * Ada.Numerics.Pi / 180.0;
+      Dx       : constant Float := Cos (Angle_Rad);
+      Dy       : constant Float := Sin (Angle_Rad);
+      Grad_Len : constant Float :=
+         abs (Rect.w * Dx) + abs (Rect.h * Dy);
+      Cx       : constant Float := Rect.x + Rect.w / 2.0;
+      Cy       : constant Float := Rect.y + Rect.h / 2.0;
 
-      procedure Add_Triangle (IA, IB, IC : Natural) is
+      --  Unclamped, unlike Gradient_T_For_Point: affine in the point, so
+      --  a clipped edge carries the position the band boundary asked for.
+      function Raw_T (P : SDL_FPoint) return Float is
+        (if Grad_Len < 1.0e-6 then 0.5
+         else (Dx * (P.x - Cx) + Dy * (P.y - Cy)) / Grad_Len + 0.5);
+
+      procedure Add_Point (X, Y : Float) is
       begin
-         Idxs (II)     := int (IA);
-         Idxs (II + 1) := int (IB);
-         Idxs (II + 2) := int (IC);
-         II := II + 3;
-      end Add_Triangle;
+         Outline (N_Pts) := (x => X, y => Y);
+         N_Pts := N_Pts + 1;
+      end Add_Point;
+
+      --  Sutherland-Hodgman against one side of a band boundary. The
+      --  outline is convex, so the result is a single convex polygon.
+      procedure Clip_Half
+        (Src        : Point_Array;
+         Src_Count  : Natural;
+         Limit      : Float;
+         Keep_Above : Boolean;
+         Dst        : out Point_Array;
+         Dst_Count  : out Natural)
+      is
+         function Inside (T : Float) return Boolean is
+           (if Keep_Above then T >= Limit else T <= Limit);
+      begin
+         Dst_Count := 0;
+         if Src_Count = 0 then
+            return;
+         end if;
+
+         for I in 0 .. Src_Count - 1 loop
+            declare
+               A  : constant SDL_FPoint := Src (Src'First + I);
+               B  : constant SDL_FPoint :=
+                 Src (Src'First + (I + 1) mod Src_Count);
+               Ta : constant Float := Raw_T (A);
+               Tb : constant Float := Raw_T (B);
+            begin
+               if Inside (Ta) then
+                  Dst (Dst'First + Dst_Count) := A;
+                  Dst_Count := Dst_Count + 1;
+               end if;
+
+               if Inside (Ta) /= Inside (Tb)
+                 and then abs (Tb - Ta) > 1.0e-9
+               then
+                  declare
+                     F : constant Float := (Limit - Ta) / (Tb - Ta);
+                  begin
+                     Dst (Dst'First + Dst_Count) :=
+                       (x => A.x + F * (B.x - A.x),
+                        y => A.y + F * (B.y - A.y));
+                     Dst_Count := Dst_Count + 1;
+                  end;
+               end if;
+            end;
+         end loop;
+      end Clip_Half;
+
+      procedure Emit_Band (Lo, Hi : Float) is
+         Above    : Point_Array (0 .. Max_Poly - 1);
+         Band     : Point_Array (0 .. Max_Poly - 1);
+         N_Above  : Natural;
+         N_Band   : Natural;
+         II       : Natural := 0;
+      begin
+         Clip_Half (Outline, N_Pts, Lo, True, Above, N_Above);
+         if N_Above < 3 then
+            return;
+         end if;
+
+         Clip_Half (Above, N_Above, Hi, False, Band, N_Band);
+         if N_Band < 3 then
+            return;
+         end if;
+
+         for I in 0 .. N_Band - 1 loop
+            Verts (I) :=
+              (position  => Band (I),
+               color     =>
+                 Sample_Gradient (G_Stops, G_Count, Raw_T (Band (I))),
+               tex_coord => Zero_TC);
+         end loop;
+
+         for I in 1 .. N_Band - 2 loop
+            Idxs (II)     := 0;
+            Idxs (II + 1) := int (I);
+            Idxs (II + 2) := int (I + 1);
+            II := II + 3;
+         end loop;
+
+         Unused := SDL_RenderGeometry
+           (Renderer     => Renderer,
+            Texture      => null,
+            Vertices     => Verts (0)'Access,
+            Num_Vertices => int (N_Band),
+            Indices      => Idxs (0)'Access,
+            Num_Indices  => int (II));
+      end Emit_Band;
 
    begin
       if not Is_Visible_FRect (Rect) then
@@ -4454,76 +4545,77 @@ package body Adi.Widget is
          return;
       end if;
 
-      --  Center vertex for fan
-      Center_Idx := VI;
-      Add_Vertex ((X0 + X1) / 2.0, (Y0 + Y1) / 2.0);
+      if G_Count = 0 then
+         return;
+      end if;
 
-      First_Outline := VI;
-
-      --  Top-left arc: center (X0+R_TL, Y0+R_TL), from PI to 3*PI/2
+      --  Top-left arc: centre (X0+R_TL, Y0+R_TL), from PI to 3*PI/2
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float :=
                Ada.Numerics.Pi + Float (I) * Step;
          begin
-            Add_Vertex (X0 + R_TL + R_TL * Cos (Angle),
-                        Y0 + R_TL + R_TL * Sin (Angle));
+            Add_Point (X0 + R_TL + R_TL * Cos (Angle),
+                       Y0 + R_TL + R_TL * Sin (Angle));
          end;
       end loop;
 
-      --  Top-right arc: center (X1-R_TR, Y0+R_TR), from 3*PI/2 to 2*PI
+      --  Top-right arc: centre (X1-R_TR, Y0+R_TR), from 3*PI/2 to 2*PI
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float :=
                3.0 * Ada.Numerics.Pi / 2.0 + Float (I) * Step;
          begin
-            Add_Vertex (X1 - R_TR + R_TR * Cos (Angle),
-                        Y0 + R_TR + R_TR * Sin (Angle));
+            Add_Point (X1 - R_TR + R_TR * Cos (Angle),
+                       Y0 + R_TR + R_TR * Sin (Angle));
          end;
       end loop;
 
-      --  Bottom-right arc: center (X1-R_BR, Y1-R_BR), from 0 to PI/2
+      --  Bottom-right arc: centre (X1-R_BR, Y1-R_BR), from 0 to PI/2
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float := Float (I) * Step;
          begin
-            Add_Vertex (X1 - R_BR + R_BR * Cos (Angle),
-                        Y1 - R_BR + R_BR * Sin (Angle));
+            Add_Point (X1 - R_BR + R_BR * Cos (Angle),
+                       Y1 - R_BR + R_BR * Sin (Angle));
          end;
       end loop;
 
-      --  Bottom-left arc: center (X0+R_BL, Y1-R_BL), from PI/2 to PI
+      --  Bottom-left arc: centre (X0+R_BL, Y1-R_BL), from PI/2 to PI
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float :=
                Ada.Numerics.Pi / 2.0 + Float (I) * Step;
          begin
-            Add_Vertex (X0 + R_BL + R_BL * Cos (Angle),
-                        Y1 - R_BL + R_BL * Sin (Angle));
-         end;
-      end loop;
-
-      --  Fan triangles from center to consecutive outline pairs
-      for I in 0 .. N_Outline - 1 loop
-         declare
-            Next_I : constant Natural := (I + 1) mod N_Outline;
-         begin
-            Add_Triangle (Center_Idx,
-                          First_Outline + I,
-                          First_Outline + Next_I);
+            Add_Point (X0 + R_BL + R_BL * Cos (Angle),
+                       Y1 - R_BL + R_BL * Sin (Angle));
          end;
       end loop;
 
       SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
                   "SDL_SetRenderDrawBlendMode");
 
-      Unused := SDL_RenderGeometry
-        (Renderer     => Renderer,
-         Texture      => null,
-         Vertices     => Verts (0)'Access,
-         Num_Vertices => int (VI),
-         Indices      => Idxs (0)'Access,
-         Num_Indices  => int (II));
+      --  One band before the first stop and one after the last, where
+      --  Sample_Gradient holds the end colour: CSS extends the first and
+      --  last stop outwards rather than fading to nothing.
+      --
+      --  Every point of the shape lies in 0 .. 1, and a stop may sit
+      --  anywhere, so the outer two bands reach past whichever is
+      --  further out. Bounding them by the stops alone leaves the shape
+      --  unpainted when every stop sits beyond one end of it.
+      declare
+         Before : constant Float := Float'Min (0.0, G_Stops (1).Pos) - 1.0;
+         After  : constant Float :=
+           Float'Max (1.0, G_Stops (G_Count).Pos) + 1.0;
+      begin
+         Emit_Band (Before, G_Stops (1).Pos);
+
+         for I in 1 .. G_Count - 1 loop
+            Emit_Band (G_Stops (I).Pos, G_Stops (I + 1).Pos);
+         end loop;
+
+         Emit_Band (G_Stops (G_Count).Pos, After);
+      end;
    end Render_Gradient_Rounded_Rect;
 
    --  AA fringe for gradient-filled rounded rects.
@@ -6502,6 +6594,14 @@ package body Adi.Widget is
         (Renderer, In_Render_Space (W.Scroll_Knob_Geom, Ctx), Knob_Style);
    end Render_Shared_Scrollbar;
 
+   procedure Render_Content (W    : in out Widget;
+                             Ctx  : in out Render_Context;
+                             Area : Rectangle) is
+      pragma Unreferenced (Area);
+   begin
+      Render_Items (W, Ctx);
+   end Render_Content;
+
    procedure Render_Tree_Impl
      (W                : in out Widget'Class;
       Ctx              : in out Render_Context;
@@ -6527,7 +6627,7 @@ package body Adi.Widget is
       if Widget_Is_Visible then
          --  Render this widget's own visuals first; overflow clipping applies to
          --  descendant content, not the widget's own background/border panel.
-         Render_Items (W, Ctx);
+         Render_Content (W, Ctx, In_Render_Space (Get_Geometry (W), Ctx));
       end if;
 
       if Widget_Is_Visible and then Debug_Layout_Overlay_Enabled and then Renderer /= null then

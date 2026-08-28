@@ -108,7 +108,7 @@ begin
 
    declare
       W : constant Window_Handle :=
-        Create_Window_Handle ("Slider Example", Adi.Window.Extent (Px (411.0), Px (274.0)));
+        Create_Window_Handle ("Slider Example", Adi.Window.Extent (Px (411.0), Px (290.0)));
 
       --  All widgets created via typed handles
       Root     : constant Adi.Widget.Box.Box_Handle :=
@@ -118,7 +118,7 @@ begin
       Section1 : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Heading1 : constant Adi.Widget.Label.Label_Handle :=
-        Adi.Widget.Label.Create_Handle ("Float Slider");
+        Adi.Widget.Label.Create_Handle ("Float Slider (knob inside the bar)");
       Row1     : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Label1   : constant Adi.Widget.Label.Label_Handle :=
@@ -128,7 +128,7 @@ begin
       Section2 : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Heading2 : constant Adi.Widget.Label.Label_Handle :=
-        Adi.Widget.Label.Create_Handle ("Integer Slider");
+        Adi.Widget.Label.Create_Handle ("Integer Slider (gradient bar)");
       Row2     : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Label2   : constant Adi.Widget.Label.Label_Handle :=
@@ -138,7 +138,7 @@ begin
       Section3 : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Heading3 : constant Adi.Widget.Label.Label_Handle :=
-        Adi.Widget.Label.Create_Handle ("Stepped Slider (step=10)");
+        Adi.Widget.Label.Create_Handle ("Stepped Slider (square knob)");
       Row3     : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Label3   : constant Adi.Widget.Label.Label_Handle :=
@@ -207,9 +207,13 @@ begin
         (Value2_H, Value_Label_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles
         (Value3_H, Value_Label_Class_Part_Styles);
+      --  One knob style each: the bar and the knob are separate parts,
+      --  so the knob is only the bar's size where the CSS says so.
       Float_Slider.Set_Part_Styles (Slider1_H, Slider_Class_Part_Styles);
-      Int_Slider.Set_Part_Styles (Slider2_H, Slider_Class_Part_Styles);
-      Int_Slider.Set_Part_Styles (Slider3_H, Slider_Class_Part_Styles);
+      Int_Slider.Set_Part_Styles
+        (Slider2_H, Slider_Gradient_Class_Part_Styles);
+      Int_Slider.Set_Part_Styles
+        (Slider3_H, Slider_Square_Class_Part_Styles);
 
       --  Build hierarchy via "+" operator
       Add_Child (+Section1, +Heading1);

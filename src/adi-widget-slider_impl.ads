@@ -23,9 +23,10 @@ package Adi.Widget.Slider_Impl is
    --  instantiate this with appropriate formals and re-export the API.
    --
    --  Items:
-   --    1  Main_Part       - Container / track background
-   --    2  Indicator_Part  - Filled portion (progress)
-   --    3  Knob_Part       - Draggable handle
+   --    1  Main_Part       - The widget's own box
+   --    2  Scroll_Part     - The bar, a band inside that box
+   --    3  Indicator_Part  - Filled portion (progress)
+   --    4  Knob_Part       - Draggable handle
    ---------------------------------------------------------------------------
 
    type Orientation is (Horizontal, Vertical);

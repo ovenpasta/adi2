@@ -55,6 +55,22 @@ procedure Texture_Cache_Test is
                        Build_Time => Adi.Clock.Microseconds (Micros));
    end Put;
 
+   --  A wrapper around memory the cache does not own, charged nothing.
+   procedure Put_Borrowed (C      : in out Cache;
+                           Key    : Texture_Key;
+                           Micros : Integer := 100)
+   is
+      Ignore : Texture_Handle;
+   begin
+      Ignore := Store (C, Key, New_Texture,
+                       Width  => 4, Height => 4,
+                       Bytes  => 0,
+                       Build_Time => Adi.Clock.Microseconds (Micros));
+   end Put_Borrowed;
+
+   function Borrowed_Key (N : Natural) return Texture_Key is
+     ((Kind => View_Texture, Source => Source_Id (N), others => <>));
+
    --  Resident and findable.
    function Held (C : Cache; Key : Texture_Key) return Boolean is
      (Is_Valid (C, Find (C, Key)));
@@ -1465,6 +1481,93 @@ begin
       Assert (not Is_Open (G),
               "Releasing a group after its cache has gone should be a safe"
               & " no-op there, not a walk through freed bookkeeping");
+   end;
+
+   --  An entry wrapping memory the cache does not own is charged
+   --  nothing, so the budget neither counts it nor reclaims it: there is
+   --  nothing there to reclaim.
+   declare
+      C : Cache;
+   begin
+      Set_Budget (C, Charge (64));
+
+      Put_Borrowed (C, Borrowed_Key (1));
+      Put (C, Shadow_Key (1), 64, Micros => 100);
+
+      Assert (Bytes_Used (C) = Charge (64),
+              "A borrowed entry should add nothing to residency:"
+              & Byte_Count'Image (Bytes_Used (C)));
+      Assert (Count (C) = 2, "while still being an entry");
+
+      --  Both fall out of the scene. The budget has room for the shadow
+      --  alone, and the borrowed entry is not what would make room.
+      Settle (C);
+
+      Assert (Held (C, Borrowed_Key (1)),
+              "and a budget met without it should leave it alone");
+      Assert (Statistics (C) (View_Texture).Pressure = 0,
+              "nothing about it answers to the budget");
+      Clear (C);
+   end;
+
+   --  Bytes cannot bound entries charged none, so a count does. The
+   --  lowest standing one gives way, and what gives way is counted apart
+   --  from the budget's own evictions -- a full count says nothing about
+   --  a budget being too small.
+   declare
+      C : Cache;
+      Cap : constant Natural := Borrowed_Slots;
+   begin
+      Set_Budget (C, Charge (64));
+
+      --  One that has earned its place, drawn repeatedly before the
+      --  crowd arrives.
+      Put_Borrowed (C, Borrowed_Key (0), Micros => 10_000);
+      for I in 1 .. 20 loop
+         Touch (C, Borrowed_Key (0));
+      end loop;
+
+      for I in 1 .. Cap loop
+         Put_Borrowed (C, Borrowed_Key (I), Micros => 1);
+      end loop;
+
+      Assert (Count (C) = Cap,
+              "Borrowed entries should stop at the count that bounds them,"
+              & " having no bytes for the budget to bound them by:"
+              & Natural'Image (Count (C)));
+      Assert (Bytes_Used (C) = 0,
+              "and none of them should be charged anything");
+      Assert (Statistics (C) (View_Texture).Crowded > 0,
+              "what they displace should be counted as crowding");
+      Assert (Statistics (C) (View_Texture).Pressure = 0,
+              "and not as budget pressure, which no borrowed entry can"
+              & " ever relieve");
+      Assert (Held (C, Borrowed_Key (0)),
+              "and the one that has been drawn should outlast the ones"
+              & " that arrived and were not");
+      Clear (C);
+   end;
+
+   --  Crowding is between borrowed entries. A texture the cache owns is
+   --  not what makes room for a wrapper.
+   declare
+      C : Cache;
+   begin
+      Set_Budget (C, Charge (64));
+      Put (C, Shadow_Key (1), 64, Micros => 10_000);
+
+      for I in 1 .. Borrowed_Slots + 4 loop
+         Put_Borrowed (C, Borrowed_Key (I), Micros => 1);
+      end loop;
+
+      Assert (Held (C, Shadow_Key (1)),
+              "A crowd of wrappers should not displace a texture the cache"
+              & " actually holds");
+      Assert (Statistics (C) (Shadow_Texture).Crowded = 0,
+              "nor count one as crowded out");
+      Assert (Bytes_Used (C) = Charge (64),
+              "and residency should still be the one real texture");
+      Clear (C);
    end;
 
    --  Clear releases everything.

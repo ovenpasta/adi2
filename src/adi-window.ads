@@ -34,6 +34,23 @@ package Adi.Window is
                                     Maximized : Boolean := False)
       return Window_Handle;
 
+    --  Ask SDL for a particular 2D backend: "opengl", "opengles2",
+    --  "vulkan", "gpu", "software". Only a request -- SDL keeps its own
+    --  choice if the driver is unavailable, so call Render_Driver
+    --  afterwards to find out what happened rather than assuming.
+    --
+    --  Has to run before the first window is created; SDL reads the hint
+    --  when it builds the renderer and ignores it after. Matters to an
+    --  application that draws with OpenGL itself, because a GL texture
+    --  cannot be handed to a Direct3D or Metal renderer -- and those are
+    --  the defaults on Windows and macOS.
+    procedure Prefer_Render_Driver (Name : String);
+
+    --  The backend SDL actually built, e.g. "opengl". Empty if the window
+    --  has no renderer.
+    function Render_Driver (W : Window) return String;
+    function Render_Driver (H : Window_Handle) return String;
+
     --  A window size carrying its own unit, so the caller states whether
     --  it means framebuffer pixels or something that scales with the
     --  display. S : Size_2D above is unchanged: it is handed to SDL as

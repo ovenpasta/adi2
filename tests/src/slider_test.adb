@@ -1,6 +1,9 @@
 pragma Ada_2022;
 with Ada.Text_IO;      use Ada.Text_IO;
+with Adi.Core;        use Adi.Core;
+with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
+with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.SDL.Events;   use Adi.SDL.Events;
 with Adi.Widget.Slider;
 with Adi.Widget.Integer_Slider;
@@ -146,6 +149,125 @@ procedure Slider_Test is
       Test_Support.Assert (Callback_Value > 0.0, "Value should increase on key right");
    end Test_Callback;
 
+   --  The bar is the ::scroll part, drawn inside the widget rather than
+   --  filling it, so a bar thinner than the knob still leaves the knob
+   --  round and the whole widget height still takes the press.
+   procedure Test_Track_Band is
+      --  A part with no item is a failure to report, not one to raise
+      --  on: First_Element would abort the binary and take every later
+      --  test with it.
+      Nothing : constant Item := (others => <>);
+
+      function Only_Item (S : Float_Slider.Slider_Handle; P : Part_Kind)
+        return Item
+      is
+         Found : constant Items_List.Vector := Get_Items_For_Part (+S, P);
+      begin
+         Test_Support.Assert (Natural (Found.Length) = 1,
+                 "exactly one item for the part");
+         return (if Found.Is_Empty then Nothing else Found.First_Element);
+      end Only_Item;
+
+      Thin : constant Part_Style_Array :=
+        [Scroll_Part =>
+           (Style   => From ((Height => Set (Size (Px (6.0))), others => <>))
+                         .Build,
+            Enabled => True),
+         Knob_Part =>
+           (Style   => From ((Width => Set (Size (Px (18.0))), others => <>))
+                         .Build,
+            Enabled => True),
+         others => <>];
+
+      Plain : constant Float_Slider.Slider_Handle :=
+        Float_Slider.Create_Handle (Min => 0.0, Max => 100.0, Value => 0.0);
+      Banded : constant Float_Slider.Slider_Handle :=
+        Float_Slider.Create_Handle (Min => 0.0, Max => 100.0, Value => 0.0);
+   begin
+      Put_Line ("Test: slider track band");
+
+      --  Nothing said about ::scroll: the bar fills the box.
+      Set_Geometry (+Plain, (X => 0.0, Y => 0.0, Width => 200.0, Height => 24.0));
+      Build_Items (+Plain);
+      Test_Support.Assert
+        (Only_Item (Plain, Scroll_Part).Geometry.Height = 24.0,
+         "an unstyled bar fills the widget");
+      Test_Support.Assert
+        (Only_Item (Plain, Indicator_Part).Geometry.Height = 24.0,
+         "and so does the fill");
+
+      Set_Geometry (+Banded, (X => 0.0, Y => 0.0, Width => 200.0, Height => 24.0));
+      Set_Part_Styles (+Banded, Thin);
+      Build_Items (+Banded);
+
+      declare
+         Bar  : constant Item := Only_Item (Banded, Scroll_Part);
+         Fill : constant Item := Only_Item (Banded, Indicator_Part);
+         Knob : constant Item := Only_Item (Banded, Knob_Part);
+      begin
+         Test_Support.Assert (Bar.Geometry.Height = 6.0,
+                 "a bar takes the height ::scroll asks for");
+         Test_Support.Assert (Bar.Geometry.Y = 9.0,
+                 "and is centred in the widget");
+         Test_Support.Assert (Bar.Geometry.Width = 200.0,
+                 "the bar spans the widget");
+
+         Test_Support.Assert (Fill.Geometry.Height = 6.0,
+                 "the fill matches the bar rather than the widget");
+         Test_Support.Assert (Fill.Geometry.Y = Bar.Geometry.Y,
+                 "and sits on it");
+
+         Test_Support.Assert (Knob.Geometry.Height = 24.0,
+                 "the knob spans the widget, not the bar");
+         Test_Support.Assert (Knob.Geometry.Width = 18.0,
+                 "and takes its width from ::knob");
+      end;
+
+      --  The vertical branch reads ::scroll's width and gives the knob
+      --  the widget's, which is the horizontal case turned a quarter.
+      declare
+         Upright : constant Float_Slider.Slider_Handle :=
+           Float_Slider.Create_Handle (Min => 0.0, Max => 100.0, Value => 0.0);
+         Sideways : constant Part_Style_Array :=
+           [Scroll_Part =>
+              (Style   =>
+                 From ((Width => Set (Size (Px (6.0))), others => <>)).Build,
+               Enabled => True),
+            Knob_Part =>
+              (Style   =>
+                 From ((Height => Set (Size (Px (18.0))), others => <>)).Build,
+               Enabled => True),
+            others => <>];
+      begin
+         Float_Slider.Set_Orientation (Upright, Float_Slider.Vertical);
+         Set_Geometry
+           (+Upright, (X => 0.0, Y => 0.0, Width => 24.0, Height => 200.0));
+         Set_Part_Styles (+Upright, Sideways);
+         Build_Items (+Upright);
+
+         declare
+            Bar  : constant Item := Only_Item (Upright, Scroll_Part);
+            Fill : constant Item := Only_Item (Upright, Indicator_Part);
+            Knob : constant Item := Only_Item (Upright, Knob_Part);
+         begin
+            Test_Support.Assert (Bar.Geometry.Width = 6.0,
+                    "an upright bar takes the width ::scroll asks for");
+            Test_Support.Assert (Bar.Geometry.X = 9.0,
+                    "and is centred in the widget");
+            Test_Support.Assert (Bar.Geometry.Height = 200.0,
+                    "the bar spans the widget");
+            Test_Support.Assert (Fill.Geometry.Width = 6.0,
+                    "the fill matches the bar");
+            Test_Support.Assert (Fill.Geometry.X = Bar.Geometry.X,
+                    "and sits on it");
+            Test_Support.Assert (Knob.Geometry.Width = 24.0,
+                    "the knob spans the widget, not the bar");
+            Test_Support.Assert (Knob.Geometry.Height = 18.0,
+                    "and takes its height from ::knob");
+         end;
+      end;
+   end Test_Track_Band;
+
    -------------------------------------------
    --  Integer slider tests
    -------------------------------------------
@@ -214,6 +336,7 @@ begin
    Test_Orientation;
    Test_Flags;
    Test_Callback;
+   Test_Track_Band;
    New_Line;
 
    Test_Int_Create;

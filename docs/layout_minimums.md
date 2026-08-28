@@ -64,6 +64,17 @@ items have already taken.
 An item that still never receives a share — nothing left on the line can
 flex — has its limits applied once the distribution ends.
 
+## Percentage heights reach the window
+
+`height: 100%` resolves against the parent, joins the minimum the
+subtree demands, and `Apply_Window_Min_Size_From_Layout` makes that a
+floor the window cannot shrink below. Inside `overflow-y: auto` it also
+defeats scrolling: the box grows to its content, so nothing overflows.
+
+Fill the cross axis with the container's default `align-items: stretch`
+and the main axis with `flex-grow`. Where a percentage height is
+genuinely wanted in a scroll container, pair it with `min-height: 0`.
+
 ## Which widgets override it
 
 A widget overrides `Get_Content_Min_Size` when squeezing it below some

@@ -1,11 +1,20 @@
+--  Adi2_Config is written by Alire before each build, and is the only
+--  channel through which it reports the profile it picked: development
+--  for the crate being worked on, release for one pulled in as a
+--  dependency. Alire passes no -X switches, so reading this file is what
+--  makes `alr get adi2 && alr build` produce a release library rather
+--  than a debug one. tools/configure.sh writes a stub when the file is
+--  absent, which is what keeps a build without Alire working.
+with "config/adi2_config.gpr";
 with "vendor/plutosvg/plutosvg.gpr";
 with "vendor/rlottie/rlottie.gpr";
 
 project Adi is
 
    type Build_Profile_Kind is ("release", "validation", "development");
-   Build_Profile : Build_Profile_Kind := external ("ADI_BUILD_PROFILE", "development");
-   Crate_Version := external ("ADI_LIBRARY_VERSION", "0.9.0");
+   Build_Profile : Build_Profile_Kind :=
+     external ("ADI_BUILD_PROFILE", Adi2_Config.Build_Profile);
+   Crate_Version := external ("ADI_LIBRARY_VERSION", Adi2_Config.Crate_Version);
    User_Ada_Compiler_Switches := External_As_List ("ADAFLAGS", " ");
    Platform_Name := external ("ADI_PLATFORM", "linux");
 

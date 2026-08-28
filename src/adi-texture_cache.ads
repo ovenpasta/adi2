@@ -19,6 +19,11 @@ with Adi.SDL.Render;
 --  blurred shadow runs from under two kilobytes to several megabytes, so a
 --  fixed entry count permits either a gigabyte or a megabyte of residency.
 --
+--  An entry wrapping memory the application owns is the exception, and it
+--  is one the argument above makes rather than breaks: it holds none of
+--  ours, so no byte figure describes it, and a count is all there is to
+--  bound it by. That is what Borrowed_Slots is.
+--
 --  Eviction ranks entries by the rebuilding time each byte of them buys.
 --  Building costs roughly per pixel, so that ratio is about what a pixel
 --  cost to make, which is what separates rasterised vector art from an
@@ -52,7 +57,8 @@ with Adi.SDL.Render;
 
 package Adi.Texture_Cache is
 
-   type Texture_Kind is (Shadow_Texture, Raster_Texture, SVG_Texture);
+   type Texture_Kind is
+     (Shadow_Texture, Raster_Texture, SVG_Texture, View_Texture);
 
    --  Identity of whatever produced a texture -- an image, a document --
    --  wide enough that a program need not reuse values, and modular so a
@@ -72,6 +78,10 @@ package Adi.Texture_Cache is
    --            was built for -- scale mode is texture state, so one
    --            texture cannot serve two modes
    --    SVG     as Raster, plus the size it was rasterised at
+   --    View    Source names the application's texture -- a graphics-API
+   --            handle, or the view itself for pixels it uploads --
+   --            Extent_A and Extent_B the dimensions it was described
+   --            with, Variant the rest of that description
    type Texture_Key is record
       Kind       : Texture_Kind := Shadow_Texture;
       Source     : Source_Id := 0;
@@ -91,10 +101,27 @@ package Adi.Texture_Cache is
    --  overflow before the hardware makes the question interesting.
    type Byte_Count is range 0 .. 2 ** 40;
 
-   --  What a single texture is charged. A zero charge would let entries
-   --  accumulate without ever reaching the budget, so nothing occupies
-   --  nothing.
-   subtype Texture_Charge is Byte_Count range 1 .. Byte_Count'Last;
+   --  What a single texture is charged. Zero says the entry is borrowed:
+   --  it wraps memory the application owns, and occupies none of ours.
+   --  Charging such an entry anything would be a figure about somebody
+   --  else's memory -- a byte ranks it above everything real, since
+   --  eviction weighs build time against bytes, and its dimensions evict
+   --  textures we do own to stay under a limit counting memory we do not.
+   --
+   --  A borrowed entry is therefore outside what bytes can bound, which
+   --  is what Borrowed_Slots exists to answer.
+   subtype Texture_Charge is Byte_Count range 0 .. Byte_Count'Last;
+
+   --  How many borrowed entries may be resident at once. The byte total
+   --  bounds every other entry and cannot bound these, and Slots grows on
+   --  demand, so without a count they would accumulate unchecked.
+   --
+   --  A producer rotating a pool of shared textures needs a handful, and
+   --  several views in one window several handfuls; past that a wrapper
+   --  is not being reused, and remaking one costs a create rather than an
+   --  upload. When a borrowed entry arrives at the cap, the lowest
+   --  standing borrowed entry gives way.
+   Borrowed_Slots : constant := 64;
 
    type Cache is limited private;
 
@@ -327,6 +354,10 @@ package Adi.Texture_Cache is
       --  what Byte_Count can hold. Arithmetic, not policy: a figure here
       --  says the type is near its ceiling, not that the budget is small.
       Headroom     : Event_Count := 0;
+      --  Dropped to keep borrowed entries inside Borrowed_Slots. Also not
+      --  a budget signal: they are charged nothing, so no budget could
+      --  have held them and none is relieved by their going.
+      Crowded      : Event_Count := 0;
       Replaced     : Event_Count := 0;
       --  Dropped by an explicit Clear, and by the cache going away with
       --  its renderer. Neither says anything about the budget.

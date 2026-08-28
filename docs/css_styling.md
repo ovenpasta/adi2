@@ -42,13 +42,13 @@ Part selectors target sub-elements of a widget using `::part` pseudo-element syn
 | Part | Constant | Typical Usage |
 |------|----------|---------------|
 | *(none)* / `::main` | `Main_Part` | Widget body (default when no part specified) |
-| `::label` | `Label_Part` | Auxiliary/display label region |
+| `::label` | `Label_Part` | Auxiliary/display label region, and the overlay a `label=` attribute draws |
 | `::text` | `Text_Part` | Text content in input controls |
 | `::icon` | `Icon_Part` | Icon region |
 | `::cursor` | `Cursor_Part` | Text cursor |
 | `::selected` | `Selected_Part` | Selected item highlight |
 | `::indicator` | `Indicator_Part` | Dropdown arrow, slider fill |
-| `::scroll` | `Scroll_Part` | Scrollbar track |
+| `::scroll` | `Scroll_Part` | Scrollbar track, slider bar |
 | `::knob` | `Knob_Part` | Scrollbar/slider thumb |
 | `::items` | `Items_Part` | Items container |
 
@@ -64,6 +64,30 @@ Example:
   color: rgb(71, 85, 105);
 }
 ```
+
+#### A slider's bar and knob
+
+The widget's own content box — what is left after its padding and
+border — is the press target and the height the knob is sized from.
+`::scroll` is the bar drawn inside it: give it a height and it becomes a
+band of that thickness, centred, with `::indicator` — the filled part —
+matching it. Say nothing about `::scroll` and the bar fills the box.
+
+Keeping the two apart is what lets a thin bar carry a round knob: the
+knob takes its width from CSS and its height from the widget, so a 6px
+bar in an 18px widget leaves an 18px circle and the full 18px still
+takes the press.
+
+```css
+.volume          { height: 18px; }
+.volume::scroll  { height: 6px; border-radius: 3px;
+                   background-color: #e4e9f1; }
+.volume::knob    { width: 18px; border-radius: 9px;
+                   background-color: #3b82f6; }
+```
+
+Vertical sliders read `::scroll`'s width instead, and the knob takes its
+height from CSS and its width from the widget.
 
 ### Property Inheritance Between Parts
 

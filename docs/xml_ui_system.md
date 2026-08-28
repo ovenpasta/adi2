@@ -146,11 +146,11 @@ Without `<window>` or `<dialog>`, a single root widget sits directly under `<adi
 
 ## Supported Widgets
 
-All 18 widget tags defined in `tools/widgets.xml`:
+All 19 widget tags defined in `tools/widgets.xml`:
 
 | Tag | Package | Children | Generic | Key Attributes |
 |-----|---------|----------|---------|----------------|
-| `box` | `Adi.Widget.Box` | children | no | — |
+| `box` | `Adi.Widget.Box` | children | no | `label` |
 | `label` | `Adi.Widget.Label` | children | no | `text`, `icon` |
 | `button` | `Adi.Widget.Button` | children | no | `text`, `toggleable`, `on-clicked`, `on-toggled` |
 | `switch` | `Adi.Widget.Button.Switch` | children | no | `checked`, `on-toggled` |
@@ -163,11 +163,41 @@ All 18 widget tags defined in `tools/widgets.xml`:
 | `rlottie` | `Adi.Widget.RLottie` | children | no | `looping` |
 | `image` | `Adi.Widget.Image` | children | no | `src` |
 | `html-view` | `Adi.Widget.Html_View` | children | no | — |
+| `texture-view` | `Adi.Widget.Texture_View` | children | no | — |
 | `list-box` | `Adi.Widget.List_Box` | rows | yes | `generic`, `on-item-clicked`, `on-item-activated`, `on-selection-changed` |
 | `slider` | `Adi.Widget.Slider` | — | yes | `generic`, `min`, `max`, `value`, `on-changed` |
 | `integer-slider` | `Adi.Widget.Integer_Slider` | — | yes | `generic`, `min`, `max`, `value`, `on-changed` |
 | `value-input` | `Adi.Widget.Value_Input` | — | yes | `generic`, `min`, `max`, `value`, `on-value-changed` |
 | `integer-value-input` | `Adi.Widget.Integer_Value_Input` | — | yes | `generic`, `min`, `max`, `value`, `on-value-changed` |
+
+### Overlay labels
+
+A `label` attribute names the widget in the UI. Any widget can carry one
+— `Adi.Widget.Set_Label` is on the base type and the overlay is built in
+the generic update path — though the grammar exposes the attribute on
+`box` and `text-input`.
+
+The label is drawn as two items on `Label_Part`: a background sized to
+the text plus `::label`'s padding, and the text itself. It sits at the
+widget's origin offset by `::label`'s `top` and `left`, and it takes no
+part in layout. Nothing reserves space for it, so a label placed outside
+the widget's own box overlaps whatever is there; the room comes from the
+widget's padding, or from a margin on the widget when the label sits
+above it.
+
+```css
+/* inside the box, above its content */
+.panel          { padding: 46px 20px 20px 20px; }
+.panel::label   { top: 20px; left: 21px;
+                  font-size: 11px; color: #91a0b6; }
+
+/* above the box, in the gap its own margin opens */
+.row            { margin-top: 22px; }
+.row::label     { top: -22px; left: 1px; }
+```
+
+Text and typography set on the widget inherit into `::label` unless the
+part sets them itself, as with any other part.
 
 ### Children Modes
 
@@ -194,7 +224,7 @@ All widgets support:
 | Attribute | Widgets | Type | Description |
 |-----------|---------|------|-------------|
 | `text` | label, button, text-input, text-editor | string | Text content (used in Create call) |
-| `label` | text-input | string | Floating label text, positioned by `::label` part CSS (`top`, `left`, `padding`) |
+| `label` | box, text-input | string | Overlay label text, positioned by `::label` part CSS (`top`, `left`, `padding`). See [Overlay labels](#overlay-labels) |
 | `toggleable` | button | bool | Makes the button toggleable (flag setter, no argument) |
 | `checked` | switch | bool | Initial checked state (default `False`) |
 | `looping` | animated-image, animated-widget, rlottie | bool | Enable animation looping (flag setter) |

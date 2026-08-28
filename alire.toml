@@ -4,10 +4,22 @@ version = "0.9.0"
 
 authors = ["Aldo Nicolas Bruno"]
 maintainers = ["Aldo Nicolas Bruno <ovenpasta@pizzahack.eu>"]
-licenses = "Apache-2.0"
+maintainers-logins = ["ovenpasta"]
+#  Adi2's own code is Apache-2.0. The rest are vendored sources that are
+#  compiled into libAdi.a, so a binary linking Adi2 carries them too:
+#  MPL-2.0 is vendor/rlottie/src/vector/vinterpolator.cpp, FTL the two
+#  FreeType copies, BSD-3-Clause varenaalloc and msinttypes, MIT the bulk
+#  of plutosvg, plutovg, rlottie, pixman and rapidjson. See REUSE.toml for
+#  the per-file inventory and README.md for the obligations that follow.
+licenses = "Apache-2.0 AND MIT AND FTL AND MPL-2.0 AND BSD-3-Clause"
 website = "https://github.com/ovenpasta/adi2"
 tags = ["gui", "sdl", "widgets", "css", "ui", "graphics"]
 project-files = ["adi.gpr"]
+
+[[depends-on]]
+libsdl3 = "*"
+libsdl3_ttf = "*"
+libsdl3_image = "*"
 
 [[actions]]
 type = "test"
@@ -20,6 +32,28 @@ command = ["bash", "tools/run_tests.sh"]
 #  the command it runs, not for the shell that typed it.
 [environment]
 ADI2_TOOLS.set = "${CRATE_ROOT}/tools"
+
+#  ADI_PLATFORM falls back to "linux" in adi.gpr, so that a bare gprbuild
+#  has an answer. Alire knows the real target, so it says so here: left to
+#  that fallback a macOS consumer builds without the Homebrew and SDK
+#  linker flags, and a Windows one selects the MCP bridge that imports
+#  POSIX kill and does not link.
+#
+#  The other two are declared but not set. ADI_BUILD_PROFILE comes from
+#  config/adi2_config.gpr, which is how Alire reports whether adi2 is the
+#  crate being built or a dependency; setting it here would override that
+#  and pin every consumer to one profile. ADI_LIBRARY_TYPE already falls
+#  back to Alire's own LIBRARY_TYPE.
+[gpr-externals]
+ADI_PLATFORM = ["linux", "darwin", "windows"]
+ADI_BUILD_PROFILE = ["release", "validation", "development"]
+ADI_LIBRARY_TYPE = ["relocatable", "static", "static-pic"]
+
+[gpr-set-externals."case(os)"]
+linux = { ADI_PLATFORM = "linux" }
+macos = { ADI_PLATFORM = "darwin" }
+windows = { ADI_PLATFORM = "windows" }
+"..." = { ADI_PLATFORM = "linux" }
 
 [build-switches]
 "*".style_checks = "No"

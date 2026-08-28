@@ -1,0 +1,18 @@
+name = "adi_opengl_demo"
+description = "Drawing with OpenGL into an Adi texture view"
+version = "0.1.0-dev"
+
+authors = ["Aldo Nicolas Bruno"]
+maintainers = ["Aldo Nicolas Bruno <ovenpasta@pizzahack.eu>"]
+licenses = "Apache-2.0"
+tags = ["gui", "opengl", "adi", "sdl", "demo"]
+
+executables = ["gl_triangle"]
+project-files = ["gl_triangle.gpr"]
+
+[[depends-on]]
+adi2 = "~0.9.0"
+
+#  adi2 is not in the community index yet.
+[[pins]]
+adi2 = { path = "../.." }

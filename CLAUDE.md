@@ -159,6 +159,7 @@ Incremental build for examples: `tools/generate_example_bundles.sh`. Full refere
 - SDL3_ttf font sharing: each `TTF_Font` is at a specific size. Changing size invalidates all `TTF_Text` objects. Use separate instances per size.
 - Widget types defined outside the library must be declared at library level and registered through `Adi.Widget.Extension`: the store holds a widget until `Destroy` and dispatches through its tag, and `New_Widget` allocates through a library-level access type, so a type declared inside a subprogram fails the accessibility check.
 - `others` not allowed in delta aggregates: use `[for I in T => I = X]` pattern.
+- `height: 100%` becomes a **window** minimum, and inside `overflow-y: auto` it defeats scrolling. Use `align-items: stretch` and `flex-grow` instead. See `docs/layout_minimums.md`.
 
 ## CSS Quick Reference
 

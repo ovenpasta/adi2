@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Ada.Characters.Handling;
+with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 package body Adi.CSS_Styles is
@@ -21,16 +22,43 @@ package body Adi.CSS_Styles is
    -- Linear_Gradient
    -------------------------------------------------
 
+   --  A gradient is held by pointer, and a pointer is what equality on
+   --  the enclosing style compares. Two equal gradients must therefore
+   --  be one pointer, or a style carrying one is unequal to its own
+   --  copy: it interns twice, and a source handed its own configuration
+   --  again restyles every widget bound to it.
+   --
+   --  Scanned rather than hashed. A sheet has a handful of gradients,
+   --  and the angle and stop positions are floats, where equal values
+   --  need not share their bits.
+   package Gradient_Vectors is new Ada.Containers.Vectors
+     (Positive, Linear_Gradient_Ref);
+
+   Gradient_Store : Gradient_Vectors.Vector;
+
+   function Shared_Gradient (V : Linear_Gradient_Value)
+     return Linear_Gradient_Ref is
+   begin
+      for G of Gradient_Store loop
+         if G.all = V then
+            return G;
+         end if;
+      end loop;
+
+      Gradient_Store.Append (new Linear_Gradient_Value'(V));
+      return Gradient_Store.Last_Element;
+   end Shared_Gradient;
+
    function Linear_Gradient
      (Angle : Float; Stops : Gradient_Stop_Array; Count : Natural)
       return Background_Image_Value
    is
    begin
       return (Kind     => Linear_Gradient_Image,
-              Gradient => new Linear_Gradient_Value'
-                (Angle      => Angle,
-                 Stop_Count => Count,
-                 Stops      => Stops));
+              Gradient => Shared_Gradient
+                ((Angle      => Angle,
+                  Stop_Count => Count,
+                  Stops      => Stops)));
    end Linear_Gradient;
 
    -------------------------------------------------

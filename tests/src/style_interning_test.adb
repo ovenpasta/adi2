@@ -117,27 +117,39 @@ procedure Style_Interning_Test is
               "a part switched off stays switched off");
    end Test_Round_Trip;
 
-   --  A gradient is held by pointer and compares by identity, so two
-   --  equal ones built separately are not equal styles. Correctness may
-   --  not rest on whether they happen to share a handle.
-   procedure Test_Gradient_Round_Trips is
-      function Fade return Part_Style_Array is
+   --  A gradient is held by pointer, and a pointer is what equality on
+   --  the enclosing style compares, so a style carrying one is equal to
+   --  its own copy only if equal gradients are one pointer.
+   procedure Test_Gradients_Are_Shared is
+      function Fade (To : Color_Value) return Part_Style_Array is
         (Main_Styles
            ((Background_Image => Set_Bg_Image
                (Linear_Gradient
                   (90.0,
                    [1      => Gradient_Stop_Auto (C (Black)),
-                    2      => Gradient_Stop_Auto (C (White)),
+                    2      => Gradient_Stop_Auto (To),
                     others => <>],
                    2)),
              others => <>)));
 
-      Original : constant Part_Style_Array := Fade;
+      Before : constant Natural              := Interned_Styles;
+      First  : constant Interned_Part_Styles := Intern (Fade (C (White)));
+      Middle : constant Natural              := Interned_Styles;
+      Second : constant Interned_Part_Styles := Intern (Fade (C (White)));
    begin
-      Section ("a style held by pointer");
-      Assert (Expand (Intern (Original)) = Original,
-              "a gradient survives interning whether or not it dedupes");
-   end Test_Gradient_Round_Trips;
+      Section ("styles carrying a gradient");
+      Assert (Middle > Before, "a gradient style is stored");
+      Assert (Fade (C (White)) = Fade (C (White)),
+              "equal gradients make equal styles");
+      Assert (Fade (C (White)) /= Fade (RGB (1, 2, 3)),
+              "different gradients make different styles");
+      Assert (First = Second,
+              "two equal gradients built separately intern alike");
+      Assert (Interned_Styles = Middle,
+              "and the second stores nothing further");
+      Assert (Expand (First) = Fade (C (White)),
+              "a gradient survives interning");
+   end Test_Gradients_Are_Shared;
 
 begin
    Start_Suite ("Style Interning Test");
@@ -146,7 +158,7 @@ begin
    Test_Same_Table_From_Many_Sources;
    Test_Equal_Styles_Carrying_A_String;
    Test_Round_Trip;
-   Test_Gradient_Round_Trips;
+   Test_Gradients_Are_Shared;
 
    Finish;
 end Style_Interning_Test;

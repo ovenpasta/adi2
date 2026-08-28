@@ -170,6 +170,21 @@ depends on how a value was constructed. A property missing from
 `Set_Properties` costs a collision, which equality then settles; it
 cannot cost a wrong answer.
 
+### Gradients are shared
+
+`Background_Image` holds a gradient by `Linear_Gradient_Ref`, and a
+pointer is what equality on the enclosing style compares. `Linear_Gradient`
+therefore returns a shared pointer: it scans a store of gradient values
+and allocates only for one it has not seen. Without that, a style
+carrying a gradient is unequal to its own copy, so it interns twice and
+`Same_As_Applied` reports a source handed its own configuration again as
+changed — restyling every bound widget on every `Build`.
+
+The store is scanned rather than hashed. A sheet has a handful of
+gradients, and the angle and stop positions are floats, where equal
+values need not share their bits. Nothing writes through the pointer:
+the three `Render_Gradient_*` helpers take the value as `in`.
+
 ### Known gaps
 
 The store never evicts, and `Class_Entry` now interns when it is called
@@ -180,17 +195,10 @@ store already grew this way through `Set_Part_Styles`; registration is a
 new way to reach it.
 
 
-`Linear_Gradient_Ref` is an access type with no user-defined `"="`, and
-`Linear_Gradient` allocates on every call, so two equal gradients built
-separately are unequal styles and are stored twice. Correctness does not
-depend on it — `style_interning_test` pins that a gradient round-trips
-through interning either way — but a sheet heavy in gradients
-deduplicates less.
-
 ### Tests
 
 `tests/src/style_interning_test.adb` covers the entry size, the same
 table registered from many sources, equal styles carrying a string
 (which is what catches a byte-wise digest), the enabled/disabled
-round-trip, and the gradient case. `Adi.Widget.Testing.Interned_Styles`
+round-trip, and that equal gradients built separately make equal styles. `Adi.Widget.Testing.Interned_Styles`
 reports the store size.

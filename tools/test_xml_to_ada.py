@@ -2,9 +2,11 @@
 """Tests for xml_to_ada.py — focused on <dialog> root element support."""
 
 import os
+import pathlib
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import xml_to_ada
@@ -564,6 +566,57 @@ class TestDialogCodeGeneration(unittest.TestCase):
         self.assertIn("Adi.Widget.Dialog.Set_Button_Row_Style (D, Button_Row_Class_Part_Styles);", body)
         self.assertIn("Adi.Widget.Dialog.Set_Button_Style (D, Dialog_Btn_Class_Part_Styles);", body)
         self.assertIn("Adi.Widget.Dialog.Set_Primary_Button_Style (D, Dialog_Btn_Primary_Class_Part_Styles);", body)
+
+
+class TestGeneratedFileNames(unittest.TestCase):
+    """A dotted package name maps to GNAT's hyphenated file name."""
+
+    def _run(self, package_name):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <window title="Demo" width="200px" height="100px">
+    <box id="Root"/>
+  </window>
+</adi>
+"""
+        with tempfile.TemporaryDirectory() as out_dir:
+            xml_path = os.path.join(out_dir, "demo.xml")
+            with open(xml_path, "w", encoding="utf-8") as f:
+                f.write(xml)
+            argv = ["xml_to_ada.py", xml_path,
+                    "--output-dir", out_dir,
+                    "--package-name", package_name]
+            with mock.patch.object(sys, "argv", argv):
+                xml_to_ada.main()
+            return sorted(n for n in os.listdir(out_dir)
+                          if n.endswith((".ads", ".adb")))
+
+    def test_flat_package_name_is_lowercased(self):
+        self.assertEqual(self._run("Demo_UI"), ["demo_ui.adb", "demo_ui.ads"])
+
+    def test_dotted_package_name_becomes_hyphenated(self):
+        self.assertEqual(
+            self._run("Demo.App.Ui.Panel"),
+            ["demo-app-ui-panel.adb", "demo-app-ui-panel.ads"])
+
+    def test_the_package_declaration_keeps_its_dots(self):
+        with tempfile.TemporaryDirectory() as out_dir:
+            xml_path = os.path.join(out_dir, "demo.xml")
+            with open(xml_path, "w", encoding="utf-8") as f:
+                f.write("""<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <window title="Demo" width="200px" height="100px">
+    <box id="Root"/>
+  </window>
+</adi>
+""")
+            argv = ["xml_to_ada.py", xml_path,
+                    "--output-dir", out_dir,
+                    "--package-name", "Demo.App.Ui.Panel"]
+            with mock.patch.object(sys, "argv", argv):
+                xml_to_ada.main()
+            spec = pathlib.Path(out_dir, "demo-app-ui-panel.ads").read_text()
+        self.assertIn("package Demo.App.Ui.Panel is", spec)
 
 
 class TestExistingFunctionality(unittest.TestCase):

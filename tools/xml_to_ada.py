@@ -2240,10 +2240,13 @@ def main():
     except (ET.ParseError, ValueError) as e:
         print(f"Error parsing XML: {e}", file=sys.stderr)
         sys.exit(1)
+    except css_to_ada.StyleRuleLimitError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
     os.makedirs(args.output_dir, exist_ok=True)
 
-    file_base = args.package_name.lower()
+    file_base = args.package_name.lower().replace('.', '-')
     spec_path = os.path.join(args.output_dir, f"{file_base}.ads")
     body_path = os.path.join(args.output_dir, f"{file_base}.adb")
 

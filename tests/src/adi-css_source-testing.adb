@@ -16,6 +16,15 @@ package body Adi.CSS_Source.Testing is
    function Static_Entry_Bytes return Natural is
      (Static_Style_Entry'Max_Size_In_Storage_Elements);
 
+   function Bindings_Held (Source : Style_Source) return Natural is
+     (Adi.CSS_Source.Binding_Count (Source));
+
+   function Effective_Held (Source : Style_Source) return Natural is
+     (Adi.CSS_Source.Effective_Count (Source));
+
+   function Live_Sources return Natural is
+     (Adi.CSS_Source.Live_Impl_Count);
+
    procedure Reset_Counts is
    begin
       Visited_Bindings   := 0;

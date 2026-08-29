@@ -1104,6 +1104,8 @@ package body Adi.Window is
        Append ([1 => W.Stats_Layout_Reason]);
        Append ("  S:");
        Append_Nat (W.Stats_Style_Hits, 4);
+       Append ("+");
+       Append_Nat (W.Stats_Style_Memo_Hits, 4);
        Append ("/");
        Append_Nat (W.Stats_Style_Resolves, 4);
        Append ("  LC:");
@@ -1238,12 +1240,6 @@ package body Adi.Window is
           end if;
           W.Stats_Layout_Us := Natural
             (To_Duration (Now - Stage_Start) * 1_000_000.0);
-          W.Stats_Style_Resolves := Adi.Widget.Get_Perf_Style_Resolves;
-          W.Stats_Style_Hits     := Adi.Widget.Get_Perf_Style_Hits;
-          W.Stats_Layout_Calls   := Adi.Widget.Get_Perf_Layout_Calls;
-          W.Stats_Layout_Skips   := Adi.Widget.Get_Perf_Layout_Skips;
-          W.Stats_Pref_Calls     := Adi.Widget.Get_Perf_Pref_Calls;
-          W.Stats_Pref_Hits      := Adi.Widget.Get_Perf_Pref_Hits;
 
           --  Draw all widget trees
           Stage_Start := Now;
@@ -1262,6 +1258,17 @@ package body Adi.Window is
           end loop;
           W.Stats_Draw_Us := Natural
             (To_Duration (Now - Stage_Start) * 1_000_000.0);
+
+          --  After the draw, so the counters cover the whole frame the
+          --  reset above opened: drawing resolves styles too.
+          W.Stats_Style_Resolves  := Adi.Widget.Get_Perf_Style_Resolves;
+          W.Stats_Style_Hits      := Adi.Widget.Get_Perf_Style_Hits;
+          W.Stats_Style_Memo_Hits := Adi.Widget.Get_Perf_Style_Memo_Hits;
+          W.Stats_Style_Computes  := Adi.Widget.Get_Perf_Style_Computes;
+          W.Stats_Layout_Calls    := Adi.Widget.Get_Perf_Layout_Calls;
+          W.Stats_Layout_Skips    := Adi.Widget.Get_Perf_Layout_Skips;
+          W.Stats_Pref_Calls      := Adi.Widget.Get_Perf_Pref_Calls;
+          W.Stats_Pref_Hits       := Adi.Widget.Get_Perf_Pref_Hits;
 
           --  Compute total render time (before present)
           W.Stats_Render_Us := Natural
@@ -3080,14 +3087,31 @@ function Get_Size (W : in out Window) return Size_2D is
 
     function Get_Frame_Stats (W : Window) return Frame_Stats is
     begin
-       return (Frame_No     => W.Stats_Frame_No,
-               Render_Us    => W.Stats_Render_Us,
-               Update_Us    => W.Stats_Update_Us,
-               Layout_Us    => W.Stats_Layout_Us,
-               Draw_Us      => W.Stats_Draw_Us,
-               Present_Us   => W.Stats_Present_Us,
-               Last_DT      => W.Stats_Last_DT,
-               Layout_Count => W.Stats_Layout_Count);
+       return (Frame_No        => W.Stats_Frame_No,
+               Render_Us       => W.Stats_Render_Us,
+               Update_Us       => W.Stats_Update_Us,
+               Layout_Us       => W.Stats_Layout_Us,
+               Draw_Us         => W.Stats_Draw_Us,
+               Present_Us      => W.Stats_Present_Us,
+               Last_DT         => W.Stats_Last_DT,
+               Layout_Count    => W.Stats_Layout_Count,
+               Style_Resolves  => W.Stats_Style_Resolves,
+               Style_Hits      => W.Stats_Style_Hits,
+               Style_Memo_Hits => W.Stats_Style_Memo_Hits,
+               Style_Computes  => W.Stats_Style_Computes,
+               Layout_Calls    => W.Stats_Layout_Calls,
+               Layout_Skips    => W.Stats_Layout_Skips,
+               Pref_Calls      => W.Stats_Pref_Calls,
+               Pref_Hits       => W.Stats_Pref_Hits);
+    end Get_Frame_Stats;
+
+    function Get_Frame_Stats (H : Window_Handle) return Frame_Stats is
+       Ptr : constant Window_Access := Live (H);
+    begin
+       if Ptr = null then
+          return (others => <>);
+       end if;
+       return Get_Frame_Stats (Ptr.all);
     end Get_Frame_Stats;
 
    ---------------------------------------------------------------------------

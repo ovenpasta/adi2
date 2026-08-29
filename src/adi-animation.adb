@@ -173,6 +173,35 @@ package body Adi.Animation is
    --  Interpolate
    ---------------------------------------------------------------------------
 
+   --  Properties with no meaningful value in between: below the
+   --  midpoint they read from the start style, above it from the
+   --  target. Every literal is named, so a new property has to be
+   --  decided here.
+   Snaps_At_Midpoint : constant CSS_Property_Set :=
+     [Prop_Border_Style | Prop_Font_Weight | Prop_Font_Style |
+      Prop_Text_Align | Prop_Vertical_Align | Prop_Text_Decoration |
+      Prop_List_Style_Type | Prop_List_Style_Image |
+      Prop_List_Style_Position | Prop_White_Space | Prop_Text_Overflow |
+      Prop_Text_Wrap_Mode | Prop_Display | Prop_Position |
+      Prop_Overflow_X | Prop_Overflow_Y | Prop_Visibility | Prop_Cursor |
+      Prop_Object_Fit | Prop_Object_Position | Prop_Flex_Direction |
+      Prop_Flex_Wrap | Prop_Justify_Content | Prop_Align_Items |
+      Prop_Align_Content | Prop_Align_Self
+        => True,
+      Prop_Color | Prop_Background_Color | Prop_Background_Image |
+      Prop_Border_Radius | Prop_Border_Width | Prop_Border_Color |
+      Prop_Outline_Width | Prop_Outline_Color | Prop_Outline_Style |
+      Prop_Outline_Offset | Prop_Padding | Prop_Margin | Prop_Width |
+      Prop_Height | Prop_Min_Width | Prop_Max_Width | Prop_Min_Height |
+      Prop_Max_Height | Prop_Font_Family | Prop_Font_Size |
+      Prop_Line_Height | Prop_Overflow | Prop_Top | Prop_Right |
+      Prop_Bottom | Prop_Left | Prop_Opacity | Prop_Box_Shadow | Prop_Gap |
+      Prop_Grid_Columns | Prop_Grid_Rows | Prop_Flex_Grow |
+      Prop_Flex_Shrink | Prop_Flex_Basis | Prop_Order | Prop_Grid_Column |
+      Prop_Grid_Row | Prop_Grid_Column_Span | Prop_Grid_Row_Span |
+      Prop_Transition
+        => False];
+
    function Interpolate (From, To : Resolved_Style;
                          T        : Float) return Resolved_Style is
       Result : Resolved_Style := To;  --  Start with target for non-animatable fields
@@ -233,34 +262,12 @@ package body Adi.Animation is
          Result.Font_Size := Lerp_Length (From.Font_Size, To.Font_Size, T);
       end if;
 
-      --  Non-animatable enums always snap at T=0.5
       if T < 0.5 then
-         Result.Border_Style    := From.Border_Style;
-         Result.Display         := From.Display;
-         Result.Position        := From.Position;
-         Result.Visibility      := From.Visibility;
-         Result.Cursor          := From.Cursor;
-         Result.Overflow_X      := From.Overflow_X;
-         Result.Overflow_Y      := From.Overflow_Y;
-         Result.Flex_Direction   := From.Flex_Direction;
-         Result.Flex_Wrap        := From.Flex_Wrap;
-         Result.Justify_Content  := From.Justify_Content;
-         Result.Align_Items      := From.Align_Items;
-         Result.Align_Content    := From.Align_Content;
-         Result.Align_Self       := From.Align_Self;
-         Result.Font_Weight      := From.Font_Weight;
-         Result.Font_Style       := From.Font_Style;
-         Result.Text_Align       := From.Text_Align;
-         Result.Vertical_Align   := From.Vertical_Align;
-         Result.Text_Decoration  := From.Text_Decoration;
-         Result.List_Style_Type  := From.List_Style_Type;
-         Result.List_Style_Image := From.List_Style_Image;
-         Result.List_Style_Position := From.List_Style_Position;
-         Result.White_Space      := From.White_Space;
-         Result.Text_Overflow    := From.Text_Overflow;
-         Result.Text_Wrap_Mode   := From.Text_Wrap_Mode;
-         Result.Object_Fit       := From.Object_Fit;
-         Result.Object_Position  := From.Object_Position;
+         for Prop in CSS_Property loop
+            if Snaps_At_Midpoint (Prop) then
+               Copy_Property (Prop, From, Result);
+            end if;
+         end loop;
       end if;
 
       --  Keep transition spec from target

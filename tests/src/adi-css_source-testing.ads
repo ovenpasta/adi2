@@ -26,6 +26,16 @@ package Adi.CSS_Source.Testing is
    --  figure an application pays several times over.
    function Static_Entry_Bytes return Natural;
 
+   --  Bindings a source holds: one per widget bound, however often the
+   --  application binds it.
+   function Bindings_Held (Source : Style_Source) return Natural;
+
+   --  Widgets the source holds a current binding for.
+   function Effective_Held (Source : Style_Source) return Natural;
+
+   --  Source impls allocated and not yet destroyed.
+   function Live_Sources return Natural;
+
    procedure Reset_Counts;
 
 end Adi.CSS_Source.Testing;

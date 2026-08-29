@@ -6,14 +6,18 @@ pragma Ada_2022;
 package body Adi.Widget.Window_Bridge is
 
    procedure Install_Destroy_Notice (Notice : not null Destroy_Notice) is
-   begin
-      if Adi.Widget.Destroy_Notice_Slot /= null then
-         raise Program_Error with
-           "Widget.Window_Bridge: a destroy notice is already installed";
-      end if;
-
-      Adi.Widget.Destroy_Notice_Slot :=
+      P : constant Adi.Widget.Destroy_Notice_Proc :=
         Adi.Widget.Destroy_Notice_Proc (Notice);
+   begin
+      --  Installing the same notice twice would call it twice per
+      --  widget, which a subscriber counting what it prunes would feel.
+      for Installed of Adi.Widget.Destroy_Notices loop
+         if Installed = P then
+            return;
+         end if;
+      end loop;
+
+      Adi.Widget.Destroy_Notices.Append (P);
    end Install_Destroy_Notice;
 
 end Adi.Widget.Window_Bridge;

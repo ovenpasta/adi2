@@ -220,6 +220,60 @@ class TestSendCommand(unittest.TestCase):
             self.assertEqual(result["status"], "ok")
             self.assertEqual(result["frame_no"], 42)
 
+    def test_perf_stats_keeps_every_payload_key(self):
+        """perf_stats surfaces what the app sent, minus the envelope.
+
+        The payload carries the per-frame counters as well as the
+        timings, and the three style-cache layers only add up if all
+        four keys survive the trip.
+        """
+        import threading
+
+        payload = {
+            "frame_no": 42, "render_us": 1200, "update_us": 300,
+            "layout_us": 400, "draw_us": 500, "present_us": 60,
+            "last_dt_ms": 16.6, "layout_count": 3, "fps": 60.0,
+            "style_resolves": 100, "style_hits": 70,
+            "style_memo_hits": 20, "style_computes": 10,
+            "layout_calls": 31, "layout_skips": 32,
+            "pref_calls": 33, "pref_hits": 34,
+            "texture_cache": {"budget": 64, "bytes": 8},
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pid = 99995
+            parent = Path(tmpdir) / ".adi_mcp"
+            parent.mkdir()
+            mcp_dir = parent / str(pid)
+            mcp_dir.mkdir()
+            (mcp_dir / "ready").write_text(str(pid))
+
+            def write_response():
+                time.sleep(0.1)
+                for f in mcp_dir.glob("cmd_*.json"):
+                    data = json.loads(f.read_text())
+                    req_id = data["req_id"]
+                    f.unlink()
+                    resp = {"status": "ok", "req_id": req_id, **payload}
+                    (mcp_dir / f"resp_{req_id}.json").write_text(
+                        json.dumps(resp))
+                    break
+
+            with patch.object(adi_mcp_server, 'MCP_DIR_PARENT', parent):
+                with patch.object(adi_mcp_server, '_target_pid', pid):
+                    t = threading.Thread(target=write_response)
+                    t.start()
+                    stats = json.loads(adi_mcp_server.perf_stats())
+                    t.join()
+
+        self.assertEqual(stats, payload)
+        self.assertNotIn("status", stats)
+        self.assertNotIn("req_id", stats)
+        self.assertEqual(
+            stats["style_hits"] + stats["style_memo_hits"]
+            + stats["style_computes"],
+            stats["style_resolves"])
+
     def test_request_id_uniqueness(self):
         """Each command gets a unique request ID."""
         ids = set()

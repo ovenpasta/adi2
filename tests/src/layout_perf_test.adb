@@ -8,6 +8,9 @@ with Adi.Widget.Box;    use type Adi.Widget.Box.Box_Handle;
 with Adi.Widget.Label;  use type Adi.Widget.Label.Label_Handle;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
+with Adi.Widget.Testing;
+with Ada.Containers;    use type Ada.Containers.Hash_Type;
+with Interfaces;        use type Interfaces.Unsigned_16;
 
 --  Tests for layout performance optimisations:
 --    1. Resolved-style cache (Phase 1)
@@ -136,9 +139,214 @@ procedure Layout_Perf_Test is
                     "second resolve is a hit");
             Assert (S1 = S2,
                     "cached result equals original");
+            Assert (Get_Perf_Style_Resolves = 2,
+                    "two resolve calls counted");
+            Assert (Get_Perf_Style_Resolves
+                      = Get_Perf_Style_Hits
+                        + Get_Perf_Style_Memo_Hits
+                        + Get_Perf_Style_Computes,
+                    "calls split exactly into hit, memo hit and compute");
          end;
       end;
    end Test_Style_Cache_Hits;
+
+   ---------------------------------------------------------------------------
+   --  Test: the three cache layers are counted apart.  A second widget
+   --  carrying the same style resolves the same key, so the per-widget
+   --  array misses and the global memo answers — which must count as a
+   --  memo hit and not as a full resolve.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Memo_Hits_Counted_Apart is
+      --  A colour no other test uses, so the memo cannot already hold
+      --  this key when the first resolve runs.
+      Shared : constant Widget_Style :=
+        From ((Color => Set (RGBA (7, 11, 13, 1.0)),
+               others => <>)).Build;
+      W1 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("memo-a");
+      W2 : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("memo-b");
+   begin
+      Put_Line ("Test: memo hits counted apart from full resolves");
+
+      Set_Part_Style (+W1, Main_Part, Shared);
+      Set_Part_Style (+W2, Main_Part, Shared);
+
+      Reset_Perf_Counters;
+
+      --  First widget: per-widget miss, memo miss, full resolve.
+      declare
+         S1 : constant Resolved_Style :=
+           Get_Resolved_Part_Style (+W1, Main_Part);
+      begin
+         Assert (Get_Perf_Style_Resolves = 1, "first resolve counted");
+         Assert (Get_Perf_Style_Hits = 0, "first resolve is not a cache hit");
+         Assert (Get_Perf_Style_Memo_Hits = 0,
+                 "first resolve is not a memo hit");
+         Assert (Get_Perf_Style_Computes = 1,
+                 "first resolve computes the cascade");
+
+         --  Second widget, same style: per-widget miss, memo hit.
+         declare
+            S2 : constant Resolved_Style :=
+              Get_Resolved_Part_Style (+W2, Main_Part);
+         begin
+            Assert (S1 = S2, "both widgets resolve to the same style");
+            Assert (Get_Perf_Style_Resolves = 2, "second resolve counted");
+            Assert (Get_Perf_Style_Hits = 0,
+                    "second widget is not a per-widget cache hit");
+            Assert (Get_Perf_Style_Memo_Hits = 1,
+                    "second widget is a memo hit");
+            Assert (Get_Perf_Style_Computes = 1,
+                    "second widget does not recompute the cascade");
+         end;
+
+         --  Third call, back on the first widget: per-widget hit, and
+         --  neither of the two lower layers moves.
+         declare
+            S3 : constant Resolved_Style :=
+              Get_Resolved_Part_Style (+W1, Main_Part);
+         begin
+            Assert (S1 = S3, "per-widget cache returns the same style");
+            Assert (Get_Perf_Style_Hits = 1, "third call is a per-widget hit");
+            Assert (Get_Perf_Style_Memo_Hits = 1, "memo hits unchanged");
+            Assert (Get_Perf_Style_Computes = 1, "computes unchanged");
+         end;
+      end;
+   end Test_Memo_Hits_Counted_Apart;
+
+   ---------------------------------------------------------------------------
+   --  Test: deciding what a state change costs goes through the same memo
+   --  as reading the style, so a transition the widget has made before
+   --  resolves from it rather than running the cascade again.
+   ---------------------------------------------------------------------------
+
+   procedure Test_State_Change_Uses_The_Memo is
+      Hovered : constant Style_Rules :=
+        (Background_Color => Set_Bg (RGB (31, 41, 55)),
+         others           => <>);
+      WS : constant Widget_Style :=
+        From ((Background_Color => Set_Bg (RGB (55, 65, 81)),
+               others           => <>))
+          .On_Hover (Hovered)
+          .Build;
+      W : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("memo-states");
+   begin
+      Put_Line ("Test: a state change resolves through the memo");
+
+      Set_Geometry (+W, (0.0, 0.0, 200.0, 40.0));
+      Set_Part_Style (+W, Main_Part, WS);
+
+      --  One cycle to put both state sets in the memo.
+      Set_State (+W, State_Hovered, True);
+      Set_State (+W, State_Hovered, False);
+
+      Reset_Perf_Counters;
+
+      --  The same cycle again: every resolve it needs is already there.
+      Set_State (+W, State_Hovered, True);
+      Set_State (+W, State_Hovered, False);
+
+      Assert (Get_Perf_Style_Resolves > 0,
+              "the state change resolves styles under the counters");
+      Assert (Get_Perf_Style_Computes = 0,
+              "and runs the cascade for none of them");
+      Assert (Get_Perf_Style_Memo_Hits > 0,
+              "because the memo answers");
+      Assert (Get_Perf_Style_Resolves
+                = Get_Perf_Style_Hits + Get_Perf_Style_Memo_Hits
+                  + Get_Perf_Style_Computes,
+              "and the three layers still partition the calls");
+   end Test_State_Change_Uses_The_Memo;
+
+   ---------------------------------------------------------------------------
+   --  Test: the same, for a part state, which takes the other path.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Part_State_Change_Uses_The_Memo is
+      Selected : constant Style_Rules :=
+        (Color  => Set (RGB (250, 204, 21)),
+         others => <>);
+      WS : constant Widget_Style :=
+        From ((Color => Set (RGB (203, 213, 225)), others => <>))
+          .On (When_Part_State (State_Selected), Selected)
+          .Build;
+      W : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("memo-part-states");
+   begin
+      Put_Line ("Test: a part-state change resolves through the memo");
+
+      Set_Geometry (+W, (0.0, 0.0, 200.0, 40.0));
+      Set_Part_Style (+W, Label_Part, WS);
+
+      Set_Part_State (+W, Label_Part, State_Selected, True);
+      Set_Part_State (+W, Label_Part, State_Selected, False);
+
+      Reset_Perf_Counters;
+
+      Set_Part_State (+W, Label_Part, State_Selected, True);
+      Set_Part_State (+W, Label_Part, State_Selected, False);
+
+      Assert (Get_Perf_Style_Resolves > 0,
+              "the part-state change resolves under the counters");
+      Assert (Get_Perf_Style_Computes = 0,
+              "and runs the cascade for none of them");
+      Assert (Get_Perf_Style_Memo_Hits > 0,
+              "because the memo answers");
+   end Test_Part_State_Change_Uses_The_Memo;
+
+   ---------------------------------------------------------------------------
+   --  Test: every field of a memo key reaches the key hash, and a style
+   --  handle past 53,020 hashes without overflowing.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Resolved_Cache_Hash is
+      function Hash (Part_Handle, Main_Handle : Natural;
+                     Widget_Bits, Part_Bits, Main_Part_Bits :
+                       Interfaces.Unsigned_16)
+                     return Ada.Containers.Hash_Type
+      is (Adi.Widget.Testing.Resolved_Cache_Hash
+            (Part_Handle, Main_Handle,
+             Widget_Bits, Part_Bits, Main_Part_Bits, 0));
+
+      Base : constant Ada.Containers.Hash_Type := Hash (1, 2, 0, 0, 0);
+   begin
+      Put_Line ("Test: resolved-style memo key hash");
+
+      for Bit in 0 .. 15 loop
+         declare
+            One : constant Interfaces.Unsigned_16 :=
+              Interfaces.Shift_Left (Interfaces.Unsigned_16 (1), Bit);
+         begin
+            Assert (Hash (1, 2, One, 0, 0) /= Base,
+                    "widget-state bit" & Bit'Image & " reaches the hash");
+            Assert (Hash (1, 2, 0, One, 0) /= Base,
+                    "part-state bit" & Bit'Image & " reaches the hash");
+            Assert (Hash (1, 2, 0, 0, One) /= Base,
+                    "main-part-state bit" & Bit'Image & " reaches the hash");
+         end;
+      end loop;
+
+      declare
+         Overflowed : Boolean := False;
+         H1, H2     : Ada.Containers.Hash_Type := 0;
+      begin
+         begin
+            H1 := Hash (100_000, 0, 0, 0, 0);
+            H2 := Hash (100_001, 0, 0, 0, 0);
+         exception
+            when Constraint_Error =>
+               Overflowed := True;
+         end;
+
+         Assert (not Overflowed,
+                 "a six-figure style handle hashes without overflow");
+         Assert (H1 /= H2,
+                 "six-figure style handles hash apart");
+      end;
+   end Test_Resolved_Cache_Hash;
 
    ---------------------------------------------------------------------------
    --  Test: Style cache invalidates when widget state changes.
@@ -403,6 +611,10 @@ begin
    Test_Layout_Tree_First_Frame;
    Test_Epoch_Dedup;
    Test_Style_Cache_Hits;
+   Test_Memo_Hits_Counted_Apart;
+   Test_Resolved_Cache_Hash;
+   Test_State_Change_Uses_The_Memo;
+   Test_Part_State_Change_Uses_The_Memo;
    Test_Style_Cache_Invalidation;
    Test_Subpart_Cache_Invalidation;
    Test_Multiple_Layout_Passes;

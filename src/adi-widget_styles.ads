@@ -119,9 +119,18 @@ package Adi.Widget_Styles is
 
    Empty_Widget_Style : constant Widget_Style := (others => <>);
 
-   --  Add a rule to widget style
-   procedure Add_Rule (WS : in out Widget_Style; Rule : State_Rule)
-     with Pre => WS.Rule_Count < Max_Style_Rules;
+   --  A style has room for Max_Style_Rules state rules and no more.
+   Too_Many_Style_Rules : exception;
+
+   --  Add a rule to widget style. Past the cap this raises
+   --  Too_Many_Style_Rules, naming the state selector that did not fit.
+   procedure Add_Rule (WS : in out Widget_Style; Rule : State_Rule);
+
+   --  Add a rule where the caller has nowhere to report a failure to:
+   --  past the cap the rule is dropped and reported through Adi.Log,
+   --  and Added comes back False.
+   procedure Try_Add_Rule
+     (WS : in out Widget_Style; Rule : State_Rule; Added : out Boolean);
 
    --  Equal styles hash equal; unequal ones may collide. Keyed only on
    --  discriminants and counts, never on a string, float or access
@@ -225,5 +234,9 @@ private
    type Style_Builder is tagged record
       WS : Widget_Style;
    end record;
+
+   --  Instrumentation the tests need and applications do not: rules
+   --  Try_Add_Rule has dropped, over the life of the process.
+   Dropped_Rule_Count : Natural := 0;
 
 end Adi.Widget_Styles;

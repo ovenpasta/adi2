@@ -542,6 +542,16 @@ class WidgetStyleGroup:
     parts: dict[str, PartStyleGroup] = field(default_factory=dict)
 
 
+#  Adi.Widget_Styles.Max_Style_Rules in src/adi-widget_styles.ads. A
+#  Widget_Style holds that many state rules; Add_Rule raises past it, so
+#  a longer .On chain would fail wherever the generated style is built.
+MAX_STYLE_RULES = 16
+
+
+class StyleRuleLimitError(Exception):
+    """A selector carries more state rules than a Widget_Style holds."""
+
+
 def parse_length(value: str) -> Optional[ParsedLength]:
     """Parse a CSS length value like '10px', '1.5em', '50%'"""
     value = value.strip().lower()
@@ -2266,7 +2276,25 @@ def group_rules_by_widget(rules: list[ParsedRule]) -> dict[str, WidgetStyleGroup
             else:
                 merge_css_properties(existing_rule.properties, rule.properties)
 
+    assert_state_rule_limit(groups)
     return groups
+
+
+def assert_state_rule_limit(groups: dict[str, WidgetStyleGroup]) -> None:
+    """Refuse a selector whose state rules would overflow a Widget_Style."""
+    for group in groups.values():
+        for part_kind, part_group in sorted(group.parts.items()):
+            count = len(part_group.state_rules)
+            if count > MAX_STYLE_RULES:
+                part = (
+                    "" if part_kind == "Main_Part"
+                    else f"::{part_label(part_kind).lower()}"
+                )
+                raise StyleRuleLimitError(
+                    f"{group.selector_type} '{group.name}'{part} has "
+                    f"{count} state rules, more than the {MAX_STYLE_RULES} "
+                    f"Adi.Widget_Styles.Max_Style_Rules allows"
+                )
 
 
 def to_ada_identifier(name: str) -> str:
@@ -3974,7 +4002,11 @@ def main():
     print(f"Parsed {len(rules)} CSS rules")
     
     # Group by widget
-    groups = group_rules_by_widget(rules)
+    try:
+        groups = group_rules_by_widget(rules)
+    except StyleRuleLimitError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
     print(
         f"Found {len(groups)} selectors: "
         + ", ".join([f"{g.selector_type}:{g.name}" for g in groups.values()])

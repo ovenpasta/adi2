@@ -26,6 +26,7 @@ with Adi.Widget.Dialog;
 with Adi.Widget.Stack;
 with Adi.Widget.List_Box;
 with Adi.SDL.Events;
+with Adi.Widget.Window_Bridge;
 with Test_Extension_Widgets;
 
 procedure Widget_Handle_Test is
@@ -1899,6 +1900,60 @@ procedure Widget_Handle_Test is
    end Arm_Reentrant;
 
    --  Update (Widget_Handle) is a Wrap_CW_Proc instantiation.
+   ---------------------------------------------------------------------------
+   --  A destroy notice reaches its subscriber for the whole subtree, and
+   --  never during library finalization -- where the subscriber itself
+   --  may already have been torn down.
+   ---------------------------------------------------------------------------
+
+   Destroy_Notices : Natural := 0;
+
+   procedure Count_Destroy (H : Widget_Handle) is
+      pragma Unreferenced (H);
+   begin
+      Destroy_Notices := Destroy_Notices + 1;
+   end Count_Destroy;
+
+   procedure Test_Destroy_Notice_Scope is
+      Parent : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Child  : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("leaf");
+      H      : Widget_Handle;
+   begin
+      Put_Line ("-- destroy notices: whole subtree, never while finalizing --");
+
+      Adi.Widget.Window_Bridge.Install_Destroy_Notice
+        (Count_Destroy'Unrestricted_Access);
+
+      Add_Child (+Parent, +Child);
+      Destroy_Notices := 0;
+      H := +Parent;
+      Destroy (H);
+
+      Test_Support.Assert (Destroy_Notices = 2,
+                           "a destroy notifies for the widget and its child");
+
+      declare
+         Late_Parent : constant Adi.Widget.Box.Box_Handle :=
+           Adi.Widget.Box.Create_Handle;
+         Late_Child  : constant Adi.Widget.Label.Label_Handle :=
+           Adi.Widget.Label.Create_Handle ("late");
+         Late        : Widget_Handle;
+      begin
+         Add_Child (+Late_Parent, +Late_Child);
+         Destroy_Notices := 0;
+
+         Begin_Library_Finalization;
+         Late := +Late_Parent;
+         Destroy (Late);
+         End_Library_Finalization;
+
+         Test_Support.Assert (Destroy_Notices = 0,
+                              "and none at all during library finalization");
+      end;
+   end Test_Destroy_Notice_Scope;
+
    procedure Test_Update_Destroys_Own_Widget is
       use Test_Extension_Widgets;
       H    : constant Reentrants.Handle := Reentrants.New_Widget;
@@ -2101,6 +2156,7 @@ begin
    Test_Update_Destroys_Own_Widget;
    Test_Min_Size_Destroys_Own_Widget;
    Test_Preferred_Size_Destroys_Own_Widget;
+   Test_Destroy_Notice_Scope;
 
    New_Line;
    Test_Support.Finish;

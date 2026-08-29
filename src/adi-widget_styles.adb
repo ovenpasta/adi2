@@ -3,6 +3,10 @@
 
 pragma Ada_2022;
 
+with Ada.Characters.Handling;
+with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
+with Adi.Log;
+
 package body Adi.Widget_Styles is
 
    ----------
@@ -106,8 +110,58 @@ package body Adi.Widget_Styles is
       return True;
    end Same_Style;
 
+   --  How a state selector reads in a diagnostic.
+   function Selector_Image (Selector : State_Selector) return String;
+
+   function Selector_Image (Selector : State_Selector) return String is
+      Result : Unbounded_String;
+
+      function Name (S : Widget_State) return String is
+         Prefix : constant String := "state_";
+         Image  : constant String :=
+           Ada.Characters.Handling.To_Lower (Widget_State'Image (S));
+      begin
+         if Image'Length > Prefix'Length
+           and then Image (Image'First .. Image'First + Prefix'Length - 1)
+                      = Prefix
+         then
+            return Image (Image'First + Prefix'Length .. Image'Last);
+         end if;
+         return Image;
+      end Name;
+
+      procedure Append_States (Required, Excluded : Widget_States;
+                               Prefix             : String) is
+      begin
+         for S in Widget_State loop
+            if Required (S) then
+               Append (Result, Prefix & ":" & Name (S));
+            end if;
+            if Excluded (S) then
+               Append (Result, Prefix & ":not(" & Name (S) & ")");
+            end if;
+         end loop;
+      end Append_States;
+
+   begin
+      Append_States (Selector.Widget_Required, Selector.Widget_Excluded, "");
+      Append_States (Selector.Part_Required, Selector.Part_Excluded, "::part");
+
+      if Length (Result) = 0 then
+         return "any state";
+      end if;
+
+      return To_String (Result);
+   end Selector_Image;
+
    procedure Add_Rule (WS : in out Widget_Style; Rule : State_Rule) is
    begin
+      if WS.Rule_Count >= Max_Style_Rules then
+         raise Too_Many_Style_Rules with
+           "style already holds" & Max_Style_Rules'Image
+           & " state rules, no room for " & Selector_Image (Rule.Selector);
+      end if;
+
       WS.Rule_Count := WS.Rule_Count + 1;
       WS.Rules (WS.Rule_Count) := Rule;
       --  Accumulate state relevance masks for fast-reject
@@ -124,6 +178,21 @@ package body Adi.Widget_Styles is
          end if;
       end loop;
    end Add_Rule;
+
+   procedure Try_Add_Rule
+     (WS : in out Widget_Style; Rule : State_Rule; Added : out Boolean) is
+   begin
+      Added := WS.Rule_Count < Max_Style_Rules;
+
+      if Added then
+         Add_Rule (WS, Rule);
+      else
+         Dropped_Rule_Count := Dropped_Rule_Count + 1;
+         Adi.Log.Error
+           ("style rule dropped: already at" & Max_Style_Rules'Image
+            & " state rules, no room for " & Selector_Image (Rule.Selector));
+      end if;
+   end Try_Add_Rule;
 
    function Compute_Style (WS : Widget_Style;
                            Active_Widget : Widget_States;

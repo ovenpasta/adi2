@@ -349,7 +349,7 @@ Render scheduling note: relayout runs only when layout/geometry is dirty (`Mark_
 
 **State-change dirty classification** (`Set_State` / `Set_Part_State`): when a state flips, the runtime compares the old and new resolved styles via `Widget_State_Style_Effect` / `Part_State_Style_Effect`, which return `Diff_None` / `Diff_Render_Only` / `Diff_Layout_Affecting`. The result picks the cheapest valid invalidation: `Diff_None` → no work; `Diff_Render_Only` → `Mark_Render_Dirty`; `Diff_Layout_Affecting` → `Mark_Dirty`. `Layout_Affecting_Diff` covers the layout surface (border, padding, margin, width/height, min/max, font, line-height, text wrap, white-space, display, position, inset, overflow, flex-*, grid-*, gap). Without this classification, a `:selected` rule that toggles only `display: none ↔ block` (a layout-affecting change) would only mark render-dirty and the bullet's new size wouldn't be assigned until the next genuine layout invalidation — the cause of the "first reveal step shows nothing" bug we hit on the workshop deck.
 
-**Debug stats overlay**: `Set_Debug_Stats(True)` enables a 2-line HUD showing frame number, FPS, per-stage timing (Update/Layout/Draw/Present in microseconds), layout count, layout trigger reason, style cache hit ratio (`S:hits/total`), layout call/skip counts (`LC:calls+skips`), and preferred-size cache ratio (`P:hits/total`). Renders only when the scene is already being redrawn — does not force extra frames.
+**Debug stats overlay**: `Set_Debug_Stats(True)` enables a 2-line HUD showing frame number, FPS, per-stage timing (Update/Layout/Draw/Present in microseconds), layout count, layout trigger reason, style cache hit ratio, per-widget and global memo (`S:hits+memo/total`), layout call/skip counts (`LC:calls+skips`), and preferred-size cache ratio (`P:hits/total`). Renders only when the scene is already being redrawn — does not force extra frames.
 
 ### Layout Performance Optimizations
 
@@ -374,7 +374,7 @@ Three optimizations reduce layout cost for large widget trees (e.g. 280+ widgets
 
 **Version bump helpers**: `Bump_Style_Version`, `Bump_Layout_Epoch`, and `Bump_Content_Version` are private auxiliary procedures that handle `Natural'Last` wraparound consistently. Layout epoch and content version wrap to 1 (not 0) to avoid matching default init values.
 
-**Performance counters**: `Reset_Perf_Counters` / `Get_Perf_*` functions in `Adi.Widget` track style resolves, cache hits, layout calls, layout skips, preferred-size calls, and preferred-size cache hits per frame. Counters are reset before `Update` so that all work (including `Build_Items`) is captured. The Window captures these after each layout pass for the debug stats overlay.
+**Performance counters**: `Reset_Perf_Counters` / `Get_Perf_*` functions in `Adi.Widget` track style resolves, layout calls, layout skips, preferred-size calls, and preferred-size cache hits per frame. A style resolve ends in exactly one of three counters — a per-widget cache hit, a global memo hit, or a full cascade — which together partition `Get_Perf_Style_Resolves`. Counters are reset before `Update` and captured after the draw, so a frame's figures cover its layout and its drawing alike; `Frame_Stats` and the MCP `perf_stats` command report the same numbers as the debug stats overlay.
 
 ### Width-Aware Measurement (Text Wrap)
 

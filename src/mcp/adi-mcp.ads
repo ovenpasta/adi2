@@ -39,4 +39,11 @@ private
      (W     : in out Adi.JSON.JSON_Writer;
       Stats : Adi.Render.Texture_Stats);
 
+   --  The frame timings and per-frame counters of perf_stats, written as
+   --  keys into an object the caller has opened. Reachable from the
+   --  testing child for the same reason.
+   procedure Write_Frame_Stats
+     (W     : in out Adi.JSON.JSON_Writer;
+      Stats : Adi.Window.Frame_Stats);
+
 end Adi.MCP;

@@ -167,6 +167,32 @@ compile. Adding the field to `Style_Rules` without adding the value to
 `CSS_Property` does compile, and costs only a bucket probe that equality
 then settles. See `docs/style_storage_optimization.md`.
 
+### 2d. The per-property tables
+
+Five more places name every `CSS_Property` literal with no `others`, so a
+new literal is a compile error until each is decided:
+
+| Where | The decision |
+|---|---|
+| `Copy_Property` (`src/adi-css_styles.adb`) | which `Resolved_Style` fields the property owns |
+| `Property_Differs` (same) | how two resolved styles are compared for it |
+| `Layout_Affecting_Properties` (`src/adi-css_styles.ads`) | whether a change to it demands a new layout pass, or only a repaint |
+| `Snaps_At_Midpoint` (`src/adi-animation.adb`) | whether a transition holds the start value to T = 0.5, or takes the target from T = 0 |
+| `Inherit_Property` (`src/adi-css_styles.adb`) | how the property merges from a parent part, if it inherits |
+
+Whether it inherits is `Inheritable_Properties` (`src/adi-css_styles.ads`),
+which `Inherit_From` reads — that one is a policy line, not a table of
+behaviour, and flipping it is the whole change.
+
+A property that is interpolated rather than snapped also needs a branch
+in `Interpolate` and an `Animatable_Property` literal.
+
+A `CSS_Property_Set` aggregate that stops one literal short is still
+legal Ada, so `Adi.CSS_Styles` pins `CSS_Property'Last`: a literal
+appended past `Prop_Transition` is a compile error naming the tables.
+`tests/src/style_property_table_test.adb` walks all 66 properties against
+the field lists these tables replaced.
+
 ---
 
 ## Step 3 — Runtime CSS Parser (`src/adi-css_parser.adb`)
@@ -420,7 +446,8 @@ When adding a new CSS property, touch these files:
 | # | File | What to add |
 |---|------|-------------|
 | 1 | `src/adi-css_styles.ads` | Value type, defaults, `Opt_*` package, `Style_Rules` field, `Resolved_Style` field, `Set` function |
-| 2 | `src/adi-css_styles.adb` | `Merge` line, `Resolve` line |
+| 2 | `src/adi-css_styles.adb` | `Merge` line, `Resolve` line, `Set_Properties` line, `Copy_Property` and `Property_Differs` branches |
+| 2b | `src/adi-css_styles.ads` + `src/adi-animation.adb` | `Layout_Affecting_Properties` and `Snaps_At_Midpoint` entries |
 | 3 | `src/adi-css_parser.adb` | `elsif P = "..."` branch in `Apply_Property` |
 | 4 | `tools/css_spec.py` + `tools/css_to_ada.py` | Spec entry (`SUPPORTED_PROPERTIES`) + enum map/`elif prop == "..."` generation |
 | 5 | `src/adi-widget.adb` | Rendering code (if visual), or layout code (if layout-affecting) |

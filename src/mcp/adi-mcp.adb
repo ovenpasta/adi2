@@ -33,6 +33,44 @@ package body Adi.MCP is
 
    use type Adi.JSON.JSON_Integer;
 
+   procedure Write_Frame_Stats
+     (W     : in out Adi.JSON.JSON_Writer;
+      Stats : Adi.Window.Frame_Stats)
+   is
+      procedure Count (Key : String; Value : Natural) is
+      begin
+         W.Key_Value (Key, Adi.JSON.JSON_Integer (Value));
+      end Count;
+   begin
+      Count ("frame_no", Stats.Frame_No);
+      Count ("render_us", Stats.Render_Us);
+      Count ("update_us", Stats.Update_Us);
+      Count ("layout_us", Stats.Layout_Us);
+      Count ("draw_us", Stats.Draw_Us);
+      Count ("present_us", Stats.Present_Us);
+      W.Key_Value ("last_dt_ms", Long_Float (Float (Stats.Last_DT) * 1000.0));
+      Count ("layout_count", Stats.Layout_Count);
+
+      --  style_hits, style_memo_hits and style_computes partition
+      --  style_resolves: the per-widget cache, the global memo and the
+      --  cascade, over the whole frame.
+      Count ("style_resolves", Stats.Style_Resolves);
+      Count ("style_hits", Stats.Style_Hits);
+      Count ("style_memo_hits", Stats.Style_Memo_Hits);
+      Count ("style_computes", Stats.Style_Computes);
+      Count ("layout_calls", Stats.Layout_Calls);
+      Count ("layout_skips", Stats.Layout_Skips);
+      Count ("pref_calls", Stats.Pref_Calls);
+      Count ("pref_hits", Stats.Pref_Hits);
+
+      if Stats.Last_DT > 0.0 then
+         W.Key_Value ("fps",
+           Long_Float (Float'Min (9999.0, 1.0 / Float (Stats.Last_DT))));
+      else
+         W.Key_Value ("fps", Long_Float (0.0));
+      end if;
+   end Write_Frame_Stats;
+
    procedure Write_Texture_Cache
      (W     : in out Adi.JSON.JSON_Writer;
       Stats : Adi.Render.Texture_Stats)
@@ -933,31 +971,12 @@ package body Adi.MCP is
 
       elsif Cmd = "perf_stats" then
          declare
-            Stats : constant Adi.Window.Frame_Stats :=
-              Adi.Window.Get_Frame_Stats (Win);
-            W     : Adi.JSON.JSON_Writer := Adi.JSON.Create;
+            W : Adi.JSON.JSON_Writer := Adi.JSON.Create;
          begin
             W.Start_Object;
             W.Key_Value ("status", "ok");
             W.Key_Value ("req_id", Req_Id);
-            W.Key_Value ("frame_no", Adi.JSON.JSON_Integer (Stats.Frame_No));
-            W.Key_Value ("render_us", Adi.JSON.JSON_Integer (Stats.Render_Us));
-            W.Key_Value ("update_us", Adi.JSON.JSON_Integer (Stats.Update_Us));
-            W.Key_Value ("layout_us", Adi.JSON.JSON_Integer (Stats.Layout_Us));
-            W.Key_Value ("draw_us", Adi.JSON.JSON_Integer (Stats.Draw_Us));
-            W.Key_Value
-              ("present_us", Adi.JSON.JSON_Integer (Stats.Present_Us));
-            W.Key_Value ("last_dt_ms",
-              Long_Float (Float (Stats.Last_DT) * 1000.0));
-            W.Key_Value ("layout_count",
-              Adi.JSON.JSON_Integer (Stats.Layout_Count));
-            if Stats.Last_DT > 0.0 then
-               W.Key_Value ("fps",
-                 Long_Float (Float'Min
-                   (9999.0, 1.0 / Float (Stats.Last_DT))));
-            else
-               W.Key_Value ("fps", Long_Float (0.0));
-            end if;
+            Write_Frame_Stats (W, Adi.Window.Get_Frame_Stats (Win));
 
             W.Key ("texture_cache");
             Write_Texture_Cache (W, Adi.Window.Get_Texture_Stats (Win));

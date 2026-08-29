@@ -16,6 +16,7 @@ with Adi.MCP;
 with Adi.MCP.Testing;
 with Adi.Render;
 with Adi.Texture_Cache;
+with Adi.Window;
 
 with Test_Support; use Test_Support;
 
@@ -637,6 +638,84 @@ procedure MCP_Test is
       end;
    end Test_Texture_Cache_Schema;
 
+   ---------------------------------------------------------------------------
+   --  Test: the rest of the perf_stats payload, from figures supplied
+   --  rather than from a running window.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Frame_Stats_Schema is
+      use Adi.JSON;
+
+      --  Distinct in every field, so a serializer reading one field for
+      --  another would not agree with what it was given; and the three
+      --  style layers add up, as the wire format says they do.
+      Stats : constant Adi.Window.Frame_Stats :=
+        (Frame_No        => 11,
+         Render_Us       => 12,
+         Update_Us       => 13,
+         Layout_Us       => 14,
+         Draw_Us         => 15,
+         Present_Us      => 16,
+         Last_DT         => 0.02,
+         Layout_Count    => 17,
+         Style_Resolves  => 100,
+         Style_Hits      => 70,
+         Style_Memo_Hits => 20,
+         Style_Computes  => 10,
+         Layout_Calls    => 31,
+         Layout_Skips    => 32,
+         Pref_Calls      => 33,
+         Pref_Hits       => 34);
+
+      W : Adi.JSON.JSON_Writer := Adi.JSON.Create;
+   begin
+      Section ("perf_stats frame stats schema");
+
+      W.Start_Object;
+      Adi.MCP.Testing.Write_Frame_Stats (W, Stats);
+      W.End_Object;
+
+      declare
+         P    : Parsers.Parser := Parsers.Create (W.To_String);
+         Root : constant Types.JSON_Value := P.Parse;
+
+         function Field (Key : String) return Integer is
+           (Integer (JSON_Integer'(Root.Get (Key).Value)));
+
+         procedure Expect (Key : String; Value : Integer) is
+         begin
+            Assert (Field (Key) = Value,
+                    "perf_stats should carry " & Key & " as given");
+         end Expect;
+      begin
+         Expect ("frame_no", 11);
+         Expect ("render_us", 12);
+         Expect ("update_us", 13);
+         Expect ("layout_us", 14);
+         Expect ("draw_us", 15);
+         Expect ("present_us", 16);
+         Expect ("layout_count", 17);
+         Expect ("style_resolves", 100);
+         Expect ("style_hits", 70);
+         Expect ("style_memo_hits", 20);
+         Expect ("style_computes", 10);
+         Expect ("layout_calls", 31);
+         Expect ("layout_skips", 32);
+         Expect ("pref_calls", 33);
+         Expect ("pref_hits", 34);
+
+         Assert (Field ("style_hits") + Field ("style_memo_hits")
+                   + Field ("style_computes") = Field ("style_resolves"),
+                 "the three style layers partition the resolve calls");
+
+         Assert (abs (Long_Float'(Root.Get ("last_dt_ms").Value) - 20.0)
+                   < 0.001,
+                 "last_dt_ms reports the frame time in milliseconds");
+         Assert (abs (Long_Float'(Root.Get ("fps").Value) - 50.0) < 0.001,
+                 "fps derives from the frame time");
+      end;
+   end Test_Frame_Stats_Schema;
+
 
 begin
    Start_Suite ("MCP Test Suite");
@@ -654,6 +733,7 @@ begin
    Test_Introspection_Get_Info;
 
    Test_Texture_Cache_Schema;
+   Test_Frame_Stats_Schema;
 
    Test_Support.Finish;
 end MCP_Test;

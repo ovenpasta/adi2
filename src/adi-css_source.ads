@@ -5,6 +5,7 @@ pragma Ada_2022;
 
 with Ada.Finalization;
 with Adi.CSS_Parser;
+with Adi.Handle_Store;
 with Adi.Widget;
 with Adi.Window;
 with Ada.Strings.Unbounded;
@@ -199,6 +200,20 @@ package Adi.CSS_Source is
    function Merge_Part_Styles (Base, Override : Adi.Widget.Part_Style_Array)
      return Adi.Widget.Part_Style_Array;
 
+   --  Release what the source holds -- around a quarter of a megabyte of
+   --  metadata, its parsed sheet, its bindings -- and stop it being
+   --  reached when a widget is destroyed. Every copy of the source
+   --  answers Is_Valid False from here on, and reads through one answer
+   --  as they do for a source that holds nothing. Destroying it again,
+   --  or destroying a copy, does nothing. Using it again builds a fresh
+   --  one.
+   procedure Destroy (Source : in out Style_Source);
+
+   --  True while the source holds a configuration: from the first entry
+   --  added or mode set until Destroy, for this value and for every copy
+   --  of it.
+   function Is_Valid (Source : Style_Source) return Boolean;
+
    --  Attach a window so that CSS metadata is applied to it automatically.
    --  Currently propagates: root font size (`:root { font-size: ... }`).
    --  Applied immediately and again on every CSS reload or static update.
@@ -224,6 +239,15 @@ private
    --
    --  Modular, so instrumentation that runs for the life of the process
    --  wraps rather than raising.
+   --  Bindings a source holds. Read through Adi.CSS_Source.Testing:
+   --  one per widget bound, so a Build re-run over one tree must not
+   --  move it.
+   function Binding_Count (Source : Style_Source) return Natural;
+   function Effective_Count (Source : Style_Source) return Natural;
+
+   --  Impls allocated and not yet destroyed, over all sources.
+   function Live_Impl_Count return Natural;
+
    type Binding_Counter is mod 2 ** 32;
    Visited_Bindings   : Binding_Counter := 0;
    Reapplied_Bindings : Binding_Counter := 0;
@@ -255,11 +279,18 @@ private
    Empty_Dynamic_Sources : constant Dynamic_Source_Entry_Array :=
      [1 .. 0 => (Kind => File_Entry, Text => <>)];
 
-   type Style_Source_Impl;
-   type Style_Source_Impl_Access is access all Style_Source_Impl;
+   --  The store owns what a source holds, and a Style_Source is a
+   --  generational handle into it. Copying one copies the handle: every
+   --  copy answers Is_Valid False once any of them is destroyed, and a
+   --  second Destroy does nothing.
+   type Source_Impl_Base is abstract tagged limited null record;
+   type Source_Impl_Access is access all Source_Impl_Base'Class;
+
+   package Source_Stores is new Adi.Handle_Store
+     (Source_Impl_Base, Source_Impl_Access);
 
    type Style_Source is tagged record
-      Impl : Style_Source_Impl_Access := null;
+      Id : Source_Stores.Object_Id := Source_Stores.Null_Id;
    end record;
 
    type Update_Scope (Source : not null access Style_Source) is

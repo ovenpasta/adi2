@@ -878,79 +878,237 @@ package body Adi.CSS_Styles is
    --  See Inheritable_Properties in adi-css_styles.ads
    -------------------------------------------------
 
-   function Inherit_From (Parent, Child : Style_Rules) return Style_Rules is
+   --  Apply one property's merge from Parent into Into, the same merge
+   --  the cascade gives it. Which properties this is called for is
+   --  Inheritable_Properties' decision alone, so most arms here are for
+   --  a property that does not inherit today: each is written for the
+   --  case where the table selects it, and flipping a table entry is the
+   --  whole change.
+   procedure Inherit_Property
+     (P      : CSS_Property;
+      Parent : Style_Rules;
+      Into   : in out Style_Rules) is
    begin
-      return (
-         --  Inheritable: text/typography + cursor
-         Color            => Opt_Text_Color.Merge (Parent.Color, Child.Color),
-         Font_Family      => Opt_Font.Merge (Parent.Font_Family, Child.Font_Family),
-         Font_Size        => Opt_Font_Size.Merge (Parent.Font_Size, Child.Font_Size),
-         Font_Weight      => Opt_Font_Weight.Merge (Parent.Font_Weight, Child.Font_Weight),
-         Font_Style       => Opt_Font_Style.Merge (Parent.Font_Style, Child.Font_Style),
-         Text_Align       => Opt_Text_Align.Merge (Parent.Text_Align, Child.Text_Align),
-         Vertical_Align   => Opt_Vertical_Align.Merge (Parent.Vertical_Align, Child.Vertical_Align),
-         Text_Decoration  => Opt_Text_Decoration.Merge (Parent.Text_Decoration, Child.Text_Decoration),
-         Text_Overflow    => Opt_Text_Overflow.Merge (Parent.Text_Overflow, Child.Text_Overflow),
-         Text_Wrap_Mode   => Opt_Text_Wrap_Mode.Merge (Parent.Text_Wrap_Mode, Child.Text_Wrap_Mode),
-         Line_Height      => Opt_Line_Height.Merge (Parent.Line_Height, Child.Line_Height),
-         White_Space      => Opt_White_Space.Merge (Parent.White_Space, Child.White_Space),
-         Cursor           => Opt_Cursor.Merge (Parent.Cursor, Child.Cursor),
-         List_Style_Type  => Opt_List_Style_Type.Merge (Parent.List_Style_Type, Child.List_Style_Type),
-         List_Style_Image => Opt_List_Style_Image.Merge (Parent.List_Style_Image, Child.List_Style_Image),
-         List_Style_Position => Opt_List_Style_Position.Merge (Parent.List_Style_Position, Child.List_Style_Position),
+      case P is
+         when Prop_Color =>
+            Into.Color := Opt_Text_Color.Merge (Parent.Color, Into.Color);
+         when Prop_Background_Color =>
+            Into.Background_Color :=
+              Opt_Bg_Color.Merge (Parent.Background_Color,
+                                  Into.Background_Color);
+         when Prop_Background_Image =>
+            Into.Background_Image :=
+              Opt_Bg_Image.Merge (Parent.Background_Image,
+                                  Into.Background_Image);
+         when Prop_Border_Radius =>
+            Into.Border_Radius :=
+              Merge (Parent.Border_Radius, Into.Border_Radius);
+         when Prop_Border_Width =>
+            Into.Border_Width :=
+              Merge (Parent.Border_Width, Into.Border_Width);
+         when Prop_Border_Color =>
+            Into.Border_Color :=
+              Merge (Parent.Border_Color, Into.Border_Color);
+         when Prop_Border_Style =>
+            Into.Border_Style :=
+              Merge (Parent.Border_Style, Into.Border_Style);
+         when Prop_Outline_Width =>
+            Into.Outline_Width :=
+              Opt_Outline_Width.Merge (Parent.Outline_Width,
+                                       Into.Outline_Width);
+         when Prop_Outline_Color =>
+            Into.Outline_Color :=
+              Opt_Outline_Color.Merge (Parent.Outline_Color,
+                                       Into.Outline_Color);
+         when Prop_Outline_Style =>
+            Into.Outline_Style :=
+              Opt_Outline_Style.Merge (Parent.Outline_Style,
+                                       Into.Outline_Style);
+         when Prop_Outline_Offset =>
+            Into.Outline_Offset :=
+              Opt_Outline_Offset.Merge (Parent.Outline_Offset,
+                                        Into.Outline_Offset);
+         when Prop_Padding =>
+            Into.Padding := Merge (Parent.Padding, Into.Padding);
+         when Prop_Margin =>
+            Into.Margin := Merge (Parent.Margin, Into.Margin);
+         when Prop_Width =>
+            Into.Width := Opt_Size.Merge (Parent.Width, Into.Width);
+         when Prop_Height =>
+            Into.Height := Opt_Size.Merge (Parent.Height, Into.Height);
+         when Prop_Min_Width =>
+            Into.Min_Width :=
+              Opt_Size.Merge (Parent.Min_Width, Into.Min_Width);
+         when Prop_Max_Width =>
+            Into.Max_Width :=
+              Opt_Size.Merge (Parent.Max_Width, Into.Max_Width);
+         when Prop_Min_Height =>
+            Into.Min_Height :=
+              Opt_Size.Merge (Parent.Min_Height, Into.Min_Height);
+         when Prop_Max_Height =>
+            Into.Max_Height :=
+              Opt_Size.Merge (Parent.Max_Height, Into.Max_Height);
+         when Prop_Font_Family =>
+            Into.Font_Family :=
+              Opt_Font.Merge (Parent.Font_Family, Into.Font_Family);
+         when Prop_Font_Size =>
+            Into.Font_Size :=
+              Opt_Font_Size.Merge (Parent.Font_Size, Into.Font_Size);
+         when Prop_Font_Weight =>
+            Into.Font_Weight :=
+              Opt_Font_Weight.Merge (Parent.Font_Weight, Into.Font_Weight);
+         when Prop_Font_Style =>
+            Into.Font_Style :=
+              Opt_Font_Style.Merge (Parent.Font_Style, Into.Font_Style);
+         when Prop_Text_Align =>
+            Into.Text_Align :=
+              Opt_Text_Align.Merge (Parent.Text_Align, Into.Text_Align);
+         when Prop_Vertical_Align =>
+            Into.Vertical_Align :=
+              Opt_Vertical_Align.Merge (Parent.Vertical_Align,
+                                        Into.Vertical_Align);
+         when Prop_Text_Decoration =>
+            Into.Text_Decoration :=
+              Opt_Text_Decoration.Merge (Parent.Text_Decoration,
+                                         Into.Text_Decoration);
+         when Prop_List_Style_Type =>
+            Into.List_Style_Type :=
+              Opt_List_Style_Type.Merge (Parent.List_Style_Type,
+                                         Into.List_Style_Type);
+         when Prop_List_Style_Image =>
+            Into.List_Style_Image :=
+              Opt_List_Style_Image.Merge (Parent.List_Style_Image,
+                                          Into.List_Style_Image);
+         when Prop_List_Style_Position =>
+            Into.List_Style_Position :=
+              Opt_List_Style_Position.Merge (Parent.List_Style_Position,
+                                             Into.List_Style_Position);
+         when Prop_White_Space =>
+            Into.White_Space :=
+              Opt_White_Space.Merge (Parent.White_Space, Into.White_Space);
+         when Prop_Text_Overflow =>
+            Into.Text_Overflow :=
+              Opt_Text_Overflow.Merge (Parent.Text_Overflow,
+                                       Into.Text_Overflow);
+         when Prop_Text_Wrap_Mode =>
+            Into.Text_Wrap_Mode :=
+              Opt_Text_Wrap_Mode.Merge (Parent.Text_Wrap_Mode,
+                                        Into.Text_Wrap_Mode);
+         when Prop_Line_Height =>
+            Into.Line_Height :=
+              Opt_Line_Height.Merge (Parent.Line_Height, Into.Line_Height);
+         when Prop_Display =>
+            Into.Display := Opt_Display.Merge (Parent.Display, Into.Display);
+         when Prop_Position =>
+            Into.Position :=
+              Opt_Position.Merge (Parent.Position, Into.Position);
+         when Prop_Overflow =>
+            --  Shorthand metadata; the two axes carry it.
+            null;
+         when Prop_Overflow_X =>
+            Into.Overflow_X :=
+              Opt_Overflow.Merge (Parent.Overflow_X, Into.Overflow_X);
+         when Prop_Overflow_Y =>
+            Into.Overflow_Y :=
+              Opt_Overflow.Merge (Parent.Overflow_Y, Into.Overflow_Y);
+         when Prop_Visibility =>
+            Into.Visibility :=
+              Opt_Visibility.Merge (Parent.Visibility, Into.Visibility);
+         when Prop_Top =>
+            Into.Top := Opt_Top.Merge (Parent.Top, Into.Top);
+         when Prop_Right =>
+            Into.Right := Opt_Right.Merge (Parent.Right, Into.Right);
+         when Prop_Bottom =>
+            Into.Bottom := Opt_Bottom.Merge (Parent.Bottom, Into.Bottom);
+         when Prop_Left =>
+            Into.Left := Opt_Left.Merge (Parent.Left, Into.Left);
+         when Prop_Opacity =>
+            Into.Opacity := Opt_Opacity.Merge (Parent.Opacity, Into.Opacity);
+         when Prop_Cursor =>
+            Into.Cursor := Opt_Cursor.Merge (Parent.Cursor, Into.Cursor);
+         when Prop_Box_Shadow =>
+            Into.Box_Shadow :=
+              Opt_Box_Shadow.Merge (Parent.Box_Shadow, Into.Box_Shadow);
+         when Prop_Object_Fit =>
+            Into.Object_Fit :=
+              Opt_Object_Fit.Merge (Parent.Object_Fit, Into.Object_Fit);
+         when Prop_Object_Position =>
+            Into.Object_Position :=
+              Opt_Object_Pos.Merge (Parent.Object_Position,
+                                    Into.Object_Position);
+         when Prop_Flex_Direction =>
+            Into.Flex_Direction :=
+              Opt_Flex_Dir.Merge (Parent.Flex_Direction,
+                                  Into.Flex_Direction);
+         when Prop_Flex_Wrap =>
+            Into.Flex_Wrap :=
+              Opt_Flex_Wrap.Merge (Parent.Flex_Wrap, Into.Flex_Wrap);
+         when Prop_Justify_Content =>
+            Into.Justify_Content :=
+              Opt_Justify.Merge (Parent.Justify_Content,
+                                 Into.Justify_Content);
+         when Prop_Align_Items =>
+            Into.Align_Items :=
+              Opt_Align_Items.Merge (Parent.Align_Items, Into.Align_Items);
+         when Prop_Align_Content =>
+            Into.Align_Content :=
+              Opt_Align_Content.Merge (Parent.Align_Content,
+                                       Into.Align_Content);
+         when Prop_Gap =>
+            --  Axis-wise, so one axis named here keeps the other.
+            Into.Gap := Merge_Gap (Parent.Gap, Into.Gap);
+         when Prop_Grid_Columns =>
+            Into.Grid_Columns :=
+              Opt_Grid_Cols.Merge (Parent.Grid_Columns, Into.Grid_Columns);
+            if Into.Grid_Column_Tracks.Count = 0 then
+               Into.Grid_Column_Tracks := Parent.Grid_Column_Tracks;
+            end if;
+         when Prop_Grid_Rows =>
+            Into.Grid_Rows :=
+              Opt_Grid_Rows.Merge (Parent.Grid_Rows, Into.Grid_Rows);
+         when Prop_Align_Self =>
+            Into.Align_Self :=
+              Opt_Align_Self.Merge (Parent.Align_Self, Into.Align_Self);
+         when Prop_Flex_Grow =>
+            Into.Flex_Grow :=
+              Opt_Flex_Grow.Merge (Parent.Flex_Grow, Into.Flex_Grow);
+         when Prop_Flex_Shrink =>
+            Into.Flex_Shrink :=
+              Opt_Flex_Shrink.Merge (Parent.Flex_Shrink, Into.Flex_Shrink);
+         when Prop_Flex_Basis =>
+            Into.Flex_Basis :=
+              Opt_Flex_Basis.Merge (Parent.Flex_Basis, Into.Flex_Basis);
+         when Prop_Order =>
+            Into.Order := Opt_Order.Merge (Parent.Order, Into.Order);
+         when Prop_Grid_Column =>
+            Into.Grid_Column :=
+              Opt_Grid_Column.Merge (Parent.Grid_Column, Into.Grid_Column);
+         when Prop_Grid_Row =>
+            Into.Grid_Row :=
+              Opt_Grid_Row.Merge (Parent.Grid_Row, Into.Grid_Row);
+         when Prop_Grid_Column_Span =>
+            Into.Grid_Column_Span :=
+              Opt_Grid_Col_Span.Merge (Parent.Grid_Column_Span,
+                                       Into.Grid_Column_Span);
+         when Prop_Grid_Row_Span =>
+            Into.Grid_Row_Span :=
+              Opt_Grid_Row_Span.Merge (Parent.Grid_Row_Span,
+                                       Into.Grid_Row_Span);
+         when Prop_Transition =>
+            Into.Transition :=
+              Opt_Transition.Merge (Parent.Transition, Into.Transition);
+      end case;
+   end Inherit_Property;
 
-         --  Non-inheritable: pass through Child unchanged
-         Background_Color => Child.Background_Color,
-         Background_Image => Child.Background_Image,
-         Border_Radius    => Child.Border_Radius,
-         Border_Width     => Child.Border_Width,
-         Border_Color     => Child.Border_Color,
-         Border_Style     => Child.Border_Style,
-         Outline_Width    => Child.Outline_Width,
-         Outline_Color    => Child.Outline_Color,
-         Outline_Style    => Child.Outline_Style,
-         Outline_Offset   => Child.Outline_Offset,
-         Padding          => Child.Padding,
-         Margin           => Child.Margin,
-         Width            => Child.Width,
-         Height           => Child.Height,
-         Min_Width        => Child.Min_Width,
-         Max_Width        => Child.Max_Width,
-         Min_Height       => Child.Min_Height,
-         Max_Height       => Child.Max_Height,
-         Display          => Child.Display,
-         Position         => Child.Position,
-         Top              => Child.Top,
-         Right            => Child.Right,
-         Bottom           => Child.Bottom,
-         Left             => Child.Left,
-         Overflow_X       => Child.Overflow_X,
-         Overflow_Y       => Child.Overflow_Y,
-         Visibility       => Opt_Visibility.Merge (Parent.Visibility, Child.Visibility),
-         Opacity          => Child.Opacity,
-         Box_Shadow       => Child.Box_Shadow,
-         Object_Fit       => Child.Object_Fit,
-         Object_Position  => Child.Object_Position,
-         Flex_Direction   => Child.Flex_Direction,
-         Flex_Wrap        => Child.Flex_Wrap,
-         Justify_Content  => Child.Justify_Content,
-         Align_Items      => Child.Align_Items,
-         Align_Content    => Child.Align_Content,
-         Gap              => Child.Gap,
-         Grid_Columns       => Child.Grid_Columns,
-         Grid_Rows          => Child.Grid_Rows,
-         Grid_Column_Tracks => Child.Grid_Column_Tracks,
-         Align_Self       => Child.Align_Self,
-         Flex_Grow        => Child.Flex_Grow,
-         Flex_Shrink      => Child.Flex_Shrink,
-         Flex_Basis       => Child.Flex_Basis,
-         Order            => Child.Order,
-         Grid_Column      => Child.Grid_Column,
-         Grid_Row         => Child.Grid_Row,
-         Grid_Column_Span => Child.Grid_Column_Span,
-         Grid_Row_Span    => Child.Grid_Row_Span,
-         Transition       => Child.Transition
-      );
+   function Inherit_From (Parent, Child : Style_Rules) return Style_Rules is
+      Result : Style_Rules := Child;
+   begin
+      for P in CSS_Property loop
+         if Inheritable_Properties (P) then
+            Inherit_Property (P, Parent, Result);
+         end if;
+      end loop;
+      return Result;
    end Inherit_From;
 
    -------------------------------------------------
@@ -1161,6 +1319,195 @@ package body Adi.CSS_Styles is
          Transition       => Opt_Transition.Resolve (S.Transition)
       );
    end Resolve;
+
+   procedure Copy_Property
+     (P      : CSS_Property;
+      Source : Resolved_Style;
+      Target : in out Resolved_Style) is
+   begin
+      case P is
+         when Prop_Color => Target.Color := Source.Color;
+         when Prop_Background_Color =>
+            Target.Background_Color := Source.Background_Color;
+         when Prop_Background_Image =>
+            Target.Background_Image := Source.Background_Image;
+         when Prop_Border_Radius =>
+            Target.Border_Radius := Source.Border_Radius;
+         when Prop_Border_Width => Target.Border_Width := Source.Border_Width;
+         when Prop_Border_Color => Target.Border_Color := Source.Border_Color;
+         when Prop_Border_Style => Target.Border_Style := Source.Border_Style;
+         when Prop_Outline_Width =>
+            Target.Outline_Width := Source.Outline_Width;
+         when Prop_Outline_Color =>
+            Target.Outline_Color := Source.Outline_Color;
+         when Prop_Outline_Style =>
+            Target.Outline_Style := Source.Outline_Style;
+         when Prop_Outline_Offset =>
+            Target.Outline_Offset := Source.Outline_Offset;
+         when Prop_Padding => Target.Padding := Source.Padding;
+         when Prop_Margin => Target.Margin := Source.Margin;
+         when Prop_Width => Target.Width := Source.Width;
+         when Prop_Height => Target.Height := Source.Height;
+         when Prop_Min_Width => Target.Min_Width := Source.Min_Width;
+         when Prop_Max_Width => Target.Max_Width := Source.Max_Width;
+         when Prop_Min_Height => Target.Min_Height := Source.Min_Height;
+         when Prop_Max_Height => Target.Max_Height := Source.Max_Height;
+         when Prop_Font_Family => Target.Font_Family := Source.Font_Family;
+         when Prop_Font_Size => Target.Font_Size := Source.Font_Size;
+         when Prop_Font_Weight => Target.Font_Weight := Source.Font_Weight;
+         when Prop_Font_Style => Target.Font_Style := Source.Font_Style;
+         when Prop_Text_Align => Target.Text_Align := Source.Text_Align;
+         when Prop_Vertical_Align =>
+            Target.Vertical_Align := Source.Vertical_Align;
+         when Prop_Text_Decoration =>
+            Target.Text_Decoration := Source.Text_Decoration;
+         when Prop_List_Style_Type =>
+            Target.List_Style_Type := Source.List_Style_Type;
+         when Prop_List_Style_Image =>
+            Target.List_Style_Image := Source.List_Style_Image;
+         when Prop_List_Style_Position =>
+            Target.List_Style_Position := Source.List_Style_Position;
+         when Prop_White_Space => Target.White_Space := Source.White_Space;
+         when Prop_Text_Overflow =>
+            Target.Text_Overflow := Source.Text_Overflow;
+         when Prop_Text_Wrap_Mode =>
+            Target.Text_Wrap_Mode := Source.Text_Wrap_Mode;
+         when Prop_Line_Height => Target.Line_Height := Source.Line_Height;
+         when Prop_Display => Target.Display := Source.Display;
+         when Prop_Position => Target.Position := Source.Position;
+         when Prop_Overflow =>
+            --  Shorthand metadata; the two axes carry it.
+            null;
+         when Prop_Overflow_X => Target.Overflow_X := Source.Overflow_X;
+         when Prop_Overflow_Y => Target.Overflow_Y := Source.Overflow_Y;
+         when Prop_Visibility => Target.Visibility := Source.Visibility;
+         when Prop_Top => Target.Top := Source.Top;
+         when Prop_Right => Target.Right := Source.Right;
+         when Prop_Bottom => Target.Bottom := Source.Bottom;
+         when Prop_Left => Target.Left := Source.Left;
+         when Prop_Opacity => Target.Opacity := Source.Opacity;
+         when Prop_Cursor => Target.Cursor := Source.Cursor;
+         when Prop_Box_Shadow => Target.Box_Shadow := Source.Box_Shadow;
+         when Prop_Object_Fit => Target.Object_Fit := Source.Object_Fit;
+         when Prop_Object_Position =>
+            Target.Object_Position := Source.Object_Position;
+         when Prop_Flex_Direction =>
+            Target.Flex_Direction := Source.Flex_Direction;
+         when Prop_Flex_Wrap => Target.Flex_Wrap := Source.Flex_Wrap;
+         when Prop_Justify_Content =>
+            Target.Justify_Content := Source.Justify_Content;
+         when Prop_Align_Items => Target.Align_Items := Source.Align_Items;
+         when Prop_Align_Content =>
+            Target.Align_Content := Source.Align_Content;
+         when Prop_Gap => Target.Gap := Source.Gap;
+         when Prop_Grid_Columns =>
+            Target.Grid_Columns := Source.Grid_Columns;
+            Target.Grid_Column_Tracks := Source.Grid_Column_Tracks;
+         when Prop_Grid_Rows => Target.Grid_Rows := Source.Grid_Rows;
+         when Prop_Align_Self => Target.Align_Self := Source.Align_Self;
+         when Prop_Flex_Grow => Target.Flex_Grow := Source.Flex_Grow;
+         when Prop_Flex_Shrink => Target.Flex_Shrink := Source.Flex_Shrink;
+         when Prop_Flex_Basis => Target.Flex_Basis := Source.Flex_Basis;
+         when Prop_Order => Target.Order := Source.Order;
+         when Prop_Grid_Column => Target.Grid_Column := Source.Grid_Column;
+         when Prop_Grid_Row => Target.Grid_Row := Source.Grid_Row;
+         when Prop_Grid_Column_Span =>
+            Target.Grid_Column_Span := Source.Grid_Column_Span;
+         when Prop_Grid_Row_Span =>
+            Target.Grid_Row_Span := Source.Grid_Row_Span;
+         when Prop_Transition => Target.Transition := Source.Transition;
+      end case;
+   end Copy_Property;
+
+   function Property_Differs
+     (P : CSS_Property; L, R : Resolved_Style) return Boolean is
+   begin
+      case P is
+         when Prop_Color => return L.Color /= R.Color;
+         when Prop_Background_Color =>
+            return L.Background_Color /= R.Background_Color;
+         when Prop_Background_Image =>
+            return L.Background_Image /= R.Background_Image;
+         when Prop_Border_Radius => return L.Border_Radius /= R.Border_Radius;
+         when Prop_Border_Width => return L.Border_Width /= R.Border_Width;
+         when Prop_Border_Color => return L.Border_Color /= R.Border_Color;
+         when Prop_Border_Style => return L.Border_Style /= R.Border_Style;
+         when Prop_Outline_Width => return L.Outline_Width /= R.Outline_Width;
+         when Prop_Outline_Color => return L.Outline_Color /= R.Outline_Color;
+         when Prop_Outline_Style => return L.Outline_Style /= R.Outline_Style;
+         when Prop_Outline_Offset =>
+            return L.Outline_Offset /= R.Outline_Offset;
+         when Prop_Padding => return L.Padding /= R.Padding;
+         when Prop_Margin => return L.Margin /= R.Margin;
+         when Prop_Width => return L.Width /= R.Width;
+         when Prop_Height => return L.Height /= R.Height;
+         when Prop_Min_Width => return L.Min_Width /= R.Min_Width;
+         when Prop_Max_Width => return L.Max_Width /= R.Max_Width;
+         when Prop_Min_Height => return L.Min_Height /= R.Min_Height;
+         when Prop_Max_Height => return L.Max_Height /= R.Max_Height;
+         when Prop_Font_Family => return L.Font_Family /= R.Font_Family;
+         when Prop_Font_Size => return L.Font_Size /= R.Font_Size;
+         when Prop_Font_Weight => return L.Font_Weight /= R.Font_Weight;
+         when Prop_Font_Style => return L.Font_Style /= R.Font_Style;
+         when Prop_Text_Align => return L.Text_Align /= R.Text_Align;
+         when Prop_Vertical_Align =>
+            return L.Vertical_Align /= R.Vertical_Align;
+         when Prop_Text_Decoration =>
+            return L.Text_Decoration /= R.Text_Decoration;
+         when Prop_List_Style_Type =>
+            return L.List_Style_Type /= R.List_Style_Type;
+         when Prop_List_Style_Image =>
+            return L.List_Style_Image /= R.List_Style_Image;
+         when Prop_List_Style_Position =>
+            return L.List_Style_Position /= R.List_Style_Position;
+         when Prop_White_Space => return L.White_Space /= R.White_Space;
+         when Prop_Text_Overflow => return L.Text_Overflow /= R.Text_Overflow;
+         when Prop_Text_Wrap_Mode =>
+            return L.Text_Wrap_Mode /= R.Text_Wrap_Mode;
+         when Prop_Line_Height => return L.Line_Height /= R.Line_Height;
+         when Prop_Display => return L.Display /= R.Display;
+         when Prop_Position => return L.Position /= R.Position;
+         when Prop_Overflow =>
+            --  Shorthand metadata; the two axes carry it.
+            return False;
+         when Prop_Overflow_X => return L.Overflow_X /= R.Overflow_X;
+         when Prop_Overflow_Y => return L.Overflow_Y /= R.Overflow_Y;
+         when Prop_Visibility => return L.Visibility /= R.Visibility;
+         when Prop_Top => return L.Top /= R.Top;
+         when Prop_Right => return L.Right /= R.Right;
+         when Prop_Bottom => return L.Bottom /= R.Bottom;
+         when Prop_Left => return L.Left /= R.Left;
+         when Prop_Opacity => return L.Opacity /= R.Opacity;
+         when Prop_Cursor => return L.Cursor /= R.Cursor;
+         when Prop_Box_Shadow => return L.Box_Shadow /= R.Box_Shadow;
+         when Prop_Object_Fit => return L.Object_Fit /= R.Object_Fit;
+         when Prop_Object_Position =>
+            return L.Object_Position /= R.Object_Position;
+         when Prop_Flex_Direction =>
+            return L.Flex_Direction /= R.Flex_Direction;
+         when Prop_Flex_Wrap => return L.Flex_Wrap /= R.Flex_Wrap;
+         when Prop_Justify_Content =>
+            return L.Justify_Content /= R.Justify_Content;
+         when Prop_Align_Items => return L.Align_Items /= R.Align_Items;
+         when Prop_Align_Content => return L.Align_Content /= R.Align_Content;
+         when Prop_Gap => return L.Gap /= R.Gap;
+         when Prop_Grid_Columns =>
+            return L.Grid_Columns /= R.Grid_Columns
+              or else L.Grid_Column_Tracks /= R.Grid_Column_Tracks;
+         when Prop_Grid_Rows => return L.Grid_Rows /= R.Grid_Rows;
+         when Prop_Align_Self => return L.Align_Self /= R.Align_Self;
+         when Prop_Flex_Grow => return L.Flex_Grow /= R.Flex_Grow;
+         when Prop_Flex_Shrink => return L.Flex_Shrink /= R.Flex_Shrink;
+         when Prop_Flex_Basis => return L.Flex_Basis /= R.Flex_Basis;
+         when Prop_Order => return L.Order /= R.Order;
+         when Prop_Grid_Column => return L.Grid_Column /= R.Grid_Column;
+         when Prop_Grid_Row => return L.Grid_Row /= R.Grid_Row;
+         when Prop_Grid_Column_Span =>
+            return L.Grid_Column_Span /= R.Grid_Column_Span;
+         when Prop_Grid_Row_Span => return L.Grid_Row_Span /= R.Grid_Row_Span;
+         when Prop_Transition => return L.Transition /= R.Transition;
+      end case;
+   end Property_Differs;
 
    -------------------------------------------------
    -- Normalize_Color

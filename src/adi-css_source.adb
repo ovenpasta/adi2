@@ -15,8 +15,10 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Log;
+with Adi.Style_Merge;
 with Adi.Widget; use Adi.Widget;
-with Adi.Widget_Styles; use Adi.Widget_Styles;
+with Adi.Widget.Window_Bridge;
+pragma Elaborate_All (Adi.Widget.Window_Bridge);
 with Adi.Window;
 with Ada.Exceptions;
 use type Adi.Window.Window_Handle;
@@ -83,7 +85,7 @@ package body Adi.CSS_Source is
        Has_Font_Size => M.Has_Root_Font_Size,
        Font_Size     => M.Root_Font_Size));
 
-   type Style_Source_Impl is record
+   type Style_Source_Impl is new Source_Impl_Base with record
       Mode             : Source_Mode := Dynamic_Mode;
       Auto_Reload      : Boolean := True;
       Entries          : Dynamic_Entry_Vectors.Vector;
@@ -125,70 +127,84 @@ package body Adi.CSS_Source is
       Attached_Window  : Adi.Window.Window_Handle := Adi.Window.Null_Window_Handle;
    end record;
 
+   type Style_Source_Impl_Ptr is access all Style_Source_Impl;
+
+   --  What the source's handle names, or null once it is destroyed --
+   --  which is what a copy of a destroyed source gets, in place of a
+   --  pointer into freed memory.
+   function Impl_Of (Source : Style_Source) return Style_Source_Impl_Ptr is
+      P : constant Source_Impl_Access := Source_Stores.Get (Source.Id);
+   begin
+      if P = null then
+         return null;
+      end if;
+      return Style_Source_Impl (P.all)'Unchecked_Access;
+   end Impl_Of;
+
+   procedure Prune_Widget (Impl : Style_Source_Impl_Ptr;
+                           H    : Adi.Widget.Widget_Handle) is
+   begin
+      Impl.Effective.Exclude (H);
+
+      for I in 1 .. Natural (Impl.Bindings.Length) loop
+         if Impl.Bindings (I).Target = H then
+            --  Order across targets carries nothing: Reapply_Bindings
+            --  styles each widget from its own binding. Moving the last
+            --  entry into the hole keeps a prune from sliding the tail.
+            Impl.Bindings.Replace_Element (I, Impl.Bindings.Last_Element);
+            Impl.Bindings.Delete_Last;
+            exit;
+         end if;
+      end loop;
+
+      if Impl.Root_Target = H then
+         Impl.Root_Target := Adi.Widget.Null_Handle;
+      end if;
+   end Prune_Widget;
+
+   procedure On_Widget_Destroyed (H : Adi.Widget.Widget_Handle) is
+      procedure Prune_One (Id  : Source_Stores.Object_Id;
+                           Obj : not null Source_Impl_Access) is
+         pragma Unreferenced (Id);
+      begin
+         Prune_Widget (Style_Source_Impl (Obj.all)'Unchecked_Access, H);
+      end Prune_One;
+
+      procedure Prune_All is new Source_Stores.For_Each_Alive (Prune_One);
+   begin
+      Prune_All;
+   end On_Widget_Destroyed;
+
    procedure Ensure_Impl (Source : in out Style_Source) is
    begin
-      if Source.Impl = null then
-         Source.Impl := new Style_Source_Impl;
+      if Impl_Of (Source) = null then
+         Source.Id := Source_Stores.Register (new Style_Source_Impl);
       end if;
    end Ensure_Impl;
 
    function Active_Metadata
      (Source : Style_Source) return Adi.CSS_Parser.Stylesheet_Metadata is
    begin
-      if Source.Impl = null then
+      if Impl_Of (Source) = null then
          return (others => <>);
       end if;
 
-      if Source.Impl.Mode = Dynamic_Mode and then Source.Impl.Dynamic_Loaded then
-         return Adi.CSS_Parser.Get_Metadata (Source.Impl.Sheet);
+      if Impl_Of (Source).Mode = Dynamic_Mode and then Impl_Of (Source).Dynamic_Loaded then
+         return Adi.CSS_Parser.Get_Metadata (Impl_Of (Source).Sheet);
       end if;
 
-      return Source.Impl.Static_Metadata;
+      return Impl_Of (Source).Static_Metadata;
    end Active_Metadata;
 
    procedure Apply_Root_Metadata_Impl
      (Source : Style_Source;
       W      : in out Adi.Widget.Widget'Class);
 
-   function Merge_Widget_Style (Base, Override : Widget_Style) return Widget_Style is
-      Result : Widget_Style := Base;
-      Rule_Index : Natural := 0;
-   begin
-      Result.Base := Merge (Result.Base, Override.Base);
-
-      for I in 1 .. Override.Rule_Count loop
-         Rule_Index := 0;
-         for J in 1 .. Result.Rule_Count loop
-            if Result.Rules (J).Selector = Override.Rules (I).Selector then
-               Rule_Index := J;
-               exit;
-            end if;
-         end loop;
-
-         if Rule_Index = 0 then
-            if Result.Rule_Count < Max_Style_Rules then
-               Add_Rule (Result, Override.Rules (I));
-            end if;
-         else
-            Result.Rules (Rule_Index).Style :=
-              Merge (Result.Rules (Rule_Index).Style, Override.Rules (I).Style);
-         end if;
-      end loop;
-
-      return Result;
-   end Merge_Widget_Style;
-
-   function Merge_Part_Styles (Base, Override : Part_Style_Array) return Part_Style_Array is
-      Result : Part_Style_Array := Base;
-   begin
-      for P in Part_Kind loop
-         if Override (P).Enabled then
-            Result (P).Enabled := True;
-            Result (P).Style := Merge_Widget_Style (Result (P).Style, Override (P).Style);
-         end if;
-      end loop;
-      return Result;
-   end Merge_Part_Styles;
+   --  Public, and every generated XML UI body calls it. The fold itself
+   --  lives with Part_Style_Array, in Adi.Widget.
+   function Merge_Part_Styles (Base, Override : Part_Style_Array)
+     return Part_Style_Array
+   is (Adi.Style_Merge.Merge (Base, Override));
 
    function Selector_Styles (Source : Style_Source;
                              Kind   : Adi.CSS_Parser.Selector_Kind;
@@ -196,29 +212,29 @@ package body Adi.CSS_Source is
       N : constant String := Normalize_Name (Name);
       Result : Part_Style_Array := Empty_Part_Styles;
    begin
-      if Source.Impl = null then
+      if Impl_Of (Source) = null then
          return Empty_Part_Styles;
       end if;
 
-      if Source.Impl.Mode = Static_Mode then
-         for I in 1 .. Natural (Source.Impl.Static_Styles.Length) loop
-            if Source.Impl.Static_Styles (I).Kind = Kind
-              and then To_String (Source.Impl.Static_Styles (I).Name) = N
+      if Impl_Of (Source).Mode = Static_Mode then
+         for I in 1 .. Natural (Impl_Of (Source).Static_Styles.Length) loop
+            if Impl_Of (Source).Static_Styles (I).Kind = Kind
+              and then To_String (Impl_Of (Source).Static_Styles (I).Name) = N
             then
                Result := Merge_Part_Styles (
                  Result,
-                 Adi.Widget.Expand (Source.Impl.Static_Styles (I).Styles));
+                 Adi.Widget.Expand (Impl_Of (Source).Static_Styles (I).Styles));
             end if;
          end loop;
 
          return Result;
       end if;
 
-      if not Source.Impl.Dynamic_Loaded then
+      if not Impl_Of (Source).Dynamic_Loaded then
          return Empty_Part_Styles;
       end if;
 
-      return Adi.CSS_Parser.Styles_For (Source.Impl.Sheet, Kind, Name);
+      return Adi.CSS_Parser.Styles_For (Impl_Of (Source).Sheet, Kind, Name);
    end Selector_Styles;
 
    function Multi_Class_Styles (Source : Style_Source;
@@ -285,9 +301,9 @@ package body Adi.CSS_Source is
       Metadata : constant Adi.CSS_Parser.Stylesheet_Metadata :=
         Active_Metadata (Source);
    begin
-      if Source.Impl /= null
+      if Impl_Of (Source) /= null
         and then Adi.Widget.Is_Valid (Target)
-        and then Source.Impl.Root_Target = Target
+        and then Impl_Of (Source).Root_Target = Target
         and then Metadata.Has_Root_Style
       then
          return Merge_Part_Styles (Metadata.Root_Styles, Styles);
@@ -375,11 +391,73 @@ package body Adi.CSS_Source is
    end Apply_Binding;
 
    --  Record what is now in force for this widget.
+   function Binding_Count (Source : Style_Source) return Natural is
+     (if Impl_Of (Source) = null then 0
+      else Natural (Impl_Of (Source).Bindings.Length));
+
+   function Effective_Count (Source : Style_Source) return Natural is
+     (if Impl_Of (Source) = null then 0
+      else Natural (Impl_Of (Source).Effective.Length));
+
+   function Live_Impl_Count return Natural is
+      N : Natural := 0;
+
+      procedure Count_One (Id  : Source_Stores.Object_Id;
+                           Obj : not null Source_Impl_Access) is
+         pragma Unreferenced (Id, Obj);
+      begin
+         N := N + 1;
+      end Count_One;
+
+      procedure Count_All is new Source_Stores.For_Each_Alive (Count_One);
+   begin
+      Count_All;
+      return N;
+   end Live_Impl_Count;
+
+   function Is_Valid (Source : Style_Source) return Boolean is
+     (Source_Stores.Is_Valid (Source.Id));
+
+   procedure Destroy (Source : in out Style_Source) is
+      Impl : constant Style_Source_Impl_Ptr := Impl_Of (Source);
+   begin
+      if Impl /= null then
+         --  The dynamic sheet is the source's own; nothing else names it.
+         Adi.CSS_Parser.Destroy (Impl.Sheet);
+      end if;
+
+      --  Nothing is pinned, so the store frees here rather than at a
+      --  later Pump; a second call finds the handle stale and does
+      --  nothing, as does a call on a copy.
+      Source_Stores.Request_Destroy (Source.Id);
+      Source.Id := Source_Stores.Null_Id;
+   end Destroy;
+
    procedure Note_Binding
      (Source : in out Style_Source; B : Bound_Target) is
    begin
-      Source.Impl.Effective.Include (B.Target, B);
+      Impl_Of (Source).Effective.Include (B.Target, B);
    end Note_Binding;
+
+   --  One binding per widget, the last one winning, as Adi.CSS_Parser
+   --  has always done. Bindings is the history a reload replays, and
+   --  replaying an earlier binding of a widget only to overwrite it with
+   --  the later one changes nothing -- while keeping both grows the
+   --  vector every time a generated Build runs over the same tree.
+   procedure Record_Binding
+     (Source : in out Style_Source; B : Bound_Target) is
+   begin
+      for I in 1 .. Natural (Impl_Of (Source).Bindings.Length) loop
+         if Impl_Of (Source).Bindings (I).Target = B.Target then
+            Impl_Of (Source).Bindings.Replace_Element (I, B);
+            Note_Binding (Source, B);
+            return;
+         end if;
+      end loop;
+
+      Impl_Of (Source).Bindings.Append (B);
+      Note_Binding (Source, B);
+   end Record_Binding;
 
    --  Restyle one widget from what it is currently bound under. Whether
    --  it is the root is answered by Root_Merged_Styles, so this both
@@ -390,7 +468,7 @@ package body Adi.CSS_Source is
                       H      : Adi.Widget.Widget_Handle)
    is
       use Binding_Maps;
-      C : constant Cursor := Source.Impl.Effective.Find (H);
+      C : constant Cursor := Impl_Of (Source).Effective.Find (H);
    begin
       if not Adi.Widget.Is_Valid (H) then
          return;
@@ -408,7 +486,7 @@ package body Adi.CSS_Source is
       declare
          R : constant Adi.Widget.Widget_Ref := Adi.Widget.Borrow (H);
       begin
-         if Source.Impl.Root_Target = H then
+         if Impl_Of (Source).Root_Target = H then
             Apply_Root_Metadata_Impl (Source, R.Ptr.all);
          else
             Set_Part_Styles (R.Ptr.all, Empty_Part_Styles);
@@ -422,22 +500,22 @@ package body Adi.CSS_Source is
    function Same_As_Applied (Source : Style_Source) return Boolean is
       use type Entry_Vectors.Vector;
    begin
-      return Source.Impl.Applied_Valid
-        and then Source.Impl.Applied_Mode = Source.Impl.Mode
-        and then Source.Impl.Applied_Root = Source.Impl.Static_Root
-        and then Source.Impl.Applied_Statics = Source.Impl.Static_Styles
-        and then Source.Impl.Applied_Text = Source.Impl.Dynamic_Text
-        and then Source.Impl.Applied_Loaded = Source.Impl.Dynamic_Loaded;
+      return Impl_Of (Source).Applied_Valid
+        and then Impl_Of (Source).Applied_Mode = Impl_Of (Source).Mode
+        and then Impl_Of (Source).Applied_Root = Impl_Of (Source).Static_Root
+        and then Impl_Of (Source).Applied_Statics = Impl_Of (Source).Static_Styles
+        and then Impl_Of (Source).Applied_Text = Impl_Of (Source).Dynamic_Text
+        and then Impl_Of (Source).Applied_Loaded = Impl_Of (Source).Dynamic_Loaded;
    end Same_As_Applied;
 
    procedure Note_Applied (Source : in out Style_Source) is
    begin
-      Source.Impl.Applied_Valid    := True;
-      Source.Impl.Applied_Mode     := Source.Impl.Mode;
-      Source.Impl.Applied_Root     := Source.Impl.Static_Root;
-      Source.Impl.Applied_Statics  := Source.Impl.Static_Styles;
-      Source.Impl.Applied_Text     := Source.Impl.Dynamic_Text;
-      Source.Impl.Applied_Loaded   := Source.Impl.Dynamic_Loaded;
+      Impl_Of (Source).Applied_Valid    := True;
+      Impl_Of (Source).Applied_Mode     := Impl_Of (Source).Mode;
+      Impl_Of (Source).Applied_Root     := Impl_Of (Source).Static_Root;
+      Impl_Of (Source).Applied_Statics  := Impl_Of (Source).Static_Styles;
+      Impl_Of (Source).Applied_Text     := Impl_Of (Source).Dynamic_Text;
+      Impl_Of (Source).Applied_Loaded   := Impl_Of (Source).Dynamic_Loaded;
    end Note_Applied;
 
    procedure Reapply_Bindings (Source : in out Style_Source);
@@ -448,8 +526,8 @@ package body Adi.CSS_Source is
    --  does on every call, and must cost nothing.
    procedure Reapply_If_Changed (Source : in out Style_Source) is
    begin
-      if Source.Impl = null
-        or else Source.Impl.Update_Depth > 0
+      if Impl_Of (Source) = null
+        or else Impl_Of (Source).Update_Depth > 0
         or else Same_As_Applied (Source)
       then
          return;
@@ -460,22 +538,22 @@ package body Adi.CSS_Source is
 
    procedure Reapply_Bindings (Source : in out Style_Source) is
    begin
-      if Source.Impl = null then
+      if Impl_Of (Source) = null then
          return;
       end if;
 
-      if Adi.Widget.Is_Valid (Source.Impl.Root_Target) then
+      if Adi.Widget.Is_Valid (Impl_Of (Source).Root_Target) then
          declare
             R : constant Adi.Widget.Widget_Ref :=
-              Adi.Widget.Borrow (Source.Impl.Root_Target);
+              Adi.Widget.Borrow (Impl_Of (Source).Root_Target);
          begin
             Apply_Root_Metadata_Impl (Source, R.Ptr.all);
          end;
       end if;
 
-      for I in 1 .. Natural (Source.Impl.Bindings.Length) loop
+      for I in 1 .. Natural (Impl_Of (Source).Bindings.Length) loop
          declare
-            B : constant Bound_Target := Source.Impl.Bindings (I);
+            B : constant Bound_Target := Impl_Of (Source).Bindings (I);
          begin
             Visited_Bindings := Visited_Bindings + 1;
             if Adi.Widget.Is_Valid (B.Target) then
@@ -516,10 +594,10 @@ package body Adi.CSS_Source is
            Active_Metadata (Source);
       begin
          if Meta.Has_Root_Font_Size
-           and then Source.Impl.Attached_Window /= Adi.Window.Null_Window_Handle
+           and then Impl_Of (Source).Attached_Window /= Adi.Window.Null_Window_Handle
          then
             Adi.Window.Set_Root_Font_Size
-              (Source.Impl.Attached_Window, Meta.Root_Font_Size);
+              (Impl_Of (Source).Attached_Window, Meta.Root_Font_Size);
          end if;
       end;
    end Reapply_Bindings;
@@ -576,7 +654,7 @@ package body Adi.CSS_Source is
                         Append (Text, Read_File (Path));
                         Append (Text, ASCII.LF);
                      else
-                        Source.Impl.Last_Error :=
+                        Impl_Of (Source).Last_Error :=
                           To_Unbounded_String ("File not found: " & Path);
                         return False;
                      end if;
@@ -588,7 +666,7 @@ package body Adi.CSS_Source is
                      --  be expected to handle an exception from the
                      --  middle of the configuration it is installing.
                      when others =>
-                        Source.Impl.Last_Error :=
+                        Impl_Of (Source).Last_Error :=
                           To_Unbounded_String ("Cannot read file: " & Path);
                         return False;
                   end;
@@ -620,19 +698,19 @@ package body Adi.CSS_Source is
       begin
          Dynamic_Parses := Dynamic_Parses + 1;
          Adi.CSS_Parser.Load_String
-           (Source.Impl.Sheet, To_String (Text), Load_OK);
+           (Impl_Of (Source).Sheet, To_String (Text), Load_OK);
          if not Load_OK then
-            Source.Impl.Last_Error := To_Unbounded_String (
-              Adi.CSS_Parser.Get_Last_Error (Source.Impl.Sheet));
+            Impl_Of (Source).Last_Error := To_Unbounded_String (
+              Adi.CSS_Parser.Get_Last_Error (Impl_Of (Source).Sheet));
             Success := False;
             return;
          end if;
       end;
 
-      Source.Impl.Entries        := Fresh;
-      Source.Impl.Dynamic_Text   := Text;
-      Source.Impl.Dynamic_Loaded := True;
-      Source.Impl.Last_Error     := Null_Unbounded_String;
+      Impl_Of (Source).Entries        := Fresh;
+      Impl_Of (Source).Dynamic_Text   := Text;
+      Impl_Of (Source).Dynamic_Loaded := True;
+      Impl_Of (Source).Last_Error     := Null_Unbounded_String;
       Success := True;
    end Install_Entries;
 
@@ -642,15 +720,15 @@ package body Adi.CSS_Source is
    --  file on every frame until someone fixes it.
    procedure Restamp (Source : in out Style_Source) is
    begin
-      for I in 1 .. Natural (Source.Impl.Entries.Length) loop
+      for I in 1 .. Natural (Impl_Of (Source).Entries.Length) loop
          declare
-            E : constant Tracked_Entry := Source.Impl.Entries (I);
+            E : constant Tracked_Entry := Impl_Of (Source).Entries (I);
          begin
             if E.Source_Entry.Kind = File_Entry then
                declare
                   Path : constant String := To_String (E.Source_Entry.Text);
                begin
-                  Source.Impl.Entries.Replace_Element (I,
+                  Impl_Of (Source).Entries.Replace_Element (I,
                     Tracked_Entry'
                       (Source_Entry  => E.Source_Entry,
                        Last_Modified =>
@@ -670,7 +748,7 @@ package body Adi.CSS_Source is
    procedure Reload_All_Dynamic (Source  : in out Style_Source;
                                  Success : out Boolean) is
    begin
-      Install_Entries (Source, Source.Impl.Entries, Success);
+      Install_Entries (Source, Impl_Of (Source).Entries, Success);
       if not Success then
          Restamp (Source);
       end if;
@@ -707,12 +785,12 @@ package body Adi.CSS_Source is
                                  Entries : Static_Style_Entry_Array) is
    begin
       Ensure_Impl (Source);
-      Source.Impl.Static_Styles.Clear;
+      Impl_Of (Source).Static_Styles.Clear;
       for E of Entries loop
-         Source.Impl.Static_Styles.Append (E);
+         Impl_Of (Source).Static_Styles.Append (E);
       end loop;
 
-      if Source.Impl.Mode = Static_Mode then
+      if Impl_Of (Source).Mode = Static_Mode then
          Reapply_If_Changed (Source);
       end if;
    end Set_Static_Entries;
@@ -723,9 +801,9 @@ package body Adi.CSS_Source is
    begin
       Ensure_Impl (Source);
 
-      Source.Impl.Static_Metadata := Metadata;
-      Source.Impl.Static_Root     := Fingerprint (Metadata);
-      if Source.Impl.Mode = Static_Mode then
+      Impl_Of (Source).Static_Metadata := Metadata;
+      Impl_Of (Source).Static_Root     := Fingerprint (Metadata);
+      if Impl_Of (Source).Mode = Static_Mode then
          Reapply_If_Changed (Source);
       end if;
    end Set_Static_Metadata;
@@ -733,7 +811,7 @@ package body Adi.CSS_Source is
    procedure Begin_Update (Source : in out Style_Source) is
    begin
       Ensure_Impl (Source);
-      Source.Impl.Update_Depth := Source.Impl.Update_Depth + 1;
+      Impl_Of (Source).Update_Depth := Impl_Of (Source).Update_Depth + 1;
    end Begin_Update;
 
    procedure End_Update (Source : in out Style_Source) is
@@ -745,12 +823,12 @@ package body Adi.CSS_Source is
       --  control flow, and turning a spare call into an exception at the
       --  point of styling would take an application down for a mistake
       --  that costs nothing. Use Update_Scope to be sure of the pairing.
-      if Source.Impl.Update_Depth = 0 then
+      if Impl_Of (Source).Update_Depth = 0 then
          return;
       end if;
 
-      Source.Impl.Update_Depth := Source.Impl.Update_Depth - 1;
-      if Source.Impl.Update_Depth = 0 then
+      Impl_Of (Source).Update_Depth := Impl_Of (Source).Update_Depth - 1;
+      if Impl_Of (Source).Update_Depth = 0 then
          Reapply_If_Changed (Source);
       end if;
    end End_Update;
@@ -768,14 +846,14 @@ package body Adi.CSS_Source is
    procedure Clear_Static_Entries (Source : in out Style_Source) is
    begin
       Ensure_Impl (Source);
-      Source.Impl.Static_Styles.Clear;
+      Impl_Of (Source).Static_Styles.Clear;
    end Clear_Static_Entries;
 
    procedure Add_Static_Entry (Source : in out Style_Source;
                                Entry_Value : Static_Style_Entry) is
    begin
       Ensure_Impl (Source);
-      Source.Impl.Static_Styles.Append (Entry_Value);
+      Impl_Of (Source).Static_Styles.Append (Entry_Value);
    end Add_Static_Entry;
 
    function CSS_File (Path : String) return Dynamic_Source_Entry is
@@ -789,12 +867,12 @@ package body Adi.CSS_Source is
    procedure Append_And_Install (Source  : in out Style_Source;
                                  Item    : Dynamic_Source_Entry;
                                  Success : out Boolean) is
-      Wanted : Dynamic_Entry_Vectors.Vector := Source.Impl.Entries;
+      Wanted : Dynamic_Entry_Vectors.Vector := Impl_Of (Source).Entries;
    begin
       Wanted.Append (Tracked_Entry'(Source_Entry  => Item,
                                     Last_Modified => Ada.Calendar.Clock));
       Install_Entries (Source, Wanted, Success);
-      if Success and then Source.Impl.Mode = Dynamic_Mode then
+      if Success and then Impl_Of (Source).Mode = Dynamic_Mode then
          Reapply_If_Changed (Source);
       end if;
    end Append_And_Install;
@@ -829,7 +907,7 @@ package body Adi.CSS_Source is
          Success := True;
          --  Publishing in Static_Mode would restyle for a change the
          --  widgets cannot see.
-         if Source.Impl.Mode = Dynamic_Mode then
+         if Impl_Of (Source).Mode = Dynamic_Mode then
             Reapply_If_Changed (Source);
          end if;
          return;
@@ -841,7 +919,7 @@ package body Adi.CSS_Source is
       end loop;
 
       Install_Entries (Source, Wanted, Success);
-      if Success and then Source.Impl.Mode = Dynamic_Mode then
+      if Success and then Impl_Of (Source).Mode = Dynamic_Mode then
          Reapply_If_Changed (Source);
       end if;
    end Set_Dynamic_Sources;
@@ -849,12 +927,12 @@ package body Adi.CSS_Source is
    procedure Clear_Dynamic_Entries (Source : in out Style_Source) is
    begin
       Ensure_Impl (Source);
-      Source.Impl.Entries.Clear;
-      Source.Impl.Dynamic_Loaded := False;
+      Impl_Of (Source).Entries.Clear;
+      Impl_Of (Source).Dynamic_Loaded := False;
       --  Nothing is loaded now, and saying so is what makes the next
       --  Set_Mode notice that the widgets are styled from a sheet this
       --  source no longer has.
-      Source.Impl.Dynamic_Text := Null_Unbounded_String;
+      Impl_Of (Source).Dynamic_Text := Null_Unbounded_String;
    end Clear_Dynamic_Entries;
 
    procedure Reload_Dynamic (Source  : in out Style_Source;
@@ -871,15 +949,15 @@ package body Adi.CSS_Source is
                               Enabled : Boolean) is
    begin
       Ensure_Impl (Source);
-      Source.Impl.Auto_Reload := Enabled;
+      Impl_Of (Source).Auto_Reload := Enabled;
    end Set_Auto_Reload;
 
    function Auto_Reload_Enabled (Source : Style_Source) return Boolean is
    begin
-      if Source.Impl = null then
+      if Impl_Of (Source) = null then
          return True;
       end if;
-      return Source.Impl.Auto_Reload;
+      return Impl_Of (Source).Auto_Reload;
    end Auto_Reload_Enabled;
 
    procedure Set_Mode (Source  : in out Style_Source;
@@ -891,8 +969,8 @@ package body Adi.CSS_Source is
       Success := True;
 
       if Mode = Dynamic_Mode
-        and then not Source.Impl.Dynamic_Loaded
-        and then not Source.Impl.Entries.Is_Empty
+        and then not Impl_Of (Source).Dynamic_Loaded
+        and then not Impl_Of (Source).Entries.Is_Empty
       then
          Reload_All_Dynamic (Source, Success);
          if not Success then
@@ -900,16 +978,16 @@ package body Adi.CSS_Source is
          end if;
       end if;
 
-      Source.Impl.Mode := Mode;
+      Impl_Of (Source).Mode := Mode;
       Reapply_If_Changed (Source);
    end Set_Mode;
 
    function Get_Mode (Source : Style_Source) return Source_Mode is
    begin
-      if Source.Impl = null then
+      if Impl_Of (Source) = null then
          return Dynamic_Mode;
       end if;
-      return Source.Impl.Mode;
+      return Impl_Of (Source).Mode;
    end Get_Mode;
 
    procedure Tick (Source   : in out Style_Source;
@@ -923,7 +1001,7 @@ package body Adi.CSS_Source is
       Reloaded := False;
       Success := True;
 
-      if Source.Impl = null then
+      if Impl_Of (Source) = null then
          return;
       end if;
 
@@ -931,17 +1009,17 @@ package body Adi.CSS_Source is
       --  parse is the case live reload exists for, and latching on it
       --  would stop watching the file the developer is about to fix.
       --  What makes ticking pointless is having no sheets to watch.
-      if Source.Impl.Mode /= Dynamic_Mode
-        or else not Source.Impl.Auto_Reload
-        or else Source.Impl.Entries.Is_Empty
+      if Impl_Of (Source).Mode /= Dynamic_Mode
+        or else not Impl_Of (Source).Auto_Reload
+        or else Impl_Of (Source).Entries.Is_Empty
       then
          return;
       end if;
 
       --  Check all file entries for modification time changes
-      for I in 1 .. Natural (Source.Impl.Entries.Length) loop
+      for I in 1 .. Natural (Impl_Of (Source).Entries.Length) loop
          declare
-            E : constant Tracked_Entry := Source.Impl.Entries (I);
+            E : constant Tracked_Entry := Impl_Of (Source).Entries (I);
          begin
             if E.Source_Entry.Kind = File_Entry then
                declare
@@ -984,7 +1062,7 @@ package body Adi.CSS_Source is
             --  per save rather than one per frame.
             Adi.Log.Error
               ("CSS " & To_String (Changed) & ": "
-               & To_String (Source.Impl.Last_Error));
+               & To_String (Impl_Of (Source).Last_Error));
             return;
          end if;
          Reloaded := True;
@@ -1048,7 +1126,7 @@ package body Adi.CSS_Source is
       end if;
 
       Ensure_Impl (Source);
-      Source.Impl.Bindings.Append (Bound_Target'(
+      Record_Binding (Source, Bound_Target'(
         Kind          => Single_Binding,
         Selector_Kind => Kind,
         Name          => To_Unbounded_String (Normalize_Name (Name)),
@@ -1056,8 +1134,6 @@ package body Adi.CSS_Source is
         Class_Name    => Null_Unbounded_String,
         Id_Name       => Null_Unbounded_String,
         Target        => Adi.Widget.Get_Handle (W.all)));
-
-      Note_Binding (Source, Source.Impl.Bindings.Last_Element);
       Apply_To_Widget (Source, Kind, Name, W.all);
    end Bind;
 
@@ -1081,7 +1157,7 @@ package body Adi.CSS_Source is
          end if;
 
          Ensure_Impl (Source);
-         Source.Impl.Bindings.Append (Bound_Target'(
+         Record_Binding (Source, Bound_Target'(
            Kind          => Multi_Class_Binding,
            Selector_Kind => Adi.CSS_Parser.Class_Selector,
            Name          => To_Unbounded_String (Name),
@@ -1089,8 +1165,6 @@ package body Adi.CSS_Source is
            Class_Name    => Null_Unbounded_String,
            Id_Name       => Null_Unbounded_String,
            Target        => Adi.Widget.Get_Handle (W.all)));
-
-         Note_Binding (Source, Source.Impl.Bindings.Last_Element);
          Apply_Multi_Classes (Source, Name, W.all);
       else
          Bind (Source, Adi.CSS_Parser.Class_Selector, Name, W);
@@ -1122,11 +1196,11 @@ package body Adi.CSS_Source is
 
       declare
          Prev     : constant Adi.Widget.Widget_Handle :=
-           Source.Impl.Root_Target;
+           Impl_Of (Source).Root_Target;
          Next     : constant Adi.Widget.Widget_Handle :=
            Adi.Widget.Get_Handle (W.all);
       begin
-         Source.Impl.Root_Target := Next;
+         Impl_Of (Source).Root_Target := Next;
 
          --  Only the widget that is the root target has :root merged
          --  into its styles, so handing the role over changes the styles
@@ -1211,7 +1285,7 @@ package body Adi.CSS_Source is
       end if;
 
       Ensure_Impl (Source);
-      Source.Impl.Bindings.Append (Bound_Target'(
+      Record_Binding (Source, Bound_Target'(
         Kind          => Selector_Set_Binding,
         Selector_Kind => Adi.CSS_Parser.Class_Selector,
         Name          => Null_Unbounded_String,
@@ -1219,8 +1293,6 @@ package body Adi.CSS_Source is
         Class_Name    => To_Unbounded_String (Normalize_Name (Class_Name)),
         Id_Name       => To_Unbounded_String (Normalize_Name (Id_Name)),
         Target        => Adi.Widget.Get_Handle (W.all)));
-
-      Note_Binding (Source, Source.Impl.Bindings.Last_Element);
       Apply_Selector_Set_To_Widget
         (Source, W.all, Tag_Name, Class_Name, Id_Name);
    end Bind_Selector_Set;
@@ -1254,7 +1326,7 @@ package body Adi.CSS_Source is
       Meta : Adi.CSS_Parser.Stylesheet_Metadata;
    begin
       Ensure_Impl (Source);
-      Source.Impl.Attached_Window := W;
+      Impl_Of (Source).Attached_Window := W;
       Meta := Active_Metadata (Source);
       if Meta.Has_Root_Font_Size then
          Adi.Window.Set_Root_Font_Size (W, Meta.Root_Font_Size);
@@ -1269,12 +1341,12 @@ package body Adi.CSS_Source is
 
    function Has_Custom_Property (Source : Style_Source; Name : String) return Boolean is
    begin
-      if Source.Impl = null then
+      if Impl_Of (Source) = null then
          return False;
       end if;
 
-      if Source.Impl.Mode = Dynamic_Mode and then Source.Impl.Dynamic_Loaded then
-         return Adi.CSS_Parser.Has_Custom_Property (Source.Impl.Sheet, Name);
+      if Impl_Of (Source).Mode = Dynamic_Mode and then Impl_Of (Source).Dynamic_Loaded then
+         return Adi.CSS_Parser.Has_Custom_Property (Impl_Of (Source).Sheet, Name);
       end if;
 
       return False;
@@ -1282,12 +1354,12 @@ package body Adi.CSS_Source is
 
    function Get_Custom_Property (Source : Style_Source; Name : String) return String is
    begin
-      if Source.Impl = null then
+      if Impl_Of (Source) = null then
          return "";
       end if;
 
-      if Source.Impl.Mode = Dynamic_Mode and then Source.Impl.Dynamic_Loaded then
-         return Adi.CSS_Parser.Get_Custom_Property (Source.Impl.Sheet, Name);
+      if Impl_Of (Source).Mode = Dynamic_Mode and then Impl_Of (Source).Dynamic_Loaded then
+         return Adi.CSS_Parser.Get_Custom_Property (Impl_Of (Source).Sheet, Name);
       end if;
 
       return "";
@@ -1295,10 +1367,13 @@ package body Adi.CSS_Source is
 
    function Get_Last_Error (Source : Style_Source) return String is
    begin
-      if Source.Impl = null then
+      if Impl_Of (Source) = null then
          return "";
       end if;
-      return To_String (Source.Impl.Last_Error);
+      return To_String (Impl_Of (Source).Last_Error);
    end Get_Last_Error;
 
+begin
+   Adi.Widget.Window_Bridge.Install_Destroy_Notice
+     (On_Widget_Destroyed'Access);
 end Adi.CSS_Source;

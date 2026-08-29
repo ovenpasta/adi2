@@ -20,6 +20,7 @@ with Adi.Image;             use Adi.Image;
 with Ada.Containers;
 with Ada.Finalization;
 with Adi.Handle_Store;
+with Interfaces;
 
 package Adi.Widget is
    pragma Elaborate_Body;
@@ -819,8 +820,11 @@ package Adi.Widget is
    ---------------------------------------------------------------------------
 
    procedure Reset_Perf_Counters;
+   --  Resolves counts every call; hits, memo hits and computes partition it.
    function Get_Perf_Style_Resolves return Natural;
    function Get_Perf_Style_Hits return Natural;
+   function Get_Perf_Style_Memo_Hits return Natural;
+   function Get_Perf_Style_Computes return Natural;
    function Get_Perf_Layout_Calls return Natural;
    function Get_Perf_Layout_Skips return Natural;
    function Get_Perf_Pref_Calls return Natural;
@@ -873,8 +877,27 @@ private
    --  Widget Record
    ---------------------------------------------------------------------------
 
+   --  One bit per Widget_State, at Widget_State'Pos. The resolved-style
+   --  memo keys on this form.
+   subtype Packed_State_Bits is Interfaces.Unsigned_16;
+
+   pragma Compile_Time_Error
+     (Widget_State'Pos (Widget_State'Last) >= Packed_State_Bits'Size,
+      "Widget_State outgrew Packed_State_Bits: a literal past the "
+      & "sixteenth packs to zero and aliases onto State_Normal");
+
    --  Interned style handles (0 = Empty_Widget_Style)
    type Style_Handle is new Natural;
+
+   --  Key hash of the resolved-style memo. Named here so a test can
+   --  reach values the memo cannot be driven to by constructing widgets.
+   function Resolved_Cache_Hash
+     (Part_Handle, Main_Handle : Style_Handle;
+      Widget_State_Bits, Part_State_Bits,
+      Main_Part_State_Bits     : Packed_State_Bits;
+      Font_Gen                 : Adi.Font.Font_Generation)
+      return Ada.Containers.Hash_Type;
+
    type Part_Style_Handle_Array is array (Part_Kind) of Style_Handle;
    type Part_Enabled_Array is array (Part_Kind) of Boolean;
 
@@ -888,6 +911,10 @@ private
 
    --  Instrumentation the tests need and applications do not.
    Interned_Style_Count : Natural := 0;
+
+   --  Entries the resolved-style memo holds. It is cleared wholesale at
+   --  its cap, so this rises and falls.
+   Resolved_Memo_Entries : Natural := 0;
 
    --  Animation state per part
    type Part_Transition_Array is array (Part_Kind) of Part_Transition;
@@ -998,14 +1025,20 @@ private
 
    Null_Handle : constant Widget_Handle := (Id => Widget_Stores.Null_Id);
 
-   --  How the window layer is told a widget is going away.  Installed
+   --  How the layers above are told a widget is going away.  Installed
    --  through Adi.Widget.Window_Bridge, which is the only unit that may
-   --  set it, and read by Destroy.  Here rather than in the visible part
-   --  because it is not public API, and not in the body because a child
-   --  has to reach it -- Adi.Widget is Elaborate_Body, so its body
+   --  add to it, and read by Destroy.  Here rather than in the visible
+   --  part because it is not public API, and not in the body because a
+   --  child has to reach it -- Adi.Widget is Elaborate_Body, so its body
    --  cannot with its own child.
+   --
+   --  A list rather than one slot: the window layer drops its references
+   --  to the widget, and the styling layer prunes its bindings, and
+   --  neither knows about the other.
    type Destroy_Notice_Proc is access procedure (H : Widget_Handle);
-   Destroy_Notice_Slot : Destroy_Notice_Proc := null;
+   package Destroy_Notice_Vectors is new
+     Ada.Containers.Vectors (Positive, Destroy_Notice_Proc);
+   Destroy_Notices : Destroy_Notice_Vectors.Vector;
 
    type Widget_Ref (Ptr : access Widget'Class) is
      limited new Ada.Finalization.Limited_Controlled with record

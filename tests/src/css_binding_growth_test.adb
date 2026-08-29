@@ -9,6 +9,7 @@ use type Adi.Widget.Box.Box_Handle;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.CSS_Parser;
+with Adi.CSS_Parser.Testing;
 with Adi.CSS_Source;
 with Adi.CSS_Source.Testing;
 with Adi.OS;
@@ -126,6 +127,270 @@ begin
               "Build looks at what changed, not everything bound before");
       Assert (Applied <= Budget,
               "and re-styles only that");
+   end;
+
+   ---------------------------------------------------------------------
+   --  A Build re-run over one tree binds the same widgets again
+   ---------------------------------------------------------------------
+
+   Section ("Re-binding a widget replaces its binding rather than adding");
+
+   declare
+      Src  : Adi.CSS_Source.Style_Source;
+      Ok   : Boolean := False;
+      Kept : constant := 12;
+      type Row_Array is array (1 .. Kept) of Adi.Widget.Box.Box_Handle;
+      Rows : Row_Array;
+      After_First : Natural;
+   begin
+      Adi.CSS_Source.Add_Static_Entry
+        (Src,
+         Adi.CSS_Source.Class_Entry
+           ("cell", Main_Styles ((Opacity => Set (0.5), others => <>))));
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Static_Mode, Ok);
+
+      for I in Rows'Range loop
+         Rows (I) := Adi.Widget.Box.Create_Handle;
+      end loop;
+
+      for Pass in 1 .. 5 loop
+         for I in Rows'Range loop
+            Adi.CSS_Source.Bind_Selector_Set
+              (Source     => Src,
+               W          => +Rows (I),
+               Tag_Name   => "box",
+               Class_Name => "cell");
+         end loop;
+
+         if Pass = 1 then
+            After_First := Adi.CSS_Source.Testing.Bindings_Held (Src);
+         end if;
+      end loop;
+
+      Put_Line ("  bindings after one pass" & After_First'Image
+                & ", after five" 
+                & Adi.CSS_Source.Testing.Bindings_Held (Src)'Image);
+
+      Assert (After_First = Kept,
+              "one binding per widget after the first pass");
+      Assert (Adi.CSS_Source.Testing.Bindings_Held (Src) = Kept,
+              "and still one per widget after four more");
+   end;
+
+   ---------------------------------------------------------------------
+   --  A destroyed widget takes its binding with it
+   ---------------------------------------------------------------------
+
+   Section ("Destroying a bound widget prunes what was held for it");
+
+   declare
+      Src   : Adi.CSS_Source.Style_Source;
+      Ok    : Boolean := False;
+      Rows  : constant := 8;
+      Panel : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      type Row_Array is array (1 .. Rows) of Adi.Widget.Box.Box_Handle;
+      Kids  : Row_Array;
+      Doomed : Adi.Widget.Widget_Handle;
+      Before, Bound : Natural;
+   begin
+      Adi.CSS_Source.Add_Static_Entry
+        (Src,
+         Adi.CSS_Source.Class_Entry
+           ("cell", Main_Styles ((Opacity => Set (0.5), others => <>))));
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Static_Mode, Ok);
+
+      Before := Adi.CSS_Source.Testing.Bindings_Held (Src);
+
+      --  A panel and its rows, the shape a list builds and drops.
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +Panel, Class_Name => "cell");
+      for I in Kids'Range loop
+         Kids (I) := Adi.Widget.Box.Create_Handle;
+         Adi.Widget.Add_Child (+Panel, +Kids (I));
+         Adi.CSS_Source.Bind_Selector_Set
+           (Source => Src, W => +Kids (I), Class_Name => "cell");
+      end loop;
+
+      Bound := Adi.CSS_Source.Testing.Bindings_Held (Src);
+      Assert (Bound = Before + Rows + 1,
+              "every widget bound is held");
+      Assert (Adi.CSS_Source.Testing.Effective_Held (Src) = Bound,
+              "and is current for its widget");
+
+      --  Destroying the panel destroys the rows with it.
+      Doomed := +Panel;
+      Adi.Widget.Destroy (Doomed);
+      Adi.Widget.Pump_Widget_Store;
+
+      Put_Line ("  bindings before" & Before'Image
+                & ", bound" & Bound'Image
+                & ", after destroy"
+                & Adi.CSS_Source.Testing.Bindings_Held (Src)'Image);
+
+      Assert (Adi.CSS_Source.Testing.Bindings_Held (Src) = Before,
+              "the subtree takes every binding with it");
+      Assert (Adi.CSS_Source.Testing.Effective_Held (Src) = Before,
+              "and leaves nothing current for a widget that is gone");
+   end;
+
+   Section ("A sheet bound to directly prunes the same way");
+
+   declare
+      Sheet  : Adi.CSS_Parser.Stylesheet;
+      Ok     : Boolean := False;
+      Panel  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Child  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Doomed : Adi.Widget.Widget_Handle;
+   begin
+      Adi.CSS_Parser.Load_String
+        (Sheet, ".cell { opacity: 0.5; }", Ok);
+      Assert (Ok, "the sheet parses");
+
+      Adi.Widget.Add_Child (+Panel, +Child);
+      Adi.CSS_Parser.Bind_Class (Sheet, "cell", +Panel);
+      Adi.CSS_Parser.Bind_Class (Sheet, "cell", +Child);
+
+      Assert (Adi.CSS_Parser.Testing.Bindings_Held (Sheet) = 2,
+              "both widgets are bound");
+      Assert (Adi.CSS_Parser.Testing.Effective_Held (Sheet) = 2,
+              "and current");
+
+      Doomed := +Panel;
+      Adi.Widget.Destroy (Doomed);
+      Adi.Widget.Pump_Widget_Store;
+
+      Assert (Adi.CSS_Parser.Testing.Bindings_Held (Sheet) = 0,
+              "the destroyed subtree leaves no binding behind");
+      Assert (Adi.CSS_Parser.Testing.Effective_Held (Sheet) = 0,
+              "and nothing current");
+   end;
+
+   ---------------------------------------------------------------------
+   --  A source holds a quarter of a megabyte; destroying it gives it back
+   ---------------------------------------------------------------------
+
+   Section ("Destroying a source releases it and stops it being walked");
+
+   declare
+      Before_Sources : constant Natural :=
+        Adi.CSS_Source.Testing.Live_Sources;
+      Before_Sheets  : constant Natural :=
+        Adi.CSS_Parser.Testing.Live_Sheets;
+      Ok : Boolean := False;
+   begin
+      declare
+         Src : Adi.CSS_Source.Style_Source;
+         W   : constant Adi.Widget.Box.Box_Handle :=
+           Adi.Widget.Box.Create_Handle;
+         Doomed : Adi.Widget.Widget_Handle;
+      begin
+         Adi.CSS_Source.Add_Dynamic_String
+           (Src, ".c { opacity: 0.25; }", Ok);
+         Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+         Adi.CSS_Source.Bind_Selector_Set
+           (Source => Src, W => +W, Class_Name => "c");
+
+         Assert (Adi.CSS_Source.Testing.Live_Sources = Before_Sources + 1,
+                 "the source holds an impl");
+         Assert (Adi.CSS_Parser.Testing.Live_Sheets > Before_Sheets,
+                 "and the sheet it parsed holds one too");
+         Assert (Adi.CSS_Source.Testing.Bindings_Held (Src) = 1,
+                 "with the widget bound");
+
+         Adi.CSS_Source.Destroy (Src);
+
+         Assert (Adi.CSS_Source.Testing.Live_Sources = Before_Sources,
+                 "destroying it gives the impl back");
+         Assert (Adi.CSS_Parser.Testing.Live_Sheets = Before_Sheets,
+                 "and the sheet with it");
+         Assert (Adi.CSS_Source.Testing.Bindings_Held (Src) = 0,
+                 "and leaves nothing behind");
+
+         --  Destroying a widget afterwards must not reach the source
+         --  that is gone.
+         Doomed := +W;
+         Adi.Widget.Destroy (Doomed);
+         Adi.Widget.Pump_Widget_Store;
+
+         --  A destroyed source is empty, not broken: using it again
+         --  builds a fresh impl.
+         Adi.CSS_Source.Add_Dynamic_String
+           (Src, ".c { opacity: 0.75; }", Ok);
+         Assert (Ok, "a destroyed source can be used again");
+         Adi.CSS_Source.Destroy (Src);
+      end;
+
+      Assert (Adi.CSS_Source.Testing.Live_Sources = Before_Sources,
+              "and the second impl comes back too");
+   end;
+
+   ---------------------------------------------------------------------
+   --  A source and a sheet are handles, so copies of them stay honest
+   ---------------------------------------------------------------------
+
+   Section ("A copy of a destroyed source answers for itself");
+
+   declare
+      Before_Sources : constant Natural :=
+        Adi.CSS_Source.Testing.Live_Sources;
+      Ok : Boolean := False;
+      S1 : Adi.CSS_Source.Style_Source;
+      S2 : Adi.CSS_Source.Style_Source;
+   begin
+      Adi.CSS_Source.Add_Dynamic_String (S1, ".c { opacity: 0.5; }", Ok);
+      Adi.CSS_Source.Set_Mode (S1, Adi.CSS_Source.Dynamic_Mode, Ok);
+
+      S2 := S1;
+      Assert (Adi.CSS_Source.Is_Valid (S1), "the source holds a sheet");
+      Assert (Adi.CSS_Source.Is_Valid (S2), "and so does the copy of it");
+
+      Adi.CSS_Source.Destroy (S1);
+
+      Assert (not Adi.CSS_Source.Is_Valid (S1),
+              "destroying it says so");
+      Assert (not Adi.CSS_Source.Is_Valid (S2),
+              "and the copy says so too, rather than naming freed memory");
+      Assert (Adi.CSS_Source.Testing.Bindings_Held (S2) = 0,
+              "reading through the copy answers empty");
+
+      --  The second destroy is the one that used to take the process
+      --  down: a double free through the copy.
+      Adi.CSS_Source.Destroy (S2);
+      Assert (Adi.CSS_Source.Testing.Live_Sources = Before_Sources,
+              "destroying the copy as well changes nothing");
+
+      Adi.CSS_Source.Add_Dynamic_String (S2, ".c { opacity: 0.75; }", Ok);
+      Assert (Adi.CSS_Source.Is_Valid (S2),
+              "and the copy is usable again afterwards");
+      Adi.CSS_Source.Destroy (S2);
+   end;
+
+   Section ("And a copy of a destroyed sheet");
+
+   declare
+      Before_Sheets : constant Natural :=
+        Adi.CSS_Parser.Testing.Live_Sheets;
+      Ok : Boolean := False;
+      A  : Adi.CSS_Parser.Stylesheet;
+      B  : Adi.CSS_Parser.Stylesheet;
+   begin
+      Adi.CSS_Parser.Load_String (A, ".c { opacity: 0.5; }", Ok);
+      B := A;
+      Assert (Adi.CSS_Parser.Is_Valid (A) and then Adi.CSS_Parser.Is_Valid (B),
+              "both the sheet and its copy hold it");
+
+      Adi.CSS_Parser.Destroy (A);
+      Assert (not Adi.CSS_Parser.Is_Valid (B),
+              "destroying one says so through the other");
+      Assert (Adi.CSS_Parser.Testing.Bindings_Held (B) = 0,
+              "reading through the copy answers empty");
+
+      Adi.CSS_Parser.Destroy (B);
+      Assert (Adi.CSS_Parser.Testing.Live_Sheets = Before_Sheets,
+              "and destroying the copy as well changes nothing");
    end;
 
    ---------------------------------------------------------------------

@@ -93,9 +93,9 @@ height from CSS and its width from the widget.
 
 Text and typography properties set on `Main_Part` (i.e., without a `::part` selector) automatically **inherit** to sub-parts (`::label`, `::icon`, etc.) when those sub-parts don't explicitly set the property. This matches CSS cascade semantics where text properties flow from parent to child.
 
-**Inheritable properties:** `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `text-align`, `vertical-align`, `text-decoration`, `text-overflow`, `text-wrap-mode`, `line-height`, `white-space`, `cursor`, `list-style-type`, `list-style-image`, `list-style-position`.
+**Inheritable properties:** `color`, `font-family`, `font-size`, `font-weight`, `font-style`, `text-align`, `vertical-align`, `text-decoration`, `text-overflow`, `text-wrap-mode`, `line-height`, `white-space`, `cursor`, `visibility`, `list-style-type`, `list-style-image`, `list-style-position`.
 
-**Non-inheritable properties** (box-model, layout, visual): `background-color`, `background-image`, `border-*`, `outline-*`, `padding`, `margin`, sizing, `display`, `position`, `overflow`, `visibility`, `opacity`, `box-shadow`, `flex-*`, `grid-*`, `transition`, etc.
+**Non-inheritable properties** (box-model, layout, visual): `background-color`, `background-image`, `border-*`, `outline-*`, `padding`, `margin`, sizing, `display`, `position`, `overflow`, `opacity`, `box-shadow`, `flex-*`, `grid-*`, `transition`, etc.
 
 `visibility` descends the *widget* tree rather than this part cascade: each widget resolves it against its parent's effective value, so a descendant's `visibility: visible` overrides a hidden ancestor.
 
@@ -109,7 +109,7 @@ Example:
 .title::label { color: yellow; }
 ```
 
-The authoritative set of inheritable properties is defined by `Inheritable_Properties` in `adi-css_styles.ads`.
+The authoritative set of inheritable properties is `Inheritable_Properties` in `adi-css_styles.ads`, and `Inherit_From` reads it: a property changes side there and nowhere else.
 
 ---
 
@@ -789,6 +789,14 @@ Button_Class_Widget : constant Widget_Style :=
   .Build;
 ```
 
+A `Widget_Style` holds `Adi.Widget_Styles.Max_Style_Rules` (16) state
+rules for one selector and part. `Add_Rule`, and so `.On`, raises
+`Too_Many_Style_Rules` past that, naming the state selector that did not
+fit; `tools/css_to_ada.py` refuses to generate a longer chain, naming the
+CSS selector; the runtime parser rejects the sheet and keeps the last
+good one; and a merge of two styles, which has nowhere to report to,
+drops the rule and logs it.
+
 **3. Part_Style_Array** — Bundle of all parts for a selector:
 
 ```ada
@@ -923,6 +931,31 @@ Adi.CSS_Source.Bind_Selector_Set (Source, Widget,
 ```
 
 When multiple class names are passed to `Bind_Class`, styles are looked up for each class individually and merged left-to-right (later classes override earlier ones for shared properties). This mirrors HTML's `class="base accent"` behavior. `Bind_Selector_Set` accepts the same space-separated class list in `Class_Name`, so callers can pass a widget's class attribute without splitting it.
+
+A widget carries one binding: binding it again replaces what it was bound
+under, which is what a generated `Build` re-run over the same tree does.
+Destroying a widget takes its binding with it, and so does destroying a
+widget above it — the source hears about every widget in a destroyed
+subtree, not only the one `Destroy` was called on.
+
+#### Releasing a Source
+
+A `Style_Source` holds its parsed sheet and around a quarter of a
+megabyte of metadata, on the heap, for as long as the process runs.
+`Destroy` gives that back and stops the source being reached when a
+widget is destroyed:
+
+```ada
+Adi.CSS_Source.Destroy (Source);   --  Adi.CSS_Parser.Destroy for a Stylesheet
+```
+
+A `Style_Source` and a `Stylesheet` are handles: copying one copies the
+handle, not what it holds. `Adi.CSS_Source.Is_Valid` and
+`Adi.CSS_Parser.Is_Valid` answer False for every copy once any of them is
+destroyed, reads through a copy answer as they do for a source that holds
+nothing, and destroying a copy as well does nothing. Using one again
+builds a fresh one. A source that lives as long as the application need
+not be destroyed at all.
 
 #### Merging Part Styles
 

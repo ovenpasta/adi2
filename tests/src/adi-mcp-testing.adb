@@ -12,4 +12,11 @@ package body Adi.MCP.Testing is
       Adi.MCP.Write_Texture_Cache (W, Stats);
    end Write_Texture_Cache;
 
+   procedure Write_Frame_Stats
+     (W     : in out Adi.JSON.JSON_Writer;
+      Stats : Adi.Window.Frame_Stats) is
+   begin
+      Adi.MCP.Write_Frame_Stats (W, Stats);
+   end Write_Frame_Stats;
+
 end Adi.MCP.Testing;

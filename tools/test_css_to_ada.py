@@ -10,6 +10,7 @@ Usage: python tools/test_css_to_ada.py
 
 import sys
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -1589,6 +1590,79 @@ class TestGenerateLengthAndColor(unittest.TestCase):
             generate_color_ada(ParsedColor(kind="rgba", r=10, g=20, b=30, a=0.5)),
             "RGBA (10, 20, 30, 0.5)"
         )
+
+
+class TestStateRuleLimit(unittest.TestCase):
+    """A selector may carry Max_Style_Rules state rules and no more."""
+
+    STATES = [
+        ":hover", ":focus", ":disabled", ":selected", ":pressed",
+        ":hover:focus", ":hover:disabled", ":hover:selected",
+        ":hover:pressed", ":focus:disabled", ":focus:selected",
+        ":focus:pressed", ":disabled:selected", ":disabled:pressed",
+        ":selected:pressed", ":hover:focus:disabled",
+        ":hover:focus:selected",
+    ]
+
+    def _css(self, count: int, selector: str = ".c") -> str:
+        return "\n".join(
+            f"{selector}{state} {{ opacity: 0.1; }}"
+            for state in self.STATES[:count]
+        )
+
+    def test_at_the_cap_is_accepted(self):
+        groups = group_rules_by_widget(
+            parse_css(self._css(css_to_ada.MAX_STYLE_RULES))
+        )
+        part = groups["class:c"].parts["Main_Part"]
+        self.assertEqual(len(part.state_rules), css_to_ada.MAX_STYLE_RULES)
+
+    def test_past_the_cap_is_refused(self):
+        with self.assertRaises(css_to_ada.StyleRuleLimitError) as cm:
+            group_rules_by_widget(
+                parse_css(self._css(css_to_ada.MAX_STYLE_RULES + 1))
+            )
+        message = str(cm.exception)
+        self.assertIn("class 'c'", message)
+        self.assertIn(str(css_to_ada.MAX_STYLE_RULES + 1), message)
+
+    def test_the_cap_names_the_part(self):
+        with self.assertRaises(css_to_ada.StyleRuleLimitError) as cm:
+            group_rules_by_widget(
+                parse_css(self._css(css_to_ada.MAX_STYLE_RULES + 1,
+                                    ".c::label"))
+            )
+        self.assertIn("class 'c'::label", str(cm.exception))
+
+    def test_the_cap_matches_the_ada_constant(self):
+        ads = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "src", "adi-widget_styles.ads",
+        )
+        with open(ads, "r", encoding="utf-8") as f:
+            source = f.read()
+        match = re.search(
+            r"Max_Style_Rules\s*:\s*constant\s*:=\s*(\d+)\s*;", source
+        )
+        self.assertIsNotNone(match, "Max_Style_Rules not found in " + ads)
+        self.assertEqual(int(match.group(1)), css_to_ada.MAX_STYLE_RULES)
+
+    def test_cli_fails_naming_the_selector(self):
+        tools_dir = os.path.dirname(os.path.abspath(__file__))
+        script = os.path.join(tools_dir, "css_to_ada.py")
+        with tempfile.TemporaryDirectory() as td:
+            input_path = os.path.join(td, "in.css")
+            output_path = os.path.join(td, "out.ads")
+            with open(input_path, "w", encoding="utf-8") as f:
+                f.write(self._css(css_to_ada.MAX_STYLE_RULES + 1))
+            proc = subprocess.run(
+                [sys.executable, script, input_path, output_path,
+                 "--package-name", "Tmp_Styles"],
+                capture_output=True, text=True,
+            )
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn("class 'c'", proc.stderr)
+            self.assertFalse(os.path.exists(output_path))
 
 
 class TestCliStrictMode(unittest.TestCase):

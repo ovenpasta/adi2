@@ -3,11 +3,28 @@
 
 pragma Ada_2022;
 
+with Ada.Containers;
+with Interfaces;
+
 --  Instrumentation the tests need and applications do not.
 package Adi.Widget.Testing is
 
    --  Distinct styles the interning store holds. It only ever grows, so
    --  a test measures a step across an operation, not an absolute.
    function Interned_Styles return Natural;
+
+   --  Entries the resolved-style memo holds. It is cleared wholesale at
+   --  its cap, so this rises and falls.
+   function Memo_Entries return Natural;
+
+   --  Key hash of the resolved-style memo, over the raw key fields: two
+   --  interned style handles, three packed state words and the font
+   --  generation.
+   function Resolved_Cache_Hash
+     (Part_Handle, Main_Handle : Natural;
+      Widget_State_Bits, Part_State_Bits,
+      Main_Part_State_Bits     : Interfaces.Unsigned_16;
+      Font_Gen                 : Interfaces.Unsigned_32)
+      return Ada.Containers.Hash_Type;
 
 end Adi.Widget.Testing;

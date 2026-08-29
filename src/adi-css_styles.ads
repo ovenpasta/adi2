@@ -1284,24 +1284,36 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
 
    type CSS_Property_Set is array (CSS_Property) of Boolean;
 
+   --  A CSS_Property_Set aggregate that names every literal but the last
+   --  is still legal: its bounds simply stop early. Pinning the last
+   --  literal is what makes a new property reach every such aggregate --
+   --  Set_Properties, Layout_Affecting_Properties and
+   --  Adi.Animation.Snaps_At_Midpoint.
+   pragma Compile_Time_Error
+     (CSS_Property'Last /= Prop_Transition,
+      "a CSS_Property past Prop_Transition slips past the per-property "
+      & "tables: name it in each of them, then move this check");
+
    --  Which properties a rule set names, whether it sets or clears them.
    function Set_Properties (S : Style_Rules) return CSS_Property_Set;
 
-   --  Properties that inherit from Main_Part to sub-parts (matching CSS spec).
-   --  Text/typography and cursor inherit; box-model/layout properties do not.
+   --  Properties that inherit from Main_Part to sub-parts (matching CSS
+   --  spec). Text/typography, cursor and visibility inherit; box-model
+   --  and layout properties do not. Inherit_From reads this and nothing
+   --  else, so a property changes side here alone.
    Inheritable_Properties : constant CSS_Property_Set :=
      [Prop_Color           | Prop_Font_Family    | Prop_Font_Size       |
       Prop_Font_Weight     | Prop_Font_Style     | Prop_Text_Align      |
       Prop_Vertical_Align  | Prop_Text_Decoration |
       Prop_Text_Overflow   | Prop_Text_Wrap_Mode | Prop_Line_Height     |
-      Prop_White_Space     | Prop_Cursor         |
+      Prop_White_Space     | Prop_Cursor         | Prop_Visibility      |
       Prop_List_Style_Type | Prop_List_Style_Image |
       Prop_List_Style_Position => True,
       others => False];
 
    --  Inherit inheritable CSS properties from Parent into Child.
    --  For each property in Inheritable_Properties: if Child's field is
-   --  Undefined, use Parent's field. Non-inheritable properties pass through.
+   --  Undefined, use Parent's field. The rest pass through unchanged.
    function Inherit_From (Parent, Child : Style_Rules) return Style_Rules;
 
    -------------------------------------------------
@@ -1402,6 +1414,94 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    end record;
 
    function Resolve (S : Style_Rules) return Resolved_Style;
+
+   --  The fields one property owns, copied from Source into Target.
+   procedure Copy_Property
+     (P      : CSS_Property;
+      Source : Resolved_Style;
+      Target : in out Resolved_Style);
+
+   --  Whether two resolved styles disagree on the fields one property
+   --  owns.
+   function Property_Differs
+     (P : CSS_Property; L, R : Resolved_Style) return Boolean;
+
+   --  Properties whose resolved value reaches layout, so a change to one
+   --  demands a new layout pass rather than a repaint. The rest reach the
+   --  frame another way: border-style through the raw border width,
+   --  visibility through the fold of collapse onto hidden, the two text
+   --  alignments through Build_Items, object-fit through the draw path.
+   Layout_Affecting_Properties : constant CSS_Property_Set :=
+     [Prop_Color               => False,
+      Prop_Background_Color    => False,
+      Prop_Background_Image    => False,
+      Prop_Border_Radius       => False,
+      Prop_Border_Width        => True,
+      Prop_Border_Color        => False,
+      Prop_Border_Style        => False,
+      Prop_Outline_Width       => False,
+      Prop_Outline_Color       => False,
+      Prop_Outline_Style       => False,
+      Prop_Outline_Offset      => False,
+      Prop_Padding             => True,
+      Prop_Margin              => True,
+      Prop_Width               => True,
+      Prop_Height              => True,
+      Prop_Min_Width           => True,
+      Prop_Max_Width           => True,
+      Prop_Min_Height          => True,
+      Prop_Max_Height          => True,
+      Prop_Font_Family         => True,
+      Prop_Font_Size           => True,
+      Prop_Font_Weight         => True,
+      Prop_Font_Style          => True,
+      Prop_Text_Align          => False,
+      Prop_Vertical_Align      => False,
+      Prop_Text_Decoration     => True,
+      Prop_List_Style_Type     => True,
+      Prop_List_Style_Image    => True,
+      Prop_List_Style_Position => True,
+      Prop_White_Space         => True,
+      Prop_Text_Overflow       => True,
+      Prop_Text_Wrap_Mode      => True,
+      Prop_Line_Height         => True,
+      Prop_Display             => True,
+      Prop_Position            => True,
+      Prop_Overflow            => False,
+      Prop_Overflow_X          => True,
+      Prop_Overflow_Y          => True,
+      Prop_Visibility          => False,
+      Prop_Top                 => True,
+      Prop_Right               => True,
+      Prop_Bottom              => True,
+      Prop_Left                => True,
+      Prop_Opacity             => False,
+      Prop_Cursor              => False,
+      Prop_Box_Shadow          => False,
+      Prop_Object_Fit          => False,
+      Prop_Object_Position     => False,
+      Prop_Flex_Direction      => True,
+      Prop_Flex_Wrap           => True,
+      Prop_Justify_Content     => True,
+      Prop_Align_Items         => True,
+      Prop_Align_Content       => True,
+      Prop_Gap                 => True,
+      Prop_Grid_Columns        => True,
+      Prop_Grid_Rows           => True,
+      Prop_Align_Self          => True,
+      Prop_Flex_Grow           => True,
+      Prop_Flex_Shrink         => True,
+      Prop_Flex_Basis          => True,
+      Prop_Order               => True,
+      Prop_Grid_Column         => True,
+      Prop_Grid_Row            => True,
+      Prop_Grid_Column_Span    => True,
+      Prop_Grid_Row_Span       => True,
+      Prop_Transition          => False];
+
+   function Layout_Affecting_Diff (L, R : Resolved_Style) return Boolean is
+     (for some P in CSS_Property =>
+        Layout_Affecting_Properties (P) and then Property_Differs (P, L, R));
 
    -------------------------------------------------
    -- Font name resolution callback

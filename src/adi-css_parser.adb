@@ -18,7 +18,10 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
+with Adi.Style_Merge;
 with Adi.Widget;        use Adi.Widget;
+with Adi.Widget.Window_Bridge;
+pragma Elaborate_All (Adi.Widget.Window_Bridge);
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 package body Adi.CSS_Parser is
@@ -79,7 +82,7 @@ package body Adi.CSS_Parser is
      (Index_Type => Positive,
       Element_Type => Variable_Entry);
 
-   type Stylesheet_Impl is record
+   type Stylesheet_Impl is new Sheet_Impl_Base with record
       Selectors     : Selector_Style_Vectors.Vector;
       Bindings      : Binding_Vectors.Vector;
       Root_Target   : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
@@ -124,10 +127,93 @@ package body Adi.CSS_Parser is
      (Index_Type => Positive,
       Element_Type => Unbounded_String);
 
+   type Stylesheet_Impl_Ptr is access all Stylesheet_Impl;
+
+   --  What the sheet's handle names, or null once it is destroyed --
+   --  which is what a copy of a destroyed sheet gets, in place of a
+   --  pointer into freed memory.
+   function Impl_Of (Sheet : Stylesheet) return Stylesheet_Impl_Ptr is
+      P : constant Sheet_Impl_Access := Sheet_Stores.Get (Sheet.Id);
+   begin
+      if P = null then
+         return null;
+      end if;
+      return Stylesheet_Impl (P.all)'Unchecked_Access;
+   end Impl_Of;
+
+   procedure Prune_Widget (Impl : Stylesheet_Impl_Ptr;
+                           H    : Adi.Widget.Widget_Handle) is
+   begin
+      Impl.Effective.Exclude (H);
+
+      for I in 1 .. Natural (Impl.Bindings.Length) loop
+         if Impl.Bindings (I).Target = H then
+            --  Order across targets carries nothing: Reapply_Bindings
+            --  styles each widget from its own binding.
+            Impl.Bindings.Replace_Element (I, Impl.Bindings.Last_Element);
+            Impl.Bindings.Delete_Last;
+            exit;
+         end if;
+      end loop;
+
+      if Impl.Root_Target = H then
+         Impl.Root_Target := Adi.Widget.Null_Handle;
+      end if;
+   end Prune_Widget;
+
+   procedure On_Widget_Destroyed (H : Adi.Widget.Widget_Handle) is
+      procedure Prune_One (Id  : Sheet_Stores.Object_Id;
+                           Obj : not null Sheet_Impl_Access) is
+         pragma Unreferenced (Id);
+      begin
+         Prune_Widget (Stylesheet_Impl (Obj.all)'Unchecked_Access, H);
+      end Prune_One;
+
+      procedure Prune_All is new Sheet_Stores.For_Each_Alive (Prune_One);
+   begin
+      Prune_All;
+   end On_Widget_Destroyed;
+
+   function Binding_Count (Sheet : Stylesheet) return Natural is
+     (if Impl_Of (Sheet) = null then 0
+      else Natural (Impl_Of (Sheet).Bindings.Length));
+
+   function Effective_Count (Sheet : Stylesheet) return Natural is
+     (if Impl_Of (Sheet) = null then 0
+      else Natural (Impl_Of (Sheet).Effective.Length));
+
+   function Live_Impl_Count return Natural is
+      N : Natural := 0;
+
+      procedure Count_One (Id  : Sheet_Stores.Object_Id;
+                           Obj : not null Sheet_Impl_Access) is
+         pragma Unreferenced (Id, Obj);
+      begin
+         N := N + 1;
+      end Count_One;
+
+      procedure Count_All is new Sheet_Stores.For_Each_Alive (Count_One);
+   begin
+      Count_All;
+      return N;
+   end Live_Impl_Count;
+
+   function Is_Valid (Sheet : Stylesheet) return Boolean is
+     (Sheet_Stores.Is_Valid (Sheet.Id));
+
+   procedure Destroy (Sheet : in out Stylesheet) is
+   begin
+      --  Nothing is pinned, so the store frees here rather than at a
+      --  later Pump; a second call finds the handle stale and does
+      --  nothing, as does a call on a copy.
+      Sheet_Stores.Request_Destroy (Sheet.Id);
+      Sheet.Id := Sheet_Stores.Null_Id;
+   end Destroy;
+
    procedure Ensure_Impl (Sheet : in out Stylesheet) is
    begin
-      if Sheet.Impl = null then
-         Sheet.Impl := new Stylesheet_Impl;
+      if Impl_Of (Sheet) = null then
+         Sheet.Id := Sheet_Stores.Register (new Stylesheet_Impl);
       end if;
    end Ensure_Impl;
 
@@ -140,51 +226,6 @@ package body Adi.CSS_Parser is
       end if;
    end Apply_Metadata_To_Widget;
 
-   function Merge_Widget_Styles
-     (Base, Override : Widget_Style) return Widget_Style
-   is
-      Result     : Widget_Style := Base;
-      Rule_Index : Natural := 0;
-   begin
-      Result.Base := Merge (Result.Base, Override.Base);
-
-      for I in 1 .. Override.Rule_Count loop
-         Rule_Index := 0;
-         for J in 1 .. Result.Rule_Count loop
-            if Result.Rules (J).Selector = Override.Rules (I).Selector then
-               Rule_Index := J;
-               exit;
-            end if;
-         end loop;
-
-         if Rule_Index = 0 then
-            if Result.Rule_Count < Max_Style_Rules then
-               Add_Rule (Result, Override.Rules (I));
-            end if;
-         else
-            Result.Rules (Rule_Index).Style :=
-              Merge (Result.Rules (Rule_Index).Style, Override.Rules (I).Style);
-         end if;
-      end loop;
-
-      return Result;
-   end Merge_Widget_Styles;
-
-   function Merge_Part_Style_Arrays
-     (Base, Override : Part_Style_Array) return Part_Style_Array
-   is
-      Result : Part_Style_Array := Base;
-   begin
-      for P in Part_Kind loop
-         if Override (P).Enabled then
-            Result (P).Enabled := True;
-            Result (P).Style :=
-              Merge_Widget_Styles (Result (P).Style, Override (P).Style);
-         end if;
-      end loop;
-      return Result;
-   end Merge_Part_Style_Arrays;
-
    function Root_Merged_Styles
      (Impl   : Stylesheet_Impl;
       Target : Adi.Widget.Widget_Handle;
@@ -195,7 +236,7 @@ package body Adi.CSS_Parser is
         and then Impl.Root_Target = Target
         and then Impl.Metadata.Has_Root_Style
       then
-         return Merge_Part_Style_Arrays (Impl.Metadata.Root_Styles, Styles);
+         return Adi.Style_Merge.Merge (Impl.Metadata.Root_Styles, Styles);
       end if;
 
       return Styles;
@@ -3631,17 +3672,17 @@ package body Adi.CSS_Parser is
       Ensure_Impl (Sheet);
 
       if not Parse_Rules (CSS_Content, Rules, Vars, Metadata, Err) then
-         Sheet.Impl.Last_Error := Err;
+         Impl_Of (Sheet).Last_Error := Err;
          Success := False;
          return;
       end if;
 
-      Build_Styles (Sheet.Impl.all, Rules, Success);
+      Build_Styles (Impl_Of (Sheet).all, Rules, Success);
       if Success then
-         Sheet.Impl.Metadata := Metadata;
-         Sheet.Impl.Variables := Vars;
-         Sheet.Impl.Last_Error := Null_Unbounded_String;
-         Reapply_Bindings (Sheet.Impl.all);
+         Impl_Of (Sheet).Metadata := Metadata;
+         Impl_Of (Sheet).Variables := Vars;
+         Impl_Of (Sheet).Last_Error := Null_Unbounded_String;
+         Reapply_Bindings (Impl_Of (Sheet).all);
       end if;
    end Load_String;
 
@@ -3654,12 +3695,12 @@ package body Adi.CSS_Parser is
       Ensure_Impl (Sheet);
 
       if not Ada.Directories.Exists (Path) then
-         Sheet.Impl.Last_Error := To_Unbounded_String ("CSS file not found: " & Path);
+         Impl_Of (Sheet).Last_Error := To_Unbounded_String ("CSS file not found: " & Path);
          Success := False;
          return;
       end if;
 
-      Sheet.Impl.Source_Path := To_Unbounded_String (Path);
+      Impl_Of (Sheet).Source_Path := To_Unbounded_String (Path);
 
       Ada.Text_IO.Open (File => File,
                         Mode => Ada.Text_IO.In_File,
@@ -3672,14 +3713,14 @@ package body Adi.CSS_Parser is
 
       Load_String (Sheet, To_String (Buf), Success);
       if Success then
-         Sheet.Impl.Last_Modified := Ada.Directories.Modification_Time (Path);
+         Impl_Of (Sheet).Last_Modified := Ada.Directories.Modification_Time (Path);
       end if;
    exception
       when E : others =>
          if Ada.Text_IO.Is_Open (File) then
             Ada.Text_IO.Close (File);
          end if;
-         Sheet.Impl.Last_Error := To_Unbounded_String
+         Impl_Of (Sheet).Last_Error := To_Unbounded_String
            ("Failed to load CSS file: " & Ada.Exceptions.Exception_Message (E));
          Success := False;
    end Load_File;
@@ -3687,7 +3728,7 @@ package body Adi.CSS_Parser is
    procedure Reload_If_Changed (Sheet    : in out Stylesheet;
                                 Reloaded : out Boolean;
                                 Success  : out Boolean) is
-      Path : constant String := To_String (Sheet.Impl.Source_Path);
+      Path : constant String := To_String (Impl_Of (Sheet).Source_Path);
       Mod_Time : Ada.Calendar.Time;
    begin
       Ensure_Impl (Sheet);
@@ -3699,13 +3740,13 @@ package body Adi.CSS_Parser is
       end if;
 
       if not Ada.Directories.Exists (Path) then
-         Sheet.Impl.Last_Error := To_Unbounded_String ("CSS file not found: " & Path);
+         Impl_Of (Sheet).Last_Error := To_Unbounded_String ("CSS file not found: " & Path);
          Success := False;
          return;
       end if;
 
       Mod_Time := Ada.Directories.Modification_Time (Path);
-      if Mod_Time > Sheet.Impl.Last_Modified then
+      if Mod_Time > Impl_Of (Sheet).Last_Modified then
          Load_File (Sheet, Path, Success);
          Reloaded := Success;
       end if;
@@ -3715,10 +3756,10 @@ package body Adi.CSS_Parser is
                  Kind : Selector_Kind;
                  Name : String) return Boolean is
    begin
-      if Sheet.Impl = null then
+      if Impl_Of (Sheet) = null then
          return False;
       end if;
-      return Find_Selector_Index (Sheet.Impl.all, Kind, Name) > 0;
+      return Find_Selector_Index (Impl_Of (Sheet).all, Kind, Name) > 0;
    end Has;
 
    function Has_Class (Sheet : Stylesheet; Class_Name : String) return Boolean is
@@ -3741,16 +3782,16 @@ package body Adi.CSS_Parser is
                         Name  : String) return Part_Style_Array is
       Idx : Natural := 0;
    begin
-      if Sheet.Impl = null then
+      if Impl_Of (Sheet) = null then
          return Empty_Part_Styles;
       end if;
 
-      Idx := Find_Selector_Index (Sheet.Impl.all, Kind, Name);
+      Idx := Find_Selector_Index (Impl_Of (Sheet).all, Kind, Name);
       if Idx = 0 then
          return Empty_Part_Styles;
       end if;
 
-      return Adi.Widget.Expand (Sheet.Impl.Selectors (Positive (Idx)).Styles);
+      return Adi.Widget.Expand (Impl_Of (Sheet).Selectors (Positive (Idx)).Styles);
    end Styles_For;
 
    function Styles_For_Class (Sheet : Stylesheet;
@@ -3779,36 +3820,36 @@ package body Adi.CSS_Parser is
 
    function Get_Metadata (Sheet : Stylesheet) return Stylesheet_Metadata is
    begin
-      if Sheet.Impl = null then
+      if Impl_Of (Sheet) = null then
          return (others => <>);
       end if;
-      return Sheet.Impl.Metadata;
+      return Impl_Of (Sheet).Metadata;
    end Get_Metadata;
 
    function Has_Custom_Property (Sheet : Stylesheet; Name : String) return Boolean is
    begin
-      if Sheet.Impl = null then
+      if Impl_Of (Sheet) = null then
          return False;
       end if;
-      return Has_Variable (Sheet.Impl.Variables, Trimmed (Name));
+      return Has_Variable (Impl_Of (Sheet).Variables, Trimmed (Name));
    end Has_Custom_Property;
 
    function Get_Custom_Property (Sheet : Stylesheet; Name : String) return String is
    begin
-      if Sheet.Impl = null then
+      if Impl_Of (Sheet) = null then
          return "";
       end if;
-      return Var_Lookup (Sheet.Impl.Variables, Trimmed (Name));
+      return Var_Lookup (Impl_Of (Sheet).Variables, Trimmed (Name));
    end Get_Custom_Property;
 
    procedure Apply_Root_Metadata
      (Sheet : Stylesheet;
       W     : in out Adi.Widget.Widget'Class) is
    begin
-      if Sheet.Impl = null then
+      if Impl_Of (Sheet) = null then
          return;
       end if;
-      Apply_Metadata_To_Widget (Sheet.Impl.Metadata, W);
+      Apply_Metadata_To_Widget (Impl_Of (Sheet).Metadata, W);
    end Apply_Root_Metadata;
 
    procedure Bind_Root_Metadata
@@ -3822,20 +3863,20 @@ package body Adi.CSS_Parser is
 
       declare
          Prev     : constant Adi.Widget.Widget_Handle :=
-           Sheet.Impl.Root_Target;
+           Impl_Of (Sheet).Root_Target;
          Next     : constant Adi.Widget.Widget_Handle :=
            Adi.Widget.Get_Handle (W.all);
       begin
-         Sheet.Impl.Root_Target := Next;
+         Impl_Of (Sheet).Root_Target := Next;
 
          --  Only the root target has :root merged into its styles, so
          --  handing the role over changes the widget losing it and the
          --  one taking it, and no other binding. Each is restyled from
          --  its own binding, so neither loses its selectors.
          if Prev /= Next then
-            Restyle (Sheet.Impl.all, Prev);
+            Restyle (Impl_Of (Sheet).all, Prev);
          end if;
-         Restyle (Sheet.Impl.all, Next);
+         Restyle (Impl_Of (Sheet).all, Next);
       end;
    end Bind_Root_Metadata;
 
@@ -3858,22 +3899,22 @@ package body Adi.CSS_Parser is
                     W     : in out Adi.Widget.Widget'Class) is
       Idx : Natural := 0;
    begin
-      if Sheet.Impl /= null then
-         Idx := Find_Selector_Index (Sheet.Impl.all, Kind, Name);
+      if Impl_Of (Sheet) /= null then
+         Idx := Find_Selector_Index (Impl_Of (Sheet).all, Kind, Name);
       end if;
 
       if Idx = 0 then
          Set_Part_Styles
            (W,
-            Root_Merged_Styles (Sheet.Impl.all, Adi.Widget.Get_Handle (W), Empty_Part_Styles));
+            Root_Merged_Styles (Impl_Of (Sheet).all, Adi.Widget.Get_Handle (W), Empty_Part_Styles));
       else
          declare
             Sel : Selector_Style renames
-              Sheet.Impl.Selectors.Constant_Reference (Positive (Idx)).Element.all;
+              Impl_Of (Sheet).Selectors.Constant_Reference (Positive (Idx)).Element.all;
          begin
             Set_Part_Styles
               (W,
-               Root_Merged_Styles (Sheet.Impl.all, Adi.Widget.Get_Handle (W),
+               Root_Merged_Styles (Impl_Of (Sheet).all, Adi.Widget.Get_Handle (W),
                                    Adi.Widget.Expand (Sel.Styles)));
          end;
       end if;
@@ -3911,26 +3952,26 @@ package body Adi.CSS_Parser is
          return;
       end if;
 
-      for I in 1 .. Natural (Sheet.Impl.Bindings.Length) loop
-         if Sheet.Impl.Bindings (I).Target = Adi.Widget.Get_Handle (W.all) then
-            Sheet.Impl.Bindings.Replace_Element
+      for I in 1 .. Natural (Impl_Of (Sheet).Bindings.Length) loop
+         if Impl_Of (Sheet).Bindings (I).Target = Adi.Widget.Get_Handle (W.all) then
+            Impl_Of (Sheet).Bindings.Replace_Element
               (I, (Kind   => Kind,
                    Name   => To_Unbounded_String (Key),
                    Target => Adi.Widget.Get_Handle (W.all)));
-            Sheet.Impl.Effective.Include
-              (Adi.Widget.Get_Handle (W.all), Sheet.Impl.Bindings (I));
+            Impl_Of (Sheet).Effective.Include
+              (Adi.Widget.Get_Handle (W.all), Impl_Of (Sheet).Bindings (I));
             Apply (Sheet, Kind, Key, W.all);
             return;
          end if;
       end loop;
 
-      Sheet.Impl.Bindings.Append
+      Impl_Of (Sheet).Bindings.Append
         (New_Item => Binding'
            (Kind   => Kind,
             Name   => To_Unbounded_String (Key),
             Target => Adi.Widget.Get_Handle (W.all)));
-      Sheet.Impl.Effective.Include
-        (Adi.Widget.Get_Handle (W.all), Sheet.Impl.Bindings.Last_Element);
+      Impl_Of (Sheet).Effective.Include
+        (Adi.Widget.Get_Handle (W.all), Impl_Of (Sheet).Bindings.Last_Element);
       Apply (Sheet, Kind, Key, W.all);
    end Bind;
 
@@ -3992,18 +4033,21 @@ package body Adi.CSS_Parser is
 
    function Get_Last_Error (Sheet : Stylesheet) return String is
    begin
-      if Sheet.Impl = null then
+      if Impl_Of (Sheet) = null then
          return "";
       end if;
-      return To_String (Sheet.Impl.Last_Error);
+      return To_String (Impl_Of (Sheet).Last_Error);
    end Get_Last_Error;
 
    function Get_Source_Path (Sheet : Stylesheet) return String is
    begin
-      if Sheet.Impl = null then
+      if Impl_Of (Sheet) = null then
          return "";
       end if;
-      return To_String (Sheet.Impl.Source_Path);
+      return To_String (Impl_Of (Sheet).Source_Path);
    end Get_Source_Path;
 
+begin
+   Adi.Widget.Window_Bridge.Install_Destroy_Notice
+     (On_Widget_Destroyed'Access);
 end Adi.CSS_Parser;

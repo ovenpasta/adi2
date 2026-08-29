@@ -5,6 +5,7 @@ pragma Ada_2022;
 
 with Adi.JSON;
 with Adi.Render;
+with Adi.Window;
 
 --  Instrumentation the tests need and applications do not.
 package Adi.MCP.Testing is
@@ -17,5 +18,11 @@ package Adi.MCP.Testing is
    procedure Write_Texture_Cache
      (W     : in out Adi.JSON.JSON_Writer;
       Stats : Adi.Render.Texture_Stats);
+
+   --  The rest of a perf_stats response: frame timings and the
+   --  per-frame counters, asserted the same way and for the same reason.
+   procedure Write_Frame_Stats
+     (W     : in out Adi.JSON.JSON_Writer;
+      Stats : Adi.Window.Frame_Stats);
 
 end Adi.MCP.Testing;

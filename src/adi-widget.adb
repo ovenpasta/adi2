@@ -106,8 +106,19 @@ package body Adi.Widget is
       end if;
    end Finalize;
 
+   Library_Finalizing : Boolean := False;
+
+   function In_Library_Finalization return Boolean is (Library_Finalizing);
+
    --  Forward declaration for recursive child destruction
    procedure Destroy_Subtree (W : not null Widget_Access);
+
+   procedure Notify_Destroy (H : Widget_Handle) is
+   begin
+      for Notice of Destroy_Notices loop
+         Notice (H);
+      end loop;
+   end Notify_Destroy;
 
    procedure Destroy (H : in out Widget_Handle) is
       Obj : constant Widget_Access := Widget_Stores.Get (H.Id);
@@ -117,11 +128,13 @@ package body Adi.Widget is
          return;
       end if;
 
-      --  Tell the window layer before detaching from the parent: it
-      --  finds the host by subtree membership, so the widget has to
-      --  still be in the tree.  H still resolves here.
-      if Destroy_Notice_Slot /= null then
-         Destroy_Notice_Slot (H);
+      --  Tell the layers above before detaching from the parent: the
+      --  window finds the host by subtree membership, so the widget has
+      --  to still be in the tree.  H still resolves here.  Not during
+      --  library finalization: a subscriber reached then may itself be
+      --  gone, which is why the subtree walk below is guarded too.
+      if not In_Library_Finalization then
+         Notify_Destroy (H);
       end if;
 
       --  Detach from parent
@@ -133,10 +146,6 @@ package body Adi.Widget is
       Destroy_Subtree (Obj);
       H.Id := Widget_Stores.Null_Id;
    end Destroy;
-
-   Library_Finalizing : Boolean := False;
-
-   function In_Library_Finalization return Boolean is (Library_Finalizing);
 
    procedure Begin_Library_Finalization is
    begin
@@ -163,6 +172,13 @@ package body Adi.Widget is
                if Child /= null then
                   Child.Parent := null;
                   if Child.Store_Index > 0 then
+                     --  Destroy signals for the handle it was given and
+                     --  then lands here, so without this a subscriber
+                     --  hears nothing about a subtree's descendants --
+                     --  the ordinary way a bound panel goes away.
+                     if not In_Library_Finalization then
+                        Notify_Destroy (Get_Handle (Child.all));
+                     end if;
                      Destroy_Subtree (Child);
                   end if;
                end if;
@@ -308,12 +324,14 @@ package body Adi.Widget is
 
    --  Per-frame perf counters for debug stats overlay.
    --  Reset by the Window before each frame, read after rendering.
-   Perf_Style_Resolves : Natural := 0;
-   Perf_Style_Hits     : Natural := 0;
-   Perf_Layout_Calls   : Natural := 0;
-   Perf_Layout_Skips   : Natural := 0;
-   Perf_Pref_Calls     : Natural := 0;
-   Perf_Pref_Hits      : Natural := 0;
+   Perf_Style_Resolves  : Natural := 0;
+   Perf_Style_Hits      : Natural := 0;
+   Perf_Style_Memo_Hits : Natural := 0;
+   Perf_Style_Computes  : Natural := 0;
+   Perf_Layout_Calls    : Natural := 0;
+   Perf_Layout_Skips    : Natural := 0;
+   Perf_Pref_Calls      : Natural := 0;
+   Perf_Pref_Hits       : Natural := 0;
 
    --  Saturating increment for perf counters: caps at Natural'Last
    --  instead of raising CONSTRAINT_ERROR on long-idle frames.
@@ -325,7 +343,6 @@ package body Adi.Widget is
       end if;
    end Inc_Sat;
 
-   subtype Packed_State_Bits is Interfaces.Unsigned_16;
    use type Packed_State_Bits;
 
    type Ordered_Rule_Index_Array is
@@ -536,18 +553,35 @@ package body Adi.Widget is
       return Result;
    end Pack_States;
 
-   function Hash_Resolved_Cache_Key
-     (K : Resolved_Cache_Key) return Hash_Type
+   function Resolved_Cache_Hash
+     (Part_Handle, Main_Handle : Style_Handle;
+      Widget_State_Bits, Part_State_Bits,
+      Main_Part_State_Bits     : Packed_State_Bits;
+      Font_Gen                 : Adi.Font.Font_Generation)
+      return Hash_Type
    is
+      --  Modular throughout: in Natural the multiply overflows past a
+      --  handle of 53,020, and a shift inside Packed_State_Bits sheds
+      --  the bits it moves past the sixteenth.
+      function Wide (B : Packed_State_Bits) return Interfaces.Unsigned_32
+        is (Interfaces.Unsigned_32 (B));
+
       H : Hash_Type :=
-        Hash_Type (Natural (K.Part_Handle) * 16#9E37# + Natural (K.Main_Handle));
+        Hash_Type (Part_Handle) * 16#9E37# + Hash_Type (Main_Handle);
    begin
-      H := H xor Hash_Type (K.Widget_States);
-      H := H xor Hash_Type (Interfaces.Shift_Left (K.Part_States, 4));
-      H := H xor Hash_Type (Interfaces.Shift_Left (K.Main_Part_States, 8));
-      H := H xor Hash_Type (K.Font_Gen);
+      H := H xor Hash_Type (Widget_State_Bits);
+      H := H xor Hash_Type (Interfaces.Shift_Left (Wide (Part_State_Bits), 4));
+      H := H xor
+        Hash_Type (Interfaces.Shift_Left (Wide (Main_Part_State_Bits), 8));
+      H := H xor Hash_Type (Font_Gen);
       return H;
-   end Hash_Resolved_Cache_Key;
+   end Resolved_Cache_Hash;
+
+   function Hash_Resolved_Cache_Key
+     (K : Resolved_Cache_Key) return Hash_Type is
+     (Resolved_Cache_Hash
+        (K.Part_Handle, K.Main_Handle, K.Widget_States, K.Part_States,
+         K.Main_Part_States, K.Font_Gen));
 
    type Scrollbar_Metrics is record
       Width       : Pixel_Type := 10.0;
@@ -981,6 +1015,72 @@ package body Adi.Widget is
       return W.Part_Style_Handles (P);
    end Effective_Part_Handle;
 
+   --  The resolved style a part takes in the states given, through the
+   --  global memo. The states are parameters rather than read from W, so
+   --  a state the widget has just left resolves the same way as the one
+   --  it is in. The caller counts the call; this counts which layer
+   --  answered.
+   function Memo_Resolved_Style
+     (W          : Widget'Class;
+      P          : Part_Kind;
+      Widget_Set : Widget_States;
+      Part_Set   : Widget_States) return Resolved_Style
+   is
+      Part_Handle : constant Style_Handle := Effective_Part_Handle (W, P);
+      Main_Handle : constant Style_Handle :=
+        Effective_Part_Handle (W, Main_Part);
+      --  Sub-parts inherit from the main part, so its states belong to
+      --  the key too -- and when P is the main part they are Part_Set.
+      Main_Set : constant Widget_States :=
+        (if P = Main_Part then Part_Set else W.Part_States (Main_Part));
+      Key : constant Resolved_Cache_Key :=
+        (Part_Handle      => Part_Handle,
+         Main_Handle      => Main_Handle,
+         Widget_States    => Pack_States (Widget_Set),
+         Part_States      => Pack_States (Part_Set),
+         Main_Part_States => Pack_States (Main_Set),
+         Font_Gen         => Adi.Font.Environment_Generation);
+      Cur : constant Resolved_Cache_Maps.Cursor :=
+        Global_Resolved_Cache.Find (Key);
+      Result : Resolved_Style;
+   begin
+      if Resolved_Cache_Maps.Has_Element (Cur) then
+         Inc_Sat (Perf_Style_Memo_Hits);
+         return Resolved_Cache_Maps.Element (Cur);
+      end if;
+
+      Inc_Sat (Perf_Style_Computes);
+
+      declare
+         Part_Entry : constant access constant Prepared_Style_Entry :=
+           Entry_From_Handle (Part_Handle);
+         Part_Rules : Style_Rules :=
+           Compute_Style_Prepared (Part_Entry.all, Widget_Set, Part_Set);
+      begin
+         --  Sub-parts inherit text/typography properties from Main_Part.
+         --  Explicit ::part rules override inherited values.
+         if P /= Main_Part and then P /= Any_Part then
+            declare
+               Main_Entry : constant access constant Prepared_Style_Entry :=
+                 Entry_From_Handle (Main_Handle);
+               Main_Rules : constant Style_Rules :=
+                 Compute_Style_Prepared (Main_Entry.all, Widget_Set, Main_Set);
+            begin
+               Part_Rules := Inherit_From (Main_Rules, Part_Rules);
+            end;
+         end if;
+
+         Result := Resolve (Part_Rules);
+      end;
+
+      if Global_Resolved_Cache.Length >= Max_Global_Resolved_Entries then
+         Global_Resolved_Cache.Clear;
+      end if;
+      Global_Resolved_Cache.Insert (Key, Result);
+      Resolved_Memo_Entries := Natural (Global_Resolved_Cache.Length);
+      return Result;
+   end Memo_Resolved_Style;
+
    --  Classification of a state-driven style change.  Used to decide
    --  whether we only need to re-render or also need to re-layout.
    type Style_Diff_Kind is
@@ -992,55 +1092,6 @@ package body Adi.Widget is
                                  --  affects size, position, intrinsic
                                  --  metrics or layout participation —
                                  --  must re-layout
-
-   function Layout_Affecting_Diff (L, R : Resolved_Style) return Boolean is
-     (L.Border_Width        /= R.Border_Width
-      or else L.Padding           /= R.Padding
-      or else L.Margin            /= R.Margin
-      or else L.Width             /= R.Width
-      or else L.Height            /= R.Height
-      or else L.Min_Width         /= R.Min_Width
-      or else L.Max_Width         /= R.Max_Width
-      or else L.Min_Height        /= R.Min_Height
-      or else L.Max_Height        /= R.Max_Height
-      or else L.Font_Family       /= R.Font_Family
-      or else L.Font_Size         /= R.Font_Size
-      or else L.Font_Weight       /= R.Font_Weight
-      or else L.Font_Style        /= R.Font_Style
-      or else L.Text_Decoration   /= R.Text_Decoration
-      or else L.List_Style_Type   /= R.List_Style_Type
-      or else L.List_Style_Image  /= R.List_Style_Image
-      or else L.List_Style_Position /= R.List_Style_Position
-      or else L.White_Space       /= R.White_Space
-      or else L.Text_Overflow     /= R.Text_Overflow
-      or else L.Text_Wrap_Mode    /= R.Text_Wrap_Mode
-      or else L.Line_Height       /= R.Line_Height
-      or else L.Display           /= R.Display
-      or else L.Position          /= R.Position
-      or else L.Top               /= R.Top
-      or else L.Right             /= R.Right
-      or else L.Bottom            /= R.Bottom
-      or else L.Left              /= R.Left
-      or else L.Overflow_X        /= R.Overflow_X
-      or else L.Overflow_Y        /= R.Overflow_Y
-      or else L.Flex_Direction    /= R.Flex_Direction
-      or else L.Flex_Wrap         /= R.Flex_Wrap
-      or else L.Justify_Content   /= R.Justify_Content
-      or else L.Align_Items       /= R.Align_Items
-      or else L.Align_Content     /= R.Align_Content
-      or else L.Gap               /= R.Gap
-      or else L.Grid_Columns      /= R.Grid_Columns
-      or else L.Grid_Rows         /= R.Grid_Rows
-      or else L.Grid_Column_Tracks /= R.Grid_Column_Tracks
-      or else L.Align_Self        /= R.Align_Self
-      or else L.Flex_Grow         /= R.Flex_Grow
-      or else L.Flex_Shrink       /= R.Flex_Shrink
-      or else L.Flex_Basis        /= R.Flex_Basis
-      or else L.Order             /= R.Order
-      or else L.Grid_Column       /= R.Grid_Column
-      or else L.Grid_Row          /= R.Grid_Row
-      or else L.Grid_Column_Span  /= R.Grid_Column_Span
-      or else L.Grid_Row_Span     /= R.Grid_Row_Span);
 
    function Widget_State_Style_Effect
      (W          : Widget'Class;
@@ -1073,15 +1124,15 @@ package body Adi.Widget is
             begin
                if H /= 0 and then Uses_Widget_State (Prepared.Style, Changed)
                then
+                  Inc_Sat (Perf_Style_Resolves);
+                  Inc_Sat (Perf_Style_Resolves);
                   declare
                      Old_Resolved : constant Resolved_Style :=
-                       Resolve
-                         (Compute_Style_Prepared
-                            (Prepared.all, Old_States, W.Part_States (P)));
+                       Memo_Resolved_Style
+                         (W, P, Old_States, W.Part_States (P));
                      New_Resolved : constant Resolved_Style :=
-                       Resolve
-                         (Compute_Style_Prepared
-                            (Prepared.all, Eff_States, W.Part_States (P)));
+                       Memo_Resolved_Style
+                         (W, P, Eff_States, W.Part_States (P));
                   begin
                      if Old_Resolved /= New_Resolved then
                         if Layout_Affecting_Diff
@@ -1132,15 +1183,14 @@ package body Adi.Widget is
             begin
                if H /= 0 and then Uses_Part_State (Prepared.Style, Changed_State)
                then
+                  Inc_Sat (Perf_Style_Resolves);
+                  Inc_Sat (Perf_Style_Resolves);
                   declare
                      Old_Resolved : constant Resolved_Style :=
-                       Resolve
-                         (Compute_Style_Prepared
-                            (Prepared.all, Eff_States, Old_States));
+                       Memo_Resolved_Style (W, P, Eff_States, Old_States);
                      New_Resolved : constant Resolved_Style :=
-                       Resolve
-                         (Compute_Style_Prepared
-                            (Prepared.all, Eff_States, W.Part_States (P)));
+                       Memo_Resolved_Style
+                         (W, P, Eff_States, W.Part_States (P));
                   begin
                      if Old_Resolved /= New_Resolved then
                         if Layout_Affecting_Diff
@@ -1549,15 +1599,6 @@ package body Adi.Widget is
       --  produce the same output.
       W_Mut : constant access Widget'Class := W'Unrestricted_Access;
       Eff   : constant Widget_States := Get_States (W);
-      Part_Handle : constant Style_Handle := Effective_Part_Handle (W, P);
-      Main_Handle : constant Style_Handle := Effective_Part_Handle (W, Main_Part);
-      Key : constant Resolved_Cache_Key := (
-        Part_Handle      => Part_Handle,
-        Main_Handle      => Main_Handle,
-        Widget_States    => Pack_States (Eff),
-        Part_States      => Pack_States (W.Part_States (P)),
-        Main_Part_States => Pack_States (W.Part_States (Main_Part)),
-        Font_Gen         => Adi.Font.Environment_Generation);
       Result : Resolved_Style;
    begin
       Inc_Sat (Perf_Style_Resolves);
@@ -1591,44 +1632,8 @@ package body Adi.Widget is
          return W_Mut.Cached_Resolved (P);
       end if;
 
-      --  Cache miss: probe global memo before computing.
-      declare
-         Cur : constant Resolved_Cache_Maps.Cursor :=
-           Global_Resolved_Cache.Find (Key);
-      begin
-         if Resolved_Cache_Maps.Has_Element (Cur) then
-            Result := Resolved_Cache_Maps.Element (Cur);
-         else
-            declare
-               Part_Entry : constant access constant Prepared_Style_Entry :=
-                 Entry_From_Handle (Part_Handle);
-               Part_Rules : Style_Rules :=
-                 Compute_Style_Prepared
-                   (Part_Entry.all, Eff, W.Part_States (P));
-            begin
-               --  Sub-parts inherit text/typography properties from Main_Part.
-               --  Explicit ::part rules override inherited values.
-               if P /= Main_Part and then P /= Any_Part then
-                  declare
-                     Main_Entry : constant access constant Prepared_Style_Entry :=
-                       Entry_From_Handle (Main_Handle);
-                     Main_Rules : constant Style_Rules :=
-                       Compute_Style_Prepared
-                         (Main_Entry.all, Eff, W.Part_States (Main_Part));
-                  begin
-                     Part_Rules := Inherit_From (Main_Rules, Part_Rules);
-                  end;
-               end if;
-
-               Result := Resolve (Part_Rules);
-            end;
-
-            if Global_Resolved_Cache.Length >= Max_Global_Resolved_Entries then
-               Global_Resolved_Cache.Clear;
-            end if;
-            Global_Resolved_Cache.Insert (Key, Result);
-         end if;
-      end;
+      --  Cache miss: the memo answers, or the cascade runs behind it.
+      Result := Memo_Resolved_Style (W, P, Eff, W.Part_States (P));
 
       W_Mut.Cached_Resolved (P) := Result;
       W_Mut.Cached_Resolved_Init (P) := True;
@@ -8159,16 +8164,20 @@ procedure Layout_Tree (H : Widget_Handle) renames Layout_Tree_W;
 
 procedure Reset_Perf_Counters is
 begin
-   Perf_Style_Resolves := 0;
-   Perf_Style_Hits     := 0;
-   Perf_Layout_Calls   := 0;
-   Perf_Layout_Skips   := 0;
-   Perf_Pref_Calls     := 0;
-   Perf_Pref_Hits      := 0;
+   Perf_Style_Resolves  := 0;
+   Perf_Style_Hits      := 0;
+   Perf_Style_Memo_Hits := 0;
+   Perf_Style_Computes  := 0;
+   Perf_Layout_Calls    := 0;
+   Perf_Layout_Skips    := 0;
+   Perf_Pref_Calls      := 0;
+   Perf_Pref_Hits       := 0;
 end Reset_Perf_Counters;
 
 function Get_Perf_Style_Resolves return Natural is (Perf_Style_Resolves);
 function Get_Perf_Style_Hits return Natural is (Perf_Style_Hits);
+function Get_Perf_Style_Memo_Hits return Natural is (Perf_Style_Memo_Hits);
+function Get_Perf_Style_Computes return Natural is (Perf_Style_Computes);
 function Get_Perf_Layout_Calls return Natural is (Perf_Layout_Calls);
 function Get_Perf_Layout_Skips return Natural is (Perf_Layout_Skips);
 function Get_Perf_Pref_Calls return Natural is (Perf_Pref_Calls);

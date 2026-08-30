@@ -15,8 +15,8 @@ package Adi.CSS_Parser is
 
    type Stylesheet_Metadata is record
       Has_Root_Style     : Boolean := False;
-      Root_Styles        : Adi.Widget.Part_Style_Array :=
-        Adi.Widget.Empty_Part_Styles;
+      Root_Styles        : Adi.Widget.Interned_Part_Styles :=
+        Adi.Widget.Empty_Interned_Part_Styles;
       Has_Root_Font_Size : Boolean := False;
       Root_Font_Size     : Adi.CSS_Styles.Length_Value :=
         Adi.CSS_Styles.Default_Font_Size;

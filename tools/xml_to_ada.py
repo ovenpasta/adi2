@@ -1326,7 +1326,8 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append("   function Inline_Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is")
         lines.append("     (")
         lines.append("      Has_Root_Style => Inline_Has_Root_Styles,")
-        lines.append("      Root_Styles => Inline_Root_Part_Styles,")
+        lines.append("      Root_Styles =>")
+        lines.append("        Adi.Widget.Intern (Inline_Root_Part_Styles),")
         lines.append("      Has_Root_Font_Size => Inline_Has_Root_Font_Size,")
         lines.append("      Root_Font_Size => Inline_Root_Font_Size);")
 
@@ -1340,7 +1341,10 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append("      if Override.Has_Root_Style then")
         lines.append("         if Result.Has_Root_Style then")
         lines.append("            Result.Root_Styles :=")
-        lines.append("              Merge_Part_Styles (Result.Root_Styles, Override.Root_Styles);")
+        lines.append("              Adi.Widget.Intern")
+        lines.append("                (Merge_Part_Styles")
+        lines.append("                   (Adi.Widget.Expand (Result.Root_Styles),")
+        lines.append("                    Adi.Widget.Expand (Override.Root_Styles)));")
         lines.append("         else")
         lines.append("            Result.Root_Styles := Override.Root_Styles;")
         lines.append("            Result.Has_Root_Style := True;")
@@ -2084,7 +2088,7 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append("         if Root_Meta.Has_Root_Style then")
             lines.append(
                 "            Adi.Widget.Dialog.Set_Panel_Style"
-                " (D, Root_Meta.Root_Styles);"
+                " (D, Adi.Widget.Expand (Root_Meta.Root_Styles));"
             )
             lines.append("         end if;")
             lines.append("      end;")

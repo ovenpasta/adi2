@@ -272,6 +272,11 @@ package Adi.Widget is
                              P : Part_Kind;
                              S : Widget_Style);
    procedure Set_Part_Styles (H : Widget_Handle;
+                              Styles : Interned_Part_Styles);
+   procedure Set_Part_Styles (W : in out Widget'Class;
+                              Styles : Interned_Part_Styles);
+
+   procedure Set_Part_Styles (H : Widget_Handle;
                               Styles : Part_Style_Array);
    procedure Set_Part_Styles (W : in out Widget'Class;
                               Styles : Part_Style_Array);
@@ -911,6 +916,7 @@ private
 
    --  Instrumentation the tests need and applications do not.
    Interned_Style_Count : Natural := 0;
+   Interned_Style_Bytes : Natural := 0;
 
    --  Entries the resolved-style memo holds. It is cleared wholesale at
    --  its cap, so this rises and falls.

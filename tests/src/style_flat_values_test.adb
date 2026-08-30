@@ -20,9 +20,8 @@ procedure Style_Flat_Values_Test is
    use type Opt_List_Style_Type.Optional;
    use type Opt_List_Style_Image.Optional;
 
-   --  The shape adi-widget.adb gives Prepared_Style_Entry, mirrored so
-   --  the interned entry appears in the size table beside the types it
-   --  is built from. It is declared in a body, out of reach of a with.
+   --  Mirrors Prepared_Style_Entry, which adi-widget.adb declares in a
+   --  body, out of reach of a with.
    type Ordered_Rule_Index_Array is
      array (Positive range 1 .. Max_Style_Rules) of Positive;
 
@@ -36,12 +35,8 @@ procedure Style_Flat_Values_Test is
    --  Finalization
    ---------------------------------------------------------------------
 
-   --  GNAT answers 'Finalization_Size with the size of the hidden data
-   --  it reserves to run an object's finalization, and with zero for a
-   --  type that needs none. It is the direct reading of "this type is
-   --  controlled or holds something that is", which the language offers
-   --  no attribute for.
-
+   --  GNAT answers 'Finalization_Size with zero for a type needing no
+   --  finalization.
    procedure Test_Finalization is
    begin
       Section ("style values need no finalization");
@@ -126,13 +121,15 @@ procedure Style_Flat_Values_Test is
    --  Text bounds
    ---------------------------------------------------------------------
 
-   --  Text a style value carries is held to a maximum length. The
-   --  figure itself is Adi.CSS_Styles.Max_CSS_Text_Length; the two
-   --  lengths here bracket it, so the checks say what a caller gets on
-   --  either side of the limit without pinning the limit.
+   --  The two lengths bracket Adi.CSS_Styles.Max_CSS_Text_Length.
    Quote : constant Character := '"';
    Ordinary : constant String (1 .. 60) := [others => 'a'];
    Over_Long : constant String (1 .. 8192) := [others => 'b'];
+
+   --  The limit itself, and one character past it.
+   At_Limit : constant String (1 .. Max_CSS_Text_Length) := [others => 'c'];
+   Past_Limit : constant String (1 .. Max_CSS_Text_Length + 1) :=
+     [others => 'd'];
 
    procedure Test_Text_Bounds is
    begin
@@ -167,11 +164,25 @@ procedure Style_Flat_Values_Test is
               "an empty path names no image");
       Assert (List_Image ("").Kind = List_Image_None,
               "an empty path names no list marker image");
+
+      Assert (Background_Image_URL (At_Limit).Kind = Url_Image,
+              "a path of exactly the limit names an image");
+      Assert (Background_Image_URL (Past_Limit).Kind = No_Image,
+              "a path one character past the limit names no image");
+      Assert (List_Image (At_Limit).Kind = List_Image_URL,
+              "a marker path of exactly the limit names an image");
+      Assert (List_Image (Past_Limit).Kind = List_Image_None,
+              "a marker path one character past the limit names no image");
+      Assert (List_String (At_Limit) /= List_String (""),
+              "a marker of exactly the limit reads as itself");
+      Assert (List_String (Past_Limit) = List_String (""),
+              "a marker one character past the limit reads as the empty one");
+      Assert (Set_Font_Family (At_Limit) /= Set_Font_Family (""),
+              "a family list of exactly the limit reads as itself");
+      Assert (Set_Font_Family (Past_Limit) = Set_Font_Family (""),
+              "a family list one character past the limit reads as empty");
    end Test_Text_Bounds;
 
-   --  The runtime parser holds the same limit as tools/css_to_ada.py,
-   --  so a declaration naming more text than a style value carries is
-   --  dropped rather than reaching one pipeline and not the other.
    procedure Test_Parser_Drops_Over_Long is
       Sheet : Adi.CSS_Parser.Stylesheet;
       OK    : Boolean := False;
@@ -183,7 +194,11 @@ procedure Style_Flat_Values_Test is
         & ".fits { background-image: url(" & Ordinary & ");"
         & " list-style-image: url(" & Ordinary & ");"
         & " list-style-type: " & Quote & Ordinary & Quote & ";"
-        & " font-family: " & Ordinary & "; }" & ASCII.LF;
+        & " font-family: " & Ordinary & "; }" & ASCII.LF
+        & ".edge { background-image: url(" & At_Limit & ");"
+        & " font-family: " & At_Limit & "; }" & ASCII.LF
+        & ".past { background-image: url(" & Past_Limit & ");"
+        & " font-family: " & Past_Limit & "; }" & ASCII.LF;
 
       function Base (Class : String) return Style_Rules is
         (Adi.CSS_Parser.Styles_For_Class (Sheet, Class)
@@ -217,17 +232,21 @@ procedure Style_Flat_Values_Test is
               "a list-style-type marker within the limit is kept");
       Assert (Opt_Font.Is_Specified (Base ("fits").Font_Family),
               "a font-family list within the limit is kept");
+
+      Assert (Opt_Bg_Image.Is_Specified (Base ("edge").Background_Image),
+              "a background-image url of exactly the limit is kept");
+      Assert (Opt_Font.Is_Specified (Base ("edge").Font_Family),
+              "a font-family list of exactly the limit is kept");
+      Assert (not Opt_Bg_Image.Is_Specified (Base ("past").Background_Image),
+              "a background-image url one past the limit is dropped");
+      Assert (not Opt_Font.Is_Specified (Base ("past").Font_Family),
+              "a font-family list one past the limit is dropped");
    end Test_Parser_Drops_Over_Long;
 
    ---------------------------------------------------------------------
    --  Both pipelines
    ---------------------------------------------------------------------
 
-   --  tools/css_to_ada.py encodes tests/css/flat_values.css at build
-   --  time into tests/generated/flat_values_styles.ads; Adi.CSS_Parser
-   --  reads the same file here. Each of the four properties is compared
-   --  as the Style_Rules component both produce, so an encoding one
-   --  pipeline adopts and the other does not is a failure.
    Corpus_Path : constant String := "tests/css/flat_values.css";
 
    procedure Test_Pipeline_Agreement is
@@ -268,8 +287,7 @@ procedure Style_Flat_Values_Test is
                  Label & ": list-style-image agrees between the pipelines");
       end Compare;
 
-      --  Agreement alone would pass with both pipelines wrong the same
-      --  way, so the values are spelled out against the parsed side.
+      --  Agreement alone would pass with both pipelines wrong alike.
       procedure Expect_Parsed is
          Bg   : constant Style_Rules := Parsed_Base ("flat-bg");
          Grad : constant Style_Rules := Parsed_Base ("flat-grad");

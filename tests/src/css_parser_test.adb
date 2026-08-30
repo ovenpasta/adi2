@@ -436,7 +436,7 @@ procedure Css_Parser_Test is
          declare
             Root_Resolved : constant Resolved_Style :=
               Compute_Resolved
-                (Meta.Root_Styles (Main_Part).Style,
+                (Adi.Widget.Expand (Meta.Root_Styles) (Main_Part).Style,
                  No_States,
                  No_States);
          begin

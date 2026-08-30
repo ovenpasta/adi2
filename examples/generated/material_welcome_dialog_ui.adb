@@ -26,7 +26,10 @@ package body Material_Welcome_Dialog_UI is
       if Override.Has_Root_Style then
          if Result.Has_Root_Style then
             Result.Root_Styles :=
-              Merge_Part_Styles (Result.Root_Styles, Override.Root_Styles);
+              Adi.Widget.Intern
+                (Merge_Part_Styles
+                   (Adi.Widget.Expand (Result.Root_Styles),
+                    Adi.Widget.Expand (Override.Root_Styles)));
          else
             Result.Root_Styles := Override.Root_Styles;
             Result.Has_Root_Style := True;

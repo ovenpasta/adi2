@@ -81,7 +81,7 @@ package body Adi.CSS_Source is
    function Fingerprint (M : Adi.CSS_Parser.Stylesheet_Metadata)
      return Root_Fingerprint is
      ((Has_Style     => M.Has_Root_Style,
-       Styles        => Adi.Widget.Intern (M.Root_Styles),
+       Styles        => M.Root_Styles,
        Has_Font_Size => M.Has_Root_Font_Size,
        Font_Size     => M.Root_Font_Size));
 
@@ -306,7 +306,8 @@ package body Adi.CSS_Source is
         and then Impl_Of (Source).Root_Target = Target
         and then Metadata.Has_Root_Style
       then
-         return Merge_Part_Styles (Metadata.Root_Styles, Styles);
+         return Merge_Part_Styles
+           (Adi.Widget.Expand (Metadata.Root_Styles), Styles);
       end if;
 
       return Styles;

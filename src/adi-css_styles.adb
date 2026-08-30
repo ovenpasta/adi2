@@ -22,10 +22,7 @@ package body Adi.CSS_Styles is
    -- Text store
    -------------------------------------------------
 
-   --  Every string lands in one character blob and an entry names its
-   --  span, so the store spends the characters interned and nothing
-   --  more. Both halves are definite arrays of flat values: the shape a
-   --  generated stylesheet can spell as a constant.
+   --  One character blob, one span per entry.
    type Text_Span is record
       First  : Positive := 1;
       Length : Natural  := 0;
@@ -52,10 +49,7 @@ package body Adi.CSS_Styles is
       return True;
    end Same_Text;
 
-   --  Scanned rather than hashed, as the gradient store is. A stylesheet
-   --  names a handful of asset paths and family lists, each interned
-   --  once per distinct string, and the length decides most comparisons
-   --  before a character is read.
+   --  Scanned rather than hashed, as the gradient store is.
    function Intern_Text (Text : String) return CSS_Text_Id is
    begin
       if Text'Length = 0 then

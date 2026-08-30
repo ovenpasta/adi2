@@ -345,21 +345,24 @@ package body Adi.Widget is
 
    use type Packed_State_Bits;
 
-   type Ordered_Rule_Index_Array is
-     array (Positive range 1 .. Max_Style_Rules) of Positive;
+   type Rule_Index_Array is array (Positive range <>) of Positive;
 
-   type Prepared_Style_Entry is record
-      Style : Widget_Style := Empty_Widget_Style;
-      Ordered_Rules : Ordered_Rule_Index_Array := [others => 1];
-      Ordered_Count : Natural := 0;
+   --  A style as the store keeps it, sized to the rules it names.
+   --  Ordered indexes Rules in cascade order: priority ascending,
+   --  source order ascending within a priority.
+   type Prepared_Style_Entry (Rule_Count : Natural) is record
+      Base              : Style_Rules   := Empty_Style;
+      Widget_State_Mask : Widget_States := No_States;
+      Part_State_Mask   : Widget_States := No_States;
+      Rules             : State_Rule_Array (1 .. Rule_Count);
+      Ordered           : Rule_Index_Array (1 .. Rule_Count);
    end record;
 
    function Prepare_Style (S : Widget_Style) return Prepared_Style_Entry;
    function Intern_Style (S : Widget_Style) return Style_Handle;
    function Entry_From_Handle (H : Style_Handle)
      return access constant Prepared_Style_Entry;
-   function Style_From_Handle (H : Style_Handle)
-     return access constant Widget_Style;
+   function Style_From_Handle (H : Style_Handle) return Widget_Style;
    function Compute_Style_Prepared
      (Prepared      : Prepared_Style_Entry;
       Active_Widget : Widget_States;
@@ -414,52 +417,74 @@ package body Adi.Widget is
    Global_Resolved_Cache : Resolved_Cache_Maps.Map;
 
    function Prepare_Style (S : Widget_Style) return Prepared_Style_Entry is
-      Result : Prepared_Style_Entry := (Style => S, others => <>);
-      Priorities : array (Positive range 1 .. Max_Style_Rules) of Natural := [others => 0];
+      Priorities : array (Positive range 1 .. Max_Style_Rules) of Natural :=
+        [others => 0];
    begin
-      Result.Ordered_Count := S.Rule_Count;
+      return Result : Prepared_Style_Entry (Rule_Count => S.Rule_Count) do
+         Result.Base := S.Base;
+         Result.Widget_State_Mask := S.Widget_State_Mask;
+         Result.Part_State_Mask := S.Part_State_Mask;
 
-      --  Precompute a stable rule order: priority asc, source order asc.
-      for I in 1 .. S.Rule_Count loop
-         Result.Ordered_Rules (I) := I;
-         Priorities (I) :=
-           (if S.Rules (I).Priority > 0
-            then S.Rules (I).Priority
-            else Specificity (S.Rules (I).Selector));
-      end loop;
+         --  Precompute a stable rule order: priority asc, source order asc.
+         for I in 1 .. S.Rule_Count loop
+            Result.Rules (I) := S.Rules (I);
+            Result.Ordered (I) := I;
+            Priorities (I) :=
+              (if S.Rules (I).Priority > 0
+               then S.Rules (I).Priority
+               else Specificity (S.Rules (I).Selector));
+         end loop;
 
-      if S.Rule_Count > 1 then
          for I in 2 .. S.Rule_Count loop
             declare
-               Key_Index : constant Positive := Result.Ordered_Rules (I);
+               Key_Index : constant Positive := Result.Ordered (I);
                Key_Prio  : constant Natural := Priorities (I);
                J         : Natural := I;
             begin
                while J > 1 loop
                   declare
-                     Prev_Index : constant Positive := Result.Ordered_Rules (J - 1);
+                     Prev_Index : constant Positive := Result.Ordered (J - 1);
                      Prev_Prio  : constant Natural := Priorities (J - 1);
                   begin
                      exit when Prev_Prio < Key_Prio
                        or else (Prev_Prio = Key_Prio and then Prev_Index < Key_Index);
 
-                     Result.Ordered_Rules (J) := Prev_Index;
+                     Result.Ordered (J) := Prev_Index;
                      Priorities (J) := Prev_Prio;
                      J := J - 1;
                   end;
                end loop;
 
-               Result.Ordered_Rules (J) := Key_Index;
+               Result.Ordered (J) := Key_Index;
                Priorities (J) := Key_Prio;
             end;
          end loop;
-      end if;
-
-      return Result;
+      end return;
    end Prepare_Style;
 
    Empty_Prepared_Style : aliased constant Prepared_Style_Entry :=
      Prepare_Style (Empty_Widget_Style);
+
+   --  Same_Style against the stored form, over the live rules alone.
+   function Same_Prepared
+     (E : Prepared_Style_Entry; S : Widget_Style) return Boolean is
+   begin
+      if E.Rule_Count /= S.Rule_Count
+        or else E.Widget_State_Mask /= S.Widget_State_Mask
+        or else E.Part_State_Mask /= S.Part_State_Mask
+        or else E.Base /= S.Base
+      then
+         return False;
+      end if;
+
+      for I in 1 .. E.Rule_Count loop
+         if E.Rules (I) /= S.Rules (I) then
+            return False;
+         end if;
+      end loop;
+
+      return True;
+   end Same_Prepared;
 
    function Entry_From_Handle (H : Style_Handle)
      return access constant Prepared_Style_Entry
@@ -471,12 +496,20 @@ package body Adi.Widget is
       return Style_Store.Element (Positive (H));
    end Entry_From_Handle;
 
-   function Style_From_Handle (H : Style_Handle)
-     return access constant Widget_Style
-   is
-      Prepared : constant access constant Prepared_Style_Entry := Entry_From_Handle (H);
+   --  The authoring form of a stored style.
+   function Style_From_Handle (H : Style_Handle) return Widget_Style is
+      Prepared : constant access constant Prepared_Style_Entry :=
+        Entry_From_Handle (H);
    begin
-      return Prepared.Style'Unrestricted_Access;
+      return Result : Widget_Style do
+         Result.Base := Prepared.Base;
+         Result.Rule_Count := Prepared.Rule_Count;
+         Result.Widget_State_Mask := Prepared.Widget_State_Mask;
+         Result.Part_State_Mask := Prepared.Part_State_Mask;
+         for I in 1 .. Prepared.Rule_Count loop
+            Result.Rules (I) := Prepared.Rules (I);
+         end loop;
+      end return;
    end Style_From_Handle;
 
    function Intern_Style (S : Widget_Style) return Style_Handle is
@@ -493,7 +526,8 @@ package body Adi.Widget is
       begin
          if Style_Index_Maps.Has_Element (Bucket) then
             for H of Style_Index_Maps.Element (Bucket) loop
-               if Same_Style (Style_Store.Element (Positive (H)).Style, S) then
+               if Same_Prepared (Style_Store.Element (Positive (H)).all, S)
+               then
                   return H;
                end if;
             end loop;
@@ -502,6 +536,8 @@ package body Adi.Widget is
          Style_Store.Append (new Prepared_Style_Entry'(Prepare_Style (S)));
          Interned := Style_Handle (Style_Store.Length);
          Interned_Style_Count := Natural (Style_Store.Length);
+         Interned_Style_Bytes := Interned_Style_Bytes
+           + Style_Store.Last_Element.all'Size / System.Storage_Unit;
 
          if Style_Index_Maps.Has_Element (Bucket) then
             Style_Index.Reference (Bucket).Append (Interned);
@@ -523,17 +559,17 @@ package body Adi.Widget is
       Active_Widget : Widget_States;
       Active_Part   : Widget_States) return Style_Rules
    is
-      Result : Style_Rules := Prepared.Style.Base;
+      Result : Style_Rules := Prepared.Base;
    begin
-      for I in 1 .. Prepared.Ordered_Count loop
+      for I in 1 .. Prepared.Rule_Count loop
          declare
-            Rule_Index : constant Positive := Prepared.Ordered_Rules (I);
+            Rule_Index : constant Positive := Prepared.Ordered (I);
          begin
-            if Matches (Prepared.Style.Rules (Rule_Index).Selector,
+            if Matches (Prepared.Rules (Rule_Index).Selector,
                         Active_Widget,
                         Active_Part)
             then
-               Result := Merge (Result, Prepared.Style.Rules (Rule_Index).Style);
+               Result := Merge (Result, Prepared.Rules (Rule_Index).Style);
             end if;
          end;
       end loop;
@@ -1122,7 +1158,7 @@ package body Adi.Widget is
                Prepared : constant access constant Prepared_Style_Entry :=
                  Entry_From_Handle (H);
             begin
-               if H /= 0 and then Uses_Widget_State (Prepared.Style, Changed)
+               if H /= 0 and then Prepared.Widget_State_Mask (Changed)
                then
                   Inc_Sat (Perf_Style_Resolves);
                   Inc_Sat (Perf_Style_Resolves);
@@ -1181,7 +1217,7 @@ package body Adi.Widget is
                Prepared : constant access constant Prepared_Style_Entry :=
                  Entry_From_Handle (H);
             begin
-               if H /= 0 and then Uses_Part_State (Prepared.Style, Changed_State)
+               if H /= 0 and then Prepared.Part_State_Mask (Changed_State)
                then
                   Inc_Sat (Perf_Style_Resolves);
                   Inc_Sat (Perf_Style_Resolves);
@@ -1384,7 +1420,7 @@ package body Adi.Widget is
       Result : Part_Style_Array;
    begin
       for P in Part_Kind loop
-         Result (P) := (Style   => Style_From_Handle (Styles.Handles (P)).all,
+         Result (P) := (Style   => Style_From_Handle (Styles.Handles (P)),
                         Enabled => Styles.Enabled (P));
       end loop;
       return Result;
@@ -1401,6 +1437,15 @@ package body Adi.Widget is
       Mark_Dirty (W);
    end Set_Part_Styles;
 
+   procedure Set_Part_Styles (W : in out Widget'Class;
+                              Styles : Interned_Part_Styles) is
+   begin
+      W.Part_Style_Handles := Styles.Handles;
+      W.Part_Style_Enabled := Styles.Enabled;
+      Bump_Style_Version (W);
+      Mark_Dirty (W);
+   end Set_Part_Styles;
+
    procedure Set_Part_Style (H : Widget_Handle;
                              P : Part_Kind;
                              S : Widget_Style) is
@@ -1413,6 +1458,15 @@ package body Adi.Widget is
 
    procedure Set_Part_Styles (H : Widget_Handle;
                               Styles : Part_Style_Array) is
+      Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
+   begin
+      if Ptr /= null then
+         Set_Part_Styles (Ptr.all, Styles);
+      end if;
+   end Set_Part_Styles;
+
+   procedure Set_Part_Styles (H : Widget_Handle;
+                              Styles : Interned_Part_Styles) is
       Ptr : constant Widget_Access := Widget_Stores.Get (H.Id);
    begin
       if Ptr /= null then
@@ -1563,7 +1617,7 @@ package body Adi.Widget is
    function Get_Part_Style (W : Widget'Class;
                             P : Part_Kind) return Widget_Style is
    begin
-      return Style_From_Handle (W.Part_Style_Handles (P)).all;
+      return Style_From_Handle (W.Part_Style_Handles (P));
    end Get_Part_Style;
 
    function Get_Part_Style (H : Widget_Handle;

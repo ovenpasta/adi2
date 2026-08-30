@@ -432,10 +432,7 @@ class TestCssUrlAndString(unittest.TestCase):
 
 
 class TestCssTextLimit(unittest.TestCase):
-    """A style value carries MAX_CSS_TEXT_LENGTH characters of text.
-
-    Adi.CSS_Parser holds the same limit, so a declaration naming more is
-    dropped by both pipelines rather than reaching one of them."""
+    """Both pipelines drop a declaration past MAX_CSS_TEXT_LENGTH."""
 
     def _at(self, n: int) -> str:
         return "a" * n

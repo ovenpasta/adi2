@@ -1,11 +1,5 @@
-/*  Corpus for style_flat_values_test.
-
-    The four style properties that carry text — font-family,
-    background-image, list-style-type and list-style-image — are encoded
-    once by tools/css_to_ada.py into tests/generated/flat_values_styles.ads
-    and again by Adi.CSS_Parser reading this same file at run time. The
-    test requires both encodings to answer with the same Style_Rules, so
-    a change to one that skips the other shows up here. */
+/*  Corpus for style_flat_values_test: both pipelines encode this file
+    and must agree. */
 
 .flat-bg {
   background-image: url(app://tests/flat-bg.png);

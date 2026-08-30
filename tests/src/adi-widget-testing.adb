@@ -7,6 +7,9 @@ package body Adi.Widget.Testing is
 
    function Interned_Styles return Natural is (Interned_Style_Count);
 
+   function Interned_Style_Bytes return Natural is
+     (Adi.Widget.Interned_Style_Bytes);
+
    function Memo_Entries return Natural is (Resolved_Memo_Entries);
 
    function Resolved_Cache_Hash

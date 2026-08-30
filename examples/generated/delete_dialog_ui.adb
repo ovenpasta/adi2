@@ -24,7 +24,10 @@ package body Delete_Dialog_UI is
       if Override.Has_Root_Style then
          if Result.Has_Root_Style then
             Result.Root_Styles :=
-              Merge_Part_Styles (Result.Root_Styles, Override.Root_Styles);
+              Adi.Widget.Intern
+                (Merge_Part_Styles
+                   (Adi.Widget.Expand (Result.Root_Styles),
+                    Adi.Widget.Expand (Override.Root_Styles)));
          else
             Result.Root_Styles := Override.Root_Styles;
             Result.Has_Root_Style := True;
@@ -113,7 +116,7 @@ package body Delete_Dialog_UI is
            Static_Root_Metadata;
       begin
          if Root_Meta.Has_Root_Style then
-            Adi.Widget.Dialog.Set_Panel_Style (D, Root_Meta.Root_Styles);
+            Adi.Widget.Dialog.Set_Panel_Style (D, Adi.Widget.Expand (Root_Meta.Root_Styles));
          end if;
       end;
       return D;

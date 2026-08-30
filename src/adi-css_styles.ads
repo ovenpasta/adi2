@@ -8,8 +8,7 @@ with Adi.Image;
 
 package Adi.CSS_Styles is
 
-   --  The body holds the gradient store Linear_Gradient shares from and
-   --  the text store the four text-carrying values index.
+   --  The body holds the gradient and text stores.
    pragma Elaborate_Body;
 
    generic
@@ -49,18 +48,8 @@ package Adi.CSS_Styles is
    -- Text a style value names
    -------------------------------------------------
 
-   --  An asset path, a marker string, a font-family list: the text a
-   --  CSS declaration spells and a style keeps. The body holds one copy
-   --  of each distinct string and a style value carries its id, which
-   --  leaves every style record flat, copied by assignment alone.
-   --
-   --  Interning is canonical, so equal text is one id and predefined
-   --  equality on a style value remains exact.
-
-   --  Characters a single CSS text value may carry, covering a
-   --  font-family fallback list and an asset path of any depth. Text
-   --  past it is reported and dropped, so a value reads as the absent
-   --  one rather than as a truncation.
+   --  An asset path, a marker string or a font-family list, interned
+   --  in the body. See docs/css_styling.md.
    Max_CSS_Text_Length : constant := 4096;
 
    type CSS_Text_Id is new Natural;
@@ -68,11 +57,10 @@ package Adi.CSS_Styles is
    --  The empty string, and the answer for text past the limit.
    No_CSS_Text : constant CSS_Text_Id := 0;
 
-   --  The id for Text. Text longer than Max_CSS_Text_Length answers
-   --  No_CSS_Text and reports the length through Adi.Log.
+   --  Text past Max_CSS_Text_Length answers No_CSS_Text and reports
+   --  through Adi.Log.
    function Intern_Text (Text : String) return CSS_Text_Id;
 
-   --  The text an id names, "" for No_CSS_Text.
    function Text_Of (Id : CSS_Text_Id) return String;
 
    -------------------------------------------------
@@ -343,8 +331,7 @@ package Adi.CSS_Styles is
    function Background_Image (Img : Adi.Image.Image_Handle) return Background_Image_Value is
       ((Kind => Picture_Image, Image => Img));
 
-   --  A path past Max_CSS_Text_Length, and an empty one, answer with
-   --  No_Image: an image the renderer has no path to reach.
+   --  An empty path, or one past Max_CSS_Text_Length, answers No_Image.
    function Background_Image_URL (URI : String) return Background_Image_Value;
 
    function Linear_Gradient
@@ -629,7 +616,7 @@ type List_Style_Type_Value
    end case;
 end record;
 
---  A marker past Max_CSS_Text_Length reads as the empty marker.
+--  A marker past Max_CSS_Text_Length reads as the empty one.
 function List_String (Text : String) return List_Style_Type_Value;
 
 Default_List_Style_Type : constant List_Style_Type_Value :=
@@ -652,8 +639,7 @@ end record;
 
 No_List_Image : constant List_Style_Image_Value := (Kind => List_Image_None);
 
---  A path past Max_CSS_Text_Length, and an empty one, answer with
---  No_List_Image.
+--  An empty path, or one past Max_CSS_Text_Length, answers No_List_Image.
 function List_Image (URI : String) return List_Style_Image_Value;
 
 type List_Style_Position_Value is (
@@ -1602,9 +1588,8 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    No_Font_Size : constant Opt_Font_Size.Optional := Opt_Font_Size.Cleared;
      function Set (V : Font_Handle) return Opt_Font.Optional is
        (Opt_Font.Val ((Kind => By_Handle, Handle => V)));
-     --  The whole font-family list, resolved through Font_Name_Resolver
-     --  at Resolve time. A list past Max_CSS_Text_Length reads as the
-     --  empty one, which resolves to the default font.
+     --  The whole font-family list, resolved at Resolve time. A list
+     --  past Max_CSS_Text_Length reads as the empty one.
      function Set_Font_Family (Name : String) return Opt_Font.Optional;
      function Set (V : Font_Weight_Value) return Opt_Font_Weight.Optional renames Opt_Font_Weight.Val;
      function Set (V : Font_Style_Value) return Opt_Font_Style.Optional renames Opt_Font_Style.Val;

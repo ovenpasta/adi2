@@ -19,7 +19,8 @@ package Adi.Widget_Styles is
       State_Disabled,
       State_Selected);
 
-   type Widget_States is array (Widget_State) of Boolean;
+   type Widget_States is array (Widget_State) of Boolean
+     with Pack;
 
    No_States : constant Widget_States := [others => False];
    All_States : constant Widget_States := [others => True];

@@ -29,7 +29,7 @@ package Material_Demo_Light_Styles is
    function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
      (
       Has_Root_Style => Has_Root_Styles,
-      Root_Styles => Root_Part_Styles,
+      Root_Styles => Adi.Widget.Intern (Root_Part_Styles),
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
 

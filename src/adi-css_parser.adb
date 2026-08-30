@@ -237,7 +237,8 @@ package body Adi.CSS_Parser is
         and then Impl.Root_Target = Target
         and then Impl.Metadata.Has_Root_Style
       then
-         return Adi.Style_Merge.Merge (Impl.Metadata.Root_Styles, Styles);
+         return Adi.Style_Merge.Merge
+           (Adi.Widget.Expand (Impl.Metadata.Root_Styles), Styles);
       end if;
 
       return Styles;
@@ -583,9 +584,8 @@ package body Adi.CSS_Parser is
       return Parse_Number (To_String (Number), L.Amount);
    end Parse_Length;
 
-   --  A style value carries up to Max_CSS_Text_Length characters of
-   --  text. A declaration naming more is dropped, the way any other
-   --  value the parser cannot honour is, and reported.
+   --  A declaration naming more text than a style value carries is
+   --  dropped, and reported.
    function Fits_In_Style (Text : String) return Boolean is
    begin
       if Text'Length <= Max_CSS_Text_Length then
@@ -2066,10 +2066,256 @@ package body Adi.CSS_Parser is
       Rules.Overflow_Y := Set_Overflow_Y (Value);
    end Set_Overflow_Shorthand;
 
+   --  Declaration names Apply_Property recognises. The chain below
+   --  tests one of these rather than the name text.
+   type Decl_Name is
+     (Decl_Unknown,
+      D_Align_Content,
+      D_Align_Items,
+      D_Align_Self,
+      D_Background,
+      D_Background_Color,
+      D_Background_Image,
+      D_Border,
+      D_Border_Bottom,
+      D_Border_Bottom_Color,
+      D_Border_Bottom_Left_Radius,
+      D_Border_Bottom_Right_Radius,
+      D_Border_Bottom_Style,
+      D_Border_Bottom_Width,
+      D_Border_Color,
+      D_Border_Left,
+      D_Border_Left_Color,
+      D_Border_Left_Style,
+      D_Border_Left_Width,
+      D_Border_Radius,
+      D_Border_Right,
+      D_Border_Right_Color,
+      D_Border_Right_Style,
+      D_Border_Right_Width,
+      D_Border_Style,
+      D_Border_Top,
+      D_Border_Top_Color,
+      D_Border_Top_Left_Radius,
+      D_Border_Top_Right_Radius,
+      D_Border_Top_Style,
+      D_Border_Top_Width,
+      D_Border_Width,
+      D_Bottom,
+      D_Box_Shadow,
+      D_Color,
+      D_Column_Gap,
+      D_Cursor,
+      D_Display,
+      D_Flex_Basis,
+      D_Flex_Direction,
+      D_Flex_Grow,
+      D_Flex_Shrink,
+      D_Flex_Wrap,
+      D_Font_Family,
+      D_Font_Size,
+      D_Font_Style,
+      D_Font_Weight,
+      D_Gap,
+      D_Grid_Column,
+      D_Grid_Row,
+      D_Grid_Template_Columns,
+      D_Grid_Template_Rows,
+      D_Height,
+      D_Justify_Content,
+      D_Left,
+      D_Line_Height,
+      D_List_Style,
+      D_List_Style_Image,
+      D_List_Style_Position,
+      D_List_Style_Type,
+      D_Margin,
+      D_Margin_Bottom,
+      D_Margin_Left,
+      D_Margin_Right,
+      D_Margin_Top,
+      D_Max_Height,
+      D_Max_Width,
+      D_Min_Height,
+      D_Min_Width,
+      D_Object_Fit,
+      D_Object_Position,
+      D_Opacity,
+      D_Order,
+      D_Outline,
+      D_Outline_Color,
+      D_Outline_Offset,
+      D_Outline_Style,
+      D_Outline_Width,
+      D_Overflow,
+      D_Overflow_X,
+      D_Overflow_Y,
+      D_Padding,
+      D_Padding_Bottom,
+      D_Padding_Left,
+      D_Padding_Right,
+      D_Padding_Top,
+      D_Position,
+      D_Right,
+      D_Row_Gap,
+      D_Text_Align,
+      D_Text_Decoration,
+      D_Text_Overflow,
+      D_Text_Wrap_Mode,
+      D_Top,
+      D_Transition,
+      D_Vertical_Align,
+      D_Visibility,
+      D_White_Space,
+      D_Width);
+
+   Max_Decl_Name : constant := 26;
+   subtype Decl_Key is String (1 .. Max_Decl_Name);
+
+   type Decl_Row is record
+      Name : Decl_Key;
+      Id   : Decl_Name;
+   end record;
+
+   --  Ordered by Name, which a space pad leaves as the order on the
+   --  names themselves: no name character sorts below a space.
+   Decl_Table : constant array (Positive range <>) of Decl_Row :=
+     [
+      ("align-content             ", D_Align_Content),
+      ("align-items               ", D_Align_Items),
+      ("align-self                ", D_Align_Self),
+      ("background                ", D_Background),
+      ("background-color          ", D_Background_Color),
+      ("background-image          ", D_Background_Image),
+      ("border                    ", D_Border),
+      ("border-bottom             ", D_Border_Bottom),
+      ("border-bottom-color       ", D_Border_Bottom_Color),
+      ("border-bottom-left-radius ", D_Border_Bottom_Left_Radius),
+      ("border-bottom-right-radius", D_Border_Bottom_Right_Radius),
+      ("border-bottom-style       ", D_Border_Bottom_Style),
+      ("border-bottom-width       ", D_Border_Bottom_Width),
+      ("border-color              ", D_Border_Color),
+      ("border-left               ", D_Border_Left),
+      ("border-left-color         ", D_Border_Left_Color),
+      ("border-left-style         ", D_Border_Left_Style),
+      ("border-left-width         ", D_Border_Left_Width),
+      ("border-radius             ", D_Border_Radius),
+      ("border-right              ", D_Border_Right),
+      ("border-right-color        ", D_Border_Right_Color),
+      ("border-right-style        ", D_Border_Right_Style),
+      ("border-right-width        ", D_Border_Right_Width),
+      ("border-style              ", D_Border_Style),
+      ("border-top                ", D_Border_Top),
+      ("border-top-color          ", D_Border_Top_Color),
+      ("border-top-left-radius    ", D_Border_Top_Left_Radius),
+      ("border-top-right-radius   ", D_Border_Top_Right_Radius),
+      ("border-top-style          ", D_Border_Top_Style),
+      ("border-top-width          ", D_Border_Top_Width),
+      ("border-width              ", D_Border_Width),
+      ("bottom                    ", D_Bottom),
+      ("box-shadow                ", D_Box_Shadow),
+      ("color                     ", D_Color),
+      ("column-gap                ", D_Column_Gap),
+      ("cursor                    ", D_Cursor),
+      ("display                   ", D_Display),
+      ("flex-basis                ", D_Flex_Basis),
+      ("flex-direction            ", D_Flex_Direction),
+      ("flex-grow                 ", D_Flex_Grow),
+      ("flex-shrink               ", D_Flex_Shrink),
+      ("flex-wrap                 ", D_Flex_Wrap),
+      ("font-family               ", D_Font_Family),
+      ("font-size                 ", D_Font_Size),
+      ("font-style                ", D_Font_Style),
+      ("font-weight               ", D_Font_Weight),
+      ("gap                       ", D_Gap),
+      ("grid-column               ", D_Grid_Column),
+      ("grid-row                  ", D_Grid_Row),
+      ("grid-template-columns     ", D_Grid_Template_Columns),
+      ("grid-template-rows        ", D_Grid_Template_Rows),
+      ("height                    ", D_Height),
+      ("justify-content           ", D_Justify_Content),
+      ("left                      ", D_Left),
+      ("line-height               ", D_Line_Height),
+      ("list-style                ", D_List_Style),
+      ("list-style-image          ", D_List_Style_Image),
+      ("list-style-position       ", D_List_Style_Position),
+      ("list-style-type           ", D_List_Style_Type),
+      ("margin                    ", D_Margin),
+      ("margin-bottom             ", D_Margin_Bottom),
+      ("margin-left               ", D_Margin_Left),
+      ("margin-right              ", D_Margin_Right),
+      ("margin-top                ", D_Margin_Top),
+      ("max-height                ", D_Max_Height),
+      ("max-width                 ", D_Max_Width),
+      ("min-height                ", D_Min_Height),
+      ("min-width                 ", D_Min_Width),
+      ("object-fit                ", D_Object_Fit),
+      ("object-position           ", D_Object_Position),
+      ("opacity                   ", D_Opacity),
+      ("order                     ", D_Order),
+      ("outline                   ", D_Outline),
+      ("outline-color             ", D_Outline_Color),
+      ("outline-offset            ", D_Outline_Offset),
+      ("outline-style             ", D_Outline_Style),
+      ("outline-width             ", D_Outline_Width),
+      ("overflow                  ", D_Overflow),
+      ("overflow-x                ", D_Overflow_X),
+      ("overflow-y                ", D_Overflow_Y),
+      ("padding                   ", D_Padding),
+      ("padding-bottom            ", D_Padding_Bottom),
+      ("padding-left              ", D_Padding_Left),
+      ("padding-right             ", D_Padding_Right),
+      ("padding-top               ", D_Padding_Top),
+      ("position                  ", D_Position),
+      ("right                     ", D_Right),
+      ("row-gap                   ", D_Row_Gap),
+      ("text-align                ", D_Text_Align),
+      ("text-decoration           ", D_Text_Decoration),
+      ("text-overflow             ", D_Text_Overflow),
+      ("text-wrap-mode            ", D_Text_Wrap_Mode),
+      ("top                       ", D_Top),
+      ("transition                ", D_Transition),
+      ("vertical-align            ", D_Vertical_Align),
+      ("visibility                ", D_Visibility),
+      ("white-space               ", D_White_Space),
+      ("width                     ", D_Width)
+     ];
+
+   function Decl_Of (Name : String) return Decl_Name is
+      Lo : Natural := Decl_Table'First;
+      Hi : Natural := Decl_Table'Last;
+   begin
+      if Name'Length = 0 or else Name'Length > Max_Decl_Name then
+         return Decl_Unknown;
+      end if;
+
+      declare
+         K : Decl_Key := [others => ' '];
+      begin
+         K (1 .. Name'Length) := Name;
+
+         while Lo <= Hi loop
+            declare
+               Mid : constant Positive := (Lo + Hi) / 2;
+            begin
+               if Decl_Table (Mid).Name = K then
+                  return Decl_Table (Mid).Id;
+               elsif Decl_Table (Mid).Name < K then
+                  Lo := Mid + 1;
+               else
+                  Hi := Mid - 1;
+               end if;
+            end;
+         end loop;
+      end;
+
+      return Decl_Unknown;
+   end Decl_Of;
    procedure Apply_Property (Rules : in out Style_Rules;
                              Name  : String;
                              Value : String) is
       P : constant String := Lower (Trimmed (Name));
+      Key : constant Decl_Name := Decl_Of (P);
       V : constant String := Trimmed (Value);
       LV : constant String := Lower (V);
       CVal : Color_Value;
@@ -2100,29 +2346,29 @@ package body Adi.CSS_Parser is
       Border_Width_Val : Parsed_Length;
       Border_Color_Val : Color_Value;
    begin
-      if P = "color" then
+      if Key = D_Color then
          if Parse_Color (V, CVal) then Rules.Color := Set (CVal); end if;
-      elsif P = "background-color" or else P = "background" then
+      elsif Key = D_Background_Color or else Key = D_Background then
          if Parse_Color (V, CVal) then Rules.Background_Color := Set_Bg (CVal); end if;
-      elsif P = "padding" then
+      elsif Key = D_Padding then
          if Parse_Box (V, Box) then Rules.Padding := Set (Box); end if;
-      elsif P = "padding-top" then
+      elsif Key = D_Padding_Top then
          if Parse_Length (V, LVal) then
             Rules.Padding (Top) := Set (To_Length (LVal));
          end if;
-      elsif P = "padding-right" then
+      elsif Key = D_Padding_Right then
          if Parse_Length (V, LVal) then
             Rules.Padding (Right) := Set (To_Length (LVal));
          end if;
-      elsif P = "padding-bottom" then
+      elsif Key = D_Padding_Bottom then
          if Parse_Length (V, LVal) then
             Rules.Padding (Bottom) := Set (To_Length (LVal));
          end if;
-      elsif P = "padding-left" then
+      elsif Key = D_Padding_Left then
          if Parse_Length (V, LVal) then
             Rules.Padding (Left) := Set (To_Length (LVal));
          end if;
-      elsif P = "margin" then
+      elsif Key = D_Margin then
          declare
             Sides : Opt_Margin_Sides;
          begin
@@ -2130,87 +2376,87 @@ package body Adi.CSS_Parser is
                Rules.Margin := Sides;
             end if;
          end;
-      elsif P = "margin-top" then
+      elsif Key = D_Margin_Top then
          if Lower (V) = "auto" then
             Rules.Margin (Top) := Opt_Margin.Val (Auto_Margin);
          elsif Parse_Length (V, LVal) then
             Rules.Margin (Top) := Opt_Margin.Val (Margin (To_Length (LVal)));
          end if;
-      elsif P = "margin-right" then
+      elsif Key = D_Margin_Right then
          if Lower (V) = "auto" then
             Rules.Margin (Right) := Opt_Margin.Val (Auto_Margin);
          elsif Parse_Length (V, LVal) then
             Rules.Margin (Right) := Opt_Margin.Val (Margin (To_Length (LVal)));
          end if;
-      elsif P = "margin-bottom" then
+      elsif Key = D_Margin_Bottom then
          if Lower (V) = "auto" then
             Rules.Margin (Bottom) := Opt_Margin.Val (Auto_Margin);
          elsif Parse_Length (V, LVal) then
             Rules.Margin (Bottom) := Opt_Margin.Val (Margin (To_Length (LVal)));
          end if;
-      elsif P = "margin-left" then
+      elsif Key = D_Margin_Left then
          if Lower (V) = "auto" then
             Rules.Margin (Left) := Opt_Margin.Val (Auto_Margin);
          elsif Parse_Length (V, LVal) then
             Rules.Margin (Left) := Opt_Margin.Val (Margin (To_Length (LVal)));
          end if;
-      elsif P = "border-width" then
+      elsif Key = D_Border_Width then
          if Parse_Border_Width (V, BW) then Rules.Border_Width := Set (BW); end if;
-      elsif P = "border-top-width" then
+      elsif Key = D_Border_Top_Width then
          if Parse_Length (V, LVal) then
             Rules.Border_Width (Top) := Set (To_Length (LVal));
          end if;
-      elsif P = "border-right-width" then
+      elsif Key = D_Border_Right_Width then
          if Parse_Length (V, LVal) then
             Rules.Border_Width (Right) := Set (To_Length (LVal));
          end if;
-      elsif P = "border-bottom-width" then
+      elsif Key = D_Border_Bottom_Width then
          if Parse_Length (V, LVal) then
             Rules.Border_Width (Bottom) := Set (To_Length (LVal));
          end if;
-      elsif P = "border-left-width" then
+      elsif Key = D_Border_Left_Width then
          if Parse_Length (V, LVal) then
             Rules.Border_Width (Left) := Set (To_Length (LVal));
          end if;
-      elsif P = "border-color" then
+      elsif Key = D_Border_Color then
          if Parse_Color (V, CVal) then Rules.Border_Color := Set (Border_Color (CVal)); end if;
-      elsif P = "border-top-color" then
+      elsif Key = D_Border_Top_Color then
          if Parse_Color (V, CVal) then
             Rules.Border_Color (Top) := Set_Edge_Color (CVal);
          end if;
-      elsif P = "border-right-color" then
+      elsif Key = D_Border_Right_Color then
          if Parse_Color (V, CVal) then
             Rules.Border_Color (Right) := Set_Edge_Color (CVal);
          end if;
-      elsif P = "border-bottom-color" then
+      elsif Key = D_Border_Bottom_Color then
          if Parse_Color (V, CVal) then
             Rules.Border_Color (Bottom) := Set_Edge_Color (CVal);
          end if;
-      elsif P = "border-left-color" then
+      elsif Key = D_Border_Left_Color then
          if Parse_Color (V, CVal) then
             Rules.Border_Color (Left) := Set_Edge_Color (CVal);
          end if;
-      elsif P = "border-style" then
+      elsif Key = D_Border_Style then
          if Parse_Border_Style_Value (V, Border_Side) then
             Rules.Border_Style := Set (Border_Style (Border_Side));
          end if;
-      elsif P = "border-top-style" then
+      elsif Key = D_Border_Top_Style then
          if Parse_Border_Style_Value (V, Border_Side) then
             Rules.Border_Style (Top) := Set_Edge_Style (Border_Side);
          end if;
-      elsif P = "border-right-style" then
+      elsif Key = D_Border_Right_Style then
          if Parse_Border_Style_Value (V, Border_Side) then
             Rules.Border_Style (Right) := Set_Edge_Style (Border_Side);
          end if;
-      elsif P = "border-bottom-style" then
+      elsif Key = D_Border_Bottom_Style then
          if Parse_Border_Style_Value (V, Border_Side) then
             Rules.Border_Style (Bottom) := Set_Edge_Style (Border_Side);
          end if;
-      elsif P = "border-left-style" then
+      elsif Key = D_Border_Left_Style then
          if Parse_Border_Style_Value (V, Border_Side) then
             Rules.Border_Style (Left) := Set_Edge_Style (Border_Side);
          end if;
-      elsif P = "border" then
+      elsif Key = D_Border then
          Parse_Border_Shorthand_Components (
            V,
            Has_Border_Width,
@@ -2228,7 +2474,7 @@ package body Adi.CSS_Parser is
          if Has_Border_Color then
             Rules.Border_Color := Set (Border_Color (Border_Color_Val));
          end if;
-      elsif P = "border-top" then
+      elsif Key = D_Border_Top then
          Parse_Border_Shorthand_Components (
            V,
            Has_Border_Width,
@@ -2246,7 +2492,7 @@ package body Adi.CSS_Parser is
          if Has_Border_Color then
             Rules.Border_Color (Top) := Set_Edge_Color (Border_Color_Val);
          end if;
-      elsif P = "border-right" then
+      elsif Key = D_Border_Right then
          Parse_Border_Shorthand_Components (
            V,
            Has_Border_Width,
@@ -2264,7 +2510,7 @@ package body Adi.CSS_Parser is
          if Has_Border_Color then
             Rules.Border_Color (Right) := Set_Edge_Color (Border_Color_Val);
          end if;
-      elsif P = "border-bottom" then
+      elsif Key = D_Border_Bottom then
          Parse_Border_Shorthand_Components (
            V,
            Has_Border_Width,
@@ -2282,7 +2528,7 @@ package body Adi.CSS_Parser is
          if Has_Border_Color then
             Rules.Border_Color (Bottom) := Set_Edge_Color (Border_Color_Val);
          end if;
-      elsif P = "border-left" then
+      elsif Key = D_Border_Left then
          Parse_Border_Shorthand_Components (
            V,
            Has_Border_Width,
@@ -2300,43 +2546,43 @@ package body Adi.CSS_Parser is
          if Has_Border_Color then
             Rules.Border_Color (Left) := Set_Edge_Color (Border_Color_Val);
          end if;
-      elsif P = "border-radius" then
+      elsif Key = D_Border_Radius then
          if Parse_Border_Radius (V, BR) then Rules.Border_Radius := Set (BR); end if;
-      elsif P = "border-top-left-radius" then
+      elsif Key = D_Border_Top_Left_Radius then
          if Parse_Length (V, LVal) then
             Rules.Border_Radius (Top_Left) := Set (To_Length (LVal));
          end if;
-      elsif P = "border-top-right-radius" then
+      elsif Key = D_Border_Top_Right_Radius then
          if Parse_Length (V, LVal) then
             Rules.Border_Radius (Top_Right) := Set (To_Length (LVal));
          end if;
-      elsif P = "border-bottom-right-radius" then
+      elsif Key = D_Border_Bottom_Right_Radius then
          if Parse_Length (V, LVal) then
             Rules.Border_Radius (Bottom_Right) := Set (To_Length (LVal));
          end if;
-      elsif P = "border-bottom-left-radius" then
+      elsif Key = D_Border_Bottom_Left_Radius then
          if Parse_Length (V, LVal) then
             Rules.Border_Radius (Bottom_Left) := Set (To_Length (LVal));
          end if;
-      elsif P = "width" then
+      elsif Key = D_Width then
          if Parse_Size_Value (V, SVal) then Rules.Width := Set (SVal); end if;
-      elsif P = "height" then
+      elsif Key = D_Height then
          if Parse_Size_Value (V, SVal) then Rules.Height := Set (SVal); end if;
-      elsif P = "min-width" then
+      elsif Key = D_Min_Width then
          if Parse_Size_Value (V, SVal) then Rules.Min_Width := Set (SVal); end if;
-      elsif P = "max-width" then
+      elsif Key = D_Max_Width then
          if Parse_Size_Value (V, SVal) then Rules.Max_Width := Set (SVal); end if;
-      elsif P = "min-height" then
+      elsif Key = D_Min_Height then
          if Parse_Size_Value (V, SVal) then Rules.Min_Height := Set (SVal); end if;
-      elsif P = "max-height" then
+      elsif Key = D_Max_Height then
          if Parse_Size_Value (V, SVal) then Rules.Max_Height := Set (SVal); end if;
-      elsif P = "font-family" then
+      elsif Key = D_Font_Family then
          if Fits_In_Style (V) then
             Rules.Font_Family := Set_Font_Family (V);
          end if;
-      elsif P = "font-size" then
+      elsif Key = D_Font_Size then
          if Parse_Length (V, LVal) then Rules.Font_Size := Set_Font (To_Length (LVal)); end if;
-      elsif P = "font-weight" then
+      elsif Key = D_Font_Weight then
          if LV = "100" or else LV = "thin" then Rules.Font_Weight := Set (Weight_Thin);
          elsif LV = "200" or else LV = "extra-light" or else LV = "ultralight" then Rules.Font_Weight := Set (Weight_Extra_Light);
          elsif LV = "300" or else LV = "light" then Rules.Font_Weight := Set (Weight_Light);
@@ -2347,22 +2593,22 @@ package body Adi.CSS_Parser is
          elsif LV = "800" or else LV = "extra-bold" or else LV = "extrabold" then Rules.Font_Weight := Set (Weight_Extra_Bold);
          elsif LV = "900" or else LV = "black" then Rules.Font_Weight := Set (Weight_Black);
          end if;
-      elsif P = "font-style" then
+      elsif Key = D_Font_Style then
          if LV = "normal" then Rules.Font_Style := Set (Style_Normal);
          elsif LV = "italic" then Rules.Font_Style := Set (Style_Italic);
          elsif LV = "oblique" then Rules.Font_Style := Set (Style_Oblique);
          end if;
-      elsif P = "text-decoration" then
+      elsif Key = D_Text_Decoration then
          if LV = "none" then Rules.Text_Decoration := Set (Decoration_None);
          elsif LV = "underline" then Rules.Text_Decoration := Set (Decoration_Underline);
          elsif LV = "overline" then Rules.Text_Decoration := Set (Decoration_Overline);
          elsif LV = "line-through" then Rules.Text_Decoration := Set (Decoration_Line_Through);
          end if;
-      elsif P = "list-style-type" then
+      elsif Key = D_List_Style_Type then
          if Parse_List_Style_Type_Value (V, List_Type_Val) then
             Rules.List_Style_Type := Set (List_Type_Val);
          end if;
-      elsif P = "background-image" then
+      elsif Key = D_Background_Image then
          if LV = "none" then
             Rules.Background_Image := Set_Bg_Image (No_Background_Image);
          elsif Parse_Linear_Gradient (V, Grad_Val) then
@@ -2371,17 +2617,17 @@ package body Adi.CSS_Parser is
             Rules.Background_Image := Set_Bg_Image
               (Background_Image_URL (To_String (URI_Text)));
          end if;
-      elsif P = "list-style-image" then
+      elsif Key = D_List_Style_Image then
          if LV = "none" then
             Rules.List_Style_Image := Set (No_List_Image);
          elsif Parse_URL_Function (V, URI_Text) then
             Rules.List_Style_Image := Set (List_Image (To_String (URI_Text)));
          end if;
-      elsif P = "list-style-position" then
+      elsif Key = D_List_Style_Position then
          if Parse_List_Style_Position_Value (V, List_Position_Val) then
             Rules.List_Style_Position := Set (List_Position_Val);
          end if;
-      elsif P = "list-style" then
+      elsif Key = D_List_Style then
          if Parse_List_Style_Shorthand
            (V,
             List_Type_Val,
@@ -2401,18 +2647,18 @@ package body Adi.CSS_Parser is
                Rules.List_Style_Position := Set (List_Position_Val);
             end if;
          end if;
-      elsif P = "white-space" then
+      elsif Key = D_White_Space then
          if LV = "normal" then Rules.White_Space := Set (WS_Normal);
          elsif LV = "nowrap" then Rules.White_Space := Set (WS_Nowrap);
          elsif LV = "pre" then Rules.White_Space := Set (WS_Pre);
          elsif LV = "pre-wrap" then Rules.White_Space := Set (WS_Pre_Wrap);
          elsif LV = "pre-line" then Rules.White_Space := Set (WS_Pre_Line);
          end if;
-      elsif P = "text-overflow" then
+      elsif Key = D_Text_Overflow then
          if LV = "clip" then Rules.Text_Overflow := Set (Overflow_Clip);
          elsif LV = "ellipsis" then Rules.Text_Overflow := Set (Overflow_Ellipsis);
          end if;
-      elsif P = "line-height" then
+      elsif Key = D_Line_Height then
          if LV = "normal" then
             Rules.Line_Height := Set (Normal_Line_Height);
          elsif Parse_Number (V, F) then
@@ -2420,7 +2666,7 @@ package body Adi.CSS_Parser is
          elsif Parse_Length (V, LVal) then
             Rules.Line_Height := Set (Line_Height (To_Length (LVal)));
          end if;
-      elsif P = "text-align" then
+      elsif Key = D_Text_Align then
          if LV = "left" then Rules.Text_Align := Set (Text_Left);
          elsif LV = "right" then Rules.Text_Align := Set (Text_Right);
          elsif LV = "center" then Rules.Text_Align := Set (Text_Center);
@@ -2428,11 +2674,11 @@ package body Adi.CSS_Parser is
          elsif LV = "start" then Rules.Text_Align := Set (Text_Start);
          elsif LV = "end" then Rules.Text_Align := Set (Text_End);
          end if;
-      elsif P = "text-wrap-mode" then
+      elsif Key = D_Text_Wrap_Mode then
          if LV = "wrap" then Rules.Text_Wrap_Mode := Set (TWM_Wrap);
          elsif LV = "nowrap" then Rules.Text_Wrap_Mode := Set (TWM_Nowrap);
          end if;
-      elsif P = "vertical-align" then
+      elsif Key = D_Vertical_Align then
          if LV = "baseline" then Rules.Vertical_Align := Set (VA_Baseline);
          elsif LV = "top" then Rules.Vertical_Align := Set (VA_Top);
          elsif LV = "middle" then Rules.Vertical_Align := Set (VA_Middle);
@@ -2440,7 +2686,7 @@ package body Adi.CSS_Parser is
          elsif LV = "text-top" then Rules.Vertical_Align := Set (VA_Text_Top);
          elsif LV = "text-bottom" then Rules.Vertical_Align := Set (VA_Text_Bottom);
          end if;
-      elsif P = "display" then
+      elsif Key = D_Display then
          if LV = "none" then Rules.Display := Set (Display_None);
          elsif LV = "block" then Rules.Display := Set (Block);
          elsif LV = "inline" then Rules.Display := Set (Inline);
@@ -2450,46 +2696,46 @@ package body Adi.CSS_Parser is
          elsif LV = "grid" then Rules.Display := Set (Grid);
          elsif LV = "inline-grid" then Rules.Display := Set (Inline_Grid);
          end if;
-      elsif P = "position" then
+      elsif Key = D_Position then
          if LV = "static" then Rules.Position := Set (Static);
          elsif LV = "relative" then Rules.Position := Set (Relative);
          elsif LV = "absolute" then Rules.Position := Set (Absolute);
          elsif LV = "fixed" then Rules.Position := Set (Fixed);
          elsif LV = "sticky" then Rules.Position := Set (Sticky);
          end if;
-      elsif P = "top" then
+      elsif Key = D_Top then
          if LV = "auto" then
             Rules.Top := Set_Top (Auto_Inset);
          elsif Parse_Length (V, LVal) then
             Rules.Top := Set_Top (Inset (To_Length (LVal)));
          end if;
-      elsif P = "right" then
+      elsif Key = D_Right then
          if LV = "auto" then
             Rules.Right := Set_Right (Auto_Inset);
          elsif Parse_Length (V, LVal) then
             Rules.Right := Set_Right (Inset (To_Length (LVal)));
          end if;
-      elsif P = "bottom" then
+      elsif Key = D_Bottom then
          if LV = "auto" then
             Rules.Bottom := Set_Bottom (Auto_Inset);
          elsif Parse_Length (V, LVal) then
             Rules.Bottom := Set_Bottom (Inset (To_Length (LVal)));
          end if;
-      elsif P = "left" then
+      elsif Key = D_Left then
          if LV = "auto" then
             Rules.Left := Set_Left (Auto_Inset);
          elsif Parse_Length (V, LVal) then
             Rules.Left := Set_Left (Inset (To_Length (LVal)));
          end if;
-      elsif P = "overflow" then
+      elsif Key = D_Overflow then
          if Parse_Overflow_Value (LV, Overflow_Val) then
             Set_Overflow_Shorthand (Rules, Overflow_Val);
          end if;
-      elsif P = "overflow-x" then
+      elsif Key = D_Overflow_X then
          if Parse_Overflow_Value (LV, Overflow_Val) then
             Rules.Overflow_X := Set_Overflow_X (Overflow_Val);
          end if;
-      elsif P = "overflow-y" then
+      elsif Key = D_Overflow_Y then
          if Parse_Overflow_Value (LV, Overflow_Val) then
             Rules.Overflow_Y := Set_Overflow_Y (Overflow_Val);
          end if;
@@ -2499,12 +2745,12 @@ package body Adi.CSS_Parser is
       --  number as specified; Opacity_Value cannot hold one, so this
       --  clamps on the way in. Same computed result, and it only shows
       --  where the specified value is read back rather than used.
-      elsif P = "opacity" then
+      elsif Key = D_Opacity then
          if Parse_Number (V, F) then
             Rules.Opacity :=
               Set (Opacity_Value (Float'Max (0.0, Float'Min (1.0, F))));
          end if;
-      elsif P = "cursor" then
+      elsif Key = D_Cursor then
          if LV = "auto" then Rules.Cursor := Set (Cursor_Auto);
          elsif LV = "default" then Rules.Cursor := Set (Cursor_Default);
          elsif LV = "pointer" then Rules.Cursor := Set (Cursor_Pointer);
@@ -2516,34 +2762,34 @@ package body Adi.CSS_Parser is
          elsif LV = "grab" then Rules.Cursor := Set (Cursor_Grab);
          elsif LV = "grabbing" then Rules.Cursor := Set (Cursor_Grabbing);
          end if;
-      elsif P = "visibility" then
+      elsif Key = D_Visibility then
          if LV = "visible" then Rules.Visibility := Set (Visibility_Visible);
          elsif LV = "hidden" then Rules.Visibility := Set (Visibility_Hidden);
          elsif LV = "collapse" then Rules.Visibility := Set (Visibility_Collapse);
          end if;
-      elsif P = "object-fit" then
+      elsif Key = D_Object_Fit then
          if LV = "fill" then Rules.Object_Fit := Set (Fit_Fill);
          elsif LV = "contain" then Rules.Object_Fit := Set (Fit_Contain);
          elsif LV = "cover" then Rules.Object_Fit := Set (Fit_Cover);
          elsif LV = "none" then Rules.Object_Fit := Set (Fit_None);
          elsif LV = "scale-down" then Rules.Object_Fit := Set (Fit_Scale_Down);
          end if;
-      elsif P = "object-position" then
+      elsif Key = D_Object_Position then
          if Parse_Object_Position_Value (V, Object_Pos_Val) then
             Rules.Object_Position := Set (Object_Pos_Val);
          end if;
-      elsif P = "flex-direction" then
+      elsif Key = D_Flex_Direction then
          if LV = "row" then Rules.Flex_Direction := Set (Row);
          elsif LV = "row-reverse" then Rules.Flex_Direction := Set (Row_Reverse);
          elsif LV = "column" then Rules.Flex_Direction := Set (Column);
          elsif LV = "column-reverse" then Rules.Flex_Direction := Set (Column_Reverse);
          end if;
-      elsif P = "flex-wrap" then
+      elsif Key = D_Flex_Wrap then
          if LV = "nowrap" then Rules.Flex_Wrap := Set (No_Wrap);
          elsif LV = "wrap" then Rules.Flex_Wrap := Set (Wrap);
          elsif LV = "wrap-reverse" then Rules.Flex_Wrap := Set (Wrap_Reverse);
          end if;
-      elsif P = "justify-content" then
+      elsif Key = D_Justify_Content then
          if LV = "flex-start" or else LV = "start" then Rules.Justify_Content := Set (Flex_Start);
          elsif LV = "flex-end" or else LV = "end" then Rules.Justify_Content := Set (Flex_End);
          elsif LV = "center" then Rules.Justify_Content := Set (Center);
@@ -2551,14 +2797,14 @@ package body Adi.CSS_Parser is
          elsif LV = "space-around" then Rules.Justify_Content := Set (Space_Around);
          elsif LV = "space-evenly" then Rules.Justify_Content := Set (Space_Evenly);
          end if;
-      elsif P = "align-items" then
+      elsif Key = D_Align_Items then
          if LV = "flex-start" or else LV = "start" then Rules.Align_Items := Set (Flex_Start);
          elsif LV = "flex-end" or else LV = "end" then Rules.Align_Items := Set (Flex_End);
          elsif LV = "center" then Rules.Align_Items := Set (Center);
          elsif LV = "baseline" then Rules.Align_Items := Set (Baseline);
          elsif LV = "stretch" then Rules.Align_Items := Set (Stretch);
          end if;
-      elsif P = "align-self" then
+      elsif Key = D_Align_Self then
          if LV = "auto" then Rules.Align_Self := Set (Align_Self_Value'(Auto));
          elsif LV = "flex-start" or else LV = "start" then Rules.Align_Self := Set (Align_Self_Value'(Flex_Start));
          elsif LV = "flex-end" or else LV = "end" then Rules.Align_Self := Set (Align_Self_Value'(Flex_End));
@@ -2566,7 +2812,7 @@ package body Adi.CSS_Parser is
          elsif LV = "baseline" then Rules.Align_Self := Set (Align_Self_Value'(Baseline));
          elsif LV = "stretch" then Rules.Align_Self := Set (Align_Self_Value'(Stretch));
          end if;
-      elsif P = "align-content" then
+      elsif Key = D_Align_Content then
          if LV = "flex-start" or else LV = "start" then Rules.Align_Content := Set (Align_Content_Value'(Flex_Start));
          elsif LV = "flex-end" or else LV = "end" then Rules.Align_Content := Set (Align_Content_Value'(Flex_End));
          elsif LV = "center" then Rules.Align_Content := Set (Align_Content_Value'(Center));
@@ -2574,20 +2820,20 @@ package body Adi.CSS_Parser is
          elsif LV = "space-around" then Rules.Align_Content := Set (Align_Content_Value'(Space_Around));
          elsif LV = "stretch" then Rules.Align_Content := Set (Align_Content_Value'(Stretch));
          end if;
-      elsif P = "gap" then
+      elsif Key = D_Gap then
          if Parse_Length_List (V, Ls) then
             if Ls.Length = 1 then Rules.Gap := Set (Gap (To_Length (Ls (1))));
             elsif Ls.Length >= 2 then Rules.Gap := Set (Gap (To_Length (Ls (1)), To_Length (Ls (2))));
             end if;
          end if;
-      elsif P = "row-gap" or else P = "column-gap" then
+      elsif Key = D_Row_Gap or else Key = D_Column_Gap then
          if Parse_Length (V, LVal) then
             declare
                --  One field carries both axes, so a longhand overlays its
                --  own axis and leaves the other as it was — unnamed here,
                --  or whatever a preceding shorthand in this rule set.
                Axis : constant Gap_Value :=
-                 (if P = "row-gap" then Gap_Row (To_Length (LVal))
+                 (if Key = D_Row_Gap then Gap_Row (To_Length (LVal))
                   else Gap_Column (To_Length (LVal)));
             begin
                if Opt_Gap.Is_Set (Rules.Gap) then
@@ -2601,22 +2847,22 @@ package body Adi.CSS_Parser is
       --  <number [0,inf]>, and CSS Values 4 makes a value outside a
       --  bracketed range invalid rather than clamped. So a negative one
       --  is dropped, where an out-of-range opacity above is not.
-      elsif P = "flex-grow" then
+      elsif Key = D_Flex_Grow then
          if Parse_Number (V, F) and then F >= 0.0 then
             Rules.Flex_Grow := Set (Flex_Grow_Value (F));
          end if;
-      elsif P = "flex-shrink" then
+      elsif Key = D_Flex_Shrink then
          if Parse_Number (V, F) and then F >= 0.0 then
             Rules.Flex_Shrink := Set (Flex_Shrink_Value (F));
          end if;
-      elsif P = "flex-basis" then
+      elsif Key = D_Flex_Basis then
          if LV = "auto" then Rules.Flex_Basis := Set (Auto_Basis);
          elsif LV = "content" then Rules.Flex_Basis := Set (Content_Basis);
          elsif Parse_Length (V, LVal) then Rules.Flex_Basis := Set (Basis (To_Length (LVal)));
          end if;
-      elsif P = "order" then
+      elsif Key = D_Order then
          if Parse_Integer (V, I) then Rules.Order := Set (Order_Value (I)); end if;
-      elsif P = "grid-template-columns" then
+      elsif Key = D_Grid_Template_Columns then
          declare
             TL : Grid_Track_List;
          begin
@@ -2628,16 +2874,16 @@ package body Adi.CSS_Parser is
                Rules.Grid_Columns := Set (Grid_Columns_Value (N));
             end if;
          end;
-      elsif P = "grid-template-rows" then
+      elsif Key = D_Grid_Template_Rows then
          if Parse_Grid_Track_Count (V, N) then
             Rules.Grid_Rows := Set (Grid_Rows_Value (N));
          end if;
-      elsif P = "grid-column" or else P = "grid-row" then
+      elsif Key = D_Grid_Column or else Key = D_Grid_Row then
          declare
             Slash_Pos   : Natural := 0;
             Start_Val   : Integer;
             Span_Val    : Natural;
-            Is_Col      : constant Boolean := P = "grid-column";
+            Is_Col      : constant Boolean := Key = D_Grid_Column;
             Got_Start   : Boolean := False;
             Start_Line  : Natural := 0;
          begin
@@ -2711,19 +2957,19 @@ package body Adi.CSS_Parser is
                end if;
             end if;
          end;
-      elsif P = "outline-width" then
+      elsif Key = D_Outline_Width then
          if Parse_Length (V, LVal) then Rules.Outline_Width := Set_Outline_Width (To_Length (LVal)); end if;
-      elsif P = "outline-color" then
+      elsif Key = D_Outline_Color then
          if Parse_Color (V, CVal) then Rules.Outline_Color := Set_Outline_Color (CVal); end if;
-      elsif P = "outline-style" then
+      elsif Key = D_Outline_Style then
          if LV = "none" then Rules.Outline_Style := Set (Outline_None);
          elsif LV = "solid" then Rules.Outline_Style := Set (Outline_Solid);
          elsif LV = "dashed" then Rules.Outline_Style := Set (Outline_Dashed);
          elsif LV = "dotted" then Rules.Outline_Style := Set (Outline_Dotted);
          end if;
-      elsif P = "outline-offset" then
+      elsif Key = D_Outline_Offset then
          if Parse_Length (V, LVal) then Rules.Outline_Offset := Set_Outline_Offset (To_Length (LVal)); end if;
-      elsif P = "outline" then
+      elsif Key = D_Outline then
          declare
             Tokens : Token_Vectors.Vector;
             Tok_L  : Parsed_Length;
@@ -2751,9 +2997,9 @@ package body Adi.CSS_Parser is
                end;
             end loop;
          end;
-      elsif P = "box-shadow" then
+      elsif Key = D_Box_Shadow then
          if Parse_Box_Shadow (V, Shadow_Val) then Rules.Box_Shadow := Set (Shadow_Val); end if;
-      elsif P = "transition" then
+      elsif Key = D_Transition then
          declare
             T : Transition_Spec;
          begin
@@ -3275,11 +3521,15 @@ package body Adi.CSS_Parser is
      (Root_CSS  : String;
       Metadata  : in out Stylesheet_Metadata)
    is
-      Pos : Positive := Root_CSS'First;
+      Pos     : Positive := Root_CSS'First;
+      Working : Adi.Widget.Part_Style_Array := Adi.Widget.Empty_Part_Styles;
+      Touched : Boolean := False;
    begin
       if Root_CSS'Length = 0 then
          return;
       end if;
+
+      Working := Adi.Widget.Expand (Metadata.Root_Styles);
 
       while Pos <= Root_CSS'Last loop
          while Pos <= Root_CSS'Last
@@ -3306,19 +3556,18 @@ package body Adi.CSS_Parser is
                     Trimmed (Decl (Sep + 1 .. Decl'Last));
                begin
                   Metadata.Has_Root_Style := True;
-                  Metadata.Root_Styles (Main_Part).Enabled := True;
+                  Touched := True;
+                  Working (Main_Part).Enabled := True;
                   Apply_Property
-                    (Metadata.Root_Styles (Main_Part).Style.Base,
-                     Prop_Name,
-                     Prop_Value);
+                    (Working (Main_Part).Style.Base, Prop_Name, Prop_Value);
                   if Lower (Prop_Name) = "font-size"
                     and then Opt_Font_Size.Is_Set
-                      (Metadata.Root_Styles (Main_Part).Style.Base.Font_Size)
+                      (Working (Main_Part).Style.Base.Font_Size)
                   then
                      Metadata.Has_Root_Font_Size := True;
                      Metadata.Root_Font_Size :=
                        Opt_Font_Size.Resolve
-                         (Metadata.Root_Styles (Main_Part).Style.Base.Font_Size);
+                         (Working (Main_Part).Style.Base.Font_Size);
                   end if;
                end;
             end if;
@@ -3330,6 +3579,10 @@ package body Adi.CSS_Parser is
             end if;
          end;
       end loop;
+
+      if Touched then
+         Metadata.Root_Styles := Adi.Widget.Intern (Working);
+      end if;
    end Build_Root_Metadata;
 
    function Preprocess_Custom_Properties

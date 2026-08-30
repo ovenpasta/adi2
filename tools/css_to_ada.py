@@ -1327,9 +1327,7 @@ def parse_css_quoted_string(value: str) -> Optional[str]:
     return None
 
 
-#  The text a style value carries, matching
-#  Adi.CSS_Styles.Max_CSS_Text_Length. A declaration naming more is
-#  dropped here and by Adi.CSS_Parser alike.
+#  Matches Adi.CSS_Styles.Max_CSS_Text_Length.
 MAX_CSS_TEXT_LENGTH = 4096
 
 
@@ -3792,7 +3790,7 @@ def generate_ada_package(
     lines.append("   function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is")
     lines.append("     (")
     lines.append("      Has_Root_Style => Has_Root_Styles,")
-    lines.append("      Root_Styles => Root_Part_Styles,")
+    lines.append("      Root_Styles => Adi.Widget.Intern (Root_Part_Styles),")
     lines.append("      Has_Root_Font_Size => Has_Root_Font_Size,")
     lines.append("      Root_Font_Size => Root_Font_Size);")
 

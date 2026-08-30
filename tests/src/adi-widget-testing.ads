@@ -13,6 +13,9 @@ package Adi.Widget.Testing is
    --  a test measures a step across an operation, not an absolute.
    function Interned_Styles return Natural;
 
+   --  Storage elements those entries occupy.
+   function Interned_Style_Bytes return Natural;
+
    --  Entries the resolved-style memo holds. It is cleared wholesale at
    --  its cap, so this rises and falls.
    function Memo_Entries return Natural;

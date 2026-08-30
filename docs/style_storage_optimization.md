@@ -162,11 +162,10 @@ style so it does not hold a second copy of each.
 
 `Style_Rules` cannot be hashed as bytes. Its properties are
 discriminated `Optional` records whose inactive variants hold
-indeterminate bytes, and four of them carry an `Unbounded_String` while
-`Background_Image` carries a `Linear_Gradient_Ref`. Two equal styles
-built by separate calls share none of those bytes, so a byte digest
-splits them and the deduplication silently disappears for exactly the
-properties most likely to vary.
+indeterminate bytes. Two equal styles built by separate calls share
+none of those bytes, so a byte digest splits them and the
+deduplication silently disappears for exactly the properties most
+likely to vary.
 
 `Hash` therefore keys on `Set_Properties` — which properties each rule
 set names — together with the selectors and counts. Nothing it reads
@@ -174,7 +173,7 @@ depends on how a value was constructed. A property missing from
 `Set_Properties` costs a collision, which equality then settles; it
 cannot cost a wrong answer.
 
-### Gradients are shared
+### Composite values are canonical
 
 `Background_Image` holds a gradient by `Linear_Gradient_Ref`, and a
 pointer is what equality on the enclosing style compares. `Linear_Gradient`
@@ -188,6 +187,15 @@ The store is scanned rather than hashed. A sheet has a handful of
 gradients, and the angle and stop positions are floats, where equal
 values need not share their bits. Nothing writes through the pointer:
 the three `Render_Gradient_*` helpers take the value as `in`.
+
+Text a style value names — the `background-image` and
+`list-style-image` paths, the `list-style-type` marker and the
+`font-family` list — reaches the same shape through
+`Adi.CSS_Styles.Intern_Text`, which answers one `CSS_Text_Id` per
+distinct string from a store the body holds. A style value therefore
+carries a 4-byte id rather than a string, which keeps it flat, and
+equal text compares equal for the same reason a shared gradient
+pointer does.
 
 ### Parsed selectors
 

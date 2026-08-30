@@ -662,6 +662,22 @@ The toggle is a process-global call — there is no per-widget or per-stylesheet
 
 Special keywords: `transparent`, `inherit`, `currentcolor`.
 
+### Text
+
+Four properties name text: the `url()` path of `background-image` and
+`list-style-image`, the quoted marker of `list-style-type`, and the
+whole `font-family` fallback list. A style holds each as an index into
+a store the library interns them in, so equal text is one entry however
+many rules spell it.
+
+A value carries up to `Adi.CSS_Styles.Max_CSS_Text_Length` characters,
+4096. The generator and the runtime parser hold the same figure and
+drop a declaration naming more, reporting it — the generator as an
+`invalid-property-value` diagnostic, the parser through `Adi.Log`. Ada
+code calling `Background_Image_URL`, `List_Image`, `List_String` or
+`Set_Font_Family` past the limit gets the absent value back, with the
+same report.
+
 ---
 
 ## Custom Properties

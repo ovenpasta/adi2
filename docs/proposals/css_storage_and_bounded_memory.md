@@ -231,23 +231,72 @@ alone carries nine sub-branches. Shorthand expansion stays as it is.
 
 ### 4.1   Flat style values
 
-Four properties hold a controlled type through the `Set` variant of
-`Optional`, which makes `Style_Rules` a needs-finalization type, and with
-it `Widget_Style`, `Part_Style`, `Part_Style_Array` and `Resolved_Style`.
-Every style-typed object anywhere is therefore controlled; a
-`Part_Style_Array` copy performs 816 discriminant checks against zero
-allocations. This is the property that keeps a style value out of static
-storage.
+A controlled component anywhere under `Style_Rules` makes it a
+needs-finalization type, and with it `Widget_Style`, `Part_Style`,
+`Part_Style_Array` and `Resolved_Style`, so every style-typed object in
+the library becomes controlled and a `Part_Style_Array` copy runs 816
+discriminant checks against zero allocations. That is what keeps a style
+value out of static storage, and four properties reach such a component
+through the `Set` variant of `Optional`.
 
-| Property | Component | Replacement |
+All four carry text, and one store answers all four.
+`Adi.CSS_Styles.Intern_Text` gives each distinct string a `CSS_Text_Id`,
+a 4-byte index the value holds in place of the string; `Text_Of` reads it
+back. Interning is canonical, so equal text is one id and predefined
+equality on the enclosing style stays exact — the property
+`Linear_Gradient` already establishes for a gradient.
+
+| Property | Component | Holds |
 |---|---|---|
-| `Font_Family` | `Name : Unbounded_String` | index into `Adi.Font.Name_Registry`, which already interns these names; late binding stays with the existing `Font_Gen` in the memo key |
-| `Background_Image` | `URI : Unbounded_String`, `Linear_Gradient_Ref` | bounded path, and an index into the gradient store |
-| `List_Style_Image` | `URI : Unbounded_String` | bounded path |
-| `List_Style_Type` | `Marker : Unbounded_String` | `String (1 .. 16)` |
+| `Font_Family` | `Name` | `CSS_Text_Id`, resolved through `Font_Name_Resolver` at `Resolve` time as before |
+| `Background_Image` | `URI` | `CSS_Text_Id`; `Gradient` stays a `Linear_Gradient_Ref` |
+| `List_Style_Image` | `URI` | `CSS_Text_Id` |
+| `List_Style_Type` | `Marker` | `CSS_Text_Id` |
 
-With those four flat, assignment becomes a `memcpy` and the chain leaves
-finalization behind.
+The font name goes to the text store rather than to
+`Adi.Font.Name_Registry`. That registry is a map from a case-insensitive
+name to a `Font_Handle`, populated by `Register_Name` alone: it carries no
+stable index, it holds only names an application has registered, and a CSS
+`font-family` value is a whole fallback list rather than one name.
+`Font_Name_Resolver` exists because resolution is deferred, and the id
+keeps it deferred.
+
+`Linear_Gradient_Ref` stays a pointer. An access value is already flat, so
+it is no part of the finalization question, and `Background_Image_Value`'s
+payload width is set by `Adi.Image.Image_Handle` at 8 bytes either way, so
+an index buys no bytes. What an index would buy is §4.2's `.rodata`
+placement, which decides the emitted shape; it belongs with that step.
+
+Text is bounded at `Max_CSS_Text_Length`, 4096 characters. Both pipelines
+hold the same figure and drop a declaration naming more — `css_to_ada.py`
+through `css_text_fits`, `Adi.CSS_Parser` through `Fits_In_Style` — so an
+over-long value is reported rather than truncated, and neither pipeline
+keeps what the other discards. A direct call to `Background_Image_URL`,
+`List_Image`, `List_String` or `Set_Font_Family` past the limit answers
+with the absent value and reports through `Adi.Log`. The store holds one
+character blob and a span per distinct string, so it spends the characters
+interned and the bound costs nothing until it is reached.
+
+With the four flat, assignment is a `memcpy` and the chain leaves
+finalization behind. Measured on x86-64 Linux, against §2.1:
+
+| Type | Before | After |
+|---|---|---|
+| `Background_Image_Value` | 24 | 16 |
+| `Font_Family_Value`, `List_Style_Type_Value`, `List_Style_Image_Value` | 24 each | 8 each |
+| `Style_Rules` | 1,144 | 1,072 |
+| `State_Rule` | 1,176 | 1,104 |
+| `Widget_Style` | 19,976 | 18,752 |
+| `Part_Style_Array` | 239,808 | 225,120 |
+| `Stylesheet_Metadata` | 239,832 | 225,144 |
+| `Prepared_Style_Entry` | 20,048 | 18,824 |
+| `Resolved_Style` | 888 | 840 |
+
+`'Max_Size_In_Storage_Elements` now equals `'Object_Size`/8 for every row,
+where each stood 32 bytes above it: that difference was the finalization
+header. `tests/src/style_flat_values_test.adb` reads the figures and
+asserts `'Finalization_Size = 0` along the chain, GNAT answering that
+attribute with zero exactly for a type needing no finalization.
 
 Equality stays structural. `Optional` carries `when Undefined | None => null`,
 so an unset component holds indeterminate bytes in its value area, as do the
@@ -306,6 +355,7 @@ which this step already requires.
 | `Bindings`, `Effective`, in both `CSS_Source` and `CSS_Parser` | one entry per widget ever bound | — |
 | `Style_Source_Impl`, `Stylesheet_Impl` | one per source or sheet ever created | — |
 | `Gradient_Store` | one per distinct gradient value ever constructed | — |
+| `Text_Chars`, `Text_Spans` | one span, and its characters, per distinct CSS text ever interned | `Max_CSS_Text_Length` per entry |
 | `Global_Resolved_Cache` | 32,768 entries, released whole at the cap | entries, rather than bytes |
 
 `Object_Id` is generational, so a recycled widget slot presents a fresh key
@@ -431,7 +481,8 @@ Field width is the third lever and the smallest:
 | `Box_Shadow` | 52 | packed colour, 36 |
 | `Margin` | 48 | `auto` as a `CSS_Unit`, 32 |
 | `Padding`, `Border_Radius`, `Border_Width` | 36 | the per-side form throughout, 32 |
-| `Background_Image`, `List_Style_Type`, `List_Style_Image` | 24 | 4.1's indices, 8 |
+| `List_Style_Type`, `List_Style_Image` | 24 | 4.1's ids, 8 |
+| `Background_Image` | 24 | 16 at 4.1, and 8 behind a narrower `Image_Handle` |
 | `Color`, `Background_Color`, `Outline_Color` | 20 | packed RGBA, 4 |
 | six `Size_Value`, four `Inset_Value` | 12 | the kind folded into `CSS_Unit`, 8 |
 

@@ -10,6 +10,7 @@ with Adi.Core;              use Adi.Core;
 with Adi.Widget_Styles;     use Adi.Widget_Styles;
 with Adi.CSS_Styles;        use Adi.CSS_Styles;
 with Adi.Animation;         use Adi.Animation;
+with Adi.Resolved_Styles;   use Adi.Resolved_Styles;
 with Adi.Font;
 with Adi.SDL.TTF;
 with Adi.SDL.TTF.TextEngine;
@@ -152,14 +153,15 @@ package Adi.Widget is
       Part           : Part_Kind := Main_Part;
       Z_Order        : Natural := 0;
 
-      --  Computed style (resolved from part style + widget states)
-      Computed_Style : Resolved_Style;
+      --  Computed style (resolved from part style + widget states),
+      --  as a handle into the resolved-style store.
+      Computed_Style : Resolved_Handle := Default_Handle;
 
       --  Optional explicit per-item style. When enabled, this style is used
       --  directly and part-based style resolution/animation does not override
       --  the item's computed style.
       Has_Style_Override : Boolean := False;
-      Style_Override     : Resolved_Style := Resolve (Empty_Style);
+      Style_Override     : Resolved_Handle := Default_Handle;
 
       --  Text_Item fields (unused by other kinds)
       Text_Content   : Unbounded_String := Null_Unbounded_String;
@@ -289,6 +291,13 @@ package Adi.Widget is
 
    function Get_Resolved_Part_Style (H : Widget_Handle;
                                      P : Part_Kind) return Resolved_Style;
+
+   --  The same answer as a handle, for a caller that stores it or
+   --  compares it rather than reading a component out of it.
+   function Get_Resolved_Part_Handle (W : Widget'Class;
+                                      P : Part_Kind) return Resolved_Handle;
+   function Get_Resolved_Part_Handle (H : Widget_Handle;
+                                      P : Part_Kind) return Resolved_Handle;
 
    procedure Set_Part_State (H : Widget_Handle;
                              P : Part_Kind;
@@ -924,7 +933,7 @@ private
 
    --  Animation state per part
    type Part_Transition_Array is array (Part_Kind) of Part_Transition;
-   type Part_Resolved_Array is array (Part_Kind) of Resolved_Style;
+   type Part_Resolved_Array is array (Part_Kind) of Resolved_Handle;
    type Part_Initialized_Array is array (Part_Kind) of Boolean;
    type Part_State_Array is array (Part_Kind) of Widget_States;
 
@@ -972,6 +981,9 @@ private
       Cached_Eff_States    : Widget_States := No_States;
       --  The font environment those cached styles were resolved against.
       Cached_Font_Gen      : Adi.Font.Font_Generation := 0;
+      --  The store generation they name entries in. A store that has
+      --  cleared since leaves every handle here pointing nowhere.
+      Cached_Store_Gen     : Natural := 0;
       Cached_Part_States   : Part_State_Array := [others => No_States];
 
       --  Layout epoch for duplicate-call elimination (Phase 2)
@@ -1001,6 +1013,8 @@ private
       Last_Target       : Part_Resolved_Array;
       Last_Target_Init  : Part_Initialized_Array := [others => False];
       Has_Any_Animation : Boolean := False;
+      --  The store generation Last_Target and Transitions name.
+      Target_Store_Gen  : Natural := 0;
 
       --  Shared vertical scrolling state for overflow:auto/scroll
       Scroll_Offset_Y     : Pixel_Type := 0.0;

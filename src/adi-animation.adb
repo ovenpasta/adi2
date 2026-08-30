@@ -280,12 +280,51 @@ package body Adi.Animation is
    --  Advance
    ---------------------------------------------------------------------------
 
+   procedure Start (PT       : in out Part_Transition;
+                    From     : Resolved_Handle;
+                    Target   : Resolved_Handle;
+                    Duration : Float;
+                    Easing   : Easing_Kind;
+                    Started  : out Boolean) is
+   begin
+      if PT.Active and then PT.Slot /= No_Scratch then
+         --  Carry on from where the running transition stands.
+         Write (From_Cell (PT.Slot), Value (Current_Cell (PT.Slot)));
+         PT.From := From_Cell (PT.Slot);
+      else
+         PT.Slot := Acquire_Scratch;
+         if PT.Slot = No_Scratch then
+            PT.Active := False;
+            Started := False;
+            return;
+         end if;
+         PT.From := From;
+         Write (From_Cell (PT.Slot), Value (From));
+      end if;
+
+      Write (Current_Cell (PT.Slot), Value (PT.From));
+
+      PT.Active := True;
+      PT.Elapsed := 0.0;
+      PT.Duration := Duration;
+      PT.Easing := Easing;
+      PT.Target := Target;
+      Started := True;
+   end Start;
+
+   procedure Cancel (PT : in out Part_Transition) is
+   begin
+      PT.Active := False;
+      Release_Scratch (PT.Slot);
+      PT.From := PT.Target;
+   end Cancel;
+
    procedure Advance (PT     : in out Part_Transition;
                       DT     : Float;
-                      Result : out Resolved_Style) is
+                      Result : out Resolved_Handle) is
    begin
       if not PT.Active then
-         Result := PT.Target_Style;
+         Result := PT.Target;
          return;
       end if;
 
@@ -295,13 +334,18 @@ package body Adi.Animation is
          --  Transition complete
          PT.Active := False;
          PT.Elapsed := PT.Duration;
-         Result := PT.Target_Style;
+         Release_Scratch (PT.Slot);
+         PT.From := PT.Target;
+         Result := PT.Target;
       else
          declare
-            Raw_T  : constant Float := PT.Elapsed / PT.Duration;
-            Eased  : constant Float := Apply_Easing (Raw_T, PT.Easing);
+            Raw_T   : constant Float := PT.Elapsed / PT.Duration;
+            Eased   : constant Float := Apply_Easing (Raw_T, PT.Easing);
+            Current : constant Resolved_Handle := Current_Cell (PT.Slot);
          begin
-            Result := Interpolate (PT.From_Style, PT.Target_Style, Eased);
+            Write (Current,
+                   Interpolate (Ref (PT.From).all, Ref (PT.Target).all, Eased));
+            Result := Current;
          end;
       end if;
    end Advance;

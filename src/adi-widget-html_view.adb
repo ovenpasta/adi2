@@ -2220,7 +2220,7 @@ package body Adi.Widget.Html_View is
             It.Text_Offset_Y := Current_Line_Ascent - Run_Ascent;
             It.Has_Style_Override := True;
             Render_Style.Font_Size := Pixels_As_Length (Local_Font_Size_Px (Style));
-            It.Style_Override := Render_Style;
+            It.Style_Override := Intern (Render_Style);
             Result.Items.Append (It);
 
             Item_Index := Positive (Result.Items.Last_Index);
@@ -2291,12 +2291,18 @@ package body Adi.Widget.Html_View is
             Link_Index : Natural := 0;
          begin
             It.Has_Style_Override := True;
-            It.Style_Override := Style;
-            if Img /= Adi.Image.Null_Image_Handle and then Adi.Image.Is_Tintable (Img) then
-               It.Style_Override.Object_Fit := Fit_Scale_Down;
-               It.Style_Override.Object_Position :=
-                 Object_Position (Pos_Center, Pos_Top);
-            end if;
+            declare
+               Override : Resolved_Style := Style;
+            begin
+               if Img /= Adi.Image.Null_Image_Handle
+                 and then Adi.Image.Is_Tintable (Img)
+               then
+                  Override.Object_Fit := Fit_Scale_Down;
+                  Override.Object_Position :=
+                    Object_Position (Pos_Center, Pos_Top);
+               end if;
+               It.Style_Override := Intern (Override);
+            end;
             Result.Items.Append (It);
 
             Item_Index := Positive (Result.Items.Last_Index);
@@ -2348,7 +2354,7 @@ package body Adi.Widget.Html_View is
             It : Item := Make_Panel (Any_Part, Rule_Geom, 1);
          begin
             It.Has_Style_Override := True;
-            It.Style_Override := Style;
+            It.Style_Override := Intern (Style);
             Result.Items.Append (It);
          end;
 
@@ -2826,7 +2832,7 @@ package body Adi.Widget.Html_View is
                                       0);
                               begin
                                  It.Has_Style_Override := True;
-                                 It.Style_Override := Style;
+                                 It.Style_Override := Intern (Style);
                                  Result.Items.Append (It);
                                  Block_Item_Index := Natural (Result.Items.Last_Index);
                               end;
@@ -3149,7 +3155,7 @@ package body Adi.Widget.Html_View is
       --  dropped while its shadow still reaches the viewport.
       function Paint_Bounds (It : Item; R : Rectangle) return Rectangle is
         (if It.Has_Style_Override
-         then Item_Paint_Bounds (It.Style_Override, R)
+         then Item_Paint_Bounds (Ref (It.Style_Override).all, R)
          else Item_Paint_Bounds (Get_Resolved_Part_Style (Self, It.Part), R));
 
       function Overlaps_Band (R : Rectangle) return Boolean is

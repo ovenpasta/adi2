@@ -16,7 +16,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | Coding conventions | `docs/coding_conventions.md` |
 | CSS styling (selectors, properties, runtime API, code generation) | `docs/css_styling.md` |
 | XML UI system (declarative widgets, code generation, components) | `docs/xml_ui_system.md` |
-| Internal style-storage optimization (interning/prepared rules/global memo) | `docs/style_storage_optimization.md` |
+| Internal style-storage optimization (interning/prepared rules/global memo/resolved-style store) | `docs/style_storage_optimization.md` |
 | Item-based flex layout inside a widget (`Layout_Item`) | `docs/layout_item_system.md` |
 | Layout minimums (demanded vs. content vs. preferred size) | `docs/layout_minimums.md` |
 | Hand-crafted SDL3 binding modules | `docs/sdl_bindings.md` |
@@ -90,6 +90,7 @@ alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/texture_cache_test
 ./tests/bin/render_textures_test
 ./tests/bin/os_paths_test
+./tests/bin/resolved_store_test
 
 # Check every example's widget tree against tests/goldens/trees/
 # (rebuilds the examples; --update accepts what the apps report now)

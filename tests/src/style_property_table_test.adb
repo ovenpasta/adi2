@@ -2,6 +2,7 @@ pragma Ada_2022;
 
 with Adi.Animation;  use Adi.Animation;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
+with Adi.Resolved_Styles;
 with Test_Support;   use Test_Support;
 
 --  Two per-property tables replaced two hand-maintained field lists:
@@ -308,6 +309,45 @@ procedure Style_Property_Table_Test is
       end;
    end Test_Layout_Diff_Matches_The_Chain;
 
+   --  The store interns each entry's layout-affecting properties on
+   --  their own, and Adi.Resolved_Styles.Layout_Affecting_Diff is one
+   --  equality on that second handle. Canonical interning makes the two
+   --  answers the same answer, and this is what says so.
+   procedure Test_Layout_Handles_Match_The_Table is
+      use Adi.Resolved_Styles;
+      Base_Handle : constant Resolved_Handle := Intern (Base);
+   begin
+      Section ("the layout handle agrees with the property table");
+
+      Assert (not Adi.Resolved_Styles.Layout_Affecting_Diff
+                    (Base_Handle, Intern (Base)),
+              "a style compared against itself reports no layout change");
+
+      for P in CSS_Property loop
+         declare
+            Mutated : Resolved_Style := Base;
+         begin
+            Copy_Property (P, Contrast, Mutated);
+
+            Assert (Adi.Resolved_Styles.Layout_Affecting_Diff
+                      (Base_Handle, Intern (Mutated))
+                      = Layout_Affecting_Diff (Base, Mutated),
+                    "a change to " & P'Image
+                    & " reaches the layout handle exactly as the table "
+                    & "classifies it");
+         end;
+      end loop;
+
+      declare
+         Tracks_Only : Resolved_Style := Base;
+      begin
+         Tracks_Only.Grid_Column_Tracks := Contrast.Grid_Column_Tracks;
+         Assert (Adi.Resolved_Styles.Layout_Affecting_Diff
+                   (Base_Handle, Intern (Tracks_Only)),
+                 "and so does the grid track list on its own");
+      end;
+   end Test_Layout_Handles_Match_The_Table;
+
    procedure Test_Interpolate_Snaps_As_Before is
       --  Nothing is animated, so every property either snaps to From
       --  below the midpoint or keeps the target.
@@ -360,6 +400,7 @@ begin
 
    Test_Every_Property_Moves;
    Test_Layout_Diff_Matches_The_Chain;
+   Test_Layout_Handles_Match_The_Table;
    Test_Interpolate_Snaps_As_Before;
    Test_Inheritance_Table_Matches;
 

@@ -25,8 +25,6 @@ with Interfaces;
 with System;
 
 package body Adi.Widget is
-   --  Default resolved style for initialization
-   Default_Resolved : constant Resolved_Style := Resolve (Empty_Style);
    Wheel_Step_Px       : constant Pixel_Type := 36.0;
    Wheel_Impulse_Px_S  : constant Pixel_Type := 820.0;
    Max_Scroll_Speed    : constant Pixel_Type := 2200.0;
@@ -219,6 +217,12 @@ package body Adi.Widget is
       On_Destroy (W.all);
       Clear_Items (W.all);
 
+      --  A transition still running holds a slot out of a fixed pool.
+      for P in Part_Kind loop
+         Cancel (W.Transitions (P));
+      end loop;
+      W.Has_Any_Animation := False;
+
       W.Children.Clear;
 
       if W.Store_Index > 0 then
@@ -390,7 +394,7 @@ package body Adi.Widget is
 
    package Resolved_Cache_Maps is new Ada.Containers.Hashed_Maps
      (Key_Type        => Resolved_Cache_Key,
-      Element_Type    => Resolved_Style,
+      Element_Type    => Resolved_Handle,
       Hash            => Hash_Resolved_Cache_Key,
       Equivalent_Keys => "=");
 
@@ -415,6 +419,11 @@ package body Adi.Widget is
    Style_Index : Style_Index_Maps.Map;
    Max_Global_Resolved_Entries : constant Count_Type := 32_768;
    Global_Resolved_Cache : Resolved_Cache_Maps.Map;
+
+   --  The store generation the memo's handles name. A store that has
+   --  cleared leaves every one of them pointing nowhere, so the memo
+   --  goes with it.
+   Memo_Store_Gen : Natural := 0;
 
    function Prepare_Style (S : Widget_Style) return Prepared_Style_Entry is
       Priorities : array (Positive range 1 .. Max_Style_Rules) of Natural :=
@@ -1060,7 +1069,7 @@ package body Adi.Widget is
      (W          : Widget'Class;
       P          : Part_Kind;
       Widget_Set : Widget_States;
-      Part_Set   : Widget_States) return Resolved_Style
+      Part_Set   : Widget_States) return Resolved_Handle
    is
       Part_Handle : constant Style_Handle := Effective_Part_Handle (W, P);
       Main_Handle : constant Style_Handle :=
@@ -1076,14 +1085,23 @@ package body Adi.Widget is
          Part_States      => Pack_States (Part_Set),
          Main_Part_States => Pack_States (Main_Set),
          Font_Gen         => Adi.Font.Environment_Generation);
-      Cur : constant Resolved_Cache_Maps.Cursor :=
-        Global_Resolved_Cache.Find (Key);
-      Result : Resolved_Style;
+      Result : Resolved_Handle;
    begin
-      if Resolved_Cache_Maps.Has_Element (Cur) then
-         Inc_Sat (Perf_Style_Memo_Hits);
-         return Resolved_Cache_Maps.Element (Cur);
+      if Memo_Store_Gen /= Adi.Resolved_Styles.Generation then
+         Global_Resolved_Cache.Clear;
+         Memo_Store_Gen := Adi.Resolved_Styles.Generation;
+         Resolved_Memo_Entries := 0;
       end if;
+
+      declare
+         Cur : constant Resolved_Cache_Maps.Cursor :=
+           Global_Resolved_Cache.Find (Key);
+      begin
+         if Resolved_Cache_Maps.Has_Element (Cur) then
+            Inc_Sat (Perf_Style_Memo_Hits);
+            return Resolved_Cache_Maps.Element (Cur);
+         end if;
+      end;
 
       Inc_Sat (Perf_Style_Computes);
 
@@ -1106,8 +1124,15 @@ package body Adi.Widget is
             end;
          end if;
 
-         Result := Resolve (Part_Rules);
+         Result := Intern (Resolve (Part_Rules));
       end;
+
+      --  Interning may have cleared the store, and with it every handle
+      --  the memo holds.
+      if Memo_Store_Gen /= Adi.Resolved_Styles.Generation then
+         Global_Resolved_Cache.Clear;
+         Memo_Store_Gen := Adi.Resolved_Styles.Generation;
+      end if;
 
       if Global_Resolved_Cache.Length >= Max_Global_Resolved_Entries then
          Global_Resolved_Cache.Clear;
@@ -1163,15 +1188,15 @@ package body Adi.Widget is
                   Inc_Sat (Perf_Style_Resolves);
                   Inc_Sat (Perf_Style_Resolves);
                   declare
-                     Old_Resolved : constant Resolved_Style :=
+                     Old_Resolved : constant Resolved_Handle :=
                        Memo_Resolved_Style
                          (W, P, Old_States, W.Part_States (P));
-                     New_Resolved : constant Resolved_Style :=
+                     New_Resolved : constant Resolved_Handle :=
                        Memo_Resolved_Style
                          (W, P, Eff_States, W.Part_States (P));
                   begin
                      if Old_Resolved /= New_Resolved then
-                        if Layout_Affecting_Diff
+                        if Adi.Resolved_Styles.Layout_Affecting_Diff
                              (Old_Resolved, New_Resolved)
                         then
                            --  Can't get worse; short-circuit.
@@ -1222,14 +1247,14 @@ package body Adi.Widget is
                   Inc_Sat (Perf_Style_Resolves);
                   Inc_Sat (Perf_Style_Resolves);
                   declare
-                     Old_Resolved : constant Resolved_Style :=
+                     Old_Resolved : constant Resolved_Handle :=
                        Memo_Resolved_Style (W, P, Eff_States, Old_States);
-                     New_Resolved : constant Resolved_Style :=
+                     New_Resolved : constant Resolved_Handle :=
                        Memo_Resolved_Style
                          (W, P, Eff_States, W.Part_States (P));
                   begin
                      if Old_Resolved /= New_Resolved then
-                        if Layout_Affecting_Diff
+                        if Adi.Resolved_Styles.Layout_Affecting_Diff
                              (Old_Resolved, New_Resolved)
                         then
                            return Diff_Layout_Affecting;
@@ -1642,8 +1667,8 @@ package body Adi.Widget is
          W.Part_States (P));
    end Get_Part_Style_Rules;
 
-   function Get_Resolved_Part_Style (W : Widget'Class;
-                                     P : Part_Kind) return Resolved_Style is
+   function Get_Resolved_Part_Handle (W : Widget'Class;
+                                      P : Part_Kind) return Resolved_Handle is
       --  NOTE: This function is nominally read-only (in-mode Widget'Class),
       --  but we cache the resolved result in the Widget record to avoid
       --  recomputing Compute_Style + Resolve (~60 fields each) on every
@@ -1653,7 +1678,7 @@ package body Adi.Widget is
       --  produce the same output.
       W_Mut : constant access Widget'Class := W'Unrestricted_Access;
       Eff   : constant Widget_States := Get_States (W);
-      Result : Resolved_Style;
+      Result : Resolved_Handle;
    begin
       Inc_Sat (Perf_Style_Resolves);
 
@@ -1667,8 +1692,11 @@ package body Adi.Widget is
       --  which face Font_Family names, and nothing else in the key can
       --  see that. One modular comparison keeps runtime font changes
       --  working instead of making registration startup-only.
+      --  A store that has cleared since these were cached leaves every
+      --  handle here naming an entry it no longer holds.
       if W_Mut.Cached_Style_Version /= W.Style_Version
         or else W_Mut.Cached_Eff_States /= Eff
+        or else W_Mut.Cached_Store_Gen /= Adi.Resolved_Styles.Generation
         or else not Adi.Font."=" (W_Mut.Cached_Font_Gen,
                                   Adi.Font.Environment_Generation)
       then
@@ -1676,6 +1704,7 @@ package body Adi.Widget is
          W_Mut.Cached_Style_Version := W.Style_Version;
          W_Mut.Cached_Eff_States := Eff;
          W_Mut.Cached_Font_Gen := Adi.Font.Environment_Generation;
+         W_Mut.Cached_Store_Gen := Adi.Resolved_Styles.Generation;
       end if;
 
       --  Cache hit?  (per-part key: init flag + part states)
@@ -1689,11 +1718,30 @@ package body Adi.Widget is
       --  Cache miss: the memo answers, or the cascade runs behind it.
       Result := Memo_Resolved_Style (W, P, Eff, W.Part_States (P));
 
-      W_Mut.Cached_Resolved (P) := Result;
-      W_Mut.Cached_Resolved_Init (P) := True;
-      W_Mut.Cached_Part_States (P) := W.Part_States (P);
+      --  Interning the result may have cleared the store, and the key
+      --  fields above were read before that. Recording them now would
+      --  claim a generation the handle does not belong to.
+      if W_Mut.Cached_Store_Gen = Adi.Resolved_Styles.Generation then
+         W_Mut.Cached_Resolved (P) := Result;
+         W_Mut.Cached_Resolved_Init (P) := True;
+         W_Mut.Cached_Part_States (P) := W.Part_States (P);
+      end if;
       return Result;
-   end Get_Resolved_Part_Style;
+   end Get_Resolved_Part_Handle;
+
+   function Get_Resolved_Part_Handle (H : Widget_Handle;
+                                      P : Part_Kind) return Resolved_Handle is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         return Get_Resolved_Part_Handle (Ptr.all, P);
+      end if;
+      return Default_Handle;
+   end Get_Resolved_Part_Handle;
+
+   function Get_Resolved_Part_Style (W : Widget'Class;
+                                     P : Part_Kind) return Resolved_Style is
+     (Value (Get_Resolved_Part_Handle (W, P)));
 
    function Get_Part_Style_Rules (H : Widget_Handle;
                                   P : Part_Kind) return Style_Rules is
@@ -1708,14 +1756,7 @@ package body Adi.Widget is
 
    function Get_Resolved_Part_Style (H : Widget_Handle;
                                      P : Part_Kind) return Resolved_Style is
-      Ptr : constant Widget_Access := Resolve_Handle (H);
-      Default_Rules : Style_Rules;
-   begin
-      if Ptr /= null then
-         return Get_Resolved_Part_Style (Ptr.all, P);
-      end if;
-      return Resolve (Default_Rules);
-   end Get_Resolved_Part_Style;
+     (Value (Get_Resolved_Part_Handle (H, P)));
 
    ---------------------------------------------------------------------------
    --  Item Management
@@ -1727,7 +1768,7 @@ package body Adi.Widget is
       if New_Item.Has_Style_Override then
          New_Item.Computed_Style := New_Item.Style_Override;
       else
-         New_Item.Computed_Style := Get_Resolved_Part_Style (W, I.Part);
+         New_Item.Computed_Style := Get_Resolved_Part_Handle (W, I.Part);
       end if;
       W.Items.Append (New_Item);
       Mark_Render_Dirty (W);
@@ -1849,7 +1890,7 @@ package body Adi.Widget is
          if New_Item.Has_Style_Override then
             New_Item.Computed_Style := New_Item.Style_Override;
          else
-            New_Item.Computed_Style := Get_Resolved_Part_Style (W, I.Part);
+            New_Item.Computed_Style := Get_Resolved_Part_Handle (W, I.Part);
          end if;
          W.Items.Replace_Element (Index, New_Item);
          Mark_Render_Dirty (W);
@@ -1882,9 +1923,21 @@ package body Adi.Widget is
 
    procedure Apply_Styles_To_Items (W : in out Widget'Class) is
       Parts_Seen : array (Part_Kind) of Boolean := [others => False];
+      Store_Gen  : constant Natural := Adi.Resolved_Styles.Generation;
    begin
+      if W.Target_Store_Gen /= Store_Gen then
+         --  The store cleared under the widget, so every target it kept
+         --  names an entry that is gone. Each part resolves again, and a
+         --  transition in flight starts over from the new target.
+         for P in Part_Kind loop
+            Cancel (W.Transitions (P));
+         end loop;
+         W.Last_Target_Init := [others => False];
+         W.Has_Any_Animation := False;
+         W.Target_Store_Gen := Store_Gen;
+
       --  Skip if styles haven't changed since last apply and no animations
-      if W.Style_Version = W.Last_Applied_Version
+      elsif W.Style_Version = W.Last_Applied_Version
          and then W.Last_Target_Init (Main_Part)
          and then not W.Has_Any_Animation
       then
@@ -1906,39 +1959,37 @@ package body Adi.Widget is
                if not Parts_Seen (P) then
                   Parts_Seen (P) := True;
                   declare
-                     New_Target : constant Resolved_Style :=
-                        Get_Resolved_Part_Style (W, P);
+                     New_Target : constant Resolved_Handle :=
+                        Get_Resolved_Part_Handle (W, P);
+                     Spec : Transition_Spec renames
+                       Ref (New_Target).Transition;
                   begin
                      if not W.Last_Target_Init (P) then
                         --  First time: no transition, just snap
                         W.Last_Target (P) := New_Target;
                         W.Last_Target_Init (P) := True;
-                     elsif New_Target.Transition.Duration > 0.0
+                     elsif Spec.Duration > 0.0
                         and then New_Target /= W.Last_Target (P)
                      then
-                        --  Target changed and transition configured: start animation.
-                        --  From_Style is current interpolated position if a transition
-                        --  is already running, otherwise the previous target.
+                        --  Target changed and a transition is configured:
+                        --  one already running carries on from where it
+                        --  stands, and a pool with no slot left snaps.
                         declare
-                           From : Resolved_Style;
+                           Started : Boolean;
                         begin
-                           if W.Transitions (P).Active then
-                              Advance (W.Transitions (P), 0.0, From);
-                           else
-                              From := W.Last_Target (P);
+                           Start (W.Transitions (P),
+                                  From     => W.Last_Target (P),
+                                  Target   => New_Target,
+                                  Duration => Spec.Duration,
+                                  Easing   => Spec.Easing,
+                                  Started  => Started);
+                           if Started then
+                              W.Has_Any_Animation := True;
                            end if;
-                           W.Transitions (P) := (
-                              Active       => True,
-                              Elapsed      => 0.0,
-                              Duration     => New_Target.Transition.Duration,
-                              Easing       => New_Target.Transition.Easing,
-                              From_Style   => From,
-                              Target_Style => New_Target);
-                           W.Has_Any_Animation := True;
                         end;
                      elsif New_Target /= W.Last_Target (P) then
                         --  Changed but no transition: snap and cancel any running transition
-                        W.Transitions (P).Active := False;
+                        Cancel (W.Transitions (P));
                      end if;
                      W.Last_Target (P) := New_Target;
                   end;
@@ -1947,7 +1998,7 @@ package body Adi.Widget is
                --  Apply the current visual style to this item
                if W.Transitions (P).Active then
                   declare
-                     Interpolated : Resolved_Style;
+                     Interpolated : Resolved_Handle;
                   begin
                      Advance (W.Transitions (P), 0.0, Interpolated);
                      It.Computed_Style := Interpolated;
@@ -2008,7 +2059,8 @@ package body Adi.Widget is
          declare
             Current : constant Item := W.Items.Element (I);
             G       : constant Rectangle := Current.Geometry;
-            Style   : Resolved_Style renames Current.Computed_Style;
+            Style   : Resolved_Style renames
+              Ref (Current.Computed_Style).all;
          begin
             if not Item_Is_Rendered (Style) then
                null;
@@ -3329,7 +3381,7 @@ package body Adi.Widget is
               Geometry       => Geometry,
               Part           => Part,
               Z_Order        => Z_Order,
-              Computed_Style => Default_Resolved,
+              Computed_Style => Default_Handle,
               others         => <>);
    end Make_Panel;
 
@@ -3342,7 +3394,7 @@ package body Adi.Widget is
               Geometry       => Geometry,
               Part           => Part,
               Z_Order        => Z_Order,
-              Computed_Style => Default_Resolved,
+              Computed_Style => Default_Handle,
               Text_Content   => To_Unbounded_String (Content),
               others         => <>);
    end Make_Text;
@@ -3357,7 +3409,7 @@ package body Adi.Widget is
               Geometry       => Geometry,
               Part           => Part,
               Z_Order        => Z_Order,
-              Computed_Style => Default_Resolved,
+              Computed_Style => Default_Handle,
               Image_Source   => Source,
               Is_Background  => Is_Background,
               others         => <>);
@@ -5599,7 +5651,7 @@ package body Adi.Widget is
       use type Adi.Font.Font_Attributes;
 
       Content    : constant String := To_String (It.Text_Content);
-      Style      : Resolved_Style renames It.Computed_Style;
+      Style      : Resolved_Style renames Ref (It.Computed_Style).all;
       Geom       : Rectangle renames It.Geometry;
       Text_Obj   : TTF_Text_Access;
       Font       : TTF_Font_Access;
@@ -6579,7 +6631,8 @@ package body Adi.Widget is
       for I in 1 .. Natural (W.Items.Length) loop
          declare
             Current : Item renames W.Items.Reference (I).Element.all;
-            Style   : Resolved_Style renames Current.Computed_Style;
+            Style   : Resolved_Style renames
+              Ref (Current.Computed_Style).all;
             Wants : constant Item_Clip :=
               (if Use_Clip then Clip_For (Current) else No_Clip);
          begin
@@ -6819,7 +6872,7 @@ package body Adi.Widget is
          declare
             Current : constant Item := Get_Item(W, I);
          begin
-            if Current.Computed_Style.Display /= Display_None then
+            if Ref (Current.Computed_Style).Display /= Display_None then
                case Current.Kind is
                   when Panel_Item =>
                      --  Panel contributes its geometry
@@ -6837,7 +6890,8 @@ package body Adi.Widget is
                      then
                         declare
                            Img_W, Img_H : Pixel_Type;
-                           Style : Resolved_Style renames Current.Computed_Style;
+                           Style : Resolved_Style renames
+                             Ref (Current.Computed_Style).all;
                            Width_Fixed  : constant Boolean := Style.Width.Kind = Fixed;
                            Height_Fixed : constant Boolean := Style.Height.Kind = Fixed;
                         begin
@@ -8098,7 +8152,18 @@ package body Adi.Widget is
       end;
    end Perform_Item_Flex_Layout;
 
-    procedure Update (W : in out Widget'Class) is
+    --  Descends whether a widget is dirty or not, which is what
+    --  separates this from Mark_Render_Dirty: the point is to reach the
+    --  ones nothing has touched.
+    procedure Mark_Subtree_Dirty (W : in out Widget'Class) is
+    begin
+       W.Dirty := True;
+       for Child of W.Children loop
+          Mark_Subtree_Dirty (Child.all);
+       end loop;
+    end Mark_Subtree_Dirty;
+
+    procedure Update_Subtree (W : in out Widget'Class) is
     begin
        if Is_Dirty (W) then
           --  Layout must have been called before this.
@@ -8110,13 +8175,40 @@ package body Adi.Widget is
 
        for Child of W.Children loop
           if Is_Dirty (Child.all) then
-             Update (Child.all);
+             Update_Subtree (Child.all);
           end if;
        end loop;
 
        if Is_Dirty (W) then
           Mark_Clean (W);
        end if;
+    end Update_Subtree;
+
+    --  The one point at which the resolved-style store clears, and the
+    --  one at which a tree is told that it has.
+    --
+    --  An item holds its style by handle and Apply_Styles_To_Items is
+    --  the only thing that puts a live one back, which the walk below
+    --  reaches through Is_Dirty alone. Rendering reads the same handles
+    --  with nothing behind them, so a widget that has gone clean would
+    --  draw the default style for as long as nothing dirtied it again.
+    --  The store is a process-wide thing and a clear reaches every
+    --  holder at once, so the answer is here rather than at each of
+    --  them: one comparison per tree per frame, and the walk that
+    --  follows resolves everything again.
+    --
+    --  Collect comes first and is the only clear, so every handle minted
+    --  since the last call keeps naming its value for the whole of the
+    --  work between them -- the layout pass and the draw included.
+    procedure Update (W : in out Widget'Class) is
+    begin
+       Adi.Resolved_Styles.Collect;
+
+       if W.Target_Store_Gen /= Adi.Resolved_Styles.Generation then
+          Mark_Subtree_Dirty (W);
+       end if;
+
+       Update_Subtree (W);
     end Update;
 
 procedure Rebuild_All_Items (W : in out Widget'Class) is
@@ -8252,7 +8344,7 @@ begin
       if W.Transitions (P).Active then
          Had_Active := True;
          declare
-            Interpolated : Resolved_Style;
+            Interpolated : Resolved_Handle;
          begin
             Advance (W.Transitions (P), DT_Float, Interpolated);
 
@@ -8287,7 +8379,7 @@ begin
             if W.Transitions (P).Active then
                declare
                   Props : Property_Set renames
-                    W.Transitions (P).Target_Style.Transition.Properties;
+                    Ref (W.Transitions (P).Target).Transition.Properties;
                begin
                   if Props (Prop_Padding) or else Props (Prop_Margin)
                     or else Props (Prop_Border_Width)

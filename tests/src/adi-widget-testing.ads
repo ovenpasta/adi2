@@ -20,6 +20,14 @@ package Adi.Widget.Testing is
    --  its cap, so this rises and falls.
    function Memo_Entries return Natural;
 
+   --  Storage elements the per-widget records occupy, for the size
+   --  chain a test reports.
+   function Widget_Bytes return Natural;
+   function Item_Bytes return Natural;
+   function Part_Transition_Bytes return Natural;
+   function Cached_Resolved_Bytes return Natural;
+   function Transitions_Bytes return Natural;
+
    --  Key hash of the resolved-style memo, over the raw key fields: two
    --  interned style handles, three packed state words and the font
    --  generation.

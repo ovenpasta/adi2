@@ -75,7 +75,8 @@ project Tests is
       "flex_gap_min_test",
       "side_longhand_test",
       "auto_margin_test",
-      "os_paths_test");
+      "os_paths_test",
+      "resolved_store_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    Platform_Name := external ("ADI_PLATFORM", "linux");
 

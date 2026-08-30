@@ -9,6 +9,7 @@ with Adi.CSS_Styles;
 with Adi.Core;
 with Adi.Image;
 with Adi.Layout_Util;
+with Adi.Resolved_Styles; use Adi.Resolved_Styles;
 with Adi.Widget_Styles;
 with Adi.Widget;
 with Adi.Widget.Html_View;
@@ -445,7 +446,7 @@ procedure Html_View_Test is
             It : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (Idx));
          begin
             Assert
-              (Is_RGB (It.Computed_Style.Color, 77, 88, 99),
+              (Is_RGB (Ref (It.Computed_Style).Color, 77, 88, 99),
                "inline style overrides id/class/tag");
          end;
       end if;
@@ -467,7 +468,7 @@ procedure Html_View_Test is
             It : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (Idx));
          begin
             Assert
-              (Is_RGB (It.Computed_Style.Color, 30, 60, 90),
+              (Is_RGB (Ref (It.Computed_Style).Color, 30, 60, 90),
                "id selector overrides class and tag");
          end;
       end if;
@@ -488,7 +489,7 @@ procedure Html_View_Test is
             It : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (Idx));
          begin
             Assert
-              (Is_RGB (It.Computed_Style.Color, 20, 40, 60),
+              (Is_RGB (Ref (It.Computed_Style).Color, 20, 40, 60),
                "class selector overrides tag");
          end;
       end if;
@@ -528,7 +529,7 @@ procedure Html_View_Test is
             It : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (Body_Idx));
          begin
             Assert
-              (Is_Named_Color (It.Computed_Style.Color, Adi.CSS_Styles.Cornflower_Blue),
+              (Is_Named_Color (Ref (It.Computed_Style).Color, Adi.CSS_Styles.Cornflower_Blue),
                "cornflowerblue maps to Named_Color enum");
          end;
       end if;
@@ -538,7 +539,7 @@ procedure Html_View_Test is
             It : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (Span_Idx));
          begin
             Assert
-              (Is_Named_Color (It.Computed_Style.Color, Adi.CSS_Styles.Dark_Slate_Gray),
+              (Is_Named_Color (Ref (It.Computed_Style).Color, Adi.CSS_Styles.Dark_Slate_Gray),
                "darkslategray maps to Named_Color enum");
          end;
       end if;
@@ -555,7 +556,7 @@ procedure Html_View_Test is
             It : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (Alias_Idx));
          begin
             Assert
-              (Is_Named_Color (It.Computed_Style.Color, Adi.CSS_Styles.Gray),
+              (Is_Named_Color (Ref (It.Computed_Style).Color, Adi.CSS_Styles.Gray),
                "grey alias resolves to Gray enum");
          end;
       end if;
@@ -1118,11 +1119,11 @@ procedure Html_View_Test is
          begin
             H1 := It.Geometry.Height;
             Assert
-              (It.Computed_Style.Font_Size.Unit in Adi.CSS_Styles.Px | Adi.CSS_Styles.Dip,
+              (Ref (It.Computed_Style).Font_Size.Unit in Adi.CSS_Styles.Px | Adi.CSS_Styles.Dip,
                "baseline inherited unit is px");
             Assert
-              (It.Computed_Style.Font_Size.Amount >= 15.0
-               and then It.Computed_Style.Font_Size.Amount <= 17.0,
+              (Ref (It.Computed_Style).Font_Size.Amount >= 15.0
+               and then Ref (It.Computed_Style).Font_Size.Amount <= 17.0,
                "baseline inherited size is near body font-size");
          end;
       end if;
@@ -1139,10 +1140,10 @@ procedure Html_View_Test is
          begin
             H2 := It.Geometry.Height;
             Assert
-              (It.Computed_Style.Font_Size.Unit in Adi.CSS_Styles.Px | Adi.CSS_Styles.Dip,
+              (Ref (It.Computed_Style).Font_Size.Unit in Adi.CSS_Styles.Px | Adi.CSS_Styles.Dip,
                "large inherited unit is px");
             Assert
-              (It.Computed_Style.Font_Size.Amount >= 39.0,
+              (Ref (It.Computed_Style).Font_Size.Amount >= 39.0,
                "large inherited size tracks body font-size");
             Assert (H2 > H1 + 10.0, "larger body font-size increases line box height");
          end;
@@ -1335,7 +1336,7 @@ procedure Html_View_Test is
             It : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (Idx));
          begin
             Assert
-              (It.Computed_Style.Text_Decoration = Adi.CSS_Styles.Decoration_Overline,
+              (Ref (It.Computed_Style).Text_Decoration = Adi.CSS_Styles.Decoration_Overline,
                "overline text decoration is parsed and applied");
          end;
       end if;
@@ -1449,7 +1450,7 @@ procedure Html_View_Test is
          begin
             H1 := It.Geometry.Height;
             Assert
-              (It.Computed_Style.Font_Size.Unit in Adi.CSS_Styles.Px | Adi.CSS_Styles.Dip,
+              (Ref (It.Computed_Style).Font_Size.Unit in Adi.CSS_Styles.Px | Adi.CSS_Styles.Dip,
                "vw font-size is materialized to px for final text rendering");
          end;
       end if;
@@ -2025,18 +2026,18 @@ procedure Html_View_Test is
               Adi.Widget.Get_Item (+W, Positive (P_Idx));
          begin
             Assert
-              (H1_It.Computed_Style.Font_Size.Amount >
-               P_It.Computed_Style.Font_Size.Amount,
+              (Ref (H1_It.Computed_Style).Font_Size.Amount >
+               Ref (P_It.Computed_Style).Font_Size.Amount,
                "default stylesheet h1 font-size > p font-size");
             --  h1 is 2em with body 16px = 32px; verify it's near 32px
             --  (catches the old bug where em resolved against viewport height)
             Assert
               (Nearly_Equal
-                 (Adi.Core.Pixel_Type (H1_It.Computed_Style.Font_Size.Amount),
+                 (Adi.Core.Pixel_Type (Ref (H1_It.Computed_Style).Font_Size.Amount),
                   32.0, 4.0),
                "default stylesheet h1 em resolves near 32px (2em * 16px)");
             Assert
-              (Adi.Core.Pixel_Type (H1_It.Computed_Style.Font_Size.Amount) < 100.0,
+              (Adi.Core.Pixel_Type (Ref (H1_It.Computed_Style).Font_Size.Amount) < 100.0,
                "default stylesheet h1 em does not resolve against viewport");
          end;
       end if;
@@ -2055,11 +2056,11 @@ procedure Html_View_Test is
               Adi.Widget.Get_Item (+W, Positive (H1_Idx));
          begin
             Assert
-              (It.Computed_Style.Font_Size.Unit in Adi.CSS_Styles.Px | Adi.CSS_Styles.Dip,
+              (Ref (It.Computed_Style).Font_Size.Unit in Adi.CSS_Styles.Px | Adi.CSS_Styles.Dip,
                "user CSS override h1 font-size is in px");
             Assert
               (Nearly_Equal
-                 (Adi.Core.Pixel_Type (It.Computed_Style.Font_Size.Amount),
+                 (Adi.Core.Pixel_Type (Ref (It.Computed_Style).Font_Size.Amount),
                   40.0, 1.0),
                "user CSS overrides default h1 font-size to 40px");
          end;
@@ -2083,8 +2084,8 @@ procedure Html_View_Test is
               Adi.Widget.Get_Item (+W, Positive (P_Idx));
          begin
             Assert
-              (H1_It.Computed_Style.Font_Size.Amount >
-               P_It.Computed_Style.Font_Size.Amount,
+              (Ref (H1_It.Computed_Style).Font_Size.Amount >
+               Ref (P_It.Computed_Style).Font_Size.Amount,
                "defaults survive clear: h1 still larger than p");
          end;
       end if;
@@ -2104,8 +2105,8 @@ procedure Html_View_Test is
          if Idx > 0 then
             declare
                Before : constant Float :=
-                 Adi.Widget.Get_Item (+W2, Positive (Idx))
-                   .Computed_Style.Font_Size.Amount;
+                 Ref (Adi.Widget.Get_Item (+W2, Positive (Idx))
+                        .Computed_Style).Font_Size.Amount;
             begin
                Adi.Widget.Html_View.Set_Default_Stylesheet_String
                  (W2, "h1 { font-size: 48px; }");
@@ -2115,8 +2116,8 @@ procedure Html_View_Test is
                if Idx > 0 then
                   declare
                      After : constant Float :=
-                       Adi.Widget.Get_Item (+W2, Positive (Idx))
-                         .Computed_Style.Font_Size.Amount;
+                       Ref (Adi.Widget.Get_Item (+W2, Positive (Idx))
+                              .Computed_Style).Font_Size.Amount;
                   begin
                      Assert
                        (After > Before,

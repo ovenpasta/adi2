@@ -12,6 +12,21 @@ package body Adi.Widget.Testing is
 
    function Memo_Entries return Natural is (Resolved_Memo_Entries);
 
+   function Widget_Bytes return Natural is
+     (Widget'Max_Size_In_Storage_Elements);
+
+   function Item_Bytes return Natural is
+     (Item'Max_Size_In_Storage_Elements);
+
+   function Part_Transition_Bytes return Natural is
+     (Part_Transition'Max_Size_In_Storage_Elements);
+
+   function Cached_Resolved_Bytes return Natural is
+     (Part_Resolved_Array'Max_Size_In_Storage_Elements);
+
+   function Transitions_Bytes return Natural is
+     (Part_Transition_Array'Max_Size_In_Storage_Elements);
+
    function Resolved_Cache_Hash
      (Part_Handle, Main_Handle : Natural;
       Widget_State_Bits, Part_State_Bits,

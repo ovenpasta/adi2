@@ -5,7 +5,7 @@ pragma Ada_2022;
 
 with Ada.Characters.Handling;
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Adi.Log;
 
 package body Adi.CSS_Styles is
 
@@ -17,6 +17,128 @@ package body Adi.CSS_Styles is
    begin
       Current_Resolver := Resolver;
    end Set_Font_Name_Resolver;
+
+   -------------------------------------------------
+   -- Text store
+   -------------------------------------------------
+
+   --  Every string lands in one character blob and an entry names its
+   --  span, so the store spends the characters interned and nothing
+   --  more. Both halves are definite arrays of flat values: the shape a
+   --  generated stylesheet can spell as a constant.
+   type Text_Span is record
+      First  : Positive := 1;
+      Length : Natural  := 0;
+   end record;
+
+   package Char_Vectors is new Ada.Containers.Vectors (Positive, Character);
+   package Span_Vectors is new Ada.Containers.Vectors (Positive, Text_Span);
+
+   Text_Chars : Char_Vectors.Vector;
+   Text_Spans : Span_Vectors.Vector;
+
+   function Same_Text (Span : Text_Span; Text : String) return Boolean is
+   begin
+      if Span.Length /= Text'Length then
+         return False;
+      end if;
+
+      for I in 0 .. Span.Length - 1 loop
+         if Text_Chars (Span.First + I) /= Text (Text'First + I) then
+            return False;
+         end if;
+      end loop;
+
+      return True;
+   end Same_Text;
+
+   --  Scanned rather than hashed, as the gradient store is. A stylesheet
+   --  names a handful of asset paths and family lists, each interned
+   --  once per distinct string, and the length decides most comparisons
+   --  before a character is read.
+   function Intern_Text (Text : String) return CSS_Text_Id is
+   begin
+      if Text'Length = 0 then
+         return No_CSS_Text;
+      end if;
+
+      if Text'Length > Max_CSS_Text_Length then
+         Adi.Log.Warning
+           ("CSS text of" & Natural'Image (Text'Length)
+            & " characters exceeds the" & Natural'Image (Max_CSS_Text_Length)
+            & " a style value carries, and is dropped: "
+            & Text (Text'First .. Text'First + 39) & "...");
+         return No_CSS_Text;
+      end if;
+
+      for I in Text_Spans.First_Index .. Text_Spans.Last_Index loop
+         if Same_Text (Text_Spans (I), Text) then
+            return CSS_Text_Id (I);
+         end if;
+      end loop;
+
+      declare
+         Span : constant Text_Span :=
+           (First => Text_Chars.Last_Index + 1, Length => Text'Length);
+      begin
+         Text_Chars.Reserve_Capacity
+           (Ada.Containers.Count_Type
+              (Natural (Text_Chars.Length) + Text'Length));
+         for C of Text loop
+            Text_Chars.Append (C);
+         end loop;
+         Text_Spans.Append (Span);
+      end;
+
+      return CSS_Text_Id (Text_Spans.Last_Index);
+   end Intern_Text;
+
+   function Text_Of (Id : CSS_Text_Id) return String is
+   begin
+      if Id = No_CSS_Text
+        or else Natural (Id) > Text_Spans.Last_Index
+      then
+         return "";
+      end if;
+
+      declare
+         Span : constant Text_Span := Text_Spans (Positive (Id));
+         Text : String (1 .. Span.Length);
+      begin
+         for I in Text'Range loop
+            Text (I) := Text_Chars (Span.First + I - 1);
+         end loop;
+         return Text;
+      end;
+   end Text_Of;
+
+   -------------------------------------------------
+   -- Values built over interned text
+   -------------------------------------------------
+
+   function Background_Image_URL (URI : String) return Background_Image_Value is
+      Id : constant CSS_Text_Id := Intern_Text (URI);
+   begin
+      if Id = No_CSS_Text then
+         return (Kind => No_Image);
+      end if;
+      return (Kind => Url_Image, URI => Id);
+   end Background_Image_URL;
+
+   function List_Image (URI : String) return List_Style_Image_Value is
+      Id : constant CSS_Text_Id := Intern_Text (URI);
+   begin
+      if Id = No_CSS_Text then
+         return No_List_Image;
+      end if;
+      return (Kind => List_Image_URL, URI => Id);
+   end List_Image;
+
+   function List_String (Text : String) return List_Style_Type_Value is
+     ((Kind => List_Style_Custom_String, Marker => Intern_Text (Text)));
+
+   function Set_Font_Family (Name : String) return Opt_Font.Optional is
+     (Opt_Font.Val ((Kind => By_Name, Name => Intern_Text (Name))));
 
    -------------------------------------------------
    -- Linear_Gradient
@@ -1213,7 +1335,7 @@ package body Adi.CSS_Styles is
                when By_Handle =>
                   return O.Value.Handle;
                when By_Name =>
-                  return Try_Name_List (To_String (O.Value.Name));
+                  return Try_Name_List (Text_Of (O.Value.Name));
             end case;
       end case;
    end Resolve_Font_Family;

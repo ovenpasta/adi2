@@ -1327,6 +1327,25 @@ def parse_css_quoted_string(value: str) -> Optional[str]:
     return None
 
 
+#  The text a style value carries, matching
+#  Adi.CSS_Styles.Max_CSS_Text_Length. A declaration naming more is
+#  dropped here and by Adi.CSS_Parser alike.
+MAX_CSS_TEXT_LENGTH = 4096
+
+
+def css_text_fits(text: str) -> bool:
+    """Whether a style value can carry this text."""
+    return len(text) <= MAX_CSS_TEXT_LENGTH
+
+
+def parse_list_marker_string(value: str) -> Optional[str]:
+    """Parse a quoted list-style-type marker a style value can carry."""
+    marker = parse_css_quoted_string(value)
+    if marker is None or not css_text_fits(marker):
+        return None
+    return marker
+
+
 def parse_css_url_function(value: str) -> Optional[str]:
     """Parse url(...) and return unquoted URI content."""
     v = value.strip()
@@ -1338,7 +1357,8 @@ def parse_css_url_function(value: str) -> Optional[str]:
     if not inner:
         return None
     quoted = parse_css_quoted_string(inner)
-    return quoted if quoted is not None else inner
+    uri = quoted if quoted is not None else inner
+    return uri if css_text_fits(uri) else None
 
 
 def split_css_whitespace_tokens(value: str) -> list[str]:
@@ -1550,7 +1570,7 @@ def parse_list_style_shorthand(value: str) -> dict[str, str]:
             result["image"] = tok
             continue
 
-        if low in LIST_STYLE_TYPE_MAP or parse_css_quoted_string(tok) is not None:
+        if low in LIST_STYLE_TYPE_MAP or parse_list_marker_string(tok) is not None:
             result["type"] = tok
 
     return result
@@ -1654,7 +1674,7 @@ def _validate_list_style_shorthand(value: str) -> bool:
         if parse_css_url_function(token) is not None:
             any_valid = True
             continue
-        if low in LIST_STYLE_TYPE_MAP or parse_css_quoted_string(token) is not None:
+        if low in LIST_STYLE_TYPE_MAP or parse_list_marker_string(token) is not None:
             any_valid = True
             continue
         return False
@@ -1671,7 +1691,7 @@ CSS_GENERIC_FAMILIES = {
 def _validate_font_family(value: str) -> bool:
     """Validate a CSS font-family value (comma-separated list of names)."""
     raw = value.strip()
-    if not raw:
+    if not raw or not css_text_fits(raw):
         return False
     # Split on commas that are not inside quotes
     names: list[str] = []
@@ -1777,7 +1797,7 @@ def validate_property_value(property_name: str, value: str) -> bool:
     if validator == "object-position":
         return parse_object_position(value) is not None
     if validator == "list-style-type":
-        return low in LIST_STYLE_TYPE_MAP or parse_css_quoted_string(value) is not None
+        return low in LIST_STYLE_TYPE_MAP or parse_list_marker_string(value) is not None
     if validator == "list-style-position":
         return low in LIST_STYLE_POSITION_MAP
     if validator == "list-style-shorthand":
@@ -2870,7 +2890,8 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         # Font family
         elif prop == "font-family":
             name = value.strip()
-            ada_field = f"Font_Family => Set_Font_Family ({ada_string_literal(name)})"
+            if css_text_fits(name):
+                ada_field = f"Font_Family => Set_Font_Family ({ada_string_literal(name)})"
 
         # Font size
         elif prop == "font-size":
@@ -2909,7 +2930,7 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
             if low in LIST_STYLE_TYPE_MAP:
                 list_style_type = f"(Kind => {LIST_STYLE_TYPE_MAP[low]})"
             else:
-                marker = parse_css_quoted_string(value)
+                marker = parse_list_marker_string(value)
                 if marker is not None:
                     list_style_type = f"List_String ({ada_string_literal(marker)})"
 
@@ -2935,7 +2956,7 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
                 if low in LIST_STYLE_TYPE_MAP:
                     list_style_type = f"(Kind => {LIST_STYLE_TYPE_MAP[low]})"
                 else:
-                    marker = parse_css_quoted_string(type_part)
+                    marker = parse_list_marker_string(type_part)
                     if marker is not None:
                         list_style_type = f"List_String ({ada_string_literal(marker)})"
 

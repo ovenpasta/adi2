@@ -18,6 +18,7 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
+with Adi.Log;
 with Adi.Style_Merge;
 with Adi.Widget;        use Adi.Widget;
 with Adi.Widget.Window_Bridge;
@@ -582,6 +583,22 @@ package body Adi.CSS_Parser is
       return Parse_Number (To_String (Number), L.Amount);
    end Parse_Length;
 
+   --  A style value carries up to Max_CSS_Text_Length characters of
+   --  text. A declaration naming more is dropped, the way any other
+   --  value the parser cannot honour is, and reported.
+   function Fits_In_Style (Text : String) return Boolean is
+   begin
+      if Text'Length <= Max_CSS_Text_Length then
+         return True;
+      end if;
+
+      Adi.Log.Warning
+        ("css: a text value of" & Natural'Image (Text'Length)
+         & " characters exceeds the" & Natural'Image (Max_CSS_Text_Length)
+         & " a style carries; the declaration is dropped");
+      return False;
+   end Fits_In_Style;
+
    function Parse_Quoted_String
      (Input    : String;
       Out_Text : out Unbounded_String) return Boolean
@@ -654,7 +671,8 @@ package body Adi.CSS_Parser is
          end if;
       end;
 
-      return Length (Out_URI) > 0;
+      return Length (Out_URI) > 0
+        and then Fits_In_Style (To_String (Out_URI));
    end Parse_URL_Function;
 
    function Parse_List_Style_Type_Value
@@ -680,6 +698,9 @@ package body Adi.CSS_Parser is
          Out_Type := (Kind => List_Style_Decimal);
          return True;
       elsif Parse_Quoted_String (Trimmed (Input), S) then
+         if not Fits_In_Style (To_String (S)) then
+            return False;
+         end if;
          Out_Type := List_String (To_String (S));
          return True;
       end if;
@@ -2310,7 +2331,9 @@ package body Adi.CSS_Parser is
       elsif P = "max-height" then
          if Parse_Size_Value (V, SVal) then Rules.Max_Height := Set (SVal); end if;
       elsif P = "font-family" then
-         Rules.Font_Family := Set_Font_Family (V);
+         if Fits_In_Style (V) then
+            Rules.Font_Family := Set_Font_Family (V);
+         end if;
       elsif P = "font-size" then
          if Parse_Length (V, LVal) then Rules.Font_Size := Set_Font (To_Length (LVal)); end if;
       elsif P = "font-weight" then

@@ -1831,7 +1831,7 @@ package body Adi.Widget.Html_View is
             when List_Style_Decimal =>
                return Trimmed (Natural'Image (Natural'Max (1, Ordered_Number))) & ".";
             when List_Style_Custom_String =>
-               return To_String (Style.List_Style_Type.Marker);
+               return Text_Of (Style.List_Style_Type.Marker);
             when others =>
                return "";
          end case;
@@ -1852,7 +1852,7 @@ package body Adi.Widget.Html_View is
          --  list-style-image takes precedence
          if Style.List_Style_Image.Kind = List_Image_URL then
             declare
-               URI : constant String := To_String (Style.List_Style_Image.URI);
+               URI : constant String := Text_Of (Style.List_Style_Image.URI);
                Img : constant Adi.Image.Image_Handle := Resolve_Image (Self, URI);
                W   : Pixel_Type := 0.0;
                H   : Pixel_Type := 0.0;

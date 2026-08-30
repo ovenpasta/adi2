@@ -3,7 +3,6 @@
 
 pragma Ada_2022;
 
-with Ada.Strings.Unbounded;
 with Adi.Assets;
 with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.Layout_Util; use Adi.Layout_Util;
@@ -123,8 +122,7 @@ package body Adi.Widget.Box is
                Bg_It.Image_Source := Style.Background_Image.Image;
             when Url_Image =>
                Bg_It.Image_Source := Adi.Assets.Get_Image
-                 (Ada.Strings.Unbounded.To_String
-                    (Style.Background_Image.URI));
+                 (Text_Of (Style.Background_Image.URI));
             when No_Image | Linear_Gradient_Image =>
                Bg_It.Image_Source := Adi.Image.Null_Image_Handle;
          end case;

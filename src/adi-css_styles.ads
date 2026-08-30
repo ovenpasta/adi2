@@ -3,13 +3,13 @@
 
 pragma Ada_2022;
 
-with Ada.Strings.Unbounded;
 with Adi.Core;
 with Adi.Image;
 
 package Adi.CSS_Styles is
 
-   --  The body holds the gradient store Linear_Gradient shares from.
+   --  The body holds the gradient store Linear_Gradient shares from and
+   --  the text store the four text-carrying values index.
    pragma Elaborate_Body;
 
    generic
@@ -44,6 +44,36 @@ package Adi.CSS_Styles is
         (O.State /= Undefined);
       function Get_Default return Value_Type is (Default);
    end Optional_Values;
+
+   -------------------------------------------------
+   -- Text a style value names
+   -------------------------------------------------
+
+   --  An asset path, a marker string, a font-family list: the text a
+   --  CSS declaration spells and a style keeps. The body holds one copy
+   --  of each distinct string and a style value carries its id, which
+   --  leaves every style record flat, copied by assignment alone.
+   --
+   --  Interning is canonical, so equal text is one id and predefined
+   --  equality on a style value remains exact.
+
+   --  Characters a single CSS text value may carry, covering a
+   --  font-family fallback list and an asset path of any depth. Text
+   --  past it is reported and dropped, so a value reads as the absent
+   --  one rather than as a truncation.
+   Max_CSS_Text_Length : constant := 4096;
+
+   type CSS_Text_Id is new Natural;
+
+   --  The empty string, and the answer for text past the limit.
+   No_CSS_Text : constant CSS_Text_Id := 0;
+
+   --  The id for Text. Text longer than Max_CSS_Text_Length answers
+   --  No_CSS_Text and reports the length through Adi.Log.
+   function Intern_Text (Text : String) return CSS_Text_Id;
+
+   --  The text an id names, "" for No_CSS_Text.
+   function Text_Of (Id : CSS_Text_Id) return String;
 
    -------------------------------------------------
    -- Units
@@ -301,7 +331,7 @@ package Adi.CSS_Styles is
             Image : Adi.Image.Image_Handle :=
                       Adi.Image.Null_Image_Handle;
          when Url_Image =>
-            URI : Ada.Strings.Unbounded.Unbounded_String;
+            URI : CSS_Text_Id := No_CSS_Text;
          when Linear_Gradient_Image =>
             Gradient : Linear_Gradient_Ref := null;
       end case;
@@ -313,9 +343,9 @@ package Adi.CSS_Styles is
    function Background_Image (Img : Adi.Image.Image_Handle) return Background_Image_Value is
       ((Kind => Picture_Image, Image => Img));
 
-   function Background_Image_URL (URI : String) return Background_Image_Value is
-      ((Kind => Url_Image,
-        URI  => Ada.Strings.Unbounded.To_Unbounded_String (URI)));
+   --  A path past Max_CSS_Text_Length, and an empty one, answer with
+   --  No_Image: an image the renderer has no path to reach.
+   function Background_Image_URL (URI : String) return Background_Image_Value;
 
    function Linear_Gradient
      (Angle : Float; Stops : Gradient_Stop_Array; Count : Natural)
@@ -545,7 +575,7 @@ type Font_Family_Kind is (By_Handle, By_Name);
 type Font_Family_Value (Kind : Font_Family_Kind := By_Handle) is record
    case Kind is
       when By_Handle => Handle : Font_Handle := Default_Font;
-      when By_Name   => Name   : Ada.Strings.Unbounded.Unbounded_String;
+      when By_Name   => Name   : CSS_Text_Id := No_CSS_Text;
    end case;
 end record;
 
@@ -593,16 +623,14 @@ type List_Style_Type_Value
   (Kind : List_Style_Type_Kind := List_Style_Disc) is record
    case Kind is
       when List_Style_Custom_String =>
-         Marker : Ada.Strings.Unbounded.Unbounded_String :=
-           Ada.Strings.Unbounded.Null_Unbounded_String;
+         Marker : CSS_Text_Id := No_CSS_Text;
       when others =>
          null;
    end case;
 end record;
 
-function List_String (Text : String) return List_Style_Type_Value is
-  ((Kind   => List_Style_Custom_String,
-    Marker => Ada.Strings.Unbounded.To_Unbounded_String (Text)));
+--  A marker past Max_CSS_Text_Length reads as the empty marker.
+function List_String (Text : String) return List_Style_Type_Value;
 
 Default_List_Style_Type : constant List_Style_Type_Value :=
   (Kind => List_Style_Disc);
@@ -616,18 +644,17 @@ type List_Style_Image_Value
   (Kind : List_Style_Image_Kind := List_Image_None) is record
    case Kind is
       when List_Image_URL =>
-         URI : Ada.Strings.Unbounded.Unbounded_String :=
-           Ada.Strings.Unbounded.Null_Unbounded_String;
+         URI : CSS_Text_Id := No_CSS_Text;
       when others =>
          null;
    end case;
 end record;
 
-function List_Image (URI : String) return List_Style_Image_Value is
-  ((Kind => List_Image_URL,
-    URI  => Ada.Strings.Unbounded.To_Unbounded_String (URI)));
-
 No_List_Image : constant List_Style_Image_Value := (Kind => List_Image_None);
+
+--  A path past Max_CSS_Text_Length, and an empty one, answer with
+--  No_List_Image.
+function List_Image (URI : String) return List_Style_Image_Value;
 
 type List_Style_Position_Value is (
    List_Outside,
@@ -1575,9 +1602,10 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    No_Font_Size : constant Opt_Font_Size.Optional := Opt_Font_Size.Cleared;
      function Set (V : Font_Handle) return Opt_Font.Optional is
        (Opt_Font.Val ((Kind => By_Handle, Handle => V)));
-     function Set_Font_Family (Name : String) return Opt_Font.Optional is
-       (Opt_Font.Val ((Kind => By_Name,
-                        Name => Ada.Strings.Unbounded.To_Unbounded_String (Name))));
+     --  The whole font-family list, resolved through Font_Name_Resolver
+     --  at Resolve time. A list past Max_CSS_Text_Length reads as the
+     --  empty one, which resolves to the default font.
+     function Set_Font_Family (Name : String) return Opt_Font.Optional;
      function Set (V : Font_Weight_Value) return Opt_Font_Weight.Optional renames Opt_Font_Weight.Val;
      function Set (V : Font_Style_Value) return Opt_Font_Style.Optional renames Opt_Font_Style.Val;
      function Set (V : Text_Decoration_Value) return Opt_Text_Decoration.Optional renames Opt_Text_Decoration.Val;

@@ -36,6 +36,10 @@ from css_to_ada import (
     parse_list_style_shorthand,
     parse_css_quoted_string,
     parse_css_url_function,
+    parse_list_marker_string,
+    css_text_fits,
+    validate_property_value,
+    MAX_CSS_TEXT_LENGTH,
     split_css_whitespace_tokens,
     split_css_comma_tokens,
     parse_linear_gradient,
@@ -425,6 +429,64 @@ class TestCssUrlAndString(unittest.TestCase):
         self.assertEqual(parse_css_url_function("url(test.svg)"), "test.svg")
         self.assertEqual(parse_css_url_function('url("test.svg")'), "test.svg")
         self.assertIsNone(parse_css_url_function("noturl"))
+
+
+class TestCssTextLimit(unittest.TestCase):
+    """A style value carries MAX_CSS_TEXT_LENGTH characters of text.
+
+    Adi.CSS_Parser holds the same limit, so a declaration naming more is
+    dropped by both pipelines rather than reaching one of them."""
+
+    def _at(self, n: int) -> str:
+        return "a" * n
+
+    def test_limit_boundary(self):
+        self.assertTrue(css_text_fits(self._at(MAX_CSS_TEXT_LENGTH)))
+        self.assertFalse(css_text_fits(self._at(MAX_CSS_TEXT_LENGTH + 1)))
+
+    def test_url_at_limit(self):
+        uri = self._at(MAX_CSS_TEXT_LENGTH)
+        self.assertEqual(parse_css_url_function(f"url({uri})"), uri)
+
+    def test_url_past_limit(self):
+        uri = self._at(MAX_CSS_TEXT_LENGTH + 1)
+        self.assertIsNone(parse_css_url_function(f"url({uri})"))
+
+    def test_marker_past_limit(self):
+        marker = self._at(MAX_CSS_TEXT_LENGTH + 1)
+        self.assertEqual(parse_list_marker_string('"ok"'), "ok")
+        self.assertIsNone(parse_list_marker_string(f'"{marker}"'))
+
+    def test_validation_rejects_past_limit(self):
+        over = self._at(MAX_CSS_TEXT_LENGTH + 1)
+        self.assertFalse(
+            validate_property_value("background-image", f"url({over})"))
+        self.assertFalse(
+            validate_property_value("list-style-image", f"url({over})"))
+        self.assertFalse(
+            validate_property_value("list-style-type", f'"{over}"'))
+        self.assertFalse(validate_property_value("font-family", over))
+
+    def test_validation_accepts_at_limit(self):
+        at = self._at(MAX_CSS_TEXT_LENGTH)
+        self.assertTrue(
+            validate_property_value("background-image", f"url({at})"))
+        self.assertTrue(
+            validate_property_value("list-style-image", f"url({at})"))
+        self.assertTrue(
+            validate_property_value("list-style-type", f'"{at}"'))
+        self.assertTrue(validate_property_value("font-family", at))
+
+    def test_generation_drops_past_limit(self):
+        over = self._at(MAX_CSS_TEXT_LENGTH + 1)
+        for prop, value in (
+            ("background-image", f"url({over})"),
+            ("list-style-image", f"url({over})"),
+            ("list-style-type", f'"{over}"'),
+            ("font-family", over),
+        ):
+            ada = "\n".join(generate_style_rules_ada({prop: value}))
+            self.assertNotIn(over, ada, prop)
 
 
 class TestToAdaIdentifier(unittest.TestCase):

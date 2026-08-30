@@ -1289,12 +1289,12 @@ procedure Css_Parser_Test is
       Test_Support.Assert (Listprobe_Main.List_Style_Type.Kind = List_Style_Square,
               "list-style shorthand should parse list-style-type keyword");
       Test_Support.Assert (Listprobe_Main.List_Style_Image.Kind = List_Image_URL
-              and then To_String (Listprobe_Main.List_Style_Image.URI) = "app://marker.svg",
+              and then Text_Of (Listprobe_Main.List_Style_Image.URI) = "app://marker.svg",
               "list-style shorthand should parse list-style-image url");
       Test_Support.Assert (Listprobe_Main.List_Style_Position = List_Outside,
               "list-style shorthand should parse list-style-position keyword");
       Test_Support.Assert (Listprobe2_Main.List_Style_Type.Kind = List_Style_Custom_String
-              and then To_String (Listprobe2_Main.List_Style_Type.Marker) = "-> ",
+              and then Text_Of (Listprobe2_Main.List_Style_Type.Marker) = "-> ",
               "list-style shorthand should parse quoted custom marker text");
    end Test_Listprobe;
 

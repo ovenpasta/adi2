@@ -187,6 +187,11 @@ behaviour, and flipping it is the whole change.
 A property that is interpolated rather than snapped also needs a branch
 in `Interpolate` and an `Animatable_Property` literal.
 
+`Hash` in `src/adi-resolved_styles.adb` reads a subset of the record, so
+a new property is optional there. Adding it separates two styles that
+differ in it alone into different buckets; leaving it out costs a probe
+that equality settles, never a wrong answer.
+
 A `CSS_Property_Set` aggregate that stops one literal short is still
 legal Ada, so `Adi.CSS_Styles` pins `CSS_Property'Last`: a literal
 appended past `Prop_Transition` is a compile error naming the tables.
@@ -448,6 +453,7 @@ When adding a new CSS property, touch these files:
 | 1 | `src/adi-css_styles.ads` | Value type, defaults, `Opt_*` package, `Style_Rules` field, `Resolved_Style` field, `Set` function |
 | 2 | `src/adi-css_styles.adb` | `Merge` line, `Resolve` line, `Set_Properties` line, `Copy_Property` and `Property_Differs` branches |
 | 2b | `src/adi-css_styles.ads` + `src/adi-animation.adb` | `Layout_Affecting_Properties` and `Snaps_At_Midpoint` entries |
+| 2c | `src/adi-resolved_styles.adb` | `Hash` line, for the store to tell two styles apart on it |
 | 3 | `src/adi-css_parser.adb` | `elsif P = "..."` branch in `Apply_Property` |
 | 4 | `tools/css_spec.py` + `tools/css_to_ada.py` | Spec entry (`SUPPORTED_PROPERTIES`) + enum map/`elif prop == "..."` generation |
 | 5 | `src/adi-widget.adb` | Rendering code (if visual), or layout code (if layout-affecting) |

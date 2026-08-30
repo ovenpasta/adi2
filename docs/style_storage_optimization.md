@@ -15,11 +15,13 @@ Only private/internal representation and resolution plumbing changed.
 
 ## Design Summary
 
-The optimization has three internal layers:
+The optimization has four internal layers:
 
 1. Handle-based per-widget style storage
 2. Prepared rule-order evaluation
 3. Global resolved-style memo cache
+4. A store of distinct resolved styles, which the memo and every widget
+   name by handle
 
 ### 1) Handle-Based Storage
 
@@ -57,9 +59,14 @@ Global cache key includes:
 - packed part states
 - packed main-part states
 
+The element is a `Resolved_Handle` into the resolved-style store, so an
+entry costs its key and eight bytes.
+
 Policy:
 - bounded capacity (`32_768` entries)
 - on overflow: clear cache
+- cleared as well when the store's generation moves, since the handles
+  it holds name entries the store has let go
 
 This keeps behavior deterministic and bounded while capturing cross-widget repetition.
 
@@ -261,3 +268,129 @@ parsed into many sheets, that rules scattered through a sheet still
 merge onto one entry, and that `Same_Style` agrees with predefined
 equality. `Adi.Widget.Testing.Interned_Styles` reports the store size,
 and `Adi.CSS_Parser.Testing.Selector_Entry_Bytes` the entry size.
+
+---
+
+## Resolved Styles
+
+A `Resolved_Style` is 840 bytes of concrete values, and the widget record
+embedded 48 of them: twelve in `Cached_Resolved`, twelve in `Last_Target`,
+and a start/target pair per part across `Transitions`. Each `Item` held
+two more. A widget carries 2.72 items across the 27 widget-tree goldens,
+so a 500-widget tree held 23 MB in these records, most of it copies of
+the same handful of values.
+
+`Adi.Resolved_Styles` holds each distinct value once and answers with a
+`Resolved_Handle`. Interning is canonical, so equal handles carry equal
+values and a handle comparison is a value comparison.
+
+| | before | after |
+|---|---|---|
+| `Resolved_Style` | 840 | 840 |
+| `Resolved_Handle` | — | 8 |
+| `Cached_Resolved`, twelve parts | 10,080 | 96 |
+| `Last_Target`, twelve parts | 10,080 | 96 |
+| `Transitions`, twelve parts | 20,352 | 480 |
+| `Item` | 1,848 | 176 |
+| `Widget` | 40,968 | 1,136 |
+| a widget and its 2.72 items | 45,994 | 1,614 |
+
+`Get_Resolved_Part_Style` keeps its profile and returns the stored value,
+so the sites that read a component out of it by name are unaffected.
+`Get_Resolved_Part_Handle` answers the same question as a handle, for a
+caller that stores or compares the answer rather than reading a field out
+of it, and `Adi.Resolved_Styles.Ref` gives the value in place for a
+reader that would otherwise copy 840 bytes to reach one field.
+
+### Storage and eviction
+
+Entries sit in fixed blocks of 128, so an address stays put as the store
+grows and a clear returns the blocks to the pool rather than to the
+allocator.
+
+`Collect` is the one place the store clears: it drops every entry when
+the count has passed `Entry_Cap`, 16,384, and raises `Generation`.
+Interning never clears, so an entry and the layout projection behind it
+land together and a handle keeps naming its value from the call that
+minted it until the next `Collect`. The count therefore stands above the
+cap by what one frame interned past it, which is what `Entry_Bytes`
+reports. `Adi.Texture_Cache` reclaims at a frame boundary for the same
+reason.
+
+`Adi.Widget.Update` calls `Collect` and is the only caller, so a driver
+that never updates a tree never clears — and never interns either, since
+resolving is what fills the store.
+
+Two things follow a clear.
+
+**Values computed on demand** carry the generation beside the handle and
+resolve again on a difference: the per-widget cache through
+`Cached_Store_Gen`, the animation targets through `Target_Store_Gen`, and
+the memo through `Memo_Store_Gen`.
+
+**Values cached by copy** cannot, and this is the case a per-holder gate
+does not reach. An `Item` holds its style by handle and
+`Apply_Styles_To_Items` is the only thing that puts a live one back,
+which `Update` reaches through `Is_Dirty` alone. Rendering walks every
+child unconditionally and reads those handles with no resolution behind
+them, so a widget that had gone clean would draw the default style —
+transparent, black, borderless — until something dirtied it again.
+`Update` therefore compares the generation once per tree and marks the
+whole subtree dirty on a difference, descending whether a widget is dirty
+or not. A clear is a process-wide event and this answers it in one place
+rather than at each holder.
+
+Because `Collect` runs at the top of `Update`, before the layout pass and
+the draw that follow it, no handle goes stale part-way through a frame.
+
+### Layout inputs
+
+Each entry carries a second handle, interned from the layout-affecting
+properties projected onto the defaults, and
+`Adi.Resolved_Styles.Layout_Affecting_Diff` is one equality on it.
+Canonical interning makes it exact: equal layout handles are equal layout
+inputs, where a digest over the same properties would trade that for a
+collision reporting a layout change as none, which surfaces as stale
+geometry. `tests/src/style_property_table_test.adb` pins the handle
+comparison against `Adi.CSS_Styles.Layout_Affecting_Diff` property by
+property.
+
+Twenty of the 66 properties stay outside the projection, so the layout
+entries are a fraction of the style entries.
+
+### Hashing a resolved style
+
+`Resolved_Style` cannot be hashed as bytes, for the reason `Style_Rules`
+cannot: its variant components hold indeterminate bytes in the arms that
+are not active. The hash reads a subset of the record and reaches every
+variant component through its discriminant. A component it skips costs a
+bucket probe, which equality then settles.
+
+### Animation scratch
+
+A transition mints an interpolated style every frame. Interning those
+would grow the store for the length of every animation, so they live in a
+fixed pool of 64 slots outside it. A slot carries two cells — where the
+transition starts from, and where it stands this frame — and `Advance`
+writes the second and answers with a handle to it. A slot serial rides in
+the handle, so a handle into a released slot reads as the default style
+rather than as the next animation's.
+
+`Adi.Animation.Start` acquires a slot and answers `Started => False` when
+the pool is full; the part then takes its target outright, which is the
+path a zero `transition-duration` already takes. `Cancel` and a completed
+`Advance` return the slot, and so does `Destroy_Subtree`, so a widget
+destroyed mid-transition leaves none held.
+
+### Tests
+
+`tests/src/resolved_store_test.adb` covers canonical interning, the
+default handle, the layout handle, the scratch pool and its ceiling, a
+transition holding and returning a slot, an intern whose layout
+projection crosses the cap, and three eviction cases: one under a widget
+that is asked for its style again, one under a widget that has gone clean
+and is reached only through `Update`, and one under a clean child of a
+dirty parent, which is what pins the descent. The last two drive `Update`
+rather than `Rebuild_All_Items`, which re-applies unconditionally and
+would step over the `Is_Dirty` gate they exist to test. It also reports
+the size chain and asserts that nothing on it needs finalization.

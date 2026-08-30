@@ -79,15 +79,18 @@ A 19,976-byte `Widget_Style` carries about 85 bytes of authored data.
   bytes, heap-allocated at `adi-widget.adb:485`, retained for the life of
   the process. `demo_flex.css` alone holds 81 entries, 1.55 MB. All 30
   example sheets together hold 776 entries, 14.9 MB.
-- **Per widget.** The widget record embeds 48 `Resolved_Style` values —
-  12 in `Cached_Resolved` (`adi-widget.ads:936`), 12 in `Last_Target`,
-  24 across `Transitions` — for 42,624 bytes held from construction, and
-  each `Item` adds two more. At the 2.72 items per widget the widget-tree
-  goldens carry, a 500-widget tree holds 23.7 MB. Section 4.4 takes it up.
+- **Per widget.** The widget record held 48 `Resolved_Style` values — 12
+  in `Cached_Resolved`, 12 in `Last_Target`, 24 across `Transitions` —
+  and each `Item` two more, for 40,968 bytes a widget and 23.0 MB across
+  a 500-widget tree at the 2.72 items per widget the goldens carry.
+  Section 4.4 replaces each of them with an 8-byte handle, which takes a
+  widget to 1,136 bytes and that tree to 807 KB.
 - **Per source and per sheet.** `Style_Source_Impl` and `Stylesheet_Impl`
   each embed a `Stylesheet_Metadata` at 239,832 bytes.
-- **Global memo.** Capacity is 32,768 entries of `Resolved_Style`, on the
-  order of 25–30 MB at the cap, released wholesale when it is reached.
+- **Global memo.** Capacity is 32,768 entries, each a key and a handle
+  since 4.4, released wholesale when it is reached. The values those
+  handles name are the resolved-style store's, capped at 16,384 entries
+  and 13.8 MB.
 
 ### 2.4   Stack
 
@@ -105,9 +108,6 @@ that one 240 KB frame is live at a time; `Register_Selectors_23` in
 `Part_Style_Array`, about 500 KB for a single selector. Hand-written
 registration reaches it too: `examples/runtime_css_example.adb:90-149`
 places 14 entry calls in one frame, about 3.4 MB.
-
-`Part_Style_Builder` embeds a whole `Part_Style_Array` and returns one by
-value per fluent step, so a five-step chain is 1.2 MB.
 
 ### 2.5   Merge
 
@@ -393,9 +393,10 @@ The 240 KB frame goes with it for a regenerated sheet, once the generator
 emits `aliased constant` objects in place of the `*_Part_Styles` functions —
 those functions are public and hand-written code calls them by name, so that
 is a generated-surface change. The by-value entry points serve hand-written
-registration and keep their frame, and `Part_Style_Builder`
-(`adi-widget-part_styles.ads:113`) embeds a whole array per fluent step.
-Both want a pass of their own.
+registration and keep their frame, which wants a pass of its own.
+`Set_Part_Style` names one part per call and reaches the sparse shape
+already, which is the hand-written path `examples/hello_raw_example.adb`
+takes.
 
 `Stylesheet_Metadata.Root_Styles` (`adi-css_parser.ads:17`) is the
 remaining fixed cost at 239,832 bytes per source and per sheet, on the path
@@ -413,6 +414,7 @@ which this step already requires.
 | `Gradient_Store` | one per distinct gradient value ever constructed | — |
 | `Text_Chars`, `Text_Spans` | one span, and its characters, per distinct CSS text ever interned | `Max_CSS_Text_Length` per entry |
 | `Global_Resolved_Cache` | 32,768 entries, released whole at the cap | entries, rather than bytes |
+| `Adi.Resolved_Styles`, the store 4.4 adds | append per distinct resolved style | 16,384 entries, released whole, generation raised |
 
 `Object_Id` is generational, so a recycled widget slot presents a fresh key
 to `Effective`: those two maps track every widget ever bound.
@@ -447,24 +449,23 @@ clear-at-capacity; `Adi.Texture_Cache` holds that pattern already.
 ### 4.4   Resolved styles
 
 All 66 components of a `Resolved_Style` hold a concrete value, so the
-levers here are copy count and field width. A widget record embeds 48 —
-12 in `Cached_Resolved` (`adi-widget.ads:936`), 12 in `Last_Target`
-(`:968`), 24 in `Transitions`, which carries a `From_Style`/`Target_Style`
-pair per part (`adi-animation.ads:25-26`) — as components with defaults,
-so 42,624 bytes are resident from construction for every widget alive.
-An `Item` adds `Computed_Style` and `Style_Override` (`adi-widget.ads:155`,
-`:161`) and follows `Build_Items`. Across the 27 widget-tree goldens,
-1,357 widgets carry 3,692 items:
+levers here are copy count and field width. A widget record embedded 48 —
+12 in `Cached_Resolved`, 12 in `Last_Target`, 24 in `Transitions`, which
+carried a start/target pair per part — as components with defaults, so
+40,512 of a widget's 40,968 bytes were resident from construction for
+every widget alive. An `Item` added `Computed_Style` and `Style_Override`
+and follows `Build_Items`. Across the 27 widget-tree goldens, 1,357
+widgets carry 3,692 items, at 840 bytes a `Resolved_Style` after 4.1:
 
 | Widget | Items | `Resolved_Style` | Bytes |
 |---|---|---|---|
-| `list_box`, rows being child widgets | 1 | 50 | 44,400 |
-| `box`, `image`, `switch` | 2 | 52 | 46,176 |
-| `label`, `button` | 3 | 54 | 47,952 |
-| `slider`, `combo_box`, `text_input` | 4 | 56 | 49,728 |
-| `text_editor`, bounded by the viewport | 15 | 78 | 69,264 |
-| `html_view`, bounded by the paint band | 96 | 240 | 213,120 |
-| mean over the goldens | 2.72 | 53.4 | 47,455 |
+| `list_box`, rows being child widgets | 1 | 50 | 42,000 |
+| `box`, `image`, `switch` | 2 | 52 | 43,680 |
+| `label`, `button` | 3 | 54 | 45,360 |
+| `slider`, `combo_box`, `text_input` | 4 | 56 | 47,040 |
+| `text_editor`, bounded by the viewport | 15 | 78 | 65,520 |
+| `html_view`, bounded by the paint band | 96 | 240 | 201,600 |
+| mean over the goldens | 2.72 | 53.4 | 44,856 |
 
 Each row gives the count the goldens record most often for that type; a
 widget carrying `Label_Text` adds two more through `Build_Label_Overlay`.
@@ -487,20 +488,26 @@ the structural equality the record already carries. The memo becomes a store
 of distinct values with stable handles, and every site above holds a 4-byte
 handle into it:
 
-| Structure | Today | Interned |
+A handle is 8 bytes: an index and the store generation it was minted in,
+which is what tells a holder that the entry behind it is gone. Measured:
+
+| Structure | By value | Interned |
 |---|---|---|
-| `Cached_Resolved` and `Last_Target` | 21,312 | 96 |
-| `Transitions` | 21,312 | 288 |
-| One item | 1,776 | 8 |
-| 500-widget tree at 2.72 items | 23.7 MB | 203 KB |
+| `Cached_Resolved` and `Last_Target` | 20,160 | 192 |
+| `Transitions` | 20,352 | 480 |
+| An item's two style components | 1,680 | 16 |
+| A whole `Item` | 1,848 | 176 |
+| A whole `Widget` | 40,968 | 1,136 |
+| 500-widget tree at 2.72 items | 23.0 MB | 807 KB |
 
 `Get_Resolved_Part_Style` keeps its profile and returns the store entry
 by value, so the 868 sites that read a `Resolved_Style` component by name
-stay as written, and the `Last_Target`
-comparison (`adi-widget.adb:1858`) becomes a handle compare that
-canonical interning makes exact. At 48 bytes an `array (Part_Kind)` of
-handles is cheaper than any scheme sized to the 1.39 parts a selector
+stay as written, and the `Last_Target` comparison is a handle compare
+that canonical interning makes exact. At 96 bytes an `array (Part_Kind)`
+of handles is cheaper than any scheme sized to the 1.39 parts a selector
 names, so the twelve slots stay and the read path keeps its direct index.
+`Get_Resolved_Part_Handle` answers the same question as a handle, for the
+caller that stores or compares the answer.
 
 `Layout_Affecting_Diff` reads the properties a layout consumes. With the
 store in place each entry carries a second handle, interned from those
@@ -514,19 +521,30 @@ function Layout_Affecting_Diff (A, B : Resolved_Handle) return Boolean
 Interning is canonical, so equal handles mean equal layout inputs exactly. A
 digest over the same properties trades that for a collision reporting a
 layout change as none, which surfaces as stale geometry and leaves little to
-debug. The projection is computed once on the miss path beside `Resolve`, and
-20 of the 66 properties stay outside it, so the layout store holds far fewer
-entries than the style store.
+debug. The projection is the layout properties copied onto the defaults,
+which is itself a `Resolved_Style` and interns into the same store, so a
+call takes up to two entries. Both land, because interning never clears;
+a clear between them would leave the first handle naming an entry the
+store had already let go. 20 of the 66 properties stay outside the
+projection, so the layout entries are a fraction of the style entries.
 
 An interpolated style is minted per frame and belongs in scratch.
-`Apply_Styles_To_Items` (`adi-widget.adb:1871`) is the one activation
-point, `Tick_Animations` (`:8194`) the one completion, `Advance`
-(`adi-animation.adb:276`) the one mutator, and each reader copies its
-result out, so a slot lives exactly the span where `Active` holds. A
-fixed pool of pairs sized at build time is the ceiling: 64 pairs is
-113,664 bytes for 64 parts animating at once, against 10.7 MB of
-embedded pairs across a 500-widget tree. A start that finds the pool full
-assigns the target directly, the path a part with `Duration = 0.0` takes.
+`Apply_Styles_To_Items` is the one activation point, `Tick_Animations`
+the one completion, `Advance` the one mutator, and a slot lives exactly
+the span where `Active` holds. A fixed pool of pairs sized at build time
+is the ceiling: 64 pairs is 107,520 bytes for 64 parts animating at once,
+against 10.1 MB of embedded pairs across a 500-widget tree. A start that
+finds the pool full assigns the target directly, the path a part with
+`Duration = 0.0` takes.
+
+The pair is the start point and this frame's value. The target is always
+a cascade result, so it is already in the store and the transition names
+it by handle; the start point is the previous target on a fresh start and
+the interpolated value on a restart, which is why it needs a cell of its
+own. An item holds the handle of the current cell while the transition
+runs, and a slot serial rides in that handle, so a handle into a released
+slot reads as the default style rather than as the next animation's.
+`Destroy_Subtree` returns the slot of a widget destroyed mid-transition.
 
 Field width is the third lever and the smallest:
 
@@ -542,19 +560,48 @@ Field width is the third lever and the smallest:
 | `Color`, `Background_Color`, `Outline_Color` | 20 | packed RGBA, 4 |
 | six `Size_Value`, four `Inset_Value` | 12 | the kind folded into `CSS_Unit`, 8 |
 
-888 becomes about 516, of which rows one and six carry 176 and are 4.1's
-own work plus one store. The colour rows ask for a distinct
+840 becomes about 470. The colour rows ask for a distinct
 resolved-colour type, so that `Color_Value` keeps its `Named` arm for the
 cascade and converts in `Resolve`, and they touch the 41 sites that read
-a colour out of a `Resolved_Style`. Interning already takes the 23.7 MB
-to 203 KB, so the narrowings pay in the store's own bound, behind it.
+a colour out of a `Resolved_Style`. Interning already takes the 23.0 MB
+to 807 KB, so the narrowings pay in the store's own bound, behind it.
 
-The store carries a generation, bumped on eviction, and every holder
-re-resolves through the path `Cached_Font_Gen` establishes
-(`adi-widget.adb:1576`). 4.3's byte budget and eviction rank then apply
-to the single place a `Resolved_Style` lives: 4 MB holds 4,500 entries at
-888 bytes and 8,200 at 490, where the 32,768-entry cap stands at 29.1 MB
-and all 30 example sheets together intern 776 part styles.
+The store carries a generation, raised on eviction. Three holders
+compute on demand and re-resolve through the path `Cached_Font_Gen`
+establishes, keeping the generation beside their handles: the per-widget
+cache, the animation targets, and the memo, whose element is now a handle
+and whose own clear therefore costs nothing.
+
+A fourth kind of holder does not compute on demand, and a per-holder gate
+cannot reach it. An `Item` caches its style by copy, and
+`Apply_Styles_To_Items` is the only thing that writes a live handle back;
+`Update` reaches that through `Is_Dirty`, while rendering walks every
+child unconditionally and reads the handle with nothing behind it. A
+widget that has gone clean is therefore asked nothing until something
+dirties it again, and draws the default style -- transparent, black,
+borderless -- in the meantime. Enumerating holders is the wrong shape of
+answer for a process-wide event: `Update` compares the generation once
+per tree and marks the whole subtree dirty on a difference, descending
+whether a widget is dirty or not.
+
+Eviction belongs at a point the frame chooses rather than inside
+`Intern`, for the reason `Adi.Texture_Cache` reclaims at a frame
+boundary. `Collect` is that point and the one place the store clears;
+`Adi.Widget.Update` calls it ahead of the comparison, so the clear lands
+before the frame's layout and its draw, and a handle minted in a frame
+lasts the whole of it. The count stands above the cap by what one frame
+interned past it. The store's cap is what bounds the resident
+bytes: 16,384 entries at 840 is 13.8 MB, against the 27.5 MB the
+32,768-entry memo could reach holding values. 4.3's byte budget and
+eviction rank then apply to the single place a `Resolved_Style` lives:
+4 MB holds 4,700 entries at 840 and 8,500 at 470, and all 30 example
+sheets together intern 776 part styles.
+
+`Resolved_Style` cannot be hashed as bytes, for the reason 4.1 gives for
+`Style_Rules`: its variant components hold indeterminate bytes in the
+arms that are not active. The hash reads a subset of the record and
+reaches every variant component through its discriminant, which is all
+equality asks of it; a component it skips costs a bucket probe.
 
 ---
 
@@ -572,124 +619,122 @@ styling API dispatches, which `No_Dispatch` forbids.
 
 ---
 
-## 5   User properties as selectors
+## 5   Runtime state from the application
 
-`.alarm[severity="critical"] { color: red }`, with the application
-selecting the value, and the property name reaching the release binary as
-an enumeration rather than a string.
+`.alarm` restyled to `.alarm.critical` while it runs, and
+`.alarm[severity="critical"]` selecting on a value the application sets,
+with the property name reaching the release binary as a constant rather
+than as a string.
 
-### 5.1   Reserved state bits
+### 5.1   What the interaction states leave out
 
-`Widget_State` (`adi-widget_styles.ads:14`) holds 6 literals and
-`Packed_State_Bits` (`adi-widget.adb:328`) is `Unsigned_16`, so the cache
-key already reserves 16 bits and spends 6. Reserving
-`State_User_1 .. State_User_10` fills the word, and a generated stylesheet
-maps onto those slots, the enumeration being fixed in the library it
-compiles against.
+`:hover`, `:pressed`, `:focus`, `:disabled` and `:checked` describe what a
+pointer and a keyboard are doing. Domain state is the other half: an alarm
+row at ok, warning or critical; a field valid, invalid or pending; a link
+connected, degraded or offline; a row read or unread. Each changes while
+the application runs and each belongs in the stylesheet.
 
-Each distinct `(property, value)` pair becomes one bit. `Resolved_Cache_Key`
-(`adi-widget.adb:356`) already holds three `Packed_State_Bits`, so it keeps
-its shape and its comparison cost.
+Class bindings run one way. `Bind_Class` (`adi-css_source.ads:154`) and its
+siblings attach a widget to the selectors that name it, and the tree holds
+no counterpart that detaches or replaces one. A row moving from ok to
+critical therefore reaches `Set_Part_Style` and carries its appearance in
+Ada, or is destroyed and rebuilt.
 
-Two pieces of the present code meet their limit at sixteen, and both belong
-to step 0. `Hash_Resolved_Cache_Key` (`adi-widget.adb:539`) shifts inside
-`Unsigned_16` ahead of widening, so the ten new bits are precisely the ones
-it sheds, collapsing every value of a main-part property into one bucket of
-a 32,768-entry memo. And `Pack_States` (`:526`) shifts by
-`Widget_State'Pos`, where a seventeenth literal yields zero and aliases onto
-`State_Normal`, which `Equivalent_Keys => "="` then reads as one state set.
-Sixteen is the ceiling, and it wants a static assertion holding it there.
+Two features answer this, and the first is a fraction of the second.
 
-`Widget_States` is `array (Widget_State) of Boolean` at one byte per
-component, and a widget holds 27 of them (`adi-widget.ads:918-919, 939,
-942, 961`). Packing it while adding the ten bits:
+### 5.2   Classes a widget can change
 
-| | Today, 6 states | 16 states, packed |
-|---|---|---|
-| `Widget_States` | 6 B | 2 B |
-| Per widget, 27× | 162 B | 54 B |
-| `State_Selector` | 24 B | 8 B |
+`Set_Class`, `Add_Class` and `Remove_Class` reach every use above through
+the machinery that already parses, binds and cascades `.critical`. The
+work is in the binding tables: `Bindings` and `Effective` in both
+`CSS_Source` and `CSS_Parser` gain a removal beside the append §4.3
+records, and a widget whose class set changes clears its cache the way
+`Bump_Style_Version` does for a state.
 
-The literals and the packing carry that table between them. Turning
-`State_Selector` into four `Packed_State_Bits` is a larger change costed on
-its own: `Matches` (`adi-widget_styles.ads:77`) takes `Widget_States`
-arrays, so the word form arrives by packing inside `Matches` — 32 bit tests
-per rule per resolve, above today's six-iteration loop — or by a profile
-change reaching some 50 test sites, or by making `Widget_States` modular and
-rewriting 41 index sites. `Specificity` (`adi-widget_styles.adb:74`) is the
-one function GNAT-LLVM rejected on the WASM port
-(`wasm/PORT_REPORT.md:337`), so a population count there wants care.
+What a class leaves open is exclusivity — `.critical` and `.warning` sit on
+one widget as readily as either alone — and a value a style can read.
 
-### 5.2   Setting a value
+### 5.3   A vocabulary interned at elaboration
 
-Selecting a value flips two bits — clearing the old, setting the new.
-`Widget_State_Style_Effect` (`adi-widget.adb:1045`) identifies a single
-changed state and gates the part scan on it, so the feature wants
-`Set_State_Group (W, Group, Value)` performing one masked write, and the
-gate generalised from a literal to a changed mask intersected with
-`Widget_State_Mask`. That generalisation stands on its own for the six
-existing states, and section 5.1 rests on it: the gate reads the first
-differing bit, so a rule keyed on the newly set bit is reached only where
-the cleared bit carries one too. The two land together.
-
-`Set_State` (`adi-widget.adb:1180`) already carries the right
-invalidation: `Bump_Style_Version` clears the per-widget cache, and the
-memo is keyed on the bits themselves, so a different value is a different
-key. Property bits stay outside the ancestor walk that propagates
-`State_Disabled`.
-
-### 5.3   The vocabulary
-
-One declaration point, read by both pipelines:
-
-```css
-@widget-property severity { normal, warning, critical }
-```
-
-The generator emits the enumeration, the bit assignment and a setter:
+An application declares its properties and their values at library level,
+where elaboration assigns each a dense index:
 
 ```ada
-type Severity_Value is (Sev_Unset, Normal, Warning, Critical);
-
-procedure Set_Severity (W : in out Widget'Class; V : Severity_Value) is
-  (Adi.Widget.Set_State_Group (W, Severity_Group, Severity_Bits (V)));
-
---  the application writes:
---     Alarm_Styles.Set_Severity (Btn, Alarm_Styles.Critical);
+Severity : constant User_Property  := New_Property ("severity");
+Critical : constant Property_Value := New_Value (Severity, "critical");
 ```
 
-Ten bits is a whole-program resource, and `examples/generated/` already
-carries a theme pair in `material_demo_styles` and
-`material_demo_light_styles`; per-sheet vocabularies would allocate bits
-independently and hand the application two incompatible types for one
-property. A declaration in the CSS also gives dynamic mode the vocabulary
-for free — the runtime parser assigns bits by declaration order, the same
-algorithm the generator ran, from text it already holds.
+Past elaboration the registry answers indices, and the names it was built
+from stay in it rather than reaching a comparison. `Max_User_Properties`
+and `Max_Property_Values` size it as constants, so it is one array and a
+count.
 
-A generated fingerprint over the ordered declaration list lets the runtime
-parser hold its last good sheet when a reloaded file reorders or renames a
-property, in the shape `adi-css_parser.adb:3487` already uses. One 32-bit
-constant.
+Elaboration is the window in which it is written, and read-only afterwards
+is what §4.5's `No_Implicit_Heap_Allocations`, `No_Secondary_Stack` and
+`No_Finalization` want, along with SPARK's `Abstract_State` and
+`Initializes`. Registration at any later point trades all four for a
+registry that grows, and belongs to a mode of its own.
 
-Both selector parsers need `[attr="value"]`, with `:not()` as the model in
-each — `tools/css_to_ada.py:867-971` and `adi-css_parser.adb:1879-1975`,
-each taking the bracket stage ahead of its colon split. `Specificity`
-counts set condition bits, so an attribute condition scores 1 and
-`[severity=critical]:hover` scores 2, which is the CSS ranking already.
+### 5.4   The generated binding
 
-### 5.4   Derived values
+`tools/css_to_ada.py` reads `[severity="critical"]` as text and emits the
+constants the application declared, given the package that holds them:
 
-Restricted to an enumerable domain, a value derived from a widget property
-*is* a state bit selecting among pre-resolved styles: `[severity="critical"]
-{ width: 200px }` caches exactly as `:hover` does, and N mutually exclusive
-values contribute N+1 key states. This is section 5.1 exactly.
+```ada
+--  from  .alarm[severity="critical"] { color: red }
+Match_Property (App_Properties.Severity, App_Properties.Critical)
+```
+
+A name the application never declared is then a compile error at the
+generated sheet, where a string comparison would answer as a selector that
+matches nothing. Dynamic mode holds the same vocabulary through the
+registry, keyed on the names the sheet spells, and a fingerprint over the
+ordered declaration list lets a reloaded file that renames or reorders a
+property leave the last good sheet standing — the shape
+`adi-css_parser.adb:3487` already uses.
+
+### 5.5   Where a value lives
+
+A widget carries the properties it sets as pairs of indices, sized to what
+it names. Interned canonically, the whole assignment is one handle, and
+`Resolved_Cache_Key` (`adi-widget.adb:380`) gains it as a fourth component:
+fixed width, hashable beside the three `Packed_State_Bits` it already
+holds, and exact on equality because interning is canonical. The
+vocabulary is then bounded by `Max_User_Properties` and the key by nothing
+at all.
+
+`Widget_State` keeps its six literals and the packed array §3 gave it, so
+the states an interaction drives keep the bit tests and the six-iteration
+`Matches` loop they have now. A widget naming no property carries the
+default handle and reads exactly as it does today.
+
+Setting a value clears the widget's cache the way `Set_State`
+(`adi-widget.adb`) already does through `Bump_Style_Version`, and the memo
+distinguishes values because the handle is part of the key.
+
+### 5.6   Derived values
+
+Over an enumerable domain, a value derived from a property *is* a
+selection among pre-resolved styles: `[severity="critical"] { width: 200px }`
+caches as `:hover` does, and N mutually exclusive values contribute N+1
+keys. §5.5 covers it.
 
 An open domain — `width: attr(progress)` over an arbitrary integer — puts
-that value in the memo key. A widget animating one mints a key per frame,
-reaches the 32,768 cap and releases every other widget's entry with it.
-Custom properties already cover the per-sheet case by textual substitution
-in `Resolve_Var_References` (`adi-css_parser.adb:2787`), ahead of any
-`Style_Rules`.
+the value in the memo key, where a widget animating one mints a key per
+frame and fills the store. Custom properties cover the per-sheet case by
+textual substitution in `Resolve_Var_References`
+(`adi-css_parser.adb:2787`), ahead of any `Style_Rules`.
+
+The grammar is equality and existence: `[severity="critical"]` and
+`[severity]`. Ordering — `[level>3]` — asks the value indices to carry
+their order, which constrains how elaboration assigns them, and waits for
+a use.
+
+`Specificity` counts set conditions, so a property condition scores 1 and
+`[severity="critical"]:hover` scores 2, which is the CSS ranking already.
+Both selector parsers take the bracket stage ahead of their colon split,
+with `:not()` as the model in each — `tools/css_to_ada.py:867-971` and
+`adi-css_parser.adb:1879-1975`.
 
 ---
 
@@ -795,7 +840,7 @@ data, and that test is what keeps it honest.
 ## 7   Sequence
 
 **Step 0 — correctness.** Section 6, §4.3's binding pruning and `Impl`
-release, and §5.2's changed-mask gate with the `Pack_States` ceiling, which
+release, and the changed-mask gate with the `Pack_States` ceiling, which
 are step 4's gate and stand on their own. §4.3's byte budget for the memo
 travels with §4.4 in step 2. The
 counters land first, since every later step is measured against them. Two
@@ -811,15 +856,22 @@ widget teardown.
 chain leaves finalization behind.
 
 **Step 2 — sparse storage.** Sections 3.1 to 3.5, behind an unchanged
-authoring API. Arrays sized to the sheet. Section 4.4's resolved-style store
-rides with it, on structural equality. §5.1's `State_Selector` shape settles
-before this, since `State_Rule` is what the sparse form stores.
+authoring API. Arrays sized to the sheet. The `State_Selector` shape
+settles before this, since `State_Rule` is what the sparse form stores.
+Section 4.4's resolved-style store, on structural equality, has landed
+ahead of it; 4.4's field-width narrowings have not.
 
 **Step 3 — static tables.** Section 4.2, with `Stylesheet_Metadata` in the
 same regeneration.
 
-**Step 4 — user properties.** Section 5, on step 0's rule cap, hash widening
-and `Pack_States` ceiling, and on step 2's per-rule size.
+**Step 4 — runtime classes.** Sections 5.1 and 5.2, on a removal beside the
+append §4.3 records. It reaches the uses section 5 opens with, through the
+selector machinery that already carries them, and tells from use whether
+step 4b earns a second mechanism.
+
+**Step 4b — user properties.** Sections 5.3 to 5.6, on step 0's rule cap and
+hash widening, on step 2's per-rule size, and on §4.4's interning for the
+key component §5.5 adds.
 
 **Step 5 — restricted profiles.** Section 4.5, on the flat values of step 1
 and the lifetime work of step 0.
@@ -837,8 +889,8 @@ change the generated shape, so a consumer upgrades generator and library in
 lockstep. The crate wants a versioning statement saying so.
 
 **Two-pipeline agreement.** `tools/css_to_ada.py` and `src/adi-css_parser.adb`
-resolve the same CSS and every step touches both. §5.3 adds a third encoding
-in the bit assignment and its fingerprint. `tests/src/side_longhand_test.adb`
+resolve the same CSS and every step touches both. §5.4 adds a third encoding
+in the vocabulary and its fingerprint. `tests/src/side_longhand_test.adb`
 holds the pattern: install the generated sheet, parse the CSS it came from,
 require identical resolution.
 
@@ -849,7 +901,7 @@ frontend divergence in `Specificity`.
 
 **Concurrency.** `docs/style_storage_optimization.md` records single-threaded
 style mutation as an assumption. §4.2's reserved handle range, §4.3's
-eviction rank and §5.2's masked write each sit inside it.
+eviction rank and §5.5's interned assignment each sit inside it.
 
 **A shared store for styles.** `Adi.Handle_Store` backs `Widget`, `Window`,
 `Image`, `Animated_Image`, `RLottie` and `Context_Menu`, where styles keep

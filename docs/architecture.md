@@ -13,6 +13,14 @@
 - `Animatable_Property` enum for targeting specific lerpable fields
 - `Normalize_Color` helper for extracting RGBA from any `Color_Value` variant
 
+**Adi.Resolved_Styles** (`adi-resolved_styles.ads`): One store for the resolved styles the runtime holds.
+- `Resolved_Handle` names a stored `Resolved_Style`; interning is canonical, so equal handles carry equal values
+- `Value` copies one out, `Ref` reads it in place, `Intern` puts one in
+- `Layout_Of` gives the layout-affecting properties of an entry, interned on their own, and `Layout_Affecting_Diff` is one equality on that handle
+- `Collect` is the one place the store clears, at its cap, raising `Generation`; interning never clears, so a handle keeps naming its value until the next `Collect`
+- A handle carries the generation it was minted in, so one taken before a clear reads as the default style rather than as another entry
+- A fixed pool of 64 scratch slots holds the styles a transition mints per frame, outside the store
+
 **Adi.CSS_Parser** (`adi-css_parser.ads`): Runtime CSS loader/parser.
 - Loads stylesheets from strings/files into `Part_Style_Array` maps
 - Selector kinds: class (`.x`), id (`#x`), tag (`button`)
@@ -41,9 +49,6 @@
 - Widget-state vs part-state scopes (`When_State`/`When_Not` vs `When_Part_State`/`When_Part_Not`)
 - `With_Transition(Duration, [Properties], [Easing])`
 
-**Adi.Widget.Part_Styles** (`adi-widget-part_styles.ads`): Multi-part style builder.
-- Fluent API for per-part styles (Main, Label, Icon, Indicator, etc.)
-- Predefined templates: Button, Checkbox, Scrollbar, Input, List, Slider
 - No built-in visual theme — apps provide explicit styles
 
 **Input events**: `Adi.App.Run` polls SDL and calls `Adi.Window.On_Mouse_Down`/`On_Mouse_Move`/`On_Mouse_Up`/`On_Mouse_Wheel`, `On_Key_Down`/`On_Key_Up` and `On_Text_Input`. The window hit-tests and routes to the matching dispatching primitives on `Adi.Widget`, which take coordinates, button, scancode and modifiers as plain parameters rather than an event record. Raw SDL event records live in `Adi.SDL.Events`.
@@ -63,9 +68,13 @@
 - Eviction takes only **idle** entries — unborrowed and undrawn for more than one frame. A texture the scene is using is never reclaimed: taking it would rebuild it next frame having freed nothing. Total residency therefore exceeds the budget by the working set
 - Box shadows are keyed `(Shadow_Texture, blur, corner radius)` — colour and offset are applied at draw time, so one texture serves every tint. Charged `Tex_Size²×4`; `Adi.Widget` times the whole build (mask, surface, upload, mode calls) and passes it as `Build_Time`
 
+`Adi.Widget.Update` calls `Collect` and then compares the generation against the tree it was given, marking the whole subtree dirty on a difference. An `Item` caches its style by handle and only `Apply_Styles_To_Items` refreshes it, which `Update` reaches through `Is_Dirty`; rendering reads those handles with nothing behind them, so without that comparison a widget that had gone clean would draw the default style after a clear. The comparison also puts the clear ahead of the frame's layout and draw, so no handle goes stale part-way through a frame.
+
 **Adi.Animation** (`adi-animation.ads`): CSS-like style transitions.
-- `Part_Transition`: per-widget-part animation state
-- `Advance`/`Interpolate`: field-by-field lerp between `Resolved_Style` values
+- `Part_Transition`: per-widget-part animation state, holding handles and a scratch slot rather than styles by value
+- `Start` aims a part at a target and answers `Started => False` when the scratch pool is full, where the part takes its target outright
+- `Advance`/`Interpolate`: field-by-field lerp between `Resolved_Style` values, written into the transition's scratch cell
+- `Cancel` and a completed `Advance` return the scratch slot
 - Easing: Linear, Ease_In (cubic), Ease_Out, Ease_In_Out
 - Property filtering: only properties in `Transition_Spec.Properties` are interpolated
 
@@ -347,7 +356,7 @@
 
 Render scheduling note: relayout runs only when layout/geometry is dirty (`Mark_Dirty`); pure visual updates (state changes, scroll-offset, visual-only animations) use `Mark_Render_Dirty` for repaint without forcing full tree relayout.
 
-**State-change dirty classification** (`Set_State` / `Set_Part_State`): when a state flips, the runtime compares the old and new resolved styles via `Widget_State_Style_Effect` / `Part_State_Style_Effect`, which return `Diff_None` / `Diff_Render_Only` / `Diff_Layout_Affecting`. The result picks the cheapest valid invalidation: `Diff_None` → no work; `Diff_Render_Only` → `Mark_Render_Dirty`; `Diff_Layout_Affecting` → `Mark_Dirty`. `Layout_Affecting_Diff` covers the layout surface (border, padding, margin, width/height, min/max, font, line-height, text wrap, white-space, display, position, inset, overflow, flex-*, grid-*, gap). Without this classification, a `:selected` rule that toggles only `display: none ↔ block` (a layout-affecting change) would only mark render-dirty and the bullet's new size wouldn't be assigned until the next genuine layout invalidation — the cause of the "first reveal step shows nothing" bug we hit on the workshop deck.
+**State-change dirty classification** (`Set_State` / `Set_Part_State`): when a state flips, the runtime compares the old and new resolved styles via `Widget_State_Style_Effect` / `Part_State_Style_Effect`, which return `Diff_None` / `Diff_Render_Only` / `Diff_Layout_Affecting`. The comparison is on handles: equal handles are equal styles, and `Adi.Resolved_Styles.Layout_Affecting_Diff` is one equality on the layout handle behind each. The result picks the cheapest valid invalidation: `Diff_None` → no work; `Diff_Render_Only` → `Mark_Render_Dirty`; `Diff_Layout_Affecting` → `Mark_Dirty`. `Adi.CSS_Styles.Layout_Affecting_Properties` covers the layout surface (border, padding, margin, width/height, min/max, font, line-height, text wrap, white-space, display, position, inset, overflow, flex-*, grid-*, gap). Without this classification, a `:selected` rule that toggles only `display: none ↔ block` (a layout-affecting change) would only mark render-dirty and the bullet's new size wouldn't be assigned until the next genuine layout invalidation — the cause of the "first reveal step shows nothing" bug we hit on the workshop deck.
 
 **Debug stats overlay**: `Set_Debug_Stats(True)` enables a 2-line HUD showing frame number, FPS, per-stage timing (Update/Layout/Draw/Present in microseconds), layout count, layout trigger reason, style cache hit ratio, per-widget and global memo (`S:hits+memo/total`), layout call/skip counts (`LC:calls+skips`), and preferred-size cache ratio (`P:hits/total`). Renders only when the scene is already being redrawn — does not force extra frames.
 
@@ -359,13 +368,14 @@ Three optimizations reduce layout cost for large widget trees (e.g. 280+ widgets
 - Widget part styles are stored internally as interned style handles (private representation), not embedded `Widget_Style` payloads per widget part.
 - Rule evaluation order is prepared once per interned style (effective priority: explicit `Priority`, else selector `Specificity`; stable source-order tie behavior). Runtime resolution reuses this prepared order and avoids per-call rule sorting.
 - Per-widget cache remains in place for hot repeated accesses, keyed by style version + effective widget state (`Get_States`) + part state, with per-part entries invalidated when widget-level key changes.
+- Both caches hold a `Resolved_Handle` into `Adi.Resolved_Styles` rather than a `Resolved_Style` by value, which takes a widget's twelve per-part entries from 10,080 bytes to 96.
 - A global resolved-style memo adds a second cache layer across widgets. Its key includes:
   - effective part handle
   - effective main-part handle (for sub-part inheritance cases)
   - packed effective widget states
   - packed part states
   - packed main-part states
-- On global-cache overflow (`32k` entries), the cache is cleared (deterministic bounded-memory policy).
+- On global-cache overflow (`32k` entries), the cache is cleared (deterministic bounded-memory policy). It is cleared too when the store's generation moves, since its handles then name entries the store has let go.
 - Cache writes use `'Unrestricted_Access` on the read-only `Widget'Class` parameter (safe because caches are internal memoization only).
 
 **Epoch-based layout deduplication** (`Layout_Tree` / `Layout_Child`): A global `Current_Layout_Epoch` counter increments once per `Layout_Tree` call via `Bump_Layout_Epoch`. The public `Layout_Tree` bumps the epoch then delegates to a private `Layout_Tree_Impl` for recursive descent — this ensures every external call (root, overlay, or dialog subtree) gets a fresh epoch while recursive children share the same epoch for dedup. Containers (flex, grid, list_box, stack) call `Layout_Child(Child)` instead of bare `Layout(Child)` — this stamps `Child.Last_Layout_Epoch := Current_Layout_Epoch`. When `Layout_Tree_Impl` later recurses into those children, it skips the redundant `Layout` call if the epoch matches. `Bump_Layout_Epoch` wraps to 1 (not 0) at `Natural'Last` to avoid matching the default `Last_Layout_Epoch := 0` init value. This eliminates ~50% of layout calls in container-heavy trees.

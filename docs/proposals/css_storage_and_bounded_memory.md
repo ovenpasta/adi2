@@ -129,6 +129,32 @@ and a caller hands over, held for the duration of a call. What is retained
 is a sparse form — a count and an exactly-sized array of
 `(CSS_Property, Value_Slot)`.
 
+The retained set is three places, the sheet layer having moved to
+`Interned_Part_Styles` already: `Prepared_Style_Entry.Style` in the style
+store, `Stylesheet_Metadata.Root_Styles`, and
+`Inline_Style_Cache_Entry.Rules`. Two of those are answered by sizing
+alone, ahead of any `Value_Slot`:
+
+| Structure | Provisioned | Sized to the sheet | Slot-sparse |
+|---|---|---|---|
+| `Prepared_Style_Entry`, no state rules | 18,560 | 1,088 | ~290 |
+| `Stylesheet_Metadata`, per sheet and per source | 221,976 | 76 | 76 |
+
+Sizing the rule array to its count is 94% of the store's figure for a
+fraction of the change, so it lands first and `Value_Slot` is costed
+against what remains.
+
+The `~290` column is the mean, where an exactly-sized array carries a tail
+and the record form stays flat. A slot is as wide as the widest value type
+it admits: 144 bytes across the value types as they stand, 96 with
+`Grid_Track_List` interned to an index, and 32 to 40 once §4.4's field
+narrowings land. At 96 the crossover sits near ten set properties, past
+which a rule spends more than the flat 1,072, and a rule naming all 66
+reaches 6,864. The mean across the sheets is 3.15, which leaves the
+distribution as the figure to measure — in `Is_Specified` counts rather
+than `Is_Set`, since a property named and cleared occupies a slot and
+carries its `State_Kind` there.
+
 `Resolved_Style` stays fat and concrete. It is per-widget, short-lived and
 memoised, and layout, rendering and the widget implementations read it by
 name at every site that uses a style.
@@ -180,19 +206,29 @@ Six sweeps name every property in turn:
 | `Layout_Affecting_Diff` | `adi-widget.adb:996` | 48 | — |
 | `Interpolate` snap list | `adi-animation.adb:236` | 29 | — |
 
-Replace them with `constant array (CSS_Property) of Property_Descriptor`,
-with every literal named, so a new property is one compile error per
-behaviour it has to declare.
+Per-property behaviour belongs in a `case P is` over `CSS_Property` with
+no `others`, and per-property classification in a `CSS_Property_Set`
+constant. A case with no `others` is checked against an insertion and an
+append both, where an array aggregate over the enumeration catches only
+the insertion — a literal added past the last one leaves the aggregate
+legal with its bounds stopping early — and needs
+`pragma Compile_Time_Error` pinning `CSS_Property'Last` to get halfway
+back. `Inherit_Property`, `Copy_Property`, `Property_Differs`,
+`Layout_Affecting_Properties`, `Inheritable_Properties` and the
+`Interpolate` snap set already carry that shape, and the pin is on
+`CSS_Property'Last`.
 
-An array aggregate over an enumeration catches an insertion and accepts an
-append: a literal added past the last one leaves the aggregate legal with its
-bounds stopping early. A record aggregate over components catches both, so
-the table trades away half of what it replaces, and
-`pragma Compile_Time_Error` pinning `CSS_Property'Last` restores it. The same
-pin belongs on the existing `Set_Properties`. Two shapes cover 55 of the 66: a scalar
-`Optional<T>`, and a per-side or per-corner group folded element-wise.
+A `constant array (CSS_Property) of Property_Descriptor` would replace the
+three sweeps still written as aggregates — `Merge`, `Set_Properties`,
+`Resolve`. Each property carries a different `Optional` instance, so every
+row needs subprograms of one profile over `Style_Rules`: some 396 of them
+in place of three aggregates the compiler already checks. More code for
+less checking, so the sweeps stay as they are.
 
-Five need a `Special` variant carrying a subprogram:
+Two shapes cover 55 of the 66: a scalar `Optional<T>`, and a per-side or
+per-corner group folded element-wise.
+
+Four carry behaviour a uniform shape does not:
 
 | Property | Reason |
 |---|---|
@@ -200,10 +236,11 @@ Five need a `Special` variant carrying a subprogram:
 | `Grid_Column_Tracks` | a bare `Grid_Track_List`, merged on `Count > 0` |
 | `Font_Family` | resolves to a different type, `Font_Handle`, through `Font_Name_Resolver` |
 | `Prop_Overflow` | a shorthand literal, carried by the `Overflow_X` and `Overflow_Y` axes |
-| `Visibility` | merges from the parent in `Inherit_From`, filed with the properties that pass through |
 
-`Visibility` is a semantic question to settle while writing the row: the
-table forces a single answer where the current shape carries two.
+`Visibility` is an ordinary inheritable property of the part cascade. It
+travels a second axis in `Adi.Window.Resolve_Effective_Visibility`, which
+folds a widget's effective value into its children at paint and focus time
+from resolved values, so nothing in `Style_Rules` carries it.
 
 `CSS_Property` already exists at `adi-css_styles.ads:1249`, 66 literals,
 one per `Style_Rules` component apart from those two entries, and already
@@ -217,13 +254,32 @@ every style. Across the sheets measured a selector reaches 9 state rules and
 A generated sheet knows both figures exactly, and a sparse per-rule form
 makes raising the rule cap affordable — which section 5 needs.
 
+`Prepared_Style_Entry` carries its rules in an array sized by a
+discriminant, so an entry costs the rules its style names: 1,088 bytes at
+none, 2,184 at one, 18,560 at the cap. `Widget_Style` keeps its sixteen
+slots, being what an author fills and a caller hands over.
+
+`Widget_States` packs to one bit per state, which takes `State_Selector`
+to 4 bytes and leaves it at 8 once section 5.1's ten literals arrive —
+against 24 before, and 64 had the literals arrived unpacked. Every
+selector operation reads a state by index, so the packing reaches
+`Matches`, `Specificity` and the aggregates unchanged.
+
 ### 3.5   The parser
 
-`Apply_Property` (`adi-css_parser.adb:2007-2718`) is 712 lines, 96
-`elsif P = ` branches over 98 property-name literals, matched linearly. A
-table keyed by name yielding `(CSS_Property, value parser)` collapses the
-name half to one lookup; the value grammars stay, since `font-weight`
-alone carries nine sub-branches. Shorthand expansion stays as it is.
+`Apply_Property` matches 98 property-name literals across 95 branches. A
+`Decl_Name` enumeration with a sorted table and a binary search collapses
+the name half to one lookup, and each branch tests a literal rather than
+the text. The value grammars stay, since `font-weight` alone carries nine
+sub-branches, and shorthand expansion stays as it is. The names pad to a
+fixed width for the search, which leaves the order on the names
+themselves: no name character sorts below a space, so `border` precedes
+`border-top`.
+
+The enumeration is where the parser can answer whether it recognises a
+name at all. `tools/css_to_ada.py` reports an unsupported property and the
+runtime parser passes over one silently, which is a divergence in
+diagnostics rather than in resolution.
 
 ---
 

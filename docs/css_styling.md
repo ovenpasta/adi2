@@ -97,7 +97,7 @@ Text and typography properties set on `Main_Part` (i.e., without a `::part` sele
 
 **Non-inheritable properties** (box-model, layout, visual): `background-color`, `background-image`, `border-*`, `outline-*`, `padding`, `margin`, sizing, `display`, `position`, `overflow`, `opacity`, `box-shadow`, `flex-*`, `grid-*`, `transition`, etc.
 
-`visibility` descends the *widget* tree rather than this part cascade: each widget resolves it against its parent's effective value, so a descendant's `visibility: visible` overrides a hidden ancestor.
+`visibility` travels two axes. It inherits to sub-parts through the part cascade above, like any other inheritable property. It also descends the *widget* tree: `Adi.Window` resolves each widget's effective value against its parent widget's at paint and focus time, so a descendant's `visibility: visible` overrides a hidden ancestor.
 
 Example:
 

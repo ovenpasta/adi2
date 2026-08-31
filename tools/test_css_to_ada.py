@@ -2131,5 +2131,208 @@ class TestGenerateGradientAda(unittest.TestCase):
         self.assertIn("90.0", ada)
 
 
+class TestWidgetPropertySelectors(unittest.TestCase):
+    """[severity] and [severity="critical"], and the constants they emit."""
+
+    def _selector(self, text):
+        sel, diags = css_to_ada.parse_selector_with_diagnostics(text)
+        return sel, diags
+
+    def test_equality_condition(self):
+        sel, diags = self._selector('.alarm[severity="critical"]')
+        self.assertEqual(diags, [])
+        self.assertEqual(sel.name, "alarm")
+        self.assertEqual(sel.selector_type, "class")
+        self.assertEqual(len(sel.property_conditions), 1)
+        self.assertEqual(sel.property_conditions[0].name, "severity")
+        self.assertEqual(sel.property_conditions[0].value, "critical")
+        self.assertFalse(sel.property_conditions[0].negated)
+
+    def test_existence_condition(self):
+        sel, _ = self._selector(".alarm[severity]")
+        self.assertEqual(len(sel.property_conditions), 1)
+        self.assertIsNone(sel.property_conditions[0].value)
+
+    def test_negated_equality(self):
+        sel, diags = self._selector('.alarm:not([severity="critical"])')
+        self.assertEqual(diags, [])
+        self.assertEqual(sel.name, "alarm")
+        self.assertEqual(len(sel.property_conditions), 1)
+        self.assertTrue(sel.property_conditions[0].negated)
+        self.assertEqual(sel.property_conditions[0].value, "critical")
+        #  The bracket goes with the :not(), so no empty pseudo is left
+        #  behind for parse_pseudo_classes to read.
+        self.assertEqual(sel.widget_states, [])
+        self.assertEqual(sel.widget_negated_states, [])
+
+    def test_negated_existence(self):
+        sel, _ = self._selector(".alarm:not([link])")
+        self.assertEqual(len(sel.property_conditions), 1)
+        self.assertTrue(sel.property_conditions[0].negated)
+        self.assertIsNone(sel.property_conditions[0].value)
+
+    def test_a_state_not_is_left_alone(self):
+        sel, _ = self._selector(".alarm:not(:hover)")
+        self.assertEqual(sel.property_conditions, [])
+        self.assertEqual(
+            [s.value for s in sel.widget_negated_states], ["State_Hovered"]
+        )
+
+    def test_a_negation_beside_a_state(self):
+        sel, _ = self._selector('.alarm:hover:not([severity="critical"])')
+        self.assertEqual(
+            [s.value for s in sel.widget_states], ["State_Hovered"]
+        )
+        self.assertTrue(sel.property_conditions[0].negated)
+
+    def test_unquoted_and_single_quoted_values(self):
+        for text in (".a[severity=critical]", ".a[severity='critical']"):
+            sel, _ = self._selector(text)
+            self.assertEqual(sel.property_conditions[0].value, "critical")
+
+    def test_case_is_folded(self):
+        sel, _ = self._selector('.a[Severity="CRITICAL"]')
+        self.assertEqual(sel.property_conditions[0].name, "severity")
+        self.assertEqual(sel.property_conditions[0].value, "critical")
+
+    def test_brackets_come_off_before_the_colon_split(self):
+        sel, _ = self._selector('.alarm[severity="critical"]:hover::label')
+        self.assertEqual(sel.name, "alarm")
+        self.assertEqual(sel.part_kind, "Label_Part")
+        self.assertEqual(
+            [s.value for s in sel.widget_states], ["State_Hovered"]
+        )
+        self.assertEqual(len(sel.property_conditions), 1)
+
+    def test_conditions_after_a_pseudo_class(self):
+        sel, _ = self._selector('.alarm:hover[severity="critical"]')
+        self.assertEqual(sel.name, "alarm")
+        self.assertEqual(
+            [s.value for s in sel.widget_states], ["State_Hovered"]
+        )
+        self.assertEqual(len(sel.property_conditions), 1)
+
+    def test_two_conditions(self):
+        sel, _ = self._selector('.a[link="degraded"][severity="critical"]')
+        self.assertEqual(len(sel.property_conditions), 2)
+
+    def test_ordering_operator_is_refused(self):
+        sel, diags = self._selector(".a[level>3]")
+        self.assertIsNone(sel)
+        self.assertEqual([d.code for d in diags], ["attribute-syntax"])
+
+    def test_substring_operators_are_refused(self):
+        for text in (".a[x~=y]", ".a[x|=y]", ".a[x^=y]", ".a[x$=y]",
+                     ".a[x*=y]", ".a[x!=y]"):
+            sel, diags = self._selector(text)
+            self.assertIsNone(sel, text)
+            self.assertEqual([d.code for d in diags], ["attribute-syntax"])
+
+    def test_unclosed_bracket_is_refused(self):
+        sel, diags = self._selector('.a[severity="critical"')
+        self.assertIsNone(sel)
+        self.assertEqual([d.code for d in diags], ["attribute-syntax"])
+
+    def test_unclosed_negation_is_refused(self):
+        sel, diags = self._selector('.a:not([severity="critical"]')
+        self.assertIsNone(sel)
+        self.assertEqual([d.code for d in diags], ["attribute-syntax"])
+
+    def test_empty_bracket_is_refused(self):
+        sel, diags = self._selector(".a[]")
+        self.assertIsNone(sel)
+        self.assertEqual([d.code for d in diags], ["attribute-syntax"])
+
+    def test_a_condition_makes_the_rule_a_state_rule(self):
+        rules = parse_css(
+            ".a { color: red; }\n"
+            '.a[severity="critical"] { color: blue; }\n'
+        )
+        groups = group_rules_by_widget(rules)
+        part = groups["class:a"].parts["Main_Part"]
+        self.assertIsNotNone(part.base_rule)
+        self.assertEqual(len(part.state_rules), 1)
+
+    def test_distinct_values_are_distinct_rules(self):
+        rules = parse_css(
+            '.a[severity="ok"] { color: red; }\n'
+            '.a[severity="critical"] { color: blue; }\n'
+        )
+        groups = group_rules_by_widget(rules)
+        self.assertEqual(
+            len(groups["class:a"].parts["Main_Part"].state_rules), 2
+        )
+
+    def test_a_condition_and_its_negation_are_distinct_rules(self):
+        rules = parse_css(
+            '.a[severity="ok"] { color: red; }\n'
+            '.a:not([severity="ok"]) { color: blue; }\n'
+        )
+        groups = group_rules_by_widget(rules)
+        self.assertEqual(
+            len(groups["class:a"].parts["Main_Part"].state_rules), 2
+        )
+
+    def _generate(self, css, properties_package="App_Properties"):
+        stylesheet, _ = parse_stylesheet_with_diagnostics(css)
+        groups = group_rules_by_widget(stylesheet.rules)
+        return generate_ada_package(
+            stylesheet, groups, "Gen", properties_package
+        )
+
+    def test_equality_emits_the_instantiation_and_the_literal(self):
+        ada = self._generate('.a[severity="critical"] { color: red; }')
+        self.assertIn(
+            "When_Property (App_Properties.Severity.Value "
+            "(App_Properties.Critical))",
+            ada,
+        )
+        self.assertIn("with App_Properties;", ada)
+
+    def test_existence_emits_the_property_id(self):
+        ada = self._generate(".a[severity] { color: red; }")
+        self.assertIn("When_Property_Set (App_Properties.Severity.Id)", ada)
+
+    def test_negation_emits_the_negated_call(self):
+        ada = self._generate('.a:not([severity="critical"]) { color: red; }')
+        self.assertIn(
+            "When_Not_Property (App_Properties.Severity.Value "
+            "(App_Properties.Critical))",
+            ada,
+        )
+
+    def test_negated_existence_emits_the_negated_call(self):
+        ada = self._generate(".a:not([severity]) { color: red; }")
+        self.assertIn(
+            "When_Not_Property_Set (App_Properties.Severity.Id)", ada
+        )
+
+    def test_two_properties_may_share_a_value_name(self):
+        #  The literal is named alone; the instantiation it is handed to
+        #  is what resolves which enumeration it belongs to.
+        ada = self._generate(
+            '.a[power="on"] { color: red; }\n.b[state="on"] { color: blue; }'
+        )
+        self.assertIn("App_Properties.Power.Value (App_Properties.On)", ada)
+        self.assertIn("App_Properties.State.Value (App_Properties.On)", ada)
+
+    def test_a_hyphenated_name_becomes_an_ada_identifier(self):
+        ada = self._generate('.a[link-state="half-open"] { color: red; }')
+        self.assertIn(
+            "App_Properties.Link_State.Value (App_Properties.Half_Open)", ada
+        )
+
+    def test_a_sheet_without_conditions_withs_no_properties_package(self):
+        ada = self._generate(".a { color: red; }")
+        self.assertNotIn("with App_Properties;", ada)
+
+    def test_a_condition_needs_a_properties_package(self):
+        with self.assertRaises(css_to_ada.PropertyPackageMissing):
+            self._generate(
+                '.a[severity="critical"] { color: red; }',
+                properties_package=None,
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

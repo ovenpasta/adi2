@@ -12,13 +12,14 @@ generate_if_needed() {
   local css_file="$1"
   local out_file="$2"
   local package_name="$3"
+  shift 3
 
   local out_body="${out_file%.ads}.adb"
 
   if [[ ! -f "$out_file" || ! -f "$out_body" \
      || "$css_file" -nt "$out_file" || "$GENERATOR" -nt "$out_file" ]]; then
     echo "[styles] generate: $(basename "$out_file")"
-    python3 "$GENERATOR" "$css_file" "$out_file" --package-name "$package_name"
+    python3 "$GENERATOR" "$css_file" "$out_file" --package-name "$package_name" "$@"
   else
     echo "[styles] skip:     $(basename "$out_file")"
   fi
@@ -39,7 +40,8 @@ generate_if_needed "$CSS_DIR/overflow_example.css" "$OUT_DIR/overflow_example_st
 generate_if_needed "$CSS_DIR/grid_example.css" "$OUT_DIR/grid_example_styles.ads" "Grid_Example_Styles"
 generate_if_needed "$CSS_DIR/dialog_example.css" "$OUT_DIR/dialog_example_styles.ads" "Dialog_Example_Styles"
 generate_if_needed "$CSS_DIR/font_example.css" "$OUT_DIR/font_example_styles.ads" "Font_Example_Styles"
-generate_if_needed "$CSS_DIR/runtime_css_example.css" "$OUT_DIR/runtime_css_example_styles.ads" "Runtime_Css_Example_Styles"
+generate_if_needed "$CSS_DIR/runtime_css_example.css" "$OUT_DIR/runtime_css_example_styles.ads" "Runtime_Css_Example_Styles" \
+  --properties-package Runtime_Css_Properties
 generate_if_needed "$CSS_DIR/text_editor_example.css" "$OUT_DIR/text_editor_example_styles.ads" "Text_Editor_Example_Styles"
 generate_if_needed "$CSS_DIR/animated_image_example.css" "$OUT_DIR/animated_image_example_styles.ads" "Animated_Image_Example_Styles"
 generate_if_needed "$CSS_DIR/rlottie_example.css" "$OUT_DIR/rlottie_example_styles.ads" "RLottie_Example_Styles"

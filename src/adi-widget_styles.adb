@@ -46,6 +46,7 @@ package body Adi.Widget_Styles is
          Mix (Selector.Widget_Excluded);
          Mix (Selector.Part_Required);
          Mix (Selector.Part_Excluded);
+         Mix (Adi.Widget_Properties.Hash (Selector.Properties));
       end Mix;
 
       procedure Mix (Named : CSS_Property_Set) is
@@ -84,7 +85,7 @@ package body Adi.Widget_Styles is
          if Selector.Part_Required (S) then Count := Count + 1; end if;
          if Selector.Part_Excluded (S) then Count := Count + 1; end if;
       end loop;
-      return Count;
+      return Count + Adi.Widget_Properties.Condition_Count (Selector.Properties);
    end Specificity;
 
    -------------------------------------------------
@@ -196,7 +197,10 @@ package body Adi.Widget_Styles is
 
    function Compute_Style (WS : Widget_Style;
                            Active_Widget : Widget_States;
-                           Active_Part   : Widget_States) return Style_Rules is
+                           Active_Part   : Widget_States;
+                           Assigned : Adi.Widget_Properties.Property_Assignment
+                             := Adi.Widget_Properties.Empty_Assignment)
+     return Style_Rules is
       Result : Style_Rules := WS.Base;
       
       --  Collect matching rules with their effective priority
@@ -212,7 +216,9 @@ package body Adi.Widget_Styles is
    begin
       --  Find all matching rules
       for I in 1 .. WS.Rule_Count loop
-         if Matches (WS.Rules (I).Selector, Active_Widget, Active_Part) then
+         if Matches (WS.Rules (I).Selector, Active_Widget, Active_Part,
+                     Assigned)
+         then
             Match_Count := Match_Count + 1;
             Matched (Match_Count) := (
                Index    => I,
@@ -245,21 +251,33 @@ package body Adi.Widget_Styles is
       return Result;
    end Compute_Style;
 
-   function Compute_Style (WS : Widget_Style; Active : Widget_States) return Style_Rules is
+   function Compute_Style (WS : Widget_Style;
+                           Active : Widget_States;
+                           Assigned : Adi.Widget_Properties.Property_Assignment
+                             := Adi.Widget_Properties.Empty_Assignment)
+     return Style_Rules is
    begin
-      return Compute_Style (WS, Active, No_States);
+      return Compute_Style (WS, Active, No_States, Assigned);
    end Compute_Style;
 
    function Compute_Resolved (WS : Widget_Style;
                               Active_Widget : Widget_States;
-                              Active_Part   : Widget_States) return Resolved_Style is
+                              Active_Part   : Widget_States;
+                              Assigned : Adi.Widget_Properties.Property_Assignment
+                                := Adi.Widget_Properties.Empty_Assignment)
+     return Resolved_Style is
    begin
-      return Resolve (Compute_Style (WS, Active_Widget, Active_Part));
+      return Resolve
+        (Compute_Style (WS, Active_Widget, Active_Part, Assigned));
    end Compute_Resolved;
 
-   function Compute_Resolved (WS : Widget_Style; Active : Widget_States) return Resolved_Style is
+   function Compute_Resolved (WS : Widget_Style;
+                              Active : Widget_States;
+                              Assigned : Adi.Widget_Properties.Property_Assignment
+                                := Adi.Widget_Properties.Empty_Assignment)
+     return Resolved_Style is
    begin
-      return Resolve (Compute_Style (WS, Active));
+      return Resolve (Compute_Style (WS, Active, Assigned));
    end Compute_Resolved;
 
    -------------------------------------------------

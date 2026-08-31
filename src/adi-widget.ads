@@ -11,6 +11,7 @@ with Adi.Widget_Styles;     use Adi.Widget_Styles;
 with Adi.CSS_Styles;        use Adi.CSS_Styles;
 with Adi.Animation;         use Adi.Animation;
 with Adi.Resolved_Styles;   use Adi.Resolved_Styles;
+with Adi.Widget_Properties;
 with Adi.Font;
 with Adi.SDL.TTF;
 with Adi.SDL.TTF.TextEngine;
@@ -265,6 +266,32 @@ package Adi.Widget is
    procedure Set_Pressed (H : Widget_Handle; Value : Boolean := True);
    procedure Set_Focused (H : Widget_Handle; Value : Boolean := True);
    procedure Set_Selected (H : Widget_Handle; Value : Boolean := True);
+
+   ---------------------------------------------------------------------------
+   --  User Properties
+   ---------------------------------------------------------------------------
+
+   --  Domain state a stylesheet selects on with [severity="critical"].
+   --  A value names its own property, so setting one replaces whatever
+   --  that property held. The whole assignment is one interned index in
+   --  the widget, and it joins the resolved-style memo's key, so two
+   --  widgets at the same value share the style they resolve to.
+   --
+   --  Setting a property invalidates the widget's style the way
+   --  Set_State does, and where no rule on the widget names a property
+   --  the change reaches no further than the version bump.
+   procedure Set_Property (H : Widget_Handle;
+                           V : Adi.Widget_Properties.Property_Value);
+   procedure Clear_Property (H : Widget_Handle;
+                             P : Adi.Widget_Properties.Property);
+   function Get_Property (H : Widget_Handle;
+                          P : Adi.Widget_Properties.Property)
+     return Adi.Widget_Properties.Property_Value;
+   function Has_Property (H : Widget_Handle;
+                          P : Adi.Widget_Properties.Property)
+     return Boolean;
+   function Get_Properties (H : Widget_Handle)
+     return Adi.Widget_Properties.Property_Assignment;
 
    ---------------------------------------------------------------------------
    --  Part Style Management
@@ -909,7 +936,8 @@ private
      (Part_Handle, Main_Handle : Style_Handle;
       Widget_State_Bits, Part_State_Bits,
       Main_Part_State_Bits     : Packed_State_Bits;
-      Font_Gen                 : Adi.Font.Font_Generation)
+      Font_Gen                 : Adi.Font.Font_Generation;
+      Assigned                 : Adi.Widget_Properties.Property_Assignment)
       return Ada.Containers.Hash_Type;
 
    type Part_Style_Handle_Array is array (Part_Kind) of Style_Handle;
@@ -959,6 +987,10 @@ private
       --  State
       States      : Widget_States := No_States;
       Part_States : Part_State_Array := [others => No_States];
+      --  Domain state the application set, interned. A widget naming no
+      --  property holds the empty assignment.
+      Properties  : Adi.Widget_Properties.Property_Assignment :=
+        Adi.Widget_Properties.Empty_Assignment;
       Dirty       : Boolean := True;
       Layout_Dirty : Boolean := True;
       Style_Version        : Natural := 0;
@@ -1083,6 +1115,18 @@ private
       return Widget_States;
    procedure Clear_States (W : in out Widget'Class);
    procedure Clear_Part_States (W : in out Widget'Class);
+   procedure Set_Property (W : in out Widget'Class;
+                           V : Adi.Widget_Properties.Property_Value);
+   procedure Clear_Property (W : in out Widget'Class;
+                             P : Adi.Widget_Properties.Property);
+   function  Get_Property (W : Widget'Class;
+                           P : Adi.Widget_Properties.Property)
+     return Adi.Widget_Properties.Property_Value;
+   function  Has_Property (W : Widget'Class;
+                           P : Adi.Widget_Properties.Property)
+     return Boolean;
+   function  Get_Properties (W : Widget'Class)
+     return Adi.Widget_Properties.Property_Assignment;
    procedure Set_Hovered  (W : in out Widget'Class; Value : Boolean := True);
    procedure Set_Pressed  (W : in out Widget'Class; Value : Boolean := True);
    procedure Set_Focused  (W : in out Widget'Class; Value : Boolean := True);

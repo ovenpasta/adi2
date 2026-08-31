@@ -1,0 +1,62 @@
+/*  Domain state as a selector. Driven from tests/src/test_properties.ads,
+    which declares the vocabulary, and read by both pipelines:
+    tools/css_to_ada.py generates tests/generated/widget_property_styles.ads
+    from this file, and Adi.CSS_Parser reads the same file at run time. */
+
+.alarm {
+  background-color: rgb(20, 20, 20);
+  padding: 4px;
+  border-width: 1px;
+}
+
+.alarm[severity="ok"] {
+  background-color: rgb(0, 128, 0);
+}
+
+.alarm[severity="warning"] {
+  background-color: rgb(200, 160, 0);
+  padding: 6px;
+}
+
+.alarm[severity="critical"] {
+  background-color: rgb(200, 0, 0);
+  padding: 8px;
+}
+
+.alarm[severity="critical"]:hover {
+  background-color: rgb(255, 0, 0);
+}
+
+.alarm[link] {
+  border-width: 3px;
+}
+
+.alarm[link="degraded"][severity="critical"] {
+  border-width: 5px;
+}
+
+.alarm[severity="critical"]::label {
+  color: rgb(255, 255, 255);
+}
+
+/*  CSS has no not-equal attribute operator, so a rule for every value
+    but one is written with :not(). */
+
+.alarm:not([severity="critical"]) {
+  outline-width: 2px;
+}
+
+.alarm:not([link]) {
+  margin: 7px;
+}
+
+/*  Two properties with a value of the same name. The generated sheet
+    names the literal alone and lets the instantiation pick the type. */
+
+.alarm[power="on"] {
+  opacity: 0.5;
+}
+
+.alarm[radio="on"] {
+  flex-grow: 3;
+}

@@ -5,6 +5,7 @@ pragma Ada_2022;
 
 with Ada.Containers;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
+with Adi.Widget_Properties;
 
 package Adi.Widget_Styles is
 
@@ -36,6 +37,12 @@ package Adi.Widget_Styles is
       --  Part-level states (:hover after ::part, e.g. list::scroll:hover)
       Part_Required   : Widget_States := No_States;
       Part_Excluded   : Widget_States := No_States;
+      --  The [severity] and [severity="critical"] conditions the
+      --  selector carries, interned. Interning is canonical, so the
+      --  index stands for the set and predefined equality on the
+      --  selector stays exact.
+      Properties      : Adi.Widget_Properties.Property_Conditions :=
+        Adi.Widget_Properties.No_Conditions;
    end record;
 
    --  Match any state (always matches)
@@ -47,47 +54,100 @@ package Adi.Widget_Styles is
 
    function When_State (S : Widget_State) return State_Selector is
       ((Widget_Required => Single_State (S), Widget_Excluded => No_States,
-        Part_Required   => No_States,       Part_Excluded   => No_States));
+        Part_Required   => No_States,       Part_Excluded   => No_States,
+        others          => <>));
 
    function When_Not (S : Widget_State) return State_Selector is  
       ((Widget_Required => No_States,       Widget_Excluded => Single_State (S),
-        Part_Required   => No_States,       Part_Excluded   => No_States));
+        Part_Required   => No_States,       Part_Excluded   => No_States,
+        others          => <>));
 
    function When_Part_State (S : Widget_State) return State_Selector is
       ((Widget_Required => No_States,       Widget_Excluded => No_States,
-        Part_Required   => Single_State (S), Part_Excluded  => No_States));
+        Part_Required   => Single_State (S), Part_Excluded  => No_States,
+        others          => <>));
 
    function When_Part_Not (S : Widget_State) return State_Selector is
       ((Widget_Required => No_States,       Widget_Excluded => No_States,
-        Part_Required   => No_States,       Part_Excluded   => Single_State (S)));
+        Part_Required   => No_States,       Part_Excluded   => Single_State (S),
+        others          => <>));
+
+   --  [severity="critical"], and [severity] whatever it is set to. What
+   --  tools/css_to_ada.py emits for a bracket condition, and what an
+   --  application writes by hand for the same.
+   function When_Property (V : Adi.Widget_Properties.Property_Value)
+     return State_Selector is
+      ((Widget_Required => No_States,       Widget_Excluded => No_States,
+        Part_Required   => No_States,       Part_Excluded   => No_States,
+        Properties      => Adi.Widget_Properties.Conditions_On (V)));
+
+   function When_Property_Set (P : Adi.Widget_Properties.Property)
+     return State_Selector is
+      ((Widget_Required => No_States,       Widget_Excluded => No_States,
+        Part_Required   => No_States,       Part_Excluded   => No_States,
+        Properties      => Adi.Widget_Properties.Conditions_On (P)));
+
+   --  :not([severity="critical"]) and :not([severity]), which is how CSS
+   --  spells "anything but" -- there is no not-equal attribute operator.
+   function When_Not_Property (V : Adi.Widget_Properties.Property_Value)
+     return State_Selector is
+      ((Widget_Required => No_States,       Widget_Excluded => No_States,
+        Part_Required   => No_States,       Part_Excluded   => No_States,
+        Properties      => Adi.Widget_Properties.Conditions_Excluding (V)));
+
+   function When_Not_Property_Set (P : Adi.Widget_Properties.Property)
+     return State_Selector is
+      ((Widget_Required => No_States,       Widget_Excluded => No_States,
+        Part_Required   => No_States,       Part_Excluded   => No_States,
+        Properties      => Adi.Widget_Properties.Conditions_Excluding (P)));
 
    --  Selector combinators
    function "and" (L, R : State_Selector) return State_Selector is
      ((Widget_Required => [for S in Widget_State => L.Widget_Required (S) or R.Widget_Required (S)],
        Widget_Excluded => [for S in Widget_State => L.Widget_Excluded (S) or R.Widget_Excluded (S)],
        Part_Required   => [for S in Widget_State => L.Part_Required (S) or R.Part_Required (S)],
-       Part_Excluded   => [for S in Widget_State => L.Part_Excluded (S) or R.Part_Excluded (S)]));
+       Part_Excluded   => [for S in Widget_State => L.Part_Excluded (S) or R.Part_Excluded (S)],
+       Properties      =>
+         Adi.Widget_Properties.Both (L.Properties, R.Properties)));
 
    function "or" (L, R : State_Selector) return State_Selector is
      ((Widget_Required => [for S in Widget_State => L.Widget_Required (S) and R.Widget_Required (S)],
        Widget_Excluded => [for S in Widget_State => L.Widget_Excluded (S) and R.Widget_Excluded (S)],
        Part_Required   => [for S in Widget_State => L.Part_Required (S) and R.Part_Required (S)],
-       Part_Excluded   => [for S in Widget_State => L.Part_Excluded (S) and R.Part_Excluded (S)]));
+       Part_Excluded   => [for S in Widget_State => L.Part_Excluded (S) and R.Part_Excluded (S)],
+       Properties      =>
+         Adi.Widget_Properties.Common (L.Properties, R.Properties)));
 
-   --  Check if selector matches active states
+   --  Whether the selector's conditions hold: the states a pointer and
+   --  a keyboard drive, and the properties the application set. A
+   --  selector naming no property costs one index comparison here.
    function Matches (Selector : State_Selector;
                      Active_Widget : Widget_States;
-                     Active_Part   : Widget_States) return Boolean is
+                     Active_Part   : Widget_States;
+                     Assigned      : Adi.Widget_Properties.Property_Assignment
+                       := Adi.Widget_Properties.Empty_Assignment)
+     return Boolean is
      ((for all S in Widget_State =>
          (if Selector.Widget_Required (S) then Active_Widget (S)) and
          (if Selector.Widget_Excluded (S) then not Active_Widget (S)) and
          (if Selector.Part_Required (S) then Active_Part (S)) and
-         (if Selector.Part_Excluded (S) then not Active_Part (S))));
+         (if Selector.Part_Excluded (S) then not Active_Part (S)))
+      and then
+        (Adi.Widget_Properties."="
+           (Selector.Properties, Adi.Widget_Properties.No_Conditions)
+         or else Adi.Widget_Properties.Satisfied_By
+                   (Selector.Properties, Assigned)));
 
-   function Matches (Selector : State_Selector; Active : Widget_States) return Boolean is
-     (Matches (Selector, Active, No_States));
+   function Matches (Selector : State_Selector;
+                     Active   : Widget_States;
+                     Assigned : Adi.Widget_Properties.Property_Assignment
+                       := Adi.Widget_Properties.Empty_Assignment)
+     return Boolean is
+     (Matches (Selector, Active, No_States, Assigned));
 
-   --  Compute specificity (number of required + excluded conditions)
+   --  Conditions the selector sets: states required, states excluded,
+   --  and properties named. A property condition scores 1, so
+   --  [severity="critical"]:hover scores 2 -- the CSS ranking.
    function Specificity (Selector : State_Selector) return Natural;
 
 
@@ -152,16 +212,30 @@ package Adi.Widget_Styles is
      (WS.Part_State_Mask (S));
 
    --  Compute effective style given active states
-   function Compute_Style (WS : Widget_Style; Active : Widget_States) return Style_Rules;
+   function Compute_Style (WS : Widget_Style;
+                           Active : Widget_States;
+                           Assigned : Adi.Widget_Properties.Property_Assignment
+                             := Adi.Widget_Properties.Empty_Assignment)
+     return Style_Rules;
    function Compute_Style (WS : Widget_Style;
                            Active_Widget : Widget_States;
-                           Active_Part   : Widget_States) return Style_Rules;
+                           Active_Part   : Widget_States;
+                           Assigned : Adi.Widget_Properties.Property_Assignment
+                             := Adi.Widget_Properties.Empty_Assignment)
+     return Style_Rules;
 
    --  Compute and resolve in one step
-   function Compute_Resolved (WS : Widget_Style; Active : Widget_States) return Resolved_Style;
+   function Compute_Resolved (WS : Widget_Style;
+                              Active : Widget_States;
+                              Assigned : Adi.Widget_Properties.Property_Assignment
+                                := Adi.Widget_Properties.Empty_Assignment)
+     return Resolved_Style;
    function Compute_Resolved (WS : Widget_Style;
                               Active_Widget : Widget_States;
-                              Active_Part   : Widget_States) return Resolved_Style;
+                              Active_Part   : Widget_States;
+                              Assigned : Adi.Widget_Properties.Property_Assignment
+                                := Adi.Widget_Properties.Empty_Assignment)
+     return Resolved_Style;
 
    -------------------------------------------------
    -- Fluent Builder

@@ -171,6 +171,168 @@ For `::main`, interactive pseudos remain widget-scoped regardless of position:
 
 ---
 
+## Widget Properties
+
+`:hover` and its siblings describe what a pointer and a keyboard are
+doing. Domain state is the other half — an alarm row at ok, warning or
+critical, a field valid, invalid or pending, a link connected, degraded
+or offline — and a stylesheet selects on it by name:
+
+```css
+.alarm                      { background-color: #141414; }
+.alarm[severity="warning"]  { background-color: #c8a000; }
+.alarm[severity="critical"] { background-color: #c80000; }
+.alarm[severity="critical"]:hover { background-color: #ff0000; }
+.alarm[link]                { border-width: 3px; }
+.alarm:not([severity="critical"]) { outline-width: 2px; }
+```
+
+The grammar is equality, existence and negation. `[severity]` matches a
+widget that names the property, whatever it is set to;
+`[severity="critical"]` matches the value. CSS has no not-equal
+attribute operator, so "anything but" is written `:not([severity="critical"])`
+— which also holds of a widget that names the property not at all, as it
+does in CSS. `:not([severity])` is the other way round: it holds only
+while the property is unset. Ordering (`[level>3]`) and the substring
+matchers (`~=`, `|=`, `^=`, `$=`, `*=`) are refused by both pipelines,
+being string scans rather than a choice among a bounded set.
+
+A bracket condition scores 1 in the cascade, so
+`[severity="critical"]:hover` scores 2 — the CSS ranking. A rule
+carrying one is a state rule rather than the base style, and takes its
+place among the `:hover` rules the same selector already has.
+
+### Declaring the vocabulary
+
+An application declares each property from an enumeration of its own,
+at library level, where elaboration registers the property and every
+literal:
+
+```ada
+with Adi.Widget_Properties.Enumerated;
+pragma Elaborate_All (Adi.Widget_Properties.Enumerated);
+
+package App_Properties is
+   type Severity_Level is (Ok, Warning, Critical);
+
+   package Severity is new Adi.Widget_Properties.Enumerated
+     (Name => "severity", Values => Severity_Level);
+end App_Properties;
+```
+
+A literal's CSS name is its image folded to lower case with underscores
+as hyphens, so `Half_Open` answers to `half-open`. The vocabulary is
+derived from the enumeration rather than written out a second time, and
+a value's index is its position in it, so nothing is registered per
+value and nothing looks one up: `Severity.Value (Critical)` is a
+position the compiler already knows.
+
+The value type is the enumeration, so mixing two properties' values
+fails to compile:
+
+```ada
+App_Properties.Severity.Set (Row, App_Properties.Critical);
+App_Properties.Severity.Set (Row, App_Properties.Offline);  --  no
+```
+
+Declaration happens at elaboration and nowhere else. That bound is what
+buys the rest: the registry is a fixed set of arrays and a count, it
+allocates nothing, and it is read-only for the whole of the run.
+`Max_Properties` is 64 and `Max_Values_Per_Property` is 256; an
+instantiation past either is refused whole and reported through
+`Adi.Log`, and its property then selects nothing.
+
+#### Keeping the names out
+
+A name is what a stylesheet read at run time resolves against, and
+nothing else needs one — a generated sheet names the constants, and the
+constants are indices. A property that no dynamic sheet will name says
+so, and its name and its values' names stay out of the registry
+entirely:
+
+```ada
+package Quiet is new Adi.Widget_Properties.Enumerated
+  (Name => "quiet", Values => Quiet_State, Dynamic_Lookup => False);
+```
+
+`Quiet.Set` and the generated sheet go on working; a dynamic sheet
+spelling `[quiet="yes"]` fails to install, since the registry has no
+`quiet` to resolve against. The gate sits at the property and covers its
+values with it. The default is `True`, which is the safe one.
+
+### Setting one on a widget
+
+```ada
+App_Properties.Severity.Set (Row, App_Properties.Critical);
+App_Properties.Severity.Clear (Row);
+
+if App_Properties.Severity.Is_Set (Row) then
+   case App_Properties.Severity.Get (Row, Default => App_Properties.Ok) is
+      ...
+end if;
+```
+
+These take a `Widget_Handle`, as the rest of the widget API does. A
+change invalidates the widget's style the way `Set_State` does, and
+where no rule on the widget names a property it reaches no further than
+the version bump.
+
+Underneath, `Adi.Widget_Properties` holds a dense index per property and
+the name beside it that dynamic mode resolves against. A `Property` is
+that index; a `Property_Value` is that index and a position in the
+property's enumeration. `Adi.Widget.Set_Property`/`Clear_Property`/
+`Get_Property`/`Has_Property` take them directly, which is what
+`Find_Property` and `Find_Value` hand the runtime parser. An application
+reaches the same thing through the generic instead, and gets a distinct
+value type per property for doing so.
+
+The whole assignment is interned to one index, which the widget carries
+and the resolved-style memo keys on beside the states it already holds.
+Two widgets at the same value therefore share the style they resolve to,
+and a widget naming no property carries the empty assignment and reads
+exactly as one did before there were any.
+
+### The generated pipeline
+
+`tools/css_to_ada.py` reads the bracket as text and emits the
+instantiation and the literal the application declared, given the
+package that holds them:
+
+```bash
+python3 tools/css_to_ada.py app.css out.ads \
+    --package-name App_Styles --properties-package App_Properties
+```
+
+```ada
+--  from  .alarm[severity="critical"]
+When_Property (App_Properties.Severity.Value (App_Properties.Critical))
+
+--  from  .alarm[link]
+When_Property_Set (App_Properties.Link.Id)
+
+--  from  .alarm:not([severity="critical"])
+When_Not_Property (App_Properties.Severity.Value (App_Properties.Critical))
+```
+
+The literal is named on its own and the instantiation it is handed to
+resolves which enumeration it belongs to, so `[power="on"]` and
+`[state="on"]` reach the right one each without the CSS having to
+disambiguate. Both halves of a condition must be spelled from letters,
+digits, hyphens and underscores, since both become part of an Ada
+identifier.
+
+A name the application never declared is a compile error at the
+generated sheet. Dynamic mode answers the same question through the
+registry: a sheet naming a property or a value that is not declared
+fails to install, `Get_Last_Error` says which name, and the last good
+sheet stays on the widgets — the behaviour a sheet past the state-rule
+cap already has.
+
+`tools/xml_to_ada.py` takes the same `--properties-package` flag for an
+inline `<style>` block.
+
+---
+
 ## Supported Properties
 
 ### Box Model

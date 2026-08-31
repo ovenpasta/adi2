@@ -14,6 +14,7 @@ with Adi.Widget.Label;
 with Adi.Window;
 with Runtime_Css_Example_Styles;
 with Runtime_Css_Live_Root;
+with Runtime_Css_Properties;
 
 procedure Runtime_Css_Example is
 
@@ -69,6 +70,8 @@ begin
         Adi.Widget.Label.Create_Handle ("LIVE");
       Mode_Button : constant Adi.Widget.Button.Button_Handle :=
         Adi.Widget.Button.Create_Handle ("Mode: Dynamic CSS");
+      Severity_Button : constant Adi.Widget.Button.Button_Handle :=
+        Adi.Widget.Button.Create_Handle ("Severity: none");
 
       Left_Title : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("Card One");
@@ -148,6 +151,49 @@ begin
               ("status", Runtime_Css_Example_Styles.Status_Class_Part_Styles));
       end Register_Static_Styles;
 
+      --  Domain state, cycled while the application runs. The cards
+      --  carry no style of their own for it: the stylesheet names the
+      --  value and the cascade does the rest.
+      Severity_On  : Boolean := False;
+      Severity_Now : Runtime_Css_Properties.Severity_Level :=
+        Runtime_Css_Properties.Ok;
+
+      procedure Show_Severity (WH : Adi.Widget.Widget_Handle) is
+      begin
+         if Severity_On then
+            Runtime_Css_Properties.Severity.Set (WH, Severity_Now);
+         else
+            Runtime_Css_Properties.Severity.Clear (WH);
+         end if;
+      end Show_Severity;
+
+      procedure Cycle_Severity (WH : Adi.Widget.Widget_Handle) is
+         pragma Unreferenced (WH);
+         use type Runtime_Css_Properties.Severity_Level;
+      begin
+         if not Severity_On then
+            Severity_On := True;
+            Severity_Now := Runtime_Css_Properties.Severity_Level'First;
+         elsif Severity_Now = Runtime_Css_Properties.Severity_Level'Last then
+            Severity_On := False;
+         else
+            Severity_Now :=
+              Runtime_Css_Properties.Severity_Level'Succ (Severity_Now);
+         end if;
+
+         Show_Severity (+Card_Left);
+         Show_Severity (+Card_Right);
+         Show_Severity (+Left_Title);
+         Show_Severity (+Right_Title);
+
+         Adi.Widget.Button.Set_Text
+           (Severity_Button,
+            "Severity: "
+            & (if Severity_On
+               then Runtime_Css_Properties.Severity.CSS_Name (Severity_Now)
+               else "none"));
+      end Cycle_Severity;
+
       procedure Update_Mode_UI is
       begin
          if Adi.CSS_Source.Get_Mode (Source) = Adi.CSS_Source.Dynamic_Mode then
@@ -193,6 +239,7 @@ begin
       Adi.Widget.Add_Child (+Header, +Subtitle);
       Adi.Widget.Add_Child (+Header, +Badge);
       Adi.Widget.Add_Child (+Header, +Mode_Button);
+      Adi.Widget.Add_Child (+Header, +Severity_Button);
 
       Adi.Widget.Add_Child (+Content, +Card_Left);
       Adi.Widget.Add_Child (+Content, +Card_Right);
@@ -225,6 +272,8 @@ begin
       end if;
 
       Adi.Widget.Button.Connect_Clicked (Mode_Button, Toggle_Mode'Unrestricted_Access);
+      Adi.Widget.Button.Connect_Clicked
+        (Severity_Button, Cycle_Severity'Unrestricted_Access);
 
       Adi.CSS_Source.Bind_Root_Metadata (Source, Root_H);
       Adi.CSS_Source.Bind_Class (Source, "root", Root_H);
@@ -242,6 +291,11 @@ begin
         Tag_Name   => "button",
         Class_Name => "mode-button",
         Id_Name    => "mode-switch");
+      Adi.CSS_Source.Bind_Selector_Set (
+        Source     => Source,
+        W          => +Severity_Button,
+        Tag_Name   => "button",
+        Class_Name => "mode-button");
       Adi.CSS_Source.Bind_Class (Source, "card-title", +Left_Title);
       Adi.CSS_Source.Bind_Class (Source, "card-title", +Right_Title);
       Adi.CSS_Source.Bind_Class (Source, "card-body", +Left_Body);

@@ -8,6 +8,7 @@ with Adi.CSS_Source;
 with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
+with Runtime_Css_Properties;
 
 package Runtime_Css_Example_Styles is
 
@@ -81,6 +82,34 @@ package Runtime_Css_Example_Styles is
       Border_Color => Set (Border_Color (RGBA (96, 165, 250, 0.9))),
       others => <>);
 
+   --  Style for class 'card-left' when [severity="ok"]
+   function Card_Left_Class_Prop_Severity_Ok_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGBA (6, 78, 59, 0.92)),
+      Border_Color => Set (Border_Color (RGBA (34, 197, 94, 0.9))),
+      others => <>);
+
+   --  Style for class 'card-left' when [severity="warning"]
+   function Card_Left_Class_Prop_Severity_Warning_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGBA (87, 66, 6, 0.92)),
+      Border_Color => Set (Border_Color (RGBA (234, 179, 8, 0.9))),
+      others => <>);
+
+   --  Style for class 'card-left' when [severity="critical"]
+   function Card_Left_Class_Prop_Severity_Critical_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGBA (94, 12, 12, 0.92)),
+      Border_Color => Set (Border_Color (RGBA (239, 68, 68, 0.9))),
+      others => <>);
+
+   --  Style for class 'card-left' when :not([severity])
+   function Card_Left_Class_Not_Prop_Severity_Style return Style_Rules is
+     (
+      Border_Style => Set (Border_Style (Dashed)),
+      Border_Radius => Set (Radius (Px (4.0))),
+      others => <>);
+
    --  Base style for class 'card-right'
    function Card_Right_Class_Base_Style return Style_Rules is
      (
@@ -104,6 +133,34 @@ package Runtime_Css_Example_Styles is
       Background_Color => Set_Bg (RGBA (22, 78, 99, 0.92)),
       Box_Shadow => Set (Shadow (Px (0.0), Px (16.0), Px (36.0), Px (0.0), RGBA (15, 23, 42, 0.75))),
       Border_Color => Set (Border_Color (RGBA (45, 212, 191, 0.9))),
+      others => <>);
+
+   --  Style for class 'card-right' when [severity="ok"]
+   function Card_Right_Class_Prop_Severity_Ok_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGBA (6, 78, 59, 0.92)),
+      Border_Color => Set (Border_Color (RGBA (34, 197, 94, 0.9))),
+      others => <>);
+
+   --  Style for class 'card-right' when [severity="warning"]
+   function Card_Right_Class_Prop_Severity_Warning_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGBA (87, 66, 6, 0.92)),
+      Border_Color => Set (Border_Color (RGBA (234, 179, 8, 0.9))),
+      others => <>);
+
+   --  Style for class 'card-right' when [severity="critical"]
+   function Card_Right_Class_Prop_Severity_Critical_Style return Style_Rules is
+     (
+      Background_Color => Set_Bg (RGBA (94, 12, 12, 0.92)),
+      Border_Color => Set (Border_Color (RGBA (239, 68, 68, 0.9))),
+      others => <>);
+
+   --  Style for class 'card-right' when :not([severity])
+   function Card_Right_Class_Not_Prop_Severity_Style return Style_Rules is
+     (
+      Border_Style => Set (Border_Style (Dashed)),
+      Border_Radius => Set (Radius (Px (4.0))),
       others => <>);
 
    --  Base style for class 'title'
@@ -225,6 +282,12 @@ package Runtime_Css_Example_Styles is
       Font_Weight => Set (Weight_Bold),
       others => <>);
 
+   --  Style for class 'card-title'::label when [severity="critical"]
+   function Card_Title_Class_Label_Prop_Severity_Critical_Style return Style_Rules is
+     (
+      Color => Set (RGB (254, 202, 202)),
+      others => <>);
+
    --  Base style for class 'card-body'::label
    function Card_Body_Class_Label_Base_Style return Style_Rules is
      (
@@ -291,6 +354,10 @@ package Runtime_Css_Example_Styles is
    function Card_Left_Class_Widget return Widget_Style is
      (From (Card_Left_Class_Base_Style)
      .On (When_State (State_Hovered), Card_Left_Class_Widget_Hovered_Style)
+     .On (When_Property (Runtime_Css_Properties.Severity.Value (Runtime_Css_Properties.Ok)), Card_Left_Class_Prop_Severity_Ok_Style)
+     .On (When_Property (Runtime_Css_Properties.Severity.Value (Runtime_Css_Properties.Warning)), Card_Left_Class_Prop_Severity_Warning_Style)
+     .On (When_Property (Runtime_Css_Properties.Severity.Value (Runtime_Css_Properties.Critical)), Card_Left_Class_Prop_Severity_Critical_Style)
+     .On (When_Not_Property_Set (Runtime_Css_Properties.Severity.Id), Card_Left_Class_Not_Prop_Severity_Style)
      .Build);
 
    --  Part styles bundle for class 'card-left'
@@ -304,6 +371,10 @@ package Runtime_Css_Example_Styles is
    function Card_Right_Class_Widget return Widget_Style is
      (From (Card_Right_Class_Base_Style)
      .On (When_State (State_Hovered), Card_Right_Class_Widget_Hovered_Style)
+     .On (When_Property (Runtime_Css_Properties.Severity.Value (Runtime_Css_Properties.Ok)), Card_Right_Class_Prop_Severity_Ok_Style)
+     .On (When_Property (Runtime_Css_Properties.Severity.Value (Runtime_Css_Properties.Warning)), Card_Right_Class_Prop_Severity_Warning_Style)
+     .On (When_Property (Runtime_Css_Properties.Severity.Value (Runtime_Css_Properties.Critical)), Card_Right_Class_Prop_Severity_Critical_Style)
+     .On (When_Not_Property_Set (Runtime_Css_Properties.Severity.Id), Card_Right_Class_Not_Prop_Severity_Style)
      .Build);
 
    --  Part styles bundle for class 'card-right'
@@ -419,6 +490,7 @@ package Runtime_Css_Example_Styles is
    --  Complete widget style for class 'card-title'::label
    function Card_Title_Class_Label_Widget return Widget_Style is
      (From (Card_Title_Class_Label_Base_Style)
+     .On (When_Property (Runtime_Css_Properties.Severity.Value (Runtime_Css_Properties.Critical)), Card_Title_Class_Label_Prop_Severity_Critical_Style)
      .Build);
 
    --  Part styles bundle for class 'card-title'

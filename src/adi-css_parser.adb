@@ -23,6 +23,7 @@ with Adi.Style_Merge;
 with Adi.Widget;        use Adi.Widget;
 with Adi.Widget.Window_Bridge;
 pragma Elaborate_All (Adi.Widget.Window_Bridge);
+with Adi.Widget_Properties;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
 package body Adi.CSS_Parser is
@@ -1938,7 +1939,226 @@ package body Adi.CSS_Parser is
       end loop;
    end Parse_Pseudo_List;
 
-   function Parse_Selector (Input : String; Out_Sel : out Parsed_Selector) return Boolean is
+   --  [severity] and [severity="critical"], taken off the selector text
+   --  ahead of the colon split, the way :not() is handled above. A name
+   --  the application never declared is reported rather than resolved to
+   --  a selector that matches nothing: tools/css_to_ada.py answers the
+   --  same question as a compile error, and the two pipelines agree.
+   function Take_Property_Conditions
+     (Input      : String;
+      Remainder  : out Unbounded_String;
+      Conditions : out Adi.Widget_Properties.Property_Conditions;
+      Out_Error  : out Unbounded_String) return Boolean
+   is
+      use Adi.Widget_Properties;
+      I : Positive := Input'First;
+
+      function Unquoted (Text : String) return String is
+         V : constant String := Trimmed (Text);
+      begin
+         if V'Length >= 2
+           and then (V (V'First) = '"' or else V (V'First) = ''')
+           and then V (V'Last) = V (V'First)
+         then
+            return V (V'First + 1 .. V'Last - 1);
+         end if;
+         return V;
+      end Unquoted;
+
+      --  Both halves become an Ada identifier in the generated sheet, so
+      --  both are held to what one can be spelled from. The generator
+      --  holds the same shape, or a selector one pipeline accepted would
+      --  be refused by the other.
+      function Is_Name (Text : String) return Boolean is
+        (Text'Length > 0
+         and then Text (Text'First) in 'a' .. 'z' | 'A' .. 'Z'
+         and then (for all C of Text =>
+                     C in 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '-' | '_'));
+
+      function Is_Value (Text : String) return Boolean is
+        (Text'Length > 0
+         and then Text (Text'First) in 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9'
+         and then (for all C of Text =>
+                     C in 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '-' | '_'));
+
+      function Take_One (Body_Text : String; Negated : Boolean)
+        return Boolean
+      is
+         Eq : constant Natural := Fix.Index (Body_Text, "=");
+      begin
+         if Eq = 0 then
+            declare
+               Name : constant String := Trimmed (Body_Text);
+               P    : Property;
+            begin
+               if not Is_Name (Name) then
+                  Out_Error := To_Unbounded_String
+                    ("'" & Name & "' is no widget property name");
+                  return False;
+               end if;
+
+               P := Find_Property (Name);
+               if P = No_Property then
+                  Out_Error := To_Unbounded_String
+                    ("Unknown widget property '" & Name & "'");
+                  return False;
+               end if;
+               Conditions := Both
+                 (Conditions,
+                  (if Negated then Conditions_Excluding (P)
+                   else Conditions_On (P)));
+               return True;
+            end;
+         end if;
+
+         --  ~=, |=, ^=, $=, *= match parts of a value, and < and >
+         --  order it. The grammar here is equality and existence.
+         if Eq > Body_Text'First
+           and then Body_Text (Eq - 1) in '~' | '|' | '^' | '$' | '*'
+                                        | '<' | '>' | '!'
+         then
+            Out_Error := To_Unbounded_String
+              ("Unsupported attribute operator in '[" & Body_Text & "]'");
+            return False;
+         end if;
+
+         declare
+            Name : constant String := Trimmed (Body_Text (Body_Text'First .. Eq - 1));
+            Text : constant String := Unquoted (Body_Text (Eq + 1 .. Body_Text'Last));
+            P    : Property;
+            V    : Property_Value;
+         begin
+            if not Is_Name (Name) then
+               Out_Error := To_Unbounded_String
+                 ("'" & Name & "' is no widget property name");
+               return False;
+            end if;
+
+            if not Is_Value (Text) then
+               Out_Error := To_Unbounded_String
+                 ("'" & Text & "' is no widget property value");
+               return False;
+            end if;
+
+            P := Find_Property (Name);
+            if P = No_Property then
+               Out_Error := To_Unbounded_String
+                 ("Unknown widget property '" & Name & "'");
+               return False;
+            end if;
+
+            V := Find_Value (P, Text);
+            if V = No_Value then
+               Out_Error := To_Unbounded_String
+                 ("Unknown value '" & Text & "' for widget property '"
+                  & Name & "'");
+               return False;
+            end if;
+
+            Conditions := Both
+              (Conditions,
+               (if Negated then Conditions_Excluding (V)
+                else Conditions_On (V)));
+            return True;
+         end;
+      end Take_One;
+
+      --  The end of a bracket group starting at Open, or 0 when it has
+      --  none. A quoted ']' is part of the value rather than the close.
+      function Bracket_End (Open : Positive) return Natural is
+         J     : Natural := Open + 1;
+         Quote : Character := ' ';
+      begin
+         while J <= Input'Last loop
+            if Quote /= ' ' then
+               if Input (J) = Quote then
+                  Quote := ' ';
+               end if;
+            elsif Input (J) = '"' or else Input (J) = ''' then
+               Quote := Input (J);
+            elsif Input (J) = ']' then
+               return J;
+            end if;
+            J := J + 1;
+         end loop;
+         return 0;
+      end Bracket_End;
+
+      --  Whether a :not( opens at I over a bracket group, which is the
+      --  only shape a property condition takes inside it. Any other
+      --  :not() is left for Parse_Pseudo_List.
+      function Negation_At (I : Positive) return Boolean is
+         J : Natural := I + 5;
+      begin
+         if I + 4 > Input'Last
+           or else Lower (Input (I .. I + 4)) /= ":not("
+         then
+            return False;
+         end if;
+
+         while J <= Input'Last and then Input (J) = ' ' loop
+            J := J + 1;
+         end loop;
+         return J <= Input'Last and then Input (J) = '[';
+      end Negation_At;
+
+   begin
+      Remainder := Null_Unbounded_String;
+      Conditions := No_Conditions;
+      Out_Error := Null_Unbounded_String;
+
+      while I <= Input'Last loop
+         if Input (I) = '[' or else Negation_At (I) then
+            declare
+               Negated : constant Boolean := Input (I) /= '[';
+               Open    : constant Positive :=
+                 (if Negated
+                  then Fix.Index (Input (I .. Input'Last), "[")
+                  else I);
+               Close   : constant Natural := Bracket_End (Open);
+               Stop    : Natural := Close;
+            begin
+               if Close = 0 then
+                  Out_Error := To_Unbounded_String
+                    ("Unclosed attribute selector in '" & Input & "'");
+                  return False;
+               end if;
+
+               if Negated then
+                  Stop := Fix.Index (Input (Close .. Input'Last), ")");
+                  if Stop = 0 then
+                     Out_Error := To_Unbounded_String
+                       ("Unclosed :not() in '" & Input & "'");
+                     return False;
+                  end if;
+               end if;
+
+               if Close = Open + 1
+                 or else not Take_One (Input (Open + 1 .. Close - 1), Negated)
+               then
+                  if Length (Out_Error) = 0 then
+                     Out_Error := To_Unbounded_String
+                       ("Empty attribute selector in '" & Input & "'");
+                  end if;
+                  return False;
+               end if;
+
+               I := Stop + 1;
+            end;
+         else
+            Append (Remainder, Input (I));
+            I := I + 1;
+         end if;
+      end loop;
+
+      return True;
+   end Take_Property_Conditions;
+
+   function Parse_Selector (Input     : String;
+                            Out_Sel   : out Parsed_Selector;
+                            Out_Error : out Unbounded_String) return Boolean is
+      Conditions : Adi.Widget_Properties.Property_Conditions;
+      Stripped   : Unbounded_String;
       Raw : Unbounded_String := To_Unbounded_String (Trimmed (Input));
       Base : Unbounded_String := Null_Unbounded_String;
       Part : Unbounded_String := Null_Unbounded_String;
@@ -1947,8 +2167,24 @@ package body Adi.CSS_Parser is
       Sep : Natural;
       Colon : Natural;
       Part_Scope : Boolean := False;
+      use type Adi.Widget_Properties.Property_Conditions;
    begin
       Out_Sel := (others => <>);
+      Out_Error := Null_Unbounded_String;
+
+      if not Take_Property_Conditions
+               (To_String (Raw), Stripped, Conditions, Out_Error)
+      then
+         return False;
+      end if;
+
+      Raw := To_Unbounded_String (Trimmed (To_String (Stripped)));
+      Out_Sel.Selector.Properties := Conditions;
+      --  A property condition makes the block a state rule, the way a
+      --  pseudo-class does: it is one selection among the rules a
+      --  widget carries rather than the style it starts from.
+      Out_Sel.Has_State :=
+        Conditions /= Adi.Widget_Properties.No_Conditions;
 
       if Length (Raw) = 0 then
          return False;
@@ -3668,9 +3904,19 @@ package body Adi.CSS_Parser is
                            then Trimmed (Selector_Block (Sel_Pos .. Selector_Block'Last))
                            else Trimmed (Selector_Block (Sel_Pos .. Comma - 1)));
                         PS : Parsed_Selector;
+                        Sel_Error : Unbounded_String;
                         Rule : Parsed_Rule := (others => <>);
                      begin
-                        if Parse_Selector (Sel_Text, PS) then
+                        if not Parse_Selector (Sel_Text, PS, Sel_Error) then
+                           --  A selector the parser does not recognise is
+                           --  passed over; one that names a property the
+                           --  application never declared takes the sheet
+                           --  with it, so the last good one stands.
+                           if Length (Sel_Error) > 0 then
+                              Out_Error := Sel_Error;
+                              return False;
+                           end if;
+                        else
                            Rule.Sel := PS;
 
                            declare

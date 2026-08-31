@@ -34,6 +34,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | Signals and deferred dispatch | `docs/signals.md` |
 | Internationalization (i18n, translations, .po files, plural forms) | `docs/i18n.md` |
 | Program settings (Setting_Value, Settings_Store, JSON backend) | `docs/settings.md` |
+| Widget properties as CSS selectors (`[severity="critical"]`) | `docs/css_styling.md` (Widget Properties) |
 | WebAssembly port (build, toolchain, JSPI, example status) | `wasm/README.md`, `wasm/PORT_REPORT.md`, `wasm/FINDINGS.md` |
 | Finalization ordering issue (Window vs. widget tagged-type packages) and structural fix options | `docs/finalization_ordering.md` |
 | Ada 2022 Reference Manual | `rm-22-txt/RM-TOC.TXT` (chapters: `rm-22-txt/RM-*.TXT`) — local-only, gitignored; if absent, fetch the plain-text RM into `rm-22-txt/` |
@@ -90,6 +91,7 @@ alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/texture_cache_test
 ./tests/bin/render_textures_test
 ./tests/bin/os_paths_test
+./tests/bin/widget_property_test
 ./tests/bin/resolved_store_test
 
 # Check every example's widget tree against tests/goldens/trees/
@@ -113,6 +115,11 @@ For direct gprbuild (no Alire), see `docs/gprbuild_without_alire.md` and `docs/b
 
 ```bash
 python3 tools/css_to_ada.py input.css output.ads --package-name=My_Styles
+
+# A sheet selecting on widget properties ([severity="critical"]) also names
+# the Ada package that declares them.
+python3 tools/css_to_ada.py input.css output.ads --package-name=My_Styles \
+    --properties-package=App_Properties
 ```
 
 Writes a companion `output.adb` beside the spec, holding the stylesheet's
@@ -169,6 +176,7 @@ Incremental build for examples: `tools/generate_example_bundles.sh`. Full refere
 
 - Selectors: `.class`, `#id`, `tag`; part selectors `::main`, `::label`, `::icon`, `::cursor`, `::selected`, `::indicator`, `::scroll`, `::knob`, `::items`
 - Pseudo-classes: `:hover`, `:pressed`/`:active`, `:focus`, `:disabled`, `:checked`/`:selected`, `:not()`
+- User properties: `[severity]` and `[severity="critical"]`, on a vocabulary the application declares at elaboration through `Adi.Widget_Properties`
 - Pseudo placement: before `::part` = widget-scoped; after `::part` = part-scoped
 - Runtime: `Adi.CSS_Source` (Dynamic_Mode for dev live-reload, Static_Mode for release)
 - Full property list and details in `docs/css_styling.md`

@@ -47,7 +47,14 @@
 - Disabled is **inherited**: `Is_Disabled` walks the parent chain, so disabling a container disables all descendants for both interaction and styling
 - Style builder pattern (fluent API)
 - Widget-state vs part-state scopes (`When_State`/`When_Not` vs `When_Part_State`/`When_Part_Not`)
+- Domain state through `When_Property`/`When_Property_Set` and their `When_Not_*` counterparts, from `[severity="critical"]`, `[severity]` and `:not(...)`
 - `With_Transition(Duration, [Properties], [Easing])`
+
+**Adi.Widget_Properties** (`adi-widget_properties.ads`): Domain state a stylesheet selects on.
+- An application declares properties and values at library level, where elaboration assigns each a dense index. Registration is elaboration-only, so the registry is a fixed set of arrays and a count and allocates nothing
+- A widget's assignment and a selector's conditions are both sorted sets of (property, value) index pairs, interned into one store: a widget carries a 2-byte index, and `State_Selector` another
+- Interning is canonical, so an index comparison is a set comparison, `Resolved_Cache_Key` keys on the assignment, and two widgets at the same value share the style they resolve to
+- The runtime parser resolves a bracket's names against the registry while it builds the selector; a name never declared stops the sheet, where `tools/css_to_ada.py` names the Ada constant and the compiler stops the build
 
 - No built-in visual theme — apps provide explicit styles
 

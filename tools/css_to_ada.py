@@ -476,6 +476,31 @@ class ParsedLinearGradient:
 
 
 @dataclass
+class PropertyCondition:
+    """A [severity] or [severity="critical"] condition on a selector.
+
+    `value` of None is the existence form: the widget names the property,
+    whatever it is set to. `negated` is what :not() around the bracket
+    spells, which is the only way CSS says "anything but".
+    """
+    name: str
+    value: Optional[str] = None
+    negated: bool = False
+
+    def key(self) -> str:
+        prefix = "Not_Prop" if self.negated else "Prop"
+        return f"{prefix}_{self.name}" if self.value is None \
+            else f"{prefix}_{self.name}_{self.value}"
+
+    def variable_part(self) -> str:
+        prefix = "Not_Prop" if self.negated else "Prop"
+        base = to_ada_identifier(self.name)
+        if self.value is None:
+            return f"{prefix}_{base}"
+        return f"{prefix}_{base}_{to_ada_identifier(self.value)}"
+
+
+@dataclass
 class ParsedSelector:
     name: str
     selector_type: str = "class"  # "class", "id", "tag"
@@ -484,14 +509,16 @@ class ParsedSelector:
     widget_negated_states: list[WidgetState] = field(default_factory=list)
     part_states: list[WidgetState] = field(default_factory=list)
     part_negated_states: list[WidgetState] = field(default_factory=list)
-    
+    property_conditions: list[PropertyCondition] = field(default_factory=list)
+
     def get_unique_key(self) -> str:
         """Generate unique key for this selector's state combination"""
         parts = (
             sorted([f"Widget_{s.name}" for s in self.widget_states]) +
             sorted([f"Widget_Not_{s.name}" for s in self.widget_negated_states]) +
             sorted([f"Part_{s.name}" for s in self.part_states]) +
-            sorted([f"Part_Not_{s.name}" for s in self.part_negated_states])
+            sorted([f"Part_Not_{s.name}" for s in self.part_negated_states]) +
+            sorted([c.key() for c in self.property_conditions])
         )
         return "_".join(parts)
 
@@ -550,6 +577,10 @@ MAX_STYLE_RULES = 16
 
 class StyleRuleLimitError(Exception):
     """A selector carries more state rules than a Widget_Style holds."""
+
+
+class PropertyPackageMissing(Exception):
+    """A stylesheet selects on widget properties and named no package for them."""
 
 
 def parse_length(value: str) -> Optional[ParsedLength]:
@@ -874,6 +905,125 @@ def parse_pseudo_classes(
             )
 
 
+#  Operators that match part of a value, or order it. The grammar is
+#  equality and existence; Adi.CSS_Parser rejects the rest the same way.
+ATTRIBUTE_OPERATOR_CHARS = "~|^$*<>!"
+
+#  Both halves become an Ada identifier in the generated sheet, so both
+#  are held to what one can be spelled from. Adi.CSS_Parser holds the
+#  same shape, or a selector the runtime accepted would fail to compile.
+ATTRIBUTE_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")
+ATTRIBUTE_VALUE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
+
+
+def take_property_conditions(
+    selector_str: str,
+    raw_selector: str,
+) -> tuple[str, list[PropertyCondition], list[CssDiagnostic]]:
+    """Strip [name] and [name="value"] off a selector, ahead of the colon split.
+
+    Mirrors Take_Property_Conditions in src/adi-css_parser.adb, including
+    which shapes are refused: the two pipelines resolve the same file and
+    have to agree about what it means.
+    """
+    conditions: list[PropertyCondition] = []
+    diagnostics: list[CssDiagnostic] = []
+    remainder: list[str] = []
+    i = 0
+    n = len(selector_str)
+
+    def refuse(message: str) -> tuple[str, list[PropertyCondition], list[CssDiagnostic]]:
+        diagnostics.append(
+            CssDiagnostic(
+                code="attribute-syntax", message=message, selector=raw_selector
+            )
+        )
+        return selector_str, [], diagnostics
+
+    def bracket_end(open_at: int) -> int:
+        """Index of the ']' closing the group at open_at, or -1."""
+        j = open_at + 1
+        quote = ""
+        while j < n:
+            if quote:
+                if selector_str[j] == quote:
+                    quote = ""
+            elif selector_str[j] in "\"'":
+                quote = selector_str[j]
+            elif selector_str[j] == "]":
+                return j
+            j += 1
+        return -1
+
+    def negation_at(at: int) -> bool:
+        """Whether a :not( opens here over a bracket group.
+
+        Any other :not() is left for parse_pseudo_classes.
+        """
+        if selector_str[at:at + 5].lower() != ":not(":
+            return False
+        rest = selector_str[at + 5:].lstrip()
+        return rest.startswith("[")
+
+    def take_one(body: str, negated: bool) -> bool:
+        eq = body.find("=")
+        if eq < 0:
+            name = body.strip().lower()
+            if not ATTRIBUTE_NAME_RE.match(name):
+                refuse(f"'{name}' is no widget property name in '{raw_selector}'")
+                return False
+            conditions.append(PropertyCondition(name=name, negated=negated))
+            return True
+
+        if eq > 0 and body[eq - 1] in ATTRIBUTE_OPERATOR_CHARS:
+            refuse(f"Unsupported attribute operator in '[{body}]'")
+            return False
+        name = body[:eq].strip().lower()
+        value = body[eq + 1:].strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        value = value.strip().lower()
+        if not ATTRIBUTE_NAME_RE.match(name):
+            refuse(f"'{name}' is no widget property name in '{raw_selector}'")
+            return False
+        if not ATTRIBUTE_VALUE_RE.match(value):
+            refuse(f"'{value}' is no widget property value in '{raw_selector}'")
+            return False
+        conditions.append(
+            PropertyCondition(name=name, value=value, negated=negated)
+        )
+        return True
+
+    while i < n:
+        negated = selector_str[i] != "[" and negation_at(i)
+        if selector_str[i] != "[" and not negated:
+            remainder.append(selector_str[i])
+            i += 1
+            continue
+
+        open_at = selector_str.index("[", i) if negated else i
+        close = bracket_end(open_at)
+        if close < 0:
+            return refuse(f"Unclosed attribute selector in '{raw_selector}'")
+
+        stop = close
+        if negated:
+            stop = selector_str.find(")", close)
+            if stop < 0:
+                return refuse(f"Unclosed :not() in '{raw_selector}'")
+
+        body = selector_str[open_at + 1:close].strip()
+        if not body:
+            return refuse(f"Empty attribute selector in '{raw_selector}'")
+
+        if not take_one(body, negated):
+            return selector_str, [], diagnostics
+
+        i = stop + 1
+
+    return "".join(remainder).strip(), conditions, diagnostics
+
+
 def parse_selector_with_diagnostics(
     selector_str: str,
 ) -> tuple[Optional[ParsedSelector], list[CssDiagnostic]]:
@@ -881,6 +1031,13 @@ def parse_selector_with_diagnostics(
     diagnostics: list[CssDiagnostic] = []
     selector_str = selector_str.strip()
     raw_selector = selector_str
+
+    selector_str, property_conditions, attr_diagnostics = take_property_conditions(
+        selector_str, raw_selector
+    )
+    diagnostics.extend(attr_diagnostics)
+    if attr_diagnostics:
+        return None, diagnostics
 
     selector_type = "tag"
     if selector_str.startswith('.'):
@@ -973,6 +1130,7 @@ def parse_selector_with_diagnostics(
         widget_negated_states=widget_negated_states,
         part_states=part_states,
         part_negated_states=part_negated_states,
+        property_conditions=property_conditions,
     ), diagnostics
 
 
@@ -2273,7 +2431,8 @@ def group_rules_by_widget(rules: list[ParsedRule]) -> dict[str, WidgetStyleGroup
         if (not rule.selector.widget_states and
             not rule.selector.widget_negated_states and
             not rule.selector.part_states and
-            not rule.selector.part_negated_states):
+            not rule.selector.part_negated_states and
+            not rule.selector.property_conditions):
             if part_group.base_rule is None:
                 part_group.base_rule = rule
             else:
@@ -3399,7 +3558,9 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
     return fields
 
 
-def generate_selector_ada(selector: ParsedSelector) -> str:
+def generate_selector_ada(
+    selector: ParsedSelector, properties_package: Optional[str] = None
+) -> str:
     """Generate Ada selector expression"""
     parts = []
     
@@ -3414,7 +3575,32 @@ def generate_selector_ada(selector: ParsedSelector) -> str:
 
     for state in selector.part_negated_states:
         parts.append(f"When_Part_Not ({state.value})")
-    
+
+    for condition in selector.property_conditions:
+        if not properties_package:
+            raise PropertyPackageMissing(
+                "this stylesheet selects on widget properties "
+                f"('[{condition.name}]'); name the package that declares "
+                "them with --properties-package"
+            )
+        #  The instantiation and the enumeration literal are named
+        #  rather than the text compared, so a property or a value the
+        #  application never declared is a compile error at the
+        #  generated sheet. An enumeration literal resolves against the
+        #  parameter type, so two properties sharing a value name --
+        #  [power="on"] and [state="on"] -- reach the right one each.
+        instance = f"{properties_package}.{to_ada_identifier(condition.name)}"
+        if condition.value is None:
+            call = "When_Not_Property_Set" if condition.negated \
+                else "When_Property_Set"
+            parts.append(f"{call} ({instance}.Id)")
+        else:
+            call = "When_Not_Property" if condition.negated else "When_Property"
+            literal = to_ada_identifier(condition.value)
+            parts.append(
+                f"{call} ({instance}.Value ({properties_package}.{literal}))"
+            )
+
     if not parts:
         return "Any_State"
     
@@ -3436,8 +3622,23 @@ def generate_state_description(selector: ParsedSelector) -> str:
 
     for state in selector.part_negated_states:
         parts.append(f"part not {state.value}")
-    
+
+    for condition in selector.property_conditions:
+        text = f"[{condition.name}]" if condition.value is None \
+            else f'[{condition.name}="{condition.value}"]'
+        parts.append(f":not({text})" if condition.negated else text)
+
     return ", ".join(parts) if parts else "base"
+
+
+def stylesheet_names_properties(groups: dict[str, "WidgetStyleGroup"]) -> bool:
+    """Whether any rule in these groups carries a property condition."""
+    return any(
+        rule.selector.property_conditions
+        for group in groups.values()
+        for part_group in group.parts.values()
+        for rule in part_group.state_rules
+    )
 
 
 def part_label(part_kind: str) -> str:
@@ -3472,7 +3673,8 @@ def generate_variable_name(name_prefix: str, selector: ParsedSelector) -> str:
     if (not selector.widget_states and
         not selector.widget_negated_states and
         not selector.part_states and
-        not selector.part_negated_states):
+        not selector.part_negated_states and
+        not selector.property_conditions):
         return f"{name_prefix}_Base_Style"
     
     parts = []
@@ -3492,6 +3694,9 @@ def generate_variable_name(name_prefix: str, selector: ParsedSelector) -> str:
     for state in selector.part_negated_states:
         state_name = state.value.replace("State_", "")
         parts.append(f"Part_Not_{state_name}")
+
+    for condition in selector.property_conditions:
+        parts.append(condition.variable_part())
     
     suffix = "_".join(parts)
     return f"{name_prefix}_{suffix}_Style"
@@ -3542,7 +3747,9 @@ def infer_typed_custom_property(name: str, value: str) -> Optional[TypedCustomPr
 
 
 def generate_style_declarations(groups: dict[str, WidgetStyleGroup],
-                                indent: str = "   ") -> list[str]:
+                                indent: str = "   ",
+                                properties_package: Optional[str] = None
+                                ) -> list[str]:
     """Generate Ada style constant declarations without package wrapper.
 
     Returns a list of Ada source lines declaring Style_Rules constants,
@@ -3625,7 +3832,8 @@ def generate_style_declarations(groups: dict[str, WidgetStyleGroup],
 
             for rule in part_group.state_rules:
                 var_name = rule._var_name  # type: ignore
-                selector_ada = generate_selector_ada(rule.selector)
+                selector_ada = generate_selector_ada(
+                    rule.selector, properties_package)
                 lines.append(f"{indent}  .On ({selector_ada}, {var_name})")
 
             lines.append(f"{indent}  .Build;")
@@ -3722,6 +3930,7 @@ def generate_ada_package(
     stylesheet_or_groups,
     groups_or_package_name,
     package_name: Optional[str] = None,
+    properties_package: Optional[str] = None,
 ) -> str:
     """Generate complete Ada package"""
     if package_name is None:
@@ -3749,6 +3958,10 @@ def generate_ada_package(
         f"with Adi.CSS_Styles;   use Adi.CSS_Styles;",
         f"with Adi.Widget;       use Adi.Widget;",
         f"with Adi.Widget_Styles; use Adi.Widget_Styles;",
+    ]
+    if properties_package and stylesheet_names_properties(groups):
+        lines.append(f"with {properties_package};")
+    lines += [
         f"",
         f"package {package_name} is",
         f"",
@@ -3876,7 +4089,8 @@ def generate_ada_package(
 
             for rule in part_group.state_rules:
                 var_name = rule._var_name  # type: ignore
-                selector_ada = generate_selector_ada(rule.selector)
+                selector_ada = generate_selector_ada(
+                    rule.selector, properties_package)
                 lines.append(f"     .On ({selector_ada}, {var_name})")
 
             lines.append(f"     .Build);")
@@ -3984,6 +4198,18 @@ def main():
         action="store_true",
         help="Fail if CSS contains unsupported selectors/properties or invalid values",
     )
+    parser.add_argument(
+        "--properties-package",
+        default=None,
+        help=(
+            "Ada package declaring the widget properties this stylesheet "
+            "selects on, e.g. App_Properties. A [severity=\"critical\"] "
+            "condition is emitted as "
+            "App_Properties.Severity.Value (App_Properties.Critical), so a "
+            "name the application never declared is a compile error here "
+            "rather than a selector that matches nothing."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -4006,6 +4232,15 @@ def main():
     rules = stylesheet.rules
     for diag in diagnostics:
         print(f"warning: {format_diagnostic(diag)}", file=sys.stderr)
+
+    #  Adi.CSS_Parser refuses the whole sheet over one of these, so a
+    #  generated build that dropped the rule and carried on would leave
+    #  the two pipelines resolving the same file differently.
+    attribute_errors = [d for d in diagnostics if d.code == "attribute-syntax"]
+    if attribute_errors:
+        for diag in attribute_errors:
+            print(f"Error: {format_diagnostic(diag)}", file=sys.stderr)
+        sys.exit(1)
 
     if args.strict and diagnostics:
         print(
@@ -4048,7 +4283,13 @@ def main():
                 )
     
     # Generate Ada
-    ada_code = generate_ada_package(stylesheet, groups, args.package_name)
+    try:
+        ada_code = generate_ada_package(
+            stylesheet, groups, args.package_name, args.properties_package
+        )
+    except PropertyPackageMissing as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
     try:
         with open(args.output, 'w') as f:
             f.write(ada_code)

@@ -1,0 +1,11 @@
+/*  A property declared with Dynamic_Lookup => False. The generated
+    sheet styles by it; the same text read at run time cannot, the
+    registry holding no name to resolve 'quiet' against. */
+
+.hush {
+  opacity: 1.0;
+}
+
+.hush[quiet="yes"] {
+  opacity: 0.25;
+}

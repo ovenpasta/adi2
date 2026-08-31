@@ -3,7 +3,7 @@
   "child_count": 3,
   "children": [
    {
-    "child_count": 4,
+    "child_count": 5,
     "children": [
      {
       "child_count": 0,
@@ -68,11 +68,27 @@
       "w": 440.0,
       "x": 72.0,
       "y": 430.0
+     },
+     {
+      "child_count": 0,
+      "clickable": true,
+      "focusable": true,
+      "h": 72.0,
+      "id": 10,
+      "items_count": 3,
+      "path": "1.5",
+      "states": [],
+      "text": "Severity: none",
+      "type": "adi.widget.button.button_widget",
+      "visible": true,
+      "w": 440.0,
+      "x": 72.0,
+      "y": 578.0
      }
     ],
     "clickable": false,
     "focusable": false,
-    "h": 510.0,
+    "h": 658.0,
     "id": 2,
     "items_count": 2,
     "path": "1",
@@ -94,7 +110,7 @@
         "clickable": false,
         "focusable": false,
         "h": 60.0,
-        "id": 10,
+        "id": 11,
         "items_count": 3,
         "path": "2.1.1",
         "states": [],
@@ -103,14 +119,14 @@
         "visible": true,
         "w": 552.22,
         "x": 80.0,
-        "y": 614.0
+        "y": 762.0
        },
        {
         "child_count": 0,
         "clickable": false,
         "focusable": false,
         "h": 56.0,
-        "id": 11,
+        "id": 12,
         "items_count": 3,
         "path": "2.1.2",
         "states": [],
@@ -119,7 +135,7 @@
         "visible": true,
         "w": 552.22,
         "x": 80.0,
-        "y": 694.0
+        "y": 842.0
        }
       ],
       "clickable": false,
@@ -133,7 +149,7 @@
       "visible": true,
       "w": 652.22,
       "x": 30.0,
-      "y": 564.0
+      "y": 712.0
      },
      {
       "child_count": 2,
@@ -143,7 +159,7 @@
         "clickable": false,
         "focusable": false,
         "h": 60.0,
-        "id": 12,
+        "id": 13,
         "items_count": 3,
         "path": "2.2.1",
         "states": [],
@@ -152,14 +168,14 @@
         "visible": true,
         "w": 451.78,
         "x": 812.22,
-        "y": 614.0
+        "y": 762.0
        },
        {
         "child_count": 0,
         "clickable": false,
         "focusable": false,
         "h": 84.0,
-        "id": 13,
+        "id": 14,
         "items_count": 3,
         "path": "2.2.2",
         "states": [],
@@ -168,7 +184,7 @@
         "visible": true,
         "w": 451.78,
         "x": 812.22,
-        "y": 694.0
+        "y": 842.0
        }
       ],
       "clickable": false,
@@ -182,7 +198,7 @@
       "visible": true,
       "w": 551.78,
       "x": 762.22,
-      "y": 564.0
+      "y": 712.0
      }
     ],
     "clickable": false,
@@ -196,14 +212,14 @@
     "visible": true,
     "w": 1284.0,
     "x": 30.0,
-    "y": 564.0
+    "y": 712.0
    },
    {
     "child_count": 0,
     "clickable": false,
     "focusable": false,
     "h": 72.0,
-    "id": 14,
+    "id": 15,
     "items_count": 3,
     "path": "3",
     "states": [],
@@ -212,7 +228,7 @@
     "visible": true,
     "w": 1284.0,
     "x": 30.0,
-    "y": 852.0
+    "y": 1000.0
    }
   ],
   "clickable": false,

@@ -31,11 +31,13 @@ package body Adi.Widget.Testing is
      (Part_Handle, Main_Handle : Natural;
       Widget_State_Bits, Part_State_Bits,
       Main_Part_State_Bits     : Interfaces.Unsigned_16;
-      Font_Gen                 : Interfaces.Unsigned_32)
+      Font_Gen                 : Interfaces.Unsigned_32;
+      Assigned                 : Adi.Widget_Properties.Property_Assignment
+        := Adi.Widget_Properties.Empty_Assignment)
       return Ada.Containers.Hash_Type
    is (Adi.Widget.Resolved_Cache_Hash
          (Style_Handle (Part_Handle), Style_Handle (Main_Handle),
           Widget_State_Bits, Part_State_Bits, Main_Part_State_Bits,
-          Adi.Font.Font_Generation (Font_Gen)));
+          Adi.Font.Font_Generation (Font_Gen), Assigned));
 
 end Adi.Widget.Testing;

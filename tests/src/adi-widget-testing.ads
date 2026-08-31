@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Ada.Containers;
+with Adi.Widget_Properties;
 with Interfaces;
 
 --  Instrumentation the tests need and applications do not.
@@ -29,13 +30,15 @@ package Adi.Widget.Testing is
    function Transitions_Bytes return Natural;
 
    --  Key hash of the resolved-style memo, over the raw key fields: two
-   --  interned style handles, three packed state words and the font
-   --  generation.
+   --  interned style handles, three packed state words, the font
+   --  generation and the widget's interned property assignment.
    function Resolved_Cache_Hash
      (Part_Handle, Main_Handle : Natural;
       Widget_State_Bits, Part_State_Bits,
       Main_Part_State_Bits     : Interfaces.Unsigned_16;
-      Font_Gen                 : Interfaces.Unsigned_32)
+      Font_Gen                 : Interfaces.Unsigned_32;
+      Assigned                 : Adi.Widget_Properties.Property_Assignment
+        := Adi.Widget_Properties.Empty_Assignment)
       return Ada.Containers.Hash_Type;
 
 end Adi.Widget.Testing;

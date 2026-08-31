@@ -1016,7 +1016,8 @@ def inline_css_constant(css: str, indent: str = "   ") -> list[str]:
 
 def generate_body(app: XmlApp, package_name: str,
                    i18n: bool = False,
-                   no_live_css: bool = False) -> str:
+                   no_live_css: bool = False,
+                   properties_package: Optional[str] = None) -> str:
     """Generate the .adb (body) file.
 
     When `no_live_css` is True, CSS_Source dynamic loading is disabled
@@ -1270,7 +1271,8 @@ def generate_body(app: XmlApp, package_name: str,
         if inline_groups:
             lines.append("")
             decl_lines = css_to_ada.generate_style_declarations(
-                inline_groups, indent="   ")
+                inline_groups, indent="   ",
+                properties_package=properties_package)
             lines.extend(decl_lines)
             lines.extend(
                 css_to_ada.generate_selector_registration_body(
@@ -1279,7 +1281,8 @@ def generate_body(app: XmlApp, package_name: str,
     elif inline_groups:
         lines.append("")
         decl_lines = css_to_ada.generate_style_declarations(
-            inline_groups, indent="   ")
+            inline_groups, indent="   ",
+            properties_package=properties_package)
         lines.extend(decl_lines)
         lines.extend(
             css_to_ada.generate_selector_registration_body(
@@ -2216,6 +2219,13 @@ def main():
         help="Wrap translatable strings with Adi.I18N.T() calls"
     )
     parser.add_argument(
+        "--properties-package", default=None,
+        help=(
+            "Ada package declaring the widget properties an inline <style> "
+            "block selects on, as css_to_ada.py takes"
+        ),
+    )
+    parser.add_argument(
         "--no-live-css", action="store_true", default=False,
         help=(
             "Disable CSS live-reload: emit static-only codegen even when "
@@ -2256,9 +2266,14 @@ def main():
 
     spec_code = generate_spec(app, args.package_name,
                               no_live_css=args.no_live_css)
-    body_code = generate_body(app, args.package_name,
-                              i18n=args.i18n,
-                              no_live_css=args.no_live_css)
+    try:
+        body_code = generate_body(app, args.package_name,
+                                  i18n=args.i18n,
+                                  no_live_css=args.no_live_css,
+                                  properties_package=args.properties_package)
+    except css_to_ada.PropertyPackageMissing as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
     with open(spec_path, "w") as f:
         f.write(spec_code)

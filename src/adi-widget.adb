@@ -358,6 +358,10 @@ package body Adi.Widget is
       Base              : Style_Rules   := Empty_Style;
       Widget_State_Mask : Widget_States := No_States;
       Part_State_Mask   : Widget_States := No_States;
+      --  Whether any rule names a widget property. A widget setting one
+      --  where no rule reads it changes nothing, and this is what says
+      --  so without resolving.
+      Uses_Properties   : Boolean       := False;
       Rules             : State_Rule_Array (1 .. Rule_Count);
       Ordered           : Rule_Index_Array (1 .. Rule_Count);
    end record;
@@ -370,7 +374,9 @@ package body Adi.Widget is
    function Compute_Style_Prepared
      (Prepared      : Prepared_Style_Entry;
       Active_Widget : Widget_States;
-      Active_Part   : Widget_States) return Style_Rules;
+      Active_Part   : Widget_States;
+      Assigned      : Adi.Widget_Properties.Property_Assignment)
+     return Style_Rules;
    function Pack_States (S : Widget_States) return Packed_State_Bits;
 
    type Prepared_Style_Entry_Access is access constant Prepared_Style_Entry;
@@ -383,6 +389,12 @@ package body Adi.Widget is
       Widget_States      : Packed_State_Bits := 0;
       Part_States        : Packed_State_Bits := 0;
       Main_Part_States   : Packed_State_Bits := 0;
+      --  The domain state the widget was carrying. Interned, so this is
+      --  fixed width and exact on equality, and a widget naming no
+      --  property carries the empty assignment as every widget did
+      --  before there were any.
+      Assigned           : Adi.Widget_Properties.Property_Assignment :=
+        Adi.Widget_Properties.Empty_Assignment;
       --  Resolving turns a font family named in CSS into a handle, so
       --  two resolutions of the same rules differ when the name maps
       --  somewhere else. Nothing above can see that.
@@ -433,11 +445,17 @@ package body Adi.Widget is
          Result.Base := S.Base;
          Result.Widget_State_Mask := S.Widget_State_Mask;
          Result.Part_State_Mask := S.Part_State_Mask;
+         Result.Uses_Properties := False;
 
          --  Precompute a stable rule order: priority asc, source order asc.
          for I in 1 .. S.Rule_Count loop
             Result.Rules (I) := S.Rules (I);
             Result.Ordered (I) := I;
+            if Adi.Widget_Properties.Condition_Count
+                 (S.Rules (I).Selector.Properties) > 0
+            then
+               Result.Uses_Properties := True;
+            end if;
             Priorities (I) :=
               (if S.Rules (I).Priority > 0
                then S.Rules (I).Priority
@@ -566,7 +584,9 @@ package body Adi.Widget is
    function Compute_Style_Prepared
      (Prepared      : Prepared_Style_Entry;
       Active_Widget : Widget_States;
-      Active_Part   : Widget_States) return Style_Rules
+      Active_Part   : Widget_States;
+      Assigned      : Adi.Widget_Properties.Property_Assignment)
+     return Style_Rules
    is
       Result : Style_Rules := Prepared.Base;
    begin
@@ -576,7 +596,8 @@ package body Adi.Widget is
          begin
             if Matches (Prepared.Rules (Rule_Index).Selector,
                         Active_Widget,
-                        Active_Part)
+                        Active_Part,
+                        Assigned)
             then
                Result := Merge (Result, Prepared.Rules (Rule_Index).Style);
             end if;
@@ -602,7 +623,8 @@ package body Adi.Widget is
      (Part_Handle, Main_Handle : Style_Handle;
       Widget_State_Bits, Part_State_Bits,
       Main_Part_State_Bits     : Packed_State_Bits;
-      Font_Gen                 : Adi.Font.Font_Generation)
+      Font_Gen                 : Adi.Font.Font_Generation;
+      Assigned                 : Adi.Widget_Properties.Property_Assignment)
       return Hash_Type
    is
       --  Modular throughout: in Natural the multiply overflows past a
@@ -619,6 +641,10 @@ package body Adi.Widget is
       H := H xor
         Hash_Type (Interfaces.Shift_Left (Wide (Main_Part_State_Bits), 8));
       H := H xor Hash_Type (Font_Gen);
+      H := H xor
+        Hash_Type (Interfaces.Shift_Left
+                     (Interfaces.Unsigned_32
+                        (Adi.Widget_Properties.Hash (Assigned)), 12));
       return H;
    end Resolved_Cache_Hash;
 
@@ -626,7 +652,7 @@ package body Adi.Widget is
      (K : Resolved_Cache_Key) return Hash_Type is
      (Resolved_Cache_Hash
         (K.Part_Handle, K.Main_Handle, K.Widget_States, K.Part_States,
-         K.Main_Part_States, K.Font_Gen));
+         K.Main_Part_States, K.Font_Gen, K.Assigned));
 
    type Scrollbar_Metrics is record
       Width       : Pixel_Type := 10.0;
@@ -1069,7 +1095,9 @@ package body Adi.Widget is
      (W          : Widget'Class;
       P          : Part_Kind;
       Widget_Set : Widget_States;
-      Part_Set   : Widget_States) return Resolved_Handle
+      Part_Set   : Widget_States;
+      Assigned   : Adi.Widget_Properties.Property_Assignment)
+     return Resolved_Handle
    is
       Part_Handle : constant Style_Handle := Effective_Part_Handle (W, P);
       Main_Handle : constant Style_Handle :=
@@ -1084,6 +1112,7 @@ package body Adi.Widget is
          Widget_States    => Pack_States (Widget_Set),
          Part_States      => Pack_States (Part_Set),
          Main_Part_States => Pack_States (Main_Set),
+         Assigned         => Assigned,
          Font_Gen         => Adi.Font.Environment_Generation);
       Result : Resolved_Handle;
    begin
@@ -1109,7 +1138,8 @@ package body Adi.Widget is
          Part_Entry : constant access constant Prepared_Style_Entry :=
            Entry_From_Handle (Part_Handle);
          Part_Rules : Style_Rules :=
-           Compute_Style_Prepared (Part_Entry.all, Widget_Set, Part_Set);
+           Compute_Style_Prepared
+             (Part_Entry.all, Widget_Set, Part_Set, Assigned);
       begin
          --  Sub-parts inherit text/typography properties from Main_Part.
          --  Explicit ::part rules override inherited values.
@@ -1118,7 +1148,8 @@ package body Adi.Widget is
                Main_Entry : constant access constant Prepared_Style_Entry :=
                  Entry_From_Handle (Main_Handle);
                Main_Rules : constant Style_Rules :=
-                 Compute_Style_Prepared (Main_Entry.all, Widget_Set, Main_Set);
+                 Compute_Style_Prepared
+                   (Main_Entry.all, Widget_Set, Main_Set, Assigned);
             begin
                Part_Rules := Inherit_From (Main_Rules, Part_Rules);
             end;
@@ -1190,10 +1221,10 @@ package body Adi.Widget is
                   declare
                      Old_Resolved : constant Resolved_Handle :=
                        Memo_Resolved_Style
-                         (W, P, Old_States, W.Part_States (P));
+                         (W, P, Old_States, W.Part_States (P), W.Properties);
                      New_Resolved : constant Resolved_Handle :=
                        Memo_Resolved_Style
-                         (W, P, Eff_States, W.Part_States (P));
+                         (W, P, Eff_States, W.Part_States (P), W.Properties);
                   begin
                      if Old_Resolved /= New_Resolved then
                         if Adi.Resolved_Styles.Layout_Affecting_Diff
@@ -1248,10 +1279,11 @@ package body Adi.Widget is
                   Inc_Sat (Perf_Style_Resolves);
                   declare
                      Old_Resolved : constant Resolved_Handle :=
-                       Memo_Resolved_Style (W, P, Eff_States, Old_States);
+                       Memo_Resolved_Style
+                         (W, P, Eff_States, Old_States, W.Properties);
                      New_Resolved : constant Resolved_Handle :=
                        Memo_Resolved_Style
-                         (W, P, Eff_States, W.Part_States (P));
+                         (W, P, Eff_States, W.Part_States (P), W.Properties);
                   begin
                      if Old_Resolved /= New_Resolved then
                         if Adi.Resolved_Styles.Layout_Affecting_Diff
@@ -1268,6 +1300,58 @@ package body Adi.Widget is
       end loop;
       return Worst;
    end Part_State_Style_Effect;
+
+   --  What a change of domain state does to the widget's appearance.
+   --  A part whose rules name no property cannot have moved, and a
+   --  sub-part is asked because it inherits the main part's rules.
+   function Property_Style_Effect
+     (W        : Widget'Class;
+      Previous : Adi.Widget_Properties.Property_Assignment)
+     return Style_Diff_Kind
+   is
+      Eff_States : constant Widget_States := Get_States (W);
+      Main_Uses  : constant Boolean :=
+        Entry_From_Handle (Effective_Part_Handle (W, Main_Part))
+          .Uses_Properties;
+      Worst      : Style_Diff_Kind := Diff_None;
+   begin
+      for P in Part_Kind loop
+         if W.Part_Style_Enabled (P) then
+            declare
+               H : constant Style_Handle := Effective_Part_Handle (W, P);
+               Prepared : constant access constant Prepared_Style_Entry :=
+                 Entry_From_Handle (H);
+               Reads_Properties : constant Boolean :=
+                 Prepared.Uses_Properties
+                 or else (P /= Main_Part and then P /= Any_Part
+                          and then Main_Uses);
+            begin
+               if Reads_Properties then
+                  Inc_Sat (Perf_Style_Resolves);
+                  Inc_Sat (Perf_Style_Resolves);
+                  declare
+                     Old_Resolved : constant Resolved_Handle :=
+                       Memo_Resolved_Style
+                         (W, P, Eff_States, W.Part_States (P), Previous);
+                     New_Resolved : constant Resolved_Handle :=
+                       Memo_Resolved_Style
+                         (W, P, Eff_States, W.Part_States (P), W.Properties);
+                  begin
+                     if Old_Resolved /= New_Resolved then
+                        if Adi.Resolved_Styles.Layout_Affecting_Diff
+                             (Old_Resolved, New_Resolved)
+                        then
+                           return Diff_Layout_Affecting;
+                        end if;
+                        Worst := Diff_Render_Only;
+                     end if;
+                  end;
+               end if;
+            end;
+         end if;
+      end loop;
+      return Worst;
+   end Property_Style_Effect;
 
    procedure Bump_Style_Version (W : in out Widget'Class) is
    begin
@@ -1369,6 +1453,116 @@ package body Adi.Widget is
       Bump_Style_Version (W);
       Mark_Render_Dirty (W);
    end Clear_Part_States;
+
+   ---------------------------------------------------------------------------
+   --  User Properties
+   ---------------------------------------------------------------------------
+
+   procedure Apply_Assignment
+     (W       : in out Widget'Class;
+      Updated : Adi.Widget_Properties.Property_Assignment)
+   is
+      use type Adi.Widget_Properties.Property_Assignment;
+      Previous : constant Adi.Widget_Properties.Property_Assignment :=
+        W.Properties;
+   begin
+      if Updated = Previous then
+         return;
+      end if;
+
+      W.Properties := Updated;
+      Bump_Style_Version (W);
+      case Property_Style_Effect (W, Previous) is
+         when Diff_None             => null;
+         when Diff_Render_Only      => Mark_Render_Dirty (W);
+         when Diff_Layout_Affecting => Mark_Dirty (W);
+      end case;
+   end Apply_Assignment;
+
+   procedure Set_Property (W : in out Widget'Class;
+                           V : Adi.Widget_Properties.Property_Value) is
+   begin
+      Apply_Assignment
+        (W, Adi.Widget_Properties.With_Value (W.Properties, V));
+   end Set_Property;
+
+   procedure Clear_Property (W : in out Widget'Class;
+                             P : Adi.Widget_Properties.Property) is
+   begin
+      Apply_Assignment (W, Adi.Widget_Properties.Without (W.Properties, P));
+   end Clear_Property;
+
+   function Get_Property (W : Widget'Class;
+                          P : Adi.Widget_Properties.Property)
+     return Adi.Widget_Properties.Property_Value is
+     (Adi.Widget_Properties.Value_Of (W.Properties, P));
+
+   function Has_Property (W : Widget'Class;
+                          P : Adi.Widget_Properties.Property)
+     return Boolean
+   is
+      use type Adi.Widget_Properties.Property_Value;
+   begin
+      return Adi.Widget_Properties.Value_Of (W.Properties, P)
+        /= Adi.Widget_Properties.No_Value;
+   end Has_Property;
+
+   function Get_Properties (W : Widget'Class)
+     return Adi.Widget_Properties.Property_Assignment is
+     (W.Properties);
+
+   procedure Set_Property (H : Widget_Handle;
+                           V : Adi.Widget_Properties.Property_Value) is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         Set_Property (Ptr.all, V);
+      end if;
+   end Set_Property;
+
+   procedure Clear_Property (H : Widget_Handle;
+                             P : Adi.Widget_Properties.Property) is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         Clear_Property (Ptr.all, P);
+      end if;
+   end Clear_Property;
+
+   function Get_Property (H : Widget_Handle;
+                          P : Adi.Widget_Properties.Property)
+     return Adi.Widget_Properties.Property_Value
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         return Get_Property (Ptr.all, P);
+      end if;
+      return Adi.Widget_Properties.No_Value;
+   end Get_Property;
+
+   function Has_Property (H : Widget_Handle;
+                          P : Adi.Widget_Properties.Property)
+     return Boolean
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         return Has_Property (Ptr.all, P);
+      end if;
+      return False;
+   end Has_Property;
+
+   function Get_Properties (H : Widget_Handle)
+     return Adi.Widget_Properties.Property_Assignment
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr /= null then
+         return Get_Properties (Ptr.all);
+      end if;
+      return Adi.Widget_Properties.Empty_Assignment;
+   end Get_Properties;
 
    --  Convenience state setters
    procedure Set_Hovered (W : in out Widget'Class; Value : Boolean := True) is
@@ -1664,7 +1858,8 @@ package body Adi.Widget is
       return Compute_Style_Prepared
         (Prepared.all,
          Get_States (W),
-         W.Part_States (P));
+         W.Part_States (P),
+         W.Properties);
    end Get_Part_Style_Rules;
 
    function Get_Resolved_Part_Handle (W : Widget'Class;
@@ -1716,7 +1911,8 @@ package body Adi.Widget is
       end if;
 
       --  Cache miss: the memo answers, or the cascade runs behind it.
-      Result := Memo_Resolved_Style (W, P, Eff, W.Part_States (P));
+      Result :=
+        Memo_Resolved_Style (W, P, Eff, W.Part_States (P), W.Properties);
 
       --  Interning the result may have cleared the store, and the key
       --  fields above were read before that. Recording them now would

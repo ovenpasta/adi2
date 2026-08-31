@@ -32,6 +32,12 @@ procedure List_Box_Example is
    Multi_Status  : Adi.Widget.Label.Label_Handle;
    Main_Window   : Window_Handle;
 
+   No_Listbox     : Label_List.List_Box_Handle;
+   Single_Listbox : Label_List.List_Box_Handle;
+   Multi_Listbox  : Box_List.List_Box_Handle;
+   Range_Listbox  : Label_List.List_Box_Handle;
+   Grid_Listbox   : Label_List.List_Box_Handle;
+
    procedure On_Label_Click
      (W      : Widget_Handle;
       Index  : Positive;
@@ -157,17 +163,60 @@ procedure List_Box_Example is
       Adi.Window.Set_Debug_Stats (Main_Window, Active);
    end On_Debug_Stats_Toggled;
 
+   --  The rows these two panels hide at startup stay hidden whatever the
+   --  switch says.
+   function Hidden_At_Startup
+     (H : Label_List.List_Box_Handle; Index : Positive) return Boolean
+   is
+     ((H = No_Listbox and then Index in 3 | 4)
+      or else (H = Grid_Listbox and then Index in 5 | 6));
+
+   procedure Hide_Even_Rows
+     (H : Label_List.List_Box_Handle; Active : Boolean) is
+   begin
+      for I in 1 .. Label_List.Row_Count (H) loop
+         if I mod 2 = 0 and then not Hidden_At_Startup (H, I) then
+            Set_Visible (Label_List.Get_Row_Handle (H, I), not Active);
+         end if;
+      end loop;
+   end Hide_Even_Rows;
+
+   procedure Hide_Even_Rows
+     (H : Box_List.List_Box_Handle; Active : Boolean) is
+   begin
+      for I in 1 .. Box_List.Row_Count (H) loop
+         if I mod 2 = 0 then
+            Set_Visible (Box_List.Get_Row_Handle (H, I), not Active);
+         end if;
+      end loop;
+   end Hide_Even_Rows;
+
+   procedure On_Hide_Even_Toggled
+     (W      : Widget_Handle;
+      Active : Boolean)
+   is
+      pragma Unreferenced (W);
+   begin
+      Hide_Even_Rows (No_Listbox, Active);
+      Hide_Even_Rows (Single_Listbox, Active);
+      Hide_Even_Rows (Multi_Listbox, Active);
+      Hide_Even_Rows (Range_Listbox, Active);
+      Hide_Even_Rows (Grid_Listbox, Active);
+   end On_Hide_Even_Toggled;
+
 begin
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
 
    declare
-      W : constant Window_Handle := Create_Window_Handle ("List Box Example", Adi.Window.Extent (Px (1358.0), Px (439.0)));
+      W : constant Window_Handle := Create_Window_Handle ("List Box Example", Adi.Window.Extent (Px (1180.0), Px (820.0)));
 
       Root         : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Controls_Row : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Panels       : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Top_Row      : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Bottom_Row   : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
 
       No_Panel     : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Single_Panel : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
@@ -180,7 +229,7 @@ begin
       Inertia_Switch_Label : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("Scroll inertia");
       Inertia_Switch : constant Adi.Widget.Button.Switch.Switch_Handle :=
-        Adi.Widget.Button.Switch.Create_Handle (False);
+        Adi.Widget.Button.Switch.Create_Handle (True);
       Debug_Overlay_Label : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("Layout debug");
       Debug_Overlay_Switch : constant Adi.Widget.Button.Switch.Switch_Handle :=
@@ -188,7 +237,11 @@ begin
       Debug_Stats_Label : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("Debug stats");
       Debug_Stats_Switch : constant Adi.Widget.Button.Switch.Switch_Handle :=
-        Adi.Widget.Button.Switch.Create_Handle (True);
+        Adi.Widget.Button.Switch.Create_Handle (False);
+      Hide_Even_Label : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Hide even rows");
+      Hide_Even_Switch : constant Adi.Widget.Button.Switch.Switch_Handle :=
+        Adi.Widget.Button.Switch.Create_Handle (False);
       Single_Title : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("Single Selection");
       Multi_Title  : constant Adi.Widget.Label.Label_Handle :=
@@ -198,15 +251,9 @@ begin
       Grid_Title   : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("Grid Layout");
 
-      No_Listbox     : constant Label_List.List_Box_Handle := Label_List.Create_Handle;
-      Single_Listbox : constant Label_List.List_Box_Handle := Label_List.Create_Handle;
-      Multi_Listbox  : constant Box_List.List_Box_Handle   := Box_List.Create_Handle;
-      Range_Listbox  : constant Label_List.List_Box_Handle := Label_List.Create_Handle;
-      Grid_Listbox   : constant Label_List.List_Box_Handle := Label_List.Create_Handle;
-
       No_Status    : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle
-          ("Click rows: focus/activate works, selection stays off");
+          ("Rows 3-4 hidden: the list closes up behind them");
       Range_Status : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle
           ("Shift+click/Shift+arrows selects contiguous ranges");
@@ -216,11 +263,16 @@ begin
       Multi_Status := Adi.Widget.Label.Create_Handle
         ("Box list: multi-select toggle, wheel scroll, keyboard navigation");
       Grid_Status := Adi.Widget.Label.Create_Handle
-        ("Grid: 3 columns, arrow keys navigate, click to select");
+        ("Cells 5-6 hidden: the grid closes up behind them");
+      No_Listbox     := Label_List.Create_Handle;
+      Single_Listbox := Label_List.Create_Handle;
+      Multi_Listbox  := Box_List.Create_Handle;
+      Range_Listbox  := Label_List.Create_Handle;
+      Grid_Listbox   := Label_List.Create_Handle;
       Main_Window := W;
-      Set_Scroll_Inertia_Enabled (False);
+      Set_Scroll_Inertia_Enabled (True);
       Set_Debug_Layout_Overlay_Enabled (False);
-      Adi.Window.Set_Debug_Stats (W, True);
+      Adi.Window.Set_Debug_Stats (W, False);
 
       Adi.Widget.Button.Switch.Connect_Toggled
         (Inertia_Switch, On_Inertia_Toggled'Unrestricted_Access);
@@ -228,10 +280,14 @@ begin
         (Debug_Overlay_Switch, On_Debug_Overlay_Toggled'Unrestricted_Access);
       Adi.Widget.Button.Switch.Connect_Toggled
         (Debug_Stats_Switch, On_Debug_Stats_Toggled'Unrestricted_Access);
+      Adi.Widget.Button.Switch.Connect_Toggled
+        (Hide_Even_Switch, On_Hide_Even_Toggled'Unrestricted_Access);
 
       Adi.Widget.Box.Set_Part_Styles (Root, Root_Class_Part_Styles);
       Adi.Widget.Box.Set_Part_Styles (Controls_Row, Controls_Row_Class_Part_Styles);
       Adi.Widget.Box.Set_Part_Styles (Panels, Panels_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Top_Row, Panels_Row_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Bottom_Row, Panels_Row_Class_Part_Styles);
       Adi.Widget.Box.Set_Part_Styles (No_Panel, Panel_Class_Part_Styles);
       Adi.Widget.Box.Set_Part_Styles (Single_Panel, Panel_Class_Part_Styles);
       Adi.Widget.Box.Set_Part_Styles (Multi_Panel, Panel_Class_Part_Styles);
@@ -251,6 +307,10 @@ begin
         (Debug_Stats_Label, Debug_Label_Class_Part_Styles);
       Adi.Widget.Button.Switch.Set_Part_Styles
         (Debug_Stats_Switch, Debug_Switch_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles
+        (Hide_Even_Label, Inertia_Label_Class_Part_Styles);
+      Adi.Widget.Button.Switch.Set_Part_Styles
+        (Hide_Even_Switch, Inertia_Switch_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles (Single_Title, Panel_Title_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles (Multi_Title, Panel_Title_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles (Range_Title, Panel_Title_Class_Part_Styles);
@@ -350,6 +410,8 @@ begin
       Add_Child (+Controls_Row, +Debug_Overlay_Switch);
       Add_Child (+Controls_Row, +Debug_Stats_Label);
       Add_Child (+Controls_Row, +Debug_Stats_Switch);
+      Add_Child (+Controls_Row, +Hide_Even_Label);
+      Add_Child (+Controls_Row, +Hide_Even_Switch);
 
       Add_Child (+No_Panel, +No_Title);
       Add_Child (+No_Panel, +No_Status);
@@ -371,13 +433,21 @@ begin
       Add_Child (+Grid_Panel, +Grid_Status);
       Add_Child (+Grid_Panel, +Grid_Listbox);
 
-      Add_Child (+Panels, +No_Panel);
-      Add_Child (+Panels, +Single_Panel);
-      Add_Child (+Panels, +Multi_Panel);
-      Add_Child (+Panels, +Range_Panel);
-      Add_Child (+Panels, +Grid_Panel);
+      Add_Child (+Top_Row, +No_Panel);
+      Add_Child (+Top_Row, +Single_Panel);
+      Add_Child (+Top_Row, +Multi_Panel);
+      Add_Child (+Bottom_Row, +Range_Panel);
+      Add_Child (+Bottom_Row, +Grid_Panel);
+      Add_Child (+Panels, +Top_Row);
+      Add_Child (+Panels, +Bottom_Row);
       Add_Child (+Root, +Controls_Row);
       Add_Child (+Root, +Panels);
+
+      --  Rows the list closes up over from the first frame.
+      Set_Visible (Label_List.Get_Row_Handle (No_Listbox, 3), False);
+      Set_Visible (Label_List.Get_Row_Handle (No_Listbox, 4), False);
+      Set_Visible (Label_List.Get_Row_Handle (Grid_Listbox, 5), False);
+      Set_Visible (Label_List.Get_Row_Handle (Grid_Listbox, 6), False);
 
       --  Initial selection
       Label_List.Select_Row (Single_Listbox, 2);

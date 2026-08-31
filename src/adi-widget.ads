@@ -1127,6 +1127,10 @@ private
    procedure Set_Flag (W : in out Widget'Class; F : Widget_Flag; Value : Boolean);
    function  Has_Flag (W : Widget'Class; F : Widget_Flag) return Boolean;
 
+   --  Whether the widget takes part in layout: hidden or `display: none`
+   --  widgets keep their place among their siblings and contribute nothing.
+   function Widget_Participates (W : Widget'Class) return Boolean;
+
    procedure Add_Child    (W : in out Widget'Class; C : Widget_Handle);
    procedure Add_Child    (W : in out Widget'Class; C : access Widget'Class);
    procedure Remove_Child (W : in out Widget'Class; C : access Widget'Class);

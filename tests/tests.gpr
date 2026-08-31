@@ -81,7 +81,8 @@ project Tests is
       "selector_lookup_test",
       "slot_pool_test",
       "style_composer_test",
-      "widget_property_test");
+      "widget_property_test",
+      "list_box_visibility_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    Platform_Name := external ("ADI_PLATFORM", "linux");
 

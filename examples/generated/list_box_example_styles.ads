@@ -41,10 +41,19 @@ package List_Box_Example_Styles is
    function Panels_Class_Base_Style return Style_Rules is
      (
       Display => Set (Flex),
+      Flex_Direction => Set (Column),
+      Gap => Set (Gap (Px (12.0))),
+      Flex_Grow => Set (1.0),
+      others => <>);
+
+   --  Base style for class 'panels-row'
+   function Panels_Row_Class_Base_Style return Style_Rules is
+     (
+      Display => Set (Flex),
       Flex_Direction => Set (Row),
       Gap => Set (Gap (Px (12.0))),
       Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (580.0))),
+      Flex_Basis => Set (Basis (Px (0.0))),
       others => <>);
 
    --  Base style for class 'controls-row'
@@ -69,10 +78,10 @@ package List_Box_Example_Styles is
       Display => Set (Flex),
       Flex_Direction => Set (Column),
       Flex_Grow => Set (1.0),
+      Flex_Basis => Set (Basis (Px (0.0))),
+      Min_Width => Set (Size (Px (240.0))),
       Gap => Set (Gap (Px (8.0))),
       Background_Color => Set_Bg (RGB (255, 255, 255)),
-      Width => Set (Size (Px (476.0))),
-      Height => Set (Size (Px (580.0))),
       Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -221,8 +230,9 @@ package List_Box_Example_Styles is
    function Listbox_Class_Base_Style return Style_Rules is
      (
       Background_Color => Set_Bg (RGB (247, 249, 252)),
-      Height => Set (Size (Px (500.0))),
+      Min_Height => Set (Size (Px (140.0))),
       Flex_Grow => Set (1.0),
+      Flex_Basis => Set (Basis (Px (0.0))),
       Gap => Set (Gap (Px (4.0))),
       Border_Width => Set (Border_Width (Px (1.0))),
       Border_Style => Set (Border_Style (Solid)),
@@ -449,6 +459,18 @@ package List_Box_Example_Styles is
    Panels_Class_Part_Styles : constant Part_Style_Array :=
      [
       Main_Part => (Style => Panels_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Complete widget style for class 'panels-row'
+   Panels_Row_Class_Widget : constant Widget_Style :=
+     From (Panels_Row_Class_Base_Style)
+     .Build;
+
+   --  Part styles bundle for class 'panels-row'
+   Panels_Row_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Panels_Row_Class_Widget, Enabled => True),
       others => <>
    ];
 

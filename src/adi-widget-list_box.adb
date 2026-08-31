@@ -22,16 +22,27 @@ package body Adi.Widget.List_Box is
       return Natural (Style.Grid_Columns);
    end Get_Grid_Cols;
 
-   function Clamp (Value, Lo, Hi : Integer) return Integer is
+   function Row_Participates
+     (W : List_Box_Widget'Class; Index : Positive) return Boolean
+   is
+      Row : constant Row_Widget_Access :=
+        (if Index <= Natural (W.Rows.Length)
+         then W.Rows.Element (Index)
+         else null);
    begin
-      if Value < Lo then
-         return Lo;
-      elsif Value > Hi then
-         return Hi;
-      else
-         return Value;
-      end if;
-   end Clamp;
+      return Row = null or else Widget_Participates (Row.all);
+   end Row_Participates;
+
+   function Participating_Row_Count (W : List_Box_Widget'Class) return Natural is
+      Count : Natural := 0;
+   begin
+      for I in 1 .. Natural (W.Rows.Length) loop
+         if Row_Participates (W, I) then
+            Count := Count + 1;
+         end if;
+      end loop;
+      return Count;
+   end Participating_Row_Count;
 
    function Is_Mod_Active (Mods : SDL_Keymod; Mask : SDL_Keymod) return Boolean is
    begin
@@ -82,7 +93,8 @@ package body Adi.Widget.List_Box is
                declare
                   R : constant Rectangle := W.Cell_Rects.Element (I);
                begin
-                  if Local_X >= R.X and then Local_X <= R.X + R.Width
+                  if Row_Participates (W, I)
+                    and then Local_X >= R.X and then Local_X <= R.X + R.Width
                     and then Local_Y >= R.Y and then Local_Y <= R.Y + R.Height
                   then
                      return I;
@@ -99,14 +111,16 @@ package body Adi.Widget.List_Box is
             Local_Y : constant Pixel_Type := Y - Content.Y + Get_Scroll_Offset_Y (W);
          begin
             for I in 1 .. Natural (W.Rows.Length) loop
-               declare
-                  H : constant Pixel_Type := W.Row_Heights.Element (I);
-               begin
-                  if Local_Y >= Cursor and then Local_Y <= Cursor + H then
-                     return I;
-                  end if;
-                  Cursor := Cursor + H + R_Gap;
-               end;
+               if Row_Participates (W, I) then
+                  declare
+                     H : constant Pixel_Type := W.Row_Heights.Element (I);
+                  begin
+                     if Local_Y >= Cursor and then Local_Y <= Cursor + H then
+                        return I;
+                     end if;
+                     Cursor := Cursor + H + R_Gap;
+                  end;
+               end if;
             end loop;
          end;
       end if;
@@ -171,7 +185,10 @@ package body Adi.Widget.List_Box is
    is
       Count : constant Natural := Natural (W.Rows.Length);
       Old_Current : Natural := W.Current_Row;
-      Base : Integer;
+      Direction : constant Integer := (if Step < 0 then -1 else 1);
+      Remaining : Natural := abs Step;
+      Probe     : Integer;
+      Landed    : Natural := 0;
       New_Row : Positive;
    begin
       if Count = 0 then
@@ -182,8 +199,42 @@ package body Adi.Widget.List_Box is
          Old_Current := 1;
       end if;
 
-      Base := Clamp (Integer (Old_Current) + Step, 1, Integer (Count));
-      New_Row := Positive (Base);
+      --  Walk index by index, counting down one step per participating row
+      --  met, and settle on the last one reached.
+      Probe := Integer (Old_Current);
+      if Row_Participates (W, Old_Current) then
+         Landed := Old_Current;
+      end if;
+
+      while Remaining > 0 loop
+         Probe := Probe + Direction;
+         exit when Probe < 1 or else Probe > Count;
+         if Row_Participates (W, Positive (Probe)) then
+            Landed := Probe;
+            Remaining := Remaining - 1;
+         end if;
+      end loop;
+
+      --  The current row is hidden and the step's direction offers nothing:
+      --  take the nearest participating row the other way, so a cursor left
+      --  on a hidden row still has somewhere to go.
+      if Landed = 0 then
+         Probe := Integer (Old_Current);
+         loop
+            Probe := Probe - Direction;
+            exit when Probe < 1 or else Probe > Count;
+            if Row_Participates (W, Positive (Probe)) then
+               Landed := Probe;
+               exit;
+            end if;
+         end loop;
+      end if;
+
+      if Landed = 0 then
+         return;
+      end if;
+
+      New_Row := Positive (Landed);
       W.Current_Row := Natural (New_Row);
 
       if W.Mode = No_Selection then
@@ -372,7 +423,9 @@ package body Adi.Widget.List_Box is
       Row_Top : Pixel_Type;
       Row_Bot : Pixel_Type;
    begin
-      if Index > Natural (W.Rows.Length) then
+      if Index > Natural (W.Rows.Length)
+        or else not Row_Participates (W, Index)
+      then
          return;
       end if;
 
@@ -391,7 +444,9 @@ package body Adi.Widget.List_Box is
             Cursor : Pixel_Type := 0.0;
          begin
             for I in 1 .. Index - 1 loop
-               Cursor := Cursor + W.Row_Heights.Element (I) + R_Gap;
+               if Row_Participates (W, I) then
+                  Cursor := Cursor + W.Row_Heights.Element (I) + R_Gap;
+               end if;
             end loop;
             Row_Top := Cursor;
             Row_Bot := Cursor + W.Row_Heights.Element (Index);
@@ -610,13 +665,15 @@ package body Adi.Widget.List_Box is
          end loop;
       end if;
 
-      --  Measure all rows.
+      --  Measure the rows that take part; the rest take no height.
       for I in 1 .. N loop
          declare
             Row  : constant Row_Widget_Access := W.Rows.Element (I);
             Pref : Size_2D;
          begin
-            if Row = null then
+            if not Row_Participates (W, I) then
+               Row_H := 0.0;
+            elsif Row = null then
                Row_H := Default_Row_Height;
             else
                Pref := Get_Preferred_Size (Row.all);
@@ -643,19 +700,24 @@ package body Adi.Widget.List_Box is
             Kids : Grid_Child_Info_Array (1 .. N);
          begin
             for I in 1 .. N loop
-               Kids (I) := (Active           => True,
-                            Grid_Column      => 0,
-                            Grid_Row         => 0,
-                            Grid_Column_Span => 1,
-                            Grid_Row_Span    => 1,
-                            Min_Width        => 0.0,
-                            Min_Height       => 0.0,
-                            Pref_Width       => 0.0,
-                            Pref_Height      => W.Row_Heights.Element (I),
-                            Computed_X       => 0.0,
-                            Computed_Y       => 0.0,
-                            Computed_Width   => 0.0,
-                            Computed_Height  => 0.0);
+               declare
+                  Active : constant Boolean := Row_Participates (W, I);
+               begin
+                  Kids (I) := (Active           => Active,
+                               Grid_Column      => 0,
+                               Grid_Row         => 0,
+                               Grid_Column_Span => 1,
+                               Grid_Row_Span    => 1,
+                               Min_Width        => 0.0,
+                               Min_Height       => 0.0,
+                               Pref_Width       => 0.0,
+                               Pref_Height      =>
+                                 (if Active then W.Row_Heights.Element (I) else 0.0),
+                               Computed_X       => 0.0,
+                               Computed_Y       => 0.0,
+                               Computed_Width   => 0.0,
+                               Computed_Height  => 0.0);
+               end;
             end loop;
 
             Compute_Grid_Layout (Ctx, Kids);
@@ -672,7 +734,7 @@ package body Adi.Widget.List_Box is
                declare
                   Row : constant Row_Widget_Access := W.Rows.Element (I);
                begin
-                  if Row /= null then
+                  if Row /= null and then Row_Participates (W, I) then
                      Set_Geometry
                        (Row.all,
                         (X      => Content.X + Kids (I).Computed_X,
@@ -692,28 +754,33 @@ package body Adi.Widget.List_Box is
             Rows_Width : constant Pixel_Type := Content.Width;
          begin
             for I in 1 .. N loop
-               Row_H := W.Row_Heights.Element (I);
+               if not Row_Participates (W, I) then
+                  W.Cell_Rects.Append
+                    (Rectangle'(X => 0.0, Y => 0.0, Width => 0.0, Height => 0.0));
+               else
+                  Row_H := W.Row_Heights.Element (I);
 
-               W.Cell_Rects.Append
-                 (Rectangle'(X      => 0.0,
-                             Y      => Cursor_Y - Content.Y,
-                             Width  => Rows_Width,
-                             Height => Row_H));
+                  W.Cell_Rects.Append
+                    (Rectangle'(X      => 0.0,
+                                Y      => Cursor_Y - Content.Y,
+                                Width  => Rows_Width,
+                                Height => Row_H));
 
-               declare
-                  Row : constant Row_Widget_Access := W.Rows.Element (I);
-               begin
-                  if Row /= null then
-                     Set_Geometry
-                       (Row.all,
-                        (X      => Content.X,
-                         Y      => Cursor_Y,
-                         Width  => Rows_Width,
-                         Height => Row_H));
-                     Layout_Child (Row.all);
-                  end if;
-               end;
-               Cursor_Y := Cursor_Y + Row_H + R_Gap;
+                  declare
+                     Row : constant Row_Widget_Access := W.Rows.Element (I);
+                  begin
+                     if Row /= null then
+                        Set_Geometry
+                          (Row.all,
+                           (X      => Content.X,
+                            Y      => Cursor_Y,
+                            Width  => Rows_Width,
+                            Height => Row_H));
+                        Layout_Child (Row.all);
+                     end if;
+                  end;
+                  Cursor_Y := Cursor_Y + Row_H + R_Gap;
+               end if;
             end loop;
          end;
       end if;
@@ -880,14 +947,17 @@ package body Adi.Widget.List_Box is
       Shift : constant Boolean := Is_Mod_Active (Key_Mod, SDL_KMOD_SHIFT);
       Ctrl  : constant Boolean := Is_Mod_Active (Key_Mod, SDL_KMOD_CTRL);
       Count : constant Natural := Natural (W.Rows.Length);
+      Live_Count : constant Natural := Participating_Row_Count (W);
       Content : constant Rectangle := Main_Content_Box (W);
       Avg_Row_H : constant Pixel_Type :=
-        (if Count > 0 then Get_Scroll_Content_Height (W) / Pixel_Type (Count) else Default_Row_Height);
+        (if Live_Count > 0
+         then Get_Scroll_Content_Height (W) / Pixel_Type (Live_Count)
+         else Default_Row_Height);
       Page_Rows : constant Integer :=
         Integer'Max (1, Integer (Float (Content.Height / Pixel_Type'Max (1.0, Avg_Row_H))));
       Cols : constant Natural := Get_Grid_Cols (W);
    begin
-      if Count = 0 then
+      if Live_Count = 0 then
          return;
       end if;
 

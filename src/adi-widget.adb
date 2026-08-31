@@ -453,7 +453,6 @@ package body Adi.Widget is
    function Resolve_Effective_Visibility
      (W : Widget'Class;
       Parent_Effective : Visibility_Value) return Visibility_Value;
-   function Widget_Participates (W : Widget'Class) return Boolean;
    function Item_Is_Rendered (Style : Resolved_Style) return Boolean;
 
    ---------------------------------------------------------------------------

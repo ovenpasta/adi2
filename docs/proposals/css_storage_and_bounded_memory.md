@@ -146,12 +146,23 @@ without a record, and more of it than an aggregate gives: `others => <>`
 has nothing to say here. `Style_Of` opens a chain, `.On_Hover` and
 `.On (Selector)` move the active rule, and `.Build` answers a `Style`.
 
-`Style` is a value an author holds, passes and compares — sized to what the
-chain set, at 40 bytes where the aggregate spends 1,072. Interning stays
-where it stands today, inside `Set_Part_Style`
-(`adi-widget.adb:1618-1626`), which is where sharing one style across 500
-widgets belongs: the library's business, and absent from what an author
-writes.
+`.Build` answers the four-byte `Widget_Style` §4.2 established, so a chain
+carries what an author holds, passes and compares, and the interning behind
+it stays the library's business rather than something an author writes.
+
+Deriving one style from another is a chain that opens on an existing one:
+
+```ada
+Danger : constant Widget_Style :=
+   Style_Of (Primary) .Background (RGB (200, 30, 30)) .Build;
+```
+
+which is the composer's answer to `Base with delta Background_Color => …`.
+The two read alike and cost differently: a delta aggregate materialises all
+1,072 bytes to change eight of them, where opening on a handle copies the
+base's slots, applies the override and interns, at work proportional to the
+properties named. It also survives `Style_Rules` leaving, which a delta
+aggregate over that record depends on.
 
 A part bundle composes the same way:
 
@@ -244,9 +255,18 @@ unit that declares the entity — measured both ways. So `Merge`, `Resolve`
 and `Prepared_Style_Entry.Base` keep naming `Style_Rules` in quiet, while a
 consumer reading it gets the warning and the message it carries.
 
-`Style_Rules` itself stays, as what those three are built on. What leaves is
-the surface a consumer writes against, and once that is gone the type is
-internal without having been deleted.
+`Style_Rules` itself leaves with them. It stands today as what `Merge`,
+`Resolve` and `Prepared_Style_Entry.Base` are written over, and that holds
+while those three are field-by-field sweeps — 573 of the 591 sites that read
+the type by name. §3.5's descriptor table turns each of them into a loop over
+slots: merge is a linear merge of two property-sorted slot lists at 3.15
+entries a side where it compares 66 fields, resolve walks the rules' slots in
+cascade order, and inheritance becomes a column. Past that the record has no
+remaining job, so it goes rather than turning internal.
+
+That settles §6's `Inheritable_Properties` item along the way. The policy is
+stated in two hand-written places today, which is what lets them disagree over
+`Visibility`; a table column states it once.
 
 `Resolved_Style` stays fat and concrete: it is the read path, 66 values that
 layout, rendering and the widget implementations reach by name, and §4.4
@@ -814,6 +834,47 @@ holding 25 SPARK legality errors, all of them containers and `'Access`.
 Lifting the pool out takes it clear of both, which makes it the cheapest
 proof target after `Adi.Layout_Util`.
 
+### 4.7   Finding a selector
+
+§4.2 removed the allocation on the apply path, which leaves two costs
+underneath it, both on the lookup rather than on the value.
+
+`Find_Selector_Index` (`adi-css_parser.adb:3983-3996`) walks every selector in
+the sheet and converts an `Unbounded_String` with `To_String` per candidate
+before comparing:
+
+```ada
+for I in 1 .. Natural (Impl.Selectors.Length) loop
+   if Impl.Selectors (I).Kind = Kind
+     and then To_String (Impl.Selectors (I).Name) = Key
+```
+
+The `Static_Mode` branch of `Selector_Styles` (`adi-css_source.adb:218-228`)
+has the same shape over `Static_Styles`, so a release build pays a version of
+it too. A lookup keyed on `(Kind, lowered name)` answers both, and
+`Adi.CSS_Styles`' text store already holds a form of the key.
+
+`Combined_Styles` (`adi-css_source.adb:266-292`) folds `Selector_Styles` over
+the tag, each class in the class list, and the id, through
+`Multi_Class_Styles` (`:238-264`). Every bound widget computes it afresh, so a
+list of rows sharing a class computes one answer once per row.
+
+Memoising it on the same inputs is what §4.2 makes affordable: an entry is a
+`Part_Style_Array`, at 96 bytes where it stood at 221,952, so a memo over
+every distinct `(tag, classes, id)` an application uses is kilobytes. Before
+§4.2 the same memo over a few hundred triples ran to tens of megabytes, which
+is why the recomputation stands.
+
+Three things travel with it. Invalidation reaches every path that changes what
+the fold answers — `Load_File`, `Load_String` and the `Dynamic_Mode` reload
+`Tick` drives, each followed by `Reapply_Bindings` (`:537-601`). The bound
+follows §4.3's treatment of the other stores. And the hit and miss counts
+surface beside the existing cache counters, which §6 records as the
+precondition for measuring any of this.
+
+The measurement that sizes both: an apply against a sheet of M selectors for N
+widgets, in selector comparisons and in wall time, before and after.
+
 ---
 
 ## 5   Runtime state from the application
@@ -1141,6 +1202,11 @@ bytes under its own name and folds `Interned_Part_Styles`, `Intern` and
 each carries. It stands on what §4.4 landed and on nothing in §3, and it
 leaves §3 one fat type to take: `Style_Rules` at its construction site.
 
+**Step 2a — finding a selector.** Section 4.7: the keyed lookup and the
+`Combined_Styles` memo. It follows step 2 twice over — step 2 is what makes
+the lookup the dominant term on the apply path, and what puts a memo entry at
+96 bytes. It stands on nothing in §3.
+
 **Step 3 — composition.** Section 4.6's pool lands first, taking the
 animation scratch with it, since it stands alone and both users want it.
 Then sections 3.1 to 3.3: the composer, the eight-byte slot, and `Intern`
@@ -1189,6 +1255,30 @@ frontend divergence in `Specificity`.
 **Concurrency.** `docs/style_storage_optimization.md` records single-threaded
 style mutation as an assumption. §4.2's interning at elaboration, §4.3's
 eviction rank and §5.5's interned assignment each sit inside it.
+
+**A key generated at elaboration, rather than an enumeration.** §3.2 keys a
+slot on `CSS_Property`, a closed enumeration the compiler checks a `case` over.
+A registry handing out a dense index at elaboration — the shape
+`Adi.Widget_Properties` already ships for §5's vocabulary — would key the same
+slot and open the set, so a widget outside the library declares a property of
+its own. What it spends is the exhaustive check: §6's `Layout_Affecting_Diff`
+names 47 of 66 fields, and the fix there is a `CSS_Property_Set` the compiler
+holds complete. CSS's own answer to open extension is the custom property, so
+a third mechanism beside the two is the alternative to choosing between them.
+
+**A sparse resolved style.** §4.4 stores one `Resolved_Style` per distinct
+resolution, at 840 bytes measured, capped at 16,384 entries and 13.8 MB. Every
+one of the 66 carries a value after the cascade, and a handful of them differ
+from the defaults a table would answer, so a bitmap over the differences would
+hold an entry in about a tenth of that. What it spends is the read path, where
+layout and rendering reach a value by name at a fixed offset and a sparse form
+answers through a test, a popcount and a dependent load.
+
+The trade turns on a figure nothing reports: how many distinct resolutions a
+real tree produces. Below a few hundred the store is 25 KB and the dense form
+is free; near the cap, sparse entries multiply the headroom that eviction rank
+is currently spending. `perf_stats` reports texture residency and says nothing
+of resolved-store occupancy, so the instrument comes first.
 
 **A shared store for styles.** `Adi.Handle_Store` backs `Widget`, `Window`,
 `Image`, `Animated_Image`, `RLottie` and `Context_Menu`, where styles keep

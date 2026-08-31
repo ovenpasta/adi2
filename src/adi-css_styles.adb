@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Ada.Characters.Handling;
+with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Vectors;
 with Adi.Log;
 
@@ -1645,5 +1646,362 @@ package body Adi.CSS_Styles is
             R := C.RA; G := C.GA; B := C.BA; A := C.Alpha;
       end case;
    end Normalize_Color;
+
+   -------------------------------------------------
+   -- Value_Hash
+   -------------------------------------------------
+
+   package body Value_Hash is
+
+      function Add (H : Digest; L : Length_Value) return Digest is
+        (Mix (Mix (H, Num (L.Amount)), CSS_Unit'Pos (L.Unit)));
+
+      function Add (H : Digest; C : Color_Value) return Digest is
+        (case C.Kind is
+            when Named => Mix (Mix (H, 1), Named_Color'Pos (C.Name)),
+            when RGB   => Mix (Mix (Mix (Mix (H, 2), Digest (C.R)),
+                                    Digest (C.G)), Digest (C.B)),
+            when RGBA  => Mix (Mix (Mix (Mix (Mix (H, 3), Digest (C.RA)),
+                                         Digest (C.GA)), Digest (C.BA)),
+                               Num (C.Alpha)));
+
+      function Add (H : Digest; S : Size_Value) return Digest is
+        (case S.Kind is
+            when Fixed  => Add (Mix (H, Size_Kind'Pos (S.Kind)), S.Size),
+            when others => Mix (H, Size_Kind'Pos (S.Kind)));
+
+      function Add (H : Digest; I : Inset_Value) return Digest is
+        (case I.Kind is
+            when Fixed => Add (Mix (H, 7), I.Length),
+            when Auto  => Mix (H, 8));
+
+      function Add (H : Digest; M : Margin_Value) return Digest is
+        (case M.Kind is
+            when Fixed => Add (Mix (H, 9), M.Length),
+            when Auto  => Mix (H, 10));
+
+      function Add (H : Digest; B : CSS_Box_Value) return Digest is
+        (case B.Kind is
+            when Gap_Uniform => Add (Mix (H, 11), B.All_Sides),
+            when Axis        => Add (Add (Mix (H, 12), B.Vertical),
+                                     B.Horizontal),
+            when Per_Side    =>
+              Add (Add (Add (Add (Mix (H, 13), B.Sides (Top)),
+                             B.Sides (Right)),
+                        B.Sides (Bottom)), B.Sides (Left)));
+
+      function Add (H : Digest; W : Border_Width_Value) return Digest is
+        (case W.Kind is
+            when Gap_Uniform => Add (Mix (H, 14), W.All_Edges),
+            when Per_Edge    =>
+              Add (Add (Add (Add (Mix (H, 15), W.Edges (Top)),
+                             W.Edges (Right)),
+                        W.Edges (Bottom)), W.Edges (Left)));
+
+      function Add (H : Digest; C : Border_Color_Value) return Digest is
+        (case C.Kind is
+            when Gap_Uniform => Add (Mix (H, 16), C.All_Edges),
+            when Per_Edge    =>
+              Add (Add (Add (Add (Mix (H, 17), C.Edges (Top)),
+                             C.Edges (Right)),
+                        C.Edges (Bottom)), C.Edges (Left)));
+
+      function Add (H : Digest; R : Border_Radius_Value) return Digest is
+        (case R.Kind is
+            when Gap_Uniform => Add (Mix (H, 18), R.All_Corners),
+            when Per_Corner  =>
+              Add (Add (Add (Add (Mix (H, 19), R.Corners (Top_Left)),
+                             R.Corners (Top_Right)),
+                        R.Corners (Bottom_Right)), R.Corners (Bottom_Left)));
+
+      function Add (H : Digest; S : Border_Style_Value) return Digest is
+        (case S.Kind is
+            when Gap_Uniform =>
+              Mix (Mix (H, 20), Border_Style_Kind'Pos (S.All_Edges)),
+            when Per_Edge    =>
+              Mix (Mix (Mix (Mix (Mix (H, 21),
+                                  Border_Style_Kind'Pos (S.Edges (Top))),
+                             Border_Style_Kind'Pos (S.Edges (Right))),
+                        Border_Style_Kind'Pos (S.Edges (Bottom))),
+                   Border_Style_Kind'Pos (S.Edges (Left))));
+
+      function Add (H : Digest; G : Gap_Value) return Digest is
+        (case G.Kind is
+            when Gap_Uniform  => Add (Mix (H, 22), G.All_Gap),
+            when Gap_Separate =>
+              Mix (Mix (Add (Add (Mix (H, 23), G.Row_Gap), G.Column_Gap),
+                        Boolean'Pos (G.Has_Row)),
+                   Boolean'Pos (G.Has_Column)));
+
+      function Add (H : Digest; L : Line_Height_Value) return Digest is
+        (case L.Kind is
+            when LH_Normal => Mix (H, 24),
+            when LH_Number => Mix (Mix (H, 25), Num (L.Multiplier)),
+            when LH_Length => Add (Mix (H, 26), L.Height));
+
+      function Add (H : Digest; F : Flex_Basis_Value) return Digest is
+        (case F.Kind is
+            when Fixed  => Add (Mix (H, 27), F.Size),
+            when others => Mix (Mix (H, 28), Flex_Basis_Kind'Pos (F.Kind)));
+
+      function Add (H : Digest; S : Box_Shadow_Value) return Digest is
+        (Add (Add (Add (Add (Add (Mix (H, 29), S.Offset_X), S.Offset_Y),
+                        S.Blur_Radius), S.Spread_Radius), S.Color));
+
+      function Add (H : Digest; P : Object_Position_Value) return Digest is
+        (case P.Kind is
+            when Keyword_Pos =>
+              Mix (Mix (Mix (H, 30),
+                        Object_Position_Keyword'Pos (P.H_Keyword)),
+                   Object_Position_Keyword'Pos (P.V_Keyword)),
+            when Length_Pos  =>
+              Add (Add (Mix (H, 31), P.X_Offset), P.Y_Offset));
+
+      function Add (H : Digest; T : Transition_Spec) return Digest is
+         Result : Digest := Mix (Mix (H, Num (T.Duration)),
+                                 Easing_Kind'Pos (T.Easing));
+      begin
+         for P in Animatable_Property loop
+            Result := Mix (Result, Boolean'Pos (T.Properties (P)));
+         end loop;
+         return Result;
+      end Add;
+
+      --  A picture reaches the digest as its kind and whether it names a
+      --  live image, the two things Image_Handle answers from outside
+      --  Adi.Image. A gradient reaches it through the value, which
+      --  Shared_Gradient has already made canonical.
+      function Add (H : Digest; B : Background_Image_Value) return Digest is
+        (case B.Kind is
+            when No_Image      => Mix (H, 32),
+            when Picture_Image =>
+              Mix (Mix (H, 33), Boolean'Pos (Adi.Image.Is_Valid (B.Image))),
+            when Url_Image     => Mix (Mix (H, 34), Digest (B.URI)),
+            when Linear_Gradient_Image =>
+              (if B.Gradient = null then Mix (H, 35)
+               else Mix (Mix (Mix (H, 36), Num (B.Gradient.Angle)),
+                         Digest (B.Gradient.Stop_Count))));
+
+      function Add (H : Digest; F : Font_Family_Value) return Digest is
+        (case F.Kind is
+            when By_Handle => Mix (Mix (H, 37), Digest (F.Handle)),
+            when By_Name   => Mix (Mix (H, 38), Digest (F.Name)));
+
+      function Add (H : Digest; L : List_Style_Type_Value) return Digest is
+        (case L.Kind is
+            when List_Style_Custom_String =>
+              Mix (Mix (H, 39), Digest (L.Marker)),
+            when others =>
+              Mix (Mix (H, 40), List_Style_Type_Kind'Pos (L.Kind)));
+
+      function Add (H : Digest; L : List_Style_Image_Value) return Digest is
+        (case L.Kind is
+            when List_Image_URL  => Mix (Mix (H, 41), Digest (L.URI)),
+            when List_Image_None => Mix (H, 42));
+
+      function Add (H : Digest; G : Grid_Track_List) return Digest is
+         Result : Digest := Mix (H, Digest (G.Count));
+      begin
+         for I in 1 .. G.Count loop
+            Result := Mix (Mix (Result,
+                                Grid_Track_Kind'Pos (G.Tracks (I).Kind)),
+                           Num (G.Tracks (I).Value));
+         end loop;
+         return Result;
+      end Add;
+
+   end Value_Hash;
+
+   -------------------------------------------------
+   -- Interned rule sets
+   -------------------------------------------------
+
+   use Value_Hash;
+
+   --  Which properties the rule set names, then the value each of them
+   --  carries. Resolve answers the default for a property the set
+   --  leaves alone, so no inactive variant arm is read.
+   function Hash (S : Style_Rules) return Ada.Containers.Hash_Type is
+      Named : constant CSS_Property_Set := Set_Properties (S);
+      H     : Digest := Seed;
+   begin
+      for P in CSS_Property loop
+         H := Mix (H, Boolean'Pos (Named (P)));
+      end loop;
+
+      H := Add (H, Opt_Text_Color.Resolve (S.Color));
+      H := Add (H, Opt_Bg_Color.Resolve (S.Background_Color));
+      H := Add (H, Opt_Bg_Image.Resolve (S.Background_Image));
+      H := Add (H, To_Border_Radius (S.Border_Radius));
+      H := Add (H, To_Border_Width (S.Border_Width));
+      H := Add (H, To_Border_Color (S.Border_Color));
+      H := Add (H, To_Border_Style (S.Border_Style));
+      H := Add (H, Opt_Outline_Width.Resolve (S.Outline_Width));
+      H := Add (H, Opt_Outline_Color.Resolve (S.Outline_Color));
+      H := Mix (H, Outline_Style_Kind'Pos
+                     (Opt_Outline_Style.Resolve (S.Outline_Style)));
+      H := Add (H, Opt_Outline_Offset.Resolve (S.Outline_Offset));
+      H := Add (H, To_Box (S.Padding));
+      for E in Edge loop
+         H := Add (H, Opt_Margin.Resolve (S.Margin (E)));
+      end loop;
+      H := Add (H, Opt_Size.Resolve (S.Width));
+      H := Add (H, Opt_Size.Resolve (S.Height));
+      H := Add (H, Opt_Size.Resolve (S.Min_Width));
+      H := Add (H, Opt_Size.Resolve (S.Max_Width));
+      H := Add (H, Opt_Size.Resolve (S.Min_Height));
+      H := Add (H, Opt_Size.Resolve (S.Max_Height));
+      H := Add (H, Opt_Font.Resolve (S.Font_Family));
+      H := Add (H, Opt_Font_Size.Resolve (S.Font_Size));
+      H := Mix (H, Font_Weight_Value'Pos
+                     (Opt_Font_Weight.Resolve (S.Font_Weight)));
+      H := Mix (H, Font_Style_Value'Pos
+                     (Opt_Font_Style.Resolve (S.Font_Style)));
+      H := Mix (H, Text_Align_Value'Pos
+                     (Opt_Text_Align.Resolve (S.Text_Align)));
+      H := Mix (H, Vertical_Align_Value'Pos
+                     (Opt_Vertical_Align.Resolve (S.Vertical_Align)));
+      H := Mix (H, Text_Decoration_Value'Pos
+                     (Opt_Text_Decoration.Resolve (S.Text_Decoration)));
+      H := Add (H, Opt_List_Style_Type.Resolve (S.List_Style_Type));
+      H := Add (H, Opt_List_Style_Image.Resolve (S.List_Style_Image));
+      H := Mix (H, List_Style_Position_Value'Pos
+                     (Opt_List_Style_Position.Resolve (S.List_Style_Position)));
+      H := Mix (H, White_Space_Value'Pos
+                     (Opt_White_Space.Resolve (S.White_Space)));
+      H := Mix (H, Text_Overflow_Value'Pos
+                     (Opt_Text_Overflow.Resolve (S.Text_Overflow)));
+      H := Mix (H, Text_Wrap_Mode_Value'Pos
+                     (Opt_Text_Wrap_Mode.Resolve (S.Text_Wrap_Mode)));
+      H := Add (H, Opt_Line_Height.Resolve (S.Line_Height));
+      H := Mix (H, Display_Value'Pos (Opt_Display.Resolve (S.Display)));
+      H := Mix (H, Position_Value'Pos (Opt_Position.Resolve (S.Position)));
+      H := Add (H, Opt_Top.Resolve (S.Top));
+      H := Add (H, Opt_Right.Resolve (S.Right));
+      H := Add (H, Opt_Bottom.Resolve (S.Bottom));
+      H := Add (H, Opt_Left.Resolve (S.Left));
+      H := Mix (H, Overflow_Value'Pos (Opt_Overflow.Resolve (S.Overflow_X)));
+      H := Mix (H, Overflow_Value'Pos (Opt_Overflow.Resolve (S.Overflow_Y)));
+      H := Mix (H, Visibility_Value'Pos
+                     (Opt_Visibility.Resolve (S.Visibility)));
+      H := Mix (H, Num (Float (Opt_Opacity.Resolve (S.Opacity))));
+      H := Mix (H, Cursor_Value'Pos (Opt_Cursor.Resolve (S.Cursor)));
+      H := Add (H, Opt_Box_Shadow.Resolve (S.Box_Shadow));
+      H := Mix (H, Object_Fit_Value'Pos
+                     (Opt_Object_Fit.Resolve (S.Object_Fit)));
+      H := Add (H, Opt_Object_Pos.Resolve (S.Object_Position));
+      H := Mix (H, Flex_Direction_Value'Pos
+                     (Opt_Flex_Dir.Resolve (S.Flex_Direction)));
+      H := Mix (H, Flex_Wrap_Value'Pos
+                     (Opt_Flex_Wrap.Resolve (S.Flex_Wrap)));
+      H := Mix (H, Justify_Content_Value'Pos
+                     (Opt_Justify.Resolve (S.Justify_Content)));
+      H := Mix (H, Align_Items_Value'Pos
+                     (Opt_Align_Items.Resolve (S.Align_Items)));
+      H := Mix (H, Align_Content_Value'Pos
+                     (Opt_Align_Content.Resolve (S.Align_Content)));
+      H := Add (H, Opt_Gap.Resolve (S.Gap));
+      H := Mix (H, Digest (Opt_Grid_Cols.Resolve (S.Grid_Columns)));
+      H := Mix (H, Digest (Opt_Grid_Rows.Resolve (S.Grid_Rows)));
+      H := Add (H, S.Grid_Column_Tracks);
+      H := Mix (H, Align_Self_Value'Pos
+                     (Opt_Align_Self.Resolve (S.Align_Self)));
+      H := Mix (H, Num (Float (Opt_Flex_Grow.Resolve (S.Flex_Grow))));
+      H := Mix (H, Num (Float (Opt_Flex_Shrink.Resolve (S.Flex_Shrink))));
+      H := Add (H, Opt_Flex_Basis.Resolve (S.Flex_Basis));
+      H := Mix (H, Digest (Integer (Opt_Order.Resolve (S.Order))
+                             mod 2 ** 24));
+      H := Mix (H, Digest (Opt_Grid_Column.Resolve (S.Grid_Column)));
+      H := Mix (H, Digest (Opt_Grid_Row.Resolve (S.Grid_Row)));
+      H := Mix (H, Digest (Opt_Grid_Col_Span.Resolve (S.Grid_Column_Span)));
+      H := Mix (H, Digest (Opt_Grid_Row_Span.Resolve (S.Grid_Row_Span)));
+      H := Add (H, Opt_Transition.Resolve (S.Transition));
+      return H;
+   end Hash;
+
+   package Rules_Vectors is new Ada.Containers.Vectors
+     (Positive, Const_Rules_Access);
+
+   Rules_Store : Rules_Vectors.Vector;
+
+   package Rules_Handle_Vectors is new Ada.Containers.Vectors
+     (Positive, Rules_Handle);
+
+   function Same_Digest (H : Ada.Containers.Hash_Type)
+     return Ada.Containers.Hash_Type is (H);
+
+   --  Handles grouped by digest, so interning compares against a
+   --  handful of candidates rather than the whole store.
+   package Rules_Index_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Ada.Containers.Hash_Type,
+      Element_Type    => Rules_Handle_Vectors.Vector,
+      Hash            => Same_Digest,
+      Equivalent_Keys => Ada.Containers."=",
+      "="             => Rules_Handle_Vectors."=");
+
+   Rules_Index : Rules_Index_Maps.Map;
+
+   Empty_Rules_Value : aliased constant Style_Rules := Empty_Style;
+
+   Rule_Set_Count : Natural := 0;
+   Rule_Set_Bytes : Natural := 0;
+
+   function Interned_Rule_Sets return Natural is (Rule_Set_Count);
+   function Interned_Rule_Bytes return Natural is (Rule_Set_Bytes);
+
+   function Rules_Ref (H : Rules_Handle) return not null Const_Rules_Access is
+   begin
+      if H = Empty_Rules
+        or else Natural (H) > Natural (Rules_Store.Length)
+      then
+         return Empty_Rules_Value'Access;
+      end if;
+      return Rules_Store.Element (Positive (H));
+   end Rules_Ref;
+
+   function Rules_Of (H : Rules_Handle) return Style_Rules is
+     (Rules_Ref (H).all);
+
+   function Index (H : Rules_Handle) return Natural is (Natural (H));
+
+   function Intern_Rules (S : Style_Rules) return Rules_Handle is
+   begin
+      if S = Empty_Style then
+         return Empty_Rules;
+      end if;
+
+      declare
+         Key      : constant Ada.Containers.Hash_Type := Hash (S);
+         Bucket   : constant Rules_Index_Maps.Cursor := Rules_Index.Find (Key);
+         Interned : Rules_Handle;
+      begin
+         if Rules_Index_Maps.Has_Element (Bucket) then
+            for H of Rules_Index_Maps.Element (Bucket) loop
+               if Rules_Store.Element (Positive (H)).all = S then
+                  return H;
+               end if;
+            end loop;
+         end if;
+
+         Rules_Store.Append (new Style_Rules'(S));
+         Interned := Rules_Handle (Rules_Store.Length);
+         Rule_Set_Count := Natural (Rules_Store.Length);
+         Rule_Set_Bytes :=
+           Rule_Set_Bytes + Style_Rules'Max_Size_In_Storage_Elements;
+
+         if Rules_Index_Maps.Has_Element (Bucket) then
+            Rules_Index.Reference (Bucket).Append (Interned);
+         else
+            declare
+               Fresh : Rules_Handle_Vectors.Vector;
+            begin
+               Fresh.Append (Interned);
+               Rules_Index.Insert (Key, Fresh);
+            end;
+         end if;
+
+         return Interned;
+      end;
+   end Intern_Rules;
 
 end Adi.CSS_Styles;

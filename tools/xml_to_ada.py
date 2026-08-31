@@ -1245,6 +1245,14 @@ def generate_body(app: XmlApp, package_name: str,
         else:
             lines.append(f"with {pkg};")
 
+    if "Adi.Widget_Styles" in body_withs:
+        #  The compiled <style> block becomes library-level constants
+        #  below, and Build interns them as this body elaborates, so the
+        #  stores behind Intern_Rules and Build are wanted first. The
+        #  spec declares none of them and withs none of this.
+        lines.append("")
+        lines.append("pragma Elaborate_All (Adi.Widget_Styles);")
+
     lines.append("")
     lines.append(f"package body {package_name} is")
     lines.append("")
@@ -1320,17 +1328,16 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append("      others => <>);")
         lines.append("")
         lines.append("   function Inline_Has_Root_Styles return Boolean is (True);")
-        lines.append("   function Inline_Root_Part_Styles return Part_Style_Array is")
-        lines.append("     ([")
+        lines.append("   Inline_Root_Part_Styles : constant Part_Style_Array :=")
+        lines.append("     [")
         lines.append("      Main_Part => (Style => From (Inline_Root_Base_Style).Build, Enabled => True),")
         lines.append("      others => <>")
-        lines.append("   ]);")
+        lines.append("   ];")
         lines.append("")
         lines.append("   function Inline_Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is")
         lines.append("     (")
         lines.append("      Has_Root_Style => Inline_Has_Root_Styles,")
-        lines.append("      Root_Styles =>")
-        lines.append("        Adi.Widget.Intern (Inline_Root_Part_Styles),")
+        lines.append("      Root_Styles => Inline_Root_Part_Styles,")
         lines.append("      Has_Root_Font_Size => Inline_Has_Root_Font_Size,")
         lines.append("      Root_Font_Size => Inline_Root_Font_Size);")
 
@@ -1344,10 +1351,8 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append("      if Override.Has_Root_Style then")
         lines.append("         if Result.Has_Root_Style then")
         lines.append("            Result.Root_Styles :=")
-        lines.append("              Adi.Widget.Intern")
-        lines.append("                (Merge_Part_Styles")
-        lines.append("                   (Adi.Widget.Expand (Result.Root_Styles),")
-        lines.append("                    Adi.Widget.Expand (Override.Root_Styles)));")
+        lines.append("              Merge_Part_Styles")
+        lines.append("                (Result.Root_Styles, Override.Root_Styles);")
         lines.append("         else")
         lines.append("            Result.Root_Styles := Override.Root_Styles;")
         lines.append("            Result.Has_Root_Style := True;")
@@ -1542,11 +1547,10 @@ def generate_body(app: XmlApp, package_name: str,
 
     lines.append("")
 
-    # Private helper procedures — one per style-registration call — accumulated
-    # during the style-walking section below and spliced into lines here so that
-    # each Add_Static_Entry / Set_Part_Styles call gets its own stack frame.
-    # GNAT at -O0 cannot reuse temporaries across separate procedure calls, so
-    # the 169 KB Part_Style_Array temporary is released before the next call.
+    # Private helper procedures — one per style-registration call —
+    # accumulated during the style-walking section below and spliced into
+    # lines here, so each Add_Static_Entry / Set_Part_Styles call gets its
+    # own stack frame.
     helper_procs: list[str] = []
     build_start_idx = len(lines)
 
@@ -1947,7 +1951,7 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append("")
 
     # Splice style helper procedures before the Build function so each call
-    # gets its own stack frame, preventing N × 169 KB stack accumulation.
+    # gets its own stack frame.
     if helper_procs:
         lines[build_start_idx:build_start_idx] = helper_procs
 
@@ -2091,7 +2095,7 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append("         if Root_Meta.Has_Root_Style then")
             lines.append(
                 "            Adi.Widget.Dialog.Set_Panel_Style"
-                " (D, Adi.Widget.Expand (Root_Meta.Root_Styles));"
+                " (D, Root_Meta.Root_Styles);"
             )
             lines.append("         end if;")
             lines.append("      end;")

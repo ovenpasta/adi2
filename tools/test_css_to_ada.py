@@ -1452,6 +1452,40 @@ class TestGenerateAdaPackage(unittest.TestCase):
         self.assertIn("Card_Class_Part_Styles", ada)
         self.assertIn("RGB (10, 20, 30)", ada)
 
+    def test_styles_are_constants_interned_at_elaboration(self):
+        #  A Widget_Style is a handle and a Part_Style_Array twelve of
+        #  them, so both are library-level constants and the sheet is
+        #  interned once, as the package elaborates.
+        rules = parse_css(".card { background-color: rgb(10, 20, 30); }")
+        groups = group_rules_by_widget(rules)
+        ada = generate_ada_package(groups, "Test_Styles")
+        self.assertIn("pragma Elaborate_All (Adi.Widget_Styles);", ada)
+        self.assertIn("   Card_Class_Widget : constant Widget_Style :=", ada)
+        self.assertIn(
+            "   Card_Class_Part_Styles : constant Part_Style_Array :=", ada)
+        self.assertNotIn("return Widget_Style is", ada)
+        self.assertNotIn("return Part_Style_Array is", ada)
+
+    def test_parent_package_renames_the_constants(self):
+        rules = parse_css(".card { color: white; }")
+        groups = group_rules_by_widget(rules)
+        ada = css_to_ada.generate_parent_package(
+            groups,
+            "Parent_Styles",
+            ["Child_Styles"],
+            {key: "Child_Styles" for key in groups},
+        )
+        self.assertIn(
+            "   Card_Class_Widget : Widget_Style"
+            " renames Child_Styles.Card_Class_Widget;",
+            ada,
+        )
+        self.assertIn(
+            "   Card_Class_Part_Styles : Part_Style_Array"
+            " renames Child_Styles.Card_Class_Part_Styles;",
+            ada,
+        )
+
     def test_state_styles(self):
         css = ".btn { color: white; } .btn:hover { color: red; }"
         rules = parse_css(css)
@@ -1941,7 +1975,9 @@ class TestCustomProperties(unittest.TestCase):
         self.assertEqual(diags, [])
         self.assertIn("function Has_Root_Font_Size return Boolean is (True);", ada)
         self.assertIn("function Root_Font_Size return Length_Value is (Dip (20.0));", ada)
-        self.assertIn("function Root_Part_Styles return Part_Style_Array is", ada)
+        self.assertIn(
+            "Root_Part_Styles : constant Part_Style_Array :=", ada)
+        self.assertIn("      Root_Styles => Root_Part_Styles,", ada)
         self.assertIn("function Var_Spacing return Length_Value is (Dip (12.0));", ada)
         self.assertIn("function Var_Accent return Color_Value is (C (Blue));", ada)
 

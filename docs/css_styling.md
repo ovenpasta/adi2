@@ -967,13 +967,19 @@ Button_Class_Widget : constant Widget_Style :=
   .Build;
 ```
 
-A `Widget_Style` holds `Adi.Widget_Styles.Max_Style_Rules` (16) state
-rules for one selector and part. `Add_Rule`, and so `.On`, raises
-`Too_Many_Style_Rules` past that, naming the state selector that did not
-fit; `tools/css_to_ada.py` refuses to generate a longer chain, naming the
-CSS selector; the runtime parser rejects the sheet and keeps the last
-good one; and a merge of two styles, which has nowhere to report to,
-drops the rule and logs it.
+A `Widget_Style` is a four-byte handle into a store the library keeps.
+`.Build` interns what the chain named and answers the handle; interning
+is canonical, so equal chains share one entry and comparing two handles
+compares two styles. `Adi.Widget_Styles.Definition` reads the stored form
+back as a `Style_Definition`, which is the record `.On` fills in: a base
+rule set and up to `Adi.Widget_Styles.Max_Style_Rules` (16) state rules,
+each naming its `Style_Rules` by handle too.
+
+`Add_Rule`, and so `.On`, raises `Too_Many_Style_Rules` past the cap,
+naming the state selector that did not fit; `tools/css_to_ada.py` refuses
+to generate a longer chain, naming the CSS selector; the runtime parser
+rejects the sheet and keeps the last good one; and a merge of two styles,
+which has nowhere to report to, drops the rule and logs it.
 
 **3. Part_Style_Array** — Bundle of all parts for a selector:
 
@@ -1034,7 +1040,7 @@ Base_Styles.Register_Selectors (Source);
 Theme_Styles.Register_Selectors (Source);
 ```
 
-Each selector is registered by its own helper procedure, so only one `Part_Style_Array` is ever live: a whole sheet's worth in one frame is megabytes and overflows the stack. `Add_Static_Entry` remains for registering one selector by hand.
+Each selector is registered by its own helper procedure, so a sheet goes in in source order with one entry under construction at a time. `Add_Static_Entry` remains for registering one selector by hand.
 
 If your stylesheet uses `:root` metadata, install it separately:
 

@@ -9,18 +9,22 @@ with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
+--  The constants below intern as this package elaborates, so the
+--  stores behind Intern_Rules and Build are wanted first.
+pragma Elaborate_All (Adi.Widget_Styles);
+
 package Dialog_Example_Styles is
 
    function Has_Root_Font_Size return Boolean is (False);
    function Root_Font_Size return Length_Value is (Default_Font_Size);
 
    function Has_Root_Styles return Boolean is (False);
-   function Root_Part_Styles return Part_Style_Array is (Empty_Part_Styles);
+   Root_Part_Styles : constant Part_Style_Array := Empty_Part_Styles;
 
    function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
      (
       Has_Root_Style => Has_Root_Styles,
-      Root_Styles => Adi.Widget.Intern (Root_Part_Styles),
+      Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
    --  Base style for class 'root'
@@ -298,240 +302,240 @@ package Dialog_Example_Styles is
       others => <>);
 
    --  Complete widget style for class 'root'
-   function Root_Class_Widget return Widget_Style is
-     (From (Root_Class_Base_Style)
-     .Build);
+   Root_Class_Widget : constant Widget_Style :=
+     From (Root_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'root'
-   function Root_Class_Part_Styles return Part_Style_Array is
-     ([
+   Root_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Root_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'container'
-   function Container_Class_Widget return Widget_Style is
-     (From (Container_Class_Base_Style)
-     .Build);
+   Container_Class_Widget : constant Widget_Style :=
+     From (Container_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'container'
-   function Container_Class_Part_Styles return Part_Style_Array is
-     ([
+   Container_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Container_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'title'
-   function Title_Class_Widget return Widget_Style is
-     (From (Title_Class_Base_Style)
-     .Build);
+   Title_Class_Widget : constant Widget_Style :=
+     From (Title_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'title'::label
-   function Title_Class_Label_Widget return Widget_Style is
-     (From (Title_Class_Label_Base_Style)
-     .Build);
+   Title_Class_Label_Widget : constant Widget_Style :=
+     From (Title_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'title'
-   function Title_Class_Part_Styles return Part_Style_Array is
-     ([
+   Title_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'hint'
-   function Hint_Class_Widget return Widget_Style is
-     (From (Hint_Class_Base_Style)
-     .Build);
+   Hint_Class_Widget : constant Widget_Style :=
+     From (Hint_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'hint'::label
-   function Hint_Class_Label_Widget return Widget_Style is
-     (From (Hint_Class_Label_Base_Style)
-     .Build);
+   Hint_Class_Label_Widget : constant Widget_Style :=
+     From (Hint_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'hint'
-   function Hint_Class_Part_Styles return Part_Style_Array is
-     ([
+   Hint_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Hint_Class_Widget, Enabled => True),
       Label_Part => (Style => Hint_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'status'::label
-   function Status_Class_Label_Widget return Widget_Style is
-     (From (Status_Class_Label_Base_Style)
-     .Build);
+   Status_Class_Label_Widget : constant Widget_Style :=
+     From (Status_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'status'
-   function Status_Class_Part_Styles return Part_Style_Array is
-     ([
+   Status_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Status_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'btn-primary'
-   function Btn_Primary_Class_Widget return Widget_Style is
-     (From (Btn_Primary_Class_Base_Style)
+   Btn_Primary_Class_Widget : constant Widget_Style :=
+     From (Btn_Primary_Class_Base_Style)
      .On (When_State (State_Hovered), Btn_Primary_Class_Widget_Hovered_Style)
      .On (When_State (State_Pressed), Btn_Primary_Class_Widget_Pressed_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'btn-primary'::label
-   function Btn_Primary_Class_Label_Widget return Widget_Style is
-     (From (Btn_Primary_Class_Label_Base_Style)
-     .Build);
+   Btn_Primary_Class_Label_Widget : constant Widget_Style :=
+     From (Btn_Primary_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'btn-primary'
-   function Btn_Primary_Class_Part_Styles return Part_Style_Array is
-     ([
+   Btn_Primary_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Btn_Primary_Class_Widget, Enabled => True),
       Label_Part => (Style => Btn_Primary_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'backdrop'
-   function Backdrop_Class_Widget return Widget_Style is
-     (From (Backdrop_Class_Base_Style)
-     .Build);
+   Backdrop_Class_Widget : constant Widget_Style :=
+     From (Backdrop_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'backdrop'
-   function Backdrop_Class_Part_Styles return Part_Style_Array is
-     ([
+   Backdrop_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Backdrop_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'panel'
-   function Panel_Class_Widget return Widget_Style is
-     (From (Panel_Class_Base_Style)
-     .Build);
+   Panel_Class_Widget : constant Widget_Style :=
+     From (Panel_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'panel'
-   function Panel_Class_Part_Styles return Part_Style_Array is
-     ([
+   Panel_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Panel_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'dialog-message'
-   function Dialog_Message_Class_Widget return Widget_Style is
-     (From (Dialog_Message_Class_Base_Style)
-     .Build);
+   Dialog_Message_Class_Widget : constant Widget_Style :=
+     From (Dialog_Message_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'dialog-message'::icon
-   function Dialog_Message_Class_Icon_Widget return Widget_Style is
-     (From (Dialog_Message_Class_Icon_Base_Style)
-     .Build);
+   Dialog_Message_Class_Icon_Widget : constant Widget_Style :=
+     From (Dialog_Message_Class_Icon_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'dialog-message'::label
-   function Dialog_Message_Class_Label_Widget return Widget_Style is
-     (From (Dialog_Message_Class_Label_Base_Style)
-     .Build);
+   Dialog_Message_Class_Label_Widget : constant Widget_Style :=
+     From (Dialog_Message_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'dialog-message'
-   function Dialog_Message_Class_Part_Styles return Part_Style_Array is
-     ([
+   Dialog_Message_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Dialog_Message_Class_Widget, Enabled => True),
       Icon_Part => (Style => Dialog_Message_Class_Icon_Widget, Enabled => True),
       Label_Part => (Style => Dialog_Message_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'dialog-title'
-   function Dialog_Title_Class_Widget return Widget_Style is
-     (From (Dialog_Title_Class_Base_Style)
-     .Build);
+   Dialog_Title_Class_Widget : constant Widget_Style :=
+     From (Dialog_Title_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'dialog-title'::label
-   function Dialog_Title_Class_Label_Widget return Widget_Style is
-     (From (Dialog_Title_Class_Label_Base_Style)
-     .Build);
+   Dialog_Title_Class_Label_Widget : constant Widget_Style :=
+     From (Dialog_Title_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'dialog-title'
-   function Dialog_Title_Class_Part_Styles return Part_Style_Array is
-     ([
+   Dialog_Title_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Dialog_Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Dialog_Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'button-row'
-   function Button_Row_Class_Widget return Widget_Style is
-     (From (Button_Row_Class_Base_Style)
-     .Build);
+   Button_Row_Class_Widget : constant Widget_Style :=
+     From (Button_Row_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'button-row'
-   function Button_Row_Class_Part_Styles return Part_Style_Array is
-     ([
+   Button_Row_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Button_Row_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'dialog-btn'
-   function Dialog_Btn_Class_Widget return Widget_Style is
-     (From (Dialog_Btn_Class_Base_Style)
+   Dialog_Btn_Class_Widget : constant Widget_Style :=
+     From (Dialog_Btn_Class_Base_Style)
      .On (When_State (State_Hovered), Dialog_Btn_Class_Widget_Hovered_Style)
      .On (When_State (State_Pressed), Dialog_Btn_Class_Widget_Pressed_Style)
      .On (When_State (State_Focused), Dialog_Btn_Class_Widget_Focused_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'dialog-btn'::label
-   function Dialog_Btn_Class_Label_Widget return Widget_Style is
-     (From (Dialog_Btn_Class_Label_Base_Style)
-     .Build);
+   Dialog_Btn_Class_Label_Widget : constant Widget_Style :=
+     From (Dialog_Btn_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'dialog-btn'
-   function Dialog_Btn_Class_Part_Styles return Part_Style_Array is
-     ([
+   Dialog_Btn_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Dialog_Btn_Class_Widget, Enabled => True),
       Label_Part => (Style => Dialog_Btn_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'dialog-btn-primary'
-   function Dialog_Btn_Primary_Class_Widget return Widget_Style is
-     (From (Dialog_Btn_Primary_Class_Base_Style)
+   Dialog_Btn_Primary_Class_Widget : constant Widget_Style :=
+     From (Dialog_Btn_Primary_Class_Base_Style)
      .On (When_State (State_Hovered), Dialog_Btn_Primary_Class_Widget_Hovered_Style)
      .On (When_State (State_Pressed), Dialog_Btn_Primary_Class_Widget_Pressed_Style)
      .On (When_State (State_Focused), Dialog_Btn_Primary_Class_Widget_Focused_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'dialog-btn-primary'::label
-   function Dialog_Btn_Primary_Class_Label_Widget return Widget_Style is
-     (From (Dialog_Btn_Primary_Class_Label_Base_Style)
-     .Build);
+   Dialog_Btn_Primary_Class_Label_Widget : constant Widget_Style :=
+     From (Dialog_Btn_Primary_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'dialog-btn-primary'
-   function Dialog_Btn_Primary_Class_Part_Styles return Part_Style_Array is
-     ([
+   Dialog_Btn_Primary_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Dialog_Btn_Primary_Class_Widget, Enabled => True),
       Label_Part => (Style => Dialog_Btn_Primary_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'custom-content'
-   function Custom_Content_Class_Widget return Widget_Style is
-     (From (Custom_Content_Class_Base_Style)
-     .Build);
+   Custom_Content_Class_Widget : constant Widget_Style :=
+     From (Custom_Content_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'custom-content'
-   function Custom_Content_Class_Part_Styles return Part_Style_Array is
-     ([
+   Custom_Content_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Custom_Content_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'detail-label'::label
-   function Detail_Label_Class_Label_Widget return Widget_Style is
-     (From (Detail_Label_Class_Label_Base_Style)
-     .Build);
+   Detail_Label_Class_Label_Widget : constant Widget_Style :=
+     From (Detail_Label_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'detail-label'
-   function Detail_Label_Class_Part_Styles return Part_Style_Array is
-     ([
+   Detail_Label_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Detail_Label_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Register every selector this stylesheet defines, in
    --  source order. A consumer that knows only the package

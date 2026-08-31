@@ -9,18 +9,22 @@ with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
+--  The constants below intern as this package elaborates, so the
+--  stores behind Intern_Rules and Build are wanted first.
+pragma Elaborate_All (Adi.Widget_Styles);
+
 package Text_Input_Example_Styles is
 
    function Has_Root_Font_Size return Boolean is (False);
    function Root_Font_Size return Length_Value is (Default_Font_Size);
 
    function Has_Root_Styles return Boolean is (False);
-   function Root_Part_Styles return Part_Style_Array is (Empty_Part_Styles);
+   Root_Part_Styles : constant Part_Style_Array := Empty_Part_Styles;
 
    function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
      (
       Has_Root_Style => Has_Root_Styles,
-      Root_Styles => Adi.Widget.Intern (Root_Part_Styles),
+      Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
    --  Base style for class 'root'
@@ -169,150 +173,150 @@ package Text_Input_Example_Styles is
       others => <>);
 
    --  Complete widget style for class 'root'
-   function Root_Class_Widget return Widget_Style is
-     (From (Root_Class_Base_Style)
-     .Build);
+   Root_Class_Widget : constant Widget_Style :=
+     From (Root_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'root'
-   function Root_Class_Part_Styles return Part_Style_Array is
-     ([
+   Root_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Root_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'container'
-   function Container_Class_Widget return Widget_Style is
-     (From (Container_Class_Base_Style)
-     .Build);
+   Container_Class_Widget : constant Widget_Style :=
+     From (Container_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'container'
-   function Container_Class_Part_Styles return Part_Style_Array is
-     ([
+   Container_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Container_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'title'
-   function Title_Class_Widget return Widget_Style is
-     (From (Title_Class_Base_Style)
-     .Build);
+   Title_Class_Widget : constant Widget_Style :=
+     From (Title_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'title'::label
-   function Title_Class_Label_Widget return Widget_Style is
-     (From (Title_Class_Label_Base_Style)
-     .Build);
+   Title_Class_Label_Widget : constant Widget_Style :=
+     From (Title_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'title'
-   function Title_Class_Part_Styles return Part_Style_Array is
-     ([
+   Title_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'hint'
-   function Hint_Class_Widget return Widget_Style is
-     (From (Hint_Class_Base_Style)
-     .Build);
+   Hint_Class_Widget : constant Widget_Style :=
+     From (Hint_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'hint'::label
-   function Hint_Class_Label_Widget return Widget_Style is
-     (From (Hint_Class_Label_Base_Style)
-     .Build);
+   Hint_Class_Label_Widget : constant Widget_Style :=
+     From (Hint_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'hint'
-   function Hint_Class_Part_Styles return Part_Style_Array is
-     ([
+   Hint_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Hint_Class_Widget, Enabled => True),
       Label_Part => (Style => Hint_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'echo-label'::label
-   function Echo_Label_Class_Label_Widget return Widget_Style is
-     (From (Echo_Label_Class_Label_Base_Style)
-     .Build);
+   Echo_Label_Class_Label_Widget : constant Widget_Style :=
+     From (Echo_Label_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'echo-label'
-   function Echo_Label_Class_Part_Styles return Part_Style_Array is
-     ([
+   Echo_Label_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Echo_Label_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'length-label'::label
-   function Length_Label_Class_Label_Widget return Widget_Style is
-     (From (Length_Label_Class_Label_Base_Style)
-     .Build);
+   Length_Label_Class_Label_Widget : constant Widget_Style :=
+     From (Length_Label_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'length-label'
-   function Length_Label_Class_Part_Styles return Part_Style_Array is
-     ([
+   Length_Label_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Length_Label_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'input'
-   function Input_Class_Widget return Widget_Style is
-     (From (Input_Class_Base_Style)
+   Input_Class_Widget : constant Widget_Style :=
+     From (Input_Class_Base_Style)
      .On (When_State (State_Focused), Input_Class_Widget_Focused_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'input'::cursor
-   function Input_Class_Cursor_Widget return Widget_Style is
-     (From (Input_Class_Cursor_Base_Style)
-     .Build);
+   Input_Class_Cursor_Widget : constant Widget_Style :=
+     From (Input_Class_Cursor_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'input'::selected
-   function Input_Class_Selected_Widget return Widget_Style is
-     (From (Input_Class_Selected_Base_Style)
-     .Build);
+   Input_Class_Selected_Widget : constant Widget_Style :=
+     From (Input_Class_Selected_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'input'::text
-   function Input_Class_Text_Widget return Widget_Style is
-     (From (Input_Class_Text_Base_Style)
-     .Build);
+   Input_Class_Text_Widget : constant Widget_Style :=
+     From (Input_Class_Text_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'input'
-   function Input_Class_Part_Styles return Part_Style_Array is
-     ([
+   Input_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Input_Class_Widget, Enabled => True),
       Cursor_Part => (Style => Input_Class_Cursor_Widget, Enabled => True),
       Selected_Part => (Style => Input_Class_Selected_Widget, Enabled => True),
       Text_Part => (Style => Input_Class_Text_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'context-menu'
-   function Context_Menu_Class_Widget return Widget_Style is
-     (From (Context_Menu_Class_Base_Style)
-     .Build);
+   Context_Menu_Class_Widget : constant Widget_Style :=
+     From (Context_Menu_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'context-menu'
-   function Context_Menu_Class_Part_Styles return Part_Style_Array is
-     ([
+   Context_Menu_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Context_Menu_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'context-menu-item'
-   function Context_Menu_Item_Class_Widget return Widget_Style is
-     (From (Context_Menu_Item_Class_Base_Style)
+   Context_Menu_Item_Class_Widget : constant Widget_Style :=
+     From (Context_Menu_Item_Class_Base_Style)
      .On (When_State (State_Hovered), Context_Menu_Item_Class_Widget_Hovered_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'context-menu-item'::label
-   function Context_Menu_Item_Class_Label_Widget return Widget_Style is
-     (From (Context_Menu_Item_Class_Label_Base_Style)
-     .Build);
+   Context_Menu_Item_Class_Label_Widget : constant Widget_Style :=
+     From (Context_Menu_Item_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'context-menu-item'
-   function Context_Menu_Item_Class_Part_Styles return Part_Style_Array is
-     ([
+   Context_Menu_Item_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Context_Menu_Item_Class_Widget, Enabled => True),
       Label_Part => (Style => Context_Menu_Item_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Register every selector this stylesheet defines, in
    --  source order. A consumer that knows only the package

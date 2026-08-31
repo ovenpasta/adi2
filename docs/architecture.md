@@ -372,7 +372,7 @@ Render scheduling note: relayout runs only when layout/geometry is dirty (`Mark_
 Three optimizations reduce layout cost for large widget trees (e.g. 280+ widgets in list_box_example):
 
 **Resolved style caching and evaluation** (`Get_Resolved_Part_Style` / `Get_Part_Style_Rules`):
-- Widget part styles are stored internally as interned style handles (private representation), not embedded `Widget_Style` payloads per widget part.
+- A `Widget_Style` is a four-byte handle into the store `Adi.Widget_Styles` keeps, so a widget's twelve part styles are 96 bytes and every layer above carries handles rather than rule sets.
 - Rule evaluation order is prepared once per interned style (effective priority: explicit `Priority`, else selector `Specificity`; stable source-order tie behavior). Runtime resolution reuses this prepared order and avoids per-call rule sorting.
 - Per-widget cache remains in place for hot repeated accesses, keyed by style version + effective widget state (`Get_States`) + part state, with per-part entries invalidated when widget-level key changes.
 - Both caches hold a `Resolved_Handle` into `Adi.Resolved_Styles` rather than a `Resolved_Style` by value, which takes a widget's twelve per-part entries from 10,080 bytes to 96.

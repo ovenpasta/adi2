@@ -9,18 +9,22 @@ with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
+--  The constants below intern as this package elaborates, so the
+--  stores behind Intern_Rules and Build are wanted first.
+pragma Elaborate_All (Adi.Widget_Styles);
+
 package Gradient_Example_Styles is
 
    function Has_Root_Font_Size return Boolean is (False);
    function Root_Font_Size return Length_Value is (Default_Font_Size);
 
    function Has_Root_Styles return Boolean is (False);
-   function Root_Part_Styles return Part_Style_Array is (Empty_Part_Styles);
+   Root_Part_Styles : constant Part_Style_Array := Empty_Part_Styles;
 
    function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
      (
       Has_Root_Style => Has_Root_Styles,
-      Root_Styles => Adi.Widget.Intern (Root_Part_Styles),
+      Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
    --  Base style for class 'root'
@@ -291,324 +295,324 @@ package Gradient_Example_Styles is
       others => <>);
 
    --  Complete widget style for class 'root'
-   function Root_Class_Widget return Widget_Style is
-     (From (Root_Class_Base_Style)
-     .Build);
+   Root_Class_Widget : constant Widget_Style :=
+     From (Root_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'root'::knob
-   function Root_Class_Knob_Widget return Widget_Style is
-     (From (Root_Class_Knob_Base_Style)
+   Root_Class_Knob_Widget : constant Widget_Style :=
+     From (Root_Class_Knob_Base_Style)
      .On (When_Part_State (State_Hovered), Root_Class_Knob_Part_Hovered_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'root'::scroll
-   function Root_Class_Scroll_Widget return Widget_Style is
-     (From (Root_Class_Scroll_Base_Style)
+   Root_Class_Scroll_Widget : constant Widget_Style :=
+     From (Root_Class_Scroll_Base_Style)
      .On (When_Part_State (State_Hovered), Root_Class_Scroll_Part_Hovered_Style)
-     .Build);
+     .Build;
 
    --  Part styles bundle for class 'root'
-   function Root_Class_Part_Styles return Part_Style_Array is
-     ([
+   Root_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Root_Class_Widget, Enabled => True),
       Knob_Part => (Style => Root_Class_Knob_Widget, Enabled => True),
       Scroll_Part => (Style => Root_Class_Scroll_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'row'
-   function Row_Class_Widget return Widget_Style is
-     (From (Row_Class_Base_Style)
-     .Build);
+   Row_Class_Widget : constant Widget_Style :=
+     From (Row_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'row'
-   function Row_Class_Part_Styles return Part_Style_Array is
-     ([
+   Row_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Row_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'title'::label
-   function Title_Class_Label_Widget return Widget_Style is
-     (From (Title_Class_Label_Base_Style)
-     .Build);
+   Title_Class_Label_Widget : constant Widget_Style :=
+     From (Title_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'title'
-   function Title_Class_Part_Styles return Part_Style_Array is
-     ([
+   Title_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-card'::label
-   function Grad_Card_Class_Label_Widget return Widget_Style is
-     (From (Grad_Card_Class_Label_Base_Style)
-     .Build);
+   Grad_Card_Class_Label_Widget : constant Widget_Style :=
+     From (Grad_Card_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-card'
-   function Grad_Card_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Card_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Grad_Card_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-v'
-   function Grad_V_Class_Widget return Widget_Style is
-     (From (Grad_V_Class_Base_Style)
-     .Build);
+   Grad_V_Class_Widget : constant Widget_Style :=
+     From (Grad_V_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-v'
-   function Grad_V_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_V_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_V_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-h'
-   function Grad_H_Class_Widget return Widget_Style is
-     (From (Grad_H_Class_Base_Style)
-     .Build);
+   Grad_H_Class_Widget : constant Widget_Style :=
+     From (Grad_H_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-h'
-   function Grad_H_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_H_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_H_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-default'
-   function Grad_Default_Class_Widget return Widget_Style is
-     (From (Grad_Default_Class_Base_Style)
-     .Build);
+   Grad_Default_Class_Widget : constant Widget_Style :=
+     From (Grad_Default_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-default'
-   function Grad_Default_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Default_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Default_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-up'
-   function Grad_Up_Class_Widget return Widget_Style is
-     (From (Grad_Up_Class_Base_Style)
-     .Build);
+   Grad_Up_Class_Widget : constant Widget_Style :=
+     From (Grad_Up_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-up'
-   function Grad_Up_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Up_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Up_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-left'
-   function Grad_Left_Class_Widget return Widget_Style is
-     (From (Grad_Left_Class_Base_Style)
-     .Build);
+   Grad_Left_Class_Widget : constant Widget_Style :=
+     From (Grad_Left_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-left'
-   function Grad_Left_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Left_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Left_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-diag'
-   function Grad_Diag_Class_Widget return Widget_Style is
-     (From (Grad_Diag_Class_Base_Style)
-     .Build);
+   Grad_Diag_Class_Widget : constant Widget_Style :=
+     From (Grad_Diag_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-diag'
-   function Grad_Diag_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Diag_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Diag_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-diag-tr'
-   function Grad_Diag_Tr_Class_Widget return Widget_Style is
-     (From (Grad_Diag_Tr_Class_Base_Style)
-     .Build);
+   Grad_Diag_Tr_Class_Widget : constant Widget_Style :=
+     From (Grad_Diag_Tr_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-diag-tr'
-   function Grad_Diag_Tr_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Diag_Tr_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Diag_Tr_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-diag-bl'
-   function Grad_Diag_Bl_Class_Widget return Widget_Style is
-     (From (Grad_Diag_Bl_Class_Base_Style)
-     .Build);
+   Grad_Diag_Bl_Class_Widget : constant Widget_Style :=
+     From (Grad_Diag_Bl_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-diag-bl'
-   function Grad_Diag_Bl_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Diag_Bl_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Diag_Bl_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-diag-rev'
-   function Grad_Diag_Rev_Class_Widget return Widget_Style is
-     (From (Grad_Diag_Rev_Class_Base_Style)
-     .Build);
+   Grad_Diag_Rev_Class_Widget : constant Widget_Style :=
+     From (Grad_Diag_Rev_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-diag-rev'
-   function Grad_Diag_Rev_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Diag_Rev_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Diag_Rev_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-45'
-   function Grad_45_Class_Widget return Widget_Style is
-     (From (Grad_45_Class_Base_Style)
-     .Build);
+   Grad_45_Class_Widget : constant Widget_Style :=
+     From (Grad_45_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-45'
-   function Grad_45_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_45_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_45_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-135'
-   function Grad_135_Class_Widget return Widget_Style is
-     (From (Grad_135_Class_Base_Style)
-     .Build);
+   Grad_135_Class_Widget : constant Widget_Style :=
+     From (Grad_135_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-135'
-   function Grad_135_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_135_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_135_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-turn'
-   function Grad_Turn_Class_Widget return Widget_Style is
-     (From (Grad_Turn_Class_Base_Style)
-     .Build);
+   Grad_Turn_Class_Widget : constant Widget_Style :=
+     From (Grad_Turn_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-turn'
-   function Grad_Turn_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Turn_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Turn_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-rad'
-   function Grad_Rad_Class_Widget return Widget_Style is
-     (From (Grad_Rad_Class_Base_Style)
-     .Build);
+   Grad_Rad_Class_Widget : constant Widget_Style :=
+     From (Grad_Rad_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-rad'
-   function Grad_Rad_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Rad_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Rad_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-grad'
-   function Grad_Grad_Class_Widget return Widget_Style is
-     (From (Grad_Grad_Class_Base_Style)
-     .Build);
+   Grad_Grad_Class_Widget : constant Widget_Style :=
+     From (Grad_Grad_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-grad'
-   function Grad_Grad_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Grad_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Grad_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-alpha'
-   function Grad_Alpha_Class_Widget return Widget_Style is
-     (From (Grad_Alpha_Class_Base_Style)
-     .Build);
+   Grad_Alpha_Class_Widget : constant Widget_Style :=
+     From (Grad_Alpha_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-alpha'
-   function Grad_Alpha_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Alpha_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Alpha_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-3stop'
-   function Grad_3stop_Class_Widget return Widget_Style is
-     (From (Grad_3stop_Class_Base_Style)
-     .Build);
+   Grad_3stop_Class_Widget : constant Widget_Style :=
+     From (Grad_3stop_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-3stop'
-   function Grad_3stop_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_3stop_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_3stop_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-pos'
-   function Grad_Pos_Class_Widget return Widget_Style is
-     (From (Grad_Pos_Class_Base_Style)
-     .Build);
+   Grad_Pos_Class_Widget : constant Widget_Style :=
+     From (Grad_Pos_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-pos'
-   function Grad_Pos_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Pos_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Pos_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-edge'
-   function Grad_Edge_Class_Widget return Widget_Style is
-     (From (Grad_Edge_Class_Base_Style)
-     .Build);
+   Grad_Edge_Class_Widget : constant Widget_Style :=
+     From (Grad_Edge_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-edge'
-   function Grad_Edge_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Edge_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Edge_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-16stop'
-   function Grad_16stop_Class_Widget return Widget_Style is
-     (From (Grad_16stop_Class_Base_Style)
-     .Build);
+   Grad_16stop_Class_Widget : constant Widget_Style :=
+     From (Grad_16stop_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-16stop'
-   function Grad_16stop_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_16stop_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_16stop_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-pill'
-   function Grad_Pill_Class_Widget return Widget_Style is
-     (From (Grad_Pill_Class_Base_Style)
-     .Build);
+   Grad_Pill_Class_Widget : constant Widget_Style :=
+     From (Grad_Pill_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'grad-pill'::label
-   function Grad_Pill_Class_Label_Widget return Widget_Style is
-     (From (Grad_Pill_Class_Label_Base_Style)
-     .Build);
+   Grad_Pill_Class_Label_Widget : constant Widget_Style :=
+     From (Grad_Pill_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-pill'
-   function Grad_Pill_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Pill_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Pill_Class_Widget, Enabled => True),
       Label_Part => (Style => Grad_Pill_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'grad-border'
-   function Grad_Border_Class_Widget return Widget_Style is
-     (From (Grad_Border_Class_Base_Style)
-     .Build);
+   Grad_Border_Class_Widget : constant Widget_Style :=
+     From (Grad_Border_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'grad-border'
-   function Grad_Border_Class_Part_Styles return Part_Style_Array is
-     ([
+   Grad_Border_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Grad_Border_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Register every selector this stylesheet defines, in
    --  source order. A consumer that knows only the package

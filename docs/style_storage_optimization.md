@@ -2,20 +2,24 @@
 
 ## Scope
 
-This document describes the internal style-system refactor in `Adi.Widget` that reduces memory usage and style-resolution overhead without changing user-facing APIs.
+How the library stores styles, resolves them and bounds what it keeps.
+The stores live in `Adi.CSS_Styles` (rule sets), `Adi.Widget_Styles`
+(styles) and `Adi.Resolved_Styles` (resolved values); `Adi.Widget` holds
+handles into them.
 
-Public APIs are unchanged:
-- `Part_Style`
-- `Part_Style_Array`
-- `Set_Part_Style`
-- `Set_Part_Styles`
-- CSS parser/source interfaces and generated CSS Ada usage
+These spellings are what an application writes, and each carries a
+handle or an array of them:
+- `Part_Style`, `Part_Style_Array`
+- `Set_Part_Style`, `Set_Part_Styles`
+- `From (…) .On (…) .Build`, which answers a `Widget_Style`
+- the CSS parser and source interfaces, and generated CSS Ada
 
-Only private/internal representation and resolution plumbing changed.
+`Widget_Style` is private, so a caller that reads a style's own rules
+goes through `Adi.Widget_Styles.Definition`.
 
 ## Design Summary
 
-The optimization has four internal layers:
+Four layers:
 
 1. Handle-based per-widget style storage
 2. Prepared rule-order evaluation
@@ -25,19 +29,18 @@ The optimization has four internal layers:
 
 ### 1) Handle-Based Storage
 
-Each widget part now stores:
-- `Part_Style_Handles : array (Part_Kind) of Style_Handle`
-- `Part_Style_Enabled : array (Part_Kind) of Boolean`
+`Adi.Widget_Styles.Widget_Style` is a private four-byte handle into a
+store the same package keeps. `Style_Definition` is the record an author
+fills in — a base rule set and sixteen state-rule slots — and the two
+convert through `Intern` and `Definition`. `Empty_Widget_Style` is
+handle zero.
 
-Instead of embedding full `Widget_Style` payloads per part inside each widget record.
+A widget holds `Part_Styles : Part_Style_Array`, twelve slots of a
+handle and an enabled flag, 96 bytes in all.
 
-`Style_Handle = 0` is reserved for `Empty_Widget_Style`.
-
-An internal interning store maps unique `Widget_Style` values to stable handles:
-- `Intern_Style`
-- `Style_From_Handle`
-
-This keeps public APIs the same while deduplicating identical style payloads across widgets.
+Interning is canonical, so equal definitions share one entry and
+comparing two handles compares two styles. The store holds an entry for
+the life of the process.
 
 ### 2) Prepared Rule Order
 
@@ -46,7 +49,12 @@ Interned style entries carry precomputed metadata:
 - effective priority = explicit `Priority` or selector `Specificity`
 - source-order tie behavior preserved
 
-Runtime style computation uses `Compute_Style_Prepared` and no longer sorts rules per call.
+Runtime style computation goes through
+`Adi.Widget_Styles.Compute_Style_Prepared`, which takes a handle and
+folds the rules in the prepared order rather than sorting per call.
+`Uses_Widget_State`, `Uses_Part_State` and `Uses_Properties` answer from
+the same entry, so `Adi.Widget` reads the masks without holding the
+record.
 
 ### 3) Global Resolved-Style Memo
 
@@ -70,115 +78,90 @@ Policy:
 
 This keeps behavior deterministic and bounded while capturing cross-widget repetition.
 
-## Behavioral Invariants
+## What the layers hold to
 
-The refactor preserves existing semantics:
-- `Any_Part` fallback behavior is unchanged.
-- Part `Enabled` semantics are unchanged.
-- Sub-part inheritance from `Main_Part` remains unchanged.
-- CSS merge/apply/source behavior remains unchanged.
+- The `Any_Part` fallback: a part with no style of its own resolves
+  through `Any_Part` when that carries one.
+- A part's `Enabled` flag rides beside its handle, so a part that carries
+  a style and is switched off stays distinct from a part with none.
+- A sub-part inherits the typography of `Main_Part`.
+- Two assumptions the stores rest on: style mutation is single-threaded,
+  and an interned entry is immutable once stored.
 
-Assumptions:
-- Widget/style mutation paths are effectively single-threaded.
-- Interned styles are immutable after insertion.
-
-## Validation
-
-Existing suite (unchanged) remains green:
-- `styles`
-- `layout_test`
-- `layout_perf_test`
-- `css_parser_test`
-- `min_size_test`
-- `disabled_test`
-- `html_view_test`
-- `image_widget_test`
-
-Added targeted regression test:
-- `tests/src/style_storage_equivalence_test.adb`
-
-Coverage in the new test:
-- `Any_Part` fallback and part override parity
-- enabled/disabled part storage parity
-- rule priority and equal-priority tie-order behavior
-- dynamic style churn via repeated selector rebinding
+`tests/src/style_storage_equivalence_test.adb` holds the first three,
+plus rule priority, equal-priority tie order, and dynamic style churn
+through repeated selector rebinding.
 
 ## Observed Results
 
-Measured with GNAT representation output (`-gnatR3`) for style-related fields:
-- previous embedded `Part_Style_Array`: `1,543,168 bits` (`192,896 bytes`)
-- new embedded handle+enabled arrays: `440 bits` (`55 bytes`)
-- per-widget style payload reduction: `192,841 bytes` (~`99.97%`)
-
-`layout_perf_test` behavior checks (style cache hit/miss + invalidation) remain green.  
-Single-run wall-clock timing is very small (about `0.01s`) and should be treated as noise-level for CPU conclusions; use repeated runs when comparing microbenchmark deltas.
-
----
-
-## Interned Registered Selectors
-
-Widgets hold style handles, but a `Style_Source` held its registered
-selectors by value. `Adi.CSS_Source.Static_Style_Entry` embedded a
-`Part_Style_Array`, and so did `Adi.CSS_Parser.Stylesheet_Metadata`
-through `Root_Styles`.
-
-A `Part_Style_Array` is twelve `Part_Kind` slots, each a `Widget_Style`
-carrying a fixed `State_Rule_Array (1 .. 16)`.
-
-`'Max_Size_In_Storage_Elements` on x86-64 Linux, which is what a vector
-element or a heap allocation of one costs. A 32-bit build differs, and
-the sizes below are not what `'Size` reports for the same types:
+`'Object_Size`/8 on x86-64 Linux, which `tests/src/style_flat_values_test.adb`
+reports and `tests/src/style_handle_test.adb` pins:
 
 | | bytes |
 |---|---|
-| `Widget_Style` | 20,008 |
-| `Part_Style_Array` | 239,840 |
-| a registered or parsed selector, by value | 239,864 |
-| the same, interned | 120 |
+| `Style_Rules` | 1,072 |
+| `State_Rule` | 16 |
+| `Widget_Style` | 4 |
+| `Style_Definition` | 268 |
+| `Part_Style` | 8 |
+| `Part_Style_Array` | 96 |
+| `Stylesheet_Metadata` | 112 |
+| `Resolved_Style` | 840 |
 
-The cost is paid per selector, per source, and again per source in
-`Applied_Statics`. An application that creates one `Style_Source` per
-generated UI package registers the same generated table from each of
-them, so a 221-selector sheet across 22 sources cost about 1.2 GB once
-and 2.4 GB with `Applied_Statics` — over the address space of a 32-bit
-build, and about five seconds of `Same_As_Applied` on top.
+A widget's twelve part slots are 96 bytes, and every layer that stores or
+passes a style — a registered selector, a parsed selector, a stylesheet's
+`:root` block, a merge result, a builder step — carries that width or
+less.
 
-### What changed
+`layout_perf_test` behaviour checks (style cache hit/miss + invalidation)
+remain green.
 
-- `Adi.Widget.Interned_Part_Styles` — a `Part_Style_Array` stored once
-  and referred to by handle, with `Intern` and `Expand`. Interning is
-  canonical, so equality on it is value equality.
-- `Static_Style_Entry.Styles` holds one of these. `Selector_Styles`
-  expands before merging, which is where a real `Part_Style_Array` was
-  already being built.
-- `Style_Source_Impl` keeps a `Root_Fingerprint` rather than a second
-  `Stylesheet_Metadata`, so `Same_As_Applied` compares handles.
-  `Stylesheet_Metadata` itself is unchanged, so generated stylesheets
-  are unaffected.
+---
 
-Measured on the workload above, RSS growth for registration fell from
-1,159 MB to 17.6 MB, and the registration itself from 1.24 s to 0.59 s.
+## Registered and parsed selectors
 
-### Interning has to be hashed
+`Adi.CSS_Source.Static_Style_Entry` and `Adi.CSS_Parser.Selector_Style`
+each hold a `Part_Style_Array` directly, and so does
+`Adi.CSS_Parser.Stylesheet_Metadata` through `Root_Styles`. At 96 bytes
+that is a selector's whole styling; a source's `Applied_Statics` holds a
+second copy per selector and costs the same again.
 
-`Intern_Style` scanned the whole store comparing whole `Widget_Style`s.
-That was tolerable at one call per widget styling; interning at
-registration raises it by orders of magnitude. Handles are now grouped
-by `Adi.Widget_Styles.Hash`, and the map is keyed by hash rather than by
-style so it does not hold a second copy of each.
+`Style_Source_Impl` keeps a `Root_Fingerprint` rather than a second
+`Stylesheet_Metadata`, so `Same_As_Applied` compares handles.
 
-`Style_Rules` cannot be hashed as bytes. Its properties are
-discriminated `Optional` records whose inactive variants hold
-indeterminate bytes. Two equal styles built by separate calls share
-none of those bytes, so a byte digest splits them and the
-deduplication silently disappears for exactly the properties most
-likely to vary.
+Rules for one selector arrive scattered through a file and are merged as
+they come, so `Build_Styles` accumulates into a working vector of
+`Part_Style_Array` and publishes it to `Impl.Selectors` once the whole
+build has succeeded. A failed build leaves the selectors the sheet
+started with.
 
-`Hash` therefore keys on `Set_Properties` — which properties each rule
-set names — together with the selectors and counts. Nothing it reads
-depends on how a value was constructed. A property missing from
-`Set_Properties` costs a collision, which equality then settles; it
-cannot cost a wrong answer.
+### Interning is hashed
+
+Interning runs at registration and at every `Set_Part_Styles`, so the
+store groups handles by hash and probes a bucket rather than scanning.
+Both stores are keyed by hash rather than by value, so neither holds a
+second copy of what it stores.
+
+`Adi.Widget_Styles.Hash` reads a `Style_Definition`: the store index of
+its base rule set, the index of each live rule's rule set, the selectors
+and the counts. A rule-set handle stands for its value, interning being
+canonical, so the digest reaches the values without reading them.
+
+`Adi.CSS_Styles.Hash` reads a `Style_Rules`, which cannot be hashed as
+bytes: its properties are discriminated `Optional` records whose inactive
+arms hold indeterminate bytes, so two equal rule sets built by separate
+calls share none of them and a byte digest would split them. It reads
+`Set_Properties` — which properties the set names — and then each
+property's value through `Resolve`, which answers the default for a
+property the set leaves alone and so never reaches an inactive arm.
+`Adi.CSS_Styles.Value_Hash` holds the per-value steps, shared with
+`Adi.Resolved_Styles`.
+
+Two rule sets can still share a digest — a single zero `padding-top` and
+a single zero `padding-left` both report `Prop_Padding` and resolve to a
+uniform zero box. That costs a bucket probe, never a wrong answer,
+because equality settles it.
+`tests/src/style_handle_test.adb` drives that pair.
 
 ### Composite values are canonical
 
@@ -204,70 +187,56 @@ carries a 4-byte id rather than a string, which keeps it flat, and
 equal text compares equal for the same reason a shared gradient
 pointer does.
 
-### Parsed selectors
+### Comparing definitions
 
-A stylesheet held the same shape: `Adi.CSS_Parser.Selector_Style`
-embedded a `Part_Style_Array`, field for field the same record as
-`Static_Style_Entry` and so the same size. Dynamic mode gives every
-source its own sheet, so 22 sources loading a 221-selector file cost
-about 1.2 GB.
-
-`Selector_Style.Styles` is now `Interned_Part_Styles`.
-Rules for one selector arrive scattered through the file and are merged
-as they come, so `Build_Styles` accumulates into a working vector of
-`Part_Style_Array` and interns each selector once its rules are all in.
-Interning every intermediate instead would leave the store holding every
-partial rule set the build passed through, and the store does not evict.
-
-The working vector is indefinite. Its elements are a quarter of a
-megabyte each, and a definite vector copies them all on every growth.
-
-Measured on that workload, peak RSS fell from 1,136 MB to 66 MB and the
-loading from 0.97 s to 0.60 s.
-
-### Comparing styles
-
-`Widget_Style.Rules` is a fixed `State_Rule_Array (1 .. 16)` of which
-`Rule_Count` slots are live. Predefined equality compares all sixteen,
-so most of the work of a comparison is on unused rule sets. Nothing
-writes a slot past `Rule_Count` — `Add_Rule` increments and then writes
-the slot it claimed, and nothing decrements — so
+`Style_Definition.Rules` is a fixed `State_Rule_Array (1 .. 16)` of which
+`Rule_Count` slots are live. Predefined equality compares all sixteen, so
+most of the work of a comparison is on unused slots. Nothing writes a
+slot past `Rule_Count` — `Add_Rule` increments and then writes the slot
+it claimed, and nothing decrements — so
 `Adi.Widget_Styles.Same_Style` compares the live prefix and answers as
-predefined equality does. Interning uses it for both the empty-style
-test and the bucket probe, which is a quarter of the loading above.
+predefined equality does. Interning uses it for both the empty-style test
+and the bucket probe.
+
+### Elaboration
+
+`tools/css_to_ada.py` emits its `Widget_Style` and `Part_Style_Array`
+constants at library level, so a generated sheet interns as it
+elaborates. The spec carries `pragma Elaborate_All (Adi.Widget_Styles)`,
+which puts that store and the rule-set store behind it in place first.
 
 ### Known gaps
 
-The store never evicts, and `Class_Entry` now interns when it is called
-rather than when a widget is styled. A caller that bakes per-instance
-content into a registered selector — a distinct value per row of a list
-— therefore retains a style per row for the life of the process. The
-store already grew this way through `Set_Part_Styles`; registration is a
-new way to reach it.
+Neither store evicts, and `Class_Entry` interns when it is called rather
+than when a widget is styled. A caller that bakes per-instance content
+into a registered selector — a distinct value per row of a list —
+therefore retains a style per row for the life of the process. The store
+is reached the same way through `Set_Part_Styles`.
 
-`Stylesheet_Metadata.Root_Styles` is still a `Part_Style_Array`, so a
-`Stylesheet_Metadata` is 239,864 bytes and every `Stylesheet_Impl`
-embeds one. It is public and generated stylesheets construct it, so
-shrinking it would mean regenerating every downstream application to
-save about 5 MB across 22 sources.
-
-`Set_Properties` is not injective over `Style_Rules`: two rule sets that
-name different properties can share a key when one of them names a
-property the enumeration folds elsewhere, such as `overflow`. That costs
-a bucket probe, never a wrong answer, because equality settles it.
-
+`Adi.CSS_Parser.Build_Styles` and `Adi.Style_Merge.Merge` fold a rule set
+and intern the result, so a selector named by several rule blocks leaves
+the intermediate folds in the rule-set store as well as the final one.
+`Merge` answers with a contributor's own handle where only one of them
+carries the part, which is the common case.
 
 ### Tests
 
+`tests/src/style_handle_test.adb` covers the widths each type carries,
+that equal definitions share a handle and different ones do not, a
+deliberate digest collision, the `Intern`/`Definition` round trip, the
+merge path re-interning and passing a single contributor through, and a
+generated sheet answering a live handle from constants that interned as
+it elaborated.
+
 `tests/src/style_interning_test.adb` covers the entry size, the same
 table registered from many sources, equal styles carrying a string
-(which is what catches a byte-wise digest), the enabled/disabled
-round-trip, and that equal gradients built separately make equal styles.
-On the parser side it covers the size of a parsed selector, the same CSS
-parsed into many sheets, that rules scattered through a sheet still
-merge onto one entry, and that `Same_Style` agrees with predefined
-equality. `Adi.Widget.Testing.Interned_Styles` reports the store size,
-and `Adi.CSS_Parser.Testing.Selector_Entry_Bytes` the entry size.
+(which is what catches a byte-wise digest), and that equal gradients
+built separately make equal styles. On the parser side it covers the size
+of a parsed selector, the same CSS parsed into many sheets, that rules
+scattered through a sheet still merge onto one entry, and that
+`Same_Style` agrees with predefined equality.
+`Adi.Widget.Testing.Interned_Styles` reports the store size, and
+`Adi.CSS_Parser.Testing.Selector_Entry_Bytes` the entry size.
 
 ---
 

@@ -157,20 +157,23 @@ package Adi.Widget_Styles is
 
    type State_Rule is record
       Selector : State_Selector := Any_State;
-      Style    : Style_Rules := Empty_Style;
+      Style    : Rules_Handle := Empty_Rules;
       Priority : Natural := 0;  --  Explicit priority (0 = auto from specificity)
    end record;
 
    type State_Rule_Array is array (Positive range <>) of State_Rule;
 
    -------------------------------------------------
-   -- Widget Style
+   -- Style Definition
    -------------------------------------------------
 
    Max_Style_Rules : constant := 16;
 
-   type Widget_Style is record
-      Base       : Style_Rules := Empty_Style;
+   --  A style as it is authored and as Add_Rule mutates it: a base rule
+   --  set and up to Max_Style_Rules state rules, each named by handle.
+   --  Interning turns one of these into a Widget_Style.
+   type Style_Definition is record
+      Base       : Rules_Handle := Empty_Rules;
       Rules      : State_Rule_Array (1 .. Max_Style_Rules) := [others => <>];
       Rule_Count : Natural := 0;
       --  Precomputed: which states appear in any rule selector
@@ -178,38 +181,78 @@ package Adi.Widget_Styles is
       Part_State_Mask   : Widget_States := No_States;
    end record;
 
-   Empty_Widget_Style : constant Widget_Style := (others => <>);
+   Empty_Style_Definition : constant Style_Definition := (others => <>);
 
    --  A style has room for Max_Style_Rules state rules and no more.
    Too_Many_Style_Rules : exception;
 
-   --  Add a rule to widget style. Past the cap this raises
+   --  Add a rule to a definition. Past the cap this raises
    --  Too_Many_Style_Rules, naming the state selector that did not fit.
-   procedure Add_Rule (WS : in out Widget_Style; Rule : State_Rule);
+   procedure Add_Rule (WS : in out Style_Definition; Rule : State_Rule);
 
    --  Add a rule where the caller has nowhere to report a failure to:
    --  past the cap the rule is dropped and reported through Adi.Log,
    --  and Added comes back False.
    procedure Try_Add_Rule
-     (WS : in out Widget_Style; Rule : State_Rule; Added : out Boolean);
+     (WS : in out Style_Definition; Rule : State_Rule; Added : out Boolean);
 
-   --  Equal styles hash equal; unequal ones may collide. Keyed only on
-   --  discriminants and counts, never on a string, float or access
-   --  value, which do not survive being built twice.
-   function Hash (S : Widget_Style) return Ada.Containers.Hash_Type;
+   --  Equal definitions hash equal; unequal ones may collide. Keyed only
+   --  on discriminants, counts and handles, never on a string, float or
+   --  access value, which do not survive being built twice.
+   function Hash (S : Style_Definition) return Ada.Containers.Hash_Type;
 
    --  Equality over the live rules only. Nothing writes a slot past
    --  Rule_Count, so this answers as predefined "=" does without
-   --  walking fifteen unused rule sets.
-   function Same_Style (A, B : Widget_Style) return Boolean;
+   --  walking fifteen unused rule slots.
+   function Same_Style (A, B : Style_Definition) return Boolean;
+
+   -------------------------------------------------
+   -- Interned Widget Style
+   -------------------------------------------------
+
+   --  A style definition stored once and named by a four-byte handle.
+   --  Interning is canonical, so equal definitions share one handle and
+   --  comparing two handles compares two styles. The store holds an
+   --  entry for the life of the process.
+   type Widget_Style is private;
+
+   --  What Empty_Style_Definition interns to.
+   Empty_Widget_Style : constant Widget_Style;
+
+   function Intern (D : Style_Definition) return Widget_Style;
+
+   function Definition (S : Widget_Style) return Style_Definition;
+
+   --  The store index a handle carries, for a caller that keys on it.
+   function Index (S : Widget_Style) return Natural;
 
    --  Check if any rule references a given widget/part state
    function Uses_Widget_State
-     (WS : Widget_Style; S : Widget_State) return Boolean is
-     (WS.Widget_State_Mask (S));
+     (WS : Widget_Style; S : Widget_State) return Boolean;
    function Uses_Part_State
-     (WS : Widget_Style; S : Widget_State) return Boolean is
-     (WS.Part_State_Mask (S));
+     (WS : Widget_Style; S : Widget_State) return Boolean;
+
+   --  Whether any rule names a widget property. A widget setting one
+   --  where no rule reads it changes nothing, and this says so without
+   --  resolving.
+   function Uses_Properties (WS : Widget_Style) return Boolean;
+
+   --  The rules a style takes in the states given, folded in cascade
+   --  order: priority ascending, source order ascending within a
+   --  priority. This is the runtime path; Compute_Style below is what
+   --  the tests drive.
+   function Compute_Style_Prepared
+     (WS            : Widget_Style;
+      Active_Widget : Widget_States;
+      Active_Part   : Widget_States;
+      Assigned      : Adi.Widget_Properties.Property_Assignment
+        := Adi.Widget_Properties.Empty_Assignment)
+     return Style_Rules;
+
+   --  Distinct styles the store holds, and the storage elements their
+   --  entries occupy. Instrumentation a test reads.
+   function Interned_Styles return Natural;
+   function Interned_Style_Bytes return Natural;
 
    --  Compute effective style given active states
    function Compute_Style (WS : Widget_Style;
@@ -306,8 +349,13 @@ package Adi.Widget_Styles is
 
 private
 
+   --  An index into the style store, zero for the empty style.
+   type Widget_Style is new Natural;
+
+   Empty_Widget_Style : constant Widget_Style := 0;
+
    type Style_Builder is tagged record
-      WS : Widget_Style;
+      WS : Style_Definition;
    end record;
 
    --  Instrumentation the tests need and applications do not: rules

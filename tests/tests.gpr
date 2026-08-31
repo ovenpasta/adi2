@@ -29,6 +29,7 @@ project Tests is
       "layout_perf_test",
       "style_storage_equivalence_test",
       "style_interning_test",
+      "style_handle_test",
       "style_flat_values_test",
       "style_sparse_test",
       "style_rule_cap_test",

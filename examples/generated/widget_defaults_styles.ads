@@ -9,18 +9,22 @@ with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
+--  The constants below intern as this package elaborates, so the
+--  stores behind Intern_Rules and Build are wanted first.
+pragma Elaborate_All (Adi.Widget_Styles);
+
 package Widget_Defaults_Styles is
 
    function Has_Root_Font_Size return Boolean is (False);
    function Root_Font_Size return Length_Value is (Default_Font_Size);
 
    function Has_Root_Styles return Boolean is (False);
-   function Root_Part_Styles return Part_Style_Array is (Empty_Part_Styles);
+   Root_Part_Styles : constant Part_Style_Array := Empty_Part_Styles;
 
    function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
      (
       Has_Root_Style => Has_Root_Styles,
-      Root_Styles => Adi.Widget.Intern (Root_Part_Styles),
+      Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
    --  Base style for class 'button'
@@ -181,103 +185,103 @@ package Widget_Defaults_Styles is
       others => <>);
 
    --  Complete widget style for class 'button'
-   function Button_Class_Widget return Widget_Style is
-     (From (Button_Class_Base_Style)
+   Button_Class_Widget : constant Widget_Style :=
+     From (Button_Class_Base_Style)
      .On (When_State (State_Hovered), Button_Class_Widget_Hovered_Style)
      .On (When_State (State_Pressed), Button_Class_Widget_Pressed_Style)
      .On (When_State (State_Focused), Button_Class_Widget_Focused_Style)
      .On (When_State (State_Disabled), Button_Class_Widget_Disabled_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'button'::label
-   function Button_Class_Label_Widget return Widget_Style is
-     (From (Button_Class_Label_Base_Style)
-     .Build);
+   Button_Class_Label_Widget : constant Widget_Style :=
+     From (Button_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'button'
-   function Button_Class_Part_Styles return Part_Style_Array is
-     ([
+   Button_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Button_Class_Widget, Enabled => True),
       Label_Part => (Style => Button_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'text-input'
-   function Text_Input_Class_Widget return Widget_Style is
-     (From (Text_Input_Class_Base_Style)
+   Text_Input_Class_Widget : constant Widget_Style :=
+     From (Text_Input_Class_Base_Style)
      .On (When_State (State_Disabled), Text_Input_Class_Widget_Disabled_Style)
      .On (When_State (State_Focused), Text_Input_Class_Widget_Focused_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'text-input'::cursor
-   function Text_Input_Class_Cursor_Widget return Widget_Style is
-     (From (Text_Input_Class_Cursor_Base_Style)
-     .Build);
+   Text_Input_Class_Cursor_Widget : constant Widget_Style :=
+     From (Text_Input_Class_Cursor_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'text-input'::selected
-   function Text_Input_Class_Selected_Widget return Widget_Style is
-     (From (Text_Input_Class_Selected_Base_Style)
-     .Build);
+   Text_Input_Class_Selected_Widget : constant Widget_Style :=
+     From (Text_Input_Class_Selected_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'text-input'::text
-   function Text_Input_Class_Text_Widget return Widget_Style is
-     (From (Text_Input_Class_Text_Base_Style)
-     .Build);
+   Text_Input_Class_Text_Widget : constant Widget_Style :=
+     From (Text_Input_Class_Text_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'text-input'
-   function Text_Input_Class_Part_Styles return Part_Style_Array is
-     ([
+   Text_Input_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Text_Input_Class_Widget, Enabled => True),
       Cursor_Part => (Style => Text_Input_Class_Cursor_Widget, Enabled => True),
       Selected_Part => (Style => Text_Input_Class_Selected_Widget, Enabled => True),
       Text_Part => (Style => Text_Input_Class_Text_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'list-box'
-   function List_Box_Class_Widget return Widget_Style is
-     (From (List_Box_Class_Base_Style)
-     .Build);
+   List_Box_Class_Widget : constant Widget_Style :=
+     From (List_Box_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'list-box'::knob
-   function List_Box_Class_Knob_Widget return Widget_Style is
-     (From (List_Box_Class_Knob_Base_Style)
-     .Build);
+   List_Box_Class_Knob_Widget : constant Widget_Style :=
+     From (List_Box_Class_Knob_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'list-box'::scroll
-   function List_Box_Class_Scroll_Widget return Widget_Style is
-     (From (List_Box_Class_Scroll_Base_Style)
-     .Build);
+   List_Box_Class_Scroll_Widget : constant Widget_Style :=
+     From (List_Box_Class_Scroll_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'list-box'
-   function List_Box_Class_Part_Styles return Part_Style_Array is
-     ([
+   List_Box_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => List_Box_Class_Widget, Enabled => True),
       Knob_Part => (Style => List_Box_Class_Knob_Widget, Enabled => True),
       Scroll_Part => (Style => List_Box_Class_Scroll_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'list-row'
-   function List_Row_Class_Widget return Widget_Style is
-     (From (List_Row_Class_Base_Style)
+   List_Row_Class_Widget : constant Widget_Style :=
+     From (List_Row_Class_Base_Style)
      .On (When_State (State_Hovered), List_Row_Class_Widget_Hovered_Style)
      .On (When_State (State_Selected), List_Row_Class_Widget_Selected_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'list-row'::label
-   function List_Row_Class_Label_Widget return Widget_Style is
-     (From (List_Row_Class_Label_Base_Style)
+   List_Row_Class_Label_Widget : constant Widget_Style :=
+     From (List_Row_Class_Label_Base_Style)
      .On (When_State (State_Selected), List_Row_Class_Label_Widget_Selected_Style)
-     .Build);
+     .Build;
 
    --  Part styles bundle for class 'list-row'
-   function List_Row_Class_Part_Styles return Part_Style_Array is
-     ([
+   List_Row_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => List_Row_Class_Widget, Enabled => True),
       Label_Part => (Style => List_Row_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Register every selector this stylesheet defines, in
    --  source order. A consumer that knows only the package

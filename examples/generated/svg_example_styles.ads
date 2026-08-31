@@ -9,18 +9,22 @@ with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
+--  The constants below intern as this package elaborates, so the
+--  stores behind Intern_Rules and Build are wanted first.
+pragma Elaborate_All (Adi.Widget_Styles);
+
 package Svg_Example_Styles is
 
    function Has_Root_Font_Size return Boolean is (False);
    function Root_Font_Size return Length_Value is (Default_Font_Size);
 
    function Has_Root_Styles return Boolean is (False);
-   function Root_Part_Styles return Part_Style_Array is (Empty_Part_Styles);
+   Root_Part_Styles : constant Part_Style_Array := Empty_Part_Styles;
 
    function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
      (
       Has_Root_Style => Has_Root_Styles,
-      Root_Styles => Adi.Widget.Intern (Root_Part_Styles),
+      Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
    --  Base style for class 'root'
@@ -152,142 +156,142 @@ package Svg_Example_Styles is
       others => <>);
 
    --  Complete widget style for class 'root'
-   function Root_Class_Widget return Widget_Style is
-     (From (Root_Class_Base_Style)
-     .Build);
+   Root_Class_Widget : constant Widget_Style :=
+     From (Root_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'root'
-   function Root_Class_Part_Styles return Part_Style_Array is
-     ([
+   Root_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Root_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'header'
-   function Header_Class_Widget return Widget_Style is
-     (From (Header_Class_Base_Style)
-     .Build);
+   Header_Class_Widget : constant Widget_Style :=
+     From (Header_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'header'
-   function Header_Class_Part_Styles return Part_Style_Array is
-     ([
+   Header_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Header_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'title'::label
-   function Title_Class_Label_Widget return Widget_Style is
-     (From (Title_Class_Label_Base_Style)
-     .Build);
+   Title_Class_Label_Widget : constant Widget_Style :=
+     From (Title_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'title'
-   function Title_Class_Part_Styles return Part_Style_Array is
-     ([
+   Title_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'subtitle'::label
-   function Subtitle_Class_Label_Widget return Widget_Style is
-     (From (Subtitle_Class_Label_Base_Style)
-     .Build);
+   Subtitle_Class_Label_Widget : constant Widget_Style :=
+     From (Subtitle_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'subtitle'
-   function Subtitle_Class_Part_Styles return Part_Style_Array is
-     ([
+   Subtitle_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Subtitle_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'panel'
-   function Panel_Class_Widget return Widget_Style is
-     (From (Panel_Class_Base_Style)
-     .Build);
+   Panel_Class_Widget : constant Widget_Style :=
+     From (Panel_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'panel'
-   function Panel_Class_Part_Styles return Part_Style_Array is
-     ([
+   Panel_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Panel_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'panel-title'::label
-   function Panel_Title_Class_Label_Widget return Widget_Style is
-     (From (Panel_Title_Class_Label_Base_Style)
-     .Build);
+   Panel_Title_Class_Label_Widget : constant Widget_Style :=
+     From (Panel_Title_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'panel-title'
-   function Panel_Title_Class_Part_Styles return Part_Style_Array is
-     ([
+   Panel_Title_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Panel_Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'stage'
-   function Stage_Class_Widget return Widget_Style is
-     (From (Stage_Class_Base_Style)
-     .Build);
+   Stage_Class_Widget : constant Widget_Style :=
+     From (Stage_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'stage'
-   function Stage_Class_Part_Styles return Part_Style_Array is
-     ([
+   Stage_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Stage_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'artwork'
-   function Artwork_Class_Widget return Widget_Style is
-     (From (Artwork_Class_Base_Style)
-     .Build);
+   Artwork_Class_Widget : constant Widget_Style :=
+     From (Artwork_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'artwork'::icon
-   function Artwork_Class_Icon_Widget return Widget_Style is
-     (From (Artwork_Class_Icon_Base_Style)
-     .Build);
+   Artwork_Class_Icon_Widget : constant Widget_Style :=
+     From (Artwork_Class_Icon_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'artwork'
-   function Artwork_Class_Part_Styles return Part_Style_Array is
-     ([
+   Artwork_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Artwork_Class_Widget, Enabled => True),
       Icon_Part => (Style => Artwork_Class_Icon_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'caption'
-   function Caption_Class_Widget return Widget_Style is
-     (From (Caption_Class_Base_Style)
-     .Build);
+   Caption_Class_Widget : constant Widget_Style :=
+     From (Caption_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'caption'::label
-   function Caption_Class_Label_Widget return Widget_Style is
-     (From (Caption_Class_Label_Base_Style)
-     .Build);
+   Caption_Class_Label_Widget : constant Widget_Style :=
+     From (Caption_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'caption'
-   function Caption_Class_Part_Styles return Part_Style_Array is
-     ([
+   Caption_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Caption_Class_Widget, Enabled => True),
       Label_Part => (Style => Caption_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'status'
-   function Status_Class_Widget return Widget_Style is
-     (From (Status_Class_Base_Style)
-     .Build);
+   Status_Class_Widget : constant Widget_Style :=
+     From (Status_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'status'::label
-   function Status_Class_Label_Widget return Widget_Style is
-     (From (Status_Class_Label_Base_Style)
-     .Build);
+   Status_Class_Label_Widget : constant Widget_Style :=
+     From (Status_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'status'
-   function Status_Class_Part_Styles return Part_Style_Array is
-     ([
+   Status_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Status_Class_Widget, Enabled => True),
       Label_Part => (Style => Status_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Register every selector this stylesheet defines, in
    --  source order. A consumer that knows only the package

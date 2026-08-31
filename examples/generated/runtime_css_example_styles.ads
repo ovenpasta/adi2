@@ -10,18 +10,22 @@ with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Runtime_Css_Properties;
 
+--  The constants below intern as this package elaborates, so the
+--  stores behind Intern_Rules and Build are wanted first.
+pragma Elaborate_All (Adi.Widget_Styles);
+
 package Runtime_Css_Example_Styles is
 
    function Has_Root_Font_Size return Boolean is (False);
    function Root_Font_Size return Length_Value is (Default_Font_Size);
 
    function Has_Root_Styles return Boolean is (False);
-   function Root_Part_Styles return Part_Style_Array is (Empty_Part_Styles);
+   Root_Part_Styles : constant Part_Style_Array := Empty_Part_Styles;
 
    function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
      (
       Has_Root_Style => Has_Root_Styles,
-      Root_Styles => Adi.Widget.Intern (Root_Part_Styles),
+      Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
    --  Base style for class 'root'
@@ -315,221 +319,221 @@ package Runtime_Css_Example_Styles is
       others => <>);
 
    --  Complete widget style for class 'root'
-   function Root_Class_Widget return Widget_Style is
-     (From (Root_Class_Base_Style)
-     .Build);
+   Root_Class_Widget : constant Widget_Style :=
+     From (Root_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'root'
-   function Root_Class_Part_Styles return Part_Style_Array is
-     ([
+   Root_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Root_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'header'
-   function Header_Class_Widget return Widget_Style is
-     (From (Header_Class_Base_Style)
-     .Build);
+   Header_Class_Widget : constant Widget_Style :=
+     From (Header_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'header'
-   function Header_Class_Part_Styles return Part_Style_Array is
-     ([
+   Header_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Header_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'content'
-   function Content_Class_Widget return Widget_Style is
-     (From (Content_Class_Base_Style)
-     .Build);
+   Content_Class_Widget : constant Widget_Style :=
+     From (Content_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'content'
-   function Content_Class_Part_Styles return Part_Style_Array is
-     ([
+   Content_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Content_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'card-left'
-   function Card_Left_Class_Widget return Widget_Style is
-     (From (Card_Left_Class_Base_Style)
+   Card_Left_Class_Widget : constant Widget_Style :=
+     From (Card_Left_Class_Base_Style)
      .On (When_State (State_Hovered), Card_Left_Class_Widget_Hovered_Style)
      .On (When_Property (Runtime_Css_Properties.Severity.Value (Runtime_Css_Properties.Ok)), Card_Left_Class_Prop_Severity_Ok_Style)
      .On (When_Property (Runtime_Css_Properties.Severity.Value (Runtime_Css_Properties.Warning)), Card_Left_Class_Prop_Severity_Warning_Style)
      .On (When_Property (Runtime_Css_Properties.Severity.Value (Runtime_Css_Properties.Critical)), Card_Left_Class_Prop_Severity_Critical_Style)
      .On (When_Not_Property_Set (Runtime_Css_Properties.Severity.Id), Card_Left_Class_Not_Prop_Severity_Style)
-     .Build);
+     .Build;
 
    --  Part styles bundle for class 'card-left'
-   function Card_Left_Class_Part_Styles return Part_Style_Array is
-     ([
+   Card_Left_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Card_Left_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'card-right'
-   function Card_Right_Class_Widget return Widget_Style is
-     (From (Card_Right_Class_Base_Style)
+   Card_Right_Class_Widget : constant Widget_Style :=
+     From (Card_Right_Class_Base_Style)
      .On (When_State (State_Hovered), Card_Right_Class_Widget_Hovered_Style)
      .On (When_Property (Runtime_Css_Properties.Severity.Value (Runtime_Css_Properties.Ok)), Card_Right_Class_Prop_Severity_Ok_Style)
      .On (When_Property (Runtime_Css_Properties.Severity.Value (Runtime_Css_Properties.Warning)), Card_Right_Class_Prop_Severity_Warning_Style)
      .On (When_Property (Runtime_Css_Properties.Severity.Value (Runtime_Css_Properties.Critical)), Card_Right_Class_Prop_Severity_Critical_Style)
      .On (When_Not_Property_Set (Runtime_Css_Properties.Severity.Id), Card_Right_Class_Not_Prop_Severity_Style)
-     .Build);
+     .Build;
 
    --  Part styles bundle for class 'card-right'
-   function Card_Right_Class_Part_Styles return Part_Style_Array is
-     ([
+   Card_Right_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Card_Right_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'title'
-   function Title_Class_Widget return Widget_Style is
-     (From (Title_Class_Base_Style)
-     .Build);
+   Title_Class_Widget : constant Widget_Style :=
+     From (Title_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'title'::label
-   function Title_Class_Label_Widget return Widget_Style is
-     (From (Title_Class_Label_Base_Style)
-     .Build);
+   Title_Class_Label_Widget : constant Widget_Style :=
+     From (Title_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'title'
-   function Title_Class_Part_Styles return Part_Style_Array is
-     ([
+   Title_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'subtitle'
-   function Subtitle_Class_Widget return Widget_Style is
-     (From (Subtitle_Class_Base_Style)
-     .Build);
+   Subtitle_Class_Widget : constant Widget_Style :=
+     From (Subtitle_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'subtitle'::label
-   function Subtitle_Class_Label_Widget return Widget_Style is
-     (From (Subtitle_Class_Label_Base_Style)
-     .Build);
+   Subtitle_Class_Label_Widget : constant Widget_Style :=
+     From (Subtitle_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'subtitle'
-   function Subtitle_Class_Part_Styles return Part_Style_Array is
-     ([
+   Subtitle_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Subtitle_Class_Widget, Enabled => True),
       Label_Part => (Style => Subtitle_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'badge'
-   function Badge_Class_Widget return Widget_Style is
-     (From (Badge_Class_Base_Style)
-     .Build);
+   Badge_Class_Widget : constant Widget_Style :=
+     From (Badge_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'badge'::label
-   function Badge_Class_Label_Widget return Widget_Style is
-     (From (Badge_Class_Label_Base_Style)
-     .Build);
+   Badge_Class_Label_Widget : constant Widget_Style :=
+     From (Badge_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'badge'
-   function Badge_Class_Part_Styles return Part_Style_Array is
-     ([
+   Badge_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Badge_Class_Widget, Enabled => True),
       Label_Part => (Style => Badge_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'mode-button'
-   function Mode_Button_Class_Widget return Widget_Style is
-     (From (Mode_Button_Class_Base_Style)
+   Mode_Button_Class_Widget : constant Widget_Style :=
+     From (Mode_Button_Class_Base_Style)
      .On (When_State (State_Hovered), Mode_Button_Class_Widget_Hovered_Style)
      .On (When_State (State_Pressed), Mode_Button_Class_Widget_Pressed_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'mode-button'::label
-   function Mode_Button_Class_Label_Widget return Widget_Style is
-     (From (Mode_Button_Class_Label_Base_Style)
-     .Build);
+   Mode_Button_Class_Label_Widget : constant Widget_Style :=
+     From (Mode_Button_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'mode-button'
-   function Mode_Button_Class_Part_Styles return Part_Style_Array is
-     ([
+   Mode_Button_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Mode_Button_Class_Widget, Enabled => True),
       Label_Part => (Style => Mode_Button_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for tag 'button'
-   function Button_Tag_Widget return Widget_Style is
-     (From (Button_Tag_Base_Style)
-     .Build);
+   Button_Tag_Widget : constant Widget_Style :=
+     From (Button_Tag_Base_Style)
+     .Build;
 
    --  Part styles bundle for tag 'button'
-   function Button_Tag_Part_Styles return Part_Style_Array is
-     ([
+   Button_Tag_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Button_Tag_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for id 'mode-switch'
-   function Mode_Switch_Id_Widget return Widget_Style is
-     (From (Mode_Switch_Id_Base_Style)
-     .Build);
+   Mode_Switch_Id_Widget : constant Widget_Style :=
+     From (Mode_Switch_Id_Base_Style)
+     .Build;
 
    --  Part styles bundle for id 'mode-switch'
-   function Mode_Switch_Id_Part_Styles return Part_Style_Array is
-     ([
+   Mode_Switch_Id_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Mode_Switch_Id_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'card-title'
-   function Card_Title_Class_Widget return Widget_Style is
-     (From (Card_Title_Class_Base_Style)
-     .Build);
+   Card_Title_Class_Widget : constant Widget_Style :=
+     From (Card_Title_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'card-title'::label
-   function Card_Title_Class_Label_Widget return Widget_Style is
-     (From (Card_Title_Class_Label_Base_Style)
+   Card_Title_Class_Label_Widget : constant Widget_Style :=
+     From (Card_Title_Class_Label_Base_Style)
      .On (When_Property (Runtime_Css_Properties.Severity.Value (Runtime_Css_Properties.Critical)), Card_Title_Class_Label_Prop_Severity_Critical_Style)
-     .Build);
+     .Build;
 
    --  Part styles bundle for class 'card-title'
-   function Card_Title_Class_Part_Styles return Part_Style_Array is
-     ([
+   Card_Title_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Card_Title_Class_Widget, Enabled => True),
       Label_Part => (Style => Card_Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'card-body'::label
-   function Card_Body_Class_Label_Widget return Widget_Style is
-     (From (Card_Body_Class_Label_Base_Style)
-     .Build);
+   Card_Body_Class_Label_Widget : constant Widget_Style :=
+     From (Card_Body_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'card-body'
-   function Card_Body_Class_Part_Styles return Part_Style_Array is
-     ([
+   Card_Body_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Card_Body_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'status'
-   function Status_Class_Widget return Widget_Style is
-     (From (Status_Class_Base_Style)
-     .Build);
+   Status_Class_Widget : constant Widget_Style :=
+     From (Status_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'status'::label
-   function Status_Class_Label_Widget return Widget_Style is
-     (From (Status_Class_Label_Base_Style)
-     .Build);
+   Status_Class_Label_Widget : constant Widget_Style :=
+     From (Status_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'status'
-   function Status_Class_Part_Styles return Part_Style_Array is
-     ([
+   Status_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Status_Class_Widget, Enabled => True),
       Label_Part => (Style => Status_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Register every selector this stylesheet defines, in
    --  source order. A consumer that knows only the package

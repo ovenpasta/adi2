@@ -3,6 +3,7 @@
 
 pragma Ada_2022;
 
+with Ada.Containers;
 with Adi.Core;
 with Adi.Image;
 
@@ -1155,6 +1156,58 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function To_Margin        (O : Opt_Margin_Sides)   return Margin_Sides;
 
    -------------------------------------------------
+   -- Value hashing
+   -------------------------------------------------
+
+   --  Hash steps over the value types above, shared by the stores that
+   --  key on them: the rule-set store below and Adi.Resolved_Styles.
+   --  Every variant component is reached through its discriminant, so
+   --  an inactive arm's bytes stay unread, which is what lets these
+   --  agree with predefined equality.
+   package Value_Hash is
+
+      use type Ada.Containers.Hash_Type;
+
+      subtype Digest is Ada.Containers.Hash_Type;
+
+      Seed : constant Digest := 16#811C_9DC5#;
+
+      function Mix (H, V : Digest) return Digest is (H * 16#0100_0193# xor V);
+
+      --  A float in a fixed-point key. The bound keeps the scaled value
+      --  inside a 32-bit Integer, so a build whose Integer is 32 bits
+      --  answers as this one does; a magnitude past it, and a NaN, fold
+      --  to one key each and cost a bucket probe.
+      function Num (F : Float) return Digest is
+        (if F /= F then 0
+         elsif abs F >= 1.0E6 then 999_983
+         else Digest (Integer (Float'Truncation (F * 256.0)) mod 2 ** 24));
+
+      function Add (H : Digest; L : Length_Value) return Digest;
+      function Add (H : Digest; C : Color_Value) return Digest;
+      function Add (H : Digest; S : Size_Value) return Digest;
+      function Add (H : Digest; I : Inset_Value) return Digest;
+      function Add (H : Digest; M : Margin_Value) return Digest;
+      function Add (H : Digest; B : CSS_Box_Value) return Digest;
+      function Add (H : Digest; W : Border_Width_Value) return Digest;
+      function Add (H : Digest; C : Border_Color_Value) return Digest;
+      function Add (H : Digest; R : Border_Radius_Value) return Digest;
+      function Add (H : Digest; S : Border_Style_Value) return Digest;
+      function Add (H : Digest; G : Gap_Value) return Digest;
+      function Add (H : Digest; L : Line_Height_Value) return Digest;
+      function Add (H : Digest; F : Flex_Basis_Value) return Digest;
+      function Add (H : Digest; S : Box_Shadow_Value) return Digest;
+      function Add (H : Digest; P : Object_Position_Value) return Digest;
+      function Add (H : Digest; T : Transition_Spec) return Digest;
+      function Add (H : Digest; B : Background_Image_Value) return Digest;
+      function Add (H : Digest; F : Font_Family_Value) return Digest;
+      function Add (H : Digest; L : List_Style_Type_Value) return Digest;
+      function Add (H : Digest; L : List_Style_Image_Value) return Digest;
+      function Add (H : Digest; G : Grid_Track_List) return Digest;
+
+   end Value_Hash;
+
+   -------------------------------------------------
    -- Style Rules Record
    -------------------------------------------------
 
@@ -1254,6 +1307,42 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    Empty_Style : constant Style_Rules := (others => <>);
 
    function Merge (Base, Override : Style_Rules) return Style_Rules;
+
+   -------------------------------------------------
+   -- Interned rule sets
+   -------------------------------------------------
+
+   --  A rule set stored once and named by a four-byte handle. Interning
+   --  is canonical, so equal rule sets share one handle and comparing
+   --  two handles compares two values. The store holds an entry for the
+   --  life of the process.
+   type Rules_Handle is private;
+
+   --  What Empty_Style interns to.
+   Empty_Rules : constant Rules_Handle;
+
+   --  Equal rule sets hash equal; unequal ones may collide, which the
+   --  store answers by comparing the values in a bucket.
+   function Hash (S : Style_Rules) return Ada.Containers.Hash_Type;
+
+   function Intern_Rules (S : Style_Rules) return Rules_Handle;
+
+   function Rules_Of (H : Rules_Handle) return Style_Rules;
+
+   --  The store index a handle carries, for a caller that keys on it.
+   function Index (H : Rules_Handle) return Natural;
+
+   type Const_Rules_Access is access constant Style_Rules;
+
+   --  The stored value in place, for a reader that would otherwise copy
+   --  a kilobyte to reach one component. The address stays good for the
+   --  life of the process.
+   function Rules_Ref (H : Rules_Handle) return not null Const_Rules_Access;
+
+   --  Distinct rule sets the store holds, and the storage elements they
+   --  occupy. Instrumentation a test reads.
+   function Interned_Rule_Sets return Natural;
+   function Interned_Rule_Bytes return Natural;
 
    -------------------------------------------------
    --  CSS property enumeration and inheritance
@@ -1662,5 +1751,12 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    procedure Normalize_Color (C : Color_Value;
                               R, G, B : out Natural;
                               A : out Float);
+
+private
+
+   --  An index into the rule-set store, zero for Empty_Style.
+   type Rules_Handle is new Natural;
+
+   Empty_Rules : constant Rules_Handle := 0;
 
 end Adi.CSS_Styles;

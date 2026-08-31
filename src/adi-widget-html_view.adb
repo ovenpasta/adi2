@@ -605,7 +605,7 @@ package body Adi.Widget.Html_View is
 
    function Selector_Base_Rules (Styles : Part_Style_Array) return Style_Rules is
    begin
-      return Styles (Main_Part).Style.Base;
+      return Rules_Of (Definition (Styles (Main_Part).Style).Base);
    end Selector_Base_Rules;
 
    function Parse_Inline_Style_Rules

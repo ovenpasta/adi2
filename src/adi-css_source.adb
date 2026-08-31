@@ -68,12 +68,11 @@ package body Adi.CSS_Source is
       Hash            => Adi.Widget.Hash,
       Equivalent_Keys => Adi.Widget."=");
 
-   --  The :root block a source carries, interned so that keeping it and
-   --  comparing it cost handles rather than a Part_Style_Array.
+   --  The :root block a source carries. Its styles are handles, so
+   --  keeping it and comparing it cost 96 bytes and a word compare.
    type Root_Fingerprint is record
       Has_Style     : Boolean := False;
-      Styles        : Adi.Widget.Interned_Part_Styles :=
-        Adi.Widget.Empty_Interned_Part_Styles;
+      Styles        : Adi.Widget.Part_Style_Array := Adi.Widget.Empty_Part_Styles;
       Has_Font_Size : Boolean := False;
       Font_Size     : Length_Value := Default_Font_Size;
    end record;
@@ -222,8 +221,7 @@ package body Adi.CSS_Source is
               and then To_String (Impl_Of (Source).Static_Styles (I).Name) = N
             then
                Result := Merge_Part_Styles (
-                 Result,
-                 Adi.Widget.Expand (Impl_Of (Source).Static_Styles (I).Styles));
+                 Result, Impl_Of (Source).Static_Styles (I).Styles);
             end if;
          end loop;
 
@@ -306,8 +304,7 @@ package body Adi.CSS_Source is
         and then Impl_Of (Source).Root_Target = Target
         and then Metadata.Has_Root_Style
       then
-         return Merge_Part_Styles
-           (Adi.Widget.Expand (Metadata.Root_Styles), Styles);
+         return Merge_Part_Styles (Metadata.Root_Styles, Styles);
       end if;
 
       return Styles;
@@ -761,7 +758,7 @@ package body Adi.CSS_Source is
       return (
         Kind => Adi.CSS_Parser.Class_Selector,
         Name => To_Unbounded_String (Normalize_Name (Name)),
-        Styles => Adi.Widget.Intern (Styles));
+        Styles => Styles);
    end Class_Entry;
 
    function Id_Entry (Name : String;
@@ -770,7 +767,7 @@ package body Adi.CSS_Source is
       return (
         Kind => Adi.CSS_Parser.Id_Selector,
         Name => To_Unbounded_String (Normalize_Name (Name)),
-        Styles => Adi.Widget.Intern (Styles));
+        Styles => Styles);
    end Id_Entry;
 
    function Tag_Entry (Name : String;
@@ -779,7 +776,7 @@ package body Adi.CSS_Source is
       return (
         Kind => Adi.CSS_Parser.Tag_Selector,
         Name => To_Unbounded_String (Normalize_Name (Name)),
-        Styles => Adi.Widget.Intern (Styles));
+        Styles => Styles);
    end Tag_Entry;
 
    procedure Set_Static_Entries (Source  : in out Style_Source;

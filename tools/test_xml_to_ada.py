@@ -860,6 +860,72 @@ class TestInlineCSSIsCompiledIn(unittest.TestCase):
         self.assertIn("function Inline_Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is", body)
         self.assertIn("function Inline_Root_Font_Size return Length_Value is (Dip (20.0));", body)
         self.assertIn('Color => Set (C (Red))', body)
+        #  Root_Styles is a Part_Style_Array of handles, so the metadata
+        #  names the constant and the fold is Merge_Part_Styles alone.
+        self.assertIn(
+            "   Inline_Root_Part_Styles : constant Part_Style_Array :=", body)
+        self.assertIn("      Root_Styles => Inline_Root_Part_Styles,", body)
+
+    def test_inline_styles_intern_at_elaboration(self):
+        #  The body declares the style constants and .Build interns them
+        #  as it elaborates, so the store has to be standing first. The
+        #  same pragma tools/css_to_ada.py puts on a generated sheet.
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>.card { background-color: rgb(10, 20, 30); }</style>
+  <box id="Root" class="card"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "My_UI")
+        self.assertIn("   Card_Class_Widget : constant Widget_Style :=", body)
+        self.assertIn(
+            "   Card_Class_Part_Styles : constant Part_Style_Array := [", body)
+        self.assertIn("pragma Elaborate_All (Adi.Widget_Styles);", body)
+        #  In the context clause, ahead of the unit it governs.
+        self.assertLess(
+            body.index("pragma Elaborate_All (Adi.Widget_Styles);"),
+            body.index("package body My_UI is"),
+        )
+
+    def test_inline_root_only_interns_at_elaboration(self):
+        #  A sheet with no selectors still builds Inline_Root_Part_Styles.
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <style>:root { color: red; }</style>
+  <box id="Root"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "My_UI")
+        self.assertIn("pragma Elaborate_All (Adi.Widget_Styles);", body)
+
+    def test_no_elaboration_pragma_without_inline_styles(self):
+        #  Nothing in this body interns; the linked sheet carries its own.
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="test.css" package="Test_Styles"/>
+  <box id="Root" class="card"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "My_UI")
+        self.assertNotIn("pragma Elaborate_All", body)
+
+    def test_metadata_fold_carries_part_style_arrays(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="test.css" package="Test_Styles"/>
+  <style>:root { color: red; }</style>
+  <box id="Root"/>
+</adi>"""
+        app = parse_xml(xml)
+        body = xml_to_ada.generate_body(app, "My_UI")
+        self.assertIn(
+            "            Result.Root_Styles :=\n"
+            "              Merge_Part_Styles\n"
+            "                (Result.Root_Styles, Override.Root_Styles);",
+            body,
+        )
+        self.assertNotIn("Adi.Widget.Expand", body)
+        self.assertNotIn("Adi.Widget.Intern", body)
 
     def test_root_only_inline_css_declares_the_source_it_uses(self):
         #  A sheet with no selectors still reaches the source through its

@@ -9,18 +9,22 @@ with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
+--  The constants below intern as this package elaborates, so the
+--  stores behind Intern_Rules and Build are wanted first.
+pragma Elaborate_All (Adi.Widget_Styles);
+
 package Grid_Example_Styles is
 
    function Has_Root_Font_Size return Boolean is (False);
    function Root_Font_Size return Length_Value is (Default_Font_Size);
 
    function Has_Root_Styles return Boolean is (False);
-   function Root_Part_Styles return Part_Style_Array is (Empty_Part_Styles);
+   Root_Part_Styles : constant Part_Style_Array := Empty_Part_Styles;
 
    function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
      (
       Has_Root_Style => Has_Root_Styles,
-      Root_Styles => Adi.Widget.Intern (Root_Part_Styles),
+      Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
    --  Base style for class 'root'
@@ -383,504 +387,504 @@ package Grid_Example_Styles is
       others => <>);
 
    --  Complete widget style for class 'root'
-   function Root_Class_Widget return Widget_Style is
-     (From (Root_Class_Base_Style)
-     .Build);
+   Root_Class_Widget : constant Widget_Style :=
+     From (Root_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'root'::knob
-   function Root_Class_Knob_Widget return Widget_Style is
-     (From (Root_Class_Knob_Base_Style)
+   Root_Class_Knob_Widget : constant Widget_Style :=
+     From (Root_Class_Knob_Base_Style)
      .On (When_Part_State (State_Hovered), Root_Class_Knob_Part_Hovered_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'root'::scroll
-   function Root_Class_Scroll_Widget return Widget_Style is
-     (From (Root_Class_Scroll_Base_Style)
+   Root_Class_Scroll_Widget : constant Widget_Style :=
+     From (Root_Class_Scroll_Base_Style)
      .On (When_Part_State (State_Hovered), Root_Class_Scroll_Part_Hovered_Style)
-     .Build);
+     .Build;
 
    --  Part styles bundle for class 'root'
-   function Root_Class_Part_Styles return Part_Style_Array is
-     ([
+   Root_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Root_Class_Widget, Enabled => True),
       Knob_Part => (Style => Root_Class_Knob_Widget, Enabled => True),
       Scroll_Part => (Style => Root_Class_Scroll_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'title'::label
-   function Title_Class_Label_Widget return Widget_Style is
-     (From (Title_Class_Label_Base_Style)
-     .Build);
+   Title_Class_Label_Widget : constant Widget_Style :=
+     From (Title_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'title'
-   function Title_Class_Part_Styles return Part_Style_Array is
-     ([
+   Title_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Title_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'section'
-   function Section_Class_Widget return Widget_Style is
-     (From (Section_Class_Base_Style)
-     .Build);
+   Section_Class_Widget : constant Widget_Style :=
+     From (Section_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'section'
-   function Section_Class_Part_Styles return Part_Style_Array is
-     ([
+   Section_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Section_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'caption'::label
-   function Caption_Class_Label_Widget return Widget_Style is
-     (From (Caption_Class_Label_Base_Style)
-     .Build);
+   Caption_Class_Label_Widget : constant Widget_Style :=
+     From (Caption_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'caption'
-   function Caption_Class_Part_Styles return Part_Style_Array is
-     ([
+   Caption_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Caption_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'note'::label
-   function Note_Class_Label_Widget return Widget_Style is
-     (From (Note_Class_Label_Base_Style)
-     .Build);
+   Note_Class_Label_Widget : constant Widget_Style :=
+     From (Note_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'note'
-   function Note_Class_Part_Styles return Part_Style_Array is
-     ([
+   Note_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Note_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'cases'
-   function Cases_Class_Widget return Widget_Style is
-     (From (Cases_Class_Base_Style)
-     .Build);
+   Cases_Class_Widget : constant Widget_Style :=
+     From (Cases_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'cases'
-   function Cases_Class_Part_Styles return Part_Style_Array is
-     ([
+   Cases_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Cases_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'case'
-   function Case_Class_Widget return Widget_Style is
-     (From (Case_Class_Base_Style)
-     .Build);
+   Case_Class_Widget : constant Widget_Style :=
+     From (Case_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'case'
-   function Case_Class_Part_Styles return Part_Style_Array is
-     ([
+   Case_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Case_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'case-label'::label
-   function Case_Label_Class_Label_Widget return Widget_Style is
-     (From (Case_Label_Class_Label_Base_Style)
-     .Build);
+   Case_Label_Class_Label_Widget : constant Widget_Style :=
+     From (Case_Label_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'case-label'
-   function Case_Label_Class_Part_Styles return Part_Style_Array is
-     ([
+   Case_Label_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Case_Label_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'demo'
-   function Demo_Class_Widget return Widget_Style is
-     (From (Demo_Class_Base_Style)
-     .Build);
+   Demo_Class_Widget : constant Widget_Style :=
+     From (Demo_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'demo'
-   function Demo_Class_Part_Styles return Part_Style_Array is
-     ([
+   Demo_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Demo_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'cell'
-   function Cell_Class_Widget return Widget_Style is
-     (From (Cell_Class_Base_Style)
-     .Build);
+   Cell_Class_Widget : constant Widget_Style :=
+     From (Cell_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'cell'::label
-   function Cell_Class_Label_Widget return Widget_Style is
-     (From (Cell_Class_Label_Base_Style)
-     .Build);
+   Cell_Class_Label_Widget : constant Widget_Style :=
+     From (Cell_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'cell'
-   function Cell_Class_Part_Styles return Part_Style_Array is
-     ([
+   Cell_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Cell_Class_Widget, Enabled => True),
       Label_Part => (Style => Cell_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'alt'
-   function Alt_Class_Widget return Widget_Style is
-     (From (Alt_Class_Base_Style)
-     .Build);
+   Alt_Class_Widget : constant Widget_Style :=
+     From (Alt_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'alt'
-   function Alt_Class_Part_Styles return Part_Style_Array is
-     ([
+   Alt_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Alt_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'warm'
-   function Warm_Class_Widget return Widget_Style is
-     (From (Warm_Class_Base_Style)
-     .Build);
+   Warm_Class_Widget : constant Widget_Style :=
+     From (Warm_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'warm'
-   function Warm_Class_Part_Styles return Part_Style_Array is
-     ([
+   Warm_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Warm_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'rose'
-   function Rose_Class_Widget return Widget_Style is
-     (From (Rose_Class_Base_Style)
-     .Build);
+   Rose_Class_Widget : constant Widget_Style :=
+     From (Rose_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'rose'
-   function Rose_Class_Part_Styles return Part_Style_Array is
-     ([
+   Rose_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Rose_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'red'
-   function Red_Class_Widget return Widget_Style is
-     (From (Red_Class_Base_Style)
-     .Build);
+   Red_Class_Widget : constant Widget_Style :=
+     From (Red_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'red'
-   function Red_Class_Part_Styles return Part_Style_Array is
-     ([
+   Red_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Red_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'cols-3fr'
-   function Cols_3fr_Class_Widget return Widget_Style is
-     (From (Cols_3fr_Class_Base_Style)
-     .Build);
+   Cols_3fr_Class_Widget : constant Widget_Style :=
+     From (Cols_3fr_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'cols-3fr'
-   function Cols_3fr_Class_Part_Styles return Part_Style_Array is
-     ([
+   Cols_3fr_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Cols_3fr_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'cols-px-fr'
-   function Cols_Px_Fr_Class_Widget return Widget_Style is
-     (From (Cols_Px_Fr_Class_Base_Style)
-     .Build);
+   Cols_Px_Fr_Class_Widget : constant Widget_Style :=
+     From (Cols_Px_Fr_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'cols-px-fr'
-   function Cols_Px_Fr_Class_Part_Styles return Part_Style_Array is
-     ([
+   Cols_Px_Fr_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Cols_Px_Fr_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'cols-auto'
-   function Cols_Auto_Class_Widget return Widget_Style is
-     (From (Cols_Auto_Class_Base_Style)
-     .Build);
+   Cols_Auto_Class_Widget : constant Widget_Style :=
+     From (Cols_Auto_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'cols-auto'
-   function Cols_Auto_Class_Part_Styles return Part_Style_Array is
-     ([
+   Cols_Auto_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Cols_Auto_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'cols-weight'
-   function Cols_Weight_Class_Widget return Widget_Style is
-     (From (Cols_Weight_Class_Base_Style)
-     .Build);
+   Cols_Weight_Class_Widget : constant Widget_Style :=
+     From (Cols_Weight_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'cols-weight'
-   function Cols_Weight_Class_Part_Styles return Part_Style_Array is
-     ([
+   Cols_Weight_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Cols_Weight_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'cols-mixed'
-   function Cols_Mixed_Class_Widget return Widget_Style is
-     (From (Cols_Mixed_Class_Base_Style)
-     .Build);
+   Cols_Mixed_Class_Widget : constant Widget_Style :=
+     From (Cols_Mixed_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'cols-mixed'
-   function Cols_Mixed_Class_Part_Styles return Part_Style_Array is
-     ([
+   Cols_Mixed_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Cols_Mixed_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'board'
-   function Board_Class_Widget return Widget_Style is
-     (From (Board_Class_Base_Style)
-     .Build);
+   Board_Class_Widget : constant Widget_Style :=
+     From (Board_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'board'
-   function Board_Class_Part_Styles return Part_Style_Array is
-     ([
+   Board_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Board_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'span-2col'
-   function Span_2col_Class_Widget return Widget_Style is
-     (From (Span_2col_Class_Base_Style)
-     .Build);
+   Span_2col_Class_Widget : constant Widget_Style :=
+     From (Span_2col_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'span-2col'
-   function Span_2col_Class_Part_Styles return Part_Style_Array is
-     ([
+   Span_2col_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Span_2col_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'span-2row'
-   function Span_2row_Class_Widget return Widget_Style is
-     (From (Span_2row_Class_Base_Style)
-     .Build);
+   Span_2row_Class_Widget : constant Widget_Style :=
+     From (Span_2row_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'span-2row'
-   function Span_2row_Class_Part_Styles return Part_Style_Array is
-     ([
+   Span_2row_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Span_2row_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'at-4-1'
-   function At_4_1_Class_Widget return Widget_Style is
-     (From (At_4_1_Class_Base_Style)
-     .Build);
+   At_4_1_Class_Widget : constant Widget_Style :=
+     From (At_4_1_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'at-4-1'
-   function At_4_1_Class_Part_Styles return Part_Style_Array is
-     ([
+   At_4_1_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => At_4_1_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'at-1-2'
-   function At_1_2_Class_Widget return Widget_Style is
-     (From (At_1_2_Class_Base_Style)
-     .Build);
+   At_1_2_Class_Widget : constant Widget_Style :=
+     From (At_1_2_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'at-1-2'
-   function At_1_2_Class_Part_Styles return Part_Style_Array is
-     ([
+   At_1_2_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => At_1_2_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'at-2-2'
-   function At_2_2_Class_Widget return Widget_Style is
-     (From (At_2_2_Class_Base_Style)
-     .Build);
+   At_2_2_Class_Widget : constant Widget_Style :=
+     From (At_2_2_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'at-2-2'
-   function At_2_2_Class_Part_Styles return Part_Style_Array is
-     ([
+   At_2_2_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => At_2_2_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'at-4-2'
-   function At_4_2_Class_Widget return Widget_Style is
-     (From (At_4_2_Class_Base_Style)
-     .Build);
+   At_4_2_Class_Widget : constant Widget_Style :=
+     From (At_4_2_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'at-4-2'
-   function At_4_2_Class_Part_Styles return Part_Style_Array is
-     ([
+   At_4_2_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => At_4_2_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'at-1-3'
-   function At_1_3_Class_Widget return Widget_Style is
-     (From (At_1_3_Class_Base_Style)
-     .Build);
+   At_1_3_Class_Widget : constant Widget_Style :=
+     From (At_1_3_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'at-1-3'
-   function At_1_3_Class_Part_Styles return Part_Style_Array is
-     ([
+   At_1_3_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => At_1_3_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'span-3col'
-   function Span_3col_Class_Widget return Widget_Style is
-     (From (Span_3col_Class_Base_Style)
-     .Build);
+   Span_3col_Class_Widget : constant Widget_Style :=
+     From (Span_3col_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'span-3col'
-   function Span_3col_Class_Part_Styles return Part_Style_Array is
-     ([
+   Span_3col_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Span_3col_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'gap-both'
-   function Gap_Both_Class_Widget return Widget_Style is
-     (From (Gap_Both_Class_Base_Style)
-     .Build);
+   Gap_Both_Class_Widget : constant Widget_Style :=
+     From (Gap_Both_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'gap-both'
-   function Gap_Both_Class_Part_Styles return Part_Style_Array is
-     ([
+   Gap_Both_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Gap_Both_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'gap-row'
-   function Gap_Row_Class_Widget return Widget_Style is
-     (From (Gap_Row_Class_Base_Style)
-     .Build);
+   Gap_Row_Class_Widget : constant Widget_Style :=
+     From (Gap_Row_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'gap-row'
-   function Gap_Row_Class_Part_Styles return Part_Style_Array is
-     ([
+   Gap_Row_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Gap_Row_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'gap-col'
-   function Gap_Col_Class_Widget return Widget_Style is
-     (From (Gap_Col_Class_Base_Style)
-     .Build);
+   Gap_Col_Class_Widget : constant Widget_Style :=
+     From (Gap_Col_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'gap-col'
-   function Gap_Col_Class_Part_Styles return Part_Style_Array is
-     ([
+   Gap_Col_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Gap_Col_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'floor-grid'
-   function Floor_Grid_Class_Widget return Widget_Style is
-     (From (Floor_Grid_Class_Base_Style)
-     .Build);
+   Floor_Grid_Class_Widget : constant Widget_Style :=
+     From (Floor_Grid_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'floor-grid'
-   function Floor_Grid_Class_Part_Styles return Part_Style_Array is
-     ([
+   Floor_Grid_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Floor_Grid_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'floor-wide'
-   function Floor_Wide_Class_Widget return Widget_Style is
-     (From (Floor_Wide_Class_Base_Style)
-     .Build);
+   Floor_Wide_Class_Widget : constant Widget_Style :=
+     From (Floor_Wide_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'floor-wide'
-   function Floor_Wide_Class_Part_Styles return Part_Style_Array is
-     ([
+   Floor_Wide_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Floor_Wide_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'floor-medium'
-   function Floor_Medium_Class_Widget return Widget_Style is
-     (From (Floor_Medium_Class_Base_Style)
-     .Build);
+   Floor_Medium_Class_Widget : constant Widget_Style :=
+     From (Floor_Medium_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'floor-medium'
-   function Floor_Medium_Class_Part_Styles return Part_Style_Array is
-     ([
+   Floor_Medium_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Floor_Medium_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'floor-rest'
-   function Floor_Rest_Class_Widget return Widget_Style is
-     (From (Floor_Rest_Class_Base_Style)
-     .Build);
+   Floor_Rest_Class_Widget : constant Widget_Style :=
+     From (Floor_Rest_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'floor-rest'
-   function Floor_Rest_Class_Part_Styles return Part_Style_Array is
-     ([
+   Floor_Rest_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Floor_Rest_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'clip-grid'
-   function Clip_Grid_Class_Widget return Widget_Style is
-     (From (Clip_Grid_Class_Base_Style)
-     .Build);
+   Clip_Grid_Class_Widget : constant Widget_Style :=
+     From (Clip_Grid_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'clip-grid'
-   function Clip_Grid_Class_Part_Styles return Part_Style_Array is
-     ([
+   Clip_Grid_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Clip_Grid_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'wide'::label
-   function Wide_Class_Label_Widget return Widget_Style is
-     (From (Wide_Class_Label_Base_Style)
-     .Build);
+   Wide_Class_Label_Widget : constant Widget_Style :=
+     From (Wide_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'wide'
-   function Wide_Class_Part_Styles return Part_Style_Array is
-     ([
+   Wide_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Wide_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'clipped'
-   function Clipped_Class_Widget return Widget_Style is
-     (From (Clipped_Class_Base_Style)
-     .Build);
+   Clipped_Class_Widget : constant Widget_Style :=
+     From (Clipped_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'clipped'
-   function Clipped_Class_Part_Styles return Part_Style_Array is
-     ([
+   Clipped_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Clipped_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'scroll-grid'
-   function Scroll_Grid_Class_Widget return Widget_Style is
-     (From (Scroll_Grid_Class_Base_Style)
-     .Build);
+   Scroll_Grid_Class_Widget : constant Widget_Style :=
+     From (Scroll_Grid_Class_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'scroll-grid'::knob
-   function Scroll_Grid_Class_Knob_Widget return Widget_Style is
-     (From (Scroll_Grid_Class_Knob_Base_Style)
-     .Build);
+   Scroll_Grid_Class_Knob_Widget : constant Widget_Style :=
+     From (Scroll_Grid_Class_Knob_Base_Style)
+     .Build;
 
    --  Complete widget style for class 'scroll-grid'::scroll
-   function Scroll_Grid_Class_Scroll_Widget return Widget_Style is
-     (From (Scroll_Grid_Class_Scroll_Base_Style)
-     .Build);
+   Scroll_Grid_Class_Scroll_Widget : constant Widget_Style :=
+     From (Scroll_Grid_Class_Scroll_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'scroll-grid'
-   function Scroll_Grid_Class_Part_Styles return Part_Style_Array is
-     ([
+   Scroll_Grid_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Scroll_Grid_Class_Widget, Enabled => True),
       Knob_Part => (Style => Scroll_Grid_Class_Knob_Widget, Enabled => True),
       Scroll_Part => (Style => Scroll_Grid_Class_Scroll_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Register every selector this stylesheet defines, in
    --  source order. A consumer that knows only the package

@@ -20,17 +20,6 @@ procedure Style_Flat_Values_Test is
    use type Opt_List_Style_Type.Optional;
    use type Opt_List_Style_Image.Optional;
 
-   --  Mirrors Prepared_Style_Entry, which adi-widget.adb declares in a
-   --  body, out of reach of a with.
-   type Ordered_Rule_Index_Array is
-     array (Positive range 1 .. Max_Style_Rules) of Positive;
-
-   type Prepared_Style_Entry is record
-      Style         : Widget_Style := Empty_Widget_Style;
-      Ordered_Rules : Ordered_Rule_Index_Array := [others => 1];
-      Ordered_Count : Natural := 0;
-   end record;
-
    ---------------------------------------------------------------------
    --  Finalization
    ---------------------------------------------------------------------
@@ -62,8 +51,8 @@ procedure Style_Flat_Values_Test is
               "Part_Style is flat");
       Assert (Part_Style_Array'Finalization_Size = 0,
               "Part_Style_Array is flat");
-      Assert (Prepared_Style_Entry'Finalization_Size = 0,
-              "Prepared_Style_Entry is flat");
+      Assert (Style_Definition'Finalization_Size = 0,
+              "Style_Definition is flat");
       Assert (Adi.CSS_Parser.Stylesheet_Metadata'Finalization_Size = 0,
               "Stylesheet_Metadata is flat");
    end Test_Finalization;
@@ -103,15 +92,18 @@ procedure Style_Flat_Values_Test is
       Row ("Widget_Style",
            Widget_Style'Object_Size,
            Widget_Style'Max_Size_In_Storage_Elements);
+      Row ("Part_Style",
+           Part_Style'Object_Size,
+           Part_Style'Max_Size_In_Storage_Elements);
       Row ("Part_Style_Array",
            Part_Style_Array'Object_Size,
            Part_Style_Array'Max_Size_In_Storage_Elements);
       Row ("Stylesheet_Metadata",
            Adi.CSS_Parser.Stylesheet_Metadata'Object_Size,
            Adi.CSS_Parser.Stylesheet_Metadata'Max_Size_In_Storage_Elements);
-      Row ("Prepared_Style_Entry",
-           Prepared_Style_Entry'Object_Size,
-           Prepared_Style_Entry'Max_Size_In_Storage_Elements);
+      Row ("Style_Definition",
+           Style_Definition'Object_Size,
+           Style_Definition'Max_Size_In_Storage_Elements);
       Row ("Resolved_Style",
            Resolved_Style'Object_Size,
            Resolved_Style'Max_Size_In_Storage_Elements);
@@ -201,8 +193,9 @@ procedure Style_Flat_Values_Test is
         & " font-family: " & Past_Limit & "; }" & ASCII.LF;
 
       function Base (Class : String) return Style_Rules is
-        (Adi.CSS_Parser.Styles_For_Class (Sheet, Class)
-           (Main_Part).Style.Base);
+        (Rules_Of
+           (Definition (Adi.CSS_Parser.Styles_For_Class (Sheet, Class)
+                          (Main_Part).Style).Base));
    begin
       Section ("the parser drops text past the limit");
 
@@ -257,19 +250,20 @@ procedure Style_Flat_Values_Test is
          Styles : constant Part_Style_Array :=
            Adi.CSS_Parser.Styles_For_Class (Sheet, Class);
       begin
-         return Styles (Main_Part).Style.Base;
+         return Rules_Of (Definition (Styles (Main_Part).Style).Base);
       end Parsed_Base;
 
       function Parsed_Hover (Class : String) return Style_Rules is
          Styles : constant Part_Style_Array :=
            Adi.CSS_Parser.Styles_For_Class (Sheet, Class);
-         WS     : constant Widget_Style := Styles (Main_Part).Style;
+         WS     : constant Style_Definition :=
+           Definition (Styles (Main_Part).Style);
       begin
          for I in 1 .. WS.Rule_Count loop
             if Matches (WS.Rules (I).Selector,
                         Single_State (State_Hovered))
             then
-               return WS.Rules (I).Style;
+               return Rules_Of (WS.Rules (I).Style);
             end if;
          end loop;
          return Empty_Style;

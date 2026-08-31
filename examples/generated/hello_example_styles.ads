@@ -9,18 +9,22 @@ with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
+--  The constants below intern as this package elaborates, so the
+--  stores behind Intern_Rules and Build are wanted first.
+pragma Elaborate_All (Adi.Widget_Styles);
+
 package Hello_Example_Styles is
 
    function Has_Root_Font_Size return Boolean is (False);
    function Root_Font_Size return Length_Value is (Default_Font_Size);
 
    function Has_Root_Styles return Boolean is (False);
-   function Root_Part_Styles return Part_Style_Array is (Empty_Part_Styles);
+   Root_Part_Styles : constant Part_Style_Array := Empty_Part_Styles;
 
    function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
      (
       Has_Root_Style => Has_Root_Styles,
-      Root_Styles => Adi.Widget.Intern (Root_Part_Styles),
+      Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
    --  Base style for class 'root'
@@ -73,59 +77,59 @@ package Hello_Example_Styles is
       others => <>);
 
    --  Complete widget style for class 'root'
-   function Root_Class_Widget return Widget_Style is
-     (From (Root_Class_Base_Style)
-     .Build);
+   Root_Class_Widget : constant Widget_Style :=
+     From (Root_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'root'
-   function Root_Class_Part_Styles return Part_Style_Array is
-     ([
+   Root_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Root_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for tag 'button'
-   function Button_Tag_Widget return Widget_Style is
-     (From (Button_Tag_Base_Style)
-     .Build);
+   Button_Tag_Widget : constant Widget_Style :=
+     From (Button_Tag_Base_Style)
+     .Build;
 
    --  Part styles bundle for tag 'button'
-   function Button_Tag_Part_Styles return Part_Style_Array is
-     ([
+   Button_Tag_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Button_Tag_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'primary'
-   function Primary_Class_Widget return Widget_Style is
-     (From (Primary_Class_Base_Style)
+   Primary_Class_Widget : constant Widget_Style :=
+     From (Primary_Class_Base_Style)
      .On (When_State (State_Hovered), Primary_Class_Widget_Hovered_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'primary'::label
-   function Primary_Class_Label_Widget return Widget_Style is
-     (From (Primary_Class_Label_Base_Style)
-     .Build);
+   Primary_Class_Label_Widget : constant Widget_Style :=
+     From (Primary_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'primary'
-   function Primary_Class_Part_Styles return Part_Style_Array is
-     ([
+   Primary_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Primary_Class_Widget, Enabled => True),
       Label_Part => (Style => Primary_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for id 'Greeting'::label
-   function Greeting_Id_Label_Widget return Widget_Style is
-     (From (Greeting_Id_Label_Base_Style)
-     .Build);
+   Greeting_Id_Label_Widget : constant Widget_Style :=
+     From (Greeting_Id_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for id 'Greeting'
-   function Greeting_Id_Part_Styles return Part_Style_Array is
-     ([
+   Greeting_Id_Part_Styles : constant Part_Style_Array :=
+     [
       Label_Part => (Style => Greeting_Id_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Register every selector this stylesheet defines, in
    --  source order. A consumer that knows only the package

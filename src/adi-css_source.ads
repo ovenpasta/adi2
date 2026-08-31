@@ -262,8 +262,7 @@ private
    type Static_Style_Entry is record
       Kind   : Adi.CSS_Parser.Selector_Kind := Adi.CSS_Parser.Class_Selector;
       Name   : Ada.Strings.Unbounded.Unbounded_String;
-      Styles : Adi.Widget.Interned_Part_Styles :=
-        Adi.Widget.Empty_Interned_Part_Styles;
+      Styles : Adi.Widget.Part_Style_Array := Adi.Widget.Empty_Part_Styles;
    end record;
 
    type Dynamic_Entry_Kind is (File_Entry, String_Entry);

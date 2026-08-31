@@ -9,18 +9,22 @@ with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
+--  The constants below intern as this package elaborates, so the
+--  stores behind Intern_Rules and Build are wanted first.
+pragma Elaborate_All (Adi.Widget_Styles);
+
 package Stack_Example_Styles is
 
    function Has_Root_Font_Size return Boolean is (False);
    function Root_Font_Size return Length_Value is (Default_Font_Size);
 
    function Has_Root_Styles return Boolean is (False);
-   function Root_Part_Styles return Part_Style_Array is (Empty_Part_Styles);
+   Root_Part_Styles : constant Part_Style_Array := Empty_Part_Styles;
 
    function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
      (
       Has_Root_Style => Has_Root_Styles,
-      Root_Styles => Adi.Widget.Intern (Root_Part_Styles),
+      Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
    --  Base style for class 'root'
@@ -71,64 +75,64 @@ package Stack_Example_Styles is
       others => <>);
 
    --  Complete widget style for class 'root'
-   function Root_Class_Widget return Widget_Style is
-     (From (Root_Class_Base_Style)
-     .Build);
+   Root_Class_Widget : constant Widget_Style :=
+     From (Root_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'root'
-   function Root_Class_Part_Styles return Part_Style_Array is
-     ([
+   Root_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Root_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'tab-bar'
-   function Tab_Bar_Class_Widget return Widget_Style is
-     (From (Tab_Bar_Class_Base_Style)
-     .Build);
+   Tab_Bar_Class_Widget : constant Widget_Style :=
+     From (Tab_Bar_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'tab-bar'
-   function Tab_Bar_Class_Part_Styles return Part_Style_Array is
-     ([
+   Tab_Bar_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Tab_Bar_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'stack'
-   function Stack_Class_Widget return Widget_Style is
-     (From (Stack_Class_Base_Style)
-     .Build);
+   Stack_Class_Widget : constant Widget_Style :=
+     From (Stack_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'stack'
-   function Stack_Class_Part_Styles return Part_Style_Array is
-     ([
+   Stack_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Stack_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'page-red'
-   function Page_Red_Class_Widget return Widget_Style is
-     (From (Page_Red_Class_Base_Style)
-     .Build);
+   Page_Red_Class_Widget : constant Widget_Style :=
+     From (Page_Red_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'page-red'
-   function Page_Red_Class_Part_Styles return Part_Style_Array is
-     ([
+   Page_Red_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Page_Red_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'page-blue'
-   function Page_Blue_Class_Widget return Widget_Style is
-     (From (Page_Blue_Class_Base_Style)
-     .Build);
+   Page_Blue_Class_Widget : constant Widget_Style :=
+     From (Page_Blue_Class_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'page-blue'
-   function Page_Blue_Class_Part_Styles return Part_Style_Array is
-     ([
+   Page_Blue_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Page_Blue_Class_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Register every selector this stylesheet defines, in
    --  source order. A consumer that knows only the package

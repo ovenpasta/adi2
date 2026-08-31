@@ -105,8 +105,8 @@ procedure Style_Sparse_Test is
                       others    => <>));
 
       function Style_With (Tag, Rules : Natural) return Widget_Style is
-         Result : Widget_Style :=
-           From (Base_Rules (Tag)).Build;
+         Result : Style_Definition :=
+           Definition (From (Base_Rules (Tag)).Build);
          States : constant array (1 .. 5) of Widget_State :=
            [State_Hovered, State_Pressed, State_Focused,
             State_Disabled, State_Selected];
@@ -115,25 +115,30 @@ procedure Style_Sparse_Test is
             Add_Rule
               (Result,
                (Selector => When_State (States (((I - 1) mod 5) + 1)),
-                Style    => Style_Rules'(Order => Set (Order_Value (I)),
-                                         others => <>),
+                Style    => Intern_Rules
+                              (Style_Rules'(Order  => Set (Order_Value (I)),
+                                            others => <>)),
                 Priority => I));
          end loop;
-         return Result;
+         return Intern (Result);
       end Style_With;
 
-      function Cost_Of (S : Widget_Style) return Natural is
+      --  Interning is what stores the entry, so the reading is taken
+      --  around Style_With; Set_Part_Style then holds the handle it
+      --  answered.
+      function Cost_Of (Tag, Rules : Natural) return Natural is
          Before : constant Natural := Adi.Widget.Testing.Interned_Style_Bytes;
+         S      : constant Widget_Style := Style_With (Tag, Rules);
          W      : constant Box_Handle := Create_Handle;
       begin
          Set_Part_Style (+W, Main_Part, S);
          return Adi.Widget.Testing.Interned_Style_Bytes - Before;
       end Cost_Of;
 
-      Bare  : constant Natural := Cost_Of (Style_With (1, 0));
-      One   : constant Natural := Cost_Of (Style_With (2, 1));
-      Eight : constant Natural := Cost_Of (Style_With (3, 8));
-      Full  : constant Natural := Cost_Of (Style_With (4, Max_Style_Rules));
+      Bare  : constant Natural := Cost_Of (1, 0);
+      One   : constant Natural := Cost_Of (2, 1);
+      Eight : constant Natural := Cost_Of (3, 8);
+      Full  : constant Natural := Cost_Of (4, Max_Style_Rules);
    begin
       Section ("an interned entry costs the rules it carries");
 
@@ -151,7 +156,13 @@ procedure Style_Sparse_Test is
       Assert (Bare * 4 < Full,
               "a rule-free style costs a fraction of a full one");
 
-      Assert (Eight - One >= 6 * (One - Bare),
+      --  The first rule brings the two variable-length arrays into the
+      --  record and pays their alignment as well as its own slot, so
+      --  the per-rule step is read across the rules after it.
+      Assert (Full - Eight > 0, "the last eight rules cost storage");
+      Assert (One - Bare >= (Full - Eight) / 8,
+              "the first rule costs at least what a later one does");
+      Assert (Eight - One = 7 * ((Full - Eight) / 8),
               "each further rule adds its own storage");
    end Test_Store_Sizes_To_The_Rules;
 
@@ -421,8 +432,9 @@ procedure Style_Sparse_Test is
             return Empty;
          end if;
          return Set_Properties
-           (Adi.CSS_Parser.Styles_For_Class (Sheet, "probe")
-              (Main_Part).Style.Base);
+           (Rules_Of
+              (Definition (Adi.CSS_Parser.Styles_For_Class (Sheet, "probe")
+                             (Main_Part).Style).Base));
       end Reached;
 
       function Lands (Name, Value : String) return Boolean is

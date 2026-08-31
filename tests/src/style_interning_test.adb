@@ -97,7 +97,8 @@ procedure Style_Interning_Test is
                    Get_Part_Style (+Last, Main_Part),
                  "and every source resolves the selector alike");
          Assert (Opt_Bg_Color.Is_Set
-                   (Get_Part_Style (+Last, Main_Part).Base.Background_Color),
+                   (Rules_Of (Definition (Get_Part_Style (+Last, Main_Part))
+                                .Base).Background_Color),
                  "to the style the table actually named");
       end;
    end Test_Same_Table_From_Many_Sources;
@@ -110,9 +111,9 @@ procedure Style_Interning_Test is
         (Main_Styles ((Font_Family => Set_Font_Family ("DejaVu Sans"),
                        others      => <>)));
 
-      First  : constant Interned_Part_Styles := Intern (Named);
-      Middle : constant Natural              := Interned_Styles;
-      Second : constant Interned_Part_Styles := Intern (Named);
+      First  : constant Part_Style_Array := Named;
+      Middle : constant Natural          := Interned_Styles;
+      Second : constant Part_Style_Array := Named;
    begin
       Section ("equal styles built twice");
       Assert (First = Second,
@@ -124,7 +125,7 @@ procedure Style_Interning_Test is
    procedure Test_Round_Trip is
       Original : Part_Style_Array := Empty_Part_Styles;
    begin
-      Section ("intern and expand");
+      Section ("intern and read back");
 
       Original (Main_Part) :=
         (Style   => From ((Color            => Set (C (White)),
@@ -144,9 +145,18 @@ procedure Style_Interning_Test is
         (Style   => From ((Color => Set (RGB (7, 7, 7)), others => <>)).Build,
          Enabled => False);
 
-      Assert (Expand (Intern (Original)) = Original,
-              "interning and expanding returns what went in");
-      Assert (not Expand (Intern (Original)) (Label_Part).Enabled,
+      declare
+         D : constant Style_Definition :=
+           Definition (Original (Main_Part).Style);
+      begin
+         Assert (Intern (D) = Original (Main_Part).Style,
+                 "a definition read back interns to the handle it came from");
+         Assert (D.Rule_Count = 2, "both state rules survive the store");
+         Assert (Opt_Text_Color.Resolve (Rules_Of (D.Base).Color) = C (White),
+                 "and so does the base rule set");
+      end;
+
+      Assert (not Original (Label_Part).Enabled,
               "a part switched off stays switched off");
    end Test_Round_Trip;
 
@@ -175,13 +185,15 @@ procedure Style_Interning_Test is
 
       for I in Styles'Range loop
          for J in Styles'Range loop
-            Assert (Same_Style (Styles (I), Styles (J)) =
+            Assert (Same_Style (Definition (Styles (I)),
+                                Definition (Styles (J))) =
                       (Styles (I) = Styles (J)),
                     "styles" & I'Image & J'Image & " agree");
          end loop;
       end loop;
 
-      Assert (Same_Style (From (Base).Build, From (Base).Build),
+      Assert (Same_Style (Definition (From (Base).Build),
+                          Definition (From (Base).Build)),
               "two styles built alike are the same style");
    end Test_Same_Style_Agrees_With_Equality;
 
@@ -273,13 +285,16 @@ procedure Style_Interning_Test is
          A : constant Part_Style_Array :=
            Adi.CSS_Parser.Styles_For_Class (Sheet, "a");
       begin
-         Assert (Opt_Text_Color.Is_Set (A (Main_Part).Style.Base.Color),
+         Assert (Opt_Text_Color.Is_Set
+                   (Rules_Of (Definition (A (Main_Part).Style).Base).Color),
                  "the first rule survives a later one");
-         Assert (Opt_Font_Size.Is_Set (A (Main_Part).Style.Base.Font_Size),
+         Assert (Opt_Font_Size.Is_Set
+                   (Rules_Of (Definition (A (Main_Part).Style).Base).Font_Size),
                  "the later rule is folded into the same entry");
-         Assert (A (Main_Part).Style.Rule_Count = 1,
+         Assert (Definition (A (Main_Part).Style).Rule_Count = 1,
                  "a state rule lands on the same entry");
-         Assert (Opt_Text_Color.Is_Set (A (Label_Part).Style.Base.Color),
+         Assert (Opt_Text_Color.Is_Set
+                   (Rules_Of (Definition (A (Label_Part).Style).Base).Color),
                  "and a part rule lands on the part");
       end;
    end Test_Rules_Merge_Before_Interning;
@@ -299,10 +314,13 @@ procedure Style_Interning_Test is
                    2)),
              others => <>)));
 
-      Before : constant Natural              := Interned_Styles;
-      First  : constant Interned_Part_Styles := Intern (Fade (C (White)));
-      Middle : constant Natural              := Interned_Styles;
-      Second : constant Interned_Part_Styles := Intern (Fade (C (White)));
+      Before : constant Natural          := Interned_Styles;
+      First  : constant Part_Style_Array := Fade (C (White));
+      Middle : constant Natural          := Interned_Styles;
+      Second : constant Part_Style_Array := Fade (C (White));
+      --  Read here rather than below: .Build interns, so a gradient
+      --  built further down for a different colour moves the count.
+      After  : constant Natural          := Interned_Styles;
    begin
       Section ("styles carrying a gradient");
       Assert (Middle > Before, "a gradient style is stored");
@@ -312,9 +330,9 @@ procedure Style_Interning_Test is
               "different gradients make different styles");
       Assert (First = Second,
               "two equal gradients built separately intern alike");
-      Assert (Interned_Styles = Middle,
+      Assert (After = Middle,
               "and the second stores nothing further");
-      Assert (Expand (First) = Fade (C (White)),
+      Assert (First = Fade (C (White)),
               "a gradient survives interning");
    end Test_Gradients_Are_Shared;
 

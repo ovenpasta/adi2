@@ -3,12 +3,15 @@
 
 pragma Ada_2022;
 
+with Adi.Widget_Styles;
+
 package body Adi.Widget.Testing is
 
-   function Interned_Styles return Natural is (Interned_Style_Count);
+   function Interned_Styles return Natural is
+     (Adi.Widget_Styles.Interned_Styles);
 
    function Interned_Style_Bytes return Natural is
-     (Adi.Widget.Interned_Style_Bytes);
+     (Adi.Widget_Styles.Interned_Style_Bytes);
 
    function Memo_Entries return Natural is (Resolved_Memo_Entries);
 
@@ -36,7 +39,7 @@ package body Adi.Widget.Testing is
         := Adi.Widget_Properties.Empty_Assignment)
       return Ada.Containers.Hash_Type
    is (Adi.Widget.Resolved_Cache_Hash
-         (Style_Handle (Part_Handle), Style_Handle (Main_Handle),
+         (Part_Handle, Main_Handle,
           Widget_State_Bits, Part_State_Bits, Main_Part_State_Bits,
           Adi.Font.Font_Generation (Font_Gen), Assigned));
 

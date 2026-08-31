@@ -33,22 +33,26 @@ procedure Style_Rule_Cap_Test is
      (Opacity => Set (0.5), others => <>);
 
    function Rule (I : Positive) return State_Rule is
-     ((Selector => Selectors (I), Style => Filler, Priority => 0));
+     ((Selector => Selectors (I),
+       Style    => Intern_Rules (Filler),
+       Priority => 0));
 
-   function Full_Style return Widget_Style is
-      Result : Widget_Style := Empty_Widget_Style;
+   function Full_Definition return Style_Definition is
+      Result : Style_Definition := Empty_Style_Definition;
    begin
       for I in 1 .. Max_Style_Rules loop
          Add_Rule (Result, Rule (I));
       end loop;
       return Result;
-   end Full_Style;
+   end Full_Definition;
+
+   function Full_Style return Widget_Style is (Intern (Full_Definition));
 
    function Overflowing_Style return Widget_Style is
-      Result : Widget_Style := Empty_Widget_Style;
+      Result : Style_Definition := Empty_Style_Definition;
    begin
       Add_Rule (Result, Rule (Max_Style_Rules + 1));
-      return Result;
+      return Intern (Result);
    end Overflowing_Style;
 
    function Contains (Haystack, Needle : String) return Boolean is
@@ -60,12 +64,12 @@ procedure Style_Rule_Cap_Test is
       WS : constant Widget_Style := Full_Style;
    begin
       Section ("Max_Style_Rules rules fit");
-      Assert (WS.Rule_Count = Max_Style_Rules,
+      Assert (Definition (WS).Rule_Count = Max_Style_Rules,
               "a style holds Max_Style_Rules rules");
    end Test_Cap_Is_Reachable;
 
    procedure Test_Add_Rule_Raises is
-      WS : Widget_Style := Full_Style;
+      WS : Style_Definition := Full_Definition;
    begin
       Section ("Add_Rule past the cap raises, naming the selector");
       Add_Rule (WS, Rule (Max_Style_Rules + 1));
@@ -99,14 +103,15 @@ procedure Style_Rule_Cap_Test is
    end Test_Builder_Chain_Raises;
 
    procedure Test_Try_Add_Rule_Reports is
-      WS    : Widget_Style := Full_Style;
+      WS    : Style_Definition := Full_Definition;
       Added : Boolean;
       Before : constant Natural := Adi.Widget_Styles.Testing.Dropped_Rules;
    begin
       Section ("Try_Add_Rule answers False past the cap and counts the drop");
       Try_Add_Rule (WS, Rule (Max_Style_Rules + 1), Added);
       Assert (not Added, "the rule past the cap is not added");
-      Assert (WS.Rule_Count = Max_Style_Rules, "the style is left as it was");
+      Assert (WS.Rule_Count = Max_Style_Rules,
+              "the definition is left as it was");
       Assert (Adi.Widget_Styles.Testing.Dropped_Rules = Before + 1,
               "the dropped rule is counted");
    end Test_Try_Add_Rule_Reports;
@@ -118,7 +123,7 @@ procedure Style_Rule_Cap_Test is
    procedure Test_One_Fold_Behind_Both_Entries is
       Base : Part_Style_Array := Empty_Part_Styles;
       Over : Part_Style_Array := Empty_Part_Styles;
-      Extra : Widget_Style := Empty_Widget_Style;
+      Extra : Style_Definition := Empty_Style_Definition;
       Before : Natural;
    begin
       Section ("One fold behind the public entry and the parser");
@@ -129,7 +134,7 @@ procedure Style_Rule_Cap_Test is
       Base (Label_Part) :=
         (Style => From ((Opacity => Set (0.25), others => <>)).Build,
          Enabled => True);
-      Over (Main_Part) := (Style => Extra, Enabled => True);
+      Over (Main_Part) := (Style => Intern (Extra), Enabled => True);
       Over (Label_Part) :=
         (Style => From ((Opacity => Set (0.75), others => <>)).Build,
          Enabled => True);
@@ -140,11 +145,12 @@ procedure Style_Rule_Cap_Test is
 
       --  Rule (1) and Rule (2) are already in Full_Style, so they merge
       --  rather than overflow: the fold has to reach both outcomes.
-      Assert (Adi.Style_Merge_Testing.Merge (Base, Over)
-                (Main_Part).Style.Rule_Count = Max_Style_Rules,
+      Assert (Definition (Adi.Style_Merge_Testing.Merge (Base, Over)
+                            (Main_Part).Style).Rule_Count = Max_Style_Rules,
               "a selector both sides name merges in place");
-      Assert (Adi.Style_Merge_Testing.Merge (Base, Over)
-                (Label_Part).Style.Base /= Base (Label_Part).Style.Base,
+      Assert (Definition (Adi.Style_Merge_Testing.Merge (Base, Over)
+                            (Label_Part).Style).Base
+                /= Definition (Base (Label_Part).Style).Base,
               "and the base rules fold too");
 
       Before := Adi.Widget_Styles.Testing.Dropped_Rules;
@@ -154,7 +160,8 @@ procedure Style_Rule_Cap_Test is
          Merged : constant Part_Style_Array :=
            Adi.Style_Merge_Testing.Merge (Base, Over);
       begin
-         Assert (Merged (Main_Part).Style.Rule_Count = Max_Style_Rules,
+         Assert (Definition (Merged (Main_Part).Style).Rule_Count
+                   = Max_Style_Rules,
                  "the shared fold holds the cap");
       end;
       Assert (Adi.Widget_Styles.Testing.Dropped_Rules = Before + 1,
@@ -164,14 +171,14 @@ procedure Style_Rule_Cap_Test is
    procedure Test_Merge_Reports_The_Drop is
       Base : Part_Style_Array := Empty_Part_Styles;
       Over : Part_Style_Array := Empty_Part_Styles;
-      Overflow : Widget_Style := Empty_Widget_Style;
+      Overflow : Style_Definition := Empty_Style_Definition;
       Before : Natural;
    begin
       Section ("A merge past the cap drops the rule rather than raising");
 
       Add_Rule (Overflow, Rule (Max_Style_Rules + 1));
       Base (Main_Part) := (Style => Full_Style, Enabled => True);
-      Over (Main_Part) := (Style => Overflow, Enabled => True);
+      Over (Main_Part) := (Style => Intern (Overflow), Enabled => True);
 
       Before := Adi.Widget_Styles.Testing.Dropped_Rules;
 
@@ -179,7 +186,8 @@ procedure Style_Rule_Cap_Test is
          Merged : constant Part_Style_Array :=
            Adi.CSS_Source.Merge_Part_Styles (Base, Over);
       begin
-         Assert (Merged (Main_Part).Style.Rule_Count = Max_Style_Rules,
+         Assert (Definition (Merged (Main_Part).Style).Rule_Count
+                   = Max_Style_Rules,
                  "the merged style still holds Max_Style_Rules rules");
       end;
 

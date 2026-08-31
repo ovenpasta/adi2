@@ -37,14 +37,13 @@ package body Adi.CSS_Parser is
    type Selector_Style is record
       Kind   : Selector_Kind := Class_Selector;
       Name   : Unbounded_String;
-      Styles : Adi.Widget.Interned_Part_Styles :=
-        Adi.Widget.Empty_Interned_Part_Styles;
+      Styles : Adi.Widget.Part_Style_Array := Adi.Widget.Empty_Part_Styles;
    end record;
 
    Empty_Selector_Style : constant Selector_Style :=
      (Kind   => Class_Selector,
       Name   => Null_Unbounded_String,
-      Styles => Adi.Widget.Empty_Interned_Part_Styles);
+      Styles => Adi.Widget.Empty_Part_Styles);
 
    --  The styles a build has under construction, one entry per selector
    --  and in step with Stylesheet_Impl.Selectors.
@@ -238,8 +237,7 @@ package body Adi.CSS_Parser is
         and then Impl.Root_Target = Target
         and then Impl.Metadata.Has_Root_Style
       then
-         return Adi.Style_Merge.Merge
-           (Adi.Widget.Expand (Impl.Metadata.Root_Styles), Styles);
+         return Adi.Style_Merge.Merge (Impl.Metadata.Root_Styles, Styles);
       end if;
 
       return Styles;
@@ -3759,13 +3757,19 @@ package body Adi.CSS_Parser is
    is
       Pos     : Positive := Root_CSS'First;
       Working : Adi.Widget.Part_Style_Array := Adi.Widget.Empty_Part_Styles;
+      Root    : Style_Definition;
+      --  The declarations land in one rule set and it is interned once,
+      --  so the store holds the block rather than every prefix of it.
+      Base    : Style_Rules;
       Touched : Boolean := False;
    begin
       if Root_CSS'Length = 0 then
          return;
       end if;
 
-      Working := Adi.Widget.Expand (Metadata.Root_Styles);
+      Working := Metadata.Root_Styles;
+      Root := Definition (Working (Main_Part).Style);
+      Base := Rules_Of (Root.Base);
 
       while Pos <= Root_CSS'Last loop
          while Pos <= Root_CSS'Last
@@ -3793,17 +3797,13 @@ package body Adi.CSS_Parser is
                begin
                   Metadata.Has_Root_Style := True;
                   Touched := True;
-                  Working (Main_Part).Enabled := True;
-                  Apply_Property
-                    (Working (Main_Part).Style.Base, Prop_Name, Prop_Value);
+                  Apply_Property (Base, Prop_Name, Prop_Value);
                   if Lower (Prop_Name) = "font-size"
-                    and then Opt_Font_Size.Is_Set
-                      (Working (Main_Part).Style.Base.Font_Size)
+                    and then Opt_Font_Size.Is_Set (Base.Font_Size)
                   then
                      Metadata.Has_Root_Font_Size := True;
                      Metadata.Root_Font_Size :=
-                       Opt_Font_Size.Resolve
-                         (Working (Main_Part).Style.Base.Font_Size);
+                       Opt_Font_Size.Resolve (Base.Font_Size);
                   end if;
                end;
             end if;
@@ -3817,7 +3817,9 @@ package body Adi.CSS_Parser is
       end loop;
 
       if Touched then
-         Metadata.Root_Styles := Adi.Widget.Intern (Working);
+         Root.Base := Intern_Rules (Base);
+         Working (Main_Part) := (Style => Intern (Root), Enabled => True);
+         Metadata.Root_Styles := Working;
       end if;
    end Build_Root_Metadata;
 
@@ -4021,10 +4023,9 @@ package body Adi.CSS_Parser is
                            Success : out Boolean) is
       Saved : Selector_Style_Vectors.Vector;
 
-      --  Each selector is interned once, when its rules are all in.
-      --  Interning every intermediate instead would leave the store
-      --  holding every partial rule set the build passed through, and
-      --  the store does not evict.
+      --  What each selector has so far, published to Impl.Selectors when
+      --  the whole build has succeeded. A failed build leaves the
+      --  selectors it started with.
       Working : Part_Style_Vectors.Vector;
    begin
       Selector_Style_Vectors.Move (Target => Saved, Source => Impl.Selectors);
@@ -4036,7 +4037,7 @@ package body Adi.CSS_Parser is
             Idx : constant Positive :=
               Ensure_Selector (Impl, Working, R.Sel.Kind, To_String (R.Sel.Name));
             C   : Part_Style_Array renames Working.Reference (Idx).Element.all;
-            W   : Widget_Style := C (R.Sel.Part).Style;
+            W   : Style_Definition := Definition (C (R.Sel.Part).Style);
             Rule_Index : Natural := 0;
          begin
             if R.Sel.Has_State then
@@ -4055,23 +4056,26 @@ package body Adi.CSS_Parser is
                      exit Build_Loop;
                   end if;
 
-                  Add_Rule (W, (Selector => R.Sel.Selector, Style => R.Style, Priority => 0));
+                  Add_Rule (W, (Selector => R.Sel.Selector,
+                                Style    => Intern_Rules (R.Style),
+                                Priority => 0));
                else
-                  W.Rules (Rule_Index).Style := Merge (W.Rules (Rule_Index).Style, R.Style);
+                  W.Rules (Rule_Index).Style :=
+                    Intern_Rules
+                      (Merge (Rules_Of (W.Rules (Rule_Index).Style), R.Style));
                end if;
             else
-               W.Base := Merge (W.Base, R.Style);
+               W.Base := Intern_Rules (Merge (Rules_Of (W.Base), R.Style));
             end if;
 
-            C (R.Sel.Part) := (Style => W, Enabled => True);
+            C (R.Sel.Part) := (Style => Intern (W), Enabled => True);
          end;
       end loop Build_Loop;
 
       if Success then
          for I in 1 .. Natural (Impl.Selectors.Length) loop
             Impl.Selectors.Reference (I).Element.all.Styles :=
-              Adi.Widget.Intern
-                (Working.Constant_Reference (I).Element.all);
+              Working.Constant_Reference (I).Element.all;
          end loop;
          Saved.Clear;
       else
@@ -4106,7 +4110,7 @@ package body Adi.CSS_Parser is
                Set_Part_Styles
                  (R.Ptr.all,
                   Root_Merged_Styles
-                    (Impl, B.Target, Adi.Widget.Expand (Sel.Styles)));
+                    (Impl, B.Target, Sel.Styles));
             end;
          end if;
       end;
@@ -4175,7 +4179,7 @@ package body Adi.CSS_Parser is
                      Set_Part_Styles
                        (R.Ptr.all,
                         Root_Merged_Styles
-                          (Impl, B.Target, Adi.Widget.Expand (Sel.Styles)));
+                          (Impl, B.Target, Sel.Styles));
                   end;
                end if;
             end;
@@ -4313,7 +4317,7 @@ package body Adi.CSS_Parser is
          return Empty_Part_Styles;
       end if;
 
-      return Adi.Widget.Expand (Impl_Of (Sheet).Selectors (Positive (Idx)).Styles);
+      return Impl_Of (Sheet).Selectors (Positive (Idx)).Styles;
    end Styles_For;
 
    function Styles_For_Class (Sheet : Stylesheet;
@@ -4437,7 +4441,7 @@ package body Adi.CSS_Parser is
             Set_Part_Styles
               (W,
                Root_Merged_Styles (Impl_Of (Sheet).all, Adi.Widget.Get_Handle (W),
-                                   Adi.Widget.Expand (Sel.Styles)));
+                                   Sel.Styles));
          end;
       end if;
    end Apply;

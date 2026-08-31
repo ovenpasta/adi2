@@ -46,9 +46,8 @@ procedure CSS_Binding_Growth_Test is
    Sheet_Metadata : constant Adi.CSS_Parser.Stylesheet_Metadata :=
      (Has_Root_Style => True,
       Root_Styles    =>
-        Adi.Widget.Intern
-          (Main_Styles ((Background_Color => Set_Bg (RGB (1, 2, 3)),
-                         others           => <>))),
+        Main_Styles ((Background_Color => Set_Bg (RGB (1, 2, 3)),
+                      others           => <>)),
       others         => <>);
 
    --  What the generator emits, whole: install the stylesheet, choose a
@@ -435,9 +434,8 @@ begin
       Metadata : constant Adi.CSS_Parser.Stylesheet_Metadata :=
         (Has_Root_Style => True,
          Root_Styles    =>
-           Adi.Widget.Intern
-             (Main_Styles ((Background_Color => Set_Bg (RGB (10, 20, 30)),
-                            others           => <>))),
+           Main_Styles ((Background_Color => Set_Bg (RGB (10, 20, 30)),
+                         others           => <>)),
          others         => <>);
 
       Styled : Adi.CSS_Source.Style_Source;
@@ -920,9 +918,8 @@ begin
       Metadata : constant Adi.CSS_Parser.Stylesheet_Metadata :=
         (Has_Root_Style => True,
          Root_Styles    =>
-           Adi.Widget.Intern
-             (Main_Styles ((Background_Color => Set_Bg (RGB (10, 20, 30)),
-                            others           => <>))),
+           Main_Styles ((Background_Color => Set_Bg (RGB (10, 20, 30)),
+                         others           => <>)),
          others         => <>);
 
       Styled : Adi.CSS_Source.Style_Source;

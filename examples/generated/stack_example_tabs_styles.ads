@@ -9,18 +9,22 @@ with Adi.CSS_Styles;   use Adi.CSS_Styles;
 with Adi.Widget;       use Adi.Widget;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 
+--  The constants below intern as this package elaborates, so the
+--  stores behind Intern_Rules and Build are wanted first.
+pragma Elaborate_All (Adi.Widget_Styles);
+
 package Stack_Example_Tabs_Styles is
 
    function Has_Root_Font_Size return Boolean is (False);
    function Root_Font_Size return Length_Value is (Default_Font_Size);
 
    function Has_Root_Styles return Boolean is (False);
-   function Root_Part_Styles return Part_Style_Array is (Empty_Part_Styles);
+   Root_Part_Styles : constant Part_Style_Array := Empty_Part_Styles;
 
    function Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is
      (
       Has_Root_Style => Has_Root_Styles,
-      Root_Styles => Adi.Widget.Intern (Root_Part_Styles),
+      Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
    --  Base style for class 'tab-left'
@@ -134,64 +138,64 @@ package Stack_Example_Tabs_Styles is
       others => <>);
 
    --  Complete widget style for class 'tab-left'
-   function Tab_Left_Class_Widget return Widget_Style is
-     (From (Tab_Left_Class_Base_Style)
+   Tab_Left_Class_Widget : constant Widget_Style :=
+     From (Tab_Left_Class_Base_Style)
      .On (When_State (State_Hovered), Tab_Left_Class_Widget_Hovered_Style)
      .On (When_State (State_Selected), Tab_Left_Class_Widget_Selected_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'tab-left'::label
-   function Tab_Left_Class_Label_Widget return Widget_Style is
-     (From (Tab_Left_Class_Label_Base_Style)
-     .Build);
+   Tab_Left_Class_Label_Widget : constant Widget_Style :=
+     From (Tab_Left_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'tab-left'
-   function Tab_Left_Class_Part_Styles return Part_Style_Array is
-     ([
+   Tab_Left_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Tab_Left_Class_Widget, Enabled => True),
       Label_Part => (Style => Tab_Left_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'tab-center'
-   function Tab_Center_Class_Widget return Widget_Style is
-     (From (Tab_Center_Class_Base_Style)
+   Tab_Center_Class_Widget : constant Widget_Style :=
+     From (Tab_Center_Class_Base_Style)
      .On (When_State (State_Hovered), Tab_Center_Class_Widget_Hovered_Style)
      .On (When_State (State_Selected), Tab_Center_Class_Widget_Selected_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'tab-center'::label
-   function Tab_Center_Class_Label_Widget return Widget_Style is
-     (From (Tab_Center_Class_Label_Base_Style)
-     .Build);
+   Tab_Center_Class_Label_Widget : constant Widget_Style :=
+     From (Tab_Center_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'tab-center'
-   function Tab_Center_Class_Part_Styles return Part_Style_Array is
-     ([
+   Tab_Center_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Tab_Center_Class_Widget, Enabled => True),
       Label_Part => (Style => Tab_Center_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Complete widget style for class 'tab-right'
-   function Tab_Right_Class_Widget return Widget_Style is
-     (From (Tab_Right_Class_Base_Style)
+   Tab_Right_Class_Widget : constant Widget_Style :=
+     From (Tab_Right_Class_Base_Style)
      .On (When_State (State_Hovered), Tab_Right_Class_Widget_Hovered_Style)
      .On (When_State (State_Selected), Tab_Right_Class_Widget_Selected_Style)
-     .Build);
+     .Build;
 
    --  Complete widget style for class 'tab-right'::label
-   function Tab_Right_Class_Label_Widget return Widget_Style is
-     (From (Tab_Right_Class_Label_Base_Style)
-     .Build);
+   Tab_Right_Class_Label_Widget : constant Widget_Style :=
+     From (Tab_Right_Class_Label_Base_Style)
+     .Build;
 
    --  Part styles bundle for class 'tab-right'
-   function Tab_Right_Class_Part_Styles return Part_Style_Array is
-     ([
+   Tab_Right_Class_Part_Styles : constant Part_Style_Array :=
+     [
       Main_Part => (Style => Tab_Right_Class_Widget, Enabled => True),
       Label_Part => (Style => Tab_Right_Class_Label_Widget, Enabled => True),
       others => <>
-   ]);
+   ];
 
    --  Register every selector this stylesheet defines, in
    --  source order. A consumer that knows only the package

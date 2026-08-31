@@ -228,7 +228,7 @@ package Adi.Widget is
      Ada.Containers.Vectors (Positive, Layout_Item);
 
    ---------------------------------------------------------------------------
-   --  Part Style Record - Associates a Widget_Style with each part
+   --  Part Style Record - names an interned Widget_Style per part
    ---------------------------------------------------------------------------
 
    type Part_Style is record
@@ -239,15 +239,6 @@ package Adi.Widget is
    type Part_Style_Array is array (Part_Kind) of Part_Style;
 
    Empty_Part_Styles : constant Part_Style_Array := [others => <>];
-
-   --  A Part_Style_Array stored once and referred to by handle.
-   --  Interning is canonical, so equality on these is value equality.
-   type Interned_Part_Styles is private;
-
-   Empty_Interned_Part_Styles : constant Interned_Part_Styles;
-
-   function Intern (Styles : Part_Style_Array) return Interned_Part_Styles;
-   function Expand (Styles : Interned_Part_Styles) return Part_Style_Array;
 
    ---------------------------------------------------------------------------
    --  Unique Widget Identifier
@@ -300,10 +291,6 @@ package Adi.Widget is
    procedure Set_Part_Style (H : Widget_Handle;
                              P : Part_Kind;
                              S : Widget_Style);
-   procedure Set_Part_Styles (H : Widget_Handle;
-                              Styles : Interned_Part_Styles);
-   procedure Set_Part_Styles (W : in out Widget'Class;
-                              Styles : Interned_Part_Styles);
 
    procedure Set_Part_Styles (H : Widget_Handle;
                               Styles : Part_Style_Array);
@@ -927,33 +914,17 @@ private
       "Widget_State outgrew Packed_State_Bits: a literal past the "
       & "sixteenth packs to zero and aliases onto State_Normal");
 
-   --  Interned style handles (0 = Empty_Widget_Style)
-   type Style_Handle is new Natural;
-
    --  Key hash of the resolved-style memo. Named here so a test can
    --  reach values the memo cannot be driven to by constructing widgets.
+   --  The two style handles arrive as their store indexes, which is what
+   --  the digest reads them as.
    function Resolved_Cache_Hash
-     (Part_Handle, Main_Handle : Style_Handle;
+     (Part_Handle, Main_Handle : Natural;
       Widget_State_Bits, Part_State_Bits,
       Main_Part_State_Bits     : Packed_State_Bits;
       Font_Gen                 : Adi.Font.Font_Generation;
       Assigned                 : Adi.Widget_Properties.Property_Assignment)
       return Ada.Containers.Hash_Type;
-
-   type Part_Style_Handle_Array is array (Part_Kind) of Style_Handle;
-   type Part_Enabled_Array is array (Part_Kind) of Boolean;
-
-   type Interned_Part_Styles is record
-      Handles : Part_Style_Handle_Array := [others => 0];
-      Enabled : Part_Enabled_Array      := [others => True];
-   end record;
-
-   Empty_Interned_Part_Styles : constant Interned_Part_Styles :=
-     (others => <>);
-
-   --  Instrumentation the tests need and applications do not.
-   Interned_Style_Count : Natural := 0;
-   Interned_Style_Bytes : Natural := 0;
 
    --  Entries the resolved-style memo holds. It is cleared wholesale at
    --  its cap, so this rises and falls.
@@ -997,9 +968,8 @@ private
       Last_Applied_Version : Natural := 0;
       Flags       : Widget_Flags := Default_Flags;
 
-      --  Styling - each part references an interned style
-      Part_Style_Handles : Part_Style_Handle_Array := [others => 0];
-      Part_Style_Enabled : Part_Enabled_Array := [others => True];
+      --  Styling - each part names an interned style
+      Part_Styles : Part_Style_Array := Empty_Part_Styles;
 
       --  Renderable items (built by derived widgets)
       Items : Items_List.Vector;

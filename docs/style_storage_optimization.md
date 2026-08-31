@@ -478,6 +478,21 @@ writes the second and answers with a handle to it. A slot serial rides in
 the handle, so a handle into a released slot reads as the default style
 rather than as the next animation's.
 
+The pool itself is `Adi.Slot_Pool`, a generic over a payload and a
+capacity, instantiated here at `Scratch_Cells` and 64. It is a fixed
+array, a count and a serial per slot: no heap, no container, no
+finalization and no secondary stack. `slot_pool_test` instantiates it
+under `Local_Restrictions => (No_Secondary_Stack, No_Heap_Allocations)`,
+which the compiler then holds; the scratch instantiation cannot carry
+them, GNAT charging `Resolved_Style`'s default-initialization procedure
+against both, which a payload with no component defaults avoids. `Adi.Slot_Pool.Refs` is a generic
+child answering the payload in place, which `Ref` and `Write` take so
+that neither costs a copy of the cell pair; the pool proper answers by
+value and holds no access value. Encoding a slot into `Resolved_Handle`
+— the index range above `Scratch_Base`, the slot serial in `Gen` —
+stays with `Adi.Resolved_Styles`, which reads the pair out through
+`Ordinal` and `Serial` and hands it back to `Named`.
+
 `Adi.Animation.Start` acquires a slot and answers `Started => False` when
 the pool is full; the part then takes its target outright, which is the
 path a zero `transition-duration` already takes. `Cancel` and a completed
@@ -497,3 +512,8 @@ holding a laid-out document. The last two drive `Update`
 rather than `Rebuild_All_Items`, which re-applies unconditionally and
 would step over the `Is_Dirty` gate they exist to test. It also reports
 the size chain and asserts that nothing on it needs finalization.
+
+`tests/src/slot_pool_test.adb` covers `Adi.Slot_Pool` on its own: a pool
+acquired to capacity and refused past it, `Held` tracking, release and
+re-acquisition, the accessors, and a thousand hand-outs of a one-slot
+pool where every earlier name reads as absent while the latest holds it.

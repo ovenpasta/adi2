@@ -560,6 +560,7 @@ procedure Resolved_Store_Test is
            Resolved_Style'Max_Size_In_Storage_Elements);
       Row ("Resolved_Handle",
            Resolved_Handle'Max_Size_In_Storage_Elements);
+      Row ("Scratch_Slot", Scratch_Slot'Max_Size_In_Storage_Elements);
       Row ("Part_Transition", Adi.Widget.Testing.Part_Transition_Bytes);
       Row ("Cached_Resolved", Adi.Widget.Testing.Cached_Resolved_Bytes);
       Row ("Transitions", Adi.Widget.Testing.Transitions_Bytes);

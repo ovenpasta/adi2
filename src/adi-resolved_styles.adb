@@ -5,6 +5,7 @@ pragma Ada_2022;
 
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Vectors;
+with Adi.Slot_Pool.Refs;
 
 package body Adi.Resolved_Styles is
 
@@ -26,8 +27,12 @@ package body Adi.Resolved_Styles is
      (Positive, Style_Block_Access);
 
    Blocks : Block_Vectors.Vector;
-   Held   : Natural := 0;
-   Gen    : Natural := 1;
+
+   --  Entries the store holds, which Scratch_Pool.Held does not name:
+   --  see the rule against a use clause on the instantiation.
+   Held : Natural := 0;
+
+   Gen : Natural := 1;
 
    --  Where a scratch handle starts. The store cannot reach it.
    Scratch_Base : constant := 16#0100_0000#;
@@ -59,18 +64,16 @@ package body Adi.Resolved_Styles is
 
    Default_Style : aliased constant Resolved_Style := (others => <>);
 
-   type Scratch_Cells is array (1 .. 2) of aliased Resolved_Style;
+   --  The cells in place. A scratch handle is read and written where it
+   --  sits, so neither costs a copy of the pair.
+   package Scratch_Refs is new Scratch_Pool.Refs;
 
-   type Scratch_Entry is record
-      Cells  : Scratch_Cells;
-      In_Use : Boolean := False;
-      Serial : Natural := 0;
-   end record;
+   function Cells_Of (S : Scratch_Slot) return Scratch_Refs.Const_Access is
+     (Scratch_Refs.Ref (Scratch_Pool.Slot (S)));
 
-   type Scratch_Array is array (1 .. Scratch_Slots) of Scratch_Entry;
-
-   Scratch    : Scratch_Array;
-   Scratch_Up : Natural := 0;
+   function Writable_Cells_Of (S : Scratch_Slot)
+     return Scratch_Refs.Var_Access
+   is (Scratch_Refs.Mutable (Scratch_Pool.Slot (S)));
 
    ---------------------------------------------------------------------------
    --  Hash
@@ -175,38 +178,30 @@ package body Adi.Resolved_Styles is
      (Blocks.Element (Block_Of (I)) (Slot_Of (I))'Access);
 
    --  A scratch handle splits into the slot it names and which of the
-   --  slot's two cells. Live_Scratch answers zero for a handle into a
-   --  slot that has since been released or handed out again.
-   function Live_Scratch (H : Resolved_Handle) return Natural is
-      Offset : constant Natural := H.Index - Scratch_Base - 1;
-      Slot   : constant Natural := 1 + Offset / 2;
-   begin
-      if Slot <= Scratch_Slots
-        and then Scratch (Slot).In_Use
-        and then Scratch (Slot).Serial = H.Gen
-      then
-         return Slot;
-      end if;
-      return 0;
-   end Live_Scratch;
-
+   --  slot's two cells. The pool answers a slot released since, or
+   --  handed out again since, as absent.
+   function Scratch_Of (H : Resolved_Handle) return Scratch_Slot is
+     (Named (Ordinal => 1 + (H.Index - Scratch_Base - 1) / 2,
+             Serial  => H.Gen));
 
    function Which_Cell (H : Resolved_Handle) return Positive is
      (1 + (H.Index - Scratch_Base - 1) mod 2);
 
    function Ref (H : Resolved_Handle) return not null Const_Style_Access is
+      use type Scratch_Refs.Const_Access;
    begin
       if H.Index = 0 then
          return Default_Style'Access;
 
       elsif H.Index > Scratch_Base then
          declare
-            Slot : constant Natural := Live_Scratch (H);
+            Cells : constant Scratch_Refs.Const_Access :=
+              Cells_Of (Scratch_Of (H));
          begin
-            if Slot = 0 then
+            if Cells = null then
                return Default_Style'Access;
             end if;
-            return Scratch (Slot).Cells (Which_Cell (H))'Access;
+            return Cells (Which_Cell (H))'Access;
          end;
 
       elsif H.Gen = Gen and then H.Index <= Held then
@@ -224,7 +219,7 @@ package body Adi.Resolved_Styles is
       if H.Index = 0 then
          return True;
       elsif H.Index > Scratch_Base then
-         return Live_Scratch (H) /= 0;
+         return Live (Scratch_Of (H));
       else
          return H.Gen = Gen and then H.Index <= Held;
       end if;
@@ -360,54 +355,42 @@ package body Adi.Resolved_Styles is
    --  Animation scratch
    ---------------------------------------------------------------------------
 
-   function Acquire_Scratch return Scratch_Slot is
-   begin
-      for I in Scratch'Range loop
-         if not Scratch (I).In_Use then
-            Scratch (I).In_Use := True;
-            Scratch (I).Serial := Scratch (I).Serial + 1;
-            Scratch_Up := Scratch_Up + 1;
-            return (Index => I, Serial => Scratch (I).Serial);
-         end if;
-      end loop;
-      return No_Scratch;
-   end Acquire_Scratch;
+   function Acquire_Scratch return Scratch_Slot is (Acquire);
 
    procedure Release_Scratch (S : in out Scratch_Slot) is
    begin
-      if S.Index in Scratch'Range
-        and then Scratch (S.Index).In_Use
-        and then Scratch (S.Index).Serial = S.Serial
-      then
-         Scratch (S.Index).In_Use := False;
-         Scratch_Up := Scratch_Up - 1;
-      end if;
-      S := No_Scratch;
+      Release (S);
    end Release_Scratch;
 
-   function Held_Scratch return Natural is (Scratch_Up);
+   function Held_Scratch return Natural is (Scratch_Pool.Held);
 
+   --  The two cells of a slot take consecutive indexes above
+   --  Scratch_Base, and the slot's serial rides in Gen.
    function From_Cell (S : Scratch_Slot) return Resolved_Handle is
-     (if S.Index in Scratch'Range
-      then (Index => Scratch_Base + 2 * (S.Index - 1) + 1, Gen => S.Serial)
+     (if Ordinal (S) /= 0
+      then (Index => Scratch_Base + 2 * (Ordinal (S) - 1) + 1,
+            Gen   => Serial (S))
       else Default_Handle);
 
    function Current_Cell (S : Scratch_Slot) return Resolved_Handle is
-     (if S.Index in Scratch'Range
-      then (Index => Scratch_Base + 2 * (S.Index - 1) + 2, Gen => S.Serial)
+     (if Ordinal (S) /= 0
+      then (Index => Scratch_Base + 2 * (Ordinal (S) - 1) + 2,
+            Gen   => Serial (S))
       else Default_Handle);
 
    procedure Write (H : Resolved_Handle; S : Resolved_Style) is
+      use type Scratch_Refs.Var_Access;
    begin
       if H.Index <= Scratch_Base then
          return;
       end if;
 
       declare
-         Slot : constant Natural := Live_Scratch (H);
+         Cells : constant Scratch_Refs.Var_Access :=
+           Writable_Cells_Of (Scratch_Of (H));
       begin
-         if Slot /= 0 then
-            Scratch (Slot).Cells (Which_Cell (H)) := S;
+         if Cells /= null then
+            Cells (Which_Cell (H)) := S;
          end if;
       end;
    end Write;

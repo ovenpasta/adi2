@@ -20,6 +20,7 @@
 - `Collect` is the one place the store clears, at its cap, raising `Generation`; interning never clears, so a handle keeps naming its value until the next `Collect`
 - A handle carries the generation it was minted in, so one taken before a clear reads as the default style rather than as another entry
 - A fixed pool of 64 scratch slots holds the styles a transition mints per frame, outside the store
+- The pool is `Adi.Slot_Pool`, a generic over a payload and a capacity, instantiated at `Scratch_Cells` and 64; a `Slot` names one hand-out of one slot, so a name from an earlier hand-out reads as absent rather than as the new holder
 
 **Adi.CSS_Parser** (`adi-css_parser.ads`): Runtime CSS loader/parser.
 - Loads stylesheets from strings/files into `Part_Style_Array` maps

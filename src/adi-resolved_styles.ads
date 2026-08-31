@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Adi.CSS_Styles; use Adi.CSS_Styles;
+private with Adi.Slot_Pool;
 
 --  One store for the resolved styles the runtime holds. Interning is
 --  canonical, so equal values share a handle and a handle comparison is
@@ -27,10 +28,15 @@ package Adi.Resolved_Styles is
 
    --  The stored value in place, for a reader that would otherwise copy
    --  the whole record to reach one component. The address stays good
-   --  for the life of the process, and the value under it until the next
-   --  Collect hands the slot on. Never hold the result past the
-   --  statement that dereferences it, and never across a call that may
-   --  reach Collect.
+   --  for the life of the process; the value under it stands until the
+   --  event that hands its cell on, and which event that is follows the
+   --  handle. A store handle stands until the next Collect. A handle
+   --  into a scratch slot stands until that slot is released or handed
+   --  out again, which Collect never does and Acquire_Scratch and
+   --  Release_Scratch both do -- reached from Adi.Animation's Start,
+   --  Cancel and Advance, and from Destroy_Subtree. Never hold the
+   --  result past the statement that dereferences it, and never across
+   --  a call that may reach any of them.
    function Ref (H : Resolved_Handle) return not null Const_Style_Access;
 
    function Is_Held (H : Resolved_Handle) return Boolean;
@@ -115,15 +121,29 @@ private
 
    Default_Handle : constant Resolved_Handle := (Index => 0, Gen => 0);
 
-   --  Serial is the slot's own, raised each time the pool hands it out,
-   --  where Resolved_Handle.Gen is the store's. A handle into a slot
-   --  carries the serial it was taken at.
-   type Scratch_Slot is record
-      Index  : Natural := 0;
-      Serial : Natural := 0;
-   end record;
+   type Scratch_Cells is array (1 .. 2) of aliased Resolved_Style;
 
-   No_Scratch : constant Scratch_Slot := (Index => 0, Serial => 0);
+   --  Never `use Scratch_Pool`. The body's Held is the store's entry
+   --  count and the pool's Held is its occupancy; a use clause hides one
+   --  behind the other under RM 8.3, and -gnatwa says nothing. Reach the
+   --  pool through Scratch_Pool.<name>, or through the operations
+   --  Scratch_Slot inherits below.
+   --
+   --  Local_Restrictions => (No_Secondary_Stack, No_Heap_Allocations) is
+   --  accepted on an instantiation and rejected here, charged against
+   --  Scratch_Cells' default-initialization procedure at Slot_Entry.Item
+   --  rather than against any pool code: a payload whose components
+   --  carry no defaults passes both, and tests/src/slot_pool_test.adb
+   --  instantiates under both.
+   package Scratch_Pool is new Adi.Slot_Pool
+     (Payload => Scratch_Cells, Capacity => Scratch_Slots);
+
+   --  The pool's own slot serial is what a handle into a slot carries
+   --  in Resolved_Handle.Gen, where a handle into the store carries the
+   --  store's generation there.
+   type Scratch_Slot is new Scratch_Pool.Slot;
+
+   No_Scratch : constant Scratch_Slot := Scratch_Slot (Scratch_Pool.No_Slot);
 
    --  A test lowers this to reach the clear without interning its way
    --  to the ceiling.

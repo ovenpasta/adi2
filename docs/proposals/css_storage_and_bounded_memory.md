@@ -10,20 +10,22 @@ large, and an embedded target unreachable.
 
 ## 1   Summary
 
-A `Part_Style_Array` occupies 239,808 bytes and carries about 118 bytes of
+A `Part_Style_Array` occupies 221,952 bytes and carries about 118 bytes of
 authored CSS. That ratio — one part in two thousand — is the whole of this
 document. Interning, the global resolved-style memo and the per-widget
 cache each exist to make that ratio affordable, and each succeeds at its
 own layer while leaving the stored object the size it was.
 
-The proposal has four parts, in the order they should land:
+The proposal has five parts, in the order they should land:
 
 1. Correctness items that stand on their own.
 2. Flatten the four style properties that carry a controlled type, which
    frees the whole chain from finalization.
-3. Split authoring from storage: keep `Style_Rules` as the aggregate
-   authors write, store a sparse form behind it.
-4. Add user properties as CSS selectors, on reserved state bits.
+3. Make every style a handle at the point it is stored or passed, which
+   puts `Part_Style_Array` at 96 bytes under its own name.
+4. Compose a rule property by property, which retires the aggregate that
+   step leaves and frees the value representations it pins.
+5. Add user properties as CSS selectors, on reserved state bits.
 
 ---
 
@@ -222,20 +224,19 @@ them, and releases the slot.
 
 ### 3.3   Sunsetting the aggregate path
 
-The composer becomes the authoring path, and the entry points taking an
-aggregate leave: `Set_Part_Style` over a `Widget_Style`, `Set_Part_Styles`
-over a `Part_Style_Array`, and the `Style_Rules` constructors feeding them.
-They carry `pragma Obsolescent` when the composer lands, and go before 1.0,
-which the crate at 0.9.0 with no tag reaches on its own schedule.
+The composer becomes the authoring path, and the `Style_Rules` aggregate
+leaves with the constructors feeding it. It carries `pragma Obsolescent` when
+the composer lands, and goes before 1.0, which the crate at 0.9.0 with no tag
+reaches on its own schedule. `Set_Part_Style` and `Set_Part_Styles` keep their
+spellings, since §4.2 leaves them carrying handles.
 
-Two things pay for that. An aggregate materialises what §2 measures —
-1,072 bytes for the 3.15 properties a rule names, 18,488 for the 0.51 state
-rules, 221,952 for the 1.39 parts — where a chain carries eight bytes per
-property named. And while the aggregate surface stands public, a consumer
-writing `Border_Color => Set (…)` pins the value representations, so §4.4's
-narrowings reach a public surface every time: `Border_Color` at 96 bytes,
-`Margin` at 64, `Grid_Column_Tracks` at 132. Closing the doors leaves the
-value layer free to move behind them.
+Two things pay for that. An aggregate materialises 1,072 bytes for the 3.15
+properties a rule names, where a chain carries eight bytes per property named.
+And while the aggregate surface stands public, a consumer writing
+`Border_Color => Set (…)` pins the value representations, so §4.4's narrowings
+reach a public surface every time: `Border_Color` at 96 bytes, `Margin` at 64,
+`Grid_Column_Tracks` at 132. Closing the door leaves the value layer free to
+move behind it.
 
 `pragma Obsolescent` warns under `-gnatwa`, which `adi.gpr:71` and
 `config/adi_config.gpr:18` set already, and it holds its peace inside the
@@ -400,8 +401,9 @@ keeps it deferred.
 `Linear_Gradient_Ref` stays a pointer. An access value is already flat, so
 it is no part of the finalization question, and `Background_Image_Value`'s
 payload width is set by `Adi.Image.Image_Handle` at 8 bytes either way, so
-an index buys no bytes. What an index would buy is §4.2's `.rodata`
-placement, which decides the emitted shape; it belongs with that step.
+an index buys no bytes. What an index would buy is the emitted shape a
+`.rodata` constant takes, and §3.3 settles that: a constant is interned on
+the way in, so the placement answers what a handle answers.
 
 Text is bounded at `Max_CSS_Text_Length`, 4096 characters. Both pipelines
 hold the same figure and drop a declaration naming more — `css_to_ada.py`
@@ -442,73 +444,78 @@ of the `Set_Properties`-keyed hash, and `.rodata` placement each rest on
 defining those bytes — normalising every variant record to a fixed inactive
 value, which is separable work behind this step.
 
-### 4.2   The static path
+### 4.2   Handles all the way down
 
 `Static_Mode` resolves entirely from the static branch of `Selector_Styles`
 (`adi-css_source.adb:193`), and `Tick` returns at `:937` for every mode
 besides `Dynamic_Mode`. On a cache hit the per-frame path is allocation-free
 for every sheet in the repository. A test should hold that.
 
-Startup is where the work is, and each item there is the runtime
-rediscovering something `tools/css_to_ada.py` already knew.
+The bytes are in what that path carries by value. Measured with `-gnatR2`
+against the tree as it stands, beside the width each type takes once the one
+below it is a handle:
 
-#### Interning at elaboration
+| Type | Now | Interned |
+|------|-----|----------|
+| `Part_Style_Array` | 221,952 | 96 |
+| `Part_Style` | 18,496 | 8 |
+| `Widget_Style` | 18,488 | 4 |
+| `State_Rule` | 1,088 | 16 |
+| `Style_Rules` | 1,072 | 1,072 |
 
-A widget holds handles already: `Set_Part_Style`
-(`adi-widget.adb:1618-1626`) answers `W.Part_Style_Handles (P) :=
-Intern_Style (S)`, and nothing keeps a `Widget_Style`. Interning is
-therefore a question of *when* rather than whether, and today it lands once
-per call site. `Set_Part_Styles (W, Primary_Class_Part_Styles)` materialises
-a 221,952-byte `Part_Style_Array` from a function return and interns all
-twelve parts, hashing and probing an 18,488-byte record each time. Four
-buttons of one class in `examples/button_example.adb` spend 48 of those, of
-which 44 land on entries that stand already.
+`Widget_Style` becomes private and four bytes wide, naming an entry in the
+store `Intern_Style` (`adi-widget.adb:541`) keeps already. The authoring
+record it holds today takes a name of its own, `Style_Definition`, and
+`Definition` answers one from a handle. `From (…) .On (…) .Build` reads as it
+reads now, where `.Build` interns and answers the handle, so a call site keeps
+its text and carries four bytes. `Style_Builder` holds a definition, which
+puts it at 268 bytes where it stands at 18,496, and that is the width `.On`
+copies per step (`adi-widget_styles.adb:305`).
 
-`Interned_Part_Styles` is public, with `Intern` (`adi-widget.ads:249`) and a
-`Set_Part_Styles` overload taking it (`:308`), so the form the generator
-wants is reachable now:
+`Style_Rules` interns one level down, so a `State_Rule` is a selector, a rules
+handle and a priority at 16 bytes, and the sixteen-slot array inside a
+definition is 256.
 
-```ada
-Primary : constant Interned_Part_Styles := Intern (Primary_Class_Part_Styles);
-...
-Set_Part_Styles (Btn_A, Primary);   --  twelve handles, about 60 bytes
-Set_Part_Styles (Btn_B, Primary);
-```
+`Part_Style.Style` follows its type, which puts `Part_Style_Array` at 96 bytes
+under its own name. `Set_Part_Styles`, `Merge_Part_Styles` and
+`Selector_Styles` keep their signatures, and the 20 widget packages
+re-exporting `Set_Part_Styles` keep the one declaration each has.
+`Interned_Part_Styles`, `Intern` and `Expand` (`adi-widget.ads:245-250`) fold
+into it: the eight `Expand` calls in `adi-css_source.adb` and
+`adi-css_parser.adb` recover the array, and the array is what a handle names.
+`Stylesheet_Metadata.Root_Styles` holds a `Part_Style_Array` directly at that
+width.
 
-One 222 KB frame per class at elaboration, once, in place of one per widget,
-and the repeat hashing goes with it. The hand-written path wants the
-per-part equivalent, where `Style_Handle` (`adi-widget.ads:931`) is private
-today: making it public gives `Set_Part_Style (W, P, Handle)` and lets
-`examples/hello_raw_example.adb` intern at elaboration the same way.
+§2.4 measures the effect. `Apply_To_Widget` (`adi-css_source.adb:318`) reaches
+six subprograms declaring or returning a `Part_Style_Array` by value, for a
+peak of 1.4–1.7 MB per widget styled; at 96 bytes the whole chain is
+kilobytes. `Register_Selectors_23` in `material_demo_styles.adb` builds 13
+`Style_Builder` temporaries and one array, about 500 KB, which the same
+figures put under 4 KB, and `pragma No_Inline` becomes a choice rather than a
+requirement.
 
-§3.1's composer reaches the same place from the other side, and further:
-a chain names each property once and answers a handle, so the class-level
-`Part_Style_Array` and the `Widget_Style` beneath it go unbuilt rather than
-built once. The interning above is what a generator emitting aggregates can
-do today; the composer is what it emits once §3 lands, and the two agree on
-what a widget ends up holding.
+What stays fat is `Style_Rules` at 1,072 bytes, live as a construction
+transient at each `(Display => Set (…), others => <>)` aggregate, one at a
+time. Section 3.2's eight-byte slot takes that, and section 3.1's composer
+answers a handle straight from a chain, which is the same shape one level up.
 
-Emitting `Part_Style_Array` constants instead provisions 221,952 bytes per
-class, which the 13 that `button_example` generates take to about 2.9 MB,
-against the 482 KB of `.bss` and 609 KB of `.rodata` that example holds
-today. Whether it reaches `.rodata` or `.bss` beside elaboration code turns
-on whether GNAT folds a record aggregate of non-static components, and
-either way it provisions in full what §2.2 measures as 0.049% live. The
-expression functions there now build their 222 KB on the stack per call and
-rest at nothing, which is what keeps the figure off the current binary.
+Three things move with the type. `Add_Rule` (`adi-widget_styles.ads:188,194`)
+is the one in-place mutation of a style in the library, and it takes a
+`Style_Definition`; `adi-css_parser.adb:4051` accumulates into one and interns
+at the end. `Adi.Style_Merge.Merge` expands, folds and re-interns, for the
+parts carrying two contributors, where `Selector_Styles` answers handles
+straight through on a single match. Tests reading `.Base` and `.Rule_Count`
+(`style_interning_test.adb:276-282`, `style_rule_cap_test.adb:144-157`) read
+them from `Definition (…)`.
 
-Static placement stops earning its complexity here, as §3.3 records: a
-constant in `.rodata` is interned on the way in, so the runtime reads it
-through a handle and the placement answers what interning has answered
-already.
+Elaboration order is the hazard: a generated styles package interning at
+elaboration wants `Adi.Widget`'s store elaborated first, so `pragma
+Elaborate_All` and a test holding that a styles unit elaborating ahead of any
+window answers a live handle.
 
-The `*_Part_Styles` functions are public and hand-written code calls them by
-name, so replacing them is a generated-surface change, and consumers
-regenerate.
-
-`Stylesheet_Metadata.Root_Styles` carries `Interned_Part_Styles` already, at
-76 bytes per source and per sheet, so the elaboration route above is the
-whole of what a sheet's own metadata needs.
+`tools/css_to_ada.py` emits `Part_Style_Array` constants where it emits
+expression functions today, and `tools/xml_to_ada.py` follows. Both are a
+generated-surface change, and consumers regenerate.
 
 ### 4.3   Lifetime
 
@@ -1127,19 +1134,20 @@ widget teardown.
 **Step 1 — flat values.** Section 4.1. Four properties, and the whole
 chain leaves finalization behind.
 
-**Step 2 — interning at elaboration.** Section 4.2: the generator emits
-`Interned_Part_Styles` constants in place of the `*_Part_Styles` functions,
-and `Style_Handle` goes public so the hand-written path reaches the same
-deal. It stands on what §4.4 landed and on nothing in §3, so it is the
-cheapest of these and it holds while §3 is written.
+**Step 2 — handles all the way down.** Section 4.2: `Widget_Style` and
+`Style_Rules` become four-byte handles, which puts `Part_Style_Array` at 96
+bytes under its own name and folds `Interned_Part_Styles`, `Intern` and
+`Expand` into it. The public spellings hold, so what changes is the width
+each carries. It stands on what §4.4 landed and on nothing in §3, and it
+leaves §3 one fat type to take: `Style_Rules` at its construction site.
 
 **Step 3 — composition.** Section 4.6's pool lands first, taking the
 animation scratch with it, since it stands alone and both users want it.
 Then sections 3.1 to 3.3: the composer, the eight-byte slot, and `Intern`
 overloaded per value type. `tools/css_to_ada.py` emits
-chains, and the aggregate entry points take `pragma Obsolescent` on the way
-to leaving before 1.0, which is what frees the value representations they
-pin. Sections 3.4 to 3.7 follow
+chains, and the `Style_Rules` aggregate takes `pragma Obsolescent` on the way
+to leaving before 1.0, which is what frees the value representations it
+pins. Sections 3.4 to 3.7 follow
 it — the sweeps, the sizing and the parser table — and §4.4's field-width
 narrowings, which the slot leaves as an optimisation of each value store
 rather than a prerequisite. The `State_Selector` shape settles before the
@@ -1179,7 +1187,7 @@ differently on a 32-bit build, and the WASM port carries one recorded
 frontend divergence in `Specificity`.
 
 **Concurrency.** `docs/style_storage_optimization.md` records single-threaded
-style mutation as an assumption. §4.2's reserved handle range, §4.3's
+style mutation as an assumption. §4.2's interning at elaboration, §4.3's
 eviction rank and §5.5's interned assignment each sit inside it.
 
 **A shared store for styles.** `Adi.Handle_Store` backs `Widget`, `Window`,

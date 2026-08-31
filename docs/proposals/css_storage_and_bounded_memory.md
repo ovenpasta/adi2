@@ -877,6 +877,127 @@ widgets, in selector comparisons and in wall time, before and after.
 
 ---
 
+### 4.8   Lifetimes: three kinds
+
+A store releases an entry when every holder of its name can carry on. That
+question sorts the library's stores into three kinds, and each kind already has
+a working mechanism in the tree.
+
+**Identity.** The entry *is* the object, and nothing recomputes it.
+`Adi.Handle_Store`'s seven instances, the image store, texture groups, sprite
+sheets, the settings tree, signal slots, the per-widget binding tables. The
+name carries a generation, release is an explicit act by one owner, and a
+stale name reads as absent. Settled; two members skipped the generation and
+dereference a raw pointer instead — `Live_Windows` (`adi-window.adb:117`) and
+the four `'Unchecked_Access` owner fields in the widget binding tables.
+
+**Memo.** The holder kept the inputs, so any entry can be dropped at any time.
+The resolved memo, `Combined_Memo`, `Static_Index`, `Selector_Index`, the
+per-widget caches, `Text_Layout.Rows`, `Html_View.Layout_Cache`, `Adi.Assets`'
+four caches, `Adi.Font.Sized_Cache`, `Adi.Texture_Cache`. `Adi.Texture_Cache`
+is the mature member: a byte budget, an eviction rank
+(`adi-texture_cache.adb:132-149`), and a scoped borrow so no durable pointer
+escapes. `Adi.Assets` and `Adi.Font.Sized_Cache` carry no bound, and they are
+the two holding operating-system resources — a `Sized_Cache` entry is an open
+face and an open file descriptor (`adi-font.adb:1080`).
+
+**Interning.** The handle is lossy: the holder kept a name and dropped the
+value, so the store is the only copy. The text store, the rule-set store, the
+gradient store, `Style_Store`, `Adi.Resolved_Styles`. `Widget.Part_Styles` is
+the sole record of how a widget is styled, and `Bound_Target.Name` the sole
+copy of the selector a binding names.
+
+`Adi.Resolved_Styles` releases anyway, and what it pays is the shape:
+a generation on the handle (`adi-resolved_styles.ads:106-109`), one
+frame-boundary `Collect` so a handle minted in a frame survives it
+(`adi-widget.adb:8132`), a gate per holder, and for the one holder that reads
+without recomputing — `Item.Computed_Style`, which rendering reads
+unconditionally — a subtree-dirty sweep over every live tree
+(`adi-widget.adb:8134-8136`). Releasing an interning store is a process-wide
+event costing one full re-styling. That is affordable once per 16,384 distinct
+resolutions, and unaffordable per document.
+
+A fourth shape sits beside these: `Adi.Widget_Properties` is a bounded static
+registry, fixed arrays written at elaboration, answering `Unmatchable` with a
+report at its cap (`adi-widget_properties.adb:281-289`). It needs no lifetime,
+because the cap is the lifetime. It is also the honest ceiling on "cap it": at
+the cap, a widget matches nothing.
+
+#### A group, and why it stays here
+
+The obvious move is a group — a lifetime owner encoded in the handle beside a
+generation and an index, so releasing a document's text, rule sets and styles
+is one operation. It reads well and it holds a value type at four bytes. Three
+measurements stop it.
+
+A viewer opening ten thousand documents recycles group ids, so generation width
+wants sixteen bits or a retained handle names a live entry in a reused group —
+the failure the scheme exists to prevent. Sixteen leaves eight for the group
+and seven for the index. Group zero also has to be permanent and full-width,
+since 773 `constant Widget_Style` across the generated sheets intern at
+elaboration, before any group exists, which makes one type carry two
+encodings. Widening to eight bytes restores what §4.1 and §4.2 spent:
+`Part_Style_Array` returns to 144 from 96, `Style_Rules` grows twelve.
+
+Per-group interning also stops handle equality meaning value equality across
+groups. `Same_Prepared` and `Widget_Styles.Hash` then intern equal styles
+twice, which costs dedup rather than correctness. `Root_Fingerprint`
+(`adi-css_source.adb:594-595`) compares a `Part_Style_Array` by value, so
+re-parsing identical CSS into a fresh group reads as changed and replays every
+binding — which is the optimisation `Applied_*` exists to provide, measured by
+`css_binding_growth_test`.
+
+And one owner survives the escape analysis. A `Stylesheet` fails, because
+`Styles_For*` and `Get_Metadata` return handles by value and `Style_Merge`
+mints entries from two sheets at once. A `Style_Source` fails further, since
+`Set_Static_Metadata` imports a foreign sheet's handles by design. A `Window`
+fails, since sources, widgets and eleven library-level `Default_*_Styles`
+holders outlive one. `Html_View` passes — it adds no children, publishes none
+of these types, and styles no foreign widget — and passes for two stores of
+four, because `Resolve` copies `CSS_Text_Id` into the resolved store
+(`adi-css_styles.adb:1344, 1376-1377`), which puts text release back at
+process scope whatever the nominal owner.
+
+Once release is process-wide, a store-wide generation answers what a group
+would, and `Adi.Resolved_Styles` holds that shape already. So the group is
+recorded here as considered, with the arithmetic, rather than planned.
+
+#### What the inlets are
+
+Runtime text becoming a style enlarges four process-global stores, and the
+public API offers that path with or without an `Html_View`:
+`Add_Dynamic_String` and `Set_Dynamic_Sources` reach the same three stores a
+document does; `Bind_Class` and its siblings intern one text entry per
+distinct name; a per-row colour or gradient interns per row, through a
+gradient store whose lookup is a linear scan (`adi-css_styles.adb:172-177`);
+and a document's `font-family` reaches `Name_Miss_Cache`
+(`adi-font.adb:1383`), which has no removal path.
+
+For a program whose CSS is compiled in, the vocabulary is closed and the
+figure is small: the whole example and test corpus interns two distinct URLs
+and two font-family values. The mechanisms here exist for what parses text at
+runtime.
+
+#### Order
+
+1. The `Html_View` leaks, which cost more than any interning growth:
+   `Parse_Inline_Style_Rules` (`adi-widget-html_view.adb:611-647`) registers a
+   `Stylesheet_Impl` per distinct inline style per `Set_HTML` and destroys
+   none, `Stylesheet` being a plain tagged record; and no `On_Destroy` releases
+   `Self.CSS_Sheet`. `Live_Impl_Count` already exists to hold both.
+2. `Current_Key` (`:3215-3234`) takes `Adi.Resolved_Styles.Generation`, so a
+   layout cache stops outliving the handles its items hold.
+3. `Html_View` reads a sheet without interning. It reaches the parser through
+   `Selector_Base_Rules` alone — main part, base rules — so the builder and
+   the two stores behind it serve a value discarded on the next line.
+4. The memo kinds take a byte budget in the shape `Adi.Texture_Cache` holds.
+   `Adi.Font.Sized_Cache` couples to `Natural_Skip_Cache`, which keys on a
+   `TTF_Font_Access` address (`adi-font.adb:178-186`), so closing a face wants
+   that cache rekeyed in the same step.
+5. `perf_stats` carries store occupancy. Six counters exist and reach tests
+   alone; the text and gradient stores want theirs. Every decision above turns
+   on a figure nothing currently reports.
+
 ## 5   Runtime state from the application
 
 `.alarm` restyled to `.alarm.critical` while it runs, and
@@ -1207,6 +1328,12 @@ leaves §3 one fat type to take: `Style_Rules` at its construction site.
 the lookup the dominant term on the apply path, and what puts a memo entry at
 96 bytes. It stands on nothing in §3.
 
+**Step 2b — lifetimes.** Section 4.8, in the order it sets: the `Html_View`
+leaks, the layout-cache key, reading a sheet without interning, a byte budget
+on the memo kinds, and store occupancy in `perf_stats`. It stands apart from
+the storage steps — what it settles is how long an entry lives, where those
+settle how wide one is.
+
 **Step 3 — composition.** Section 4.6's pool lands first, taking the
 animation scratch with it, since it stands alone and both users want it.
 Then sections 3.1 to 3.3: the composer, the eight-byte slot, and `Intern`
@@ -1279,6 +1406,11 @@ real tree produces. Below a few hundred the store is 25 KB and the dense form
 is free; near the cap, sparse entries multiply the headroom that eviction rank
 is currently spending. `perf_stats` reports texture residency and says nothing
 of resolved-store occupancy, so the instrument comes first.
+
+**The `Html_View` layout cache and eviction.** §4.8's second item is written
+as inference from reading rather than from observation. `Set_Entry_Cap` and
+`resolved_store_test` already drive eviction under live widgets; the case that
+settles it is an eviction under a view holding a cached layout.
 
 **A shared store for styles.** `Adi.Handle_Store` backs `Widget`, `Window`,
 `Image`, `Animated_Image`, `RLottie` and `Context_Menu`, where styles keep

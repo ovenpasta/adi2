@@ -121,67 +121,147 @@ runs a deep `Adjust` and `Finalize`.
 
 ## 3   Authoring and storage
 
-### 3.1   The split
+### 3.1   Authoring by composition
 
-`Style_Rules` stays exactly as it is: a definite, by-copy record of 66
-named components, built by aggregate. It becomes the type an author writes
-and a caller hands over, held for the duration of a call. What is retained
-is a sparse form — a count and an exactly-sized array of
-`(CSS_Property, Value_Slot)`.
+A style arrives one property at a time, through a setter that names the
+property and takes its own value type:
 
-The retained set is three places, the sheet layer having moved to
-`Interned_Part_Styles` already: `Prepared_Style_Entry.Style` in the style
-store, `Stylesheet_Metadata.Root_Styles`, and
-`Inline_Style_Cache_Entry.Rules`. Two of those are answered by sizing
-alone, ahead of any `Value_Slot`:
+```ada
+Primary : constant Style :=
+   Style_Of
+      .Background (RGB (37, 99, 235))
+      .Padding    (CSS_Box (Px (12.0), Px (24.0)))
+      .Radius     (Radius (Px (6.0)))
+   .On_Hover
+      .Background (RGB (29, 78, 216))
+   .Build;
 
-| Structure | Provisioned | Sized to the sheet | Slot-sparse |
-|---|---|---|---|
-| `Prepared_Style_Entry`, no state rules | 18,560 | 1,088 | ~290 |
-| `Stylesheet_Metadata`, per sheet and per source | 221,976 | 76 | 76 |
+Set_Part_Style (W, Main_Part, Primary);
+```
 
-Sizing the rule array to its count is 94% of the store's figure for a
-fraction of the change, so it lands first and `Value_Slot` is costed
-against what remains.
+`Background (Px (14.0))` is a compile error, so per-property checking holds
+without a record, and more of it than an aggregate gives: `others => <>`
+has nothing to say here. `Style_Of` opens a chain, `.On_Hover` and
+`.On (Selector)` move the active rule, and `.Build` answers a `Style`.
 
-The `~290` column is the mean, where an exactly-sized array carries a tail
-and the record form stays flat. A slot is as wide as the widest value type
-it admits: 144 bytes across the value types as they stand, 96 with
-`Grid_Track_List` interned to an index, and 32 to 40 once §4.4's field
-narrowings land. At 96 the crossover sits near ten set properties, past
-which a rule spends more than the flat 1,072, and a rule naming all 66
-reaches 6,864. The mean across the sheets is 3.15, which leaves the
-distribution as the figure to measure — in `Is_Specified` counts rather
-than `Is_Set`, since a property named and cleared occupies a slot and
-carries its `State_Kind` there.
+`Style` is a value an author holds, passes and compares — sized to what the
+chain set, at 40 bytes where the aggregate spends 1,072. Interning stays
+where it stands today, inside `Set_Part_Style`
+(`adi-widget.adb:1618-1626`), which is where sharing one style across 500
+widgets belongs: the library's business, and absent from what an author
+writes.
 
-`Resolved_Style` stays fat and concrete. It is per-widget, short-lived and
-memoised, and layout, rendering and the widget implementations read it by
-name at every site that uses a style.
+A part bundle composes the same way:
 
-Two properties of the record form decide this. A container aggregate carries
-one element type (RM 4.3.5(22/5)), so per-property static checking belongs to
-the record alone: under a class-wide or variant element type,
-`Color => Px (14.0)` compiles and resolves at run time. And the aggregate
-spelling is load-bearing — around 1,400 construction sites, of which 321
-across 21 files are hand-written, in `tests/src/`,
-`examples/hello_raw_example.adb` and `examples/font_example.adb`, so only a
-hand edit reaches them.
+```ada
+Card : constant Part_Styles :=
+   Parts .Main  (Style_Of.Background (RGB (30, 41, 59)).Build)
+         .Label (Style_Of.Color (C (White)).Build)
+   .Build;
 
-Alternatives considered:
+Set_Part_Styles (W, Card);
+```
 
-- **A pool handle in each of the 66 components.** Global mutable state behind
-  `Set` and `Merge`, which are expression functions across some 60 generic
-  instantiations, re-interned on every evaluation of a generated style
-  function.
-- **A private container with a class-wide or a variant element type.** Both
-  compile under `-gnat2022 -gnatX0`, and both exchange the per-property type
-  check for a run-time discriminant check on the authoring path.
-- **`Style_Builder`** (`adi-widget_styles.ads:160`) already offers
-  per-property checked authoring through prefix notation, at one call per
-  property.
+`tools/css_to_ada.py` emits exactly this, in place of the three-level nest
+of functions — `Danger_Class_Base_Style` answering `Style_Rules`,
+`Danger_Class_Widget` answering `Widget_Style`, `Danger_Class_Part_Styles`
+answering `Part_Style_Array` — where each level answers a larger record than
+the one below it.
 
-### 3.2   Blast radius
+### 3.2   The slot
+
+A chain step carries a slot of eight bytes:
+
+```ada
+type Slot is record
+   Rule : Rule_Index;      --  0 is the base rule
+   Prop : CSS_Property;    --  says how Val reads
+   Val  : Value_Ref;
+end record;
+```
+
+`Prop` discriminates `Val`, and a slot is read only by something that knows
+which property it holds, so a variant record has nothing to add. That is
+what keeps the slot at eight bytes for every property: a variant would stand
+as wide as `Grid_Track_List`, which measures 144 bytes.
+
+Each setter interns into the store for its own value type and keeps the
+reference:
+
+```ada
+function Background (C : Composer; V : Color_Value) return Composer is
+  (C.Count + 1, C.Active,
+   C.Items & Slot'(C.Active, Prop_Background_Color, Intern (V)));
+```
+
+`Intern` is overloaded per value type, so the compiler picks the store from
+the argument. A value narrow enough — an enumeration, a packed RGBA — sits
+in the four bytes directly and reaches no store, which leaves indirection
+for the values that earn it: `Grid_Track_List` at 132 bytes and
+`Border_Color` at 96 answer with an index. Equal values across a sheet share
+one entry, so `RGB (220, 38, 38)` in six rules is one.
+
+The composer itself is a pool index, so a chain step copies four bytes and
+the slots stay where they are gathered:
+
+```ada
+type Composer is tagged record
+   Where  : Adi.Slot_Pool.Slot;
+   Active : Rule_Index;
+end record;
+```
+
+§4.6 holds the pool. Accumulating by value instead — an indefinite
+`Composer (Count)` sized to what it holds — reads well and costs on every
+step: N(N+1)/2 slot copies for an N-step chain, and an intermediate on the
+secondary stack per step, where §4.5 wants none on this layer. The index
+carries neither.
+
+`.Build` reads the slots the chain gathered, answers a `Style` sized to
+them, and releases the slot.
+
+### 3.3   Sunsetting the aggregate path
+
+The composer becomes the authoring path, and the entry points taking an
+aggregate leave: `Set_Part_Style` over a `Widget_Style`, `Set_Part_Styles`
+over a `Part_Style_Array`, and the `Style_Rules` constructors feeding them.
+They carry `pragma Obsolescent` when the composer lands, and go before 1.0,
+which the crate at 0.9.0 with no tag reaches on its own schedule.
+
+Two things pay for that. An aggregate materialises what §2 measures —
+1,072 bytes for the 3.15 properties a rule names, 18,488 for the 0.51 state
+rules, 221,952 for the 1.39 parts — where a chain carries eight bytes per
+property named. And while the aggregate surface stands public, a consumer
+writing `Border_Color => Set (…)` pins the value representations, so §4.4's
+narrowings reach a public surface every time: `Border_Color` at 96 bytes,
+`Margin` at 64, `Grid_Column_Tracks` at 132. Closing the doors leaves the
+value layer free to move behind them.
+
+`pragma Obsolescent` warns under `-gnatwa`, which `adi.gpr:71` and
+`config/adi_config.gpr:18` set already, and it holds its peace inside the
+unit that declares the entity — measured both ways. So `Merge`, `Resolve`
+and `Prepared_Style_Entry.Base` keep naming `Style_Rules` in quiet, while a
+consumer reading it gets the warning and the message it carries.
+
+`Style_Rules` itself stays, as what those three are built on. What leaves is
+the surface a consumer writes against, and once that is gone the type is
+internal without having been deleted.
+
+`Resolved_Style` stays fat and concrete: it is the read path, 66 values that
+layout, rendering and the widget implementations reach by name, and §4.4
+holds one of each behind a handle already.
+
+Static placement leaves with them. A generated constant is interned on the
+way in, so `.rodata` holds a form the runtime copies out of once and reads
+through a handle thereafter — the placement pays for what interning already
+answers.
+
+The `Optional` distinction between unset and cleared is what a chain
+restates: a setter says "set" by existing, so clearing wants a spelling of
+its own, as `.Clear (Prop_Background_Color)`. `Is_Specified` counts, rather
+than `Is_Set` counts, are what size a rule.
+
+### 3.4   Blast radius
 
 `Style_Rules` is read by name at 591 sites, 573 of which are in
 `adi-css_styles.adb` (the six field-by-field sweeps) and `adi-css_parser.adb`
@@ -193,7 +273,7 @@ Field names measure one axis. `Adi.Widget.Html_View` also retains a
 (`adi-widget-html_view.ads:190`), held in a per-view vector — which step 2
 reaches through the container rather than through a component name.
 
-### 3.3   The descriptor table
+### 3.5   The descriptor table
 
 Six sweeps name every property in turn:
 
@@ -246,7 +326,7 @@ from resolved values, so nothing in `Style_Rules` carries it.
 one per `Style_Rules` component apart from those two entries, and already
 drives `Adi.Widget_Styles.Hash`.
 
-### 3.4   Sizing to the sheet
+### 3.6   Sizing to the sheet
 
 `Max_Style_Rules` is 16 and `Part_Kind` has 12 values, both paid in full by
 every style. Across the sheets measured a selector reaches 9 state rules and
@@ -260,12 +340,12 @@ none, 2,184 at one, 18,560 at the cap. `Widget_Style` keeps its sixteen
 slots, being what an author fills and a caller hands over.
 
 `Widget_States` packs to one bit per state, which takes `State_Selector`
-to 4 bytes and leaves it at 8 once section 5.1's ten literals arrive —
-against 24 before, and 64 had the literals arrived unpacked. Every
-selector operation reads a state by index, so the packing reaches
-`Matches`, `Specificity` and the aggregates unchanged.
+to 4 bytes, against 24 before. Every selector operation reads a state by
+index, so the packing reaches `Matches`, `Specificity` and the
+aggregates unchanged. Section 5 adds a 2-byte condition index and leaves
+it at 6.
 
-### 3.5   The parser
+### 3.7   The parser
 
 `Apply_Property` matches 98 property-name literals across 95 branches. A
 `Decl_Name` enumeration with a sorted table and a binary search collapses
@@ -370,46 +450,72 @@ besides `Dynamic_Mode`. On a cache hit the per-frame path is allocation-free
 for every sheet in the repository. A test should hold that.
 
 Startup is where the work is, and each item there is the runtime
-rediscovering something `tools/css_to_ada.py` already knew. With flat
-values, the generator can emit the stored form directly:
+rediscovering something `tools/css_to_ada.py` already knew.
+
+#### Interning at elaboration
+
+A widget holds handles already: `Set_Part_Style`
+(`adi-widget.adb:1618-1626`) answers `W.Part_Style_Handles (P) :=
+Intern_Style (S)`, and nothing keeps a `Widget_Style`. Interning is
+therefore a question of *when* rather than whether, and today it lands once
+per call site. `Set_Part_Styles (W, Primary_Class_Part_Styles)` materialises
+a 221,952-byte `Part_Style_Array` from a function return and interns all
+twelve parts, hashing and probing an 18,488-byte record each time. Four
+buttons of one class in `examples/button_example.adb` spend 48 of those, of
+which 44 land on entries that stand already.
+
+`Interned_Part_Styles` is public, with `Intern` (`adi-widget.ads:249`) and a
+`Set_Part_Styles` overload taking it (`:308`), so the form the generator
+wants is reachable now:
 
 ```ada
-Primary_Values : aliased constant Value_Pool :=
-  [1 => (Color,     (Kind => Col, Col => RGB (37, 99, 235))),
-   2 => (Color,     (Kind => Col, Col => RGB (29, 78, 216))),
-   3 => (Font_Size, (Kind => Len, Len => Px (14.0)))];
-
-Primary_Rules : aliased constant Sparse_Rule_Array :=
-  [1 => (Selector => Any_State,                  First => 1, Last => 1),
-   2 => (Selector => When_State (State_Hovered), First => 2, Last => 2)];
+Primary : constant Interned_Part_Styles := Intern (Primary_Class_Part_Styles);
+...
+Set_Part_Styles (Btn_A, Primary);   --  twelve handles, about 60 bytes
+Set_Part_Styles (Btn_B, Primary);
 ```
 
-Byte size known at link time, held in `.rodata`, reached through a handle
-range reserved beside the store slots that `Entry_From_Handle` already
-discriminates. `Class_Entry` gains an overload taking
-`access constant Sparse_Part_Array`.
+One 222 KB frame per class at elaboration, once, in place of one per widget,
+and the repeat hashing goes with it. The hand-written path wants the
+per-part equivalent, where `Style_Handle` (`adi-widget.ads:931`) is private
+today: making it public gives `Set_Part_Style (W, P, Handle)` and lets
+`examples/hello_raw_example.adb` intern at elaboration the same way.
 
-The 240 KB frame goes with it for a regenerated sheet, once the generator
-emits `aliased constant` objects in place of the `*_Part_Styles` functions —
-those functions are public and hand-written code calls them by name, so that
-is a generated-surface change. The by-value entry points serve hand-written
-registration and keep their frame, which wants a pass of its own.
-`Set_Part_Style` names one part per call and reaches the sparse shape
-already, which is the hand-written path `examples/hello_raw_example.adb`
-takes.
+§3.1's composer reaches the same place from the other side, and further:
+a chain names each property once and answers a handle, so the class-level
+`Part_Style_Array` and the `Widget_Style` beneath it go unbuilt rather than
+built once. The interning above is what a generator emitting aggregates can
+do today; the composer is what it emits once §3 lands, and the two agree on
+what a widget ends up holding.
 
-`Stylesheet_Metadata.Root_Styles` (`adi-css_parser.ads:17`) is the
-remaining fixed cost at 239,832 bytes per source and per sheet, on the path
-`Root_Merged_Styles` copies by value. It is public and generated code
-constructs it, so changing it means regenerating downstream stylesheets —
-which this step already requires.
+Emitting `Part_Style_Array` constants instead provisions 221,952 bytes per
+class, which the 13 that `button_example` generates take to about 2.9 MB,
+against the 482 KB of `.bss` and 609 KB of `.rodata` that example holds
+today. Whether it reaches `.rodata` or `.bss` beside elaboration code turns
+on whether GNAT folds a record aggregate of non-static components, and
+either way it provisions in full what §2.2 measures as 0.049% live. The
+expression functions there now build their 222 KB on the stack per call and
+rest at nothing, which is what keeps the figure off the current binary.
+
+Static placement stops earning its complexity here, as §3.3 records: a
+constant in `.rodata` is interned on the way in, so the runtime reads it
+through a handle and the placement answers what interning has answered
+already.
+
+The `*_Part_Styles` functions are public and hand-written code calls them by
+name, so replacing them is a generated-surface change, and consumers
+regenerate.
+
+`Stylesheet_Metadata.Root_Styles` carries `Interned_Part_Styles` already, at
+76 bytes per source and per sheet, so the elaboration route above is the
+whole of what a sheet's own metadata needs.
 
 ### 4.3   Lifetime
 
 | Structure | Growth | Bound |
 |---|---|---|
 | `Style_Store`, `Style_Index` | append per distinct style ever interned | `Style_Handle'Last` |
-| `Bindings`, `Effective`, in both `CSS_Source` and `CSS_Parser` | one entry per widget ever bound | — |
+| `Bindings`, `Effective`, in both `CSS_Source` and `CSS_Parser` | one entry per widget ever bound, holding four `Unbounded_String` each (§4.3.1) | — |
 | `Style_Source_Impl`, `Stylesheet_Impl` | one per source or sheet ever created | — |
 | `Gradient_Store` | one per distinct gradient value ever constructed | — |
 | `Text_Chars`, `Text_Spans` | one span, and its characters, per distinct CSS text ever interned | `Max_CSS_Text_Length` per entry |
@@ -421,6 +527,27 @@ to `Effective`: those two maps track every widget ever bound.
 `Adi.CSS_Source.Bind` appends per call (`adi-css_source.adb:1051`) where
 `Adi.CSS_Parser` dedupes (`:3914`), so a generated `Build` re-run per row
 grows the vector against a stable widget set, and dedupe there comes first.
+
+### 4.3.1   What a binding retains
+
+`Bound_Target` (`adi-css_source.adb:37-45`) holds four `Unbounded_String`
+components — `Name`, `Tag_Name`, `Class_Name` and `Id_Name` — beside the
+handle it targets, and `Bind_Class` fills one with
+`To_Unbounded_String (Name)` (`:1164`). So the selector names a widget was
+bound under are held per widget rather than per distinct name: 500 widgets
+carrying `.row` hold 500 copies of it, in four controlled components apiece,
+which is the shape §4.1 took off `Style_Rules` one layer down.
+
+`Record_Binding` (`:448`) runs with the mode unread, so `Static_Mode`
+retains the history a reload replays alongside `Dynamic_Mode`, where a
+reload is what the mode forecloses. It also scans the whole vector per call
+(`:451-457`), so binding N widgets costs N².
+
+Three things follow, in the order they pay: dedupe by name, which the
+parser side does already; the names interned, where §4.1's text store is
+the worked example; and the history kept for the mode that replays it.
+A `Style_Source` in `Static_Mode` then holds a handle and a target per
+binding, and the strings live once each.
 
 Pruning on destroy returns a vector slot and a map entry per source and per
 sheet a widget was bound to, with the impl blocks following a source's own
@@ -617,6 +744,69 @@ governs code generation partition-wide and belongs to an application's own
 choice rather than to a subset of library units. `Widget'Class` in the
 styling API dispatches, which `No_Dispatch` forbids.
 
+### 4.6   A pool for transient slots
+
+`Adi.Resolved_Styles` holds the styles a transition mints per frame in a
+fixed pool, and the shape it uses knows about styles in one component:
+
+```ada
+type Scratch_Entry is record
+   Cells  : Scratch_Cells;     --  the payload
+   In_Use : Boolean := False;
+   Serial : Natural := 0;      --  raised each time the slot is handed out
+end record;
+```
+
+`Acquire_Scratch` (`adi-resolved_styles.adb:477`) scans for a free slot and
+raises its serial; `Release_Scratch` (`:490`) matches index, occupancy and
+serial before freeing; `Live_Scratch` (`:296`) answers the slot a reference
+names, or zero. A reference into a released slot therefore reads as the
+default rather than as the next occupant, which is what the serial buys.
+
+None of that is about styles:
+
+```ada
+generic
+   type Payload is private;
+   Capacity : Positive;
+package Adi.Slot_Pool is
+   type Slot is private;
+   No_Slot : constant Slot;          --  what a full pool answers
+
+   function Acquire return Slot;
+   procedure Release (S : in out Slot);
+   function Live (S : Slot) return Boolean;
+   function Held return Natural;
+
+   function Get (S : Slot) return Payload;
+   procedure Set (S : Slot; P : Payload);
+end Adi.Slot_Pool;
+```
+
+Two callers: the animation scratch at `Payload => Scratch_Cells` and 64
+slots, and §3.1's composer at the pending buffer and 8, where Ada evaluates
+an argument before its call and so holds one outer chain and one inner at a
+time.
+
+Two things stay with their callers. `Resolved_Styles` encodes a slot into
+`Resolved_Handle` through the range above `Scratch_Base`, which is its own
+arithmetic. And `Ref` hands back an `access constant` into a cell, carrying
+the lifetime rule `adi-resolved_styles.ads:28-33` states, so the generic
+answers by value and each caller decides whether it wants an accessor and
+owns the rule that comes with one.
+
+`Adi.Handle_Store` is a different animal despite also carrying a
+generation: it is heap-backed and refcounted, with `Adjust`, `Finalize` and
+four `Unchecked_Deallocation` instances. Bounded-static and
+dynamic-controlled stay two packages.
+
+A fixed array, with no container, no heap, no finalization and no secondary
+stack, is what §4.5's restrictions ask for, and
+`docs/proposals/spark_verification.md` records `Adi.Resolved_Styles`' body
+holding 25 SPARK legality errors, all of them containers and `'Access`.
+Lifting the pool out takes it clear of both, which makes it the cheapest
+proof target after `Adi.Layout_Util`.
+
 ---
 
 ## 5   Runtime state from the application
@@ -642,32 +832,64 @@ Ada, or is destroyed and rebuilt.
 
 Two features answer this, and the first is a fraction of the second.
 
-### 5.2   Classes a widget can change
+### 5.2   Classes a widget can change, and why they are not the answer
 
 `Set_Class`, `Add_Class` and `Remove_Class` reach every use above through
-the machinery that already parses, binds and cascades `.critical`. The
-work is in the binding tables: `Bindings` and `Effective` in both
-`CSS_Source` and `CSS_Parser` gain a removal beside the append §4.3
-records, and a widget whose class set changes clears its cache the way
-`Bump_Style_Version` does for a state.
+the machinery that already parses, binds and cascades `.critical`: the
+binding tables — `Bindings` and `Effective` in both `CSS_Source` and
+`CSS_Parser` — gain a removal beside the append §4.3 records, and a
+widget whose class set changes clears its cache the way
+`Bump_Style_Version` does for a state. It is a fraction of the work
+below, and it was considered first for that reason.
 
-What a class leaves open is exclusivity — `.critical` and `.warning` sit on
-one widget as readily as either alone — and a value a style can read.
+It was set aside because it makes the wrong thing mutable. A class
+change alters a widget's *rule set*: `Bindings` grows past what §4.3
+already flags, the merge order of several classes becomes a function of
+when each was added, and a live reload has to replay a history of
+mutations rather than a configuration. Properties leave the rule set
+fixed at bind time and vary only the *selection among* rules — the
+invariant `:hover` already has, and the one the memo, the cache key and
+the resolved-style store were each built around. For a bounded-memory
+target that is the stronger property, so the vocabulary below is what
+landed.
+
+What a class leaves open besides is exclusivity — `.critical` and
+`.warning` sit on one widget as readily as either alone — and a value a
+style can read.
 
 ### 5.3   A vocabulary interned at elaboration
 
-An application declares its properties and their values at library level,
-where elaboration assigns each a dense index:
+An application declares each property from an enumeration of its own, at
+library level, where elaboration assigns each name a dense index:
 
 ```ada
-Severity : constant User_Property  := New_Property ("severity");
-Critical : constant Property_Value := New_Value (Severity, "critical");
+type Severity_Level is (Ok, Warning, Critical);
+
+package Severity is new Adi.Widget_Properties.Enumerated
+  (Name => "severity", Values => Severity_Level);
 ```
 
-Past elaboration the registry answers indices, and the names it was built
-from stay in it rather than reaching a comparison. `Max_User_Properties`
-and `Max_Property_Values` size it as constants, so it is one array and a
-count.
+The value type is the enumeration itself, so a value of one property
+handed to another fails to compile, where one `Property_Value` across
+every property compiles and selects nothing. And a value's index is its
+position in the enumeration, so nothing is registered per value: the
+whole of registration is a property taking the next index, and the bound
+check lands at the instantiation, where `Values'Range` is known, and
+refuses the property whole rather than value by value.
+
+The untyped registry stays underneath, because dynamic mode only ever
+has a name: `Find_Property` and `Find_Value` are what the runtime parser
+resolves a bracket against, and the generic is a typed facade over them
+rather than a replacement.
+
+The registry therefore holds a dense index per property, the name beside
+it that dynamic text resolves against, and nothing per value at all.
+`Dynamic_Lookup => False` on a property drops even that name, and its
+values' names with it, leaving the property reachable through the
+constants a generated sheet emits — which is the embedded case, and
+which nothing else needs, a generated sheet naming indices rather than
+text. `Max_Properties` and `Max_Values_Per_Property` size the registry
+as constants, so it is one set of arrays and a count.
 
 Elaboration is the window in which it is written, and read-only afterwards
 is what §4.5's `No_Implicit_Heap_Allocations`, `No_Secondary_Stack` and
@@ -678,30 +900,67 @@ registry that grows, and belongs to a mode of its own.
 ### 5.4   The generated binding
 
 `tools/css_to_ada.py` reads `[severity="critical"]` as text and emits the
-constants the application declared, given the package that holds them:
+constants the application declared, given the package that holds them
+through `--properties-package`:
 
 ```ada
 --  from  .alarm[severity="critical"] { color: red }
-Match_Property (App_Properties.Severity, App_Properties.Critical)
+When_Property (App_Properties.Severity.Value (App_Properties.Critical))
+
+--  from  .alarm[link]
+When_Property_Set (App_Properties.Link.Id)
+
+--  from  .alarm:not([severity="critical"])
+When_Not_Property (App_Properties.Severity.Value (App_Properties.Critical))
 ```
 
+The literal is named on its own, and the instantiation it is handed to
+resolves which enumeration it belongs to, so `[power="on"]` and
+`[state="on"]` reach the right one each. A flat constant per value would
+collide there — both would name `App_Properties.On`, one of them
+silently wrong — and naming the property beside the value instead leaves
+a pair the generator can emit mismatched.
+
 A name the application never declared is then a compile error at the
-generated sheet, where a string comparison would answer as a selector that
-matches nothing. Dynamic mode holds the same vocabulary through the
-registry, keyed on the names the sheet spells, and a fingerprint over the
-ordered declaration list lets a reloaded file that renames or reorders a
-property leave the last good sheet standing — the shape
-`adi-css_parser.adb:3487` already uses.
+generated sheet, where a string comparison would answer as a selector
+that matches nothing. Dynamic mode answers the same question through the
+registry, which the parser reads while it builds the selector: an
+undeclared property or value stops the sheet and leaves the last good one
+standing, the shape the state-rule cap already uses at
+`adi-css_parser.adb:3805`. A property declared without `Dynamic_Lookup`
+is undeclared as far as that lookup is concerned, which is what makes
+the gate a gate.
+
+A fingerprint over the declaration list buys nothing on top of that, and
+is dropped. It answered a design that assigned bits by declaration
+order, where a reordered sheet aliased onto the wrong bit; importing the
+constants makes order irrelevant, since the reference resolves to
+whatever index elaboration gave. Registration is elaboration-only
+besides, so the vocabulary a reloaded file resolves against is the one
+the partition started with, and a file that renames a property names one
+the registry does not carry.
+
+Both halves of a condition are held to what an Ada identifier can be
+spelled from — a letter, then letters, digits, hyphens and underscores —
+in both pipelines, since both halves become part of one in the generated
+sheet.
 
 ### 5.5   Where a value lives
 
-A widget carries the properties it sets as pairs of indices, sized to what
-it names. Interned canonically, the whole assignment is one handle, and
-`Resolved_Cache_Key` (`adi-widget.adb:380`) gains it as a fourth component:
-fixed width, hashable beside the three `Packed_State_Bits` it already
-holds, and exact on equality because interning is canonical. The
-vocabulary is then bounded by `Max_User_Properties` and the key by nothing
-at all.
+A widget carries the properties it sets as pairs of indices. Interning is
+canonical, so the whole assignment is one index into a shared store of
+sorted pair sets, and the widget holds two bytes rather than a list.
+`Resolved_Cache_Key` (`adi-widget.adb:380`) gains it as a component
+beside the three `Packed_State_Bits` it already holds: fixed width,
+hashable, and exact on equality because interning is canonical. The
+vocabulary is then bounded by `Max_Properties` and the key by
+nothing at all.
+
+A selector's conditions are the same shape — a sorted set of
+(property, ordinal, has-value, negated) tuples — so one store answers
+both, and `Matches` is a walk of two small sorted arrays. `State_Selector` carries the condition index, which is what keeps
+predefined equality on a selector exact and lets `Merge` go on comparing
+selectors by value.
 
 `Widget_State` keeps its six literals and the packed array §3 gave it, so
 the states an interaction drives keep the bit tests and the six-iteration
@@ -710,7 +969,9 @@ default handle and reads exactly as it does today.
 
 Setting a value clears the widget's cache the way `Set_State`
 (`adi-widget.adb`) already does through `Bump_Style_Version`, and the memo
-distinguishes values because the handle is part of the key.
+distinguishes values because the index is part of the key. A prepared
+style records whether any of its rules names a property, so a widget
+whose stylesheet reads none pays the version bump and nothing else.
 
 ### 5.6   Derived values
 
@@ -725,16 +986,27 @@ frame and fills the store. Custom properties cover the per-sheet case by
 textual substitution in `Resolve_Var_References`
 (`adi-css_parser.adb:2787`), ahead of any `Style_Rules`.
 
-The grammar is equality and existence: `[severity="critical"]` and
-`[severity]`. Ordering — `[level>3]` — asks the value indices to carry
-their order, which constrains how elaboration assigns them, and waits for
-a use.
+The grammar is equality, existence and negation:
+`[severity="critical"]`, `[severity]`, and `:not(...)` around either.
+CSS has no not-equal attribute operator, so negation is the only way to
+write a rule for every value but one, which is what a default beside a
+set of values is. A condition therefore carries a negated flag rather
+than a second set, which leaves `State_Selector` where it was and
+`Both`/`Common` unchanged; a negated equality holds of a widget that
+names the property not at all, as `:not()` does in CSS.
+
+Ordering — `[level>3]` — needs the value indices to carry their order.
+§5.3's enumeration gives them one, elaboration assigning indices in
+`Values'Range` order, so the question is a grammar and a comparison
+rather than a representation. It waits for a use.
 
 `Specificity` counts set conditions, so a property condition scores 1 and
 `[severity="critical"]:hover` scores 2, which is the CSS ranking already.
-Both selector parsers take the bracket stage ahead of their colon split,
-with `:not()` as the model in each — `tools/css_to_ada.py:867-971` and
-`adi-css_parser.adb:1879-1975`.
+Both selector parsers take the bracket stage ahead of their colon split.
+`:not()` is more than the model there: a `:not(` opening over a bracket
+is taken by that same stage, since leaving it to the colon split would
+strip the bracket out of the negation it belongs to. Every other
+`:not()` passes through to the pseudo-class pass unchanged.
 
 ---
 
@@ -845,8 +1117,8 @@ are step 4's gate and stand on their own. §4.3's byte budget for the memo
 travels with §4.4 in step 2. The
 counters land first, since every later step is measured against them. Two
 items here — the `CSS_Property_Set` for `Layout_Affecting_Diff`, and the
-`Visibility` question — are settled by §3.3, so either they wait for step 2
-or §3.3's table arrives early.
+`Visibility` question — are settled by §3.5, so either they wait for step 2
+or §3.5's table arrives early.
 
 Step 0 splits in two: the contained fixes land first, then the merge
 helpers, §4.3's lifetime work and the memo routing, which reach public API and
@@ -855,23 +1127,28 @@ widget teardown.
 **Step 1 — flat values.** Section 4.1. Four properties, and the whole
 chain leaves finalization behind.
 
-**Step 2 — sparse storage.** Sections 3.1 to 3.5, behind an unchanged
-authoring API. Arrays sized to the sheet. The `State_Selector` shape
-settles before this, since `State_Rule` is what the sparse form stores.
-Section 4.4's resolved-style store, on structural equality, has landed
-ahead of it; 4.4's field-width narrowings have not.
+**Step 2 — interning at elaboration.** Section 4.2: the generator emits
+`Interned_Part_Styles` constants in place of the `*_Part_Styles` functions,
+and `Style_Handle` goes public so the hand-written path reaches the same
+deal. It stands on what §4.4 landed and on nothing in §3, so it is the
+cheapest of these and it holds while §3 is written.
 
-**Step 3 — static tables.** Section 4.2, with `Stylesheet_Metadata` in the
-same regeneration.
+**Step 3 — composition.** Section 4.6's pool lands first, taking the
+animation scratch with it, since it stands alone and both users want it.
+Then sections 3.1 to 3.3: the composer, the eight-byte slot, and `Intern`
+overloaded per value type. `tools/css_to_ada.py` emits
+chains, and the aggregate entry points take `pragma Obsolescent` on the way
+to leaving before 1.0, which is what frees the value representations they
+pin. Sections 3.4 to 3.7 follow
+it — the sweeps, the sizing and the parser table — and §4.4's field-width
+narrowings, which the slot leaves as an optimisation of each value store
+rather than a prerequisite. The `State_Selector` shape settles before the
+rule form does.
 
-**Step 4 — runtime classes.** Sections 5.1 and 5.2, on a removal beside the
-append §4.3 records. It reaches the uses section 5 opens with, through the
-selector machinery that already carries them, and tells from use whether
-step 4b earns a second mechanism.
-
-**Step 4b — user properties.** Sections 5.3 to 5.6, on step 0's rule cap and
+**Step 4 — user properties.** Sections 5.3 to 5.6, on step 0's rule cap and
 hash widening, on step 2's per-rule size, and on §4.4's interning for the
-key component §5.5 adds.
+key component §5.5 adds. §5.2's runtime classes were considered ahead of
+it and set aside there.
 
 **Step 5 — restricted profiles.** Section 4.5, on the flat values of step 1
 and the lifetime work of step 0.
@@ -889,10 +1166,12 @@ change the generated shape, so a consumer upgrades generator and library in
 lockstep. The crate wants a versioning statement saying so.
 
 **Two-pipeline agreement.** `tools/css_to_ada.py` and `src/adi-css_parser.adb`
-resolve the same CSS and every step touches both. §5.4 adds a third encoding
-in the vocabulary and its fingerprint. `tests/src/side_longhand_test.adb`
-holds the pattern: install the generated sheet, parse the CSS it came from,
-require identical resolution.
+resolve the same CSS and every step touches both. §5.4 adds a third
+encoding in the vocabulary, where the generated side names constants and
+the parsed side resolves text against the registry.
+`tests/src/side_longhand_test.adb` holds the pattern: install the
+generated sheet, parse the CSS it came from, require identical
+resolution. `tests/src/widget_property_test.adb` follows it for §5.
 
 **32-bit and WebAssembly.** Every figure here is x86-64. `Style_Handle`
 ranges, `access constant` placement and `Unsigned_16` packing each behave

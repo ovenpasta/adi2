@@ -63,6 +63,11 @@ package body Adi.MCP is
       Count ("pref_calls", Stats.Pref_Calls);
       Count ("pref_hits", Stats.Pref_Hits);
 
+      --  A layer above them: the styles a (tag, classes, id) triple
+      --  folds to, answered from Adi.CSS_Source's memo or recomputed.
+      Count ("selector_memo_hits", Stats.Selector_Memo_Hits);
+      Count ("selector_memo_misses", Stats.Selector_Memo_Misses);
+
       if Stats.Last_DT > 0.0 then
          W.Key_Value ("fps",
            Long_Float (Float'Min (9999.0, 1.0 / Float (Stats.Last_DT))));

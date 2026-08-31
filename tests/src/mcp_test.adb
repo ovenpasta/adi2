@@ -650,22 +650,24 @@ procedure MCP_Test is
       --  another would not agree with what it was given; and the three
       --  style layers add up, as the wire format says they do.
       Stats : constant Adi.Window.Frame_Stats :=
-        (Frame_No        => 11,
-         Render_Us       => 12,
-         Update_Us       => 13,
-         Layout_Us       => 14,
-         Draw_Us         => 15,
-         Present_Us      => 16,
-         Last_DT         => 0.02,
-         Layout_Count    => 17,
-         Style_Resolves  => 100,
-         Style_Hits      => 70,
-         Style_Memo_Hits => 20,
-         Style_Computes  => 10,
-         Layout_Calls    => 31,
-         Layout_Skips    => 32,
-         Pref_Calls      => 33,
-         Pref_Hits       => 34);
+        (Frame_No             => 11,
+         Render_Us            => 12,
+         Update_Us            => 13,
+         Layout_Us            => 14,
+         Draw_Us              => 15,
+         Present_Us           => 16,
+         Last_DT              => 0.02,
+         Layout_Count         => 17,
+         Style_Resolves       => 100,
+         Style_Hits           => 70,
+         Style_Memo_Hits      => 20,
+         Style_Computes       => 10,
+         Layout_Calls         => 31,
+         Layout_Skips         => 32,
+         Pref_Calls           => 33,
+         Pref_Hits            => 34,
+         Selector_Memo_Hits   => 35,
+         Selector_Memo_Misses => 36);
 
       W : Adi.JSON.JSON_Writer := Adi.JSON.Create;
    begin
@@ -703,6 +705,8 @@ procedure MCP_Test is
          Expect ("layout_skips", 32);
          Expect ("pref_calls", 33);
          Expect ("pref_hits", 34);
+         Expect ("selector_memo_hits", 35);
+         Expect ("selector_memo_misses", 36);
 
          Assert (Field ("style_hits") + Field ("style_memo_hits")
                    + Field ("style_computes") = Field ("style_resolves"),

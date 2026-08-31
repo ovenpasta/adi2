@@ -336,6 +336,8 @@ package body Adi.Widget is
    Perf_Layout_Skips    : Natural := 0;
    Perf_Pref_Calls      : Natural := 0;
    Perf_Pref_Hits       : Natural := 0;
+   Perf_Sel_Memo_Hits   : Natural := 0;
+   Perf_Sel_Memo_Misses : Natural := 0;
 
    --  Saturating increment for perf counters: caps at Natural'Last
    --  instead of raising CONSTRAINT_ERROR on long-idle frames.
@@ -8243,6 +8245,8 @@ begin
    Perf_Layout_Skips    := 0;
    Perf_Pref_Calls      := 0;
    Perf_Pref_Hits       := 0;
+   Perf_Sel_Memo_Hits   := 0;
+   Perf_Sel_Memo_Misses := 0;
 end Reset_Perf_Counters;
 
 function Get_Perf_Style_Resolves return Natural is (Perf_Style_Resolves);
@@ -8253,6 +8257,20 @@ function Get_Perf_Layout_Calls return Natural is (Perf_Layout_Calls);
 function Get_Perf_Layout_Skips return Natural is (Perf_Layout_Skips);
 function Get_Perf_Pref_Calls return Natural is (Perf_Pref_Calls);
 function Get_Perf_Pref_Hits return Natural is (Perf_Pref_Hits);
+
+procedure Note_Selector_Memo_Hit is
+begin
+   Inc_Sat (Perf_Sel_Memo_Hits);
+end Note_Selector_Memo_Hit;
+
+procedure Note_Selector_Memo_Miss is
+begin
+   Inc_Sat (Perf_Sel_Memo_Misses);
+end Note_Selector_Memo_Miss;
+
+function Get_Perf_Selector_Memo_Hits return Natural is (Perf_Sel_Memo_Hits);
+function Get_Perf_Selector_Memo_Misses return Natural is
+  (Perf_Sel_Memo_Misses);
 
 ---------------------------------------------------------------------------
 --  Tick_Animations

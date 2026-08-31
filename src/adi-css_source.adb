@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Ada.Containers.Hashed_Maps;
+with Ada.Containers.Indefinite_Hashed_Maps;
 
 with Ada.Calendar;
 with Ada.Characters.Handling;
@@ -11,6 +12,7 @@ with Ada.Containers.Indefinite_Vectors;
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
+with Ada.Strings.Hash;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with Adi.CSS_Styles; use Adi.CSS_Styles;
@@ -27,6 +29,7 @@ package body Adi.CSS_Source is
 
    package Char renames Ada.Characters.Handling;
    package Fix renames Ada.Strings.Fixed;
+   use type Ada.Containers.Count_Type;
    use type Adi.CSS_Parser.Selector_Kind;
 
    function Normalize_Name (Name : String) return String is
@@ -67,6 +70,23 @@ package body Adi.CSS_Source is
       Element_Type    => Bound_Target,
       Hash            => Adi.Widget.Hash,
       Equivalent_Keys => Adi.Widget."=");
+
+   --  Styles under a name: the static entries indexed by selector, and
+   --  the combined fold indexed by the three names it reads. A
+   --  Part_Style_Array is 96 bytes, so both are cheap to hold.
+   package Part_Style_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => Adi.Widget.Part_Style_Array,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
+   type Static_Index_Array is
+     array (Adi.CSS_Parser.Selector_Kind) of Part_Style_Maps.Map;
+
+   --  Distinct (tag, class list, id) triples one source answers for.
+   --  At the cap the memo is dropped whole and fills again, which is
+   --  what the resolved-style memo does at its own.
+   Max_Combined_Memo_Entries : constant Ada.Containers.Count_Type := 4_096;
 
    --  The :root block a source carries. Its styles are handles, so
    --  keeping it and comparing it cost 96 bytes and a word compare.
@@ -122,6 +142,13 @@ package body Adi.CSS_Source is
       Static_Metadata  : Adi.CSS_Parser.Stylesheet_Metadata := (others => <>);
       Static_Root      : Root_Fingerprint;
       Static_Styles    : Entry_Vectors.Vector;
+
+      --  The entries folded per selector, which is what Static_Mode
+      --  answers a lookup from, and the fold of tag, classes and id
+      --  Combined_Styles answers from in either mode.
+      Static_Index     : Static_Index_Array;
+      Combined_Memo    : Part_Style_Maps.Map;
+
       Bindings         : Binding_Vectors.Vector;
       Attached_Window  : Adi.Window.Window_Handle := Adi.Window.Null_Window_Handle;
    end record;
@@ -205,27 +232,64 @@ package body Adi.CSS_Source is
      return Part_Style_Array
    is (Adi.Style_Merge.Merge (Base, Override));
 
+   --  Fold one entry onto whatever the index holds for its name. Entries
+   --  naming the same selector merge in registration order, which is the
+   --  order the vector holds them in.
+   procedure Index_Static_Entry (Impl : Style_Source_Impl_Ptr;
+                                 E    : Static_Style_Entry)
+   is
+      use Part_Style_Maps;
+      Key : constant String := To_String (E.Name);
+      C   : constant Cursor := Impl.Static_Index (E.Kind).Find (Key);
+   begin
+      if Has_Element (C) then
+         Impl.Static_Index (E.Kind).Replace_Element
+           (C, Merge_Part_Styles (Element (C), E.Styles));
+      else
+         Impl.Static_Index (E.Kind).Insert
+           (Key, Merge_Part_Styles (Empty_Part_Styles, E.Styles));
+      end if;
+   end Index_Static_Entry;
+
+   procedure Rebuild_Static_Index (Impl : Style_Source_Impl_Ptr) is
+   begin
+      for K in Adi.CSS_Parser.Selector_Kind loop
+         Impl.Static_Index (K).Clear;
+      end loop;
+
+      for I in 1 .. Natural (Impl.Static_Styles.Length) loop
+         Index_Static_Entry (Impl, Impl.Static_Styles (I));
+      end loop;
+   end Rebuild_Static_Index;
+
+   --  Combined_Styles reads the mode, the static entries and the loaded
+   --  sheet, and nothing else. Every path that changes one of the three
+   --  drops the memo.
+   procedure Invalidate_Combined (Impl : Style_Source_Impl_Ptr) is
+   begin
+      if Impl /= null then
+         Impl.Combined_Memo.Clear;
+      end if;
+   end Invalidate_Combined;
+
    function Selector_Styles (Source : Style_Source;
                              Kind   : Adi.CSS_Parser.Selector_Kind;
                              Name   : String) return Part_Style_Array is
       N : constant String := Normalize_Name (Name);
-      Result : Part_Style_Array := Empty_Part_Styles;
    begin
       if Impl_Of (Source) = null then
          return Empty_Part_Styles;
       end if;
 
       if Impl_Of (Source).Mode = Static_Mode then
-         for I in 1 .. Natural (Impl_Of (Source).Static_Styles.Length) loop
-            if Impl_Of (Source).Static_Styles (I).Kind = Kind
-              and then To_String (Impl_Of (Source).Static_Styles (I).Name) = N
-            then
-               Result := Merge_Part_Styles (
-                 Result, Impl_Of (Source).Static_Styles (I).Styles);
-            end if;
-         end loop;
-
-         return Result;
+         declare
+            use Part_Style_Maps;
+            C : constant Cursor :=
+              Impl_Of (Source).Static_Index (Kind).Find (N);
+         begin
+            return (if Has_Element (C) then Element (C)
+                    else Empty_Part_Styles);
+         end;
       end if;
 
       if not Impl_Of (Source).Dynamic_Loaded then
@@ -263,32 +327,95 @@ package body Adi.CSS_Source is
       return Result;
    end Multi_Class_Styles;
 
+   --  The three names in one string, self-delimiting whatever they
+   --  hold: a flag per slot for whether the caller named it, then the
+   --  lengths, then the text. A name the caller left out and one that
+   --  normalizes to nothing are different questions, so the flags stay
+   --  beside the text.
+   function Memo_Key (Tag_Given, Class_Given, Id_Given : Boolean;
+                      Tag_N, Class_N, Id_N : String) return String
+   is ((if Tag_Given then "y" else "n")
+       & (if Class_Given then "y" else "n")
+       & (if Id_Given then "y" else "n")
+       & Natural'Image (Tag_N'Length)
+       & Natural'Image (Class_N'Length) & '|'
+       & Tag_N & Class_N & Id_N);
+
+   --  Tag first, then the classes in the order they are written, then
+   --  the id. The names arrive normalized: Selector_Styles normalizes
+   --  again, which changes nothing, and a lowered class list splits into
+   --  the same tokens.
+   function Combined_Fold (Source  : Style_Source;
+                           Tag_N   : String;
+                           Class_N : String;
+                           Id_N    : String;
+                           Has_Tag, Has_Class, Has_Id : Boolean)
+     return Part_Style_Array
+   is
+      Result : Part_Style_Array := Empty_Part_Styles;
+   begin
+      if Has_Tag then
+         Result := Merge_Part_Styles (
+           Result,
+           Selector_Styles (Source, Adi.CSS_Parser.Tag_Selector, Tag_N));
+      end if;
+
+      --  Class_N is a space-separated list, the same as Bind_Class takes.
+      if Has_Class then
+         Result := Merge_Part_Styles (
+           Result,
+           Multi_Class_Styles (Source, Class_N));
+      end if;
+
+      if Has_Id then
+         Result := Merge_Part_Styles (
+           Result,
+           Selector_Styles (Source, Adi.CSS_Parser.Id_Selector, Id_N));
+      end if;
+
+      return Result;
+   end Combined_Fold;
+
    function Combined_Styles (Source     : Style_Source;
                              Tag_Name   : String;
                              Class_Name : String;
                              Id_Name    : String) return Part_Style_Array is
-      Result : Part_Style_Array := Empty_Part_Styles;
+      use Part_Style_Maps;
+      Impl    : constant Style_Source_Impl_Ptr := Impl_Of (Source);
+      Tag_N   : constant String := Normalize_Name (Tag_Name);
+      Class_N : constant String := Normalize_Name (Class_Name);
+      Id_N    : constant String := Normalize_Name (Id_Name);
    begin
-      if Tag_Name /= "" then
-         Result := Merge_Part_Styles (
-           Result,
-           Selector_Styles (Source, Adi.CSS_Parser.Tag_Selector, Tag_Name));
+      if Impl = null then
+         return Empty_Part_Styles;
       end if;
 
-      --  Class_Name is a space-separated list, the same as Bind_Class takes.
-      if Class_Name /= "" then
-         Result := Merge_Part_Styles (
-           Result,
-           Multi_Class_Styles (Source, Class_Name));
-      end if;
+      declare
+         Key : constant String :=
+           Memo_Key (Tag_Name /= "", Class_Name /= "", Id_Name /= "",
+                     Tag_N, Class_N, Id_N);
+         C   : constant Cursor := Impl.Combined_Memo.Find (Key);
+      begin
+         if Has_Element (C) then
+            Adi.Widget.Note_Selector_Memo_Hit;
+            return Element (C);
+         end if;
 
-      if Id_Name /= "" then
-         Result := Merge_Part_Styles (
-           Result,
-           Selector_Styles (Source, Adi.CSS_Parser.Id_Selector, Id_Name));
-      end if;
+         Adi.Widget.Note_Selector_Memo_Miss;
 
-      return Result;
+         declare
+            Result : constant Part_Style_Array :=
+              Combined_Fold (Source, Tag_N, Class_N, Id_N,
+                             Tag_Name /= "", Class_Name /= "",
+                             Id_Name /= "");
+         begin
+            if Impl.Combined_Memo.Length >= Max_Combined_Memo_Entries then
+               Impl.Combined_Memo.Clear;
+            end if;
+            Impl.Combined_Memo.Include (Key, Result);
+            return Result;
+         end;
+      end;
    end Combined_Styles;
 
    function Root_Merged_Styles
@@ -348,6 +475,8 @@ package body Adi.CSS_Source is
       end if;
    end Apply_Root_Metadata_Impl;
 
+   --  Through Combined_Styles, which folds the class list alone when it
+   --  is given nothing else, so a multi-class binding shares the memo.
    procedure Apply_Multi_Classes (Source : Style_Source;
                                   Names  : String;
                                   W      : in out Adi.Widget.Widget'Class) is
@@ -357,7 +486,7 @@ package body Adi.CSS_Source is
          Root_Merged_Styles
            (Source,
             Adi.Widget.Get_Handle (W),
-            Multi_Class_Styles (Source, Names)));
+            Combined_Styles (Source, "", Names, "")));
    end Apply_Multi_Classes;
 
    --  Apply one binding to its widget. Root_Merged_Styles folds in the
@@ -697,6 +826,9 @@ package body Adi.CSS_Source is
          Dynamic_Parses := Dynamic_Parses + 1;
          Adi.CSS_Parser.Load_String
            (Impl_Of (Source).Sheet, To_String (Text), Load_OK);
+         --  Dynamic_Mode answers out of the sheet, so a load drops what
+         --  the memo folded out of the last one.
+         Invalidate_Combined (Impl_Of (Source));
          if not Load_OK then
             Impl_Of (Source).Last_Error := To_Unbounded_String (
               Adi.CSS_Parser.Get_Last_Error (Impl_Of (Source).Sheet));
@@ -787,6 +919,8 @@ package body Adi.CSS_Source is
       for E of Entries loop
          Impl_Of (Source).Static_Styles.Append (E);
       end loop;
+      Rebuild_Static_Index (Impl_Of (Source));
+      Invalidate_Combined (Impl_Of (Source));
 
       if Impl_Of (Source).Mode = Static_Mode then
          Reapply_If_Changed (Source);
@@ -845,6 +979,8 @@ package body Adi.CSS_Source is
    begin
       Ensure_Impl (Source);
       Impl_Of (Source).Static_Styles.Clear;
+      Rebuild_Static_Index (Impl_Of (Source));
+      Invalidate_Combined (Impl_Of (Source));
    end Clear_Static_Entries;
 
    procedure Add_Static_Entry (Source : in out Style_Source;
@@ -852,6 +988,8 @@ package body Adi.CSS_Source is
    begin
       Ensure_Impl (Source);
       Impl_Of (Source).Static_Styles.Append (Entry_Value);
+      Index_Static_Entry (Impl_Of (Source), Entry_Value);
+      Invalidate_Combined (Impl_Of (Source));
    end Add_Static_Entry;
 
    function CSS_File (Path : String) return Dynamic_Source_Entry is
@@ -927,6 +1065,7 @@ package body Adi.CSS_Source is
       Ensure_Impl (Source);
       Impl_Of (Source).Entries.Clear;
       Impl_Of (Source).Dynamic_Loaded := False;
+      Invalidate_Combined (Impl_Of (Source));
       --  Nothing is loaded now, and saying so is what makes the next
       --  Set_Mode notice that the widgets are styled from a sheet this
       --  source no longer has.
@@ -977,6 +1116,7 @@ package body Adi.CSS_Source is
       end if;
 
       Impl_Of (Source).Mode := Mode;
+      Invalidate_Combined (Impl_Of (Source));
       Reapply_If_Changed (Source);
    end Set_Mode;
 
@@ -1370,6 +1510,63 @@ package body Adi.CSS_Source is
       end if;
       return To_String (Impl_Of (Source).Last_Error);
    end Get_Last_Error;
+
+   function Static_Styles_Indexed
+     (Source : Style_Source;
+      Kind   : Adi.CSS_Parser.Selector_Kind;
+      Name   : String) return Part_Style_Array
+   is (Selector_Styles (Source, Kind, Name));
+
+   function Static_Styles_Scanned
+     (Source : Style_Source;
+      Kind   : Adi.CSS_Parser.Selector_Kind;
+      Name   : String) return Part_Style_Array
+   is
+      N      : constant String := Normalize_Name (Name);
+      Result : Part_Style_Array := Empty_Part_Styles;
+   begin
+      if Impl_Of (Source) = null then
+         return Empty_Part_Styles;
+      end if;
+
+      for I in 1 .. Natural (Impl_Of (Source).Static_Styles.Length) loop
+         if Impl_Of (Source).Static_Styles (I).Kind = Kind
+           and then To_String (Impl_Of (Source).Static_Styles (I).Name) = N
+         then
+            Result := Merge_Part_Styles
+              (Result, Impl_Of (Source).Static_Styles (I).Styles);
+         end if;
+      end loop;
+
+      return Result;
+   end Static_Styles_Scanned;
+
+   function Combined_Styles_Memoized
+     (Source     : Style_Source;
+      Tag_Name   : String;
+      Class_Name : String;
+      Id_Name    : String) return Part_Style_Array
+   is (Combined_Styles (Source, Tag_Name, Class_Name, Id_Name));
+
+   function Combined_Styles_Uncached
+     (Source     : Style_Source;
+      Tag_Name   : String;
+      Class_Name : String;
+      Id_Name    : String) return Part_Style_Array
+   is (if Impl_Of (Source) = null then Empty_Part_Styles
+       else Combined_Fold
+              (Source,
+               Normalize_Name (Tag_Name),
+               Normalize_Name (Class_Name),
+               Normalize_Name (Id_Name),
+               Tag_Name /= "", Class_Name /= "", Id_Name /= ""));
+
+   function Combined_Memo_Count (Source : Style_Source) return Natural is
+     (if Impl_Of (Source) = null then 0
+      else Natural (Impl_Of (Source).Combined_Memo.Length));
+
+   function Max_Combined_Memo return Natural is
+     (Natural (Max_Combined_Memo_Entries));
 
 begin
    Adi.Widget.Window_Bridge.Install_Destroy_Notice

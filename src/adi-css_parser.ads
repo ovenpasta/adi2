@@ -148,6 +148,19 @@ private
    --  Impls allocated and not yet destroyed, over all sheets.
    function Live_Impl_Count return Natural;
 
+   --  The selectors a sheet names, and the scan the selector index
+   --  replaced -- the answer Styles_For must agree with. Read through
+   --  Adi.CSS_Parser.Testing.
+   function Selector_Count (Sheet : Stylesheet) return Natural;
+   function Selector_Kind_At (Sheet : Stylesheet;
+                              Index : Positive) return Selector_Kind;
+   function Selector_Name_At (Sheet : Stylesheet;
+                              Index : Positive) return String;
+   function Styles_For_Scanned
+     (Sheet : Stylesheet;
+      Kind  : Selector_Kind;
+      Name  : String) return Adi.Widget.Part_Style_Array;
+
    --  The store owns what a sheet holds, and a Stylesheet is a
    --  generational handle into it. Copying one copies the handle: every
    --  copy answers Is_Valid False once any of them is destroyed, and a

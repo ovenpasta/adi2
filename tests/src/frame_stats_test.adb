@@ -128,6 +128,10 @@ begin
                  "preferred-size calls are the counter");
          Assert (Stats.Pref_Hits = Get_Perf_Pref_Hits,
                  "preferred-size hits are the counter");
+         Assert (Stats.Selector_Memo_Hits = Get_Perf_Selector_Memo_Hits,
+                 "selector memo hits are the counter");
+         Assert (Stats.Selector_Memo_Misses = Get_Perf_Selector_Memo_Misses,
+                 "selector memo misses are the counter");
 
          Section ("The three style layers partition the resolve calls");
 

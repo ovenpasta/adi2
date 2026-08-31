@@ -19,4 +19,16 @@ package Adi.CSS_Parser.Testing is
    function Bindings_Held (Sheet : Stylesheet) return Natural;
    function Effective_Held (Sheet : Stylesheet) return Natural;
 
+   --  The selectors a sheet names, so a differential test can walk all
+   --  of them, and the scan the selector index replaced.
+   function Selector_Count (Sheet : Stylesheet) return Natural;
+   function Selector_Kind_At (Sheet : Stylesheet;
+                              Index : Positive) return Selector_Kind;
+   function Selector_Name_At (Sheet : Stylesheet;
+                              Index : Positive) return String;
+   function Styles_For_Scanned
+     (Sheet : Stylesheet;
+      Kind  : Selector_Kind;
+      Name  : String) return Adi.Widget.Part_Style_Array;
+
 end Adi.CSS_Parser.Testing;

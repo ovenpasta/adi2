@@ -282,7 +282,10 @@ def perf_stats() -> str:
     style_memo_hits and style_computes partition style_resolves between
     the per-widget cache, the global memo and the cascade, and
     layout_calls, layout_skips, pref_calls and pref_hits report the
-    layout and measurement work.
+    layout and measurement work. selector_memo_hits and
+    selector_memo_misses count a layer above them: the styles
+    Adi.CSS_Source folds for a (tag, classes, id) triple, touched only
+    where something binds or applies.
 
     The budget bounds idle residency, not the scene: read idle_bytes
     against it, not bytes. Each producer reports how its residency

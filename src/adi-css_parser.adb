@@ -9,11 +9,13 @@ with Ada.Calendar;
 with Ada.Characters.Handling;
 with Ada.Numerics;
 with Ada.Containers;
+with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Indefinite_Vectors;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings;
 with Ada.Strings.Fixed;
+with Ada.Strings.Hash;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
@@ -83,19 +85,33 @@ package body Adi.CSS_Parser is
      (Index_Type => Positive,
       Element_Type => Variable_Entry);
 
+   --  Where a selector sits in Selectors, by its lowered and trimmed
+   --  name. One map per kind, so a lookup hashes the name as given
+   --  rather than a name the kind was pasted onto.
+   package Selector_Index_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => Positive,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
+   type Selector_Index_Array is
+     array (Selector_Kind) of Selector_Index_Maps.Map;
+
    type Stylesheet_Impl is new Sheet_Impl_Base with record
-      Selectors     : Selector_Style_Vectors.Vector;
-      Bindings      : Binding_Vectors.Vector;
-      Root_Target   : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
+      Selectors      : Selector_Style_Vectors.Vector;
+      Selector_Index : Selector_Index_Array;
+      Bindings       : Binding_Vectors.Vector;
+      Root_Target    : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
       --  The binding in force for each target, so handing the root role
       --  over restyles the widget losing it and the one taking it
       --  without searching.
-      Effective        : Binding_Maps.Map;
-      Metadata      : Stylesheet_Metadata := (others => <>);
-      Variables     : Variable_Vectors.Vector;
-      Source_Path   : Unbounded_String;
-      Last_Modified : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1, 0.0);
-      Last_Error    : Unbounded_String;
+      Effective      : Binding_Maps.Map;
+      Metadata       : Stylesheet_Metadata := (others => <>);
+      Variables      : Variable_Vectors.Vector;
+      Source_Path    : Unbounded_String;
+      Last_Modified  : Ada.Calendar.Time :=
+        Ada.Calendar.Time_Of (1901, 1, 1, 0.0);
+      Last_Error     : Unbounded_String;
    end record;
 
    type Parsed_Selector is record
@@ -201,6 +217,22 @@ package body Adi.CSS_Parser is
 
    function Is_Valid (Sheet : Stylesheet) return Boolean is
      (Sheet_Stores.Is_Valid (Sheet.Id));
+
+   function Selector_Count (Sheet : Stylesheet) return Natural is
+     (if Impl_Of (Sheet) = null then 0
+      else Natural (Impl_Of (Sheet).Selectors.Length));
+
+   --  As every other read of a sheet does, these answer for a sheet that
+   --  holds nothing rather than reaching through a stale handle.
+   function Selector_Kind_At (Sheet : Stylesheet;
+                              Index : Positive) return Selector_Kind is
+     (if Impl_Of (Sheet) = null then Tag_Selector
+      else Impl_Of (Sheet).Selectors (Index).Kind);
+
+   function Selector_Name_At (Sheet : Stylesheet;
+                              Index : Positive) return String is
+     (if Impl_Of (Sheet) = null then ""
+      else To_String (Impl_Of (Sheet).Selectors (Index).Name));
 
    procedure Destroy (Sheet : in out Stylesheet) is
    begin
@@ -3983,16 +4015,11 @@ package body Adi.CSS_Parser is
    function Find_Selector_Index (Impl : Stylesheet_Impl;
                                  Kind : Selector_Kind;
                                  Name : String) return Natural is
-      Key : constant String := Lower (Trimmed (Name));
+      use Selector_Index_Maps;
+      C : constant Cursor :=
+        Impl.Selector_Index (Kind).Find (Lower (Trimmed (Name)));
    begin
-      for I in 1 .. Natural (Impl.Selectors.Length) loop
-         if Impl.Selectors (I).Kind = Kind
-           and then To_String (Impl.Selectors (I).Name) = Key
-         then
-            return I;
-         end if;
-      end loop;
-      return 0;
+      return (if Has_Element (C) then Element (C) else 0);
    end Find_Selector_Index;
 
    function Ensure_Selector (Impl    : in out Stylesheet_Impl;
@@ -4015,13 +4042,16 @@ package body Adi.CSS_Parser is
          Sel.Kind := Kind;
          Sel.Name := To_Unbounded_String (Key);
       end;
+      Impl.Selector_Index (Kind).Insert
+        (Key, Positive (Impl.Selectors.Last_Index));
       return Positive (Impl.Selectors.Last_Index);
    end Ensure_Selector;
 
    procedure Build_Styles (Impl : in out Stylesheet_Impl;
                            Rules : Parsed_Rule_Vectors.Vector;
                            Success : out Boolean) is
-      Saved : Selector_Style_Vectors.Vector;
+      Saved       : Selector_Style_Vectors.Vector;
+      Saved_Index : Selector_Index_Array;
 
       --  What each selector has so far, published to Impl.Selectors when
       --  the whole build has succeeded. A failed build leaves the
@@ -4029,6 +4059,10 @@ package body Adi.CSS_Parser is
       Working : Part_Style_Vectors.Vector;
    begin
       Selector_Style_Vectors.Move (Target => Saved, Source => Impl.Selectors);
+      for K in Selector_Kind loop
+         Selector_Index_Maps.Move
+           (Target => Saved_Index (K), Source => Impl.Selector_Index (K));
+      end loop;
       Success := True;
 
       Build_Loop :
@@ -4080,6 +4114,10 @@ package body Adi.CSS_Parser is
          Saved.Clear;
       else
          Selector_Style_Vectors.Move (Target => Impl.Selectors, Source => Saved);
+         for K in Selector_Kind loop
+            Selector_Index_Maps.Move
+              (Target => Impl.Selector_Index (K), Source => Saved_Index (K));
+         end loop;
       end if;
    end Build_Styles;
 
@@ -4319,6 +4357,28 @@ package body Adi.CSS_Parser is
 
       return Impl_Of (Sheet).Selectors (Positive (Idx)).Styles;
    end Styles_For;
+
+   function Styles_For_Scanned
+     (Sheet : Stylesheet;
+      Kind  : Selector_Kind;
+      Name  : String) return Part_Style_Array
+   is
+      Key : constant String := Lower (Trimmed (Name));
+   begin
+      if Impl_Of (Sheet) = null then
+         return Empty_Part_Styles;
+      end if;
+
+      for I in 1 .. Natural (Impl_Of (Sheet).Selectors.Length) loop
+         if Impl_Of (Sheet).Selectors (I).Kind = Kind
+           and then To_String (Impl_Of (Sheet).Selectors (I).Name) = Key
+         then
+            return Impl_Of (Sheet).Selectors (I).Styles;
+         end if;
+      end loop;
+
+      return Empty_Part_Styles;
+   end Styles_For_Scanned;
 
    function Styles_For_Class (Sheet : Stylesheet;
                               Class_Name : String) return Part_Style_Array is

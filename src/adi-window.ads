@@ -488,24 +488,29 @@ package Adi.Window is
     --  are those of Adi.Widget over the whole frame, drawing included:
     --  Style_Hits, Style_Memo_Hits and Style_Computes partition
     --  Style_Resolves between the per-widget cache, the global memo and
-    --  the cascade.
+    --  the cascade. Selector_Memo_Hits and Selector_Memo_Misses count a
+    --  layer above them: the styles Adi.CSS_Source folds for a (tag,
+    --  classes, id) triple, which a frame touches only where something
+    --  binds or applies.
     type Frame_Stats is record
-       Frame_No        : Natural := 0;
-       Render_Us       : Natural := 0;
-       Update_Us       : Natural := 0;
-       Layout_Us       : Natural := 0;
-       Draw_Us         : Natural := 0;
-       Present_Us      : Natural := 0;
-       Last_DT         : Duration := 0.0;
-       Layout_Count    : Natural := 0;
-       Style_Resolves  : Natural := 0;
-       Style_Hits      : Natural := 0;
-       Style_Memo_Hits : Natural := 0;
-       Style_Computes  : Natural := 0;
-       Layout_Calls    : Natural := 0;
-       Layout_Skips    : Natural := 0;
-       Pref_Calls      : Natural := 0;
-       Pref_Hits       : Natural := 0;
+       Frame_No             : Natural := 0;
+       Render_Us            : Natural := 0;
+       Update_Us            : Natural := 0;
+       Layout_Us            : Natural := 0;
+       Draw_Us              : Natural := 0;
+       Present_Us           : Natural := 0;
+       Last_DT              : Duration := 0.0;
+       Layout_Count         : Natural := 0;
+       Style_Resolves       : Natural := 0;
+       Style_Hits           : Natural := 0;
+       Style_Memo_Hits      : Natural := 0;
+       Style_Computes       : Natural := 0;
+       Layout_Calls         : Natural := 0;
+       Layout_Skips         : Natural := 0;
+       Pref_Calls           : Natural := 0;
+       Pref_Hits            : Natural := 0;
+       Selector_Memo_Hits   : Natural := 0;
+       Selector_Memo_Misses : Natural := 0;
     end record;
     function Get_Frame_Stats (W : Window) return Frame_Stats;
     function Get_Frame_Stats (H : Window_Handle) return Frame_Stats;
@@ -561,14 +566,16 @@ private
         Stats_Last_DT      : Duration := 0.0;
         Stats_Layout_Reason : Character := ' ';
         --  Per-frame perf counters (debug stats overlay)
-        Stats_Style_Resolves  : Natural := 0;
-        Stats_Style_Hits      : Natural := 0;
-        Stats_Style_Memo_Hits : Natural := 0;
-        Stats_Style_Computes  : Natural := 0;
-        Stats_Layout_Calls    : Natural := 0;
-        Stats_Layout_Skips    : Natural := 0;
-        Stats_Pref_Calls      : Natural := 0;
-        Stats_Pref_Hits       : Natural := 0;
+        Stats_Style_Resolves   : Natural := 0;
+        Stats_Style_Hits       : Natural := 0;
+        Stats_Style_Memo_Hits  : Natural := 0;
+        Stats_Style_Computes   : Natural := 0;
+        Stats_Layout_Calls     : Natural := 0;
+        Stats_Layout_Skips     : Natural := 0;
+        Stats_Pref_Calls       : Natural := 0;
+        Stats_Pref_Hits        : Natural := 0;
+        Stats_Sel_Memo_Hits    : Natural := 0;
+        Stats_Sel_Memo_Misses  : Natural := 0;
     end record;
 
     overriding procedure Initialize (w : in out Window);

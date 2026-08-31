@@ -26,6 +26,8 @@ Four layers:
 3. Global resolved-style memo cache
 4. A store of distinct resolved styles, which the memo and every widget
    name by handle
+5. Selector lookup by name, and a memo over the styles a widget's
+   selectors fold to
 
 ### 1) Handle-Based Storage
 
@@ -77,6 +79,45 @@ Policy:
   it holds name entries the store has let go
 
 This keeps behavior deterministic and bounded while capturing cross-widget repetition.
+
+### 4) Selector Lookup and the Combined-Style Memo
+
+Above the four layers sit the two lookups that reach them from a name.
+
+`Adi.CSS_Parser` keeps `Selector_Index`, one hashed map per
+`Selector_Kind` from a lowered and trimmed selector name to its position
+in `Selectors`. `Ensure_Selector` fills it as it appends, and
+`Build_Styles` moves it aside with the selectors so a failed build
+restores both. `Adi.CSS_Source` keeps `Static_Index` in the same shape,
+holding the registered entries already folded per selector, which is
+what `Static_Mode` answers a lookup from.
+
+`Combined_Styles` folds tag, class list and id into one
+`Part_Style_Array`, and `Combined_Memo` holds that answer per source,
+keyed on the three normalized names and on which of them the caller gave
+at all. Widgets sharing a triple share the fold. At 96 bytes an entry
+the memo is kilobytes for a whole application; past
+`Max_Combined_Memo_Entries` (4,096) it is dropped whole and fills again,
+as the resolved-style memo is at its own cap.
+
+Everything the fold reads is the mode, the registered entries and the
+loaded sheet, so the memo is dropped in `Set_Mode`, `Set_Static_Entries`,
+`Add_Static_Entry`, `Clear_Static_Entries`, `Clear_Dynamic_Entries`, and
+in `Install_Entries` around every parse — which is the path
+`Set_Dynamic_Sources`, `Add_Dynamic_File`, `Add_Dynamic_String`,
+`Reload_Dynamic` and `Tick` reach a reload through. The `:root` block and
+the stylesheet metadata are folded in by `Root_Merged_Styles` outside the
+memo, so `Set_Static_Metadata` and `Bind_Root_Metadata` leave it alone.
+
+`Adi.Widget.Get_Perf_Selector_Memo_Hits` and
+`Get_Perf_Selector_Memo_Misses` count it, beside the resolved-style
+counters and under the same per-frame reset. They reach
+`Adi.Window.Frame_Stats`, the debug overlay as `SM:hits/misses`, and MCP
+`perf_stats` as `selector_memo_hits` and `selector_memo_misses`.
+
+`tests/src/selector_lookup_test.adb` holds both lookups to the scans they
+replaced, over every sheet in `examples/css/` and `tests/css/`, and holds
+a memo hit to a fresh fold.
 
 ## What the layers hold to
 

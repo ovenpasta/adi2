@@ -858,6 +858,13 @@ package Adi.Widget is
    function Get_Perf_Pref_Calls return Natural;
    function Get_Perf_Pref_Hits return Natural;
 
+   --  Adi.CSS_Source's memo over the styles a (tag, classes, id) triple
+   --  folds to. Counted here so one reset covers every style counter.
+   procedure Note_Selector_Memo_Hit;
+   procedure Note_Selector_Memo_Miss;
+   function Get_Perf_Selector_Memo_Hits return Natural;
+   function Get_Perf_Selector_Memo_Misses return Natural;
+
    ---------------------------------------------------------------------------
    --  Layout helper for containers: lay out a child and mark its epoch
    --  so Layout_Tree will not re-lay-out it.

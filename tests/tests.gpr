@@ -78,6 +78,7 @@ project Tests is
       "auto_margin_test",
       "os_paths_test",
       "resolved_store_test",
+      "selector_lookup_test",
       "widget_property_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    Platform_Name := external ("ADI_PLATFORM", "linux");

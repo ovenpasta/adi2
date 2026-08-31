@@ -248,6 +248,34 @@ private
    --  Impls allocated and not yet destroyed, over all sources.
    function Live_Impl_Count return Natural;
 
+   --  Two answers to the same question, for the test that holds one to
+   --  the other. Indexed is what Static_Mode answers a lookup from;
+   --  Scanned is the fold over every registered entry.
+   function Static_Styles_Indexed
+     (Source : Style_Source;
+      Kind   : Adi.CSS_Parser.Selector_Kind;
+      Name   : String) return Adi.Widget.Part_Style_Array;
+   function Static_Styles_Scanned
+     (Source : Style_Source;
+      Kind   : Adi.CSS_Parser.Selector_Kind;
+      Name   : String) return Adi.Widget.Part_Style_Array;
+
+   --  The (tag, classes, id) fold through the memo, and past it.
+   function Combined_Styles_Memoized
+     (Source     : Style_Source;
+      Tag_Name   : String;
+      Class_Name : String;
+      Id_Name    : String) return Adi.Widget.Part_Style_Array;
+   function Combined_Styles_Uncached
+     (Source     : Style_Source;
+      Tag_Name   : String;
+      Class_Name : String;
+      Id_Name    : String) return Adi.Widget.Part_Style_Array;
+
+   --  Triples the memo holds, and the cap it is dropped whole at.
+   function Combined_Memo_Count (Source : Style_Source) return Natural;
+   function Max_Combined_Memo return Natural;
+
    type Binding_Counter is mod 2 ** 32;
    Visited_Bindings   : Binding_Counter := 0;
    Reapplied_Bindings : Binding_Counter := 0;

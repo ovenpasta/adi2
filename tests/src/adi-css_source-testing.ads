@@ -36,6 +36,35 @@ package Adi.CSS_Source.Testing is
    --  Source impls allocated and not yet destroyed.
    function Live_Sources return Natural;
 
+   --  Two answers to one question, for the test that holds one to the
+   --  other: what Static_Mode reads out of its index, and the fold over
+   --  every registered entry.
+   function Static_Styles_Indexed
+     (Source : Style_Source;
+      Kind   : Adi.CSS_Parser.Selector_Kind;
+      Name   : String) return Adi.Widget.Part_Style_Array;
+   function Static_Styles_Scanned
+     (Source : Style_Source;
+      Kind   : Adi.CSS_Parser.Selector_Kind;
+      Name   : String) return Adi.Widget.Part_Style_Array;
+
+   --  The tag/classes/id fold through the memo, and past it. A memo hit
+   --  has to equal a fresh fold.
+   function Combined_Styles_Memoized
+     (Source     : Style_Source;
+      Tag_Name   : String;
+      Class_Name : String;
+      Id_Name    : String) return Adi.Widget.Part_Style_Array;
+   function Combined_Styles_Uncached
+     (Source     : Style_Source;
+      Tag_Name   : String;
+      Class_Name : String;
+      Id_Name    : String) return Adi.Widget.Part_Style_Array;
+
+   --  Triples the memo holds, and the cap it is dropped whole at.
+   function Combined_Memo_Count (Source : Style_Source) return Natural;
+   function Max_Combined_Memo return Natural;
+
    procedure Reset_Counts;
 
 end Adi.CSS_Source.Testing;

@@ -1087,6 +1087,7 @@ package body Adi.Window is
        end if;
 
        --  Single line: F:nnnnnnn  FPS:nnn  Upd:nn.n  Lay:nn.n  Draw:nn.n  Pres:nn.n  L:n(R)
+       --  ... S:hits+memo/resolves  LC:calls+skips  P:hits/calls  SM:hits/misses
        Append ("F:");
        Append_Nat (W.Stats_Frame_No, 7);
        Append ("  FPS:");
@@ -1116,6 +1117,10 @@ package body Adi.Window is
        Append_Nat (W.Stats_Pref_Hits, 3);
        Append ("/");
        Append_Nat (W.Stats_Pref_Calls, 3);
+       Append ("  SM:");
+       Append_Nat (W.Stats_Sel_Memo_Hits, 3);
+       Append ("/");
+       Append_Nat (W.Stats_Sel_Memo_Misses, 3);
 
        --  Draw background bar
        Dummy := SDL_SetRenderDrawBlendMode
@@ -1269,6 +1274,9 @@ package body Adi.Window is
           W.Stats_Layout_Skips    := Adi.Widget.Get_Perf_Layout_Skips;
           W.Stats_Pref_Calls      := Adi.Widget.Get_Perf_Pref_Calls;
           W.Stats_Pref_Hits       := Adi.Widget.Get_Perf_Pref_Hits;
+          W.Stats_Sel_Memo_Hits   := Adi.Widget.Get_Perf_Selector_Memo_Hits;
+          W.Stats_Sel_Memo_Misses :=
+            Adi.Widget.Get_Perf_Selector_Memo_Misses;
 
           --  Compute total render time (before present)
           W.Stats_Render_Us := Natural
@@ -3087,22 +3095,24 @@ function Get_Size (W : in out Window) return Size_2D is
 
     function Get_Frame_Stats (W : Window) return Frame_Stats is
     begin
-       return (Frame_No        => W.Stats_Frame_No,
-               Render_Us       => W.Stats_Render_Us,
-               Update_Us       => W.Stats_Update_Us,
-               Layout_Us       => W.Stats_Layout_Us,
-               Draw_Us         => W.Stats_Draw_Us,
-               Present_Us      => W.Stats_Present_Us,
-               Last_DT         => W.Stats_Last_DT,
-               Layout_Count    => W.Stats_Layout_Count,
-               Style_Resolves  => W.Stats_Style_Resolves,
-               Style_Hits      => W.Stats_Style_Hits,
-               Style_Memo_Hits => W.Stats_Style_Memo_Hits,
-               Style_Computes  => W.Stats_Style_Computes,
-               Layout_Calls    => W.Stats_Layout_Calls,
-               Layout_Skips    => W.Stats_Layout_Skips,
-               Pref_Calls      => W.Stats_Pref_Calls,
-               Pref_Hits       => W.Stats_Pref_Hits);
+       return (Frame_No             => W.Stats_Frame_No,
+               Render_Us            => W.Stats_Render_Us,
+               Update_Us            => W.Stats_Update_Us,
+               Layout_Us            => W.Stats_Layout_Us,
+               Draw_Us              => W.Stats_Draw_Us,
+               Present_Us           => W.Stats_Present_Us,
+               Last_DT              => W.Stats_Last_DT,
+               Layout_Count         => W.Stats_Layout_Count,
+               Style_Resolves       => W.Stats_Style_Resolves,
+               Style_Hits           => W.Stats_Style_Hits,
+               Style_Memo_Hits      => W.Stats_Style_Memo_Hits,
+               Style_Computes       => W.Stats_Style_Computes,
+               Layout_Calls         => W.Stats_Layout_Calls,
+               Layout_Skips         => W.Stats_Layout_Skips,
+               Pref_Calls           => W.Stats_Pref_Calls,
+               Pref_Hits            => W.Stats_Pref_Hits,
+               Selector_Memo_Hits   => W.Stats_Sel_Memo_Hits,
+               Selector_Memo_Misses => W.Stats_Sel_Memo_Misses);
     end Get_Frame_Stats;
 
     function Get_Frame_Stats (H : Window_Handle) return Frame_Stats is

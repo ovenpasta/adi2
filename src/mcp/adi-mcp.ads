@@ -46,4 +46,8 @@ private
      (W     : in out Adi.JSON.JSON_Writer;
       Stats : Adi.Window.Frame_Stats);
 
+   --  The style_stores section of perf_stats, read from the stores
+   --  themselves. Reachable from the testing child for the same reason.
+   procedure Write_Style_Stores (W : in out Adi.JSON.JSON_Writer);
+
 end Adi.MCP;

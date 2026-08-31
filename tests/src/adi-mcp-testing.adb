@@ -19,4 +19,9 @@ package body Adi.MCP.Testing is
       Adi.MCP.Write_Frame_Stats (W, Stats);
    end Write_Frame_Stats;
 
+   procedure Write_Style_Stores (W : in out Adi.JSON.JSON_Writer) is
+   begin
+      Adi.MCP.Write_Style_Stores (W);
+   end Write_Style_Stores;
+
 end Adi.MCP.Testing;

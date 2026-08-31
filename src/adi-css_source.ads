@@ -231,19 +231,10 @@ package Adi.CSS_Source is
 
 private
 
-   --  Binding entries Reapply_Bindings has looked at, and of those, the
-   --  ones it re-styled. Visits are what a test must watch: a fix that
-   --  still walks the whole vector to find the two entries that changed
-   --  would leave the cost quadratic while applying almost nothing.
-   --  Read through Adi.CSS_Source.Testing.
-   --
-   --  Modular, so instrumentation that runs for the life of the process
-   --  wraps rather than raising.
-   --  Bindings a source holds. Read through Adi.CSS_Source.Testing:
-   --  one per widget bound, so a Build re-run over one tree must not
+   --  Bindings a source holds, one per widget bound. Read through
+   --  Adi.CSS_Source.Testing: a Build re-run over one tree must not
    --  move it.
    function Binding_Count (Source : Style_Source) return Natural;
-   function Effective_Count (Source : Style_Source) return Natural;
 
    --  Impls allocated and not yet destroyed, over all sources.
    function Live_Impl_Count return Natural;
@@ -276,9 +267,24 @@ private
    function Combined_Memo_Count (Source : Style_Source) return Natural;
    function Max_Combined_Memo return Natural;
 
+   --  Binding entries Reapply_Bindings has looked at, and of those, the
+   --  ones it re-styled. Visits are what a test must watch: a fix that
+   --  still walks the whole set to find the two entries that changed
+   --  would leave the cost quadratic while applying almost nothing.
+   --  Read through Adi.CSS_Source.Testing.
+   --
+   --  Modular, so instrumentation that runs for the life of the process
+   --  wraps rather than raising.
    type Binding_Counter is mod 2 ** 32;
    Visited_Bindings   : Binding_Counter := 0;
    Reapplied_Bindings : Binding_Counter := 0;
+
+   --  Stored keys the binding map has compared against, over every
+   --  bind, every prune and every lookup, on every source alive in the
+   --  process -- one counter for all of them. A bucket's worth per
+   --  operation while the lookup is a hash; every binding held were it
+   --  ever a scan. Read through Adi.CSS_Source.Testing.
+   Probed_Bindings : Binding_Counter := 0;
 
    --  Concatenations handed to the parser, and files read to build them.
    --  Installing N sheets one call at a time costs N parses and N(N+1)/2

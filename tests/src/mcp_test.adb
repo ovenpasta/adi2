@@ -6,9 +6,11 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Characters.Handling;
 with Ada.Tags;
 
+with Adi.CSS_Styles;           use Adi.CSS_Styles;
 with Adi.JSON;
 with Adi.Widget;               use Adi.Widget;
 with Adi.Widget.Box;
+use type Adi.Widget.Box.Box_Handle;
 with Adi.Widget.Label;
 with Adi.Widget.Introspection; use Adi.Widget.Introspection;
 with Adi.Widget_Styles;        use Adi.Widget_Styles;
@@ -720,6 +722,80 @@ procedure MCP_Test is
       end;
    end Test_Frame_Stats_Schema;
 
+   ---------------------------------------------------------------------------
+   --  Test: the style_stores section. It reads the stores rather than
+   --  figures a caller supplies, so what can be asserted here is the
+   --  schema and that every count and byte figure is answered -- which
+   --  is what a reader looking for the store something is feeding needs.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Style_Stores_Schema is
+      use Adi.JSON;
+
+      --  Something in every store the section reports, so no figure it
+      --  answers is a zero that would read alike whatever it named.
+      Marker : constant Widget_Style :=
+        From ((Background_Color => Set_Bg (RGB (7, 8, 9)),
+               Background_Image =>
+                 Set_Bg_Image (Background_Image_URL ("mcp-store-probe.png")),
+               others           => <>)).Build;
+      Probe : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+
+      W : Adi.JSON.JSON_Writer := Adi.JSON.Create;
+   begin
+      Section ("perf_stats style stores schema");
+
+      Adi.Widget.Set_Part_Style (+Probe, Main_Part, Marker);
+      Adi.Widget.Set_Geometry
+        (+Probe, (X => 0.0, Y => 0.0, Width => 40.0, Height => 20.0));
+      Adi.Widget.Update (Adi.Widget.Widget_Handle'(+Probe));
+
+      W.Start_Object;
+      Adi.MCP.Testing.Write_Style_Stores (W);
+      W.End_Object;
+
+      declare
+         P    : Parsers.Parser := Parsers.Create (W.To_String);
+         Root : constant Types.JSON_Value := P.Parse;
+         Stores : constant Types.JSON_Value := Root.Get ("style_stores");
+
+         procedure Expect (Name : String) is
+            Store : constant Types.JSON_Value := Stores.Get (Name);
+         begin
+            Assert (Integer (JSON_Integer'(Store.Get ("count").Value)) > 0,
+                    "style_stores." & Name & " reports what it holds");
+            Assert (Integer (JSON_Integer'(Store.Get ("bytes").Value)) > 0,
+                    "and what that occupies");
+         end Expect;
+      begin
+         Expect ("rule_sets");
+         Expect ("styles");
+         Expect ("resolved");
+         Expect ("text");
+         Expect ("widget_properties");
+
+         --  Nothing in this process has built a gradient, so this one
+         --  is reported empty rather than left out -- and an empty
+         --  store must answer zero on both figures, not one of them.
+         declare
+            Count : constant Integer := Integer (JSON_Integer'
+              (Stores.Get ("gradients").Get ("count").Value));
+            Bytes : constant Integer := Integer (JSON_Integer'
+              (Stores.Get ("gradients").Get ("bytes").Value));
+         begin
+            Assert ((Count = 0) = (Bytes = 0),
+                    "style_stores.gradients agrees with itself when empty");
+         end;
+
+         Assert (Integer (JSON_Integer'
+                   (Stores.Get ("resolved_cap").Value)) > 0,
+                 "with the cap the resolved store clears at");
+         Assert (Integer (JSON_Integer'
+                   (Stores.Get ("resolved_generation").Value)) >= 0,
+                 "and the generation a clear raises");
+      end;
+   end Test_Style_Stores_Schema;
 
 begin
    Start_Suite ("MCP Test Suite");
@@ -738,6 +814,7 @@ begin
 
    Test_Texture_Cache_Schema;
    Test_Frame_Stats_Schema;
+   Test_Style_Stores_Schema;
 
    Test_Support.Finish;
 end MCP_Test;

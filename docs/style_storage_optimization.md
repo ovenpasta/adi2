@@ -119,6 +119,25 @@ counters and under the same per-frame reset. They reach
 replaced, over every sheet in `examples/css/` and `tests/css/`, and holds
 a memo hit to a fresh fold.
 
+### Reading what the stores hold
+
+Each store answers a count and a byte figure:
+
+| store | count | bytes |
+|---|---|---|
+| rule sets | `Adi.CSS_Styles.Interned_Rule_Sets` | `Interned_Rule_Bytes` |
+| styles | `Adi.Widget_Styles.Interned_Styles` | `Interned_Style_Bytes` |
+| resolved styles | `Adi.Resolved_Styles.Entry_Count` | `Entry_Bytes` |
+| text | `Adi.CSS_Styles.Interned_Texts` | `Interned_Text_Bytes` |
+| gradients | `Adi.CSS_Styles.Interned_Gradients` | `Interned_Gradient_Bytes` |
+| widget properties | `Adi.Widget_Properties.Set_Count` | `Store_Bytes` + `Name_Bytes` |
+
+MCP `perf_stats` answers all of them under `style_stores`, beside
+`resolved_cap` and `resolved_generation`. Only the resolved store evicts,
+so its count is read against the cap; every other count rises and never
+falls, and one that keeps climbing across a steady scene names the store
+something is feeding.
+
 ## What the layers hold to
 
 - The `Any_Part` fallback: a part with no style of its own resolves
@@ -226,7 +245,70 @@ Text a style value names — the `background-image` and
 distinct string from a store the body holds. A style value therefore
 carries a 4-byte id rather than a string, which keeps it flat, and
 equal text compares equal for the same reason a shared gradient
-pointer does.
+pointer does. The selector names a binding is held under go through the
+same store (below), so `Intern_Text` runs once per selector name a bind
+carries — three of them for a `Bind_Selector_Set`. The store keeps a
+hashed index from the text to its span, so the lookup that answers an id
+for text already held is a hash rather than a walk over every string
+ever interned.
+
+### Bindings a source holds
+
+`Style_Source_Impl.Effective` and `Stylesheet_Impl.Effective` are hashed
+maps from `Widget_Handle` to the binding in force for that widget. One
+structure answers everything asked of a binding — record it, find what a
+widget is bound under, drop it when the widget is destroyed, replay it
+on a reload — so each of those costs a hash however many are held.
+
+Order across targets carries nothing: `Reapply_Bindings` styles each
+widget from its own binding, and whether it is the root is answered by
+`Root_Merged_Styles` per widget, so hash order serves as well as
+insertion order.
+
+`Bound_Target` holds the selector names as `CSS_Text_Id` and measures 28
+bytes with no controlled component; `Adi.CSS_Parser.Binding` is the same
+shape at 16. Widgets bound under one name share one interned string.
+
+That is a trade, and both halves of it are real. A name is deduplicated
+across every binding that uses it, where each `Bound_Target` used to
+carry its own `Unbounded_String` — and it is retained for the process,
+where pruning a binding used to free the string it held. The text store
+never releases, so it grows with the distinct names an application binds
+under rather than with the number of bindings, and a name synthesised per
+row costs an entry per row that outlives the row.
+
+Holding the name as an id puts `Max_CSS_Text_Length` on it, which
+holding it as a string did not. A name past the limit gets no id at all,
+and a binding under it would read back as the empty selector on every
+replay — styling the widget once and unstyling it at the next reload.
+`Bind`, `Bind_Class` and `Bind_Selector_Set` therefore refuse such a name
+outright and report through `Adi.Log`, on both `Adi.CSS_Source` and
+`Adi.CSS_Parser`. A selector set is one styling decision, so one name
+over the limit refuses the whole bind rather than styling the widget from
+the rest of it. Applying is unaffected: `Apply`, `Apply_Class` and
+`Apply_Selector_Set` take the name itself and remember nothing, so a
+sheet may name a selector no widget can be bound under.
+
+`Reapply_Bindings` walks a copy of the map rather than a cursor into it,
+on both sides. Applying a binding reaches `Set_Part_Styles`, and a walk
+that is one call away from anything reaching `Prune_Widget` must not hold
+a cursor into the structure that call would `Exclude` from.
+
+`tests/src/css_binding_growth_test.adb` holds the cost of finding the
+binding held for one widget flat against the number bound, with two
+instruments. `Adi.CSS_Source.Testing.Probe_Count` and
+`Adi.CSS_Parser.Testing.Probe_Count` count the stored keys the map
+compares against: re-binding a widget the map already holds must compare
+at least the key it finds, and no more than a bucket's worth however
+many are held. Both bounds matter — a scan written outside the map
+compares nothing through `Equivalent_Keys` and reads as zero, which the
+lower bound catches. The upper bound catches a hash gone degenerate. The
+test also binds the same batch to two sources held at sizes an order of
+magnitude apart and compares the elapsed time, alternating which side
+goes first and taking minimums: everything the batch touches is the same
+either side, and a scan puts the ratio at the ratio of the sizes where a
+hash leaves it near one. It holds a reload to visiting what is still
+bound and nothing else.
 
 ### Comparing definitions
 
@@ -350,6 +432,16 @@ whole subtree dirty on a difference, descending whether a widget is dirty
 or not. A clear is a process-wide event and this answers it in one place
 rather than at each holder.
 
+Dirtying reaches `Build_Items`, which is enough for a widget that builds
+its items from its own styles every time. A widget that caches something
+those items are copied from needs the generation in whatever decides the
+cache still stands: `Adi.Widget.Html_View` keeps a laid-out document
+whose items carry `Resolved_Handle`s, and `Adi.Resolved_Styles.Generation`
+is a field of its `Cache_Key` beside the document and font generations —
+nothing else in that key moves when the store lets go.
+`tests/src/resolved_store_test.adb` drives an eviction under a view whose
+layout still matches its key.
+
 Because `Collect` runs at the top of `Update`, before the layout pass and
 the draw that follow it, no handle goes stale part-way through a frame.
 
@@ -397,10 +489,11 @@ destroyed mid-transition leaves none held.
 `tests/src/resolved_store_test.adb` covers canonical interning, the
 default handle, the layout handle, the scratch pool and its ceiling, a
 transition holding and returning a slot, an intern whose layout
-projection crosses the cap, and three eviction cases: one under a widget
+projection crosses the cap, and four eviction cases: one under a widget
 that is asked for its style again, one under a widget that has gone clean
-and is reached only through `Update`, and one under a clean child of a
-dirty parent, which is what pins the descent. The last two drive `Update`
+and is reached only through `Update`, one under a clean child of a dirty
+parent, which is what pins the descent, and one under an `Html_View`
+holding a laid-out document. The last two drive `Update`
 rather than `Rebuild_All_Items`, which re-applies unconditionally and
 would step over the `Is_Dirty` gate they exist to test. It also reports
 the size chain and asserts that nothing on it needs finalization.

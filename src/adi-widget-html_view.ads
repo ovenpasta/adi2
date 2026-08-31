@@ -228,6 +228,12 @@ private
       Valid       : Boolean := False;
       Doc_Gen     : Document_Generation := 0;
       Font_Gen    : Adi.Font.Font_Generation := 0;
+      --  The resolved-style store's generation. The cached items hold
+      --  their styles by handle, and a Collect that cleared leaves every
+      --  one of them naming nothing; emitting them again would draw the
+      --  default style. Nothing else in this key moves when that
+      --  happens, so the layout is rebuilt on the difference.
+      Store_Gen   : Natural := 0;
       Content_W   : Pixel_Type := 0.0;
       Content_H   : Pixel_Type := 0.0;
       DIP_Scale   : Pixel_Type := 0.0;
@@ -250,7 +256,7 @@ private
       Link_Click      : Link_Click_Signals.Signal;
       On_Load_Asset   : Asset_Load_Callback := null;
       On_Load_Resource : Resource_Load_Callback := null;
-      CSS_Sheet       : Adi.CSS_Parser.Stylesheet;
+      CSS_Sheet       : Adi.CSS_Parser.Rule_Sheet;
       Root_Font_Size  : Adi.CSS_Styles.Length_Value :=
         Adi.CSS_Styles.Default_Font_Size;
       Hovered_Href    : Unbounded_String := Null_Unbounded_String;

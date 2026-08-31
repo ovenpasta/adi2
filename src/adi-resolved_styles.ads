@@ -75,6 +75,11 @@ package Adi.Resolved_Styles is
    function Entry_Count return Natural;
    function Entry_Bytes return Natural;
 
+   --  Entries past which the next Collect clears the store. The count is
+   --  read against this, as texture residency is read against the
+   --  texture budget.
+   function Entry_Cap return Natural;
+
    ---------------------------------------------------------------------------
    --  Animation scratch
    ---------------------------------------------------------------------------
@@ -120,9 +125,8 @@ private
 
    No_Scratch : constant Scratch_Slot := (Index => 0, Serial => 0);
 
-   --  Entries past which the next Collect clears the store. A test
-   --  lowers it to reach that path without interning its way to the
-   --  ceiling.
-   Entry_Cap : Natural := 16_384;
+   --  A test lowers this to reach the clear without interning its way
+   --  to the ceiling.
+   Cap_Entries : Natural := 16_384;
 
 end Adi.Resolved_Styles;

@@ -840,6 +840,15 @@ code calling `Background_Image_URL`, `List_Image`, `List_String` or
 `Set_Font_Family` past the limit gets the absent value back, with the
 same report.
 
+The selector name a binding is held under goes through the same store, so
+the same limit applies to it. `Bind`, `Bind_Class` and
+`Bind_Selector_Set` refuse a name past it and report through `Adi.Log`:
+the binding would read back as the empty selector on every replay, which
+would style the widget once and unstyle it at the next reload. One name
+over the limit refuses a whole `Bind_Selector_Set`, since the three names
+are one styling decision. `Apply` and its variants take the name itself
+and remember nothing, so they are unaffected by the limit.
+
 ---
 
 ## Custom Properties
@@ -1118,9 +1127,14 @@ When multiple class names are passed to `Bind_Class`, styles are looked up for e
 
 A widget carries one binding: binding it again replaces what it was bound
 under, which is what a generated `Build` re-run over the same tree does.
+Binding a fresh tree costs the same however many widgets are bound
+already.
 Destroying a widget takes its binding with it, and so does destroying a
 widget above it — the source hears about every widget in a destroyed
 subtree, not only the one `Destroy` was called on.
+
+A reload restyles every widget still bound, each from its own binding,
+in no particular order.
 
 #### Releasing a Source
 

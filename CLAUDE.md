@@ -233,7 +233,7 @@ Each tool below is a subcommand of the same name. `--cli --help` lists them; `--
 | `screenshot()` | Capture PNG screenshot, returns file path |
 | `widget_tree()` | Full widget hierarchy as JSON (type, id, path, text, bounds, states, flags, child_count, items_count, children, overlays) |
 | `widget_info(id, path)` | Detailed info for one widget by id or dot-path (e.g. `"1.2.3"`) |
-| `perf_stats()` | Frame timing, FPS, layout counts, texture residency |
+| `perf_stats()` | Frame timing, FPS, layout counts, texture residency, and `style_stores` occupancy (`rule_sets`, `styles`, `resolved`, `text`, `gradients`, `widget_properties`, each `count`/`bytes`, plus `resolved_cap`, `resolved_generation`) |
 | `set_texture_budget(bytes)` | Set the window's idle texture budget |
 | `find_by_text(query, exact)` | Find widgets by text content, case-insensitive |
 | `find_by_type(type_name)` | Find widgets by type name, case-insensitive substring |

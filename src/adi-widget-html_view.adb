@@ -603,17 +603,12 @@ package body Adi.Widget.Html_View is
       end if;
    end Tag_Default_Style;
 
-   function Selector_Base_Rules (Styles : Part_Style_Array) return Style_Rules is
-   begin
-      return Rules_Of (Definition (Styles (Main_Part).Style).Base);
-   end Selector_Base_Rules;
-
    function Parse_Inline_Style_Rules
      (Self        : in out Html_View;
       Inline_Text : String) return Style_Rules
    is
       Key : constant String := Trimmed (Inline_Text);
-      Tmp : Adi.CSS_Parser.Stylesheet;
+      Tmp : Adi.CSS_Parser.Rule_Sheet;
       Ok  : Boolean := True;
       Out_Rules : Style_Rules := Empty_Style;
    begin
@@ -627,13 +622,14 @@ package body Adi.Widget.Html_View is
          end if;
       end loop;
 
-      Adi.CSS_Parser.Load_String
+      Adi.CSS_Parser.Load_Rules
         (Tmp,
          ".__inline__ { " & Key & " }",
          Ok);
 
       if Ok then
-         Out_Rules := Selector_Base_Rules (Adi.CSS_Parser.Styles_For_Class (Tmp, "__inline__"));
+         Out_Rules := Adi.CSS_Parser.Base_Rules
+           (Tmp, Adi.CSS_Parser.Class_Selector, "__inline__");
       else
          Adi.Log.Debug ("Html_View: inline style parse failed: " & Key);
       end if;
@@ -656,8 +652,12 @@ package body Adi.Widget.Html_View is
       Id_Value    : constant String := Lower (Trimmed (To_String (Attrs.Id_Attr)));
       I           : Integer := Class_Value'First;
    begin
-      if Adi.CSS_Parser.Has_Tag (Self.CSS_Sheet, Tag) then
-         Result := Merge (Result, Selector_Base_Rules (Adi.CSS_Parser.Styles_For_Tag (Self.CSS_Sheet, Tag)));
+      if Adi.CSS_Parser.Has (Self.CSS_Sheet, Adi.CSS_Parser.Tag_Selector, Tag)
+      then
+         Result := Merge
+           (Result,
+            Adi.CSS_Parser.Base_Rules
+              (Self.CSS_Sheet, Adi.CSS_Parser.Tag_Selector, Tag));
       end if;
 
       while I <= Class_Value'Last loop
@@ -677,18 +677,28 @@ package body Adi.Widget.Html_View is
                declare
                   Name : constant String := Lower (Class_Value (Start .. I - 1));
                begin
-                  if Adi.CSS_Parser.Has_Class (Self.CSS_Sheet, Name) then
+                  if Adi.CSS_Parser.Has
+                       (Self.CSS_Sheet, Adi.CSS_Parser.Class_Selector, Name)
+                  then
                      Result := Merge
                        (Result,
-                        Selector_Base_Rules (Adi.CSS_Parser.Styles_For_Class (Self.CSS_Sheet, Name)));
+                        Adi.CSS_Parser.Base_Rules
+                          (Self.CSS_Sheet,
+                           Adi.CSS_Parser.Class_Selector, Name));
                   end if;
                end;
             end if;
          end;
       end loop;
 
-      if Id_Value'Length > 0 and then Adi.CSS_Parser.Has_Id (Self.CSS_Sheet, Id_Value) then
-         Result := Merge (Result, Selector_Base_Rules (Adi.CSS_Parser.Styles_For_Id (Self.CSS_Sheet, Id_Value)));
+      if Id_Value'Length > 0
+        and then Adi.CSS_Parser.Has
+                   (Self.CSS_Sheet, Adi.CSS_Parser.Id_Selector, Id_Value)
+      then
+         Result := Merge
+           (Result,
+            Adi.CSS_Parser.Base_Rules
+              (Self.CSS_Sheet, Adi.CSS_Parser.Id_Selector, Id_Value));
       end if;
 
       if Length (Attrs.Style_Attr) > 0 then
@@ -803,26 +813,20 @@ package body Adi.Widget.Html_View is
             Combined : constant String :=
               To_String (Self.Default_CSS) & ASCII.LF & CSS_Text;
          begin
-            Adi.CSS_Parser.Load_String (Self.CSS_Sheet, Combined, Success);
+            Adi.CSS_Parser.Load_Rules (Self.CSS_Sheet, Combined, Success);
          end;
       else
-         Adi.CSS_Parser.Load_String (Self.CSS_Sheet, CSS_Text, Success);
+         Adi.CSS_Parser.Load_Rules (Self.CSS_Sheet, CSS_Text, Success);
       end if;
       if not Success then
          Adi.Log.Error
            ("Html_View CSS parse failed: " &
-            Adi.CSS_Parser.Get_Last_Error (Self.CSS_Sheet));
+            Adi.CSS_Parser.Last_Error (Self.CSS_Sheet));
+      elsif Adi.CSS_Parser.Has_Root_Font_Size (Self.CSS_Sheet) then
+         Self.Root_Font_Size :=
+           Adi.CSS_Parser.Root_Font_Size (Self.CSS_Sheet);
       else
-         declare
-            Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=
-              Adi.CSS_Parser.Get_Metadata (Self.CSS_Sheet);
-         begin
-            if Meta.Has_Root_Font_Size then
-               Self.Root_Font_Size := Meta.Root_Font_Size;
-            else
-               Self.Root_Font_Size := Default_Font_Size;
-            end if;
-         end;
+         Self.Root_Font_Size := Default_Font_Size;
       end if;
    end Load_Combined_CSS;
 
@@ -3015,18 +3019,24 @@ package body Adi.Widget.Html_View is
          return;
       end if;
 
-      if Adi.CSS_Parser.Has_Tag (Self.CSS_Sheet, "html") then
+      if Adi.CSS_Parser.Has
+           (Self.CSS_Sheet, Adi.CSS_Parser.Tag_Selector, "html")
+      then
          Document_Rules :=
            Merge
              (Document_Rules,
-              Selector_Base_Rules (Adi.CSS_Parser.Styles_For_Tag (Self.CSS_Sheet, "html")));
+              Adi.CSS_Parser.Base_Rules
+                (Self.CSS_Sheet, Adi.CSS_Parser.Tag_Selector, "html"));
       end if;
 
-      if Adi.CSS_Parser.Has_Tag (Self.CSS_Sheet, "body") then
+      if Adi.CSS_Parser.Has
+           (Self.CSS_Sheet, Adi.CSS_Parser.Tag_Selector, "body")
+      then
          Document_Rules :=
            Merge
              (Document_Rules,
-              Selector_Base_Rules (Adi.CSS_Parser.Styles_For_Tag (Self.CSS_Sheet, "body")));
+              Adi.CSS_Parser.Base_Rules
+                (Self.CSS_Sheet, Adi.CSS_Parser.Tag_Selector, "body"));
       end if;
 
       Document_Style := Resolve_Element_Style (Document_Rules, Text_Part_Style, True);
@@ -3221,6 +3231,7 @@ package body Adi.Widget.Html_View is
         (Valid      => True,
          Doc_Gen    => Self.Doc_Generation,
          Font_Gen   => Adi.Font.Environment_Generation,
+         Store_Gen  => Adi.Resolved_Styles.Generation,
          Content_W  => Content.Width,
          Content_H  => Content.Height,
          DIP_Scale  => Get_Active_DIP_Scale,

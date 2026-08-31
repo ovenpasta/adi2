@@ -15,6 +15,7 @@ with Adi.App;
 with Adi.Clock;
 with Adi.Core;                   use Adi.Core;
 with Adi.CSS_Styles;             use Adi.CSS_Styles;
+with Adi.Resolved_Styles;
 with Adi.Screenshot;
 with Adi.SDL.Events;             use Adi.SDL.Events;
 with Adi.Texture_Cache;
@@ -24,6 +25,7 @@ with Adi.Widget.Introspection;   use Adi.Widget.Introspection;
 with Adi.Widget.Label;
 with Adi.Widget.Text_Input;
 with Adi.Widget.Text_Editor;
+with Adi.Widget_Properties;
 with Adi.Widget_Styles;          use Adi.Widget_Styles;
 with Ada.Exceptions;
 with Adi.Log;
@@ -75,6 +77,53 @@ package body Adi.MCP is
          W.Key_Value ("fps", Long_Float (0.0));
       end if;
    end Write_Frame_Stats;
+
+   --  What the style stores are holding, right now. Every one of them
+   --  is interned and none of them evicts except the resolved store, so
+   --  a count that keeps climbing across a steady scene names the store
+   --  something is feeding.
+   procedure Write_Style_Stores (W : in out Adi.JSON.JSON_Writer) is
+      procedure Store (Name : String; Count, Bytes : Natural) is
+      begin
+         W.Key (Name);
+         W.Start_Object;
+         W.Key_Value ("count", Adi.JSON.JSON_Integer (Count));
+         W.Key_Value ("bytes", Adi.JSON.JSON_Integer (Bytes));
+         W.End_Object;
+      end Store;
+   begin
+      W.Key ("style_stores");
+      W.Start_Object;
+      Store ("rule_sets",
+             Adi.CSS_Styles.Interned_Rule_Sets,
+             Adi.CSS_Styles.Interned_Rule_Bytes);
+      Store ("styles",
+             Adi.Widget_Styles.Interned_Styles,
+             Adi.Widget_Styles.Interned_Style_Bytes);
+      Store ("resolved",
+             Adi.Resolved_Styles.Entry_Count,
+             Adi.Resolved_Styles.Entry_Bytes);
+      Store ("text",
+             Adi.CSS_Styles.Interned_Texts,
+             Adi.CSS_Styles.Interned_Text_Bytes);
+      Store ("gradients",
+             Adi.CSS_Styles.Interned_Gradients,
+             Adi.CSS_Styles.Interned_Gradient_Bytes);
+      --  Its bytes are the registry and the set store, both fixed; the
+      --  count is what an application's declarations move.
+      Store ("widget_properties",
+             Adi.Widget_Properties.Set_Count,
+             Adi.Widget_Properties.Store_Bytes
+               + Adi.Widget_Properties.Name_Bytes);
+
+      --  The resolved store is the one that lets go, at this many
+      --  entries; the rest hold what they have for the process.
+      W.Key_Value ("resolved_cap",
+        Adi.JSON.JSON_Integer (Adi.Resolved_Styles.Entry_Cap));
+      W.Key_Value ("resolved_generation",
+        Adi.JSON.JSON_Integer (Adi.Resolved_Styles.Generation));
+      W.End_Object;
+   end Write_Style_Stores;
 
    procedure Write_Texture_Cache
      (W     : in out Adi.JSON.JSON_Writer;
@@ -985,6 +1034,8 @@ package body Adi.MCP is
 
             W.Key ("texture_cache");
             Write_Texture_Cache (W, Adi.Window.Get_Texture_Stats (Win));
+
+            Write_Style_Stores (W);
 
             W.End_Object;
             return W.To_String;

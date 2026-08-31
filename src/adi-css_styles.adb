@@ -5,7 +5,10 @@ pragma Ada_2022;
 
 with Ada.Characters.Handling;
 with Ada.Containers.Hashed_Maps;
+with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Vectors;
+with Ada.Strings.Hash;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Adi.Log;
 
 package body Adi.CSS_Styles is
@@ -23,35 +26,31 @@ package body Adi.CSS_Styles is
    -- Text store
    -------------------------------------------------
 
-   --  One character blob, one span per entry.
+   --  One character blob, one span per entry, and an index from the
+   --  text to its id, so interning text already held is a hash rather
+   --  than a walk over the spans.
    type Text_Span is record
       First  : Positive := 1;
       Length : Natural  := 0;
    end record;
 
-   package Char_Vectors is new Ada.Containers.Vectors (Positive, Character);
    package Span_Vectors is new Ada.Containers.Vectors (Positive, Text_Span);
 
-   Text_Chars : Char_Vectors.Vector;
+   package Text_Index_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => CSS_Text_Id,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
+   Text_Chars : Unbounded_String;
    Text_Spans : Span_Vectors.Vector;
+   Text_Index : Text_Index_Maps.Map;
 
-   function Same_Text (Span : Text_Span; Text : String) return Boolean is
-   begin
-      if Span.Length /= Text'Length then
-         return False;
-      end if;
-
-      for I in 0 .. Span.Length - 1 loop
-         if Text_Chars (Span.First + I) /= Text (Text'First + I) then
-            return False;
-         end if;
-      end loop;
-
-      return True;
-   end Same_Text;
-
-   --  Scanned rather than hashed, as the gradient store is.
+   --  One entry per distinct text, never released: the store grows
+   --  with the vocabulary an application names, not with how often it
+   --  names it.
    function Intern_Text (Text : String) return CSS_Text_Id is
+      use Text_Index_Maps;
    begin
       if Text'Length = 0 then
          return No_CSS_Text;
@@ -66,27 +65,37 @@ package body Adi.CSS_Styles is
          return No_CSS_Text;
       end if;
 
-      for I in Text_Spans.First_Index .. Text_Spans.Last_Index loop
-         if Same_Text (Text_Spans (I), Text) then
-            return CSS_Text_Id (I);
-         end if;
-      end loop;
-
       declare
-         Span : constant Text_Span :=
-           (First => Text_Chars.Last_Index + 1, Length => Text'Length);
+         C : constant Cursor := Text_Index.Find (Text);
       begin
-         Text_Chars.Reserve_Capacity
-           (Ada.Containers.Count_Type
-              (Natural (Text_Chars.Length) + Text'Length));
-         for C of Text loop
-            Text_Chars.Append (C);
-         end loop;
-         Text_Spans.Append (Span);
+         if Has_Element (C) then
+            return Element (C);
+         end if;
       end;
 
-      return CSS_Text_Id (Text_Spans.Last_Index);
+      Append (Text_Chars, Text);
+      Text_Spans.Append
+        (Text_Span'(First  => Length (Text_Chars) - Text'Length + 1,
+                    Length => Text'Length));
+
+      declare
+         Id : constant CSS_Text_Id := CSS_Text_Id (Text_Spans.Last_Index);
+      begin
+         Text_Index.Insert (Text, Id);
+         return Id;
+      end;
    end Intern_Text;
+
+   function Interned_Texts return Natural is (Text_Spans.Last_Index);
+
+   --  The characters, once in the blob and once as the index's key, plus
+   --  a span and an id per string. Container and allocator overhead is
+   --  not in it.
+   function Interned_Text_Bytes return Natural is
+     (2 * Length (Text_Chars)
+      + Text_Spans.Last_Index
+        * (Text_Span'Max_Size_In_Storage_Elements
+           + CSS_Text_Id'Max_Size_In_Storage_Elements));
 
    function Text_Of (Id : CSS_Text_Id) return String is
    begin
@@ -97,13 +106,9 @@ package body Adi.CSS_Styles is
       end if;
 
       declare
-         Span : constant Text_Span := Text_Spans (Positive (Id));
-         Text : String (1 .. Span.Length);
+         Span : constant Text_Span := Text_Spans.Element (Positive (Id));
       begin
-         for I in Text'Range loop
-            Text (I) := Text_Chars (Span.First + I - 1);
-         end loop;
-         return Text;
+         return Slice (Text_Chars, Span.First, Span.First + Span.Length - 1);
       end;
    end Text_Of;
 
@@ -184,6 +189,14 @@ package body Adi.CSS_Styles is
       Gradient_Store.Append (new Linear_Gradient_Value'(V));
       return Gradient_Store.Last_Element;
    end Shared_Gradient;
+
+   function Interned_Gradients return Natural is
+     (Natural (Gradient_Store.Length));
+
+   function Interned_Gradient_Bytes return Natural is
+     (Natural (Gradient_Store.Length)
+      * (Linear_Gradient_Value'Max_Size_In_Storage_Elements
+         + Linear_Gradient_Ref'Max_Size_In_Storage_Elements));
 
    function Linear_Gradient
      (Angle : Float; Stops : Gradient_Stop_Array; Count : Natural)

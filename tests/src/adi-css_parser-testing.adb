@@ -11,11 +11,18 @@ package body Adi.CSS_Parser.Testing is
    function Live_Sheets return Natural is
      (Adi.CSS_Parser.Live_Impl_Count);
 
+   function Live_Rule_Sheets return Natural is
+     (Adi.CSS_Parser.Live_Rule_Sheets);
+
    function Bindings_Held (Sheet : Stylesheet) return Natural is
      (Adi.CSS_Parser.Binding_Count (Sheet));
 
-   function Effective_Held (Sheet : Stylesheet) return Natural is
-     (Adi.CSS_Parser.Effective_Count (Sheet));
+   function Probe_Count return Count is (Count (Probed_Bindings));
+
+   procedure Reset_Probes is
+   begin
+      Probed_Bindings := 0;
+   end Reset_Probes;
 
    function Selector_Count (Sheet : Stylesheet) return Natural is
      (Adi.CSS_Parser.Selector_Count (Sheet));

@@ -12,6 +12,7 @@ with Adi.Layout_Util;
 with Adi.Resolved_Styles; use Adi.Resolved_Styles;
 with Adi.Widget_Styles;
 with Adi.Widget;
+with Adi.CSS_Parser.Testing;
 with Adi.Widget.Html_View;
 with Test_Support; use Test_Support;
 
@@ -2131,6 +2132,172 @@ procedure Html_View_Test is
       New_Line;
    end Test_Default_Stylesheet;
 
+   --  A view parses the document's own CSS and every inline style
+   --  attribute in it, on every Set_HTML. Two things must hold of what
+   --  that leaves: nothing reaches a store that never releases, and
+   --  nothing outlives the view.
+   procedure Test_Parsing_A_Document_Leaves_Nothing_Behind is
+      Before : constant Natural := Adi.CSS_Parser.Testing.Live_Sheets;
+
+      --  One document per call, no two alike: a rule block the stores
+      --  have seen already interns onto the entry it is already holding,
+      --  so only distinct blocks show what a parse leaves behind.
+      function Doc (N : Natural) return String is
+        ("<style>p { color: rgb(" & Natural'Image (N) & ", 20, 30); }"
+         & " .n { color: rgb(1," & Natural'Image (N) & ",3); }"
+         & "</style>"
+         & "<p class='n' style='color: rgb(11," & Natural'Image (N)
+         & ", 13);'>one</p>"
+         & "<p style='color: rgb(21, 22," & Natural'Image (N)
+         & ");'>two</p>");
+
+      Documents : constant := 8;
+      Rules_Before : constant Natural :=
+        Adi.CSS_Parser.Testing.Live_Rule_Sheets;
+
+      Peak       : Natural := 0;
+      After      : Natural := 0;
+      Rules_Peak : Natural := 0;
+
+      Rule_Sets_Before : Natural := 0;
+      Styles_Before    : Natural := 0;
+   begin
+      Put_Line ("Test: parsing a document leaves nothing behind");
+
+      declare
+         W : constant Adi.Widget.Html_View.Html_View_Handle :=
+           Adi.Widget.Html_View.Create_Handle;
+         Doomed : Adi.Widget.Widget_Handle;
+      begin
+         Adi.Widget.Set_Geometry
+           (+W, (X => 0.0, Y => 0.0, Width => 400.0, Height => 300.0));
+
+         --  A first document, so the measurement below starts with the
+         --  view warm and every store it touches for other reasons
+         --  already holding what it will hold.
+         Adi.Widget.Html_View.Set_HTML (W, Doc (0));
+         Adi.Widget.Build_Items (+W);
+
+         Rule_Sets_Before := Adi.CSS_Styles.Interned_Rule_Sets;
+         Styles_Before    := Adi.Widget_Styles.Interned_Styles;
+
+         for N in 1 .. Documents loop
+            Adi.Widget.Html_View.Set_HTML (W, Doc (N));
+            Adi.Widget.Build_Items (+W);
+         end loop;
+
+         Put_Line ("  interned by" & Natural'Image (Documents)
+                   & " distinct documents: rule sets"
+                   & Natural'Image (Adi.CSS_Styles.Interned_Rule_Sets
+                                    - Rule_Sets_Before)
+                   & ", styles"
+                   & Natural'Image (Adi.Widget_Styles.Interned_Styles
+                                    - Styles_Before));
+         Assert (Adi.CSS_Styles.Interned_Rule_Sets = Rule_Sets_Before,
+                 "a document the view cascades itself interns no rule set");
+         Assert (Adi.Widget_Styles.Interned_Styles = Styles_Before,
+                 "and no style");
+
+         Peak := Adi.CSS_Parser.Testing.Live_Sheets;
+         Rules_Peak := Adi.CSS_Parser.Testing.Live_Rule_Sheets;
+
+         Doomed := +W;
+         Adi.Widget.Destroy (Doomed);
+      end;
+      Adi.Widget.Pump_Widget_Store;
+      After := Adi.CSS_Parser.Testing.Live_Sheets;
+
+      Put_Line ("  sheet impls live:" & Before'Image & " before,"
+                & Peak'Image & " at peak," & After'Image & " after");
+      Put_Line ("  rule sheets live:" & Rules_Before'Image & " before,"
+                & Rules_Peak'Image & " at peak,"
+                & Natural'Image (Adi.CSS_Parser.Testing.Live_Rule_Sheets)
+                & " after");
+
+      Assert (Peak <= Before,
+              "cascading a document holds no sheet in the store");
+      Assert (After = Before,
+              "and a destroyed view leaves none of them behind");
+
+      --  One per view for the document, and none for the inline styles:
+      --  each of those is parsed into a sheet that dies with the call.
+      Assert (Rules_Peak = Rules_Before + 1,
+              "a view holds one rule sheet, for its document");
+      Assert (Adi.CSS_Parser.Testing.Live_Rule_Sheets = Rules_Before,
+              "and releases it with itself");
+
+      New_Line;
+   end Test_Parsing_A_Document_Leaves_Nothing_Behind;
+
+   --  :root { font-size } is the document's rem base, and it reaches the
+   --  view through the Rule_Sheet: Load_Rules copies it out of the
+   --  parse metadata, Load_Combined_CSS reads it back, and every rem in
+   --  the document resolves against it. A break anywhere on that seam
+   --  changes no colour and fails no parse -- it silently re-sizes the
+   --  whole document to the default 16px base.
+   procedure Test_Root_Font_Size_Drives_Rem is
+      W   : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      Idx : Natural := 0;
+
+      Rooted  : Adi.Core.Pixel_Type := 0.0;
+      Default : Adi.Core.Pixel_Type := 0.0;
+
+      --  The resolved font size of the paragraph, in pixels.
+      function Probe_Font_Size return Adi.Core.Pixel_Type is
+         It : constant Adi.Widget.Item :=
+           Adi.Widget.Get_Item (+W, Positive (Idx));
+      begin
+         return Adi.Core.Pixel_Type
+           (Ref (It.Computed_Style).Font_Size.Amount);
+      end Probe_Font_Size;
+   begin
+      Put_Line ("Test: :root font-size drives rem");
+
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 620.0, Height => 300.0));
+
+      Adi.Widget.Html_View.Set_HTML
+        (W,
+         "<style>:root { font-size: 20px; } p { font-size: 2rem; }</style>" &
+         "<p>remprobe</p>");
+      Adi.Widget.Build_Items (+W);
+
+      Idx := Find_Text_Item_Index (W, "remprobe");
+      Assert (Idx > 0, "the rem paragraph lays out to a text item");
+      if Idx > 0 then
+         Rooted := Probe_Font_Size;
+         Put_Line ("  2rem against a 20px :root:"
+                   & Adi.Core.Pixel_Type'Image (Rooted) & " px");
+         Assert (Nearly_Equal (Rooted, 40.0),
+                 "2rem resolves against the document's own :root font-size");
+      end if;
+
+      --  The same document with no :root block: the base falls back to
+      --  16px, so the same rule resolves smaller. This is also what
+      --  pins the seam being read afresh per document rather than left
+      --  standing from the last one.
+      Adi.Widget.Html_View.Set_HTML
+        (W,
+         "<style>p { font-size: 2rem; }</style><p>remprobe</p>");
+      Adi.Widget.Build_Items (+W);
+
+      Idx := Find_Text_Item_Index (W, "remprobe");
+      Assert (Idx > 0, "the same paragraph without :root lays out too");
+      if Idx > 0 then
+         Default := Probe_Font_Size;
+         Put_Line ("  2rem against the default base:"
+                   & Adi.Core.Pixel_Type'Image (Default) & " px");
+         Assert (Nearly_Equal (Default, 32.0),
+                 "and against the default 16px base with no :root");
+      end if;
+
+      Assert (Rooted > Default + 4.0,
+              "so a :root font-size is what separates the two");
+
+      New_Line;
+   end Test_Root_Font_Size_Drives_Rem;
+
 begin
    Test_Support.Start_Suite ("HTML view widget test");
 
@@ -2169,6 +2336,8 @@ begin
    Test_Pre_Line_Newline_Stops_Collapse_Through;
    Test_Hr_Margin_Collapse;
    Test_Default_Stylesheet;
+   Test_Parsing_A_Document_Leaves_Nothing_Behind;
+   Test_Root_Font_Size_Drives_Rem;
 
    Test_Support.Finish;
 end Html_View_Test;

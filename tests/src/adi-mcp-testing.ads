@@ -25,4 +25,8 @@ package Adi.MCP.Testing is
      (W     : in out Adi.JSON.JSON_Writer;
       Stats : Adi.Window.Frame_Stats);
 
+   --  The style_stores section, which reads the stores rather than any
+   --  figure a caller supplies. Asserted for its schema the same way.
+   procedure Write_Style_Stores (W : in out Adi.JSON.JSON_Writer);
+
 end Adi.MCP.Testing;

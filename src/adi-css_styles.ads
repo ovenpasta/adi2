@@ -64,6 +64,13 @@ package Adi.CSS_Styles is
 
    function Text_Of (Id : CSS_Text_Id) return String;
 
+   --  Distinct strings the store holds, and the storage elements they
+   --  occupy: the characters, the spans, and the index from a string
+   --  back to its id. The store never releases, so both rise with the
+   --  vocabulary an application names and never fall.
+   function Interned_Texts return Natural;
+   function Interned_Text_Bytes return Natural;
+
    -------------------------------------------------
    -- Units
    -------------------------------------------------
@@ -338,6 +345,13 @@ package Adi.CSS_Styles is
    function Linear_Gradient
      (Angle : Float; Stops : Gradient_Stop_Array; Count : Natural)
       return Background_Image_Value;
+
+   --  Distinct gradients the store holds, and the storage elements they
+   --  occupy. A gradient is shared by pointer so that equal values
+   --  compare equal, so the store holds one entry per distinct gradient
+   --  for the life of the process.
+   function Interned_Gradients return Natural;
+   function Interned_Gradient_Bytes return Natural;
 
    Default_Background_Image : constant Background_Image_Value := (Kind => No_Image);
 

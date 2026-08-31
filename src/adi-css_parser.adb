@@ -11,6 +11,7 @@ with Ada.Numerics;
 with Ada.Containers;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Indefinite_Vectors;
+with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings;
@@ -18,6 +19,7 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;
+with Ada.Unchecked_Deallocation;
 
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
 with Adi.Log;
@@ -60,21 +62,50 @@ package body Adi.CSS_Parser is
      (Index_Type => Positive,
       Element_Type => Selector_Style);
 
+   --  The selector name lives in the text store, so a binding holds an
+   --  id and no controlled component.
    type Binding is record
-      Kind       : Selector_Kind := Class_Selector;
-      Name       : Unbounded_String;
-      Target     : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
+      Kind   : Selector_Kind := Class_Selector;
+      Name   : CSS_Text_Id := No_CSS_Text;
+      Target : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
    end record;
+
+   --  Probed_Bindings counts every stored key the map compares against,
+   --  over every bind, every prune and every lookup, on every source or
+   --  sheet alive in the process. A bucket's worth per operation while
+   --  the lookup is a hash; every binding held were it ever a scan.
+   function Same_Target (A, B : Adi.Widget.Widget_Handle) return Boolean is
+   begin
+      Probed_Bindings := Probed_Bindings + 1;
+      return Adi.Widget."=" (A, B);
+   end Same_Target;
 
    package Binding_Maps is new Ada.Containers.Hashed_Maps
      (Key_Type        => Adi.Widget.Widget_Handle,
       Element_Type    => Binding,
       Hash            => Adi.Widget.Hash,
-      Equivalent_Keys => Adi.Widget."=");
+      Equivalent_Keys => Same_Target);
 
-   package Binding_Vectors is new Ada.Containers.Indefinite_Vectors
-     (Index_Type => Positive,
+   --  A walk over the bindings takes a copy first. Applying one styles
+   --  a widget, and anything that destroys a widget re-enters
+   --  Prune_Widget, which Excludes from the map and frees the very node
+   --  a cursor would be standing in -- leaving the walk to read it.
+   --  A cursor loop takes no tampering lock, so nothing reports that.
+   --  One vector, capacity reserved once, and its own finalization
+   --  releases it however the walk ends.
+   package Binding_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
       Element_Type => Binding);
+
+   function Snapshot (M : Binding_Maps.Map) return Binding_Vectors.Vector is
+   begin
+      return Result : Binding_Vectors.Vector do
+         Result.Reserve_Capacity (M.Length);
+         for B of M loop
+            Result.Append (B);
+         end loop;
+      end return;
+   end Snapshot;
 
    type Variable_Entry is record
       Name  : Unbounded_String;
@@ -100,11 +131,9 @@ package body Adi.CSS_Parser is
    type Stylesheet_Impl is new Sheet_Impl_Base with record
       Selectors      : Selector_Style_Vectors.Vector;
       Selector_Index : Selector_Index_Array;
-      Bindings       : Binding_Vectors.Vector;
       Root_Target    : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
-      --  The binding in force for each target, so handing the root role
-      --  over restyles the widget losing it and the one taking it
-      --  without searching.
+      --  The binding in force for each widget: what Bind writes, what
+      --  a root handover restyles from, and what a reload replays.
       Effective      : Binding_Maps.Map;
       Metadata       : Stylesheet_Metadata := (others => <>);
       Variables      : Variable_Vectors.Vector;
@@ -144,6 +173,21 @@ package body Adi.CSS_Parser is
      (Index_Type => Positive,
       Element_Type => Unbounded_String);
 
+   --  What a Rule_Sheet holds: the rules each selector's main part
+   --  folds to, indexed by name exactly as a Stylesheet indexes its
+   --  selectors.
+   package Rules_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Style_Rules);
+
+   type Rule_Sheet_Data is record
+      Rules         : Rules_Vectors.Vector;
+      Index         : Selector_Index_Array;
+      Has_Root_Size : Boolean := False;
+      Root_Size     : Length_Value := Default_Font_Size;
+      Last_Error    : Unbounded_String;
+   end record;
+
    type Stylesheet_Impl_Ptr is access all Stylesheet_Impl;
 
    --  What the sheet's handle names, or null once it is destroyed --
@@ -162,16 +206,6 @@ package body Adi.CSS_Parser is
                            H    : Adi.Widget.Widget_Handle) is
    begin
       Impl.Effective.Exclude (H);
-
-      for I in 1 .. Natural (Impl.Bindings.Length) loop
-         if Impl.Bindings (I).Target = H then
-            --  Order across targets carries nothing: Reapply_Bindings
-            --  styles each widget from its own binding.
-            Impl.Bindings.Replace_Element (I, Impl.Bindings.Last_Element);
-            Impl.Bindings.Delete_Last;
-            exit;
-         end if;
-      end loop;
 
       if Impl.Root_Target = H then
          Impl.Root_Target := Adi.Widget.Null_Handle;
@@ -192,10 +226,6 @@ package body Adi.CSS_Parser is
    end On_Widget_Destroyed;
 
    function Binding_Count (Sheet : Stylesheet) return Natural is
-     (if Impl_Of (Sheet) = null then 0
-      else Natural (Impl_Of (Sheet).Bindings.Length));
-
-   function Effective_Count (Sheet : Stylesheet) return Natural is
      (if Impl_Of (Sheet) = null then 0
       else Natural (Impl_Of (Sheet).Effective.Length));
 
@@ -3783,9 +3813,13 @@ package body Adi.CSS_Parser is
       return To_String (Result);
    end Strip_Non_Root_Custom_Properties;
 
+   --  Intern_Styles False answers the font size alone and leaves
+   --  Root_Styles empty: a caller that never reads them has no reason to
+   --  leave a rule set and a style in the stores for the process.
    procedure Build_Root_Metadata
-     (Root_CSS  : String;
-      Metadata  : in out Stylesheet_Metadata)
+     (Root_CSS      : String;
+      Metadata      : in out Stylesheet_Metadata;
+      Intern_Styles : Boolean)
    is
       Pos     : Positive := Root_CSS'First;
       Working : Adi.Widget.Part_Style_Array := Adi.Widget.Empty_Part_Styles;
@@ -3848,17 +3882,22 @@ package body Adi.CSS_Parser is
          end;
       end loop;
 
-      if Touched then
+      if Touched and then Intern_Styles then
          Root.Base := Intern_Rules (Base);
          Working (Main_Part) := (Style => Intern (Root), Enabled => True);
          Metadata.Root_Styles := Working;
+      elsif not Intern_Styles then
+         --  Root_Styles is empty, so nothing may report that there are
+         --  any. The font size stands on its own.
+         Metadata.Has_Root_Style := False;
       end if;
    end Build_Root_Metadata;
 
    function Preprocess_Custom_Properties
-     (CSS       : String;
-      Vars      : out Variable_Vectors.Vector;
-      Metadata  : out Stylesheet_Metadata) return String
+     (CSS           : String;
+      Vars          : out Variable_Vectors.Vector;
+      Metadata      : out Stylesheet_Metadata;
+      Intern_Styles : Boolean) return String
    is
       Step1      : constant String := Strip_Comments (CSS);
       Root_Decls : Unbounded_String;
@@ -3878,7 +3917,7 @@ package body Adi.CSS_Parser is
          Vars := Resolved;
          Root_CSS := To_Unbounded_String
            (Resolve_Var_References (To_String (Root_Decls), Resolved));
-         Build_Root_Metadata (To_String (Root_CSS), Metadata);
+         Build_Root_Metadata (To_String (Root_CSS), Metadata, Intern_Styles);
          return Resolve_Var_References (Step4, Resolved);
       end;
    end Preprocess_Custom_Properties;
@@ -3888,10 +3927,11 @@ package body Adi.CSS_Parser is
       Out_Rules    : out Parsed_Rule_Vectors.Vector;
       Out_Vars     : out Variable_Vectors.Vector;
       Out_Metadata : out Stylesheet_Metadata;
-      Out_Error    : out Unbounded_String) return Boolean
+      Out_Error    : out Unbounded_String;
+      Intern_Root  : Boolean := True) return Boolean
    is
       Clean : constant String :=
-        Preprocess_Custom_Properties (CSS, Out_Vars, Out_Metadata);
+        Preprocess_Custom_Properties (CSS, Out_Vars, Out_Metadata, Intern_Root);
       Pos : Natural := (if Clean'Length = 0 then 0 else Clean'First);
    begin
       Out_Rules.Clear;
@@ -4132,7 +4172,7 @@ package body Adi.CSS_Parser is
 
       declare
          Idx : constant Natural :=
-           Find_Selector_Index (Impl, B.Kind, To_String (B.Name));
+           Find_Selector_Index (Impl, B.Kind, Text_Of (B.Name));
          R   : constant Adi.Widget.Widget_Ref :=
            Adi.Widget.Borrow (B.Target);
       begin
@@ -4198,31 +4238,15 @@ package body Adi.CSS_Parser is
          end;
       end if;
 
-      for B of Impl.Bindings loop
-         if Adi.Widget.Is_Valid (B.Target) then
-            declare
-               Idx : constant Natural := Find_Selector_Index (Impl, B.Kind, To_String (B.Name));
-               R   : constant Adi.Widget.Widget_Ref :=
-                 Adi.Widget.Borrow (B.Target);
-            begin
-               if Idx = 0 then
-                  Set_Part_Styles
-                    (R.Ptr.all,
-                     Root_Merged_Styles (Impl, B.Target, Empty_Part_Styles));
-               else
-                  declare
-                     Sel : Selector_Style renames
-                       Impl.Selectors.Reference (Positive (Idx)).Element.all;
-                  begin
-                     Set_Part_Styles
-                       (R.Ptr.all,
-                        Root_Merged_Styles
-                          (Impl, B.Target, Sel.Styles));
-                  end;
-               end if;
-            end;
-         end if;
-      end loop;
+      --  Each widget is styled from its own binding, so order across
+      --  targets carries nothing and hash order serves.
+      declare
+         Held : constant Binding_Vectors.Vector := Snapshot (Impl.Effective);
+      begin
+         for B of Held loop
+            Apply_Binding (Impl, B);
+         end loop;
+      end;
    end Reapply_Bindings;
 
    procedure Load_String (Sheet       : in out Stylesheet;
@@ -4532,32 +4556,35 @@ package body Adi.CSS_Parser is
                    Name  : String;
                    W     : access Adi.Widget.Widget'Class) is
       Key : constant String := Lower (Trimmed (Name));
+      Id  : CSS_Text_Id;
    begin
       Ensure_Impl (Sheet);
       if W = null then
          return;
       end if;
 
-      for I in 1 .. Natural (Impl_Of (Sheet).Bindings.Length) loop
-         if Impl_Of (Sheet).Bindings (I).Target = Adi.Widget.Get_Handle (W.all) then
-            Impl_Of (Sheet).Bindings.Replace_Element
-              (I, (Kind   => Kind,
-                   Name   => To_Unbounded_String (Key),
-                   Target => Adi.Widget.Get_Handle (W.all)));
-            Impl_Of (Sheet).Effective.Include
-              (Adi.Widget.Get_Handle (W.all), Impl_Of (Sheet).Bindings (I));
-            Apply (Sheet, Kind, Key, W.all);
-            return;
-         end if;
-      end loop;
+      --  A binding holds its selector as an id, which is the limit this
+      --  representation carries: past Max_CSS_Text_Length the store
+      --  answers no id, and a binding under one would read back as the
+      --  empty selector on every replay -- styling the widget once and
+      --  unstyling it at the next reload. Applying such a name still
+      --  works, since Apply takes the name itself.
+      Id := Intern_Text (Key);
+      if Key'Length > 0 and then Id = No_CSS_Text then
+         Adi.Log.Error
+           ("CSS selector name of" & Natural'Image (Key'Length)
+            & " characters is past the" & Natural'Image (Max_CSS_Text_Length)
+            & " a binding can hold, so nothing is bound under it: "
+            & Key (Key'First .. Key'First + 39) & "...");
+         return;
+      end if;
 
-      Impl_Of (Sheet).Bindings.Append
-        (New_Item => Binding'
-           (Kind   => Kind,
-            Name   => To_Unbounded_String (Key),
-            Target => Adi.Widget.Get_Handle (W.all)));
+      --  One binding per widget, the last one winning.
       Impl_Of (Sheet).Effective.Include
-        (Adi.Widget.Get_Handle (W.all), Impl_Of (Sheet).Bindings.Last_Element);
+        (Adi.Widget.Get_Handle (W.all),
+         Binding'(Kind   => Kind,
+                  Name   => Id,
+                  Target => Adi.Widget.Get_Handle (W.all)));
       Apply (Sheet, Kind, Key, W.all);
    end Bind;
 
@@ -4632,6 +4659,138 @@ package body Adi.CSS_Parser is
       end if;
       return To_String (Impl_Of (Sheet).Source_Path);
    end Get_Source_Path;
+
+   ---------------------------------------------------------------------
+   --  Rules, without interning
+   ---------------------------------------------------------------------
+
+   procedure Free_Data is new Ada.Unchecked_Deallocation
+     (Rule_Sheet_Data, Rule_Sheet_Data_Ptr);
+
+   Rule_Sheets_Held : Natural := 0;
+
+   function Live_Rule_Sheets return Natural is (Rule_Sheets_Held);
+
+   procedure Release (D : in out Rule_Sheet_Data_Ptr) is
+   begin
+      if D /= null then
+         Free_Data (D);
+         Rule_Sheets_Held := Rule_Sheets_Held - 1;
+      end if;
+   end Release;
+
+   function Ensure_Rules (D    : in out Rule_Sheet_Data;
+                          Kind : Selector_Kind;
+                          Name : String) return Positive
+   is
+      use Selector_Index_Maps;
+      Key : constant String := Lower (Trimmed (Name));
+      C   : constant Cursor := D.Index (Kind).Find (Key);
+   begin
+      if Has_Element (C) then
+         return Element (C);
+      end if;
+
+      D.Rules.Append (Empty_Style);
+      D.Index (Kind).Insert (Key, D.Rules.Last_Index);
+      return D.Rules.Last_Index;
+   end Ensure_Rules;
+
+   procedure Load_Rules (Sheet       : in out Rule_Sheet;
+                         CSS_Content : String;
+                         Success     : out Boolean)
+   is
+      Parsed   : Parsed_Rule_Vectors.Vector;
+      Vars     : Variable_Vectors.Vector;
+      Metadata : Stylesheet_Metadata;
+      Err      : Unbounded_String;
+   begin
+      if Sheet.Data = null then
+         Sheet.Data := new Rule_Sheet_Data;
+         Rule_Sheets_Held := Rule_Sheets_Held + 1;
+      end if;
+
+      --  Nothing is published until the whole parse has succeeded, so a
+      --  sheet that fails to load holds what it held, as a Stylesheet
+      --  does.
+      if not Parse_Rules (CSS_Content, Parsed, Vars, Metadata, Err,
+                          Intern_Root => False)
+      then
+         Sheet.Data.Last_Error := Err;
+         Success := False;
+         return;
+      end if;
+
+      Sheet.Data.Rules.Clear;
+      for K in Selector_Kind loop
+         Sheet.Data.Index (K).Clear;
+      end loop;
+      Sheet.Data.Last_Error := Null_Unbounded_String;
+      Sheet.Data.Has_Root_Size := Metadata.Has_Root_Font_Size;
+      Sheet.Data.Root_Size     := Metadata.Root_Font_Size;
+
+      for R of Parsed loop
+         declare
+            Idx : constant Positive :=
+              Ensure_Rules (Sheet.Data.all, R.Sel.Kind, To_String (R.Sel.Name));
+         begin
+            --  A part or a state names something no element of a
+            --  document has, so the selector is held and the rule is
+            --  not. Order is the order the rules were written in, which
+            --  is what settles two declarations of one property.
+            if R.Sel.Part = Main_Part and then not R.Sel.Has_State then
+               declare
+                  Folded : constant Style_Rules :=
+                    Merge (Sheet.Data.Rules (Idx), R.Style);
+               begin
+                  Sheet.Data.Rules.Replace_Element (Idx, Folded);
+               end;
+            end if;
+         end;
+      end loop;
+
+      Success := True;
+   end Load_Rules;
+
+   overriding procedure Finalize (Sheet : in out Rule_Sheet) is
+   begin
+      Release (Sheet.Data);
+   end Finalize;
+
+   function Has (Sheet : Rule_Sheet;
+                 Kind  : Selector_Kind;
+                 Name  : String) return Boolean is
+     (Sheet.Data /= null
+      and then Sheet.Data.Index (Kind).Contains (Lower (Trimmed (Name))));
+
+   function Base_Rules (Sheet : Rule_Sheet;
+                        Kind  : Selector_Kind;
+                        Name  : String) return Style_Rules is
+   begin
+      if Sheet.Data = null then
+         return Empty_Style;
+      end if;
+
+      declare
+         use Selector_Index_Maps;
+         C : constant Cursor :=
+           Sheet.Data.Index (Kind).Find (Lower (Trimmed (Name)));
+      begin
+         if not Has_Element (C) then
+            return Empty_Style;
+         end if;
+         return Sheet.Data.Rules (Element (C));
+      end;
+   end Base_Rules;
+
+   function Has_Root_Font_Size (Sheet : Rule_Sheet) return Boolean is
+     (Sheet.Data /= null and then Sheet.Data.Has_Root_Size);
+
+   function Root_Font_Size (Sheet : Rule_Sheet) return Length_Value is
+     (if Sheet.Data = null then Default_Font_Size else Sheet.Data.Root_Size);
+
+   function Last_Error (Sheet : Rule_Sheet) return String is
+     (if Sheet.Data = null then "" else To_String (Sheet.Data.Last_Error));
 
 begin
    Adi.Widget.Window_Bridge.Install_Destroy_Notice

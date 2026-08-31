@@ -3,6 +3,8 @@
 
 pragma Ada_2022;
 
+with Ada.Finalization;
+
 with Adi.CSS_Styles;
 with Adi.Handle_Store;
 with Adi.Widget;
@@ -133,20 +135,82 @@ package Adi.CSS_Parser is
    --  Load until Destroy, for this value and for every copy of it.
    function Is_Valid (Sheet : Stylesheet) return Boolean;
 
+   ---------------------------------------------------------------------------
+   --  Rules, without interning
+   ---------------------------------------------------------------------------
+
+   --  A caller that cascades a stylesheet itself -- Adi.Widget.Html_View
+   --  does, per document element -- reads the rules a selector names and
+   --  folds them into rules of its own. It asks for no part and no
+   --  state, so it needs nothing a Widget_Style carries, and a
+   --  Stylesheet's round trip through Intern_Rules and Intern leaves an
+   --  entry in the rule-set store and the style store per distinct rule
+   --  block for the life of the process.
+   --
+   --  A Rule_Sheet answers the same question and interns none of it: it
+   --  holds the Style_Rules each selector's main part folds to and
+   --  releases them with itself. It is an ordinary object rather than a
+   --  handle into a store, so it lives and dies with the variable
+   --  holding it. Text a rule names still reaches Intern_Text, which is
+   --  where a Style_Rules holds text at all.
+   --
+   --  Load_Rules shares the whole parse with Load_String -- one
+   --  Parse_Rules over the same grammar. What diverges is what the parse
+   --  is folded into.
+   type Rule_Sheet is tagged limited private;
+
+   procedure Load_Rules (Sheet       : in out Rule_Sheet;
+                         CSS_Content : String;
+                         Success     : out Boolean);
+
+   function Has (Sheet : Rule_Sheet;
+                 Kind  : Selector_Kind;
+                 Name  : String) return Boolean;
+
+   --  What the selector's main part carries with no state selector,
+   --  which is the whole of what a document cascade reads.
+   --  Empty_Style for a selector the sheet does not name.
+   function Base_Rules (Sheet : Rule_Sheet;
+                        Kind  : Selector_Kind;
+                        Name  : String) return Adi.CSS_Styles.Style_Rules;
+
+   --  The :root font size. The block's other declarations are parsed and
+   --  dropped: answering them as styles is what would intern them.
+   function Has_Root_Font_Size (Sheet : Rule_Sheet) return Boolean;
+   function Root_Font_Size (Sheet : Rule_Sheet)
+     return Adi.CSS_Styles.Length_Value;
+
+   function Last_Error (Sheet : Rule_Sheet) return String;
+
 private
 
    --  What one parsed selector costs to hold; a sheet keeps one per
    --  selector it names. Read through Adi.CSS_Parser.Testing.
    function Selector_Entry_Bytes return Natural;
 
-   --  Bindings a sheet holds, and the widgets one is current for. Also
-   --  read through Adi.CSS_Parser.Testing: a destroyed widget must take
-   --  its entry out of both.
+   --  Bindings a sheet holds, one per widget bound. Read through
+   --  Adi.CSS_Parser.Testing: a destroyed widget must take its entry
+   --  with it.
    function Binding_Count (Sheet : Stylesheet) return Natural;
-   function Effective_Count (Sheet : Stylesheet) return Natural;
+
+   --  Stored keys the binding map has compared against, over every
+   --  bind, every prune and every lookup, on every sheet alive in the
+   --  process -- one counter for all of them. A bucket's worth per
+   --  operation while the lookup is a hash; every binding held were it
+   --  ever a scan.
+   --
+   --  Modular, so instrumentation that runs for the life of the process
+   --  wraps rather than raising.
+   type Binding_Counter is mod 2 ** 32;
+   Probed_Bindings : Binding_Counter := 0;
 
    --  Impls allocated and not yet destroyed, over all sheets.
    function Live_Impl_Count return Natural;
+
+   --  Rule sheets holding rules and not yet finalized, over all of
+   --  them. Read through Adi.CSS_Parser.Testing: a Rule_Sheet released
+   --  with the scope or the widget that held it leaves none.
+   function Live_Rule_Sheets return Natural;
 
    --  The selectors a sheet names, and the scan the selector index
    --  replaced -- the answer Styles_For must agree with. Read through
@@ -174,5 +238,17 @@ private
    type Stylesheet is tagged record
       Id : Sheet_Stores.Object_Id := Sheet_Stores.Null_Id;
    end record;
+
+   --  Completed in the body, so the containers a Rule_Sheet holds stay
+   --  out of this spec.
+   type Rule_Sheet_Data;
+   type Rule_Sheet_Data_Ptr is access Rule_Sheet_Data;
+
+   type Rule_Sheet is limited new Ada.Finalization.Limited_Controlled with
+   record
+      Data : Rule_Sheet_Data_Ptr := null;
+   end record;
+
+   overriding procedure Finalize (Sheet : in out Rule_Sheet);
 
 end Adi.CSS_Parser;

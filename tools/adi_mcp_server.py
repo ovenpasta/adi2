@@ -292,6 +292,15 @@ def perf_stats() -> str:
     divides now (active/idle/retired), plus hits, misses, stores,
     pressure_evictions, headroom_evictions, crowded_evictions and
     cumulative build_us.
+
+    A style_stores object reports what the style stores hold:
+    rule_sets, styles, resolved, text, gradients and widget_properties,
+    each with a count and a bytes, plus resolved_cap and
+    resolved_generation. Only the resolved store evicts — read its count
+    against resolved_cap and watch resolved_generation for a clear. The
+    rest hold what they have for the life of the process, so a count
+    that keeps climbing across a steady scene names the store something
+    is feeding.
     """
     result = send_command({"command": "perf_stats"}, _target_pid)
     if result.get("status") != "ok":

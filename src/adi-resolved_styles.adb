@@ -321,7 +321,7 @@ package body Adi.Resolved_Styles is
 
    procedure Collect is
    begin
-      if Held >= Entry_Cap then
+      if Held >= Cap_Entries then
          Evict;
       end if;
    end Collect;
@@ -349,6 +349,8 @@ package body Adi.Resolved_Styles is
 
    function Generation return Natural is (Gen);
    function Entry_Count return Natural is (Held);
+
+   function Entry_Cap return Natural is (Cap_Entries);
 
    function Entry_Bytes return Natural is
      (Natural (Blocks.Length)

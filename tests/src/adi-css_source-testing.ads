@@ -15,6 +15,12 @@ package Adi.CSS_Source.Testing is
    function Visit_Count return Count;
    function Reapply_Count return Count;
 
+   --  Stored keys the binding map has compared against since the last
+   --  Reset, over every source alive. A handful per operation is what
+   --  says the lookup is a hash; one per binding held is the scan
+   --  coming back, and zero is the scan written outside the map.
+   function Probe_Count return Count;
+
    --  Concatenations handed to the parser, and files read to build them.
    --  A test that only looked at the resulting styles could not tell one
    --  parse of N sheets from N parses of a growing set.
@@ -29,9 +35,6 @@ package Adi.CSS_Source.Testing is
    --  Bindings a source holds: one per widget bound, however often the
    --  application binds it.
    function Bindings_Held (Source : Style_Source) return Natural;
-
-   --  Widgets the source holds a current binding for.
-   function Effective_Held (Source : Style_Source) return Natural;
 
    --  Source impls allocated and not yet destroyed.
    function Live_Sources return Natural;

@@ -234,6 +234,7 @@ The renderer implements CSS-style vertical margin collapsing:
 - Implemented precedence: `defaults < default-stylesheet < tag < class < id < inline`.
 - The widget ships with no built-in visual defaults. Users may load `examples/assets/html/default.css` via `Set_Default_Stylesheet` for browser-like typographic defaults (font sizes, weights, margins, text-decoration). Document CSS always overrides the default stylesheet.
 - Inline style declarations are parsed once and cached by normalized declaration text.
+- Document CSS and every inline `style` attribute go through `Adi.CSS_Parser.Rule_Sheet`, which answers a selector's `Style_Rules` and interns none of them. The view cascades those rules itself and never asks for a part, a state or a `Widget_Style`, so the round trip a `Stylesheet` makes through the rule-set and style stores would leave a permanent entry per distinct rule block and per distinct inline style. A `Rule_Sheet` is an ordinary object: the document's dies with the view, an inline style's with the call that parsed it.
 - `:root` metadata is host-scoped inside the widget:
   - root styles apply to the html content root only
   - `:root { font-size: ... }` defines the local `rem` base for that `Html_View`
@@ -293,6 +294,7 @@ The renderer implements CSS-style vertical margin collapsing:
 - Re-layout only when width or style-affecting state changes.
 - Image cache is keyed by `src` within the widget instance to avoid repeated callback loads.
 - Inline style declarations are cached to reduce repeated parse cost.
+- The laid-out document is cached whole and re-emitted while its `Cache_Key` holds: the document and font generations, the resolved-style store's generation, the scales, the content box, the root font size and the widget's own main and text resolved styles. The store generation is there because the cached items name their styles by handle, and a `Collect` that cleared leaves every one of them naming nothing. It moves only at such a clear — past `Adi.Resolved_Styles.Entry_Cap`, 16,384 entries — but when it does, every view in the process re-lays out its whole document on the next frame. An application sitting above that cap clears repeatedly and pays that repeatedly; `perf_stats` reports `resolved_generation` beside the count for exactly this.
 - `Measure_Content` reports the real document height the document needs at its current width (cached in `Cached_Content_W` / `Cached_Content_H`, populated at the end of every `Layout_And_Build` pass). On the very first measure — before any layout has run — it returns a small `(320, 120)` stub so the parent flex has something to assign; subsequent measures use the cached real values. `Set_HTML` invalidates both fields, and `Clear` resets them along with the scroll offset, so a cleared view measures as one that never held a document.
 
 ## Scroll Behavior and CSS Overflow

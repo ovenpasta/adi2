@@ -11,13 +11,23 @@ package Adi.CSS_Parser.Testing is
    --  a sheet of its own.
    function Selector_Entry_Bytes return Natural;
 
-   --  Bindings a sheet holds, and the widgets it holds a current one
-   --  for. A destroyed widget must leave both.
    --  Sheet impls allocated and not yet destroyed.
    function Live_Sheets return Natural;
 
+   --  Rule sheets holding rules and not yet finalized. A Rule_Sheet is
+   --  an ordinary object, so what this counts is holders that are still
+   --  in scope rather than entries in a store.
+   function Live_Rule_Sheets return Natural;
+
+   --  Bindings a sheet holds: one per widget bound, which a destroyed
+   --  widget must leave.
    function Bindings_Held (Sheet : Stylesheet) return Natural;
-   function Effective_Held (Sheet : Stylesheet) return Natural;
+
+   --  Stored keys the binding map has compared against since the last
+   --  Reset_Probes, over every sheet alive.
+   type Count is mod 2 ** 32;
+   function Probe_Count return Count;
+   procedure Reset_Probes;
 
    --  The selectors a sheet names, so a differential test can walk all
    --  of them, and the scan the selector index replaced.

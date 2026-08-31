@@ -1,6 +1,7 @@
 pragma Ada_2022;
 
 with Ada.Directories;
+with Ada.Real_Time;
 with Ada.Text_IO;  use Ada.Text_IO;
 with Test_Support; use Test_Support;
 with Adi.Widget;   use Adi.Widget;
@@ -14,6 +15,7 @@ with Adi.CSS_Source;
 with Adi.CSS_Source.Testing;
 with Adi.OS;
 use type Adi.CSS_Source.Testing.Count;
+use type Adi.CSS_Parser.Testing.Count;
 
 --  A generated Build binds a root and then every widget under it, and an
 --  application may call Build many times on one shared Style_Source --
@@ -178,6 +180,430 @@ begin
    end;
 
    ---------------------------------------------------------------------
+   --  Finding the binding held for a widget, whatever else is held
+   ---------------------------------------------------------------------
+
+   --  Two instruments, because neither settles it alone.
+   --
+   --  Probe_Count is the exact one, over a narrow question: it counts
+   --  the stored keys the binding map compares against, so re-binding a
+   --  widget the map already holds must compare at least the key it
+   --  finds, and a scan written outside the map compares nothing
+   --  through Equivalent_Keys and reads as zero. Both bounds are
+   --  asserted, which is why fresh keys will not do -- those land in
+   --  empty buckets and read as zero for a hash and a scan alike.
+   --
+   --  The elapsed time is the general one. Two sources are held at
+   --  sizes an order of magnitude apart and the same batch is bound to
+   --  each; everything the batch touches is the same either side, so
+   --  what is left between the two figures is how the container
+   --  answers. A scan puts the ratio at the ratio of the sizes; a hash
+   --  leaves it near one. Minimums over rounds that alternate which
+   --  side goes first, so neither a scheduler hiccup nor a clock
+   --  ramping up lands in the verdict.
+
+   Section ("Finding a binding costs the same whatever else is bound");
+
+   declare
+      use Ada.Real_Time;
+
+      Small_Src, Large_Src     : Adi.CSS_Source.Style_Source;
+      Small_Sheet, Large_Sheet : Adi.CSS_Parser.Stylesheet;
+      Ok : Boolean := False;
+
+      Small_Held : constant := 1_000;
+      Large_Held : constant := 16_000;
+      Batch      : constant := 400;
+      Rounds     : constant := 4;
+
+      --  Widgets kept in hand so a later pass can bind them again and
+      --  make the map compare keys it is holding.
+      Kept : constant := 200;
+      type Kept_Array is array (1 .. Kept) of Adi.Widget.Box.Box_Handle;
+      Small_Kept, Large_Kept : Kept_Array;
+
+      --  Bind Count fresh widgets to a source and to a sheet. They
+      --  outlive the call, so what is bound against keeps growing.
+      procedure Bind_Fresh (Src   : in out Adi.CSS_Source.Style_Source;
+                            Sh    : in out Adi.CSS_Parser.Stylesheet;
+                            Count : Positive) is
+      begin
+         for I in 1 .. Count loop
+            declare
+               W : constant Adi.Widget.Box.Box_Handle :=
+                 Adi.Widget.Box.Create_Handle;
+            begin
+               Adi.CSS_Source.Bind_Selector_Set
+                 (Source     => Src,
+                  W          => +W,
+                  Tag_Name   => "box",
+                  Class_Name => "cell");
+               Adi.CSS_Parser.Bind_Class (Sh, "cell", +W);
+            end;
+         end loop;
+      end Bind_Fresh;
+
+      --  Bind Count fresh widgets and keep their handles.
+      procedure Bind_Kept (Src  : in out Adi.CSS_Source.Style_Source;
+                           Sh   : in out Adi.CSS_Parser.Stylesheet;
+                           Into : out Kept_Array) is
+      begin
+         for I in Into'Range loop
+            Into (I) := Adi.Widget.Box.Create_Handle;
+            Adi.CSS_Source.Bind_Selector_Set
+              (Source     => Src,
+               W          => +Into (I),
+               Tag_Name   => "box",
+               Class_Name => "cell");
+            Adi.CSS_Parser.Bind_Class (Sh, "cell", +Into (I));
+         end loop;
+      end Bind_Kept;
+
+      --  Bind them again, which makes each lookup find a key the map
+      --  already holds, and report what the map compared to find it.
+      procedure Rebind (Src    : in out Adi.CSS_Source.Style_Source;
+                        Sh     : in out Adi.CSS_Parser.Stylesheet;
+                        Held   : Kept_Array;
+                        Probes : out Adi.CSS_Source.Testing.Count;
+                        Sheet_Probes : out Adi.CSS_Parser.Testing.Count) is
+      begin
+         Adi.CSS_Source.Testing.Reset_Counts;
+         Adi.CSS_Parser.Testing.Reset_Probes;
+         for W of Held loop
+            Adi.CSS_Source.Bind_Selector_Set
+              (Source     => Src,
+               W          => +W,
+               Tag_Name   => "box",
+               Class_Name => "cell");
+            Adi.CSS_Parser.Bind_Class (Sh, "cell", +W);
+         end loop;
+         Probes := Adi.CSS_Source.Testing.Probe_Count;
+         Sheet_Probes := Adi.CSS_Parser.Testing.Probe_Count;
+      end Rebind;
+
+      procedure Prepare (Src : in out Adi.CSS_Source.Style_Source;
+                         Sh  : in out Adi.CSS_Parser.Stylesheet) is
+      begin
+         Adi.CSS_Source.Add_Static_Entry
+           (Src,
+            Adi.CSS_Source.Class_Entry
+              ("cell", Main_Styles ((Opacity => Set (0.5), others => <>))));
+         Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Static_Mode, Ok);
+         Assert (Ok, "static mode");
+         Adi.CSS_Parser.Load_String (Sh, ".cell { opacity: 0.5; }", Ok);
+         Assert (Ok, "the sheet parses");
+      end Prepare;
+
+      --  One round against one source, timed and counted.
+      procedure Round (Src     : in out Adi.CSS_Source.Style_Source;
+                       Sh      : in out Adi.CSS_Parser.Stylesheet;
+                       Elapsed : out Time_Span;
+                       Probes  : out Adi.CSS_Source.Testing.Count;
+                       Sheet_Probes : out Adi.CSS_Parser.Testing.Count)
+      is
+         Started : Time;
+      begin
+         Adi.CSS_Source.Testing.Reset_Counts;
+         Adi.CSS_Parser.Testing.Reset_Probes;
+         Started := Clock;
+         Bind_Fresh (Src, Sh, Batch);
+         Elapsed := Clock - Started;
+         Probes := Adi.CSS_Source.Testing.Probe_Count;
+         Sheet_Probes := Adi.CSS_Parser.Testing.Probe_Count;
+      end Round;
+
+      Small_Time, Large_Time : Time_Span;
+      Best_Small : Time_Span := Time_Span_Last;
+      Best_Large : Time_Span := Time_Span_Last;
+      Ignored_Probes : Adi.CSS_Source.Testing.Count;
+      Ignored_Sheet  : Adi.CSS_Parser.Testing.Count;
+
+      Small_Rebind, Large_Rebind : Adi.CSS_Source.Testing.Count;
+      Small_Sheet_Rebind, Large_Sheet_Rebind : Adi.CSS_Parser.Testing.Count;
+
+      Small_Us, Large_Us : Long_Float;
+
+      Ceiling : constant Adi.CSS_Source.Testing.Count :=
+        4 * Adi.CSS_Source.Testing.Count (Kept);
+      Sheet_Ceiling : constant Adi.CSS_Parser.Testing.Count :=
+        4 * Adi.CSS_Parser.Testing.Count (Kept);
+   begin
+      Prepare (Small_Src, Small_Sheet);
+      Prepare (Large_Src, Large_Sheet);
+
+      Bind_Kept (Small_Src, Small_Sheet, Small_Kept);
+      Bind_Kept (Large_Src, Large_Sheet, Large_Kept);
+      Bind_Fresh (Small_Src, Small_Sheet, Small_Held - Kept);
+      Bind_Fresh (Large_Src, Large_Sheet, Large_Held - Kept);
+
+      ------------------------------------------------------------------
+      --  What the map compares to find a key it is holding
+      ------------------------------------------------------------------
+
+      Rebind (Small_Src, Small_Sheet, Small_Kept,
+              Small_Rebind, Small_Sheet_Rebind);
+      Rebind (Large_Src, Large_Sheet, Large_Kept,
+              Large_Rebind, Large_Sheet_Rebind);
+
+      Put_Line ("  keys compared re-binding" & Natural'Image (Kept)
+                & " widgets:" & Small_Rebind'Image & " against"
+                & Natural'Image (Small_Held) & " held,"
+                & Large_Rebind'Image & " against"
+                & Natural'Image (Large_Held));
+
+      Assert (Small_Rebind >= Adi.CSS_Source.Testing.Count (Kept),
+              "finding a key the map holds compares at least that key");
+      Assert (Small_Sheet_Rebind >= Adi.CSS_Parser.Testing.Count (Kept),
+              "on the sheet too");
+      Assert (Small_Rebind <= Ceiling,
+              "and a bucket's worth, not the set");
+      Assert (Large_Rebind <= Ceiling,
+              "and no more against an order of magnitude more bound");
+      Assert (Small_Sheet_Rebind <= Sheet_Ceiling
+                and then Large_Sheet_Rebind <= Sheet_Ceiling,
+              "which holds for a sheet bound to directly as well");
+
+      ------------------------------------------------------------------
+      --  What binding a fresh batch costs against either set
+      ------------------------------------------------------------------
+
+      for R in 1 .. Rounds loop
+         --  Alternate which side is measured first, so a clock ramping
+         --  up over the pair does not always favour the same one.
+         if R mod 2 = 1 then
+            Round (Small_Src, Small_Sheet,
+                   Small_Time, Ignored_Probes, Ignored_Sheet);
+            Round (Large_Src, Large_Sheet,
+                   Large_Time, Ignored_Probes, Ignored_Sheet);
+         else
+            Round (Large_Src, Large_Sheet,
+                   Large_Time, Ignored_Probes, Ignored_Sheet);
+            Round (Small_Src, Small_Sheet,
+                   Small_Time, Ignored_Probes, Ignored_Sheet);
+         end if;
+
+         if Small_Time < Best_Small then
+            Best_Small := Small_Time;
+         end if;
+         if Large_Time < Best_Large then
+            Best_Large := Large_Time;
+         end if;
+      end loop;
+
+      Small_Us := Long_Float (To_Duration (Best_Small)) * 1.0E6;
+      Large_Us := Long_Float (To_Duration (Best_Large)) * 1.0E6;
+
+      Put_Line ("  best of" & Natural'Image (Rounds) & " rounds binding"
+                & Natural'Image (Batch) & ":"
+                & Long_Float'Image (Small_Us) & " us against"
+                & Long_Float'Image (Large_Us) & " us");
+
+      Assert (Small_Us > 0.0,
+              "the clock resolves a round, so the ratio means something");
+      if Small_Us > 0.0 then
+         Put_Line ("  ratio:" & Long_Float'Image (Large_Us / Small_Us));
+         Assert (Large_Us <= 3.0 * Small_Us,
+                 "and the batch costs the same against either set");
+      end if;
+
+      Assert (Adi.CSS_Source.Testing.Bindings_Held (Small_Src)
+                = Small_Held + Rounds * Batch,
+              "with one binding held per widget");
+      Assert (Adi.CSS_Parser.Testing.Bindings_Held (Large_Sheet)
+                = Large_Held + Rounds * Batch,
+              "on the sheet too");
+   end;
+
+   ---------------------------------------------------------------------
+   --  A selector name the text store will not hold
+   ---------------------------------------------------------------------
+
+   --  A binding names its selector by id, and the text store answers no
+   --  id at all past Max_CSS_Text_Length. Applying such a name once and
+   --  holding a binding that reads back as the empty selector would
+   --  style the widget and unstyle it at the next replay, so the bind
+   --  is refused where the name is still in hand to report.
+
+   Section ("A selector name past the text limit binds nothing");
+
+   declare
+      Src  : Adi.CSS_Source.Style_Source;
+      W    : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Ctl  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Long : constant String (1 .. Max_CSS_Text_Length + 1) := [others => 'a'];
+      Ok   : Boolean := False;
+      Before : Natural;
+
+      function Opacity_Of (H : Adi.Widget.Box.Box_Handle) return Float is
+        (Float (Get_Resolved_Part_Style (+H, Main_Part).Opacity));
+   begin
+      Adi.CSS_Source.Set_Static_Entries
+        (Src,
+         [Adi.CSS_Source.Class_Entry
+            (Long, Main_Styles ((Opacity => Set (0.5), others => <>))),
+          Adi.CSS_Source.Class_Entry
+            ("short", Main_Styles ((Opacity => Set (0.5), others => <>)))]);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Static_Mode, Ok);
+      Assert (Ok, "static mode");
+
+      Before := Adi.CSS_Source.Testing.Bindings_Held (Src);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +W, Class_Name => Long);
+
+      Assert (Adi.CSS_Source.Testing.Bindings_Held (Src) = Before,
+              "nothing is bound under a name the store will not hold");
+      Assert (Opacity_Of (W) = 1.0,
+              "and no styles arrive that a replay would take back");
+
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +Ctl, Class_Name => "short");
+      Assert (Adi.CSS_Source.Testing.Bindings_Held (Src) = Before + 1,
+              "a name that fits still binds");
+      Assert (Opacity_Of (Ctl) = 0.5, "and styles its widget");
+
+      Adi.CSS_Source.Set_Static_Entries
+        (Src,
+         [Adi.CSS_Source.Class_Entry
+            (Long, Main_Styles ((Opacity => Set (0.75), others => <>))),
+          Adi.CSS_Source.Class_Entry
+            ("short", Main_Styles ((Opacity => Set (0.75), others => <>)))]);
+
+      Assert (Opacity_Of (W) = 1.0,
+              "a replay leaves the widget that was never bound alone");
+      Assert (Opacity_Of (Ctl) = 0.75,
+              "and carries the one that was");
+   end;
+
+   Section ("A sheet bound to directly refuses the same name");
+
+   declare
+      Sheet : Adi.CSS_Parser.Stylesheet;
+      W     : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Ctl   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Long  : constant String (1 .. Max_CSS_Text_Length + 1) := [others => 'b'];
+      Ok    : Boolean := False;
+
+      function Opacity_Of (H : Adi.Widget.Box.Box_Handle) return Float is
+        (Float (Get_Resolved_Part_Style (+H, Main_Part).Opacity));
+   begin
+      Adi.CSS_Parser.Load_String
+        (Sheet,
+         "." & Long & " { opacity: 0.5; } .fits { opacity: 0.5; }", Ok);
+      Assert (Ok, "the sheet parses");
+      Assert (Adi.CSS_Parser.Has_Class (Sheet, Long),
+              "and names the long selector");
+
+      Adi.CSS_Parser.Bind_Class (Sheet, Long, +W);
+      Assert (Adi.CSS_Parser.Testing.Bindings_Held (Sheet) = 0,
+              "nothing is bound under a name the store will not hold");
+      Assert (Opacity_Of (W) = 1.0, "and no styles arrive");
+
+      Adi.CSS_Parser.Bind_Class (Sheet, "fits", +Ctl);
+      Assert (Adi.CSS_Parser.Testing.Bindings_Held (Sheet) = 1,
+              "a name that fits still binds");
+      Assert (Opacity_Of (Ctl) = 0.5, "and styles its widget");
+   end;
+
+   ---------------------------------------------------------------------
+   --  What a reload owes the widgets still on screen
+   ---------------------------------------------------------------------
+
+   Section ("A reload restyles every live binding and skips the destroyed");
+
+   declare
+      Src  : Adi.CSS_Source.Style_Source;
+      Ok   : Boolean := False;
+      Rows : constant := 40;
+      type Row_Array is array (1 .. Rows) of Adi.Widget.Box.Box_Handle;
+      Kids : Row_Array;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Live : constant := Rows / 2;
+
+      function Opacity_Of (H : Adi.Widget.Box.Box_Handle) return Float is
+        (Float (Get_Resolved_Part_Style (+H, Main_Part).Opacity));
+
+      function Root_Red (H : Adi.Widget.Box.Box_Handle) return Natural is
+         R : constant Resolved_Style :=
+           Get_Resolved_Part_Style (+H, Main_Part);
+      begin
+         return (if R.Background_Color.Kind = RGB
+                 then R.Background_Color.R else 0);
+      end Root_Red;
+   begin
+      Adi.CSS_Source.Add_Dynamic_String
+        (Src,
+         ":root { background-color: rgb(10, 20, 30); }"
+         & " .cell { opacity: 0.25; }",
+         Ok);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Assert (Ok, "the first sheet loads");
+
+      Adi.CSS_Source.Bind_Root_Metadata (Src, +Root);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +Root, Class_Name => "cell");
+      for I in Kids'Range loop
+         Kids (I) := Adi.Widget.Box.Create_Handle;
+         Adi.CSS_Source.Bind_Selector_Set
+           (Source => Src, W => +Kids (I), Class_Name => "cell");
+      end loop;
+
+      Assert (Root_Red (Root) = 10 and then Opacity_Of (Root) = 0.25,
+              "the root carries :root and the selector it is bound under");
+
+      --  Half the rows go.
+      for I in Kids'Range loop
+         if I mod 2 = 0 then
+            declare
+               Doomed : Adi.Widget.Widget_Handle := +Kids (I);
+            begin
+               Adi.Widget.Destroy (Doomed);
+            end;
+         end if;
+      end loop;
+      Adi.Widget.Pump_Widget_Store;
+
+      Assert (Adi.CSS_Source.Testing.Bindings_Held (Src) = Live + 1,
+              "the destroyed rows take their bindings with them");
+
+      Adi.CSS_Source.Testing.Reset_Counts;
+      Adi.CSS_Source.Clear_Dynamic_Entries (Src);
+      Adi.CSS_Source.Add_Dynamic_String
+        (Src,
+         ":root { background-color: rgb(40, 50, 60); }"
+         & " .cell { opacity: 0.75; }",
+         Ok);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Assert (Ok, "the second sheet loads");
+
+      Put_Line ("  reload visited"
+                & Adi.CSS_Source.Testing.Visit_Count'Image
+                & ", restyled"
+                & Adi.CSS_Source.Testing.Reapply_Count'Image
+                & " of" & Natural'Image (Live + 1) & " held");
+
+      Assert (Adi.CSS_Source.Testing.Visit_Count
+                = Adi.CSS_Source.Testing.Count (Live + 1),
+              "a reload looks at what is still bound and nothing else");
+      Assert (Adi.CSS_Source.Testing.Reapply_Count
+                = Adi.CSS_Source.Testing.Count (Live + 1),
+              "and re-styles all of it");
+
+      for I in Kids'Range loop
+         if I mod 2 = 1 then
+            Assert (Opacity_Of (Kids (I)) = 0.75,
+                    "every surviving row takes the new styles");
+         end if;
+      end loop;
+      Assert (Root_Red (Root) = 40 and then Opacity_Of (Root) = 0.75,
+              "and the root keeps both :root and its own selector");
+   end;
+
+   ---------------------------------------------------------------------
    --  A destroyed widget takes its binding with it
    ---------------------------------------------------------------------
 
@@ -215,8 +641,6 @@ begin
       Bound := Adi.CSS_Source.Testing.Bindings_Held (Src);
       Assert (Bound = Before + Rows + 1,
               "every widget bound is held");
-      Assert (Adi.CSS_Source.Testing.Effective_Held (Src) = Bound,
-              "and is current for its widget");
 
       --  Destroying the panel destroys the rows with it.
       Doomed := +Panel;
@@ -230,8 +654,6 @@ begin
 
       Assert (Adi.CSS_Source.Testing.Bindings_Held (Src) = Before,
               "the subtree takes every binding with it");
-      Assert (Adi.CSS_Source.Testing.Effective_Held (Src) = Before,
-              "and leaves nothing current for a widget that is gone");
    end;
 
    Section ("A sheet bound to directly prunes the same way");
@@ -255,8 +677,6 @@ begin
 
       Assert (Adi.CSS_Parser.Testing.Bindings_Held (Sheet) = 2,
               "both widgets are bound");
-      Assert (Adi.CSS_Parser.Testing.Effective_Held (Sheet) = 2,
-              "and current");
 
       Doomed := +Panel;
       Adi.Widget.Destroy (Doomed);
@@ -264,8 +684,6 @@ begin
 
       Assert (Adi.CSS_Parser.Testing.Bindings_Held (Sheet) = 0,
               "the destroyed subtree leaves no binding behind");
-      Assert (Adi.CSS_Parser.Testing.Effective_Held (Sheet) = 0,
-              "and nothing current");
    end;
 
    ---------------------------------------------------------------------
@@ -883,6 +1301,48 @@ begin
 
       Assert (Opacity_Of = 0.75,
               "replacing the entries restyles the bound widget");
+   end;
+
+   ---------------------------------------------------------------------
+   --  Static mode replays too, so the bindings are not dynamic-only
+   ---------------------------------------------------------------------
+
+   Section ("A source that never leaves static mode replays its bindings");
+
+   declare
+      Src : Adi.CSS_Source.Style_Source;
+      W   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Ok  : Boolean := False;
+
+      function Opacity_Of return Float is
+        (Float (Get_Resolved_Part_Style (+W, Main_Part).Opacity));
+   begin
+      --  Tick returns at once for a static source, but
+      --  Set_Static_Entries, Set_Static_Metadata, Set_Mode and
+      --  End_Update all reach Reapply_Bindings under it.
+      Adi.CSS_Source.Add_Static_Entry
+        (Src,
+         Adi.CSS_Source.Class_Entry
+           ("c", Main_Styles ((Opacity => Set (0.25), others => <>))));
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Static_Mode, Ok);
+      Assert (Ok, "static mode");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +W, Class_Name => "c");
+      Assert (Opacity_Of = 0.25, "the widget takes the first entries");
+
+      Adi.CSS_Source.Testing.Reset_Counts;
+      Adi.CSS_Source.Set_Static_Entries
+        (Src,
+         [Adi.CSS_Source.Class_Entry
+            ("c", Main_Styles ((Opacity => Set (0.75), others => <>)))]);
+
+      Assert (Adi.CSS_Source.Testing.Visit_Count = 1,
+              "a static source walks the binding it holds");
+      Assert (Adi.CSS_Source.Testing.Reapply_Count = 1,
+              "and re-styles it");
+      Assert (Opacity_Of = 0.75,
+              "so the widget follows the entries it is styled from");
    end;
 
    Section ("Clearing the dynamic sheets restyles what is bound");

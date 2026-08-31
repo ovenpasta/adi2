@@ -9,6 +9,8 @@ with Adi.Resolved_Styles; use Adi.Resolved_Styles;
 with Adi.Resolved_Styles.Testing;
 with Adi.Widget; use Adi.Widget;
 with Adi.Widget.Box; use Adi.Widget.Box;
+with Adi.Widget.Html_View;
+use type Adi.Widget.Html_View.Html_View_Handle;
 with Adi.Widget.Testing;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Test_Support; use Test_Support;
@@ -392,6 +394,68 @@ procedure Resolved_Store_Test is
         (Adi.Resolved_Styles.Testing.Default_Entry_Cap);
    end Test_Eviction_Under_A_Clean_Child;
 
+   --  An Html_View lays its document out once and keeps the result,
+   --  items and all. Those items hold their styles by handle, and the
+   --  key that decides whether the layout still stands is made of the
+   --  document, the fonts, the scales and two resolved values -- none of
+   --  which moves when the store lets go. Update dirties the subtree and
+   --  Build_Items runs, but a layout whose key still matches is emitted
+   --  rather than rebuilt, so what it hands on are the handles the store
+   --  has released.
+   procedure Test_Eviction_Under_A_Cached_Html_Layout is
+      Cap : constant Positive := 64;
+      V   : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      Idx : Natural := 0;
+      Gen : Natural;
+
+      function First_Text return Natural is
+      begin
+         for I in 1 .. Item_Count (+V) loop
+            if Get_Item (+V, I).Kind = Adi.Widget.Text_Item then
+               return I;
+            end if;
+         end loop;
+         return 0;
+      end First_Text;
+
+      function Text_Colour return Color_Value is
+        (Value (Get_Item (+V, Positive (Idx)).Computed_Style).Color);
+   begin
+      Section ("an eviction under a cached html layout");
+
+      Set_Geometry (+V, (X => 0.0, Y => 0.0, Width => 400.0, Height => 200.0));
+      Adi.Widget.Html_View.Set_HTML
+        (V, "<p style='color: rgb(61, 72, 83);'>paragraph</p>");
+      Update (Widget_Handle'(+V));
+
+      Idx := First_Text;
+      Assert (Idx > 0, "the document lays out to a text item");
+      if Idx > 0 then
+         Assert (Text_Colour = RGB (61, 72, 83),
+                 "carrying the colour the document gave it");
+      end if;
+
+      Gen := Generation;
+      Adi.Resolved_Styles.Testing.Set_Entry_Cap (Cap);
+      Fill (4 * Cap);
+      Assert (Generation > Gen, "churn elsewhere cleared the store");
+
+      --  The ordinary frame that follows.
+      Update (Widget_Handle'(+V));
+
+      Idx := First_Text;
+      Assert (Idx > 0, "the item is still there after that frame");
+      if Idx > 0 then
+         Assert (Text_Colour = RGB (61, 72, 83),
+                 "and still draws the document's colour rather than the "
+                 & "default the store answers a stale handle with");
+      end if;
+
+      Adi.Resolved_Styles.Testing.Set_Entry_Cap
+        (Adi.Resolved_Styles.Testing.Default_Entry_Cap);
+   end Test_Eviction_Under_A_Cached_Html_Layout;
+
    ---------------------------------------------------------------------
    --  A transition against the pool
    ---------------------------------------------------------------------
@@ -540,6 +604,7 @@ begin
    Test_Eviction_Under_A_Live_Widget;
    Test_Eviction_Under_A_Clean_Widget;
    Test_Eviction_Under_A_Clean_Child;
+   Test_Eviction_Under_A_Cached_Html_Layout;
    Test_A_Transition_Takes_A_Slot;
    Test_A_Full_Pool_Snaps;
    Test_Sizes;

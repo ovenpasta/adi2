@@ -9,6 +9,8 @@ package body Adi.CSS_Source.Testing is
 
    function Reapply_Count return Count is (Count (Reapplied_Bindings));
 
+   function Probe_Count return Count is (Count (Probed_Bindings));
+
    function Parse_Count return Count is (Count (Dynamic_Parses));
 
    function File_Read_Count return Count is (Count (Dynamic_Reads));
@@ -18,9 +20,6 @@ package body Adi.CSS_Source.Testing is
 
    function Bindings_Held (Source : Style_Source) return Natural is
      (Adi.CSS_Source.Binding_Count (Source));
-
-   function Effective_Held (Source : Style_Source) return Natural is
-     (Adi.CSS_Source.Effective_Count (Source));
 
    function Live_Sources return Natural is
      (Adi.CSS_Source.Live_Impl_Count);
@@ -63,6 +62,7 @@ package body Adi.CSS_Source.Testing is
    begin
       Visited_Bindings   := 0;
       Reapplied_Bindings := 0;
+      Probed_Bindings    := 0;
       Dynamic_Parses     := 0;
       Dynamic_Reads      := 0;
    end Reset_Counts;

@@ -9,6 +9,7 @@ with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Calendar;
 with Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Vectors;
+with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
@@ -37,23 +38,21 @@ package body Adi.CSS_Source is
 
    type Binding_Kind is (Single_Binding, Multi_Class_Binding, Selector_Set_Binding);
 
+   --  Selector names live in the text store, so a binding holds ids
+   --  and no controlled component.
    type Bound_Target is record
-      Kind         : Binding_Kind := Single_Binding;
+      Kind          : Binding_Kind := Single_Binding;
       Selector_Kind : Adi.CSS_Parser.Selector_Kind := Adi.CSS_Parser.Class_Selector;
-      Name         : Unbounded_String;
-      Tag_Name     : Unbounded_String;
-      Class_Name   : Unbounded_String;
-      Id_Name      : Unbounded_String;
-      Target       : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
+      Name          : CSS_Text_Id := No_CSS_Text;
+      Tag_Name      : CSS_Text_Id := No_CSS_Text;
+      Class_Name    : CSS_Text_Id := No_CSS_Text;
+      Id_Name       : CSS_Text_Id := No_CSS_Text;
+      Target        : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
    end record;
 
    package Entry_Vectors is new Ada.Containers.Indefinite_Vectors
      (Index_Type => Positive,
       Element_Type => Static_Style_Entry);
-
-   package Binding_Vectors is new Ada.Containers.Indefinite_Vectors
-     (Index_Type => Positive,
-      Element_Type => Bound_Target);
 
    --  Last_Modified is what Tick compares against.
    type Tracked_Entry is record
@@ -65,11 +64,42 @@ package body Adi.CSS_Source is
      (Index_Type => Positive,
       Element_Type => Tracked_Entry);
 
+   --  Probed_Bindings counts every stored key the map compares against,
+   --  over every bind, every prune and every lookup, on every source or
+   --  sheet alive in the process. A bucket's worth per operation while
+   --  the lookup is a hash; every binding held were it ever a scan.
+   function Same_Target (A, B : Adi.Widget.Widget_Handle) return Boolean is
+   begin
+      Probed_Bindings := Probed_Bindings + 1;
+      return Adi.Widget."=" (A, B);
+   end Same_Target;
+
    package Binding_Maps is new Ada.Containers.Hashed_Maps
      (Key_Type        => Adi.Widget.Widget_Handle,
       Element_Type    => Bound_Target,
       Hash            => Adi.Widget.Hash,
-      Equivalent_Keys => Adi.Widget."=");
+      Equivalent_Keys => Same_Target);
+
+   --  A walk over the bindings takes a copy first. Applying one styles
+   --  a widget, and anything that destroys a widget re-enters
+   --  Prune_Widget, which Excludes from the map and frees the very node
+   --  a cursor would be standing in -- leaving the walk to read it.
+   --  A cursor loop takes no tampering lock, so nothing reports that.
+   --  One vector, capacity reserved once, and its own finalization
+   --  releases it however the walk ends.
+   package Binding_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Bound_Target);
+
+   function Snapshot (M : Binding_Maps.Map) return Binding_Vectors.Vector is
+   begin
+      return Result : Binding_Vectors.Vector do
+         Result.Reserve_Capacity (M.Length);
+         for B of M loop
+            Result.Append (B);
+         end loop;
+      end return;
+   end Snapshot;
 
    --  Styles under a name: the static entries indexed by selector, and
    --  the combined fold indexed by the three names it reads. A
@@ -111,10 +141,8 @@ package body Adi.CSS_Source is
       Dynamic_Loaded   : Boolean := False;
       Sheet            : Adi.CSS_Parser.Stylesheet;
       Root_Target      : Adi.Widget.Widget_Handle := Adi.Widget.Null_Handle;
-      --  The binding in force for each target, so handing the root role
-      --  over can restyle the widget losing it and the one taking it
-      --  without searching. Bindings keeps the history a reload replays;
-      --  this keeps what is currently true of each widget.
+      --  The binding in force for each widget: what a bind writes,
+      --  what a root handover restyles from, and what a reload replays.
       Effective        : Binding_Maps.Map;
 
       --  The text the dynamic sheet was last built from, and the whole
@@ -149,7 +177,6 @@ package body Adi.CSS_Source is
       Static_Index     : Static_Index_Array;
       Combined_Memo    : Part_Style_Maps.Map;
 
-      Bindings         : Binding_Vectors.Vector;
       Attached_Window  : Adi.Window.Window_Handle := Adi.Window.Null_Window_Handle;
    end record;
 
@@ -167,21 +194,34 @@ package body Adi.CSS_Source is
       return Style_Source_Impl (P.all)'Unchecked_Access;
    end Impl_Of;
 
+   --  A binding holds its selector as an id, which is the limit this
+   --  representation carries: past Max_CSS_Text_Length the store
+   --  answers no id, and a binding under one would read back as the
+   --  empty selector on every replay -- styling the widget once and
+   --  unstyling it at the next reload. Applying such a name still
+   --  works, since Apply takes the name itself.
+   --
+   --  Held is False for exactly that case; an empty name is held as
+   --  No_CSS_Text and is what an unused slot of a selector set carries.
+   procedure Intern_Selector (Name : String;
+                              Id   : out CSS_Text_Id;
+                              Held : out Boolean) is
+   begin
+      Id := Intern_Text (Name);
+      Held := Name'Length = 0 or else Id /= No_CSS_Text;
+      if not Held then
+         Adi.Log.Error
+           ("CSS selector name of" & Natural'Image (Name'Length)
+            & " characters is past the" & Natural'Image (Max_CSS_Text_Length)
+            & " a binding can hold, so nothing is bound under it: "
+            & Name (Name'First .. Name'First + 39) & "...");
+      end if;
+   end Intern_Selector;
+
    procedure Prune_Widget (Impl : Style_Source_Impl_Ptr;
                            H    : Adi.Widget.Widget_Handle) is
    begin
       Impl.Effective.Exclude (H);
-
-      for I in 1 .. Natural (Impl.Bindings.Length) loop
-         if Impl.Bindings (I).Target = H then
-            --  Order across targets carries nothing: Reapply_Bindings
-            --  styles each widget from its own binding. Moving the last
-            --  entry into the hole keeps a prune from sliding the tail.
-            Impl.Bindings.Replace_Element (I, Impl.Bindings.Last_Element);
-            Impl.Bindings.Delete_Last;
-            exit;
-         end if;
-      end loop;
 
       if Impl.Root_Target = H then
          Impl.Root_Target := Adi.Widget.Null_Handle;
@@ -504,25 +544,20 @@ package body Adi.CSS_Source is
          case B.Kind is
             when Single_Binding =>
                Apply_To_Widget
-                 (Source, B.Selector_Kind, To_String (B.Name), R.Ptr.all);
+                 (Source, B.Selector_Kind, Text_Of (B.Name), R.Ptr.all);
             when Multi_Class_Binding =>
-               Apply_Multi_Classes (Source, To_String (B.Name), R.Ptr.all);
+               Apply_Multi_Classes (Source, Text_Of (B.Name), R.Ptr.all);
             when Selector_Set_Binding =>
                Apply_Selector_Set_To_Widget
                  (Source, R.Ptr.all,
-                  To_String (B.Tag_Name),
-                  To_String (B.Class_Name),
-                  To_String (B.Id_Name));
+                  Text_Of (B.Tag_Name),
+                  Text_Of (B.Class_Name),
+                  Text_Of (B.Id_Name));
          end case;
       end;
    end Apply_Binding;
 
-   --  Record what is now in force for this widget.
    function Binding_Count (Source : Style_Source) return Natural is
-     (if Impl_Of (Source) = null then 0
-      else Natural (Impl_Of (Source).Bindings.Length));
-
-   function Effective_Count (Source : Style_Source) return Natural is
      (if Impl_Of (Source) = null then 0
       else Natural (Impl_Of (Source).Effective.Length));
 
@@ -560,30 +595,11 @@ package body Adi.CSS_Source is
       Source.Id := Source_Stores.Null_Id;
    end Destroy;
 
-   procedure Note_Binding
-     (Source : in out Style_Source; B : Bound_Target) is
-   begin
-      Impl_Of (Source).Effective.Include (B.Target, B);
-   end Note_Binding;
-
-   --  One binding per widget, the last one winning, as Adi.CSS_Parser
-   --  has always done. Bindings is the history a reload replays, and
-   --  replaying an earlier binding of a widget only to overwrite it with
-   --  the later one changes nothing -- while keeping both grows the
-   --  vector every time a generated Build runs over the same tree.
+   --  One binding per widget, the last one winning.
    procedure Record_Binding
      (Source : in out Style_Source; B : Bound_Target) is
    begin
-      for I in 1 .. Natural (Impl_Of (Source).Bindings.Length) loop
-         if Impl_Of (Source).Bindings (I).Target = B.Target then
-            Impl_Of (Source).Bindings.Replace_Element (I, B);
-            Note_Binding (Source, B);
-            return;
-         end if;
-      end loop;
-
-      Impl_Of (Source).Bindings.Append (B);
-      Note_Binding (Source, B);
+      Impl_Of (Source).Effective.Include (B.Target, B);
    end Record_Binding;
 
    --  Restyle one widget from what it is currently bound under. Whether
@@ -678,41 +694,20 @@ package body Adi.CSS_Source is
          end;
       end if;
 
-      for I in 1 .. Natural (Impl_Of (Source).Bindings.Length) loop
-         declare
-            B : constant Bound_Target := Impl_Of (Source).Bindings (I);
-         begin
+      --  Each widget is styled from its own binding, so order across
+      --  targets carries nothing and hash order serves.
+      declare
+         Held : constant Binding_Vectors.Vector :=
+           Snapshot (Impl_Of (Source).Effective);
+      begin
+         for B of Held loop
             Visited_Bindings := Visited_Bindings + 1;
             if Adi.Widget.Is_Valid (B.Target) then
-               declare
-                  R : constant Adi.Widget.Widget_Ref :=
-                    Adi.Widget.Borrow (B.Target);
-               begin
-                  Reapplied_Bindings := Reapplied_Bindings + 1;
-                  case B.Kind is
-                     when Single_Binding =>
-                        Apply_To_Widget (
-                          Source,
-                          B.Selector_Kind,
-                          To_String (B.Name),
-                          R.Ptr.all);
-                     when Multi_Class_Binding =>
-                        Apply_Multi_Classes (
-                          Source,
-                          To_String (B.Name),
-                          R.Ptr.all);
-                     when Selector_Set_Binding =>
-                        Apply_Selector_Set_To_Widget (
-                          Source,
-                          R.Ptr.all,
-                          To_String (B.Tag_Name),
-                          To_String (B.Class_Name),
-                          To_String (B.Id_Name));
-                  end case;
-               end;
+               Reapplied_Bindings := Reapplied_Bindings + 1;
+               Apply_Binding (Source, B);
             end if;
-         end;
-      end loop;
+         end loop;
+      end;
 
       --  Apply :root { font-size } to the bound window, if any.
       --  No else: when the CSS has no root font-size we leave the window alone.
@@ -1258,8 +1253,15 @@ package body Adi.CSS_Source is
                    Kind   : Adi.CSS_Parser.Selector_Kind;
                    Name   : String;
                    W      : access Adi.Widget.Widget'Class) is
+      Id   : CSS_Text_Id;
+      Held : Boolean;
    begin
       if W = null then
+         return;
+      end if;
+
+      Intern_Selector (Normalize_Name (Name), Id, Held);
+      if not Held then
          return;
       end if;
 
@@ -1267,10 +1269,10 @@ package body Adi.CSS_Source is
       Record_Binding (Source, Bound_Target'(
         Kind          => Single_Binding,
         Selector_Kind => Kind,
-        Name          => To_Unbounded_String (Normalize_Name (Name)),
-        Tag_Name      => Null_Unbounded_String,
-        Class_Name    => Null_Unbounded_String,
-        Id_Name       => Null_Unbounded_String,
+        Name          => Id,
+        Tag_Name      => No_CSS_Text,
+        Class_Name    => No_CSS_Text,
+        Id_Name       => No_CSS_Text,
         Target        => Adi.Widget.Get_Handle (W.all)));
       Apply_To_Widget (Source, Kind, Name, W.all);
    end Bind;
@@ -1288,9 +1290,16 @@ package body Adi.CSS_Source is
    procedure Bind_Class (Source : in out Style_Source;
                          Name   : String;
                          W      : access Adi.Widget.Widget'Class) is
+      Id   : CSS_Text_Id;
+      Held : Boolean;
    begin
       if Has_Space (Name) then
          if W = null then
+            return;
+         end if;
+
+         Intern_Selector (Name, Id, Held);
+         if not Held then
             return;
          end if;
 
@@ -1298,10 +1307,10 @@ package body Adi.CSS_Source is
          Record_Binding (Source, Bound_Target'(
            Kind          => Multi_Class_Binding,
            Selector_Kind => Adi.CSS_Parser.Class_Selector,
-           Name          => To_Unbounded_String (Name),
-           Tag_Name      => Null_Unbounded_String,
-           Class_Name    => Null_Unbounded_String,
-           Id_Name       => Null_Unbounded_String,
+           Name          => Id,
+           Tag_Name      => No_CSS_Text,
+           Class_Name    => No_CSS_Text,
+           Id_Name       => No_CSS_Text,
            Target        => Adi.Widget.Get_Handle (W.all)));
          Apply_Multi_Classes (Source, Name, W.all);
       else
@@ -1417,8 +1426,20 @@ package body Adi.CSS_Source is
                                 Tag_Name   : String := "";
                                 Class_Name : String := "";
                                 Id_Name    : String := "") is
+      Tag_Id, Class_Id, Id_Id : CSS_Text_Id;
+      Tag_Held, Class_Held, Id_Held : Boolean;
    begin
       if W = null then
+         return;
+      end if;
+
+      --  A selector set is one styling decision, so one name the store
+      --  will not hold refuses the whole bind rather than styling the
+      --  widget from the rest of it.
+      Intern_Selector (Normalize_Name (Tag_Name), Tag_Id, Tag_Held);
+      Intern_Selector (Normalize_Name (Class_Name), Class_Id, Class_Held);
+      Intern_Selector (Normalize_Name (Id_Name), Id_Id, Id_Held);
+      if not (Tag_Held and then Class_Held and then Id_Held) then
          return;
       end if;
 
@@ -1426,10 +1447,10 @@ package body Adi.CSS_Source is
       Record_Binding (Source, Bound_Target'(
         Kind          => Selector_Set_Binding,
         Selector_Kind => Adi.CSS_Parser.Class_Selector,
-        Name          => Null_Unbounded_String,
-        Tag_Name      => To_Unbounded_String (Normalize_Name (Tag_Name)),
-        Class_Name    => To_Unbounded_String (Normalize_Name (Class_Name)),
-        Id_Name       => To_Unbounded_String (Normalize_Name (Id_Name)),
+        Name          => No_CSS_Text,
+        Tag_Name      => Tag_Id,
+        Class_Name    => Class_Id,
+        Id_Name       => Id_Id,
         Target        => Adi.Widget.Get_Handle (W.all)));
       Apply_Selector_Set_To_Widget
         (Source, W.all, Tag_Name, Class_Name, Id_Name);

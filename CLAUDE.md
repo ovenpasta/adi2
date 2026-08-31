@@ -93,6 +93,7 @@ alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/os_paths_test
 ./tests/bin/widget_property_test
 ./tests/bin/resolved_store_test
+./tests/bin/style_composer_test
 ./tests/bin/slot_pool_test
 ./tests/bin/selector_lookup_test
 

@@ -123,6 +123,24 @@ package body Adi.MCP is
       W.Key_Value ("resolved_generation",
         Adi.JSON.JSON_Integer (Adi.Resolved_Styles.Generation));
       W.End_Object;
+
+      --  The style composer's fixed pool of chain buffers. Reclaimed
+      --  counts buffers taken back from a chain that ended in neither
+      --  .Build nor .Discard, and dropped_slots the steps a full buffer
+      --  refused: both stay at zero for a program whose chains finish.
+      W.Key ("style_chains");
+      W.Start_Object;
+      W.Key_Value ("open",
+        Adi.JSON.JSON_Integer (Adi.Widget_Styles.Open_Chains));
+      W.Key_Value ("capacity",
+        Adi.JSON.JSON_Integer (Adi.Widget_Styles.Max_Open_Chains));
+      W.Key_Value ("slot_capacity",
+        Adi.JSON.JSON_Integer (Adi.Widget_Styles.Max_Chain_Slots));
+      W.Key_Value ("reclaimed",
+        Adi.JSON.JSON_Integer (Adi.Widget_Styles.Reclaimed_Chains));
+      W.Key_Value ("dropped_slots",
+        Adi.JSON.JSON_Integer (Adi.Widget_Styles.Dropped_Chain_Slots));
+      W.End_Object;
    end Write_Style_Stores;
 
    procedure Write_Texture_Cache

@@ -6,6 +6,8 @@ pragma Ada_2022;
 with Ada.Containers;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Widget_Properties;
+with Adi.Slot_Pool;
+with Adi.Slot_Pool.Refs;
 
 package Adi.Widget_Styles is
 
@@ -329,6 +331,178 @@ package Adi.Widget_Styles is
    function Build (B : Style_Builder) return Widget_Style;
 
    -------------------------------------------------
+   -- Composing a style property by property
+   -------------------------------------------------
+
+   --  A chain names one property at a time, through a setter that takes
+   --  that property's own value type, so Background (Px (14.0)) is a
+   --  compile error where Background (RGB (37, 99, 235)) is not:
+   --
+   --     Primary : constant Widget_Style :=
+   --        Style_Of
+   --           .Background (RGB (37, 99, 235))
+   --           .Padding    (CSS_Box (Px (12.0), Px (24.0)))
+   --        .On_Hover
+   --           .Background (RGB (29, 78, 216))
+   --        .Build;
+   --
+   --  Style_Of opens a chain, .On_Hover and .On move the active rule,
+   --  and .Build interns and answers a handle. A setter says "set" by
+   --  existing, so clearing has a spelling of its own, .Clear (Prop_X).
+   --
+   --  A chain gathers eight bytes per property named, in a slot the
+   --  pool below lends it, where the aggregate the same style is
+   --  written as materialises a whole Style_Rules. The composer is a
+   --  pool index, so a step copies the index rather than the slots.
+   --
+   --  A chain is linear: every value in it names one buffer, so
+   --  branching off an earlier step appends to the same chain rather
+   --  than starting a second.
+   --
+   --  A chain ends in .Build or in .Discard, either of which returns its
+   --  buffer. One that ends in neither -- an exception raised between
+   --  Style_Of and .Build, which evaluating a setter's argument can do --
+   --  leaves its buffer held. A chain opening on a full pool therefore
+   --  takes back the buffer held longest rather than doing without: a
+   --  chain lives for one expression, so the oldest is overwhelmingly one
+   --  that was abandoned. Acquire raises the buffer's serial, so the
+   --  chain it was taken from reads as holding no buffer rather than as
+   --  sharing this one, and its own .Build answers the style it opened
+   --  on -- the overrides it named did not apply.
+
+   --  Chains open at once. Ada evaluates an argument before the call it
+   --  belongs to, so a chain nested inside another holds a buffer beside
+   --  it.
+   Max_Open_Chains : constant := 8;
+
+   --  Properties one chain names, over all its rules.
+   Max_Chain_Slots : constant := 64;
+
+   type Composer is tagged private;
+
+   --  A fresh chain, and one that opens on an existing style: the
+   --  base's properties stand, the chain overrides what it names, and
+   --  the state rules it carries come through.
+   function Style_Of return Composer;
+   function Style_Of (Base : Widget_Style) return Composer;
+
+   --  Returns the chain's buffer without building. What a chain that is
+   --  abandoned needs; .Build does it on the way out. A buffer already
+   --  taken back is left where it is.
+   procedure Discard (C : in out Composer);
+
+   --  Whether the chain still holds a buffer, and so whether the steps
+   --  on it are being kept. False once .Build or .Discard has returned
+   --  the buffer, and false for a chain whose buffer was taken back --
+   --  which is the one case a caller cannot otherwise see, since such a
+   --  chain builds the style it opened on rather than raising.
+   function Is_Live (C : Composer) return Boolean;
+
+   -------------------------------------------------
+   -- Moving the active rule
+   -------------------------------------------------
+
+   --  The rule the setters after it name. A selector already carried --
+   --  by the chain or by the style it opened on -- is that rule again
+   --  rather than a second one, so .On_Hover twice names one rule.
+   function On (C : Composer; Sel : State_Selector) return Composer;
+   function On_Base (C : Composer) return Composer;
+   function On_Normal (C : Composer) return Composer;
+   function On_Hover (C : Composer) return Composer;
+   function On_Press (C : Composer) return Composer;
+   function On_Focus (C : Composer) return Composer;
+   function On_Disabled (C : Composer) return Composer;
+   function On_Selected (C : Composer) return Composer;
+
+   -------------------------------------------------
+   -- Setters
+   -------------------------------------------------
+
+   function Text_Color (C : Composer; V : Color_Value) return Composer;
+   function Background (C : Composer; V : Color_Value) return Composer;
+
+   function Radius (C : Composer; V : Border_Radius_Value) return Composer;
+   function Border_Width (C : Composer; V : Border_Width_Value) return Composer;
+   function Border_Color (C : Composer; V : Border_Color_Value) return Composer;
+   function Border_Style (C : Composer; V : Border_Style_Value) return Composer;
+
+   function Outline_Width (C : Composer; V : Length_Value) return Composer;
+   function Outline_Color (C : Composer; V : Color_Value) return Composer;
+   function Outline_Offset (C : Composer; V : Length_Value) return Composer;
+
+   function Padding (C : Composer; V : CSS_Box_Value) return Composer;
+   function Margin (C : Composer; V : CSS_Box_Value) return Composer;
+
+   function Width (C : Composer; V : Size_Value) return Composer;
+   function Height (C : Composer; V : Size_Value) return Composer;
+   function Min_Width (C : Composer; V : Size_Value) return Composer;
+   function Max_Width (C : Composer; V : Size_Value) return Composer;
+   function Min_Height (C : Composer; V : Size_Value) return Composer;
+   function Max_Height (C : Composer; V : Size_Value) return Composer;
+
+   function Font_Size (C : Composer; V : Length_Value) return Composer;
+   function Font_Weight (C : Composer; V : Font_Weight_Value) return Composer;
+   function Text_Align (C : Composer; V : Text_Align_Value) return Composer;
+   function Text_Wrap_Mode
+     (C : Composer; V : Text_Wrap_Mode_Value) return Composer;
+
+   function Display (C : Composer; V : Display_Value) return Composer;
+   function Overflow_X (C : Composer; V : Overflow_Value) return Composer;
+   function Overflow_Y (C : Composer; V : Overflow_Value) return Composer;
+
+   function Opacity (C : Composer; V : Opacity_Value) return Composer;
+   function Cursor_Style (C : Composer; V : Cursor_Value) return Composer;
+   function Box_Shadow (C : Composer; V : Box_Shadow_Value) return Composer;
+
+   function Flex_Direction
+     (C : Composer; V : Flex_Direction_Value) return Composer;
+   function Justify_Content
+     (C : Composer; V : Justify_Content_Value) return Composer;
+   function Align_Items (C : Composer; V : Align_Items_Value) return Composer;
+   function Gap (C : Composer; V : Gap_Value) return Composer;
+   function Flex_Grow (C : Composer; V : Flex_Grow_Value) return Composer;
+   function Flex_Shrink (C : Composer; V : Flex_Shrink_Value) return Composer;
+
+   function Transition (C : Composer; V : Transition_Spec) return Composer;
+
+   --  Names the property as holding no value, which is what stops a
+   --  rule earlier in the cascade showing through. A property outside
+   --  Composable_Properties is reported and leaves the chain alone.
+   function Clear (C : Composer; P : CSS_Property) return Composer;
+
+   -------------------------------------------------
+   -- Finishing
+   -------------------------------------------------
+
+   --  Folds the chain's slots into the rule sets they name, interns
+   --  each, and answers the handle for the style they make. The same
+   --  style written as an aggregate through From/.On/.Build answers the
+   --  same handle: interning is canonical, so this is equality rather
+   --  than equivalence.
+   --
+   --  A chain whose buffer was taken back answers the style it opened
+   --  on, which is Empty_Widget_Style for a chain that opened on none.
+   function Build (C : Composer) return Widget_Style;
+
+   -------------------------------------------------
+   -- Instrumentation
+   -------------------------------------------------
+
+   --  Chains open at this moment, buffers taken back from a chain that
+   --  had not finished with one, and steps a full chain buffer dropped --
+   --  the last two over the life of the process. Either rising says a
+   --  chain somewhere is abandoning its buffer or naming more than
+   --  Max_Chain_Slots properties; perf_stats reports all three.
+   function Open_Chains return Natural;
+   function Reclaimed_Chains return Natural;
+   function Dropped_Chain_Slots return Natural;
+
+   --  Storage elements a chain step and a chain slot occupy, which a
+   --  test pins rather than measures.
+   function Slot_Bytes return Natural;
+   function Composer_Bytes return Natural;
+
+   -------------------------------------------------
    -- Predefined Selectors
    -------------------------------------------------
 
@@ -361,5 +535,77 @@ private
    --  Instrumentation the tests need and applications do not: rules
    --  Try_Add_Rule has dropped, over the life of the process.
    Dropped_Rule_Count : Natural := 0;
+
+   --  A chain step. Prop says how Val reads, and a slot is read only by
+   --  something that knows which property it holds, so a variant record
+   --  has nothing to add -- and a variant would stand as wide as the
+   --  widest value type rather than at these eight bytes.
+   type Slot_Op is (Set_Value, Clear_Value);
+
+   --  0 is the base rule; 1 .. Max_Style_Rules are the state rules the
+   --  chain named, in the order it named them.
+   type Rule_Slot is range 0 .. Max_Style_Rules;
+
+   type Slot is record
+      Rule : Rule_Slot;
+      Prop : CSS_Property;
+      Op   : Slot_Op;
+      Val  : Value_Ref;
+   end record;
+
+   type Slot_Array is array (1 .. Max_Chain_Slots) of Slot;
+
+   --  A selector as a chain buffer holds it: the same five fields as a
+   --  State_Selector with no component default, which is what lets the
+   --  pool instantiation below carry its restrictions.
+   type Chain_Selector is record
+      Widget_Required : Widget_States;
+      Widget_Excluded : Widget_States;
+      Part_Required   : Widget_States;
+      Part_Excluded   : Widget_States;
+      Properties      : Adi.Widget_Properties.Property_Conditions;
+   end record;
+
+   type Selector_Array is array (1 .. Max_Style_Rules) of Chain_Selector;
+
+   type Chain_Buffer is record
+      Slots      : Slot_Array;
+      Selectors  : Selector_Array;
+      Count      : Natural;
+      Rule_Count : Natural;
+      --  Whether a step found the buffer full, so the drop is reported
+      --  once for the chain rather than once for the step.
+      Dropped    : Boolean;
+   end record;
+
+   package Chain_Pool is new Adi.Slot_Pool
+     (Payload => Chain_Buffer, Capacity => Max_Open_Chains)
+     with Local_Restrictions => (No_Secondary_Stack, No_Heap_Allocations);
+
+   package Chain_Refs is new Chain_Pool.Refs
+     with Local_Restrictions => (No_Secondary_Stack, No_Heap_Allocations);
+
+   --  The chain names its buffer by the pair Chain_Pool.Named takes
+   --  back rather than by a Chain_Pool.Slot: a tagged type with a
+   --  component of the instance's own private type is charged against
+   --  the instance's Local_Restrictions, and the pair is what
+   --  Adi.Slot_Pool publishes for a caller carrying a slot inside a
+   --  name of its own.
+   type Chain_Ordinal is range 0 .. Max_Open_Chains;
+
+   --  Seed rides in the composer rather than in the buffer, so a chain
+   --  whose buffer was taken back still knows the style it opened on and
+   --  .Build can answer that rather than the empty style.
+   type Composer is tagged record
+      Serial  : Natural := 0;
+      Seed    : Widget_Style := Empty_Widget_Style;
+      Ordinal : Chain_Ordinal := 0;
+      Active  : Rule_Slot := 0;
+   end record;
+
+   --  Buffers taken back from an unfinished chain, and steps dropped by
+   --  a full buffer, over the life of the process.
+   Reclaimed_Chain_Count : Natural := 0;
+   Dropped_Slot_Count    : Natural := 0;
 
 end Adi.Widget_Styles;

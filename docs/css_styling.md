@@ -928,6 +928,193 @@ Custom properties use a flat, root-scoped model (no per-selector inheritance):
 
 ---
 
+## Composing a Style in Ada
+
+`Adi.Widget_Styles` offers a second way to write a style, beside the
+`Style_Rules` aggregate the generator emits: a chain that names one
+property at a time.
+
+```ada
+Primary : constant Widget_Style :=
+   Style_Of
+      .Background (RGB (37, 99, 235))
+      .Padding    (CSS_Box (Px (12.0), Px (24.0)))
+      .Radius     (Radius (Px (6.0)))
+   .On_Hover
+      .Background (RGB (29, 78, 216))
+   .Build;
+
+Set_Part_Style (W, Main_Part, Primary);
+```
+
+Each setter takes its own property's value type, so `Background (Px (14.0))`
+is a compile error where `Background (RGB (37, 99, 235))` is not — more
+checking than an aggregate gives, since `others => <>` has nothing to say
+here.
+
+Setters are named for their properties, with two exceptions: `color` is
+spelled `.Text_Color` and `cursor` is spelled `.Cursor_Style`. Both plain
+names are taken by a *type* elsewhere — `Adi.Core.Color`, and the `Cursor`
+every `Ada.Containers` instantiation declares — and where a type and a
+subprogram of one name are both use-visible, neither is, so the
+application's own use of the name stops compiling. The chain itself is
+immune either way, since a prefixed call resolves against the type's
+primitive operations rather than through use-visibility; it is the
+surrounding code that pays. `.Text_Color` also matches what the library
+calls the field internally and sits beside `.Border_Color` and
+`.Outline_Color`.
+
+`Style_Of` opens a chain, `.On (Selector)` and the `.On_Hover`,
+`.On_Press`, `.On_Focus`, `.On_Disabled`, `.On_Selected` and `.On_Normal`
+shorthands move the active rule, `.On_Base` moves back to the base rule,
+and `.Build` interns what the chain named and answers the same four-byte
+`Widget_Style` the aggregate path answers.
+
+The two paths agree exactly. Interning is canonical, so a style written
+either way is one entry and one handle:
+
+```ada
+From ((Background_Color => Set_Bg (RGB (37, 99, 235)), others => <>)).Build
+  =  Style_Of.Background (RGB (37, 99, 235)).Build
+```
+
+A selector the chain has already named is that rule again rather than a
+second one, so `.On_Hover` twice fills one rule.
+
+`gap` is the one property whose setter does not simply overwrite. One
+field carries both axes, so `.Gap (Gap_Row (…))` overlays its own axis
+and leaves the other as it was, while `.Gap (Gap (…))` names both and
+replaces them — the same reading `Adi.CSS_Parser` gives `row-gap`,
+`column-gap` and `gap`.
+
+### Clearing, and deriving
+
+A setter says "set" by existing, so clearing has a spelling of its own:
+
+```ada
+Style_Of (Primary) .Clear (Prop_Background_Color) .Build
+```
+
+`Clear` is the CSS cascade's "named, and holding no value", which stops a
+rule earlier in the cascade showing through; it is not the same as never
+naming the property.
+
+`Style_Of (Existing)` opens a chain on a style already interned, which is
+the composer's answer to `Base with delta Background_Color => …`:
+
+```ada
+Danger : constant Widget_Style :=
+   Style_Of (Primary) .Background (RGB (200, 30, 30)) .Build;
+```
+
+The base's other properties stand, the state rules come through, and
+`.On_Hover` on a derived chain reaches the rule the base already carries
+rather than adding one beside it.
+
+### What a chain costs
+
+A chain step is a slot of eight bytes — the rule it names, the
+`CSS_Property` that says how the value reads, and a four-byte value
+reference — where the aggregate for the same rule materialises a whole
+`Style_Rules`, 1,072 bytes on x86-64. A rule naming three properties, the
+mean across the stylesheets in this repository, spends 24 bytes against
+1,072.
+
+The slots live in a fixed pool of `Max_Open_Chains` (8) buffers of
+`Max_Chain_Slots` (64) slots each, so the composer itself is 24 bytes and
+a chain step copies that rather than the slots. Ada evaluates an argument
+before the call it belongs to, which is what the eight buffers are for: a
+chain nested inside another holds a buffer beside it.
+
+A chain is linear. Every value in it names one buffer, so branching off
+an earlier step appends to the same chain rather than starting a second.
+
+### When a chain does not finish
+
+A chain ends in `.Build` or in `.Discard`, either of which returns its
+buffer. One that ends in neither leaves its buffer held — and that needs
+no mistake to happen, because Ada evaluates a setter's argument after
+`Style_Of` has taken the buffer:
+
+```ada
+Style_Of.Background (RGB (R, G, B)).Build   --  R negative raises here
+```
+
+`Constraint_Error` from `RGB` arrives before any setter runs, and the
+buffer is gone.
+
+So a chain opening on a full pool **takes back the buffer held longest**
+rather than doing without. A chain lives for one expression, so the
+oldest is overwhelmingly one that was abandoned. `Acquire` raises that
+buffer's serial, so the chain it was taken from reads as holding no
+buffer rather than as sharing this one: its steps become no-ops, and its
+`.Build` answers the style it opened on — the overrides it named did not
+apply. A `Style_Of` chain answers `Empty_Widget_Style` that way, and a
+`Style_Of (Primary)` chain answers `Primary`.
+
+The answer is plausible rather than wrong, which is the awkward part: no
+exception is raised and the style is a real one. Two things make it
+visible. `Is_Live (C)` asks directly — false once `.Build` or `.Discard`
+has returned the buffer, and false for a chain whose buffer was taken
+back. And the reclaim is reported twice: once at the chain that did the
+evicting, and once at the evicted chain's own `.Build`, which is the call
+site that received the substituted answer.
+
+Past `Max_Chain_Slots`, a step is dropped and the chain builds what fits.
+
+All of it is reported through `Adi.Log`, which is a no-op outside a
+development build, so the counters are the diagnosis that survives into a
+shipped binary: `Open_Chains`, `Reclaimed_Chains` and
+`Dropped_Chain_Slots`, carried in `perf_stats` under `style_chains`
+alongside the pool's two capacities. Either counter above zero says a
+chain somewhere is not finishing, or is naming more properties than a
+buffer holds.
+
+### What the chain spends
+
+The slot write carries GNAT's `Local_Restrictions => (No_Secondary_Stack,
+No_Heap_Allocations)`, as do the buffer mechanics — taking a buffer,
+returning one, reclaiming the oldest. The compiler holds that rather than
+a comment asserting it. Two things sit outside: reporting a dropped step
+or a reclaimed buffer builds a message, which is what spends the
+secondary stack, and interning a value the stores have not seen appends
+to a vector. A chain whose values are already interned, and which drops
+nothing, allocates nothing.
+
+GNAT charges a call to its caller unless the callee declares the same
+restriction, which is why the reporting is a subprogram of its own rather
+than an `if` inside the slot write.
+
+### Value references
+
+A setter interns its argument into the store for that value's own type
+and keeps a four-byte `Adi.CSS_Styles.Value_Ref`. `Intern` is overloaded
+per value type, so the argument picks the store.
+
+A value narrow enough sits in the reference itself and reaches no store:
+an enumeration, a named colour, an `rgb()` triple in eight bits a
+channel, a length or a flex factor whose magnitude is a whole number
+below 65,536. Everything else — an alpha, a fraction, a negative, a
+`CSS_Box_Value`, a `Border_Color_Value`, a `Box_Shadow_Value` — is an
+index into a per-type store, where equal values share one entry, so
+`RGBA (0, 0, 0, 0.25)` named in six rules is one. `Is_Stored` says which
+a reference is, and `Interned_Values` and `Interned_Value_Bytes` report
+what the stores hold.
+
+### Which properties compose
+
+`Adi.CSS_Styles.Composable_Properties` names the 34 properties the chain
+carries, chosen by use: the 30 most named across the 32 stylesheets in
+this repository, less `outline` — a shorthand owning no field — and
+`background-image`, whose value is text or a gradient, plus the six that
+complete a group already there. `Clear` on a property outside
+that set is reported through `Adi.Log` and leaves the chain alone; there
+is no setter for one, so the compiler answers first.
+
+The aggregate path stays as it is, and the generator still emits it.
+
+---
+
 ## Compile-Time Generation
 
 ### Invocation

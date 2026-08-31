@@ -84,6 +84,12 @@ private
    --  is a Natural, so it never wraps onto a live hand-out: past
    --  Natural'Last Acquire raises Constraint_Error, which asks 2**31
    --  hand-outs of one slot.
+   --
+   --  A caller ordering the slots it holds wants a counter of its own
+   --  and a bound of its own: one raised per acquisition pool-wide
+   --  reaches Natural'Last Capacity times sooner than this does.
+   --  Adi.Widget_Styles' chain ledger is the worked example -- it
+   --  renumbers the slots it holds rather than letting its clock climb.
    type Slot_Entry is record
       Item   : aliased Payload;
       In_Use : Boolean := False;

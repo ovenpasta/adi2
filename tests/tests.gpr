@@ -80,6 +80,7 @@ project Tests is
       "resolved_store_test",
       "selector_lookup_test",
       "slot_pool_test",
+      "style_composer_test",
       "widget_property_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    Platform_Name := external ("ADI_PLATFORM", "linux");

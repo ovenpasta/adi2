@@ -1433,6 +1433,129 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Inherit_From (Parent, Child : Style_Rules) return Style_Rules;
 
    -------------------------------------------------
+   --  Values a chain step names
+   -------------------------------------------------
+
+   --  Four bytes standing for one property's value. A value narrow
+   --  enough sits in the reference itself and reaches no store; a wider
+   --  one is an index into the store for its own type, so equal values
+   --  across a program share one entry. Intern is overloaded per value
+   --  type, so the argument picks the store.
+   --
+   --  A reference carries no record of which type made it: the property
+   --  a chain step names is what says which reader to hand it to, which
+   --  is what keeps Adi.Widget_Styles.Slot at eight bytes where a
+   --  variant would stand as wide as the widest value.
+   type Value_Ref is private;
+
+   --  What a chain step carries where the step names no value: the
+   --  spelling of clearing a property, which a setter cannot say by
+   --  existing.
+   No_Value_Ref : constant Value_Ref;
+
+   function Intern (V : Color_Value)         return Value_Ref;
+   function Intern (V : Length_Value)        return Value_Ref;
+   function Intern (V : Size_Value)          return Value_Ref;
+   function Intern (V : CSS_Box_Value)       return Value_Ref;
+   function Intern (V : Border_Width_Value)  return Value_Ref;
+   function Intern (V : Border_Color_Value)  return Value_Ref;
+   function Intern (V : Border_Style_Value)  return Value_Ref;
+   function Intern (V : Border_Radius_Value) return Value_Ref;
+   function Intern (V : Gap_Value)           return Value_Ref;
+   function Intern (V : Box_Shadow_Value)    return Value_Ref;
+   function Intern (V : Transition_Spec)     return Value_Ref;
+   function Intern (V : Opacity_Value)       return Value_Ref;
+   function Intern (V : Flex_Grow_Value)     return Value_Ref;
+   function Intern (V : Flex_Shrink_Value)   return Value_Ref;
+
+   function Intern (V : Display_Value)         return Value_Ref;
+   function Intern (V : Overflow_Value)        return Value_Ref;
+   function Intern (V : Cursor_Value)          return Value_Ref;
+   function Intern (V : Text_Align_Value)      return Value_Ref;
+   function Intern (V : Text_Wrap_Mode_Value)  return Value_Ref;
+   function Intern (V : Font_Weight_Value)     return Value_Ref;
+   function Intern (V : Flex_Direction_Value)  return Value_Ref;
+   function Intern (V : Justify_Content_Value) return Value_Ref;
+   function Intern (V : Align_Items_Value)     return Value_Ref;
+
+   --  The value a reference names. Reading one as the wrong type
+   --  answers a value rather than an error, so a caller pairs every
+   --  reference with the property that made it.
+   function Color_Of         (R : Value_Ref) return Color_Value;
+   function Length_Of        (R : Value_Ref) return Length_Value;
+   function Size_Of          (R : Value_Ref) return Size_Value;
+   function Box_Of           (R : Value_Ref) return CSS_Box_Value;
+   function Border_Width_Of  (R : Value_Ref) return Border_Width_Value;
+   function Border_Color_Of  (R : Value_Ref) return Border_Color_Value;
+   function Border_Style_Of  (R : Value_Ref) return Border_Style_Value;
+   function Border_Radius_Of (R : Value_Ref) return Border_Radius_Value;
+   function Gap_Of           (R : Value_Ref) return Gap_Value;
+   function Box_Shadow_Of    (R : Value_Ref) return Box_Shadow_Value;
+   function Transition_Of    (R : Value_Ref) return Transition_Spec;
+   function Opacity_Of       (R : Value_Ref) return Opacity_Value;
+   function Flex_Grow_Of     (R : Value_Ref) return Flex_Grow_Value;
+   function Flex_Shrink_Of   (R : Value_Ref) return Flex_Shrink_Value;
+
+   function Display_Of         (R : Value_Ref) return Display_Value;
+   function Overflow_Of        (R : Value_Ref) return Overflow_Value;
+   function Cursor_Of          (R : Value_Ref) return Cursor_Value;
+   function Text_Align_Of      (R : Value_Ref) return Text_Align_Value;
+   function Text_Wrap_Mode_Of  (R : Value_Ref) return Text_Wrap_Mode_Value;
+   function Font_Weight_Of     (R : Value_Ref) return Font_Weight_Value;
+   function Flex_Direction_Of  (R : Value_Ref) return Flex_Direction_Value;
+   function Justify_Content_Of (R : Value_Ref) return Justify_Content_Value;
+   function Align_Items_Of     (R : Value_Ref) return Align_Items_Value;
+
+   --  Whether the reference reached a store rather than holding its
+   --  value outright. Instrumentation a test reads.
+   function Is_Stored (R : Value_Ref) return Boolean;
+
+   --  The properties Apply_Property and Clear_Property carry, and so
+   --  the ones Adi.Widget_Styles' composer offers a setter for. Chosen
+   --  by use: the 30 most named across the 32 stylesheets in this
+   --  repository, less `outline`, a shorthand owning no field, and
+   --  `background-image`, whose value is text or a gradient; plus the
+   --  six that complete a group already here.
+   Composable_Properties : constant CSS_Property_Set :=
+     [Prop_Color             | Prop_Background_Color  |
+      Prop_Border_Radius     | Prop_Border_Width      |
+      Prop_Border_Color      | Prop_Border_Style      |
+      Prop_Outline_Width     | Prop_Outline_Color     |
+      Prop_Outline_Offset    |
+      Prop_Padding           | Prop_Margin            |
+      Prop_Width             | Prop_Height            |
+      Prop_Min_Width         | Prop_Max_Width         |
+      Prop_Min_Height        | Prop_Max_Height        |
+      Prop_Font_Size         | Prop_Font_Weight       |
+      Prop_Text_Align        | Prop_Text_Wrap_Mode    |
+      Prop_Display           | Prop_Overflow_X        |
+      Prop_Overflow_Y        | Prop_Opacity           |
+      Prop_Cursor            | Prop_Box_Shadow        |
+      Prop_Flex_Direction    | Prop_Justify_Content   |
+      Prop_Align_Items       | Prop_Gap               |
+      Prop_Flex_Grow         | Prop_Flex_Shrink       |
+      Prop_Transition        => True,
+      others => False];
+
+   --  Sets P in S to the value R names, reading R as the type P holds.
+   --  A property outside Composable_Properties leaves S alone and
+   --  reports through Adi.Log.
+   procedure Apply_Property
+     (S : in out Style_Rules; P : CSS_Property; R : Value_Ref);
+
+   --  Takes P in S to cleared: named, and holding no value, which is
+   --  what stops an earlier rule in the cascade showing through. A
+   --  property outside Composable_Properties leaves S alone and
+   --  reports.
+   procedure Clear_Property (S : in out Style_Rules; P : CSS_Property);
+
+   --  Distinct values the per-type stores hold, and the storage
+   --  elements their entries occupy. A value narrow enough to sit in a
+   --  reference reaches no store and counts in neither.
+   function Interned_Values return Natural;
+   function Interned_Value_Bytes return Natural;
+
+   -------------------------------------------------
    -- Resolved style for rendering
    -------------------------------------------------
 
@@ -1770,6 +1893,13 @@ private
 
    --  An index into the rule-set store, zero for Empty_Style.
    type Rules_Handle is new Natural;
+
+   --  Bit 31 set names an entry in the store for the value's own type;
+   --  clear, the remaining 31 bits are the value itself. Each reader
+   --  below fixes what those bits mean for its type.
+   type Value_Ref is mod 2 ** 32;
+
+   No_Value_Ref : constant Value_Ref := 0;
 
    Empty_Rules : constant Rules_Handle := 0;
 

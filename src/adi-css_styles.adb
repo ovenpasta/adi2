@@ -2017,4 +2017,474 @@ package body Adi.CSS_Styles is
       end;
    end Intern_Rules;
 
+   -------------------------------------------------
+   -- Value stores
+   -------------------------------------------------
+
+   --  One store per value type wide enough to want one. Interning is by
+   --  value, so RGBA (0, 0, 0, 0.25) named in six rules is one entry,
+   --  and a store never releases: the vocabulary a program names is
+   --  what bounds it.
+   generic
+      type Value_Type is private;
+      with function Digest (H : Value_Hash.Digest; V : Value_Type)
+        return Value_Hash.Digest;
+   package Value_Store is
+      function Intern (V : Value_Type) return Positive;
+      function Get (I : Positive) return Value_Type;
+      function Count return Natural;
+      function Bytes return Natural;
+   end Value_Store;
+
+   package body Value_Store is
+
+      package Value_Vectors is new Ada.Containers.Vectors
+        (Positive, Value_Type);
+      package Index_Vectors is new Ada.Containers.Vectors (Positive, Positive);
+
+      function Same_Hash (H : Ada.Containers.Hash_Type)
+        return Ada.Containers.Hash_Type is (H);
+
+      --  Indexes grouped by digest, so interning probes a handful of
+      --  candidates rather than the whole store.
+      package Index_Maps is new Ada.Containers.Hashed_Maps
+        (Key_Type        => Ada.Containers.Hash_Type,
+         Element_Type    => Index_Vectors.Vector,
+         Hash            => Same_Hash,
+         Equivalent_Keys => Ada.Containers."=",
+         "="             => Index_Vectors."=");
+
+      Store    : Value_Vectors.Vector;
+      By_Digest : Index_Maps.Map;
+
+      function Count return Natural is (Natural (Store.Length));
+
+      function Bytes return Natural is
+        (Count * Value_Type'Max_Size_In_Storage_Elements);
+
+      function Get (I : Positive) return Value_Type is (Store.Element (I));
+
+      function Intern (V : Value_Type) return Positive is
+         Key    : constant Ada.Containers.Hash_Type :=
+           Digest (Value_Hash.Seed, V);
+         Bucket : constant Index_Maps.Cursor := By_Digest.Find (Key);
+      begin
+         if Index_Maps.Has_Element (Bucket) then
+            for I of Index_Maps.Element (Bucket) loop
+               if Store.Element (I) = V then
+                  return I;
+               end if;
+            end loop;
+         end if;
+
+         Store.Append (V);
+
+         declare
+            Fresh_Index : constant Positive := Positive (Store.Length);
+         begin
+            if Index_Maps.Has_Element (Bucket) then
+               By_Digest.Reference (Bucket).Append (Fresh_Index);
+            else
+               declare
+                  Fresh : Index_Vectors.Vector;
+               begin
+                  Fresh.Append (Fresh_Index);
+                  By_Digest.Insert (Key, Fresh);
+               end;
+            end if;
+            return Fresh_Index;
+         end;
+      end Intern;
+
+   end Value_Store;
+
+   function Float_Digest (H : Value_Hash.Digest; V : Float)
+     return Value_Hash.Digest is (Value_Hash.Mix (H, Value_Hash.Num (V)));
+
+   package Color_Values is new Value_Store (Color_Value, Value_Hash.Add);
+   package Length_Values is new Value_Store (Length_Value, Value_Hash.Add);
+   package Size_Values is new Value_Store (Size_Value, Value_Hash.Add);
+   package Box_Values is new Value_Store (CSS_Box_Value, Value_Hash.Add);
+   package Border_Width_Values is
+     new Value_Store (Border_Width_Value, Value_Hash.Add);
+   package Border_Color_Values is
+     new Value_Store (Border_Color_Value, Value_Hash.Add);
+   package Border_Style_Values is
+     new Value_Store (Border_Style_Value, Value_Hash.Add);
+   package Border_Radius_Values is
+     new Value_Store (Border_Radius_Value, Value_Hash.Add);
+   package Gap_Values is new Value_Store (Gap_Value, Value_Hash.Add);
+   package Shadow_Values is new Value_Store (Box_Shadow_Value, Value_Hash.Add);
+   package Transition_Values is
+     new Value_Store (Transition_Spec, Value_Hash.Add);
+   package Float_Values is new Value_Store (Float, Float_Digest);
+
+   function Interned_Values return Natural is
+     (Color_Values.Count + Length_Values.Count + Size_Values.Count
+      + Box_Values.Count + Border_Width_Values.Count
+      + Border_Color_Values.Count + Border_Style_Values.Count
+      + Border_Radius_Values.Count + Gap_Values.Count
+      + Shadow_Values.Count + Transition_Values.Count
+      + Float_Values.Count);
+
+   function Interned_Value_Bytes return Natural is
+     (Color_Values.Bytes + Length_Values.Bytes + Size_Values.Bytes
+      + Box_Values.Bytes + Border_Width_Values.Bytes
+      + Border_Color_Values.Bytes + Border_Style_Values.Bytes
+      + Border_Radius_Values.Bytes + Gap_Values.Bytes
+      + Shadow_Values.Bytes + Transition_Values.Bytes
+      + Float_Values.Bytes);
+
+   -------------------------------------------------
+   -- Value references
+   -------------------------------------------------
+
+   Store_Bit    : constant Value_Ref := 2 ** 31;
+   Payload_Mask : constant Value_Ref := Store_Bit - 1;
+
+   function Stored (I : Positive) return Value_Ref is
+     (Value_Ref (I) or Store_Bit);
+
+   function Immediate (P : Natural) return Value_Ref is (Value_Ref (P));
+
+   function Payload (R : Value_Ref) return Natural is
+     (Natural (R and Payload_Mask));
+
+   function Is_Stored (R : Value_Ref) return Boolean is
+     ((R and Store_Bit) /= 0);
+
+   function Stored_Index (R : Value_Ref) return Positive is
+     (Positive (R and Payload_Mask));
+
+   --  What an immediate holds a number as: a whole magnitude in sixteen
+   --  bits, which is what the lengths and the flex factors a stylesheet
+   --  writes are. Anything else -- a fraction, a negative, a magnitude
+   --  past the bound, a NaN -- reaches the store and reads back exact.
+   Whole_Limit : constant := 65_535;
+
+   function Fits_Whole (F : Float) return Boolean is
+     (F >= 0.0 and then F <= Float (Whole_Limit)
+      and then F = Float'Truncation (F));
+
+   function Whole (F : Float) return Natural is
+     (Natural (Float'Truncation (F)));
+
+   ---------------------------------------------------------------------
+   --  Colours: a name, or a channel triple in eight bits each. An
+   --  alpha, or a channel past 255, reaches the store.
+   ---------------------------------------------------------------------
+
+   Color_Named_Tag : constant := 0;
+   Color_RGB_Tag   : constant := 1;
+   Color_Tag_Unit  : constant := 2 ** 24;
+
+   function Intern (V : Color_Value) return Value_Ref is
+   begin
+      case V.Kind is
+         when Named =>
+            return Immediate
+              (Color_Named_Tag * Color_Tag_Unit + Named_Color'Pos (V.Name));
+         when RGB =>
+            if V.R <= 255 and then V.G <= 255 and then V.B <= 255 then
+               return Immediate
+                 (Color_RGB_Tag * Color_Tag_Unit
+                  + V.R * 2 ** 16 + V.G * 2 ** 8 + V.B);
+            end if;
+         when RGBA =>
+            null;
+      end case;
+      return Stored (Color_Values.Intern (V));
+   end Intern;
+
+   function Color_Of (R : Value_Ref) return Color_Value is
+   begin
+      if Is_Stored (R) then
+         return Color_Values.Get (Stored_Index (R));
+      end if;
+
+      declare
+         Bits : constant Natural := Payload (R) mod Color_Tag_Unit;
+      begin
+         if Payload (R) / Color_Tag_Unit = Color_Named_Tag then
+            return C (Named_Color'Val (Bits));
+         end if;
+         return RGB (Bits / 2 ** 16, (Bits / 2 ** 8) mod 256, Bits mod 256);
+      end;
+   end Color_Of;
+
+   ---------------------------------------------------------------------
+   --  Lengths and the bare floats: the unit beside a whole magnitude.
+   ---------------------------------------------------------------------
+
+   Length_Unit_Unit : constant := 2 ** 16;
+
+   function Intern (V : Length_Value) return Value_Ref is
+     (if Fits_Whole (V.Amount)
+      then Immediate
+        (CSS_Unit'Pos (V.Unit) * Length_Unit_Unit + Whole (V.Amount))
+      else Stored (Length_Values.Intern (V)));
+
+   function Length_Of (R : Value_Ref) return Length_Value is
+     (if Is_Stored (R) then Length_Values.Get (Stored_Index (R))
+      else (Amount => Float (Payload (R) mod Length_Unit_Unit),
+            Unit   => CSS_Unit'Val (Payload (R) / Length_Unit_Unit)));
+
+   function Intern_Float (V : Float) return Value_Ref is
+     (if Fits_Whole (V) then Immediate (Whole (V))
+      else Stored (Float_Values.Intern (V)));
+
+   function Float_Of (R : Value_Ref) return Float is
+     (if Is_Stored (R) then Float_Values.Get (Stored_Index (R))
+      else Float (Payload (R)));
+
+   function Intern (V : Opacity_Value) return Value_Ref is
+     (Intern_Float (Float (V)));
+
+   function Opacity_Of (R : Value_Ref) return Opacity_Value is
+     (Opacity_Value (Float_Of (R)));
+
+   function Intern (V : Flex_Grow_Value) return Value_Ref is
+     (Intern_Float (Float (V)));
+
+   function Flex_Grow_Of (R : Value_Ref) return Flex_Grow_Value is
+     (Flex_Grow_Value (Float_Of (R)));
+
+   function Intern (V : Flex_Shrink_Value) return Value_Ref is
+     (Intern_Float (Float (V)));
+
+   function Flex_Shrink_Of (R : Value_Ref) return Flex_Shrink_Value is
+     (Flex_Shrink_Value (Float_Of (R)));
+
+   ---------------------------------------------------------------------
+   --  The values that always reach a store.
+   ---------------------------------------------------------------------
+
+   function Intern (V : Size_Value) return Value_Ref is
+     (Stored (Size_Values.Intern (V)));
+   function Size_Of (R : Value_Ref) return Size_Value is
+     (Size_Values.Get (Stored_Index (R)));
+
+   function Intern (V : CSS_Box_Value) return Value_Ref is
+     (Stored (Box_Values.Intern (V)));
+   function Box_Of (R : Value_Ref) return CSS_Box_Value is
+     (Box_Values.Get (Stored_Index (R)));
+
+   function Intern (V : Border_Width_Value) return Value_Ref is
+     (Stored (Border_Width_Values.Intern (V)));
+   function Border_Width_Of (R : Value_Ref) return Border_Width_Value is
+     (Border_Width_Values.Get (Stored_Index (R)));
+
+   function Intern (V : Border_Color_Value) return Value_Ref is
+     (Stored (Border_Color_Values.Intern (V)));
+   function Border_Color_Of (R : Value_Ref) return Border_Color_Value is
+     (Border_Color_Values.Get (Stored_Index (R)));
+
+   function Intern (V : Border_Style_Value) return Value_Ref is
+     (Stored (Border_Style_Values.Intern (V)));
+   function Border_Style_Of (R : Value_Ref) return Border_Style_Value is
+     (Border_Style_Values.Get (Stored_Index (R)));
+
+   function Intern (V : Border_Radius_Value) return Value_Ref is
+     (Stored (Border_Radius_Values.Intern (V)));
+   function Border_Radius_Of (R : Value_Ref) return Border_Radius_Value is
+     (Border_Radius_Values.Get (Stored_Index (R)));
+
+   function Intern (V : Gap_Value) return Value_Ref is
+     (Stored (Gap_Values.Intern (V)));
+   function Gap_Of (R : Value_Ref) return Gap_Value is
+     (Gap_Values.Get (Stored_Index (R)));
+
+   function Intern (V : Box_Shadow_Value) return Value_Ref is
+     (Stored (Shadow_Values.Intern (V)));
+   function Box_Shadow_Of (R : Value_Ref) return Box_Shadow_Value is
+     (Shadow_Values.Get (Stored_Index (R)));
+
+   function Intern (V : Transition_Spec) return Value_Ref is
+     (Stored (Transition_Values.Intern (V)));
+   function Transition_Of (R : Value_Ref) return Transition_Spec is
+     (Transition_Values.Get (Stored_Index (R)));
+
+   ---------------------------------------------------------------------
+   --  The enumerations, which are their own reference.
+   ---------------------------------------------------------------------
+
+   function Intern (V : Display_Value) return Value_Ref is
+     (Immediate (Display_Value'Pos (V)));
+   function Display_Of (R : Value_Ref) return Display_Value is
+     (Display_Value'Val (Payload (R)));
+
+   function Intern (V : Overflow_Value) return Value_Ref is
+     (Immediate (Overflow_Value'Pos (V)));
+   function Overflow_Of (R : Value_Ref) return Overflow_Value is
+     (Overflow_Value'Val (Payload (R)));
+
+   function Intern (V : Cursor_Value) return Value_Ref is
+     (Immediate (Cursor_Value'Pos (V)));
+   function Cursor_Of (R : Value_Ref) return Cursor_Value is
+     (Cursor_Value'Val (Payload (R)));
+
+   function Intern (V : Text_Align_Value) return Value_Ref is
+     (Immediate (Text_Align_Value'Pos (V)));
+   function Text_Align_Of (R : Value_Ref) return Text_Align_Value is
+     (Text_Align_Value'Val (Payload (R)));
+
+   function Intern (V : Text_Wrap_Mode_Value) return Value_Ref is
+     (Immediate (Text_Wrap_Mode_Value'Pos (V)));
+   function Text_Wrap_Mode_Of (R : Value_Ref) return Text_Wrap_Mode_Value is
+     (Text_Wrap_Mode_Value'Val (Payload (R)));
+
+   function Intern (V : Font_Weight_Value) return Value_Ref is
+     (Immediate (Font_Weight_Value'Pos (V)));
+   function Font_Weight_Of (R : Value_Ref) return Font_Weight_Value is
+     (Font_Weight_Value'Val (Payload (R)));
+
+   function Intern (V : Flex_Direction_Value) return Value_Ref is
+     (Immediate (Flex_Direction_Value'Pos (V)));
+   function Flex_Direction_Of (R : Value_Ref) return Flex_Direction_Value is
+     (Flex_Direction_Value'Val (Payload (R)));
+
+   function Intern (V : Justify_Content_Value) return Value_Ref is
+     (Immediate (Justify_Content_Value'Pos (V)));
+   function Justify_Content_Of (R : Value_Ref) return Justify_Content_Value is
+     (Justify_Content_Value'Val (Payload (R)));
+
+   function Intern (V : Align_Items_Value) return Value_Ref is
+     (Immediate (Align_Items_Value'Pos (V)));
+   function Align_Items_Of (R : Value_Ref) return Align_Items_Value is
+     (Align_Items_Value'Val (Payload (R)));
+
+   -------------------------------------------------
+   -- Folding a named property into a rule set
+   -------------------------------------------------
+
+   procedure Apply_Property
+     (S : in out Style_Rules; P : CSS_Property; R : Value_Ref) is
+   begin
+      case P is
+         when Prop_Color =>
+            S.Color := Set (Color_Of (R));
+         when Prop_Background_Color =>
+            S.Background_Color := Set_Bg (Color_Of (R));
+         when Prop_Border_Radius =>
+            S.Border_Radius := Set (Border_Radius_Of (R));
+         when Prop_Border_Width =>
+            S.Border_Width := Set (Border_Width_Of (R));
+         when Prop_Border_Color =>
+            S.Border_Color := Set (Border_Color_Of (R));
+         when Prop_Border_Style =>
+            S.Border_Style := Set (Border_Style_Of (R));
+         when Prop_Outline_Width =>
+            S.Outline_Width := Set_Outline_Width (Length_Of (R));
+         when Prop_Outline_Color =>
+            S.Outline_Color := Set_Outline_Color (Color_Of (R));
+         when Prop_Outline_Offset =>
+            S.Outline_Offset := Set_Outline_Offset (Length_Of (R));
+         when Prop_Padding =>
+            S.Padding := Set (Box_Of (R));
+         when Prop_Margin =>
+            S.Margin := Set_Margin (Box_Of (R));
+         when Prop_Width =>
+            S.Width := Set (Size_Of (R));
+         when Prop_Height =>
+            S.Height := Set (Size_Of (R));
+         when Prop_Min_Width =>
+            S.Min_Width := Set (Size_Of (R));
+         when Prop_Max_Width =>
+            S.Max_Width := Set (Size_Of (R));
+         when Prop_Min_Height =>
+            S.Min_Height := Set (Size_Of (R));
+         when Prop_Max_Height =>
+            S.Max_Height := Set (Size_Of (R));
+         when Prop_Font_Size =>
+            S.Font_Size := Set_Font (Length_Of (R));
+         when Prop_Font_Weight =>
+            S.Font_Weight := Set (Font_Weight_Of (R));
+         when Prop_Text_Align =>
+            S.Text_Align := Set (Text_Align_Of (R));
+         when Prop_Text_Wrap_Mode =>
+            S.Text_Wrap_Mode := Set (Text_Wrap_Mode_Of (R));
+         when Prop_Display =>
+            S.Display := Set (Display_Of (R));
+         when Prop_Overflow_X =>
+            S.Overflow_X := Set (Overflow_Of (R));
+         when Prop_Overflow_Y =>
+            S.Overflow_Y := Set (Overflow_Of (R));
+         when Prop_Opacity =>
+            S.Opacity := Set (Opacity_Of (R));
+         when Prop_Cursor =>
+            S.Cursor := Set (Cursor_Of (R));
+         when Prop_Box_Shadow =>
+            S.Box_Shadow := Set (Box_Shadow_Of (R));
+         when Prop_Flex_Direction =>
+            S.Flex_Direction := Set (Flex_Direction_Of (R));
+         when Prop_Justify_Content =>
+            S.Justify_Content := Set (Justify_Content_Of (R));
+         when Prop_Align_Items =>
+            S.Align_Items := Set (Align_Items_Of (R));
+         when Prop_Gap =>
+            --  One field carries both axes, so a value naming one axis
+            --  overlays it and leaves the other as it was, and a value
+            --  naming both replaces it. Adi.CSS_Parser reads row-gap and
+            --  column-gap the same way, so a chain and a sheet agree.
+            S.Gap :=
+              (if Opt_Gap.Is_Set (S.Gap)
+               then Set (Overlay (S.Gap.Value, Gap_Of (R)))
+               else Set (Gap_Of (R)));
+         when Prop_Flex_Grow =>
+            S.Flex_Grow := Set (Flex_Grow_Of (R));
+         when Prop_Flex_Shrink =>
+            S.Flex_Shrink := Set (Flex_Shrink_Of (R));
+         when Prop_Transition =>
+            S.Transition := Set (Transition_Of (R));
+         when others =>
+            Adi.Log.Error
+              ("no composed form for CSS property " & CSS_Property'Image (P));
+      end case;
+   end Apply_Property;
+
+   procedure Clear_Property (S : in out Style_Rules; P : CSS_Property) is
+   begin
+      case P is
+         when Prop_Color            => S.Color := Opt_Text_Color.Cleared;
+         when Prop_Background_Color => S.Background_Color := No_Bg_Color;
+         when Prop_Border_Radius    => S.Border_Radius := No_Radius;
+         when Prop_Border_Width     => S.Border_Width := No_Border_Width;
+         when Prop_Border_Color     => S.Border_Color := No_Border_Color;
+         when Prop_Border_Style     => S.Border_Style := No_Border_Style;
+         when Prop_Outline_Width  => S.Outline_Width := Opt_Outline_Width.Cleared;
+         when Prop_Outline_Color  => S.Outline_Color := Opt_Outline_Color.Cleared;
+         when Prop_Outline_Offset =>
+            S.Outline_Offset := Opt_Outline_Offset.Cleared;
+         when Prop_Padding          => S.Padding := No_Box;
+         when Prop_Margin           => S.Margin := No_Margin;
+         when Prop_Width            => S.Width := Opt_Size.Cleared;
+         when Prop_Height           => S.Height := Opt_Size.Cleared;
+         when Prop_Min_Width        => S.Min_Width := Opt_Size.Cleared;
+         when Prop_Max_Width        => S.Max_Width := Opt_Size.Cleared;
+         when Prop_Min_Height       => S.Min_Height := Opt_Size.Cleared;
+         when Prop_Max_Height       => S.Max_Height := Opt_Size.Cleared;
+         when Prop_Font_Size        => S.Font_Size := Opt_Font_Size.Cleared;
+         when Prop_Font_Weight      => S.Font_Weight := Opt_Font_Weight.Cleared;
+         when Prop_Text_Align       => S.Text_Align := Opt_Text_Align.Cleared;
+         when Prop_Text_Wrap_Mode =>
+            S.Text_Wrap_Mode := Opt_Text_Wrap_Mode.Cleared;
+         when Prop_Display          => S.Display := Opt_Display.Cleared;
+         when Prop_Overflow_X       => S.Overflow_X := Opt_Overflow.Cleared;
+         when Prop_Overflow_Y       => S.Overflow_Y := Opt_Overflow.Cleared;
+         when Prop_Opacity          => S.Opacity := Opt_Opacity.Cleared;
+         when Prop_Cursor           => S.Cursor := Opt_Cursor.Cleared;
+         when Prop_Box_Shadow       => S.Box_Shadow := Opt_Box_Shadow.Cleared;
+         when Prop_Flex_Direction   => S.Flex_Direction := Opt_Flex_Dir.Cleared;
+         when Prop_Justify_Content  => S.Justify_Content := Opt_Justify.Cleared;
+         when Prop_Align_Items      => S.Align_Items := Opt_Align_Items.Cleared;
+         when Prop_Gap              => S.Gap := Opt_Gap.Cleared;
+         when Prop_Flex_Grow        => S.Flex_Grow := Opt_Flex_Grow.Cleared;
+         when Prop_Flex_Shrink      => S.Flex_Shrink := Opt_Flex_Shrink.Cleared;
+         when Prop_Transition       => S.Transition := Opt_Transition.Cleared;
+         when others =>
+            Adi.Log.Error
+              ("no composed form for CSS property " & CSS_Property'Image (P));
+      end case;
+   end Clear_Property;
+
 end Adi.CSS_Styles;

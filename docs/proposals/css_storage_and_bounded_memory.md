@@ -255,18 +255,24 @@ unit that declares the entity — measured both ways. So `Merge`, `Resolve`
 and `Prepared_Style_Entry.Base` keep naming `Style_Rules` in quiet, while a
 consumer reading it gets the warning and the message it carries.
 
-`Style_Rules` itself leaves with them. It stands today as what `Merge`,
-`Resolve` and `Prepared_Style_Entry.Base` are written over, and that holds
-while those three are field-by-field sweeps — 573 of the 591 sites that read
-the type by name. §3.5's descriptor table turns each of them into a loop over
-slots: merge is a linear merge of two property-sorted slot lists at 3.15
-entries a side where it compares 66 fields, resolve walks the rules' slots in
-cascade order, and inheritance becomes a column. Past that the record has no
-remaining job, so it goes rather than turning internal.
+`Style_Rules` stopped being what the library stores. A `Rules_Handle` names a
+slot list, one eight-byte slot per value a rule set carries, keyed on a
+property and a part so that a value cascading on its own has a slot of its
+own. `Merge` walks two ordered lists knowing no value type, `Set_Properties`
+reads the keys, `Inherit_From` walks the same lists against
+`Inheritable_Properties`, and `Inherit_Property` is gone — which settles §6's
+item by leaving one statement of the policy where there were two, and
+`Visibility` inherits. `Hash` reads the slots where it read 66 fields through
+a digest per value type.
 
-That settles §6's `Inheritable_Properties` item along the way. The policy is
-stated in two hand-written places today, which is what lets them disagree over
-`Visibility`; a table column states it once.
+What the record still is: the aggregate an author writes, the form the parser
+fills and `Slots_Of` carries in, and what `Resolve` reads. The first leaves
+with `pragma Obsolescent` above. The second is where the parser's 573
+field-by-field sites live, and they stay until the parser builds slots
+directly. The third is a standing question rather than a leftover — `Resolve`
+writes 66 concrete fields into a `Resolved_Style`, so something has to name
+properties one at a time, and §3.5 records why that something is a `case`
+rather than a table.
 
 `Resolved_Style` stays fat and concrete: it is the read path, 66 values that
 layout, rendering and the widget implementations reach by name, and §4.4
@@ -319,24 +325,39 @@ back. `Inherit_Property`, `Copy_Property`, `Property_Differs`,
 `Interpolate` snap set already carry that shape, and the pin is on
 `CSS_Property'Last`.
 
-A `constant array (CSS_Property) of Property_Descriptor` would replace the
-three sweeps still written as aggregates — `Merge`, `Set_Properties`,
-`Resolve`. Each property carries a different `Optional` instance, so every
-row needs subprograms of one profile over `Style_Rules`: some 396 of them
-in place of three aggregates the compiler already checks. More code for
-less checking, so the sweeps stay as they are.
+A `constant array (CSS_Property) of Property_Descriptor` would need
+subprograms of one profile over `Style_Rules`, since each property carries a
+different `Optional` instance: some 396 of them in place of three aggregates
+the compiler already checks. More code for less checking, so no table.
+
+That argument is about operating on the record, and says nothing about
+storing it. Storing a slot list instead retires three of the six sweeps
+outright: keyed on a property and a part, override-wins-per-key *is* the
+element-wise fold the side longhands need, so `Merge` walks two ordered lists
+knowing no value type, `Set_Properties` reads the keys, and `Inherit_From`
+walks the same lists against a set that already exists. `Inherit_Property`
+leaves with them.
+
+What stays is the shape, not the table: per-property behaviour belongs in a
+`case P is` over `CSS_Property` with no `others`, and `Slots_Of`, `Rules_Of`,
+`Apply_Property` and `Clear_Property` carry it. `Resolve` reads through
+`Rules_Of` on a resolved-memo miss, which is one conversion off the hot path
+against restating every property's default and fold a third time.
 
 Two shapes cover 55 of the 66: a scalar `Optional<T>`, and a per-side or
 per-corner group folded element-wise.
 
-Four carry behaviour a uniform shape does not:
+Four read as carrying behaviour a uniform shape does not, and a key of
+property-and-part dissolves all four: `Gap` is two axis keys, so a rule naming
+`row-gap` preserves an earlier `column-gap` by the ordinary fold;
+`Grid_Column_Tracks` is a part beside its column count; `Prop_Overflow` is
+never stored, a rule set holding its two axes; and `Font_Family` resolving to
+a `Font_Handle` is a `Resolve`-time concern rather than a merge-time one.
 
-| Property | Reason |
-|---|---|
-| `Gap` | axis-wise overlay, so a rule naming `row-gap` preserves an earlier `column-gap` |
-| `Grid_Column_Tracks` | a bare `Grid_Track_List`, merged on `Count > 0` |
-| `Font_Family` | resolves to a different type, `Font_Handle`, through `Font_Name_Resolver` |
-| `Prop_Overflow` | a shorthand literal, carried by the `Overflow_X` and `Overflow_Y` axes |
+An axis of `Gap` has no cleared state of its own — the flags carry
+named-or-not, and cleared belongs to the optional around them — so a rule
+clearing `gap` under a rule naming one axis collapses to the named one, which
+is what `Merge_Gap` answered before the slots did.
 
 `Visibility` is an ordinary inheritable property of the part cascade. It
 travels a second axis in `Adi.Window.Resolve_Effective_Visibility`, which
@@ -1333,6 +1354,11 @@ leaks, the layout-cache key, reading a sheet without interning, a byte budget
 on the memo kinds, and store occupancy in `perf_stats`. It stands apart from
 the storage steps — what it settles is how long an entry lives, where those
 settle how wide one is.
+
+**Step 2c — a rule set as its slots.** §3.5's second half. It follows the
+composer, since the slot it stores is the slot a chain carries, and it stands
+ahead of §3.3: the aggregate can leave the authoring surface only once every
+property has a chain step and the store holds no `Style_Rules`.
 
 **Step 3 — composition.** Section 4.6's pool lands first, taking the
 animation scratch with it, since it stands alone and both users want it.
